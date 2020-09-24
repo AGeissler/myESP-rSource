@@ -1,8 +1,8 @@
 C This file is part of the ESP-r system.
 C Copyright Energy Systems Research Unit, University of
-C Strathclyde, Glasgow Scotland, 2001.
+C Strathclyde, Glasgow Scotland, 2001-.
 
-C ESP-r is free software.  You can redistribute it and/or
+C ESP-r is free software. You can redistribute it and/or
 C modify it under the terms of the GNU General Public
 C License as published by the Free Software Foundation 
 C (version 2 orlater).
@@ -13,10 +13,6 @@ C warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
 C PURPOSE. See the GNU General Public License for more
 C details.
 
-C You should have received a copy of the GNU General Public
-C License along with ESP-r. If not, write to the Free
-C Software Foundation, Inc., 59 Temple Place, Suite 330,
-C Boston, MA 02111-1307 USA.
 
       program mld
       USE START_UP
@@ -244,23 +240,23 @@ C Open the session file.
 C Initialise the ststistical results
       imstat=0
 
-  2   head='mould growth main menu'
+  2   head='mould growth options'
       ino=-1
-      item(1)='a Select mould species '
+      item(1)='a mould species '
       item(2)='  ---------------      '
       if(imstat.eq.0) then
-        item(3)='c Statistics >> OFF  '
+        item(3)='c statistics >> OFF  '
       else
-         item(3)='c Statistics >> ON  '
+         item(3)='c statistics >> ON  '
       endif
-      item(4)='d Graphs               '
+      item(4)='d graphs               '
       item(5)='                       '
       item(6)='---------------        '
-      item(7)='? Help                 '
-      item(8)='- Exit                 '
+      item(7)='? help                 '
+      item(8)='- quit module          '
       nitem=8
 
-C Use askabout to instanciate the initial help messages (2nd parameter is one).
+C Use askabout to instantiate the initial help messages (2nd parameter is one).
       call askabout('mld ',1)
 
       call emenu(head,item,nitem,ino)
@@ -368,7 +364,7 @@ C Depending on computer type set integer size of passed parameters.
 
       subroutine chgzonpik(jizgfoc,jnzg)
 #ifdef OSI
-      integer jizgfoc,jnzg  ! for use with viewtext
+      integer jizgfoc,jnzg    ! for use with viewtext
 #else
       integer*8 jizgfoc,jnzg  ! for use with viewtext
 #endif
@@ -469,10 +465,9 @@ C Should be the same logic as in esru_x.c.
       return
       end
 
-C ************************* EMF3DREAD 
-C EMF3DREAD reads a 3D mass flow network description file.
-C Reads allow comments and most input data checks are performed.
-C It assumes that the file is already open.
+C ******************** EMF3DREAD ********************
+C Read a 3D mass flow network description file.
+
       SUBROUTINE EMF3DREAD(IFPRB,MODE,IER)
       integer IFPRB
       character MODE*1

@@ -13,21 +13,10 @@ C warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
 C PURPOSE. See the GNU General Public License for more
 C details.
 
-C You should have received a copy of the GNU General Public
-C License along with ESP-r. If not, write to the Free
-C Software Foundation, Inc., 59 Temple Place, Suite 330,
-C Boston, MA 02111-1307 USA.
 
-C ************* mfs
-
-C Mfs simulates fluid flows in building & plant configurations.
-
-C For details on mfs's theoretical basis see publications listed
-C at the following Web site:
-
-C http://www.esru.strath.ac.uk
-
-C Mfs solves a network representing one-dimensional fluid
+C ************* Program mfs *************
+C Simulates fluid flows within building & plant configurations.
+C Solves a network representing one-dimensional fluid
 C flow in building and/or plant configurations.
 C This involves the calculation of fluid flow through branches and nodes
 C in a network which represents a building and/or plant configuration.
@@ -37,19 +26,13 @@ C Mfs uses an iterative mass balance approach in which nodal
 C pressures (of unknown-pressure nodes) are adjusted until the mass
 C residual of each internal node satifies some criterion.
 
-C This is the main program which initializes the user terminal,
-C initializes IEEE error handling
-C controls common initialization
-C displays the main menu and controls the main program flow.
-
-C All global COMMON variables are described in emfnetw.F.
-
-C Local variables in this module are:
+C Local variables are:
 C     IUOUT  - write unit (standard output).
 C     IUIN   - read  unit (standard input).
 C     IMFTU  - write unit for fluid flow calculation trace information.
 C     ICOUT  - write unit for (non-fatal) warning messages.
 C     MMOD   - determines the device type attached to the current job.
+C All global COMMON variables are described in emfnetw.F.
 
       program mfs
       USE START_UP
@@ -441,7 +424,7 @@ C Let the user pick a menu item.
       ITEM(18)='- Finish mfs           '
       NITMS=18
 
-C Use askabout to instanciate the initial help messages (2nd parameter is one).
+C Use askabout to instantiate the initial help messages (2nd parameter is one).
    12 call askabout('mfs ',1)
 
       CALL EMENU('network flow solver',ITEM,NITMS,INO)
@@ -596,8 +579,8 @@ C Toggle delimeter.
         helptopic='mfs_tabular_delimeters'
         call gethelptext(helpinsub,helptopic,nbhelp)
         IWM=1
-        CALL EASKATOG('Delimeter to use between columns of data:',' ',
-     &    'normal spaces','single space','tab','comma','continue',' ',
+        CALL EASKATOG(' ','Columns delimeter:',
+     &    'multiple spaces','single space','tab','comma','cancel',' ',
      &    ' ',IWM,nbhelp)
         if(iwm.eq.1)then
           delim = '-'
@@ -619,17 +602,17 @@ C Set up and do actual simulation; first read problem description file
 C If not OK, or if not network data available go back to menu.
    30 CALL MFLOAD(IFPRB,IER)
       IF(IER.NE.0)THEN
-        CALL USRMSG(' Problem encountered while loading the',
-     &              ' mass flow network description. ','W')
+        CALL USRMSG('Problem encountered while loading the',
+     &              'mass flow network description.','W')
         GOTO 10
       ENDIF
       IF(NNOD.LT.2.OR.NCMP.LT.1.OR.NCNN.LT.1)THEN
-        CALL USRMSG(' There do not appear to be sufficient nodes and',
-     &  ' connections available to create a network. ','W')
+        CALL USRMSG('Insufficient nodes and connections',
+     &  'to create a network.','W')
         GOTO 10
       ENDIF
 
-c Call control subroutine MZCSTR
+c Call control subroutine.
       IER=0
       CALL MZCSTR(ier)
       IF(IER.EQ.1)GOTO 10

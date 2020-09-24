@@ -1,7 +1,7 @@
 *help_text prj
 
 *item prj prj_intro
-'This module of ESP-r assists with the manipulation of model,'
+'The ESP-r Poject Manager assists with the manipulation of models,'
 'including creation from scratch, continuing with an incomplete'
 'model or editing an existing model. Example models are offered'
 'to support learning or to serve as a starting point in a new project.
@@ -10,7 +10,7 @@
 'at <www.esru.strath.ac.uk/publications.htm>. There is also a'
 'users forum: see <www.esru.strath.ac.uk/Programs/user_club.htm>.'
 ' '
-'Experience users can list the Project Manager invocation options'
+'The start-up functionality of the Project Manager may be determined'
 'by typing <ESP-r -help> at the command line prompt.'
 *enditem
 
@@ -2824,7 +2824,7 @@ Please convert any bitmap file representing the buidling plan'
 *enditem
 
 *item EDSITE context_overview_menu
-'This menu has facilities to define the context of the model.'
+'This menu allows editing of parameters relating to the model context.'
 '  '
 ' If you alter the site location values you will be asked'
 ' if you want to recalculate shading and/or insolation'
@@ -4274,17 +4274,12 @@ Please convert any bitmap file representing the buidling plan'
 *enditem
 
 *item edcfg submenu_plant_options
-'There are two options for plant network models: simple (idealised)'
-'and detailed (explicit).'
-' '
-'The simple model supports four basic heating modes (furnace,'
-'(baseboard, ASHP and GSHP). These are linked to building zones'
-'via ideal control laws. There is no requirement to define the'
-'plant network in detail.'
+'An idealised plant model requires the selection of a pre-constructed'
+'definition which is linked to building zones via ideal control laws.'
 '  '
-'The detailed model requires an explicit definition of the'
-'interconnected components (boilers, pipes, radiators etc. as'
-'located in the plant components database) and the control actions.'
+'An explicit model requires the definition of a network formed by'
+'interconnecting components (selected from those contained in the'
+'plant components database) and imposing control actions.'
 *enditem
 
 *item edcfg submenu_flow_options
@@ -4308,12 +4303,50 @@ Please convert any bitmap file representing the buidling plan'
 'zone flows can be evaluated by a combination of solvers.'
 ' '
 'Flow networks may be defined by selecting components from a menu'
-'or by graphical manipulation of icons in a grid. New networks are'
-'defined via icons, however existing networks are not converted.'
+'[legacy network' or created by scanning surface USE atrribures '
+'[via the 3D network].'
 ' '
 'If you have created nodes that are not yet linked to a thermal'
 'zone you will be asked to confirm the link manually for each'
 'of the zones in the model.'
+*enditem
+
+*item edcfg define_flow_via_USE
+'The choice [graphics tool] uses an icon-based 2D representation'
+'of a network. [scan of surface USE] scans the model for user iden-'
+'tified places where air-might-move and requests additional input'
+'from the user e.g. hights of door undercuts and volume flow rates.'
+' '
+'If you choose the surface USE method please have the following'
+'included in your model:'
+'a) If you have facade openings that might be controlled ensure your'
+'   model already has a control file.'
+'b) If will use zones such as water filled radiators or mixing boxes'
+'   ensure they exist prior to invoking the USE facility.'
+'If there are DOOR:UNDERCUTs in the model have notes about the height'
+'of the undercut.'
+'If there are DOOR:OPEN FICT:OPEN or GRILL:OPEN decide in advance if'
+'the full surface area is open. For many types of window WINDOW:OPEN'
+'is a fraction of the surface area.'
+'If there are GRILL:INLET or GRILL:EXTRACT have m^3/hr or m^3/s values'
+'available.'
+*enditem
+
+*item edcfg flow_opening_ctl
+'You have the option to apply a control pattern to all of the openings'
+'in the facade. For example to force all openings to be OPEN or open'
+'only above a specific zone temperature. The choices are:'
+' '
+' Always closed - creates flow controls with OPEN below zero degrees'
+' Always open - creates flow control with OPEN above zero degrees'
+' Open above X or Open below X - asks for a setpoint temperature'
+' Range based - similar to scheduled controls - three setpoints and'
+'   three ratios.'
+'  Natural ventilation - a multi-sensor control with two ambient temps'
+'   and two zone temperatures. If conditions are within this range then'
+'   it is OPEN or ON.'
+' Do not control - creates no flow control entries as surface USE are'
+'   scanned.'
 *enditem
 
 *item edcfg password_is_needed
@@ -5867,63 +5900,16 @@ Please convert any bitmap file representing the buidling plan'
 *enditem
 
 *item EDDBCLM clm_db_manage
-'Climate databases are hourly sets of values from '
-'1h00 on 1 Jan to 24h00 on 31 December.  For each hour'
-' the following data is held:'
+'Weather files contain sets of hourly values from 1h00 on'
+'1 January to 24h00 on 31 December. For each hour the following'
+'data are held.'
 ' '
-'  Diffuse horizontal solar intensity (W/m^2)'
-'  Dry bulb temp. (tenths of degree C ie. 102 = 10.2C)'
-'  Direct normal or global horiz. solar intensity (W/m^2)'
-'  Wind speed (tenths m/s ie. 15 = 1.5 m/s)'
-'  Wind direction (degrees from north, clockwise)'
-'  Relative humidity (percent)'
-' '
-'The following options can be selected:'
-' '
-'a) If the file exists than you can browse the database and if you'
-'   have permission to update the file you can edit the contents.'
-' '
-'b) select another file: you will presented with a list of'
-'   available climate files. One of the options is user-defined'
-'   where you can supply a file name and if it is found you'
-'   can browse or edit it.'
-' '
-'c) make a new database: will create a file full of zeros which you'
-'   can then optn in the clm module for editing.'
-'   Alternatively in the list of available climate files choose'
-'   user-defined a new database will be created based on the name'
-'   you supply. This starts up the clm module where you can enter'
-'   data or import data from EPW of Korea Met office files.'
-' '
-'d) copy default database: a project copy of the default database'
-'   will be made and you will be offered a chance to rename it.'
-' '
-'e) convert binary file to an (esp-r) ascii file (typically for'
-'   transport between machine types).'
-' '
-'f) convert ascii (esp-r) climate file to a binary suitable to '
-'   the current computer.'
-' '
-'g) convert an EPW file (which has been check as per the'
-'   EPW_readme instructions) to an esp-r binary weather file.'
-'  '
-'After conversion you are asked to confirm the weather file latitude'
-'and longitude (this is often stated as the difference in degrees'
-'from the local time meridian but some weather file sources are in'
-'actual longitude) as well as the climate year. The weather file'
-'documentation should make the longitude value clear. Typically one'
-'would use a weather file which is close to the site of your building.'
-'  '
-'The year associated with a model primarily tells the simulator'
-'what day of the week is 1 January. '
-' '
-'IF YOU CHANGE the model year remember to save your model'
-'before you exit the project manager. '
-' '
-'The choice is year impacts the day of the week for 1 January.'
-'It also will alter the day type associated with days in the'
-'model calendar which are of the standard default'
-'weekday/saturday/sunday (but not user defined day types).'
+'Diffuse horizontal solar intensity (W/m^2)'
+'Dry bulb temperature (tenths C, e.g. 10.2C = 102)'
+'Direct normal or global orizontal solar intensity (W/m^2)'
+'Wind speed (tenths m/s, e.g. 1.5 m/s = 15)'
+'Wind direction (degrees from north, clockwise +ve)'
+'Relative humidity (%)'
 *enditem
 
 *item EDDBMSC misc_db_manage
@@ -7555,7 +7541,7 @@ Please convert any bitmap file representing the buidling plan'
 '   as well as the name of the construction which will use or be'
 '   created to use this optical data.'
 '  '
-'2) In the Database Maintenance facility of prj make sure there'
+'2) In the Database Management facility of prj make sure there'
 '   is a local optical and construction database for your model.'
 '  '
 '3) Browse the optical properties database: optica properties ->'
@@ -7697,7 +7683,7 @@ For the purposes of ESP-r, the use of WIS is focused on the'
 '   as well as the name of the construction which will use or be'
 '   created to use this optical data.'
 '  '
-'2) In the Database Maintenance facility of prj make sure there'
+'2) In the Database Management facility of prj make sure there'
 '   is a local optical and construction database for your model.'
 '  '
 '3) Browse the optical properties database: optica properties ->'
@@ -7969,7 +7955,7 @@ For the purposes of ESP-r, the use of WIS is focused on the'
 'See the ESP manual for additional info.'
 ' '
 'It is also possible to calculate pressure coefficients using'
-'CpCalc (see database maintenance).'
+'CpCalc (see database management).'
 ' '
 'Select the pressure coefficient from this list, which is most'
 'appropriate for the location of the ducted wind turbine.'
@@ -9274,11 +9260,10 @@ For the purposes of ESP-r, the use of WIS is focused on the'
 *enditem
 
 *item pregist cfg_model_images
-'You can add images depicting different aspects to a model'
-'description such as its geometry, flow networks, simulation'
-'results and the like. Such images will be located in the'
-'models [images] folder. Images may be added at any time'
-'via the [model context->images] menu option.'
+'You can add images depicting different aspects to a model,'
+'such as its composition and various performance outcomes.'
+'Such images are located in the model's `images` folder'
+'and these may be added to aas requred.'
 *enditem
 
 *item pregist cfg_latitude_longitude
@@ -9302,12 +9287,11 @@ For the purposes of ESP-r, the use of WIS is focused on the'
 *item pregist cfg_model_other
 'Other site parameters, such as ground reflectivity and wind'
 'exposure, have been automatically set to default values and'
-'these may be viewed/ changed via the [browse/ edit/ simulate]'
-'option of the [model management] menu.'
+'these may be changed via the `browse/ edit/ simulate` option'
+'of the `model management` menu.'
 ' '
-'Hint: If you wish to define additional day types (e.g. for'
-'public holidays) do this before defining control schedules,'
-'occupancy etc.'
+'Should you wish to define additional day types (e.g. for public'
+'holidays), do this before defining ocupancy or control schedules.'
 *enditem
 
 *item refocus warn_restart
@@ -11370,7 +11354,7 @@ For the purposes of ESP-r, the use of WIS is focused on the'
 'buildings. See the ESP manual for additional information.'
 ' '
 'It is also possible to calculate pressure coefficients'
-'using CpCalc (see database maintenance).'
+'using CpCalc (see database management).'
 ' '
 'Select the pressure coefficient from this list which is'
 'most appropriate for the location of the boundary node.'
@@ -12088,6 +12072,101 @@ Another mode is to scan the zone operations file and to compose'
 ' Component one is active above control action 1'
 ' Component two is active between control action 1 and 2'
 ' Component three is active below control action 2'
+*enditem
+
+*item mfcompposition comp_position
+'Flow components have an X Y Z position in space. It can inherit'
+'this from an associated surface or the information can be supplied'
+'by the user. An accurate Z is needed for stack flows.'
+*enditem
+
+*item mfnodeposition node_position
+'Flow nodes have an X Y Z position in space. It can inherit'
+'this from an associated zone COG or the information can be'
+'supplied by the user. Boundary nodes are often offset from'
+'a facade components position. An accurate Z is needed for'
+'stack flows.'
+*enditem
+
+*item scan_flow_use confirm_network_files
+'Two flow network files are created based on the current model'
+'root name. The first is a legacy text based file, typically with'
+'a name ending in .afn. The second is one with additional position'
+'attributes and links back to the model geometry files, typically'
+'with a name ending in .3dafn.'
+*enditem
+
+*item scan_flow_use link_node_to_zone
+'After the automated creation of a flow network you are asked to'
+'confirm the linkage between named flow nodes and named thermal'
+'zones. Normally the names will match and a YES is indicated.'
+'If there is no match you have the option to pick a zone from the'
+'model.'
+*enditem
+
+*item create_s_node_cmp tricklet_vent_attributes
+'A trickle vent is represented as a common orifice. The width'
+'is derived from the width of the surface but limited to 400-800mm.'
+'The heiht is assumed to be 15mm and the default discharge factor'
+'is 0.34 (based on calibrations with common mfg data).'
+'You can nominate an alternatives.'
+*enditem
+
+*item create_s_node_cmp grill_inlet_attributes
+'Surfaces marked as USE GRILL:INLET can either be a volume flow'
+'rate component or a conduit.'
+' Volume flow rate needs a nominal flow rate and you can input'
+' this via editing or converting from m^3/hr or based on a node'
+' volume.'
+' Conduit - it will calculate a hydrolic diameter based on the'
+' surface shape. It will default for the local loss factors and'
+' smoothness as well as assuming a 1m length.'
+'If the associated surface connection is to another zone then'
+'you have the option to accept that as the source node or select'
+'another.'
+*enditem
+
+*item create_s_node_cmp grill_extract_attributes
+'Surfaces marked as USE GRILL:EXTRACT are assumed to be constant'
+'volume flow rate components. You are asked for a volume flow rate.'
+'If the associated surface connection is to another zone then'
+'you have the option to accept that as the destination node or select'
+'another.'
+*enditem
+
+*item create_s_node_cmp sash_attributes
+'Surfaces marked as USE WINDOW:SASH will create an upper and lower'
+'orifice as well as a parallel crack connection. You are asked for'
+'the height of each opening (the width is assumed to be the surface'
+'width..
+*enditem
+
+*item bidirfromsurfatr bidirectional_attributes
+'Surfaces marked as USE BIDIR or AJAR-BIDIR require a discharge'
+'coefficient. The width for BIDIR is the surface width and for'
+'AJAR-BIDIR a 100mm width is assumed. The surface height is used'
+'and the ajacent zone COG are used for the offset.
+*enditem
+
+*item orificefromsurfatr orifice_attributes
+'Several surface USE types resolve to common orifices. The position'
+'in space is derived from the surface but you are asked to confirm'
+'the discharge factor.'
+'In the case of DOOR:UNDERCUT you are asked for the height of the'
+'undercut. If the height is only 2-3mm then you may want to manually'
+'change this to a crack representation.'
+*enditem
+
+*item globalflowprefs menu_global_flowpref
+'Surfaces with USE attributes associated with flow may require'
+'additional data while the flow network is being created. You have'
+'the option to accept default values for various components (shown'
+'in the menu), specify values to be applied globally or signal that'
+'user confirmation is required for each item.'
+' '
+'It is possible to mix these directives e.g. set all facade cracks to'
+'1mm width whilst editing each orifice discharge factor. When you have'
+'completed your settings click on proceed.'
 *enditem
 
 *item MMGFUN ncm_assessment_period
@@ -12943,7 +13022,7 @@ Another mode is to scan the zone operations file and to compose'
 'Detailed information about the points on the facade '
 'where pressure coefficients are calculated should be '
 'defined in the pressure coefficients database of the'
-'database maintenence facility. '
+'database management facility. '
 ' '
 'Dimensional data requested'
 'The width (with no rotation) is along the x-axis.'
@@ -14625,7 +14704,7 @@ Another mode is to scan the zone operations file and to compose'
 '  to perturb (% or +- absolute increments).'
 '  '
 '2 One or more named physical locations in the model are defined e.g.'
-'  [facades] & [roof] each of which are linked to specific zones &'
+'  [facades] & [roof] each of which are linked to specific zones & '
 '  surfaces. Thermophysical properties & layer thickness & zone'
 '  operations need a zone location. Weather needs a temporal location.'
 '  '

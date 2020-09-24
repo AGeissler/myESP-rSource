@@ -13,10 +13,6 @@ C warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
 C PURPOSE. See the GNU General Public License for more
 C details.
 
-C You should have received a copy of the GNU General Public
-C License along with ESP-r. If not, write to the Free
-C Software Foundation, Inc., 59 Temple Place, Suite 330,
-C Boston, MA 02111-1307 USA.
 
 C Subroutines in prjfmk.F
 C PRJFMK: Creates and edits a zone operations file.
@@ -256,7 +252,7 @@ C Debug.
 
   5   MODOPR=.FALSE.
  
-C Instanciate for current day types prior to scanning the source operation file.
+C Instantiate for current day types prior to scanning the source operation file.
       DO 400 IDTY=1,NBDAYTYPE
         NAC(IDTY)=0
         NCAS(IDTY)=0
@@ -763,7 +759,7 @@ C and casual descriptions.
       ITEM(11)=             '  ----------------------------- '
       ITEM(12)=             '> save operations file          '
       ITEM(13)=             '? help                          '
-      ITEM(14)=             '- exit this menu                '
+      ITEM(14)=             '- exit menu'
       NITEMS=14
 
 C Help text for this menu.
@@ -1306,7 +1302,7 @@ C If a long list include page facility text.
       VERT(M+2) = '+ add/delete/copy/import flows '
       VERT(M+3) = '! list current information     '
       VERT(M+4) = '? help                         '
-      VERT(M+5) = '- exit this menu               '
+      VERT(M+5) = '- exit menu'
 
 C Help text for this menu.
       helptopic='air_flow_period_setup'
@@ -1681,7 +1677,7 @@ C If a long list include page facility text.
       VERT(M+2) = '+ add/delete/copy/import flows '
       VERT(M+3) = '! list current information     '
       VERT(M+4) = '? help                         '
-      VERT(M+5) = '- exit this menu               '
+      VERT(M+5) = '- exit menu'
 
 C Help text for this menu.
       helptopic=' air_flow_period_setup'
@@ -2454,7 +2450,7 @@ C then jump to 32 to read in the destination operations file.
         else
 
 C Read the source operations file from within the model and
-C if this is successful the instanciate the P2C and P2CTLC
+C if this is successful the instantiate the P2C and P2CTLC
           CALL EROPER(ITRC,IUOUT,IUO,isource,IER)
         endif
         if(ier.ne.0)then
@@ -3361,7 +3357,7 @@ C Initial menu entry setup.
 
 C Plot casual gains and set to fixed width menu font.
       if (MMOD.eq.8)then
-        write(6,'(a,3i2)') 'EDCAS IFS,ITFS,IMFS',IFS,ITFS,IMFS
+C        write(6,'(a,3i2)') 'EDCAS IFS,ITFS,IMFS',IFS,ITFS,IMFS
         lastmenufont=IMFS
         if(IMFS.eq.4) IMFS=0
         if(IMFS.eq.5) IMFS=1
@@ -3370,7 +3366,7 @@ C Plot casual gains and set to fixed width menu font.
         lastbuttonfont=IFS
         lasttextfont=ITFS
         call userfonts(IFS,ITFS,IMFS)
-        write(6,'(a,3i2)') 'EDCAS IFS,ITFS,IMFS',IFS,ITFS,IMFS
+C        write(6,'(a,3i2)') 'EDCAS IFS,ITFS,IMFS',IFS,ITFS,IMFS
       
         call PLTCASGN(ICOMP,idtyp)
       endif
@@ -3487,7 +3483,7 @@ C If a long list include page facility text.
       endif
       VERT(M+6)  ='! list current information     '
       VERT(M+7)  ='? help                         '
-      VERT(M+8)  ='- exit this menu               '
+      VERT(M+8)  ='- exit menu'
 
 C Help text for this menu.
       helptopic='operations_casual_menu'
@@ -3553,7 +3549,7 @@ C Increment the daytype focus.
         ITFS=lasttextfont
         IFS=lastbuttonfont
         call userfonts(IFS,ITFS,IMFS)
-        write(6,'(a,3i2)') 'EDCas IFS,ITFS,IMFS',IFS,ITFS,IMFS
+C        write(6,'(a,3i2)') 'EDCas IFS,ITFS,IMFS',IFS,ITFS,IMFS
         return
       ELSEIF(IVERT.EQ.(MVERT-1))THEN
         CALL PHELPD('gains menu',18,'-',0,0,IER)
@@ -4145,7 +4141,7 @@ C << and small power can be entered in terms of W/m2.
       ENDIF
  42   call usrmsg(' ',' ','-')
 
-C Instanciate the casual gain commons with data from the profile.
+C Instantiate the casual gain commons with data from the profile.
       NCAS(IDAY) = NCAS(IDAY) + NCG(INDEX)
       DO 140 I = 1,NCG(INDEX)
         ICGS(IDAY,I+IN) = ICGS1(INDEX,I)
@@ -4637,7 +4633,7 @@ C Get the electrical details of the load from the user
             goto 110
           else
 
-C No more cancels so instanciate the data for this period.
+C No more cancels so instantiate the data for this period.
             BVOLTX=bvoltt
             PWRX=PWRT
             IPFX=IPFT
@@ -5004,7 +5000,7 @@ C then jump to 32 to read in the destination operations file.
         else
 
 C Read the source operations file from within the model and
-C if this is successful then instanciate the P2C and P2CTLC
+C if this is successful then instantiate the P2C and P2CTLC
           CALL EROPER(ITRC,iuout,IUO,isource,IER)
           if(ier.ne.0)then
             call edisp(iuout,'Source operation file not clean...')
@@ -8108,7 +8104,7 @@ C spaces.
         endif
  399  CONTINUE
 
-C Instanciate initial documentation for air schedules and casual gains.
+C Instantiate initial documentation for air schedules and casual gains.
       if(igu.eq.8)then
         write(oprdesc(icomp),'(2a)')
      &  'Nothing happens in this zone i.e. no occupants lights ',

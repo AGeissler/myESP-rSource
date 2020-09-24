@@ -13,25 +13,15 @@ C warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
 C PURPOSE. See the GNU General Public License for more
 C details.
 
-C You should have received a copy of the GNU General Public
-C License along with ESP-r. If not, write to the Free
-C Software Foundation, Inc., 59 Temple Place, Suite 330,
-C Boston, MA 02111-1307 USA.
 
-C ************************ PROGRAM ********************************** 
-C ----------------------------------------------------------------------
-      program cdb
-C ----------------------------------------------------------------------
-C ***********************************************************************
-C The module cdb is the main controlling routine for the management of the components 
-C database. 
-C
+
+C ************************ PROGRAM cdb **********************************
+C Main controlling routine for the management of the components database.
 C The data structures used by the module is held in two include files:
 C   gencompDB.h  -  parameter specifications 
 C   gencompDB_common.h  -  common variables
 C  
 C The module uses the following routines. 
-C
 C   CDBDomainExplore  - presents a list of the technical domains in the database and
 C     allows user to manage those domains or 'drill down' further
 C     to categories.
@@ -74,6 +64,7 @@ C   CDBPsetList  -       Presents a list of parameter sets and returns a selecte
 C   CDBParamList -  Presents a list of parameters in a set and returns a selected parameter.
 C   CDBParamEdit -  Allows a user to edit the data associated with a specific parameter.
 
+      program cdb
       USE START_UP
 
 #include "building.h"
@@ -339,35 +330,35 @@ C File doesn't exist.
       ENDIF
 
 C Build main menu.
- 205  write(zitem(1),'(a,a)') 'a Database: ',LTMP(1:16)
-      zitem(2)=' Please select an option: '
+ 205  write(zitem(1),'(a,a)') 'a database: ',LTMP(1:16)
+      zitem(2)=' options: '
       zitem(3)='  ____________________    '
-      zitem(4)='c Create new database <na>'
-      zitem(5)='o Open a database         '
+      zitem(4)='c create new database <na>'
+      zitem(5)='o open a database         '
       zitem(6)=' '
       IF(CDBOPEN)THEN
-        zitem(7)='s Search the database <na>'
-        zitem(8)='e Explore/edit database   '
-        zitem(9)='x Export/Import data <na> '
+        zitem(7)='s search the database <na>'
+        zitem(8)='e edit database   '
+        zitem(9)='x export/import data <na> '
       ELSE
         zitem(7)='                          '
         zitem(8)='  [no database opened]    '
         zitem(9)='                          '
       ENDIF
       zitem(10)='  ____________________    '
-      zitem(11)='> Save                     '
-      zitem(12)='! Save as ...             '           
-      zitem(13)='? Help                    '
-      zitem(14)='- Finish cdb              '
+      zitem(11)='> save                    '
+      zitem(12)='! save as                 '           
+      zitem(13)='? help                    '
+      zitem(14)='- exit cdb                '
 
 C Display menu.
   210 NITEMS = 14
       INO = -5
 
-C Use askabout to instanciate the initial help messages (2nd parameter is one).
+C Use askabout to instantiate the initial help messages (2nd parameter is one).
 c      call askabout('pdb ',1)
 
-  220 CALL EMENU('  ESP-r components db',ZITEM,NITEMS,INO)
+  220 CALL EMENU('Components database',ZITEM,NITEMS,INO)
       IF(INO.EQ.NITEMS)then
 
 C Exit from program.

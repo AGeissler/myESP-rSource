@@ -13,24 +13,20 @@ C warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
 C PURPOSE. See the GNU General Public License for more
 C details.
 
-C You should have received a copy of the GNU General Public
-C License along with ESP-r. If not, write to the Free
-C Software Foundation, Inc., 59 Temple Place, Suite 330,
-C Boston, MA 02111-1307 USA.
 
-C edoptic.F contains facilities to edit and manipulate optical properties
-C databases:
-C  EDOPT:   High level select and control
+C This file contains facilities to edit and manipulate optical properties
+C databases.
+C  EDOPT:   High level select and control.
 C  EDITOPT: Edits one set of optical properties via common block. 
-C  EMKOPTD: Writes a item to the glazing optical database.
+C  EMKOPTD: Writes an item to the glazing optical database.
 C  OPT2ED:  Takes the current GOPT common and copies it into GOPTED.
 C  ED2OPT:  Takes the current GOPTED common and copies it back into GOPT.
 C  CLROPT:  Clears common block GOPTED and sets it up for a new set.
-C  IMPOPT:  Imports an optical set from LBL WINDOW 4.1, 5.1, 5.2 or v6
+C  IMPOPT:  Imports an optical set from LBL WINDOW V4.1, 5.1, 5.2 or 6.
 C  SETUPIES: Define/manage IES data files for passing to Radiance.
   
-C ************* EDOPT 
-C EDOPT Allow user to select and edit an optical type.
+C ************* EDOPT *************
+C Allow user to select and edit an optical type.
 C Because of only one set of optical properties is active
 C at any point in time it is necessary to use a temporary
 C file to manage the reading and saving of this db.
@@ -39,6 +35,7 @@ C file to manage the reading and saving of this db.
 #include "building.h"
 #include "epara.h"
 #include "esprdbfile.h"
+
 C esprdbfile.h supplies the following:
 C LAPRES,IAPRES (for window pressure database)
 C LOPTDB,IOPTDB (for optical database)
@@ -67,7 +64,7 @@ C LPRFDB,IPRODB (for event profile database)
       logical unixok  ! to check for database path file separators
       integer NITMS,INO ! max items and current menu item
 
-C For help messages
+C For help messages.
       character helpinsub*24 ! subroutine name
       character helptopic*24 ! string (unique) for topic
       integer nbhelp     ! number of help lines found
@@ -127,9 +124,9 @@ C If a long list include page facility text.
    15   FORMAT     ('0 -----Page: ',I2,' of ',I2,' -------')
       ENDIF
       OPTITM(M+2)=  '* import/add/delete/copy element '
-      OPTITM(M+3)=  '! list optical properties db     '
+      OPTITM(M+3)=  '! list optical properties db.    '
       OPTITM(M+4)=  '? help                           '
-      OPTITM(M+5)=  '- exit this menu                 '
+      OPTITM(M+5)=  '- exit menu                      '
       INO=-4
 
 C Help text for this menu.
@@ -652,10 +649,10 @@ C Warn user if reflectance is low or negative.
      &    ABED(IL,2),ABED(IL,3),ABED(IL,4),ABED(IL,5)
   44  CONTINUE
       nitms=13+NTLED+4
-      items(nitms-3) =  '  ___________________________ '
-      items(nitms-2) =  '1 add/delete/copy layer    '
-      items(nitms-1) =  '? help                        '
-      items(nitms) =  '- exit this menu                '
+      items(nitms-3) = '  ___________________________ '
+      items(nitms-2) = '1 add/delete/copy layer       '
+      items(nitms-1) = '? help                        '
+      items(nitms)   = '- exit menu                   '
 
 C (re)draw optical properties.
       IF(MMOD.EQ.8)THEN
@@ -1967,7 +1964,7 @@ C If a long list include page facility text.
       VERT(M+2)  ='! list types and associated surfaces  '
       VERT(M+3)  ='> save                                '
       VERT(M+4)  ='? help                                '
-      VERT(M+5)  ='- exit this menu                      '
+      VERT(M+5)  ='- exit menu                           '
 
 C Help text for this menu.
       helptopic='optical_bidirectional'
@@ -2160,9 +2157,6 @@ C Variant for non-unix
           lnrp=lnblnk(runpath)  ! remember this
         endif
       endif
-      write(outs,'(2a)') 'The place where rad will be invoked is ',
-     &   runpath(1:lnrp)
-      call edisp(iuout,outs)
 
 C Remind user what is currently known.
   42  if(nbofies.eq.0)then
@@ -2190,9 +2184,9 @@ C Create a menu showing what is already available.
 C << to be done... >>
 
 C Instruct users to place IES files in model rad folder
-      CALL EASKAB('If you have not already done so place the IES',
-     &  'data file in the model rad folder. Say ok when done.',
-     &  'proceed','abort',IW,0)
+      CALL EASKAB('If you have not already done so place the IES data',
+     &  'file in the model rad folder. Select ok when done.',
+     &  'ok','cancel',IW,0)
       if(IW.eq.2) return
 
 C Show list of files in rad folder.

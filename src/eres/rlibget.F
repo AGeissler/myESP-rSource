@@ -1701,11 +1701,11 @@ C     &    perocupl,perlightl,perequipl,perotherl,theonectld
 
     8 RETURN
  1000 if(IOS.eq.2)then
-        write(outs,'(a,i5,a)')
+        write(outs,'(a,i7,a)')
      &    'getallcas: no permission to read casual gains at record',
      &     IREC,'.'
       else
-        write(outs,'(a,i5,a)')
+        write(outs,'(a,i7,a)')
      &    'getallcas: error reading casual gains at record',IREC,'.'
       endif
       call edisp(iuout,outs)

@@ -13,22 +13,19 @@ C warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
 C PURPOSE. See the GNU General Public License for more
 C details.
 
-C You should have received a copy of the GNU General Public
-C License along with ESP-r. If not, write to the Free
-C Software Foundation, Inc., 59 Temple Place, Suite 330,
-C Boston, MA 02111-1307 USA.
 
 C This file contains the following routine:
-C    plttab: handles plant results view/setup requests
-C    selpc: displays a selection list of plant components
-C    opnplt: open and scan the plant database for names etc.
-C    dbdat: read additional output for a component.
-C    fnddat: finds IPC data for given time
-C    mosyssu: clears commons/ sets default values for systems plotting.
-C    SYSOUTP: display performance (tabular/graphic/stats) of components.
+C  plttab: handles plant results view/setup requests
+C  selpc: displays a selection list of plant components
+C  opnplt: open and scan the plant database for names etc.
+C  dbdat: read additional output for a component.
+C  fnddat: finds IPC data for given time
+C  mosyssu: clears commons/ sets default values for systems plotting.
+C  SYSOUTP: display performance (tabular/graphic/stats) of components.
 
 C ******************** PLTTAB ********************
-C PLTTAB handles results view/setup requests for plant.
+C Handles results view/setup requests for plant.
+
       subroutine plttab
 #include "plant.h"
       
@@ -70,7 +67,7 @@ C IPGETNO contains all the information needed for specifying which data to recov
 C IPGETNO(*,1): The IPGET number - metric identifier
 C << need to think of what indices are what >>
 C IPGETNO(*,2): The chosen component (meaning assumed from IPGET) in the
-C                case of climate data it gets used to set graphing colour.
+C               case of weather data it gets used to set graphing colour.
 C IPGETNO(*,3): The chosen node
 C IPGETNO(*,4): ?
 C IPGETNO(*,5): Result set number 
@@ -101,7 +98,6 @@ C this clash.
       integer IWM  ! for radio button
       integer NITMS,INO ! max items and current menu item
 
-C For help messages
       character helpinsub*24   ! subroutine name
       character helptopic*24 ! string (unique) for topic
       integer nbhelp     ! number of help lines found
@@ -111,7 +107,7 @@ C For help messages
 C Default value for GRTOOL file hourly flag = 0 (off).
       IHFLAG=0
 
-C Initialise variables
+C Initialise.
       ipc=1
       istat=0
       MNGET=1
@@ -123,7 +119,7 @@ C MNGET is the maximum number of metrics allowed to be chosen from the menu.
         MTITLE='Frequency histogram'
         MNGET=1
       elseif (MENUTYPE.eq.3) then
-        MTITLE='Time series plot'
+        MTITLE='Parameter plot'
         MNGET=MSYSRS-1
       elseif (MENUTYPE.eq.4) then
         MTITLE='Timestep listing'
@@ -235,14 +231,14 @@ C << Place toggle for ILFLAG here and revise menu >>
       endif
       ITEM(24)  ='/ clear selections     '
       ITEM(25)  ='? help                 '
-      ITEM(26)  ='- exit                 '
+      ITEM(26)  ='- exit menu            '
 
 C Display menu.
       NITMS=26
     2 INO=-2
     5 continue
 
-C Instanciate the help strings for this menu.
+C Instantiate the help strings for this menu.
       helptopic='res_plant_perf_menu'
       call gethelptext(helpinsub,helptopic,nbhelp)
 
@@ -261,8 +257,8 @@ C If one of the fixed items do what is required.
         CALL MOSTYLE
         if(menutype.eq.9)then
           call edisp(iuout,' ')
-          call edisp(iuout,'In psychrometric mode all that you can')
-          call edisp(iuout,'choose is option `! generate chart`.')
+          call edisp(iuout,'In psychrometric mode, you must')
+          call edisp(iuout,'choose `! generate chart`.')
         endif
         goto 7
       elseif(INO.EQ.20)then
@@ -321,6 +317,7 @@ C List or draw what has been selected.
 
 C Clear selections.
         call mosyssu
+        call edisp(iuout,' ')
         call edisp(iuout,'Previous selections cleared.')
         goto 7
       ELSEIF(INO.EQ.25)THEN
@@ -381,20 +378,19 @@ C Now display components menu
         mcomp(1)=indx
         ipcn =nnode(mcomp(1))
 
-
-c If selected component has more than one node, then get desired node.
+C If selected component has more than one node, then get desired node.
         if(ipcn.gt.1) then
-          write(outs,*)' Node number for component  ',
-     &      pcname(mcomp(1)),' ?'
-          CALL EASKI(nsnd,outs,' ',
-     &      1,'F',ipcn,'F',1,'node number',IER,1)
+          write(outs,*)'Node number for component ',
+     &      pcname(mcomp(1)),'?'
+          CALL EASKI(nsnd,' ',outs,1,'F',ipcn,'F',1,
+     &                              'node number',IER,1)
         elseif(ipcn.eq.1) then
           nsnd=1
         endif
 
 C Save selected component and node numbers.
         if((NPGET+1).GT.MNGET)then
-          call usrmsg('Number of items exceeded.',' ','P')
+          call usrmsg(' ','Number of items exceeded!','P')
           goto 7
         endif
         NPGET=NPGET+1
@@ -424,7 +420,7 @@ C of the component name and then the node index and then a suffix.
           endif
           write(outs,'(2a)') 'Selected ',GPLABEL(NPGET)
           call edisp(iuout,outs)
-          SPLABEL(NPGET)='Node temperature (degC)'
+          SPLABEL(NPGET)='Node temperature (C)'
         ELSEIF(INO.EQ.8)THEN
 
 C First phase flow (IPGET = 2).
@@ -1653,7 +1649,7 @@ C For timestep listings generate initial lines.
           call edisp(itru,'Timestep performance metrics.')
         endif
       endif
-      call usrmsg('Scanning data for range of values...','  ','-')
+C      call usrmsg('Scanning data for range of values...','  ','-')
 
 C Reset stats values.Set query hours to zero.
       do 55 I=1,MSYSRS 
@@ -1961,7 +1957,7 @@ C Calculate average.
         if(NF(I).ne.0) FAVE(I)=FAVE(I)/real(NF(I))
   56  continue
 
-      call usrmsg('Scanning data for range of values...done.','  ','P')
+C      call usrmsg('Scanning data for range of values...done.','  ','P')
       if (MENUTYPE.eq.2) then
 
 C Inform user of the histo range and reset nb of bins and typcial bin size.

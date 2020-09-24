@@ -1,8 +1,3 @@
-C You should have received a copy of the GNU General Public
-C License along with ESP-r. If not, write to the Free
-C Software Foundation, Inc., 59 Temple Place, Suite 330,
-C Boston, MA 02111-1307 USA.
-
 C The routines for reading and writing a predefined objects file are 
 C contained in this file:
 C A light scan just returns a list of objects, list of menu items
@@ -17,7 +12,7 @@ C At which point does the user needs to specify the transform?
 C   choosepredef - selects a predefined object and returns its name
 C   predefscan - scans a predefined objects file and can be called with 
 C             mode 'L' - light scan silent and mode 'R' - reporting mode.
-C   predefembed - read tag-data version of predefined objects file.
+C   predefembed - embed a predefined object into model.
 C   geo2obj - scans ESP-r geometry file and creates initial text block
 C             for manual editing and inclusion in predefined.db1
 C   opjqa - produces a QA report based on contents of common blocks
@@ -29,6 +24,7 @@ C ******************************** CHOOSEPREDEF
 C choosepredef - selects a predefined object and returns its name
 C and bounding box. It calls predefscan to recover information to 
 C present in menus.
+
       subroutine choosepredef(objectname,objmenu,objbb,ier)
 #include "building.h"
 #include "esprdbfile.h"
@@ -93,16 +89,6 @@ C Take into account path to the db.
       elseif(ipathpredef.eq.2)then
         write(predef,'(3a)') standarddbpath(1:lndbp),fs,
      &    LPREDEF(1:lnblnk(LPREDEF))  ! prepend db folder path
-      endif
-
-      iglib = igraphiclib()  ! find out if X11 or GTK or text support only.
-      ISTRW=96
-      if(iglib.eq.1.or.iglib.eq.3)then
-        CALL EASKF(predef,' ','Predefined objects file?',
-     &    ISTRW,'predefined.db1','predefined file',IER,nbhelp)
-      else
-        CALL EASKF(predef,' ','Predefined objects file?',
-     &    ISTRW,'predefined.db1','predefined file',IER,nbhelp)
       endif
 
 C Scan predefined database returning list of categories & items
@@ -689,7 +675,7 @@ C Remember boundary surface definitions. Apply prec to surface names.
         continue  ! look for more key words
       elseif(WORD(1:5).EQ.'*visp')then
 
-C Scan visp definition and instanciate model entity.
+C Scan visp definition and instantiate model entity.
         if(foundit)then
           nbvis(icomp)=nbvis(icomp)+1
           nbv=nbvis(icomp)
@@ -938,9 +924,7 @@ C that have just been added do this.
       else
         if(nbvis(icomp).gt.nbprevious)then
           PI = 4.0 * ATAN(1.0)
-          A=-DA*PI/180.
-          CA=COS(A)
-          SA=SIN(A)
+          A=-DA*PI/180.; CA=COS(A); SA=SIN(A)
           X1=objorg(1); Y1=objorg(2)  ! rotate around the new origin
           do K=nbprevious+1,nbvis(icomp)
             XXX=XOV(ICOMP,K)-X1; YYY=YOV(ICOMP,K)-Y1
@@ -1955,7 +1939,7 @@ C Parameters
       character outs2*144,outsd*144
       integer lno     ! length of optics name
 
-      logical hasmass,hasbound,hasvis
+      logical hasmass,hasbound,hasvis,odd
 
       tab=','    ! make the separator a comma.
 C      objectcat='UNKNOWN'
@@ -1963,12 +1947,11 @@ C      objectcat='UNKNOWN'
       if(ACT(1:2).eq.'QA')then
 
 C If act is QA then generate report.
-        call edisp(iuout,'Predefined item name and menu entry:')
-        write(outs,'(4a)') objname(1:lnblnk(objname)),'   ',
-     &    objdesc(1:lnblnk(objdesc))
+        call edisp(iuout,
+     &    'Predefined item name and menu entry:')
+        write(outs,'(3a)') 
+     &    objname(1:lnblnk(objname)),'   ',objdesc(1:lnblnk(objdesc))
         call edisp(iuout,outs)
-C        write(outs,'(2a)') 'Predefined object category:',objectcat
-C        call edisp(iuout,outs)
         hasmass=.false.; hasbound=.false.; hasvis=.false.
         if(nbmass.gt.0) hasmass=.true.
         if(nbbound.gt.0) hasbound=.true.
@@ -2006,11 +1989,35 @@ C        call edisp(iuout,outs)
         enddo
         call edisp(iuout,' ')
         call edisp(iuout,'Vertices:')
-        DO I = 1,nbvertmass
-          WRITE(outs,'(a,3F12.5)',IOSTAT=ios,ERR=13)'*vertex ',
-     &      vertmass(I,1),vertmass(I,2),vertmass(I,3)
-          call edisp(iuout,outs)
-        ENDDO
+ 
+        im=MOD(nbvertmass,2)  ! If more than 8 vertices do as a double column.
+        odd=.false.
+        if(im.eq.1) odd=.true.
+        if(nbvertmass.lt.8)then
+           DO I = 1,nbvertmass
+             WRITE(outs,'(a,3F11.4)',IOSTAT=ios,ERR=13)'*vertex ',
+     &         vertmass(I,1),vertmass(I,2),vertmass(I,3)
+             call edisp(iuout,outs)
+            ENDDO
+        else
+          MNULEN=(nbvertmass/2)
+          DO K=1,MNULEN
+            iw=k
+            iw2=k+mnulen
+            WRITE(outs,'(a,3F11.4,a,3F11.4)',IOSTAT=ios,ERR=13)
+     &        '*vertex ',
+     &         vertmass(iw,1),vertmass(iw,2),vertmass(iw,3),
+     &        '   vertex ',
+     &         vertmass(iw2,1),vertmass(iw2,2),vertmass(iw2,3)
+            call edisp(iuout,outs)
+          ENDDO
+          IF(odd)THEN
+             WRITE(outs,'(a,3F11.4)',IOSTAT=ios,ERR=13)'*vertex ',
+     &         vertmass(nbvertmass,1),vertmass(nbvertmass,2),
+     &         vertmass(nbvertmass,3)
+             call edisp(iuout,outs)
+          ENDIF
+        endif
         if(nbmass.gt.0)then
           call edisp(iuout,' ')
           call edisp(iuout,'Surfaces representing mass:')
@@ -2624,7 +2631,7 @@ C Facade objects might have edges for use with parent surface.
         continue  ! look for more key words
       elseif(WORD(1:5).EQ.'*visp')then
 
-C Scan visp definition and instanciate model entity.
+C Scan visp definition and instantiate model entity.
         if(foundit)then
           nbobjvis=nbobjvis+1
           CALL EGETWI(LOUTSTR,K,iv,8,8,'F','vis nb vertices',IER)

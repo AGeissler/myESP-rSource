@@ -13,22 +13,21 @@ C warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
 C PURPOSE. See the GNU General Public License for more
 C details.
 
-C You should have received a copy of the GNU General Public
-C License along with ESP-r. If not, write to the Free
-C Software Foundation, Inc., 59 Temple Place, Suite 330,
-C Boston, MA 02111-1307 USA.
 
-C GRAPH.F contains the following routines.
-C GRAPH:  Uses FACDRW to display the target surface
-C         and SHDDRW to superimpose any direct shading.
-C FACDRW: Draws the target surface elevation.
-C SHDDRW: Plots point on a surface to represent the
-C         directly shaded shaded portion.
-C SITPLN: Scales and draws the site plan showing zone and
-C         obstructions.
-C SUNPLT: Draws a Mercator sun-path diagram.
+C This file contains the following routines.
+C GRAPH  - uses FACDRW to display the target surface
+C          and SHDDRW to superimpose direct shading.
+C FACDRW - draws the target surface elevation.
+C SHDDRW - plots points on a surface to indicate the
+C          directly shaded shaded portion.
+C SITPLN - draws a site plan showing the zone 
+C          and obstructions.
+C SUNPLT - draws a Mercator sun-path diagram.
+C shadeview3d - 3d viewer.
+C drawshadedgrid - displays the currently shaded grid
+C                  points on a wireframe view.
 
-C ********** GRAPH **********
+C ******************** GRAPH ********************
 C Uses FACDRW to display the target surface and SHDDRW
 C to superimpose any direct shading.
 
@@ -36,7 +35,6 @@ C to superimpose any direct shading.
 #include "building.h"
 #include "geometry.h"
 
-C Parameter
       integer icomp  ! the focus zone
 
       common/outin/iuout,iuin,ieout
@@ -52,8 +50,8 @@ C Parameter
       character outs*124
       dimension ioshd(mox,moz),iva(ms)
       logical ok
-      integer icc,is,nv   ! local variables for connextion and vertices
-      integer ih ! hour counter
+      integer icc,is,nv   ! local variables for connection and vertices
+      integer ih          ! hour counter
       
 #ifdef OSI
       integer igwid,igheight  ! for use with axiscale
@@ -65,7 +63,6 @@ C Parameter
       integer*8 iiw1,iiw2,iiw3,iiw4,iimenu
 #endif
 
-C For help messages
       character helpinsub*24 ! subroutine name
       character helptopic*24 ! string (unique) for topic
       integer nbhelp     ! number of help lines found
@@ -74,8 +71,7 @@ C For help messages
 
       iunit=ifil
 
-C Ask user for the surface to focus on.If nothing selected
-C ask user what to do.
+C Determine focus surface.
     2 call pickssur(icomp,np,'L',iva,ier)
       if(np.eq.0)then
         goto 1    ! ask user whether to continue
@@ -97,11 +93,11 @@ C surface transformed coordinates.
 C Set up mesh centre points.
       call mesh(icomp,is)
 
-C Make the right offset for the graphic box is the character
+C Make the right offset for the graphic box depending on the character
 C width of the menu.
       ier=0
       if(mmod.lt.8)then
-        call usrmsg('Not in graphic mode!',' ','W')
+        call usrmsg(' ','Not in graphic mode!','W')
         return
       endif
 
@@ -194,7 +190,7 @@ C Partial direct shading.
             call shddrw(icomp,is,2,ioshd)
          endif
 
-         call easkok(' ','Next hour?',ok,nbhelp)
+         call easkok(' ','Continue with next hour?',ok,nbhelp)
          if(.not.ok)goto 1
    20 continue
 
@@ -208,7 +204,7 @@ C Partial direct shading.
       return
       end
 
-C ********** FACDRW **********
+C ******************** FACDRW ********************
 C Draws the elevation of the target surface.
 
       subroutine facdrw(ihour,icomp,isur,nv,xmin,xmax,zmin,zmax,
@@ -244,7 +240,7 @@ C Draws the elevation of the target surface.
 
       if(mmod.ne.8) return
 
-C Display header information. Calculate graphic boundaries.
+C Display header information and calculate graphic boundaries.
       iiw1=7; iiw2=4; iiw3=3; iiw4=3; iimenu=menuchw
       iigl=igl; iigr=igr; iigt=igt; iigb=igb; iigw=igw; iigwh=igwh
       CALL win3d(iimenu,iiw1,iiw2,iiw3,iiw4,
@@ -282,17 +278,17 @@ C Draw target surface.
       return
       end
 
-C ********** SHDDRW **********
-C Plots points on target surface representing direct shaded portion.
+C ******************** SHDDRW ********************
+C Plots points on the target surface representing the direct shaded portion.
 
       subroutine shddrw(izone,is,ishad,ioshd)
 #include "building.h"
 #include "geometry.h"
 
-C Parameters
+C Parameters.
       integer izone  ! index of zone
       integer is     ! target surface
-      integer ishad  ! denotes partial or full shading - see below
+      integer ishad  ! denotes partial or full shading
       integer ioshd  ! array of points
       dimension ioshd(mox,moz)
 
@@ -329,7 +325,7 @@ C the surface polygon will not have been set to -1.
       return
       end
 
-C ********** SITPLN **********
+C ******************** SITPLN ********************
 C Scales and draws the site plan showing the object boundary
 C and the surrounding obstruction blocks based on common block
 C data structures.
@@ -338,15 +334,13 @@ C data structures.
 #include "building.h"
 
       common/spad/mmod,limit,limtty
-
-      COMMON/gzonpik/izgfoc,nzg,nznog(mcom)
-
+      common/gzonpik/izgfoc,nzg,nznog(mcom)
       character direc*1
 
 C Return if not in graphic mode.
       ier=0
       if(mmod.lt.8)then
-        call usrmsg('Not in graphic mode!',' ','W')
+        call usrmsg(' ','Not in graphic mode!','W')
         return
       endif
 
@@ -360,7 +354,7 @@ C Use plelv to draw the site plan for the current zone.
       return
       end
 
-C ********** SUNPLT **********
+C ******************** SUNPLT ********************
 C Draws a Mercator sun path diagram.
 
       subroutine sunplt(ijday)
@@ -375,6 +369,7 @@ C Draws a Mercator sun path diagram.
       character etext*72,blab*3,month*3
       dimension month(12)
       logical above
+
 #ifdef OSI
       integer igwid,igheight  ! passed to axiscale
       integer iside,isize,ifont     ! passed to viewtext
@@ -439,7 +434,7 @@ C Output a heading for the view.
       isize=1
       call viewtext(etext,iside,isize,ifont)
 
-C Plot sun path, for each hour of the day get the azimuth and
+C Plot sun path. For each hour of the day get the azimuth and
 C elevation and plot that position on the graph with a symbol and
 C time indication.
       above=.false.
@@ -479,14 +474,15 @@ C Plot a symbol at the sun position.
       return
       end
 
-C ********** shadeview3d
-      subroutine shadeview3d(izone,imon,igday,vtime,its,ier)
+C ******************** shadeview3d ********************
 C Assumes that MESH3D has already been called.
+
+      subroutine shadeview3d(izone,imon,igday,vtime,its,ier)
 #include "building.h"
 #include "geometry.h"
 #include "prj3dv.h"
 
-C Parameters
+C Parameters.
       integer izone   ! focus zone
       integer imon    ! focus month
       integer igday   ! day of the month
@@ -511,11 +507,11 @@ C Mesh for surface as points in 3D.
       common/prec8/slat,slon
 
 C Common blocks for expanded obstructions.
-      real SHXB  ! X coord of an obstruction polygon
-      real SHYB  ! Y coord of an obstruction polygon
-      real SHZB  ! Z coord of an obstruction polygon
+      real SHXB   ! X coord of an obstruction polygon
+      real SHYB   ! Y coord of an obstruction polygon
+      real SHZB   ! Z coord of an obstruction polygon
       integer JVNBSH ! ordered list of edges of obstruction polygons
-      real SHEQN ! equation of each obstruction polygon
+      real SHEQN  ! equation of each obstruction polygon
       real shpazi ! azimuth of each obstruction polygon
       real shpelv ! elevation of each obstruction polygon
       real BBO    ! bounding box LL & UR for each obstruction
@@ -537,10 +533,11 @@ C Common blocks for expanded obstructions.
       character mode*3
       character etext*72
       
-C 3D Points on the grid which are shaded (for the current hour for each of
+C 3D points on the grid which are shaded (for the current hour for each of
 C the focus surface grid points.
       real x3intrs,y3intrs,z3intrs
       common/grid32/x3intrs(mox,moz),y3intrs(mox,moz),z3intrs(mox,moz)
+
 #ifdef OSI
       integer iside,isize,ifont     ! passed to viewtext
 #else
@@ -558,9 +555,9 @@ C the focus surface grid points.
       real XXuv,YYuv,ZZuv  ! 1 unit inwards
       character outs*124
       integer n,j
-      logical inside ! true if inside
-      logical proceed  ! true if can see face
-      logical repeat ! true to switch time or surface
+      logical inside  ! true if inside
+      logical proceed ! true if can see face
+      logical repeat  ! true to switch time or surface
       real tol  ! slight offset
       real op   ! obstruction optical
 
@@ -583,11 +580,11 @@ C Establish, for each surface in the current zone which other
 C surfaces in the model are in front or behind or crossing it.
       call frontsurbox(izone)
 
-C Instanciate derived properties of obstructions e.g. bounding
+C Instantiate derived properties of obstructions, e.g. bounding
 C boxes and the angles for the obstruction faces.
       call precobs(izone)
 
-C Establish whether obstr are in front of or behind each 
+C Establish whether obstructions are in front of or behind each 
 C surface in the zone.
       call frontobsbox(izone)
 
@@ -607,10 +604,9 @@ C Abandon calculation for this hour if before sunrise or after sunset.
 C Reset.
       gssa=0.0     ! related to obstructions
       gselfsa=0.0  ! related to self-shading
-      itothits=0  ! reset counter for nb of grid hits for surface 
+      itothits=0   ! reset counter for number of grid hits for surface 
 
-C This section graphically displays shading from obstructions.
-C Redraw the wireframe and the grid.
+C Display shading from obstructions. Redraw the wireframe and the grid.
       if(mmod.eq.8)then
         MODIFYVIEW=.true.
         modlen=.true.
@@ -635,14 +631,14 @@ C Draw the grid on the surface.
         enddo ! of j
       enddo   ! of i
 
-C Heading on graph.
+C Graph heading.
       write(etext,'(3a,f6.2,3a,f7.2,a,f7.2)')'Direct shading: ',
      &  month(imon),' @ ',vtime,' ',sname(izone,its),' azim',sazi1,
      &  ' elev',salt1
       iside=1; isize=1; ifont=2
       call viewtext(etext,iside,isize,ifont)
 
-C For current solar azimuth and altitude get unit vector and then
+C For current solar azimuth and altitude, get unit vector and then
 C create a unit vector pointing to the sun.
       call  AZ2UV(sazi1,salt1,vdx,vdy,vdz)
       uvdx=1.0*vdx; uvdy=1.0*vdy; uvdz=1.0*vdz
@@ -694,7 +690,7 @@ C ioshd to 1 for grid points within the surface.
                 continue
               else
 
-C Facing away so remember this and save all the grid points to draw.
+C Facing away, so remember this and save all the grid points to draw.
                 ioshd(i,j)=1
                 x3intrs(i,j)=x3op(i,j); y3intrs(i,j)=y3op(i,j)
                 z3intrs(i,j)=z3op(i,j)
@@ -718,18 +714,16 @@ C the current surface.
       if(nbobs(izone).gt.0)then
         do 66 ib=1,nbobs(izone)
           if(ofbc(ITS,ib).eq.'B') goto 66
+
 C Obstruction faces: front v1 v2 v6 v5
 C right v2 v3 v7 v6, back v3 v4 v8 v7
-C left v4 v1 v5 v8, top v5 v6 v7 v8, base  v1 2 3 4.
+C left v4 v1 v5 v8, top v5 v6 v7 v8, base v1 2 3 4.
           do iface=1,6
 
-C We already know which of the faces faces away so
-C can exclude them from intersection test.
+C Exclude faces from intersection test that point away.
             if(caieob(ib,iface).lt.0.0)then
-C              write(6,*)'consider ib iface',ib,iface
               proceed=.true.
             else
-C              write(6,*)'face away ib iface',ib,iface
               proceed=.false.
             endif
             if(proceed)then
@@ -741,16 +735,15 @@ C Recover equation of plane of obstruction face.
               EQN(4)=SHEQN(ib,iface,4)
 
 C Loop through all the grid points of the surface testing first
-C if the grid point within the surface?
+C if the grid point is within the surface.
               do 100 m=1,nox(izone)
                 do 110 n=1,noz(izone)
-
                   XXuv=x3op(m,n)+uvdx; YYuv=y3op(m,n)+uvdy
                   ZZuv=z3op(m,n)+uvdz
                   xxw=x3op(m,n); yyw=y3op(m,n); zzw=z3op(m,n)
                   call i3pippa(izone,its,xxw,yyw,zzw,m,n,i3pip)
                   if(i3pip.eq.0)then
-                    goto 110  ! grid point not within focus surface
+                    goto 110  ! grid point not within surface
                   else
                     if(mmod.eq.8) call wiresymbol(xxw,yyw,zzw,1,32)
                   endif
@@ -759,16 +752,8 @@ C Project from grid point to the obstruction polygon face and find
 C point of intersection x3 y3 z3
                   CALL VECPLN(x3op(m,n),y3op(m,n),z3op(m,n),
      &              XXuv,YYuv,ZZuv,EQN, x3,y3,z3, IERR)
-C                  call wiresymbol(x3,y3,z3,2,32)
-
-C Debug.
-C                  write(6,*) 'caieob is ',caieob(ib,iface)
-C                  write(6,*) 'caiiob is ',caiiob(ib,iface)
-C                  write(6,*) 'solar is ',sazi1,salt1
-C                  write(6,*) 'obs face azi elev ',
-C     &              shpazi(ib,iface),shpelv(ib,iface)
               
-C Check if intersection x3 y3 z3 is within obstruction BBO
+C Check if intersection x3 y3 z3 is within obstruction BBO.
                   inside=.true.  ! assume inside
                   if(x3.lt.(BBO(ib,1,1)-tol))then
                     inside=.false.
@@ -783,15 +768,12 @@ C Check if intersection x3 y3 z3 is within obstruction BBO
                   elseif(z3.gt.(BBO(ib,2,3)+tol))then
                     inside=.false.
                   endif
-C                  write(6,*)'is it inside ',ib,iface,inside
                   if(inside)then
 
 C Within bounding box so test containment in the obstruction polygon.
                     xxw=x3; yyw=y3; zzw=z3
                     call i3piobs(izone,ib,iface,xxw,yyw,zzw,m,n,i3pio)
                     if(i3pio.ne.0)then
-C                      write(6,*)'i3piobs for ',izone,ib,iface,xxw,yyw,
-C     &                  zzw,i3pio
                       if(mmod.eq.8)then
 
 C Remember where the shaded point is.
@@ -799,16 +781,14 @@ C Remember where the shaded point is.
                         xxw=x3op(m,n); yyw=y3op(m,n); zzw=z3op(m,n)
                         x3intrs(m,n)=xxw; y3intrs(m,n)=yyw
                         z3intrs(m,n)=zzw
-C                        call wiresymbol(xxw,yyw,zzw,2,33)
-C                        call pausems(50)
                       endif
 
 C Point obscured by current obstruction block face. Point shaded
-C if any face obscures so only increment oshd for first hit, ignoring
+C if any face obscures, so only increment oshd for first hit, ignoring
 C other hits.
                       ihit(m,n)=ihit(m,n)+1
                       ioshd(m,n)=1
-                      itothits=itothits+1  !remember for the whole surface
+                      itothits=itothits+1  ! remember for the whole surface
 
 C If more than one obstruction block shaded then opacities need to be
 C compounded.
@@ -823,7 +803,7 @@ C compounded.
             endif  ! of proceed
           enddo    ! of iface
    66   continue
-      endif        ! of any obstructions
+      endif        ! of obstructions
 
 C Dump intermediate calculations.
       if(tok.or.ok)then
@@ -840,33 +820,28 @@ C Dump intermediate calculations.
       endif
 
 C This section graphically displays self-shading.
-C Now draw the shaded points. irpt is 1 for test
+C Draw the shaded points. irpt is 1 for test
       irpt=1
       call drawshadedgrid(izone,its,irpt,2)
 
-C Now do the loop looking at surfaces in the zone.
-C Filter: not the focus surface, must face outside, should not
-C face away from the ray.
-
-C For each surface do initial filtering.
+C For each surface do initial filtering: not the focus surface, must face
+C outside and should not face away from the ray.
       do 111 loop=1,nzsur(izone)
         icc=izstocn(izone,loop)
         if(loop.eq.its)then
-          goto 111   !  skip self
+          goto 111  ! skip self
         elseif(caie(loop).lt.0.0)then
           goto 111  ! cannot be seen by solar vector
         elseif(fbc(its,icc).eq.'B')then
           goto 111  ! other surface is behind
         elseif(sother(izone,loop,1)(1:7).eq.'SIMILAR')then
-          goto 111  ! do not face outside
+          goto 111  ! does not face outside
         endif
-        if(sother(izone,loop,1)(1:8).eq.'EXTERIOR')then
-             
+        if(sother(izone,loop,1)(1:8).eq.'EXTERIOR')then      
           EQN(1)=sureqn(izone,loop,1)
           EQN(2)=sureqn(izone,loop,2)
           EQN(3)=sureqn(izone,loop,3)
           EQN(4)=sureqn(izone,loop,4)
-
           do 200 m=1,nox(izone)
             do 210 n=1,noz(izone)
 
@@ -880,7 +855,6 @@ C Add unit vector to the sun path to the current mesh cell.
               else
                 if(mmod.eq.8) call wiresymbol(xxw,yyw,zzw,1,32)
               endif
-
               CALL VECPLN(x3op(m,n),y3op(m,n),z3op(m,n),
      &          XXuv,YYuv,ZZuv,EQN, x3,y3,z3, IERR)
 
@@ -888,14 +862,13 @@ C Is this intersection within the bounding box of the receiving surface?
               call insurbox(x3,y3,z3,izone,loop,inside)
               if(inside)then
                 call i3pippa(izone,loop,x3,y3,z3,m,n,i3pip)
-C                write(6,*) 'i3pippa for ',izone,loop,x3,y3,z3,i3pip
                 if(i3pip.ne.0)then
 
-C Point fully obscured (self shading surfaces are assumed to be opaque.
+C Point fully obscured (self shading surfaces are assumed to be opaque).
                   ihit(m,n)=ihit(m,n)+1
-                  itothits=itothits+1  !remember for the whole surface
+                  itothits=itothits+1  ! remember for the whole surface
                   ioshd(m,n)=1
-                  oshd(m,n)=1.0  ! assume opaque
+                  oshd(m,n)=1.0        ! assume opaque
 
                   if(mmod.eq.8)then
 
@@ -929,12 +902,12 @@ C Dump intermediate calculations.
         endif
       endif
 
-C Now draw the shaded points. irpt is 1 for test
+C Draw the shaded points (irpt is 1 for test).
       irpt=1
       call drawshadedgrid(izone,its,irpt,2)
       call pauses(1)
 
-C Sum the shading
+C Sum the shading.
       do k=1,nox(izone)
         do l=1,noz(izone)
           if(ioshd(k,l).eq.-1)then
@@ -962,7 +935,7 @@ C sky portion.
 C Ask for a different time or exit.
       repeat=.false.
       iopt=0
-      call easkatog('Display options:',' ','-60m','-30m','+30m','+60m',
+      call easkatog(' ','Display options:','-60m','-30m','+30m','+60m',
      &              'another surface','cancel',' ',iopt,nbhelp)
       if(iopt.eq.1)then
         vtime=vtime-1.0
@@ -985,7 +958,7 @@ C Confirm other surface, create grid, clear arrays.
         call mesh3d(izone,its,'-')
         gssa=0.0     ! related to obstructions
         gselfsa=0.0  ! related to self-shading
-        itothits=0  ! reset counter for nb of grid hits for surface 
+        itothits=0   ! reset counter for nb of grid hits for surface 
         do m=1,nox(izone)
           do n=1,noz(izone)
             ihit(m,n)=0
@@ -1003,7 +976,7 @@ C Confirm other surface, create grid, clear arrays.
 C Clear arrays.
         gssa=0.0     ! related to obstructions
         gselfsa=0.0  ! related to self-shading
-        itothits=0  ! reset counter for nb of grid hits for surface 
+        itothits=0   ! reset counter for number of grid hits for surface 
         do m=1,nox(izone)
           do n=1,noz(izone)
             ihit(m,n)=0
@@ -1017,23 +990,23 @@ C Clear arrays.
 
       end
 
-C ***** drawshadedgrid
-C drawshadedgrid displays the currently shaded grid points on the
-C wire-frame view. 
-C << generalize this >>
+C ******************** drawshadedgrid ********************
+C Displays the currently shaded grid points on a wireframe view. 
+
       subroutine drawshadedgrid(izone,its,irpt,icolour)
 #include "building.h"
 #include "geometry.h"
 #include "prj3dv.h"
-      integer izone  ! focus zone
-      integer its    ! focus surface
-      integer irpt   ! implied delay
-      integer icolour ! 1 is black 2 is russet
+
+      integer izone   ! focus zone
+      integer its     ! focus surface
+      integer irpt    ! implied delay
+      integer icolour ! 1 is black, 2 is russet
       
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
       
-C 3D Points on the grid which are shaded (for the current hour for each of
-C the focus surface grid points.
+C 3D points on the grid which are shaded (for the current hour for each of
+C the focus surface grid points).
       real x3intrs,y3intrs,z3intrs
       common/grid32/x3intrs(mox,moz),y3intrs(mox,moz),z3intrs(mox,moz)
       common/shad3/ioshd(mox,moz),foshd(mox,moz),gssa,ipexcl
@@ -1043,17 +1016,17 @@ C the focus surface grid points.
       if(mmod.eq.8)then
         do m=1,nox(izone)
           do n=1,noz(izone)
-            if(ioshd(m,n).eq.1)then   ! if shaded
+            if(ioshd(m,n).eq.1)then        ! if shaded
               x3=x3intrs(m,n); y3=y3intrs(m,n); z3=z3intrs(m,n)
               call wiresymbol(x3,y3,z3,icolour,33)
-              if(irpt.eq.2)call pausems(4)   ! medium pause
-              if(irpt.eq.3)call pausems(6)   ! longer pause
+              if(irpt.eq.2)call pausems(4) ! medium pause
+              if(irpt.eq.3)call pausems(6) ! longer pause
             endif
           enddo ! of n
           if(irpt.eq.1)call pausems(3)     ! slight pause for column
         enddo   ! of m
         call forceflush()
-        if(irpt.eq.1)call pausems(100)      ! slight pause before diffuse
+        if(irpt.eq.1)call pausems(100)     ! slight pause before diffuse
       else
         return
       endif

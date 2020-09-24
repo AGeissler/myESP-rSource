@@ -1357,6 +1357,9 @@ C 1 node (ISV=20) WCH Ground Source Heat Pump
 C 2 node (ISV=20) WCH 2-node Ground Source Heat Pump
          ELSE IF(ITYPE.EQ.48) THEN
             CALL CMP48C(IPCOMP,OUT,ISTATS)
+C 1 node (ISV=20) WCH inverter controlled Ground Source Heat Pump
+         ELSE IF(ITYPE.EQ.49) THEN
+            CALL CMP49C(IPCOMP,OUT,ISTATS)
 C 1 node (ISV=29) WCH thermostatic radiator valve
          ELSE IF(ITYPE.EQ.50) THEN
             CALL CMP50C(IPCOMP,OUT,ISTATS)

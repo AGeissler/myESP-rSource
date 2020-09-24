@@ -14,18 +14,12 @@ C warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
 C PURPOSE. See the GNU General Public License for more
 C details.
 
-C You should have received a copy of the GNU General Public
-C License along with ESP-r. If not, write to the Free
-C Software Foundation, Inc., 59 Temple Place, Suite 330,
-C Boston, MA 02111-1307 USA.
-C
+
 C================== MultiYear_climate.F ===============================
+
+C Author: Alex Ferguson, Natural Resources Canada, May 5, 2005
 C
-C Date: May 5, 2005
-C Author: Alex Ferguson
-C Copyright: Natural Resources Canada
-C
-C This file contains procedures for handling climate data during
+C This file contains procedures for handling weather data during
 C multi-year simulations.
 C
 C GENERAL ROUTINES:
@@ -886,7 +880,7 @@ C...........Add / Sort / Prune / Save options
 C........Standard options         
          cMenu(iMenu_count + 1) = '  _______________________________ '
          cMenu(iMenu_count + 2) = '? help                            '
-         cMenu(iMenu_count + 3) = '- exit this menu                  '
+         cMenu(iMenu_count + 3) = '- exit menu                       '
 
          iMenu_count = iMenu_count + 3 
          

@@ -13,25 +13,23 @@ C warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
 C PURPOSE. See the GNU General Public License for more
 C details.
 
-C You should have received a copy of the GNU General Public
-C License along with ESP-r. If not, write to the Free
-C Software Foundation, Inc., 59 Temple Place, Suite 330,
-C Boston, MA 02111-1307 USA.
 
 C The file edzone.f is a collection of support facilities for 
 C creating zones and adding/ subtracting vertices and surfaces:
 C  SCRZONE: creates initial form of an enclosure as prism or extrusion.
 C  NEWZONE: controls creation of a new zone via prj or cad or file.
 C  DELZONE: systematically removes a thermal zone.
+C  COPYZONE: systematically copies one or more thermal zones.
 C  WARNMOD: provide warnings when model evolves.
 C  SUMRCHG: provides a summary of updates needed after model changes.
 C comissionish: invokes the shading module in a number of modes
 C  POINTTOLINE: determines distance from a 3D point to a 3D line.
 
 
-C ************* SCRZONE 
-C SCRZONE provides initial form of an enclosure as either a prism or
-C an extrusion. IER=0 OK. 
+C ******************** SCRZONE ********************
+C Provides initial form of an enclosure as either a prism or
+C an extrusion.
+
       SUBROUTINE SCRZONE(ICOMP,IER)
 #include "building.h"
 #include "model.h"
@@ -58,6 +56,7 @@ C an extrusion. IER=0 OK.
       DIMENSION XX(MS),YY(MS)
       CHARACTER HOLD*32
       character MODE*4,fs*1
+      character msg*72
       CHARACTER OUTSTR*124,ZN*12,outs*124
       character ctldoc*248,LCTLF*72,zd*64,DFILE*72,CFILE*72,OFILE*72
       LOGICAL OK,browse,OKC,XST,unixok
@@ -149,7 +148,7 @@ C Allow user choices of beginning as a simple shape (with image feedback).
       IER=0
       helptopic='zone_initial_shapes'
       call gethelptext(helpinsub,helptopic,nbhelp)
-      CALL EASKABCD(' ','Base zone geometry on:',
+      CALL EASKABCD(' ','Zone shape options:',
      &  'rectangular plan','polygon plan','general 3D',
      &  'bitmap',ishape,nbhelp)
  144  IF(ishape.eq.1)THEN
@@ -165,27 +164,23 @@ C Allow user choices of beginning as a simple shape (with image feedback).
         CALL EGETWR(HOLD,K,XO1,-999.9,999.9,'W','X origin',IER)
         CALL EGETWR(HOLD,K,YO1,-999.9,999.9,'W','Y origin',IER)
         CALL EGETWR(HOLD,K,ZO1,-9.9,999.9,'W','Z origin',IER)
-        write(outs,'(a,3f9.4)') 'Origin is ',XO1,YO1,ZO1
-        call edisp(iuout,outs)
 
  242    HOLD=' '
         WRITE(HOLD,'(1x,3f8.3)')DX1,DY1,DZ1
-        CALL EASKS(HOLD,' ','Rectangle length, width and height?',
+        CALL EASKS(HOLD,' ','Length, width and height?',
      &    32,' 2.5 3.5 2.7 ','rectangle size',IER,nbhelp)
         K=0
         CALL EGETWR(HOLD,K,DX1,0.001,99.9,'W','box width',IER)
         CALL EGETWR(HOLD,K,DY1,0.001,99.9,'W','box depth',IER)
         CALL EGETWR(HOLD,K,DZ1,0.001,99.9,'W','box height',IER)
         if(DX1.lt.0.001.or.DY1.lt.0.001)goto 242
-        write(outs,'(a,3f9.4)') 'Width depth height is ',DX1,DY1,DZ1
-        call edisp(iuout,outs)
 
         ANGR=0.
-        CALL EASKR(ANGR,' ','Rectangle orientation?',
+        CALL EASKR(ANGR,' ','Orientation?',
      &    -359.0,'W',359.0,'W',0.0,'box orientation',IER,nbhelp)
 
         ANGE=0.
-        CALL EASKR(ANGE,' ','Rectangle elevation (see help)?',
+        CALL EASKR(ANGE,' ','Elevation?',
      &    -359.0,'W',359.0,'W',0.0,'box elevation',IER,nbhelp)
 
 C Convert box into a gen description using two rotation angles.
@@ -213,7 +208,7 @@ C User begins with an extruded shape.
         if(ieri.eq.-3) goto 42
 
         DO 45 IW=1,NW
-          WRITE(OUTSTR,'(A,I2,A)')' For base vertex',IW,'  X & Y:'
+          WRITE(OUTSTR,'(A,I2,A)')'For base vertex',IW,' X & Y:'
           HOLD=' '
           WRITE(HOLD,'(1x,2f8.3)')XX(IW),YY(IW)
           CALL EASKS(HOLD,OUTSTR,'  ',32,' 0.  0.  ','floor xy',
@@ -256,7 +251,7 @@ C Begin with default assumptions for each surface then overwrite
 C this if user supplied information exists.
       IF(ishape.ne.3.and.ishape.ne.4)THEN
 
-C Use subroutine filsur to instanciate G5 common block.
+C Use subroutine filsur to instantiate G5 common block.
         CALL FILSUR(ICOMP,0)
 
 C Update the connection list and hash.
@@ -329,12 +324,12 @@ C in the new geometry files is established.
             endif
             return
           elseif(iglib.eq.2)then
-            call usrmsg('The clickonbitmap facility is not yet working',
+            call usrmsg('The clickonbitmap facility is not active',
      &      'with new graphic library.','W')
           endif
         else
           call usrmsg('Must be in graphic mode to use click on bitmap',
-     &      'facility to define vertices or floor plan corners. ','W')
+     &      'facility to define vertices or floor plan corners.','W')
           return
         endif
       endif
@@ -372,7 +367,7 @@ C Find co-planer surfaces and edges of similar materials.
 
 C Update the global coordinates for this zones surfaces so that
 C the subsequent wireframe image can be drawn and the bounds of
-C the zone can be calculated. Also instanciate iszjvn
+C the zone can be calculated. Also instantiate iszjvn
 C for the new zone (as is done in subroutine zdata).
       DO 40 J=1,NZTV(ICOMP)
         szcoords(ICOMP,J,1)=X(J)
@@ -423,7 +418,7 @@ C Read in control file if defined.
       NCCODE(ICOMP)=NCOMP
       if(OKC)then
         icascf(NCOMP)=0
-        call usrmsg(' updating control for additional zone...',' ','-')
+        call usrmsg(' ','Updating control for additional zone.','-')
         call CTLWRT(ICTLF,IER)
         call usrmsg(' ',' ','-')
       endif
@@ -433,12 +428,14 @@ C Read in control file if defined.
       RETURN
       END
 
-C ************* NEWZONE 
-C NEWZONE controls the creation of a new zone. IER=0 OK. 
+C ******************* NEWZONE *******************
+C Controls the creation of a new zone. 
+
       SUBROUTINE NEWZONE(ITRC,IC,IER)
 #include "building.h"
 #include "model.h"
 #include "geometry.h"
+#include "predefined.h"
 #include "prj3dv.h"
 #include "esprdbfile.h"
 #include "material.h"
@@ -466,15 +463,20 @@ C NEWZONE controls the creation of a new zone. IER=0 OK.
       character sfile*72,snpfile*72,fs*1,outs*124
 
       LOGICAL OK,XST,OKC,unixok
-      logical newgeo  ! to use for testing if new/old geometry file.
-      logical altered ! to signal change in boundary conditions of added existing zone.
+      logical newgeo    ! Test for new/old geometry file.
+      logical altered   ! Signal change in boundary conditions of altered zone.
+
+      real CX,CY,CZ     ! XYZ of selected verticies from another zone
+      dimension CX(10),CY(10),CZ(10)
+      dimension IVALS(MCOM)
+      integer  iclkok   ! for import vertex from another zone dialog
 
 C Predefined entity variables.
       character name*12   ! the object name to pass to PREDEFEMBED
       character prec*1    ! character to pre-pend to names
       character hold*36   ! for dialog
       character objmenu*32 !menu for selected object
-      character ZN*12,zd*64
+      character ZN*12,zd*64,msg*72
       real objbb(3)
       character predef*144,temp*12
 
@@ -497,9 +499,9 @@ C Set folder separator (fs) to \ or / as required.
 
  293  helptopic='zone_source_files'
       call gethelptext(helpinsub,helptopic,nbhelp)
-      CALL EASKATOG('New zone options: ',' :','input dimensions',
+      CALL EASKATOG(' ','New zone options:','input dimensions',
      &  'load existing (ESP-r)','load existing (cflow3 zip)',
-     &  'use pre-defined entity','cancel',' ',' ',INZOPT,nbhelp)
+     &  'pre-defined entity','cancel',' ',' ',INZOPT,nbhelp)
 
 C Input dimensions.
       if(INZOPT.eq.1)then
@@ -533,10 +535,6 @@ C Find out if there are geometry files in the ../zones folder.
           if(snpfile(1:2).ne.'  ')then
             write(ltmp,'(3a)')zonepth(1:lnblnk(zonepth)),fs,
      &        snpfile(1:lnblnk(snpfile))
-
-C Debug.
-C            write(6,*) ltmp
-
           else
 
 C User did not select a file. Take them back to the question.
@@ -550,15 +548,15 @@ C User did not select a file. Take them back to the question.
           goto 293 ! ask for choice again
         endif
 
-C Existing ESP-r geom file.
+C Existing ESP-r geometry file.
         DFILE=' '
-        WRITE(OUTSTR,'(a,i3,a)')' For zone ',IC,
-     &   ' the geometry is defined in:'
+        WRITE(OUTSTR,'(a,i3,a)')'For zone ',IC,
+     &   ' the geometry is defined in: '
         CALL EASKS(LTMP,OUTSTR,' ',72,DFILE,'geom file',IER,nbhelp)
         IF(LTMP(1:2).EQ.'  ')GOTO 293
         call FINDFIL(LTMP,XST)
         IF(.NOT.XST)THEN
-          CALL EASKOK(' ','Geometry file not found! Retry?',
+          CALL EASKOK('Geometry file not found!','Retry?',
      &         OK,nbhelp)
           if(OK)then
             GOTO 293 ! as for choice again
@@ -578,7 +576,7 @@ C Try reading in the geometry to fill in the data below.
             GOTO 293
           else
             ier = -3 ! signal user cancel
-            return   ! stop this before the model gets messed up.
+            return
           endif
         ENDIF
         call eclose(gversion(ic),1.1,0.01,newgeo) ! find out what version
@@ -631,7 +629,7 @@ C the connections list, then remind user to double check topology.
           IE1(ICCC)=ICC
           if(SOTHER(NCOMP,icc,1)(1:8).eq.'EXTERIOR')then
             write(outs,'(3a)') 'Note: ',SNAME(NCOMP,icc),
-     &        ' is a EXTERIOR connection which will be used.'
+     &        ' is an EXTERIOR connection which will be used.'
             call edisp(iuout,outs)
             ICT(ICCC)=0; IC2(ICCC)=0; IE2(ICCC)=0
           elseif(SOTHER(NCOMP,icc,1)(1:7).eq.'SIMILAR')then
@@ -724,7 +722,9 @@ C with this new zone.
         endif
         helptopic='zone_also_schedules'
         call gethelptext(helpinsub,helptopic,nbhelp)
-        CALL EASKOK(' ','Use an existing operation file?',OK,nbhelp)
+        write(msg,'(3a)') 'Use an existing operation file for ',
+     &    zname(IC)(1:lnzname(IC)),'?'
+        CALL EASKOK(' ',msg,OK,nbhelp)
         if(OK)then
           if(LPROJ(IC)(1:4).eq.'UNKN'.or.LPROJ(IC)(1:2).eq.'  ')then
 
@@ -755,8 +755,8 @@ C                write(6,*) ltmp
           else
             LTMP=LPROJ(IC)
           endif
-          WRITE(OUTSTR,'(a,i3,a)')' For zone ',IC,
-     &      ' the operations are defined in:'
+          WRITE(OUTSTR,'(a,i3,3a)')' For zone ',IC,' ',
+     &      zname(IC)(1:lnzname(IC)),' the operations are defined in:'
  295      CALL EASKS(LTMP,OUTSTR,' ',72,DFILE,'opr file',IER,nbhelp)
           IF(LTMP(1:2).EQ.'  ')GOTO 295
           call FINDFIL(LTMP,XST)
@@ -771,8 +771,9 @@ C                write(6,*) ltmp
 
         helptopic='zone_also_constructions'
         call gethelptext(helpinsub,helptopic,nbhelp)
-        CALL EASKOK(' ','Also use an existing constructions file?',
-     &        OK,nbhelp)
+        write(msg,'(3a)') 'Use an existing constructions file for ',
+     &    zname(IC)(1:lnzname(IC)),'?'
+        CALL EASKOK(' ',msg,OK,nbhelp)
         if(zonepth(1:2).eq.'  '.or.zonepth(1:2).eq.'./')then
           WRITE(DFILE,'(A,A4)')zname(IC)(1:lnzname(IC)),'.con'
         else
@@ -809,7 +810,8 @@ C                write(6,*) ltmp
           else
             LTMP=LTHRM(IC)
           endif
-          WRITE(OUTSTR,'(a,i3,a)')' For zone ',IC,
+          WRITE(OUTSTR,'(a,i3,3a)')' For zone ',IC,' ',
+     &      zname(IC)(1:lnzname(IC)),
      &      ' the constructions are defined in:'
  297      CALL EASKS(LTMP,OUTSTR,' ',72,DFILE,'constr file',IER,nbhelp)
           IF(LTMP(1:2).EQ.'  ')GOTO 297
@@ -893,7 +895,15 @@ C inverted. Currently, assume that the user will manually import.
           goto 293
         endif
 
-        write(predef,'(a)') lpredef(1:96)
+C Take into account of the path to the database.
+        lndbp=lnblnk(standarddbpath)
+        if(ipathpredef.eq.0.or.ipathpredef.eq.1)then
+          predef=LPREDEF  ! use as is
+        elseif(ipathpredef.eq.2)then
+          write(predef,'(3a)') standarddbpath(1:lndbp),fs,
+     &      LPREDEF(1:lnblnk(LPREDEF))  ! prepend db folder path
+        endif
+        call RPREDEFCOM(IFA,predef,name,IER)
 
 C Code bits from SCRZONE.
 C If newer model cfg file ensure version 1.1 geometry file created. 
@@ -923,7 +933,7 @@ C Establish name of the zone. Base this on the predefined entity.
         lnzname(ic)=lnblnk(zname(IC))  ! update this string length.
 
         write(zd,'(3a)') zname(IC)(1:lnzname(IC)),' ',objmenu
- 43     CALL EASKS(zd,'What does it represent?','(<64 characters)',
+ 43     CALL EASKS(zd,' ','What does it represent?',
      &    64,'no description entered','zone descr',IER,nbhelp)
         IF(zd.eq.' '.or.ier.ne.0)goto 43
         zdesc(IC)=zd
@@ -968,18 +978,36 @@ C to temporarily draw it.
         call edisp(iuout,outs)
         write(outs,'(3f7.3,a)') objbb(1),objbb(2),objbb(3),' XYZm'
         call edisp(iuout,outs)
+        call edisp(iuout,objnotes(1))
+        if(nbobjnotes.gt.1) call edisp(iuout,objnotes(2))
+        if(nbobjnotes.gt.2) call edisp(iuout,objnotes(3))
         VALR=0.
-        CALL EASKR(VALR,' Object rotation (+ = anticlockwise)',
+        CALL EASKR(VALR,'Object rotation (+ = anticlockwise)',
      &    'around its lower left corner:',
      &    -359.0,'W',359.0,'W',0.0,'rotation',IER,nbhelp)
-        hold = ' 0.000  0.000  0.000    '
-        CALL EASKS(HOLD,'Place object origin @ (X Y Z metres)',
-     &    'i.e. within the room: ',
-     &    36,' 0. 0. 0.','transforms XYZ',IER,nbhelp)
-        K=0
-        CALL EGETWR(HOLD,K,DX,-99.,99.,'W','X tr',IER)
-        CALL EGETWR(HOLD,K,DY,-99.,99.,'W','Y tr',IER)
-        CALL EGETWR(HOLD,K,DZ,-99.,99.,'W','Z tr',IER)
+
+C Offer direct edit or pick existing vertex.
+  92    hold = ' 0.000  0.000  0.000    '
+        call EASKS2CMD(HOLD,' ','Place object origin @ (X Y Z metres)',
+     &    'vertex in another zone',' ',
+     &    iclkok,36,' 0. 0. 0. ','vertex coord',IER,nbhelp)
+        if(iclkok.eq.1) then
+          INPIC=1
+          CALL EPICKS(INPIC,IVALS,' ','Source zone:',
+     &      12,NCOMP,zname,'zone list',IER,nbhelp)
+          IF(INPIC.EQ.0) goto 92
+          IZ=IVALS(1)  ! assign source zone index
+          if(IZ.EQ.0)goto 92
+          call edisp(iuout,' ')
+          call edisp(iuout,'Select ONE vertex from the source zone.')
+          call CPVERT(IZ,NVC,CX,CY,CZ,IER)
+          DX=CX(1); DY=CY(1); DZ=CZ(1)
+        else
+          K=0
+          CALL EGETWR(HOLD,K,DX,-99.,99.,'W','X tr',IER)
+          CALL EGETWR(HOLD,K,DY,-99.,99.,'W','Y tr',IER)
+          CALL EGETWR(HOLD,K,DZ,-99.,99.,'W','Z tr',IER)
+        endif
         CALL CNVBLK(DX,DY,DZ,objbb(1),objbb(2),objbb(3),VALR)
 
 C Peview the bounding box of the object via DRWBB.
@@ -1004,7 +1032,17 @@ C Then used predefembed to read in the predefined into the model.
         elseif (IW.eq.2) then
           goto 422   ! test another location
         elseif (IW.eq.3) then
-          continue
+
+C User declined. Free the data structures.
+          LGEOM(IC)="UNKNOWN"
+          LTHRM(IC)="UNKNOWN"
+          LPROJ(IC)="UNKNOWN"
+          NZTV(ic)=0
+          NZSUR(IC)=0
+          NCON=NCON-1
+C          NCOMP=NCOMP-1
+          ier = -3  ! signal user cancel
+          return
         endif
 
 C Signal that the wireframe image needs to be redrawn.
@@ -1702,17 +1740,1112 @@ C File rewind errors.
       return 
       end
 
+C ************* COPYZONE
+C COPYZONE systematicly replicates a list of thermal zones.
+
+      SUBROUTINE COPYZONE(ITRC,iznumber,izclist,DX,DY,DZ,DANG,IER)
+
+#include "building.h"
+#include "model.h"
+#include "geometry.h"
+#include "net_flow.h"
+#include "schedule.h"
+#include "prj3dv.h"
+      
+      integer lnblnk  ! function definition
+
+C Parameters passed:
+      integer itrc            ! level of chatter
+      integer iznumber        ! how many zones in the list
+      dimension izclist(MCOM) ! list of zones
+      real DX,DY,DZ           ! offsets to apply
+      real DANG               ! Z rotation to apply
+      integer ier             ! error state on return
+
+      COMMON/FILEP/IFIL
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
+
+      common/gzonpik/izgfoc,nzg,nznog(mcom)
+      INTEGER :: izgfoc,nzg,nznog
+
+      integer ncomp,ncon
+      COMMON/C1/NCOMP,NCON
+      COMMON/C3/IC1(MCON),IE1(MCON),ICT(MCON),IC2(MCON),IE2(MCON)
+      integer IZSTOCN
+      COMMON/C24/IZSTOCN(MCOM,MS)
+
+      common/caleni/nbdaytype,nbcaldays(MDTY),icalender(365)
+      INTEGER NBDAYTYPE,NBCALDAYS,ICALENDER
+
+      common/cctlnm/ctldoc,lctlf
+      integer icascf
+      common/cctl/icascf(mcom)
+      common/user/browse
+      COMMON/PRECTC/ITMCFL(MCOM,MS),TMCT(MCOM,MTMC,5),
+     &       TMCA(MCOM,MTMC,ME,5),TMCREF(MCOM,MTMC),TVTR(MCOM,MTMC)
+      COMMON/PRECT2/TMCT2(MCOM,MTMC,5,MBP),TMCA2(MCOM,MTMC,ME,5,MBP),
+     &              TVTR2(MCOM,MTMC,MBP)
+      COMMON/PRECT3/NTMC,NGLAZ(MTMC)
+      character TOPTIC*12
+      common/PRECT4/TOPTIC(MCOM,MTMC)
+      COMMON/TMCB1/IBCMT(MCOM,MTMC)
+      COMMON/TMCB2/NBCTMC(MCOM,MTMC),IBCST(MCOM,MBP,MTMC),
+     &             IBCFT(MCOM,MBP,MTMC),IBCSUR(MCOM,MTMC)
+      COMMON/TMCB3/NBCTT(MCOM,MBP,MTMC),BACTPT(MCOM,MBP,MTMC)
+
+      common/BSCTL/ITPREP(MCOM,MTMC),ICZN,IMDB(3),IGLZ(3)
+      COMMON/AFN/IAIRN,LAPROB,ICAAS(MCOM)
+      INTEGER :: iairn,icaas
+
+C Zone casual gain control data.
+      character cgcdesc*64
+      common/CGCIND/cgcdesc(MCOM)
+      COMMON/CGCIN2N/NCGTC(MCOM,MDTY),NLITZ(MCOM),IDFST(MCOM,MLCOM),
+     & CGX(MCOM,MLCOM,MDF),CGY(MCOM,MLCOM,MDF),CGH(MCOM,MLCOM,MDF),
+     & UX(MCOM,MLCOM,MDF),UY(MCOM,MLCOM,MDF),UH(MCOM,MLCOM,MDF),
+     & SETPT(MCOM,MLCOM),SYSPER(MCOM,MLCOM),SOFFLL(MCOM,MLCOM),
+     & IOFFDT(MCOM,MLCOM),SMLOUT(MCOM,MLCOM),SMEOUT(MCOM,MLCOM)
+      COMMON/CGCIN3/ICGCS(MCOM,MDTY),ICGCF(MCOM,MDTY),
+     & ICGCFL(MCOM,MLCOM),SPELEC(MCOM,MLCOM),SLOPEM(MCOM,MLCOM)
+
+      COMMON/DAYF/NDF(MCOM,MLCOM),DFDAT(MCOM,MLCOM,MGT,MDF),
+     & AZIJL(MCOM,MGT),SUMDF(MCOM,MLCOM,MDF),NUDWIN(MCOM)
+
+      COMMON/DCOEF/NDCFP,NDCFS(MDCFP),DCOEF(MDCFP,MDCFS,MDCFV),
+     & IDCFID(MCOM,MLCOM,MDF)
+
+      logical OK,XST,OKC,browse,unixok
+      logical newgeo  ! to use for testing if new/old geometry file.
+      logical closex,closey,closez  ! to check transforms
+      logical okzt,okzr,closer,okob,quiet
+      integer loop
+      dimension jict(MS),jic2(MS),jie2(MS),jmlcindex(MS)
+      dimension jsotf(MS),jsmlcn(MS),jsvfc(ms),jsother(ms,3)
+      dimension jsname(MS),jsparent(MS),jsuse(ms,3)
+      character jsmlcn*32,jsvfc*4,jsotf*32,jsother*24,jsname*12
+      character jsparent*12,jsuse*12
+
+      CHARACTER LAPROB*72
+      CHARACTER ctldoc*248,LCTLF*72,outs*124,ZN*12
+      character ltmp*72,DFILE*72,CFILE*72
+      character msg*96,zd*64,fs*1
+      character lctmp*72
+      character sfile*72,snpfile*72
+
+C For help messages
+      character helpinsub*24 ! subroutine name
+      character helptopic*24 ! string (unique) for topic
+      integer nbhelp     ! number of help lines found
+
+      helpinsub='COPYZONE'  ! set for subroutine
+
+      if(browse)then
+        call usrmsg('Cannot copy zone(s) while in browse ',
+     &              'mode, you must `own` the model! ','W')
+        return
+      endif
+      newgeo=.false.          ! assume older format geometry.
+      call isunix(unixok)
+      if(unixok)then
+        fs = char(47)
+      else
+        fs = char(92)
+      endif
+      VALX=DX; VALY=DY; VALZ=DZ; VAL=DANG; IER=0   ! Cast parameters to local values.
+    
+      do loop = 1,iznumber    ! Deal with each of the zones in the list
+        IC=izclist(loop)
+        LTMP=LGEOM(IC)
+
+C Recover connections associated with that zone.
+        jixu=0
+        do 35 IXU = 1,NCON
+          if(IC1(IXU).eq.IC)then
+            icz=IC1(IXU); ics=IE1(IXU)   ! recover associated zone and surface
+            jixu=jixu+1
+            jict(jixu)=ICT(IXU)
+            jic2(jixu)=IC2(IXU)
+            jie2(jixu)=IE2(IXU)
+            jsotf(jixu)=SOTF(icz,ics)
+            jsmlcn(jixu)=SMLCN(icz,ics)
+            jmlcindex(jixu)=smlcindex(icz,ics)
+            jsvfc(jixu)=SVFC(icz,ics)
+            jsother(jixu,1)=SOTHER(icz,ics,1)
+            jsother(jixu,2)=SOTHER(icz,ics,2)
+            jsother(jixu,3)=SOTHER(icz,ics,3)
+            jsuse(jixu,1)=SUSE(icz,ics,1)
+            jsuse(jixu,2)=SUSE(icz,ics,2)
+            jsname(jixu)=SNAME(icz,ics)
+            jsparent(jixu)=SPARENT(icz,ics)
+          endif
+   35   continue
+
+C If there is control and one zone confirm. If multiple zones set OKC=.true.
+        if(iznumber.eq.1)then
+          OKC=.false.
+          helptopic='zone_copy_and_ctl'
+          call gethelptext(helpinsub,helptopic,nbhelp)
+          if(LCTLF(1:2).eq.'  '.or.LCTLF(1:4).eq.'UNKN')then
+            continue
+          else
+            CALL EASKOK(' ','Update zone control assignment?',
+     &        OKC,nbhelp)
+          endif
+          if(OKC)then
+            lctmp=LCTLF
+            CALL EASKS(lctmp,'Control file?',
+     &        ' ',72,'std.ctl','Control file',IER,nbhelp)
+            if(lctmp(1:2).ne.'  '.and.lctmp(1:4).ne.'UNKN')then
+              lctlf=lctmp
+              ICTLF=IFIL+2
+              CALL ERPFREE(ICTLF,ISTAT)
+              call FINDFIL(LCTLF,XST)
+              if(XST)then
+                CALL EZCTLR(ICTLF,ITRC,IUOUT,IER)
+              else
+                OKC=.false.
+              endif
+            endif
+          endif
+        else
+          if(LCTLF(1:2).eq.'  '.or.LCTLF(1:4).eq.'UNKN')then
+            OKC=.false.
+          else
+            OKC=.true.
+          endif
+          if(OKC)then
+            ICTLF=IFIL+2
+            CALL ERPFREE(ICTLF,ISTAT)
+            call FINDFIL(LCTLF,XST)
+            if(XST)then
+              CALL EZCTLR(ICTLF,ITRC,IUOUT,IER)
+            else
+              OKC=.false.
+            endif
+          endif
+        endif
+
+C Read the geometry of the source zone to fill in the data below.
+C Make the source zone and the destination zone the same version
+C number. When reading in the source zone use the updated ncomp
+C zone index so that the related commons are filled.
+        NCOMP=NCOMP+1
+        call eclose(gversion(IC),1.1,0.01,newgeo)
+        gversion(ncomp)=gversion(ic)  ! set to same version
+        call georead(IFIL+1,LTMP,ncomp,1,iuout,IER)
+        IF(IER.NE.0)THEN
+          ier=-2
+          call usrmsg('Problem scanning geometry file.',LTMP,'W')
+          return
+        ENDIF
+
+        helptopic='zone_name_description'
+        call gethelptext(helpinsub,helptopic,nbhelp)
+        write(msg,'(2a)') 'The original zone name: ',zname(NCOMP)
+        call edisp(iuout,' ')
+        call edisp(iuout,msg)
+ 42     ZN=' '
+        CALL EASKS(ZN,'Name of this copied zone?',
+     &    ' ( <12 char, no blanks) ?',12,'new_zone','zone name',
+     &    IER,nbhelp)
+        IF(ZN.eq.' '.or.ier.ne.0)goto 42
+        call st2name(ZN,zname(NCOMP))
+        lnzname(NCOMP)=lnblnk(zname(NCOMP))
+        if(zonepth(1:2).eq.'  '.or.zonepth(1:2).eq.'./')then
+          WRITE(DFILE,'(A,A4)') zname(NCOMP)(1:lnzname(NCOMP)),'.geo'
+        else
+          WRITE(DFILE,'(4a)') zonepth(1:lnblnk(zonepth)),fs,
+     &      zname(NCOMP)(1:lnzname(NCOMP)),'.geo'
+        endif
+        LGEOM(NCOMP)=DFILE
+
+        write(outs,'(2a)') 'The original description: ',zdesc(NCOMP)
+        call edisp(iuout,' ')
+        call edisp(iuout,outs)
+        write(zd,'(2a)') 
+     &    zname(NCOMP)(1:lnzname(NCOMP)),' describes a '
+  40    CALL EASKS(zd,'What does it represent?',
+     &    ' (<64 char)',64,'no description entered','zone descr',
+     &    IER,nbhelp)
+        IF(zd.eq.' '.or.ier.ne.0)goto 40
+        zdesc(NCOMP)=zd
+        lnzdesc(NCOMP)=lnblnk(zd)  ! update the length of this string.
+
+C If an obstruction file exists check if this should be copied as well.
+C Save zone geometry, read in obstructions, write out to another
+C file and then recover the zone commons.
+        if(IOBS(ic).eq.1)then
+          OKOB=.true.
+          helptopic='options_for_copy_obs'
+          call gethelptext(helpinsub,helptopic,nbhelp)
+          CALL EASKABC('The source zone had an obstructions file.',
+     &      'Options:','copy obstructions file','use source file',
+     &      'ignore it',IRT,nbhelp)
+          if(IRT.eq.1)then
+            CALL ESCZONE(NCOMP)
+            call FINDFIL(ZOBS(IC),XST)
+            IF(XST)THEN
+              CALL EGOMST(IUF,IC,ZOBS(IC),0,ITRC,ITRU,IER)
+              IOBS(NCOMP)=1 
+              if(zonepth(1:2).eq.'  '.or.zonepth(1:2).eq.'./')then
+                WRITE(DFILE,'(2a)') 
+     &            zname(NCOMP)(1:lnzname(NCOMP)),'.obs'
+              else
+                WRITE(DFILE,'(4a)') 
+     &            zonepth(1:lnblnk(zonepth)),fs,
+     &            zname(NCOMP)(1:lnzname(NCOMP)),'.obs'
+              endif
+              ZOBS(NCOMP)=DFILE
+              CALL MKGOMST(IUF,ZOBS(NCOMP),NCOMP,IER)
+            endif
+            CALL ERCZONE(NCOMP)
+          elseif(IRT.eq.2)then
+            ZOBS(NCOMP)=ZOBS(IC)  ! point to the file
+            IOBS(NCOMP)=1 
+            OKOB=.false.          ! but do not transform it
+          elseif(IRT.eq.2)then
+            ZOBS(NCOMP)='UNKNOWN' ! clear name
+            IOBS(NCOMP)=0         ! dereference
+            OKOB=.false.          ! and do not attempt to transform
+          endif
+        elseif(IOBS(ic).eq.2)then
+
+C Obstructions in geo file so just set OKOB to true.
+          OKOB=.true.
+        endif
+
+C Transforms and rotations.
+        okzt=.false.
+        closex=.false.; closey=.false.; closez=.false.
+        VALX=DX; VALY=DY; VALZ=DZ
+        call eclose(VALX,0.0,0.01,closex)
+        call eclose(VALY,0.0,0.01,closey)
+        call eclose(VALZ,0.0,0.01,closez)
+        if(closex.or.closey.or.closez)then
+
+C Start with the zone vertices.
+          DO 162 I=1,NTV
+            X(I)=X(I)+VALX
+            Y(I)=Y(I)+VALY
+            Z(I)=Z(I)+VALZ
+  162     continue
+          iZBFLG(NCOMP)=0
+
+C If there are visual entities.
+          if(nbvis(ncomp).gt.0)then
+            do loop2=1,nbvis(ncomp)
+              XOV(ncomp,loop2)=XOV(ncomp,loop2)+VALX
+              YOV(ncomp,loop2)=YOV(ncomp,loop2)+VALY
+              ZOV(ncomp,loop2)=ZOV(ncomp,loop2)+VALZ
+              do ibe=1,8
+                XVP(ncomp,loop2,ibe)=XVP(ncomp,loop2,ibe)+VALX
+                YVP(ncomp,loop2,ibe)=YVP(ncomp,loop2,ibe)+VALY
+                ZVP(ncomp,loop2,ibe)=ZVP(ncomp,loop2,ibe)+VALZ
+              enddo  ! of ibe
+            enddo    ! of loop2
+          endif
+          okzt=.true.
+        endif
+
+        VAL=DANG
+        okzr=.false.
+        call eclose(VAL,0.0,0.01,closer)
+        if(.NOT.closer)then
+          okzr=.true.
+          if(VAL.LT.-.01.OR.VAL.GT..01)then
+
+C Rotation choices. Clear pending rotateit, update prior rotateit.
+            rotateit(ncomp,1)=VAL
+            CALL EASKABCD(' ','Rotation choices:',
+     &        'vertex 1 of zone','site origin',
+     &        'specified X & Y','skip rotation',IRT,nbhelp)
+            call usrmsg(' ',' ','-')
+            if(IRT.eq.1)then
+              x1=X(1)
+              y1=Y(1)
+              rotateit(ncomp,2)=x1
+              rotateit(ncomp,3)=y1
+              CALL ESCROT(VAL,x1,y1)
+              rotateit(ncomp,4)=rotateit(ncomp,1)   ! shift the pending rotation
+              rotateit(ncomp,5)=rotateit(ncomp,2)   ! and the origin of the zone
+              rotateit(ncomp,6)=rotateit(ncomp,3)
+              rotateit(ncomp,1)=0.0
+              rotateit(ncomp,2)=0.0
+              rotateit(ncomp,3)=0.0
+            elseif(IRT.EQ.2)THEN
+              x1=0.
+              y1=0.
+              rotateit(ncomp,2)=x1
+              rotateit(ncomp,3)=y1
+              CALL ESCROT(VAL,x1,y1)
+              rotateit(ncomp,4)=rotateit(ncomp,1)   ! shift the pending rotation
+              rotateit(ncomp,5)=rotateit(ncomp,2)   ! and the origin of the zone
+              rotateit(ncomp,6)=rotateit(ncomp,3)
+              rotateit(ncomp,1)=0.0
+              rotateit(ncomp,2)=0.0
+              rotateit(ncomp,3)=0.0
+            elseif(IRT.EQ.3)THEN
+              x1=0.
+              CALL EASKR(x1,' ',' X point (metres) ? ',
+     &          0.0,'-',0.0,'-',0.0,'x point',IER,nbhelp)
+              y1=0.
+              CALL EASKR(y1,' ',' Y point (metres) ? ',
+     &          0.0,'-',0.0,'-',0.0,'y point',IER,nbhelp)
+              rotateit(ncomp,2)=x1
+              rotateit(ncomp,3)=y1
+              CALL ESCROT(VAL,x1,y1)
+              rotateit(ncomp,4)=rotateit(ncomp,1)   ! shift the pending rotation
+              rotateit(ncomp,5)=rotateit(ncomp,2)   ! and the origin of the zone
+              rotateit(ncomp,6)=rotateit(ncomp,3)
+              rotateit(ncomp,1)=0.0
+              rotateit(ncomp,2)=0.0
+              rotateit(ncomp,3)=0.0
+              call usrmsg(' ',' ','-')
+            elseif(IRT.EQ.4)THEN
+              rotateit(ncomp,1)=0.0
+              rotateit(ncomp,2)=0.0
+              rotateit(ncomp,3)=0.0
+            endif
+            iZBFLG(NCOMP)=0
+          endif
+
+C If there are visual entities.
+          if(nbvis(ncomp).gt.0)then
+            if(IRT.eq.1)then
+              x1=X(1)
+              y1=Y(1)
+            elseif(IRT.EQ.2)THEN
+              x1=0.
+              y1=0.
+            elseif(IRT.EQ.3)THEN
+              CALL EASKR(x1,' ',' X point (metres) ? ',
+     &          0.0,'-',0.0,'-',0.0,'x point',IER,nbhelp)
+              CALL EASKR(y1,' ',' Y point (metres) ? ',
+     &          0.0,'-',0.0,'-',0.0,'y point',IER,nbhelp)
+            elseif(IRT.EQ.4)THEN
+              continue
+            endif
+            if(IRT.ge.1.and.IRT.lt.4)then
+              PI = 4.0 * ATAN(1.0)
+              A=-VAL*PI/180.0; CA=COS(A); SA=SIN(A)
+              do loop3=1,nbvis(ncomp)
+                XXX=XOV(ncomp,loop3)-X1; YYY=YOV(ncomp,loop3)-Y1
+                XR=XXX*CA+YYY*SA; YR=YYY*CA-XXX*SA
+                XOV(ncomp,loop3)=XR+X1; YOV(ncomp,loop3)=YR+Y1
+                BANGOV(ncomp,loop3,1)=BANGOV(ncomp,loop3,1)+VAL
+                do ibe=1,8
+                  XXX=XVP(ncomp,loop3,ibe)-X1
+                  YYY=YVP(ncomp,loop3,ibe)-Y1
+                  XR=XXX*CA+YYY*SA; YR=YYY*CA-XXX*SA
+                  XVP(ncomp,loop3,ibe)=XR+X1
+                  YVP(ncomp,loop3,ibe)=YR+Y1
+                enddo  ! of ibe
+              enddo
+            endif
+          endif
+        endif
+
+C Because the writing of geometry files is based on G6 common block data 
+C update connections based info prior to writing the new geometry file. Retain 
+C 'similar' and 'adiabatic' connections if found. Check if any of the SUSE
+C tag imply flow components.
+        NZSUR(NCOMP)=NSUR
+        NZTV(NCOMP)=NTV
+        NCCODE(NCOMP)=NCOMP
+        nzg=NCOMP
+        ICCC=NCON
+        DO 132 ICC=1,NSUR
+          ICCC=ICCC+1
+          IC1(ICCC)=NCOMP
+          IE1(ICCC)=ICC 
+          IZSTOCN(ncomp,icc)=iccc
+          SOTF(ncomp,icc)=jsotf(icc)
+          SMLCN(ncomp,icc)=jsmlcn(icc)
+          smlcindex(ncomp,icc)=jmlcindex(icc)
+          SVFC(ncomp,icc)=jsvfc(icc)
+          SOTHER(ncomp,icc,1)=jsother(icc,1)
+          SOTHER(ncomp,icc,2)=jsother(icc,2)
+          SOTHER(ncomp,icc,3)=jsother(icc,3)
+          SUSE(ncomp,icc,1)=jsuse(icc,1)
+          SUSE(ncomp,icc,2)=jsuse(icc,2)
+          SPARENT(ncomp,icc)=jsparent(icc)
+          if(jict(ICC).eq.0)then
+            ICT(ICCC)=0; IC2(ICCC)=0; IE2(ICCC)=0
+          elseif(jict(ICC).eq.1.or.jict(ICC).eq.2)then
+            ICT(ICCC)=jict(ICC)
+            IC2(ICCC)=jic2(ICC)
+            IE2(ICCC)=jie2(ICC)
+          elseif(jict(ICC).eq.3)then
+            SOTHER(ncomp,icc,1)='UNKNOWN'
+            SOTHER(ncomp,icc,2)='0'
+            SOTHER(ncomp,icc,3)='0'
+            ICT(ICCC)=0; IC2(ICCC)=0; IE2(ICCC)=0
+          elseif(jict(ICC).eq.4.or.jict(ICC).eq.5)then
+            ICT(ICCC)=jict(ICC)
+            IC2(ICCC)=jic2(ICC)
+            IE2(ICCC)=jie2(ICC)
+          endif
+  132   CONTINUE
+        NCON=ICCC
+        call zgupdate(0,ncomp,ier)
+        call zinfo(ncomp,zoa,zvol,'q')
+
+C Find co-planer surfaces and edges of similar materials.
+        call suredgeadj(itrc,'-',ncomp,ier)
+
+C Update the global coordinates for this zone's surfaces so that
+C the subsequent wireframe image can be drawn and the bounds of
+C the zone can be calculated.
+        DO 41 J=1,NZTV(ncomp)
+          szcoords(ncomp,J,1)=X(J)
+          szcoords(ncomp,J,2)=Y(J)
+          szcoords(ncomp,J,3)=Z(J)
+   41   CONTINUE
+
+C Now it is ok to write out the copied zone.
+        call eclose(gversion(NCOMP),1.1,0.01,newgeo)
+        if(igupgrade.eq.2.and.(.NOT.newgeo))then
+          gversion(ncomp) =1.1
+          newgeo = .true.
+        endif
+        if(newgeo)then
+          iuf=ifil+2
+          call geowrite(iuf,LGEOM(NCOMP),NCOMP,ITRU,3,IER)
+        else
+          iuf=ifil+2
+          call emkgeo(iuf,LGEOM(NCOMP),NCOMP,3,IER)
+        endif
+        IF(IER.EQ.1)THEN
+          helptopic='problem_writing_file'
+          call gethelptext(helpinsub,helptopic,nbhelp)
+          CALL EASKOK('Problem creating geometry file!','Retry?',
+     &      OK,nbhelp)
+          IF(OK)GOTO 42
+        ENDIF
+
+C Apply same transformation to obstructions? If yes, take into account
+C location of obstruction data.
+        if(OKOB)then
+          CALL ESCZONE(NCOMP)
+          if(OKZT)then
+            do 85 ij=1,nbobs(ncomp)
+              XOB(ncomp,ij)=XOB(ncomp,ij)+VALX
+              YOB(ncomp,ij)=YOB(ncomp,ij)+VALY
+              ZOB(ncomp,ij)=ZOB(ncomp,ij)+VALZ
+              do 95 ibe=1,8
+                XBP(ncomp,ij,ibe)=XBP(ncomp,ij,ibe)+VALX
+                YBP(ncomp,ij,ibe)=YBP(ncomp,ij,ibe)+VALY
+                ZBP(ncomp,ij,ibe)=ZBP(ncomp,ij,ibe)+VALZ
+   95         continue
+   85       continue
+          endif
+          if(OKZR)then
+            PI = 4.0 * ATAN(1.0)
+            A=-VAL*PI/180.
+            CA=COS(A)
+            SA=SIN(A)
+            do 88 ij=1,nbobs(ncomp)
+              XXX=XOB(ncomp,ij)-X1
+              YYY=YOB(ncomp,ij)-Y1
+              XR=XXX*CA+YYY*SA
+              YR=YYY*CA-XXX*SA
+              XOB(ncomp,ij)=XR+X1
+              YOB(ncomp,ij)=YR+Y1
+              BANGOB(ncomp,ij,1)=BANGOB(ncomp,ij,1)+VAL
+              do 89 ibe=1,8
+                XXX=XBP(ncomp,ij,ibe)-X1
+                YYY=YBP(ncomp,ij,ibe)-Y1
+                XR=XXX*CA+YYY*SA
+                YR=YYY*CA-XXX*SA
+                XBP(ncomp,ij,ibe)=XR+X1
+                YBP(ncomp,ij,ibe)=YR+Y1
+  89          continue
+  88        continue
+          endif
+
+C If geometry file can hold obstructions save them there,
+C otherwise write out zone obstruction file.
+          call eclose(gversion(ncomp),1.1,0.01,newgeo)
+          if(newgeo)then
+            iuf=ifil+2
+            call geowrite(iuf,LGEOM(NCOMP),NCOMP,ITRU,3,IER)
+            IOBS(NCOMP)=2    ! reset to signal obs in geo file
+            ZOBS(NCOMP)='  '
+          else
+            CALL MKGOMST(IUF,ZOBS(NCOMP),NCOMP,IER)
+          endif
+          CALL ERCZONE(NCOMP)
+        endif
+
+C If control exists update zone links (assume no control
+C in the copied zone).
+        if(OKC)then
+          icascf(NCOMP)=0
+          CALL CTLWRT(ICTLF,IER)
+        endif
+
+C Ask if user wants to copy or point to other zone files.
+C Construction and zone TMC file.
+        helptopic='copy_constr_options'
+        call gethelptext(helpinsub,helptopic,nbhelp)
+        call FINDFIL(LTHRM(IC),XST)
+        irop=1
+        if(XST)then
+          write(outs,'(2a)')'Found: ',LTHRM(IC)(1:lnblnk(LTHRM(IC)))
+          call edisp(iuout,' ')
+          call edisp(iuout,outs)
+          CALL EASKATOG(' ','Source zone has a constructions file:',
+     &      'copy source file','use source file',
+     &      'browse','cancel',' ',' ',' ',irop,nbhelp)
+        else
+          CALL EASKATOG(' ','Source zone has no constructions file:',
+     &      '-','-','browse','cancel',' ',' ',' ',irop,nbhelp)
+          if(irop.eq.1.or.irop.eq.2) irop=4
+        endif
+
+C DFILE is the default file name for any TMC file to be created,
+C CFILE is default for constr file.
+        if(zonepth(1:2).eq.'  '.or.zonepth(1:2).eq.'./')then
+          WRITE(DFILE,'(A,A4)')zname(NCOMP)(1:lnzname(NCOMP)),'.tmc'
+          WRITE(CFILE,'(A,A4)')zname(NCOMP)(1:lnzname(NCOMP)),'.con'
+        else
+          WRITE(DFILE,'(3A,A4)') zonepth(1:lnblnk(zonepth)),fs,
+     &      zname(NCOMP)(1:lnzname(NCOMP)),'.tmc'
+          WRITE(CFILE,'(3A,A4)') zonepth(1:lnblnk(zonepth)),fs,
+     &      zname(NCOMP)(1:lnzname(NCOMP)),'.con'
+        endif
+        if(CFILE(1:2).EQ.'  ')then   ! If blank ask user.
+          CALL EASKS(CFILE,' ',' New construction file name:',
+     &      72,'new.con','construction file',IER,nbhelp)
+        endif
+        if(DFILE(1:2).EQ.'  ')then
+          CALL EASKS(DFILE,' ','New zone tmc file name:',
+     &       72,'new.tmc','tmc file',IER,nbhelp)
+        endif
+        if(irop.eq.1)then
+
+C Read in source constructions and write out to file for new zone.
+C Also update lodlabel commons before writing out.
+          CALL ERPFREE(IUF,ISTAT)
+          CALL ECONST(LTHRM(IC),IFIL+1,IC,0,IUOUT,IER)
+          if(ITW(IC).eq.1)then
+            CALL ERTWIN(ITRC,IUOUT,IUF,LTWIN(IC),IC,IER)
+          endif
+          QUIET=.false.
+          write(LTHRM(NCOMP),'(a)') CFILE(1:lnblnk(CFILE))
+          CALL EMKCON(LTHRM(NCOMP),IUF,NCOMP,QUIET,IER)
+          if(ITW(IC).eq.1)then
+
+C Update itmcfl for the new zone.
+            NTMC=0
+            do 61 ISS=1,NZSUR(NCOMP)
+              ITMCFL(NCOMP,ISS)=ITMCFL(IC,ISS)
+              IF(ITMCFL(IC,ISS).GT.NTMC)NTMC=ITMCFL(IC,ISS)
+   61       continue
+            DO ISST=1,NTMC
+              TOPTIC(NCOMP,ISST)=TOPTIC(IC,ISST)
+              TMCT(NCOMP,ISST,1)=TMCT(IC,ISST,1)
+              TMCT(NCOMP,ISST,2)=TMCT(IC,ISST,2)
+              TMCT(NCOMP,ISST,3)=TMCT(IC,ISST,3)
+              TMCT(NCOMP,ISST,4)=TMCT(IC,ISST,4)
+              TMCT(NCOMP,ISST,5)=TMCT(IC,ISST,5)
+              TVTR(NCOMP,ISST)=TVTR(IC,ISST)
+              IBCMT(NCOMP,ISST)=IBCMT(IC,ISST)
+              NBCTMC(NCOMP,ISST)=NBCTMC(IC,ISST)
+              IBCSUR(NCOMP,ISST)=IBCSUR(IC,ISST)
+              ITPREP(NCOMP,ISST)=ITPREP(IC,ISST)
+              DO ISSTGL=1,NGLAZ(ISST)
+                DO J5=1,5
+                  TMCA(NCOMP,ISST,ISSTGL,J5)=TMCA(IC,ISST,ISSTGL,J5)
+                ENDDO ! of J5
+              ENDDO  ! of ISSTGL
+              DO IBC=1,NBCTMC(IC,ISST)
+                IBCST(NCOMP,IBC,ISST)=IBCST(IC,IBC,ISST)
+                IBCFT(NCOMP,IBC,ISST)=IBCFT(IC,IBC,ISST)
+                NBCTT(NCOMP,IBC,ISST)=NBCTT(IC,IBC,ISST)
+                BACTPT(NCOMP,IBC,ISST)=BACTPT(IC,IBC,ISST)
+                TMCT2(NCOMP,IBC,1,ISST)=TMCT2(IC,IBC,1,ISST)
+                TMCT2(NCOMP,IBC,2,ISST)=TMCT2(IC,IBC,2,ISST)
+                TMCT2(NCOMP,IBC,3,ISST)=TMCT2(IC,IBC,3,ISST)
+                TMCT2(NCOMP,IBC,4,ISST)=TMCT2(IC,IBC,4,ISST)
+                TMCT2(NCOMP,IBC,5,ISST)=TMCT2(IC,IBC,5,ISST)
+                TVTR2(NCOMP,IBC,ISST)=TVTR2(IC,IBC,ISST)
+                DO ISSTGL=1,NGLAZ(ISST)
+                  DO J5=1,5
+                    TMCA2(NCOMP,IBC,ISSTGL,J5,ISST)=
+     &                TMCA2(IC,IBC,ISSTGL,J5,ISST)
+                  ENDDO ! of J5
+                ENDDO  ! of ISSTGL
+              ENDDO  ! of IBC
+            ENDDO    ! of ISST
+            write(LTWIN(NCOMP),'(a)') DFILE(1:lnblnk(DFILE))
+            ITW(NCOMP)=1
+            QUIET=.false.
+            CALL MKTWIN(IUF,NCOMP,QUIET,IER)
+          endif
+        elseif(irop.eq.2)then
+
+C Point to source zones file.
+          LTHRM(NCOMP)=LTHRM(IC)
+          LTWIN(NCOMP)=LTWIN(IC)
+          ITW(NCOMP)=1
+        elseif(irop.eq.3)then
+
+C Find out if there are construction files in the model ../zones folder.
+          sfile=' '
+          snpfile=' '
+          call browsefilelist('?','zon','con',sfile,snpfile,nfile,
+     &        iier)
+          if(nfile.gt.0)then
+            sfile=' '
+            snpfile=' '
+            call browsefilelist('b','zon','con',sfile,snpfile,
+     &        nfile,iier)
+            if(snpfile(1:2).ne.'  ')then
+              write(CFILE,'(3a)')zonepth(1:lnblnk(zonepth)),fs,
+     &          snpfile(1:lnblnk(snpfile))
+
+              LTHRM(NCOMP)=CFILE
+            endif
+          endif
+
+C Find out if there are tmc files in the model ../zones folder.
+          if(ITW(IC).eq.1)then
+            sfile=' '
+            snpfile=' '
+            call browsefilelist('?','zon','tmc',sfile,snpfile,nfile,
+     &        iier)
+            if(nfile.gt.0)then
+              sfile=' '
+              snpfile=' '
+              call browsefilelist('b','zon','tmc',sfile,snpfile,
+     &          nfile,iier)
+              if(snpfile(1:2).ne.'  ')then
+                write(DFILE,'(3a)')zonepth(1:lnblnk(zonepth)),fs,
+     &            snpfile(1:lnblnk(snpfile))
+
+                LTWIN(NCOMP)=DFILE
+                ITW(NCOMP)=1
+              endif
+            endif
+          endif
+        elseif(irop.eq.4)then
+          continue
+        endif
+
+C Operations file. If source has a file, offer options to copy or
+C point to it, otherwise offer option to browse for an existing file.
+        helptopic='copy_operation_options'
+        call gethelptext(helpinsub,helptopic,nbhelp)
+        call FINDFIL(LPROJ(IC),XST)
+        irop=1
+        if(XST)then
+          write(outs,'(2a)')'Found: ',LPROJ(IC)(1:lnblnk(LPROJ(IC)))
+          call edisp(iuout,' ')
+          call edisp(iuout,outs)
+          CALL EASKATOG(
+     &      'Source zone has an operations file.',
+     &      'Options:','copy file','point to file',
+     &      'browse file','cancel',' ',' ',' ',irop,nbhelp)
+        else
+          CALL EASKATOG(
+     &      'Source zone has no operations file.',
+     &      'Options:','-','-','browse','cancel',' ',' ',' ',
+     &      irop,nbhelp)
+          if(irop.eq.1.or.irop.eq.2) irop=4
+        endif
+        if(zonepth(1:2).eq.'  '.or.zonepth(1:2).eq.'./')then
+          WRITE(DFILE,'(A,A4)')zname(NCOMP)(1:lnzname(NCOMP)),'.opr'
+        else
+          WRITE(DFILE,'(3A,A4)') zonepth(1:lnblnk(zonepth)),fs,
+     &      zname(NCOMP)(1:lnzname(NCOMP)),'.opr'
+        endif
+        if(irop.eq.1)then
+
+C Read in source operations and write out to file for new zone.
+C Also update lodlabel commons before writing out. If the version
+C is greater or equal 21 then additional data structures should be copied.
+          CALL ERPFREE(IUF,ISTAT)
+          CALL EROPER(0,iuout,IUF,IC,IER)
+   91     CALL EASKS(DFILE,' New zone operations file name:',
+     &       ' ',72,'new.opr','operations file',IER,nbhelp)
+          IF(DFILE.NE.' ')THEN
+            LPROJ(NCOMP)=DFILE
+            ip3ver(ncomp)=ip3ver(ic)      ! set copied to same version
+            oprdesc(ncomp)=oprdesc(ic)    ! use same description
+            ventdesc(ncomp)=ventdesc(ic)  ! use same vent description
+            ctlstr(ncomp,1)=ctlstr(ic,1)  ! use same control descriptions
+            ctlstr(ncomp,2)=ctlstr(ic,2)
+            ctlstr(ncomp,3)=ctlstr(ic,3)
+            ITCTL(ncomp)=ITCTL(ic)        ! copy infil and vent controls
+            TLO(ncomp)=TLO(ic); TUP(ncomp)=TUP(ic); THI(ncomp)=THI(ic)
+            ACIL(ncomp)=ACIL(ic); ACVL(ncomp)=ACVL(ic)
+            IVL(ncomp)=IVL(ic); TAL(ncomp)=TAL(ic)
+            ACIU(ncomp)=ACIU(ic); ACVU(ncomp)=ACVU(ic)
+            IVU(ncomp)=IVU(ic); TAU(ncomp)=TAU(ic)
+            ACIH(ncomp)=ACIH(ic); ACVH(ncomp)=ACVH(ic)
+            IVH(ncomp)=IVH(ic); TAH(ncomp)=TAH(ic)
+
+C Copy labels for the gains.
+            lodlabel(ncomp,1)=lodlabel(ic,1)  ! revise to be in a loop
+            lodlabel(ncomp,2)=lodlabel(ic,2)
+            lodlabel(ncomp,3)=lodlabel(ic,3)
+            lodlabel(ncomp,4)=lodlabel(ic,4)
+
+C If ip3ver >= 21 copy caskeytype and associated information.
+            if(ip3ver(ic).ge.21)then
+              caskeytype(ncomp,1)=caskeytype(ic,1)
+              lodslot(ncomp,1)=lodslot(ic,1)
+              lodatr1(ncomp,1)=lodatr1(ic,1)
+              lodatr2(ncomp,1)=lodatr2(ic,1)
+              caskeytype(ncomp,2)=caskeytype(ic,2)
+              lodslot(ncomp,2)=lodslot(ic,2)
+              lodatr1(ncomp,2)=lodatr1(ic,2)
+              lodatr2(ncomp,2)=lodatr2(ic,2)
+              caskeytype(ncomp,3)=caskeytype(ic,3)
+              lodslot(ncomp,3)=lodslot(ic,3)
+              lodatr1(ncomp,3)=lodatr1(ic,3)
+              lodatr2(ncomp,3)=lodatr2(ic,3)
+              caskeytype(ncomp,4)=caskeytype(ic,4)
+              lodslot(ncomp,4)=lodslot(ic,4)
+              lodatr1(ncomp,4)=lodatr1(ic,4)
+              lodatr2(ncomp,4)=lodatr2(ic,4)
+              caskeytype(ncomp,5)=caskeytype(ic,5)
+              lodslot(ncomp,5)=lodslot(ic,5)
+              lodatr1(ncomp,5)=lodatr1(ic,5)
+              lodatr2(ncomp,5)=lodatr2(ic,5)
+            endif
+            CALL ERPFREE(IUF,ISTAT)
+            CALL EMKOPER(IUF,LPROJ(NCOMP),NCOMP,IER)
+          else
+            goto 91
+          endif
+        elseif(irop.eq.2)then
+          LPROJ(NCOMP)=LPROJ(IC)
+        elseif(irop.eq.3)then
+
+C Find out if there are operation files in the model ../zones folder.
+          sfile=' '
+          snpfile=' '
+          call browsefilelist('?','zon','opr',sfile,snpfile,nfile,
+     &      iier)
+          if(nfile.gt.0)then
+            sfile=' '
+            snpfile=' '
+            call browsefilelist('b','zon','opr',sfile,snpfile,
+     &        nfile,iier)
+            if(snpfile(1:2).ne.'  ')then
+              write(DFILE,'(3a)')zonepth(1:lnblnk(zonepth)),fs,
+     &          snpfile(1:lnblnk(snpfile))
+
+              LPROJ(NCOMP)=DFILE
+            endif
+          endif
+        elseif(irop.eq.4)then
+          continue
+        endif
+
+C See if the source zone has a viewfactor file.
+C NOTE: any viewfactor block attributes will not yet be know by the
+C associated zone geometry file.
+        if(IVF(ic).eq.1)then
+          write(outs,'(2a)')'Found: ',LVIEW(IC)(1:lnblnk(LVIEW(IC)))
+          call edisp(iuout,' ')
+          call edisp(iuout,outs)
+          helptopic='copy_vwf_options'
+          call gethelptext(helpinsub,helptopic,nbhelp)
+          irop=1
+          CALL EASKATOG(
+     &      'Source zone has a view factor file.',
+     &      'Options:','copy file','point to file',
+     &      'browse file','cancel',' ',' ',' ',irop,nbhelp)
+          if(zonepth(1:2).eq.'  '.or.zonepth(1:2).eq.'./')then
+            WRITE(DFILE,'(A,A4)')zname(NCOMP)(1:lnzname(NCOMP)),
+     &        '.vwf'
+          else
+            WRITE(DFILE,'(3A,A4)') zonepth(1:lnblnk(zonepth)),fs,
+     &        zname(NCOMP)(1:lnzname(NCOMP)),'.vwf'
+          endif
+          if(irop.eq.1)then
+            CALL ERPFREE(IUF,ISTAT)
+            CALL ERMRT(0,itru,IUF,LVIEW(IC),IC,IER)
+   92       CALL EASKS(DFILE,' ','New view factor file name?',
+     &         72,'new.vwf','viewfactor file',IER,nbhelp)
+            IF(DFILE.NE.' ')THEN
+              LVIEW(NCOMP)=DFILE
+              IVF(NCOMP)=1
+              CALL ERPFREE(IUF,ISTAT)
+              NZS=NZSUR(NCOMP)
+              CALL EMKMRT(LVIEW(NCOMP),LGEOM(NCOMP),NZS,IUF,NCOMP,
+     &          'v',IER)
+            else
+              goto 92
+            endif
+          elseif(irop.eq.2)then  ! point to another zone's file.
+            LVIEW(NCOMP)=LVIEW(IC)
+            IVF(NCOMP)=1
+          elseif(irop.eq.3)then
+
+C Find out if there are viewfactor files in the model ../zones folder.
+            sfile=' '
+            snpfile=' '
+            call browsefilelist('?','zon','vwf',sfile,snpfile,nfile,
+     &        iier)
+            if(nfile.gt.0)then
+              sfile=' '
+              snpfile=' '
+              call browsefilelist('b','zon','vwf',sfile,snpfile,
+     &          nfile,iier)
+              if(snpfile(1:2).ne.'  ')then
+                write(DFILE,'(3a)')zonepth(1:lnblnk(zonepth)),fs,
+     &            snpfile(1:lnblnk(snpfile))
+
+                LVIEW(NCOMP)=DFILE
+                IVF(NCOMP)=1
+              endif
+            endif
+          elseif(irop.eq.4)then
+            continue
+          endif
+        endif
+
+C See if the source zone has a casual gain control file.
+        if(ICGC(ic).eq.1)then
+          helptopic='copy_cgc_options'
+          call gethelptext(helpinsub,helptopic,nbhelp)
+          irop=1
+          write(outs,'(2a)')'Found: ',LCGCIN(IC)(1:lnblnk(LCGCIN(IC)))
+          call edisp(iuout,' ')
+          call edisp(iuout,outs)
+          CALL EASKATOG(
+     &      'Source zone has a CG ctl file.',
+     &      'Options:','copy file','point to file',
+     &      'browse file','cancel',' ',' ',' ',irop,nbhelp)
+          if(zonepth(1:2).eq.'  '.or.zonepth(1:2).eq.'./')then
+            WRITE(DFILE,'(A,A4)')zname(NCOMP)(1:lnzname(NCOMP)),
+     &        '.cgc'
+          else
+            WRITE(DFILE,'(3A,A4)') zonepth(1:lnblnk(zonepth)),fs,
+     &        zname(NCOMP)(1:lnzname(NCOMP)),'.cgc'
+          endif
+          if(irop.eq.1)then
+            IUNIT=IFIL+1
+            CALL ERPFREE(IUNIT,ISTAT)
+            call ercgcf(0,iuout,LCGCIN(IC),IC,ier)
+
+   93       CALL EASKS(DFILE,' ','Zone CG file name?',
+     &        72,'new.cgc','casual gain control file',IER,nbhelp)
+            IF(DFILE.NE.' ')THEN
+
+C Copy across the common block variables to the new zone.
+              LCGCIN(NCOMP)=DFILE
+              ICGC(NCOMP)=1
+              cgcdesc(NCOMP)=cgcdesc(IC)
+              DO IDTY=1,nbdaytype
+                NCGTC(NCOMP,IDTY)=NCGTC(IC,IDTY)
+                ICGCS(NCOMP,IDTY)=ICGCS(IC,IDTY)
+                ICGCF(NCOMP,IDTY)=ICGCF(IC,IDTY)
+              ENDDO  ! of IDTY
+              NLITZ(NCOMP)=NLITZ(IC)
+              NUDWIN(NCOMP)=NUDWIN(IC)
+              DO NLZ=1,NLITZ(IC)
+                SETPT(NCOMP,NLZ)=SETPT(IC,NLZ)
+                SOFFLL(NCOMP,NLZ)=SOFFLL(IC,NLZ)
+                SMLOUT(NCOMP,NLZ)=SMLOUT(IC,NLZ)
+                SMEOUT(NCOMP,NLZ)=SMEOUT(IC,NLZ)
+                IOFFDT(NCOMP,NLZ)=IOFFDT(IC,NLZ)
+                SYSPER(NCOMP,NLZ)=SYSPER(IC,NLZ)
+                IDFST(NCOMP,NLZ)=IDFST(IC,NLZ)
+                ICGCFL(NCOMP,NLZ)=ICGCFL(IC,NLZ)
+                SPELEC(NCOMP,NLZ)=SPELEC(IC,NLZ)
+                SLOPEM(NCOMP,NLZ)=SLOPEM(IC,NLZ)
+                SPELEC(NCOMP,NLZ)=SPELEC(IC,NLZ)
+                SLOPEM(NCOMP,NLZ)=SLOPEM(IC,NLZ)
+                NDF(NCOMP,NLZ)=NDF(IC,NLZ)
+                DO JLZ=1,NDF(IC,NLZ)
+                  CGX(NCOMP,NLZ,JLZ)=CGX(IC,NLZ,JLZ)
+                  CGY(NCOMP,NLZ,JLZ)=CGY(IC,NLZ,JLZ)
+                  CGH(NCOMP,NLZ,JLZ)=CGH(IC,NLZ,JLZ)
+                  UX(NCOMP,NLZ,JLZ)=UX(IC,NLZ,JLZ)
+                  UY(NCOMP,NLZ,JLZ)=UY(IC,NLZ,JLZ)
+                  UH(NCOMP,NLZ,JLZ)=UH(IC,NLZ,JLZ)
+                  IDCFID(NCOMP,NLZ,JLZ)=IDCFID(IC,NLZ,JLZ)
+                ENDDO  ! of JLZ
+                do IL=1,NUDWIN(IC)
+                  do IW = 1, NZSUR(ic)
+                    do L=1,NDF(IC,NLZ)
+                      DFDAT(NCOMP,NLZ,IW,L)=DFDAT(IC,NLZ,IW,L)
+                    enddo  ! of L
+                  enddo    ! of IW
+                enddo      ! of IL
+              ENDDO        ! of NLZ
+                 
+              CALL ERPFREE(IUF,ISTAT)
+              call CASCTMK(LCGCIN(NCOMP),NCOMP,'-',IER)
+            else
+              goto 93
+            endif
+          elseif(irop.eq.2)then
+            LCGCIN(NCOMP)=LCGCIN(IC)
+            ICGC(NCOMP)=1
+          elseif(irop.eq.3)then
+
+C Find out if there are casual gain control files in the model ../zones folder.
+            sfile=' '
+            snpfile=' '
+            call browsefilelist('?','zon','cgc',sfile,snpfile,nfile,
+     &        iier)
+            if(nfile.gt.0)then
+              sfile=' '
+              snpfile=' '
+              call browsefilelist('b','zon','cgc',sfile,snpfile,
+     &          nfile,iier)
+              if(snpfile(1:2).ne.'  ')then
+                write(DFILE,'(3a)')zonepth(1:lnblnk(zonepth)),fs,
+     &            snpfile(1:lnblnk(snpfile))
+
+                LCGCIN(NCOMP)=DFILE
+                ICGC(NCOMP)=1
+              endif
+            endif
+          elseif(irop.eq.4)then
+            continue
+          endif
+        endif
+
+C See if the source zone has a convection regime file.
+        if(IHC(ic).eq.1)then
+          helptopic='copy_hc_options'
+          call gethelptext(helpinsub,helptopic,nbhelp)
+          irop=1
+          write(outs,'(2a)')'Found: ',LHCCO(IC)(1:lnblnk(LHCCO(IC)))
+          call edisp(iuout,' ')
+          call edisp(iuout,outs)
+          CALL EASKATOG('Source zone has a CC file.',
+     &      'Options:','copy file','point file',
+     &      'browse file','cancel',' ',' ',' ',irop,nbhelp)
+          if(zonepth(1:2).eq.'  '.or.zonepth(1:2).eq.'./')then
+            WRITE(DFILE,'(A,A4)')zname(NCOMP)(1:lnzname(NCOMP)),
+     &        '.htc'
+          else
+            WRITE(DFILE,'(3A,A4)') zonepth(1:lnblnk(zonepth)),fs,
+     &        zname(NCOMP)(1:lnzname(NCOMP)),'.htc'
+          endif
+          if(irop.eq.1)then
+            CALL ERPFREE(IUF,ISTAT)
+            call ehtcff(LHCCO(IC),IUF,IER)
+   94       CALL EASKS(DFILE,' ','Zone CC file name?',
+     &        72,'new.vwf','convection regime file',IER,nbhelp)
+            IF(DFILE.NE.' ')THEN
+              LHCCO(NCOMP)=DFILE
+              IHC(NCOMP)=1
+              CALL ERPFREE(IUF,ISTAT)
+              CALL EMKHTC(LHCCO(NCOMP),NCOMP,IUF,ITRU,IER)
+            else
+              goto 94
+            endif
+          elseif(irop.eq.2)then
+            LHCCO(NCOMP)=LHCCO(IC)
+            IHC(NCOMP)=1
+          elseif(irop.eq.3)then
+
+C Find out if there are casual gain control files in the model ../zones folder.
+            sfile=' '
+            snpfile=' '
+            call browsefilelist('?','zon','htc',sfile,snpfile,nfile,
+     &        iier)
+            if(nfile.gt.0)then
+              sfile=' '
+              snpfile=' '
+              call browsefilelist('b','zon','htc',sfile,snpfile,
+     &          nfile,iier)
+              if(snpfile(1:2).ne.'  ')then
+                write(DFILE,'(3a)')zonepth(1:lnblnk(zonepth)),fs,
+     &            snpfile(1:lnblnk(snpfile))
+
+                LHCCO(NCOMP)=DFILE
+                IHC(NCOMP)=1
+              endif
+            endif
+          elseif(irop.eq.4)then
+            continue
+          endif
+        endif
+
+C If there is a flow network, update the configuration file before
+C writing out. This requires that we rebuild some zone data structures
+C to include the newly copied zone.
+        NZONES=NCOMP
+        ISFSUM=0
+        CALL ZDATA (ITRC,IER,NZONES,ISFSUM)
+        nzg=1
+        nznog(1)=NCOMP
+        izgfoc=NCOMP
+        CALL ESCZONE(NCOMP)
+        CALL BNDOBJ(0,IER)   ! find the zone COG used in create_zone_node
+        CALL ERCZONE(NCOMP)
+
+        if(IAIRN.ge.1)then
+          ICAAS(ncomp)=0
+          call usrmsg(
+     &      'Updating the current air flow network to include a',
+     &      'node and connections for new/copied zone.','-') 
+          call pauses(1)
+          call create_zone_node(ncomp)  ! create new node
+          DO isur=1,NSUR
+
+C Act on surface attributes if there are any.
+            icc=IZSTOCN(ncomp,isur)
+            if(ICT(icc).eq.3)then
+              CYCLE  ! skip internals
+            endif
+            if(ICT(icc).eq.-1)then
+              CYCLE  ! skip UNKNOWN
+            endif
+
+C Cases to ignore.
+            if(SUSE(ncomp,isur,1)(1:1).eq.'-'.or.
+     &         SUSE(ncomp,isur,1)(1:4).eq.'WALL'.or.
+     &         SUSE(ncomp,isur,1)(1:5).eq.'FLOOR'.or.
+     &         SUSE(ncomp,isur,1)(1:5).eq.'FURNI'.or.
+     &         SUSE(ncomp,isur,1)(1:7).eq.'ITEQUIP'.or.
+     &         SUSE(ncomp,isur,1)(1:5).eq.'PARTN'.or.
+     &         SUSE(ncomp,isur,1)(1:4).eq.'ROOF'.or.
+     &         SUSE(ncomp,isur,1)(1:5).eq.'STRUC'.or.
+     &         SUSE(ncomp,isur,1)(1:7).eq.'FIXTURE'.or.
+     &         SUSE(ncomp,isur,1)(1:6).eq.'PLANTS')then
+              CYCLE
+            endif
+
+C Create a default boundary flow node or component based on surface attributes.
+C Note: linkatpartition() used by create_surface_node_cmp will not have been
+C instantiated.
+            call create_surface_node_cmp(ncomp,isur)
+          enddo
+          call updatebothflownetworks(ier) ! save changes 
+        endif
+
+C Update the configuration file.
+        CALL EMKCFG('-',IER)
+        MODIFYVIEW=.TRUE.
+        MODBND=.TRUE.
+      enddo  ! of loop
+      return
+      end
+
+
 C ************* WARNMOD 
-C WARNMOD provides warning of updates needed when model is changed.
+C Provides warning of updates needed when model is changed.
 C Initially deals with change in number of surfaces. 
 C Act is action to be tested. act = 'sf+' or 'sf-' surface added:deleted.
 C act = 'sat' surface attribute. act = 'str' surf transform.
 C act = 'ob+' or 'ob-' obstruction changes.
-C IER=0 OK. 
+ 
       SUBROUTINE WARNMOD(ICOMP,act)
 #include "building.h"
 #include "model.h"
 #include "CFC_common.h"
+
       common/pmchange/comold,tmcold,vwfold,ishold,cfcold
 
       CHARACTER act*3
@@ -1842,29 +2975,49 @@ C Check if Unix-based or DOS based.
         endif
         if(comold)then
           nh=nh+1
-          write(h(nh),'(3a)')' the construction file ',
+          if(lnblnk(LTHRM(ICOMP))+32.lt.72)then
+            write(h(nh),'(3a)')' construction file ',
      &      LTHRM(ICOMP)(1:lnblnk(LTHRM(ICOMP))),' out of date.'
+          else
+            write(h(nh),'(3a)')' constructions ',
+     &      LTHRM(ICOMP)(1:lnblnk(LTHRM(ICOMP))),' out of date.'
+          endif 
         endif
         if(tmcold)then
           nh=nh+1
-          write(h(nh),'(3a)')' the TMC file ',
-     &          LTWIN(ICOMP)(1:lnblnk(LTWIN(ICOMP))),' out of date.'
+          if(lnblnk(LTWIN(ICOMP))+23.lt.72)then
+            write(h(nh),'(3a)')' TMC file ',
+     &        LTWIN(ICOMP)(1:lnblnk(LTWIN(ICOMP))),' out of date.'
+          else
+            write(h(nh),'(3a)')' TMC ',
+     &        LTWIN(ICOMP)(1:lnblnk(LTWIN(ICOMP))),' out of date.'
+          endif
         endif
         if(cfcold)then
           nh=nh+1
-          write(h(nh),'(3a)')' the CFC file ',
-     &          lcfcin(ICOMP)(1:lnblnk(lcfcin(ICOMP))),' out of date.'
+          if(lnblnk(lcfcin(ICOMP))+23.lt.72)then
+            write(h(nh),'(3a)')' CFC file ',
+     &        lcfcin(ICOMP)(1:lnblnk(lcfcin(ICOMP))),' out of date.'
+          else
+            write(h(nh),'(3a)')' CFC ',
+     &        lcfcin(ICOMP)(1:lnblnk(lcfcin(ICOMP))),' out of date.'
+          endif
         endif
         if(vwfold)then
           nh=nh+1
-          write(h(nh),'(3a)')' the view factor file ',
-     &          LVIEW(ICOMP)(1:lnblnk(LVIEW(ICOMP))),' out of date.'
+          if(lnblnk(LVIEW(ICOMP))+31.lt.72)then
+            write(h(nh),'(3a)')' view factor file ',
+     &        LVIEW(ICOMP)(1:lnblnk(LVIEW(ICOMP))),' out of date.'
+          else
+            write(h(nh),'(3a)')' view factor ',
+     &        LVIEW(ICOMP)(1:lnblnk(LVIEW(ICOMP))),' out of date.'
+          endif
           nh=nh+1
           h(nh)=' (recalculate via `Options viewfactors`)'
         endif
         if(ishold)then
           nh=nh+1
-          write(h(nh),'(3a)')' the shading db ',
+          write(h(nh),'(3a)')' shading db ',
      &        LSHAD(ICOMP)(1:lnblnk(LSHAD(ICOMP))),' out of date.'
         endif
         if(nh.gt.1)then

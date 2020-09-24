@@ -13,10 +13,6 @@ C warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
 C PURPOSE. See the GNU General Public License for more
 C details.
 
-C You should have received a copy of the GNU General Public
-C License along with ESP-r. If not, write to the Free
-C Software Foundation, Inc., 59 Temple Place, Suite 330,
-C Boston, MA 02111-1307 USA.
 
 C This file contains the following routines:
 C      MOSTAT
@@ -30,9 +26,8 @@ C      MORSTU
 C      MOSMSD
 
 C ******************** MOSTAT ********************
-
-C MOSTAT allows statistical analysis of the simulation
-C results. Available at present:
+C Allows statistical analysis of the simulation
+C results.
 
       SUBROUTINE MOSTAT
 #include "building.h"
@@ -75,16 +70,21 @@ C Markdown flag.
       logical headingcontext ! has set or period changed so heading needs reprint
       common/libhead/libheading,headingcontext
 
+C User preferences for Monthly table.
+      integer imshtr,imtcas,imtaiv,imtctl,imtsol       ! monthly topic inclusion
+      common/monthlyoptions/imshtr,imtcas,imtaiv,imtctl,imtsol
+
 C SNAPSH is a logical flag to request variation in header.
       COMMON/SNAP/SNAPSH
       logical SNAPSH,close
       DIMENSION ATI(8),RTI(8),TATI(8),TRTI(8),NDYMTH(12)
-      dimension ITEM(25)
-      CHARACTER ITEM*23,tg*1,delim*1,xfile*144
-      CHARACTER PDESCR*60,SDESCR*44
+      dimension ITEM(25),ITEMONTH(7)
+      character ITEM*23,ITEMONTH*32
+      character tg*1,delim*1,xfile*144
+      character PDESCR*60,SDESCR*44
       character prompt*124,outs*124
       character rfile*72,PFILE*72,MSTRFILE*72,LAFRES*72
-      CHARACTER RSNAME*40
+      character RSNAME*40
       CHARACTER*3 NMTHNM(12)
       integer IWM,ihd  ! for radio buttons
       integer NITMS,INO ! max items and current menu item
@@ -99,6 +99,10 @@ C For help messages
       DATA NDYMTH/31,59,90,120,151,181,212,243,273,304,334,365/
       DATA NMTHNM/'Jan','Feb','Mar','Apr','May','Jun','Jul',
      &'Aug','Sep','Oct','Nov','Dec'/
+
+C Clear initial values.
+      JIOD1=1; JIOM1=1; JIOH1=1; JIOD2=1; JIOM2=1; JIOH2=1
+      JIODS=1; JIODF=1
 
 C Setup for menu.
  1    ITEM(1) ='2 select result set   '
@@ -156,7 +160,7 @@ C      ITEM(10)='e CEN statistics     '
         INO=-2
       endif
 
-C Instanciate help strings for the menu.
+C Instantiate help strings for the menu.
       helptopic='res_statistics_menu'
       call gethelptext(helpinsub,helptopic,nbhelp)
 
@@ -508,7 +512,83 @@ C Interstitial condensation.
 
       elseif(INO.EQ.18)then
 
-C Monthly zone gains and losses report.
+C Monthly zone gains and losses report. Ask if user wants to specify columns.
+C Default columns:
+        imshtr=1; imtcas=1; imtaiv=1; imtctl=1; imtsol=1
+ 111    if(imshtr.eq.1)then
+          ITEMONTH(1)='a heat transfer > all surfaces'
+        elseif(imshtr.eq.2)then
+          ITEMONTH(1)='a heat transfer > facade only '
+        endif
+        if(imtcas.eq.1)then
+          ITEMONTH(2)='b casual gains > separate types'
+        elseif(imtcas.eq.2)then
+          ITEMONTH(2)='b casual gains > aggregate'
+        endif
+        if(imtaiv.eq.1)then
+          ITEMONTH(3)='c air movement > infil & vent'
+        elseif(imtaiv.eq.2)then
+          ITEMONTH(3)='c air movement > infiltration'
+        elseif(imtaiv.eq.3)then
+          ITEMONTH(3)='c air movement > ventilation'
+        endif
+        if(imtctl.eq.1)then
+          ITEMONTH(4)='d controls > heating & cooling'
+        elseif(imtctl.eq.2)then
+          ITEMONTH(4)='d controls > heating '
+        elseif(imtctl.eq.3)then
+          ITEMONTH(4)='d controls > cooling '
+        endif
+        if(imtsol.eq.1)then
+          ITEMONTH(5)='e solar > absorbed & entering'
+        elseif(imtsol.eq.2)then
+          ITEMONTH(5)='e solar > absorbed'
+        elseif(imtsol.eq.3)then
+          ITEMONTH(5)='e solar > entering'
+        endif
+        ITEMONTH(6)='? help'
+        ITEMONTH(7)='- proceed'
+        NMITMS=7
+C        if(MMOD.eq.8)then
+C          INO=-1
+C        else
+C          INO=-2
+C        endif
+        INOM=-4
+
+C Instantiate help strings for the menu.
+        helptopic='res_monthly_menu'
+        call gethelptext(helpinsub,helptopic,nbhelp)
+
+        CALL EMENU('Monthly column options',ITEMONTH,NMITMS,INOM)
+        if(inom.eq.1)then
+          imshtr=imshtr+1
+          if(imshtr.gt.2) imshtr=1
+          goto 111
+        elseif(inom.eq.2)then
+          imtcas=imtcas+1
+          if(imtcas.gt.2)imtcas=1
+          goto 111
+        elseif(inom.eq.3)then
+          imtaiv=imtaiv+1
+          if(imtaiv.gt.3) imtaiv=1
+          goto 111
+        elseif(inom.eq.4)then
+          imtctl=imtctl+1
+          if(imtctl.gt.3) imtctl=1
+          goto 111
+        elseif(inom.eq.5)then
+          imtsol=imtsol+1
+          if(imtsol.gt.3) imtsol=1
+          goto 111
+        elseif(inom.eq.6)then
+          CALL PHELPD('Monthly options',nbhelp,'-',0,0,IER)
+          goto 111
+        elseif(inom.eq.7)then
+          continue
+        else
+          goto 111
+        endif
         CALL MGLTBL
 
       elseif(INO.EQ.19)then
@@ -779,6 +859,7 @@ C act='p' iget parameters already set.
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
       integer ifs,itfs,imfs
       COMMON/GFONT/IFS,ITFS,IMFS
+      COMMON/GRTOOL/IHFLAG,IDHFLG,ilflag
 
       COMMON/SET1/IYEAR,IBDOY,IEDOY,IFDAY,IFTIME
 
@@ -827,7 +908,7 @@ C Remember if we are dealing with surface information (longer names in reporting
       CHARACTER DESCR*7,DESCR1*10,DESCRH*5,DESCRD*5,NT*14,XT*14
       CHARACTER RSNAME*40
       character rfile*72,PFILE*72,MSTRFILE*72,LAFRES*72
-      CHARACTER PDESCR*60,SDESCR*44,t12*12
+      CHARACTER PDESCR*60,SDESCR*44
 
       logical LARGE,HAVEIT
 
@@ -1048,7 +1129,7 @@ C not yet printed the heading do so and mark as printed.
               write(outs,'(2a)') '# Performance Report for ',
      &          RSNAME(ISIM)(1:lnblnk(RSNAME(ISIM)))
               call edisp(itru,outs)
-	    
+    
               write(outs,'(3A,I4)')'### Library ',RFILE(1:lsn1),
      &          ' Set:',ISIM
               call edisp(itru,outs)
@@ -1288,7 +1369,7 @@ C Generate and display or write to file the column headings.
               write(outs,'(2a)')'Description Max_value Max_occur ',
      &                 'Min_value Min_occur Ave_value Std_dev Total'
               call eddisp(itru,outs)
-            endif	
+            endif
           else
             if(markdown)then
               call edisp(itru,'  ')
@@ -2857,7 +2938,7 @@ C Energy requirements.
               write(outs,'(2a)') '# Performance Report for ',
      &          RSNAME(ISIM)(1:lnblnk(RSNAME(ISIM)))
               call edisp(itru,outs)
-	    
+    
               write(outs,'(3A,I4)')'### Library ',RFILE(1:lsn1),
      &          ' Set:',ISIM
               call edisp(itru,outs)
@@ -2897,7 +2978,7 @@ C Energy requirements.
         else
           call edisp(itru,' Zone energy requirements summary')
         endif
-	
+
         if(markdown)then
           write(outs,'(3A)')
      &'--- -------------  -------- --------- --------   --------  ',

@@ -13,10 +13,6 @@ C warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
 C PURPOSE. See the GNU General Public License for more
 C details.
 
-C You should have received a copy of the GNU General Public
-C License along with ESP-r. If not, write to the Free
-C Software Foundation, Inc., 59 Temple Place, Suite 330,
-C Boston, MA 02111-1307 USA.
 
 C This file contains the following subroutines for creating the 
 C non-linear thermophysical properties menues:
@@ -158,7 +154,7 @@ C Read the complete building thermal and geometical data.
       ITEM(13)='  _________________________________'
       ITEM(14)='! list                      '
       ITEM(15)='? help                      '
-      ITEM(16)='- exit this menu            '
+      ITEM(16)='- exit menu                 '
       NITEM=16
 
 C Help text for this menu.
@@ -437,8 +433,8 @@ C Display the defined thermal equations for this thermal function.
       ITEM(M+11)='f add equation from thermal file  '
       ITEM(M+12)='g write equation to thermal file  '
       ITEM(M+13)='  ______________________________________'
-      ITEM(M+14)='? help                                 '
-      ITEM(M+15)='- exit this menu                       '
+      ITEM(M+14)='? help                                  '
+      ITEM(M+15)='- exit menu                             '
 
 C Help text for this menu.
       helptopic='thermal_equation_edit'

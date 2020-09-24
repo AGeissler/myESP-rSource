@@ -201,9 +201,8 @@ C in north or south hemispheres.
       END
 
 C ********** clmddscan **********
-C clmddscan scans a climate file and determines the degree days based
-C on common block data in seasons.h.  This code was previously found
-C in subroutine clmper.F:ddradsum.
+C Scans a weather file and determines the degree-days based
+C on common block data in seasons.h.
 
 C Parameters:
 C  itru (integer) unit for reporting
@@ -212,10 +211,10 @@ C               '-' do not record best-fit weeks.
 C  topic (1 char) 'c' called from clm, 'p' from IPV
 C  nseasons (integer) number of seasons to scan.
 C  icuryear (integer) the applicable year
+
       subroutine clmddscan(itrc,itru,act,topic,nseasons,icuryear)
 #include "building.h"
 #include "seasons.h"
-C seasons.h provides typper and typsea
 #include "ipvdata.h"
 #include "climate.h"
 
@@ -406,7 +405,7 @@ C Loop through each seasonal period.
       h(10)='all of which are parameters required for generating'
       h(11)='an integrated performance view (IPV).'
       call easkab(' ','Options:','search for typical weeks',
-     &  'continue',iok,11)
+     &  'cancel',iok,11)
       if(iok.eq.2)return
 
 C Allow user to define weightings.
@@ -774,7 +773,7 @@ C day ratio.
           if(k.eq.5)then  ! jump out on the final standard season
             iok=1
           else
-            call easkab('Options:',' ','next season','continue',
+            call easkab('Options:',' ','next season','cancel',
      &        iok,2)
           endif
           if(iok.eq.2)return

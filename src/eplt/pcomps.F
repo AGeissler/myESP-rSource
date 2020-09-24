@@ -70,6 +70,7 @@ C      CMP45S   1 node (ISV=20) WCH air source heat pump
 C      CMP46S   2 node (ISV=20) WCH advanced modulating boiler model
 C      CMP47S   1 node (ISV=20) WCH ground source heat pump (EXPERIMENTAL)
 C      CMP48S   2 node (ISV=20) WCH ground source heat pump (EXPERIMENTAL)
+C      CMP49S   2 node (ISV=20) WCH inverter controlled ground source heat pump (EXPERIMENTAL)
 C      CMP50S   1 node (ISV=29) WCH thermostatic valve
 C      CMP51S   1 node (ISV=29)     mechanical room thermostat
 C      CMP52S   1 node (ISV=29) WCH thermostatic valve (sensor only)
@@ -254,6 +255,8 @@ C Component by component, call routine to deal with relevant type
          CALL CMP47S(IPCOMP)
       ELSE IF(ITYPE.EQ.48) THEN
          CALL CMP48S(IPCOMP)
+      ELSE IF(ITYPE.EQ.49) THEN
+         CALL CMP49S(IPCOMP)
       ELSE IF(ITYPE.EQ.50) THEN
          CALL CMP50S(IPCOMP)
       ELSE IF(ITYPE.EQ.51) THEN
@@ -3839,13 +3842,15 @@ C
      &             ICONDX(MPCOM,MNODEC,MPCONC)
 
       COMMON/GSHPvar1/CompMass,AveSpHt,UAMod,CarEffMod,COPa0,COPa1,
-     &COPa2,COPa3,Compa0,Compa1,Compa2,Compa3,
-     &CompressPf,PumpRating,PumpPf,RatedFlow,
-     &CtlRating,CtlPf,ToutMax,TinMax,
-     &NomRetT,NomRetTDeadB,TempCompS,TempCompE,TempCompc0
+     &  COPa2,COPa3,Compa0,Compa1,Compa2,Compa3,
+     &  CompressPf,PumpRating,PumpPf,RatedFlow,
+     &  CtlRating,CtlPf,ToutMaxSH,TinMaxSH,ToutMaxDHW,TinMaxDHW,
+     &  NomRetTSH,NomRetTDHW,NomRetTDeadB,NomRetTDeadBDHW,
+     &  TempCompS,TempCompE,TempCompc0
 
       COMMON/GSHPvar2/COPModel,CompModel,AmbientTempComp,
-     &                DeviceONOFFp,DeviceONOFF
+     &                DeviceONOFFp,DeviceONOFF,GroundSourceModel,
+     &                GroundSourceCoeff
 
       COMMON/GSHPvar3/CallforHeat,InDeadB
 
@@ -3858,13 +3863,13 @@ C
       PARAMETER (SMALL=1.0E-20)
 
       INTEGER COPModel,CompModel,AmbientTempComp,
-     &DeviceONOFFp,DeviceONOFF
+     &DeviceONOFFp,DeviceONOFF,GroundSourceModel,GroundSourceCoeff
 
       REAL CompMass,AveSpHt,UAMod,CarEffMod,COPa0,COPa1,
      &COPa2,COPa3,Compa0,Compa1,Compa2,Compa3,CompressPf,
      &PumpRating,PumpPf,RatedFlow,CtlRating,CtlPf,
-     &ToutMax,TinMax,NomRetT,NomRetTDeadB,
-     &TempCompS,TempCompE,TempCompc0
+     &ToutMaxSH,TinMaxSH,ToutMaxDHW,TinMaxDHW,NomRetTSH,NomRetTDHW,
+     &NomRetTDeadB,NomRetTDeadBDHW,TempCompS,TempCompE,TempCompc0
 
       LOGICAL CallforHeat,InDeadB,ConError
 
@@ -3962,26 +3967,26 @@ C Controller power factor (W)
       ENDIF
 
 C To max (degC)
-      ToutMax=BDATA(IPCOMP,17)
+      ToutMaxSH=BDATA(IPCOMP,17)
 
 C Ti max (degC)
-      TinMax=BDATA(IPCOMP,18)
+      TinMaxSH=BDATA(IPCOMP,18)
 
 C AmbientTemp compensation on/off
       AmbientTempComp=NINT(BDATA(IPCOMP,19))
 
 C Nominal water return temperature (Deg C)
-      NomRetT=BDATA(IPCOMP,20)
-      IF(NomRetT.GE.TinMax)THEN
-        WRITE(OUTS,'(a)')'Error in GSHP Tnom >= Tin max'
+      NomRetTSH=BDATA(IPCOMP,20)
+      IF(NomRetTSH.GE.TinMaxSH)THEN
+        WRITE(OUTS,'(a)')'Error in GSHP Tnom >= Tin max SH'
         call EDISP(IUOUT,OUTS)
         STOP
       ENDIF
 
 C Nominal water return deadband (Deg C)
       NomRetTDeadB=BDATA(IPCOMP,21)
-      IF((NomRetT+0.5*(NomRetTDeadB)).GE.TinMax)THEN
-        WRITE(OUTS,'(a)')'Error in GSHP Tnom + TdeadB >= Tin max'
+      IF((NomRetTSH+0.5*(NomRetTDeadB)).GE.TinMaxSH)THEN
+        WRITE(OUTS,'(a)')'Error in GSHP Tnom + TdeadB SH >= Tin max'
         call EDISP(IUOUT,OUTS)
         STOP
       ENDIF
@@ -3995,17 +4000,8 @@ C Ambient temperature for temp compensation end [Deg C]
 C Temp compensation gradient (-)
       TempCompc0=BDATA(IPCOMP,24)
 
-C Nominal water return temperature DHW (Deg C)
-cx      NomRetT=BDATA(IPCOMP,20)
-cx      IF(NomRetT.GE.TinMax)THEN
-      IF(BDATA(IPCOMP,28).GE.BDATA(IPCOMP,30))THEN
-        WRITE(OUTS,'(a)')'Error in GSHP Tnom DHW >= Tin max DHW'
-        call EDISP(IUOUT,OUTS)
-        STOP
-      ENDIF
-
 C Is a lock out time defined?
-      BLKOUT=BDATA(IPCOMP,25)*60.
+      BLKOUT=NINT(BDATA(IPCOMP,25))*60
 
       if (BLKOUT.gt.0.) then
         bBLKOUT=.true.
@@ -4015,10 +4011,32 @@ C Is a lock out time defined?
 
       bSwitched=.false.
 
-C Nominal water return deadband DHW (Deg C)
-cx      IF((NomRetT+0.5*(NomRetTDeadB)).GE.TinMax)THEN
-      IF((BDATA(IPCOMP,28)+0.5*(NomRetTDeadB)).GE.BDATA(IPCOMP,30))THEN
-        WRITE(OUTS,'(a)')'Error in GSHP Tnom DHW+TdeadB >= Tin max DHW'
+C GroundSourceModel [1 - standard profile 2 - user profile 3 - f(depth)]
+      GroundSourceModel=NINT(BDATA(IPCOMP,26))
+
+C GroundSourceCoeff [model 1 & 2 - profile number; model 3 - depth in m]
+      GroundSourceCoeff=BDATA(IPCOMP,27)
+
+C Nominal water return temperature DHW (Deg C)
+      NomRetTDHW=BDATA(IPCOMP,28)
+
+C Tout max DHW (degC)
+      ToutMaxDHW=BDATA(IPCOMP,29)
+
+C Tin max DHW (degC)
+      TinMaxDHW=BDATA(IPCOMP,30)
+
+C Check nominal return temperature.
+      IF(NomRetTDHW.GE.TinMaxDHW)THEN
+        WRITE(OUTS,'(a)')'Error in GSHP Tnom DHW >= Tin max DHW'
+        call EDISP(IUOUT,OUTS)
+        STOP
+      ENDIF
+
+C Check nominal water return deadband DHW (Deg C)
+      IF((NomRetTDHW+0.5*(NomRetTDeadB)).GE.TinMaxDHW)THEN
+        WRITE(OUTS,'(a)')
+     &         'Error in GSHP Tnom DHW + 0.5 TdeadB >= Tin max DHW'
         call EDISP(IUOUT,OUTS)
         STOP
       ENDIF
@@ -4098,13 +4116,15 @@ C
      &             ICONDX(MPCOM,MNODEC,MPCONC)
 
       COMMON/GSHPvar1/CompMass,AveSpHt,UAMod,CarEffMod,COPa0,COPa1,
-     &COPa2,COPa3,Compa0,Compa1,Compa2,Compa3,
-     &CompressPf,PumpRating,PumpPf,RatedFlow,
-     &CtlRating,CtlPf,ToutMax,TinMax,
-     &NomRetT,NomRetTDeadB,TempCompS,TempCompE,TempCompc0
+     &  COPa2,COPa3,Compa0,Compa1,Compa2,Compa3,
+     &  CompressPf,PumpRating,PumpPf,RatedFlow,
+     &  CtlRating,CtlPf,ToutMaxSH,TinMaxSH,ToutMaxDHW,TinMaxDHW,
+     &  NomRetTSH,NomRetTDHW,NomRetTDeadB,NomRetTDeadBDHW,
+     &  TempCompS,TempCompE,TempCompc0
 
       COMMON/GSHPvar2/COPModel,CompModel,AmbientTempComp,
-     &                DeviceONOFFp,DeviceONOFF
+     &                DeviceONOFFp,DeviceONOFF,GroundSourceModel,
+     &                GroundSourceCoeff
 
       COMMON/GSHPvar3/CallforHeat,InDeadB
 
@@ -4117,13 +4137,13 @@ C
       PARAMETER (SMALL=1.0E-20)
 
       INTEGER COPModel,CompModel,AmbientTempComp,
-     &DeviceONOFFp,DeviceONOFF
+     &DeviceONOFFp,DeviceONOFF,GroundSourceModel,GroundSourceCoeff
 
       REAL CompMass,AveSpHt,UAMod,CarEffMod,COPa0,COPa1,
      &COPa2,COPa3,Compa0,Compa1,Compa2,Compa3,CompressPf,
      &PumpRating,PumpPf,RatedFlow,CtlRating,CtlPf,
-     &ToutMax,TinMax,NomRetT,NomRetTDeadB,
-     &TempCompS,TempCompE,TempCompc0
+     &ToutMaxSH,TinMaxSH,ToutMaxDHW,TinMaxDHW,NomRetTSH,NomRetTDHW,
+     &NomRetTDeadB,NomRetTDeadBDHW,TempCompS,TempCompE,TempCompc0
 
       LOGICAL CallforHeat,InDeadB,ConError
 
@@ -4221,27 +4241,28 @@ C Controller power factor (W)
         STOP
       ENDIF
 
-C To max (degC)
-      ToutMax=BDATA(IPCOMP,17)
+C Tout max SH (degC)
+      ToutMaxSH=BDATA(IPCOMP,17)
 
-C Ti max (degC)
-      TinMax=BDATA(IPCOMP,18)
+C Tin max SH (degC)
+      TinMaxSH=BDATA(IPCOMP,18)
 
 C AmbientTemp compensation on/off
       AmbientTempComp=NINT(BDATA(IPCOMP,19))
 
-C Nominal water return temperature (Deg C)
-      NomRetT=BDATA(IPCOMP,20)
-      IF(NomRetT.GE.TinMax)THEN
-        WRITE(OUTS,'(a)')'Error in 2n-GSHP Tnom => Tin max'
+C Nominal water return temperature for SH (Deg C)
+      NomRetTSH=BDATA(IPCOMP,20)
+      IF(NomRetTSH.GE.TinMaxSH)THEN
+        WRITE(OUTS,'(a)')'Error in 2n-GSHP Tnom => Tin max for SH'
         call EDISP(IUOUT,OUTS)
         STOP
       ENDIF
 
 C Nominal water return deadband (Deg C)
       NomRetTDeadB=BDATA(IPCOMP,21)
-      IF((NomRetT+0.5*(NomRetTDeadB)).GE.TinMax)THEN
-        WRITE(OUTS,'(a)')'Error in 2n-GSHP Tnom + TdeadB >= Tin max'
+      IF((NomRetTSH+0.5*(NomRetTDeadB)).GE.TinMaxSH)THEN
+        WRITE(OUTS,'(a)')
+     &     'Error in 2n-GSHP Tnom + TdeadB >= Tin max for SH'
         call EDISP(IUOUT,OUTS)
         STOP
       ENDIF
@@ -4256,7 +4277,7 @@ C Temp compensation gradient (-)
       TempCompc0=BDATA(IPCOMP,24)
 
 C Is a lock out time defined?
-      BLKOUT=BDATA(IPCOMP,25)*60.
+      BLKOUT=NINT(BDATA(IPCOMP,25))*60
 
       if (BLKOUT.gt.0.) then
         bBLKOUT=.true.
@@ -4267,19 +4288,26 @@ C Is a lock out time defined?
       bSwitched=.false.
 
 C Nominal water return temperature DHW (Deg C)
-cx      NomRetT=BDATA(IPCOMP,20)
-cx      IF(NomRetT.GE.TinMax)THEN
-      IF(BDATA(IPCOMP,29).GE.BDATA(IPCOMP,31))THEN
-        WRITE(OUTS,'(a)')'Error in 2n-GSHP Tnom DHW => Tin max DHW'
+      NomRetTDHW=BDATA(IPCOMP,29)
+
+C Tout max DHW (degC)
+      ToutMaxDHW=BDATA(IPCOMP,30)
+
+C Tin max DHW (degC)
+      TinMaxDHW=BDATA(IPCOMP,31)
+
+C Check nominal water return temperature DHW.
+      IF(NomRetTDHW.GE.TinMaxDHW)THEN
+        WRITE(OUTS,'(a)')
+     &     'Error in 2n-GSHP Tnom DHW => Tin max DHW'
         call EDISP(IUOUT,OUTS)
         STOP
       ENDIF
 
 C Nominal water return deadband DHW (Deg C)
-cx      IF((NomRetT+0.5*(NomRetTDeadB)).GE.TinMax)THEN
-      IF((BDATA(IPCOMP,29)+0.5*(NomRetTDeadB)).GE.BDATA(IPCOMP,31))THEN
+      IF((NomRetTDHW+0.5*(NomRetTDeadB)).GE.TinMaxDHW)THEN
         WRITE(OUTS,'(a)')
-     &     'Error in 2n-GSHP Tnom DHW+TdeadB >= Tin max DHW'
+     &     'Error in 2n-GSHP Tnom DHW + 0.5 TdeadB >= Tin max DHW'
         call EDISP(IUOUT,OUTS)
         STOP
       ENDIF
@@ -4335,6 +4363,480 @@ C Error handling
 C
       END
 
+
+C ******************** CMP49S ********************
+C CMP49S establishes for a plant component with plant db code 490 ie.
+C 1 node (ISV=20) WCH inverter controlled ground-source heat pump
+C feeding a hydronic heating system whether the specified number of
+C controlled variables is OK, and also whether the number of connections
+C to this component is correct and whether the connected nodes are of
+C a type as expected by the corresponding coefficient generator routine.
+      SUBROUTINE CMP49S(IPCOMP)
+
+      implicit none
+
+#include "plant.h"
+#include "building.h"
+
+      integer lnblnk  ! function definition
+
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
+      integer iuout,iuin,ieout
+      COMMON/TC/ITC,ICNT
+      COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
+
+      COMMON/C9/NPCOMP,NCI(MPCOM),CDATA(MPCOM,MMISCD)
+      COMMON/PDBDT/ADATA(MPCOM,MADATA),BDATA(MPCOM,MBDATA)
+      COMMON/PCOND/CONVAR(MPCON,MCONVR),ICONTP(MPCON),
+     &             ICONDX(MPCOM,MNODEC,MPCONC)
+
+      common/pcnam/pcname(mpcom)       ! Plant component names
+      character*15 pcname
+
+      COMMON/GSHPvar1/CompMass,AveSpHt,UAMod,CarEffMod,COPa0,COPa1,
+     &  COPa2,COPa3,Compa0,Compa1,Compa2,Compa3,
+     &  CompressPf,PumpRating,PumpPf,RatedFlow,
+     &  CtlRating,CtlPf,ToutMaxSH,TinMaxSH,ToutMaxDHW,TinMaxDHW,
+     &  NomRetTSH,NomRetTDHW,NomRetTDeadB,NomRetTDeadBDHW,
+     &  TempCompS,TempCompE,TempCompc0
+
+      COMMON/GSHPvar2/COPModel,CompModel,AmbientTempComp,
+     &                DeviceONOFFp,DeviceONOFF,GroundSourceModel,
+     &                GroundSourceCoeff
+
+      COMMON/GSHPvar3/CallforHeat,InDeadB
+
+      COMMON/GSHPvar4/INSO,ITSBO,bSwitched,BLKOUT,NTSBO,bBLKOUT
+      INTEGER INSO,ITSBO,NTSBO
+      REAL BLKOUT
+      LOGICAL bSwitched,bBLKOUT
+
+      COMMON/GSHPvar5/CTLmode,HP_0(6),HP_100(6),
+     &                CP_0(6),CP_100(6),ToutDHWlow,NomRetTDHWlow,
+     &                RatedFlowDHW
+
+      REAL HP_0,HP_100,CP_0,CP_100,ToutDHWlow,NomRetTDHWlow,
+     &  RatedFlowDHW
+      INTEGER CTLmode
+
+      REAL SMALL
+      PARAMETER (SMALL=1.0E-20)
+
+      INTEGER COPModel,CompModel,AmbientTempComp,
+     &DeviceONOFFp,DeviceONOFF,GroundSourceModel,GroundSourceCoeff
+
+      REAL CompMass,AveSpHt,UAMod,CarEffMod,COPa0,COPa1,
+     &COPa2,COPa3,Compa0,Compa1,Compa2,Compa3,CompressPf,
+     &PumpRating,PumpPf,RatedFlow,CtlRating,CtlPf,
+     &ToutMaxSH,TinMaxSH,ToutMaxDHW,TinMaxDHW,NomRetTSH,NomRetTDHW,
+     &NomRetTDeadB,NomRetTDeadBDHW,TempCompS,TempCompE,TempCompc0
+
+      LOGICAL CallforHeat,InDeadB,ConError
+
+C----------------
+C icGSHP data file commons
+C----------------
+C Heat pump performance data / spline function data
+      common/icgshpspline/
+     &          tground(MPCOM,MPCDAT),
+     &          tfeed(MPCOM,MPCDAT),
+     &          heat0(MPCOM,MPCDAT,MPCDAT),
+     &          heat100(MPCOM,MPCDAT,MPCDAT),
+     &          cool0(MPCOM,MPCDAT,MPCDAT),
+     &          cool100(MPCOM,MPCDAT,MPCDAT),
+     &          nx(MPCOM),ny(MPCOM),
+     &          heat0_2d(MPCOM,MPCDAT,MPCDAT),
+     &          heat100_2d(MPCOM,MPCDAT,MPCDAT),
+     &          cool0_2d(MPCOM,MPCDAT,MPCDAT),
+     &          cool100_2d(MPCOM,MPCDAT,MPCDAT),
+     &          fnamHPCoefdat(MPCOM)
+      real tground    ! Ground source temperature data values, degC
+      real tfeed      ! Feed temperature values, degC
+      real heat0      ! HP heating power at lowest converter frequency, kW
+      real heat100    ! HP heating power at highest converter frequency, kW
+      real cool0      ! HP cooling power at lowest converter frequency, kW
+      real cool100    ! HP cooling power at highest converter frequency, kW
+      real heat0_2d   ! HP heating power 0 % second-derivatives
+      real heat100_2d ! HP heating power 100 % second-derivatives
+      real cool0_2d   ! HP cooling power 0 % second-derivatives
+      real cool100_2d ! HP cooling power 100 % second-derivatives
+
+      integer nx,ny              ! number of data points in x and y directions
+
+      character fnamHPCoefdat*72 ! Data file name for current icGSHP entry
+
+C----------------
+C Local variables
+C----------------
+      INTEGER ITC,ICNT,ITCF,ITRACE,IZNTRC,ITU,NPCOMP,NCI,
+     &ICONTP,ICONDX,J,NCITM,NCONS,IPCONC,IPCOMP,IPCON,IX1,NITMS
+
+      REAL CDATA,ADATA,BDATA,CONVAR
+
+      INTEGER IDAT,IDT,JJ,ix,iy
+
+      CHARACTER OUTS*248
+
+C Establish static data derivable from the data read from database
+      DO 10 IDAT=4,51
+10      BDATA(IPCOMP,IDAT-3)=ADATA(IPCOMP,IDAT)
+
+C Initialise parameters
+      InDeadB=.false.
+      CallforHeat=.false.
+
+C Assign variables to be used in coeff generator.
+C ADATA:
+C Mass of component (solids+liquid) (kg)
+      CompMass=ADATA(IPCOMP,1)
+C Mass weighted average specific heat node (J/kgK)
+      AveSpHt=ADATA(IPCOMP,2)
+C UA modulus for component (W/K)
+      UAMod=ADATA(IPCOMP,3)
+
+C BDATA:
+C Control mode [1 - fx  set in GSHP; 2 - fx via CDATA]
+      CTLmode=NINT(BDATA(IPCOMP,1))
+
+C COP model [1- fixed 2 - HP/(HP-CP)]
+      COPModel=NINT(BDATA(IPCOMP,2))
+
+C Set IDT to number of previous parameters for easier adaptation of
+C the reading of following parameters.
+      IDT=2
+
+      if ((COPmodel.eq.1).or.(COPmodel.eq.2)) then
+C       Coefficients for 0 % and 100 % compressor settings, heating and
+C       cooling power.
+        do 15 JJ=1,6
+          IDT=IDT+1
+          HP_0(JJ)   = BDATA(IPCOMP,IDT)
+          HP_100(JJ) = BDATA(IPCOMP,IDT+6)
+          CP_0(JJ)   = BDATA(IPCOMP,IDT+12)
+          CP_100(JJ) = BDATA(IPCOMP,IDT+18)
+  15    continue
+
+C       Set IDT to last polynom data item (BDATA item 26).
+        IDT=IDT+18
+
+      ELSEIF((COPmodel.eq.3).or.(COPmodel.eq.5)) then
+C       A file <plantcomponentname> with the extension .hpd is expected
+C       to exist in the same subdirectory where the plant definition
+C       file resides.
+        write(fnamHPCoefdat(ipcomp),'(3a)')
+     &     '../nets/',pcname(ipcomp)(1:lnblnk(pcname(ipcomp))),'.hpd'
+
+cx        write(*,*)'HPDatfile= ',
+cx     &          fnamHPCoefdat(ipcomp)(1:lnblnk(fnamHPCoefdat(ipcomp)))
+
+C       Read data file and fill commons for performance data.
+        call ReadHPCoefDataFile(IPCOMP)
+
+C       Calculate 2nd derivatives for spline functions.
+C       Heating data
+        call splie2(tground(IPCOMP,:),
+     &              tfeed(IPCOMP,:),
+     &              heat0(IPCOMP,1:nx(IPCOMP),1:ny(IPCOMP)),
+     &              nx(IPCOMP), ny(IPCOMP),
+     &              heat0_2d(IPCOMP,1:nx(IPCOMP),1:ny(IPCOMP)))
+
+        call splie2(tground(IPCOMP,:),
+     &              tfeed(IPCOMP,:),
+     &              heat100(IPCOMP,1:nx(IPCOMP),1:ny(IPCOMP)),
+     &              nx(IPCOMP), ny(IPCOMP),
+     &              heat100_2d(IPCOMP,1:nx(IPCOMP),1:ny(IPCOMP)))
+
+C       Cooling data
+        call splie2(tground(IPCOMP,:),
+     &              tfeed(IPCOMP,:),
+     &              cool0(IPCOMP,1:nx(IPCOMP),1:ny(IPCOMP)),
+     &              nx(IPCOMP), ny(IPCOMP),
+     &              cool0_2d(IPCOMP,1:nx(IPCOMP),1:ny(IPCOMP)))
+
+        call splie2(tground(IPCOMP,:),
+     &              tfeed(IPCOMP,:),
+     &              cool100(IPCOMP,1:nx(IPCOMP),1:ny(IPCOMP)),
+     &              nx(IPCOMP), ny(IPCOMP),
+     &              cool100_2d(IPCOMP,1:nx(IPCOMP),1:ny(IPCOMP)))
+
+C Output 2nd derivative matrices for checking purposes.
+        write(IUOUT,*)' '
+        write(IUOUT,*)
+     &  '***************** 2nd Derivative Matrices ******************'
+        write(IUOUT,*)' '
+        write(IUOUT,*)'2nd d. heating power at 0 %:'
+        write(IUOUT,'(a,7(f7.3,1x))')'        ',
+     &                               (tfeed(IPCOMP,iy),iy=1,7)
+        DO 40 ix=1,nx(ipcomp)
+            write(IUOUT,'(f7.3,1x,7(f7.3,1x))')tground(IPCOMP,ix),
+     &                             (heat0_2d(IPCOMP,ix,iy),iy=1,7)
+ 40     CONTINUE
+
+        write(IUOUT,*)' '
+        write(IUOUT,*)'2nd d. heating power at 100 %:'
+        write(IUOUT,'(a,7(f7.3,1x))')'        ',
+     &                               (tfeed(IPCOMP,iy),iy=1,7)
+        DO 50 ix=1,nx(ipcomp)
+            write(IUOUT,'(f7.3,1x,7(f7.3,1x))')tground(IPCOMP,ix),
+     &                             (heat100_2d(IPCOMP,ix,iy),iy=1,7)
+ 50     CONTINUE
+
+        write(IUOUT,*)' '
+        write(IUOUT,*)'2nd d. cooling power at 0 %:'
+        write(IUOUT,'(a,7(f7.3,1x))')'        ',
+     &                               (tfeed(IPCOMP,iy),iy=1,7)
+        DO 60 ix=1,nx(ipcomp)
+            write(IUOUT,'(f7.3,1x,7(f7.3,1x))')tground(IPCOMP,ix),
+     &                               (cool0_2d(IPCOMP,ix,iy),iy=1,7)
+ 60     CONTINUE
+
+        write(IUOUT,*)' '
+        write(IUOUT,*)'2nd d. cooling power at 100 %:'
+        write(IUOUT,'(a,7(f7.3,1x))')'        ',
+     &                               (tfeed(IPCOMP,iy),iy=1,7)
+        DO 70 ix=1,nx(ipcomp)
+            write(IUOUT,'(f7.3,1x,7(f7.3,1x))')tground(IPCOMP,ix),
+     &                               (cool100_2d(IPCOMP,ix,iy),iy=1,7)
+ 70     CONTINUE
+        write(IUOUT,*)' '
+        write(IUOUT,*)
+     &  '************************************************************'
+        write(IUOUT,*)' '
+
+C Preprocessing complete. Leave binary file open for use during time-step simulation.
+        call usrmsg(' Preprocessing icGSHP data (splie2()) done.',
+     &            ' ','-')
+        write(IUOUT,*)' '
+
+C       Set IDT to last polynom data item (BDATA item 26).
+        IDT=26
+
+      ELSEIF(COPmodel.eq.4) then
+C       A file <plantcomponentname> with the extension .hpd is expected
+C       to exist in the same subdirectory where the plant definition
+C       file resides.
+        write(fnamHPCoefdat(ipcomp),'(3a)')
+     &     '../nets/',pcname(ipcomp)(1:lnblnk(pcname(ipcomp))),'.hpd'
+
+C       Read data file and fill commons for performance data.
+        call ReadHPCoefDataFile(IPCOMP)
+
+C       Set IDT to last polynom data item (BDATA item 26).
+        IDT=26
+      ENDIF
+
+C Pump rating (W)
+      IDT=IDT+1
+      PumpRating=BDATA(IPCOMP,IDT)
+
+C Pump pf (-)
+      IDT=IDT+1
+      PumpPf=BDATA(IPCOMP,IDT)
+
+C Flowrate at rated pump power SH (l/s)
+      IDT=IDT+1
+      RatedFlow=BDATA(IPCOMP,IDT)
+      IF(RatedFlow.LT.SMALL)THEN
+        WRITE(OUTS,'(a)')
+     &             'Error in icGSHP: rated flow is close to zero!'
+        CALL EDISP(IUOUT,OUTS)
+        STOP
+      ENDIF
+
+C Flowrate DHW (l/s)
+      IDT=IDT+1
+      RatedFlowDHW=BDATA(IPCOMP,IDT)
+      IF(RatedFlowDHW.LT.SMALL)THEN
+        WRITE(OUTS,'(a)')
+     &             'Error in icGSHP: rated DHW flow is close to zero!'
+        CALL EDISP(IUOUT,OUTS)
+        STOP
+      ENDIF
+
+C Controller power (W)
+      IDT=IDT+1 ! 30 (33)
+      CtlRating=BDATA(IPCOMP,IDT)
+
+C Controller power factor (W)
+      IDT=IDT+1
+      CtlPf=BDATA(IPCOMP,IDT)
+      IF(CtlPf.LT.SMALL)THEN
+        WRITE(OUTS,'(a)')'Error in icGSHP: ctl pf is close to zero!'
+        CALL EDISP(IUOUT,OUTS)
+        STOP
+      ENDIF
+
+C Compressor pf (-)
+      IDT=IDT+1
+      CompressPf=BDATA(IPCOMP,IDT)
+      IF(CompressPf.LT.SMALL)THEN
+        WRITE(OUTS,'(a)')'Error in icGSHP: comp pf is close to zero!'
+        CALL EDISP(IUOUT,OUTS)
+        STOP
+      ENDIF
+
+C Tout SH (degC)
+      IDT=IDT+1
+      ToutMaxSH=BDATA(IPCOMP,IDT)
+
+C Nominal water return temperature SH (Deg C)
+      IDT=IDT+1
+      NomRetTSH=BDATA(IPCOMP,IDT)
+
+      IF(NomRetTSH.GT.ToutMaxSH)THEN
+        WRITE(OUTS,'(a)')
+     &          'Error in icGSHP nom ret T SH > Tout for SH'
+        call EDISP(IUOUT,OUTS)
+        STOP
+      ENDIF
+
+C Nominal return deadband SH (Deg C)
+      IDT=IDT+1 ! 35 (38)
+      NomRetTDeadB=BDATA(IPCOMP,IDT)
+
+C Check nominal water return deadband SH (Deg C)
+      IF((NomRetTSH+0.5*(NomRetTDeadB)).GT.ToutMaxSH)THEN
+        WRITE(OUTS,'(a)')
+     &     'Error in icGSHP nom ret T SH + 0.5 TdeadB > Tout SH'
+        call EDISP(IUOUT,OUTS)
+        STOP
+      ENDIF
+
+C AmbientTemp compensation on/off
+      IDT=IDT+1
+      AmbientTempComp=NINT(BDATA(IPCOMP,IDT))
+
+C Low amb. air temperature for temp compensation [Deg C]
+      IDT=IDT+1
+      TempCompS=BDATA(IPCOMP,IDT)
+
+C High amb. air temperature for temp compensation [Deg C]
+      IDT=IDT+1
+      TempCompE=BDATA(IPCOMP,IDT)
+
+C Temp compensation gradient (-)
+      IDT=IDT+1
+      TempCompc0=BDATA(IPCOMP,IDT)
+
+C =================================
+C Domestic hot water (DHW) settings
+C Tout DHW high (degC)
+      IDT=IDT+1 ! 40 (43)
+      ToutMaxDHW=BDATA(IPCOMP,IDT)
+
+C Nominal water return temperature DHW (Deg C)
+      IDT=IDT+1
+      NomRetTDHW=BDATA(IPCOMP,IDT)
+
+      IF(NomRetTDHW.GT.ToutMaxDHW)THEN
+        WRITE(OUTS,'(a)')'Error in icGSHP nom ret T DHW > Tout DHW'
+        call EDISP(IUOUT,OUTS)
+        STOP
+      ENDIF
+
+C Tout DHW low (degC)
+      IDT=IDT+1
+      ToutDHWlow=BDATA(IPCOMP,IDT)
+
+C Nominal water return temperature DHW (Deg C)
+      IDT=IDT+1
+      NomRetTDHWlow=BDATA(IPCOMP,IDT)
+
+      IF(NomRetTDHWlow.GT.ToutDHWlow)THEN
+        WRITE(OUTS,'(a)')
+     &         'Error in icGSHP nom ret T DHW > Tout DHW (low)'
+        call EDISP(IUOUT,OUTS)
+        STOP
+      ENDIF
+C Nominal water return deadband DHW (Deg C)
+      IDT=IDT+1
+      NomRetTDeadBDHW=BDATA(IPCOMP,IDT)
+
+C Check nominal water return deadband DHW, high (Deg C)
+      IF((NomRetTDHW+0.5*(NomRetTDeadBDHW)).GT.ToutMaxDHW)THEN
+        WRITE(OUTS,'(a)')
+     &      'Error in icGSHP nom ret T DHW + 0.5 TdeadB > Tin DHW'
+        call EDISP(IUOUT,OUTS)
+        STOP
+      ENDIF
+
+C Check nominal water return deadband DHW, low (Deg C)
+      IF((NomRetTDHWlow+0.5*(NomRetTDeadBDHW)).GT.ToutDHWlow)THEN
+        WRITE(OUTS,'(a)')
+     &     'Error in icGSHP nom ret T DHW + 0.5 TdeadB > Tin DHW (low)'
+        call EDISP(IUOUT,OUTS)
+        STOP
+      ENDIF
+
+C Is a lock out time defined (value is interpreted as minutes)?
+      IDT=IDT+1 ! 45 (48)
+      BLKOUT=NINT(BDATA(IPCOMP,IDT))*60
+
+      if (BLKOUT.gt.0.) then
+        bBLKOUT=.true.
+      else
+        bBLKOUT=.false.
+      endif
+
+      bSwitched=.false.
+
+C GroundSourceModel [1- fixed 2 - HP/(HP-CP)]
+      IDT=IDT+1
+      GroundSourceModel=NINT(BDATA(IPCOMP,IDT))
+
+C GroundSourceCoeff [model 1 & 2 - profile number; model 3 - depth in m]
+      IDT=IDT+1 ! 47 (50)
+      GroundSourceCoeff=NINT(BDATA(IPCOMP,IDT))
+
+C Trace output
+      IF(ITC.GT.0.AND.ITRACE(35).NE.0) THEN
+        WRITE(ITU,*) ' Component ',IPCOMP,' pre-simulation data for a:'
+        WRITE(ITU,*) ' 1 node (ISV=20) inverter controlled GSHP '
+        NITMS=3
+        WRITE(ITU,*) ' ADATA ',(ADATA(IPCOMP,J),J=1,NITMS)
+        NITMS=30
+        WRITE(ITU,*) ' BDATA ',(BDATA(IPCOMP,J),J=1,NITMS)
+        NITMS=3
+        WRITE(ITU,*) ' CDATA ',(CDATA(IPCOMP,J),J=1,NITMS)
+        IF(ITU.EQ.IUOUT) THEN
+           IX1=(IPCOMP/5)*5
+           IF(IX1.EQ.IPCOMP.OR.IPCOMP.EQ.NPCOMP) call epagew
+        ENDIF
+      ENDIF
+
+C Check user specified number of controlled variables
+      NCITM=3
+      IF(NCI(IPCOMP).NE.NCITM)
+     &   WRITE(ITU,*) ' CMP49S warning: wrong number of controlled',
+     &                ' variables specified: ',NCI(IPCOMP),
+     &                ' instead of ',NCITM,'.'
+
+C Check for a single connection to water.
+      ConError=.false.
+      NCONS=1
+      IPCONC=1
+      DO WHILE(IPCONC.LE.MPCONC.AND..NOT.ConError)
+        IPCON=ICONDX(IPCOMP,1,IPCONC)
+        IF(IPCONC.LE.NCONS) THEN
+          IF(IPCON.EQ.0) THEN
+            ConError=.true.
+          ELSE IF(ICONTP(IPCON).NE.20) THEN
+            ConError=.true.
+          END IF
+        ELSE IF(IPCON.NE.0) THEN
+          ConError=.true.
+        END IF
+        IPCONC=IPCONC+1
+      ENDDO
+
+C Error handling
+      IF(ConError)THEN
+        WRITE(IUOUT,*) 'CMP49S: connection error for component ',IPCOMP
+        WRITE(IUOUT,*) '        should be ',NCONS,' water connection(s)'
+        STOP 'CMP49S: unresolvable error'
+      ENDIF
+C
+      END
 
 C ******************** CMP50S ********************
 C
@@ -4988,7 +5490,8 @@ C
      &             ICONDX(MPCOM,MNODEC,MPCONC)
 
 
-      COMMON/DHWStoch1/DHWsubmin,CalCount,DHWCalcInc
+      COMMON/DHWStoch1/DHWsubmin,CalCount,DHWCalcInc,
+     &    GroundSourceModel,GroundSourceCoeff
 
       Common/DHWStoch3R/NomDraw,SeasDrawFluc,DrawPerS(6),NomDrawFrac(6),
      &NomTypeFrac(6),DrawV(6),DrawVstd(6),DrawWdvar(6),DrawWevar(6)
@@ -5005,7 +5508,7 @@ C
      &DrawV,DrawVstd,NomDrawDur,DrawWdvar,DrawWevar,CurDrawDur,
      &ElapseDrawDur,DHWDraw
       integer SeasPhas,NoHolPer,HolPerS,HolPerE,NoDrawPer,NDrawType,
-     &CalCount,DHWCalcInc
+     &CalCount,DHWCalcInc,GroundSourceModel,GroundSourceCoeff
       integer IDT,IDp,NSTAT,NBDAT1,NBDAT2,NBDAT3,NBDAT
 
       integer ITC,ICNT,ITCF,ITRACE,IZNTRC,ITU
@@ -5020,7 +5523,7 @@ C Establish static data derivable from the data read from database
       NBDAT1=1+NSTAT+nint(ADATA(IPCOMP,NSTAT+1))*2
       NBDAT2=1+NBDAT1+nint(ADATA(IPCOMP,NBDAT1+1))*2
       NBDAT3=1+NBDAT2+nint(ADATA(IPCOMP,NBDAT2+1))*6
-      NBDAT=NBDAT3+1
+      NBDAT=NBDAT3+1+2
 
 C Initiate calculation counter for sub 60s timesteps
       calcount=1
@@ -5119,6 +5622,13 @@ C Seed the random number generator
       ISEED=DHWDrawSeed
       CALL SRAND(ISEED)
 
+C GroundSourceModel [1- fixed 2 - HP/(HP-CP)]
+      IDT=IDT+1
+      GroundSourceModel=NINT(ADATA(IPCOMP,IDT))
+
+C GroundSourceCoeff [model 1 & 2 - profile number; model 3 - depth in m]
+      IDT=IDT+1
+      GroundSourceCoeff=NINT(ADATA(IPCOMP,IDT))
 
 C
 C Check user specified number of controlled variables

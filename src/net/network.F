@@ -13,10 +13,6 @@ C warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
 C PURPOSE. See the GNU General Public License for more
 C details.
 
-C You should have received a copy of the GNU General Public
-C License along with ESP-r. If not, write to the Free
-C Software Foundation, Inc., 59 Temple Place, Suite 330,
-C Boston, MA 02111-1307 USA.
 
 C NETWORK is the stand-alone routine for ESP-r network definition.
 C The file continains the following routines:
@@ -420,7 +416,7 @@ C Set reasonable defaults for text mode.
 
       CALL ESPrVersion("summary",cAppName,IUOUT)
 
-C Use askabout to instanciate the initial help messages (2nd parameter is one).
+C Use askabout to instantiate the initial help messages (2nd parameter is one).
       call askabout('enet',1)
 
 C Initialise the network on first entry and clear screen and draw grid.
@@ -503,7 +499,7 @@ C flow network file.
             haveglobal=.TRUE. ! for use in MFWRIT
           endif
           CALL NETTOFLW(ier)
-          call mflist(iuout)
+          call mflist(iuout,'f')  ! Full listing
         endif
 
 C Also check for summary file. This is done each time a new graphic
@@ -587,7 +583,7 @@ C     &    datrib,dmenuatr,igatrdom,dgtagatr,dgatrib,dgmenuatr,IER)
 
       ENDIF                
 
-C Loop through each of the icons and instanciate the NWICNME from
+C Loop through each of the icons and instantiate the NWICNME from
 C the information in the icons database.
       IF(NNICN.GT.0)THEN
         DO 30 ICN=1,NNICN   
@@ -1018,7 +1014,7 @@ C << this is new needs checking >>
 C If flow, update the flow commons and list them out.
         if(INWKTYP.eq.2.and.NWKTYPSTR(INWKTYP)(1:4).eq.'Flow')then
           CALL NETTOFLW(ier)
-          call mflist(iuout)
+          call mflist(iuout,'f')
         endif
 
       ELSEIF(INO.EQ.16)THEN
@@ -1090,7 +1086,7 @@ C Save current network to (graphics) file.
 C Update the flow commons, list and over-write legacy flow file.
         if(INWKTYP.eq.2.and.NWKTYPSTR(INWKTYP)(1:4).eq.'Flow')then
           CALL NETTOFLW(ier)
-          call mflist(iuout)
+          call mflist(iuout,'s')
    79     IUM=IFIL+6
           lnf=lnblnk(LAPROB)
           write(LTMP,'(2a)') LAPROB(1:lnf-3),'legacy'
@@ -1117,7 +1113,7 @@ C Save graphic network to a user specified file.
 C Update the flow commons, list them out and write legacy file.
         if(INWKTYP.eq.2.and.NWKTYPSTR(INWKTYP)(1:4).eq.'Flow')then
           CALL NETTOFLW(ier)
-          call mflist(iuout)
+          call mflist(iuout,'s')
    78     IUM=IFIL+6
           lnf=lnblnk(LAPROB)
           write(LTMP,'(2a)') LAPROB(1:lnf-3),'legacy'
@@ -1192,7 +1188,7 @@ C the screen.  << ?? do we need without fill common blocks ?? >>
         elseif(iwh.eq.2)then
           CALL NETREAD(INUNIT,'N',IER)
           CALL NETTOFLW(ier)
-          call mflist(iuout)
+          call mflist(iuout,'f')
         else
           continue
         endif
@@ -1776,7 +1772,7 @@ C If there is a long list then allow paging.
   109     FORMAT   ('0 page: ',I2,' of ',I2,' --------')
         ENDIF
         ICITEM1(M+2)='? help'
-        ICITEM1(M+3)='- exit this menu'
+        ICITEM1(M+3)='- exit menu'
         NICITEM=M+MCTL
         IMOUT=-1
         CALL NETWDRW
@@ -1854,7 +1850,7 @@ C If a long list include page facility text.
             endif
           ENDIF
           ICITEM2(M+3)  ='? help                  '
-          ICITEM2(M+4)  ='- exit this menu        '
+          ICITEM2(M+4)  ='- exit menu'
           NICITEM2=M+MCTL
 
           IMOUT2=-1   
@@ -4079,7 +4075,7 @@ C If a long list include page facility text.
    15   FORMAT   ('0 page: ',I2,' of ',I2,' --------')
       ENDIF
       WRITE(IECDATE(M+2),'(A)') '? help '
-      WRITE(IECDATE(M+3),'(A)') '- exit this menu '
+      WRITE(IECDATE(M+3),'(A)') '- exit menu'
       NECDATA=M+MCTL  
       CALL NETWDRW
       helptopic='net_global_data'
@@ -4164,7 +4160,7 @@ C If a long list include page facility text.
         ENDIF
         WRITE(IECDATEs(M+2),'(A)')'  cannot edit values marked (#)'
         WRITE(IECDATEs(M+3),'(A)')'? help '
-        WRITE(IECDATEs(M+4),'(A)')'- exit this menu '
+        WRITE(IECDATEs(M+4),'(A)')'- exit menu'
         NECDATAs=M+MCTL
         ICOUT2=-1
         CALL NETWDRW

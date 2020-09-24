@@ -1,6 +1,6 @@
 C This file is part of the ESP-r system.
 C Copyright Energy Systems Research Unit, University of
-C Strathclyde, Glasgow Scotland, 2001.
+C Strathclyde, Glasgow Scotland, 2001-.
 
 C ESP-r is free software.  You can redistribute it and/or
 C modify it under the terms of the GNU General Public
@@ -13,170 +13,108 @@ C warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
 C PURPOSE. See the GNU General Public License for more
 C details.
 
-C You should have received a copy of the GNU General Public
-C License along with ESP-r. If not, write to the Free
-C Software Foundation, Inc., 59 Temple Place, Suite 330,
-C Boston, MA 02111-1307 USA.
 
-C BPS version: This file contains the following routines:
-C      mzinpt
-C      mzprec
-C      mzutil
-C      usesps
+C This file contains the following subroutines.
+C mzinpt - controls input of data that defines a building
+C          and/or plant configuration for simulation.
+C mzprec -
+C mzutil -
+C usesps -
  
-C ******************** mzinpt
-C Mzinpt controls input of a data set which defines a building
-C and/or plant configuration for simulation.
-C IREP sets the level of reporting/ checking - designed for use in 
-C uncertainty analyses where data has to be re-read silently. 
-C IREP=1 implies silent and no checking.
-
-C Common block variables are:
+C ******************** mzinpt ********************
+C Controls input of data that defines a building and/or plant configuration
+C for simulation.
+C IREP sets the level of reporting/checking for use in uncertainty analyses
+C where data has to be re-read silently. IREP=1 implies silent operation
+C and no checking.
  
-C indcfg  - is the configuration file index where: 1= building only,
-C           2= plant only, 3= building and plant
-
-C sitelat,   - Site latitude and the longitudinal difference between the 
-C sitelongdif  site and the reference time zone (east +ve).
-
-C sitealt - site altitude (m) above sea level
-C atmpres - atmospheric pressure, dependent on site altitude if not in climate file (Pa)
-C patmos - atmospheric pressure in mbar
-C extairden - external air density, dependent on atmospheric pressure, temperature and RH
-
-C siteexposureindex - Site exposure index (from site.h):
-C           1= city centre, normal case; 2= urban site, normal case
-C           3= rural site, normal case;
-C           4= city centre, equal sky, ground & building view factors
-C           5= city centre, building below mean height of surrounding
-C              buildings
-C           6= rural site, isolated; 7= totally enclosed building
-C           8= user defined
- 
-C gref    - external ground reflectivity
- 
-C modeltitle - the name of the entire system
- 
-C ncomp   - number of zones comprising the system to be simulated
-C nccode  - zone code (for eventual database reference)
- 
-C lproj   - zone scheduling (operation file)
-C lgeom   - zone geometry file      
-C lthrm   - zone construction file
- 
-C ncon    - total number of intra-zone connections
- 
-C ic1 &   - zone and multilayered construction numbers defining the start
-C ie1       point of each connection
-
-C ict     - connection type where:
-C           0 ; connection to external conditions
-C           1 ; connection to identical environmental conditions
-C               as the source zone (OR, relative temp and absolute 
-C               radiation can be specified, see below)
-C           2 ; connection to constant and known environmental conditions
-C           3 ; connection to another zone (as defined by IC2 & IE2 
-C           4 ; connected to ground
-C           5 ; surface is adiabatic
-C           7 ; surface according to the CEN 13791 partition
-
-C ic2 &   - connection description where ic2 & ie2:
-C ie2       - are unused if corresponding ict=0
-C           - contain relative temp and absolute incident radiation 
-C             intensity values respectively if corresponding ict=1
-C             (If ic2=ie2=0, then identical to source zone)
-C           - contain constant temperature and incident radiation 
-C             intensity values respectively if corresponding ict=2
-C           - contain the zone and multilayered construction numbers 
-C             at which each connectionterminates (if corresponding ict=3)
-C           - contain pointers to ground temps (if corresponding ict=4)
-
-C iairn   - building fluid (1=text. 2=graphic 3=3D) flow simulation index (0 = off)
-C icaas   - fluid (= air) flow network node associated with each
-C           building zone. NB fluid flow network and building zones
-C           need not be matched
-C iflwn   - plant fluid flow simulation index (1 = on)
-C icffs   - fluid flow network node associated with each plant component. 
-C           NB fluid flow network and plant energy network need not be matched
-
-C laprob  - fluid flow description file
-
-C lpnam   - the name of the plant system
-C npcomp  - number of plant components
-
-C npcdat(*,1) - component code number. Presently this code is only
-C               used for reference purpose
-
-C npmtyp  - type of matrix required for configuration
-C             1 = energy balance only
-C             2 = mass balance, single phase
-C             3 = mass balance, two phase
-
-C npref   - plant components database pointer (for user selection)
-C npsta   - start address for each component in the database
-
-C nci     - number of possible control variables
-C           Note that if any of these variables are actually
-C           to be controlled, then a corresponding control
-C           loop must be activated
-
-C cdata   - design (or upper) values for each control variable
-
-C npcon   - number of inter-component connections
-
-C ipc1 &  - component and node numbers defining receiving component
-C ipn1      (ie defining inlet node)
-
-C ipct    - plant component inter-connection type where:
-C            1 = connected to identical environmental conditions
-C                as the source component;
-C            2 = connected to constant and known environmental
-C                conditions (defined by ipc2 and ipn2);
-C            3 = connected to another component (as defined
-C                by ipc2 and ipn2);
-C            4 or 5= connected to a building zone (as defined
-C                by ipc2) or ambient conditions (ipc2=0)
-
-C ipc2 &  - component and node numbers defining the connected comp.
-C ipn2
-
-C ncont   - total number of plant component containment conditions
-C           NB it is permissible to contain only some subset of the
-C           total number of components. Unreferenced components
-C           would then have no exchange with their environment
-
-C ipcc    - defines a plant component for containment
-
-C indcp   - index which dictates the type of containment (as ict
-C           above but read 'component' for 'zone')
-
-C cntdat  - environment (or surroundings) data for a plant component
-C            if indcp=0 ; outside air used and cntdat(1) used to
-C                         indicated the variation from this value
-C            if indcp=1 ; temperature of a specified plant node.
-C                         cntdat(1) identifies the component, and
-C                         cntdat(2) the node therein, and cntdat(3)
-C                         some constant temperature shift. cntdat(1)
-C                         and cntdat(2) both zero is the self con-
-C                         tainment case
-C            if indcp=2 ; constant temperature the value of which
-C                         is in cntdat(1)
-C            if indcp=3 ; temperature of a building zone, where
-C                         cntdat(1) identifies the zone number,
-C                         cntdat(2) the surface number ; and
-C                         cntdat(3) the node number from 'outside'
-C                         If cntdat(2) and cntdat(3) both zero then
-C                         zone air temp. used and if cntdat(3) zero
-C                         use the inside surface node temperature
+C indcfg      - configuration file index where 1 = building only, 2 = plant only 
+C               and 3 = building and plant.
+C sitelat     - site latitude. 
+C sitelongdif - site longitudinal difference with the local reference meridian (East +ve).
+C sitealt     - site altitude.
+C atmpres     - atmospheric pressure, dependent on site altitude if avalable in weather file.
+C patmos      - atmospheric pressure.
+C extairden   - external air density, dependent on atmospheric pressure, temperature and RH.
+C siteexposureindex - 1 = city centre, normal case; 2 = urban, normal case
+C                     3 = rural, normal case; 4 = city centre, equal sky, ground & building views
+C                     5 = city centre, building below mean height of surroundings
+C                     6 = rural, isolated; 7 = totally enclosed; 8 = user defined.
+C gref        - ground reflectivity.
+C modeltitle  - model name.
+C ncomp       - number of building zones.
+C nccode      - zone code.
+C lproj       - zone operations file.
+C lgeom       - zone geometry file.      
+C lthrm       - zone constructions file.
+C ncon        - number of intra-zone connections.
+C ic1 & ie1   - zone and construction number defining the start point of a connection.
+C ict         - connection type:
+C                     0 = to external conditions;
+C                     1 = to conditions identical to the source zone;
+C                     2 = to constant environmental conditions;
+C                     3 = to another zone (defined by ic2 & ie2);
+C                     4 = to ground;
+C                     5 = adiabatic;
+C                     7 = to a CEN 13791 partition.
+C ic2 & ie2  - zone and construction number defining the end point of a connection:
+C                     - unused if corresponding ict = 0;
+C                     - temperature and incident radiation differential to apply if 
+C                       corresponding ict = 1;
+C                     - temperature and incident radiation to apply if corresponding ict = 2;
+C                     - zone and construction numbers if corresponding ict = 3;
+C                     - pointer to ground temperatureprofile if corresponding ict = 4.
+C iairn      - building fluid flow simulation index (0 = none; 1 = text file;
+C              2 = graphic file; 3 =3 D file) .
+C icaas      - fluid (= air) flow network node associated with each building zone. Fluid
+C              flow network nodes and building zones may be partially matched.
+C iflwn      - plant fluid flow simulation index (o = none; 1 = on).
+C icffs      - fluid flow network node associated with each plant component. Fluid
+C              flow network nodes and plant components may be partially matched.
+C laprob     - fluid flow description file.
+C lpnam      - name of the plant system.
+C npcomp     - number of plant components.
+C npcdat     - plant component data.
+C npmtyp     - plant system type:
+C                     1 = energy balance only
+C                     2 = mass balance, single phase
+C                     3 = mass balance, two phases.
+C npref      - plant components database pointer
+C npsta      - start address for each component in the database
+C nci        - number of  control variables. (For variables to be controlled, a
+C              corresponding control loop must be defined.)
+C cdata      - initial value for each control variable.
+C npcon      - number of plant inter-component connections.
+C ipc1 & ipn1 - component and node number defining receiving component (i.e. the inlet node).
+C ipct       - plant component inter-connection type:
+C                     1 = to identical conditions as the source component;
+C                     2 = to constant and environmental conditions defined by ipc2 and ipn2;
+C                     3 = to another component as defined by ipc2 and ipn2;
+C                     4 = to a building zone as defined by ipc2;
+C                     5 = to ambient conditions.
+C ipc2 & ipn2 - component and node number defining the connected component.
+C ncont      - number of plant component containment conditions. If a component has no
+C              defined containment then it will have no exchange with its environment.
+C ipcc       - plant component for containment.
+C indcp      - index dictating the containment type (as ict above but read 'component' for 'zone').
+C cntdat     - surroundings data for a plant component:
+C                     if indcp = 0 - outside air used and cntdat(1) indicates any differential
+C                                    to apply;
+C                     if indcp = 1 - temperature of a specified plant component node; cntdat(1)
+C                                    identifies the component, cntdat(2) the node and cntdat(3)
+C                                    any temperature differential;
+C                     if indcp = 2 - constant temperature as given by cntdat(1);
+C                     if indcp = 3 - temperature of a building zone; cntdat(1) identifies the zone,
+C                                    cntdat(2) the construction and cntdat(3) the node number from
+C                                    'outside' (cntdat(2) and cntdat(3) both zero implies use zone
+C                                    air temperature, while cntdat(3) only zero implies use of the
+C                                    inside surface temperature of the specified construction.
 
       subroutine mzinpt(IREP,IER)
-      
       USE AIM2_InputData, ONLY: iAIM2, LAIM2
       USE AIM2, ONLY: AIM2_READIN
       use CFC_Module , ONLY: cfcver
-      
       IMPLICIT NONE
-
 #include "building.h"
 #include "model.h"
 #include "geometry.h"
@@ -291,12 +229,10 @@ C Simulator parameter.
       REAL :: Tinitial
       common/dllerr/dllsubr,dllmesg
 
-C HVAC
 C Flag indicating presence of HVAC models:
 C ihvacflag=1 indicates HVAC models are active; 0 indicates no HVAC models.
       common/hvacinfo/ihvacflag,hvacfile
       INTEGER :: ihvacflag
-
 
 C Mechanical Ventilation systems.
       Integer iMech
@@ -344,7 +280,7 @@ C Flag to enable inter-domain iteration
       common / Plt_Elec_Net / bInter_domain_iteration
       logical bInter_domain_iteration
 
-C Status of multi-year climate database
+C Status of multi-year weather database.
       logical bMY_clm_err 
       integer lndbp   ! for length of standard database path
       character lltmp*144  ! to re-create plant database file name with path
@@ -362,7 +298,6 @@ C Status of multi-year climate database
 C Atmospheric pressure and density.
       REAL PRESSURE_ALT,AIR_DENSITY
 
-C For help messages
       character helpinsub*24   ! subroutine name
       character helptopic*24 ! string (unique) for topic
       integer nbhelp     ! number of help lines found
@@ -431,23 +366,22 @@ C name with the full path.
 C Find the path and local file name.
         call fdroot(LCMDFL,path,LCFGF)
 
-C Use supplementary temporary unit number for IAPROB
+C Use supplementary temporary unit number for IAPROB.
         IAPROB=IFIL+22
         MODE='ALL '
         if(endless.or.issilient)then
           continue
         else
-          call usrmsg('Scanning model description ...',' ','-')
+C          call usrmsg(' ','Scanning model description ...','-')
         endif
         CALL ERSYS_mmode(LCFGF,ifcfg,IAPROB,MODE,ITRC,IER,autook)
         if(endless.or.issilient)then
           continue
         else
-          call usrmsg('Scanning model description ... done ',' ','-')
+C          call usrmsg(' ','Scanning model description ... done.','-')
         endif
 
 C Building and plant description now complete.
-C Unless error occured, initiate computation/setting-up of:
         if(ier.ne.0)then
           if(dll)then
             if(ier.eq.2)then
@@ -492,7 +426,7 @@ C Use any simulation parameters in the configuration file.
       else
 
 C Loop through zones to see if there is a cfd domain description.
-C If so... set default CFD assessment timing assumptions. These
+C If so set default CFD assessment timing assumptions. These
 C will need to be updated once the user specifies the building
 C simulation period manually. Signal this by setting both ICFDYS
 C and ICFDYF to zero so building simulation period is suggested
@@ -501,8 +435,6 @@ C in simcon.F
           IF(ABS(IFCFD(loop)).GT.0) CFDOK=.true.
         enddo
         if(CFDOK)then
-C          ICFDYS=9
-C          ICFDYF=15
           ICFDYS=0
           ICFDYF=0
           CFTIMS=1.0
@@ -523,7 +455,6 @@ C Time-independent zone data (unless plant only).
       endif
 
 C HVAC.
-C If there is an hvac file scan it here.
       if(ihvacflag.eq.1) then
         call HVACINPUT(hvacfile)
       endif
@@ -578,7 +509,6 @@ C to false. Plant coponents requiring this facility will set flag
 C to true. Note: this code is not required in the stand-alone 
 C plt simulator since, by definition, it doesn't support the
 C electrical network.
-
         bInter_domain_iteration = .false.
 
 C Plant manufacturer's and/or static data & plant template checks.
@@ -631,9 +561,7 @@ C Free plant components database if opened.
 
 C If materials db not yet defined has not yet been opened do so.
 C Use the unit IFMAT=IFIL+5 for this via common condb.
-
 C << this logic could be updated to use MATFROMBIN as in ascii_mat.F >>
-
       IF(.NOT.MATDBOK)THEN
   55    write(currentfile,'(a)') LFMAT(1:lnblnk(LFMAT))
 
@@ -815,7 +743,7 @@ C Use file unit IAPROB to read db.
       endif
       call FINDFIL(lworking,XST)
       if(.NOT.XST)then
-        write(outs248,'(2A)') ' Could not find construction database!',
+        write(outs248,'(2A)') 'Could not find construction database!',
      &    LFMUL(1:lnblnk(LFMUL))
         call isadll(dll)
         if(dll)then
@@ -893,13 +821,12 @@ C Documentation of values found in subroutine RCTDFB.
   
  35   if ( bSY_climate_defined ) then
  
-C Now check if the climate data file in the configuration file
-C is correct. If not, warn user that climate file has not
-C been properly entered.
+C Check if the weather file in the configuration file
+C is correct. If not, warn user .
 
-C Collect & process single-year climate file
-C Note: the climate file uses a different error flag than
-C the global model definition, as it can be specified separately.
+C Collect & process single-year weather file.
+C Note that this file uses a different error flag than
+C the global model definition as it can be specified separately.
          CALL CLMOPB(0,IClmErr)
          IF(iClmErr.eq.0)THEN
             CALL CLMRDBMD(IClmErr)
@@ -918,24 +845,25 @@ C If older configuration, confirm the year.
             
          ELSE
 
-C Set climate definition flag to false 
+C Set weather definition flag to false .
             bSY_climate_defined = .false.
             if(dll)then
-C Kill simulation if in DLL mode            
+
+C Kill simulation if in DLL mode.           
                dllsubr='mzinpt'
                dllmesg='Problem opening weather file!'
                ier=2
                return
             else
-C Warn the user that the climate file definition has failed. 
+
+C Warn the user that the weather file definition has failed. 
                write(louts,'(A,A,A)')
      &           'Warning: specified weather file (',
-     &           LCLIM(1:LNBLNK(LCLIM)), ') not found!'
-              
+     &           LCLIM(1:LNBLNK(LCLIM)), ') not found!'   
                call edisp248 (iuout,louts,100)
                if ( autook ) then
 
-C If running silently, stop
+C If running silently, stop.
                   call edisp248(iuout,louts,100)               
                   close(ieout)
                   CALL ERPFREE(ieout,ISTAT)
@@ -943,7 +871,7 @@ C If running silently, stop
                   call epagend
                   stop
                else
-C If running interactively, warn user and free file channel
+C If running interactively, warn user and free file channel.
                   call usrmsg(outs,' ','W')
                endif
             endif
@@ -952,19 +880,16 @@ C If running interactively, warn user and free file channel
 C Close & free file (it will be opened again before the start
 C of the simulation         
          CALL ERPFREE(ICLIM,ISTAT)
-  
       endif 
 
       if ( bMY_climates_defined ) then
 
 C Check status of multi-year climate file: parse file.
-
          call parse_MY_clm_db ( ICLIM, autook, bMY_clm_err)
 
 C Check validity of records.
          if ( .not. bMY_clm_err )
      &           call check_MY_clm_db ( autook, 'fix', bMY_clm_err )
-         
          if ( bMY_clm_err ) then
             bMY_climates_defined = .false.
          else
@@ -973,7 +898,7 @@ C Check validity of records.
       
       endif      ! <- matches " if ( bSY_climate_defined ) ..."
 
-C Open and scan the bidirectional data file if it exists.
+C Open and scan the bi-directional data file if it exists.
       if(lnblnk(bidirfile).eq.0)then
         continue
       elseif(bidirfile(1:7).eq.'UNKNOWN')then
@@ -982,25 +907,23 @@ C Open and scan the bidirectional data file if it exists.
         iua=IAPROB
         call erbiwin(iuout,iua,bidirfile,ier)
         if(ier.eq.0)then
-          call edisp(itru,'The bi-directional data was sucessfully')
-          call edisp(itru,'scanned.')
+          call edisp(itru,'Bi-directional data sucessfully scanned')
         else
-          call edisp(itru,'There was a problem reading the bi-')
-          call edisp(itru,'directional data.')
+          call edisp(itru,'Problem reading the bi-directional data.')
         endif
       ENDIF
 
 C Call routine to establish priority between overlapping airflow 
-C computation methods (e.g. AIM-2/Airflow network) 
+C computation methods (e.g. AIM-2/airflow network) 
       call AirFlowInitializePriority()      
 
 C Calculate default external air pressure and air density based on site altitude
-C for case where atmospheric pressure is not available in climate database.
-C atmpres is in Pa, patmos is in mbar.
+C for case where atmospheric pressure is not available in weather file
+C (atmpres is in Pa, patmos is in mbar).
       atmpres = PRESSURE_ALT(sitealt)
       patmos=atmpres/100.
 
-C For default air density, assume 0 degree Celsius and 50% RH.
+C For default air density, assume 0C and 50% RH.
 C This will be recalculated as needed at prevailing conditions.
       extairden=AIR_DENSITY(patmos,0.0,50.0)
 
@@ -1020,7 +943,7 @@ C Error.
         IF(OK)THEN
           goto 35
         ELSE
-          call pauses(2)   ! pause for 2 seconds then abort program.
+          call pauses(2)   ! pause for 2 seconds then abort program
           close(ieout)
           CALL ERPFREE(ieout,ISTAT)
           CALL ERPFREE(ICLIM,ISTAT)
@@ -1036,11 +959,11 @@ C Error.
         ier=2
         return
       else
-        CALL USRMSG(' Error occured at the first record ',
-     &              ' in the ground connections file.','W')
+        CALL USRMSG('Error occured at the first record ',
+     &              'in the ground connections file.','W')
         close(ieout)
         CALL ERPFREE(ieout,ISTAT)
-        call pauses(2)   ! pause for 2 seconds then abort program.
+        call pauses(2)   ! pause for 2 seconds then abort program
         CALL EPAGEND
         STOP
       endif
@@ -1051,9 +974,9 @@ C Error.
       return
       end
 
-C ******************** mzprec
-C MZPREC initiates computation of all time-independent zone
-C properties, checks the legality of all type 3 connections, and
+C ******************** mzprec ********************
+C Initiates computation of time-independent zone
+C properties, checks the legality of all type 3 connections and
 C checks if user wants to re-specify simulation start-up period.
 C IREP=1 implies no reporting or data checking.
 
@@ -1169,7 +1092,7 @@ C for user defined ground temps.
       if(endless.or.issilient)then
         continue
       else
-        call usrmsg(' Checking zone descriptions ... ',' ','-')
+C        call usrmsg(' ','Checking zone descriptions.','-')
       endif
       ILTHPS=.FALSE.
       BLDG3D=.FALSE.
@@ -1192,7 +1115,7 @@ C Read contents of the I'th zone data files.
             call edisp(iuout,outs)
             close(ieout)
             CALL ERPFREE(ieout,ISTAT)
-            call pauses(3)   ! pause for 3 seconds then abort program.
+            call pauses(3)   ! pause for 3 seconds then abort program
             CALL EPAGEND
             STOP
           endif
@@ -1200,10 +1123,6 @@ C Read contents of the I'th zone data files.
 
 C If a non-sorted operations file has been read warn user and
 C translate the casual gains.
-
-C Debug.
-C        write(6,*) IZ,IP3VER(IZ)
-
         if(ip3ver(iz).eq.0)then
           write(outs,'(a,i2,a)') 
      &      'Operation file for zone ',IZ,' periods being sorted!'
@@ -1211,7 +1130,7 @@ C        write(6,*) IZ,IP3VER(IZ)
           call PROCESSOLDCAS(IZ,itrc,itu)
         endif
 
-C Zero the thermal bridge heat loss before (perhaps) reading in from geometry file.
+C Zeroise thermal bridge heat loss before (possibly) reading from geometry file.
         totheatloss(IZ)=0.0
 
         call georead(IUNIT,LGEOM(IZ),IZ,1,ITU,IER)
@@ -1227,7 +1146,7 @@ C Zero the thermal bridge heat loss before (perhaps) reading in from geometry fi
             call edisp(iuout,outs)
             close(ieout)
             CALL ERPFREE(ieout,ISTAT)
-            call pauses(3)   ! pause for 3 seconds then abort program.
+            call pauses(3)   ! pause for 3 seconds then abort program
             CALL EPAGEND
             STOP
           endif
@@ -1259,7 +1178,7 @@ C Open any timestep based utility files.
         endif
         IF(ZONE3D(IZ))BLDG3D=.TRUE.
 
-C Now alter properties for uncertainty analysis. 
+C Alter properties for uncertainty analysis. 
         if (ISIM.gt.1) then
           if (IMET.eq.1) then
             call DSA(IZ)
@@ -1270,13 +1189,12 @@ C Now alter properties for uncertainty analysis.
           endif
         endif
 
-C Now initiate computation of all time-independent zone properties.
+C Initiate computation of all time-independent zone properties.
         if (ISIM.gt.1) then
           continue
         else
           CALL MZAREA(IZ)
         endif
-C        write (36,*) 'after mzarea sna= ',(SNA(1,J),J=1,7)
 
         CALL MZVOLM(IZ)
         CALL MZPAZI(IZ)
@@ -1298,7 +1216,7 @@ C Read moisture file.
 
 C Keep track of the total surface area/emisivity for use
 C in apportioning casual and plant radiation to surfaces.
-C Also instanciate izsfloor and izsceil
+C Also instantiate izsfloor and izsceil.
         emarea(iz)=0.0
         izsfloor(iz)=0
         izsceil(iz)=0
@@ -1322,7 +1240,7 @@ C catch any thermophysical changes made via MCSA.
       if(endless.or.issilient)then
         continue
       else
-        call usrmsg(' Checking zone descriptions...done ',' ','-')
+C        call usrmsg(' ','Zone descriptions check completed.','-')
       endif
       if (IREP.eq.1) return
 
@@ -1333,11 +1251,11 @@ C no mismatch.
       if(endless.or.issilient)then
         continue
       else
-        call usrmsg(' Checking model topology ...',' ','-')
+C        call usrmsg(' ','Checking model topology.','-')
       endif
       call ckcurmatch(prob,iprob)
       if(prob.and.iprob.gt.1)then
-        outs='More than one complaint about model contiguity'
+        outs='More than one problem with model contiguity.'
         if(dll)then
           dllsubr='MZPREC'
           dllmesg=outs
@@ -1370,7 +1288,8 @@ C which ones are most often used.
 C Make sure the other side is an allowable surface.
         if(NZ2.gt.NCOMP.or.NS2.gt.NZSUR(NZ2))then
           write(outs,'(3a,I3,A,i3,A,I3,a,i3,a)')' Zone ',zname(NZ1),
-     &      ' (',NZ1,') surface',NS1,' connected to nonexistant zone (',
+     &      ' (',NZ1,') surface',NS1,
+     &      ' connected to non-existent zone (',
      &      NZ2,') or surface (',NS2,').'
           if(dll)then
             dllsubr='MZPREC'
@@ -1431,7 +1350,7 @@ C and elevation angles to ensure surfaces face each other.
               write(outs,'(A,A)')' For: ',CXSTR
               IF(IWMOFF.ne.1)call edisp(iuout,outs)
               write(outs,'(A,2f8.3,A)')' the surface elevations (',
-     &          SPELV(NZ1,NS1),SPELV(NZ2,NS2),') beyond tolerance.'
+     &          SPELV(NZ1,NS1),SPELV(NZ2,NS2),') are beyond tolerance.'
               IF(IWMOFF.ne.1)call edisp(iuout,outs)
               IF(IWMOFF.ne.1)call edisp(iuout,' (should be + & - 1deg')
               IWARN=IWARN+1
@@ -1444,7 +1363,7 @@ C and elevation angles to ensure surfaces face each other.
               write(outs,'(A,A)')' For: ',CXSTR
               IF(IWMOFF.ne.1)call edisp(iuout,outs)
               write(outs,'(A,2f8.3,A)')' the surface azimuths (',
-     &          SPAZI(NZ1,NS1),SPAZI(NZ2,NS2),') beyond tolerance.'
+     &          SPAZI(NZ1,NS1),SPAZI(NZ2,NS2),') are beyond tolerance.'
               IF(IWMOFF.ne.1) call edisp(iuout,outs)
               IF(IWMOFF.ne.1) call edisp(iuout,
      &            '(should be ~180 deg dif')
@@ -1455,9 +1374,10 @@ C Check physical properties where possible.
    71       if(NELTS(NZ1,NS1).NE.NELTS(NZ2,NS2))then
               write(outs,'(A,A)')' For: ',CXSTR
               IF(IWMOFF.ne.1)call edisp(iuout,outs)
-              write(outs,'(A,A,i3,a,i3,A)')' the mlc layers (',
+              write(outs,'(A,A,i3,a,i3,A)')
+     &         ' the construction layers (',
      &          SMLCN(NZ1,NS1),NELTS(NZ1,NS1),' & ',NELTS(NZ2,NS2),
-     &          ') don`t match.'
+     &          ') do not match.'
               IF(IWMOFF.ne.1)call edisp(iuout,outs)
               IWARN=IWARN+1
               goto 20
@@ -1465,9 +1385,9 @@ C Check physical properties where possible.
             if(NGAPS(NZ1,NS1).NE.NGAPS(NZ2,NS2))then
               write(outs,'(A,A)')' For: ',CXSTR
               if(IWMOFF.ne.1)call edisp(iuout,outs)
-              write(outs,'(A,A,2i3,A)')' the no. of mlc air gaps (',
+              write(outs,'(A,A,2i3,A)')' the number of air gaps (',
      &         SMLCN(NZ1,NS1),NGAPS(NZ1,NS1),NGAPS(NZ2,NS2),
-     &         ') don`t match.'
+     &         ') don not match.'
               if(IWMOFF.ne.1)call edisp(iuout,outs)
               IWARN=IWARN+1
               goto 20
@@ -1478,8 +1398,9 @@ C Check surface radiative properties.
             IF(.NOT.CLOSE)then
               write(outs,'(A,A)')' For: ',CXSTR
               IF(IWMOFF.ne.1)call edisp(iuout,outs)
-              write(outs,'(A,2f5.2,A)')' the outside face emissivity (',
-     &          EE(NZ1,NS1),EI(NZ2,NS2),') don`t match.'
+              write(outs,'(A,2f5.2,A)')
+     &          ' the outside face emissivities (',
+     &          EE(NZ1,NS1),EI(NZ2,NS2),') do not match.'
               IF(IWMOFF.ne.1)call edisp(iuout,outs)
               IWARN=IWARN+1
               goto 20
@@ -1488,8 +1409,9 @@ C Check surface radiative properties.
             IF(.NOT.CLOSE)then
               write(outs,'(A,A)')' For: ',CXSTR
               IF(IWMOFF.ne.1)call edisp(iuout,outs)
-              write(outs,'(A,2f5.2,A)')' the inside face emissivity (',
-     &          EI(NZ1,NS1),EE(NZ2,NS2),') don`t match.'
+              write(outs,'(A,2f5.2,A)')
+     &         ' the inside face emissivities (',
+     &          EI(NZ1,NS1),EE(NZ2,NS2),') do not match.'
               IF(IWMOFF.ne.1)call edisp(iuout,outs)
               IWARN=IWARN+1
               goto 20
@@ -1498,8 +1420,9 @@ C Check surface radiative properties.
             IF(.NOT.CLOSE)then
               write(outs,'(A,A)')' For: ',CXSTR
               IF(IWMOFF.ne.1)call edisp(iuout,outs)
-            write(outs,'(A,2f5.2,A)')' the outside face absorptivity (',
-     &          AE(NZ1,NS1),AI(NZ2,NS2),') don`t match.'
+            write(outs,'(A,2f5.2,A)')
+     &          ' the outside face absorptivities (',
+     &          AE(NZ1,NS1),AI(NZ2,NS2),') do not match.'
               IF(IWMOFF.ne.1)call edisp(iuout,outs)
               IWARN=IWARN+1
               goto 20
@@ -1508,14 +1431,15 @@ C Check surface radiative properties.
             IF(.NOT.CLOSE)then
               write(outs,'(A,A)')' For: ',CXSTR
               IF(IWMOFF.ne.1)call edisp(iuout,outs)
-             write(outs,'(A,2f5.2,A)')' the inside face absorptivity (',
-     &          AI(NZ1,NS1),AE(NZ2,NS2),') don`t match.'
+             write(outs,'(A,2f5.2,A)')
+     &         ' the inside face absorptivities (',
+     &          AI(NZ1,NS1),AE(NZ2,NS2),') do not match.'
               IF(IWMOFF.ne.1)call edisp(iuout,outs)
               IWARN=IWARN+1
               goto 20
             endif
 
-C Check thermophysical properties of construction.
+C Check construction thermophysical properties.
             NN=NNDC(NZ1,NS1)-1
             KK=NN
             DO 40 K=2,NN
@@ -1524,8 +1448,9 @@ C Check thermophysical properties of construction.
               IF(D1.LT.-DD1.OR.D1.GT.DD1) then
                 write(outs,'(A,A)')' For: ',CXSTR
                 IF(IWMOFF.ne.1)call edisp(iuout,outs)
-               write(outs,'(A,i3,A)')' the thermophysical prp of layer',
-     &            K,' doesn`t match.'
+               write(outs,'(A,i3,A)')
+     &            ' the thermophysical property of layer',K,
+     &            ' does not match.'
                 IF(IWMOFF.ne.1)call edisp(iuout,outs)
                 IWARN=IWARN+1
                 goto 20
@@ -1536,7 +1461,7 @@ C Check thermophysical properties of construction.
                 write(outs,'(A,A)')' For: ',CXSTR
                 IF(IWMOFF.ne.1)call edisp(iuout,outs)
               write(outs,'(A,i3,A)')' the thermophysical prop of layer',
-     &             K,' doesn`t match.'
+     &             K,' does not match.'
                 IF(IWMOFF.ne.1)call edisp(iuout,outs)
                 IWARN=IWARN+1
                 goto 20
@@ -1561,7 +1486,7 @@ C matched does not).
       if(endless.or.issilient)then
         continue
       else
-        call usrmsg(' Checking model topology...done',' ','-')
+C        call usrmsg(' ','Model topology check successful.','-')
       endif
 
 C Find out which was most often used in terms of ground temperatures.
@@ -1580,35 +1505,29 @@ C Find out which was most often used in terms of ground temperatures.
         endif
   8   continue
 
-C Debug.
-C      write(6,*) igmax,igmaxindex,igarray
-C      write(6,*) igumax,igumaxindex,iguarray
-
       if(igmaxindex.eq.0.and.igumaxindex.eq.0)then
 
 C Nothing specified as a connection so use UK monthly mean
-C ground temperatures at 1.2m depth as given by Lacy.
+C ground temperatures at 1.2 m depth as given by Lacy.
         GTMP(1)=7.28; GTMP(2)=6.5; GTMP(3)=6.56; GTMP(4)=7.33
         GTMP(5)=9.06; GTMP(6)=11.39; GTMP(7)=13.5; GTMP(8)=14.33
         GTMP(9)=14.11; GTMP(10)=11.72; GTMP(11)=10.72
         GTMP(12)=8.67
       elseif(igmax.gt.igumax)then
 
-C More standard profiles used so get from grdtmp
+C More standard profiles used so get from grdtmp.
         igttype=igmaxindex 
         do 6 ij = 1,12
           GTMP(ij)=grdtmp(ij,igmaxindex)
   6     continue
       elseif(igmax.le.igumax)then
 
-C More user defined profiles used so get from UGRDTP
+C More user defined profiles used so get from UGRDTP.
         igttype= -1 * igumaxindex
         do 5 ij = 1,12
           GTMP(ij)=UGRDTP(ij,igumaxindex)
   5     continue
       endif
-C Debug...
-C      write(6,*) 'lw gtmp is ',GTMP
 
 C Identify special materials file & call routine to read it.
       if(ispmxist.gt.0)then
@@ -1619,8 +1538,7 @@ C Identify special materials file & call routine to read it.
       END
 
 C ******************** MZUTIL ********************
-
-C MZUTIL reads additional zone descriptions if active.
+C Reads additional zone descriptions if active.
 
       SUBROUTINE MZUTIL(ICOMP,IER)
 #include "building.h"
@@ -1628,7 +1546,6 @@ C MZUTIL reads additional zone descriptions if active.
 #include "cfd.h"
 #include "CFC_common.h"
 #include "espriou.h"
-C espriou.h provides currentfile.
 
       common/trc/itrc
       common/trace/itcf,itrace(mtrace),izntrc(mcom),itu
@@ -1645,20 +1562,22 @@ C espriou.h provides currentfile.
       COMMON/ACCrec/IACC(MNZ)
       COMMON/ICFCHN/ICFMON(MNZ),ICFTMP,ICFLIB
       common/param2/TITLE(MNZ),CFTRFL(MNZ),LPHI(MNZ)
+      common/shad0/ISIcalc,icalcD,icalcM
 
 C Active domain common.
       common/ACTDOM/CFDOK
       logical CFDOK
       
-C Experimental Hydrogen controller. use with caution
+C Experimental hydrogen controller.
 C Residential hydrogen cogen: control file
       common/resh2ctl/iresh2ctl,resh2flnam
       integer iresh2ctl         !- flag indicating that file required by residential hydrogen
                                 !- cogen controller is specified
       character*72 resh2flnam   !- name of file containing residential hydrogen cogen
                                 !- controller inputs
-C Experimental renewable energy system (elec) controller
-C Input file information
+
+C Experimental renewable energy system (electrical) controller
+C input file information.
       common/reselecctl/ireselecctl,reselecflnam
       integer ireselecctl       !- flag indicating that file required by renewable energy
                                 !- system controller is specified
@@ -1668,7 +1587,6 @@ C Input file information
       CHARACTER OUTSTR*124,outs*72
       CHARACTER*72 lfil,CFTRFL,TITLE,LPHI
       CHARACTER*72 LBSIMP
-c      character dllsubr*12,dllmesg*124
 
       logical dll
 
@@ -1677,11 +1595,11 @@ C Reset warning flag and check and see if running in dll mode.
       IUNIT=IFIL+1
       call isadll(dll)
       
-C Open zone viewfactors, pre-calculated shading, convection regimes.
-C Report the contents of the shading file if the user has requested 
-C a trace and then re-scanned the model.
+C Open zone viewfactor, pre-calculated S/I and convection files.
+C Report the contents of the S/I file if the user has requested 
+C a trace and then re-scan the model.
       IF(IVF(ICOMP).EQ.1)CALL MZVFIN(ICOMP)
-      IF(ISI(ICOMP).EQ.1)CALL MZSHIN(ICOMP)
+      IF(ISI(ICOMP).EQ.1.and.ISIcalc.eq.2)CALL MZSHIN(ICOMP)
       IF(IHC(ICOMP).EQ.1)CALL MZHCFV2(ICOMP)
 
 C If BASESIMP foundation defined, read it in.
@@ -1692,24 +1610,19 @@ C If BASESIMP foundation defined, read it in.
         endif
       endif
 
-C H2-dep_controller: start
-C Experimental Hydrogen controller. Use with caution
-C Residential hydrogen cogen : control file
+C Residential hydrogen cogeneration control file. Experimental,
+C use with caution.
       if ( iresh2ctl .eq. 1 ) then
          call RESH2_Ctl_Read
       endif
-C H2-dep_controller: end
 
-C RES (elec) controller: start
-C Experimental renewable energy system (elec) controller. 
-C Use with caution
+C Renewable energy system electrical controller. Experimental, 
+C use with caution.
       if ( (ireselecctl .eq. 1) .and. (ICOMP.eq.1) ) then
-C        Read control file (once)
-         call RES_elec_ctl_Read
+         call RES_elec_ctl_Read  ! Read control file once.
       endif
-C RES (elec) controller: end
 
-C If zone TMC file read it in.
+C Read zone TMC file.
       IF(ITW(ICOMP).EQ.1)then
         CALL ERTWIN(itrc,itu,iunit,LTWIN(ICOMP),icomp,ier)
         if(dll.and.ier.eq.2)then
@@ -1717,7 +1630,7 @@ C If zone TMC file read it in.
         endif
       endif
 
-C If zone CFC file read it in.
+C Read zone CFC file.
       if (icfc(icomp).eq.1)then
         call read_in_cfc_file(itrc,itu,iunit,lcfcin(icomp),icomp,ier)
         if(dll.and.ier.eq.2)then
@@ -1725,29 +1638,28 @@ C If zone CFC file read it in.
         end if
       end if
 
-C If zone casual gain control file, read it in.
+C Read zone casual gain control file.
       IF(ICGC(ICOMP).EQ.1)then
         CALL ercgcf(itrc,itu,LCGCIN(ICOMP),ICOMP,ier)
         if(dll.and.ier.eq.2)then
           return
         endif
-        if (ier.eq.-101) call usrmsg(
-     &            'Daylight coefficients not yet calculated!','  ','F')
+        if (ier.eq.-101) call usrmsg(' ',
+     &           'Daylight coefficients not yet calculated!','F')
       endif
 
-C CFD domanin.
+C CFD domain.
       IF(ABS(IFCFD(ICOMP)).GT.0 .and. CFDOK)THEN
         ICP=ICOMP
 
-C Set the flags that indicate whether there is thermal conflation
-C and whether there is air-flow conflation.  These flags affect how
-C the .dfd file is read in.  Five conflation mechanisms
-C are currently supported (1-5).  If a new mechanism is,
-C code must be added below to properly set IBLD and IMFN for the new mechanism.
-C If IBLD=1 there is thermal conflation and mapping between
-C           dfs and bps surfaces must be provided.
-C If IMFN=1 there is air-flow conflation and mapping between
-C           dfs and bps connections must be provided.
+C Set flags that indicate whether there is thermal and/or
+C netwrok air flow conflation. These flags affect how
+C the .dfd file is read in. Five conflation mechanisms
+C are supported.
+C IBLD=1 - thermal conflation active and mapping between
+C          dfs and bps surfaces is required.
+C IMFN=1 - air flow conflation active and mapping between
+C          dfs and bps connections is required.
         IBLD=0
         IMFN=0
         if(IFCFD(ICOMP).eq.1) IBLD=1
@@ -1758,11 +1670,12 @@ C           dfs and bps connections must be provided.
         ICFD=0
  98     ICFD=ICFD+1
 
-C Read CFD configuration file and set length scales basd on ESP-r standard
+C Read CFD configuration file and set length scales based on ESP-r standard
 C geometry model.
         if(ICFDND(ICFD).EQ.ICOMP) then
           IFL=IFIL+1
-C set currentfile
+
+C Set currentfile.
           write(currentfile,'(a)')LCFD(ICOMP)(1:LNBLNK(LCFD(ICOMP)))
           CALL EFOPSEQ(IFL,LCFD(ICOMP),1,IER)
           CALL STRIPC(IFL,OUTSTR,0,ND,1,'dfd line 1',IER)
@@ -1774,11 +1687,8 @@ C set currentfile
           endif
           CALL CFDLENS
 
-C Open CFD monitoring file
+C Open CFD monitoring file.
           ICFMON(ICFD) = IFIL + 19 + (ICFD-1)*100
-C Debug
-C          write(6,*) 'MZUTIL (ICFD,CFTRFL,ICFMON)',ICFD,
-C     &      CFTRFL(ICFD),ICFMON(ICFD)
           call efopseq(ICFMON(ICFD),CFTRFL(ICFD),3,ier)
           if(ier.ne.0)then
             write(outs,'(a,i2,a)') 
@@ -1786,14 +1696,12 @@ C     &      CFTRFL(ICFD),ICFMON(ICFD)
             call edisp(iuout,outs)
           endif            
 
-C If adaptive conflation control is active, then open a file to record
+C If adaptive conflation control is active then open a file to record
 C the actions of the controller.
           if (ABS(IFCFD(ICOMP)).eq.4.or.ABS(IFCFD(ICOMP)).eq.5) then
             write(lfil,'(a12,i2.2,a4)')'ACC-actions_',icfd,
      &        '.rec'
             IACC(ICFD) = IFIL + 29 + (ICFD-1)*100
-C Debug
-C            write(6,*) 'MZUTIL (ICFD,lfil,IACC)',ICFD,lfil,iacc(ICFD)
             call efopseq(IACC(ICFD),lfil,4,ier)
             if(ier.ne.0)then
               write(outs,'(a,i2,a)') 
@@ -1802,7 +1710,7 @@ C            write(6,*) 'MZUTIL (ICFD,lfil,IACC)',ICFD,lfil,iacc(ICFD)
             endif  
           endif
 
-C Initialize counter to indicate that CFD has not yet been invoked. This
+C Initialise counter to indicate that CFD has not yet been invoked. This
 C will be incremented each time CFD is called for this zone.
           icfcal(ICFD) = 0
         endif
@@ -1810,39 +1718,11 @@ C will be incremented each time CFD is called for this zone.
       ENDIF
 
       RETURN
-
-C No path to following code (commented)
-c      outs='Problem reading *air or *cas!'
-c      CALL USRMSG(outs,' ','W')
-c      goto 1000
-c      outs='Could not open timestep air file!'
-c      CALL USRMSG(outs,' ','W')
-c      goto 1000
-c      outs='Not a zone timestep air flow file!'
-c      CALL USRMSG(outs,' ','W')
-c      goto 1000
-c      outs='Could not open timestep casual file!'
-c      CALL USRMSG(outs,' ','W')
-c      goto 1000
-c      outs='Not a zone timestep casual gain file!'
-c      CALL USRMSG(outs,' ','W')
-
-C Record errors if running in dll mode or simply return.
-c 1000 if(dll)then
-c        dllsubr='MZUTIL'
-c        dllmesg=outs
-c        ier=2
-c        return
-c      else
-c        IER1=1
-c        RETURN
-c      endif
       END
 
-C Routines for passing presimulation data in configuration file to
-C simulation control.
-
-C Parameters which can be set in the control file are as follows:
+C ********************** USESPSC **********************
+C Passes pre-simulation data in configuration file to
+C simulation control. Parameters that can be set are as follows.
 C *St_up - startup period
 C *Period - the simulation start day and month, end day and month
 C *Time step - the number of time steps per hour
@@ -1852,11 +1732,8 @@ C *Results - building results file
 C *Flow_results - air flow results file
 C *Plant_results - plant results file
 C *CFD results file
+C Weather and control are as specified in the configuration file.
 
-C Climate and control are as specified in the configuration file.
-
-C ********************** USESPS
-C USESPS uses configuration presimuilation data.
       SUBROUTINE USESPS(name,IER)
 #include "building.h"
 #include "plant.h"
@@ -1893,14 +1770,14 @@ C Extended simulation parameters for each set.
       INTEGER :: isicfdys,isicfdyf  ! CFD simulation start & finish days
       REAL :: scftims,scftimf       ! CFD simulation start & finish time
 
-C Once per hour storage of results, averaged over that hour.
+C Once per hour storage of results, averaged over the hour.
       common/rdcgen/irdact
       common/spflres/sblres(MSPS),sflres(MSPS),splres(MSPS),
      &  smstres(MSPS),selres(MSPS),scfdres(MSPS),sipvres
       character sblres*72,sflres*72,splres*72,smstres*72,
      &  selres*72,scfdres*72,sipvres*72
 
-C lafres  - fluid flow network results file
+C lafres  - fluid flow network results file.
       COMMON/RESLIB/RFILE,PFILE,MSTRFILE,LAFRES,CFRESF
       character RFILE*72,PFILE*72,MSTRFILE*72,LAFRES*72,
      &  CFRESF*72
@@ -1943,22 +1820,16 @@ C Assign global data.
       if(isbnstep.ne.0)then
         ntstep=isbnstep
 
-C Also check against user preference in simulation parameters for 
-C whether to save every timestep to the file.
+C Check whether to save every timestep to file.
         if(isavgh.eq.1)then
           irdact=1
         else
           irdact=0
         endif
         tstepok=.true.
-
-C Debug.
-C       write(6,*) 'in input irdact & isavgh are ',irdact,isavgh
- 
       endif
 
-C Plant timesteps and plant time increment and
-C calculate the length of the plant time increment in seconds.
+C Plant time steps and time increment.
       if(ispnstep.ne.0)then
         NTSTPP=ispnstep
         TIMSEC=3600.0/(FLOAT(NTSTEP)*FLOAT(NTSTPP))
@@ -1979,7 +1850,7 @@ C Match period name in command line.
         if(name(1:ln).eq.spfdescr(i)(1:lnblnk(spfdescr(i))))then
           match=.true.
 
-C Determine if period supports multi-year simulations
+C Determine if period supports multi-year simulations.
           bMY_sim_enabled = bMY_period_support (i)
 
 C Update initial assumptions with data from this set.
@@ -1990,18 +1861,15 @@ C Update initial assumptions with data from this set.
           if(isbnstepex(i).ne.0)then
             ntstep=isbnstepex(i)
 
-C Also check against user preference in simulation parameters for 
-C whether to save every timestep to the file.
+C Check whether to save every timestep to the file.
             if(isavghex(i).eq.1)then
               irdact=1
             else
               irdact=0
             endif
             tstepok=.true.
-C Debug.
-C            write(6,*) 'in input irdact & isavgh are ',i,irdact,isavgh,
-C     &        isstday(i),isstmon(i),isfnday(i),isfnmon(i)
           endif
+
           if(ispnstepex(i).ne.0)then
             NTSTPP=ispnstepex(i)
             TIMSEC=3600.0/(FLOAT(NTSTEP)*FLOAT(NTSTPP))
@@ -2027,97 +1895,77 @@ C Loop through zones to see if there is a cfd domain description.
           enddo
 
 C If there is a CFD domain set its attributes from sps.
-C Also if there is a directive to ignore reset CFDOK.
+C If there is a directive to ignore reset CFDOK.
 C The CFSEUP attributes will be used in askaboutcfd.
           cfdperok=.false.
           if(CFDOK)then
             if (iscfdactivate(i).gt.-1) then
               CFTIMS=scftims(i)
               CFTIMF=scftimf(i)  ! start and finish times for CFD assessment
-              ICFDYS=isicfdys(i)
-              ICFDYF=isicfdyf(i) ! julian day-of-year at start and end of CFD
+              ICFDYS=isicfdys(i) ! day-of-year at start ...
+              ICFDYF=isicfdyf(i) ! ... and end of CFD
               if(iscfdactivate(i).eq.0) CFDOK=.false.
               cfdperok=.true.
               DFVinvoked=.false.
             endif
           endif
-
-C Debug.
-C          write(6,*) 'input CFD stuff',CFDOK,ICFDYS,ICFDYF,CFTIMS,CFTIMF
           
           if ( bMY_sim_enabled ) then
-C Handle start/end year
+
+C Handle start/end year.
             iMY_start_year = iMY_period_start_years(i)
             iMY_end_year = iMY_period_end_years(i)
-
             isdf = isdf + 365 * ( iMY_end_year - iMY_start_year )
 
+C Assign start/end year to simulation year. These data will not be
+C used in single simulation mode but assigning them now enables
+C the interface to initialise the start/end year to relevant values
+C when the user interactively switches to multi-year mode.
           else
-C Assign start/end year to simulation year. These data won't be
-C used in single simulaiton mode, but assigning them now enables
-C the interface to initialize the start/end year to relevant values
-C (ie. not zero!) when the user interactively switches to multi-year
-C mode.
-            
             iMY_start_year = iYear
-            iMY_end_year   = iYear   
-
+            iMY_end_year   = iYear
           endif
 
           perok = .true.
-          
           if ( isdf .lt. isds ) then
-
             perok = .false. 
-
             if ( bMY_sim_enabled ) then
-            
               write(outs,'(A,I2,A,I2,A,I4,A)')
      &          ' Error: Period start day (',
      &          isd1,'/',ism1,'/',iMY_start_year,')'
-
               write(outs2,'(A,I2,A,I2,A,I4,A)')
      &          ' is after period finish day (',
      &          isd2,'/',ism2,'/',iMY_end_year,')'
 
             else
-
               write(outs,'(A,I2,A,I2,A)')
      &          ' Error: Period start day (',
      &          isd1,'/',ism1,')'
-
               write(outs2,'(A,I2,A,I2,A)')
      &          ' is after period finish day (',
      &          isd2,'/',ism2,')'
-
             endif
 
             call edisp(iuout, outs )
             call edisp(iuout, outs2)
 
             if ( autook ) then
-
-              call pauses(3)   ! pause for 3 seconds then abort program.
+              call pauses(3)   ! pause for 3 seconds then abort program
               stop
-
             else
-
               call UsrMsg(outs,outs2,'W')
-
             endif
-
           endif 
 
 C Assign results file names based on names recorded in the simulation
-C parameter sets.  If the user is browsing then code in reslib.F will ensure 
-C that it is placed in the users home folder (if there is a relative path
+C parameter sets. If the user is browsing then code in reslib.F will ensure 
+C that it is placed in the user's home folder (if there is a relative path
 C included such as ../res then this will be ignored). 
-C If the file user is not browsing and the simulation was started 
-C in the model cfg folder then the supplied name will be used as is (e.g.
-C if it has a relative path then it will be written using that relative
-C path.
-C If the file name includes an absolute path e.g. /tmp then this is respected
-C for interactive or silent runs and for invocations from within the cfg folder
+C If the user is not browsing and the simulation was started 
+C in the model cfg folder then the supplied name will be used as is (i.e. if
+C it has a relative path then it will be written using that path).
+C If the file name includes an absolute path (e.g. /tmp) then this is respected
+C for interactive or silent runs, for invocations from within the cfg folder
 C or from another location.
           if(sblres(i)(1:2).ne.'  ')then
             RFILE=sblres(i)
@@ -2137,19 +1985,18 @@ C or from another location.
           if(scfdres(i)(1:2).ne.'  ')then
             CFRESF=scfdres(i)  ! set cfd results file name
           endif
-
           if(match)goto 43
         endif
    42 continue
 
-C Check that we have enough info to proceede if autook
+C Check that there is enough information to proceed.
    43 if(autook) then
         if(perok.AND.tstepok.AND.saveok)then
           spfileok=.true.
         else
           write(outs,'(2a)') 
-     &      'Not enough parameter information for automatic use of ',
-     &      'simulator (missing periods or timesteps or save-level).'
+     &      'insufficient parameter information for automatic use ',
+     &      'of the simulator (e.g. missing periods, save level etc.).'
           if(dll)then
             dllsubr='mzinpt'
             dllmesg=outs
@@ -2159,7 +2006,7 @@ C Check that we have enough info to proceede if autook
             call usrmsg(outs,' ','W')
             close(ieout)
             CALL ERPFREE(ieout,ISTAT)
-            call pauses(3)   ! pause for 3 seconds then abort program.
+            call pauses(3)   ! pause for 3 seconds then abort program
             CALL EPAGEND
             STOP
           endif
@@ -2168,14 +2015,12 @@ C Check that we have enough info to proceede if autook
         spfileok=.true.
       endif
 
-C Debug.
-C      write(6,*)'spfileok,perok,tstepok,saveok,autook,exitok,startupok'
-C      write(6,*)spfileok,perok,tstepok,saveok,autook,exitok,startupok
-
       return
       end
 
-C ****** Scan and report current mis-matches (similar to code in emkcfg.F).
+C ******************** ckcurmatch ********************
+C Scan and report current mis-matches.
+
       subroutine ckcurmatch(prob,iprob)
 #include "building.h"
 #include "model.h"
@@ -2209,13 +2054,13 @@ C Parameters
           ICC=ICC+1
           if(IC1(ICC).ne.IZ)then
 
-C If this is the first warning print out heading.
+C If this is the first warning, print out heading.
             if(.NOT.first)then
               CALL CONXINFO(1,0,CXSTR)
               CALL EDISP(iuout,CXSTR)
               first=.true.
             endif
-            call edisp(iuout,'Current zone does not match contig.')
+            call edisp(iuout,'Current zone does not match contiguity')
             CALL CONXINFO(1,ICC,CXSTR)
             CALL EDISP(iuout,CXSTR)
             prob=.true.
@@ -2227,7 +2072,8 @@ C If this is the first warning print out heading.
               CALL EDISP(iuout,CXSTR)
               first=.true.
             endif
-            call edisp(iuout,'Current surface does not match contig.')
+            call edisp(iuout,
+     &          'Current surface does not match contiguity')
             CALL CONXINFO(1,ICC,CXSTR)
             CALL EDISP(iuout,CXSTR)
             prob=.true.
@@ -2250,7 +2096,8 @@ C exists and what it points to.
                   CALL EDISP(iuout,CXSTR)
                   first=.true.
                 endif
-                call edisp(iuout,'One side is not linked...')
+                call edisp(iuout,' ')
+                call edisp(iuout,'One side is not linked!')
                 CALL CONXINFO(1,i,CXSTR)
                 CALL EDISP(iuout,CXSTR)
                 CALL CONXINFO(1,ioc,CXSTR)
@@ -2263,7 +2110,8 @@ C exists and what it points to.
                   CALL EDISP(iuout,CXSTR)
                   first=.true.
                 endif
-                call edisp(iuout,'Contig. zone link >|< incorrect...')
+                call edisp(iuout,' ')
+                call edisp(iuout,'Zone contiguity link incorrect!')
                 prob=.true.
                 IPROB=IPROB+1
                 CALL CONXINFO(1,i,CXSTR)
@@ -2276,7 +2124,9 @@ C exists and what it points to.
                   CALL EDISP(iuout,CXSTR)
                   first=.true.
                 endif
-               call edisp(iuout,'Contig. surface link >|< incorrect...')
+                call edisp(iuout,' ')
+                call edisp(iuout,
+     &              'Surface contiguity link incorrect!')
                 prob=.true.
                 IPROB=IPROB+1
                 CALL CONXINFO(1,i,CXSTR)
@@ -2286,7 +2136,7 @@ C exists and what it points to.
               endif
 
 C Check to see if this connection is only pointed to once by an
-C "another zone" connection in the whole list.
+C another zone connection in the list.
               dup=.false.
               do 291 i2=1,NCON
                 if(IC2(i2).eq.IC1(i).and.IE2(i2).eq.IE1(i))then
@@ -2298,7 +2148,8 @@ C "another zone" connection in the whole list.
                       CALL EDISP(iuout,CXSTR)
                       first=.true.
                     endif
-                    call edisp(iuout,'Contig. 2nd reference found...')
+                    call edisp(iuout,' ')
+                    call edisp(iuout,'Contiguity 2nd reference found!')
                     CALL CONXINFO(1,i,CXSTR)
                     CALL EDISP(iuout,CXSTR)
                     CALL CONXINFO(1,ioc,CXSTR)
@@ -2306,7 +2157,6 @@ C "another zone" connection in the whole list.
                     CALL CONXINFO(1,i2,CXSTR)
                     CALL EDISP(iuout,CXSTR)
                     prob=.true.
-C (Not necessarily an error) IPROB=IPROB+1
                   endif
                 endif
   291         continue
@@ -2317,7 +2167,9 @@ C (Not necessarily an error) IPROB=IPROB+1
               CALL EDISP(iuout,CXSTR)
               first=.true.
             endif
-            call edisp(iuout,'Contig. other side links out of range...')
+            call edisp(iuout,' ')
+            call edisp(iuout,
+     &          'Contiguity other side link out of range!')
             CALL CONXINFO(1,i,CXSTR)
             CALL EDISP(iuout,CXSTR)
             prob=.true.

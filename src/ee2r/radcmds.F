@@ -77,7 +77,7 @@ C passed via -actf in the command line.
         smode='-'
         call simscene(smode)
 
-C Having finished that process Quit.
+C Having finished that process, quit.
         call tstamp('>','Finish automatic visual analysis')
         close(ieout)
         CALL ERPFREE(ieout,ISTAT)
@@ -866,21 +866,21 @@ C not try and display. Parallel via -N number.
             if(radcores.eq.1)then
               write(doit,'(5a)') 'cd ',runpath(1:lnrp),
      &          '; rad -e -o x11 ',
-     &          RIFNAME(ISCENE)(1:lnblnk(RIFNAME(ISCENE))),' &'
+     &          RIFNAME(ISCENE)(1:lnblnk(RIFNAME(ISCENE))),' & '
             else
               write(doit,'(3a,i2,3a)') 'cd ',runpath(1:lnrp),
      &          '; rad -e -o x11 -N',radcores,' ',
-     &          RIFNAME(ISCENE)(1:lnblnk(RIFNAME(ISCENE))),' &'
+     &          RIFNAME(ISCENE)(1:lnblnk(RIFNAME(ISCENE))),' & '
             endif
           else
             if(radcores.eq.1)then
               write(doit,'(5a)') 'cd ',runpath(1:lnrp),
      &          '; rad -e ',
-     &          RIFNAME(ISCENE)(1:lnblnk(RIFNAME(ISCENE))),' &'
+     &          RIFNAME(ISCENE)(1:lnblnk(RIFNAME(ISCENE))),' & '
             else
               write(doit,'(3a,i2,3a)') 'cd ',runpath(1:lnrp),
      &          '; rad -e -N',radcores,' ',
-     &          RIFNAME(ISCENE)(1:lnblnk(RIFNAME(ISCENE))),' &'
+     &          RIFNAME(ISCENE)(1:lnblnk(RIFNAME(ISCENE))),' & '
             endif
           endif
         elseif (ipckvew.eq.0) then 
@@ -888,21 +888,21 @@ C not try and display. Parallel via -N number.
             if(radcores.eq.1)then
               write(doit,'(5a)') 'cd ',runpath(1:lnrp),
      &          '; rad -e -o x11 ',
-     &          RIFNAME(ISCENE)(1:lnblnk(RIFNAME(ISCENE))),' &'
+     &          RIFNAME(ISCENE)(1:lnblnk(RIFNAME(ISCENE))),' & '
             else
               write(doit,'(3a,i2,3a)') 'cd ',runpath(1:lnrp),
      &          '; rad -e -o x11 -N',radcores,' ',
-     &          RIFNAME(ISCENE)(1:lnblnk(RIFNAME(ISCENE))),' &'
+     &          RIFNAME(ISCENE)(1:lnblnk(RIFNAME(ISCENE))),' & '
             endif
           else
             if(radcores.eq.1)then
               write(doit,'(5a)') 'cd ',runpath(1:lnrp),
      &          '; rad -e ',
-     &          RIFNAME(ISCENE)(1:lnblnk(RIFNAME(ISCENE))),' &'
+     &          RIFNAME(ISCENE)(1:lnblnk(RIFNAME(ISCENE))),' & '
             else
               write(doit,'(3a,i2,3a)') 'cd ',runpath(1:lnrp),
      &          '; rad -e -N',radcores,' ',
-     &          RIFNAME(ISCENE)(1:lnblnk(RIFNAME(ISCENE))),' &'
+     &          RIFNAME(ISCENE)(1:lnblnk(RIFNAME(ISCENE))),' & '
             endif
           endif
         else
@@ -911,24 +911,24 @@ C not try and display. Parallel via -N number.
               write(doit,'(7a)') 'cd ',runpath(1:lnrp),
      &          '; rad -e -o x11 -v ',
      &          rvewsh(ipckvew)(1:lnblnk(rvewsh(ipckvew))),' ',
-     &          RIFNAME(ISCENE)(1:lnblnk(RIFNAME(ISCENE))),' &'
+     &          RIFNAME(ISCENE)(1:lnblnk(RIFNAME(ISCENE))),' & '
             else
               write(doit,'(3a,i2,5a)') 'cd ',runpath(1:lnrp),
      &          '; rad -e -o x11 -N',radcores,' -v ',
      &          rvewsh(ipckvew)(1:lnblnk(rvewsh(ipckvew))),' ',
-     &          RIFNAME(ISCENE)(1:lnblnk(RIFNAME(ISCENE))),' &'
+     &          RIFNAME(ISCENE)(1:lnblnk(RIFNAME(ISCENE))),' & '
             endif
           else
             if(radcores.eq.1)then
               write(doit,'(7a)') 'cd ',runpath(1:lnrp),
      &          '; rad -e -v ',
      &          rvewsh(ipckvew)(1:lnblnk(rvewsh(ipckvew))),' ',
-     &          RIFNAME(ISCENE)(1:lnblnk(RIFNAME(ISCENE))),' &'
+     &          RIFNAME(ISCENE)(1:lnblnk(RIFNAME(ISCENE))),' & '
             else
               write(doit,'(3a,i2,5a)') 'cd ',runpath(1:lnrp),
      &          '; rad -e -N',radcores,' -v ',
      &          rvewsh(ipckvew)(1:lnblnk(rvewsh(ipckvew))),' ',
-     &          RIFNAME(ISCENE)(1:lnblnk(RIFNAME(ISCENE))),' &'
+     &          RIFNAME(ISCENE)(1:lnblnk(RIFNAME(ISCENE))),' & '
             endif
           endif
         endif
@@ -1337,13 +1337,13 @@ C -m forces a dither to monochrome, -b is supposed to force greyscale
 C but does not.
           if(mono.eq.0)then
             write(doit,'(5a)') 'cd ',runpath(1:lnrp),
-     &       '; ximage -m ',pf(1:lnblnk(pf)),' &'
+     &       '; ximage -m ',pf(1:lnblnk(pf)),' & '
           elseif(mono.eq.1)then
             write(doit,'(5a)') 'cd ',runpath(1:lnrp),
-     &       '; ximage -b ',pf(1:lnblnk(pf)),' &'
+     &       '; ximage -b ',pf(1:lnblnk(pf)),' & '
           elseif(mono.eq.2)then
             write(doit,'(5a)') 'cd ',runpath(1:lnrp),
-     &       '; ximage ',pf(1:lnblnk(pf)),' &'
+     &       '; ximage ',pf(1:lnblnk(pf)),' & '
           endif
           call runit(doit,'-')
         else
@@ -1353,7 +1353,7 @@ C but does not.
       
 C First display glare sources on image.
         write(doit,'(7a)') 'cd ',runpath(1:lnrp),
-     &       '; xglaresrc ',pf(1:lnblnk(pf)),' ',gf(1:lnblnk(gf)),' &'
+     &       '; xglaresrc ',pf(1:lnblnk(pf)),' ',gf(1:lnblnk(gf)),' & '
         call runit(doit,'-')
 
 C Calculate UGR from glare file and display to screen.

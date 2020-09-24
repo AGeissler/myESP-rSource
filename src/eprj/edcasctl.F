@@ -13,10 +13,6 @@ C warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
 C PURPOSE. See the GNU General Public License for more
 C details.
 
-C You should have received a copy of the GNU General Public
-C License along with ESP-r. If not, write to the Free
-C Software Foundation, Inc., 59 Temple Place, Suite 330,
-C Boston, MA 02111-1307 USA.
 
 C Casual gain control file: creation, editing.
 C EDCASCTL - interface for creation and editing of cas gn data.
@@ -383,7 +379,7 @@ C treats CFC and CFC2 with opaque surfaces.
       ITEM(M+3)=          '! list casual gain control information  '
       ITEM(M+4)=          '> save casual gain control information  '
       ITEM(M+5)=          '? help                                  '
-      ITEM(M+6)=          '- exit this menu                        '
+      ITEM(M+6)=          '- exit menu                             '
       NITEMS=M+6
 
       INO = -2
@@ -851,7 +847,7 @@ C Edit the cgc control type.
             SIG=SPELEC(ICOMP,N)
             SLP=SLOPEM(ICOMP,N)
   45        WRITE(HOLD,'(F6.2,F8.4)')SPELEC(ICOMP,N),SLOPEM(ICOMP,N)
-            CALL EASKS(HOLD,' Night-time calibration lux value &',
+            CALL EASKS(HOLD,' Night-time calibration lux value & ',
      &        ' Control slope',40,' 15.0  -0.025',' calib & slope',
      &        IER,nbhelp)
             K=0
@@ -990,7 +986,7 @@ C External sensor associated surface and orientation.
           helptopic='ctl_external_location'
           call gethelptext(helpinsub,helptopic,nbhelp)
   37      WRITE(HOLD,'(2F6.2)')CGX(ICOMP,N,1),CGY(ICOMP,N,1)
-          CALL EASKS(HOLD,' Sensor surface number position &',
+          CALL EASKS(HOLD,' Sensor surface number position & ',
      &         'Orientation (0)-horizontal (1)-vertical ',40,' 1. 1.',
      &         ' sensor pos & orien',IER,nbhelp)
           K=0

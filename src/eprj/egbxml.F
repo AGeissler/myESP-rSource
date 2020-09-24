@@ -13,10 +13,6 @@ C warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
 C PURPOSE. See the GNU General Public License for more
 C details.
 
-C You should have received a copy of the GNU General Public
-C License along with ESP-r. If not, write to the Free
-C Software Foundation, Inc., 59 Temple Place, Suite 330,
-C Boston, MA 02111-1307 USA.
 
 C The file egbxml.F is a collection of support facilities for
 C reading gbXML files to create esp-r model meta files:
@@ -70,7 +66,6 @@ C seasons.h provides typper and typsea
       integer lnblnk  ! function definition
 
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
-      common/FILEP/IFIL
 
 C Climate data.
       COMMON/CLMSET/ICYEAR,ICDNGH,CLAT,CLONG
@@ -103,34 +98,23 @@ C Extended simulation parameters for each set.
       INTEGER :: isicfdys,isicfdyf  ! CFD simulation start & finish days
       REAL :: scftims,scftimf       ! CFD simulation start & finish time
 
-      character act*6,lipvdatf*72,cr*32,tag*3
+      character lipvdatf*72
       character spfdescr*30
 
 C Passed in parameters.
       character action*8,root*32,mpath*72,menu*72
-      character fs*1           ! file separator
       character weather*32     ! file name for the location (no path)
-      character subpath*72
       character simact*6 ! action for creating assessments.
 
       character outs*124,OUTSTR*124
-      logical unixok,XST,ok
-      logical haveground ! set true if ground temp file has been found
+      logical unixok
       character inpxmlfl*144 !to write out the input.xml file
       character llclmdb*144
-      integer llt,lndbp
 
       IER=0
 
 C Determine operating system
       call isunix(unixok)
-      if(unixok)then
-        fs = char(47)
-      else
-        fs = char(92)
-      endif
-      subpath=' '
-      haveground=.false.
 
 C If the action is `new` then setup model folder(s) and the registration
 C level configuration file via call to pregist in `sn` mode.
@@ -142,7 +126,9 @@ C Debug
         write(6,*)  'menu ',modeltitle
         write(6,*)  'mpath ',mpath
         write(6,*)  'weather ',weather
-        write(6,*)  'clm ',lclim
+        write(6,*)  'clm ',lclim(1:lnblnk(lclim))
+        write(6,*)  'mat ',LFMAT(1:lnblnk(lfmat))
+        write(6,*)  'mlc ',LFMUL(1:lnblnk(lfmul))
         write(6,*)  'assessments ',simact
       endif
 
@@ -311,14 +297,25 @@ C Global or bespoke room use.
       integer IGU
       common/roomuse/IGU
 
+C Keyword for building type.
+      character btype*24
+      common/buildinguse/btype
+
 C Surface attributes (zone & surface based).
       character iszlname*16  ! surface long name attribute
       character isztype*18   ! gbxml surface type
       COMMON/metasurf/iszlname(MCOM,MS),isztype(MCOM,MS)
 
-C hasname (string array) the surface name for each surface (so fillsur does not wipe)
+C hasname & hasmlc (string arrays) the attributes for each surface
+C (so fillsur does not wipe)
       character hasname*12
       dimension hasname(MS)  ! name to use for each surface
+      character hasmlc*32
+      dimension hasmlc(MS)    ! MLC to use for each surface
+      character hassotf*32
+      dimension hassotf(MS)   ! SOTF to use for each surface
+      character hasuse*12
+      dimension hasuse(MS,2)  ! USE to use for each surface
       integer jvn1(MV) ! to hold list of edges for inverting
       character fs*1
       character ctldoc*248,LCTLF*72,zd*64
@@ -331,16 +328,9 @@ C hasname (string array) the surface name for each surface (so fillsur does not 
       LOGICAL QUIET,closez
       logical anunknownmlc ! if true then there was an unknown MLC
 
-      character choices(15)*32
+      character choices(16)*32
       character defmlc*32  ! names of default MLC for Office
       dimension defmlc(13)
-
-C If browsing then user cannot create a new zone.
-      if(browse)then
-        call usrmsg('Cannot update model while in browse',
-     &    'mode, you must `own` the model!','W')
-        return
-      endif
 
 C Initialise flag
       ifullysilent=0
@@ -348,19 +338,49 @@ C Initialise flag
       IGU=1  ! assume all rooms empty
 
 C Fill array (should be in common).
-      defmlc(1)='brk_blk_2012'  ! 1st is for exterior wall
-      defmlc(2)='partition'     ! 2nd is for interior partition
-      defmlc(3)='door_u1.5'     ! 3rd is for ext doors
-      defmlc(4)='door'          ! 4th is for int doors
-      defmlc(5)='dbl_glz'       ! 5th is for ext glazing
-      defmlc(6)='single_glaz'   ! 6th is for int glazing
-      defmlc(7)='Pitch_rf2013'  ! 7th is for sloped roof
-      defmlc(8)='susp_floor'    ! 8th is for intermediate floor (from room below)
-      defmlc(9)='grnd_floor'    ! 9th is for ground floor
-      defmlc(10)='susp_ceil'    ! 10th is for internal dropped ceiling
-      defmlc(11)='fictitious'   ! 11th is fictitious Air
-      defmlc(12)='susp_flr_re'  ! 12th is for intermediate floor (from room above)
-      defmlc(13)='earth_side'   ! 13th is concrete basement with adj earth
+      if(btype(1:6).eq.'Office')then
+        defmlc(1)='brk_blk_2012'  ! 1st is for exterior wall
+        defmlc(2)='partition'     ! 2nd is for interior partition
+        defmlc(3)='door_u1.5'     ! 3rd is for ext doors
+        defmlc(4)='door'          ! 4th is for int doors
+        defmlc(5)='dbl_glz'       ! 5th is for ext glazing
+        defmlc(6)='single_glaz'   ! 6th is for int glazing
+        defmlc(7)='Pitch_rf2013'  ! 7th is for sloped roof
+        defmlc(8)='susp_floor'    ! 8th is for intermediate floor (from room below)
+        defmlc(9)='grnd_floor'    ! 9th is for ground floor
+        defmlc(10)='susp_ceil'    ! 10th is for internal dropped ceiling
+        defmlc(11)='fictitious'   ! 11th is fictitious Air
+        defmlc(12)='susp_flr_re'  ! 12th is for intermediate floor (from room above)
+        defmlc(13)='earth_side'   ! 13th is concrete basement with adj earth
+      elseif(btype(1:12).eq.'SingleFamily')then
+        defmlc(1)='Brk_sip2013'   ! 1st is for exterior wall
+        defmlc(2)='gyp_stud_acou_gyp_ptn'     ! 2nd is for interior partition
+        defmlc(3)='door_u1.5'     ! 3rd is for ext doors
+        defmlc(4)='door'          ! 4th is for int doors
+        defmlc(5)='dbl_glz'       ! 5th is for ext glazing
+        defmlc(6)='single_glaz'   ! 6th is for int glazing
+        defmlc(7)='Pitch_rf2013'  ! 7th is for sloped roof
+        defmlc(8)='cpt_cel2flr'   ! 8th is for intermediate floor (from room below)
+        defmlc(9)='grnd_floor'    ! 9th is for ground floor
+        defmlc(10)='susp_ceil'    ! 10th is for internal dropped ceiling
+        defmlc(11)='fictitious'   ! 11th is fictitious Air
+        defmlc(12)='cpt_flr2cel'  ! 12th is for intermediate floor (from room above)
+        defmlc(13)='earth_side'   ! 13th is concrete basement with adj earth
+      else
+        defmlc(1)='brk_blk_2012'  ! 1st is for exterior wall
+        defmlc(2)='partition'     ! 2nd is for interior partition
+        defmlc(3)='door_u1.5'     ! 3rd is for ext doors
+        defmlc(4)='door'          ! 4th is for int doors
+        defmlc(5)='dbl_glz'       ! 5th is for ext glazing
+        defmlc(6)='single_glaz'   ! 6th is for int glazing
+        defmlc(7)='Pitch_rf2013'  ! 7th is for sloped roof
+        defmlc(8)='susp_floor'    ! 8th is for intermediate floor (from room below)
+        defmlc(9)='grnd_floor'    ! 9th is for ground floor
+        defmlc(10)='susp_ceil'    ! 10th is for internal dropped ceiling
+        defmlc(11)='fictitious'   ! 11th is fictitious Air
+        defmlc(12)='susp_flr_re'  ! 12th is for intermediate floor (from room above)
+        defmlc(13)='earth_side'   ! 13th is concrete basement with adj earth
+      endif
 
 C Set folder separator (fs) to \ or / as required.
       willneedtmc=.false.
@@ -403,7 +423,7 @@ C Assume we are working with a poly shaped room.
       IER=0
 
 C For a poly shaped zone use similar logic to reading geometry file.
-C Instanciate nsur and ntv for use in escrot and filsur.
+C Instantiates nsur and ntv for use in escrot and filsur.
       NSUR=nbwalls(ICOMP)
       NZSUR(ICOMP)=nbwalls(ICOMP)
       NTV=nztv(icomp)
@@ -427,9 +447,13 @@ C Remember first zone point as rotation point.
 
 C Begin with default assumptions for each surface then overwrite. The
 C subroutine filsur updates variables in common block G5.
-C Because filsur clears the surface name rememeber in hasname first.
+C Because filsur clears some attributes rememeber in local arrays.
       do 322 ICC=1,NZSUR(ICOMP)
-        write(hasname(icc),'(a)') sname(icomp,icc)  ! remember surface name
+        write(hasname(icc),'(a)') sname(icomp,icc)   ! remember surface name 
+        write(hasmlc(icc),'(a)')  smlcn(icomp,icc)   ! remember surface composition
+        write(hassotf(icc),'(a)') sotf(icomp,icc)    ! remember surface optics
+        write(hasuse(icc,1),'(a)') suse(icomp,icc,1) ! remember surface use
+        write(hasuse(icc,2),'(a)') suse(icomp,icc,2) ! remember surface use
  322  continue
       CALL FILSUR(ICOMP,0)
 
@@ -443,8 +467,82 @@ C Update the connection list.
         IC2(ICCC)=zboundarytype(icomp,icc,2)
         IE2(ICCC)=zboundarytype(icomp,icc,3)
 
-C Instanciate the surface name use etc.
+C Instantiate the surface attributes.
         write(sname(icomp,icc),'(a)') hasname(icc)
+        n=-1
+        n=iachar(hasmlc(icc)(1:1))
+
+C Data structure was corrupted so attempt to re-construct.
+        if(n.eq.0)then
+          write(6,*) 'Possible null character.'
+          write(hasmlc(icc),'(a)')  'UNKNOWN'
+          write(hassotf(icc),'(a)') 'OPAQUE'
+          if(isztype(icomp,icc)(1:14).eq.'OperableWindow'.or.
+     &       isztype(icomp,icc)(1:11).eq.'FixedWindow'.or.
+     &       isztype(icomp,icc)(1:16).eq.'OperableSkylight'.or.
+     &       isztype(icomp,icc)(1:13).eq.'FixedSkylight')then
+            write(hassotf(icc),'(a)') 'TRAN'
+            write(hasmlc(icc),'(a)')defmlc(5)(1:lnblnk(defmlc(5)))
+          endif
+          if(isztype(icomp,icc)(1:14).eq.'NonSlidingDoor'.or.
+     &       isztype(icomp,icc)(1:11).eq.'SlidingDoor'.or.
+     &       isztype(icomp,icc)(1:3).eq.'Air')then
+            write(hassotf(icc),'(a)') 'OPAQUE'
+            write(hasmlc(icc),'(a)') defmlc(4)(1:lnblnk(defmlc(4)))
+          endif
+          if(isztype(icomp,icc)(1:12).eq.'InteriorWall')then
+            write(hassotf(icc),'(a)') 'OPAQUE'
+            write(hasmlc(icc),'(a)') defmlc(2)(1:lnblnk(defmlc(2)))
+          endif
+          if(isztype(icomp,icc)(1:13).eq.'InteriorFloor')then
+            write(hassotf(icc),'(a)') 'OPAQUE'
+            write(hasmlc(icc),'(a)') defmlc(8)(1:lnblnk(defmlc(8)))
+          endif
+          if(isztype(icomp,icc)(1:3).eq.'Air')then
+            write(hassotf(icc),'(a)') 'TRAN'
+            write(hasmlc(icc),'(a)')defmlc(11)(1:lnblnk(defmlc(11)))
+          endif
+          if(isztype(icomp,icc)(1:7).eq.'Ceiling')then
+            write(hassotf(icc),'(a)') 'OPAQUE'
+            write(hasmlc(icc),'(a)') defmlc(8)(1:lnblnk(defmlc(8)))
+          endif
+          if(isztype(icomp,icc)(1:4).eq.'Roof')then
+            write(hassotf(icc),'(a)') 'OPAQUE'
+            write(hasmlc(icc),'(a)')defmlc(7)(1:lnblnk(defmlc(7)))
+          endif
+          if(isztype(icomp,icc)(1:12).eq.'ExteriorWall')then
+            write(hassotf(icc),'(a)') 'OPAQUE'
+            write(hasmlc(icc),'(a)')defmlc(1)(1:lnblnk(defmlc(1)))
+          endif
+          if(isztype(icomp,icc)(1:15).eq.'UndergroundWall')then
+            write(hassotf(icc),'(a)') 'OPAQUE'
+            write(hasmlc(icc),'(a)')defmlc(13)(1:lnblnk(defmlc(13)))
+          endif
+          if(isztype(icomp,icc)(1:15).eq.'UndergroundSlab')then
+            write(hassotf(icc),'(a)') 'OPAQUE'
+            write(hasmlc(icc),'(a)')defmlc(13)(1:lnblnk(defmlc(13)))
+          endif
+          if(isztype(icomp,icc)(1:18).eq.'UndergroundCeiling')then
+            write(hassotf(icc),'(a)') 'OPAQUE'
+            write(hasmlc(icc),'(a)')defmlc(13)(1:lnblnk(defmlc(13)))
+          endif
+          if(isztype(icomp,icc)(1:12).eq.'ExposedFloor')then
+            write(hassotf(icc),'(a)') 'OPAQUE'
+            write(hasmlc(icc),'(a)')defmlc(1)(1:lnblnk(defmlc(1)))
+          endif
+          if(isztype(icomp,icc)(1:12).eq.'RaisedFloor')then
+            write(hassotf(icc),'(a)') 'OPAQUE'
+            write(hasmlc(icc),'(a)')defmlc(1)(1:lnblnk(defmlc(1)))
+          endif
+          if(isztype(icomp,icc)(1:11).eq.'SlabOnGrade')then
+            write(hassotf(icc),'(a)') 'OPAQUE'
+            write(hasmlc(icc),'(a)')defmlc(9)(1:lnblnk(defmlc(9)))
+          endif
+        endif
+        write(smlcn(icomp,icc),'(a)') hasmlc(icc)
+        write(sotf(icomp,icc),'(a)')  hassotf(icc)
+        write(suse(icomp,icc,1),'(a)')  hasuse(icc,1)
+        write(suse(icomp,icc,2),'(a)')  hasuse(icc,2)
 
 C Take derived surface use. If blank reset to a '-'
         if(suse(icomp,icc,1)(1:2).eq.'  ') suse(icomp,icc,1)='- '
@@ -462,6 +560,10 @@ C Also set smlcindex for this surface.
             smlcindex(icomp,icc)=ii   ! remember MLC index     
           endif
   5     continue
+        if(imatch.eq.0)then
+          write(6,*) 'For zone',icomp,' surf',icc,' no match for ',
+     &      SMLCN(icomp,icc),' ',hasmlc(icc)
+        endif
 
 C Take the optics from the ?? file. If there are unknown constructions
 C mark an unknownmlc so construction files are not created.
@@ -475,7 +577,7 @@ C mark an unknownmlc so construction files are not created.
         endif
         SPARENT(icomp,icc)='-'
 
-C Use zboundarytype to instanciate sother.
+C Use zboundarytype to instantiate sother.
         IF(zboundarytype(icomp,icc,1).EQ.0)THEN
           SOTHER(icomp,icc,1)='EXTERIOR'
         ELSEIF(zboundarytype(icomp,icc,1).EQ.1)THEN
@@ -580,9 +682,9 @@ C points in the zone.
           if(icount.eq.0.and.(isznver(ICOMP,iSurface).gt.0))then
 
 C With no matches we probably can invert the edge list.
-            write(6,'(a,2i4,a,i4,a)') 'Floor surface ',ICOMP,iSurface,
-     &        sname(ICOMP,iSurface)(1:lnblnk(sname(ICOMP,iSurface))),
-     &        icount,' is not near the floor (so inverting it).'
+C            write(6,'(a,2i4,a,i4,a)') 'Floor surface ',ICOMP,iSurface,
+C     &        sname(ICOMP,iSurface)(1:lnblnk(sname(ICOMP,iSurface))),
+C     &        icount,' is not near the floor (so inverting it).'
             do iyy = 1,NVER(iSurface)
               jvn1(iyy)=JVN(iSurface,iyy)
             enddo
@@ -592,7 +694,7 @@ C With no matches we probably can invert the edge list.
               izz=NVER(iSurface)+3-iyy
               JVN(iSurface,iyy)=jvn1(izz)
             enddo
-            write(louts,'(a,124i4)') 'inverted list is ',
+            write(louts,'(a,102i4)') 'inverted list is ',
      &        (JVN(iSurface,ii),ii=1,NVER(iSurface))
 C            call edisp248(iuout,louts,100)
             SVFC(icomp,iSurface)='CEIL'
@@ -616,9 +718,9 @@ C     &        sname(ICOMP,iSurface),icount,' is near the floor.'
           if(icount.eq.0.and.(isznver(ICOMP,iSurface).gt.0))then
 
 C With no matches we probably can invert the edge list.
-            write(6,'(a,2i4,a,i4,a)') 'Ceil surface ',ICOMP,iSurface,
-     &        sname(ICOMP,iSurface)(1:lnblnk(sname(ICOMP,iSurface))),
-     &        icount,' is not near the ceiling (inverting it).'
+C            write(6,'(a,2i4,a,i4,a)') 'Ceil surface ',ICOMP,iSurface,
+C     &        sname(ICOMP,iSurface)(1:lnblnk(sname(ICOMP,iSurface))),
+C     &        icount,' is not near the ceiling (inverting it).'
             do iyy = 1,NVER(iSurface)
               jvn1(iyy)=JVN(iSurface,iyy)
             enddo
@@ -628,7 +730,7 @@ C With no matches we probably can invert the edge list.
               izz=NVER(iSurface)+3-iyy
               JVN(iSurface,iyy)=jvn1(izz)
             enddo
-            write(louts,'(a,124i4)') 'inverted list is ',
+            write(louts,'(a,102i4)') 'inverted list is ',
      &        (JVN(iSurface,ii),ii=1,NVER(iSurface))
 C            call edisp248(iuout,louts,100)
             SVFC(icomp,iSurface)='FLOR'
@@ -688,14 +790,12 @@ C If inv is > zero then call it a second time to deal with reversed surfaces.
         write(outs,*) 'icomp,bound,iub,inv,ier',
      &    icomp,bound,iub,inv,ier
         call edisp(iuout,outs)
-        write(6,*) outs(1:lnblnk(outs))
 
 C And if there are still unbound edges report.
         if(iub.gt.0)then
           write(outs,*) 'afer repair in z icomp,bound,iub,inv,ier',
      &      icomp,bound,iub,inv,ier
           call edisp(iuout,outs)
-          write(6,*) outs(1:lnblnk(outs))
         endif
       endif
 
@@ -764,7 +864,8 @@ C via calls to initcaspattern.
         choices(13)='m master bed room (~2 occ)   '
         choices(14)='n small bed room (~1 occ)    '
         choices(15)='o residential corridor/stair '
-        NIGU=15
+        choices(16)='p residential bath/shower    '
+        NIGU=16
         IIGU=-2
         CALL EMENU('Usage pattern for room',choices,NIGU,IIGU)
       endif
@@ -898,8 +999,7 @@ C nsurfinso nb of insolation sources, isurfinso() list of insolation sources.
 C Surface attributes (zone & surface based).
       character iszlname*16  ! surface long name attribute
       character isztype*18   ! gbxml surface type
-      COMMON/metasurf/iszlname(MCOM,MS),
-     &  isztype(MCOM,MS)
+      COMMON/metasurf/iszlname(MCOM,MS),isztype(MCOM,MS)
 
       COMMON/FOPENED/CFGOK,MLDBOK,MATDBOK,CTLOK,OPTKOK,CFCDBOK
       LOGICAL CFGOK,MLDBOK,MATDBOK,CTLOK,OPTKOK,CFCDBOK
@@ -923,6 +1023,10 @@ C Global or bespoke room use.
       integer IGU
       common/roomuse/IGU
 
+C Keyword for building type.
+      character btype*24
+      common/buildinguse/btype
+
 C For help messages
       character helpinsub*24 ! subroutine name
       character helptopic*24 ! string (unique) for topic
@@ -932,22 +1036,26 @@ C For help messages
 
       CHARACTER OUTSTR*248,outs*124
       
-      character*12 curzonenme,othzonename
-      character*12 spname(MCOM) ! gbxml space name e.g. 1 Room
-      character*12 cursurfname,nextsurfname,SN2 ! test zone name surf name
+      character*12 curzonename  ! gbxml zone name i.e. aim0616
+      character*12 othzonename
+      character*12 spname(MCOM) ! gbxml space name i.e. 1 Room
+      character*12 cursurfname  ! gbxml surface name i.e. aim6304
+      character*12 nextsurfname
+      character*12 SN2          ! test zone name surf name
       character*18 curstype,nextsurftype,tmptype ! test surface type
       character*12 zn(MCOM)     ! gbxml zone name e.g. aim0024
+      character t16*16,t24*24  ! general 16 & 24 char strings
 
-      character act*2  ! verbosity requested.
+      character act*2    ! verbosity requested.
       character simact*6 ! action for creating assessments.
-      character*84 odir    ! where are folders
-      integer nbz      ! number of zones detected
+      character*84 odir  ! where are folders
+      integer nbz        ! number of zones detected
       integer icursurf,inextsurf ! surface focus in the current zone
-      integer iothsurf ! for the other zone
-      integer iothopsurf(20) ! array of children openings other surface
+      integer iothsurf   ! for the other zone
+      integer iothopsurf(12) ! array of children openings other surface
       
-      integer icurzone ! zone focus e.g. AdjacentSpaceId spaceIdRef="aim0024"
-      integer iothzone  ! for use with real partitions
+      integer icurzone   ! zone focus e.g. AdjacentSpaceId spaceIdRef="aim0024"
+      integer iothzone   ! for use with real partitions
 
 C << Some of the above might be held in an array for multiple openings? >>
 
@@ -976,16 +1084,17 @@ C For passing to silentxmlmodel.
 C Same as local variable actions which is passed back to calling code.
       character silentreturndirec*8
 
-      logical dll,unixok
+      logical dll,unixok,isunique
 
       character szhasconstr*32
       dimension szhasconstr(MSZ,MS)  ! construction to use for each surface
       character szhasoptic*32
       dimension szhasoptic(MSZ,MS)  ! optics to use for each surface
-      character defmlc*32  ! names of default MLC for Office
+      character defmlc*32  ! names of default MLC for Office or 
       dimension defmlc(13)
       character loutstr*248,PHRASE*360,WORD*48,STUFF*96,TAG*48,RSTR*124
       character MODE*4,errmsg*24
+      character suggest*12
       
 C Site related local variables.
       logical havesite       ! true if tokens included
@@ -1008,8 +1117,13 @@ C     logical lmatch
       logical isSI     ! false if Units are Imperial
       logical isInch   ! false if Units are Feet
       logical wecanprocess    ! can we take surface complexity
-      logical isadoor  ! if topology is like a door
-      integer nbvertincurrent ! how many vertices are in current surface
+      logical isadoor,isatcorner  ! if topology is like a door if shared corner
+      integer nbvertincurrent     ! how many vertices are in current surface
+
+C Working array for parent surface(s) while testing insertion of openings.
+      integer ipnver,iopnver      ! nb of edges in parent surface & other parent
+      integer ipjvn,iopjvn        ! indices of coords making up edges equivalent to jvn
+      common/scratchparents/ipnver,iopnver,ipjvn(MV),iopjvn(MV)
 
       IER=0; idebg=1
       IFCFG=IFIL+5
@@ -1048,6 +1162,7 @@ C      mpath=' '  ! passed now
       weather=' '
       hourlysnowfile=' '
       simact='------'   ! assume no simulation directives
+      btype='UNKNOWN'
 
       groundreflmodel=0
       skyview=0.0; groundview=0.0; buildingview=0.0
@@ -1069,10 +1184,10 @@ C Test read of XML files and tokens. Clear local variables.
       iswindow=.false.; isdoor=.false.
       ptnflip=.false.; ptnopeningflip=.false.
       PHRASE='  '; WORD='  '; TAG='  '
-      curzonenme='  '; othzonename='  '
+      curzonename='  '; othzonename='  '
       nbz=0; icursurf=0; iopensurf=0; iothopensurf=0; 
       icurzone=0; iothzone=0; inextsurf=0; iothsurf=0
-      do loop=1,20
+      do loop=1,12
         iothopsurf(loop)=0
       enddo
       nbxmlchild=0
@@ -1201,15 +1316,10 @@ C Read the next tag and quoted string.
           elseif(TAG(1:11).eq.'xmlns:xhtml')then
             continue
           elseif(TAG(1:5).eq.'xmlns')then
-            write(6,*) 'xmlns is ',
-     &        STUFF(1:lnblnk(STUFF))
+            continue
           elseif(TAG(1:15).eq.'temperatureUnit')then
-            write(6,*) 'temperatureUnit is ',
-     &        STUFF(1:lnblnk(STUFF))
             if(STUFF(1:1).eq.'F') isSI=.false.  ! Imperial units
           elseif(TAG(1:10).eq.'lengthUnit')then
-            write(6,*) 'lengthUnit is ',
-     &        STUFF(1:lnblnk(STUFF))
             if(STUFF(1:6).eq.'Inches')then
               isSI=.false.  ! Imperial units
               isInch=.true.
@@ -1219,16 +1329,14 @@ C Read the next tag and quoted string.
               isInch=.false.
             endif
           elseif(TAG(1:8).eq.'areaUnit')then
-            write(6,*) 'areaUnit is ',
-     &        STUFF(1:lnblnk(STUFF))
+C            write(6,*) 'areaUnit is ',STUFF(1:lnblnk(STUFF))
             if(STUFF(1:10).eq.'SquareFeet') isSI=.false.  ! Imperial units
           elseif(TAG(1:10).eq.'volumeUnit')then
-            write(6,*) 'volumeUnit is ',
-     &        STUFF(1:lnblnk(STUFF))
+C            write(6,*) 'volumeUnit is ',STUFF(1:lnblnk(STUFF))
             if(STUFF(1:9).eq.'CubicFeet') isSI=.false.  ! Imperial units
           elseif(TAG(1:20).eq.'useSIUnitsForResults')then
-            write(6,*) 'useSIUnitsForResults is ',
-     &        STUFF(1:lnblnk(STUFF))
+C            write(6,*) 'useSIUnitsForResults is ',
+C     &        STUFF(1:lnblnk(STUFF))
           else
             write(outs,'(3a)') 'The xml header tag ',TAG,
      &        ' not recognized.'
@@ -1264,7 +1372,7 @@ C And then carry on from K in loutstr to get the value.
           elseif(PHRASE(1:19).eq.'ZipcodeOrPostalCode')then
             continue
           elseif(PHRASE(1:9).eq.'Elevation')then
-            continue
+            continue   ! could set this now
           elseif(PHRASE(1:9).eq.'Longitude')then
 
 C Decode Longitude
@@ -1311,11 +1419,12 @@ C        continue
       elseif(PHRASE(1:8).eq.'Building')then
         inbuilding=.true.; WORD='  '; TAG='  '
 
-C Decode buildingType="Office". Setup default constructions
-C for this building type (to be generalized). And we might
-C get id= as the first token.
+C Decode buildingType="Office" or ='SingleFamily'.
+C Setup default constructions for building type (to be generalized).
+C And we might get id= as the first token.
         KK=9
         call EGETEQDQXML(PHRASE,KK,TAG,STUFF,'-','idtyp',ier)
+        write(btype,'(a)') STUFF(1:lnblnk(STUFF))
         if(idebg.ge.1)then
           write(6,'(4a)') 'tag is ',tag(1:lnblnk(tag)),' Type= ',
      &      STUFF(1:lnblnk(STUFF))
@@ -1326,12 +1435,41 @@ C get id= as the first token.
           write(root,'(a)') SN2(1:lsn)
           write(6,*) 'the building id is ',root(1:lnblnk(root))
           call EGETEQDQXML(PHRASE,KK,TAG,STUFF,'-','idtyp',ier)
+          write(btype,'(a)') STUFF(1:lnblnk(STUFF))
           if(idebg.ge.1)then
             write(6,'(4a)') 'tag is ',tag(1:lnblnk(tag)),' Type= ',
      &        STUFF(1:lnblnk(STUFF))
           endif
         endif
-        if(STUFF(1:6).eq.'Office')then
+        if(btype(1:6).eq.'Office')then
+          defmlc(1)='brk_blk_2012'  ! 1st is for exterior wall
+          defmlc(2)='partition'     ! 2nd is for interior partition
+          defmlc(3)='door_u1.5'     ! 3rd is for ext doors
+          defmlc(4)='door'          ! 4th is for int doors
+          defmlc(5)='dbl_glz'       ! 5th is for ext glazing
+          defmlc(6)='single_glaz'   ! 6th is for int glazing
+          defmlc(7)='Pitch_rf2013'  ! 7th is for sloped roof
+          defmlc(8)='susp_floor'    ! 8th is for intermediate floor (from room below)
+          defmlc(9)='grnd_floor'    ! 9th is for ground floor
+          defmlc(10)='susp_ceil'    ! 10th is for internal dropped ceiling
+          defmlc(11)='fictitious'   ! 11th is fictitious Air
+          defmlc(12)='susp_flr_re'  ! 12th is for intermediate floor (from room above)
+          defmlc(13)='earth_side'   ! 13th is concrete basement with adj earth
+        elseif(btype(1:12).eq.'SingleFamily')then
+          defmlc(1)='Brk_sip2013'   ! 1st is for exterior wall
+          defmlc(2)='gyp_stud_acou_gyp_ptn'     ! 2nd is for interior partition
+          defmlc(3)='door_u1.5'     ! 3rd is for ext doors
+          defmlc(4)='door'          ! 4th is for int doors
+          defmlc(5)='dbl_glz'       ! 5th is for ext glazing
+          defmlc(6)='single_glaz'   ! 6th is for int glazing
+          defmlc(7)='Pitch_rf2013'  ! 7th is for sloped roof
+          defmlc(8)='cpt_cel2flr'   ! 8th is for intermediate floor (from room below)
+          defmlc(9)='grnd_floor'    ! 9th is for ground floor
+          defmlc(10)='susp_ceil'    ! 10th is for internal dropped ceiling
+          defmlc(11)='fictitious'   ! 11th is fictitious Air
+          defmlc(12)='cpt_flr2cel'  ! 12th is for intermediate floor (from room above)
+          defmlc(13)='earth_side'   ! 13th is concrete basement with adj earth
+        else
           defmlc(1)='brk_blk_2012'  ! 1st is for exterior wall
           defmlc(2)='partition'     ! 2nd is for interior partition
           defmlc(3)='door_u1.5'     ! 3rd is for ext doors
@@ -1391,7 +1529,7 @@ C and then jump back and try again.
             enddo  ! of loop3
             if(decr)then
               if(idebg.ge.1)then
-                write(6,'(a,3i4,2x,124i4)') 'xml decr surf jvn ',
+                write(6,'(a,3i4,2x,102i4)') 'xml decr surf jvn ',
      &            loop,loop2,isznver(loop,loop2),
      &            (iszjvn(loop,loop2,j),J=1,isznver(loop,loop2))
               endif
@@ -1405,12 +1543,14 @@ C Debug.
      &    (zn(J),J=1,nbz)
         write(6,'(a,i2,a,99a)') 'nb spaces ',nbz,' their names ',
      &    (spname(J),J=1,nbz)
-        write(6,'(a,124i4)') ' surfs in each ',(nzsur(J),J=1,nbz)
-        write(6,'(a,124i4)') ' verts in each ',(nztv(J),J=1,nbz)
+        write(6,'(a,102i4)') ' surfs in each ',(nzsur(J),J=1,nbz)
+        write(6,'(a,102i4)') ' verts in each ',(nztv(J),J=1,nbz)
         do loop=1,nbz
 
 C Strip any blanks from zone name.
-          call st2name(spname(loop),SN2)
+          call st2name(spname(loop),t16)      ! deal with wildcard characters
+          lendesire=12; lenin=16; SN2='  '
+          call hashname(lenin,lendesire,t16,SN2,ier)
           write(zname(loop),'(a)') SN2(1:12)  ! remember
           nbwalls(loop)=nzsur(loop)  ! for use in silentxmlzone
 C         write(6,*) 'Vertices'
@@ -1419,14 +1559,23 @@ C            write(6,*) szcoords(loop,loop4,1),szcoords(loop,loop4,2),
 C     &        szcoords(loop,loop4,3),loop4
 C          enddo
           if(idebg.ge.1)then
-            write(6,'(a,124i4)') 'xml surf edges ary',
+            write(6,'(a,102i4)') 'xml surf edges ary',
      &        (isznver(loop,J),J=1,nzsur(loop))
           endif
           do loop3=1,nzsur(loop)
-            call st2name(iszlname(loop,loop3),SN2)   ! remove any spaces
-            write(sname(loop,loop3),'(a)') SN2(1:12) ! truncate at 12 char
+            lendesire=12; lenin=16; SN2='  '  ! hash iszlname -> sname
+            call hashname(lenin,lendesire,iszlname(loop,loop3),SN2,ier)
+            suggest=' '
+            call testuniquesn(SN2,loop,isunique,suggest)
+            if(isunique)then
+              write(sname(loop,loop3),'(a)') SN2(1:12) ! truncate at 12 char
+            else
+              write(6,*) 'tweaking the surface name from ',SN2(1:12),
+     &          ' to ',suggest(1:12)
+              write(sname(loop,loop3),'(a)') suggest(1:12) ! use alternative
+            endif
             if(idebg.ge.1)then
-              write(6,'(a,i4,2x,124i4)') 'xml surf jvn ',
+              write(6,'(a,i4,2x,102i4)') 'xml surf jvn ',
      &          isznver(loop,loop3),
      &          (iszjvn(loop,loop3,j),J=1,isznver(loop,loop3))
             endif
@@ -1447,12 +1596,13 @@ C Based on the current topic decode XML name token. Note: there is an
 C overlap between inbuilding and inspace.
         if(inlocation)then
           call EGETRMXML(loutstr,K,RSTR,'-','campus name',IER)
-C          write(6,*) 'the campus id is ',RSTR(1:lnblnk(RSTR))
         elseif(inbuilding.AND.inspace)then
           call EGETRMXML(loutstr,K,RSTR,'-','space name',IER)
           if(.NOT.simxml)then  ! do not use with if simulationXML
             write(6,*) 'the space id is ',RSTR(1:lnblnk(RSTR))
-            call st2name(RSTR,SN2)   ! remove any spaces
+            call st2name(RSTR,t16)    ! change wildcard characters
+            lendesire=12; lenin=16; SN2='  '
+            call hashname(lenin,lendesire,t16,SN2,ier)
             lsn=MIN0(lnblnk(SN2),12)  ! zone names 12 char or less
             write(spname(nbz),'(a)') SN2(1:lsn)
           endif
@@ -1476,18 +1626,27 @@ C know which zone to associate the string with. << ?? what to do >>
             goto 442  ! parse another line
           endif
           do loop2=1,nzsur(icurzone)
-            if(sname(icurzone,loop2)(1:lnsn).eq.
+
+C sname and cursurfname are in the form aim7994 at this point during scan.
+            lnsna=lnblnk(sname(icurzone,loop2))
+            if(sname(icurzone,loop2)(1:lnsna).eq.
      &         cursurfname(1:lnsn))then
-              call st2name(RSTR,SN2)   ! remove any spaces
-              lsn=MIN0(lnblnk(SN2),16)  ! longer names 16 char or less
-              write(iszlname(icurzone,loop2),'(a)')SN2(1:lsn)
+
+C Take RSTR phrase e.g. S-240-273-I-W-13-D-1 take 1st 24 characters,
+C convert wildcards and then hash if necessary to get to 16 char for iszlname.
+              call st2name(RSTR,t24)
+              lendesire=16; lenin=24; t16='  '
+              call hashname(lenin,lendesire,t24,t16,ier)
+              lsn=lnblnk(t16)
+              write(iszlname(icurzone,loop2),'(a)')t16(1:lsn)
               write(tmptype,'(a)') isztype(icurzone,loop2) ! remember
 
 C Debug.
               if(idebg.ge.1)then
-                write(6,'(a,2i3,5a)') 'surface',icurzone,loop2,
+                write(6,'(a,2i3,6a)') '1664 surface',icurzone,loop2,
      &           ' long name: ',iszlname(icurzone,loop2),
-     &           ' short name: ',sname(icurzone,loop2),tmptype
+     &           ' short name: ',sname(icurzone,loop2),
+     &           ' type: ',isztype(icurzone,loop2)
                 write(6,*) '  '
               endif
             endif
@@ -1498,17 +1657,22 @@ C The long name of the surface in the other zone also needs to be
 C established. Loop looking for currentsurfname. Also set partition
 C other face surface type same as near surface.
             do loop2=1,nzsur(iothzone)
-              if(sname(iothzone,loop2)(1:lnsn).eq.
+              lnsna=lnblnk(sname(iothzone,loop2))
+              if(sname(iothzone,loop2)(1:lnsna).eq.
      &           cursurfname(1:lnsn))then
-                call st2name(RSTR,SN2)   ! remove any spaces
-                lsn=MIN0(lnblnk(SN2),16)  ! longer names 16 char or less
-                write(iszlname(iothzone,loop2),'(a)')SN2(1:lsn)
-                write(isztype(iothzone,loop2),'(a)') tmptype
+                call st2name(RSTR,t24)   ! change wildcard characters
+                lendesire=16; lenin=24; t16='  '
+                call hashname(lenin,lendesire,t24,t16,ier)
+                lsn=lnblnk(t16)
+                write(iszlname(iothzone,loop2),'(a)')t16(1:lsn)
+                if(tmptype(1:2).ne.' ')then
+                  write(isztype(iothzone,loop2),'(a)') tmptype
+                endif
 C Debug
-C               write(6,'(a,2i3,6a)') 'surface',iothzone,loop2,
-C     &           ' long name: ',iszlname(iothzone,loop2),
-C     &           ' short name: ',sname(iothzone,loop2),
-C     &           ' type: ',iszlname(iothzone,loop2)
+               write(6,'(a,2i3,6a)') '1690 surface',iothzone,loop2,
+     &           ' long name: ',iszlname(iothzone,loop2),
+     &           ' short name: ',sname(iothzone,loop2),
+     &           ' type: ',isztype(iothzone,loop2)
                write(6,*) '  '
              endif
            enddo
@@ -1520,15 +1684,18 @@ C     &           ' type: ',iszlname(iothzone,loop2)
           do loop2=1,nzsur(icurzone)
             if(sname(icurzone,loop2)(1:lnsn).eq.
      &         nextsurfname(1:lnsn))then
-              call st2name(RSTR,SN2)   ! remove any spaces
-              lsn=MIN0(lnblnk(SN2),16)  ! longer names 16 char or less
-              write(iszlname(icurzone,loop2),'(a)')SN2(1:lsn)
+              call st2name(RSTR,t24)
+              lendesire=16; lenin=24; t16='  '
+              call hashname(lenin,lendesire,t24,t16,ier)
+              lsn=lnblnk(t16)
+              write(iszlname(icurzone,loop2),'(a)')t16(1:lsn)
 
 C Debug.
               if(idebg.ge.1)then
-                write(6,'(a,2i3,4a)') 'opening ',icurzone,loop2,
+                write(6,'(a,2i3,6a)') '1713 opening ',icurzone,loop2,
      &          ' long name: ',iszlname(icurzone,loop2),
-     &          ' short name: ',sname(icurzone,loop2)
+     &          ' short name: ',sname(icurzone,loop2),
+     &          ' type: ',isztype(icurzone,loop2)
                 write(6,*) '  '
               endif
             endif
@@ -1540,13 +1707,16 @@ C Inherit the parent surface sother and increment to account for opening.
             do loop2=1,nzsur(iothzone)
               if(sname(iothzone,loop2)(1:lnsn).eq.
      &           nextsurfname(1:lnsn))then
-                call st2name(RSTR,SN2)   ! remove any spaces
-                lsn=MIN0(lnblnk(SN2),16)  ! longer names 16 char or less
-                write(iszlname(iothzone,loop2),'(a)')SN2(1:lsn)
+                call st2name(RSTR,t24)
+                lendesire=16; lenin=24; t16='  '
+                call hashname(lenin,lendesire,t24,t16,ier)
+                lsn=lnblnk(t16)
+                write(iszlname(iothzone,loop2),'(a)')t16(1:lsn)
                 if(idebg.ge.1)then
-                  write(6,'(a,2i3,4a)') 'ptn open ',iothzone,loop2,
+                  write(6,'(a,2i3,5a)') 'ptn open ',iothzone,loop2,
      &             ' long name: ',iszlname(iothzone,loop2),
-     &             ' short name: ',sname(iothzone,loop2)
+     &             ' short name: ',sname(iothzone,loop2),
+     &             isztype(iothzone,loop2)
                   write(6,*) '  '
                  endif
               endif
@@ -1561,10 +1731,7 @@ C Might be associated with a surface. Do nothing yet.
         write(6,*) 'description is ',RSTR(1:lnblnk(RSTR))
 
       elseif(PHRASE(1:13).eq.'StreetAddress')then
-
         call EGETRMXML(loutstr,K,RSTR,'-','address',IER)
-C        write(6,*) 'the street is ',RSTR(1:lnblnk(RSTR))
-
       elseif(PHRASE(1:13).eq.'SpaceBoundary')then
 
 C Everything in SpaceBoundary can be skipped. Keep looping
@@ -1611,24 +1778,24 @@ C Read the next tag and quoted string.
 C            write(6,*) 'buildingStoreyIdRef is ',
 C     &        STUFF(1:lnblnk(STUFF))
           elseif(TAG(1:18).eq.'lightScheduleIdRef')then
-            write(6,*) 'lightScheduleIdRef is ',
-     &        STUFF(1:lnblnk(STUFF))
+C            write(6,*) 'lightScheduleIdRef is ',
+C     &        STUFF(1:lnblnk(STUFF))
             simxml = .true.
           elseif(TAG(1:22).eq.'equipmentScheduleIdRef')then
             call EGETEQDQXML(PHRASE,KK,TAG,STUFF,'-','equip sch',ier)
-            write(6,*) 'equipmentScheduleIdRef is ',
-     &        STUFF(1:lnblnk(STUFF))
+C            write(6,*) 'equipmentScheduleIdRef is ',
+C     &        STUFF(1:lnblnk(STUFF))
             simxml = .true.
           elseif(TAG(1:19).eq.'peopleScheduleIdRef')then
-            write(6,*) 'peopleScheduleIdRef is ',
-     &        STUFF(1:lnblnk(STUFF))
+C            write(6,*) 'peopleScheduleIdRef is ',
+C     &        STUFF(1:lnblnk(STUFF))
             simxml = .true.
           elseif(TAG(1:13).eq.'conditionType')then
 
 C If a conditionType="HeatedAndCooled" use an ideal
 C controller, if conditionType="Unconditioned" set to freefloat.
-            write(6,*) 'conditionType is ',
-     &        STUFF(1:lnblnk(STUFF))
+C            write(6,*) 'conditionType is ',
+C     &        STUFF(1:lnblnk(STUFF))
             if(STUFF(1:15).eq.'HeatedAndCooled')then
               i_ctl_link(nbz)=1
               ht_Setpoint(nbz)= 18.0; cl_Setpoint(nbz)= 24.0
@@ -1644,7 +1811,7 @@ C "FineMaterialWarehouse", "ActiveStorage"
             write(6,*) 'zoneIdRef is ',STUFF(1:lnblnk(STUFF))
           elseif(TAG(1:2).eq.'id')then
             simxml = .false.
-            call st2name(STUFF,SN2)   ! remove any spaces
+            call st2name(STUFF,SN2)   ! deal with wildcard characters
             lsn=MIN0(lnblnk(SN2),12)  ! zone names 12 char or less
             write(zn(nbz),'(a)') SN2(1:lsn)
             lsn=MIN0(lnblnk(SN2),9)  ! 
@@ -1699,7 +1866,7 @@ C << How to ensure inversion is only done once? >>
           else
             n=isznver(iothzone,iothsurf)
             if(idebg.ge.1)then
-              write(6,'(a,i3,124i4)') 'other ptn edges&list ',
+              write(6,'(a,i3,102i4)') 'other ptn edges&list ',
      &          n,(iszjvn(iothzone,iothsurf,loop3),loop3=1,n)
             endif
             do iyy = 1,n   ! invert this list
@@ -1712,7 +1879,7 @@ C << How to ensure inversion is only done once? >>
               iszjvn(iothzone,iothsurf,iyy)=jvn1(izz)
             enddo
             if(idebg.ge.1)then
-              write(6,'(a,i3,124i4)') 'reversed other ptn edges&list ',
+              write(6,'(a,i3,102i4)') 'reversed other ptn edges&list ',
      &          n,(iszjvn(iothzone,iothsurf,loop3),loop3=1,n)
             endif
             ptnflip=.true.  ! set so no repeat
@@ -1726,7 +1893,7 @@ C also be inverted.
             else
               if(nbxmlchild.ge.1.and.nbxmlchild.lt.21)then
                 n=isznver(iothzone,iothopsurf(nbxmlchild))
-                write(6,'(a,i3,124i4)') 'other ptn open edges&list',
+                write(6,'(a,i3,102i4)') 'other ptn open edges&list',
      &            n,(iszjvn(iothzone,iothopsurf(nbxmlchild),loop3),
      &            loop3=1,n)
                 do iyy = 1,n   ! invert this list
@@ -1738,7 +1905,7 @@ C also be inverted.
                   izz=n+3-iyy
                   iszjvn(iothzone,iothopsurf(nbxmlchild),iyy)=jvn1(izz)
                 enddo
-                write(6,'(a,i3,124i4)') 
+                write(6,'(a,i3,102i4)') 
      &            'reversed other ptn open edges&list ',
      &            n,(iszjvn(iothzone,iothopsurf(nbxmlchild),loop3),
      &            loop3=1,n)
@@ -1748,15 +1915,14 @@ C also be inverted.
           endif
         endif
 
-C If we are dealing with a child process via gbxchild
-C or gbxdoor
+C If we are dealing with a child process via gbxchild or gbxdoor.
         if(inopening)then
           if(idebg.ge.1)then
-            write(6,*) 'insurface ',insurface,' inplanar ',inplanar,
-     &      ' havepartition ',havepartition,' inopening ',
-     &      inopening,' iswindow ',iswindow,' isdoor ',isdoor,
-     &      ' ptnflip ',ptnflip,' ptnopeningflip ',ptnopeningflip,
-     &      nbxmlchild
+C            write(6,*) 'insurface ',insurface,' inplanar ',inplanar,
+C     &      ' havepartition ',havepartition,' inopening ',
+C     &      inopening,' iswindow ',iswindow,' isdoor ',isdoor,
+C     &      ' ptnflip ',ptnflip,' ptnopeningflip ',ptnopeningflip,
+C     &      nbxmlchild
           endif
           if(iswindow)then
 
@@ -1781,9 +1947,15 @@ C Needs testing.
   
 C Process a child surface which has a shared edge with the parent.
 C Need to signal working in other zone!
-            call gbxisadoor(icurzone,icursurf,iopensurf,'i',isadoor)
+            call gbxisadoor(icurzone,icursurf,iopensurf,'i',isadoor,
+     &        isatcorner)
             if(isadoor)then
-              call gbxdoor(icurzone,icursurf,iopensurf,'i')
+              if(.NOT.isatcorner)then
+                call gbxdoor(icurzone,icursurf,iopensurf,'i')
+              else
+                write(6,*) 'Door shares corner with parent.'
+                call gbxadjdoor(icurzone,icursurf,iopensurf,'i')
+              endif
             else
               call gbxchild(icurzone,icursurf,iopensurf,'i')
             endif
@@ -1795,9 +1967,14 @@ C Need to signal working in other zone!
      &          iothzone,iothsurf,iothopsurf(nbxmlchild),
      &          isznver(iothzone,iothopsurf(nbxmlchild))
                 call gbxisadoor(iothzone,iothsurf,
-     &            iothopsurf(nbxmlchild),'o',isadoor)
+     &            iothopsurf(nbxmlchild),'o',isadoor,isatcorner)
                 if(isadoor)then
-            call gbxdoor(iothzone,iothsurf,iothopsurf(nbxmlchild),'o')
+                  if(.NOT.isatcorner)then
+           call gbxdoor(iothzone,iothsurf,iothopsurf(nbxmlchild),'o')
+                  else
+                    write(6,*) 'Door shares corner with parent.'
+           call gbxadjdoor(iothzone,iothsurf,iothopsurf(nbxmlchild),'o')
+                  endif
                 else
             call gbxchild(iothzone,iothsurf,iothopsurf(nbxmlchild),'o')
                 endif
@@ -1833,10 +2010,11 @@ C lines of <Coordinate> and jump when /CartesianPoint.
 C Echo the current context toggles.
           nbvertincurrent=nbvertincurrent+1
           if(idebg.ge.1)then
-            write(6,*) 'insurface ',insurface,' inplanar ',inplanar,
-     &       ' havepartition ',havepartition,' inopening ',
+            write(6,'(a,l1,a,l1,a,l1,a,l1,a,l1,a,l1,a,2i4)')
+     &       '1851 insurface ',insurface,' inplanar ',
+     &       inplanar,' havepartition ',havepartition,' inopening ',
      &       inopening,' iswindow ',iswindow,' isdoor ',isdoor,
-     &       nbxmlchild,nbvertincurrent
+     &       ' nb child nb vert',nbxmlchild,nbvertincurrent
           endif
 
 C At this point the following might apply:
@@ -1857,6 +2035,7 @@ C that the zone can take this additional complexity.
 C << we should only do decr_b or decr_c decrementing nzsur()
 C << what kind of logic would do this?
 C << How about a logical wecandothis ?? >> 
+
           wecanprocess=.true.
           if(nztv(icurzone)+1.lt.MTV.and.
      &       isznver(icurzone,icursurf)+1.lt.MV)then
@@ -1907,6 +2086,8 @@ C     &      icurzone,' this & opening ',icursurf,iopensurf
           isznver(icurzone,icursurf)=isznver(icurzone,icursurf)+1
           if(inopening)then
             isznver(icurzone,iopensurf)=isznver(icurzone,iopensurf)+1
+          else
+            ipnver=ipnver+1  ! do not update scratch parent for child
           endif
 
 C Logic for havepartition may apply. So the isznver arrays for
@@ -1923,6 +2104,8 @@ C a parent surface in the other zone and a possible opening it it.
                 isznver(iothzone,iothopsurf(nbxmlchild))=
      &            isznver(iothzone,iothopsurf(nbxmlchild))+1
               endif
+            else
+              iopnver=iopnver+1  ! do not update other scratch parent for child
             endif
           endif
 
@@ -1955,8 +2138,7 @@ C otherwise test to see if it is unique.
                 if(isInch) RVZ=RVZ*0.0254
                 if(.NOT.isInch) RVZ=RVZ*0.3048
               endif
-C Debug
-              if(idebg.eq.2)then
+              if(idebg.eq.2)then     ! if verbose debug.
                 write(6,'(a,3f8.4)') 'X Y Z: ',RVX,RVY,RVZ
               endif
               if(nztv(icurzone).eq.0)then
@@ -1964,12 +2146,12 @@ C Debug
                 szcoords(icurzone,1,2)=RVY
                 szcoords(icurzone,1,3)=RVZ
                 nztv(icurzone)=nztv(icurzone)+1  ! increment
-                iszjvn(icurzone,icursurf,1)=1
-C Debug
-                if(idebg.eq.2)then
+                iszjvn(icurzone,icursurf,1)=1    ! add to parent
+                ipjvn(1)=1                       ! and working array
+                if(idebg.eq.2)then               ! if verbose debug.
                   write(6,'(a,2i4,3f8.3,a,2i3)') 
-     &            'adding parent coords ',icurzone,
-     &            icursurf,RVX,RVY,RVZ,' nztv ',
+     &            'adding parent coords icurzone icursurf ',
+     &            icurzone,icursurf,RVX,RVY,RVZ,' nztv & nzsur',
      &            NZTV(icurzone),nzsur(icurzone)
                 endif
               else
@@ -2000,16 +2182,18 @@ C inserted.
                 if(found)then
                   n=isznver(icurzone,icursurf)
                   iszjvn(icurzone,icursurf,n)=match
+                  ipjvn(n)=match
+
 C Debug
                   if(idebg.eq.2)then
                     write(6,'(a,2i3,3f8.3,a,2i3)')'reuse coords ',
-     &              icurzone,
-     &              icursurf,RVX,RVY,RVZ,' at ',match,n
+     &              icurzone,icursurf,RVX,RVY,RVZ,' at ',match,n
                   endif
                 else
                   n=isznver(icurzone,icursurf)
                   NZTV(icurzone)=NZTV(icurzone)+1  ! increment
                   iszjvn(icurzone,icursurf,n)=NZTV(icurzone)
+                  ipjvn(n)=NZTV(icurzone)
                   szcoords(icurzone,NZTV(icurzone),1)=RVX
                   szcoords(icurzone,NZTV(icurzone),2)=RVY
                   szcoords(icurzone,NZTV(icurzone),3)=RVZ
@@ -2025,8 +2209,9 @@ C Debug
 
 C Debug - write out the current edge list.
               if(idebg.eq.2)then
-                write(6,'(a,3i4,a,124i4)') 'surf jvn a ',
-     &           icurzone,icursurf,isznver(icurzone,icursurf),' ',
+                write(6,'(a,3i4,a,102i4)') 
+     &           'surf jvn a icurzone icursurf isznver',
+     &           icurzone,icursurf,isznver(icurzone,icursurf),' list ',
      &           (iszjvn(icurzone,icursurf,j),J=1,
      &           isznver(icurzone,icursurf))
               endif
@@ -2087,7 +2272,7 @@ C Debug.
                 endif
 
 C Debug - write out the edge list for iopensurf.
-C               write(6,'(a,2i4,124i4)') 'opening jvn b ',
+C               write(6,'(a,2i4,102i4)') 'opening jvn b ',
 C     &           icurzone,iopensurf,
 C     &           (iszjvn(icurzone,iopensurf,j),J=1,
 C     &            isznver(icurzone,iopensurf))
@@ -2124,6 +2309,7 @@ C to block of code that scans file until /Opening or /Surface
                 if(found)then
                   n=isznver(iothzone,iothsurf)
                   iszjvn(iothzone,iothsurf,n)=match
+                  iopjvn(n)=match
 C Debug.
                   if(idebg.eq.2)then
                     write(6,'(a,2i4,3f8.3,a,2i3)')
@@ -2134,6 +2320,7 @@ C Debug.
                   n=isznver(iothzone,iothsurf)
                   NZTV(iothzone)=NZTV(iothzone)+1  ! increment
                   iszjvn(iothzone,iothsurf,n)=NZTV(iothzone)
+                  iopjvn(n)=NZTV(iothzone)
                   szcoords(iothzone,NZTV(iothzone),1)=RVX
                   szcoords(iothzone,NZTV(iothzone),2)=RVY
                   szcoords(iothzone,NZTV(iothzone),3)=RVZ
@@ -2147,7 +2334,7 @@ C Debug.
 
 C Debug - write out the other zone partition edge list.
                 if(idebg.ge.1)then
-                  write(6,'(a,2i4,124i4)') 'other ptn jvn ',
+                  write(6,'(a,2i4,102i4)') 'other ptn jvn ',
      &             iothzone,iothsurf,
      &             (iszjvn(iothzone,iothsurf,j),J=1,
      &             isznver(iothzone,iothsurf))
@@ -2220,7 +2407,7 @@ C Debug.
 
 C Debug - write out the edge list for iopensurf.
                   if(nbxmlchild.ge.1.and.nbxmlchild.lt.21)then
-                    write(6,'(a,2i4,124i4)') 
+                    write(6,'(a,2i4,102i4)') 
      &                'other opening jvn equiv',
      &                iothzone,iothopsurf(nbxmlchild),
      &                (iszjvn(iothzone,iothopsurf(nbxmlchild),j),J=1,
@@ -2286,7 +2473,7 @@ C Read the next tag and quoted string.
           elseif(TAG(1:12).eq.'exposedToSun')then
 C            write(6,*) 'exposedToSun is ',STUFF(1:lnblnk(STUFF))
           elseif(TAG(1:11).eq.'surfaceType')then
-C            write(6,*) 'surfaceTyp is ',STUFF(1:lnblnk(STUFF))
+            write(6,*) 'surfaceTyp is ',STUFF(1:lnblnk(STUFF))
             write(curstype,'(a)')STUFF(1:lnblnk(STUFF))
 
 C We do not yet have a context so curstype will be used later
@@ -2337,18 +2524,26 @@ C Fall through if the surface type is not currently dealt with.
               call edisp(iuout,outs)
               call edisp(iuout,PHRASE)
             endif
-          elseif(TAG(1:2).eq.'id')then
+          elseif(TAG(1:2).eq.'id')then ! in the form aim6315
             insurface=.true.  ! mark we are dealing with an actual surface
-            call st2name(STUFF,SN2)   ! remove any spaces
-            lsn=MIN0(lnblnk(SN2),12)  ! surface names 12 char or less
+            call st2name(STUFF,t16)    ! deal with wildcard characters
+            lendesire=12; lenin=16; SN2='  '
+            call hashname(lenin,lendesire,t16,SN2,ier)
+            lsn=MIN0(lnblnk(SN2),12)   ! surface names 12 char or less
             write(cursurfname,'(a)') SN2(1:lsn)  ! remember
             write(6,*) 'current surfacename is ',cursurfname
             havename=.true.
 
 C Debug. 
-            if(cursurfname(1:10).eq."S0_1-SF_29")then
+            if(cursurfname(1:7).eq."aim9958")then
               write(6,*) 'pay attention'
             endif
+
+C Clear working edge arrays for current and other parent surface.
+            ipnver=0; iopnver=0 
+            do loop=1,MV
+              ipjvn(loop)=0; iopjvn(loop)=0
+            enddo
           else
 
 C Fall through if the surface type is not currently dealt with.
@@ -2366,7 +2561,7 @@ C Toggle off surface indicators.
         if(havepartition)then
           havepartition=.false.  ! unset any active partition marker
           ptnflip=.false.; ptnopeningflip=.false.; nbxmlchild=0
-          do loop=1,20
+          do loop=1,12
             iothopsurf(loop)=0
           enddo
         endif
@@ -2477,7 +2672,7 @@ C Need to take on the parent surface boundary attributes.
           write(smlcn(icurzone,iopensurf),'(a)')
      &      defmlc(5)(1:lnblnk(defmlc(5)))
           write(suse(icurzone,iopensurf,1),'(a)') 'WINDOW'
-          write(suse(icurzone,iopensurf,2),'(a)') 'CLOSED'
+          write(suse(icurzone,iopensurf,2),'(a)') 'CRACK'
           write(sother(icurzone,iopensurf,1),'(a)') 'EXTERIOR'
           write(sother(icurzone,iopensurf,2),'(a)') '000'
           write(sother(icurzone,iopensurf,3),'(a)') '000'
@@ -2496,7 +2691,7 @@ C Need to take on the parent surface boundary attributes.
           write(smlcn(icurzone,iopensurf),'(a)') 
      &      defmlc(4)(1:lnblnk(defmlc(4)))
           write(suse(icurzone,iopensurf,1),'(a)') 'DOOR'
-          write(suse(icurzone,iopensurf,2),'(a)') 'CLOSED'
+          write(suse(icurzone,iopensurf,2),'(a)') 'CRACK'
           write(sother(icurzone,iopensurf,1),'(a)') 'EXTERIOR'
           write(sother(icurzone,iopensurf,2),'(a)') '000'
           write(sother(icurzone,iopensurf,3),'(a)') '000'
@@ -2583,7 +2778,7 @@ C Take on the parent surface boundary attributes
             write(smlcn(iothzone,iothopensurf),'(a)') 
      &        defmlc(5)(1:lnblnk(defmlc(5)))
             write(suse(iothzone,iothopensurf,1),'(a)') 'WINDOW'
-            write(suse(iothzone,iothopensurf,2),'(a)') 'CLOSED'
+            write(suse(iothzone,iothopensurf,2),'(a)') 'CRACK'
             write(sother(iothzone,iothopensurf,1),'(a)')zn(icurzone)
             write(sother(iothzone,iothopensurf,2),'(i3.3)')icurzone
             write(sother(iothzone,iothopensurf,3),'(i3.3)')iopensurf
@@ -2603,7 +2798,7 @@ C Take on the parent surface boundary attributes
             write(smlcn(iothzone,iothopensurf),'(a)') 
      &        defmlc(4)(1:lnblnk(defmlc(4)))
             write(suse(iothzone,iothopensurf,1),'(a)') 'DOOR'
-            write(suse(iothzone,iothopensurf,2),'(a)') 'CLOSED'
+            write(suse(iothzone,iothopensurf,2),'(a)') 'CRACK'
             write(sother(iothzone,iothopensurf,1),'(a)')zn(icurzone)
             write(sother(iothzone,iothopensurf,2),'(i3.3)')icurzone
             write(sother(iothzone,iothopensurf,3),'(i3.3)')iopensurf
@@ -2622,7 +2817,7 @@ C ?? should nbxmlchild be reset here?
       elseif(PHRASE(1:15).eq.'AdjacentSpaceId')then
 
 C Test the context of the surface. If we are InteriorFloor or InteriorWall
-C or Air then record curzonenme & then scan next input line to
+C or Air then record curzonename & then scan next input line to
 C get the othzonename. Set indicators as needed.
         if(insurface)then
 
@@ -2636,16 +2831,16 @@ C Decode spaceIdRef="aim0024" The 1st reference is for the inside face.
           call EGETEQDQXML(PHRASE,KK,TAG,STUFF,'-','spaceIdRef',ier)
           call st2name(STUFF,SN2)   ! remove any spaces
           lsn=MIN0(lnblnk(SN2),12)  ! zone names 12 char or less
-          write(curzonenme,'(a)') SN2(1:lsn)
+          write(curzonename,'(a)') SN2(1:lsn)
 C Debug.
           if(idebg.ge.1)then
             write(6,*) 'tag is ',tag(1:lnblnk(tag)),' adj space ',
-     &        curzonenme(1:lnblnk(curzonenme))
+     &        curzonename(1:lnblnk(curzonename))
           endif
 
-C Get the index of curzonenme (near side).
-          call matchzone(curzonenme,ZN,nbz,icurzone,IER)
-          write(6,*) 'near side zone index ',curzonenme,' ',nbz,
+C Get the index of curzonename (near side).
+          call matchzone(curzonename,ZN,nbz,icurzone,IER)
+          write(6,*) 'near side zone index ',curzonename,' ',nbz,
      &      icurzone,IER
           if(icurzone.lt.0) icurzone=icurzone*(-1)
 
@@ -2669,7 +2864,7 @@ C and then jump back to 442.
                 if(havepartition)then
                   havepartition=.false.  ! unset any active partition marker
                   ptnflip=.false.; ptnopeningflip=.false.; nbxmlchild=0
-                  do loop=1,20
+                  do loop=1,12
                     iothopsurf(loop)=0
                   enddo
                 endif
@@ -2681,7 +2876,7 @@ C << Place to decrement surface list >>
             goto 442  ! get another line
           endif
 C Debug.
-C          write(6,'(a,124i4)') 'a surfs in each ',(nzsur(J),J=1,nbz)
+C          write(6,'(a,104i4)') 'a surfs in each ',(nzsur(J),J=1,nbz)
 
           havenearside=.true.
 
@@ -2734,7 +2929,7 @@ C A similar-on-other-side case. Set indices and the surface attributes.
                       havepartition=.false.  ! unset any active partition marker
                       ptnflip=.false.; ptnopeningflip=.false. 
                       nbxmlchild=0
-                      do loop=1,20
+                      do loop=1,12
                         iothopsurf(loop)=0
                       enddo
                     endif
@@ -2777,14 +2972,14 @@ C << Perhaps this will need to be rolled back if complexity limits exceeded >>
               if(curstype(1:13).eq.'InteriorFloor')then
                 write(smlcn(icurzone,icursurf),'(a)') 
      &            defmlc(8)(1:lnblnk(defmlc(8)))
-                write(suse(icurzone,iopensurf,1),'(a)') 'PARTN'
-                write(suse(icurzone,iopensurf,2),'(a)') '- '
+                write(suse(icurzone,icursurf,1),'(a)') 'PARTN'
+                write(suse(icurzone,icursurf,2),'(a)') '- '
               endif
               if(curstype(1:12).eq.'InteriorWall')then
                 write(smlcn(icurzone,icursurf),'(a)') 
      &            defmlc(2)(1:lnblnk(defmlc(2)))
-                write(suse(icurzone,iopensurf,1),'(a)') 'PARTN'
-                write(suse(icurzone,iopensurf,2),'(a)') '- '
+                write(suse(icurzone,icursurf,1),'(a)') 'PARTN'
+                write(suse(icurzone,icursurf,2),'(a)') '- '
               endif
               if(curstype(1:3).eq.'Air')then
 
@@ -2792,8 +2987,8 @@ C << why are we setting air to similar? It might be a partition >>
 
                 write(smlcn(icurzone,icursurf),'(a)')
      &            defmlc(11)(1:lnblnk(defmlc(11)))
-                write(suse(icurzone,iopensurf,1),'(a)') 'FICT'
-                write(suse(icurzone,iopensurf,2),'(a)') 'OPEN'
+                write(suse(icurzone,icursurf,1),'(a)') 'FICT'
+                write(suse(icurzone,icursurf,2),'(a)') 'OPEN'
                 write(sother(icurzone,icursurf,1),'(a)')  'SIMILAR'
               endif
               write(sother(icurzone,icursurf,2),'(a)')'000'
@@ -2806,7 +3001,7 @@ C << why are we setting air to similar? It might be a partition >>
 C We will also need a new surface in iothzone.       
               havepartition=.true. ! a true partition.
               write(6,'(2a,i2,2a,i2)')'true partition between ', 
-     &          curzonenme,icurzone,' & ',othzonename,
+     &          curzonename,icurzone,' & ',othzonename,
      &          iothzone
               if(nzsur(icurzone)+1.lt.MS.and.
      &           nzsur(iothzone)+1.lt.MS)then
@@ -2839,21 +3034,15 @@ C Now that we know which zone we can assign cursurfname and attributes.
               iothopsurf(10)=iothsurf+10  ! if there is an 10th opening
               iothopsurf(11)=iothsurf+11  ! if there is an 11th opening
               iothopsurf(12)=iothsurf+12  ! if there is an 12th opening
-              iothopsurf(13)=iothsurf+13  ! if there is an 13th opening
-              iothopsurf(14)=iothsurf+14  ! if there is an 14th opening
-              iothopsurf(15)=iothsurf+15  ! if there is an 15th opening
-              iothopsurf(16)=iothsurf+16  ! if there is an 16th opening
-              iothopsurf(17)=iothsurf+17  ! if there is an 17th opening
-              iothopsurf(18)=iothsurf+18  ! if there is an 18th opening
-              iothopsurf(19)=iothsurf+19  ! if there is an 19th opening
-              iothopsurf(20)=iothsurf+20  ! if there is an 20th opening
               if(idebg.ge.1)then
                 write(6,*) 'Adj setting up ',icurzone,icursurf,
      &            inextsurf,iothsurf,iothopsurf(1),iothopsurf(2),
      &            iothopsurf(3),iothopsurf(4)
               endif
-              write(sname(icurzone,icursurf),'(a)')
+              write(sname(icurzone,icursurf),'(a)')  ! Record name and type
      &          cursurfname(1:lnblnk(cursurfname))
+              write(isztype(icurzone,icursurf),'(a)')
+     &          curstype(1:lnblnk(curstype))
               if(curstype(1:12).eq.'InteriorWall')then
                 if(idebg.ge.1)then
                   write(6,'(5a,i3,a,i3)') 'Found partition match ',
@@ -2945,6 +3134,8 @@ C << Perhaps this will need to be undone if complexity limits exceeded. >>
 
               write(sname(iothzone,iothsurf),'(a)')
      &          cursurfname(1:lnblnk(cursurfname))
+              write(isztype(iothzone,iothsurf),'(a)')
+     &          curstype(1:lnblnk(curstype))
               nzsur(iothzone)=nzsur(iothzone)+1 ! increment
               nbwalls(iothzone)=nzsur(iothzone)  ! for use in silentxmlzone
               if(curstype(1:12).eq.'InteriorWall')then
@@ -2959,7 +3150,7 @@ C << Perhaps this will need to be undone if complexity limits exceeded. >>
                 write(suse(iothzone,iothsurf,1),'(a)') 'PARTN'
                 write(suse(iothzone,iothsurf,2),'(a)') '- '
                 write(sother(iothzone,iothsurf,1),'(a)')
-     &            curzonenme
+     &            curzonename
                 write(sother(iothzone,iothsurf,2),'(i3.3)')
      &            icurzone
                 write(sother(iothzone,iothsurf,3),'(i3.3)')
@@ -2979,7 +3170,7 @@ C << Perhaps this will need to be undone if complexity limits exceeded. >>
                 write(suse(iothzone,iothsurf,1),'(a)') 'PARTN'
                 write(suse(iothzone,iothsurf,2),'(a)') '- '
                 write(sother(iothzone,iothsurf,1),'(a)')
-     &            curzonenme
+     &            curzonename
                 write(sother(iothzone,iothsurf,2),'(i3.3)')
      &            icurzone
                 write(sother(iothzone,iothsurf,3),'(i3.3)')
@@ -3001,7 +3192,7 @@ C For InteriorFloor.
                 write(suse(iothzone,iothsurf,1),'(a)') 'PARTN'
                 write(suse(iothzone,iothsurf,2),'(a)') '- '
                 write(sother(iothzone,iothsurf,1),'(a)')
-     &            curzonenme
+     &            curzonename
                 write(sother(iothzone,iothsurf,2),'(i3.3)')
      &            icurzone
                 write(sother(iothzone,iothsurf,3),'(i3.3)')
@@ -3039,10 +3230,11 @@ C And assign the surface type.
 C Facade add parent surface. Also list how many edges (should
 C be zero at this point).
             if(idebg.ge.1)then
-              write(6,'(5a,i3,a,2i4)') 'Checking match for ',
+              write(6,'(5a,i3,a,2i4,2a)') 'Checking match for ',
      &          cursurfname,' in ',zn(icurzone),' z ',
      &          icurzone,' s-in-z count ',nzsur(icurzone),
-     &          isznver(icurzone,nzsur(icurzone))
+     &          isznver(icurzone,nzsur(icurzone)),' ',
+     &          curstype
             endif
 
 C Initial assumption. Orientations will be double checked
@@ -3196,7 +3388,7 @@ C If we are currently working on an Opening then look for /Opening
             havepartition=.false.  ! unset any active partition marker
             ptnflip=.false.; ptnopeningflip=.false.
             nbxmlchild=0
-            do loop=1,20
+            do loop=1,12
               iothopsurf(loop)=0
             enddo
           endif
@@ -3238,6 +3430,9 @@ C Add in site information if tokens were included.
 C Just to be sure re-scan the MLC database so that the construction
 C attributes array are filled.
       call opendb(ier)
+      if(ier.ne.0)then
+        write(6,*) 'There was an error reading databases'
+      endif
 
 C << location for further system level data >>
 
@@ -3274,7 +3469,7 @@ C Call silentxmlzone and then loop back for more possible definiitons.
 C We do not yet use an gbXML shade descriptions (these seem to be
 C polygons rather than block definitions). << consider approach >>.
 C If there are obstructions fill in relevant common blocks. Set iobs()=2
-C to signal that the common blocks have been instanciated and data should
+C to signal that the common blocks have been instantiated and data should
 C be included in the version 1.1 geometry file.
           if(nbobs(icomp).gt.0)then
             iobs(icomp)=2
@@ -3713,28 +3908,31 @@ C     &    YY(urpos),ZZ(urpos)
       END
 
 
-C*******************************************************************
+C************* gbxisadoor
 C gbxisadoor check is a child has a door topology. Where IZ is the
 C current zone, IPS is index of parent, IDS is index of child.
 C In the case of an other zone then use alt variables.
 C act 'i' inside 'o' other side.
-      subroutine gbxisadoor(IZ,IPS,ICS,act,isadoor)
+      subroutine gbxisadoor(IZ,IPS,ICS,act,isadoor,isatcorner)
 #include "building.h"
 #include "geometry.h"
       integer IZ,IPS,ICS  ! zone parent child index
       character act*1
-      logical isadoor
+      logical isadoor,isatcorner
 
       integer iyy,n,lldooris
+      integer llparpos,lrparpos,urparpos,ulparpos
       integer lldpos,lrdpos,uldpos,urdpos ! closest to BB corners for child
-      integer icwhich1,icwhich2,icvwhich1,icvwhich2
-      integer ipwhich1a,ipwhich2a,ipwhich1b,ipwhich2b
+      integer icwhich1,icwhich2    ! 1st & 2nd match
+      integer icvwhich1,icvwhich2  ! 1st & 2nd match position in array
+      integer ipwhich1a,ipwhich2a  !
+      integer ipwhich1b,ipwhich2b
       integer ipvwhich1a,ipvwhich2a,ipvwhich1b,ipvwhich2b
       integer ivc,item
       logical matchver
       
       if(isznver(IZ,ICS).eq.0) return  ! cannot deal with a zero edge 
-      isadoor=.false.
+      isadoor=.false.; isatcorner=.false.
 
 C First decrement isznver of the parent by isznver of 
 C the door (which got into the list via earlier steps).
@@ -3748,17 +3946,25 @@ C through all of the child vertices and see if they are
 C on one of the parent edges.
 C Debug.
       write(6,'(a,3i4)') 'gbxisadoor focused on iz ips ics ',IZ,IPS,ICS
-      write(6,'(a,124i4)') 'gbxisadoor parent surf jvn ',
+      write(6,'(a,102i4)') 'gbxisadoor parent surf jvn ',
      &  (iszjvn(IZ,IPS,j),J=1,n)
       do loop=1,n
         loop2=iszjvn(IZ,IPS,loop)
         write(6,'(a,i3,3f7.3)')'p coords ',loop2,szcoords(iz,loop2,1),
      &    szcoords(iz,loop2,2),szcoords(iz,loop2,3)
       end do  ! of loop
+      call gbxSURLEHI(IZ,IPS,XYMAX,ZMAX,llparpos,lrparpos,urparpos,
+     &  ulparpos)
+      llparentis=iszjvn(IZ,IPS,llparpos)  ! parent lower left
+      lrparentis=iszjvn(IZ,IPS,lrparpos)  ! parent lower right
+      write(6,*) 'LL LR UL UR position for parent...',
+     &  llparpos,lrparpos,urparpos,ulparpos
+      write(6,'(a,2i4)') 'llparentis v & pos',llparentis,llparpos
+      write(6,'(a,2i4)') 'lrparentis v & pos',lrparentis,lrparpos
 
       if(act.eq.'i')then
 C Debug.
-        write(6,'(a,i3,124i4)') 'gbxisadoor door iszjvn edges & list ',
+        write(6,'(a,i3,102i4)') 'gbxisadoor door iszjvn edges & list ',
      &    isznver(IZ,ICS),
      &    (iszjvn(iz,ics,loop3),loop3=1,isznver(IZ,ICS))
         do loop=1,isznver(IZ,ICS)
@@ -3769,46 +3975,66 @@ C Debug.
         end do  ! of loop
         call gbxSURLEHI(IZ,ICS,XYMAX,ZMAX,lldpos,lrdpos,uldpos,urdpos)
         lldooris=iszjvn(IZ,ICS,lldpos)  ! door lower left
+        lrdooris=iszjvn(IZ,ICS,lrdpos)  ! door lower right
         write(6,'(a,2i4)') 'lldooris v & pos',lldooris,lldpos
+        write(6,'(a,2i4)') 'lrdooris v & pos',lrdooris,lrdpos
       elseif(act.eq.'o')then
 C Debug.
-        write(6,'(a,i3,124i4)') 'gbxisadoor other open isz equiv jvn ',
+        write(6,'(a,i3,102i4)') 'gbxisadoor other open isz equiv jvn ',
      &    isznver(IZ,ICS),(iszjvn(IZ,ICS,j),J=1,isznver(IZ,ICS))
         call gbxSURLEHI(IZ,ICS,XYMAX,ZMAX,lldpos,lrdpos,uldpos,urdpos)
         lldooris=iszjvn(IZ,ICS,lldpos)  ! door lower left
+        lrdooris=iszjvn(IZ,ICS,lrdpos)  ! door lower right
         write(6,'(a,2i4)') 'o mode lldooris v & pos',lldooris,lldpos
+        write(6,'(a,2i4)') 'o mode lrdooris v & pos',lrdooris,lrdpos
       endif
-      icwhich1=0; icwhich2=0   ! vertex index
-      icvwhich1=0; icvwhich2=0 ! vertex position
-      ipwhich1a=0; ipwhich2a=0   ! parent edge vertex index
-      ipwhich1b=0; ipwhich2b=0   ! parent edge vertex index
+      icwhich1=0; icwhich2=0       ! vertex index
+      icvwhich1=0; icvwhich2=0     ! vertex position
+      ipwhich1a=0; ipwhich2a=0     ! parent edge vertex index
+      ipwhich1b=0; ipwhich2b=0     ! parent edge vertex index
       ipvwhich1a=0; ipvwhich2a=0   ! parent vertex position
       ipvwhich1b=0; ipvwhich2b=0   ! parent vertex position
-      do ivc=1,isznver(IZ,ICS)  ! for each child vertex
-        item=iszjvn(iz,ics,ivc)   ! vert of the child
+      do ivc=1,isznver(IZ,ICS)     ! for each child vertex
+        item=iszjvn(iz,ics,ivc)    ! vert of the child
         do iyy = 1,n   ! for each parent edge
           if(iyy.lt.isznver(IZ,IPS))then
             iptem1=iszjvn(IZ,IPS,iyy); iptem2=iszjvn(IZ,IPS,iyy+1)
           else
             iptem1=iszjvn(IZ,IPS,iyy); iptem2=iszjvn(IZ,IPS,1)
           endif
+
+C Test if child vertex and parent vertex are the same.
+          if(item.eq.iptem1.or.item.eq.iptem2)then
+            if(llparentis.eq.lldooris)then
+              write(6,*) 'joint LL for parent and door'
+              isatcorner=.true.
+            elseif(lrparentis.eq.lrdooris)then
+              write(6,*) 'joint LR for parent and door'
+              isatcorner=.true.
+            endif
+          endif
+
           call gbxpointtoline(item,iz,iptem1,iptem2,offset,matchver)
           if(offset.lt.0.002.and.matchver)then  ! if within 2mm
             if(icwhich1.eq.0)then
-              icwhich1=item  ! remember first match
-              icvwhich1=ivc  ! and its position
-              ipwhich1a=iptem1
-              ipwhich1b=iptem2
-              ipvwhich1a=iyy
-              ipvwhich1b=iyy+1
+              icwhich1=item    ! remember child first match
+              icvwhich1=ivc    ! and its position
+              ipwhich1a=iptem1 ! remember parent line start
+              ipwhich1b=iptem2 ! remember parent line end
+              ipvwhich1a=iyy   ! current edge position
+              ipvwhich1b=iyy+1 ! next edge position
             else
-              icwhich2=item  ! remember 2nd match
-              icvwhich2=ivc  ! and its position
-              ipwhich2a=iptem1
-              ipwhich2b=iptem2
-              ipvwhich2a=iyy
-              ipvwhich2b=iyy+1
-              goto 43  ! no need to look further
+              icwhich2=item    ! remember 2nd match
+              icvwhich2=ivc    ! and its position
+              ipwhich2a=iptem1 ! remember parent line start
+              ipwhich2b=iptem2 ! remember parent line end
+              ipvwhich2a=iyy   ! current parent edge position
+              ipvwhich2b=iyy+1 ! next parent edge position
+              if(icwhich1.eq.icwhich2)then
+                continue ! both identical keep looking
+              else
+                goto 43  ! no need to look further
+              endif
             endif
           endif
         enddo
@@ -3819,9 +4045,11 @@ C In the parent surface we loop backwards until we are just
 C after ipvwhich1a we then insert door vertex icwhich1 
 C then loop backwards (3 times) within the door vertex list.
 C Debug.
-      write(6,'(a,13i4)') 'gbxisadoor door verts @ edge ',lldooris,
-     &  icwhich1,icvwhich1,icwhich2,icvwhich2,ipwhich1a,ipvwhich1a,
-     &  ipwhich1b,ipvwhich1b,ipwhich2a,ipvwhich2a,ipwhich2b,ipvwhich2b
+      write(6,'(a,i3,a,4i4,a,8i4)') 
+     &  'gbxisadoor door verts @ edge ',lldooris,' child ',
+     &  icwhich1,icvwhich1,icwhich2,icvwhich2,' parent ',
+     &  ipwhich1a,ipvwhich1a,ipwhich1b,ipvwhich1b,
+     &  ipwhich2a,ipvwhich2a,ipwhich2b,ipvwhich2b
 
 C If some of these are still zero then what was marked as a door
 C probably should be treated as an insert-within child.
@@ -3840,21 +4068,31 @@ C probably should be treated as an insert-within child.
       END
 
 
-C*******************************************************************
+C************* gbxdoor
 C gbxdoor wraps parent surface around a child surface which
 C has an edge along the parent boundary. Where IZ is the
 C current zone, IPS is index of parent, IDS is index of child.
 C In the case of an other zone then use alt variables.
-C act 'i' inside 'o' other side.  If it turns out not to
-C be a door topology then pass it to gbxchild and return.
+C act 'i' inside 'o' other side.
+C If it turns out not to be a door topology then pass it to 
+C gbxchild and return.
+
+C If it turns out that there is no jamb on one side ??
+
       subroutine gbxdoor(IZ,IPS,ICS,act)
 #include "building.h"
 #include "geometry.h"
       integer IZ,IPS,ICS  ! zone parent child index
       character act*1
 
+C Working array for parent surface(s) while testing insertion of openings.
+      integer ipnver,iopnver      ! nb of edges in parent surface & other parent
+      integer ipjvn,iopjvn        ! indices of coords making up edges equivalent to jvn
+      common/scratchparents/ipnver,iopnver,ipjvn(MV),iopjvn(MV)
+
       integer iyy,n,lldooris,ivll
       integer jvn1(MV),jvn2(MV) ! to hold list of opening edges
+      integer llparpos,lrparpos,urparpos,ulparpos
       integer lldpos,lrdpos,uldpos,urdpos ! closest to BB corners for child
       integer icwhich1,icwhich2,icvwhich1,icvwhich2
       integer ipwhich1a,ipwhich2a,ipwhich1b,ipwhich2b
@@ -3876,67 +4114,95 @@ C through all of the child vertices and see if they are
 C on one of the parent edges.
 C Debug.
       write(6,'(a,3i4)') 'gbxdoor focused on iz ips ics ',IZ,IPS,ICS
-      write(6,'(a,124i4)') 'gbxdoor parent surf jvn ',
+      write(6,'(a,102i4)') 'gbxdoor parent surf jvn ',
      &  (iszjvn(IZ,IPS,j),J=1,isznver(IZ,IPS))
-C      do loop=1,isznver(IZ,IPS)
-C        loop2=iszjvn(IZ,IPS,loop)
-C        write(6,'(a,i3,3f7.3)')'p coords ',loop2,szcoords(iz,loop2,1),
-C     &    szcoords(iz,loop2,2),szcoords(iz,loop2,3)
-C      end do  ! of loop
+      do loop=1,isznver(IZ,IPS)
+        loop2=iszjvn(IZ,IPS,loop)
+        write(6,'(a,i3,3f7.3)')'p coords ',loop2,szcoords(iz,loop2,1),
+     &    szcoords(iz,loop2,2),szcoords(iz,loop2,3)
+      end do  ! of loop
+      call gbxSURLEHI(IZ,IPS,XYMAX,ZMAX,llparpos,lrparpos,urparpos,
+     &  ulparpos)
+      llparentis=iszjvn(IZ,IPS,llparpos)  ! parent lower left
+      lrparentis=iszjvn(IZ,IPS,lrparpos)  ! parent lower right
+      write(6,*) 'LL LR UL UR position for parent...',
+     &  llparpos,lrparpos,urparpos,ulparpos
+      write(6,'(a,2i4)') 'llparentis v & pos',llparentis,llparpos
+      write(6,'(a,2i4)') 'lrparentis v & pos',lrparentis,lrparpos
 
       if(act.eq.'i')then
 C Debug.
-        write(6,'(a,i3,124i4)') 'gbxdoor door iszjvn edges & list ',
+        write(6,'(a,i3,102i4)') 'gbxdoor door iszjvn edges & list ',
      &    isznver(IZ,ICS),
      &    (iszjvn(iz,ics,loop3),loop3=1,isznver(IZ,ICS))
-C        do loop=1,isznver(IZ,ICS)
-C          loop2=iszjvn(IZ,ICS,loop)
-C          write(6,'(a,i3,3f7.3)')'c coords ',loop2,
-C     &     szcoords(iz,loop2,1),szcoords(iz,loop2,2),
-C     &     szcoords(iz,loop2,3)
-C        end do  ! of loop
+        do loop=1,isznver(IZ,ICS)
+          loop2=iszjvn(IZ,ICS,loop)
+          write(6,'(a,i3,3f7.3)')'c coords ',loop2,
+     &     szcoords(iz,loop2,1),szcoords(iz,loop2,2),
+     &     szcoords(iz,loop2,3)
+        end do  ! of loop
         call gbxSURLEHI(IZ,ICS,XYMAX,ZMAX,lldpos,lrdpos,uldpos,urdpos)
         lldooris=iszjvn(IZ,ICS,lldpos)  ! door lower left
-C        write(6,'(a,2i4)') 'lldooris v & pos',lldooris,lldpos
+        lrdooris=iszjvn(IZ,ICS,lrdpos)  ! door lower right
+        write(6,'(a,2i4)') 'lldooris v & pos',lldooris,lldpos
+        write(6,'(a,2i4)') 'lrdooris v & pos',lrdooris,lrdpos
       elseif(act.eq.'o')then
 C Debug.
-        write(6,'(a,i3,124i4)') 'gbxdoor other open isz equiv jvn ',
+        write(6,'(a,i3,102i4)') 'gbxdoor other open isz equiv jvn ',
      &    isznver(IZ,ICS),(iszjvn(IZ,ICS,j),J=1,isznver(IZ,ICS))
         call gbxSURLEHI(IZ,ICS,XYMAX,ZMAX,lldpos,lrdpos,uldpos,urdpos)
         lldooris=iszjvn(IZ,ICS,lldpos)  ! door lower left
+        lrdooris=iszjvn(IZ,ICS,lrdpos)  ! door lower right
         write(6,'(a,2i4)') 'o mode lldooris v & pos',lldooris,lldpos
+        write(6,'(a,2i4)') 'o mode lrdooris v & pos',lrdooris,lrdpos
       endif
-      icwhich1=0; icwhich2=0   ! vertex index
-      icvwhich1=0; icvwhich2=0 ! vertex position
-      ipwhich1a=0; ipwhich2a=0   ! parent edge vertex index
-      ipwhich1b=0; ipwhich2b=0   ! parent edge vertex index
+      icwhich1=0; icwhich2=0       ! vertex index
+      icvwhich1=0; icvwhich2=0     ! vertex position
+      ipwhich1a=0; ipwhich2a=0     ! parent edge vertex start index
+      ipwhich1b=0; ipwhich2b=0     ! parent edge vertex end index
       ipvwhich1a=0; ipvwhich2a=0   ! parent vertex position
       ipvwhich1b=0; ipvwhich2b=0   ! parent vertex position
-      do ivc=1,isznver(IZ,ICS)  ! for each child vertex
-        item=iszjvn(iz,ics,ivc)   ! vert of the child
-        do iyy = 1,isznver(IZ,IPS)   ! for each parent edge
+      do ivc=1,isznver(IZ,ICS)     ! for each child vertex
+        item=iszjvn(iz,ics,ivc)    ! vert of the child
+        do iyy = 1,isznver(IZ,IPS) ! for each parent edge
           if(iyy.lt.isznver(IZ,IPS))then
             iptem1=iszjvn(IZ,IPS,iyy); iptem2=iszjvn(IZ,IPS,iyy+1)
           else
             iptem1=iszjvn(IZ,IPS,iyy); iptem2=iszjvn(IZ,IPS,1)
           endif
+
+C Test if child vertex and parent vertex are the same.
+          if(item.eq.iptem1.or.item.eq.iptem2)then
+            if(llparentis.eq.lldooris)then
+              write(6,*) 'joint LL for parent and door the orig p is'
+              write(6,*) ipnver,(ipjvn(loop3),loop3=1,ipnver)
+            elseif(lrparentis.eq.lrdooris)then
+              write(6,*) 'joint LR for parent and door the orig p is'
+              write(6,*) ipnver,(ipjvn(loop3),loop3=1,ipnver)
+            endif
+          endif
+
           call gbxpointtoline(item,iz,iptem1,iptem2,offset,matchver)
           if(offset.lt.0.002.and.matchver)then  ! if within 2mm
             if(icwhich1.eq.0)then
-              icwhich1=item  ! remember first match
-              icvwhich1=ivc  ! and its position
-              ipwhich1a=iptem1
-              ipwhich1b=iptem2
-              ipvwhich1a=iyy
-              ipvwhich1b=iyy+1
+              icwhich1=item    ! remember first match
+              icvwhich1=ivc    ! and its position
+              ipwhich1a=iptem1 ! remember parent line start
+              ipwhich1b=iptem2 ! remember parent line end
+              ipvwhich1a=iyy   ! current edge position
+              ipvwhich1b=iyy+1 ! next edge position
             else
-              icwhich2=item  ! remember 2nd match
-              icvwhich2=ivc  ! and its position
-              ipwhich2a=iptem1
-              ipwhich2b=iptem2
-              ipvwhich2a=iyy
-              ipvwhich2b=iyy+1
-              goto 43  ! no need to look further
+              icwhich2=item    ! remember 2nd match
+              icvwhich2=ivc    ! and its position
+              ipwhich2a=iptem1 ! remember parent line start
+              ipwhich2b=iptem2 ! remember parent line end
+              ipvwhich2a=iyy   ! current parent edge position
+              ipvwhich2b=iyy+1 ! next parent edge position
+              if(icwhich1.eq.icwhich2)then
+                continue ! both identical keep looking
+              else
+                goto 43  ! no need to look further
+              endif
             endif
           endif
         enddo
@@ -3947,9 +4213,11 @@ C In the parent surface we loop backwards until we are just
 C after ipvwhich1a we then insert door vertex icwhich1 
 C then loop backwards (3 times) within the door vertex list.
 C Debug.
-      write(6,'(a,13i4)') 'gbxdoor door verts @ edge ',lldooris,
-     &  icwhich1,icvwhich1,icwhich2,icvwhich2,ipwhich1a,ipvwhich1a,
-     &  ipwhich1b,ipvwhich1b,ipwhich2a,ipvwhich2a,ipwhich2b,ipvwhich2b
+      write(6,'(a,i3,a,4i4,a,8i4)') 
+     &  'gbxdoor door verts @ edge ',lldooris,' child ',
+     &  icwhich1,icvwhich1,icwhich2,icvwhich2,' parent ',
+     &  ipwhich1a,ipvwhich1a,ipwhich1b,ipvwhich1b,
+     &  ipwhich2a,ipvwhich2a,ipwhich2b,ipvwhich2b
 
 C If most of these are still zero then what was marked as a door
 C probably should be treated as an insert-within.
@@ -3983,11 +4251,11 @@ C Debug.
         write(6,*) 'jvn2 ',(jvn2(j),j=1,isznver(IZ,ICS))
       else
 C Debug.
-        write(6,*) 'case lldooris not icwhich1 or icwhich2'
+        write(6,*) 'case lldooris NOT icwhich1 or icwhich2'
       endif
       ivll=ipvwhich1a  ! remember parent insertion point
 C Debug.
-      write(6,'(a,i3,124i4)') 'ivll parent surf jvn ',
+      write(6,'(a,i3,102i4)') 'ivll parent surf jvn ',
      &  ivll,(iszjvn(IZ,IPS,j),J=1,isznver(IZ,IPS))
 
       n=isznver(IZ,IPS)
@@ -4024,7 +4292,7 @@ C Debug.
       return
       END
 
-C*******************************************************************
+C************* gbxchild
 C gbxchild wraps parent surface around a child surface within it.
 C Where IZ is the current zone, IPS is index of parent, IDS is
 C index of child. act 'i' inside 'o' other side. It checks if
@@ -4038,6 +4306,11 @@ C the parent surface can accept the additional vertices.
 
       integer nbxmlchild ! list of opening edges in 1st zone
       common/openings/nbxmlchild
+
+C Working array for parent surface(s) while testing insertion of openings.
+      integer ipnver,iopnver      ! nb of edges in parent surface & other parent
+      integer ipjvn,iopjvn        ! indices of coords making up edges equivalent to jvn
+      common/scratchparents/ipnver,iopnver,ipjvn(MV),iopjvn(MV)
 
       integer iyy,n,lldooris
       integer jvn1(MV),jvn2(MV) ! to hold list of opening edges
@@ -4063,35 +4336,41 @@ C the door (which got into the list via earlier steps).
       isznver(IZ,IPS)=n
 
       write(6,'(a,3i4)') 'gbxchild focused on iz ips ics ',IZ,IPS,ICS
-        write(6,'(a,124i4)') 'gbxchild parent surf jvn ',
+        write(6,'(a,102i4)') 'gbxchild parent surf jvn ',
      &    (iszjvn(IZ,IPS,j),J=1,n)
-C      do loop=1,isznver(IZ,IPS)
-C        loop2=iszjvn(IZ,IPS,loop)
-C        write(6,'(a,i3,3f7.3)')'p coords ',loop2,szcoords(iz,loop2,1),
-C     &    szcoords(iz,loop2,2),szcoords(iz,loop2,3)
-C      end do  ! of loop
+      do loop=1,isznver(IZ,IPS)
+        loop2=iszjvn(IZ,IPS,loop)
+        write(6,'(a,i3,3f7.3)')'p coords ',loop2,szcoords(iz,loop2,1),
+     &    szcoords(iz,loop2,2),szcoords(iz,loop2,3)
+      end do  ! of loop
       call gbxSURLEHI(IZ,IPS,XYMAX,ZMAX,llparpos,lrparpos,urparpos,
      &  ulparpos)
-C      write(6,*) 'LL LR UL UR position for parent...',
-C     &  llparpos,lrparpos,urparpos,ulparpos
+      llparentis=iszjvn(IZ,ICS,llparpos)  ! parent lower left
+      lrparentis=iszjvn(IZ,ICS,lrparpos)  ! parent lower right
+      write(6,*) 'LL LR UL UR position for parent...',
+     &  llparpos,lrparpos,urparpos,ulparpos
+      write(6,'(a,2i4)') 'llparentis v & pos',llparentis,llparpos
+      write(6,'(a,2i4)') 'lrparentis v & pos',lrparentis,lrparpos
 
 C Logic for a window assumed to be within the parent surface.
       if(act.eq.'i')then
 
 C The following section variant of logic in insert.F
-C        write(6,'(a,i3,124i4)') 'gbxchild open window edges jvn ',
-C     &    (iszjvn(IZ,ICS,j),J=1,isznver(IZ,ICS))
+        write(6,'(a,i3,102i4)') 'gbxchild open window edges jvn ',
+     &    (iszjvn(IZ,ICS,j),J=1,isznver(IZ,ICS))
         call gbxSURLEHI(IZ,ICS,XYMAX,ZMAX,lldpos,lrdpos,uldpos,urdpos)
         lldooris=iszjvn(IZ,ICS,lldpos)
-C        write(6,*) 'LL LR UL UR position for child...',lldooris,
-C     &    lldpos,lrdpos,uldpos,urdpos
+        lrdooris=iszjvn(IZ,ICS,lrdpos)  ! door lower right
+        write(6,*) 'LL LR UL UR position for child...',lldooris,
+     &    lrdooris,lldpos,lrdpos,uldpos,urdpos
       elseif(act.eq.'o')then
-C        write(6,'(a,i3,124i4)') 'gbxchild other open window edges jvn ',
-C     &    (iszjvn(IZ,ICS,j),J=1,isznver(IZ,ICS))
+        write(6,'(a,i3,102i4)') 'gbxchild other open window edges jvn ',
+     &    (iszjvn(IZ,ICS,j),J=1,isznver(IZ,ICS))
         call gbxSURLEHI(IZ,ICS,XYMAX,ZMAX,lldpos,lrdpos,uldpos,urdpos)
         lldooris=iszjvn(IZ,ICS,lldpos)
-C        write(6,*) 'LL LR UL UR position for other child...',lldooris,
-C     &    lldpos,lrdpos,uldpos,urdpos
+        lrdooris=iszjvn(IZ,ICS,lrdpos)  ! door lower right
+        write(6,*) 'LL LR UL UR position for other child...',lldooris,
+     &    lrdooris,lldpos,lrdpos,uldpos,urdpos
       endif
 
 C For each of the child vertex closest to LL LR UL UR find the
@@ -4103,6 +4382,33 @@ C distance to parent vertices and report on the shortest.
       shortestll=100.0; llparpos=0
       do iyy = 1,isznver(IZ,IPS)   ! determine distance
         iptem=iszjvn(IZ,IPS,iyy)
+
+C Test if child vertex and parent vertex are the same and if the
+C lower left or lower right are co-incident. This is a case that
+C the user will have to sort out manually.
+        if(item.eq.iptem)then
+          if(llparentis.eq.lldooris)then
+            write(6,*) 'joint LL for parent and opening the orig p is'
+            write(6,*) ipnver,(ipjvn(loop3),loop3=1,ipnver)
+            isznver(IZ,IPS)=ipnver    ! reset parent
+            do loop=1,ipnver
+              iszjvn(IZ,IPS,loop)=ipjvn(loop)
+            enddo
+            write(6,*) 'reset parent surface edges.'
+            return
+          elseif(lrparentis.eq.lrdooris)then
+            write(6,*) 'joint LR for parent and opening the orig p is'
+            write(6,*) ipnver,(ipjvn(loop3),loop3=1,ipnver)      
+            isznver(IZ,IPS)=ipnver
+            isznver(IZ,IPS)=ipnver    ! reset parent
+            do loop=1,ipnver
+              iszjvn(IZ,IPS,loop)=ipjvn(loop)
+            enddo
+            write(6,*) 'reset parent surface edges.'
+            return
+          endif
+        endif
+
         xpitem=szcoords(iz,iptem,1); ypitem=szcoords(iz,iptem,2)
         zpitem=szcoords(iz,iptem,3)
         vdis= crowxyz(xitem,yitem,zitem,xpitem,ypitem,zpitem)
@@ -4191,7 +4497,7 @@ C icvert and then looping down each of the vertices in
 C the child followed by jvn(IPS,ipwhich).
       ivll=ipwhich  ! remember it
 C Debug.
-C      write(6,'(a,i3,124i4)') 'ivll parent surf jvn ',
+C      write(6,'(a,i3,102i4)') 'ivll parent surf jvn ',
 C     &  ivll,(iszjvn(IZ,IPS,j),J=1,isznver(IZ,IPS))
 
 C Expand the list by looping down (from one more than the current
@@ -4221,7 +4527,7 @@ C Add iszjvn(IZ,IPS,ipwhich) so as to rejoin the parent. << might not be necessa
         isznver(IZ,IPS)=isznver(IZ,IPS)+1  ! increment parent
         n=isznver(IZ,IPS)       
         iszjvn(IZ,IPS,n)=iszjvn(IZ,IPS,ipwhich) ! assign
-        write(6,'(a,124i4)') 'parent surf after ',
+        write(6,'(a,102i4)') 'parent surf after ',
      &    (iszjvn(IZ,IPS,j),J=1,isznver(IZ,IPS))
       else
 
@@ -4251,11 +4557,220 @@ C child and at -1 we reconnect to the parent.
         enddo
 
 C Debug.
-        write(6,'(a,i3,124i4)') 'parent surf after ',iyy,
+        write(6,'(a,i3,102i4)') 'parent surf after opening ',iyy,
      &    (iszjvn(IZ,IPS,j),J=1,isznver(IZ,IPS))
       endif
 
       return
       END
 
+C*************** gbxadjdoor
+C gbxadjdoor sets child adjacent to parent surface (typically when they
+C share a lower left or lower right corner. Where IZ is the
+C current zone, IPS is index of parent, IDS is index of child.
+C In the case of an other zone then use alt variables.
+C act 'i' inside 'o' other side.
+
+      subroutine gbxadjdoor(IZ,IPS,ICS,act)
+#include "building.h"
+#include "geometry.h"
+      integer IZ,IPS,ICS  ! zone parent child index
+      character act*1
+
+C Working array for parent surface(s) while testing insertion of openings.
+      integer ipnver,iopnver      ! nb of edges in parent surface & other parent
+      integer ipjvn,iopjvn        ! indices of coords making up edges equivalent to jvn
+      common/scratchparents/ipnver,iopnver,ipjvn(MV),iopjvn(MV)
+
+      integer iyy,n,lldooris,ivll
+      integer jvn1(MV),jvn2(MV) ! to hold list of opening edges
+      integer llparpos,lrparpos,urparpos,ulparpos
+      integer lldpos,lrdpos,uldpos,urdpos ! closest to BB corners for child
+      integer icwhich1,icwhich2,icvwhich1,icvwhich2
+      integer ipwhich1a,ipwhich2a,ipwhich1b,ipwhich2b
+      integer ipvwhich1a,ipvwhich2a,ipvwhich1b,ipvwhich2b
+      integer ivc,item
+      logical matchver,isatcorner
+      
+      if(isznver(IZ,ICS).eq.0) return  ! cannot deal with a zero edge list
+
+C First decrement isznver of the parent by isznver of 
+C the door (which got into the list via earlier steps). 
+      n=isznver(IZ,IPS)-isznver(IZ,ICS)  ! subtract adjacent door
+      if(n.le.0) return  ! cannot deal with zero edges
+      isznver(IZ,IPS)=n
+
+C A door topology might also apply to surfaces which share
+C one or more edges with the parent. First step is to loop
+C through all of the child vertices and see if they are
+C on one of the parent edges.
+C Debug.
+      write(6,'(a,3i4)') 'gbxadjdoor focused on iz ips ics ',IZ,IPS,ICS
+      write(6,'(a,102i4)') 'gbxadjdoor parent surf jvn ',
+     &  (iszjvn(IZ,IPS,j),J=1,isznver(IZ,IPS))
+      do loop=1,isznver(IZ,IPS)
+        loop2=iszjvn(IZ,IPS,loop)
+        write(6,'(a,i3,3f7.3)')'p coords ',loop2,szcoords(iz,loop2,1),
+     &    szcoords(iz,loop2,2),szcoords(iz,loop2,3)
+      end do  ! of loop
+      call gbxSURLEHI(IZ,IPS,XYMAX,ZMAX,llparpos,lrparpos,urparpos,
+     &  ulparpos)
+      llparentis=iszjvn(IZ,IPS,llparpos)  ! parent lower left
+      lrparentis=iszjvn(IZ,IPS,lrparpos)  ! parent lower right
+      write(6,*) 'LL LR UL UR position for parent...',
+     &  llparpos,lrparpos,urparpos,ulparpos
+      write(6,'(a,2i4)') 'llparentis v & pos',llparentis,llparpos
+      write(6,'(a,2i4)') 'lrparentis v & pos',lrparentis,lrparpos
+
+      if(act.eq.'i')then
+C Debug.
+        write(6,'(a,i3,102i4)') 'gbxadjdoor door iszjvn edges & list ',
+     &    isznver(IZ,ICS),
+     &    (iszjvn(iz,ics,loop3),loop3=1,isznver(IZ,ICS))
+        call gbxSURLEHI(IZ,ICS,XYMAX,ZMAX,lldpos,lrdpos,uldpos,urdpos)
+        lldooris=iszjvn(IZ,ICS,lldpos)  ! door lower left
+        lrdooris=iszjvn(IZ,ICS,lrdpos)  ! door lower right
+        write(6,'(a,2i4)') 'lldooris v & pos',lldooris,lldpos
+      elseif(act.eq.'o')then
+C Debug.
+        write(6,'(a,i3,102i4)') 'gbxdoor other open isz equiv jvn ',
+     &    isznver(IZ,ICS),(iszjvn(IZ,ICS,j),J=1,isznver(IZ,ICS))
+        call gbxSURLEHI(IZ,ICS,XYMAX,ZMAX,lldpos,lrdpos,uldpos,urdpos)
+        lldooris=iszjvn(IZ,ICS,lldpos)  ! door lower left
+        lrdooris=iszjvn(IZ,ICS,lrdpos)  ! door lower right
+        write(6,'(a,2i4)') 'o mode lldooris v & pos',lldooris,lldpos
+      endif
+      icwhich1=0; icwhich2=0       ! vertex index
+      icvwhich1=0; icvwhich2=0     ! vertex position
+      ipwhich1a=0; ipwhich2a=0     ! parent edge vertex start index
+      ipwhich1b=0; ipwhich2b=0     ! parent edge vertex end index
+      ipvwhich1a=0; ipvwhich2a=0   ! parent vertex position
+      ipvwhich1b=0; ipvwhich2b=0   ! parent vertex position
+      do ivc=1,isznver(IZ,ICS)     ! for each child vertex
+        item=iszjvn(iz,ics,ivc)    ! vert of the child
+        do iyy = 1,isznver(IZ,IPS) ! for each parent edge
+          if(iyy.lt.isznver(IZ,IPS))then
+            iptem1=iszjvn(IZ,IPS,iyy); iptem2=iszjvn(IZ,IPS,iyy+1)
+          else
+            iptem1=iszjvn(IZ,IPS,iyy); iptem2=iszjvn(IZ,IPS,1)
+          endif
+
+C Test if child vertex and parent vertex are the same.
+          if(item.eq.iptem1.or.item.eq.iptem2)then
+            if(llparentis.eq.lldooris)then
+              write(6,*) 'joint LL for parent and door the orig p is'
+              write(6,*) ipnver,(ipjvn(loop3),loop3=1,ipnver)
+            elseif(lrparentis.eq.lrdooris)then
+              write(6,*) 'joint LR for parent and door the orig p is'
+              write(6,*) ipnver,(ipjvn(loop3),loop3=1,ipnver)      
+            endif
+          endif
+
+          call gbxpointtoline(item,iz,iptem1,iptem2,offset,matchver)
+          if(offset.lt.0.002.and.matchver)then  ! if within 2mm
+            if(icwhich1.eq.0)then
+              icwhich1=item    ! remember first match
+              icvwhich1=ivc    ! and its position
+              ipwhich1a=iptem1 ! remember parent line start
+              ipwhich1b=iptem2 ! remember parent line end
+              ipvwhich1a=iyy   ! current edge position
+              ipvwhich1b=iyy+1 ! next edge position
+            else
+              icwhich2=item    ! remember 2nd match
+              icvwhich2=ivc    ! and its position
+              ipwhich2a=iptem1 ! remember parent line start
+              ipwhich2b=iptem2 ! remember parent line end
+              ipvwhich2a=iyy   ! current parent edge position
+              ipvwhich2b=iyy+1 ! next parent edge position
+              if(icwhich1.eq.icwhich2)then
+                continue ! both identical keep looking
+              else
+                goto 43  ! no need to look further
+              endif
+            endif
+          endif
+        enddo
+      enddo
+ 43   continue
+
+C Debug.
+      write(6,'(a,i3,a,4i4,a,8i4)') 
+     &  'gbxadjdoor door verts @ edge ',lldooris,' child ',
+     &  icwhich1,icvwhich1,icwhich2,icvwhich2,' parent ',
+     &  ipwhich1a,ipvwhich1a,ipwhich1b,ipvwhich1b,
+     &  ipwhich2a,ipvwhich2a,ipwhich2b,ipvwhich2b
+
+C If a shared corner then logic needed to adapt the parent
+C surface. Until that is sorted do not adapt the parent.
+
+C Debug.
+      write(6,'(a,i3,102i4)') 
+     &  'parent surf with adj door ',iyy,
+     &  (iszjvn(IZ,IPS,j),J=1,isznver(IZ,IPS))
+
+      return
+      END
+
+C ********** testuniquesn
+C Check if a surface name will be unique.
+      subroutine testuniquesn(test,izone,isunique,suggest)
+#include "building.h"
+#include "model.h"
+#include "geometry.h"
+      character test*12  ! surface name to test
+      integer izone      ! the zone to test within
+      logical isunique
+      character suggest*12
+
+      integer ncomp,ncon
+      COMMON/C1/NCOMP,NCON
+      character c*1
+      dimension c(68)
+      character test2*12
+      
+      isunique=.true.
+      suggest=' '
+      j=64       ! make up a list of alternative characters.
+      do i=1,42
+        j=j+1
+        c(i)=char(j)
+      enddo
+      ltest=lnblnk(test)
+      test2=test
+      iz=izone
+      do is=1,nzsur(iz)
+        lsn=lnblnk(sname(iz,is))
+        if(ltest.eq.lsn)then
+          if(test(1:lsn).eq.sname(iz,is)(1:lsn))then
+            isunique=.false. ! same as
+          endif
+        endif
+      enddo
+
+      if(isunique)then
+        suggest=test  ! pass back the same string
+        return
+      else
+
+C Iterate a dozen times checking different possible endings.
+        do loop=1,12
+          isunique=.true.
+          write(test2(ltest:ltest),'(a)') c(loop)
+          iz=izone
+          do is=1,nzsur(iz)
+            lsn=lnblnk(sname(iz,is))
+            if(ltest.eq.lsn)then
+              if(test2(1:lsn).eq.sname(iz,is)(1:lsn))then
+                isunique=.false.  ! same as
+              endif
+            endif
+          enddo
+          if(isunique)then
+            suggest=test2; isunique=.false.
+            return
+          endif
+        enddo
+      endif
+      return
+      end
 

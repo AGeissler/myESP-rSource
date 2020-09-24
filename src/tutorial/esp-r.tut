@@ -1,36 +1,36 @@
-# General tutorial file for ESP-r; version of June 2007.
+# General tutorial file for ESP-r.
 
 *tut_clm_dbitems  weather databases contents
 Weather databases hold hourly weather data from 1h00 on 1 January
-to 24h00 on 31 December. For each hour the following data is held.
+to 24h00 on 31 December. For each hour the following data are held.
 
   Diffuse horizontal solar intensity (W/m^2)
   Dry bulb temperature (tenths of degreee C, i.e. 102 = 10.2 degC)
   Direct normal or global horizontal solar intensity (W/m^2)
   Wind speed (tenths of m/s, i.e. 15 = 1.5 m/s)
-  Wind direction (degrees from north, clockwise positive)
+  Wind direction (degrees from North, clockwise positive)
   Relative humidity (%)
+  Atmospheric pressure (mbar)
 
 Also included are the site latitude, longitude difference from the
-local reference Meridian), the site altitude and a site name.
+local reference Meridian, the site altitude and a site name.
 
-While a weather db is held as a binary representation, this may be
-converted to an ASCII file (and vice cera) to allow porting between
-dissimilar operating systems. The initial portion of an ASCII
-version is shown below.
+While a weather file is held as a binary representation, this may be
+converted to a text file (and vice cera) to allow porting between
+dissimilar operating systems. The initial portion of a text file
+is shown below.
 
 *CLIMATE
-# ascii weather file from clm67 binary db,
-# defined in: clm67.a
+# ascii weather file from clm67 binary file defined in clm67.a
 # col 1: Diffuse solar on the horizontal (W/m^2)
-# col 2: External dry bulb temperature   (Tenths DEG.C)
+# col 2: External dry bulb temperature   (Tenths deg.C)
 # col 3: Direct normal solar intensity   (W/m^2)
 # col 4: Prevailing wind speed           (Tenths m/s)
-# col 5: Wind direction     (clockwise deg from north)
-# col 6: Relative humidity               (Percent)
+# col 5: Wind direction                  (clockwise deg from north)
+# col 6: Relative humidity               (%)
 ESP test weather                # site name
-  1967   52.00    0.00   0      # year, latitude, long diff, rad flag
-     1   365                   # period (julian days)
+  1967   52.00    0.00   0      # year, latitude, long difference, radiation flag
+     1   365                    # period
 * day  1 month  1
       0     27      0     51    240     78
       0     27      0     44    240     76
@@ -47,40 +47,39 @@ ESP test weather                # site name
      83     55    151     59    275     69
 
 *tut_clm_dblist   weather databases list
-The following describes the form of a weather data listing.
+The following describes the form of a weather file data listing.
 The file tags have the following meanings.
 
- *item - the beginning of a data item
- *name - name of weather for menu (<=32 characters)
- *aide - a short description (<=72 characters)
- *dbfl - the absolute path of the db file
- *avail - ONLINE or OFFLINE
- *winter - typical winter - day, month, day, month
- *spring - typical spring - day, month, day, month
- *summer - typical summer - day, month, day, month
+ *item   - the beginning of a data item
+ *name   - name of the weather for the menu (<=32 characters)
+ *aide   - a short description (<=72 characters)
+ *dbfl   - the absolute path of the weather file
+ *avail  - ONLINE or OFFLINE
+ *winter - typical winter period - day, month, day, month
+ *spring - typical spring period - day, month, day, month
+ *summer - typical summer period - day, month, day, month
 
- *help_start  - beginning of text to present
-   ...  text lines (up to 60) ...
- *help_end - end of text to present
- *end - end of the file
+ *help_start - beginning of text to present to the user
+     ...  text lines (up to 60) ...
+ *help_end   - end of text
+ *end        - end of the file
 
-The following is the initial portion of a Weather db list.
+The following is the initial portion of a weather file listing.
 *CLIMATE_LIST
-*group  ESRU standard Weather dbs
-# WARNING: Keep this file up to date with current directory structure!
+*group  ESRU standard weather file
 *item
-*name   Default Weather
+*name   Default weather file
 *aide   Weather data as distributed with ESP-r for testing purposes.
-*dbfl   /usr/esru/esp-r/climate/clm67
+*dbfl   /usr/opt/esp-r/climate/clm67
 *winter 9  1  15  1
 *spring 6  3  12  3
 *summer 11 7  17  7
 *avail  ONLINE
 *help_start
-Location is 52.0N and 0.0E.
+Location is 51.7 N, 4.1 W.
 The solar radiation is Direct Normal.
-The db temperature range is from -6.4 to 27.7.
-Month     Minimum      Maximum
+The temperature range is from -6.4 to 27.7 C.
+Month     Minimum     Maximum
 January   -6.4@8  Jan  12.7@29 Jan
 February  -1.9@14 Feb  12.2@2  Feb
 March     -0.8@31 Mar  16.1@21 Mar
@@ -97,15 +96,15 @@ December  -4.2@9  Dec  12.7@23 Dec
 *item
 *name   Kew 1967
 *aide   UK Example Year
-*dbfl   /usr/esru/esp-r/climate/kew67
+*dbfl   /opt/esp-r/climate/kew67
 *avail  OFFLINE
 *winter 9  1  15  1
 *spring 6  3  12  3
 *summer 11 7  17  7
 *help_start
-Kew is located at 52.0N and 0.0E.  The solar
-radiation is Direct Normal.
-The db temperature range is from -4.4 to 28.7.
+Kew is located at 51.7 N and 0.1 E.
+The solar radiation is Direct Normal.
+The temperature range is from -4.4 to 28.7 C.
 Month     Minimum      Maximum
 January  -2.2 @9 Jan   13.2 @29 Jan
 February -0.2 @8 Feb   13.3 @16 Feb
@@ -114,134 +113,80 @@ February -0.2 @8 Feb   13.3 @16 Feb
 *item
 *end
 
-
-*tut_bld_intro    bld introduction
-
-Bld is a constrained version of the thermal simulation engine of
-the ESP-r suite which supports building thermal, plant and
-network flow problems.  If conflated CFD analysis is required use
-the standard Integrated Simulator.
-
-The initial choices are:
-
-a) Input descripton
-   This requires the system configuration (this can also be
-   passed via the invocation command as in "bld -file
-   problem.cfg".
-
-b) Assign weather file
-   Allows an alternative weather database from that included in
-   the system configuration to be used.
-
-c) Initiate simulation
-   Takes the current configuration and weather and proceeds to
-   setup assessment parameters (e.g. period of simulation, level
-   of detail to be recorded in the results library, calculation
-   parameters).
-
-c) Trace facilities
-   Allows topical information not contained in the results
-   library to be recovered. One or more zones can be selected and
-   30 different topics (e.g. heat transfer coefficients, solar
-   radiation distributions) can be selected.
-   This is used primarily by experienced users. Further
-   information is available within the trace selection facility.
-
-
 *tut_bps_intro    simulator introduction
-This is the integrated simulator of ESP-r which supports
-building, plant and network flow simulation with control
-imposed.
-
-The initial choices are:
+This is the integrated simulation engine of ESP-r, which supports
+building and plant simulation with air, moisture, electricity and control
+networks imposed. Initial choices are:
 
 a) Input descripton
-   This requires a system configuration (this can also be
-   passed via the invocation command as in "bps -file
-   problem.cfg".
+   Requires a model configuration file (this can also be
+   passed via an invocation command line option as in
+   "bps -file problem.cfg".
 
 b) Assign weather file
    Allows an alternative weather database from that included in
-   the system configuration file to be used.
+   the model configuration file to be used.
 
 c) Initiate simulation
-   Takes the current configuration and weather and proceeds to
+   Takes the current configuration and weather, and proceeds to
    set up assessment parameters (e.g. period of simulation, level
    of detail to be recorded in the results library, calculation
-   parameters etc.).
+   parameters etc.) prior to commissioning a simulation.
 
 c) Trace facilities
-   Allows topical information not contained in the results
-   library to be recovered. One or more zones can be selected and
-   different topics earmarked for tracking (e.g. heat transfer
-   coefficients, solar radiation distributions etc.).
+   Allows information not contained in the results file to
+   be recovered. One or more zones can be selected and
+   different topics marked for tracking (e.g. surface convective
+   heat transfer, solar radiation distribution etc.).
 
 
 *tut_simul_cmds   Simul menu in bld
-Save options dictate what is saved in the Results db
-as follows.
+Save levels dictate what is saved in the simulation results file
+as follows, which dictates file size.
 
-SAVE >>0
-   Summary report is generated.
-
-SAVE >>1
-   Minimum save option (principally zone dry bulb temperature,
-   control point temperature and plant flux interaction).
-
-SAVE >>2
-   Moderate save option - as (1) but adds inside surface
-   temperatures, infiltration, ventilation, solar absorbed at
-   inside faces, casual gains and relative humidity.
-
-SAVE >>3
-   Maximum save option - as (2) but adds temperatures at all
-   construction nodes.
-
-SAVE >>4
-   Surface energy balance option - as (2) but with all flux
-   paths at inside and outside face of surfaces included.
-
-Both level 3 and 4 result in a large Results db.
-
-The monitor option (plotting principal parameters as a
-simulation progresses) allows an initial impression of
-performance.
+ 0: summary report only.
+ 1: minimum save (zone dry bulb temperature, control point temperature
+    and plant flux input).
+ 2: moderate save - as (1) but adds inside surface temperatures,
+    infiltration, ventilation, solar absorbed at inside faces, casual
+    gains and relative humidity.
+ 3: enhnced save - as (2) but adds temperatures at all construction
+    nodes.
+ 4: surface energy balance option - as (2) but with all flux at inside
+    and outside surfaces.
 
 *tut_simul_toggl  Simul menu
-Although most simulations can proceed without special settings
-there are a number of simulation toggles available to the expert
-to enable fine tuning of calculations or to invoke special
-calculation modes (e.g. switching from the Perez sky irrandiance
-model to, say, an isotropic model). The options are as follows.
+Although simulations can proceed without special settings,
+simulation parameter toggles allow embedded defaults to be
+replaced.
 
 Results averaging
    Information written to the results library is, by default, the
    average of the present and future time-rows. This may be
-   turned off so that only the future time-row value is saved.
+   turned off so that only the time-row values are saved.
 
-Building: Implicit - Explicit
-   The numerical solution normally uses a Crank-Nicholson scheme
-   (implicit 0.5). This can be reset to be fully explicit (0) or
-   fully implicit (1).
+Building equations implicitness degree
+   The numerical solution for building-side equations normally
+   employs a Crank-Nicholson scheme (implicit 0.5). This can be
+   reset to be fully explicit (0) or fully implicit (1).
 
-Plant: Implicit - Explicit
-   The numerical solution for plant systems is normally time-
-   constant dependent. This can be reset to be fully implicit,
-   mixed or steady state.
+Plant equations implicitness degree
+   The numerical solution for plant-side systems is normally
+   time-constant dependent. This can be reset to be fully
+   implicit, mixed or steady state.
 
 Solar ON-OFF
    To assess the effect of solar radiation on a zone the solar
    processing algorithms can be disabled.
 
 Sky model
-   One of sevral sky radiation models can be enabled (Klucher,
+   One of several sky radiation models can be enabled (Klucher,
    Muneer, Perez, Isotropic etc.). The default is the Perez model.
 
 Network flow parameters
    The solution of a fluid flow network is an iterative process
    and a number of parameters can be adjusted to assist with the
-   convergence of complext networks. Details are available within
-   the facility.
+   convergence of complext networks.
 
 Weather interpolation
    For sub-hour building time steps, weather data is usually
@@ -253,15 +198,16 @@ Power flow
 
 Convection coefficients
    An alternative to the default Alamdari & Hammond correlations
-   for the inside surface convection coefficient may be invoked.
+   for buoyancy-driven suface convection at inside surface
+   may be invoked.
 
 Moisture flow
    The numerical solution of moisture flow is an iterative method
-   and convergence parameters may be user set to assist with
-   difficult cses.
+   and convergence parameters may be set to assist with difficult
+   cases.
 
-Sepecial materials
-   Constructions which have unusual properties, e.g. PV modules
+Special materials
+   Constructions which have special properties, e.g. PV modules,
    are identified as special materials. This toggle enables an
    integrated simulation to take account of these properties.
 
@@ -272,9 +218,7 @@ Water filled zones
 Vertical solar data
    Where measurements are available, a time step file of vertical
    solar radiation data can be associated with particular
-   surfaces. This is a facility for experts and should be used
-   with care.
-
+   surfaces.
 
 *tut_cfg_intro    Synopsis of the topology checking program
 The topology checker (cfg) provides facilities to assist the user

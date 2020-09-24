@@ -234,7 +234,7 @@ C If control index not set then only initial parameters are required.
 
       ncnn=npcon
       if(mode.eq.1) then
-        call mflist(iuout)
+        call mflist(iuout,'f')
       else
 
 C Use IAIRN check so network flow file data is not written

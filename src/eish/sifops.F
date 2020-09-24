@@ -13,23 +13,20 @@ C warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
 C PURPOSE. See the GNU General Public License for more
 C details.
 
-C You should have received a copy of the GNU General Public
-C License along with ESP-r. If not, write to the Free
-C Software Foundation, Inc., 59 Temple Place, Suite 330,
-C Boston, MA 02111-1307 USA.
 
+C This file contains the folowing subroutines.
 C SIFOPS - allows editing/importing/exporting of zone shading &
 C          insolation db contents.
 C SIFRD  - reads the contents of a zone shading & insolation db for
 C          a given month.
 C SIFWRT - writes shading/insolation data to a zone shading &
 C          insolation db for a given month.
-C SIFEXP exports the shading and insolation factors as held in a zone
+C SIFEXP - exports the shading and insolation factors as held in a zone
 C          shading db to a mirror ascii file (but silently).
-C SIFIMPORT imports the shading and insolation factors as held in an
-C         ASCII zone shading & insolation db to bimary file.
+C SIFIMPORT - imports the shading and insolation factors as held in an
+C             ASCII zone shading & insolation db to bimary file.
 
-C ************* SIFOPS *************
+C ******************** SIFOPS ********************
 C Allows the shading and insolation factors as held in a zone
 C shading & insolation db to be listed, edited or imported/exported
 C from/to a mirror ascii file. Uses SIFRD and SIFWRT to read/write
@@ -78,7 +75,6 @@ C with the db at simulation time.
       logical allsurf ! if true then do not ask user confirmation
       logical verbose ! if to file another decimal place.
 
-C For help messages
       character helpinsub*24 ! subroutine name
       character helptopic*24 ! string (unique) for topic
       integer nbhelp     ! number of help lines found
@@ -87,7 +83,7 @@ C For help messages
       DATA month/'Jan','Feb','Mar','Apr','May','Jun','Jul',
      &           'Aug','Sep','Oct','Nov','Dec'/
 
-C Display contents of the zone shading & insolation db.
+C Display contents of the zone shading & insolation file.
       helpinsub='sifops'  ! set for subroutine
       verbose=.false.
       ifilsi=ifil+3
@@ -147,7 +143,7 @@ C to know which months are included in the ASCII file. Identify a month.
      &      'F',12,'F',1,'month number',ier,nbhelp)
           if(ier.ne.0)goto 22
           ipick=4                 ! this is the import option
-          if(irecx.eq.0)irecx=5   ! irecx probably was not set so do it for initial month
+          if(irecx.eq.0)irecx=5   ! irecx probably not set so set for initial month
           isadd(mnth)=irecx       ! so code knows where to write data 
           nsurs=nzsur(icomp)      ! needed for the header
           msurs=misur
@@ -193,7 +189,7 @@ C Present options menu and generate help text for these dialogs.
       call easkatog(' ','Options:','list','edit','export','import',
      &              'cancel',' ',' ',ipick,nbhelp)
 
-C *** Listing requested. If to file then write higher resolution.
+C Listing requested. If to file then write higher resolution.
   77  continue
       if(ipick.eq.1)then
          itu=iuout
@@ -257,7 +253,7 @@ C Insolation factors. Call insynp in silent mode.
          allsurf=.false.  ! let the silent mode take precidence
          call insynp(icomp,'s',allsurf)
 
-C *** Edit requested.
+C Edit requested.
       elseif(ipick.eq.2)then
     9    call easki(isur,' ','Surface number for editing?',
      &     1,'F',nzsur(icomp),'F',1,'surf number',ier,nbhelp)
@@ -336,9 +332,7 @@ C Diffuse shading.
            call sifwrt(icomp,mnth,lastrec)
          endif
 
-C End of `edit` menu selection.
-
-C *** Export to ascii file requested.
+C Export to ascii file requested.
       elseif(ipick.eq.3)then
          iuj=ifil+10
          helptopic='shading_export_options'
@@ -351,7 +345,6 @@ C *** Export to ascii file requested.
            ier=1
            goto 1002
          endif
-
          write(iuj,'(2a)',iostat=istat,err=1002)
      &      '* Shading and insolation data in file ',lshad(icomp)
          write(iuj,'(2i3,a)',iostat=istat,err=1002)icomp,nzsur(icomp),
@@ -458,11 +451,10 @@ C hold 62 indices before it hits an overflow state.
             call erpfree(iuj,istat)
          endif  ! end of expoort menu item
 
-      elseif(ipick.eq.4)then
-
-C *** Import from ascii file requested.  Note this code does not yet
+C Import from ascii file requested.  Note this code does not yet
 C update the value of irecx. The previous call to sifwrt returns a
 C value lastrec which is equivalent to irecx.
+      elseif(ipick.eq.4)then
          iuj=ifil+10
          helptopic='shading_export_options'
          call gethelptext(helpinsub,helptopic,nbhelp)
@@ -694,9 +686,7 @@ C value for the first index of insst
            endif
          endif
 
-C End `import` menu selection.
-
-C *** Cancel requested.
+C Cancel requested.
       elseif(ipick.eq.5)then
          return       ! End of `cancel` menu selection.
 
@@ -734,7 +724,7 @@ C type of data involved.
 
       END
 
-C ************* SIFRD *************
+C ******************** SIFRD ********************
 C Reads the contents of a zone shading & insolation file for the
 C given month.
 
@@ -830,17 +820,17 @@ C Error handling.
       return
 
  1002 call edisp (iuout,' ')
-      call edisp(iuout,'Geometry referenced in zone shading &')
+      call edisp(iuout,'Geometry referenced in zone shading & ')
       call edisp(iuout,'insolation file is different to that currently')
       call edisp(iuout,'being used.')
       return
       end
 
-C ************* SIFWRT *************
+C ******************** SIFWRT ********************
 C Writes shading/insolation data to a zone shading & insolation file
-C for the given month.
-C The lastrecwritten is an integer to pass back in case the calling
-C code needs up update irecx
+C for the given month. lastrecwritten is an integer to pass back in 
+C case the calling code needs up update irecx.
+
       subroutine sifwrt(icomp,mnth,lastrecwritten)
 #include "building.h"
 #include "geometry.h"
@@ -872,7 +862,7 @@ C                 at hour j that reaches the kth internal surface.
 
       character outs*124
 
-C SI file unit number.
+C S/I file unit number.
       ifilsi=ifil+3
       if(isadd(mnth).eq.0)then
          isadd(mnth)=irecx
@@ -882,9 +872,6 @@ C SI file unit number.
       write(ifilsi,rec=irec,iostat=istat,err=1000)(ishd(i),i=1,12),
      &                                            (isadd(i),i=1,12)
       irec=2
-
-C Debug.
-C      write(6,*)irecx,nsurs,msurs
 
       write(ifilsi,rec=irec,iostat=istat,err=1000)irecx,nsurs,msurs
 
@@ -900,10 +887,6 @@ C Number of insolation sources in zone.
          nwins=nwins+ntmc(i)
 
 C Write shading factors.
-
-C Debug.
-C         write(6,*)(pso(i,j),j=1,24)
-
          write(ifilsi,rec=irec,iostat=istat,err=1000)(pso(i,j),j=1,24)
          irec=irec+1
          write(ifilsi,rec=irec,iostat=istat,err=1000)(psof(i,j),j=1,24)
@@ -920,10 +903,6 @@ C Write insolation factors.
       irec=irec+1
       do 20 i=1,nwins
          do 30 j=1,misur
- 
-C Debug.
-C            write(6,*)(insst(i,k,j),k=1,24)
-
             write(ifilsi,rec=irec,iostat=istat,err=1000)
      &        (insst(i,k,j),k=1,24)
             irec=irec+1
@@ -946,17 +925,18 @@ C Error handling.
       end
 
 
-C ************* SIFEXP *************
-C SIFEXP exports the shading and insolation factors as held in a zone
+C ******************** SIFEXP ********************
+C Exports the shading and insolation factors as held in a zone
 C shading & insolation file to a mirror ascii file. Uses SIFRD to read
 C file contents. Uses some of the same code blocks as sifops but is
 C written for silent operation. If the format changes in sifops then
 C sifexp should also be updated.
-C Passed parameters:
-C  icomp (integer) is the current zone index
-C  exportfile (96 char) is the ascii file to generate (typically
-C    this would be a name derived from the zone shading file).
-C  ier (integer) is zero if no problems, -3 if empty.
+C Input parameters:
+C  icomp      - the current zone index
+C  exportfile - the ascii file to generate (typically this would be a
+C               name derived from the zone shading file).
+C  ier        - is 0 if no problems, -3 if empty.
+
       subroutine sifexp(icomp,exportfile,ier)
 #include "building.h"
 #include "model.h"
@@ -1066,10 +1046,8 @@ C Generate packed list of names of insolation sources.
 
 C Write insolation factors. Note the record offset line is
 C sensitive to the number of surfaces in the zone.
-
 C ioffs can be gt 200 if there are lots of windows so
 C test ioffs prior to writing might be needed.
-
       if(ishd(mnth).eq.2.or.ishd(mnth).eq.3)then
          write(iuj,'(a)',iostat=istat,err=1002) 
      &     '24 hour internal surface insolation'
@@ -1108,7 +1086,7 @@ C test ioffs prior to writing might be needed.
       endif
 
 C Try incrementing the month, if have just written December then
-C write the '* end' close file and return. If there is no data
+C write '* end', close file and return. If there is no data
 C for the next month loop again looking for more. If there is data
 C for the next month then jump back to the '* month' writing line.
    15 mnth=mnth+1
@@ -1141,18 +1119,19 @@ C Error handling.
 
       END
 
-C ************* SIFIMPORT *************
-C SIFIMPORT imports the shading and insolation factors as held in an
+C ******************** SIFIMPORT ********************
+C Imports the shading and insolation factors as held in an
 C ASCII zone shading & insolation file to bimary file. Uses SIFWRT to
 C update file contents. Uses some of the same code blocks as sifops but is
 C written for silent operation. If the format changes in sifops then
 C sifexp should also be updated.
-C Passed parameters:
-C  icomp (integer) is the current zone index
-C  exportfile (96 char) is the ascii file to import (typically
-C    this would be a name derived from the zone shading file).
-C  ier (integer) is zero if no problems, -3 if empty,
-C     -2 not found, -1 wrong type of file, -4 wrong zone.
+C Input parameters:
+C  icomp      - the current zone index
+C  exportfile - ascii file to import (typically this would be a
+C               name derived from the zone shading file).
+C  ier        - is 0 if no problems, -3 if empty, -2 not found, 
+C             -1 wrong file type, -4 wrong zone.
+
       subroutine sifimport(icomp,exportfile,ier)
 #include "building.h"
 #include "model.h"
@@ -1181,9 +1160,6 @@ C     -2 not found, -1 wrong type of file, -4 wrong zone.
 
       DATA month/'Jan','Feb','Mar','Apr','May','Jun','Jul',
      &           'Aug','Sep','Oct','Nov','Dec'/
-
-C Preread logic to determine the month and other useful
-C data.
 
 C Scan header of the zone shading & insolation file.
       ifilsi=ifil+3

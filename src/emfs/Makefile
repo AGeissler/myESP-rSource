@@ -16,7 +16,7 @@ default: $(PROG)
 
 MODULE_OBJECTS = startup.o
 
-OBJECTS = mfs.o c2fdum.o cntmnt.o ctlexp.o ctlwrt.o dossupport.o econtrol.o emfnetw.o \
+OBJECTS = mfs.o c2fdum.o cntmnt.o commonclm.o ctlexp.o ctlwrt.o dossupport.o econtrol.o emfnetw.o \
 	  fctlc.o gcfunc.o initalc.o item.o mfcdat.o mfcntl.o mfdumb.o mfdumf.o mfdump.o \
 	  mfinit.o mfmach.o mfmode.o mfplot.o mfrlst.o mfrset.o mftabl.o \
 	  mfutil.o nwkrewr.o psychro.o rnor.o tdfile.o tdrecbps.o
@@ -29,6 +29,9 @@ $(PROG): $(MODULE_OBJECTS) $(OBJECTS)
 c2fdum.F:
 	rm -f c2fdum.F
 	ln -s $(COMdir)/c2fdum.F .
+commonclm.F:
+	rm -f commonclm.F
+	ln -s $(COMdir)/commonclm.F .
 ctlexp.F:
 	rm -f ctlexp.F
 	ln -s $(COMdir)/ctlexp.F .

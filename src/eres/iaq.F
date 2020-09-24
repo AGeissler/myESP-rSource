@@ -13,10 +13,6 @@ C warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
 C PURPOSE. See the GNU General Public License for more
 C details.
 
-C You should have received a copy of the GNU General Public
-C License along with ESP-r. If not, write to the Free
-C Software Foundation, Inc., 59 Temple Place, Suite 330,
-C Boston, MA 02111-1307 USA.
 
 C This file contains the following routines:
 C iaqmenu
@@ -79,7 +75,7 @@ C << put ILFLAG toggle here >>
       ITEM(11)  ='? help                 '
       ITEM(12)  ='- exit                 '
 
-C Instanciate the help strings for this menu.
+C Instantiate the help strings for this menu.
       helptopic='res_iaq_menu'
       call gethelptext(helpinsub,helptopic,nbhelp)
 
@@ -108,7 +104,7 @@ C Instanciate the help strings for this menu.
         call edisp(iuout,' ')
         doit = ' '
         call terminalmode(childterminal,tmode)
-        write(doit,'(3a)') 'mld -mode ',tmode,' &'
+        write(doit,'(3a)') 'mld -mode ',tmode,' & '
         call runit(doit,tmode)
       elseif(INO.EQ.7)then
         call edisp(iuout,' ')

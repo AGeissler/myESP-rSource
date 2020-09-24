@@ -142,16 +142,22 @@ C     1st phase mass balance (ISTATS=2), or 2nd phase mass (ISTATS=3).
 C     ----------------------------------------------------------------------
 C     ADATA:
 C     Pipe data:
-C     1 Number of circuits (integer)
-C     2 inside  diameter of pipe (m)
-C     3 outside diameter of pipe (m)
-C     4 pipe spacing (m)
-C     5 Thermal conductivity of pipe material (W/mK)
-C     6 Volumetric specific heat of pipe material - rho*Cp (J/m3K)
-C     Zone data:
-C     7 served zone number (integer)
-C     8 zone radiant surface number (integer)
-C     9 injection node number (integer)
+C      1 Number of circuits (integer)
+C      2 inside  diameter of pipe (m)
+C      3 outside diameter of pipe (m)
+C      4 pipe spacing (m)
+C      5 Thermal conductivity of pipe material (W/mK)
+C      6 Volumetric specific heat of pipe material - rho*Cp (J/m3K)
+C      Zone data:
+C      7 served zone number (integer)
+C      8 zone radiant surface number (integer)
+C      9 injection node number (integer)
+C     10 Insulation layer (integer)
+C     11 Under Relaxation factor
+C     12 Maximum number of iterations (integer)
+C     13 Flag for model. 1 = Laouadi Model, 2 = Fin model for pipe in subfloor (e.g. Warmboard)
+C     14 Amount of finite difference nodes for pipe-in-subfloor model
+C
 C     BDATA: none
 C     CDATA: none
 C     Additional Outputs:
@@ -841,7 +847,7 @@ C Setup VectorC starting with fin element near pipe.
       DO icount=2,nNodes
         VectorC(icount)=FINt*FINrho*FINCp*Tp(irf,icount)*deltax/Dt
       END DO
-     	
+     
 C End of fin elements setup.
 
 C Setup cover elements starting with element closest to pipe.

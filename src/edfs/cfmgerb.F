@@ -597,8 +597,8 @@ C user to 'load the next timestep'.
               write(doit,'(5a,2i4,a)')'dfv -file ',
      &          LCFD(icp)(1:lnblnk(LCFD(icp))),' -actf ',
      &          cfd3dascii(1:lnblnk(cfd3dascii)),' -range',ICFVIEWMINT,
-     &          ICFVIEWMAXT,' &'
-              call lusrmsg('visualize cfd via',doit,'-')
+     &          ICFVIEWMAXT,' & '
+              call lusrmsg('visualise cfd via',doit,'-')
               call runit(doit,'-')
               DFVinvoked=.true.  ! so not invoked in subsequent timesteps.
             endif

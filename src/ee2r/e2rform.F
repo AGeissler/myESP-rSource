@@ -742,13 +742,24 @@ C Pick up general description of the composite.
 
 C For the inside and outside layer get surface properties.
         matarrayindex=IPRMAT(IM,1)   ! which materials array index
-        if(matarrayindex.ge.0)then
+        if(matarrayindex.gt.0)then
           AE=matdbina(matarrayindex)
+        else
+          write(6,'(3a)') 'unknown material in ',
+     &      mlcname(IM)(1:lnmlcname(IM)),' outer layer'
+          AE=0.5
         endif
-
-        matarrayindex=IPRMAT(IM,LAYERS(IM))   ! which materials array index
-        if(matarrayindex.ge.0)then
-          AI=matdbina(matarrayindex)
+        if(LAYERS(IM).gt.0)then
+          matarrayindex=IPRMAT(IM,LAYERS(IM))   ! which materials array index
+          if(matarrayindex.gt.0)then
+            AI=matdbina(matarrayindex)
+          else
+            AI=0.5
+          endif
+        else
+          write(6,'(2a)') 'no layers in ',
+     &      mlcname(IM)(1:lnmlcname(IM))
+          AI=0.5
         endif
 
 C If a tmc then find tranmission functions.  If more transparent than
@@ -1346,7 +1357,7 @@ C Find the matching mlc index and set the material name.
 C << use call to matchmlcdesc >>
           ICF=-1
           ifict=0
-          call matchmlcdesc(SMLCN(newfoc,isf),icf)
+          call matchmlcdesc(SMLCN(newfoc,isf),icf) ! get which MLC (icf)
           if(ICF.eq.-1.or.SMLCN(newfoc,isf)(1:4).eq.'UNKN')then
             if (SOTF(newfoc,isf)(1:4).ne.'OPAQ') then
               material='unknown_glz'
@@ -1356,7 +1367,9 @@ C << use call to matchmlcdesc >>
           else
             lnsm=lnblnk(SMLCN(newfoc,isf))
             write(material,'(a)') SMLCN(newfoc,isf)(1:lnsm)
-            if(iskip(icf).eq.1)ifict=1
+            if(icf.gt.0)then
+              if(iskip(icf).eq.1)ifict=1
+            endif
           endif
 
 C Check if this surface is associated with a diffuse light source

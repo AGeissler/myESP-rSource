@@ -9,6 +9,7 @@ C warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
 C PURPOSE. See the GNU General Public License for more
 C details.
 
+
 C This file contains the following routines:
 C MOCMFT:  provides a zone comfort assessment for a particular 24 hour period.
 C getocup: Determine if zone is occupied at time step, for filtering.
@@ -258,7 +259,7 @@ C Begin with high level menu if in verbose mode.
       ITEMS(10) =                  '1 assess average comfort'
       ITEMS(11) =                  '2 assess local comfort  '
       ITEMS(13)  =                 '? help                  '
-      ITEMS(14)  =                 '- exit this menu        '
+      ITEMS(14)  =                 '- exit menu'
     3 NITMS=14
       if(ixopen.eq.1)then
         ITEMS(12)='> Output >> file  '

@@ -13,11 +13,7 @@ C warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
 C PURPOSE. See the GNU General Public License for more
 C details.
 
-C You should have received a copy of the GNU General Public
-C License along with ESP-r. If not, write to the Free
-C Software Foundation, Inc., 59 Temple Place, Suite 330,
-C Boston, MA 02111-1307 USA.
-C
+
 C What the code in this file does.
 C   CDBDomainExplore - presents a list of the technical domains in the database and
 C      allows user to manage those domains or 'drill down' further
@@ -87,9 +83,9 @@ C IML - maximum level that can be viewed.
   17  CONTINUE
       ELSE
         IF(EDITABLE)THEN
-          WRITE(ICITEM(M),'(A)')'Please create a domain ...'
+          WRITE(ICITEM(M),'(A)')'Please create a domain.'
         ELSE
-          WRITE(ICITEM(M),'(A)')'No. domains in database'
+          WRITE(ICITEM(M),'(A)')'No domains in database.'
         ENDIF
       ENDIF
 
@@ -101,15 +97,15 @@ C If there is a long list then allow paging.
   109   FORMAT   ('0 page: ',I2,' of ',I2,' --------')
       ENDIF
       IF(EDITABLE)THEN
-        ICITEM(M+2)='> Add/delete/edit a domain'
+        ICITEM(M+2)='> add/delete/edit a domain'
         ICITEM(M+3)=' '
-        ICITEM(M+4)='? Help'
-        ICITEM(M+5)='- Exit this menu'
+        ICITEM(M+4)='? help'
+        ICITEM(M+5)='- exit menu'
       ELSE
         ICITEM(M+2)=' '
         ICITEM(M+3)=' '
-        ICITEM(M+4)='? Help'
-        ICITEM(M+5)='- Exit this menu'        
+        ICITEM(M+4)='? help'
+        ICITEM(M+5)='- exit menu'        
       ENDIF
 
       NICITEM=M+MCTL
@@ -240,15 +236,15 @@ C If there is a long list then allow paging.
   109   FORMAT   ('0 page: ',I2,' of ',I2,' --------')
       ENDIF
       IF(EDITABLE)THEN
-        ICITEM(M+2)='> Add/delete/edit a category'
+        ICITEM(M+2)='> add/delete/edit a category'
         ICITEM(M+3)=' '
-        ICITEM(M+4)='? Help'
-        ICITEM(M+5)='- Exit this menu'
+        ICITEM(M+4)='? help'
+        ICITEM(M+5)='- exit menu'
       ELSE
         ICITEM(M+2)=' '
         ICITEM(M+3)=' '
-        ICITEM(M+4)='? Help'
-        ICITEM(M+5)='- Exit this menu'        
+        ICITEM(M+4)='? help'
+        ICITEM(M+5)='- exit menu'        
       ENDIF
 
       NICITEM=M+MCTL
@@ -381,15 +377,15 @@ C If there is a long list then allow paging.
   109   FORMAT   ('0 page: ',I2,' of ',I2,' --------')
       ENDIF
       IF(EDITABLE)THEN
-        ICITEM(M+2)='> Add/delete/edit an item'
+        ICITEM(M+2)='> add/delete/edit an item'
         ICITEM(M+3)=' '
-        ICITEM(M+4)='? Help'
-        ICITEM(M+5)='- Exit this menu'
+        ICITEM(M+4)='? help'
+        ICITEM(M+5)='- exit menu'
       ELSE
         ICITEM(M+2)=' '
         ICITEM(M+3)=' '
-        ICITEM(M+4)='? Help'
-        ICITEM(M+5)='- Exit this menu'        
+        ICITEM(M+4)='? help'
+        ICITEM(M+5)='- exit menu'        
       ENDIF
 
       NICITEM=M+MCTL
@@ -559,15 +555,15 @@ C If there is a long list then allow paging.
   109   FORMAT   ('0 page: ',I2,' of ',I2,' --------')
       ENDIF
       IF(EDITABLE)THEN
-        ICITEM(M+2)='> Add/delete/edit a param. set'
+        ICITEM(M+2)='> add/delete/edit a param. set'
         ICITEM(M+3)=' '
-        ICITEM(M+4)='? Help'
-        ICITEM(M+5)='- Exit this menu'
+        ICITEM(M+4)='? help'
+        ICITEM(M+5)='- exit menu'
       ELSE
         ICITEM(M+2)=' '
         ICITEM(M+3)=' '
-        ICITEM(M+4)='? Help'
-        ICITEM(M+5)='- Exit this menu'        
+        ICITEM(M+4)='? help'
+        ICITEM(M+5)='- exit menu'        
       ENDIF
 
       NICITEM=M+MCTL
@@ -757,15 +753,15 @@ C If there is a long list then allow paging.
   109   FORMAT   ('0 page: ',I2,' of ',I2,' --------')
       ENDIF
       IF(EDIT1)THEN
-        ICITEM(M+2)='> Add/delete/edit a parameter'
+        ICITEM(M+2)='> add/delete/edit a parameter'
         ICITEM(M+3)=' '
-        ICITEM(M+4)='? Help'
-        ICITEM(M+5)='- Exit this menu'
+        ICITEM(M+4)='? help'
+        ICITEM(M+5)='- exit menu'
       ELSE
         ICITEM(M+2)=' '
         ICITEM(M+3)=' '
-        ICITEM(M+4)='? Help'
-        ICITEM(M+5)='- Exit this menu'        
+        ICITEM(M+4)='? help'
+        ICITEM(M+5)='- exit menu'        
       ENDIF
 
       NICITEM=M+MCTL

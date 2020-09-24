@@ -14,10 +14,6 @@ C warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
 C PURPOSE. See the GNU General Public License for more
 C details.
 
-C You should have received a copy of the GNU General Public
-C License along with ESP-r. If not, write to the Free
-C Software Foundation, Inc., 59 Temple Place, Suite 330,
-C Boston, MA 02111-1307 USA.
 
 C ECO 
 C This interface provide the Building ECOBALANCE calculation
@@ -556,51 +552,51 @@ C Analyse the selected item to allow an LCA calculation
       ENDIF
 
 C Display menu
-      write(ITEM(1),'(A,A)')      'a Problem : ',LCFGF(1:22)
-      write(ITEM(2),'(A,A)')      '  Path : ',path(1:25)
-      write(ITEM(3),'(A,A)')      'b BCF  : ',BCFName(1:25)
+      write(ITEM(1),'(A,A)')      'a problem: ',LCFGF(1:22)
+      write(ITEM(2),'(A,A)')      '  path: ',path(1:25)
+      write(ITEM(3),'(A,A)')      'b BCF: ',BCFName(1:25)
       ITEM(4)=                    '  ---------Approach----------- '
       if(IcalType.eq.1)then
-        write(ITEM(5),'(A)')      'c Approach >> project based'
-        write(ITEM(6),'(A,A)')    'd Zone : ',TxtZone(1:25)
+        write(ITEM(5),'(A)')      'c approach >> project based'
+        write(ITEM(6),'(A,A)')    'd zone: ',TxtZone(1:25)
         write(ITEM(7),'(A)')      '  '
       elseif(IcalType.eq.2)then
-        write(ITEM(5),'(A,A)')    'e Approach >> Construction based'
-        write(ITEM(6),'(A,A)')    'f Construction : ',TxtCompo(1:18)
-        write(ITEM(7),'(A,F8.3)') '  Total area [m2] : ',Area
+        write(ITEM(5),'(A,A)')    'e approach >> construction based'
+        write(ITEM(6),'(A,A)')    'f construction: ',TxtCompo(1:18)
+        write(ITEM(7),'(A,F8.3)') '  total area (m^2): ',Area
       elseif(IcalType.eq.3)then
-        write(ITEM(5),'(A,A)')    'e Approach >> material based'
-        write(ITEM(6),'(A,A)')    'f Material : ',TxtMat(1:22)
-        write(ITEM(7),'(A,F8.3)') '  Total mass [kg]: ',WeigtMat
+        write(ITEM(5),'(A,A)')    'e approach >> material based'
+        write(ITEM(6),'(A,A)')    'f material: ',TxtMat(1:22)
+        write(ITEM(7),'(A,F8.3)') '  total mass (kg): ',WeigtMat
       endif
       ITEM(8) =                '  ----------Options-------------'
       write(ITEM(9),'(2a)')'1 Calculation level >> ',TxtReport(1:10)
       if(IRep.eq.1)then
-        ITEM(10)=              '2 Reporting level >> Summary '
+        ITEM(10)=              '2 reporting level >> summary '
       else
-        ITEM(10)=              '3 Reporting level >> Detailed '
+        ITEM(10)=              '3 reporting level >> detailed '
       endif
       if(ILoss.eq.0)then
-        ITEM(11)=              '4 Results >> Include loss         '
+        ITEM(11)=              '4 results >> include loss     '
       else
-        ITEM(11)=              '4 Results >> Does not include loss'
+        ITEM(11)=              '4 results >> does not include loss'
       endif
-      write(ITEM(12),'(6a)')   '5 Units :  ', 
+      write(ITEM(12),'(6a)')   '5 units:  ', 
      &      UnitEner, ' - ', UnitMass, ' - ', UnitImp
 
       ITEM(13)=                '  ------------------------------- '
-      write(ITEM(14),'(A,A)')  '* Calculation ',TxtLCA(1:18)
+      write(ITEM(14),'(A,A)')  '* calculation ',TxtLCA(1:18)
       ITEM(15) =               '  ------------------------------- '
-      ITEM(16) =               'X Export results to file '
-      ITEM(17)=                '? Help                            '
-      ITEM(18)=                '- exit eco                        '
+      ITEM(16) =               'X export results to file '
+      ITEM(17)=                '? help                            '
+      ITEM(18)=                '- quit module                     '
       NITEMS = 18
 
-C Use askabout to instanciate the initial help messages (2nd parameter is one).
+C Use askabout to instantiate the initial help messages (2nd parameter is one).
       call askabout('eco ',1)
 
 C Present the main menu.
-      CALL EMENU(' Eco Main menu',ITEM,NITEMS,INO)
+      CALL EMENU('Eco main menu',ITEM,NITEMS,INO)
       IF(INO.EQ.NITEMS)THEN 
 
 c End program.
@@ -683,19 +679,18 @@ C First open the file, then write in and finally close the file
           CALL LCADet(itrc,itu)
         endif
         call ctlexp(xfile,ixopen,ixloc,ixunit,'T',' text',IER)        
-C        CALL ERPFREE(itu,ISTAT)
         goto 10
 
       elseif(INO.EQ.9)THEN
 
-C Reporting level
+C Reporting level.
         itrc=itrc+1
 
         if (IcalType.eq.1) then
           if(itrc.eq.5)then
             itrc=1
           endif
-C MLC analysis
+C MLC analysis.
           if (itrc.eq.1) then
             TxtReport =             'Zone'
           elseif (itrc.eq.2) then
@@ -720,7 +715,7 @@ C            itrc=2
           endif
         elseif(IcalType.eq.3)then
 
-C Material analysis
+C Material analysis.
           if(itrc.eq.3)then
             itrc=1
           endif
@@ -735,7 +730,7 @@ C Material analysis
 
       elseif(INO .EQ. 11)THEN
 
-C Include break and loss in results
+C Include break and loss in results.
         ILoss = ILoss+1
         if(ILoss .eq. 2)then
           ILoss = 0
@@ -780,16 +775,16 @@ C Select/change BCF file.
         call gethelptext(helpinsub,helptopic,nbhelp)
   288   IF (BCFOK) THEN
           call easkabc('A BCF of the current problem is loaded.',
-     &     'Do you want:','use it','load another','continue',Iw,nbhelp)
+     &     'Options:','use it','load another','cancel',Iw,nbhelp)
           if(iw.eq.3)then
             goto 10
           elseif(iw.eq.2)then
-            CALL EASKS(BCFName,'New building composites file?',' ',72,
+            CALL EASKS(BCFName,' ','New building composites file?',72,
      &        DBCFNAM,'BCF file name',IER,nbhelp)
             IF(BCFName.EQ.' ')GOTO 288
           endif
         ELSE
-          CALL EASKS(BCFName,'Building composites file?',' ',72,
+          CALL EASKS(BCFName,' ','Building composites file?',72,
      &      DBCFNAM,'BCF file name',IER,nbhelp)
           IF(BCFName.EQ.' ')GOTO 288
         ENDIF
@@ -804,7 +799,7 @@ C Attempt to read in the BCF file.
           call usrmsg(outs,' ','-')
           CALL SCNBCF(IBCF,BCFName,IER)
           IF (IER .GT. 0) THEN 
-            CALL EDISP(iuout,'Loading composites not completed..')
+            CALL EDISP(iuout,'Loading BCF not completed.')
             BCFOK=.FALSE.
             BCFNAME='UNKNOWN'
             GOTO 10
@@ -814,7 +809,7 @@ C Attempt to read in the BCF file.
             call usrmsg(outs,' ','P')
           ENDIF
         ELSE
-          CALL usrmsg('File doesn`t exist...','Select again','W')
+          CALL usrmsg('File does not exist!','Reselect','W')
           GOTO 288
         ENDIF
         GOTO 10
@@ -824,8 +819,8 @@ C Attempt to read in the BCF file.
         helptopic='eco_assessing_impacts'
         call gethelptext(helpinsub,helptopic,nbhelp)
 
-        CALL EASKABC('Approaches to scope of LCA calculations:',' ',
-     &   ' Project based ',' MLC based ',' Material based ',
+        CALL EASKABC(' ','Scope of LCA calculation:',
+     &   'project-based','construction-based','material-based',
      &   IcalType,nbhelp)
         GOTO 10
       ELSEIF (Ino.eq.6.and.IcalType.eq.1)then
@@ -836,7 +831,7 @@ C Display Zones list if project loaded and wait for INIPIC item selected.
 C << update zoneslist to also ask for surfaces >>
           CALL Zoneslist
           IF (izgfoc.EQ.0) THEN
-            CALL USRMSG(' No zone has been selected.',' ','-')
+            CALL USRMSG('No zone selected!',' ','-')
             GOTO 10
           ELSE
 
@@ -844,9 +839,9 @@ C Selection of the surfaces to include
 C All the zones in the project have been selected
              helptopic='eco_select_manually'
              call gethelptext(helpinsub,helptopic,nbhelp)
-             CALL EASKAB(' Do you want to select manually the surfaces',
-     &        ' to include ',' No (include all) ',
-     &        ' Yes, manually ',ixman,nbhelp)
+             CALL EASKAB(' ',
+     &        'Select surfaces to include manually?','no (include all)',
+     &        'yes',ixman,nbhelp)
              IF (ixman.EQ.1) THEN
                do 41 ixd=1,NZG
                   CALL ZoneDisp(NZNOG(ixd),0)
@@ -858,7 +853,7 @@ C All the zones in the project have been selected
              ENDIF
           ENDIF
 
-C update menu text
+C Update menu text.
           TxtZone = 'UNKNOWN'   
           if (nzg .EQ. 1) then
             write(TxtZone,'(a)') zname(nznog(1))(1:12)
@@ -883,7 +878,7 @@ C update menu text
             WRITE(TxtLCA,'(a)')' of all zones'
           ENDIF          
         ELSE
-          CALL USRMSG(' No project has been loaded.',' ','-')        
+          CALL USRMSG(' ','No project has been loaded!','-')        
         ENDIF
         GOTO 10
  
@@ -896,10 +891,10 @@ C << needs to be converted to material.h >>
 
         CALL CompoList
         IF (NComPik .EQ. 0) THEN
-          CALL USRMSG(' No Composite has been selected.',' ','-')
+          CALL USRMSG(' ','No composite has been selected!','-')
           GOTO 10
         ELSEIF (NComPik .EQ. MMLC) THEN
-          CALL USRMSG(' All composite have been selected.',' ','-')        
+          CALL USRMSG(' ','All composites have been selected.','-')        
           TxtCompo=' All'
           GOTO 10
         ELSE
@@ -911,8 +906,8 @@ C Ask areas and perimeter for each selected composite
         helptopic='eco_no_zone_selected'
         call gethelptext(helpinsub,helptopic,nbhelp)
         write(Hold,'(2F8.3)')WidthCo,HeightCo
-        CALL EASKS(Hold,' Environmental impacts of a composite :',
-     &    'width and height [m] ',32,' 1. 1. ','width & height',
+        CALL EASKS(Hold,'Environmental impacts of a composite :',
+     &    'width and height',32,' 1. 1. ','width & height',
      &     IER,nbhelp)
         K=0
         CALL EGETWR(Hold,K,WidthCo,0.001,999.,'W','width',IER)

@@ -1022,6 +1022,7 @@ C Parameters
 C ACT is SA or sa is silent appends a single day type with a single period IDT
 C ACT is SD or sd is silent delete the day type IDT
 C ACT is SC or sc is silent copy of day type IDT
+C ACT is EC or ec is silent copy of existing day type IDT
 C ACT is -- interactive use of the subroutine
       character ACT*2
 
@@ -1072,6 +1073,8 @@ C If interactive ask what to do, otherwise take passed directives.
       elseif(ACT(1:2).eq.'SA'.or.ACT(1:2).eq.'sa')then
         IW=2
       elseif(ACT(1:2).eq.'SC'.or.ACT(1:2).eq.'sc')then
+        IW=3
+      elseif(ACT(1:2).eq.'EC'.or.ACT(1:2).eq.'ec')then  ! user directive
         IW=3
       endif
 
@@ -1215,8 +1218,7 @@ C update nbcdt - let it remain at zero.
           NN=NN+1      ! increment local counter
           if(.NOT.usecalendar) nbcdt(II)=NN
           nb=NN
-          ibcdv(II,nb,1)=1
-          ibcdv(II,nb,2)=365
+          ibcdv(II,nb,1)=1;  ibcdv(II,nb,2)=365
           nbcdp(II,nb)=IP
           do 784 IDP=1,IP
             if(IDP.eq.1)tbcps(II,nb,IDP)=0.
@@ -1238,8 +1240,7 @@ C update nbcdt - let it remain at zero.
           NN=NN+1      ! increment local counter
           if(.NOT.usecalendar) npcdt(II)=NN
           np=NN
-          ipcdv(II,np,1)=1
-          ipcdv(II,np,2)=365
+          ipcdv(II,np,1)=1; ipcdv(II,np,2)=365
           npcdp(II,np)=IP
           do 684 IDP=1,IP
             if(IDP.eq.1)tpcps(II,np,IDP)=0.
@@ -1261,8 +1262,7 @@ C update nbcdt - let it remain at zero.
           NN=NN+1      ! increment local counter
           if(.NOT.usecalendar) nfcdt(II)=NN
           nf=NN
-          ifcdv(II,nf,1)=1
-          ifcdv(II,nf,2)=365
+          ifcdv(II,nf,1)=1; ifcdv(II,nf,2)=365
           nfcdp(II,nf)=IP
           do 584 IDP=1,IP
             if(IDP.eq.1)tfcps(II,nf,IDP)=0.
@@ -1277,8 +1277,7 @@ C update nbcdt - let it remain at zero.
           NN=NN+1      ! increment local counter
           if(.NOT.usecalendar) ngcdt(II)=NN
           ng=NN
-          igcdv(II,ng,1)=1
-          igcdv(II,ng,2)=365
+          igcdv(II,ng,1)=1; igcdv(II,ng,2)=365
           ngcdp(II,ng)=1
           tgcps(II,ng,1)=0.
           igctyp(II,ng,1)=1
@@ -1299,8 +1298,7 @@ C update nbcdt - let it remain at zero.
           NN=NN+1      ! increment local counter
           if(.NOT.usecalendar) nocdt(II)=NN
           no=NN
-          iocdv(II,no,1)=1
-          iocdv(II,no,2)=365
+          iocdv(II,no,1)=1; iocdv(II,no,2)=365
           nocdp(II,no)=IP
           do 4 IDP=1,IP
             if(IDP.eq.1)tocps(II,no,IDP)=0.
@@ -1322,8 +1320,7 @@ C update nbcdt - let it remain at zero.
           NN=NN+1      ! increment local counter
           if(.NOT.usecalendar) nCFCctldaytypes(II)=NN
           nb=NN
-          iCFCctldatevalid(II,nb,1)=1
-          iCFCctldatevalid(II,nb,2)=365
+          iCFCctldatevalid(II,nb,1)=1; iCFCctldatevalid(II,nb,2)=365
           nCFCdayctlperiods(II,nb)=IP
           do 6784 IDP=1,IP
             if(IDP.eq.1)CFCctlperiodstart(II,nb,IDP)=0.

@@ -13,13 +13,8 @@ C warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
 C PURPOSE. See the GNU General Public License for more
 C details.
 
-C You should have received a copy of the GNU General Public
-C License along with ESP-r. If not, write to the Free
-C Software Foundation, Inc., 59 Temple Place, Suite 330,
-C Boston, MA 02111-1307 USA.
 
-C multisets.F contains the following:
-
+C This file contains the following subroutines.
 C MOSA    Controls the retrieving of data for the purposes 
 C         of a uncertainty analysis.
 C SAINTRA calculates summary statistics within result sets.
@@ -35,7 +30,7 @@ C INTERACT calculate the all the interactions given an interaction
 C          of NINTER parameters. For NPAR parameters.
 
 C ******************** MOSA ********************
-C MOSA presents the user with a table of options to apply a uncertainty 
+C Presents the user with a table of options to apply a uncertainty 
 C analysis calculation on a results library. The result sets, zone of 
 C interest and output metric must be specified before the calculations 
 C can proceed.
@@ -74,17 +69,17 @@ C uncertainty analysis.
       endif
 
 C Setup for menu.
- 1    ITEM(1) ='2 Result sets            '
-      ITEM(2) ='3 Display period         '
-      ITEM(3) ='4 Select zone            '
+ 1    ITEM(1) ='2 result sets            '
+      ITEM(2) ='3 display period         '
+      ITEM(3) ='4 select zone            '
       ITEM(4) ='  ---------------------- '
-      ITEM(5) ='a Statistics within sets '
-      ITEM(6) ='b Statistics between sets'
-      ITEM(7) ='c Graphs between sets    '
-      ITEM(8) ='d Parameter uncertainties'
+      ITEM(5) ='a statistics within sets '
+      ITEM(6) ='b statistics between sets'
+      ITEM(7) ='c graphs between sets    '
+      ITEM(8) ='d parameter uncertainties'
       ITEM(9) ='  ---------------------- '
-      ITEM(10) ='? Help                   '
-      ITEM(11)='- Exit                   '
+      ITEM(10)='? help                   '
+      ITEM(11)='- exit menu'
 
  2    NITMS=11
       if(MMOD.eq.8)then
@@ -94,7 +89,7 @@ C Setup for menu.
       endif
 C      INO=-2
 
-C Instanciate help strings for this menu.
+C Instantiate help strings for this menu.
       helptopic='res_param_uncertainty'
       call gethelptext(helpinsub,helptopic,nbhelp)
 
@@ -238,7 +233,7 @@ C starting Y are set based.
  5    continue
       XMAX=-1.E+10; XMIN=1.E+10; XTOT=0.0; XTOTSD=0.0
       XAVE=0.0; XSTD=0.0; NX=0
-      call usrmsg('Scanning data for range of values...',' ','-')
+C      call usrmsg('Scanning data for range of values...',' ','-')
 
 C Write header information (if ILFLAG is 0 or 1).
       if(ILFLAG.le.1)then
@@ -307,8 +302,8 @@ C If format is tabular listing then dump out a days data.
           else
             NC=NGET
           endif
-          call usrmsg('Scanning data for range of values..done.',
-     &      ' ','-')
+C          call usrmsg('Scanning data for range of values..done.',
+C     &      ' ','-')
 
 C If printing to screen then split column headings over two rows 
 C don't do this if printing to file.
@@ -710,11 +705,10 @@ C Calculate averages and rescan the data to calculate std deviations.
         display=.TRUE.
         goto 99
       endif
-      call usrmsg('Scanning data for range of values...done.',' ','-')
+C      call usrmsg('Scanning data for range of values...done.',' ','-')
 
 C Now display the calculated data.
-
-C If climate data then do not print zone headings.
+C If weather data then do not print zone headings.
       if (IGETNO(1,1).eq.2.or.IGETNO(1,1).eq.19.or.
      &    IGETNO(1,1).eq.20.or.IGETNO(1,1).eq.21.or.
      &    IGETNO(1,1).eq.22.or.IGETNO(1,1).eq.26) then
@@ -914,7 +908,7 @@ C GOGET recovers the data in VAL2 (and averages output if required.)
       VMIN=1.E+6
 
 C Print header information.
-      call usrmsg('Scanning data for range of values...',' ','-')
+C      call usrmsg('Scanning data for range of values...',' ','-')
       call edisp(iuout,'  ')
       write (outs,'(a,a)') 'For zone: ',ZNAME(IGETNO(1,2))
       call edisp(ITRU,outs)
@@ -1394,8 +1388,8 @@ C If graphing lable the base case and mean lines if last day.
  10   continue
 
 C Calculate overall standard deviation and display depending on IFMT.
-      call usrmsg('Scanning data for range of values... done.',
-     &                                                        ' ','-')
+C      call usrmsg('Scanning data for range of values... done.',
+C     &                                                    ' ','-')
       if (IFMT.eq.1.or.IFMT.eq.2) then
         write (outs,'(a,f8.3)') 'Average standard deviation: ',
      &                    SDTOT/real(NSDTOT)
@@ -1527,7 +1521,7 @@ C starting Y are set based.
         YTOT(I)=0.0
         YTOTAB(I)=0.0
  5    continue
-      call usrmsg('Scanning data for range of values...',' ','-')
+C      call usrmsg('Scanning data for range of values...',' ','-')
 
 C TSTART and TFINISH - start and finish times in hours from 0000 on the 
 C first day of output.
@@ -1624,10 +1618,8 @@ C Calculate averages.
           if (IEFF.gt.0) YTOT(IRS)=YTOT(IRS)*2.
  205    continue
       endif
- 
-C debug      write(6,*) 'NY, ',NY
 
-      call usrmsg('Scanning data for range of values...done.',' ','-')
+C      call usrmsg('Scanning data for range of values...done.',' ','-')
 
 C Now display the calculated data.
       call edisp(ITRU,'  ')
@@ -1703,7 +1695,7 @@ C GOGET recovers the data in VAL2 (and averages output if required.)
 C Variables begining X are for all sets selected whereas variables 
 C starting Y are set based.
 
-      call usrmsg('Scanning data for range of values...',' ','-')
+C      call usrmsg('Scanning data for range of values...',' ','-')
       NT=NGET
 
 C Clear output arrays.
@@ -1727,7 +1719,7 @@ C 7 sets (=21 difference arrays).
       call edisp(iuout,outs)
       write (outs,'(a,f8.4,a,i4)') 'Grand total ',GT,', Total obs ',NTO
       call edisp(iuout,outs)
-      call usrmsg('Scanning data for range of values...done.',' ','-')
+C      call usrmsg('Scanning data for range of values...done.',' ','-')
 
 C Calculate averages (TA= treatment ave, GA= grand ave.)
       do 20 I=1,ND
@@ -1924,13 +1916,13 @@ C If a long list include page facility text.
         WRITE(VERT(M+1),15)IPM,MPM 
    15   FORMAT ('0 page part: ',I1,' of ',I1)
       ENDIF
-      VERT(M+2)  ='* Activate all sets'
-      VERT(M+3)  ='! Clear all selections '
+      VERT(M+2)  ='* activate all sets'
+      VERT(M+3)  ='! clear all selections '
       VERT(M+4)  ='  --------------------------'
       VERT(M+5)  ='? help              '
-      VERT(M+6)  ='- exit              '
+      VERT(M+6)  ='- exit menu'
 
-C Instanciate help strings for this menu.
+C Instantiate help strings for this menu.
       helptopic='res_set_activation'
       call gethelptext(helpinsub,helptopic,nbhelp)
 

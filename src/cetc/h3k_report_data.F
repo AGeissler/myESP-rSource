@@ -4070,6 +4070,10 @@ C      Real          HGTNE ! - height of -ve linkage point relative to NODNE (m)
 C      integer     ITPCON ! - number of linking fluid flow component
 C      integer     NDSCNN ! - connection level component supplementary node numbers
 
+C Adaptive comfort common (from control).
+      COMMON/ADPCOM/PREVSTATWIN,PREVSTATFAN,PREVSTATLIGHT,TOTPWR(MCOM),
+     &              TRMSTAT
+      REAL PREVSTATWIN,PREVSTATFAN,PREVSTATLIGHT,TOTPWR,TRMSTAT
 C Output data
       COMMON/MFLRES/FLW1(MCNN),FLW2(MCNN),PRES(MNOD),
      &              RESID(MNOD),SAFLW(MNOD)
@@ -4208,6 +4212,12 @@ C                 Is the current connection involved?
      &                fluid(1:fluid_len),
      &                Connect_Name(1:connect_len))
 
+                    call AddToReport(
+     &                rvMfnTRM%Identifier,
+     &                TRMSTAT,
+     &                fluid(1:fluid_len),
+     &                Connect_Name(1:connect_len))
+
                   endif
                 endif
 
@@ -4218,6 +4228,12 @@ C                 Is the current component involved?
                     call AddToReport(
      &                rvMfnConnectCtlOnFrac%Identifier,
      &                ctlpos(jj),
+     &                fluid(1:fluid_len),
+     &                Connect_Name(1:connect_len))
+
+                    call AddToReport(
+     &                rvMfnTRM%Identifier,
+     &                TRMSTAT,
      &                fluid(1:fluid_len),
      &                Connect_Name(1:connect_len))
 

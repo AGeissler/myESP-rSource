@@ -13,10 +13,6 @@ C warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
 C PURPOSE. See the GNU General Public License for more
 C details.
 
-C You should have received a copy of the GNU General Public
-C License along with ESP-r. If not, write to the Free
-C Software Foundation, Inc., 59 Temple Place, Suite 330,
-C Boston, MA 02111-1307 USA.
 
 C enetprj.F is the main power network definition file containing 
 C subroutines relating to electrical network definition: 
@@ -2431,7 +2427,7 @@ C Display a list of power only classes to add, and select the class
         POWITEM(NIT+1)=' * User defined          '
         POWITEM(NIT+2)='-------------------------'
         POWITEM(NIT+3)=' ? help'
-        POWITEM(NIT+4)=' - exit this menu'
+        POWITEM(NIT+4)=' - exit menu'
         NPOWITEM=NIT+4
         IMOUT=-1
 
@@ -2476,7 +2472,7 @@ C Variable NIT is overloaded and returns the number of menu items.
             POWITEM2(NIT+2)='>> additional info OFF  '
           ENDIF
           POWITEM2(NIT+3)='? help'
-          POWITEM2(NIT+4)='- exit this menu '
+          POWITEM2(NIT+4)='- exit menu '
           NPOWITEM2=NIT+4
       
 C Help text for this menu.
@@ -2897,7 +2893,7 @@ C Display a list of connecting component classes to add, and select the class
         CCITEM(NIT+1)=' * User defined          '
         CCITEM(NIT+2)='-------------------------'
         CCITEM(NIT+3)=' ? help'
-        CCITEM(NIT+4)=' - exit this menu'
+        CCITEM(NIT+4)=' - exit menu'
         NCCITEM=NIT+4
         IMOUT=-1
 
@@ -2942,7 +2938,7 @@ C Variable NIT is overloaded and returns the number of menu items.
             CCITEM2(NIT+2)='>> additional info OFF  '
           ENDIF
           CCITEM2(NIT+3)='? help'
-          CCITEM2(NIT+4)='- exit this menu '
+          CCITEM2(NIT+4)='- exit menu '
           NCCITEM2=NIT+4
       
 C Help text for this menu.

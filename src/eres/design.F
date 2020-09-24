@@ -9,6 +9,7 @@ C warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
 C PURPOSE. See the GNU General Public License for more
 C details.
 
+
 C This file contains the following routines:
 C    MODESQ: main controller for the design questions facility.
 C    MORANK: rank ordering of zones.
@@ -58,7 +59,7 @@ C For help messages.
       ITEM(7) ='c energy gains  '
       ITEM(8) ='d energy losses '
       ITEM(9) ='  ...........   '
-      ITEM(10)='- exit this menu'
+      ITEM(10)='- exit menu'
 
       LABEL(1)='Air infilt'
       LABEL(2)='Air ventil'

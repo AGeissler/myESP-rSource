@@ -13,10 +13,6 @@ C warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
 C PURPOSE. See the GNU General Public License for more
 C details.
 
-C You should have received a copy of the GNU General Public
-C License along with ESP-r. If not, write to the Free
-C Software Foundation, Inc., 59 Temple Place, Suite 330,
-C Boston, MA 02111-1307 USA.
 
 C tdfedit.F includes high level subroutines for access to
 C   temporal file data.
@@ -123,7 +119,7 @@ C Export file unknown (ITEXP=0), ASCII column listing (ITEXP=1).
       LEXP ='tdf.export' 
       ITEXP=1
 
-C Instanciate the standard temporal entities.
+C Instantiate the standard temporal entities.
       FOCUS='ALL'
       CALL GENDAT(FOCUS,0,FOUND,IER)
 
@@ -288,7 +284,7 @@ C Set the viewing period to the same as the TDF file period.
         WRITE(ITEM(3),'(a)')    '3 2nd descr: -'
       endif
       WRITE(ITEM(4),'(A,A40)')'4 ',PERST3(1:40)
-      WRITE(ITEM(5),'(A,I2)') '5 Timesteps per hour : ',NTSPH
+      WRITE(ITEM(5),'(A,I2)') '5 timesteps per hour : ',NTSPH
       WRITE(ITEM(6),'(a,I2,a)')
      &        '  ___entries (',NITDF,')______________________________'
       ITEM(7)='   entry name  |description '
@@ -309,8 +305,8 @@ C equates index of TMENU and INO position (m).
           ENDIF
    10   CONTINUE
       ELSE
-        msgl2=' Or if no file opened select option 1.'
-        CALL USRMSG(' No items yet, how about adding one!',msgl2,'W')
+        msgl2='Or if no file opened select option 1.'
+        CALL USRMSG('No items yet, how about adding one!',msgl2,'W')
       endif
       ILEN=NITDF
 
@@ -336,16 +332,16 @@ C Set the menu control text.
         ITEM(MITEM-5)  ='* add temporal entry                   '
       endif
       IF(ITRC.EQ.0)THEN
-        ITEM(MITEM-4)='r Reporting >> OFF                     '
+        ITEM(MITEM-4)='r reporting >> OFF                     '
       ELSEIF(ITRC.EQ.1)THEN
-        ITEM(MITEM-4)='r Reporting >> minimal                 '
+        ITEM(MITEM-4)='r reporting >> minimal                 '
       ELSEIF(ITRC.EQ.2)THEN
-        ITEM(MITEM-4)='r Reporting >> verbose                 '
+        ITEM(MITEM-4)='r reporting >> verbose                 '
       ENDIF
-      ITEM(MITEM-3)  ='! Preferences                          '
+      ITEM(MITEM-3)  ='! preferences                          '
       ITEM(MITEM-2)  ='> Save|import|export|extract TDF file  '
-      ITEM(MITEM-1)  ='? Help                                 '
-      ITEM(MITEM)    ='- Exit menu                            '
+      ITEM(MITEM-1)  ='? help                                 '
+      ITEM(MITEM)    ='- exit menu'
 
 
 C Help text for this menu.
@@ -353,7 +349,7 @@ C Help text for this menu.
       call gethelptext(helpinsub,helptopic,nbhelp)
 
 C Main tdf menu.
-      CALL EMENU('  Temporal definitions',ITEM,MITEM,INO)
+      CALL EMENU('Temporal definitions',ITEM,MITEM,INO)
       IF(INO.EQ.1)THEN
 
 C Define TDF file name then read the header information should be 
@@ -400,12 +396,12 @@ C File not found so offer option to create a minimal file.
             WRITE(OUTS,'(A,A)')' Opened ',LTDF(1:lnblnk(LTDF))       
             CALL EDISP(IUOUT,OUTS)
             OPTDF=.TRUE.
-            call usrmsg(' ','Updating the scratch file...','-')
+            call usrmsg(' ','Updating the scratch file ...','-')
             call ewtdf(ier)
-            call usrmsg(' ','Updating the scratch file...done.','-')
+            call usrmsg(' ','Updating the scratch file ... done.','-')
 
 C Write out an equivalent ascii file.
-            call usrmsg(' ','Updating the ascii file...','-')
+            call usrmsg(' ','Updating the ascii file ...','-')
             write(ltdfa,'(a)') tfile(1:lnblnk(tfile))
             call ewtdfa(itrc,ltdfa,iutdfa,0,ier)
             if(ier.eq.0)then
@@ -448,7 +444,7 @@ C and recover it`s layout variables via GENDAT.
           CALL EDTITEM(ITRC,IFOC,IER)
           CALL EPMENRC
         endif
-        msgl2=' Problem detected...'
+        msgl2='Problem detected...'
         IF(IER.EQ.1)CALL USRMSG(' ',msgl2,'-')
         INO=-4
         GOTO 3
@@ -459,11 +455,11 @@ C Free the scratch file. If the file name ends with temporalscratch remove it.
         CALL ERPFREE(IUTDF,ISTAT)
         lnts=lnblnk(LTDF)
         if(LTDF(lnts-15:lnts).eq.'.temporalscratch')then
-          call usrmsg('Deleting scratch file...',LTDF,'P')
+          call usrmsg('Deleting scratch file ...',LTDF,'P')
           call EFOPRAN(iutdf,LTDF,1,1,IER)
           if(ier.eq.0)then
             CALL EFDELET(iutdf,ISTAT)
-            call usrmsg('Deleting scratch file...done.',LTDF,'P')
+            call usrmsg('Deleting scratch file ... done.',LTDF,'P')
           endif
         endif
         menuchw = lastmenuchw
@@ -505,14 +501,12 @@ C Save TDF data. May have to move to the last record before exiting.
         helptopic='tdf_save_data'
         call gethelptext(helpinsub,helptopic,nbhelp)
         IRE=1
-        CALL EASKATOG(' ','File options: ','save ascii file',
+        CALL EASKATOG(' ','File options:','save ascii file',
      &   'ascii > binary','binary > ascii',
      &   'extract data','cancel',' ',' ',IRE,nbhelp)
         if(ire.eq.1)then
           CALL EWTDF(IER)
-          CALL EDISP(IUOUT,' ')
-          CALL EDISP(IUOUT,' saved current static data')
-
+    
 C Double check the actual number of columns of data (itnwpr) in case we can
 C save the asci file more compactly as well as the last column that
 C is referenced (itnwprc) by any of the items (some older files might have a
@@ -528,10 +522,6 @@ C column of zeros after the time column).
           if(itnwprc.gt.itnwpr) itnwpr=itnwprc
           if(itnwpr.lt.nuwpr)then
             idif=itnwpr-nuwpr
-
-C Debug.
-C            write(6,*) 'compacting from ',nuwpr,' to ',itnwpr
-
             call ewtdfa(itrc,ltdfa,iutdfa,idif,ier)
           else
             call ewtdfa(itrc,ltdfa,iutdfa,0,ier)
@@ -548,7 +538,7 @@ C            write(6,*) 'compacting from ',nuwpr,' to ',itnwpr
           goto 44
         elseif(ire.eq.3)then
           afil='  '
-          CALL EASKS(afil,' Ascii export file name? ',' ',
+          CALL EASKS(afil,' ','Ascii export file name?',
      &      96,LEXP,'ascii export',IER,nbhelp)
           call ewtdfa(itrc,afil,IUEXP,0,ier)
         elseif(ire.eq.4)then
@@ -560,37 +550,37 @@ C            write(6,*) 'compacting from ',nuwpr,' to ',itnwpr
      &      itdbdoy,' to ',itdedoy,' e.g. ',isteps,' timesteps.'
           call edisp(iuout,outs)
           TIMEJD=real(itdbdoy)
-          CALL EASKR(TIMEJD,' Time (as julian day) to start recovery?',
-     &     '  ',real(itdbdoy),'F',real(itdedoy),'F',1.5,
+          CALL EASKR(TIMEJD,' ',' Year day to start recovery?',
+     &     real(itdbdoy),'F',real(itdedoy),'F',1.5,
      &     'time=decimal day',IER,nbhelp)
           incr=1
-          CALL EASKI(incr,' Number of steps to recover ',' ? ',
+          CALL EASKI(incr,' ','Number of steps to recover?',
      &      1,'F',10000,'F',1,'steps to recover',IER,nbhelp)
-          CALL EASKS(afil,' Ascii export file name? ',' ',
+          CALL EASKS(afil,' ','Ascii export file name?',
      &      96,LEXP,'ascii export',IER,nbhelp)
           msgl2='  '
-          call USRMSG('Extracting from file...',msgl2,'-')
+          call USRMSG('Extracting from file ...',msgl2,'-')
           call extracts(itrc,afil,IUEXP,TIMEJD,incr,ier)
-          call USRMSG('Extracting from file...done.',msgl2,'-')
+          call USRMSG('Extracting from file ... done.',msgl2,'-')
         endif
-      ELSEIF(INO.EQ.MITEM-3)THEN
 
 C Preferences menu for temporal data.
+      ELSEIF(INO.EQ.MITEM-3)THEN
         CALL EPMENSV
         CALL SETUPTDF(IER)
         CALL EPMENRC
-      ELSEIF(INO.EQ.MITEM-4)THEN
 
 C Set the trace verbosity within the TDF user interface.
+      ELSEIF(INO.EQ.MITEM-4)THEN
         ITRC=ITRC+1
         IF(ITRC.GT.2)ITRC=0
-      ELSEIF(INO.EQ.MITEM-5)THEN
 
 C Perform list management on the explore menu. Use MLMOD to get the
 C action. If insert then move lower items down using logic similar to
 C that of the help facility and then allow the user to select a 
 C generic type for the inserted slot via __. If delete move the
 C lower items up.  NOTE: some translation of IFOC may be required.
+      ELSEIF(INO.EQ.MITEM-5)THEN
         IF(NITDF.EQ.0)THEN
 
 C No instances created yet so do first one.
@@ -612,18 +602,19 @@ C Manage list. Begin by creating selection list.
 
         helptopic='tdf_add_an_item'
         call gethelptext(helpinsub,helptopic,nbhelp)
-        CALL EASKABC('Entry options:',' ',
-     &   'add entry','delete entry','copy entry',IRT,nbhelp)
+        CALL EASKABCD('Entry options:',' ',
+     &   'add entry','delete entry','copy entry','scale entry',
+     &   IRT,nbhelp)
         if(IRT.eq.1)then
           IFOC=NITDF+1
           CALL EPMENSV
           CALL ITINSRT(ITRC,IFOC,IER)
           CALL EPMENRC
           IF(IER.EQ.1) then
-            msgl2=' Problem detected while adding item.'
+            msgl2='Problem detected while adding item.'
             CALL USRMSG(' ',msgl2,'-')
           elseif(IER.EQ.2)then
-            msgl2=' Could not expand the current file.'
+            msgl2='Could not expand the current file.'
             CALL USRMSG(' ',msgl2,'-')
           else
             TTAG=TAG(IFOC)
@@ -636,14 +627,14 @@ C Manage list. Begin by creating selection list.
         elseif(IRT.eq.2)then
           CALL EPMENSV
           inpic=1
-          CALL EPICKS(INPIC,itemval,' ',' Which item to delete?',
+          CALL EPICKS(INPIC,itemval,' ','Which item to delete?',
      &      50,NITDF,itemsel,' item list',IER,nbhelp)
           CALL EPMENRC
           if(inpic.eq.1)then
             ifoc=itemval(1)
             MITEM=MITEM-1
             CALL ITDEL(ITRC,IFOC,IER)
-            msgl2=' Problem detected during delete.'
+            msgl2='Problem detected during delete.'
             IF(IER.EQ.1)CALL USRMSG(' ',msgl2,'-')
           endif
         elseif(IRT.eq.3)then
@@ -652,15 +643,14 @@ C Perform copy of static and period data from one instance to
 C another (destination must already exist)..
           CALL EPMENSV
           inpic=1
-          CALL EPICKS(INPIC,itemval,' ',' Which item to copy?',
+          CALL EPICKS(INPIC,itemval,' ','Which item to copy?',
      &      50,NITDF,itemsel,' item list',IER,nbhelp)
           if(inpic.eq.1)then
             ifoc=itemval(1)
           endif
           inpic=1
           CALL EPICKS(INPIC,itemval,
-     &      '(destination item must exist and be the same type)',
-     &      ' Which item as destination?',
+     &      ' ',' Which item as destination?',
      &      50,NITDF,itemsel,' item list',IER,nbhelp)
           if(inpic.eq.1)then
             ifoc2=itemval(1)
@@ -668,7 +658,24 @@ C another (destination must already exist)..
           CALL EPMENRC
           IF(IFOC.NE.0.OR.IFOC2.NE.0)THEN
             CALL ITCOPY(ITRC,IFOC,IFOC2,IER)
-            msgl2=' Problem detected during copy.'
+            msgl2='Problem detected during copy.'
+            IF(IER.EQ.1)CALL USRMSG(' ',msgl2,'-')
+          ENDIF
+        elseif(IRT.eq.4)then
+
+C Perform scale of period data in one entity.
+          CALL EPMENSV
+          inpic=1
+          CALL EPICKS(INPIC,itemval,' ','Which item to scale?',
+     &      50,NITDF,itemsel,' item list',IER,nbhelp)
+          if(inpic.eq.1)then
+            ifoc=itemval(1)
+          endif
+          CALL EASKR(factor,' ','Scaling factor (0.1 to 9.99)?',
+     &      0.1,'F',0.99,'F',0.5,'scale factor',IER,nbhelp)
+          IF(IFOC.NE.0)THEN
+            call ITSCALE(ITRC,IFOC,factor,IER)
+            msgl2='Problem detected during scale.'
             IF(IER.EQ.1)CALL USRMSG(' ',msgl2,'-')
           ENDIF
         endif
@@ -677,11 +684,11 @@ C another (destination must already exist)..
         CALL EKPAGE(IPACT)
         INO=-4
         GOTO 3
-      ELSEIF(INO.EQ.MITEM-6)THEN
 
 C If there are enough items to warrent it, allow paging control - first
 C get the action via EKPAGE then re-establish top of page key character
 C and array index.
+      ELSEIF(INO.EQ.MITEM-6)THEN
         IF(IPFLG.EQ.1)THEN
           IPACT=EDIT
           CALL EKPAGE(IPACT)
@@ -697,12 +704,15 @@ C Not one of the legal menu choices.
 
       END
 
-C ************** CLRTABC
-C CLRTABC clears temporal commons TDFFH, tdset, tdaid,GDPER.
+C ******************** CLRTABC ********************
+C Clear temporal commons TDFFH, tdset, tdaid and GDPER.
+
       SUBROUTINE CLRTABC
+
 #include "building.h"
 #include "net_flow.h"
 #include "tdf2.h"
+
       common/tdaid/tdaide(2)
       COMMON/GDPER/igbdoy,igedoy
 
@@ -719,7 +729,7 @@ C Initial temporal defaults.
       NTSPH=1
       NEXTRC=1
 
-C In a new scratch file, data can start in column 1
+C In a new scratch file, data can start in column 1.
       NEXTCL=1
 
 C LSTREC is the last recored used in the TDF scratch file.
@@ -731,13 +741,13 @@ C Set record width to fixed maximum.
       NDBSTP=NTSPH*24*(itdedoy-itdbdoy+1)
 
       RETURN
-
       END
 
-C ********************* glbset
-C glbset: Global questions about TDF file. Foc is the topic.
+C ********************* glbset *********************
+C Global questions about TDF file. Foc is the topic.
 C If foc='init' do initial setup. 
       subroutine glbset(foc)
+
 #include "building.h"
 #include "net_flow.h"
 #include "tdf2.h"
@@ -750,7 +760,7 @@ C If foc='init' do initial setup.
       character foc*4,TTAG*12
       CHARACTER*72 tdaide,tmp72
 
-C For help messages
+C For help messages.
       character helpinsub*24 ! subroutine name
       character helptopic*24 ! string (unique) for topic
       integer nbhelp     ! number of help lines found
@@ -815,13 +825,13 @@ C Ask for entry name.
       return
       end
 
-C ************* extracts 
-C extracts writes an ascii exchange file with a header and
+C ************************** extracts **************************
+C Writes an ascii exchange file with a header and
 C selected header information along with incr timesteps
 C of data beginning at TIMEJD. ITRC is the trace level, 
-C IER=0 OK, IER=1 problem. 
-C This facility supports the esp-r module b2e. 
+C IER=0 OK, IER=1 problem. This facility supports module b2e. 
       SUBROUTINE extracts(ITRC,AFIL,IAFIL,TIMEJD,incr,IER)
+
 #include "building.h"
 #include "net_flow.h"
 #include "tdf2.h"
@@ -984,9 +994,9 @@ C Export file write errors.
 
       END
 
-C ********************* SETUPTDF 
-C SETUPTDF provides the menu's and control logic for the temporal
-C data preference menu. This source used to be found in esrutdf/setup.F
+C ********************* SETUPTDF *********************
+C Provides the menus and control logic for the temporal
+C data preference menu.
       SUBROUTINE SETUPTDF(IER)
 
       COMMON/SET1/IYEAR,IBDOY,IEDOY,IFDAY,IFTIME
@@ -998,7 +1008,7 @@ C data preference menu. This source used to be found in esrutdf/setup.F
       CHARACTER SETUPM*50,DFILE*96,tfile*96
       integer NITMS,ISETUP ! max items and current menu item
 
-C For help messages
+C For help messages.
       character helpinsub*24 ! subroutine name
       character helptopic*24 ! string (unique) for topic
       integer nbhelp     ! number of help lines found
@@ -1012,43 +1022,43 @@ C the menu text from current common block into via UPSET.
 
 C Import file.
       IF(ITIMP.EQ.0)THEN
-        WRITE(SETUPM(1),'(A,A20)')'h Import file: UNKNWN Name: ',
+        WRITE(SETUPM(1),'(A,A20)')'h import file: UNKNWN Name: ',
      &        LIMP(1:20)
       ELSEIF(ITIMP.EQ.1)THEN
-        WRITE(SETUPM(1),'(A,A20)')'h Import column text  Name: ',
+        WRITE(SETUPM(1),'(A,A20)')'h import column text  Name: ',
      &        LIMP(1:20)
       ENDIF
 
 C Export file.
       IF(ITEXP.EQ.0)THEN
-        WRITE(SETUPM(2),'(A,A20)')'i Export type: UNKNWN Name: ',
+        WRITE(SETUPM(2),'(A,A20)')'i export type: UNKNWN Name: ',
      &        LEXP(1:20)
       ELSEIF(ITEXP.EQ.1)THEN
-        WRITE(SETUPM(2),'(A,A20)')'i Export ASCII temporal Name: ',
+        WRITE(SETUPM(2),'(A,A20)')'i export ASCII temporal Name: ',
      &        LEXP(1:19)
       ENDIF
       SETUPM(3)  ='  _____________________________ '
 
 C Date display format.
       IF(IFDAY.EQ.0)THEN
-        SETUPM(4)='j Display format for date>> DOY  10             '
+        SETUPM(4)='j display format for date>> DOY  10             '
       ELSEIF(IFDAY.EQ.1)THEN
-        SETUPM(4)='j Display format for date>> 10 Jan              '
+        SETUPM(4)='j display format for date>> 10 Jan              '
       ELSEIF(IFDAY.EQ.2)THEN
-        SETUPM(4)='j Display format for date>> Fri 10 Jan          '
+        SETUPM(4)='j display format for date>> Fri 10 Jan          '
       ENDIF
 
 C Display of time of day.
       IF(IFTIME.EQ.0)THEN
-        SETUPM(5)='k Display format for time>> 10h30               '
+        SETUPM(5)='k display format for time>> 10h30               '
       ELSEIF(IFTIME.EQ.1)THEN
-        SETUPM(5)='k Display format for time>> 10.50               '
+        SETUPM(5)='k display format for time>> 10.50               '
       ELSEIF(IFTIME.EQ.2)THEN
-        SETUPM(5)='k Display format for time>> 0.4166 (day frac)   '
+        SETUPM(5)='k display format for time>> 0.4166 (day frac)   '
       ENDIF
 
-      SETUPM(6)=  '? Help                                          '
-      SETUPM(7)=  '- Exit ^Main Menu^                              '
+      SETUPM(6)=  '? help                                          '
+      SETUPM(7)=  '- exit menu'
 
 C Help text for this menu.
       helptopic='tdf_inport_options'
@@ -1068,8 +1078,8 @@ C Define a standard import file name & format for use by other parts of TDF.
 
         DFILE='data.imp'
         write(tfile,'(a)') LIMP(1:lnblnk(LIMP))
-        CALL EASKS(tfile,' Import file name? ',
-     &   ' ',96,DFILE,'import file name',IER,nbhelp)
+        CALL EASKS(tfile,' ',
+     &   'Import file name? ',96,DFILE,'import file name',IER,nbhelp)
         if(tfile(1:2).ne.'  ')then
           write(LIMP,'(a)') tfile(1:lnblnk(tfile))
         endif
@@ -1077,19 +1087,18 @@ C Define a standard import file name & format for use by other parts of TDF.
           CALL ERPFREE(IUIMP,ISTAT)
           call findfil(LIMP,XST)
           IF(XST)THEN
-            CALL USRMSG(' this file exists',' ','-')
+            CALL USRMSG('This file exists!',' ','-')
           ELSE
-            CALL USRMSG(' this file will be created',' ','-')
+            CALL USRMSG('File will be created.',' ','-')
           ENDIF
         ENDIF
       ELSEIF(ISETUP.EQ.2)THEN
 
 C Define a standard export file name and format for use by other parts
 C of TDF.  Ask for the type then see if it exists.
-        CALL EASKI(ITEXP,' Several export formats are available: ',
-     &    '  0)UNKNOWN, 1)ASCII, 2)BINARY, 3)GRTOOL ? ',
-     &       0,'F',3,'F',1,'export format',IER,nbhelp)
-
+        CALL EASKI(ITEXP,
+     &    'Export formats 0)UNKNOWN, 1)ASCII, 2)BINARY, 3)GRTOOL',
+     &    'Option?',0,'F',3,'F',1,'export format',IER,nbhelp)
         DFILE='data.exp'
         write(tfile,'(a)') LEXP(1:lnblnk(LEXP))
         CALL EASKS(tfile,' Export file name? ',
@@ -1102,9 +1111,9 @@ C of TDF.  Ask for the type then see if it exists.
           CALL ERPFREE(IUEXP,ISTAT)
           call findfil(LEXP,XST)
           IF(XST)THEN
-            CALL USRMSG(' export file exists ',' ','-')
+            CALL USRMSG('Export file exists!',' ','-')
           ELSE
-            CALL USRMSG(' new export file will be opened',' ','-')
+            CALL USRMSG('Export file will be opened.',' ','-')
           ENDIF
         ENDIF
       ELSEIF(ISETUP.EQ.4)THEN

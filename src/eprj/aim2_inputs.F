@@ -13,25 +13,19 @@ C warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
 C PURPOSE. See the GNU General Public License for more
 C details.
 
-C You should have received a copy of the GNU General Public
-C License along with ESP-r. If not, write to the Free
-C Software Foundation, Inc., 59 Temple Place, Suite 330,
-C Boston, MA 02111-1307 USA.
 
 C This file contains the following routines related to the interface
 C of the AIM-2 infiltration model.
 
-C ************************ MODULE AIM2_INPUTS_InputData*******************************************
+C ******************** MODULE AIM2_INPUTS_InputData ********************
 
 C Initialise        - contains the exact same data as in AIM2_InputData Module.
 C CheckForChanges   - checks if the interface has been used to make any changes
 C                     to the AIM2 parameters, so it can promt the user to save
 C                     changes if they have been made.
 C Deallocate        - deallocates any memory allocated to iAIM2_infil_to_zones
-C
-C ********************************************************************************
-      MODULE AIM2_INPUTS_InputData
 
+      MODULE AIM2_INPUTS_InputData
       USE AIM2_InputData
       IMPLICIT NONE
 
@@ -39,8 +33,7 @@ C ******************************************************************************
 
 C---------------------------------------------------------------------------------
 C Declare parameters - For a detailed description of each parameter see aim2_module
-C The naming convention here is to put an i (for input) infront of each aim2_input
-C parameter.
+C The naming convention here is to put an i in front of each input parameter.
 C---------------------------------------------------------------------------------
       INTEGER :: iairtight_type
       INTEGER :: iblower_door_input_option
@@ -280,16 +273,16 @@ C For help messages
 C Toplevel_Menu needs to be set to -4 for the menu to be displayed in text mode
       Toplevel_Menu=-4
 
-      ITEM(1)='a Leakage description'
-      ITEM(2)='b Leakage distribution'
-      ITEM(3)='c Shielding and terrain '
-      ITEM(4)='d Building eves description'
-      ITEM(5)='e Flue diameters'
-      ITEM(6)='f Coupling to zone model'
+      ITEM(1)='a leakage description'
+      ITEM(2)='b leakage distribution'
+      ITEM(3)='c shielding and terrain '
+      ITEM(4)='d building eves description'
+      ITEM(5)='e flue diameters'
+      ITEM(6)='f coupling to zone model'
       ITEM(7)=' _________________________ '
       ITEM(8)='! save .AIM file           '
       ITEM(9)='? help           '
-      ITEM(10)='- exit this menu'
+      ITEM(10)='- exit menu'
       NITEMS=10
 
       helptopic='AIM2_main_menu'
@@ -1355,11 +1348,11 @@ C Zone number of basement
 C check that the basement zone is not the same as the attic and crawlspace
             IF (IER.EQ.0) THEN
               IF (Zone.EQ.AIM2_CrawlSpace_zone) THEN
-                CALL USRMSG('',
+                CALL USRMSG(' ',
      &          'Basement & crawlspace zone numbers are the same!','W')
               END IF
               IF (Zone.EQ.AIM2_attic_zone) THEN
-                CALL USRMSG('',
+                CALL USRMSG(' ',
      &            'Basement & attic zone numbers are the same!','W')
               END IF
               AIM2_basement_zone = Zone
@@ -1407,11 +1400,11 @@ C Zone number of attic.
             Zone = IVALS(1)
 C check that the basement zone is not the same as the attic and crawlspace
             IF (Zone.EQ.AIM2_basement_zone) THEN
-              CALL USRMSG('',
+              CALL USRMSG(' ',
      &         'Basement & attic zone numbers are the same!','W')
             END IF
             IF (Zone.EQ.AIM2_CrawlSpace_zone) THEN
-              CALL USRMSG('',
+              CALL USRMSG(' ',
      &         'Crawlspace & attic zone numbers are the same!','W')
             END IF
             AIM2_attic_zone = Zone

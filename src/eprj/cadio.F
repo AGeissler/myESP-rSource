@@ -13,45 +13,37 @@ C warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
 C PURPOSE. See the GNU General Public License for more
 C details.
 
-C You should have received a copy of the GNU General Public
-C License along with ESP-r. If not, write to the Free
-C Software Foundation, Inc., 59 Temple Place, Suite 330,
-C Boston, MA 02111-1307 USA.
 
 C This file comprises:
-C exportcad: controls model export facilities.
-C cadin:     drives the conversion of CAD input into data model.
-C rexmpl:    scan the exemplars file and offer user list/info on exemplars.
-C wtarentry: write entry in tar names file accountin for ../
+C exportcad - model export facility.
+C cadin     - conversion of CAD model to ESP-r model.
+C rexmpl    - scan the exemplars file and offers a list of models.
+C wtarentry - write entry in tar names file summarising ../
 
-C ********** exportcad
+C ******************** exportcad ********************
 C Controls model export facilities.
 
       subroutine exportcad(itrc,IER)
-
 #include "building.h"
 #include "model.h"
 #include "prj3dv.h"
-      
-      integer lnblnk  ! function definition
 
       common/SPAD/MMOD,LIMIT,LIMTTY
       common/OUTIN/IUOUT,IUIN,IEOUT
-      integer childterminal  ! picks up mmod from starting of prj
+      integer childterminal  ! picks up mmod from prj invocation
       common/childt/childterminal
       common/FILEP/IFIL
       integer ncomp,ncon
       common/C1/NCOMP,NCON
-
       common/rpath/path
       common/appw/iappw,iappx,iappy
       integer iappw,iappx,iappy
-
       common/FOPENED/CFGOK,MLDBOK,MATDBOK,CTLOK,OPTKOK,CFCDBOK
       common/exporttg/xfile,tg,delim
       common/exporttgi/ixopen,ixloc,ixunit
-      COMMON/gzonpik/izgfoc,nzg,nznog(mcom)
+      common/gzonpik/izgfoc,nzg,nznog(mcom)
 
+      integer lnblnk  ! function
       logical OK,CFGOK,MLDBOK,MATDBOK,CTLOK,OPTKOK,concat,CFCDBOK
       logical unixok,found
       integer iappwpc ! application height as % of nominal size
@@ -71,8 +63,6 @@ C Controls model export facilities.
       logical oke,modcfg
       integer NITMS,INO1 ! max items and current menu item
       integer lnradcf,lnltmp  ! lengths of file names
-
-C For help messages.
       character helpinsub*24 ! subroutine name
       character helptopic*24 ! string (unique) for topic
       integer nbhelp     ! number of help lines found
@@ -80,8 +70,8 @@ C For help messages.
       helpinsub='exportcad'  ! set for subroutine
 
       if(.NOT.cfgok)then
-        call usrmsg('You must load a model before',
-     &              'you can export it!','W')
+        call usrmsg('A model must be loaded before',
+     &              'it can be exported!','W')
          return
       endif
 
@@ -124,16 +114,15 @@ C Check if xfig exists.
       ITEMS1(10) ='! select zones to include  '
       ITEMS1(11) ='* adjust viewing parameters'
       ITEMS1(12) ='? help                     '
-      ITEMS1(13) ='- exit this menu           '
+      ITEMS1(13) ='- exit menu                '
 
 C Help text for this menu.
       helptopic='cad_export_choices'
       call gethelptext(helpinsub,helptopic,nbhelp)
       NITMS=13
-      CALL EMENU('Export Model',ITEMS1,NITMS,INO1)
+      CALL EMENU('Export model',ITEMS1,NITMS,INO1)
 
 C Prepare filter command lines with path.
-
       if(INO1.EQ.1.or.INO1.EQ.2.or.INO1.EQ.3.or.INO1.EQ.5.or.
      &   INO1.eq.6.or.INO1.eq.7.or.INO1.eq.8.or.INO1.eq.9.or.
      &   INO1.eq.10.or.INO1.eq.11.or.INO1.eq.12.or.
@@ -141,20 +130,15 @@ C Prepare filter command lines with path.
         continue
       else
 
-C Note: this sets up initial part of LFIL but some later
-C code tends to overwrite this and thus the user choice
-C is lost. 
-C Debug  write(6,*) 'the pwd command was ',
-C     &    pwdinitial(1:lnblnk(pwdinitial))
-C        write(6,*) ' pwdtocfg is ',pwdtocfg(1:lnblnk(pwdtocfg))
-
+C Set up initial part of LFIL.
+C << Later code might overwrite this and thus the user choice is lost. >>
         iw=0
         if(path(1:2).ne.'./'.and.path(1:2).ne.'  ')then
           call edisp(iuout,' ')
           write(outs,'(A,A)') 'The current path is: ',path
           call edisp(iuout,outs)
           CALL EASKAB('The model is in a remote folder.',
-     &    'Export to:','local folder','home folder',
+     &    'Export to:','current folder','home folder',
      &    IW,nbhelp)
         endif
         if(iw.eq.1)then
@@ -164,10 +148,9 @@ C        write(6,*) ' pwdtocfg is ',pwdtocfg(1:lnblnk(pwdtocfg))
         endif
       endif
 
- 11   IF(INO1.EQ.1)THEN
-
-C Construct a 'VIEWER' format file.  First compose file name taking
+C Construct a 'VIEWER' format file. First compose file name taking
 C into account pwdinitial and pwdtocfg.
+ 11   IF(INO1.EQ.1)THEN
         if(pwdtocfg(1:1).eq.'!')then
           write(L144,'(4a)')path(1:lnblnk(path)),fs,
      &      cfgroot(1:lnblnk(cfgroot)),'.vew'
@@ -176,23 +159,21 @@ C into account pwdinitial and pwdtocfg.
      &      pwdtocfg(1:lnblnk(pwdtocfg)),fs,
      &      cfgroot(1:lnblnk(cfgroot)),'.vew'
         endif
-
         call tstamp('>','PRJ: export to viewer')
-
         dvfil='std.vew'  ! default file name
         doit = ' '
 
-C The X11 version will be returning only the name of the
-C file, while the GTK version will be returning the
-C name with the full path. L144 is the suggested name and
+C The X11 version will return only the name of the
+C file, while the GTK version will return the
+C name and full path. L144 is the suggested name and
 C lltmp is the file name returned by the user selection.
         lltmp='  '
-        call edisp(iuout,'  ')  ! echo a blank line
+        call edisp(iuout,' ')
         CALL EASKXORGTKF(L144,
      &    'Viewer export file name?',' ',
      &    dvfil,lltmp,'viewer file',IER,nbhelp)
 
-C If user request jump back and re-display the menu.
+C On user request, jump back and re-display the menu.
         if(ier.eq.-3)then
           return  ! cancel detected, return.
         endif
@@ -231,12 +212,8 @@ C and change any / to \.
         call edisp248(iuout,outs248,90)
         goto 33  ! display the menu again
 
-      ELSEIF(INO1.EQ.2)THEN
-
 C DXF creation. Process similar to ecnv filter for VIEWER.
-C        write(6,*) 'the pwd command was ',
-C     &    pwdinitial(1:lnblnk(pwdinitial))
-C        write(6,*) ' pwdtocfg is ',pwdtocfg(1:lnblnk(pwdtocfg))
+      ELSEIF(INO1.EQ.2)THEN
         if(pwdtocfg(1:1).eq.'!')then
           write(L144,'(4a)')path(1:lnblnk(path)),fs,
      &      cfgroot(1:lnblnk(cfgroot)),'.DXF'
@@ -245,8 +222,6 @@ C        write(6,*) ' pwdtocfg is ',pwdtocfg(1:lnblnk(pwdtocfg))
      &      pwdtocfg(1:lnblnk(pwdtocfg)),fs,
      &      cfgroot(1:lnblnk(cfgroot)),'.DXF'
         endif
-C Debug write(6,*) 'd l144 is ',L144(1:lnblnk(L144))
-
         call tstamp('>','PRJ: export to DXF')
         dvfil='std.DXF'  ! default file name
         doit = ' '
@@ -254,22 +229,18 @@ C Debug write(6,*) 'd l144 is ',L144(1:lnblnk(L144))
 C L144 is the suggested name and lltmp is the file name returned
 C by the user selection.
         lltmp='  '
-        call edisp(iuout,'  ')  ! echo a blank line
+        call edisp(iuout,' ')
         CALL EASKXORGTKF(L144,'DXF export file name?',' ',
      &    dvfil,lltmp,'dxf file',IER,nbhelp)
 
-C Debug.
-C        write(6,*) 'l144 ',l144
-C        write(6,*) 'lltmp ',lltmp
-
-C If user request jump back and re-display the menu.
+C On user request, jump back and re-display the menu.
         if(ier.eq.-3)then
           return  ! cancel detected, return.
         endif
         if(ier.ne.0.or.lltmp(1:2).eq.'  ')then
           goto 11
         endif
-        call edisp(iuout,' Performing model conversion.')
+        call edisp(iuout,'Performing model conversion.')
         if(unixok)then
           call addpath(LCFGF,longtfile,concat)
         else
@@ -298,16 +269,15 @@ C and change any / to \.
         call edisp248(iuout,outs248,90)
         goto 33
 
+C Check if Radiance has been installed. If not, do not start e2r.
       ELSEIF(INO1.EQ.3)THEN
-
-C Check if Radiance has been installed. If not do not start e2r.
         if(unixok)then
           found_ximage=.false.; hold32='ximage'
           call isinstalled(hold32,found_ximage)
           if(.NOT.found_ximage)then
             call usrmsg(
-     &      'You have not yet installed Radiance so ',
-     &      'images cannot be generated by e2r.','W')
+     &      'Radiance noy installed so images',
+     &      'cannot be generated.','W')
             goto 33
           endif
         else
@@ -315,7 +285,7 @@ C Check if Radiance has been installed. If not do not start e2r.
         endif
 
 C Check if model path for radiance has been set, otherwise create a
-C ../rad folder. If there is no Radiance Scene file name make it based
+C ../rad folder. If there is no Radiance Scene file make it based
 C on the model root name. Take into account where prj was started.
         modcfg=.false.
         if(pwdtocfg(1:1).eq.'!')then
@@ -327,7 +297,7 @@ C on the model root name. Take into account where prj was started.
             call usrmsg('Creating folder for radiance model:',doit,'P')
             call runit(doit,'-')
 
-C And update radpath. The L144 is for future use of EASKXORGTKF
+C And update radpath. The L144 is for future use of EASKXORGTKF.
             write(radpth,'(3a)') '..',fs,'rad'
             modcfg=.true.
           endif
@@ -335,8 +305,6 @@ C And update radpath. The L144 is for future use of EASKXORGTKF
           if(lradcf(1:7).eq.'UNKNOWN')then  ! setup in form of ../rad/xx
             write(lradcf,'(6a)') '..',fs,'rad',fs,
      &        cfgroot(1:lnblnk(cfgroot)),'.rcf'
-C            write(L144,'(8a)')path(1:lnblnk(path)),fs,'..',fs,'rad',
-C     &        fs,cfgroot(1:lnblnk(cfgroot)),'.rcf'
             modcfg=.true.
           endif
         else
@@ -350,16 +318,13 @@ C Prj has not been invoked from within the model cfg folder.
             call usrmsg('Creating folder for radiance model:',doit,'P')
             call runit(doit,'-')
 
-C And update radpath. The L144 is for future use of EASKXORGTKF
+C And update radpath. The L144 is for future use of EASKXORGTKF.
             write(radpth,'(3a)') '..',fs,'rad'
             modcfg=.true.
           endif
 
           if(lradcf(1:7).eq.'UNKNOWN')then
             write(lradcf,'(2a)') cfgroot(1:lnblnk(cfgroot)),'.rcf'
-C            write(L144,'(10a)') pwdinitial(1:lnpwdi),fs,
-C     &        pwdtocfg(1:lnblnk(pwdtocfg)),fs,'..',fs,'rad',fs,
-C     &        cfgroot(1:lnblnk(cfgroot)),'.rcf'
             modcfg=.true.
           endif
         endif
@@ -367,7 +332,7 @@ C     &        cfgroot(1:lnblnk(cfgroot)),'.rcf'
 C Check rcf name and contents of file on return from e2r.
  319    ltmp=lradcf
         dradcf='scene.rcf'
-        CALL EASKS(ltmp,' Radiance scene file for this model?',
+        CALL EASKS(ltmp,'Radiance scene file name?',
      &    '  ',72,dradcf,'Radiance scene file name',IER,nbhelp)
         if(ltmp.eq.' ')goto 319 
 
@@ -382,7 +347,7 @@ C rcf name OK and differs from prior name, update cfg file and start e2r.
         endif
 
 C Start e2r with current configuration file.
-        CALL EASKOK(' ','Run Radiance controller app?',OK,nbhelp)
+        CALL EASKOK(' ','Run Radiance controller?',OK,nbhelp)
         if(OK)then
 
 C Save cfg file including ../rad folder and lradcf file name and start e2r.
@@ -412,10 +377,10 @@ C Set browsing to no.
           if(iappwpc.gt.0.and.iappwpc.le.200)then
             write(doit,'(a,3i4,4a)') 'e2r -s ',
      &        iappwpc,iappx+35,iappy+40,' -file ',
-     &        longtfile(1:lnblnk(longtfile)),brw,' &'
+     &        longtfile(1:lnblnk(longtfile)),brw,' & '
           else
             write(doit,'(4a)') 'e2r -s 0 0 0 -file ',
-     &        longtfile(1:lnblnk(longtfile)),brw,' &'
+     &        longtfile(1:lnblnk(longtfile)),brw,' & '
           endif
           call usrmsg('Starting Radiance conversion: ',doit,'-')
           call runit(doit,'-')
@@ -433,7 +398,7 @@ C Toggle output redirection to xfig.
 
         if (MMOD.ne.8) then
           call edisp(iuout,' ')
-          call edisp(iuout,'Drawing to virtual screen...')
+          call edisp(iuout,'Drawing to virtual screen.')
         endif
 
 C Open the export file and then request that the wireframe
@@ -446,12 +411,12 @@ C If user canceled the wireframe export loop back.
         if(ier.eq.-3)then
           goto 33
         endif
-        call usrmsg('Sending wireframe ... ',' ','-')
+        call usrmsg('Sending wireframe ...',' ','-')
         MODIFYVIEW=.TRUE.
         CALL redraw(IER)
 
 C Toggle the wirefram export file closed.
-        call usrmsg('Sending wireframe ...done.',' ','-')
+        call usrmsg('Sending wireframe ... done.',' ','-')
         call ctlexp(xfile,ixopen,ixloc,ixunit,'G','Wire frame',IER)
         MODIFYVIEW=.TRUE.
 
@@ -480,16 +445,15 @@ C Check if conversion to xfig wanted.
               call edisp(iuout,'fig2dev -L png -m 1.5 -S 4 -b 10 ')
               call edisp(iuout,'  xx.fig > xx.png')
               doit = ' '
-              write(doit,'(3a)') 'xfig ',ffile(1:lnblnk(ffile)),' &'
+              write(doit,'(3a)') 'xfig ',ffile(1:lnblnk(ffile)),' & '
               call usrmsg('Starting xfig: ',doit,'-')
               call runit(doit,'-')
             endif
           endif
         endif
 
-      ELSEIF(INO1.EQ.5)THEN
-
 C Export to THINGS (MicroGDS THF) file. Treat obstructions as clusters.
+      ELSEIF(INO1.EQ.5)THEN
         if(pwdtocfg(1:1).eq.'!')then
           write(L144,'(4a)')path(1:lnblnk(path)),fs,
      &      cfgroot(1:lnblnk(cfgroot)),'.THF'
@@ -498,7 +462,6 @@ C Export to THINGS (MicroGDS THF) file. Treat obstructions as clusters.
      &      pwdtocfg(1:lnblnk(pwdtocfg)),fs,
      &      cfgroot(1:lnblnk(cfgroot)),'.THF'
         endif
-
         call tstamp('>','PRJ: export to DXF')
         dvfil='std.THF'  ! default file name
         doit = ' '
@@ -506,7 +469,7 @@ C Export to THINGS (MicroGDS THF) file. Treat obstructions as clusters.
 C L144 is the suggested name and lltmp is the file name returned
 C by the user selection.
         lltmp='  '
-        call edisp(iuout,'  ')  ! echo a blank line
+        call edisp(iuout,' ')
         CALL EASKXORGTKF(L144,'MicroGDS THINGS file name?',' ',
      &    dvfil,lltmp,'THF file',IER,nbhelp)
 
@@ -521,7 +484,7 @@ C If user request jump back and re-display the menu.
         doit = ' '
         call edisp(iuout,'Performing model conversion.')
 
-C Why is the addpath not used?
+C << Why is the addpath not used? >>
         if(unixok)then
           call addpath(LCFGF,longtfile,concat)
         else
@@ -547,9 +510,8 @@ C Why is the addpath not used?
         call edisp248(iuout,outs248,90)
         goto 33
 
+C Export to EnergyPlus IDF file (work in progress).
       ELSEIF(INO1.EQ.6)THEN
-
-C Export to EnergyPlus IDF file (work in progress)
         if(pwdtocfg(1:1).eq.'!')then
           write(L144,'(4a)')path(1:lnblnk(path)),fs,
      &      cfgroot(1:lnblnk(cfgroot)),'.idf'
@@ -558,7 +520,6 @@ C Export to EnergyPlus IDF file (work in progress)
      &      pwdtocfg(1:lnblnk(pwdtocfg)),fs,
      &      cfgroot(1:lnblnk(cfgroot)),'.idf'
         endif
-
         call tstamp('>','PRJ: export to energyplus')
         dvfil='std.idf'  ! default file name
         doit = ' '
@@ -566,7 +527,7 @@ C Export to EnergyPlus IDF file (work in progress)
 C L144 is the suggested name and lltmp is the file name returned
 C by the user selection.
         lltmp='  '
-        call edisp(iuout,'  ')  ! echo a blank line
+        call edisp(iuout,' ')
         CALL EASKXORGTKF(L144,'EnergyPlus input file name?',' ',
      &    dvfil,lltmp,'E+ idf file',IER,nbhelp)
 
@@ -580,7 +541,7 @@ C If user request jump back and re-display the menu.
 
 C Gather information about IDF file version.
         ever=7.2
-        CALL EASKATOG('EnergyPlus IDF file version','(see help):',
+        CALL EASKATOG('EnergyPlus IDF file version',' ',
      &    '7.2','8.0','8.5','8.8','9.0','cancel','-',IW,nbhelp)
         if(IW.eq.1)then
           ever=7.2
@@ -598,7 +559,7 @@ C Gather information about IDF file version.
         if(IW.eq.6)then
           continue
         else
-          call edisp(iuout,' Performing model conversion.')
+          call edisp(iuout,'Performing model conversion.')
           itrcc=2
           ioout=2
           open(ioout,file=lltmp,status='UNKNOWN',err=901)
@@ -610,9 +571,8 @@ C Gather information about IDF file version.
         endif
         goto 33
 
-      ELSEIF(INO1.EQ.7)THEN
-
 C Export to VRML (2.0) file.
+      ELSEIF(INO1.EQ.7)THEN
         if(pwdtocfg(1:1).eq.'!')then
           write(L144,'(4a)')path(1:lnblnk(path)),fs,
      &      cfgroot(1:lnblnk(cfgroot)),'.vrml'
@@ -621,21 +581,20 @@ C Export to VRML (2.0) file.
      &      pwdtocfg(1:lnblnk(pwdtocfg)),fs,
      &      cfgroot(1:lnblnk(cfgroot)),'.vrml'
         endif
-
         call tstamp('>','PRJ: export to VRML')
         dvfil='std.vrml'  ! default file name
         doit = ' '
 
-C The X11 version will be returning only the name of the
-C file, while the GTK version will be returning the
-C name with the full path. L144 is the suggested name and
+C The X11 version will return only the name of the
+C file, while the GTK version will return the
+C name and full path. L144 is the suggested name and
 C lltmp is the file name returned by the user selection.
         lltmp='  '
-        call edisp(iuout,'  ')  ! echo a blank line
+        call edisp(iuout,' ')
         CALL EASKXORGTKF(L144,'VRML file name?',' ',
      &    dvfil,lltmp,'vrml file',IER,nbhelp)
 
-C If user request jump back and re-display the menu.
+C On user request, jump back and re-display the menu.
         if(ier.eq.-3)then
           return  ! cancel detected, return.
         endif
@@ -672,9 +631,8 @@ C        call usrmsg('Starting VRML conversion: ',doit,'-')
         call edisp(iuout,'Use a VRML viewer to explore it.')
         goto 33  ! display the menu again
 
-      ELSEIF(INO1.EQ.8)THEN
-
 C Export to ESP-r meta file.
+      ELSEIF(INO1.EQ.8)THEN
         if(pwdtocfg(1:1).eq.'!')then
           write(L144,'(4a)')path(1:lnblnk(path)),fs,
      &      cfgroot(1:lnblnk(cfgroot)),'.mesp'
@@ -695,14 +653,13 @@ C by the user selection.
         CALL EASKXORGTKF(L144,' ','ESP-r meta file name?',
      &    dvfil,lltmp,'ESP-r Meta file',IER,nbhelp)
 
-C If user request jump back and re-display the menu.
+C On user request, jump back and re-display the menu.
         if(ier.eq.-3)then
           return  ! cancel detected, return.
         endif
         if(ier.ne.0.or.lltmp(1:2).eq.'  ')then
           goto 11
         endif
-
         ioout=2
         call METAWRITE(ioout,lltmp,'-',IER)
         write(outs248,'(3a)')'The file ',lltmp(1:lnblnk(lltmp)),
@@ -710,9 +667,8 @@ C If user request jump back and re-display the menu.
         call edisp248(iuout,outs248,90)
         goto 33
 
-      ELSEIF(INO1.EQ.9)THEN
-
 C Export to acrobat VEF file.
+      ELSEIF(INO1.EQ.9)THEN
         if(pwdtocfg(1:1).eq.'!')then
           write(L144,'(4a)')path(1:lnblnk(path)),fs,
      &      cfgroot(1:lnblnk(cfgroot)),'.vef'
@@ -721,7 +677,6 @@ C Export to acrobat VEF file.
      &      pwdtocfg(1:lnblnk(pwdtocfg)),fs,
      &      cfgroot(1:lnblnk(cfgroot)),'.vef'
         endif
-
         call tstamp('>','PRJ: export to VEF')
         dvfil='std.vef'  ! default file name
         doit = ' '
@@ -733,7 +688,7 @@ C by the user selection.
         CALL EASKXORGTKF(L144,'acrobat VEF file name?',' ',
      &    dvfil,lltmp,'acrobat vef file',IER,nbhelp)
 
-C If user request jump back and re-display the menu.
+C On user request, jump back and re-display the menu.
         if(ier.eq.-3)then
           return  ! cancel detected, return.
         endif
@@ -748,8 +703,8 @@ C If user request jump back and re-display the menu.
         if(IRT.eq.3)then
           continue
         else
-          CALL EASKABC('Colour options:',' ','All zones grey',
-     &                            'Coloured zones','cancel',IRT2,nbhelp)
+          CALL EASKABC(' ','Colour options:','grey zones',
+     &                          'coloured zones','cancel',IRT2,nbhelp)
           if (IRT2.eq.3) then
             continue
           else
@@ -768,12 +723,9 @@ C If user request jump back and re-display the menu.
         endif
         goto 33
 
+C Zones selection.
       ELSEIF(INO1.EQ.10)THEN
-        call edisp(iuout,' ')  ! select zones to include
-        call edisp(iuout,'You can choose a subset of zones to include')
-        call edisp(iuout,'in the export to xfig (other exports will')
-        call edisp(iuout,'be included in a future update).')
-        INPIC=NCOMP    ! Select zones or groups via ASKMULTIZON.
+        INPIC=NCOMP
         call ASKMULTIZON(INPIC,IVALS,'Zones to include:',
      &    'zone list','-',IER) 
         nzg = inpic
@@ -796,14 +748,11 @@ C If user request jump back and re-display the menu.
         MODLEN=.TRUE.
         MODIFYVIEW=.TRUE.
 
+C Viewing parameters.
       ELSEIF(INO1.EQ.11)THEN
-        call edisp(iuout,' ')
-        call edisp(iuout,'In the viewing environment menu:')
-        call edisp(iuout,'toggle hidden/display options as required.')
-        call edisp(iuout,'Currently used with xfig exports.')
-        call evset('-',IER)                          ! adjust viewing parameters.
+        call evset('-',IER)                          ! adjust viewing parameters
       ELSEIF(INO1.EQ.12)THEN
-       CALL PHELPD('export menu',nbhelp,'-',0,0,IER) ! Pop up the help text.
+       CALL PHELPD('export menu',nbhelp,'-',0,0,IER) ! pop up help text
       ELSEIF(INO1.EQ.13)THEN
         RETURN
       else
@@ -818,9 +767,9 @@ C Error.
      
       END
 
-C ******** cadin
-C CADIN drives the conversion of CAD input into data model.
-C Used by the Project Manager.
+C ******************** cadin ********************
+C Converts a CAD input model to an ESP-r model.
+
       subroutine cadin(itrc,ier)
 #include "building.h"
 #include "model.h"
@@ -838,8 +787,6 @@ C Used by the Project Manager.
       integer ncomp,ncon
       common/C1/NCOMP,NCON
       common/rcmd/LCMDFL
-
-C Indicator of possible focus zone.
       common/user/browse
 
 C External cad package.
@@ -850,7 +797,7 @@ C The model root and mpath passed to silentmodel call.
       common/cadmeta/metaroot,metampath
 
       LOGICAL OK,concat,browse,confirm,ckpath,unixok
-      logical itisanexemplar  ! passed to newprb to ensure correct browse mode.
+      logical itisanexemplar  ! passed to newprb to ensure correct browse mode
 
       character LFIL*72,LCMDFL*144
       character outs*124,OUTSTR*124,doit*248
@@ -859,12 +806,12 @@ C The model root and mpath passed to silentmodel call.
       character placemodelin*96
       character exemplar*144 ! full path to new cfg file
       character fs*1
-      character thecfgis*72 ! cfg file only
+      character thecfgis*72  ! cfg file only
       character cfgpath*144  ! full path to cfg folder for refocus
       character theprimedirective*8
       logical XST
       character hold32*32,msg*72,msg2*30
-      logical found_cad ! to test application existance
+      logical found_cad      ! to test application existence
 
 C For help messages
       character helpinsub*24 ! subroutine name
@@ -889,7 +836,7 @@ C CAD definition and importing.
 C Tell the user to create a model configuration file.
       CALL PHELPD('CAD warning',nbhelp,'-',0,0,IER)
 
-C Ask user which format of CAD file will be scanned in.
+C Determine which format of CAD file will be scanned in.
       write(msg2,'(2a)') 'invoke ',cadexe(1:lnblnk(cadexe))
       CALL EASKATOG(' ','Options:',
      &  'parse DXF (V12-14)','parse gbXML',msg2,
@@ -900,7 +847,7 @@ C Ask user which format of CAD file will be scanned in.
         cadfmt='gbXML'
       elseif(irt.eq.3)then
 
-C Check if CAD tool has been installed. If not do not start.
+C Check if CAD tool has been installed. If not, do not start.
         if(unixok)then
           found_cad=.false. 
           write(hold32,'(a)') cadexe(1:lnblnk(cadexe))
@@ -918,10 +865,10 @@ C Check if CAD tool has been installed. If not do not start.
 C Create one or more dummy zones for gtool to work with.
         call edisp(iuout,'CAD tool requires dummy zones to exist')
         call edisp(iuout,'prior to starting. Specify how many to')
-        call edisp(iuout,'create. Note: zone names must follow the')
+        call edisp(iuout,'create. Note that zone names must follow the')
         call edisp(iuout,'same root names as the ESP-r model.')
         call create_dummy_zones()
-        write(outs,'(3a)') ' Proceed with ',
+        write(outs,'(3a)') 'Proceed with ',
      &    cadexe(1:lnblnk(cadexe)),'?'
 
         call usrmsg(
@@ -930,14 +877,14 @@ C Create one or more dummy zones for gtool to work with.
         CALL EASKOK(' ',outs,OK,nbhelp)
         IF(OK)then
           call pausems(1000)
-          write(doit,'(2a)') cadexe(1:lnblnk(cadexe)),' &'
+          write(doit,'(2a)') cadexe(1:lnblnk(cadexe)),' & '
           call runit(doit,'-')
           call pausems(1000)
           call usrmsg(
      &    'Shutting down Project Manager.','...','-')
           call pausems(1000)
 
-C Clear allocatable arrays
+C Clear arrays.
           CALL DeallocateAllArrays
           close(ieout)
           if(iecount.eq.0)then     ! if there were no warnings delete
@@ -1254,7 +1201,7 @@ C Create one or more dummy zones for gtool to work with.
         CALL EASKOK(' ',outs,OK,nbhelp)
         IF(OK)then
           call pausems(1000)
-          write(doit,'(2a)') cadexe(1:lnblnk(cadexe)),' &'
+          write(doit,'(2a)') cadexe(1:lnblnk(cadexe)),' & '
           call runit(doit,'-')
           call pausems(1000)
           call usrmsg(
@@ -1447,7 +1394,7 @@ C Present the display.
  142  ICOG= -2
       gitem(inl+1)=  '  _______________________________'
       gitem(inl+2)=  '? help                           '
-      gitem(inl+3)=  '- exit this menu                 '
+      gitem(inl+3)=  '- exit menu                      '
       NCOG=inl+3
       IW=0
       do 141 ij=1,NCOG
@@ -1582,10 +1529,10 @@ C file for this topic.
           write(h(nbhelp+ih),'(a)')gh(ih)(1:lex)
         enddo
       endif
-      write(head,'(2a)') 'Group: ',
+      write(head,'(2a)') 'Exemplar group: ',
      &           group(igrsel)(1:lnblnk(group(igrsel)))
       IX=1
-      CALL EPICKS(IX,IVALS,' ','Category items:',
+      CALL EPICKS(IX,IVALS,' ',' ',
      &  iwsub,in,subitem,head,IER,nbhelp+nghelp)
       IF(IX.EQ.0)then
 
@@ -2106,7 +2053,7 @@ C If act is g then use GEN bodies.
           ENDDO
 
           DO J=1,NSUR
-            WRITE(ioout,'(I5,124I4)')NVER(J),(JVN(J,K),K=1,NVER(J))
+            WRITE(ioout,'(I5,102I4)')NVER(J),(JVN(J,K),K=1,NVER(J))
             ndum(J)=0
           ENDDO
 
@@ -2283,7 +2230,7 @@ C Pass in critical dimensions and expect the data back via common G1.
         MODBND=.TRUE.; MODIFYVIEW=.TRUE.; MODLEN=.TRUE.
         iZBFLG(ICOMP)=0
 
-C Use subroutine filsur to instanciate G5 common block.
+C Use subroutine filsur to instantiate G5 common block.
         CALL FILSUR(ICOMP,0)
 
 C Update the connection list and hash.
@@ -2312,7 +2259,7 @@ C Update the G7 common blocks and then assign ZBASEA.
 
 C Update the global coordinates for this zones surfaces so that
 C the subsequent wireframe image can be drawn and the bounds of
-C the zone can be calculated. Also instanciate isznver and iszjvn
+C the zone can be calculated. Also instantiate isznver and iszjvn
 C for the new zone (as is done in subroutine zdata).
         DO 40 J=1,NZTV(ICOMP)
           szcoords(ICOMP,J,1)=X(J)

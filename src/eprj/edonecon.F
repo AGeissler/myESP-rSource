@@ -161,20 +161,17 @@ C Editing of items.
         continue
       elseif(iart.eq.1)then
         modcfg=.true.
-        ICT(IFOC)=0
-        IE2(IFOC)=0
-        IC2(IFOC)=0
+        ICT(IFOC)=0; IE2(IFOC)=0; IC2(IFOC)=0
         if(SO(1)(1:8).ne.'EXTERIOR')then
           TOTHER(ics,1)='EXTERIOR'
-          TOTHER(ics,2)='0'
-          TOTHER(ics,3)='0'
+          TOTHER(ics,2)='00'
+          TOTHER(ics,3)='00'
           UPDGEO=.TRUE.
         endif
       elseif(iart.eq.2)then 
         modcfg=.true.
         ICT(IFOC)=1
-        VALT=0.0
-        VALW=0.0
+        VALT= real(IC2(IFOC)); VALW= real(IE2(IFOC))  ! pick up existing value
         CALL EASKR(VALT,' Offset temperature? [default=0.0]',
      &    '(see help) ',-99.,'F',700.,'F',0.0,'offset temp',
      &    IER,nbhelp)
@@ -185,8 +182,10 @@ C Editing of items.
         IE2(IFOC)=INT(VALW)
         if(SO(1)(1:7).ne.'SIMILAR')then
           TOTHER(ics,1)='SIMILAR'
-          write(tother(ics,2),'(i2.2)') IC2(ifoc)
-          write(tother(ics,3),'(i3.3)') IE2(ifoc)
+          if(IC2(ifoc).ge.0)write(tother(ics,2),'(i3.3)') IC2(ifoc)
+          if(IC2(ifoc).lt.0)write(tother(ics,2),'(i3)') IC2(ifoc)
+          if(IE2(ifoc).ge.0)write(tother(ics,3),'(i3.3)') IE2(ifoc)
+          if(IE2(ifoc).lt.0)write(tother(ics,3),'(i3)') IE2(ifoc)
           UPDGEO=.TRUE.
         endif
       elseif(iart.eq.3)then 
@@ -205,8 +204,10 @@ C Editing of items.
         IE2(IFOC)=INT(VAL)
         if(SO(1)(1:8).ne.'CONSTANT')then
           TOTHER(ics,1)='CONSTANT'
-          write(tother(ics,2),'(i2.2)') IC2(ifoc)
-          write(tother(ics,3),'(i3.3)') IE2(ifoc)
+          if(IC2(ifoc).ge.0)write(tother(ics,2),'(i3.3)') IC2(ifoc)
+          if(IC2(ifoc).lt.0)write(tother(ics,2),'(i3)') IC2(ifoc)
+          if(IE2(ifoc).gt.0)write(tother(ics,3),'(i3.3)') IE2(ifoc)
+          if(IE2(ifoc).lt.0)write(tother(ics,3),'(i3)') IE2(ifoc)
           UPDGEO=.TRUE.
         endif
       elseif(iart.eq.4)then 
@@ -242,7 +243,7 @@ C and display both zones.
           IC2(IFOC)=IZ
           IE2(IFOC)=IS
           TOTHER(ics,1)='ANOTHER'
-          write(tother(ics,2),'(i2.2)') IC2(ifoc)
+          write(tother(ics,2),'(i3.3)') IC2(ifoc)
           write(tother(ics,3),'(i3.3)') IE2(ifoc)
           UPDGEO=.TRUE.
 
@@ -295,7 +296,7 @@ C profile has not been defined.
           IE2(IFOC)=0
           if(SO(1)(1:6).ne.'GROUND')then
             TOTHER(ics,1)='GROUND'
-            write(tother(ics,2),'(i2.2)') IC2(ifoc)
+            write(tother(ics,2),'(i3.3)') IC2(ifoc)
             write(tother(ics,3),'(i3.3)') IE2(ifoc)
             UPDGEO=.TRUE.
           endif
@@ -322,7 +323,7 @@ C profile has not been defined.
           IE2(IFOC)=iie2
           if(SO(1)(1:6).ne.'GROUND')then
             TOTHER(ics,1)='GROUND'
-            write(tother(ics,2),'(i2.2)') IC2(ifoc)
+            write(tother(ics,2),'(i3.3)') IC2(ifoc)
             write(tother(ics,3),'(i3.3)') IE2(ifoc)
             UPDGEO=.TRUE.
           endif
@@ -340,7 +341,7 @@ C Link to a 3D conduction model..
         IE2(IFOC)=0
         if(SO(1)(1:6).ne.'GROUND')then
           TOTHER(ics,1)='GROUND'
-          write(tother(ics,2),'(i2.2)') IC2(ifoc)
+          write(tother(ics,2),'(i3.3)') IC2(ifoc)
           write(tother(ics,3),'(i3.3)') IE2(ifoc)
           UPDGEO=.TRUE.
         endif
@@ -350,7 +351,7 @@ C Link to a 3D conduction model..
         IC2(IFOC)=0
         if(SO(1)(1:9).ne.'ADIABATIC')then
           TOTHER(ics,1)='ADIABATIC'
-          write(tother(ics,2),'(i2.2)') IC2(ifoc)
+          write(tother(ics,2),'(i3.3)') IC2(ifoc)
           write(tother(ics,3),'(i3.3)') IE2(ifoc)
           UPDGEO=.TRUE.
         endif
@@ -377,7 +378,7 @@ C attribute to the surface under consideration.
         IE2(IFOC)=Ifrac
         if(SO(1)(1:8).ne.'BASESIMP')then
           TOTHER(ics,1)='BASESIMP'
-          write(tother(ics,2),'(i2.2)') IC2(ifoc)
+          write(tother(ics,2),'(i3.3)') IC2(ifoc)
           write(tother(ics,3),'(i3.3)') IE2(ifoc)
           UPDGEO=.TRUE.
         endif
@@ -394,7 +395,7 @@ C CEN 13791 partition start
         IE2(IFOC)=INT(VALW)
         if(SO(1)(1:7).ne.'IDENT_CEN')then
           TOTHER(ics,1)='IDENT_CEN'
-          write(tother(ics,2),'(i2.2)') IC2(ifoc)
+          write(tother(ics,2),'(i3.3)') IC2(ifoc)
           write(tother(ics,3),'(i3.3)') IE2(ifoc)
           UPDGEO=.TRUE.
         endif
@@ -449,7 +450,7 @@ C other zone) and write out that zones geometry.
 
         ICN=IZSTOCN(IC2(IFOC),IE2(IFOC))
         SOTHER(IC2(IFOC),IE2(IFOC),1)='ANOTHER'
-        write(SOTHER(IC2(IFOC),IE2(IFOC),2),'(i2.2)') icz
+        write(SOTHER(IC2(IFOC),IE2(IFOC),2),'(i3.3)') icz
         write(SOTHER(IC2(IFOC),IE2(IFOC),3),'(i3.3)') ics
 
         call eclose(gversion(IC2(IFOC)),1.1,0.01,newgeo)

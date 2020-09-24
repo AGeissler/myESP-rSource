@@ -13,10 +13,6 @@ C warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
 C PURPOSE. See the GNU General Public License for more
 C details.
 
-C You should have received a copy of the GNU General Public
-C License along with ESP-r. If not, write to the Free
-C Software Foundation, Inc., 59 Temple Place, Suite 330,
-C Boston, MA 02111-1307 USA.
 
 C Mass flow results analysis menu routines.
 C Selections are made and recorded for display.
@@ -55,7 +51,7 @@ C IMFGET = 13 Energy associated with a flow path (given ref node, test node, con
 C IMFGET = 14 Contaminant concentration
 
 C ******************** MOFLOWSU ********************
-C MOFLOWSU clears commons/ sets default values.
+C Clears commons and sets default values.
 
       SUBROUTINE MOFLOWSU
 #include "building.h"
@@ -65,7 +61,8 @@ C MOFLOWSU clears commons/ sets default values.
 
       character SMFLABEL*32,GLMFLABEL*32
       COMMON/MFLABEL/SMFLABEL(MFRS),GLMFLABEL(MFRS)
-      integer  LNSMFLABEL,LNGLMFLABEL ! length of label strings
+
+      integer LNSMFLABEL,LNGLMFLABEL ! length of label strings
       COMMON/LNMFLABEL/LNSMFLABEL(MFRS),LNGLMFLABEL(MFRS)
 
       COMMON/GRAF1/YMAX(6),YMIN(6),YAXSET(6),ADDLIN,horaxisdiv
@@ -86,15 +83,15 @@ C MOFLOWSU clears commons/ sets default values.
 
       integer YAXSET,ADDLIN,horaxisdiv
 
-C Reset axis max and min values to 1.0 and 0.0 resp.
-C YAXSET: Axis max min set =1 automatically scalled, 2= user set.
+C Reset axis maximum and minimum values to 1.0 and 0.0 respectively.
+C YAXSET - =1 if axis max min set; =1 if automatically scaled; 2= if user set.
       do 8 I=1,6
         YMAX(I)=1.0
         YMIN(I)=0.0
         YAXSET(I)=0
  8    continue
 
-C Set add profile label ADDLIN=0 i.e. no add
+C Set add profile label.
       ADDLIN=0
       horaxisdiv=0  ! assume default horizontal divisions
 
@@ -117,7 +114,7 @@ C Reset to no choices and current result set.
       end
 
 C ************************ MFMENU ************************
-C MFMENU The choices are put into the array IMFGETNO in the
+C Choices are put into the array IMFGETNO in the
 C columns listed above.
 
       SUBROUTINE MFMENU(idone)
@@ -206,15 +203,14 @@ C air flow reporting.
       integer*8 iid1,iid2,iixx,iiyy,iik,iicol,ibsize
 #endif
 
-C For help messages
       character helpinsub*24   ! subroutine name
       character helptopic*24 ! string (unique) for topic
       integer nbhelp     ! number of help lines found
 
       helpinsub='MFMENU'  ! set for cfiles
 
-C The logical variables are required so as user is asked for additional
-C information about the choice of metric if necessary.
+C Parameters required to indicate if user should be asked for additional
+C information about the selected metric.
 C  CLIST - connection list
 C  NLIST - node list
 C  CNLST - connection node list to restrict choice (e.g. all flows through node x)
@@ -422,7 +418,7 @@ C If plot give graph command and labels command, otherwise list command.
         INO=-2
       endif
 
-C Instanciate help strings for this menu.
+C Instantiate help strings for this menu.
       helptopic='res_mass_flow_menu'
       call gethelptext(helpinsub,helptopic,nbhelp)
 
@@ -2860,7 +2856,7 @@ C If a long list include page facility text.
       VERT(M+3)  ='? help                     '
       VERT(M+4)  ='- exit and activate changes'
 
-C Instanciate help strings for this menu.
+C Instantiate help strings for this menu.
       helptopic='menu_selection_editing'
       call gethelptext(helpinsub,helptopic,nbhelp)
 

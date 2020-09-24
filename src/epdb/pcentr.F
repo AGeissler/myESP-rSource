@@ -13,18 +13,15 @@ C warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
 C PURPOSE. See the GNU General Public License for more
 C details.
 
-C You should have received a copy of the GNU General Public
-C License along with ESP-r. If not, write to the Free
-C Software Foundation, Inc., 59 Temple Place, Suite 330,
-C Boston, MA 02111-1307 USA.
 
-C PCENTR of ESRUpdb
+C ******************** PCENTR ********************
 C Enter or import a component into the datatbase.
 C Data can be entered from a file or the user can be
 C prompted for each field of the plant component entry.
 C The routine 'PCEDIT' can be used to edit
 C user input data before the routine.
 C 'PCPUT' is called to add it to the datatbase.
+
         SUBROUTINE PCENTR
 #include "plantdb.h" 
 #include "pdb_data.h" 
@@ -53,8 +50,8 @@ C For help messages
 C Build menu items.
  100  helptopic='pdb_input_file_choices'
       call gethelptext(helpinsub,helptopic,nbhelp)
-      CALL EASKABCD('Read component data:',' ','from file',
-     &  'from user dialogue','from file to generic','continue',irt,
+      CALL EASKABCD(' ','Read component data:','from file',
+     &  'from user dialogue','from file to generic','cancel',irt,
      &  nbhelp)
 
       if(irt.eq.1.or.irt.eq.3)then
@@ -66,7 +63,7 @@ C Read from file, get filename
 C Set initial guess for import file to command line file +a
         write(L144,'(2a)') LCMDFL(1:lnblnk(LCMDFL)),'a'  
         CALL EASKXORGTKF(L144,
-     &    'ASCII import file name','Confirm:','importfile.dta',
+     &    'ASCII import file name','confirm','importfile.dta',
      &    lltmp,'import plant templates',IER,nbhelp)
 
 C If user cancel display the menu without loading file.

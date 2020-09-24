@@ -13,10 +13,6 @@ C warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
 C PURPOSE. See the GNU General Public License for more
 C details.
 
-C You should have received a copy of the GNU General Public
-C License along with ESP-r. If not, write to the Free
-C Software Foundation, Inc., 59 Temple Place, Suite 330,
-C Boston, MA 02111-1307 USA.
 
 C This file contains the following subroutines for creating the 
 C linear thermal conductivity menues:
@@ -70,7 +66,7 @@ C For help messages
       ITEM(6)='<  reset to constant         '
       ITEM(7)='!  list layer dependencies   '
       ITEM(8)='?  help                      '
-      ITEM(9)='-  exit this menu            '
+      ITEM(9)='-  exit menu                 '
       NITEM=9
 
 C Helpl text for this menu.
@@ -227,7 +223,7 @@ C For help messages
       ITEM(3)='l select layers          '
       ITEM(4)='  _______________________'
       ITEM(5)='? help                   '
-      ITEM(6)='- exit this menu         '
+      ITEM(6)='- exit menu              '
       NITEM=6
 
 C Help text for this menu

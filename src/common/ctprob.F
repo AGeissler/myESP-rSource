@@ -13,12 +13,8 @@ C warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
 C PURPOSE. See the GNU General Public License for more
 C details.
 
-C You should have received a copy of the GNU General Public
-C License along with ESP-r. If not, write to the Free
-C Software Foundation, Inc., 59 Temple Place, Suite 330,
-C Boston, MA 02111-1307 USA.
 
-C This file contains the following subroutines
+C This file contains the following subroutines:
 C CTWRIT Writes contaminant model to file
 C CTPROB Main file where contaminant descriptions are defined.
 C CSIACR Add, delete, edit chemical reaction information
@@ -29,12 +25,12 @@ C CTLIST List contaminant information to text feedback area
 
 C TODO LIST
 C << introduction of 'cancel' option only partially implemented
-C << and instanciation of data edited in a sequence should be
+C << and instantiation of data edited in a sequence should be
 C << done only after all of the dialogs have been accepted.
 
 C ******************** CTWRIT ********************
-C Dump contaminant model to file
-C Definitions of most variables is given in ctread.F
+C Dump contaminant model to file.
+C Definitions of most variables given in ctread.F.
 
       SUBROUTINE CTWRIT(IFCTM)
 #include "building.h"
@@ -512,9 +508,9 @@ C Setup Contaminant Model network
           GOTO 2002
         ELSEIF(INNO.EQ.(NCONTM+4))THEN
           IF(.NOT.BROWSE)THEN
-            H(1) =' Sorry no help available for this topic'
-            CALL EASKABCD('Select option or continue ',' ','add',
-     &      'delete','copy','continue',IADC,1)
+            H(1) ='Sorry no help available.'
+            CALL EASKABCD(' ','Options:','add',
+     &      'delete','copy','cancel',IADC,1)
             IF(IADC.EQ.4)THEN
               GOTO 2002
             ELSE
@@ -602,8 +598,8 @@ C The first parameter is zero (it is not used).
 C User asked to add or delete or copy.
           IF(.NOT.BROWSE)THEN
             H(1) =' Sorry no help available for this topic'
-            CALL EASKABCD('Select option or continue ',' ','add',
-     &        'delete','copy','continue',IADC,1)
+            CALL EASKABCD(' ','Options:','add',
+     &        'delete','copy','cancel',IADC,1)
             IF(IADC.EQ.4)THEN
               GOTO 2006
             ELSE
@@ -679,8 +675,8 @@ C Determine number of rates if specified
           GOTO 2020
         ELSEIF(ISO.EQ.(NCHEMRR+3))THEN
           IF(.NOT.BROWSE)THEN
-            CALL EASKABC('Select option or continue ',' ','add',
-     &         'delete','continue',IADC,1)
+            CALL EASKABC(' ','Options:','add',
+     &         'delete','cancel',IADC,1)
             IF(IADC.EQ.3)THEN
               GOTO 2020
             ELSE
@@ -704,7 +700,7 @@ C Determine number of rates if specified
         ENDIF
 
 
-C Now put in filter efficiencies if any
+C Put in filter efficiencies if any.
       ELSEIF(INO.EQ.10)THEN
  2017   H(1) ='Help menu under development'
         H(2) ='filter efficiencies are chose to be zero by default'
@@ -1579,7 +1575,7 @@ C Now get supplementary data items for exponential decay/increase.
             SPMSUP(ISPMNU,5)=REAL(IV)
           ENDIF
 
-C Place to instanciate data if user did not cancel.
+C Place to instantiate data if user did not cancel.
 C << to be done. >>
         ENDIF
 
@@ -1641,7 +1637,7 @@ C Now get supplementary data items for bndry layer diffusion.
             SPMSUP(ISPMNU,6)=VAL
           ENDIF
 
-C Place to instanciate data if user did not cancel.
+C Place to instantiate data if user did not cancel.
 C << to be done. >>
         ENDIF
 
@@ -1718,7 +1714,7 @@ C Now get supplementary data items for time dependant constant mass.
             SPMSUP(ISPMNU,7)=REAL(IV)
           ENDIF
 
-C Place to instanciate data if user did not cancel.
+C Place to instantiate data if user did not cancel.
 C << to be done. >>
         ENDIF
 

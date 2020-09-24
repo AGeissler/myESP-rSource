@@ -13,10 +13,6 @@ C warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
 C PURPOSE. See the GNU General Public License for more
 C details.
 
-C You should have received a copy of the GNU General Public
-C License along with ESP-r. If not, write to the Free
-C Software Foundation, Inc., 59 Temple Place, Suite 330,
-C Boston, MA 02111-1307 USA.
 
 C ################# MFPRB1 
 C This file contains the following subroutines:
@@ -258,7 +254,7 @@ C network in the graphic area.
           CALL MFCDAT
           CALL EMF3DREAD(IUM,'S',IER)
           call edisp(iuout,' ')
-          CALL MFLIST(iuout)
+          CALL MFLIST(iuout,'f')
           if(MMOD.eq.8)then
             call startbuffer
             MODIFYVIEW=.TRUE.; MODBND=.TRUE.; MODLEN=.TRUE.
@@ -308,7 +304,7 @@ C List contents of file if required.
         helptopic='flow_network_synopsis'
         call gethelptext(helpinsub,helptopic,nbhelp)
         CALL EASKOK(' ','Summary of flow network?',OK,nbhelp)
-        IF(OK) CALL MFLIST(iuout)
+        IF(OK) CALL MFLIST(iuout,'f')
       else
 
 C File was not found.
@@ -577,7 +573,7 @@ C Link nodes and zones.
   33    CONTINUE
 
       ELSEIF(INO.EQ.21)THEN
-        CALL MFLIST(iuout)
+        CALL MFLIST(iuout,'f')
         if(IAIRN.eq.3.and.MMOD.eq.8)then
           call startbuffer
           MODIFYVIEW=.TRUE.; MODBND=.TRUE.; MODLEN=.TRUE.
@@ -723,7 +719,7 @@ C associated surface attributes.
               HCMP(loop,1,1)=cx; HCMP(loop,1,2)=cy; HCMP(loop,1,3)=cz
             ENDDO
             call edisp(iuout,' ')
-            CALL MFLIST(iuout)
+            CALL MFLIST(iuout,'f')
             if(MMOD.eq.8)then
 
 C Draw the wireframe and then overlay the flow network.
@@ -843,8 +839,6 @@ C << if IAIRN=3 could we use mfnodeposition ?? >>
       
       integer ncomp,ncon
       COMMON/C1/NCOMP,NCON
-      integer IZSTOCN
-      COMMON/C24/IZSTOCN(MCOM,MS)
       COMMON/MFLOWIT/fndegc,imix 
       COMMON/AFN/IAIRN,LAPROB,ICAAS(MCOM)
       INTEGER :: iairn,icaas
@@ -855,14 +849,9 @@ C << if IAIRN=3 could we use mfnodeposition ?? >>
       CHARACTER LAPROB*72
       CHARACTER MOD*1
       CHARACTER MSG*48
-      CHARACTER name*12,zn*12,sn*12
-      character altcol*1
-      character col*1
-      real xc,yc,zc,xw,yw,zw
       LOGICAL OK
-      logical inview
       integer IVV   ! for radio button
-      logical changed,found
+      logical changed
 
 C For help messages
       character helpinsub*24 ! subroutine name
@@ -1780,8 +1769,8 @@ C If a long list include page facility text.
  15         FORMAT   ('0 ---Page: ',I2,' of ',I2,' ---')
           ENDIF
           PCITM(M+2)=' '
-          PCITM(M+3)='? help                   '
-          PCITM(M+4)='- exit this menu         '
+          PCITM(M+3)='? help'
+          PCITM(M+4)='- exit menu'
           IVERT=-1
 
 C Help text for this menu.
@@ -3601,7 +3590,7 @@ C There is no operations file so write crack connections only.
         IAIRN=3  ! so it shows up in cfg file.
 
 C List what we have thus far.
-        CALL MFLIST(iuout)
+        CALL MFLIST(iuout,'f')
 
 C Save it as 3D flow file, update the cfg file and then write out
 C both of the network flow files.

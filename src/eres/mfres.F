@@ -92,7 +92,11 @@ C Contaminant data:
       ENDIF
 
 C Display network info if requested.
-      if (ITRC.eq.1) call MFLIST(iuout)
+      if (ITRC.eq.1)then
+        call MFLIST(iuout,'s')
+      elseif (ITRC.eq.2)then
+        call MFLIST(iuout,'f')
+      endif
  50   RETURN
 
  1000 write(outs,'(A,I5,A)')' MFREADH: error at record',IMFREC,'.'

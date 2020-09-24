@@ -13,10 +13,6 @@ C warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
 C PURPOSE. See the GNU General Public License for more
 C details.
 
-C You should have received a copy of the GNU General Public
-C License along with ESP-r. If not, write to the Free
-C Software Foundation, Inc., 59 Temple Place, Suite 330,
-C Boston, MA 02111-1307 USA.
 
 C RADCFG.F contains routines to control the exectution of RADIANCE from E2R.
 C This is mainl done via the RADCFG file which contains data on the RADIANCE 
@@ -321,10 +317,10 @@ C no need to show additional options.
       IF(MODE.EQ.'M'.OR.MODE.EQ.'m')THEN
         VERT(M+2)='* add/delete/copy scene '
         VERT(M+3)  ='? help                '
-        VERT(M+4)  ='- exit this menu      '
+        VERT(M+4)  ='- exit menu           '
       ELSE
         VERT(M+2)  ='? help                '
-        VERT(M+3)  ='- exit this menu      '
+        VERT(M+3)  ='- exit menu           '
       ENDIF
 
 C Display the menu.

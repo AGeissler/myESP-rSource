@@ -13,21 +13,14 @@ C warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
 C PURPOSE. See the GNU General Public License for more
 C details.
 
-C You should have received a copy of the GNU General Public
-C License along with ESP-r. If not, write to the Free
-C Software Foundation, Inc., 59 Temple Place, Suite 330,
-C Boston, MA 02111-1307 USA.
 
-C SIFILE.F contains the following routines relating to the 
-C management of a zone shading & insolation db at simulation
-C time.
+C This file contains the following subroutines relating to the 
+C management of a zone shading & insolation file.
+C SSAVE - writes direct and diffuse shading factors to the zone
+C         shading/insolation file.
+C ISAVE - writes insolation data to the zone shading/insolation file.
 
-C SIFILE: Opens the zone shading & insolation db.
-C SSAVE:  Writes shading (direct and diffuse) data to the zone
-C         shading/insolation db.
-C ISAVE:  Writes insolation data to the zone shading/insolation db.
-
-C Format of a zone shading & insolation db:
+C Format of a zone shading & insolation file:
 C Minimum width is 24 words, normal width is nzsur(icomp) words.
 C Record 1: first 12 words holds ishd(), the analysis type for
 C           each day-month (0 no data, 1 shading only, 2 insolation
@@ -63,9 +56,9 @@ C   record (i.e. with an offset of 1), the data for surface 3
 C   commences with an offset of x=2*misur and the data for surface 5
 C   commences with an offset of y=2*(2*misur).
 
-C ************** SIFILE **************
-C Opens a zone shading & insolation db. Depending on what happend
-C with the file pass back an indicator:
+C ******************** SIFILE ********************
+C Opens a zone shading & insolation file. Depending on what happend
+C with the file, pass back an indicator:
 C  ifstat = 0  no errors and file was opened correctly
 C  ifstat = 1  new file was opened correctly
 C  ifstat = 2  no shading file name so exited
@@ -82,13 +75,13 @@ C  ifstat = 5  error writing record 4 of file
 
       common/outin/iuout,iuin,ieout
       common/filep/ifil
-
       common/ract/paction
+      common/shad0/ISIcalc,icalcD,icalcM
 
       dimension isadd(12),ishd(12),idum(ms)
       character outs*124,paction*16,fname*72
       logical xst
-      integer lnf   ! length of the file name
+      integer lnf   ! length of file name
       integer ier
 
 C Close any file already open then assign a new file.
@@ -97,8 +90,7 @@ C Close any file already open then assign a new file.
       if(isi(icomp).eq.1)then
         fname=lshad(icomp)
       else
-        call usrmsg('No zone shading/insolation db name found in the',
-     &              'model configuration file; please define.','W')
+        call usrmsg(' ','No zone S/I file in configuration file!','W')
         ifstat=2
         return
       endif
@@ -109,13 +101,12 @@ C Close any file already open then assign a new file.
         ier=0
         call efopran(ifilsi,fname,maxrec,1,ier)
         if(ier.ne.0)then
-          call edisp(iuout,
-     &           'Error opening the Zone Shading & Insolation db!')
+          call edisp(iuout,'Error opening zone S/I file!')
           ifstat=3
           return
         endif
 
-C Check file has been previously written to. If a problem occurs then
+C Check file has been previously written. If a problem occurs then
 C try again at maxrec=24 and then at ms words wide.
         irec=2
         read(ifilsi,rec=irec,iostat=istat,err=1000)inext,ns
@@ -126,7 +117,7 @@ C try again at maxrec=24 and then at ms words wide.
           call efopran(ifilsi,fname,maxrec,1,ier)
           if(ier.ne.0)then
             call edisp(iuout,
-     &       'Error opening Zone Shading & Insolation db at 24 words!')
+     &       'Error opening zone S/I file at 24 words!')
             ifstat=3
             return
           endif
@@ -138,7 +129,7 @@ C try again at maxrec=24 and then at ms words wide.
             call efopran(ifilsi,fname,maxrec,1,ier)
             if(ier.ne.0)then
               call edisp(iuout,
-     &       'Error opening Zone Shading & Insolation db at MS words!')
+     &       'Error opening zone S/I file at MS words!')
               ifstat=3
               return
             endif
@@ -146,11 +137,11 @@ C try again at maxrec=24 and then at ms words wide.
             if(inext.le.3.or.ns.ne.nzsur(icomp))goto 1003
           endif
         endif
-      else
 
-C If new file, fill records 1 and 4 with zeros so that dbt will be
+C If new file, fill records 1 and 4 with zeros so that file will be
 C interpreted later as empty.
-        ier=0
+      else
+    1   ier=0
         call efopran(ifilsi,fname,maxrec,3,ier)
         do 10 i=1,maxrec
           if(i.gt.12)then
@@ -160,7 +151,7 @@ C interpreted later as empty.
              ishd(i)=0
              isadd(i)=0
           endif
-  10    continue
+   10   continue
         irec=1
         write(ifilsi,rec=irec,iostat=istat,err=1001)(ishd(i),i=1,12),
      &                                              (isadd(i),i=1,12)
@@ -189,28 +180,29 @@ C Return after advising user.
       endif
       return
 
- 1000 call edisp(iuout,' ')
-      call edisp(iuout,'SIFILE: Zone Shading & Insolation read error!')
+ 1000 if(ISIcalc.eq.1)goto1  ! embedded S/I mode, create an empty S/I file
+      call edisp(iuout,' ')
+      call edisp(iuout,'SIFILE: zone S/I file read error!')
       ifstat=4
       return
  1001 call edisp(iuout,' ')
-      call edisp(iuout,'SIFILE: Zone Shading & Insolation write error!')
+      call edisp(iuout,'SIFILE: zone S/I file write error!')
       ifstat=5
       return
  1003 call edisp(iuout,' ')
       call edisp(iuout,
-     &   'Zone Shading & Insolation db mismatch with current model.')
+     &   'Zone S/I file mismatch with current model.')
       write(outs,'(a,i3,a,i3,a,i3)') 'Model NSUR = ',nzsur(icomp),
      &   ' db NSUR = ',ns,' db last record = ',inext
       call edisp(iuout,outs)
       return
       end
 
-C ************** SSAVE **************
+C ******************** SSAVE ********************
 C Writes the 24 hour direct and diffuse shading factors to the
-C zone shading & insolation db for all zone surfaces regardless
+C zone shading & insolation file for all zone surfaces regardless
 C of their selection for shading calculation. Is called from shdcon
-C once per day-month.
+C once per day.
 
       subroutine ssave(icomp,ier)
 #include "building.h"
@@ -230,15 +222,15 @@ C once per day-month.
 C For help messages
       character helpinsub*24 ! subroutine name
       character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
+      integer nbhelp         ! number of help lines found
 
-      helpinsub='ssave'  ! set for subroutine
+      helpinsub='ssave'      ! set for subroutine
 
-C SI db unit number.
+C S/I file unit number.
       ifilsi=ifil+3
       ier=0
 
-C Read zone shading & insolation db. If at least one matched
+C Read zone S/I file. If at least one matched
 C pair of the ishd() and isadd() arrays is not zero then there
 C is data in the file.
       irec=1
@@ -248,12 +240,12 @@ C is data in the file.
         if(ishd(i).ne.0.and.isadd(i).ne.0)goto 1
    10 continue
 
-C db has no data.
+C S/I file has no data.
       irecx=5
       isadd(mon)=irecx
       goto 2
 
-C db has data.
+C S/I file has data.
 C isadd(): record address corresponding to the start of each month.
 C ishd():  0 - nothing saved for this month;
 C          1 - shading data only;
@@ -290,7 +282,7 @@ C Shading data already exists for this month.
       call gethelptext(helpinsub,helptopic,nbhelp)
       write(outs,'(a,i2,a)') 'Shading data already saved for month ',
      &                        mon,'!' 
-      call easkok(outs,'OK to overwrite?',ok,nbhelp)
+      call easkok(outs,'Overwrite?',ok,nbhelp)
       if(.not.ok)return
 
 C For each zone surface (whether included in the shading calculation
@@ -318,20 +310,19 @@ C Return to menu.
 
 C Error handling.
  1000 write(outs,1001)irec
- 1001 format('SSAVE: Zone Shading & Insolation db error, record',i8)
+ 1001 format('SSAVE: Zone S/I file error, record',i8)
       call edisp(iuout,' ')
       call edisp(iuout,outs)
       ier=1
       return
- 1002 call edisp(iuout,'The geometry referenced in the Zone Shading')
-      call edisp(iuout,'& Insolation db does not correspond to that')
-      call edisp(iuout,'in the specified Zone Geometry File! Try')
-      call edisp(iuout,'another database.')
+ 1002 call edisp(iuout,'The geometry referenced in the zone S/I')
+      call edisp(iuout,'file does not correspond to that in the')
+      call edisp(iuout,'zone geometry file! Specify another file.')
       ier=1
       return
       end
 
-C ************** ISAVE **************
+C ******************** ISAVE ********************
 C Writes the 24 hour insolation data for all misur possible
 C internal insolated surfaces to the zone shading & insolation
 C db for each defined insolation source. Is called by inscon
@@ -356,15 +347,14 @@ C once per day-month.
       character outs*124,paction*16,month*3
       logical ok,close
 
-C For help messages
       character helpinsub*24 ! subroutine name
       character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
+      integer nbhelp         ! number of help lines found
 
       data month/'Jan','Feb','Mar','Apr','May','Jun','Jul','Aug',
      &           'Sep','Oct','Nov','Dec'/
 
-C SI db unit number.
+C S/I file unit number.
       helpinsub='isave'  ! set for subroutine
       ifilsi=ifil+3
       ier=0
@@ -378,13 +368,13 @@ C Check for contents.
         if(ishd(i).ne.0.or.isadd(i).ne.0)goto 1
    10 continue
    
-C db has no data.
+C S/I file has no data.
       irecx=5
       isadd(mon)=irecx
       multi=0
       goto 2
 
-C db has data.
+C S/I file has data.
 C isadd: record address corresponding to the start of each month.
 C ishd:  0 - nothing saved for this month;
 C        1 - shading only;
@@ -413,7 +403,7 @@ C Consistency check.
          multi=1
       endif
 
-C Confirm that there are insolation data is to be saved.
+C Confirm that there are insolation data to be saved.
     2 if(ical.eq.0)then
          call edisp(iuout,' ')
          call edisp(iuout,'No insolation data to be saved!')
@@ -435,14 +425,14 @@ C for yes).
                if(multi.eq.1)new=1
                if(paction(1:13).ne.'update_silent')then
                   write(outs,'(3a,i3)')
-     &                          'Adding db entry for ',month(mon),
+     &                          'Adding entry for ',month(mon),
      &                          ', insolation source surface ',i
                   call edisp(iuout,outs)
                endif
             else
                if(paction(1:13).ne.'update_silent')then
                   write(outs,'(3a,i3)')
-     &                          'Replacing db entry for ',month(mon),
+     &                          'Replacing entry for ',month(mon),
      &                          ', insolation source surface ',i
                   call edisp(iuout,outs)
                endif
@@ -450,7 +440,7 @@ C for yes).
          endif
    20 continue
 
-C Possibly update saved data index.
+C Update saved data index.
       if(ishdt.eq.0.or.ishdt.eq.1)then
          ishd(mon)=ishd(mon)+2
          if(multi.eq.1)new=1
@@ -459,7 +449,7 @@ C Possibly update saved data index.
          call gethelptext(helpinsub,helptopic,nbhelp)
          write(outs,'(3a)')
      &       'Insolation data already saved for month ',month(mon),'!' 
-         call easkok(outs,'OK to overwrite/ append?',ok,nbhelp)
+         call easkok(outs,'Overwrite/ append?',ok,nbhelp)
          if(.not.ok)return
       endif
 
@@ -589,15 +579,15 @@ C Write header items to capture potential changes.
 
 C Error handling.
  1000 write(outs,1001)irec
- 1001 format('ISAVE: Zone Shading & Insolation db error, record',i8)
+ 1001 format('ISAVE: Zone S/I file error, record',i8)
       call edisp(iuout,' ')
       call edisp(iuout,outs)
       ier=1
       return
  1002 call edisp(iuout,' ')
-      call edisp(iuout,'Geometry saved in Zone Shading & Insolation db')
-      call edisp(iuout,'does not correspond to that contained in the')
-      call edisp(iuout,'current zone geometry file.')
+      call edisp(iuout,'Geometry saved in zone S/I file dos not')
+      call edisp(iuout,'correspond to that contained in the zone')
+      call edisp(iuout,'geometry file.')
       ier=1
       return
       end

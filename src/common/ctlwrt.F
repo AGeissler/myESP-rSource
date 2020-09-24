@@ -46,7 +46,7 @@ C an ascii file.
       character calename*32,calentag*12,calendayname*32
 
       CHARACTER lctlf*72,ctldoc*248,daytype*12
-      character outs*248,outsd*248
+      character outs*296,outsd*296
       character DS*7,DS1*10,DE*7,DE1*10,SSTR*96,SSTR1*96,SSTR2*248
 
       IER=0
@@ -218,18 +218,18 @@ C Plant control information.
             IF(NITEMS.EQ.1)goto 60
 
 C Write control data and compact, if very long then use two lines.
-            if(NITEMS.lt.19)then
-              WRITE(outs,'(19f13.5)',IOSTAT=ios,ERR=1)
+            if(NITEMS.lt.20)then
+              WRITE(outs,'(20f12.5)',IOSTAT=ios,ERR=1)
      &          (PMISCD(II,JJ,KK,L),L=2,NITEMS)
               call SDELIM(outs,outsd,'S',IW)
               write(IUNIT,'(2x,a)')outsd(1:lnblnk(outsd))
             else
-              WRITE(outs,'(19f13.5)',IOSTAT=ios,ERR=1)
-     &          (PMISCD(II,JJ,KK,L),L=2,18)
+              WRITE(outs,'(20f12.5)',IOSTAT=ios,ERR=1)
+     &          (PMISCD(II,JJ,KK,L),L=2,19)
               call SDELIM(outs,outsd,'S',IW)
               write(IUNIT,'(2x,a)')outsd(1:lnblnk(outsd))
-              WRITE(outs,'(19f13.5)',IOSTAT=ios,ERR=1)
-     &          (PMISCD(II,JJ,KK,L),L=19,nitems)
+              WRITE(outs,'(20f12.5)',IOSTAT=ios,ERR=1)
+     &          (PMISCD(II,JJ,KK,L),L=20,nitems)
               call SDELIM(outs,outsd,'S',IW)
               write(IUNIT,'(2x,a)')outsd(1:lnblnk(outsd))
             endif

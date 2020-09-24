@@ -9,6 +9,7 @@ C 8 air gaps MGP and 16 layers ME 7.2012 updated
 C 82 zone 90 surface version 02.2017 updated - supports all exemplars
 C and thus is considered the default.
 C 82 edges per polygon version 08.2017 updated
+C 82 zone 120 surface version 03.2020 updated - supports all exemplars
 
 C Type declarations.
       integer MCOM,MCON,MTV,MV,ME,MGP,MN,MP,MDY,MT,MA,MC,MBP,MTMS
@@ -30,7 +31,7 @@ C Geometry.
       PARAMETER (MS=120)       !- Surfaces/zone (set MNSBZ in cfd.h to at least 2*MS).
       PARAMETER (MCON=3300)    !- Surfaces in model.
       PARAMETER (MTV=360)      !- Vertices/zone.
-      PARAMETER (MV=96)        !- Vertices/surface.
+      PARAMETER (MV=92)        !- Vertices/surface.
       PARAMETER (MST=MS)       !- Used with view factors.
       PARAMETER (MSM=MS+6)     !- Used with view factors.
       PARAMETER (MBL=20)       !- Base surfaces/zone.
@@ -43,7 +44,7 @@ C Construction.
       PARAMETER (ME=16)        !- Elements/construction. - 8 to 16 to support CFCs (B Lomanowski)
       PARAMETER (MN=50)        !- Nodes/construction.    - 35 to 50 to support CFCs (B Lomanowski)
       PARAMETER (MGP=8)        !- Air gaps/construction. - 3 to 8 to support CFCs (B Lomanowski)
-      PARAMETER (MMLC=250)     !- Multilayered constructions in model.
+      PARAMETER (MMLC=300)     !- Multilayered constructions in model.
       PARAMETER (MHCV=MN+ME)   !- Control volumes per construction.
 
 C Glazing.

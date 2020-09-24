@@ -13,15 +13,9 @@ C warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
 C PURPOSE. See the GNU General Public License for more
 C details.
 
-C You should have received a copy of the GNU General Public
-C License along with ESP-r. If not, write to the Free
-C Software Foundation, Inc., 59 Temple Place, Suite 330,
-C Boston, MA 02111-1307 USA.
 
-C ESP-r to Radiance driver/ translator utility.
-
-C File naming convention:  UNKNOWN - required but not yet defined,
-C blank or NONE not required and not yet defined.
+C ******************** Program e2r ********************
+C ESP-r-to-Radiance model translator and driver.
 
       program e2r
       USE START_UP      
@@ -716,9 +710,10 @@ C If user toggles trace a 2nd time then we are in detailed mode
       elseif(itc.eq.3)then
         item(20)=             't trace >> to fort.33         '
       endif
-      ITEM(21)=               '? help                        '
-      ITEM(22)=               '- quit                        '
-      NITEMS = 22
+      write(ITEM(21),'(A,i2)')'u cores: ',radcores
+      ITEM(22)=               '? help                        '
+      ITEM(23)=               '- quit module                 '
+      NITEMS = 23
 
 C If user has defined model and perhaps resized the display then
 C redraw the model image.
@@ -743,7 +738,7 @@ C diameter and centre.
         grcy=YMN+((YMX-YMN)/2.)
       endif
 
-C Use askabout to instanciate the initial help messages (2nd parameter is one).
+C Use askabout to instantiate the initial help messages (2nd parameter is one).
   20  call askabout('e2r ',1)
 
 C Present the main menu.
@@ -767,7 +762,11 @@ C Follow this with additional paragraphs.
         helptopic='e2r_additional_overview'
         call gethelptext(helpinsub,helptopic,nbhelp)
         CALL PHELPD('e2r overview',nbhelp,'-',0,0,IER)
-      elseif(INO.EQ.NITEMS-2)then
+      elseif(INO.EQ.NITEMS-2)then   ! available cores
+        CALL EASKI(radcores,' ',
+     &    'Number of computer cores for Radiance tasks',
+     &     1,'F',6,'W',2,'cores used',IER,nbhelp)
+      elseif(INO.EQ.NITEMS-3)then
 
 C Set trace level. If 3 then reset icout to file, if 2 then
 C to the console.

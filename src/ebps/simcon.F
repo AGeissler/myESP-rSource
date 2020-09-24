@@ -11,20 +11,21 @@ C details.
 
 
 C This file contains the following routines:
-C  SIMCON   Executes the required simulations.
-C  MZSIML   Sets the final simulation parameters prior to simulation. 
-C  SIMTOG   Set simulation toggles
-C  MSTTOG   Set moisture flow toggles.
-C  STMTOG   Set building construction structured mesh toggles.
-C  CFDTOG   Set CFD coupling toggles.
-C  MZSPER   Definition of simulation period.
-C  MZSIMH   Lists the current simulator parameters (dates, save option etc.)
-C  MZTRAC   Define quantities to be traced.
-C  MZINFO   Displays values of the currently set simulation parameters.
+C  SIMCON - Executes the required simulations.
+C  MZSIML - Sets the final simulation parameters prior to simulation. 
+C  SIMTOG - Set simulation toggles
+C  MSTTOG - Set moisture flow toggles.
+C  STMTOG - Set building construction structured mesh toggles.
+C  CFDTOG - Set CFD coupling toggles.
+C  MZSPER - Definition of simulation period.
+C  MZSIMH - Lists the current simulator parameters (dates, save option etc.)
+C  MZTRAC - Define quantities to be traced.
+C  MZINFO - Displays values of the currently set simulation parameters.
 
-C ******************** SIMCON
-C SIMCON sets the final parameters before executing a simulation.  MZNUMA is 
-C called the required number of times, saving results after each simulation. 
+C ******************** SIMCON ********************
+C Sets the final parameters before executing a simulation. MZNUMA is 
+C called the required number of times, saving results after each
+C simulation. 
 
       subroutine SIMCON
       
@@ -131,7 +132,6 @@ C If simulator is in silent running mode, set flag to terminate run
          return
       endif
 
-C <FMI>
 C Read FMI spec file to set FMI commons.
       if (is_FMU) then
         IUNIT=IFIL+1
@@ -144,8 +144,7 @@ C If simulator is in silent running mode, set flag to terminate run
            if ( autook ) exitok = .true.
            return
         endif  
-      endif
-C </FMI>          
+      endif          
 
 C Calculate the BASESIMP heat loss factors.
       CALL BSFCCTL
@@ -154,9 +153,8 @@ C Calculate the time-invariant variables for the AIM-2 infiltration model.
       IF( iAIM2==1 ) THEN
         CALL AIM2_SETVARS
       ENDIF
-c
-c Initialization for Mechanical ventilation systems
-c
+
+c Initialisation for Mechanical ventilation systems
       If ( iMech .eq. 1 ) Call MECH_VENT_INIT ( )
 
 C Are uncertainties defined? If senrns returns with ier=2
@@ -171,12 +169,10 @@ C then user has selected just to run the base case.
         endif
       endif
 
-C Reimpose any user-specified simulation toggles as needed 
-      if ( bUserGAM ) GAM = fUserGAM        ! User-specified-implicitness.
-      if ( bUserSolar ) ISOLAR = iUserSolar ! User-specified-solar-processing 
-      
-      if ( bUserPltSolvConfig ) then 
-      
+C Reimpose any user-specified simulation toggles as needed.
+      if ( bUserGAM ) GAM = fUserGAM        ! equation implicitness
+      if ( bUserSolar ) ISOLAR = iUserSolar ! solar processing   
+      if ( bUserPltSolvConfig ) then   
         MAXITP                   = iUserMAXITP    
         itrclp                   = iUserITRCLP    
         PERREL                   = fUserPERREL    
@@ -184,7 +180,6 @@ C Reimpose any user-specified simulation toggles as needed
         PERFLX                   = fUserPERFLX    
         PERMFL                   = fUserPERMFL    
         fH2_iteration_tolerance  = fUserH2iterTol 
-      
       endif  
       
 C Run the necessary number of simulations.
@@ -268,27 +263,29 @@ C << place holder for menu option o. >>
           return
         endif
 
-C No results database for save level 5.
-        if (LSAVE .EQ. 5 ) return
+C No results file for save level 5.
+        if (LSAVE.EQ.5)return
 
-
+        call edisp(iuout,' ')
         CALL MZSAVE(ISIMN1,ISIMN2)
         if(INDCFG.eq.1)then
-          write(outs,'(A,I3)')' Building library simulation no.',ISIMN1
+          write(outs,'(A,I3)')'Building results file, saved result-set'
+     &                                                      ,ISIMN1
           call edisp(iuout,outs)
         elseif(INDCFG.eq.2)then
-          write(outs,'(A,I3)')' Plant library simulation no.',ISIMN2
+          write(outs,'(A,I3)')'Plant results file, saved result-set'
+     &                                                      ,ISIMN2
           call edisp(iuout,outs)
         elseif(INDCFG.eq.3)then
           write(outs,1870)ISIMN1
- 1870     format(' Building library simulation no.',I3,' and')
+ 1870     format('Building results file, saved result-set',I3,' and')
           if(endless.or.issilient)then
             continue
           else
             call edisp(iuout,outs)
           endif
           write(outs,1871)ISIMN2
- 1871     format(' Plant library simulation no.',I3)
+ 1871     format('Plant results file, saved result-set',I3)
           if(endless.or.issilient)then
             continue
           else
@@ -296,17 +293,9 @@ C No results database for save level 5.
           endif
         endif
         if (ISIM.le.1.or.ISIM.eq.NRSIM) then
-          call edisp(iuout,' ')
-          write(outs,1872)ISD1,ISM1
- 1872     format(' Results saved for the period from day',I3,
-     &                                           ' of month',I3)
-          if(endless.or.issilient)then
-            continue
-          else
-            call edisp(iuout,outs)
-          endif
-          write(outs,1873)ISD2,ISM2
- 1873     format(32X,'to day',I3,' of month',I3)
+          write(outs,1872)ISD1,ISM1,ISD2,ISM2
+ 1872     format('     for period: day',I3,' month',I3,
+     &                        ' to day',I3,' month',I3)
           if(endless.or.issilient)then
             continue
           else
@@ -581,7 +570,7 @@ C simulator parameter file.
           ino=7   ! sensitive to menu layout
         endif
       else
-        CALL EMENU('Simulation',ITEM,NITMS,INO)
+        CALL EMENU('Simulation control',ITEM,NITMS,INO)
       endif
 
 C Results db name.
@@ -742,8 +731,9 @@ C Unknown.
 
       END
 
-C ************ SIMTOG
-C Set simulation toggles.
+C ******************** SIMTOG ********************
+C Set simulation control toggles.
+
       subroutine simtog
 #include "building.h"
 #include "geometry.h"
@@ -765,7 +755,8 @@ C Set simulation toggles.
       COMMON/FFN/IFLWN,ICFFS(MPCON)
       COMMON/PITER/MAXITP,PERREL,PERTMP,PERFLX,PERMFL,itrclp,
      &             ICSV(MPNODE,MPVAR),CSVI(MPNODE,MPVAR)
-C Tolerance for iteration of hydrogen flow matrix 
+
+C Tolerance for iteration of hydrogen flow matrix.
       common/PITER_H2/fH2_iteration_tolerance
       real fH2_iteration_tolerance
 
@@ -808,7 +799,7 @@ C  zSWA - shortwave absorption (W).
       common/ACTDOM/CFDOK
       logical CFDOK
 
-C Treatment of solar radiation data in weather file
+C Treatment of solar radiation data in weather file.
 C ESP-r operates on hourly-centered data. That is, the amount of solar
 C irradiance at the recorded hour is the instantaneous irradiance at the
 C hour. In Canadian Weather for Energy Calculations (CWEC) files, solar
@@ -818,20 +809,19 @@ C whether solar radiation data in the weather file is hour-centered
 C (default) or half-hour centered.
 C The flag can be set in the .cfg file or within bps in the 
 C 'simulation toggles' menu.
-
       common/CWEC_SOL/iSlr_half_hr_flg
-      integer iSlr_half_hr_flg     !- flag indicating if solar radiation data in weather file
-                                   !- is hour-centered (default) or half-hour centered.
-                                   !- 0 = hour-centered; 1 = half-hour centered.
+      integer iSlr_half_hr_flg     ! if 0 then radiation data in weather file
+                                   ! is hour-centered (default); if 1 half-hour centered.
 
-      
-      common/EVCOOL/iflgevapC(mcom) !only modifies wet bulb temp (more precisely: the indoor air humidity ratio)
-      integer iflgevapC             ! when equals 1, it makes the indoor wet bulb temp = outdoor wet bulb temperature    
+      common/EVCOOL/iflgevapC(mcom) ! if 1, makes the indoor wet bulb temp = outdoor wet
+                                    ! bulb temperature (more precisely: the indoor air
+                                    ! humidity ratio)
+      integer iflgevapC    
       
       dimension SALT(7),IVALS(5),IVAL(MCOM),HCALT(15),IHCVAL(15)
 
 
-c This common block is used to define the sky temperature calculation method
+C Used to define the sky temperature calculation method.
       COMMON/EXLONGWV/iExt_longwave_flg
       integer iExt_longwave_flg    ! 0 = Martin & Berdahl (1984);
                                    ! 1 = Clarke ($7.5.4 JC book, 2nd edition, 2001);
@@ -848,80 +838,79 @@ c This common block is used to define the sky temperature calculation method
       logical VTSOL
       integer NITMS,INO  ! max items and current menu item
 
-C For help messages
       character helpinsub*24   ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
+      character helptopic*24   ! string (unique) for topic
+      integer nbhelp           ! number of help lines found
 
       helpinsub='simtog'  ! set for cfiles
 
 C Make up strings for the current set of toggles.
   92  ino= -4
       if(IDAVER.eq.0)then
-        ITEMG(1)=   'a Timestep averaging >> ON              '
+        ITEMG(1)=   'a timestep averaging >> ON              '
       elseif(IDAVER.eq.1)then
-        ITEMG(1)=   'a Timestep averaging >> OFF             '
+        ITEMG(1)=   'a timestep averaging >> OFF             '
       endif
       WRITE(ITEMG(2),'(A,F5.2)')
-     &              'b Bldng eqns implicitness degree: ',fUserGAM
+     &              'b bldng eqns implicitness degree: ',fUserGAM
       if(IMPEXP.eq.1)then
-        ITEMG(3)=   'c Plant equations    >> implicit        '
+        ITEMG(3)=   'c plant equations    >> implicit        '
       elseif(IMPEXP.eq.2)then
-        ITEMG(3)=   'c Plant equations    >> mixed impl/expl '
+        ITEMG(3)=   'c plant equations    >> mixed impl/expl '
       elseif(IMPEXP.eq.3)then
-        ITEMG(3)=   'c Plant equations    >> time-const depnd'
+        ITEMG(3)=   'c plant equations    >> time-const depnd'
       elseif(IMPEXP.eq.4)then
-        ITEMG(3)=   'c Plant equations    >> steady state    '
+        ITEMG(3)=   'c plant equations    >> steady state    '
       endif
       if(iUserSolar.eq.0)then
-        ITEMG(4)=   'd Solar calculations >> processing on   '
+        ITEMG(4)=   'd solar calculations >> processing on   '
       elseif(iUserSolar.eq.1)then
-        ITEMG(4)=   'd Solar calculations >> processing off  '
+        ITEMG(4)=   'd solar calculations >> processing off  '
       endif
       if(ISKYFL.eq.-1)then
-        ITEMG(5)=   'e Sky radiation method >> Isotropic     '
+        ITEMG(5)=   'e sky radiation method >> Isotropic     '
       elseif(ISKYFL.eq.0)then
-        ITEMG(5)=   'e Sky radiation method >> Klucher       '
+        ITEMG(5)=   'e sky radiation method >> Klucher       '
       elseif(ISKYFL.eq.1)then
-        ITEMG(5)=   'e Sky radiation method >> Muneer        '
+        ITEMG(5)=   'e sky radiation method >> Muneer        '
       elseif(ISKYFL.eq.2)then
-        ITEMG(5)=   'e Sky radiation method >> Perez 1987    '
+        ITEMG(5)=   'e sky radiation method >> Perez 1987    '
       elseif(ISKYFL.eq.3)then
-        ITEMG(5)=   'e Sky radiation method >> Perez 1990    '
+        ITEMG(5)=   'e sky radiation method >> Perez 1990    '
       endif
-      write(ITEMG(6),'(a32,F7.2)')'f Building initial temperature= ',
+      write(ITEMG(6),'(a32,F7.2)')'f building initial temperature= ',
      &                          Tinitial
       ITEMG(7)=     '  ________________________________      '
-      ITEMG(8)=     'g Mass flow parameters                  '
+      ITEMG(8)=     'g mass flow parameters                  '
       if(IPSMOD.eq.1)then
-        ITEMG(9)=   'h Mass flow stack press >> sending node'
+        ITEMG(9)=   'h mass flow stack press >> sending node'
       elseif(IPSMOD.eq.2)then
-        ITEMG(9)=   'h Mass flow stack press >> avg of nodes'
+        ITEMG(9)=   'h mass flow stack press >> avg of nodes'
       elseif(IPSMOD.eq.0)then
-        ITEMG(9)=   'h Mass flow stack press >> NA          '
+        ITEMG(9)=   'h mass flow stack press >> NA          '
       endif
       if(MSLVTP.eq.1)then
-        ITEMG(10)=  'i Mass flow solution >> Gaussian        '
+        ITEMG(10)=  'i mass flow solution >> Gaussian        '
       elseif(MSLVTP.eq.2)then
-        ITEMG(10)=  'i Mass flow solution >> LU decomposition'
+        ITEMG(10)=  'i mass flow solution >> LU decomposition'
       elseif(MSLVTP.eq.0)then
-        ITEMG(10)=  'i Mass flow solution >> NA              '
+        ITEMG(10)=  'i mass flow solution >> NA              '
       endif
       if(MFTRAC.eq.-1)then
-        ITEMG(11)=  'j Mass flow trace >> silent             '
+        ITEMG(11)=  'j mass flow trace >> silent             '
       elseif(MFTRAC.eq.0)then
-        ITEMG(11)=  'j Mass flow trace >> iterations only    '
+        ITEMG(11)=  'j mass flow trace >> iterations only    '
       elseif(MFTRAC.eq.1)then
-        ITEMG(11)=  'j Mass flow trace >> data on worst node '
+        ITEMG(11)=  'j mass flow trace >> data on worst node '
       elseif(MFTRAC.eq.2)then
-        ITEMG(11)=  'j Mass flow trace >> data on all nodes  '
+        ITEMG(11)=  'j mass flow trace >> data on all nodes  '
       elseif(MFTRAC.eq.3)then
-        ITEMG(11)=  'j Mass flow trace >> all nodes + solver '
+        ITEMG(11)=  'j mass flow trace >> all nodes + solver '
       endif
       if(MFBSNC.eq.0)then
-        ITEMG(12)=  'k Mass flow timestep >> 1 per hour      '
+        ITEMG(12)=  'k mass flow timestep >> 1 per hour      '
       elseif(MFBSNC.eq.1)then
-        ITEMG(12)=  'k Mass flow timestep >> 1 per zone_step '
+        ITEMG(12)=  'k mass flow timestep >> 1 per zone_step '
       endif
       ITEMG(13)=    '  ________________________________      '
       if(CFDOK)then
@@ -930,59 +919,59 @@ C Make up strings for the current set of toggles.
         ITEMG(14)=  'l CFD options (NA)             '
       endif
       if(ICLMFL.eq.0) then
-        ITEMG(15)=  'm Climate interpolation >> ON           '
+        ITEMG(15)=  'm weather interpolation >> ON           '
       elseif(ICLMFL.eq.1) then
-        ITEMG(15)=  'm Climate interpolation >> OFF          '
+        ITEMG(15)=  'm weather interpolation >> OFF          '
       endif
-      ITEMG(16)=    'n Plant solution method:                '
+      ITEMG(16)=    'n plant solution method:                '
       ITEMG(17)=    '  ________________________________      '
       if(ispmxist.eq.0) then
-        ITEMG(18)=  'o Special materials >> OFF              '
+        ITEMG(18)=  'o special materials >> OFF              '
       elseif(ispmxist.gt.0)then
-        ITEMG(18)=  'o Special materials >> ON               '
+        ITEMG(18)=  'o special materials >> ON               '
       endif
       IF(IENTXIST.GT.0) then
-        ITEMG(19)=  'p Power flow parameters                 '
+        ITEMG(19)=  'p power flow parameters                 '
       ELSE
-        ITEMG(19)=  'p Power flow parameters (NA)            '
+        ITEMG(19)=  'p power flow parameters (NA)            '
       ENDIF
       ITEMG(20)=    '  ________________________________      '
       if(MSTROK)then
-        ITEMG(21)=  'r Moisture flow solution parameters     '
+        ITEMG(21)=  'r moisture flow solution parameters     '
       else
-        ITEMG(21)=  'r Moisture flow solution parameters (NA)'
+        ITEMG(21)=  'r moisture flow solution parameters (NA)'
       endif
       if(IndxSt.GT.0)then
-        ITEMG(22)=  'v Structured mesh soln parameters     '
+        ITEMG(22)=  'v structured mesh soln parameters     '
       else
-        ITEMG(22)=  'v Structured mesh soln parameters (NA)'
+        ITEMG(22)=  'v structured mesh soln parameters (NA)'
       endif
-      ITEMG(23)=    's Convection methods (inside)           '
-      ITEMG(24)=    't Convection methods (external)         '
+      ITEMG(23)=    's convection methods (inside)           '
+      ITEMG(24)=    't convection methods (external)         '
       ITEMG(25)=    '  ________________________________      '
-      ITEMG(26)=    'u Non air filled zones                  '
+      ITEMG(26)=    'u non air filled zones                  '
       ITEMG(27)=    '  ________________________________      '
-      ITEMG(28)=    'v Vertical solar radiation              '
+      ITEMG(28)=    'v vertical solar radiation              '
       ITEMG(29)=    '  ________________________________      '
       if ( iSlr_half_hr_flg .eq. 0 ) then
-        ITEMG(30)=  'w Solar radiation data >> hour centered '
+        ITEMG(30)=  'w solar radiation data >> hour centered '
       else
-        ITEMG(30)=  'w Solar radiation data >> half-hour cent'
+        ITEMG(30)=  'w solar radiation data >> half-hour cent'
       endif
       if(iExt_longwave_flg.eq.0)then
-        ITEMG(31)=  'x Ext. longwave rad >> Martin & Berdahl '
+        ITEMG(31)=  'x ext. longwave rad >> Martin & Berdahl '
       elseif(iExt_longwave_flg.eq.1)then
-        ITEMG(31)=  'x Ext. longwave rad >> Clarke           '
+        ITEMG(31)=  'x ext. longwave rad >> Clarke           '
       elseif(iExt_longwave_flg.eq.2)then
-        ITEMG(31)=  'x Ext. longwave rad >> Cole             '
+        ITEMG(31)=  'x ext. longwave rad >> Cole             '
       elseif(iExt_longwave_flg.eq.3)then
-        ITEMG(31)=  'x Ext. longwave rad >> Czeplak & Kasten '
+        ITEMG(31)=  'x ext. longwave rad >> Czeplak & Kasten '
       elseif(iExt_longwave_flg.eq.4)then
-        ITEMG(31)=  'x Ext. longwave rad >>  Swinbank-clear  '
+        ITEMG(31)=  'x ext. longwave rad >>  Swinbank-clear  '
       elseif(iExt_longwave_flg.eq.5)then
-        ITEMG(31)=  'x Ext. longwave rad >>  Swinbank-bldng  '
+        ITEMG(31)=  'x ext. longwave rad >>  Swinbank-bldng  '
       endif
-      ITEMG(32)=    'y Indoor TWB = Outdoor TWB '    
+      ITEMG(32)=    'y indoor TWB = outdoor TWB '    
       ITEMG(33)=    '  ________________________________      '      
       ITEMG(34)=    '? help                                  '
       ITEMG(35)=    '- exit to simulation menu               '
@@ -992,12 +981,12 @@ C Help text for this menu.
       helptopic='sim_toggles_menu'
       call gethelptext(helpinsub,helptopic,nbhelp)
 
-      CALL EMENU(' toggles',ITEMG,NITMS,INO)
+      CALL EMENU('Simulation control',ITEMG,NITMS,INO)
 
       if(INO.eq.1)then
 
 C Averaging on/off.
-  126   CALL EASKI(IDAVER,' ','Results averaging  0) On, 1) Off ? ',
+  126   CALL EASKI(IDAVER,' ','Results averaging 0) On or 1) Off? ',
      &    0,'F',1,'F',0,'Results averaging iq 14',IER,nbhelp)
         IF(IER.NE.0)GOTO 126
         call tstamp('>','SIM: edit timestep averaging')
@@ -1006,7 +995,7 @@ C Averaging on/off.
 C Zone side equations implicitness degree.
 
         CALL EASKR(fUserGAM,' ',
-     &        'Zone side equations implicitness degree: ',
+     &        'Building equations implicitness degree?',
      &         0.,'F',1.,'F',0.5,' implicitness degree',IER,nbhelp)
 
         bUserGAM = .true. 
@@ -1015,21 +1004,20 @@ C Zone side equations implicitness degree.
 
 C Plant components state-space equation types.
   131   call edisp(iuout,' ')
-        call edisp(iuout,'Plant state-space equation type from ')
-        call edisp(iuout,' ')
-        call edisp(iuout,'   implicit                          (1)')
-        call edisp(iuout,'   mixed                             (2)')
-        call edisp(iuout,'   time constant dependent (default) (3)')
-        call edisp(iuout,'   steady state                      (4)')
+        call edisp(iuout,'Plant equation type from ')
+        call edisp(iuout,'  implicit                          (1)')
+        call edisp(iuout,'  mixed                             (2)')
+        call edisp(iuout,'  time constant dependent (default) (3)')
+        call edisp(iuout,'  steady state                      (4)')
         call edisp(iuout,' ')
 
-        CALL EASKI(IMPEXP,' ','Plant equation type: (1-4)',
+        CALL EASKI(IMPEXP,' ','Plant equation type (1-4)?',
      &         1,'F',4,'F',3,'plant equation type iq 15',IER,nbhelp)
         IF(IER.NE.0)GOTO 131
         call tstamp('>','SIM: edit plant equation type')
 
         IF(IMPEXP.EQ.2.OR.IMPEXP.EQ.3) THEN
-          CALL EASKR(RATIMP,' ','Implicit portion of ratio: ',
+          CALL EASKR(RATIMP,' ','Implicit portion of ratio?',
      &       0.0,'F',1.0,'F',0.5,'implicit explicit ratio',IER,nbhelp)
         ENDIF
 
@@ -1038,7 +1026,7 @@ C Plant components state-space equation types.
 C Solar ON/OFF option.
 
   191   CALL EASKI(iUserSolar,' ',
-     &    'Solar processing  0) On,  1) Off ? ',
+     &    'Solar processing 0) On or 1) Off?',
      &    0,'F',1,'F',0,'Solar processing is 23',IER,nbhelp)
   
         bUserSolar = .true.
@@ -1048,24 +1036,24 @@ C Solar ON/OFF option.
       elseif(INO.eq.5)then
 
 C Set required sky model: Klucher (0) or Muneer (1) etc.
-  301   CALL EASKI(ISKYFL,'Sky model: Perez 1990 (default)',
-     &' -1)Isotropic, 0)Klucher, 1)Muneer, 2)Perez 1987, 3)Perez 1990?',
+  301   CALL EASKI(ISKYFL,'Sky model?',
+     &' -1)Isotropic, 0)Klucher, 1)Muneer, 2)Perez 1987, 3)Perez 1990',
      &    -1,'F',3,'F',3,'Sky model',IER,nbhelp)
         IF(IER.NE.0)goto 301
         call tstamp('>','bps: edit sky model')
       elseif(INO.eq.6)then
 
 C Building initial temperature.
-        CALL EASKR(Tinitial,' ','Building initial temperature:',
+        CALL EASKR(Tinitial,' ','Building initial temperature?',
      &         0.,'-',1.,'-',15.0,' temperature ',IER,nbhelp)
       elseif(INO.eq.8)then
 
 C Alter mass flow solver iteration parameters, but
 C always synchronize corresponding plant solution iteration
-C parameters except for MAXITP / MAXITF
+C parameters except for MAXITP / MAXITF.
         IF(IAIRN.EQ.0.AND.IFLWN.EQ.0) THEN
           call edisp(iuout,
-     &      ' No fluid flow file active; menu selection invalid.')
+     &      'No fluid flow file active, menu selection invalid.')
         else
           call tstamp('>','bps: edit network flow solver parameters')
           CALL MFMODE(1)
@@ -1077,7 +1065,7 @@ C parameters except for MAXITP / MAXITF
 C Use different stack pressure assumptions.?
         IF(IAIRN.EQ.0.AND.IFLWN.EQ.0) THEN
           call edisp(iuout,
-     &      ' No fluid flow file active; menu selection invalid.')
+     &      'No fluid flow file active, menu selection invalid.')
         else
           call tstamp('>','bps: edit network stack assumptions')
           CALL MFMODE(2)
@@ -1087,7 +1075,7 @@ C Use different stack pressure assumptions.?
 C Use a different matrix solver?
         IF(IAIRN.EQ.0.AND.IFLWN.EQ.0) THEN
           call edisp(iuout,
-     &      ' No fluid flow file active; menu selection invalid.')
+     &      'No fluid flow file active, menu selection invalid.')
         else
           call tstamp('>','bps: edit network matrix solver')
           CALL MFMODE(3)
@@ -1097,7 +1085,7 @@ C Use a different matrix solver?
 C Mass flow trace.
         IF(IAIRN.EQ.0.AND.IFLWN.EQ.0) THEN
           call edisp(iuout,
-     &      ' No fluid flow file active; menu selection invalid.')
+     &      'No fluid flow file active, menu selection invalid.')
         else
           CALL MFMODE(4)
         endif
@@ -1107,16 +1095,16 @@ C Reset fluid flow calculation & zone time-step synchronisation
 C This is over-ruled in case of plant fluid simulation
         IF(IAIRN.EQ.0.AND.IFLWN.EQ.0) THEN
           call edisp(iuout,
-     &     ' No fluid flow file active: Menu selection invalid.')
+     &     'No fluid flow file active, menu selection invalid.')
         ELSE IF(IFLWN.EQ.1) THEN
           call edisp(iuout,
-     &     ' Plant fluid flow simulation active; fluid flow')
+     &     'Plant fluid flow simulation active; fluid flow')
           call edisp(iuout,
-     &     ' simulation & zone time-step synchronisation')
-          call edisp(iuout,' cannot be reset !')
+     &     'simulation & zone time-step synchronisation')
+          call edisp(iuout,'cannot be reset!')
         ELSE
-          CALL EASKAB(' Fluid flow simulation: ',' ',
-     &      'once per hour','every zone time-step',IW,nbhelp)
+          CALL EASKAB(' ','Fluid flow simulation:',
+     &      'per hour','per zone time-step',IW,nbhelp)
           MFBSNC=IW-1
         ENDIF
       elseif(INO.eq.14)then
@@ -1129,14 +1117,14 @@ C This is over-ruled in case of plant fluid simulation
         call tstamp('>','bps: edit climate interpolation')
         helptopic='toggle_clm_interpolation'
         call gethelptext(helpinsub,helptopic,nbhelp)
-        CALL EASKAB(' ','Climate interpolation:','On','Off',IW,nbhelp)
+        CALL EASKAB(' ','Weather interpolation:','on','off',IW,nbhelp)
         ICLMFL=IW-1
       elseif(INO.eq.16)then
 
 C Plant solution technique.
   308   helptopic='toggle_plant_solver'
         call gethelptext(helpinsub,helptopic,nbhelp)
-        CALL EASKI(IPMSLV,' ',' Plant solver type?',
+        CALL EASKI(IPMSLV,' ','Plant solver type?',
      &    1,'F',3,'F',2,'solver type',IER,nbhelp)
         IF(IER.NE.0) GOTO 308
         
@@ -1227,7 +1215,7 @@ C alternatives and allow one (only) to be selected.
 
         SALT(1)='Alamdari and Hammond (default) '
         SALT(2)='Khalifa & Marshall, radiator located under window '
-        SALT(3)='Khalifa & Marshall, NO radiator under window  '
+        SALT(3)='Khalifa & Marshall, no radiator under window  '
         SALT(4)='Halcrow, time invariant low    '
         SALT(5)='Halcrow, time invariant high   '
         SALT(6)='CIBSE guide, time invariant    '
@@ -1322,7 +1310,7 @@ C << consider a different approach
         do 143 iiii=1,mzs
           inpic=1
           call epicks(inpic,IVAL,' ',
-     &      'Which zone for vertical radiation?',
+     &      'Which zone has vertical radiation?',
      &      12,ncomp,zname,' zone list',IER,nbhelp)
           if(inpic.eq.0)goto 144
           ipkzon(iiii)=IVAL(1)
@@ -1433,24 +1421,24 @@ C For help messages
 
   10  INO=-4
       WRITE(ITEMG(1),'(A,F5.2)')
-     &              'a Implicitness degree        :',GAMm
+     &              'a implicitness degree        :',GAMm
       WRITE(ITEMG(2),'(A,F5.2)')
-     &              'b Pressure linear relaxation :',RLXln
+     &              'b pressure linear relaxation :',RLXln
       WRITE(ITEMG(3),'(A,F5.2)')
-     &              'c Fluid linear relaxation    :',RLXlnF
+     &              'c fluid linear relaxation    :',RLXlnF
       WRITE(ITEMG(4),'(A,F5.2)')
-     &              'd Temp. linear relaxation    :',RLXlnT
+     &              'd temp. linear relaxation    :',RLXlnT
       WRITE(ITEMG(5),'(A,F7.1)')
-     &              'e False time step relaxation :',DTfalse
+     &              'e false time step relaxation :',DTfalse
       WRITE(ITEMG(6),'(A,I5)')
-     &              'f Maximum iterations         :',MITRm
+     &              'f maximum iterations         :',MITRm
       WRITE(ITEMG(7),'(A,F5.2)')
-     &              'g Pressure stopping criterion:',RITRMp
+     &              'g pressure stopping criterion:',RITRMp
       WRITE(ITEMG(8),'(A,F8.5)')
-     &              'h Fluid stopping criterion   :',RITRMf
+     &              'h fluid stopping criterion   :',RITRMf
       ITEMG(9)=     '  ________________________________      '
-      ITEMG(10)=     '? help                                  '
-      ITEMG(11)=    '- exit to simulation toggles menu       '
+      ITEMG(10)=    '? help                                  '
+      ITEMG(11)=    '- exit menu                             '
       NITMS=11
 
 C Help text for this menu.
@@ -1461,17 +1449,17 @@ C Help text for this menu.
       if(INO.eq.1)then
 
 C Moisture flow equations implicitness degree.
-        CALL EASKR(GAMm,' ','implicitness degree?',
+        CALL EASKR(GAMm,' ','Implicitness degree?',
      &    0.,'F',1.,'F',0.5,'implicitness degree',IER,nbhelp)
       elseif(INO.eq.2)then
 
 C Moisture flow equations pressure linear relaxation factor.
-        CALL EASKR(RLXln,' ','pressure linear relaxation factor?',
+        CALL EASKR(RLXln,' ','Pressure linear relaxation factor?',
      &    0.,'F',2.,'F',0.1,'relaxation factor',IER,nbhelp)
       elseif(INO.eq.3)then
 
 C Moisture flow equations fluid linear relaxation factor.
-        CALL EASKR(RLXlnF,' ','fluid linear relaxation factor?',
+        CALL EASKR(RLXlnF,' ','Fluid linear relaxation factor?',
      &    0.,'F',2.,'F',0.1,'relaxation factor',IER,nbhelp)
       elseif(INO.eq.4)then
 
@@ -1481,23 +1469,23 @@ C Temperature linear relaxation factor.
       elseif(INO.eq.5)then
 
 C Moisture flow equations false time step relaxation factor.
-        CALL EASKR(DTfalse,' ','false time step?',
+        CALL EASKR(DTfalse,' ','False time step?',
      &    0.,'F',3600.,'-',3600.,'false time step',IER,nbhelp)
       elseif(INO.eq.6)then
 
 C Maximum iterations moisture flow equations.
-        CALL EASKI(MITRm,' ','maximum iterations?',
+        CALL EASKI(MITRm,' ','Maximum iterations?',
      &    2,'F',1000,'W',200,'maximum iterations',IER,nbhelp)
       elseif(INO.eq.7)then
 
 C Pressure stopping criterion moisture flow equations.
-        CALL EASKR(RITRMp,' ','pressure stopping criterion?',
+        CALL EASKR(RITRMp,' ','Pressure stopping criterion?',
      &    0.01,'W',10.,'W',0.1,'pressure stopping criterion',
      &    IER,nbhelp)
       elseif(INO.eq.8)then
 
 C Fluid stopping criterion moisture flow equations.
-        CALL EASKR(RITRMf,' ','fluid stopping criterion?',
+        CALL EASKR(RITRMf,' ','Fluid stopping criterion?',
      &    0.00001,'W',1.0,'W',0.001,'fluid stopping criterion',
      &    IER,nbhelp)
       elseif(INO.eq.(NITMS-1))then
@@ -1518,6 +1506,7 @@ C Redisplay the moisture flow solution parameters menu.
 
 C ************ STMTOG
 C Set building construction structured mesh toggles.
+
       subroutine STMTOG
 
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
@@ -1537,31 +1526,31 @@ C For help messages
 
    10 INO=-4
       IF(InSSlv.EQ.1)THEN
-        ITEMG(1)=   'a Structured mesh solver >> direct'
+        ITEMG(1)=   'a structured mesh solver >> direct'
         ITEMG(2)=   'b linear relaxation factor : (N/A)'
-        ITEMG(3)=   'c Maximum iterations       : (N/A)'
-        ITEMG(4)=   'd Temp. stopping criterion : (N/A)'
-        ITEMG(5)=   'e Plant stopping criterion : (N/A)'
+        ITEMG(3)=   'c maximum iterations       : (N/A)'
+        ITEMG(4)=   'd temp. stopping criterion : (N/A)'
+        ITEMG(5)=   'e plant stopping criterion : (N/A)'
       ELSE
-        ITEMG(1)=   'a Structured mesh solver >> iterative'
+        ITEMG(1)=   'a structured mesh solver >> iterative'
         WRITE(ITEMG(2),'(A,F5.2)')
      &              'b linear relaxation factor :',RLnrSD
         WRITE(ITEMG(3),'(A,I5)')
-     &              'c Maximum iterations       :',MSItrn
+     &              'c maximum iterations       :',MSItrn
         WRITE(ITEMG(4),'(A,F8.5)')
-     &              'd Temp. stopping criterion :',TSCrSM
+     &              'd temp. stopping criterion :',TSCrSM
         WRITE(ITEMG(5),'(A,F8.5)')
-     &              'e Plant stopping criterion :',QSCrSM
+     &              'e plant stopping criterion :',QSCrSM
       ENDIF
       ITEMG(6)=     '  ________________________________      '
       IF(InSvST.EQ.0)THEN
-        ITEMG(7)=     's Save mesh temperatures >> OFF '
+        ITEMG(7)=     's save mesh temperatures >> OFF '
       ELSE
-        ITEMG(7)=     's Save mesh temperatures >> dump3d'
+        ITEMG(7)=     's save mesh temperatures >> dump3d'
       ENDIF
       ITEMG(8)=     '  ________________________________      '
       ITEMG(9)=     '? help                                  '
-      ITEMG(10)=    '- exit to simulation toggles menu       '
+      ITEMG(10)=    '- exit menu                             '
       NITMS=10
 
 C Help text for this menu.
@@ -1580,23 +1569,23 @@ C Solver index.
       elseif(INO.eq.2.AND.InSSlv.EQ.2)then
 
 C linear relaxation factor.
-        CALL EASKR(RLnrSD,' ','structured mesh relaxation factor?',
+        CALL EASKR(RLnrSD,' ','Structured mesh relaxation factor?',
      &    0.,'F',2.,'F',1.0,'relaxation factor',IER,nbhelp)
       elseif(INO.eq.3.AND.InSSlv.EQ.2)then
 
 C Maximum iterations.
-        CALL EASKI(MSItrn,' ','maximum iterations?',
+        CALL EASKI(MSItrn,' ','Maximum iterations?',
      &    2,'F',1000,'W',200,'maximum iterations',IER,nbhelp)
       elseif(INO.eq.4.AND.InSSlv.EQ.2)then
 
 C Temperature stopping criterion.
-        CALL EASKR(TSCrSM,' ','temperature stopping criterion?',
+        CALL EASKR(TSCrSM,' ','Temperature stopping criterion?',
      &    0.000001,'W',1.,'W',0.00001,'temp. stopping criterion',
      &    IER,nbhelp)
       elseif(INO.eq.5.AND.InSSlv.EQ.2)then
 
 C Plant power stopping criterion.
-        CALL EASKR(TSCrSM,' ','plant power stopping criterion?',
+        CALL EASKR(TSCrSM,' ','Plant power stopping criterion?',
      &    0.00001,'W',10.,'W',0.1,'plant stopping criterion',IER,nbhelp)
       elseif(INO.eq.7)then
 
@@ -1701,12 +1690,12 @@ C Adjust end date for multi-year simulation
       endif
     8 if(.not.autook) then
         if ( bMY_sim_enabled ) then
-C Multi-year simulation prompt    
-          call eAskPerYear('Simulation period?',isds,isdf,
+C Multi-year simulation prompt.   
+          call eAskPerYear('Simulation period',isds,isdf,
      &                   iMY_start_year,iMY_end_year,ifday,ier)
         else
-C Single year simulation prompt
-          call eAskPer('Simulation period?',isds,isdf,ifday,ier)
+C Single year simulation prompt.
+          call eAskPer('Simulation period',isds,isdf,ifday,ier)
         endif ! <- matches if ( bMY_sim_enabled )...
         IF(IER.NE.0) GOTO 14
       endif ! <- matches if (.not. autook)     
@@ -1808,14 +1797,12 @@ C the cfd assessments some of common block CFSEUP will have
 C been filled in.
 
       subroutine askaboutcfd
-
 #include "building.h"
 #include "cfd.h"
+
       COMMON/SET1/IYEAR,IBDOY,IEDOY,IFDAY,IFTIME
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/PERS/ISD1,ISM1,ISD2,ISM2,ISDS,ISDF,NTSTEP
-      
-      integer ncomp,ncon
       common/C1/NCOMP,NCON
       
 C Active domain common.
@@ -1907,11 +1894,11 @@ C values have been set if ICFDYS & ICFDYF are still zero.
 
         if (.not.cfdperok) then
           IFDAY=1
-  40      call EASKPER('Period when CFD is active:',
+  40      call EASKPER('CFD active period',
      &      ICFDYS,ICFDYF,IFDAY,IER)
           if (ICFDYF.lt.ICFDYS) then
             call edisp(iuout,' ')
-            call edisp(iuout,' Start/ finish days out of order!')
+            call edisp(iuout,'Start/ finish days out of order!')
             goto 40
           endif
           if (ICFDYS.lt.ISDS) then
@@ -1929,10 +1916,10 @@ C values have been set if ICFDYS & ICFDYF are still zero.
 
 C Ask about start and stop times.
   50      write(outs,'(a)')'For the first day CFD is active specify'
-          CALL EASKR(CFTIMS,outs,'starting hour?',
+          CALL EASKR(CFTIMS,outs,'Starting hour?',
      &      1.0,'F',24.99,'F',1.0,'Decimal fraction',IER,nbhelp)
           write(outs,'(a)')'For the last day CFD is active specify'
-          CALL EASKR(CFTIMF,outs,'finishing hour?',
+          CALL EASKR(CFTIMF,outs,'Finishing hour?',
      &      1.0,'F',24.99,'F',24.99,'Decimal fraction',IER,nbhelp)
           if ((ICFDYF.eq.ICFDYS).and.(CFTIMF.lt.CFTIMS)) then
             call edisp(iuout,' ')
@@ -1951,17 +1938,17 @@ C Ask about start and stop times.
 
 
 C ******************** MZSIMH ********************
-C MZSIMH outputs simulation period and wait time information
+C Outputs simulation period and wait time information
 C prior to each simulation commencing.
 
       SUBROUTINE MZSIMH(ICON)
-
 #include "building.h"
 #include "model.h"
 #include "geometry.h"
 #include "esprdbfile.h"
 #include "control.h"
-#include "UserSimulationToggles.h"       
+#include "UserSimulationToggles.h"
+     
       integer lnblnk  ! function definition
 
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
@@ -2014,6 +2001,10 @@ C TSC data.
       LOGICAL MSTROK,MSTRZN
       COMMON/GRSD100/IndxSt
       common/glbctl/global,glbrwd
+
+C Results libraries.
+      COMMON/RESLIB/RFILE,PFILE,MSTRFILE,LAFRES,CFRESF
+      character RFILE*72,PFILE*72,MSTRFILE*72,LAFRES*72,CFRESF*72
 
 C Once per hour storage of results, averaged over that hour.
       common/rdcgen/irdact
@@ -2099,55 +2090,53 @@ C Write out appropriate message.
       if(endless.or.issilient)then
         continue
       else
-        write(louts,'(a,a)')  ' Weather file: ',
-     &    LCLIM(1:lnblnk(LCLIM))
+        call edisp(icout,' ')
+        write(louts,'(a,a)')'Model configuration file: ',
+     &                      LCFGF(1:lnblnk(LCFGF))
         call edisp248(icout,louts,100)
-        write(outs,'(a,a)')   ' Configuration file: ',
-     &    LCFGF(1:lnblnk(LCFGF))
-        call edisp(icout,outs)
-        write(outs,'(a,a)')   ' Configuration name: ',
-     &    modeltitle(:lnblnk(modeltitle))
-        call edisp(icout,outs)
-        call edisp(icout,' ')
+        write(louts,'(a,a)')'Model description: ',
+     &                      modeltitle(:lnblnk(modeltitle))
+        call edisp248(icout,louts,100)
+        write(louts,'(a,a)')'Weather file: ',
+     &                      LCLIM(1:lnblnk(LCLIM))
+        call edisp248(icout,louts,100)
         if(NCF.eq.0.and.NCL.eq.0)then
-          call edisp(icout,   ' Control strategy: free-floating')
-          call edisp(icout,' ')
+          call edisp(icout,'Control: free-floating')
         else
-          write(outs,'(a,a)') ' Control file name: ',
-     &      LCTLF(1:lnblnk(LCTLF))
-          call edisp(icout,outs)
-          call edisp(icout,' ')
+          write(louts,'(a,a)')'Control file: ',
+     &                      LCTLF(1:lnblnk(LCTLF))
+          call edisp248(icout,louts,100)
         endif
-
+        write(louts,'(a,a)')'Building results file: ',
+     &                      RFILE(1:lnblnk(RFILE))
+        call edisp248(icout,louts,100)
         if(isave.eq.0)then
-          call edisp(icout,' Zone save option: 0 (No db created)')
+          call edisp(icout,'Save option: 0 (No results file)')
         elseif(isave.eq.1)then
-          call edisp(icout,' Zone save option: 1 (Minimum)')
+          call edisp(icout,'Save option: 1 (Minimum)')
         elseif(isave.eq.2)then
-          call edisp(icout,' Zone save option: 2 (Moderate)')
+          call edisp(icout,'Save option: 2 (Moderate)')
         elseif(isave.eq.3)then
-          call edisp(icout,' Zone save option: 3 (Node temps)')
+          call edisp(icout,'Save option: 3 (2 + node temperatures)')
         elseif(isave.eq.4)then
-          call edisp(icout,' Zone save option: 4 (Energy Balance)')
-c Hot 3000: Added save level 5 zone save level info
+          call edisp(icout,'Save option: 4 (2 + energy balance)')
         elseif(isave.eq.5)then
-          call edisp(icout,' Zone save option: 5 H3K')
+          call edisp(icout,'Save option: 5 (for Hot 3000)')
         elseif(isave.eq.6)then
-          call edisp(icout,' Zone save option: 6 (No db created)')
+          call edisp(icout,'Save option: 6 (No results file)')
         endif
-        write(outs,'(a,I6)') ' No. of warnings: ',IWARN
+        write(outs,'(a,I6)') 'Prior warnings: ',IWARN
         call edisp(icout,outs)
-        call edisp(icout,' ')
       endif
 
       NPTS=NTSTEP*NTSTPP
       TMIN=60.0/NTSTEP
       TMINP=TIMSEC/60.
-      write(outs,'(a,I6,a)')' Simulation period: ',IDAYS,' day(s)'
+      write(outs,'(a,I6,a)')'Simulation period: ',IDAYS,' day(s)'
       if(endless.or.issilient)then
         continue
       else
-        call edisp(iuout,' ')
+        call edisp(icout,' ')
         call edisp(icout,outs)
       endif
 
@@ -2159,7 +2148,7 @@ C Derive string for simulation period.
         write(outs,'(16X,A)')PERST2
       endif
       call edisp(icout,outs)
-      write(outs,'(a,I6,a)')' Start-up period      : ',ITCNST,' day(s)'
+      write(outs,'(a,I6,a)')'Start-up period: ',ITCNST,' day(s)'
       if(endless.or.issilient)then
         continue
       else
@@ -2169,24 +2158,24 @@ C Derive string for simulation period.
 
       IF(INDCFG.EQ.2)goto 131
       if(irdact.eq.0)then
-        write(outs,'(a,I7,a,F5.2,a)')' Zone time-steps:',NTSTEP,
-     &    ' / hr ( ',TMIN,' min. intervals saved at each timestep)'
+        write(outs,'(a,I7,a,F5.2,a)')'Zone time steps: ',NTSTEP,
+     &    '/hr ( ',TMIN,' minute intervals saved at each time step)'
       else
-        write(outs,'(a,I7,a,F5.2,a)')' Zone time-steps:',NTSTEP,
-     &    ' / hr ( ',TMIN,' min. intervals saved once per hour)'
+        write(outs,'(a,I7,a,F5.2,a)')'Zone time steps:',NTSTEP,
+     &    ' / hr ( ',TMIN,' minute intervals saved once per hour)'
       endif 
       if(endless.or.issilient)then
         continue
       else
         call edisp(icout,outs)
       endif
-      write(outs,'(a,I6)') ' Number of zones: ',NCOMP
+      write(outs,'(a,I6)') 'Number of zones: ',NCOMP
       if(endless.or.issilient)then
         continue
       else
         call edisp(icout,outs)
       endif
-      write(outs,'(a,I7)') ' Zone-time increments:',NZTS
+      write(outs,'(a,I7)') 'Zone-time increments:',NZTS
       if(endless.or.issilient)then
         continue
       else
@@ -2194,19 +2183,20 @@ C Derive string for simulation period.
       endif
 
       IF(INDCFG.EQ.1)goto 133
-  131 write(outs,'(a,I5,a,F6.2,a)')' Plant time-steps: ',NPTS,
-     &  ' / hr ( ',TMINP,' min. intervals)'
+  131 write(outs,'(a,I5,a,F6.2,a)')'Plant time-steps: ',NPTS,
+     &  ' / hr ( ',TMINP,' minute intervals)'
       call edisp(icout,outs)
   133 IF(INDCFG.EQ.2)goto 135
       IF(ISAVE.GT.0)goto 42
       if(endless.or.issilient)then
         continue
       else
-        call edisp(icout,    ' Zone results db size: Not applicable')
+        call edisp(icout,'Building results file size: not applicable')
       endif
       goto 135
    42 IF(BYTE.GT.2000.0)goto 14
-      write(outs,'(a,F8.1,a)')' Zone results db size: ',BYTE,' Kbytes'
+      write(outs,'(a,F8.1,a)')'Building results file size: ',BYTE,
+     &                        ' Kbytes'
       if(isave.eq.1.or.isave.eq.2.or.isave.eq.3.or.isave.eq.4)then
         if(endless)then
           continue
@@ -2216,7 +2206,8 @@ C Derive string for simulation period.
       endif
       goto 135
    14 BYTE=BYTE/1024.0
-      write(outs,'(a,F8.1,a)')' Zone results db size: ',BYTE,' Mbytes'
+      write(outs,'(a,F8.1,a)')'Building results file size: ',BYTE,
+     &                        ' Mbytes'
       if(isave.eq.1.or.isave.eq.2.or.isave.eq.3.or.isave.eq.4)then
         if(endless)then
           continue
@@ -2234,11 +2225,13 @@ C Derive string for simulation period.
       endif
       BYTE=FLOAT(NWORD)*4.0/1024.0
       IF(BYTE.GT.2000.0)goto 137
-      write(outs,'(a,F7.1,a)')' Plant results db size:',BYTE,' Kbytes'
+      write(outs,'(a,F7.1,a)')'Plant results file size: ',BYTE,
+     &                        ' Kbytes'
       call edisp(icout,outs)
       goto 136
   137 BYTE=BYTE/1024.0
-      write(outs,'(a,F7.1,a)')' Plant results db size:',BYTE,' Mbytes'
+      write(outs,'(a,F7.1,a)')'Plant results file size: ',BYTE,
+     &                        ' Mbytes'
       call edisp(icout,outs)
 
 C Time-step controller status.
@@ -2246,19 +2239,18 @@ C Time-step controller status.
         if(endless.or.issilient)then
           continue
         else
-          call edisp(icout, ' Time-step controller: Not active')
+          call edisp(icout, 'Time-step controller: not active')
         endif
       ELSE
         if(endless.or.issilient)then
           continue
         else
-          call edisp(icout, ' Time-step controller: Active')
+          call edisp(icout, 'Time-step controller: active')
         endif
       ENDIF
 
 C If appropriate, output special features invoked.
       IMESS=0
-
       IF(IBEQNF.NE.0)IMESS=1
       IF(IMPEXP.NE.3.OR.RATIMP.NE.0.5)IMESS=1
       IF(ISOLAR.NE.0)IMESS=1
@@ -2274,9 +2266,9 @@ C If appropriate, output special features invoked.
       IF(bUserPltSolvConfig) IMESS = 1
       IF(IMESS.EQ.1)THEN
         call edisp(icout,' ')
-        call edisp(icout,' Special features invoked:')
-        call edisp(icout,' =========================')
+        call edisp(icout,'Special features invoked:')
       ENDIF
+
 C Zone equations implicitness degree.
       IF(ABS(GAM-0.5).GT.1.E-4)THEN
         WRITE(OUTS,'(A,F5.2)')
@@ -2286,33 +2278,34 @@ C Zone equations implicitness degree.
 
 C Linear thermal conductivity.
       IF(ILTHPS)
-     &CALL EDISP(IUOUT,' Linear thermal conductivity assigned.')
+     &CALL EDISP(IUOUT,'Linear thermal conductivity assigned.')
 
 C Non-linear thermophysical properties assigned.
       IF(INTHPS)
-     &CALL EDISP(IUOUT,' Nonlinear thermophysical properties assigned.')
+     &CALL EDISP(IUOUT,
+     &    'Non-linear thermophysical properties assigned.')
 
 C Adaptive 1D gridding performed.
-      IF(IGR1D)CALL EDISP(IUOUT,' Adaptive 1D gridding performed.')
+      IF(IGR1D)CALL EDISP(IUOUT,'Adaptive 1D gridding invoked.')
       
 C 3D conduction modelling invoked.
-      IF(BLDG3D)CALL EDISP(IUOUT,' 3D conduction modelling invoked.')
+      IF(BLDG3D)CALL EDISP(IUOUT,'3D conduction modelling invoked.')
 
 C 3D ground modelling invoked.
-      IF(GRND3D)CALL EDISP(IUOUT,' 3D ground modelling invoked.')
+      IF(GRND3D)CALL EDISP(IUOUT,'3D ground modelling invoked.')
 
 C Moisture transfer invoked.
-      IF(MSTROK)CALL EDISP(IUOUT,' Moisture transfer invoked.')
+      IF(MSTROK)CALL EDISP(IUOUT,'Moisture transfer invoked.')
 
 C Structured mesh modelling invoked.
       IF(IndxSt.GT.0)CALL EDISP(IUOUT,
-     &                     ' Structured mesh modelling invoked.')
+     &                     'Structured mesh modelling invoked.')
 
 C Default for plant equation generation is implicit
 C or mixed, based on time-step evaluation.
       IF(IMPEXP.NE.3.OR.RATIMP.NE.0.5) THEN
-
-        call edisp(icout,' Plant equation type:')
+        call edisp(icout,' ')
+        call edisp(icout,'Plant equation type:')
         IF(IMPEXP.EQ.1)call edisp(icout,' 1 - implicit')
         IF(IMPEXP.EQ.2)call edisp(icout,' 2 - mixed')
         IF(IMPEXP.EQ.3)call edisp(icout,' 3 - timestep dependent')
@@ -2326,40 +2319,40 @@ C or mixed, based on time-step evaluation.
        UserPltConfigSettings: if ( bUserPltSolvConfig ) then 
         
         WRITE(OUTS,'(A,I5)')
-     &  ' Plant - max iterations: ',iUserMAXITP
+     &  'Plant - max iterations: ',iUserMAXITP
         CALL EDISP(IUOUT,OUTS)
         
         WRITE(OUTS,'(A,I5)')
-     &  '         max cotrol iterations: ', iUserITRCLP
+     &  '        max control iterations: ', iUserITRCLP
         CALL EDISP(IUOUT,OUTS)
 
         WRITE(OUTS,'(A,F5.2)')
-     &  '         max relative error: ',fUserPERREL
+     &  '        max relative error: ',fUserPERREL
         CALL EDISP(IUOUT,OUTS)  
         
         WRITE(OUTS,'(A,F5.2)')
-     &  '         max temperature error (oC): ',fUserPERTMP
+     &  '        max temperature error (C): ',fUserPERTMP
         CALL EDISP(IUOUT,OUTS)  
 
         WRITE(OUTS,'(A,F5.2)')
-     &  '         max mass flow error (kg/s): ',fUserPERMFL
+     &  '        max mass flow error (kg/s): ',fUserPERMFL
         CALL EDISP(IUOUT,OUTS)          
 
         WRITE(OUTS,'(A,F5.2)')
-     &  '         max heat flux error (W): ',fUserPERFLX
+     &  '        max heat flux error (W): ',fUserPERFLX
         CALL EDISP(IUOUT,OUTS)          
 
         WRITE(OUTS,'(A,E12.6)')
-     &  '         max H2 flow error (kg/s): ',fUserH2iterTol
+     &  '        max H2 flow error (kg/s): ',fUserH2iterTol
         CALL EDISP(IUOUT,OUTS)   
 
       endif UserPltConfigSettings
       
 C Default solar treatment, solar ON.
-      IF(ISOLAR.NE.0)call edisp(icout,' Solar processing OFF.')
+      IF(ISOLAR.NE.0)call edisp(icout,'Solar processing off')
 
 C Default - results are averaged.
-      IF(IDAVER.NE.0)call edisp(icout,' Averaging OFF.')
+      IF(IDAVER.NE.0)call edisp(icout,'Solar averaging off')
 
 C Option to terminate - ignore if in autoexec mode as defined in 
 C the simulator parameter file.
@@ -2380,9 +2373,9 @@ C Commence simulation.
         call edisp(icout,outs)
       else
         if(endless)then
-          call edisp(icout,'Simulation proceeding ...')
+          call edisp(icout,'Simulation proceeding.')
         else
-          call edisp(icout,'Simulation has now commenced.')
+          call edisp(icout,'Simulation commenced.')
         endif
       endif
       if(global)then
@@ -2403,7 +2396,6 @@ C ****** MZTRAC
 C Allows the user to select areas of bps for trace output.
 
 C Common block variables are:
-
 C ITC     - trace output index consisting of some +ve integer
 C           value where:
 C                      ITC=0 gives no trace output
@@ -2435,7 +2427,7 @@ C ICNT    - counts trace output for page numbering purposes
       COMMON/PREC13/C(MCOM,MS,MN,2),QC(MCOM,MS,MN)
       COMMON/GR1D01/NNDS,NNDZ(MCOM),NNDC(MCOM,MS),NNDL(MCOM,MS,ME)
 
-C Common for libsv3 trace
+C Common for libsv3 trace.
       COMMON/enbal/nsurf,insurf(MS)
 
       dimension IVALS(MCOM)
@@ -2444,7 +2436,6 @@ C Common for libsv3 trace
       logical OK
       integer NITEMS,INO  ! max items and current menu item
 
-C For help messages
       character helpinsub*24   ! subroutine name
       character helptopic*24 ! string (unique) for topic
       integer nbhelp     ! number of help lines found
@@ -2501,7 +2492,7 @@ C Initilise trace output facility.
    20 CONTINUE
 
       INPIC=NCOMP
-      CALL EPICKS(INPIC,IVALS,' ',' Which zones to include: ',
+      CALL EPICKS(INPIC,IVALS,' ','Zones to include?',
      &  12,NCOMP,zname,' zone trace list',IER,nbhelp)
       IZT=INPIC
 
@@ -2513,7 +2504,7 @@ C Initilise trace output facility.
 C Case for plant only.
       if(indcfg.eq.2) goto 9989      
 
-      CALL EASKOK(' ','Select trace topics?',OK,nbhelp)
+      CALL EASKOK(' ','Select trace topics:',OK,nbhelp)
       IF(OK)goto 9989
       DO 9990 I=1,MTRACE
         ITRACE(I)=1
@@ -2528,7 +2519,7 @@ C Help text for this menu.
       call gethelptext(helpinsub,helptopic,nbhelp)
 
       INO=-2
-      CALL EMENU(' Selective trace',ITEM,NITEMS,INO)
+      CALL EMENU('Selective trace',ITEM,NITEMS,INO)
       IF(INO.LE.0)then
         ino=-1
         goto 4
@@ -2604,7 +2595,7 @@ C Shift the menu index back to get trace index.
       elseif(ino.eq.18)then
         II=31
 
-C Trace output of library save..
+C Trace output of library save.
         if(IZT.eq.0)then
           call edisp(iuout,'no zones yet for library save trace...')
           goto 4
@@ -2731,7 +2722,6 @@ C parameters. If itru=iuout then goes to the display,
 C if itru=33 then works as a header to the trace.
 
       subroutine mzinfo(itru)
-
 #include "building.h"
 #include "model.h"
 #include "esprdbfile.h"
@@ -2758,9 +2748,9 @@ C if itru=33 then works as a header to the trace.
       dimension io(mcom)
 
       call edisp(itru,' ')
-      write(outs,'(A,A)')'Results library: ',RFILE
+      write(outs,'(A,A)')'Results file: ',RFILE
       call edisp(itru,outs)
-      write(louts,'(A,A)')'Climate file: ',LCLIM
+      write(louts,'(A,A)')'Weather file: ',LCLIM
       call edisp248(itru,louts,100)
       write(outs,'(A,A)')'Configuration file: ',LCFGF
       call edisp(itru,outs)
@@ -2828,9 +2818,16 @@ c added Save level 5 information
       if(n.eq.0)then 
         call edisp(itru,'         None')
       else
-        write(outs,16)i,(io(j),j=1,n)
+        if(n.gt.24)then   ! If more than 24 associated write 2 lines.
+          write(outs,16)i,(io(j),j=1,24)
+          call edisp(itru,outs)
+          write(outs,16)i,(io(j),j=25,n)
+          call edisp(itru,outs)
+        else
+          write(outs,16)i,(io(j),j=1,n)
+          call edisp(itru,outs)
+        endif
    16   format(i6,4x,24(i2,','))
-        call edisp(itru,outs)
       endif
 
    12 return
@@ -2863,42 +2860,42 @@ C For help messages
  10   INO=-4
       ITEMG(1)=    ' ---------- COUPLING OPTIONS ---------- '
       if(ACCON.eq.1)then
-        ITEMG(2)=  'a Adaptive turbulence model >> On       '
+        ITEMG(2)=  'a adaptive turbulence model >> On       '
       elseif(ACCON.eq.0)then
-        ITEMG(2)=  'a Adaptive turbulence model >> Off      '
+        ITEMG(2)=  'a adaptive turbulence model >> Off      '
       else
         call edisp(iuout,'Unrecognized value of ACCON')
         return
       endif
       if(ACCON.eq.1)then
         if(CFD2BLD.eq.1)then
-          ITEMG(3)='b Allow CFD to set air-surf. flux >> No '
+          ITEMG(3)='b allow CFD to set air-surf. flux >> No '
         elseif(CFD2BLD.eq.2)then
-          ITEMG(3)='b Allow CFD to set air-surf. flux >> Yes'
+          ITEMG(3)='b allow CFD to set air-surf. flux >> Yes'
         else
           call edisp(iuout,'Unrecognized value of CFD2BLD')
           return
         endif
       else
-        ITEMG(3)=  'b Allow CFD to set air-surf. flux >> NA '
+        ITEMG(3)=  'b allow CFD to set air-surf. flux >> NA '
       endif
       if(CFD2MFS.eq.1)then
-        ITEMG(4)=  'c Allow CFD-MFS iteration >> No         '
+        ITEMG(4)=  'c allow CFD-MFS iteration >> No         '
       elseif(CFD2MFS.eq.2)then
-        ITEMG(4)=  'c Allow CFD-MFS iteration >> Yes        '
+        ITEMG(4)=  'c allow CFD-MFS iteration >> Yes        '
       else
         call edisp(iuout,'Unrecognized value of CFD2MFS')
         return
       endif
-      ITEMG(5)=    ' ----------- SOLVER OPTIONS ----------- '
+      ITEMG(5)=    ' ----------- Solver Options ----------- '
       if (GGDH) then
-        ITEMG(6)=  'd General Gradient Diffusion Hyp. >> On '
+        ITEMG(6)=  'd general Gradient Diffusion Hyp. >> On '
       else
-        ITEMG(6)=  'd General Gradient Diffusion Hyp. >> Off'
+        ITEMG(6)=  'd general Gradient Diffusion Hyp. >> Off'
       endif
       ITEMG(7)=    '  ________________________________      '
       ITEMG(8)=    '? help                                  '
-      ITEMG(9)=    '- exit to simulation toggles menu       '
+      ITEMG(9)=    '- exit menu                             '
       NITMS=9
 
 C Help text for this menu.

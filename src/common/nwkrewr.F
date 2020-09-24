@@ -13,10 +13,6 @@ C warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
 C PURPOSE. See the GNU General Public License for more
 C details.
 
-C You should have received a copy of the GNU General Public
-C License along with ESP-r. If not, write to the Free
-C Software Foundation, Inc., 59 Temple Place, Suite 330,
-C Boston, MA 02111-1307 USA.
 
 C The routines for reading and writing a network graphics file are 
 C contained in this file: 
@@ -1151,7 +1147,7 @@ C already been used.
                 if(ICNS(ijj).eq.itest)then
 
 C We have a flow connection based the start point of the other icon
-C connection. Instanciate the common blocks. Find the `node` in the
+C connection. Instantiate the common blocks. Find the `node` in the
 C other icon connection. Note: assign delta height from icheck and
 C from ijj.
                   icnused(ijj)=.true.
@@ -1182,7 +1178,7 @@ C in that connection is the node assign the commons.
                   endif
                 elseif(ICNE(ijj).eq.itest)then
 
-C We have a flow connection. Instanciate the common blocks.
+C We have a flow connection. Instantiate the common blocks.
                   icnused(ijj)=.true.
                   ncnn=ncnn+1
                   HGTPS(ncnn)=deltah(icheck)

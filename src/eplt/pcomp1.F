@@ -2140,7 +2140,7 @@ C Trace output
       IF(ITC.GT.0.AND.NSINC.GE.ITC.AND.NSINC.LE.ITCF.AND.
      &   ITRACE(37).NE.0) THEN
          WRITE(ITU,*) ' Component      ',IPCOMP,':'
-         WRITE(ITU,*) ' 1 node (ISV=21) AC  cooling coil &',
+         WRITE(ITU,*) ' 1 node (ISV=21) AC  cooling coil & ',
      &           ' water mass flow rate control (TRNSYS type32)'
          WRITE(ITU,*) ' Matrix node(s) ',INOD1
          WRITE(ITU,*) ' Connection(s)  ',ICON1
@@ -2404,7 +2404,7 @@ C Trace output
       IF(ITC.GT.0.AND.NSINC.GE.ITC.AND.NSINC.LE.ITCF.AND.
      &   ITRACE(37).NE.0) THEN
          WRITE(ITU,*) ' Component      ',IPCOMP,':'
-         WRITE(ITU,*) ' 1 node (ISV=21) AC  cooling coil &',
+         WRITE(ITU,*) ' 1 node (ISV=21) AC  cooling coil & ',
      &                ' water mass flow rate control'
          WRITE(ITU,*) ' Matrix node(s) ',INOD1
          WRITE(ITU,*) ' Connection(s)  ',ICON1
@@ -2651,7 +2651,7 @@ C Trace output
       IF(ITC.GT.0.AND.NSINC.GE.ITC.AND.NSINC.LE.ITCF.AND.
      &   ITRACE(37).NE.0) THEN
          WRITE(ITU,*) ' Component      ',IPCOMP,':'
-         WRITE(ITU,*) ' 1 node (ISV=21) AC  heating coil &',
+         WRITE(ITU,*) ' 1 node (ISV=21) AC  heating coil & ',
      &                ' water mass flow rate control'
          WRITE(ITU,*) ' Matrix node(s) ',INOD1
          WRITE(ITU,*) ' Connection(s)  ',ICON1

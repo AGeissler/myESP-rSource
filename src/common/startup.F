@@ -13,18 +13,11 @@ C warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
 C PURPOSE. See the GNU General Public License for more
 C details.
 
-C You should have received a copy of the GNU General Public
-C License along with ESP-r. If not, write to the Free
-C Software Foundation, Inc., 59 Temple Place, Suite 330,
-C Boston, MA 02111-1307 USA.
 
-C************************************************************************************
-C************************************************************************************
-C************************************************************************************
-C   MODULE PARSE_COMMAND_LINE written to extract the communality in all the modules for 
-C   setting up environemt and parsing command lines.
 
-C************************************************************************************
+C ******************** MODULE PARSE_COMMAND_LINE
+C Sets up environemt and parses command lines.
+
       MODULE PARSE_COMMAND_LINE
       IMPLICIT NONE
       
@@ -1081,7 +1074,7 @@ C ******************** scesprc
 C scesprc scans the ESP-r dot file which should be located in the
 C users home folder or in the esp-r distribution.  If not found
 C then some defaults are set.
-C Note: take this opportunity to instanciate common block stddbpath
+C Note: take this opportunity to instantiate common block stddbpath
 C while we have information on where esp-r was installed.
 
       SUBROUTINE scesprc(LFDEF,IFDEF,ITRC,IER)
@@ -1268,9 +1261,9 @@ C Open the esprc file, return if not found.
         call FPOPEN(IFDEF,ISTAT,1,0,altdot)
         IF(ISTAT.LT.0)THEN
           call edisp(iuout,
-     &    '  No preferences (esprc or .esprc) file found so setting')
+     &    'No preferences (esprc or .esprc) file found so setting')
           call edisp(iuout,
-     &    '  default exemplars, CAD, report & print links.')
+     &    'default exemplars, CAD, report & print links.')
           IER=1
           CALL ERPFREE(IFDEF,ISTAT)
           RETURN
@@ -1278,13 +1271,13 @@ C Open the esprc file, return if not found.
           localdot=.false.
           esprc=altdot  ! assign the install folder file as the esprc file.
           if(itrc.ge.1) call edisp(iuout,
-     &      '  Preferences (esprc) file - standard version.')
+     &      'Standard preferences (esprc) file loaded.')
           write(currentfile,'(a)') esprc(1:lnblnk(esprc))
         endif
       else
         localdot=.true.
         if(itrc.ge.1) call edisp(iuout,
-     &    '  Preferences (.esprc) file - users version.')
+     &    'User preferences (.esprc) file loaded.')
         write(currentfile,'(a)') lfdef(1:lnblnk(lfdef))
       ENDIF
 
@@ -1321,7 +1314,7 @@ C If '*ESPRC' found then read db until '*end' found.
 C Capture rectangular area of screen via capexgf is in wwlib.c
         CALL EGETP(OUTSTR,K,gprlbl,'W','rect area lbl',IER)
         CALL EGETP(OUTSTR,K,gprcmd,'W','rect area exe',IER)
-        write(outs,'(a,a,2x,a)')' Rectangular area grab:',gprlbl,gprcmd
+        write(outs,'(a,a,2x,a)')'Rectangular area grab:',gprlbl,gprcmd
         if(itrc.gt.1)call edisp(iuout,outs)
         call capexgf(gprcmd)
       elseif(WORD(1:5).eq.'*gxwd')then
@@ -1329,7 +1322,7 @@ C Capture rectangular area of screen via capexgf is in wwlib.c
 C Screen capture commands - dump whole screem via capexall in wwlib.c
         CALL EGETP(OUTSTR,K,gxwdlbl,'W','screen dump lbl',IER)
         CALL EGETP(OUTSTR,K,gxwdcmd,'W','screen dump exe',IER)
-        write(outs,'(a,a,2x,a)')' Screen dump: ',gxwdlbl,gxwdcmd
+        write(outs,'(a,a,2x,a)')'Screen dump: ',gxwdlbl,gxwdcmd
         if(itrc.gt.1)call edisp(iuout,outs)
         call capexall(gxwdcmd)
       elseif(WORD(1:5).eq.'*tprn')then
@@ -1337,14 +1330,14 @@ C Screen capture commands - dump whole screem via capexall in wwlib.c
 C Caputre text buffer to a file, capextf is in wwlib.c
         CALL EGETP(OUTSTR,K,tprlbl,'W','text print lbl',IER)
         CALL EGETP(OUTSTR,K,tprcmd,'W','text print file',IER)
-        write(outs,'(a,a,2x,a)')' Local text print: ',tprlbl,tprcmd
+        write(outs,'(a,a,2x,a)')'Local text print: ',tprlbl,tprcmd
         if(itrc.gt.1)call edisp(iuout,outs)
         call capextf(tprcmd)
       elseif(WORD(1:4).eq.'*cad')then
         CALL EGETP(OUTSTR,K,cadlbl,'W','cad lbl',IER)
         CALL EGETP(OUTSTR,K,cadexe,'W','cad exe',IER)
         CALL EGETW(OUTSTR,K,cadfmt,'W','cad fmt',IER)
-        write(outs,'(a,a,2x,a,2x,a)')' Local CAD: ',cadlbl,cadexe,cadfmt
+        write(outs,'(a,a,2x,a,2x,a)')'Local CAD: ',cadlbl,cadexe,cadfmt
         if(itrc.gt.1)call edisp(iuout,outs)
       elseif(WORD(1:8).eq.'*journal')then
 
@@ -1361,64 +1354,64 @@ C Add to the initial assumptions about display software.
         imgtyp=imgtyp+1
         CALL EGETP(OUTSTR,K,fmttag(imgtyp),'W','image fmt',IER)
         CALL EGETP(OUTSTR,K,fmtexe(imgtyp),'W','img exe',IER)
-        write(outs,'(4a)')' Images : ',fmttag(imgtyp),' via ',
+        write(outs,'(4a)')'Images : ',fmttag(imgtyp),' via ',
      &    fmtexe(imgtyp)
         if(itrc.gt.1)call edisp(iuout,outs)
       elseif(WORD(1:7).eq.'*editor')then
         CALL EGETP(OUTSTR,K,tedlbl,'W','manual editor lbl',IER)
         CALL EGETP(OUTSTR,K,teditor,'W','editor exe',IER)
-        write(outs,'(4a)')' Editor: ',tedlbl,' via ',teditor
+        write(outs,'(4a)')'Editor: ',tedlbl,' via ',teditor
         if(itrc.gt.1)call edisp(iuout,outs)
       elseif(WORD(1:11).eq.'*docpreview')then
         CALL EGETP(OUTSTR,K,tprevlbl,'W','document previewer lbl',IER)
         CALL EGETP(OUTSTR,K,tpreview,'W','doc previewer exe',IER)
-        write(outs,'(4a)')' Preview: ',tprevlbl,' via ',tpreview
+        write(outs,'(4a)')'Preview: ',tprevlbl,' via ',tpreview
         if(itrc.gt.1)call edisp(iuout,outs)
       elseif(WORD(1:7).eq.'*figure')then
         CALL EGETP(OUTSTR,K,figlbl,'W','figure editor lbl',IER)
         CALL EGETP(OUTSTR,K,figexe,'W','figure editor exe',IER)
-        write(outs,'(4a)')' Preview: ',figlbl,' via ',figexe
+        write(outs,'(4a)')'Preview: ',figlbl,' via ',figexe
         if(itrc.gt.1)call edisp(iuout,outs)
       elseif(WORD(1:9).eq.'*graphing')then
         CALL EGETP(OUTSTR,K,grflbl,'W','graphing tool lbl',IER)
         CALL EGETP(OUTSTR,K,grfexe,'W','graphing tool exe',IER)
-        write(outs,'(4a)')' Graphing: ',grflbl,' via ',grfexe
+        write(outs,'(4a)')'Graphing: ',grflbl,' via ',grfexe
         if(itrc.gt.1)call edisp(iuout,outs)
       elseif(WORD(1:9).eq.'*folderbr')then
         CALL EGETP(OUTSTR,K,foldlbl,'W','folder br tool lbl',IER)
         CALL EGETRM(OUTSTR,K,foldexe,'W','folder tool exe',IER)
-        write(outs,'(4a)')' Folder browsing: ',foldlbl,' via ',foldexe
+        write(outs,'(4a)')'Folder browsing: ',foldlbl,' via ',foldexe
         if(itrc.gt.1)call edisp(iuout,outs)
       elseif(WORD(1:10).eq.'*exemplars')then
         CALL EGETP(OUTSTR,K,exemlbl,'W','exemplars list lbl',IER)
         CALL EGETRM(OUTSTR,K,exemfl,'W','exemplars file',IER)
-        write(outs248,'(2a)')'  Exemplars (model list) - ',exemfl
+        write(outs248,'(2a)')'Exemplars (model list) - ',exemfl
         if(itrc.gt.1)call edisp248(iuout,outs248,100)
       elseif(WORD(1:12).eq.'*db_defaults')then
         CALL EGETP(OUTSTR,K,dfdblbl,'W','def db list lbl',IER)
         CALL EGETRM(OUTSTR,K,defdbfl,'W','default db file',IER)
-        write(outs248,'(2a)')'  Default file - ',defdbfl
+        write(outs248,'(2a)')'Default file - ',defdbfl
         if(itrc.gt.1)call edisp248(iuout,outs248,100)
       elseif(WORD(1:16).eq.'*validation_stds')then
         CALL EGETP(OUTSTR,K,vldlbl,'W','validation list lbl',IER)
         CALL EGETRM(OUTSTR,K,vldfl,'W','validation stds file',IER)
-        write(outs248,'(4a)')' Validation: ',vldlbl,' in ',vldfl
+        write(outs248,'(4a)')'Validation: ',vldlbl,' in ',vldfl
         if(itrc.gt.1)call edisp248(iuout,outs248,100)
       elseif(WORD(1:12).eq.'*db_climates')then
         CALL EGETP(OUTSTR,K,cdblbl,'W','clm db list lbl',IER)
         CALL EGETRM(OUTSTR,K,cdblfil,'W','clm db list file',IER)
-        write(outs248,'(2a)')'  Weather (list) - ',cdblfil
+        write(outs248,'(2a)')'Weather (list) - ',cdblfil
         if(itrc.gt.1)call edisp248(iuout,outs248,100)
       elseif(WORD(1:11).eq.'*report_gen')then
         CALL EGETP(OUTSTR,K,replbl,'W','report gen lbl',IER)
         CALL EGETRM(OUTSTR,K,repexe,'W','report gen exe',IER)
-        write(outs,'(4a)')' Reports: ',replbl,' via ',repexe
+        write(outs,'(4a)')'Reports: ',replbl,' via ',repexe
         if(itrc.gt.1)call edisp(iuout,outs)
       elseif(WORD(1:5).eq.'*year')then
       elseif(WORD(1:4).eq.'*end')then
         goto 45
       else
-        call usrmsg(' Unknown dot command in... ',outstr,'W')
+        call usrmsg('Unknown dot command in',outstr,'W')
         goto 44
       endif
 
@@ -1433,7 +1426,7 @@ C Close file before exiting.
         if(itrc.gt.1)call edisp248(iuout,outs248,100)
       else
         write(outs248,'(3a)') 'Standard settings in: ',
-     &         altdot(1:lnblnk(altdot)),' successfully scanned...'
+     &         altdot(1:lnblnk(altdot)),' successfully scanned.'
         if(itrc.gt.1)call edisp248(iuout,outs248,100)
       endif
       CALL ERPFREE(IFDEF,ISTAT)
@@ -1451,7 +1444,6 @@ C defined uses.
 
       SUBROUTINE ESCDEF(IFDEF,act,IER)
 #include "esprdbfile.h"
-C Use espriou.h for climatelist file name and defdbfl.
 #include "espriou.h"
 
       integer lnblnk  ! function definition
@@ -1504,10 +1496,7 @@ C << consider increasing size of these strings >>
       logical unixok,dll
 #include "espinstalldir.h"
 
-C Assume default db names (in case of failure to find defaults
-C file or failure reading it).
-
-C << make a pass sorting out these default file names >>
+C Assume default database names.
       call isunix(unixok)
 
 C UNIX file system (dinstpath = '/opt/esp-r').
@@ -1581,7 +1570,7 @@ C Windows OS (dinstpath = 'c:/esru/esp-r')
      &    '/databases/predefined.db1'
       endif
 
-C << ?? Should there be default values for constructions? >>
+C << Should there be default values for constructions? >>
       icdtypes = 0
 
 C Check if running in dll mode, if so skip reading defaults file.
@@ -1612,7 +1601,7 @@ C Read '*ESP-r Defaults' tag.
       CALL STRIPC(IFDEF,OUTSTR,0,ND,1,'default tag',IER)
       if(OUTSTR(1:15).ne.'*ESP-r Defaults')then
         write(outs248,'(3a)') 'The file ',defdbfl(1:lnblnk(defdbfl)),
-     &   ' is not a defaults file.'
+     &   ' is not a default file.'
         call edisp248(IUOUT,outs248,100)
         IER=1
         RETURN
@@ -1756,7 +1745,7 @@ C If '*ESP-r Defaults' found then read db names until '*end' found.
 
       if(ier.ne.0)then
         write(outs248,'(3a)') 'Problem detected in ',
-     &    defdbfl(:lnblnk(defdbfl)),' while reading file ...'
+     &    defdbfl(:lnblnk(defdbfl)),' while reading file.'
         call edisp(iuout,' ')
         CALL EDISP248(IUOUT,outs248,100)
         CALL EDISP(IUOUT,outstr)
@@ -1773,8 +1762,8 @@ C Close defaults file before exiting.
       END SUBROUTINE
 
 
-C ****** parpsfh
-C Help message for several of the command line parsers.
+C ******************** parpsfh ********************
+C Help message for several command line parsers.
 
       subroutine parpsfh(appn)
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
@@ -1804,7 +1793,7 @@ C Help message for several of the command line parsers.
         call edisp(iuout,'    folder. Default is no.')
         call edisp(iuout,' ')
       elseif(appn(1:3).eq.'clm')then
-        call edisp(iuout,'The climate analysis module. ')
+        call edisp(iuout,'The weather analysis module. ')
         call edisp(iuout,'  Use: [-mode {text|graphic}]')
         call edisp(iuout,'       [-file <climate db>]')
         call edisp(iuout,'   [-act <action> <how> <file>]')
@@ -1871,7 +1860,7 @@ C Help message for several of the command line parsers.
         call edisp(iuout,'    full calculation is performed')
         call edisp(iuout,' ')
       elseif(appn(1:3).eq.'mfs')then
-        call edisp(iuout,'The stand-alone network flow solver. ')
+        call edisp(iuout,'The stand-alone network flow solver.')
         call edisp(iuout,'  Use: [-mode {text|graphic}]')
       elseif(appn(1:3).eq.'mrt'.or.appn(1:3).eq.'vwf')then
         call edisp(iuout,'The viewfactor calculation module.')
@@ -1919,7 +1908,7 @@ C Help message for several of the command line parsers.
         call edisp(iuout,'       [-act {update_zone_con} ]')
         call edisp(iuout,'  updates the zone construction files.')
       elseif(appn(1:3).eq.'res')then
-        call edisp(iuout,'This is the ESP-r analysis module. ')
+        call edisp(iuout,'This is the ESP-r analysis module.')
         call edisp(iuout,'  Use: [-mode {text|graphic}]')
         call edisp(iuout,'       [-file <results file>]')
         call edisp(iuout,'   [-act <action, {interactive|silent}>]')
@@ -1932,7 +1921,7 @@ C Help message for several of the command line parsers.
         call edisp(iuout,'   commands]')
         call edisp(iuout,' ')
       elseif(appn(1:3).eq.'vew')then
-        call edisp(iuout,'The hidden line viewer. ')
+        call edisp(iuout,'The hidden line viewer.')
         call edisp(iuout,'  Use: [-mode {text|graphic}]')
         call edisp(iuout,'       [-file <viewer_file>]')
       endif
@@ -1949,8 +1938,8 @@ C Help message for several of the command line parsers.
       return
       end
 
-C ****** Function bH3KExtentionsActive
-C Returns value of h3k_extentions flag 
+C ******************** bH3KExtentionsActive ********************
+C Returns value of h3k_extentions flag.
 
       logical function bH3KExtentionsActive()
       implicit none 
@@ -1960,7 +1949,6 @@ C Returns value of h3k_extentions flag
       
       bH3KExtentionsActive = bEnableH3kExtensions
       
-      return 
-      
+      return  
       end function bH3KExtentionsActive
       

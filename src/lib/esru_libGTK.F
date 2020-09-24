@@ -13,10 +13,6 @@ C warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
 C PURPOSE. See the GNU General Public License for more
 C details.
 
-C You should have received a copy of the GNU General Public
-C License along with ESP-r. If not, write to the Free
-C Software Foundation, Inc., 59 Temple Place, Suite 330,
-C Boston, MA 02111-1307 USA.
 
 C The file esru_cut_lib.f is a collection of text and bid-mapped terminal
 C control Fortran Functions and Subroutines:
@@ -2515,7 +2511,7 @@ C If a long list include page facility text.
         LISTA(M+3)='< index select                                  '
       endif
       LISTA(M+4)  ='? help                                          '
-      LISTA(M+5)  ='- exit this menu                                '
+      LISTA(M+5)  ='- exit menu'
 
 C Now display the menu (depending on the width of the strings).
       IF(MMOD.EQ.8)THEN
@@ -2781,7 +2777,7 @@ C Number of actual items displayed.
         VERT(nopt+2)='                        '
       endif
       VERT(nopt+3)  ='? help                  '
-      VERT(nopt+4)  ='- exit this menu        '
+      VERT(nopt+4)  ='- exit menu'
 
       if(index.le.0)then
         write(prompt2,'(a)') '  '
@@ -5153,7 +5149,7 @@ C in the list (at the bottom).
       CHARACTER*(*) prompt,title
 
       DIMENSION VERT(35),IVALS(MCOM)
-      DIMENSION GERT(20),IGVAL(20)  ! For groups.
+      DIMENSION GERT(32),IGVAL(32)  ! For groups.
       CHARACTER VERT*23,gert*23,KEY*1,prompt2*36
       character h*72,mod*1,outs*124,msg*96
 
@@ -5224,7 +5220,7 @@ C If groups defined.
         endif
         VERT(M+3)  ='! via group-of-zones  '
         VERT(M+4)  ='? help                '
-        VERT(M+5)  ='- exit this menu      '
+        VERT(M+5)  ='- exit menu'
       else
         if(maxinpic.eq.NCOMP)then
           VERT(M+2)='* All                 '
@@ -5232,15 +5228,14 @@ C If groups defined.
           VERT(M+2)='                      '
         endif
         VERT(M+3)  ='? help                '
-        VERT(M+4)  ='- exit this menu      '
+        VERT(M+4)  ='- exit menu'
       endif
       write(prompt2,'(a)') ' select one or more...'
 
-C Instanciate help message for this menu.
+C Instantiate help message for this menu.
       H(1)='Zones may be selected via the names in the list.'
       h(2)='If you have just updated a file it may not show up'
       h(3)='as defined until you exit and re-enter this menu. '
-      h(4)=' '
 
 C Display the menu.
       call usrmsg(PROMPT,PROMPT2,'-')
@@ -5249,15 +5244,11 @@ C Display the menu.
         IVERT=-1
         goto 3
       ELSEIF(IVERT.EQ.MVERT)THEN
-
-C Debug.
-C        write(6,*) 'inpic is ',inpic
-C        write(6,*) 'ivals is ',ivals
         RETURN
       ELSEIF(IVERT.EQ.(MVERT-1))THEN
 
 C Display help text.
-        CALL PHELPD('zone files section',4,'-',0,0,IER)
+        CALL PHELPD('zone files section',3,'-',0,0,IER)
       ELSEIF(IVERT.EQ.(MVERT-2).AND.nzgroup.gt.0)THEN
 
 C Display a list of groups of associated zones.

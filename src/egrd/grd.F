@@ -13,33 +13,22 @@ C warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
 C PURPOSE. See the GNU General Public License for more
 C details.
 
-C You should have received a copy of the GNU General Public
-C License along with ESP-r. If not, write to the Free
-C Software Foundation, Inc., 59 Temple Place, Suite 330,
-C Boston, MA 02111-1307 USA.
 
-C *********************************************************************
 C This file contains the following subroutines:
+C INITPF - main program for multi-dimensional gridding of the  
+C          solid domain (air volumes gridding is not included).
+C INTGRD - initialises the gridding process by reading in the
+C          required geometry and construction data.
 
-C INITPF is the main program for multi-dimensional gridding of the  
-C        solid domain (air volumes gridding is not included).
-C INTGRD initializes the gridding process by reading in the required 
-C        geometry and construction data.
-
-C ***************************  initpsfz  ********************************
-C INITPFZ is the main program for multi-dimensional gridding of the  
-C solid domain (air volumes gridding is not included).
-
-C << calling routine could focus - 1D/3D ground etc. so the necessary
-C << file names can be in place.
+C ***************************  Program grd  ********************************
+C Main program for multi-dimensional gridding of the solid
+C domain (air volume gridding not included).
 
       program grd
       USE START_UP
 #include "building.h"
 #include "model.h"
 #include "esprdbfile.h"
-C esprdbfile.h supplies the following:
-C LFMAT,IFMAT,LFMUL,IFMUL (for materials and constructions database)
 #include "material.h"
 #include "espriou.h"
 #include "prj3dv.h"
@@ -61,7 +50,7 @@ C LFMAT,IFMAT,LFMUL,IFMUL (for materials and constructions database)
       integer ncomp,ncon
       COMMON/C1/NCOMP,NCON
 
-C Path to problem
+C Path to problem.
       common/rpath/path
       common/rcmd/LCMDFL
       common/rzone/inzone
@@ -77,7 +66,7 @@ C Significant figure reporting limit (NSIGFIG).
       COMMON/FOPENED/CFGOK,MLDBOK,MATDBOK,CTLOK,OPTKOK,CFCDBOK
       LOGICAL        CFGOK,MLDBOK,MATDBOK,CTLOK,OPTKOK,CFCDBOK
      
-C Name of current application
+C Name of current application.
       common/APPNAME/cAppName
       character cAppName*12
 
@@ -383,7 +372,7 @@ C Set flag so that bounds are checked.
       ITEM(1)='1 problem definition    '
       ITEM(2)='  --------------------- '
       ITEM(3)='a 1D gridding           '
-      ITEM(4)='b Multi-gridding        '
+      ITEM(4)='b multi-gridding        '
       ITEM(5)='c ground-modelling      '
       ITEM(6)='d moisture 1D gridding  '
       ITEM(7)='  --------------------- '
@@ -396,7 +385,7 @@ C Set flag so that bounds are checked.
         ITEM(9)='r reporting >> verbose '
       ENDIF
       ITEM(10)='? help                  '
-      ITEM(11)='- Exit gridding module  '
+      ITEM(11)='- quit module           '
       MITEM=11
 
 C If user has defined problem and perhaps resized the display then
@@ -409,7 +398,7 @@ C redraw the problem image.
         CALL GRAAPH(IDRW1,IDRW2)
       ENDIF
 
-C Use askabout to instanciate the initial help messages (2nd parameter is one).
+C Use askabout to instantiate the initial help messages (2nd parameter is one).
       call askabout('grd ',1)
 
       CALL EMENU('   Building-Gridding',ITEM,MITEM,INO)
@@ -417,7 +406,7 @@ C Use askabout to instanciate the initial help messages (2nd parameter is one).
       IF(.NOT.CFGOK.AND.(INO.GE.3.AND.INO.LE.6))THEN
 
 C Check if the problem is defined.
-        CALL USRMSG(' ','the problem should be defined first.','W')
+        CALL USRMSG(' ','The problem should be defined first.','W')
       ELSEIF(INO.EQ.1)THEN
 
 C Define the problem.

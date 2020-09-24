@@ -13,10 +13,6 @@ C warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
 C PURPOSE. See the GNU General Public License for more
 C details.
 
-C You should have received a copy of the GNU General Public
-C License along with ESP-r. If not, write to the Free
-C Software Foundation, Inc., 59 Temple Place, Suite 330,
-C Boston, MA 02111-1307 USA.
 
 C econtrol.f includes the following subroutines:
 C  EZCTLR:  Reads the configuration control strategy file.
@@ -542,7 +538,7 @@ C then new format file, otherwise old format so set IBSN(II,4)=0.
           IF(IER.NE.0)GOTO 99
 
 C Range checking.
-          if((ibsn(ii,1).lt.-6.or.ibsn(ii,1).gt.mcom)
+          if((ibsn(ii,1).lt.-7.or.ibsn(ii,1).gt.mcom)
      &        .and.ibsn(ii,1).ne.-99)goto 1003
           if(abs(ibsn(ii,4)).gt.mcf)goto  1002
           if((ibsn(ii,2).lt.0.or.ibsn(ii,3).lt.0)
@@ -828,7 +824,7 @@ C then new format file, otherwise old format so set IBSN(II,4)=0.
         CALL STRIPC(IUNIT,OUTSTR,99,ND,1,'sensor',IER)
         IF(IER.NE.0)GOTO 99
         KG=0
-        CALL EGETWI(OUTSTR,KG,IVAL,-6,mcom,'F','sensor 1st',IER)
+        CALL EGETWI(OUTSTR,KG,IVAL,-7,mcom,'F','sensor 1st',IER)
         ipsn(ii,1)=IVAL
         CALL EGETWI(OUTSTR,KG,IVAL,0,0,'-','sensor 2nd ',IER)
         ipsn(ii,2)=IVAL
@@ -1282,7 +1278,7 @@ C Get date strings. For this test assume some values.
      &           NTSPH,2,0,PERST1,PERST2,PERST3,IER)
 
             CALL EDISP(ITRU,' ')
-            WRITE(OUTSTR,'(4A,I2,A)')' Day type ',CALENTAG(JJ),
+            WRITE(OUTSTR,'(5A,I2,A)')' Day type ',CALENTAG(JJ),
      &        ' is valid ',PERST3(9:lnblnk(PERST3)),' with ',
      &        NFCDP(II,JJ),' periods.'
             CALL EDISP(ITRU,OUTSTR)
@@ -1620,7 +1616,7 @@ C Read global control functions information and perform checks.
         CALL STRIPC(IUNIT,OUTSTR,99,ND,1,'sensor',IER)
         IF(IER.NE.0)GOTO 99
         KG=0
-        CALL EGETWI(OUTSTR,KG,IVAL,-6,mcom,'-','sensor 1st',IER)
+        CALL EGETWI(OUTSTR,KG,IVAL,-7,mcom,'-','sensor 1st',IER)
         igsn(ii,1)=IVAL
         CALL EGETWI(OUTSTR,KG,IVAL,0,0,'-','sensor 2nd ',IER)
         igsn(ii,2)=IVAL
@@ -3787,7 +3783,7 @@ C << or a single sensor SLAVE control.
             call eclose(cm(ndx),-4.0,0.001,okb)
             if(okb)then
               inear=nint(cm(ndx+1))
-              write(msg1,'(2a)') ' sense node ',
+              write(msg1,'(2a)') ' @ node ',
      &          ndnam(inear)(1:lnblnk(ndnam(inear)))
             endif
             write(msg2,'(a,f7.2)') ' setpoint ',cm(ndx+4)
@@ -4462,6 +4458,9 @@ C Plant Sensor.
         ELSEIF(icsn(1).EQ.-6)THEN
           SSTR='sensed value from function generator.'
           SSTRB='sensed value from func gen.'
+        ELSEIF(icsn(1).EQ.-7)THEN
+          SSTR='reads from a temporal data file (TDF).'
+          SSTRB='reads from a TDF.'
         ENDIF
       elseif(icfoc.eq.2)then
 
@@ -4915,7 +4914,7 @@ C Sensor located within a building zone.
       if(isn2.eq.0)goto 9
 
 C If this called from simulator NELTS will have been
-C instanciated so do a further check if node is within
+C instantiated so do a further check if node is within
 C the number of layers in this construction.
       if(NELTS(isn1,isn2).gt.0)then
         nn=2*NELTS(isn1,isn2)+1
@@ -4977,7 +4976,7 @@ C  131 if(ian2.lt.0.or.ian2.gt.nzsur(ian1))goto 1005
       if(isn2.eq.0)goto 20     ! necessary to avoid array out of bounds error in NELTS(isn1,isn2)
       
 C If this called from simulator NELTS will have been
-C instanciated so do a further check if node is within
+C instantiated so do a further check if node is within
 C the number of layers in this construction.
       if(NELTS(isn1,isn2).gt.0)then
         nn=2*NELTS(icfz,ian2)+1

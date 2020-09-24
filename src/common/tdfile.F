@@ -13,10 +13,6 @@ C warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
 C PURPOSE. See the GNU General Public License for more
 C details.
 
-C You should have received a copy of the GNU General Public
-C License along with ESP-r. If not, write to the Free
-C Software Foundation, Inc., 59 Temple Place, Suite 330,
-C Boston, MA 02111-1307 USA.
 
 C tdfile.f - Temporal file I/O facilities for ESP-r modules.
 C Current version February 2005.
@@ -50,10 +46,10 @@ C            as ascii and binary. It will convert older binary to ascii
 C            with a scratch file. It will create a scratch file for
 C            ascii versions supplied.
 C  act = `S` simulator which will build scratch file from the ascii
-C            version of the file and instanciate the tdfflg2 commons.
+C            version of the file and instantiate the tdfflg2 commons.
 C            If non-asci temporal supplied warn and return.
 C  act = `R` res which will build scratch file from the ascii
-C            version of the file as well as instanciating the tdfflg2
+C            version of the file as well as instantiating the tdfflg2
 C            commons.
 
 C  Check whether it is an ascii file or a binary file. Depending on
@@ -1428,8 +1424,8 @@ C     &        'raw tabular data',IER)
           call EGETAGWRA1K(loutstr25,K,iafil,IRVA,TABU,0.00,1.00,'-',
      &        'raw tabular data',IER)
           if(itrc.gt.1)then
-            write(outs,*) 'at time ',TIMEJD,'tabu is ',TABU
-            call edisp(iuout,outs)
+            write(loutstr25,*) 'at time ',TIMEJD,'tabu is ',TABU
+            call edisp(iuout,loutstr25)
           endif
           do 47 j=1,nwpr
             if(TABU(J).lt.TABUMN(J))TABUMN(J)=TABU(J)

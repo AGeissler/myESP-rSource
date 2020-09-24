@@ -1,11 +1,11 @@
 C This file is part of the ESP-r system.
 C Copyright Energy Systems Research Unit, University of
-C Strathclyde, Glasgow Scotland, 2001.
+C Strathclyde, Glasgow Scotland, 2001-.
 
-C ESP-r is free software.  You can redistribute it and/or
+C ESP-r is free software. You can redistribute it and/or
 C modify it under the terms of the GNU General Public
 C License as published by the Free Software Foundation 
-C (version 2 orlater).
+C (version 2 or later).
 
 C ESP-r is distributed in the hope that it will be useful
 C but WITHOUT ANY WARRANTY; without even the implied
@@ -13,41 +13,32 @@ C warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
 C PURPOSE. See the GNU General Public License for more
 C details.
 
-C You should have received a copy of the GNU General Public
-C License along with ESP-r. If not, write to the Free
-C Software Foundation, Inc., 59 Temple Place, Suite 330,
-C Boston, MA 02111-1307 USA.
 
-C Subroutines in this file
+C Subroutines in this file:
 C Mycostat - Gathers info on growth conditions
 C Mycotabl - Growth conditions look up routine (TBA)
+
 C ********************* MYCOSTAT ******************************
-C Subroutine MYCOSTAT analyses the simulation data against the 
+C Analyses the simulation data against the 
 C mould growth data held in the moulds database. The subroutine
 C can be called in three modes.
 C 1 - Initialise
 C 2 - Get data
 C 3 - Final reporting
-C *************************************************************
 
       subroutine mycostat(imod,tdb,rh)
-
 #include "mould.h"
 
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
 
       common/mglook/GROT(MLOOK,MOULD),GRORH(MLOOK,MOULD)
       common/mglook2/GROW(MLOOK,MOULD)
-
-C Commons
       common/mstats/imstat,ifloat(mould),ifloatp(mould),imdur1(mould)
      &,imdur0(mould),i1max(mould),i0max(mould),imup(mould),
      &imdn(mould)
-
       common/mstats2/maxrh(mould),minrh(mould),maxt(mould),mint(mould)
      &,ioutlk(mould),nog(mould),ipor(mould),imdt(mould),igod(mould),
      &ivgd(mould),nent(mould),ient(mould)
-
       common/moupk/ispp(mould),a(4,mould),mldnam(mould)
       common/meqn/a0(MOULD),a1(MOULD),a2(MOULD),a3(MOULD)
       character mldnam*48,outs*124,grow*1

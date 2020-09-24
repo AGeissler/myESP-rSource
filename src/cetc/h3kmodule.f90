@@ -152,7 +152,7 @@ MODULE h3kmodule
          rvElecNetHybridComponentFlux, rvElecNetPowerOnlyComponents, &
          rvMfnTotalNodeFlowRate,rvMfnTotalNodeVolFlowRate,rvMfnTotalNodeTemp, &
          rvMfnConnectPressureDrop, rvMfnConnectFlowRate,rvMfnConnectVeloc, &
-         rvMfnContamCon, rvMfnConnectCtlOnFrac, rvZoneLabel
+         rvMfnContamCon, rvMfnConnectCtlOnFrac, rvMfnTRM, rvZoneLabel
    Type(ReportVariable) :: rvSurfaceArea, rvSurfLayMatnam, rvSurfLayDens, rvSurfLayThick, rvMLCArea
 
    !Used by SiteUtilities.F
@@ -202,12 +202,15 @@ MODULE h3kmodule
    Type(ReportVariable) :: rvBldMstRHnode,rvBldMstVapPressNode,rvBldMstStoreCap,rvBldMstStorage, &
         rvBldMstStorageMass,rvBldMstTNode,rvMstItCnt
 
+   !Used by pcloop.F
+   Type(ReportVariable) :: rvPltCmpCtlVal
+
    !Used by pcomp2.F
    !Claude - potential error found rvPltDefrostStat
    Type(ReportVariable) :: rvPltQAddedH,rvPltWCHPumpEInput,rvPltHOut,rvPltCOP, &
          rvPltTambient,rvPltDeviceONOFF,rvPltReturnTSP,rvPltRealPow, &
          rvPltReacPow,rvPltApparPow,rvPltDefrostStat,rvPltDHWDrawStoch, &
-         rvPltDHWDrawStochTp,rvPltAmbientHeat,rvPltCallForHeat
+         rvPltDHWDrawStochTp,rvPltAmbientHeat,rvPltCallForHeat,rvPltRelCompFreq
 
    !Used by pcomp3.F
    Type(ReportVariable) :: rvPltQExtractedH
@@ -1499,6 +1502,12 @@ CONTAINS
       rvMfnConnectCtlOnFrac%Description = 'mfn connection control ON fraction'
       Call AddVariable(rvMfnConnectCtlOnFrac)
 
+      rvMfnTRM%VariableName = 'mfn/*/*/TRM'
+      rvMfnTRM%MetaType = 'units'
+      rvMfnTRM%VariableType = '(oC)'
+      rvMfnTRM%Description = 'mfn connection control running avg. temp'
+      Call AddVariable(rvMfnTRM)
+
       !Used by SiteUtilities.F
       rvTFuelAllEndEnergyContent%VariableName = 'total_fuel_use/*/all_end_uses/energy_content'
       rvTFuelAllEndEnergyContent%MetaType = 'units'
@@ -2107,6 +2116,13 @@ CONTAINS
       rvBldMstTNode%Description = 'Temperature at mnode (for mould analysis)'
       Call AddVariable(rvBldMstTNode)
 
+      !Used by pcloop.F
+      rvPltCmpCtlVal%VariableName = 'plant/*/ctlvar_*/svctl'
+      rvPltCmpCtlVal%MetaType = 'units'
+      rvPltCmpCtlVal%VariableType = '(-)'
+      rvPltCmpCtlVal%Description = 'Plant component control value'
+      Call AddVariable(rvPltCmpCtlVal)
+
       !Used by pcomp2.F
       rvPltQAddedH%VariableName = 'plant/*/misc_data/Q_added_heat'
       rvPltQAddedH%MetaType = 'units'
@@ -2149,6 +2165,12 @@ CONTAINS
       rvPltCallForHeat%VariableType = '(-)'
       rvPltCallForHeat%Description = 'xSHP: CallForHeat status'
       Call AddVariable(rvPltCallForHeat)
+
+      rvPltRelCompFreq%VariableName = 'plant/*/misc_data/RelCompFreq'
+      rvPltRelCompFreq%MetaType = 'units'
+      rvPltRelCompFreq%VariableType = '(-)'
+      rvPltRelCompFreq%Description = 'icGSHP: relative compressor frequency'
+      Call AddVariable(rvPltRelCompFreq)
 
       rvPltAmbientHeat%VariableName = 'plant/*/misc_data/AmbientHeatIn'
       rvPltAmbientHeat%MetaType = 'units'

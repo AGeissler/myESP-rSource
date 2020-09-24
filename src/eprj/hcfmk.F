@@ -13,10 +13,6 @@ C warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
 C PURPOSE. See the GNU General Public License for more
 C details.
 
-C You should have received a copy of the GNU General Public
-C License along with ESP-r. If not, write to the Free
-C Software Foundation, Inc., 59 Temple Place, Suite 330,
-C Boston, MA 02111-1307 USA.
 
 C This file contains routines for creating and editing a zone
 C convection-calculation control file:
@@ -49,13 +45,11 @@ C control file.
 
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
-
       COMMON/gzonpik/izgfoc,nzg,nznog(mcom)
       COMMON/HCFP/IHCDT,IHCFP(MDTY),ST(MDTY,MBP),EN(MDTY,MBP),
      &            HCI(MDTY,MBP,MS),HCE(MDTY,MBP,MS),ICTL(MDTY,MBP),
      &            IHCI(MDTY,MBP,MS),IHCE(MDTY,MBP,MS),
      &            CVdata(MDTY,MBP,MS,8)
-
       common/HCFPHI/hcfpdescr(MDTY,MBP)
       CHARACTER hcfpdescr*72
       common/calena/calename,calentag(MDTY),calendayname(MDTY)
@@ -433,7 +427,7 @@ C Present options.
       elseif(INO.eq.2)then
 
 C List current data.
-        call listhtc(iuout,ICOMP,IER)
+        call listhtc(iuout,ICOMP,'f',IER)
         goto 21
       elseif(INO.eq.3)then
 
@@ -859,7 +853,7 @@ C Write .htc file then return to higher level menu.
 
 C Check if user wants to list current data.
       call edisp(iuout,'The current flow data follows...')
-      call listhtc(iuout,ICOMP,IER)
+      call listhtc(iuout,ICOMP,'f',IER)
       return
       END
 
@@ -1111,8 +1105,8 @@ C data to subsequent day types.
 C Write .htc file then return to higher level menu.
       CALL EMKHTC(LHCCO(ICOMP),ICOMP,IUF,ITRU,IER)
 
-C List current data.
-      call listhtc(iuout,ICOMP,IER)
+C List summary of current data.
+      call listhtc(iuout,ICOMP,'s',IER)
       return
 
       END
@@ -1412,7 +1406,7 @@ C correlations should be applied to subsequent days.
       endif
 
 C List current data.
-      call listhtc(iuout,ICOMP,IER)
+      call listhtc(iuout,ICOMP,'f',IER)
 
 C All data has been acquired. Write .htc file then return to higher
 C level menu.
@@ -1574,7 +1568,7 @@ C correlations should be applied to subsequent days.
       endif
 
 C List current data.
-      call listhtc(iuout,ICOMP,IER)
+      call listhtc(iuout,ICOMP,'f',IER)
 
 C Write .htc file before returning.
       CALL EMKHTC(LHCCO(ICOMP),ICOMP,IUF,ITRU,IER)
@@ -1783,8 +1777,8 @@ C Concatenate the phrases to make hcfpdescr.
       write(hcfpdescr(id,IPER),'(5a)') hcphrase(1)(1:lhcp1),' ',
      &  hcphrase(2)(1:lhcp2),' ',hcphrase(3)(1:lhcp3)
 
-C List current data.
-      call listhtc(iuout,ICOMP,IER)
+C List summary of current data.
+      call listhtc(iuout,ICOMP,'s',IER)
 
 C All data has been acquired. Write .htc file then return to higher
 C level menu.
@@ -1976,7 +1970,7 @@ C Given a velocity, give approx hc for flow || with face.
       ELSEIF(INO.EQ.NITEMS-4)then
 
 C List HC control data.
-        call listhtc(iuout,ICOMP,IER)
+        call listhtc(iuout,ICOMP,'f',IER)
 
       ELSEIF(INO.EQ.NITEMS-3)then
 
@@ -3445,13 +3439,19 @@ C Error messages.
 C ************* listhtc
 C listhtc reports on the current heat transfer correlation definition
 C held in a *.htc file.
-      subroutine listhtc(ITRU,ICOMP,IER)
+      subroutine listhtc(ITRU,ICOMP,act,IER)
 #include "building.h"
 #include "model.h"
 #include "geometry.h"
 #include "schedule.h"
       
       integer lnblnk  ! function definition
+
+C Parameters. 
+      integer itru    ! file unit to write to
+      integer icomp   ! focus zone
+      character act*1 ! 's' summary 'f' full
+      integer ier     ! non-zero if an issue
 
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/HCFP/IHCDT,IHCFP(MDTY),ST(MDTY,MBP),EN(MDTY,MBP),
@@ -3515,7 +3515,8 @@ C Recover and list out the available correlations.
           endif
           write(outs,'(1x,a)') hcfpdescr(L,I)(1:lnblnk(hcfpdescr(L,i)))
           call edisp(itru,outs)
-          if(ICTL(L,I).eq.1) then
+          if(ICTL(L,I).eq.1.and.
+     &      act(1:1).eq.'f'.or.act(1:1).eq.'F') then
 
 C Convection coefficients. If lots of surfaces double the reporting.
             im=MOD(NS,2)
@@ -3611,7 +3612,8 @@ C Put odd vertex in left column.
                 call edisp(itru,outs)
               endif
             endif
-          elseif(ICTL(L,I).eq.2) then
+          elseif(ICTL(L,I).eq.2.and.
+     &      act(1:1).eq.'f'.or.act(1:1).eq.'F') then
 
 C Correlation indices.
             call edisp(itru,'   Surface orientation  Inside    Outside')
@@ -3651,7 +3653,8 @@ C Correlation indices.
               endif
   861       CONTINUE
 
-          elseif(ICTL(L,I).eq.3) then
+          elseif(ICTL(L,I).eq.3.and.
+     &      act(1:1).eq.'f'.or.act(1:1).eq.'F') then
 
 C Control laws and associated data.
             write(outs,'(2a)') ' Surface  Orientation ',
@@ -3664,7 +3667,8 @@ C Control laws and associated data.
               call edisp(itru,outs)
   862       CONTINUE
 
-          elseif(ICTL(L,I).eq.4) then
+          elseif(ICTL(L,I).eq.4.and.
+     &      act(1:1).eq.'f'.or.act(1:1).eq.'F') then
 
             ibase=nint(CENLOC(L,I,1))
             itop=nint(CENLOC(L,I,2))
@@ -3715,7 +3719,7 @@ C the in-built heat transfer correlations in ESP-r.
       dimension hcshtdescr(-1:99),hclngdescr(-1:99)
       integer ij  ! loop counter
 
-C Set all to not applicable and then instanciate available options.
+C Set all to not applicable and then instantiate available options.
       do ij=1,99
         hcshtdescr(ij)='not applicable'
         hclngdescr(ij)='not applicable'

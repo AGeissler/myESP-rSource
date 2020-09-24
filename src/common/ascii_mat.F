@@ -13,10 +13,6 @@ C warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
 C PURPOSE. See the GNU General Public License for more
 C details.
 
-C You should have received a copy of the GNU General Public
-C License along with ESP-r. If not, write to the Free
-C Software Foundation, Inc., 59 Temple Place, Suite 330,
-C Boston, MA 02111-1307 USA.
 
 C Version 1.1 or 1.2 of materials database
 C Implementation requires the following code facilties:
@@ -899,7 +895,7 @@ C   starts at zero to account for the implied air magerial.
 
 C Set inext to 601 in case nothing found. If mathash array item
 C is negative then it has not yet been used. Calling code should
-C be sure to instanciate mathash with the material array index.
+C be sure to instantiate mathash with the material array index.
       inext=601
       if(ip.gt.1.and.ip.le.599)then
         do 42 ilook=ip,600

@@ -13,10 +13,6 @@ C warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
 C PURPOSE. See the GNU General Public License for more
 C details.
 
-C You should have received a copy of the GNU General Public
-C License along with ESP-r. If not, write to the Free
-C Software Foundation, Inc., 59 Temple Place, Suite 330,
-C Boston, MA 02111-1307 USA.
 
 C The file esru_cut_lib.f is a collection of text and bid-mapped terminal
 C control Fortran Functions and Subroutines:
@@ -117,7 +113,7 @@ C Clear string buffers and instantiate 'ask'
    20 WORD=' '
       WRITE(ask,'(I5)',iostat=ios,err=1)IVAL
 
-C Remember value passed in in case of a cancel.
+C Remember value passed in, in case of a cancel.
       ivalold=ival
 
 C Generate help and default strings.
@@ -163,8 +159,8 @@ C leading blanks from string returned.
 C A 'D' or 'd' detected, set to default value.
           call edisp(iuout,DSTR)
           IVAL=IDEFLT
-          call usrmsg('  ','  ','-')  ! clear lower display
-          IMFS=lastmenufont           ! reset font
+          call usrmsg(' ',' ','-')  ! clear lower display
+          IMFS=lastmenufont         ! reset font
           ITFS=lasttextfont
           IFS=lastbuttonfont
           call userfonts(IFS,ITFS,IMFS)
@@ -173,7 +169,6 @@ C A 'D' or 'd' detected, set to default value.
 
 C Cancel button was pressed, reset ival as ivalold and mark as cancel. 
           IVAL=ivalold
-C          call usrmsg('User requested a cancel for dialog',PROMP1,'-')
           ier=-3
           IMFS=lastmenufont    ! reset to proportional font
           ITFS=lasttextfont
@@ -249,14 +244,14 @@ C Check IVALT against minimum and respond based on MINACT.
           CALL EASKOK(OUTSTR,'Is this OK?',OK,newnbhelp)
           IVAL=IVALT
           IF(.NOT.OK)GOTO 20
-          IF(MMOD.EQ.8)call usrmsg('  ','  ','-')
+          IF(MMOD.EQ.8)call usrmsg(' ',' ','-')
           RETURN
         ELSEIF(MINACT.EQ.'F')THEN
           CALL USRMSG(OUTSTR,'Please re-enter.','W')
           GOTO 20
         ELSEIF(MINACT.EQ.'-')THEN
           IVAL=IVALT
-          IF(MMOD.EQ.8)call usrmsg('  ','  ','-')
+          IF(MMOD.EQ.8)call usrmsg(' ',' ','-')
           RETURN
         ENDIF
       ELSEIF(IVALT.GT.MAXV)THEN
@@ -270,25 +265,25 @@ C Check IVALT against minimum and respond based on MINACT.
           CALL EASKOK(OUTSTR,'Is this ok?',OK,newnbhelp)
           IVAL=IVALT
           IF(.NOT.OK)GOTO 20
-          IF(MMOD.EQ.8)call usrmsg('  ','  ','-')
+          IF(MMOD.EQ.8)call usrmsg(' ',' ','-')
           RETURN
         ELSEIF(MAXACT.EQ.'F')THEN
           CALL USRMSG(OUTSTR,'Please re-enter.','W')
           GOTO 20
         ELSEIF(MAXACT.EQ.'-')THEN
           IVAL=IVALT
-          IF(MMOD.EQ.8)call usrmsg('  ','  ','-')
+          IF(MMOD.EQ.8)call usrmsg(' ',' ','-')
           RETURN
         ENDIF
       ELSE
         IVAL=IVALT
       ENDIF
 
-C Return to calling module
-      IF(MMOD.EQ.8)call usrmsg('  ','  ','-')
+C Return to calling module.
+      IF(MMOD.EQ.8)call usrmsg(' ',' ','-')
       RETURN
 
-999   CALL USRMSG(' ','Invalid input, try again.','-')
+999   CALL USRMSG(' ','Invalid input, retry.','-')
       GOTO 20
 
    1  if(IOS.eq.2)then
@@ -306,7 +301,7 @@ C looping, creating infinite output. Stop the program.
       call pauses(1)
       STOP
 
-      END ! of EASKI
+      END
 
 C ******************** EASKR
 C EASKR is a facility for asking the user for an real which
@@ -2338,7 +2333,7 @@ C If a long list include page facility text.
         LISTA(M+3)='< index select'
       endif
       LISTA(M+4)  ='? help'
-      LISTA(M+5)  ='- exit this menu'
+      LISTA(M+5)  ='- exit menu'
 
 C Now display the menu (depending on the width of the strings).
       IF(MMOD.EQ.8)THEN
@@ -2604,7 +2599,7 @@ C Number of actual items displayed.
         VERT(nopt+2)='                        '
       endif
       VERT(nopt+3)  ='? help                  '
-      VERT(nopt+4)  ='- exit this menu        '
+      VERT(nopt+4)  ='- exit menu'
 
       if(index.le.0)then
         write(prompt2,'(a)') '  '
@@ -4867,7 +4862,7 @@ C Hilight surface based on OPQ/TRAN or construction.
       ITEMS(21)  ='2 views from sun                '
       ITEMS(22)  ='* mouse controls                '
       ITEMS(23)  ='? help                          '
-      ITEMS(24)  ='- exit this menu                '
+      ITEMS(24)  ='- exit menu                     '
       MVERT=24
 
 C If image info altered (view point) then update display.
@@ -5270,10 +5265,10 @@ C tmode as 'graphic'
           if(iappw.gt.0.and.iappw.le.200)then
             write(doit,'(3a,3i4,3a)') 'viewer -mode ',tmode,
      &        ' -s ',iappw,iappx+25,iappy+20,' -file ',
-     &        longtfile(1:lnblnk(longtfile)),' &'
+     &        longtfile(1:lnblnk(longtfile)),' & '
           else
             write(doit,'(5a)') 'viewer -mode ',tmode,
-     &        ' -s 0 0 0 -file ',longtfile(1:lnblnk(longtfile)),' &'
+     &        ' -s 0 0 0 -file ',longtfile(1:lnblnk(longtfile)),' & '
           endif
 C          call usrmsg(' ','Starting perspective viewer.','-')
           call runit(doit,tmode)
@@ -5335,7 +5330,7 @@ C in the list (at the bottom).
       CHARACTER*(*) prompt,title
 
       DIMENSION VERT(35),IVALS(MCOM)
-      DIMENSION GERT(20),IGVAL(20)  ! For groups.
+      DIMENSION GERT(32),IGVAL(32)  ! For groups.
       CHARACTER VERT*23,gert*23,KEY*1,prompt2*36
       character h*72,mod*1,outs*124,outsd*124,msg*96
 
@@ -5406,7 +5401,7 @@ C If groups defined.
         endif
         VERT(M+3)  ='! via group-of-zones  '
         VERT(M+4)  ='? help                '
-        VERT(M+5)  ='- exit this menu      '
+        VERT(M+5)  ='- exit menu'
       else
         if(maxinpic.eq.NCOMP)then
           VERT(M+2)='* All                 '
@@ -5414,15 +5409,14 @@ C If groups defined.
           VERT(M+2)='                      '
         endif
         VERT(M+3)  ='? help                '
-        VERT(M+4)  ='- exit this menu      '
+        VERT(M+4)  ='- exit menu'
       endif
       write(prompt2,'(a)') ' select one or more...'
 
-C Instanciate help message for this menu.
+C Instantiate help message for this menu.
       H(1)='Zones may be selected via the names in the list.'
       h(2)='If you have just updated a file it may not show up'
       h(3)='as defined until you exit and re-enter this menu. '
-      h(4)=' '
 
 C Display the menu.
       call usrmsg(PROMPT,PROMPT2,'-')
@@ -5439,7 +5433,7 @@ C        write(6,*) 'ivals is ',ivals
       ELSEIF(IVERT.EQ.(MVERT-1))THEN
 
 C Display help text.
-        CALL PHELPD('zone files section',4,'-',0,0,IER)
+        CALL PHELPD('zone files section',3,'-',0,0,IER)
       ELSEIF(IVERT.EQ.(MVERT-2).AND.nzgroup.gt.0)THEN
 
 C Display a list of groups of associated zones.

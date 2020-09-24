@@ -477,7 +477,7 @@
 
 *item dbm dbm_create_new_db
 'To create a new database, you are asked for the type of'
-'data and a base name for the database (both an ascii &'
+'data and a base name for the database (both an ascii & '
 'a binary version will be created).'
 *enditem
 

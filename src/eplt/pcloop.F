@@ -275,12 +275,16 @@ C actuated plant component (IPCMP), and number of this plant
 C component type's control variable (IPCVR)
 
       SUBROUTINE CLVAR(SVCTL,IPCMP,IPCVR)
+      use h3kmodule
 
 #include "plant.h"
 #include "building.h"
 #include "site.h"
+#include "net_flow.h"
+#include "tdf2.h"
 #include "control.h"
 
+      common/trc/itrc
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/TC/ITC,ICNT
       COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
@@ -288,9 +292,17 @@ C component type's control variable (IPCVR)
       COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS,idynow
       COMMON/CLIMIP/QFPP,QFFP,TPP,TFP,QDPP,QDFP,VPP,VFP,DPP,DFP,HPP,HFP
 
+      COMMON/PTIME/PTIMEP,PTIMEF
+
+      COMMON/ITERINDEX/ITERNU !plant iteration number
+
       COMMON/PCLSOL/ICFP,IDTYPP,IPERP
       COMMON/PCVAL/CSVF(MPNODE,MPVAR),CSVP(MPNODE,MPVAR)
       COMMON/C12PS/NPCDAT(MPCOM,9),IPOFS1(MCOEFG),IPOFS2(MCOEFG,MPVAR)
+
+      common/pcnam/pcname(mpcom)        ! Plant component names
+      character*15, pcname
+
       COMMON/C14PS/NDCON(MPCOM,MNODEC),ISV(MPCOM,MNODEC)
       COMMON/PCRES/QDATA(MPCOM),PCAOUT(MPCOM,MPCRES),napdat(mpcom)
       REAL QDATA,PCAOUT
@@ -303,9 +315,15 @@ C component type's control variable (IPCVR)
       common/pcfngr/clfgsd(MCF,6),pcfngn,IDAYPD
 
       character outs*124
-      
+      character*2  IPCVR_Chars
+
+C Contextual buffer
+      character cContext*124
+
       logical pcfngn,svcfgr,close
       
+      dimension VAL(MTABC+2)
+
       svcfgr=.false.
 
 C Trace output
@@ -506,13 +524,46 @@ C Sensor measures outside condition.
 
 C Sensor values are read from a boundry data file.
       ELSE IF(IPS1.EQ.-5) THEN
-           IDTCOL=IPSN(ICFP,2)
-           CALL PCBDAT(idtcol,svctl)
+         IDTCOL=IPSN(ICFP,2)
+         CALL PCBDAT(idtcol,svctl)
 
 C Sensor values are provided by a function generator.
       ELSE IF(IPS1.EQ.-6) THEN
            IFUNCT=IPS2
            CALL CLFNGR(IFUNCT,SVCTL)
+
+C Sensor values are read from a temporal data file (TDF).
+      ELSE IF(IPS1.EQ.-7) THEN
+cx           IFOC=IPSN(ICFP,2)
+cx           CALL RCTDFB(ITRC,ptimef,VAL,ISD,IFOC,IER)
+cx           SVCTL=VAL(ISD)
+C Retrieve data from BC data facility, code from eplt/adjp.F, lines 257 ff.
+C Initialize contextual buffer
+           write (cContext, '(A,I2,A)')
+     &       'Recovering control value for plant control loop ',
+     &       ICFP, ' from BC data facility.'
+
+C Input data
+           iBC_column = int(IPSN(ICFP,2))
+           iBC_interp = int(1.0) ! step-wise
+C Convert building/plant timestep #'s into real represeting
+C current day and fraction thereof
+           fDay = fConvert_current_TS_to_DAY()
+C Collect containment temperature
+           SVCTL = fGet_BC_data_by_col( iBC_column,
+     &                                  fDay,
+     &                                  iBC_interp,
+     &                                  cContext)
+
+C Debug.
+        if (ITERNU.eq.1)then
+cx           write(6,'(a,F10.6,3(a,I3),a,F4.2,a)')
+cx           write(6,'(a,F10.6,2(a,I3),a,F4.2,a)')
+cx     &       'tdf sens dat @',fDay,' for ctl loop ',ICFP,
+cx     &       ' is item ',iBC_column,', value=',svctl,';'
+cx     &       'tdf sens dat @',IDYF+(ptimef-1),' for ctl loop ',ICFP,
+cx     &       ' is item ',IFOC,', column ',isd,', value=',svctl,';'
+        endif
 
       ELSE
          call edisp(iuout,' CLVAR: illegal plant-side sensor rfrncd ')
@@ -541,6 +592,19 @@ C Trace output
          WRITE(ITU,*) ' Actuated component & variable = ',IPCMP,IPCVR
          WRITE(ITU,*) ' Leaving subroutine CLVAR'
       END IF
+
+C Write SVCTL to h3k data output.
+         if ( IPCVR .gt. 9 ) then
+           write(IPCVR_Chars, '(I2)')  IPCVR
+         else
+           write(IPCVR_Chars, '(A,I1)') '0', IPCVR
+         endif
+
+C        rvPltCmpCtlVal%VariableName = 'plant/*/ctlvar_*/svctl'
+         call AddToReport(rvPltCmpCtlVal%Identifier,
+     &         svctl,
+     &         pcname(IPCMP)(1:lnblnk(pcname(IPCMP))),
+     &         IPCVR_Chars)
 
       RETURN
       END
@@ -579,6 +643,9 @@ C determines sensed condition SVCTLM(?,?).
       COMMON/CPMVAR/NPSEN(MCF),ISMODP(MCF),IPMSN(MCF,MPSEN,5),
      &SVCTLM(MCF,MPSEN),SNWGTP(MPSEN)
       character outs*124
+
+C Contextual buffer
+      character cContext*124
 
 C Trace output
       IF(ITC.GT.0.AND.NSINC.GE.ITC.AND.NSINC.LE.ITCF.AND.
@@ -753,6 +820,39 @@ C Sensor values are provided by a function generator.
            call epwait
            call epagend
            STOP
+
+C Sensor values are read from a temporal data file (TDF).
+        ELSE IF(IPS1.EQ.-7) THEN
+cx           IFOC=IPSN(ICFP,2)
+cx           CALL RCTDFB(ITRC,ptimef,VAL,ISD,IFOC,IER)
+cx           SVCTL=VAL(ISD)
+C Retrieve data from BC data facility, code from eplt/adjp.F, lines 257 ff.
+C Initialize contextual buffer
+           write (cContext, '(A,I2,A)')
+     &       'Recovering control value for aux. plant control loop ',
+     &       ICFP, ' from BC data facility.'
+
+C Input data
+           iBC_column = int(IPSN(ICFP,2))
+           iBC_interp = int(1.0) ! step-wise
+C Convert building/plant timestep #'s into real represeting
+C current day and fraction thereof
+           fDay = fConvert_current_TS_to_DAY()
+C Collect containment temperature
+           SVCTLM(ICFP,J) = fGet_BC_data_by_col( iBC_column,
+     &                                  fDay,
+     &                                  iBC_interp,
+     &                                  cContext)
+
+C Debug.
+      if (ITERNU.eq.1)then
+cx           write(6,'(a,F10.6,3(a,I3),a,F4.2,a)')
+cx           write(6,'(a,F10.6,2(a,I3),a,F4.2,a)')
+cx     &       'tdf sens dat @',fDay,' for ctl loop ',ICFP,
+cx     &       ' is item ',iBC_column,', value=',svctl,';'
+cx     &       'tdf sens dat @',IDYF+(ptimef-1),' for ctl loop ',ICFP,
+cx     &       ' is item ',IFOC,', column ',isd,', value=',svctl,';'
+      endif
 
         ELSE
            call edisp(iuout,' CLMVAR: illegal plant-side auxiliary
@@ -3773,6 +3873,8 @@ C Work out logical relationship result if more than one master loop
               IF(CTRLD(ICT).AND.CTRLD(ICT+1))THEN
                 ICTL=1
                 IPREVON=1
+              else
+                ICTL=0
               ENDIF
             ENDIF
           ELSE
@@ -3785,6 +3887,8 @@ C Work out logical relationship result if more than one master loop
                IF(CTRLD(ICT+1).AND.(ICTL.EQ.1))THEN
                 ICTL=1
                 IPREVON=1
+              else
+                ICTL=0
               ENDIF
             ENDIF
           ENDIF

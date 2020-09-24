@@ -42,8 +42,8 @@
       ! If -1 then not a CFC
       ! If 0 then confused or missing layer
       ! If gt 0 then legitimate db index 
-        integer, DIMENSION(250, 16) :: ITMCFCDB
-        logical, DIMENSION(250, 16) :: CFC_layer_flipped
+        integer, DIMENSION(300, 16) :: ITMCFCDB
+        logical, DIMENSION(300, 16) :: CFC_layer_flipped
      
       ! Data structures associated with CFC layers (all will be allocated to MGIT_CFC)
         integer(KIND=1), ALLOCATABLE :: CFCshdtp(:)        ! CFC shade type (defined in CFC_common.h)

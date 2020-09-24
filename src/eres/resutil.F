@@ -13,10 +13,6 @@ C warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
 C PURPOSE. See the GNU General Public License for more
 C details.
 
-C You should have received a copy of the GNU General Public
-C License along with ESP-r. If not, write to the Free
-C Software Foundation, Inc., 59 Temple Place, Suite 330,
-C Boston, MA 02111-1307 USA.
 
 C Utility routines for results analysis.
 C Contains:
@@ -77,8 +73,8 @@ C For help messages
 
 C Create menu.
       ITEM(1) ='   Graphs:            '
-      ITEM(2) ='a Time series plot    '
-      ITEM(3) ='p Psychrometric chart '
+      ITEM(2) ='a time series         '
+      ITEM(3) ='p psychrometric chart '
       if(iairn.eq.3)then
         ITEM(4) ='3 3D flow network     '
       else
@@ -86,16 +82,16 @@ C Create menu.
       endif
       ITEM(5) ='  ------------------  '
       ITEM(6) ='   Statistics:        '
-      ITEM(7) ='b Summary statistics  '
-      ITEM(8) ='c Hours > query point '
-      ITEM(9) ='d Hours < query point '
-      ITEM(10)='e Frequency histogram '
+      ITEM(7) ='b summary             '
+      ITEM(8) ='c hours > query point '
+      ITEM(9) ='d hours < query point '
+      ITEM(10)='e frequency histogram '
       ITEM(11)='  ------------------  '
       ITEM(12)='   Tabular lists:     '
-      ITEM(13)='f Performance metrics '
+      ITEM(13)='f performance metrics '
       ITEM(14)='  ------------------  '
-      ITEM(15)='? Help                '
-      ITEM(16)='- Exit                '
+      ITEM(15)='? help                '
+      ITEM(16)='- exit menu'
 
       NITMS=16
       if(MMOD.eq.8)then
@@ -104,7 +100,7 @@ C Create menu.
         INO=-2
       endif
 
-C Instanciate help strings for the menu.
+C Instantiate help strings for the menu.
       helptopic='res_style_selection_menu'
       call gethelptext(helpinsub,helptopic,nbhelp)
 
@@ -168,7 +164,7 @@ C Read 3D flow network, report contents and draw the network.
           CALL MFCDAT
           CALL EMF3DREAD(IUM,'S',IER)
           call edisp(iuout,' ')
-          CALL MFLIST(iuout)
+          CALL MFLIST(iuout,'s')
           if(NNOD.gt.50.or.NCMP.gt.50)then
             call MFWFDRAW('r',0,0)  ! Draw flow network without names if complex
           else

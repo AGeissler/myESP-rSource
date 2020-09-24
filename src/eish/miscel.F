@@ -13,10 +13,6 @@ C warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
 C PURPOSE. See the GNU General Public License for more
 C details.
 
-C You should have received a copy of the GNU General Public
-C License along with ESP-r. If not, write to the Free
-C Software Foundation, Inc., 59 Temple Place, Suite 330,
-C Boston, MA 02111-1307 USA.
 
 C MISCEL.F contains the following routines used by ish.
 
@@ -36,7 +32,7 @@ C i3piobs: winding method containment checks - point in obstr polygon (3D)
 C findsurbox: for each surface in the model find its length width and BB.
 C insurbox: test if the 3D coordinate X Y Z is within surface BB.
 
-C *************** MESH ***********************
+C ******************** MESH ********************
 C Computes the centre point 'x & y' coordinates for each rectangular
 C grid cell as superimposed on the target surface. Note that some of
 C these points will lie outside a non-rectangular target surface; such
@@ -94,7 +90,7 @@ C Compute x & y values for centre point of each grid cell.
       return
       end
 
-C *************** MESH3D ***********************
+C ******************** MESH3D ********************
 C Computes the centre point 'x & y' coordinates for each rectangular
 C grid cell as superimposed on the target surface. Note that some of
 C these points will lie outside a non-rectangular target surface; such
@@ -261,7 +257,7 @@ C Establish, for each surface in the current zone which other
 C surfaces in the model are in front or behind or crossing it.
       call frontsurbox(izone)
 
-C Instanciate derived properties of obstructions e.g. bounding
+C Instantiate derived properties of obstructions e.g. bounding
 C boxes and the angles for the obstruction faces.
       call precobs(izone)
 
@@ -431,7 +427,6 @@ C to -1.0.
               foshd(i,j)=-1.0  ! grid point not within focus surface
               ioshd(i,j)=-1
             else
-C              if(mmod.eq.8) call wiresymbol(xxw,yyw,zzw,1,32)
             endif
           enddo ! of j
         enddo   ! of i
@@ -440,6 +435,7 @@ C Direct case.
         if(ip.eq.1)then
           mode='dir'
           gssa=0.0
+
 C Trace output.
           if(tok)then
             call edisp(icout,' ')
@@ -457,6 +453,7 @@ C Diffuse case (only initilise gssa at start of sky vault processing).
             gssa=0.0     ! related to obstructions
             gselfsa=0.0  ! related to self-shading
           endif
+
 C Trace output.
           if(tok)then
             call edisp(icout,' ')
@@ -628,7 +625,7 @@ C point of intersection x3 y3 z3
                     CALL VECPLN(x3op(m,n),y3op(m,n),z3op(m,n),
      &                XXuv,YYuv,ZZuv,EQN, x3,y3,z3, IERR)
 
-C Check if x3 y3 z3 is within BBO
+C Check if x3 y3 z3 is within BBO.
                     inside=.true.  ! assume inside
                     if(x3.lt.(BBO(ib,1,1)-tol))then
                       inside=.false.
@@ -646,13 +643,7 @@ C Check if x3 y3 z3 is within BBO
                     if(inside)then
                       call i3piobs(izone,ib,iface,x3,y3,z3,m,n,i3pio)
                       if(i3pio.ne.0)then
-C                        write(6,*)'i3piobs for ',izone,ib,iface,x3,y3,
-C     &                    z3,i3pio
                         if(mmod.eq.8)then
-C debug                    call wiresymbol(x3,y3,z3,3,32)
-C                          xxw=x3op(m,n); yyw=y3op(m,n); zzw=z3op(m,n)
-C                          call wiresymbol(xxw,yyw,zzw,2,33)
-C                          call pausems(2)
 
 C Remember where the shaded point is.
                           xxw=x3op(m,n); yyw=y3op(m,n); zzw=z3op(m,n)
@@ -889,7 +880,7 @@ C (i.e. time invariant geometry and sky irradiance distribution).
       return
       end
 
-C *************** PRECOBS ***********************
+C ******************** PRECOBS ********************
 C precobs pre-computes obstruction polygons for the current zone
 C obstructio blocks and places in common block SHDGB1.
 
@@ -953,7 +944,7 @@ C BBO(ib,2,*) is upper right.
           Xmin=100.0; Xmax=-100.0; Ymin=100.0; Ymax=-100.0
           Zmin=100.0; Zmax=-100.0
 
-C Instanciate SHXB SHYB SHZB.
+C Instantiate SHXB SHYB SHZB.
           do loop=1,12
             SHXB(ib,loop)=XB(loop)
             SHYB(ib,loop)=YB(loop)
@@ -1035,16 +1026,17 @@ C Assign BBO at the lower left and upper right extents.
       return
       end
 
-C ********** INCAIOBS **********
-C incaiobs for obstructions calculate eqivalent of caii and caie.
-C if ihour>0 compute sazi1,salt1 otherwise pass in sazi,salt
+C ******************** INCAIOBS ********************
+C Calculate the eqivalent of caii and caie for obstructions.
+C If ihour>0 compute sazi1 & salt1 otherwise pass in sazi & salt.
+
       subroutine incaiobs(izone,iyd,ihour,sazi,salt)
 #include "building.h"
 #include "geometry.h"
 
 C Parameters.
       integer izone  ! the focus zone
-      integer iyd    ! julian day of the year
+      integer iyd    ! day of the year
       integer ihour  ! the focus hour
       real sazi,salt ! passed in if ihour = 0 (for diffuse solar)
 
@@ -1137,16 +1129,16 @@ C Trace output, check also that user has asked for detailed trace.
       return
       end
 
-C*******************************************************************
-C SUR3DLEHI Determines the overall length and height of a
-C surface (bounding box) and passes the vaules back as WID and HIGH.
-C Uses a temporary transform into 2D to get this data.
+C ******************** SUR3DLEHI ********************
+C Determines the overall length and height of a surface
+C (bounding box) and passes the vaules back as WID and HIGH.
+C Uses a temporary transform into 2D to get these data.
 
       SUBROUTINE SUR3DLEHI(izone,IS,WID,HIGH,BB)
 #include "building.h"
 #include "geometry.h"
 
-C Parameters
+C Parameters.
       integer izone  ! the focus zone
       integer is     ! the focus surface
       real wid,high  ! pass back width and height of bounding box
@@ -1236,9 +1228,9 @@ C      write(6,*) 'iz is wid high',izone,IS,WID,HIGH
       END
 
 
-C ********************* ETRANSGRID
-C ETRANSGRID used when creating an grid point in 3D equivalent to that
-C created by 2D calcs in esruish.
+C ******************** ETRANSGRID ********************
+C Used when creating a grid point in 3D equivalent to that
+C created by 2D calculations.
 
 C STEP 1 - Find equation of surface (EQN(4)) via PLEQN and get centre
 C          Centre of Gravity (VP(3))
@@ -1251,6 +1243,7 @@ C STEP 5 - Apply reverse transformation to co-ordinates via
 C          ORTTRN to give vertices in global co-ords.
 C N is the number of surface vertices, X,Y,Z are the surface vertex arrays,
 C DX,DZ are the mesh offsets, XXW,YYW,ZZW are the transformed wcoords.
+
       SUBROUTINE ETRANSGRID(N,XA,YA,ZA,DX,DZ,XXW,YYW,ZZW)
 #include "building.h"
 
@@ -1320,8 +1313,7 @@ C Apply transformation first shifting the Z point by OFFSET.
       RETURN
       END
 
-
-C ******************** PICKSSUR 
+C ******************** PICKSSUR ********************
 C Selects surfaces for shading & insolation analysis.
 C 'izone' is the target zone, 'np' the number of surfaces selected,
 C 'act' = 's or S' for shading, 'act' = 'i or I' for insolation,
@@ -1380,7 +1372,7 @@ C For help messages
      &  'Include diffuse shading (default)',ichoice,nbhelp)
       if(ichoice.eq.1)then
 
-C Exclude diffuse shading
+C Exclude diffuse shading.
          iexcludediff_flag=1
       else
          iexcludediff_flag=0      
@@ -1516,18 +1508,16 @@ C Process initial selection.
       return
       end
 
-C ******************** ASKDAY 
-C ASKDAY Returns 'imo' (month), 'ido' (day of month) and 'ijday' (day of year).
+C ******************** ASKDAY ********************
+C Returns 'imo' (month), 'ido' (day of month) and 'ijday' (day of year).
 C 'ifday' is a toggle controlling the display and input of periods:
 C 0 = Julian day, 1 or 2 = day of month.
 
       subroutine askday(ifday,imo,ido,ijday,ier)
 
       common/outin/iuout,iuin,ieout
-
       dimension id(12)
 
-C For help messages
       character helpinsub*24 ! subroutine name
       character helptopic*24 ! string (unique) for topic
       integer nbhelp     ! number of help lines found
@@ -1560,7 +1550,7 @@ C Check range.
       return
       end
 
-C ************* POINT1 **********************
+C ******************** POINT1 ********************
 C Determines if a specified point is within or outwith the
 C target surface.
 
@@ -1568,7 +1558,7 @@ C target surface.
 #include "building.h"
 #include "geometry.h"
 
-C Parameters passed:
+C Input parameters.
       integer icomp   ! the zone
       integer is      ! the target surface
       real xx,zz      ! point
@@ -1624,13 +1614,13 @@ C << document this logic >>
       return
       end
 
-C ************* POINT2 **********************
+C ******************** POINT2 ********************
 C Determines if point xx,zz is within or outwith the shadow polygon
 C xs,zs.
 
       subroutine point2(xx,zz,ians)
 
-C Parameters passed:
+C Input parameters.
       real xx,zz     ! point
       integer ians   ! what has been determined
 
@@ -1639,8 +1629,6 @@ C Parameters passed:
       dimension c(12)
       integer last1,last2,ln,ip,n,i
 
-C Logic of if(statement)j1 j2 j3 is
-C if (result of statement is) <0  =0 >0
       ians=0
       np=npoint
       do 10 i=1,np
@@ -1657,7 +1645,7 @@ C if (result of statement is) <0  =0 >0
       ip=np+1
       do 20 i=2,ip
          n=2*i
-         if((c(n-2)-zz)*(zz-c(n)))20,1,2
+         if((c(n-2)-zz)*(zz-c(n)))20,1,2   ! jump if (result of statement is) <0  =0 >0
     2    if((zz-c(n-2))*(c(n-1)-c(n-3))/(c(n)-c(n-2))+c(n-3)-xx)20,3,4
     1    if(c(n-2)-c(n))5,6,7
     6    if((c(n-3)-xx)*(xx-c(n-1)))20,3,3
@@ -1673,14 +1661,14 @@ C if (result of statement is) <0  =0 >0
    11 return
       end
       
-C ************* ipippa **********************
-C ipippa containment checks - point in polygon (2D)
-C using winding method.
+C ******************** ipippa ********************
+C Checks if a point is within a 2D polygon using the winding method.
+
       subroutine ipippa(icomp,is,xp,yp,igm,ign,ipip)
 #include "building.h"
 #include "geometry.h"
 
-C Parameters passed:
+C Input parameters.
       integer icomp   ! the zone
       integer is      ! the target surface
       real xp,yp        ! point
@@ -1692,10 +1680,10 @@ C of calculating the angle for each point on the polygon, it
 C looks to see when the polygon crosses from one quadrant to
 C another, and which way it goes. It also tests when a polygon segment 
 C goes from the (+,+) quadrant to (-,-) or (+,-) to (-,+).
-
+C
 C Assumes that xarray(nc+1)==xarray(1) and yarray(nc+1)==yarray(1)
 c returns ipippa=0 if point x,y not in the bound polygon.
-c
+C
 C Code based on C functions by Ken McElvain by Barry Rowlingson in
 C http://www.realtimerendering.com/resources/RTNews/html/rtnv3n4.html
 
@@ -1726,11 +1714,7 @@ C the local arrays.
         xarray(loop)=xft(loop)
         yarray(loop)=zft(loop)
       enddo
-C Debug.
-C      write(6,*) 'test point ',xp,yp
-C      write(6,*)icc,' xarray',xarray(1:10)
-C      write(6,*)icc,' yarray',yarray(1:10)
-       
+ 
       iwind = 0
       xlastp = xarray(nc)
       ylastp = yarray(nc)
@@ -1744,14 +1728,16 @@ C For each point in the polygon.
 
 C See if this line segment starts/finishes in a diff quadrant
          if(ioldq.ne.inewq) then
-c if so, see if its an adjacent quadrant
+
+C See if it is an adjacent quadrant.
            if(mod(ioldq+1,4).eq.inewq) then
               iwind=iwind + 1
            else if(mod(inewq+1,4).eq.ioldq) then
               iwind = iwind - 1
            else 
-c If it jumps two quadrants - see which way round
-c the origin it went
+
+C If it jumps two quadrants, see which way round
+C the origin it went
               a = (ylastp-ythisp)*(xp-xlastp)
               b = xlastp-xthisp
               a = a + ylastp * b
@@ -1770,11 +1756,10 @@ c the origin it went
  
 C Quadrant winding is either -4,0,+4 so divide down and take abs.
       ipip = abs(iwind/4)
-C      write(6,*) 'found ipip iwind ',icomp,is,xp,yp,igm,ign,ipip,iwind
 
       end
 
-C iquad determines which quadrant xp,yp is in relative to xo,yo as origin
+C iquad determines which quadrant xp,yp is in relative to xo,yo as origin.
       function iquad(xp,yp,xo,yo)
       real xp,yp,xo,yo
 
@@ -1796,14 +1781,15 @@ C iquad determines which quadrant xp,yp is in relative to xo,yo as origin
       end
    
       
-C ************* i3pippa **********************
-C i3pippa winding method containment checks - point in polygon (3D)
+C ******************** i3pippa ********************
+C Point in polygon containment check (3D).
+
       subroutine i3pippa(icomp,is,xp,yp,zp,igm,ign,ipip)
 #include "building.h"
 #include "geometry.h"
 #include "prj3dv.h"
 
-C Parameters passed:
+C Input parameters.
       integer icomp   ! the zone
       integer is      ! the target surface
       real xp,yp,zp   ! point
@@ -1875,10 +1861,6 @@ C the local arrays.
           yarray(loop)=szcoords(icomp,iszjvn(icomp,is,loop),2)
         enddo
       endif
-C Debug.
-C      write(6,*) 'test point ',xx,yy
-C      write(6,*)icc,' xarray',xarray(1:10)
-C      write(6,*)icc,' yarray',yarray(1:10)
       
       iwind = 0
       xlastp = xarray(nc)
@@ -1919,20 +1901,19 @@ c the origin it went
  
 C Quadrant winding is either -4,0,+4 so divide down and take abs.
       ipip = abs(iwind/4)
-C      write(6,*)'found i3pip iwind ',
-C     &  icomp,is,xp,yp,zp,igm,ign,ipip,iwind
 
       end
       
-C ************* i3piobs **********************
-C i3piobs containment checks - point in obstruction polygon (3D)
-C using winding method.
+C ******************** i3piobs ********************
+C Point in obstruction polygon (3D) containment check
+C using the winding method.
+
       subroutine i3piobs(icomp,ib,iface,xp,yp,zp,igm,ign,ipio)
 #include "building.h"
 
-C Parameters passed:
+C Input parameters.
       integer icomp   ! the zone
-      integer ib     ! the target obstruction
+      integer ib      ! the target obstruction
       integer iface   ! face of obstruction
       real xp,yp,zp   ! point
       integer igm,ign ! grid index currently being evaluated
@@ -1975,7 +1956,7 @@ C Common blocks for expanded obstructions.
       integer i
       character drop*1
 
-C Calc equation of plane of the current face of obstruction.
+C Equation of plane of the current obstruction face.
       EQN(1)=SHEQN(ib,iface,1)
       EQN(2)=SHEQN(ib,iface,2)
       EQN(3)=SHEQN(ib,iface,3)
@@ -2017,10 +1998,6 @@ C the local arrays.
           yarray(loop)=SHYB(ib,JVNBSH(ib,iface,loop))
         enddo
       endif
-C Debug.
-C      write(6,*) 'test point ',xx,yy
-C      write(6,*)icomp,ib,' xarray',xarray(1:12)
-C      write(6,*)icomp,ib,' yarray',yarray(1:12)
       
       iwind = 0
       xlastp = xarray(nc)
@@ -2066,13 +2043,14 @@ C     &  icomp,ib,iface,xp,yp,zp,igm,ign,ipio,iwind
 
       end
       
-C ************* findsurbox **********************
-C findsurbox for each surface in the model find its length width and BB.
-C Call this early in the application.
+C ******************** findsurbox ********************
+C For each surface in the model find its length width and bounding box.
+
       subroutine findsurbox()
 #include "building.h"
 #include "geometry.h"
 #include "prj3dv.h"
+
       integer ncomp,ncon
       common/c1/ncomp,ncon
       integer izstocn
@@ -2100,14 +2078,14 @@ C Call this early in the application.
       return
       end
       
-C ************* insurbox **********************
-C insurbox test if the 3D coordinate X Y Z is within surface BB.
-C All calcs in 3D.
+C ******************** insurbox ********************
+C Test if the 3D coordinate X Y Z is within surface bounding box.
+
       subroutine insurbox(XP,YP,ZP,icomp,its,inside)
 #include "building.h"
 #include "geometry.h"
 
-C Parameters
+C Input parameters.
       real XP,YP,ZP
       integer icomp ! focus zone
       integer its   ! focus surface
@@ -2139,18 +2117,19 @@ C introduce a 1mm offset to slightly grow the bounding box.
       elseif(ZP.gt.(surbb(icc,2,3)+tol))then
        inside=.false.
       endif
-C      write(6,*)'is it inside ',inside
+
       return
       end
       
-C ************* frontsurbox **********************
-C frontsurbox for each model surface is its BB in-front behind
-C or crossing bounding box of surfaces in a zone. The array
-C FBC(MS,MCON) has F or B or C or - for each possible.
+C ******************** frontsurbox ********************
+C For each model surface determine if its bounding box is in-front of,
+C behind or crossing the bounding box of other surfaces in a zone.
+
       subroutine frontsurbox(icomp)
 #include "building.h"
 #include "geometry.h"
 #include "prj3dv.h"
+
       integer icomp ! focus zone
       integer ncomp,ncon
       common/c1/ncomp,ncon
@@ -2164,7 +2143,7 @@ C FBC(MS,MCON) has F or B or C or - for each possible.
       logical positive
 
 C Clear array.
-      do loop=1,MS    ! for each surface in zone
+      do loop=1,MS      ! for each surface in zone
         do loop2=1,ncon ! vs all connections
           fbc(loop,loop2)='-'
         enddo  ! of loop2
@@ -2228,15 +2207,15 @@ C Ignore self.
       return
       end  ! of frontsurbox
       
-C ************* frontobsbox **********************
-C frontobsbox for each obstruction model is its BB in-front behind
-C or crossing bounding box of surfaces in a zone. The array
-C OFBC(MS,MB) has F or B or C or - for each possible. Similar
-C logic to frontsurbox.
+C ******************** frontobsbox ********************
+C For each obstruction model determine if its bounding box is in-front of,
+C behind or crossing the bounding boxes of other urfaces in a zone.
+
       subroutine frontobsbox(icomp)
 #include "building.h"
 #include "geometry.h"
 #include "prj3dv.h"
+
       integer icomp ! focus zone
       integer izstocn
       common/c24/izstocn(mcom,ms)
@@ -2319,9 +2298,10 @@ C If both are same sign then in front.
       end
 
 
-C ********** INCAI3 **********
+C ******************** INCAI3 ********************
 C Similar to INCAI but if ihour is zero then the ray to
 C the sky patch angles are passed in (for diffuse sky patch purposes).
+
       subroutine incai3(icomp,ihour,sazi,salt)
 #include "building.h"
 #include "geometry.h"

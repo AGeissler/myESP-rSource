@@ -13,10 +13,6 @@ C warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
 C PURPOSE. See the GNU General Public License for more
 C details.
 
-C You should have received a copy of the GNU General Public
-C License along with ESP-r. If not, write to the Free
-C Software Foundation, Inc., 59 Temple Place, Suite 330,
-C Boston, MA 02111-1307 USA.
 
 C This file (resdef.f) contains the following routines:
 C  MORFIL
@@ -142,7 +138,7 @@ C Save back the command file name. While here also assume that any
 C other results files will be found in the same location and make
 C up full length strings that guess what those file names will be.
 C If file ends with .plr then assume it is a plant results file and
-C instanciate LAFRESABS and set PFILEABS to ltmpc.
+C instantiate LAFRESABS and set PFILEABS to ltmpc.
           LCMDFL=ltmpc
           lrf=lnblnk(ltmpc)
           lrf3=lrf-3
@@ -1403,8 +1399,6 @@ C Open core databases (materials, constructions, optics).
      &        'Possible problems with one or more of the',
      &        'construction and optical databases - Please check.','W')
             ier = 0
-          else
-            call usrmsg('Databases scan (ok)',' ','P')
           endif
 
 C Set the default export file name based on model root name.

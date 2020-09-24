@@ -13,29 +13,25 @@ C warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
 C PURPOSE. See the GNU General Public License for more
 C details.
 
-C You should have received a copy of the GNU General Public
-C License along with ESP-r. If not, write to the Free
-C Software Foundation, Inc., 59 Temple Place, Suite 330,
-C Boston, MA 02111-1307 USA.
 
-C netgrph.F contains generic graph plotting routines, allowing data from non-building 
-C simulations to be plotted. These routines are as follows: 
-C 
-C ENETGRPH - deals with all aspects of graph drawing.
+C This file contains generic graph plotting routines, allowing data
+C from non-building simulations to be plotted. 
+C ENETGRPH - controls graph drawing.
 C ENETTBL  - displays tabular output, up to 11 columns of data can be listed. 
 C ENETSTAT - displays statistical output. <to be added ...>
 C ENETPQAL - displays a power quality assessment. <to be added ...>
 C MOGEHED  - writes out header information for graphs.
 C ENRFILT  - alows filtering of selected data for the graphical display.
 C
-C All the routines are called in various modes. These are as follows:
-C 'I' - initialise the graph: initialise the axis, prescan data to get the minimum 
-C       and maximum values for each axis and then draw then. 
-C 'U' - updates the graph with data read from the results library.
-C
-C
-      SUBROUTINE ENETGRPH(MODE)
+C Routines can be called in various modes as follows.
+C 'I' - initialises the axes, prescans data to get the minimum 
+C       and maximum values and then draws the graph. 
+C 'U' - updates the graph with data read from the results file.
 
+C ******************** ENETGRPH ********************
+C Controls graph drawing.
+
+      SUBROUTINE ENETGRPH(MODE)
 #include "building.h"
 #include "plant.h"
 #include "power.h"
@@ -127,10 +123,9 @@ C Initialise the axes of the graph (skip if the addlin flag is active).
           ILINST(I)=0
   20    CONTINUE
 
-
         IF(ADDLIN.EQ.0)THEN
 C Change the graph scaling based on the currently read data
-          CALL USRMSG('Scanning data for range of values...',' ','-')
+C           CALL USRMSG('Scanning data for range of values...',' ','-')
 
 C Loop through each timestep and recover the data into the EVAL1 array, scale
 C the graph's axes according to this prescan.

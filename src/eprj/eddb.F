@@ -13,10 +13,6 @@ C warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
 C PURPOSE. See the GNU General Public License for more
 C details.
 
-C You should have received a copy of the GNU General Public
-C License along with ESP-r. If not, write to the Free
-C Software Foundation, Inc., 59 Temple Place, Suite 330,
-C Boston, MA 02111-1307 USA.
 
 C Project Manager: file eddb.f providing manipulation of
 C standard data files:
@@ -295,7 +291,7 @@ C yet defined.
 
       ITEMS(17)='  _______________________________ '
       ITEMS(18)='? help                            '
-      ITEMS(19)='- exit this menu                  '
+      ITEMS(19)='- exit menu                       '
 
 C Try to compact the width of the menu.
       IW=0
@@ -311,10 +307,10 @@ C Help text for this menu.
         impx=0
         impy=0
         iwe=iw
-        CALL VWMENU('Database maintenance',ITEMS,NITMS,impx,impy,
+        CALL VWMENU('Database management',ITEMS,NITMS,impx,impy,
      &    iwe,irpx,irpy,INO)
       else
-        CALL EMENU('Database maintenance',ITEMS,NITMS,INO)
+        CALL EMENU('Database management',ITEMS,NITMS,INO)
       endif
       IF(INO.EQ.19)THEN
         if(browse)return   ! no change since browsing
@@ -2330,11 +2326,11 @@ C Get logical name of child process terminal type and create a string to drive p
         if(iappwpc.gt.0.and.iappwpc.le.200)then
           write(doit,'(3a,3i4,3a)') 'pdb -mode ',tmode,
      &      ' -s ',iappwpc,iappx+10,iappy+40,' -file ',
-     &      longtfile(1:lnblnk(longtfile)),' &'
+     &      longtfile(1:lnblnk(longtfile)),' & '
         else
           write(doit,'(5a)') 'pdb -mode ',tmode,
      &      ' -s 0 0 0 -file ',longtfile(1:lnblnk(longtfile)),
-     &      ' &'
+     &      ' & '
         endif
         call runit(doit,tmode)
         goto 60  ! re-display menu
@@ -2674,9 +2670,7 @@ C Predefined entities. Select which to focus on.
         goto 60
       endif
 
-      moddb=.true.
-      modcon=.true.
-      chgdb=.false.
+      moddb=.true.; modcon=.true.; chgdb=.false.  ! Reset.
       if(requestpreview)then
 
 C Read into commons the selected predefined entity.
@@ -4211,7 +4205,7 @@ C If so llclmdb will be expanded to the full path.
       helptopic='clm_db_manage'
       call gethelptext(helpinsub,helptopic,nbhelp)
 
-C Just in case we got this far and ICLIM was not instanciated do it now.
+C Just in case we got this far and ICLIM was not instantiated do it now.
       if(ICLIM.eq.0)then
         ICLIM=IFIL
       endif
@@ -5451,11 +5445,11 @@ C Start the mould utility.
         if(iappwpc.gt.0.and.iappwpc.le.200)then
           write(doit,'(3a,3i4,3a)') 'mld -mode ',tmode,
      &      ' -s ',iappwpc,iappx+10,iappy+40,' -file ',
-     &      longtfile(1:lnblnk(longtfile)),' &'
+     &      longtfile(1:lnblnk(longtfile)),' & '
         else
           write(doit,'(5a)') 'mld -mode ',tmode,
      &      ' -s 0 0 0 -file ',longtfile(1:lnblnk(longtfile)),
-     &      ' &'
+     &      ' & '
         endif
         call runit(doit,tmode)
         goto 60  ! redisplay menu.

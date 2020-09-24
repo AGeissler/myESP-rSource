@@ -936,7 +936,7 @@ void esru_wire_ctl ( void)
                                 /* in 64 bit gzonepik_ structure being messed around from fortran */
    long int rememberncomp;      /* local variable for number of zones
 
-   esru_ask_wire();	/* instanciate the help associated with this interface */
+   esru_ask_wire();	/* instantiate the help associated with this interface */
 
    control = gtk_dialog_new_with_buttons("Wireframe control",
      GTK_WINDOW (window),GTK_DIALOG_DESTROY_WITH_PARENT,
@@ -1424,11 +1424,11 @@ void esru_wire_ctl ( void)
            &cray2_.ITVOBJ,&cray2_.ITSNR,&cray2_.ITGRD,&cray2_.ITORG,&cray2_.GRDIS,&cray2_.ITBND,&cray2_.ITDSP,
            &cray2_.ITHLS,&cray2_.ITHLZ,&cray2_.ITPPSW);
 
-         esru_ask_wire();	/* re-instanciate the help associated with this interface */
+         esru_ask_wire();	/* re-instantiate the help associated with this interface */
          break;
        case GTK_RESPONSE_HELP:
 
-/* need a mechanism for instanciating help array */
+/* need a mechanism for instantiating help array */
          ibx= 0; iby= 0; more = 0;
          egphelpscroll_(&ibx,&iby,&ipflg,&more,&iuresp);
          break;

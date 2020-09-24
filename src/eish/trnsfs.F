@@ -13,12 +13,8 @@ C warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
 C PURPOSE. See the GNU General Public License for more
 C details.
 
-C You should have received a copy of the GNU General Public
-C License along with ESP-r. If not, write to the Free
-C Software Foundation, Inc., 59 Temple Place, Suite 330,
-C Boston, MA 02111-1307 USA.
 
-C TRNSFS.F comprises:
+C This file comprises the following subroutines.
 C TRNSF1 - Sets up the coefficients of the coordinate transformation
 C          equations.
 C TRNSF2 - Expresses the solar azimuth and altitude angles relative to
@@ -30,7 +26,7 @@ C CORNR  - Returns the X & Y coords of the 4 top corners of the
 C          obstruction block.
 C PANGS  - Returns the azimuth, elevation and tilt angles of a surface.
 
-C ************** TRNSF1
+C ******************** TRNSF1 ********************
 C Sets up the coefficients of the transform equations
 C (translation + z- then x- then y-axis rotations) that move
 C the site coordinate system to the local surface under
@@ -181,7 +177,7 @@ C          ip=(icc,i)
       return
       end
 
-C ************** TRNSF2 
+C ******************** TRNSF2 ******************** 
 C Convert solar angles (sazi1 and salt1) in original coordinate
 C system to corresponding angles (sazi2 and salt2) in transformed
 C coordinate system (target external surface) to allow obstruction
@@ -352,7 +348,7 @@ C Trace output.
       return
       end
 
-C ************** TRNSF3 ********************
+C ******************** TRNSF3 ********************
 C Projects the 4 vertices of an obstruction block surface on to the
 C the plane of the target surface. The projected points are specified
 C relative to the local face coordinate system. The y-coordinate is
@@ -481,7 +477,7 @@ C Trace output. Include context for the calculation.
       return
       end
 
-C ************** CORNR ********************
+C ******************** CORNR ********************
 C Returns the x, y and z coordinates of the 8 vertices of an
 C obstruction block (ibn) in zone (iz), where vertices 1-4 are
 C anticlockwise uppermost and verticed 5-8 are anticlockwise lowermost.
@@ -505,9 +501,9 @@ C
 #include "building.h"
 #include "geometry.h"
 
-C Parameter
+C Input parameters.
       integer iz  ! zone index
-      integer ibn ! index of block
+      integer ibn ! obstruction block index
 
       common/tracech/icout
       common/tc/itc,icnt
@@ -520,7 +516,7 @@ C Parameter
       logical tok
 
 C If the trace unit is 33 and verbose and this obstruction has not
-C already been reported on set tok to true.
+C already been reported on, set tok to true.
       tok=.false.
       if(icout.eq.33.and.itc.eq.2)then
         if(iobstrtrace(iz,ibn).eq.0) tok=.true.
@@ -665,7 +661,7 @@ C         ip2=(icc,k)
       pelv(is)=atan2(zsum,srx2y2)/r
     2 continue
 
-C Now compute local X-axis tilt angle.
+C Compute local X-axis tilt angle.
 C      iv1=(icc,1)
       iv1=iszjvn(izone,is,1)
 C      iv2=(icc,2)
@@ -683,11 +679,8 @@ C azimuth calculated above is zero. It is now reset to
 C the azimuth of the plane comprising the first two
 C vertices of the face and the same two vertices but with
 C an adjusted Z value.
-
       call eclose ( abs(pelv(is)), 90., 0.001, bHorizontal )
-
       if ( bHorizontal ) then
-
         xsum=0.
         ysum=0.
         zsum=0.

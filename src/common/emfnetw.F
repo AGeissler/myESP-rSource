@@ -1486,7 +1486,7 @@ C MFERR Error trap routine.
 
 C ************************* MFLIST 
 C MFLIST Fluid flow file: list common block contents.
-      SUBROUTINE MFLIST(itru)
+      SUBROUTINE MFLIST(itru,act)
 
 #include "building.h"
 #include "net_flow.h"
@@ -1494,6 +1494,10 @@ C MFLIST Fluid flow file: list common block contents.
 #include "geometry.h"
       
       integer lnblnk  ! function definition
+
+C Parameters:
+      integer itru    ! file unit to write to
+      character act*1 ! 's' summary 'f' full
 
       COMMON/MFLCLM/DRYB,QDIF,QDNR,IRVH,WDIR,WSPD,WRED
       
@@ -1512,7 +1516,9 @@ C Markdown flag.
       if(markdown)then
         CALL EDISP(itru,'## Flow network description  ')
         CALL EDISP(itru,'The model includes a mass flow network. ')
-        CALL EDISP2tr(itru,'The details are shown below.  ')
+        if(act(1:1).eq.'f'.or.act(1:1).eq.'F')then
+          CALL EDISP2tr(itru,'The details are shown below.  ')
+        endif
       else
         CALL EDISP(itru,' Flow network description. ')
       endif
@@ -1523,6 +1529,7 @@ C Number of nodes, components and interconnections.
  1010 FORMAT(1X,I3,' nodes, ',I3,' components, ',I3,' connections;',
      &       5X,'wind reduction = ',F6.3)
       CALL EDISP(itru,outs)
+      if(act(1:1).eq.'s'.or.act(1:1).eq.'S') return  ! only summary requested
 
 C Node data.
       IF(NNOD.gt.0) then

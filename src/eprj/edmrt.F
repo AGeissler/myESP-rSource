@@ -572,24 +572,28 @@ C Manual editing of viewfactors. Keep track of the sum and
 C offer the user a chance to re-edit if not close to one.
         A=0.0
         IS=1
-        CALL EPMENSV
+  31    CALL EPMENSV
         CALL EASKSUR(ICOMP,IS,'-',
      &    'Select surface for viewfactor editing.',' ',IER)
-  31    do 33 MM=1,NZS
-          if(MM.NE.IS)then
-            write(outs,'(4A)') ' For ',SNAME(ICOMP,IS),' to ',
-     &        SNAME(ICOMP,MM)
-            V=VEWF(IS,MM)
-            CALL EASKR(V,outs,' view factor: ',
-     &        0.,'F',0.999,'F',0.,'viewfactors',IER,nbhelp)
-            VEWF(IS,MM)=V
-          else
-            VEWF(IS,IS)=0.
-          endif
-          A=A+VEWF(IS,MM)
-          write(outs,'(A,F8.5)') ' Current total is ',A
-          call edisp(iuout,outs)
-  33    continue
+        if(IS.gt.0)then
+          do 33 MM=1,NZS
+            if(MM.NE.IS)then
+              write(outs,'(4A)') ' For ',SNAME(ICOMP,IS),' to ',
+     &          SNAME(ICOMP,MM)
+              V=VEWF(IS,MM)
+              CALL EASKR(V,outs,' view factor: ',
+     &          0.,'F',0.999,'F',0.,'viewfactors',IER,nbhelp)
+              VEWF(IS,MM)=V
+            else
+              VEWF(IS,IS)=0.
+            endif
+            A=A+VEWF(IS,MM)
+            write(outs,'(A,F8.5)') ' Current total is ',A
+            call edisp(iuout,outs)
+  33      continue
+        else
+          goto 31  ! ask again
+        endif
         IF(ABS(A).LT.0.9.OR.ABS(A).GT.1.002)then
           write(outs,'(A,F8.5,A)')'The total is ',A,
      &      ' and should be close to zero!'
@@ -652,11 +656,11 @@ C an offset from prj start position.
             write(doit,'(3a,3i4,5a)') 'mrt -mode ',tmode,
      &        ' -s ',iappwpc,iappx+20,iappy+30,' -file ',
      &        longtfile(:lnblnk(longtfile)),' -zone ',ZN(1:lnblnk(ZN)),
-     &        ' &'
+     &        ' & '
           else
             write(doit,'(7a)') 'mrt -mode ',tmode,
      &        ' -s 0 0 0 -file ',longtfile(:lnblnk(longtfile)),
-     &        ' -zone ',ZN(1:lnblnk(ZN)),' &'
+     &        ' -zone ',ZN(1:lnblnk(ZN)),' & '
           endif
           call usrmsg('starting mrt module via',doit,'-')
           call runit(doit,tmode)

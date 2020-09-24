@@ -1,6 +1,6 @@
 C This file is part of the ESP-r system.
 C Copyright Energy Systems Research Unit, University of
-C Strathclyde, Glasgow Scotland, 2001.
+C Strathclyde, Glasgow Scotland, 2001-.
 
 C ESP-r is free software.  You can redistribute it and/or
 C modify it under the terms of the GNU General Public
@@ -13,23 +13,17 @@ C warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
 C PURPOSE. See the GNU General Public License for more
 C details.
 
-C You should have received a copy of the GNU General Public
-C License along with ESP-r. If not, write to the Free
-C Software Foundation, Inc., 59 Temple Place, Suite 330,
-C Boston, MA 02111-1307 USA.
 
 C folders.f provides creation and editing facilities related to
-C maintaining model folders and files:
-C  pregist: register a new project.
-C  pfolders: maintain model folders.
-C  Edimage: controls specification of an image associated with the
-C           model.
-C  EDBUILD: edits building information for system configuration file.
+C maintaining model folders and files. This file contains the
+C following subroutines.
+C  pregist  - register a new project.
+C  pfolders - maintain model folders.
+C  edimage  - specification of an associated imagew.
+C  edbuild  - edit building information for system configuration file.
 
-C << TODO - working with radiance requires a rad folder. If not found
-C << a folder should be created by prj prior to invoking e2r. And it
-C << could be a check when saving older models to upgrade them.
-C << here is some logic...
+C << Working with radiance requires a rad folder. If not found
+C << a folder should be created prior to invoking e2r.
 C          if(radpth(1:3).eq.'./ '.or.radpth(1:3).eq.'.\\ ')then
 C            pathtype='radincfg'
 C          elseif(radpth(1:7).eq.'../rad '.or.
@@ -37,33 +31,31 @@ C     &           radpth(1:7).eq.'..\\rad ')then
 C            pathtype='radinrad'
 C          endif
 
-C ********** pregist
-C Register a new project. Parameter act = 'i ' then initial pass,
-C if 'e ' then provide editing menu, if 'sn' use passed parameters
-C for the root and path to create a new model, if 'sc' silent continue,
-C if 'sw' then pased root and model is assumed to be created silently 
-C within the current folder.
-C root (32 char) root name (for 'sn' case)
-C mpath (72 char) path to model folder (for 'sn' case)
-C menu (72 char) brief title of model
+C ******************** pregist ********************
+C Register a new project. If act = 'i ' then initial pass,
+C if 'e ' provide editing menu, if 'sn' use passed parameters
+C for the rootname  and path to create a new model, if 'sc' continue
+C silently, if 'sw' then the passed model root name and path is
+C assumed to be created silently within the current folder.
+
       subroutine pregist(act,root,mpath,menu,ier)
 #include "building.h"
 #include "model.h"
 #include "site.h"
 #include "esprdbfile.h"
 #include "espriou.h"
-C espriou.h provides currentfile and MFFOLD.
       
       integer lnblnk  ! function definition
 
-C Passed in parameters.
+C Input parameters:
+C  root (32 char)  - model root name (for 'sn' case),
+C  mpath (72 char) - path to model folder (for 'sn' case),
+C  menu (72 char)  - model title.
       character root*32,mpath*72,menu*72
 
       common/FILEP/IFIL
       common/OUTIN/IUOUT,IUIN,IEOUT
       common/SPAD/MMOD,LIMIT,LIMTTY
-      
-      integer ncomp,ncon
       common/C1/NCOMP,NCON
       common/SET1/IYEAR,IBDOY,IEDOY,IFDAY,IFTIME
       common/C6/INDCFG
@@ -75,14 +67,14 @@ C Plant network.
       COMMON/C23/IFPNF,LPNF
 
 C Images.
-      character imgfmt*4  ! GIF XBMP TIF JPG
-      character imgfoc*4  ! FZON FNET FCTL FDFS
-      character limgfil*72  ! file name (extend to 144 char)
-      character imgdoc*248  ! text associated with image
+      character imgfmt*4    ! GIF, XBMP, TIF or JPG
+      character imgfoc*4    ! FZON, FNET, FCTL or FDFS
+      character limgfil*72  ! file name
+      character imgdoc*248  ! associated text
       common/imagf/imgfmt(MIMG),imgfoc(MIMG),limgfil(MIMG),imgdoc(MIMG)
 
       integer noimg  ! number of images
-      integer iton   ! zero if images not yet shown, one if yes
+      integer iton   ! 0 if images not yet displayed, 1 if displayed
       common/imagfi/noimg,iton
 
 C External text editor.
@@ -113,27 +105,26 @@ C Calendar.
       character cfgpath*144  ! full path to cfg folder for refocus
       character thecfgis*72 ! cfg file only
 
-      integer iyeart    ! for local editing
-      integer iglib  ! for detecting GTK or X11
-      integer lnmp,lncr,lnod ! for with of mpath, cfgroot, odir strings
-      integer itrcc   ! for silently rescanning new cfg file
+      integer iyeart         ! for local editing
+      integer iglib          ! for detecting GTK or X11
+      integer lnmp,lncr,lnod ! for width of mpath, cfgroot and odir strings
+      integer itrcc          ! for silently rescanning new cfg file
       character tcname*248   ! for editing image notes
       character WORDS(12)*32,testw*32,folderreadme*96
       character MODE*4
       integer ISTRW
 
-C For help messages
       character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
+      character helptopic*24 ! string for topic
+      integer nbhelp         ! number of help lines found
 
 #ifdef OSI
-      integer nnlistf  ! for use with getfileslist
+      integer nnlistf        ! for use with getfileslist
 #else
       integer*8 nnlistf
 #endif
 
-      helpinsub='pregist'  ! set for subroutine
+      helpinsub='pregist'    ! set for subroutine
 
 C Set folder separator (fs) to \ or / as required.
       call isunix(unixok)
@@ -144,29 +135,24 @@ C Set folder separator (fs) to \ or / as required.
       endif
       thecfgis='  '; cfgpath='  '
 
-C If act = 'i' then initial pass, if 'e' then provide editing menu.
-
-C Ask for source file, brief description and log file. Offer
-C editing of log file, images, hypertext link and results summary.
       IER=0
 
+C Silent mode.
   289 if(act(1:2).eq.'sc')then
-
-C Silent continue, there is nothing to do (currently).
         return
+
+C Silent new within the pre-registration process. Use passed parameters
+C for the root name and path to create a new model.
       elseif(act(1:2).eq.'sn')then
-
-C Silent new within the pre-registration process.
-
         write(LCFTMP,'(a)') root(1:lnblnk(root))
+
+C Silent within the pre-registration process. The passed model root name
+C and path is assumed to be created silently within the current folder.
       elseif(act(1:2).eq.'sw')then
-
-C Silent within the pre-registration process.
-
         write(LCFTMP,'(a)') root(1:lnblnk(root))
 
+C Initial pass.
       elseif(act(1:1).eq.'i')then
-
         helptopic='model_root_name'
         call gethelptext(helpinsub,helptopic,nbhelp)
         LCFTMP='  '
@@ -174,32 +160,29 @@ C Silent within the pre-registration process.
         CALL EASKSCMD(LCFTMP,' ','Model root name?',
      &    'cancel',clkok,ISTRW,'new_model','model root name',IER,nbhelp)
         call usrmsg(' ',' ','-')
-        if(clkok) return         ! User selected cancel.
+        if(clkok) return      ! cancel selected
+        IF(LCFTMP(1:2).EQ.'  '.or.LCFTMP(1:4).eq.'UNKN')GOTO 289 ! blank root name
 
-C Trap for blank root name.
-        IF(LCFTMP(1:2).EQ.'  '.or.LCFTMP(1:4).eq.'UNKN')GOTO 289
-
-C If we got this far in the 'i' mode clear common blocks. Note this
-C clear is not done when called in the 'sn' or 'sw' mode because
-C the meta file facility will have instanciated some common blocks
-C which should not be cleared.
+C Clear common block data. (This is not done when called in the 'sn'
+C or 'sw' mode because the meta file facility will have instantiated
+C some common blocks which should not be cleared.)
         call clrprb
       endif
 
-C User did not cancel so instantiate data for new model.
-C Current default version is v4.
-      icfgv=4   ! alter this to 4 when working correctly
+C User did not cancel so instantiate data for new model. Current default
+C version is v4.
+      icfgv=4
       INDCFG=0
       if(act(1:2).eq.'sn'.or.act(1:2).eq.'sw')then
-        continue  ! META or gbXML file will already have set sitelat etc.
+        continue      ! META or gbXML file will already have set sitelat etc.
       else
         sitelat=55.9; SLAT=55.9; 
-        sitelongdif=-4.1; SLON=-4.1
+        sitelongdif=-4.3; SLON=-4.3
         siteexposureindex=1
         groundrefl=0.2
       endif
       if(act(1:2).eq.'sn'.or.act(1:2).eq.'sw')then
-        continue  ! META or gbXML file will already have set zones etc.
+        continue      ! META or gbXML file will already have set zones etc.
       else
         NCOMP=0
         noimg=0
@@ -210,7 +193,7 @@ C Current default version is v4.
       call st2file(LCFTMP,LCMDFL)  ! remove unprintable characters
 
 C Derive the model root name from this.
-C If sting > 4 char it might have a .cfg attached, otherwise add.
+C If string > 4 char it might have a .cfg attached, otherwise add.
       call fdroot(LCMDFL,path,LCFGF)
       lcfgr=lnblnk(LCFGF)
       lcfgl=lcfgr-3
@@ -228,8 +211,8 @@ C If sting > 4 char it might have a .cfg attached, otherwise add.
           else
             write(cfgroot,'(a)') LCFGF(1:32)
           endif
-          write(LCFGF,'(a,a)')LCFGF(1:lcfgr),'.cfg'
-          write(thecfgis,'(a,a)')LCFGF(1:lcfgr),'.cfg'
+          write(LCFGF,'(a,a)') LCFGF(1:lcfgr),'.cfg'
+          write(thecfgis,'(a,a)') LCFGF(1:lcfgr),'.cfg'
         endif
       else
         if(lcfgr.le.32)then
@@ -241,7 +224,7 @@ C If sting > 4 char it might have a .cfg attached, otherwise add.
         write(thecfgis,'(a,a)')LCFGF(1:lcfgr),'.cfg'
       endif
 
-C Check existance of this file (should not overwrite an existing file).
+C Check file existence (to avoid overwriting an existing file).
       CALL ERPFREE(IFCFG,ISTAT)
       call FINDFIL(LCFGF,XST)
       if(XST)then
@@ -258,26 +241,20 @@ C Check existance of this file (should not overwrite an existing file).
         if(.not.OK)goto 289
       endif
 
-C Ask where to put it.
-C Get the current folder and display options to the user.
+C Determine model folder.
       odir=' '
       call usrdir(odir)
       lnod=lnblnk(odir)
       if(act(1:2).eq.'sw')then
+        continue   ! silent within the pre-registration process
 
-        continue ! silent within the pre-registration process.
-
+C Silent new within the pre-registration process. Create the folder
+C mpath and standard ESP-r model sub-folders.
       elseif(act(1:2).eq.'sn')then
-
-C Silent new within the pre-registration process.
-
-C Create the folder mpath and inside that the standard model folders.
         lnmp=lnblnk(mpath)
         write(doit,'(2a)') 'mkdir ',mpath(1:lnmp)
-C        call usrmsg('Creating model folders ...','  ','-')
         call runit(doit,'-')
         call pausems(100)
-        call usrmsg('  ','  ','-')
         write(doit,'(4a)') 'mkdir ',mpath(1:lnmp),fs,'cfg'
         write(folderreadme,'(5a)') mpath(1:lnmp),fs,'cfg',fs,
      &    'Readme.txt'
@@ -287,11 +264,11 @@ C        call usrmsg('Creating model folders ...','  ','-')
         IUNIT=IFIL+1
         CALL EFOPSEQ(IUNIT,folderreadme,3,IER)
         write(iunit,'(a)')'This folder holds the model configuration'
-        write(iunit,'(a)')'[cfg] files and master connection lists'
-        write(iunit,'(a)')'[cnn] for the project models.'
+        write(iunit,'(a)')'(.cfg) and surface connection lists'
+        write(iunit,'(a)')'(.cnn) files.'
         CALL ERPFREE(IUNIT,ISTAT)
 
-C Check that the control folder path is standard.
+C Check the control folder path.
         call GETTOKENS(ctlpth,IW,WORDS)
         lnw=lnblnk(WORDS(IW))
         testw=WORDS(IW)
@@ -311,10 +288,10 @@ C Check that the control folder path is standard.
         IUNIT=IFIL+1
         CALL EFOPSEQ(IUNIT,folderreadme,3,IER)
         write(iunit,'(a)')'This folder holds control definitions for'
-        write(iunit,'(a)')'the model e.g. zone & flow & plant.'
+        write(iunit,'(a)')'building, flow and plant components.'
         CALL ERPFREE(IUNIT,ISTAT)
 
-C Check that the aim2 folder path is standard.
+C Check the aim2 folder path.
         call GETTOKENS(aimpth,IW,WORDS)
         lnw=lnblnk(WORDS(IW))
         testw=WORDS(IW)
@@ -327,7 +304,7 @@ C Check that the aim2 folder path is standard.
         call runit(doit,'-')
         call pausems(100)
 
-C Check that the zones folder path is standard or was not yet defined.
+C Check that zones folder path.
         call GETTOKENS(zonepth,IW,WORDS)
         lnw=lnblnk(WORDS(IW))
         testw=WORDS(IW)
@@ -346,11 +323,11 @@ C Check that the zones folder path is standard or was not yet defined.
         write(currentfile,'(a)') folderreadme(1:lnblnk(folderreadme))
         IUNIT=IFIL+1
         CALL EFOPSEQ(IUNIT,folderreadme,3,IER)
-        write(iunit,'(a)')'This folder holds zone-based model files'
-        write(iunit,'(a)')'e.g. geometry construction tmc operations'
+        write(iunit,'(a)')'This folder holds building definition.'
+        write(iunit,'(a)')'files.'
         CALL ERPFREE(IUNIT,ISTAT)
 
-C Check that the nets folder path is standard.
+C Check the nets folder path.
         call GETTOKENS(netpth,IW,WORDS)
         lnw=lnblnk(WORDS(IW))
         testw=WORDS(IW)
@@ -369,11 +346,11 @@ C Check that the nets folder path is standard.
         write(currentfile,'(a)') folderreadme(1:lnblnk(folderreadme))
         IUNIT=IFIL+1
         CALL EFOPSEQ(IUNIT,folderreadme,3,IER)
-        write(iunit,'(a)')'This folder holds network decriptions for'
-        write(iunit,'(a)')'mass flows and electrical power. '
+        write(iunit,'(a)')'This folder holds network decriptions files'
+        write(iunit,'(a)')'for fluid and electrical power flow. '
         CALL ERPFREE(IUNIT,ISTAT)
 
-C Check that the images folder path is standard.
+C Check the images folder path.
         call GETTOKENS(imgpth,IW,WORDS)
         lnw=lnblnk(WORDS(IW))
         testw=WORDS(IW)
@@ -392,12 +369,12 @@ C Check that the images folder path is standard.
         write(currentfile,'(a)') folderreadme(1:lnblnk(folderreadme))
         IUNIT=IFIL+1
         CALL EFOPSEQ(IUNIT,folderreadme,3,IER)
-        write(iunit,'(a)')'This folder holds images associated with the'
-        write(iunit,'(a)')'model e.g. site photos renderings and/or'
-        write(iunit,'(a)')'figures which clarify the model.'
+        write(iunit,'(a)')'This folder holds images associated with'
+        write(iunit,'(a)')'the model, e.g. site photos or key.'
+        write(iunit,'(a)')'simulation results.'
         CALL ERPFREE(IUNIT,ISTAT)
 
-C Check that the doc folder path is standard.
+C Check the doc folder path.
         call GETTOKENS(docpth,IW,WORDS)
         lnw=lnblnk(WORDS(IW))
         testw=WORDS(IW)
@@ -430,13 +407,13 @@ C Check that the doc folder path is standard.
         IUNIT=IFIL+1
         CALL EFOPSEQ(IUNIT,folderreadme,3,IER)
         write(iunit,'(a)')'This folder holds Radiance scene files'
-        write(iunit,'(a)')'created from the model e.g. *.rif *.mat'
+        write(iunit,'(a)')'created from the model, i.e. *.rif, *.mat,'
         write(iunit,'(a)')'*.rad and view files.'
         CALL ERPFREE(IUNIT,ISTAT)
 
         write(radpth,'(3a)')'..',fs,'rad'
 
-C Check that the hvac folder path is standard.
+C Check the hvac folder path.
         call GETTOKENS(hvacpth,IW,WORDS)
         lnw=lnblnk(WORDS(IW))
         testw=WORDS(IW)
@@ -449,7 +426,7 @@ C Check that the hvac folder path is standard.
         call runit(doit,'-')
         call pausems(100)
 
-C Check that the dbs folder path is standard.
+C Check the dbs folder path.
         call GETTOKENS(dbspth,IW,WORDS)
         lnw=lnblnk(WORDS(IW))
         testw=WORDS(IW)
@@ -468,12 +445,12 @@ C Check that the dbs folder path is standard.
         write(currentfile,'(a)') folderreadme(1:lnblnk(folderreadme))
         IUNIT=IFIL+1
         CALL EFOPSEQ(IUNIT,folderreadme,3,IER)
-        write(iunit,'(a)')'This folder holds local databases used with'
-        write(iunit,'(a)')'the model e.g. materials & constructions'
-        write(iunit,'(a)')'which differ from the corporate databases.'
+        write(iunit,'(a)')'This folder holds local model databases'
+        write(iunit,'(a)')'that differ from the standard databases'
+        write(iunit,'(a)')'included in the ESP-r distribution.'
         CALL ERPFREE(IUNIT,ISTAT)
 
-C Check that the bsm (BASESIMP) folder path is standard.
+C Chec the bsm folder path.
         call GETTOKENS(bsmpth,IW,WORDS)
         lnw=lnblnk(WORDS(IW))
         testw=WORDS(IW)
@@ -486,13 +463,14 @@ C Check that the bsm (BASESIMP) folder path is standard.
         call runit(doit,'-')
         call pausems(100)
 
-C Re-establish pwd and then project folders.
+C Echo the project folder.
         write(path,'(4a)')mpath(1:lnblnk(mpath)),fs,'cfg',fs
+        call edisp(iuout,' ')
         call edisp(iuout,
      &      'System configuration file is located in folder:')
         call edisp(iuout,path)
 
-C Write out the model log file within the model doc folder.
+C Populate the model log file.
         uname=' '
         call usrname(uname)
         call usrdir(pwd)
@@ -512,7 +490,7 @@ C Write out the model log file within the model doc folder.
         CALL EFOPSEQ(IUNIT,lmodellog,3,IER)
         write(iunit,'(2a)')'Project notes for ',LCFGF(1:lnblnk(LCFGF))
         write(iunit,'(2a)')'Title: ',modeltitle(1:lnblnk(modeltitle))
-        write(iunit,'(2a)')'In folder: ',pwd(1:lnblnk(pwd))
+        write(iunit,'(2a)')'Folder: ',pwd(1:lnblnk(pwd))
         write(iunit,'(2a)')'Author: ',uname(1:lnblnk(uname))
         call dstamp(dstmp)
         write(iunit,'(2a)')'Date: ',dstmp
@@ -526,18 +504,12 @@ C Write out the model log file within the model doc folder.
         CALL ERPFREE(IUNIT,ISTAT)
         goto 77
 
+C Assume the standard model folder set.
       elseif(act(1:1).eq.'i')then
-
-C Assume a standard set of folders to hold the model description.
         IW=2
       endif
 
-
-C Setup the various paths to distributed folders and then create.
-C Check longer paths cause the path variable to have a string buffer overflow.
-
-C << consider uprating path string length to ~84 characters >>
-
+C Create folders.
       odir=' '
       call usrdir(odir)
       lnod=lnblnk(odir)
@@ -547,12 +519,12 @@ C << consider uprating path string length to ~84 characters >>
       else
         write(outs,'(6a)')odir(1:lnod),fs,cfgroot(1:lncr),fs,'cfg',fs
         call usrmsg(
-     &    'The derived path (below) is > 72 char give shorter root',
+     &    'Following paths > 72 chararacters, give shorter root',
      &    outs,'W')
         goto 289
       endif
 
-C Instanciate standard folder names for use within model configuration file.
+C Instantiate standard sub-folders within model folder.
       write(zonepth,'(3a)')'..',fs,'zones'
       write(netpth,'(3a)')'..',fs,'nets'
       write(ctlpth,'(3a)')'..',fs,'ctl'
@@ -567,7 +539,6 @@ C Instanciate standard folder names for use within model configuration file.
       write(odir,'(a)')cfgroot(1:lncr)
       lnod=lncr
       write(doit,'(2a)') 'mkdir ',cfgroot(1:lncr)
-C      call usrmsg('Creating model folders ...','  ','-')
       call runit(doit,'-')
       call pausems(100)
       write(doit,'(4a)') 'mkdir ',cfgroot(1:lncr),fs,'cfg'
@@ -579,8 +550,8 @@ C      call usrmsg('Creating model folders ...','  ','-')
       IUNIT=IFIL+1
       CALL EFOPSEQ(IUNIT,folderreadme,3,IER)
       write(iunit,'(a)')'This folder holds the model configuration'
-      write(iunit,'(a)')'[cfg] files and master connection lists'
-      write(iunit,'(a)')'[cnn] for the project models.'
+      write(iunit,'(a)')'(.cfg)] and surface connections (.cnn) files'
+      write(iunit,'(a)')'for the model.'
       CALL ERPFREE(IUNIT,ISTAT)
       call pausems(100)
       
@@ -592,7 +563,7 @@ C      call usrmsg('Creating model folders ...','  ','-')
       IUNIT=IFIL+1
       CALL EFOPSEQ(IUNIT,folderreadme,3,IER)
       write(iunit,'(a)')'This folder holds control definitions for'
-      write(iunit,'(a)')'the model e.g. zone & flow & plant.'
+      write(iunit,'(a)')'building, flow and plant components.'
       CALL ERPFREE(IUNIT,ISTAT)
       call pausems(100)
       
@@ -607,8 +578,8 @@ C      call usrmsg('Creating model folders ...','  ','-')
       write(currentfile,'(a)') folderreadme(1:lnblnk(folderreadme))
       IUNIT=IFIL+1
       CALL EFOPSEQ(IUNIT,folderreadme,3,IER)
-      write(iunit,'(a)')'This folder holds zone-based model files'
-      write(iunit,'(a)')'e.g. geometry construction tmc operations'
+      write(iunit,'(a)')'This folder holds building definition.'
+      write(iunit,'(a)')'files.'
       CALL ERPFREE(IUNIT,ISTAT)
       call pausems(100)
       
@@ -619,8 +590,8 @@ C      call usrmsg('Creating model folders ...','  ','-')
       write(currentfile,'(a)') folderreadme(1:lnblnk(folderreadme))
       IUNIT=IFIL+1
       CALL EFOPSEQ(IUNIT,folderreadme,3,IER)
-      write(iunit,'(a)')'This folder holds network decriptions for'
-      write(iunit,'(a)')'mass flows and electrical power. '
+      write(iunit,'(a)')'This folder holds network decriptions files'
+      write(iunit,'(a)')'for fluid and electrical power flow.'
       CALL ERPFREE(IUNIT,ISTAT)
       call pausems(100)
       
@@ -631,9 +602,9 @@ C      call usrmsg('Creating model folders ...','  ','-')
       write(currentfile,'(a)') folderreadme(1:lnblnk(folderreadme))
       IUNIT=IFIL+1
       CALL EFOPSEQ(IUNIT,folderreadme,3,IER)
-      write(iunit,'(a)')'This folder holds images associated with the'
-      write(iunit,'(a)')'model e.g. site photos renderings and/or'
-      write(iunit,'(a)')'figures which clarify the model.'
+      write(iunit,'(a)')'This folder holds images associated with'
+      write(iunit,'(a)')'the model, e.g. site photos or key.'
+      write(iunit,'(a)')'simulation results.'
       CALL ERPFREE(IUNIT,ISTAT)
       call pausems(100)
       
@@ -658,7 +629,7 @@ C      call usrmsg('Creating model folders ...','  ','-')
       IUNIT=IFIL+1
       CALL EFOPSEQ(IUNIT,folderreadme,3,IER)
       write(iunit,'(a)')'This folder holds Radiance scene files'
-      write(iunit,'(a)')'created from the model e.g. *.rif *.mat'
+      write(iunit,'(a)')'created from the model, i.e. *.rif, *.mat,'
       write(iunit,'(a)')'*.rad and view files.'
       CALL ERPFREE(IUNIT,ISTAT)
       call pausems(100)
@@ -670,9 +641,9 @@ C      call usrmsg('Creating model folders ...','  ','-')
       write(currentfile,'(a)') folderreadme(1:lnblnk(folderreadme))
       IUNIT=IFIL+1
       CALL EFOPSEQ(IUNIT,folderreadme,3,IER)
-      write(iunit,'(a)')'This folder holds local databases used with'
-      write(iunit,'(a)')'the model e.g. materials & constructions'
-      write(iunit,'(a)')'which differ from the corporate databases.'
+        write(iunit,'(a)')'This folder holds local model databases'
+        write(iunit,'(a)')'that differ from the standard databases'
+        write(iunit,'(a)')'included in the ESP-r distribution.'
       CALL ERPFREE(IUNIT,ISTAT)
       call pausems(100)
       
@@ -682,10 +653,8 @@ C      call usrmsg('Creating model folders ...','  ','-')
       write(doit,'(4a)') 'mkdir ',cfgroot(1:lncr),fs,'bsm'
       call runit(doit,'-')
       call pausems(100)
-C      call usrmsg('Creating model folders ... done.','  ','P')
 
-C Re-establish pwd and then project folders.  Note longer paths
-C can cause the path variable to have a string buffer overflow.
+C Re-establish pwd and then project folders.
       odir=' '
       call usrdir(odir)
       lnod=lnblnk(odir)
@@ -700,7 +669,7 @@ C can cause the path variable to have a string buffer overflow.
       else
         write(outs,'(6a)')odir(1:lnod),fs,cfgroot(1:lncr),fs,'cfg',fs
         call usrmsg(
-     &    'Derived path is >72 chararacters, give a shorter root name',
+     &    'Folder path >72 chararacters, give a shorter root name.',
      &    outs,'W')
         goto 289
       endif
@@ -715,8 +684,8 @@ C General description of the model.
       if(ltmp(1:2).ne.'  '.or.lnblnk(ltmp).gt.3)then
         modeltitle=ltmp
       else
-        call usrmsg('Sorry, a blank line is not acceptable.',
-     &    'Enter a meaningful description (<7 characters)','W')
+        call usrmsg('Blank line not acceptable!',
+     &    'Enter a description (<7 characters)','W')
         goto 52
       endif
 
@@ -736,10 +705,9 @@ C Documentation.
         endif
       endif
 
-C Detect if working on X11 or GTK. The file name returned (lltmp).
-C If X11 lltmp will be the file name and if GTK it will include the
-C full path to the file.
-      iglib = igraphiclib()  ! find out if X11 or GTK or text support only.
+C Detect if working on X11 or GTK. If X11, lltmp will be the file
+C name and if GTK this will include the full path to the file.
+      iglib = igraphiclib()  ! determine if X11, GTK or text only
       lltmp='  '
       lguess='  '
       lldef='project.log'
@@ -749,13 +717,10 @@ C full path to the file.
       else
         write(lguess,'(a)') lmodellog(1:lnblnk(lmodellog))
       endif
-      call edisp(iuout,'  ')  ! echo blank line
       CALL EASKXORGTKF(lguess,' ',
      &  'Project log file?',lldef,lltmp,'log file',IER,nbhelp)
-
-C If user request jump back and re-display the menu.
       if(ier.eq.-3)then
-        goto 53  ! cancel detected, restore name and redisplay menu.
+        goto 53  ! cancel detected, restore name and redisplay menu
       endif
 
 C Ask user whether file is in ../doc and if so use fdroot if GTK.
@@ -771,8 +736,7 @@ C Ask user whether file is in ../doc and if so use fdroot if GTK.
         write(lmodellog,'(a)') lltmp(1:lnblnk(lltmp))
       endif
 
-C See if file exists, otherwise create it and write basic
-C information.
+C Determine if file exists; if not, create and write basic information.
       uname=' '
       call usrname(uname)
       call usrdir(pwd)
@@ -781,7 +745,7 @@ C information.
       if(XST)then
         CALL LISTAS(IUNIT,lmodellog,IER)
         IF(IER.ne.0)THEN
-          CALL EASKOK('Problem detected with log file!',
+          CALL EASKOK('Problem with log file!',
      &                'Retry?',OK,nbhelp)
           IF(OK)GOTO 53
         ENDIF
@@ -790,8 +754,8 @@ C information.
         CALL EFOPSEQ(IUNIT,lmodellog,3,IER)
         write(iunit,'(a,a)')'Project notes for ',LCFGF(1:lnblnk(LCFGF))
         write(iunit,'(a,a)')'Title: ',modeltitle(1:lnblnk(modeltitle))
-        write(iunit,'(a,a)')'In folder: ',pwd(1:lnblnk(pwd))
-        write(iunit,'(a,a)')'By: ',uname(1:lnblnk(uname))
+        write(iunit,'(a,a)')'Folder: ',pwd(1:lnblnk(pwd))
+        write(iunit,'(a,a)')'Author: ',uname(1:lnblnk(uname))
         call dstamp(dstmp)
         write(iunit,'(a,a)')'Date: ',dstmp
         write(iunit,'(a)')'Client: '
@@ -805,16 +769,13 @@ C information.
       endif
 
 C Allow user to edit the log file. Append to path if
-C necessary.  If vi then spawn a new window to do the editing.
-
-C << This would be a good place to offer an internal editing popup
-C << which uses GTK facilities.
+C necessary. If vi is editor then spawn a new window to do the editing.
       helptopic='project_log_file'
       call gethelptext(helpinsub,helptopic,nbhelp)
       CALL EASKOK(' ','Edit log file?',OK,nbhelp)
       IF(OK)then
 
-C Check if Unix-based or DOS based.
+C Check if Unix or DOS based.
         call isunix(unixok)
         if(unixok)then
           call addpath(lmodellog,longtfile,concat)
@@ -830,7 +791,7 @@ C and change any / to \.
         tmode='graph'
         if(teditor(1:2).eq.'vi')tmode='text'
         write(doit,'(a,2x,a,a)') teditor(1:lnblnk(teditor)),
-     &    longtfile(1:lnblnk(longtfile)),' &'
+     &    longtfile(1:lnblnk(longtfile)),' & '
         call runit(doit,tmode)
       endif
 
@@ -883,7 +844,7 @@ C Edit image description if newer configuration file.
 
       if(act(1:1).eq.'i')then
 
-C Ask for site position.
+C Ask for site location.
         helptopic='cfg_latitude_longitude'
         call gethelptext(helpinsub,helptopic,nbhelp)
         CALL EASKR(SLAT,' ','Site latitude?',
@@ -898,18 +859,18 @@ C Ask for site position.
 C Ask for site altitude.
         helptopic='cfg_latitude_longitude'
         call gethelptext(helpinsub,helptopic,nbhelp)
-        CALL EASKR(sitealt,' ','Site altitude (m)?',
+        CALL EASKR(sitealt,' ','Site altitude?',
      &    -100.0,'W',3000.0,'W',0.0,'site altitude',IER,nbhelp)
 
 C Ask for year, initialise and then print out the calendar if the
 C user does not cancel the operation. Because there have been no
-C day types created use a call to calenmanage to instanciate an
+C day types created yet, use a call to calenmanage to instantiate an
 C initial set of days.
         helptopic='cfg_model_year'
         call gethelptext(helpinsub,helptopic,nbhelp)
         iyeart=iyear
-        CALL EASKI(IYEART,' ','Associated assessment year?',
-     &    1900,'W',2051,'W',2019,'assessment year',IERI,nbhelp)
+        CALL EASKI(IYEART,' ','Assessment year?',
+     &    1900,'W',3000,'W',2020,'assessment year',IERI,nbhelp)
         if(ieri.eq.-3) then
           call calenmanage('i',ier)
         else
@@ -930,7 +891,7 @@ C information.
       if(ier.eq.0)then
         CFGOK=.TRUE.
 
-C Open core of databases if not already done so.
+C Open core databases if not already done.
         if(MLDBOK.and.MATDBOK.and.OPTKOK)then
           continue
         else
@@ -1038,10 +999,10 @@ C Invoke prj in same mode and size and initial start.
           write(doit,'(5a,3i4,3a)')  'cd ',
      &      cfgpath(1:lnblnk(cfgpath)),'; prj -mode ',tmode,
      &      ' -s ',iappwpc,iappx+10,iappy+10,' -file ',
-     &      thecfgis(1:lnblnk(thecfgis)),' &'
+     &      thecfgis(1:lnblnk(thecfgis)),' & '
         else
           write(doit,'(5a)') 'cd ',cfgpath(1:lnblnk(cfgpath)),
-     &      '; prj -file ',thecfgis(1:lnblnk(thecfgis)),' &'
+     &      '; prj -file ',thecfgis(1:lnblnk(thecfgis)),' & '
         endif
         call edisp248(iuout,doit,100)
         call runit(doit,'-')
@@ -1260,7 +1221,7 @@ C Remind user of available cfg files.
       ITEMS(17)  =           'p list database files        '
       ITEMS(18)  =           'q list weather files         '
       ITEMS(19)  =           '? help                       '
-      ITEMS(20)  =           '- exit this menu             '
+      ITEMS(20)  =           '- exit menu'
       nitems=20
 
 C Help text for this menu.
@@ -1537,7 +1498,7 @@ C and change any / to \.
         tmode='graph'
         if(teditor(1:2).eq.'vi')tmode='text'
         write(doit,'(a,2x,a,a)') teditor(1:lnblnk(teditor)),
-     &    longtfile(1:lnblnk(longtfile)),' &'
+     &    longtfile(1:lnblnk(longtfile)),' & '
         call runit(doit,tmode)
 
 C List files in databases folder.
@@ -1570,7 +1531,7 @@ C ****** edimage
 C Controls specification of an image associated with the
 C model.
 C limg (char*72) is the image file name
-C iformat (char*4) image format 'GIF ' 'TIF ' 'XBMP' or 'XWD '
+C iformat (char*4) image format 'GIF ' 'TIF ' 'XBMP' or 'PNG '
 C ifocus (char*4) image focus '****' 'FZON' 'FNET' 'FCTL' 'FDFS' or 'FPER'
       subroutine edimage(limg,iformat,ifocus,ier)
 
@@ -1613,7 +1574,7 @@ C      call edisp(iuout,outs)
 
       IRT=1
       call EASKATOG(' ','Image format?',
-     &  'GIF','TIFF','XBM','XWD','other',' ',' ',IRT,nbhelp)
+     &  'GIF','TIFF','XBM','PNG','other',' ',' ',IRT,nbhelp)
       if(IRT.eq.1)then
         write(iformat,'(a4)') 'GIF '
       elseif(IRT.eq.2)then
@@ -1621,7 +1582,7 @@ C      call edisp(iuout,outs)
       elseif(IRT.eq.3)then
         write(iformat,'(a4)') 'XBMP'
       elseif(IRT.eq.4)then
-        write(iformat,'(a4)') 'XWD '
+        write(iformat,'(a4)') 'PNG '
       elseif(IRT.eq.5)then
  145    t5='**** '
         CALL EASKS(t5,' ','Image type character code?',
@@ -1851,7 +1812,7 @@ C << to be done >>
       ITEMS(21)='  _____________________________    '
       ITEMS(22)='* check existence of zone files    '
       ITEMS(23)='? help                             '
-      ITEMS(24)='- exit this menu                   '
+      ITEMS(24)='- exit menu'
       MITEM=24
 
 C Help text for this menu.

@@ -13,10 +13,6 @@ C warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
 C PURPOSE. See the GNU General Public License for more
 C details.
 
-C You should have received a copy of the GNU General Public
-C License along with ESP-r. If not, write to the Free
-C Software Foundation, Inc., 59 Temple Place, Suite 330,
-C Boston, MA 02111-1307 USA.
 
 C Contents:
 C  GTOPOL - interface to ground topology 
@@ -156,7 +152,7 @@ C Begin with menu.
       ITEMS(9)=                '> save                           '
       ITEMS(10)=               '! list data                      '
       ITEMS(11)=               '? help                           '
-      ITEMS(12)=               '- exit this menu                 '
+      ITEMS(12)=               '- exit menu'
       nitms = 12
 
 C If ground needs drawing or updating do it here.
@@ -639,7 +635,7 @@ C Report length of line. Use method of Ward/Radiance in fvect.c
                       write(outs,'(a,i3,a,3f8.3,a,f6.4,a,i3,a,i3,2a)')
      &                  'New vertex ',iwhich3,' @',XGT(NGTV),YGT(NGTV),
      &                  ZGT(NGTV),' is close (',offset,') to edge ',
-     &                  IWHICH1,' &',IWHICH2,' of surface ',
+     &                  IWHICH1,' & ',IWHICH2,' of surface ',
      &                  GSNAME(ivj)
                       call edisp(iuout,outs)
 
@@ -846,7 +842,7 @@ C Report length of line. Use method of Ward/Radiance in fvect.c
           if(.NOT.match) goto 3
           write(outs,'(a,i3,a,3f8.3,a,f6.4,a,i3,a,i3)')
      &     'Vertex ',iwhich3,' @',XGT(iwhich3),YGT(iwhich3),
-     &     ZGT(iwhich3),' is ',offset,'(m) to edge ',IWHICH1,' &',
+     &     ZGT(iwhich3),' is ',offset,'(m) to edge ',IWHICH1,' & ',
      &     IWHICH2
            call edisp(iuout,outs)
           MODIFYVIEW=.TRUE.
@@ -877,7 +873,7 @@ C Report length of line. Use method of Ward/Radiance in fvect.c
           if(.NOT.match) goto 3
           write(outs,'(a,i3,a,3f8.3,a,f6.4,a,i3,a,i3)')
      &     'Vertex ',iwhich3,' @',XGT(iwhich3),YGT(iwhich3),
-     &     ZGT(iwhich3),' is ',offset,'(m) to edge ',IWHICH1,' &',
+     &     ZGT(iwhich3),' is ',offset,'(m) to edge ',IWHICH1,' & ',
      &     IWHICH2
            call edisp(iuout,outs)
 
@@ -940,7 +936,7 @@ C Report length of line. Use method of Ward/Radiance in fvect.c
                     write(outs,'(a,i3,a,3f8.3,a,f6.4,a,i3,a,i3,2a)')
      &                'New vertex ',iwhich3,' @',XGT(NGTV),
      &                YGT(NGTV),ZGT(NGTV),' is close (',offset,
-     &                ') to edge ',IWHICH1,' &',IWHICH2,' of surface ',
+     &                ') to edge ',IWHICH1,' & ',IWHICH2,' of surface ',
      &                GSNAME(ivj)
                     call edisp(iuout,outs)
 
@@ -1653,7 +1649,7 @@ C Report length of line. Use method of Ward/Radiance in fvect.c
                     write(outs,'(a,i3,a,3f8.3,a,f6.4,a,i3,a,i3,2a)')
      &               'New vertex ',iwhich3,' @',XGT(NGTV),
      &                YGT(NGTV),ZGT(NGTV),' is close (',offset,
-     &                ') to edge ',IWHICH1,' &',IWHICH2,' of ',
+     &                ') to edge ',IWHICH1,' & ',IWHICH2,' of ',
      &                gsname(ivj)
                     call edisp(iuout,outs)
 
@@ -1754,7 +1750,7 @@ C Report length of line. Use method of Ward/Radiance in fvect.c
                   write(outs,'(a,i3,a,3f8.3,a,f6.4,a,i3,a,i3,2a)')
      &             'Copied vertex ',iwhich3,' @',
      &              XGT(NGTV),YGT(NGTV),ZGT(NGTV),' is close (',offset,
-     &              ') to edge ',IWHICH1,' &',IWHICH2,' of ',
+     &              ') to edge ',IWHICH1,' & ',IWHICH2,' of ',
      &                gsname(ivj)
                   call edisp(iuout,outs)
 
@@ -1898,8 +1894,8 @@ C If MOD has been passed as a M then return -2 to indicate further processing
       ENDIF
       VERT(M+3)   ='? help              '
       VERTS(M+3)  ='? help              '
-      VERT(M+4)   ='- exit this menu    '
-      VERTS(M+4)  ='- exit this menu    '
+      VERT(M+4)   ='- exit menu'
+      VERTS(M+4)  ='- exit menu'
 
 C Display the menu.
       helptopic='ground_surf_selection'
@@ -2210,7 +2206,7 @@ C Report length of line. Use method of Ward/Radiance in fvect.c
                     write(outs,'(a,i3,a,3f8.3,a,f6.4,a,i3,a,i3,2a)')
      &               'New vertex ',iwhich3,' @',XGT(NGTV),
      &                YGT(NGTV),ZGT(NGTV),' is close (',offset,
-     &                ') to edge ',IWHICH1,' &',IWHICH2,' of surface ',
+     &                ') to edge ',IWHICH1,' & ',IWHICH2,' of surface ',
      &                GSNAME(ivj)
                     call edisp(iuout,outs)
 

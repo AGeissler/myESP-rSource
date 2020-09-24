@@ -1291,7 +1291,7 @@ C and change any / to \.
             tmode='text'
           endif
           write(doit,'(a,2x,a,a)') teditor(1:lnblnk(teditor)),
-     &      longtfile(1:lnblnk(longtfile)),' &'
+     &      longtfile(1:lnblnk(longtfile)),' & '
           call usrmsg('Begining edit via',doit,'-')
           call runit(doit,tmode)
         elseif(idw.eq.4)then
@@ -1352,7 +1352,7 @@ C and change any / to \.
           tmode='text'
         endif
         write(doit,'(a,2x,a,a)') teditor(1:lnblnk(teditor)),
-     &    longtfile(1:lnblnk(longtfile)),' &'
+     &    longtfile(1:lnblnk(longtfile)),' & '
         call usrmsg('Begining edit via',doit,'-')
         call runit(doit,tmode)
 

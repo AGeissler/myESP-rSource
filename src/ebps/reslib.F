@@ -13,20 +13,15 @@ C warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
 C PURPOSE. See the GNU General Public License for more
 C details.
 
-C You should have received a copy of the GNU General Public
-C License along with ESP-r. If not, write to the Free
-C Software Foundation, Inc., 59 Temple Place, Suite 330,
-C Boston, MA 02111-1307 USA.
 
 C This file contains the following routines:
-C      MZLIBF
-C      dealremote: deal with local and remote file names.
-C      MZDEL
-C      MZSAVE
+C MZLIBF - makes ready the results file.
+C dealremote - deal with local and remote file names.
+C MZDEL  - deletes the last result-set saved in the building results file.
+C MZSAVE - saves the last result-set in the building results file.
 
-C ******************** MZLIBF 
-
-C MZLIBF assigns any user-specified library in which
+C ******************** MZLIBF ********************
+C Assigns any user-specified library in which
 C the simulation results are stored.
 C If any specified library already contains simulation
 C results then a check is performed to ensure that any
@@ -41,6 +36,7 @@ C library must be specified to which any subsequent
 C simulation results will be transferred.
 C If there is a mass flow simulation then request it's
 C results library as well.
+
       SUBROUTINE MZLIBF
 #include "building.h"
 #include "model.h"
@@ -52,25 +48,17 @@ C results library as well.
 #include "uncertainty.h"
 
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
-      INTEGER :: iuout,iuin,ieout
       COMMON/FILEP/IFIL
-      INTEGER :: ifil
       common/trc/itrc
-      INTEGER :: itrc
-
-      integer ncomp,ncon
       common/c1/ncomp,ncon
-      integer indcfg
       COMMON/C6/INDCFG
       common/reclen/nzrl,nprl,nerl
 
 C Versions of results libraries.
       common/recver/izver,ipver,iever
-C      common/rpath/path
       common/user/browse
       COMMON/RESLIB/RFILE,PFILE,MSTRFILE,LAFRES,CFRESF
-      character RFILE*72,PFILE*72,MSTRFILE*72,LAFRES*72,
-     &  CFRESF*72
+      character RFILE*72,PFILE*72,MSTRFILE*72,LAFRES*72,CFRESF*72
       COMMON/AFN/IAIRN,LAPROB,ICAAS(MCOM)
       common/ffn/iflwn,icffs(mpcon)
       COMMON/FFC/IMFRES
@@ -86,13 +74,14 @@ C Electrical network results library details.
       COMMON/ENELIBRC/IELFIL,IELIBHL,IELIBW,IELSTREC,NETS,NTSREC,NHREC,
      &NPREC
 
-C CFD unit nos.
+C CFD unit numbers.
       COMMON/ICFCHN/ICFMON(MNZ),ICFTMP,ICFLIB
 
 C Active domain common.
       common/ACTDOM/CFDOK
       COMMON/UA5/IMET,ISIM,NRSIM
 
+C Results save level.
       COMMON/save/isave
 
       COMMON/SPFL/spfileok,perok,cfdperok,tstepok,saveok,autook,exitok,
@@ -105,35 +94,24 @@ C Toggle for extreme silent running (endless) mode.
       common/endlessmode/endless,issilient
 
       character outs*124,ltmp*72,longtfile*144
-C      character path*72
       character LAPROB*72
       dimension iflg(MCOM)
 
       logical OK,remote,browse
-C      logical unixok
       logical CFDOK,concat
       integer nsim  ! number of simulations
 
-      integer ier
+      integer ier   ! file read/write error
 
-C For help messages
       character helpinsub*24   ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
+      character helptopic*24   ! string (unique) for topic
+      integer nbhelp           ! number of help lines found
 
-      helpinsub='MZLIBF'  ! set for cfiles
-
-C Check and see if in a remote folder.
-
-C Debug.
-C      write(6,*) ' path is ',path
-C      write(6,*) ' users home is ',upath
-C      write(6,*) ichar(path(1:1)),' ',ichar(path(2:2))
+      helpinsub='MZLIBF'       ! set for cfiles
 
 C If simulator was commissioned with browsing yes then by definition
 C we are running remotely and the results files should be saved
-C to the users home folder. Note: this should be the same logic as
-C is used in esruprj/edcfg.F subroutine edcfg.F (near line 993).
+C to the user's home folder.
       remote=.false.
       if(browse)then
         remote=.true.
@@ -141,7 +119,7 @@ C is used in esruprj/edcfg.F subroutine edcfg.F (near line 993).
 
 C Check the configuration file name and if concat is true then
 C bps was started up somewhere other than the cfg folder so
-C results files should be saved to the users home folder.
+C results files should be saved to the user's home folder.
         ltmp = LCFGF
         call addpath(ltmp,longtfile,concat)
         if(concat)then
@@ -149,10 +127,7 @@ C results files should be saved to the users home folder.
         endif
       endif
 
-C Debug.
-C      write(6,*) 'mzlibf browse and remote ',browse,remote
-
-C Skip building library if plant only configuration
+C Skip building library if plant only configuration.
       IF(INDCFG.EQ.2) GOTO 121
 
     1 IUNIT=IFIL+2
@@ -163,18 +138,15 @@ C the file name and check if the file is being placed in a location the
 C user can write to.
     4 LTMP=RFILE
 
-C Debug.
-C      write(6,*) 'reslib.F spfileok remote ',spfileok,remote
-
       if(.not.spfileok) then
         iw=0
         call dealremote('zi',remote,LTMP,IW)
         IF(LTMP(1:2).EQ.'  ')GOTO 4
       else
 
-C If the simulator is being run in autoexec mode then the results 
+C If bps is being run in autoexec mode then the results 
 C will be placed in the location specified if remote is false and
-C with the users home folder prepended if remote is true. Otherwise
+C with the user's home folder prepended if remote is true. Otherwise
 C the user will be asked to confirm the results file name (and path)
         if(autook) then
           iw=2
@@ -188,7 +160,7 @@ C the user will be asked to confirm the results file name (and path)
         ENDIF
       ENDIF
 
-C Note: the initial assumption of the record width of the zone results 
+C Note: the initial assumption of the record width of the results 
 C file is based on nzrl equal to MZRL (defined in building.h as MCOM
 C if MCOM>MS or MS+12 if MS>MCOM (and with a minimum width of 40 to 
 C allow for file names to be held and air gap data to be written). 
@@ -202,10 +174,6 @@ C of records in MZLS1 is 5*MGP width which is currently 40.
  150  continue
       if(ncomp.gt.iminwid)iminwid=ncomp        ! if lots of simple zones
       if(iswid+12.gt.iminwid)iminwid=iswid+12  ! if surfaces dominate
-
-C Debug.
-C      write(6,*)'nzrl iswid ncomp iswid+12 minwid MZRL NCOMP ',
-C     &  nzrl,iswid,ncomp,iswid+12,iminwid,MZRL,NCOMP
       if(iminwid.ne.nzrl)then
         write(outs,*)'Resetting results file record width to ',iminwid
         if(endless.or.issilient)then
@@ -214,10 +182,10 @@ C     &  nzrl,iswid,ncomp,iswid+12,iminwid,MZRL,NCOMP
           if(itrc.gt.1)call edisp(iuout,outs)
         endif
         nzrl=iminwid
-        call pauses(1)   ! pause
+        call pauses(1)
       endif
 
-C If remote path then use EFOPRAN otherwise FPRAND.
+C If remote path then use EFOPRAN, otherwise FPRAND.
       RFILE=LTMP
       if(iw.eq.1)then
         ier=0
@@ -227,12 +195,12 @@ C If remote path then use EFOPRAN otherwise FPRAND.
         CALL FPRAND(IUNIT,ISTAT,nzrl,3,RFILE)
         if(ISTAT.lt.0) then
           if(autook) then
-            write(outs,*)'MZLIBF Fatal error: unable to open',
+            write(outs,*)'MZLIBF: unable to open',
      &        rfile(1:lnblnk(rfile)),' record width ',nzrl
             call edisp(iuout,outs)
             close(ieout)
             CALL ERPFREE(ieout,ISTAT)
-            call pauses(3)   ! pause for 3 seconds then abort program.
+            call pauses(3)
             call epagend
             stop
           else
@@ -241,25 +209,15 @@ C If remote path then use EFOPRAN otherwise FPRAND.
         endif
       endif
 
-C Tell the user (and any log file) that their library will be used.
-      write(outs,'(2A)')' Library file: ',RFILE
-      call edisp(iuout,outs)
+C Log the building results file name.
       call tstamp('>','bps: create zone results')
       call tstamp('>',RFILE)
 
-C << the following code is for testing >>
-C Create SQL results database.
-C      write(doit,'(2a)') 'mysqladmin -u root CREATE ',RFILE
-C      write(doit,'(a)') 'mysqladmin -u iain -pxx CREATE fred'
-C      write(6,*) doit
-C      call runit(doit,'-')
-
-c Does this zone library contain results? If a new file
-C it will fail reading nsim and jump to 7.
+c Does this file contain results? If a new file, reading nsim will fail.
       IREC=1
       READ(IUNIT,REC=IREC,IOSTAT=ISTAT,ERR=7)NSIM
 
-c Response according to number of existing results sets.
+c Respond according to number of existing results sets.
 C If autook then do not preserve previous results sets.
       if(autook) then
         if(NSIM.gt.0) then
@@ -300,21 +258,19 @@ c Delete all simulations by setting NSIM=0.
         NSIM=0
 
 C izver is the version flag for building results. Set at 4 since
-C Feb 2008. Earlier (depreciated) versions did not include explicit
+C February 2008. Earlier (depreciated) versions did not include explicit
 C casual gains and required re-scanning of zone operation file.
         izver=5
         WRITE(IUNIT,REC=IREC,IOSTAT=ISTAT,ERR=1000)NSIM,nzrl,izver,IMET
       endif
 
-C Write header block information to building results library.
+C Write header block information to building results file.
     8 CALL MZLS1
 
-C Now assign user-specified mass flow library.
+C Now assign user-specified mass flow results file.
   121 if(iairn.ge.1.or.iflwn.eq.1)then
-
-C <<Should really get this name from the simulation parameters.>>
         if(LAFRES(1:7).eq.'UNKNOWN'.or.LAFRES(1:7).eq.'unknown')
-     &     LAFRES='libf'
+     &     LAFRES='FLWres'
     9   LTMP=LAFRES
         if(.not.spfileok) then
           iw=0
@@ -323,10 +279,10 @@ C <<Should really get this name from the simulation parameters.>>
           LAFRES=LTMP
         else
 
-C If the simulator is being run in autoexec mode then flow results 
+C If bps is being run in autoexec mode then flow results 
 C will be placed in the location specified if remote is false and
-C with the users home folder prepended if remote is true. Otherwise
-C the user will be asked to confirm the results file name (and path)
+C with the user's home folder prepended if remote is true. Otherwise
+C the user will be asked to confirm the results file name and path.
           if(autook) then 
             iw=2
             if(remote)then
@@ -340,7 +296,7 @@ C the user will be asked to confirm the results file name (and path)
           endif
         endif
 
-C Open the mass flow results file on ifil+4, if it exists check with
+C Open the flow results file on ifil+4, if it exists check with
 C user before overwriting. In case of specifying a non-relative
 C file path name use FPOPEN.
         IMFRES=IFIL+4
@@ -353,12 +309,12 @@ C file path name use FPOPEN.
           call FPRAND(IMFRES,ISTAT,NMRL,3,LAFRES)
           if(ISTAT.lt.0)then
             if(autook) then
-              write(outs,*)'MZLIBF Fatal error: unable to open',
+              write(outs,*)'MZLIBF: unable to open',
      &          LAFRES(1:lnblnk(LAFRES)),' record width ',NMRL
               call edisp(iuout,outs)
               close(ieout)
               CALL ERPFREE(ieout,ISTAT)
-              call pauses(3)   ! pause for 3 seconds then abort program.
+              call pauses(3)
               call epagend
               stop
             else
@@ -367,27 +323,24 @@ C file path name use FPOPEN.
           endif
         endif
 
-        write(outs,'(2A)')' Flow results file: ',LAFRES
+        write(outs,'(2A)')'Flow results file: ',LAFRES
         call edisp(iuout,outs)
         call tstamp('>','BPS: create flow results')
         call tstamp('>',LAFRES)
 
-C Write header information to mass flow library.
+C Write header information to flow results file.
         call MFOUTPH(IMFRES)
       endif
 
-C Test for plant. If plant is not found, or save-level 0 or 5
-C are specified AND the simulatior is in silent running mode.
+C Test for plant, save levels 0 or 5, and silent mode. 
+      IF(INDCFG.EQ.1) GOTO 17 
+      IF(autook.AND.(isave.EQ.0.OR.isave.EQ.5))GOTO 17
 
-      IF(INDCFG.EQ.1 ) GOTO 17 
-      IF( autook .AND. ( isave .EQ. 0 .OR. isave .EQ. 5 ) ) GOTO 17
-
-C If a plant library has already been assigned
-C within current run of program then 'free' it.
+C If a plant results file has already been assigned free it.
  100  IUNIT=IFIL+3
       CALL ERPFREE(IUNIT,ISTAT)
 
-C Now assign user-specified plant library.
+C Assign user-specified plant results file.
  103  LTMP=pfile
       if(.not.spfileok) then
         iw=0
@@ -396,10 +349,10 @@ C Now assign user-specified plant library.
         pfile=ltmp
       else
 
-C If the simulator is being run in autoexec mode then plant results 
+C If bps is being run in autoexec mode then plant results 
 C will be placed in the location specified if remote is false and
-C with the users home folder prepended if remote is true. Otherwise
-C the user will be asked to confirm the results file name (and path)
+C with the user's home folder prepended if remote is true. Otherwise
+C the user will be asked to confirm the results file name and path.
         if(autook) then 
           iw=2
           if(remote)then
@@ -422,12 +375,12 @@ C If remote path then use EFOPRAN otherwise FPRAND.
         CALL FPRAND(IUNIT,ISTAT,nprl,3,PFILE)
         if(ISTAT.lt.0)then
           if(autook) then
-            write(outs,*)'MZLIBF Fatal error: unable to open',
+            write(outs,*)'MZLIBF: unable to open',
      &        pfile(1:lnblnk(pfile)),' record width ',nprl
             call edisp(iuout,outs)
             close(ieout)
             CALL ERPFREE(ieout,ISTAT)
-            call pauses(3)   ! pause for 3 seconds then abort program.
+            call pauses(3)
             call epagend
             stop
           else
@@ -435,21 +388,20 @@ C If remote path then use EFOPRAN otherwise FPRAND.
           endif
         endif
 
-        write(outs,'(2A)')' Plant results file: ',PFILE
+        write(outs,'(2A)')'Plant results file: ',PFILE
         call edisp(iuout,outs)
         call tstamp('>','BPS: create plant results')
         call tstamp('>',PFILE)
       endif
 
-C Does this plant library contain results? If a new file
-C it will fail reading nsim and jump to 107.
+C Does this file contain results? If a new file, read of nsim will fail.
       IREC=1
       READ(IUNIT,REC=IREC,IOSTAT=ISTAT,ERR=107)NSIM
 
 c Response according to number of existing results sets.
       helptopic='preserve_previous_sets'
       call gethelptext(helpinsub,helptopic,nbhelp)
-      IF ( autook ) then
+      IF (autook)then
          OK = .FALSE.
       elseIF(NSIM.EQ.1)then
         CALL EASKOK('Library contains one result set.',
@@ -478,10 +430,10 @@ c Delete all simulations by setting NSIM=0.
         WRITE(IUNIT,REC=IREC,IOSTAT=ISTAT,ERR=1000)NSIM,nzrl,izver,IMET
       endif
 
-c Write header block information to plant library.
+c Write header block information to plant results file.
   108 CALL MZPLS1
 
-c Now assign user-specified moisture flow library.
+c Now assign user-specified moisture flow results file.
    17 if(MSTROK)then
    59   LTMP=MSTRFILE
         if(.not.spfileok) then
@@ -494,7 +446,7 @@ c Now assign user-specified moisture flow library.
 C If the simulator is being run in autoexec mode then moisture results 
 C will be placed in the location specified if remote is false and
 C with the users home folder prepended if remote is true. Otherwise
-C the user will be asked to confirm the results file name (and path)
+C the user will be asked to confirm the results file name and path.
           if(autook) then 
             iw=2
             if(remote)then
@@ -524,7 +476,7 @@ C file path name use FPOPEN.
               call edisp(iuout,outs)
               close(ieout)
               CALL ERPFREE(ieout,ISTAT)
-              call pauses(3)   ! pause for 3 seconds then abort program.
+              call pauses(3)
               call epagend
               stop
             else
@@ -534,12 +486,12 @@ C file path name use FPOPEN.
         endif
 
 C Echo to display and log file the moisture library file name.
-        write(outs,'(2A)')' Moisture results file: ',MSTRFILE
+        write(outs,'(2A)')'Moisture results file: ',MSTRFILE
         call edisp(iuout,outs)
         call tstamp('>','BPS: create moisture results')
         call tstamp('>',MSTRFILE)
 
-C Write the moisture result library header.
+C Write the moisture result file header.
         DO 58 ICOMP=1,NCOMP
           IF(MSTRZN(ICOMP))THEN
             iflg(ICOMP)=1
@@ -550,13 +502,11 @@ C Write the moisture result library header.
         WRITE(IMSTR,'(30I2)')(iflg(ICOMP),ICOMP=1,NCOMP)
       endif
 
-C Assign a library for the power flow results, and open on IFIL+21. 
-
-      if( ientxist.gt.0 .and. 
-     &     ( .not. autook .or. 
-     &     (isave .ne. 0 .and. isave .ne. 5) ) )then
+C Assign a file for the power flow results and open it on IFIL+21. 
+      if(ientxist.gt.0.and.(.not.autook.or.(isave.ne.0.and.
+     &                                            isave.ne.5)))then
    11   LTMP=ERESLIB
-        IF(.not.spfileok) THEN
+        IF(.not.spfileok)THEN
           IW=0
           call dealremote('ei',remote,LTMP,IW)
           IF(LTMP.EQ.' ')GOTO 11
@@ -575,9 +525,9 @@ C Assign a library for the power flow results, and open on IFIL+21.
           endif
         endif
 
-C Open the electrical network results file on ifil+21(MADFIL), if it exists check with
-C user before overwriting. In case of specifying a non-relative
-C file path name use FPRAND.
+C Open the electrical network results file on ifil+21(MADFIL);if
+C it exists check with user before overwriting. In case of
+C specifying a non-relative file path name use FPRAND.
         IELFIL=IFIL+MADFIL
         IELIBW=MELIBW
         if(iw.eq.1)then
@@ -589,7 +539,7 @@ C file path name use FPRAND.
           call FPRAND(IELFIL,ISTAT,IELIBW,3,ERESLIB)
           if(ISTAT.lt.0)then
             if(autook) then
-              write(outs,*)'MZLIBF Fatal error: unable to open',
+              write(outs,*)'MZLIBF unable to open',
      &          ERESLIB(1:lnblnk(ERESLIB)),' record width ',IELIBW
               call edisp(iuout,outs)
               close(ieout)
@@ -603,15 +553,15 @@ C file path name use FPRAND.
           endif
         endif
 
-C Write out the electrical results header to the file. 
+C Write out the electrical results file header. 
         CALL ENETLIBH
-        write(outs,'(2A)')' Power results file: ',ERESLIB
+        write(outs,'(2A)')'Power results file: ',ERESLIB
         call edisp(iuout,outs)
-        call tstamp('>','BPS: create power results')
+        call tstamp('>','bps: create power results')
         call tstamp('>',ERESLIB)
       endif
 
-C CFD results library.
+C CFD results file.
       if (CFDOK) then
  591    LTMP=CFRESF
         if(.not.spfileok) then
@@ -634,7 +584,7 @@ C CFD results library.
           endif
         endif
 
-C Open the CFD results file on ICFLIB, if it exists check with
+C Open the CFD results file on ICFLIB; if it exists check with
 C user before overwriting. In case of specifying a non-relative
 C file path name use FPOPEN.
         if(iw.eq.1)then
@@ -659,18 +609,18 @@ C file path name use FPOPEN.
 
       RETURN
 
-C Error handling
- 1000 WRITE(outs,'(A,I5,A)')' MZLIBF: error at record',IREC,'.'
+C Error handling.
+ 1000 WRITE(outs,'(A,I5,A)')'MZLIBF: error at record',IREC,'.'
       call edisp(iuout,outs)
       goto 17
 
-C Error on read of zone library - reset and initialize.
+C Error on read of building results file, reset and initialise.
    7  IREC=1
       NSIM=0
       WRITE(IUNIT,REC=IREC,IOSTAT=ISTAT,ERR=1000)NSIM,nzrl,izver,IMET
       goto 8
 
-C Error on read of plant library - reset and initialize.
+C Error on read of plant results file, reset and initialise.
  107  IREC=1
       NSIM=0
       WRITE(IUNIT,REC=IREC,IOSTAT=ISTAT,ERR=1000)NSIM
@@ -678,30 +628,27 @@ C Error on read of plant library - reset and initialize.
 
       END
 
-C ********** dealremote
+C ******************** dealremote ********************
 C Deal with names of various results files and checks if they will be
-C put in a location other than where the user invoked the tool.
-C Passed parameters:
-C  topic (2 char) (z=zone, f=network flow, p=plant, m=moisture, e=electrical,
-C         d=CFD ) with second character i=interactive s=silent
-C  remote (logical) = true then calculate the full path
-C  lfile (72 char) file name which may be edited by user (if interactive) 
-C        and returned as an updated string
-C Return parameter:
-C  IW (integer) as 0 if no decision made, IW as 1 if in current path and IW
-C        as 2 if in some other location.
+C put in a location other than where the user invoked bps.
+C Input parameters:
+C  topic  - z=zone, f=network flow, p=plant, m=moisture, e=electrical,
+C           d=CFD ) with second character i=interactive s=silent
+C  remote - if true then calculate the full path
+C  lfile  - file name which may be edited by user
+C Output parameter:
+C  IW     - 0 if no decision made, 1 if in current path and 2 if in 
+C           another location.
+
       subroutine dealremote(topic,remote,LFILE,IW)
 #include "building.h"
 #include "model.h"
       
       integer lnblnk  ! function definition
-
-C      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       character topic*2,LFILE*72
       character ltmp*72,ltpath*72,filen*72
       logical unixok,remote
 
-C For help messages
       character helpinsub*24   ! subroutine name
       character helptopic*24 ! string (unique) for topic
       integer nbhelp     ! number of help lines found
@@ -731,15 +678,15 @@ C the 2nd character is a : then absolute.
         endif
       endif
 
-C Depending on the domain of the file confirm its name.
+C Depending on the domain of the file, confirm its name.
       if(topic(1:2).eq.'zi')then
         helptopic='multiple_result_sets'
         call gethelptext(helpinsub,helptopic,nbhelp)
         if(IW.eq.1)then
-          CALL EASKS(LFILE,' ','Building results library name?',
-     &      72,'libb','zone results lib',IER,nbhelp)
+          CALL EASKS(LFILE,' ','Building results file name?',
+     &      72,'BLDres','zone results lib',IER,nbhelp)
         elseif(IW.eq.2)then
-          write(ltmp,'(2a)') upath(1:lnblnk(upath)),'/libb'
+          write(ltmp,'(2a)') upath(1:lnblnk(upath)),'/BLDres'
           CALL EASKS(LFILE,' ','Building results library name?',
      &      72,ltmp,'zone results lib',IER,nbhelp)
         endif
@@ -747,33 +694,33 @@ C Depending on the domain of the file confirm its name.
         helptopic='mass_flow_res_file'
         call gethelptext(helpinsub,helptopic,nbhelp)
         if(IW.eq.1)then
-          CALL EASKS(LFILE,' ','Network flow results library name ?',
-     &      72,'libf','mass results lib',IER,nbhelp)
+          CALL EASKS(LFILE,' ','Network flow results file name?',
+     &      72,'FLWres','mass results lib',IER,nbhelp)
         elseif(IW.eq.2)then
-          write(ltmp,'(2a)') upath(1:lnblnk(upath)),'/libf'
-          CALL EASKS(LFILE,' ','Network flow results library name ?',
+          write(ltmp,'(2a)') upath(1:lnblnk(upath)),'/FLWres'
+          CALL EASKS(LFILE,' ','Network flow results file name?',
      &      72,ltmp,'mass results lib',IER,nbhelp)
         endif
       elseif(topic(1:2).eq.'pi')then
         helptopic='plant_res_file'
         call gethelptext(helpinsub,helptopic,nbhelp)
         if(IW.eq.1)then
-          CALL EASKS(LFILE,' ','Plant results library name?',
-     &      72,'libp','plnt results lib',IER,nbhelp)
+          CALL EASKS(LFILE,' ','Plant results file name?',
+     &      72,'PLTres','plnt results lib',IER,nbhelp)
         elseif(IW.eq.2)then
-          write(ltmp,'(2a)') upath(1:lnblnk(upath)),'/libp'
-          CALL EASKS(LFILE,' ','Plant results library name?',
+          write(ltmp,'(2a)') upath(1:lnblnk(upath)),'/PLTres'
+          CALL EASKS(LFILE,' ','Plant results file name?',
      &      72,ltmp,'plnt results lib',IER,nbhelp)
         endif
       elseif(topic(1:2).eq.'mi')then
         helptopic='moisture_res_file'
         call gethelptext(helpinsub,helptopic,nbhelp)
         if(IW.eq.1)then
-          CALL EASKS(LFILE,' ','Moisture flow results library name?',
-     &      72,'libmoist','Moisture results lib',IER,nbhelp)
+          CALL EASKS(LFILE,' ','Moisture flow results file name?',
+     &      72,'MSTres','Moisture results lib',IER,nbhelp)
         elseif(IW.eq.2)then
-          write(ltmp,'(2a)') upath(1:lnblnk(upath)),'/libmoist'
-          CALL EASKS(LFILE,' ' ,'Moisture flow results library name?',
+          write(ltmp,'(2a)') upath(1:lnblnk(upath)),'/MSTres'
+          CALL EASKS(LFILE,' ' ,'Moisture flow results file name?',
      &     72,ltmp,'Moisture results lib',IER,nbhelp)
         endif
       elseif(topic(1:2).eq.'ei')then
@@ -781,38 +728,37 @@ C Depending on the domain of the file confirm its name.
         call gethelptext(helpinsub,helptopic,nbhelp)
         if(IW.eq.1)then
           CALL EASKS(LFILE,' ',
-     &      'Electrical network results library name?',
-     &      72,'libe','electrical results lib',IER,nbhelp)
+     &      'Electrical network results file name?',
+     &      72,'ELEres','electrical results lib',IER,nbhelp)
         elseif(IW.eq.2)then
-          write(ltmp,'(2a)') upath(1:lnblnk(upath)),'/libe'
+          write(ltmp,'(2a)') upath(1:lnblnk(upath)),'/ELEres'
           CALL EASKS(LFILE,' ',
-     &      'Electrical network results library name ?',
+     &      'Electrical network results file name ?',
      &      72,ltmp,'electrical results lib',IER,nbhelp)
         endif
       elseif(topic(1:2).eq.'di')then
         helptopic='cfd_res_file'
         call gethelptext(helpinsub,helptopic,nbhelp)
         if(IW.eq.1)then
-          CALL EASKS(LFILE,' ' ,'CFD results library name?',
-     &      72,'CFD.res','CFD results lib',IER,nbhelp)
+          CALL EASKS(LFILE,' ' ,'CFD results file name?',
+     &      72,'CFDres','CFD results lib',IER,nbhelp)
         elseif(IW.eq.2)then
-          write(ltmp,'(2a)') upath(1:lnblnk(upath)),'/CFD.res'
-          CALL EASKS(LFILE,' ' ,'CFD results library name?',
+          write(ltmp,'(2a)') upath(1:lnblnk(upath)),'/CFDres'
+          CALL EASKS(LFILE,' ' ,'CFD results file name?',
      &      72,ltmp,'CFD results lib',IER,nbhelp)
         endif
       endif
       return
       end
 
-c ******************** MZDEL
-
-c MZDEL DELETES THE LAST RESULT-SET SAVED IN THE SOLUTION FILE.
+C ******************** MZDEL ********************
+C Deletes the last result-set saved in the building results file.
 
       SUBROUTINE MZDEL(IB,IP,ISIMLB,ISIMLP)
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/FILEP/IFIL
-      common/reclen/nzrl,nprl,nerl
-      common/recver/izver,ipver,iever
+      COMMON/reclen/nzrl,nprl,nerl
+      COMMON/recver/izver,ipver,iever
       COMMON/UA5/IMET,ISIM,NRSIM
 
       character outs*124
@@ -820,71 +766,65 @@ c MZDEL DELETES THE LAST RESULT-SET SAVED IN THE SOLUTION FILE.
       IF(IP.EQ.1)goto 4
       IUNIT=IFIL+2
 
-C READ NUMBER OF SIMULATIONS CURRENTLY HELD WITHIN 
-C building SOLUTION FILE.
+C Read number of result-sets held in the building results file.
       IREC=1
       READ(IUNIT,REC=IREC,IOSTAT=ISTAT,ERR=1000)NSIM
       IF(NSIM.EQ.0)goto 1
 
-C DE-INCREMENT BY 1.
+C De-increment by 1.
       NSIM=NSIM-1
 
-C WRITE THIS TO building SOLUTION FILE.
+C Write this to building results file.
       WRITE(IUNIT,REC=IREC,IOSTAT=ISTAT,ERR=1000)NSIM,nzrl,izver,IMET
       ISIMLB=NSIM
       goto 2
 
-C NO SIMULATIONS IN SOLUTION FILE PRIOR TO ATTEMPTED DELETION.
+C No simulations in solution file prior to attempted deletion.
     1 ISIMLB=-1
       goto 2
     4 IUNIT=IFIL+3
 
-C READ NUMBER OF SIMULATIONS CURRENTLY HELD WITHIN 
-C plant SOLUTION FILE.
+C Read number of simulations held within plant results file.
       IREC=1
       READ(IUNIT,REC=IREC,IOSTAT=ISTAT,ERR=1001)NSIM
       IF(NSIM.EQ.0)goto 5
 
-C DE-INCREMENT BY 1.
+C De-increment by 1.
       NSIM=NSIM-1
 
-C WRITE THIS TO plant SOLUTION FILE.
+C Write this to the plant results file.
       WRITE(IUNIT,REC=IREC,IOSTAT=ISTAT,ERR=1001)NSIM,nzrl
       ISIMLP=NSIM
       goto 2
 
-C NO SIMULATIONS IN SOLUTION FILE PRIOR TO ATTEMPTED DELETION.
+C No simulations in solution file prior to attempted deletion.
     5 ISIMLP=-1
     2 RETURN
 
  1000 IF(IP.EQ.1)goto 1001
       write(outs,3)IREC
-    3 format(' MZDEL: building results library error (record number',
+    3 format('MZDEL: building results file error (record number',
      &I4,').')
       call edisp(iuout,outs)
       goto 2
 
  1001 write(outs,6)IREC
-    6 FORMAT(' MZDEL: plant results library error (record number',
+    6 FORMAT('MZDEL: plant results file error (record number',
      &I4,').')
       call edisp(iuout,outs)
       goto 2
       END
 
-c ******************** MZSAVE
-
-c MZSAVE SAVES THE LAST SIMULATION RESULTS SET PERMANENTLY IN THE
-c SOLUTION FILE. FAILURE TO SELECT THE '+1SAVE' COMMAND FROM THE
-c 'SIMUL' MENU IMMEDIATELY AFTER ANY SIMULATION IS COMPLETE RESULTS
-c IN THE OVERWRITING OF THESE RESULTS.
+C ******************** MZSAVE ********************
+C Saves the last simulation result-set in the building results file.
 
       SUBROUTINE MZSAVE(ISIMN1,ISIMN2)
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/FILEP/IFIL
       integer indcfg
       COMMON/C6/INDCFG
-      common/reclen/nzrl,nprl,nerl
-      common/recver/izver,ipver,iever
+      COMMON/reclen/nzrl,nprl,nerl
+      COMMON/recver/izver,ipver,iever
       COMMON/UA5/IMET,ISIM,NRSIM
 
       character outs*124
@@ -893,14 +833,14 @@ c IN THE OVERWRITING OF THESE RESULTS.
       IF(INDCFG.EQ.2)goto 3   ! plant only
       IUNIT=IFIL+2
 
-C READ NUMBER OF SIMULATIONS CURRENTLY HELD WITHIN SOLUTION FILE.
+C Read number of simulations held within the results file.
       IREC=1
       READ(IUNIT,REC=IREC,IOSTAT=ISTAT,ERR=1000)NSIM
 
-C INCREMENT BY 1.
+C Increment by 1.
       NSIM=NSIM+1
 
-C Update the zone library file.
+C Update the building results file.
       WRITE(IUNIT,REC=IREC,IOSTAT=ISTAT,ERR=1000)NSIM,nzrl,izver,IMET
       ISIMN1=NSIM  ! pass this back
 
@@ -919,12 +859,12 @@ C record of the plant results file.
 
  1000 IF(IUNIT.EQ.(IFIL+19))goto 1001
       write(outs,1)IREC
-    1 format(' MZSAVE: error in building results file (record',I5,').')
+    1 format('MZSAVE: error in building results file (record',I5,').')
       call edisp(iuout,outs)
       goto 2
 
  1001 write(outs,4)IREC
-    4 format(' MZSAVE: error in plant results file (record',I5,').')
+    4 format('MZSAVE: error in plant results file (record',I5,').')
       call edisp(iuout,outs)
       goto 2
       END

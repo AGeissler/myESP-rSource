@@ -13,10 +13,6 @@ C warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
 C PURPOSE. See the GNU General Public License for more
 C details.
 
-C You should have received a copy of the GNU General Public
-C License along with ESP-r. If not, write to the Free
-C Software Foundation, Inc., 59 Temple Place, Suite 330,
-C Boston, MA 02111-1307 USA.
 
 C netwedit.F contains:
 C   NETICONDATR   - edit an icon data attribute
@@ -258,7 +254,7 @@ C If a long list include page facility text.
    15   FORMAT   ('0 page: ',I2,' of ',I2,' ----------')
       ENDIF
       WRITE(IECDATE(M+2),'(A)') '? help '
-      WRITE(IECDATE(M+3),'(A)') '- exit this menu '
+      WRITE(IECDATE(M+3),'(A)') '- exit menu'
       NECDATA=M+MCTL  
       CALL NETWDRW
 
@@ -1340,7 +1336,7 @@ C If a long list include page facility text.
    15   FORMAT   ('0 page: ',I2,' of ',I2,' --------')
       ENDIF
       WRITE(IECDATE(M+2),'(A)') '? help '
-      WRITE(IECDATE(M+3),'(A)') '- exit this menu '
+      WRITE(IECDATE(M+3),'(A)') '- exit menu'
       NECDATA=M+MCTL  
       CALL NETWDRW
 
@@ -1690,7 +1686,7 @@ C If a long list include page facility text.
    15       FORMAT   ('0 page: ',I2,' of ',I2,' --------')
           ENDIF
           WRITE(IECDATE(M+2),'(A)') '? help '
-          WRITE(IECDATE(M+3),'(A)') '- exit this menu '
+          WRITE(IECDATE(M+3),'(A)') '- exit menu'
           NECDATA=M+MCTL  
           CALL NETWDRW
           helptopic='component_cat_edits'
@@ -1794,7 +1790,7 @@ C If a long list include page facility text.
             ENDIF
             WRITE(IECDATEs(M+2),'(A)')'  cannot edit values marked (#)'
             WRITE(IECDATEs(M+3),'(A)')'? help '
-            WRITE(IECDATEs(M+4),'(A)')'- exit this menu '
+            WRITE(IECDATEs(M+4),'(A)')'- exit menu'
             NECDATAs=M+MCTL
             ICOUT2=-1
             CALL NETWDRW
@@ -2398,7 +2394,7 @@ C If a long list include page facility text.
    15       FORMAT   ('0 page: ',I2,' of ',I2,' --------')
           ENDIF
           WRITE(IECDATE(M+2),'(A)') '? help '
-          WRITE(IECDATE(M+3),'(A)') '- exit this menu '
+          WRITE(IECDATE(M+3),'(A)') '- exit menu'
           NECDATA=M+MCTL  
           CALL NETWDRW
           helptopic='connection_attributes'
@@ -2488,7 +2484,7 @@ C If a long list include page facility text.
             ENDIF
             WRITE(IECDATEs(M+2),'(A)')'  cannot edit this value (#)'
             WRITE(IECDATEs(M+3),'(A)')'? help '
-            WRITE(IECDATEs(M+4),'(A)')'- exit this menu '
+            WRITE(IECDATEs(M+4),'(A)')'- exit menu'
             NECDATAs=M+MCTL
             ICOUT2=-1
             CALL NETWDRW
@@ -2773,7 +2769,7 @@ C If there is a long list then allow paging.
   109   FORMAT   ('0 page: ',I2,' of ',I2,' --------')
       ENDIF
       ICITEM1(M+2)='? help'
-      ICITEM1(M+3)='- exit this menu'
+      ICITEM1(M+3)='- exit menu'
       NICITEM=M+MCTL
       IMOUT=-1
       CALL NETWDRW
@@ -2851,7 +2847,7 @@ C If a long list include page facility text.
           endif
         ENDIF
         ICITEM2(M+3)  ='? help                  '
-        ICITEM2(M+4)  ='- exit this menu        '
+        ICITEM2(M+4)  ='- exit menu'
         NICITEM2=M+MCTL
 
         IMOUT2=-1   

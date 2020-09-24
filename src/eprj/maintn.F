@@ -13,10 +13,6 @@ C warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
 C PURPOSE. See the GNU General Public License for more
 C details.
 
-C You should have received a copy of the GNU General Public
-C License along with ESP-r. If not, write to the Free
-C Software Foundation, Inc., 59 Temple Place, Suite 330,
-C Boston, MA 02111-1307 USA.
 
 C maintn.f provides facilities for manipulating the instances within
 C the TDF scratch file ie. insertion, deleting, copying.
@@ -30,15 +26,18 @@ C  ITCOPY:  Is used to copy an instance from (IFOC) to (IFOC2).
 C  REFSHG:  Refresh instance with generic attributes (placement, help, indices).
 
 
-C ************* ITINSRT ************************************************
-C ITINSRT is used to insert a new temporal item.
-C IFOC, the item array index at the point where the action is to take place. 
+C ************* ITINSRT *************
+C Used to insert a new temporal item.
+C IFOC is the theitem array index at the point
+C where the action is to take place. 
 C IER=0 OK, IER=1 problem.
+
       SUBROUTINE ITINSRT(ITRC,IFOC,IER)
 #include "building.h"
 #include "model.h"
 #include "net_flow.h"
 #include "tdf2.h"
+
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/TDFGH2/GTYPES(MTI),GMENUS(MTI)
       COMMON/TDFG1/GAIDE,GHELP(MHEL),GDHDRT(3),GMH
@@ -125,7 +124,7 @@ C Ask for the name of this new entry.
       endif
       TAIDE(IFOC)=GAIDE
 
-C Knowing the generic type it is now possible to instanciate this
+C Knowing the generic type it is now possible to instantiate this
 C iten with default timestep data (deftabu). An asci file is then
 C written out with extra columns which will then be converted into
 C a new scratch file for further editing.
@@ -193,12 +192,14 @@ C Reset iadcols after updating nuwpr for the above actions.
 
 C ************* ITDEL ************************************************
 C ITDEL is used to delete an instance in the db.
-C IFOC, the item array index at the point where the action is to take place. 
+C IFOC is the item array index at the point where the action is to take place. 
+
       SUBROUTINE ITDEL(ITRC,IFOC,IER)
 #include "building.h"
 #include "model.h"
 #include "net_flow.h"
 #include "tdf2.h"
+
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/TDAT/TABU(MTABC),TABT(MTABC),TABUMN(MTABC),TABUMX(MTABC)
 
@@ -311,7 +312,7 @@ C Write out the ascii file.
       END
 
 C ************* ITCOPY ************************************************
-C ITCOPY is used to copy an instance in the db (IFOC) to (IFOC2).
+C Used to copy an instance in the db (IFOC) to (IFOC2).
 C Note both instances must be of the same type and IFOC2 should
 C have already been created.  The information in IFOC2 is overwritten.
 C Tabular columns are copied as required.
@@ -397,6 +398,53 @@ C Write out the ascii file. << Probably iiadcols should be zero.>>
       call usrmsg(' ','Updating the ascii file...','-')
       call ewtdfa(itrc,ltdfa,iutdfa,iiadcols,ier)
       call usrmsg(' ','Updating the ascii file...done.','-')
+      RETURN
+
+      END
+
+C ******************** ITSCALE ********************
+C Scale an instance in the database (IFOC) by factor.
+
+      SUBROUTINE ITSCALE(ITRC,IFOC,factor,IER)
+#include "building.h"
+#include "model.h"
+#include "net_flow.h"
+#include "tdf2.h"
+
+      COMMON/TDAT/TABU(MTABC),TABT(MTABC),TABUMN(MTABC),TABUMX(MTABC)
+
+      IER=0
+
+C For tabular instances.
+      IEFLDS=NTBITS(IFOC)+NTSTAT(IFOC)
+      ISFLDS=IEFLDS-NTBITS(IFOC)+1
+      DO 6 J=ISFLDS,IEFLDS
+
+C ITR is the TAB record for the current timestep. 
+C Read record ITR which holds all of the tabular columns
+C for this timestep. Then take the IFOC tab column and copy into IFOC2
+C tab column. Also update the max/min data for the new column.
+        DO 45 IP=1,NDBSTP
+          ITREC=IP+49
+          CALL ERTABU(ITRC,ITREC,IER)
+          IF(ITDFTR(IFOC,J).EQ.1.or.ITDFTR(IFOC,J).EQ.3)THEN
+            TABU(ITCOL(IFOC,J))=TABU(ITCOL(IFOC,J))*factor
+          ENDIF
+          CALL EWTABU(ITRC,ITREC,IER)
+          IF(IER.EQ.1)RETURN
+   45   CONTINUE
+   6  CONTINUE
+
+C Save the header section and column max/min and file tail record.
+      call usrmsg(' ','Updating the scratch file...','-')
+      CALL EWTDF(IER)
+      call usrmsg(' ','Updating the scratch file...done.','-')
+
+C Write out the ascii file. << Probably iiadcols should be zero.>>
+      iiadcols=0
+      call usrmsg(' ','Updating the ascii file ...','-')
+      call ewtdfa(itrc,ltdfa,iutdfa,iiadcols,ier)
+      call usrmsg(' ','Updating the ascii file ...done.','-')
       RETURN
 
       END

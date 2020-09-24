@@ -13,29 +13,21 @@ C warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
 C PURPOSE. See the GNU General Public License for more
 C details.
 
-C You should have received a copy of the GNU General Public
-C License along with ESP-r. If not, write to the Free
-C Software Foundation, Inc., 59 Temple Place, Suite 330,
-C Boston, MA 02111-1307 USA.
 
-C Project manager: QA and updating facilities comprising
-C QA functions included in this file:
+C Project manager model quality assurance. This file includes the
+C following subroutines.
 C   prjqa:   writes out a QA report (to screen or file) for the current model.
 C   mupdate: checks current model to see if it should be updated.
 
-C ************ prjqa
-C Prjqa writes out a QA report (to screen or file) for
-C the current model.
+C ******************** prjqa ********************
+C Writes a QA report (to screen or file) for the current model.
+
       subroutine prjqa(inpic,ivals,silent,ier)
+
 C AIM-2.
 C IAIM2 set to 1 if AIM-2 infiltration model active.
 C LAIM2 (72 char) file holding AIM-2 infiltration model data.
 C      common/aim2def/iAIM2,LAIM2
-
-C << Task for future - respond to invocation via command line
-C << -act QA in combination with -v or -vv to set the level
-C << of reporing if from command line.
-
       USE AIM2_InputData, ONLY:iAIM2,LAIM2
       USE AIM2, ONLY:AIM2_READIN, AIM2_report
       
@@ -60,10 +52,11 @@ C << of reporing if from command line.
 #include "plant.h"
 #include "power.h"
 #include "prj3dv.h"
-      
+#include "bc_data.h"
+
       integer lnblnk  ! function definition
 
-C Parameters passed into subroutine:
+C Parameters passed to subroutine.
       integer inpic,ivals   ! number of zones to include
       dimension ivals(MCOM) ! list of zones
       logical silent        ! if true do not interact with user
@@ -88,9 +81,20 @@ C Markdown flag.
       common/cctl/icascf(mcom)
 
 C IFPNF is the unit for the plant network file.
-C LPNF (72 char) plant network file name.
+C LPNF (72 char) is the plant network file name.
       COMMON/C23/IFPNF,LPNF
       INTEGER :: IFPNF
+
+C BPF is the file name for boundary values.
+C PBYFIL is the logical variable for existence check.
+      COMMON/C23a/BPF
+      COMMON/PBYDAT/PBYFIL,NSCVP,IPS
+
+      CHARACTER :: BPF*72
+      logical :: PBYFIL, autook
+
+      INTEGER :: NSCVP,IPS,IFBPF
+
       INTEGER :: IZSTOCN
       COMMON/C24/IZSTOCN(MCOM,MS)
 
@@ -117,7 +121,7 @@ C LPNF (72 char) plant network file name.
       COMMON/AFN/IAIRN,LAPROB,ICAAS(MCOM)
       INTEGER :: iairn,icaas
 
-C ISPMXIST is the existance flag for special materials
+C ISPMXIST is the existence flag for special materials.
       common/spmfxst/ispmxist,spflnam
       common/spmatl/nspmnod,ispmloc(mspmnod,3),ispmtyp(mspmnod,2),
      &              nnodat(mspmnod),spmdat(mspmnod,mspmdat)
@@ -132,7 +136,7 @@ C ISPMXIST is the existance flag for special materials
 
       integer :: istoreIUOUT,ispm,iTMCidx
 
-C DSC data / spline function data
+C DSC data/ spline function data
       common/pcmspline/temp1d(mspmnod,MSPMSPLM),
      &          heat1d(mspmnod,MSPMSPLM),
      &          cool1d(mspmnod,MSPMSPLM),heat2d(mspmnod,MSPMSPLM),
@@ -235,7 +239,7 @@ C Remember if each zone is fully attributed.
       dimension areamlc(MCOM)
       real areamlc
       character items*33
-      dimension items(25)
+      dimension items(27)
 
       character*72 LTMP
       character*72 GTGEOM
@@ -246,7 +250,7 @@ C Remember if each zone is fully attributed.
       character ZN*12,SN*12
       character aok*17,CTLDOC*248,LCTLF*72
       character xfile*144,tg*1,delim*1,head*21
-      character outs*124,outs248*496,outs2*148
+      character outs248*496,outs2*148
       character dstmp*24,mlc_name*32
       CHARACTER LAPROB*72,LPNF*72
       CHARACTER TOPTIC*12,msg*28,doit*248
@@ -270,11 +274,16 @@ C For thermal bridge reporting
       
 C Topic variables: value of zero = none, one = compact, two = verbose,
 C three is very verbose
-C Initial assumption is verbose for each topic that is included
+C Initial assumption is verbose for most topics that are included
 C in the current model. A -1 means not applicable
       integer siteinfo,databaseinfo,contextinfo,controlinfo,netinfo
       integer plantinfo,geominfo,schedinfo,zoneextrainfo,fileinfo
       integer spminfo,enetinfo
+      integer zonecolumns,surfcolumns  ! patterns of zone and surface columns
+      common/qatopics/siteinfo,databaseinfo,contextinfo,controlinfo,
+     &  netinfo,plantinfo,geominfo,schedinfo,zoneextrainfo,fileinfo,
+     &  spminfo,enetinfo,zonecolumns,surfcolumns
+
       integer destination
 
       integer iercl  ! error state returned for scanning climate list.
@@ -309,17 +318,19 @@ C in the current model. A -1 means not applicable
       character outscal*248  ! for calendar day types report
       integer llt,lndbp,jj,lnsn
       integer NRGRDT  ! actual number of ground temps calculated
+      character outs*124,outs2a*124,outs3*124
+      integer llbm2,llbn2,mnu,llo
 
       logical newgeo  ! to use for testing if new/old geometry file.
       logical nameok  ! to use for testing if duplicate names in zone
       logical foundit ! found a zone loop was referenced
+      logical odd     ! for double column reporting
       integer NITMS   ! max items
       integer im,k,mnulen   ! multi column lines
       integer lr      ! length of model root string
       integer iglib   ! for detecting GTK or X11
       integer iitrc   ! for passing verbosity
       integer imlc    ! loop for MLC reporting
-      logical odd     ! for display of vertex info
       integer lnsmlcn,lnl,lnlist ! char lengths
       
       INTEGER :: i,icc,icoth,ie,ieripv,irec,iprb,inv
@@ -384,13 +395,26 @@ C Check if Unix-based or DOS based.
         enetinfo=-1
       endif
       if(ncomp.gt.0)then
-        geominfo=2
-        schedinfo=2
-        zoneextrainfo=2
+        if(markdown)then
+          databaseinfo=1  ! medium mode for database reporting
+          geominfo=2
+          schedinfo=2
+          zoneextrainfo=2
+          zonecolumns=0   ! only name vol floor area and description
+          surfcolumns=0   ! summary surface reporting
+        else
+          geominfo=2
+          schedinfo=2
+          zoneextrainfo=2
+          zonecolumns=3   ! all columns of zone reporting
+          surfcolumns=3   ! all columns of surface reporting
+        endif
       else
         geominfo=-1
         schedinfo=-1
         zoneextrainfo=-1
+        zonecolumns=-1
+        surfcolumns=-1
       endif
 
 C Assume no extra file names required and no MLC selected for filter.
@@ -477,7 +501,7 @@ C Setup the selection menu.
       items(4) ='4 diagram editing tool        '
       items(5) ='5 image viewer                '
       items(6) ='  -------------------------   '
-      items(7) ='  QA report                   '
+      items(7) ='... QA report content:        '
       if(siteinfo.eq.0)then
         items(8)='a site info >> none'
       elseif(siteinfo.eq.1)then
@@ -485,10 +509,12 @@ C Setup the selection menu.
       elseif(siteinfo.eq.2)then
         items(8)='a site info >> verbose'
       endif
-      if(databaseinfo.eq.0)then
+      if(databaseinfo.eq.-1)then
         items(9)='b databases >> none'
-      elseif(databaseinfo.eq.1)then
+      elseif(databaseinfo.eq.0)then
         items(9)='b databases >> compact'
+      elseif(databaseinfo.eq.1)then
+        items(9)='b databases >> medium'
       elseif(databaseinfo.eq.2)then
         items(9)='b databases >> verbose'
       elseif(databaseinfo.eq.3)then
@@ -532,83 +558,129 @@ C Setup the selection menu.
       endif
       items(14)='g zone selection'
       if(geominfo.eq.-1)then
-        items(15)='h geometry >> not applicable'
+        items(15)='g geometry >> not applicable'
       elseif(geominfo.eq.0)then
-        items(15)='h geometry >> none'
+        items(15)='g geometry >> none'
       elseif(geominfo.eq.1)then
-        items(15)='h geometry >> compact'
+        items(15)='g geometry >> compact'
       elseif(geominfo.eq.2)then
-        items(15)='h geometry >> verbose'
+        items(15)='g geometry >> verbose'
       elseif(geominfo.eq.3)then
-        items(15)='h geometry >> very verbose'
+        items(15)='g geometry >> very verbose'
+      endif
+      if(zonecolumns.eq.-1)then
+        items(16)='h                           '
+      elseif(zonecolumns.eq.0)then
+        items(16)='h zone columns >>  summary  '
+C        call edisp(iuout,' ')
+C        call edisp(iuout,'ID Name Volume Floor area Description.')
+      elseif(zonecolumns.eq.1)then
+        items(16)='h zone columns >>  sub-set A'
+C        call edisp(iuout,' ')
+C        call edisp(iuout,'ID Name Surface nb & areas Description.')
+      elseif(zonecolumns.eq.2)then
+        items(16)='h zone columns >>  sub-set B'
+C        call edisp(iuout,' ')
+C        call edisp(iuout,'ID Name Volume Surface areas Description.')
+      elseif(zonecolumns.eq.3)then
+        items(16)='h zone columns >>  all      '
+C        call edisp(iuout,' ')
+C        call edisp(iuout,
+C     &  'ID Name Volume Surface nb & areas Floor area Description.')
+      endif
+      if(surfcolumns.eq.-1)then
+        items(17)='i                           '
+      elseif(surfcolumns.eq.0)then
+        items(17)='i surf columns >>  summary  '
+C        call edisp(iuout,' ')
+C        call edisp(iuout,
+C     &  'ID area azim name USE-P composition boundary.')
+      elseif(surfcolumns.eq.1)then
+        items(17)='i surf columns >>  sub-set A'
+C        call edisp(iuout,' ')
+C        call edisp(iuout,
+C     &'ID area azim name optics USE-P composition boundary.')
+      elseif(surfcolumns.eq.2)then
+        items(17)='i surf columns >>  sub-set B'
+C        call edisp(iuout,' ')
+C        call edisp(iuout,
+C     &'ID area azim elev name optics USE-P-S composition boundary.')
+      elseif(surfcolumns.eq.3)then
+        items(17)='i surf columns >>  all      '
+C        call edisp(iuout,' ')
+C        call edisp(iuout,
+C     &'ID area azim elev name optics loc USE-P-S composition boundary.')
       endif
       if(schedinfo.eq.-1)then
-        items(16)='i operations >> none'
+        items(18)='j operations >> none'
       elseif(schedinfo.eq.0)then
-        items(16)='i operations >> none'
+        items(18)='j operations >> none'
       elseif(schedinfo.eq.1)then
-        items(16)='i operations >> compact'
+        items(18)='j operations >> compact'
       elseif(schedinfo.eq.2)then
-        items(16)='i operations >> verbose'
+        items(18)='j operations >> verbose'
       endif
       if(zoneextrainfo.eq.-1)then
-        items(17)='j zone extras >> none'
+        items(19)='k zone extras >> none'
       elseif(zoneextrainfo.eq.0)then
-        items(17)='j zone extras >> none'
+        items(19)='k zone extras >> none'
       elseif(zoneextrainfo.eq.1)then
-        items(17)='j zone extras >> compact'
+        items(19)='k zone extras >> compact'
       elseif(zoneextrainfo.eq.2)then
-        items(17)='j zone extras >> verbose'
+        items(19)='k zone extras >> verbose'
       endif
       if(geominfo.ge.1)then
-        items(18)='k sort by surface attrbution'
+        items(20)='l sort by surface attrbution'
       else
-        items(18)='k n/a'
+        items(20)='l n/a'
       endif
       if(fileinfo.eq.0)then
-        items(19)='m file names >> none'
+        items(21)='m file names >> none'
       elseif(fileinfo.eq.1)then
-        items(19)='m file names >> included'
+        items(21)='m file names >> included'
       endif
       if(destination.eq.0)then
-        items(20)='> QA report >> text feedback'
+        items(22)='> QA report >> text feedback'
       elseif(destination.eq.1)then
         if(lmodelqa(1:4).eq.'UNKN'.or.lmodelqa(1:2).eq.'  ')then
-          items(20)='> QA report >> file UNKNOWN'
+          items(22)='> QA report >> file UNKNOWN'
         else
-          write(items(20),'(2a)') '> QA report >> ',lmodelqa(1:17) 
+          write(items(22),'(2a)') '> QA report >> ',lmodelqa(1:17) 
         endif
       endif
-      items(21)  ='! generate QA report       '
+      items(23)  ='! generate QA report       '
       if(destination.eq.0)then
         if(lmodelqa(1:4).eq.'UNKN'.or.lmodelqa(1:2).eq.'  ')then
-          items(22)='  QA report not yet defined'
+          items(24)='  QA report not yet defined'
         else
-          write(items(22),'(2a)') '* edit QA: ',lmodelqa(1:21) 
+          write(items(24),'(2a)') '* edit QA: ',lmodelqa(1:21) 
         endif
       elseif(destination.eq.1)then
         if(lmodelqa(1:4).eq.'UNKN'.or.lmodelqa(1:2).eq.'  ')then
-          items(22)='  QA report not yet defined'
+          items(24)='  QA report not yet defined'
         else
-          write(items(22),'(2a)') '* edit QA: ',lmodelqa(1:21) 
+          write(items(24),'(2a)') '* edit QA: ',lmodelqa(1:21) 
         endif
       endif
-      items(23)  ='  _________________________'
-      items(24)  ='? help                     '
-      items(25)  ='- exit menu                '
+      items(25)  ='  _________________________'
+      items(26)  ='? help                     '
+      items(27)  ='- exit menu'
 
 C Help for menu.
       helptopic='setup_qa_report'
       call gethelptext(helpinsub,helptopic,nbhelp)
-      NITMS=25
+      NITMS=27
       call emenu('Model reports',items,NITMS,ino)
 
-      if(ino.eq.25)then
+C Exit menu.
+      if(ino.eq.27)then
         if(changedit)then
           continue
         endif
         return
-      elseif(ino.eq.24)then
+
+C Help selected.
+      elseif(ino.eq.26)then
         helptopic='setup_qa_report'
         call gethelptext(helpinsub,helptopic,nbhelp)
         CALL PHELPD('QA overview',nbhelp,'-',0,0,IER)
@@ -625,9 +697,9 @@ C << need to sort out changing to main project folder >>
           tmode='-'
           call runit(doit,tmode)
         endif
-      elseif(ino.eq.2)then
 
 C Edit project documentation.
+      elseif(ino.eq.2)then
         if(CFGOK)then
   54      if(lmodellog(1:2).eq.'  '.or.lmodellog(1:4).eq.'UNKN')then
             lr=lnblnk(cfgroot)
@@ -656,9 +728,9 @@ C GTK it will include the full path to the file.
           else
             write(lguess,'(a)') lmodellog(1:lnblnk(lmodellog))
           endif
-          call edisp(iuout,'  ')  ! echo blank line
+          call edisp(iuout,' ')
           CALL EASKXORGTKF(lguess,
-     &      'Project log file:',' ',lldef,lltmp,'log file',IER,nbhelp)
+     &      ' ','Project log file?',lldef,lltmp,'log file',IER,nbhelp)
           write(lmodellog,'(a)') lguess(1:lnblnk(lguess)) ! might be changed 
 
 C If user request jump back and re-display the menu.
@@ -730,17 +802,17 @@ C and change any / to \.
             call runit(doit,tmode)
           endif
         endif
-      elseif(ino.eq.3)then
 
 C Execute graphing tool.
+      elseif(ino.eq.3)then
         if(grfexe(1:2).eq.'  ')then
           call usrmsg(
-     &    'The extrn. data analysis tool has not be defined. See your',
-     &    'administrator about updating the esprc definition.','W')
+     &    'The data analysis tool has not been defined.',
+     &    'Install and/or updating your esprc file.','W')
         else
           call tstamp('>','PRJ: start graphing tool')
           write(doit,'(2a)')grfexe(1:lnblnk(grfexe)),' & '
-          call usrmsg('Beginning graphing tool via',doit,'-')
+          call usrmsg('Invoking graphing tool via',doit,'-')
           call runit(doit,'text')
         endif
       elseif(ino.eq.4)then
@@ -748,12 +820,12 @@ C Execute graphing tool.
 C Execute figure tool.
         if(figexe(1:2).eq.'  ')then
           call usrmsg(
-     &    'The external diagram tool has not be defined. See your',
-     &    'administrator about updating the esprc definition.','W')
+     &    'The diagram tool has not been defined.',
+     &    'Install and/or update your epsrc file.','W')
         else
           call tstamp('>','PRJ: start xfig')
           write(doit,'(2a)')figexe(1:lnblnk(figexe)),' & '
-          call usrmsg('Beginning figure tool via',doit,'-')
+          call usrmsg('Invoking figure tool via',doit,'-')
           call runit(doit,'text')
         endif
       elseif(ino.eq.5)then
@@ -761,12 +833,12 @@ C Execute figure tool.
 C Execute image viewer (get tool via prior scan of default file).
         if(fmtexe(1)(1:2).eq.'  ')then
           call usrmsg(
-     &    'The external image tool has not be defined. See your',
-     &    'administrator about updating the esprc definition.','W')
+     &    'The image tool has not been defined.',
+     &    'Install and/or update your esprc file.','W')
         else
           call tstamp('>','PRJ: start xv')
           write(doit,'(2a)')fmtexe(1)(1:lnblnk(fmtexe(1))),' & '
-          call usrmsg('Beginning image tool via',doit,'-')
+          call usrmsg('Invoking image tool via',doit,'-')
           call runit(doit,'text')
         endif
       elseif(ino.eq.8)then
@@ -774,7 +846,7 @@ C Execute image viewer (get tool via prior scan of default file).
         if(siteinfo.gt.2)siteinfo=0
       elseif(ino.eq.9)then
         databaseinfo=databaseinfo+1  ! allow up to 3
-        if(databaseinfo.gt.3)databaseinfo=0
+        if(databaseinfo.gt.3)databaseinfo=-1
       elseif(ino.eq.10)then
         contextinfo=contextinfo+1
         if(contextinfo.gt.2)contextinfo=0
@@ -798,7 +870,7 @@ C Execute image viewer (get tool via prior scan of default file).
 C If there are zones select from list.
         if(ncomp.gt.0)then
           INPIC=NCOMP
-          CALL EPICKS(INPIC,IVALS,' ',' Which zones to summarise:',
+          CALL EPICKS(INPIC,IVALS,' ','Zones to summarise?',
      &        12,NCOMP,zname,' zone list',IER,nbhelp)
         endif
       elseif(ino.eq.15)then
@@ -807,16 +879,26 @@ C If there are zones select from list.
           if(geominfo.gt.3)geominfo=0
         endif
       elseif(ino.eq.16)then
+        if(zonecolumns.ne.-1)then
+          zonecolumns=zonecolumns+1
+          if(zonecolumns.gt.3)zonecolumns=0
+        endif
+      elseif(ino.eq.17)then
+        if(surfcolumns.ne.-1)then
+          surfcolumns=surfcolumns+1
+          if(surfcolumns.gt.3)surfcolumns=0
+        endif
+      elseif(ino.eq.18)then
         if(schedinfo.ne.-1)then
           schedinfo=schedinfo+1
           if(schedinfo.gt.2)schedinfo=0
         endif
-      elseif(ino.eq.17)then
+      elseif(ino.eq.19)then
         if(zoneextrainfo.ne.-1)then
           zoneextrainfo=zoneextrainfo+1
           if(zoneextrainfo.gt.2)zoneextrainfo=0
         endif
-      elseif(ino.eq.18)then
+      elseif(ino.eq.20)then
 
 C Jump if no zones.
         if(inpic.eq.0) goto 3
@@ -826,7 +908,7 @@ C Generate report sorted by surface attributes.
         call gethelptext(helpinsub,helptopic,nbhelp)
         CALL PHELPD('global search by attribute',nbhelp,'-',0,0,IER)
 
-        CALL EASKABCD(' Filter for surface composition:',' ',
+        CALL EASKABCD(' ','Filter for surface composition:',
      &    'any construction','those marked UNKNOWN',
      &    'specific construction','cancel',ins4,nbhelp)
         if(ins4.eq.4)then
@@ -834,22 +916,23 @@ C Generate report sorted by surface attributes.
         endif
 
         totalarea=0.0
-        CALL EASKABCD(' First filter--surface opacity:',' ',
+        CALL EASKABCD(' ','First filter--surface opacity:',
      &    'opaque','transparent','both','cancel',ins1,nbhelp)
         if(ins1.eq.4)return
 
         ins2=1
-        call EASKATOG(' Second filter--surface contiguity:',' ',
+        call EASKATOG(' ','Second filter--surface contiguity:',
      &      'external','similar','constant','partitions','ground',
      &      'adiabatic','any contiguity',ins2,nbhelp)
 
         ins3=1
-        call EASKATOG(' Third filter--surface orientation:',' ',
+        call EASKATOG(' ','Third filter--surface orientation:',
      &      'vertical','sloped','horizontal up','horizontal down',
      &      'any horizontal','any orientation',' ',ins3,nbhelp)
 
 
         call tstamp('>','PRJ: global reporting by attribution')
+        call edisp(itu,' ')
         write(outs,'(A,A)') 'cfg: ',LCFGF(1:lnblnk(LCFGF))
         call edisp(itu,outs)
         write(outs,'(A,A)') 'model: ',modeltitle(1:lnblnk(modeltitle))
@@ -857,52 +940,51 @@ C Generate report sorted by surface attributes.
         call dstamp(dstmp)
         write(outs,'(A,A)') 'print date: ',dstmp
         call edisp(itu,outs)
-        call edisp(itu,' ')
+
         if(ins4.eq.1)then
-          call edisp(itu,' Filtering for ANY surface composition.')
+          call edisp(itu,'Filtering for ANY surface composition.')
         elseif(ins4.eq.2)then
-          call edisp(itu,' Filtering for UNKNOWN surface composition.')
+          call edisp(itu,'Filtering for UNKNOWN surface composition.')
         elseif(ins4.eq.3)then
-          write(outs,'(3a)') ' Filtering for ',
+          write(outs,'(3a)') 'Filtering for ',
      &      mlcname(ISEL)(1:lnmlcname(ISEL)),' composition.'
           call edisp(itu,outs)
         endif
         if(ins1.eq.1)then
-          call edisp(itu,' Filtering for opaque surfaces.')
+          call edisp(itu,'Filtering for opaque surfaces.')
         elseif(ins1.eq.2)then
-          call edisp(itu,' Filtering for transparent surfaces.')
+          call edisp(itu,'Filtering for transparent surfaces.')
         elseif(ins1.eq.3)then
-          call edisp(itu,' Filtering for opaque or transparent.')
+          call edisp(itu,'Filtering for opaque or transparent.')
         endif 
         if(ins2.eq.1)then
-          call edisp(itu,' Filtering for exterior connections.')
+          call edisp(itu,'Filtering for exterior connections.')
         elseif(ins2.eq.2)then
-          call edisp(itu,' Filtering for similar connections.')
+          call edisp(itu,'Filtering for similar connections.')
         elseif(ins2.eq.3)then
-          call edisp(itu,' Filtering for constant connections.')
+          call edisp(itu,'Filtering for constant connections.')
         elseif(ins2.eq.4)then
-          call edisp(itu,' Filtering for internal partitions.')
+          call edisp(itu,'Filtering for internal partitions.')
         elseif(ins2.eq.5)then
-          call edisp(itu,' Filtering for ground connections.')
+          call edisp(itu,'Filtering for ground connections.')
         elseif(ins2.eq.6)then
-          call edisp(itu,' Filtering for adiabatic connections.')
+          call edisp(itu,'Filtering for adiabatic connections.')
         elseif(ins2.eq.7)then
-          call edisp(itu,' Filtering for any connections type.')
+          call edisp(itu,'Filtering for any connections type.')
         endif 
         if(ins3.eq.1)then
-          call edisp(itu,' Filtering for vertical orientation.')
+          call edisp(itu,'Filtering for vertical orientation.')
         elseif(ins3.eq.2)then
-          call edisp(itu,' Filtering for sloped orientation.')
+          call edisp(itu,'Filtering for sloped orientation.')
         elseif(ins3.eq.3)then
-          call edisp(itu,' Filtering for horizontal facing up.')
+          call edisp(itu,'Filtering for horizontal facing up.')
         elseif(ins3.eq.4)then
-          call edisp(itu,' Filtering for horizontal facing down.')
+          call edisp(itu,'Filtering for horizontal facing down.')
         elseif(ins3.eq.5)then
-          call edisp(itu,' Filtering for horizontal orientation.')
+          call edisp(itu,'Filtering for horizontal orientation.')
         elseif(ins3.eq.6)then
-          call edisp(itu,' Filtering for any orientation.')
+          call edisp(itu,'Filtering for any orientation.')
         endif 
-        call edisp(itu,' ')
 
         WRITE(outs,93)
    93   FORMAT('Surface matching    |  Area  |Azim |Elev|',
@@ -1000,20 +1082,20 @@ C                lzn10=MIN0(lnblnk(zn),10)
         write(outs,'(a,f10.2)') 'Area of matching surfaces: ',totalarea
         call edisp(itu,outs)
 
-C If writing to file call ctlexp to close it and switch back to text feedback.
+C If writing to file, call ctlexp to close it and switch back to text feedback.
         if(destination.eq.1)then
           call ctlexp(xfile,ixopen,ixloc,ixunit,'T','geom text',IER)
           destination=0
         endif
         MODIFYVIEW=.TRUE.
         MODBND=.TRUE.
-      elseif(ino.eq.19)then
+      elseif(ino.eq.21)then
         fileinfo=fileinfo+1
         if(fileinfo.gt.1)fileinfo=0
-      elseif(ino.eq.20)then
+      elseif(ino.eq.22)then
 
 C Setup the name of the model contents report. If name already known
-C then use it in dialog, otherwise make up standard name in the doc
+C use it in dialog, otherwise make up standard name in the doc
 C folder if it exists.
         if(destination.eq.0)then
           destination = 1
@@ -1047,11 +1129,11 @@ C GTK it will include the full path to the file.
           else
             write(lguess,'(a)') lmodelqa(1:lnblnk(lmodelqa))
           endif
-          call edisp(iuout,'  ')  ! echo blank line
-          CALL EASKXORGTKF(lguess,'Model contents file:',
-     &      ' ',lldef,lltmp,'QA file',IER,nbhelp)
+          call edisp(iuout,'  ')
+          CALL EASKXORGTKF(lguess,' ',
+     &      'Model contents file:',lldef,lltmp,'QA file',IER,nbhelp)
 
-C If user request jump back and re-display the menu.
+C Jump back and re-display the menu.
           if(ier.eq.-3)then
             goto 3  ! cancel detected, restore name and redisplay menu.
           endif
@@ -1068,11 +1150,6 @@ C Ask user whether file is in ../doc and if so use fdroot if GTK.
           else
             write(lmodelqa,'(a)') lltmp(1:lnblnk(lltmp))
           endif
-
-C Debug.
-C          write(6,*) 'lguess ',lguess
-C          write(6,*) 'lmodelqa ',lmodelqa
-C          write(6,*) 'lltmp ',lltmp
 
 C Save the model configuration file to register the report.
           CALL EMKCFG('-',IER)
@@ -1091,16 +1168,14 @@ C          call ctlexp(xfile,ixopen,ixloc,ixunit,'T','QA text',IER)
           itu = iuout
         endif
 
-      elseif(ino.eq.21)then
-
 C Generate the report based on current options.
+      elseif(ino.eq.23)then
         goto 55
 
-      elseif(ino.eq.22)then
-
-C If user just wrote to a file then allow browse and then
-C edit of that QA file.  Use file browser if in GTK mode.
-C If vi then spawn a new window to do the editing in.
+C If file just written to then allow browse and
+C edit of that file. Use file browser if in GTK mode.
+C If vi then spawn a new window to do the editing.
+      elseif(ino.eq.24)then
         iglib = igraphiclib()  ! find out if X11 or GTK or text support only.
         lltmp='  '
         lguess='  '
@@ -1115,11 +1190,11 @@ C If vi then spawn a new window to do the editing in.
         else
           write(lguess,'(a)') lmodelqa(1:lnblnk(lmodelqa))
         endif
-        call edisp(iuout,'  ')  ! echo blank line
-        CALL EASKXORGTKF(lguess,'Model contents file:',
-     &    ' ',lldef,lltmp,'QA file',IER,nbhelp)
+        call edisp(iuout,'  ')
+        CALL EASKXORGTKF(lguess,' ',
+     &    'Model contents file?',lldef,lltmp,'QA file',IER,nbhelp)
 
-C If user request jump back and re-display the menu.
+C Jump back and re-display the menu.
         if(ier.eq.-3)then
           goto 3  ! cancel detected, restore name and redisplay menu.
         endif
@@ -1157,45 +1232,44 @@ C Generate the QA report.
         call edisp(itu,'Synopsis')
       endif
       call edisp(itu,' ')
-      write(outs248,'(8A)') 'Synopsis of the model ',
+      write(outs248,'(8A)') 'Synopsis of model ',
      &  modeltitle(1:lnblnk(modeltitle)),' defined in ',
      &  LCFGF(1:lnblnk(LCFGF)),' generated on ',
      &  dstmp,'. Associated notes are in ',
      &  lmodellog(1:lnblnk(lmodellog))
       call edisp248(itu,outs248,80)
-      call edisp(itu,' ')
 
 C Site information.
       if(siteinfo.gt.0)then
+        call edisp(itu,' ')
         write(outs248,'(a,f7.2,a,f6.2,2a,i4,5a)') 
-     &    'The model is located at latitude ',sitelat,
-     &    ' with a longitude difference of ',sitelongdif,
-     &    ' from the local time meridian (east +ve). The year used',
-     &    ' in simulations is ',IYEAR,' and weekends occur on ', 
+     &    'Location latitude ',sitelat,
+     &    ' longitude difference ',sitelongdif,
+     &    ' (from local time meridian (east +ve). ',
+     &    'Simulations year ',IYEAR,' with Weekends occuring on ', 
      &     wkd1(1:lnblnk(wkd1)),' and ',wkd2(1:lnblnk(wkd2)),'.'
         call edisp248(itu,outs248,80)
-        call edisp(itu,' ')
         if(siteexposureindex.eq.1)then
-          WRITE(outs,'(a)')'site exposure is typical city centre'
+          WRITE(outs,'(a)')'Site exposure is typical city centre'
         elseif(siteexposureindex.eq.2)then
-          WRITE(outs,'(a)')'site exposure is typical urban site'
+          WRITE(outs,'(a)')'Site exposure is typical urban'
         elseif(siteexposureindex.eq.3)then
-          WRITE(outs,'(a)')'site exposure is typical rural site'
+          WRITE(outs,'(a)')'Site exposure is typical rural'
         elseif(siteexposureindex.eq.4)then
-          WRITE(outs,'(a)')'site exposure is city: = sky, grnd, bldgs'
+          WRITE(outs,'(a)')'Site exposure is city: = sky, grnd, bldgs'
         elseif(siteexposureindex.eq.5)then
-          WRITE(outs,'(a)')'site exposure is city: below surroundings'
+          WRITE(outs,'(a)')'Site exposure is city: below surroundings'
         elseif(siteexposureindex.eq.6)then
-          WRITE(outs,'(a)')'site exposure is isolated rural site site'
+          WRITE(outs,'(a)')'Site exposure is isolated rural'
         elseif(siteexposureindex.eq.7)then
-          WRITE(outs,'(a)')'site exposure is totally enclosed (no sky)'
+          WRITE(outs,'(a)')'Site exposure is totally enclosed (no sky)'
         elseif(siteexposureindex.eq.8)then
           WRITE(outs,53)skyview,groundview,buildingview
-  53      FORMAT('site exposure is sky=',F4.2,' ground=',F4.2,
+  53      FORMAT('Site exposure is sky=',F4.2,' ground=',F4.2,
      &      ' other buildings=',F4.2)
         endif
 
-C Cater for groundreflmodel here (groundreflmodel.eq.1, 2 or 3)
+C Ground reflection model.
         if (groundreflmodel.eq.1) then
           write(outs248,'(3a,f4.2,a)') 'The ',outs(1:lnblnk(outs)),
      &      ' and the ground reflectance is ',groundrefl,'.'
@@ -1204,7 +1278,8 @@ C Cater for groundreflmodel here (groundreflmodel.eq.1, 2 or 3)
           write(outs248,'(3a)') 'The ',outs(1:lnblnk(outs)),
      &      '. The ground reflectance is defined with monthly values:'
           call edisp248(itu,outs248,80)
-C         Write monthly values ...
+
+C Write monthly values.
           itrunc=1
           ipos=1
           do while (itrunc.ne.0)
@@ -1216,8 +1291,9 @@ C         Write monthly values ...
 
           call edisp(itu,' ')
           write(outs248,'(a)')
-     &      'Snow coverage is defined as days per month with snow:'
-C         Write monthly values ...
+     &      'Snow cover is defined as days per month with snow:'
+
+C Write monthly values.
           itrunc=1
           ipos=1
           do while (itrunc.ne.0)
@@ -1231,7 +1307,8 @@ C         Write monthly values ...
           write(outs248,'(3a)') 'The ',outs(1:lnblnk(outs)),
      &      '. The ground reflectance is defined with monthly values:'
           call edisp248(itu,outs248,80)
-C         Write monthly values
+
+C Write monthly values.
           itrunc=1
           ipos=1
           do while (itrunc.ne.0)
@@ -1248,7 +1325,6 @@ C         Write monthly values
           call edisp248(itu,outs248,80)
 
         endif
-        call edisp(itu,' ')
 
 C Print address for building and client. If there is a UK NCM
 C description then list that out instead.
@@ -1257,6 +1333,7 @@ C description then list that out instead.
             if(LASBEM(1:4).eq.'UNKN')then
               continue
             else
+
 C Re-read sbem db and then the descriptive file.
               call sbempr(ier)
               call rsbem
@@ -1331,30 +1408,30 @@ C Check if any of the address fields are known.
 C Tell about climate taking note of timing of solar data.
         if(iSlr_half_hr_flg.eq.0)then
           if(markdown)then
-            WRITE(outs248,'(5A)')'The climate is: ',
-     &        CLMLOC(1:lnblnk(CLMLOC)),' and is held in: ',
+            WRITE(outs248,'(5A)')'Weather file: ',
+     &        CLMLOC(1:lnblnk(CLMLOC)),' in ',
      &          LCLIM(1:lnblnk(LCLIM)),
-     &      ' with hour centred solar data.  '
+     &      ' with hour-centred solar data.  '
             call edisp248(itu,outs248,120)
           else
-            WRITE(outs248,'(5A)')'The climate is: ',
-     &        CLMLOC(1:lnblnk(CLMLOC)),' and is held in: ',
+            WRITE(outs248,'(5A)')'Weather file: ',
+     &        CLMLOC(1:lnblnk(CLMLOC)),' in ',
      &          LCLIM(1:lnblnk(LCLIM)),
-     &      ' with hour centred solar data.'
+     &      ' with hour-centred solar data.'
             call edisp248(itu,outs248,80)
           endif
         else
           if(markdown)then
-            WRITE(outs248,'(5A)')'The climate is: ',
-     &        CLMLOC(1:lnblnk(CLMLOC)),' and is held in: ',
+            WRITE(outs248,'(5A)')'Weather file is: ',
+     &        CLMLOC(1:lnblnk(CLMLOC)),' in ',
      &        LCLIM(1:lnblnk(LCLIM)),
-     &        ' with half hour centred solar data.  '
+     &        ' with half hour-centred solar data.  '
             call edisp248(itu,outs248,80)
           else
-            WRITE(outs248,'(5A)')'The climate is: ',
-     &        CLMLOC(1:lnblnk(CLMLOC)),' and is held in: ',
+            WRITE(outs248,'(5A)')'Weather file is: ',
+     &        CLMLOC(1:lnblnk(CLMLOC)),' i: ',
      &        LCLIM(1:lnblnk(LCLIM)),
-     &        ' with half hour centred solar data.'
+     &        ' with half hour-centred solar data.'
             call edisp248(itu,outs248,80)
           endif
         endif
@@ -1381,12 +1458,9 @@ C Tell about climate taking note of timing of solar data.
           endif
         endif
 
-C List out the estimated ground temperatures based on the
-C current weather data at 0.5m, 1m, 2m, 4m depth.
-C First get ground temperatures at depth ZD.
+C List the estimated ground temperatures based on the current
+C weather data at 0.5m, 1m, 2m, 4m depth.
         if(siteinfo.ge.2)then
-cx          ZDA = (/ 0.5, 1.0, 2.0, 4.0 /) ! default value set
-cx          NRGRDT = 4
           ZDA = (/ 0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0, 4.5, 5.0,
      &             5.5, 6.0, 6.5, 7.0, 7.5, 8.0, 8.5, 9.0, 9.5, 10.0 /)
           NRGRDT = 20
@@ -1402,15 +1476,13 @@ cx          NRGRDT = 4
             do while (itrunc.ne.0)
               call arlist(ipos,12,eGrdTp,12,'S',outs2,loutln,itrunc)
               if(markdown)then
-                WRITE(outs248,'(A,f4.1,A,A)')' ',ZDA(II),' m: ',outs2
+                WRITE(outs248,'(A,f4.1,A,A)')' ',ZDA(II),' m: ',
+     &            outs2(1:lnblnk(outs2))
                 call edispxtr(itu,outs248)
-cx     &          'Calculated ground temp at 0.5m depth  ')
-cx                call edisp2tr(itu,outs2)
               else
-                WRITE(outs248,'(A,f4.1,A,A)')' ',ZDA(II),' m: ',outs2
-                call edispxtr(itu,outs248)
-cx                call edisp(itu,'Calculated ground temp at 0.5m depth')
-cx                call edisp(itu,outs2)
+                WRITE(outs248,'(A,f4.1,A,A)')' ',ZDA(II),' m: ',
+     &            outs2(1:lnblnk(outs2))
+                call edisp248(itu,outs248,120)
               endif
               ipos=itrunc+1
             end do
@@ -1423,14 +1495,14 @@ C List out the maximum and minimum thickness of constructions in
 C contact with the ground.
 C << to be done >>
 
-C List out the minimum and maximum thickness of the facade (walls
-C marked as WALL surface use).
+C List out the minimum and maximum thickness of constructions
+C marked as WALL.
 C << to be done >>
 
         if(NGRDP.gt.0.and.siteinfo.ge.1)then
           call edisp(itu,' ')  
           write(outs,'(a,i2,a)')'There are currently ',NGRDP,
-     &      ' user defined ground temperature profiles.' 
+     &      ' user-defined ground temperature profiles.' 
           if(markdown)then
             call edisp2tr(itu,outs)
           else     
@@ -1464,11 +1536,10 @@ C Jump back point if err=1000 called when reading climate.
         if(GTGEOM(1:2).eq.'  '.or.GTGEOM(1:4).eq.'UNKN')then
           continue
         else
-          WRITE(outs248,'(5A)') 'The model includes ground topology ',
-     &      GTNAME(1:lnblnk(GTNAME)),' which is defined in ',
+          WRITE(outs248,'(5A)') 'The model includes a ground topology ',
+     &      GTNAME(1:lnblnk(GTNAME)),', which is defined in ',
      &      GTGEOM(1:lnblnk(GTGEOM)),'.'
           call edisp248(itu,outs248,80)
-          call edisp(itu,' ')
         endif
       endif
 
@@ -1480,7 +1551,7 @@ C Context of the model.
         endif
       elseif(contextinfo.eq.2)then
 
-C If there is an AIM-2 descritption scan the file and then report.
+C If there is an AIM-2 descritption, scan the file and then report.
         if(iAIM2.eq.1)then
           call AIM2_READIN
           call AIM2_report(itu)
@@ -1542,7 +1613,7 @@ C If there is an AIM-2 descritption scan the file and then report.
             call edisp(itu,outs)
             call edisp(itu,'-----------  -------  -----  ------')
           else
-            call edisp(itu,' Emissions (g/kWh) co2  nox  sox  ')
+            call edisp(itu,' Emissions (g/kWh) CO2  NOx  SOx  ')
             WRITE(outs,'(A,3F7.2)')' heating : ',phtco2,phtnox,phtsox
             call edisp(itu,outs)
             WRITE(outs,'(A,3F7.2)')' cooling : ',pclco2,pclnox,pclsox
@@ -1574,7 +1645,7 @@ C Check if IPV file and dispersed demands files are known.
             CALL ERBDMD(ITRC,ITRU,IUO,IER)
             call edisp(itu,' ')
             call edisp(itu,
-     &'The model includes dispersed casual gains (e.g. pumps & fans).')
+     &'Model includes dispersed casual gains (e.g. pumps & fans).')
             if(contextinfo.eq.1)then
               call edisp248(itu,dmdsdesc,80)
             elseif(contextinfo.eq.2)then
@@ -1677,9 +1748,9 @@ C Set Default season definitions.
                   CALL EDAY(1,9,is2sprs); CALL EDAY(31,10,is2sprf)
                   CALL EDAY(1,5,is1sums); CALL EDAY(31,8,is1sumf)
                   call edisp(itu,
-     &              'The climate used was not in the climatelist and')
+     &              'Weather file is not in climatelist and no local')
                   call edisp(itu,
-     &              'no local seasons set - default seasons assumed.')
+     &              'seasons are set - default seasons assumed.')
                   call listipvdat(itu,'a',ier)
                 endif
               endif
@@ -2167,8 +2238,10 @@ C If there is a flow network, rescan and list its contents.
             call edisp(itu,' ')
             call edisp(itu,'The model includes an air flow network.')
           endif
-          if(netinfo.eq.2)then
-            call mflist(itu)
+          if(netinfo.eq.1)then
+            call mflist(itu,'s')
+          elseif(netinfo.eq.2)then
+            call mflist(itu,'f')
           endif
           call edisp(itu,' ')
         endif
@@ -2190,6 +2263,8 @@ C If there is a plant network, scan it and report.
               IER=1
               CALL edisp(iuout,' problem opening plant network file...')
             ENDIF
+            WRITE(outs,240)
+            call edisp(itu,outs) ! write separation line
             call edisp(itu,' ')
             call edisp(itu,'The model includes a plant network.')
             call pltcfg(ifpnf,iunit1,itu,1)
@@ -2198,6 +2273,62 @@ C nnodes: This is necessary because the nnodes common block (pcdat)
 C is defined differently in bps, and the pltcfg.F file cannot be
 C built as part of bps if it includes the prj pcdat common.
             call CopyPltNodeCounts()
+          endif
+C Is a boundary data file (ESRU flavor) ...
+          if (BPF(1:4).eq.'UNKN'.or.BPF(1:2).eq.'  ') then
+            continue
+          else
+            xst=.false.
+            call FINDFIL(BPF,xst)
+            if (xst) then
+              IFBPF=IFIL+1 ! standard +9 seems to be used for QA output in prj ...
+              write(currentfile,'(a)') BPF(1:lnblnk(BPF))
+              CALL EFOPSEQ(ifbpf,BPF,1,IER)
+              IF(IER.LT.0)THEN
+                IER=1
+                CALL edisp(iuout,' problem opening bcd file...')
+              ENDIF
+              call edisp(itu,' ')
+              call edisp(itu,'The plant includes a boundary data file.')
+              WRITE(outs248,'(2A)')' BDFile: ',BPF(1:lnblnk(BPF))
+              call edisp248(itu,outs248,100)
+              call edisp(itu,' ') ! blank line
+            endif
+          endif
+C ... or is a boundary data file (CETC flavor) being used?
+          if (bBC_data_defined) then
+            xst=.false.
+            call FINDFIL(cBC_data_file_name,xst)
+            if (xst) then
+              IFBPF=IFIL+1
+              write(currentfile,'(a)')
+     &               cBC_data_file_name(1:lnblnk(cBC_data_file_name))
+              CALL EFOPSEQ(ifbpf,cBC_data_file_name,1,IER)
+C             Fill BC_data variables ...
+cx << either copy BC_data.F to eprj or make simplified processing function
+cx    only for qa report ... >>
+cx              call process_BC_data_file(IFIL,autook,bBC_data_err)
+              IF(IER.lt.0)THEN
+                IER=1
+                CALL edisp(iuout,' problem opening BC_data file...')
+              ENDIF
+              call edisp(itu,' ')
+              call edisp(itu,'The plant includes a BC_data file.')
+C             Give some information on file
+cx << doesn't currently work because variables are not initialised ... >>
+              WRITE(outs248,'(3A,f4.2)')' BDFile: ',
+     &                 cBC_data_file_name(1:lnblnk(cBC_data_file_name)),
+     &                 ', version ',fBC_file_version
+              call edisp248(itu,outs248,100)
+              WRITE(outs248,'(A,I3)')' Number of data columns: ',
+     &                   iBC_col_count
+              call edisp248(itu,outs248,100)
+              WRITE(outs248,'(A,I3,A,I4,A)')' Number of data rows: ',
+     &                   iBC_row_count,' @',NINT(fBC_frequency),
+     &                   ' seconds/sample'
+              call edisp248(itu,outs248,100)
+              call edisp(itu,' ') ! blank line
+            endif
           endif
         endif
       endif
@@ -2229,24 +2360,74 @@ C Jump if no zones.
         call edisp(itu,' ')
         call edisp(itu,': Zone summary')
         call edisp(itu,' ')
-        write(outs,'(3a)') 
-     &  'ID  Zone name     Volume (m^3^)  Surfaces   ',
-     &  'Opaque (m^2^)    Transparent (m^2^)   Floor (m^2^) ',
-     &  '   Description'
-        call edisp(itu,outs)
-        write(outs2,'(3a)')
-     &  '--  ------------  -------------  --------   ',
-     &  '--------------   ------------------   -------------',
-     &  '   -------------------------------------------' 
-        call edisp(itu,outs2)
+        if(zonecolumns.eq.3)then
+          write(outs,'(3a)') 
+     &    'ID  Zone name     Volume (m^3^)  Surfaces   ',
+     &    'Opaque (m^2^)    Transparent (m^2^)   Floor (m^2^) ',
+     &    '   Description'
+          call edisp(itu,outs)
+          write(outs2,'(3a)')
+     &    '--  ------------  -------------  --------   ',
+     &    '--------------   ------------------   -------------',
+     &    '   -------------------------------------------' 
+          call edisp(itu,outs2)
+        elseif(zonecolumns.eq.2)then
+          write(outs,'(3a)') 
+     &    'ID  Zone name     Volume (m^3^)  Surfaces  ',
+     &    'Opaque (m^2^)  Transparent (m^2^)   ',
+     &    'Description'
+          call edisp(itu,outs)
+          write(outs2,'(3a)')
+     &    '--  ------------  -------------  --------  ',
+     &    '-------------  ------------------   ',
+     &    '-------------------------------------------' 
+          call edisp(itu,outs2)
+        elseif(zonecolumns.eq.1)then
+          write(outs,'(3a)') 
+     &    'ID  Zone name     Surfaces  ',
+     &    'Opaque (m^2^)   Transparent (m^2^)  Floor (m^2^) ',
+     &    '  Description'
+          call edisp(itu,outs)
+          write(outs2,'(3a)')
+     &    '--  ------------  --------  ',
+     &    '--------------  ------------------  -------------',
+     &    '  -------------------------------------------' 
+          call edisp(itu,outs2)
+        elseif(zonecolumns.eq.0)then
+          write(outs,'(2a)') 
+     &    'ID  Zone name     Volume (m^3^)  ',
+     &    'Floor (m^2^)  Description'
+          call edisp(itu,outs)
+          write(outs2,'(3a)')
+     &    '--  ------------  -------------  ',
+     &    '------------  -------------------------------------------' 
+          call edisp(itu,outs2)
+        endif
       else
         WRITE(outs,240)
         call edisp(itu,outs)
         call edisp(itu,' ')
-        outs='ID Zone         Volume|          Surface          '
-        call edisp(itu,outs)
-        outs='   Name         m^3   | No. Opaque  Transp  ~Floor'
-        call edisp(itu,outs)
+        if(zonecolumns.eq.3)then
+          outs='ID Zone         Volume|          Surface          '
+          call edisp(itu,outs)
+          outs='   Name         m^3   | No. Opaque  Transp  ~Floor'
+          call edisp(itu,outs)
+        elseif(zonecolumns.eq.2)then
+          outs='ID Zone         Volume|      Surface        Description'
+          call edisp(itu,outs)
+          outs='   Name         m^3   | No. Opaque  Transp        '
+          call edisp(itu,outs)
+        elseif(zonecolumns.eq.1)then
+          outs='ID Zone         |       Surface      Description'
+          call edisp(itu,outs)
+          outs='   Name         | No. Opaque  Transp        '
+          call edisp(itu,outs)
+        elseif(zonecolumns.eq.0)then
+          outs='ID Zone         Volume| ~Floor  Description       '
+          call edisp(itu,outs)
+          outs='   Name         m^3   |  area                     '
+          call edisp(itu,outs)
+        endif
       endif
       TVOL=0.
       TFLA=0.
@@ -2276,20 +2457,57 @@ C At this point CFC and CFC2 are not counted
           if(attribok(IVALS(IZ)))then
             aok=' attributed  '
             if(markdown)then
-              write(outs248,
-     &          '(i2,2x,a,f8.1,i13,11x,f8.1,13x,f8.1,8x,f9.1,5x,a)') 
-     &          IVALS(IZ),
-     &          zname(IVALS(IZ)),VOL(IVALS(IZ)),NZSUR(ivals(iz)),
-     &          OPQ,TRN,ZBASEA(IVALS(IZ)),
-     &          zdesc(IVALS(IZ))(1:lnzdesc(IVALS(IZ)))
-              call edisp(itu,outs248)
+              if(zonecolumns.eq.3)then
+                write(outs248,
+     &            '(i2,2x,a,f8.1,i13,11x,f8.1,13x,f8.1,8x,f9.1,5x,a)') 
+     &            IVALS(IZ),
+     &            zname(IVALS(IZ)),VOL(IVALS(IZ)),NZSUR(ivals(iz)),
+     &            OPQ,TRN,ZBASEA(IVALS(IZ)),
+     &            zdesc(IVALS(IZ))(1:lnzdesc(IVALS(IZ)))
+                call edisp(itu,outs248)
 C              call edisp248(itu,outs248,140)
+              elseif(zonecolumns.eq.2)then
+                write(outs248,
+     &            '(i2,2x,a,f8.1,i13,11x,f8.1,12x,f8.1,3x,a)') 
+     &            IVALS(IZ),
+     &            zname(IVALS(IZ)),VOL(IVALS(IZ)),NZSUR(ivals(iz)),
+     &            OPQ,TRN,zdesc(IVALS(IZ))(1:lnzdesc(IVALS(IZ)))
+                call edisp(itu,outs248)
+              elseif(zonecolumns.eq.1)then
+                write(outs248,'(i2,2x,a,i10,8x,f8.1,12x,f8.1,2x,a)') 
+     &            IVALS(IZ),zname(IVALS(IZ)),NZSUR(ivals(iz)),
+     &            OPQ,TRN,zdesc(IVALS(IZ))(1:lnzdesc(IVALS(IZ)))
+                call edisp(itu,outs248)
+              elseif(zonecolumns.eq.0)then
+                write(outs248,
+     &            '(i2,2x,a,f8.1,8x,f9.1,6x,a)') IVALS(IZ),
+     &            zname(IVALS(IZ)),VOL(IVALS(IZ)),ZBASEA(IVALS(IZ)),
+     &            zdesc(IVALS(IZ))(1:lnzdesc(IVALS(IZ)))
+                call edisp(itu,outs248)
+              endif
             else
-              write(outs,'(i2,1x,a,f7.1,i4,3f8.1,2x,a)') IVALS(IZ),
-     &          zname(IVALS(IZ)),VOL(IVALS(IZ)),NZSUR(ivals(iz)),
-     &          OPQ,TRN,ZBASEA(IVALS(IZ)),
-     &          zdesc(IVALS(IZ))(1:lnzdesc(IVALS(IZ)))
-              call edisp(itu,outs)
+              if(zonecolumns.eq.3)then
+                write(outs,'(i2,1x,a,f7.1,i4,3f8.1,2x,a)') IVALS(IZ),
+     &            zname(IVALS(IZ)),VOL(IVALS(IZ)),NZSUR(ivals(iz)),
+     &            OPQ,TRN,ZBASEA(IVALS(IZ)),
+     &            zdesc(IVALS(IZ))(1:lnzdesc(IVALS(IZ)))
+                call edisp(itu,outs)
+              elseif(zonecolumns.eq.2)then
+                write(outs,'(i2,1x,a,f7.1,i4,2f8.1,2x,a)') IVALS(IZ),
+     &            zname(IVALS(IZ)),VOL(IVALS(IZ)),NZSUR(ivals(iz)),
+     &            OPQ,TRN,zdesc(IVALS(IZ))(1:lnzdesc(IVALS(IZ)))
+                call edisp(itu,outs)
+              elseif(zonecolumns.eq.1)then
+                write(outs,'(i2,1x,a,i4,2f8.1,2x,a)') IVALS(IZ),
+     &            zname(IVALS(IZ)),NZSUR(ivals(iz)),
+     &            OPQ,TRN,zdesc(IVALS(IZ))(1:lnzdesc(IVALS(IZ)))
+                call edisp(itu,outs)
+              elseif(zonecolumns.eq.0)then
+                write(outs,'(i2,1x,a,f7.1,f8.1,2x,a)') IVALS(IZ),
+     &            zname(IVALS(IZ)),VOL(IVALS(IZ)),ZBASEA(IVALS(IZ)),
+     &            zdesc(IVALS(IZ))(1:lnzdesc(IVALS(IZ)))
+                call edisp(itu,outs)
+              endif
             endif
           else
             aok=' part-attributed '
@@ -2788,9 +3006,9 @@ C Put odd vertex in right column.
             icc=izstocn(izz,i)           ! find connection
             lsna=lnblnk(SNAME(izz,i))    ! get length of surf name
             if(markdown)then
-              write(louts,'(124I4)') (JVN(I,J),J=1,NVER(I))
+              write(louts,'(102I4)') (JVN(I,J),J=1,NVER(I))
             else
-              write(louts,'(a,i3,124I4)') '*edges ',NVER(I),
+              write(louts,'(a,i3,102I4)') '*edges ',NVER(I),
      &        (JVN(I,J),J=1,NVER(I))
             endif
             call SDELIM(louts,loutsd,'C',IW)  ! make comma separated
@@ -2982,23 +3200,93 @@ C then rescan that zone file with verbose setting.
             CALL EDISP(itu,' ')
           endif
 
+C Report on visual entities. If there are more than 8 do as a double column.
+C Pad the reporting as required.
           if(nbvis(ivz).gt.0)then
-            call edisp(itu,'visual type name    composition')
-            do i=1,nbvis(ivz)
-              llbm=LNVISMAT(ivz,i)
-              llbn=LNVISNAME(ivz,i)
-              if(VISTYP(ivz,i)(1:4).eq.'vis ')then
-                WRITE(outs,'(4A)')' vis 1rot  ',
+            im=MOD(nbvis(ivz),2)
+            odd=.false.
+            if(im.eq.1) odd=.true.
+            if(nbvis(ivz).lt.8)then   ! Write as a single column
+              call edisp(itu,'visual type name    composition')
+              do i=1,nbvis(ivz)
+                llbm=LNVISMAT(ivz,i)
+                if(llbm.lt.10) llbm=10
+                llbn=LNVISNAME(ivz,i)
+                if(llbn.lt.10) llbm=10
+                if(VISTYP(ivz,i)(1:4).eq.'vis ')then
+                  WRITE(outs,'(4A)')' vis 1rot  ',
      &            VISNAME(ivz,i)(1:llbn),' ',VISMAT(ivz,i)(1:llbm)
-              elseif(VISTYP(ivz,i)(1:4).eq.'vis3')then
-                WRITE(outs,'(4A)')' vis 3rot  ',
+                elseif(VISTYP(ivz,i)(1:4).eq.'vis3')then
+                  WRITE(outs,'(4A)')' vis 3rot  ',
      &            VISNAME(ivz,i)(1:llbn),' ',VISMAT(ivz,i)(1:llbm)
-              elseif(VISTYP(ivz,i)(1:4).eq.'visp')then
-                WRITE(outs,'(4A)')' vis poly  ',
+                elseif(VISTYP(ivz,i)(1:4).eq.'visp')then
+                  WRITE(outs,'(4A)')' vis poly  ',
      &            VISNAME(ivz,i)(1:llbn),' ',VISMAT(ivz,i)(1:llbm)
-              endif
+                endif
+                call edisp(itu,outs)
+              enddo  ! of iv
+            else
+              write(outs,'(2a)') 
+     &          'visual type name    composition        ',
+     &          'visual type name    composition'
               call edisp(itu,outs)
-            enddo  ! of iv
+              MNU=(nbvis(ivz)/2)
+              DO 193 J=1,MNU
+                llbm=LNVISMAT(ivz,J)
+                if(llbm.lt.10) llbm=10
+                llbn=LNVISNAME(ivz,J)
+                if(llbn.lt.10) llbn=10
+                llbm2=LNVISMAT(ivz,J+MNU)
+                llbn2=LNVISNAME(ivz,J+MNU)
+                if(VISTYP(ivz,J)(1:4).eq.'vis ')then
+                  WRITE(outs,'(4A)')' vis 1rot  ',
+     &              VISNAME(ivz,J)(1:llbn),' ',VISMAT(ivz,J)(1:llbm)
+                  WRITE(outs2a,'(4A)')' vis 1rot  ',
+     &              VISNAME(ivz,J+MNU)(1:llbn2),' ',
+     &              VISMAT(ivz,J+MNU)(1:llbm2)
+                elseif(VISTYP(ivz,i)(1:4).eq.'vis3')then
+                  WRITE(outs,'(4A)')' vis 3rot  ',
+     &              VISNAME(ivz,J)(1:llbn),' ',VISMAT(ivz,J)(1:llbm)
+                  WRITE(outs2a,'(4A)')' vis 3rot  ',
+     &              VISNAME(ivz,J+MNU)(1:llbn2),' ',
+     &              VISMAT(ivz,J+MNU)(1:llbm2)
+                elseif(VISTYP(ivz,i)(1:4).eq.'visp')then
+                  WRITE(outs,'(4A)')' vis poly  ',
+     &              VISNAME(ivz,J)(1:llbn),' ',VISMAT(ivz,J)(1:llbm)
+                  WRITE(outs2a,'(4A)')' vis poly  ',
+     &              VISNAME(ivz,J+MNU)(1:llbn2),' ',
+     &              VISMAT(ivz,J+MNU)(1:llbm2)
+                endif
+                llo=lnblnk(outs)
+                if(llo.lt.36) llo=36
+                write(outs3,'(3a)') outs(1:llo),'  ',
+     &            outs2a(1:lnblnk(outs2a))
+                call edisp(itu,outs3)
+  193         CONTINUE
+
+C Put odd vertex in left column.
+              if(odd)then
+                J=nbvis(ivz)
+                llbm=LNVISMAT(ivz,J)
+                if(llbm.lt.10) llbm=10
+                llbn=LNVISNAME(ivz,J)
+                if(llbn.lt.10) llbn=10
+                if(VISTYP(ivz,J)(1:4).eq.'vis ')then
+                  WRITE(outs,'(4A)')
+     &              '                                       vis 1rot  ',
+     &              VISNAME(ivz,J)(1:llbn),' ',VISMAT(ivz,J)(1:llbm)
+                elseif(VISTYP(ivz,i)(1:4).eq.'vis3')then
+                  WRITE(outs,'(4A)')
+     &              '                                       vis 3rot  ',
+     &              VISNAME(ivz,J)(1:llbn),' ',VISMAT(ivz,J)(1:llbm)
+                elseif(VISTYP(ivz,i)(1:4).eq.'visp')then
+                  WRITE(outs,'(4A)')
+     &              '                                       vis poly  ',
+     &              VISNAME(ivz,J)(1:llbn),' ',VISMAT(ivz,J)(1:llbm)
+                endif
+                call edisp(itu,outs)
+              endif
+            endif
             CALL EDISP(itu,' ')
           endif
 
@@ -3017,11 +3305,16 @@ C then rescan that zone file with verbose setting.
             if(zoneextrainfo.eq.1)then
               call edisp(itu,
      &         ' Non-default convection regimes are used in this zone.')
+              call FINDFIL(LHCCO(ivz),XST)
+              IF(XST)THEN
+                call ehtcff(LHCCO(ivz),IUF,IER)
+                call listhtc(itu,ivz,'s',IER)
+              endif
             elseif(zoneextrainfo.eq.2)then
               call FINDFIL(LHCCO(ivz),XST)
               IF(XST)THEN
                 call ehtcff(LHCCO(ivz),IUF,IER)
-                call listhtc(itu,ivz,IER)
+                call listhtc(itu,ivz,'f',IER)
               endif
             endif
           endif
@@ -3342,7 +3635,7 @@ C if the zones are fully attributed.
 C MLC database reporting. If toggle set to 'verbose' only list out those
 C constructions which have been referenced in the model. If toggle is
 C set to 'verbose all' then include all of them.
-   57 if(databaseinfo.ge.1)then
+   57 if(databaseinfo.ge.0)then
         if(markdown)then
           call edisp(itu,' ')
           call edisp2tr(itu,'## Constructions  ')
@@ -3366,6 +3659,9 @@ C        write(6,*) 'nmlc is ',nmlc,databaseinfo
               call etmldb(iitrc,itu,imlc,imerr)
             elseif(databaseinfo.eq.1)then
               iitrc=1
+              call etmldb(iitrc,itu,imlc,imerr)
+            elseif(databaseinfo.eq.0)then
+              iitrc=0
               call etmldb(iitrc,itu,imlc,imerr)
             endif
             if(markdown)then
@@ -3409,7 +3705,7 @@ C If writing to file call ctldumpt to close it and switch back to text feedback.
           continue
         else
           call edisp(iuout,
-     &     'The new QA file can be edited via the `edit file` option.')
+     &     'QA file can be viewed via the `edit file` option.')
           call edisp(iuout,' ')
         endif
       endif
@@ -3421,15 +3717,15 @@ C If in silent model return without user intervention.
       goto 3
 
 C Error trap.
- 1000 call lusrmsg('Problem scanning climate file',lclim,'W')
+ 1000 call lusrmsg('Problem scanning weather file',lclim,'W')
       goto 1001
 
       end
 
-C ************ mupdate
-C Mupdate checks whether current model should be updated and guides
-C the user through several of the tasks. Assumes that the user is
-C not browsing.
+C ******************** mupdate ********************
+C Checks whether current model should be updated and guides
+C the user through several tasks. Assumes that the user is
+C not in browsing mode.
 
       subroutine mupdate(ier)
 #include "building.h"
@@ -3458,8 +3754,8 @@ C IPV data.
       character lipvdatf*72
 
 C Images.
-      character imgfmt*4  ! GIF XBMP TIF JPG
-      character imgfoc*4  ! FZON FNET FCTL FDFS
+      character imgfmt*4    ! GIF XBMP TIF JPG
+      character imgfoc*4    ! FZON FNET FCTL FDFS
       character limgfil*72  ! file name (extend to 144 char)
       character imgdoc*248  ! text associated with image
       common/imagf/imgfmt(MIMG),imgfoc(MIMG),limgfil(MIMG),imgdoc(MIMG)
@@ -3471,15 +3767,15 @@ C Images.
       character outs*124
       CHARACTER CTLDOC*248,LCTLF*72
       character ZN*12
-      character ipvaction*3  ! to instruct it to read from external IPV file
+      character ipvaction*3 ! to instruct it to read from external IPV file
       logical ok,XST,anyish,unixok
-      logical newgeo  ! to use for testing if new/old geometry file.
-      logical allnew  ! if true then all zones are v1.1 or newer.
+      logical newgeo        ! to use for testing if new/old geometry file.
+      logical allnew        ! if true then all zones are v1.1 or newer.
       logical forceupgrade  ! if any other zone is version 1.1
-      logical MODOPR ! to flag if zone operations file needs changing.
-      logical opernew ! if true then all operations are current.
-      logical forceoper ! force if any operation is older
-      logical QUIET   ! for use in updating zone construction files
+      logical MODOPR        ! to flag if zone operations file needs changing.
+      logical opernew       ! if true then all operations are current.
+      logical forceoper     ! force if any operation is older
+      logical QUIET         ! for use in updating zone construction files
 
 C Flags noting whether casual gain periods are currently sorted.
       logical sorted,problem
@@ -3496,7 +3792,7 @@ C For help messages
       character helptopic*24 ! string (unique) for topic
       integer nbhelp     ! number of help lines found
 
-      helpinsub=' mupdate'  ! set for subroutine
+      helpinsub=' mupdate'   ! set for subroutine
       
 C Check if Unix-based or DOS based.
       call isunix(unixok)
@@ -3509,11 +3805,11 @@ C Check if Unix-based or DOS based.
       newgeo=.false.  ! assume older format geometry.
       sorted=.false.  ! assume casual gains not sorted.
 
-C Loop through and find out if all zone geometry files are
-C v1.1 or newer (so set igupgrade=2). If so then there is
-C no need for a geometric upgrade. And if there are v1.1 geometry
-C files but still some zone obstruction files then there
-C is still a need for upgrading.
+C Determine if zone geometry files are v1.1 or newer 
+C (so set igupgrade=2). If yes then there is no need 
+C to upgrade. If there are v1.1 geometry files but
+C also some zone obstruction files then there is
+C still a need to upgrade.
       allnew=.true.
       opernew=.true.
       do 775 iz=1,ncomp
@@ -3529,9 +3825,9 @@ C is still a need for upgrading.
           endif
         endif
 
-C If ip3ver=0 then force it to write to version 2 and if it
+C If ip3ver=0 then force it to write to version 2 and if
 C ip3ver=1 then write to version 2 and if already 2 then write
-C to version 21.
+C to version 2.1.
         if(ip3ver(iz).eq.0)then
           opernew=.false.
         elseif(ip3ver(iz).eq.1)then
@@ -3547,7 +3843,7 @@ C to version 21.
         forceoper=.true.   ! if some older operations do upgrade
       endif
 
-C Check whether the climate file is associated with seasons defined
+C Check whether the weather file is associated with seasons defined
 C in the climatelist file and if none written to the model set flag
 C for this to happen.
       if(ihaveseason.gt.0)then

@@ -13,10 +13,6 @@ C warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
 C PURPOSE. See the GNU General Public License for more
 C details.
 
-C You should have received a copy of the GNU General Public
-C License along with ESP-r. If not, write to the Free
-C Software Foundation, Inc., 59 Temple Place, Suite 330,
-C Boston, MA 02111-1307 USA.
 
 C edpro.F manages the editing of event profiles databases
 C         which used to be found in separate source files
@@ -178,7 +174,7 @@ C Insert a profile.
           goto 92
         else
 
-C Instanciate the data.
+C Instantiate the data.
           NCG(NPDBITEMS)=IV
           PDBDESC(NPDBITEMS)='New profile'
   
@@ -356,7 +352,7 @@ C If existing - use data in common block for the profile and display.
          continue
       elseif(NFLAG.EQ.'N')then
 
-C Loop through each of the periods and instanciate with default values
+C Loop through each of the periods and instantiate with default values
 C before passing into the standard editing facilties.  Make the start
 C of each successive event equal to the finish of the previous.
         if(NCG(ITM).lt.24)incr=1
@@ -642,7 +638,7 @@ C not exactly the same as another start time.
         goto 10
       endif
 
-C If we got to this point we can instanciate the data.
+C If we got to this point we can instantiate the data.
       ICGS1(IPR,IFOC)=IES
       ICGF1(IPR,IFOC)=IEF
       if(shiftnext) ICGS1(IPR,IFOC+1)=IEF

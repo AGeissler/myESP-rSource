@@ -13,10 +13,6 @@ C warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
 C PURPOSE. See the GNU General Public License for more
 C details.
 
-C You should have received a copy of the GNU General Public
-C License along with ESP-r. If not, write to the Free
-C Software Foundation, Inc., 59 Temple Place, Suite 330,
-C Boston, MA 02111-1307 USA.
 
 C file setup.F includes facilities for display of dates, time and files.
       SUBROUTINE SETUP(IER)
@@ -73,7 +69,7 @@ C Display of time of day.
       ITEMS1(8)  ='g strip file annotations'
       ITEMS1(9)  ='h miscellaneous tests   '
       ITEMS1(10) ='? help                  '
-      ITEMS1(11) ='- exit this menu        '
+      ITEMS1(11) ='- exit menu             '
       nitms=11
       CALL EMENU('Tool preferences',ITEMS1,nitms,INO1)
       IF(INO1.EQ.1)THEN
@@ -127,7 +123,7 @@ C If vi then spawn a new window to do the editing in.
         tmode='-'
         if(teditor(1:2).eq.'vi'.or.teditor(1:4).eq.'nano')tmode='text'
         write(doit,'(a,2x,a,a)') teditor(1:lnblnk(teditor)),
-     &    longtfile(1:lnblnk(longtfile)),' &'
+     &    longtfile(1:lnblnk(longtfile)),' & '
         call runit(doit,tmode)
       ELSEIF(INO1.EQ.8)THEN
 

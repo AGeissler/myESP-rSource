@@ -1,11 +1,11 @@
 C This file is part of the ESP-r system.
 C Copyright Energy Systems Research Unit, University of
-C Strathclyde, Glasgow Scotland, 2001.
+C Strathclyde, Glasgow Scotland, 2001-.
 
-C ESP-r is free software.  You can redistribute it and/or
+C ESP-r is free software. You can redistribute it and/or
 C modify it under the terms of the GNU General Public
 C License as published by the Free Software Foundation 
-C (version 2 orlater).
+C (version 2 or later).
 
 C ESP-r is distributed in the hope that it will be useful
 C but WITHOUT ANY WARRANTY; without even the implied
@@ -13,28 +13,20 @@ C warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
 C PURPOSE. See the GNU General Public License for more
 C details.
 
-C You should have received a copy of the GNU General Public
-C License along with ESP-r. If not, write to the Free
-C Software Foundation, Inc., 59 Temple Place, Suite 330,
-C Boston, MA 02111-1307 USA.
-
-      subroutine vread
 
 C This subroutine reads data from the moisture results file and 
-C writes the recovered data to array GOTDAT
+C writes the recovered data to array GOTDAT.
 
+      subroutine vread
 #include "building.h"
 #include "mould.h"
-C espriou.h provides current file.
 #include "espriou.h"
       
       integer lnblnk  ! function definition
 
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
-
       common/grphlim/xmin,xmax,ymin,ymax       
       COMMON/GOTDAT/NDP,DAT1(MTS),DAT2(MTS),DAT3(MTS)
-
       common/mstats/imstat,ifloat(mould),ifloatp(mould),imdur1(mould)
      &,imdur0(mould),i1max(mould),i0max(mould),imup(mould),
      &imdn(mould)
@@ -50,7 +42,6 @@ C espriou.h provides current file.
       integer*8 ipos,isize,iix,iiy      ! for use with etlabel
 #endif
 
-C For help messages
       character helpinsub*24 ! subroutine name
       character helptopic*24 ! string (unique) for topic
       integer nbhelp     ! number of help lines found (will be non-zero

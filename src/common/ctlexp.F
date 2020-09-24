@@ -16,9 +16,7 @@ C details.
 C You should have received a copy of the GNU General Public
 C License along with ESP-r. If not, write to the Free
 C Software Foundation, Inc., 59 Temple Place, Suite 330,
-C Boston, MA 02111-1307 USA.
-
-C ctlexp.F includes the following subroutines which are used
+C Boston, MA 02111-1307 USA.wing subroutines which are used
 C by a number of ESP-r modules (a different version of ctlexp
 C is used by esrumfs and esrures but those viariants may be
 C moved into this file at some point in the future.
@@ -27,8 +25,8 @@ C   CTLEXP: Control feedback to export wireframe or text feedback area.
 C   CTLEXPMFS: mfs module varaitn for export of text/graphic feedback area.
 C   CTLDUMPT: Control text dump (ctlexp T mode equiv without dialog).
 
-C CTLEXP ***********
-C CTLEXP: Control feedback to export wireframe or text feedback area.
+C *********** CTLEXP ***********
+C Control feedback to export wireframe or text feedback area.
 C Assign user-specified export file - checking if local or remote.
 C tg is a character T, X, or G specifying text, tabular or graphic
 C   info being saved.
@@ -38,6 +36,7 @@ C ixopen is a toggle reset each time ctlexp is called to signal open or close fi
 C ixunit is the file unit number for the export file.
 C ixloc signals whether path is local or remote and is passed back
 C   to common block for retention until the second call to ctlexp
+
       subroutine ctlexp(xfile,ixopen,ixloc,ixunit,tg,msg,IER)
 
       integer lnblnk  ! function definition
@@ -67,11 +66,12 @@ C Check if Unix-based or DOS based.
       call isunix(unixok)
 
 C Each call is a toggle. If open then close text or graphics command
-C file. For the graphics ask if file should be further converted.
+C file. If graphics, ask if file should be further converted.
       ixopen=ixopen+1
       if(ixopen.GT.1)ixopen=0
       if(ixopen.eq.0)then
         write(outs248,'(a,a)') 'closing export file: ',xfile
+        call edisp(iuout,' ')
         call edisp248(iuout,outs248,100)
         if(tg.eq.'X')then
           CALL ERPFREE(ixunit,ISTAT)
@@ -109,18 +109,16 @@ C and change any / to \.
      &       ichar(path(2:2)).eq.92)remote=.false.
         endif
         if(remote)then
-           write(outs,'(A,A)') ' The current path is: ',path
+           write(outs,'(A,A)') 'The current path is: ',path
+           call edisp(iuout,' ')
            call edisp(iuout,outs)
-           h(1)='If using path then the export file will be placed in'
+           h(1)='By default, the export file will be placed in'
            h(2)='the model folder. Otherwise nominate a folder and'
-           h(3)='file name for the export file (i.e. /tmp/junk.exp or'
-           h(4)='/home/ralph/reports/junk.exp) '
-           h(5)=' '
-           h(6)='If you selected this option in error click continue.'
-           write(outs,'(A,A)') ' The model is in folder ',path
-           CALL EASKABC(outs,' place export file:',
-     &       'in the model folder','user defined folder','continue',
-     &       ixloc,6)
+           h(3)='file name for the export file.'
+           write(outs,'(A,A)') 'The model is in folder ',path
+           CALL EASKABC(outs,'Place export file in:',
+     &       'model folder','user-defined folder','cancel',
+     &       ixloc,3)
            if(ixloc.eq.3)then
              ixopen=0
              return    ! does ixopen need to be reset?
@@ -128,8 +126,8 @@ C and change any / to \.
         else
           ixloc = 2   ! ixloc needs to be non-zero for subsequent code to work.
         endif
-        h(1)='This file is a text file which can be used in'
-        h(2)='reports or for third party tools. '
+        h(1)='This file is a text file, which can be used in'
+        h(2)='reports or sent to third party tools. '
         iglib = igraphiclib()  ! find out if X11 or GTK or text support only.
         llt=lnblnk(xfile)
         if(iglib.eq.1.or.iglib.eq.3)then
@@ -145,10 +143,10 @@ C and change any / to \.
         else
           ISTRW=96
         endif
-        CALL EASKF(xfile,' Export file name? ',
-     &    ' ',ISTRW,'export.txt','binary events db',IER,2)
+        CALL EASKF(xfile,' ','Export file name?',
+     &    ISTRW,'export.txt','binary events db',IER,2)
 
-C If user request cancel then return after resetting ixopen to zero.
+C If user requested cancel then return after resetting ixopen to zero.
         if(ier.eq.-3)then
           ixopen=0
           return
@@ -217,20 +215,15 @@ C and change any / to \.
       RETURN
       END
 
-C CTLEXPMFS ***********
-C This is a variant of code from esrures/utils.F which does not have
-C the autook option built in. It does include code for creating the
-C .par file contents and this might be compared with the code in
-C esrucom/ctlexp.F to see if a merge might happen.
-
-C CTLEXPMFS: Control feedback to export file or text feedback area.
+C ******************** CTLEXPMFS ********************
+C Controls feedback to export file or text area.
 C Assign user-specified export file - checking if local or remote.
-C tg is a character T, X, or G specifying text, tabular or graphic
-C   info being saved.
-C xfile (width variable) is the initial name of the file to be exported
-C msg (width variable) is prepended to dialog as export happens
-C ixopen is a toggle reset each time ctlexp is called to signal open or close file.
-C ixunit is the file unit number for the export file.
+C tg     - character T, X, or G specifying text, tabular or graphic
+C          info being saved.
+C xfile  - the initial name of the file to be exported.
+C msg    - prepended to dialog as export happens.
+C ixopen - a toggle reset each time ctlexp is called to signal open or close file.
+C ixunit - file unit number for the export file.
       subroutine ctlexpmfs(xfile,ixopen,ixunit,ixpunit,tg,msg,IER)
 
       integer lnblnk  ! function definition
@@ -288,24 +281,20 @@ C Each call is a toggle.
      &       ichar(path(2:2)).eq.92)remote=.false.
         endif
         if(remote)then
-          write(outs,'(A,A)') ' The current path is: ',path
+          write(outs,'(A,A)') 'The current path is: ',path
           call edisp(iuout,outs)
           h(1)='If using path then the export file will be placed in'
           h(2)='the model folder. Otherwise nominate a folder and'
-          h(3)='file name for the export file (i.e. /tmp/junk.exp or'
-          h(4)='/home/ralph/reports/junk.exp) '
-          h(5)=' '
-          h(6)='If you selected this option in error click continue.'
-          CALL EASKABC(outs,' place export file:',
-     &      'in the model folder','user defined folder','continue',
-     &      iw,6)
+          h(3)='file name for the export file.'
+          CALL EASKABC(outs,'Locate export file:',
+     &      'in model folder','another folder','cancel',iw,3)
           if(iw.eq.3)then
             ixopen=0
             return    ! does ixopen need to be reset?
           endif
         endif
-        h(1)='This file is a text file which can be used in'
-        h(2)='reports or for third party tools. '
+        h(1)='This file is a text file, which can be used in'
+        h(2)='reports or sent to third party tools.'
         iglib = igraphiclib()  ! find out if X11 or GTK or text support only.
         llt=lnblnk(xfile)
         if(iglib.eq.1.or.iglib.eq.3)then
@@ -321,8 +310,8 @@ C Each call is a toggle.
         else
           ISTRW=96
         endif
-        CALL EASKF(xfile,' Export file name? ',
-     &    ' ',ISTRW,'export.txt','binary events db',IER,2)
+        CALL EASKF(xfile,' ','Export file name?',
+     &    ISTRW,'export.txt','binary events db',IER,2)
 
 C If user requested a cancel then return after resetting ixopen.
         if(ier.eq.-3)then
@@ -469,17 +458,16 @@ C Typical yaxis stuff.
       RETURN
       END
 
-C CTLDUMPT ***********
-C CTLDUMPT: Control toggle between dump to text feedback and file
-C also checks if local or remote.
-C xfile (width variable) is the name of the file to be exported
-C msg (width variable) is prepended to dialog as export happens
-C ixopen is a toggle reset each time ctlexp is called to signal open or close file.
-C ixunit is the file unit number for the export file.
-C ixloc signals whether path is local or remote
+C ******************** CTLDUMPT ********************
+C Control toggle between dump to text feedback and file.
+C xfile  - name of the file to be exported.
+C msg    - prepended to dialog as export happens.
+C ixopen - toggle reset each time ctlexp is called to signal open or close file.
+C ixunit - file unit number for the export file.
+C ixloc  - signals whether path is local or remote.
 
-C A variant of ctlexp which does not have a dialog for file name
-C if the user is working remotely from the model.
+C (A variant of ctlexp which does not have a dialog for file name
+C if the user is working remotely from the model.)
       subroutine ctldumpt(xfile,ixopen,ixloc,ixunit,msg,IER)
 
       integer lnblnk  ! function definition

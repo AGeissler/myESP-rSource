@@ -13,26 +13,18 @@ C warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
 C PURPOSE. See the GNU General Public License for more
 C details.
 
-C You should have received a copy of the GNU General Public
-C License along with ESP-r. If not, write to the Free
-C Software Foundation, Inc., 59 Temple Place, Suite 330,
-C Boston, MA 02111-1307 USA.
-
-C This file contains the following routines:
-C      MOGRAF
-C      MOWLIN
-C      MOGHED
-C      MOCOPT
-C      MOCDAT
-C      MOCGDW
+C This file contains the following subroutines.
+C  MOGRAF
+C  MOWLIN
+C  MOGHED
+C  MOCOPT
+C  MOCDAT
+C  MOCGDW
 
 C ******************** MOGRAF ********************
-
-C MOGRAF is the main controlling routine for the graphical
+C The main controlling routine for the graphical
 C output facilities. This output mode allows the various
-C causal relationships to be displayed and so visually
-C investigated. All menu commands are defined in the ESP
-C user's manual.
+C causal relationships to be visually inspected.
 
       SUBROUTINE MOGRAF
 #include "building.h"
@@ -41,6 +33,7 @@ C user's manual.
 #include "prj3dv.h"
 #include "net_flow.h"
 #include "net_flow_data.h"
+
       COMMON/FILEP/IFIL
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
@@ -77,19 +70,19 @@ C For help messages
       helpinsub='MOGRAF'  ! set for subroutine
 
 C Setup menu text.
-      ITEM(1) ='2 Select result set   '
-      ITEM(2) ='3 Define output period'
-      ITEM(3) ='4 Select zones        '
+      ITEM(1) ='2 result set          '
+      ITEM(2) ='3 output period       '
+      ITEM(3) ='4 zones               '
       ITEM(4) ='  ------------------- '
-      ITEM(5) ='a Time:var graph      '
-      ITEM(6) ='b Intra-fabric        '
+      ITEM(5) ='a parameter plot      '
+      ITEM(6) ='b intra-constr. temp. '
       ITEM(7) ='c 3D profile          '
-      ITEM(8) ='d Frequency histogram '
-      ITEM(9) ='e Var:Var graph       '
-      ITEM(10)='f Network air/wtr flow'
+      ITEM(8) ='d frequency histogram '
+      ITEM(9) ='e variable v. variable'
+      ITEM(10)='f network flows       '
       ITEM(11)='  ------------------- '
-      ITEM(12)='? Help                '
-      ITEM(13)='- Exit                '
+      ITEM(12)='? help                '
+      ITEM(13)='- exit menu           '
 
 C Graphical display possible.
     2 NITMS=13
@@ -98,21 +91,20 @@ C Graphical display possible.
       else
         INO=-2
       endif
-C      INO=-2
 
-C Instanciate help strings for the menu.
+C Instantiate help strings for the menu.
       helptopic='res_graphs_menu'
       call gethelptext(helpinsub,helptopic,nbhelp)
 
-    5 CALL EMENU('Graph facilities',ITEM,NITMS,INO)
+    5 CALL EMENU('Graphing options',ITEM,NITMS,INO)
 
 C Test for illegal menu pick: because ISAVE = 1 or 2.
       IF(ISAVE.EQ.1.AND.INO.EQ.6)THEN
-        CALL edisp(iuout,' The save option associated with the current')
-        WRITE(outs,'(a,i2,a)')' assigned result set is',ISAVE,', so'
-        CALL edisp(iuout,outs)
-        CALL edisp(iuout,' this command is not available.')
-        goto  2
+        CALL edisp(iuout,' ')
+        CALL edisp(iuout,'Command not available since the save level')
+        WRITE(outs,'(a,i2,a)')'associated with the result set is',
+     &                         ISAVE,'!'
+        goto 2
       ENDIF
 
 C Test for illegal menu pick.
@@ -160,7 +152,8 @@ C Test for illegal menu pick.
 
 C Network flow graphic output. Find and open the network flow description.
         if(iairn.eq.0)then
-         call edisp(iuout,'No network flow associated with this model.')
+         call edisp(IUOUT,' ')
+         call edisp(iuout,'No network flow associated with model!')
          goto 2
         endif
         if(MMOD.LT.8.and.MMOD.ne.-6)then
@@ -210,19 +203,17 @@ C Get bounds for image.
 C Determine scaling ratios for the drawing and axis.
 C Determine the 2D coords of the site extremes.
           CALL SITE2D(SXMX,SXMN,SYMX,SYMN,ier)
-C          write(6,*) SXMX,SXMN,SYMX,SYMN
           CALL axiscale(igwid,igheight,SXMN,SXMX,SYMN,SYMX,xsc,ysc,sca,
      &      Xadd,Yadd)
-C          write(6,*) SXMN,SXMX,SYMN,SYMX,xsc,ysc,sca,Xadd,Yadd
           call linescale(iigl,Xadd,sca,iigb,Yadd,sca)
 
-C Read 3D flow network, report contents and draw the network.
+C Read 3D flow network, report summary of contents and draw the network.
           IUM=IFIL+6
           CALL ERPFREE(IUM,ISTAT)
           CALL MFCDAT
           CALL EMF3DREAD(IUM,'S',IER)
           call edisp(iuout,' ')
-          CALL MFLIST(iuout)
+          CALL MFLIST(iuout,'s')
           if(NNOD.gt.50.or.NCMP.gt.50)then
             call MFWFDRAW('r',0,0)  ! Draw flow network without names if complex
           else
@@ -246,12 +237,9 @@ C Set standard menu type and then present the selection facaility.
 
       END
 
-C ******************** MOWLIN 
-C MOWLIN is the main controlling routine for line graph
-C output. This output mode allows the various
-C causal relationships to be displayed and so visually
-C investigated.   
-C act='p' iget parameters already set.
+C ******************** MOWLIN ********************
+C The main controlling routine for line graph
+C output. if act='p' then iget parameters are already set.
 
       SUBROUTINE MOWLIN(act)
 #include "building.h"
@@ -299,7 +287,7 @@ C act='p' iget parameters already set.
       character graftitle*64,grlbl*24,t24*24
 
       integer YAXSET,ADDLIN,horaxisdiv
-      integer iglib   ! if iglib is 2 then using GTK library otherwise X11
+      integer iglib       ! if iglib is 2 then using GTK library otherwise X11
       integer overalldays ! number of days to graph (to set axis)
       integer oneonright  ! if only one axis on right.
       integer twoonrighta ! nearest if two axis on right
@@ -409,7 +397,7 @@ C The YMAX,MIN variables are for axis 1 through 5 max and min values.
       do 6 I=1,MZS
         TIMEold(I)=-1.
  6    continue
-      call usrmsg(prompt,'Scanning data for range of values...','-')
+C      call usrmsg(prompt,'Scanning data for range of values...','-')
 
 C First recover bounds of selected data. MMACAL returns kW for DMAX and
 C DMIN for the specific cases of IGETNO(IX,1) = 10 or 32.
@@ -417,14 +405,8 @@ C DMIN for the specific cases of IGETNO(IX,1) = 10 or 32.
         if (YAXSET(IGETNO(IX,8)).lt.2) then
           call GETSTATS(IX,HAVEIT,DMAX,DMIN,DAVE,DTOT,TXMAX,TXMIN)
           if(HAVEIT)then
-
-C Debug.
-C            write(6,*) 'get stats ',DMAX,DMIN,DAVE,DTOT,TXMAX,TXMIN
           else
             call MMACAL(IX,DMAX,DMIN,DAVE,DTOT,TXMAX,TXMIN)
-
-C Debug.
-C            write(6,*) 'get MMACAL ',DMAX,DMIN,DAVE,DTOT,TXMAX,TXMIN
           endif
           YAXSET(IGETNO(IX,8))=1
 
@@ -448,11 +430,10 @@ C based on value of ireportunit.
           endif
           YMAX(IGETNO(IX,8))=MAX(DMAX,YMAX(IGETNO(IX,8)))
           YMIN(IGETNO(IX,8))=MIN(DMIN,YMIN(IGETNO(IX,8)))
-C Debug          write(6,*) 'aft mmacal+ ',dmax,dmin,ymax(2),ymin(2)
         endif
  40   continue
-      call usrmsg(prompt,'Scanning data for range of values...done.',
-     &  'P')
+C      call usrmsg(prompt,'Scanning data for range of values...done.',
+C     &  'P')
       call usrmsg('  ','  ','-')
 
 C Draw axis.where:
@@ -465,11 +446,11 @@ C Set local values of vertical axis offset (in pixels) from right
 C end of horiz (in pixels) axis to make up for the fact that glr
 C is being shifted to the left as more axis are added. If iiw2 values
 C near line ~960 change then the values below might need tweaking.
-      oneonright=165   ! was 115  but with longer labels need more space
-      twoonrighta=165   ! was 115
-      twoonrightb=220  ! was 175
-      threerighta=165   ! was 115
-      threerightb=220  ! was 175
+      oneonright=165
+      twoonrighta=165
+      twoonrightb=220
+      threerighta=165
+      threerightb=220
 
 C moghed uses similar YAXSET logic to know how many right axis to draw.
 C It works with current YASSET values.
@@ -480,11 +461,11 @@ C It works with current YASSET values.
       igx(4)=(igl+igr)/3
       igx(5)=2*(igl+igr)/3
 
-C Optimise(!) axis positions.
+C Optimise axis positions.
       if (YAXSET(2).gt.0) then
         if (YAXSET(3).gt.0) then
 
-C Axis 2,3 active, 4 either active or not still in center.
+C Axis 2,3 active, 4 either active or not still in centre.
           igx(2)=igr+threerightb
           igx(3)=igr+threerighta
           igx(4)=(igl+igr)/2
@@ -521,28 +502,21 @@ C Axis 4 only active or not.
         endif
       endif
 
-C Debug.
-C      write(6,*) ' igx values ',igx
-C      write(6,*) ' yaxset ',YAXSET
-C      write(6,*) ' igl igr igw igwh ',igl,igr,igw,igwh
-C      write(6,*) ' fonts ifs itfs  & imfs & iglib ',IFS,ITFS,IMFS,iglib
-C      write(6,*) ' onright ',oneonright,twoonrighta,twoonrightb
-
       if(IROC.eq.0)then
-        ALABEL(1)='Temp: C'
+        ALABEL(1)='Temp. C'
 
-C Could be kW for next units depends on scaling.
+C Could be KW for next units depends on scaling.
         ALABEL(2)='Load W'
-        if (kwatts) ALABEL(2)='Load kW'
-        ALABEL(3)='Int W/m^2'
+        if (kwatts) ALABEL(2)='Load KW'
+        ALABEL(3)='Int. W/m^2'
         ALABEL(4)='Misc.'
       elseif(IROC.eq.1)then
 
 C IROC, if rate of change of variable alter the axis label.
-        ALABEL(1)='Temp C/hr'
+        ALABEL(1)='Temp. C/hr'
         ALABEL(2)='Load W/hr'
-        if (kwatts) ALABEL(2)='Load kW/hr'
-        ALABEL(3)='Int W/m^2/hr'
+        if (kwatts) ALABEL(2)='Load KW/hr'
+        ALABEL(3)='Int. W/m^2/hr'
         ALABEL(4)='Misc./hr'
       endif
       ILR(1)=0
@@ -680,7 +654,7 @@ C Check for local comfort outside valididty of algorithms.
               endif
             endif
 
-C Convert watts to kW if necessary.
+C Convert watts to KW if necessary.
             if (IGETNO(IX,8).eq.2.and.kwatts) then
               if (IGETNO(IX,1).ne.8.and.IGETNO(IX,1).ne.9.and.
      &            IGETNO(IX,1).ne.10.and.IGETNO(IX,1).ne.30.and.
@@ -688,7 +662,7 @@ C Convert watts to kW if necessary.
      &            IGETNO(IX,1).ne.33) then
 
 C The data is a load and not related to plant. By default these loads 
-C are in Watts but plant is being displayed so convert to kW if directed
+C are in W but plant is being displayed so convert to KW if directed
 C to by ireportunit.
                 if(ireportunit.eq.0.or.ireportunit.eq.2)then
                   Yold(IX)=Yold(IX)/1000.
@@ -718,8 +692,8 @@ C Convert watts to kW if necessary.
      &            IGETNO(IX,1).ne.31.and.IGETNO(IX,1).ne.32.and.
      &            IGETNO(IX,1).ne.33) then
 
-C The data is a load and not related to plant.  By default these loads 
-C are in Watts but plant is being displayed so convert to kW if directed
+C The data is a load and not related to plant. By default these loads 
+C are in W but plant is being displayed so convert to KW if directed
 C to by ireportunit.
                 if(ireportunit.eq.0.or.ireportunit.eq.2)then
                   VAL2(IX,J)=VAL2(IX,J)/1000.
@@ -741,7 +715,7 @@ C to by ireportunit.
             Yold(IX)=VAL2(IX,J)
 
 C In case of local comfort do not plot data outside bounds of algorithms
-C This is passed as a PPD greater than 100%
+C This is passed as a PPD greater than 100%.
 C Setting old pen position to value at next timestep to make plot 
 C look sensible.
             if (IGETNO(IX,1).ge.50.AND.IGETNO(IX,1).le.59) then
@@ -756,7 +730,7 @@ C look sensible.
             endif
 
 C If plotting colours for different zones then recall which
-C zone we are dealing with.  If zone not set then use black.
+C zone we are dealing with. If zone not set then use black.
             if(colok)then
               if(IGETNO(IX,2).gt.0)then
                 if(NZ.eq.1)then   ! only 1 zone so colour by surface
@@ -773,7 +747,7 @@ C zone we are dealing with.  If zone not set then use black.
             endif
 
 C Plot the current value - this has already been copied to Yold and
-C then reset to forground colour.
+C then reset to foreground colour.
             iupdown=IPEN
             isym=MARK
             call etplot(TIME,Yold(IX),iupdown,isym)
@@ -789,7 +763,7 @@ C Reset add profile.
         ADDLIN=0
  10   continue
 
-C Finally label lines, matching zone line colour if used.
+C Label lines, matching zone line colour if used.
       do 200 I=1,NGET
         Iax=IGETNO(I,8)
         call linescale(iigl,Xadd,TSC,iigb,Yadd(Iax),YSC(Iax))
@@ -906,7 +880,6 @@ C variant positions to see if an un-obstructed Y can be found.
           endif
         endif
         ibsize=0
-C        call textsizeatxy(iid1,iid2,t20,ibsize,'z',iicol)
         call textsizeatxy(iid1,iid2,t36,ibsize,'z',iicol)
         if(colok)then
           iicol=0
@@ -930,7 +903,7 @@ C If there are optional user defined labels draw them.
       END
 
 C ******************** MOGHED ********************
-C MOGHED outputs the appropriate header information corresponding
+C Outputs the appropriate header information corresponding
 C to graphical result display.
 
       SUBROUTINE MOGHED
@@ -956,7 +929,7 @@ C to graphical result display.
       integer ifs,itfs,imfs
       COMMON/GFONT/IFS,ITFS,IMFS
 
-C To extend logic to maximize plotting area.
+C To extend logic to maximise plotting area.
       integer YAXSET,ADDLIN,horaxisdiv
       integer iglib   ! if iglib is 2 then using GTK library otherwise X11
       integer onright  ! number of axis on right
@@ -967,7 +940,7 @@ C To extend logic to maximize plotting area.
       CHARACTER PDESCR*60,SDESCR*44,outsd*124,outsd1*126
       character graftitle*64,grlbl*24,t64*64
 #ifdef OSI
-      integer iside,isize,ifont     ! passed to viewtext
+      integer iside,isize,ifont       ! passed to viewtext
       integer iigl,iigr,iigt,iigb,iigw,iigwh
       integer iiw1,iiw2,iiw3,iiw4,iimenu
       integer ilf,igfw,igfh,ild,igdw,igdh
@@ -1003,7 +976,7 @@ C  a) we are using GTK and a proportional font << to be done >>
 C  b) there is none or one or two right axis 
 C  c) there is none or one left axis
 
-C Optimise(!) axis positions for each possible combination
+C Optimise axis positions for each possible combination
 C using similar logic tree to mowlin.
         if (YAXSET(1).gt.0) then
           onleft = 1
@@ -1034,22 +1007,17 @@ C using similar logic tree to mowlin.
           endif
         endif
 
-C Debug.
-C        write(6,*) ' nb of right axis is currently ',onright,onleft
-
 C Set button font width so that space around graph is correct.
         call winfnt(ifs)
         if(onright.eq.0)then
           if(onleft.eq.0)then
 
 C Setup and pass in parameters to win3d.
-C            iiw1=3; iiw2=24; iiw3=5; iiw4=3; iimenu=menuchw
             iiw1=3; iiw2=34; iiw3=5; iiw4=3; iimenu=menuchw
             iigl=igl; iigr=igr; iigt=igt; iigb=igb; iigw=igw;iigwh=igwh
             CALL win3d(iimenu,iiw1,iiw2,iiw3,iiw4,
      &        iigl,iigr,iigt,iigb,iigw,iigwh)
           else
-C            iiw1=9; iiw2=24; iiw3=5; iiw4=3; iimenu=menuchw
             iiw1=9; iiw2=34; iiw3=5; iiw4=3; iimenu=menuchw
             iigl=igl; iigr=igr; iigt=igt; iigb=igb; iigw=igw;iigwh=igwh
             CALL win3d(iimenu,iiw1,iiw2,iiw3,iiw4,
@@ -1057,13 +1025,11 @@ C            iiw1=9; iiw2=24; iiw3=5; iiw4=3; iimenu=menuchw
           endif
         elseif(onright.eq.1)then
           if(onleft.eq.0)then
-C            iiw1=3; iiw2=32; iiw3=5; iiw4=3; iimenu=menuchw
             iiw1=3; iiw2=42; iiw3=5; iiw4=3; iimenu=menuchw
             iigl=igl; iigr=igr; iigt=igt; iigb=igb; iigw=igw;iigwh=igwh
             CALL win3d(iimenu,iiw1,iiw2,iiw3,iiw4,
      &        iigl,iigr,iigt,iigb,iigw,iigwh)
           else
-C            iiw1=9; iiw2=32; iiw3=5; iiw4=3; iimenu=menuchw
             iiw1=9; iiw2=42; iiw3=5; iiw4=3; iimenu=menuchw
             iigl=igl; iigr=igr; iigt=igt; iigb=igb; iigw=igw;iigwh=igwh
             CALL win3d(iimenu,iiw1,iiw2,iiw3,iiw4,
@@ -1074,13 +1040,11 @@ C            iiw1=9; iiw2=32; iiw3=5; iiw4=3; iimenu=menuchw
 C Set the right termination of the horizontal axis to 43 char in so that
 C there is room for two axis on the right.
           if(onleft.eq.0)then
-C            iiw1=3; iiw2=43; iiw3=5; iiw4=3; iimenu=menuchw
             iiw1=3; iiw2=53; iiw3=5; iiw4=3; iimenu=menuchw
             iigl=igl; iigr=igr; iigt=igt; iigb=igb; iigw=igw;iigwh=igwh
             CALL win3d(iimenu,iiw1,iiw2,iiw3,iiw4,
      &        iigl,iigr,iigt,iigb,iigw,iigwh)
           else
-C            iiw1=9; iiw2=43; iiw3=5; iiw4=3; iimenu=menuchw
             iiw1=9; iiw2=53; iiw3=5; iiw4=3; iimenu=menuchw
             iigl=igl; iigr=igr; iigt=igt; iigb=igb; iigw=igw;iigwh=igwh
             CALL win3d(iimenu,iiw1,iiw2,iiw3,iiw4,
@@ -1168,11 +1132,10 @@ C Remember if a 4th line of text is being drawn.
       RETURN
       END
 
-C ******************* MOCOPT *************************
+C ******************** MOCOPT ********************
 C Returns control graph options selected by user.
-C ****************************************************
 
-              SUBROUTINE MOCOPT
+      SUBROUTINE MOCOPT
               
       COMMON/OUTIN/IUOUT,IUIN,IEOUT              
       COMMON/CGHOPT/ERPLOT,TRPLOT,SPPLOT,NCTLGH,ICTLGH,ISP,ITHR
@@ -1185,9 +1148,6 @@ C For help messages
       integer nbhelp     ! number of help lines found
 
       helpinsub='MOCOPT'  ! set for subroutine
- 
-C Debug.
-C      write(6,*) ' Entering MOCOPT'
 
       CALL EDISP(IUOUT,' ') 
       helptopic='res_control_point_t'
@@ -1205,12 +1165,12 @@ C      write(6,*) ' Entering MOCOPT'
         IF(IER.NE.0)goto 10
       ENDIF
 
-C Set control graph options counter,
+C Set control graph options counter.
       NCTLGH=1
       IF(ERPLOT)NCTLGH=NCTLGH+2
       IF(TRPLOT)NCTLGH=NCTLGH+4
       IF(SPPLOT)NCTLGH=NCTLGH+2     
-C Set control graph options flag,
+C Set control graph options flag.
       IF(NCTLGH.EQ.1)ICTLGH=1
       IF(ERPLOT.AND..NOT.TRPLOT.AND..NOT.SPPLOT)ICTLGH=2
       IF(TRPLOT.AND..NOT.ERPLOT.AND..NOT.SPPLOT)ICTLGH=3
@@ -1219,19 +1179,18 @@ C Set control graph options flag,
       IF(ERPLOT.AND.SPPLOT.AND..NOT.TRPLOT)ICTLGH=6
       IF(TRPLOT.AND.SPPLOT.AND..NOT.ERPLOT)ICTLGH=7
       IF(ERPLOT.AND.TRPLOT.AND.SPPLOT)ICTLGH=8
-C Set control loop flag for labelling,
+
+C Set control loop flag for labelling.
       PLTCTL=.FALSE.
       
       RETURN
       END
 
          
-C ******************* MOCDAT *************************
+C ******************** MOCDAT ********************
 C Returns control data for current time-step.
-C ****************************************************
 
-              SUBROUTINE MOCDAT(IZON,IDAY,TME)
-         
+      SUBROUTINE MOCDAT(IZON,IDAY,TME)  
 #include "building.h"
 #include "control.h"
 
@@ -1245,16 +1204,16 @@ C ****************************************************
 
       LOGICAL ERPLOT,TRPLOT,SPPLOT,ITHR,ISP,PLTCTL
       
-C If routine called by mogdrw, time may be greater than 24.0;
+C If routine called by mogdrw, time may be greater than 24.0.
       TIME=TME
       IF(TIME.GT.24.0)TIME=(TIME-(IDAY-IODS)*24.0)      
 
-C Initialise set-point and throttling range plot options flags;
-C graph only plotted if flag is set to 'true'.
+C Initialise set-point and throttling range plot options flags.
+C Graph only plotted if flag is set to 'true'.
       ISP=.TRUE.
       ITHR=.TRUE.
 
-C Test to see if a control function is active;
+C Test to see if a control function is active.
       ICF=ICASCF(IZON)
 
 C What day of week is present day.
@@ -1280,7 +1239,7 @@ C Weekday, saturday and sunday format.
      &        IDAY.GE.IBCDV(ICF,IDTYP,1)) GOTO 4
       GOTO 101
 
-C Commence control data return,
+C Commence control data return.
 4     N=NBCDP(ICF,IDTYP)
       DO 30 I=1,N
       IPER=I
@@ -1291,7 +1250,7 @@ C Commence control data return,
 30    CONTINUE
       GOTO 101
 
-C Valid period established; now return control data,
+C Valid period established; now return control data.
 12    IBLW=IBCLAW(ICF,IDTYP,IPER)
       IF(IBLW.EQ.1.OR.IBLW.EQ.3)THEN
          SPH=BMISCD(ICF,IDTYP,IPER,6)
@@ -1336,10 +1295,10 @@ C Valid period established; now return control data,
 C A plant control loop has been referenced.
 C Loop reference is user-defined `ILOOP`.
 
-C Set up day type and period pointers
+C Set up day type and period pointers.
          NDAYT=NPCDT(ILOOP)
             
-C If NDAYT=0 set data to weekday, saturday and sunday format
+C If NDAYT=0 set data to weekday, saturday and sunday format.
          IF(NDAYT.EQ.0) THEN
            IDTYPP=1
            IF(IDW.EQ.6) IDTYPP=2
@@ -1353,7 +1312,7 @@ C If NDAYT=0 set data to weekday, saturday and sunday format
          GOTO 101
          END IF
 
-C Check number of periods in each day and the start and finish times,
+C Check number of periods in each day and the start and finish times.
 11       NDAYP=NPCDP(ILOOP,IDTYPP)
          DO 110 IDAYP=1,NDAYP
           IPERP=IDAYP
@@ -1367,8 +1326,8 @@ C Check number of periods in each day and the start and finish times,
 110      CONTINUE
          GOTO 101
 
-C Valid period established; now get control data        
-C which depends on active plant control law, iclaw;
+C Valid period established, get control data        
+C which depends on active plant control law, iclaw.
 191      ICLAW=IPCLAW(ILOOP,IDTYP,IPERP)
          IF(ICLAW.EQ.1.OR.ICLAW.EQ.2)THEN
            SPH=PMISCD(ILOOP,IDTYP,IPERP,5)
@@ -1399,6 +1358,7 @@ C Set flag for changing labels,
 
 C ********************** MOCGDW ***********************
 C Draws the control graph(s).
+
       SUBROUTINE MOCGDW(CPVAL,IR,IZONE,J,II,TSTART,TFINSH,TIME,TIMEL)
 #include "building.h"
 
@@ -1419,15 +1379,12 @@ C Draws the control graph(s).
       integer ipos,isize      ! for use with etlabel
       integer iupdown,isym    ! passed to etplot
 #else
-      integer*8 ipos,isize      ! for use with etlabel
-      integer*8 iupdown,isym    ! passed to etplot
+      integer*8 ipos,isize    ! for use with etlabel
+      integer*8 iupdown,isym  ! passed to etplot
 #endif
 
       XREM1(1)=0.0
       XREM1(2)=0.0
-
-C Debug.
-C      write(6,*) ' Entering MOCGDW'
 
 C Initialise the set-point/throttling-range plot flag,
       NOPLOT=.FALSE.
@@ -1439,7 +1396,7 @@ C Initialise the set-point/throttling-range plot flag,
       
       XVAL1(1)=CPVAL
 
-C For each plot;
+C For each plot.
       DO 322 L=1,NCTLGH
       I=ICTLGH
       IF(ITS.GT.1)GOTO 321
@@ -1448,9 +1405,11 @@ C For each plot;
         LABEL='Ctl Pt'
         IPEN=-304
       ENDIF
-C If additional plot requested get control data;
+
+C If additional plot requested get control data.
       IF(L.GT.1)CALL MOCDAT(IZONE,II,TIME)
-C Value plotted depends on the type of plot selected by user;
+
+C Value plotted depends on the type of plot selected by user.
       IF(L.EQ.2.AND.I.EQ.2.OR.L.EQ.2.AND.I.EQ.5.OR.
      &   L.EQ.2.AND.I.EQ.6.OR.L.EQ.2.AND.I.EQ.8)THEN   
          XVAL1(L)=XVAL1(1)-SPH
@@ -1516,7 +1475,7 @@ C Value plotted depends on the type of plot selected by user;
 
        IF(ICASCF(IZONE).EQ.0)GOTO 309
 
-C Now plot graph(s),
+C Now plot graph(s).
        IF(L.EQ.1.OR.((L.EQ.2.OR.L.EQ.3).AND.
      &   (I.NE.3.AND.I.NE.4.AND.I.NE.7)))THEN
 
@@ -1527,7 +1486,7 @@ C A 'point-to-point plot' is used for control point and error graphs.
          IF(L.GT.1)THEN
             IF(.NOT.ISP.AND.IBLW.NE.1.AND.IBLW.NE.3)THEN
 
-C no error plot,
+C No error plot.
               iupdown=0
               isym=0
               call etplot(TIME,XVAL1(L),iupdown,isym)
@@ -1542,15 +1501,15 @@ C no error plot,
             call etplot(TIME,XVAL1(L),iupdown,isym)
          ENDIF
        ELSE
-C A 'rectangular plot' is used for set-point & throttling range graphs.
 
+C A 'rectangular plot' is used for set-point & throttling range graphs.
          TIMEP=TIMEL+(0.5*NOUT)
          TIMEF=TIME+(0.5*NOUT)
          iupdown=0
          isym=0
          call etplot(TIMEP,Y,iupdown,isym)
 
-C If first pass, then no vertical plot,
+C If first pass, then no vertical plot.
          IF(J.EQ.2)THEN
            iupdown=0
            isym=0
@@ -1568,7 +1527,7 @@ C If first pass, then no vertical plot,
          ENDIF
          IF(NOPLOT)THEN
 
-C no horizontal plot,
+C no horizontal plot.
            iupdown=0
            isym=0
            call etplot(TIMEF,XVAL1(L),iupdown,isym)
@@ -1595,7 +1554,7 @@ C no horizontal plot,
        isym=0
        call etplot(TIME,XVAL1(L),iupdown,isym)
        IF(II.EQ.IODF.AND.J.GT.N-NOUT)THEN
-       call usrmsg(' ', ' Uncontrolled zone(s) selected.','W')
+       call usrmsg(' ', 'Uncontrolled zone(s) selected.','W')
        ENDIF
        GOTO 322
 

@@ -13,18 +13,12 @@ C warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
 C PURPOSE. See the GNU General Public License for more
 C details.
 
-C You should have received a copy of the GNU General Public
-C License along with ESP-r. If not, write to the Free
-C Software Foundation, Inc., 59 Temple Place, Suite 330,
-C Boston, MA 02111-1307 USA.
 
-C The subroutines contained within this file are concerned with the 
-C embedded generation or advanced materials (i.e. phase change) side 
-C of the building model.
+C A collection of subroutines concerned with material that exhibit
+C special behaviour such as phase change, photovoltaics and electrochromics.
  
-C ************* EDSPLIST 
-C Edit special components for the current project. The routine will
-C Selectively list embedded renewable components or Advanced materials
+C ******************** EDSPLIST ********************
+C Define special components for the current project. Lists materials
 C according to the calling mode: 
 C LM - list advanced materials
 C LG - list renewable components
@@ -69,8 +63,9 @@ C For help messages
       ispmfil=ifil+1
       NEW=.TRUE.
 
-C Remind the user what we know prior to asking them to confirm.
-      call edisp(iuout,'The current special materials file is...')
+C Remind user what if known prior to asking them to confirm.
+      call edisp(iout,' ')
+      call edisp(iuout,'The current special materials file is')
       call edisp(iuout,spflnam)
 
       if(.not.ispopen)then
@@ -81,7 +76,8 @@ C Remind the user what we know prior to asking them to confirm.
         IF(OK)THEN
           CONTINUE
         ELSE
-          CALL EASKOK(' ','Create a new special',OKK,nbhelp)
+          CALL EASKOK(' ',
+     &                'Create a new special material file',OKK,nbhelp)
           IF(OKK)THEN
             CONTINUE
           ELSE
@@ -89,13 +85,13 @@ C Remind the user what we know prior to asking them to confirm.
           ENDIF
         ENDIF
 
-C Open or create a special materials/components file.
+C Open or create a special materials file.
         deflnam='data.spm'
         lfil=spflnam
         helptopic='special_file_contents'
         call gethelptext(helpinsub,helptopic,nbhelp)
         
-        call easks(lfil,' ',' Special components filename?',72,
+        call easks(lfil,' ',' Special materials file?',72,
      &    deflnam,' SPM filename',IER,nbhelp)
         if(lfil(1:2).ne.'  ')spflnam=lfil
         XST=.false.
@@ -110,7 +106,7 @@ C Open or create a special materials/components file.
         endif
       endif
 
-C Initialise special component menu size variables based on window size. 
+C Initialise special materials menu size variables based on window size. 
 C IVERT is the menu position, MVERT the current number of menu lines.
       ILEN=nspmnod
       IPACT=CREATE
@@ -128,12 +124,13 @@ C Loop through the items until the page to be displayed. M is the
 C current menu line index. Build up text strings for the menu. 
     3 M=MHEAD
 
-C Clear temporary storage for special material node numbers.
+C Clear temporary storage for special materials node numbers.
       DO 5 I=1,MSPMNOD
         ITKEY(I)=0
   5   CONTINUE
 
       NSPMTYP1=0
+
 C Display active material components (ispmtyp above 50).
       IF(MODE.EQ.'EM'.OR.MODE.EQ.'LM')THEN
         DO 10 L=1,ILEN
@@ -193,15 +190,14 @@ C If a long list include page facility text.
         VERT(M+2)  ='+ add/delete item                   '
         VERT(M+3)  ='> update file                       '
         VERT(M+4)  ='? help                              '
-        VERT(M+5)  ='- exit                              '
+        VERT(M+5)  ='- exit menu                         '
       ELSE
         VERT(M+2)  ='                                    '
         VERT(M+3)  ='                                    '
         VERT(M+4)  ='? help                              '
-        VERT(M+5)  ='- exit                              '
+        VERT(M+5)  ='- exit menu                         '
       ENDIF
 
-C Help text for this menu.
       helptopic='special_file_menu'
       call gethelptext(helpinsub,helptopic,nbhelp)
 
@@ -232,8 +228,8 @@ C List help text for the vertex menu.
       ELSEIF(IVERT.EQ.(MVERT-3).AND.MODE(1:1).NE.'L')THEN
 
 C Alter list by deleting/ editing.
-        CALL EASKABCD('Options:',' ','delete component',
-     &    'add component','edit component','continue ?',IRT,nbhelp)
+        CALL EASKABCD(' ','Options:','delete component',
+     &    'add component','edit component','cancel',IRT,nbhelp)
         if(IRT.eq.1)then
           
 C Delete the chosen special component.
@@ -259,7 +255,7 @@ C Delete the chosen special component.
           IPACT=CREATE
           CALL EKPAGE(IPACT)
 
-C Redisplay the menu
+C Redisplay the menu.
           GOTO 92
 
         elseif(IRT.eq.2)then
@@ -271,7 +267,7 @@ C Redisplay the menu
         elseif(IRT.eq.3)then
           MOD=MODE
           NEW=.FALSE.
-          CALL EMENU(' Edit which component',VERT,MVERT,ID)
+          CALL EMENU('Edit which component',VERT,MVERT,ID)
           CALL KEYIND(MVERT,ID,IFOC,IO)
           ISPE=ITKEY(IFOC)
           CALL EDSPM(ISPE,MOD,ITRU) 
@@ -300,7 +296,8 @@ C If there are enough items allow paging control via EKPAGE.
               GOTO 3
             ENDIF
           ELSE
-C Return the value of the selected component
+
+C Return the value of the selected component.
             CALL KEYIND(MVERT,IVERT,IFOC,IO)
             IVAL=ITKEY(IFOC)
             RETURN
@@ -310,19 +307,19 @@ C Return the value of the selected component
 
       ENDIF
 
-C Redisplay the menu 
+C Redisplay the menu.
       GOTO 92
 
       END 
 
-C ********* EDSPM 
-C Subroutine EDSPM allows the user to enter details about special
-C components associated with a particular surface and node.
+C ******************** EDSPM ********************
+C Allows user to enter details about special
+C materials associated with a surface and node.
 C Information entered includes:
-C Special material type
-C Location (construction layer)
-C Number of miscellaneous data items
-C Data items.
+C    special material type
+C    location (construction layer)
+C    number of miscellaneous data items
+C    data item valuess.
 
       subroutine EDSPM(ISPM,MODE,ITRU)
 #include "building.h"
@@ -345,14 +342,11 @@ C Data items.
      &nnodat(mspmnod),spmdat(mspmnod,mspmdat) 
       common/spmatlbl/spmlabel(mspmnod)
       COMMON/MFLWPR/NPRE,FPRE(MPOS,MPRD)
-
-C << rewrite logic using G6 common block >>
-
       common/MFLDOC/DEPRE(MPRD) 
       COMMON/FOPENED/CFGOK,MLDBOK,MATDBOK,CTLOK,OPTKOK,CFCDBOK
       COMMON/gzonpik/izgfoc,nzg,nznog(mcom)
 
-C Special materials file flag
+C Special materials file flag.
       common/spmfxst/ispmxist,spflnam
 
       integer matarrayindex ! the indes within matdatarray
@@ -362,8 +356,9 @@ C << rewrite logic to use G7 commons instead of these local variables. >>
 
       DIMENSION PNAM(ME),item(ME+10),spitem(40),spitem2(40),
      &dadesc(40), SPMISC(MPWDAT),SPVAR(MPWDAT),SPSTR(90),SSTR(90)
+
 C Note: spdesc is passed to subroutine MCDBSCAN in leu of sstr;
-C therefore spdesc must have the same dimensions as dummy arguement
+C therefore spdesc must have the same dimensions as dummy argument
 C sstr in spdesc.
       dimension spdesc(90)
 
@@ -378,7 +373,7 @@ C sstr in spdesc.
       CHARACTER PCITM(35)*42,DEPRE*40,KEY*1,DESCRC*25
       integer nspitm,imout,NSPITEM2,IMOUT2,NITMS,IVERT,ino ! max items and current menu item
 
-C For help messages
+C For help messages.
       character helpinsub*24 ! subroutine name
       character helptopic*24 ! string (unique) for topic
       integer nbhelp     ! number of help lines found
@@ -393,14 +388,14 @@ C with ier=1.
         continue
       else
         call usrmsg('The materials arrays are incomplete so editing',
-     &    'of special materials not allowed.','W')
+     &    'of special materials is disabled.','W')
         return
       endif
 
-C Set the special components reporting variable
+C Set the special components reporting variable.
       SPREPT=.FALSE.
 
-C Set the number of special maperials
+C Set the number of special maperials.
       ispmn=ispm
 
 C Check whether a file is in existence.
@@ -431,10 +426,10 @@ C The renewables are in the initial 5 categories.
         WRITE(SPITEM(J),'(I2,1X,A)') J,SPSTR(J)(1:28)
         J=J+1
   19  CONTINUE
-      spitem(NIT+1)=' * User defined          '
+      spitem(NIT+1)=' * user-defined          '
       spitem(NIT+2)='-------------------------'
       spitem(NIT+3)=' ? help'
-      spitem(NIT+4)=' - exit this menu'
+      spitem(NIT+4)=' - exit menu'
       nspitm=NIT+4
       imout=-1
 
@@ -442,10 +437,10 @@ C Help text for this menu.
   9   helptopic='special_file_cat'
       call gethelptext(helpinsub,helptopic,nbhelp)
 
-      call emenu('Available Components',spitem,nspitm,imout)
+      call emenu('Available components',spitem,nspitm,imout)
       if(IMOUT.GT.0.AND.IMOUT.LE.NIT) THEN 
         
-C Store the number of the selected special materials category 
+C Store the number of the selected special materials category.
       IF(MODE.EQ.'LM'.OR.MODE.EQ.'EM')THEN
         NIT=IMOUT+4
       ELSE
@@ -480,7 +475,7 @@ C Variable NIT is overloaded and returns the number of menu items.
           SPITEM2(NIT+2)='>> component info OFF '
         ENDIF
         SPITEM2(NIT+3)='? help'
-        SPITEM2(NIT+4)='- exit this menu '
+        SPITEM2(NIT+4)='- exit menu '
         NSPITEM2=NIT+4
  13     IMOUT2=-1      
         helptopic='special_file_select'
@@ -539,11 +534,11 @@ C Set up the menu
 
 C Label lthe material according to type
   99  labl=spdefnam
-      call easks(labl,' ',' Label for material (no spaces)?',16,
+      call easks(labl,' ','Label for material (no spaces)?',16,
      &  spdefnam,'  spm label ', IER,nbhelp)
       spmlabel(ispmn)=labl
 
-C Get data items for special component.
+C Get data items for special material.
       idfspdat=1
       call phelpd('Special mat data',nbhelp,'-',0,0,IER)
       nspdat=nnodat(ispmn)
@@ -588,15 +583,14 @@ C blank the temporary data description array
            DADESC(J)=' '
   23    CONTINUE
       elseif(ier.ne.0) then
-        call edisp(iuout,' An error has occured reading the data.')
-        call edisp(iuout,' Please re-enter.')
+        call edisp(iuout,'Error occured when reading the data!')
+        call edisp(iuout,'Please re-enter.')
         goto 8
       endif
 
 C Check the special component type and set how much positional data 
-C is required i.e. zone|surface or zone|surface|node
-C << to do >>
-C Ask for zone and surface...<< why are next two lines commented out? >>
+C is required, i.e. zone|surface or zone|surface|node
+C << why are next two lines commented out? >>
 c      IZ=ispmloc(IVAL,1)
 c      ISO=ispmloc(IVAL,2)
       IF(ISPMTYP(ISPMN,1).EQ.3)THEN
@@ -737,7 +731,7 @@ C If a long list include page facility text.
         ENDIF
         PCITM(M+2)=' '
         PCITM(M+3)='? help                   '
-        PCITM(M+4)='- exit this menu         '
+        PCITM(M+4)='- exit menu              '
         IVERT=-1
 
 C Help text for this menu.
@@ -896,7 +890,7 @@ C If a long list include page facility text.
         ENDIF
         PCITM(M+2)=' '
         PCITM(M+3)='? help                   '
-        PCITM(M+4)='- exit this menu         '
+        PCITM(M+4)='- exit menu              '
         IVERT=-1
 
 C Help text for this menu.
