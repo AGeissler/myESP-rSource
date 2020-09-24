@@ -151,6 +151,7 @@ MODULE h3kmodule
          rvElecNetNodesTransmissionReal, rvElecNetNodesTransmissionReative, &
          rvElecNetHybridComponentFlux, rvElecNetPowerOnlyComponents, &
          rvMfnTotalNodeFlowRate,rvMfnTotalNodeVolFlowRate,rvMfnTotalNodeTemp, &
+         rvMfnNodeTotPressure, rvMfnNodeAirDensity, &
          rvMfnConnectPressureDrop, rvMfnConnectFlowRate,rvMfnConnectVeloc, &
          rvMfnContamCon, rvMfnConnectCtlOnFrac, rvMfnTRM, rvZoneLabel
    Type(ReportVariable) :: rvSurfaceArea, rvSurfLayMatnam, rvSurfLayDens, rvSurfLayThick, rvMLCArea
@@ -1483,6 +1484,18 @@ CONTAINS
       rvMfnTotalNodeTemp%VariableType = '(oC)'
       rvMfnTotalNodeTemp%Description = 'mfn node temperature'
       Call AddVariable(rvMfnTotalNodeTemp)
+
+      rvMfnNodeTotPressure%VariableName = 'mfn/*/*/totpress'
+      rvMfnNodeTotPressure%MetaType = 'units'
+      rvMfnNodeTotPressure%VariableType = '(Pa)'
+      rvMfnNodeTotPressure%Description = 'mfn node total pressure'
+      Call AddVariable(rvMfnNodeTotPressure)
+
+      rvMfnNodeAirDensity%VariableName = 'mfn/*/*/density'
+      rvMfnNodeAirDensity%MetaType = 'units'
+      rvMfnNodeAirDensity%VariableType = '(kg/m3)'
+      rvMfnNodeAirDensity%Description = 'mfn node dry air density'
+      Call AddVariable(rvMfnNodeAirDensity)
 
       rvMfnConnectPressureDrop%VariableName = 'mfn/*/*/Dp'
       rvMfnConnectPressureDrop%MetaType = 'units'
