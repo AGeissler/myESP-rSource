@@ -602,8 +602,9 @@ C Manage list. Begin by creating selection list.
 
         helptopic='tdf_add_an_item'
         call gethelptext(helpinsub,helptopic,nbhelp)
-        CALL EASKABC('Entry options:',' ',
-     &   'add entry','delete entry','copy entry',IRT,nbhelp)
+        CALL EASKABCD('Entry options:',' ',
+     &   'add entry','delete entry','copy entry','scale entry',
+     &   IRT,nbhelp)
         if(IRT.eq.1)then
           IFOC=NITDF+1
           CALL EPMENSV
@@ -658,6 +659,23 @@ C another (destination must already exist)..
           IF(IFOC.NE.0.OR.IFOC2.NE.0)THEN
             CALL ITCOPY(ITRC,IFOC,IFOC2,IER)
             msgl2='Problem detected during copy.'
+            IF(IER.EQ.1)CALL USRMSG(' ',msgl2,'-')
+          ENDIF
+        elseif(IRT.eq.4)then
+
+C Perform scale of period data in one entity.
+          CALL EPMENSV
+          inpic=1
+          CALL EPICKS(INPIC,itemval,' ','Which item to scale?',
+     &      50,NITDF,itemsel,' item list',IER,nbhelp)
+          if(inpic.eq.1)then
+            ifoc=itemval(1)
+          endif
+          CALL EASKR(factor,' ','Scaling factor (0.1 to 9.99)?',
+     &      0.1,'F',0.99,'F',0.5,'scale factor',IER,nbhelp)
+          IF(IFOC.NE.0)THEN
+            call ITSCALE(ITRC,IFOC,factor,IER)
+            msgl2='Problem detected during scale.'
             IF(IER.EQ.1)CALL USRMSG(' ',msgl2,'-')
           ENDIF
         endif

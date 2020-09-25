@@ -1666,14 +1666,14 @@ C Pick up general description of the composite.
      &      'Details of transparent construction ',
      &      mlcname(ifoc)(1:lnmlcname(ifoc)),' with ',
      &      mlcoptical(ifoc)(1:lnmlco),
-     &      ' optics and overall thickness of ',THKMLC(ifoc),'m.'
+     &      ' optics and thickness of ',THKMLC(ifoc),'m.'
           call edisp2tr(ITRU,OUTSTR)
         else
           WRITE(OUTSTR,'(5a,f6.3)')
      &      ' Details of transparent construction: ',
      &      mlcname(ifoc)(1:lnmlcname(ifoc)),' with ',
      &      mlcoptical(ifoc)(1:lnmlco),
-     &      ' optics and overall thickness ',THKMLC(ifoc)
+     &      ' optics and thickness ',THKMLC(ifoc)
           CALL EDISP(ITRU,OUTSTR)
         endif
       ELSEIF(mlctype(IFOC)(1:3).EQ.'CFC')THEN  ! one of the CFC

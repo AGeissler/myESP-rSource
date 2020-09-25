@@ -435,6 +435,7 @@ C Controls the creation of a new zone.
 #include "building.h"
 #include "model.h"
 #include "geometry.h"
+#include "predefined.h"
 #include "prj3dv.h"
 #include "esprdbfile.h"
 #include "material.h"
@@ -462,8 +463,13 @@ C Controls the creation of a new zone.
       character sfile*72,snpfile*72,fs*1,outs*124
 
       LOGICAL OK,XST,OKC,unixok
-      logical newgeo  ! to use for testing if new/old geometry file.
-      logical altered ! to signal change in boundary conditions of added existing zone.
+      logical newgeo    ! Test for new/old geometry file.
+      logical altered   ! Signal change in boundary conditions of altered zone.
+
+      real CX,CY,CZ     ! XYZ of selected verticies from another zone
+      dimension CX(10),CY(10),CZ(10)
+      dimension IVALS(MCOM)
+      integer  iclkok   ! for import vertex from another zone dialog
 
 C Predefined entity variables.
       character name*12   ! the object name to pass to PREDEFEMBED
@@ -889,7 +895,15 @@ C inverted. Currently, assume that the user will manually import.
           goto 293
         endif
 
-        write(predef,'(a)') lpredef(1:96)
+C Take into account of the path to the database.
+        lndbp=lnblnk(standarddbpath)
+        if(ipathpredef.eq.0.or.ipathpredef.eq.1)then
+          predef=LPREDEF  ! use as is
+        elseif(ipathpredef.eq.2)then
+          write(predef,'(3a)') standarddbpath(1:lndbp),fs,
+     &      LPREDEF(1:lnblnk(LPREDEF))  ! prepend db folder path
+        endif
+        call RPREDEFCOM(IFA,predef,name,IER)
 
 C Code bits from SCRZONE.
 C If newer model cfg file ensure version 1.1 geometry file created. 
@@ -964,18 +978,36 @@ C to temporarily draw it.
         call edisp(iuout,outs)
         write(outs,'(3f7.3,a)') objbb(1),objbb(2),objbb(3),' XYZm'
         call edisp(iuout,outs)
+        call edisp(iuout,objnotes(1))
+        if(nbobjnotes.gt.1) call edisp(iuout,objnotes(2))
+        if(nbobjnotes.gt.2) call edisp(iuout,objnotes(3))
         VALR=0.
-        CALL EASKR(VALR,' Object rotation (+ = anticlockwise)',
+        CALL EASKR(VALR,'Object rotation (+ = anticlockwise)',
      &    'around its lower left corner:',
      &    -359.0,'W',359.0,'W',0.0,'rotation',IER,nbhelp)
-        hold = ' 0.000  0.000  0.000    '
-        CALL EASKS(HOLD,'Place object origin @ (X Y Z metres)',
-     &    'i.e. within the room: ',
-     &    36,' 0. 0. 0.','transforms XYZ',IER,nbhelp)
-        K=0
-        CALL EGETWR(HOLD,K,DX,-99.,99.,'W','X tr',IER)
-        CALL EGETWR(HOLD,K,DY,-99.,99.,'W','Y tr',IER)
-        CALL EGETWR(HOLD,K,DZ,-99.,99.,'W','Z tr',IER)
+
+C Offer direct edit or pick existing vertex.
+  92    hold = ' 0.000  0.000  0.000    '
+        call EASKS2CMD(HOLD,' ','Place object origin @ (X Y Z metres)',
+     &    'vertex in another zone',' ',
+     &    iclkok,36,' 0. 0. 0. ','vertex coord',IER,nbhelp)
+        if(iclkok.eq.1) then
+          INPIC=1
+          CALL EPICKS(INPIC,IVALS,' ','Source zone:',
+     &      12,NCOMP,zname,'zone list',IER,nbhelp)
+          IF(INPIC.EQ.0) goto 92
+          IZ=IVALS(1)  ! assign source zone index
+          if(IZ.EQ.0)goto 92
+          call edisp(iuout,' ')
+          call edisp(iuout,'Select ONE vertex from the source zone.')
+          call CPVERT(IZ,NVC,CX,CY,CZ,IER)
+          DX=CX(1); DY=CY(1); DZ=CZ(1)
+        else
+          K=0
+          CALL EGETWR(HOLD,K,DX,-99.,99.,'W','X tr',IER)
+          CALL EGETWR(HOLD,K,DY,-99.,99.,'W','Y tr',IER)
+          CALL EGETWR(HOLD,K,DZ,-99.,99.,'W','Z tr',IER)
+        endif
         CALL CNVBLK(DX,DY,DZ,objbb(1),objbb(2),objbb(3),VALR)
 
 C Peview the bounding box of the object via DRWBB.
@@ -1000,7 +1032,17 @@ C Then used predefembed to read in the predefined into the model.
         elseif (IW.eq.2) then
           goto 422   ! test another location
         elseif (IW.eq.3) then
-          continue
+
+C User declined. Free the data structures.
+          LGEOM(IC)="UNKNOWN"
+          LTHRM(IC)="UNKNOWN"
+          LPROJ(IC)="UNKNOWN"
+          NZTV(ic)=0
+          NZSUR(IC)=0
+          NCON=NCON-1
+C          NCOMP=NCOMP-1
+          ier = -3  ! signal user cancel
+          return
         endif
 
 C Signal that the wireframe image needs to be redrawn.
@@ -2933,29 +2975,49 @@ C Check if Unix-based or DOS based.
         endif
         if(comold)then
           nh=nh+1
-          write(h(nh),'(3a)')' the construction file ',
+          if(lnblnk(LTHRM(ICOMP))+32.lt.72)then
+            write(h(nh),'(3a)')' construction file ',
      &      LTHRM(ICOMP)(1:lnblnk(LTHRM(ICOMP))),' out of date.'
+          else
+            write(h(nh),'(3a)')' constructions ',
+     &      LTHRM(ICOMP)(1:lnblnk(LTHRM(ICOMP))),' out of date.'
+          endif 
         endif
         if(tmcold)then
           nh=nh+1
-          write(h(nh),'(3a)')' the TMC file ',
-     &          LTWIN(ICOMP)(1:lnblnk(LTWIN(ICOMP))),' out of date.'
+          if(lnblnk(LTWIN(ICOMP))+23.lt.72)then
+            write(h(nh),'(3a)')' TMC file ',
+     &        LTWIN(ICOMP)(1:lnblnk(LTWIN(ICOMP))),' out of date.'
+          else
+            write(h(nh),'(3a)')' TMC ',
+     &        LTWIN(ICOMP)(1:lnblnk(LTWIN(ICOMP))),' out of date.'
+          endif
         endif
         if(cfcold)then
           nh=nh+1
-          write(h(nh),'(3a)')' the CFC file ',
-     &          lcfcin(ICOMP)(1:lnblnk(lcfcin(ICOMP))),' out of date.'
+          if(lnblnk(lcfcin(ICOMP))+23.lt.72)then
+            write(h(nh),'(3a)')' CFC file ',
+     &        lcfcin(ICOMP)(1:lnblnk(lcfcin(ICOMP))),' out of date.'
+          else
+            write(h(nh),'(3a)')' CFC ',
+     &        lcfcin(ICOMP)(1:lnblnk(lcfcin(ICOMP))),' out of date.'
+          endif
         endif
         if(vwfold)then
           nh=nh+1
-          write(h(nh),'(3a)')' the view factor file ',
-     &          LVIEW(ICOMP)(1:lnblnk(LVIEW(ICOMP))),' out of date.'
+          if(lnblnk(LVIEW(ICOMP))+31.lt.72)then
+            write(h(nh),'(3a)')' view factor file ',
+     &        LVIEW(ICOMP)(1:lnblnk(LVIEW(ICOMP))),' out of date.'
+          else
+            write(h(nh),'(3a)')' view factor ',
+     &        LVIEW(ICOMP)(1:lnblnk(LVIEW(ICOMP))),' out of date.'
+          endif
           nh=nh+1
           h(nh)=' (recalculate via `Options viewfactors`)'
         endif
         if(ishold)then
           nh=nh+1
-          write(h(nh),'(3a)')' the shading db ',
+          write(h(nh),'(3a)')' shading db ',
      &        LSHAD(ICOMP)(1:lnblnk(LSHAD(ICOMP))),' out of date.'
         endif
         if(nh.gt.1)then

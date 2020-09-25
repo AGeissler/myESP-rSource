@@ -113,7 +113,7 @@ C Clear string buffers and instantiate 'ask'
    20 WORD=' '
       WRITE(ask,'(I5)',iostat=ios,err=1)IVAL
 
-C Remember value passed in in case of a cancel.
+C Remember value passed in, in case of a cancel.
       ivalold=ival
 
 C Generate help and default strings.
@@ -159,8 +159,8 @@ C leading blanks from string returned.
 C A 'D' or 'd' detected, set to default value.
           call edisp(iuout,DSTR)
           IVAL=IDEFLT
-          call usrmsg('  ','  ','-')  ! clear lower display
-          IMFS=lastmenufont           ! reset font
+          call usrmsg(' ',' ','-')  ! clear lower display
+          IMFS=lastmenufont         ! reset font
           ITFS=lasttextfont
           IFS=lastbuttonfont
           call userfonts(IFS,ITFS,IMFS)
@@ -169,7 +169,6 @@ C A 'D' or 'd' detected, set to default value.
 
 C Cancel button was pressed, reset ival as ivalold and mark as cancel. 
           IVAL=ivalold
-C          call usrmsg('User requested a cancel for dialog',PROMP1,'-')
           ier=-3
           IMFS=lastmenufont    ! reset to proportional font
           ITFS=lasttextfont
@@ -245,14 +244,14 @@ C Check IVALT against minimum and respond based on MINACT.
           CALL EASKOK(OUTSTR,'Is this OK?',OK,newnbhelp)
           IVAL=IVALT
           IF(.NOT.OK)GOTO 20
-          IF(MMOD.EQ.8)call usrmsg('  ','  ','-')
+          IF(MMOD.EQ.8)call usrmsg(' ',' ','-')
           RETURN
         ELSEIF(MINACT.EQ.'F')THEN
           CALL USRMSG(OUTSTR,'Please re-enter.','W')
           GOTO 20
         ELSEIF(MINACT.EQ.'-')THEN
           IVAL=IVALT
-          IF(MMOD.EQ.8)call usrmsg('  ','  ','-')
+          IF(MMOD.EQ.8)call usrmsg(' ',' ','-')
           RETURN
         ENDIF
       ELSEIF(IVALT.GT.MAXV)THEN
@@ -266,25 +265,25 @@ C Check IVALT against minimum and respond based on MINACT.
           CALL EASKOK(OUTSTR,'Is this ok?',OK,newnbhelp)
           IVAL=IVALT
           IF(.NOT.OK)GOTO 20
-          IF(MMOD.EQ.8)call usrmsg('  ','  ','-')
+          IF(MMOD.EQ.8)call usrmsg(' ',' ','-')
           RETURN
         ELSEIF(MAXACT.EQ.'F')THEN
           CALL USRMSG(OUTSTR,'Please re-enter.','W')
           GOTO 20
         ELSEIF(MAXACT.EQ.'-')THEN
           IVAL=IVALT
-          IF(MMOD.EQ.8)call usrmsg('  ','  ','-')
+          IF(MMOD.EQ.8)call usrmsg(' ',' ','-')
           RETURN
         ENDIF
       ELSE
         IVAL=IVALT
       ENDIF
 
-C Return to calling module
-      IF(MMOD.EQ.8)call usrmsg('  ','  ','-')
+C Return to calling module.
+      IF(MMOD.EQ.8)call usrmsg(' ',' ','-')
       RETURN
 
-999   CALL USRMSG(' ','Invalid input, try again.','-')
+999   CALL USRMSG(' ','Invalid input, retry.','-')
       GOTO 20
 
    1  if(IOS.eq.2)then
@@ -302,7 +301,7 @@ C looping, creating infinite output. Stop the program.
       call pauses(1)
       STOP
 
-      END ! of EASKI
+      END
 
 C ******************** EASKR
 C EASKR is a facility for asking the user for an real which
@@ -5331,7 +5330,7 @@ C in the list (at the bottom).
       CHARACTER*(*) prompt,title
 
       DIMENSION VERT(35),IVALS(MCOM)
-      DIMENSION GERT(20),IGVAL(20)  ! For groups.
+      DIMENSION GERT(32),IGVAL(32)  ! For groups.
       CHARACTER VERT*23,gert*23,KEY*1,prompt2*36
       character h*72,mod*1,outs*124,outsd*124,msg*96
 

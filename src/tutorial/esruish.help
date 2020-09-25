@@ -17,34 +17,33 @@
 *item inscon inscon_actions
 'The insolation calculations require a number of directives.'
 'If these have not been embedded in the zone geometry file'
-'you will be asked to supply them.'
+'you will be asked to supply them here.'
 *enditem
 
 *item ish ish_model_cfg_file
-'The Model Configuration File holds the definition'
-'of the building/plant to be simulated.'
+'The model configuration file holds the definition'
+'of the building and/or plant to be simulated.'
 *enditem
 
 *item ish view_from_sun_or_plan
-'The site plan shows zones (marked [Target]) and'
-'obstructions (marked [Bn]. where n is the block'
-'number). The view from the sun places the viewer at'
-'at a distance so that what you cannot see is in shadow.'
+'The site plan shows building zones (marked `target`) and'
+'obstructions (marked `Bn`. where `n` is the block number).'
+'The view from the sun places the viewer at a distance'
+'so that what cannot be seen is in shadow.'
 *enditem
 
 *item ish what_kind_of_sky
-'Two sky condition are offered: an isotropic sky with'
+'Two sky conditions are offered: an isotropic sky with'
 'uniform diffuse radiation and an anisotropic skys where'
 'the diffuse radiation varies with sky posiion.'
 *enditem
 
 *item ish request_to_overwrite
-'The zone shading & insolation file already'
-'contains data. New computations can overwrite'
-'these data or another file may be created.'
-'Tip: if you have just completed a shading'
-'calculation and are proceeding with an insolation'
-'calculation, choose UPDATE.'
+'The zone shading & insolation file already contains'
+'data. New computations can overwrite these data or'
+'another file can be created. If a shading calculation'
+'has been completed and an insolation calculation has'
+'just completed, select the `update` option.'
 *enditem
 
 *item ish synopsis_period_options
@@ -59,15 +58,15 @@
 
 *item ish export_import_choice
 'The zone shading & insolation data is also held'
-'in a ASCII file version for transfer between'
-'different computer operating systems.'
+'in a ASCII file for transfer between different'
+'computer operating systems.'
 *enditem
 
 *item ish request_to_delete_trans
 'Zone transitional shading files are used to'
 'store intermediate shading results for use in'
-'subsequent insolation analysis. Normally,'
-'these do not need to be retained may be deleted.'
+'subsequent insolation analysis. These are not'
+'subsequently required and may be deleted.'
 *enditem
 
 *item shdprb obs_not_associated
@@ -78,7 +77,7 @@
 *enditem
 
 *item opendb warning_about_bin_mat
-'It is likely that the Materials db associated with'
+'It is likely that the materials db associated with'
 'this model is for use under a different operating'
 'system. ESP-r will attempt to locate an ASCII version'
 'of this database and, if successful, convert it to'
@@ -87,22 +86,19 @@
 
 *item pickssur diffuse_shading_request
 'Shading of diffuse radiation is included by default.'
- In some cases, e.g. validation tests, it may be'
+'In some cases (e.g. validation tests), it may be'
 'necessary to exclude this effect.'
 *enditem
 
 *item pickssur surface_selection_notes
 'A shading analysis computes the time varying patterns'
-'of shading on exterior surfaces, while an insolation'
-'analysis tracks the direct solar radiation entering'
-'a zone to determine the distribution between internal'
-'surfaces. When selecting the surfaces to include, note'
-'that:'
-' + for external surface shading, the surface must be'
-'   external and belong to a zone that has an associated
-'   obstructions file;'
-' + for internal surface insolation, the source surface'
-'   must be transparent.'
+'of shading on external model surfaces, while an insolation'
+'analysis tracks the solar radiation entering a zone'
+'to determine the distribution between internal surfaces'
+'When selecting the surfaces to include, note that:'
+' + for shading, the surface must be external and belong'
+'   to a zone that has an associated obstructions file;'
+' + for insolation, the source surface must be transparent.'
 *enditem
 
 *item askday specify_day_of_year
@@ -111,31 +107,28 @@
 *enditem
 
 *item shdcon shdcon_actions
-'As shading calculations are undertake, you will be asked for'
-'several directives if these were not recorded in the zone'
-'geometry file).'
+'As shading calculations are undertake, directives will be'
+'required if these are not recorded in the zone geometry file).'
 *enditem
 
 *item ssave data_already_exists
 'This month has previously been processed. You may wish to'
 'overwrite the shading data with the new calculation results.'
-'Alternatively, it is possible to replace the old shading/insolation'
-'file with a new one.'
+'Alternatively, it is possible to replace the zone shading &'
+'insolation file with a new one.'
 *enditem
 
 *item isave data_already_exists
 'This month has previously been processed. You may wish to'
 'overwrite the insolation data with the new calculation results.'
-'Alternatively, it is possible to replace the old shading/insolation'
-'with a new one.'
+'Alternatively, it is possible to replace the zone shading &'
+'insolation file with a new one.'
 *enditem
 
 *item sifops respond_to_empty_shd
-'The current shading & insolation file is empty. You can '
-'fill it withd ata from an ascii version of the file (if one'
-'exists), otherwise cancel your request. In this case you'
-'must know the contents of the import file and be able to'
-'specify the months to import.'
+'The current zone shading & insolation file is empty. Data can'
+'be imported from an ascii version of the file (if one exists),'
+'otherwise select the `cancel` option.'
 *enditem
 
 *item sifops month_of_interest
@@ -143,20 +136,11 @@
 *enditem
 
 *item sifops ish_export_list_shading
-'Several options are offered as follows.'
-' list:   tabulates the shading and insolation data'
-'         as held for the specified month.'
-' edit:   allows these factors to be altered.'
-' export: transfers shading data to a text file to'
-'         allow editing or transfer to a computer'
-'         with a different operating system.'
-' import: transfer shading data to a (binary) zone '
-'         shading & insolation file from a text file.
+'This menu presents shading data manipulation options.'
 *enditem
 
 *item sifops shading_export_options
-'Transfers shading data to a text file to allow'
-'editing or transfer to a computer with a different'
-'operating system. The data may be subsequently
-'re-imported.
+'Transfers shading data to a text file to allow editing'
+'or transfer to a computer with a different operating'
+'system. The data may be subsequently re-imported.'
 *enditem

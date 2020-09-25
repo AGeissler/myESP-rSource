@@ -402,6 +402,53 @@ C Write out the ascii file. << Probably iiadcols should be zero.>>
 
       END
 
+C ******************** ITSCALE ********************
+C Scale an instance in the database (IFOC) by factor.
+
+      SUBROUTINE ITSCALE(ITRC,IFOC,factor,IER)
+#include "building.h"
+#include "model.h"
+#include "net_flow.h"
+#include "tdf2.h"
+
+      COMMON/TDAT/TABU(MTABC),TABT(MTABC),TABUMN(MTABC),TABUMX(MTABC)
+
+      IER=0
+
+C For tabular instances.
+      IEFLDS=NTBITS(IFOC)+NTSTAT(IFOC)
+      ISFLDS=IEFLDS-NTBITS(IFOC)+1
+      DO 6 J=ISFLDS,IEFLDS
+
+C ITR is the TAB record for the current timestep. 
+C Read record ITR which holds all of the tabular columns
+C for this timestep. Then take the IFOC tab column and copy into IFOC2
+C tab column. Also update the max/min data for the new column.
+        DO 45 IP=1,NDBSTP
+          ITREC=IP+49
+          CALL ERTABU(ITRC,ITREC,IER)
+          IF(ITDFTR(IFOC,J).EQ.1.or.ITDFTR(IFOC,J).EQ.3)THEN
+            TABU(ITCOL(IFOC,J))=TABU(ITCOL(IFOC,J))*factor
+          ENDIF
+          CALL EWTABU(ITRC,ITREC,IER)
+          IF(IER.EQ.1)RETURN
+   45   CONTINUE
+   6  CONTINUE
+
+C Save the header section and column max/min and file tail record.
+      call usrmsg(' ','Updating the scratch file...','-')
+      CALL EWTDF(IER)
+      call usrmsg(' ','Updating the scratch file...done.','-')
+
+C Write out the ascii file. << Probably iiadcols should be zero.>>
+      iiadcols=0
+      call usrmsg(' ','Updating the ascii file ...','-')
+      call ewtdfa(itrc,ltdfa,iutdfa,iiadcols,ier)
+      call usrmsg(' ','Updating the ascii file ...done.','-')
+      RETURN
+
+      END
+
 C ************* REFSHG ******************************************
 C REFSHG Refresh instance with generic attributes (placement, 
 C help, indices, default values).

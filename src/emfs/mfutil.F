@@ -13,116 +13,94 @@ C warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
 C PURPOSE. See the GNU General Public License for more
 C details.
 
-C You should have received a copy of the GNU General Public
-C License along with ESP-r. If not, write to the Free
-C Software Foundation, Inc., 59 Temple Place, Suite 330,
-C Boston, MA 02111-1307 USA.
-
-
-C **************** MFUTIL 
+C ******************** MFUTIL ********************
 C This module contains the following utility functions or subroutines
-C     MFLOAD
-C     DENSIT
-C     DYVISC
-C     MFCRIM
-C     MFDAYS
-C     MFSKIP
-C     MFTSPH
-C     MFSNFL
-C     MFSTFL
+C MFLOAD
+C DENSIT
+C DYVISC
+C MFCRIM
+C MFDAYS
+C MFSKIP
+C MFTSPH
+C MFSNFL
+C MFSTFL
 
-C ************* MFLOAD
-C This subroutine uses MFREAD of MFPROB of ESRUmfs to read data from
-C a mass flow network description file (IAIRN=1) or via NETREAD if
-C a graphic definition or via MF3DREAD if a 3D network file;
-C All data transfer is unformatted
-C Performs some validity checks similar to what is done by the
-C subroutines MFNDES, MFCDES and MFLDES of MFPROB of ESRUmfs
-
-C     ICONS = connectivity matrix; ICONS(I,J) holds number of
-C             connections between nodes I and J
+C ******************** MFLOAD ********************
+C Uses MFREAD (in MFPROB) to read a fluid flow network file (IAIRN=1),
+C NETREAD if a graphic definition or MF3DREAD if a 3D network file.
+C Performs some validity checks.
+C ICONS(I,J) - number of connections between nodes I and J.
 
       SUBROUTINE MFLOAD(IFPRB,IER)
-
 #include "building.h"
 #include "net_flow.h"
 #include "net_flow_data.h"
+
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/MFLWPR/NPRE,FPRE(MPOS,MPRD)
       COMMON/AFN/IAIRN,LAPROB,ICAAS(MCOM)
-      INTEGER :: iairn,icaas
 
-      DIMENSION    ICONS(MCNN,MCNN)
+      DIMENSION ICONS(MCNN,MCNN)
       character outs*124
       CHARACTER LAPROB*72
 
-C Read the fluid flow description file depending on the value
-C of iairn.
-C      write(6,*) iairn,laprob
       IV=1
       IER=0
       REWIND(IFPRB,ERR=998)
+
+C Flow network file is text-based.
       if(iairn.eq.1)then
         CALL EMFREAD(IFPRB,IER)
-      elseif(iairn.eq.2)then
 
-C Scan the graphics file and then convert to flow common blocks.
+C Flow network file is graphical.
+      elseif(iairn.eq.2)then
         CALL NETREAD(IFPRB,'S',IER)
         CALL NETTOFLW(ier)
-      elseif(iairn.eq.3)then
 
-C Scan 3D mass flow file.
+C Flow network file is 3D.
+      elseif(iairn.eq.3)then
         CALL MFCDAT
         CALL EMF3DREAD(IFPRB,'R',IER)
         CALL ERPFREE(IFPRB,ISTAT)
+
       endif
       IF(IER.NE.0)then
-        call usrmsg(' Problem finding flow network description',
-     &    'or there were problems found while scanning it.','W')
+        call usrmsg(' ','Problem with flow network file!','W')
         return
       endif
 
-C Reset MFLOAD's error indicator and start checking
       IER=0
-
-C Zeroise ICONS
       DO 5 I=1,MCNN
       DO 5 J=1,MCNN
-      ICONS(I,J)=0
+        ICONS(I,J)=0
     5 CONTINUE
 
-C Perform additional checks on node data.
+C Check node data.
       IV=3
       INOD=0
    10 INOD=INOD+1
 
-C Check boundary node supplementary data items.
+C Check boundary node supplementary data.
       if(NDTYP(INOD).eq.3)then
         IF(SUPNOD(INOD,1).LT.1..OR.SUPNOD(INOD,1).GT.NPRE)then
-          write(outs,'(3a,i2,a)') 'For node ',NDNAM(INOD),
-     &      ' the referenced pressure coef ',SUPNOD(INOD,1),
-     &      ' was not found!'
+          write(outs,'(3a,i2,a)') 'Pressure coefficient ',
+     &       SUPNOD(INOD,1),' not found for node ',NDNAM(INOD),'!'
           call edisp(iuout,outs)
           GOTO 999
         endif
         IF(SUPNOD(INOD,2).LT.0..OR.SUPNOD(INOD,2).GT.360.)then
-          write(outs,'(3a,i2,a)') 'For node ',NDNAM(INOD),
-     &      ' the orientation ',SUPNOD(INOD,2),
-     &      ' is not in the range of 0 to 360!'
+          write(outs,'(3a,i2,a)') 'Orientation ',SUPNOD(INOD,2),
+     &      ' out of range for node ',NDNAM(INOD),'!'
           call edisp(iuout,outs)
           GOTO 999
         endif
       endif
       IF(INOD.LT.NNOD) GOTO 10
 
-C Check connections data:
-C Perform additional checks not made in the original file reading.
-
-C Check that there are only single connections between the referenced
-C nodes in case of the component types:
-C - junctions 220, 230, 240 or 250
-C For this we set up the connectivity matrix ICONS, whose element (I,J)
-C holds the number of connections between nodes I and J
+C Check connections data ensuring that thre are only single connections
+C between nodes in case of junctions (component types 220, 230, 240 or 250).
+C Set up the connectivity matrix ICONS, whose element (I,J) are the
+C number of connections between nodes I and J.
       IV=6
       DO 60 ICNN=1,NCNN
       I=NODPS(ICNN)
@@ -130,7 +108,7 @@ C holds the number of connections between nodes I and J
       ICONS(I,J)=ICONS(I,J)+1
    60 CONTINUE
 
-C Look for a component type 220, 230, 240, 250
+C Look for component types 220, 230, 240 or 250.
       ICNN=0
    62 ICNN=ICNN+1
       ICMP=ITPCON(ICNN)
@@ -145,30 +123,28 @@ C      IS6 =INT(SUPCMP(ICMP,6))
          GOTO 63
       ELSE
          GOTO 64
-      END IF
+      ENDIF
 
-C Right, this connection is one of those components
+C Junction component.
    63 I=NODPS(ICNN)
       J=NODNE(ICNN)
       K=NDSCNN(ICNN,1)
       L=NDSCNN(ICNN,2)
 
-C Now check the number of connections
+C Check the number of connections
       IF((ICMPTP.GE.220.AND.ICMPTP.LE.250.AND.ICONS(I,J).NE.1).OR.
      &   ((ICMPTP.EQ.220.OR.ICMPTP.EQ.240).AND.ICONS(K,J).NE.1).OR.
      &   ((ICMPTP.EQ.230.OR.ICMPTP.EQ.250).AND.ICONS(I,K).NE.1).OR.
      &   (ICMPTP.EQ.240.AND.ICONS(L,J).NE.1).OR.
      &   (ICMPTP.EQ.250.AND.ICONS(I,L).NE.1))then
-         call edisp(iuout,' Something rotten with connections!')
+         call edisp(iuout,'MFLOAD: problem with connections!')
          GOTO 999
       endif
    64 IF (ICNN.LT.NCNN) GOTO 62
 
   100 RETURN
 
-C Error trap on read error or silly data
-C Reset number of nodes, number of flow components and/or number
-C of connections and return to calling module
+C Read error or corrupt data.
   999 IER=1
       GOTO (9991,9991,9991,9992,9993,9993) IV
  9991 NNOD=0
@@ -176,153 +152,143 @@ C of connections and return to calling module
  9993 NCNN=0
 
       call edisp(iuout,' ')
-      call edisp(iuout,' MFLOAD: fluid flow file is in error!')
+      call edisp(iuout,'MFLOAD: flow network file error!')
       WRITE(outs,9995) INOD,ICMP,ICNN
- 9995 FORMAT(' data OK up to node:',I3,' component :',I3,
+ 9995 FORMAT('Data OK up to node',I3,' component',I3,
      &       ' connection:',I3)
       call edisp(iuout,outs)
       GOTO 100
 
-  998 write(iuout,*)' problem rewinding the network file'
+  998 write(iuout,*)'MFLOAD: problem rewinding the flow network file!'
       goto 999
 
       END
 
-C ****************** DENSIT 
-C DENSIT returns density (kg/m^3) as function of
-C     IFLD   - fluid type (1=air, 2=water)
-C     TEMP   - fluid temperature (C)
+C ******************** DENSIT ********************
+C Returns density (kg/m^3) as function of
+C IFLD - fluid type (1=air, 2=water);
+C TEMP - fluid temperature (C).
 
       FUNCTION DENSIT(IFLD,TEMP)
-#include "building.h"
-#include "site.h"
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
 
       character outs*124
 
-C Max and minimum temperatures for suppression of redundent errors
+C Temperatures limits.
       real fMaxWaterTemp
       real fMinWaterTemp
       data fMaxWaterTemp,fMinWaterTemp /100.0,0.0/
 
-C Flag for inappropriate temperatures       
+C Inappropriate temperature flag.      
       logical bWarn
 
       VTEMP=TEMP
 
+C Air.
       IF(IFLD.EQ.1) THEN
+        IF(TEMP.LT.-273.14) THEN
+          VTEMP=-273.0
+          WRITE(outs,*)'DENSIT: temperature [',TEMP,'] outside valid',
+     &       ' range (T > -273.15)!'
+          call edisp(iuout,outs)
+          WRITE(outs,*)'DENSIT: air density evaluated for ',VTEMP,'C.'
+          call edisp(iuout,outs)
+        ENDIF
+        DENSIT=1.1881*293.15/(273.15+VTEMP)
 
-         IF(TEMP.LT.-273.14) THEN
-           VTEMP=-273.0
-           WRITE(outs,*)' DENSIT: temperature [',TEMP,'] outside valid',
-     &       ' range: T > -273.15'
-           call edisp(iuout,outs)
-           WRITE(outs,*) ' DENSIT: air density evaluated for T = ',
-     &       VTEMP
-           call edisp(iuout,outs)
-         ENDIF
+C Water.
+      ELSEIF(IFLD.EQ.2) THEN
 
-C Use atmospheric pressure for density calculation, if in boundaries
-C according to climate.h.
-         if (atmpres.lt.120000.and.atmpres.gt.31000) then
-           DENSIT=atmpres/(287.*(273.15+VTEMP))
-         else
-           DENSIT=1.1881*293.15/(273.15+VTEMP)
-         endif
-
-      ELSE IF(IFLD.EQ.2) THEN
-
-C Following expression is only valid for 0 < TEMP < 100
-C Based on: VDI Warmeatlas, 1984, pp. Db1
-         IF(TEMP.LT.0..OR.TEMP.GT.100.) THEN
-            IF(TEMP.LT.0.0) THEN
-               VTEMP=0.0
-            ELSE
-               VTEMP=100.
-            ENDIF
-
+C Following expression valid for 0 < TEMP < 100 (from
+C VDI Warmeatlas, 1984, pp. Db1).
+        IF(TEMP.LT.0..OR.TEMP.GT.100.) THEN
+          IF(TEMP.LT.0.0) THEN
+             VTEMP=0.0
+          ELSE
+             VTEMP=100.
+          ENDIF
 
 C Warn user, but suppress redundant messages
-            bWarn = .false.
-            
-            if ( TEMP .LT. fMinWaterTemp - 0.01 ) then
-              bWarn = .true.
-              fMinWaterTemp = TEMP
-            elseif ( TEMP .GT. fMaxWaterTemp + 0.01 ) then
-              bWarn = .true.
-              fMaxWaterTemp = TEMP
-            endif
+          bWarn = .false.
 
-            if ( bWarn ) then
-            
-              WRITE(outs,*) ' DENSIT: temperature [',TEMP,'] outside',
-     &                   ' valid range: 0 < T < 100'
-              call edisp(iuout,outs)
-              WRITE(outs,*) ' DENSIT: water density evaluated for T =',
-     &                   VTEMP
-              call edisp(iuout,outs)
-            endif            
-         ENDIF
+          if (TEMP.LT.fMinWaterTemp - 0.01) then
+            bWarn = .true.
+            fMinWaterTemp = TEMP
+          elseif (TEMP.GT.fMaxWaterTemp + 0.01) then
+            bWarn = .true.
+            fMaxWaterTemp = TEMP
+          endif
 
-         DENSIT=1001.1-0.082*VTEMP-0.0036*VTEMP*VTEMP
+          if (bWarn) then
+            WRITE(outs,*) 'DENSIT: temperature [',TEMP,'] outside',
+     &                    ' valid range (0 < T < 100)!'
+            call edisp(iuout,outs)
+            WRITE(outs,*) 'DENSIT: water density evaluated for ',
+     &                    VTEMP,'C.'
+            call edisp(iuout,outs)
+          endif            
+        ENDIF
+        DENSIT=1001.1-0.082*VTEMP-0.0036*VTEMP*VTEMP
 
       ELSE
-         STOP ' DENSIT: unsupported fluid type. Unresolvable error !'
-      END IF
+         STOP 'DENSIT: unsupported fluid type!'
+      ENDIF
 
       RETURN
       END
 
-C ****************** DYVISC 
-C DYVISC returns dynamic viscosity (kg/ms) as function of
-C     IFLD   - fluid type (1=air, 2=water)
-C     TEMP   - fluid temperature (C)
+C ******************** DYVISC ********************
+C Returns dynamic viscosity (kg/ms) as function of
+C IFLD - fluid type (1=air, 2=water);
+C TEMP - fluid temperature (C).
 
       FUNCTION DYVISC(IFLD,TEMP)
 
+      character outs*124
+
       VTEMP=TEMP
 
+C Air.
       IF(IFLD.EQ.1) THEN
-         DYVISC=1.71432E-5 +4.828E-8*VTEMP
-      ELSE IF(IFLD.EQ.2) THEN
+        DYVISC=1.71432E-5 +4.828E-8*VTEMP
 
-C Following expression is only valid for 0 < TEMP < 100 and
-C is not very accurate, but probably sufficient for testing purposes
-C Based on: VDI Warmeatlas, 1984, pp. Db1
-         IF(TEMP.LT.0..OR.TEMP.GT.100.) THEN
+C Water.
+      ELSEIF(IFLD.EQ.2) THEN
+        IF(TEMP.LT.0..OR.TEMP.GT.100.) THEN
+          IF(TEMP.LT.0.0) THEN
+            VTEMP=0.0
+          ELSE
+            VTEMP=100.
+          ENDIF
+          WRITE(outs,*) 'DYVISC: temperature [',TEMP,'] outside valid',
+     &                 ' range: 0 < T < 100!'
+          call edisp(iuout,outs)
+          WRITE(outs,*) 'DYVISC: water dynamic viscosity',
+     &                 ' evaluated for ',VTEMP,'C.'
+          call edisp(iuout,outs)
+        ENDIF
 
-            IF(TEMP.LT.0.0) THEN
-               VTEMP=0.0
-            ELSE
-               VTEMP=100.
-            ENDIF
-
-            WRITE(*,*) ' DYVISC: temperature [',TEMP,'] outside valid',
-     &                 ' range: 0 < T < 100'
-            WRITE(*,*) ' DYVISC: water dynamic viscosity',
-     &                 ' evaluated for T = ',VTEMP
-
-         ENDIF
-
-         DYVISC=0.17444E-02 -.15885E-03*VTEMP**0.50
+C Following expression is approximate for 0 < TEMP < 100 (from
+C VDI Warmeatlas, 1984, pp. Db1).
+        DYVISC=0.17444E-02 -.15885E-03*VTEMP**0.50
 
       ELSE
-         STOP ' DYVISC: unsupported fluid type. Unresolvable error !'
-      END IF
+         STOP 'DYVISC: unsupported fluid type!'
+      ENDIF
 
       RETURN
       END
 
-C ************************* MFCRIM 
-C Results to input matcher; ie. check if results file corresponds to
-C current model description
-C     IER    - 0 they do match; 1 they don't match
+C ******************** MFCRIM ********************
+C Checks if network flow results file corresponds to current model
+C description.
+C IER - 0 match; 1 no match.
 
       SUBROUTINE MFCRIM(IFRES,IER)
-
 #include "building.h"
 #include "net_flow.h"
 #include "net_flow_data.h"
+
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
 
       CHARACTER*20 WORD
@@ -331,42 +297,39 @@ C     IER    - 0 they do match; 1 they don't match
 
       IER=0
 
-C Read node info from results file
-C First get to the start and skip header line
+C Check nodes.
       REWIND(IFRES,ERR=999)
       CALL STRIPC(IFRES,OUTSTR,0,ND,1,'date header',IER)
 
-C Start reading/checking node: name, fluid type, node type, and height
-C first skip header
+C Skip header.
       CALL STRIPC(IFRES,OUTSTR,0,ND,1,'header',IER)
 
-C then read results node by node into a string
+C Read results node-by-node into a character string.
       DO 10 INOD=1,NNOD
       CALL STRIPC(IFRES,OUTSTR,0,ND,1,'data line',IER)
       K=0
       IERL=0
 
-C split this string and recapture separate data items
+C Split string and recapture separate data items.
       CALL EGETW(OUTSTR,K,WORD,'W','node name',IER)
       CHRIN(1)=WORD(1:12)
       CALL EGETWI(OUTSTR,K,IFLDT,0,0,'-','fluid type',IER)
       CALL EGETWI(OUTSTR,K,INODT,0,0,'-','node type',IER)
 
-C compare these data items with current model description
+C Compare these data with current model description.
       IF(IERL.NE.0.OR.
-     &   NDNAM(INOD)(1:12).NE.CHRIN(1)(1:12).OR.NDFLD(INOD).NE.IFLDT.OR.
-     &   NDTYP(INOD).NE.INODT)then
-         call edisp(iuout,' mismatched network nodes & results in...')
-         call edisp(iuout,OUTSTR)
-         GOTO 999
+     &  NDNAM(INOD)(1:12).NE.CHRIN(1)(1:12).OR.NDFLD(INOD).NE.IFLDT.OR.
+     &  NDTYP(INOD).NE.INODT)then
+        call edisp(iuout,'MFCRIM: mismatched files!')
+        call edisp(iuout,OUTSTR)
+        GOTO 999
       endif
    10 CONTINUE
 
-C Start reading/checking connection: nodes, component name, type and fluid
-C first skip header
+C Check connections.
       CALL STRIPC(IFRES,OUTSTR,0,ND,1,'connection header',IER)
 
-C then read results connection by connection into a string
+C Read results connection-by-connection into a character string.
       DO 20 ICNN=1,NCNN
       CALL STRIPC(IFRES,OUTSTR,0,ND,1,'connection data',IER)
       K=0
@@ -381,35 +344,29 @@ C Split this connections string and recapture separate data items.
       CHRIN(3)=WORD(1:12)
       CALL EGETWI(OUTSTR,K,ICMPT,0,0,'-','conn type',IER)
 
-C compare these data items with current model description
+C Compare these data items with current model description.
       IF(IERL.NE.0.OR.
      &   NDNAM(NODPS(ICNN))(1:12).NE.CHRIN(1)(1:12).OR.
      &   NDNAM(NODNE(ICNN))(1:12).NE.CHRIN(2)(1:12).OR.
      &   CMNAM(ITPCON(ICNN))(1:12).NE.CHRIN(3)(1:12).OR.
      &   ITPCMP(ITPCON(ICNN)).NE.ICMPT)then
-         call edisp(iuout,' mismatched network conns & results in...')
+         call edisp(iuout,'MFCRI: mismatched connections!.')
          call edisp(iuout,OUTSTR)
         GOTO 999
       endif
    20 CONTINUE
 
-C If so far no errors, it *must* be oke I hope :-)
-
   100 RETURN
 
-C Error trap on read error or silly data
   999 IER=1
-      call edisp(iuout,' In comparing the data in the results file and')
-      call edisp(iuout,' the flow network description there were ')
-      call edisp(iuout,' differences encountered which mean that it is')
-      call edisp(iuout,' from a different simulation.')
+      call edisp(iuout,'MFCRI: differences detected between the')
+      call edisp(iuout,'flow network description and results files!')
       GOTO 100
 
       END
 
-C ******************* MFDAYS 
-C Find day numbers of first and last simulation day in results file
-C This enables output of results from previous runs
+C ******************** MFDAYS ********************
+C Determine day numbers of first and last simulation day in results file.
 
       SUBROUTINE MFDAYS(IFRES,NNOD,NCNN,IFYD,ILYD,IER)
 
@@ -420,7 +377,7 @@ C This enables output of results from previous runs
       IER=0
 
 C Calculate number of output lines per simulation day (LINES)
-C For this we need to know the number of time steps per hour (NTSPH)
+C given the number of time steps per hour (NTSPH).
       CALL MFTSPH(IFRES,NNOD,NCNN,NTSPH,IE)
       IF(IE.NE.0) GOTO 999
       LINES=NTSPH*24*(3+NNOD+NCNN)
@@ -428,38 +385,37 @@ C For this we need to know the number of time steps per hour (NTSPH)
       WRITE(FORM(14:18),1000) LINES-1
  1000 FORMAT(I5)
 
-C Read first month and day from record 1
+C Read first month and day.
       REWIND(IFRES,ERR=999)
       READ(IFRES,FORM,END=999,ERR=999) IDAY,IMON
 
-C If reasonable values calculate day number for first day
+C Calculate day number for first day.
       CALL EDAYCH(IDAY,IMON,IE)
       IF(IE.NE.0) GOTO 999
       CALL EDAY(IDAY,IMON,IFYD)
 
-C Keep on reading hour 1 of next day until read error occurs
+C Continue reading hour 1 of each day until a read error occurs.
    10 READ(IFRES,FORM,END=12,ERR=999) IDUM1,IDUM2
       IDAY=IDUM1
       IMON=IDUM2
       GOTO 10
-C If reasonable values calculate day number for last day
+
+C Calculate day number for last day.
    12 CALL EDAYCH(IDAY,IMON,IE)
       IF(IE.NE.0) GOTO 999
       CALL EDAY(IDAY,IMON,ILYD)
 
   100 RETURN
 
-C Error trap on read error or silly data
   999 IER=1
-      call edisp(iuout,' MFDAYS: error reading fluid flow results!')
-      call edisp(iuout,' Results file is either empty or does not')
-      call edisp(iuout,' correspond to current model descripton !')
+      call edisp(iuout,
+     &          'MFDAYS: error reading fluid flow results file!')
       GOTO 100
 
       END
 
-C ********************* MFSKIP 
-C Fast skip to first record of simulation day IDAYF in file IFRES
+C ******************** MFSKIP ********************
+C Skip to first record of simulation day IDAYF in file IFRES.
 
       SUBROUTINE MFSKIP(IFRES,NNOD,NCNN,IFYD,IDAYF,IER)
 
@@ -470,7 +426,7 @@ C Fast skip to first record of simulation day IDAYF in file IFRES
       IER=0
 
 C Calculate number of output lines per simulation day (LINES)
-C For this we need to know the number of time steps per hour (NTSPH)
+C given the number of time steps per hour (NTSPH),
       CALL MFTSPH(IFRES,NNOD,NCNN,NTSPH,IE)
       IF(IE.NE.0) GOTO 999
       LINES=NTSPH*24*(3+NNOD+NCNN)
@@ -478,10 +434,10 @@ C For this we need to know the number of time steps per hour (NTSPH)
       WRITE(FORM(2:6),1000) LINES-1
  1000 FORMAT(I5)
 
-C Calculate number of days to skip (ISKIP)
+C Calculate number of days to skip (ISKIP).
       ISKIP=IDAYF-IFYD
 
-C Position READ pointer at 1th hour of next day by reading ISKIP days
+C Position READ pointer at 1st hour of next day by reading ISKIP days.
       REWIND(IFRES,ERR=999)
       IF(ISKIP.EQ.0) GOTO 100
       IDAY=0
@@ -491,18 +447,17 @@ C Position READ pointer at 1th hour of next day by reading ISKIP days
 
   100 RETURN
 
-C Error trap on read error or silly data
   999 IER=1
       call edisp(iuout,'MFSKIP: error reading fluid flow results file!')
       GOTO 100
 
       END
 
-C *********************** MFTSPH 
-C Try to deduct from results file, number of time steps per hour NTSPH
-C which was used during simulation (could have been by ESRUbps)
-C     STIME        - time for first simulation result set
-C     TIME         - time of last read simulation result set
+C *********************** MFTSPH ***********************
+C Deducet from results file the number of time steps per hour NTSPH
+C as used during simulation.
+C STIME - time for first simulation result set.
+C TIME  - time of last read simulation result set.
 
       SUBROUTINE MFTSPH(IFRES,NNOD,NCNN,NTSPH,IER)
 
@@ -512,14 +467,14 @@ C     TIME         - time of last read simulation result set
 
       IER=0
 
-C Calculate number of output lines per simulation time step (LINES)
+C Calculate number of output lines per simulation time step (LINES).
       LINES=(3+NNOD+NCNN)
       FORM='(18X,F6.3,     (/))'
       WRITE(FORM(11:15),1000) LINES-1
  1000 FORMAT(I5)
 
-C Position READ pointer at 1th time step
-C Note that TIME is read in Fn.3 format
+C Position READ pointer at 1st time step.
+C Note that TIME is read in Fn.3 format.
       REWIND(IFRES,ERR=999)
       NTSPH=-1
    10 NTSPH=NTSPH+1
@@ -530,23 +485,20 @@ C Note that TIME is read in Fn.3 format
 
   100 RETURN
 
-C Error trap on read error or silly data
   999 IER=1
       call edisp(iuout,'MFTSPH: error reading fluid flow results file!')
       GOTO 100
 
       END
 
-C ******************* MFSNFL 
-C Sum fluid flows entering (FLIN) and leaving (FLUT) node NODE from
-C coupled node NODC or from all coupled nodes in case NODC=0. Entering
-C flow is +ve, leaving flow is -ve. In case of IDIM=1 the results will
-C be in 10^-3.kg/s and when IDIM=2 or 3 the results will be in m^3/hr
-
-C     DIMFAC - factor for calculating the appropriate flow dimension
+C ******************** MFSNFL ********************
+C Sum fluid flows entering (FLIN) and leaving (FLUT) node (NODE) from
+C coupled node (NODC) or from all coupled nodes in case NODC=0. Entering
+C flow is +ve, leaving flow is -ve. For IDIM=1 the results are in
+C 10^-3 kg/s and when IDIM=2 or 3 the results are in m^3/hr.
+C DIMFAC - factor for calculating the appropriate flow dimension.
 
       SUBROUTINE MFSNFL(IDIM,NODE,NODC,FLIN,FLUT)
-
 #include "building.h"
 #include "net_flow.h"
 #include "net_flow_data.h"
@@ -610,16 +562,14 @@ C     DIMFAC - factor for calculating the appropriate flow dimension
       RETURN
       END
 
-C ************************ MFSTFL 
+C ************************ MFSTFL ************************
 C Sums flows through each connection coupled nodes to get each
 C node's total fluid flow entering (FLWIN; +ve) or leaving
-C (FLWUT; -ve), respectively. In case of IDIM=1 the results will
-C be in kg/s and when IDIM=2 or 3 the results will be in m^3/hr
-
-C     DIMFAC - factor for calculating the appropriate flow dimension
+C (FLWUT; -ve) respectively. In case of IDIM=1 the results will
+C be in kg/s and when IDIM=2 or 3 the results will be in m^3/hr.
+C DIMFAC - factor for calculating the appropriate flow dimension.
 
       SUBROUTINE MFSTFL(IDIM,FLWIN,FLWUT)
-
 #include "building.h"
 #include "net_flow.h"
 #include "net_flow_data.h"
@@ -630,13 +580,12 @@ C     DIMFAC - factor for calculating the appropriate flow dimension
       DOUBLE PRECISION FLW1,FLW2,PRES,RESID,SAFLW
       DOUBLE PRECISION FLWIN(MNOD),FLWUT(MNOD)
 
-C Zeroise FLWIN and FLWUT first
       DO 10 INOD=1,NNOD
       FLWIN(INOD)=0
       FLWUT(INOD)=0
    10 CONTINUE
 
-C Assign the fluid mass flows through each connection to its
+C Assign the fluid flows through each connection to its
 C coupled nodes.
       IF(IDIM.EQ.1) DIMFAC=1.0
       DO 20 ICNN=1,NCNN
@@ -669,12 +618,11 @@ C coupled nodes.
       RETURN
       END
 
-C *********************************************************************
-C    ***  copy from ebld/mstmsc.F, lines 541 ff. 
-C *********************************************************************
-C Psat01 calculates the saturation vapour pressure (Pa) as a function of
-C temperature ( C ) (Marieke 1994, IEA 1991, vol 1, page 4.8)
-C *********************************************************************
+C ******************** Psat01m ********************
+C Calculates the saturation vapour pressure (Pa) as a function of
+C temperature (C) (from Marieke 1994, IEA 1991, V1, page 4.8). Copied
+C from ebld/mstmsc.F, lines 541 ff.
+
       FUNCTION Psat01m(TC)
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
       character outs*124
@@ -695,10 +643,8 @@ C *********************************************************************
       ENDIF
       IF(Psat01m.LT.SMALL)then
         write(outs,'(a,F12.6,a)')
-     &   'Psat01m: small saturation vapour pressure at temp=',
-     &   TC,' C, forcing STOP!'
+     &   'Psat01m: small saturation vapour pressure at ',TC,' C!'
         call edisp(iuout,outs)
-cx        call edisp(iuout,'Psat01: small saturation vapour pressure.')
         close(ieout)
         CALL ERPFREE(ieout,ISTAT)
         call epwait

@@ -935,6 +935,16 @@ C Markdown flag.
       logical XST,dmdsok  ! for dispersed demands
       real overallm2,zonem2frac(MCOM)  ! total of all the selected zones base areas
 
+C User preferences for Monthly table.
+      integer imshtr,imtcas,imtaiv,imtctl,imtsol       ! monthly topic inclusion
+      common/monthlyoptions/imshtr,imtcas,imtaiv,imtctl,imtsol
+      
+      integer imshtrl,imtcasl,imtaivl,imtctll,imtsoll,imdmdsl  ! topic column text lengths
+      character ZPER*19,SHTR*45,TCAS*37,TAIV*26,TCTL*18,TSOL*18
+      dimension ZPER(4),SHTR(4),TCAS(4),TAIV(4),TCTL(4),TSOL(4)
+      character TDMD*10
+      dimension TDMD(4)
+
       DATA NDYMTH/31,59,90,120,151,181,212,243,273,304,334,365/
       DATA NMTHNM/'Jan','Feb','Mar','Apr','May','Jun','Jul',
      &'Aug','Sep','Oct','Nov','Dec'/
@@ -981,8 +991,228 @@ C Call the menu of choices (this also sets some default options).
         call usrmsg(prompt,'  ','-')
       endif
 
-C Recover 100Wh vs kWh from IGETNO().
-      IR=IGETNO(1,4)
+      IR=IGETNO(1,4)   ! Recover 100Wh vs kWh from IGETNO().
+      if(markdown)then ! Initial columns.
+        imzperl=19
+        ZPER(1)='------------- -----'
+        ZPER(2)=' Zone         Month'
+        ZPER(3)='                   '
+        ZPER(4)='                   '
+      else
+        imzperl=18
+        ZPER(1)=' Zone      Period|'
+        ZPER(2)='           in    |'
+        ZPER(3)='           month |'
+        ZPER(4)='                 |'
+      endif
+      if(imshtr.eq.1)then  ! Surface heat transfer
+        if(markdown)then
+          imshtrl=45
+          SHTR(1)='  ---------- ---------- ---------- ----------'
+          SHTR(2)='  Convection Convection Convection Convection'
+          SHTR(3)='  glazing    glazing    opaque     opaque    '
+          SHTR(4)='  facade     other      facade     other     '
+        else
+          imshtrl=32
+          SHTR(1)=' Surface convection at face of |'
+          SHTR(2)='   transparent |    opaque     |'
+          SHTR(3)='facade |other  |facade |other  |'
+          SHTR(4)='facing |facing |facing |facing |'
+        endif
+      elseif(imshtr.eq.2)then
+        if(markdown)then
+          imshtrl=23
+          SHTR(1)='  ---------- ----------'
+          SHTR(2)='  Convection Convection'
+          SHTR(3)='  glazing    opaque    '
+          SHTR(4)='  facade     facade    '
+        else
+          imshtrl=19
+          SHTR(1)='Surface convection|'
+          SHTR(2)='    at facade     |'
+          SHTR(3)='glazing |opaque   |'
+          SHTR(4)='        |         |' 
+        endif
+      endif
+      if(imtcas.eq.1)then
+        if(markdown)then
+          imtcasl=37
+          TCAS(1)=' -------- -------- --------  --------'
+          TCAS(2)=' Occupant Lights   Small     Other   '
+          TCAS(3)='                   power             '
+          TCAS(4)='                                     '
+        else
+          imtcasl=32
+          TCAS(1)=' Casual Gains (Radiant+Conv)   |'
+          TCAS(2)='Occu-  |Lights |Small  |Other  |'
+          TCAS(3)='pant   |       |Power  |       |'
+          TCAS(4)='       |       |       |       |'
+        endif
+      elseif(imtcas.eq.2)then
+        if(markdown)then
+          imtcasl=9
+          TCAS(1)=' --------'
+          TCAS(2)=' Casual  '
+          TCAS(3)=' Gains   '
+          TCAS(4)=' R+C     '
+        else
+          imtcasl=9
+          TCAS(1)=' Casual |'
+          TCAS(2)=' Gains  |'
+          TCAS(3)=' R+C    |'
+          TCAS(4)='        |'
+        endif
+      endif
+      if(imtaiv.eq.1)then
+        if(markdown)then
+          imtaivl=26
+          TAIV(1)='  ------------ -----------'
+          TAIV(2)='  Infiltration Ventilation'
+          TAIV(3)='                          '
+          TAIV(4)='                          '
+        else
+          imtaivl=16
+          TAIV(1)='Air movement   |'
+          TAIV(2)='Infil- |Venti- |'
+          TAIV(3)='tration|lation |'
+          TAIV(4)='       |       |'
+        endif
+      elseif(imtaiv.eq.2)then
+        if(markdown)then
+          imtaivl=14
+          TAIV(1)='  ------------'
+          TAIV(2)='  Infiltration'
+          TAIV(3)='              '
+          TAIV(4)='              '
+        else
+          imtaivl=9
+          TAIV(1)='Infil-  |'
+          TAIV(2)='tration |'
+          TAIV(3)='        |'
+          TAIV(4)='        |'
+        endif
+      elseif(imtaiv.eq.3)then
+        if(markdown)then
+          imtaivl=13
+          TAIV(1)='  -----------'
+          TAIV(2)='  Ventilation'
+          TAIV(3)='             '
+          TAIV(4)='             '
+        else
+          imtaivl=9
+          TAIV(1)='Venti-  |'
+          TAIV(2)='lation  |'
+          TAIV(3)='        |'
+          TAIV(4)='        |'
+        endif
+      endif
+      if(imtctl.eq.1)then
+        if(markdown)then
+          imtctll=18
+          TCTL(1)='  -------  -------'
+          TCTL(2)='  Heating  Cooling'
+          TCTL(3)='                  '
+          TCTL(4)='                  '
+        else
+          imtctll=16
+          TCTL(1)=' Environmental |'
+          TCTL(2)='   controls    |'
+          TCTL(3)='Heating|Cooling|'
+          TCTL(4)='       |       |'
+        endif
+      elseif(imtctl.eq.2)then
+        if(markdown)then
+          imtctll=9
+          TCTL(1)='  -------'
+          TCTL(2)='  Heating'
+          TCTL(3)='         '
+          TCTL(4)='         '
+        else
+          imtctll=8
+          TCTL(1)='Heating|'
+          TCTL(2)='       |'
+          TCTL(3)='       |'
+          TCTL(4)='       |'
+        endif
+      elseif(imtctl.eq.3)then
+        if(markdown)then
+          imtctll=9
+          TCTL(1)='  -------'
+          TCTL(2)='  Cooling'
+          TCTL(3)='         '
+          TCTL(4)='         '
+        else
+          imtctll=8
+          TCTL(1)='Cooling|'
+          TCTL(2)='       |'
+          TCTL(3)='       |'
+          TCTL(4)='       |'
+        endif
+      endif
+      if(imtsol.eq.1)then
+        if(markdown)then
+          imtsoll=18
+          TSOL(1)='  ------- --------'
+          TSOL(2)='  Solar   Solar   '
+          TSOL(3)='  absorbd entering'
+          TSOL(4)='  in zone zone    '
+        else
+          imtsoll=17
+          TSOL(1)='Solar radiation |'
+          TSOL(2)='absorbd|entering|'
+          TSOL(3)='within |the     |'
+          TSOL(4)='zone   |zone    |'
+        endif
+      elseif(imtsol.eq.2)then
+        if(markdown)then
+          imtsoll=9
+          TSOL(1)='  -------'
+          TSOL(2)='  Solar  '
+          TSOL(3)='  absorbd'
+          TSOL(4)='  in zone'
+        else
+          imtsoll=8
+          TSOL(1)='Solar  |'
+          TSOL(2)='absorbd|'
+          TSOL(3)='within |'
+          TSOL(4)='zone   |'
+        endif
+      elseif(imtsol.eq.3)then
+        if(markdown)then
+          imtsoll=10
+          TSOL(1)='  --------'
+          TSOL(2)='  Solar   '
+          TSOL(3)='  entering'
+          TSOL(4)='  zone    '
+        else
+          imtsoll=9
+          TSOL(1)='Solar   |'
+          TSOL(2)='entering|'
+          TSOL(3)='the     |'
+          TSOL(4)='zone    |'
+        endif
+      endif
+      if(dmdsok)then
+        if(markdown)then
+          imdmdsl=10
+          TDMD(1)=' ---------'
+          TDMD(2)=' dispersed'
+          TDMD(3)=' demands  '
+          TDMD(4)=' for model'
+        else
+          imdmdsl=9
+          TDMD(1)='dispersed'
+          TDMD(2)='demands  '
+          TDMD(3)='for model'
+          TDMD(4)='         '
+        endif
+      else      ! if no dispersed just a single blank
+        imdmdsl=1
+        TDMD(1)=' '
+        TDMD(2)=' '
+        TDMD(3)=' '
+        TDMD(4)=' '
+      endif
 
 C Set header text and write it out if this has not yet been done.
       CALL HDDATE(PDESCR)
@@ -996,7 +1226,7 @@ C Set header text and write it out if this has not yet been done.
             write(outs,'(2a)') '# Performance Report for ',
      &        RSNAME(ISIM)(1:lnblnk(RSNAME(ISIM)))
             call edisp(itru,outs)
-	    
+    
             write(outs,'(3A,I4)')'### Library ',RFILE(1:lsn1),
      &        ' Set:',ISIM
             call edisp(itru,outs)
@@ -1052,102 +1282,6 @@ C Echo header with units.
      &    ' Monthly selection of gains & losses (to nearest kWh).')
         endif
       endif
-      call edisp(itru,' ')
-
-C If current version display monthly summary.
-      if(izver.ge.4)then
-
-C Monthly statistics of energy gains and losses.
-        if(dmdsok)then
-          if(markdown)then
-            write(outsl,'(3a)')
-     &'----------  -----  ---------- ---------- ---------- ',
-     &'---------- -------- -------- --------  --------  -------- ',
-     &'-------- -------  -------  ------- --------'
-            call edisp(itru,outsl)
-            write(outsl,'(3a)')
-     &' Zone       Month  Convection Convection Convection ',
-     &'Convection Occupant Lights   Small     Other     Infil-   ',
-     &'Venti-   Heating  Cooling  Solar   Solar  '
-            call edisp(itru,outsl)
-            write(outsl,'(3a)')
-     &'                   transp     transp     opaque     ',
-     &'opaque                       power               tration  ',
-     &'lation                     absorbd entering '
-            call edisp(itru,outsl)
-            write(outsl,'(3a)')
-     &'                   facing     facing     facing     ',
-     &'facing                                                    ',
-     &'                           zone    zone     '
-            call edisp(itru,outsl)
-          else
-            write(outsl,'(3a)')
-     &     ' Zone      Period| Surface convection at face of |  Casual',
-     &     ' Gains (Radiant+Conv)  |Air movement   | Environmental ',
-     &     '|Solar radiation |dispersed'
-            call edisp(itru,outsl)
-            write(outsl,'(3a)')
-     &     '           in    |   transparent |    opaque     |Occu-  |',
-     &     'Lights |Small  |Other  |Infil- |Venti- |   controls    ',
-     &     '|absorbd|entering| demands'
-            call edisp(itru,outsl)
-            write(outsl,'(3a)')
-     &     '           month |outside|other  |outside|other  |pant   |',
-     &     '       |Power  |       |tration|lation |Heating|Cooling',
-     &     '|within |the     |for model'
-            call edisp(itru,outsl)
-            write(outsl,'(3a)')
-     &     '                 |facing |facing |facing |facing |       |',
-     &     '       |       |       |       |       |       |       ',
-     &     '|zone   |zone    |'
-            call edisp(itru,outsl)
-          endif
-        else
-          if(markdown)then
-            write(outsl,'(3a)')
-     &'----------  -----  ---------- ---------- ---------- ',
-     &'---------- -------- -------- --------  --------  -------- ',
-     &'-------- -------  -------  ------- --------'
-            call edisp(itru,outsl)
-            write(outsl,'(3a)')
-     &' Zone       Month  Convection Convection Convection ',
-     &'Convection Occupant Lights   Small     Other     Infil-   ',
-     &'Venti-   Heating  Cooling  Solar   Solar  '
-            call edisp(itru,outsl)
-            write(outsl,'(3a)')
-     &'                   transp     transp     opaque     ',
-     &'opaque                       power               tration  ',
-     &'lation                     absorbd entering '
-            call edisp(itru,outsl)
-            write(outsl,'(3a)')
-     &'                   facing     facing     facing     ',
-     &'facing                                                    ',
-     &'                           zone    zone     '
-            call edisp(itru,outsl)
-          else
-            write(outsl,'(3a)')
-     &    ' Zone      Period| Surface convection at face of | Casual',
-     &    ' Gains (Radiant+Conv)   |Air movement   | Environmental ',
-     &    '|Solar radiation |'
-            call edisp(itru,outsl)
-            write(outsl,'(3a)')
-     &    '           in    |   transparent |    opaque     |Occu-  ',
-     &    '|Lights |Small  |Other  |Infil- |Venti- |   controls    ',
-     &    '|absorbd|entering|'
-            call edisp(itru,outsl)
-            write(outsl,'(3a)')
-     &    '           month |outside|other  |outside|other  |pant   ',
-     &    '|       |Power  |       |tration|lation |Heating|Cooling',
-     &    '|within |the     |'
-            call edisp(itru,outsl)
-            write(outsl,'(3a)')
-     &    '                 |facing |facing |facing |facing |       ',
-     &    '|       |       |       |       |       |       |       ',
-     &    '|zone   |zone    |'
-            call edisp(itru,outsl)
-          endif
-        endif
-      endif
 
 C For each zone in model sum the zone base areas and then get the
 C fraction of model base area for the zone.
@@ -1158,10 +1292,43 @@ C fraction of model base area for the zone.
       DO izn=1,NCOMP
         zonem2frac(izn)=ZBASEA(izn)/overallm2
       ENDDO
-      write(outs,*) 'The model overall base area is ',overallm2,'m2.'
+      write(outs,'(a,f7.2,a)') ' The model overall base area is ',
+     &  overallm2,'m2.'
       if(.NOT.markdown) call edisp(itru,outs)
+      call edisp(itru,' ')
 
-C Loop for 13 topics and then each month.
+C If current version, display monthly summary.
+      if(izver.ge.4)then
+
+C Monthly statistics of energy gains and losses.
+        write(outsl,'(7a)') ZPER(1)(1:imzperl),SHTR(1)(1:imshtrl),
+     &    TCAS(1)(1:imtcasl),TAIV(1)(1:imtaivl),
+     &    TCTL(1)(1:imtctll),TSOL(1)(1:imtsoll),TDMD(1)(1:imdmdsl)
+        call edisp(itru,outsl)
+        write(outsl,'(7a)') ZPER(2)(1:imzperl),SHTR(2)(1:imshtrl),
+     &    TCAS(2)(1:imtcasl),TAIV(2)(1:imtaivl),
+     &    TCTL(2)(1:imtctll),TSOL(2)(1:imtsoll),TDMD(2)(1:imdmdsl)
+        call edisp(itru,outsl)
+        write(outsl,'(7a)') ZPER(3)(1:imzperl),SHTR(3)(1:imshtrl),
+     &    TCAS(3)(1:imtcasl),TAIV(3)(1:imtaivl),
+     &    TCTL(3)(1:imtctll),TSOL(3)(1:imtsoll),TDMD(3)(1:imdmdsl)
+        call edisp(itru,outsl)
+        write(outsl,'(7a)') ZPER(4)(1:imzperl),SHTR(4)(1:imshtrl),
+     &    TCAS(4)(1:imtcasl),TAIV(4)(1:imtaivl),
+     &    TCTL(4)(1:imtctll),TSOL(4)(1:imtsoll),TDMD(4)(1:imdmdsl)
+        call edisp(itru,outsl)
+
+C Markdown -> docx does not accept intermediate horizontal rule in this
+C format. Explore alternatives.
+C        if(markdown)then   ! add the bottom ----- line for markdown
+C          write(outsl,'(7a)') ZPER(1)(1:imzperl),SHTR(1)(1:imshtrl),
+C     &      TCAS(1)(1:imtcasl),TAIV(1)(1:imtaivl),
+C     &      TCTL(1)(1:imtctll),TSOL(1)(1:imtsoll),TDMD(1)(1:imdmdsl)
+C          call edisp(itru,outsl)
+C        endif
+      endif
+
+C Loop for 15 topics and then each month.
       DO 620 IJK=1,15
         DO 610 IMNTH=1,12
           TVAL(IJK,IMNTH)=0.0
@@ -1243,9 +1410,6 @@ C in terms of surface so negate it to have contribution to air node.
 
 C Get seperate casual gain total rad+convec. NOTE: this has been tested
 C for use with zone operations - but not yet temporal.
-
-C << extend code to check for TDF and NCM data structures >>
-
             DO J2=ISTART,IEND
               call getallcas(JD,IZN,ISET,J2,QCASR,QCASC,QCASL,FRAC,
      &          perocupc,perlightc,perequipc,perotherc,perocupr,
@@ -1346,56 +1510,284 @@ C Dump this month's statistics.
             VAL(IJK)=VAL(IJK)/1000.
           ENDDO
 
-          if(dmdsok)then
+          if(dmdsok)then  ! Loop limits for TVAL summations.
             looplimit=15
           else
             looplimit=14
           endif
-          IF(IMNTH.EQ.IOM1)THEN
-            if(IR.eq.1)then
-              if(markdown)then
-                write(outsl,'(1X,a,1x,a,2x,8(F10.1),7(F9.1))') 
-     &            zname(IZN)(1:12),NMTHNM(IMNTH),
-     &            (VAL(IJ),IJ=1,8),(VAL(IJ),IJ=9,looplimit)
-              else
-                WRITE(outsl,701)zname(IZN)(1:12),NMTHNM(IMNTH),
-     &            (VAL(IJ),IJ=1,looplimit)
-  701           FORMAT(1X,A12,1X,A3,1X,15F8.1)
-              endif
-            elseif(IR.eq.2)then
-              if(markdown)then
-                write(outsl,'(1X,a,1x,a,2x,8(F10.0),7(F9.0))') 
-     &            zname(IZN)(1:12),NMTHNM(IMNTH),
-     &            (VAL(IJ),IJ=1,8),(VAL(IJ),IJ=9,looplimit)
-              else
-                WRITE(outsl,703)zname(IZN)(1:12),NMTHNM(IMNTH),
-     &                      (VAL(IJ),IJ=1,looplimit)
-  703           FORMAT(1X,A12,1X,A3,1X,15F8.0)
-              endif
-            endif
-            call eddisp(itru,outsl)
-          ELSE
-            if(IR.eq.1)then
-              if(markdown)then
-                WRITE(outsl,'(14x,A,2x,8(F10.1),7(F9.1))')NMTHNM(IMNTH),
-     &            (VAL(IJ),IJ=1,8),(VAL(IJ),IJ=9,looplimit)
-              else
-                WRITE(outsl,702)NMTHNM(IMNTH),(VAL(IJ),IJ=1,looplimit)
-  702           FORMAT(14x,A3,1X,15F8.1)
-              endif
-            elseif(IR.eq.2)then
-              if(markdown)then
-                WRITE(outsl,'(14x,A,2x,8(F10.0),7(F9.0))')NMTHNM(IMNTH),
-     &            (VAL(IJ),IJ=1,8),(VAL(IJ),IJ=9,looplimit)
-              else
-                WRITE(outsl,704)NMTHNM(IMNTH),(VAL(IJ),IJ=1,looplimit)
-  704           FORMAT(14x,A3,1X,15F8.0)
-              endif
-            endif
-            call eddisp(itru,outsl)
-          ENDIF
 
-          DO IJK=1,looplimit
+C Take topics in order to build the outsl string.
+          IF(IMNTH.EQ.IOM1)THEN   ! Include zone name.
+            if(markdown)then
+              write(outsl,'(1X,a,1x,a,2x)') 
+     &          zname(IZN)(1:12),NMTHNM(IMNTH)
+              K=lnblnk(outsl)+3      ! Initial value for next tranche.
+            else
+              write(outsl,'(1X,a,1x,a3,1x)') 
+     &          zname(IZN)(1:12),NMTHNM(IMNTH)
+              K=lnblnk(outsl)+2      ! Initial value for next tranche.
+            endif
+          else
+            if(markdown)then
+              write(outsl,'(14X,a,2x)') NMTHNM(IMNTH)
+              K=lnblnk(outsl)+3      ! Initial value for next tranche.
+            else
+              write(outsl,'(14X,a3,1x)') NMTHNM(IMNTH)
+              K=lnblnk(outsl)+2      ! Initial value for next tranche.
+            endif
+          endif
+          if(imshtr.eq.1)then    ! Surface heat transfer 4 columns.
+            if(IR.eq.1)then      ! Resolution to 100Whr.
+              if(markdown)then
+                KE=K+44
+                write(outsl(k:ke),'(4(F11.1))') (VAL(IJ),IJ=1,4)
+              else
+                KE=K+32
+                write(outsl(k:ke),'(4(F8.1))') (VAL(IJ),IJ=1,4)
+              endif
+            elseif(IR.eq.2)then  ! Resolution to nearest kWhr.
+              if(markdown)then
+                KE=K+44
+                write(outsl(k:ke),'(4(F11.0))') (VAL(IJ),IJ=1,4)
+              else
+                KE=K+32
+                write(outsl(k:ke),'(4(F8.0))') (VAL(IJ),IJ=1,4)
+              endif
+            endif
+          elseif(imshtr.eq.2)then
+            if(IR.eq.1)then      ! Resolution to 100Whr.
+              if(markdown)then
+                KE=K+22
+                write(outsl(k:ke),'(2(F11.1))') VAL(1),VAL(3)
+              else
+                KE=K+19
+                write(outsl(k:ke),'(F9.1,F10.1)') VAL(1),VAL(3)
+              endif
+            elseif(IR.eq.2)then  ! Resolution to nearest kWhr.
+              if(markdown)then
+                KE=K+22
+                write(outsl(k:ke),'(2(F11.0))') VAL(1),VAL(3)
+              else
+                KE=K+19
+                write(outsl(k:ke),'(F9.0,F10.0)') VAL(1),VAL(3)
+              endif
+            endif
+          endif
+          K=KE
+          if(imtcas.eq.1)then
+            if(IR.eq.1)then      ! Resolution to 100Whr.
+              if(markdown)then
+                KE=K+38
+                write(outsl(k:ke),'(2(F9.1),2(F10.1))') (VAL(IJ),IJ=5,8)
+              else
+                KE=K+32
+                write(outsl(k:ke),'(4(F8.1))') (VAL(IJ),IJ=5,8)
+              endif
+            elseif(IR.eq.2)then  ! Resolution to nearest kWhr.
+              if(markdown)then
+                KE=K+38
+                write(outsl(k:ke),'(2F9.0,2F10.0)') (VAL(IJ),IJ=5,8)
+              else
+                KE=K+32
+                write(outsl(k:ke),'(4(F8.0))') (VAL(IJ),IJ=5,8)
+              endif
+            endif
+          elseif(imtcas.eq.2)then
+            CASVAL=VAL(5)+VAL(6)+VAL(7)+VAL(8)
+            if(IR.eq.1)then      ! Resolution to 100Whr.
+              if(markdown)then
+                KE=K+10
+                write(outsl(k:ke),'(F10.1)') CASVAL
+              else
+                KE=K+9
+                write(outsl(k:ke),'(F9.1)') CASVAL
+              endif
+            elseif(IR.eq.2)then  ! Resolution to nearest kWhr.
+              if(markdown)then
+                KE=K+10
+                write(outsl(k:ke),'(F10.0)') CASVAL
+              else
+                KE=K+9
+                write(outsl(k:ke),'(F9.0)') CASVAL
+              endif
+            endif
+          endif
+          K=KE
+          if(imtaiv.eq.1)then
+            if(IR.eq.1)then      ! Resolution to 100Whr.
+              if(markdown)then
+                KE=K+26
+                write(outsl(k:ke),'(2(F13.1))') VAL(9),VAL(10)
+              else
+                KE=K+16
+                write(outsl(k:ke),'(2(F8.1))') VAL(9),VAL(10)
+              endif
+            elseif(IR.eq.2)then  ! Resolution to nearest kWhr.
+              if(markdown)then
+                KE=K+26
+                write(outsl(k:ke),'(2(F13.0))') VAL(9),VAL(10)
+              else
+                KE=K+16
+                write(outsl(k:ke),'(2(F8.0))') VAL(9),VAL(10)
+              endif
+            endif
+          elseif(imtaiv.eq.2)then
+            if(IR.eq.1)then      ! Resolution to 100Whr.
+              if(markdown)then
+                KE=K+13
+                write(outsl(k:ke),'(F13.1)') VAL(9)
+              else
+                KE=K+9
+                write(outsl(k:ke),'(F9.1)') VAL(9)
+              endif
+            elseif(IR.eq.2)then  ! Resolution to nearest kWhr.
+              if(markdown)then
+                KE=K+13
+                write(outsl(k:ke),'(F13.0)') VAL(9)
+              else
+                KE=K+9
+                write(outsl(k:ke),'(F9.0)') VAL(9)
+              endif
+            endif
+          elseif(imtaiv.eq.3)then
+            if(IR.eq.1)then      ! Resolution to 100Whr.
+              if(markdown)then
+                KE=K+13
+                write(outsl(k:ke),'(F13.1)') VAL(10)
+              else
+                KE=K+9
+                write(outsl(k:ke),'(F9.1)') VAL(10)
+              endif
+            elseif(IR.eq.2)then  ! Resolution to nearest kWhr.
+              if(markdown)then
+                KE=K+13
+                write(outsl(k:ke),'(F13.0)') VAL(10)
+              else
+                KE=K+9
+                write(outsl(k:ke),'(F9.0)') VAL(10)
+              endif
+            endif
+          endif
+          K=KE
+          if(imtctl.eq.1)then
+            if(IR.eq.1)then      ! Resolution to 100Whr.
+              if(markdown)then
+                KE=K+18
+                write(outsl(k:ke),'(2(F9.1))') VAL(11),VAL(12)
+              else
+                KE=K+16
+                write(outsl(k:ke),'(2(F8.1))') VAL(11),VAL(12)
+              endif
+            elseif(IR.eq.2)then  ! Resolution to nearest kWhr.
+              if(markdown)then
+                KE=K+18
+                write(outsl(k:ke),'(2(F9.0))') VAL(11),VAL(12)
+              else
+                KE=K+16
+                write(outsl(k:ke),'(2(F8.0))') VAL(11),VAL(12)
+              endif
+            endif
+          elseif(imtctl.eq.2)then
+            if(IR.eq.1)then      ! Resolution to 100Whr.
+              if(markdown)then
+                KE=K+9
+                write(outsl(k:ke),'(F9.1)') VAL(11)
+              else
+                KE=K+8
+                write(outsl(k:ke),'(F8.1)') VAL(11)
+              endif
+            elseif(IR.eq.2)then  ! Resolution to nearest kWhr.
+              if(markdown)then
+                KE=K+9
+                write(outsl(k:ke),'(F9.0)') VAL(11)
+              else
+                KE=K+8
+                write(outsl(k:ke),'(F8.0)') VAL(11)
+              endif
+            endif
+          elseif(imtctl.eq.3)then
+            if(IR.eq.1)then      ! Resolution to 100Whr.
+              if(markdown)then
+                KE=K+9
+                write(outsl(k:ke),'(F9.1)') VAL(12)
+              else
+                KE=K+8
+                write(outsl(k:ke),'(F8.1)') VAL(12)
+              endif
+            elseif(IR.eq.2)then  ! Resolution to nearest kWhr.
+              if(markdown)then
+                KE=K+9
+                write(outsl(k:ke),'(F9.0)') VAL(12)
+              else
+                KE=K+8
+                write(outsl(k:ke),'(F8.0)') VAL(12)
+              endif
+            endif
+          endif
+          K=KE
+          if(imtsol.eq.1)then
+            if(IR.eq.1)then      ! Resolution to 100Whr.
+              if(markdown)then
+                KE=K+18
+                write(outsl(k:ke),'(2(F9.1))') VAL(13),VAL(14)
+              else
+                KE=K+16
+                write(outsl(k:ke),'(2(F8.1))') VAL(13),VAL(14)
+              endif
+            elseif(IR.eq.2)then  ! Resolution to nearest kWhr.
+              if(markdown)then
+                KE=K+18
+                write(outsl(k:ke),'(2(F9.0))') VAL(13),VAL(14)
+              else
+                KE=K+16
+                write(outsl(k:ke),'(2(F8.0))') VAL(13),VAL(14)
+              endif
+            endif
+          elseif(imtsol.eq.2)then
+            if(IR.eq.1)then      ! Resolution to 100Whr.
+              if(markdown)then
+                KE=K+9
+                write(outsl(k:ke),'(F9.1)') VAL(13)
+              else
+                KE=K+8
+                write(outsl(k:ke),'(F8.1)') VAL(13)
+              endif
+            elseif(IR.eq.2)then  ! Resolution to nearest kWhr.
+              if(markdown)then
+                KE=K+9
+                write(outsl(k:ke),'(F9.0)') VAL(13)
+              else
+                KE=K+8
+                write(outsl(k:ke),'(F8.0)') VAL(13)
+              endif
+            endif
+          elseif(imtsol.eq.3)then
+            if(IR.eq.1)then      ! Resolution to 100Whr.
+              if(markdown)then
+                KE=K+9
+                write(outsl(k:ke),'(F9.1)') VAL(14)
+              else
+                KE=K+8
+                write(outsl(k:ke),'(F8.1)') VAL(14)
+              endif
+            elseif(IR.eq.2)then  ! Resolution to nearest kWhr.
+              if(markdown)then
+                KE=K+9
+                write(outsl(k:ke),'(F9.0)') VAL(14)
+              else
+                KE=K+8
+                write(outsl(k:ke),'(F8.0)') VAL(14)
+              endif
+            endif
+          endif
+          K=KE
+          if(dmdsok)then
+            if(markdown)then
+            else
+            endif
+          endif
+          call eddisp(itru,outsl)  ! Display the month's data.
+          DO IJK=1,looplimit       ! Update TVAL.
             TVAL(IJK,IMNTH)=TVAL(IJK,IMNTH)+VAL(IJK)
             VAL(IJK)=0.0
           ENDDO
@@ -1404,40 +1796,164 @@ C Dump this month's statistics.
   660 CONTINUE
 
 C Dump 'all-zone' statistics if more than one zone.
+      DO 681 IMNTH=IOM1,IOM2
+        if (NZ.GT.1) then
+          IF(IMNTH.EQ.IOM1)THEN   ! Include zone name.
+            if(markdown)then
+              write(outsl,'(2a,2x)') ' All zones    ',
+     &          NMTHNM(IMNTH)
+              K=lnblnk(outsl)+3      ! initial value for next tranche
+            else
+              write(outsl,'(2a,1x)') ' All zones    ',
+     &          NMTHNM(IMNTH)
+              K=lnblnk(outsl)+2      ! initial value for next tranche
+            endif
+          else
+            if(markdown)then
+              write(outsl,'(2a,2x)') '              ',NMTHNM(IMNTH)
+              K=lnblnk(outsl)+3      ! initial value for next tranche
+            else
+              write(outsl,'(14X,a3,1x)') NMTHNM(IMNTH)
+              K=lnblnk(outsl)+2      ! initial value for next tranche
+            endif
+          endif
+          if(imshtr.eq.1)then    ! Surface heat transfer 4 columns.
+            if(markdown)then
+              KE=K+44
+              write(outsl(k:ke),'(4(F11.0))') (TVAL(IJK,IMNTH),IJK=1,4)
+            else
+              KE=K+32
+              write(outsl(k:ke),'(4(F8.0))') (TVAL(IJK,IMNTH),IJK=1,4)
+            endif
+          elseif(imshtr.eq.2)then
+            if(markdown)then
+              KE=K+22
+              write(outsl(k:ke),'(2(F11.0))') TVAL(1,IMNTH),
+     &          TVAL(3,IMNTH)
+            else
+              KE=K+19
+              write(outsl(k:ke),'(F9.0,F10.0)') TVAL(1,IMNTH),
+     &          TVAL(3,IMNTH)
+            endif
+          endif
+          K=KE
+          if(imtcas.eq.1)then
+            if(markdown)then
+              KE=K+38
+              write(outsl(k:ke),'(2F9.0,2F10.0)') 
+     &          (TVAL(IJK,IMNTH),IJK=5,8)
+            else
+              KE=K+32
+              write(outsl(k:ke),'(4(F8.0))') 
+     &          (TVAL(IJK,IMNTH),IJK=5,8)
+            endif
+          elseif(imtcas.eq.2)then
+            CASVAL=TVAL(5,IMNTH)+TVAL(6,IMNTH)+TVAL(7,IMNTH)+
+     &             TVAL(8,IMNTH)
+            if(markdown)then
+              KE=K+10
+              write(outsl(k:ke),'(F10.0)') CASVAL
+            else
+              KE=K+9
+              write(outsl(k:ke),'(F9.0)') CASVAL
+            endif
+          endif
+          K=KE
+          if(imtaiv.eq.1)then
+            if(markdown)then
+              KE=K+26
+              write(outsl(k:ke),'(2(F13.0))') TVAL(9,IMNTH),
+     &          TVAL(10,IMNTH)
+            else
+              KE=K+16
+              write(outsl(k:ke),'(2(F8.0))') TVAL(9,IMNTH),
+     &          TVAL(10,IMNTH)
+            endif
+          elseif(imtaiv.eq.2)then
+            if(markdown)then
+              KE=K+13
+              write(outsl(k:ke),'(F13.0)') TVAL(9,IMNTH)
+            else
+              KE=K+9
+              write(outsl(k:ke),'(F9.0)') TVAL(9,IMNTH)
+            endif
+          elseif(imtaiv.eq.3)then
+            if(markdown)then
+              KE=K+13
+              write(outsl(k:ke),'(F13.0)') TVAL(10,IMNTH)
+            else
+              KE=K+9
+              write(outsl(k:ke),'(F9.0)') TVAL(10,IMNTH)
+            endif
+          endif
+          K=KE
+          if(imtctl.eq.1)then
+            if(markdown)then
+              KE=K+18
+              write(outsl(k:ke),'(2(F9.0))') TVAL(11,IMNTH),
+     &          TVAL(12,IMNTH)
+            else
+              KE=K+16
+              write(outsl(k:ke),'(2(F8.0))') TVAL(11,IMNTH),
+     &          TVAL(12,IMNTH)
+            endif
+          elseif(imtctl.eq.2)then
+            if(markdown)then
+              KE=K+9
+              write(outsl(k:ke),'(F9.0)') TVAL(11,IMNTH)
+            else
+              KE=K+8
+              write(outsl(k:ke),'(F8.0)') TVAL(11,IMNTH)
+            endif
+          elseif(imtctl.eq.3)then
+            if(markdown)then
+              KE=K+9
+              write(outsl(k:ke),'(F9.0)') TVAL(12,IMNTH)
+            else
+              KE=K+8
+              write(outsl(k:ke),'(F8.0)') TVAL(12,IMNTH)
+            endif
+          endif
+          K=KE
+          if(imtsol.eq.1)then
+            if(markdown)then
+              KE=K+18
+              write(outsl(k:ke),'(2(F9.0))') TVAL(13,IMNTH),
+     &          TVAL(14,IMNTH)
+            else
+              KE=K+16
+              write(outsl(k:ke),'(2(F8.0))') TVAL(13,IMNTH),
+     &          TVAL(14,IMNTH)
+            endif
+          elseif(imtsol.eq.2)then
+            if(markdown)then
+              KE=K+9
+              write(outsl(k:ke),'(F9.0)') TVAL(13,IMNTH)
+            else
+              KE=K+8
+              write(outsl(k:ke),'(F8.0)') TVAL(13,IMNTH)
+            endif
+          elseif(imtsol.eq.3)then
+            if(markdown)then
+              KE=K+9
+              write(outsl(k:ke),'(F9.0)') TVAL(14,IMNTH)
+            else
+              KE=K+8
+              write(outsl(k:ke),'(F8.0)') TVAL(14,IMNTH)
+            endif
+          endif
+C          write(6,'(2i4)') K,KE
+C          write(6,'(a)') outsl(1:lnblnk(outsl))
+          K=KE
+          call eddisp(itru,outsl)   ! Dump the all zones data
+        endif
+  681 continue
       if(dmdsok)then
         looplimit=15
       else
         looplimit=14
       endif
-      DO 680 IMNTH=IOM1,IOM2
-        if (NZ.GT.1) then
-          IF(IMNTH.EQ.IOM1)THEN
-            if(markdown)then
-              write(outsl,'(2a,2x,8(F10.0),7(F9.0))')' All zones    ',
-     &          NMTHNM(IMNTH),(TVAL(IJK,IMNTH),IJK=1,8),
-     &          (TVAL(IJK,IMNTH),IJK=9,looplimit)
-              call eddisp(itru,outsl)
-            else
-              write(outsl,705)NMTHNM(IMNTH),
-     &          (TVAL(IJK,IMNTH),IJK=1,looplimit)
-  705         format(' All zones    ',A3,1X,15(F8.0))
-              call edisp(itru,' ')
-              call eddisp(itru,outsl)
-            endif
-          ELSE
-            if(markdown)then
-              write(outsl,'(2a,2x,8(F10.0),7(F9.0))')'              ',
-     &          NMTHNM(IMNTH),(TVAL(IJK,IMNTH),IJK=1,8),
-     &          (TVAL(IJK,IMNTH),IJK=9,looplimit)
-              call eddisp(itru,outsl)
-            else
-              write(outsl,706)NMTHNM(IMNTH),
-     &          (TVAL(IJK,IMNTH),IJK=1,looplimit)
-  706         format(14X,A3,1X,15(F8.0))
-              call eddisp(itru,outsl)
-            endif
-          ENDIF
-        endif
+      DO 680 IMNTH=IOM1,IOM2   !  Detect greatest magnitude.
         biggest=0.0
         DO IJK=1,looplimit
           VAL(IJK)=VAL(IJK)+TVAL(IJK,IMNTH)
@@ -1446,48 +1962,381 @@ C Dump 'all-zone' statistics if more than one zone.
   680 CONTINUE
 
 C Dump the annual totals if run was for more than one month.
-
-C Find if any of the annual totals is large enough to require 10 digits
-C otherwise write with 8 or 9 digits.
-      if(dmdsok)then
-        looplimit=15
-      else
-        looplimit=14
-      endif
       if (IOM2.GT.IOM1) then
-        if(biggest.gt.999999.0)then
-          if(markdown)then
-            write(outsl,'(A,2x,8(F12.0),7(F10.0))') ' Annual   ',
-     &        (VAL(IJK),IJK=1,8),(VAL(IJK),IJK=9,looplimit)
-          else
-            write(outsl,'(A,15(F10.0))') ' Annual   ',
-     &        (VAL(IJK),IJK=1,looplimit)
-          endif
-        elseif(biggest.gt.99999.0.and.biggest.lt.999999.0)then
-          if(markdown)then
-            write(outsl,'(A,2x,8(F11.0),7(F9.0))')' Annual      ',
-     &        (VAL(IJK),IJK=1,8),(VAL(IJK),IJK=9,looplimit)
-          else
-            write(outsl,'(A,15(F9.0))')' Annual      ',
-     &        (VAL(IJK),IJK=1,looplimit)
-          endif
+        if(markdown)then
+          write(outsl,'(a,2x)') ' Annual             '
+          K=20      ! initial value for next tranche
         else
-          if(markdown)then
-            write(outsl,'(A,2x,8(F10.0),7(F9.0))')' Annual          ',
-     &        (VAL(IJK),IJK=1,8),(VAL(IJK),IJK=9,looplimit)
-          else
-            write(outsl,'(A,15(F8.0))')' Annual           ',
-     &        (VAL(IJK),IJK=1,looplimit)
-          endif
+          write(outsl,'(a,1x)') ' Annual            '
+          K=19      ! initial value for next tranche
         endif
-        if(.NOT.markdown) call edisp(itru,' ')
-        call eddisp(itru,outsl)
+
+        if(biggest.gt.999999.0)then
+          if(imshtr.eq.1)then    ! Surface heat transfer 4 columns
+            if(markdown)then
+              KE=K+48
+              write(outsl(k:ke),'(4(F12.0))') (VAL(IJK),IJK=1,4)
+            else
+              KE=K+40
+              write(outsl(k:ke),'(4(F10.0))') (VAL(IJK),IJK=1,4)
+            endif
+          elseif(imshtr.eq.2)then
+            if(markdown)then
+              KE=K+24
+              write(outsl(k:ke),'(2(F12.0))') VAL(1),VAL(3)
+            else
+              KE=K+19
+              write(outsl(k:ke),'(F9.0,F10.0)') VAL(1),VAL(3)
+            endif
+          endif
+          K=KE
+          if(imtcas.eq.1)then
+            if(markdown)then
+              KE=K+38
+              write(outsl(k:ke),'(2F9.0,2F10.0)') 
+     &          (VAL(IJK),IJK=5,8)
+            else
+              KE=K+32
+              write(outsl(k:ke),'(4(F8.0))') 
+     &          (VAL(IJK),IJK=5,8)
+            endif
+          elseif(imtcas.eq.2)then
+            CASVAL=VAL(5)+VAL(6)+VAL(7)+VAL(8)
+            if(markdown)then
+              KE=K+10
+              write(outsl(k:ke),'(F10.0)') CASVAL
+            else
+              KE=K+9
+              write(outsl(k:ke),'(F9.0)') CASVAL
+            endif
+          endif
+          K=KE
+          if(imtaiv.eq.1)then
+            if(markdown)then
+              KE=K+26
+              write(outsl(k:ke),'(2(F13.0))') VAL(9),VAL(10)
+            else
+              KE=K+16
+              write(outsl(k:ke),'(2(F8.0))') VAL(9),VAL(10)
+            endif
+          elseif(imtaiv.eq.2)then
+            if(markdown)then
+              KE=K+13
+              write(outsl(k:ke),'(F13.0)') VAL(9)
+            else
+              KE=K+9
+              write(outsl(k:ke),'(F9.0)') VAL(9)
+            endif
+          elseif(imtaiv.eq.3)then
+            if(markdown)then
+              KE=K+13
+              write(outsl(k:ke),'(F13.0)') VAL(10)
+            else
+              KE=K+9
+              write(outsl(k:ke),'(F9.0)') VAL(10)
+            endif
+          endif
+          K=KE
+          if(imtctl.eq.1)then
+            if(markdown)then
+              KE=K+18
+              write(outsl(k:ke),'(2(F9.0))') VAL(11),VAL(12)
+            else
+              KE=K+16
+              write(outsl(k:ke),'(2(F8.0))') VAL(11),VAL(12)
+            endif
+          elseif(imtctl.eq.2)then
+            if(markdown)then
+              KE=K+9
+              write(outsl(k:ke),'(F9.0)') VAL(11)
+            else
+              KE=K+8
+              write(outsl(k:ke),'(F8.0)') VAL(11)
+            endif
+          elseif(imtctl.eq.3)then
+            if(markdown)then
+              KE=K+9
+              write(outsl(k:ke),'(F9.0)') VAL(12)
+            else
+              KE=K+8
+              write(outsl(k:ke),'(F8.0)') VAL(12)
+            endif
+          endif
+          K=KE
+          if(imtsol.eq.1)then
+            if(markdown)then
+              KE=K+18
+              write(outsl(k:ke),'(2(F9.0))') VAL(13),VAL(14)
+            else
+              KE=K+16
+              write(outsl(k:ke),'(2(F8.0))') VAL(13),VAL(14)
+            endif
+          elseif(imtsol.eq.2)then
+            if(markdown)then
+              KE=K+9
+              write(outsl(k:ke),'(F9.0)') VAL(13)
+            else
+              KE=K+8
+              write(outsl(k:ke),'(F8.0)') VAL(13)
+            endif
+          elseif(imtsol.eq.3)then
+            if(markdown)then
+              KE=K+9
+              write(outsl(k:ke),'(F9.0)') VAL(14)
+            else
+              KE=K+8
+              write(outsl(k:ke),'(F8.0)') VAL(14)
+            endif
+          endif
+          K=KE
+          call eddisp(itru,outsl)   ! Dump the all zones data
+        elseif(biggest.gt.99999.0.and.biggest.lt.999999.0)then
+          if(imshtr.eq.1)then       ! Surface heat transfer 4 columns
+            if(markdown)then
+              KE=K+44
+              write(outsl(k:ke),'(4(F11.0))') (VAL(IJK),IJK=1,4)
+            else
+              KE=K+32
+              write(outsl(k:ke),'(4(F8.0))') (VAL(IJK),IJK=1,4)
+            endif
+          elseif(imshtr.eq.2)then
+            if(markdown)then
+              KE=K+22
+              write(outsl(k:ke),'(2(F11.0))') VAL(1),VAL(3)
+            else
+              KE=K+19
+              write(outsl(k:ke),'(F9.0,F10.0)') VAL(1),VAL(3)
+            endif
+          endif
+          K=KE
+          if(imtcas.eq.1)then
+            if(markdown)then
+              KE=K+38
+              write(outsl(k:ke),'(2F9.0,2F10.0)') 
+     &          (VAL(IJK),IJK=5,8)
+            else
+              KE=K+32
+              write(outsl(k:ke),'(4(F8.0))') 
+     &          (VAL(IJK),IJK=5,8)
+            endif
+          elseif(imtcas.eq.2)then
+            CASVAL=VAL(5)+VAL(6)+VAL(7)+VAL(8)
+            if(markdown)then
+              KE=K+10
+              write(outsl(k:ke),'(F10.0)') CASVAL
+            else
+              KE=K+9
+              write(outsl(k:ke),'(F9.0)') CASVAL
+            endif
+          endif
+          K=KE
+          if(imtaiv.eq.1)then
+            if(markdown)then
+              KE=K+26
+              write(outsl(k:ke),'(2(F13.0))') VAL(9),VAL(10)
+            else
+              KE=K+16
+              write(outsl(k:ke),'(2(F8.0))') VAL(9),VAL(10)
+            endif
+          elseif(imtaiv.eq.2)then
+            if(markdown)then
+              KE=K+13
+              write(outsl(k:ke),'(F13.0)') VAL(9)
+            else
+              KE=K+9
+              write(outsl(k:ke),'(F9.0)') VAL(9)
+            endif
+          elseif(imtaiv.eq.3)then
+            if(markdown)then
+              KE=K+13
+              write(outsl(k:ke),'(F13.0)') VAL(10)
+            else
+              KE=K+9
+              write(outsl(k:ke),'(F9.0)') VAL(10)
+            endif
+          endif
+          K=KE
+          if(imtctl.eq.1)then
+            if(markdown)then
+              KE=K+18
+              write(outsl(k:ke),'(2(F9.0))') VAL(11),VAL(12)
+            else
+              KE=K+16
+              write(outsl(k:ke),'(2(F8.0))') VAL(11),VAL(12)
+            endif
+          elseif(imtctl.eq.2)then
+            if(markdown)then
+              KE=K+9
+              write(outsl(k:ke),'(F9.0)') VAL(11)
+            else
+              KE=K+8
+              write(outsl(k:ke),'(F8.0)') VAL(11)
+            endif
+          elseif(imtctl.eq.3)then
+            if(markdown)then
+              KE=K+9
+              write(outsl(k:ke),'(F9.0)') VAL(12)
+            else
+              KE=K+8
+              write(outsl(k:ke),'(F8.0)') VAL(12)
+            endif
+          endif
+C          write(6,'(2i4)') K,KE
+C          write(6,'(a)') outsl(1:lnblnk(outsl))
+          K=KE
+          if(imtsol.eq.1)then
+            if(markdown)then
+              KE=K+18
+              write(outsl(k:ke),'(2(F9.0))') VAL(13),VAL(14)
+            else
+              KE=K+16
+              write(outsl(k:ke),'(2(F8.0))') VAL(13),VAL(14)
+            endif
+          elseif(imtsol.eq.2)then
+            if(markdown)then
+              KE=K+9
+              write(outsl(k:ke),'(F9.0)') VAL(13)
+            else
+              KE=K+8
+              write(outsl(k:ke),'(F8.0)') VAL(13)
+            endif
+          elseif(imtsol.eq.3)then
+            if(markdown)then
+              KE=K+9
+              write(outsl(k:ke),'(F9.0)') VAL(14)
+            else
+              KE=K+8
+              write(outsl(k:ke),'(F8.0)') VAL(14)
+            endif
+          endif
+          K=KE
+          call eddisp(itru,outsl)   ! Dump the all zones data
+        else                        ! Same spacing as for All zones
+          if(imshtr.eq.1)then       ! Surface heat transfer 4 columns
+            if(markdown)then
+              KE=K+44
+              write(outsl(k:ke),'(4(F11.0))') (VAL(IJK),IJK=1,4)
+            else
+              KE=K+32
+              write(outsl(k:ke),'(4(F8.0))') (VAL(IJK),IJK=1,4)
+            endif
+          elseif(imshtr.eq.2)then    ! Surface heat transfer @ facade
+            if(markdown)then
+              KE=K+22
+              write(outsl(k:ke),'(2(F11.0))') VAL(1),VAL(3)
+            else
+              KE=K+19
+              write(outsl(k:ke),'(F9.0,F10.0)') VAL(1),VAL(3)
+            endif
+          endif
+          K=KE
+          if(imtcas.eq.1)then
+            if(markdown)then
+              KE=K+38
+              write(outsl(k:ke),'(2F9.0,2F10.0)') 
+     &          (VAL(IJK),IJK=5,8)
+            else
+              KE=K+32
+              write(outsl(k:ke),'(4(F8.0))') 
+     &          (VAL(IJK),IJK=5,8)
+            endif
+          elseif(imtcas.eq.2)then
+            CASVAL=VAL(5)+VAL(6)+VAL(7)+VAL(8)
+            if(markdown)then
+              KE=K+10
+              write(outsl(k:ke),'(F10.0)') CASVAL
+            else
+              KE=K+9
+              write(outsl(k:ke),'(F9.0)') CASVAL
+            endif
+          endif
+          K=KE
+          if(imtaiv.eq.1)then
+            if(markdown)then
+              KE=K+26
+              write(outsl(k:ke),'(2(F13.0))') VAL(9),VAL(10)
+            else
+              KE=K+16
+              write(outsl(k:ke),'(2(F8.0))') VAL(9),VAL(10)
+            endif
+          elseif(imtaiv.eq.2)then
+            if(markdown)then
+              KE=K+13
+              write(outsl(k:ke),'(F13.0)') VAL(9)
+            else
+              KE=K+9
+              write(outsl(k:ke),'(F9.0)') VAL(9)
+            endif
+          elseif(imtaiv.eq.3)then
+            if(markdown)then
+              KE=K+13
+              write(outsl(k:ke),'(F13.0)') VAL(10)
+            else
+              KE=K+9
+              write(outsl(k:ke),'(F9.0)') VAL(10)
+            endif
+          endif
+          K=KE
+          if(imtctl.eq.1)then
+            if(markdown)then
+              KE=K+18
+              write(outsl(k:ke),'(2(F9.0))') VAL(11),VAL(12)
+            else
+              KE=K+16
+              write(outsl(k:ke),'(2(F8.0))') VAL(11),VAL(12)
+            endif
+          elseif(imtctl.eq.2)then
+            if(markdown)then
+              KE=K+9
+              write(outsl(k:ke),'(F9.0)') VAL(11)
+            else
+              KE=K+8
+              write(outsl(k:ke),'(F8.0)') VAL(11)
+            endif
+          elseif(imtctl.eq.3)then
+            if(markdown)then
+              KE=K+9
+              write(outsl(k:ke),'(F9.0)') VAL(12)
+            else
+              KE=K+8
+              write(outsl(k:ke),'(F8.0)') VAL(12)
+            endif
+          endif
+          K=KE
+          if(imtsol.eq.1)then
+            if(markdown)then
+              KE=K+18
+              write(outsl(k:ke),'(2(F9.0))') VAL(13),VAL(14)
+            else
+              KE=K+16
+              write(outsl(k:ke),'(2(F8.0))') VAL(13),VAL(14)
+            endif
+          elseif(imtsol.eq.2)then
+            if(markdown)then
+              KE=K+9
+              write(outsl(k:ke),'(F9.0)') VAL(13)
+            else
+              KE=K+8
+              write(outsl(k:ke),'(F8.0)') VAL(13)
+            endif
+          elseif(imtsol.eq.3)then
+            if(markdown)then
+              KE=K+9
+              write(outsl(k:ke),'(F9.0)') VAL(14)
+            else
+              KE=K+8
+              write(outsl(k:ke),'(F8.0)') VAL(14)
+            endif
+          endif
+          K=KE
+          call eddisp(itru,outsl)   ! Dump the all zones data
+        endif
       endif
-      if(markdown)then
-            write(outsl,'(3a)')
-     &'----------  -----  ---------- ---------- ---------- ',
-     &'---------- -------- -------- --------  --------  -------- ',
-     &'-------- -------  -------  ------- --------'
+
+      if(markdown)then   ! add the bottom ----- line for markdown
+        write(outsl,'(7a)') ZPER(1)(1:imzperl),SHTR(1)(1:imshtrl),
+     &    TCAS(1)(1:imtcasl),TAIV(1)(1:imtaivl),
+     &    TCTL(1)(1:imtctll),TSOL(1)(1:imtsoll),TDMD(1)(1:imdmdsl)
         call edisp(itru,outsl)
       endif
       call edisp(itru,' ')

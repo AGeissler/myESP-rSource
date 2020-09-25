@@ -96,7 +96,7 @@ December  -4.2@9  Dec  12.7@23 Dec
 *item
 *name   Kew 1967
 *aide   UK Example Year
-*dbfl   /usr/opt/esp-r/climate/kew67
+*dbfl   /opt/esp-r/climate/kew67
 *avail  OFFLINE
 *winter 9  1  15  1
 *spring 6  3  12  3

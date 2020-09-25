@@ -2226,7 +2226,7 @@ C Get dot product.
       end
 
 C ******************** CLOSE3D ********************
-C CCalculates the minimum distance between two lines in 3D return
+C Calculates the minimum distance between two lines in 3D return
 C the distance and closest points.
 C PA,VA define line A (point and vector), SA is parametric variable at closest point
 C PB,VB define line B (point and vector), SB is parametric variable at closest point
@@ -7904,13 +7904,14 @@ C        call cissue(cmd,ifail)
       endif
       end
 
-C *********** isinstalled
+C ******************** isinstalled ********************
 C Returns status=.TRUE. if application 'name' found.
 C Test if application [name] is in the user's path by
 C issuing a 'which' command and piping the result to a
 C temporary file, which is then read. If there are
 C characters in the file /tmp/foundit then we assume
 C the application exists. Only works for Linux & OSX.
+
       subroutine isinstalled(name,status)
       integer lnblnk  ! function definition
       common/FILEP/IFIL
@@ -7951,8 +7952,8 @@ C on it. If 'which' did not find anything the return will be non-zero.
           CALL ERPFREE(IUNIT,ISTAT)
           return
         endif
-        doit='ls -l /tmp/foundit'          
-cx        call runit(doit,tmode)
+        doit='ls -l /tmp/foundit >/dev/null'          
+        call runit(doit,tmode)
         INQUIRE (FILE=hold32(1:ltf),EXIST=XST)
         IF (XST) THEN
           OPEN (IUNIT,FILE=hold32(1:ltf),ACCESS='SEQUENTIAL',

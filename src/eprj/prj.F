@@ -23,7 +23,7 @@ C FNCNGR     - changes the name of file ORIGNAM by appending APP
 
 
 C ******************** prj ********************
-C Main program.
+C Main program for the ESP-r Project Manager.
 
       program prj
       USE START_UP
@@ -470,7 +470,7 @@ C and dialog.
 
 C Find the current ESP-r version number and add it to application title.
       call ESPrVersionNum(cVnum)
-      write(pagestitle,'(2a)') 'Project Manager of ESP-r ',
+      write(pagestitle,'(2a)') 'Project Manager, ESP-r ',
      &  cVnum(1:lnblnk(cVnum))
 
       lntitle=lnblnk(pagestitle)

@@ -13,7 +13,7 @@ C warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
 C PURPOSE. See the GNU General Public License for more
 C details.
 
-C This file contains the following .subroutines:
+C This file contains the following subroutines.
 C  MOGRAF
 C  MOWLIN
 C  MOGHED

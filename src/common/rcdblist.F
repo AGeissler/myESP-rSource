@@ -1,6 +1,6 @@
 C This file is part of the ESP-r system.
 C Copyright Energy Systems Research Unit, University of
-C Strathclyde, Glasgow Scotland, 2001.
+C Strathclyde, Glasgow Scotland, 2001-.
 
 C ESP-r is free software.  You can redistribute it and/or
 C modify it under the terms of the GNU General Public
@@ -13,23 +13,20 @@ C warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
 C PURPOSE. See the GNU General Public License for more
 C details.
 
-C You should have received a copy of the GNU General Public
-C License along with ESP-r. If not, write to the Free
-C Software Foundation, Inc., 59 Temple Place, Suite 330,
-C Boston, MA 02111-1307 USA.
 
-C rcdblist.F includes:
-C  rdblist - scan list of weather databases and present selection to user.
-C  matchcdb - scan list of weather databases for name and return database.
-C  scancdblist - scan list for documentation and typical periods
-C  itemclimatelist - parse and extract information about one entry
-C     in climatelist file.
+C This file includes the following subroutines.
+C rdblist     - scan list of weather databases and present selection to user.
+C matchcdb    - scan list of weather databases for name and return database.
+C scancdblist - scan list for documentation and typical periods.
+C itemclimatelist - parse and extract information about one entry in
+C                   climatelist file.
 
-C NOTE: currently up to 124 climate name references are supported. If
-C the climatelist file exceeds this the array name should be revised.
+C NOTE: currently up to 124 weather file references are supported. If
+C the climatelist file exceeds this, the array name should be revised.
 
-C ********* rdblist
-C Scan list of weather databases and present selection to user.
+C ******************** rdblist ********************
+C Scan list of available weather files and present to user.
+
       subroutine rdblist(idblfil,clmdb,parent,actreturn,ier)
 #include "epara.h"
 #include "esprdbfile.h"
@@ -40,9 +37,8 @@ C Manual inclusion of a parameter from building.h
       parameter (MSPS=30)
       parameter (MIPVA=MSPS)
 
-#include "seasons.h"
-C seasons.h provides typper and typsea
-      
+#include "seasons.h"  
+
       integer lnblnk  ! function definition
 
 C Parameters
@@ -109,7 +105,7 @@ C file unit number then reset it to something safe.
 C Read the header and see if '*CLIMATE_LIST' is a string.
       CALL STRIPC(idblfil,OUTSTR,0,ND,0,'header',IER)
       if(outstr(1:13).ne.'*CLIMATE_LIST')then
-        call edisp(iuout,' Not a list of weather databases... ')
+        call edisp(iuout,'Not a list of weather files!')
         ier=1
         return
       endif
@@ -175,9 +171,9 @@ C If a long list include page facility text.
       mitem(M+2)=  '< other weather file          '
       mitem(M+3)=  '* empty weather file          '
       mitem(M+4)=  '? help                        '
-      mitem(M+5)=  '- exit                        '
+      mitem(M+5)=  '- exit menu                   '
 
-      CALL EMENU('Available weather files',mitem,NCO,ICO)
+      CALL EMENU('Available weather files:',mitem,NCO,ICO)
 
 C Exit menu.
       IF(ICO.EQ.NCO)THEN
@@ -205,9 +201,9 @@ C User supplied file. Use file browser with the GTK version.
       ELSEIF(ICO.EQ.(NCO-3))THEN
         clmdb=' '
         llclmdb=' '
-        h(1)='Enter a standard ESP-r weather file name as, for'
-        h(2)='example, located in /opt/esp-r/climate or another'
-        h(3)='folder of your choice.'
+        h(1)='Enter an ESP-r weather file as located in the'
+        h(2)='standard ESP-r folder (/opt/esp-r/climate) or'
+        h(3)='another folder of your choice.'
  289    llt=lnblnk(llclmdb)
         iglib = igraphiclib()  ! find out if X11 or GTK or text support only.
         if(iglib.eq.1.or.iglib.eq.3)then
@@ -278,10 +274,10 @@ C actreturn 'u' to start clm module.
             elseif(actreturn.eq.'f')then
               if(parent.eq.'p')then
                 CALL ERPFREE(idblfil,ISTAT)
-                write(ieout,'(a)') 'Climate list failed during scan.'
+                write(ieout,'(a)') 'Climate list scan failed!'
               elseif(parent.eq.'c')then
                 CALL ERPFREE(idblfil,ISTAT)
-                write(ieout,'(a)') 'Climate list failed during scan.'
+                write(ieout,'(a)') 'Climate list scan failed!'
               endif
               call pauses(3)   ! pause for 3 seconds then abort program.
               iecount=iecount+1
@@ -305,8 +301,9 @@ C actreturn 'u' to start clm module.
 
       end
 
-C ********* matchcdb
-C Scan list of weather files for name and return database.
+C ******************** matchcdb ********************
+C Scan list of weather files.
+
       subroutine matchcdb(idblfil,alias,clmdb,ier)
 #include "espriou.h"
       
@@ -424,10 +421,11 @@ C Get info for db matching the alias.
 
       end
 
-C ********* scancdblist
+C ******************** scancdblist ********************
 C Scan climatelist file for documentation and typical periods
 C which might match the current database. Should be called if
 C the climate file was not selected via scan of climatelist.
+
       subroutine scancdblist(idblfil,clmdb,parent,ok,ier)
 #include "espriou.h"
       
@@ -515,7 +513,7 @@ C Parse this item of the climatelist file.
 
       end
 
-C ******* itemclimatelist(idbfil,act,parent,actreturn,clmdb,ier)
+C ******************** itemclimatelist ********************
 C Parse and extract information about one entry in climatelist file.
 C It is assumed that the climatelist file is already open on idbfil.
 C Act - if 's' then itemclimatelist has been called from scancdblist
@@ -529,6 +527,7 @@ C  if 'u' then jump to 'useit' part of calling subroutine
 C  if 's' then jump to 'selectedit' part of the calling subroutine
 C         (does not start the clm module)
 C  if 'e' then found 'end' so close unit number (92)
+
       subroutine itemclimatelist(idblfil,act,parent,actreturn,clmdb,ier)
 
 C Manual inclusion of a parameter from building.h
@@ -537,8 +536,7 @@ C Manual inclusion of a parameter from building.h
       parameter (MIPVA=MSPS)
 
 #include "seasons.h"
-C seasons.h provides typper and typsea
-      
+
       integer lnblnk  ! function definition
       integer iCountWords
 
@@ -549,11 +547,11 @@ C Parameters passed.
       common/pophelp/h(60)
 
 C Strings associated with one climatelist item.
-C clmlnam (char*42) is the selection list string
-C clmlaid is aide (char*72) memoire for list item
-C clmldbfile (char*144) is the weather file (with path info)
-C clmlavail (char*10) is either ONLINE or OFFLINE
-C clmlhelp (char*72) is array of help strings
+C clmlnam    - the selection list string
+C clmlaid    - aide memoire for list item
+C clmldbfile - the weather file (with path info)
+C clmlavail  - either ONLINE or OFFLINE
+C clmlhelp   - array of help strings
       common/clmltext/clmlnam,clmlaid,clmldbfile,clmlavail,clmlhelp(60)
       character clmlnam*42,clmlaid*72,clmldbfile*144,clmlavail*10
       character clmlhelp*72
@@ -786,9 +784,7 @@ C for the line used in EASKOK.
  1546     continue
           if(clmlavail(1:7).eq.'OFFLINE')then
             if(parent(1:1).eq.'c')then
-              call usrmsg(
-     & 'The selected weather file is not `ONLINE` and so you will have',
-     & 'to ask your systems administrator to bring it on line. ','W')
+              call usrmsg('Weather file is offline!',' ','W')
               CALL EASKAB(' ','Options:','Exit clm',
      &          'Select another from list',IW,1)
               if(IW.eq.2)then
@@ -801,11 +797,9 @@ C for the line used in EASKOK.
                 return
               endif
             elseif(parent(1:1).eq.'p')then
-              call usrmsg(
-     & 'The selected weather file is not `ONLINE` and so you will have',
-     & 'to ask your systems administrator to bring it on line. ','W')
-              CALL EASKAB(' ','Options:','continue with other tasks',
-     &          'Select another from list',IW,1)
+              call usrmsg('Weather file offline!',' ','W')
+              CALL EASKAB(' ','Options:','continue',
+     &          'select another',IW,1)
               if(IW.eq.2)then
                 clmdb='UNKNOWN'
                 actreturn='m'
@@ -842,16 +836,11 @@ C for the line used in EASKOK.
           endif
         elseif(act.eq.'s')then
           if(clmlavail(1:7).eq.'OFFLINE')then
-            call usrmsg(
-     &      'Weather file not online; ask your ESP-r',
-     &      'administrator to change its status.','W')
+            call usrmsg('Weather file offline!',' ','W')
             clmdb='UNKNOWN'
             actreturn='m'
             return
           elseif(clmlavail(1:6).eq.'ONLINE')then
-C            call edisp(iuout,
-C     &        'found matching seasons & asessment periods for')
-C            call edisp248(iuout,clmdb,100)
             actreturn='e'
             return
           endif

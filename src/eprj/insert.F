@@ -46,6 +46,8 @@ C << what about including common zndata in this manipulation? >>
 #include "geometry.h"
 #include "sbem.h"
 #include "prj3dv.h"
+#include "esprdbfile.h"
+#include "material.h"
       
       integer lnblnk  ! function definition
       integer iCountWords
@@ -822,9 +824,7 @@ C Transform all surface vertices.
             if(ier.ne.0)goto 152
           endif
           DO 153 I=1,NVER1
-            X1(I)=X1(I)+VALX
-            Y1(I)=Y1(I)+VALY
-            Z1(I)=Z1(I)+VALZ
+            X1(I)=X1(I)+VALX; Y1(I)=Y1(I)+VALY; Z1(I)=Z1(I)+VALZ
  153      continue
         elseif(IRT.eq.3)then
 
@@ -840,15 +840,11 @@ C Rotate around a point in the surface.
      &       -359.0,'W',359.0,'W',0.0,'rotation',IER,nbhelp)
           endif
           if(ANGR.LT.-.01.OR.ANGR.GT..01)then
-            PI = 4.0 * ATAN(1.0)
-            A=-ANGR*PI/180.
-            CA=COS(A)
-            SA=SIN(A)
-            XX1=X1(IRV)
-            YY1=Y1(IRV)
+            PI = 4.0 * ATAN(1.0); A=-ANGR*PI/180.
+            CA=COS(A); SA=SIN(A)
+            XX1=X1(IRV); YY1=Y1(IRV)
             DO 10 I=1,NVER1
-              XXX=X1(I)-XX1
-              YYY=Y1(I)-YY1
+              XXX=X1(I)-XX1; YYY=Y1(I)-YY1
               XR=XXX*CA+YYY*SA
               YR=YYY*CA-XXX*SA
               X1(I)=XR+XX1
@@ -1025,6 +1021,45 @@ C Reverse the ordering.
               JVN(NSUR,iyy)=jvn1(izz)
               iszjvn(icomp,NSUR,iyy)=jvn1(izz)
   147       CONTINUE
+
+C If construction is symmetric then do nothing but if it
+C references a non-symetric MLC then use an inverted MLC.
+            call matchmlcdesc(SMLCN(icomp,NSUR),imlcindex)
+            if(imlcindex.ne.0)then
+              ii=imlcindex
+              lnssmlc=lnblnk(SMLCN(ICOMP,NSUR))
+              if(mlcsymetric(ii)(1:9).EQ.'SYMMETRIC')then
+                if(SMLCN(ICOMP,NSUR)(1:lnssmlc).eq.
+     &             mlcname(ii)(1:lnmlcname(ii)))then
+                  SMLCN(ICOMP,NSUR)=mlcname(ii)
+                elseif(SMLCN(ICOMP,NSUR)(1:4).eq.'UNKN')then
+                  SMLCN(ICOMP,NSUR)=mlcname(ii)
+                else
+                  SMLCN(ICOMP,NSUR)=mlcname(ii)
+                endif
+                iissmlci=ii
+              elseif(mlcsymetric(ii)(1:12).EQ.'NONSYMMETRIC')then
+
+C If the current construction is non-symmetric then it should not be
+C used for a partition (if db does not have a linked MLC, inform the user).
+                SMLCN(ICOMP,NSUR)=mlcsymetric(ii)
+                iissmlci=matsymindex(ii)  ! use returned value
+              else
+                lnssmlc=lnblnk(SMLCN(ICOMP,NSUR))
+                if(SMLCN(ICOMP,NSUR)(1:4).eq.'UNKN')then
+                  SMLCN(ICOMP,NSUR)=mlcsymetric(ii)
+                elseif(SMLCN(ICOMP,NSUR)(1:lnssmlc).eq.
+     &                 mlcsymetric(ii)(1:lnssmlc))then
+                  SMLCN(ICOMP,NSUR)=mlcsymetric(ii)
+                else
+                  SMLCN(ICOMP,NSUR)=mlcsymetric(ii)
+                endif
+                iissmlci=matsymindex(ii)       ! use returned value
+              endif
+              if(iissmlci.ne.0)then
+                smlcindex(ICOMP,NSUR)=iissmlci ! update
+              endif
+            endif
           endif
         endif
 

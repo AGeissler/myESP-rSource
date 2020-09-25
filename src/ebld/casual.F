@@ -15,19 +15,17 @@ C details.
 
 
 C This file contains the following routines:
-
-C   MZCASI: Returns total convective and radiant casual gains.
-C   INTLUM: Timestep determination of controlled casual gains.
-C   CALCILUM: Calculate illuminance at daylight sensors.
-C   DWINVT: Returns the visible transmission of a TMC window.
-C   HUNTA:  See if current hour has scheduled casual gains to control.
-C   VRTILM: Calculate the illum (Ev) on a unobstructed vert surface.
+C MZCASI   - total convective and radiant casual gains.
+C INTLUM   - timestep determination of controlled casual gains.
+C CALCILUM - illuminance at daylight sensors.
+C DWINVT   - visible transmission of a TMC window.
+C HUNTA    - determine if current hour has scheduled casual gains to control.
+C VRTILM   - illum (Ev) on a unobstructed vert surface.
 
 C ******************** MZCASI ********************************
 C MZCASI sets the present and future time-row total convective and
 C radiant casual gains.  Any control action (e.g. occupant behaviour, 
 C lighting)is applied here.
-
 C Returned variables are:
 C QCASRT - summation of the present and future time-row total radiant
 C          injections.
@@ -83,7 +81,7 @@ C Zone casual gain control data.
       COMMON/CGCIN3/ICGCS(MCOM,MDTY),ICGCF(MCOM,MDTY),
      & ICGCFL(MCOM,MLCOM),SPELEC(MCOM,MLCOM),SLOPEM(MCOM,MLCOM)
 
-C Switch off delay time memory common block
+C Switch off delay time memory common block.
       COMMON/SOFDT/IDTM(MCOM,MLCOM)
 
       COMMON/PERS/ISD1,ISM1,ISD2,ISM2,ISDS,ISDF,NTSTEP
@@ -91,7 +89,7 @@ C Switch off delay time memory common block
       common/prec7/itcnst
 
 C Common ncmtmstps is used as a flag to start counting simulation timesteps
-C and is used for code related to UK NCM method
+C and is used for code related to UK NCM method.
       common/CountTimesteps/i_countsteps(mcom),numbStartTimesteps,
      &numTotTimstps
       integer i_countsteps
@@ -110,7 +108,7 @@ C and is used for code related to UK NCM method
 
 C Common for occupant/lighting/equipment/other sensible convective, sensible
 C radiant and latent W for future and present in each zone.
-      real ctlperocupc,ctlperocupr,ctlperocupl ! occupant after control applied
+      real ctlperocupc,ctlperocupr,ctlperocupl    ! occupant after control applied
       real ctlperlightc,ctlperlightr,ctlperlightl ! lighting after control applied
       real ctlperequipc,ctlperequipr,ctlperequipl ! equipment after control applied
       real ctlperotherc,ctlperotherr,ctlperotherl ! other after control applied
@@ -121,24 +119,19 @@ C radiant and latent W for future and present in each zone.
      &  ctlperotherl(MCOM,2) 
 
 C Common for HOT3000 electrical-network -> casual-gain coupling
-C Symopsys: E_to_G_coupling: boolian indicating coupling exists
-C           Coupling_gain_info(i,j,k,l): array containing data
-C           for gain k on daytype j for zone i. 
-C           l = 1 -> start hour (0->24)
-C           l = 2 -> end hour (0->24)
-C           l = 3 -> sensible load (fraction of non-hvac elec load
-C           l = 4 -> latent load (fraction of non-hvac elec load
-C           l = 5 -> radiative feaction (0->1)
-C           l = 6 -> convective fraction (0->1)
-C           l = 7 -> casual gain slot
-C
-C - Alex Feb. 20 2004
+C E_to_G_coupling - boolian indicating coupling exists.
+C Coupling_gain_info(i,j,k,l) - data array for gain k on daytype j for zone i. 
+C    l = 1 -> start hour (0->24).
+C    l = 2 -> end hour (0->24).
+C    l = 3 -> sensible load (fraction of non-hvac elec load.
+C    l = 4 -> latent load (fraction of non-hvac elec load.
+C    l = 5 -> radiative feaction (0->1).
+C    l = 6 -> convective fraction (0->1).
+C    l = 7 -> casual gain slot.
       COMMON/CasCou/iNumb_Gain_coupling(MCOM,MDTY),
      &     Coupling_gain_info(MCOM,MDTY,MC,7)
 
-C----------------------------------------------------------------------
-C Common for data associated with HOT3000 central and zonal base loads.
-C - Bart, Aug 28 2010
+C Data associated with HOT3000 central and zonal base loads.
       common / H3K_BL_data / iH3K_Base_Loads(MCOM),
      &                       iBCD_column(MCOM,MDTY,MC),
      &                       fBL_fraction(MCOM,MDTY,MC),
@@ -147,31 +140,27 @@ C - Bart, Aug 28 2010
 
       integer iH3K_Base_Loads, iBCD_column, nGain_types, iGain_type
       real fBL_fraction
-C----------------------------------------------------------------------
 
-C Function determining if HOT3000 features enabled?
+C Function determining if HOT3000 features are enabled.
       logical bH3KExtentionsActive
       
-C Common to store casual/radiative gain injections 
-C on a zone-by-zone basis. Note: the latent gain 
-C common variable has been created is a place-holder
-C for storing this data in the future, but is not
-C presently used
+C Store casual/radiative gain injections on a zone-by-zone basis. Note: the
+C latent gain variable is a place-holder for storing this data but is not
+C presently used.
       COMMON/CasDat/Cas_Rad_dat(MCOM),Cas_Con_dat(MCOM),
      &     Cas_Lat_dat(MCOM)
  
-C Common to store electrical power of lights and equipment, 
-C set up as casual gains, on a zone-by-zone basis.
-      COMMON/CasPowerDat/Cas_Lights(MCOM),Cas_Equip(MCOM),
-     &     Cas_Lights2(MCOM),Cas_Equip2(MCOM)
+C Store electrical power of lights and equipment, 
+C set up as casual gains on a zone-by-zone basis.
+      COMMON/CasPowerDat/Cas_Lights(MCOM),Cas_Equip(MCOM)
 
 C Casual gain data.
-C NCGPER - number of periods for each gain (zone, day type, gain type)
-C TCGS - start time of gain (zone, day type, gain type, period)
-C CGSENR - sensible gain radiant portion (zone, day type, gain type, period)
-C CGSENC - sensible gain convective portion (zone, day type, gain type, period)
-C CGLAT - latent gain (zone, day type, gain type, period)
-C CGCTL - gain control fraction (zone, present/future, gain type)
+C NCGPER - number of periods for each gain (zone, day type, gain type).
+C TCGS   - start time of gain (zone, day type, gain type, period).
+C CGSENR - sensible gain radiant portion (zone, day type, gain type, period).
+C CGSENC - sensible gain convective portion (zone, day type, gain type, period).
+C CGLAT  - latent gain (zone, day type, gain type, period).
+C CGCTL  - gain control fraction (zone, present/future, gain type).
 C ICGCTL - pointer to controlled gain type.
       common/CASGNS/NCGPER(MCOM,MDTY,MGTY),TCGS(MCOM,MDTY,MGTY,MGPER),
      &        CGSENC(MCOM,MDTY,MGTY,MGPER),CGSENR(MCOM,MDTY,MGTY,MGPER),
@@ -181,7 +170,7 @@ C ICGCTL - pointer to controlled gain type.
      &               ELR(MCOM,MDTY,MGTY,MGPER,MPHAS)
 
 C Instruction to pause assessment to allow rescan of a zone operation file.
-      integer ipausecas   ! zero no pause non-zero pause 
+      integer ipausecas   ! zero no pause, non-zero pause 
       common/pausecas/ipausecas(MCOM)
 
 C Variables used in trace.
@@ -190,8 +179,8 @@ C Variables used in trace.
 C Adaptive comfort.
       COMMON/ADPCOM/PREVSTATWIN,PREVSTATFAN,PREVSTATLIGHT,TOTPWR(MCOM),
      &              TRMSTAT
-C << For dynamic people.
 
+C Dnamic person model.
       COMMON/CASGNSO/META1(MCOM,MDTY,MGTY,MGPER),
      &         NBMEN(MCOM,MDTY,MGTY,MGPER),NBWOM(MCOM,MDTY,MGTY,MGPER),
      &         NBCHI(MCOM,MDTY,MGTY,MGPER),CONCC(MCOM,MDTY,MGTY,MGPER),
@@ -226,42 +215,41 @@ C << For dynamic people.
       REAL TPA, QPA,TAIR,TMRT
       REAL SGAIN,LGAIN,TOP,TOCN,CLOTHO,tatsix
       REAL META1,META2,NBMEN,NBWOM,NBCHI
+
+C CGSECo, CGSERo and CGLATo - total convective, radiative and latent loads from
+C dynamic occupant model. (CGSENC, CGSENR and CGLAT previously defined in common/CASGNS/.)
+C< META and METAO - metabolic rate of occupant in met and watts respectively.
       REAL METAo,CGSECo,CGSERo,CGLATo,CGSENC,CGSENR,CGLAT
       REAL HMETA1,RHOCC
       common/clim/idif(mt),itmp(mt),idnr(mt),ivel(mt),idir(mt),
      &            ihum(mt),idiff,itmpf,idnrf,ivelf,idirf,ihumf
-C<< CGSECo CGSERo and CGLATo are the total convective radiative and latent load from
-C<< Dynamic occupant.CGSENC,CGSENR,CGLAT previously defined in common/CASGNS/.
-C<< META and METAO metabolic rate of occupant in met and watts respectively.
-C.........START: USED FOR ACTIVITY TDF DATA.....................
-C Using the TOTOCCUP as a shortcut for the total occupant gains
+
+C Activity TDF data.
+C QTOTOCCUP used as a shortcut for the total occupant gains
 C that are taken from the activities temporal data
       REAL QTOTOCCUP,QOCCCASC,QOCCCASR,QOCCLATN,QTOTEQUIP,QEQUIPCASC
       REAL QEQUIPCASR,QEQUIPLATN,QTOTLIGHT,QLIGHTCASC,QLIGHTCASR
       REAL QLIGHTLATN
       INTEGER ILIGHT_IN_SBEMDB
 
-C.........END: USED FOR ACTIVITY TDF DATA.....................
-
-C Common to calculate ncm lighting energy calculation for results output
+C Data to calculate NCM lighting energy for results output.
       common/ncmlightEnergy/LGHT_ncm_Energy(MCOM),
      &      fmonthLGHT_ncm_Energy(12,MCOM)
       real LGHT_ncm_Energy,fmonthLGHT_ncm_Energy
 
-C Common to count the number of occupied hours above 27oC (oper. temperature)
-C Used for UK NCM purposes
-C NOTE: this is timestep overheating
+C Count for the number of occupied hours above 27 C operative temperature as
+C used for UK NCM purposes (i.e. timestep overheating).
       common/ncmHrOverheat/ihroverheats(MCOM),ihroccup(MCOM)
       integer ihroverheats,ihroccup
 
-C Common to count for the number of timesteps that systems are in operatrion
-C Used to calculate an NCM Auxiliary energy (post-processed in save level 6).
-C It excludes start-up timesteps
+C Count for the number of timesteps that systems are in operation.
+C Used to calculate an NCM auxiliary energy (post-processed with save level 6).
+C Excludes start-up timesteps.
       common/ncmOperHrSystem/iOperTimestep(MCOM),
      &       iMonthOperTimestep(12,MCOM)      
       integer iOperTimestep,iMonthOperTimestep      
 
-      REAL QCASLT  ! to hold the summation of pres + future latent
+      REAL QCASLT  ! to hold the summation of present + future latent gains
       integer nbhelp
 
       DIMENSION QLATN(2),VAL(MBITS+2)
@@ -271,7 +259,7 @@ C It excludes start-up timesteps
       logical traceok,closea
       
 C Declation of heat gain from h3k models.
-c      REAL H3K_HeatGainsFromModels(ICOMP)
+C     REAL H3K_HeatGainsFromModels(ICOMP)
       REAL H3KGains
 C     Number of electric-load->gain couplings per zone,
       INTEGER iNumb_Gain_coupling
@@ -281,39 +269,38 @@ C     HOT3000 storage arrays
       REAL Cas_Rad_dat, Cas_Con_dat, Cas_Lat_dat
 C     Function returning gains from ideal hot water tank
       real fIdealDHWGain
-      REAL W_Heat_nonHVAC ! Heat for the particular casual gain
-      Real W_NG_nonHVAC   ! Natural gas for the particular casual gain
+      REAL W_Heat_nonHVAC ! heat for the particular casual gain
+      Real W_NG_nonHVAC   ! natural gas for the particular casual gain
     
-      REAL Total_elec_CON_gain          ! Total electrical convective casual gain  (type 5)
-      REAL Total_elec_RAD_gain          ! Total electrical radiative casual gain  (type 5)
+      REAL Total_elec_CON_gain          ! total electrical convective casual gain (type 5)
+      REAL Total_elec_RAD_gain          ! total electrical radiative casual gain (type 5)
       REAL Cas_Lights, Cas_Equip
 
-      REAL Total_NG ! Total Natural gas for the zone from the casual gains
+      REAL Total_NG     ! total natural gas for the zone from the casual gains
 
       Integer iGainSlot ! recovered from Coupling_gain_info(icomp,iDay,ii,7)
       
-!     Variables for Access to the Boundary Condition Data
-      Real fConvert_current_TS_to_DAY ! returns day (float)
-      Real fGet_BC_data_by_name ! return the data for the timestep
-      Integer iInterp_method ! 1 = step-wise; 2 = linear
-      Character cContext*124 ! string to print on BCD failure
+C Variables for access to the boundary condition data.
+      Real fConvert_current_TS_to_DAY ! return day
+      Real fGet_BC_data_by_name       ! return the data for the timestep
+      Integer iInterp_method          ! 1 = step-wise; 2 = linear
+      Character cContext*124          ! string to print a BCD failure
       Character cBCD_col*248
 
-C     HOT3000 Base Loads local variables
-      REAL W_BL_heat_gain                  ! Heat for the particular base load casual gain
-      REAL Total_BL_Convective_gain        ! Total base loads convective casual gain 
-      REAL Total_BL_Radiative_gain         ! Total base loads radiative casual gain
-      REAL Total_BL_electricity_Appliances ! Total electric load from base load appliances      
-      REAL Total_BL_electricity_Lights     ! Total electric load from base load lights
-      REAL Total_BL_electricity_Other      ! Total electric load from base load other
+C HOT3000 base loads.
+      REAL W_BL_heat_gain                  ! heat for the particular base load casual gain
+      REAL Total_BL_Convective_gain        ! total base loads convective casual gain 
+      REAL Total_BL_Radiative_gain         ! total base loads radiative casual gain
+      REAL Total_BL_electricity_Appliances ! total electric load from base load appliances      
+      REAL Total_BL_electricity_Lights     ! total electric load from base load lights
+      REAL Total_BL_electricity_Other      ! total electric load from base load other
       
-C     Flag indicating that function Elec_Net_Load_Calc(?) should 
-C     return the occupant-driven electrical load (excluding 
-C     HVAC equipment)
+C Flag indicating that function Elec_Net_Load_Calc(?) should 
+C return the occupant-driven electrical load (excluding HVAC equipment).
       INTEGER occupant_load 
       PARAMETER (occupant_load = 3)
 
-C.....Named constants for timerows
+C Named constants for timerows.
       integer iFuture
       parameter (iFuture=2) 
       common/wkdtyp/idwe1,idwe2,wkd1,wkd2
@@ -323,12 +310,11 @@ C.....Named constants for timerows
       logical OK
       logical bInStartup  ! logical function returning true if in startup period
 
-C <SPR>
+C SPR
       common/occup/isocc(MCOM)
       logical isocc
-C </SPR>
 
-C Trace output ?
+C Trace output?
       traceok = .true.
       IF(ITC.LE.0.OR.NSINC.LT.ITC)traceok = .false.
       IF(ITRACE(12).EQ.0.OR.NSINC.GT.ITCF.OR.
@@ -343,12 +329,9 @@ C Trace output ?
       endif
 
 C This loop executes 6720 times per timestep since
-C MC=24*MCT*MDTY and MPHAS =4 as defined in building.h. This is
-C extremely inefficient and causes a significant increase in 
-C run-time. This loop is only used for trace. Loop is now skipped
-C unless trace is on. 
-      if(traceok) then
-C Update present and zero the future zone power values. 
+C MC=24*MCT*MDTY and MPHAS=4 as defined in building.h.
+C Code activated only when trace output is on.
+      if(traceok) then 
         DO 4 IPHS=1,MPHAS
           DO 5 ICAS=1,MC
             RP(ICOMP,1,ICAS,IPHS)=RP(ICOMP,2,ICAS,IPHS)
@@ -366,9 +349,11 @@ C Zero zone power loads and update present control fractions.
         CGCTL(ICOMP,1,ITY)=CGCTL(ICOMP,2,ITY)
         CGCTL(ICOMP,2,ITY)=1.0
   9   CONTINUE
-C<< update value for dynamic people
+
+C Update value for dynamic people model.
       SGAIN=0
       LGAIN=0
+
 C Update present values.
       QCASC(1)=QCCS(ICOMP)
       QCASR(1)=QCRS(ICOMP)
@@ -384,10 +369,6 @@ C Recover definitions for current day type and timeF.
         ID=IDWP
       endif
       if (btimef.gt.24.) then
-
-C Debug.
-C        write(6,*) 'btimef.gt.24'
-
         btimef=btimef-24.
         ID=IDWF
       endif
@@ -407,20 +388,18 @@ C        write(6,*) 'btimef.gt.24'
         IF(IHRF.EQ.1)IDAY=IDYP+1
         IF(IDAY.GT.365)IDAY=IDAY-365
         IDTY=ICALENDER(IDAY)
-
-C use IDAY in place of IDTY to keep to nomenclature in this subroutine
         IDAY=IDTY
       ENDIF
  
 C Set controlled gain type.
       icgctl(icomp)=ncgtc(icomp,IDAY)
  
-C Determine future timerow casual gain multiplier CGCTL(2,ICGCTL(ICOMP)).
+C Determine future time row casual gain multiplier, CGCTL(2,ICGCTL(ICOMP)).
       if (ICGC(ICOMP).EQ.1) then
         if (NCGTC(ICOMP,IDAY).NE.0) then
 
-C Set switch-off delay time memory to "zero" before start of the
-C new day control period:
+C Set switch-off delay time memory to 0 before start of the
+C new day control period.
           IT=int(btimef)
           if (IT.EQ.ICGCS(ICOMP,IDAY)) then
             do 20 N=1,NLITZ(ICOMP)
@@ -429,11 +408,6 @@ C new day control period:
           endif
 
           IPOINT=0
-
-C Noticed if control period start is 8h00 nothing happens until 9h00
-C This does not work well for shorter timesteps.
-C          if (IT.GT.ICGCS(ICOMP,IDAY).AND.
-C     &         IT.LE.ICGCF(ICOMP,IDAY)) IPOINT=1
 
 C Check time as in 933 below so for multiple timesteps per hour.
           if (btimef.GT.float(ICGCS(ICOMP,IDAY)).AND.
@@ -449,13 +423,13 @@ C Update SHOCC-calculated equipment loads.
       call updateequipment(icomp)
 
 C Use data from one of three sources.
-C NB tdf and time step file should have electrical data added to the 
-C definition.
+C << NB. tdf and time step file should have electrical data added to the 
+C definition. >>
 
       if(ICASUAL(icomp).ne.0)then
 
 C Data in temporal database (aggregate convective, radiant and
-C latent casual i.e. 3 columns). Also instantiate the future value
+C latent casual, i.e. 3 columns). Also instantiate the future value
 C of equipment casual gain so that it can be used within MZLS3.
 C Equipment is an arbitrary choice for this aggregate data.
         IFOC=ICASUAL(icomp)
@@ -485,9 +459,8 @@ C Equipment is an arbitrary choice for this aggregate data.
       elseif(ICASUAL3(icomp).ne.0)then
 
 C Data in temporal database (convective, radiant, latent for 3 separate
-C slots i.e. 9 columns of gains). Also instantiate the future value of
+C slots, i.e. 9 columns of gains). Also instantiate the future value of
 C each casual gain so that it can be used within MZLS3.
-C << any need for ICGUnit?  Probably always is W. >>
         IFOC=ICASUAL3(icomp)
         CALL RCTDFB(itrc,btimef,VAL,ISD,IFOC,IER)
         QCASC(2)=VAL(ISD)+VAL(ISD+3)+VAL(ISD+6)
@@ -508,15 +481,13 @@ C << any need for ICGUnit?  Probably always is W. >>
         ctlperequipl(icomp,2)=VAL(ISD+8)
         ctlperotherl(icomp,2)=0.0
 
-C <SPR>
-C Set occupancy flag.
+C SPR: set occupancy flag.
         isocc(ICOMP)=.false.
         if ((ctlperocupc(icomp,2)+
      &       ctlperocupr(icomp,2)+
      &       ctlperocupl(icomp,2)).gt.0.) then
           isocc(ICOMP)=.true.
         endif
-C </SPR>
 
         if(traceok)then
           write(outs,*)'separate casual gains from temporal db=',
@@ -532,69 +503,63 @@ C activity data type changes (in the tdf file).
         IFOC=IACTIV(icomp)
         CALL RCTDFB(itrc,btimef,VAL,ISD,IFOC,IER)
 
-C Total occupancy gains are equal to: occupancy density*metabolic rate*fraction*
-C Zone floor area
+C Total occupancy gains: occupancy density*metabolic rate*fraction*Zone floor area.
         QTOTOCCUP=TMAR(IFOC,1)*ITMAR(IFOC,2)*VAL(ISD)*ZBASEA(ICOMP)
 
-C Get the casual sensible gains from occupants (using the percentage of 
-C latent occupant gains here)
+C Sensible casual gains from occupants (using the percentage of 
+C latent occupant gains here).
         QOCCCASC=(QTOTOCCUP-((QTOTOCCUP*ITMAR(IFOC,3))/100.0))/2.0
 
-C Convective and radiative occupant gains are the same at the moment (50%)
+C Convective and radiative occupant gains are the same at the moment.
         QOCCCASR=QOCCCASC
 
-C Using again the percentage of latent gains for the occupants' latent heat gains
+C Using again the percentage of latent gains for the occupants' latent heat gains.
         QOCCLATN=((QTOTOCCUP*ITMAR(IFOC,3))/100.0)
 
-C For UK NCM calculations, check for overheating: call RegOveheat
+C For UK NCM calculations, check for overheating.
         if(isbem.eq.2)then
 
 C Count and increment timesteps to store overheating and lighting
-C results that do not include start-up days
+C results that do not include start-up days.
           i_countsteps(icomp)=i_countsteps(icomp)+1        
 
-C Initialise counters for occupied and overheating hours
+C Initialise counters for occupied and overheating hours.
           if(i_countsteps(icomp).eq.1)then
             ihroverheats(icomp)=0
             ihroccup(icomp)=0
             iOperTimestep(ICOMP)=0 
           endif
    
-C Calculate total number of start-up timesteps 
+C Calculate total number of start-up timesteps.
           numbStartTimesteps=itcnst*NTSTEP*24
           if(i_countsteps(icomp).gt.numbStartTimesteps)then
-
-C NOTE: this is timestep overheating
-            call RegOveheat(icomp)
+            call RegOveheat(icomp)  ! timestep overheating
           endif
         endif
 
-C Total EQUIPMENT gains are equal to: equipment gains in w/m2*fraction*
-C Zone floor area
+C Total equipment gains: equipment gains in w/m2*fraction*Zone floor area.
         QTOTEQUIP=TMAR(IFOC,4)*VAL(ISD+2)*ZBASEA(ICOMP)
 
-C C Get the casual sensible gains from equipment (using the percentage of 
-C latent equipment gains)
+C Get the casual sensible gains from equipment (using the percentage of 
+C latent equipment gains).
         QEQUIPCASC=(QTOTEQUIP-
      &  ((QTOTEQUIP*(real(ITMAR(IFOC,5))))/100.0))/2.
 
-C Convective and radiative equipment gains are the same at the moment (50%)
+C Convective and radiative equipment gains are the same at the moment (50%).
         QEQUIPCASR=QEQUIPCASC
         QEQUIPLATN=QTOTEQUIP*(real(ITMAR(IFOC,5)))/100.0
 
 C If UK notional or reference model then assign the value of 3.75 or 5.2 W/m2 per 100 lux (sbem.db1). 
-C If UK Typical model then assign the value of 4.5 or 6.2 W/m2 per 100 lux (sbem.db1).
-C Number of lux and fraction of opearation is still taken from then activity database (tdf).
-C Additional logic in the future should separate office/storage/industrial spaces
+C If UK typical model then assign the value of 4.5 or 6.2 W/m2 per 100 lux (sbem.db1).
+C Number of lux and fraction of opearation is still taken from the activity database (tdf).
+C << Additional logic in the future should separate office/storage/industrial spaces
 C for notional building that take 3.75 W/m2 per 100 lux from "other spaces 
-C that take 5.2 W/m2 per 100 lux.     
-C Also display lighting TMAR(IFOC,7) is added for 24hrs every day   
+C that take 5.2 W/m2 per 100 lux. >>
+C Display lighting, TMAR(IFOC,7), is added for 24hrs every day. 
 
 C Establish solar data.
         CALL MZSINT(ICOMP,QDIR,QDIF)
         CALL LUMEFF(QDIF,QDIR,SALT,IDYP,skyeff,suneff)
-!        The below PI definition is now provided from dhw_parameters.h
-!        PI = 4.0 * ATAN(1.0) 
         E_ext=QDIF*skyeff + QDIR *suneff*sin(salt*PI/180.0)
 
 C Convert units to klux (DF are in %) following SBEM manual units.
@@ -604,7 +569,7 @@ C Convert units to klux (DF are in %) following SBEM manual units.
 C Initialise.
           FDF1=1. ; FDR1=1. ; FDF2=1. ; FDR2=1. ; FO=1. ; FD=1.
      
-C Manual switching
+C Manual switching.
         IF((E_ext*DFFront(Icomp)*10.).GT.E_design)THEN
           FDF1=0.5
         ELSE
@@ -617,7 +582,7 @@ C Manual switching
         ENDIF
         FD1=0.5*(FDF1+FDR1)
 
-C Do not apply local manual switching if floor area is more than 30m2 
+C Do not apply local manual switching if floor area is more than 30 m^2.
         IF(ZBASEA(ICOMP).ge.30.0)FD1=1.0
 
 C Apply local manual switching if activity is not one of the following:
@@ -625,27 +590,26 @@ C corridors or other circulation areas, dry sports/fitness, ice rinks,
 C changing rooms, swimming pools, sales areas, baggage reclaim areas,
 C security check areas, eating/drinking areas, halls, lecture theatres,
 C cold stores, display areas, A&E, industrial process areas, warehouse 
-C storage, and performance areas (stages) for which FD=1
-        IF(theactivityindex(ICOMP).GT.0)THEN ! Error trap zero array index
+C storage or performance areas (stages) for which FD=1.
+        IF(theactivityindex(ICOMP).GT.0)THEN   ! trap zero array index
           IF(loc_man_sw(theactivityindex(ICOMP)).eq.1)FD1=1.0
         ENDIF
 
-C Apply local manual switching to notional, reference and typical models
-        IF(INOTI.EQ.1.OR.INOTI.EQ.2)THEN ! Notional and reference models
+C Apply local manual switching to notional, reference and typical models.
+        IF(INOTI.EQ.1.OR.INOTI.EQ.2)THEN  ! notional and reference models
           QTOTLIGHT=fNotionalLighting(theactivityindex(ICOMP))*
      &     (real(ITMAR(IFOC,6))/100.0)*VAL(ISD+1)*ZBASEA(ICOMP)*FD1+
      &     TMAR(IFOC,7)*ZBASEA(ICOMP)
-        ELSEIF(INOTI.EQ.3)THEN ! Typical model
+        ELSEIF(INOTI.EQ.3)THEN            ! typical model
           QTOTLIGHT=fTypicalLighting(theactivityindex(ICOMP))*
      &     (real(ITMAR(IFOC,6))/100.0)*VAL(ISD+1)*ZBASEA(ICOMP)*FD1+
      &      TMAR(IFOC,7)*ZBASEA(ICOMP)
         ELSE
 
-C Fall to here if INOTI is 4 (stripped UKNCM model) or 
-c INOTI is ZERO (not a UKNCM model)
-C Apply UKNCM lighting control to the stripped model
+C Arrive here if INOTI is 4 (stripped UKNCM model) or INOTI is 0 (not a UKNCM model).
+C Apply UKNCM lighting control to the stripped model.
 
-C Photoelectric switching
+C Photoelectric switching.
           IF(Ipe_control(ICOMP).EQ.1)THEN
             IF((E_ext*DFFront(Icomp)*10.).GT.E_design)THEN
               FDF2=0.0
@@ -662,7 +626,7 @@ C Photoelectric switching
               FDR2=1.0
             ENDIF
 
-C Photoelectric dimming
+C Photoelectric dimming.
           ELSEIF(Ipe_control(ICOMP).EQ.2)THEN
             IF((E_ext*DFFront(Icomp)*10.).GT.E_design)THEN
               FDF2=0.0
@@ -680,42 +644,41 @@ C Photoelectric dimming
             ENDIF
           ENDIF
 
-C need to add code and interface here to switch depending on whether photosensor is front and back or front only.
-C If front only
+C Photosensor front only.
           if(Idaylightzoning(Icomp).eq.1)then
             FD2=0.5*(FDF2+1.0)
           elseif(Idaylightzoning(Icomp).eq.2)then
 
-C If front and back
+C Photosensor front and back.
             FD2=0.5*(FDF2+FDR2)
           endif
 
-C Calculate daylight correction factor FD
-C If manual switching
+C Calculate daylight correction factor, FD.
+C Manual switching.
           IF(Ilightcontrol(ICOMP).EQ.1)THEN
             FD=FD1
 
-C If photoelectric control
+C Photoelectric control.
           ELSEIF(Ilightcontrol(ICOMP).EQ.2)THEN         
             FD=FD2
 
-C Both photoelectric and manual
+C Both photoelectric and manual.
           ELSEIF(Ilightcontrol(ICOMP).EQ.3)THEN
             FD=min(FD1,FD2)
 
-C No control
+C No control.
           ELSE
             FD=1.
           ENDIF
 
-C Range error trap
+C Range error trap.
           IF(FD.LE.1.0.and.FD.GE.0.0)then
             continue
           ELSE
             FD=1.
           ENDIF
 
-C Calculate occupancy sensing correction factor FO
+C Calculate occupancy sensing correction factor, FO.
           IF(IOcc_sensing(ICOMP).EQ.1)THEN
             FO=0.95
           ELSEIF(IOcc_sensing(ICOMP).EQ.2)THEN
@@ -730,20 +693,19 @@ C Calculate occupancy sensing correction factor FO
             FO=1.0
           ENDIF
 
-C Calculate parasitic power PP
+C Calculate parasitic power, PP.
           PP=PE_sensor_PP(ICOMP)+Occ_sensor_PP(ICOMP)
 
-C Need type of light and then a value
-C taken from sbem.db1 will be combined with a TDF static data        
+C Need type of light and then a value taken from sbem.db1 will be combined with a TDF static data.       
           IF(ILIGHTUSER(ICOMP).EQ.0)THEN
             ILIGHT_IN_SBEMDB=ILITYP(ICOMP)
 
 C Multiply lux levels (static tdf) with fraction schedule and 
-C a value (in W/m2/100lux) taken from ncm file for the specific type of lights
-C In PDRL(ILIGHT_IN_SBEMDB,2): 2 means commercial buildings. This is the only option
-C for the moment. Additional logic required to add: 1, which is for industrial
-C buildings in the NCM methodology
-C Also display lighting TMAR(IFOC,7) is added for 24hrs every day
+C a value (in W/m^2/100lux) taken from NCM file for the specific type of lights.
+C In PDRL(ILIGHT_IN_SBEMDB,2), 2 means commercial buildings (the only option
+C at preset). << Additional logic required: 1 for industrial buildings as in
+C the NCM method.
+C Display lighting, TMAR(IFOC,7), is added for 24hrs every day.
             if(ILIGHT_IN_SBEMDB.eq.0)then
               QTOTLIGHT=0.
             else            
@@ -754,30 +716,28 @@ C Also display lighting TMAR(IFOC,7) is added for 24hrs every day
             endif
           ELSEIF(ILIGHTUSER(ICOMP).EQ.1)THEN
 
-C User specfied gains from lights (NCM purposes) in W/m2 per 100 lux
-C Gains=W/m2per100lux*fraction lights on*area*(required lux level/100lux)+
-C DisplaylightingW/m2*Area
+C User specfied gains from lights (NCM purposes) in W/m^2 per 100 lux
+C Gains=W/m^2per100lux*fraction lights on*area*(required lux level/100lux)+
+C DisplaylightingW/m^2*Area
             QTOTLIGHT=LIGHTWATTAGE(ICOMP)*VAL(ISD+1)*ZBASEA(ICOMP)*
      &         (real(ITMAR(IFOC,6)/100.0))*FO*FD+
      &         (PP+TMAR(IFOC,7))*ZBASEA(ICOMP)
           ENDIF
         ENDIF
  
-C Convective and radiative lighting gains are the same at the moment (50%)
+C Convective and radiative lighting gains are the same at the moment (50%).
         QLIGHTCASC=QTOTLIGHT/2.
         QLIGHTCASR=QLIGHTCASC
               
-C For lighting heat gains assume latent gains are zero
+C For lighting heat gains assume latent gains are zero.
         QLIGHTLATN=0
-C       QTOTGAIN=QTOTOCCUP+QTOTEQUIP+QTOTLIGHT
-
         QCASC(2)=QOCCCASC+QEQUIPCASC+QLIGHTCASC
         QCASR(2)=QOCCCASR+QEQUIPCASR+QLIGHTCASR
         QLATN(2)=QOCCLATN+QEQUIPLATN+QLIGHTLATN
 
 C Instantiate the future value of each casual gain so that
 C it can be used within MZLS3.
-C << ?? for 4th other slot >>
+C << ? for 4th other slot. >>
         ctlperocupc(icomp,2)=QOCCCASC
         ctlperlightc(icomp,2)=QLIGHTCASC
         ctlperequipc(icomp,2)=QEQUIPCASC
@@ -791,12 +751,12 @@ C << ?? for 4th other slot >>
         ctlperequipl(icomp,2)=QEQUIPLATN
         ctlperotherl(icomp,2)=0.0
 
-C Using LGHT_ncm_Energy(icomp) for the results of the UK's NCM method
+C Using LGHT_ncm_Energy(icomp) for the results of the UK's NCM method.
 C This will be in Wh units. It will also need to be divided with NTSTEP
 C (number of timesteps) to use it in results.
         if(isbem.eq.2)then
 
-C Initialise LGHT_ncm_Energy(icomp)
+C Initialise LGHT_ncm_Energy(icomp).
           if(i_countsteps(icomp).eq.1)then
             LGHT_ncm_Energy(icomp)=0.
             do 333 imonth_iter=1,12
@@ -804,18 +764,18 @@ C Initialise LGHT_ncm_Energy(icomp)
  333        continue
           endif          
 
-C Calculate total number of start-up timesteps 
+C CTotal number of start-up timesteps.
 C           numbStartTimesteps=itcnst*NTSTEP*24
           if(i_countsteps(icomp).gt.numbStartTimesteps)then
 
 C tmpLGHT_ncm_Energy(icomp) is a temporary array to pass the lighting energy
 C gains/consumption back to LGHT_ncm_Energy(icomp) and allow re-initialiasation
-C for the next simulation
+C for the next simulation.
             LGHT_ncm_Energy(icomp)=LGHT_ncm_Energy(icomp)+
      &        ctlperlightc(icomp,2)+ctlperlightr(icomp,2)+
      &        ctlperlightl(icomp,2)    
 
-C determine month number by calling edayr
+C Month number.
             call edayr(idyp,idayn,imonth_iter)
             fmonthLGHT_ncm_Energy(imonth_iter,icomp)=
      &          fmonthLGHT_ncm_Energy(imonth_iter,icomp)+ 
@@ -823,8 +783,8 @@ C determine month number by calling edayr
      &          ctlperlightl(icomp,2)       
           endif
 
-C At the last timestep - re-initialise i_countsteps(icomp) to 0
-C First find total number of simulation period timesteps including start-up period
+C At the last timestep, re-initialise i_countsteps(icomp) to 0.
+C First find total number of simulation period timesteps including start-up period.
           numTotTimstps=(((isdf-isds)+1)*24*NTSTEP)+numbStartTimesteps
           if(i_countsteps(icomp).eq.numTotTimstps)then
             i_countsteps(icomp)=0
@@ -845,11 +805,11 @@ C First find total number of simulation period timesteps including start-up peri
 
       else
 
-C Data in zone operations file. For each casual gain type set gain for current period.
-C Check if ipausecas is non-zero for this zone and we are after the startup period.
-C If so pop-up a dialog for the user and if they agree call eroper and MZCASG for this 
-C zone to refresh common CASGNS. (Note this probably does not yet alter infiltration or
-C ventilation values in the zone).
+C Data in zone operations file. For each casual gain type, set gain for current period.
+C Check if ipausecas is non-zero for this zone and simulation is after the startup period.
+C If so, consult user and if they agree call eroper and MZCASG for this 
+C zone to refresh common CASGNS. << Note that this does not yet alter infiltration or
+C ventilation in the zone. >>
         if(ipausecas(icomp).eq.1)then
           if (bInStartup())then
             continue
@@ -864,20 +824,20 @@ C ventilation values in the zone).
               iitrc=1
               CALL EROPER(IITRC,ITU,IUNIT,icomp,IER)
               CALL MZCASG(icomp)
-C              write(6,*) 'called eroper & mzcasg for ',icomp,btimef
             endif
           endif
         endif
 
-       ! Process HOT3000 base loads here
+C Process HOT3000 base loads. Note that latent gains are presently not
+C supported. << However, if they were to be implemented, code similar to below
+C need to be added to moistr.F, subsys.F and drylink.F in the ebld folder.
+C Casual gain types for use with HOT3000 central and zonal base loads:
+C  1. BL-App (appliances linked with BCD file).
+C  2. BL-Lights (lights linked with BCD file).
+C  3. BL-OElec (other electrical linked with BCD file).
+C  4. BL-Occ (occupants linked with BCD file).
+C Time period is always 0-24 for HOT3000 base loads.
        IF(bH3KExtentionsActive().and.iH3K_Base_Loads(icomp).eq.1)then
-
-         ! ** NOTE: latent gains 
-         ! are presently not supported. However, if they were to be implemented, 
-         ! code similar to below would have to be added to moistr.F, subsys.F and 
-         ! drylink.F in the esrubld directory, AND NOT IN THIS FILE!!!
- 
-         ! Initialize base load variables
          Total_BL_Convective_gain        = 0. ! (W) 
          Total_BL_Radiative_gain         = 0. ! (W)
          Total_BL_electricity_Lights     = 0. ! (W)
@@ -885,117 +845,103 @@ C              write(6,*) 'called eroper & mzcasg for ',icomp,btimef
          Total_BL_electricity_Other      = 0. ! (W) 
 
          do 100 IGN=1,nGain_types(icomp,iday)
-
-           W_BL_heat_gain          = 0.   ! Zero out heat gain power for this next gain loop
- 
-         ! Casual gain types for use with HOT3000 central and zonal base loads:
-         !  1. BL-App (Appliances linked with BCD file)
-         !  2. BL-Lights (Lights linked with BCD file)
-         !  3. BL-OElec (Other Electrical linked with BCD file)
-         !  4. BL-Occ (Occupants linked with BCD file)
-
+           W_BL_heat_gain          = 0.       ! Zero out heat gain power for this next gain loop
            iColumn   = iBCD_column(icomp,iday,IGN)
 
-           ! assume valid time period for future time step
-           ! (time period is always 0 - 24 for HOT3000 base laods)
-
-           ! Set the BCD interpolation method
+C BCD interpolation method.
            iInterp_method = 1 ! 1 = step-wise; 2 = linear
 
            write (cContext,*) "Determining BL profile for gain type ",
      &          iGain_Type(icomp,iday,IGN)
 
            if(iGain_Type(icomp,iday,IGN).eq.1)then      ! BL-App
-             W_BL_heat_gain = fGet_BC_data_by_col( ! heat gain only
+             W_BL_heat_gain = fGet_BC_data_by_col(      ! heat gain only
      &        iColumn,
      &        fConvert_current_TS_to_DAY(),
      &        iInterp_method,
      &        cContext)
-     &        * fBL_fraction(icomp,iday,IGN)  ! multiply by BL fraction (= 1 for zonal base loads, 0.0 < fBL_fraction < 1.0  for central base loads) 
+     &        * fBL_fraction(icomp,iday,IGN)            ! multiply by BL fraction (= 1 for zonal base loads, 0.0 < fBL_fraction < 1.0  for central base loads) 
 
              Total_BL_electricity_Appliances = W_BL_heat_gain
 
            elseif(iGain_Type(icomp,iday,IGN).eq.2)then  ! BL-Lights
-             W_BL_heat_gain = fGet_BC_data_by_col( ! heat gain only
+             W_BL_heat_gain = fGet_BC_data_by_col(      ! heat gain only
      &        iColumn,
      &        fConvert_current_TS_to_DAY(),
      &        iInterp_method,
      &        cContext)
-     &        * fBL_fraction(icomp,iday,IGN)  ! multiply by BL fraction (= 1 for zonal base loads, 0.0 < fBL_fraction < 1.0  for central base loads) 
+     &        * fBL_fraction(icomp,iday,IGN)            ! multiply by BL fraction (= 1 for zonal base loads, 0.0 < fBL_fraction < 1.0  for central base loads) 
 
              Total_BL_electricity_Lights = W_BL_heat_gain
 
            elseif(iGain_Type(icomp,iday,IGN).eq.3)then  ! BL-OElec
-             W_BL_heat_gain = fGet_BC_data_by_col( ! heat gain only
+             W_BL_heat_gain = fGet_BC_data_by_col(      ! heat gain only
      &        iColumn,
      &        fConvert_current_TS_to_DAY(),
      &        iInterp_method,
      &        cContext)
-     &        * fBL_fraction(icomp,iday,IGN)  ! multiply by BL fraction (= 1 for zonal base loads, 0.0 < fBL_fraction < 1.0  for central base loads) 
+     &        * fBL_fraction(icomp,iday,IGN)            ! multiply by BL fraction (= 1 for zonal base loads, 0.0 < fBL_fraction < 1.0  for central base loads) 
 
              Total_BL_electricity_Other = W_BL_heat_gain
 
            elseif(iGain_Type(icomp,iday,IGN).eq.4)then  ! BL-Occ
-             W_BL_heat_gain = fGet_BC_data_by_col( ! heat gain only
+             W_BL_heat_gain = fGet_BC_data_by_col(      ! heat gain only
      &        iColumn,
      &        fConvert_current_TS_to_DAY(),
      &        iInterp_method,
      &        cContext)
-     &        * fBL_fraction(icomp,iday,IGN)  ! multiply by BL fraction (= 1 for zonal base loads, 0.0 < fBL_fraction < 1.0  for central base loads) 
+     &        * fBL_fraction(icomp,iday,IGN)            ! multiply by BL fraction (= 1 for zonal base loads, 0.0 < fBL_fraction < 1.0  for central base loads) 
      
            end if
 
-          ! HOT3000 base loads Convective gains (W)
+C HOT3000 base loads convective gains (W).
            Total_BL_Convective_gain = Total_BL_Convective_gain 
-     &             + CGSENC(icomp,iday,iGain_Type(icomp,iday,IGN),1)    ! sensible load fraction * convective load fraction
-     &             * W_BL_heat_gain                    ! heat gain for this time step
+     &             + CGSENC(icomp,iday,iGain_Type(icomp,iday,IGN),1) ! sensible load fraction * convective load fraction
+     &             * W_BL_heat_gain                                  ! heat gain for this time step
 
-          ! HOT3000 base loads Radiative gains (W)
+C HOT3000 base loads radiative gains (W).
            Total_BL_Radiative_gain = Total_BL_Radiative_gain 
-     &             + CGSENR(icomp,iday,iGain_Type(icomp,iday,IGN),1)    ! sensible load fraction * radiative load fraction
-     &             * W_BL_heat_gain                    ! heat gain for this time step
+     &             + CGSENR(icomp,iday,iGain_Type(icomp,iday,IGN),1) ! sensible load fraction * radiative load fraction
+     &             * W_BL_heat_gain                                  ! heat gain for this time step
 
-  100    continue  ! number of casual gains loop
+  100    continue       ! number of casual gains loop
 
-        ! Add radiant and convective gains from HOT3000 base loads
-        ! to ESP-r common blocks QCASC and QCASR. These data are 
-        ! actually used to calculate the heat injection into 
-        ! the building. 
+C Add radiant and convective gains from HOT3000 base loads to QCASC and QCASR, which
+C are used to calculate zone heat injections.
          QCASC(2)=QCASC(2) + Total_BL_Convective_gain
          QCASR(2)=QCASR(2) + Total_BL_Radiative_gain
 
-      ! Report electricity consumption for each type of casual gain
-      ! for the zone to SiteUtilities
+C Report electricity consumption for each type of casual gain
+C for the zone to SiteUtilities.
 
-        ! Appliances
+C Appliances.
         fSUFuelEnergyUse(iElectricity, iUseEquipment) = 
      &          Total_BL_electricity_Appliances
 
-        ! Lights
+C Lights.
         fSUFuelEnergyUse(iElectricity, iUseLights) = 
      &          Total_BL_electricity_Lights
 
-        ! Other
+C Other.
         fSUFuelEnergyUse(iElectricity, iUseOther) = 
      &          Total_BL_electricity_Other
      
         call StoreH3KBaseLoadsEnergyUse(icomp, fSUFuelEnergyUse)
 
-       ELSE     ! proceed as usual with default ESP-r treatment
+       ELSE
 
-C Data in operations file.
-C For each casual gain type set gain for current period.
+C ESP-r default treatment, i.e. data from zone operations file.
+C For each casual gain type, set gain for current period.
         do 10 IGN=1,MGTY
 
-C First initialize SHOCC commons to -1, i.e. assume no SHOCC-calulated loads
-C the following 'fetchloads' subroutine will override '-1' if SHOCC
-C does indeed calculate loads.
+C First initialise SHOCC commons to -1, i.e. assume no SHOCC-calulated loads.
+C The 'fetchloads' subroutine will override '-1' if SHOCC calculates loads.
           shcon=-1.0; shrad=-1.0; shlat=-1.
                     
           call fetchloads(icomp,lodlabel(icomp,ign),
      &      len(lodlabel(icomp,ign)),shcon,shrad,shlat)
 
-C Calculate the current period id.
+C Determine the current period.
           IPER=NCGPER(ICOMP,IDAY,IGN)
           do 30 I=1,NCGPER(ICOMP,IDAY,IGN)
             if (BTIMEF.le.TCGS(ICOMP,IDAY,IGN,I+1).and.
@@ -1005,29 +951,30 @@ C Calculate the current period id.
  30       continue
           if(IPER.eq.0) IPER=1  ! to avoid zero array index
 
-C<< This if statement to calculate the sensible and latent load from occupant in case of dynamic people
-C<< METAo metabolic rate is converted to watt after multiplying: 1 Met = 58 W/m2 and the mean surface area 
-C<< of the human body is approximately 1.8 m2 
+C This if statement used to calculate the sensible and latent load from occupants in case of dynamic people.
+C Metabolic rate (METAo) is converted to watts: 1 Met = 58 W/m^2 and the mean surface area of the human body
+C is approximately 1.8 m^2 .
            iGainSlot=iabs(ICGT(IDAY,IGN))
            if(iGainSlot.gt.0)then
 
-             INDX=ICOMP*(-1)   ! negate the zone index for use in mzmixt.
+             INDX=ICOMP*(-1)   ! negate the zone index for use in mzmixt
              CALL MZMIXT(INDX,TMRT,TMIX)
              TAIR=TPA(ICOMP)
              TOP=0.5*TMRT+0.5*TAIR 
-             call MZVAPC(ICOMP,ZRH,CNDS) 
+C             call MZVAPC(ICOMP,ZRH,CNDS)   ! not used
     
              RHOCC=PCRH2(TPA(ICOMP),GPA(ICOMP),PATMOS)/100.0
              if (RHOC.GE.100) then
               RHOCC=0.99
               endif
              HMETA1=META1(ICOMP,IDAY,IGN,IPER)
-!             HMETA2=META2(ICOMP,IDAY,IGN,IPER)           
+C             HMETA2=META2(ICOMP,IDAY,IGN,IPER)           
              METAo=META1(ICOMP,IDAY,IGN,IPER)*58*1.8
              CONCCO=CONCC(ICOMP,IDAY,IGN,IPER)
              RADCCO=RADCC(ICOMP,IDAY,IGN,IPER)
              tatsix=itmp(6)/10.
-CC Dynamic clothing prediction based on t out at six am and Tmix
+
+C Dynamic clothing prediction based on t out at 6 am and Tmix.
              CLOTHO=10**(0.2134-0.0063*tatsix-0.0165*TMIX)
              if(CLOTHO.le.0.4)CLOTHO=0.4
              if(CLOTHO.GE.1.1)CLOTHO=1.1
@@ -1036,30 +983,23 @@ CC Dynamic clothing prediction based on t out at six am and Tmix
              endif
              TOCN=NBMEN(ICOMP,IDAY,IGN,IPER)+
      &          NBWOM(ICOMP,IDAY,IGN,IPER)+NBCHI(ICOMP,IDAY,IGN,IPER)
-C Debug.
-C             write(6,*) 'in mzcasi ',icomp,iday,ign,igainslot,
-C     &         caskeytype(ICOMP,iGainSlot)
-
              if(caskeytype(ICOMP,iGainSlot)(1:13).eq.
      &          'dynamicpeople'.and. 
      &            lodatr1(ICOMP,IGN).GT.0.or.TOCN.GT.0.1) then
 
+C Polynomial equation to calculate sensible and latent heat load
+C from occupant where Top and METAo are the operative zone temperature
+C and metabolic rate of occupant respectively. This model was correlated
+C from published experimental data. The relationship between the body’s
+C
+C                      M = E ± R ± C ± S 
+C where,
+C       M = metabolic rate;
+C       E = rate of heat loss by evaporation, respiration and elimination;
+C       R = radiation rate;
+C       C = conduction and convection rate;
+C       S = body heat storage rate.
                if(lodatr1(ICOMP,IGN).eq.1)then
-
-C<< polynomial equation to calculate both sensible and latent heat load
-C<< from occupant where Top and METAo are the operative zone temperature
-C<< and metabolic rate of occupant. This model was correlated from some
-C<< published experimental data Ref.The relationship between the body’s
-C<< heat production and all its other heat gains and losses is:
-C<< M=E±R±C±S 
-C<< M=metabolic rate
-C<< E=rate of heat loss by evaporation, respiration, and elimination
-C<< R=radiation rate
-C<< C=conduction and convection rate
-C<< S=body heat storage rate
-C<< if E should be always positive in this case the polynomial given by
-C<< EnergyPlus below is inefficient for example when temp goes
-C<< below 14C at Met =100 watt (ASHRAE)
                  SGAIN=198.42617-3.80901*TOP-0.05419*TOP**2-0.42472*
      &             METAo+0.00171*METAo**2+0.01287*TOP*METAo-
      &             0.00004*TOP*METAo**2+0.00002*METAo*TOP**2-
@@ -1069,59 +1009,65 @@ C<< below 14C at Met =100 watt (ASHRAE)
      &             0.132*TOP*METAo-0.00017*TOP*METAo**2-
      &             0.00107*METAo*TOP**2
 
+C Polynomial equation from Energy Plus (function of Temperature and metabolic rate).
+C If E should be always positive, this polynomial is inefficient, for example when
+C temperature goes below 14C at Met = 100 W (ASHRAE).
                elseif(lodatr1(ICOMP,IGN).eq.2)then
-C<< model below are the polynomial of Energy Plus function of Temperature and metabolic rate.>>
                  SGAIN=6.461927+0.946892*METAo+0.0000255737*METAo**2+
      &             7.139322*TOP-0.0627909*TOP*METAo+
      &             0.0000589172*TOP*METAo**2-
      &             0.19855*TOP**2+0.000940018*TOP**2*METAo-
      &             0.00000149532*TOP**2*METAo**2
                  LGAIN=METAo-SGAIN 
-               elseif(lodatr1(ICOMP,IGN).eq.3)then
-                if(TOCN.GT.0.1)then
-C<< Calling the dynamic model two node model subroutine from a separate file dynamicoccup.F
-                call DynamicOcc(ICOMP,METAo,CLOTHO)  
-                SGAIN=skcon(ICOMP)
-                LGAIN=sklat(ICOMP)
-                 endif
-               elseif(lodatr1(ICOMP,IGN).eq.4)then
-                if(TOCN.GE.0.5)then
-                 headflux1=0.0 
-                 trunkflux1=0.0
-                 larmflux1=0.0
-                 rarmflux1=0.0
-                 llegflux1=0.0
-                 rlegflux1=0.0
-                 H2Oexp1=0.0
-                 H2Oswt1=0.0
-                 headflux2=0.0 
-                 trunkflux2=0.0
-                 larmflux2=0.0
-                 rarmflux2=0.0
-                 llegflux2=0.0
-                 rlegflux2=0.0
-                 H2Oexp2=0.0
-                 H2Oswt2=0.0
-C<< Calling the dynamic model multi-node multi-segmented physiological model.
-!                  if(HMETA2.GT.1)then
-!                  call segmentedocc(HMETA1,Top,RHOCC,1,CLOTHO)
-!                  call segmentedocc(HMETA2,Top,RHOCC,2,CLOTHO)                    
-!                  SGAIN=Qoccsens1+Qoccsens2 
-!                  LGAIN=Qocclat1+Qocclat2
-!                  msegflag=1
-!                  else
-                  call segmentedocc(HMETA1,Top,RHOCC,1,CLOTHO)
-                  SGAIN=Qoccsens1
-                  LGAIN=Qocclat1
-                  cfdcheck=0
-                  msegflag=1
-!                  endif
-                endif
 
+               elseif(lodatr1(ICOMP,IGN).eq.3)then
+                 if(TOCN.GT.0.1)then
+
+C Call the dynamic two node model (subroutine in dynamicoccup.F).
+                   call DynamicOcc(ICOMP,METAo,CLOTHO)  
+                   SGAIN=skcon(ICOMP)
+                   LGAIN=sklat(ICOMP)
+                 endif
+ 
+               elseif(lodatr1(ICOMP,IGN).eq.4)then
+                 if(TOCN.GE.0.5)then
+                   headflux1=0.0 
+                   trunkflux1=0.0
+                   larmflux1=0.0
+                   rarmflux1=0.0
+                   llegflux1=0.0
+                   rlegflux1=0.0
+                   H2Oexp1=0.0
+                   H2Oswt1=0.0
+                   headflux2=0.0 
+                   trunkflux2=0.0
+                   larmflux2=0.0
+                   rarmflux2=0.0
+                   llegflux2=0.0
+                   rlegflux2=0.0
+                   H2Oexp2=0.0
+                   H2Oswt2=0.0
+
+C Call the dynamic multi-node, multi-segmented, physiological model.
+C                  if(HMETA2.GT.1)then
+C                  call segmentedocc(HMETA1,Top,RHOCC,1,CLOTHO)
+C                  call segmentedocc(HMETA2,Top,RHOCC,2,CLOTHO)                    
+C                  SGAIN=Qoccsens1+Qoccsens2 
+C                  LGAIN=Qocclat1+Qocclat2
+C                  msegflag=1
+C                  else
+                   call segmentedocc(HMETA1,Top,RHOCC,1,CLOTHO)
+                   SGAIN=Qoccsens1
+                   LGAIN=Qocclat1
+                   cfdcheck=0
+                   msegflag=1
+C                  endif
+                 endif
                endif
-C<< CGSECo CGSERo and CGLATo are the total convective radiative and
-C<< latent load from occupant taking into consideration number of
-C<< people age/gender
+
+C CGSECo CGSERo and CGLATo are the total convective radiative and
+C latent load from occupants taking into consideration number of
+C people and age/gender.
                  CGSECo=(SGAIN*NBMEN(ICOMP,IDAY,IGN,IPER)+
      &              0.85*SGAIN*NBWOM(ICOMP,IDAY,IGN,IPER)+
      &              0.75*SGAIN*NBCHI(ICOMP,IDAY,IGN,IPER))*
@@ -1140,13 +1086,11 @@ C<< people age/gender
               endif
            endif
 
-C Set future casual gain values if there is periods defined.
+C Set future casual gain values if there are periods defined.
           if(IPER.gt.0)then
             if(shcon.lt.0.) then
 
-
-C <FMI>
-C If occupancy, lighting or equipment control is active, multiply CGCTL
+C FMI: If occupancy, lighting or equipment control is active, multiply CGCTL
 C by value from FMU.
               if (IGN.eq.1.and.FMUDOCTL(ICOMP,7)) then
                 rtmp=FMUCTL(ICOMP,7)
@@ -1158,12 +1102,8 @@ C by value from FMU.
                 rtmp=1.0
               endif
               CGCTL(ICOMP,2,IGN)=CGCTL(ICOMP,2,IGN)*rtmp
-c              write(287,*)'CGCTL(ICOMP,2,IGN),ICOMP,IGN',
-c     &          CGCTL(ICOMP,2,IGN),ICOMP,IGN
-C </FMI>
 
-C <SPR>
-C Set occupancy flag.
+C SPR: Set occupancy flag.
               if (IGN.eq.1) then
                 isocc(ICOMP)=.false.
                 if ((CGSENC(ICOMP,IDAY,IGN,IPER)+
@@ -1173,7 +1113,6 @@ C Set occupancy flag.
                   isocc(ICOMP)=.true.
                 endif
               endif
-C </SPR>
 
               QCASC(2)=QCASC(2)+CGSENC(ICOMP,IDAY,IGN,IPER)*
      &                 CGCTL(ICOMP,2,IGN)
@@ -1186,17 +1125,17 @@ C </SPR>
               endif
             else
 
-C Instead of using fracf, add-on shcon,shrad,shlat for SHOCC.
+C Instead of using fracf, add-on shcon, shrad and shlat for SHOCC.
               QCASC(2)=QCASC(2)+shcon
               QCASR(2)=QCASR(2)+shrad
               QLATN(2)=QLATN(2)+shlat
 
 C Quick fix: cgctl variable is used within eletrical network
-C so if SHOCC load, then cgctl equals shcon/CGCSENC ratio.
+C so if SHOCC load then cgctl equals shcon/CGCSENC ratio.
               CGCTL(ICOMP,2,IGN)=shcon/CGSENC(ICOMP,IDAY,IGN,IPER)
             endif
 
-C Debug...
+C Debug.
             if(traceok)then
               write(itu,*) 'match ',DSTR,BTIMEF,IPER,IGN,IDAY,ICOMP
               write(itu,*) 'Time    Zone   Period   GainSen'
@@ -1210,7 +1149,7 @@ C Set future electrical loads.
      &          BTIMEF.gt.TCGS(ICOMP,IDAY,IGN,IPER)) then
               IF(IELF(ICOMP).GT.0) THEN
 
-C loop through power consumption for each phase.
+C Loop through power consumption for each phase.
                 DO 75 IPH=1,MPHAS
                   PEZON(ICOMP,IGN)=PEZON(ICOMP,IGN)-
      &              ELQ(ICOMP,IDAY,IGN,IPER,IPH)*CGCTL(ICOMP,2,IGN)
@@ -1225,83 +1164,69 @@ C Keep track of electrical loads for trace.
   75            CONTINUE
               ENDIF 
             endif
-
-            Cas_Lights2(icomp) = CGCTL(ICOMP,2,2)*
-     &          (CGSENC(ICOMP,IDAY,2,IPER)+CGSENR(ICOMP,IDAY,2,IPER))
-            Cas_Equip2(icomp)  = CGCTL(ICOMP,2,3)*
-     &          (CGSENC(ICOMP,IDAY,3,IPER)+CGSENR(ICOMP,IDAY,3,IPER))
-
           endif
-
  10     continue   ! end of gain type loop
       
-C Store real power consumption for lights and equipment set up in operations file
-        Cas_Lights(icomp) = -1. * pezon(icomp,2)    ! lights are casual gain type 2
-        Cas_Equip(icomp) = -1. * pezon(icomp,3)     ! equipment is casual gain type 3
+C Store real power consumption for lights and equipment.
+          Cas_Lights(icomp) = -1. * pezon(icomp,2)    ! lights are casual gain type 2
+          Cas_Equip(icomp) = -1. * pezon(icomp,3)     ! equipment is casual gain type 3     
+      
 
        ENDIF    ! HOT3000 Base Loads conditional block
       endif     ! UK's NCM method conditional block
 
-C If adaptive comfort algorithm is active add sensible heat gains when on
+C If adaptive comfort algorithm active, add sensible heat gains when on.
       call eclose(PREVSTATFAN,1.00,0.01,closea)
       IF(CLOSEA)THEN
 
-C Debug.
-C        write(6,*)"before addition",QCASC(2)
-
         QCASC(2)=QCASC(2)+TOTPWR(ICOMP)
-
-C Debug.
-C        write(6,*)"after addition",QCASC(2)
 
       ENDIF
 
 C BEGIN NRCan casual-gain -> electrical coupling code.
 C
-C ** NOTE: electric-load -> latent couplings 
-C are presently not supported. However, if they were to be implemented, 
-C code similar to below would have to be added to moistr.F, subsys.F and 
-C drylink.F in the esrubld directory, AND NOT IN THIS FILE!!!
+C NOTE: electric-load -> latent couplings are presently not supported. 
+C However, if they were to be implemented, code similar to that below
+C would have to be added to moistr.F, subsys.F and drylink.F.
 
 C For the present zone, loop through all gains associated
 C with the casual-gain->electrical load coupling
 
 C Common for HOT3000 electrical-network -> casual-gain coupling
 C Symopsys: E_to_G_coupling: boolean indicating coupling exists
-C           Coupling_gain_info(i,j,k,l): array containing data
-C           for gain k on daytype j for zone i. 
-C           l = 1 -> start hour (0->24)
-C           l = 2 -> end hour (0->24)
-C           l = 3 -> sensible load (fraction of non-hvac elec load)
-C           l = 4 -> latent load (fraction of non-hvac elec load)
-C           l = 5 -> radiative feaction (0->1)
-C           l = 6 -> convective fraction (0->1)
-C           l = 7 -> casual gain slot (1-7)
+C Coupling_gain_info(i,j,k,l): array containing data for gain k on daytype j for zone i. 
+C    l = 1 -> start hour (0->24)
+C    l = 2 -> end hour (0->24)
+C    l = 3 -> sensible load (fraction of non-hvac elec load)
+C    l = 4 -> latent load (fraction of non-hvac elec load)
+C    l = 5 -> radiative feaction (0->1)
+C    l = 6 -> convective fraction (0->1)
+C    l = 7 -> casual gain slot (1-7)
 C
-C Initialize total electric load - related gains
+C Initialise total electric load-related gains.
       Total_NG = 0. ! (W)
       Total_elec_CON_gain = 0. ! (W) 
       Total_elec_RAD_gain = 0. ! (W)
       DO ii = 1, iNumb_Gain_coupling(icomp,iDay)
-C Check to see if the future  building time is between the start hour and            
+
+C Check if the future building time is between the start hour and            
 C the end hour of the gain.
         start_hour = Coupling_gain_info(icomp,iDay,ii,1) ! start hour 0-24)
         stop_hour  = Coupling_gain_info(icomp,iDay,ii,2) ! end hour (0-24)
         if ( ( btimef .gt. start_hour ) 
      &          .and. ( btimef .le. stop_hour ) )then
-C Gain applies to future time. Get total non-hvac electric load (W_elec_nonHVAC, W)
-C Set the BCD interpolation method and generate a context message.
+
+C Gain applies to future time. Get total non-hvac electric load (W_elec_nonHVAC, W),
+C set the BCD interpolation method and generate a context message.
           iInterp_method = 1 ! 1 = step-wise; 2 = linear
           write (cContext,*) "Determining the AL profile for type ",
      &          Coupling_gain_info(icomp,iDay,ii,7)
-
           iGainSlot = nint(Coupling_gain_info(icomp,iDay,ii,7))
 
 C Test for case of non_HVAC_electrical loads and then for tagged appliance
-C loads that may have been encountered in the zone operation file. Use calls
+C loads that may have been encountered in the zone operations file. Use calls
 C to fGet_BC_data_by_name to recover data in boundary conditions file.
           if(caskeytype(icomp,iGainSlot)(1:13).eq.'net_utilities')then
-
             W_electric_nonHVAC =  Elec_Net_Load_Calc(occupant_load) ! W
           elseif(caskeytype(icomp,iGainSlot)(1:15).eq.
      &           'ALOtherElectric')then
@@ -1318,7 +1243,7 @@ C to fGet_BC_data_by_name to recover data in boundary conditions file.
      &        fConvert_current_TS_to_DAY(),
      &        iInterp_method,
      &        cContext)
-            ! For a NG stove, set the NG equal to the heat gain
+                             ! for a NG stove, set the NG equal to the heat gain
             W_NG_nonHVAC = W_heat_nonHVAC
           elseif(caskeytype(icomp,iGainSlot)(1:15).eq.
      &           'ALStoveElectric')then
@@ -1330,7 +1255,7 @@ C to fGet_BC_data_by_name to recover data in boundary conditions file.
      &        cContext)
           elseif(caskeytype(icomp,iGainSlot)(1:7).eq.'ALDryer')then
             cBCD_col = "AL-Dryer"
-            W_NG_nonHVAC = fGet_BC_data_by_name( ! Natural gas only
+            W_NG_nonHVAC = fGet_BC_data_by_name(  ! natural gas only
      &        cBCD_col,
      &        fConvert_current_TS_to_DAY(),
      &        iInterp_method,
@@ -1344,16 +1269,19 @@ C Get data for gain coupling.
      &             Coupling_gain_info(icomp,iDay,ii,5) ! (0->1)
           convective_load_fraction =  
      &             Coupling_gain_info(icomp,iDay,ii,6) ! (0->1)        
+
 C Convective casual gains (W)
           Total_elec_CON_gain = Total_elec_CON_gain 
      &             + sens_load_fraction 
      &             * convective_load_fraction 
      &             * W_electric_nonHVAC
+
 C Radiative casual gains (W)
           Total_elec_RAD_gain = Total_elec_RAD_gain 
      &             + sens_load_fraction 
      &             * radiant_load_fraction 
      &             * W_electric_nonHVAC
+
 C Accumulate NG consumption (W)
           Total_NG = Total_NG 
      &             + sens_load_fraction 
@@ -1364,37 +1292,33 @@ C Accumulate NG consumption (W)
 
 C NOTE: add radiant & convective gains from occupant-driven
 C electric loads to ESP-r common blocks QCASR and QCASC.
-C These data are actually used to calculate the heat injection
+C These data are used to calculate the heat injection
 C into the building.
 C
 C Also append convective and radiant gains associated with
 C heat losses from plant components. Gains from ideal plant 
-C components are assumed to be all convective. 
-C 
-C 
+C components are assumed to be convective. 
       QCASC(2)= QCASC(2) + Total_elec_CON_gain
-     &                   + fPltZone_Convective_Gain(iComp,iFuture) !(W)
-     &                   + fIdealDHWGain(iComp)                    !
+     &                   + fPltZone_Convective_Gain(iComp,iFuture) ! (W)
+     &                   + fIdealDHWGain(iComp)
      
       QCASR(2)= QCASR(2) + Total_elec_RAD_gain
-     &                   + fPltZone_Radiant_Gain(iComp,iFuture)    !(W)
+     &                   + fPltZone_Radiant_Gain(iComp,iFuture)    ! (W)
 
 C When co-simulation with TRNSYS is active, parasitic thermal losses from TRNSYS
 C components (i.e. types) can be injected as casual gains into ESP-r's building
-C zone.  This is accomplished when the TRNSYS user connects a type's output
-C representing the thermal loss to a Type 130 input.  Within Type 130 this
-C heat loss is then associated with an ESP-r building zone.  If any such thermal
+C zone. This is accomplished when the TRNSYS user connects a type's output
+C representing the thermal loss to a Type 130 input. Within Type 130 this
+C heat loss is then associated with an ESP-r building zone. If any such thermal
 C losses have been represented then append them here.
 C In the current implementation, it is assumed that all such thermal losses
-C from TRNSYS appear as convective gains within ESP-r's building zone.  This
-C facility could be extended in the future to allow these heat gains to be
-C injected as a weighted mix of convection and radiation.
+C from TRNSYS appear as convective gains within ESP-r's building zone.
       IF ( COSIM ) THEN
         QCASC(2) = QCASC(2) +
      &              COSIM_DATA%ESPrZonesData(icomp)%AirPointCasualGains
       END IF
 
-C STORE future row casual and radiant gains
+C Store future row casual and radiant gains.
       Cas_Con_dat(icomp) = QCASC(2)  ! W
       Cas_Rad_dat(icomp) = QCASR(2)  ! W
 
@@ -1403,7 +1327,7 @@ C Remember future values for next timestep.
       QCRS(ICOMP)=QCASR(2)
       QLAT(ICOMP)=QLATN(2)
     
-C If first timestep set previous values to current.
+C If first timeste, set previous values to current.
       if(NSINC.eq.1)then
         QCASC(1)=QCASC(2)
         QCASR(1)=QCASR(2)
@@ -1411,7 +1335,7 @@ C If first timestep set previous values to current.
       endif
 
 C Sum present and future time rows and convert radiant casual 
-C variables to W/m^2.
+C gains to W/m^2.
       QCASCT=QCASC(1)+QCASC(2)
       QCASRT(icomp)=(QCASR(1)+QCASR(2))/zonetotsurfacearea(ICOMP)
       QCASR(1)=QCASR(1)/zonetotsurfacearea(ICOMP)
@@ -1419,7 +1343,7 @@ C variables to W/m^2.
       QCASRS(ICOMP)=QCASR(2)
       QCASLT=QLATN(1)+QLATN(2)
 
-C Trace output ?
+C Trace output?
       if(.NOT.traceok)goto 999
 
 C Output computed results.
@@ -1452,7 +1376,7 @@ C Display radiant contribution as Watts.
      &                                   'W      |   ',F10.2)
       call edisp(itu,outs)
 
-C Output the electrical results for the zone
+C Output the electrical results for the zone.
       if(ielf(icomp).gt.0) then
         call edisp(itu,' ')
         write(outs,'(a,1x,i3,1x,i3)') ' Zone: ',icomp,ielf(icomp)
@@ -1475,36 +1399,29 @@ C Output the electrical results for the zone
       END
 
 C ******************** INTLUM ********************
-C INTLUM Calculate the switched level of casual gains (normally associated
+C Calculate the switched level of casual gains (normally associated
 C with artificial lighting) when controlled on the basis of available
 C natural light.
-
-C Variables:
-
-C  SAZI : solar azimuth
-C  SALT : solar altitude
-C  QDIR : direct normal irradiance
-C  QDIF : diffuse horizontal irradiance
-C  SETPT: set point illumination
-C  ICGCFL: control law flag (-1,0,1,2,3,4 and 31, 32 as below)
-C  NEWT : total number of external default windows in the zone
-C  NDF  : number of light sensors (daylight factors) for each external zone window
-C  DFDAT: the daylight factors (CIE standard overcast sky)
-C  GAZI &
-C  GELV: window edge azimuthal and elevational angles.
-C  FRAC : fraction of casual gain (returned value)
+C  SAZI   - solar azimuth.
+C  SALT   - solar altitude.
+C  QDIR   - direct normal irradiance.
+C  QDIF   - diffuse horizontal irradiance.
+C  SETPT  - set point illumination.
+C  ICGCFL - control law flag (-1,0,1,2,3,4 and 31, 32 as below).
+C  NEWT   - total number of external (default) windows in the zone.
+C  NDF    - number of light sensors (daylight factors) for each external window.
+C  DFDAT  - daylight factors (for a CIE standard overcast sky).
+C  GAZI & GELV - window edge azimuthal and elevational angles.
+C  FRAC   - fraction of casual gain (returned value).
 
       SUBROUTINE INTLUM(ICOMP,FRAC)
 #include "building.h"
 #include "model.h"
-
-C geometry.h provides commons G0/G1/G2/precz.
 #include "geometry.h"
       
       integer lnblnk  ! function definition
 
       COMMON/BTIME/BTIMEP,BTIMEF
-
       common/filep/ifil
       COMMON/TC/ITC,ICNT
       COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
@@ -1527,21 +1444,22 @@ C Daylight factor data (see dayfac.F).
      & AZIJL(MCOM,MGT),SUMDF(MCOM,MLCOM,MDF),NUDWIN(MCOM)
 
       COMMON/ADJC2/DIRT(MCOM,MS),DIFT(MCOM,MS),AIRT(MCOM,MS)
-C TMC data
+
+C TMC data.
       COMMON/PRECTC/ITMCFL(MCOM,MS),TMCT(MCOM,MTMC,5),
      &       TMCA(MCOM,MTMC,ME,5),TMCREF(MCOM,MTMC),TVTR(MCOM,MTMC)
 
-C TMC blind control flag
+C TMC blind control flag.
       COMMON/TMCB4/IBOFOT(MCOM,MS),NBPONT(MCOM,MS),ECRAT(MCOM,MS)
 
-C Construction information
+C Construction information.
       COMMON/PREC9/NCONST(MCOM),NELTS(MCOM,MS),NGAPS(MCOM,MS),
      &             NPGAP(MCOM,MS,MGP)
       
-C Hunt's information.
+C Hunt algorithms.
       COMMON/HUNT/FIRSTL(MCOM),RANDN(MCOM)
 
-C Switch off delay time memory common block
+C Switch off delay time memory.
       COMMON/SOFDT/IDTM(MCOM,MLCOM)
 
       DIMENSION selum(MLCOM,MDF),alt(8)
@@ -1551,12 +1469,12 @@ C Switch off delay time memory common block
 
       logical close
 
-C Definition of sun altitude for daylight coefficient method:
+C Definition of sun altitude for daylight coefficient method.
       data alt/6.,18.,30.,42.,54.,66.,78.,90./
 
       iunit=ifil+1
 
-C Trace output ?
+C Trace output?
       IFT=1
       IF(ITC.LE.0.OR.NSINC.LT.ITC)IFT=0
       IF(ITRACE(12).EQ.0.OR.NSINC.GT.ITCF.OR.IZNTRC(ICOMP).NE.1)IFT=0
@@ -1575,59 +1493,59 @@ C Trace output ?
       ENDIF
 
 C Assume casual gains untouched and establish solar data for correct
-C time-row.  For conversion from radians to degrees.
+C time-row. 
       CALL MZSINT(ICOMP,QDIR,QDIF)
 
+C For conversion from radians to degrees.
       PI = 4.0 * ATAN(1.0)
       TODEG=180/PI
       RAD=PI/180.
 
 C Transform direct normal to horizontal irradiance as only horizontal
-C sensor aloved in methods 1 and 2:
+C sensor allowed in methods 1 and 2.
       dir=QDIR*sin(SALT*rad)
 
 C Calculate external horizontal unobstructed diffuse and direct
-C illuminance:
+C illuminance.
       call LUMEFF(QDIF,QDIR,SALT,IDYP,skyeff,suneff)
       esun=dir*suneff
       esky=QDIF*skyeff
 
-C Loop through all lighting zones
+C Loop through lighting zones.
       FRAC=0.
       DO 9 N=1,NLITZ(ICOMP)
         ZFRAC(N)=0.
-
       CALL CALCILUM(icomp,N,selum,zelum,alt,skyeff,suneff,esun,esky,IFT)
 
 C Find lighting output fraction (FRAC) under current control.
-C ICGCFL=-1: casual gain ON
-C       = 0: casual gain OFF
-C       = 1: ON/OFF control.
-C       = 2: step down control.
-C       = 3: proportional control.
-C       = 4: Hunt probability function.
+C ICGCFL = -1 casual gain ON.
+C        =  0 casual gain OFF.
+C        =  1 ON/OFF control.
+C        =  2 step-down control.
+C        =  3 proportional control.
+C        =  4 Hunt probability function.
 
 C Special lighting control parameters, which are currently set
-C to default values (later they will be user specified) :
-C SOFFLL  Switching-off-light reference level fraction of lux set point
-C         (usual range 1.2 - 2.5 i.e. 120% - 250%)
-C SMEOUT  Constant control gear + min. lamp's dimming or
-C         steping wattage fraction of total lights casual load
-C SMLOUT  Minimum dimming light output fraction (usually 0.1 i.e. 10%)
-C SOFFRL  Switching-off-light reference level in Lux
-C IOFFDT  Switch-of-delay time (usual range 5 - 30 minutes), here number
-C         of the simulation time steps
-C DFRAC   Fraction of luminous output of the artificial lighting
-C ZFRAC   Fraction of electric power consumption of the artificial lighting
+C to default values but later will be user specified:
+C SOFFLL - switch-off light reference level as fraction of lux
+C          setpoint (usual range 1.2-2.5, i.e. 120%-250%).
+C SMEOUT - constant control gear + minimu lamp dimming or
+C          stepping wattage fraction of total lights casual load.
+C SMLOUT - minimum dimming light output fraction (usually 0.1, i.e. 10%)
+C SOFFRL - switch-off light reference level (Lux).
+C IOFFDT - switch-of delay time (usual range 5- 0 minutes), here number
+C          of simulation time steps.
+C DFRAC  - fraction of luminous output of the artificial lighting.
+C ZFRAC  - fraction of electric power consumption of the artificial
+C          lighting.
 
-C Definition of switching-off-light reference level in Lux:
+C Definition of switchi-off light reference level (Lux).
       SOFFRL=SOFFLL(ICOMP,N)*SETPT(ICOMP,N)
 
-C Generally one may choose to define the setpoints at the same
-C lux to follow Lynes' method or different setpoints can be used
-C for different tasks.  The grid option (1) uses individually
-C placed sensors so that one could average over the multiple
-C sensors or deal with individual sensor/systems.
+C Generally the setpoints can be set at the same lux
+C level to follow Lynes' method or different setpoints can be used
+C for different tasks. The grid option (1) uses individually
+C placed sensors supporting sensor differentiation or averaging.
       IF(ICGCFL(ICOMP,N) .eq. -1)THEN
         ZFRAC(N)=SYSPER(ICOMP,N)
         IF(IFT.EQ.1)then
@@ -1636,7 +1554,7 @@ C sensors or deal with individual sensor/systems.
           call edisp(itu,outs)
         endif
         
-C Update corresponding SHOCC lighting (if existing) ...
+C Update corresponding SHOCC lighting.
         call updatelighting(icomp,n,zelum(n),btimep,btimef)
 
       ELSEIF(ICGCFL(ICOMP,N) .eq. 0)THEN
@@ -1647,7 +1565,7 @@ C Update corresponding SHOCC lighting (if existing) ...
           call edisp(itu,outs)
         endif
         
-C Update corresponding SHOCC lighting (if existing).
+C Update corresponding SHOCC lighting.
         call updatelighting(icomp,n,zelum(n),btimep,btimef)
 
 C Case of On/Off with chosen lighting systems and sensors.
@@ -1671,16 +1589,16 @@ C Case of On/Off with chosen lighting systems and sensors.
           IF(IDFST(ICOMP,N).EQ.3)WRITE(outs,805)N,ZFRAC(N)
           IF(IDFST(ICOMP,N).EQ.4)WRITE(outs,806)N,ZFRAC(N)
           IF(IDFST(ICOMP,N).EQ.5)WRITE(outs,807)N,ZFRAC(N)
-  803     FORMAT(' Light zone ',I1,' ON/OFF ESP-r calc df, ZFRAC=',F5.2)
-  804     FORMAT(' Light zone ',I1,' ON/OFF User def df, ZFRAC=',F5.2)
-  805     FORMAT(' Light zone ',I1,' ON/OFF Ext sensor, ZFRAC=',F5.2)
-  806     FORMAT(' Light zone ',I1,' ON/OFF Coupling, ZFRAC=',F5.2)
-  807     FORMAT(' Light zone ',I1,' ON/OFF Daylight coef, ZFRAC=',F5.2)
+  803     FORMAT(' Light zone ',I1,' ON/OFF computed df, ZFRAC=',F5.2)
+  804     FORMAT(' Light zone ',I1,' ON/OFF user def df, ZFRAC=',F5.2)
+  805     FORMAT(' Light zone ',I1,' ON/OFF ext sensor, ZFRAC=',F5.2)
+  806     FORMAT(' Light zone ',I1,' ON/OFF coupling, ZFRAC=',F5.2)
+  807     FORMAT(' Light zone ',I1,' ON/OFF daylight coef, ZFRAC=',F5.2)
           call edisp(itu,outs)
         endif
 
-C If in coupling mode then write to the text feedback the controlled fraction
-C so the next timestep the user can edit the IES xforms file to match. 
+C If in coupling mode, write out the controlled fraction so that at the
+C next timestep the the user can edit the IES xforms file to match.
         IF(IDFST(ICOMP,N).EQ.4)then
           write(outs,'(a,F9.2)') 
      &      'COUPLING ADJUSTMENT next timestep after:',btimef
@@ -1693,10 +1611,10 @@ C so the next timestep the user can edit the IES xforms file to match.
           call edisp(6,outs)
         ENDIF
 
-C Update corresponding SHOCC lighting (if existing).
+C Update corresponding SHOCC lighting.
         call updatelighting(icomp,n,zelum(n),btimep,btimef)
 
-C Case of Step Up/Down with chosen sensors/lighting systems:
+C Case of Step-Up/Down with chosen sensors/lighting systems.
       ELSEIF(ICGCFL(ICOMP,N) .EQ. 2)THEN
         ZFRAC(N)=0.
         zell=zelum(N)+0.5*SETPT(ICOMP,N)
@@ -1727,11 +1645,11 @@ C Case of Step Up/Down with chosen sensors/lighting systems:
           call edisp(itu,outs)
         endif
 
-C Update corresponding SHOCC lighting (if existing).
+C Update corresponding SHOCC lighting.
         call updatelighting(icomp,n,zelum(n),btimep,btimef)
 
 C Case of proproportional dimming control with chosen sensors/lighting
-C systems:
+C systems.
       ELSEIF(ICGCFL(ICOMP,N).EQ.3)THEN
           ZFRAC(N)=0.0
           DFRAC = 0.0
@@ -1780,22 +1698,21 @@ C systems:
           call edisp(itu,outs)
         ENDIF
 
-C Update corresponding SHOCC lighting (if existing).
+C Update corresponding SHOCC lighting.
         call updatelighting(icomp,n,zelum(n),btimep,btimef)
 
 C Case of explicit proproportional dimming control with integral
-C reset control algorithm:
-C
-C New sensor and control algorithm settings or definition:
-C SPELEC  sensor signal (lux) under artificial lighting
-C         - night time calibration;
-C zelum   sensor signal (lux) under daylight (time dependend).
-C For detailed explanation of control algorithms see: Rubinstein, F.,
-C Ward, G., Verderberg, R., Improving the Performance of Photo-
-C Electrically Controled Lighting Systems. Journal of the IES Winter 1989.
-
+C reset control algorithm.
+C SPELEC  - sensor signal (lux) under artificial lighting
+C           night time calibration;
+C zelum  - sensor signal (lux) under daylight (time dependent).
+C 
+C For detailed explanation of control algorithms see:
+C   Rubinstein F, Ward G and Verderberg R (1989) Improving the Performance of
+C   Photo-Electrically Controled Lighting Systems, J. IES.
       ELSEIF(ICGCFL(ICOMP,N).EQ.31)THEN
-C Redefine SOFFRL for explicit control:
+
+C Redefine SOFFRL for explicit control.
           SOFFRL=SOFFLL(ICOMP,N)*SPELEC(ICOMP,N)
 
           ZZZ1 = (1.-SMLOUT(ICOMP,N))*SOFFRL
@@ -1844,20 +1761,19 @@ C Redefine SOFFRL for explicit control:
           call edisp(itu,outs)
         ENDIF
 
-C Update corresponding SHOCC lighting (if existing).
+C Update corresponding SHOCC lighting.
         call updatelighting(icomp,n,zelum(n),btimep,btimef)
 
 C Case of explicit proproportional dimming control with closed-loop
-C algorithm:
-C
-C New sensor and control algorithm settings or definition:
-C SPELEC  sensor signal (lux) under artificial lighting
-C         - night time calibration;
-C zelum   sensor signal (lux) under daylight (time dependend);
-C SLOPEM  linear control response slope (-).
+C algorithm.
 
+C SPELEC - sensor signal (lux) under artificial lighting
+C          night time calibration.
+C zelum  - sensor signal (lux) under daylight (time dependend).
+C SLOPEM - linear control response slope (-).
       ELSEIF(ICGCFL(ICOMP,N).EQ.32)THEN
-C Redefine SOFFRL for explicit control:
+
+C Redefine SOFFRL for explicit control.
           SOFFRL=SOFFLL(ICOMP,N)*SPELEC(ICOMP,N)
 
           ZZ1 = SMLOUT(ICOMP,N)*(1. - SLOPEM(ICOMP,N)*SOFFRL)
@@ -1911,25 +1827,23 @@ C Redefine SOFFRL for explicit control:
           call edisp(itu,outs)
         ENDIF
 
-C Update corresponding SHOCC lighting (if existing).
+C Update corresponding SHOCC lighting.
         call updatelighting(icomp,n,zelum(n),btimep,btimef)
 
-      ELSEIF(ICGCFL(ICOMP,N).EQ.4)THEN
 C Hunt's manual switching.
 C Assume that the on/off periods set in the operation file for the
 C matching casual gain represent occupancy times. If there are two
-C periods ie. 8h00 to 12h00 and 14h00 to 18h00 then the probability
+C periods (e.g. 8h00 to 12h00 and 14h00 to 18h00) then the probability
 C will be first calculated at 8h00 and then recalculated at 14h00.
-C FIRSTL() is the elum when the probability was last calculated.
-
-C With multiple sensors use the ratio of the daylight factor
+C FIRSTL() is the illumination when the probability was last calculated.
+C With multiple sensors, use the ratio of the daylight factor
 C for the brightest and dimmest sensors to judge uniformity.
 C If the ratio is outside the range of 0.33<r<3.0 then occupants
 C will tend to judge the spatial character of the lighting as
-C contrasty and will keep the lights on. If one sensor assume
-C ok, as not enough info.
+C high contrast and will keep the lights on. If only one sensor,
+C assume all is ok.
+      ELSEIF(ICGCFL(ICOMP,N).EQ.4)THEN
         iuni=0
-
         IMAXX=1
         IMINN=1
         SMAXX=0.0
@@ -1951,7 +1865,6 @@ C ok, as not enough info.
         IF((ratdf.LE.0.33).OR.(ratdf.GT.3.))iuni=1
         elum1=selum(N,IMINN)
 
-
 C Read in the current zone operation file so that common/P3N will
 C be correct for access by HUNTA. HUNTA returns ACTIVE=1. if there
 C is a matching casual gain to control at the current timestep.
@@ -1959,25 +1872,13 @@ C is a matching casual gain to control at the current timestep.
         CALL EROPER(IFT,ITU,IUNITA,ICOMP,IER)
         CALL HUNTA(ICOMP,IHRF,ACTIVE)
 
-C If first hour of the day then calculate a new random number for
+C If first hour of the day, calculate a new random number for
 C the current zone.
 C Following code works on a Sun workstation:
         IF(IHRF.EQ.1)THEN
           seed=(idyp*24+ihrp)+icomp
-C For NT.
-C          call set_seed@(seed)
-C          randn(icomp)=real(random())
-C For Unix and Absoft.
           RANDN(ICOMP)=RAND(INT(seed))
         ENDIF
-
-C Following code works on a Hitech workstation or VAX:
-C        IF(IHRF.EQ.1)THEN
-C          Iseed=(idyp*24+ihrp)+icomp
-C          RANDN(ICOMP)=RAN(Iseed)
-C          WRITE(IUOUT,887)Iseed,RANDN(ICOMP)
-C  887     FORMAT(' iseed=',I12,' RANDN=',F5.3)
-C        ENDIF
 
 C If ACTIVE = 0. reset the probability, FRAC and FIRSTL to 0. to
 C force later calculation of probability.
@@ -2087,7 +1988,7 @@ C Occupants arriving, calculate probability and save FIRSTL.
           ENDIF
         ENDIF
 
-C Update corresponding SHOCC lighting (if existing).
+C Update corresponding SHOCC lighting.
         call updatelighting(icomp,n,zelum(n),btimep,btimef)
 
       ENDIF
@@ -2097,14 +1998,14 @@ C Update corresponding SHOCC lighting (if existing).
 C Remove transfer file.
       call EFDELET(IUNIT,ISTAT)
 
-C Trace output for FRAC:
+C Trace output.
       IF(IFT.EQ.1)then
         write(outs,910)FRAC
   910   format('Fraction of lighting "ON" FRAC=',F4.2)
         call edisp(itu,outs)
       endif
 
-C Trace output ?
+C Trace output?
       IF(ITC.LE.0.OR.NSINC.LT.ITC)goto 999
       IF(ITRACE(12).EQ.0.OR.NSINC.GT.ITCF.OR.
      &   IZNTRC(ICOMP).NE.1)goto 999
@@ -2120,15 +2021,10 @@ C is non-zero.
           write(outs,911)I,ICOMP,IBOFOT(ICOMP,I)
  911      format('the TMC surface ',I3,' on zone',I3,' has IBOFOT=',I1)  
           call edisp(itu,outs)
-
-C Note: VT is not defined in this subroutine.
-C          write(outs,'(A,I3,A,F5.2,A)')'The VT of surface',I,' is ',
-C     &      V,'**'
-C          call edisp(itu,outs)
         ENDIF 
  52   CONTINUE  
 
-C Description for irradiation/illumination data:
+C Description for irradiation/illumination data.
       write(outs,99971)QDIR,QDIF
 99971 format(' Ext: Dir.nor.rad. W/m^2(',F7.1,') Dif.hor.rad.(',
      &       F7.1,')')
@@ -2143,22 +2039,16 @@ C Description for irradiation/illumination data:
       write(outs,99974)SAZI,SALT
 99974 format('    : solar azi deg(',F6.1,') solar alt deg(',F6.1,')')
       call edisp(itu,outs)
-C Note: ratio & nelem are not defined in this subroutine.
-C      write(outs,99975)RATIO,nelem
-C99975 format('    : TMC blind/shuter(',F4.2,') Sun patch no.(',I3,')')
-C      call edisp(itu,outs)
 
   999 return
       end
 
 C ******************* CALCILUM ***************************
-
 C Returns the average illuminance of lighting zone N for casual
 C gain control.
 
       SUBROUTINE CALCILUM(icomp,N,selum,zelum,alt,skyeff,suneff,esun,
      &                    esky,IFT)
-
 #include "building.h"
 #include "model.h"
 #include "geometry.h"
@@ -2180,7 +2070,7 @@ C Zone casual gain control data.
       COMMON/CGCIN3/ICGCS(MCOM,MDTY),ICGCF(MCOM,MDTY),
      & ICGCFL(MCOM,MLCOM),SPELEC(MCOM,MLCOM),SLOPEM(MCOM,MLCOM)
 
-C Daylight coefficient common block data definition:
+C Daylight coefficient common block data.
       COMMON/DCOEF/NDCFP,NDCFS(MDCFP),DCOEF(MDCFP,MDCFS,MDCFV),
      & IDCFID(MCOM,MLCOM,MDF)
 
@@ -2191,14 +2081,14 @@ C Daylight factor data (see dayfac.f).
       COMMON/ADJC2/DIRT(MCOM,MS),DIFT(MCOM,MS),AIRT(MCOM,MS)
       COMMON/D7/T1,T2,P1,P2
 
-C TMC data
+C TMC data.
       COMMON/PRECTC/ITMCFL(MCOM,MS),TMCT(MCOM,MTMC,5),
      &       TMCA(MCOM,MTMC,ME,5),TMCREF(MCOM,MTMC),TVTR(MCOM,MTMC)
 
-C TMC blind control flag
+C TMC blind control flag.
       COMMON/TMCB4/IBOFOT(MCOM,MS),NBPONT(MCOM,MS),ECRAT(MCOM,MS)
 
-C Construction information
+C Construction information.
       COMMON/PREC9/NCONST(MCOM),NELTS(MCOM,MS),NGAPS(MCOM,MS),
      &             NPGAP(MCOM,MS,MGP)
 
@@ -2227,7 +2117,7 @@ C Illuminance database.
       TODEG=180/PI
       RAD=PI/180.0
 
-C If esp pre-processor or user defined df then read in geometry data.
+C If pre-processor or user-defined daylight factor then read geometry data.
       nog=.false.
       do  1 iu=1,NLITZ(icomp)
         IF((IDFST(ICOMP,iu).EQ.1).or.(IDFST(ICOMP,iu).eq.2))nog=.true.
@@ -2239,7 +2129,7 @@ C If esp pre-processor or user defined df then read in geometry data.
       IF(IDFST(ICOMP,N).EQ.3)THEN
 
 C If external sensor & surface (overload CGX) is exterior
-C calculate lux.  If CGY (overloaded)=1. then calculate
+C calculate lux. If CGY (overloaded)=1. then calculate
 C vertical unobstructed illum otherwise use horizontal illum.
         J=INT(CGX(ICOMP,N,1))
         IF(J.EQ.0)J=1
@@ -2278,8 +2168,8 @@ C Establish solar data.
       ELSEIF(IDFST(ICOMP,N).EQ.5)THEN
 
 C Daylight coefficient method. Test if there is any diffuse 
-C irradiation and if solar altitude is positive
-C number. If not set photo-cell values to zero:
+C irradiation and if solar altitude is positive. If not, set
+C photocell values to zero.
         call eclose(QDIF,0.00,0.01,closea)
         if(SALT.LT.0.) closea=.true.
         if(closea) then
@@ -2287,7 +2177,7 @@ C number. If not set photo-cell values to zero:
           DO 41 I=1,NDF(ICOMP,N)
             selum(N,I)=0.
 
-C Trace output:
+C Trace output.
             if(IFT.EQ.1)then
               write(outs,111)N,I,selum(N,I),SETPT(ICOMP,N)
               call edisp(itu,outs)
@@ -2295,14 +2185,14 @@ C Trace output:
    41     CONTINUE
         else
 
-C Calculate reference horizontal illuminance:
+C Calculate reference horizontal illuminance.
           call REFILL(QDIF,QDIR,SALT,SAZI,IDYP,refell)
 
-C Loop through all TMC in the zone and determine blind and
+C Loop through all TMCs in the zone and determine blind and
 C shuter control status. 
-C If IBOFOT()=1, then blind/shutter is ON and used second stage
-C daylight coefficients or if IBOFOT()=2 then linear interpolation
-C on optical properties i.e. electrochromic glazing:
+C If IBOFOT()=1 then blind/shutter is ON and use second stage
+C daylight coefficients or if IBOFOT()=2 then linear interpolate
+C optical properties, e.g. electrochromic glazing.
           NC=NCONST(ICOMP)
           DO 51 I=1,NC
             IF(ITMCFL(ICOMP,I).GT.0)THEN
@@ -2312,36 +2202,36 @@ C on optical properties i.e. electrochromic glazing:
             ENDIF
 51        CONTINUE
 
-C Loop via all sensors for this lighting zone:
+C Loop all sensors for this lighting zone.
           suma=0.
           DO 40 J=1,NDF(ICOMP,N)
 
-C Find out daylight coefficient set associated with current sensor: 
+C Find daylight coefficient set associated with current sensor. 
             IDCFP=IDCFID(ICOMP,N,J)
 
-C Define starting angle for test of sky element comprising sun:
+C Define starting angle for test of sky element comprising sun.
             ang0=4.0*PI
 
-C Loop through all 145 sky patchs and calculate delta illuminance:
+C Loop through all 145 sky patches and calculate delta illuminance.
             sill = 0.0
             do 30 npatch = 1, 145
               dill=0.0
 
-C Calculate sky patch reference luminance:
+C Calculate sky patch reference luminance.
               call PATLUM(QDIF,QDIR,SALT,SAZI,IDYP,npatch,plv,ang)
 
 C Find sky element with minimum angle between sun position and element.
-C This identifies number of sky element for calculation of direct
-C illuminance contribution:
+C This identifies the sky element number for the calculation of the direct
+C illuminance contribution.
               if(ang.lt.ang0)then
                 nelem = npatch
                 ang0 = ang
               endif
 
-C Calculate luminance (cd/m^2) for given sky patch:
+C Calculate luminance (cd/m^2) for given sky patch.
               plum=plv*esky/refell
 
-C If inconsistency (i.e. error) in irradiance data - plum < 0 set it to 0:
+C If inconsistency in irradiance data (plum < 0) set it to 0.
               if(plum.le.0.0)then
                 if((npatch.ge.1).and.(npatch.le.30))then
                   nzone = 1
@@ -2363,15 +2253,15 @@ C If inconsistency (i.e. error) in irradiance data - plum < 0 set it to 0:
                 neglum = .true.
 
 C Use aproximate solution assuming uniform sky luminance distribution
-C to estimate sky patch luminance:
+C to estimate sky patch luminance.
                 plum = esky/(2.0*PI*sin(alt(nzone)*rad))
               else
                 neglum = .false.
               endif
 
-C Calculate delta illuminance at sensor from given sky patch:
+C Calculate delta illuminance at sensor from given sky patch.
 C Test for blind or linear interpolation and use appropriate
-C daylight coefficient:
+C daylight coefficient.
               CALL ECLOSE(RATIO,1.00,0.0001,closea)
               IF(CLOSEA)THEN
                 DMIN=0.0
@@ -2387,19 +2277,17 @@ C daylight coefficient:
 
 30          continue
 
-C Give warnning about calculated negative luminance:
+C Warn about negative luminance.
             if(neglum)then
-              write (outs,'(a)') ' Sky patch luminance < = 0 occured '
+              write (outs,'(a)') 'Sky patch luminance < = 0 occured!'
               call edisp(iuout,outs)
-C              write (outs,'(a)') ' Using uniform sky aproximation '
-C              call edisp(iuout,outs)
               write (outs,'(a,I3,a,f6.1,a,f6.1,a,f4.1)') ' Day ',IDYP,
      &        ' Direct ',QDIR,' Diffuse ',QDIF,' Sun altitude ',SALT
               call edisp(iuout,outs)
             endif
 
-C Check if any direct sun - if yes then calculate its contribution
-C into sensor illuminance:
+C Check if direct sun, If yes then calculate its contribution
+C to sensor illuminance.
             call eclose(QDIR,0.00,0.01,closea)
             if(closea)then
               dircon=0.0
@@ -2416,14 +2304,14 @@ C into sensor illuminance:
               dircon=DD2*QDIR*suneff
             endif 
 
-C Define sensed illumination at given sensor:
+C Define sensed illumination at sensor.
             subT = sill + dircon
             suma=suma+subT
 
-C Define "selum" only for Trace output - not used in calculation:
+C Define selum for trace output.
             selum(N,J)=subT
 
-C Trace output:
+C Trace output.
             if(IFT.EQ.1)then
               write(outs,113)N,J,dircon,sill,selum(N,J),SETPT(ICOMP,N)
   113         format(I6,I5,' N/A ','  N/A  ','   N/A   ','  N/A ',
@@ -2434,15 +2322,15 @@ C Trace output:
         endif
 
 C Average illumination for this light zone (in case of more than one
-C sensor in lighting zone):
+C sensor in lighting zone).
         zelum(N)=suma/float(NDF(ICOMP,N))
 
       ELSEIF(IDFST(ICOMP,N).EQ.4)THEN
 
 C Time varying illuminances calculated by Radiance. Test if there
-C is any diffuse irradiation and if solar altitude is positive
-C number. Do not carry out lighting simulation if not, and if 
-C in pre-calculation period (via call to bInStartup):
+C is any diffuse irradiation and if solar altitude is positive. Do
+C not carry out lighting simulation if not, and if in pre-calculation
+C period (via call to bInStartup).
         call eclose(QDIF,0.00,0.01,closea)
         instart=.false.
         if (bInStartup())then
@@ -2453,7 +2341,7 @@ C in pre-calculation period (via call to bInStartup):
           DO 21 I=1,NDF(ICOMP,N)
             selum(N,I)=0.
 
-C Trace output:
+C Trace output.
             if(IFT.EQ.1)then
               write(outs,111)N,I,selum(N,I),SETPT(ICOMP,N)
               call edisp(itu,outs)
@@ -2462,14 +2350,14 @@ C Trace output:
         else
 
 C Call RADIANCE only once for first lighting zone
-C as all internal illuminances are determined now:
+C as all internal illuminances are now known.
           IF (N.EQ.1) then
 
 C Transfer solar azimuth into Radiance coordinate system
-C where South is 0 degree and azimuth is measured + towards west:
+C where South is 0 degrees and azimuth is +ve towards West.
             RSAZI=SAZI-180.
             
-C Loop through all TMC in the zone and determine blind and
+C Loop through all TMCs in the zone and determine blind and
 C shuter control status. 
 C If IBOFOT()=1, then blind/shutter is ON.
             NC=NCONST(ICOMP)
@@ -2484,7 +2372,7 @@ C If IBOFOT()=1, then blind/shutter is ON.
               ENDIF
 31          CONTINUE
 
-C Check if sensor values already in illuminance database and set accuracies.
+C Check if sensor values are already in illuminance database and set accuracies.
             ILLDBM=0
             AZIACC=5.
             QDRACC=5.
@@ -2493,8 +2381,8 @@ C Check if sensor values already in illuminance database and set accuracies.
             CALL DAYCLK(IDYP,BTIMEF,66)
             write (66,'(4f9.1,i3)') SALT,RSAZI,QDIR,QDIF,IBLIND
 
-C Calculate differences.  Blind state MUST match.
-C Check for no direct solar (effectively use dayfactor).
+C Calculate differences. Blind state MUST match.
+C Check for no direct solar (effectively use daylight factor).
             if (QDIR.lt.QDRACC) then
               NMATCH=0
               do 311 ILZ=1,MLCOM
@@ -2528,7 +2416,7 @@ C Check for no direct solar (effectively use dayfactor).
 
 C Assume that the diffuse regresses to a straight line: y=mx
 C The SENTMP and QDFTMP both need divided by NMATCH hence NMATCH
-C cancels iff y=mx assumption holds.
+C cancels if y=mx assumption holds.
                       SENTMP(ILZ,IDF)=SENTMP(ILZ,IDF)*QDIF
                       selum(ILZ,IDF)=SENTMP(ILZ,IDF)/QDFTMP(ILZ,IDF)
                     else
@@ -2558,8 +2446,6 @@ C Check for similar sun position.
      &                 ecosd(DBILLA(IDB,2)-RSAZI)
                 SOLDIF=SOLDIF+ecosd(90.0-DBILLA(IDB,1))*ecosd(90.0-SALT)
                 SOLDIF=acos(SOLDIF)*180.0/PI
-C                AZIDIF=abs(DBILLA(IDB,1)-SALT)
-C                ALTDIF=abs(DBILLA(IDB,2)-RSAZI)
                 if ((SOLDIF.lt.AZIACC).and.
      &              (IBLIND.eq.nint(DBILLA(IDB,5)))) then
                   NMATCH=NMATCH+1
@@ -2617,14 +2503,12 @@ C Calculate regression coefficients GRADQR and GRADQF.
             endif
 
 C Call e2r to calculate illuminances.
-C ** Set this as the default treatment **
-
-C << for coupling with casual gain control should write out control
-C << state information into the transfer file.
+C << For coupling with casual gain control should write out control
+C << state information to the transfer file.
             ILLDBM=0
             if (ILLDBM.eq.0) then
 
-C If there are IES entities in the model tell e2r to invoke editing
+C If there are IES entities in the model, tell e2r to invoke editing
 C of the IES transforms file.
               if(nbofies.gt.0)then
                 e2redit='YES'
@@ -2632,8 +2516,8 @@ C of the IES transforms file.
                 e2redit='NO'
               endif
 
-C Create transfer file (format: .PID.tmp) LTMPFL is the file name (passed
-C to e2r) and  LTMPFLA is the absolute path/ file name.
+C Create transfer file (format: .PID.tmp). LTMPFL is the file name (passed
+C to e2r) and LTMPFLA is the absolute path/file name.
               call esppid(ipid)
               write(LTMPFLA,'(a,i7,a)') '.',ipid,'.dat'
               call st2file(LTMPFLA,LTMPFL)
@@ -2656,10 +2540,10 @@ C to e2r) and  LTMPFLA is the absolute path/ file name.
      &          ' -mode text'
 
 C Debug.
-              write(6,'(3a,i3,3a)')'e2r -file ',
-     &          LCFGF(:lnblnk(LCFGF)),' -purpose Coupling -zone ',
-     &          ICOMP,' -act Calculate -actf ',LTMPFL(:lnblnk(LTMPFL)),
-     &          ' -mode text'
+C              write(6,'(3a,i3,3a)')'e2r -file ',
+C     &          LCFGF(:lnblnk(LCFGF)),' -purpose Coupling -zone ',
+C     &          ICOMP,' -act Calculate -actf ',LTMPFL(:lnblnk(LTMPFL)),
+C     &          ' -mode text'
               write(outs,'(a,f8.3,a,i3,a)') 'Lighting simulation @ ',
      &          BTIMEF,' for zone',ICOMP,' commenced.'
               call edisp(icout,outs)
@@ -2673,8 +2557,7 @@ C Create new entry in illuminance database.
               DBILLA(NDBENT,4)=QDIF
               DBILLA(NDBENT,5)=float(IBLIND)
 
-C Recover new illuminance data.
-C Open transfer file.
+C Recover new illuminance data. Open transfer file.
               suma=0.
               CALL FPOPEN(IUNIT,ISTAT,1,1,LTMPFLA)
               if(ISTAT.lt.0)then
@@ -2703,7 +2586,7 @@ C Loop through till 'OUTCMD' string found.
               endif
               if (OUTSTR(1:60).ne.OUTCMD(1:60)) goto 777
 
-C Now read sensor data.
+C Read sensor data.
               DO 19 I=1,NDF(ICOMP,N)
                 sumJ=0.
                 CALL STRIPC(IUNIT,OUTSTR,0,ND,1,'t var illum',IER)
@@ -2724,10 +2607,10 @@ C Now read sensor data.
                 suma=suma+subT
                 selum(N,I)=subT
 
-C Copy new information to illuminance DB.
+C Copy information to illuminance DB.
                 DBILLS(NDBENT,N,I)=int(subT)
 
-C Trace output:
+C Trace output.
                 if(IFT.EQ.1)then
                   write(outs,111)N,I,selum(N,I),SETPT(ICOMP,N)
   111             format(I6,I5,' N/A ','  N/A  ','   N/A   ','  N/A ',
@@ -2750,16 +2633,16 @@ C Close transfer file.
           ENDIF
         endif
 
-C Average illumination for this light zone:
+C Average illumination for this light zone.
         zelum(N)=suma/float(NDF(ICOMP,N))
       ELSE
 
 C IDST is somthing other than 3/4/5.
 C Loop through each sensor point, calculate the illumination due
-C to each external window and summate.  Each window will
+C to each external window and summate. Each window will
 C have a different solar contribution depending on whether or
-C not it can see the sun.  To regain information on the associated
-C surfaces, loop as in dayfac.f.  Note suma is total sensed lux
+C not it can see the sun. To regain information on the associated
+C surfaces, loop as in dayfac.f. Note suma is total sensed lux
 C in zone for use in averaging, sumJ is the total sensed lux at
 C each sensor.
         suma=0.
@@ -2781,7 +2664,7 @@ C information.
   201       CONTINUE
 
 C Continue only if this surface is vertical, is TMC, has 4 vertices
-C and is connected to either the exterior or another real zone.  
+C and is connected to either the exterior or another zone.  
 C Keep track of total windows in zone with nt. Exclude skylights.
             IF(ITMCFL(ICOMP,J).GT.0)THEN
               call eclose(SPELV(ICOMP,J),0.00,0.70,close)
@@ -2790,13 +2673,9 @@ C Keep track of total windows in zone with nt. Exclude skylights.
                   WRITE(ITU,843) zname(icomp),J
   843             format('Zone ',A,'TMC surf ',I3,' not 4 vertices!')
 
-C This would be a good place to calculate an alternative bounding box
-C for use in width/height calculations.
-C << to be done >>
                 ENDIF
 
-C Test if the TMC is rectangular and calculate window width
-C and high WIDTH, HIGH:
+C Test if the TMC is rectangular.
                 call eclose(XPL(1),XPL(2),0.01,closea)
                 call eclose(XPL(1),XPL(3),0.01,closeb)
                 call eclose(XPL(1),XPL(4),0.01,closec)
@@ -2827,11 +2706,11 @@ C and high WIDTH, HIGH:
                   IF((IES.EQ.3).AND.(IDFST(ICOMP,N).NE.2))THEN
 
 C Calculate equivalent source illuminance via interior window.
-C DIFT in in Watts/m^2 (similar to the outside radiation). DIRT is
-C disregarded because we do not trace it direction in this zone.
-C Note that the attenuation of visible transmittance going through
+C DIFT is in Watts/m^2 (similar to the outside radiation). DIRT is
+C disregarded because we do not trace its direction in this zone.
+C Note that the attenuation of visible transmittance through
 C the glass is roughly accounted for in solar algorithm and DFDAT
-C includes the maintinence factor.
+C includes the maintenance factor.
                     diftzn=DIFT(IZC,ISC)*skyeff
                     subT=diftzn*DFDAT(ICOMP,N,J,I)
                     if(IFT.EQ.1)then
@@ -2846,7 +2725,7 @@ C includes the maintinence factor.
                   ELSEIF((IES.EQ.3).AND.(IDFST(ICOMP,N).EQ.2 ))THEN
 
 C If user specified DF for internal window then calculate the
-C same way as for external, but do not check for sun dir illuminance:
+C same way as for external but do not check for sun direct illuminance.
                     suncon=0.
                     CALL DWINVT(ICOMP,J,V,RATIO)
                     skycon=esky*DFDAT(ICOMP,N,J,I)*V
@@ -2863,8 +2742,7 @@ C same way as for external, but do not check for sun dir illuminance:
 
 C Determine the angles of view to window from the sensor point,
 C convert to degrees between 0 & 360, and compare with the
-C solar angle. Calculate WIDTH and HIGH of window to be used in
-C subroutine ANGS:
+C solar angle.
                     XX1=XPL(1)
                     DO 555 M=1,4
                       XPLTEM=XPL(M)
@@ -2884,17 +2762,15 @@ C subroutine ANGS:
                       IF(.NOT.close)ZZ2=ZPL(M)
   557               CONTINUE
 
-C If the surface is 4-sided the width calculation works.
-C However, if the surface has different edges, then the
-C calculation of width and height could be incorrect.
+C Only valid for a rectangle.
                     WIDTH=SQRT((XX1-XX2)**2+(YY1-YY2)**2)
                     HIGH=ABS(ZZ1-ZZ2)
 
-C P1,P2,T1 & T2  as returned from ANGS are the radians off of the normal to
-C the surface with the window (from the inside). Convert azimuth to
-C degrees (clockwise from north) equivalent to SAZI by subtracting
-C from the azimuth angle of the surface in question and keeping in the
-C range of 0 to 360 degrees.
+C P1, P2, T1 & T2 as returned from ANGS are the angles (radians) from the 
+C normal to the surface with the window (from the inside). Convert azimuth to
+C degrees (clockwise from North) equivalent to SAZI by subtracting
+C from the azimuth angle of the surface in question and keeping within the
+C range 0 to 360 degrees.
                     CALL ANGS(NA,XPL,YPL,ZPL,WIDTH,HIGH,XP,YP,ZP)
                     PP1=SPAZI(ICOMP,J)-(P1*TODEG)
                     IF(PP1.LT.0.)PP1=360.+PP1
@@ -2905,8 +2781,8 @@ C range of 0 to 360 degrees.
                     TT1=T1*TODEG
                     TT2=T2*TODEG
 
-C Calculate Ev vertical unobstructed illumination @ plane of
-C glazing and get current visible transmission of glazing.
+C Calculate the vertical unobstructed illumination (Ev) at plane of
+C the glazing and get current visible transmission of glazing.
                     CALL VRTILM(SPAZI(ICOMP,J),QDIR,QDIF,SRADDO,SKYDIF)
                     Ev=SRADDO*suneff+SKYDIF*skyeff
                     IF((PP1.LT.SAZI).AND.(PP2.GT.SAZI).AND.
@@ -2964,11 +2840,11 @@ C glazing and get current visible transmission of glazing.
             ENDIF
    20     CONTINUE
 
-C Sensed illumination at given sensor:
+C Sensed illumination at given sensor.
           selum(N,I)=sumJ
    10   CONTINUE
 
-C Average illumination at lighting zone:
+C Average illumination at lighting zone.
         zelum(N)=suma/float(NDF(ICOMP,N)) 
       ENDIF
 
@@ -2976,19 +2852,17 @@ C Average illumination at lighting zone:
       END
 
 C ******************** DWINVT ****************************
-
 C Returns the visible transmittance of glazing at the
-C future timestep. IZONE is the zone, ISURF the surface,
-C VT is the returned visible transmittance.
-C Check to see if blind/shutter control is enabled for this zone,
-C if so see if it is active for the current glazing and substitute
+C future timestep. IZONE is the zone, ISURF the surface and
+C VT the returned visible transmittance.
+C Check to see if blind/shutter control is enabled for this zone;
+C if so, see if it is active for the current glazing and substitute
 C the visible transmittance.
 
       SUBROUTINE DWINVT(IZONE,ISURF,VT,BLIND)
 #include "building.h"
 
       common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
-
       COMMON/TMCB1/IBCMT(MCOM,MTMC)
       COMMON/TMCB2/NBCTMC(MCOM,MTMC),IBCST(MCOM,MBP,MTMC),
      &IBCFT(MCOM,MBP,MTMC),IBCSUR(MCOM,MTMC)
@@ -2996,16 +2870,17 @@ C the visible transmittance.
      &       TMCA(MCOM,MTMC,ME,5),TMCREF(MCOM,MTMC),TVTR(MCOM,MTMC)
       COMMON/PRECT2/TMCT2(MCOM,MTMC,5,MBP),TMCA2(MCOM,MTMC,ME,5,MBP),
      &              TVTR2(MCOM,MTMC,MBP)
-C TMC blind control flag
+
+C TMC blind control flag.
       COMMON/TMCB4/IBOFOT(MCOM,MS),NBPONT(MCOM,MS),ECRAT(MCOM,MS)
 
-C Test here if blind/shutter control is on for this
-C TMC surface.
+C Test if blind/shutter control is on for this TMC.
       BLIND = 0.0
       ITVTR=ITMCFL(IZONE,ISURF)
       IF(ITVTR.GT.0.AND.IBCMT(IZONE,ITVTR).EQ.1)THEN
-C TMC blind/shutter is in place. Test if it is active.
-C NP is no. of control periods for this TMC type.
+
+C TMC blind/shutter is in place; test if active.
+C NP is number of control periods for this TMC type.
         NP=NBCTMC(IZONE,ITVTR)
         DO 43 KK=1,NP
           IT1=IBCST(IZONE,KK,ITVTR)
@@ -3027,13 +2902,11 @@ C NP is no. of control periods for this TMC type.
       RETURN
       END
 
-
 C ******************** HUNTA ********************
-
-C Calculate if current hour has scheduled casual gains which are
+C Calculate if current hour has scheduled casual gains, which are
 C controlled via a casual gain control file.
-C If ACTIVE=1.0 then there is a potential casual gain/occupants,
-C if ACTIVE=0. then no matching casual gain/occupants.
+C If ACTIVE = 1. then there is a potential casual gain/occupants.
+C if ACTIVE = 0. then no casual gain/occupants.
 
       SUBROUTINE HUNTA(IZONE,IH,ACTIVE)
 #include "building.h"
@@ -3051,11 +2924,11 @@ C if ACTIVE=0. then no matching casual gain/occupants.
 
       ACTIVE=0.
 
-C Determine which day of the week (6=Sat, 7=Sun ,other weekday ot other
-C day types if defined using calendar function and set IGC
-C (gain to control) to that reqested in the casual gain control
-C file. Assumes 3 day types are standard but checks status of NBDAYTYPE
-C and uses ICALENDER if required. If matching gain(s) set ACTIVE=1.0.
+C Determine which day of the week (6=Sat, 7=Sun etc.), or othwer if defined
+C via the calendar function. Set the gain to control (IGC) to that requested
+C in the casual gain control file. Assumes 3 day types are standard but check
+C status of NBDAYTYPE and use ICALENDER if required. If matching gain(s)
+C set ACTIVE=1.0.
       IF(NBDAYTYPE.LE.3)THEN
         IDTY=1
         IF(IDWP.EQ.6)IDTY=2
@@ -3075,21 +2948,20 @@ C and uses ICALENDER if required. If matching gain(s) set ACTIVE=1.0.
       END
 
 C ******************** VRTILM ********************
-
 C Calculate the illumination (Ev) on a unobstructed vertical
 C surface with an azimuth (AZMANG) in degrees clockwise from
-C the north for use with Lynes' daylighting methods.  Use
+C North for use with Lynes' daylighting methods. Use
 C method in shadow.f to determine if surface is self shaded. 
-C Note not yet integrated into lighting calculations but available.
+C << Note not yet integrated into lighting calculations. >>
       SUBROUTINE VRTILM(AZMANG,QDIR,QDIF,SRADDO,SKYDIF)
       COMMON/SUNPOS/SAZI,SALT,ISUNUP
 
       PI = 4.0 * ATAN(1.0)
       R=PI/180.
 
-C Determine surface-solar azimuth angle & Cosine of angle of
-C incidence.  Surface is self-shaded if CAI is less than or
-C equal to zero.  SRADDO is the direct radiation falling on
+C Determine surface-solar azimuth angle & cosine of angle of
+C incidence. Surface is self-shaded if CAI is less than or
+C equal to zero. SRADDO is the direct radiation incident on
 C the surface.
       PSAZI=ABS(AZMANG-SAZI)
       CAI=(COS(SALT*R))*(SIN(90.*R))*(COS(PSAZI*R))+
@@ -3100,22 +2972,21 @@ C the surface.
         SRADDO=QDIR*CAI
       ENDIF
 
-C Sky diffuse falling on the surface.
+C Sky diffuse incident on surface.
       SKYDIF=QDIF*0.5*(1.0+COS(90.*R))
 
       return
       end
 
 C ******************** PATLUM ********************
-C PATLUM - calculate reference luminance of a sky patch
-
-C QDIF    diffuse irradiance
-C QDIR    direct normal irradiance
-C SALT    solar altitude
-C SAZI    solar azimith
-C IDYP    julian day number
-C npatch  number of the sky patch
-C plv     reference sky luminance - returned value
+C Calculate reference luminance of a sky patch.
+C QDIF -   diffuse irradiance.
+C QDIR -   direct normal irradiance.
+C SALT -   solar altitude.
+C SAZI -   solar azimith.
+C IDYP -   year day number.
+C npatch - number of the sky patch.
+C plv  -   reference sky luminance - returned value.
 
       SUBROUTINE PATLUM(QDIF,QDIR,SALT,SAZI,IDYP,npatch,plv,ang)
       COMMON/SHOUT/ICOUT
@@ -3127,14 +2998,13 @@ C plv     reference sky luminance - returned value
       DIMENSION  D1(8),D2(8),D3(8),D4(8)
       DIMENSION  E1(8),E2(8),E3(8),E4(8)
 
-C Definitions for daylight coefficient patch calculation:
+C Definitions for daylight coefficient patch calculation.
       data npz/30,60,84,108,126,138,144,145/
       data alt/6.,18.,30.,42.,54.,66.,78.,90./
       data azim/12.,12.,15.,15.,20.,30.,60.,0./
 
-C Start definition of Perez All-Weather Sky Luminance model coefficients
-C (Solar Energy Vol. 50. No. 3. pp. 235-245, 1993):
-C   Coefficients:
+C Start definition of Perez all-weather sky luminance model coefficients
+C (Solar Energy V50(3), pp. 235-245, 1993).
       DATA A1/1.3525,-1.2219,-1.1,-.5484,-.6,-1.0156,-1.0,-1.05/
       DATA A2/-.2567,-.773,-.2515,-.6654,-.3566,-.367,.0211,.0289/
       DATA A3/-.269,1.4148,.8952,-.2672,-2.5,1.0078,.5025,.426/
@@ -3160,7 +3030,6 @@ C   Coefficients:
       DATA E2/-.1246,.0672,.1597,-.3296,.0766,.4016,-.3788,-.6426/
       DATA E3/-.5718,-.219,.4199,-.0876,-.0656,.3017,-2.4517,1.8564/
       DATA E4/.9938,-.4285,-.5562,-.0329,-.1294,-.4844,1.4656,.5636/
-C END Perez definitions.
 
       PI = 4.0 * ATAN(1.0)
       RAD=PI/180.
@@ -3169,11 +3038,14 @@ C END Perez definitions.
       CONN1=1./0.001572
       CONN2=(COS(ZENN))**2+0.0031465
       OPTM=CONN1*(SQRT(CONN2)-COS(ZENN))
-C Define sky brightness:
+
+C Sky brightness.
       DELTT=QDIF*OPTM/GONN
-C Define sky clearness:
+
+C Sky clearness.
       EPSS=((QDIF+QDIR)/QDIF+1.041*ZENN**3)/(1.+1.041*ZENN**3)
-C Find sky clearness bin (1-8):
+
+C Sky clearness bin (1-8).
       IF(EPSS.LT.1.)THEN
         IE=1
         call edisp(icout,'Sky clearness < 1.0 setting to 1.0')
@@ -3195,7 +3067,7 @@ C Find sky clearness bin (1-8):
         IE=8
       ENDIF
 
-C Calculate sky luminanace coefficients:
+C Sky luminance coefficients.
       a=a1(ie)+a2(ie)*zenn+deltt*(a3(ie)+a4(ie)*zenn)
       b=b1(ie)+b2(ie)*zenn+deltt*(b3(ie)+b4(ie)*zenn)
       if(ie.eq.1)then
@@ -3207,9 +3079,9 @@ C Calculate sky luminanace coefficients:
       endif
       e=e1(ie)+e2(ie)*zenn+deltt*(e3(ie)+e4(ie)*zenn)
 
-C Calculate sun position unit vector x, y, z coordinates:
+C Sun position unit vector x, y, z coordinates.
 C Transfer sun azimuth angle (clockwise from North) into sky
-C patch azimuth angle (Anticlockwise from East):
+C patch azimuth angle (anticlockwise from East).
       if((sazi.gt.0.0).and.(sazi.lt.90.0))then
         aazim = 90.0 - sazi
       else
@@ -3221,12 +3093,12 @@ C patch azimuth angle (Anticlockwise from East):
       z3 = sin(salt*RAD)
 
 C Origin coordinates for calculation of angle between sun
-C and given sky patch:
+C and a given sky patch.
       x2=0.0
       y2=0.0
       z2=0.0
 
-C Find which sky patch level (there are 8 levels):
+C Determie sky patch level (of 8 levels).
       if((npatch.ge.1).and.(npatch.le.30))then
         nzone = 1
       elseif((npatch.ge.31).and.(npatch.le.60))then
@@ -3245,8 +3117,8 @@ C Find which sky patch level (there are 8 levels):
         nzone = 8
       endif
 
-C Calculate x, y, z coordinates for unit vector position of given
-C sky patch:
+C Calculate x, y, z coordinates for unit position vector of given
+C sky patch.
       if(nzone.eq.8) then
          x1 = 0.0
          y1 = 0.0
@@ -3263,33 +3135,25 @@ C sky patch:
          z1 = sin(alt(nzone)*RAD)
       endif
 
-C Debug.
-C      write(6,*) 'x3: ',x3,' y3: ',y3,'z3: ',z3
-C      write(6,*) 'x2: ',x2,' y2: ',y2,'z2: ',z2
-C      write(6,*) 'x1: ',x1,' y1: ',y1,'z1: ',z1
-C End debug
-
 C Find angle between given sky patch and sun position
-C and convert it to radiance:
+C and convert to radians.
       call ang3vtx(x1,y1,z1,x2,y2,z2,x3,y3,z3,ang)
       ang = ang*rad
 
-C Calculate reference luminance for given sky patch:
-C Define zenith angle of given sky patch:
+C Calculate reference luminance and zenith angle for given sky patch.
       zelm = (90.0 - alt(nzone))*rad
       plv=(1.+a*exp(b/cos(zelm)))*(1.+c*exp(d*ang)+e*(cos(ang))**2)
       return
       end
 
 C ******************** REFILL ********************
-C REFILL - calculate reference illuminance for model normalisation
-
-C QDIF   diffuse irradiance
-C QDIR   direct normal irradiance
-C SALT   solar altitude
-C SAZI   solar azimith
-C IDYP   julian day number
-C refell reference sky illuminance
+C Calculate reference illuminance for model normalisation.
+C QDIF -  diffuse irradiance.
+C QDIR -  direct normal irradiance.
+C SALT -  solar altitude.
+C SAZI -  solar azimith.
+C IDYP -  year day number.
+C refell - reference sky illuminance.
 
       SUBROUTINE REFILL(QDIF,QDIR,SALT,SAZI,IDYP,refell)
       COMMON/SHOUT/ICOUT
@@ -3301,14 +3165,13 @@ C refell reference sky illuminance
       DIMENSION  D1(8),D2(8),D3(8),D4(8)
       DIMENSION  E1(8),E2(8),E3(8),E4(8)
 
-C Definitions for daylight coefficient patch calculation:
+C Definitions for daylight coefficient patch calculation.
       data npz/30,60,84,108,126,138,144,145/
       data alt/6.,18.,30.,42.,54.,66.,78.,90./
       data azim/12.,12.,15.,15.,20.,30.,60.,0./
 
-C Start definition of Perez All-Weather Sky Luminance model coefficients
-C (Solar Energy Vol. 50. No. 3. pp. 235-245, 1993):
-C   Coefficients:
+C Start definition of Perez all-weather sky luminance model coefficients
+C (Solar Energy, V50(3), pp. 235-245, 1993).
       DATA A1/1.3525,-1.2219,-1.1,-.5484,-.6,-1.0156,-1.0,-1.05/
       DATA A2/-.2567,-.773,-.2515,-.6654,-.3566,-.367,.0211,.0289/
       DATA A3/-.269,1.4148,.8952,-.2672,-2.5,1.0078,.5025,.426/
@@ -3334,7 +3197,6 @@ C   Coefficients:
       DATA E2/-.1246,.0672,.1597,-.3296,.0766,.4016,-.3788,-.6426/
       DATA E3/-.5718,-.219,.4199,-.0876,-.0656,.3017,-2.4517,1.8564/
       DATA E4/.9938,-.4285,-.5562,-.0329,-.1294,-.4844,1.4656,.5636/
-C END Perez definitions.
 
       PI = 4.0 * ATAN(1.0)
       RAD=PI/180.
@@ -3343,11 +3205,14 @@ C END Perez definitions.
       CONN1=1./0.001572
       CONN2=(COS(ZENN))**2+0.0031465
       OPTM=CONN1*(SQRT(CONN2)-COS(ZENN))
-C Define sky brightness:
+
+C Sky brightness.
       DELTT=QDIF*OPTM/GONN
-C Define sky clearness:
+
+C Sky clearness.
       EPSS=((QDIF+QDIR)/QDIF+1.041*ZENN**3)/(1.+1.041*ZENN**3)
-C Find sky clearness bin (1-8):
+
+C Sky clearness bin (1-8).
       IF(EPSS.LT.1.)THEN
         IE=1
         call edisp(icout,'Sky clearness < 1.0 setting to 1.0')
@@ -3369,7 +3234,7 @@ C Find sky clearness bin (1-8):
         IE=8
       ENDIF
 
-C Calculate sky luminanace coefficients:
+C Sky luminaace coefficients.
       a=a1(ie)+a2(ie)*zenn+deltt*(a3(ie)+a4(ie)*zenn)
       b=b1(ie)+b2(ie)*zenn+deltt*(b3(ie)+b4(ie)*zenn)
       if(ie.eq.1)then
@@ -3381,9 +3246,9 @@ C Calculate sky luminanace coefficients:
       endif
       e=e1(ie)+e2(ie)*zenn+deltt*(e3(ie)+e4(ie)*zenn)
 
-C Calculate sun position unit vector x, y, z coordinates:
+C Calculate sun position unit vector x, y, z coordinates.
 C Transfer sun azimuth angle (clockwise from North) into sky
-C patch azimuth angle (Anticlockwise from East):
+C patch azimuth angle (anticlockwise from East).
       if((sazi.gt.0.0).and.(sazi.lt.90.0))then
         aazim = 90.0 - sazi
       else
@@ -3395,14 +3260,15 @@ C patch azimuth angle (Anticlockwise from East):
       z3 = tan(salt*RAD)
 
 C Origin coordinates for calculation of angle between sun
-C and given sky patch:
+C and given sky patch.
       x2=0.0
       y2=0.0
       z2=0.0
       
       refell = 0.0
       do 20 npatch = 1,145
-C Find which sky patch level (there are 8 levels):
+
+C Find sky patch level (of 8 levels).
         if((npatch.ge.1).and.(npatch.le.30))then
           nzone = 1
         elseif((npatch.ge.31).and.(npatch.le.60))then
@@ -3421,8 +3287,8 @@ C Find which sky patch level (there are 8 levels):
           nzone = 8
         endif
 
-C Calculate x, y, z coordinates for unit vector position of given
-C sky patch:
+C Calculate x, y, z coordinates for unit position vector of given
+C sky patch.
         if(nzone.eq.8) then
            x1 = 0.0
            y1 = 0.0
@@ -3440,16 +3306,15 @@ C sky patch:
         endif
 
 C Find angle between given sky patch and sun position
-C and convert it to radiance:
+C and convert to radians.
         call ang3vtx(x1,y1,z1,x2,y2,z2,x3,y3,z3,ang)
         ang = ang*rad
 
-C Calculate reference luminance for given sky patch:
-C Define zenith angle of given sky patch:
+C Calculate reference luminance and zenith angle for given sky patch
         zelm = (90.0 - alt(nzone))*rad
         plv=(1.+a*exp(b/cos(zelm)))*(1.+c*exp(d*ang)+e*(cos(ang))**2)
       
-Calculate delta reference illuminance from npatch:
+C Calculate delta reference illuminance from npatch:
         refplv = plv*(2.*PI/145.0)*cos(zelm)
         refell = refell + refplv
 
@@ -3459,40 +3324,36 @@ Calculate delta reference illuminance from npatch:
       end
 
 C ******************** LUMEFF ********************
-C LUMEFF - calculate luminous efficacy of solar irradiance.
-
-C QDIF   diffuse irradiance
-C QDIR   direct normal irradiance
-C SALT   solar altitude
-C IDYP   julian day number
-C skyeff luminous efficacy of diffuse irradiance
-C suneff luminous efficacy of direct normal irradiance
+C Calculate luminous efficacy of solar irradiance.
+C QDIF  - diffuse irradiance.
+C QDIR  - direct normal irradiance.
+C SALT  - solar altitude.
+C IDYP  - year day number.
+C skyeff - luminous efficacy of diffuse irradiance.
+C suneff - luminous efficacy of direct normal irradiance.
 
       SUBROUTINE LUMEFF(QDIF,QDIR,SALT,IDYP,skyeff,suneff)
       COMMON/SHOUT/ICOUT
 
-C Start definition of Perez model coefficients for luminous efficacy
-C of solar irradiance and zenith luminance;
-C (Solar Energy Vol. 44. No. 5. pp. 271-289, 1990):
+C Definition of Perez model coefficients for luminous efficacy
+C of solar irradiance and zenith luminance.
+C (Solar Energy, V44(5), pp. 271-289, 1990)
       DIMENSION  ASUN(8),ASKY(8),CSUN(8),CSKY(8),DSUN(8),DSKY(8)
 
       logical closea
 
-C   Coefficients:
       DATA ASUN/57.20,98.99,109.83,110.34,106.36,107.19,105.75,101.18/
       DATA ASKY/97.24,107.22,104.97,102.39,100.71,106.42,141.88,152.23/
       DATA CSUN/-2.98,-1.21,-1.71,-1.99,-1.75,-1.51,-1.26,-1.10/
       DATA CSKY/12.00,0.59,-5.53,-13.95,-22.75,-36.15,-53.24,-45.27/
       DATA DSUN/117.12,12.38,-8.81,-4.56,-6.16,-26.73,-34.44,-8.29/
       DATA DSKY/-8.91,-3.95,-8.77,-13.90,-23.74,-28.83,-14.03,-7.98/
-C END Perez definitions.
 
       PI = 4.0 * ATAN(1.0)
       RAD=PI/180.
 
-C Check if any diffuse irradiance and if sun is up - if not do not 
-C calculate and set efficacy and zenith luminance to zero:
-
+C Check if any diffuse irradiance and if sun is up. If not, do not 
+C calculate and set efficacy and zenith luminance to zero.
       call eclose(QDIF,0.00,0.01,closea)
       if(SALT.LT.0.)closea=.true.
       if(closea) then
@@ -3501,18 +3362,20 @@ C calculate and set efficacy and zenith luminance to zero:
       else
 
 C Calculate efficacy of direct and diffuse irradiance 
-C and zenith luminance:
-
+C and zenith luminance.
         ZENN=(90.-SALT)*rad
         GONN=1367.*(1.+0.033*COS(0.017214*IDYP))
         CONN1=1./0.001572
         CONN2=(COS(ZENN))**2+0.0031465
         OPTM=CONN1*(SQRT(CONN2)-COS(ZENN))
-C Define sky brightness:
+
+C Sky brightness.
         DELTT=QDIF*OPTM/GONN
-C Define sky clearness:
+
+C Sky clearness.
         EPSS=((QDIF+QDIR)/QDIF+1.041*ZENN**3)/(1.+1.041*ZENN**3)
-C Find sky clearness bin (1-8):
+
+C Sky clearness bin (1-8).
         IF(EPSS.LT.1.)THEN
           IE=1
           call edisp(icout,'Sky clearness < 1.0 setting to 1.0')

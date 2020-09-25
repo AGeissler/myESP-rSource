@@ -398,7 +398,7 @@ C Clear anchors.
 
 C Clear zone groups.
       nzgroup=0
-      do i=1,20
+      do i=1,32
         zglbl(i)='undefined'
         izgnumber(i)=0
         do j=1,40
@@ -3667,7 +3667,7 @@ C in the list (at the bottom).
       CHARACTER*(*) prompt,title
 
       DIMENSION VERT(35),IVALS(MCOM)
-      DIMENSION GERT(20),IGVAL(20)  ! For groups.
+      DIMENSION GERT(32),IGVAL(32)  ! For groups.
       CHARACTER VERT*27,gert*20,KEY*1,prompt2*36
       character h*72,mod*1,outs*124,msg*96
       CHARACTER*72 LCFD

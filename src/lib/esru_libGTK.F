@@ -5149,7 +5149,7 @@ C in the list (at the bottom).
       CHARACTER*(*) prompt,title
 
       DIMENSION VERT(35),IVALS(MCOM)
-      DIMENSION GERT(20),IGVAL(20)  ! For groups.
+      DIMENSION GERT(32),IGVAL(32)  ! For groups.
       CHARACTER VERT*23,gert*23,KEY*1,prompt2*36
       character h*72,mod*1,outs*124,msg*96
 

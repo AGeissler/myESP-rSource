@@ -307,10 +307,10 @@ C Help text for this menu.
         impx=0
         impy=0
         iwe=iw
-        CALL VWMENU('Database maintenance',ITEMS,NITMS,impx,impy,
+        CALL VWMENU('Database management',ITEMS,NITMS,impx,impy,
      &    iwe,irpx,irpy,INO)
       else
-        CALL EMENU('Database maintenance',ITEMS,NITMS,INO)
+        CALL EMENU('Database management',ITEMS,NITMS,INO)
       endif
       IF(INO.EQ.19)THEN
         if(browse)return   ! no change since browsing

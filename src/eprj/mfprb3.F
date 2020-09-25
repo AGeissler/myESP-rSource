@@ -3083,8 +3083,48 @@ C Reality checks here...
      &          ZCOG(IC2(loop),3),HCMP(NCMP,1,1),HCMP(NCMP,1,2),
      &          HCMP(NCMP,1,3),ccol)
             endif
-          else
-            continue  ! << for similar creat another node ....
+          else      ! Similar or adiabatic ask for other node.
+            IC=0
+            call ASKRNOD(' available nodes','-',IC,IER)
+            found=.false.; issoz=0
+            do loop2=1,NCOMP      ! find matching zone index
+              if(ICAAS(loop2).gt.0)then
+                i=ICAAS(loop2)
+                if(NDNAM(i).eq.NDNAM(IC))then
+                  issoz=loop2; found=.true.
+                endif
+              endif 
+            enddo
+            NEG=ICAAS(IC1(loop))  ! the current zone node
+            POS=IC                ! other zone node is positive
+            if(NDFLD(POS).eq.1.and.NDFLD(NEG).eq.1)then
+              ccol='r'
+            else
+              ccol='b'
+            endif
+            CMPIS=NCMP; NCNN=NCNN+1
+            linkatpartition(loop)=1
+            icoth=IZSTOCN(IC2(loop),IE2(loop))
+            linkatpartition(icoth)=1
+
+C Reality checks.
+            NODPS(NCNN)=POS; NODNE(NCNN)=NEG
+            if(found)then
+              HGTPS(NCNN)= HCMP(NCMP,1,3)-ZCOG(issoz,3) ! diff comp & other zone
+            else
+              HGTPS(NCNN)= 0.0               ! diff comp & other zone assumed zero
+            endif
+            HGTNE(NCNN)= HCMP(NCMP,1,3)-ZCOG(IZ,3)      ! diff comp & zone
+            NDSCNN(NCNN,1)=0; NDSCNN(NCNN,2)=0
+            ITPCON(NCNN)=CMPIS ! use the just-defined inlet
+            write(outs,'(a,i3,6a)') 'add connection ',ncnn,' +nd ',
+     &        NDNAM(POS),' to ',NDNAM(NEG),' via cmp ',CMNAM(CMPIS)
+            call edisp(iuout,outs)
+            call draw_flow_link(ZCOG(IZ,1),ZCOG(IZ,2),ZCOG(IZ,3),
+     &        HCMP(NCMP,1,1),HCMP(NCMP,1,2),HCMP(NCMP,1,3),ccol)
+            call draw_flow_link(ZCOG(IC2(loop),1),ZCOG(IC2(loop),2),
+     &        ZCOG(IC2(loop),3),HCMP(NCMP,1,1),HCMP(NCMP,1,2),
+     &        HCMP(NCMP,1,3),ccol)
           endif
 
         elseif(SUSE(iz,is,2)(1:7).eq.'EXTRACT')then
@@ -3247,8 +3287,48 @@ C Reality checks here...
      &          HCMP(NCMP,1,3),ccol)
 
             endif
-          else
-            continue  ! << for similar creat another node ....
+          else     ! Similar or adiabatic connection ask for other node.
+            IC=0
+            call ASKRNOD(' available nodes','-',IC,IER)
+            found=.false.; issoz=0
+            do loop2=1,NCOMP      ! find matching zone index
+              if(ICAAS(loop2).gt.0)then
+                i=ICAAS(loop2)
+                if(NDNAM(i).eq.NDNAM(IC))then
+                  issoz=loop2; found=.true.
+                endif
+              endif 
+            enddo
+            POS=ICAAS(IC1(loop))  ! the current zone node is positive
+            NEG=IC                ! the other zone
+            if(NDFLD(POS).eq.1.and.NDFLD(NEG).eq.1)then
+              ccol='r'
+            else
+              ccol='b'
+            endif
+            CMPIS=NCMP; NCNN=NCNN+1
+            linkatpartition(loop)=1
+            icoth=IZSTOCN(IC2(loop),IE2(loop))
+            linkatpartition(icoth)=1
+
+C Reality checks.
+            NODPS(NCNN)=POS; NODNE(NCNN)=NEG
+            HGTPS(NCNN)= HCMP(NCMP,1,3)-ZCOG(IZ,3)       ! diff comp & zone
+            if(found)then
+              HGTNE(NCNN)= HCMP(NCMP,1,3)-ZCOG(issoz,3)  ! diff comp & other zone
+            else
+              HGTNE(NCNN)= 0.0                ! diff comp & other zone assumed zero
+            endif
+            NDSCNN(NCNN,1)=0; NDSCNN(NCNN,2)=0
+            ITPCON(NCNN)=CMPIS                ! use the just-defined grill
+            write(outs,'(a,i3,6a)') 'add connection ',ncnn,' +nd ',
+     &        NDNAM(POS),' to ',NDNAM(NEG),' via cmp ',CMNAM(CMPIS)
+            call edisp(iuout,outs)
+            call draw_flow_link(ZCOG(IZ,1),ZCOG(IZ,2),ZCOG(IZ,3),
+     &        HCMP(NCMP,1,1),HCMP(NCMP,1,2),HCMP(NCMP,1,3),ccol)
+            call draw_flow_link(ZCOG(IC2(loop),1),ZCOG(IC2(loop),2),
+     &        ZCOG(IC2(loop),3),HCMP(NCMP,1,1),HCMP(NCMP,1,2),
+     &        HCMP(NCMP,1,3),ccol)
           endif
 
         elseif(SUSE(iz,is,2)(1:4).eq.'OPEN')then
@@ -3425,6 +3505,44 @@ C Reality checks here...
      &          ZCOG(IC2(loop),3),HCMP(NCMP,1,1),HCMP(NCMP,1,2),
      &          HCMP(NCMP,1,3),ccol)
             endif
+          else    ! Similar or adiabatic ask for the other node.
+            IC=0
+            call ASKRNOD(' available nodes','-',IC,IER)
+            found=.false.; issoz=0
+            do loop2=1,NCOMP      ! find matching zone index
+              if(ICAAS(loop2).gt.0)then
+                i=ICAAS(loop2)
+                if(NDNAM(i).eq.NDNAM(IC))then
+                  issoz=loop2; found=.true.
+                endif
+              endif 
+            enddo
+            POS=ICAAS(IC1(loop))  ! the current zone node is positive
+            NEG=IC                ! the other zone
+            if(NDFLD(POS).eq.1.and.NDFLD(NEG).eq.1)then
+              ccol='r'
+            else
+              ccol='b'
+            endif
+            CMPIS=NCMP; NCNN=NCNN+1
+            linkatpartition(loop)=1
+            icoth=IZSTOCN(IC2(loop),IE2(loop))
+            linkatpartition(icoth)=1
+
+C Reality checks.
+            NODPS(NCNN)=POS; NODNE(NCNN)=NEG
+            HGTPS(NCNN)= 0.0                ! diff set to zero
+            HGTNE(NCNN)= 0.0                ! diff set to zero
+            NDSCNN(NCNN,1)=0; NDSCNN(NCNN,2)=0
+            ITPCON(NCNN)=CMPIS                ! use the just-defined grill
+            write(outs,'(a,i3,6a)') 'add connection ',ncnn,' +nd ',
+     &        NDNAM(POS),' to ',NDNAM(NEG),' via cmp ',CMNAM(CMPIS)
+            call edisp(iuout,outs)
+            call draw_flow_link(ZCOG(IZ,1),ZCOG(IZ,2),ZCOG(IZ,3),
+     &        HCMP(NCMP,1,1),HCMP(NCMP,1,2),HCMP(NCMP,1,3),ccol)
+            call draw_flow_link(ZCOG(IC2(loop),1),ZCOG(IC2(loop),2),
+     &        ZCOG(IC2(loop),3),HCMP(NCMP,1,1),HCMP(NCMP,1,2),
+     &        HCMP(NCMP,1,3),ccol)
           endif
         endif
       elseif(SUSE(iz,is,1)(1:6).eq.'WINDOW'.or.
@@ -4365,6 +4483,8 @@ C Create a orifice component from surface attributes via passed parameters.
       real cd             ! suggested discharge coefficient
 
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
+      INTEGER :: ncomp,ncon
+      common/C1/NCOMP,NCON
       COMMON/C3/IC1(MCON),IE1(MCON),ICT(MCON),IC2(MCON),IE2(MCON)
       integer IZSTOCN
       COMMON/C24/IZSTOCN(MCOM,MS)
@@ -4421,7 +4541,7 @@ C Global flow component options.
       integer POSCR                    ! index of boundary node if zero then make one
       character outs*144,name*12,sn*12
       character ccol*1,zsn*28,prompt*102
-      logical dupedges
+      logical dupedges,found
 
 C For help messages
       character helpinsub*24 ! subroutine name
@@ -4671,8 +4791,44 @@ C Reality checks here...
      &      ZCOG(IC2(loop),3),HCMP(NCMP,1,1),HCMP(NCMP,1,2),
      &      HCMP(NCMP,1,3),ccol)
         endif
-      else
-        continue  ! << for similar creat another node ....
+      else   ! Similar or adiabatic, ask for other node to connect with.
+        IC=0
+        call ASKRNOD(' available nodes','-',IC,IER)
+        found=.false.; issoz=0
+        do loop2=1,NCOMP      ! find matching zone index
+          if(ICAAS(loop2).gt.0)then
+            i=ICAAS(loop2)
+            if(NDNAM(i).eq.NDNAM(IC))then
+              issoz=loop2; found=.true.
+            endif
+          endif 
+        enddo
+        POS=ICAAS(IC1(loop))  ! the current zone node is positive
+        NEG=IC                ! the other zone
+        if(NDFLD(POS).eq.1.and.NDFLD(NEG).eq.1)then
+          ccol='r'
+        else
+          ccol='b'
+        endif
+        CMPIS=NCMP; NCNN=NCNN+1
+        linkatpartition(loop)=1
+        icoth=IZSTOCN(IC2(loop),IE2(loop))
+        linkatpartition(icoth)=1
+
+C Reality checks.
+        NODPS(NCNN)=POS; NODNE(NCNN)=NEG
+        HGTPS(NCNN)= HCMP(NCMP,1,3)-ZCOG(IZ,3)  ! diff comp & zone
+        HGTNE(NCNN)= HCMP(NCMP,1,3)-ZCOG(IC2(loop),3)  ! diff comp & other zone
+        NDSCNN(NCNN,1)=0; NDSCNN(NCNN,2)=0
+        ITPCON(NCNN)=CMPIS ! use the just-defined orifice
+        write(outs,'(a,i3,6a)') 'add connection ',ncnn,' +nd ',
+     &    NDNAM(POS),' to ',NDNAM(NEG),' via cmp ',CMNAM(CMPIS)
+        call edisp(iuout,outs)
+        call draw_flow_link(ZCOG(IZ,1),ZCOG(IZ,2),ZCOG(IZ,3),
+     &    HCMP(NCMP,1,1),HCMP(NCMP,1,2),HCMP(NCMP,1,3),ccol)
+        call draw_flow_link(ZCOG(IC2(loop),1),ZCOG(IC2(loop),2),
+     &    ZCOG(IC2(loop),3),HCMP(NCMP,1,1),HCMP(NCMP,1,2),
+     &    HCMP(NCMP,1,3),ccol)
       endif
 
 C An orifice might be controlled. To ensure that works correctly

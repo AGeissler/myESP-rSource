@@ -1,6 +1,6 @@
 C This file is part of the ESP-r system.
 C Copyright Energy Systems Research Unit, University of
-C Strathclyde, Glasgow Scotland, 2001.
+C Strathclyde, Glasgow Scotland, 2001-.
 
 C ESP-r is free software.  You can redistribute it and/or
 C modify it under the terms of the GNU General Public
@@ -16,31 +16,28 @@ C details.
 
 C TThis file is a collection of support facilities for 
 C creating and editing the model topology ie. connection lists:
-C  EDCONN: Edit/check/clear connection attributes in common block C3
-C          and includes logic that use to be found in module cfg.
-C  CONFIG: processes the vertex data and presents close matches
-C          to confirm before updating cfg and cnn files.
-C  ESACON: import surface connection attributes into common
-C          block C3 while taking into account confirmation preferences.
-C  anchor:   anchor point items (a list of connections & concept).
-C  anchlist: manage list of anchors
-C  group:   groups-of-zones items.
-C  grouplist: manage list of groups-of-zones.
-C  easkconn: Select one or more connections from a list.
-C  Serchrpl handles search and replace of composition attributes.
+C  EDCONN    - edit/check/clear connection attributes.
+C  CONFIG    - processes the vertex data and presents close matches
+C              to confirm before updating .cfg and .cnn files.
+C  ESACON    - import surface connection attributes.
+C  anchor    - anchor point items.
+C  anchlist  - manage list of anchor points.
+C  group     - defines a group of zones associated with a specific
+C              concept.
+C  grouplist - manage list of group-of-zones.
+C  easkconn  - select one or more connection from a list.
+C  Serchrpl  - search and replace of composition attributes.
 
-C ************* EDCONN 
-C Edit/clear/check connection attributes in common blocks via a paging menu.
-C ITRU = unit number for user output, IER=0 OK, IER=1 problem.
+C ******************** EDCONN ********************
+C Edit/clear/check connection attributes.
+C IER=0 OK, IER=1 problem encountered.
+
       SUBROUTINE EDCONN(IER)
 #include "epara.h"
 #include "building.h"
 #include "model.h"
-
-C geometry.h provides commons G0/G1/G2/c20.
 #include "geometry.h"
 #include "espriou.h"
-C espriou.h provides currentfile.
 #include "prj3dv.h"
       
       integer lnblnk  ! function definition
@@ -59,7 +56,7 @@ C espriou.h provides currentfile.
 
       COMMON/gzonpik/izgfoc,nzg,nznog(mcom)
 
-C  ITDSP labels: all surf+obs+vis = 0, all surf = 1, ext = 2,
+C ITDSP labels: all surf+obs+vis = 0, all surf = 1, ext = 2,
 C    partn = 3, similar = 4, surfs+obs+ground = 5, ground only = 6
 C    surf+obs = 7
 C ITBND bounds toggle: static = 0, optimum = 1, zone focus = 2
@@ -74,10 +71,10 @@ C ITGRD grid toggle: display = 0, hidden = 1
 C ITVNO vertex toggle: display = 0, hidden = 1
 C ITPPSW current view - perspective/plan/south/west
 
-C Pause length during sequentail scan longpause (true=1 sec)
+C Pause length during sequentail scan longpause (true=1 sec).
       common/scanpause/longpause
       
-C Tollerance for surface matching.
+C Tolerances for surface matching.
       real ANGCC  ! angle between surfaces tol
       real CACC   ! tolerance between vertices
       real DACC   ! tolerance along line
@@ -102,7 +99,6 @@ C Tollerance for surface matching.
       integer MITEM,INO ! max items and current menu item
       integer MVERT,IVERT ! max items and current menu item
 
-C For help messages
       character helpinsub*24 ! subroutine name
       character helptopic*24 ! string (unique) for topic
       integer nbhelp     ! number of help lines found
@@ -123,33 +119,31 @@ C General image option flags for use with cadjview.
 C On first entry, see if the list is consistent with geometry. If
 C prob is .true. then there is at least some inconsistency. The value
 C of iprob is the number of inconsistencies. If more than 10
-C inconsistencies then something should be done. There are several
-C possible vectors for disagreements between what is held in the
+C inconsistencies then action required. There are several
+C possible causes for disagreements between what is held in the
 C zone geometry files and the connection information held in
 C the model connections file:
 C a) prj crashed while managing the files resulting in incomplete
 C    files (either *.geo or *.cnn)
 C b) a 3rd party agent altered the contents of the model files
 C    and introduced an error
-C c) a glitch in the source code allowed an inconsistency into
-C    the model.
+C c) a source code modification introduced an inconsistency.
 
-C Typically it is assumed that the geometry file is correct and
+C Typically, it is assumed that the geometry file is correct and
 C the connections file has been corrupted. Thus the `clear` function
 C relies on re-scanning the geometry files, updating the values in
-C the nzsur() array and then re-setting the common block C3 data.
+C the nzsur() array and then re-setting the common C3 data.
 
-C Because legacy zone geometry files only held portions of the connetion
-C information equivalent to IC1 IE1 and ICT user intervention is needed
-C to fully re-establish the C3 common block. The version 1.1 geometry
+C Because legacy zone geometry files only held portions of the connection
+C information (equivalent to IC1, IE1 and ICT), user intervention is needed
+C to re-establish the C3 common block. The version 1.1 geometry
 C file holds sufficient information to re-establish the C3 common
-C block with the help of topology checking logic.
+C block with the help of topology checking.
 
-C Assume that all surfaces marked as identical, constant, ground and
-C adiabatic  and back-to-back require no confirmation (if no
-C geometric match is found).
-C Assume all existing partitions are re-checked and 
-C failed searches brought to users attention.
+C Assume that all surfaces marked as identical, constant, ground,
+C adiabatic and back-to-back require no confirmation (if no
+C geometric match is found). Assume all existing partitions are
+C re-checked and failed searches brought to the user's attention.
       M0SKP=.FALSE.
       M1SKP=.TRUE.
       M2SKP=.TRUE.
@@ -167,7 +161,7 @@ C failed searches brought to users attention.
 C The inital task is to see if there are easily spotted issues with
 C the connections list.
       call usrmsg(
-     &  'Checking zone surfaces against master list...',' ','-')
+     &  'Checking zone surfaces against master list ...',' ','-')
       call ckcurmatch(prob,iprob)
       if(prob)then
         call tstamp('>','PRJ: found topology incinsistent')
@@ -175,16 +169,17 @@ C the connections list.
           write(outs,*) IPROB,' inconsistencies found!'
           call edisp(iuout,outs)
           call usrmsg(
-     &    'Topology list dangerously inconsistent. Suggest you',
-     &    'clear the current topology!','W')
+     &    'Topology list inconsistent!',
+     &    'Clear the current topology.','W')
         else
           call usrmsg(
-     &    'Topology list inconsistent. Either clear current topology',
-     &    'and/or use the check topology option to resolve this!','W')
+     &    'Topology list inconsistent! ',
+     &    'Clear current and/or use the check topology option.','W')
         endif
       else
         call usrmsg(
-     &    'Checking zone surfaces against master list...done.',' ','-')
+     &    'Checking zone surfaces against master list ... done.',
+     &    ' ','-')
       endif
 
 C Refresh the global data arrays used during the checking.
@@ -196,87 +191,87 @@ C Set for redraw if image on first entry (if refresh set to after
 C each edit). Set flag for updating geometry file (for changed
 C surface attribute.
     3 INO=-4
-      write(ITEMS1(1),'(a,i4,a)')' Connections (',ncon,')'
-      ITEMS1(2)=   '  ______________________      '
-      ITEMS1(3)=   'b set vertex [close] tolerance'
+      write(ITEMS1(1),'(a,i4,a)')'Connections (',ncon,')'
+      ITEMS1(2)=   '  ______________________'
+      ITEMS1(3)=   'b set close vertex tolerance'
       ITEMS1(4)=   '  confirm if (already marked):'
       if(M1SKP)then
-        ITEMS1(5)= 'c   marked as identical : No  '
+        ITEMS1(5)= 'c   marked as identical: No'
       else
-        ITEMS1(5)= 'c   marked as identical : Yes '
+        ITEMS1(5)= 'c   marked as identical: Yes'
       endif
       if(M2SKP)then
-        ITEMS1(6)= 'd   marked as constant  : No  '
+        ITEMS1(6)= 'd   marked as constant: No'
       else
-        ITEMS1(6)= 'd   marked as constant  : Yes '
+        ITEMS1(6)= 'd   marked as constant: Yes'
       endif
       if(M3SKP)then
-        ITEMS1(7)= 'e   marked as partition : No  '
+        ITEMS1(7)= 'e   marked as partition: No'
       else
-        ITEMS1(7)= 'e   marked as partition : Yes '
+        ITEMS1(7)= 'e   marked as partition: Yes'
       endif
       if(M4SKP)then
-        ITEMS1(8)= 'f   marked as ground    : No  '
+        ITEMS1(8)= 'f   marked as ground: No'
       else
-        ITEMS1(8)= 'f   marked as ground    : Yes '
+        ITEMS1(8)= 'f   marked as ground: Yes'
       endif
       if(M5SKP)then
-        ITEMS1(9)= 'g   marked as adiabatic : No  '
+        ITEMS1(9)= 'g   marked as adiabatic: No'
       else
-        ITEMS1(9)= 'g   marked as adiabatic : Yes '
+        ITEMS1(9)= 'g   marked as adiabatic: Yes'
       endif
       if(M6SKP)then
-        ITEMS1(10)='h   marked as BASESIMP  : No  '
+        ITEMS1(10)='h   marked as BASESIMP: No'
       else
-        ITEMS1(10)='h   marked as BASESIMP  : Yes '
+        ITEMS1(10)='h   marked as BASESIMP: Yes'
       endif
       if(M7SKP)then
-        ITEMS1(11)='h   marked as IDENT_CEN : No  '
+        ITEMS1(11)='h   marked as IDENT_CEN: No '
       else
-        ITEMS1(11)='h   marked as IDENT_CEN : Yes '
+        ITEMS1(11)='h   marked as IDENT_CEN: Yes'
       endif
       if(M0SKP)then
-        ITEMS1(12)='i   if no match found: No     '
+        ITEMS1(12)='i   if no match found: No'
       else
-        ITEMS1(12)='i   if no match found: Yes    '
+        ITEMS1(12)='i   if no match found: Yes'
       endif
       if(M8SKP)then
-        ITEMS1(13)='j   if back-to-back found: No '
+        ITEMS1(13)='j   if back-to-back found: No'
       else
         ITEMS1(13)='j   if back-to-back found: Yes'
       endif
-      ITEMS1(14)=  '  _______________________     '
+      ITEMS1(14)=  '  _______________________'
 
       ITEMS1(15)=  'p edit individual connections'
 
 C If contiguity has problems then hilight the selection.
       if(prob)then
         if(IPROB.gt.10)then
-          ITEMS1(16)='q CLEAR ALL contiguity  '
+          ITEMS1(16)='q clear all contiguity'
         else
-          ITEMS1(16)='q CLEAR SOME/ALL contiguity  '
+          ITEMS1(16)='q clear some/all contiguity'
         endif
       else
-          ITEMS1(16)='q clear some/all contiguity  '
+          ITEMS1(16)='q clear some/all contiguity'
       endif
       ITEMS1(17)=    'r check via vertex contiguity'
-      ITEMS1(18)=  '  _______________________     '
+      ITEMS1(18)=  '  _______________________'
 
       IF(ITRC.EQ.0)THEN
-        ITEMS1(19)='s reporting >> silent         '
+        ITEMS1(19)='s report >> silent'
       ELSEIF(ITRC.EQ.1)THEN  
-        ITEMS1(19)='s reporting >> summary        ' 
+        ITEMS1(19)='s report >> summary' 
       ELSEIF(ITRC.EQ.2)THEN
-        ITEMS1(19)='s reporting >> verbose        '
+        ITEMS1(19)='s report >> verbose'
       ENDIF
-      ITEMS1(20)=  '! list connections            '
+      ITEMS1(20)=  '! list connections'
       if(longpause)then
-        ITEMS1(21)='* pause during check 1 sec    '
+        ITEMS1(21)='* pause during check 1 sec'
       else
-        ITEMS1(21)='* pause during check 0.5 sec  '
+        ITEMS1(21)='* pause during check 0.5 sec'
       endif
-      ITEMS1(22)=  '? help                        '
-      ITEMS1(23)=  '- exit                        '
+      ITEMS1(22)=  '? help'
+      ITEMS1(23)=  '- exit mwnu'
       MITEM=23
 
 C Help text for this menu.
@@ -568,12 +563,8 @@ C Not one of the legal menu choices.
         IVERT=-2
         goto 33
 
-C << Has anyone used this recently? How about adapting this as a common bit of
-C << code called from the many places where connections are established
-C << in the model?
-      ELSEIF(INO.EQ.16)THEN
-
 C Clear contiguity.
+      ELSEIF(INO.EQ.16)THEN
         helptopic='boundary_clear_all'
         call gethelptext(helpinsub,helptopic,nbhelp)
         CALL EASKABC(' ','Topology options:','clear all',
@@ -636,8 +627,7 @@ C attributes.
           call usrmsg('Clearing partial contiguity...',bl,'-')
           ICC=0
 
-C << show the surface attributes also be cleared?? >>
-
+C << Should the surface attributes also be cleared? >>
           do 187 IZ=1,NCOMP
             call georead(IFIL+1,LGEOM(IZ),IZ,0,itru,IER)
             nzsur(iz)=nsur
@@ -767,9 +757,10 @@ C Toggle trace level.
 
       END 
 
-C ************** CONFIG
-C CONFIG processes the vertex data and presents close matches for
-C the user to confirm before writing to temporary configuration file.
+C ******************** CONFIG ********************
+C Processes the vertex data and presents close matches for
+C user confirmation before writing to temporary configuration file.
+
       SUBROUTINE CONFIG(NZONES,CACC,IACC,DACC,M0SKP,M1SKP,M2SKP,M3SKP,
      &  M4SKP,M5SKP,M6SKP,M7SKP,M8SKP,OTHEROK,ANGCC)
 #include "building.h"
@@ -812,7 +803,6 @@ C Pause length during sequentail scan longpause (true=1 sec)
       logical selfcheck  ! set true if currently looking within zone
       real ANGCC  ! angular tolerance between surfaces
 
-C For help messages
       character helpinsub*24 ! subroutine name
       character helptopic*24 ! string (unique) for topic
       integer nbhelp     ! number of help lines found
@@ -965,9 +955,7 @@ C Find if two surface are within ANGCC degrees orientation.
      &          testisfloor)
               call eclose(SPELV(IC1(ioc),IE1(ioc)),90.0,1.0,
      &          testisceiling)
-C Debug.
-C              write(6,*) ic,ioc,selv,dazi,closea,closee,origisfloor,
-C     &              origisceiling,testisfloor,testisceiling
+
               if(closea.and.closee)then
                 continue
               elseif(origisfloor.and.testisceiling)then
@@ -1178,13 +1166,13 @@ C Setup contextural help for boundary conditions.
                   idno=ICT(IC)
                 endif
                 iart=0
-                call MENUATOL(outs,' Connection options ',
-     &  'a exterior                  ','b dynamic (similar) boundary',
-     &  'c static boundary conditions','d ground (standard profile) ',
-     &  'e ground (user def profile) ','f ground (3D conduction)    ',
-     &  'g adiabatic (no heat flux)  ','h BASESIMP foundation       ',
-     &  'i CEN 13791 partition       ',
-     &  'j UNKNOWN (at this time)    ','k accept current            ',
+                call MENUATOL(outs,'Connection options:',
+     &  'a exterior                  ','b similar',
+     &  'c constant','d ground (standard profile)',
+     &  'e ground (user profile) ','f ground (3D conduction)',
+     &  'g adiabatic','h BASESIMP foundation',
+     &  'i CEN 13791 partition',
+     &  'j unknown','k accept current',
      &   ' ',iart,idno,nbhelp)
                 if(IART.eq.0)then
                   continue
@@ -1208,10 +1196,10 @@ C Setup contextural help for boundary conditions.
                     UPDGEO=.TRUE.
                   endif
                 elseif(IART.eq.3)then
-                  CALL EASKR(VAL,' ',' Constant temperature ? ',
+                  CALL EASKR(VAL,' ','Constant temperature (C)?',
      &              -99.,'F',99.,'F',20.,'adjacent temperature',
      &              IER,nbhelp)
-                  CALL EASKR(VAL2,' ',' Constant rad (W/m^2) ? ',
+                  CALL EASKR(VAL2,' ','Constant radiation (W/m^2)?',
      &              -999.,'F',999.,'F',0.,'adjacent rad',IER,nbhelp)
                   IC1(IC)=IZ; IE1(IC)=JS; ICT(IC)=2
                   IE2(IC)=INT(VAL2)
@@ -1242,7 +1230,7 @@ C profile has not been defined.
                   helptopic='boundary_ground'
                   call gethelptext(helpinsub,helptopic,nbhelp)
                   iic2=ic2(IC)
-  777             CALL EASKI(IIC2,' Monthly (standard) profile index?',
+  777             CALL EASKI(IIC2,'Standard profile index?',
      &              ' ',1,'F',mgrdp,'F',1,'ground profile',IER,nbhelp)
                   IC1(IC)=IZ; IE1(IC)=JS; ICT(IC)=4
                   IF(IIC2.GT.0)THEN
@@ -1255,8 +1243,7 @@ C profile has not been defined.
                       UPDGEO=.TRUE.
                     endif
                   ELSE
-                    CALL USRMSG(' ',' Unacceptable ground profile...',
-     &  'W')
+                    CALL USRMSG(' ','Unacceptable ground profile.','W')
                     GOTO 777
                   ENDIF
                 elseif(IART.eq.5)then
@@ -1272,7 +1259,7 @@ C profile has not been defined.
                       call edisp(iuout,outs)
  22                 continue
                     CALL EASKI(IIE2,
-     &                'User defined ground profile index?',
+     &                'User ground profile index?',
      &                ' ',0,'F',9,'F',1,'user defined profile',
      &                IER,nbhelp)
                     IC1(IC)=IZ; IE1(IC)=JS; ICT(IC)=4 
@@ -1286,8 +1273,8 @@ C profile has not been defined.
                     endif
                   else
                     call usrmsg(
-     &               'No user defined ground profiles have been found.',
-     &               'Go to `problem context` to define these.','W')
+     &               'No user defined ground profiles found!',
+     &               ' ','W')
                   endif
                 elseif(iart.eq.6)then 
 
@@ -1309,11 +1296,10 @@ C Link to a 3D conduction model..
                     write(tother(JS,3),'(i3.3)') IE2(ic)
                     UPDGEO=.TRUE.
                   endif
-                elseif(iart.eq.8)then 
 
-C BASESIMP start.
 C Get BASESIMP configuration via call to bsimtype. Save state of current
 C menu and recover after the call.
+                elseif(iart.eq.8)then 
                   IC1(IC)=IZ;  IE1(IC)=JS; ICT(IC)=6
                   IBS=IC2(IC)
                   call bsimtype(ibs)
@@ -1325,7 +1311,7 @@ C attribute to the surface under consideration.
                   helptopic='boundary_basesimp'
                   call gethelptext(helpinsub,helptopic,nbhelp)
                   CALL EASKI(Ifrac,
-     &              ' Percent of BASESIMP loss to this surface?'
+     &              'BASESIMP loss to this surface (%)?'
      &             ,' ',0,'F',100,'F',100,'BASESIMP heat loss percent',
      &              IER,nbhelp)
                   IE2(IC)=Ifrac
@@ -1335,7 +1321,7 @@ C attribute to the surface under consideration.
                     write(tother(JS,3),'(i3.3)') IE2(ic)
                     UPDGEO=.TRUE.
                   endif
-C BASESIMP end.
+
                 elseif(IART.eq.9)then
                   IC1(IC)=IZ; IE1(IC)=JS; ICT(IC)=7
                   IE2(IC)=0; IC2(IC)=0
@@ -2719,9 +2705,8 @@ C Pass one back for selection and manipulation.
 
       end
 
-C **************** group 
-C Defines groups of zones (a list of zones associated
-C with a concept).
+C ******************** group ********************
+C Defines a group of zones associated with a specific concept.
 
       subroutine group(ifoc,ier)
 #include "building.h"
@@ -2942,7 +2927,7 @@ C Display information about the zones.
               k=izglist(i,j)
               if(k.eq.ifocc.and.i.gt.0)then
                 foundone=.true.
-                write(outs(1:12),'(a,a)') zglbl(i)
+                write(outs(1:12),'(a)') zglbl(i)
                 call edisp(iuout,outs)
               endif
    7        continue
@@ -2993,10 +2978,11 @@ C e.g. offices on level 3.
       subroutine grouplist(iasel,ier)
 #include "building.h"
 #include "model.h"
+#include "epara.h"
 
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
 
-      DIMENSION AVERT(27)
+      DIMENSION AVERT(32)
       CHARACTER AVERT*36,KEY*1
       character AL*16
       integer MVERT,IVERT ! max items and current menu item
@@ -3018,6 +3004,9 @@ C IVERT is the menu position, MVERT the current number of menu lines.
       endif
   31  MHEAD=3
       MCTL=4
+      ILEN=nzgroup
+      IPACT=CREATE
+      CALL EKPAGE(IPACT)
 
 C Initial menu entry setup.
    92 IER=0
@@ -3033,18 +3022,25 @@ C Set menu header text.
       write(AVERT(3),'(a)')    '  index label     associated '
       M=MHEAD
       do 5 L=1,nzgroup
-        M=M+1
-        CALL EMKEY(L,KEY,IER)
-        AVERT(M)=' '
-        write(AVERT(M),'(2a,i2,3a,i3,a)') KEY,' ',L,'  ',zglbl(L),
-     &  ' (',izgnumber(L),' )'
+        if(L.GE.IST.AND.(L.LE.(IST+MIFULL)))then
+          M=M+1
+          CALL EMKEY(L,KEY,IER)
+          AVERT(M)=' '
+          write(AVERT(M),'(2a,i2,3a,i3,a)') KEY,' ',L,'  ',zglbl(L),
+     &    ' (',izgnumber(L),' )'
+        endif
    5  continue
 
 C Number of actual items displayed.
       MVERT=M+MCTL
 
 C If a long list include page facility text.      
-      AVERT(M+1)  ='  ______________________________ '
+      IF(IPFLG.EQ.0)THEN
+        AVERT(M+1)='  _____________________________'
+      ELSE
+        WRITE(AVERT(M+1),15)IPM,MPM 
+   15   FORMAT   ('0 page --- Part: ',I3,' of ',I3,' ---')
+      ENDIF
       AVERT(M+2)  ='+ add/delete an group            '
       AVERT(M+3)  ='? help                           '
       AVERT(M+4)  ='- exit menu                      '
@@ -3090,10 +3086,17 @@ C Deletion function. << to be done >>
           continue
         endif
         goto 31
+      elseif(ivert.eq.mvert-3)then
+
+C If there are enough items allow paging control via EKPAGE.
+        IF(IPFLG.EQ.1)THEN
+          IPACT=EDIT
+          CALL EKPAGE(IPACT)
+        ENDIF
       elseif(IVERT.GT.MHEAD.AND.IVERT.LT.(MVERT-MCTL+1))then
 
 C Pass one back for selection and manipulation.
-        iasel=ivert-MHEAD
+        CALL KEYIND(MVERT,IVERT,iasel,IO)
         call group(iasel,ier)
         goto 31
       else

@@ -1215,7 +1215,7 @@ C alternatives and allow one (only) to be selected.
 
         SALT(1)='Alamdari and Hammond (default) '
         SALT(2)='Khalifa & Marshall, radiator located under window '
-        SALT(3)='Khalifa & Marshall, nO radiator under window  '
+        SALT(3)='Khalifa & Marshall, no radiator under window  '
         SALT(4)='Halcrow, time invariant low    '
         SALT(5)='Halcrow, time invariant high   '
         SALT(6)='CIBSE guide, time invariant    '

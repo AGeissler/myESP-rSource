@@ -795,15 +795,15 @@ C C3 based information and so sother(,,2) and sother(,,3) are placeholders.
 
         if(tother(1:7).eq.'UNKNOWN')then
           write(sother(icomp,isn,1),'(a)') 'UNKNOWN'
-          write(sother(icomp,isn,2),'(a)') '00'
+          write(sother(icomp,isn,2),'(a)') '000'
           write(sother(icomp,isn,3),'(a)') '000'
         elseif(tother(1:8).eq.'EXTERIOR')then
           write(sother(icomp,isn,1),'(a)') 'EXTERIOR'
-          write(sother(icomp,isn,2),'(a)') '00'
+          write(sother(icomp,isn,2),'(a)') '000'
           write(sother(icomp,isn,3),'(a)') '000'
         elseif(tother(1:9).eq.'ADIABATIC')then
           write(sother(icomp,isn,1),'(a)') 'ADIABATIC'
-          write(sother(icomp,isn,2),'(a)') '00'
+          write(sother(icomp,isn,2),'(a)') '000'
           write(sother(icomp,isn,3),'(a)') '000'
         elseif(tother(1:7).eq.'SIMILAR')then
 
@@ -814,8 +814,10 @@ C the C24 and C3 data structures will have data that can be used.
           write(sother(icomp,isn,2),'(a)') '-'   ! must be filled from C3
           write(sother(icomp,isn,3),'(a)') '-'   ! must be filled from C3
           if(havec24)then
-            write(sother(icomp,isn,2),'(i2.2)') IC2(icn)
-            write(sother(icomp,isn,3),'(i3.3)') IE2(icn)
+            if(IC2(icn).ge.0)write(sother(icomp,isn,2),'(i3.3)')IC2(icn)
+            if(IC2(icn).lt.0)write(sother(icomp,isn,2),'(i3)')IC2(icn)
+            if(IE2(icn).ge.0)write(sother(icomp,isn,3),'(i3.3)')IE2(icn)
+            if(IE2(icn).lt.0)write(sother(icomp,isn,3),'(i3)')IE2(icn)
           endif
         elseif(tother(1:8).eq.'CONSTANT')then
 
@@ -826,32 +828,40 @@ C the C24 and C3 data structures will have data that can be used.
           write(sother(icomp,isn,2),'(a)') '-'   ! must be filled from C3
           write(sother(icomp,isn,3),'(a)') '-'   ! must be filled from C3
           if(havec24)then
-            write(sother(icomp,isn,2),'(i2.2)') IC2(icn)
-            write(sother(icomp,isn,3),'(i3.3)') IE2(icn)
+            if(IC2(icn).ge.0)write(sother(icomp,isn,2),'(i3.3)')IC2(icn)
+            if(IC2(icn).lt.0)write(sother(icomp,isn,2),'(i3)')IC2(icn)
+            if(IE2(icn).ge.0)write(sother(icomp,isn,3),'(i3.3)')IE2(icn)
+            if(IE2(icn).lt.0)write(sother(icomp,isn,3),'(i3)')IE2(icn)
           endif
         elseif(tother(1:8).eq.'BASESIMP')then
           write(sother(icomp,isn,1),'(a)') 'BASESIMP'
           write(sother(icomp,isn,2),'(a)') '-'   ! must be filled from C3
           write(sother(icomp,isn,3),'(a)') '-'   ! must be filled from C3
           if(havec24)then
-            write(sother(icomp,isn,2),'(i2.2)') IC2(icn)
-            write(sother(icomp,isn,3),'(i3.3)') IE2(icn)
+            if(IC2(icn).ge.0)write(sother(icomp,isn,2),'(i3.3)')IC2(icn)
+            if(IC2(icn).lt.0)write(sother(icomp,isn,2),'(i3)')IC2(icn)
+            if(IE2(icn).ge.0)write(sother(icomp,isn,3),'(i3.3)')IE2(icn)
+            if(IE2(icn).lt.0)write(sother(icomp,isn,3),'(i3)')IE2(icn)
           endif
         elseif(tother(1:6).eq.'GROUND')then
           write(sother(icomp,isn,1),'(a)') 'GROUND'
           write(sother(icomp,isn,2),'(a)') '-'   ! must be filled from C3
           write(sother(icomp,isn,3),'(a)') '-'   ! must be filled from C3
           if(havec24)then
-            write(sother(icomp,isn,2),'(i2.2)') IC2(icn)
-            write(sother(icomp,isn,3),'(i3.3)') IE2(icn)
+            if(IC2(icn).ge.0)write(sother(icomp,isn,2),'(i3.3)')IC2(icn)
+            if(IC2(icn).lt.0)write(sother(icomp,isn,2),'(i3)')IC2(icn)
+            if(IE2(icn).ge.0)write(sother(icomp,isn,3),'(i3.3)')IE2(icn)
+            if(IE2(icn).lt.0)write(sother(icomp,isn,3),'(i3)')IE2(icn)
           endif
         elseif(tother(1:7).eq.'ANOTHER')then
           write(sother(icomp,isn,1),'(a)') 'ANOTHER'
           write(sother(icomp,isn,2),'(a)') '-'   ! must be filled from C3
           write(sother(icomp,isn,3),'(a)') '-'   ! must be filled from C3
           if(havec24)then
-            write(sother(icomp,isn,2),'(i2.2)') IC2(icn)
-            write(sother(icomp,isn,3),'(i3.3)') IE2(icn)
+            if(IC2(icn).ge.0)write(sother(icomp,isn,2),'(i3.3)')IC2(icn)
+            if(IC2(icn).lt.0)write(sother(icomp,isn,2),'(i3)')IC2(icn)
+            if(IE2(icn).ge.0)write(sother(icomp,isn,3),'(i3.3)')IE2(icn)
+            if(IE2(icn).lt.0)write(sother(icomp,isn,3),'(i3)')IE2(icn)
           endif
         elseif(tother(1:9).eq.'IDENT_CEN')then
           write(sother(icomp,isn,1),'(a)') 'IDENT_CEN'
@@ -864,8 +874,10 @@ C Assume partition so setup sother arrays with this in mind.
           write(sother(icomp,isn,2),'(a)') '-'   ! must be filled from C3
           write(sother(icomp,isn,3),'(a)') tother(1:lnblnk(tother))
           if(havec24)then
-            write(sother(icomp,isn,2),'(i2.2)') IC2(icn)
-            write(sother(icomp,isn,3),'(i3.3)') IE2(icn)
+            if(IC2(icn).ge.0)write(sother(icomp,isn,2),'(i3.3)')IC2(icn)
+            if(IC2(icn).lt.0)write(sother(icomp,isn,2),'(i3)')IC2(icn)
+            if(IE2(icn).ge.0)write(sother(icomp,isn,3),'(i3.3)')IE2(icn)
+            if(IE2(icn).lt.0)write(sother(icomp,isn,3),'(i3)')IE2(icn)
           endif
         endif
 

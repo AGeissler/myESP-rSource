@@ -16,9 +16,7 @@ C details.
 C You should have received a copy of the GNU General Public
 C License along with ESP-r. If not, write to the Free
 C Software Foundation, Inc., 59 Temple Place, Suite 330,
-C Boston, MA 02111-1307 USA.
-
-C ctlexp.F includes the following subroutines which are used
+C Boston, MA 02111-1307 USA.wing subroutines which are used
 C by a number of ESP-r modules (a different version of ctlexp
 C is used by esrumfs and esrures but those viariants may be
 C moved into this file at some point in the future.

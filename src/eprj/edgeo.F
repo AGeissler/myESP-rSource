@@ -1280,17 +1280,25 @@ C Determine the match in the system topology and update it.
                 ICT(IC)=0; IC2(IC)=0; IE2(IC)=0
               ELSEIF(IOS.EQ.2)THEN
                 SOTHER(ICOMP,ISS,1)='SIMILAR'
-                write(SOTHER(ICOMP,ISS,2),'(i2.2)')INT(VALT)
-                write(SOTHER(ICOMP,ISS,3),'(i3.3)')INT(VALW)
+                if(INT(VALT).ge.0)then
+                  write(SOTHER(ICOMP,ISS,2),'(i3.3)')INT(VALT)
+                else
+                  write(SOTHER(ICOMP,ISS,2),'(i3)')INT(VALT)
+                endif
+                if(INT(VALW).ge.0)then
+                  write(SOTHER(ICOMP,ISS,3),'(i3.3)')INT(VALW)
+                else
+                  write(SOTHER(ICOMP,ISS,3),'(i3)')INT(VALW)
+                endif
                 ICT(IC)=1; IC2(IC)=INT(VALT); IE2(IC)=INT(VALW)
               ELSEIF(IOS.EQ.3)THEN
                 SOTHER(ICOMP,ISS,1)='CONSTANT'
-                write(SOTHER(ICOMP,ISS,2),'(i2.2)')INT(VALT)
+                write(SOTHER(ICOMP,ISS,2),'(i3.3)')INT(VALT)
                 write(SOTHER(ICOMP,ISS,3),'(i3.3)')INT(VALW)
                 ICT(IC)=2; IC2(IC)=INT(VALT); IE2(IC)=INT(VALW)
               ELSEIF(IOS.EQ.5)THEN
                 SOTHER(ICOMP,ISS,1)='GROUND'
-                write(SOTHER(ICOMP,ISS,2),'(i2.2)')iie2
+                write(SOTHER(ICOMP,ISS,2),'(i3.3)')iie2
                 SOTHER(ICOMP,ISS,3)='0'
                 ICT(IC)=4; IC2(IC)=iic2; IE2(IC)=0
               ELSEIF(IOS.EQ.6)THEN
@@ -1303,11 +1311,11 @@ C Determine the match in the system topology and update it.
                 ICT(IC)=5; IE2(IC)=0; IC2(IC)=0
               ELSEIF(IOS.EQ.8)THEN
                 SOTHER(ICOMP,ISS,1)='BASESIMP'
-                write(SOTHER(ICOMP,ISS,2),'(i2.2)')INT(VALT)
+                write(SOTHER(ICOMP,ISS,2),'(i3.3)')INT(VALT)
                 write(SOTHER(ICOMP,ISS,3),'(i3.3)')INT(VALW)
               ELSEIF(IOS.EQ.9)THEN
                 SOTHER(ICOMP,ISS,1)='IDENT_CEN'
-                write(SOTHER(ICOMP,ISS,2),'(i2.2)')INT(VALT)
+                write(SOTHER(ICOMP,ISS,2),'(i3.3)')INT(VALT)
                 write(SOTHER(ICOMP,ISS,3),'(i3.3)')INT(VALW)
                 ICT(IC)=7; IC2(IC)=INT(VALT); IE2(IC)=INT(VALW)
               ELSEIF(IOS.EQ.10)THEN
@@ -1508,6 +1516,45 @@ C Reverse the ordering, redraw image and return..
                 izz=NVER(ins)+3-iyy
                 JVN(ins,iyy)=jvn1(izz)
               enddo
+
+C If construction symmetric do nothing but if it
+C references a non-symetric MLC then use an inverted MLC.
+              call matchmlcdesc(SMLCN(icomp,ins),imlcindex)
+              if(imlcindex.ne.0)then
+                ii=imlcindex
+                lnssmlc=lnblnk(SMLCN(ICOMP,ins))
+                if(mlcsymetric(ii)(1:9).EQ.'SYMMETRIC')then
+                  if(SMLCN(ICOMP,ins)(1:lnssmlc).eq.
+     &               mlcname(ii)(1:lnmlcname(ii)))then
+                    SMLCN(ICOMP,ins)=mlcname(ii)
+                  elseif(SMLCN(ICOMP,ins)(1:4).eq.'UNKN')then
+                    SMLCN(ICOMP,ins)=mlcname(ii)
+                  else
+                    SMLCN(ICOMP,ins)=mlcname(ii)
+                  endif
+                  iissmlci=ii
+                elseif(mlcsymetric(ii)(1:12).EQ.'NONSYMMETRIC')then
+
+C If the current construction is nonsymmetric then it should not be
+C used for a partition (if db does not have a linked MLC, inform the user).
+                  SMLCN(ICOMP,ins)=mlcsymetric(ii)
+                  iissmlci=matsymindex(ii)  ! use returned value
+                else
+                  lnssmlc=lnblnk(SMLCN(ICOMP,ins))
+                  if(SMLCN(ICOMP,ins)(1:4).eq.'UNKN')then
+                    SMLCN(ICOMP,ins)=mlcsymetric(ii)
+                  elseif(SMLCN(ICOMP,ins)(1:lnssmlc).eq.
+     &                   mlcsymetric(ii)(1:lnssmlc))then
+                    SMLCN(ICOMP,ins)=mlcsymetric(ii)
+                  else
+                    SMLCN(ICOMP,ins)=mlcsymetric(ii)
+                  endif
+                  iissmlci=matsymindex(ii)       ! use returned value
+                endif
+                if(iissmlci.ne.0)then
+                  smlcindex(ICOMP,ins)=iissmlci ! update
+                endif
+              endif
             enddo ! of ins
             iZBFLG(ICOMP)=0   ! reset
             call zgupdate(1,icomp,ier)  ! update commons
@@ -3869,8 +3916,6 @@ C << report inside and outside hc regime here >>
      &      SOTF(IC2(ioc),IE2(ioc))(1:12)
           WRITE(ISD(19),'(2A)') '   location    : ',
      &      SVFC(IC2(ioc),IE2(ioc))
-C          WRITE(ISD(20),'(2A)') '   construction: ',
-C     &      SMLCN(IC2(ioc),IE2(ioc))(1:16)
           lnm=lnblnk(SMLCN(IC2(ioc),IE2(ioc)))  ! avoid truncation if possible
           if(lnm.le.16)then
             WRITE(ISD(20),'(2A)') '   construction: ',
@@ -4440,7 +4485,11 @@ C optical properties and MLC index from material.h commons.
                 if(iissmlci.ne.0)then
                   smlcindex(IC2(ioc),IE2(ioc))=iissmlci  ! update
                 endif
-                write(SOTF(IC2(ioc),IE2(ioc)),'(a)') TOOPT
+                if(TOOPT(1:2).ne.' ')then
+                  write(SOTF(IC2(ioc),IE2(ioc)),'(a)') TOOPT
+                endif
+                SUSE(IC2(ioc),IE2(ioc),1)=TOUSE1
+                SUSE(IC2(ioc),IE2(ioc),2)=TOUSE2
 
 C Logic to decide whether to update other zone geometry format.
                 call eclose(gversion(IC2(ioc)),1.1,0.01,newgeo)
@@ -4660,17 +4709,19 @@ C Tollerance for surface matching.
       DIMENSION SALT(14),IVAL(MCOM)  ! ,bl(144)
       DIMENSION cog(3),cogo(3)
       DIMENSION VN(3)
-      integer iocog  ! loop counter for detecting close surfaces
-      integer ifound,ifoundc ! how many close surfaces and which one
+      integer iocog                          ! loop counter for detecting close surfaces
+      integer ifound,ifoundc                 ! how many close surfaces and which one
       CHARACTER DESCRC*25,outs*124,CXSTR*78
       CHARACTER SALT*33,SN*12
-      character TOSMLCN*32  ! to remember other side mlc name
+      character TOSMLCN*32                   ! remember other side mlc name
+      character TOOPT*32                     ! to remember other side optics
+      character TOUSE1*12, TOUSE2*12         ! remember other side USE
       integer ico
 
-      logical closecog,closea,closee,closeaz   ! to check for nearby surfaces
+      logical closecog,closea,closee,closeaz ! to check for nearby surfaces
       logical closeenough,closecog1m
-      integer lnsa,lnsb          ! lengths for surface names
-      integer ii                 ! for loop
+      integer lnsa,lnsb                      ! lengths for surface names
+      integer ii                             ! for loop
 
 C For help messages
       character helpinsub*24 ! subroutine name
@@ -4682,6 +4733,7 @@ C For help messages
 
       helpinsub='EDSURA'  ! set for subroutine
       icoth=0; ii=0
+      TOSMLCN=' '; TOOPT=' '; TOUSE1=' '; TOUSE2=' '
       iissmlci=0
       icomp=izone   ! zone index
       is=isurf      ! surface index
@@ -4752,12 +4804,13 @@ C Determine the match in the system topology and update it.
       ELSEIF(IVAL(1).EQ.2)THEN
         SOTHER(ICOMP,IS,1)='SIMILAR'
         ICT(IC)=1
-        VALT=0.0; VALW=0.0
+        VALT= real(IC2(IC)); VALW= real(IE2(IC))  ! pick up existing value
         CALL EASKR(VALT,' ','Temperature offset?',
      &           -99.,'F',700.,'F',0.0,'offset temp',IER,nbhelp)
         CALL EASKR(VALW,' ','Radiation offset?',
      &           0.0,'W',99999.,'W',0.0,'offset rad',IER,nbhelp)
-        write(SOTHER(ICOMP,IS,2),'(i2.2)')INT(VALT)
+        if(INT(VALT).ge.0)write(SOTHER(ICOMP,IS,2),'(i3.3)')INT(VALT)
+        if(INT(VALT).lt.0)write(SOTHER(ICOMP,IS,2),'(i3)')INT(VALT)
         write(SOTHER(ICOMP,IS,3),'(i3.3)')INT(VALW)
         IC2(IC)=INT(VALT); IE2(IC)=INT(VALW)
         showother=.false.
@@ -4773,7 +4826,8 @@ C Determine the match in the system topology and update it.
      &    IER,nbhelp)
         IC2(IC)=INT(VALT)
         IE2(IC)=INT(VALW)
-        write(SOTHER(ICOMP,IS,2),'(i2.2)')INT(VALT)
+        if(INT(VALT).ge.0)write(SOTHER(ICOMP,IS,2),'(i3.3)')INT(VALT)
+        if(INT(VALT).lt.0)write(SOTHER(ICOMP,IS,2),'(i3)')INT(VALT)
         write(SOTHER(ICOMP,IS,3),'(i3.3)')INT(VALW)
         showother=.false.
         updoth=.false.
@@ -4798,7 +4852,7 @@ C General image option flags.
 
 C Write ANOTHER followed by the indices of zone and surface.
           SOTHER(ICOMP,IS,1)='ANOTHER'
-          write(SOTHER(ICOMP,IS,2),'(i2.2)') iz
+          write(SOTHER(ICOMP,IS,2),'(i3.3)') iz
           write(SOTHER(ICOMP,IS,3),'(i3.3)') iso
           ICT(IC)=3; IC2(IC)=IZ; IE2(IC)=ISO
 
@@ -4843,10 +4897,13 @@ C used for a partition if db does not have a linked MLC - inform the user.
             else
               if(SMLCN(iz,iso)(1:4).eq.'UNKN')then
                 TOSMLCN= mlcsymetric(ii)
+                write(TOOPT,'(a)') mlcoptical(ii)
               elseif(SMLCN(iz,iso)(1:12).eq.mlcsymetric(ii)(1:12))then
                 TOSMLCN= mlcsymetric(ii)
+                write(TOOPT,'(a)') mlcoptical(ii)
               else
                 TOSMLCN= mlcsymetric(ii)
+                write(TOOPT,'(a)') mlcoptical(ii)
               endif
               iissmlci=matsymindex(ii)  ! use returned value
             endif
@@ -4859,15 +4916,15 @@ C Update the attributes of the other surface in the zone so it will
 C be saved along with the changes in the initial surface.
           SMLCN(iz,iso)=TOSMLCN
           if(iissmlci.ne.0) smlcindex(iz,iso)=iissmlci  ! update if known
+          if(TOOPT(1:2).ne.' ')then
+            write(SOTF(iz,iso),'(a)') TOOPT
+          endif
           SOTHER(iz,iso,1)='ANOTHER'
-          write(SOTHER(iz,iso,2),'(i2.2)') IC2(ico)
+          write(SOTHER(iz,iso,2),'(i3.3)') IC2(ico)
           write(SOTHER(iz,iso,3),'(i3.3)') IE2(ico)
-          showother=.true.  ! when re-display include info on matched
-
+          showother=.true.  ! on re-display include info on matched
         else
-
-C User did not select surface so continue without changing.
-          continue
+          continue          ! user did not select surface so continue without changing
         endif
       ELSEIF(IVAL(1).EQ.5)THEN
 
@@ -4930,7 +4987,7 @@ C and display both zones.
 
 C Write ANOTHER followed by the indices of zone and surface.
             SOTHER(ICOMP,IS,1)='ANOTHER'
-            write(SOTHER(ICOMP,IS,2),'(i2.2)') iz
+            write(SOTHER(ICOMP,IS,2),'(i3.3)') iz
             write(SOTHER(ICOMP,IS,3),'(i3.3)') iso
             ICT(IC)=3; IC2(IC)=IZ; IE2(IC)=ISO
 
@@ -4945,12 +5002,154 @@ C point it to the current surface.
               IC2(ICO)=IC1(IC); IE2(ICO)=IE1(IC)
 
               SOTHER(IZ,ISO,1)='ANOTHER'
-              write(SOTHER(IZ,ISO,2),'(i2.2)') IC2(ICO)
+              write(SOTHER(IZ,ISO,2),'(i3.3)') IC2(ICO)
               write(SOTHER(IZ,ISO,3),'(i3.3)') IE2(ICO)
 
 C Update information needed to display information on the other side
 C of this surface (i.e. if we went from unknown to a partition).
               icoth=ICO
+
+C If SUSE is currently 'WALL', reset to 'PARTN'.
+              if(SUSE(ICOMP,is,1)(1:4).eq.'WALL')then
+                SUSE(ICOMP,is,1)='PARTN'
+                SUSE(ICOMP,is,2)='-'
+              endif
+
+C Surface USE: check if there is a difference between the current
+C and other surface use. If the same then do nothing. If
+C current is '-' and the other is in the following list then make it the same.
+              if(SUSE(ICOMP,is,1)(1:1).eq.'-'.and.
+     &           SUSE(IZ,iso,1)(1:1).eq.'-')then
+                continue                                  ! do nothing
+              elseif(SUSE(ICOMP,is,1)(1:1).eq.'-'.and.    ! use non-flow attributes
+     &               SUSE(IZ,iso,1)(1:4).eq.'WALL'.or.    ! from other side
+     &               SUSE(IZ,iso,1)(1:5).eq.'FLOOR'.or.
+     &               SUSE(IZ,iso,1)(1:5).eq.'FURNI'.or.
+     &               SUSE(IZ,iso,1)(1:7).eq.'ITEQUIP'.or.
+     &               SUSE(IZ,iso,1)(1:5).eq.'PARTN'.or.
+     &               SUSE(IZ,iso,1)(1:4).eq.'ROOF'.or.
+     &               SUSE(IZ,iso,1)(1:5).eq.'STRUC'.or.
+     &               SUSE(IZ,iso,1)(1:7).eq.'FIXTURE'.or.
+     &               SUSE(IZ,iso,1)(1:6).eq.'PLANTS')then
+                SUSE(ICOMP,is,1)=SUSE(IZ,iso,1)
+                SUSE(ICOMP,is,2)=SUSE(IZ,iso,2)
+
+              elseif(SUSE(ICOMP,is,1)(1:1).eq.'-'.and.    ! use non-flow attributes
+     &               SUSE(IZ,iso,1)(1:4).eq.'DOOR'.or.    ! flow attributes on other side
+     &               SUSE(IZ,iso,1)(1:6).eq.'P-DOOR'.or.
+     &               SUSE(IZ,iso,1)(1:6).eq.'H-DOOR'.or.
+     &               SUSE(IZ,iso,1)(1:6).eq.'V-DOOR'.or.
+     &               SUSE(IZ,iso,1)(1:5).eq.'FRAME'.or.
+     &               SUSE(IZ,iso,1)(1:7).eq.'F-FRAME'.or.
+     &               SUSE(IZ,iso,1)(1:5).eq.'GRILL'.or.
+     &               SUSE(IZ,iso,1)(1:6).eq.'WINDOW'.or.
+     &               SUSE(IZ,iso,1)(1:8).eq.'D-WINDOW'.or.
+     &               SUSE(IZ,iso,1)(1:8).eq.'S-WINDOW'.or.
+     &               SUSE(IZ,iso,1)(1:8).eq.'C-WINDOW'.or.
+     &               SUSE(IZ,iso,1)(1:4).eq.'FICT')then
+                SUSE(ICOMP,is,1)=SUSE(IZ,iso,1)
+                if(SUSE(IZ,iso,2)(1:5).eq.'CLOSED'.or.    ! depending on 2nd attribute
+     &             SUSE(IZ,iso,2)(1:8).eq.'UNDERCUT'.or.  ! update the other surface
+     &             SUSE(IZ,iso,2)(1:4).eq.'OPEN'.or.
+     &             SUSE(IZ,iso,2)(1:5).eq.'BIDIR'.or.
+     &             SUSE(IZ,iso,2)(1:10).eq.'AJAR-BIDIR'.or.
+     &             SUSE(IZ,iso,2)(1:5).eq.'CRACK'.or.
+     &             SUSE(IZ,iso,2)(1:4).eq.'VENT'.or.
+     &             SUSE(IZ,is,2)(1:4).eq.'DUCT')then
+                  SUSE(ICOMP,is,2)=SUSE(IZ,iso,2)
+                endif
+                if(SUSE(IZ,iso,2)(1:5).eq.'INLET'.or.    ! For mechanical set current
+     &             SUSE(IZ,iso,2)(1:7).eq.'EXTRACT')then ! to CLOSED.
+                  SUSE(ICOMP,is,2)='CLOSED'
+                endif
+
+C If current SUSE is set and other surface is '-' then update other surface.
+              elseif(SUSE(ICOMP,is,1)(1:4).eq.'WALL'.or.
+     &               SUSE(ICOMP,is,1)(1:5).eq.'FLOOR'.or.
+     &               SUSE(ICOMP,is,1)(1:5).eq.'FURNI'.or.
+     &               SUSE(ICOMP,is,1)(1:7).eq.'ITEQUIP'.or.
+     &               SUSE(ICOMP,is,1)(1:4).eq.'ROOF'.or.
+     &               SUSE(ICOMP,is,1)(1:5).eq.'STRUC'.or.
+     &               SUSE(ICOMP,is,1)(1:7).eq.'FIXTURE'.or.
+     &               SUSE(ICOMP,is,1)(1:6).eq.'PLANTS')then
+                if(SUSE(IZ,iso,1)(1:1).eq.'-')then
+                  SUSE(IZ,iso,1)=SUSE(ICOMP,is,1)
+                  SUSE(IZ,iso,2)=SUSE(ICOMP,is,2)
+                endif
+
+C If current SUSE has already been set to 'PARTN' and the other side
+C is flow, relate then reasign current also as flow related.
+              elseif(SUSE(ICOMP,is,1)(1:5).eq.'PARTN')then
+                if(SUSE(IZ,iso,1)(1:1).eq.'-')then          ! Not set so copy PARTN.
+                  SUSE(IZ,iso,1)=SUSE(ICOMP,is,1)
+                  SUSE(IZ,iso,2)=SUSE(ICOMP,is,2)
+                elseif(SUSE(IZ,iso,1)(1:4).eq.'DOOR'.or.    ! Flow attributes on other side.
+     &             SUSE(IZ,iso,1)(1:6).eq.'P-DOOR'.or.
+     &             SUSE(IZ,iso,1)(1:6).eq.'H-DOOR'.or.
+     &             SUSE(IZ,iso,1)(1:6).eq.'V-DOOR'.or.
+     &             SUSE(IZ,iso,1)(1:5).eq.'FRAME'.or.
+     &             SUSE(IZ,iso,1)(1:7).eq.'F-FRAME'.or.
+     &             SUSE(IZ,iso,1)(1:5).eq.'GRILL'.or.
+     &             SUSE(IZ,iso,1)(1:6).eq.'WINDOW'.or.
+     &             SUSE(IZ,iso,1)(1:8).eq.'D-WINDOW'.or.
+     &             SUSE(IZ,iso,1)(1:8).eq.'S-WINDOW'.or.
+     &             SUSE(IZ,iso,1)(1:8).eq.'C-WINDOW'.or.
+     &             SUSE(IZ,iso,1)(1:4).eq.'FICT')then
+                  SUSE(ICOMP,is,1)=SUSE(IZ,iso,1)
+                  if(SUSE(IZ,iso,2)(1:5).eq.'CLOSED'.or.   ! Depending on 2nd attribute
+     &               SUSE(IZ,iso,2)(1:8).eq.'UNDERCUT'.or. ! also update the other surface.
+     &               SUSE(IZ,iso,2)(1:4).eq.'OPEN'.or.
+     &               SUSE(IZ,iso,2)(1:5).eq.'BIDIR'.or.
+     &               SUSE(IZ,iso,2)(1:10).eq.'AJAR-BIDIR'.or.
+     &               SUSE(IZ,iso,2)(1:5).eq.'CRACK'.or.
+     &               SUSE(IZ,iso,2)(1:4).eq.'VENT'.or.
+     &               SUSE(IZ,is,2)(1:4).eq.'DUCT')then
+                    SUSE(ICOMP,is,2)=SUSE(IZ,iso,2)
+                  endif
+                  if(SUSE(IZ,iso,2)(1:5).eq.'INLET'.or.    ! For mechanical set current
+     &               SUSE(IZ,iso,2)(1:7).eq.'EXTRACT')then ! to CLOSED.
+                    SUSE(ICOMP,is,2)='CLOSED'
+                  endif
+                else                                       ! Non-flow other side so copy PARTN.
+                  SUSE(IZ,iso,1)=SUSE(ICOMP,is,1)
+                  SUSE(IZ,iso,2)=SUSE(ICOMP,is,2)
+                endif
+
+C If current surface SUSE is related to flow set the other face SUSE first
+C attribute.
+              elseif(SUSE(ICOMP,is,1)(1:4).eq.'DOOR'.or.
+     &               SUSE(ICOMP,is,1)(1:6).eq.'P-DOOR'.or.
+     &               SUSE(ICOMP,is,1)(1:6).eq.'H-DOOR'.or.
+     &               SUSE(ICOMP,is,1)(1:6).eq.'V-DOOR'.or.
+     &               SUSE(ICOMP,is,1)(1:5).eq.'FRAME'.or.
+     &               SUSE(ICOMP,is,1)(1:7).eq.'F-FRAME'.or.
+     &               SUSE(ICOMP,is,1)(1:5).eq.'GRILL'.or.
+     &               SUSE(ICOMP,is,1)(1:6).eq.'WINDOW'.or.
+     &               SUSE(ICOMP,is,1)(1:8).eq.'D-WINDOW'.or.
+     &               SUSE(ICOMP,is,1)(1:8).eq.'S-WINDOW'.or.
+     &               SUSE(ICOMP,is,1)(1:8).eq.'C-WINDOW'.or.
+     &               SUSE(ICOMP,is,1)(1:4).eq.'FICT')then
+                if(SUSE(IZ,iso,1)(1:1).eq.'-')then            ! Update other to flow.
+                  SUSE(IZ,iso,1)=SUSE(ICOMP,is,1)
+                  if(SUSE(ICOMP,is,2)(1:5).eq.'CLOSED'.or.    ! Depending on 2nd attribute
+     &               SUSE(ICOMP,is,2)(1:8).eq.'UNDERCUT'.or.  ! also update the other surface.
+     &               SUSE(ICOMP,is,2)(1:4).eq.'OPEN'.or.
+     &               SUSE(ICOMP,is,2)(1:5).eq.'BIDIR'.or.
+     &               SUSE(ICOMP,is,2)(1:10).eq.'AJAR-BIDIR'.or.
+     &               SUSE(ICOMP,is,2)(1:5).eq.'CRACK'.or.
+     &               SUSE(ICOMP,is,2)(1:4).eq.'VENT'.or.
+     &               SUSE(ICOMP,is,2)(1:4).eq.'DUCT')then
+                    SUSE(IZ,iso,2)=SUSE(ICOMP,is,2)
+                  endif
+                  if(SUSE(ICOMP,is,2)(1:5).eq.'INLET'.or.    ! For mechanical set other
+     &               SUSE(ICOMP,is,2)(1:7).eq.'EXTRACT')then ! to CLOSED.
+                    SUSE(IZ,iso,2)='CLOSED'
+                  endif
+                endif
+                showother=.true.       ! On re-display include info on SUSE.
+              endif
+              TOUSE1=SUSE(IZ,iso,1)    ! Remember for restore after zone read.
+              TOUSE2=SUSE(IZ,iso,2)
 
 C Also check the other side construction and see if it matches. If
 C current surface MLC index is known get isymindex for the other side
@@ -4961,10 +5160,13 @@ C current surface MLC index is known get isymindex for the other side
                   if(SMLCN(IZ,ISO)(1:lnssmlc).eq.
      &               mlcname(ii)(1:lnmlcname(ii)))then
                     TOSMLCN= mlcname(ii)
+                    write(TOOPT,'(a)') mlcoptical(ii)
                   elseif(SMLCN(IZ,ISO)(1:4).eq.'UNKN')then
                     TOSMLCN= mlcname(ii)
+                    write(TOOPT,'(a)') mlcoptical(ii)
                   else
                     TOSMLCN= mlcname(ii)
+                    write(TOOPT,'(a)') mlcoptical(ii)
                   endif
                   iissmlci=ii
                 elseif(mlcsymetric(ii)(1:12).EQ.'NONSYMMETRIC')then
@@ -4989,11 +5191,14 @@ C used for a partition if db does not have a linked MLC - inform the user.
                   lnssmlc=lnblnk(SMLCN(IZC,ISC))
                   if(SMLCN(IZC,ISC)(1:4).eq.'UNKN')then
                     TOSMLCN= mlcsymetric(ii)
+                    write(TOOPT,'(a)') mlcoptical(ii)
                   elseif(SMLCN(IZC,ISC)(1:lnssmlc).eq.
      &                   mlcsymetric(ii)(1:lnssmlc))then
                     TOSMLCN= mlcsymetric(ii)
+                    write(TOOPT,'(a)') mlcoptical(ii)
                   else
                     TOSMLCN= mlcsymetric(ii)
+                    write(TOOPT,'(a)') mlcoptical(ii)
                   endif
                   iissmlci=matsymindex(ii)  ! use returned value
                 endif
@@ -5044,7 +5249,7 @@ C the action make no changes and jump back to 13 (the menu creation code).
           if(ieri.eq.0)then
             IC2(IC)=iic2; IE2(IC)=0
             SOTHER(ICOMP,IS,1)='GROUND'
-            write(SOTHER(ICOMP,IS,2),'(i2.2)')iic2
+            write(SOTHER(ICOMP,IS,2),'(i3.3)')iic2
             SOTHER(ICOMP,IS,3)='0'
             ICT(IC)=4
             showother=.false.
@@ -5131,7 +5336,7 @@ C action do not instantiate the data.
         if(ieri.eq.0)then
           IE2(IC)=Ifrac; IC2(IC)=IBS
           SOTHER(ICOMP,IS,1)='BASESIMP'
-          write(SOTHER(ICOMP,IS,2),'(i2.2)')Ifrac
+          write(SOTHER(ICOMP,IS,2),'(i3.3)')Ifrac
           write(SOTHER(ICOMP,IS,3),'(i3.3)')IBS
           ICT(IC)=6
           showother=.false.
@@ -5410,7 +5615,7 @@ C If horizontal relax the azimuth test.
             if(INVT.eq.1)then
               iz=ic1(iic3); iso=ie1(iic3) ! decode other zone and surf
               SOTHER(ICOMP,IS,1)='ANOTHER'
-              write(SOTHER(ICOMP,IS,2),'(i2.2)') iz
+              write(SOTHER(ICOMP,IS,2),'(i3.3)') iz
               write(SOTHER(ICOMP,IS,3),'(i3.3)') iso
               ICT(IC)=3; IC2(IC)=IZ; IE2(IC)=ISO
               updoth=.false.
@@ -5418,11 +5623,156 @@ C If horizontal relax the azimuth test.
               iz=ic1(iic3); iso=ie1(iic3) ! decode other zone and surf
               ico=iic3
               SOTHER(ICOMP,IS,1)='ANOTHER'
-              write(SOTHER(ICOMP,IS,2),'(i2.2)') iz
+              write(SOTHER(ICOMP,IS,2),'(i3.3)') iz
               write(SOTHER(ICOMP,IS,3),'(i3.3)') iso
               ICT(IC)=3; IC2(IC)=IZ; IE2(IC)=ISO
               IC1(ICO)=IZ; IE1(ICO)=ISO; ICT(ICO)=3
               IC2(ICO)=icuriz; IE2(ICO)=icuris
+
+C If current SUSE is 'WALL', reset to 'PARTN'.
+              if(SUSE(ICOMP,is,1)(1:4).eq.'WALL')then
+                SUSE(ICOMP,is,1)='PARTN'
+                SUSE(ICOMP,is,2)='-'
+              endif
+
+C Surface USE: check if there is a difference between the current and
+C other surface use. If they are the same do nothing. If
+C current is '-' and the other is in the following list then make it the same.
+              if(SUSE(ICOMP,is,1)(1:1).eq.'-'.and.
+     &           SUSE(IZ,iso,1)(1:1).eq.'-')then
+                continue                                  ! Nothing to do.
+              elseif(SUSE(ICOMP,is,1)(1:1).eq.'-'.and.    ! Use non-flow attributes
+     &               SUSE(IZ,iso,1)(1:4).eq.'WALL'.or.    ! from the other side.
+     &               SUSE(IZ,iso,1)(1:5).eq.'FLOOR'.or.
+     &               SUSE(IZ,iso,1)(1:5).eq.'FURNI'.or.
+     &               SUSE(IZ,iso,1)(1:7).eq.'ITEQUIP'.or.
+     &               SUSE(IZ,iso,1)(1:5).eq.'PARTN'.or.
+     &               SUSE(IZ,iso,1)(1:4).eq.'ROOF'.or.
+     &               SUSE(IZ,iso,1)(1:5).eq.'STRUC'.or.
+     &               SUSE(IZ,iso,1)(1:7).eq.'FIXTURE'.or.
+     &               SUSE(IZ,iso,1)(1:6).eq.'PLANTS')then
+                SUSE(ICOMP,is,1)=SUSE(IZ,iso,1)
+                SUSE(ICOMP,is,2)=SUSE(IZ,iso,2)
+
+              elseif(SUSE(ICOMP,is,1)(1:1).eq.'-'.and.    ! Use non-flow attributes.
+     &               SUSE(IZ,iso,1)(1:4).eq.'DOOR'.or.    ! Flow attributes on other side.
+     &               SUSE(IZ,iso,1)(1:6).eq.'P-DOOR'.or.
+     &               SUSE(IZ,iso,1)(1:6).eq.'H-DOOR'.or.
+     &               SUSE(IZ,iso,1)(1:6).eq.'V-DOOR'.or.
+     &               SUSE(IZ,iso,1)(1:5).eq.'FRAME'.or.
+     &               SUSE(IZ,iso,1)(1:7).eq.'F-FRAME'.or.
+     &               SUSE(IZ,iso,1)(1:5).eq.'GRILL'.or.
+     &               SUSE(IZ,iso,1)(1:6).eq.'WINDOW'.or.
+     &               SUSE(IZ,iso,1)(1:8).eq.'D-WINDOW'.or.
+     &               SUSE(IZ,iso,1)(1:8).eq.'S-WINDOW'.or.
+     &               SUSE(IZ,iso,1)(1:8).eq.'C-WINDOW'.or.
+     &               SUSE(IZ,iso,1)(1:4).eq.'FICT')then
+                SUSE(ICOMP,is,1)=SUSE(IZ,iso,1)
+                if(SUSE(IZ,iso,2)(1:5).eq.'CLOSED'.or.   ! Depending on 2nd attribute
+     &             SUSE(IZ,iso,2)(1:8).eq.'UNDERCUT'.or. ! update the other surface.
+     &             SUSE(IZ,iso,2)(1:4).eq.'OPEN'.or.
+     &             SUSE(IZ,iso,2)(1:5).eq.'BIDIR'.or.
+     &             SUSE(IZ,iso,2)(1:10).eq.'AJAR-BIDIR'.or.
+     &             SUSE(IZ,iso,2)(1:5).eq.'CRACK'.or.
+     &             SUSE(IZ,iso,2)(1:4).eq.'VENT'.or.
+     &             SUSE(IZ,is,2)(1:4).eq.'DUCT')then
+                  SUSE(ICOMP,is,2)=SUSE(IZ,iso,2)
+                endif
+                if(SUSE(IZ,iso,2)(1:5).eq.'INLET'.or.    ! For mechanical set current
+     &             SUSE(IZ,iso,2)(1:7).eq.'EXTRACT')then ! to CLOSED.
+                  SUSE(ICOMP,is,2)='CLOSED'
+                endif
+
+C If current SUSE is set and other surface is '-' then update other surface.
+              elseif(SUSE(ICOMP,is,1)(1:4).eq.'WALL'.or.
+     &               SUSE(ICOMP,is,1)(1:5).eq.'FLOOR'.or.
+     &               SUSE(ICOMP,is,1)(1:5).eq.'FURNI'.or.
+     &               SUSE(ICOMP,is,1)(1:7).eq.'ITEQUIP'.or.
+     &               SUSE(ICOMP,is,1)(1:4).eq.'ROOF'.or.
+     &               SUSE(ICOMP,is,1)(1:5).eq.'STRUC'.or.
+     &               SUSE(ICOMP,is,1)(1:7).eq.'FIXTURE'.or.
+     &               SUSE(ICOMP,is,1)(1:6).eq.'PLANTS')then
+                if(SUSE(IZ,iso,1)(1:1).eq.'-')then
+                  SUSE(IZ,iso,1)=SUSE(ICOMP,is,1)
+                  SUSE(IZ,iso,2)=SUSE(ICOMP,is,2)
+                endif
+
+C If current SUSE has already been set to 'PARTN' and the other side
+C is flow relate then reasign current also as flow related.
+              elseif(SUSE(ICOMP,is,1)(1:5).eq.'PARTN')then
+                if(SUSE(IZ,iso,1)(1:1).eq.'-')then          ! Not set so copy PARTN.
+                  SUSE(IZ,iso,1)=SUSE(ICOMP,is,1)
+                  SUSE(IZ,iso,2)=SUSE(ICOMP,is,2)
+                elseif(SUSE(IZ,iso,1)(1:4).eq.'DOOR'.or.    ! Flow attributes on other side.
+     &             SUSE(IZ,iso,1)(1:6).eq.'P-DOOR'.or.
+     &             SUSE(IZ,iso,1)(1:6).eq.'H-DOOR'.or.
+     &             SUSE(IZ,iso,1)(1:6).eq.'V-DOOR'.or.
+     &             SUSE(IZ,iso,1)(1:5).eq.'FRAME'.or.
+     &             SUSE(IZ,iso,1)(1:7).eq.'F-FRAME'.or.
+     &             SUSE(IZ,iso,1)(1:5).eq.'GRILL'.or.
+     &             SUSE(IZ,iso,1)(1:6).eq.'WINDOW'.or.
+     &             SUSE(IZ,iso,1)(1:8).eq.'D-WINDOW'.or.
+     &             SUSE(IZ,iso,1)(1:8).eq.'S-WINDOW'.or.
+     &             SUSE(IZ,iso,1)(1:8).eq.'C-WINDOW'.or.
+     &             SUSE(IZ,iso,1)(1:4).eq.'FICT')then
+                  SUSE(ICOMP,is,1)=SUSE(IZ,iso,1)
+                  if(SUSE(IZ,iso,2)(1:5).eq.'CLOSED'.or.   ! Depending on 2nd attribute
+     &               SUSE(IZ,iso,2)(1:8).eq.'UNDERCUT'.or. ! also update the other surface.
+     &               SUSE(IZ,iso,2)(1:4).eq.'OPEN'.or.
+     &               SUSE(IZ,iso,2)(1:5).eq.'BIDIR'.or.
+     &               SUSE(IZ,iso,2)(1:10).eq.'AJAR-BIDIR'.or.
+     &               SUSE(IZ,iso,2)(1:5).eq.'CRACK'.or.
+     &               SUSE(IZ,iso,2)(1:4).eq.'VENT'.or.
+     &               SUSE(IZ,is,2)(1:4).eq.'DUCT')then
+                    SUSE(ICOMP,is,2)=SUSE(IZ,iso,2)
+                  endif
+                  if(SUSE(IZ,iso,2)(1:5).eq.'INLET'.or.    ! For mechanical set current
+     &               SUSE(IZ,iso,2)(1:7).eq.'EXTRACT')then ! to CLOSED.
+                    SUSE(ICOMP,is,2)='CLOSED'
+                  endif
+                elseif(SUSE(IZ,iso,1)(1:4).eq.'WALL')then  ! PARTN trumps WALL.
+                  SUSE(IZ,iso,1)=SUSE(ICOMP,is,1)
+                  SUSE(IZ,iso,2)=SUSE(ICOMP,is,2)
+                else                                       ! Non-flow other side so copy PARTN.
+                  SUSE(IZ,iso,1)=SUSE(ICOMP,is,1)
+                  SUSE(IZ,iso,2)=SUSE(ICOMP,is,2)
+                endif
+
+C If current surface SUSE is related to flow set the other face SUSE first
+C attribute.
+              elseif(SUSE(ICOMP,is,1)(1:4).eq.'DOOR'.or.
+     &               SUSE(ICOMP,is,1)(1:6).eq.'P-DOOR'.or.
+     &               SUSE(ICOMP,is,1)(1:6).eq.'H-DOOR'.or.
+     &               SUSE(ICOMP,is,1)(1:6).eq.'V-DOOR'.or.
+     &               SUSE(ICOMP,is,1)(1:5).eq.'FRAME'.or.
+     &               SUSE(ICOMP,is,1)(1:7).eq.'F-FRAME'.or.
+     &               SUSE(ICOMP,is,1)(1:5).eq.'GRILL'.or.
+     &               SUSE(ICOMP,is,1)(1:6).eq.'WINDOW'.or.
+     &               SUSE(ICOMP,is,1)(1:8).eq.'D-WINDOW'.or.
+     &               SUSE(ICOMP,is,1)(1:8).eq.'S-WINDOW'.or.
+     &               SUSE(ICOMP,is,1)(1:8).eq.'C-WINDOW'.or.
+     &               SUSE(ICOMP,is,1)(1:4).eq.'FICT')then
+                if(SUSE(IZ,iso,1)(1:1).eq.'-')then            ! Update other to flow.
+                  SUSE(IZ,iso,1)=SUSE(ICOMP,is,1)
+                  if(SUSE(ICOMP,is,2)(1:5).eq.'CLOSED'.or.    ! Depending on 2nd attribute
+     &               SUSE(ICOMP,is,2)(1:8).eq.'UNDERCUT'.or.  ! also update the other surface.
+     &               SUSE(ICOMP,is,2)(1:4).eq.'OPEN'.or.
+     &               SUSE(ICOMP,is,2)(1:5).eq.'BIDIR'.or.
+     &               SUSE(ICOMP,is,2)(1:10).eq.'AJAR-BIDIR'.or.
+     &               SUSE(ICOMP,is,2)(1:5).eq.'CRACK'.or.
+     &               SUSE(ICOMP,is,2)(1:4).eq.'VENT'.or.
+     &               SUSE(ICOMP,is,2)(1:4).eq.'DUCT')then
+                    SUSE(IZ,iso,2)=SUSE(ICOMP,is,2)
+                  endif
+                  if(SUSE(ICOMP,is,2)(1:5).eq.'INLET'.or.    ! For mechanical set other
+     &               SUSE(ICOMP,is,2)(1:7).eq.'EXTRACT')then ! to CLOSED.
+                    SUSE(IZ,iso,2)='CLOSED'
+                  endif
+                endif
+                showother=.true.  ! when re-display include info on SUSE.
+              endif
+              TOUSE1=SUSE(IZ,iso,1)  ! Remember for restore after zone read.
+              TOUSE2=SUSE(IZ,iso,2)
 
 C Update information needed to display information on the other side
 C of this surface (i.e. if we went from unknown to a partition).
@@ -5437,17 +5787,19 @@ C current surface MLC index is known get isymindex for the other side.
                   if(SMLCN(IC2(ioc),IE2(ioc))(1:lnssmlc).eq.
      &               mlcname(ii)(1:lnmlcname(ii)))then
                     TOSMLCN= mlcname(ii)
+                    write(TOOPT,'(a)') mlcoptical(ii)
                   elseif(SMLCN(IC2(ioc),IE2(ioc))(1:4).eq.'UNKN')then
                     TOSMLCN= mlcname(ii)
+                    write(TOOPT,'(a)') mlcoptical(ii)
                   else
                     TOSMLCN= mlcname(ii)
+                    write(TOOPT,'(a)') mlcoptical(ii)
                   endif
                   iissmlci=ii
                 elseif(mlcsymetric(ii)(1:12).EQ.'NONSYMMETRIC')then
 
 C If the current construction is nonsymmetric then it should not be
 C used for a partition if db does not have a linked MLC - inform the user.
-C << TO HERE >>
                   lnsmlc=lnblnk(SMLCN(icomp,is))
                   write(outs,'(5a)') 'Surface ',SN(1:lnblnk(SN)),
      &              ' has a nonsymmetric construction ',
@@ -5474,8 +5826,10 @@ C so check to see if the name of the other MLC matches mlcsymetric.
                   elseif(SMLCN(IC1(icoth),IE1(icoth))(1:lnsmlc).eq.
      &              mlcsymetric(ii)(1:lnssmlc))then
                     TOSMLCN= mlcsymetric(ii)
+                    write(TOOPT,'(a)') mlcoptical(ii)
                   else
                     TOSMLCN= mlcsymetric(ii)
+                    write(TOOPT,'(a)') mlcoptical(ii)
                   endif
                   iissmlci=matsymindex(ii)  ! use returned value
                 endif
@@ -5503,7 +5857,6 @@ C At this point the other zone surface attributes are known.
 
       ENDIF
       MODGEO=.TRUE.
-C      write(6,*) 'tosmlcn is ',iissmlci,' ',tosmlcn
 
 C Finally update the system configuration file if not browsing.
       if(cfgok)then
@@ -5534,11 +5887,16 @@ C If the other side is in a different zone then do read and write.
               call egomin(IFIL+2,LGEOM(IC2(IC)),IC2(IC),0,0,iuout,IER)
             endif
 
-C Assign new MLC name and connexion info to the icoth surface.
+C Assign new MLC name, USE and connexion info to the icoth surface.
             SMLCN(IC2(IC),IE2(IC))=TOSMLCN
             if(iissmlci.ne.0) smlcindex(IC2(IC),IE2(IC))=iissmlci  ! update if known
+            if(TOOPT(1:2).ne.'  ')then
+              write(SOTF(IC2(ic),IE2(ic)),'(a)') TOOPT
+            endif
+            SUSE(IC2(ic),IE2(ic),1)=TOUSE1
+            SUSE(IC2(ic),IE2(ic),2)=TOUSE2
             SOTHER(IC1(icoth),IE1(icoth),1)='ANOTHER'
-            write(SOTHER(IC1(icoth),IE1(icoth),2),'(i2.2)') IC2(icoth)
+            write(SOTHER(IC1(icoth),IE1(icoth),2),'(i3.3)') IC2(icoth)
             write(SOTHER(IC1(icoth),IE1(icoth),3),'(i3.3)') IE2(icoth)
 
             call eclose(gversion(IC2(IC)),1.1,0.01,newgeo)
@@ -5558,7 +5916,7 @@ C Read current zone back in and then update the configuration file.
             SMLCN(IC2(IC),IE2(IC))=TOSMLCN               ! Update smlcindex if known.
             if(iissmlci.ne.0) smlcindex(IC2(IC),IE2(IC))=iissmlci
             SOTHER(IC1(icoth),IE1(icoth),1)='ANOTHER'
-            write(SOTHER(IC1(icoth),IE1(icoth),2),'(i2.2)') IC2(icoth)
+            write(SOTHER(IC1(icoth),IE1(icoth),2),'(i3.3)') IC2(icoth)
             write(SOTHER(IC1(icoth),IE1(icoth),3),'(i3.3)') IE2(icoth)
             call geowrite(IFIL+2,LGEOM(ICOMP),ICOMP,iuout,3,IER)
             call usrmsg(' ',' ','-')
@@ -8467,6 +8825,45 @@ C Invert one or more surface edge lists.
               izz=NVER(IS)+3-iyy
               JVN(IS,iyy)=jvn1(izz)
             enddo
+
+C If construction is symmetric then do nothing but if it
+C references a non-symmetric MLC then use an inverted MLC.
+            call matchmlcdesc(SMLCN(icomp,is),imlcindex)
+            if(imlcindex.ne.0)then
+              ii=imlcindex
+              lnssmlc=lnblnk(SMLCN(ICOMP,is))
+              if(mlcsymetric(ii)(1:9).EQ.'SYMMETRIC')then
+                if(SMLCN(ICOMP,is)(1:lnssmlc).eq.
+     &             mlcname(ii)(1:lnmlcname(ii)))then
+                  SMLCN(ICOMP,is)=mlcname(ii)
+                elseif(SMLCN(ICOMP,is)(1:4).eq.'UNKN')then
+                  SMLCN(ICOMP,is)=mlcname(ii)
+                else
+                  SMLCN(ICOMP,is)=mlcname(ii)
+                endif
+                iissmlci=ii
+              elseif(mlcsymetric(ii)(1:12).EQ.'NONSYMMETRIC')then
+
+C If the current construction is non-symmetric then it should not be
+C used for a partition (if db does not have a linked MLC, inform the user).
+                SMLCN(ICOMP,is)=mlcsymetric(ii)
+                iissmlci=matsymindex(ii)  ! use returned value
+              else
+                lnssmlc=lnblnk(SMLCN(ICOMP,is))
+                if(SMLCN(ICOMP,is)(1:4).eq.'UNKN')then
+                  SMLCN(ICOMP,is)=mlcsymetric(ii)
+                elseif(SMLCN(ICOMP,is)(1:lnssmlc).eq.
+     &                 mlcsymetric(ii)(1:lnssmlc))then
+                  SMLCN(ICOMP,is)=mlcsymetric(ii)
+                else
+                  SMLCN(ICOMP,is)=mlcsymetric(ii)
+                endif
+                iissmlci=matsymindex(ii)       ! use returned value
+              endif
+              if(iissmlci.ne.0)then
+                smlcindex(ICOMP,is)=iissmlci   ! update
+              endif
+            endif
             call zgupdate(1,icomp,ier)
           enddo
           MODIFYVIEW=.TRUE.
@@ -8478,7 +8875,7 @@ C Invert one or more surface edge lists.
 
       ELSEIF(IVERT.EQ.(MVERT-5))THEN
 
-C Miscel. geometric transforms. Ask which surface and setup temp array.
+C Miscellaneous geometry transforms. Ask which surface and set up temporary array.
         CALL EPMENSV
         CALL EASKSUR(ICOMP,IS,'-','Select surface to act on.',
      &        ' ',IER)

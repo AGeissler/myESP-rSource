@@ -1849,8 +1849,8 @@ C For help messages.
       character helptopic*24  ! string (unique) for topic
       integer nbhelp          ! number of help lines found
 
-      dimension H(20)
-      character H*75
+      common/pophelp/h(60)
+      character H*72
 
       helpinsub='EDZCOMP'     ! set for subroutine
 

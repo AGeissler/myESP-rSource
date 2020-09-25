@@ -2482,7 +2482,7 @@ C Ground monthly temperature profiles. 2nd item is the number of profiles.
           CALL EGETWI(OUTSTR,K,NGRDP,1,MGRDP,'F','grn prfls',IER)
           IF(NGRDP.eq.0) goto 344
           DO 28 IGRDP=1,NGRDP
-            CALL EGETWRA(IUC,GVA,12,-15.,99.,'W','Gr tmp',IER)
+            CALL EGETWRA(IUC,GVA,12,-9.,99.,'W','Gr tmp',IER)
             DO 29 J=1,12
               UGRDTP(J,IGRDP)=GVA(J)
    29       CONTINUE
@@ -2491,7 +2491,7 @@ C Reporting.
             IF(ITRC.GE.1.AND.ITRC.LT.4)THEN
               CALL EDISP(iuout,' ')
               CALL EDISP(iuout,' Ground temperature profile Jan-Dec:')
-              WRITE(OUTS,'(12F7.2)')(UGRDTP(J,IGRDP),J=1,12)
+              WRITE(OUTS,'(12F6.1)')(UGRDTP(J,IGRDP),J=1,12)
               CALL EDISP(iuout,OUTS)
             ENDIF
   28      CONTINUE
@@ -3221,7 +3221,7 @@ C is not *Anchor or *Group then it is probably the index for flow.
         CALL STRIPC(IUC,OUTSTR,0,ND,1,'anchor end',IER)
       elseif(OUTSTR(1:6).eq.'*Group')then
         K=7
-        CALL EGETWI(OUTSTR,K,nzgroup,0,20,'F','nzgroup',IER)
+        CALL EGETWI(OUTSTR,K,nzgroup,0,32,'F','nzgroup',IER)
         IF(IER.NE.0) GOTO 1
         do ia=1,nzgroup
           CALL STRIPC(IUC,OUTSTR,99,ND,1,'group name',IER)
@@ -3469,7 +3469,7 @@ C Ground monthly temperature profiles (2nd item is the number of profiles).
             CALL EGETWI(OUTSTR,K,NGRDP,1,MGRDP,'F','grn prfls',IER)
             IF(NGRDP.eq.0) goto 3440
             DO 280 IGRDP=1,NGRDP
-              CALL EGETWRA(IUC,GVA,12,-15.,99.,'W','Gr tmp',IER)
+              CALL EGETWRA(IUC,GVA,12,-9.,99.,'W','Gr tmp',IER)
               DO 290 J=1,12
                 UGRDTP(J,IGRDP)=GVA(J)
   290         CONTINUE
@@ -3478,7 +3478,7 @@ C Reporting.
               IF(ITRC.GE.1.AND.ITRC.LT.4)THEN
                 CALL EDISP(iuout,' ')
                 CALL EDISP(iuout,'Ground temperature profile Jan-Dec:')
-                WRITE(OUTS,'(12F7.2)')(UGRDTP(J,IGRDP),J=1,12)
+                WRITE(OUTS,'(12F6.1)')(UGRDTP(J,IGRDP),J=1,12)
                 CALL EDISP(iuout,OUTS)
               ENDIF
  280        CONTINUE

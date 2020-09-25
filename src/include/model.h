@@ -111,10 +111,10 @@ C Anchor - named and typed concept with associated list of surfaces.
 C Zonegroup - named and typed groups of zones.
       integer nzgroup      ! number of zone groups
       character zglbl*16   ! user name for the group
-      common/zgroupa/nzgroup,zglbl(20)
+      common/zgroupa/nzgroup,zglbl(32)
       integer izgnumber    ! number of associated zones in each group
       integer izglist      ! zone index for each associated zone
-      common/zgroupb/izgnumber(20),izglist(20,40)
+      common/zgroupb/izgnumber(32),izglist(32,40)
 
 C IES files to associate with entities passed to Radiance. Up to
 C 10 can be associated with a model. The iesname is the root on to which
