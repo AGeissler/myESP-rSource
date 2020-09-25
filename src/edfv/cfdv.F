@@ -241,7 +241,7 @@ C Initialization for matlab.
       xslice=.FALSE.; yslice=.FALSE.; zslice=.FALSE.
       doslice=.FALSE.
 
-C Initialise strings.instanc
+C Initialise strings.
       LVEC='UNKNOWN'
       LBIT='UNKNOWN'
       LCFDV='UNKNOWN'

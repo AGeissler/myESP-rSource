@@ -227,9 +227,9 @@ C Present menu of options for editing CFD input file.
       write (ITEM(2),'(a,a)') '  ',TITLE(ICFD)(1:30)
       ITEM(3) ='  -------------------------- '
       if (IFCFD(izone).eq.0) then
-        ITEM(4) ='CFD coupling >> Off '
+        ITEM(4) ='a CFD coupling >> Off '
       else
-        ITEM(4) ='CFD coupling >> On  '
+        ITEM(4) ='a CFD coupling >> On  '
       endif
       ITEM(5) ='b geometry and gridding '
       ITEM(6) ='c solution variables '

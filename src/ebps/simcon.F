@@ -756,7 +756,7 @@ C Set simulation control toggles.
       COMMON/PITER/MAXITP,PERREL,PERTMP,PERFLX,PERMFL,itrclp,
      &             ICSV(MPNODE,MPVAR),CSVI(MPNODE,MPVAR)
 
-C Tolerance for iteration of hydrogen flow matrix .
+C Tolerance for iteration of hydrogen flow matrix.
       common/PITER_H2/fH2_iteration_tolerance
       real fH2_iteration_tolerance
 
