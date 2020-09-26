@@ -152,7 +152,8 @@ C presently used.
  
 C Store electrical power of lights and equipment, 
 C set up as casual gains on a zone-by-zone basis.
-      COMMON/CasPowerDat/Cas_Lights(MCOM),Cas_Equip(MCOM)
+      COMMON/CasPowerDat/Cas_Lights(MCOM),Cas_Equip(MCOM),
+     &     Cas_Lights2(MCOM),Cas_Equip2(MCOM)
 
 C Casual gain data.
 C NCGPER - number of periods for each gain (zone, day type, gain type).
@@ -1164,12 +1165,18 @@ C Keep track of electrical loads for trace.
   75            CONTINUE
               ENDIF 
             endif
+
+            Cas_Lights2(icomp) = CGCTL(ICOMP,2,2)*
+     &          (CGSENC(ICOMP,IDAY,2,IPER)+CGSENR(ICOMP,IDAY,2,IPER))
+            Cas_Equip2(icomp)  = CGCTL(ICOMP,2,3)*
+     &          (CGSENC(ICOMP,IDAY,3,IPER)+CGSENR(ICOMP,IDAY,3,IPER))
+
           endif
  10     continue   ! end of gain type loop
       
 C Store real power consumption for lights and equipment.
-          Cas_Lights(icomp) = -1. * pezon(icomp,2)    ! lights are casual gain type 2
-          Cas_Equip(icomp) = -1. * pezon(icomp,3)     ! equipment is casual gain type 3     
+        Cas_Lights(icomp) = -1. * pezon(icomp,2)    ! lights are casual gain type 2
+        Cas_Equip(icomp) = -1. * pezon(icomp,3)     ! equipment is casual gain type 3
       
 
        ENDIF    ! HOT3000 Base Loads conditional block

@@ -2445,7 +2445,7 @@ C this is the `* Building` section.
 
 C External longwave radiation: if gtmp tag present in cfg file, get profile.
         IF(WORD(1:5).EQ.'*gtmp')THEN
-          CALL EGETWRA(IUC,getVal,12,-9.0,99.0,'W','Ex lg rad',IER)
+          CALL EGETWRA(IUC,getVal,12,-15.0,99.0,'W','Ex lg rad',IER)
           iExtLgRadFlag = 1
 C Store profile in array.
           DO 27 jMon=1,12
@@ -2482,7 +2482,7 @@ C Ground monthly temperature profiles. 2nd item is the number of profiles.
           CALL EGETWI(OUTSTR,K,NGRDP,1,MGRDP,'F','grn prfls',IER)
           IF(NGRDP.eq.0) goto 344
           DO 28 IGRDP=1,NGRDP
-            CALL EGETWRA(IUC,GVA,12,-9.,99.,'W','Gr tmp',IER)
+            CALL EGETWRA(IUC,GVA,12,-15.,99.,'W','Gr tmp',IER)
             DO 29 J=1,12
               UGRDTP(J,IGRDP)=GVA(J)
    29       CONTINUE
@@ -2491,7 +2491,7 @@ C Reporting.
             IF(ITRC.GE.1.AND.ITRC.LT.4)THEN
               CALL EDISP(iuout,' ')
               CALL EDISP(iuout,' Ground temperature profile Jan-Dec:')
-              WRITE(OUTS,'(12F6.1)')(UGRDTP(J,IGRDP),J=1,12)
+              WRITE(OUTS,'(12F7.2)')(UGRDTP(J,IGRDP),J=1,12)
               CALL EDISP(iuout,OUTS)
             ENDIF
   28      CONTINUE
@@ -2512,7 +2512,7 @@ C Ground monthly humidity profiles. 2nd item is the number of profiles.
             STOP
           ENDIF
           DO 36 IGRDP=1,NGRDPH
-            CALL EGETWRA(IUC,GVA,12,-9.,3000.,'W','Gr hum',IER)
+            CALL EGETWRA(IUC,GVA,12,300.,3000.,'W','Gr hum',IER)
             DO 37 J=1,12
               UGRDHUM(J,IGRDP)=GVA(J)
    37       CONTINUE
@@ -2521,7 +2521,7 @@ C Reporting.
             IF(ITRC.GE.1.AND.ITRC.LT.4)THEN
               CALL EDISP(iuout,' ')
               CALL EDISP(iuout,' Ground humidity profile Jan-Dec:')
-              WRITE(OUTS,'(12F6.1)')(UGRDHUM(J,IGRDP),J=1,12)
+              WRITE(OUTS,'(12F6.0)')(UGRDHUM(J,IGRDP),J=1,12)
               CALL EDISP(iuout,OUTS)
             ENDIF
   36      CONTINUE
@@ -3469,7 +3469,7 @@ C Ground monthly temperature profiles (2nd item is the number of profiles).
             CALL EGETWI(OUTSTR,K,NGRDP,1,MGRDP,'F','grn prfls',IER)
             IF(NGRDP.eq.0) goto 3440
             DO 280 IGRDP=1,NGRDP
-              CALL EGETWRA(IUC,GVA,12,-9.,99.,'W','Gr tmp',IER)
+              CALL EGETWRA(IUC,GVA,12,-15.,99.,'W','Gr tmp',IER)
               DO 290 J=1,12
                 UGRDTP(J,IGRDP)=GVA(J)
   290         CONTINUE
@@ -3478,7 +3478,7 @@ C Reporting.
               IF(ITRC.GE.1.AND.ITRC.LT.4)THEN
                 CALL EDISP(iuout,' ')
                 CALL EDISP(iuout,'Ground temperature profile Jan-Dec:')
-                WRITE(OUTS,'(12F6.1)')(UGRDTP(J,IGRDP),J=1,12)
+                WRITE(OUTS,'(12F7.2)')(UGRDTP(J,IGRDP),J=1,12)
                 CALL EDISP(iuout,OUTS)
               ENDIF
  280        CONTINUE
