@@ -6144,6 +6144,7 @@ C At a flow connection.
         CALL EPMENSV
         call ASKCON('Flow connection?','-',INS,INE,IC,IER)
         CALL EPMENRC
+        if(IC.eq.0) goto 3  ! jump because user did not select
         write(outs,'(6A)') ' Selected ',NDNAM(NODPS(IC)),
      &    ' - ',NDNAM(NODNE(IC)),' via ',CMNAM(ITPCON(IC))
         call edisp(iuout,outs)

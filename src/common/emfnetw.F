@@ -478,16 +478,24 @@ C      write(6,*) 'prefs ',OUTSTR(1:lnblnk(OUTSTR))
       CALL EGETW(OUTSTR,K,WORD,'W','preference tag',IER)
       if(WORD(1:7).eq.'*IPSMOD')then
         CALL EGETWI(OUTSTR,K,IPSMOD,0,0,'-','pref IPSMOD',IER)
-        haveglobal=.TRUE.  ! remember this
+        if(IPSMOD.eq.0)then
+          IPSMOD=1           ! a zero value not valid reset to default
+        else
+          haveglobal=.TRUE.  ! remember this
+        endif
       elseif(WORD(1:7).eq.'*MFBSNC')then
         CALL EGETWI(OUTSTR,K,MFBSNC,0,0,'-','pref MFBSNC',IER)
-        haveglobal=.TRUE.  ! remember this
+        haveglobal=.TRUE.    ! remember this
       elseif(WORD(1:7).eq.'*MSLVTP')then
         CALL EGETWI(OUTSTR,K,MSLVTP,0,0,'-','pref MSLVTP',IER)
-        haveglobal=.TRUE.  ! remember this
+        if(MSLVTP.eq.0)then
+           MSLVTP=2          ! a zero value not valid reset to default
+        else
+          haveglobal=.TRUE.  ! remember this
+        endif
       elseif(WORD(1:7).eq.'*MFTRAC')then
         CALL EGETWI(OUTSTR,K,MFTRAC,0,0,'-','pref MFTRAC',IER)
-        haveglobal=.TRUE.  ! remember this
+        haveglobal=.TRUE.    ! remember this
       endif
 
 C Note: some variables in the commons are not included and are currently
@@ -991,13 +999,21 @@ C      write(6,*) 'prefs ',OUTSTR(1:lnblnk(OUTSTR))
       CALL EGETW(OUTSTR,K,WORD,'W','preference tag',IER)
       if(WORD(1:7).eq.'*IPSMOD')then
         CALL EGETWI(OUTSTR,K,IPSMOD,0,0,'-','pref IPSMOD',IER)
-        haveglobal=.TRUE.  ! remember this
+        if(IPSMOD.eq.0)then
+          IPSMOD=1           ! a zero value not valid reset to default
+        else
+          haveglobal=.TRUE.  ! remember this
+        endif
       elseif(WORD(1:7).eq.'*MFBSNC')then
         CALL EGETWI(OUTSTR,K,MFBSNC,0,0,'-','pref MFBSNC',IER)
         haveglobal=.TRUE.  ! remember this
       elseif(WORD(1:7).eq.'*MSLVTP')then
         CALL EGETWI(OUTSTR,K,MSLVTP,0,0,'-','pref MSLVTP',IER)
-        haveglobal=.TRUE.  ! remember this
+        if(MSLVTP.eq.0)then
+           MSLVTP=2          ! a zero value not valid reset to default
+        else
+          haveglobal=.TRUE.  ! remember this
+        endif
       elseif(WORD(1:7).eq.'*MFTRAC')then
         CALL EGETWI(OUTSTR,K,MFTRAC,0,0,'-','pref MFTRAC',IER)
         haveglobal=.TRUE.  ! remember this
@@ -2066,6 +2082,8 @@ C Implied do loop in the write statement for connections.
 
 C If simulation preferences were defined write tag:data at end of the file.
       if(haveglobal)then
+        if(IPSMOD.eq.0) IPSMOD=1
+        if(MSLVTP.eq.0) MSLVTP=2
         write(IFPRB,'(a,i2,a)') '*IPSMOD',IPSMOD,'  # stack calc'
         write(IFPRB,'(a,i2,a)') '*MFBSNC',MFBSNC,'  # timing'
         write(IFPRB,'(a,i2,a)') '*MSLVTP',MSLVTP,'  # flow solution'
@@ -2351,6 +2369,8 @@ C     &      ISDCNN(ITPCON(ICNN))
 
 C If simulation preferences were defined write tag:data at end of the file.
       if(haveglobal)then
+        if(IPSMOD.eq.0) IPSMOD=1  ! set to default if zero
+        if(MSLVTP.eq.0) MSLVTP=2
         write(IFPRB,'(a,i2,a)') '*IPSMOD',IPSMOD,'  # stack calc'
         write(IFPRB,'(a,i2,a)') '*MFBSNC',MFBSNC,'  # timing'
         write(IFPRB,'(a,i2,a)') '*MSLVTP',MSLVTP,'  # flow solution'

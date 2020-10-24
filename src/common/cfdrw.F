@@ -106,7 +106,10 @@ C KVCELLS - start and end cell in z direction
 
 C VOLNAME - id name of key volume
 C VCsurf - zone surface name for thermal conflation
-      common/KEYVOLN/VOLNAME(MNVLS,MNZ),VCsurf(MNVLS,MNZ)
+C BLKSURF - surface names for blockage conflation
+      common/KEYVOLN/VOLNAME(MNVLS,MNZ),VCsurf(MNVLS,MNZ),
+     &               BLKSURF(MNVLS,MNZ,6)
+      character VOLNAME*12,VCsurf*12,BLKSURF*12
 
 C IVTYPE - volume boundary condition type (e.g. source, velocity)
 C VOLTemp - BC temperature if applicable
@@ -168,7 +171,7 @@ C        = 0 if specified as a constant
       character PCCSTR*256,PCCSTRA*26,PCCSTRB*12
       CHARACTER*72 TITLE,CFTRFL,LPHI
 
-      character VOLNAME*12, FACE*6, VCsurf*12, SRCE*12
+      character FACE*6, SRCE*12
 
 C Reset error condition flag.
       IER=0
@@ -397,7 +400,19 @@ C Boundary conditions.
       do 100 I=1,NVOL(ICFD)
         if (IVTYPE(I,ICFD).eq.30) then
           write(IUF,'(2a,f12.3)',IOSTAT=ios,ERR=3) 
-     &           VOLNAME(I,ICFD),' Heat',VOLHeat(I,ICFD)
+     &           VOLNAME(I,ICFD),' Heat ',VOLHeat(I,ICFD)
+        elseif (IVTYPE(I,ICFD).eq.31) then
+          write(IUF,'(2a,f12.3)',IOSTAT=ios,ERR=3) 
+     &           VOLNAME(I,ICFD),' Temp ',VOLTemp(I,ICFD)
+        elseif (IVTYPE(I,ICFD).eq.32) then
+          write(IUF,'(2a,f12.2,2a)',IOSTAT=ios,ERR=3)     
+     &           VOLNAME(I,ICFD),' Temp ',VOLTemp(I,ICFD),' | Confl ',
+     &           VCsurf(I,ICFD)
+        elseif (IVTYPE(I,ICFD).eq.33) then
+          write(IUF,'(2a,f12.2,7a)',IOSTAT=ios,ERR=3)     
+     &           VOLNAME(I,ICFD),' Temp ',VOLTemp(I,ICFD),' | Confl ',
+     &           BLKSURF(I,ICFD,1),BLKSURF(I,ICFD,2),BLKSURF(I,ICFD,3),
+     &           BLKSURF(I,ICFD,4),BLKSURF(I,ICFD,5),BLKSURF(I,ICFD,6)
         endif
  100  continue
 
@@ -566,6 +581,7 @@ C      (used in the case of curvilinear Z)
      &  NCELZE(MNREG,MNZ),XREG(MNREG,MNZ),YREG(MNREG,MNZ),
      &  ZREG(MNREG,MNZ),ZREGE(MNREG,MNZ),Xplaw(MNREG,MNZ),
      &  Yplaw(MNREG,MNZ),Zplaw(MNREG,MNZ),Zplawe(MNREG,MNZ),NREG(4,MNZ)
+      COMMON/ALL/NI,NJ,NK,NIM1,NJM1,NKM1,NIM2,NJM2,NKM2
       COMMON/FDTRFC/FLSDTU(MNZ),FLSDTV(MNZ),FLSDTW(MNZ),FLSDTP(MNZ),
      &              FLSDTT(MNZ),FLSDTK(MNZ),FLSDTE(MNZ)
       COMMON/LINRFC/URFCU(MNZ),URFCV(MNZ),URFCW(MNZ),URFCP(MNZ),
@@ -613,7 +629,9 @@ C Solution methods.
 C Boundary condition commons.  
       common/KEYVOLS/NVOL(MNZ),IVOLF(MNVLS,MNZ),IVCELLS(MNVLS,MNZ,2),
      &               JVCELLS(MNVLS,MNZ,2),KVCELLS(MNVLS,MNZ,2)
-      common/KEYVOLN/VOLNAME(MNVLS,MNZ),VCsurf(MNVLS,MNZ)
+      common/KEYVOLN/VOLNAME(MNVLS,MNZ),VCsurf(MNVLS,MNZ),
+     &               BLKSURF(MNVLS,MNZ,6)
+      character VOLNAME*12, VCsurf*12, BLKSURF*12
       common/KEYVDAT/IVTYPE(MNVLS,MNZ),VOLTemp(MNVLS,MNZ),
      &          VOLHeat(MNVLS,MNZ),IVConfl(MNVLS,MNZ),VOLHum(MNVLS,MNZ),
      &          VOLCO2(MNVLS,MNZ),VOLVel(MNVLS,MNZ),VOLDir(MNVLS,MNZ,2),
@@ -623,7 +641,7 @@ C Boundary condition commons.
 
 C Common blocks for blockages and small supply openings
       common/blksso/NBLK(MNZ),INBLK(MNVLS,MNZ),NSSO(MNZ),
-     &          INSSO(MNVLS,MNZ)
+     &          INSSO(MNVLS,MNZ),BLKTEMP(MNVLS,MNZ,6)
 
 C Common block for calculation of turbulent Schmidt number for contaminants.
       COMMON/SCHMTT/SCHMT(MCTM,MNZ),GFM(MCTM,MNZ),VCRIT(MCTM,MNZ),
@@ -641,7 +659,6 @@ C Common block for calculation of turbulent Schmidt number for contaminants.
       CHARACTER TITLE*72,CFTRFL*72,LPHI*72,LCFD*72
       CHARACTER TYPE*6,phrase*64
       CHARACTER outs*124,outs_pre*124
-      character VOLNAME*12, VCsurf*12
 C      character LCND*12, LXND*12, LCNN*12
       LOGICAL BUOYA,BOUSSA
 
@@ -1053,6 +1070,26 @@ C Only do this for orthogonal directions (i.e. omit Ze axis)
         NCELZ(1,ICFD)=1
         ZREG(1,ICFD)=1.0
       endif
+
+C Calculate the total number of cells in each direction.
+      NIM2=0
+      NJM2=0
+      NKM2=0
+      DO I=1,NREG(1,ICFD)
+        NIM2=NIM2+ABS(NCELX(I,ICFD))
+      ENDDO
+      DO I=1,NREG(2,ICFD)
+        NJM2=NJM2+ABS(NCELY(I,ICFD))
+      ENDDO
+      DO I=1,NREG(3,ICFD)
+        NKM2=NKM2+ABS(NCELZ(I,ICFD))
+      ENDDO
+      NIM1=NIM2+1
+      NJM1=NJM2+1
+      NKM1=NKM2+1
+      NI=NIM1+1
+      NJ=NJM1+1
+      NK=NKM1+1
 
 C Read in key volumes in domain.
       CALL STRIPC(IFL,OUTSTR,0,ND,1,'key volumes',IER)
@@ -1693,7 +1730,7 @@ C Loop back again for next source BC.
       endif
 
 C Read line until reach *solutions line.
- 116  CALL STRIPC(IFL,OUTSTR,0,ND,1,'sources data',IER)
+ 116  CALL STRIPC(IFL,OUTSTR,99,ND,1,'sources data',IER)
       K=0
       CALL EGETW(OUTSTR,K,WORD,'W','sources tag',IER)
       if (WORD(1:17).ne.'*solution_methods') then 
@@ -1702,19 +1739,99 @@ C Read data and match to volume with same name.
 C read BLOCKAGES here.
         do 112 IV=1,NVOL(ICFD)
           if (VOLNAME(IV,ICFD).eq.WORD(1:12)) then
-            IVTYPE(IV,ICFD)=30
             NBLK(ICFD)=NBLK(ICFD)+1
             INBLK(NBLK(ICFD),ICFD)=IV
 
 C Assume data in order.
-            CALL EGETW(OUTSTR,K,WORD,'W','source heat flux',IER)
-            CALL EGETWR(OUTSTR,K,VALS,-10.,99.,'-','src heat',IER)
-            VOLHeat(IV,ICFD)=VALS
-            if (itrc.gt.0) then
-              write(outs,'(3a,f7.3,a)')'Blockage ',
-     &                    VOLNAME(IV,ICFD)(1:LNBLNK(VOLNAME(IV,ICFD))),
-     &                          ' has heat flux ',VOLHeat(IV,ICFD),' W'
-              call edisp(itu,outs)
+            CALL EGETW(OUTSTR,K,WORD,'W','blk type',IER)
+            if (WORD(1:4).eq.'Heat') then
+              CALL EGETWR(OUTSTR,K,VALS,-10.,99.,'-','blk heat',IER)
+              VOLHeat(IV,ICFD)=VALS
+              IVTYPE(IV,ICFD)=30
+              if (itrc.gt.0) then
+                write(outs,'(3a,f7.3,a)')'Blockage ',
+     &            VOLNAME(IV,ICFD)(1:LNBLNK(VOLNAME(IV,ICFD))),
+     &            ' has heat flux ',VOLHeat(IV,ICFD),' W/m^2'
+                call edisp(itu,outs)
+              endif
+              VCsurf(IV,ICFD)='NONE        '
+              do i=1,6
+                BLKSURF(IV,ICFD,i)='NONE        '
+              enddo
+            elseif (WORD(1:4).eq.'Temp') then
+              CALL EGETWR(OUTSTR,K,VALS,-10.,99.,'-','blk temp',IER)
+              VOLTemp(IV,ICFD)=VALS
+              IVTYPE(IV,ICFD)=31
+              if (itrc.gt.0) then
+                write(outs,'(3a,f7.3,a)')'Blockage ',
+     &            VOLNAME(IV,ICFD)(1:LNBLNK(VOLNAME(IV,ICFD))),
+     &            ' has temperature ',VOLHeat(IV,ICFD),' C'
+                call edisp(itu,outs)
+              endif
+              VCsurf(IV,ICFD)='NONE        '
+              do i=1,6
+                BLKSURF(IV,ICFD,i)='NONE        '
+              enddo
+            endif
+            if (ND.eq.4) then
+              CALL EGETW(OUTSTR,K,WORD,'W','conf',IER)
+              CALL EGETW(OUTSTR,K,WORD,'W','surface',IER)
+              VCsurf(IV,ICFD)=WORD(1:12)
+              if (itrc.gt.0) then
+                write(outs,'(2a)')
+     &            ' and is conflated to surface ',WORD(1:12)
+                call edisp(itu,outs)
+              endif
+              IVTYPE(IV,ICFD)=32
+              do i=1,6
+                BLKSURF(IV,ICFD,i)='NONE        '
+              enddo
+            elseif (ND.gt.4) then
+              CALL EGETW(OUTSTR,K,WORD,'W','conf',IER)
+              CALL EGETW(OUTSTR,K,WORD,'W','surface',IER)
+              BLKSURF(IV,ICFD,1)=WORD(1:12)
+              if (itrc.gt.0) then
+                write(outs,'(2a)')
+     &            ' east face is conflated to surface ',WORD(1:12)
+                call edisp(itu,outs)
+              endif
+              CALL EGETW(OUTSTR,K,WORD,'W','surface',IER)
+              BLKSURF(IV,ICFD,2)=WORD(1:12)
+              if (itrc.gt.0) then
+                write(outs,'(2a)')
+     &            ' west face is conflated to surface ',WORD(1:12)
+                call edisp(itu,outs)
+              endif
+              CALL EGETW(OUTSTR,K,WORD,'W','surface',IER)
+              BLKSURF(IV,ICFD,3)=WORD(1:12)
+              if (itrc.gt.0) then
+                write(outs,'(2a)')
+     &            ' north face is conflated to surface ',WORD(1:12)
+                call edisp(itu,outs)
+              endif
+              CALL EGETW(OUTSTR,K,WORD,'W','surface',IER)
+              BLKSURF(IV,ICFD,4)=WORD(1:12)
+              if (itrc.gt.0) then
+                write(outs,'(2a)')
+     &            ' south face is conflated to surface ',WORD(1:12)
+                call edisp(itu,outs)
+              endif
+              CALL EGETW(OUTSTR,K,WORD,'W','surface',IER)
+              BLKSURF(IV,ICFD,5)=WORD(1:12)
+              if (itrc.gt.0) then
+                write(outs,'(2a)')
+     &            ' high face is conflated to surface ',WORD(1:12)
+                call edisp(itu,outs)
+              endif
+              CALL EGETW(OUTSTR,K,WORD,'W','surface',IER)
+              BLKSURF(IV,ICFD,6)=WORD(1:12)
+              if (itrc.gt.0) then
+                write(outs,'(2a)')
+     &            ' low face is conflated to surface ',WORD(1:12)
+                call edisp(itu,outs)
+              endif
+              IVTYPE(IV,ICFD)=33
+              VCsurf(IV,ICFD)='NONE        '
             endif
           endif
  112    continue
@@ -2236,7 +2353,7 @@ C      (used in the case of curvilinear Z)
      &              SSBHC(MNSBZ,MNZ),IVOLNSB(MNSBZ,MNZ),
      &              ITCtype(MNSBZ,MNZ),icTREF(MNSBZ,MNZ)
       common/blksso/NBLK(MNZ),INBLK(MNVLS,MNZ),NSSO(MNZ),
-     &          INSSO(MNVLS,MNZ)
+     &          INSSO(MNVLS,MNZ),BLKTEMP(MNVLS,MNZ,6)
       common/EQTION/CALLU(MNZ),CALLV(MNZ),CALLW(MNZ),CALLT(MNZ),
      &             CALLC(MNZ),KEMDL(MNZ),BUOY(MNZ),BOUSSI(MNZ),
      &             ZEROT(MNZ),ZandKE(MNZ),MITzero(MNZ)
@@ -2250,7 +2367,9 @@ C Solution methods.
 C Boundary condition commons.  
       common/KEYVOLS/NVOL(MNZ),IVOLF(MNVLS,MNZ),IVCELLS(MNVLS,MNZ,2),
      &               JVCELLS(MNVLS,MNZ,2),KVCELLS(MNVLS,MNZ,2)
-      common/KEYVOLN/VOLNAME(MNVLS,MNZ),VCsurf(MNVLS,MNZ)
+      common/KEYVOLN/VOLNAME(MNVLS,MNZ),VCsurf(MNVLS,MNZ),
+     &               BLKSURF(MNVLS,MNZ,6)
+      character VOLNAME*12, VCsurf*12, BLKSURF*12
       common/KEYVDAT/IVTYPE(MNVLS,MNZ),VOLTemp(MNVLS,MNZ),
      &          VOLHeat(MNVLS,MNZ),IVConfl(MNVLS,MNZ),VOLHum(MNVLS,MNZ),
      &          VOLCO2(MNVLS,MNZ),VOLVel(MNVLS,MNZ),VOLDir(MNVLS,MNZ,2),
@@ -2259,7 +2378,6 @@ C Boundary condition commons.
 
       LOGICAL CALLU,CALLV,CALLW,CALLT,CALLC,KEMDL,BUOY,BOUSSI
       LOGICAL ZEROT,ZandKE,MITzero
-      character VOLNAME*12, VCsurf*12
 
 C Turbulence model.
       if (ITURB(ICFD).eq.1) then
@@ -2435,6 +2553,15 @@ C        ltmp='Mass flow'
           FIXT(IOP,ICFD)=VOLTemp(IKV,ICFD)
           FIXC(IOP,ICFD)=VOLCO2(IKV,ICFD)
         elseif (IVTYPE(IKV,ICFD).eq.30) then
+          IBK=IBK+1
+          INBLK(IBK,ICFD)=IKV
+        elseif (IVTYPE(IKV,ICFD).eq.31) then
+          IBK=IBK+1
+          INBLK(IBK,ICFD)=IKV
+        elseif (IVTYPE(IKV,ICFD).eq.32) then
+          IBK=IBK+1
+          INBLK(IBK,ICFD)=IKV
+        elseif (IVTYPE(IKV,ICFD).eq.33) then
           IBK=IBK+1
           INBLK(IBK,ICFD)=IKV
         endif
@@ -2959,10 +3086,13 @@ C Passed parameter.
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
       common/KEYVOLS/NVOL(MNZ),IVOLF(MNVLS,MNZ),IVCELLS(MNVLS,MNZ,2),
      &               JVCELLS(MNVLS,MNZ,2),KVCELLS(MNVLS,MNZ,2)
-      common/KEYVOLN/VOLNAME(MNVLS,MNZ),VCsurf(MNVLS,MNZ)
+      common/KEYVOLN/VOLNAME(MNVLS,MNZ),VCsurf(MNVLS,MNZ),
+     &               BLKSURF(MNVLS,MNZ,6)
+      character VOLNAME*12,VCsurf*12,BLKSURF*12
       common/grdmax/NTCX,NTCY,NTCZ
+      COMMON/ALL/NI,NJ,NK,NIM1,NJM1,NKM1,NIM2,NJM2,NKM2
 
-      character VOLNAME*12, VCsurf*12,OUTSTR*124,FACE*7,STARST*72
+      character OUTSTR*124,FACE*7,STARST*72
       INTEGER IXZST(NTCELX,NTCELZ),IXYHH(NTCELX,NTCELY)
       INTEGER IYZET(NTCELY,NTCELZ),IXZNT(NTCELX,NTCELZ)
       INTEGER IXYLL(NTCELX,NTCELY),IYZWT(NTCELY,NTCELZ)
@@ -3083,6 +3213,52 @@ C High facing boundary conditions
             WRITE(STARST,'(A,I3,A)')'It should stop at cell #'
      &      ,NTCZ,' in z direction'
           ENDIF
+        
+C Blockage boundary conditions.
+        ELSEIF (IVOLF(ibc,ICFD).eq.8) THEN
+          if (IVCELLS(ibc,ICFD,1).eq.2) then
+            do iy=JVCELLS(ibc,ICFD,1)-1,JVCELLS(ibc,ICFD,2)-1
+              do iz=KVCELLS(ibc,ICFD,1)-1,KVCELLS(ibc,ICFD,2)-1
+                IYZWT(iy,iz)=IYZWT(iy,iz)+1
+              enddo
+            enddo
+          endif
+          if (IVCELLS(ibc,ICFD,2).eq.NIM1) then
+            do iy=JVCELLS(ibc,ICFD,1)-1,JVCELLS(ibc,ICFD,2)-1
+              do iz=KVCELLS(ibc,ICFD,1)-1,KVCELLS(ibc,ICFD,2)-1
+                IYZET(iy,iz)=IYZET(iy,iz)+1
+              enddo
+            enddo
+          endif
+          if (JVCELLS(ibc,ICFD,1).eq.2) then
+            do ix=IVCELLS(ibc,ICFD,1)-1,IVCELLS(ibc,ICFD,2)-1
+              do iz=KVCELLS(ibc,ICFD,1)-1,KVCELLS(ibc,ICFD,2)-1
+                IXZST(ix,iz)=IXZST(ix,iz)+1
+              enddo
+            enddo
+          endif
+          if (JVCELLS(ibc,ICFD,2).eq.NJM1) then
+            do ix=IVCELLS(ibc,ICFD,1)-1,IVCELLS(ibc,ICFD,2)-1
+              do iz=KVCELLS(ibc,ICFD,1)-1,KVCELLS(ibc,ICFD,2)-1
+                IXZNT(ix,iz)=IXZNT(ix,iz)+1
+              enddo
+            enddo
+          endif
+          if (KVCELLS(ibc,ICFD,1).eq.2) then
+            do ix=IVCELLS(ibc,ICFD,1)-1,IVCELLS(ibc,ICFD,2)-1
+              do iy=JVCELLS(ibc,ICFD,1)-1,JVCELLS(ibc,ICFD,2)-1
+                IXYLL(ix,iy)=IXYLL(ix,iy)+1
+              enddo
+            enddo
+          endif
+          if (KVCELLS(ibc,ICFD,2).eq.NKM1) then
+            do ix=IVCELLS(ibc,ICFD,1)-1,IVCELLS(ibc,ICFD,2)-1
+              do iy=JVCELLS(ibc,ICFD,1)-1,JVCELLS(ibc,ICFD,2)-1
+                IXYHH(ix,iy)=IXYHH(ix,iy)+1
+              enddo
+            enddo
+          endif
+
         ENDIF
 
 C Warn user if cell number starts/stops wrongly

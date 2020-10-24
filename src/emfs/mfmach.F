@@ -61,53 +61,49 @@ C connection ICNN, which is a fluid flow component of type 'nnn'
 C and has a pressure difference DP between its +ve and -ve
 C sides.
 
-C ************** MFSOLV 
-C MFSOLV uses an iterative, whole network, Newton-Raphson method
-C to solve the nodal pressures and the fluid mass flows through
-C each interconnection of a nodal network which is submitted
-C to one or more (pressure) boundary conditions.
+C ******************** MFSOLV ********************
+C Employs an iterative Newton-Raphson method to establish
+C the nodal pressures and interconnection mass flows within
+C a nodal network when subjected to one or more pressure
+C boundary conditions.
 
-C This subroutine starts out with some pressure at each node.
-C Depending on the type of connection and its associated data,
-C it then calculates the fluid mass flow rates through each
-C connection and the mass flow residuals (= mass_in - mass_out)
-C at each node. If the maximum absolute or relative residual is
-C smaller than the error criterium (FERMFL or FERREL respectively),
-C or the maximum number of iterations is exceeded, iteration stops.
-C Else, the node pressures are adjusted and the whole process is re-
-C started.
+C Arbitrary pessures are assigned to nodes and the fluid
+C mass flow rate through each connection is determined from
+C an associate empirical equation. The nodal flow residuals are
+C then determined and used to establish pressure corrections
+C that will move the solution toward overall mass balance
+C When the maximum absolute or relative residual (FERMFL or
+C FERREL respectively) in the network becomes smal, or the
+C maximum number of iterations is exceeded, iteration stops.
 
-C All common block variables are described in emfnetw.F
-C The main local variables in this subroutine are:
-
+C The main variables in this subroutine are:
 C     DFDDP  - (sum) of partial derivative(s) of flow(s) through a
-C              connection relative to the pressure difference across it
-C     DP     - pressure difference across an interconnection
-C     FLWA   - absolute value of fluid mass flow through a connection
-C     HPJMTX - history mechanism for PJMTX (needed for MFTRAC >= 3)
-C     HPRC   - history mechanism for PRC (needed for Steffensen iter.)
-C     INDX   - holds pivoting information in case of LU-decomposition
-C     NDWABS - worst node with respect to absolute residual
-C     NDWREL - worst node with respect to relative residual
-C     PJMTX  - Jacobian matrix with 'Newton-Raphson coefficients'
-C     PRC    - node pressure corrections vector
-C     RATIO  - ratio of successive pressure corrections
-C     RELAX  - pressure correction relaxation factor
-C     RHS    - right hand side vector of matrix eq {PJMTX} {PRC} = {RHS}
-C     RESR   - residual relative to SAFLW
+C              connection relative to the pressure difference across it.
+C     DP     - pressure difference across an interconnection.
+C     FLWA   - absolute value of fluid mass flow through a connection.
+C     HPJMTX - history mechanism for PJMTX (needed for MFTRAC >= 3).
+C     HPRC   - history mechanism for PRC (needed for Steffensen iteration).
+C     INDX   - holds pivoting information in case of LU-decomposition.
+C     NDWABS - worst node with respect to absolute residual.
+C     NDWREL - worst node with respect to relative residual.
+C     PJMTX  - Jacobian matrix.
+C     PRC    - node pressure corrections vector.
+C     RATIO  - ratio of successive pressure corrections.
+C     RELAX  - pressure correction relaxation factor.
+C     RHS    - right hand side vector of matrix eqn {PJMTX} {PRC} = {RHS}.
+C     RESR   - residual relative to SAFLW.
 C     RESAMX - maximum absolute residual
-C     RESRMX - maximum relative residual (relative to SAFLW for NDWREL)
+C     RESRMX - maximum relative residual (relative to SAFLW for NDWREL).
 
       SUBROUTINE MFSOLV
-
 #include "building.h"
 #include "net_flow.h"
 #include "net_flow_data.h"
 #include "tdf2.h"
+
       common/OUTIN/IUOUT,IUIN,IEOUT
       common/trc/itrc
       COMMON/MFTRA/IMFTU
-
       COMMON/ACT/ACTCNN(MCNN)
       COMMON/MFLW11/PSTACK(MCNN),HDP(MCNN),HDV(MCNN),HFL(MCNN)
       COMMON/MFLRES/FLW1(MCNN),FLW2(MCNN),PRES(MNOD),
@@ -121,11 +117,10 @@ C     RESRMX - maximum relative residual (relative to SAFLW for NDWREL)
       COMMON/zfluid/znotair(mcom),zfldK,zfldD,zfldC,zfldA,
      &              zSWAp(mcom),zSWAf(mcom)
       real zfldK,zfldD,zfldC,zfldA,zSWAp,zSWAf
-      LOGICAL znotair
-
       COMMON/AFN/IAIRN,LAPROB,ICAAS(MCOM)
       COMMON/C1/NCOMP,NCON
 
+      LOGICAL znotair
       PARAMETER       (SMALL=1.0E-15)
       PARAMETER       (RLARG=1.0E+15)
       DIMENSION        INDX(MNOD)
@@ -145,23 +140,21 @@ C     RESRMX - maximum relative residual (relative to SAFLW for NDWREL)
       NDWABS=1
       NDWREL=1
       
-C Save flow values from previous time step to use in case solution fails
+C Save flow values from previous time step for use where solution fails
 C during an integrated simulation.
       do 1 I=1,NCNN
         FLW1old(I)=FLW1(I)
         FLW2old(I)=FLW2(I)
  1    continue
 
-
-C Call control subroutine
+C Impose flow network control.
       call MFCNTR
 
-C Global controllers may be active so invoke these as well
+C Impose global control.
       call MZGCTL
       
-C Start of iteration loop
-C First zeroise node residual, sum of flows and Jacobian matrix and
-C set diagonal elements of the Jacobian matrix for known pressure nodes
+C Start of iteration. Zeroise node residuals, sum of flows and set
+C diagonal elements of the Jacobian matrix for known pressure nodes.
       ITER=0
    20 ITER=ITER+1
       DO 24 INOD=1,NNOD
@@ -175,9 +168,9 @@ C set diagonal elements of the Jacobian matrix for known pressure nodes
           END IF
    22   CONTINUE
 
-C Set up pressures for nodes from temporal data
+C Set pressures for nodes with temporal data.
         IF(IMFNTDFF.EQ.1)THEN
-          if(IMFNTDFP(inod).gt.0)then ! not every node may have tdf data
+          if(IMFNTDFP(inod).gt.0)then
             IFOC=IMFNTDFP(inod)
             CALL RCTDFB(itrc,btimef,VAL,ISD,IFOC,IER)
             PRES(INOD)=VAL(ISD)
@@ -185,26 +178,26 @@ C Set up pressures for nodes from temporal data
         ENDIF
    24 CONTINUE
 
-C Start of connections fluid mass flow calculations
+C Connections loop.
       DO 30 ICNN=1,NCNN
 
-C Set up node identifiers and connection type
+C Set node identifiers and connection type.
         IDPS=NODPS(ICNN)
         IDNE=NODNE(ICNN)
         ITCN=ITPCMP(ITPCON(ICNN))
 
-C Set up connection pressure difference; include buoyancy effect
+C Set connection pressure difference including buoyancy effect.
         DP=PRES(IDPS)-PRES(IDNE)+PSTACK(ICNN)
 
-C If connection is not active set the flow rate equal to zero.
+C If connection not active, set the flow rate to zero.
         IF(.NOT.ACTCNN(ICNN))THEN
           FLW1(ICNN)=0d0
           FLW2(ICNN)=0d0
           DFDDP=0d0
         ELSE
         
-C If multi configuration flow component then change it to 
-C relevant flow component
+C If flow component is mutil-configurable then change it to 
+C relevant component type.
           IF(ITCN.EQ.500)THEN
             icontc=1
             ICMP=ITPCON(ICNN)
@@ -221,15 +214,15 @@ C relevant flow component
             ENDIF
             ITCN=ITPCMP(ICOMPNO)
 
-C Allow this replaced component to operate fully i.e. ctlpos=1
+C Allow this replaced component to operate fully.
             ctlposp=ctlpos(icnn)
             ctlpos(icnn)=1.
           ELSE
             icontc=0
           ENDIF
 
-C Calculate, depending on flow component type, fluid mass flow(s)
-C and partial derivative dFlow/d(dPressure)
+C Determine the fluid mass flow and partial derivative, dFlow/d(dPressure)
+C depending on component type.
           IF(ITCN.EQ. 10) THEN
             CALL MF010C(ICNN,DP,DFDDP)
           ELSE IF(ITCN.EQ. 11) THEN
@@ -279,7 +272,8 @@ C and partial derivative dFlow/d(dPressure)
           ELSE IF(ITCN.EQ.460) THEN
             CALL MF460C(ICNN,DP,DFDDP)
           ELSE
-            call edisp(IMFTU,' MFSOLV: unresolvable error !')
+            call edisp(IMFTU,' ')
+            call edisp(IMFTU,'MFSOLV: unresolvable flow error!')
             close(ieout)
             CALL ERPFREE(ieout,ISTAT)
             call epwait
@@ -287,23 +281,23 @@ C and partial derivative dFlow/d(dPressure)
             STOP 
           END IF
 
-C Restore original values if multi configuration control
+C Restore original values if multi-configuration control.
           if(icontc.eq.1)then
             ITPCON(ICNN)=ICMP
             ctlpos(icnn)=ctlposp
           endif
         ENDIF
 
-C Adjust fluid mass flow residual of connected nodes
+C Adjust fluid mass flow residual of connected nodes.
         RESID(IDPS)=RESID(IDPS)-FLW1(ICNN)-FLW2(ICNN)
         RESID(IDNE)=RESID(IDNE)+FLW1(ICNN)+FLW2(ICNN)
 
-C And their sum of absolute flows
+C Adjust sum of absolute flows.
         FLWA=DABS(FLW1(ICNN))+DABS(FLW2(ICNN))
         SAFLW(IDPS)=SAFLW(IDPS)+FLWA
         SAFLW(IDNE)=SAFLW(IDNE)+FLWA
 
-C Set up the elements of the Jacobian matrix
+C Set up the elements of the Jacobian error matrix.
         IF(NDTYP(IDPS).EQ.0.AND.NDTYP(IDNE).EQ.0) THEN
           PJMTX(IDPS,IDPS)=PJMTX(IDPS,IDPS)+DFDDP
           PJMTX(IDPS,IDNE)=PJMTX(IDPS,IDNE)-DFDDP
@@ -318,16 +312,16 @@ C Set up the elements of the Jacobian matrix
         END IF
    30 CONTINUE
 
-C Find worst node(s)
+C Find worst node(s).
       RESAMX=0.
       RESRMX=0.
       DO 40 INOD=1,NNOD
 
-C Internal nodes only
+C Internal nodes only.
         IF(NDTYP(INOD).GE.1) GOTO 40
 
-C Calculate residual relative to sum of mass flow absolute values
-C Make sure that: SMALL < | RESID / SAFLW | < RLARG
+C Calculate residual relative to sum of mass flow absolute values.
+C Make sure that SMALL < | RESID / SAFLW | < RLARG
         IF(DABS(RESID(INOD)).LE.SMALL*SAFLW(INOD)) THEN
           RESR=DSIGN(DBLE(SMALL),RESID(INOD))
         ELSE IF(DABS(RESID(INOD)).GE.RLARG*SAFLW(INOD)) THEN 
@@ -348,7 +342,7 @@ C Instantiate and correct absolute residual for non-air fluids.
           ENDIF
         ENDDO
 
-C Update worst node values if this is the worst node up to now
+C Update worst node values if this is the worst node up to now.
         IF(DABS(RESID_temp).GT.DABS(RESAMX)) THEN
           NDWABS=INOD
           RESAMX=RESID_temp
@@ -359,13 +353,14 @@ C Update worst node values if this is the worst node up to now
         END IF
    40 CONTINUE
 
-C Write trace output if applicable
+C Write trace output.
       IF(MFTRAC.GE.1)then
          WRITE(outs,1050) ITER,NDNAM(NDWREL),PRES(NDWREL),
      &                    RESID(NDWREL),SAFLW(NDWREL),RESRMX
          call edisp(IMFTU,outs)
       endif
       IF(MFTRAC.GE.2) THEN
+        call edisp(IMFTU,' ')
         DO 50 INOD=1,NNOD
           IF(INOD.NE.NDWABS.AND.INOD.NE.NDWREL) THEN
             WRITE(outs,1052) '      ',NDNAM(INOD),PRES(INOD),
@@ -378,29 +373,28 @@ C Write trace output if applicable
           END IF
    50   CONTINUE
       END IF
- 1050 FORMAT(' It',I4,1X,A12,
-     &       '  P: ',G12.5,
-     &       '  R: ',G11.4,
-     &       '  Sa: ',G11.4,
-     &       '  Er: ',G11.4)
+ 1050 FORMAT(' It',I4,1X,A12,   ! It = current iteration
+     &       '  P: ',G12.5,     ! P = node pressure
+     &       '  R: ',G11.4,     ! R = node mass flow residual
+     &       '  Sa: ',G11.4,    ! Sa = sum of connection flows to node
+     &       '  Er: ',G11.4)    ! Maximum relative residual.
  1052 FORMAT(' ',A6,1X,A12,
      &       '  P: ',G12.5,
      &       '  R: ',G11.4,
      &       '  Sa: ',G11.4)
 
-C If RESRMX or RESID(NDWABS) within tolerance, stop iteration
+C If RESRMX or RESID(NDWABS) within tolerance, stop iteration.
       IF(DABS(RESRMX).LE.FERREL.OR.
      &   DABS(RESAMX).LE.FERMFL)GOTO 100
 
-C If maximum number of iterations reached, IOK=0 and stop iteration
+C If maximum number of iterations reached, set IOK=0 and stop iteration.
       IF(ITER.GE.MAXITF) THEN
          IOK=0
          GOTO 100
       END IF
 
-C Calculation of pressure corrections by matrix equation processing
-C Start with generating more trace output if applicable
-      IF(MFTRAC.GE.3) THEN
+C Determine pressure corrections.
+      IF(MFTRAC.GE.3) THEN         ! Trace output.
         call edisp(IMFTU,' PJMTX matrix')
         DO 60 I=1,NNOD
           WRITE(outw,*) (PJMTX(I,J),J=1,NNOD)
@@ -411,19 +405,17 @@ C Start with generating more trace output if applicable
         call edisp(IMFTU,' RESID vector')
         WRITE(outw,*) (RESID(I),I=1,NNOD)
         call edisp248(IMFTU,outw,100)
-        
       END IF
 
-C Set right hand side of matrix equation {PJMTX} {PRC} = {RESID}
+C Set right hand side of matrix equation {PJMTX} {PRC} = {RESID}.
 C To avoid calculating a pressure correction for known pressure nodes
-C zeroise RHS elements for known pressure nodes
-C In some cases it is possible that an unknown pressure node's diagonal
-C coefficient is equal to zero, e.g.:
-C - when there is no flow through its connections
-C - when the partial derivatives of its connections are effectively zero
-C to avoid numerical problems when solving the matrix for these cases,
-C set the diagonal element to 1. and the RHS to 0. (ie. don't change
-C this node's pressure for the time being)
+C zeroise RHS elements for these nodes.
+C It is possible that an unknown pressure node's diagonal coefficient
+C is equal to zero, e.g.:
+C      - when there is no flow through its connections; or
+C      - when the partial derivatives of its connections are effectively zero.
+C To avoid numerical problems, set the diagonal element to 1 for these cases
+C and the RHS to 0. (i.e. do not change the node pressure).
       DO 62 INOD=1,NNOD
       IF(NDTYP(INOD).EQ.0) THEN
          call eclose(REAL(PJMTX(INOD,INOD)),0.00,0.00001,close)
@@ -433,7 +425,7 @@ C this node's pressure for the time being)
             PJMTX(INOD,INOD)=DBLE(1.0)
             RHS(INOD)=0.0
             IF(MFTRAC.GE.3)then
-              WRITE(outs,'(A,I3,A)') ' Node ',INOD,
+              WRITE(outs,'(A,I3,A)') 'Node ',INOD,
      &                               ' DIAG. -> 1. ; RHS -> 0.'
               call edisp(IMFTU,outs)
            endif
@@ -441,13 +433,13 @@ C this node's pressure for the time being)
       ELSE
          RHS(INOD)=0.0
          IF(MFTRAC.GE.3)then
-            WRITE(outs,'(A,I3,A)') ' Node ',INOD,' RHS   -> 0.'
+            WRITE(outs,'(A,I3,A)') 'Node ',INOD,' RHS   -> 0.'
             call edisp(IMFTU,outs)
          endif
       END IF
    62 CONTINUE
 
-C Now solve {PRC} from matrix equation {PJMTX} {PRC} = {RHS}
+C Solve for {PRC} vector.
       IF(MSLVTP.EQ.1) THEN
          CALL JSOLVD(PJMTX,NNOD,MNOD,PRC,RHS)
       ELSE IF(MSLVTP.EQ.2) THEN
@@ -457,7 +449,7 @@ C Now solve {PRC} from matrix equation {PJMTX} {PRC} = {RHS}
          PRC(INOD)=RHS(INOD)
    64    CONTINUE
       ELSE
-        call edisp(IMFTU,' MFSOLV: unresolvable error !')
+        call edisp(IMFTU,'MFSOLV: unresolvable solution error!')
         close(ieout)
         CALL ERPFREE(ieout,ISTAT)
         call epwait
@@ -465,14 +457,14 @@ C Now solve {PRC} from matrix equation {PJMTX} {PRC} = {RHS}
         STOP 
       END IF
 
-C If trace output then dump solution vector
+C Trace output.
       IF(MFTRAC.GE.3) THEN
-         call edisp(IMFTU,'  PRC solution vector')
+         call edisp(IMFTU,'PRC solution vector')
          WRITE(outw,*) (PRC(I),I=1,NNOD)
          call edisp248(IMFTU,outw,100)
 
-C Dump {RHS} recalculated from {HPJMTX}*{PRC}
-         WRITE(IMFTU,*) ' RHS vector recalculated from PJMTX * PRC'
+C Output {RHS} recalculated from {HPJMTX}*{PRC}.
+         WRITE(IMFTU,*) 'RHS vector recalculated from PJMTX * PRC'
          DO 65 I=1,NNOD
          RHS(I)=0.0
          DO 65 J=1,NNOD
@@ -483,8 +475,8 @@ C Dump {RHS} recalculated from {HPJMTX}*{PRC}
       END IF
 
 C Revise pressure correction vector by Steffensen's method to
-C handle oscillating corrections
-C Make sure that: SMALL < | PRC / HPRC | < RLARG 
+C handle the case of oscillating corrections.
+C Ensure that SMALL < | PRC / HPRC | < RLARG .
       DO 70 INOD=1,NNOD
       IF(NDTYP(INOD).NE.0) GOTO 70
       call eclose(REAL(RELAX(INOD)),1.00,0.00001,close)
@@ -512,6 +504,7 @@ C Make sure that: SMALL < | PRC / HPRC | < RLARG
    70 CONTINUE
 
 C Adjust node pressure of NDTYP=0 nodes, but limit correction to PMAX
+C to aid solution convergence.
       DO 80 INOD=1,NNOD
       IF(NDTYP(INOD).NE.0) GOTO 80
       IF(DABS(PRC(INOD)).GT.PMAX) THEN
@@ -519,17 +512,17 @@ C Adjust node pressure of NDTYP=0 nodes, but limit correction to PMAX
          IF(PRC(INOD).GT.0.0) PRC(INOD)= PMAX
          IF(PRC(INOD).LT.0.0) PRC(INOD)=-PMAX
          IF(MFTRAC.GE.3)then
-            WRITE(outs,*) ' Node ',INOD,' PRC   -> ',PRC(INOD)
+            WRITE(outs,*) 'Node ',INOD,' PRC   -> ',PRC(INOD)
             call edisp(IMFTU,outs)
          endif
       END IF
       PRES(INOD)=PRES(INOD)+PRC(INOD)
    80 CONTINUE
 
-C Back to start of iteration loop
+C Back to start of iteration loop.
       GOTO 20
 
-C Output message. If solution failed over-ride MFTRAC.
+C Output solution status.
   100 IF(IOK.EQ.1) THEN
         IF(MFTRAC.GE.0)then
            WRITE(outs,1100) IRD,IRM,FLWTIM,ITER,'successful'
@@ -538,23 +531,22 @@ C Output message. If solution failed over-ride MFTRAC.
       ELSE
         WRITE(outs,1100) IRD,IRM,FLWTIM,ITER,'failed    '
         call edisp(IMFTU,outs)
-        call edisp(IMFTU,' ')
-        call edisp(IMFTU,'Please check (in the following order) that:')
+        call edisp(IMFTU,'Please check that each node is connected')
         call edisp(IMFTU,
-     &    ' - each node has some flow path to a boundary pressure and')
+     &                'by some path to a boundary pressure and the')
         call edisp(IMFTU,
-     &    ' - iteration convergence control is not too strict.')
+     &           'iteration convergence control is not too strict.')
   
-C Do not use these flow values (use values from previous time step).
+C Use flow values from previous time step.
         do 1111 I=1,NCNN
           FLW1(I)=FLW1old(I)
           FLW2(I)=FLW2old(I)
  1111   continue
       END IF
- 1100 FORMAT(' Day ',I2,' Month ',I2,' Hour ',F6.3,':',
+ 1100 FORMAT('Day ',I2,' Month ',I2,' Hour ',F6.3,':',
      &       I5,' iterations; flows solution ',A10)
 
-C Relax the new flow values if time step controller 4 active.
+C Relax the new flow values if time step controller 4 is active.
 C      if (itrpas.gt.0) then
 C        write(6,*) 'relaxing'
 C        frac=0.25
@@ -564,23 +556,19 @@ C          FLW2(I)=(FLW2(I)-FLW2old(I))*frac+FLW2old(I)
 C 2222   continue
 C      endif
 
-C Invoke contaminant simulation if contaminants are defined
+C Invoke contaminant simulation if contaminants are defined.
       IF(NOCNTM.EQ.1) THEN
         CALL MZCONT
       ENDIF
 
       RETURN
-
       END
 
-C ************ MFNPDV 
-C Numerical calculation of partial derivative dFlw[s]/d(dPress)
-C which is to be used when the partial derivative cannot be
-C calculated analytically by MFxxxC
-C The partial derivative is approximated by (Fnow-Fprev)/(dPnow-dPprev)
-C If the partial derivative turns out to be close to zero then the
-C previous value is returned instead; this is done to avoid numerical
-C problems when using the derivative in Newton-Raphson technique
+C ******************** MFNPDV ********************
+C Numerical calculation of partial derivative dFlw[s]/d(dPress),
+C which is used when the partial derivative cannot be determined
+C analytically by the component model (MFxxxC). This is approximated
+C by (Fnow-Fprev)/(dPnow-dPprev).
 
       SUBROUTINE MFNPDV(ICNN,DELP,DERIV)
 #include "building.h"
@@ -596,12 +584,12 @@ C problems when using the derivative in Newton-Raphson technique
       PARAMETER       (SMALL=1.0E-15)
       DOUBLE PRECISION DDP
 
-C Calculate d(dPressure) and set history mechanism for dPressure
+C Calculate d(dPressure) and set history mechanism for dPressure.
       DDP=DELP-HDP(ICNN)
       HDP(ICNN)=DELP
 
-C If current partial derivative dFlow/d(dPressure) not close to zero
-C recalculate and set history mechanism, otherwise use previous value
+C If current partial derivative, dFlow/d(dPressure), is not close to zero,
+C recalculate and set history mechanism, otherwise use previous value.
       IF(DABS(FLW1(ICNN)+FLW2(ICNN)-HFL(ICNN)).GT.DBLE(SMALL).AND.
      &   DABS(DDP).GT.DBLE(SMALL)) THEN
          DERIV=(FLW1(ICNN)+FLW2(ICNN)-HFL(ICNN))/DDP
@@ -610,7 +598,7 @@ C recalculate and set history mechanism, otherwise use previous value
          DERIV=HDV(ICNN)
       END IF
 
-C Set history mechanism for flow
+C Set history mechanism for flow.
       HFL(ICNN)=FLW1(ICNN)+FLW2(ICNN)
 
       RETURN

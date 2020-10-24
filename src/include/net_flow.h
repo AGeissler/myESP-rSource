@@ -4,6 +4,7 @@ C Updated December 2005 for additional nodes, components and control laws.
 C Updated January 2007 for additional connections.
 C Updated June 2008 for "implicit none" callability
 C Updated August 2019 to use building.h parameters.
+C Updated September 2020 to use support more flow items to include an graphs.
 
 C Type declarations:
       integer MNOD, MCMP, MCNN, MNDS, MCMV, MCMS, MCNS
@@ -32,9 +33,9 @@ C Record width of binary results file (should be larger of MNOD or MCMS + 6)
 C Results analysis:
 C Max number of connection lists and number of connections allowed.
       PARAMETER (MFCNLST=20)
-      PARAMETER (MFCNEL=5)
+      PARAMETER (MFCNEL=12)
 C Max items to display
-      PARAMETER (MFRS=20)
+      PARAMETER (MFRS=24)
 C Max number of contaminants, this is equal to parameter MCTM in
 C cfd.h if MCONTM is changed change MCTM accordingly
       PARAMETER (MCONTM=4)

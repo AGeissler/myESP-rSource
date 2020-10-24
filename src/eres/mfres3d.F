@@ -491,7 +491,7 @@ C      iicol=0  ! red
 C ************************* MFWFDRAWNC 
 C MFWFDRAWNC Fluid flow file: draw active node & components.
 C colour is either 'r' red or 'g' grey50 for components.
-C Omitt node names indnm=0 or component names icmpnm for clarity
+C Omit node names indnm=0 or component names icmpnm for clarity.
       SUBROUTINE MFWFDRAWNC(col,indnm,icmpnm)
 
 #include "building.h"

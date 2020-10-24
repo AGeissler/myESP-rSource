@@ -1061,7 +1061,7 @@ C Also need to derive the diffuse as per the approach for decoding
 C Korean MET office data.
                 if (btog) then
                   call edayr(IDD,imonth,iday)
-                  CALL APPRDIFFUSE(iyear,imonth,iday,J,ICLM(J,4),
+                  CALL APPRDIFFUSE(iyear,imonth,iday,J,ICLM(J,CMCOL(4)),
      &              longit_for_diffuse_calcs,differ_from_Greenwich,DRAD)
                   IDRAD=NINT(DRAD)
                   ICLM(J,CMCOL(2))=IDRAD
@@ -1281,7 +1281,7 @@ C Rearrange the column order of climate metrics, if needed.
         WRITE(IAF,'(A,I1)',IOSTAT=ISTAT,ERR=1003)'*WEATHER ',NMCM
 
 C Create a header section with site details.
-        WRITE(IAF,'(A)',IOSTAT=ISTAT,ERR=1003)CFLOC
+        WRITE(IAF,'(A)',IOSTAT=ISTAT,ERR=1003)CFLOC(1:lnblnk(CFLOC))
         
         WRITE(outs,'(I6,2F8.2)',IOSTAT=ISTAT,ERR=1003)CFYEAR,CFLAT,
      &    CFLONG

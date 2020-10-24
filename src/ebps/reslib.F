@@ -323,8 +323,6 @@ C file path name use FPOPEN.
           endif
         endif
 
-        write(outs,'(2A)')'Flow results file: ',LAFRES
-        call edisp(iuout,outs)
         call tstamp('>','BPS: create flow results')
         call tstamp('>',LAFRES)
 
@@ -573,7 +571,7 @@ C CFD results file.
           if(autook) then 
             iw=2
             if(remote)then
-              call dealremote('ds',remote,LTMP,IW)
+              call dealremote('di',remote,LTMP,IW)
             endif
             CFRESF=LTMP
           else

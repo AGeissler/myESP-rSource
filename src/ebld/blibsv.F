@@ -150,7 +150,7 @@ C << TO BE DONE >>
 
 
 C Connection data. Given a minimum record width of 40 (revise to
-C use multiples of 40 rather than 20.
+C use multiples of 40 rather than 20).
       limit=nzrl; limit1=nzrl-1
       XW=FLOAT(NCON)/FLOAT(limit)
       N=INT(XW)+1
@@ -1451,7 +1451,7 @@ C *** Results save level 1.
           endif
         endif
 
-C Results save level 2 (or above but not 6).
+C *** Results save level 2 (or above but not 6).
       elseif (ISAVE.ge.2) then
 
 C Surface-related averages: internal temperature, external solar absorption
@@ -1582,7 +1582,7 @@ C Averages for each casual gain (after control applied).
 
 C Save future to current for these casual gains. Since the
 C future value is still needed for trace output, delay zeroing
-C until after this output if invoked).
+C until after this output if invoked.
         ctlperocupc(icomp,1)=ctlperocupc(icomp,2)
         ctlperocupr(icomp,1)=ctlperocupr(icomp,2)
         ctlperocupl(icomp,1)=ctlperocupl(icomp,2)

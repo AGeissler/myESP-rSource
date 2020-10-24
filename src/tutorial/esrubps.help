@@ -229,7 +229,7 @@
 *enditem
 
 *item CFDTOG cfd_coupling_toggles
-'This menu allows the definition of the approach to CFD coupling.'
+'This menu allows the definition of the approach to CFD.'
 ' '
 'a: By default, an adaptive conflation controller (ACC) adapts'
 '   the turbulence model at near-wall regions to best reflect'
@@ -256,6 +256,16 @@
 ' '
 'd: This option toggles the General Gradient Diffusion'
 '   Hypothesis model on/off.'
+' '
+'e: Automatic grid refinement is an experimental procedure that'
+'   seeks to address stagnant simulations. If flatlined residuals'
+'   are detected, the grid will be refined in the location of the'
+'   highest residual.'
+' '
+'   Please be aware this functionality is still under development,'
+'   and is not recommended for routine use. Testing indicates that'
+'   in its current form, it may help with simple domains, but will'
+'   often make things worse for complex domains.'
 *enditem
 
 *item MZSPER startup_period_dialog

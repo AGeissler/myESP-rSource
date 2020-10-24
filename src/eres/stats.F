@@ -2179,6 +2179,8 @@ C Initialise arrays.
         isOccPrev(IX)=0
         TOccStart(IX)=0.0
         TOccFinish(IX)=0.0 
+        TPerStart(IX)=0.0
+        TPerFinish(IX)=0.0
       enddo
 
 C Calculate time values for first and last time steps, and duration
@@ -2343,8 +2345,9 @@ C actual duration.
 
 C Debug.
 C            write(375,*)'TIME,IX,isAct(IX),isOcc(IX),isActPrev(IX),',
-C     & 'isOccPrev(IX),TActive(IX),TOccup(IX)=',TIME,IX,isAct(IX),
-C     & isOcc(IX),isActPrev(IX),isOccPrev(IX),TActive(IX),TOccup(IX)
+C     & 'isOccPrev(IX),TActive(IX),TOccup(IX),TPerFinish(IX),',
+C     & 'TPerStart(IX)=',TIME,IX,isAct(IX),isOcc(IX),isActPrev(IX),
+C     & isOccPrev(IX),TActive(IX),TOccup(IX),TPerFinish(IX),TPerStart(IX)
 
  421      CONTINUE
  400    CONTINUE

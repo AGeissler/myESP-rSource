@@ -26,6 +26,7 @@ C ******************** MZCASI ********************************
 C MZCASI sets the present and future time-row total convective and
 C radiant casual gains.  Any control action (e.g. occupant behaviour, 
 C lighting)is applied here.
+
 C Returned variables are:
 C QCASRT - summation of the present and future time-row total radiant
 C          injections.
@@ -181,7 +182,7 @@ C Adaptive comfort.
       COMMON/ADPCOM/PREVSTATWIN,PREVSTATFAN,PREVSTATLIGHT,TOTPWR(MCOM),
      &              TRMSTAT
 
-C Dnamic person model.
+C Dynamic person model.
       COMMON/CASGNSO/META1(MCOM,MDTY,MGTY,MGPER),
      &         NBMEN(MCOM,MDTY,MGTY,MGPER),NBWOM(MCOM,MDTY,MGTY,MGPER),
      &         NBCHI(MCOM,MDTY,MGTY,MGPER),CONCC(MCOM,MDTY,MGTY,MGPER),
@@ -311,7 +312,7 @@ C Named constants for timerows.
       logical OK
       logical bInStartup  ! logical function returning true if in startup period
 
-C SPR
+C Occupancy, for sprites.
       common/occup/isocc(MCOM)
       logical isocc
 
@@ -482,7 +483,7 @@ C each casual gain so that it can be used within MZLS3.
         ctlperequipl(icomp,2)=VAL(ISD+8)
         ctlperotherl(icomp,2)=0.0
 
-C SPR: set occupancy flag.
+C Set occupancy flag for sprites.
         isocc(ICOMP)=.false.
         if ((ctlperocupc(icomp,2)+
      &       ctlperocupr(icomp,2)+
@@ -765,7 +766,7 @@ C Initialise LGHT_ncm_Energy(icomp).
  333        continue
           endif          
 
-C CTotal number of start-up timesteps.
+C Total number of start-up timesteps.
 C           numbStartTimesteps=itcnst*NTSTEP*24
           if(i_countsteps(icomp).gt.numbStartTimesteps)then
 
@@ -965,9 +966,7 @@ C is approximately 1.8 m^2 .
 C             call MZVAPC(ICOMP,ZRH,CNDS)   ! not used
     
              RHOCC=PCRH2(TPA(ICOMP),GPA(ICOMP),PATMOS)/100.0
-             if (RHOC.GE.100) then
-              RHOCC=0.99
-              endif
+             if (RHOC.GE.100) RHOCC=0.99
              HMETA1=META1(ICOMP,IDAY,IGN,IPER)
 C             HMETA2=META2(ICOMP,IDAY,IGN,IPER)           
              METAo=META1(ICOMP,IDAY,IGN,IPER)*58*1.8
@@ -979,9 +978,7 @@ C Dynamic clothing prediction based on t out at 6 am and Tmix.
              CLOTHO=10**(0.2134-0.0063*tatsix-0.0165*TMIX)
              if(CLOTHO.le.0.4)CLOTHO=0.4
              if(CLOTHO.GE.1.1)CLOTHO=1.1
-             if (NSINC.LE.2)then
-             msegflag=0
-             endif
+             if(NSINC.LE.2)msegflag=0
              TOCN=NBMEN(ICOMP,IDAY,IGN,IPER)+
      &          NBWOM(ICOMP,IDAY,IGN,IPER)+NBCHI(ICOMP,IDAY,IGN,IPER)
              if(caskeytype(ICOMP,iGainSlot)(1:13).eq.
@@ -1048,21 +1045,6 @@ C Call the dynamic two node model (subroutine in dynamicoccup.F).
                    rlegflux2=0.0
                    H2Oexp2=0.0
                    H2Oswt2=0.0
-
-C Call the dynamic multi-node, multi-segmented, physiological model.
-C                  if(HMETA2.GT.1)then
-C                  call segmentedocc(HMETA1,Top,RHOCC,1,CLOTHO)
-C                  call segmentedocc(HMETA2,Top,RHOCC,2,CLOTHO)                    
-C                  SGAIN=Qoccsens1+Qoccsens2 
-C                  LGAIN=Qocclat1+Qocclat2
-C                  msegflag=1
-C                  else
-                   call segmentedocc(HMETA1,Top,RHOCC,1,CLOTHO)
-                   SGAIN=Qoccsens1
-                   LGAIN=Qocclat1
-                   cfdcheck=0
-                   msegflag=1
-C                  endif
                  endif
                endif
 
@@ -1104,7 +1086,7 @@ C by value from FMU.
               endif
               CGCTL(ICOMP,2,IGN)=CGCTL(ICOMP,2,IGN)*rtmp
 
-C SPR: Set occupancy flag.
+C Set occupancy flag for sprites.
               if (IGN.eq.1) then
                 isocc(ICOMP)=.false.
                 if ((CGSENC(ICOMP,IDAY,IGN,IPER)+
@@ -1334,7 +1316,7 @@ C Remember future values for next timestep.
       QCRS(ICOMP)=QCASR(2)
       QLAT(ICOMP)=QLATN(2)
     
-C If first timeste, set previous values to current.
+C If first timestep, set previous values to current.
       if(NSINC.eq.1)then
         QCASC(1)=QCASC(2)
         QCASR(1)=QCASR(2)
@@ -2293,7 +2275,7 @@ C Warn about negative luminance.
               call edisp(iuout,outs)
             endif
 
-C Check if direct sun, If yes then calculate its contribution
+C Check if direct sun, if yes then calculate its contribution
 C to sensor illuminance.
             call eclose(QDIR,0.00,0.01,closea)
             if(closea)then

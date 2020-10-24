@@ -93,8 +93,7 @@ C CFCONV - Calculate convection coefficients based on the CFD predictions.
 #include "building.h"
 #include "cfd.h"
 
-
-      COMMON/ICFCHN/ICFMON(MNZ),ICFTMP,ICFLIB
+      COMMON/ICFCHN/ICFMON(MNZ),ICFDBC(MNZ),ICFTMP,ICFLIB
       COMMON/CFDARE/ATCFD(MNSBZ)
       COMMON/Sbdary/NSB(MNZ),ISBi(MNSBZ,MNZ),ISBf(MNSBZ,MNZ),
      &              JSBi(MNSBZ,MNZ),JSBf(MNSBZ,MNZ),

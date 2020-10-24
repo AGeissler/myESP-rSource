@@ -1,6 +1,6 @@
 C This file is part of the ESP-r system.
 C Copyright Energy Systems Research Unit, University of
-C Strathclyde, Glasgow Scotland, 2001.
+C Strathclyde, Glasgow Scotland, 2001-.
 
 C ESP-r is free software.  You can redistribute it and/or
 C modify it under the terms of the GNU General Public
@@ -13,14 +13,9 @@ C warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
 C PURPOSE. See the GNU General Public License for more
 C details.
 
-C You should have received a copy of the GNU General Public
-C License along with ESP-r. If not, write to the Free
-C Software Foundation, Inc., 59 Temple Place, Suite 330,
-C Boston, MA 02111-1307 USA.
 
-C ***************************** MZCOE4M ********************************
-C MZCOE4M 
-C *********************************************************************
+C ******************** MZCOE4M ********************
+
       SUBROUTINE MZCOE4M(ICOMP)
 #include "building.h"
 
@@ -36,15 +31,9 @@ C *********************************************************************
 
       NC=NCONST(ICOMP)
       DO 10 I=1,NC
-
-C First node in the construction.
-        IN=1
-
-C First layer in the construction.
-        IL=1
-
-C First homogeneous control volume.
-        IHCV=1
+        IN=1   ! First construction node.
+        IL=1   ! First construction layer.
+        IHCV=1 ! First homogeneous control volume.
 
 C Node is situated at 'outside' surface.
         NH=NNDL(ICOMP,I,IL)
@@ -122,7 +111,7 @@ C Continue with other nodes (homogeneous) in the layer.
    50     CONTINUE
    30   CONTINUE
 
-C Internal surface node
+C Internal surface node.
         IN1=IN
         IN=IN+1
         IL=NE
@@ -140,9 +129,8 @@ C Internal surface node
       RETURN
       END
 
-C ***************************** MZCOE5 ********************************
-C MZCOE5 
-C *********************************************************************
+C ******************** MZCOE5 ********************
+
       SUBROUTINE MZCOE5(ICOMP)
 #include "building.h"
 #include "geometry.h"
@@ -181,15 +169,9 @@ C effect of relaxation factors).
       SUM=0.0
       DO 10 I=1,NC
         Asrf=SNA(ICOMP,I)
-
-C First (outside) node in the construction.
-        IN=1
-
-C First (outermost) layer in the construction.
-        IL=1
-
-C First construction element.
-        IHCV=1
+        IN=1   ! First (outside) node in the construction.
+        IL=1   ! First (outermost) layer in the construction.
+        IHCV=1 ! First construction element.
         NH=NNDL(ICOMP,I,IL)   ! Number of heat nodes.
         NM=MNDL(ICOMP,I,IL)   ! Number of moisture nodes.
         DXHl=THRMLI(ICOMP,I,IL,4)/FLOAT(NH)
@@ -414,7 +396,8 @@ cx      E(N1,N3)=E(N1,N3)+(SUM-HT)*ACAP
       RETURN
       END
 
-C ********************************************************************
+C ******************** HTFLX2 ********************
+
       SUBROUTINE HTFLX2(ICOMP,I,IME,DXl,FLXp2,FLXf2)
 #include "building.h"
 
@@ -458,7 +441,8 @@ C Calculate heat flux in (W/m^2).
       RETURN
       END
 
-C **********************************************************************
+C ******************** MSTCAP ********************
+
       SUBROUTINE MSTCAP(ICOMP,I,IL,IN,CAPUv,CAPMl)
 #include "building.h"
 #include "geometry.h"
@@ -512,7 +496,8 @@ C CAPUv (J/m^2 K).
       RETURN
       END
 
-C **********************************************************************
+C ******************** SHTNEF ********************
+
       SUBROUTINE SHTNEF(ICOMP)
 #include "building.h"
 
@@ -562,11 +547,11 @@ C If iterating then use present values on subsequent calls.
       RETURN
       END
 
-C *********************************************************************
-C DELUAF sets up the zone moisture transfer matrix. This is done while
+C ******************** DELUAF ********************
+C Sets up the zone moisture transfer matrix. This is done while
 C accounting for the possible different temperature node distribution.
 C Implicitness degrees between 0 and 1 inclusive are allowed.
-C *********************************************************************
+
       SUBROUTINE DELUAF(ICOMP)
 #include "building.h"
 #include "geometry.h"

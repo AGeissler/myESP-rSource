@@ -271,7 +271,7 @@ C If contiguity has problems then hilight the selection.
         ITEMS1(21)='* pause during check 0.5 sec'
       endif
       ITEMS1(22)=  '? help'
-      ITEMS1(23)=  '- exit mwnu'
+      ITEMS1(23)=  '- exit menu'
       MITEM=23
 
 C Help text for this menu.
@@ -2978,7 +2978,6 @@ C e.g. offices on level 3.
       subroutine grouplist(iasel,ier)
 #include "building.h"
 #include "model.h"
-#include "epara.h"
 
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
 

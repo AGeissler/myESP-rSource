@@ -581,7 +581,7 @@ C Present the opening display and control menu.
       INO=-3
       CALL EMENU('Weather analysis',ITEM,NITEM,INO)
 
-c Exist the weather analysis tool.
+c Exit the weather analysis tool.
       IF(INO.EQ.NITEM)THEN
         write(outs248,'(3a)')'Climate_selected',tab,
      &    LCMDFL(1:lnblnk(LCMDFL))

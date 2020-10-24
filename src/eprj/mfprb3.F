@@ -1142,7 +1142,7 @@ C If associated with a specific zone also read and draw it.
         DO loop=1,NCOMP
           if(ICAAS(loop).gt.0)then
             i=ICAAS(loop)
-            if(NDNAM(i).eq.NDNAM(IFNOD))then
+            if(NDNAM(i)(1:12).eq.NDNAM(IFNOD)(1:12))then
               write(outs,'(3A)')zname(loop)(1:lnzname(loop)),
      &          ' is currently linked to: ',NDNAM(I)
               call edisp(iuout,' ')
@@ -1307,7 +1307,7 @@ c adjacent connections (in grey) and highlight the current connection.
         do loop=1,NCOMP
           if(ICAAS(loop).gt.0)then
             i=ICAAS(loop)
-            if(NDNAM(i).eq.NDNAM(NODPS(IFCN)))then
+            if(NDNAM(i)(1:12).eq.NDNAM(NODPS(IFCN))(1:12))then
               write(outs,'(3A)')zname(loop)(1:lnzname(loop)),
      &          ' is currently linked to +node: ',NDNAM(I)
               call edisp(iuout,' ')
@@ -1328,7 +1328,7 @@ c adjacent connections (in grey) and highlight the current connection.
         do loop=1,NCOMP
           if(ICAAS(loop).gt.0)then
             i=ICAAS(loop)
-            if(NDNAM(i).eq.NDNAM(NODNE(IFCN)))then
+            if(NDNAM(i)(1:12).eq.NDNAM(NODNE(IFCN))(1:12))then
               write(outs,'(3A)')zname(loop)(1:lnzname(loop)),
      &          ' is currently linked to -node: ',NDNAM(I)
               call edisp(iuout,' ')
@@ -1361,9 +1361,12 @@ c adjacent connections (in grey) and highlight the current connection.
         MODIFYVIEW=.TRUE.; MODBND=.TRUE.
         ITORG=1; ITGRD=1; ITBND=1  ! do not show origin or grid
         CALL redraw(IER)
+      elseif(nbzones.eq.0)then
+        continue
       endif
 
 C Draw the positive node.
+      if(iposn.eq.0) return
       col='r'     ! red for current node.
       altcol='b'  ! blue alternative colour
       name=NDNAM(iposn)
@@ -1433,6 +1436,7 @@ C Draw the connection betwen node and component (but not to the other node).
       endif
 
 C Draw negative node.
+      if(inegn.eq.0) return
       col='r'     ! red for current node.
       altcol='b'  ! blue alternative colour
       name=NDNAM(inegn)
@@ -1671,9 +1675,7 @@ C General image option flags. Rescan the zone geometry file.
 C Reset all surface lines to standard width and display the zone.
           MODIFYVIEW=.TRUE.; MODBND=.TRUE.
           CALL INLNST(1)
-          nzg=1
-          nznog(1)=IZ
-          izgfoc=IZ
+          nzg=1; nznog(1)=IZ; izgfoc=IZ
           CALL redraw(IER)
 
           ISO=1
@@ -1740,9 +1742,14 @@ C In the future remember the COG/upper/lower/manual decision.
             CALL EASKS(HOLD,'Position in space?',
      &        ' ',36,' 1.0  0.0  0.0 ','position',IER,nbhelp)
           endif
-        else
+
+C Update CMPASSOC to reflect this surface choice and update network files.
+          CMPASSOC(ICMP,1)=ZNAME(iz)
+          CMPASSOC(ICMP,2)=SNAME(Iz,iso)
+          call updatebothflownetworks(ier)
 
 C No selection so just return current position.
+        else
           cx=HCMP(ICMP,1,1)
           cy=HCMP(ICMP,1,2)
           cz=HCMP(ICMP,1,3)
@@ -2683,9 +2690,10 @@ C Open door - common orifice component, (type 40) IVALCM(10) MF040I
         elseif(SUSE(iz,is,2)(1:5).eq.'BIDIR'.or.
      &         SUSE(iz,is,2)(1:10).eq.'AJAR-BIDIR')then
 
-C Bidirectional door - door component,  IVALCM(14)=130 MF130I
-C assume width = door width, height = door height, discharge factor = 0.5.
+C Bidirectional flow - door component,  IVALCM(14)=130 MF130I
+C Assume: width = surface width except if it is wide adjust to limit excessive flows.
 C If AJAR-BIDIR limit width to 100mm.
+C height = door height, discharge factor = 0.5.
 C Need to draw component at surf COG but the real base is at bottom
 C edge.
           if(SUSE(iz,is,2)(1:5).eq.'BIDIR')then
@@ -3090,7 +3098,7 @@ C Reality checks here...
             do loop2=1,NCOMP      ! find matching zone index
               if(ICAAS(loop2).gt.0)then
                 i=ICAAS(loop2)
-                if(NDNAM(i).eq.NDNAM(IC))then
+                if(NDNAM(i)(1:12).eq.NDNAM(IC)(1:12))then
                   issoz=loop2; found=.true.
                 endif
               endif 
@@ -3250,7 +3258,7 @@ C Reality checks here...
               do loop2=1,NCOMP      ! find matching zone index
                 if(ICAAS(loop2).gt.0)then
                   i=ICAAS(loop2)
-                  if(NDNAM(i).eq.NDNAM(IC))then
+                  if(NDNAM(i)(1:12).eq.NDNAM(IC)(1:12))then
                     issoz=loop2; found=.true.
                   endif
                 endif 
@@ -3294,7 +3302,7 @@ C Reality checks here...
             do loop2=1,NCOMP      ! find matching zone index
               if(ICAAS(loop2).gt.0)then
                 i=ICAAS(loop2)
-                if(NDNAM(i).eq.NDNAM(IC))then
+                if(NDNAM(i)(1:12).eq.NDNAM(IC)(1:12))then
                   issoz=loop2; found=.true.
                 endif
               endif 
@@ -3473,7 +3481,7 @@ C Reality checks here...
               do loop2=1,NCOMP      ! find matching zone index
                 if(ICAAS(loop2).gt.0)then
                   i=ICAAS(loop2)
-                  if(NDNAM(i).eq.NDNAM(IC))then
+                  if(NDNAM(i)(1:12).eq.NDNAM(IC)(1:12))then
                     issoz=loop2; found=.true.
                   endif
                 endif 
@@ -3512,7 +3520,7 @@ C Reality checks here...
             do loop2=1,NCOMP      ! find matching zone index
               if(ICAAS(loop2).gt.0)then
                 i=ICAAS(loop2)
-                if(NDNAM(i).eq.NDNAM(IC))then
+                if(NDNAM(i)(1:12).eq.NDNAM(IC)(1:12))then
                   issoz=loop2; found=.true.
                 endif
               endif 
@@ -4267,21 +4275,31 @@ C Make up names and strings.
       
       call zsurfprm(iz,is,dupedges,perim)
 
-C Need to draw component at surf COG but the real base is at bottom edge.
+C Draw component at surf COG but the real base is at bottom edge.
       xc=SURCOG(iz,is,1); yc=SURCOG(iz,is,2) ! remember
       zc=SURCOG(iz,is,3)
       if(ajar(1:1).eq.'B'.or.ajar(1:1).eq.'b')then
         write(name,'(a,i2.2,a,i3.3)') pname,iz,':',is
-        VAL1=XYMAX; VAL2=ZMAX
+
+C If XYMAX a nominal `door` dimension use it but if surface width greater than 2m
+C limit the width so as to dampen excess flows.
+        if(XYMAX.le.1.0)then
+          VAL1=XYMAX
+        elseif(XYMAX.gt.1.0.and.XYMAX.le.2.0)then
+          VAL1=1.0
+        else
+          VAL1=2.0
+        endif
+        VAL2=ZMAX
         VAL3=ABS(ZCOG(iz,3)-edgelower)  ! base to zone COG
         VAL4=SURCOG(iz,is,3)-ZCOG(IZ,3) ! surf COG to zone COG
         write(outs,'(6a,f6.1,a,f6.1,a,3f7.3,a,f6.3)') zsn(1:lnzsn),
-     &    '  ',name,' ',uname,' bidir w= ',XYMAX,
+     &    '  ',name,' ',uname,' bidir w= ',VAL1,
      &    ' h=',ZMAX,' coef 0.5 base @XYZ',xc,yc,zc,
      &    ' delta to zone COG',VAL3
       elseif(ajar(1:1).eq.'A'.or.ajar(1:1).eq.'a')then
 
-C Bidirectional door - door component,  IVALCM(14)=130 MF130I
+C Bidirectional flow - door component,  IVALCM(14)=130 MF130I
 C assume width = 100mm, height = door height, discharge factor = 0.5.
         write(name,'(a,i2.2,a,i3.3)') pname,iz,':',is
         VAL1=0.1
@@ -4798,7 +4816,7 @@ C Reality checks here...
         do loop2=1,NCOMP      ! find matching zone index
           if(ICAAS(loop2).gt.0)then
             i=ICAAS(loop2)
-            if(NDNAM(i).eq.NDNAM(IC))then
+            if(NDNAM(i)(1:12).eq.NDNAM(IC)(1:12))then
               issoz=loop2; found=.true.
             endif
           endif 

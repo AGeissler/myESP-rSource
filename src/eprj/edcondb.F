@@ -57,7 +57,7 @@ C CLSSEL (36 char) is an array for menu items for the selected class.
       character CLSSEL*36,CLSDES*34
       DIMENSION CLSDES(36),CLSSEL(30),ICLSSEL(30)
       character PDBM*86     ! array to hold summary of each material
-      DIMENSION PDBM(37)    ! within the category
+      DIMENSION PDBM(42)    ! within the category
       character managearray*32  ! string array for material management
       dimension managearray(150)
       integer iwhichmanage,iwhichmsel
@@ -3791,8 +3791,8 @@ C CLSDES (30 char) is an array for menu items listing each class.
 C CLSSEL (36 char) is an array for menu items for the selected class.
       character CLSSEL*36,CLSDES*38
       DIMENSION CLSDES(36),CLSSEL(30),ICLSSEL(30)
-      CHARACTER*66 MLCITM(37)
-      CHARACTER*66 MLCITMDEL(37)
+      CHARACTER*72 MLCITM(42)
+      CHARACTER*72 MLCITMDEL(42)
       character managearray*32  ! string array for material management
       dimension managearray(150)
       integer pointback(42)     ! to point back to item in list ?? not used
@@ -4229,7 +4229,7 @@ C        write(6,'(a,3i2)') 'EDMLDB2 4242 IFS,ITFS,IMFS',IFS,ITFS,IMFS
 
 C Generate menu strings for constructions in the class. Could check string widths!
     3   write(MLCITM(1),'(a)') 
-     &    ' Construction                 :Documentation'
+     &    ' Construction ID  :Name                     :Documentation'
         M=MHEAD
         ILEN=mlccatitems(IC) ! reset if constructions in this catetory changed
         mclist=0  ! counter for materials found to be in this category
@@ -4241,6 +4241,12 @@ C Generate menu strings for constructions in the class. Could check string width
             write(managearray(mclist),'(a)') mlcmenu(loop)
             iwhichmanage(mclist)=loop  ! management array to data array loop
             pointback(mclist)=loop
+            lsn=lnmlcname(loop)        ! create list for copy & delete
+            if(lsn.gt.12) lsn=12
+            lsm=lnmlcmenu(loop)
+            lfordoc = 72 - (lsn + lsm +6)    ! space left for doc
+            WRITE(MLCITMDEL(mclist),'(5a)') mlcname(loop)(1:lsn),' :',
+     &        mlcmenu(loop)(1:lsm),' :',mlcdoc(loop)(1:lfordoc)         
 
 C Test if the construction fits within the current paged menu and then
 C remember the array index that goes with the menu position (m). In
@@ -4249,14 +4255,13 @@ C case a new construction or a copy re-check iwid.
               M=M+1
               iwhicharray(M)=loop  ! menu position M relates to data array loop
               lsn=lnmlcname(loop)
+              if(lsn.gt.12) lsn=12
               lsm=lnmlcmenu(loop)
-              lfordoc = 66 - (lsm +4)    ! space left for doc
-              iwid=66
+              lfordoc = 72 - (lsn + lsm +6)    ! space left for doc
+              iwid=72
               CALL EMKEY(mclist,KEY,IER)
-              WRITE(MLCITM(M),'(a,1x,3a)')KEY,mlcmenu(loop)(1:lsm),
-     &            ' :',mlcdoc(loop)(1:lfordoc)         
-              WRITE(MLCITMDEL(mclist),'(3a)') mlcmenu(loop)(1:lsm),
-     &            ' :',mlcdoc(loop)(1:lfordoc)         
+              WRITE(MLCITM(M),'(a,1x,5a)')KEY,mlcname(loop)(1:lsn),
+     &          ' :',mlcmenu(loop)(1:lsm),' :',mlcdoc(loop)(1:lfordoc)         
             endif
           endif
         enddo
@@ -4677,8 +4682,6 @@ C Find its category and increment its counter/
      &           mlccatname(loop)(1:lnmlccatname(loop)))then
                 mlccatitems(loop)=mlccatitems(loop)+1
                 IC=loop  ! reset the focus category to one we have copied
-                write(6,*) 'Another item for ',mlccatname(loop),' ',
-     &            mlccatitems(loop),' focus now ',IC
                 ILEN=mlccatitems(IC) ! reset for materials in this catetory 
               endif
             enddo

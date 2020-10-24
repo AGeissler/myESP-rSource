@@ -304,7 +304,7 @@ C Check the aim2 folder path.
         call runit(doit,'-')
         call pausems(100)
 
-C Check that zones folder path.
+C Check the zones' folder path.
         call GETTOKENS(zonepth,IW,WORDS)
         lnw=lnblnk(WORDS(IW))
         testw=WORDS(IW)

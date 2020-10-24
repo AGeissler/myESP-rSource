@@ -44,10 +44,10 @@ C Data format is: *tag value
       INTEGER NCOMP,NCON
 
       character*124 OUTSTR,outs,errstr,errval
-      character WORD*50
+      character WORD*50,longtfile*144
       integer DMY,K,IFMU,itmp,iinp,iout
       real VERSN,rtmp
-      logical XST
+      logical XST,concat
 
 C Read header line to determine file version.
 C VERSN currently not used, but in the future can be used to maintain
@@ -126,10 +126,15 @@ C Read FMU file name.
           IER=3
           goto 666
         endif
+
+C Adjust file name for location.
+        call addpath(WORD,longtfile,concat)
+
 C Check file exists.
-        INQUIRE (FILE=WORD,EXIST=XST)
+        INQUIRE (FILE=longtfile,EXIST=XST)
         if (.not.XST) then
-          write(outs,'(3a,i1,a)')' File ',WORD(1:lnblnk(WORD)),
+          write(outs,'(3a,i1,a)')
+     &      ' File ',longtfile(1:lnblnk(longtfile)),
      &      ' not found for FMU ',IFMU,'.'
           CALL EDISP(iuout,outs)
         endif

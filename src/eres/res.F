@@ -103,7 +103,7 @@ C Session log file (for errors etc.)
       character iefile*72
       common/logs/iefile
 
-      integer ireportunit ! 0 is default, 1 is W, 2 is KW, 3 is J.
+      integer ireportunit ! 0 is default, 1 is W, 2 is kW, 3 is J.
       common/repunit/ireportunit
 
 C CFD commons.

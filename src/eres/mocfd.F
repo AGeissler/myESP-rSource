@@ -2203,7 +2203,7 @@ C Toggle delimeter.
           helptopic='res_flow_delimeter'
           call gethelptext(helpinsub,helptopic,nbhelp)
           IWM=1
-          CALL EASKATOG(' ','Column  delimeter:',
+          CALL EASKATOG(' ','Column delimeter:',
      &      'multi-space','single space','tab','comma','tagged',
      &      'cancel',' ',IWM,nbhelp)
           if(iwm.eq.1)then

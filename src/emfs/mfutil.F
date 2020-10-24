@@ -231,7 +231,7 @@ C Warn user, but suppress redundant messages
         DENSIT=1001.1-0.082*VTEMP-0.0036*VTEMP*VTEMP
 
       ELSE
-         STOP 'DENSIT: unsupported fluid type!'
+         STOP 'DENSIT: fluid type is not 1 or 2!'
       ENDIF
 
       RETURN

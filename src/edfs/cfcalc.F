@@ -28,6 +28,8 @@ C  INDBND   - Initialize some boundary conditions.
 C  INOUT    - Establish all inlet and outlet boundary conditions.
 C  RECRES   - Modify mass flow residuals if pressure is fixed in 
 C             certain cells.
+C  EXCFDBC   - Export CFD boundary conditions to a file.
+C  RFNCFDGRD - Refine CFD grid in areas of poor convergence.
 
 C ********************* CFCALC *********************
 C CFCALC - CFD solution manager.
@@ -39,7 +41,7 @@ C CFCALC - CFD solution manager.
       common/outin/iuout,iuin,ieout
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
 
-      COMMON/ICFCHN/ICFMON(MNZ),ICFTMP,ICFLIB
+      COMMON/ICFCHN/ICFMON(MNZ),ICFDBC(MNZ),ICFTMP,ICFLIB
       COMMON/BNDCND/FLWIN,XMONIN
       COMMON/FDTRFC/FLSDTU(MNZ),FLSDTV(MNZ),FLSDTW(MNZ),FLSDTP(MNZ),
      &              FLSDTT(MNZ),FLSDTK(MNZ),FLSDTE(MNZ)
@@ -96,7 +98,8 @@ C CFCALC - CFD solution manager.
       common/fvisgo/gophrun
 
       common/cfdconf/ICFBLD(MNZ),ICFMFS(MNZ)
-      common/KEYVOLN/VOLNAME(MNVLS,MNZ),VCsurf(MNVLS,MNZ)
+      common/KEYVOLN/VOLNAME(MNVLS,MNZ),VCsurf(MNVLS,MNZ),
+     &               BLKSURF(MNVLS,MNZ,6)
       common/KEYVOLS/NVOL(MNZ),IVOLF(MNVLS,MNZ),IVCELLS(MNVLS,MNZ,2),
      &               JVCELLS(MNVLS,MNZ,2),KVCELLS(MNVLS,MNZ,2)
       common/KEYVDAT/IVTYPE(MNVLS,MNZ),VOLTemp(MNVLS,MNZ),
@@ -111,7 +114,7 @@ C integer INBLK() points to the volume which defines the blockage shape
 C integer NSSO() is the number of small supply openings in each domain
 C integer INSSO() point to the volume which defines the small supply shape
       common/blksso/NBLK(MNZ),INBLK(MNVLS,MNZ),NSSO(MNZ),
-     &          INSSO(MNVLS,MNZ)
+     &          INSSO(MNVLS,MNZ),BLKTEMP(MNVLS,MNZ,6)
       common/SSOinit/areaSSO
 
       common/CASGNS/NCGPER(MCOM,MDTY,MGTY),TCGS(MCOM,MDTY,MGTY,MGPER),
@@ -120,9 +123,13 @@ C integer INSSO() point to the volume which defines the small supply shape
       common/wkdtyp/idwe1,idwe2,wkd1,wkd2
       common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
       common/btime/btimep,btimef
+      COMMON/RFNGRD/DORFN,IFNDWT(MNZ),NRFN,IRFNCLS(MNZ,MRFN,3),NRFND,
+     &              IRFND(MNZ,MRFNT,3)
+      logical DORFN
+      COMMON/ALL/NI,NJ,NK,NIM1,NJM1,NKM1,NIM2,NJM2,NKM2
 
       CHARACTER LRES(4)*24,LMON(4)*24,POLNAM*12
-      character VOLNAME*12,VCsurf*12,wkd1*10,wkd2*10,OUT*96
+      character VOLNAME*12,VCsurf*12,BLKSURF*12,wkd1*10,wkd2*10,OUT*96
 
       DIMENSION CRES(4),CMON(4)
 
@@ -152,9 +159,11 @@ C For help messages
       NMFSRUN=0
       NSPITR=1
       MKURFL=.FALSE.
+      NRFND=0
+C       NRFN=(NI*NJ*NK)/1000
+      NRFN=1  ! Number of cells to refine
 
-C Set up small openings, but only if this is the first time
-C the CFD domain has been invoked during this simulation.
+C Set up small openings if this hasn't been done yet.
       IF(.NOT.areaSSO) THEN
         CALL DEFINESSO
       ENDIF
@@ -245,6 +254,24 @@ C Initialize renormalization factors.
       RENORMW=1.0; RENORMT=1.0; RENORMK=1.0
       RENORME=1.0
 
+C Initialise variables for automatic grid refinement.
+      resorma=0.; resorua=0.; resorva=0.; resorwa=0.;
+      xpmona=0.; xumona=0.; xvmona=0.; xwmona=0.
+      npstuc=0; nustuc=0; nvstuc=0; nwstuc=0
+      IFNDWT(ICFD)=0
+      do i=1,MRFN
+        IRFNCLS(ICFD,i,1)=0
+      enddo
+C Iterations to average over.
+      nitrav=500
+C Allowable percentage difference.
+      xstucri=0.1
+C Number of times in a row for all residuals.
+      nstucriall=2
+C Number of times in a row for one residual.
+      nstucrione=5
+
+C Set up heat injections at sources.
 C Check for links between sources and operations file.
 C Recover definitions for current day type and timeF.
       if (IHRF.eq.1) then 
@@ -282,6 +309,10 @@ C Calculate the current period id for identified casual gain.
         endif
  10   continue
 
+C Set up contaminant injections at sources.
+      IF(NCTM(ICFD).gt.0)CALL CONCSRC
+
+C Set up momentum boundary conditions at openings.
       IF(ICFMFS(ICFD).EQ.1)CALL INOUT
   
       if(.not.INCALT) call UNIFORMT  
@@ -344,6 +375,16 @@ C Debug.
         endif
       ENDIF
 C Record ACC actions (end).
+
+C Export boundary conditions.
+      write(ICFDBC(ICFD),'(a)')' '
+      write(ICFDBC(ICFD),'(a)')'###################################'
+      write(ICFDBC(ICFD),'(a,i2.2)')
+     &  'boundary conditions for domain ',ICFD
+      write(ICFDBC(ICFD),'(a,i3.3,a,f5.2)')
+     &  'on day ',IDYP,' at time ',BTIMEF
+      write(ICFDBC(ICFD),'(a)')'###################################'
+      CALL EXCFDBC(ICFDBC(ICFD),IER)
 
 C Initialise plot counter.
       IPLOT=0
@@ -561,7 +602,7 @@ C Not in graphics mode => list data.
         endif
       else
         if (NITER.eq.1.and.IBLACT.eq.0) then
-          CALL EDISP(IUOUT,'Monitoring will commence shortly ...')
+          CALL EDISP(IUOUT,'Monitoring will commence momentarily')
           IF(MMOD.eq.8)THEN
             CALL EDISP(IUOUT,
      &             '`<` on plot represents convergence criterion.')
@@ -582,10 +623,141 @@ C        REWIND(icftmp)
 C        CALL PRNNEW(icftmp)
 C      ENDIF
 
-C Check for max iterations reached, if so query user about 
-C exporting data to a plot file. 
+C Check for max iterations reached.
       IF(NITER.EQ.MAXIT) GOTO 302
-      IF(SORCE.GT.SORMAX.OR.NITER.LT.20) GOTO 300 
+      IF(SORCE.lt.SORMAX .and. NITER.ge.20) GOTO 302
+
+      if (DORFN) then
+C At regular intervals, check for flatlined residuals.
+
+C This is characterised by 
+C 1. All averaged residuals changing < xstucri*100 % over the last
+C    nitrav iterations, nstucriall times in a row.
+C 2. Any one averaged residual changing < xstucri*100 % over the last
+C    nitrav interations, nstucrione times in a row.  Only check
+C    equations that have not already converged for this condition.
+        resorma=resorma+RESORM/real(nitrav)
+        if (INCALU) resorua=resorua+RESORU/real(nitrav)
+        if (INCALV) resorva=resorva+RESORV/real(nitrav)
+        if (INCALW) resorwa=resorwa+RESORW/real(nitrav)
+        if (NITER.eq.nitrav) then
+          resormap=resorma
+          resorma=0.
+          if (INCALU) then
+            resoruap=resorua
+            resorua=0.
+          endif
+          if (INCALV) then
+            resorvap=resorva
+            resorva=0.
+          endif
+          if (INCALW) then
+            resorwap=resorwa
+            resorwa=0.
+          endif
+        elseif ((NITER/nitrav)*nitrav.eq.NITER) then
+          CALL ECLOSE(resormap,resorma,resormap*xstucri,ok)
+          if (ok) then
+            npstuc=npstuc+1
+          else
+            npstuc=0
+          endif
+          ! write(6,*)'Pres',ABS(resormap-resorma)/resormap,npstuc
+          if (INCALU) then
+            CALL ECLOSE(resoruap,resorua,resoruap*xstucri,ok)
+            if (ok) then
+              nustuc=nustuc+1
+            else
+              nustuc=0
+            endif
+          else
+            nustuc=3
+          endif
+          ! write(6,*)'Ures',ABS(resoruap-resorua)/resoruap,nustuc
+          if (INCALV) CALL ECLOSE(resorvap,resorva,resorvap*xstucri,ok)
+          if (ok) then
+            nvstuc=nvstuc+1
+          else
+            nvstuc=0
+          endif
+          ! write(6,*)'Vres',ABS(resorvap-resorva)/resorvap,nvstuc
+          if (INCALW) CALL ECLOSE(resorwap,resorwa,resorwap*xstucri,ok)
+          if (ok) then
+            nwstuc=nwstuc+1
+          else
+            nwstuc=0
+          endif
+          ! write(6,*)'Wres',ABS(resorwap-resorwa)/resorwap,nwstuc
+          if ((npstuc.ge.nstucriall
+     &         .and.(.not.INCALU.or.nustuc.ge.nstucriall)
+     &         .and.(.not.INCALV.or.nvstuc.ge.nstucriall)
+     &         .and.(.not.INCALW.or.nwstuc.ge.nstucriall))
+     &        .or.(npstuc.ge.nstucrione.and.RESORM.gt.SORMAX)
+     &        .or.(nustuc.ge.nstucrione.and.RESORU.gt.SORMAX)
+     &        .or.(nvstuc.ge.nstucrione.and.RESORV.gt.SORMAX)
+     &        .or.(nwstuc.ge.nstucrione.and.RESORW.gt.SORMAX)) then
+
+C Residuals have flatlines. In this situation, we probably aren't going
+C to get any more benefit from continuing to simulate, unless we change
+C something.
+            CALL EDISP(IUOUT,'Residual flatlining detected.')
+
+C Try refining grid resolution in areas of poor convergence. Set flag to
+C find worst cells in terms of worst equation on the next iteration.)
+            if (RESORM.eq.SORCE) then
+              IFNDWT(ICFD)=1
+            elseif (RESORU.eq.SORCE) then
+              IFNDWT(ICFD)=2
+            elseif (RESORV.eq.SORCE) then
+              IFNDWT(ICFD)=3
+            elseif (RESORW.eq.SORCE) then
+              IFNDWT(ICFD)=4
+            elseif (LRENORM) then
+              if (RESORT.eq.SORCE) then
+                IFNDWT(ICFD)=5
+              elseif (RESORK.eq.SORCE) then
+                IFNDWT(ICFD)=6
+              elseif (RESORE.eq.SORCE) then
+                IFNDWT(ICFD)=7
+              endif
+            endif
+          endif   
+          
+          resormap=resorma
+          resorma=0.
+          if (INCALU) then
+            resoruap=resorua
+            resorua=0.
+          endif
+          if (INCALV) then
+            resorvap=resorva
+            resorva=0.
+          endif
+          if (INCALW) then
+            resorwap=resorwa
+            resorwa=0.
+          endif
+        elseif (IFNDWT(ICFD).gt.0) then
+
+C We have found the worst cells; now try and refine the grid in these
+C areas. If it doesn't work, then just stop simulating.
+          CALL EDISP(IUOUT,'Attempting to refine grid...')
+          CALL RFNCFDGRD(ok,IER)
+          IFNDWT(ICFD)=0
+          do i=1,NRFN
+            IRFNCLS(ICFD,i,1)=0
+          enddo
+          if (ok .and. IER.eq.0) CALL GRID(IER)
+          if (.not.ok .or. IER.ne.0) then
+            CALL EDISP(IUOUT,'Failed; stopping CFD simulation.')
+            goto 302
+          else           
+            CALL EDISP(IUOUT,'Done; resuming CFD simulation.')
+          endif     
+        endif
+      endif
+      goto 300
+
   302 continue
       
 C Check convergence. If mfs active and the number of dfs-mfs iterations
@@ -777,7 +949,7 @@ C INIT - Initialize simulation variables.
      &               NCTM(MNZ),JHUMINDX(MNZ),URFC(MCTM)
       COMMON/CFDPOL/POLCONCp(MCTM,ntcelx,ntcely,ntcelz),
      1              POLCONCf(MCTM,ntcelx,ntcely,ntcelz)
-      COMMON/ICFNOD/ICFD,ICP    
+      COMMON/ICFNOD/ICFD,ICP
 
       CHARACTER POLNAM*12
       LOGICAL CALLMA,CALPOL
@@ -786,12 +958,27 @@ C Initialize variables.
       DO 200 I=1,NI
         DO 2001 J=1,NJ
           DO 2002 K=1,NK
-            Up(I,J,K)=UINIT(ICFD)
-            Uf(I,J,K)=UINIT(ICFD)
-            Vp(I,J,K)=VINIT(ICFD)
-            Vf(I,J,K)=VINIT(ICFD)
-            Wp(I,J,K)=WINIT(ICFD)
-            Wf(I,J,K)=WINIT(ICFD)
+            if (I.eq.1) then
+              Up(I,J,K)=0.
+              Uf(I,J,K)=0.
+            else
+              Up(I,J,K)=UINIT(ICFD)
+              Uf(I,J,K)=UINIT(ICFD)
+            endif
+            if (J.eq.1) then
+              Vp(I,J,K)=0.
+              Vf(I,J,K)=0.
+            else
+              Vp(I,J,K)=VINIT(ICFD)
+              Vf(I,J,K)=VINIT(ICFD)
+            endif
+            if (K.eq.1) then
+              Wp(I,J,K)=0.
+              Wf(I,J,K)=0.
+            else
+              Wp(I,J,K)=WINIT(ICFD)
+              Wf(I,J,K)=WINIT(ICFD)
+            endif
             DENp(I,J,K)=AIRDEN(TINIT(ICFD))
             DENf(I,J,K)=AIRDEN(TINIT(ICFD))
 C            P(I,J,K)=GRAV*DENf(I,J,K)*(ZP(KPREF)-ZP(K))
@@ -831,24 +1018,6 @@ C            JHUMINDX(ICFD)=2
  2002     CONTINUE
  2001   CONTINUE
  200  CONTINUE
-      DO 201 I=2,NIM1
-        DO 2011 J=2,NJM1
-          DO 2012 K=2,NKM1
-            IF(I.gt.2)THEN
-              Up(I,J,K)=UINIT(ICFD)
-              Uf(I,J,K)=UINIT(ICFD)
-            ENDIF
-            IF(J.gt.2)THEN
-              Vp(I,J,K)=VINIT(ICFD)
-              Vf(I,J,K)=VINIT(ICFD)
-            ENDIF
-            IF(K.gt.2)THEN
-              Wp(I,J,K)=WINIT(ICFD)
-              Wf(I,J,K)=WINIT(ICFD)
-            ENDIF
- 2012     CONTINUE
- 2011   CONTINUE
- 201  CONTINUE
 
       RETURN
       END
@@ -950,7 +1119,7 @@ C ICALL stops the initisation of blockage data until after the first iteration.
 
 C Common blocks for blockages and small supply openings.
       common/blksso/NBLK(MNZ),INBLK(MNVLS,MNZ),NSSO(MNZ),
-     &          INSSO(MNVLS,MNZ)
+     &          INSSO(MNVLS,MNZ),BLKTEMP(MNVLS,MNZ,6)
 
       CHARACTER POLNAM*12
       LOGICAL INCALU,INCALV,INCALW,INCALT,INCALK,INCALD
@@ -1130,16 +1299,19 @@ C  obtain velocity component in X direction.
      &          VOLCO2(MNVLS,MNZ),VOLVel(MNVLS,MNZ),VOLDir(MNVLS,MNZ,2),
      &          VOLArea(MNVLS,MNZ),VOLPres(MNVLS,MNZ),
      &          VOLPol(MCTM,MNVLS,MNZ)
+      COMMON/RFNGRD/DORFN,IFNDWT(MNZ),NRFN,IRFNCLS(MNZ,MRFN,3),NRFND,
+     &              IRFND(MNZ,MRFNT,3)
+      logical DORFN
 
 C Common blocks for blockages and small supply openings.
       common/blksso/NBLK(MNZ),INBLK(MNVLS,MNZ),NSSO(MNZ),
-     &          INSSO(MNVLS,MNZ)
+     &          INSSO(MNVLS,MNZ),BLKTEMP(MNVLS,MNZ,6)
 
       LOGICAL INCALU,INCALV,INCALW,INCALK,INCALD,INCALT,IZEROT,IZanKE
       LOGICAL IMITZ
       LOGICAL LINVOL,OK,NxtIsBlk
 
-      double precision RESOR, SORVOL
+      double precision RESOR, SORVOL, resorfn(MRFN)
 
       DO 100 I=3,NIM1
         DO 1001 J=2,NJM1
@@ -1340,6 +1512,34 @@ C If inside the blockage or blockage to the west then set resor to zero.
             RESORU=real(RESORU+ABS(RESOR))
             RENORMU=RENORMU+ABS(RENORM)
 
+C Search for the cells with the highest residuals, if needed.
+            if (IFNDWT(ICFD).eq.2) then
+              do irfn=1,NRFN
+                if (IRFNCLS(ICFD,irfn,1).eq.0) then
+                  IRFNCLS(ICFD,irfn,1)=I
+                  IRFNCLS(ICFD,irfn,2)=J
+                  IRFNCLS(ICFD,irfn,3)=K
+                  resorfn(irfn)=ABS(RESOR)
+                  exit
+                elseif (ABS(RESOR).gt.resorfn(irfn)) then
+                  if (irfn.lt.NRFN) then
+                    do iirfn=NRFN,irfn+1,-1
+                      if (IRFNCLS(ICFD,iirfn-1,1).eq.0) cycle
+                      IRFNCLS(ICFD,iirfn,1)=IRFNCLS(ICFD,iirfn-1,1)
+                      IRFNCLS(ICFD,iirfn,2)=IRFNCLS(ICFD,iirfn-1,2)
+                      IRFNCLS(ICFD,iirfn,3)=IRFNCLS(ICFD,iirfn-1,3)
+                      resorfn(iirfn)=resorfn(iirfn-1)
+                    enddo
+                  endif
+                  IRFNCLS(ICFD,irfn,1)=I
+                  IRFNCLS(ICFD,irfn,2)=J
+                  IRFNCLS(ICFD,irfn,3)=K
+                  resorfn(irfn)=ABS(RESOR)
+                  exit
+                endif
+              enddo
+            endif
+
 C Linear under-relaxation.
             AP(I,J,K)=AP(I,J,K)/URFU
             SU(I,J,K)=SU(I,J,K)+(1.-URFU)*AP(I,J,K)*Uf(I,J,K)
@@ -1524,16 +1724,21 @@ C  to obtain velocity component in y direction.
      &          VOLCO2(MNVLS,MNZ),VOLVel(MNVLS,MNZ),VOLDir(MNVLS,MNZ,2),
      &          VOLArea(MNVLS,MNZ),VOLPres(MNVLS,MNZ),
      &          VOLPol(MCTM,MNVLS,MNZ)
+      COMMON/RFNGRD/DORFN,IFNDWT(MNZ),NRFN,IRFNCLS(MNZ,MRFN,3),NRFND,
+     &              IRFND(MNZ,MRFNT,3)
+      logical DORFN
 
 C Common blocks for blockages and small supply openings.
       common/blksso/NBLK(MNZ),INBLK(MNVLS,MNZ),NSSO(MNZ),
-     &          INSSO(MNVLS,MNZ)
+     &          INSSO(MNVLS,MNZ),BLKTEMP(MNVLS,MNZ,6)
+
+      COMMON/ITERAT/NITER
 
       LOGICAL INCALU,INCALV,INCALW,INCALK,INCALD,INCALT,IZEROT,IZanKE
       LOGICAL IMITZ
       LOGICAL OK,LINVOL
 
-      double precision RESOR, SORVOL
+      double precision RESOR, SORVOL, resorfn(MRFN)
 
       DO 100 I=2,NIM1
         DO 1001 J=3,NJM1
@@ -1735,6 +1940,34 @@ C If inside the blockage or blockage to the south then set resor to zero.
             RESORV=real(RESORV+ABS(RESOR))
             RENORMV=RENORMV+ABS(RENORM)
 
+C Search for the cells with the highest residuals, if needed.
+            if (IFNDWT(ICFD).eq.3) then
+              do irfn=1,NRFN
+                if (IRFNCLS(ICFD,irfn,1).eq.0) then
+                  IRFNCLS(ICFD,irfn,1)=I
+                  IRFNCLS(ICFD,irfn,2)=J
+                  IRFNCLS(ICFD,irfn,3)=K
+                  resorfn(irfn)=ABS(RESOR)
+                  exit
+                elseif (ABS(RESOR).gt.resorfn(irfn)) then
+                  if (irfn.lt.NRFN) then
+                    do iirfn=NRFN,irfn+1,-1
+                      if (IRFNCLS(ICFD,iirfn-1,1).eq.0) cycle
+                      IRFNCLS(ICFD,iirfn,1)=IRFNCLS(ICFD,iirfn-1,1)
+                      IRFNCLS(ICFD,iirfn,2)=IRFNCLS(ICFD,iirfn-1,2)
+                      IRFNCLS(ICFD,iirfn,3)=IRFNCLS(ICFD,iirfn-1,3)
+                      resorfn(iirfn)=resorfn(iirfn-1)
+                    enddo
+                  endif
+                  IRFNCLS(ICFD,irfn,1)=I
+                  IRFNCLS(ICFD,irfn,2)=J
+                  IRFNCLS(ICFD,irfn,3)=K
+                  resorfn(irfn)=ABS(RESOR)
+                  exit
+                endif
+              enddo
+            endif
+
 C Linear under-relaxation.
             AP(I,J,K)=AP(I,J,K)/URFV
             SU(I,J,K)=SU(I,J,K)+(1.-URFV)*AP(I,J,K)*Vf(i,j,K)
@@ -1914,17 +2147,20 @@ C  to obtain velocity component in z direction.
      &          VOLCO2(MNVLS,MNZ),VOLVel(MNVLS,MNZ),VOLDir(MNVLS,MNZ,2),
      &          VOLArea(MNVLS,MNZ),VOLPres(MNVLS,MNZ),
      &          VOLPol(MCTM,MNVLS,MNZ)
+      COMMON/RFNGRD/DORFN,IFNDWT(MNZ),NRFN,IRFNCLS(MNZ,MRFN,3),NRFND,
+     &              IRFND(MNZ,MRFNT,3)
+      logical DORFN
 
 C Common blocks for blockages and small supply openings.
       common/blksso/NBLK(MNZ),INBLK(MNVLS,MNZ),NSSO(MNZ),
-     &          INSSO(MNVLS,MNZ)
+     &          INSSO(MNVLS,MNZ),BLKTEMP(MNVLS,MNZ,6)
 
       LOGICAL BUOYA,BOUSSA
       LOGICAL INCALU,INCALV,INCALW,INCALK,INCALD,INCALT,IZEROT,IZanKE
       LOGICAL IMITZ
       LOGICAL OK,LINVOL
 
-      double precision RESOR, SORVOL
+      double precision RESOR, SORVOL, resorfn(MRFN)
 
       DO 100 I=2,NIM1
         DO 1001 J=2,NJM1
@@ -2156,6 +2392,34 @@ C If inside the blockage or blockage to the low then set resor to zero.
             RESORW=real(RESORW+ABS(RESOR))
             RENORMW=RENORMW+ABS(RENORM)
 
+C Search for the cells with the highest residuals, if needed.
+            if (IFNDWT(ICFD).eq.4) then
+              do irfn=1,NRFN
+                if (IRFNCLS(ICFD,irfn,1).eq.0) then
+                  IRFNCLS(ICFD,irfn,1)=I
+                  IRFNCLS(ICFD,irfn,2)=J
+                  IRFNCLS(ICFD,irfn,3)=K
+                  resorfn(irfn)=ABS(RESOR)
+                  exit
+                elseif (ABS(RESOR).gt.resorfn(irfn)) then
+                  if (irfn.lt.NRFN) then
+                    do iirfn=NRFN,irfn+1,-1
+                      if (IRFNCLS(ICFD,iirfn-1,1).eq.0) cycle
+                      IRFNCLS(ICFD,iirfn,1)=IRFNCLS(ICFD,iirfn-1,1)
+                      IRFNCLS(ICFD,iirfn,2)=IRFNCLS(ICFD,iirfn-1,2)
+                      IRFNCLS(ICFD,iirfn,3)=IRFNCLS(ICFD,iirfn-1,3)
+                      resorfn(iirfn)=resorfn(iirfn-1)
+                    enddo
+                  endif
+                  IRFNCLS(ICFD,irfn,1)=I
+                  IRFNCLS(ICFD,irfn,2)=J
+                  IRFNCLS(ICFD,irfn,3)=K
+                  resorfn(irfn)=ABS(RESOR)
+                  exit
+                endif
+              enddo
+            endif
+
 C Linear under-relaxation.
             AP(I,J,K)=AP(I,J,K)/URFW
             SU(I,J,K)=SU(I,J,K)+(1.-URFW)*AP(I,J,K)*Wf(i,j,K)
@@ -2318,11 +2582,15 @@ C  equation and solve the matrix to obtain pressure corrections.
 
 C Common blocks for blockages and small supply openings.
       common/blksso/NBLK(MNZ),INBLK(MNVLS,MNZ),NSSO(MNZ),
-     &          INSSO(MNVLS,MNZ)
+     &          INSSO(MNVLS,MNZ),BLKTEMP(MNVLS,MNZ,6)
      
       COMMON/CONST/GREAT,small,GRAV
+      COMMON/RFNGRD/DORFN,IFNDWT(MNZ),NRFN,IRFNCLS(MNZ,MRFN,3),NRFND,
+     &              IRFND(MNZ,MRFNT,3)
+      logical DORFN
 
       LOGICAL OK,LINVOL,BLOCKS
+      real resorfn(MRFN)
 
       RESORM=0.0
       X1=0.0
@@ -2449,6 +2717,34 @@ C Dynamic source term.
 
 C Compute sum of absolute mass sources.
             RESORM=RESORM+ABS(SU(I,J,K))
+
+C Search for the cells with the highest residuals, if needed.
+            if (IFNDWT(ICFD).eq.1) then
+              do irfn=1,NRFN
+                if (IRFNCLS(ICFD,irfn,1).eq.0) then
+                  IRFNCLS(ICFD,irfn,1)=I
+                  IRFNCLS(ICFD,irfn,2)=J
+                  IRFNCLS(ICFD,irfn,3)=K
+                  resorfn(irfn)=ABS(SU(I,J,K))
+                  exit
+                elseif (ABS(SU(I,J,K)).gt.resorfn(irfn)) then
+                  if (irfn.lt.NRFN) then
+                    do iirfn=NRFN,irfn+1,-1
+                      if (IRFNCLS(ICFD,iirfn-1,1).eq.0) cycle
+                      IRFNCLS(ICFD,iirfn,1)=IRFNCLS(ICFD,iirfn-1,1)
+                      IRFNCLS(ICFD,iirfn,2)=IRFNCLS(ICFD,iirfn-1,2)
+                      IRFNCLS(ICFD,iirfn,3)=IRFNCLS(ICFD,iirfn-1,3)
+                      resorfn(iirfn)=resorfn(iirfn-1)
+                    enddo
+                  endif
+                  IRFNCLS(ICFD,irfn,1)=I
+                  IRFNCLS(ICFD,irfn,2)=J
+                  IRFNCLS(ICFD,irfn,3)=K
+                  resorfn(irfn)=ABS(SU(I,J,K))
+                  exit
+                endif
+              enddo
+            endif
  1002     CONTINUE
  1001   CONTINUE
  100  CONTINUE
@@ -2666,16 +2962,19 @@ C
 
       common/KEYVOLS/NVOL(MNZ),IVOLF(MNVLS,MNZ),IVCELLS(MNVLS,MNZ,2),
      &               JVCELLS(MNVLS,MNZ,2),KVCELLS(MNVLS,MNZ,2)
+      COMMON/RFNGRD/DORFN,IFNDWT(MNZ),NRFN,IRFNCLS(MNZ,MRFN,3),NRFND,
+     &              IRFND(MNZ,MRFNT,3)
+      logical DORFN
 
 C Common blocks for blockages and small supply openings.
       common/blksso/NBLK(MNZ),INBLK(MNVLS,MNZ),NSSO(MNZ),
-     &          INSSO(MNVLS,MNZ)
+     &          INSSO(MNVLS,MNZ),BLKTEMP(MNVLS,MNZ,6)
 
       LOGICAL INCALU,INCALV,INCALW,INCALK,INCALD,INCALT,IZEROT,IZanKE
       LOGICAL IMITZ
       LOGICAL OK,LINVOL
 
-      double precision RESOR, SORVOL
+      double precision RESOR, SORVOL, resorfn(MRFN)
 
 C Check for blockages.
       if(NBLK(ICFD).gt.0) then 
@@ -2830,6 +3129,32 @@ C If inside the blockage or to the west then set resor to zero.
             RESORT=real(RESORT+ABS(RESOR))
             RENORMT=RENORMT+ABS(RENORM)
 
+C Search for the cells with the highest residuals, if needed.
+            if (IFNDWT(ICFD).eq.5) then
+              do irfn=1,NRFN
+                if (IRFNCLS(ICFD,irfn,1).eq.0) then
+                  IRFNCLS(ICFD,irfn,1)=I
+                  IRFNCLS(ICFD,irfn,2)=J
+                  IRFNCLS(ICFD,irfn,3)=K
+                  resorfn(irfn)=ABS(RESOR)
+                elseif (ABS(RESOR).gt.resorfn(irfn)) then
+                  if (irfn.lt.NRFN) then
+                    do iirfn=NRFN,irfn+1,-1
+                      if (IRFNCLS(ICFD,iirfn-1,1).eq.0) cycle
+                      IRFNCLS(ICFD,iirfn,1)=IRFNCLS(ICFD,iirfn-1,1)
+                      IRFNCLS(ICFD,iirfn,2)=IRFNCLS(ICFD,iirfn-1,2)
+                      IRFNCLS(ICFD,iirfn,3)=IRFNCLS(ICFD,iirfn-1,3)
+                      resorfn(iirfn)=resorfn(iirfn-1)
+                    enddo
+                  endif
+                  IRFNCLS(ICFD,irfn,1)=I
+                  IRFNCLS(ICFD,irfn,2)=J
+                  IRFNCLS(ICFD,irfn,3)=K
+                  resorfn(irfn)=ABS(RESOR)
+                endif
+              enddo
+            endif
+
 C Under-relaxation.
             AP(I,J,K)=AP(I,J,K)/URFT
             SU(I,J,K)=SU(I,J,K)+(1.0-URFT)*AP(I,J,K)*Tf(i,j,K)
@@ -2928,15 +3253,18 @@ C  energy equation and solve the matrix.
 
       common/KEYVOLS/NVOL(MNZ),IVOLF(MNVLS,MNZ),IVCELLS(MNVLS,MNZ,2),
      &               JVCELLS(MNVLS,MNZ,2),KVCELLS(MNVLS,MNZ,2)
+      COMMON/RFNGRD/DORFN,IFNDWT(MNZ),NRFN,IRFNCLS(MNZ,MRFN,3),NRFND,
+     &              IRFND(MNZ,MRFNT,3)
+      logical DORFN
 
 C Common blocks for blockages and small supply openings.
       common/blksso/NBLK(MNZ),INBLK(MNVLS,MNZ),NSSO(MNZ),
-     &          INSSO(MNVLS,MNZ)
+     &          INSSO(MNVLS,MNZ),BLKTEMP(MNVLS,MNZ,6)
 
       LOGICAL BUOYA,BOUSSA,GGDH
       LOGICAL OK, LINVOL
 
-      double precision RESOR, SORVOL
+      double precision RESOR, SORVOL, resorfn(MRFN)
 
 C Check for blockages and set TEf.
       if(NBLK(ICFD).gt.0) then 
@@ -3181,6 +3509,34 @@ C If inside the blockage set resor to zero.
             RESORK=real(RESORK+ABS(RESOR))
             RENORMK=RENORMK+ABS(RENORM)
 
+C Search for the cells with the highest residuals, if needed.
+            if (IFNDWT(ICFD).eq.6) then
+              do irfn=1,NRFN
+                if (IRFNCLS(ICFD,irfn,1).eq.0) then
+                  IRFNCLS(ICFD,irfn,1)=I
+                  IRFNCLS(ICFD,irfn,2)=J
+                  IRFNCLS(ICFD,irfn,3)=K
+                  resorfn(irfn)=ABS(RESOR)
+                  exit
+                elseif (ABS(RESOR).gt.resorfn(irfn)) then
+                  if (irfn.lt.NRFN) then
+                    do iirfn=NRFN,irfn+1,-1
+                      if (IRFNCLS(ICFD,iirfn-1,1).eq.0) cycle
+                      IRFNCLS(ICFD,iirfn,1)=IRFNCLS(ICFD,iirfn-1,1)
+                      IRFNCLS(ICFD,iirfn,2)=IRFNCLS(ICFD,iirfn-1,2)
+                      IRFNCLS(ICFD,iirfn,3)=IRFNCLS(ICFD,iirfn-1,3)
+                      resorfn(iirfn)=resorfn(iirfn-1)
+                    enddo
+                  endif
+                  IRFNCLS(ICFD,irfn,1)=I
+                  IRFNCLS(ICFD,irfn,2)=J
+                  IRFNCLS(ICFD,irfn,3)=K
+                  resorfn(irfn)=ABS(RESOR)
+                  exit
+                endif
+              enddo
+            endif
+
 C Linear under-relaxation.
             AP(I,J,K)=AP(I,J,K)/URFK
             SU(I,J,K)=SU(I,J,K)+(1.0-URFK)*AP(I,J,K)*TEf(i,j,K)
@@ -3273,15 +3629,18 @@ C  dissipation equation and solve the matrix.
 
       common/KEYVOLS/NVOL(MNZ),IVOLF(MNVLS,MNZ),IVCELLS(MNVLS,MNZ,2),
      &               JVCELLS(MNVLS,MNZ,2),KVCELLS(MNVLS,MNZ,2)
+      COMMON/RFNGRD/DORFN,IFNDWT(MNZ),NRFN,IRFNCLS(MNZ,MRFN,3),NRFND,
+     &              IRFND(MNZ,MRFNT,3)
+      logical DORFN
 
 C Common blocks for blockages and small supply openings.
       common/blksso/NBLK(MNZ),INBLK(MNVLS,MNZ),NSSO(MNZ),
-     &          INSSO(MNVLS,MNZ)
+     &          INSSO(MNVLS,MNZ),BLKTEMP(MNVLS,MNZ,6)
 
       LOGICAL BUOYA,BOUSSA,GGDH
       LOGICAL OK, LINVOL
 
-      double precision RESOR, SORVOL
+      double precision RESOR, SORVOL, resorfn(MRFN)
 
 C Set solution method to default soln method.
       DO 100 I=2,NIM1
@@ -3451,6 +3810,34 @@ C If inside the blockage then set resor to zero.
             RESORE=real(RESORE+ABS(RESOR))
             RENORME=RENORME+ABS(RENORM)
 
+C Search for the cells with the highest residuals, if needed.
+            if (IFNDWT(ICFD).eq.7) then
+              do irfn=1,NRFN
+                if (IRFNCLS(ICFD,irfn,1).eq.0) then
+                  IRFNCLS(ICFD,irfn,1)=I
+                  IRFNCLS(ICFD,irfn,2)=J
+                  IRFNCLS(ICFD,irfn,3)=K
+                  resorfn(irfn)=ABS(RESOR)
+                  exit
+                elseif (ABS(RESOR).gt.resorfn(irfn)) then
+                  if (irfn.lt.NRFN) then
+                    do iirfn=NRFN,irfn+1,-1
+                      if (IRFNCLS(ICFD,iirfn-1,1).eq.0) cycle
+                      IRFNCLS(ICFD,iirfn,1)=IRFNCLS(ICFD,iirfn-1,1)
+                      IRFNCLS(ICFD,iirfn,2)=IRFNCLS(ICFD,iirfn-1,2)
+                      IRFNCLS(ICFD,iirfn,3)=IRFNCLS(ICFD,iirfn-1,3)
+                      resorfn(iirfn)=resorfn(iirfn-1)
+                    enddo
+                  endif
+                  IRFNCLS(ICFD,irfn,1)=I
+                  IRFNCLS(ICFD,irfn,2)=J
+                  IRFNCLS(ICFD,irfn,3)=K
+                  resorfn(irfn)=ABS(RESOR)
+                  exit
+                endif
+              enddo
+            endif
+
 C Linear under-relaxation.
             AP(I,J,K)=AP(I,J,K)/URFE
             SU(I,J,K)=SU(I,J,K)+(1.0-URFE)*AP(I,J,K)*EDf(i,j,K)
@@ -3496,63 +3883,76 @@ C INDBND - Initialize some boundary conditions.
 #include "building.h"
 #include "cfd.h"
 
-      COMMON/NDMAP/NOPEN(MNZ),MFNODE(MCFND,MNZ),IOPENi(MCFND,MNZ),
-     &             IOPENf(MCFND,MNZ),JOPENi(MCFND,MNZ),
-     &             JOPENf(MCFND,MNZ),KOPENi(MCFND,MNZ),
-     &             KOPENf(MCFND,MNZ),FIXM(MCFND,MNZ),
-     &             FIXT(MCFND,MNZ),FIXC(MCFND,MNZ),
-     &             FIXK(MCFND,MNZ),FIXE(MCFND,MNZ),
-     &             IWOPEN(MCFND,MNZ),ICFDCN(MCFND,MNZ),
-     &             ICNACT(MCFND,MNZ),IVOLNOP(MCFND,MNZ)
-      COMMON/Sbdary/NSB(MNZ),ISBi(MNSBZ,MNZ),ISBf(MNSBZ,MNZ),
-     &              JSBi(MNSBZ,MNZ),JSBf(MNSBZ,MNZ),
-     &              KSBi(MNSBZ,MNZ),KSBf(MNSBZ,MNZ),
-     &              ISUFLC(MNSBZ,MNZ),IWSB(MNSBZ,MNZ),SSB(MNSBZ,MNZ),
-     &              SSBHC(MNSBZ,MNZ),IVOLNSB(MNSBZ,MNZ),
-     &              ITCtype(MNSBZ,MNZ),icTREF(MNSBZ,MNZ)
-
+      common/KEYVOLS/NVOL(MNZ),IVOLF(MNVLS,MNZ),IVCELLS(MNVLS,MNZ,2),
+     &               JVCELLS(MNVLS,MNZ,2),KVCELLS(MNVLS,MNZ,2)
+      common/KEYVDAT/IVTYPE(MNVLS,MNZ),VOLTemp(MNVLS,MNZ),
+     &          VOLHeat(MNVLS,MNZ),IVConfl(MNVLS,MNZ),VOLHum(MNVLS,MNZ),
+     &          VOLCO2(MNVLS,MNZ),VOLVel(MNVLS,MNZ),VOLDir(MNVLS,MNZ,2),
+     &          VOLArea(MNVLS,MNZ),VOLPres(MNVLS,MNZ),
+     &          VOLPol(MCTM,MNVLS,MNZ)
       COMMON/ICFNOD/ICFD,ICP
-
       COMMON/VARf/Uf(ntcelx,ntcely,ntcelz),Vf(ntcelx,ntcely,ntcelz),
      1            Wf(ntcelx,ntcely,ntcelz),
      2            P(ntcelx,ntcely,ntcelz),PP(ntcelx,ntcely,ntcelz),
      3            TEf(ntcelx,ntcely,ntcelz),EDf(ntcelx,ntcely,ntcelz)
+      COMMON/BCTYPCEL/IBCTPC(ntcelx,ntcely,ntcelz)
+      COMMON/ALL/NI,NJ,NK,NIM1,NJM1,NKM1,NIM2,NJM2,NKM2
 
-C Examine each CFD solid boundary in turn.
-      DO 20 L=1,NSB(ICFD)
+C Initialise IBCTPC
+      do i=1,NI
+        do j=1,NJ
+          do k=1,NK
+            IBCTPC(i,j,k)=0
+          enddo
+        enddo
+      enddo
+
+C Examine each CFD boundary condition in turn.
+      DO 20 IV=1,NVOL(ICFD)        
 
 C Determine upon which face of the CFD domain the solid boundary resides.
-C `location' is equal to the least significant digit of IWSB and has the
-C following meanings: 1 for west; 2 for east; 3 for south; 4 for north;
-C 5 for low; 6 for high.
-        location = abs(IWSB(L,ICFD)) - abs(IWSB(L,ICFD))/10*10
+C `location' has the following meanings: 1 for west; 2 for east;
+C 3 for south; 4 for north; 5 for low; 6 for high.
+        location = IVOLF(IV,ICFD)
+
+C Determine BC type.
+        ityp=IVTYPE(IV,ICFD)
+
+C Solid and symmetrical BCs.
+        if (ityp.lt.10) then
 
 C West wall.
-        IF(location.EQ.1)THEN
-          I=ISBi(L,ICFD)
-          DO 40 J=JSBi(L,ICFD),JSBf(L,ICFD)
-            DO 401 K=KSBi(L,ICFD),KSBf(L,ICFD)
-              Uf(I,J,K)=0.0
- 401        CONTINUE
- 40       CONTINUE
+          IF(location.EQ.1)THEN
+            I=IVCELLS(IV,ICFD,1)
+            DO 40 J=JVCELLS(IV,ICFD,1),JVCELLS(IV,ICFD,2)
+              DO 401 K=KVCELLS(IV,ICFD,1),KVCELLS(IV,ICFD,2)
+                Uf(I,J,K)=0.0
+
+C Set up array of BC type per cell.
+C This is used for velocity cells which straddle BC divides.
+                IBCTPC(I,J,K)=ityp
+  401        CONTINUE
+  40       CONTINUE
 
 C East wall.
-        ELSEIF(location.EQ.2)THEN
-          I=ISBi(L,ICFD)
-          DO 80 J=JSBi(L,ICFD),JSBf(L,ICFD)
-            DO 801 K=KSBi(L,ICFD),KSBf(L,ICFD)
-              Uf(I+1,J,K)=0.0
- 801        CONTINUE
- 80       CONTINUE
+          ELSEIF(location.EQ.2)THEN
+            I=IVCELLS(IV,ICFD,1)
+            DO 80 J=JVCELLS(IV,ICFD,1),JVCELLS(IV,ICFD,2)
+              DO 801 K=KVCELLS(IV,ICFD,1),KVCELLS(IV,ICFD,2)
+                Uf(I+1,J,K)=0.0
+                IBCTPC(I,J,K)=ityp
+  801        CONTINUE
+  80       CONTINUE
 
 C South wall.
-        ELSEIF(location.EQ.3)THEN
-          J=JSBi(L,ICFD)
-          DO 120 I=ISBi(L,ICFD),ISBf(L,ICFD)
-            DO 1201 K=KSBi(L,ICFD),KSBf(L,ICFD)
-              Vf(I,J,K)=0.0
- 1201       CONTINUE
- 120      CONTINUE
+          ELSEIF(location.EQ.3)THEN
+            J=JVCELLS(IV,ICFD,1)
+            DO 120 I=IVCELLS(IV,ICFD,1),IVCELLS(IV,ICFD,2)
+              DO 1201 K=KVCELLS(IV,ICFD,1),KVCELLS(IV,ICFD,2)
+                Vf(I,J,K)=0.0
+                IBCTPC(I,J,K)=ityp
+ 1201         CONTINUE
+ 120        CONTINUE
 
 C North wall.
 C Previously, there was a bug in this section caused by
@@ -3560,46 +3960,58 @@ C iterating K from JSBi to KSBf instead of KSBi to KSBf.
 C This had the effect that solid boundary cells on the north face may
 C have had a momentum in the V direction equal to the starting V
 C momentum specfied in the domain file.
-        ELSEIF(location.EQ.4)THEN
-          J=JSBi(L,ICFD)
-          DO 160 I=ISBi(L,ICFD),ISBf(L,ICFD)
-            DO 1601 K=KSBi(L,ICFD),KSBf(L,ICFD)
-              Vf(I,J+1,K)=0.0
- 1601       CONTINUE
- 160      CONTINUE
+          ELSEIF(location.EQ.4)THEN
+            J=JVCELLS(IV,ICFD,1)
+            DO 160 I=IVCELLS(IV,ICFD,1),IVCELLS(IV,ICFD,2)
+              DO 1601 K=KVCELLS(IV,ICFD,1),KVCELLS(IV,ICFD,2)
+                Vf(I,J+1,K)=0.0
+                IBCTPC(I,J,K)=ityp
+ 1601         CONTINUE
+ 160        CONTINUE
 
 C Low wall.
-        ELSEIF(location.EQ.5)THEN
-          K=KSBi(L,ICFD)
-          DO 200 I=ISBi(L,ICFD),ISBf(L,ICFD)
-            DO 2001 J=JSBi(L,ICFD),JSBf(L,ICFD)
-              Wf(I,J,K)=0.0
- 2001       CONTINUE
- 200      CONTINUE
+          ELSEIF(location.EQ.5)THEN
+            K=KVCELLS(IV,ICFD,1)
+            DO 200 I=IVCELLS(IV,ICFD,1),IVCELLS(IV,ICFD,2)
+              DO 2001 J=JVCELLS(IV,ICFD,1),JVCELLS(IV,ICFD,2)
+                Wf(I,J,K)=0.0
+                IBCTPC(I,J,K)=ityp
+ 2001         CONTINUE
+ 200        CONTINUE
 
 C High wall.
-        ELSEIF(location.EQ.6)THEN
-          K=KSBi(L,ICFD)
-          DO 240 I=ISBi(L,ICFD),ISBf(L,ICFD)
-            DO 2401 J=JSBi(L,ICFD),JSBf(L,ICFD)
-              Wf(I,J,K+1)=0.0
- 2401       CONTINUE
- 240      CONTINUE
-        ENDIF
- 20   CONTINUE
+          ELSEIF(location.EQ.6)THEN
+            K=KVCELLS(IV,ICFD,1)
+            DO 240 I=IVCELLS(IV,ICFD,1),IVCELLS(IV,ICFD,2)
+              DO 2401 J=JVCELLS(IV,ICFD,1),JVCELLS(IV,ICFD,2)
+                Wf(I,J,K+1)=0.0
+                IBCTPC(I,J,K)=ityp
+ 2401         CONTINUE
+ 240        CONTINUE
+          ENDIF
 
 C Set pressure if pressure BC.
-      DO 310 M=1,NOPEN(ICFD)
-        if (IWOPEN(M,ICFD).EQ.0) then
-          DO 3101 I=IOPENi(M,ICFD),IOPENf(M,ICFD)
-            DO 3102 J=JOPENi(M,ICFD),JOPENf(M,ICFD)
-              DO 3103 K=KOPENi(M,ICFD),KOPENf(M,ICFD)
-                P(I,J,K)=FIXM(M,ICFD)
+        elseif (ityp.eq.10) then
+          DO 3101 I=IVCELLS(IV,ICFD,1),IVCELLS(IV,ICFD,2)
+            DO 3102 J=JVCELLS(IV,ICFD,1),JVCELLS(IV,ICFD,2)
+              DO 3103 K=KVCELLS(IV,ICFD,1),KVCELLS(IV,ICFD,2)
+                P(I,J,K)=VOLPres(IV,ICFD)
+                IBCTPC(I,J,K)=ityp
  3103         CONTINUE
  3102       CONTINUE
  3101     CONTINUE
+
+C For other BC types, just set up IBCTPC.
+        else
+          DO 3201 I=IVCELLS(IV,ICFD,1),IVCELLS(IV,ICFD,2)
+            DO 3202 J=JVCELLS(IV,ICFD,1),JVCELLS(IV,ICFD,2)
+              DO 3203 K=KVCELLS(IV,ICFD,1),KVCELLS(IV,ICFD,2)
+                IBCTPC(I,J,K)=ityp
+ 3203         CONTINUE
+ 3202       CONTINUE
+ 3201     CONTINUE
         endif
- 310  CONTINUE
+ 20   CONTINUE
 
       RETURN
       END
@@ -3632,7 +4044,6 @@ C opening area.  If no area is specified then VOLArea is set to 1.0
       common/SSOinit/areaSSO
 
       LOGICAL areaSSO
-
 
 C Search for velocity type openings and see if an opening area 
 C has been defined.
@@ -3707,8 +4118,14 @@ C INOUT - Set up all inlet and outlet conditions.
      &             FIXK(MCFND,MNZ),FIXE(MCFND,MNZ),
      &             IWOPEN(MCFND,MNZ),ICFDCN(MCFND,MNZ),
      &             ICNACT(MCFND,MNZ),IVOLNOP(MCFND,MNZ)
+      common/KEYVOLS/NVOL(MNZ),IVOLF(MNVLS,MNZ),IVCELLS(MNVLS,MNZ,2),
+     &               JVCELLS(MNVLS,MNZ,2),KVCELLS(MNVLS,MNZ,2)
+      common/KEYVDAT/IVTYPE(MNVLS,MNZ),VOLTemp(MNVLS,MNZ),
+     &          VOLHeat(MNVLS,MNZ),IVConfl(MNVLS,MNZ),VOLHum(MNVLS,MNZ),
+     &          VOLCO2(MNVLS,MNZ),VOLVel(MNVLS,MNZ),VOLDir(MNVLS,MNZ,2),
+     &          VOLArea(MNVLS,MNZ),VOLPres(MNVLS,MNZ),
+     &          VOLPol(MCTM,MNVLS,MNZ)
       COMMON/ICFNOD/ICFD,ICP
-
       COMMON/GEOM/XP(ntcelx),YP(ntcely),ZP(ntcelz),
      1            DXEP(ntcelx),DXPW(ntcelx),DYNP(ntcely),DYPS(ntcely),
      2            DZHP(ntcelz),DZPL(ntcelz),
@@ -3732,185 +4149,562 @@ C INOUT - Set up all inlet and outlet conditions.
      2            BETA(ntcelx,ntcely,ntcelz)
       COMMON/THETA/THETA1(MCFND,MNZ),THETA2(MCFND,MNZ)
       COMMON/BUOYAN/BUOYA,BOUSSA,TBAR(MNZ)
+      COMMON/BCTYPCEL/IBCTPC(ntcelx,ntcely,ntcelz)
+      COMMON/ITERAT/NITER
 
       LOGICAL BUOYA,BOUSSA
       real diff
+      real Utmp,Vtmp,Wtmp
 
       XMONIN=0.0
       FLWIN=0.0
       FLWOUT=0.0
 
-C Examine each opening in turn.
-      DO 100 L=1,NOPEN(ICFD)
+C Examine each BC.
+      DO 100 IV=1,NVOL(ICFD)
+
+        ityp=IVTYPE(IV,ICFD)
+        location=IVOLF(IV,ICFD)
+
+C For velocity type openings, set boundary conditions.
+        if (ityp.eq.11) then
+
+C West face.
+          if (location.eq.1) then
+
+C Calculate opening area.
+            AREA=(YV(JVCELLS(IV,ICFD,2)+1)-YV(JVCELLS(IV,ICFD,1)))*
+     &           (ZW(KVCELLS(IV,ICFD,2)+1)-ZW(KVCELLS(IV,ICFD,1)))
 
 C Iterate over cells covering opening.
-        DO 101 I=IOPENi(L,ICFD),IOPENf(L,ICFD)
-          DO 1011 J=JOPENi(L,ICFD),JOPENf(L,ICFD)
-            DO 1012 K=KOPENi(L,ICFD),KOPENf(L,ICFD)
-
-C `Prescribed velocity' type openings: fix variables.
-              IF(IWOPEN(L,ICFD).EQ.1)THEN
-
-C Opening in west.
-                AREA=(YV(JOPENf(L,ICFD)+1)-YV(JOPENi(L,ICFD)))*
-     &                        (ZW(KOPENf(L,ICFD)+1)-ZW(KOPENi(L,ICFD)))
+            DO I=IVCELLS(IV,ICFD,1),IVCELLS(IV,ICFD,2)
+              DO J=JVCELLS(IV,ICFD,1),JVCELLS(IV,ICFD,2)
+                DO K=KVCELLS(IV,ICFD,1),KVCELLS(IV,ICFD,2)
 
 C Important for satisfying mass balance and convergency - updating 
 C temperature when flow leaving domain leads to correct density 
 C and correct source term in pressure correction eqn. 
-                IF(FIXM(L,ICFD).gt.0.0)THEN
-                  TEMP=FIXT(L,ICFD)
-                  Tf(I-1,J,K)=FIXT(L,ICFD)
-                ELSE
-                  TEMP=Tf(I,J,K)
-                  Tf(I-1,J,K)=Tf(I,J,K)
-                ENDIF
-                IF(BOUSSA) TEMP=TBAR(ICFD)
-                Uf(I,J,K)=FIXM(L,ICFD)/AIRDEN(TEMP)/AREA
-                UIN=Uf(I,J,K)
-                VRES=Uf(I,J,K)*SQRT(1.+ETAND(THETA1(L,ICFD))**2+
-     &                              ETAND(THETA2(L,ICFD))**2)
-                TEf(I-1,J,K)=TURBIN*VRES**2
-                EDf(I-1,J,K)=TEf(I-1,J,K)**1.5/ALAMDA/SQRT(AREA)
-              ELSEIF(IWOPEN(L,ICFD).EQ.2)THEN
+                  if (VOLVel(IV,ICFD).gt.0.0) then
+                    Tf(I-1,J,K)=VOLTemp(IV,ICFD)
+                  else
+                    Tf(I-1,J,K)=Tf(I,J,K)
+                  endif
+                  if (BOUSSA) then
+                    TEMP=TBAR(ICFD)
+                  else
+                    TEMP=Tf(I-1,J,K)
+                  endif
 
-C Opening in east.
-                AREA=(YV(JOPENf(L,ICFD)+1)-YV(JOPENi(L,ICFD)))*
-     &                     (ZW(KOPENf(L,ICFD)+1)-ZW(KOPENi(L,ICFD)))
-                IF(FIXM(L,ICFD).gt.0.0)THEN
-                  TEMP=FIXT(L,ICFD)
-                  Tf(I+1,J,K)=FIXT(L,ICFD)
-                ELSE
-                  TEMP=Tf(I,J,K)
-                  Tf(I+1,J,K)=Tf(I,J,K)
-                ENDIF
-                IF(BOUSSA) TEMP=TBAR(ICFD)
-                Uf(I+1,J,K)=-FIXM(L,ICFD)/AIRDEN(TEMP)/AREA
-                UIN=Uf(I+1,J,K)
-                VRES=ABS(Uf(I+1,J,K))*SQRT(1.+ETAND(THETA1(L,ICFD))**2+
-     &                                     ETAND(THETA2(L,ICFD))**2)
-                TEf(I+1,J,K)=TURBIN*VRES**2
-                EDf(I+1,J,K)=TEf(I+1,J,K)**1.5/ALAMDA/SQRT(AREA)
-              ELSEIF(IWOPEN(L,ICFD).EQ.3)THEN
+C Set inlet velocity and turbulence scalars.
+                  Uf(I,J,K)=VOLVel(IV,ICFD)/AIRDEN(TEMP)/AREA
+                  VRES=Uf(I,J,K)*SQRT(1.+ETAND(VOLDir(IV,ICFD,1))**2+
+     &                                   ETAND(VOLDir(IV,ICFD,2))**2)
+                  TEf(I-1,J,K)=TURBIN*VRES**2
+                  EDf(I-1,J,K)=TEf(I-1,J,K)**1.5/ALAMDA/SQRT(AREA)
 
-C Opening in south.
-                AREA=(XU(IOPENf(L,ICFD)+1)-XU(IOPENi(L,ICFD)))*
-     &                     (ZW(KOPENf(L,ICFD)+1)-ZW(KOPENi(L,ICFD)))
-                IF(FIXM(L,ICFD).gt.0.0)THEN
-                  TEMP=FIXT(L,ICFD)
-                  Tf(I,J-1,K)=FIXT(L,ICFD)
-                ELSE
-                  TEMP=Tf(I,J,K)
-                  Tf(I,J-1,K)=Tf(I,J,K)
-                ENDIF
-                IF(BOUSSA) TEMP=TBAR(ICFD)
-                Vf(I,J,K)=FIXM(L,ICFD)/AIRDEN(TEMP)/AREA
-                UIN=Vf(I,J,K)
-                VRES=Vf(I,J,K)*SQRT(1.+ETAND(THETA1(L,ICFD))**2+
-     &                              ETAND(THETA2(L,ICFD))**2)
-                TEf(I,J-1,K)=TURBIN*VRES**2
-                EDf(I,J-1,K)=TEf(I,J-1,K)**1.5/ALAMDA/SQRT(AREA)
-              ELSEIF(IWOPEN(L,ICFD).EQ.4)THEN
+C Set lateral velocities.
+C Use half the value at the velocity cells that straddle the BC divide;
+C this ensures that the correct overall momentum is maintained.
+C If the BC on the other side is another velocity BC, check IBCTPC. Set
+C it to -ve the first time we set the velocity, then aggregate the
+C second time to avoid losing the velocity contribution from the first
+C time.
+                  Vtmp=Uf(I,J,K)*ETAND(VOLDir(IV,ICFD,1))
+                  if (J.eq.JVCELLS(IV,ICFD,1)) then
+                    if (IBCTPC(I,J-1,K).eq.11) then
+                      Vf(I-1,J,K)=Vtmp/2.
+                      IBCTPC(I,J-1,K)=-11
+                    elseif (IBCTPC(I,J-1,K).eq.-11) then
+                      Vf(I-1,J,K)=Vf(I-1,J,K)+Vtmp/2.
+                      IBCTPC(I,J-1,K)=11
+                    else
+                      Vf(I-1,J,K)=Vtmp/2.
+                    endif
+                  elseif (J.eq.JVCELLS(IV,ICFD,2)) then
+                    Vf(I-1,J,K)=Vtmp
+                    if (IBCTPC(I,J+1,K).eq.11) then
+                      Vf(I-1,J+1,K)=Vtmp/2.
+                      IBCTPC(I,J+1,K)=-11
+                    elseif (IBCTPC(I,J+1,K).eq.-11) then
+                      Vf(I-1,J+1,K)=Vf(I-1,J+1,K)+Vtmp/2.
+                      IBCTPC(I,J+1,K)=11
+                    else
+                      Vf(I-1,J+1,K)=Vtmp/2.
+                    endif
+                  else
+                    Vf(I-1,J,K)=Vtmp
+                  endif
 
-C Opening in north.
-                AREA=(XU(IOPENf(L,ICFD)+1)-XU(IOPENi(L,ICFD)))*
-     &                     (ZW(KOPENf(L,ICFD)+1)-ZW(KOPENi(L,ICFD)))
-                IF(FIXM(L,ICFD).gt.0.0)THEN
-                  TEMP=FIXT(L,ICFD)
-                  Tf(I,J+1,K)=FIXT(L,ICFD)
-                ELSE
-                  TEMP=Tf(I,J,K)
-                  Tf(I,J+1,K)=Tf(I,J,K)
-                ENDIF
-                IF(BOUSSA) TEMP=TBAR(ICFD)
-                Vf(I,J+1,K)=-FIXM(L,ICFD)/AIRDEN(TEMP)/AREA
-                UIN=Vf(I,J+1,K)
-                VRES=ABS(Vf(I,J+1,K))*SQRT(1.+ETAND(THETA1(L,ICFD))**2+
-     &                                     ETAND(THETA2(L,ICFD))**2)
-                TEf(I,J+1,K)=TURBIN*VRES**2
-                EDf(I,J+1,K)=TEf(I,J+1,K)**1.5/ALAMDA/SQRT(AREA)
-              ELSEIF(IWOPEN(L,ICFD).EQ.5)THEN
+                  Wtmp=Uf(I,J,K)*ETAND(VOLDir(IV,ICFD,2))
+                  if (K.eq.KVCELLS(IV,ICFD,1)) then
+                    if (IBCTPC(I,J,K-1).eq.11) then
+                      Wf(I-1,J,K)=Wtmp/2.
+                      IBCTPC(I,J,K-1)=-11
+                    elseif (IBCTPC(I,J,K-1).eq.-11) then
+                      Wf(I-1,J,K)=Wf(I-1,J,K)+Wtmp/2.
+                      IBCTPC(I,J,K-1)=11
+                    else
+                      Wf(I-1,J,K)=Wtmp/2.
+                    endif
+                  elseif (K.eq.KVCELLS(IV,ICFD,2)) then
+                    Wf(I-1,J,K)=Wtmp
+                    if (IBCTPC(I,J,K+1).eq.11) then
+                      Wf(I-1,J,K+1)=Wtmp/2.
+                      IBCTPC(I,J,K+1)=-11
+                    elseif (IBCTPC(I,J,K+1).eq.-11) then
+                      Wf(I-1,J,K+1)=Wf(I-1,J,K+1)+Wtmp/2.
+                      IBCTPC(I,J,K+1)=11
+                    else
+                      Wf(I-1,J,K+1)=Wtmp/2.
+                    endif
+                  else
+                    Wf(I-1,J,K)=Wtmp
+                  endif
+                enddo
+              enddo
+            enddo
 
-C Opening in low.
-                AREA=(XU(IOPENf(L,ICFD)+1)-XU(IOPENi(L,ICFD)))*
-     &                     (YV(JOPENf(L,ICFD)+1)-YV(JOPENi(L,ICFD)))
-                IF(FIXM(L,ICFD).gt.0.0)THEN
-                  TEMP=FIXT(L,ICFD)
-                  Tf(I,J,K-1)=FIXT(L,ICFD)
-                ELSE
-                  TEMP=Tf(I,J,K)
-                  Tf(I,J,K-1)=Tf(I,J,K)
-                ENDIF
-                IF(BOUSSA) TEMP=TBAR(ICFD)
-                Wf(I,J,K)=FIXM(L,ICFD)/AIRDEN(TEMP)/AREA
-                UIN=Wf(I,J,K)
-                VRES=Wf(I,J,K)*SQRT(1.+ETAND(THETA1(L,ICFD))**2+
-     &                              ETAND(THETA2(L,ICFD))**2)
-                TEf(I,J,K-1)=TURBIN*VRES**2
-                EDf(I,J,K-1)=TEf(I,J,K-1)**1.5/ALAMDA/SQRT(AREA)
-              ELSEIF(IWOPEN(L,ICFD).EQ.6)THEN
-              
-C Opening in high.
-                AREA=(XU(IOPENf(L,ICFD)+1)-XU(IOPENi(L,ICFD)))*
-     &                     (YV(JOPENf(L,ICFD)+1)-YV(JOPENi(L,ICFD)))
-                IF(FIXM(L,ICFD).gt.0.0)THEN
-                  TEMP=FIXT(L,ICFD)
-                  Tf(I,J,K+1)=FIXT(L,ICFD)
-                ELSE
-                  TEMP=Tf(I,J,K)
-                  Tf(I,J,K+1)=Tf(I,J,K)
-                ENDIF
-                IF(BOUSSA) TEMP=TBAR(ICFD)
-                Wf(I,J,K+1)=-FIXM(L,ICFD)/AIRDEN(TEMP)/AREA
-                UIN=Wf(I,J,K+1)
-                VRES=ABS(Wf(I,J,K+1))*SQRT(1.+ETAND(THETA1(L,ICFD))**2+
-     &                                     ETAND(THETA2(L,ICFD))**2)
-                TEf(I,J,K+1)=TURBIN*VRES**2
-                EDf(I,J,K+1)=TEf(I,J,K+1)**1.5/ALAMDA/SQRT(AREA)
-              ENDIF
-              
+C East face.
+C See west face above for comments.
+          elseif (location.eq.2) then
+            AREA=(YV(JVCELLS(IV,ICFD,2)+1)-YV(JVCELLS(IV,ICFD,1)))*
+     &           (ZW(KVCELLS(IV,ICFD,2)+1)-ZW(KVCELLS(IV,ICFD,1)))
+            DO I=IVCELLS(IV,ICFD,1),IVCELLS(IV,ICFD,2)
+              DO J=JVCELLS(IV,ICFD,1),JVCELLS(IV,ICFD,2)
+                DO K=KVCELLS(IV,ICFD,1),KVCELLS(IV,ICFD,2)
+                  if (VOLVel(IV,ICFD).gt.0.0) then
+                    Tf(I+1,J,K)=VOLTemp(IV,ICFD)
+                  else
+                    Tf(I+1,J,K)=Tf(I,J,K)
+                  endif
+                  if (BOUSSA) then
+                    TEMP=TBAR(ICFD)
+                  else
+                    TEMP=Tf(I+1,J,K)
+                  endif
+                  Uf(I+1,J,K)=-VOLVel(IV,ICFD)/AIRDEN(TEMP)/AREA
+                  VRES=abs(Uf(I+1,J,K))*
+     &              SQRT(1.+ETAND(VOLDir(IV,ICFD,1))**2+
+     &                      ETAND(VOLDir(IV,ICFD,2))**2)
+                  TEf(I+1,J,K)=TURBIN*VRES**2
+                  EDf(I+1,J,K)=TEf(I+1,J,K)**1.5/ALAMDA/SQRT(AREA)
+                  Vtmp=-Uf(I+1,J,K)*ETAND(VOLDir(IV,ICFD,1))
+                  if (J.eq.JVCELLS(IV,ICFD,1)) then
+                    if (IBCTPC(I,J-1,K).eq.11) then
+                      Vf(I+1,J,K)=Vtmp/2.
+                      IBCTPC(I,J-1,K)=-11
+                    elseif (IBCTPC(I,J-1,K).eq.-11) then
+                      Vf(I+1,J,K)=Vf(I+1,J,K)+Vtmp/2.
+                      IBCTPC(I,J-1,K)=11
+                    else
+                      Vf(I+1,J,K)=Vtmp/2.
+                    endif
+                  elseif (J.eq.JVCELLS(IV,ICFD,2)) then
+                    Vf(I+1,J,K)=Vtmp
+                    if (IBCTPC(I,J+1,K).eq.11) then
+                      Vf(I+1,J+1,K)=Vtmp/2.
+                      IBCTPC(I,J+1,K)=-11
+                    elseif (IBCTPC(I,J+1,K).eq.-11) then
+                      Vf(I+1,J+1,K)=Vf(I+1,J+1,K)+Vtmp/2.
+                      IBCTPC(I,J+1,K)=11
+                    else
+                      Vf(I+1,J+1,K)=Vtmp/2.
+                    endif
+                  else
+                    Vf(I+1,J,K)=Vtmp
+                  endif
+                  Wtmp=-Uf(I+1,J,K)*ETAND(VOLDir(IV,ICFD,2))
+                  if (K.eq.KVCELLS(IV,ICFD,1)) then
+                    if (IBCTPC(I,J,K-1).eq.11) then
+                      Wf(I+1,J,K)=Wtmp/2.
+                      IBCTPC(I,J,K-1)=-11
+                    elseif (IBCTPC(I,J,K-1).eq.-11) then
+                      Wf(I+1,J,K)=Wf(I+1,J,K)+Wtmp/2.
+                      IBCTPC(I,J,K-1)=11
+                    else
+                      Wf(I+1,J,K)=Wtmp/2.
+                    endif
+                  elseif (K.eq.KVCELLS(IV,ICFD,2)) then
+                    Wf(I+1,J,K)=Wtmp
+                    if (IBCTPC(I,J,K+1).eq.11) then
+                      Wf(I+1,J,K+1)=Wtmp/2.
+                      IBCTPC(I,J,K+1)=-11
+                    elseif (IBCTPC(I,J,K+1).eq.-11) then
+                      Wf(I+1,J,K+1)=Wf(I+1,J,K+1)+Wtmp/2.
+                      IBCTPC(I,J,K+1)=11
+                    else
+                      Wf(I+1,J,K+1)=Wtmp/2.
+                    endif
+                  else
+                    Wf(I+1,J,K)=Wtmp
+                  endif
+                enddo
+              enddo
+            enddo
+
+C South face.
+C See west face above for comments.
+          ELSEIF (location.EQ.3) THEN
+            AREA=(XU(IVCELLS(IV,ICFD,2)+1)-XU(IVCELLS(IV,ICFD,1)))*
+     &           (ZW(KVCELLS(IV,ICFD,2)+1)-ZW(KVCELLS(IV,ICFD,1)))
+            DO I=IVCELLS(IV,ICFD,1),IVCELLS(IV,ICFD,2)
+              DO J=JVCELLS(IV,ICFD,1),JVCELLS(IV,ICFD,2)
+                DO K=KVCELLS(IV,ICFD,1),KVCELLS(IV,ICFD,2)
+                  if (VOLVel(IV,ICFD).gt.0.0) then
+                    Tf(I,J-1,K)=VOLTemp(IV,ICFD)
+                  else
+                    Tf(I,J-1,K)=Tf(I,J,K)
+                  endif
+                  if (BOUSSA) then
+                    TEMP=TBAR(ICFD)
+                  else
+                    TEMP=Tf(I,J-1,K)
+                  endif
+                  Vf(I,J,K)=VOLVel(IV,ICFD)/AIRDEN(TEMP)/AREA
+                  VRES=Vf(I,J,K)*SQRT(1.+ETAND(VOLDir(IV,ICFD,1))**2+
+     &                                   ETAND(VOLDir(IV,ICFD,2))**2)
+                  TEf(I,J-1,K)=TURBIN*VRES**2
+                  EDf(I,J-1,K)=TEf(I,J-1,K)**1.5/ALAMDA/SQRT(AREA)
+                  Utmp=Vf(I,J,K)*ETAND(VOLDir(IV,ICFD,1))
+                  if (I.eq.IVCELLS(IV,ICFD,1)) then
+                    if (IBCTPC(I-1,J,K).eq.11) then
+                      Uf(I,J-1,K)=Utmp/2.
+                      IBCTPC(I-1,J,K)=-11
+                    elseif (IBCTPC(I-1,J,K).eq.-11) then
+                      Uf(I,J-1,K)=Uf(I,J-1,K)+Utmp/2.
+                      IBCTPC(I-1,J,K)=11
+                    else
+                      Uf(I,J-1,K)=Utmp/2.
+                    endif
+                  elseif (I.eq.IVCELLS(IV,ICFD,2)) then
+                    Uf(I,J-1,K)=Utmp
+                    if (IBCTPC(I+1,J,K).eq.11) then
+                      Uf(I+1,J-1,K)=Utmp/2.
+                      IBCTPC(I+1,J,K)=-11
+                    elseif (IBCTPC(I+1,J,K).eq.-11) then
+                      Uf(I+1,J-1,K)=Uf(I+1,J-1,K)+Utmp/2.
+                      IBCTPC(I+1,J,K)=11
+                    else
+                      Uf(I+1,J-1,K)=Utmp/2.
+                    endif
+                  else
+                    Uf(I,J-1,K)=Utmp
+                  endif
+                  Wtmp=Vf(I,J,K)*ETAND(VOLDir(IV,ICFD,2))
+                  if (K.eq.KVCELLS(IV,ICFD,1)) then
+                    if (IBCTPC(I,J,K-1).eq.11) then
+                      Wf(I,J-1,K)=Wtmp/2.
+                      IBCTPC(I,J,K-1)=-11
+                    elseif (IBCTPC(I,J,K-1).eq.-11) then
+                      Wf(I,J-1,K)=Wf(I,J-1,K)+Wtmp/2.
+                      IBCTPC(I,J,K-1)=11
+                    else
+                      Wf(I,J-1,K)=Wtmp/2.
+                    endif
+                  elseif (K.eq.KVCELLS(IV,ICFD,2)) then
+                    Wf(I,J-1,K)=Wtmp
+                    if (IBCTPC(I,J,K+1).eq.11) then
+                      Wf(I,J-1,K+1)=Wtmp/2.
+                      IBCTPC(I,J,K+1)=-11
+                    elseif (IBCTPC(I,J,K+1).eq.-11) then
+                      Wf(I,J-1,K+1)=Wf(I,J-1,K+1)+Wtmp/2.
+                      IBCTPC(I,J,K+1)=11
+                    else
+                      Wf(I,J-1,K+1)=Wtmp/2.
+                    endif
+                  else
+                    Wf(I,J-1,K)=Wtmp
+                  endif
+                enddo
+              enddo
+            enddo
+
+C North face.
+C See west face above for comments.
+          ELSEIF (location.EQ.4) THEN
+            AREA=(XU(IVCELLS(IV,ICFD,2)+1)-XU(IVCELLS(IV,ICFD,1)))*
+     &           (ZW(KVCELLS(IV,ICFD,2)+1)-ZW(KVCELLS(IV,ICFD,1)))
+            DO I=IVCELLS(IV,ICFD,1),IVCELLS(IV,ICFD,2)
+              DO J=JVCELLS(IV,ICFD,1),JVCELLS(IV,ICFD,2)
+                DO K=KVCELLS(IV,ICFD,1),KVCELLS(IV,ICFD,2)
+                  if (VOLVel(IV,ICFD).gt.0.0) then
+                    Tf(I,J+1,K)=VOLTemp(IV,ICFD)
+                  else
+                    Tf(I,J+1,K)=Tf(I,J,K)
+                  endif
+                  if (BOUSSA) then
+                    TEMP=TBAR(ICFD)
+                  else
+                    TEMP=Tf(I,J+1,K)
+                  endif
+                  Vf(I,J+1,K)=-VOLVel(IV,ICFD)/AIRDEN(TEMP)/AREA
+                  VRES=abs(Vf(I,J+1,K))*
+     &              SQRT(1.+ETAND(VOLDir(IV,ICFD,1))**2+
+     &                      ETAND(VOLDir(IV,ICFD,2))**2)
+                  TEf(I,J+1,K)=TURBIN*VRES**2
+                  EDf(I,J+1,K)=TEf(I,J+1,K)**1.5/ALAMDA/SQRT(AREA)
+                  Utmp=-Vf(I,J+1,K)*ETAND(VOLDir(IV,ICFD,1))
+                  if (I.eq.IVCELLS(IV,ICFD,1)) then
+                    if (IBCTPC(I-1,J,K).eq.11) then
+                      Uf(I,J+1,K)=Utmp/2.
+                      IBCTPC(I-1,J,K)=-11
+                    elseif (IBCTPC(I-1,J,K).eq.-11) then
+                      Uf(I,J+1,K)=Uf(I,J+1,K)+Utmp/2.
+                      IBCTPC(I-1,J,K)=11
+                    else
+                      Uf(I,J+1,K)=Utmp/2.
+                    endif
+                  elseif (I.eq.IVCELLS(IV,ICFD,2)) then
+                    Uf(I,J+1,K)=Utmp
+                    if (IBCTPC(I+1,J,K).eq.11) then
+                      Uf(I+1,J+1,K)=Utmp/2.
+                      IBCTPC(I+1,J,K)=-11
+                    elseif (IBCTPC(I+1,J,K).eq.-11) then
+                      Uf(I+1,J+1,K)=Uf(I+1,J+1,K)+Utmp/2.
+                      IBCTPC(I+1,J,K)=11
+                    else
+                      Uf(I+1,J+1,K)=Utmp/2.
+                    endif
+                  else
+                    Uf(I,J+1,K)=Utmp
+                  endif
+                  Wtmp=-Vf(I,J+1,K)*ETAND(VOLDir(IV,ICFD,2))
+                  if (K.eq.KVCELLS(IV,ICFD,1)) then
+                    if (IBCTPC(I,J,K-1).eq.11) then
+                      Wf(I,J+1,K)=Wtmp/2.
+                      IBCTPC(I,J,K-1)=-11
+                    elseif (IBCTPC(I,J,K-1).eq.-11) then
+                      Wf(I,J+1,K)=Wf(I,J+1,K)+Wtmp/2.
+                      IBCTPC(I,J,K-1)=11
+                    else
+                      Wf(I,J+1,K)=Wtmp/2.
+                    endif
+                  elseif (K.eq.KVCELLS(IV,ICFD,2)) then
+                    Wf(I,J+1,K)=Wtmp
+                    if (IBCTPC(I,J,K+1).eq.11) then
+                      Wf(I,J+1,K+1)=Wtmp/2.
+                      IBCTPC(I,J,K+1)=-11
+                    elseif (IBCTPC(I,J,K+1).eq.-11) then
+                      Wf(I,J+1,K+1)=Wf(I,J+1,K+1)+Wtmp/2.
+                      IBCTPC(I,J,K+1)=11
+                    else
+                      Wf(I,J+1,K+1)=Wtmp/2.
+                    endif
+                  else
+                    Wf(I,J+1,K)=Wtmp
+                  endif
+                enddo
+              enddo
+            enddo
+
+C Low face.
+C See west face above for comments.
+          ELSEIF (location.EQ.5) THEN
+            AREA=(XU(IVCELLS(IV,ICFD,2)+1)-XU(IVCELLS(IV,ICFD,1)))*
+     &           (YV(JVCELLS(IV,ICFD,2)+1)-YV(JVCELLS(IV,ICFD,1)))
+            DO I=IVCELLS(IV,ICFD,1),IVCELLS(IV,ICFD,2)
+              DO J=JVCELLS(IV,ICFD,1),JVCELLS(IV,ICFD,2)
+                DO K=KVCELLS(IV,ICFD,1),KVCELLS(IV,ICFD,2)
+                  if (VOLVel(IV,ICFD).gt.0.0) then
+                    Tf(I,J,K-1)=VOLTemp(IV,ICFD)
+                  else
+                    Tf(I,J,K-1)=Tf(I,J,K)
+                  endif
+                  if (BOUSSA) then
+                    TEMP=TBAR(ICFD)
+                  else
+                    TEMP=Tf(I,J,K-1)
+                  endif
+                  Wf(I,J,K)=VOLVel(IV,ICFD)/AIRDEN(TEMP)/AREA
+                  VRES=Wf(I,J,K)*SQRT(1.+ETAND(VOLDir(IV,ICFD,1))**2+
+     &                                   ETAND(VOLDir(IV,ICFD,2))**2)
+                  TEf(I,J,K-1)=TURBIN*VRES**2
+                  EDf(I,J,K-1)=TEf(I,J,K-1)**1.5/ALAMDA/SQRT(AREA)
+                  Utmp=Wf(I,J,K)*ETAND(VOLDir(IV,ICFD,1))
+                  if (I.eq.IVCELLS(IV,ICFD,1)) then
+                    if (IBCTPC(I-1,J,K).eq.11) then
+                      Uf(I,J,K-1)=Utmp/2.
+                      IBCTPC(I-1,J,K)=-11
+                    elseif (IBCTPC(I-1,J,K).eq.-11) then
+                      Uf(I,J,K-1)=Uf(I,J,K-1)+Utmp/2.
+                      IBCTPC(I-1,J,K)=11
+                    else
+                      Uf(I,J,K-1)=Utmp/2.
+                    endif
+                  elseif (I.eq.IVCELLS(IV,ICFD,2)) then
+                    Uf(I,J,K-1)=Utmp
+                    if (IBCTPC(I+1,J,K).eq.11) then
+                      Uf(I+1,J,K-1)=Utmp/2.
+                      IBCTPC(I+1,J,K)=-11
+                    elseif (IBCTPC(I+1,J,K).eq.-11) then
+                      Uf(I+1,J,K-1)=Uf(I+1,J,K-1)+Utmp/2.
+                      IBCTPC(I+1,J,K)=11
+                    else
+                      Uf(I+1,J,K-1)=Utmp/2.
+                    endif
+                  else
+                    Uf(I,J,K-1)=Utmp
+                  endif
+                  Vtmp=Wf(I,J,K)*ETAND(VOLDir(IV,ICFD,2))
+                  if (J.eq.JVCELLS(IV,ICFD,1)) then
+                    if (IBCTPC(I,J-1,K).eq.11) then
+                      Vf(I,J,K-1)=Vtmp/2.
+                      IBCTPC(I,J-1,K)=-11
+                    elseif (IBCTPC(I,J-1,K).eq.-11) then
+                      Vf(I,J,K-1)=Vf(I,J,K-1)+Vtmp/2.
+                      IBCTPC(I,J-1,K)=11
+                    else
+                      Vf(I,J,K-1)=Vtmp/2.
+                    endif
+                  elseif (J.eq.JVCELLS(IV,ICFD,2)) then
+                    Vf(I,J,K-1)=Vtmp
+                    if (IBCTPC(I,J+1,K).eq.11) then
+                      Vf(I,J+1,K-1)=Vtmp/2.
+                      IBCTPC(I,J+1,K)=-11
+                    elseif (IBCTPC(I,J+1,K).eq.-11) then
+                      Vf(I,J+1,K-1)=Vf(I,J+1,K-1)+Vtmp/2.
+                      IBCTPC(I,J+1,K)=11
+                    else
+                      Vf(I,J+1,K-1)=Vtmp/2.
+                    endif
+                  else
+                    Vf(I,J,K-1)=Vtmp
+                  endif
+                enddo
+              enddo
+            enddo
+
+C High face.
+C See west face above for comments.
+          ELSEIF (location.EQ.6) THEN              
+            AREA=(XU(IVCELLS(IV,ICFD,2)+1)-XU(IVCELLS(IV,ICFD,1)))*
+     &           (YV(JVCELLS(IV,ICFD,2)+1)-YV(JVCELLS(IV,ICFD,1)))
+            DO I=IVCELLS(IV,ICFD,1),IVCELLS(IV,ICFD,2)
+              DO J=JVCELLS(IV,ICFD,1),JVCELLS(IV,ICFD,2)
+                DO K=KVCELLS(IV,ICFD,1),KVCELLS(IV,ICFD,2)
+                  if (VOLVel(IV,ICFD).gt.0.0) then
+                    Tf(I,J,K+1)=VOLTemp(IV,ICFD)
+                  else
+                    Tf(I,J,K+1)=Tf(I,J,K)
+                  endif
+                  if (BOUSSA) then
+                    TEMP=TBAR(ICFD)
+                  else
+                    TEMP=Tf(I,J,K+1)
+                  endif
+                  Wf(I,J,K+1)=-VOLVel(IV,ICFD)/AIRDEN(TEMP)/AREA
+                  VRES=abs(Wf(I,J,K+1))*
+     &              SQRT(1.+ETAND(VOLDir(IV,ICFD,1))**2+
+     &                      ETAND(VOLDir(IV,ICFD,2))**2)
+                  TEf(I,J,K+1)=TURBIN*VRES**2
+                  EDf(I,J,K+1)=TEf(I,J,K+1)**1.5/ALAMDA/SQRT(AREA)
+                  Utmp=-Wf(I,J,K+1)*ETAND(VOLDir(IV,ICFD,1))
+                  if (I.eq.IVCELLS(IV,ICFD,1)) then
+                    if (IBCTPC(I-1,J,K).eq.11) then
+                      Uf(I,J,K+1)=Utmp/2.
+                      IBCTPC(I-1,J,K)=-11
+                    elseif (IBCTPC(I-1,J,K).eq.-11) then
+                      Uf(I,J,K+1)=Uf(I,J,K+1)+Utmp/2.
+                      IBCTPC(I-1,J,K)=11
+                    else
+                      Uf(I,J,K+1)=Utmp/2.
+                    endif
+                  elseif (I.eq.IVCELLS(IV,ICFD,2)) then
+                    Uf(I,J,K+1)=Utmp
+                    if (IBCTPC(I+1,J,K).eq.11) then
+                      Uf(I+1,J,K+1)=Utmp/2.
+                      IBCTPC(I+1,J,K)=-11
+                    elseif (IBCTPC(I+1,J,K).eq.-11) then
+                      Uf(I+1,J,K+1)=Uf(I+1,J,K+1)+Utmp/2.
+                      IBCTPC(I+1,J,K)=11
+                    else
+                      Uf(I+1,J,K+1)=Utmp/2.
+                    endif
+                  else
+                    Uf(I,J,K+1)=Utmp
+                  endif
+                  Vtmp=-Wf(I,J,K+1)*ETAND(VOLDir(IV,ICFD,2))
+                  if (J.eq.JVCELLS(IV,ICFD,1)) then
+                    if (IBCTPC(I,J-1,K).eq.11) then
+                      Vf(I,J,K+1)=Vtmp/2.
+                      IBCTPC(I,J-1,K)=-11
+                    elseif (IBCTPC(I,J-1,K).eq.-11) then
+                      Vf(I,J,K+1)=Vf(I,J,K+1)+Vtmp/2.
+                      IBCTPC(I,J-1,K)=11
+                    else
+                      Vf(I,J,K+1)=Vtmp/2.
+                    endif
+                  elseif (J.eq.JVCELLS(IV,ICFD,2)) then
+                    Vf(I,J,K+1)=Vtmp
+                    if (IBCTPC(I,J+1,K).eq.11) then
+                      Vf(I,J+1,K+1)=Vtmp/2.
+                      IBCTPC(I,J+1,K)=-11
+                    elseif (IBCTPC(I,J+1,K).eq.-11) then
+                      Vf(I,J+1,K+1)=Vf(I,J+1,K+1)+Vtmp/2.
+                      IBCTPC(I,J+1,K)=11
+                    else
+                      Vf(I,J+1,K+1)=Vtmp/2.
+                    endif
+                  else
+                    Vf(I,J,K+1)=Vtmp
+                  endif
+                enddo
+              enddo
+            enddo
+          endif
+
+C Aggregate total flow in and out.
+          if (VOLVel(IV,ICFD).gt.0.0) then
+            FLWIN=FLWIN+VOLVel(IV,ICFD)
+            XMONIN=XMONIN+VOLVel(IV,ICFD)
+          elseif (VOLVel(IV,ICFD).lt.0.0) then
+            FLWOUT=FLWOUT-VOLVel(IV,ICFD)
+          endif
+
 C Calculate mass flow exiting at `zero-gradient type' openings.
-              IF(IWOPEN(L,ICFD).EQ.-1) THEN
+        elseif (ityp.eq.12) then
 
-C Opening in west.
-                FLWOUT=FLWOUT-Uf(I+1,J,K)*DENf(I,J,K)*AreaEWP(J,K)
-              ELSEIF(IWOPEN(L,ICFD).EQ.-2) THEN
+C Iterate over cells of opening.
+          DO I=IVCELLS(IV,ICFD,1),IVCELLS(IV,ICFD,2)
+            DO J=JVCELLS(IV,ICFD,1),JVCELLS(IV,ICFD,2)
+              DO K=KVCELLS(IV,ICFD,1),KVCELLS(IV,ICFD,2)
 
-C Opening in east.
-                FLWOUT=FLWOUT+Uf(I,J,K)*DENf(I,J,K)*AreaEWP(J,K)
-              ELSEIF(IWOPEN(L,ICFD).EQ.-3) THEN
+C West face.
+                IF (location.EQ.1) THEN
+                  FLWOUT=FLWOUT-Uf(I+1,J,K)*DENf(I,J,K)*AreaEWP(J,K)
 
-C Opening in south.
-                FLWOUT=FLWOUT-Vf(I,J+1,K)*DENf(I,J,K)*AreaNSP(I,K)
-              ELSEIF(IWOPEN(L,ICFD).EQ.-4) THEN
+C East face.
+                ELSEIF (location.EQ.2) THEN
+                  FLWOUT=FLWOUT+Uf(I,J,K)*DENf(I,J,K)*AreaEWP(J,K)
 
-C Opening in north.
-                FLWOUT=FLWOUT+Vf(I,J,K)*DENf(I,J,K)*AreaNSP(I,K)
-              ELSEIF(IWOPEN(L,ICFD).EQ.-5) THEN
+C South face.
+                ELSEIF(IWOPEN(L,ICFD).EQ.-3) THEN
+                  FLWOUT=FLWOUT-Vf(I,J+1,K)*DENf(I,J,K)*AreaNSP(I,K)
 
-C Opening in low.
-                FLWOUT=FLWOUT-Wf(I,J,K+1)*DENf(I,J,K)*AreaHLP(I,J)
-              ELSEIF(IWOPEN(L,ICFD).EQ.-6) THEN
+C North face.
+                ELSEIF(IWOPEN(L,ICFD).EQ.-4) THEN
+                  FLWOUT=FLWOUT+Vf(I,J,K)*DENf(I,J,K)*AreaNSP(I,K)
 
-C Opening in high.
-                FLWOUT=FLWOUT+Wf(I,J,K)*DENf(I,J,K)*AreaHLP(I,J)
-              ENDIF
+C Low face.
+                ELSEIF(IWOPEN(L,ICFD).EQ.-5) THEN
+                  FLWOUT=FLWOUT-Wf(I,J,K+1)*DENf(I,J,K)*AreaHLP(I,J)
 
- 1012       CONTINUE
- 1011     CONTINUE
- 101    CONTINUE
-
-C Calculate mass flow entering domain.
-        IF(FIXM(L,ICFD).GT.0.)FLWIN=FLWIN+FIXM(L,ICFD)
-        IF(FIXM(L,ICFD).GT.0.)XMONIN=XMONIN+FIXM(L,ICFD)*ABS(UIN)
+C High face.
+                ELSEIF(IWOPEN(L,ICFD).EQ.-6) THEN
+                  FLWOUT=FLWOUT+Wf(I,J,K)*DENf(I,J,K)*AreaHLP(I,J)
+                endif
+              enddo
+            enddo
+          enddo
+        endif
 
 C Examine next opening.
  100  CONTINUE
 
 C Now fix velocities at `zero-gradient type' openings. Examine each opening
 C in turn.
-      DO 200 L=1,NOPEN(ICFD)
-        IF (IWOPEN(L,ICFD).lt.0.and.FIXM(L,ICFD).LE.0.0) THEN
+      DO 200 IV=1,NVOL(ICFD)
+        IF (IVTYPE(IV,ICFD).eq.12.and.VOLVel(IV,ICFD).LE.0.0) THEN
 
 C Calculate FF ratio of mass flow into domain to ratio of mass flow exiting.
 C This is used to adjust the flows at the zero-gradient exits to balance
@@ -3918,52 +4712,52 @@ C mass over the domain. Refer to Versteeg and Malalasekera (1995), p198.
           FF=ABS(FLWIN/anotzero(FLWOUT))
 
 C Iterate over cells covering opening.
-          DO 201 I=IOPENi(L,ICFD),IOPENf(L,ICFD)
-            DO 2011 J=JOPENi(L,ICFD),JOPENf(L,ICFD)
-              DO 2012 K=KOPENi(L,ICFD),KOPENf(L,ICFD)
-                IF(IWOPEN(L,ICFD).EQ.-1) THEN
+          DO 201 I=IVCELLS(IV,ICFD,1),IVCELLS(IV,ICFD,2)
+            DO 2011 J=JVCELLS(IV,ICFD,1),JVCELLS(IV,ICFD,2)
+              DO 2012 K=KVCELLS(IV,ICFD,1),KVCELLS(IV,ICFD,2)
 
-C Zero-gradient type opening in west.
+C Opening in west face.
+                IF(IVOLF(IV,ICFD).EQ.1) THEN
                   IF(Uf(I+1,J,K).GT.0.) THEN
                     Uf(I,J,K)=-FF*Uf(I+1,J,K)
                   ELSE
                     Uf(I,J,K)=FF*Uf(I+1,J,K)
                   ENDIF
-                ELSEIF(IWOPEN(L,ICFD).EQ.-2) THEN
 
-C Zero-gradient type opening in east.
+C Opening in east face.
+                ELSEIF(IVOLF(IV,ICFD).EQ.2) THEN
                   IF(Uf(I,J,K).LT.0.) THEN
                     Uf(I+1,J,K)=-FF*Uf(I,J,K)
                   ELSE
                     Uf(I+1,J,K)=FF*Uf(I,J,K)
                   ENDIF
-                ELSEIF(IWOPEN(L,ICFD).EQ.-3) THEN
 
-C Zero-gradient type opening in south.
+C Opening in south face.
+                ELSEIF(IVOLF(IV,ICFD).EQ.3) THEN
                   IF(Vf(I,J+1,K).GT.0.) THEN
                     Vf(I,J,K)=-FF*Vf(I,J+1,K)
                   ELSE
                     Vf(I,J,K)=FF*Vf(I,J+1,K)
                   ENDIF
-                ELSEIF(IWOPEN(L,ICFD).EQ.-4) THEN
 
-C Zero-gradient type opening in north.
+C Opening in north face.
+                ELSEIF(IVOLF(IV,ICFD).EQ.4) THEN
                   IF(Vf(I,J,K).LT.0.) THEN
                     Vf(I,J+1,K)=-FF*Vf(I,J,K)
                   ELSE
                     Vf(I,J+1,K)=FF*Vf(I,J,K)
                   ENDIF
-                ELSEIF(IWOPEN(L,ICFD).EQ.-5) THEN
 
-C Zero-gradient type opening in low.
+C Opening in low face.
+                ELSEIF(IVOLF(IV,ICFD).EQ.5) THEN
                   IF(Wf(I,J,K+1).GT.0.) THEN
                     Wf(I,J,K)=-FF*Wf(I,J,K+1)
                   ELSE
                     Wf(I,J,K)=FF*Wf(I,J,K+1)
                   ENDIF
-                ELSEIF(IWOPEN(L,ICFD).EQ.-6) THEN
-
-C Zero-gradient type opening in high.
+                  
+C Opening in high face.
+                ELSEIF(IVOLF(IV,ICFD).EQ.6) THEN
                   IF(Wf(I,J,K).LT.0.) THEN
                     Wf(I,J,K+1)=-FF*Wf(I,J,K)
                   ELSE
@@ -4088,3 +4882,549 @@ C  e.g. AE()=APLAWCF(DFE,-CE) and for other faces AW()=APLAWCF(DFW,CW)
 
       RETURN
       END
+
+C ********************* EXCFDBC *********************
+C Export current CFD boundary conditions to a file.
+C Assumes output file on iunit is already open.
+
+      SUBROUTINE EXCFDBC(iunit,ier)
+
+#include "building.h"
+#include "cfd.h"
+
+      COMMON/ICFNOD/ICFD,ICP
+      common/KEYVOLS/NVOL(MNZ),IVOLF(MNVLS,MNZ),IVCELLS(MNVLS,MNZ,2),
+     &               JVCELLS(MNVLS,MNZ,2),KVCELLS(MNVLS,MNZ,2)
+      common/KEYVDAT/IVTYPE(MNVLS,MNZ),VOLTemp(MNVLS,MNZ),
+     &          VOLHeat(MNVLS,MNZ),IVConfl(MNVLS,MNZ),VOLHum(MNVLS,MNZ),
+     &          VOLCO2(MNVLS,MNZ),VOLVel(MNVLS,MNZ),VOLDir(MNVLS,MNZ,2),
+     &          VOLArea(MNVLS,MNZ),VOLPres(MNVLS,MNZ),
+     &          VOLPol(MCTM,MNVLS,MNZ)
+      common/EQTION3/CALLMA(MNZ),CALPOL(MCTM,MNZ),POLNAM(MCTM,MNZ),
+     &               NCTM(MNZ),JHUMINDX(MNZ),URFC(MCTM)
+      LOGICAL CALLMA,CALPOL
+      CHARACTER POLNAM*12
+      common/blksso/NBLK(MNZ),INBLK(MNVLS,MNZ),NSSO(MNZ),
+     &          INSSO(MNVLS,MNZ),BLKTEMP(MNVLS,MNZ,6)
+
+      do iv=1,NVOL(ICFD)
+        ityp=IVTYPE(iv,ICFD)
+        write(iunit,'(a)')' '
+        write(iunit,'(a,i3.3)')'volume: ',iv
+        if (ityp.eq.1) then
+          write(iunit,'(a)')'type: solid, temperature'
+          write(iunit,'(a,f8.2)')'temperature (C): ',VOLTemp(iv,ICFD)
+        elseif (ityp.eq.2) then
+          write(iunit,'(a)')'type: solid, heat flux'
+          write(iunit,'(a,f8.2)')'heat flux (W): ',VOLHeat(iv,ICFD)
+        elseif (ityp.eq.3) then
+          write(iunit,'(a)')'type: symmetrical'
+        elseif (ityp.eq.4) then
+          write(iunit,'(a)')'type: solid, temperature'
+          write(iunit,'(a,f8.2)')'temperature (C): ',VOLTemp(iv,ICFD)
+        elseif (ityp.eq.5) then
+          write(iunit,'(a)')'type: solid, heat flux'
+          write(iunit,'(a,f8.2)')'heat flux (W): ',VOLHeat(iv,ICFD)
+        elseif (ityp.eq.6) then
+          write(iunit,'(a)')'type: symmetrical'
+        elseif (ityp.eq.10) then
+          write(iunit,'(a)')'type: opening, pressure'
+          write(iunit,'(a,f8.2)')'pressure (Pa): ',VOLPres(iv,ICFD)
+          write(iunit,'(a,f8.2)')'temperature (C): ',VOLTemp(iv,ICFD)
+        elseif (ityp.eq.11) then
+          write(iunit,'(a)')'type: opening, directed flow'
+          write(iunit,'(a,f8.5)')'mass flow (kg/s): ',VOLVel(iv,ICFD)
+          write(iunit,'(a,f8.2)')'temperature (C): ',VOLTemp(iv,ICFD)
+          write(iunit,'(a,f8.2)')'direction 1 (deg): ',VOLDir(iv,ICFD,1)
+          write(iunit,'(a,f8.2)')'direction 2 (deg): ',VOLDir(iv,ICFD,2)
+        elseif (ityp.eq.12) then
+          write(iunit,'(a)')'type: opening, zero gradient'
+          write(iunit,'(a,f8.2)')'temperature (C): ',VOLTemp(iv,ICFD)
+        elseif (ityp.eq.13) then
+          write(iunit,'(a)')'type: opening, mass'
+          write(iunit,'(a,f8.5)')'mass flow (kg/s): ',VOLVel(iv,ICFD)
+          write(iunit,'(a,f8.2)')'temperature (C): ',VOLTemp(iv,ICFD)
+        elseif (ityp.eq.20) then
+          write(iunit,'(a)')'type: source'
+          write(iunit,'(a,f8.2)')'heat flux (W): ',VOLHeat(iv,ICFD)
+          do ictm=1,NCTM(ICFD)
+            write(iunit,'(a,i2.2,a,f8.5)')'contaminant ',ictm,
+     &        ' rate (kg/s): ',VOLPOL(ictm,iv,ICFD)
+          enddo
+        elseif (ityp.eq.30) then
+          write(iunit,'(a)')'type: blockage, heat flux'
+          write(iunit,'(a,f8.2)')'heat flux (W): ',VOLHeat(iv,ICFD)
+        elseif (ityp.eq.31 .or. itype.eq.32) then
+          write(iunit,'(a)')'type: blockage, temperature'
+          write(iunit,'(a,f8.2)')'temperature (C): ',VOLTemp(iv,ICFD)
+        elseif (ityp.eq.33) then
+          write(iunit,'(a)')'type: blockage, face temperatures'
+          write(iunit,'(a,f8.2)')'east temperature (C): ',
+     &      BLKTEMP(iv,ICFD,1)
+          write(iunit,'(a,f8.2)')'west temperature (C): ',
+     &      BLKTEMP(iv,ICFD,2)
+          write(iunit,'(a,f8.2)')'north temperature (C): ',
+     &      BLKTEMP(iv,ICFD,3)
+          write(iunit,'(a,f8.2)')'south temperature (C): ',
+     &      BLKTEMP(iv,ICFD,4)
+          write(iunit,'(a,f8.2)')'high temperature (C): ',
+     &      BLKTEMP(iv,ICFD,5)
+          write(iunit,'(a,f8.2)')'low temperature (C): ',
+     &      BLKTEMP(iv,ICFD,6)
+        endif
+      enddo
+
+      RETURN
+      END
+
+C ********************* RFNCFDGRD *********************
+C Try to refine CFD grid in areas of poor convergence.
+C We don't store per cell residuals in memory so this subroutine uses
+C common RFNGRD, populated elsewhere, to determine which cells to
+C refine.
+
+C Returns logical "refined", which says whether any refinements have
+C been made.
+
+      SUBROUTINE RFNCFDGRD(refined,ier)
+
+#include "building.h"
+#include "cfd.h"
+
+      integer imode,ier
+      logical refined
+
+      COMMON/ICFNOD/ICFD,ICP
+      common/OUTIN/IUOUT,IUIN,IEOUT
+      COMMON/RFNGRD/DORFN,IFNDWT(MNZ),NRFN,IRFNCLS(MNZ,MRFN,3),NRFND,
+     &              IRFND(MNZ,MRFNT,3)
+      logical DORFN
+      common/GRIDFN/NCELX(MNREG,MNZ),NCELY(MNREG,MNZ),NCELZ(MNREG,MNZ),
+     &  NCELZE(MNREG,MNZ),XREG(MNREG,MNZ),YREG(MNREG,MNZ),
+     &  ZREG(MNREG,MNZ),ZREGE(MNREG,MNZ),Xplaw(MNREG,MNZ),
+     &  Yplaw(MNREG,MNZ),Zplaw(MNREG,MNZ),Zplawe(MNREG,MNZ),NREG(4,MNZ)
+      COMMON/GEOM/XP(ntcelx),YP(ntcely),ZP(ntcelz),
+     1            DXEP(ntcelx),DXPW(ntcelx),DYNP(ntcely),DYPS(ntcely),
+     2            DZHP(ntcelz),DZPL(ntcelz),
+     3            SEW(ntcelx),SNS(ntcely),SHL(ntcelz),
+     4            XU(ntcelx),YV(ntcely),ZW(ntcelz)
+      COMMON/ALL/NI,NJ,NK,NIM1,NJM1,NKM1,NIM2,NJM2,NKM2
+      common/KEYVOLS/NVOL(MNZ),IVOLF(MNVLS,MNZ),IVCELLS(MNVLS,MNZ,2),
+     &               JVCELLS(MNVLS,MNZ,2),KVCELLS(MNVLS,MNZ,2)
+      COMMON/VARp/Up(ntcelx,ntcely,ntcelz),Vp(ntcelx,ntcely,ntcelz),
+     1            Wp(ntcelx,ntcely,ntcelz),TEp(ntcelx,ntcely,ntcelz),
+     2            EDp(ntcelx,ntcely,ntcelz)  
+      COMMON/VARf/Uf(ntcelx,ntcely,ntcelz),Vf(ntcelx,ntcely,ntcelz),
+     1            Wf(ntcelx,ntcely,ntcelz),
+     2            P(ntcelx,ntcely,ntcelz),PP(ntcelx,ntcely,ntcelz),
+     3            TEf(ntcelx,ntcely,ntcelz),EDf(ntcelx,ntcely,ntcelz)
+      COMMON/TEMPp/Tp(ntcelx,ntcely,ntcelz)
+      COMMON/TEMPf/Tf(ntcelx,ntcely,ntcelz),GAMH(ntcelx,ntcely,ntcelz),
+     1             RESORT,NSWPT,URFT,FSDTT,PRANDL,PFUN
+      COMMON/FLUPRp/DENp(ntcelx,ntcely,ntcelz)
+      COMMON/FLUPRf/URFVIS,VISCOS,PRANDT,SH,
+     1            DENf(ntcelx,ntcely,ntcelz),VIS(ntcelx,ntcely,ntcelz),
+     2            BETA(ntcelx,ntcely,ntcelz)
+      common/EQTION3/CALLMA(MNZ),CALPOL(MCTM,MNZ),POLNAM(MCTM,MNZ),
+     &               NCTM(MNZ),JHUMINDX(MNZ),URFC(MCTM)
+      LOGICAL CALLMA,CALPOL
+      CHARACTER POLNAM*12
+      COMMON/CFDPOL/POLCONCp(MCTM,ntcelx,ntcely,ntcelz),
+     1              POLCONCf(MCTM,ntcelx,ntcely,ntcelz)
+      COMMON/LOCAGE/AGEf(ntcelx,ntcely,ntcelz)
+      common/INCALC/INCALU,INCALV,INCALW,INCALK,INCALD,INCALT,
+     1              IZEROT,IZanKE,IMITZ
+      logical INCALU,INCALV,INCALW,INCALK,INCALD,INCALT,IZEROT,IZanKE,
+     &        IMITZ
+      common/param1/MAXITR(MNZ),IMONT(MNZ),JMONT(MNZ),KMONT(MNZ),
+     &             IPPHI(MNZ),SRMAX(MNZ)
+
+      logical ok
+
+      refined=.false.
+      ier=0
+        
+C Refine grid by splitting cells in half in all 3 dimensions (into 8).
+C Currently, we can't have a cell bounded by more than one cell on a
+C face, se we must split all cells on the row in each dimension.
+
+      do irfn=1,NRFN
+
+C First, check we won't be exceeding array limits.
+        if (NI+1.gt.NTCELX .or. NJ+1.gt.NTCELY .or. NK+1.gt.NTCELZ) then
+          call EDISP(IUOUT,'Maximum number of cells reached.')
+          return
+        endif
+        if (NREG(1,ICFD)+2.gt.MNREG .or. NREG(2,ICFD)+2.gt.MNREG .or. 
+     &      NREG(3,ICFD)+2.gt.MNREG .or. NREG(4,ICFD)+2.gt.MNREG) then
+          call EDISP(IUOUT,'Maximum number of regions reached.')
+          return
+        endif
+
+C Split in I dimension.
+        icel=IRFNCLS(ICFD,irfn,1)
+C First, check that we havn't already split this I plane in this run of
+C refinements.
+        if (irfn.gt.1) then
+          do iirfn=1,irfn-1
+            if (icel.eq.IRFNCLS(ICFD,iirfn,1)) then
+              icel=0
+              exit
+            endif
+          enddo
+        endif
+
+        if (icel.gt.0) then
+C Find which region the cell is in.
+          itot=1
+          do irgn=1,NREG(1,ICFD)
+            itot=itot+ABS(NCELX(irgn,ICFD))
+            if (icel.le.itot) exit
+          enddo
+
+          if (ABS(NCELX(irgn,ICFD)).eq.1) then
+C Region is only 1 cell; this is straightforward to split.
+            NCELX(irgn,ICFD)=2
+            
+C Otherwise, we need to create a new region for the cell being split.
+          elseif (icel.eq.itot) then
+C Cell to split is at the end of the region.
+            NCELX(irgn,ICFD)=ABS(NCELX(irgn,ICFD))-1
+            xwth=XU(icel+1)-XU(icel)
+            XREG(irgn,ICFD)=XREG(irgn,ICFD)-xwth
+            NREG(1,ICFD)=NREG(1,ICFD)+1
+            do iirgn=NREG(1,ICFD),irgn+2,-1
+              NCELX(iirgn,ICFD)=NCELX(iirgn-1,ICFD)
+              XREG(iirgn,ICFD)=XREG(iirgn-1,ICFD)
+              XPLAW(iirgn,ICFD)=XPLAW(iirgn-1,ICFD)
+            enddo
+            NCELX(irgn+1,ICFD)=2
+            XREG(irgn+1,ICFD)=xwth
+            XPLAW(irgn+1,ICFD)=1.
+          elseif (icel.eq.itot-ABS(NCELX(irgn,ICFD))+1) then
+C Cell to split is at the beginning of the region.
+            NCELX(irgn,ICFD)=ABS(NCELX(irgn,ICFD))-1
+            xwth=XU(icel+1)-XU(icel)
+            XREG(irgn,ICFD)=XREG(irgn,ICFD)-xwth
+            NREG(1,ICFD)=NREG(1,ICFD)+1
+            do iirgn=NREG(1,ICFD),irgn+1,-1
+              NCELX(iirgn,ICFD)=NCELX(iirgn-1,ICFD)
+              XREG(iirgn,ICFD)=XREG(iirgn-1,ICFD)
+              XPLAW(iirgn,ICFD)=XPLAW(iirgn-1,ICFD)
+            enddo
+            NCELX(irgn,ICFD)=2
+            XREG(irgn,ICFD)=xwth
+            XPLAW(irgn,ICFD)=1.
+          else
+C Cell is in the middle of the region.
+            NCELX(irgn,ICFD)=ABS(NCELX(irgn,ICFD))-(itot-icel+1)
+            XREG(irgn,ICFD)=XREG(irgn,ICFD)-(XU(itot+1)-XU(icel))
+            NREG(1,ICFD)=NREG(1,ICFD)+2
+            do iirgn=NREG(1,ICFD),irgn+3,-1
+              NCELX(iirgn,ICFD)=NCELX(iirgn-2,ICFD)
+              XREG(iirgn,ICFD)=XREG(iirgn-2,ICFD)
+              XPLAW(iirgn,ICFD)=XPLAW(iirgn-2,ICFD)
+            enddo
+            NCELX(irgn+1,ICFD)=2
+            XREG(irgn+1,ICFD)=XU(icel+1)-XU(icel)
+            XPLAW(irgn+1,ICFD)=1.
+            NCELX(irgn+2,ICFD)=itot-icel
+            XREG(irgn+2,ICFD)=XU(itot+1)-XU(icel+1)
+            XPLAW(irgn+2,ICFD)=XPLAW(irgn,ICFD)
+          endif
+          NI=NI+1; NIM1=NI-1; NIM2=NI-2
+        endif
+
+C Split in J dimension.
+        jcel=IRFNCLS(ICFD,irfn,2)
+
+C First, check that we havn't already split this J plane in this run of
+C refinements.
+        if (irfn.gt.1) then
+          do iirfn=1,irfn-1
+            if (jcel.eq.IRFNCLS(ICFD,iirfn,2)) then
+              jcel=0
+              exit
+            endif
+          enddo
+        endif
+
+        if (jcel.gt.0) then
+C Find which region the cell is in.
+          itot=1
+          do irgn=1,NREG(2,ICFD)
+            itot=itot+ABS(NCELY(irgn,ICFD))
+            if (jcel.le.itot) exit
+          enddo
+
+          if (ABS(NCELY(irgn,ICFD)).eq.1) then
+C Region is only 1 cell; this is straightforward to split.
+            NCELY(irgn,ICFD)=2
+            
+C Otherwise, we need to create a new region for the cell being split.
+          elseif (jcel.eq.itot) then
+C Cell to split is at the end of the region.
+            NCELY(irgn,ICFD)=ABS(NCELY(irgn,ICFD))-1
+            ywth=YV(jcel+1)-YV(jcel)
+            YREG(irgn,ICFD)=YREG(irgn,ICFD)-ywth
+            NREG(2,ICFD)=NREG(2,ICFD)+1
+            do iirgn=NREG(2,ICFD),irgn+2,-1
+              NCELY(iirgn,ICFD)=NCELY(iirgn-1,ICFD)
+              YREG(iirgn,ICFD)=YREG(iirgn-1,ICFD)
+              YPLAW(iirgn,ICFD)=YPLAW(iirgn-1,ICFD)
+            enddo
+            NCELY(irgn+1,ICFD)=2
+            YREG(irgn+1,ICFD)=ywth
+            YPLAW(irgn+1,ICFD)=1.
+          elseif (jcel.eq.itot-ABS(NCELY(irgn,ICFD))+1) then
+C Cell to split is at the beginning of the region.
+            NCELY(irgn,ICFD)=ABS(NCELY(irgn,ICFD))-1
+            ywth=YV(jcel+1)-YV(jcel)
+            YREG(irgn,ICFD)=YREG(irgn,ICFD)-ywth
+            NREG(2,ICFD)=NREG(2,ICFD)+1
+            do iirgn=NREG(2,ICFD),irgn+1,-1
+              NCELY(iirgn,ICFD)=NCELY(iirgn-1,ICFD)
+              YREG(iirgn,ICFD)=YREG(iirgn-1,ICFD)
+              YPLAW(iirgn,ICFD)=YPLAW(iirgn-1,ICFD)
+            enddo
+            NCELY(irgn,ICFD)=2
+            YREG(irgn,ICFD)=ywth
+            YPLAW(irgn,ICFD)=1.
+          else
+C Cell is in the middle of the region.
+            NCELY(irgn,ICFD)=ABS(NCELY(irgn,ICFD))-(itot-jcel+1)
+            YREG(irgn,ICFD)=YREG(irgn,ICFD)-(YV(itot+1)-YV(jcel))
+            NREG(2,ICFD)=NREG(2,ICFD)+2
+            do iirgn=NREG(2,ICFD),irgn+3,-1
+              NCELY(iirgn,ICFD)=NCELY(iirgn-2,ICFD)
+              YREG(iirgn,ICFD)=YREG(iirgn-2,ICFD)
+              YPLAW(iirgn,ICFD)=YPLAW(iirgn-2,ICFD)
+            enddo
+            NCELY(irgn+1,ICFD)=2
+            YREG(irgn+1,ICFD)=YV(jcel+1)-YV(jcel)
+            YPLAW(irgn+1,ICFD)=1.
+            NCELY(irgn+2,ICFD)=itot-jcel
+            YREG(irgn+2,ICFD)=YV(itot+1)-YV(jcel+1)
+            YPLAW(irgn+2,ICFD)=YPLAW(irgn,ICFD)
+          endif
+          NJ=NJ+1; NJM1=NJ-1; NJM2=NJ-2
+        endif
+
+C Split in K dimension.
+        kcel=IRFNCLS(ICFD,irfn,3)
+
+C First, check that we havn't already split this K plane in this run of
+C refinements.
+        if (irfn.gt.1) then
+          do iirfn=1,irfn-1
+            if (kcel.eq.IRFNCLS(ICFD,iirfn,3)) then
+              kcel=0
+              exit
+            endif
+          enddo
+        endif
+
+        if (kcel.gt.0) then
+C Find which region the cell is in.
+          itot=1
+          do irgn=1,NREG(3,ICFD)
+            itot=itot+ABS(NCELZ(irgn,ICFD))
+            if (kcel.le.itot) exit
+          enddo
+
+          if (ABS(NCELZ(irgn,ICFD)).eq.1) then
+C Region is only 1 cell; this is straightforward to split.
+            NCELZ(irgn,ICFD)=2
+
+C Otherwise, we need to create a new region for the cell being split.
+          elseif (kcel.eq.itot) then
+C Cell to split is at the end of the region.
+            NCELZ(irgn,ICFD)=ABS(NCELZ(irgn,ICFD))-1
+            Zwth=ZW(kcel+1)-ZW(kcel)
+            ZREG(irgn,ICFD)=ZREG(irgn,ICFD)-Zwth
+            NREG(3,ICFD)=NREG(3,ICFD)+1
+            do iirgn=NREG(3,ICFD),irgn+2,-1
+              NCELZ(iirgn,ICFD)=NCELZ(iirgn-1,ICFD)
+              ZREG(iirgn,ICFD)=ZREG(iirgn-1,ICFD)
+              ZPLAW(iirgn,ICFD)=ZPLAW(iirgn-1,ICFD)
+            enddo
+            NCELZ(irgn+1,ICFD)=2
+            ZREG(irgn+1,ICFD)=Zwth
+            ZPLAW(irgn+1,ICFD)=1.
+          elseif (kcel.eq.itot-ABS(NCELZ(irgn,ICFD))+1) then
+C Cell to split is at the beginning of the region.
+            NCELZ(irgn,ICFD)=ABS(NCELZ(irgn,ICFD))-1
+            Zwth=ZW(kcel+1)-ZW(kcel)
+            ZREG(irgn,ICFD)=ZREG(irgn,ICFD)-Zwth
+            NREG(3,ICFD)=NREG(3,ICFD)+1
+            do iirgn=NREG(3,ICFD),irgn+1,-1
+              NCELZ(iirgn,ICFD)=NCELZ(iirgn-1,ICFD)
+              ZREG(iirgn,ICFD)=ZREG(iirgn-1,ICFD)
+              ZPLAW(iirgn,ICFD)=ZPLAW(iirgn-1,ICFD)
+            enddo
+            NCELZ(irgn,ICFD)=2
+            ZREG(irgn,ICFD)=Zwth
+            ZPLAW(irgn,ICFD)=1.
+          else
+C Cell is in the middle of the region.
+            NCELZ(irgn,ICFD)=ABS(NCELZ(irgn,ICFD))-(itot-kcel+1)
+            ZREG(irgn,ICFD)=ZREG(irgn,ICFD)-(ZW(itot+1)-ZW(kcel))
+            NREG(3,ICFD)=NREG(3,ICFD)+2
+            do iirgn=NREG(3,ICFD),irgn+3,-1
+              NCELZ(iirgn,ICFD)=NCELZ(iirgn-2,ICFD)
+              ZREG(iirgn,ICFD)=ZREG(iirgn-2,ICFD)
+              ZPLAW(iirgn,ICFD)=ZPLAW(iirgn-2,ICFD)
+            enddo
+            NCELZ(irgn+1,ICFD)=2
+            ZREG(irgn+1,ICFD)=ZW(kcel+1)-ZW(kcel)
+            ZPLAW(irgn+1,ICFD)=1.
+            NCELZ(irgn+2,ICFD)=itot-kcel
+            ZREG(irgn+2,ICFD)=ZW(itot+1)-ZW(kcel+1)
+            ZPLAW(irgn+2,ICFD)=ZPLAW(irgn,ICFD)
+          endif
+          NK=NK+1; NKM1=NK-1; NKM2=NK-2
+        endif
+
+        if (icel.eq.0 .and. jcel.eq.0 .and. kcel.eq.0) cycle
+
+C Adjust state variable arrays.
+        do 150 k=NK,2,-1
+          do 150 j=NJ,2,-1
+            do 150 i=NI,2,-1
+              ok=.false.
+              if (i.gt.icel .and. icel.gt.0) then
+                ok=.true.
+                ii=i-1
+              else
+                ii=i
+              endif
+              if (j.gt.jcel .and. jcel.gt.0) then
+                ok=.true.
+                jj=j-1
+              else
+                jj=j
+              endif
+              if (k.gt.kcel .and. kcel.gt.0) then
+                ok=.true.
+                kk=k-1
+              else
+                kk=k
+              endif
+              if (ok) then
+                if (INCALU.and.ii.ge.2) then
+                  Up(i,j,k)=Up(ii,jj,kk)
+                  Uf(i,j,k)=Uf(ii,jj,kk)
+                endif
+                if (INCALV.and.jj.ge.2) then
+                  Vp(i,j,k)=Vp(ii,jj,kk)
+                  Vf(i,j,k)=Vf(ii,jj,kk)
+                endif
+                if (INCALW.and.kk.ge.2) then
+                  Wp(i,j,k)=Wp(ii,jj,kk)
+                  Wf(i,j,k)=Wf(ii,jj,kk)
+                endif
+                P(i,j,k)=P(ii,jj,kk)
+                if (INCALK) then
+                  TEp(i,j,k)=TEp(ii,jj,kk)
+                  TEf(i,j,k)=TEf(ii,jj,kk)
+                endif
+                if (INCALD) then
+                  EDp(i,j,k)=EDp(ii,jj,kk)
+                  EDf(i,j,k)=EDf(ii,jj,kk)
+                endif
+                if (INCALT) then
+                  Tp(i,j,k)=Tp(ii,jj,kk)
+                  Tf(i,j,k)=Tf(ii,jj,kk)
+                endif
+                VIS(i,j,k)=VIS(ii,jj,kk)
+                BETA(i,j,k)=BETA(ii,jj,kk)
+                GAMH(i,j,k)=GAMH(ii,jj,kk)
+                if (CALLMA(ICFD)) AGEf(i,j,k)=AGEf(ii,jj,kk)
+                do ipol=1,NCTM(ICFD)
+                  if (CALPOL(ipol,ICFD)) then
+                    POLCONCp(ipol,i,j,k)=POLCONCp(ipol,ii,jj,kk)
+                    POLCONCf(ipol,i,j,k)=POLCONCf(ipol,ii,jj,kk)
+                  endif
+                enddo
+              endif
+  150   continue
+
+C Adjust boundary condition extents.
+        do ivol=i,NVOL(ICFD)
+          if (IVOLF(ivol,ICFD).eq.1) then
+            IVCELLS(ivol,ICFD,1)=2
+            IVCELLS(ivol,ICFD,2)=2
+          elseif (IVOLF(ivol,ICFD).eq.2) then            
+            IVCELLS(ivol,ICFD,1)=NIM1
+            IVCELLS(ivol,ICFD,2)=NIM1
+          else
+            if (IVCELLS(ivol,ICFD,1).gt.icel .and. icel.gt.0)
+     &        IVCELLS(ivol,ICFD,1)=IVCELLS(ivol,ICFD,1)+1
+            if (IVCELLS(ivol,ICFD,2).ge.icel .and. icel.gt.0)
+     &        IVCELLS(ivol,ICFD,2)=IVCELLS(ivol,ICFD,2)+1
+          endif
+          if (IVOLF(ivol,ICFD).eq.3) then
+            JVCELLS(ivol,ICFD,1)=2
+            JVCELLS(ivol,ICFD,2)=2
+          elseif (IVOLF(ivol,ICFD).eq.4) then            
+            JVCELLS(ivol,ICFD,1)=NJM1
+            JVCELLS(ivol,ICFD,2)=NJM1
+          else
+            if (JVCELLS(ivol,ICFD,1).gt.jcel .and. jcel.gt.0)
+     &        JVCELLS(ivol,ICFD,1)=JVCELLS(ivol,ICFD,1)+1
+            if (JVCELLS(ivol,ICFD,2).ge.jcel .and. jcel.gt.0)
+     &        JVCELLS(ivol,ICFD,2)=JVCELLS(ivol,ICFD,2)+1
+          endif
+          if (IVOLF(ivol,ICFD).eq.5) then
+            KVCELLS(ivol,ICFD,1)=2
+            KVCELLS(ivol,ICFD,2)=2
+          elseif (IVOLF(ivol,ICFD).eq.6) then            
+            KVCELLS(ivol,ICFD,1)=NKM1
+            KVCELLS(ivol,ICFD,2)=NKM1
+          else
+            if (KVCELLS(ivol,ICFD,1).gt.kcel .and. kcel.gt.0)
+     &        KVCELLS(ivol,ICFD,1)=KVCELLS(ivol,ICFD,1)+1
+            if (KVCELLS(ivol,ICFD,2).ge.kcel .and. kcel.gt.0)
+     &        KVCELLS(ivol,ICFD,2)=KVCELLS(ivol,ICFD,2)+1
+          endif
+        enddo
+
+C Adjust monitoring position.
+        if (IMONT(ICFD).gt.icel .and. icel.gt.0)
+     &    IMONT(ICFD)=IMONT(ICFD)+1
+        if (JMONT(ICFD).gt.jcel .and. jcel.gt.0)
+     &    JMONT(ICFD)=JMONT(ICFD)+1
+        if (KMONT(ICFD).gt.kcel .and. kcel.gt.0)
+     &    KMONT(ICFD)=KMONT(ICFD)+1
+
+C Adjust further refinement positions.
+        do iirfn=NRFN,irfn+1,-1
+          if (IRFNCLS(ICFD,iirfn,1).gt.icel .and. icel.gt.0)
+     &      IRFNCLS(ICFD,iirfn,1)=IRFNCLS(ICFD,iirfn,1)+1
+          if (IRFNCLS(ICFD,iirfn,2).gt.jcel .and. jcel.gt.0)
+     &      IRFNCLS(ICFD,iirfn,2)=IRFNCLS(ICFD,iirfn,2)+1
+          if (IRFNCLS(ICFD,iirfn,3).gt.kcel .and. kcel.gt.0)
+     &      IRFNCLS(ICFD,iirfn,3)=IRFNCLS(ICFD,iirfn,3)+1
+        enddo
+
+C Record refinement positions so we can average results later.
+        NRFND=NRFND+1
+        IRFND(ICFD,NRFND,1)=icel
+        IRFND(ICFD,NRFND,2)=jcel
+        IRFND(ICFD,NRFND,3)=kcel
+
+C Set flag to say that we have refined some cells.
+        refined=.true.
+      enddo
+
+C Recalculate allowable number of refinements per run.
+      ! NRFN=(NI*NJ*NK)/1000
+      NRFN=1
+
+      CALL NEW2OLD
+      ! CALL PRNNEW(274)
+      ! CALL INDBND
+      ! CALL PRNNEW(275)
+
+      return
+      end

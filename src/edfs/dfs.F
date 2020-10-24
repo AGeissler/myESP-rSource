@@ -66,7 +66,7 @@ C CFD common blocks.
       common/param2/TITLE(MNZ),CFTRFL(MNZ),LPHI(MNZ)
       COMMON/SIMT/TSTEP,NSINC
       COMMON/ICFNOD/ICFD,ICP
-      COMMON/ICFCHN/ICFMON(MNZ),ICFTMP,ICFLIB
+      COMMON/ICFCHN/ICFMON(MNZ),ICFDBC(MNZ),ICFTMP,ICFLIB
 
 C Flow visualization common blocks.
       COMMON/VISFIL/LVEC,LBIT
@@ -228,7 +228,8 @@ C File units.
       NSIGFIG=3
       IFL=IFIL+1
       ICFLIB=IFIL+2
-      ICFMON=IFIL+3
+      ICFMON(1)=IFIL+3
+      ICFDBC(1)=IFIL+5
       matver=0.0     ! initial assumption of binary materials database
       AUTOVR=.false. ! by default, ask to overwrite files
 
@@ -936,9 +937,11 @@ C Should the results files be removed ?
         if (OK) then
           CALL EFDELET(ICFLIB,ISTAT)
           CALL EFDELET(ICFMON(ICFD),ISTAT)
+          CALL EFDELET(ICFDBC(ICFD),ISTAT)
         else
           CALL ERPFREE(ICFLIB,ISTAT)
           CALL ERPFREE(ICFMON(ICFD),ISTAT)
+          CALL ERPFREE(ICFDBC(ICFD),ISTAT)
         endif
 
 C Should the cfd temporary file be removed ?

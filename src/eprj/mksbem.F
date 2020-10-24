@@ -16207,7 +16207,7 @@ C As assumed in EPW (m2/day) - seems very low.
 C Calculate average monthly air temperature from climate file.
       DO 55 I=1,365
         II=I
-C Read climate data for current day into CMRVAL(). See commonclm.F.
+C Read weather data for current day into CMRVAL(). See commonclm.F.
         call CLMGET(II)
         DO 656 J=1,24
           TEMP=CMRVAL(1,J)

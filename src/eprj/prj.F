@@ -1172,7 +1172,7 @@ C Change focus to zone but do not act on any ianother jump command.
 C      ITRC=1  ! why reset this ?
     3 INO=-4
       ITEMS(1) =  'a introduction'
-      ITEMS(2) =  'b database management'
+      ITEMS(2) =  'b databases'
       ITEMS(3) =  'c self testing'
       ITEMS(4) =  ' ..... Model selection ....'
       ITEMS(5) =  'd open existing'
@@ -2460,7 +2460,6 @@ C Use global values that the user can update later.
           lde=lnblnk(spfdescr(isset))
           isstday(isset)=9; isstmon(isset)=1
           isfnday(isset)=15; isfnmon(isset)=1
-          iscfdactivate(isset)=0; 
           isicfdys(isset)=9; isicfdyf(isset)=15
           scftims(isset)=0.0; scftimf(isset)=23.9
           if(INDCFG.ne.2)then
@@ -2485,8 +2484,10 @@ C Use global values that the user can update later.
           endif
           if(CFDOK)then
             WRITE(scfdres(isset),'(3a)')cr(1:lr),de(1:lde),'.dfr'
+            iscfdactivate(isset)=0; 
           else
             scfdres(isset)=' '
+            iscfdactivate(isset)=-1; 
           endif
 
           modparms=.true.
@@ -2640,44 +2641,52 @@ C There is temporal data so must save at each timestep.
         endif
       elseif(MITEM.eq.26.and.INO.EQ.14)then
         if(CFDOK)then
-          if(scfdres(isset)(1:2).eq.'  ')then
-            cr=cfgroot
-            lr=lnblnk(cfgroot)
-            WRITE(scfdres(isset),'(A,A4)') cr(1:lr),'.dfr'
-          endif
-          t72=scfdres(isset)
-          CALL EASKS(t72,' ','CFD results library?',72,
-     &    'cfd.res','CFD results library',IER,nbhelp)
-          scfdres(isset)=t72
-          modparms=.true.
 
-C Ask further attributes of CFD assessments.
+C Ask if CFD assessments are required.
           CALL EASKOK(' ','Include domains in assessment?',
      &      OK,nbhelp)
           if(ok)then
             iscfdactivate(isset)=1
+
+C Ask for further attributes.
+            t72=scfdres(isset)
+            CALL EASKS(t72,' ','CFD results library?',72,
+     &        'cfd.res','CFD results library',IER,nbhelp)
+            scfdres(isset)=t72
+            modparms=.true.
+            CALL EDAY(isstday(isset),isstmon(isset),icsday)
+            CALL EDAY(isfnday(isset),isfnmon(isset),icfday)
+            call EASKPER('CFD Assessment period:',icsday,icfday,
+     &        IFDAY,IER)
+            isicfdys(isset)=icsday
+            isicfdyf(isset)=icfday
+  50        scftims(isset)=1.0
+            scftimf(isset)=24.99
+            write(outs,'(a)')'For the first day CFD is active specify'
+            CALL EASKR(scftims(isset),outs,'starting time ',
+     &        1.0,'F',24.99,'F',1.0,'Decimal fraction',IER,nbhelp)
+            write(outs,'(a)')'For the last day CFD is active specify'
+            CALL EASKR(scftimf(isset),outs,'finishing time ',
+     &        1.0,'F',24.99,'F',24.99,'Decimal fraction',IER,nbhelp)
+            if (scftimf(isset).lt.scftims(isset)) then
+              call edisp(iuout,' Start/ finish hours out of order.')
+              goto 50
+            endif
+
           else
             iscfdactivate(isset)=0
-          endif
-          CALL EDAY(isstday(isset),isstmon(isset),icsday)
-          CALL EDAY(isfnday(isset),isfnmon(isset),icfday)
-          call EASKPER('CFD Assessment period:',icsday,icfday,
-     &      IFDAY,IER)
-          isicfdys(isset)=icsday
-          isicfdyf(isset)=icfday
-          modparms=.true.
 
- 50       scftims(isset)=1.0
-          scftimf(isset)=24.99
-          write(outs,'(a)')'For the first day CFD is active specify'
-          CALL EASKR(scftims(isset),outs,'starting time ',
-     &      1.0,'F',24.99,'F',1.0,'Decimal fraction',IER,nbhelp)
-          write(outs,'(a)')'For the last day CFD is active specify'
-          CALL EASKR(scftimf(isset),outs,'finishing time ',
-     &      1.0,'F',24.99,'F',24.99,'Decimal fraction',IER,nbhelp)
-          if (scftimf(isset).lt.scftims(isset)) then
-            call edisp(iuout,' Start/ finish hours out of order.')
-            goto 50
+C Set defaults, as the information will be ignored anyway.
+            if(scfdres(isset)(1:2).eq.'  '.or.
+     &        scfdres(isset)(1:7).eq.'UNKNOWN')then
+              cr=cfgroot
+              lr=lnblnk(cfgroot)
+              WRITE(scfdres(isset),'(A,A4)') cr(1:lr),'.dfr'
+            endif
+            CALL EDAY(isstday(isset),isstmon(isset),isicfdys(isset))
+            CALL EDAY(isfnday(isset),isfnmon(isset),isicfdyf(isset))
+            scftims(isset)=1.0
+            scftimf(isset)=24.99
           endif
           modparms=.true.
         endif

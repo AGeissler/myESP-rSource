@@ -27,6 +27,9 @@ C CHECK -Checks if CFD convergence has been reached.
 #include "building.h"
 #include "cfd.h"
 
+      integer MAXIT
+      logical CONVER
+
       common/outin/iuout,iuin,ieout
 
 C      COMMON/FDTRFC/FLSDTU(MNZ),FLSDTV(MNZ),FLSDTW(MNZ),FLSDTP(MNZ),
@@ -67,7 +70,7 @@ C     &             NSSWPT(MNZ),NSSWPK(MNZ),NSSWPE(MNZ)
       
       CHARACTER word*124,outs*124,LCFD*72
 
-      LOGICAL OK,CALLU,CALLV,CALLW,CALLT,KEMDL,CONVER,BUOY,CALLC
+      LOGICAL OK,CALLU,CALLV,CALLW,CALLT,KEMDL,BUOY,CALLC
       LOGICAL ZEROT,ZandKE,MITzero,BOUSSI
 
 C For help messages

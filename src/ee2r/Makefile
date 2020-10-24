@@ -121,7 +121,7 @@ filelist.F:
 	ln -s $(COMdir)/filelist.F .
 inside.F:
 	rm -f inside.F
-	ln -s $(MRTdir)/inside.F .
+	ln -s $(COMdir)/inside.F .
 item.F:
 	rm -f item.F
 	ln -s $(COMdir)/item.F .

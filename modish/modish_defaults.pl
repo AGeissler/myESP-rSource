@@ -1,6 +1,6 @@
-# Configuration file for modish, version 0.241.
+# Configuration file for modish, version 0.325.
 
-@defaults = ( [ 2, 2 ], 5, 2, 7, 0.01 );
+@defaults = ( [ 2, 2 ], 5, 1, 7, 0.01 );
 
 ### The line above means: ( [ resolution_x, resolution_y ], $dirvectorsnum, $bounceambnum, $bouncemaxnum, $distgrid, $threshold )
 ### resolution_x, resolution_y are the gridding values
@@ -17,7 +17,7 @@
 #@calcprocedures = ( "diluted", "gensky", "alldiff", "radical" );
 #@calcprocedures = ( "diluted", "gendaylit", "composite", "alldiff" );
 # If @calcprocedure is unspedified, the program defaults to:
-@calcprocedures = ( "diluted", "gensky", "composite", "alldiff" );
+@calcprocedures = ( "diluted", "gensky", "composite", "groundreflections", "alldiff" ) ;
 # The advice is to let @calcprocedures unspecified and get those default settings, or to go with this other setting:
 # @calcprocedures = ( "diluted", "gensky", "radical", "alldiff" ), which is for calculating the shading factors from scratch.
 # Quick description of the available calculation options:
@@ -62,7 +62,8 @@
 # the direct calculations are performed by the means of gensky. If "getweather" is specified,
 # the both the direct and the diffuse calculations are used with gendaylit by the means
 # of averages of the weather data about direct normal and horizontal diffuse irradiances.
-# For the setting "gendaylit" to work, it has to be specified together with the "altcalcdiff" setting.
+# For the setting "gendaylit" to work, it has to be specified together with the "altdiff" setting.
+# With the setting "keepdirshdf", only the diffuse shading factors get recalculated.
 # The setting "getweather" used with "gendaylit" ("it can't be used without it) 
 # makes possible that the average radiation values of the weather data are utilized 
 # when calling gendaylit. 

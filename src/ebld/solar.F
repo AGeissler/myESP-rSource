@@ -159,7 +159,7 @@ C            windows.
 C 6. QLOSSA- the total re-transmitted (onabsorbed energy through internal
 C            surface windows.
 
-C 7. QTMCA - the shortwave absorption at each node of a transparent 
+C 7. QTMCA - the shortwave absorption at each node of a transparent
 C            multi-layered construction (window by another name).
 
 C These flux transfers are computed for both the present and future
@@ -343,7 +343,7 @@ C tdtrace is the direct transmission at the current timestep for each surface.
 C tfftrace is the diffuse transmission at the current timestep for each surface.
       dimension tdtrace(MS),tfftrace(MS)
 
-      dimension AbsSol(me) 
+      dimension AbsSol(me)
       dimension AbsSolDir(me),AbsSolDifSky(me),AbsSolDifGrd(me)
       dimension EXDIFSKY(ms),EXDIFGRD(ms)
 
@@ -877,7 +877,7 @@ C POO/POO2 contains shading factor on corresponding opaque surface.
                   ENDIF
                 ENDIF
 
-C Functional mock-up interface (FMU).
+C Functional mock-up interface (FMI).
 C If blinds control is active, set IBOFOT to control value from FMU if
 C this is the associated zone. It is assumed that control is set up such
 C that IBOFOT=1 (use alternative properties) corresponds to active
@@ -1368,7 +1368,7 @@ C Use separate absorptivities for diffuse radiation from outside to inside.
 C Use average absorptivity for diffuse radiation from inside to outside.
                   ABF=(ABFSKY+ABFGND)/2.
 
-C Assign 0 for middle gas layer.                
+C Assign 0 for middle gas layer.
                 ELSEIF(J.EQ.2)THEN
                   ABD=0.0
                   ABFSKY=0.0
@@ -1748,11 +1748,11 @@ C Calculate CFC system solar GROUND diffuse transmitted.
 
 C Sum up diffuse transmitted contributions (sky + ground).
                TRANSD_SYS = TRANSD_SYS_BD +
-     &                      TRANSD_SYS_SKY + TRANSD_SYS_GRD 
+     &                      TRANSD_SYS_SKY + TRANSD_SYS_GRD
 
 C Sum up solar absorbed contributions (direct + sky diff + ground diff).
                do jj=1,ncfc_el(icomp,icfctp)
-                    AbsSol(jj)=AbsSolDir(jj) + 
+                    AbsSol(jj)=AbsSolDir(jj) +
      &                         AbsSolDifSky(jj) +
      &                         AbsSolDifGrd(jj)
                end do
@@ -1770,11 +1770,11 @@ C and absorbed fluxes in each CFC layer.
              temp1=0.
              temp2=0.
              temp3=0.
- 
+
              proang_s(icomp,icfctp,i)=-1.    ! save profile angle for CFC output,
                                              ! -1 indicates self shaded
 
-C Determine diffuse-diffuse solar properties for each CFC layer. 
+C Determine diffuse-diffuse solar properties for each CFC layer.
 C Incidence and profile angles set to 0 since self-shaded.
              call cfc_eff_opt_prop(icomp,i,icfctp,temp1,temp2,
      &         temp3)
@@ -1799,11 +1799,11 @@ C Calculate CFC system solar GROUND diffuse transmitted.
 
 C Sum up diffuse transmitted contributions (sky + ground).
                TRANSD_SYS = TRANSD_SYS_BD +
-     &                      TRANSD_SYS_SKY + TRANSD_SYS_GRD 
+     &                      TRANSD_SYS_SKY + TRANSD_SYS_GRD
 
 C Sum up solar absorbed contributions (direct + sky diff + ground diff).
                do jjj=1,ncfc_el(icomp,icfctp)
-                    AbsSol(jjj)=AbsSolDir(jjj) + 
+                    AbsSol(jjj)=AbsSolDir(jjj) +
      &                         AbsSolDifSky(jjj) +
      &                         AbsSolDifGrd(jjj)
                end do
@@ -2390,7 +2390,7 @@ C << does not reflect blind control alternative optics >>
 C Output direct and diffuse solar passing glazing and then clear.
           write(outs,'(2a,F6.1,a,F6.1,a)') '  Transmissions (W):',
      &      ' direct = ',tdtrace(i),'; diffuse = ',tfftrace(i)
-     
+
           call edisp(itu,outs)
           tdtrace(i)=0.
           tfftrace(i)=0.
@@ -2800,9 +2800,9 @@ C Slope of surface
 C Call subroutine to determine direct and diffuse solar
 C radiation
       CALL MZSRAD0(BETA,QD,QF,CAI,SRADDO,SRADF,SKYDIF,GRDDIF)
-      
+
       if(ICOMP.eq.1.and.II.eq.7)then
-      
+
 C TODO: Convert to new format
 c            call add_to_xml_reporting (
 c     &         SRADDO,
@@ -2810,30 +2810,30 @@ c     &         'building/zone_01/envelope/surface/SRADDO',
 c     &         'units', '(W/m2)',
 c     &         'SolarIncRad'
 c     &         //' (all zones) ' )
-           
+
 c            call add_to_xml_reporting (
 c     &         SRADF,
 c     &         'building/zone_01/envelope/surface/SRADF',
 c     &         'units', '(W/m2)',
 c     &         'SolarRad'
 c     &         //' (all zones) ' )
-           
+
 c            call add_to_xml_reporting (
 c     &         SKYDIF,
 c     &         'building/zone_01/envelope/surface/SKYDIF',
 c     &         'units', '(W/m2)',
 c     &         'SkyDiff'
 c     &         //' (all zones) ' )
-           
+
 c            call add_to_xml_reporting (
 c     &         GRDDIF,
 c     &         'building/zone_01/envelope/surface/GRDDIF',
 c     &         'units', '(W/m2)',
 c     &         'GrndDiff'
 c     &         //' (all zones) ' )
-     
+
       endif
-      
+
       RETURN
       END
 
@@ -2890,7 +2890,7 @@ C Useful constants
       PI = 4.0 * ATAN(1.0)
       R = PI / 180.
 
-C If ground reflectance (albedo) is to be read from a temporal file then 
+C If ground reflectance (albedo) is to be read from a temporal file then
 C set it here.
       IF(IGRNDRFL.gt.0)THEN
         itdi=IGRNDRFL
@@ -2898,7 +2898,7 @@ C set it here.
         CALL RCTDFB(itrc,btimef,VAL,ISD,IFOC,IER)
         groundrefl=VAL(ISD)
       ENDIF
-        
+
 C Sky diffuse radiation is model dependent (Perez 1990 is the default).
       IF(ISKYFL.EQ.-1)THEN
 
@@ -3466,7 +3466,7 @@ c         receiving internal surfaces.
       COMMON/PRECTC/ITMCFL(MCOM,MS),TMCT(MCOM,MTMC,5),
      &       TMCA(MCOM,MTMC,ME,5),TMCREF(MCOM,MTMC),TVTR(MCOM,MTMC)
       COMMON/rsolmax/maxrec(mcom)         ! S/I file record width set in mzshin
-      COMMON/shad0/ISIcalc,icalcD,icalcM  ! S/I calculation mode 
+      COMMON/shad0/ISIcalc,icalcD,icalcM  ! S/I calculation mode
       COMMON/SHAD1/IML
       COMMON/SHAD2/ISHD(MCOM),IGCS(MCOM,MS),PO(MCOM,MS,MT),
      & POF(MCOM,MS,MT),IGCI(MCOM,MS),insst(mcom,mgt,mt,misur),
@@ -3477,6 +3477,7 @@ c         receiving internal surfaces.
       DIMENSION ISS(12),ISADD(12)
       CHARACTER outs*124
       CHARACTER doit*248
+      CHARACTER shellc*248 ! for MODISH
       LOGICAL OK
       INTEGER ier
       CHARACTER ZN*12
@@ -3509,6 +3510,14 @@ C S/I file for the current day.
      &      LCFGF(1:lnblnk(LCFGF)),' -day',ID,IM,' -zone ',
      &      ZN(1:lnz),' -act update_silent >/dev/null'
           call runit(doit,'-')
+
+C MODISH.
+          write(doit,'(3a,2I3,3a)')
+     &    'perl /opt/esp-r/bin/modish/Modish.pm ish -mode text -file ',
+     &      LCFGF(1:lnblnk(LCFGF)),' -day',ID,IM,' -zone ',
+     &      ZN(1:lnz),' >/dev/null'
+          call runit(doit,'-')
+
           maxrec(i)=24  ! set maxrec since no prior call to MZSHIN for embedded mode.
           if(NZSUR(i).gt.24)maxrec(i)=NZSUR(i)
         endif
@@ -3544,7 +3553,7 @@ C Shading data.
 
 C Insolation data.
   102   IREC=IREC+2*NC
-  103   READ(IUNIT,REC=IREC,IOSTAT=ISTAT,ERR=1001)(IGCI(I,J),J=1,NC) 
+  103   READ(IUNIT,REC=IREC,IOSTAT=ISTAT,ERR=1001)(IGCI(I,J),J=1,NC)
         irec=irec+1
 
 C Determine number of transparent surfaces that have insolation information.
@@ -3604,8 +3613,8 @@ c applied to the zone.
 
     3   helptopic='ignore_shading_warning'
         call gethelptext(helpinsub,helptopic,nbhelp)
-        CALL EASKOK('Continue the simulation and assume zero',
-     &    'shading with default plane insolation?',OK,nbhelp)
+        CALL EASKOK('Continue simulation and impose zero',
+     &    'shading and default plane insolation?',OK,nbhelp)
         IF(OK)goto  9
 
 c Terminate simulation.
@@ -3825,16 +3834,17 @@ C error if cannot be found.
       CALL FINDFIL(SNFNAM,FOUND)
       IF (.NOT.FOUND) THEN
         DO WHILE(.NOT.FOUND)
-          WRITE(OUTS,'(A,A)') 'Could not find snow depth file: ',SNFNAM
+          WRITE(OUTS,'(A,A,A)') 'PPGREF: Snow depth file ',SNFNAM,
+     &                        ' not found!'
           helptopic='snow_depth_file'
           call gethelptext(helpinsub,helptopic,nbhelp)
           CALL EASKOK(OUTS,'Respecify?',OK,nbhelp)
           IF (OK) THEN
-            CALL EASKS(SNFNAM,'Enter name of snow depth file',
+            CALL EASKS(SNFNAM,'Snow depth file',
      &        ' ',72,' ','Snow depth file',IER,nbhelp)
             CALL FINDFIL(SNFNAM,FOUND)
           ELSEIF(.NOT.OK) THEN
-            call tstamp('>','SIM: snow depth file cannot be found')
+            call tstamp('>','PPGREF: snow depth file not found!')
             close(ieout)
             CALL ERPFREE(ieout,ISTAT)
             call epagend
@@ -3851,7 +3861,7 @@ C Open snow depth ASCII file.
       CALL ERPFREE(IFILSN,ISTAT)
       CALL EFOPSEQ(IFILSN,SNFNAM,1,IER)
       IF (IER.NE.0) THEN
-        call tstamp('>','SIM: snow depth file cannot be found')
+        call tstamp('>','PPGREF: snow depth file not found!')
         close(ieout)
         CALL ERPFREE(ieout,ISTAT)
         call epagend
@@ -3876,7 +3886,7 @@ C Loop on data from ascii file and read data and write into binary form.
   900 CONTINUE
       IF (ICOUNT<8760) THEN
         call tstamp('>',
-     &   'SIM: snow depth file has fewer than 8760 values')
+     &   'PPGREF: snow depth file has fewer than 8760 values!')
         close(ieout)
         CALL ERPFREE(ieout,ISTAT)
         call epagend
@@ -4013,7 +4023,7 @@ C existing and new controls should be added here.
       COMMON/FVALA/TFA(MCOM),QFA(MCOM)
       COMMON/SUNPOS/SAZI,SALT,ISUNUP
 
-C Daylight coefficients data definition.
+C Daylight coefficients data.
       COMMON/DCOEF/NDCFP,NDCFS(MDCFP),DCOEF(MDCFP,MDCFS,MDCFV),
      & IDCFID(MCOM,MLCOM,MDF)
 
@@ -4480,7 +4490,7 @@ C The main optical control function executive.
 C Control functions active at present.
       ICFO=ICOMP
       ipero=0  ! clear value prior to test
-      
+
 C If number of optical control day types are 0 then
 C same control on all day types.
       N=NOCDT(ICFO) ! number of day types
@@ -4504,8 +4514,8 @@ C same control on all day types.
 C If there is an optical control period then invoke the control logic.
       if(ipero.gt.0.and.IDTYPO.gt.0)then
         IFUNC=IABS(IOCLAW(ICFO,IDTYPO,ipero))
-        CtlLaw: select case (IFUNC) 
-        case (1) 
+        CtlLaw: select case (IFUNC)
+        case (1)
           call OCL01(icomp)
         end select CtlLaw
       endif
@@ -4528,7 +4538,7 @@ C This is done by setting the flag IBCMDT=1 or 0
       COMMON/PRECTC/ITMCFL(MCOM,MS),TMCT(MCOM,MTMC,5),
      &       TMCA(MCOM,MTMC,ME,5),TMCREF(MCOM,MTMC),TVTR(MCOM,MTMC)
       integer NC,ISON
-      
+
       ISON=nint(OMISCD(ICFO,IDTYPO,IPERO,2))
       NC=NCONST(ICOMP)
       Do 1 I=1,NC
@@ -4537,6 +4547,6 @@ C This is done by setting the flag IBCMDT=1 or 0
           IBCMT(ICOMP,ITMC)=ISON
         endif
  1    continue
-    
+
       return
       end

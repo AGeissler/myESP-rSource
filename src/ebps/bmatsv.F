@@ -683,8 +683,7 @@ C Building side time step.
 
 C If monitoring is on then in start-up period display message.
       if((montrb.eq.1.or.monitr.eq.1).and.itcnst.gt.0)
-     & call usrmsg(' ',
-     &     ' Monitoring will commence shortly.','-')
+     & call edisp(iuout,'Monitoring will commence momentarily.')
 
 C Remember the 'start value' of the unix system clock.
       call getsecs(istime)
@@ -1143,7 +1142,7 @@ C Set itsmus if output is required at this time-row.
             call eclose(rem,0.00,0.0001,close)
             if (close.and.itrflg.eq.0) itsmus=1
 
-C Access functional mock-up interface for occupant behaviour modelling.
+C Access functional mock-up interface, e.g. for occupant behaviour modelling.
             if (is_FMU) then
               if (.not.bInStartup()) then
                 call FMI_SIMSTEP(IER)

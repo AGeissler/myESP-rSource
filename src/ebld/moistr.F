@@ -13,12 +13,8 @@ C warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
 C PURPOSE. See the GNU General Public License for more
 C details.
 
-C You should have received a copy of the GNU General Public
-C License along with ESP-r. If not, write to the Free
-C Software Foundation, Inc., 59 Temple Place, Suite 330,
-C Boston, MA 02111-1307 USA.
 
-C *********************************************************************
+C This file contains the following subroutines.
 C MZMSTR is the main controller for combined heat and moisture transfer.
 C INITMS initiates the whole system moisture variables.
 C INITMZ initiates the zone moisture variables.
@@ -961,14 +957,14 @@ C Estimate the future time moisture storage capacity term.
             CFF=SORP(ICOMP,I,IL,2)
             EXPT=SORP(ICOMP,I,IL,3)
             RXI=SNGL(XI03(iMM,RH1p,RH1,Uh,CFF,EXPT)) ! kg/m3 in current moisture node
-            IF(IM.EQ.1)THEN ! outermost moisture node of material layer IL
-              DELX2=DELXm/2.0 ! m (thickness of moisture node "layer")
+            IF(IM.EQ.1)THEN    ! outermost moisture node of material layer IL
+              DELX2=DELXm/2.0  ! m (thickness of moisture node "layer")
               RXI2=RXI
               RXIVpf(I,ITM1)=Asrf*(DELX1*RXI1+DELX2*RXI2)
             ELSEIF(IM.EQ.NMP1)THEN ! innermost moisture node of material layer IL
               DELX1=DELXm/2.0
               RXI1=RXI
-            ELSE ! all intermittent nodes in material layer IL
+            ELSE ! all intermediate nodes in material layer IL
               RXIVpf(I,ITM1)=Asrf*DELXm*RXI ! kg in surf I and moisture node ITM1
             ENDIF
    50     CONTINUE  ! loop IM (moisture nodes)

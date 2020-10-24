@@ -4,7 +4,7 @@ C Strathclyde, Glasgow Scotland, 2001.
 
 C ESP-r is free software.  You can redistribute it and/or
 C modify it under the terms of the GNU General Public
-C License as published by the Free Software Foundation 
+C License as published by the Free Software Foundation
 C (version 2 orlater).
 
 C ESP-r is distributed in the hope that it will be useful
@@ -13,22 +13,24 @@ C warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
 C PURPOSE. See the GNU General Public License for more
 C details.
 
-C You should have received a copy of the GNU General Public
-C License along with ESP-r. If not, write to the Free
-C Software Foundation, Inc., 59 Temple Place, Suite 330,
-C Boston, MA 02111-1307 USA.
 
-C Routines to read in various radiance generated files.
+C This file contains the following subroutines.
 
-C ******* Default views formation.
+C RRVEW   - Default views formation.
+C RRSKY   - Read a Radiance SKY file.
+C RRIF    - Read a Radiance RIF file.
+C MKRIF   - Write a Radiance RIF file.
+C FIGSCEN - Attempt to judge the type of file in a scene description
+C           from the terminating character (or later the contents).
+
+C ******************** RRVEW ********************
+C Default views formation.
+
       SUBROUTINE RRVEW(ITA2,rviewf,IER)
-
 #include "building.h"
 #include "e2r_common.h"
-
-C espriou.h provides current file.
 #include "espriou.h"
-      
+
       integer lnblnk  ! function definition
 
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
@@ -109,7 +111,7 @@ C with rvu.
       ier=0
 
       call edisp(iuout,' ')
-      write(outs,'(3a,3F8.2,a,3F7.3,a,3F6.3,4(a,F5.1))') 
+      write(outs,'(3a,3F8.2,a,3F7.3,a,3F6.3,4(a,F5.1))')
      &  'rview -vt',vewtyp,' -vp ',rvpx,rvpy,rvpz,' -vd',vdx,vdy,vdz,
      &  ' -vu ',vux,vuy,vuz,' -vh ',angh,' -vv ',angv,
      &  ' -vs 0 -vl 0 -vo ',cutfor,' -va ',cutaft
@@ -118,15 +120,13 @@ C with rvu.
       return
       end
 
-C ************** RRSKY **************
-C RRSKY Read radiance sky file.
+C ******************** RRSKY ********************
+C Read Radiance SKY file.
 
       SUBROUTINE RRSKY(ITA2,ga,IER)
 #include "building.h"
 #include "site.h"
 #include "e2r_common.h"
-
-C espriou.h provides current file.
 #include "espriou.h"
 
       integer lnblnk  ! function definition
@@ -181,15 +181,15 @@ C Read the first line and get past '# '.
 
       if(word(1:2).eq.'+c')then
         isky=4
-        skopt= ' +c'  
+        skopt= ' +c'
       elseif(word(1:2).eq.'+s')then
         isky=3
-        skopt= ' +s' 
+        skopt= ' +s'
       elseif(word(1:2).eq.'-s')then
         isky=2
-        skopt= ' -s'  
+        skopt= ' -s'
       elseif(word(1:2).eq.'-c')then
-        skopt= ' -c'  
+        skopt= ' -c'
         isky=1
       elseif(word(1:2).eq.'-g')then
         CALL EGETWR(CMDL,K,rgrfl,0.,0.99,'-','Ground refl',IER)
@@ -205,8 +205,8 @@ C Read the first line and get past '# '.
       endif
       goto 42
 
-C ESP-r sets XM to 0 so that sitelongdif can be relative (Radiance assumes 
-C absolute values) need to update sitelongdif if this is the case.
+C ESP-r sets XM to 0 so that sitelongdif can be relative (Radiance assumes
+C absolute values); need to update sitelongdif if this is the case.
  43   if (abs(XM).gt.0.1) then
         sitelongdif=sitelongdif+XM
       endif
@@ -216,8 +216,8 @@ C Read the second line to get solar altitude and azimuth.
       do 430 I=1,3
         READ(ITA2,'(a)',IOSTAT=ISTAT,END=102)OUTSTR
 
-C New version of radiance has extra line in sky file therfore sun
-C location may be on next line.
+C New version of radiance has extra line in sky file therfore Sun
+C position parameters may be on next line.
         lno=lnblnk(OUTSTR)
         if(lno.lt.2)then
           continue  ! near blank lines not of interest
@@ -255,13 +255,13 @@ C Check that ground ambient read.
         ga=0.2
       endif
 
-C Convert month&day to julian day....
+C Convert month and day to year day.
       call eday(IDO,IMO,irdoy)
 
 C Confirm.
       call edisp(iuout,' ')
       call edisp(iuout,' interpretation of sky file header...')
-      write(outs,'(a,2i3,f6.2,a,a,f5.2,a,f7.1,a,f6.1,a)') 
+      write(outs,'(a,2i3,f6.2,a,a,f5.2,a,f7.1,a,f6.1,a)')
      &     ' gensky ',IMO,IDO,rtime,skopt,' -g ',rgrfl,
      &     ' -a ',sitelat,' -o ',-sitelongdif,' -m 0.0'
       call edisp(iuout,outs)
@@ -272,29 +272,29 @@ C Confirm.
       end
 
 C ********************* RRIF *********************
-C RRIF: Read a Radiance rif file.
+C Read Radiance RIF file.
 C rscedes(xx) = Scene descriptor - order important.
 C rscedes(1) = Scene descriptor for sky.
 C rscedes(2) = Scene descriptor for glazings.
 C rscedes(xx) = Scene descriptor for everything else.
 C rzoncmd = ZONE command string e.g.  ZONE= Interior 4 10 1 7 0 2.3
 C rupaxis  = Up axis: single character 'Z'   Default is Z
-      
+
 C imgqua = Image Quality [Low|Medium|High] Default is Low
 C        ie. QUALITY= Medium
 C detlvl = Detail level  [Low|Medium|High] Default is Medium but with
 C        non-complex image then set to low.  High if for surface patterns.
 C llvar = Light level Variability  [Low|Medium|High] Default is Low
 C        but with daylighting should be high.  If outside then ??
-C indrcb= Indirect calculation importance: integer 0-2  
-C       0=direct light, 1=typically one reflection, 
+C indrcb= Indirect calculation importance: integer 0-2
+C       0=direct light, 1=typically one reflection,
 C       2=more reflections (e.g.lightshelfs)
 C ipicx  = Resolution or image width [X pixels]  Default is 512.
 C penumb = Penumbras [False|True]  Default is False.  << ?? >>
 C        ie. PENUMBRAS= True
 C itrack = Progress reporting in whole minutes: 'REPORT= 10'
 
-C crenrp = Extra rendering command lines for rpict. 
+C crenrp = Extra rendering command lines for rpict.
 C coconv = Extra commands for oconv.
 
 C NOTE: Octree path/file.  Relitive to rif folder and root as in 'rif' file.
@@ -313,11 +313,11 @@ C IERR=1 if a scene file is missing.
 #include "building.h"
 #include "espriou.h"
 #include "e2r_common.h"
-      
+
       integer lnblnk  ! function definition
 
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
-      
+
       integer ncomp,ncon
       COMMON/C1/NCOMP,NCON
 
@@ -347,7 +347,7 @@ C Attempt to read in rif file.
       CALL ERPFREE(ITA2,ISTAT)
       call FPOPEN(ITA2,ISTAT,1,0,tfile)
       if (ISTAT.LT.0) then
-        call usrmsg(' Problem detected while opening...',file,'W')
+        call usrmsg('Problem detected while opening ',file,'W')
         return
       endif
       write(currentfile,'(a)') file(1:lnblnk(file))
@@ -363,13 +363,13 @@ C Test if e2r information structure can be recovered.
         CALL EGETWI(OUTSTR,K,intext,0,1,'W','inside',IER)
         CALL EGETWI(OUTSTR,K,ifocz,-1,NCOMP,'W','zone',IER)
         if (RVB.ne.'s') then
-          call edisp(iuout,' Recovered interior/exterior.')
+          call edisp(iuout,'Recovered interior/exterior.')
         endif
       elseif(OUTSTR(1:14).eq.'#e2r_glaz_type')then
         K=15
         CALL EGETWI(OUTSTR,K,iglzty,1,3,'W','glaz type',IER)
         if (RVB.ne.'s') then
-          call edisp(iuout,' Recovered glazing treatment.')
+          call edisp(iuout,'Recovered glazing treatment.')
         endif
       else
         goto 39
@@ -381,7 +381,7 @@ C Close and then re-open the file.
       call ERPFREE(ITA2,ISTAT)
       call FPOPEN(ITA2,ISTAT,1,1,tfile)
 
-C Now loop looking for key words and data.
+C Loop looking for key words and data.
  42   CALL LSTRIPC(ITA2,OUTSTR,99,ND,0,'rif line',IFLAG)
       IF(IFLAG.ne.0)goto 900
       K=0
@@ -390,6 +390,7 @@ C Now loop looking for key words and data.
       if (WORD(1:2).EQ.'  ') then
         GOTO 42
       endif
+
 C `rad` related contents.
       if(word(1:5).eq.'ZONE=')then
         CALL EGETRM(OUTSTR,K,rzoncmd,'W','ZONE commands',IER)
@@ -427,7 +428,7 @@ C Run time files.
       elseif(word(1:6).eq.'scene='.or.word(1:6).eq.'illum=')then
 
 C Scene files.
-C Still require to parse files in the rscedes based hopefully on
+C Still require to parse files in the rscedes based on
 C the ending characters of the file.
         if(tsc(1:4).eq.'UNKN')then
           continue  ! not all possible scene types may be filled
@@ -454,8 +455,6 @@ C the ending characters of the file.
         indxvew=indxvew+1
         write(rvewsh(indxvew),'(a)') tvewsh(1:lnblnk(tvewsh))
         write(vewcmds(indxvew),'(a)')tvewcmds(1:lnblnk(tvewcmds))
-C        write(6,*) 'reading rif file'
-C        write(6,*) vewcmds(indxvew)
 
 C Echo and save render settings.
       elseif(word(1:7).eq.'render=')then
@@ -476,18 +475,16 @@ C Echo and save render settings.
       return
       end
 
-
 C ********************* MKRIF *********************
-C MKRIF - Write radiance RIF file.
+C Write Radiance RIF file.
 C IFC=4 ask before overwriting, IFC=3 overwrite.
+
       SUBROUTINE MKRIF(ITA2,file,IFC,IGL,IER)
 #include "building.h"
 #include "e2r_common.h"
 
       integer lnblnk  ! function definition
-
       character file*72,tfile*72
-
       logical XST
 
 C Open rif file.
@@ -496,7 +493,7 @@ C Open rif file.
       CALL ERPFREE(ITA2,ISTAT)
       call FPOPEN(ITA2,ISTAT,1,IFC,tfile)
       if (ISTAT.LT.0) then
-        call usrmsg(' Problem detected while opening:',tfile,'W')
+        call usrmsg('Problem detected while opening:',tfile,'W')
         IER=1
         return
       endif
@@ -516,8 +513,8 @@ C Update the view descriptors.
  142    continue
       endif
 
-C Update the scene descriptors. The sky file must be first, followed 
-C by the glazing file (ESRU definition).  Print blanks if they are not 
+C Update the scene descriptors. The sky file must be first, followed
+C by the glazing file (ESP-r definition). Print blanks if they are not
 C defined.
       indxscn = 2
 
@@ -533,7 +530,7 @@ C Sky file.
       endif
 
 C Glazing file.
-C First check if alternative glazing specified (in case of blind 
+C First check if alternative glazing specified (in case of blind
 C shutter control).
       if (IGL.gt.0) then
         write (tfile,'(2a)') runpath(1:lnrp),aglzfil(1:lnblnk(aglzfil))
@@ -577,9 +574,9 @@ C Materials file.
         write(ITA2,'(a,a)')'scene= ',matfil(1:lnblnk(matfil))
       endif
 
-C Added shell command for modish.pl
-      call system("./fix.sh")
-       
+C Shell command for modish.pl.
+      call system("perl /opt/esp-r/bin/modish/perlfix.pl")
+
 C Outside description file.
       write (tfile,'(2a)') runpath(1:lnrp),rofil(1:lnblnk(rofil))
       INQUIRE(FILE=tfile,EXIST=XST)
@@ -643,7 +640,7 @@ C Remainder of rif file.
       write(ITA2,'(a,a)') 'ZONE= ',rzoncmd(1:lnblnk(rzoncmd))
 
 C Radiance run time files.
-C If any were read in then the path is stripped from them so as to 
+C If any were read in then the path is stripped from them so as to
 C create files in writable directories.
 C Ambient file.
       if(rambfil(1:4).ne.'NONE')then
@@ -682,9 +679,10 @@ C Picture file.
       return
       end
 
-C ******* FIGSCEN
-C Attempt to judge the type of file in a scene description from the
-C terminating character (or later the contents).
+C ******************** FIGSCEN ********************
+C Attempt to judge the type of file in a scene description
+C from the terminating character (or later the contents).
+
       subroutine figscen(ITA3,cmdname,ier)
 #include "building.h"
 #include "e2r_common.h"
@@ -749,14 +747,14 @@ C << needs to be fixed to hold additional (say 10) scene files >>
         endif
       else
         ier=1
-        call usrmsg(' Could not find: ',tfile,'W')
+        call usrmsg('Could not find: ',tfile,'W')
       endif
 
       CALL ERPFREE(ITA3,ISTAT)
       return
 
  102  CALL ERPFREE(ITA3,ISTAT)
-      call edisp(iuout,'Problem scanning the scene. ')
+      call edisp(iuout,'Problem scanning the scene!')
       ier=-1
       return
 

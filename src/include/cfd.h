@@ -22,4 +22,9 @@ C  INTEGER, PARAMETER :: MCONTM in net_flow.h, if this is changed also change MC
       INTEGER, PARAMETER :: MCTM=4
 C Maximum frequency of residuals plotting during CFD solutions
       INTEGER, PARAMETER :: MFRP=1000
+C Maximum number of cells to potentially refine gridding
+      INTEGER, PARAMETER :: MRFN=NTCELX*NTCELY*NTCELZ/1000
+C Maximum number of times we might refine in total
+      INTEGER, PARAMETER :: MRFNT=NTCELX*NTCELY*NTCELZ
+
 

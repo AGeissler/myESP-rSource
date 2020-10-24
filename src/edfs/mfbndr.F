@@ -62,7 +62,6 @@ C ********************* MFBNDR *********************
       common/outin/iuout,iuin,ieout
       COMMON/PVALA/TPA(MCOM),QPA(MCOM)
       COMMON/FVALA/TFA(MCOM),QFA(MCOM)
-      common/SSOinit/areaSSO
       common/KEYVOLS/NVOL(MNZ),IVOLF(MNVLS,MNZ),IVCELLS(MNVLS,MNZ,2),
      &               JVCELLS(MNVLS,MNZ,2),KVCELLS(MNVLS,MNZ,2)
       common/KEYVDAT/IVTYPE(MNVLS,MNZ),VOLTemp(MNVLS,MNZ),
@@ -87,17 +86,11 @@ C ********************* MFBNDR *********************
 
       DOUBLE PRECISION FLW1,FLW2,PRES,RESID,SAFLW,PSTACK,HDP,HDV,HFL,
      *                 FLWNET
-      LOGICAL ACTCNN,FOUND,FIRST,areaSSO
+      LOGICAL ACTCNN,FOUND,FIRST
       CHARACTER LAPROB*72
       integer TMPNODN
 
       INITL=INTL
-
-C Set up small openings, but only if this is the first time
-C the CFD domain has been invoked during this simulation.
-      IF(.NOT.areaSSO) THEN
-        CALL DEFINESSO
-      ENDIF
 
       IF(INITL.EQ.0)GOTO 100
       IF(INITL.EQ.1)GOTO 101
@@ -106,7 +99,7 @@ C the CFD domain has been invoked during this simulation.
       CALL EDISP(IUOUT,'MFBNDR: Error configuring mfs-cfd conflation')
       RETURN
 
-C Initialise the massflows to/from CFD domain to mfs dry run values      
+C Initialise the massflows to/from CFD domain to mfs dry run values.
  101  DO 1976 ICN=1,NCNN
         IF(NODPS(ICN).EQ.ICFDNOD(ICFD).AND.NODNE(ICN).LE.(NNOD-NFNDN))
      &  THEN
@@ -196,9 +189,9 @@ C Before changing boundary condition first hold original values
  1010       IVTYPEOLD(IV,ICFD)  = IVTYPE(IV,ICFD)
             VOLVELOLD(IV,ICFD)  = VOLVel(IV,ICFD)
             VOLTEMPOLD(IV,ICFD) = VOLTemp(IV,ICFD)
-            VOLHUMOLD(IV,ICFD)  = VOLHum(IV,ICFD)
-            VOLDIROLD(IV,ICFD,1)= VOLDir(IV,ICFD,1)
-            VOLDIROLD(IV,ICFD,2)= VOLDir(IV,ICFD,2)
+C            VOLHUMOLD(IV,ICFD)  = VOLHum(IV,ICFD)
+C            VOLDIROLD(IV,ICFD,1)= VOLDir(IV,ICFD,1)
+C            VOLDIROLD(IV,ICFD,2)= VOLDir(IV,ICFD,2)
   
 C Set this boundary condition to velocity depending on flow in/out
 C Areas of all opening type boundary conditions have already been set
@@ -221,8 +214,6 @@ C Get zone db temp of zone from which air is entering
               ENDIF
  572        CONTINUE
 
-C If zone not found air is entering from ambient
-C << Cannot assume this, what about internal known nodes? >>
             IF(.NOT.FOUND)THEN
 C Find sending node.
               if (FLOW.gt.0.) then ! net flow NODPS -> NODNE
@@ -242,9 +233,9 @@ C Find sending node.
             VOLTemp(IV,ICFD)=TMPRTR
 
 C<< To include direction components and humidity
-            VOLDir(IV,ICFD,1)=0.0
-            VOLDir(IV,ICFD,2)=0.0
-            VOLHum(IV,ICFD)=0.0
+C            VOLDir(IV,ICFD,1)=0.0
+C            VOLDir(IV,ICFD,2)=0.0
+C            VOLHum(IV,ICFD)=0.0
  571      CONTINUE
           IOPNO=IOPNO+1
         ENDIF
@@ -310,9 +301,9 @@ C Restore original CFD boundary conditions
          IVTYPE(IV,ICFD)  = IVTYPEOLD(IV,ICFD) 
          VOLVel(IV,ICFD)  = VOLVELOLD(IV,ICFD)  
          VOLTemp(IV,ICFD) = VOLTEMPOLD(IV,ICFD)
-         VOLHum(IV,ICFD)  = VOLHUMOLD(IV,ICFD) 
-         VOLDir(IV,ICFD,1)= VOLDIROLD(IV,ICFD,1) 
-         VOLDir(IV,ICFD,2)= VOLDIROLD(IV,ICFD,2)
+C         VOLHum(IV,ICFD)  = VOLHUMOLD(IV,ICFD) 
+C         VOLDir(IV,ICFD,1)= VOLDIROLD(IV,ICFD,1) 
+C         VOLDir(IV,ICFD,2)= VOLDIROLD(IV,ICFD,2)
         ENDIF
  577  CONTINUE
       CALL NEW2OLD
@@ -353,7 +344,7 @@ C cfd-mfs iterations are done.
      &               JVCELLS(MNVLS,MNZ,2),KVCELLS(MNVLS,MNZ,2)
       COMMON/ALL/NI,NJ,NK,NIM1,NJM1,NKM1,NIM2,NJM2,NKM2
       common/blksso/NBLK(MNZ),INBLK(MNVLS,MNZ),NSSO(MNZ),
-     &          INSSO(MNVLS,MNZ)
+     &          INSSO(MNVLS,MNZ),BLKTEMP(MNVLS,MNZ,6)
 
       COMMON/MFLW11/PSTACK(MCNN),HDP(MCNN),HDV(MCNN),HFL(MCNN)
       COMMON/MFLRES/FLW1(MCNN),FLW2(MCNN),PRES(MNOD),

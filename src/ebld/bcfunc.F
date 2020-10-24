@@ -708,7 +708,7 @@ C Recover control point data.
 #include "building.h"
 #include "net_flow.h"
 #include "tdf2.h"
-#include "control.h"      
+#include "control.h"
 
       common/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/PSTSOL/ICF,IDTYP,IPER,BB1,BB2,BB3,IICOMP,TNP,QFUT,TFUT
@@ -1905,7 +1905,7 @@ C Determine required plant capacity.
       Q=(BB3-BB1*TCont)/BB2
 
 C Is heat flux determined according to surface area?
-      if ( IBAN(ICF,1).EQ.IICOMP.AND.IBAN(ICF,2).GT.0) then
+      if (IBAN(ICF,1).EQ.IICOMP.AND.IBAN(ICF,2).GT.0) then
         bQBySurf = .true.  ! Yes
         ISUR=IBAN(ICF,2)
       else   ! No.
@@ -2051,14 +2051,6 @@ C Keep track if trace is not active.
             if (bInStartup())then
               continue
             else
-
-C Temporary for BH project
-C              if( IICOMP.eq.1.and.(btimef.lt.5.0.or.btimef.ge.7.0))
-C     &            UNMETHRS(IICOMP)=UNMETHRS(IICOMP)+hrfrac
-C              if( IICOMP.eq.2.and.((btimef.lt.5.0.or.btimef.ge.7.0).or.
-C     &           (btimef.lt.14.or.btimef.ge.16.0)))
-C     &            UNMETHRS(IICOMP)=UNMETHRS(IICOMP)+hrfrac
-C /Temporary
               UNMETHRS(IICOMP)=UNMETHRS(IICOMP)+hrfrac
             endif
          elseif ( QFUT.le.QHM.and.TFUT.ge.HSP)then  ! if within capacity and at/above setpoint

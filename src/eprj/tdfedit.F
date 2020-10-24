@@ -339,7 +339,7 @@ C Set the menu control text.
         ITEM(MITEM-4)='r reporting >> verbose                 '
       ENDIF
       ITEM(MITEM-3)  ='! preferences                          '
-      ITEM(MITEM-2)  ='> Save|import|export|extract TDF file  '
+      ITEM(MITEM-2)  ='> save|import|export|extract TDF file  '
       ITEM(MITEM-1)  ='? help                                 '
       ITEM(MITEM)    ='- exit menu'
 

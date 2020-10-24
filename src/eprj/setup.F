@@ -104,12 +104,12 @@ C Display of time of day.
         ITEMS1(3)='c time format: 0.416 (day frac.)'
       ENDIF
 
-      ITEMS1(4)  ='e list file'
-      ITEMS1(5)  ='f edit file'
-      ITEMS1(6)  ='g edit ESP-r defaults files'
-      ITEMS1(7)  ='h edit ESP-r 3rd party applications'
-      ITEMS1(8)  ='i edit ESP-r climatelist entries'
-      ITEMS1(9)  ='j edit ESP-r exemplars entries'
+      ITEMS1(4)  ='e list a file'
+      ITEMS1(5)  ='f edit a file'
+      ITEMS1(6)  ='g edit defaults files'
+      ITEMS1(7)  ='h edit 3rd party applications'
+      ITEMS1(8)  ='i edit climatelist entries'
+      ITEMS1(9)  ='j edit exemplars entries'
       IF(ITRC.EQ.0)THEN
         ITEMS1(10)='k feedback: silent'
       ELSEIF(ITRC.EQ.1)THEN
@@ -124,15 +124,15 @@ C Display of time of day.
       endif
       ITEMS1(12)  ='r cores available to Radiance'
       ITEMS1(13)  ='s surface match tolerance'
-      ITEMS1(14)  ='? help                                       '
-      ITEMS1(15)  ='- exit this menu                             '
+      ITEMS1(14)  ='? help'
+      ITEMS1(15)  ='- exit menu'
 
       NITMS=15
-      CALL EMENU('Tool preferences',ITEMS1,NITMS,INO1)
+      CALL EMENU('Preferences',ITEMS1,NITMS,INO1)
 
       IF(INO1.EQ.1)THEN
 
-C Wire frame view point.
+C Wire-frame view point.
         if(browse)goto 33
         helptopic='view_point'
         call gethelptext(helpinsub,helptopic,nbhelp)
@@ -140,7 +140,7 @@ C Wire frame view point.
      &      'default','current','edit','cancel',IW,nbhelp)
         if(IW.EQ.1)then
 
-C Set eye point at standard place and viewed point at cog.
+C Set eye point at standard place and viewed point at COG.
           EYEMI(1)=-100.0; EYEMI(2)=-100.0; EYEMI(3)=100.
           call bndobj(0,ier)
           VIEWMI(1)=VIEWM(1); VIEWMI(2)=VIEWM(2); VIEWMI(3)=VIEWM(3)

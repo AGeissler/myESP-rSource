@@ -656,7 +656,7 @@ C Variable will be reset if 'iflgevapC(icomp)' included in .cfg.
         iflgevapC(icomp) = 0
  88   continue
 
-C Initialise flag for quick run simulation (default is 'no')   . 
+C Initialise flag for quick run simulation (default is 'no'). 
       iQuick_run = 0 
  
 C Initialise NCM data read flags.
@@ -3391,6 +3391,9 @@ C Test for valid fluid network node name.
    31     INOD=INOD+1
           IF(NODID(1:12).EQ.NDNAM(INOD)(1:12)) GOTO 32
           IF(INOD.LT.NNOD) GOTO 31
+          write(outs,'(3a)') 'Did not find matching node name ',NODID,
+     &      ' in the cfg file zone-node list'
+          call edisp(iuout,outs)
           GOTO 33
    32     ICAAS(ICOMP)=INOD  ! name is valid
           GOTO 35
@@ -3600,7 +3603,7 @@ C Free plant components database and/or fluid flow network file.
         IF(IUNIT1.NE.0) CALL ERPFREE(IUNIT1,ISTAT)
       endif
 
-C Functional Mock-up Interface (FMU): to specify an FMU insert
+C Functional Mock-up Interface (FMI): to specify an FMU insert
 C the following line at the end of a system configuration file.
 C *FMI [path to FMI specification file]
       CALL FMI_CLEARALL()

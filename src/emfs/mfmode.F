@@ -13,11 +13,6 @@ C warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
 C PURPOSE. See the GNU General Public License for more
 C details.
 
-C You should have received a copy of the GNU General Public
-C License along with ESP-r. If not, write to the Free
-C Software Foundation, Inc., 59 Temple Place, Suite 330,
-C Boston, MA 02111-1307 USA.
-
 C ************** MFMODE 
 C MFMODE lets the user, when
 C     ICHNG=1  alter the iteration parameters
@@ -91,48 +86,48 @@ C Test if user wishes to reset any of these values.
 
 C Reset MAXITF
    20 IV=1
-      WRITE(outs,'(A,I5,A)') ' MAXITF [currently = ',MAXITF,' ] '
+      WRITE(outs,'(A,I5,A)') 'MAXITF [currently = ',MAXITF,' ] '
       helptopic='mfs_max_iterations'
       call gethelptext(helpinsub,helptopic,nbhelp)
       IV=MAXITF
-      CALL EASKI(IV,outs,' MAXITF value?',
+      CALL EASKI(IV,outs,'MAXITF value?',
      &  0,'F',1000,'W',0,'MAXITF ',IER,nbhelp)
       IF(IER.NE.0) GOTO 20
       MAXITF=IV
 
 C Reset FERREL (%)
-   30 WRITE(outs,'(A,F9.3,A)') ' FERREL [currently = ',FERREL*100.0,
+   30 WRITE(outs,'(A,F9.3,A)') 'FERREL [currently = ',FERREL*100.0,
      &                         ' %] '
       helptopic='mfs_percentage_error'
       call gethelptext(helpinsub,helptopic,nbhelp)
       V=FERREL*100.
-      CALL EASKR(V,outs,' FERREL value (%) ? ',
+      CALL EASKR(V,outs,'FERREL value (%)?',
      &  0.,'F',100.,'F',0.,'FERREL ',IER,nbhelp)
       IF(IER.NE.0) GOTO 30
       FERREL=V*.01
 
 C Reset FERMFL (kg/s)
-   40 WRITE(outs,'(A,F9.5,A)') ' FERMFL [currently = ',FERMFL,' kg/s] '
+   40 WRITE(outs,'(A,F9.5,A)') 'FERMFL [currently = ',FERMFL,' kg/s] '
       helptopic='mfs_residual_flow'
       call gethelptext(helpinsub,helptopic,nbhelp)
       V=FERMFL
-      CALL EASKR(V,outs,' FERMFL value (kg/s) ? ',
+      CALL EASKR(V,outs,'FERMFL value (kg/s)?',
      &  0.,'F',1000.,'F',0.,'FERMFL ',IER,nbhelp)
       IF(IER.NE.0) GOTO 40
       FERMFL=V
 
 C Reset PMAX (Pa)
-   50 WRITE(outs,'(A,F9.2,A)') ' PMAX [currently = ',PMAX,' Pa] '
+   50 WRITE(outs,'(A,F9.2,A)') 'PMAX [currently = ',PMAX,' Pa] '
       helptopic='mfs_PMAX_value'
       call gethelptext(helpinsub,helptopic,nbhelp)
       V=PMAX
-      CALL EASKR(V,outs,' PMAX value (Pa) ? ',
+      CALL EASKR(V,outs,'PMAX value (Pa)?',
      &  0.,'F',0.,'-',0.,'PMAX ',IER,nbhelp)
       IF(IER.NE.0) GOTO 50
       PMAX=V
 
 C Reset STEFFR
-   60 WRITE(outs,'(A,F9.2,A)') ' STEFFR [currently = ',STEFFR,'] '
+   60 WRITE(outs,'(A,F9.2,A)') 'STEFFR [currently = ',STEFFR,'] '
       helptopic='mfs_STEFFR_value'
       call gethelptext(helpinsub,helptopic,nbhelp)
       V=STEFFR
@@ -169,8 +164,8 @@ C Test if user wishes to reset trace facility
       helptopic='mfs_trace_mode'
       call gethelptext(helpinsub,helptopic,nbhelp)
       IV=MFTRAC
-      CALL EASKI(IV,outs,' Trace option (see help): ',
-     &        -1,'F',3,'F',-1,'trace option',IER,0)
+      CALL EASKI(IV,outs,'Trace option:',
+     &  -1,'F',3,'F',-1,'trace option',IER,nbhelp)
       IF(IER.NE.0) GOTO 90
       MFTRAC=IV
       GOTO 100

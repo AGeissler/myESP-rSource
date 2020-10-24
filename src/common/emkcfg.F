@@ -1199,7 +1199,7 @@ C Extended simulation parameter sets.
      &      '*selr ',selres(iss)(1:lnblnk(selres(iss)))
 
 C CFD.
-          if(CFDOK)then
+          if(iscfdactivate(iss).gt.-1)then
             WRITE(IFCFG,'(A,3I4,2F7.3,2A)',IOSTAT=IOS,ERR=2)
      &       '*scfdr ',iscfdactivate(iss),isicfdys(iss),isicfdyf(iss),
      &       scftims(iss),scftimf(iss),' ',

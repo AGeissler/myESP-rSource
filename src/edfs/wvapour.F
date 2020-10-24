@@ -106,7 +106,7 @@ C Boundary condition commons.
 
 C Common blocks for blockages and small supply openings
       common/blksso/NBLK(MNZ),INBLK(MNVLS,MNZ),NSSO(MNZ),
-     &          INSSO(MNVLS,MNZ)
+     &          INSSO(MNVLS,MNZ),BLKTEMP(MNVLS,MNZ,6)
 
       LOGICAL INCALU,INCALV,INCALW,INCALT,INCALK,INCALD
       LOGICAL IZEROT,IZanKE,IMITZ

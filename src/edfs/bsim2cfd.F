@@ -41,6 +41,11 @@ C            when there is thermal conflation.
      &              ISUFLC(MNSBZ,MNZ),IWSB(MNSBZ,MNZ),SSB(MNSBZ,MNZ),
      &              SSBHC(MNSBZ,MNZ),IVOLNSB(MNSBZ,MNZ),
      &              ITCtype(MNSBZ,MNZ),icTREF(MNSBZ,MNZ)
+      common/KEYVDAT/IVTYPE(MNVLS,MNZ),VOLTemp(MNVLS,MNZ),
+     &          VOLHeat(MNVLS,MNZ),IVConfl(MNVLS,MNZ),VOLHum(MNVLS,MNZ),
+     &          VOLCO2(MNVLS,MNZ),VOLVel(MNVLS,MNZ),VOLDir(MNVLS,MNZ,2),
+     &          VOLArea(MNVLS,MNZ),VOLPres(MNVLS,MNZ),
+     &          VOLPol(MCTM,MNVLS,MNZ)
       COMMON/ICFNOD/ICFD,ICP
       COMMON/ACCrec/IACC(MNZ)
       COMMON/cfdfil/LCFD(MCOM),IFCFD(MCOM)
@@ -163,6 +168,7 @@ C Record ACC actions (end).
         else
           call edisp(iuout,' Error: invalid BC type')
         endif
+        VOLTemp(IVOLNSB(L,ICFD),ICFD)=SSB(L,ICFD)
    20 CONTINUE
 
       RETURN
@@ -260,17 +266,25 @@ C             when there is thermal conflation.
      &            KHSf(MNHS,2,MNZ),HSID(MNHS,2,MNZ),SHS(MNHS,2,MNZ),
      &            BHS(MNHS,2,MNZ)
       COMMON/ICFNOD/ICFD,ICP
+      common/blksso/NBLK(MNZ),INBLK(MNVLS,MNZ),NSSO(MNZ),
+     &          INSSO(MNVLS,MNZ),BLKTEMP(MNVLS,MNZ,6)
+      common/KEYVOLN/VOLNAME(MNVLS,MNZ),VCsurf(MNVLS,MNZ),
+     &               BLKSURF(MNVLS,MNZ,6)
+      character VOLNAME*12,VCsurf*12,BLKSURF*12
+      common/KEYVDAT/IVTYPE(MNVLS,MNZ),VOLTemp(MNVLS,MNZ),
+     &          VOLHeat(MNVLS,MNZ),IVConfl(MNVLS,MNZ),VOLHum(MNVLS,MNZ),
+     &          VOLCO2(MNVLS,MNZ),VOLVel(MNVLS,MNZ),VOLDir(MNVLS,MNZ,2),
+     &          VOLArea(MNVLS,MNZ),VOLPres(MNVLS,MNZ),
+     &          VOLPol(MCTM,MNVLS,MNZ)
+      COMMON/FVALS/TFS(MCOM,MS),QFS(MCOM)
+      COMMON/PVALS/TPS(MCOM,MS),QPS(MCOM)
 
       CHARACTER*72 HSID
       LOGICAL BHS
 
 C This subroutine imposes BSim thermal conditions onto `blocked' areas
-C of the CFD domain. Currently this is only used when a blocked heat source
-C of type `APT' (short for `air-point') is prescribed. Functionality of this
-C subroutine can be expanded in the future to map the temperatures and heat
-C flows of ESP-r surfaces onto the CFD domain when the treatment of blockages
-C is refined.
-
+C of the CFD domain. 
+C This section used for experimental radiator handling.
       M=1
       DO 30 L=1,NHS(M,ICFD)
         IF(HSID(L,M,ICFD).EQ.'APT'.OR.HSID(L,M,ICFD).EQ.'apt')then
@@ -278,5 +292,21 @@ C is refined.
         endif
    30 CONTINUE
 
+C This section maps surface temperatures onto blockages.
+      do IBLK=1,NBLK(ICFD)
+        IV=INBLK(IBLK,ICFD)
+        if (IVTYPE(IV,ICFD).eq.32) then
+          IS=IDSURF(BLKSURF(IV,ICFD,1))
+          VOLTemp(IV,ICFD)=0.5*(TFS(ICP,IS)+TPS(ICP,IS))
+        elseif (IVTYPE(IV,ICFD).eq.33) then
+          do i=1,6
+            if (BLKSURF(IV,ICFD,i)(1:4).ne.'NONE') then
+              IS=IDSURF(BLKSURF(IV,ICFD,i))
+              BLKTEMP(IV,ICFD,i)=0.5*(TFS(ICP,IS)+TPS(ICP,IS))
+            endif
+          enddo
+        endif
+      enddo
+      
       RETURN
       END

@@ -56,6 +56,13 @@ C
      &              ISUFLC(MNSBZ,MNZ),IWSB(MNSBZ,MNZ),SSB(MNSBZ,MNZ),
      &              SSBHC(MNSBZ,MNZ),IVOLNSB(MNSBZ,MNZ),
      &              ITCtype(MNSBZ,MNZ),icTREF(MNSBZ,MNZ)
+      common/KEYVOLS/NVOL(MNZ),IVOLF(MNVLS,MNZ),IVCELLS(MNVLS,MNZ,2),
+     &               JVCELLS(MNVLS,MNZ,2),KVCELLS(MNVLS,MNZ,2)
+      common/KEYVDAT/IVTYPE(MNVLS,MNZ),VOLTemp(MNVLS,MNZ),
+     &          VOLHeat(MNVLS,MNZ),IVConfl(MNVLS,MNZ),VOLHum(MNVLS,MNZ),
+     &          VOLCO2(MNVLS,MNZ),VOLVel(MNVLS,MNZ),VOLDir(MNVLS,MNZ,2),
+     &          VOLArea(MNVLS,MNZ),VOLPres(MNVLS,MNZ),
+     &          VOLPol(MCTM,MNVLS,MNZ)
       COMMON/ICFNOD/ICFD,ICP
       COMMON/VARf/Uf(ntcelx,ntcely,ntcelz),Vf(ntcelx,ntcely,ntcelz),
      1            Wf(ntcelx,ntcely,ntcelz),
@@ -100,6 +107,8 @@ C
       COMMON/MFS/IMFACT
       COMMON/THETA/THETA1(MCFND,MNZ),THETA2(MCFND,MNZ)
       COMMON/YUANcm/Uqstor(ntcelx,ntcely,ntcelz),Uqinit
+      COMMON/BCTYPCEL/IBCTPC(ntcelx,ntcely,ntcelz)
+      COMMON/ITERAT/NITER
 
       LOGICAL INCALU,INCALV,INCALW,INCALT,INCALK,INCALD
       LOGICAL IZEROT,IZanKE,IMITZ,Uqinit,OK
@@ -130,357 +139,231 @@ C If flow is 1D or 2D make coefficients in other directions zero.
 
       CDTERM=CMU**0.25
 
-C Solid walls.
-      DO 101 L=1,NSB(ICFD)
+      DO 101 IV=1,NVOL(ICFD)
 
 C Determine upon which face of the CFD domain the solid boundary resides.
-C `location' is equal to the least significant digit of IWSB and has the
-C following meanings: 1 for west; 2 for east; 3 for south; 4 for north;
-C 5 for low; 6 for high.
-        location = abs(IWSB(L,ICFD)) - abs(IWSB(L,ICFD))/10*10
-        ISBii=ISBi(L,ICFD)
+C `location' has the following meanings: 1 for west; 2 for east;
+C 3 for south; 4 for north; 5 for low; 6 for high.
+        location = IVOLF(IV,ICFD)
 
-C To change/ test - sometimes produces non zero coefficients at walls!
-        DO 800 M=1,NOPEN(ICFD)
-          IF(ISBi(L,ICFD).EQ.IOPENf(M,ICFD)+1) THEN
-            ISBii=ISBii+1
-            GOTO 801
-          ENDIF
- 800    CONTINUE
+C Determine BC type.
+        ityp=IVTYPE(IV,ICFD)
 
-C Set up boundary conditions on South solid wall.
- 801    IF(location.EQ.3)THEN
-          J=JSBi(L,ICFD)
-          DYS=YP(J)-YV(J)
-          DO 102 K=KSBi(L,ICFD),KSBf(L,ICFD)
+C Symmetric BCs.
+        if (ityp.eq.3 .or. ityp.eq.6) then
 
-C This code is a proposed solution to the procedure in lines 143 - 148.
-C Commented for the time being, as it needs further testing. Also
-C present in MODVT and MODWT.
-
-C Because the velocity grid is staggered, handling of grid cells at the
-C boundary between BCs can be complicated, as they are half bounded by
-C one BC and half by the other in the relevant direction (in this case
-C the I direction). The convention is that each solid boundary condition
-C handles velocity grid cells with indices corresponding to its scalar
-C grid cells. The velocity grid is offset negatively, so the first row
-C in the relevant direction is the contentious one. 
-C How this is handled depends on what BC is before this one in the I
-C direction, in this K row. If it is another solid BC, handle as usual
-C (wall temperatures are not factored into calculations here, so no
-C interpolation is needed). If it is an opening, do nothing, and allow
-C this grid cell to be handled by the opening boundary condition (INOUT
-C in cfcalc.F). If it is inside a boundary in a different direction
-C (i.e. in a corner), also do nothing, as it will be handled by the
-C boundary condition in that direction.
-C             I=ISBi(L,ICFD)
-C             if (I.eq.2) then
-C               ISBii=I+1
-C             else
-C               ISBii=I
-C               do M=1,NOPEN(ICFD)
-C                 OK=LINVOL(I-1,J,K,
-C      &            IOPENi(M,ICFD),IOPENf(M,ICFD),
-C      &            JOPENi(M,ICFD),JOPENf(M,ICFD),
-C      &            KOPENi(M,ICFD),KOPENf(M,ICFD))
-C                 if (OK) then 
-C                   ISBii=I+1
-C                   EXIT
-C                 endif
-C               enddo
-C             endif
-
-            DO 1122 I=ISBii,ISBf(L,ICFD)
-              TMULT=TRBSRCU(I,J,K,DYS)
-              TAUSU(I,J,K)=-TMULT*Uf(I,J,K)
-              SP(I,J,K)=SP(I,J,K)-TMULT*AreaNSU(I,K)
-              AS(I,J,K)=0.0
- 1122       CONTINUE
- 102      CONTINUE
-          II=ISBi(L,ICFD)
-          IFF=ISBf(L,ICFD)
-          DO 110 K=KSBi(L,ICFD),KSBf(L,ICFD)
-            TAUSU(II,J,K)=TAUSU(II+1,J,K)
-            TAUSU(IFF+1,J,K)=TAUSU(IFF,J,K)
- 110      CONTINUE
-
-C Set up boundary conditions on North solid wall.
-        ELSEIF(location.EQ.4)THEN
-          J=JSBi(L,ICFD)
-          DYN=YV(J+1)-YP(J)
-          DO 112 K=KSBi(L,ICFD),KSBf(L,ICFD)
-
-C             I=ISBi(L,ICFD)
-C             if (I.eq.2) then
-C               ISBii=I+1
-C             else
-C               ISBii=I
-C               do M=1,NOPEN(ICFD)
-C                 OK=LINVOL(I-1,J,K,
-C      &            IOPENi(M,ICFD),IOPENf(M,ICFD),
-C      &            JOPENi(M,ICFD),JOPENf(M,ICFD),
-C      &            KOPENi(M,ICFD),KOPENf(M,ICFD))
-C                 if (OK) then 
-C                   ISBii=I+1
-C                   EXIT
-C                 endif
-C               enddo
-C             endif
-
-            DO 1121 I=ISBii,ISBf(L,ICFD)
-              TMULT=TRBSRCU(I,J,K,DYN)
-              TAUNU(I,J,K)=-TMULT*Uf(I,J,K)
-              SP(I,J,K)=SP(I,J,K)-TMULT*AreaNSU(I,K)
-              AN(I,J,K)=0.0
- 1121       CONTINUE
- 112      CONTINUE
-          II=ISBi(L,ICFD)
-          IFF=ISBf(L,ICFD)
-          DO 120 K=KSBi(L,ICFD),KSBf(L,ICFD)
-            TAUNU(II,J,K)=TAUNU(II+1,J,K)
-            TAUNU(IFF+1,J,K)=TAUNU(IFF,J,K)
- 120      CONTINUE
-
-C Set up boundary conditions on Low solid wall.
-        ELSEIF(location.EQ.5)THEN
-          K=KSBi(L,ICFD)
-          DZL=ZP(K)-ZW(K)
-          DO 122 J=JSBi(L,ICFD),JSBf(L,ICFD)            
-
-C             I=ISBi(L,ICFD)
-C             if (I.eq.2) then
-C               ISBii=I+1
-C             else
-C               ISBii=I
-C               do M=1,NOPEN(ICFD)
-C                 OK=LINVOL(I-1,J,K,
-C      &            IOPENi(M,ICFD),IOPENf(M,ICFD),
-C      &            JOPENi(M,ICFD),JOPENf(M,ICFD),
-C      &            KOPENi(M,ICFD),KOPENf(M,ICFD))
-C                 if (OK) then 
-C                   ISBii=I+1
-C                   EXIT
-C                 endif
-C               enddo
-C             endif
-
-            DO 1221 I=ISBii,ISBf(L,ICFD)
-              TMULT=TRBSRCU(I,J,K,DZL)
-              TAULU(I,J,K)=-TMULT*Uf(I,J,K)
-              SP(I,J,K)=SP(I,J,K)-TMULT*AreaHLU(I,J)
-              AL(I,J,K)=0.0
- 1221       CONTINUE
- 122      CONTINUE
-          II=ISBi(L,ICFD)
-          IFF=ISBf(L,ICFD)
-          DO 130 J=JSBi(L,ICFD),JSBf(L,ICFD)
-            TAULU(II,J,K)=TAULU(II+1,J,K)
-            TAULU(IFF+1,J,K)=TAULU(IFF,J,K)
- 130      CONTINUE
-
-C Set up boundary conditions on High solid wall.
-        ELSEIF(location.EQ.6)THEN
-          K=KSBi(L,ICFD)
-          DZH=ZW(K+1)-ZP(K)
-          DO 132 J=JSBi(L,ICFD),JSBf(L,ICFD)            
-
-C             I=ISBi(L,ICFD)
-C             if (I.eq.2) then
-C               ISBii=I+1
-C             else
-C               ISBii=I
-C               do M=1,NOPEN(ICFD)
-C                 OK=LINVOL(I-1,J,K,
-C      &            IOPENi(M,ICFD),IOPENf(M,ICFD),
-C      &            JOPENi(M,ICFD),JOPENf(M,ICFD),
-C      &            KOPENi(M,ICFD),KOPENf(M,ICFD))
-C                 if (OK) then 
-C                   ISBii=I+1
-C                   EXIT
-C                 endif
-C               enddo
-C             endif
-
-            DO 1321 I=ISBii,ISBf(L,ICFD)
-              TMULT=TRBSRCU(I,J,K,DZH)
-              TAUHU(I,J,K)=-TMULT*Uf(I,J,K)
-              SP(I,J,K)=SP(I,J,K)-TMULT*AreaHLU(I,J)
-              AH(I,J,K)=0.0
- 1321       CONTINUE
- 132      CONTINUE
-          II=ISBi(L,ICFD)
-          IFF=ISBf(L,ICFD)
-          DO 140 J=JSBi(L,ICFD),JSBf(L,ICFD)
-            TAUHU(II,J,K)=TAUHU(II+1,J,K)
-            TAUHU(IFF+1,J,K)=TAUHU(IFF,J,K)
- 140      CONTINUE
-
-C Symmetric Axis.
 C South Wall.
-        ELSEIF(location.EQ.13)THEN
-          J=JSBi(L,ICFD)
-          DO 143 I=ISBi(L,ICFD),ISBf(L,ICFD)
-            DO 1431 K=KSBi(L,ICFD),KSBf(L,ICFD)
-C              SP(I,J-1,K)=-GREAT
-C              SU(I,J-1,K)=GREAT*Uf(I,J,K)
-              Uf(I,J-1,K)=Uf(I,J,K)
-              AS(I,J,K)=0.0
- 1431       CONTINUE
- 143      CONTINUE
+          IF(location.EQ.3)THEN
+            J=JVCELLS(IV,ICFD,1)
+            DO 143 I=IVCELLS(IV,ICFD,1),IVCELLS(IV,ICFD,2)+1
+              DO 1431 K=KVCELLS(IV,ICFD,1),KVCELLS(IV,ICFD,2)
+
+C Set velocity at the boundary cell equal to this side.
+C If this cell straddles a BC divide, and the other side is a velocity
+C BC, add half this value to the existing value.
+                if (I.eq.IVCELLS(IV,ICFD,1) .and. 
+     &              IBCTPC(I-1,J,K).eq.11) then
+                  Uf(I,J-1,K)=Uf(I,J-1,K)+Uf(I,J,K)/2.
+                elseif (I.eq.IVCELLS(IV,ICFD,2)+1 .and. 
+     &                  IBCTPC(I,J,K).eq.11) then
+                  Uf(I,J-1,K)=Uf(I,J-1,K)+Uf(I,J,K)/2.
+                else
+                  Uf(I,J-1,K)=Uf(I,J,K)
+                endif
+ 1431         CONTINUE
+ 143        CONTINUE
 
 C North Wall.
-        ELSEIF(location.EQ.14)THEN
-          J=JSBi(L,ICFD)
-          DO 145 I=ISBi(L,ICFD),ISBf(L,ICFD)
-            DO 1451 K=KSBi(L,ICFD),KSBf(L,ICFD)
-C              SP(I,J+1,K)=-GREAT
-C              SU(I,J+1,K)=GREAT*Uf(I,J,K)
-              Uf(I,J+1,K)=Uf(I,J,K)
-              AN(I,J,K)=0.0
- 1451       CONTINUE
- 145      CONTINUE
+          ELSEIF(location.EQ.4)THEN
+            J=JVCELLS(IV,ICFD,1)
+            DO 145 I=IVCELLS(IV,ICFD,1),IVCELLS(IV,ICFD,2)+1
+              DO 1451 K=KVCELLS(IV,ICFD,1),KVCELLS(IV,ICFD,2)
+                if (I.eq.IVCELLS(IV,ICFD,1) .and. 
+     &              IBCTPC(I-1,J,K).eq.11) then
+                  Uf(I,J+1,K)=Uf(I,J+1,K)+Uf(I,J,K)/2.
+                elseif (I.eq.IVCELLS(IV,ICFD,2)+1 .and. 
+     &                  IBCTPC(I,J,K).eq.11) then
+                  Uf(I,J+1,K)=Uf(I,J+1,K)+Uf(I,J,K)/2.
+                else
+                  Uf(I,J+1,K)=Uf(I,J,K)
+                endif
+ 1451         CONTINUE
+ 145        CONTINUE
 
 C Low Wall.
-        ELSEIF(location.EQ.15)THEN
-          K=KSBi(L,ICFD)
-          DO 148 I=ISBi(L,ICFD),ISBf(L,ICFD)
-            DO 1481 J=JSBi(L,ICFD),JSBf(L,ICFD)
-C              SP(I,J,K-1)=-GREAT
-C              SU(I,J,K-1)=GREAT*Uf(I,J,K)
-              Uf(I,J,K-1)=Uf(I,J,K)
-              AL(I,J,K)=0.0
- 1481       CONTINUE
- 148      CONTINUE
+          ELSEIF(location.EQ.5)THEN
+            K=KVCELLS(IV,ICFD,1)
+            DO 148 I=IVCELLS(IV,ICFD,1),IVCELLS(IV,ICFD,2)+1
+              DO 1481 J=JVCELLS(IV,ICFD,1),JVCELLS(IV,ICFD,2)
+                if (I.eq.IVCELLS(IV,ICFD,1) .and. 
+     &              IBCTPC(I-1,J,K).eq.11) then
+                  Uf(I,J,K-1)=Uf(I,J,K-1)+Uf(I,J,K)/2.
+                elseif (I.eq.IVCELLS(IV,ICFD,2)+1 .and. 
+     &                  IBCTPC(I,J,K).eq.11) then
+                  Uf(I,J,K-1)=Uf(I,J,K-1)+Uf(I,J,K)/2.
+                else
+                  Uf(I,J,K-1)=Uf(I,J,K)
+                endif
+ 1481         CONTINUE
+ 148        CONTINUE
 
 C High Wall.
-        ELSEIF(location.EQ.16)THEN
-          K=KSBi(L,ICFD)
-          DO 150 I=ISBi(L,ICFD),ISBf(L,ICFD)
-            DO 1501 J=JSBi(L,ICFD),JSBf(L,ICFD)
-C              SP(I,J,K+1)=-GREAT
-C              SU(I,J,K+1)=GREAT*Uf(I,J,K)
-              Uf(I,J,K+1)=Uf(I,J,K)
-              AH(I,J,K)=0.0
- 1501       CONTINUE
- 150      CONTINUE
-        ENDIF
+          ELSEIF(location.EQ.6)THEN
+            K=KVCELLS(IV,ICFD,1)
+            DO 150 I=IVCELLS(IV,ICFD,1),IVCELLS(IV,ICFD,2)+1
+              DO 1501 J=JVCELLS(IV,ICFD,1),JVCELLS(IV,ICFD,2)
+                if (I.eq.IVCELLS(IV,ICFD,1) .and. 
+     &              IBCTPC(I-1,J,K).eq.11) then
+                  Uf(I,J,K+1)=Uf(I,J,K+1)+Uf(I,J,K)/2.
+                elseif (I.eq.IVCELLS(IV,ICFD,2)+1 .and. 
+     &                  IBCTPC(I,J,K).eq.11) then
+                  Uf(I,J,K+1)=Uf(I,J,K+1)+Uf(I,J,K)/2.
+                else
+                  Uf(I,J,K+1)=Uf(I,J,K)
+                endif
+ 1501         CONTINUE
+ 150        CONTINUE
+          endif
+
+C Solid surface BCs.
+        elseif (ityp.eq.1 .or. ityp.eq.2 .or.
+     &          ityp.eq.4 .or. ityp.eq.5) then
+
+C Set up boundary conditions on South solid wall.
+          IF(location.EQ.3)THEN
+            J=JVCELLS(IV,ICFD,1)
+
+C Calculate distance from wall to next-to-wall grid point. 
+C (in Versteeg & Malalasekera DELTA y sub P)
+            DYS=YP(J)-YV(J)
+
+C Treat each cell on solid boundary.
+            DO 102 K=KVCELLS(IV,ICFD,1),KVCELLS(IV,ICFD,2)
+              DO 1122 I=IVCELLS(IV,ICFD,1),IVCELLS(IV,ICFD,2)+1
+                TMULT=TRBSRCU(I,J,K,DYS)
+
+C Calculate wall shear stress (+ value means stress operates in axis direction).
+                TAUSU(I,J,K)=-TMULT*Uf(I,J,K)
+
+C Calculate source term. Units are force/velocity.
+C If we're straddling a BC boundary, only half the cell is bounded by
+C this wall; halve the area. Depending on what's on the other side, the
+C source term may be further modified.
+C Cut link with fictitious cell in (or at) the wall, unless this cell
+C straddles a BC divide and the other side is symmetrical or an
+C opening.
+                if (I.eq.IVCELLS(IV,ICFD,1)) then 
+                  SP(I,J,K)=SP(I,J,K)-TMULT*AreaNSU(I,K)*0.5
+                  if(IBCTPC(I-1,J,K).eq.1 .or. IBCTPC(I-1,J,K).eq.2 .or.
+     &               IBCTPC(I-1,J,K).eq.4 .or. IBCTPC(I-1,J,K).eq.5 .or.
+     &               IBCTPC(I-1,J,K).eq.0)then
+                    AS(I,J,K)=0.0
+                  endif                    
+                elseif (I.eq.IVCELLS(IV,ICFD,2)+1) then
+                  SP(I,J,K)=SP(I,J,K)-TMULT*AreaNSU(I,K)*0.5
+                  if (IBCTPC(I,J,K).eq.1 .or. IBCTPC(I,J,K).eq.2 .or.
+     &                IBCTPC(I,J,K).eq.4 .or. IBCTPC(I,J,K).eq.5 .or.
+     &                IBCTPC(I,J,K).eq.0) then
+                    AS(I,J,K)=0.0
+                  endif
+                else                  
+                  SP(I,J,K)=SP(I,J,K)-TMULT*AreaNSU(I,K)
+                  AS(I,J,K)=0.0
+                endif
+ 1122         CONTINUE
+ 102        CONTINUE
+
+C Set up boundary conditions on North solid wall.
+          ELSEIF(location.EQ.4)THEN
+            J=JVCELLS(IV,ICFD,1)
+            DYN=YV(J+1)-YP(J)
+            DO 112 K=KVCELLS(IV,ICFD,1),KVCELLS(IV,ICFD,2)
+              DO 1121 I=IVCELLS(IV,ICFD,1),IVCELLS(IV,ICFD,2)+1
+                TMULT=TRBSRCU(I,J,K,DYN)
+                TAUNU(I,J,K)=-TMULT*Uf(I,J,K)
+                if (I.eq.IVCELLS(IV,ICFD,1)) then 
+                  SP(I,J,K)=SP(I,J,K)-TMULT*AreaNSU(I,K)*0.5
+                  if(IBCTPC(I-1,J,K).eq.1 .or. IBCTPC(I-1,J,K).eq.2 .or.
+     &               IBCTPC(I-1,J,K).eq.4 .or. IBCTPC(I-1,J,K).eq.5 .or.
+     &               IBCTPC(I-1,J,K).eq.0)then
+                    AN(I,J,K)=0.0
+                  endif                    
+                elseif (I.eq.IVCELLS(IV,ICFD,2)+1) then
+                  SP(I,J,K)=SP(I,J,K)-TMULT*AreaNSU(I,K)*0.5
+                  if (IBCTPC(I,J,K).eq.1 .or. IBCTPC(I,J,K).eq.2 .or.
+     &                IBCTPC(I,J,K).eq.4 .or. IBCTPC(I,J,K).eq.5 .or.
+     &                IBCTPC(I,J,K).eq.0) then
+                    AN(I,J,K)=0.0
+                  endif
+                else                  
+                  SP(I,J,K)=SP(I,J,K)-TMULT*AreaNSU(I,K)
+                  AN(I,J,K)=0.0
+                endif
+ 1121         CONTINUE
+ 112        CONTINUE
+
+C Set up boundary conditions on Low solid wall.
+          ELSEIF(location.EQ.5)THEN
+            K=KVCELLS(IV,ICFD,1)
+            DZL=ZP(K)-ZW(K)
+            DO 122 J=JVCELLS(IV,ICFD,1),JVCELLS(IV,ICFD,2)
+              DO 1221 I=IVCELLS(IV,ICFD,1),IVCELLS(IV,ICFD,2)+1
+                TMULT=TRBSRCU(I,J,K,DZL)
+                TAULU(I,J,K)=-TMULT*Uf(I,J,K)
+                if (I.eq.IVCELLS(IV,ICFD,1)) then 
+                  SP(I,J,K)=SP(I,J,K)-TMULT*AreaHLU(I,J)*0.5
+                  if(IBCTPC(I-1,J,K).eq.1 .or. IBCTPC(I-1,J,K).eq.2 .or.
+     &               IBCTPC(I-1,J,K).eq.4 .or. IBCTPC(I-1,J,K).eq.5 .or.
+     &               IBCTPC(I-1,J,K).eq.0)then
+                    AL(I,J,K)=0.0
+                  endif                    
+                elseif (I.eq.IVCELLS(IV,ICFD,2)+1) then
+                  SP(I,J,K)=SP(I,J,K)-TMULT*AreaHLU(I,J)*0.5
+                  if (IBCTPC(I,J,K).eq.1 .or. IBCTPC(I,J,K).eq.2 .or.
+     &                IBCTPC(I,J,K).eq.4 .or. IBCTPC(I,J,K).eq.5 .or.
+     &                IBCTPC(I,J,K).eq.0) then
+                    AL(I,J,K)=0.0
+                  endif
+                else                  
+                  SP(I,J,K)=SP(I,J,K)-TMULT*AreaHLU(I,J)
+                  AL(I,J,K)=0.0
+                endif
+ 1221         CONTINUE
+ 122        CONTINUE
+
+C Set up boundary conditions on High solid wall.
+          ELSEIF(location.EQ.6)THEN
+            K=KVCELLS(IV,ICFD,1)
+            DZH=ZW(K+1)-ZP(K)
+            DO 132 J=JVCELLS(IV,ICFD,1),JVCELLS(IV,ICFD,2)
+              DO 1321 I=IVCELLS(IV,ICFD,1),IVCELLS(IV,ICFD,2)+1
+                TMULT=TRBSRCU(I,J,K,DZH)
+                TAUHU(I,J,K)=-TMULT*Uf(I,J,K)
+                if (I.eq.IVCELLS(IV,ICFD,1)) then 
+                  SP(I,J,K)=SP(I,J,K)-TMULT*AreaHLU(I,J)*0.5
+                  if(IBCTPC(I-1,J,K).eq.1 .or. IBCTPC(I-1,J,K).eq.2 .or.
+     &               IBCTPC(I-1,J,K).eq.4 .or. IBCTPC(I-1,J,K).eq.5 .or.
+     &               IBCTPC(I-1,J,K).eq.0)then
+                    AH(I,J,K)=0.0
+                  endif                    
+                elseif (I.eq.IVCELLS(IV,ICFD,2)+1) then
+                  SP(I,J,K)=SP(I,J,K)-TMULT*AreaHLU(I,J)*0.5
+                  if (IBCTPC(I,J,K).eq.1 .or. IBCTPC(I,J,K).eq.2 .or.
+     &                IBCTPC(I,J,K).eq.4 .or. IBCTPC(I,J,K).eq.5 .or.
+     &                IBCTPC(I,J,K).eq.0) then
+                    AH(I,J,K)=0.0
+                  endif
+                else                  
+                  SP(I,J,K)=SP(I,J,K)-TMULT*AreaHLU(I,J)
+                  AH(I,J,K)=0.0
+                endif
+ 1321         CONTINUE
+ 132        CONTINUE
+          ENDIF
+        endif
  101  CONTINUE
 
-C Momentum BCs for openings were formerly handled here, but now are treated
-C in INOUT.
-
-C Airflow at inlet not perpendicular to wall. Examine each opening and
-C treat those that have `directed. flow.
-      DO 10 L=1,NOPEN(ICFD)
-        I=IOPENi(L,ICFD)
-C South wall.
-        IF(IWOPEN(L,ICFD).EQ.3.AND.FIXM(L,ICFD).GT.0.) THEN
-          J=JOPENi(L,ICFD)
-          DO 180 I=IOPENi(L,ICFD),IOPENf(L,ICFD)
-            DO 1801 K=KOPENi(L,ICFD),KOPENf(L,ICFD)
-              IF(THETA1(L,ICFD).LT.0.) THEN
-                SP(I,J,K)=-GREAT
-                SU(I,J,K)=GREAT*Vf(I,J,K)*ETAND(THETA1(L,ICFD))
-              ELSEIF(THETA1(L,ICFD).GT.0.) THEN
-                IF(I.EQ.IOPENi(L,ICFD)) Uf(I,J-1,K)=-Uf(I,J,K)
-                IF(I.EQ.IOPENf(L,ICFD)) THEN
-                  SP(I+1,J,K)=-GREAT
-                  SU(I+1,J,K)=GREAT*Vf(I,J,K)*ETAND(THETA1(L,ICFD))
-                  IF(I.NE.IOPENi(L,ICFD)) THEN
-                    SP(I,J,K)=-GREAT
-                    SU(I,J,K)=GREAT*Vf(I,J,K)*ETAND(THETA1(L,ICFD))
-                  ENDIF
-                ENDIF
-                IF(I.GT.IOPENi(L,ICFD).AND.I.LT.IOPENf(L,ICFD)) THEN
-                  SP(I,J,K)=-GREAT
-                  SU(I,J,K)=GREAT*Vf(I,J,K)*ETAND(THETA1(L,ICFD))
-                ENDIF
-              ENDIF
- 1801       CONTINUE
- 180      CONTINUE
-
-C North wall.
-        ELSE IF(IWOPEN(L,ICFD).EQ.4.AND.FIXM(L,ICFD).GT.0.) THEN
-          J=JOPENi(L,ICFD)
-          DO 185 I=IOPENi(L,ICFD),IOPENf(L,ICFD)
-            DO 1851 K=KOPENi(L,ICFD),KOPENf(L,ICFD)
-              IF(THETA1(L,ICFD).LT.0.) THEN
-                SP(I,J,K)=-GREAT
-                SU(I,J,K)=GREAT*ABS(Vf(I,J,K))*ETAND(THETA1(L,ICFD))
-              ELSEIF(THETA1(L,ICFD).GT.0.) THEN
-                IF(I.EQ.IOPENi(L,ICFD)) Uf(I,J+1,K)=-Uf(I,J,K)
-                IF(I.EQ.IOPENf(L,ICFD)) THEN
-                  SP(I+1,J,K)=-GREAT
-                  SU(I+1,J,K)=GREAT*ABS(Vf(I,J,K))*ETAND(THETA1(L,ICFD))
-                  IF(I.NE.IOPENi(L,ICFD)) THEN
-                    SP(I,J,K)=-GREAT
-                    SU(I,J,K)=GREAT*ABS(Vf(I,J,K))*ETAND(THETA1(L,ICFD))
-                  ENDIF
-                ENDIF
-                IF(I.GT.IOPENi(L,ICFD).AND.I.LT.IOPENf(L,ICFD)) THEN
-                  SP(I,J,K)=-GREAT
-                  SU(I,J,K)=GREAT*ABS(Vf(I,J,K))*ETAND(THETA1(L,ICFD))
-                ENDIF
-              ENDIF
- 1851       CONTINUE
- 185      CONTINUE
-
-C Low wall.
-        ELSE IF(IWOPEN(L,ICFD).EQ.5.AND.FIXM(L,ICFD).GT.0.) THEN
-          K=KOPENi(L,ICFD)
-          DO 190 I=IOPENi(L,ICFD),IOPENf(L,ICFD)
-            DO 1901 J=JOPENi(L,ICFD),JOPENf(L,ICFD)
-              IF(THETA1(L,ICFD).LT.0.) THEN
-                SP(I,J,K)=-GREAT
-                SU(I,J,K)=GREAT*Wf(I,J,K)*ETAND(THETA1(L,ICFD))
-              ELSEIF(THETA1(L,ICFD).GT.0.) THEN
-                IF(I.EQ.IOPENi(L,ICFD)) Uf(I,J,K-1)=-Uf(I,J,K)
-                IF(I.EQ.IOPENf(L,ICFD)) THEN
-                  SP(I+1,J,K)=-GREAT
-                  SU(I+1,J,K)=GREAT*Wf(I,J,K)*ETAND(THETA1(L,ICFD))
-                  IF(I.NE.IOPENi(L,ICFD)) THEN
-                    SP(I,J,K)=-GREAT
-                    SU(I,J,K)=GREAT*Wf(I,J,K)*ETAND(THETA1(L,ICFD))
-                  ENDIF
-                ENDIF
-                IF(I.GT.IOPENi(L,ICFD).AND.I.LT.IOPENf(L,ICFD)) THEN
-                  SP(I,J,K)=-GREAT
-                  SU(I,J,K)=GREAT*Wf(I,J,K)*ETAND(THETA1(L,ICFD))
-                ENDIF
-              ENDIF
- 1901       CONTINUE
- 190      CONTINUE
-
-C High wall.
-        ELSE IF(IWOPEN(L,ICFD).EQ.6.AND.FIXM(L,ICFD).GT.0.) THEN
-          K=KOPENi(L,ICFD)
-          DO 195 I=IOPENi(L,ICFD),IOPENf(L,ICFD)
-            DO 1951 J=JOPENi(L,ICFD),JOPENf(L,ICFD)
-              IF(THETA1(L,ICFD).LT.0.) THEN
-                SP(I,J,K)=-GREAT
-                SU(I,J,K)=GREAT*ABS(Wf(I,J,K))*ETAND(THETA1(L,ICFD))
-              ELSEIF(THETA1(L,ICFD).GT.0.) THEN
-                IF(I.EQ.IOPENi(L,ICFD)) Uf(I,J,K+1)=-Uf(I,J,K)
-                IF(I.EQ.IOPENf(L,ICFD)) THEN
-                  SP(I+1,J,K)=-GREAT
-                  SU(I+1,J,K)=GREAT*ABS(Wf(I,J,K))*ETAND(THETA1(L,ICFD))
-                  IF(I.NE.IOPENi(L,ICFD)) THEN
-                    SP(I,J,K)=-GREAT
-                    SU(I,J,K)=GREAT*ABS(Wf(I,J,K))*ETAND(THETA1(L,ICFD))
-                  ENDIF
-                ENDIF
-                IF(I.GT.IOPENi(L,ICFD).AND.I.LT.IOPENf(L,ICFD)) THEN
-                  SP(I,J,K)=-GREAT
-                  SU(I,J,K)=GREAT*ABS(Wf(I,J,K))*ETAND(THETA1(L,ICFD))
-                ENDIF
-              ENDIF
- 1951       CONTINUE
- 195      CONTINUE
-        ENDIF
- 10   CONTINUE
-
       RETURN
-
 
 C ********************* MODVT *********************
 C MODVT -  V direction boundary conditions - turbulent.
@@ -508,352 +391,206 @@ C If flow is 1D or 2D make coefficients in other directions zero.
 
       CDTERM=CMU**0.25
 
-C Solid walls.
-      DO 201 L=1,NSB(ICFD)
+      DO 201 IV=1,NVOL(ICFD)
+        location = IVOLF(IV,ICFD)
+        ityp=IVTYPE(IV,ICFD)
 
-C Determine upon which face of the CFD domain the solid boundary resides.
-C `location' is equal to the least significant digit of IWSB and has the
-C following meanings: 1 for west; 2 for east; 3 for south; 4 for north;
-C 5 for low; 6 for high.
-        location = abs(IWSB(L,ICFD)) - abs(IWSB(L,ICFD))/10*10
-        JSBii=JSBi(L,ICFD)
+C Symmetric BC.
+        if (ityp.eq.3 .or. ityp.eq.6) then
 
-C To change/ test - sometimes produces non zero coefficients at walls!
-        DO 810 M=1,NOPEN(ICFD)
-          IF(JSBi(L,ICFD).EQ.JOPENf(M,ICFD)+1) THEN
-            JSBii=JSBii+1
-            GOTO 811
+C West.
+          IF(location.EQ.1)THEN
+            I=IVCELLS(IV,ICFD,1)
+            DO 250 J=JVCELLS(IV,ICFD,1),JVCELLS(IV,ICFD,2)+1
+              DO 2501 K=KVCELLS(IV,ICFD,1),KVCELLS(IV,ICFD,2)
+                if (J.eq.JVCELLS(IV,ICFD,1) .and. 
+     &              IBCTPC(I,J-1,K).eq.11) then
+                  Vf(I-1,J,K)=Vf(I-1,J,K)+Vf(I,J,K)/2.
+                elseif (J.eq.JVCELLS(IV,ICFD,2)+1 .and. 
+     &                  IBCTPC(I,J,K).eq.11) then
+                  Vf(I-1,J,K)=Vf(I-1,J,K)+Vf(I,J,K)/2.
+                else
+                  Vf(I-1,J,K)=Vf(I,J,K)
+                endif
+ 2501         CONTINUE
+ 250        CONTINUE
+
+C East.
+          ELSEIF(location.EQ.2)THEN
+            I=IVCELLS(IV,ICFD,1)
+            DO 253 J=JVCELLS(IV,ICFD,1),JVCELLS(IV,ICFD,2)+1
+              DO 2531 K=KVCELLS(IV,ICFD,1),KVCELLS(IV,ICFD,2)
+                if (J.eq.JVCELLS(IV,ICFD,1) .and. 
+     &              IBCTPC(I,J-1,K).eq.11) then
+                  Vf(I+1,J,K)=Vf(I+1,J,K)+Vf(I,J,K)/2.
+                elseif (J.eq.JVCELLS(IV,ICFD,2)+1 .and. 
+     &                  IBCTPC(I,J,K).eq.11) then
+                  Vf(I+1,J,K)=Vf(I+1,J,K)+Vf(I,J,K)/2.
+                else
+                  Vf(I+1,J,K)=Vf(I,J,K)
+                endif
+ 2531         CONTINUE
+ 253        CONTINUE
+
+C Low.
+          ELSEIF(location.EQ.5)THEN
+            K=KVCELLS(IV,ICFD,1)
+            DO 255 I=IVCELLS(IV,ICFD,1),IVCELLS(IV,ICFD,2)
+              DO 2551 J=JVCELLS(IV,ICFD,1),JVCELLS(IV,ICFD,2)+1
+                if (J.eq.JVCELLS(IV,ICFD,1) .and. 
+     &              IBCTPC(I,J-1,K).eq.11) then
+                  Vf(I,J,K-1)=Vf(I,J,K-1)+Vf(I,J,K)/2.
+                elseif (J.eq.JVCELLS(IV,ICFD,2)+1 .and. 
+     &                  IBCTPC(I,J,K).eq.11) then
+                  Vf(I,J,K-1)=Vf(I,J,K-1)+Vf(I,J,K)/2.
+                else
+                  Vf(I,J,K-1)=Vf(I,J,K)
+                endif
+ 2551         CONTINUE
+ 255        CONTINUE
+
+C High.
+          ELSEIF(location.EQ.6)THEN
+            K=KVCELLS(IV,ICFD,1)
+            DO 258 I=IVCELLS(IV,ICFD,1),IVCELLS(IV,ICFD,2)
+              DO 2581 J=JVCELLS(IV,ICFD,1),JVCELLS(IV,ICFD,2)+1
+                if (J.eq.JVCELLS(IV,ICFD,1) .and. 
+     &              IBCTPC(I,J-1,K).eq.11) then
+                  Vf(I,J,K+1)=Vf(I,J,K+1)+Vf(I,J,K)/2.
+                elseif (J.eq.JVCELLS(IV,ICFD,2)+1 .and. 
+     &                  IBCTPC(I,J,K).eq.11) then
+                  Vf(I,J,K+1)=Vf(I,J,K+1)+Vf(I,J,K)/2.
+                else
+                  Vf(I,J,K+1)=Vf(I,J,K)
+                endif
+ 2581         CONTINUE
+ 258        CONTINUE
           ENDIF
- 810    CONTINUE
 
- 811    IF(location.EQ.1)THEN
+C Heat flux, solid or conflated BC.
+        elseif (ityp.eq.1 .or. ityp.eq.2 .or.
+     &          ityp.eq.4 .or. ityp.eq.5) then
 
-C Set up boundary conditions for West solid wall.
-          I=ISBi(L,ICFD)
+C West.
+          IF(location.EQ.1)THEN
+            I=IVCELLS(IV,ICFD,1)
+            DXW=XP(I)-XU(I)
+            DO 202 K=KVCELLs(IV,ICFD,1),KVCELLS(IV,ICFD,2)
+              DO 2021 J=JVCELLS(IV,ICFD,1),JVCELLS(IV,ICFD,2)+1
+                TMULT=TRBSRCV(I,J,K,DXW)
+                TAUWV(I,J,K)=-TMULT*Vf(i,j,K)
+                if (J.eq.JVCELLS(IV,ICFD,1)) then
+                  SP(I,J,K)=SP(I,J,K)-TMULT*AreaEWV(J,K)*0.5
+                  if(IBCTPC(I,J-1,K).eq.1 .or. IBCTPC(I,J-1,K).eq.2 .or.
+     &               IBCTPC(I,J-1,K).eq.4 .or. IBCTPC(I,J-1,K).eq.5 .or.
+     &               IBCTPC(I,J-1,K).eq.0)then
+                    AW(I,J,K)=0.0
+                  endif                
+                elseif (J.eq.JVCELLS(IV,ICFD,2)+1) then
+                  SP(I,J,K)=SP(I,J,K)-TMULT*AreaEWV(J,K)*0.5
+                  if (IBCTPC(I,J,K).eq.1 .or. IBCTPC(I,J,K).eq.2 .or.
+     &                IBCTPC(I,J,K).eq.4 .or. IBCTPC(I,J,K).eq.5 .or.
+     &                IBCTPC(I,J,K).eq.0) then
+                    AW(I,J,K)=0.0
+                  endif
+                else
+                  SP(I,J,K)=SP(I,J,K)-TMULT*AreaEWV(J,K)
+                  AW(I,J,K)=0.0
+                endif
+ 2021         CONTINUE
+ 202        CONTINUE
 
-C Calculate distance from wall to next-to-wall grid point ($DELTA y sub p$).
-          DXW=XP(I)-XU(I)
+C East.
+          ELSEIF(location.EQ.2)THEN
+            I=IVCELLS(IV,ICFD,1)
+            DXE=XU(I+1)-XP(I)
+            DO 212 K=KVCELLS(IV,ICFD,1),KVCELLS(IV,ICFD,2)
+              DO 2121 J=JVCELLS(IV,ICFD,1),JVCELLS(IV,ICFD,2)+1
+                TMULT=TRBSRCV(I,J,K,DXE)
+                TAUEV(I,J,K)=-TMULT*Vf(i,j,K)
+                if (J.eq.JVCELLS(IV,ICFD,1)) then
+                  SP(I,J,K)=SP(I,J,K)-TMULT*AreaEWV(J,K)*0.5
+                  if(IBCTPC(I,J-1,K).eq.1 .or. IBCTPC(I,J-1,K).eq.2 .or.
+     &               IBCTPC(I,J-1,K).eq.4 .or. IBCTPC(I,J-1,K).eq.5 .or.
+     &               IBCTPC(I,J-1,K).eq.0)then
+                    AE(I,J,K)=0.0
+                  endif                
+                elseif (J.eq.JVCELLS(IV,ICFD,2)+1) then
+                  SP(I,J,K)=SP(I,J,K)-TMULT*AreaEWV(J,K)*0.5
+                  if (IBCTPC(I,J,K).eq.1 .or. IBCTPC(I,J,K).eq.2 .or.
+     &                IBCTPC(I,J,K).eq.4 .or. IBCTPC(I,J,K).eq.5 .or.
+     &                IBCTPC(I,J,K).eq.0) then
+                    AE(I,J,K)=0.0
+                  endif
+                else
+                  SP(I,J,K)=SP(I,J,K)-TMULT*AreaEWV(J,K)
+                  AE(I,J,K)=0.0
+                endif
+ 2121         CONTINUE
+ 212        CONTINUE
 
-C Treat each cell on solid boundary.
-          DO 202 K=KSBi(L,ICFD),KSBf(L,ICFD)
+C Low.
+          ELSEIF(location.EQ.5)THEN
+            K=KVCELLS(IV,ICFD,1)
+            DZL=ZP(K)-ZW(K)
+            DO 222 I=IVCELLS(IV,ICFD,1),IVCELLS(IV,ICFD,2)
+              DO 2221 J=JVCELLS(IV,ICFD,1),JVCELLS(IV,ICFD,2)+1
+                TMULT=TRBSRCV(I,J,K,DZL)
+                TAULV(I,J,K)=-TMULT*Vf(i,j,K)
+                if (J.eq.JVCELLS(IV,ICFD,1)) then
+                  SP(I,J,K)=SP(I,J,K)-TMULT*AreaHLV(I,J)*0.5
+                  if(IBCTPC(I,J-1,K).eq.1 .or. IBCTPC(I,J-1,K).eq.2 .or.
+     &               IBCTPC(I,J-1,K).eq.4 .or. IBCTPC(I,J-1,K).eq.5 .or.
+     &               IBCTPC(I,J-1,K).eq.0)then
+                    AL(I,J,K)=0.0
+                  endif                
+                elseif (J.eq.JVCELLS(IV,ICFD,2)+1) then
+                  SP(I,J,K)=SP(I,J,K)-TMULT*AreaHLV(I,J)*0.5
+                  if (IBCTPC(I,J,K).eq.1 .or. IBCTPC(I,J,K).eq.2 .or.
+     &                IBCTPC(I,J,K).eq.4 .or. IBCTPC(I,J,K).eq.5 .or.
+     &                IBCTPC(I,J,K).eq.0) then
+                    AL(I,J,K)=0.0
+                  endif
+                else
+                  SP(I,J,K)=SP(I,J,K)-TMULT*AreaHLV(I,J)
+                  AL(I,J,K)=0.0
+                endif
+ 2221         CONTINUE
+ 222        CONTINUE
 
-C             J=JSBi(L,ICFD)
-C             if (J.eq.2) then
-C               JSBii=J+1
-C             else
-C               JSBii=J
-C               do M=1,NOPEN(ICFD)
-C                 OK=LINVOL(I,J-1,K,
-C      &            IOPENi(M,ICFD),IOPENf(M,ICFD),
-C      &            JOPENi(M,ICFD),JOPENf(M,ICFD),
-C      &            KOPENi(M,ICFD),KOPENf(M,ICFD))
-C                 if (OK) then 
-C                   JSBii=J+1
-C                   EXIT
-C                 endif
-C               enddo
-C             endif
-
-            DO 2021 J=JSBii,JSBf(L,ICFD)
-              TMULT=TRBSRCV(I,J,K,DXW)
-
-C Calculate wall shear stress (+ value means stress operates in axis direction.
-              TAUWV(I,J,K)=-TMULT*Vf(i,j,K)
-
-C Calculate source term. Units are force/velocity. Surface area of cell = SNSV*SHL.
-              SP(I,J,K)=SP(I,J,K)-TMULT*AreaEWV(J,K)
-
-C Disconnect cell from fictitious cell to west.
-              AW(I,J,K)=0.0
- 2021       CONTINUE
- 202      CONTINUE
-          JI=JSBi(L,ICFD)
-          JF=JSBf(L,ICFD)
-          DO 210 K=KSBi(L,ICFD),KSBf(L,ICFD)
-            TAUWV(I,JI,K)=TAUWV(I,JI+1,K)
-            TAUWV(I,JF+1,K)=TAUWV(I,JF,K)
- 210      CONTINUE
-
-        ELSEIF(location.EQ.2)THEN
-
-C Set up boundary conditions for East solid wall.
-          I=ISBi(L,ICFD)
-          DXE=XU(I+1)-XP(I)
-          DO 212 K=KSBi(L,ICFD),KSBf(L,ICFD)
-
-C             J=JSBi(L,ICFD)
-C             if (J.eq.2) then
-C               JSBii=J+1
-C             else
-C               JSBii=J
-C               do M=1,NOPEN(ICFD)
-C                 OK=LINVOL(I,J-1,K,
-C      &            IOPENi(M,ICFD),IOPENf(M,ICFD),
-C      &            JOPENi(M,ICFD),JOPENf(M,ICFD),
-C      &            KOPENi(M,ICFD),KOPENf(M,ICFD))
-C                 if (OK) then 
-C                   JSBii=J+1
-C                   EXIT
-C                 endif
-C               enddo
-C             endif
-
-            DO 2121 J=JSBii,JSBf(L,ICFD)
-              TMULT=TRBSRCV(I,J,K,DXE)
-              TAUEV(I,J,K)=-TMULT*Vf(i,j,K)
-              SP(I,J,K)=SP(I,J,K)-TMULT*AreaEWV(J,K)
-              AE(I,J,K)=0.0
- 2121       CONTINUE
- 212      CONTINUE
-          JI=JSBi(L,ICFD)
-          JF=JSBf(L,ICFD)
-          DO 220 K=KSBi(L,ICFD),KSBf(L,ICFD)
-            TAUEV(I,JI,K)=TAUEV(I,JI+1,K)
-            TAUEV(I,JF+1,K)=TAUEV(I,JF,K)
- 220      CONTINUE
-
-        ELSEIF(location.EQ.5)THEN
-
-C Set up boundary conditions on Low solid wall.
-          K=KSBi(L,ICFD)
-          DZL=ZP(K)-ZW(K)
-          DO 222 I=ISBi(L,ICFD),ISBf(L,ICFD)
-
-C             J=JSBi(L,ICFD)
-C             if (J.eq.2) then
-C               JSBii=J+1
-C             else
-C               JSBii=J
-C               do M=1,NOPEN(ICFD)
-C                 OK=LINVOL(I,J-1,K,
-C      &            IOPENi(M,ICFD),IOPENf(M,ICFD),
-C      &            JOPENi(M,ICFD),JOPENf(M,ICFD),
-C      &            KOPENi(M,ICFD),KOPENf(M,ICFD))
-C                 if (OK) then 
-C                   JSBii=J+1
-C                   EXIT
-C                 endif
-C               enddo
-C             endif
-
-            DO 2221 J=JSBii,JSBf(L,ICFD)
-              TMULT=TRBSRCV(I,J,K,DZL)
-              TAULV(I,J,K)=-TMULT*Vf(i,j,K)
-              SP(I,J,K)=SP(I,J,K)-TMULT*AreaHLV(I,J)
-              AL(I,J,K)=0.0
- 2221       CONTINUE
- 222      CONTINUE
-          JI=JSBi(L,ICFD)
-          JF=JSBf(L,ICFD)
-          DO 230 I=ISBi(L,ICFD),ISBf(L,ICFD)
-            TAULV(I,JI,K)=TAULV(I,JI+1,K)
-            TAULV(I,JF+1,K)=TAULV(I,JF,K)
- 230      CONTINUE
-
-        ELSEIF(location.EQ.6)THEN
-
-C Set up boundary conditions on High solid wall.
-          K=KSBi(L,ICFD)
-          DZH=ZW(K+1)-ZP(K)
-          DO 232 I=ISBi(L,ICFD),ISBf(L,ICFD)
-
-C             J=JSBi(L,ICFD)
-C             if (J.eq.2) then
-C               JSBii=J+1
-C             else
-C               JSBii=J
-C               do M=1,NOPEN(ICFD)
-C                 OK=LINVOL(I,J-1,K,
-C      &            IOPENi(M,ICFD),IOPENf(M,ICFD),
-C      &            JOPENi(M,ICFD),JOPENf(M,ICFD),
-C      &            KOPENi(M,ICFD),KOPENf(M,ICFD))
-C                 if (OK) then 
-C                   JSBii=J+1
-C                   EXIT
-C                 endif
-C               enddo
-C             endif
-
-            DO 2321 J=JSBii,JSBf(L,ICFD)
-              TMULT=TRBSRCV(I,J,K,DZH)
-              TAUHV(I,J,K)=-TMULT*Vf(i,j,K)
-              SP(I,J,K)=SP(I,J,K)-TMULT*AreaHLV(I,J)
-              AH(I,J,K)=0.0
- 2321       CONTINUE
- 232      CONTINUE
-          JI=JSBi(L,ICFD)
-          JF=JSBf(L,ICFD)
-          DO 240 I=ISBi(L,ICFD),ISBf(L,ICFD)
-            TAUHV(I,JI,K)=TAUHV(I,JI+1,K)
-            TAUHV(I,JF+1,K)=TAUHV(I,JF,K)
- 240      CONTINUE
-
-C Symetric axis.
-C Set up boundary conditions for West solid wall.
-        ELSEIF(location.EQ.11)THEN
-          I=ISBi(L,ICFD)
-          DO 250 J=JSBi(L,ICFD),JSBf(L,ICFD)
-            DO 2501 K=KSBi(L,ICFD),KSBf(L,ICFD)
-C              SP(I-1,J,K)=-GREAT
-C              SU(I-1,J,K)=GREAT*Vf(I,J,K)
-              Vf(I-1,J,K)=Vf(I,J,K)
-              AW(I,J,K)=0.0
- 2501       CONTINUE
- 250      CONTINUE
-
-C Set up boundary conditions for East solid wall.
-        ELSEIF(location.EQ.12)THEN
-          I=ISBi(L,ICFD)
-          DO 253 J=JSBi(L,ICFD),JSBf(L,ICFD)
-            DO 2531 K=KSBi(L,ICFD),KSBf(L,ICFD)
-C              SP(I+1,J,K)=-GREAT
-C              SU(I+1,J,K)=GREAT*Vf(I,J,K)
-              Vf(I+1,J,K)=Vf(I,J,K)
-              AE(I,J,K)=0.0
- 2531       CONTINUE
- 253      CONTINUE
-
-C Set up boundary conditions on Low solid wall.
-        ELSEIF(location.EQ.15)THEN
-          K=KSBi(L,ICFD)
-          DO 255 I=ISBi(L,ICFD),ISBf(L,ICFD)
-            DO 2551 J=JSBi(L,ICFD),JSBf(L,ICFD)
-C              SP(I,J,K-1)=-GREAT
-C              SU(I,J,K-1)=GREAT*Vf(I,J,K)
-              Vf(I,J,K-1)=Vf(I,J,K)
-              AL(I,J,K)=0.0
- 2551       CONTINUE
- 255      CONTINUE
-
-C Set up boundary conditions on High solid wall.
-        ELSEIF(location.EQ.16)THEN
-          K=KSBi(L,ICFD)
-          DO 258 I=ISBi(L,ICFD),ISBf(L,ICFD)
-            DO 2581 J=JSBi(L,ICFD),JSBf(L,ICFD)
-C              SP(I,J,K-1)=-GREAT
-C              SU(I,J,K-1)=GREAT*Vf(I,J,K)
-              Vf(I,J,K-1)=Vf(I,J,K)
-              AH(I,J,K)=0.0
- 2581       CONTINUE
- 258      CONTINUE
-        ENDIF
+C High.
+          ELSEIF(location.EQ.6)THEN
+            K=KVCELLS(IV,ICFD,1)
+            DZH=ZW(K+1)-ZP(K)
+            DO 232 I=IVCELLS(IV,ICFD,1),IVCELLS(IV,ICFD,2)
+              DO 2321 J=JVCELLS(IV,ICFD,1),JVCELLS(IV,ICFD,2)+1
+                TMULT=TRBSRCV(I,J,K,DZH)
+                TAUHV(I,J,K)=-TMULT*Vf(i,j,K)
+                if (J.eq.JVCELLS(IV,ICFD,1)) then
+                  SP(I,J,K)=SP(I,J,K)-TMULT*AreaHLV(I,J)*0.5
+                  if(IBCTPC(I,J-1,K).eq.1 .or. IBCTPC(I,J-1,K).eq.2 .or.
+     &               IBCTPC(I,J-1,K).eq.4 .or. IBCTPC(I,J-1,K).eq.5 .or.
+     &               IBCTPC(I,J-1,K).eq.0)then
+                    AH(I,J,K)=0.0
+                  endif                
+                elseif (J.eq.JVCELLS(IV,ICFD,2)+1) then
+                  SP(I,J,K)=SP(I,J,K)-TMULT*AreaHLV(I,J)*0.5
+                  if (IBCTPC(I,J,K).eq.1 .or. IBCTPC(I,J,K).eq.2 .or.
+     &                IBCTPC(I,J,K).eq.4 .or. IBCTPC(I,J,K).eq.5 .or.
+     &                IBCTPC(I,J,K).eq.0) then
+                    AH(I,J,K)=0.0
+                  endif
+                else
+                  SP(I,J,K)=SP(I,J,K)-TMULT*AreaHLV(I,J)
+                  AH(I,J,K)=0.0
+                endif
+ 2321         CONTINUE
+ 232        CONTINUE
+          ENDIF
+        endif
  201  CONTINUE
 
-C Momentum BCs for openings were formerly handled here, but now are treated
-C in INOUT.
-
-C Airflow at inlet not perpendicular to wall. Examine each opening and
-C treat those that have "directed" flow.
-      DO 241 L=1,NOPEN(ICFD)
-        J=JOPENi(L,ICFD)
-C West wall.
-        IF(IWOPEN(L,ICFD).EQ.1.AND.FIXM(L,ICFD).GT.0.) THEN
-          I=IOPENi(L,ICFD)
-          DO 280 J=JOPENi(L,ICFD),JOPENf(L,ICFD)
-            DO 2801 K=KOPENi(L,ICFD),KOPENf(L,ICFD)
-              IF(THETA1(L,ICFD).LT.0.) THEN
-                SP(I,J,K)=-GREAT
-                SU(I,J,K)=GREAT*Uf(I,J,K)*ETAND(THETA1(L,ICFD))
-              ELSEIF(THETA1(L,ICFD).GT.0.) THEN
-                IF(J.EQ.JOPENi(L,ICFD)) Vf(I-1,J,K)=-Vf(I,J,K)
-                IF(J.EQ.JOPENf(L,ICFD)) THEN
-                  SP(I,J+1,K)=-GREAT
-                  SU(I,J+1,K)=GREAT*Uf(I,J,K)*ETAND(THETA1(L,ICFD))
-                  IF(J.NE.JOPENi(L,ICFD)) THEN
-                    SP(I,J,K)=-GREAT
-                    SU(I,J,K)=GREAT*Uf(I,J,K)*ETAND(THETA1(L,ICFD))
-                  ENDIF
-                ENDIF
-                IF(J.GT.JOPENi(L,ICFD).AND.J.LT.JOPENf(L,ICFD)) THEN
-                  SP(I,J,K)=-GREAT
-                  SU(I,J,K)=GREAT*Uf(I,J,K)*ETAND(THETA1(L,ICFD))
-                ENDIF
-              ENDIF
- 2801       CONTINUE
- 280      CONTINUE
-
-C East wall.
-        ELSEIF(IWOPEN(L,ICFD).EQ.2.AND.FIXM(L,ICFD).GT.0.) THEN
-          I=IOPENi(L,ICFD)
-          DO 285 J=JOPENi(L,ICFD),JOPENf(L,ICFD)
-            DO 2851 K=KOPENi(L,ICFD),KOPENf(L,ICFD)
-              IF(THETA1(L,ICFD).LT.0.) THEN
-                SP(I,J,K)=-GREAT
-                SU(I,J,K)=GREAT*ABS(Uf(I,J,K))*ETAND(THETA1(L,ICFD))
-              ELSEIF(THETA1(L,ICFD).GT.0.) THEN
-                IF(J.EQ.JOPENi(L,ICFD)) Vf(I+1,J,K)=-Vf(I,J,K)
-                IF(J.EQ.JOPENf(L,ICFD)) THEN
-                  SP(I,J+1,K)=-GREAT
-                  SU(I,J+1,K)=GREAT*ABS(Uf(I,J,K))*ETAND(THETA1(L,ICFD))
-                  IF(J.NE.JOPENi(L,ICFD)) THEN
-                    SP(I,J,K)=-GREAT
-                    SU(I,J,K)=GREAT*ABS(Uf(I,J,K))*ETAND(THETA1(L,ICFD))
-                  ENDIF
-                ENDIF
-                IF(J.GT.JOPENi(L,ICFD).AND.J.LT.JOPENf(L,ICFD)) THEN
-                  SP(I,J,K)=-GREAT
-                  SU(I,J,K)=GREAT*ABS(Uf(I,J,K))*ETAND(THETA1(L,ICFD))
-                ENDIF
-              ENDIF
- 2851       CONTINUE
- 285      CONTINUE
-
-C Low wall.
-        ELSEIF(IWOPEN(L,ICFD).EQ.5.AND.FIXM(L,ICFD).GT.0.) THEN
-          K=KOPENi(L,ICFD)
-          DO 290 I=IOPENi(L,ICFD),IOPENf(L,ICFD)
-            DO 2901 J=JOPENi(L,ICFD),JOPENf(L,ICFD)
-              IF(THETA2(L,ICFD).LT.0.) THEN
-                SP(I,J,K)=-GREAT
-                SU(I,J,K)=GREAT*Wf(I,J,K)*ETAND(THETA2(L,ICFD))
-              ELSEIF(THETA2(L,ICFD).GT.0.) THEN
-                IF(J.EQ.JOPENi(L,ICFD)) Vf(I,J,K-1)=-Vf(I,J,K)
-                IF(J.EQ.JOPENf(L,ICFD)) THEN
-                  SP(I,J+1,K)=-GREAT
-                  SU(I,J+1,K)=GREAT*Wf(I,J,K)*ETAND(THETA2(L,ICFD))
-                  IF(J.NE.JOPENi(L,ICFD)) THEN
-                    SP(I,J,K)=-GREAT
-                    SU(I,J,K)=GREAT*Wf(I,J,K)*ETAND(THETA2(L,ICFD))
-                  ENDIF
-                ENDIF
-                IF(J.GT.JOPENi(L,ICFD).AND.J.LT.JOPENf(L,ICFD)) THEN
-                  SP(I,J,K)=-GREAT
-                  SU(I,J,K)=GREAT*Wf(I,J,K)*ETAND(THETA2(L,ICFD))
-                ENDIF
-              ENDIF
- 2901       CONTINUE
- 290      CONTINUE
-
-C High wall.
-        ELSEIF(IWOPEN(L,ICFD).EQ.6.AND.FIXM(L,ICFD).GT.0.) THEN
-          K=KOPENi(L,ICFD)
-          DO 295 I=IOPENi(L,ICFD),IOPENf(L,ICFD)
-            DO 2951 J=JOPENi(L,ICFD),JOPENf(L,ICFD)
-              IF(THETA2(L,ICFD).LT.0.) THEN
-                SP(I,J,K)=-GREAT
-                SU(I,J,K)=GREAT*ABS(Wf(I,J,K))*ETAND(THETA2(L,ICFD))
-              ELSEIF(THETA2(L,ICFD).GT.0.) THEN
-                IF(J.EQ.JOPENi(L,ICFD)) Vf(I,J,K+1)=-Vf(I,J,K)
-                IF(J.EQ.JOPENf(L,ICFD)) THEN
-                  SP(I,J+1,K)=-GREAT
-                  SU(I,J+1,K)=GREAT*ABS(Wf(I,J,K))*ETAND(THETA2(L,ICFD))
-                  IF(J.NE.JOPENi(L,ICFD)) THEN
-                    SP(I,J,K)=-GREAT
-                    SU(I,J,K)=GREAT*ABS(Wf(I,J,K))*ETAND(THETA2(L,ICFD))
-                  ENDIF
-                ENDIF
-                IF(J.GT.JOPENi(L,ICFD).AND.J.LT.JOPENf(L,ICFD)) THEN
-                  SP(I,J,K)=-GREAT
-                  SU(I,J,K)=GREAT*ABS(Wf(I,J,K))*ETAND(THETA2(L,ICFD))
-                ENDIF
-              ENDIF
- 2951       CONTINUE
- 295      CONTINUE
-        ENDIF
- 241  CONTINUE
-
       RETURN
-
 
 C ********************* MODWT *********************
 C MODWT - W direction boundary conditions - turbulent.
@@ -881,11 +618,10 @@ C If flow is 1D or 2D make coefficients in other directions zero.
 
       CDTERM=CMU**0.25
 
-C Solid walls.
 C Two types of wall functions are supported for the k-epsilon model:
 C the log-law wall functions and the Yuan wall functions. Use of the latter
-C is indicated by IWSB numbers in the 60's. The log-law wall functions are
-C used for all other IWSB values.
+C is indicated by IVConfl values 3 and 11. The log-law wall functions are
+C used for all other values.
 
 C If the Yuan wall functions are active and this is the first time they are
 C applied this bps time-step, then the velocity scale based on the heat flux (Uq)
@@ -899,8 +635,8 @@ C Yuan wall functions have not been applied this bps time-step (Uqinit is false
 C they have not been applied), then initialize Uq. The value of 0.02 was
 C arbitrarily selected but seems to be in the correct ballpark.
       IF(.not.Uqinit)THEN
-        DO 99 L=1,NSB(ICFD)
-          IF( IWSB(L,ICFD).ge.61 .and. IWSB(L,ICFD).le.64 )THEN
+        DO 99 IV=1,NVOL(ICFD)
+          IF(IVConfl(IV,ICFD).eq.3 .or. IVConfl(IV,ICFD).eq.11)THEN
             DO 98 I=1,NI
               DO 97 J=1,NJ
                 DO 96 K=1,NK
@@ -913,510 +649,367 @@ C arbitrarily selected but seems to be in the correct ballpark.
    99   CONTINUE
       ENDIF
 
-C Examine each solid boundary in turn and apply the appropriate wall function.
-      DO 3013 L=1,NSB(ICFD)
+      DO 3013 IV=1,NVOL(ICFD)
+        location=IVOLF(IV,ICFD)
+        ityp=IVTYPE(IV,ICFD)
 
-C Determine upon which face of the CFD domain the solid boundary resides.
-C `location' is equal to the least significant digit of IWSB and has the
-C following meanings: 1 for west; 2 for east; 3 for south; 4 for north;
-C 5 for low; 6 for high.
-        location = abs(IWSB(L,ICFD)) - abs(IWSB(L,ICFD))/10*10
-        KSBii=KSBi(L,ICFD)
+C Symmetric BC.
+        if (ityp.eq.3 .or. ityp.eq.6) then
 
-C To change/ test - sometimes produces non zero coefficients at walls!
-        DO 820 M=1,NOPEN(ICFD)
-          IF(KSBi(L,ICFD).EQ.KOPENf(M,ICFD)+1) THEN
-            KSBii=KSBii+1
-            GOTO 821
+C West.
+          IF(location.EQ.1)THEN
+            I=IVCELLS(IV,ICFD,1)
+            DO 350 J=JVCELLS(IV,ICFD,1),JVCELLS(IV,ICFD,2)
+              DO 3501 K=KVCELLS(IV,ICFD,1),KVCELLS(IV,ICFD,2)+1
+                if (K.eq.KVCELLS(IV,ICFD,1) .and. 
+     &              IBCTPC(I,J,K-1).eq.11) then
+                  Wf(I-1,J,K)=Wf(I-1,J,K)+Wf(I,J,K)/2.
+                elseif (K.eq.KVCELLS(IV,ICFD,2)+1 .and. 
+     &                  IBCTPC(I,J,K).eq.11) then
+                  Wf(I-1,J,K)=Wf(I-1,J,K)+Wf(I,J,K)/2.
+                else
+                  Wf(I-1,J,K)=Wf(I,J,K)
+                endif
+ 3501         CONTINUE
+ 350        CONTINUE
+
+C East.
+          ELSEIF(location.EQ.2)THEN
+            I=ISBi(L,ICFD)
+            DO 353 J=JSBi(L,ICFD),JSBf(L,ICFD)
+              DO 3531 K=KSBi(L,ICFD),KSBf(L,ICFD)+1
+                if (K.eq.KVCELLS(IV,ICFD,1) .and. 
+     &              IBCTPC(I,J,K-1).eq.11) then
+                  Wf(I+1,J,K)=Wf(I+1,J,K)+Wf(I,J,K)/2.
+                elseif (K.eq.KVCELLS(IV,ICFD,2)+1 .and. 
+     &                  IBCTPC(I,J,K).eq.11) then
+                  Wf(I+1,J,K)=Wf(I+1,J,K)+Wf(I,J,K)/2.
+                else
+                  Wf(I+1,J,K)=Wf(I,J,K)
+                endif
+ 3531         CONTINUE
+ 353        CONTINUE
+
+C South.
+          ELSEIF(location.EQ.3)THEN
+            J=JSBi(L,ICFD)
+            DO 355 I=ISBi(L,ICFD),ISBf(L,ICFD)
+              DO 3551 K=KSBi(L,ICFD),KSBf(L,ICFD)+1
+                if (K.eq.KVCELLS(IV,ICFD,1) .and. 
+     &              IBCTPC(I,J,K-1).eq.11) then
+                  Wf(I,J-1,K)=Wf(I,J-1,K)+Wf(I,J,K)/2.
+                elseif (K.eq.KVCELLS(IV,ICFD,2)+1 .and. 
+     &                  IBCTPC(I,J,K).eq.11) then
+                  Wf(I,J-1,K)=Wf(I,J-1,K)+Wf(I,J,K)/2.
+                else
+                  Wf(I,J-1,K)=Wf(I,J,K)
+                endif
+ 3551         CONTINUE
+ 355        CONTINUE
+
+C North.
+          ELSEIF(location.EQ.4)THEN
+            J=JSBi(L,ICFD)
+            DO 358 I=ISBi(L,ICFD),ISBf(L,ICFD)
+              DO 3581 K=KSBi(L,ICFD),KSBf(L,ICFD)+1
+                if (K.eq.KVCELLS(IV,ICFD,1) .and. 
+     &              IBCTPC(I,J,K-1).eq.11) then
+                  Wf(I,J+1,K)=Wf(I,J+1,K)+Wf(I,J,K)/2.
+                elseif (K.eq.KVCELLS(IV,ICFD,2)+1 .and. 
+     &                  IBCTPC(I,J,K).eq.11) then
+                  Wf(I,J+1,K)=Wf(I,J+1,K)+Wf(I,J,K)/2.
+                else
+                  Wf(I,J+1,K)=Wf(I,J,K)
+                endif
+ 3581         CONTINUE
+ 358        CONTINUE
           ENDIF
- 820    CONTINUE
 
-C Set up boundary conditions for West solid wall if log-law wall functions in use.
- 821    IF(location.EQ.1 .and. IWSB(L,ICFD).ne.61)THEN
-          I=ISBi(L,ICFD)
-          DXW=XP(I)-XU(I)
-          DO 302 J=JSBi(L,ICFD),JSBf(L,ICFD)
+C Heat flux or solid BC (log-law wall functions).
+        elseif (ityp.eq.1 .or. ityp.eq.2 .or. 
+     &          ((ityp.eq.4 .or. ityp.eq.5) .and. 
+     &           (IVConfl(IV,ICFD).ne.3 .and. 
+     &            IVConfl(IV,ICFD).ne.11))) then
 
-C             K=KSBi(L,ICFD)
-C             if (K.eq.2) then
-C               KSBii=K+1
-C             else
-C               KSBii=K
-C               do M=1,NOPEN(ICFD)
-C                 OK=LINVOL(I,J,K-1,
-C      &            IOPENi(M,ICFD),IOPENf(M,ICFD),
-C      &            JOPENi(M,ICFD),JOPENf(M,ICFD),
-C      &            KOPENi(M,ICFD),KOPENf(M,ICFD))
-C                 if (OK) then 
-C                   KSBii=K+1
-C                   EXIT
-C                 endif
-C               enddo
-C             endif
+C West.
+          IF(location.EQ.1)THEN
+            I=IVCELLS(IV,ICFD,1)
+            DXW=XP(I)-XU(I)
+            DO 302 J=JVCELLS(IV,ICFD,1),JVCELLS(IV,ICFD,2)
+              DO 3021 K=KVCELLS(IV,ICFD,1),KVCELLS(IV,ICFD,2)+1
+                TMULT=TRBSRCW(I,J,K,DXW)
+                TAUWW(I,J,K)=-TMULT*Wf(i,j,K)
+                if (K.eq.KVCELLS(IV,ICFD,1)) then
+                  SP(I,J,K)=SP(I,J,K)-TMULT*AreaEWW(J,K)*0.5
+                  if(IBCTPC(I,J,K-1).eq.1 .or. IBCTPC(I,J,K-1).eq.2 .or.
+     &               IBCTPC(I,J,K-1).eq.4 .or. IBCTPC(I,J,K-1).eq.5 .or.
+     &               IBCTPC(I,J,K-1).eq.0)then
+                    AW(I,J,K)=0.0
+                  endif                
+                elseif (K.eq.KVCELLS(IV,ICFD,2)+1) then
+                  SP(I,J,K)=SP(I,J,K)-TMULT*AreaEWW(J,K)*0.5
+                  if (IBCTPC(I,J,K).eq.1 .or. IBCTPC(I,J,K).eq.2 .or.
+     &                IBCTPC(I,J,K).eq.4 .or. IBCTPC(I,J,K).eq.5 .or.
+     &                IBCTPC(I,J,K).eq.0) then
+                    AW(I,J,K)=0.0
+                  endif
+                else
+                  SP(I,J,K)=SP(I,J,K)-TMULT*AreaEWW(J,K)
+                  AW(I,J,K)=0.0
+                endif
+ 3021         CONTINUE
+ 302        CONTINUE
 
-            DO 3021 K=KSBii,KSBf(L,ICFD)
-              TMULT=TRBSRCW(I,J,K,DXW)
-              TAUWW(I,J,K)=-TMULT*Wf(i,j,K)
-              SP(I,J,K)=SP(I,J,K)-TMULT*AreaEWW(J,K)
-              AW(I,J,K)=0.0
- 3021       CONTINUE
- 302      CONTINUE
-          KI=KSBi(L,ICFD)
-          KF=KSBf(L,ICFD)
-          DO 3104 J=JSBi(L,ICFD),JSBf(L,ICFD)
-            TAUWW(I,J,KI)=TAUWW(I,J,KI+1)
-            TAUWW(I,J,KF+1)=TAUWW(I,J,KF)
- 3104     CONTINUE
+C East.
+          ELSEIF(location.EQ.2)THEN
+            I=IVCELLS(IV,ICFD,1)
+            DXE=XU(I+1)-XP(I)
+            DO 312 J=JVCELLS(IV,ICFD,1),JVCELLS(IV,ICFD,2)
+              DO 3121 K=KVCELLS(IV,ICFD,1),KVCELLS(IV,ICFD,2)+1
+                TMULT=TRBSRCW(I,J,K,DXE)
+                TAUEW(I,J,K)=-TMULT*Wf(i,j,K)
+                if (K.eq.KVCELLS(IV,ICFD,1)) then
+                  SP(I,J,K)=SP(I,J,K)-TMULT*AreaEWW(J,K)*0.5
+                  if(IBCTPC(I,J,K-1).eq.1 .or. IBCTPC(I,J,K-1).eq.2 .or.
+     &               IBCTPC(I,J,K-1).eq.4 .or. IBCTPC(I,J,K-1).eq.5 .or.
+     &               IBCTPC(I,J,K-1).eq.0)then
+                    AE(I,J,K)=0.0
+                  endif                
+                elseif (K.eq.KVCELLS(IV,ICFD,2)+1) then
+                  SP(I,J,K)=SP(I,J,K)-TMULT*AreaEWW(J,K)*0.5
+                  if (IBCTPC(I,J,K).eq.1 .or. IBCTPC(I,J,K).eq.2 .or.
+     &                IBCTPC(I,J,K).eq.4 .or. IBCTPC(I,J,K).eq.5 .or.
+     &                IBCTPC(I,J,K).eq.0) then
+                    AE(I,J,K)=0.0
+                  endif
+                else
+                  SP(I,J,K)=SP(I,J,K)-TMULT*AreaEWW(J,K)
+                  AE(I,J,K)=0.0
+                endif
+ 3121         CONTINUE
+ 312        CONTINUE
 
-C Set up boundary conditions for East solid wall if log-law wall functions in use.
-        ELSEIF(location.EQ.2 .and. IWSB(L,ICFD).ne.62)THEN
-          I=ISBi(L,ICFD)
-          DXE=XU(I+1)-XP(I)
-          DO 312 J=JSBi(L,ICFD),JSBf(L,ICFD)
+C South.
+          ELSEIF(location.EQ.3)THEN
+            J=JVCELLS(IV,ICFD,1)
+            DYS=YP(J)-YV(J)
+            DO 322 I=IVCELLS(IV,ICFD,1),IVCELLS(IV,ICFD,2)
+              DO 3221 K=KVCELLS(IV,ICFD,1),KVCELLS(IV,ICFD,2)+1
+                TMULT=TRBSRCW(I,J,K,DYS)
+                TAUSW(I,J,K)=-TMULT*Wf(I,J,K)
+                if (K.eq.KVCELLS(IV,ICFD,1)) then
+                  SP(I,J,K)=SP(I,J,K)-TMULT*AreaNSW(I,K)*0.5
+                  if(IBCTPC(I,J,K-1).eq.1 .or. IBCTPC(I,J,K-1).eq.2 .or.
+     &               IBCTPC(I,J,K-1).eq.4 .or. IBCTPC(I,J,K-1).eq.5 .or.
+     &               IBCTPC(I,J,K-1).eq.0)then
+                    AS(I,J,K)=0.0
+                  endif                
+                elseif (K.eq.KVCELLS(IV,ICFD,2)+1) then
+                  SP(I,J,K)=SP(I,J,K)-TMULT*AreaNSW(I,K)*0.5
+                  if (IBCTPC(I,J,K).eq.1 .or. IBCTPC(I,J,K).eq.2 .or.
+     &                IBCTPC(I,J,K).eq.4 .or. IBCTPC(I,J,K).eq.5 .or.
+     &                IBCTPC(I,J,K).eq.0) then
+                    AS(I,J,K)=0.0
+                  endif
+                else
+                  SP(I,J,K)=SP(I,J,K)-TMULT*AreaNSW(I,K)
+                  AS(I,J,K)=0.0
+                endif
+ 3221         CONTINUE
+ 322        CONTINUE
 
-C             K=KSBi(L,ICFD)
-C             if (K.eq.2) then
-C               KSBii=K+1
-C             else
-C               KSBii=K
-C               do M=1,NOPEN(ICFD)
-C                 OK=LINVOL(I,J,K-1,
-C      &            IOPENi(M,ICFD),IOPENf(M,ICFD),
-C      &            JOPENi(M,ICFD),JOPENf(M,ICFD),
-C      &            KOPENi(M,ICFD),KOPENf(M,ICFD))
-C                 if (OK) then 
-C                   KSBii=K+1
-C                   EXIT
-C                 endif
-C               enddo
-C             endif
+C North.
+          ELSEIF(location.EQ.4)THEN
+            J=JVCELLS(IV,ICFD,1)
+            DYN=YV(J+1)-YP(J)
+            DO 332 I=IVCELLS(IV,ICFD,1),IVCELLS(IV,ICFD,2)
+              DO 3321 K=KVCELLS(IV,ICFD,1),KVCELLS(IV,ICFD,2)+1
+                TMULT=TRBSRCW(I,J,K,DYN)
+                TAUNW(I,J,K)=-TMULT*Wf(I,J,K)
+                if (K.eq.KVCELLS(IV,ICFD,1)) then
+                  SP(I,J,K)=SP(I,J,K)-TMULT*AreaNSW(I,K)*0.5
+                  if(IBCTPC(I,J,K-1).eq.1 .or. IBCTPC(I,J,K-1).eq.2 .or.
+     &               IBCTPC(I,J,K-1).eq.4 .or. IBCTPC(I,J,K-1).eq.5 .or.
+     &               IBCTPC(I,J,K-1).eq.0)then
+                    AN(I,J,K)=0.0
+                  endif                
+                elseif (K.eq.KVCELLS(IV,ICFD,2)+1) then
+                  SP(I,J,K)=SP(I,J,K)-TMULT*AreaNSW(I,K)*0.5
+                  if (IBCTPC(I,J,K).eq.1 .or. IBCTPC(I,J,K).eq.2 .or.
+     &                IBCTPC(I,J,K).eq.4 .or. IBCTPC(I,J,K).eq.5 .or.
+     &                IBCTPC(I,J,K).eq.0) then
+                    AN(I,J,K)=0.0
+                  endif
+                else
+                  SP(I,J,K)=SP(I,J,K)-TMULT*AreaNSW(I,K)
+                  AN(I,J,K)=0.0
+                endif
+ 3321         CONTINUE
+ 332        CONTINUE
+          ENDIF
 
-            DO 3121 K=KSBii,KSBf(L,ICFD)
-              TMULT=TRBSRCW(I,J,K,DXE)
-              TAUEW(I,J,K)=-TMULT*Wf(i,j,K)
-              SP(I,J,K)=SP(I,J,K)-TMULT*AreaEWW(J,K)
-              AE(I,J,K)=0.0
- 3121       CONTINUE
- 312      CONTINUE
-          KI=KSBi(L,ICFD)
-          KF=KSBf(L,ICFD)
-          DO 320 J=JSBi(L,ICFD),JSBf(L,ICFD)
-            TAUEW(I,J,KI)=TAUEW(I,J,KI+1)
-            TAUEW(I,J,KF+1)=TAUEW(I,J,KF)
- 320      CONTINUE
+C Conflated BC, Yuan wall functions.
+        elseif ((ityp.eq.4 .or. ityp.eq.5) .and. 
+     &          (IVConfl(IV,ICFD).eq.3 .or. IVConfl(IV,ICFD).eq.11))then
 
-C Set up boundary conditions on South solid wall if log-law wall functions in use.
-        ELSEIF(location.EQ.3 .and. IWSB(L,ICFD).ne.63)THEN
-          J=JSBi(L,ICFD)
-          DYS=YP(J)-YV(J)
-          DO 322 I=ISBi(L,ICFD),ISBf(L,ICFD)
-
-C             K=KSBi(L,ICFD)
-C             if (K.eq.2) then
-C               KSBii=K+1
-C             else
-C               KSBii=K
-C               do M=1,NOPEN(ICFD)
-C                 OK=LINVOL(I,J,K-1,
-C      &            IOPENi(M,ICFD),IOPENf(M,ICFD),
-C      &            JOPENi(M,ICFD),JOPENf(M,ICFD),
-C      &            KOPENi(M,ICFD),KOPENf(M,ICFD))
-C                 if (OK) then 
-C                   KSBii=K+1
-C                   EXIT
-C                 endif
-C               enddo
-C             endif
-
-            DO 3221 K=KSBii,KSBf(L,ICFD)
-              TMULT=TRBSRCW(I,J,K,DYS)
-              TAUSW(I,J,K)=-TMULT*Wf(I,J,K)
-              SP(I,J,K)=SP(I,J,K)-TMULT*AreaNSW(I,K)
-              AS(I,J,K)=0.0
- 3221       CONTINUE
- 322      CONTINUE
-          KI=KSBi(L,ICFD)
-          KF=KSBf(L,ICFD)
-          DO 3308 I=ISBi(L,ICFD),ISBf(L,ICFD)
-            TAUSW(I,J,KI)=TAUSW(I,J,KI+1)
-            TAUSW(I,J,KF+1)=TAUSW(I,J,KF)
- 3308     CONTINUE
-
-C Set up boundary conditions on North solid wall if log-law wall functions in use.
-        ELSEIF(location.EQ.4 .and. IWSB(L,ICFD).ne.64)THEN
-          J=JSBi(L,ICFD)
-          DYN=YV(J+1)-YP(J)
-          DO 332 I=ISBi(L,ICFD),ISBf(L,ICFD)
-
-C             K=KSBi(L,ICFD)
-C             if (K.eq.2) then
-C               KSBii=K+1
-C             else
-C               KSBii=K
-C               do M=1,NOPEN(ICFD)
-C                 OK=LINVOL(I,J,K-1,
-C      &            IOPENi(M,ICFD),IOPENf(M,ICFD),
-C      &            JOPENi(M,ICFD),JOPENf(M,ICFD),
-C      &            KOPENi(M,ICFD),KOPENf(M,ICFD))
-C                 if (OK) then 
-C                   KSBii=K+1
-C                   EXIT
-C                 endif
-C               enddo
-C             endif
-
-            DO 3321 K=KSBii,KSBf(L,ICFD)
-              TMULT=TRBSRCW(I,J,K,DYN)
-              TAUNW(I,J,K)=-TMULT*Wf(I,J,K)
-              SP(I,J,K)=SP(I,J,K)-TMULT*AreaNSW(I,K)
-              AN(I,J,K)=0.0
- 3321       CONTINUE
- 332      CONTINUE
-          KI=KSBi(L,ICFD)
-          KF=KSBf(L,ICFD)
-          DO 3404 I=ISBi(L,ICFD),ISBf(L,ICFD)
-            TAUNW(I,J,KI)=TAUNW(I,J,KI+1)
-            TAUNW(I,J,KF+1)=TAUNW(I,J,KF)
- 3404     CONTINUE
-
-C Set up boundary conditions on West solid wall if Yuan wall functions in use.
-        ELSEIF(IWSB(L,ICFD).eq.61)THEN
-          I=ISBi(L,ICFD)
-          DXW=XP(I)-XU(I)
-          DO 902 J=JSBi(L,ICFD),JSBf(L,ICFD)
-
-C             K=KSBi(L,ICFD)
-C             if (K.eq.2) then
-C               KSBii=K+1
-C             else
-C               KSBii=K
-C               do M=1,NOPEN(ICFD)
-C                 OK=LINVOL(I,J,K-1,
-C      &            IOPENi(M,ICFD),IOPENf(M,ICFD),
-C      &            JOPENi(M,ICFD),JOPENf(M,ICFD),
-C      &            KOPENi(M,ICFD),KOPENf(M,ICFD))
-C                 if (OK) then 
-C                   KSBii=K+1
-C                   EXIT
-C                 endif
-C               enddo
-C             endif
-
-            DO 3921 K=KSBii,KSBf(L,ICFD)
-              Utau = YUANBC(I,J,K,DXW)
+C West.
+          IF(location.eq.1)THEN
+            I=IVCELLS(IV,ICFD,1)
+            DXW=XP(I)-XU(I)
+            DO 902 J=JVCELLS(IV,ICFD,1),JVCELLS(IV,ICFD,2)
+              DO 3921 K=KVCELLS(IV,ICFD,1),KVCELLS(IV,ICFD,2)+1
+                Utau = YUANBC(I,J,K,DXW)
 
 C Since Utau forced to positive determine direction of shear stress
 C based on direction of velocity component in vertical direction
 C (+ value means stress operates in axis direction).
-              if( Wf(i,j,K).lt.0.)then
-                TAUWW(I,J,K) = DENf(i,j,k) * Utau**2
-              else
-                TAUWW(I,J,K) = - DENf(i,j,k) * Utau**2
-              endif
+                if( Wf(i,j,K).lt.0.)then
+                  TAUWW(I,J,K) = DENf(i,j,k) * Utau**2
+                else
+                  TAUWW(I,J,K) = - DENf(i,j,k) * Utau**2
+                endif
 
-C Disconnect cell from boundary and set source term. Source term units are
-C force/velocity. Surface area of cell = SNS*SHLW. Protect the calculation
-C against the case of zero velocity.
-C              SP(I,J,K)=SP(I,J,K)+TAUWW(I,J,K)*AreaEWW(J,K) /
-C     &                  ( Wf(i,j,K) + small )
-              SP(I,J,K)=SP(I,J,K)+TAUWW(I,J,K)*AreaEWW(J,K) /
-     &                  anotzero(Wf(i,j,K))
-              AW(I,J,K)=0.0
- 3921       CONTINUE
- 902      CONTINUE
-          KI=KSBi(L,ICFD)
-          KF=KSBf(L,ICFD)
-          DO 390 J=JSBi(L,ICFD),JSBf(L,ICFD)
-            TAUWW(I,J,KI)=TAUWW(I,J,KI+1)
-            TAUWW(I,J,KF+1)=TAUWW(I,J,KF)
- 390      CONTINUE
+C Disconnect cell from boundary (as long as cell does not straddle a BC
+C divide between this and an opening) and set source term. Source term
+C units are force/velocity. Surface area of cell = SNS*SHLW. Protect the
+C calculation against the case of zero velocity.
+                if (K.eq.KVCELLS(IV,ICFD,1)) then
+                  SP(I,J,K)=SP(I,J,K)+TAUWW(I,J,K)*AreaEWW(J,K)*0.5 /
+     &              anotzero(Wf(i,j,K))
+                  if(IBCTPC(I,J,K-1).eq.1 .or. IBCTPC(I,J,K-1).eq.2 .or.
+     &               IBCTPC(I,J,K-1).eq.4 .or. IBCTPC(I,J,K-1).eq.5 .or.
+     &               IBCTPC(I,J,K-1).eq.0)then
+                    AW(I,J,K)=0.0
+                  endif
+                elseif (K.eq.KVCELLS(IV,ICFD,2)+1) then
+                  SP(I,J,K)=SP(I,J,K)+TAUWW(I,J,K)*AreaEWW(J,K)*0.5 /
+     &              anotzero(Wf(i,j,K))
+                  if (IBCTPC(I,J,K).eq.1 .or. IBCTPC(I,J,K).eq.2 .or.
+     &                IBCTPC(I,J,K).eq.4 .or. IBCTPC(I,J,K).eq.5 .or.
+     &                IBCTPC(I,J,K).eq.0) then
+                    AW(I,J,K)=0.0
+                  endif
+                else
+                  SP(I,J,K)=SP(I,J,K)+TAUWW(I,J,K)*AreaEWW(J,K) /
+     &              anotzero(Wf(i,j,K))
+                  AW(I,J,K)=0.0
+                endif
+ 3921         CONTINUE
+  902       CONTINUE
 
-C Set up boundary conditions for East solid wall if Yuan wall functions in use.
-        ELSEIF(IWSB(L,ICFD).eq.62)THEN
-          I=ISBi(L,ICFD)
-          DXE=XU(I+1)-XP(I)
-          DO 912 J=JSBi(L,ICFD),JSBf(L,ICFD)
+C East.
+          ELSEIF(location.eq.2)THEN
+            I=IVCELLS(IV,ICFD,1)
+            DXE=XU(I+1)-XP(I)
+            DO 912 J=JVCELLS(IV,ICFD,1),JVCELLS(IV,ICFD,2)
+              DO 3991 K=KVCELLS(IV,ICFD,1),KVCELLS(IV,ICFD,2)+1
+                Utau = YUANBC(I,J,K,DXE)
+                if( Wf(i,j,K).lt.0.)then
+                  TAUEW(I,J,K) = DENf(i,j,k) * Utau**2
+                else
+                  TAUEW(I,J,K) = - DENf(i,j,k) * Utau**2
+                endif
+                if (K.eq.KVCELLS(IV,ICFD,1)) then
+                  SP(I,J,K)=SP(I,J,K)+TAUEW(I,J,K)*AreaEWW(J,K)*0.5 /
+     &              anotzero(Wf(i,j,K))
+                  if(IBCTPC(I,J,K-1).eq.1 .or. IBCTPC(I,J,K-1).eq.2 .or.
+     &               IBCTPC(I,J,K-1).eq.4 .or. IBCTPC(I,J,K-1).eq.5 .or.
+     &               IBCTPC(I,J,K-1).eq.0)then
+                    AE(I,J,K)=0.0
+                  endif
+                elseif (K.eq.KVCELLS(IV,ICFD,2)+1) then
+                  SP(I,J,K)=SP(I,J,K)+TAUEW(I,J,K)*AreaEWW(J,K)*0.5 /
+     &              anotzero(Wf(i,j,K))
+                  if (IBCTPC(I,J,K).eq.1 .or. IBCTPC(I,J,K).eq.2 .or.
+     &                IBCTPC(I,J,K).eq.4 .or. IBCTPC(I,J,K).eq.5 .or.
+     &                IBCTPC(I,J,K).eq.0) then
+                    AE(I,J,K)=0.0
+                  endif
+                else
+                  SP(I,J,K)=SP(I,J,K)+TAUEW(I,J,K)*AreaEWW(J,K) /
+     &              anotzero(Wf(i,j,K))
+                  AE(I,J,K)=0.0
+                endif
+ 3991         CONTINUE
+  912       CONTINUE
 
-C             K=KSBi(L,ICFD)
-C             if (K.eq.2) then
-C               KSBii=K+1
-C             else
-C               KSBii=K
-C               do M=1,NOPEN(ICFD)
-C                 OK=LINVOL(I,J,K-1,
-C      &            IOPENi(M,ICFD),IOPENf(M,ICFD),
-C      &            JOPENi(M,ICFD),JOPENf(M,ICFD),
-C      &            KOPENi(M,ICFD),KOPENf(M,ICFD))
-C                 if (OK) then 
-C                   KSBii=K+1
-C                   EXIT
-C                 endif
-C               enddo
-C             endif
+C South.
+          ELSEIF(location.eq.3)THEN
+            J=JVCELLs(IV,ICFD,1)
+            DYS=YP(J)-YV(J)
+            DO 922 I=IVCELLS(IV,ICFD,1),IVCELLS(IV,ICFD,2)
+              DO 3929 K=KVCELLS(IV,ICFD,1),KVCELLS(IV,ICFD,2)+1
+                Utau = YUANBC(I,J,K,DYS)
+                if( Wf(i,j,K).lt.0. )then
+                  TAUSW(I,J,K) = DENf(i,j,k) * Utau**2
+                else
+                  TAUSW(I,J,K) = - DENf(i,j,k) * Utau**2
+                endif
+                if (K.eq.KVCELLS(IV,ICFD,1)) then
+                  SP(I,J,K)=SP(I,J,K)+TAUSW(I,J,K)*AreaNSW(I,K)*0.5 /
+     &              anotzero(Wf(i,j,K))
+                  if(IBCTPC(I,J,K-1).eq.1 .or. IBCTPC(I,J,K-1).eq.2 .or.
+     &               IBCTPC(I,J,K-1).eq.4 .or. IBCTPC(I,J,K-1).eq.5 .or.
+     &               IBCTPC(I,J,K-1).eq.0)then
+                    AS(I,J,K)=0.0
+                  endif
+                elseif (K.eq.KVCELLS(IV,ICFD,2)+1) then
+                  SP(I,J,K)=SP(I,J,K)+TAUSW(I,J,K)*AreaNSW(I,K)*0.5 /
+     &              anotzero(Wf(i,j,K))
+                  if (IBCTPC(I,J,K).eq.1 .or. IBCTPC(I,J,K).eq.2 .or.
+     &                IBCTPC(I,J,K).eq.4 .or. IBCTPC(I,J,K).eq.5 .or.
+     &                IBCTPC(I,J,K).eq.0) then
+                    AS(I,J,K)=0.0
+                  endif
+                else
+                  SP(I,J,K)=SP(I,J,K)+TAUSW(I,J,K)*AreaNSW(I,K) /
+     &              anotzero(Wf(i,j,K))
+                  AS(I,J,K)=0.0
+                endif
+ 3929         CONTINUE
+  922       CONTINUE
 
-            DO 3991 K=KSBii,KSBf(L,ICFD)
-              Utau = YUANBC(I,J,K,DXE)
-              if( Wf(i,j,K).lt.0.)then
-                TAUEW(I,J,K) = DENf(i,j,k) * Utau**2
-              else
-                TAUEW(I,J,K) = - DENf(i,j,k) * Utau**2
-              endif
-              SP(I,J,K)=SP(I,J,K)+TAUEW(I,J,K)*AreaEWW(J,K) /
-     &                   anotzero(Wf(i,j,K))
-              AE(I,J,K)=0.0
- 3991       CONTINUE
- 912      CONTINUE
-          KI=KSBi(L,ICFD)
-          KF=KSBf(L,ICFD)
-          DO 391 J=JSBi(L,ICFD),JSBf(L,ICFD)
-            TAUEW(I,J,KI)=TAUEW(I,J,KI+1)
-            TAUEW(I,J,KF+1)=TAUEW(I,J,KF)
- 391      CONTINUE
+C North.
+          ELSEIF(location.eq.4)THEN
+            J=JSBi(L,ICFD)
+            DYN=YV(J+1)-YP(J)
+            DO 932 I=ISBi(L,ICFD),ISBf(L,ICFD)
+              DO 3992 K=KSBi(L,ICFD),KSBf(L,ICFD)+1
+                Utau = YUANBC(I,J,K,DYN)
+                if( Wf(i,j,K).lt.0. )then
+                  TAUNW(I,J,K) = DENf(i,j,k) * Utau**2
+                else
+                  TAUNW(I,J,K) = - DENf(i,j,k) * Utau**2
+                endif
+                if (K.eq.KVCELLS(IV,ICFD,1)) then
+                  SP(I,J,K)=SP(I,J,K)+TAUNW(I,J,K)*AreaNSW(I,K)*0.5 /
+     &              anotzero(Wf(i,j,K))
+                  if(IBCTPC(I,J,K-1).eq.1 .or. IBCTPC(I,J,K-1).eq.2 .or.
+     &               IBCTPC(I,J,K-1).eq.4 .or. IBCTPC(I,J,K-1).eq.5 .or.
+     &               IBCTPC(I,J,K-1).eq.0)then
+                    AN(I,J,K)=0.0
+                  endif
+                elseif (K.eq.KVCELLS(IV,ICFD,2)+1) then
+                  SP(I,J,K)=SP(I,J,K)+TAUNW(I,J,K)*AreaNSW(I,K)*0.5 /
+     &              anotzero(Wf(i,j,K))
+                  if (IBCTPC(I,J,K).eq.1 .or. IBCTPC(I,J,K).eq.2 .or.
+     &                IBCTPC(I,J,K).eq.4 .or. IBCTPC(I,J,K).eq.5 .or.
+     &                IBCTPC(I,J,K).eq.0) then
+                    AN(I,J,K)=0.0
+                  endif
+                else
+                  SP(I,J,K)=SP(I,J,K)+TAUNW(I,J,K)*AreaNSW(I,K) /
+     &              anotzero(Wf(i,j,K))
+                  AN(I,J,K)=0.0
+                endif
+ 3992         CONTINUE
+  932       CONTINUE
+          ENDIF
+        endif
 
-C Set up boundary conditions on South solid wall if Yuan wall functions in use.
-        ELSEIF(IWSB(L,ICFD).eq.63)THEN
-          J=JSBi(L,ICFD)
-          DYS=YP(J)-YV(J)
-          DO 922 I=ISBi(L,ICFD),ISBf(L,ICFD)
-
-C             K=KSBi(L,ICFD)
-C             if (K.eq.2) then
-C               KSBii=K+1
-C             else
-C               KSBii=K
-C               do M=1,NOPEN(ICFD)
-C                 OK=LINVOL(I,J,K-1,
-C      &            IOPENi(M,ICFD),IOPENf(M,ICFD),
-C      &            JOPENi(M,ICFD),JOPENf(M,ICFD),
-C      &            KOPENi(M,ICFD),KOPENf(M,ICFD))
-C                 if (OK) then 
-C                   KSBii=K+1
-C                   EXIT
-C                 endif
-C               enddo
-C             endif
-
-            DO 3929 K=KSBii,KSBf(L,ICFD)
-              Utau = YUANBC(I,J,K,DYS)
-              if( Wf(i,j,K).lt.0. )then
-                TAUSW(I,J,K) = DENf(i,j,k) * Utau**2
-              else
-                TAUSW(I,J,K) = - DENf(i,j,k) * Utau**2
-              endif
-              SP(I,J,K)=SP(I,J,K)+TAUSW(I,J,K)*AreaNSW(I,K) /
-     &                   anotzero(Wf(i,j,K))
-              AS(I,J,K)=0.0
- 3929       CONTINUE
- 922      CONTINUE
-          KI=KSBi(L,ICFD)
-          KF=KSBf(L,ICFD)
-          DO 392 I=ISBi(L,ICFD),ISBf(L,ICFD)
-            TAUSW(I,J,KI)=TAUSW(I,J,KI+1)
-            TAUSW(I,J,KF+1)=TAUSW(I,J,KF)
- 392      CONTINUE
-
-C Set up boundary conditions on North solid wall if Yuan wall functions in use.
-        ELSEIF(IWSB(L,ICFD).eq.64)THEN
-          J=JSBi(L,ICFD)
-          DYN=YV(J+1)-YP(J)
-          DO 932 I=ISBi(L,ICFD),ISBf(L,ICFD)
-
-C             K=KSBi(L,ICFD)
-C             if (K.eq.2) then
-C               KSBii=K+1
-C             else
-C               KSBii=K
-C               do M=1,NOPEN(ICFD)
-C                 OK=LINVOL(I,J,K-1,
-C      &            IOPENi(M,ICFD),IOPENf(M,ICFD),
-C      &            JOPENi(M,ICFD),JOPENf(M,ICFD),
-C      &            KOPENi(M,ICFD),KOPENf(M,ICFD))
-C                 if (OK) then 
-C                   KSBii=K+1
-C                   EXIT
-C                 endif
-C               enddo
-C             endif
-
-            DO 3992 K=KSBii,KSBf(L,ICFD)
-              Utau = YUANBC(I,J,K,DYN)
-              if( Wf(i,j,K).lt.0. )then
-                TAUNW(I,J,K) = DENf(i,j,k) * Utau**2
-              else
-                TAUNW(I,J,K) = - DENf(i,j,k) * Utau**2
-              endif
-              SP(I,J,K)=SP(I,J,K)+TAUNW(I,J,K)*AreaNSW(I,K) /
-     &                   anotzero(Wf(i,j,K))
-              AN(I,J,K)=0.0
- 3992       CONTINUE
- 932      CONTINUE
-          KI=KSBi(L,ICFD)
-          KF=KSBf(L,ICFD)
-          DO 393 I=ISBi(L,ICFD),ISBf(L,ICFD)
-            TAUNW(I,J,KI)=TAUNW(I,J,KI+1)
-            TAUNW(I,J,KF+1)=TAUNW(I,J,KF)
- 393      CONTINUE
-
-
-C Symetric axis.
-        ELSEIF(location.EQ.11)THEN
-          I=ISBi(L,ICFD)
-          DO 350 J=JSBi(L,ICFD),JSBf(L,ICFD)
-            DO 3501 K=KSBi(L,ICFD),KSBf(L,ICFD)
-C              SP(I-1,J,K)=-GREAT
-C              SU(I-1,J,K)=GREAT*Wf(I,J,K)
-              Wf(I-1,J,K)=Wf(I,J,K)
-              AW(I,J,K)=0.0
- 3501       CONTINUE
- 350      CONTINUE
-        ELSEIF(location.EQ.12)THEN
-          I=ISBi(L,ICFD)
-          DO 353 J=JSBi(L,ICFD),JSBf(L,ICFD)
-            DO 3531 K=KSBi(L,ICFD),KSBf(L,ICFD)
-C              SP(I+1,J,K)=-GREAT
-C              SU(I+1,J,K)=GREAT*Wf(I,J,K)
-              Wf(I+1,J,K)=Wf(I,J,K)
-              AE(I,J,K)=0.0
- 3531       CONTINUE
- 353      CONTINUE
-        ELSEIF(location.EQ.13)THEN
-          J=JSBi(L,ICFD)
-          DO 355 I=ISBi(L,ICFD),ISBf(L,ICFD)
-          DO 355 K=KSBi(L,ICFD),KSBf(L,ICFD)
-C            SP(I,J-1,K)=-GREAT
-C            SU(I,J-1,K)=GREAT*Wf(I,J,K)
-            Wf(I,J-1,K)=Wf(I,J,K)
-            AS(I,J,K)=0.0
- 355      CONTINUE
-        ELSEIF(location.EQ.14)THEN
-          J=JSBi(L,ICFD)
-          DO 358 I=ISBi(L,ICFD),ISBf(L,ICFD)
-            DO 3581 K=KSBi(L,ICFD),KSBf(L,ICFD)
-C              SP(I,J+1,K)=-GREAT
-C              SU(I,J+1,K)=GREAT*Wf(I,J,K)
-              Wf(I,J+1,K)=Wf(I,J,K)
-              AN(I,J,K)=0.0
- 3581       CONTINUE
- 358      CONTINUE
-        ENDIF
  3013 CONTINUE
 
-C Momentum BCs for openings were formerly handled here, but now are treated
-C in INOUT.
-
-C Airflow at inlet not perpendicular to wall. Examine each opening and
-C treat those that have `directed. flow.
-      DO 341 L=1,NOPEN(ICFD)
-        J=JOPENi(L,ICFD)
-C West wall.
-        IF(IWOPEN(L,ICFD).EQ.1.AND.FIXM(L,ICFD).GT.0.) THEN
-          I=IOPENi(L,ICFD)
-          DO 380 J=JOPENi(L,ICFD),JOPENf(L,ICFD)
-            DO 3801 K=KOPENi(L,ICFD),KOPENf(L,ICFD)
-              IF(THETA1(L,ICFD).LT.0.) THEN
-                SP(I,J,K)=-GREAT
-                SU(I,J,K)=GREAT*Uf(I,J,K)*ETAND(THETA1(L,ICFD))
-              ELSEIF(THETA1(L,ICFD).GT.0.) THEN
-                IF(J.EQ.JOPENi(L,ICFD)) Vf(I-1,J,K)=-Vf(I,J,K)
-                IF(J.EQ.JOPENf(L,ICFD)) THEN
-                  SP(I,J+1,K)=-GREAT
-                  SU(I,J+1,K)=GREAT*Uf(I,J,K)*ETAND(THETA1(L,ICFD))
-                  IF(J.NE.JOPENi(L,ICFD)) THEN
-                    SP(I,J,K)=-GREAT
-                    SU(I,J,K)=GREAT*Uf(I,J,K)*ETAND(THETA1(L,ICFD))
-                  ENDIF
-                ENDIF
-                IF(J.GT.JOPENi(L,ICFD).AND.J.LT.JOPENf(L,ICFD)) THEN
-                  SP(I,J,K)=-GREAT
-                  SU(I,J,K)=GREAT*Uf(I,J,K)*ETAND(THETA1(L,ICFD))
-                ENDIF
-              ENDIF
- 3801       CONTINUE
- 380      CONTINUE
-
-C East wall.
-        ELSEIF(IWOPEN(L,ICFD).EQ.2.AND.FIXM(L,ICFD).GT.0.) THEN
-          I=IOPENi(L,ICFD)
-          DO 385 J=JOPENi(L,ICFD),JOPENf(L,ICFD)
-            DO 3851 K=KOPENi(L,ICFD),KOPENf(L,ICFD)
-              IF(THETA1(L,ICFD).LT.0.) THEN
-                SP(I,J,K)=-GREAT
-                SU(I,J,K)=GREAT*ABS(Uf(I,J,K))*ETAND(THETA1(L,ICFD))
-              ELSEIF(THETA1(L,ICFD).GT.0.) THEN
-                IF(J.EQ.JOPENi(L,ICFD)) Vf(I+1,J,K)=-Vf(I,J,K)
-                IF(J.EQ.JOPENf(L,ICFD)) THEN
-                  SP(I,J+1,K)=-GREAT
-                  SU(I,J+1,K)=GREAT*ABS(Uf(I,J,K))*ETAND(THETA1(L,ICFD))
-                  IF(J.NE.JOPENi(L,ICFD)) THEN
-                    SP(I,J,K)=-GREAT
-                    SU(I,J,K)=GREAT*ABS(Uf(I,J,K))*ETAND(THETA1(L,ICFD))
-                  ENDIF
-                ENDIF
-                IF(J.GT.JOPENi(L,ICFD).AND.J.LT.JOPENf(L,ICFD)) THEN
-                  SP(I,J,K)=-GREAT
-                  SU(I,J,K)=GREAT*ABS(Uf(I,J,K))*ETAND(THETA1(L,ICFD))
-                ENDIF
-              ENDIF
- 3851       CONTINUE
- 385      CONTINUE
-        I=IOPENi(L,ICFD)
-
-C South wall.
-        ELSEIF(IWOPEN(L,ICFD).EQ.3.AND.FIXM(L,ICFD).GT.0.) THEN
-          J=JOPENi(L,ICFD)
-          DO 3902 I=IOPENi(L,ICFD),IOPENf(L,ICFD)
-            DO 3901 K=KOPENi(L,ICFD),KOPENf(L,ICFD)
-              IF(THETA1(L,ICFD).LT.0.) THEN
-                SP(I,J,K)=-GREAT
-                SU(I,J,K)=GREAT*Vf(I,J,K)*ETAND(THETA1(L,ICFD))
-              ELSEIF(THETA1(L,ICFD).GT.0.) THEN
-                IF(I.EQ.IOPENi(L,ICFD)) Uf(I,J-1,K)=-Uf(I,J,K)
-                IF(I.EQ.IOPENf(L,ICFD)) THEN
-                  SP(I+1,J,K)=-GREAT
-                  SU(I+1,J,K)=GREAT*Vf(I,J,K)*ETAND(THETA1(L,ICFD))
-                  IF(I.NE.IOPENi(L,ICFD)) THEN
-                    SP(I,J,K)=-GREAT
-                    SU(I,J,K)=GREAT*Vf(I,J,K)*ETAND(THETA1(L,ICFD))
-                  ENDIF
-                ENDIF
-                IF(I.GT.IOPENi(L,ICFD).AND.I.LT.IOPENf(L,ICFD)) THEN
-                  SP(I,J,K)=-GREAT
-                  SU(I,J,K)=GREAT*Vf(I,J,K)*ETAND(THETA1(L,ICFD))
-                ENDIF
-              ENDIF
- 3901       CONTINUE
- 3902     CONTINUE
-
-C North wall.
-        ELSE IF(IWOPEN(L,ICFD).EQ.4.AND.FIXM(L,ICFD).GT.0.) THEN
-          J=JOPENi(L,ICFD)
-          DO 395 I=IOPENi(L,ICFD),IOPENf(L,ICFD)
-            DO 3951 K=KOPENi(L,ICFD),KOPENf(L,ICFD)
-              IF(THETA1(L,ICFD).LT.0.) THEN
-                SP(I,J,K)=-GREAT
-                SU(I,J,K)=GREAT*ABS(Vf(I,J,K))*ETAND(THETA1(L,ICFD))
-              ELSEIF(THETA1(L,ICFD).GT.0.) THEN
-                IF(I.EQ.IOPENi(L,ICFD)) Uf(I,J+1,K)=-Uf(I,J,K)
-                IF(I.EQ.IOPENf(L,ICFD)) THEN
-                  SP(I+1,J,K)=-GREAT
-                  SU(I+1,J,K)=GREAT*ABS(Vf(I,J,K))*ETAND(THETA1(L,ICFD))
-                  IF(I.NE.IOPENi(L,ICFD)) THEN
-                    SP(I,J,K)=-GREAT
-                    SU(I,J,K)=GREAT*ABS(Vf(I,J,K))*ETAND(THETA1(L,ICFD))
-                  ENDIF
-                ENDIF
-                IF(I.GT.IOPENi(L,ICFD).AND.I.LT.IOPENf(L,ICFD)) THEN
-                  SP(I,J,K)=-GREAT
-                  SU(I,J,K)=GREAT*ABS(Vf(I,J,K))*ETAND(THETA1(L,ICFD))
-                ENDIF
-              ENDIF
- 3951       CONTINUE
- 395      CONTINUE
-        endif
- 341  continue
-
       RETURN
-
 
 C ********************* MODPP *********************
 C MODPP - Pressure correction for SIMPLE.
@@ -1496,8 +1089,21 @@ C Pressure or velocity.
           DO 372 I=IOPENi(L,ICFD),IOPENf(L,ICFD)
             DO 3721 J=JOPENi(L,ICFD),JOPENf(L,ICFD)
               DO 3722 K=KOPENi(L,ICFD),KOPENf(L,ICFD)
-                SP(I,J,K)=-GREAT
-                SU(I,J,K)=0.0
+c                SP(I,J,K)=-GREAT
+c                SU(I,J,K)=0.0
+                if (IWOPEN(L,ICFD).eq.1) then
+                  AW(I,J,K)=0.0
+                elseif (IWOPEN(L,ICFD).eq.2) then
+                  AE(I,J,K)=0.0
+                elseif (IWOPEN(L,ICFD).eq.3) then
+                  AS(I,J,K)=0.0
+                elseif (IWOPEN(L,ICFD).eq.4) then
+                  AN(I,J,K)=0.0
+                elseif (IWOPEN(L,ICFD).eq.5) then
+                  AL(I,J,K)=0.0
+                elseif (IWOPEN(L,ICFD).eq.6) then
+                  AH(I,J,K)=0.0
+                endif
  3722         CONTINUE
  3721       CONTINUE
  372      CONTINUE
@@ -1631,270 +1237,257 @@ C Solid walls.
       DO 601 L=1,NSB(ICFD)
 
 C Determine upon which face of the CFD domain the solid boundary resides.
-C `location' is equal to the least significant digit of IWSB and has the
-C following meanings: 1 for west; 2 for east; 3 for south; 4 for north;
-C 5 for low; 6 for high.
-        location = abs(IWSB(L,ICFD)) - abs(IWSB(L,ICFD))/10*10
+C `location' has the following meanings: 1 for west; 2 for east;
+C 3 for south; 4 for north; 5 for low; 6 for high.
+        location = IVOLF(IV,ICFD)
+
+C Determine BC type.
+        ityp=IVTYPE(IV,ICFD)
+
+c Symmetric BC.
+        if (ityp.eq.3) then
 
 C West wall.
-        IF(location.EQ.1)THEN
-          I=ISBi(L,ICFD)
-          DXW=XP(I)-XU(I)
-          DO 602 J=JSBi(L,ICFD),JSBf(L,ICFD)
-           DO 6021 K=KSBi(L,ICFD),KSBf(L,ICFD)
-            DENV=DENf(i,j,K)
-            SQRTK=SQRT(ABS(TEf(i,j,K)))
-            VOL=VolP(I,J,K)
-            Tvis=VIS(I,J,K)-VISCOS
-            if (Tvis.lt.1e-19) Tvis=0.
-            XPLUSW=DENV*SQRTK*CDTERM*DXW/VISCOS
-            GENCOU=0.5*(ABS(TAUWV(I,J+1,K)*Vf(i,j+1,K))+ABS(TAUWV(I,J,K)
-     1            *Vf(i,j,K)))/DXW+0.5*(ABS(TAUWW(I,J,K+1)*Wf(i,j,K+1))+
-     2            ABS(TAUWW(I,J,K)*Wf(i,j,K)))/DXW
-
-C Get velocity derivitaves.
-            call VELDERIV(I,J,K,DUDY,DUDZ,DVDX,DVDZ,DWDX,DWDY)
-            GENRES=GEN(I,J,K)-TVIS*((DUDY+DVDX)**2+
-     1             (DUDZ+DWDX)**2+(DVDZ+DWDY)**2)
-
-            GEN(I,J,K)=GENRES+GENCOU
-            DITERM=CD*DENf(i,j,K)*(CMU**.75)*SQRTK*XPLUSW/DXW
-            IF(XPLUSW.GT.11.63)DITERM=CD*DENf(i,j,K)*(CMU**.75)*
-     &             SQRTK*ALOG(ELOG*XPLUSW)/(CAPPA*DXW)
-            SU(I,J,K)=SUKD(I,J,K)+GEN(I,J,K)*VOL
-            SP(I,J,K)=SPKD(I,J,K)-DITERM*VOL
-            AW(I,J,K)=0.0
- 6021      CONTINUE
- 602      CONTINUE
+          IF(location.EQ.1)THEN
+            I=ISBi(L,ICFD)
+            DO 662 J=JSBi(L,ICFD),JSBf(L,ICFD)
+              DO 6621 K=KSBi(L,ICFD),KSBf(L,ICFD)
+                TEf(I-1,J,K)=TEf(I,J,K)
+ 6621         CONTINUE
+ 662        CONTINUE
 
 C East wall.
-        ELSEIF(location.EQ.2)THEN
-          I=ISBi(L,ICFD)
-          DXE=XU(I+1)-XP(I)
-          DO 612 J=JSBi(L,ICFD),JSBf(L,ICFD)
-           DO 6121 K=KSBi(L,ICFD),KSBf(L,ICFD)
-            DENV=DENf(i,j,K)
-            SQRTK=SQRT(ABS(TEf(i,j,K)))
-            VOL=VolP(I,J,K)
-            Tvis=VIS(I,J,K)-VISCOS
-            if (Tvis.lt.1e-19) Tvis=0.
-            XPLUSE=DENV*SQRTK*CDTERM*DXE/VISCOS
-            GENCOU=0.5*(ABS(TAUEV(I,J+1,K)*Vf(i,j+1,K))+ABS(TAUEV(I,J,K)
-     1            *Vf(i,j,K)))/DXE+0.5*(ABS(TAUEW(I,J,K+1)*Wf(i,j,K+1))+
-     2             ABS(TAUEW(I,J,K)*Wf(i,j,K)))/DXE
-
-C Get velocity derivitaves.
-            call VELDERIV(I,J,K,DUDY,DUDZ,DVDX,DVDZ,DWDX,DWDY)
-            GENRES=GEN(I,J,K)-Tvis*((DUDY+DVDX)**2+
-     1             (DUDZ+DWDX)**2+(DVDZ+DWDY)**2)
-
-            GEN(I,J,K)=GENRES+GENCOU
-            DITERM=CD*DENf(i,j,K)*(CMU**.75)*SQRTK*XPLUSE/DXE
-            IF(XPLUSE.GT.11.63)DITERM=CD*DENf(i,j,K)*(CMU**.75)*SQRTK*
-     &             ALOG(ELOG*XPLUSE)/(CAPPA*DXE)
-            SU(I,J,K)=SUKD(I,J,K)+GEN(I,J,K)*VOL
-            SP(I,J,K)=SPKD(I,J,K)-DITERM*VOL
-            AE(I,J,K)=0.0
- 6121      CONTINUE
- 612      CONTINUE
+          ELSEIF(location.EQ.2)THEN
+            I=ISBi(L,ICFD)
+            DO 665 J=JSBi(L,ICFD),JSBf(L,ICFD)
+              DO 6651 K=KSBi(L,ICFD),KSBf(L,ICFD)
+                TEf(I+1,J,K)=TEf(I,J,K)
+ 6651         CONTINUE
+ 665        CONTINUE
 
 C South wall.
-        ELSEIF(location.EQ.3)THEN
-          J=JSBi(L,ICFD)
-          DYS=YP(J)-YV(J)
-          DO 622 I=ISBi(L,ICFD),ISBf(L,ICFD)
-           DO 6221 K=KSBi(L,ICFD),KSBf(L,ICFD)
-            DENU=DENf(i,j,K)
-            SQRTK=SQRT(ABS(TEf(i,j,K)))
-            VOL=VolP(I,J,K)
-            Tvis=VIS(I,J,K)-VISCOS
-            if (Tvis.lt.1e-19) Tvis=0.
-            YPLUSS=DENU*SQRTK*CDTERM*DYS/VISCOS
-            GENCOU=0.5*(ABS(TAUSU(I+1,J,K)*Uf(i+1,j,K))+ABS(TAUSU(I,J,K)
-     1            *Uf(I,J,K)))/DYS+0.5*(ABS(TAUSW(I,J,K+1)*Wf(i,j,K+1))+
-     2            ABS(TAUSW(I,J,K)*Wf(I,J,K)))/DYS
-
-C Get velocity derivitaves.
-            call VELDERIV(I,J,K,DUDY,DUDZ,DVDX,DVDZ,DWDX,DWDY)
-            GENRES=GEN(I,J,K)-Tvis*((DUDY+DVDX)**2+
-     1             (DUDZ+DWDX)**2+(DVDZ+DWDY)**2)
-
-            GEN(I,J,K)=GENRES+GENCOU
-            DITERM=CD*DENf(i,j,K)*(CMU**.75)*SQRTK*YPLUSS/DYS
-            IF(YPLUSS.GT.11.63)DITERM=CD*DENf(i,j,K)*(CMU**.75)*SQRTK*
-     &             ALOG(ELOG*YPLUSS)/(CAPPA*DYS)
-            SU(I,J,K)=GEN(I,J,K)*VOL+SUKD(I,J,K)
-            SP(I,J,K)=-DITERM*VOL+SPKD(I,J,K)
-            AS(I,J,K)=0.0
- 6221      CONTINUE
- 622      CONTINUE
+          ELSEIF(location.EQ.3)THEN
+            J=JSBi(L,ICFD)
+            DO 668 I=ISBi(L,ICFD),ISBf(L,ICFD)
+              DO 6681 K=KSBi(L,ICFD),KSBf(L,ICFD)
+                TEf(I,J-1,K)=TEf(I,J,K)
+ 6681         CONTINUE
+ 668        CONTINUE
 
 C North wall.
-        ELSEIF(location.EQ.4)THEN
-          J=JSBi(L,ICFD)
-          DYN=YV(J+1)-YP(J)
-          DO 632 I=ISBi(L,ICFD),ISBf(L,ICFD)
-           DO 6321 K=KSBi(L,ICFD),KSBf(L,ICFD)
-            DENU=DENf(i,j,K)
-            SQRTK=SQRT(ABS(TEf(i,j,K)))
-            VOL=VolP(I,J,K)
-            Tvis=VIS(I,J,K)-VISCOS
-            if (Tvis.lt.1e-19) Tvis=0.
-            YPLUSN=DENU*SQRTK*CDTERM*DYN/VISCOS
-            GENCOU=0.5*(ABS(TAUNU(I+1,J,K)*Uf(i+1,j,K))+ABS(TAUNU(I,J,K)
-     1            *Uf(I,J,K)))/DYN+0.5*(ABS(TAUNW(I,J,K+1)*Wf(i,j,K+1))+
-     2            ABS(TAUNW(I,J,K)*Wf(I,J,K)))/DYN
-
-C Get velocity derivitaves.
-            call VELDERIV(I,J,K,DUDY,DUDZ,DVDX,DVDZ,DWDX,DWDY)
-            GENRES=GEN(I,J,K)-Tvis*((DUDY+DVDX)**2+
-     1             (DUDZ+DWDX)**2+(DVDZ+DWDY)**2)
-
-            GEN(I,J,K)=GENRES+GENCOU
-            DITERM=CD*DENf(i,j,K)*(CMU**.75)*SQRTK*YPLUSN/DYN
-            IF(YPLUSN.GT.11.63)DITERM=CD*DENf(i,j,K)*(CMU**.75)*SQRTK*
-     &             ALOG(ELOG*YPLUSN)/(CAPPA*DYN)
-            SU(I,J,K)=GEN(I,J,K)*VOL+SUKD(I,J,K)
-            SP(I,J,K)=-DITERM*VOL+SPKD(I,J,K)
-            AN(I,J,K)=0.0
- 6321      CONTINUE
- 632      CONTINUE
+          ELSEIF(location.EQ.4)THEN
+            J=JSBi(L,ICFD)
+            DO 670 I=ISBi(L,ICFD),ISBf(L,ICFD)
+              DO 6701 K=KSBi(L,ICFD),KSBf(L,ICFD)
+                TEf(I,J+1,K)=TEf(I,J,K)
+ 6701         CONTINUE
+ 670        CONTINUE
 
 C Low wall.
-        ELSEIF(location.EQ.5)THEN
-          K=KSBi(L,ICFD)
-          DZL=ZP(K)-ZW(K)
-          DO 642 I=ISBi(L,ICFD),ISBf(L,ICFD)
-           DO 6421 J=JSBi(L,ICFD),JSBf(L,ICFD)
-            DENU=DENf(i,j,K)
-            SQRTK=SQRT(ABS(TEf(i,j,K)))
-            VOL=VolP(I,J,K)
-            Tvis=VIS(I,J,K)-VISCOS
-            if (Tvis.lt.1e-19) Tvis=0.
-            ZPLUSL=DENU*SQRTK*CDTERM*DZL/VISCOS
-            GENCOU=0.5*(ABS(TAULU(I+1,J,K)*Uf(i+1,j,K))+ABS(TAULU(I,J,K)
-     1            *Uf(I,J,K)))/DZL+0.5*(ABS(TAULV(I,J+1,K)*Vf(i,j+1,K))+
-     2            ABS(TAULV(I,J,K)*Vf(I,J,K)))/DZL
-
-C Get velocity derivitaves.
-            call VELDERIV(I,J,K,DUDY,DUDZ,DVDX,DVDZ,DWDX,DWDY)
-            GENRES=GEN(I,J,K)-Tvis*((DUDY+DVDX)**2+
-     1             (DUDZ+DWDX)**2+(DVDZ+DWDY)**2)
-
-            GEN(I,J,K)=GENRES+GENCOU
-            DITERM=CD*DENf(i,j,K)*(CMU**.75)*SQRTK*ZPLUSL/DZL
-            IF(ZPLUSL.GT.11.63)DITERM=CD*DENf(i,j,K)*(CMU**.75)*SQRTK*
-     &             ALOG(ELOG*ZPLUSL)/(CAPPA*DZL)
-            SU(I,J,K)=GEN(I,J,K)*VOL+SUKD(I,J,K)
-            SP(I,J,K)=-DITERM*VOL+SPKD(I,J,K)
-            AL(I,J,K)=0.0
- 6421      CONTINUE
- 642      CONTINUE
+          ELSEIF(location.EQ.5)THEN
+            K=KSBi(L,ICFD)
+            DO 672 I=ISBi(L,ICFD),ISBf(L,ICFD)
+              DO 6721 J=JSBi(L,ICFD),JSBf(L,ICFD)
+                TEf(I,J,K-1)=TEf(I,J,K)
+ 6721         CONTINUE
+ 672        CONTINUE
 
 C High wall.
-        ELSEIF(location.EQ.6)THEN
-          K=KSBi(L,ICFD)
-          DZH=ZW(K+1)-ZP(K)
-          DO 652 I=ISBi(L,ICFD),ISBf(L,ICFD)
-           DO 6521 J=JSBi(L,ICFD),JSBf(L,ICFD)
-            DENU=DENf(i,j,K)
-            SQRTK=SQRT(ABS(TEf(i,j,K)))
-            VOL=VolP(I,J,K)
-            Tvis=VIS(I,J,K)-VISCOS
-            if (Tvis.lt.1e-19) Tvis=0.
-            ZPLUSH=DENU*SQRTK*CDTERM*DZH/VISCOS
-            GENCOU=0.5*(ABS(TAUHU(I+1,J,K)*Uf(i+1,j,K))+ABS(TAUHU(I,J,K)
-     1            *Uf(I,J,K)))/DZH+0.5*(ABS(TAUHV(I,J+1,K)*Vf(i,j+1,K))+
-     2            ABS(TAUHV(I,J,K)*Vf(I,J,K)))/DZH
+          ELSEIF(location.EQ.6)THEN
+            K=KSBi(L,ICFD)
+            DO 675 I=ISBi(L,ICFD),ISBf(L,ICFD)
+              DO 6751 J=JSBi(L,ICFD),JSBf(L,ICFD)
+                TEf(I,J,K+1)=TEf(I,J,K)
+ 6751         CONTINUE
+ 675        CONTINUE
+          ENDIF
+
+        elseif (ityp.eq.1 .or. ityp.eq.2 .or.
+     &          (ityp.ge.4 .and. ityp.le.6)) then
+
+C West wall.
+          IF(location.EQ.1)THEN
+            I=ISBi(L,ICFD)
+            DXW=XP(I)-XU(I)
+            DO 602 J=JSBi(L,ICFD),JSBf(L,ICFD)
+             DO 6021 K=KSBi(L,ICFD),KSBf(L,ICFD)
+              DENV=DENf(i,j,K)
+              SQRTK=SQRT(ABS(TEf(i,j,K)))
+              VOL=VolP(I,J,K)
+              Tvis=VIS(I,J,K)-VISCOS
+              if (Tvis.lt.1e-19) Tvis=0.
+              XPLUSW=DENV*SQRTK*CDTERM*DXW/VISCOS
+              GENCOU=0.5*(ABS(TAUWV(I,J+1,K)*Vf(i,j+1,K))+
+     &                    ABS(TAUWV(I,J,K)*Vf(i,j,K)))/DXW+
+     &               0.5*(ABS(TAUWW(I,J,K+1)*Wf(i,j,K+1))+
+     &                    ABS(TAUWW(I,J,K)*Wf(i,j,K)))/DXW
 
 C Get velocity derivitaves.
-            call VELDERIV(I,J,K,DUDY,DUDZ,DVDX,DVDZ,DWDX,DWDY)
-            GENRES=GEN(I,J,K)-Tvis*((DUDY+DVDX)**2+
-     1             (DUDZ+DWDX)**2+(DVDZ+DWDY)**2)
+              call VELDERIV(I,J,K,DUDY,DUDZ,DVDX,DVDZ,DWDX,DWDY)
+              GENRES=GEN(I,J,K)-TVIS*((DUDY+DVDX)**2+(DUDZ+DWDX)**2+
+     &               (DVDZ+DWDY)**2)
 
-            GEN(I,J,K)=GENRES+GENCOU
-            DITERM=CD*DENf(i,j,K)*(CMU**.75)*SQRTK*ZPLUSH/DZH
-            IF(ZPLUSH.GT.11.63)DITERM=CD*DENf(i,j,K)*(CMU**.75)*SQRTK*
-     &             ALOG(ELOG*ZPLUSH)/(CAPPA*DZH)
-            SU(I,J,K)=GEN(I,J,K)*VOL+SUKD(I,J,K)
-            SP(I,J,K)=-DITERM*VOL+SPKD(I,J,K)
-            AH(I,J,K)=0.0
- 6521      CONTINUE
- 652      CONTINUE
-
-C Symetric Axis.
-C West wall.
-        ELSEIF(location.EQ.11)THEN
-          I=ISBi(L,ICFD)
-          DO 662 J=JSBi(L,ICFD),JSBf(L,ICFD)
-            DO 6621 K=KSBi(L,ICFD),KSBf(L,ICFD)
-C              SP(I-1,J,K)=-GREAT
-C              SU(I-1,J,K)=GREAT*TEf(I,J,K)
-              TEf(I-1,J,K)=TEf(I,J,K)
+              GEN(I,J,K)=GENRES+GENCOU
+              DITERM=CD*DENf(i,j,K)*(CMU**.75)*SQRTK*XPLUSW/DXW
+              IF(XPLUSW.GT.11.63)DITERM=CD*DENf(i,j,K)*(CMU**.75)*SQRTK*
+     &                                  ALOG(ELOG*XPLUSW)/(CAPPA*DXW)
+              SU(I,J,K)=SUKD(I,J,K)+GEN(I,J,K)*VOL
+              SP(I,J,K)=SPKD(I,J,K)-DITERM*VOL
               AW(I,J,K)=0.0
- 6621       CONTINUE
- 662      CONTINUE
+ 6021        CONTINUE
+ 602        CONTINUE
 
 C East wall.
-        ELSEIF(location.EQ.12)THEN
-          I=ISBi(L,ICFD)
-          DO 665 J=JSBi(L,ICFD),JSBf(L,ICFD)
-            DO 6651 K=KSBi(L,ICFD),KSBf(L,ICFD)
-C              SP(I+1,J,K)=-GREAT
-C              SU(I+1,J,K)=GREAT*TEf(I,J,K)
-              TEf(I+1,J,K)=TEf(I,J,K)
+          ELSEIF(location.EQ.2)THEN
+            I=ISBi(L,ICFD)
+            DXE=XU(I+1)-XP(I)
+            DO 612 J=JSBi(L,ICFD),JSBf(L,ICFD)
+             DO 6121 K=KSBi(L,ICFD),KSBf(L,ICFD)
+              DENV=DENf(i,j,K)
+              SQRTK=SQRT(ABS(TEf(i,j,K)))
+              VOL=VolP(I,J,K)
+              Tvis=VIS(I,J,K)-VISCOS
+              if (Tvis.lt.1e-19) Tvis=0.
+              XPLUSE=DENV*SQRTK*CDTERM*DXE/VISCOS
+              GENCOU=0.5*(ABS(TAUEV(I,J+1,K)*Vf(i,j+1,K))+
+     &                    ABS(TAUEV(I,J,K)*Vf(i,j,K)))/DXE+
+     &               0.5*(ABS(TAUEW(I,J,K+1)*Wf(i,j,K+1))+
+     &                    ABS(TAUEW(I,J,K)*Wf(i,j,K)))/DXE
+              call VELDERIV(I,J,K,DUDY,DUDZ,DVDX,DVDZ,DWDX,DWDY)
+              GENRES=GEN(I,J,K)-Tvis*((DUDY+DVDX)**2+(DUDZ+DWDX)**2+
+     &               (DVDZ+DWDY)**2)
+
+              GEN(I,J,K)=GENRES+GENCOU
+              DITERM=CD*DENf(i,j,K)*(CMU**.75)*SQRTK*XPLUSE/DXE
+              IF(XPLUSE.GT.11.63)DITERM=CD*DENf(i,j,K)*(CMU**.75)*SQRTK*
+     &                                  ALOG(ELOG*XPLUSE)/(CAPPA*DXE)
+              SU(I,J,K)=SUKD(I,J,K)+GEN(I,J,K)*VOL
+              SP(I,J,K)=SPKD(I,J,K)-DITERM*VOL
               AE(I,J,K)=0.0
- 6651       CONTINUE
- 665       CONTINUE
+ 6121        CONTINUE
+ 612        CONTINUE
 
 C South wall.
-        ELSEIF(location.EQ.13)THEN
-          J=JSBi(L,ICFD)
-          DO 668 I=ISBi(L,ICFD),ISBf(L,ICFD)
-            DO 6681 K=KSBi(L,ICFD),KSBf(L,ICFD)
-C              SP(I,J-1,K)=-GREAT
-C              SU(I,J-1,K)=GREAT*TEf(I,J,K)
-              TEf(I,J-1,K)=TEf(I,J,K)
+          ELSEIF(location.EQ.3)THEN
+            J=JSBi(L,ICFD)
+            DYS=YP(J)-YV(J)
+            DO 622 I=ISBi(L,ICFD),ISBf(L,ICFD)
+             DO 6221 K=KSBi(L,ICFD),KSBf(L,ICFD)
+              DENU=DENf(i,j,K)
+              SQRTK=SQRT(ABS(TEf(i,j,K)))
+              VOL=VolP(I,J,K)
+              Tvis=VIS(I,J,K)-VISCOS
+              if (Tvis.lt.1e-19) Tvis=0.
+              YPLUSS=DENU*SQRTK*CDTERM*DYS/VISCOS
+              GENCOU=0.5*(ABS(TAUSU(I+1,J,K)*Uf(i+1,j,K))+
+     &                    ABS(TAUSU(I,J,K)*Uf(I,J,K)))/DYS+
+     &               0.5*(ABS(TAUSW(I,J,K+1)*Wf(i,j,K+1))+
+     &                    ABS(TAUSW(I,J,K)*Wf(I,J,K)))/DYS
+              call VELDERIV(I,J,K,DUDY,DUDZ,DVDX,DVDZ,DWDX,DWDY)
+              GENRES=GEN(I,J,K)-Tvis*((DUDY+DVDX)**2+(DUDZ+DWDX)**2+
+     &               (DVDZ+DWDY)**2)
+
+              GEN(I,J,K)=GENRES+GENCOU
+              DITERM=CD*DENf(i,j,K)*(CMU**.75)*SQRTK*YPLUSS/DYS
+              IF(YPLUSS.GT.11.63)DITERM=CD*DENf(i,j,K)*(CMU**.75)*SQRTK*
+     &                                  ALOG(ELOG*YPLUSS)/(CAPPA*DYS)
+              SU(I,J,K)=GEN(I,J,K)*VOL+SUKD(I,J,K)
+              SP(I,J,K)=-DITERM*VOL+SPKD(I,J,K)
               AS(I,J,K)=0.0
- 6681        CONTINUE
- 668      CONTINUE
+ 6221        CONTINUE
+ 622        CONTINUE
 
 C North wall.
-        ELSEIF(location.EQ.14)THEN
-          J=JSBi(L,ICFD)
-          DO 670 I=ISBi(L,ICFD),ISBf(L,ICFD)
-            DO 6701 K=KSBi(L,ICFD),KSBf(L,ICFD)
-C              SP(I,J+1,K)=-GREAT
-C              SU(I,J+1,K)=GREAT*TEf(I,J,K)
-              TEf(I,J+1,K)=TEf(I,J,K)
+          ELSEIF(location.EQ.4)THEN
+            J=JSBi(L,ICFD)
+            DYN=YV(J+1)-YP(J)
+            DO 632 I=ISBi(L,ICFD),ISBf(L,ICFD)
+             DO 6321 K=KSBi(L,ICFD),KSBf(L,ICFD)
+              DENU=DENf(i,j,K)
+              SQRTK=SQRT(ABS(TEf(i,j,K)))
+              VOL=VolP(I,J,K)
+              Tvis=VIS(I,J,K)-VISCOS
+              if (Tvis.lt.1e-19) Tvis=0.
+              YPLUSN=DENU*SQRTK*CDTERM*DYN/VISCOS
+              GENCOU=0.5*(ABS(TAUNU(I+1,J,K)*Uf(i+1,j,K))+
+     &                    ABS(TAUNU(I,J,K)*Uf(I,J,K)))/DYN+
+     &               0.5*(ABS(TAUNW(I,J,K+1)*Wf(i,j,K+1))+
+     &                    ABS(TAUNW(I,J,K)*Wf(I,J,K)))/DYN
+              call VELDERIV(I,J,K,DUDY,DUDZ,DVDX,DVDZ,DWDX,DWDY)
+              GENRES=GEN(I,J,K)-Tvis*((DUDY+DVDX)**2+(DUDZ+DWDX)**2+
+     &               (DVDZ+DWDY)**2)
+
+              GEN(I,J,K)=GENRES+GENCOU
+              DITERM=CD*DENf(i,j,K)*(CMU**.75)*SQRTK*YPLUSN/DYN
+              IF(YPLUSN.GT.11.63)DITERM=CD*DENf(i,j,K)*(CMU**.75)*SQRTK*
+     &                                  ALOG(ELOG*YPLUSN)/(CAPPA*DYN)
+              SU(I,J,K)=GEN(I,J,K)*VOL+SUKD(I,J,K)
+              SP(I,J,K)=-DITERM*VOL+SPKD(I,J,K)
               AN(I,J,K)=0.0
- 6701       CONTINUE
- 670      CONTINUE
+ 6321        CONTINUE
+ 632        CONTINUE
 
 C Low wall.
-        ELSEIF(location.EQ.15)THEN
-          K=KSBi(L,ICFD)
-          DO 672 I=ISBi(L,ICFD),ISBf(L,ICFD)
-            DO 6721 J=JSBi(L,ICFD),JSBf(L,ICFD)
-C              SP(I,J,K-1)=-GREAT
-C              SU(I,J,K-1)=GREAT*TEf(I,J,K)
-              TEf(I,J,K-1)=TEf(I,J,K)
+          ELSEIF(location.EQ.5)THEN
+            K=KSBi(L,ICFD)
+            DZL=ZP(K)-ZW(K)
+            DO 642 I=ISBi(L,ICFD),ISBf(L,ICFD)
+             DO 6421 J=JSBi(L,ICFD),JSBf(L,ICFD)
+              DENU=DENf(i,j,K)
+              SQRTK=SQRT(ABS(TEf(i,j,K)))
+              VOL=VolP(I,J,K)
+              Tvis=VIS(I,J,K)-VISCOS
+              if (Tvis.lt.1e-19) Tvis=0.
+              ZPLUSL=DENU*SQRTK*CDTERM*DZL/VISCOS
+              GENCOU=0.5*(ABS(TAULU(I+1,J,K)*Uf(i+1,j,K))+
+     &                    ABS(TAULU(I,J,K)*Uf(I,J,K)))/DZL+
+     &               0.5*(ABS(TAULV(I,J+1,K)*Vf(i,j+1,K))+
+     &                    ABS(TAULV(I,J,K)*Vf(I,J,K)))/DZL
+              call VELDERIV(I,J,K,DUDY,DUDZ,DVDX,DVDZ,DWDX,DWDY)
+              GENRES=GEN(I,J,K)-Tvis*((DUDY+DVDX)**2+(DUDZ+DWDX)**2+
+     &          (DVDZ+DWDY)**2)
+
+              GEN(I,J,K)=GENRES+GENCOU
+              DITERM=CD*DENf(i,j,K)*(CMU**.75)*SQRTK*ZPLUSL/DZL
+              IF(ZPLUSL.GT.11.63)DITERM=CD*DENf(i,j,K)*(CMU**.75)*SQRTK*
+     &                                  ALOG(ELOG*ZPLUSL)/(CAPPA*DZL)
+              SU(I,J,K)=GEN(I,J,K)*VOL+SUKD(I,J,K)
+              SP(I,J,K)=-DITERM*VOL+SPKD(I,J,K)
               AL(I,J,K)=0.0
- 6721       CONTINUE
- 672      CONTINUE
+ 6421        CONTINUE
+ 642        CONTINUE
 
 C High wall.
-        ELSEIF(location.EQ.16)THEN
-          K=KSBi(L,ICFD)
-          DO 675 I=ISBi(L,ICFD),ISBf(L,ICFD)
-            DO 6751 J=JSBi(L,ICFD),JSBf(L,ICFD)
-C              SP(I,J,K+1)=-GREAT
-C              SU(I,J,K+1)=GREAT*TEf(I,J,K)
-              TEf(I,J,K+1)=TEf(I,J,K)
+          ELSEIF(location.EQ.6)THEN
+            K=KSBi(L,ICFD)
+            DZH=ZW(K+1)-ZP(K)
+            DO 652 I=ISBi(L,ICFD),ISBf(L,ICFD)
+             DO 6521 J=JSBi(L,ICFD),JSBf(L,ICFD)
+              DENU=DENf(i,j,K)
+              SQRTK=SQRT(ABS(TEf(i,j,K)))
+              VOL=VolP(I,J,K)
+              Tvis=VIS(I,J,K)-VISCOS
+              if (Tvis.lt.1e-19) Tvis=0.
+              ZPLUSH=DENU*SQRTK*CDTERM*DZH/VISCOS
+              GENCOU=0.5*(ABS(TAUHU(I+1,J,K)*Uf(i+1,j,K))+
+     &                    ABS(TAUHU(I,J,K)*Uf(I,J,K)))/DZH+
+     &               0.5*(ABS(TAUHV(I,J+1,K)*Vf(i,j+1,K))+
+     &                    ABS(TAUHV(I,J,K)*Vf(I,J,K)))/DZH
+              call VELDERIV(I,J,K,DUDY,DUDZ,DVDX,DVDZ,DWDX,DWDY)
+              GENRES=GEN(I,J,K)-Tvis*((DUDY+DVDX)**2+(DUDZ+DWDX)**2+
+     &               (DVDZ+DWDY)**2)
+
+              GEN(I,J,K)=GENRES+GENCOU
+              DITERM=CD*DENf(i,j,K)*(CMU**.75)*SQRTK*ZPLUSH/DZH
+              IF(ZPLUSH.GT.11.63)DITERM=CD*DENf(i,j,K)*(CMU**.75)*SQRTK*
+     &                                  ALOG(ELOG*ZPLUSH)/(CAPPA*DZH)
+              SU(I,J,K)=GEN(I,J,K)*VOL+SUKD(I,J,K)
+              SP(I,J,K)=-DITERM*VOL+SPKD(I,J,K)
               AH(I,J,K)=0.0
- 6751       CONTINUE
- 675      CONTINUE
-        ENDIF
+ 6521        CONTINUE
+ 652        CONTINUE
+          ENDIF
+        endif
  601  CONTINUE
 
       RETURN
@@ -2013,162 +1606,154 @@ C Solid walls.
       DO 701 L=1,NSB(ICFD)
 
 C Determine upon which face of the CFD domain the solid boundary resides.
-C `location' is equal to the least significant digit of IWSB and has the
-C following meanings: 1 for west; 2 for east; 3 for south; 4 for north;
-C 5 for low; 6 for high.
-        location = abs(IWSB(L,ICFD)) - abs(IWSB(L,ICFD))/10*10
+C `location' has the following meanings: 1 for west; 2 for east;
+C 3 for south; 4 for north; 5 for low; 6 for high.
+        location = IVOLF(IV,ICFD)
+
+C Determine BC type.
+        ityp=IVTYPE(IV,ICFD)
+
+C Symmetric BC.
+        if (ityp.eq.3) then
 
 C West wall.
-        IF(location.EQ.1)THEN
-          I=ISBi(L,ICFD)
-          DXW=XP(I)-XU(I)
-          TERM=(CMU**.75)/(CAPPA*DXW)
-          DO 702 J=JSBi(L,ICFD),JSBf(L,ICFD)
-            DO 7021 K=KSBi(L,ICFD),KSBf(L,ICFD)
-              SU(I,J,K)=GREAT*TERM*ABS(TEf(i,j,K))**1.5
-              SP(I,J,K)=-GREAT
-              AW(I,J,K)=0.0
- 7021       CONTINUE
- 702      CONTINUE
+          IF(location.EQ.1)THEN
+            I=ISBi(L,ICFD)
+            DO 762 J=JSBi(L,ICFD),JSBf(L,ICFD)
+              DO 7621 K=KSBi(L,ICFD),KSBf(L,ICFD)
+                EDf(I-1,J,K)=EDf(I,J,K)
+ 7621         CONTINUE
+ 762        CONTINUE
 
 C East wall.
-        ELSEIF(location.EQ.2)THEN
-          I=ISBi(L,ICFD)
-          DXE=XU(I+1)-XP(I)
-          TERM=(CMU**.75)/(CAPPA*DXE)
-          DO 712 J=JSBi(L,ICFD),JSBf(L,ICFD)
-            DO 7121 K=KSBi(L,ICFD),KSBf(L,ICFD)
-              SU(I,J,K)=GREAT*TERM*ABS(TEf(i,j,K))**1.5
-              SP(I,J,K)=-GREAT
-              AE(I,J,K)=0.0
- 7121       CONTINUE
- 712      CONTINUE
+          ELSEIF(location.EQ.2)THEN
+            I=ISBi(L,ICFD)
+            DO 765 J=JSBi(L,ICFD),JSBf(L,ICFD)
+              DO 7651 K=KSBi(L,ICFD),KSBf(L,ICFD)
+                EDf(I+1,J,K)=EDf(I,J,K)
+ 7651         CONTINUE
+ 765        CONTINUE
 
 C South wall.
-        ELSEIF(location.EQ.3)THEN
-          J=JSBi(L,ICFD)
-          DYS=YP(J)-YV(J)
-          TERM=(CMU**.75)/(CAPPA*DYS)
-          DO 722 I=ISBi(L,ICFD),ISBf(L,ICFD)
-            DO 7221 K=KSBi(L,ICFD),KSBf(L,ICFD)
-              SU(I,J,K)=GREAT*TERM*ABS(TEf(i,j,K))**1.5
-              SP(I,J,K)=-GREAT
-              AS(I,J,K)=0.0
- 7221       CONTINUE
- 722      CONTINUE
+          ELSEIF(location.EQ.3)THEN
+            J=JSBi(L,ICFD)
+            DO 768 I=ISBi(L,ICFD),ISBf(L,ICFD)
+              DO 7681 K=KSBi(L,ICFD),KSBf(L,ICFD)
+                EDf(I,J-1,K)=EDf(I,J,K)
+ 7681         CONTINUE
+ 768        CONTINUE
 
 C North wall.
-        ELSEIF(location.EQ.4)THEN
-          J=JSBi(L,ICFD)
-          DYN=YV(J+1)-YP(J)
-          TERM=(CMU**.75)/(CAPPA*DYN)
-          DO 732 I=ISBi(L,ICFD),ISBf(L,ICFD)
-            DO 7321 K=KSBi(L,ICFD),KSBf(L,ICFD)
-              SU(I,J,K)=GREAT*TERM*ABS(TEf(i,j,K))**1.5
-              SP(I,J,K)=-GREAT
-              AN(I,J,K)=0.0
- 7321       CONTINUE
- 732      CONTINUE
+          ELSEIF(location.EQ.4)THEN
+            J=JSBi(L,ICFD)
+            DO 770 I=ISBi(L,ICFD),ISBf(L,ICFD)
+              DO 7701 K=KSBi(L,ICFD),KSBf(L,ICFD)
+                EDf(I,J+1,K)=EDf(I,J,K)
+ 7701         CONTINUE
+ 770        CONTINUE
 
 C Low wall.
-        ELSEIF(location.EQ.5)THEN
-          K=KSBi(L,ICFD)
-          DZL=ZP(K)-ZW(K)
-          TERM=(CMU**.75)/(CAPPA*DZL)
-          DO 742 I=ISBi(L,ICFD),ISBf(L,ICFD)
-            DO 7421 J=JSBi(L,ICFD),JSBf(L,ICFD)
-              SU(I,J,K)=GREAT*TERM*ABS(TEf(i,j,K))**1.5
-              SP(I,J,K)=-GREAT
-              AL(I,J,K)=0.0
- 7421       CONTINUE
- 742      CONTINUE
+          ELSEIF(location.EQ.5)THEN
+            K=KSBi(L,ICFD)
+            DO 772 I=ISBi(L,ICFD),ISBf(L,ICFD)
+              DO 7721 J=JSBi(L,ICFD),JSBf(L,ICFD)
+                EDf(I,J,K-1)=EDf(I,J,K)
+ 7721         CONTINUE
+ 772        CONTINUE
 
 C High wall.
-        ELSEIF(location.EQ.6)THEN
-          K=KSBi(L,ICFD)
-          DZH=ZW(K+1)-ZP(K)
-          TERM=(CMU**.75)/(CAPPA*DZH)
-          DO 752 I=ISBi(L,ICFD),ISBf(L,ICFD)
-            DO 7521 J=JSBi(L,ICFD),JSBf(L,ICFD)
-              SU(I,J,K)=GREAT*TERM*ABS(TEf(i,j,K))**1.5
-              SP(I,J,K)=-GREAT
-              AH(I,J,K)=0.0
- 7521       CONTINUE
- 752      CONTINUE
+          ELSEIF(location.EQ.6)THEN
+            K=KSBi(L,ICFD)
+            DO 775 I=ISBi(L,ICFD),ISBf(L,ICFD)
+              DO 7751 J=JSBi(L,ICFD),JSBf(L,ICFD)
+                EDf(I,J,K+1)=EDf(I,J,K)
+ 7751         CONTINUE
+ 775        CONTINUE
+          ENDIF
 
-C Symetric axis.
+C Solid BC.
+        elseif (ityp.eq.1 .or. ityp.eq.2 .or.
+     &          (ityp.ge.4 .and. ityp.le.6)) then
+
 C West wall.
-        ELSEIF(location.EQ.11)THEN
-          I=ISBi(L,ICFD)
-          DO 762 J=JSBi(L,ICFD),JSBf(L,ICFD)
-            DO 7621 K=KSBi(L,ICFD),KSBf(L,ICFD)
-C              SP(I-1,J,K)=-GREAT
-C              SU(I-1,J,K)=GREAT*EDf(I,J,K)
-              EDf(I-1,J,K)=EDf(I,J,K)
-              AW(I,J,K)=0.0
- 7621       CONTINUE
- 762      CONTINUE
+          IF(location.EQ.1)THEN
+            I=ISBi(L,ICFD)
+            DXW=XP(I)-XU(I)
+            TERM=(CMU**.75)/(CAPPA*DXW)
+            DO 702 J=JSBi(L,ICFD),JSBf(L,ICFD)
+              DO 7021 K=KSBi(L,ICFD),KSBf(L,ICFD)
+                SU(I,J,K)=GREAT*TERM*ABS(TEf(i,j,K))**1.5
+                SP(I,J,K)=-GREAT
+                AW(I,J,K)=0.0
+ 7021         CONTINUE
+ 702        CONTINUE
 
 C East wall.
-        ELSEIF(location.EQ.12)THEN
-          I=ISBi(L,ICFD)
-          DO 765 J=JSBi(L,ICFD),JSBf(L,ICFD)
-            DO 7651 K=KSBi(L,ICFD),KSBf(L,ICFD)
-C              SP(I+1,J,K)=-GREAT
-C              SU(I+1,J,K)=GREAT*EDf(I,J,K)
-              EDf(I+1,J,K)=EDf(I,J,K)
-              AE(I,J,K)=0.0
- 7651       CONTINUE
- 765      CONTINUE
+          ELSEIF(location.EQ.2)THEN
+            I=ISBi(L,ICFD)
+            DXE=XU(I+1)-XP(I)
+            TERM=(CMU**.75)/(CAPPA*DXE)
+            DO 712 J=JSBi(L,ICFD),JSBf(L,ICFD)
+              DO 7121 K=KSBi(L,ICFD),KSBf(L,ICFD)
+                SU(I,J,K)=GREAT*TERM*ABS(TEf(i,j,K))**1.5
+                SP(I,J,K)=-GREAT
+                AE(I,J,K)=0.0
+ 7121         CONTINUE
+ 712        CONTINUE
 
 C South wall.
-        ELSEIF(location.EQ.13)THEN
-          J=JSBi(L,ICFD)
-          DO 768 I=ISBi(L,ICFD),ISBf(L,ICFD)
-            DO 7681 K=KSBi(L,ICFD),KSBf(L,ICFD)
-C              SP(I,J-1,K)=-GREAT
-C              SU(I,J-1,K)=GREAT*EDf(I,J,K)
-              EDf(I,J-1,K)=EDf(I,J,K)
-              AS(I,J,K)=0.0
- 7681       CONTINUE
- 768      CONTINUE
+          ELSEIF(location.EQ.3)THEN
+            J=JSBi(L,ICFD)
+            DYS=YP(J)-YV(J)
+            TERM=(CMU**.75)/(CAPPA*DYS)
+            DO 722 I=ISBi(L,ICFD),ISBf(L,ICFD)
+              DO 7221 K=KSBi(L,ICFD),KSBf(L,ICFD)
+                SU(I,J,K)=GREAT*TERM*ABS(TEf(i,j,K))**1.5
+                SP(I,J,K)=-GREAT
+                AS(I,J,K)=0.0
+ 7221         CONTINUE
+ 722        CONTINUE
 
 C North wall.
-        ELSEIF(location.EQ.14)THEN
-          J=JSBi(L,ICFD)
-          DO 770 I=ISBi(L,ICFD),ISBf(L,ICFD)
-            DO 7701 K=KSBi(L,ICFD),KSBf(L,ICFD)
-C              SP(I,J+1,K)=-GREAT
-C              SU(I,J+1,K)=GREAT*EDf(I,J,K)
-              EDf(I,J+1,K)=EDf(I,J,K)
-              AN(I,J,K)=0.0
- 7701       CONTINUE
- 770      CONTINUE
+          ELSEIF(location.EQ.4)THEN
+            J=JSBi(L,ICFD)
+            DYN=YV(J+1)-YP(J)
+            TERM=(CMU**.75)/(CAPPA*DYN)
+            DO 732 I=ISBi(L,ICFD),ISBf(L,ICFD)
+              DO 7321 K=KSBi(L,ICFD),KSBf(L,ICFD)
+                SU(I,J,K)=GREAT*TERM*ABS(TEf(i,j,K))**1.5
+                SP(I,J,K)=-GREAT
+                AN(I,J,K)=0.0
+ 7321         CONTINUE
+ 732        CONTINUE
 
 C Low wall.
-        ELSEIF(location.EQ.15)THEN
-          K=KSBi(L,ICFD)
-          DO 772 I=ISBi(L,ICFD),ISBf(L,ICFD)
-            DO 7721 J=JSBi(L,ICFD),JSBf(L,ICFD)
-C              SP(I,J,K-1)=-GREAT
-C              SU(I,J,K-1)=GREAT*EDf(I,J,K)
-              EDf(I,J,K-1)=EDf(I,J,K)
-              AL(I,J,K)=0.0
- 7721       CONTINUE
- 772      CONTINUE
+          ELSEIF(location.EQ.5)THEN
+            K=KSBi(L,ICFD)
+            DZL=ZP(K)-ZW(K)
+            TERM=(CMU**.75)/(CAPPA*DZL)
+            DO 742 I=ISBi(L,ICFD),ISBf(L,ICFD)
+              DO 7421 J=JSBi(L,ICFD),JSBf(L,ICFD)
+                SU(I,J,K)=GREAT*TERM*ABS(TEf(i,j,K))**1.5
+                SP(I,J,K)=-GREAT
+                AL(I,J,K)=0.0
+ 7421         CONTINUE
+ 742        CONTINUE
 
 C High wall.
-        ELSEIF(location.EQ.16)THEN
-          K=KSBi(L,ICFD)
-          DO 775 I=ISBi(L,ICFD),ISBf(L,ICFD)
-            DO 7751 J=JSBi(L,ICFD),JSBf(L,ICFD)
-C              SP(I,J,K+1)=-GREAT
-C              SU(I,J,K+1)=GREAT*EDf(I,J,K)
-              EDf(I,J,K+1)=EDf(I,J,K)
-              AH(I,J,K)=0.0
- 7751       CONTINUE
- 775      CONTINUE
-        ENDIF
+          ELSEIF(location.EQ.6)THEN
+            K=KSBi(L,ICFD)
+            DZH=ZW(K+1)-ZP(K)
+            TERM=(CMU**.75)/(CAPPA*DZH)
+            DO 752 I=ISBi(L,ICFD),ISBf(L,ICFD)
+              DO 7521 J=JSBi(L,ICFD),JSBf(L,ICFD)
+                SU(I,J,K)=GREAT*TERM*ABS(TEf(i,j,K))**1.5
+                SP(I,J,K)=-GREAT
+                AH(I,J,K)=0.0
+ 7521         CONTINUE
+ 752        CONTINUE
+          ENDIF
+        endif
  701  CONTINUE
 
       RETURN
@@ -2251,7 +1836,6 @@ C BNDARTT - Impose thermal boundary conditions for turbulent flow.
       LOGICAL INCALU,INCALV,INCALW,INCALT,INCALK,INCALD
       LOGICAL IZEROT,IZanKE,IMITZ
       logical BHS
-
 
 C This subroutine imposes boundary conditions (BCs) for the thermal equation
 C when there is turbulent flow. It applies BCs at the air-flow openings, then
@@ -2475,6 +2059,7 @@ C Now calculate the source terms (V&M eq.9.13 & eq.9.24).
               TERM=GT*AREA
               SU(I,J,K)=SU(I,J,K)+TERM*SSB(L,ICFD)
               SP(I,J,K)=SP(I,J,K)-TERM
+
 C Calculate surface convection. QW is heat flow (W) from wall to air.
               QW=TERM*SH*(SSB(L,ICFD)-Tf(i,j,K))
               CONVF(ICFD,IS)=CONVF(ICFD,IS)-QW
@@ -3219,7 +2804,6 @@ C Low wall not applicable since Yuan wall functions are only for vertical surfac
         ELSEIF(IWSB(L,ICFD).EQ.66)THEN
 C High wall not applicable since Yuan wall functions are only for vertical surfaces
 
-
 C Qsurf prescribed by user and absorbed into source terms for next-to-wall
 C cells (only used for CFD-only analyses). k-e model.
         ELSEIF(IWSB(L,ICFD).EQ.-1)THEN
@@ -3458,6 +3042,13 @@ C  MODWMIT  - W-momentum boundary conditions - MIT 0-eqn model.
      &              ISUFLC(MNSBZ,MNZ),IWSB(MNSBZ,MNZ),SSB(MNSBZ,MNZ),
      &              SSBHC(MNSBZ,MNZ),IVOLNSB(MNSBZ,MNZ),
      &              ITCtype(MNSBZ,MNZ),icTREF(MNSBZ,MNZ)
+      common/KEYVOLS/NVOL(MNZ),IVOLF(MNVLS,MNZ),IVCELLS(MNVLS,MNZ,2),
+     &               JVCELLS(MNVLS,MNZ,2),KVCELLS(MNVLS,MNZ,2)
+      common/KEYVDAT/IVTYPE(MNVLS,MNZ),VOLTemp(MNVLS,MNZ),
+     &          VOLHeat(MNVLS,MNZ),IVConfl(MNVLS,MNZ),VOLHum(MNVLS,MNZ),
+     &          VOLCO2(MNVLS,MNZ),VOLVel(MNVLS,MNZ),VOLDir(MNVLS,MNZ,2),
+     &          VOLArea(MNVLS,MNZ),VOLPres(MNVLS,MNZ),
+     &          VOLPol(MCTM,MNVLS,MNZ)
       COMMON/WALLF/TAUEV(ntcelx,ntcely,ntcelz),
      1          TAUWV(ntcelx,ntcely,ntcelz),TAUEW(ntcelx,ntcely,ntcelz),
      2          TAUWW(ntcelx,ntcely,ntcelz),TAUNU(ntcelx,ntcely,ntcelz),
@@ -3495,6 +3086,8 @@ C  MODWMIT  - W-momentum boundary conditions - MIT 0-eqn model.
      &              SIFH(ntcelz),SIFL(ntcelz)
       COMMON/THETA/THETA1(MCFND,MNZ),THETA2(MCFND,MNZ)
       COMMON/ICFNOD/ICFD,ICP
+      COMMON/BCTYPCEL/IBCTPC(ntcelx,ntcely,ntcelz)
+      COMMON/ITERAT/NITER
 
       LOGICAL INCALU,INCALV,INCALW,INCALT,INCALK,INCALD
       LOGICAL IZEROT,IZanKE,IMITZ
@@ -3524,229 +3117,233 @@ C If flow is 1D or 2D make coefficients in other directions zero.
  1200   CONTINUE
       ENDIF
 
-C Apply BCs on each solid boundary in turn.
-      DO 101 L=1,NSB(ICFD)
+      DO 101 IV=1,NVOL(ICFD)
+
 C Determine upon which face of the CFD domain the solid boundary resides.
-C `location' is equal to the least significant digit of IWSB and has the
-C following meanings: 1 for west; 2 for east; 3 for south; 4 for north;
-C 5 for low; 6 for high.
-        location = abs(IWSB(L,ICFD)) - abs(IWSB(L,ICFD))/10*10
-        ISBii=ISBi(L,ICFD)
-        DO 800 M=1,NOPEN(ICFD)
-          IF(ISBi(L,ICFD).EQ.IOPENf(M,ICFD)+1) THEN
-            ISBii=ISBii+1
-            GOTO 801
-          ENDIF
- 800    CONTINUE
+C `location' has the following meanings: 1 for west; 2 for east;
+C 3 for south; 4 for north; 5 for low; 6 for high.
+        location = IVOLF(IV,ICFD)
 
-C South wall.
- 801    IF(location.EQ.3)THEN
-          J=JSBi(L,ICFD)
+C Determine BC type.
+        ityp=IVTYPE(IV,ICFD)
 
-C Calculate distance from wall to next-to-wall grid point ($DELTA y sub p$).
-          DYS=YP(J)-YV(J)
+C Symmetric BCs.
+        if (ityp.eq.3 .or. ityp.eq.6) then
+
+C South Wall.
+          IF(location.EQ.3)THEN
+            J=JVCELLS(IV,ICFD,1)
+            DO 143 I=IVCELLS(IV,ICFD,1),IVCELLS(IV,ICFD,2)+1
+              DO 1431 K=KVCELLS(IV,ICFD,1),KVCELLS(IV,ICFD,2)
+
+C Set velocity at the boundary cell equal to this side.
+C If this cell straddles a BC divide, and the other side is a velocity
+C BC, add half this value to the existing value.
+                if (I.eq.IVCELLS(IV,ICFD,1) .and. 
+     &              IBCTPC(I-1,J,K).eq.11) then
+                  Uf(I,J-1,K)=Uf(I,J-1,K)+Uf(I,J,K)/2.
+                elseif (I.eq.IVCELLS(IV,ICFD,2)+1 .and. 
+     &                  IBCTPC(I,J,K).eq.11) then
+                  Uf(I,J-1,K)=Uf(I,J-1,K)+Uf(I,J,K)/2.
+                else
+                  Uf(I,J-1,K)=Uf(I,J,K)
+                endif
+ 1431         CONTINUE
+ 143        CONTINUE
+
+C North Wall.
+          ELSEIF(location.EQ.4)THEN
+            J=JVCELLS(IV,ICFD,1)
+            DO 145 I=IVCELLS(IV,ICFD,1),IVCELLS(IV,ICFD,2)+1
+              DO 1451 K=KVCELLS(IV,ICFD,1),KVCELLS(IV,ICFD,2)
+                if (I.eq.IVCELLS(IV,ICFD,1) .and. 
+     &              IBCTPC(I-1,J,K).eq.11) then
+                  Uf(I,J+1,K)=Uf(I,J+1,K)+Uf(I,J,K)/2.
+                elseif (I.eq.IVCELLS(IV,ICFD,2)+1 .and. 
+     &                  IBCTPC(I,J,K).eq.11) then
+                  Uf(I,J+1,K)=Uf(I,J+1,K)+Uf(I,J,K)/2.
+                else
+                  Uf(I,J+1,K)=Uf(I,J,K)
+                endif
+ 1451         CONTINUE
+ 145        CONTINUE
+
+C Low Wall.
+          ELSEIF(location.EQ.5)THEN
+            K=KVCELLS(IV,ICFD,1)
+            DO 148 I=IVCELLS(IV,ICFD,1),IVCELLS(IV,ICFD,2)+1
+              DO 1481 J=JVCELLS(IV,ICFD,1),JVCELLS(IV,ICFD,2)
+                if (I.eq.IVCELLS(IV,ICFD,1) .and. 
+     &              IBCTPC(I-1,J,K).eq.11) then
+                  Uf(I,J,K-1)=Uf(I,J,K-1)+Uf(I,J,K)/2.
+                elseif (I.eq.IVCELLS(IV,ICFD,2)+1 .and. 
+     &                  IBCTPC(I,J,K).eq.11) then
+                  Uf(I,J,K-1)=Uf(I,J,K-1)+Uf(I,J,K)/2.
+                else
+                  Uf(I,J,K-1)=Uf(I,J,K)
+                endif
+ 1481         CONTINUE
+ 148        CONTINUE
+
+C High Wall.
+          ELSEIF(location.EQ.6)THEN
+            K=KVCELLS(IV,ICFD,1)
+            DO 150 I=IVCELLS(IV,ICFD,1),IVCELLS(IV,ICFD,2)+1
+              DO 1501 J=JVCELLS(IV,ICFD,1),JVCELLS(IV,ICFD,2)
+                if (I.eq.IVCELLS(IV,ICFD,1) .and. 
+     &              IBCTPC(I-1,J,K).eq.11) then
+                  Uf(I,J,K+1)=Uf(I,J,K+1)+Uf(I,J,K)/2.
+                elseif (I.eq.IVCELLS(IV,ICFD,2)+1 .and. 
+     &                  IBCTPC(I,J,K).eq.11) then
+                  Uf(I,J,K+1)=Uf(I,J,K+1)+Uf(I,J,K)/2.
+                else
+                  Uf(I,J,K+1)=Uf(I,J,K)
+                endif
+ 1501         CONTINUE
+ 150        CONTINUE
+          endif
+
+C Solid surface BCs.
+        elseif (ityp.eq.1 .or. ityp.eq.2 .or.
+     &          ityp.eq.4 .or. ityp.eq.5) then
+
+C Set up boundary conditions on South solid wall.
+          IF(location.EQ.3)THEN
+            J=JVCELLS(IV,ICFD,1)
+
+C Calculate distance from wall to next-to-wall grid point. 
+C (in Versteeg & Malalasekera DELTA y sub P)
+            DYS=YP(J)-YV(J)
 
 C Treat each cell on solid boundary.
-          DO 102 I=ISBii,ISBf(L,ICFD)
-            DO 1122 K=KSBi(L,ICFD),KSBf(L,ICFD)
+            DO 102 K=KVCELLS(IV,ICFD,1),KVCELLS(IV,ICFD,2)
+              DO 1122 I=IVCELLS(IV,ICFD,1),IVCELLS(IV,ICFD,2)+1
 
 C Interpolate to get effective viscosity at U-velocity point.
 C Note that effVIS is a viscosity, not a kinematic viscosity.
-              effVIS = SIFW(I)*VIS(I,J,K)+SIFE(I-1)*VIS(I-1,J,K)
+                effVIS = SIFW(I)*VIS(I,J,K)+SIFE(I-1)*VIS(I-1,J,K)
 
 C Calculate wall shear stress (+ value means stress operates
 C in same direction as axis).
-              TAUSU(I,J,K) = -effVIS*Uf(I,J,K)/DYS
+                TAUSU(I,J,K) = -effVIS*Uf(I,J,K)/DYS
 
-C Calculate source term. Units are force/velocity. Surface area of cell = SEWU*SHL.
-C              SP(I,J,K) = SP(I,J,K) - (effVIS/DYS)*(SEWU(I)*SHL(K))
-              SP(I,J,K) = SP(I,J,K) - (effVIS/DYS)*AreaNSU(I,K)
+C Calculate source term. Units are force/velocity.
+C If we're straddling a BC boundary, only half the cell is bounded by
+C this wall; halve the area. Depending on what's on the other side, the
+C source term may be further modified.
+C Cut link with fictitious cell in (or at) the wall, unless this cell
+C straddles a BC divide and the other side is symmetrical or an
+C opening.
+                if (I.eq.IVCELLS(IV,ICFD,1)) then 
+                  SP(I,J,K)=SP(I,J,K)-(effVIS/DYS)*AreaNSU(I,K)*0.5
+                  if(IBCTPC(I-1,J,K).eq.1 .or. IBCTPC(I-1,J,K).eq.2 .or.
+     &               IBCTPC(I-1,J,K).eq.4 .or. IBCTPC(I-1,J,K).eq.5 .or.
+     &               IBCTPC(I-1,J,K).eq.0)then
+                    AS(I,J,K)=0.0
+                  endif                    
+                elseif (I.eq.IVCELLS(IV,ICFD,2)+1) then
+                  SP(I,J,K)=SP(I,J,K)-(effVIS/DYS)*AreaNSU(I,K)*0.5
+                  if (IBCTPC(I,J,K).eq.1 .or. IBCTPC(I,J,K).eq.2 .or.
+     &                IBCTPC(I,J,K).eq.4 .or. IBCTPC(I,J,K).eq.5 .or.
+     &                IBCTPC(I,J,K).eq.0) then
+                    AS(I,J,K)=0.0
+                  endif
+                else
+                  SP(I,J,K)=SP(I,J,K)-(effVIS/DYS)*AreaNSU(I,K)
+                  AS(I,J,K)=0.0
+                endif
+ 1122         CONTINUE
+ 102        CONTINUE
 
-C Disconnect cell from fictitious cell to south.
-              AS(I,J,K)=0.0
- 1122       CONTINUE
- 102      CONTINUE
+C Set up boundary conditions on North solid wall.
+          ELSEIF(location.EQ.4)THEN
+            J=JVCELLS(IV,ICFD,1)
+            DYN=YV(J+1)-YP(J)
+            DO 112 K=KVCELLS(IV,ICFD,1),KVCELLS(IV,ICFD,2)
+              DO 1121 I=IVCELLS(IV,ICFD,1),IVCELLS(IV,ICFD,2)+1
+                effVIS = SIFW(I)*VIS(I,J,K)+SIFE(I-1)*VIS(I-1,J,K)
+                TAUNU(I,J,K) = -effVIS*Uf(I,J,K)/DYN
+                if (I.eq.IVCELLS(IV,ICFD,1)) then 
+                  SP(I,J,K) = SP(I,J,K) - (effVIS/DYN)*AreaNSU(I,K)*0.5
+                  if(IBCTPC(I-1,J,K).eq.1 .or. IBCTPC(I-1,J,K).eq.2 .or.
+     &               IBCTPC(I-1,J,K).eq.4 .or. IBCTPC(I-1,J,K).eq.5 .or.
+     &               IBCTPC(I-1,J,K).eq.0)then
+                    AN(I,J,K)=0.0
+                  endif                    
+                elseif (I.eq.IVCELLS(IV,ICFD,2)+1) then
+                  SP(I,J,K) = SP(I,J,K) - (effVIS/DYN)*AreaNSU(I,K)*0.5
+                  if (IBCTPC(I,J,K).eq.1 .or. IBCTPC(I,J,K).eq.2 .or.
+     &                IBCTPC(I,J,K).eq.4 .or. IBCTPC(I,J,K).eq.5 .or.
+     &                IBCTPC(I,J,K).eq.0) then
+                    AN(I,J,K)=0.0
+                  endif
+                else                  
+                  SP(I,J,K) = SP(I,J,K) - (effVIS/DYN)*AreaNSU(I,K)
+                  AN(I,J,K)=0.0
+                endif
+ 1121         CONTINUE
+ 112        CONTINUE
 
-C TAUSU values required at scalar points.
-          II=ISBi(L,ICFD)
-          IFF=ISBf(L,ICFD)
-          DO 110 K=KSBi(L,ICFD),KSBf(L,ICFD)
-            TAUSU(II,J,K)=TAUSU(II+1,J,K)
-            TAUSU(IFF+1,J,K)=TAUSU(IFF,J,K)
- 110      CONTINUE
+C Set up boundary conditions on Low solid wall.
+          ELSEIF(location.EQ.5)THEN
+            K=KVCELLS(IV,ICFD,1)
+            DZL=ZP(K)-ZW(K)
+            DO 122 J=JVCELLS(IV,ICFD,1),JVCELLS(IV,ICFD,2)
+              DO 1221 I=IVCELLS(IV,ICFD,1),IVCELLS(IV,ICFD,2)+1
+                effVIS = SIFW(I)*VIS(I,J,K)+SIFE(I-1)*VIS(I-1,J,K)
+                TAULU(I,J,K) = -effVIS*Uf(I,J,K)/DZL
+                if (I.eq.IVCELLS(IV,ICFD,1)) then
+                  SP(I,J,K) = SP(I,J,K) - (effVIS/DZL)*AreaHLU(I,J)*0.5
+                  if(IBCTPC(I-1,J,K).eq.1 .or. IBCTPC(I-1,J,K).eq.2 .or.
+     &               IBCTPC(I-1,J,K).eq.4 .or. IBCTPC(I-1,J,K).eq.5 .or.
+     &               IBCTPC(I-1,J,K).eq.0)then
+                    AL(I,J,K)=0.0
+                  endif                    
+                elseif (I.eq.IVCELLS(IV,ICFD,2)+1) then
+                  SP(I,J,K) = SP(I,J,K) - (effVIS/DZL)*AreaHLU(I,J)*0.5
+                  if (IBCTPC(I,J,K).eq.1 .or. IBCTPC(I,J,K).eq.2 .or.
+     &                IBCTPC(I,J,K).eq.4 .or. IBCTPC(I,J,K).eq.5 .or.
+     &                IBCTPC(I,J,K).eq.0) then
+                    AL(I,J,K)=0.0
+                  endif
+                else
+                  SP(I,J,K) = SP(I,J,K) - (effVIS/DZL)*AreaHLU(I,J)
+                  AL(I,J,K)=0.0
+                endif
+ 1221         CONTINUE
+ 122        CONTINUE
 
-C North wall (see south for annotations).
-        ELSEIF(location.EQ.4)THEN
-          J=JSBi(L,ICFD)
-          DYN=YV(J+1)-YP(J)
-          DO 112 I=ISBii,ISBf(L,ICFD)
-            DO 1121 K=KSBi(L,ICFD),KSBf(L,ICFD)
-              effVIS = SIFW(I)*VIS(I,J,K)+SIFE(I-1)*VIS(I-1,J,K)
-              TAUNU(I,J,K) = -effVIS*Uf(I,J,K)/DYN
-              SP(I,J,K) = SP(I,J,K) - (effVIS/DYN)*AreaNSU(I,K)
-              AN(I,J,K)=0.0
- 1121       CONTINUE
- 112      CONTINUE
-          II=ISBi(L,ICFD)
-          IFF=ISBf(L,ICFD)
-          DO 120 K=KSBi(L,ICFD),KSBf(L,ICFD)
-            TAUNU(II,J,K)=TAUNU(II+1,J,K)
-            TAUNU(IFF+1,J,K)=TAUNU(IFF,J,K)
- 120      CONTINUE
-
-C Low wall (see south for annotations).
-        ELSEIF(location.EQ.5)THEN
-          K=KSBi(L,ICFD)
-          DZL=ZP(K)-ZW(K)
-          DO 122 I=ISBii,ISBf(L,ICFD)
-            DO 1221 J=JSBi(L,ICFD),JSBf(L,ICFD)
-              effVIS = SIFW(I)*VIS(I,J,K)+SIFE(I-1)*VIS(I-1,J,K)
-              TAULU(I,J,K) = -effVIS*Uf(I,J,K)/DZL
-              SP(I,J,K) = SP(I,J,K) - (effVIS/DZL)*AreaHLU(I,J)
-              AL(I,J,K)=0.0
- 1221       CONTINUE
- 122      CONTINUE
-          II=ISBi(L,ICFD)
-          IFF=ISBf(L,ICFD)
-          DO 130 J=JSBi(L,ICFD),JSBf(L,ICFD)
-            TAULU(II,J,K)=TAULU(II+1,J,K)
-            TAULU(IFF+1,J,K)=TAULU(IFF,J,K)
- 130      CONTINUE
-
-C High wall (see south for annotations).
-        ELSEIF(location.EQ.6)THEN
-          K=KSBi(L,ICFD)
-          DZH=ZW(K+1)-ZP(K)
-          DO 132 I=ISBii,ISBf(L,ICFD)
-            DO 1321 J=JSBi(L,ICFD),JSBf(L,ICFD)
-              effVIS = SIFW(I)*VIS(I,J,K)+SIFE(I-1)*VIS(I-1,J,K)
-              TAUHU(I,J,K) = -effVIS*Uf(I,J,K)/DZH
-              SP(I,J,K) = SP(I,J,K) - (effVIS/DZH)*AreaHLU(I,J)
-              AH(I,J,K)=0.0
- 1321       CONTINUE
- 132      CONTINUE
-          II=ISBi(L,ICFD)
-          IFF=ISBf(L,ICFD)
-          DO 140 J=JSBi(L,ICFD),JSBf(L,ICFD)
-            TAUHU(II,J,K)=TAUHU(II+1,J,K)
-            TAUHU(IFF+1,J,K)=TAUHU(IFF,J,K)
- 140      CONTINUE
-
-        ENDIF
+C Set up boundary conditions on High solid wall.
+          ELSEIF(location.EQ.6)THEN
+            K=KVCELLS(IV,ICFD,1)
+            DZH=ZW(K+1)-ZP(K)
+            DO 132 J=JVCELLS(IV,ICFD,1),JVCELLS(IV,ICFD,2)
+              DO 1321 I=IVCELLS(IV,ICFD,1),IVCELLS(IV,ICFD,2)+1
+                effVIS = SIFW(I)*VIS(I,J,K)+SIFE(I-1)*VIS(I-1,J,K)
+                TAUHU(I,J,K) = -effVIS*Uf(I,J,K)/DZH
+                if (I.eq.IVCELLS(IV,ICFD,1)) then
+                  SP(I,J,K) = SP(I,J,K) - (effVIS/DZH)*AreaHLU(I,J)*0.5
+                  if(IBCTPC(I-1,J,K).eq.1 .or. IBCTPC(I-1,J,K).eq.2 .or.
+     &               IBCTPC(I-1,J,K).eq.4 .or. IBCTPC(I-1,J,K).eq.5 .or.
+     &               IBCTPC(I-1,J,K).eq.0)then
+                    AH(I,J,K)=0.0
+                  endif                    
+                elseif (I.eq.IVCELLS(IV,ICFD,2)+1) then
+                  SP(I,J,K) = SP(I,J,K) - (effVIS/DZH)*AreaHLU(I,J)*0.5
+                  if (IBCTPC(I,J,K).eq.1 .or. IBCTPC(I,J,K).eq.2 .or.
+     &                IBCTPC(I,J,K).eq.4 .or. IBCTPC(I,J,K).eq.5 .or.
+     &                IBCTPC(I,J,K).eq.0) then
+                    AH(I,J,K)=0.0
+                  endif
+                else                  
+                  SP(I,J,K) = SP(I,J,K) - (effVIS/DZH)*AreaHLU(I,J)
+                  AH(I,J,K)=0.0
+                endif
+ 1321         CONTINUE
+ 132        CONTINUE
+          ENDIF
+        endif
  101  CONTINUE
-
-C Momentum BCs for openings are treated in INOUT.
-
-C Airflow at inlet not perpendicular to wall. Examine each opening and
-C treat those that have `directed. flow.
-      DO 10 L=1,NOPEN(ICFD)
-        I=IOPENi(L,ICFD)
-
-C South wall.
-        IF(IWOPEN(L,ICFD).EQ.3.AND.FIXM(L,ICFD).GT.0.) THEN
-          J=JOPENi(L,ICFD)
-          DO 180 I=IOPENi(L,ICFD),IOPENf(L,ICFD)
-            DO 1801 K=KOPENi(L,ICFD),KOPENf(L,ICFD)
-              IF(THETA1(L,ICFD).LT.0.) THEN
-                SP(I,J,K)=-GREAT
-                SU(I,J,K)=GREAT*Vf(I,J,K)*ETAND(THETA1(L,ICFD))
-              ELSEIF(THETA1(L,ICFD).GT.0.) THEN
-                IF(I.EQ.IOPENi(L,ICFD)) Uf(I,J-1,K)=-Uf(I,J,K)
-                IF(I.EQ.IOPENf(L,ICFD)) THEN
-                  SP(I+1,J,K)=-GREAT
-                  SU(I+1,J,K)=GREAT*Vf(I,J,K)*ETAND(THETA1(L,ICFD))
-                  IF(I.NE.IOPENi(L,ICFD)) THEN
-                    SP(I,J,K)=-GREAT
-                    SU(I,J,K)=GREAT*Vf(I,J,K)*ETAND(THETA1(L,ICFD))
-                  ENDIF
-                ENDIF
-                IF(I.GT.IOPENi(L,ICFD).AND.I.LT.IOPENf(L,ICFD)) THEN
-                  SP(I,J,K)=-GREAT
-                  SU(I,J,K)=GREAT*Vf(I,J,K)*ETAND(THETA1(L,ICFD))
-                ENDIF
-              ENDIF
- 1801       CONTINUE
- 180      CONTINUE
-
-C North wall.
-        ELSE IF(IWOPEN(L,ICFD).EQ.4.AND.FIXM(L,ICFD).GT.0.) THEN
-          J=JOPENi(L,ICFD)
-          DO 185 I=IOPENi(L,ICFD),IOPENf(L,ICFD)
-            DO 1851 K=KOPENi(L,ICFD),KOPENf(L,ICFD)
-              IF(THETA1(L,ICFD).LT.0.) THEN
-                SP(I,J,K)=-GREAT
-                SU(I,J,K)=GREAT*ABS(Vf(I,J,K))*ETAND(THETA1(L,ICFD))
-              ELSEIF(THETA1(L,ICFD).GT.0.) THEN
-                IF(I.EQ.IOPENi(L,ICFD)) Uf(I,J+1,K)=-Uf(I,J,K)
-                IF(I.EQ.IOPENf(L,ICFD)) THEN
-                  SP(I+1,J,K)=-GREAT
-                  SU(I+1,J,K)=GREAT*ABS(Vf(I,J,K))*ETAND(THETA1(L,ICFD))
-                  IF(I.NE.IOPENi(L,ICFD)) THEN
-                    SP(I,J,K)=-GREAT
-                    SU(I,J,K)=GREAT*ABS(Vf(I,J,K))*ETAND(THETA1(L,ICFD))
-                  ENDIF
-                ENDIF
-                IF(I.GT.IOPENi(L,ICFD).AND.I.LT.IOPENf(L,ICFD)) THEN
-                  SP(I,J,K)=-GREAT
-                  SU(I,J,K)=GREAT*ABS(Vf(I,J,K))*ETAND(THETA1(L,ICFD))
-                ENDIF
-              ENDIF
- 1851       CONTINUE
- 185      CONTINUE
-
-C Low wall.
-        ELSE IF(IWOPEN(L,ICFD).EQ.5.AND.FIXM(L,ICFD).GT.0.) THEN
-          K=KOPENi(L,ICFD)
-          DO 190 I=IOPENi(L,ICFD),IOPENf(L,ICFD)
-            DO 1901 J=JOPENi(L,ICFD),JOPENf(L,ICFD)
-              IF(THETA1(L,ICFD).LT.0.) THEN
-                SP(I,J,K)=-GREAT
-                SU(I,J,K)=GREAT*Wf(I,J,K)*ETAND(THETA1(L,ICFD))
-              ELSEIF(THETA1(L,ICFD).GT.0.) THEN
-                IF(I.EQ.IOPENi(L,ICFD)) Uf(I,J,K-1)=-Uf(I,J,K)
-                IF(I.EQ.IOPENf(L,ICFD)) THEN
-                  SP(I+1,J,K)=-GREAT
-                  SU(I+1,J,K)=GREAT*Wf(I,J,K)*ETAND(THETA1(L,ICFD))
-                  IF(I.NE.IOPENi(L,ICFD)) THEN
-                    SP(I,J,K)=-GREAT
-                    SU(I,J,K)=GREAT*Wf(I,J,K)*ETAND(THETA1(L,ICFD))
-                  ENDIF
-                ENDIF
-                IF(I.GT.IOPENi(L,ICFD).AND.I.LT.IOPENf(L,ICFD)) THEN
-                  SP(I,J,K)=-GREAT
-                  SU(I,J,K)=GREAT*Wf(I,J,K)*ETAND(THETA1(L,ICFD))
-                ENDIF
-              ENDIF
- 1901       CONTINUE
- 190      CONTINUE
-
-C High wall.
-        ELSE IF(IWOPEN(L,ICFD).EQ.6.AND.FIXM(L,ICFD).GT.0.) THEN
-          K=KOPENi(L,ICFD)
-          DO 195 I=IOPENi(L,ICFD),IOPENf(L,ICFD)
-            DO 1951 J=JOPENi(L,ICFD),JOPENf(L,ICFD)
-              IF(THETA1(L,ICFD).LT.0.) THEN
-                SP(I,J,K)=-GREAT
-                SU(I,J,K)=GREAT*ABS(Wf(I,J,K))*ETAND(THETA1(L,ICFD))
-              ELSEIF(THETA1(L,ICFD).GT.0.) THEN
-                IF(I.EQ.IOPENi(L,ICFD)) Uf(I,J,K+1)=-Uf(I,J,K)
-                IF(I.EQ.IOPENf(L,ICFD)) THEN
-                  SP(I+1,J,K)=-GREAT
-                  SU(I+1,J,K)=GREAT*ABS(Wf(I,J,K))*ETAND(THETA1(L,ICFD))
-                  IF(I.NE.IOPENi(L,ICFD)) THEN
-                    SP(I,J,K)=-GREAT
-                    SU(I,J,K)=GREAT*ABS(Wf(I,J,K))*ETAND(THETA1(L,ICFD))
-                  ENDIF
-                ENDIF
-                IF(I.GT.IOPENi(L,ICFD).AND.I.LT.IOPENf(L,ICFD)) THEN
-                  SP(I,J,K)=-GREAT
-                  SU(I,J,K)=GREAT*ABS(Wf(I,J,K))*ETAND(THETA1(L,ICFD))
-                ENDIF
-              ENDIF
- 1951       CONTINUE
- 195      CONTINUE
-        ENDIF
- 10   CONTINUE
 
       RETURN
 
@@ -3775,226 +3372,204 @@ C If flow is 1D or 2D make coefficients in other directions zero.
  1400   CONTINUE
       ENDIF
 
-C Apply BCs on each solid boundary in turn.
-      DO 201 L=1,NSB(ICFD)
-C Determine upon which face of the CFD domain the solid boundary resides.
-C `location' is equal to the least significant digit of IWSB and has the
-C following meanings: 1 for west; 2 for east; 3 for south; 4 for north;
-C 5 for low; 6 for high.
-        location = abs(IWSB(L,ICFD)) - abs(IWSB(L,ICFD))/10*10
-        JSBii=JSBi(L,ICFD)
-        DO 810 M=1,NOPEN(ICFD)
-          IF(JSBi(L,ICFD).EQ.JOPENf(M,ICFD)+1) THEN
-            JSBii=JSBii+1
-            GOTO 811
+      DO 201 IV=1,NVOL(ICFD)
+        location = IVOLF(IV,ICFD)
+        ityp=IVTYPE(IV,ICFD)
+
+C Symmetric BC.
+        if (ityp.eq.3 .or. ityp.eq.6) then
+
+C West.
+          IF(location.EQ.1)THEN
+            I=IVCELLS(IV,ICFD,1)
+            DO 250 J=JVCELLS(IV,ICFD,1),JVCELLS(IV,ICFD,2)+1
+              DO 2501 K=KVCELLS(IV,ICFD,1),KVCELLS(IV,ICFD,2)
+                if (J.eq.JVCELLS(IV,ICFD,1) .and. 
+     &              IBCTPC(I,J-1,K).eq.11) then
+                  Vf(I-1,J,K)=Vf(I-1,J,K)+Vf(I,J,K)/2.
+                elseif (J.eq.JVCELLS(IV,ICFD,2)+1 .and. 
+     &                  IBCTPC(I,J,K).eq.11) then
+                  Vf(I-1,J,K)=Vf(I-1,J,K)+Vf(I,J,K)/2.
+                else
+                  Vf(I-1,J,K)=Vf(I,J,K)
+                endif
+ 2501         CONTINUE
+ 250        CONTINUE
+
+C East.
+          ELSEIF(location.EQ.2)THEN
+            I=IVCELLS(IV,ICFD,1)
+            DO 253 J=JVCELLS(IV,ICFD,1),JVCELLS(IV,ICFD,2)+1
+              DO 2531 K=KVCELLS(IV,ICFD,1),KVCELLS(IV,ICFD,2)
+                if (J.eq.JVCELLS(IV,ICFD,1) .and. 
+     &              IBCTPC(I,J-1,K).eq.11) then
+                  Vf(I+1,J,K)=Vf(I+1,J,K)+Vf(I,J,K)/2.
+                elseif (J.eq.JVCELLS(IV,ICFD,2)+1 .and. 
+     &                  IBCTPC(I,J,K).eq.11) then
+                  Vf(I+1,J,K)=Vf(I+1,J,K)+Vf(I,J,K)/2.
+                else
+                  Vf(I+1,J,K)=Vf(I,J,K)
+                endif
+ 2531         CONTINUE
+ 253        CONTINUE
+
+C Low.
+          ELSEIF(location.EQ.5)THEN
+            K=KVCELLS(IV,ICFD,1)
+            DO 255 I=IVCELLS(IV,ICFD,1),IVCELLS(IV,ICFD,2)
+              DO 2551 J=JVCELLS(IV,ICFD,1),JVCELLS(IV,ICFD,2)+1
+                if (J.eq.JVCELLS(IV,ICFD,1) .and. 
+     &              IBCTPC(I,J-1,K).eq.11) then
+                  Vf(I,J,K-1)=Vf(I,J,K-1)+Vf(I,J,K)/2.
+                elseif (J.eq.JVCELLS(IV,ICFD,2)+1 .and. 
+     &                  IBCTPC(I,J,K).eq.11) then
+                  Vf(I,J,K-1)=Vf(I,J,K-1)+Vf(I,J,K)/2.
+                else
+                  Vf(I,J,K-1)=Vf(I,J,K)
+                endif
+ 2551         CONTINUE
+ 255        CONTINUE
+
+C High.
+          ELSEIF(location.EQ.6)THEN
+            K=KVCELLS(IV,ICFD,1)
+            DO 258 I=IVCELLS(IV,ICFD,1),IVCELLS(IV,ICFD,2)
+              DO 2581 J=JVCELLS(IV,ICFD,1),JVCELLS(IV,ICFD,2)+1
+                if (J.eq.JVCELLS(IV,ICFD,1) .and. 
+     &              IBCTPC(I,J-1,K).eq.11) then
+                  Vf(I,J,K+1)=Vf(I,J,K+1)+Vf(I,J,K)/2.
+                elseif (J.eq.JVCELLS(IV,ICFD,2)+1 .and. 
+     &                  IBCTPC(I,J,K).eq.11) then
+                  Vf(I,J,K+1)=Vf(I,J,K+1)+Vf(I,J,K)/2.
+                else
+                  Vf(I,J,K+1)=Vf(I,J,K)
+                endif
+ 2581         CONTINUE
+ 258        CONTINUE
           ENDIF
- 810    CONTINUE
 
-C West wall.
- 811    IF(location.EQ.1)THEN
-          I=ISBi(L,ICFD)
+C Heat flux, solid or conflated BC.
+        elseif (ityp.eq.1 .or. ityp.eq.2 .or.
+     &          ityp.eq.4 .or. ityp.eq.5) then
 
-C Calculate distance from wall to next-to-wall grid point ($DELTA y sub p$).
-          DXW=XP(I)-XU(I)
+C West.
+          IF(location.EQ.1)THEN
+            I=IVCELLS(IV,ICFD,1)
+            DXW=XP(I)-XU(I)
+            DO 202 K=KVCELLs(IV,ICFD,1),KVCELLS(IV,ICFD,2)
+              DO 2021 J=JVCELLS(IV,ICFD,1),JVCELLS(IV,ICFD,2)+1
+                effVIS = SIFS(J)*VIS(I,J,K)+SIFN(J-1)*VIS(I,J-1,K)
+                TAUWV(I,J,K) = -effVIS*Vf(I,J,K)/DXW
+                if (J.eq.JVCELLS(IV,ICFD,1)) then
+                  SP(I,J,K) = SP(I,J,K) - (effVIS/DXW)*AreaEWV(J,K)*0.5
+                  if(IBCTPC(I,J-1,K).eq.1 .or. IBCTPC(I,J-1,K).eq.2 .or.
+     &               IBCTPC(I,J-1,K).eq.4 .or. IBCTPC(I,J-1,K).eq.5 .or.
+     &               IBCTPC(I,J-1,K).eq.0)then
+                    AW(I,J,K)=0.0
+                  endif                
+                elseif (J.eq.JVCELLS(IV,ICFD,2)+1) then
+                  SP(I,J,K) = SP(I,J,K) - (effVIS/DXW)*AreaEWV(J,K)*0.5
+                  if (IBCTPC(I,J,K).eq.1 .or. IBCTPC(I,J,K).eq.2 .or.
+     &                IBCTPC(I,J,K).eq.4 .or. IBCTPC(I,J,K).eq.5 .or.
+     &                IBCTPC(I,J,K).eq.0) then
+                    AW(I,J,K)=0.0
+                  endif
+                else
+                  SP(I,J,K) = SP(I,J,K) - (effVIS/DXW)*AreaEWV(J,K)
+                  AW(I,J,K)=0.0
+                endif
+ 2021         CONTINUE
+ 202        CONTINUE
 
-C Treat each cell on solid boundary.
-          DO 202 J=JSBii,JSBf(L,ICFD)
-            DO 2021 K=KSBi(L,ICFD),KSBf(L,ICFD)
+C East.
+          ELSEIF(location.EQ.2)THEN
+            I=IVCELLS(IV,ICFD,1)
+            DXE=XU(I+1)-XP(I)
+            DO 212 K=KVCELLS(IV,ICFD,1),KVCELLS(IV,ICFD,2)
+              DO 2121 J=JVCELLS(IV,ICFD,1),JVCELLS(IV,ICFD,2)+1
+                effVIS = SIFS(J)*VIS(I,J,K)+SIFN(J-1)*VIS(I,J-1,K)
+                TAUEV(I,J,K) = -effVIS*Vf(I,J,K)/DXE
+                if (J.eq.JVCELLS(IV,ICFD,1)) then
+                  SP(I,J,K) = SP(I,J,K) - (effVIS/DXE)*AreaEWV(J,K)*0.5
+                  if(IBCTPC(I,J-1,K).eq.1 .or. IBCTPC(I,J-1,K).eq.2 .or.
+     &               IBCTPC(I,J-1,K).eq.4 .or. IBCTPC(I,J-1,K).eq.5 .or.
+     &               IBCTPC(I,J-1,K).eq.0)then
+                    AE(I,J,K)=0.0
+                  endif                
+                elseif (J.eq.JVCELLS(IV,ICFD,2)+1) then
+                  SP(I,J,K) = SP(I,J,K) - (effVIS/DXE)*AreaEWV(J,K)*0.5
+                  if (IBCTPC(I,J,K).eq.1 .or. IBCTPC(I,J,K).eq.2 .or.
+     &                IBCTPC(I,J,K).eq.4 .or. IBCTPC(I,J,K).eq.5 .or.
+     &                IBCTPC(I,J,K).eq.0) then
+                    AE(I,J,K)=0.0
+                  endif
+                else
+                  SP(I,J,K) = SP(I,J,K) - (effVIS/DXE)*AreaEWV(J,K)
+                  AE(I,J,K)=0.0
+                endif
+ 2121         CONTINUE
+ 212        CONTINUE
 
-C Interpolate to get effective viscosity at V-velocity point.
-C Note that effVIS is a viscosity, not a kinematic viscosity.
-              effVIS = SIFS(J)*VIS(I,J,K)+SIFN(J-1)*VIS(I,J-1,K)
+C Low.
+          ELSEIF(location.EQ.5)THEN
+            K=KVCELLS(IV,ICFD,1)
+            DZL=ZP(K)-ZW(K)
+            DO 222 I=IVCELLS(IV,ICFD,1),IVCELLS(IV,ICFD,2)
+              DO 2221 J=JVCELLS(IV,ICFD,1),JVCELLS(IV,ICFD,2)+1
+                effVIS = SIFS(J)*VIS(I,J,K)+SIFN(J-1)*VIS(I,J-1,K)
+                TAULV(I,J,K) = -effVIS*Vf(I,J,K)/DZL
+                if (J.eq.JVCELLS(IV,ICFD,1)) then
+                  SP(I,J,K) = SP(I,J,K) - (effVIS/DZL)*AreaHLV(I,J)*0.5
+                  if(IBCTPC(I,J-1,K).eq.1 .or. IBCTPC(I,J-1,K).eq.2 .or.
+     &               IBCTPC(I,J-1,K).eq.4 .or. IBCTPC(I,J-1,K).eq.5 .or.
+     &               IBCTPC(I,J-1,K).eq.0)then
+                    AL(I,J,K)=0.0
+                  endif                
+                elseif (J.eq.JVCELLS(IV,ICFD,2)+1) then
+                  SP(I,J,K) = SP(I,J,K) - (effVIS/DZL)*AreaHLV(I,J)*0.5
+                  if (IBCTPC(I,J,K).eq.1 .or. IBCTPC(I,J,K).eq.2 .or.
+     &                IBCTPC(I,J,K).eq.4 .or. IBCTPC(I,J,K).eq.5 .or.
+     &                IBCTPC(I,J,K).eq.0) then
+                    AL(I,J,K)=0.0
+                  endif
+                else
+                  SP(I,J,K) = SP(I,J,K) - (effVIS/DZL)*AreaHLV(I,J)
+                  AL(I,J,K)=0.0
+                endif
+ 2221         CONTINUE
+ 222        CONTINUE
 
-C Calculate wall shear stress (+ value means stress operates
-C in same direction as axis).
-              TAUWV(I,J,K) = -effVIS*Vf(I,J,K)/DXW
-
-C Calculate source term. Units are force/velocity. Surface area of cell = SNSV*SHL.
-C              SP(I,J,K) = SP(I,J,K) - (effVIS/DXW)*(SNSV(J)*SHL(K))
-              SP(I,J,K) = SP(I,J,K) - (effVIS/DXW)*AreaEWV(J,K)
-
-C Disconnect cell from fictitious cell to west.
-              AW(I,J,K)=0.0
- 2021       CONTINUE
- 202      CONTINUE
-
-C TAUWV values required at scalar points.
-          JI=JSBi(L,ICFD)
-          JF=JSBf(L,ICFD)
-          DO 210 K=KSBi(L,ICFD),KSBf(L,ICFD)
-            TAUWV(I,JI,K)=TAUWV(I,JI+1,K)
-            TAUWV(I,JF+1,K)=TAUWV(I,JF,K)
- 210      CONTINUE
-
-C East wall (see west for annotations).
-        ELSEIF(location.EQ.2)THEN
-          I=ISBi(L,ICFD)
-          DXE=XU(I+1)-XP(I)
-          DO 212 J=JSBii,JSBf(L,ICFD)
-            DO 2121 K=KSBi(L,ICFD),KSBf(L,ICFD)
-              effVIS = SIFS(J)*VIS(I,J,K)+SIFN(J-1)*VIS(I,J-1,K)
-              TAUEV(I,J,K) = -effVIS*Vf(I,J,K)/DXE
-              SP(I,J,K) = SP(I,J,K) - (effVIS/DXE)*AreaEWV(J,K)
-              AE(I,J,K)=0.0
- 2121       CONTINUE
- 212      CONTINUE
-          JI=JSBi(L,ICFD)
-          JF=JSBf(L,ICFD)
-          DO 220 K=KSBi(L,ICFD),KSBf(L,ICFD)
-            TAUEV(I,JI,K)=TAUEV(I,JI+1,K)
-            TAUEV(I,JF+1,K)=TAUEV(I,JF,K)
- 220      CONTINUE
-
-C Low wall (see west for annotations).
-        ELSEIF(location.EQ.5)THEN
-          K=KSBi(L,ICFD)
-          DZL=ZP(K)-ZW(K)
-          DO 222 I=ISBi(L,ICFD),ISBf(L,ICFD)
-            DO 2221 J=JSBii,JSBf(L,ICFD)
-              effVIS = SIFS(J)*VIS(I,J,K)+SIFN(J-1)*VIS(I,J-1,K)
-              TAULV(I,J,K) = -effVIS*Vf(I,J,K)/DZL
-              SP(I,J,K) = SP(I,J,K) - (effVIS/DZL)*AreaHLV(I,J)
-              AL(I,J,K)=0.0
- 2221       CONTINUE
- 222      CONTINUE
-          JI=JSBi(L,ICFD)
-          JF=JSBf(L,ICFD)
-          DO 230 I=ISBi(L,ICFD),ISBf(L,ICFD)
-            TAULV(I,JI,K)=TAULV(I,JI+1,K)
-            TAULV(I,JF+1,K)=TAULV(I,JF,K)
- 230      CONTINUE
-
-C High wall (see west for annotations).
-        ELSEIF(location.EQ.6)THEN
-          K=KSBi(L,ICFD)
-          DZH=ZW(K+1)-ZP(K)
-          DO 232 I=ISBi(L,ICFD),ISBf(L,ICFD)
-            DO 2321 J=JSBii,JSBf(L,ICFD)
-              effVIS = SIFS(J)*VIS(I,J,K)+SIFN(J-1)*VIS(I,J-1,K)
-              TAUHV(I,J,K) = -effVIS*Vf(I,J,K)/DZH
-              SP(I,J,K) = SP(I,J,K) - (effVIS/DZH)*AreaHLV(I,J)
-              AH(I,J,K)=0.0
- 2321       CONTINUE
- 232      CONTINUE
-          JI=JSBi(L,ICFD)
-          JF=JSBf(L,ICFD)
-          DO 240 I=ISBi(L,ICFD),ISBf(L,ICFD)
-            TAUHV(I,JI,K)=TAUHV(I,JI+1,K)
-            TAUHV(I,JF+1,K)=TAUHV(I,JF,K)
- 240      CONTINUE
-
-        ENDIF
+C High.
+          ELSEIF(location.EQ.6)THEN
+            K=KVCELLS(IV,ICFD,1)
+            DZH=ZW(K+1)-ZP(K)
+            DO 232 I=IVCELLS(IV,ICFD,1),IVCELLS(IV,ICFD,2)
+              DO 2321 J=JVCELLS(IV,ICFD,1),JVCELLS(IV,ICFD,2)+1
+                effVIS = SIFS(J)*VIS(I,J,K)+SIFN(J-1)*VIS(I,J-1,K)
+                TAUHV(I,J,K) = -effVIS*Vf(I,J,K)/DZH
+                if (J.eq.JVCELLS(IV,ICFD,1)) then
+                  SP(I,J,K) = SP(I,J,K) - (effVIS/DZH)*AreaHLV(I,J)*0.5
+                  if(IBCTPC(I,J-1,K).eq.1 .or. IBCTPC(I,J-1,K).eq.2 .or.
+     &               IBCTPC(I,J-1,K).eq.4 .or. IBCTPC(I,J-1,K).eq.5 .or.
+     &               IBCTPC(I,J-1,K).eq.0)then
+                    AH(I,J,K)=0.0
+                  endif                
+                elseif (J.eq.JVCELLS(IV,ICFD,2)+1) then
+                  SP(I,J,K) = SP(I,J,K) - (effVIS/DZH)*AreaHLV(I,J)*0.5
+                  if (IBCTPC(I,J,K).eq.1 .or. IBCTPC(I,J,K).eq.2 .or.
+     &                IBCTPC(I,J,K).eq.4 .or. IBCTPC(I,J,K).eq.5 .or.
+     &                IBCTPC(I,J,K).eq.0) then
+                    AH(I,J,K)=0.0
+                  endif
+                else
+                  SP(I,J,K) = SP(I,J,K) - (effVIS/DZH)*AreaHLV(I,J)
+                  AH(I,J,K)=0.0
+                endif
+ 2321         CONTINUE
+ 232        CONTINUE
+          ENDIF
+        endif
  201  CONTINUE
-
-C Airflow at inlet not perpendicular to wall. Examine each opening and
-C treat those that have `directed. flow.
-      DO 241 L=1,NOPEN(ICFD)
-        J=JOPENi(L,ICFD)
-C West wall.
-        IF(IWOPEN(L,ICFD).EQ.1.AND.FIXM(L,ICFD).GT.0.) THEN
-          I=IOPENi(L,ICFD)
-          DO 280 J=JOPENi(L,ICFD),JOPENf(L,ICFD)
-            DO 2801 K=KOPENi(L,ICFD),KOPENf(L,ICFD)
-              IF(THETA1(L,ICFD).LT.0.) THEN
-                SP(I,J,K)=-GREAT
-                SU(I,J,K)=GREAT*Uf(I,J,K)*ETAND(THETA1(L,ICFD))
-              ELSEIF(THETA1(L,ICFD).GT.0.) THEN
-                IF(J.EQ.JOPENi(L,ICFD)) Vf(I-1,J,K)=-Vf(I,J,K)
-                IF(J.EQ.JOPENf(L,ICFD)) THEN
-                  SP(I,J+1,K)=-GREAT
-                  SU(I,J+1,K)=GREAT*Uf(I,J,K)*ETAND(THETA1(L,ICFD))
-                  IF(J.NE.JOPENi(L,ICFD)) THEN
-                    SP(I,J,K)=-GREAT
-                    SU(I,J,K)=GREAT*Uf(I,J,K)*ETAND(THETA1(L,ICFD))
-                  ENDIF
-                ENDIF
-                IF(J.GT.JOPENi(L,ICFD).AND.J.LT.JOPENf(L,ICFD)) THEN
-                  SP(I,J,K)=-GREAT
-                  SU(I,J,K)=GREAT*Uf(I,J,K)*ETAND(THETA1(L,ICFD))
-                ENDIF
-              ENDIF
- 2801       CONTINUE
- 280      CONTINUE
-
-C East wall.
-        ELSEIF(IWOPEN(L,ICFD).EQ.2.AND.FIXM(L,ICFD).GT.0.) THEN
-          I=IOPENi(L,ICFD)
-          DO 285 J=JOPENi(L,ICFD),JOPENf(L,ICFD)
-            DO 2851 K=KOPENi(L,ICFD),KOPENf(L,ICFD)
-              IF(THETA1(L,ICFD).LT.0.) THEN
-                SP(I,J,K)=-GREAT
-                SU(I,J,K)=GREAT*ABS(Uf(I,J,K))*ETAND(THETA1(L,ICFD))
-              ELSEIF(THETA1(L,ICFD).GT.0.) THEN
-                IF(J.EQ.JOPENi(L,ICFD)) Vf(I+1,J,K)=-Vf(I,J,K)
-                IF(J.EQ.JOPENf(L,ICFD)) THEN
-                  SP(I,J+1,K)=-GREAT
-                  SU(I,J+1,K)=GREAT*ABS(Uf(I,J,K))*ETAND(THETA1(L,ICFD))
-                  IF(J.NE.JOPENi(L,ICFD)) THEN
-                    SP(I,J,K)=-GREAT
-                    SU(I,J,K)=GREAT*ABS(Uf(I,J,K))*ETAND(THETA1(L,ICFD))
-                  ENDIF
-                ENDIF
-                IF(J.GT.JOPENi(L,ICFD).AND.J.LT.JOPENf(L,ICFD)) THEN
-                  SP(I,J,K)=-GREAT
-                  SU(I,J,K)=GREAT*ABS(Uf(I,J,K))*ETAND(THETA1(L,ICFD))
-                ENDIF
-              ENDIF
- 2851       CONTINUE
- 285      CONTINUE
-
-C Low wall.
-        ELSEIF(IWOPEN(L,ICFD).EQ.5.AND.FIXM(L,ICFD).GT.0.) THEN
-          K=KOPENi(L,ICFD)
-          DO 290 I=IOPENi(L,ICFD),IOPENf(L,ICFD)
-            DO 2901 J=JOPENi(L,ICFD),JOPENf(L,ICFD)
-              IF(THETA2(L,ICFD).LT.0.) THEN
-                SP(I,J,K)=-GREAT
-                SU(I,J,K)=GREAT*Wf(I,J,K)*ETAND(THETA2(L,ICFD))
-              ELSEIF(THETA2(L,ICFD).GT.0.) THEN
-                IF(J.EQ.JOPENi(L,ICFD)) Vf(I,J,K-1)=-Vf(I,J,K)
-                IF(J.EQ.JOPENf(L,ICFD)) THEN
-                  SP(I,J+1,K)=-GREAT
-                  SU(I,J+1,K)=GREAT*Wf(I,J,K)*ETAND(THETA2(L,ICFD))
-                  IF(J.NE.JOPENi(L,ICFD)) THEN
-                    SP(I,J,K)=-GREAT
-                    SU(I,J,K)=GREAT*Wf(I,J,K)*ETAND(THETA2(L,ICFD))
-                  ENDIF
-                ENDIF
-                IF(J.GT.JOPENi(L,ICFD).AND.J.LT.JOPENf(L,ICFD)) THEN
-                  SP(I,J,K)=-GREAT
-                  SU(I,J,K)=GREAT*Wf(I,J,K)*ETAND(THETA2(L,ICFD))
-                ENDIF
-              ENDIF
- 2901       CONTINUE
- 290      CONTINUE
-
-C High wall.
-        ELSEIF(IWOPEN(L,ICFD).EQ.6.AND.FIXM(L,ICFD).GT.0.) THEN
-          K=KOPENi(L,ICFD)
-          DO 295 I=IOPENi(L,ICFD),IOPENf(L,ICFD)
-            DO 2951 J=JOPENi(L,ICFD),JOPENf(L,ICFD)
-              IF(THETA2(L,ICFD).LT.0.) THEN
-                SP(I,J,K)=-GREAT
-                SU(I,J,K)=GREAT*ABS(Wf(I,J,K))*ETAND(THETA2(L,ICFD))
-              ELSEIF(THETA2(L,ICFD).GT.0.) THEN
-                IF(J.EQ.JOPENi(L,ICFD)) Vf(I,J,K+1)=-Vf(I,J,K)
-                IF(J.EQ.JOPENf(L,ICFD)) THEN
-                  SP(I,J+1,K)=-GREAT
-                  SU(I,J+1,K)=GREAT*ABS(Wf(I,J,K))*ETAND(THETA2(L,ICFD))
-                  IF(J.NE.JOPENi(L,ICFD)) THEN
-                    SP(I,J,K)=-GREAT
-                    SU(I,J,K)=GREAT*ABS(Wf(I,J,K))*ETAND(THETA2(L,ICFD))
-                  ENDIF
-                ENDIF
-                IF(J.GT.JOPENi(L,ICFD).AND.J.LT.JOPENf(L,ICFD)) THEN
-                  SP(I,J,K)=-GREAT
-                  SU(I,J,K)=GREAT*ABS(Wf(I,J,K))*ETAND(THETA2(L,ICFD))
-                ENDIF
-              ENDIF
- 2951       CONTINUE
- 295      CONTINUE
-        ENDIF
- 241  CONTINUE
 
       RETURN
 
@@ -4023,116 +3598,207 @@ C If flow is 1D or 2D make coefficients in other directions zero.
  1600   CONTINUE
       ENDIF
 
-C Apply BCs on each solid boundary in turn.
-      DO 301 L=1,NSB(ICFD)
-C Determine upon which face of the CFD domain the solid boundary resides.
-C `location' is equal to the least significant digit of IWSB and has the
-C following meanings: 1 for west; 2 for east; 3 for south; 4 for north;
-C 5 for low; 6 for high.
-        location = abs(IWSB(L,ICFD)) - abs(IWSB(L,ICFD))/10*10
-        KSBii=KSBi(L,ICFD)
-        DO 820 M=1,NOPEN(ICFD)
-          IF(KSBi(L,ICFD).EQ.KOPENf(M,ICFD)+1) THEN
-            KSBii=KSBii+1
-            GOTO 821
+      DO 3013 IV=1,NVOL(ICFD)
+        location=IVOLF(IV,ICFD)
+        ityp=IVTYPE(IV,ICFD)
+
+C Symmetric BC.
+        if (ityp.eq.3 .or. ityp.eq.6) then
+
+C West.
+          IF(location.EQ.1)THEN
+            I=IVCELLS(IV,ICFD,1)
+            DO 350 J=JVCELLS(IV,ICFD,1),JVCELLS(IV,ICFD,2)
+              DO 3501 K=KVCELLS(IV,ICFD,1),KVCELLS(IV,ICFD,2)+1
+                if (K.eq.KVCELLS(IV,ICFD,1) .and. 
+     &              IBCTPC(I,J,K-1).eq.11) then
+                  Wf(I-1,J,K)=Wf(I-1,J,K)+Wf(I,J,K)/2.
+                elseif (K.eq.KVCELLS(IV,ICFD,2)+1 .and. 
+     &                  IBCTPC(I,J,K).eq.11) then
+                  Wf(I-1,J,K)=Wf(I-1,J,K)+Wf(I,J,K)/2.
+                else
+                  Wf(I-1,J,K)=Wf(I,J,K)
+                endif
+ 3501         CONTINUE
+ 350        CONTINUE
+
+C East.
+          ELSEIF(location.EQ.2)THEN
+            I=ISBi(L,ICFD)
+            DO 353 J=JSBi(L,ICFD),JSBf(L,ICFD)
+              DO 3531 K=KSBi(L,ICFD),KSBf(L,ICFD)+1
+                if (K.eq.KVCELLS(IV,ICFD,1) .and. 
+     &              IBCTPC(I,J,K-1).eq.11) then
+                  Wf(I+1,J,K)=Wf(I+1,J,K)+Wf(I,J,K)/2.
+                elseif (K.eq.KVCELLS(IV,ICFD,2)+1 .and. 
+     &                  IBCTPC(I,J,K).eq.11) then
+                  Wf(I+1,J,K)=Wf(I+1,J,K)+Wf(I,J,K)/2.
+                else
+                  Wf(I+1,J,K)=Wf(I,J,K)
+                endif
+ 3531         CONTINUE
+ 353        CONTINUE
+
+C South.
+          ELSEIF(location.EQ.3)THEN
+            J=JSBi(L,ICFD)
+            DO 355 I=ISBi(L,ICFD),ISBf(L,ICFD)
+              DO 3551 K=KSBi(L,ICFD),KSBf(L,ICFD)+1
+                if (K.eq.KVCELLS(IV,ICFD,1) .and. 
+     &              IBCTPC(I,J,K-1).eq.11) then
+                  Wf(I,J-1,K)=Wf(I,J-1,K)+Wf(I,J,K)/2.
+                elseif (K.eq.KVCELLS(IV,ICFD,2)+1 .and. 
+     &                  IBCTPC(I,J,K).eq.11) then
+                  Wf(I,J-1,K)=Wf(I,J-1,K)+Wf(I,J,K)/2.
+                else
+                  Wf(I,J-1,K)=Wf(I,J,K)
+                endif
+ 3551         CONTINUE
+ 355        CONTINUE
+
+C North.
+          ELSEIF(location.EQ.4)THEN
+            J=JSBi(L,ICFD)
+            DO 358 I=ISBi(L,ICFD),ISBf(L,ICFD)
+              DO 3581 K=KSBi(L,ICFD),KSBf(L,ICFD)+1
+                if (K.eq.KVCELLS(IV,ICFD,1) .and. 
+     &              IBCTPC(I,J,K-1).eq.11) then
+                  Wf(I,J+1,K)=Wf(I,J+1,K)+Wf(I,J,K)/2.
+                elseif (K.eq.KVCELLS(IV,ICFD,2)+1 .and. 
+     &                  IBCTPC(I,J,K).eq.11) then
+                  Wf(I,J+1,K)=Wf(I,J+1,K)+Wf(I,J,K)/2.
+                else
+                  Wf(I,J+1,K)=Wf(I,J,K)
+                endif
+ 3581         CONTINUE
+ 358        CONTINUE
           ENDIF
- 820    CONTINUE
 
-C West wall.
- 821      IF(location.EQ.1)THEN
-          I=ISBi(L,ICFD)
+C Heat flux or solid BC.
+        elseif (ityp.eq.1 .or. ityp.eq.2 .or. 
+     &          ityp.eq.4 .or. ityp.eq.5) then 
 
-C Calculate distance from wall to next-to-wall grid point ($DELTA y sub p$).
-          DXW=XP(I)-XU(I)
+C West.
+          IF(location.EQ.1)THEN
+            I=IVCELLS(IV,ICFD,1)
+            DXW=XP(I)-XU(I)
+            DO 302 J=JVCELLS(IV,ICFD,1),JVCELLS(IV,ICFD,2)
+              DO 3021 K=KVCELLS(IV,ICFD,1),KVCELLS(IV,ICFD,2)+1
+                effVIS = SIFL(K)*VIS(I,J,K)+SIFH(K-1)*VIS(I,J,K-1)
+                TAUWW(I,J,K) = -effVIS*Wf(I,J,K)/DXW
+                if (K.eq.KVCELLS(IV,ICFD,1)) then
+                  SP(I,J,K) = SP(I,J,K) - (effVIS/DXW)*AreaEWW(J,K)*0.5
+                  if(IBCTPC(I,J,K-1).eq.1 .or. IBCTPC(I,J,K-1).eq.2 .or.
+     &               IBCTPC(I,J,K-1).eq.4 .or. IBCTPC(I,J,K-1).eq.5 .or.
+     &               IBCTPC(I,J,K-1).eq.0) then
+                    AW(I,J,K)=0.0
+                  endif                
+                elseif (K.eq.KVCELLS(IV,ICFD,2)+1) then
+                  SP(I,J,K) = SP(I,J,K) - (effVIS/DXW)*AreaEWW(J,K)*0.5
+                  if (IBCTPC(I,J,K).eq.1 .or. IBCTPC(I,J,K).eq.2 .or.
+     &                IBCTPC(I,J,K).eq.4 .or. IBCTPC(I,J,K).eq.5 .or.
+     &                IBCTPC(I,J,K).eq.0) then
+                    AW(I,J,K)=0.0
+                  endif
+                else
+                  SP(I,J,K) = SP(I,J,K) - (effVIS/DXW)*AreaEWW(J,K)
+                  AW(I,J,K)=0.0
+                endif
+ 3021         CONTINUE
+ 302        CONTINUE
 
-C Treat each cell on solid boundary.
-          DO 302 J=JSBi(L,ICFD),JSBf(L,ICFD)
-            DO 3021 K=KSBii,KSBf(L,ICFD)
+C East.
+          ELSEIF(location.EQ.2)THEN
+            I=IVCELLS(IV,ICFD,1)
+            DXE=XU(I+1)-XP(I)
+            DO 312 J=JVCELLS(IV,ICFD,1),JVCELLS(IV,ICFD,2)
+              DO 3121 K=KVCELLS(IV,ICFD,1),KVCELLS(IV,ICFD,2)+1
+                effVIS = SIFL(K)*VIS(I,J,K)+SIFH(K-1)*VIS(I,J,K-1)
+                TAUEW(I,J,K) = -effVIS*Wf(I,J,K)/DXE
+                SP(I,J,K) = SP(I,J,K) - (effVIS/DXE)*AreaEWW(J,K)
+                if (K.eq.KVCELLS(IV,ICFD,1)) then
+                  SP(I,J,K) = SP(I,J,K) - (effVIS/DXE)*AreaEWW(J,K)*0.5
+                  if(IBCTPC(I,J,K-1).eq.1 .or. IBCTPC(I,J,K-1).eq.2 .or.
+     &               IBCTPC(I,J,K-1).eq.4 .or. IBCTPC(I,J,K-1).eq.5 .or.
+     &               IBCTPC(I,J,K-1).eq.0)then
+                    AE(I,J,K)=0.0
+                  endif                
+                elseif (K.eq.KVCELLS(IV,ICFD,2)+1) then
+                  SP(I,J,K) = SP(I,J,K) - (effVIS/DXE)*AreaEWW(J,K)*0.5
+                  if (IBCTPC(I,J,K).eq.1 .or. IBCTPC(I,J,K).eq.2 .or.
+     &                IBCTPC(I,J,K).eq.4 .or. IBCTPC(I,J,K).eq.5 .or.
+     &                IBCTPC(I,J,K).eq.0) then
+                    AE(I,J,K)=0.0
+                  endif
+                else
+                  SP(I,J,K) = SP(I,J,K) - (effVIS/DXE)*AreaEWW(J,K)
+                  AE(I,J,K)=0.0
+                endif
+ 3121         CONTINUE
+ 312        CONTINUE
 
-C Interpolate to get effective viscosity at W-velocity point.
-C Note that effVIS is a viscosity, not a kinematic viscosity.
-              effVIS = SIFL(K)*VIS(I,J,K)+SIFH(K-1)*VIS(I,J,K-1)
+C South.
+          ELSEIF(location.EQ.3)THEN
+            J=JVCELLS(IV,ICFD,1)
+            DYS=YP(J)-YV(J)
+            DO 322 I=IVCELLS(IV,ICFD,1),IVCELLS(IV,ICFD,2)
+              DO 3221 K=KVCELLS(IV,ICFD,1),KVCELLS(IV,ICFD,2)+1
+                effVIS = SIFL(K)*VIS(I,J,K)+SIFH(K-1)*VIS(I,J,K-1)
+                TAUSW(I,J,K) = -effVIS*Wf(I,J,K)/DYS
+                if (K.eq.KVCELLS(IV,ICFD,1)) then
+                  SP(I,J,K) = SP(I,J,K) - (effVIS/DYS)*AreaNSW(I,K)*0.5
+                  if(IBCTPC(I,J,K-1).eq.1 .or. IBCTPC(I,J,K-1).eq.2 .or.
+     &               IBCTPC(I,J,K-1).eq.4 .or. IBCTPC(I,J,K-1).eq.5 .or.
+     &               IBCTPC(I,J,K-1).eq.0)then
+                    AS(I,J,K)=0.0
+                  endif                
+                elseif (K.eq.KVCELLS(IV,ICFD,2)+1) then
+                  SP(I,J,K) = SP(I,J,K) - (effVIS/DYS)*AreaNSW(I,K)*0.5
+                  if (IBCTPC(I,J,K).eq.1 .or. IBCTPC(I,J,K).eq.2 .or.
+     &                IBCTPC(I,J,K).eq.4 .or. IBCTPC(I,J,K).eq.5 .or.
+     &                IBCTPC(I,J,K).eq.0) then
+                    AS(I,J,K)=0.0
+                  endif
+                else
+                  SP(I,J,K) = SP(I,J,K) - (effVIS/DYS)*AreaNSW(I,K)
+                  AS(I,J,K)=0.0
+                endif
+ 3221         CONTINUE
+ 322        CONTINUE
 
-C Calculate wall shear stress (+ value means stress operates
-C in same direction as axis).
-              TAUWW(I,J,K) = -effVIS*Wf(I,J,K)/DXW
+C North.
+          ELSEIF(location.EQ.4)THEN
+            J=JVCELLS(IV,ICFD,1)
+            DYN=YV(J+1)-YP(J)
+            DO 332 I=IVCELLS(IV,ICFD,1),IVCELLS(IV,ICFD,2)
+              DO 3321 K=KVCELLS(IV,ICFD,1),KVCELLS(IV,ICFD,2)+1
+                effVIS = SIFL(K)*VIS(I,J,K)+SIFH(K-1)*VIS(I,J,K-1)
+                TAUNW(I,J,K) = -effVIS*Wf(I,J,K)/DYN
+                if (K.eq.KVCELLS(IV,ICFD,1)) then
+                  SP(I,J,K) = SP(I,J,K) - (effVIS/DYN)*AreaNSW(I,K)*0.5
+                  if(IBCTPC(I,J,K-1).eq.1 .or. IBCTPC(I,J,K-1).eq.2 .or.
+     &               IBCTPC(I,J,K-1).eq.4 .or. IBCTPC(I,J,K-1).eq.5 .or.
+     &               IBCTPC(I,J,K-1).eq.0)then
+                    AN(I,J,K)=0.0
+                  endif                
+                elseif (K.eq.KVCELLS(IV,ICFD,2)+1) then
+                  SP(I,J,K) = SP(I,J,K) - (effVIS/DYN)*AreaNSW(I,K)*0.5
+                  if (IBCTPC(I,J,K).eq.1 .or. IBCTPC(I,J,K).eq.2 .or.
+     &                IBCTPC(I,J,K).eq.4 .or. IBCTPC(I,J,K).eq.5 .or.
+     &                IBCTPC(I,J,K).eq.0) then
+                    AN(I,J,K)=0.0
+                  endif
+                else
+                  SP(I,J,K) = SP(I,J,K) - (effVIS/DYN)*AreaNSW(I,K)
+                  AN(I,J,K)=0.0
+                endif
+ 3321         CONTINUE
+ 332        CONTINUE
+          ENDIF
 
-C Calculate source term. Units are force/velocity. Surface area of cell = SNS*SHLW.
-C              SP(I,J,K) = SP(I,J,K) - (effVIS/DXW)*(SHLW(K)*SNS(J))
-              SP(I,J,K) = SP(I,J,K) - (effVIS/DXW)*AreaEWW(J,K)
+        endif
 
-C Disconnect cell from fictitious cell to west.
-              AW(I,J,K)=0.0
- 3021       CONTINUE
- 302      CONTINUE
-
-C TAUWW values required at scalar points.
-          KI=KSBi(L,ICFD)
-          KF=KSBf(L,ICFD)
-          DO 310 J=JSBi(L,ICFD),JSBf(L,ICFD)
-            TAUWW(I,J,KI)=TAUWW(I,J,KI+1)
-            TAUWW(I,J,KF+1)=TAUWW(I,J,KF)
- 310      CONTINUE
-
-C East wall (see west for annotations).
-        ELSEIF(location.EQ.2)THEN
-          I=ISBi(L,ICFD)
-          DXE=XU(I+1)-XP(I)
-          DO 312 J=JSBi(L,ICFD),JSBf(L,ICFD)
-            DO 3121 K=KSBii,KSBf(L,ICFD)
-              effVIS = SIFL(K)*VIS(I,J,K)+SIFH(K-1)*VIS(I,J,K-1)
-              TAUEW(I,J,K) = -effVIS*Wf(I,J,K)/DXE
-              SP(I,J,K) = SP(I,J,K) - (effVIS/DXE)*AreaEWW(J,K)
-              AE(I,J,K)=0.0
- 3121       CONTINUE
- 312      CONTINUE
-          KI=KSBi(L,ICFD)
-          KF=KSBf(L,ICFD)
-          DO 320 J=JSBi(L,ICFD),JSBf(L,ICFD)
-            TAUEW(I,J,KI)=TAUEW(I,J,KI+1)
-            TAUEW(I,J,KF+1)=TAUEW(I,J,KF)
- 320      CONTINUE
-
-C South wall (see west for annotations).
-        ELSEIF(location.EQ.3)THEN
-          J=JSBi(L,ICFD)
-          DYS=YP(J)-YV(J)
-          DO 322 I=ISBi(L,ICFD),ISBf(L,ICFD)
-            DO 3221 K=KSBii,KSBf(L,ICFD)
-              effVIS = SIFL(K)*VIS(I,J,K)+SIFH(K-1)*VIS(I,J,K-1)
-              TAUSW(I,J,K) = -effVIS*Wf(I,J,K)/DYS
-              SP(I,J,K) = SP(I,J,K) - (effVIS/DYS)*AreaNSW(I,K)
-              AS(I,J,K)=0.0
- 3221       CONTINUE
- 322      CONTINUE
-          KI=KSBi(L,ICFD)
-          KF=KSBf(L,ICFD)
-          DO 330 I=ISBi(L,ICFD),ISBf(L,ICFD)
-            TAUSW(I,J,KI)=TAUSW(I,J,KI+1)
-            TAUSW(I,J,KF+1)=TAUSW(I,J,KF)
- 330      CONTINUE
-
-C North wall (see west for annotations).
-        ELSEIF(location.EQ.4)THEN
-          J=JSBi(L,ICFD)
-          DYN=YV(J+1)-YP(J)
-          DO 332 I=ISBi(L,ICFD),ISBf(L,ICFD)
-            DO 3321 K=KSBii,KSBf(L,ICFD)
-              effVIS = SIFL(K)*VIS(I,J,K)+SIFH(K-1)*VIS(I,J,K-1)
-              TAUNW(I,J,K) = -effVIS*Wf(I,J,K)/DYN
-              SP(I,J,K) = SP(I,J,K) - (effVIS/DYN)*AreaNSW(I,K)
-              AN(I,J,K)=0.0
- 3321       CONTINUE
- 332      CONTINUE
-          KI=KSBi(L,ICFD)
-          KF=KSBf(L,ICFD)
-          DO 340 I=ISBi(L,ICFD),ISBf(L,ICFD)
-            TAUNW(I,J,KI)=TAUNW(I,J,KI+1)
-            TAUNW(I,J,KF+1)=TAUNW(I,J,KF)
- 340      CONTINUE
-
-        ENDIF
- 301  CONTINUE
+ 3013 CONTINUE
 
       RETURN
       END

@@ -426,7 +426,6 @@ C to -1.0.
             if(i3pip.eq.0)then
               foshd(i,j)=-1.0  ! grid point not within focus surface
               ioshd(i,j)=-1
-            else
             endif
           enddo ! of j
         enddo   ! of i

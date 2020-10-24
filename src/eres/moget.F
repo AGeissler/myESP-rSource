@@ -91,7 +91,7 @@ C IGET =  5 Outside surface temperature (relative to zone)
 C IGET =  6 Resultant temperature
 C IGET =  7 Construction node temperature
 
-C All fluxes saved as value in watts, reporting in KW.
+C All fluxes saved as value in watts, reporting in kW.
 C IGET =  8 Zone sensible heating
 C IGET =  9 Zone sensible cooling 
 C IGET = 10 Zone total sensible load 
@@ -130,10 +130,10 @@ C IGET = 28 Reactive electrical power consumption
 
 C IGET = 29 Delta T: zone dbT - ambient T
 
-C IGET = 30 Zone latent load - dehumidification (KW)
-C IGET = 31 Zone latent load - humidification (KW)
-C IGET = 32 Zone total latent load (kK)
-C IGET = 33 Zone sensible + latent load (KW)
+C IGET = 30 Zone latent load - dehumidification (kW)
+C IGET = 31 Zone latent load - humidification (kW)
+C IGET = 32 Zone total latent load (kW)
+C IGET = 33 Zone sensible + latent load (kW)
 C IGET = 34 Wind direction (climate parameter)
 C IGET = 35 Delta T: surf T - dewpoint T
 
@@ -470,7 +470,7 @@ C          ilflag = 2 do not include # header lines in file.
       common/exporttg/xfile,tg,delim
       COMMON/EXPORTI/ixopen,ixunit,ixpunit
 
-      integer ireportunit ! zero is default one is W two is KW three Joules
+      integer ireportunit ! 0 is default, 1 is W, 2 is kW, 3 is J
       common/repunit/ireportunit
 
       COMMON/cfdfil/LCFD(MCOM),IFCFD(MCOM)
@@ -594,7 +594,7 @@ C reset later in the code to 42 columns.
         IGETNO(NGET,1)=61
         IGETNO(NGET,6)=-3; IGETNO(NGET,7)=6
         IGETNO(NGET,8)=4;  IGETNO(NGET,9)=12
-        SLABEL(NGET)='Zone energy balance (KWhr)'; LNSLABEL(NGET)=26
+        SLABEL(NGET)='Zone energy balance (kWh)'; LNSLABEL(NGET)=25
       elseif (MENUTYPE.eq.10) then
 
 C IGET = 60 and MENUTYPE 10:  Energy demands.
@@ -604,7 +604,7 @@ C IGET = 60 and MENUTYPE 10:  Energy demands.
         IGETNO(NGET,1)=60
         IGETNO(NGET,6)=-3; IGETNO(NGET,7)=6
         IGETNO(NGET,8)=4;  IGETNO(NGET,9)=12
-        SLABEL(NGET)='Zone energy demand (KWh)'; LNSLABEL(NGET)=24
+        SLABEL(NGET)='Zone energy demand (kWh)'; LNSLABEL(NGET)=24
       elseif (MENUTYPE.eq.11) then
 
 C IGET = 63 and MENUTYPE 11: Zone casual gains distribution.
@@ -614,7 +614,7 @@ C IGET = 63 and MENUTYPE 11: Zone casual gains distribution.
         IGETNO(NGET,1)=63
         IGETNO(NGET,6)=-3; IGETNO(NGET,7)=6
         IGETNO(NGET,8)=4;  IGETNO(NGET,9)=12
-        SLABEL(NGET)='Casual gains distribution (KWh)'
+        SLABEL(NGET)='Casual gains distribution (kWh)'
         LNSLABEL(NGET)=31
       elseif (MENUTYPE.eq.12) then
 
@@ -784,7 +784,7 @@ C Make up text for 28th and 29th menu slots.
         elseif(ireportunit.eq.1)then
           ITEM(29)='" units >> W or Wh'
         elseif(ireportunit.eq.2)then
-          ITEM(29)='" units >> KW or KWh'
+          ITEM(29)='" units >> kW or kWh'
         else
           ITEM(29)='" units >> unknown'
         endif
@@ -2119,11 +2119,11 @@ C Report flux (/m^2).
             endif
           elseif(IROC.eq.-1)then
             if (ISM.eq.0) then 
-              SLABEL(NGET)='Other rad @ an ins face (W)'
-              LNSLABEL(NGET)=27
+              SLABEL(NGET)='Other rad @ an ins face (Wh)'
+              LNSLABEL(NGET)=28
             else
               SLABEL(NGET)='Other rad @ ins face (Wh/m^2)'            
-              LNSLABEL(NGET)=28
+              LNSLABEL(NGET)=29
             endif
           endif
         elseif(inoc.eq.9)then
@@ -2480,7 +2480,7 @@ C IGET = 8   Zone-side sensible heating load.
           SUFFIX=' HeatInj'; AGRLIST=.FALSE.   ! draw separately
           if(IROC.eq.0)then
             if(ireportunit.eq.0.or.ireportunit.eq.2)then
-              SLABEL(NGET)='Sensible heating load (KW)'
+              SLABEL(NGET)='Sensible heating load (kW)'
               LNSLABEL(NGET)=26
             else
               SLABEL(NGET)='Sensible heating load (W)'
@@ -2491,12 +2491,12 @@ C IGET = 8   Zone-side sensible heating load.
               SLABEL(NGET)='Sensible heating load ch (kW/h)'
               LNSLABEL(NGET)=31
             else
-              SLABEL(NGET)='Sensible heating load ch (W/h)'
+              SLABEL(NGET)='Sensible heating load chng (W/h)'
               LNSLABEL(NGET)=30
             endif
           elseif(IROC.eq.-1)then
             if(ireportunit.eq.0.or.ireportunit.eq.2)then
-              SLABEL(NGET)='Sensible heating load (KWh)'
+              SLABEL(NGET)='Sensible heating load (kWh)'
               LNSLABEL(NGET)=27
             else
               SLABEL(NGET)='Sensible heating load (Wh)'
@@ -2510,13 +2510,13 @@ C IGET = 9 Zone-side sensible cooling load.
           IGETNO(NGET,6)=-3; IGETNO(NGET,7)=6
           SUFFIX=' CoolInj'; AGRLIST=.FALSE.   ! draw separately
           if(IROC.eq.0)then
-            SLABEL(NGET)='Sensible cooling load (KW)'
+            SLABEL(NGET)='Sensible cooling load (kW)'
             LNSLABEL(NGET)=26
           elseif(IROC.eq.1)then
-            SLABEL(NGET)='Sensible cooling load ch (KW/h)'
+            SLABEL(NGET)='Sensible cooling load chng (kW/h)'
             LNSLABEL(NGET)=31
           elseif(IROC.eq.-1)then
-            SLABEL(NGET)='Sensible cooling load (KWh)'
+            SLABEL(NGET)='Sensible cooling load (kWh)'
             LNSLABEL(NGET)=27
           endif
         elseif(inoc.eq.3)then
@@ -2526,13 +2526,13 @@ C IGET = 30   Dehumidification load.
           IGETNO(NGET,6)=-4; IGETNO(NGET,7)=6
           SUFFIX=' LatExt';  AGRLIST=.FALSE.   ! draw separately
           if(IROC.eq.0)then
-            SLABEL(NGET)='Latent dehumidification (KW)'
+            SLABEL(NGET)='Latent dehumidification (kW)'
             LNSLABEL(NGET)=28
           elseif(IROC.eq.1)then
-            SLABEL(NGET)='Latent dehumidification (KW/h)'
+            SLABEL(NGET)='Latent dehumidification ch (kW/h)'
             LNSLABEL(NGET)=30
           elseif(IROC.eq.-1)then
-            SLABEL(NGET)='Latent dehumidification (KWh)'
+            SLABEL(NGET)='Latent dehumidification (kWh)'
             LNSLABEL(NGET)=29
           endif
         elseif(inoc.eq.4)then
@@ -2542,13 +2542,13 @@ C IGET = 31   Humidification load.
           IGETNO(NGET,6)=-4; IGETNO(NGET,7)=6
           SUFFIX=' LatInj';  AGRLIST=.FALSE.   ! draw separately
           if(IROC.eq.0)then
-            SLABEL(NGET)='Latent humidification (KW)'
+            SLABEL(NGET)='Latent humidification (kW)'
             LNSLABEL(NGET)=26
           elseif(IROC.eq.1)then
-            SLABEL(NGET)='Latent humidification (KW/h)'
+            SLABEL(NGET)='Latent humidification ch (kW/h)'
             LNSLABEL(NGET)=28
           elseif(IROC.eq.-1)then
-            SLABEL(NGET)='Latent humidification (KWh)'
+            SLABEL(NGET)='Latent humidification (kWh)'
             LNSLABEL(NGET)=27
           endif
         elseif(inoc.eq.5)then
@@ -2558,13 +2558,13 @@ C IGET = 10  Total sensible zone loads.
           IGETNO(NGET,6)=-3; IGETNO(NGET,7)=6
           SUFFIX=' TotSens'; AGRLIST=.FALSE.   ! draw separately
           if(IROC.eq.0)then
-            SLABEL(NGET)='Zone sensible load (KW)'
+            SLABEL(NGET)='Zone sensible load (kW)'
             LNSLABEL(NGET)=23
           elseif(IROC.eq.1)then
-            SLABEL(NGET)='Zone sensible load chg (KW/h)'
+            SLABEL(NGET)='Zone sensible load chg (kW/h)'
             LNSLABEL(NGET)=29
           elseif(IROC.eq.-1)then
-            SLABEL(NGET)='Zone sensible load (KW)'
+            SLABEL(NGET)='Zone sensible load (kWh)'
             LNSLABEL(NGET)=24
           endif
         elseif(inoc.eq.6)then
@@ -2574,12 +2574,12 @@ C IGET = 32  All latent zone loads.
           IGETNO(NGET,6)=-3; IGETNO(NGET,7)=6
           SUFFIX=' TotLat';  AGRLIST=.FALSE.   ! draw separately
           if(IROC.eq.0)then
-            SLABEL(NGET)='Zone latent load (KW)'; LNSLABEL(NGET)=21
+            SLABEL(NGET)='Zone latent load (kW)'; LNSLABEL(NGET)=21
           elseif(IROC.eq.1)then
-            SLABEL(NGET)='Zone latent load change (KW/h)'
+            SLABEL(NGET)='Zone latent load change (kW/h)'
             LNSLABEL(NGET)=30
           elseif(IROC.eq.-1)then
-            SLABEL(NGET)='Zone latent load (KWh)'; LNSLABEL(NGET)=22
+            SLABEL(NGET)='Zone latent load (kWh)'; LNSLABEL(NGET)=22
           endif
         elseif(inoc.eq.7)then
 
@@ -2588,10 +2588,10 @@ C IGET = 33  All sensible+latent zone loads.
           IGETNO(NGET,6)=-3; IGETNO(NGET,7)=6
           SUFFIX=' TotSenL'; AGRLIST=.FALSE.   ! draw separately
           if(IROC.eq.0)then
-            SLABEL(NGET)='Zone sensible + latent load (KW)'
+            SLABEL(NGET)='Zone sensible + latent load (kW)'
             LNSLABEL(NGET)=32
           elseif(IROC.eq.1)then
-            SLABEL(NGET)='Zn sens+latent load chng (KW/h)'
+            SLABEL(NGET)='Zn sens+latent load chng (kW/h)'
             LNSLABEL(NGET)=31
           elseif(IROC.eq.-1)then
             SLABEL(NGET)='Zn sens+latent load (kWh)'
@@ -2605,7 +2605,7 @@ C IGET = 8  Aggregate sensible heating load for all currently selected zones.
           SUFFIX=' AgrHeat'; AGRLIST=.TRUE.   ! draw aggregate
           if(IROC.eq.0)then
             if(ireportunit.eq.0.or.ireportunit.eq.2)then
-              SLABEL(NGET)='Agr Sensible heating (KW)'
+              SLABEL(NGET)='Agr Sensible heating (kW)'
               LNSLABEL(NGET)=25
             else
               SLABEL(NGET)='Agr Sensible heating (W)'
@@ -2613,7 +2613,7 @@ C IGET = 8  Aggregate sensible heating load for all currently selected zones.
             endif
           elseif(IROC.eq.-1)then
             if(ireportunit.eq.0.or.ireportunit.eq.2)then
-              SLABEL(NGET)='Agr Sensible heating (KWh)'
+              SLABEL(NGET)='Agr Sensible heating (kWh)'
               LNSLABEL(NGET)=26
             else
               SLABEL(NGET)='Agr Sensible heating (Wh)'
@@ -2627,10 +2627,10 @@ C IGET = 9 Aggregate sensible cooling load for all currently selected zones.
           IGETNO(NGET,6)=-302; IGETNO(NGET,7)=6
           SUFFIX=' AgrCool'; AGRLIST=.TRUE.   ! draw aggregate
           if(IROC.eq.0)then
-            SLABEL(NGET)='Agr Sensible cooling (KW)'
+            SLABEL(NGET)='Agr Sensible cooling (kW)'
             LNSLABEL(NGET)=25
           elseif(IROC.eq.-1)then
-            SLABEL(NGET)='Agr Sensible cooling (KWh)'
+            SLABEL(NGET)='Agr Sensible cooling (kWh)'
             LNSLABEL(NGET)=26
           endif
         elseif(inoc.eq.10)then
@@ -2640,10 +2640,10 @@ C IGET = 30  Aggregate Dehumidification load.
           IGETNO(NGET,6)=-304; IGETNO(NGET,7)=6
           SUFFIX=' AgrLtDH';  AGRLIST=.TRUE.   ! draw aggregate
           if(IROC.eq.0)then
-            SLABEL(NGET)='Agr Latent dehumid (KW)'
+            SLABEL(NGET)='Agr Latent dehumid (kW)'
             LNSLABEL(NGET)=23
           elseif(IROC.eq.-1)then
-            SLABEL(NGET)='Agr Latent dehumid (KWh)'
+            SLABEL(NGET)='Agr Latent dehumid (kWh)'
             LNSLABEL(NGET)=24
           endif
         elseif(inoc.eq.11)then
@@ -2653,10 +2653,10 @@ C IGET = 31 Aggregate  Humidification load.
           IGETNO(NGET,6)=-304; IGETNO(NGET,7)=6
           SUFFIX=' AgrLatH';  AGRLIST=.TRUE.   ! draw aggregate
           if(IROC.eq.0)then
-            SLABEL(NGET)='Agr Latent humidif (KW)'
+            SLABEL(NGET)='Agr Latent humidif (kW)'
             LNSLABEL(NGET)=23
           elseif(IROC.eq.-1)then
-            SLABEL(NGET)='Agr Latent humidif (KWh)'
+            SLABEL(NGET)='Agr Latent humidif (kWh)'
             LNSLABEL(NGET)=24
           endif
         endif
@@ -2907,7 +2907,7 @@ C IGET = 15  Casual gains.
               LNSLABEL(NGET)=26
             elseif(IROC.eq.1)then
               SLABEL(NGET)='Total small power gain (W/h)'
-              LNSLABEL(NGET)=298
+              LNSLABEL(NGET)=28
             elseif(IROC.eq.-1)then
               SLABEL(NGET)='Total small power gain (Wh)'
               LNSLABEL(NGET)=27
@@ -3767,7 +3767,7 @@ C << to modify the range in axis 2 (flux).
         IWM=0
         lastireportunit=ireportunit
         CALL EASKATOG(' ','Units when reporting flux:',
-     &    'normal','W or Wh','KW or KWh','cancel',' ',
+     &    'normal','W or Wh','kW or kWh','cancel',' ',
      &    ' ',' ',IWM,nbhelp)
         if(iwm.eq.1)then
           ireportunit = 0
@@ -3785,11 +3785,11 @@ C as well.
             if (YAXSET(2).gt.0) then
               if((ireportunit.eq.0.or.ireportunit.eq.2).and.
      &            lastireportunit.eq.1)then
-                YMAX(2)=YMAX(2)/1000.  ! W to KW
+                YMAX(2)=YMAX(2)/1000.  ! W to kW
                 YMIN(2)=YMIN(2)/1000.
               elseif((lastireportunit.eq.0.or.
      &                lastireportunit.eq.2).and.ireportunit.eq.1)then
-                YMAX(2)=YMAX(2)*1000.  ! KW to W
+                YMAX(2)=YMAX(2)*1000.  ! kW to W
                 YMIN(2)=YMIN(2)*1000.
               endif
             endif
@@ -3950,7 +3950,7 @@ C Check if anchor points defined.
           if (NALOC.gt.0) then
             helptopic='options_for_surf_select'
             call gethelptext(helpinsub,helptopic,nbhelp)
-            CALL EASKAB(' ','Surface selection oprions:',
+            CALL EASKAB(' ','Surface selection options:',
      &        'one at a time','via anchor point list',IAC,nbhelp)
           else
             IAC=1
@@ -4031,18 +4031,19 @@ C to confirm.
             enddo
             if (NZNOCFD.gt.0) then
               if (NZNOCFD.eq.1)then
-                write(outs,'(a,i2.2)')
-     &            'CFD domains not detected in zone!',IZNOCFD(1)              
+                write(outs,'(a,i2.2,a)')
+     &            'CFD domains not detected in zone ',IZNOCFD(1),'!'
               elseif (NZNOCFD.eq.NCOMP) then
                 write(outs,'(a)')
      &            'CFD domains not detected in any zone!'
               else
                 write(outs,'(a,i2.2)')
-     &            'CFD domains not detected in zones!',IZNOCFD(1)
+     &            'CFD domains not detected in zones ',IZNOCFD(1)
                 do I=2,NZNOCFD
                   write(outs,'(2a,i2.2)')outs(1:lnblnk(outs)),', ',
      &              IZNOCFD(I)
                 enddo
+                write(outs,'(2a)')outs(1:lnblnk(outs)),'!'
               endif
               CALL EDISP(IUOUT,outs)
               ok=.false.
@@ -4362,7 +4363,7 @@ C All NGET metrics are recovered by repeatedly calling GOGETIT.
       COMMON/GET1/VAL1(MZS,MTS),VAL2(MZS,MTS),VAL3(MZRL,MTS)
       COMMON/GET2/XDUM(MTS),XDUM1(MTS),GVAL(MTS)
 
-      integer ireportunit ! 0 is default, 1 is W, 2 is KW, 3 is J
+      integer ireportunit ! 0 is default, 1 is W, 2 is kW, 3 is J
       common/repunit/ireportunit
 
       dimension XVAL(MZS),XVALOLD(MZS)
@@ -4443,7 +4444,7 @@ C array IGETNO and KGET.
       common/getmenu/menutype,igetind(65),igetflux(65)
       COMMON/GET1/VAL1(MZS,MTS),VAL2(MZS,MTS),VAL3(MZRL,MTS)
       COMMON/GET2/XDUM(MTS),XDUM1(MTS),GVAL(MTS)
-      common/repunit/ireportunit  ! 0 is default, 1 is W, 2 is KW, 3 is J
+      common/repunit/ireportunit  ! 0 is default, 1 is W, 2 is kW, 3 is J
       
       character CSTR*25
       dimension CQ(MTS),GC(MTS),AGR(MTS)

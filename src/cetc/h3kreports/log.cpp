@@ -5,7 +5,7 @@
 //This call could probably be easily extended to esp-r if needs be.
 //Because the class is a singleton the calls to use it are a bit
 //difference then the norm.  This class does not need to be
-//instanciated by the calling class.  Just add to the include and
+//instantiated by the calling class.  Just add to the include and
 //use away.
 
 //Example to call:

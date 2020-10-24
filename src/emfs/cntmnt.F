@@ -404,9 +404,13 @@ C RCMGL  = Rate of contaminant mass gained/lost from each source/sink
 #include "net_flow.h"
 #include "net_flow_data.h"
 #include "FMI.h"
+#include "tdf2.h"
+
+      common/trc/itrc
 
 C Simulation time commons
       COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS,idynow
+      common/btime/btimep,btimef
 
 C Operations file commons
       common/CASGNS/NCGPER(MCOM,MDTY,MGTY),TCGS(MCOM,MDTY,MGTY,MGPER),
@@ -419,7 +423,6 @@ C Calendar commons
 
 C Mass flow and Contaminant commons
       COMMON/AFN/IAIRN,LAPROB,ICAAS(MCOM)
-
       COMMON/CONTM0/NCONTM,NOCNTM,CONTMNAM(MCONTM)
       COMMON/CONTM2/CNCAJAM(MPRODI),ZMCPAM(MPRODI)
       COMMON/CONTM4/GERATAM(MPRODI),RECCOAM(MPRODI)
@@ -434,6 +437,7 @@ C Mass flow and Contaminant commons
       CHARACTER SSNAME*12,CONTMNAM*12
       LOGICAL ISLNKD1,ISLNKD2,PRECON
       CHARACTER LAPROB*72
+      REAL VAL(MBITS+2)
 
 C Initialise source / sink mass 
       RCMGL=0.0
@@ -454,8 +458,8 @@ C Get source/sink linked with this contaminant at this node
               DO WHILE(ISLNKD2)
                 IF(SSLINK2(ISPMNO2,INOD).EQ.0)GOTO 124
                 DO 100 ISPMNO=1,MSPMNO  
-                  IF(SSLINK2(ISPMNO2,INOD).EQ.SSLINK1(ISPMNO,ICONTM))
-     &            THEN
+                  IF(SSLINK2(ISPMNO2,INOD).EQ.
+     &               SSLINK1(ISPMNO,ICONTM))THEN
 
 C Get source/sink type and number
                     ISSN=SSLINK2(ISPMNO2,INOD)
@@ -549,28 +553,39 @@ C Get zone represented by this airflow node
                         IF(ICAAS(IZN).EQ.INOD)ICOMP=IZN
  576                  CONTINUE
 
+C Check for temporal data in this zone.
+                      if(ICASUAL3(icomp).ne.0)then
+                        IFOC=ICASUAL3(icomp)
+                        CALL RCTDFB(itrc,btimef,VAL,ISD,IFOC,IER)
+                        POW = VAL(ISD)+VAL(ISD+1)+VAL(ISD+2)
+
+C Otherwise, use data from operations file.
+                      else
+
 C Assume casual gain type 1 is occupancy
-                      IGTYP=1
-                      POW=0.0
-                      DO 577 IGNO=1,NCGPER(ICOMP,IDYTP,IGTYP)
-                        IF(IHRP.GE.TCGS(ICOMP,IDYTP,IGTYP,IGNO).AND.
-     &                     IHRP.LE.TCGS(ICOMP,IDYTP,IGTYP,IGNO+1))THEN
+                        IGTYP=1
+                        POW=0.0
+                        DO 577 IGNO=1,NCGPER(ICOMP,IDYTP,IGTYP)
+                          IF(IHRP.GE.TCGS(ICOMP,IDYTP,IGTYP,IGNO).AND.
+     &                       IHRP.LE.TCGS(ICOMP,IDYTP,IGTYP,IGNO+1))THEN
+
 C <FMI>
 C If FMI occupancy control is active, need to multiply gains by control
 C value.
-                          if (FMUDOCTL(ICOMP,7)) then
-                            POW=(CGSENC(ICOMP,IDYTP,IGTYP,IGNO) +
-     &                           CGSENR(ICOMP,IDYTP,IGTYP,IGNO) +
-     &                           CGLAT(ICOMP,IDYTP,IGTYP,IGNO)) *
-     &                           FMUCTL(ICOMP,7)
-                          else
+                            if (FMUDOCTL(ICOMP,7)) then
+                              POW=(CGSENC(ICOMP,IDYTP,IGTYP,IGNO) +
+     &                             CGSENR(ICOMP,IDYTP,IGTYP,IGNO) +
+     &                             CGLAT(ICOMP,IDYTP,IGTYP,IGNO)) *
+     &                            FMUCTL(ICOMP,7)
+                            else
 C </FMI>
-                            POW=CGSENC(ICOMP,IDYTP,IGTYP,IGNO) +
-     &                          CGSENR(ICOMP,IDYTP,IGTYP,IGNO) +
-     &                          CGLAT(ICOMP,IDYTP,IGTYP,IGNO) 
-                          endif
-                        ENDIF
- 577                  CONTINUE
+                              POW=CGSENC(ICOMP,IDYTP,IGTYP,IGNO) +
+     &                            CGSENR(ICOMP,IDYTP,IGTYP,IGNO) +
+     &                            CGLAT(ICOMP,IDYTP,IGTYP,IGNO) 
+                            endif
+                          ENDIF
+ 577                    CONTINUE
+                      endif
 
 C Calculate volume of CO2 given off at 4E-5 litres/sec from 1 Watt
 C Density of CO2 is cubically interpolated from 'known' densities

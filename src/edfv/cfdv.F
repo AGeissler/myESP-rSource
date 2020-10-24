@@ -68,7 +68,7 @@ C CFD common blocks.
       common/param2/TITLE(MNZ),CFTRFL(MNZ),LPHI(MNZ)
       COMMON/SIMT/TSTEP,NSINC
       COMMON/ICFNOD/ICFD,ICP
-      COMMON/ICFCHN/ICFMON(MNZ),ICFTMP,ICFLIB
+      COMMON/ICFCHN/ICFMON(MNZ),ICFDBC(MNZ),ICFTMP,ICFLIB
 
 C Flow visualization common blocks.
       COMMON/VISFIL/LVEC,LBIT
@@ -537,10 +537,6 @@ C          VLSCvw(1,1)=1.0; vLscal=1.0 ! defaults
           HLSCvw(1,1)=1.0; hLscal=1.0
           HTSCvw(1,1)=1.0; hWscal=1.0
           IFRQvw(1,1)=4
-
-C Set the geometry for the CFD domain in terms of ESP-r's standard
-C geometry model.
-          CALL SETGEO
 
 C Set the number of pixels required for the image.  This is a function
 C of the resolution specified by the user and the geometry of the model.

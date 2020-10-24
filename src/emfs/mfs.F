@@ -79,6 +79,7 @@ C Activation of connections
       COMMON/ACT/ACTCNN(MCNN)
       character*72 LAPROB
       common/AFN/IAIRN,LAPROB,ICAAS(MCOM)
+      COMMON/MFCALC/IPSMOD,MSLVTP
 
 C Once per hour storage of results, averaged over that hour.
       common/c6/indcfg
@@ -107,7 +108,7 @@ C Ask to overwrite flag.
       character dstmp*24,uname*24,tfile*72
 
       character cVnum*38      ! returned from ESPrVersionNum
-      character pagestitle*68 ! for banner title via epages call
+      character pagestitle*72 ! for banner title via epages call
 
       integer iglib   ! if 1 then X11, if 2 then GTK, if 3 then text only.
       integer IWM     ! for radio button
@@ -204,6 +205,8 @@ C Stand-alone version of mfs. Set INDCFG accordingly.
 C Initialize once per hour storage of results counter.
       irdact=0
       irdcm=1
+      IPSMOD=1  ! initial assumption
+      MSLVTP=2  ! LU solver as in mfsbps.F
 
 C Activate all connections.
       DO 1 ICNN=1,MCNN

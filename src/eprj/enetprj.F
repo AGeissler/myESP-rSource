@@ -1912,16 +1912,18 @@ C Calendar commons
       common/caleni/nbdaytype,nbcaldays(MDTY),icalender(365)
       INTEGER NBDAYTYPE,NBCALDAYS,ICALENDER,IDTY,ITAG
 
-C Type casting (all varaiables and arrays cast explicitly)
-      INTEGER NPCOMP,NCI,
-     &I,J,K,IPHYB,IEHYB,IHYB,ISTRL,IAPPF
 
       REAL CDATA
       DIMENSION TMPDESC(3),IVALS(5),TMPTYPSTR(3),IAPPF(3)
+      DIMENSION LOADSTR(MGTY),IVALSL(MGTY),IINDEX(MGTY)
+      
+      INTEGER NPCOMP,NCI,
+     &I,J,K,IPHYB,IEHYB,IHYB,ISTRL,IAPPF,ILTY,IX,IVALSL
+     &IMENL, IVALS, IINDEX
 
 C Characters
       CHARACTER*3 MODE
-      CHARACTER*12 TMPTYPSTR,SHSTR
+      CHARACTER*12 TMPTYPSTR,SHSTR,LOADSTR
       CHARACTER*72 TMPDESC,LNGSTR
       CHARACTER*124 OUTS
       LOGICAL OK,PHCPT
@@ -1930,6 +1932,7 @@ C For help messages
       character helpinsub*24 ! subroutine name
       character helptopic*24 ! string (unique) for topic
       integer nbhelp     ! number of help lines found
+      integer lnblnk
 
       helpinsub='EDEHYB'  ! set for subroutine
 
@@ -1973,7 +1976,8 @@ C and set the type and type string.
         helptopic='elec_net_attach_loads'
         call gethelptext(helpinsub,helptopic,nbhelp)
         CALL EASKABCD(' ','Component options:',
-     &  'zone electrical load','PV array','plant component','cancel',
+     &  'zone electrical load','renewable source',
+     &  'plant component','cancel',
      &  IPHYB,nbhelp)   
 
         IF(IPHYB.EQ.4) RETURN 
@@ -2012,55 +2016,44 @@ C Get the appropriate day type and load.
           helptopic='elec_net_opr_type'
           call gethelptext(helpinsub,helptopic,nbhelp)
 
-C Scan through the zone loads and determine the active types
-          TMPTYPSTR(1)=' '
-          WRITE(TMPTYPSTR(1),'(A)') 'Inapplicable'
-          IAPPF(1)=0
-          TMPTYPSTR(2)=' '
-          WRITE(TMPTYPSTR(2),'(A)') 'Inapplicable'
-          IAPPF(2)=0
-          TMPTYPSTR(3)=' '
-          WRITE(TMPTYPSTR(3),'(A)') 'Inapplicable'
-          IAPPF(3)=0
+C Scan through this zone's load labels and determine the types
+          IMENL=0
+          DO 2345 ILTY = 1, MGTY
 
-C Loop through each casual gain and determine if it is applicable or not.
+C Save index for menu pick. 
+            IINDEX(ILTY)=-1
+            
+C Add other appropriate load types if they become available currently only Lights and
+C Equipment recognised.
+            IF(LODLABEL(IZ,ILTY)(1:LNBLNK(LODLABEL(IZ,ILTY)))
+     &.EQ.'Lights'.OR.LODLABEL(IZ,ILTY)(1:LNBLNK(LODLABEL(IZ,ILTY)))
+     &.EQ.'Equipment')THEN
+              IMENL=IMENL+1
+              IINDEX(IMENL)=ILTY
+              LOADSTR(IMENL) = LODLABEL(IZ,ILTY)
+            ENDIF
+ 2345     CONTINUE
 
-C << see if data structures can be updated! 
 
-cx          IF(NBDAYTYPE.GT.3)THEN
-cx            CALL EDISP(IUOUT,'More than three day types are not')
-cx            CALL EDISP(IUOUT,'supported for hybrid power components')
-cx            CALL EDISP(IUOUT,'Warning generated from subroutine EDEHYB')
-cx          ENDIF
-          DO 500 IDTY=1,3
-            ITAG=0
-            DO 501 I=1,MC
-              IF((ICGT(IDTY,I).EQ.1).or.(ICGT(IDTY,I).EQ.-1)) ITAG=1
-              IF(ITAG.EQ.1.AND.IAPPF(IDTY).EQ.0)THEN
-                TMPTYPSTR(IDTY)=' '
-                IF(LODLABEL(IZ,IDTY)(1:6).NE.'Occupt')THEN
-                  TMPTYPSTR(IDTY)=' '
-                  WRITE(TMPTYPSTR(IDTY),'(A)') LODLABEL(IZ,IDTY)
-                  IAPPF(IDTY)=1
-                ENDIF
-              ENDIF
- 501        CONTINUE
- 500      CONTINUE
-         
-C Replace this with a menu if the number of load types increases.
+C Select the gain to .
           CALL USRMSG(' ',' ','-')
- 16       CALL EASKABCD(' ',
-     &      'load to connect:',TMPTYPSTR(1),TMPTYPSTR(2),
-     &      TMPTYPSTR(3),'cancel',ILOD,nbhelp)
-          IF(ILOD.EQ.4) THEN
-            RETURN
-          ELSEIF(IAPPF(ILOD).EQ.0) THEN
-            CALL EDISP
-     &(IUOUT,'This load cannot be attached - try again')
-            GOTO 16
-          ELSE
+          helptopic='elec_net_attach_hyb'
+          call gethelptext(helpinsub,helptopic,nbhelp)
+          IX=1
+ 16       CALL EPICKS(IX,IVALSL,'Select a load to connect ',
+     &	  'to the electrical network',12,IMENL,LOADSTR,
+     &	  'connect load',IER,nbhelp)
+
+          IF (IVALSL(1).EQ.0) GOTO 5
+          IF(IVALSL(1).GT.0.AND.IVALSL(1).LE.IMENL.AND.
+     &IINDEX(IVALSL(1)).GT.0) THEN
+     
+C Save zone location and load type (saved in IINDEX) for power modelling 
             HYLOC(IEHYB,1)=IZ
-            HYLOC(IEHYB,2)=ILOD
+            HYLOC(IEHYB,2)=IINDEX(IVALSL(1))
+          ELSE
+            CALL USRMSG('Invalid selection ',' ','-')
+            GOTO 16
           ENDIF
 
 C For the case of a PV material present a list of the current special materials

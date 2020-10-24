@@ -206,10 +206,10 @@ C Perform ZONE sums and averages.
 
 C Print out the results for each path.
       DO 150 I=1,17
-        IF(I.LT.16)goto 82
+        IF(I.LT.17)goto 82
 
 C Decode the current environmental control actuation point into
-C appropraite text. 
+C appropriate text. 
 C << recode without the GOTO >>
         II=NIT+2
         GOTO(812,811,82,814),II

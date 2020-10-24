@@ -13,17 +13,11 @@ C warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
 C PURPOSE. See the GNU General Public License for more
 C details.
 
-C You should have received a copy of the GNU General Public
-C License along with ESP-r. If not, write to the Free
-C Software Foundation, Inc., 59 Temple Place, Suite 330,
-C Boston, MA 02111-1307 USA.
-
 C This file contains the following routines:
 C      MZNUMA
 
 c ******************** MZNUMA ********************
-
-c MZNUMA is the main controller for the numerical simulation
+c The main controller for the numerical simulation.
 
       SUBROUTINE MZNUMA
 #include "plant.h"
@@ -77,7 +71,6 @@ C solar radiation data are half-hour centered.
       COMMON/CWEC_SOL2/idif_next,idnr_next
       integer  idif_next, idnr_next         !- diffuse and direct normal radiation data, respectively
                                             !- for 2nd hour of next day.
-
 
 C Trace output.
       IF(ITC.GT.0.AND.NSINC.GE.ITC.AND.NSINC.LE.ITCF.AND.
@@ -137,8 +130,7 @@ c Initialise plant time-step controller variables.
 
 c If monitoring is on then while in start-up period, display message .
       if(monitr.eq.1.and.itcnst.gt.0)
-     & call usrmsg(' ',
-     &     ' Monitoring will commence shortly ...','-')
+     & call edisp(iuout,'Monitoring will commence momentarily.')
 
 C Remember the 'start value' of the UNIX system clock.
       ISTIME=TIME()
@@ -168,7 +160,7 @@ c through Sunday 7.
       CALL EDAYR(IDYF,ID,IM)
       CALL EWEEKD(ID,IM,IYEAR,IDWF)
 
-c Establish climatic data for present day and first
+c Establish weather data for present day and first
 c hour of future day: future day first.
       IREC=IDYF
       READ(IUNIT,REC=IREC,IOSTAT=ISTAT,ERR=1000)(IDIF(J),ITMP(J),
@@ -217,7 +209,7 @@ c Is building computational time-step less than one hour ?
 C ITS is the current time-step within an hour.
       ITS=K
 
-C Increment the simulation counter
+C Increment the simulation counter.
       NSINC=NSINC+1
 
 C Set the future time-row hour value.
@@ -233,11 +225,11 @@ C Output current simulation increment, if TRACE ON.
          call edisp(itu,outs)
       endif
 
-C Determine climatic parameters at the present and
+C Determine weather parameters at the present and
 C future time row.
       CALL MZCLMPT(1)
 
-C First time step only: assign starting values of plant nodal variables
+C First time step only: assign starting values of plant nodal variables.
       IF(I.EQ.ISS.AND.J.EQ.1.AND.K.EQ.1)THEN
          CALL MZNASP
 
@@ -256,7 +248,7 @@ c Also return the ratio of new 'ntstpp' over old 'ntstpp'(itstpp).
 C Plant multiple time-steps within each building-side time-step.
       DO 100 KK=1,NTSTPP
 
-C Adjust timer
+C Adjust timer.
       IPTS=KK
       PTIMEP=PTIMEF
       IF(NSINC.EQ.1.AND.KK.EQ.1)PTIMEP=1.0
@@ -304,10 +296,7 @@ c type.
 c         if(monitr.eq.1) call mgraph(0,0,2)
       endif
 
-
-
-
-C Plant side now complete
+C Plant side now complete.
    30 CONTINUE
 
 c Assign old plant time-step value and initialise other variables.
@@ -317,12 +306,11 @@ c Assign old plant time-step value and initialise other variables.
       ratiop=1
       itctyp=0
 
-
-C Hour step now complete
+C Hour step  complete.
       CONTINUE
 
-C Establish percentage completion (of simulation), adjust expected
-C finish time and output appropriate message but only if previous
+C Establish percentage completion, adjust expected finish
+C time and output appropriate message but only if previous
 C report was issued more than 5 seconds ago.
       INHS=INHS+1
       SIMCOM=FLOAT(INHS)/FLOAT(NHS)
@@ -364,14 +352,11 @@ C report was issued more than 5 seconds ago.
          call edisp(iuout,outs)
       END IF
 
-   20 CONTINUE
-C Hour loop now complete.
+   20 CONTINUE   ! Ed of hour loop.
 
-   10 CONTINUE
-C Day loop now complete.
+   10 CONTINUE   ! End of day loop.
 
-c Set start address of next solution-set in
-c library.
+c Set start address of next solution-set in results library.
       IF(INDCFG.NE.1)CALL MZPLS4
 
 c Disable plant time-step controller.
@@ -386,7 +371,7 @@ C Inform user that simulation complete before returning.
      &            ' Remember to SAVE your results!','-')
       return
 
- 1000 write(outs,'(A,I3)') ' mznuma: climate file error @ rec ',irec
+ 1000 write(outs,'(A,I3)') 'mznuma: weather file error @ rec ',irec
       call edisp(iuout,outs)
       CALL EPWAIT
       GOTO 16

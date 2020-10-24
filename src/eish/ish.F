@@ -4,7 +4,7 @@ C Strathclyde, Glasgow Scotland, 2001.
 
 C ESP-r is free software.  You can redistribute it and/or
 C modify it under the terms of the GNU General Public
-C License as published by the Free Software Foundation 
+C License as published by the Free Software Foundation
 C (version 2 or later).
 
 C ESP-r is distributed in the hope that it will be useful
@@ -86,7 +86,7 @@ C Sets up defaults and the main menu.
 #include "material.h"
 #include "espriou.h"
 #include "prj3dv.h"
-      
+
       integer lnblnk  ! function definition
 
       common/outin/iuout,iuin,ieout
@@ -111,7 +111,7 @@ C Sets up defaults and the main menu.
       character ltrns*72
       integer multic,mons,monf
       common/mtfile/ltrns,multic,mons,monf
-      
+
       integer ncomp,ncon
       common/c1/ncomp,ncon
 
@@ -134,7 +134,7 @@ C Defaults.
 
 C 3D visualisation mode.
       COMMON/MODVIS/IVISMOD
-      
+
 C Significant figure reporting limit.
       common/sfig/nsigfig
       common/exporttg/xfile,tg,delim
@@ -245,7 +245,7 @@ C ifcfg  - system configuration file
       changed_existing=.false.
       freshshading=.false.  ! assume we have not asked for a new shading calc
 
-C The original parsing code (to be removed once local variant tested).      
+C The original parsing code (to be removed once local variant tested).
 C      call parsish(modl,iappw,iappx,iappy,inf,inz,pact,pascif)
 C      write(6,*) modl,iappw,iappx,iappy,inf,inz,pact,pascif
 
@@ -422,7 +422,7 @@ C Because ish can be started up in several modes, delay echo
 C of the version & scan of the esprc file until after the
 C input parameters have been determined.
 C Process command line action parameters:
-C  paction = recalculate - read system configuration file, 
+C  paction = recalculate - read system configuration file,
 C                          initiate annual calculation and
 C                          pause to allow user to view results.
 C  paction = update_silent - as above but silent.
@@ -492,11 +492,11 @@ C and exit ish.
       endif
 
       if(.NOT.silent)then
-      
+
 C Not in silent recalculation mode so present application version
 C information.
         CALL ESPrVersion("summary",cAppName,IUOUT)
-      endif 
+      endif
 
 C Find the user's home folder and get user's custom settings.
       call usrhome(upath)
@@ -625,7 +625,7 @@ C Open model databases if not already done.
      &               'or optical properties db.','W')
               endif
             endif
-    
+
             if(paction(1:13).eq.'update_silent'.or.
      &         paction(1:16).eq.'useupdate_silent')then
               continue
@@ -675,7 +675,7 @@ C the requested useupdate_silent task has been completed.
                  loaded_existing=.true.
                  if(paction(1:16).eq.'useupdate_silent')then
                    close(ieout)
-                   if(iecount.eq.0)then     ! delete if no warnings 
+                   if(iecount.eq.0)then     ! delete if no warnings
                      open(ieout,file=iefile,status='UNKNOWN')
                      call efdelet(ieout,istat)
                    endif
@@ -705,7 +705,7 @@ C current zone. If it exists then proceed as for asci2bin.
           close(ieout)
           call ERPFREE(ieout,ISTAT)
           call epagend
-          stop 
+          stop
         else
           lnshd=lnblnk(lshad(icomp))
           write(ascif,'(2a)') lshad(icomp)(1:lnshd),'a'
@@ -736,7 +736,7 @@ C current zone. If it exists then proceed as for asci2bin.
                   close(ieout)  ! keep the error log file
                   CALL ERPFREE(ieout,ISTAT)
                   call epagend
-                  stop 
+                  stop
                 endif
                 write(outs,'(3a)') 'Reading ASCII file ',
      &            ascif(1:lnblnk(ascif)),'.'
@@ -750,7 +750,7 @@ C There are no files to cleanup so convert and exit.
                   call efdelet(ieout,istat)
                 endif
                 call epagend
-                stop     
+                stop
               endif
             endif
           else
@@ -776,7 +776,7 @@ C before starting conversion.
            close(ieout)
            CALL ERPFREE(ieout,ISTAT)
            call epagend
-           stop 
+           stop
          else
            if(isi(icomp).EQ.1)then
              maxrec=24
@@ -804,7 +804,7 @@ C before starting conversion.
                  close(ieout)
                  CALL ERPFREE(ieout,ISTAT)
                  call epagend
-                 stop 
+                 stop
                endif
                write(outs,'(3a)') ' Reading ASCII file ',
      &           ascif(1:lnblnk(ascif)),'...'
@@ -818,12 +818,12 @@ C There are no files to cleanup so convert and exit.
                  call efdelet(ieout,istat)
                endif
                call epagend
-               stop     
+               stop
              endif
            endif
          endif
       endif
-      
+
 C Assume that the zone S/I file is scanned and common blocks
 C filled prior to calling sifexp.
       if(silent.and.paction(1:8).eq.'bin2asci')then
@@ -836,7 +836,7 @@ C filled prior to calling sifexp.
            close(ieout)
            CALL ERPFREE(ieout,ISTAT)
            call epagend
-           stop 
+           stop
          else
 
 C If loaded_existing has been set to true we probably can do the
@@ -854,7 +854,7 @@ C ascii file.
            endif
            call pauses(1)
            call epagend
-           stop 
+           stop
          endif
       endif
 
@@ -889,7 +889,7 @@ C starting calculation.
                  call edisp(iuout,'Problem setting up new file.')
                endif
             endif
-          
+
 C Proceed with shading and then insolation calculations.
             if(iobs(icomp).gt.0)then
                write(outs,'(3a)')'Shading calculations for ',
@@ -984,10 +984,10 @@ C Computations finished, write out the ascii version of the S/I file.
            call edisp(iuout,outs)
          endif
 
-C Don not generate the equivalent ascii file if in embedded generation mode.
-         if(ISIcalc.ne.1)call sifexp(icomp,exportfile,ier)
-C         call pauses(1)
- 
+C Do not generate the equivalent ascii file if in embedded generation mode.
+C         if(ISIcalc.ne.1)call sifexp(icomp,exportfile,ier)
+         call sifexp(icomp,exportfile,ier)
+
 C Allow user to quit manually for a recalculate directive but
 C auto exit for update_silent.
          if(paction(1:13).eq.'update_silent'.or.
@@ -1001,7 +1001,7 @@ C auto exit for update_silent.
            stop
          endif
       endif
-      
+
 C Display opening menu.
   201 ier=0
       inos=-3
@@ -1141,7 +1141,7 @@ C Read geometry file.
          write(outs,'(2a)')'ish: shift zone focus to: ',zname(icomp)
          call tstamp('>',outs)
 
-C If there is an existing transitional shading file with 
+C If there is an existing transitional shading file with
 C the zone's name as root, ask whether to use it.
          write(lname,'(a)')zname(icomp)(1:lnzname(icomp))
          ltrns=lname
@@ -1176,7 +1176,7 @@ C Draw the site plan or sun view.
          call gethelptext(helpinsub,helptopic,nbhelp)
          call easkab(' ','View:','plan','from sun',iw,nbhelp)
 
-C After drawing the site plan, reread the zone geometry file  
+C After drawing the site plan, reread the zone geometry file
 C to reconstruct common block data.
          if(iw.eq.1)then
             call tstamp('>','ish: entering site plan.')
@@ -1349,7 +1349,7 @@ C If output to file auto yes for user questions about months.
               if(ier.ne.0)goto 201
             endif
             call eday(iavdec(mon),mon,iyd)
-    
+
 C If there is a transitional shading file then use it when composing
 C the synopsis. If not found (i.e. if binary file is based on reading
 C an ascii shading file) then use an alternative approach.
@@ -1370,7 +1370,7 @@ C shading file.
               call edisp(iuout,outs)
               call retrv1(icomp)
               call shsynp(icomp,allsurf)
-       
+
             else
 
 C Shading synopsis is based on common block information.
@@ -1395,7 +1395,7 @@ C Shading synopsis is based on common block information.
            ITFS=lasttextfont    ! reset to proportional font in text feedback
            IFS=lastbuttonfont
            call userfonts(IFS,ITFS,IMFS)
-           call usrmsg(' ',' ','-') 
+           call usrmsg(' ',' ','-')
          endif
 
 C Plot surface shading patterns using information in zone transitional
@@ -1443,7 +1443,7 @@ C file.
             endif
          endif
 
-C Calculate insolation of internal surfaces due to specified external 
+C Calculate insolation of internal surfaces due to specified external
 C source surfaces.
       elseif(inos.eq.14)then
          if(zn(1:4).eq.'UNKN')then
@@ -1728,7 +1728,7 @@ C When exiting, write out the ascii version of the database.
      &      lnshd.le.1.or.lnshd.ge.72)then
             continue
          else
-         
+
 C If user is browsing we may not want to write ascii file.
 C If the user has just opened an existing database but not
 C changed it then we do not need to write it out.
@@ -1749,10 +1749,10 @@ C changed it then we do not need to write it out.
      &          exportfile(1:lnblnk(exportfile))
              call edisp(iuout,outs)
              call sifexp(icomp,exportfile,ier)
-             call pauses(1)           
+             call pauses(1)
            endif
          endif
- 
+
          if(journio.eq.1)then
             call tstamp('>','Finished shading & insolation analysis.')
             close(iuj)
@@ -1778,7 +1778,7 @@ C Not a legitimate menu choice.
       goto 201
 
       end
-      
+
 C ********** SHDPRB **********
 C Scans the system configuration file for the files that define
 C the problem or allows user input. Depending on what happened
@@ -1798,7 +1798,7 @@ C  ifstat = 8  new file filled via import of ascii file
 #include "model.h"
 #include "geometry.h"
 #include "prj3dv.h"
-      
+
       integer lnblnk  ! function definition
 
       common/spad/mmod,limit,limtty
@@ -1903,7 +1903,7 @@ C or if the user requested a file conversion.
            elseif(paction(1:8).eq.'asci2bin')then
              continue
            else
-             write(exportfile,'(2a)') 
+             write(exportfile,'(2a)')
      &         lshad(icomp)(1:lnblnk(lshad(icomp))),'a'
              call findfil(exportfile,xst)
              if(xst)then
@@ -1959,7 +1959,7 @@ C Dummy routine (needed for call back from c.
       subroutine imgdisp(iforce,focus,ier)
 
       character focus*4
-     
+
       return
       end
 
@@ -1981,7 +1981,7 @@ C << update this to match changes in lfmat >>
 #include "building.h"
 #include "esprdbfile.h"
 #include "material.h"
-      
+
       integer lnblnk  ! function definition
 
       common/FILEP/IFIL
@@ -2019,7 +2019,7 @@ C carry on using the materials common blocks for subsequent access.
       call scananymat(ier)
       call eclose(matver,1.1,0.001,closemat1)
       call eclose(matver,1.2,0.001,closemat2)
-        
+
 C Read multilayer db information into common. If in update_silent mode
 C ish might be called during install installation and as there are no
 C materials database but a local constructions database there will be
@@ -2049,7 +2049,7 @@ C Depending on location check existance.
           goto 138    ! if silent and no materials jump to optics
         endif
         IF(IER.eq.1)then
-          write(outs248,'(3a)') 
+          write(outs248,'(3a)')
      &    ' Problems with materials used by Constructions db',
      &     LFMAT(1:lnblnk(LFMAT)),'!'
           call edisp248(iuout,outs248,100)
@@ -2194,11 +2194,11 @@ C ******************** parsishd ********************
 C Allows ish to be passed a terminal, size, config file,
 C zone focus and actions arguments from the invocation line.
 C If a specific calculation day is required, iday & imonth
-C will be non-zero. 
- 
+C will be non-zero.
+
       subroutine parsishd(termtype,iappw,iappx,iappy,inf,zone,act,
      &  ascif,iverb,iday,imonth)
-	      
+
       integer lnblnk  ! function definition
 
       integer :: IUOUT,IUIN,IEOUT
@@ -2220,7 +2220,7 @@ C Local variables for GetCommandLineArguments.
       character(72)  :: argument
       character outs*248
 
-C Function definitions      
+C Function definitions.
       integer :: iargc
 
       integer m,IOS
@@ -2269,7 +2269,7 @@ C If one parameter.
      &     '                      <{asci2bin|bin2asci}, file>')
         call edisp(iuout,'   dictates ish computation where:')
         call edisp(iuout,'    - "recalculate" recomputes the S/I')
-        call edisp(iuout,'      factors;')  
+        call edisp(iuout,'      factors;')
         call edisp(iuout,'    - "update_silent"')
         call edisp(iuout,'      recalculate, no user interaction;')
         call edisp(iuout,'    - "useupdate_silent"')
@@ -2375,7 +2375,7 @@ C Dummy routines.
       IER=0
       return
       end
-      
+
       SUBROUTINE GRAAPH(IDRW1,IDRW2)
       return
       end

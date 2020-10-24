@@ -1654,8 +1654,10 @@ C is short, but will be extended to 248 char.
 
 C Next look for *vertex lines, incrementing the value of NTV
 C as each of these lines is scanned. If the tag is *edges then
-C increment the value of NSUR and then scan JVN data. If ier
-C equals 2 then end of file reached so close.
+C increment the value of NSUR and then scan JVN data. If the
+C tag is *surf then there should be 10 further phrases on the
+C line. 
+C If ier equals 2 then end of file reached so close.
    62   CALL STRIPC1K(IUNIT,lkout,99,ND,0,'*vertex *edges tags',IER)
         if(IER.EQ.2)then
 
@@ -1714,8 +1716,6 @@ C order to support an un-do.
           goto 62
         elseif(WORD(1:6).eq.'*edges')then
 
-C << This does not read beyond MS surfaces but we need to find a way
-C << to fail more gracefully.
           NEDGE=NEDGE+1
 
 C Check that the number of surfaces is within complexity limits.
@@ -1765,8 +1765,14 @@ C Now proceed to read vertices on one or more lines.
           goto 62
         elseif(WORD(1:5).eq.'*surf')then
 
-C Increment counter for surfaces (NS).
-          NS=NS+1
+          NS=NS+1          ! Increment counter for surfaces (NS).
+          if(ND.lt.11)then
+            write(loutstr,'(a,i2,a,i3,a,i2,2a)') 
+     &        'Insufficient tokens in line for zone ',ICOMP,
+     &        ' surf ',NS,' tokens ',ND,' in ',lkout(1:lnblnk(lkout))
+            call edisp248(iuout,loutstr,120)
+            call pauses(2)
+          endif
           if(NS.eq.1)then
 
 C If this is the first *surf encountered then set NSUR equal to the
@@ -1839,14 +1845,21 @@ C Parent name, allow for future spaces in parent name.
             CALL EGETP(lkout,K,WORD,'W','surface parent',IER)
             write(sparent(ICOMP,NS),'(a)') WORD(1:lnblnk(WORD))
 
-C Surface usage - two tokens.
-            CALL EGETW(lkout,K,WORD,'W','surface use 1',IER)
-            write(SUSE(ICOMP,NS,1),'(a)') WORD(1:lnblnk(WORD))
-            CALL EGETW(lkout,K,WORD,'W','surface use 2',IER)
-            write(SUSE(ICOMP,NS,2),'(a)') WORD(1:lnblnk(WORD))
+C Surface usage - two tokens. If there was a fault then the token might
+C be longer than SUSE and it is probably the construction. Check first.
+            CALL EGETP(lkout,K,WORD,'W','surface use 1',IER)
+            if(lnblnk(WORD).gt.12)then
+              write(SUSE(ICOMP,NS,1),'(a)') '-'
+              write(SUSE(ICOMP,NS,2),'(a)') '-'
+              write(SMLCN(ICOMP,NS),'(a)') WORD(1:lnblnk(WORD))
+            else
+              write(SUSE(ICOMP,NS,1),'(a)') WORD(1:lnblnk(WORD))
+              CALL EGETW(lkout,K,WORD,'W','surface use 2',IER)
+              write(SUSE(ICOMP,NS,2),'(a)') WORD(1:lnblnk(WORD))
 
 C Surface construction name, allow for spaces.
-            CALL EGETP(lkout,K,WORD,'W','surface construction',IER)
+              CALL EGETP(lkout,K,WORD,'W','surface construction',IER)
+            endif
             write(SMLCN(ICOMP,NS),'(a)') WORD(1:lnblnk(WORD))
 
 C Check if there is a matching MLC name find out which one it is.
@@ -2303,9 +2316,9 @@ C standard obstruction block when converted into a GB1 common block.
             XOB(icomp,nbo)=VX
             YOB(icomp,nbo)=VY
             ZOB(icomp,nbo)=VZ
-            CALL EGETWR(lkout,K,VX,0.,150.,'W','obs X dis',IER)
-            CALL EGETWR(lkout,K,VY,0.,150.,'W','obs Y dis',IER)
-            CALL EGETWR(lkout,K,VZ,0.,150.,'W','obs Z dis',IER)
+            CALL EGETWR(lkout,K,VX,-150.,150.,'W','obs X dis',IER)
+            CALL EGETWR(lkout,K,VY,-150.,150.,'W','obs Y dis',IER)
+            CALL EGETWR(lkout,K,VZ,-150.,150.,'W','obs Z dis',IER)
             DXOB(icomp,nbo)=VX
             DYOB(icomp,nbo)=VY
             DZOB(icomp,nbo)=VZ

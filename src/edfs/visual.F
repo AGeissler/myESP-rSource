@@ -100,8 +100,8 @@ C current menu line index. Build up text strings for the menu.
 
 C Number of actual items displayed.
       NITMS=M+MCTL
-      ITEM(M+1)=' ----------------------- '
-      ITEM(M+2)='* add/ delete view '
+      ITEM(M+1)=' -----------------------'
+      ITEM(M+2)='* add/ delete view'
       ITEM(M+3)='! list current'
       ITEM(M+4)='> save view information'
       ITEM(M+5)='= create image(s)'
@@ -577,10 +577,6 @@ C For help messages
 
       helpinsub='FTV'  ! set for subroutine
 
-C Set the geometry for the CFD domain in terms of ESP-r's standard
-C geometry model.
-      CALL SETGEO
-
 C Set the number of pixels required for the image.  This is a function
 C of the resolution specified by the user and the geometry of the model.
       CALL SETRES(ISUR)
@@ -708,7 +704,7 @@ C  results in format for use in the flow visualization routines.
 #include "cfd.h"
 
       COMMON/FILEP/IFIL
-      COMMON/ICFCHN/ICFMON(MNZ),ICFTMP,ICFLIB
+      COMMON/ICFCHN/ICFMON(MNZ),ICFDBC(MNZ),ICFTMP,ICFLIB
 
       COMMON/ALL/NI,NJ,NK,NIM1,NJM1,NKM1,NIM2,NJM2,NKM2
       COMMON/VARf/Uf(ntcelx,ntcely,ntcelz),Vf(ntcelx,ntcely,ntcelz),
@@ -831,7 +827,7 @@ C  results in format for use in the flow visualization routines.
 #include "building.h"
 #include "cfd.h"
 
-      COMMON/ICFCHN/ICFMON(MNZ),ICFTMP,ICFLIB
+      COMMON/ICFCHN/ICFMON(MNZ),ICFDBC(MNZ),ICFTMP,ICFLIB
 
       COMMON/ALL/NI,NJ,NK,NIM1,NJM1,NKM1,NIM2,NJM2,NKM2
       COMMON/TEMPf/Tf(ntcelx,ntcely,ntcelz),GAMH(ntcelx,ntcely,ntcelz),

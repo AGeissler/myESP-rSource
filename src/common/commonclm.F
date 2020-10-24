@@ -492,7 +492,7 @@ C Temperature below heating BASE,SAVE DEG-HRS IN DNJ.
             endif
             IF(TT.GT.cddbaset)then
 
-C Teperature above cooling BASE ,SAVE DEG-HRS IN UPJC.
+C Temperature above cooling BASE ,SAVE DEG-HRS IN UPJC.
               UPJC=UPJC+(TT-cddbaset)
             endif
    21     CONTINUE
@@ -1027,7 +1027,7 @@ C fixed record width of 144 (24 hours * 6 parameters). Version 2
 C weather files have a record width of 24 hours * MCM parameters 
 C (defined in climate.h). This subroutine maintains back-compatibility
 C using a list of all possible values for MCM, including previous
-C versions (MCMALL in climate.h). The version of the waether file
+C versions (MCMALL in climate.h). The version of the weather file
 C is also set (CFVER in climate.h).
 
 C IEXIST is passed to EFOPRAN (in esru_lib.F):

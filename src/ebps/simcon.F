@@ -132,7 +132,7 @@ C If simulator is in silent running mode, set flag to terminate run
          return
       endif
 
-C Read FMI spec file to set FMI commons.
+C Read functional mock-up interface specification file.
       if (is_FMU) then
         IUNIT=IFIL+1
         CALL ERPFREE(IUNIT,IER)
@@ -144,7 +144,7 @@ C If simulator is in silent running mode, set flag to terminate run
            if ( autook ) exitok = .true.
            return
         endif  
-      endif          
+      endif
 
 C Calculate the BASESIMP heat loss factors.
       CALL BSFCCTL
@@ -549,7 +549,7 @@ c save level 5
       ITEM(9)=   '                             '
       ITEM(10)=  '< delete last result set     '
       ITEM(11)=  '  ....................       '
-      ITEM(12)=  'g simulation control toggles '
+      ITEM(12)=  'g simulation options         '
       ITEM(13)=  'i view simulation parameters '
       ITEM(14)=  'o view level 0 save result   '
       ITEM(15)=  '  ....................       '
@@ -981,7 +981,7 @@ C Help text for this menu.
       helptopic='sim_toggles_menu'
       call gethelptext(helpinsub,helptopic,nbhelp)
 
-      CALL EMENU('Simulation control',ITEMG,NITMS,INO)
+      CALL EMENU('Simulation options',ITEMG,NITMS,INO)
 
       if(INO.eq.1)then
 
@@ -989,7 +989,7 @@ C Averaging on/off.
   126   CALL EASKI(IDAVER,' ','Results averaging 0) On or 1) Off? ',
      &    0,'F',1,'F',0,'Results averaging iq 14',IER,nbhelp)
         IF(IER.NE.0)GOTO 126
-        call tstamp('>','SIM: edit timestep averaging')
+        call tstamp('>','BPS: edit timestep averaging')
       elseif(INO.eq.2)then
 
 C Zone side equations implicitness degree.
@@ -2348,11 +2348,11 @@ C or mixed, based on time-step evaluation.
 
       endif UserPltConfigSettings
       
-C Default solar treatment, solar ON.
+C Default - solar on.
       IF(ISOLAR.NE.0)call edisp(icout,'Solar processing off')
 
 C Default - results are averaged.
-      IF(IDAVER.NE.0)call edisp(icout,'Solar averaging off')
+      IF(IDAVER.NE.0)call edisp(icout,'Results averaging off')
 
 C Option to terminate - ignore if in autoexec mode as defined in 
 C the simulator parameter file.
@@ -2843,6 +2843,9 @@ C Set CFD coupling toggles.
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/CFDTOGS/ACCON,CFD2BLD,CFD2MFS
       COMMON/GGDH/GENB1(ntcelx,ntcely,ntcelz),GGDH
+      COMMON/RFNGRD/DORFN,IFNDWT(MNZ),NRFN,IRFNCLS(MNZ,MRFN,3),NRFND,
+     &              IRFND(MNZ,MRFNT,3)
+      logical DORFN
 
       integer ACCON,CFD2BLD,CFD2MFS
       logical GGDH
@@ -2858,7 +2861,7 @@ C For help messages
       helpinsub='CFDTOG'  ! set for cfiles
       
  10   INO=-4
-      ITEMG(1)=    ' ---------- COUPLING OPTIONS ---------- '
+      ITEMG(1)=    ' ------------ CFD OPTIONS ------------- '
       if(ACCON.eq.1)then
         ITEMG(2)=  'a adaptive turbulence model >> On       '
       elseif(ACCON.eq.0)then
@@ -2887,11 +2890,15 @@ C For help messages
         call edisp(iuout,'Unrecognized value of CFD2MFS')
         return
       endif
-      ITEMG(5)=    ' ----------- Solver Options ----------- '
       if (GGDH) then
-        ITEMG(6)=  'd general Gradient Diffusion Hyp. >> On '
+        ITEMG(5)=  'd general gradient diffusion hyp. >> On '
       else
-        ITEMG(6)=  'd general Gradient Diffusion Hyp. >> Off'
+        ITEMG(5)=  'd general gradient diffusion hyp. >> Off'
+      endif
+      if (DORFN) then
+        ITEMG(6)=  'e automatic grid refinement >> On       '
+      else
+        ITEMG(6)=  'e automatic grid refinement >> Off      '
       endif
       ITEMG(7)=    '  ________________________________      '
       ITEMG(8)=    '? help                                  '
@@ -2928,13 +2935,21 @@ C 1-way CFD-MFS conflation.
 C 2-way CFD-MFS conflation.
           CFD2MFS=2
         endif
-      elseif(INO.eq.6)then
+      elseif(INO.eq.5)then
         if(.not.GGDH)then
 C GGDH on.
           GGDH=.TRUE.
         else
 C GGDH off.
           GGDH=.FALSE.
+        endif
+      elseif(INO.eq.6)then
+        if(.not.DORFN)then
+C Grid refinement on.
+          DORFN=.TRUE.
+        else
+C Grid refinement off.
+          DORFN=.FALSE.
         endif
       elseif(INO.eq.(NITMS-1))then
 C Help.

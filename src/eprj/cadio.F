@@ -854,7 +854,7 @@ C Check if CAD tool has been installed. If not, do not start.
           call isinstalled(hold32,found_cad)
           if(.NOT.found_cad)then
             write(msg,'(3a)') 'The CAD tool ',
-     &        cadexe(1:lnblnk(cadexe)),' is not installed. Exiting.'
+     &        cadexe(1:lnblnk(cadexe)),' is not installed.'
             call usrmsg(msg,'Exiting.','W')
             return
           endif
@@ -1177,7 +1177,7 @@ C Check if CAD tool has been installed. If not do not start.
           call isinstalled(hold32,found_cad)
           if(.NOT.found_cad)then
             write(msg,'(3a)') 'CAD tool ',
-     &        cadexe(1:lnblnk(cadexe)),' is not installed. Exiting.'
+     &        cadexe(1:lnblnk(cadexe)),' is not installed.'
             call usrmsg(msg,'Exiting.','W')
             return
           endif

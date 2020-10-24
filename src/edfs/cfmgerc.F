@@ -31,7 +31,7 @@ C CFMNGE - Invoke CFD routine and print output files. (version for cfd module)
       common/outin/iuout,iuin,ieout
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
 
-      COMMON/ICFCHN/ICFMON(MNZ),ICFTMP,ICFLIB
+      COMMON/ICFCHN/ICFMON(MNZ),ICFDBC(MNZ),ICFTMP,ICFLIB
       common/utlcom/photon,matlab,textout,flwvis,xslice,yslice,zslice
       common/slicom/islice,jslice,kslice
 
@@ -110,6 +110,9 @@ C Set up boundary conditions which are independent of the airflow.
 C Invoke CFD simulation.
       ifl=ICFMON(ICFD)
       IF(NSINC.EQ.1)call efopseq(ifl,CFTRFL(ICFD),3,ier)
+      ifl=ICFDBC(ICFD)
+      word='CFD-BC_1.txt  '
+      IF(NSINC.EQ.1)call efopseq(ifl,word,3,ier)
       CALL CFCALC(NSINC,TSTEP,IMFACT,IBLACT,CONVER)
 
 C Convection coefficients.

@@ -148,6 +148,12 @@ h3kmodule.f90:
 FMIcom.F:
 	rm -f FMIcom.F
 	ln -s $(COMdir)/FMIcom.F .
+matpol.F:
+	rm -f matpol.F
+	ln -s $(COMdir)/matpol.F .
+inside.F:
+	rm -f inside.F
+	ln -s $(COMdir)/inside.F .
 
 strip:
 	strip $(PROG)
@@ -160,9 +166,9 @@ clean:
 	aim2_module.F arrow.F ascii_mat.F CDBPlugins.F CDBCommon.F CDBExplore.F \
 	c2fdum.F common3dv.F cread3dv.F ctread.F dossupport.F e3dviews.F \
 	edatabase.F edmrt.F egeometry.F emfnetw.F enetmisc.F enetrewr.F emkcfg.F \
-	eroper.F esru_misc.F esystem.F filelist.F item.F mfcdat.F nwkrewr.F \
-	plelevvc.F pltcfg.F readTrnsys.F rwipv.F rwsbem.F sort.F startup.F tdfile.F \
-	h3kmodule.f90 FMIcom.F CFC_Module.f90 cfc_module.mod
+	eroper.F esru_misc.F esystem.F filelist.F inside.F item.F matpol.F mfcdat.F \
+	nwkrewr.F plelevvc.F pltcfg.F readTrnsys.F rwipv.F rwsbem.F sort.F startup.F \
+	tdfile.F h3kmodule.f90 FMIcom.F CFC_Module.f90 cfc_module.mod
 
 distclean: clean
 

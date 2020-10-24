@@ -1858,7 +1858,7 @@ C user otherwise continue.
               goto 245
             endif
             if(closey)then
-              write(outs,'(a,3f8.3,a,i3,a,3f8.3)')
+              write(outs,'(a,3f8.3,a,f8.3,a,i3,a,3f8.3)')
      &          'Copied vertex @',X1(1),Y1(1),Z1(1),
      &          ' is close (',dist,') to existing vertex',ixx,' @',
      &          X(ixx),Y(ixx),Z(ixx)

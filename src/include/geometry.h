@@ -199,7 +199,7 @@ C LNBLOCKNAME,LNBLOCKMAT - length of strings.
       common/GS8LN/LNBLOCKNAME(MCOM,MB),LNBLOCKMAT(MCOM,MB)
 
 C Visual entities to pass to Radiance and for model decoration.
-      integer nbvis        ! number of visual entitie in a zone
+      integer nbvis        ! number of visual entities in a zone
       real XOV,YOV,ZOV     ! coordinates of each visual origin.
       real DXOV,DYOV,DZOV  ! width depth and height of each visual block
       real BANGOV          ! three rotation angles of a visual block

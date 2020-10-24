@@ -1363,7 +1363,7 @@ C Ask if only flows associated with a single node.
           IDH=1
           IDNO=1
           call MENUATOL('Select a flow option',' ',
-     &   'a individual connections','b total of connections',
+     &   'a individual connections','b total of connections @node',
      &   'c total entering node','d total to/from ambient',
      &   'e inter-nodal flow ','f cancel ',' ',' ',' ',' ',' ',
      &   ' ',IDH,IDNO,nbhelp)
@@ -1375,15 +1375,15 @@ C Ask if only flows associated with a single node.
             iuchoice=2  ! remember total of connections
             NNPK=1
             PROMPT1=
-     &       'Select the node which is associated with the connections'
-            PROMPT2='you want to display flow information for.'
+     &       'Select node(s) associated with the connections you'
+            PROMPT2='want to display flow information for.'
             helptopic='res_mass_flow_nod_select'
             call gethelptext(helpinsub,helptopic,nbhelp)
             call ASKMFNOD(INOPT,NNPK,INPK,PROMPT1,PROMPT2,nbhelp)
             nlistnode=NNPK
-            do i=1,nlistnode      ! make up list of nodes and bounds.
+            do i=1,nlistnode        ! make up list of nodes and bounds
               listnode(i)=INPK(i)
-              j=listnode(i)
+              j=listnode(i)         ! get bounds of node position
               xw=HNOD(j,1); yw=HNOD(j,2); zw=HNOD(j,3)
               if(fxmin.gt.xw) fxmin=xw
               if(fxmax.le.xw) fxmax=xw

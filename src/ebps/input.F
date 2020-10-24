@@ -1387,7 +1387,7 @@ C Check physical properties where possible.
               if(IWMOFF.ne.1)call edisp(iuout,outs)
               write(outs,'(A,A,2i3,A)')' the number of air gaps (',
      &         SMLCN(NZ1,NS1),NGAPS(NZ1,NS1),NGAPS(NZ2,NS2),
-     &         ') don not match.'
+     &         ') do not match.'
               if(IWMOFF.ne.1)call edisp(iuout,outs)
               IWARN=IWARN+1
               goto 20
@@ -1560,7 +1560,7 @@ C Reads additional zone descriptions if active.
       common/bsmtdef/iBSIMP(MCOM),LBSIMP(MCOM)
       COMMON/cfcall/icfcal(MNZ)
       COMMON/ACCrec/IACC(MNZ)
-      COMMON/ICFCHN/ICFMON(MNZ),ICFTMP,ICFLIB
+      COMMON/ICFCHN/ICFMON(MNZ),ICFDBC(MNZ),ICFTMP,ICFLIB
       common/param2/TITLE(MNZ),CFTRFL(MNZ),LPHI(MNZ)
       common/shad0/ISIcalc,icalcD,icalcM
 
@@ -1686,6 +1686,7 @@ C Set currentfile.
             CALL DFDREAD(ICOMP,itrc,itu,IER)
           endif
           CALL CFDLENS
+          CALL DEFINESSO
 
 C Open CFD monitoring file.
           ICFMON(ICFD) = IFIL + 19 + (ICFD-1)*100
@@ -1694,15 +1695,26 @@ C Open CFD monitoring file.
             write(outs,'(a,i2,a)') 
      &        'Error opening CFD monitoring file for domain ',ICFD,'.'
             call edisp(iuout,outs)
-          endif            
+          endif
+
+C Open CFD boundary condition export file.
+          ICFDBC(ICFD) = IFIL+24+(ICFD-1)*100
+          write(lfil,'(a7,i2.2,a4)')'CFD-BC_',icfd,'.txt'
+          call efopseq(ICFDBC(ICFD),lfil,3,ier)
+          if(ier.ne.0)then
+            write(outs,'(a,i2,a)') 
+     &   'Error opening CFD boundary condition export file for domain ',
+     &      ICFD,'.'
+            call edisp(iuout,outs)
+          endif
 
 C If adaptive conflation control is active then open a file to record
 C the actions of the controller.
           if (ABS(IFCFD(ICOMP)).eq.4.or.ABS(IFCFD(ICOMP)).eq.5) then
             write(lfil,'(a12,i2.2,a4)')'ACC-actions_',icfd,
-     &        '.rec'
+     &        '.txt'
             IACC(ICFD) = IFIL + 29 + (ICFD-1)*100
-            call efopseq(IACC(ICFD),lfil,4,ier)
+            call efopseq(IACC(ICFD),lfil,3,ier)
             if(ier.ne.0)then
               write(outs,'(a,i2,a)') 
      &          'Error opening ACC-actions file for domain ',ICFD,'.'

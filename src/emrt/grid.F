@@ -136,7 +136,7 @@ C GENERATE GRID POINTS.
 
           DO 1200 L = 1,IGFACT
             XX = SBBOX(1,1) + (2*L-1)*SX
-            IF (.NOT.INSIDEP(XX,YY,NB,IBPNT,BPOL))  GOTO  1200
+            IF (.NOT.INSIDEP(XX,YY,3,IBPNT,BPOL))  GOTO  1200
             CALL  ORTTRN(XX,YY,1.0,RMAT,XT,YT,ZT,IERR)
             NCELL(I) = NCELL(I) + 1
             NGRID = NGRID + 1

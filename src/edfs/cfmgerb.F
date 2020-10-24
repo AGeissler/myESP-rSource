@@ -24,10 +24,12 @@ C  SURFCONF - Calls CFMNGE each time step there is surface conflation.
 C  CFDLIBHEAD - Write header information to cfd results file.
 C  cfdlibdom - Write information describing the CFD domain model to results file
 C  cfdlib - Write results of CFD simulation to results file.
-C readcfd3dascii - read ascii information from one timestep.
+C  readcfd3dascii - read ascii information from one timestep.
+C  RFNAVG - average results if the grid has been refined mid-simulation.
 
 C ********************* CFMNGE *********************
-C CFMNGE - Manages CFD calcs and results output when BSim and CFD are conflated.
+C Manages CFD calcs and results output when BSim and CFD are conflated.
+
       SUBROUTINE CFMNGE(ICOMP,IND)
 #include "building.h"
 #include "geometry.h"
@@ -45,7 +47,7 @@ C CFMNGE - Manages CFD calcs and results output when BSim and CFD are conflated.
       COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS,idynow
       common/pers/isd1,ism1,isd2,ism2,isds,isdf,ntstep
       COMMON/FVALA/TFA(MCOM),QFA(MCOM)
-      COMMON/ICFCHN/ICFMON(MNZ),ICFTMP,ICFLIB
+      COMMON/ICFCHN/ICFMON(MNZ),ICFDBC(MNZ),ICFTMP,ICFLIB
 
       COMMON/CFDCNV/QCFDF(MCOM,MS),QCFDP(MCOM,MS)
       COMMON/ICFNOD/ICFD,ICP
@@ -239,6 +241,7 @@ C Trace output.
       CALL CFCALC(NSINC,TSTEP,IMFACT,IBLACT,CONVER)
       IF(CONVER)THEN
         IPOK=3
+        
 C Trace output.
         if (ITRC.gt.0) then
           write(ITRC,'(a)')' '
@@ -274,6 +277,7 @@ C Trace output.
       GOTO 258
 
  255  CALL MFBNDR(1)
+
 C Trace output.
       if (ITRC.gt.0) then
         write(ITRC,'(a)')'*** MFS RESULTS (imposed on CFD) ***'
@@ -283,8 +287,8 @@ C Trace output.
       CALL MFBNDR(2)
       CALL CFCALC(NSINC,TSTEP,IMFACT,IBLACT,CONVER)
       CALL MFBNDR(0)
-
       GOTO 258
+
 C CFD-MFS trace output delimeters.
  257  if (ITRC.gt.0) then
         write(ITRC,'(a)')' '
@@ -319,6 +323,7 @@ C Integrated thermal conflation:
      &    (ABS(IBLACT).GE.4.and.ABS(IBLACT).LE.7) )THEN
         TFA(ICP) = TAIR  
       ENDIF
+
 C Calculate convection coefficients and assign to temporary array. Adaptive
 C conflation routine will decide whether to use these in zone thermal matrix.
       CALL CFCONV(TAIR,HC,SFNAM,NCONST(ICP))
@@ -463,11 +468,7 @@ C If more than one CFD domain, inform the user which one it is simulating.
         endif
 
 C Initialize the thermophysical variables and some gridding data.
-  123   CALL INICNT     
-
-C Flag indicating that CFD `small opening' areas have not yet been calculated
-C for this domain.
-        areaSSO = .FALSE.
+  123   CALL INICNT
 
 C If the user has requested adaptive control over the conflation, then
 C invoke the controller to assess and prepare for the CFD run (i.e. adaptive
@@ -851,7 +852,7 @@ C cfdlibhead - write header information to cfd results library.
 #include "cfd.h"
 
       common/outin/iuout,iuin,ieout
-      COMMON/ICFCHN/ICFMON(MNZ),ICFTMP,ICFLIB
+      COMMON/ICFCHN/ICFMON(MNZ),ICFDBC(MNZ),ICFTMP,ICFLIB
       common/CFDSV/IRECPC,ICFDSV,IEQSV(5+MCTM)
       real CFTIMS,CFTIMF    ! start and finish times for CFD assessment
       integer ICFDYS,ICFDYF ! julian day-of-year at start and end of CFD
@@ -1015,7 +1016,7 @@ C CFD domain.
 #include "cfd.h"
 
       common/outin/iuout,iuin,ieout
-      COMMON/ICFCHN/ICFMON(MNZ),ICFTMP,ICFLIB
+      COMMON/ICFCHN/ICFMON(MNZ),ICFDBC(MNZ),ICFTMP,ICFLIB
       common/CFDSV/IRECPC,ICFDSV,IEQSV(5+MCTM)
       common/EQTION/CALLU(MNZ),CALLV(MNZ),CALLW(MNZ),CALLT(MNZ),
      &             CALLC(MNZ),KEMDL(MNZ),BUOY(MNZ),BOUSSI(MNZ),
@@ -1207,7 +1208,7 @@ C cfdlib - write data to cfd results library.
 #include "cfd.h"
 
       common/outin/iuout,iuin,ieout
-      COMMON/ICFCHN/ICFMON(MNZ),ICFTMP,ICFLIB
+      COMMON/ICFCHN/ICFMON(MNZ),ICFDBC(MNZ),ICFTMP,ICFLIB
       common/CFDSV/IRECPC,ICFDSV,IEQSV(5+MCTM)
       COMMON/ICFNOD/ICFD,ICP
       common/EQTION/CALLU(MNZ),CALLV(MNZ),CALLW(MNZ),CALLT(MNZ),
@@ -1228,9 +1229,30 @@ C cfdlib - write data to cfd results library.
       COMMON/CFDPOL/POLCONCp(MCTM,ntcelx,ntcely,ntcelz),
      1              POLCONCf(MCTM,ntcelx,ntcely,ntcelz)
       common/ndcfd/ncfdnd,icfdnd(MNZ),NCONF
+      COMMON/RFNGRD/DORFN,IFNDWT(MNZ),NRFN,IRFNCLS(MNZ,MRFN,3),NRFND,
+     &              IRFND(MNZ,MRFNT,3)
+      logical DORFN
 
       CHARACTER outs*124, POLNAM*12
       LOGICAL CALPOL,CALLMA
+
+      real xU(ntcelx,ntcely,ntcelz),xV(ntcelx,ntcely,ntcelz),
+     &     xW(ntcelx,ntcely,ntcelz),xT(ntcelx,ntcely,ntcelz),
+     &     xAGE(ntcelx,ntcely,ntcelz),xPOL(MCTM,ntcelx,ntcely,ntcelz)
+      integer xNI,xNJ,xNK
+
+C If grid has been refined, average results to match original grid.
+      if (NRFND.gt.0) then
+        call RFNAVG(xU,xV,xW,xT,xAGE,xPOL,xNI,xNJ,xNK,ier)
+        if (ier.ne.0) then
+          call edisp(iuout,
+     &      ' CFDLIB: cannot average results for refined grid.')
+          goto 999
+        endif
+      else
+        xU=Uf; xV=Vf; xW=Wf; xT=Tf; xAGE=AGEf; xPOL=POLCONCf
+        xNI=NI; xNJ=NJ; xNK=NK
+      endif
 
 C Set current record (IRECPC).
 C If the first CFD domain then IRECPC will be a header record number.  If 
@@ -1249,45 +1271,45 @@ C use the saves record.
       IREC=IRECPC
 
 C Loop through all control volumes.
-      do 10 K=2,NK
-        do 101 J=2,NJ
+      do 10 K=2,xNK
+        do 101 J=2,xNJ
 
 C Write data to library. Adjust trace to file unit 6 if ntcelz>48
           if (CALLU(ICFD)) then
             IREC=IREC+1
             WRITE(ICFLIB,REC=IREC,IOSTAT=ISTAT,ERR=1000)
-     &                                             (Uf(I,J,K),I=2,NI)
+     &        (xU(I,J,K),I=2,xNI)
           endif
 
           if (CALLV(ICFD)) then
             IREC=IREC+1
             WRITE(ICFLIB,REC=IREC,IOSTAT=ISTAT,ERR=1000)
-     &                                             (Vf(I,J,K),I=2,NI)
+     &        (xV(I,J,K),I=2,xNI)
           endif
 
           if (CALLW(ICFD)) then
             IREC=IREC+1
             WRITE(ICFLIB,REC=IREC,IOSTAT=ISTAT,ERR=1000)
-     &                                             (Wf(I,J,K),I=2,NI)
+     &        (xW(I,J,K),I=2,xNI)
           endif
 
           if (CALLT(ICFD)) then
             IREC=IREC+1
             WRITE(ICFLIB,REC=IREC,IOSTAT=ISTAT,ERR=1000)
-     &                                             (Tf(I,J,K),I=2,NI)
+     &        (xT(I,J,K),I=2,xNI)
           endif
                 
           if (CALLMA(ICFD)) then
             IREC=IREC+1
             WRITE(ICFLIB,REC=IREC,IOSTAT=ISTAT,ERR=1000)
-     &                                             (AGEf(I,J,K),I=2,NI)
+     &        (xAGE(I,J,K),I=2,xNI)
           endif
                 
           DO 121 ICTM=1,NCTM(ICFD)
             if (CALPOL(ICTM,ICFD)) then
               IREC=IREC+1
               WRITE(ICFLIB,REC=IREC,IOSTAT=ISTAT,ERR=1000)
-     &                                     (POLCONCf(ICTM,I,J,K),I=2,NI)
+     &          (xPOL(ICTM,I,J,K),I=2,xNI)
             endif
  121      CONTINUE      
  101    continue
@@ -1304,6 +1326,242 @@ C      write(6,*) 'IRECPCend ',IRECPC
 C Error writing data.
  1000 write(outs,'(A,I5,A)')' CFDLIB: error at record',IREC,'.'
       call edisp(iuout,outs)
+      return
+      end
+
+C ********************* RFNAVG *********************
+C Average results over grid cells that have been refined mid-simulation.
+C This is done so that results saved to the results library match the
+C grid geometry saved in the domain header.
+
+C Uses commons as input.
+C Returns averaged future time step arrays and array sizes.
+
+      SUBROUTINE RFNAVG(avU,avV,avW,avT,avAGE,avPOL,avNI,avNJ,avNK,ier)
+
+#include "building.h"
+#include "cfd.h"
+
+      real avU(ntcelx,ntcely,ntcelz),avV(ntcelx,ntcely,ntcelz),
+     &     avW(ntcelx,ntcely,ntcelz),avT(ntcelx,ntcely,ntcelz),
+     &     avAGE(ntcelx,ntcely,ntcelz),avPOL(MCTM,ntcelx,ntcely,ntcelz)
+      integer avNI,avNJ,avNK,ier
+
+      COMMON/ICFNOD/ICFD,ICP
+      common/OUTIN/IUOUT,IUIN,IEOUT
+      COMMON/RFNGRD/DORFN,IFNDWT(MNZ),NRFN,IRFNCLS(MNZ,MRFN,3),NRFND,
+     &              IRFND(MNZ,MRFNT,3)
+      logical DORFN
+      COMMON/ALL/NI,NJ,NK,NIM1,NJM1,NKM1,NIM2,NJM2,NKM2
+      COMMON/VARf/Uf(ntcelx,ntcely,ntcelz),Vf(ntcelx,ntcely,ntcelz),
+     1            Wf(ntcelx,ntcely,ntcelz),
+     2            P(ntcelx,ntcely,ntcelz),PP(ntcelx,ntcely,ntcelz),
+     3            TEf(ntcelx,ntcely,ntcelz),EDf(ntcelx,ntcely,ntcelz)
+      COMMON/TEMPf/Tf(ntcelx,ntcely,ntcelz),GAMH(ntcelx,ntcely,ntcelz),
+     1             RESORT,NSWPT,URFT,FSDTT,PRANDL,PFUN
+      common/EQTION3/CALLMA(MNZ),CALPOL(MCTM,MNZ),POLNAM(MCTM,MNZ),
+     &               NCTM(MNZ),JHUMINDX(MNZ),URFC(MCTM)
+      LOGICAL CALLMA,CALPOL
+      CHARACTER POLNAM*12
+      COMMON/CFDPOL/POLCONCp(MCTM,ntcelx,ntcely,ntcelz),
+     1              POLCONCf(MCTM,ntcelx,ntcely,ntcelz)
+      COMMON/LOCAGE/AGEf(ntcelx,ntcely,ntcelz) 
+      common/INCALC/INCALU,INCALV,INCALW,INCALK,INCALD,INCALT,
+     1              IZEROT,IZanKE,IMITZ
+      logical INCALU,INCALV,INCALW,INCALK,INCALD,INCALT,IZEROT,IZanKE,
+     &        IMITZ
+
+      ier=0
+      nnim1=NIM1; nnjm1=NJM1; nnkm1=NKM1
+
+      do irfn=NRFND,1,-1
+
+        icel=IRFND(ICFD,irfn,1)
+        jcel=IRFND(ICFD,irfn,2)
+        kcel=IRFND(ICFD,irfn,3)
+        
+        if (icel.gt.0) nnim1=nnim1-1
+        if (jcel.gt.0) nnjm1=nnjm1-1
+        if (kcel.gt.0) nnkm1=nnkm1-1
+
+C Adjust state variable arrays.
+        do 150 k=2,nnkm1
+          do 150 j=2,nnjm1
+            do 150 i=2,nnim1
+              if (i.gt.icel .and. icel.gt.0) then
+                ii=i+1
+              else
+                ii=i
+              endif
+              if (j.gt.jcel .and. jcel.gt.0) then
+                jj=j+1
+              else
+                jj=j
+              endif
+              if (k.gt.kcel .and. kcel.gt.0) then
+                kk=k+1
+              else
+                kk=k
+              endif
+              if (INCALU.and.i.ge.3) then
+                if (i.eq.icel.and.j.eq.jcel.and.k.eq.kcel) then
+                  avU(i,j,k)=(Uf(i,j,k)+Uf(i+1,j,k)+Uf(i,j+1,k)+
+     &              Uf(i,j,k+1)+Uf(i+1,j+1,k)+Uf(i+1,j,k+1)+
+     &              Uf(i,j+1,k+1)+Uf(i+1,j+1,k+1))/8.
+                elseif (i.eq.icel.and.j.eq.jcel) then
+                  avU(i,j,k)=(Uf(i,j,k)+Uf(i+1,j,k)+Uf(i,j+1,k)+
+     &              Uf(i+1,j+1,k))/4.
+                elseif (i.eq.icel.and.k.eq.kcel) then
+                  avU(i,j,k)=(Uf(i,j,k)+Uf(i+1,j,k)+Uf(i,j,k+1)+
+     &              Uf(i+1,j,k+1))/4.
+                elseif (j.eq.jcel.and.k.eq.kcel) then
+                  avU(i,j,k)=(Uf(i,j,k)+Uf(i,j+1,k)+Uf(i,j,k+1)+
+     &              Uf(i,j+1,k+1))/4.
+                elseif (i.eq.icel) then
+                  avU(i,j,k)=(Uf(i,j,k)+Uf(i+1,j,k))/2.
+                elseif (j.eq.jcel) then
+                  avU(i,j,k)=(Uf(i,j,k)+Uf(i,j+1,k))/2.
+                elseif (k.eq.kcel) then
+                  avU(i,j,k)=(Uf(i,j,k)+Uf(i,j,k+1))/2.
+                else
+                  avU(i,j,k)=Uf(ii,jj,kk)
+                endif
+              endif  
+              if (INCALV.and.j.ge.3) then
+                if (i.eq.icel.and.j.eq.jcel.and.k.eq.kcel) then
+                  avV(i,j,k)=(Vf(i,j,k)+Vf(i+1,j,k)+Vf(i,j+1,k)+
+     &              Vf(i,j,k+1)+Vf(i+1,j+1,k)+Vf(i+1,j,k+1)+
+     &              Vf(i,j+1,k+1)+Vf(i+1,j+1,k+1))/8.
+                elseif (i.eq.icel.and.j.eq.jcel) then
+                  avV(i,j,k)=(Vf(i,j,k)+Vf(i+1,j,k)+Vf(i,j+1,k)+
+     &              Vf(i+1,j+1,k))/4.
+                elseif (i.eq.icel.and.k.eq.kcel) then
+                  avV(i,j,k)=(Vf(i,j,k)+Vf(i+1,j,k)+Vf(i,j,k+1)+
+     &              Vf(i+1,j,k+1))/4.
+                elseif (j.eq.jcel.and.k.eq.kcel) then
+                  avV(i,j,k)=(Vf(i,j,k)+Vf(i,j+1,k)+Vf(i,j,k+1)+
+     &              Vf(i,j+1,k+1))/4.
+                elseif (i.eq.icel) then
+                  avV(i,j,k)=(Vf(i,j,k)+Vf(i+1,j,k))/2.
+                elseif (j.eq.jcel) then
+                  avV(i,j,k)=(Vf(i,j,k)+Vf(i,j+1,k))/2.
+                elseif (k.eq.kcel) then
+                  avV(i,j,k)=(Vf(i,j,k)+Vf(i,j,k+1))/2.
+                else
+                  avV(i,j,k)=Vf(ii,jj,kk)
+                endif
+              endif
+              if (INCALW.and.k.ge.3) then
+                if (i.eq.icel.and.j.eq.jcel.and.k.eq.kcel) then
+                  avW(i,j,k)=(Wf(i,j,k)+Wf(i+1,j,k)+Wf(i,j+1,k)+
+     &              Wf(i,j,k+1)+Wf(i+1,j+1,k)+Wf(i+1,j,k+1)+
+     &              Wf(i,j+1,k+1)+Wf(i+1,j+1,k+1))/8.
+                elseif (i.eq.icel.and.j.eq.jcel) then
+                  avW(i,j,k)=(Wf(i,j,k)+Wf(i+1,j,k)+Wf(i,j+1,k)+
+     &              Wf(i+1,j+1,k))/4.
+                elseif (i.eq.icel.and.k.eq.kcel) then
+                  avW(i,j,k)=(Wf(i,j,k)+Wf(i+1,j,k)+Wf(i,j,k+1)+
+     &              Wf(i+1,j,k+1))/4.
+                elseif (j.eq.jcel.and.k.eq.kcel) then
+                  avW(i,j,k)=(Wf(i,j,k)+Wf(i,j+1,k)+Wf(i,j,k+1)+
+     &              Wf(i,j+1,k+1))/4.
+                elseif (i.eq.icel) then
+                  avW(i,j,k)=(Wf(i,j,k)+Wf(i+1,j,k))/2.
+                elseif (j.eq.jcel) then
+                  avW(i,j,k)=(Wf(i,j,k)+Wf(i,j+1,k))/2.
+                elseif (k.eq.kcel) then
+                  avW(i,j,k)=(Wf(i,j,k)+Wf(i,j,k+1))/2.
+                else
+                  avW(i,j,k)=Wf(ii,jj,kk)
+                endif
+              endif
+              if (INCALT) then
+                if (i.eq.icel.and.j.eq.jcel.and.k.eq.kcel) then
+                  avT(i,j,k)=(Tf(i,j,k)+Tf(i+1,j,k)+Tf(i,j+1,k)+
+     &              Tf(i,j,k+1)+Tf(i+1,j+1,k)+Tf(i+1,j,k+1)+
+     &              Tf(i,j+1,k+1)+Tf(i+1,j+1,k+1))/8.
+                elseif (i.eq.icel.and.j.eq.jcel) then
+                  avT(i,j,k)=(Tf(i,j,k)+Tf(i+1,j,k)+Tf(i,j+1,k)+
+     &              Tf(i+1,j+1,k))/4.
+                elseif (i.eq.icel.and.k.eq.kcel) then
+                  avT(i,j,k)=(Tf(i,j,k)+Tf(i+1,j,k)+Tf(i,j,k+1)+
+     &              Tf(i+1,j,k+1))/4.
+                elseif (j.eq.jcel.and.k.eq.kcel) then
+                  avT(i,j,k)=(Tf(i,j,k)+Tf(i,j+1,k)+Tf(i,j,k+1)+
+     &              Tf(i,j+1,k+1))/4.
+                elseif (i.eq.icel) then
+                  avT(i,j,k)=(Tf(i,j,k)+Tf(i+1,j,k))/2.
+                elseif (j.eq.jcel) then
+                  avT(i,j,k)=(Tf(i,j,k)+Tf(i,j+1,k))/2.
+                elseif (k.eq.kcel) then
+                  avT(i,j,k)=(Tf(i,j,k)+Tf(i,j,k+1))/2.
+                else
+                  avT(i,j,k)=Tf(ii,jj,kk)
+                endif
+              endif
+              if (CALLMA(ICFD)) then
+                if (i.eq.icel.and.j.eq.jcel.and.k.eq.kcel) then
+                  avAGE(i,j,k)=(AGEf(i,j,k)+AGEf(i+1,j,k)+AGEf(i,j+1,k)+
+     &              AGEf(i,j,k+1)+AGEf(i+1,j+1,k)+AGEf(i+1,j,k+1)+
+     &              AGEf(i,j+1,k+1)+AGEf(i+1,j+1,k+1))/8.
+                elseif (i.eq.icel.and.j.eq.jcel) then
+                  avAGE(i,j,k)=(AGEf(i,j,k)+AGEf(i+1,j,k)+AGEf(i,j+1,k)+
+     &              AGEf(i+1,j+1,k))/4.
+                elseif (i.eq.icel.and.k.eq.kcel) then
+                  avAGE(i,j,k)=(AGEf(i,j,k)+AGEf(i+1,j,k)+AGEf(i,j,k+1)+
+     &              AGEf(i+1,j,k+1))/4.
+                elseif (j.eq.jcel.and.k.eq.kcel) then
+                  avAGE(i,j,k)=(AGEf(i,j,k)+AGEf(i,j+1,k)+AGEf(i,j,k+1)+
+     &              AGEf(i,j+1,k+1))/4.
+                elseif (i.eq.icel) then
+                  avAGE(i,j,k)=(AGEf(i,j,k)+AGEf(i+1,j,k))/2.
+                elseif (j.eq.jcel) then
+                  avAGE(i,j,k)=(AGEf(i,j,k)+AGEf(i,j+1,k))/2.
+                elseif (k.eq.kcel) then
+                  avAGE(i,j,k)=(AGEf(i,j,k)+AGEf(i,j,k+1))/2.
+                else
+                  avAGE(i,j,k)=AGEf(ii,jj,kk)
+                endif
+              endif
+              do ipol=1,NCTM(ICFD)
+                if (CALPOL(ipol,ICFD)) then
+                  if (i.eq.icel.and.j.eq.jcel.and.k.eq.kcel) then
+                    avPOL(ipol,i,j,k)=(POLCONCf(ipol,i,j,k)+
+     &                POLCONCf(ipol,i+1,j,k)+POLCONCf(ipol,i,j+1,k)+
+     &                POLCONCf(ipol,i,j,k+1)+POLCONCf(ipol,i+1,j+1,k)+
+     &                POLCONCf(ipol,i+1,j,k+1)+POLCONCf(ipol,i,j+1,k+1)+
+     &                POLCONCf(ipol,i+1,j+1,k+1))/8.
+                  elseif (i.eq.icel.and.j.eq.jcel) then
+                    avPOL(ipol,i,j,k)=(POLCONCf(ipol,i,j,k)+
+     &                POLCONCf(ipol,i+1,j,k)+POLCONCf(ipol,i,j+1,k)+
+     &                POLCONCf(ipol,i+1,j+1,k))/4.
+                  elseif (i.eq.icel.and.k.eq.kcel) then
+                    avPOL(ipol,i,j,k)=(POLCONCf(ipol,i,j,k)+
+     &                POLCONCf(ipol,i+1,j,k)+POLCONCf(ipol,i,j,k+1)+
+     &                POLCONCf(ipol,i+1,j,k+1))/4.
+                  elseif (j.eq.jcel.and.k.eq.kcel) then
+                    avPOL(ipol,i,j,k)=(POLCONCf(ipol,i,j,k)+
+     &                POLCONCf(ipol,i,j+1,k)+POLCONCf(ipol,i,j,k+1)+
+     &                POLCONCf(ipol,i,j+1,k+1))/4.
+                  elseif (i.eq.icel) then
+                    avPOL(ipol,i,j,k)=(POLCONCf(ipol,i,j,k)+
+     &                POLCONCf(ipol,i+1,j,k))/2.
+                  elseif (j.eq.jcel) then
+                    avPOL(ipol,i,j,k)=(POLCONCf(ipol,i,j,k)+
+     &                POLCONCf(ipol,i,j+1,k))/2.
+                  elseif (k.eq.kcel) then
+                    avPOL(ipol,i,j,k)=(POLCONCf(ipol,i,j,k)+
+     &                POLCONCf(ipol,i,j,k+1))/2.
+                  else
+                    avPOL(ipol,i,j,k)=POLCONCf(ipol,ii,jj,kk)
+                  endif
+                endif
+              enddo
+  150   continue
+      enddo
+
+      avNI=nnim1+1; avNJ=nnjm1+1; avNK=nnkm1+1
+
       return
       end
 

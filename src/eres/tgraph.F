@@ -654,7 +654,7 @@ C Check for local comfort outside valididty of algorithms.
               endif
             endif
 
-C Convert watts to KW if necessary.
+C Convert watts to kW if necessary.
             if (IGETNO(IX,8).eq.2.and.kwatts) then
               if (IGETNO(IX,1).ne.8.and.IGETNO(IX,1).ne.9.and.
      &            IGETNO(IX,1).ne.10.and.IGETNO(IX,1).ne.30.and.
@@ -662,7 +662,7 @@ C Convert watts to KW if necessary.
      &            IGETNO(IX,1).ne.33) then
 
 C The data is a load and not related to plant. By default these loads 
-C are in W but plant is being displayed so convert to KW if directed
+C are in W but plant is being displayed so convert to kW if directed
 C to by ireportunit.
                 if(ireportunit.eq.0.or.ireportunit.eq.2)then
                   Yold(IX)=Yold(IX)/1000.
@@ -693,7 +693,7 @@ C Convert watts to kW if necessary.
      &            IGETNO(IX,1).ne.33) then
 
 C The data is a load and not related to plant. By default these loads 
-C are in W but plant is being displayed so convert to KW if directed
+C are in W but plant is being displayed so convert to kW if directed
 C to by ireportunit.
                 if(ireportunit.eq.0.or.ireportunit.eq.2)then
                   VAL2(IX,J)=VAL2(IX,J)/1000.

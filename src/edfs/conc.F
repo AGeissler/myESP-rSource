@@ -28,6 +28,7 @@ C             of a chemical, e.g. carbon dioxide.
 C  BNDARCON - Imposes BCs for the equation of concentration 
 C  BLKBNDC  - Imposes BC's on blockages 
 C  SCHMIDTT - Calculates turbulent schmidt number for a fluid
+C  CONCSRC  - Set up injection/extraction rates at sources.
 
 C ********************* CALCCONC *********************
 C CALCCONC - Calculates the coefficients of the matrix of the 
@@ -96,10 +97,10 @@ C
 
       common/EQTION3/CALLMA(MNZ),CALPOL(MCTM,MNZ),POLNAM(MCTM,MNZ),
      &               NCTM(MNZ),JHUMINDX(MNZ),URFC(MCTM)
+      LOGICAL CALLMA,CALPOL
+      CHARACTER POLNAM*12
       COMMON/CFDPOL/POLCONCp(MCTM,ntcelx,ntcely,ntcelz),
      1              POLCONCf(MCTM,ntcelx,ntcely,ntcelz)
-      common/KEYVOLN/VOLNAME(MNVLS,MNZ),VCsurf(MNVLS,MNZ)
-      character VOLNAME*12,VCsurf*12
       COMMON/CONST/GREAT,small,GRAV
       COMMON/TIMSTP/DT
       COMMON/INTERP/SIFE(ntcelx),SIFW(ntcelx),SIFN(ntcely),SIFS(ntcely),
@@ -108,19 +109,6 @@ C
       common/SOLVER/ILISOL
       COMMON/SCHMTT/SCHMT(MCTM,MNZ),GFM(MCTM,MNZ),VCRIT(MCTM,MNZ),
      &       TBOIL(MCTM,MNZ),TCRIT(MCTM,MNZ),ISCHMT(MCTM,MNZ)
-      COMMON/CFDMFS1/ICFDNOD(MNZ),ICFDCNN(MNVLS,MNZ)
-      COMMON/CFDMFS2/MFNEWN(MNVLS,MNZ),NFNDN,NCFDOPNO(MNVLS,MNZ),
-     &               NFNPDN(MNZ)
-      COMMON/ACT/ACTCNN(MCNN)
-      logical ACTCNN
-
-C Source / Sink model commons
-      COMMON/CTDFAF/ICTDFAF(MNZ),SRCE(MNVLS,MCTM,MNZ),ICCSRC(MNZ)
-      COMMON/CONTM5/SPMSUP(MSPMNO,MCSD),SSLINK2(MSPMNO,MNOD),
-     &      NSSNO(MNOD),SPMTYP(MSPMNO),SSNAME(MSPMNO),NSPMNO,
-     &      SSLINK1(MSPMNO,MCONTM)
-      COMMON/CONTM9/SSSTR(MSPMNO,MCONTM)
-      COMMON/CONTM2/CNCAJAM(MPRODI),ZMCPAM(MPRODI)
 
 C Solution methods.
       common/METHDS/ITURB(MNZ),IBUOY(MNZ)
@@ -136,9 +124,11 @@ C Boundary condition commons.
 
 C Common blocks for blockages and small supply openings
       common/blksso/NBLK(MNZ),INBLK(MNVLS,MNZ),NSSO(MNZ),
-     &          INSSO(MNVLS,MNZ)
+     &          INSSO(MNVLS,MNZ),BLKTEMP(MNVLS,MNZ,6)
       COMMON/MFLRES/FLW1(MCNN),FLW2(MCNN),PRES(MNOD),
      &              RESID(MNOD),SAFLW(MNOD)
+
+C Commons for dynamic person model.
       REAL headflux1,trunkflux1,larmflux1,rarmflux1,llegflux1,
      &     rlegflux1,H2Oexp1,H2Oswt1,Qoccsens1,Qocclat1,COflux,
      &     Tsko_av1,Tco_av1,Tsk_av1
@@ -160,109 +150,18 @@ C Common blocks for blockages and small supply openings
       REAL tavhead2,tavtrunk2,tavarml2,tavarmr2,tavlegl2,tavlegr2
       COMMON/segtemp2/tavhead2,tavtrunk2,tavarml2,tavarmr2,tavlegl2,
      &       tavlegr
-      DOUBLE PRECISION FLW1,FLW2,PRES,RESID,SAFLW
-      INTEGER SPMTYP,SSLINK1,SSLINK2
-      LOGICAL OK,LINVOL,CALLMA,CALPOL
-      CHARACTER*12 POLNAM,SRCE,SSNAME
-      REAL POL3D(ntcelx,ntcely,ntcelz),SRCSTR(MNVLS,MNZ)
-      logical unixok,NOTFOUND
+
+      LOGICAL OK,LINVOL
+      REAL POL3D(ntcelx,ntcely,ntcelz)
 
 C Set itrc to zero for no debugging and 1 to turn on trace.
       itrc=0
 
       ICTM=ICTMNO
-      DO 785 IV=1,NVOL(ICFD)
-        DO 787 II=1,ICFD
-          SRCSTR(IV,II)=VOLPOL(ICTM,IV,II)
- 787    CONTINUE
- 785  CONTINUE
 
 C <<what sould be done with resorc and renormc ?>> 
-C Here the value of the Schmidt number (SCHMIL) for CO2 is coded. 
-C <<1.2MET=30L/h CO2 production = 0.0000153737  kg/s ; rho=1.98 at 0C>> 
-C <<the indexes of the cells with the people sould be specified in dfd>>
-C PRODR=0.0000153737 - one breathing person during office work  
-C V_CO2=17*M, where M is the metabolic rate and V_CO2 is in [L/h]. 
 
-C If a contaminants flow network has been defined and linked with the
-C CFD domain take source strength from the source model linked with this
-C source type boundary condition and this contaminant
-C Contaminant linking is independant of CFD to mass flow conflation but 
-C if a CFD to mass flow conflation is defined (recommended) contaminant
-C mass inflows and outflows from opening type boundary conditions are 
-C also considered.
-      IF(ICTDFAF(ICFD).EQ.1)THEN
-
-C Get source model and strength associated with this boundary condition
-        DO 698 IV=1,NVOL(ICFD)
-          IF(IVTYPE(IV,ICFD).EQ.20)THEN
-
-C First get any explicitly defined source type boundary conditions
-            DO 699 ISPMNO=1,NSPMNO
-              IF(SRCE(IV,ICTM,ICFD)(1:12).EQ.
-     &        SSNAME(SSLINK1(ISPMNO,ICTM))(1:12))THEN
-                IF(NSSNO(ICFDNOD(ICFD)).GT.0)THEN
-                  DO ISSNO=1,NSSNO(ICFDNOD(ICFD))
-                    IF(SSLINK2(ISSNO,ICFDNOD(ICFD)).EQ.ISPMNO)THEN
-                      SRCSTR(IV,ICFD)=SSSTR(ISPMNO,ICTM)
-                    ENDIF
-                  ENDDO
-                ENDIF
-              ENDIF
- 699        CONTINUE
-
-C Now get any sourcing/sinking due to air flows from dfs-mfs conflation
-C Flow rate is -ve for flow going out from CFD domain.
-C TODO - Doing this with the volume name is very yuck, should find a
-C        better way.
-            IF(VOLNAME(IV,ICFD)(1:4).EQ.'SRC_')THEN
-              DO 701 IX=1,NVOL(ICFD)
-                IF(VOLNAME(IV,ICFD)(5:12).EQ.VOLNAME(IX,ICFD)(1:8))THEN
-
-C First, look for an extra connection added for the CFD-MFS conflation
-C process.
-                  NOTFOUND=.TRUE.
-                  do IOPNO=1,NFNDN
-                    if (IX.eq.NCFDOPNO(IOPNO,ICFD)) then
-                      INOD=MFNEWN(IOPNO,ICFD)
-                      ICNN=1
-                      DO WHILE(ICNN.LE.NCNN.AND.NOTFOUND)
-                        IF(NODPS(ICNN).EQ.INOD.OR.NODNE(ICNN).EQ.INOD)
-     &                    THEN
-                          NOTFOUND=.FALSE.   
-                        ELSE
-                          ICNN=ICNN+1
-                        ENDIF
-                      END DO
-                    endif
-                  enddo
-
-C If this is not found, use the original connection.
-                  if (NOTFOUND) then
-                    ICNN=ICFDCNN(IX,ICFD)
-                  endif
-
-                  FLRATE=REAL(FLW2(ICNN)+FLW1(ICNN))
-                  IF(FLRATE.GT.0.0)THEN
-                    INOD=NODNE(ICNN)
-                  ELSE
-                    INOD=NODPS(ICNN)
-                  ENDIF
-                  IROWNO=NCTM(ICFD)*(INOD-1)+ICTM
-                  SRCSTR(IV,ICFD)=CNCAJAM(IROWNO)*FLRATE
-                ENDIF
- 701          CONTINUE
-            ENDIF
-          ENDIF
-698     CONTINUE
-      ENDIF
-
-C Debug.
-C      write(6,*)'srcstr ',srcstr
-
-C Get turbulent Schmidt number for this contaminant
-C SCHMIL=0.94 was previously used for CO2 and 0.59 for moisture also
-C PRODR=0.0000153737 for CO2 and 0.0000166666 for moisture were used
+C Get turbulent Schmidt number for this contaminant.
       IF(ISCHMT(ICTM,ICFD).EQ.1)THEN
         VL1=GFM(ICTM,ICFD)
         VL2=VCRIT(ICTM,ICFD)
@@ -273,56 +172,35 @@ C PRODR=0.0000153737 for CO2 and 0.0000166666 for moisture were used
         TURSCH=SCHMT(ICTM,ICFD)
       ENDIF
       SCHMIL=TURSCH
+
+c Loop over all cells in domain.
       DO 50 I=2,NIM1
         DO 50 J=2,NJM1
           DO 50 K=2,NKM1
 
-C First "GAMH" values are calculated and stored temporarily in AP
-C Note that INCALK is a test for the presence of turbulence 
-C <<should be completed to include the case of MIT-zero-equation model>> 
-C <<using ITURB>0 assumes all turbulence is this correct?>>
+C First "GAMH" values are calculated and stored temporarily in AP.
         IF(ITURB(ICFD).gt.0) THEN 
           AP(I,J,K)=VISCOS/SCHMIL+(VIS(I,J,K)-VISCOS)/PRANDT
         ELSE 
           AP(I,J,K)=VISCOS/SCHMIL
         ENDIF 
-C If there are CO2 sources from people in the room their source 
-C term is calculated and added here. Implemented universally, i.e. 
-C other contaminants are treated in a similar way using common fields. 
-C PRODR is the production rate in [kg_constituent/s]. 
-C Care sould be taken not to multiply later the so calculated here 
-C SU_value by the volume of the cv 
 
-C Clear SU term here
+C Clear SU term.
         SU(I,J,K)=0.0
  50   CONTINUE
 
-C Should loop through conc sources here.
+C Set SU at contaminant sources.
       do 60 IV=1,NVOL(ICFD)
         if (IVTYPE(IV,ICFD).eq.20) then
           do 70 I=IVCELLS(IV,ICFD,1),IVCELLS(IV,ICFD,2)
             do 71 J=JVCELLS(IV,ICFD,1),JVCELLS(IV,ICFD,2)
               do 72 K=KVCELLS(IV,ICFD,1),KVCELLS(IV,ICFD,2)
-               if (POLNAM(ICTM,ICFD) .eq. 'Sweat1') then
-                VOLPOL(ICTM,IV,ICFD)=H2Oswt1+H2Oexp1
-                SRCSTR(IV,ICFD)=VOLPOL(ICTM,IV,ICFD)
-               elseif (POLNAM(ICTM,ICFD) .eq. 'Sweat2') then
-                VOLPOL(ICTM,IV,ICFD)=H2Oswt2+H2Oexp2
-                SRCSTR(IV,ICFD)=VOLPOL(ICTM,IV,ICFD)
-               endif
-                SU(I,J,K)=SRCSTR(IV,ICFD)
+                SU(I,J,K)=VOLPOL(ICTM,IV,ICFD)
  72           continue
  71         continue
  70       continue
         endif
  60   continue
-
-C Debug.
-      call isunix(unixok)
-      if(itrc.ge.1.and.unixok)then
-        write(6,*)'srcstr ',(srcstr(iv,icfd),iv=13,nvol(icfd))
-        write(6,*)'volpol ',(VOLPOL(ICTM,IV,ICFD),iv=13,nvol(icfd))
-      endif
 
 C Check for blockages. 
       if(NBLK(ICFD).ne.0) then
@@ -1233,3 +1111,143 @@ C Calculate turbulent Schmidt number = two times Schmidt number
       TRSHMT=2.*(VAL_MU/10.)/(D_AB*RHO*10000.)
       RETURN
       END
+
+C ********************* CONCSRC *********************
+C CALCCONC - Sets up injection/extraction rates for contaminants at
+C source boundary conditions. In many cases sources are linked with
+C contaminant and/or mass flow networks, so these values will change
+C every time step.
+
+      SUBROUTINE CONCSRC()
+
+#include "building.h"
+#include "cfd.h"
+#include "net_flow.h"
+#include "net_flow_data.h"
+
+      COMMON/ICFNOD/ICFD,ICP
+      common/KEYVOLS/NVOL(MNZ),IVOLF(MNVLS,MNZ),IVCELLS(MNVLS,MNZ,2),
+     &               JVCELLS(MNVLS,MNZ,2),KVCELLS(MNVLS,MNZ,2)
+      common/KEYVDAT/IVTYPE(MNVLS,MNZ),VOLTemp(MNVLS,MNZ),
+     &          VOLHeat(MNVLS,MNZ),IVConfl(MNVLS,MNZ),VOLHum(MNVLS,MNZ),
+     &          VOLCO2(MNVLS,MNZ),VOLVel(MNVLS,MNZ),VOLDir(MNVLS,MNZ,2),
+     &          VOLArea(MNVLS,MNZ),VOLPres(MNVLS,MNZ),
+     &          VOLPol(MCTM,MNVLS,MNZ)
+      COMMON/CTDFAF/ICTDFAF(MNZ),SRCE(MNVLS,MCTM,MNZ),ICCSRC(MNZ)
+      CHARACTER SRCE*12
+      COMMON/CONTM2/CNCAJAM(MPRODI),ZMCPAM(MPRODI)
+      COMMON/CONTM5/SPMSUP(MSPMNO,MCSD),SSLINK2(MSPMNO,MNOD),
+     &      NSSNO(MNOD),SPMTYP(MSPMNO),SSNAME(MSPMNO),NSPMNO,
+     &      SSLINK1(MSPMNO,MCONTM)
+      INTEGER SPMTYP,SSLINK1,SSLINK2
+      CHARACTER SSNAME*12
+      COMMON/CONTM9/SSSTR(MSPMNO,MCONTM)
+      common/KEYCASGN/IDcasgn(MNVLS,MNZ),Fcasgn(MNVLS,MNZ)
+      common/KEYVOLN/VOLNAME(MNVLS,MNZ),VCsurf(MNVLS,MNZ),
+     &               BLKSURF(MNVLS,MNZ,6)
+      character VOLNAME*12,VCsurf*12,BLKSURF*12
+      COMMON/CFDMFS1/ICFDNOD(MNZ),ICFDCNN(MNVLS,MNZ)
+      COMMON/CFDMFS2/MFNEWN(MNVLS,MNZ),NFNDN,NCFDOPNO(MNVLS,MNZ),
+     &               NFNPDN(MNZ)
+      COMMON/MFLRES/FLW1(MCNN),FLW2(MCNN),PRES(MNOD),
+     &              RESID(MNOD),SAFLW(MNOD)
+      DOUBLE PRECISION FLW1,FLW2,PRES,RESID,SAFLW
+      common/EQTION3/CALLMA(MNZ),CALPOL(MCTM,MNZ),POLNAM(MCTM,MNZ),
+     &               NCTM(MNZ),JHUMINDX(MNZ),URFC(MCTM)
+      LOGICAL CALLMA,CALPOL
+      CHARACTER POLNAM*12
+      REAL headflux1,trunkflux1,larmflux1,rarmflux1,llegflux1,
+     &     rlegflux1,H2Oexp1,H2Oswt1,Qoccsens1,Qocclat1,COflux,
+     &     Tsko_av1,Tco_av1,Tsk_av1
+      COMMON/ocflux1/headflux1,trunkflux1,larmflux1,rarmflux1,llegflux1,
+     &        rlegflux1,H2Oexp1,H2Oswt1,Qoccsens1,Qocclat1,COflux,
+     &        Tsko_av1, Tco_av1, Tsk_av1
+
+      LOGICAL NOTFOUND
+
+      DO 798 ICTM=1,NCTM(ICFD)
+        DO 698 IV=1,NVOL(ICFD)
+          IF(IVTYPE(IV,ICFD).EQ.20)THEN
+
+C Check if sources are linked with a contaminant network.
+            IF(ICTDFAF(ICFD).EQ.1)THEN
+
+C First set VOLPOL for source BCs explicitly linked with sources in the
+C contaminant network.
+C TEMPORARY - multiply by cas gain fraction
+              DO 699 ISPMNO=1,NSPMNO
+                IF(SRCE(IV,ICTM,ICFD)(1:12).EQ.
+     &          SSNAME(SSLINK1(ISPMNO,ICTM))(1:12))THEN
+                  IF(NSSNO(ICFDNOD(ICFD)).GT.0)THEN
+                    DO ISSNO=1,NSSNO(ICFDNOD(ICFD))
+                      IF(SSLINK2(ISSNO,ICFDNOD(ICFD)).EQ.ISPMNO)THEN
+                        VOLPOL(ICTM,IV,ICFD)=SSSTR(ISPMNO,ICTM)
+C                         VOLPOL(ICTM,IV,ICFD)=SSSTR(ISPMNO,ICTM)*
+C      &                  FCasgn(IV,ICFD)
+                      ENDIF
+                    ENDDO
+                  ENDIF
+                ENDIF
+ 699          CONTINUE
+
+C Now set sourcing/sinking due to air flows from links with air flow
+C network. Flow rate is -ve for flow going out from CFD domain.
+C TODO - Doing this with the volume name is very yuck, should find a
+C        better way.
+              IF(VOLNAME(IV,ICFD)(1:4).EQ.'SRC_')THEN
+                DO 701 IX=1,NVOL(ICFD)
+                  IF(VOLNAME(IV,ICFD)(5:12).EQ.
+     &               VOLNAME(IX,ICFD)(1:8))THEN
+
+C First, look for an extra connection added for the CFD-MFS conflation
+C process.
+                    NOTFOUND=.TRUE.
+                    do IOPNO=1,NFNDN
+                      if (IX.eq.NCFDOPNO(IOPNO,ICFD)) then
+                        INOD=MFNEWN(IOPNO,ICFD)
+                        ICNN=1
+                        DO WHILE(ICNN.LE.NCNN.AND.NOTFOUND)
+                          IF(NODPS(ICNN).EQ.INOD.OR.
+     &                      NODNE(ICNN).EQ.INOD)THEN
+                            NOTFOUND=.FALSE.   
+                          ELSE
+                            ICNN=ICNN+1
+                          ENDIF
+                        END DO
+                      endif
+                    enddo
+
+C If this is not found, use the original connection.
+                    if (NOTFOUND) then
+                      ICNN=ICFDCNN(IX,ICFD)
+                    endif
+
+                    FLRATE=REAL(FLW2(ICNN)+FLW1(ICNN))
+                    IF(FLRATE.GT.0.0)THEN
+                      INOD=NODNE(ICNN)
+                    ELSE
+                      INOD=NODPS(ICNN)
+                    ENDIF
+                    IROWNO=NCTM(ICFD)*(INOD-1)+ICTM
+                    VOLPOL(ICTM,IV,ICFD)=CNCAJAM(IROWNO)*FLRATE
+                  ENDIF
+ 701            CONTINUE
+              ENDIF
+            ENDIF
+
+C Finally, set moisture release rates from dynamic occupant model.
+C TODO - this will apply to all sources if the model is enabled, need to
+C        fix this.
+            if (POLNAM(ICTM,ICFD) .eq. 'Sweat1') then
+              VOLPOL(ICTM,IV,ICFD)=H2Oswt1+H2Oexp1
+            elseif (POLNAM(ICTM,ICFD) .eq. 'Sweat2') then
+              VOLPOL(ICTM,IV,ICFD)=H2Oswt2+H2Oexp2
+            endif
+          ENDIF
+ 698    CONTINUE
+ 798  CONTINUE
+
+      RETURN
+      END
+
+

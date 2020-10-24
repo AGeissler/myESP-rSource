@@ -451,11 +451,12 @@ C          interaction is begun.
 #include "net_flow_data.h"
 #include "epara.h"
     
-      DIMENSION VERT(35)
+      DIMENSION VERT(35),ITEMDEL(MCNN),IVALS(MCNN)
 
       character*(*) head
-      CHARACTER VERT*58,KEY*1,MOD*1
+      CHARACTER VERT*58,ITEMDEL*56,KEY*1,MOD*1
       LOGICAL SELECT
+      CHARACTER PROMP2*56,PROMP1*56
 
 C For help messages
       character helpinsub*24 ! subroutine name
@@ -473,6 +474,13 @@ C of menu lines based on selected list.
       MCTL=4
       ILEN=NCNN
 
+C Create list for copy and delete operations.
+      DO L=1,NCNN
+         WRITE(ITEMDEL(L),'(A12,F6.1,A5,A12,F6.1,2X,A12)')
+     &    NDNAM(NODPS(L)),HGTPS(L),' --> ',NDNAM(NODNE(L)),HGTNE(L),
+     &    CMNAM(ITPCON(L))
+      ENDDO
+
 C Initial menu entry setup.
       IPACT=CREATE
       CALL EKPAGE(IPACT)
@@ -485,7 +493,7 @@ C current menu line index. Build up text strings for the menu.
    3  M=MHEAD
       VERT(1)=
      &'  Node +ve    |dHght|to| Node -ve    |dHght|via Component'
-      DO 10 L=1,ILEN
+      DO L=1,ILEN
         IF(L.GE.IST.AND.(L.LE.(IST+MIFULL)))THEN
           M=M+1
           CALL EMKEY(L,KEY,IER)
@@ -493,7 +501,7 @@ C current menu line index. Build up text strings for the menu.
      &NDNAM(NODPS(L)),HGTPS(L),' --> ',NDNAM(NODNE(L)),HGTNE(L),
      &CMNAM(ITPCON(L))
         endif
-   10 CONTINUE
+      ENDDO
 
 C Number of actual items displayed.
       MVERT=M+MCTL
@@ -559,10 +567,20 @@ C Allow a connection to be added deleted or copied.
             ENDIF
           ELSEIF(IOPT.EQ.2)THEN
             call usrmsg('Delete which connection ? ',' ','-') 
-            CALL EMENU(HEAD,VERT,MVERT,IDVERT)
-            CALL KEYIND(MVERT,IDVERT,IFOC,IO)
-            ID=IFOC
-            call usrmsg(' ',' ','-')
+            CALL EPMENSV
+            NPICK=1
+            PROMP1='Delete which connection?'
+            PROMP2='Delete which connection?'
+            CALL EPICKS(NPICK,IVALS,PROMP1,PROMP2,
+     &        56,NCNN,ITEMDEL,' ',IER,nbhelp)
+            IFOC=IVALS(1)
+            CALL EPMENRC
+            if(IFOC.ne.0)then
+              ID=IFOC
+            else
+              call usrmsg('No connection selected.',' ','-')
+              GOTO 3
+            endif
             CALL MFLDES('D',ID)
             ILEN=NCNN
             IPACT=CREATE
@@ -570,10 +588,20 @@ C Allow a connection to be added deleted or copied.
             GOTO 3
           ELSEIF(IOPT.EQ.3)THEN
             call usrmsg('Copy which connection ? ',' ','-') 
-            CALL EMENU(HEAD,VERT,MVERT,IDVERT)
-            CALL KEYIND(MVERT,IDVERT,IFOC,IO)
-            ID=IFOC
-            call usrmsg(' ',' ','-')
+            CALL EPMENSV
+            NPICK=1
+            PROMP1='Copy which connection?'
+            PROMP2='Copy which connection?'
+            CALL EPICKS(INPICK,IVALS,PROMP1,PROMP2,
+     &        56,NCNN,ITEMDEL,' ',IER,nbhelp)
+            IFOC=IVALS(1)
+            CALL EPMENRC
+            if(IFOC.ne.0)then
+              ID=IFOC
+            else
+              call usrmsg('No connection selected.',' ','-')
+              GOTO 3
+            endif
             CALL MFLDES('C',ID)
             ILEN=NCNN
             IPACT=CREATE

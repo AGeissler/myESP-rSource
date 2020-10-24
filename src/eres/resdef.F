@@ -181,7 +181,7 @@ C Debug.
 C      write(outs248,*) 'MORFIL: local file is now ',ltmp
 C      call edisp248(iuout,outs248,100)
 C      write(outs248,*) 'MORFIL: rev path is ',path
-C       call edisp248(iuout,outs248,100)
+C      call edisp248(iuout,outs248,100)
 
       CALL ERPFREE(iunit,ISTAT)
       call FINDFIL(ltmp,xst)

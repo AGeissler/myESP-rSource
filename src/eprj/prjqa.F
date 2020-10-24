@@ -2080,6 +2080,7 @@ C Control in the model
 C List description of control and then the various zone descriptions.
 C List control data.
         call edisp(itu,' ')
+        IUF=IFIL+2
         ICTLF=IUF
         CALL ERPFREE(ICTLF,ISTAT)
         call FINDFIL(LCTLF,XST)

@@ -48,7 +48,7 @@ C for all other variables is achieved.
       common/outin/IUOUT,IUIN,IEOUT
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
 
-      COMMON/ICFCHN/ICFMON(MNZ),ICFTMP,ICFLIB
+      COMMON/ICFCHN/ICFMON(MNZ),ICFDBC(MNZ),ICFTMP,ICFLIB
 
       COMMON/BNDCND/FLWIN,XMONIN
       COMMON/VARf/Uf(ntcelx,ntcely,ntcelz),Vf(ntcelx,ntcely,ntcelz),
@@ -97,7 +97,7 @@ C Boundary condition commons.
      &               JVCELLS(MNVLS,MNZ,2),KVCELLS(MNVLS,MNZ,2)
 C Common blocks for blockages and small supply openings
       common/blksso/NBLK(MNZ),INBLK(MNVLS,MNZ),NSSO(MNZ),
-     &          INSSO(MNVLS,MNZ)
+     &          INSSO(MNVLS,MNZ),BLKTEMP(MNVLS,MNZ,6)
 
       character LRES(4)*24,LMON(4)*24
 
@@ -369,7 +369,7 @@ C Write residuals and monitoring values in a ASCII format file.
      &                  AGEf(IMONT(ICFD),JMONT(ICFD),KMONT(ICFD))
  312    FORMAT(I7,2X,2E11.3,/,9X,2E11.3)
 
-      IF(MMOD.eq.8)THEN
+        IF(MMOD.eq.8)THEN
           NCRV=2
           CRES(1)=abs(1.-AVELMA)
           CRES(2)=RESORL

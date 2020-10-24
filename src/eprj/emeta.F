@@ -24,7 +24,7 @@ C  metawrite:  Creates an esp-r meta file. Data input is from
 C              the current zones common blocks.
 
 C ************* silentmodel
-C silentmodel creates a model from passed parameters.
+C Creates a model from passed parameters.
 C The parameters are:
 C action (8 char) as follows:
 C    'new' creates model folders based on information
@@ -36,7 +36,7 @@ C weather (32 char) the weather file name (no path included)
 C simact (6 char) assessments to be carried out '------' if
 C   none requested, otherwise follow pattern in edipv.F.
 
-C Current functionality is to update the climate & site data.
+C Current functionality is to update the weather & site data.
 
       subroutine silentmodel(action,root,mpath,weather,simact,ier)
 #include "building.h"
@@ -44,9 +44,7 @@ C Current functionality is to update the climate & site data.
 #include "site.h"
 #include "espriou.h"
 #include "esprdbfile.h"
-C esprdbfile.h supplies lclim.
 #include "seasons.h"
-C seasons.h provides typper and typsea
 #include "ipvdata.h"
 
       integer lnblnk  ! function definition
@@ -58,7 +56,7 @@ C Where ESP-r was installed (as recorded when it was compiled).
       common/deflt4/dinstpath
       character dinstpath*60
 
-C Climate data.
+C Weather data.
       COMMON/CLMSET/ICYEAR,ICDNGH,CLAT,CLONG
 
       COMMON/SET1/IYEAR,IBDOY,IEDOY,IFDAY,IFTIME
@@ -91,7 +89,7 @@ C Passed in parameters.
 
       IER=0
 
-C Determine operating system
+C Determine operating system.
       call isunix(unixok)
       if(unixok)then
         fs = char(47)
@@ -104,21 +102,8 @@ C Determine operating system
 C If the action is `new` then setup model folder(s) and the registration
 C level configuration file via call to pregist in `sn` mode.
 C If the action is `within` do not create new folders for the model.
-
-C Debug
-      if(unixok)then
-        write(6,*)  'action ',action,' ',root
-        write(6,*)  'menu ',modeltitle
-        write(6,*)  'mpath ',mpath
-        write(6,*)  'weather ',weather
-        write(6,*)  'clm ',lclim
-        write(6,*)  'assessments ',simact
-      endif
-
       call edisp(iuout,'  ')
       if(action(1:3).eq.'new')then
-        call edisp(iuout,'You will be asked a [YES RESTART] question.')
-        call edisp(iuout,'Click on the [CONTINUE] button instead!')
         write(menu,'(a)') modeltitle(1:lnblnk(modeltitle))
         call pregist('sn',root,mpath,menu,ier)
       elseif(action(1:6).eq.'within')then
@@ -426,7 +411,7 @@ C Parameters
       integer icascf
       common/cctl/icascf(mcom)
       common/deflt4/dinstpath
-      character dinstpath*60 ! instal folder as recorded when ESP-r was compiled
+      character dinstpath*60 ! install folder as recorded when ESP-r was compiled
       COMMON/OVRWT/AUTOVR
       logical AUTOVR
       common/SLNTFULL/ifullysilent

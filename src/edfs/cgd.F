@@ -29,6 +29,8 @@ C  INIT_CFDTRANS - initialises data structures for CFD <-> geometry
 C                  domain transformations.
 C  INIT_CFDTRANS_NOGEOM - as above, but works without gemoetry.
 C  CFDTRANS - does CFD <-> geometry domain transformations.
+C  ESMANYZON - populates G1M (used for point containment checks) with
+C              geometry for any zone, converted into CFD coordinates.
 C  V1CEL3D - highlights 1 CFD grid cell with bold lines, and its
 C            projections on all 6 faces with normal lines.
 C  CFDVIEW - essentially the equivalent of ADJVIEW (common3dv.F), but
@@ -600,9 +602,6 @@ C to 50% grey when drawing dots.
         greyok=.true.
       endif
 
-C Set up grid information.
-      call SETGEO
-
 C Clear current viewing box and re-establish image bounds.
       CALL startbuffer
 
@@ -619,14 +618,12 @@ C Get bounds for image.
       if (nzg.gt.0) then
         call bndobj(0,IER)
       endif
-      HANG=ANG/2.0; HITH=1.0; YON=1300.0
+      HITH=1.0; YON=1300.0
       CALL LENS(IER)
 
-C Determine scaling ratios for the drawing and axis.
-C Determine the 2D coords of the site extremes.
-      CALL SITE2D(SXMX,SXMN,SYMX,SYMN,ier)
-      CALL axiscale(igwid,igheight,SXMN,SXMX,SYMN,SYMX,xsc,ysc,sca,
-     &  Xadd,Yadd)
+C Set scaling ratios for the drawing and axis.
+      CALL axiscale(igwid,igheight,-1000.,1000.,-1000.,1000.,xsc,ysc,
+     &  sca,Xadd,Yadd)
       call linescale(iigl,Xadd,sca,iigb,Yadd,sca)
 
       if (izin.lt.0) then
@@ -1063,7 +1060,8 @@ C VSB3D - draws the solid boundaries - highlighting the chosen one.
      &              ISUFLC(MNSBZ,MNZ),IWSB(MNSBZ,MNZ),SSB(MNSBZ,MNZ),
      &              SSBHC(MNSBZ,MNZ),IVOLNSB(MNSBZ,MNZ),
      &              ITCtype(MNSBZ,MNZ),icTREF(MNSBZ,MNZ)
-      common/KEYVOLN/VOLNAME(MNVLS,MNZ),VCsurf(MNVLS,MNZ)
+      common/KEYVOLN/VOLNAME(MNVLS,MNZ),VCsurf(MNVLS,MNZ),
+     &               BLKSURF(MNVLS,MNZ,6)
 
       character LLOCAT*4,outs*124,temp*12
 #ifdef OSI
@@ -1074,7 +1072,7 @@ C VSB3D - draws the solid boundaries - highlighting the chosen one.
       real XPP,YPP,ZPP  ! points taking into account zone minimum
       real XX,YY,ZZ
 
-      character VOLNAME*12, VCsurf*12
+      character VOLNAME*12, VCsurf*12, BLKSURF*12
 
 C Check in graphics mode.
       IF(MMOD.ne.8) return
@@ -1467,8 +1465,9 @@ C VAO3D - draws the air openings - highlighting the chosen one.
      &             FIXK(MCFND,MNZ),FIXE(MCFND,MNZ),
      &             IWOPEN(MCFND,MNZ),ICFDCN(MCFND,MNZ),
      &             ICNACT(MCFND,MNZ),IVOLNOP(MCFND,MNZ)
-      common/KEYVOLN/VOLNAME(MNVLS,MNZ),VCsurf(MNVLS,MNZ)
-      character VOLNAME*12, VCsurf*12
+      common/KEYVOLN/VOLNAME(MNVLS,MNZ),VCsurf(MNVLS,MNZ),
+     &               BLKSURF(MNVLS,MNZ,6)
+      character VOLNAME*12, VCsurf*12, BLKSURF*12
       common/KEYVOLS/NVOL(MNZ),IVOLF(MNVLS,MNZ),IVCELLS(MNVLS,MNZ,2),
      &               JVCELLS(MNVLS,MNZ,2),KVCELLS(MNVLS,MNZ,2)
       common/appcols/mdispl,nifgrey,ncset,ngset,nzonec
@@ -1881,15 +1880,16 @@ C      COMMON/ALL/NI,NJ,NK,NIM1,NJM1,NKM1,NIM2,NJM2,NKM2
       COMMON/ICFNOD/ICFD,ICP
       common/KEYVOLS/NVOL(MNZ),IVOLF(MNVLS,MNZ),IVCELLS(MNVLS,MNZ,2),
      &               JVCELLS(MNVLS,MNZ,2),KVCELLS(MNVLS,MNZ,2)
-      common/KEYVOLN/VOLNAME(MNVLS,MNZ),VCsurf(MNVLS,MNZ)
-      character VOLNAME*12, VCsurf*12
+      common/KEYVOLN/VOLNAME(MNVLS,MNZ),VCsurf(MNVLS,MNZ),
+     &               BLKSURF(MNVLS,MNZ,6)
+      character VOLNAME*12, VCsurf*12, BLKSURF*12
 
 C integer NBLK() is the number of blockages in each domain
 C integer INBLK() points to the volume which defines the blockage shape
 C integer NSSO() is the number of small supply openings in each domain
 C integer INSSO() point to the volume which defines the small supply shape
       common/blksso/NBLK(MNZ),INBLK(MNVLS,MNZ),NSSO(MNZ),
-     &          INSSO(MNVLS,MNZ)
+     &          INSSO(MNVLS,MNZ),BLKTEMP(MNVLS,MNZ,6)
 
       character temp*12
 
@@ -2053,8 +2053,9 @@ C      COMMON/ALL/NI,NJ,NK,NIM1,NJM1,NKM1,NIM2,NJM2,NKM2
       COMMON/ICFNOD/ICFD,ICP
       common/KEYVOLS/NVOL(MNZ),IVOLF(MNVLS,MNZ),IVCELLS(MNVLS,MNZ,2),
      &               JVCELLS(MNVLS,MNZ,2),KVCELLS(MNVLS,MNZ,2)
-      common/KEYVOLN/VOLNAME(MNVLS,MNZ),VCsurf(MNVLS,MNZ)
-      character VOLNAME*12, VCsurf*12
+      common/KEYVOLN/VOLNAME(MNVLS,MNZ),VCsurf(MNVLS,MNZ),
+     &               BLKSURF(MNVLS,MNZ,6)
+      character VOLNAME*12, VCsurf*12, BLKSURF*12
        common/KEYVDAT/IVTYPE(MNVLS,MNZ),VOLTemp(MNVLS,MNZ),
      &          VOLHeat(MNVLS,MNZ),IVConfl(MNVLS,MNZ),VOLHum(MNVLS,MNZ),
      &          VOLCO2(MNVLS,MNZ),VOLVel(MNVLS,MNZ),VOLDir(MNVLS,MNZ,2),
@@ -2389,6 +2390,39 @@ C this subroutine.
 
   999 return
       end
+
+      
+C ***************** ESMCFDZON 
+C Populates G1M (used for point containment checks) with
+C geometry for any zone, converted into CFD coordinates.
+
+C Assumes INIT_CFDTRANS has been called.
+
+      SUBROUTINE ESMCFDZON(iz,ier)
+
+#include "building.h"
+#include "geometry.h"
+  
+      COMMON/G1M/XM(MTV),YM(MTV),ZM(MTV),NSURM,JVNM(MSM,MV),
+     &           NVERM(MSM),NTVM
+  
+      NTVM=NZTV(iz)
+      DO 65 iv=1,NTVM
+        CALL CFDTRANS(2,SZCOORDS(iz,iv,1),SZCOORDS(iz,iv,2),
+     &                SZCOORDS(iz,iv,3),XM(iv),YM(iv),ZM(iv),ier)
+        if (ier.ne.0) return
+   65 CONTINUE
+
+      NSURM=NZSUR(iz)
+      DO 66 is=1,NSURM
+        NVERM(is)=ISZNVER(iz,is)
+        DO 67 iv=1,NVERM(is)
+          JVNM(is,iv)=ISZJVN(iz,is,iv)
+   67   CONTINUE
+   66 CONTINUE
+
+      RETURN
+      END
 
 C     ********************* V1CELD *********************
 C V1CEL3D - with the 3D grid displayed, highlights 1 cell with bold
