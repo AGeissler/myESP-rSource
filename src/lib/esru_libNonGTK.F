@@ -4420,7 +4420,7 @@ C terminal type 8.
       common/pophelp/h(60)
 
 C dh is duplicate help list.
-      dimension dh(60),lh(30)
+      dimension dh(60),lh(36)
       CHARACTER*(*) MSG,OTHER
       CHARACTER h*72,outs*73,dh*72,lh*72
       character IA*3

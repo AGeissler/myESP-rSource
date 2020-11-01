@@ -4777,7 +4777,7 @@ C terminal type 8.
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
       common/OUTIN/IUOUT,IUIN,IEOUT
       common/pophelp/h(60)
-      dimension lh(30)
+      dimension lh(36)
       CHARACTER*(*) MSG,OTHER
       CHARACTER h*72,outs*73,lh*73
       character IA*3
