@@ -134,6 +134,7 @@ C      WRITE(SALT(8),53)skyview,groundview,buildingview
       SEXP=SALT(siteexposureindex)
 
 C MODISH: initial assignments for reflections from obstructions.
+      modishindex=1
       SALTM(1)= '1) compute reflections from obs'
       SALTM(2)= '1) do not compute refl.from obs'
       SALTM(3)= '2) shading factor correction   '
