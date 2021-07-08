@@ -67,6 +67,7 @@ C*******************************************************************************
       IMPLICIT NONE
       
       include "building.h"
+      include "site.h"
       include "model.h"
       include "geometry.h"
       include "control.h"
@@ -108,8 +109,8 @@ C QPA(MCOM)            ! - zone air point heat injection (W)
       REAL TPA, QPA
 
 C Atmospheric pressure
-      COMMON/ATPRES/PATMOS
-      real PATMOS
+cx      COMMON/ATPRES/PATMOS
+cx      real PATMOS
 
 C TFA(MCOM)            ! - future zone air point temperature (oC)
 C QFA(MCOM)            ! - zone air point heat injection (W)
