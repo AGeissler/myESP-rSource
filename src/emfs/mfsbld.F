@@ -1,6 +1,6 @@
 C This file is part of the ESP-r system.
 C Copyright Energy Systems Research Unit, University of
-C Strathclyde, Glasgow Scotland, 2001.
+C Strathclyde, Glasgow Scotland, 2001-.
 
 C ESP-r is free software.  You can redistribute it and/or
 C modify it under the terms of the GNU General Public
@@ -13,15 +13,10 @@ C warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
 C PURPOSE. See the GNU General Public License for more
 C details.
 
-C You should have received a copy of the GNU General Public
-C License along with ESP-r. If not, write to the Free
-C Software Foundation, Inc., 59 Temple Place, Suite 330,
-C Boston, MA 02111-1307 USA.
 
-C ***************  MFSBLD
-C This file contains subroutine MFLW2B.
+C This file contains the following subroutine.
 
-C ************** MFLW2B 
+C ******************** MFLW2B ********************
 C Transfers network flow results to bps in the form of
 C zone ventilation conductances (W/K).
 
@@ -40,7 +35,6 @@ C     TRHS   - right hand side vector of matrix equation: PCOF . TNDL = TRHS
 C     XRHS   - right hand side vector of matrix equation: PCOF . XNOD = XRHS
 
       SUBROUTINE MFLW2B
-
 #include "building.h"
 #include "net_flow.h"
 #include "net_flow_data.h"
@@ -57,7 +51,7 @@ C     XRHS   - right hand side vector of matrix equation: PCOF . XNOD = XRHS
       COMMON/AFN/IAIRN,LAPROB,ICAAS(MCOM)
 
 C Variables used to transport computed infiltration, ventilation
-C conductances to building domain      
+C conductances to building domain.     
       COMMON/AfnToBldData/fAfnCondInfil,fAfnCondVent,iAfnIndex,
      &                    fAfnCondNorm, bAfnZoneActive,fZoneMassBalance
      
@@ -114,7 +108,7 @@ C Initialise AMFR and SAACI.
    10   CONTINUE
    12 CONTINUE
 
-C Populate SAACI
+C Populate SAACI.
       DO 21 ICOMP=1,NCOMP
         DO 22 INOD=1,NNOD
           IF(ICAAS(ICOMP).EQ.INOD) THEN
@@ -386,7 +380,7 @@ C in the checking of zone moisture balance information.
 C Trace output.
       IF(ITC.GT.0.AND.NSINC.GE.ITC.AND.NSINC.LE.ITCF.AND.
      &   ITRACE(25).NE.0) THEN
-         WRITE(outs,'(A,I3)') ' Subroutine MFLW2B    Trace output',ICNT
+         WRITE(outs,'(A,I3)') 'Subroutine MFLW2B    Trace output',ICNT
          call edisp(itu,outs)
          ICNT=ICNT+1
          CALL DAYCLK(IDYP,BTIMEF,ITU)

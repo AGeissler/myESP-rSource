@@ -26,10 +26,11 @@ C iexfil is the file unit number.
 C exfil is the validation models file name. 
       subroutine STNDRDS
 #include "espriou.h"
+#include "help.h"
+
 C espriou.h provides currentfile.
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
       common/OUTIN/IUOUT,IUIN,IEOUT
-      common/pophelp/h(60)
       common/FILEP/IFIL
       common/vldlst/vldlbl,vldfl
       character vldlbl*20,vldfl*96
@@ -44,7 +45,7 @@ C gh() is array of help entries.
       dimension inl2ngr(50)
       character gitem*44,outstr*124,word*20
       character exfil*96,group*42,tgroup*42,key*1
-      character H*72,separ*42
+      character separ*42
       logical XST
       integer irpt  ! for radio button
       integer NCOG,ICOG ! max items and current menu item
@@ -222,13 +223,12 @@ C        =0 allow user selection
 C IRPT - report to file (=1) or screen (=2) or unknown (=0, will ask)
       SUBROUTINE RUNSTD(LVFILE,LGROUP,IFLG,IRPT)
 #include "building.h"
+#include "help.h"
 
       common/OUTIN/IUOUT,IUIN,IEOUT
-      common/pophelp/h(60)
       common/FILEP/IFIL
       COMMON/exporttg/xfile,tg,delim
       COMMON/exporttgi/ixopen,ixloc,ixunit
-      
       
 C nrecdata - for each test number of metrics to recover
 C recdata  - for each recovery option: minimum and maximum range and previous values
@@ -256,7 +256,7 @@ C irecdata - zone and surface number for results recovery (=0 if all)
 
       character outstr*124,word*20,t24*24,t72*72
       character LVFILE*72,LGROUP*42,tgroup*42
-      character H*72,outs*256,doit*300
+      character outs*256,doit*300
       character xfile*144,tg*1,delim*1,t12*12
       character chkresult*8
       

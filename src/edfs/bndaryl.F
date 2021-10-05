@@ -1,6 +1,6 @@
 C This file is part of the ESP-r system.
 C Copyright Energy Systems Research Unit, University of
-C Strathclyde, Glasgow Scotland, 2001.
+C Strathclyde, Glasgow Scotland, 2001-.
 
 C ESP-r is free software.  You can redistribute it and/or
 C modify it under the terms of the GNU General Public
@@ -13,16 +13,12 @@ C warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
 C PURPOSE. See the GNU General Public License for more
 C details.
 
-C You should have received a copy of the GNU General Public
-C License along with ESP-r. If not, write to the Free
-C Software Foundation, Inc., 59 Temple Place, Suite 330,
-C Boston, MA 02111-1307 USA.
 
-C Contains:
+C This file contains the following subroutine.
 C   BNDARL - Establish boundary conditions for laminar flow.
 
 C ********************* BNDARL *********************
-C BNDARL - Establish the laminar flow boundary conditions.
+C Establish the laminar flow boundary conditions.
 C This subroutine has the following entry's:
 C  MODUL  - U direction boundary conditions - laminar.
 C  MODVL  - V direction boundary conditions - laminar.
@@ -96,7 +92,8 @@ C  MODTL  - temperature boundary conditions - laminar.
       LOGICAL IZEROT,IZanKE
 
 C ********************* MODUL *********************
-C MODUL -  U direction boundary conditions - laminar.
+C U direction boundary conditions - laminar.
+
       ENTRY MODUL
 
 C If flow is 1D or 2D make coefficients in other directions zero.  
@@ -336,7 +333,7 @@ C High wall.
         ELSEIF(IWOPEN(L,ICFD).EQ.6.AND.FIXM(L,ICFD).GT.0.) THEN
           K=KOPENi(L,ICFD)
           DO 195 I=IOPENi(L,ICFD),IOPENf(L,ICFD)
-          DO 195 J=JOPENi(L,ICFD),JOPENf(L,ICFD)
+            DO 1951 J=JOPENi(L,ICFD),JOPENf(L,ICFD)
              IF(I.EQ.IOPENi(L,ICFD)) THEN
                IF(THETA1(L,ICFD).LT.0.) THEN
                  SP(I,J,K)=-GREAT
@@ -353,7 +350,8 @@ C High wall.
                SP(I,J,K)=-GREAT
                SU(I,J,K)=GREAT*ABS(Wf(I,J,K))*ETAND(THETA1(L,ICFD))
              ENDIF
- 195       CONTINUE
+ 1951       CONTINUE
+ 195      CONTINUE
         ENDIF
  110  CONTINUE
       RETURN

@@ -1,6 +1,6 @@
 C This file is part of the ESP-r system.
 C Copyright Energy Systems Research Unit, University of
-C Strathclyde, Glasgow Scotland, 2001.
+C Strathclyde, Glasgow, Scotland, 2001-.
 
 C ESP-r is free software.  You can redistribute it and/or
 C modify it under the terms of the GNU General Public
@@ -45,6 +45,7 @@ C                             data for validity.
 #include "control.h"
 #include "CFC_common.h"
 #include "model.h"
+#include "help.h"
       
       integer lnblnk  ! function definition
 
@@ -91,12 +92,7 @@ C ipeerptbk is pointer from position in display to day type.
       logical CFCfilexists,CFCcontrolOK
       integer ISTRW
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='CONTRL'  ! set for subroutine
+      helpinsub='bpfcontrl'  ! set for subroutine
 
 C Record the standard fonts set when prj started.
       istdifs=ifs; istditfs=itfs; istdimfs=imfs
@@ -1450,6 +1446,8 @@ C Edit building control function II.
 #include "building.h"
 #include "plant.h"
 #include "control.h"
+#include "help.h"
+
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
       integer ifs,itfs,imfs
@@ -1475,7 +1473,7 @@ C High level controls (set when user first setup control file).
       common/hlcontrol/hcffpattern(2),syspattern(2),perpattern(2),
      &  diverspattern(2),comfortpattern(2)
 
-      DIMENSION SALT(24),IVALS(24)
+      DIMENSION SALT(25),IVALS(24)
       CHARACTER*82 VERT(20)
 
       CHARACTER outs*124,SSTR*96,TMP*96,SALT*40,hold*40,KEY*1
@@ -1488,12 +1486,7 @@ C High level controls (set when user first setup control file).
       integer lastndx  ! to keep track of last data position used.
       integer MVERT,IVERT ! max items and current menu item
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='EBCNTRL'  ! set for subroutine
+      helpinsub='bpfcontrl'  ! set for subroutine
 
 C Number of building functions and day type must be > 0.
       IF(II.LE.0.OR.IV.LE.0)RETURN
@@ -1666,7 +1659,7 @@ C law can be jumped around.
      &      iclaw.eq.7.or.iclaw.eq.8.or.iclaw.eq.10.or.
      &      iclaw.eq.13.or.iclaw.eq.14.or.iclaw.eq.15.or.
      &      iclaw.eq.21.or.iclaw.eq.22.or.iclaw.eq.23.or.
-     &      iclaw.eq.24)then
+     &      iclaw.eq.24.or.iclaw.eq.33)then
 
 C Remember the previous start (prevstart) and the total number of
 C period in this control loop (nper) and the number of day types
@@ -1716,18 +1709,18 @@ C starting up the menu based control period definition.
         SALT(22)='VAV cooling with CAV reheat            '
         SALT(23)='Match sensed values (2 setpoints)      '
         SALT(24)='Adaptive human comfort model           '
+        SALT(25)='Occupancy activated basic ideal control'
         if(iclaw.ne.0)then
           write(outs,'(a,a)') 'Current control law: ',SALT(iclaw)
           call edisp(iuout,outs)
-          IX=1
-        else
-          IX=iclaw
         endif
+        IX=1
         helptopic='sys_bctl_types'
         call gethelptext(helpinsub,helptopic,nbhelp)
   63    CALL EPICKS(IX,IVALS,' ','Control law:',
-     &    39,24,SALT,'control law (indented=old or obscure)',
+     &    39,25,SALT,'control law (indented=old or obscure)',
      &    IER,nbhelp)
+        if (IVALS(1).eq.25) IVALS(1)=33
         if(ix.eq.0.or.IVALS(1).eq.0)goto 63
         iclaw=IVALS(1)
         IBCLAW(II,JJ,KK)=iclaw
@@ -1779,13 +1772,16 @@ C If thermophysical property substitution then ask for misc. data.
         endif
 
 C Make assumptions about the additional data that will be required.
-        if(IBCLAW(II,JJ,KK).ge.1.and.IBCLAW(II,JJ,KK).lt.6)then
+        if((IBCLAW(II,JJ,KK).ge.1.and.IBCLAW(II,JJ,KK).lt.6)
+     &     .or.IBCLAW(II,JJ,KK).eq.33)then
 
-C Basic control (1) or pre-heat/cool (3) is taken care of by a
-C call to editctlperiod.
-C Free-floating control (2) is taken care of by a call to editctlperiod.
-C Ideal fixed injection (4) is taken care of by a call to editctlperiod.
-C PID controller (5) is taken care of by a call to editctlperiod.
+C The following controllers are taken care of by a call to editctlperiod: 
+C Basic control (1, 33)
+C Pre-heat/cool (3)
+C Free-floating control (2)
+C Ideal fixed injection (4)
+C PID controller (5)
+
           nper=NBCDP(II,JJ)
           loopdaytype=nbcdt(II)
           if(KK.GT.1)then
@@ -2349,8 +2345,8 @@ C First 7 data-items are equal to basic controller above.
      &      'is injected or extracted?',40,' 20. 24. ',
      &      'heat cool setpoints',IER,nbhelp)
           K=0
-          CALL EGETWR(HOLD,K,cm(6),-100.,100.,'F','Heat setp',IER)
-          CALL EGETWR(HOLD,K,cm(7),-100.,100.,'F','Cool setp',IER)
+          CALL EGETWR(HOLD,K,cm(6),-100.,100.,'W','Heat setp',IER)
+          CALL EGETWR(HOLD,K,cm(7),-100.,100.,'W','Cool setp',IER)
           if(ier.ne.0)goto 244
 
 C If no cooling capacity then set cooling set point to 100C.
@@ -2622,6 +2618,7 @@ C Edit optical control function II.
 
 #include "building.h"
 #include "control.h"
+#include "help.h"
 
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
 C      COMMON/GPICK/GS(MGOPT),nopt
@@ -2646,12 +2643,7 @@ C      DIMENSION IGVAL(60)
       integer isetp_displayCM,idat_displayCM !for display purposes to be combatible with gcc4
       integer MVERT,IVERT ! max items and current menu item
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='EOCNTRL'  ! set for subroutine
+      helpinsub='bpfcontrl'  ! set for subroutine
 
 C Number of optical functions and day type must be > 0.
       IF(II.LE.0.OR.IV.LE.0)RETURN
@@ -3032,6 +3024,7 @@ C EBCNTRL.
 
 #include "building.h"
 #include "control.h"
+#include "help.h"
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
 
       common/sctl/tcps,ictyp,iclaw,cm(misc)
@@ -3049,12 +3042,7 @@ C EBCNTRL.
       integer icurrentctltype
       integer MVERT,IVERT ! max items and current menu item
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='edit_CFC_control'  ! set for subroutine
+      helpinsub='bpfcontrl'  ! set for subroutine
       
       icfoc = 6
       
@@ -3360,6 +3348,7 @@ C Edit plant control function II.
 
 #include "building.h"
 #include "control.h"
+#include "help.h"
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
 
       common/sctl/tcps,ictyp,iclaw,cm(misc)
@@ -3373,12 +3362,8 @@ C Edit plant control function II.
       logical close1
       integer MVERT,IVERT ! max items and current menu item
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
       integer iother
-      helpinsub='EPCNTRL'  ! set for subroutine
+      helpinsub='bpfcontrl'  ! set for subroutine
 
 
 C Number of plant loops and day type must be > 0.
@@ -4323,6 +4308,7 @@ C Edit flow control function II.
 #include "net_flow_data.h"
 #include "epara.h"
 #include "control.h"      
+#include "help.h"
       integer lnblnk  ! function definition
 
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
@@ -4341,12 +4327,7 @@ C Portions of multi-sensor feedback message.
       real ocli
       integer MVERT,IVERT ! max items and current menu item
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='EFCNTRL'  ! set for subroutine
+      helpinsub='bpfcontrl'  ! set for subroutine
 
 C Number of functions and day type must be > 0.
       IF(II.LE.0.OR.IV.LE.0)RETURN
@@ -4842,6 +4823,7 @@ C Edit global control function II.
 
 #include "building.h"
 #include "control.h"
+#include "help.h"
 
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
       common/sctl/tcps,ictyp,iclaw,cm(misc)
@@ -4854,12 +4836,7 @@ C Edit global control function II.
       integer IADR  ! for radio button
       integer MVERT,IVERT ! max items and current menu item
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='EGCNTRL'  ! set for subroutine
+      helpinsub='bpfcontrl'  ! set for subroutine
 
 C Number of global functions and day type must be > 0.
       IF(II.LE.0.OR.IV.LE.0)RETURN
@@ -5204,6 +5181,7 @@ C flow connections.It is assumed that the user will make one selection only.
 #include "plant.h"
 #include "epara.h"
 #include "control.h"
+#include "help.h"
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
       integer ifs,itfs,imfs
       COMMON/GFONT/IFS,ITFS,IMFS
@@ -5227,12 +5205,7 @@ C Usual proportional fonts set when prj started.
       integer isn1T,isn2T,isn3T,isn4T,ilayt   ! temporary values for editing.
       integer MVERT,IVERT ! max items and current menu item
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='senloc'  ! set for subroutine
+      helpinsub='bpfcontrl'  ! set for subroutine
 
 C Save current fonts and switch to the standard prj fonts.
       irecimfs=IMFS; irecitfs=ITFS; irecifs=IFS
@@ -5247,7 +5220,7 @@ C IVERT is the menu position, MVERT the current number of menu lines.
       elseif(icfoc.eq.1)then
         MHEAD=13
       elseif(icfoc.eq.2)then
-        MHEAD=12
+        MHEAD=13
       elseif(icfoc.eq.3)then
         MHEAD=2
       elseif(icfoc.eq.4)then
@@ -5316,7 +5289,8 @@ C help text blocks for the current control domain.
         WRITE(VERT(9),'(a)') 'h   direct normal solar radiation     '
         WRITE(VERT(10),'(a)')'i   external relative humidity        '
         WRITE(VERT(11),'(a)')'j senses flow node or connection      '
-        WRITE(VERT(12),'(a)')'  ------------------------------------'
+        WRITE(VERT(12),'(a)')'k senses casual gain                  '
+        WRITE(VERT(13),'(a)')'  ------------------------------------'
       elseif(icfoc.eq.3)then
         helptopic='senslocation_nothing'
         call gethelptext(helpinsub,helptopic,nbhelp)
@@ -5407,8 +5381,7 @@ C If there are enough items allow paging control via EKPAGE.
 C Ask for the specific zone.
         CALL EPMENSV
         idef=0
-        call askzone(isn1,idef,
-     &   'Specific zone associated with this sensor','Select zone','-',
+        call askzone(isn1,idef,'Select associated zone','-',
      &    'Specific zone',34,ier)
         CALL EPMENRC
         SELECT=.TRUE.
@@ -5543,7 +5516,7 @@ C Senses mix of zone db temp and MRT.
           CALL EPMENSV
           idef=0
           isn2T=isn2
-          call askzone(isn2T,idef,'Zone for sensor','Select zone','-',
+          call askzone(isn2T,idef,'Select associated zone','-',
      &      'MRT sensor',34,ier)
           CALL EPMENRC
         endif
@@ -5582,8 +5555,7 @@ C Senses incident solar radiation on a surface.
 C Ask for the specific zone.
         CALL EPMENSV
         idef=0
-        call askzone(isn1,idef,
-     &   'Specific zone associated with this sensor','Select zone','-',
+        call askzone(isn1,idef,'Select associated zone','-',
      &    'Specific zone',34,ier)
         CALL EPMENRC
         SELECT=.TRUE.
@@ -5602,8 +5574,7 @@ C Ask for the specific zone.
         isn1=-4
         CALL EPMENSV
         idef=0
-        call askzone(isn2,idef,
-     &    'Specific zone associated with this sensor','Select zone','-',
+        call askzone(isn2,idef,'Select associated zone','-',
      &    'Specific zone',34,ier)
         CALL EPMENRC
         SELECT=.TRUE.
@@ -5641,9 +5612,8 @@ C Senses incident solar radiation on a surface.
 C Ask for the specific zone.
             CALL EPMENSV
             idef=0
-            call askzone(isn2,idef,
-     &    'Specific zone associated with this sensor','Select zone','-',
-     &    'Specific zone',34,ier)
+            call askzone(isn2,idef,'Select associated zone','-',
+     &        'Specific zone',34,ier)
             CALL EPMENRC
             SELECT=.TRUE.
             CALL EPMENSV
@@ -5818,6 +5788,20 @@ C Uses value from function generator.
         if(ieri.eq.-3) goto 3
         isn1=isn1T
         isn2=isn2T
+
+      elseif(ivert.eq.12.and.icfoc.eq.2)then
+C Senses casual gain; pick zone and gain index.
+        isn1=-7
+        CALL EPMENSV
+        isn2=1
+        idef=1
+        call askzone(isn2,idef,'Select associated zone','-',
+     &        'Specific zone',34,ier)
+        CALL EPMENRC
+        isn3=1
+        call EASKI(isn3,'Casual gain index:',' ',1,'F',3,'W',1,
+     &    'casual gain index',IER,nbhelp)
+
       elseif(ivert.eq.13.and.(icfoc.eq.0))then
 
 C Changes thermophysical properties.
@@ -5882,6 +5866,7 @@ C flow connections.It is assumed that the user will make one selection only.
 #include "esprdbfile.h"
 #include "material.h"
 #include "CFC_common.h"
+#include "help.h"
 
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
       integer ifs,itfs,imfs
@@ -5908,12 +5893,7 @@ C Usual proportional fonts used for non-control facilities.
       logical modmlc  ! to select MLC
       integer MVERT,IVERT ! max items and current menu item
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='actloc'  ! set for subroutine
+      helpinsub='bpfcontrl'  ! set for subroutine
 
 C Save current fonts and switch to the standard prj fonts.
       irecimfs=IMFS; irecitfs=ITFS; irecifs=IFS
@@ -6144,6 +6124,7 @@ C At a flow connection.
         CALL EPMENSV
         call ASKCON('Flow connection?','-',INS,INE,IC,IER)
         CALL EPMENRC
+        if(IC.eq.0) goto 3  ! jump because user did not select
         write(outs,'(6A)') ' Selected ',NDNAM(NODPS(IC)),
      &    ' - ',NDNAM(NODNE(IC)),' via ',CMNAM(ITPCON(IC))
         call edisp(iuout,outs)
@@ -6219,8 +6200,7 @@ C Actuates shade ON/OFF status
 C Ask for the specific zone.
         CALL EPMENSV
         idef=0
-        call askzone(ian2,idef,
-     &   'Specific zone associated with this sensor','Select zone','-',
+        call askzone(ian2,idef,'Select associated zone','-',
      &    'Specific zone',34,ier)
 
 C Ask for CFC type in selected zone.   
@@ -6252,7 +6232,7 @@ C Actuates radiant convective mix.
           CALL EPMENSV
           idef=0
           ian2T=ian2
-          call askzone(ian2T,idef,'Zone for actuation','Select zone',
+          call askzone(ian2T,idef,'Select actuation zone',
      &      '-','mixed injection',34,ier)
           CALL EPMENRC
         endif
@@ -6346,8 +6326,7 @@ C Actuates slat angle of a slat-type shade
 C Ask for the specific zone.
         CALL EPMENSV
         idef=0
-        call askzone(ian2,idef,
-     &   'Specific zone associated with this sensor','Select zone','-',
+        call askzone(ian2,idef,'Select associated zone','-',
      &    'Specific zone',34,ier)
 
 C Ask for CFC type in selected zone.   
@@ -6394,8 +6373,7 @@ C Actuates slat angle of a slat-type shade
 C Ask for the specific zone.
         CALL EPMENSV
         idef=0
-        call askzone(ian2,idef,
-     &   'Specific zone associated with this sensor','Select zone','-',
+        call askzone(ian2,idef,'Select associated zone','-',
      &    'Specific zone',34,ier)
 
 C Ask for CFC type in selected zone.   
@@ -6482,6 +6460,7 @@ C    deal with the dialogs using standard sequential method.
 #include "building.h"
 #include "control.h"
 #include "epara.h"
+#include "help.h"
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
       integer ifs,itfs,imfs
       COMMON/GFONT/IFS,ITFS,IMFS
@@ -6522,7 +6501,7 @@ C   for control law one.
      &  vdef(misc),nctlhelp,nmenulines
 
       character act*1
-      DIMENSION VERT(35),SALT(24),IVALS(24)
+      DIMENSION VERT(35),SALT(25),IVALS(24)
       dimension cmlocal(misc)    ! for local editing of cm data.
       real cmlocal
       integer ivals              ! for return of selection array.
@@ -6540,12 +6519,7 @@ C   for control law one.
       integer ivalue,imini,imaxi,idefa  ! local values for editing as integer
       integer MVERT,IVERT               ! max items and current menu item
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp         ! number of help lines found
-
-      helpinsub='editctlperiod'  ! set for subroutine
+      helpinsub='bpfcontrl'  ! set for subroutine
 
 C Set initial logical values.
       close=.true.
@@ -6770,21 +6744,21 @@ C control law to trap changes.
           SALT(22)='VAV cooling with CAV reheat (BETA)     '
           SALT(23)='Match sensed values (ideal:2 setpoints)'
           SALT(24)='Adaptive human comfort model           '
+          SALT(25)='Occupancy activated basic controller   '
           if(iclawcurrent.ne.0)then
             write(outs,'(2a)') ' Current control law: ',
      &        SALT(iclawcurrent)
             call edisp(iuout,outs)
-            IX=1
-          else
-            IX=iclawcurrent
           endif
+          IX=1
 
 C Re-instantiate help specifically for summary of control laws.
           helptopic='bld_ctl_period_data'
           call gethelptext(helpinsub,helptopic,nbhelp)
   63      CALL EPICKS(IX,IVALS,' ','Control law option:',
-     &      42,24,SALT,'control law (indented=old or obscure)',
+     &      42,25,SALT,'control law (indented=old or obscure)',
      &      IER,nbhelp)
+          if(IVALS(1).eq.25)IVALS(1)=33
           if(ix.eq.0.or.IVALS(1).eq.0)goto 63
           if(iclawcurrent.ne.IVALS(1))then
 
@@ -6794,7 +6768,7 @@ C For  control laws that are not supported by the
 C new menu structure, return to the calling subroutine.
             modval=.true.
             iclaw=IVALS(1)
-            write(TMP,'(a)') SALT(iclaw)  ! update string for menu
+            if (iclaw.lt.25) write(TMP,'(a)') SALT(iclaw)  ! update string for menu
             if(iclaw.eq.1)then
               cmlocal(1)=7.0        ! this swap is supported, major menu change.
               cmlocal(2)=1000.0     ! reset to default values
@@ -7005,8 +6979,16 @@ C At the moment it does what the control law 11 does
               cmlocal(8)=0.8
               cmlocal(9)=2.0
               goto 90
-            else
-
+            elseif(iclaw.eq.33)then
+              write(TMP,'(a)') SALT(25)  ! update string for menu
+              cmlocal(1)=6.0
+              cmlocal(2)=1000.0
+              cmlocal(3)=0.0
+              cmlocal(4)=1000.0
+              cmlocal(5)=0.0
+              cmlocal(6)=20.0
+              cmlocal(7)=24.0
+              goto 90
             endif
             goto 90
           else
@@ -7113,7 +7095,7 @@ C the specific logic of each control law. Typically warning messages
 C are given if invalid items are found.
         if(icfoc.eq.0)then
          if(ictyp.eq.0)then
-          if(iclaw.eq.1.or.iclaw.eq.3)then
+          if(iclaw.eq.1.or.iclaw.eq.3.or.iclaw.eq.33)then
             modval=.true.
             if(ifoc.eq.12)then
 
@@ -7367,6 +7349,7 @@ C block sctl to have been filled for the current period.
       subroutine stfmenu(icfoc)
 #include "building.h"
 #include "net_flow.h"
+#include "help.h"
 
 C Parameter
       integer icfoc  ! index of control domain
@@ -7398,12 +7381,7 @@ C High level controls (set when user first setup control file).
 
       character menu*32,prompt1*72,prompt2*72
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='stfmenu'  ! set for subroutine
+      helpinsub='bpfcontrl'  ! set for subroutine
 
       if(icfoc.eq.0)then
 
@@ -7443,11 +7421,11 @@ C used to that the index matches the cm position.
           menu(6)='Heating setpoint (C)'
           prompt1(6)='Heating setpoint (C) (temperature to meet if'
           prompt2(6)='there is sufficient capacity) '
-          ndec(6)=3; vmin(6)=-100.0; vmax(6)=100.0; vdef(6)=20.0
+          ndec(6)=3; vmin(6)=-100.0; vmax(6)=300.0; vdef(6)=20.0
           menu(7)='Cooling setpoint (C)'
           prompt1(7)='Cooling setpoint (C (temperature to meet if)'
           prompt2(7)='there is sufficient capacity) '
-          ndec(7)=3; vmin(7)=-100.0; vmax(7)=100.0; vdef(7)=24.0
+          ndec(7)=3; vmin(7)=-100.0; vmax(7)=400.0; vdef(7)=24.0
 
 C Depending on the current number of miscel items also do humidity.
           if(int(cm(1)).eq.7.or.int(cm(1)).eq.6)then
@@ -8140,6 +8118,40 @@ C comfort temperature the control is activated
           prompt2(9)=' '
           ndec(9)=3; vmin(8)=0.0; vmax(8)=0.99; vdef(8)=2.0
           nmenulines=9    ! set to the last cm index used
+
+C Occupancy activated basic control.
+        elseif(iclaw.eq.33)then
+          helptopic='sys_bctl_33'
+          call gethelptext(helpinsub,helptopic,nbhelp)
+          nctlhelp=nbhelp
+          nmenulines=7
+          prompt1(1)=' '
+          prompt2(1)=' '
+          ndec(1)=-1; vmin(1)=0.0; vmax(1)=0.0; vdef(1)=0.0
+          menu(2)='Maximum heating capacity (W)'
+          prompt1(2)='Maximum heating capacity (W) which is available'
+          prompt2(2)='to meet the demand. '
+          ndec(2)=1; vmin(2)=0.0; vmax(2)=999999.0; vdef(2)=1000.0
+          menu(3)='Minimum heating capacity (W)'
+          prompt1(3)='Minimum heating capacity (W) The flux injected'
+          prompt2(3)='will never drop below this level. '
+          ndec(3)=1; vmin(3)=0.0; vmax(3)=999999.0; vdef(3)=0.0
+          menu(4)='Maximum cooling capacity (W)'
+          prompt1(4)='Maximum cooling capacity (W) which is available'
+          prompt2(4)='to meet the demand. '
+          ndec(4)=1; vmin(4)=0.0; vmax(4)=999999.0; vdef(4)=1000.0
+          menu(5)='Minimum cooling capacity (W)'
+          prompt1(5)='Minimum cooling capacity (W) The flux extracted'
+          prompt2(5)='will never be less than this. '
+          ndec(5)=1; vmin(5)=0.0; vmax(5)=999999.0; vdef(5)=0.0
+          menu(6)='Heating setpoint (C)'
+          prompt1(6)='Heating setpoint (C) (temperature to meet if'
+          prompt2(6)='there is sufficient capacity) '
+          ndec(6)=3; vmin(6)=-100.0; vmax(6)=300.0; vdef(6)=20.0
+          menu(7)='Cooling setpoint (C)'
+          prompt1(7)='Cooling setpoint (C (temperature to meet if)'
+          prompt2(7)='there is sufficient capacity) '
+          ndec(7)=3; vmin(7)=-100.0; vmax(7)=400.0; vdef(7)=24.0
         else
           helptopic='sys_bctl_other'
           call gethelptext(helpinsub,helptopic,nbhelp)

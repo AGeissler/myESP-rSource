@@ -37,6 +37,7 @@ C *********************************************************************
       SUBROUTINE INIT3D
 #include "building.h"
 #include "geometry.h"
+#include "help.h"
 
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
 
@@ -69,12 +70,7 @@ C *********************************************************************
       integer ier
       logical ISEOF
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='INIT3D'  ! set for subroutine
+      helpinsub='g3dfac'  ! set for subroutine
 
       ZNP1=0.
       ZNF1=0.
@@ -464,6 +460,7 @@ C FLORDR re-orders the 3D files for a zone.
 C *********************************************************************
       SUBROUTINE FLORDR(IZ)
 #include "building.h"
+#include "help.h"
       
       integer lnblnk  ! function definition
 
@@ -479,12 +476,7 @@ C *********************************************************************
       character msg*90
       logical ISEOF
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='FLORDR'  ! set for subroutine
+      helpinsub='g3dfac'  ! set for subroutine
 
       CALL USRMSG(' ','Re-ordering in process. Please wait !','-')
       L3DTMP=' '

@@ -1,6 +1,6 @@
 C This file is part of the ESP-r system.
 C Copyright Energy Systems Research Unit, University of
-C Strathclyde, Glasgow Scotland, 2001.
+C Strathclyde, Glasgow, Scotland, 2001-.
 
 C ESP-r is free software.  You can redistribute it and/or
 C modify it under the terms of the GNU General Public
@@ -147,6 +147,8 @@ C prevailing controller type, determines sensed condition (SVCTL).
 #include "net_flow.h"
 #include "net_flow_data.h"
 #include "control.h"
+#include "tdf2.h"
+#include "FMI.h"
 
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/CLIMIF/QFLWP,QFLWF,TFLWP,TFLWF,QDFLP,QDFLF,VFLP,VFLF,
@@ -156,6 +158,9 @@ C prevailing controller type, determines sensed condition (SVCTL).
       COMMON/MFLRES/FLW1(MCNN),FLW2(MCNN),PRES(MNOD),
      &              RESID(MNOD),SAFLW(MNOD)
       COMMON/CONTM8/CCONC(MNOD,MCONTM)
+      common/btime/btimep,btimef
+      common/trc/itrc
+      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS,idynow
 
       COMMON/PCVAL/CSVF(MPNODE,MPVAR),CSVP(MPNODE,MPVAR)
       COMMON/C12PS/NPCDAT(MPCOM,9),IPOFS1(MCOEFG),IPOFS2(MCOEFG,MPVAR)
@@ -169,8 +174,15 @@ C prevailing controller type, determines sensed condition (SVCTL).
       COMMON/FVALC/TFC(MCOM,MS,MN),QFC(MCOM)
       common/FVALG/GFA(MCOM)
 
+      common/CASGNS/NCGPER(MCOM,MDTY,MGTY),TCGS(MCOM,MDTY,MGTY,MGPER),
+     &        CGSENC(MCOM,MDTY,MGTY,MGPER),CGSENR(MCOM,MDTY,MGTY,MGPER),
+     &        CGLAT(MCOM,MDTY,MGTY,MGPER),CGCTL(MCOM,2,MGTY)
+      common/caleni/nbdaytype,nbcaldays(MDTY),icalender(365)
+      INTEGER NBDAYTYPE,NBCALDAYS,ICALENDER
+
       DOUBLE PRECISION FLW1,FLW2,PRES,RESID,SAFLW
       character outs*124
+      REAL VAL(MBITS+2)
 
 C Establish sensor location.
       IFS1=IFSN(ICFP,1)
@@ -192,7 +204,7 @@ C Locate the actuated flow connection.
 
 C Match mass flow controller type.
       ICLCTP=IFCTYP(ICFP,IDTYPP,IPERP)
-      if(IFS1.EQ.-3) THEN
+      if(IFS1.EQ.-3.or.IFS1.EQ.-7) THEN
         if(ICLCTP.gt.0.and.ICLCTP.le.7)then
           WRITE(outs,*) ' CFFVAR: mass flow control function ',ICFP
           call edisp(iuout,outs)
@@ -469,6 +481,54 @@ C would cause an array error to check so warn user.
             endif
           endif
         endif
+
+C Senses casual gains (from operations or temporal).
+C IFS1 is -7
+C IFS2 is the zone number
+C IFS3 is the casual gain type index 
+C by default, 1 = occupancy, 2 = lights, 3 = equipment
+      elseif (IFS1.eq.-7) then
+
+        iz=IFS2
+        igtyp=IFS3
+
+C Check if there is an appropriate temporal entity for the zone.
+        if (ICASUAL3(iz).ne.0) then
+          IFOC=ICASUAL3(iz)
+          CALL RCTDFB(itrc,btimef,VAL,ISD,IFOC,IER)
+          if (igtyp.eq.1) then
+            SVCTL=VAL(ISD)+VAL(ISD+1)+VAL(ISD+2)
+          elseif (igtyp.eq.2) then
+            SVCTL=VAL(ISD+3)+VAL(ISD+4)+VAL(ISD+5)
+          elseif (igtyp.eq.3) then
+            SVCTL=VAL(ISD+6)+VAL(ISD+7)+VAL(ISD+8)
+          endif
+        
+C No temporal gains, so use operations file.
+        else
+          idtyp=icalender(IDYP)
+
+          DO IGNO=1,NCGPER(iz,idtyp,igtyp)
+            IF(IHRP.GE.TCGS(iz,idtyp,igtyp,IGNO).AND.
+     &         IHRP.LE.TCGS(iz,idtyp,igtyp,IGNO+1))THEN
+
+C <FMI>
+C If FMI occupancy control is active, need to multiply gains by control
+C value.
+              if (FMUDOCTL(iz,7)) then
+                SVCTL=(CGSENC(iz,idtyp,igtyp,IGNO) +
+     &                 CGSENR(iz,idtyp,igtyp,IGNO) +
+     &                 CGLAT(iz,idtyp,igtyp,IGNO)) * FMUCTL(iz,7)
+              else
+C </FMI>
+                SVCTL=CGSENC(iz,idtyp,igtyp,IGNO) +
+     &                CGSENR(iz,idtyp,igtyp,IGNO) +
+     &                CGLAT(iz,idtyp,igtyp,IGNO) 
+              endif
+            ENDIF
+          enddo
+        endif
+        
       else
         call edisp(iuout,
      &    ' CFFVAR: illegal mass flow-side sensor referenced')
@@ -876,6 +936,7 @@ C by setting the ALPHA parameter = 0.
 #include "geometry.h"
 #include "control.h"
 #include "climate.h"
+#include "help.h"
 
       COMMON/FILEP/IFIL
       integer ncomp,ncon
@@ -903,14 +964,8 @@ C Adaptive comfort common.
       CHARACTER*2 MODE
       REAL Wposs,Fposs,WNposs,ACavail,Havail,PF,PWRfan,FUNCW,TRMSET
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp         ! number of help lines found (will be non-zero
-                             ! because default message will be created
-
 C Initialise variables.
-      helpinsub='FCL04'
+      helpinsub='mfcntl'
       WPOSS=0; Fposs=0; WNposs=0; ACavail=0; Havail=0; PF=0
       PWRfan=0; FUNCW=0; TRMSET=0.
 
@@ -932,7 +987,7 @@ C prior to the present day (IDYP).
           II=I
 
 C Read weather data for current day into CMRVAL(). See commonclm.F.
-          call CLMGET(II)
+          call CLMGET(II,IER)
           DO 656 J=1,24
             PREVTEMP(ID)=CMRVAL(1,J)+PREVTEMP(ID)
   656     CONTINUE
@@ -944,7 +999,7 @@ C Read weather data for current day into CMRVAL(). See commonclm.F.
         DO 550 I=IYDS,365
           ID=ID+1
           II=I
-          call CLMGET(II)
+          call CLMGET(II,IER)
           DO 657 J=1,24
             PREVTEMP(ID)=CMRVAL(1,J)+PREVTEMP(ID)
   657     CONTINUE
@@ -954,7 +1009,7 @@ C Read weather data for current day into CMRVAL(). See commonclm.F.
           DO 551 I=1,IDYF
             ID=ID+1
             II=I
-          call CLMGET(II)
+          call CLMGET(II,IER)
           DO 658 J=1,24
             PREVTEMP(ID)=CMRVAL(1,J)+PREVTEMP(ID)
   658       CONTINUE

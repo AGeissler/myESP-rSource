@@ -1,6 +1,6 @@
 C This file is part of the ESP-r system.
 C Copyright Energy Systems Research Unit, University of
-C Strathclyde, Glasgow Scotland, 2001-2007.
+C Strathclyde, Glasgow Scotland, 2001-.
 
 C ESP-r is free software.  You can redistribute it and/or
 C modify it under the terms of the GNU General Public
@@ -14,10 +14,9 @@ C PURPOSE. See the GNU General Public License for more
 C details.
 
 
-C Project Manager: file eddb.f providing manipulation of
-C standard data files:
-C  EDDB  : Controls specification/ browsing of standard data files.
-C  opendb: Standard opening of thermophysical and optical data.
+C This filw contains the following subroutines.
+C EDDB  : Controls specification/ browsing of standard data files.
+C opendb: Standard opening of thermophysical and optical data.
 C EDDBMATERIAL Changes the materials referemces in cfg file.
 C EDDBCFC: Changes the CFC layers db
 C EDDBPCDB Changes the plant components current cfg file references.
@@ -43,15 +42,7 @@ C ITRU is channel for user output, IER=0 means no errors encountered.
 #include "net_flow.h"
 #include "MultiYear_simulations.h"
 #include "esprdbfile.h"
-C esprdbfile.h supplies the following:
-C LAPRES,IAPRES (for wind pressure coefficients)
-C LOPTDB,IOPTDB (for optical properties)
-C LPCDB/IPCDB (for plant templates)
-C LPRFDB,IPRODB (for event profiles)
-C LFMAT,IFMAT,LFMUL,IFMUL (for standard materials and constructions)
-C ICLIM,LCLIM (for weather file)
-C MCMPDBFL (active components file)
-C default file names for standard files
+#include "help.h"
       
       integer lnblnk  ! function definition
 
@@ -85,12 +76,7 @@ C      character rootpdos*72,upathdos*72
       integer*8 impx,impy,iwe
 #endif
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='EDDB'  ! set for subroutine
+      helpinsub='eddb'  ! set for subroutine
 
       moddb=.false.
       modcon=.false.
@@ -138,25 +124,25 @@ C yet defined.
       lndbp=lnblnk(standarddbpath)
       WRITE(ITEMS(1),'(A)')'  Folder paths:'
       if(lndbp.lt.52)then
-        WRITE(ITEMS(2),'(2A)')'  <std> = ',
-     &    standarddbpath(1:lndbp)
+        WRITE(ITEMS(2),'(3A)')'  <std> = ',
+     &    standarddbpath(1:lndbp),'/'
       else
-        WRITE(ITEMS(2),'(2A)')'  <std> = ',
-     &    standarddbpath(1:52)
+        WRITE(ITEMS(2),'(3A)')'  <std> = ',
+     &    standarddbpath(1:52),'/'
       endif
       if(cfgroot(1:2).ne.'  '.and.cfgroot(1:4).ne.'UNKN')then
         lnpth=lnblnk(path)
         lndbpth=lnblnk(dbspth)
         if(lnpth+lndbpth.lt.55)then
-          WRITE(ITEMS(3),'(3A)')
-     &      '  <mod> = ',path(1:lnpth),dbspth(1:lndbpth)
+          WRITE(ITEMS(3),'(4A)')
+     &      '  <mod> = ',path(1:lnpth),dbspth(1:lndbpth),'/'
         else
           if(lnpth.lt.50)then
-            WRITE(ITEMS(3),'(3A)')
-     &        '  <mod> = ',path(1:lnpth),dbspth(1:5)
+            WRITE(ITEMS(3),'(4A)')
+     &        '  <mod> = ',path(1:lnpth),dbspth(1:5),'/'
           else
-            WRITE(ITEMS(3),'(2A)')
-     &        '  <mod> = ',path(1:lnpth)
+            WRITE(ITEMS(3),'(3A)')
+     &        '  <mod> = ',path(1:lnpth),'/'
           endif
         endif
       else
@@ -544,6 +530,7 @@ C ad closemat1 or closemat2 will be set.
 #include "building.h"
 #include "esprdbfile.h"
 #include "material.h"
+#include "help.h"
       
       integer lnblnk  ! function definition
 
@@ -560,12 +547,7 @@ C ad closemat1 or closemat2 will be set.
       integer lndbp   ! for length of standard database path
       logical unixok
 
-C For help messages.
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='opendb'  ! set for subroutine
+      helpinsub='eddb'  ! set for subroutine
 
 C Set folder separator (fs) to \ or / as required.
       call isunix(unixok)
@@ -769,6 +751,7 @@ C modcon signals change in constructions.
 #include "model.h"
 #include "esprdbfile.h"
 #include "material.h"
+#include "help.h"
       
       integer lnblnk  ! function definition
 
@@ -801,12 +784,7 @@ C Local strings for user selections dependent on graphic library.
       logical unixok  ! to check for path file separators
       logical allowbrowse ! to be done
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='EDDBMATERIAL'  ! set for subroutine
+      helpinsub='eddb'  ! set for subroutine
 
 C Clear string buffers.
       ltmp=' '
@@ -1392,6 +1370,7 @@ C Unused variables commented out.
 #include "model.h"
 #include "esprdbfile.h"
 #include "material.h"
+#include "help.h"
       
       integer lnblnk  ! function definition
 
@@ -1428,12 +1407,7 @@ C Local strings for user selections dependent on graphic library.
       logical unixok  ! to check for path file separators
       logical allowbrowse ! to be done
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='EDDBCFC'  ! set for subroutine
+      helpinsub='eddb'  ! set for subroutine
 
 C Clear string buffers.
 C      ltmp=' '
@@ -1875,6 +1849,7 @@ C moddb is from version manager
 #include "model.h"
 #include "esprdbfile.h"
 #include "plantdb.h"
+#include "help.h"
       
       integer lnblnk  ! function definition
 
@@ -1906,12 +1881,7 @@ C Local strings for user selections dependent on graphic library.
       logical allowbrowse ! to be done
       integer ISTRW
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='EDDBPCDB'  ! set for subroutine
+      helpinsub='eddb'  ! set for subroutine
 
 C Set folder separator (fs) to \ or / as required.
       call isunix(unixok)
@@ -2163,7 +2133,7 @@ C Confirm suggested name and then write out asci file.
         else
           ISTRW=96
         endif
-        CALL EASKF(LLASCI,'Export ASCII components file','Confirm:',
+        CALL EASKF(LLASCI,' ','Export components file name?',
      &    ISTRW,DFILE,'asci plant comp file name',IER,nbhelp)
         if(ier.eq.-3) return  ! cancel detected pass back -3 in ier.
 
@@ -2197,7 +2167,7 @@ C Setup the command line for pdb.
        
       elseif(isw.eq.7)then
 
-C Components: ASCII >> BINARY
+C Components: ASCII >> BINARY.
 C Confirm suggested name and then write out binary file.
         if(ipathpcdb.eq.0.or.ipathpcdb.eq.1)then
           write(LLASCI,'(2a)') LPCDB(1:lnblnk(LPCDB)),'.a'
@@ -2345,15 +2315,16 @@ C Get logical name of child process terminal type and create a string to drive p
 
 
 C ********** EDDBPREDEF
-C Eddbpredef manages predefined object db current cfg file references.
-C moddb is from version manager
-C modcon signals change in objects.
+C Manages predefined object db current cfg file references.
+C   moddb is from version manager
+C   modcon signals change in objects.
 
       SUBROUTINE EDDBPREDEF(moddb,modcon)
 #include "building.h"
 #include "model.h"
 #include "esprdbfile.h"
 #include "material.h"
+#include "help.h"
       
       integer lnblnk  ! function definition
 
@@ -2388,12 +2359,7 @@ C Local strings for user selections dependent on graphic library.
       logical allowbrowse ! to be done
       logical requestpreview
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='EDDBPREDEF'  ! set for subroutine
+      helpinsub='eddb'  ! set for subroutine
 
 C Clear string buffers.
       lltmp=' '
@@ -2708,6 +2674,7 @@ C moddb is from version manager
 #include "model.h"
 #include "esprdbfile.h"
 #include "profile.h"
+#include "help.h"
 
 C << introduce concept of profiles with multiple day types as well
 C << as multiple casual gain types
@@ -2721,8 +2688,6 @@ C << introduce concept of types of profiles
 
       common/FILEP/IFIL
       common/OUTIN/IUOUT,IUIN,IEOUT
-C      common/rpath/path
-C      character path*72
       common/deflt4/dinstpath
 
       CHARACTER LTMP*72,lltmp*144,lprev*144
@@ -2740,12 +2705,7 @@ C Local strings for user selections dependent on graphic library.
       integer iglib  ! for detecting GTK or X11
       logical allowbrowse  ! future facility
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='EDDBPROFILE'  ! set for subroutine
+      helpinsub=' eddb'  ! set for subroutine
 
 C Set folder separator (fs) to \ or / as required.
       call isunix(unixok)
@@ -3053,8 +3013,8 @@ C Call casfmk for the editing/browsing interface.
       end
 
 C ********** EDDBMLCON
-C EDDBMLCON Changes the constructions current cfg file references.
-C moddb is from version manager
+C EChanges the constructions current cfg file references.
+C moddb is from version manager.
 
 C If we are pointing to a file in the common folder then we should
 C warn the user when attempting to update that file.
@@ -3065,12 +3025,11 @@ C warn the user when attempting to update that file.
 #include "esprdbfile.h"
 #include "geometry.h"
 #include "material.h"
+#include "help.h"
       
       integer lnblnk  ! function definition
 
       common/OUTIN/IUOUT,IUIN,IEOUT
-C      common/rpath/path
-C      character path*72
 
 C Default esp-r distribution path.
       common/deflt4/dinstpath
@@ -3099,12 +3058,7 @@ C Local strings for user selections dependent on graphic library.
       integer iglib  ! for detecting GTK or X11
       integer icomp,ii,i  ! for use in updataing smlcindex
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='EDDBMLCON'  ! set for subroutine
+      helpinsub='eddb'  ! set for subroutine
 
 C Set folder separator (fs) to \ or / as required.
       call isunix(unixok)
@@ -3450,16 +3404,17 @@ C Enter database in management mode.
       end
 
 C ********** EDDBOPT
-C EDDBOPT Changes the optical properties current cfg file references.
-C moddb is from version manager
+C Changes the optical properties current cfg file references.
+C moddb is from version manager.
 C This facility offers browsing for GTK version.
+
       SUBROUTINE EDDBOPT(moddb)
 #include "building.h"
 #include "model.h"
 #include "esprdbfile.h"
+#include "help.h"
+
       common/OUTIN/IUOUT,IUIN,IEOUT
-C      common/rpath/path
-C      character path*72
       common/deflt4/dinstpath
       COMMON/GOPT/DG(5),HG(5),UVAL,VTRN,NTL,AB(ME,5),RF(ME),SRF,SAB
 
@@ -3468,7 +3423,6 @@ C      character path*72
       CHARACTER LTMP*72,lltmp*144,lprev*144
       character longtfile*144
       CHARACTER fs*1
-C      CHARACTER outs248*248
       character GTYPE*12,GDESCR*36,SOPT*12
       LOGICAL CLKOK,OK,COPYDEF,MODDB,XST
       logical CFGOK,MLDBOK,MATDBOK,CTLOK,OPTKOK,concat,CFCDBOK
@@ -3481,14 +3435,9 @@ C Local strings for user selections dependent on graphic library.
       logical allowbrowse  ! future facility
       integer iglib  ! for detecting GTK or X11
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
+      helpinsub='eddb'  ! set for subroutine
 
-      helpinsub='EDDBOPT'  ! set for subroutine
-
-C Set folder separator (fs) to \ or / as required.
+C Set folder separator (fs) to / or \ as required.
       call isunix(unixok)
       if(unixok)then
         fs = char(47)
@@ -3771,22 +3720,22 @@ C otherwise edit the contents.
 
 
 C ********** EDDBPRES
-C EDDBPRES Changes the wind pressure coefficients current cfg file references.
-C moddb is from version manager
+C Changes the wind pressure coefficients current cfg file references.
+C moddb is from version manager.
 C This facility offers browsing for GTK version and list select
 C for all interfaces.
+
       SUBROUTINE EDDBPRES(moddb)
 #include "building.h"
 #include "model.h"
 #include "net_flow.h"
 #include "esprdbfile.h"
+#include "help.h"
       
       integer lnblnk  ! function definition
 
       common/FILEP/IFIL
       common/OUTIN/IUOUT,IUIN,IEOUT
-C      common/rpath/path
-C      character path*72
       common/deflt4/dinstpath
 
       COMMON/MFLWPR/NPRE,FPRE(MPOS,MPRD)
@@ -3796,7 +3745,6 @@ C      character path*72
       CHARACTER LTMP*72,lltmp*144,lprev*144
       character longtfile*144
       CHARACTER fs*1
-C      CHARACTER outs248*248
 
       LOGICAL CLKOK,OK,COPYDEF,MODDB,XST,concat
       character dinstpath*60,dirpath*72
@@ -3811,12 +3759,7 @@ C Local strings for user selections dependent on graphic library.
       logical allowbrowse ! future option
       integer iglib  ! for detecting GTK or X11
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='EDDBPRES'  ! set for subroutine
+      helpinsub='eddb'  ! set for subroutine
 
 C Set folder separator (fs) to \ or / as required.
       call isunix(unixok)
@@ -4113,18 +4056,19 @@ C enter editing facilitiy.
 C ********** EDDBCLM
 C Changes the weather file referenced by the cfg file.
 C moddb is
-C APP is 4 character file name modifier (from version facility)
+C APP is 4 character file name modifier (from version facility),
 C     if blank then no file name change implied.
 C ISHD is -1 if no change in shading file names are required, otherwise
 C     use the APP characters.
+
       SUBROUTINE EDDBCLM(moddb,APP,ISHD)
 #include "building.h"
 #include "model.h"
 #include "site.h"
 #include "esprdbfile.h"
 #include "espriou.h"
-C espriou.h provides currentfile.
 #include "climate.h"
+#include "help.h"
       
       integer lnblnk  ! function definition
 
@@ -4169,12 +4113,7 @@ C Calendar.
       integer iappwpc ! application %
       integer ISTRW
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='EDDBCLM'  ! set for subroutine
+      helpinsub='eddb'  ! set for subroutine
 
 C Set folder separator (fs) to \ or / as required.
       call isunix(unixok)
@@ -4428,7 +4367,7 @@ C Create a blank climate file (code similar to clm.F).
         ID1=1; IM1=1; IT1=1
         ID2=31; IM2=12; IT2=24
         IDS=1; IDF=365
-        IYEAR=2006
+        IYEAR=2021
         CLAT=50.0; CLONG=0.
         IDNGH=0
         IER=0
@@ -4594,7 +4533,7 @@ C path is returned.
         else
           ISTRW=96
         endif
-        CALL EASKF(LLASCI,'Export ASCII weather file','Confirm:',
+        CALL EASKF(LLASCI,' ','Export weather file name?',
      &    ISTRW,DFILE,'climate file name',IER,nbhelp)
         if(ier.eq.-3) return  ! cancel detected pass back -3 in ier.
 
@@ -4916,16 +4855,18 @@ C checks its site data against the model.
       END
 
 C ********** EDDBMSC
-C EDDBMSC Changes the active components current cfg file references.
-C moddb is from version manager
+C Changes the active components current cfg file references.
+C moddb is from version manager.
 C This facility offers browsing for GTK version and follows the pattern
 C of the other db file management facilties except that there is no
 C working option for creating a new file and editing of the contents
 C is via a text editor.
+
       SUBROUTINE EDDBMSC(moddb)
 #include "building.h"
 #include "model.h"
 #include "esprdbfile.h"
+#include "help.h"
       
       integer lnblnk  ! function definition
 
@@ -4934,15 +4875,11 @@ C is via a text editor.
 
       common/texted/tedlbl,teditor
       character tedlbl*20,teditor*20
-
-C      common/rpath/path
-C      character path*72
       common/deflt4/dinstpath
 
       CHARACTER lltmp*144,lprev*144
       character longtfile*144,longtfiledos*144
       CHARACTER DOIT*300,fs*1
-C      CHARACTER outs248*248
       LOGICAL OK,COPYDEF,MODDB,XST,concat
       character dinstpath*60,dirpath*72
       character tmode*8
@@ -4954,12 +4891,7 @@ C Local strings for user selections dependent on graphic library.
       logical allowbrowse  ! future facility
       integer iglib  ! for detecting GTK or X11
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='EDDBMSC'  ! set for subroutine
+      helpinsub='eddb'  ! set for subroutine
 
 C Set folder separator (fs) to \ or / as required.
       call isunix(unixok)
@@ -5225,6 +5157,7 @@ C is via a text editor.
 #include "building.h"
 #include "model.h"
 #include "esprdbfile.h"
+#include "help.h"
       
       integer lnblnk  ! function definition
 
@@ -5253,12 +5186,7 @@ C Local strings for user selections dependent on graphic library.
       logical allowbrowse  ! future feature
       logical unixok  ! to check for path file separators
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='EDDBMOULD'  ! set for subroutine
+      helpinsub='eddb'  ! set for subroutine
 
 C Set folder separator (fs) to \ or / as required.
       call isunix(unixok)
@@ -5532,9 +5460,9 @@ C altered the file name when saving via the editor.
       end
 
 C ******** copycommonfile
-C Copycommonfile is a general facility handling copying files
+C A general facility handling copying files
 C from the ESP-r distribution common file store to a model ../dbs
-C folder.   If copydef true the user has asked for the default
+C folder. If copydef true the user has asked for the default
 C file name for the file type.
 C If allowbrowse true then the user wishes to browse for the 
 C source file (this logic needs to be completed).
@@ -5572,7 +5500,6 @@ C Passed parameters:
 
 C Local variables:
       character defaultfile*144  ! default file name
-C      character sourcemsg*48     ! dialog for source dialog
       character ending*12         ! end of file name
       character gdef*72          ! fall back file name
       logical clkok
@@ -5580,7 +5507,6 @@ C      character sourcemsg*48     ! dialog for source dialog
       character LTMP*92,lguess*144
       character fs*1,message*48
       character doit*300,LCOPY*144
-C      integer iglib  ! for detecting GTK or X11
       integer lr     ! length of model root
 
       CHARACTER outs248*248
@@ -5603,7 +5529,7 @@ C Clear string buffers.
       lltmp='  '
       lguess='  '
 
-C Set folder separator (fs) to \ or / as required.
+C Set folder separator (fs) to / or \ as required.
       call isunix(unixok)
       if(unixok)then
         fs = char(47)
@@ -5615,7 +5541,6 @@ C Setup assumptions based on topic.
       lndbp=lnblnk(standarddbpath)
       if(topic(1:3).eq.'mat')then
         defaultfile=dfcon     ! default standard file
-C        sourcemsg='Material properties file (in common).'   ! dialog
         ending='.materialdb'  ! file ending
         if(ipathmat.eq.0.or.ipathmat.eq.1)then
           write(lguess,'(a)') LFMAT(1:lnblnk(LFMAT)) ! suggested name
@@ -5625,7 +5550,6 @@ C        sourcemsg='Material properties file (in common).'   ! dialog
         endif
       elseif(topic(1:3).eq.'mlc')then
         defaultfile=dfmul
-C        sourcemsg='Constructions file (in common).'
         ending='.constrdb'
         if(ipathmul.eq.0.or.ipathmul.eq.1)then
           lguess=LFMUL  ! use as is
@@ -5645,7 +5569,6 @@ C        sourcemsg='Optical properties file (in common).'
         endif
       elseif(topic(1:3).eq.'pdb')then
         defaultfile=DPCDB
-C        sourcemsg='Plant components file (in common).'
         ending='.plantdb'
         if(ipathpcdb.eq.0.or.ipathpcdb.eq.1)then
           lguess=LPCDB
@@ -5655,7 +5578,6 @@ C        sourcemsg='Plant components file (in common).'
         endif
       elseif(topic(1:3).eq.'prs')then
         defaultfile=DAPRES
-C        sourcemsg='Pressure coefficients file (in common).'
         ending='.pressuredb'
         if(ipathapres.eq.0.or.ipathapres.eq.1)then
           lguess=LPCDB
@@ -5665,7 +5587,6 @@ C        sourcemsg='Pressure coefficients file (in common).'
         endif
       elseif(topic(1:3).eq.'msc')then
         defaultfile=DMCMPDBFL
-C        sourcemsg='Active components file (in common).'
         ending='.miscdb'
         if(ipathmsc.eq.0.or.ipathmsc.eq.1)then
           lguess=MCMPDBFL
@@ -5675,7 +5596,6 @@ C        sourcemsg='Active components file (in common).'
         endif
       elseif(topic(1:3).eq.'mld')then
         defaultfile=dmdbnam
-C        sourcemsg='Mould isopleths file (in common).'
         ending='.moulddta'
         if(ipathmsc.eq.0.or.ipathmsc.eq.1)then
           lguess=lfmould
@@ -5685,7 +5605,6 @@ C        sourcemsg='Mould isopleths file (in common).'
         endif
       elseif(topic(1:3).eq.'pro')then
         defaultfile=DPRFDB
-C        sourcemsg='Event profile file (in common).'
         ending='.eventdb.a'
         if(ipathprodb.eq.0.or.ipathprodb.eq.1)then
           lguess=LPRFDB
@@ -5695,7 +5614,6 @@ C        sourcemsg='Event profile file (in common).'
         endif
       elseif(topic(1:3).eq.'clm')then
         defaultfile=DCLIM
-C        sourcemsg='Weather file (in common).'
         if(ipathclim.eq.0.or.ipathclim.eq.1)then
           lguess=LCLIM
         elseif(ipathclim.eq.2)then
@@ -5704,7 +5622,6 @@ C        sourcemsg='Weather file (in common).'
         endif
       elseif(topic(1:3).eq.'cfc')then
         defaultfile=DCFCDB     ! default standard file
-C        sourcemsg='CFC layers properties file (in common).'   ! dialog
         ending='.cfcdb.a'  ! file ending
         if(ipathcfc.eq.0.or.ipathcfc.eq.1)then
           write(lguess,'(a)') LCFCDB(1:lnblnk(LCFCDB)) ! suggested name
@@ -5715,7 +5632,6 @@ C        sourcemsg='CFC layers properties file (in common).'   ! dialog
 
       elseif(topic(1:3).eq.'pre')then
         defaultfile=DPREDEF     ! default standard file
-C        sourcemsg='Predefined file (in common).'   ! dialog
         ending='.predef.a'  ! file ending
         if(ipathpredef.eq.0.or.ipathpredef.eq.1)then
           write(lguess,'(a)') LPREDEF(1:lnblnk(LPREDEF)) ! suggested name
@@ -5737,7 +5653,6 @@ C Create a general fall-back file name.
         sourcefile = defaultfile
       else
         call edisp(iuout,'  ')  ! echo blank line
-C        iglib = igraphiclib()  ! find out if X11 or GTK or text support only.
 
 C Assumes that browsefilelist works on all platforms. If a problem
 C then uncomment the iglib lines
@@ -5977,10 +5892,11 @@ C Signal that file is a local to model.
       
 
 C ******** usemodeldbsfile
-C usemodeldbsfile is a general facility to browse files in the
+C A general facility to browse files in the
 C model ../dbs folder. All files in the ../dbs folder will 
 C be added to a menu list for selection. Selected file becomes
 C the current common file type and is returned via lltmp.
+
       subroutine usemodeldbsfile(topic,numhelp,lltmp,istat,moddb)
 #include "building.h"
 #include "model.h"
@@ -5990,7 +5906,7 @@ C the current common file type and is returned via lltmp.
       
       integer lnblnk  ! function definition
       
-C Passed parameters:
+C Passed parameters.
       character topic*3   ! which type of file e.g. mat = materials
                           ! mlc = constructions  opt = optics
                           ! pdb = plant components  prs = pressure coef
@@ -6002,7 +5918,7 @@ C Passed parameters:
       logical moddb       ! set true if file name change
       integer nfile       ! nb of files in dbs folder
 
-C Local variables:
+C Local variables.
       character sourcemsg*48     ! dialog for source dialog
       character sfile*72,snpfile*72,fname*96
 
@@ -6123,8 +6039,9 @@ C users and the guess for file name.
 
 C Remind user the current common data file.
       write(outs248,'(4a)') 'Currently using:',
-     &  lguess(1:lnblnk(lguess)),' please identify a ',
+     &  lguess(1:lnblnk(lguess)),' possibly identify a ',
      &  sourcemsg(1:lnblnk(sourcemsg))
+      call edisp(iuout,' ')
       call edisp248(iuout,outs248,90)
 
 C Use the standard ESP-r folder browse facility.
@@ -6205,11 +6122,12 @@ C will exist.
       end
       
 
-C ******** usecommondbsfile
-C usecommondbsfile is a general facility to browse files in the
+C ******************** usecommondbsfile ********************
+C A general facility to browse files in the
 C distribution databases folder. All files in this folder will 
 C be added to a menu list for selection. Selected file becomes
 C the current common file type and is returned via lltmp.
+
       subroutine usecommondbsfile(topic,numhelp,lltmp,istat,moddb)
 #include "building.h"
 #include "model.h"
@@ -6362,8 +6280,9 @@ C users and the guess for file name.
 
 C Remind user the current common data file.
       write(outs248,'(4a)') 'Currently using:',
-     &  lguess(1:lnblnk(lguess)),' please identify a ',
+     &  lguess(1:lnblnk(lguess)),' possibly identify a ',
      &  sourcemsg(1:lnblnk(sourcemsg))
+      call edisp(iuout,' ')
       call edisp248(iuout,outs248,90)
 
 C Use the standard ESP-r folder browse facility.
@@ -6382,7 +6301,7 @@ C Use the standard ESP-r folder browse facility.
         else
 
 C User did not select a file. Take them back to the question.
-          call usrmsg('You did not select any existing file.',
+          call usrmsg('You did not select an existing file.',
      &      'Canceling the action.','W')
           istat=1
           moddb=.false.
@@ -6441,5 +6360,4 @@ C will exist.
       
       end
       
-
 

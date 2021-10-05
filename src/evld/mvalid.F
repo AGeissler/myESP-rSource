@@ -25,16 +25,16 @@ C   MValid
 C ****** MValid
 C The main menu for self-testing.
       subroutine MValid
+#include "help.h"
 
       common/OUTIN/IUOUT,IUIN,IEOUT
-      common/pophelp/h(60)
       common/GR1D04/GAM,RGAM
       common/Vld04/DTime,NTime,MonNod,NRoot,NIter
       common/Vld10/VlDirR,VlDirL
       common/FILEP/IFIL
 
       character*25 item(8)
-      character h*72,VlDirR*96,VlDirL*72
+      character VlDirR*96,VlDirL*72
       integer MITEM,INO ! max items and current menu item
 
 C  VlDirR='/usr/esru/esp-r/validation'

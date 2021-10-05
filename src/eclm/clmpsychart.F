@@ -23,6 +23,7 @@ C the standard  psychrometric chart. Similar to code in
 C esrures/psychart.F - revised to for plotting weather data.
       SUBROUTINE PSYCHART
 #include "climate.h"
+#include "help.h"
 
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
@@ -59,12 +60,7 @@ C esrures/psychart.F - revised to for plotting weather data.
       integer*8 iix,iiy
 #endif
 
-C For help messages
-      character helpinsub*24   ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='PSYCHART'  ! set for cfiles
+      helpinsub='clmpsychart'  ! set for cfiles
 
 C Default atmospheric pressure corresponding to sea level.
       PATMOS=1013.25
@@ -162,7 +158,7 @@ C the plotting. rhrange is the RH range, trange is the dbT range.
 
 C Read weather data for this day.
           ID=J
-          CALL CLMGET(ID)
+          CALL CLMGET(ID,IER)
           KS=1
           KF=24
           IF(J.EQ.IDS)KS=IT1

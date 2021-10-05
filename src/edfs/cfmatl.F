@@ -13,11 +13,6 @@ C warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
 C PURPOSE. See the GNU General Public License for more
 C details.
 
-C You should have received a copy of the GNU General Public
-C License along with ESP-r. If not, write to the Free
-C Software Foundation, Inc., 59 Temple Place, Suite 330,
-C Boston, MA 02111-1307 USA.
-
 C This file contains subroutines to write property fields.
 C Contains:
 C  PRNMAT - Write PHI files (The format required by MATLAB)
@@ -31,7 +26,7 @@ C  appearing graphs comprising the results of the simulation.
 #include "building.h"
 #include "cfd.h"
 
-      common/OUTIN/IUOUT,IUIN,IEOUT
+C      common/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/ALL/NI,NJ,NK,NIM1,NJM1,NKM1,NIM2,NJM2,NKM2
       COMMON/GEOM/XP(ntcelx),YP(ntcely),ZP(ntcelz),
      1            DXEP(ntcelx),DXPW(ntcelx),DYNP(ntcely),DYPS(ntcely),
@@ -384,8 +379,8 @@ C STRFUN - Evaluates the stream funtion of a given flow.
      1            Wf(ntcelx,ntcely,ntcelz),
      2            P(ntcelx,ntcely,ntcelz),PP(ntcelx,ntcely,ntcelz),
      3            TEf(ntcelx,ntcely,ntcelz),EDf(ntcelx,ntcely,ntcelz)
-      COMMON/FILEP/IFIL
-      COMMON/OUTIN/IUOUT,IUIN,IEOUT
+C      COMMON/FILEP/IFIL
+C      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/ALL/NI,NJ,NK,NIM1,NJM1,NKM1,NIM2,NJM2,NKM2
       COMMON/GEOM/XP(ntcelx),YP(ntcely),ZP(ntcelz),
      1            DXEP(ntcelx),DXPW(ntcelx),DYNP(ntcely),DYPS(ntcely),

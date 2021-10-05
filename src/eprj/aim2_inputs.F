@@ -250,6 +250,7 @@ C *********************************************************************
       USE AIM2_CalcData, ONLY:AIM2_infil_to_zones,AIM2_CO,AIM2_n
       USE AIM2, ONLY:Initialize_AIM2_Params,AIM2_H2KDefaults,
      &    AIM2_report,AIM2_Deallocate
+#include "help.h"
 
 
 C Add Proceedures
@@ -263,12 +264,7 @@ C Declare local variables
       INTEGER :: IER                             !errorflag
       INTEGER :: NITEMS                          !number of items
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='AIM2_Inputs'  ! set for subroutine
+      helpinsub='aim2_inputs'  ! set for subroutine
 
 C Toplevel_Menu needs to be set to -4 for the menu to be displayed in text mode
       Toplevel_Menu=-4
@@ -328,12 +324,7 @@ C Common blocks
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
       INTEGER :: IUOUT,IUIN,IEOUT
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='AIM2_Interface'  ! set for subroutine
+      helpinsub='aim2_inputs'  ! set for subroutine
 
       IF (.NOT.AIM2_Initialized) THEN
 C Initialze all input parameters
@@ -516,16 +507,11 @@ C Declare local variables
       INTEGER :: IER                            !errorflag
       INTEGER :: NITEMS                         !number of items
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
       helpinsub='LeakageMenu'  ! set for subroutine
 
 
 C Help text for this menu.
-      helptopic='AIM_leakage_menu'
+      helptopic='aim2_inputs'
       call gethelptext(helpinsub,helptopic,nbhelp)
 
       IF (airtight_type.EQ.1) THEN
@@ -585,12 +571,7 @@ C Common blocks
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
       INTEGER :: IUOUT,IUIN,IEOUT
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='AirTightnessTypeMenu'  ! set for subroutine
+      helpinsub='aim2_inputs'  ! set for subroutine
 
 C Help text for this menu.
       helptopic='AIM_tightness_menu'
@@ -677,12 +658,7 @@ C Common blocks
 C Function definition
       LOGICAL :: REQUAL                         !used to compare real variables
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='BlowerDoorInputMenu'  ! set for subroutine
+      helpinsub='aim2_inputs'  ! set for subroutine
 
 C Help text for this menu and for the dialogs in the menu.
 C << more help text would be useful! >>
@@ -840,12 +816,7 @@ C Common blocks
 c Function declaration
       LOGICAL :: REQUAL                    !used to compare real variables
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='LeakageDistribution'  ! set for subroutine
+      helpinsub='aim2_inputs'  ! set for subroutine
 
 C Help text for the leakage distribution
       helptopic='AIM_leak_distr_menu'
@@ -924,12 +895,7 @@ C Common blocks
 C Function declaration
       LOGICAL :: REQUAL                         !used to compare real variables
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='ShieldingAndTerrainMenu'  ! set for subroutine
+      helpinsub='aim2_inputs'  ! set for subroutine
 
 C Help text for this menu.
       helptopic='AIM_terrain_menu'
@@ -1023,12 +989,7 @@ C Common blocks
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
       INTEGER :: IUOUT,IUIN,IEOUT
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='TerrainMenu'  ! set for subroutine
+      helpinsub='aim2_inputs'  ! set for subroutine
 
 C Help text for this menu.
       helptopic='AIM_terrain_options'
@@ -1137,12 +1098,7 @@ C Common blocks
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
       INTEGER :: IUOUT,IUIN,IEOUT
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='ShieldingMenu'  ! set for subroutine
+      helpinsub='aim2_inputs'  ! set for subroutine
 
 C Help text for this menu.
       helptopic='AIM_shielding_options'
@@ -1250,12 +1206,7 @@ C Common blocks
 C Function definition
       INTEGER :: lnblnk
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='InfiltrationZonesMenu'  ! set for subroutine
+      helpinsub='aim2_inputs'  ! set for subroutine
 
       InfilZones=0
 
@@ -1282,10 +1233,10 @@ C INO needs to be set to -4 for the menu to be displayed in text mode
 C Number of zone whose temperature is used as reference for infiltration calculations.
         CASE (1)
           Zone = AIM2_ref_zone
+
 C present a list of zones.
           Zone = AIM2_ref_zone
           CALL ASKZONE(Zone,Zone,
-     &      'Select the zone to use as the reference zone',
      &      'Reference Zone','-','Please select a zone',34,IER)
 C Check for errors
           IF (IER.EQ.0) THEN
@@ -1469,12 +1420,7 @@ C Function definition
       INTEGER :: lnblnk
       integer ISTRW
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='SAVE_AIM2'  ! set for subroutine
+      helpinsub='aim2_inputs'  ! set for subroutine
 
 CPrint out all the selected parameters
       CALL AIM2_report(iuout)
@@ -1496,8 +1442,8 @@ C Check to see if standard directories exist, by checking to see if there is a z
       ipaths = lnblnk(zonepth)
 C Other folders exist so create an aim2 folder if it doesn't
       IF (ipaths.GT.3) THEN
-        aimpth='../aim2'
-        WRITE(OutString,'(3A)')'mkdir -p ',path(1:lnblnk(path)),aimpth
+C        aimpth='../msc'
+        WRITE(OutString,'(3A)')'mkdir -p ',path(1:lnblnk(path)),'../msc'
 C Create aim2 directory (-p in mkdir supresses any error messages resulting from existing directories)
         CALL system(OutString)
 C Set folder separator (fs) to \ or / as required.
@@ -1507,11 +1453,9 @@ C Set folder separator (fs) to \ or / as required.
         ELSE
           fs = char(92)
         END IF
-        WRITE(TempString,'(3A)')aimpth(1:lnblnk(aimpth)),fs,
-     &         'infiltration.aim'
+        WRITE(TempString,'(3A)')'../msc',fs,'infiltration.aim'
       ELSE
-        WRITE(TempString,'(2A)')aimpth(1:lnblnk(aimpth)),
-     &         'infiltration.aim'
+        WRITE(TempString,'(2A)')'./','infiltration.aim'
       END IF
 C If LAIM2 isn't set get the default
       IF (LAIM2.EQ.'UNKNOWN'.OR.LEN_TRIM(LAIM2).EQ.0) THEN

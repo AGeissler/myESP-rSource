@@ -31,7 +31,7 @@ OBJECTS = grd.o arrow.o ascii_mat.o bgrd1d.o bgrd1m.o bgrd3d.o bgrdst.o c2fdum.o
 	 esgrid.o esru_misc.o esystem.o filelist.o item.o g3dcmp.o g3dcnc.o g3dmsc.o \
 	 g3dmsh.o grd_misc.o grnd3d.o mfcdat.o nwkrewr.o pltcfg.o readTrnsys.o \
 	 rwipv.o rwsbem.o sort.o  tdfile.o \
-	 FMIcom.o
+	 FMIcom.o agtcom.o grmcom.o
 
 MODULES = aim2.mod aim2_calcdata.mod aim2_h2k_dummy.mod aim2_inputdata.mod start_up.mod \
 	parse_command_line.mod h3kmodule.mod CFC_Module.mod
@@ -159,6 +159,12 @@ h3kmodule.f90:
 FMIcom.F:
 	rm -f FMIcom.F
 	ln -s $(COMdir)/FMIcom.F .
+agtcom.F:
+	rm -f agtcom.F
+	ln -s $(COMdir)/agtcom.F .
+grmcom.F:
+	rm -f grmcom.F
+	ln -s $(COMdir)/grmcom.F .
 
 strip:
 	strip $(PROG)
@@ -174,7 +180,7 @@ clean:
 	enetmisc.F enetrewr.F emkcfg.F emoist.F esgrid.F eroper.F esru_misc.F \
 	esystem.F filelist.F item.F mfcdat.F nwkrewr.F pltcfg.F rwipv.F rwsbem.F sort.F \
 	startup.F tdfile.F trnsf.F readTrnsys.F h3kmodule.f90 \
-	FMIcom.F CFC_Module.f90 cfc_module.mod
+	FMIcom.F agtcom.F grmcom.F CFC_Module.f90 cfc_module.mod
 
 distclean: clean
 

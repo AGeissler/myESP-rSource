@@ -43,7 +43,7 @@ C Passed parameters:
 
       character PERST1*14,PERST2*44,PERST3*44,outs*124
       integer nbhoursinday   ! occurrances for current day
-      character descr*7,DESCR1*10 
+      character descr*7,DESCR1*10,DESCR2*8
     
 C Output header information.
       call edisp(iuout,' ')
@@ -84,14 +84,14 @@ C If output to file alter the edisp unit number.
 
 C Read weather data for this day.
         ID=I
-        CALL CLMGET(ID)
+        CALL CLMGET(ID,IER)
         JS=1
         JF=24
-        nbhoursinday = 0     ! reset for today
-        call stdate(iyear,ID,DESCR,DESCR1)  ! get string describing the day
-        IF(I.EQ.IDS)JS=IT1   ! if start day also check start hour
-        IF(I.EQ.IDF)JF=IT2   ! if end day also check end hour
-        DO 20 J=JS,JF        ! loop hours of the current period
+        nbhoursinday = 0                           ! reset for today
+        call stdate(iyear,ID,DESCR,DESCR1,DESCR2)  ! get string describing the day
+        IF(I.EQ.IDS)JS=IT1                         ! if start day also check start hour
+        IF(I.EQ.IDF)JF=IT2                         ! if end day also check end hour
+        DO 20 J=JS,JF                              ! loop hours of the current period
 
 C Determine if appropriate parameter is within range.
           X=CMRVAL(IP,J)

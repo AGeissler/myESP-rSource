@@ -20,8 +20,8 @@ C Boston, MA 02111-1307 USA.
 
 C FMIcom.F contains common fortran functions for the FMI
 C implementation:
-C FMI_RDSCFL   - Read FMI specification file.
-C FMI_WTSCFL   - Write FMI specification file.
+C FMI_RD       - Read FMI specification file.
+C FMI_WT       - Write FMI specification file.
 C FMI_CLEARCTL - Sets control commons such that FMI control will not be
 C                applied.
 C FMI_CLEARALL - Initialises all FMI commons to default values
@@ -29,12 +29,13 @@ C                (disables all FMI).
 C FMI_CLEARFMU - Initialises all FMI commons to default values for a
 C                single FMU.
 C FMI_LIST     - List FMU data to specified output.
+C FMI_CHK      - Check FMI definition in cfg file.
 
-C ******************** FMI_RDSCFL
-C FMI_RDSCFL reads an FMI specification file from file unit IUNIT.
+C ******************** FMI_RD
+C FMI_RD reads an FMI specification file from file unit IUNIT.
 C Data format is: *tag value
 
-      SUBROUTINE FMI_RDSCFL(IUNIT,IER)
+      SUBROUTINE FMI_RD(IUNIT,IER)
 
 #include "building.h"
 #include "FMI.h"
@@ -44,10 +45,10 @@ C Data format is: *tag value
       INTEGER NCOMP,NCON
 
       character*124 OUTSTR,outs,errstr,errval
-      character WORD*50
+      character WORD*50,longtfile*144
       integer DMY,K,IFMU,itmp,iinp,iout
       real VERSN,rtmp
-      logical XST
+      logical XST,concat
 
 C Read header line to determine file version.
 C VERSN currently not used, but in the future can be used to maintain
@@ -126,10 +127,15 @@ C Read FMU file name.
           IER=3
           goto 666
         endif
+
+C Adjust file name for location.
+        call addpath(WORD,longtfile,concat)
+
 C Check file exists.
-        INQUIRE (FILE=WORD,EXIST=XST)
+        INQUIRE (FILE=longtfile,EXIST=XST)
         if (.not.XST) then
-          write(outs,'(3a,i1,a)')' File ',WORD(1:lnblnk(WORD)),
+          write(outs,'(3a,i1,a)')
+     &      ' File ',longtfile(1:lnblnk(longtfile)),
      &      ' not found for FMU ',IFMU,'.'
           CALL EDISP(iuout,outs)
         endif
@@ -606,19 +612,15 @@ C Restriction on string length imposed in FMI.h.
 C Error handling.
 C IER = 3 - Read error, errstr and errval unused
 C IER = 4 - Unexpected file content, errstr = expected, errval = actual
-C IER = 5 - File does not exist, errstr unused, errval = file path
  666  if (IER.eq.3) then
-        outs='FMI_RDSCFL: Read error in FMI spec file.'
+        outs='FMI_RD: Read error in FMI spec file.'
       elseif (IER.eq.4) then
         write(outs,'(5a)')
-     &                'FMI_RDSCFL: Unexpected file content; expecting ',
+     &                'FMI_RD: Unexpected file content; expecting ',
      &                 errstr(1:lnblnk(errstr)),', got ',
      &                 errval(1:lnblnk(errval)),'.'
-      elseif (IER.eq.5) then
-        write(outs,'(3a)')'FMI_RDSCFL: Specified FMI file ',
-     &                    errval(1:lnblnk(errval)),' does not exist.'
       else
-        outs='FMI_RDSCFL: Unknown error.'
+        outs='FMI_RD: Unknown error.'
       endif
 
       call edisp(iuout,outs)
@@ -626,11 +628,11 @@ C IER = 5 - File does not exist, errstr unused, errval = file path
 
       END
 
-C ******************** FMI_WTSCFL
-C FMI_WTSCFL writes an FMI specification file to file unit IUNIT.
+C ******************** FMI_WT
+C FMI_WT writes an FMI specification file to file unit IUNIT.
 C Data format is: *tag value
 
-      SUBROUTINE FMI_WTSCFL(IUNIT,IER)
+      SUBROUTINE FMI_WT(IUNIT,IER)
 
 #include "building.h"
 #include "FMI.h"
@@ -788,7 +790,7 @@ C Blank line.
 
 C Error handling.
  666  IER=1
-      outs='FMI_WTSCFL: Error writing FMI spec file.'
+      outs='FMI_WT: Error writing FMI spec file.'
       CALL EDISP(iuout,outs)
       goto 999
 
@@ -1113,3 +1115,46 @@ C IER = 3: Invalid MOD
       goto 999
 
       END
+
+C ******************** FMI_CHK ********************
+C Check for FMUs and set commons accordingly.
+C Called after we have detected the tag "*FMI" in the cfg file.
+C LINE is the line from the cfg file which should have the path to the
+C FMI spec file at position K.
+C IUF is a temporary file unit.
+
+      subroutine FMI_CHK(LINE,K,IUF,IER)
+
+#include "building.h"
+#include "FMI.h"
+
+      character(*) LINE
+      character outstr*124,word*20
+
+C Readfile name.
+      CALL EGETW(LINE,K,FMISFL,'W','FMI spec file',IER)
+      if (IER.ne.0) goto 999
+
+C Open file.
+      CALL ERPFREE(IUF,IER)
+      CALL EFOPSEQ(IUF,FMISFL,1,IER)
+      if (IER.ne.0) goto 999
+
+C Read first 2 lines.
+      CALL STRIPC(IUF,outstr,0,ND,0,'FMI spec file 1st line',IER)
+      CALL STRIPC(IUF,outstr,0,ND,0,'FMI spec file 2nd line',IER)
+      if (IER.ne.0) goto 999
+
+C Get number of FMUs.
+      K=0
+      CALL EGETW(outstr,K,word,'W','*numFMUs',IER)
+      if (word(1:8).ne.'*numFMUs') goto 999
+      CALL EGETWI(outstr,K,FMUNOF,0,MFMU,'W','number of FMUs',IER)
+      if (IER.ne.0) goto 999
+
+      if (FMUNOF.gt.0) IS_FMU=.true.
+      CALL ERPFREE(IUF,IER)
+
+  999 RETURN
+
+      end

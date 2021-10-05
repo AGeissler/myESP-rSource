@@ -13,11 +13,6 @@ C warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
 C PURPOSE. See the GNU General Public License for more
 C details.
 
-C You should have received a copy of the GNU General Public
-C License along with ESP-r. If not, write to the Free
-C Software Foundation, Inc., 59 Temple Place, Suite 330,
-C Boston, MA 02111-1307 USA.
-
 C This file contains routines which execute Radiance commands.
 C  autorad   - executes the Radiance commands for a particular command 
 C              line act
@@ -46,6 +41,7 @@ C  coefficients (can take a very long time).
 #include "model.h"
 #include "site.h"
 #include "e2r_common.h"
+#include "help.h"
       
       integer lnblnk  ! function definition
 
@@ -56,12 +52,7 @@ C  coefficients (can take a very long time).
 
       LOGICAL fict,XST,OK
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='autorad'  ! set for subroutine
+      helpinsub='radcmds'  ! set for subroutine
 
       ITA2=IFIL+7
       ITA3=IFIL+10
@@ -575,13 +566,9 @@ C settime - user choice of standard times for sky generation
       SUBROUTINE settime(IRM,IRD,XRT)
 #include "building.h"
 #include "e2r_common.h"
+#include "help.h"
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='settime'  ! set for subroutine
+      helpinsub='radcmds'  ! set for subroutine
 
 C Ask winter am/pm spring am/pm summer am/pm
       helptopic='standard_times_of_day'
@@ -790,6 +777,7 @@ C << ?? possible addition illuminance and/or false colour image >>
 #include "building.h"
 #include "site.h"
 #include "e2r_common.h"
+#include "help.h"
       
       integer lnblnk  ! function definition
 
@@ -811,15 +799,10 @@ C Radiance processor cores.
       logical XST,anim,unixok
       CHARACTER*3 NMTHNM(12)
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
       DATA NMTHNM/'Jan','Feb','Mar','Apr','May','Jun','Jul',
      &'Aug','Sep','Oct','Nov','Dec'/
 
-      helpinsub='genimage'  ! set for subroutine
+      helpinsub='radcmds'  ! set for subroutine
       ITA2=IFIL+7
       anim=.false.
 
@@ -1570,6 +1553,7 @@ C getdf runs daylight factor calculation and then displays them.
       SUBROUTINE getdf
 #include "building.h"
 #include "e2r_common.h"
+#include "help.h"
       
       integer lnblnk  ! function definition
 
@@ -1584,12 +1568,7 @@ C getdf runs daylight factor calculation and then displays them.
 
       logical XST,RECALC
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='getdf'  ! set for subroutine
+      helpinsub='radcmds'  ! set for subroutine
 
       ITA1 = IFIL+6
       ITA2 = IFIL+7
@@ -1871,6 +1850,7 @@ C with Lux legend.
       SUBROUTINE getfalse(ier)
 #include "building.h"
 #include "e2r_common.h"
+#include "help.h"
       
       integer lnblnk  ! function definition
 
@@ -1887,12 +1867,7 @@ C with Lux legend.
       integer maxlux        ! max lux coutour to plot
       integer numcontours   ! number of contours
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='getfalse'  ! set for subroutine
+      helpinsub='radcmds'  ! set for subroutine
       ITA1 = IFIL+6
 
 C Set file name including path and open.
@@ -2116,6 +2091,7 @@ C using logic similar to getdf.
       SUBROUTINE getlux
 #include "building.h"
 #include "e2r_common.h"
+#include "help.h"
       
       integer lnblnk  ! function definition
 
@@ -2130,12 +2106,7 @@ C using logic similar to getdf.
 
       logical XST,RECALC
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='getlux'  ! set for subroutine
+      helpinsub='radcmds'  ! set for subroutine
 
       ITA1 = IFIL+6
       ITA2 = IFIL+7

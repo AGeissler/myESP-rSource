@@ -1,6 +1,6 @@
 C This file is part of the ESP-r system.
 C Copyright Energy Systems Research Unit, University of
-C Strathclyde, Glasgow Scotland, 2001.
+C Strathclyde, Glasgow Scotland, 2001-.
 
 C ESP-r is free software.  You can redistribute it and/or
 C modify it under the terms of the GNU General Public
@@ -13,42 +13,38 @@ C warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
 C PURPOSE. See the GNU General Public License for more
 C details.
 
-C You should have received a copy of the GNU General Public
-C License along with ESP-r. If not, write to the Free
-C Software Foundation, Inc., 59 Temple Place, Suite 330,
-C Boston, MA 02111-1307 USA.
 
-C This file contains additional routines developed within 
-C the framework of COPERNICUS project "Integrated Design
+C This file contains the following subroutines as developed 
+C within the framework of COPERNICUS project "Integrated Design
 C Optimization of Building Energy Performance and 
-C Indoor Environment. 
-C Contents:
-C  CALCLMA  - Calculates the equation for the "Local Mean Age of Air"
-C             variable. 
-C  BNDARLMA - Imposes BCs for the "Local Mean Age of Air" variable  
+C Indoor Environment".
+C  CALCLMA  - Calculates the local mean age (LMA) of air.
+C  BNDARLMA - Imposes boundary conditions for the LMA calculation.  
 
 C ********************* CALCLMA *********************
-C CALCLMA - Calculates the coefficients of the matrix of the 
+C Calculates the coefficients of the matrix of the 
 C "passive scalar" equation and solves the matrix to obtain the 
-C "Local Mean Age of Air" variable. The variable has dimension 
+C 'Local Mean Age of Air' variable. The variable has dimension 
 C of time [s], but here it is made dimensionless by the average 
 C time the air stays in the room (room_volume/volumetric_flowrate).
 C Therefore the "Local Mean Age of Air" is equal to 1.0 in the 
 C outlet openings of the room. Theoretically the variable uses 
 C the mathematical model of a stationary equation for concentration. 
 C However, for simplicity, instead of a concentration equation, we 
-C use in the following analogy to the energy equation. As the "Local Mean 
-C Age of Air" is a "passive scalar" quantity, it does not affect 
+C use in the following analogy to the energy equation. As the 'Local Mean 
+C Age of Air' is a 'passive scalar' quantity, it does not affect 
 C the velocity field and should be calculated after convergence 
-C for all other variables is achieved. 
+C for all other variables is achieved.
+
       SUBROUTINE CALCLMA(ITIMST)
 #include "building.h"
 #include "cfd.h"
+#include "help.h"
 
       common/outin/IUOUT,IUIN,IEOUT
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
 
-      COMMON/ICFCHN/ICFMON(MNZ),ICFTMP,ICFLIB
+      COMMON/ICFCHN/ICFMON(MNZ),ICFDBC(MNZ),ICFTMP,ICFLIB
 
       COMMON/BNDCND/FLWIN,XMONIN
       COMMON/VARf/Uf(ntcelx,ntcely,ntcelz),Vf(ntcelx,ntcely,ntcelz),
@@ -95,9 +91,10 @@ C for all other variables is achieved.
 C Boundary condition commons.  
       common/KEYVOLS/NVOL(MNZ),IVOLF(MNVLS,MNZ),IVCELLS(MNVLS,MNZ,2),
      &               JVCELLS(MNVLS,MNZ,2),KVCELLS(MNVLS,MNZ,2)
-C Common blocks for blockages and small supply openings
+     
+C Common blocks for blockages and small supply openings.
       common/blksso/NBLK(MNZ),INBLK(MNVLS,MNZ),NSSO(MNZ),
-     &          INSSO(MNVLS,MNZ)
+     &          INSSO(MNVLS,MNZ),BLKTEMP(MNVLS,MNZ,6)
 
       character LRES(4)*24,LMON(4)*24
 
@@ -105,22 +102,18 @@ C Common blocks for blockages and small supply openings
 
       LOGICAL OK,LINVOL
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='CALCLMA'  ! set for subroutine
+      helpinsub='locmage'  ! set for subroutine
 
       call edisp(iuout,
      &  'Initiating calculation of local mean age of air')
      
 C If there is no mass flow coming in the room (e.g. only natural 
-C convection), there is no reason to calculate LMA: 
+C convection), there is no reason to calculate LMA. 
       IF(FLWIN.lt.0.0000001) THEN 
          call edisp(iuout,'There are no flows into the domain!')
          call edisp(iuout,'Cannot proceed with calculation.')
-C <<Initialize LMA - subroutine INIT in cfcalc.F, add common there>> 
+         
+C <<Initialise LMA - subroutine INIT in cfcalc.F, add common there>> 
 C <<change dfd-file and start this subroutine after finising calculations>> 
         RETURN
       ENDIF
@@ -304,7 +297,7 @@ C If inside the blockage set resor to zero.
           endif
  2006   continue
       endif
-C 
+ 
             VOL=VolP(I,J,K)
             SORVOL=GREAT*VOL
             IF(-SP(I,J,K).GT.0.5*SORVOL) THEN
@@ -325,6 +318,7 @@ C and guarantees always a good convergence. Therefore local variable.
 
 C Check for blockages. 
       if(NBLK(ICFD).ne.0) then
+      
 C If inside the blockage force concentration to zero. 
         do 2007 IVO=1,NBLK(ICFD)
           IV=INBLK(IVO,ICFD)  
@@ -348,7 +342,7 @@ C Set the LMA inside the blockage equal to zero.
 
  2007   continue
       endif 
-C
+
 C Solution of difference equation.
       if (ILISOL.eq.1) then
         CALL LISOLV1(2,2,2,NI,NJ,NK,AGEf,NSWPT)
@@ -369,7 +363,7 @@ C Write residuals and monitoring values in a ASCII format file.
      &                  AGEf(IMONT(ICFD),JMONT(ICFD),KMONT(ICFD))
  312    FORMAT(I7,2X,2E11.3,/,9X,2E11.3)
 
-      IF(MMOD.eq.8)THEN
+        IF(MMOD.eq.8)THEN
           NCRV=2
           CRES(1)=abs(1.-AVELMA)
           CRES(2)=RESORL
@@ -379,7 +373,7 @@ C Write residuals and monitoring values in a ASCII format file.
           LRES(2)='Overall residual'
           LMON(1)='Average LMA at outlets'
           LMON(2)='Local mean age'
-          CALL PLOT(IPLOT,NPLT,ITIMST,NITER,SORMAX,NCRV,CRES,CMON,
+          CALL PLOT(ICFD,IPLOT,NPLT,ITIMST,NITER,SORMAX,NCRV,CRES,CMON,
      &                  LRES,LMON)
 
         else
@@ -389,11 +383,11 @@ C Not in graphics mode => list data.
      &                  AGEf(IMONT(ICFD),JMONT(ICFD),KMONT(ICFD))
         endif
       endif
-C Check for convergence, making sure that we have done at least 20 iterations.
 
 C Debug.
 C        write(6,*) 'Residual and max resid ',RESORL,SRMAX(ICFD)
 
+C Check for convergence, making sure that we have done at least 20 iterations.
       if (RESORL.lt.SRMAX(ICFD).and.NITER.gt.20) goto 99
  9999 continue
 
@@ -408,7 +402,7 @@ C Check maximum iterations.
       END
 
 C ********************* BNDARLMA *********************
-C BNDARLMA - Establishes the boundary conditions for the "Local Mean 
+C Establishes the boundary conditions for the "Local Mean 
 C Age of Air" variable. There is no difference between laminar or turbulent 
 C cases - at solid walls the BC's are always of the zero-gradient type. 
 
@@ -473,7 +467,7 @@ C cases - at solid walls the BC's are always of the zero-gradient type.
       LOGICAL INCALU,INCALV,INCALW,INCALT,INCALK,INCALD,BHS,IMITZ
       LOGICAL IZEROT,IZanKE
 
-C If flow is 1D or 2D make coefficients in other directions zero. 
+C If flow is 1D or 2D, make coefficients in other directions zero. 
       IF(.NOT.INCALU)THEN
         I=2
         DO 100 J=1,NJ
@@ -504,7 +498,8 @@ C If flow is 1D or 2D make coefficients in other directions zero.
 
 C Examine each opening in turn.
       DO 300 L=1,NOPEN(ICFD)
-C Inlets 
+
+C Inlets.
       IF(FIXM(L,ICFD).GE.0.0)THEN
 
 C Iterate over cells covering opening.

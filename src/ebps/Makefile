@@ -70,7 +70,7 @@ BPS_OBJECTS = bps.o adaptconf1.o adaptconf2.o adjb.o adjp.o ascii_mat.o \
 	  solar_collectors.o ground_temp_mains.o Lookup_data.o readTrnsys.o trnsys_wrapper.o trnsys_lib.o \
 	  tank_intank_hx.o mains_temp_draw_profiles.o stratified_tank.o stratified_tank_byp.o SiteUtilities.o RE-H2-ctl.o \
 	  ncm_overheating.o CFC_opt_props.o CFC_thermal_and_aux.o editCFC.o NCHE.o stratified_tank_1HX.o stratified_tank_2HX.o \
-	  AirFlowModelRoutines.o Res_elec_Ctl.o harmonizer_timing.o qrun.o sprite.o gremlin.o
+	  AirFlowModelRoutines.o Res_elec_Ctl.o harmonizer_timing.o qrun.o agtsim.o grmsim.o agtcom.o grmcom.o
 
 MODULES = aim2.mod aim2_calcdata.mod aim2_h2k_dummy.mod aim2_inputdata.mod aim2_timestep.mod start_up.mod parse_command_line.mod \
           h3kmodule.f90 CFC_Module.mod
@@ -781,6 +781,12 @@ FMIc.c:
 FMIcom.F:
 	rm -f FMIcom.F
 	ln -s $(COMdir)/FMIcom.F .
+agtcom.F:
+	rm -f agtcom.F
+	ln -s $(COMdir)/agtcom.F .
+grmcom.F:
+	rm -f grmcom.F
+	ln -s $(COMdir)/grmcom.F .
 
 strip:
 	strip $(PROG)
@@ -827,7 +833,7 @@ clean:
 	ADS_storage_tanks.F ADS_storage_unit.F ADS_controller.F solar_collectors.F \
 	ground_temp_mains.F readTrnsys.F trnsys_wrapper.F trnsys_lib.F \
 	tank_intank_hx.F mains_temp_draw_profiles.F stratified_tank.F stratified_tank_byp.F \
-	FMIsim.F FMIc.c FMIsim_dummy.F FMIcom.F \
+	FMIsim.F FMIc.c FMIsim_dummy.F FMIcom.F agtcom.F grmcom.F \
 	CFC_opt_props.F CFC_thermal_and_aux.F editCFC.F NCHE.F stratified_tank_1HX.F stratified_tank_2HX.F \
 	AirFlowModelRoutines.F Res_elec_Ctl.F h3kmodule.f90 qrun.F CFC_Module.f90 cfc_module.mod
 

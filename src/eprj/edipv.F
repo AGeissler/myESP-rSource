@@ -34,11 +34,10 @@ C If act = 'i' then initialise variables.
 #include "geometry.h"
 #include "esprdbfile.h"
 #include "espriou.h"  
-C espriou.h for climatelist file name.
 #include "seasons.h"
-C seasons.h provides typper and typsea
 #include "ipvdata.h"
 #include "schedule.h"
+#include "help.h"
       
       integer lnblnk  ! function definition
 
@@ -65,10 +64,10 @@ C ITMM is menu for metric sets.
       character ITM*48,ITMM*41,ITME*33,ITMGET*33,hold*40,hold5*50
       character act*1
       character lipvdatf*72,outs*124
-      CHARACTER DS*7,DS1*10
+      CHARACTER DS*7,DS1*10,DS2*8
       character*72 LTMP
       character t40*40,t72*72,t248*248
-      character descr*7,descrst*10,descrfn*10
+      character descr*7,descrst*10,descrfn*10,descr2st*8,descr2fn*8
       character descra*7,descrb*7,descrc*7,descrd*7,descre*7
       character t12*12,key*1
       character simact*6,ipvaction*3
@@ -82,12 +81,7 @@ C Variables for handling climate file.
       character fs*1
       integer ISTRW
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='ipvdat'  ! set for subroutine
+      helpinsub='edipv'  ! set for subroutine
 
 C Set folder separator (fs) to \ or / as required.
       call isunix(unixok)
@@ -192,52 +186,52 @@ C Scan any demands file.
         WRITE(ITM(9),'(a)')        'j  simulation not yet defined '
       elseif(nipvassmt.eq.1)then
         m=9
-        call stdate(iyear,ipvastjd(1),descr,descrst)
-        call stdate(iyear,ipvafnjd(1),descr,descrfn)
+        call stdate(iyear,ipvastjd(1),descr,descrst,descr2st)
+        call stdate(iyear,ipvafnjd(1),descr,descrfn,descr2fn)
         jjd1=(ipvafnjd(1)-ipvastjd(1))+1
         WRITE(ITM(9),'(6a,i4)') 'j ',ipvadesc(1)(1:15),' ',descrst,
      &    ' ',descrfn,jjd1
       elseif(nipvassmt.eq.3)then
         m=11
-        call stdate(iyear,ipvastjd(1),descr,descrst)
-        call stdate(iyear,ipvafnjd(1),descr,descrfn)
+        call stdate(iyear,ipvastjd(1),descr,descrst,descr2st)
+        call stdate(iyear,ipvafnjd(1),descr,descrfn,descr2fn)
         jjd1=(ipvafnjd(1)-ipvastjd(1))+1
         WRITE(ITM(9),'(6a,i4)') 'j ',ipvadesc(1)(1:15),' ',descrst,
      &    ' ',descrfn,jjd1
-        call stdate(iyear,ipvastjd(2),descr,descrst)
-        call stdate(iyear,ipvafnjd(2),descr,descrfn)
+        call stdate(iyear,ipvastjd(2),descr,descrst,descr2st)
+        call stdate(iyear,ipvafnjd(2),descr,descrfn,descr2fn)
         jjd2=(ipvafnjd(2)-ipvastjd(2))+1
         WRITE(ITM(10),'(6a,i4)') 'k ',ipvadesc(2)(1:15),' ',descrst,
      &    ' ',descrfn,jjd2
-        call stdate(iyear,ipvastjd(3),descr,descrst)
-        call stdate(iyear,ipvafnjd(3),descr,descrfn)
+        call stdate(iyear,ipvastjd(3),descr,descrst,descr2st)
+        call stdate(iyear,ipvafnjd(3),descr,descrfn,descr2fn)
         jjd3=(ipvafnjd(3)-ipvastjd(3))+1
         WRITE(ITM(11),'(6a,i4)') 'l ',ipvadesc(3)(1:15),' ',descrst,
      &    ' ',descrfn,jjd3
       elseif(nipvassmt.eq.5)then
         m=13
-        call stdate(iyear,ipvastjd(1),descr,descrst)
-        call stdate(iyear,ipvafnjd(1),descr,descrfn)
+        call stdate(iyear,ipvastjd(1),descr,descrst,descr2st)
+        call stdate(iyear,ipvafnjd(1),descr,descrfn,descr2fn)
         jjd1=(ipvafnjd(1)-ipvastjd(1))+1
         WRITE(ITM(9),'(6a,i4)') 'j ',ipvadesc(1)(1:15),' ',descrst,
      &    ' ',descrfn,jjd1
-        call stdate(iyear,ipvastjd(2),descr,descrst)
-        call stdate(iyear,ipvafnjd(2),descr,descrfn)
+        call stdate(iyear,ipvastjd(2),descr,descrst,descr2st)
+        call stdate(iyear,ipvafnjd(2),descr,descrfn,descr2fn)
         jjd2=(ipvafnjd(2)-ipvastjd(2))+1
         WRITE(ITM(10),'(6a,i4)') 'k ',ipvadesc(2)(1:15),' ',descrst,
      &    ' ',descrfn,jjd2
-        call stdate(iyear,ipvastjd(3),descr,descrst)
-        call stdate(iyear,ipvafnjd(3),descr,descrfn)
+        call stdate(iyear,ipvastjd(3),descr,descrst,descr2st)
+        call stdate(iyear,ipvafnjd(3),descr,descrfn,descr2fn)
         jjd3=(ipvafnjd(3)-ipvastjd(3))+1
         WRITE(ITM(11),'(6a,i4)') 'l ',ipvadesc(3)(1:15),' ',descrst,
      &    ' ',descrfn,jjd3
-        call stdate(iyear,ipvastjd(4),descr,descrst)
-        call stdate(iyear,ipvafnjd(4),descr,descrfn)
+        call stdate(iyear,ipvastjd(4),descr,descrst,descr2st)
+        call stdate(iyear,ipvafnjd(4),descr,descrfn,descr2fn)
         jjd4=(ipvafnjd(4)-ipvastjd(4))+1
         WRITE(ITM(12),'(6a,i4)') 'm ',ipvadesc(4)(1:15),' ',descrst,
      &    ' ',descrfn,jjd4
-        call stdate(iyear,ipvastjd(5),descr,descrst)
-        call stdate(iyear,ipvafnjd(5),descr,descrfn)
+        call stdate(iyear,ipvastjd(5),descr,descrst,descr2st)
+        call stdate(iyear,ipvafnjd(5),descr,descrfn,descr2fn)
         jjd5=(ipvafnjd(5)-ipvastjd(5))+1
         WRITE(ITM(13),'(6a,i4)') 'n ',ipvadesc(5)(1:15),' ',descrst,
      &    ' ',descrfn,jjd5
@@ -245,18 +239,18 @@ C Scan any demands file.
       WRITE(ITM(m+1),'(a,i2,a)') '4  display days (',nipvdispjd,') '
       ITM(m+2)=      ' ___seasons (from climate list)________________ '
       ITM(m+3)=      '         winter  spring  summer  autumn  winter '
-      call stdate(iyear,is1wins,descra,descrst)
-      call stdate(iyear,is1sprs,descrb,descrst)
-      call stdate(iyear,is1sums,descrc,descrst)
-      call stdate(iyear,is2sprs,descrd,descrst)
-      call stdate(iyear,is2wins,descre,descrst)
+      call stdate(iyear,is1wins,descra,descrst,descr2st)
+      call stdate(iyear,is1sprs,descrb,descrst,descr2st)
+      call stdate(iyear,is1sums,descrc,descrst,descr2st)
+      call stdate(iyear,is2sprs,descrd,descrst,descr2st)
+      call stdate(iyear,is2wins,descre,descrst,descr2st)
       WRITE(ITM(m+4),'(10a)') '  start  ',descra,' ',descrb,' ',descrc,
      &  ' ',descrd,' ',descre
-      call stdate(iyear,is1winf,descra,descrfn)
-      call stdate(iyear,is1sprf,descrb,descrfn)
-      call stdate(iyear,is1sumf,descrc,descrfn)
-      call stdate(iyear,is2sprf,descrd,descrfn)
-      call stdate(iyear,is2winf,descre,descrfn)
+      call stdate(iyear,is1winf,descra,descrfn,descr2fn)
+      call stdate(iyear,is1sprf,descrb,descrfn,descr2fn)
+      call stdate(iyear,is1sumf,descrc,descrfn,descr2fn)
+      call stdate(iyear,is2sprf,descrd,descrfn,descr2fn)
+      call stdate(iyear,is2winf,descre,descrfn,descr2fn)
       WRITE(ITM(m+5),'(10a)') '  finish ',descra,' ',descrb,' ',descrc,
      &  ' ',descrd,' ',descre
       jd1=(is1winf-is1wins)+1
@@ -502,10 +496,10 @@ C Present pop-up of the current period(s) and then allow editing
 C in terms of day and month which is then converted to a julian
 C day for storage.
    91   hold = ' '
-        CALL STDATE(IYEAR,ipvastjd(1),DS,DS1)
+        CALL STDATE(IYEAR,ipvastjd(1),DS,DS1,DS2)
         write(outs,'(a,i4,2x,a)') ' Start : ',ipvastjd(1),DS1
         call edisp(iuout,outs)
-        CALL STDATE(IYEAR,ipvafnjd(1),DS,DS1)
+        CALL STDATE(IYEAR,ipvafnjd(1),DS,DS1,DS2)
         write(outs,'(a,i4,2x,a)') ' Finish: ',ipvafnjd(1),DS1
         call edisp(iuout,outs)
         call edayr(ipvastjd(1),id1,im1)
@@ -535,10 +529,10 @@ C day for storage.
         MODSIT=.true.
       elseif(INO.EQ.10.and.(nipvassmt.eq.3.or.nipvassmt.eq.5))then
    92   hold = ' '
-        CALL STDATE(IYEAR,ipvastjd(2),DS,DS1)
+        CALL STDATE(IYEAR,ipvastjd(2),DS,DS1,DS2)
         write(outs,'(a,i4,2x,a)') ' Start : ',ipvastjd(2),DS1
         call edisp(iuout,outs)
-        CALL STDATE(IYEAR,ipvafnjd(2),DS,DS1)
+        CALL STDATE(IYEAR,ipvafnjd(2),DS,DS1,DS2)
         write(outs,'(a,i4,2x,a)') ' Finish: ',ipvafnjd(2),DS1
         call edisp(iuout,outs)
         call edayr(ipvastjd(2),id1,im1)
@@ -564,10 +558,10 @@ C day for storage.
         MODSIT=.true.
       elseif(INO.EQ.11.and.(nipvassmt.eq.3.or.nipvassmt.eq.5))then
    93   hold = ' '
-        CALL STDATE(IYEAR,ipvastjd(3),DS,DS1)
+        CALL STDATE(IYEAR,ipvastjd(3),DS,DS1,DS2)
         write(outs,'(a,i4,2x,a)') ' Start : ',ipvastjd(3),DS1
         call edisp(iuout,outs)
-        CALL STDATE(IYEAR,ipvafnjd(3),DS,DS1)
+        CALL STDATE(IYEAR,ipvafnjd(3),DS,DS1,DS2)
         write(outs,'(a,i4,2x,a)') ' Finish: ',ipvafnjd(3),DS1
         call edisp(iuout,outs)
         call edayr(ipvastjd(3),id1,im1)
@@ -587,10 +581,10 @@ C day for storage.
         MODSIT=.true.
       elseif(INO.EQ.12.and.nipvassmt.eq.5)then
    94   hold = ' '
-        CALL STDATE(IYEAR,ipvastjd(4),DS,DS1)
+        CALL STDATE(IYEAR,ipvastjd(4),DS,DS1,DS2)
         write(outs,'(a,i4,2x,a)') ' Autumn start : ',ipvastjd(4),DS1
         call edisp(iuout,outs)
-        CALL STDATE(IYEAR,ipvafnjd(4),DS,DS1)
+        CALL STDATE(IYEAR,ipvafnjd(4),DS,DS1,DS2)
         write(outs,'(a,i4,2x,a)') ' Autumn finish: ',ipvafnjd(4),DS1
         call edisp(iuout,outs)
         call edayr(ipvastjd(4),id1,im1)
@@ -610,10 +604,10 @@ C day for storage.
         MODSIT=.true.
       elseif(INO.EQ.13.and.nipvassmt.eq.5)then
    95   hold = ' '
-        CALL STDATE(IYEAR,ipvastjd(5),DS,DS1)
+        CALL STDATE(IYEAR,ipvastjd(5),DS,DS1,DS2)
         write(outs,'(a,i4,2x,a)')' 2nd winter start : ',ipvastjd(4),DS1
         call edisp(iuout,outs)
-        CALL STDATE(IYEAR,ipvafnjd(5),DS,DS1)
+        CALL STDATE(IYEAR,ipvafnjd(5),DS,DS1,DS2)
         write(outs,'(a,i4,2x,a)')' 2nd winter finish: ',ipvafnjd(4),DS1
         call edisp(iuout,outs)
         call edayr(ipvastjd(5),id1,im1)
@@ -640,7 +634,7 @@ C assessment.
         if(nipvdispjd.gt.0)then
           do 195 ij=1,nipvdispjd
   194       hold = ' '
-            CALL STDATE(IYEAR,ipvdispjd(ij),DS,DS1)
+            CALL STDATE(IYEAR,ipvdispjd(ij),DS,DS1,DS2)
             write(outs,'(a,i4,2x,a)') ' Display day: ',ipvdispjd(ij),DS1
             call edisp(iuout,outs)
             call edayr(ipvdispjd(ij),id1,im1)
@@ -670,7 +664,7 @@ C assessment.
           CALL EGETWI(HOLD,K,im1,1,12,'W','display month',IIER)
           CALL EDAY(id1,im1,ipvdispjd(ij))
           if(iier.ne.0)goto 196
-          CALL STDATE(IYEAR,ipvdispjd(ij),DS,DS1)
+          CALL STDATE(IYEAR,ipvdispjd(ij),DS,DS1,DS2)
           write(outs,'(a,i4,2x,a)') ' New day: ',ipvdispjd(ij),DS1
           call edisp(iuout,outs)
           MODSIT=.true.
@@ -1227,18 +1221,14 @@ C ipvseasons presents a list of typical seasons/assessments and
 C returns a string which sumarizes the choice (see list of values
 C in subroutine ipvdatinit.
       subroutine ipvseasons(simact)
+#include "help.h"
 
       DIMENSION ITM(22)
       character ITM*33
       character simact*6
       integer nitms,INO ! max items and current menu item
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='ipvseasons'  ! set for subroutine
+      helpinsub='edipv'  ! set for subroutine
 
       simact='ias   '   ! assume annual assessment
 
@@ -1904,8 +1894,8 @@ C << periods for assessment e.g. a fortnight?
 #include "esprdbfile.h"
 #include "espriou.h"
 #include "seasons.h"
-C seasons.h provides typper and typsea
 #include "ipvdata.h"
+#include "help.h"
 
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/SET1/IYEAR,IBDOY,IEDOY,IFDAY,IFTIME
@@ -1934,12 +1924,7 @@ C  hddratio is the season / assessment ratio for heating
       dimension cddratio(MIPVA)
       dimension hddratio(MIPVA)
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='getmultip'  ! set for subroutine
+      helpinsub='edipv'  ! set for subroutine
 
 C Set folder separator (fs) to \ or / as required.
       call isunix(unixok)

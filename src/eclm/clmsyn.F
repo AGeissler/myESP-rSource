@@ -34,6 +34,7 @@ C characteristics of the chosen climatic collection.
       SUBROUTINE CLMSYN
 #include "climate.h"
 #include "epara.h"
+#include "help.h"
 
       COMMON/RADTYP/IDNGH
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
@@ -47,12 +48,7 @@ C characteristics of the chosen climatic collection.
       character KEY*1
       integer menumetric(MCM)
 
-C For help messages
-      character helpinsub*24   ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='CLMSYN'   ! set for cfiles
+      helpinsub='clmsyn'   ! set for cfiles
       nbdays= 0; nbhours=0  ! clear
 
       call usrmsg('  ','  ','-')
@@ -243,6 +239,7 @@ C ******** `CSIEQN' calculates the Severity of the weather in
 C  terms of a dimensionless number - the CSI.
       SUBROUTINE CSIEQN
 #include "climate.h"
+#include "help.h"
 
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/OUTPCH/ICOUT
@@ -274,11 +271,6 @@ C  terms of a dimensionless number - the CSI.
 #endif
 
       integer iglib   ! if 1 then X11, if 2 then GTK, if 3 then text only.
-
-C For help messages
-      character helpinsub*24   ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found (will be non-zero
 
       DATA AA/-0.356,-0.372,-0.409,-0.402,-0.359,-0.409,-0.436,-0.405,
      &-0.350,-0.417,-0.421,-0.375,-0.401,-0.403,-0.333,-0.400,-0.375,
@@ -318,7 +310,7 @@ C For help messages
      &-0.366,-0.315,-0.318,-0.377,-0.313,-0.347,-0.427,-0.214,
      &-0.471,-0.236,-0.233,-0.079,-0.282,-0.221,-0.258/
 
-      helpinsub='CSIEQN'  ! set for cfiles
+      helpinsub='clmsyn'  ! set for cfiles
 
 C If in graphic mode make the text display area larger before
 C displaying the following data.
@@ -448,7 +440,7 @@ C     IF(J.GT.4.AND.J.LT.9)goto 3
       ADDW=0.
       NHRS=0
     2 J=JJ
-      CALL CLMGET(II)
+      CALL CLMGET(II,IER)
       DO 20 K=1,24
       ADDT=ADDT+CMRVAL(1,K)
       if (CMXST(4)) then
@@ -785,6 +777,7 @@ C CLMDEG computes degree-days or equivalent for the given period.
 C Display is per day.
       SUBROUTINE CLMDEG(act)
 #include "climate.h"
+#include "help.h"
 
 C Passed parameter
       character act*1  ! d for degree-day h for degree hour reporting
@@ -797,12 +790,7 @@ C Passed parameter
       character outs*124
       logical ddok  ! true if DD reporting false if DH reporting
 
-C For help messages
-      character helpinsub*24   ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='CLMDEG'  ! set for cfiles
+      helpinsub='clmsyn'  ! set for cfiles
 
       helptopic='dd_base_temperature'
       call gethelptext(helpinsub,helptopic,nbhelp)
@@ -854,7 +842,7 @@ C DAY BY DAY
 
 C READ VALUES OF THE CLIMATIC PARAMETERS FOR THIS DAY.
       IDD=I
-      CALL CLMGET(IDD)
+      CALL CLMGET(IDD,IER)
 
 C SET PARAMETERS FOR THIS DAY
       UPJ=0
@@ -1015,6 +1003,7 @@ C SYNOPDEG computes monthly heating and cooling DEGREE-DAYS
 C for the given period.
       SUBROUTINE SYNOPDEG(act)
 #include "climate.h"
+#include "help.h"
 
 C Passed parameter
       character act*1  ! d for degree-day h for degree-hour reporting
@@ -1026,14 +1015,9 @@ C Passed parameter
       character outs*124
       logical ddok  ! true if DD reporting false if DH reporting
 
-C For help messages
-      character helpinsub*24   ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
+      helpinsub='clmsyn'  ! set for cfiles
 
-      helpinsub='SYNOPDEG'  ! set for cfiles
-
-      helptopic='dd_base_temperatures'
+      helptopic='dd_base_temperature'
       call gethelptext(helpinsub,helptopic,nbhelp)
       HBT=17.
       CALL EASKR(HBT,' ','Heating base temperature?',
@@ -1090,7 +1074,7 @@ C DAY BY DAY
 
 C READ VALUES OF THE CLIMATIC PARAMETERS FOR THIS DAY.
         IDD=I
-        CALL CLMGET(IDD)
+        CALL CLMGET(IDD,IER)
 
 C SET PARAMETERS FOR THIS DAY
         DNJ=0
@@ -1244,8 +1228,8 @@ C for the given period.
 
 #include "building.h"
 #include "seasons.h"
-C seasons.h provides typper and typsea
 #include "climate.h"
+#include "help.h"
 
       COMMON/OUTPCH/ICOUT
       COMMON/SET1/IYEAR,IBDOY,IEDOY,IFDAY,IFTIME
@@ -1253,12 +1237,7 @@ C seasons.h provides typper and typsea
 
       character outs*124,PERST1*14,PERST2*44,PERST3*44
 
-C For help messages
-      character helpinsub*24   ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='SYNOPDEGS'  ! set for cfiles
+      helpinsub='clmsyn'  ! set for cfiles
 
 C Jump out if no seasonal data is available.
       if(is1wins.eq.0.or.is2wins.eq.0.or.is1sprs.eq.0)then
@@ -1355,7 +1334,7 @@ C Loop through each seasonal period.
 C For each day read weather data, set parameters and analyse.
         DO 10 I=IDSS,IDSF
           IDD=I
-          CALL CLMGET(IDD)
+          CALL CLMGET(IDD,IER)
           DNJ=0
           UPJC=0.0
           DAYL=24.0
@@ -1433,6 +1412,7 @@ C SYNOPWDEG computes weekly heating and cooling DEGREE DAYS
 C for the given period.
       SUBROUTINE SYNOPWDEG
 #include "climate.h"
+#include "help.h"
 
       COMMON/OUTPCH/ICOUT
       COMMON/PERC/ID1,IM1,IT1,ID2,IM2,IT2,IDS,IDF,INEW
@@ -1441,15 +1421,11 @@ C for the given period.
       common/exporttg/xfile,tg,delim
       common/exporttgi/ixopen,ixloc,ixunit
 
-      character outs*124,DESCR*7,DESCR1*10,xfile*144,tg*1,delim*1
+      character outs*124,DESCR*7,DESCR1*10,DESCR2*8
+      character xfile*144,tg*1,delim*1
       logical ok,dok
 
-C For help messages
-      character helpinsub*24   ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='SYNOPWDEG'  ! set for cfiles
+      helpinsub='clmsyn'  ! set for cfiles
 
       helptopic='dd_base_temperature'
       call gethelptext(helpinsub,helptopic,nbhelp)
@@ -1503,7 +1479,7 @@ C DAY BY DAY
 C READ VALUES OF THE CLIMATIC PARAMETERS FOR THIS DAY.
         ix=ix+1
         IDD=I
-        CALL CLMGET(IDD)
+        CALL CLMGET(IDD,IER)
 
 C For each day read weather data, set parameters and analyse.
         DNJ=0
@@ -1549,7 +1525,7 @@ C TOTAL DEGDAYS FOR week
         XUPC=UPMC/24
 
 C AV DEGDAYS per day over week
-        call stdate(iyear,IDSOW,DESCR,DESCR1)
+        call stdate(iyear,IDSOW,DESCR,DESCR1,DESCR2)
         YDN=XHR*XDN
         YUPC=XHRC*XUPC
         WRITE(outs,'(a,i2,3a,4F9.2)')' Week:',iwk,' (',DESCR1,') ',
@@ -1605,7 +1581,7 @@ C TOTAL DEGDAYS FOR week
 
 C AV DEGDAYS PER DAY OVER week
       iwk=iwk+1
-      call stdate(iyear,IDSOW,DESCR,DESCR1)
+      call stdate(iyear,IDSOW,DESCR,DESCR1,DESCR2)
       YDN=XHR*XDN
       YUPC=XHRC*XUPC
       WRITE(outs,'(a,i2,3a,4F9.2)')' Week:',iwk,' (',DESCR1,') ',
@@ -1646,7 +1622,7 @@ C GET ONE DAY OF ONE WEATHER PARAMETER.
 
       DIMENSION XJ(24)
 
-      CALL CLMGET(IDD)
+      CALL CLMGET(IDD,IER)
 
 C Recover required value.
       DO 20 J=1,24

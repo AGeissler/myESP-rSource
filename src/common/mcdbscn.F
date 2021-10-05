@@ -32,11 +32,11 @@ C          the routine.
 #include "plant.h"
 #include "power.h" 
 #include "esprdbfile.h" 
+#include "help.h"
       
       integer lnblnk  ! function definition
 
       COMMON/FILEP/IFIL
-      COMMON/POPHELP/H(60)
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
 
 C Note string buffer array supports up to 90 lines of text
@@ -44,7 +44,7 @@ C for a component.
       DIMENSION SSTR(90),VAR(MPWDAT),SPMISC(MPWDAT)
 
       CHARACTER OUTSTR*124
-      CHARACTER SSTR*72,h*72
+      CHARACTER SSTR*72
       CHARACTER DIVR1*6,DIVR2*6,DIVR3*6
       character lworking*144,fs*1
       REAL VAR,SPMISC
@@ -53,6 +53,9 @@ C for a component.
 
       IER=0
       OK=.FALSE.
+      helpinsub='mcdbscn'  ! set for subroutine
+      helptopic='scan_misc_database'
+      call gethelptext(helpinsub,helptopic,nbhelp)
 
 C Set folder separator (fs) to \ or / as required.
       call isunix(unixok)
@@ -70,21 +73,7 @@ C Clear strings outside of the if else structure
 C Open the miscellaneous components database based on the
 C name held in the model cfg file. 
  2    IF(MCMPDBFL(1:3).EQ.'UNK'.or.MCMPDBFL(1:2).EQ.'  ') THEN
-        IF(TYPE.EQ.1)THEN
-          h(5)='The special materials database is typically the'
-          h(6)='default that comes with ESP-r. If you want to'
-          h(7)='modify entries or create your own version then'
-          h(8)='you should work with a model-specific version.'
-        ELSEIF(TYPE.EQ.2)THEN
-          h(5)='The electrical components database is ??'
-        ELSEIF(TYPE.EQ.3)THEN
-          h(5)='Power components database is ??'
-        ELSEIF(TYPE.EQ.4)THEN
-          h(5)=' '
-        ELSE
-
-C Add other types here.
-        ENDIF
+        continue
       ENDIF
 
 C Assign field dividers based on the call type.
@@ -117,13 +106,10 @@ C Open the miscellaneous components database based on value of ipathmsc.
       endif
 
       IF(IER.NE.0) THEN
-        h(1)='Could not find the miscellaneous components database.'
-        h(2)='Check the standard location of'
-        write(h(3),'(2a)') DMCMPDBFL(1:68),'.'
         dok=.true.
         CALL EASKOK(
      &    'Could not locate the miscellaneous components database!',
-     &    'Retry?',OK,8)
+     &    'Retry?',OK,nbhelp)
         IF(.NOT.OK) THEN 
           IER=1
           CALL ERPFREE(IMCFIL,ISTAT)

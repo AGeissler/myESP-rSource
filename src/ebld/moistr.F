@@ -13,45 +13,42 @@ C warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
 C PURPOSE. See the GNU General Public License for more
 C details.
 
-C You should have received a copy of the GNU General Public
-C License along with ESP-r. If not, write to the Free
-C Software Foundation, Inc., 59 Temple Place, Suite 330,
-C Boston, MA 02111-1307 USA.
 
-C *********************************************************************
-C MZMSTR is the main controller for combined heat and moisture transfer.
-C INITMS initiates the whole system moisture variables.
-C INITMZ initiates the zone moisture variables.
-C MZMVPP set the present vapor pressure distribution.
-C MZMTMP sets the moisture nodes present temperatures by linear 
-C        interpolation.
-C MZMTMF sets the moisture nodes future temperatures by linear 
-C        interpolation.
-C MZMCFP sets the present moisture parameters.
-C SETNEF Update the new future variables value.
-C MSLINK Set the parameters for linking the moisture simulation with  
-C        other modules in ESP_r (mfs, plt, ...etc).
-C MZMCFF calculates the future moisture parameters.
-C MZMSPF save the future pressure distribution for convergence test.
-C MZMSTU sets up the zone moisture transfer matrix.
-C MZMITR solves the zone moisture matrix by Gauss Siedal method.
-C MZMCHP check for convergence in pressure values.
-C MZMCHF check for convergence in fluid values.
-C SETFEN updates the future variables from n-th variables.
-C MZCOE5 modifies the zone heat matrix to count for the heat of 
-C        transformation (moisture transfer).
-C HEATRF calculates the heat of transformation for pre-defined control
-C        volume which is the summation of the heat of transformation of 
-C        several moisture control volumes in whole or partion.
-C HTRANF calculate the heat of transformation for a complete moisture
-C        control volume.
-C LYRPRP gets the thermophysical properties for a layer.
-C WRITRH writes the relative humidity results.
-C *********************************************************************
+C This file contains the following subroutines.
+C MZMSTR - Controller for combined heat and moisture transfer.
+C INITMS - Initiates the whole system moisture variables.
+C INITMZ - Initiates the zone moisture variables.
+C MZMVPP - Sets the present vapor pressure distribution.
+C MZMTMP - Sets the moisture nodes present temperatures by linear 
+C          interpolation.
+C MZMTMF - Sets the moisture nodes future temperatures by linear 
+C          interpolation.
+C MZMCFP - Sets the present moisture parameters.
+C SETNEF - Updates the new future variables value.
+C MSLINK - Sets the parameters for linking the moisture simulation with  
+C          other modules (mfs, plt etc.).
+C MZMCFF - Calculates the future moisture parameters.
+C MZMSPF - Saves the future pressure distribution for convergence test.
+C MZMSTU - Sets up the zone moisture transfer matrix.
+C MZMITR - Solves the zone moisture matrix by Gauss Siedal method.
+C MZMCHP - Checks for convergence in pressure values.
+C MZMCHF - Checks for convergence in fluid values.
+C SETFEN - Updates the future variables from n'th variables.
+C MZCOE5 - Modifies the zone heat matrix to count for the heat of 
+C          transformation (moisture transfer).
+C HEATRF - Calculates the heat of transformation for pre-defined control
+C          volume which is the summation of the heat of transformation of 
+C          several moisture control volumes in whole or partion.
+C HTRANF - Calculates the heat of transformation for a complete moisture
+C          control volume.
+C LYRPRP - Gets the thermophysical properties for a layer.
+C WRITRH - Writes the relative humidity results.
+C MSRTND
+C CHKMST
 
-C *********************************************************************
-C MZMSTR is the main controller for combined heat and moisture transfer.
-C *********************************************************************
+C ******************** MZMSTR ********************
+C Controller for combined heat and moisture transfer.
+
       SUBROUTINE MZMSTR(ICOMP)
 #include "building.h"
 
@@ -165,9 +162,9 @@ C Solve the energy matrix.
       RETURN
       END
 
-C *********************************************************************
-C INITMS initiates the whole system moisture variables.
-C *********************************************************************
+C ******************** INITMS ********************
+C Initiates the whole system moisture variables.
+
       SUBROUTINE INITMS
 
       COMMON/MOIST11/MITRM,RITRMp,RITRMf
@@ -194,9 +191,9 @@ C *********************************************************************
       RETURN
       END
 
-C *********************************************************************
-C INITMZ initiates the zone moisture variables.
-C *********************************************************************
+C ******************** INITMZ ********************
+C Initiates the zone moisture variables.
+
       SUBROUTINE INITMZ(ICOMP)
 #include "building.h"
 #include "site.h"
@@ -259,7 +256,7 @@ C *********************************************************************
             iMM=iMoistModel(ICOMP)
             DX=DELT01(iMM,RH,UM0,UM100,B)
 
-C If small value report problem.
+C If small value, report problem.
             if(DX.lt.0.99E-15)then
               write(outs,'(a,3i3)') 
      &         'INITMZ: small vapour perm. at zone/surf/layer: ',
@@ -281,9 +278,9 @@ C If small value report problem.
       RETURN
       END
 
-C **********************************************************************
-C MZMVPP set the present vapor pressure distribution.
-C **********************************************************************
+C ******************** MZMVPP ********************
+C Set the present vapor pressure distribution.
+
       SUBROUTINE MZMVPP(ICOMP)
 #include "building.h"
 
@@ -309,10 +306,9 @@ C **********************************************************************
       RETURN
       END
 
-C **********************************************************************
-C MZMTMP sets the moisture nodes present temperatures by linear 
-C interpolation.
-C **********************************************************************
+C ******************** MZMTMP ********************
+C Sets the moisture nodes present temperatures by linear interpolation.
+
       SUBROUTINE MZMTMP(ICOMP)
 #include "building.h"
 
@@ -439,10 +435,9 @@ C Trap zero division.
       RETURN
       END
 
-C **********************************************************************
-C MZMTMF sets the moisture nodes future temperatures by linear 
-C interpolation.
-C **********************************************************************
+C ******************** MZMTMF ********************
+C Sets the moisture nodes future temperatures by linear interpolation.
+
       SUBROUTINE MZMTMF(ICOMP)
 #include "building.h"
 
@@ -523,10 +518,9 @@ C For lumped constructions.
       RETURN
       END
 
-C **********************************************************************
-C MZMTMF2 sets the moisture nodes future temperatures by linear 
-C interpolation.
-C **********************************************************************
+C ******************** MZMTMF2 ********************
+C Sets the moisture nodes future temperatures by linear interpolation.
+
       SUBROUTINE MZMTMF2(ICOMP)
 #include "building.h"
 
@@ -612,9 +606,9 @@ C For lumped constructions.
       RETURN
       END
 
-C **********************************************************************
-C MZMCFP sets the present moisture parameters.
-C **********************************************************************
+C ******************** MZMCFP ********************
+C Sets the present moisture parameters.
+
       SUBROUTINE MZMCFP(ICOMP)
 #include "building.h"
 
@@ -658,9 +652,9 @@ C For construction moisture nodes.
       RETURN
       END
 
-C *********************************************************************
-C SETNEF Update the new future variables value.
-C *********************************************************************
+C ******************** SETNEF ********************
+C Update the new future variables value.
+
       SUBROUTINE SETNEF(ICOMP)
 #include "building.h"
 
@@ -686,10 +680,10 @@ C Update the values for moisture new future parameters.
       RETURN
       END
 
-C *********************************************************************
-C MSLINK Set the parameters for linking the moisture simulation with  
-C other modules in ESP-r (mfs, plt, ...etc).
-C *********************************************************************
+C ******************** MSLINK ********************
+C Set the parameters for linking the moisture simulation with  
+C other modules (mfs, plt etc.).
+
       SUBROUTINE MSLINK(ICOMP)
 #include "building.h"
 
@@ -757,9 +751,9 @@ C Latent gains expressed as a moisture (assuming 20 C) addition.
       RETURN
       END
 
-C *********************************************************************
-C MZMCFF calculates the future moisture parameters.
-C *********************************************************************
+C ******************** MZMCFF ********************
+C Calculates the future moisture parameters.
+
       SUBROUTINE MZMCFF(ICOMP)
 #include "building.h"
 #include "site.h"
@@ -801,7 +795,7 @@ C *********************************************************************
       DOUBLE PRECISION XI03
       character outs*124
 
-C Set moisture model for this zone
+C Set moisture model for this zone.
       iMM=iMoistModel(ICOMP)
 
 C Calculate the future time vapour ratio for zone air.
@@ -833,11 +827,12 @@ C Calculate the moisture capacity for the zone air.
 C Estimate the future time convective mass transfer coefficients.
       NC=NCONST(ICOMP)
       DO 20 I=1,NC
-C       Internal construction surface, TCfair is future zone air temp.
+
+C Internal construction surface, TCfair is future zone air temp.
         ALPHA=HCIF(ICOMP,I)
         BETAif(ICOMP,I)=BETA01(ALPHA,CPfair,TCfair)
 
-C       External construction surface.
+C External construction surface.
         ALPHA=HCOF(ICOMP,I)
         TCf=ATF(ICOMP,I) ! future adjacent temperature
         if(Psat01(TCf).ne.0.0)then
@@ -897,7 +892,7 @@ C Estimate the future time water vapor permeability.
               UM100=PERM(ICOMP,I,IL,2)
               B=PERM(ICOMP,I,IL,3)
 
-C Check for small return values and identify source. If permiability
+C Check for small return values and identify source. If permeability
 C values are small then probably glass so just set dELTf1.
               if((UM0.lt.1.0e-12).or.UM100.lt.1.0e-12)then
                 DELTf1=1.0e-12
@@ -960,15 +955,15 @@ C Estimate the future time moisture storage capacity term.
             Uh=SORP(ICOMP,I,IL,1)
             CFF=SORP(ICOMP,I,IL,2)
             EXPT=SORP(ICOMP,I,IL,3)
-            RXI=SNGL(XI03(iMM,RH1p,RH1,Uh,CFF,EXPT)) ! kg/m3 in current moisture node
-            IF(IM.EQ.1)THEN ! outermost moisture node of material layer IL
-              DELX2=DELXm/2.0 ! m (thickness of moisture node "layer")
+            RXI=SNGL(XI03(iMM,RH1p,RH1,Uh,CFF,EXPT)) ! kg/kg in current moisture node
+            IF(IM.EQ.1)THEN    ! outermost moisture node of material layer IL
+              DELX2=DELXm/2.0  ! m (thickness of moisture node "layer")
               RXI2=RXI
               RXIVpf(I,ITM1)=Asrf*(DELX1*RXI1+DELX2*RXI2)
             ELSEIF(IM.EQ.NMP1)THEN ! innermost moisture node of material layer IL
               DELX1=DELXm/2.0
               RXI1=RXI
-            ELSE ! all intermittent nodes in material layer IL
+            ELSE ! all intermediate nodes in material layer IL
               RXIVpf(I,ITM1)=Asrf*DELXm*RXI ! kg in surf I and moisture node ITM1
             ENDIF
    50     CONTINUE  ! loop IM (moisture nodes)
@@ -981,9 +976,9 @@ C Estimate the future time moisture capacity for surface node.
       RETURN
       END
 
-C *********************************************************************
-C MZMSPF save the future pressure distribution for convergence test.
-C *********************************************************************
+C ******************** MZMSPF ********************
+C Save the future pressure distribution for convergence test.
+
       SUBROUTINE MZMSPF(ICOMP)
 #include "building.h"
 
@@ -1009,11 +1004,11 @@ C *********************************************************************
       RETURN
       END
 
-C *********************************************************************
-C MZMSTU sets up the zone moisture transfer matrix including effect of
+C ******************** MZMSTU ********************
+C Sets up the zone moisture transfer matrix including effect of
 C node temperatured distribution. Implicitness degrees between 0 and 1
 C inclusive are allowed.
-C *********************************************************************
+
       SUBROUTINE MZMSTU(ICOMP)
 #include "building.h"
 #include "geometry.h"
@@ -1275,9 +1270,9 @@ C Modify the boundary vector to count for;
       RETURN
       END
 
-C *********************************************************************
-C MZMITR solves the zone moisture matrix by Gauss Seidel method.
-C *********************************************************************
+C ******************** MZMITR ********************
+C Solves the zone moisture matrix by Gauss Seidel method.
+
       SUBROUTINE MZMITR(ICOMP)
 #include "building.h"
 
@@ -1336,7 +1331,7 @@ C Construction moisture nodes.
         ENDIF
         SUM=W(I,IM,5)-W(I,IM,1)*Pn1-W(I,IM,3)*Pn2-W(I,IM,4)*Sn
         Fn(I,IM)=0.0
-c        Pnew=(SUM-Fn(I,IM))/DOMAIN
+C        Pnew=(SUM-Fn(I,IM))/DOMAIN
         Pnew=SUM/DOMAIN
         Pn(I,IM)=RLXln*SNGL(Pnew)+RRLXln*Pnsave
         IF(Pn(I,IM).LT.0.1)Pn(I,IM)=0.1
@@ -1348,7 +1343,7 @@ c        Pnew=(SUM-Fn(I,IM))/DOMAIN
         Fnew=SNGL(SUM)-Pn(I,IM)*DOMAIN
         Fn(I,IM)=RLXlnF*Fnew+RRLXlnF*Fnsave
         IF(Fn(I,IM).LT.0.0)Fn(I,IM)=0.0
-cx        ENDIF
+C        ENDIF
    20 CONTINUE
 
 C Air node.
@@ -1372,7 +1367,7 @@ C Air node.
         SUM=SUM-E(1,I)*Pn(I,IMsurf)
   10  CONTINUE
       Fnair=0.0
-c      Pnew=(SUM-Fnair)/DOMAIN
+C      Pnew=(SUM-Fnair)/DOMAIN
       Pnew=SUM/DOMAIN
       Pnair=RLXln*SNGL(Pnew)+RRLXln*Pnsave
       IF(Pnair.LT.0.1)Pnair=0.1
@@ -1384,13 +1379,13 @@ c      Pnew=(SUM-Fnair)/DOMAIN
       Fnew=SNGL(SUM)-Pnair*DOMAIN
       Fnair=RLXlnF*Fnew+RRLXlnF*Fnsave
       IF(Fnair.LT.0.0)Fnair=0.0
-cx      ENDIF
+C      ENDIF
       RETURN
       END
 
-C *********************************************************************
-C MZMCHP check for convergence in pressure values.
-C *********************************************************************
+C ******************** MZMCHP ********************
+C Check for convergence in pressure values.
+
       SUBROUTINE MZMCHP(ICOMP,CONVP)
 #include "building.h"
 
@@ -1442,9 +1437,9 @@ C *********************************************************************
       RETURN
       END
 
-C *********************************************************************
-C MZMCHF check for convergence in fluid values.
-C *********************************************************************
+C ******************** MZMCHF ********************
+C Check for convergence in fluid values.
+
       SUBROUTINE MZMCHF(ICOMP,CONVF)
 #include "building.h"
 
@@ -1494,9 +1489,9 @@ C *********************************************************************
       RETURN
       END
 
-C *********************************************************************
-C SETFEN updates the future variables from n-th variables.
-C *********************************************************************
+C ******************** SETFEN ********************
+C Updates the future variables from n'th variables.
+
       SUBROUTINE SETFEN(ICOMP)
 #include "building.h"
 
@@ -1522,9 +1517,9 @@ C *********************************************************************
       RETURN
       END
 
-C **********************************************************************
-C LYRPRP gets the thermophysical properties for a layer.
-C **********************************************************************
+C ******************** LYRPRP ********************
+C Gets the thermophysical properties for a layer.
+
       SUBROUTINE LYRPRP(ICOMP,I,IL,CNDCT,DNSTY,HTCAP,THCK)
 #include "building.h"
 
@@ -1551,9 +1546,9 @@ C Ordinary solid layer.
       RETURN
       END
 
-C **********************************************************************
-C LYRTYP defines the layer type; air gap (IAIR > 0) or solid (IAIR = 0).
-C **********************************************************************
+C ******************** LYRTYP ********************
+C Defines the layer type; air gap (IAIR > 0) or solid (IAIR = 0).
+
       SUBROUTINE LYRTYP(ICOMP,I,IL,IAIR)
 #include "building.h"
 
@@ -1568,7 +1563,8 @@ C **********************************************************************
       RETURN
       END
 
-C **********************************************************************
+C ******************** CHKMST ********************
+
       SUBROUTINE CHKMST(IER)
 #include "building.h"
 
@@ -1615,7 +1611,8 @@ C If this construction is lumped.
       RETURN
       END
 
-C **********************************************************************
+C ******************** MSRTND ********************
+
       SUBROUTINE MSRTND(ICOMP,I,IL,INH,IMS,IME)
 #include "building.h"
 
@@ -1654,9 +1651,9 @@ C IME=MNDC(ICOMP,I).
       STOP 'Error (156): in MSRTND'
       END
 
-C *********************************************************************
-C WRITRH writes the relative humidity results.
-C *********************************************************************
+C ******************** WRITRH ********************
+C Writes the relative humidity results.
+
       SUBROUTINE WRITRH(ICOMP)
 #include "building.h"
 
@@ -1703,13 +1700,9 @@ C Note: adjust format if MS>48.
       RETURN
       END
 
-C *********************************************************************
-C H3K_transport_mould_data writes the detailed moisture results to h3k
-C output. This subroutine is called in bmatsv.F, approx. line 1490.
-C
-C May 2016, Achim Geissler
-C
-C *********************************************************************
+C ******************** H3K_transport_mould_data ********************
+C Writes the detailed moisture results to h3k output.
+
       SUBROUTINE H3K_transport_mould_data(ICOMP)
       use h3kmodule
       implicit none
@@ -1740,7 +1733,7 @@ C *********************************************************************
       COMMON/MOIST26/XIpfair,RXIVpf(MS,MNM)
       real XIpfair,RXIVpf
 
-      COMMON/MOIST50/TMNp(MCOM,MS,MNM) ! ag@20160504
+      COMMON/MOIST50/TMNp(MCOM,MS,MNM)
       real TMNp
 
       COMMON/MOIST52/Pf(MCOM,MS,MNM),Ff(MCOM,MS,MNM),Sf(MCOM)
@@ -1749,33 +1742,33 @@ C *********************************************************************
       COMMON/MOIST99/ICNVITRM(MCOM)
       integer ICNVITRM
 
-C.....Subroutine signature
       integer ICOMP
 
-C     Local variables
+C Local variables
       integer NC,iSurf,NM,iMNode,NE,iLay,IL
 
       real Ps,RH,Uh,CFF,EXPT,DNSTY
 
-C     DECLARATIONS for H3Kreporting object
+C Declarations for H3Kreporting object.
       CHARACTER*12 cZone_Chars   ! zname(MCOM)
       Character*12 cSurf_Chars   ! sname(MCOM,MS)
       CHARACTER*8  cNode_Chars   !
 
-C     FUNCTIONS
+C FUNCTIONS
       real Psat01,U01,U02
 
-C.....Switch for zone name output here
+C Switch for zone name output.
       if (ReportBoolConfig("use_zonenames")) then
         write (cZone_Chars,'(A)') zname(icomp)(1:lnzname(icomp))
       else
-C.......Pad zone index to 'XX'
+
+C Pad zone index to 'XX'.
         if ( ICOMP .gt. 9 ) then
            write (cZone_Chars,'(A,I2)') 'zone_',ICOMP
         else
            write (cZone_Chars,'(A,I1)') 'zone_0',ICOMP
         endif
-      endif ! use_zonenames
+      endif    ! use_zonenames
 
       Call AddToReport(
      &        rvMstItCnt%Identifier,
@@ -1785,24 +1778,25 @@ C.......Pad zone index to 'XX'
         NC=NCONST(ICOMP)
         DO 10 iSurf=1,NC
 
-C.........Switch for surface name output here
+C Switch for surface name output.
           if (ReportBoolConfig ("use_surfacenames")) then
             write (cSurf_Chars,'(A)')
      &          sname(ICOMP,isurf)(1:lnsname(ICOMP,iSurf))
           else
-C...........Pad surface index to 'XX'
+
+C Pad surface index to 'XX'.
             if ( iSurf .gt. 9 ) then
               write (cSurf_Chars,'(A,I2)') 'surface_',iSurf
             else
               write (cSurf_Chars,'(A,I1)') 'surface_0',iSurf
             endif
-          endif ! use_surfacenames
+          endif   ! use_surfacenames
 
-          NE=NELTS(ICOMP,iSurf)   ! number of layers in surface
-          IL=1                    ! set layer to first (outermost)
-          NM=MNDL(ICOMP,iSurf,IL) ! number of moisture nodes in layer
+          NE=NELTS(ICOMP,iSurf)    ! number of layers in surface
+          IL=1                     ! set layer to first (outermost)
+          NM=MNDL(ICOMP,iSurf,IL)  ! number of moisture nodes in layer
 
-C         XML output for each moisture node of surface iSurf.
+C XML output for each moisture node of surface iSurf.
           do iMNode = 1,mndc(ICOMP,iSurf)
             if ( iMNode .gt. 9 ) then
               write(cNode_Chars, '(A,I2)') 'mnode_', iMNode
@@ -1810,9 +1804,9 @@ C         XML output for each moisture node of surface iSurf.
               write(cNode_Chars, '(A,I1)') 'mnode_0', iMNode
             endif
 
-C           Find iLay for each iMNode ... (neccessary due to layer
-C           material properties SORP() for construction layers, not
-C           moisture nodes!)
+C Find iLay for each iMNode (neccessary due to layer material
+C properties SORP() relating to construction layers and not
+C moisture nodes!).
             if (iMNode.le.NM) then
               iLay=IL
             else
@@ -1823,37 +1817,29 @@ C           moisture nodes!)
               endif
             endif
 
-cx            if (NSINC .lt. 3) then
-cx
-cx            write(*,'(3(A,I3))')" iSurf=",iSurf,
-cx     &                        "; iMNode=",iMNode,
-cx     &                        "; iLay=",iLay
-cx
-cx            endif
-
-C           Vapour pressure at "moisture node"
-C           (Nodes *not* necessarily identical to construction nodes!)
+C Vapour pressure at "moisture node". (Nodes *not* necessarily identical
+C to construction nodes!).
             Call AddToReport(
      &             rvBldMstVapPressNode%Identifier,
-cx     &             Pn(iSurf,iMNode),
+Cx     &             Pn(iSurf,iMNode),
      &             Pf(ICOMP,iSurf,iMNode),
      &             cZone_Chars,
      &             cSurf_Chars,
      &             cNode_Chars)
 
-C           Relative humidity at "moisture node"
+C Relative humidity at "moisture node"
             Ps=Psat01(TMNp(ICOMP,iSurf,iMNode))
             RH=Pf(ICOMP,iSurf,iMNode)/Ps
 
             Call AddToReport(
      &             rvBldMstRHnode%Identifier,
-cx     &             Pn(iSurf,iMNode)/Ps*100.0,
+Cx     &             Pn(iSurf,iMNode)/Ps*100.0,
      &             100.*RH,
      &             cZone_Chars,
      &             cSurf_Chars,
      &             cNode_Chars)
 
-C           Moisture storage capacity at "moisture node"
+C Moisture storage capacity at "moisture node"
             Call AddToReport(
      &             rvBldMstStoreCap%Identifier,
      &             RXIVpf(iSurf,iMNode)/SNA(ICOMP,iSurf),
@@ -1861,20 +1847,20 @@ C           Moisture storage capacity at "moisture node"
      &             cSurf_Chars,
      &             cNode_Chars)
 
-C           Moisture content at "moisture node", kg/m3
+C Moisture content at "moisture node", kg/m3
             Uh=SORP(ICOMP,iSurf,iLay,1)
             CFF=SORP(ICOMP,iSurf,iLay,2)
             EXPT=SORP(ICOMP,iSurf,iLay,3)
 
             Call AddToReport(
      &             rvBldMstStorage%Identifier,
-cx     &             Ff(ICOMP,iSurf,iMNode),
+Cx     &             Ff(ICOMP,iSurf,iMNode),
      &             U01(iMoistModel(ICOMP),RH,Uh,CFF,EXPT),
      &             cZone_Chars,
      &             cSurf_Chars,
      &             cNode_Chars)
 
-C           Moisture content at "moisture node", kg/kg
+C Moisture content at "moisture node" (kg/kg).
             DNSTY=THRMLI(ICOMP,iSurf,iLay,2)
 
             Call AddToReport(
@@ -1885,7 +1871,7 @@ cx     &             Ff(ICOMP,iSurf,iMNode),
      &             cSurf_Chars,
      &             cNode_Chars)
 
-C           Temperature at "moisture node"
+C Temperature at "moisture node".
             Call AddToReport(
      &             rvBldMstTNode%Identifier,
      &             TMNp(ICOMP,iSurf,iMNode),
@@ -1893,7 +1879,7 @@ C           Temperature at "moisture node"
      &             cSurf_Chars,
      &             cNode_Chars)
 
-          enddo  ! <- end iSurf 1,MN of ICOMP
+          enddo  ! End iSurf 1,MN of ICOMP.
 
    10   CONTINUE
 

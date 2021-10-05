@@ -45,7 +45,8 @@ C act='c' we are looking at CFD instead of mass flow.
 #include "prj3dv.h"
 #include "net_flow.h"
 #include "net_flow_data.h"
-      
+#include "help.h"
+     
       integer lnblnk  ! function definition
 
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
@@ -128,9 +129,9 @@ C Simulator parameters.
       character outs*124,outs248*248
       character outs800*800,outs800d*800  ! really long string buffers
       character ALABEL(6)*12,act*1
-      CHARACTER PDESCR*60,SDESCR*44,DESCR*7,DESCR1*10
+      CHARACTER PDESCR*64,SDESCR*44,DESCR*7,DESCR1*10,DESCR2*8
       character lltmpc*144
-      CHARACTER DESCRH*5,DESCRD*5,NT*14,XT*14
+      CHARACTER DESCRH*5,DESCRD*5,DESCRJ*5,NT*14,XT*14
       character graftitle*64,grlbl*24,LTIME*5
       character LAPROB*72,RSNAME*40
       character rfile*72,PFILE*72,MSTRFILE*72,LAFRES*72
@@ -174,12 +175,7 @@ C Simulator parameters.
       character LCFDFL*72
       COMMON/ICFNOD/ICFD,ICP
 
-C For help messages
-      character helpinsub*24   ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='MFOUTP'  ! set for cfiles
+      helpinsub='mfoutp'  ! set for cfiles
 
 C Cast values for linescale.
       iigl=igl;iigb=igb
@@ -389,22 +385,22 @@ C For timestep listings generate initial lines.
         if (CFDOK) then
           if (IHFLAG.eq.1.and.ixopen.eq.1) then
             call edisp(itru,'# CFD timestep performance metrics.')
-            WRITE(outs248,'(3A,I2,A,I2,A)')'# Lib: ',
+            WRITE(outs248,'(3A,I2,A,I2,A)')'# Results library: ',
      &       LCFDFL(1:lnblnk(LCFDFL)),': domain ',ICFD,' (zone ',ICP,')'
           else
             call edisp(itru,'CFD timestep performance metrics.')
-            WRITE(outs248,'(3A,I2,A,I2,A)')'Lib: ',
+            WRITE(outs248,'(3A,I2,A,I2,A)')'Results library: ',
      &       LCFDFL(1:lnblnk(LCFDFL)),': domain ',ICFD,' (zone ',ICP,')'
           endif
         else
           if (IHFLAG.eq.1.and.ixopen.eq.1) then
             call edisp(itru,'# Mass flow timestep performance metrics.')
-            WRITE(outs248,'(4A)')'# Lib: ',LAFRES(1:lsn1),
-     &        ': ',RSNAME(ISIM)(1:lnblnk(RSNAME(ISIM)))
+            WRITE(outs248,'(4A)')'# Results library: ',LAFRES(1:lsn1),
+     &        '; ',RSNAME(ISIM)(1:lnblnk(RSNAME(ISIM)))
           else
             call edisp(itru,'Mass flow timestep performance metrics.')
-            WRITE(outs248,'(4A)')'Lib: ',LAFRES(1:lsn1),
-     &        ': ',RSNAME(ISIM)(1:lnblnk(RSNAME(ISIM)))
+            WRITE(outs248,'(4A)')'Results library: ',LAFRES(1:lsn1),
+     &        '; ',RSNAME(ISIM)(1:lnblnk(RSNAME(ISIM)))
           endif
         endif
         if(ixopen.eq.1)then
@@ -693,7 +689,7 @@ C write out labels for each column.
 
       do 10 IDAY=IODS,IODF
         if (MENUTYPE.eq.4) then
-          CALL STDATE(IYEAR,IDAY,DESCR,DESCR1)
+          CALL STDATE(IYEAR,IDAY,DESCR,DESCR1,DESCR2)
           if (IDHFLG.eq.1.and.ixopen.eq.1) then
             outs='# '
             call edisp(itru,outs)
@@ -1031,7 +1027,7 @@ C If writing to screen, use 248 char buffer.
               elseif (MENUTYPE.eq.15) then
 
 C Generate a label for time in the 3D flow graph.
-                CALL STDATE(IYEAR,IDAY,DESCR,DESCR1)
+                CALL STDATE(IYEAR,IDAY,DESCR,DESCR1,DESCR2)
                 if (IHFLAG.eq.0) then 
                   call STIMENA(JJ,LTIME)
                   write (msg,'(3a)') DESCR1,' time: ',LTIME
@@ -1581,16 +1577,16 @@ C Display stats.
 C Create string description for time of maximum occurrance.
           MAXDOY=INT(TMAX(I)/24.)+IODS
           TMAXHR=AMOD(TMAX(I),24.)
-          call STDATE(IYEAR,MAXDOY,DESCR,DESCR1)
-          call EDTIME(TMAXHR,DESCRH,DESCRD,TIMER)
+          call STDATE(IYEAR,MAXDOY,DESCR,DESCR1,DESCR2)
+          call EDTIME(TMAXHR,DESCRH,DESCRD,DESCRJ,TIMER)
           write (XT,'(a,a,a)')DESCR(1:6),'@',DESCRH
 
 C Create string description for time of minimum occurrance.
 C Flow data in m^3/s or kg/s deserves 3 decimal places.
           MINDOY=INT(TMIN(I)/24.)+IODS
           TMINHR=AMOD(TMIN(I),24.)
-          call STDATE(IYEAR,MINDOY,DESCR,DESCR1)
-          call EDTIME(TMINHR,DESCRH,DESCRD,TIMER)
+          call STDATE(IYEAR,MINDOY,DESCR,DESCR1,DESCR2)
+          call EDTIME(TMINHR,DESCRH,DESCRD,DESCRJ,TIMER)
           write (NT,'(a,a,a)')DESCR(1:6),'@',DESCRH
           t32=GLMFLABEL(I)
           write (outs,'(a,1x,2(f7.3,2x,a12,2x),1x,2(f7.3,3x))') t32,
@@ -1620,15 +1616,15 @@ C Display stats + hrs above.
 C Create string description for time of maximum occurrance.
           MAXDOY=INT(TMAX(I)/24.)+IODS
           TMAXHR=AMOD(TMAX(I),24.)
-          call STDATE(IYEAR,MAXDOY,DESCR,DESCR1)
-          call EDTIME(TMAXHR,DESCRH,DESCRD,TIMER)
+          call STDATE(IYEAR,MAXDOY,DESCR,DESCR1,DESCR2)
+          call EDTIME(TMAXHR,DESCRH,DESCRD,DESCRJ,TIMER)
           write (XT,'(a,a,a)')DESCR(1:6),'@',DESCRH
 
 C Create string description for time of minimum occurrance.
           MINDOY=INT(TMIN(I)/24.)+IODS
           TMINHR=AMOD(TMIN(I),24.)
-          call STDATE(IYEAR,MINDOY,DESCR,DESCR1)
-          call EDTIME(TMINHR,DESCRH,DESCRD,TIMER)
+          call STDATE(IYEAR,MINDOY,DESCR,DESCR1,DESCR2)
+          call EDTIME(TMINHR,DESCRH,DESCRD,DESCRJ,TIMER)
           write (NT,'(a,a,a)')DESCR(1:6),'@',DESCRH
           AYAB=float(IQHRS(I))*float(NOUT)/float(NTS)
           t32=GLMFLABEL(I)
@@ -1663,15 +1659,15 @@ C Display stats + hrs below.
 C Create string description for time of maximum occurrance.
           MAXDOY=INT(TMAX(I)/24.)+IODS
           TMAXHR=AMOD(TMAX(I),24.)
-          call STDATE(IYEAR,MAXDOY,DESCR,DESCR1)
-          call EDTIME(TMAXHR,DESCRH,DESCRD,TIMER)
+          call STDATE(IYEAR,MAXDOY,DESCR,DESCR1,DESCR2)
+          call EDTIME(TMAXHR,DESCRH,DESCRD,DESCRJ,TIMER)
           write (XT,'(a,a,a)')DESCR(1:6),'@',DESCRH
 
 C Create string description for time of minimum occurrance.
           MINDOY=INT(TMIN(I)/24.)+IODS
           TMINHR=AMOD(TMIN(I),24.)
-          call STDATE(IYEAR,MINDOY,DESCR,DESCR1)
-          call EDTIME(TMINHR,DESCRH,DESCRD,TIMER)
+          call STDATE(IYEAR,MINDOY,DESCR,DESCR1,DESCR2)
+          call EDTIME(TMINHR,DESCRH,DESCRD,DESCRJ,TIMER)
           write (NT,'(a,a,a)')DESCR(1:6),'@',DESCRH
           AYAB=float(IQHRS(I))*float(NOUT)/float(NTS)
           t32=GLMFLABEL(I)
@@ -1763,6 +1759,7 @@ C (absolute value of INODE).
 #include "building.h"
 #include "net_flow.h"
 #include "net_flow_data.h"
+#include "help.h"
 
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
 
@@ -1772,12 +1769,7 @@ C (absolute value of INODE).
       character outs*124
       logical unixok
 
-C For help messages
-      character helpinsub*24   ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='ASKMFCON'  ! set for subroutine
+      helpinsub='mfoutp'  ! set for subroutine
 
 C Set up array of menu strings.
       NITMS=0
@@ -1862,7 +1854,7 @@ C to graphical result display of network flows.
       COMMON/SIMPIK/ISIM,ISTADD,ID1,IM1,ID2,IM2,ISDS,ISDF,NTS,ISAVE
 
       CHARACTER ETEXT*124, RSNAME*40
-      CHARACTER PDESCR*60,SDESCR*44
+      CHARACTER PDESCR*64,SDESCR*44
       character graftitle*64,grlbl*24,t64*64
       character rfile*72,PFILE*72,MSTRFILE*72,LAFRES*72
 
@@ -1905,17 +1897,18 @@ C Setup and pass in parameters to win3d.
 
       lsn1=MIN0(lnblnk(LAFRES),32)
       if(NSIM.gt.1)then
-        WRITE(ETEXT,'(3A,I4,2A)')'Lib: ',LAFRES(1:lsn1),' Set:',ISIM,
-     &    ': ',RSNAME(ISIM)(1:lnblnk(RSNAME(ISIM)))
+        WRITE(ETEXT,'(3A,I4,2A)')'Results library: ',LAFRES(1:lsn1),
+     &    '; results set:',ISIM,
+     &    ' ',RSNAME(ISIM)(1:lnblnk(RSNAME(ISIM)))
       else
-        WRITE(ETEXT,'(4A)')'Lib: ',LAFRES(1:lsn1),
-     &    ': ',RSNAME(ISIM)(1:lnblnk(RSNAME(ISIM)))
+        WRITE(ETEXT,'(4A)')'Results library: ',LAFRES(1:lsn1),
+     &    '; ',RSNAME(ISIM)(1:lnblnk(RSNAME(ISIM)))
       endif
       iside=1; isize=0; ifont=1
       call viewtext(etext,iside,isize,ifont)
 
       WRITE(ETEXT,'(3A)')PDESCR(1:lnblnk(PDESCR)),' ',
-     &  SDESCR(11:lnblnk(SDESCR))
+     &  SDESCR(12:lnblnk(SDESCR))
       iside=2
       call viewtext(etext,iside,isize,ifont)
 

@@ -1,6 +1,6 @@
 C This file is part of the ESP-r system.
 C Copyright Energy Systems Research Unit, University of
-C Strathclyde, Glasgow Scotland, 2001.
+C Strathclyde, Glasgow Scotland, 2001-.
 
 C ESP-r is free software.  You can redistribute it and/or
 C modify it under the terms of the GNU General Public
@@ -13,19 +13,21 @@ C warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
 C PURPOSE. See the GNU General Public License for more
 C details.
 
-C You should have received a copy of the GNU General Public
-C License along with ESP-r. If not, write to the Free
-C Software Foundation, Inc., 59 Temple Place, Suite 330,
-C Boston, MA 02111-1307 USA.
 
-C Contains:
-C  CHECK - Checks if CFD convergence has been reached.
+C This file contains the following subroutines.
+C CHECK - Checks if CFD convergence has been reached.
+
 
 C ********************* CHECK *********************
-C CHECK -Checks if CFD convergence has been reached.
+C Checks if CFD convergence has been reached.
+
       SUBROUTINE CHECK(MAXIT,CONVER)
 #include "building.h"
 #include "cfd.h"
+#include "help.h"
+
+      integer MAXIT
+      logical CONVER
 
       common/outin/iuout,iuin,ieout
 
@@ -67,17 +69,12 @@ C     &             NSSWPT(MNZ),NSSWPK(MNZ),NSSWPE(MNZ)
       
       CHARACTER word*124,outs*124,LCFD*72
 
-      LOGICAL OK,CALLU,CALLV,CALLW,CALLT,KEMDL,CONVER,BUOY,CALLC
+      LOGICAL OK,CALLU,CALLV,CALLW,CALLT,KEMDL,BUOY,CALLC
       LOGICAL ZEROT,ZandKE,MITzero,BOUSSI
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
+      helpinsub='chkconvg'  ! set for subroutine
 
-      helpinsub='CHECK'  ! set for subroutine
-
-C Solution not converged.  If in adaptive conflation mode increse number 
+C Solution not converged.  If in adaptive conflation mode increase number 
 C of iterations by 50% (unless this is less than 10% of original number of 
 C iterations) << this behaviour disabled >>.  Write current residuals to ACC file.
       IF( abs(IFCFD(ICP)).eq.4 .or. abs(IFCFD(ICP)).eq.5)THEN
@@ -313,7 +310,7 @@ C            URFCD(ICFD)=VAL
           ENDIF
           IF(CALLU(ICFD))THEN
             VAL=FSDTU
-            CALL EASKR(VAL,' ',' U under-relaxation factor (-)?',
+            CALL EASKR(VAL,' ','U under-relaxation factor (-)?',
      &        1.0E-20,'F',1.0E20,'F',1.0E20, 
      &        ' fictitions time-step under-relaxation',IER,nbhelp)
             FSDTU=VAL
@@ -363,7 +360,7 @@ C            FLSDTE(ICFD)=VAL
       CALL EASKOK(' ','Change the number of sweeps?',OK,nbhelp)
       IF(OK)THEN
         CALL EDISP(IUOUT,' ')
-        CALL EDISP(IUOUT,' Current number of sweeps:')
+        CALL EDISP(IUOUT,'Current number of sweeps:')
           WRITE(word,'(a,i2)') ' NSWPP = ',NSWPP
           CALL EDISP(IUOUT,word)
         IF(CALLU(ICFD))THEN

@@ -68,6 +68,7 @@ C asking which domain.
       SUBROUTINE RCFDLIBH(IZONE,IER)
 #include "building.h"
 #include "cfd.h"
+#include "help.h"
 
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/FILEP/IFIL
@@ -99,12 +100,7 @@ C ICFDZ - thermal zone associated with each CFD domain
 
       CHARACTER LCFD*72
 
-C For help messages
-      character helpinsub*24   ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='RCFDLIBH'  ! set for cfiles
+      helpinsub='mocfd'  ! set for cfiles
 
 C Set unit number.
       IER=0
@@ -380,7 +376,8 @@ C MCFDM - define the parameters for the visualization of results.
 #include "cfd.h"
 #include "geometry.h"
 #include "prj3dv.h"
-      
+#include "help.h"
+     
       integer lnblnk  ! function definition
       integer iCountWords
 
@@ -413,12 +410,7 @@ C MCFDM - define the parameters for the visualization of results.
       integer NITMS,INO ! max items and current menu item
       logical ok
 
-C For help messages
-      character helpinsub*24   ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='MCFDM'  ! set for subroutine
+      helpinsub='mocfd'  ! set for subroutine
 
 C Set vector colour option to velocity and temperature only.
       IMOPTS=0
@@ -1288,6 +1280,7 @@ C           another file.
       SUBROUTINE OPCFD(ACT,is_open,IER)
 #include "building.h"
 #include "cfd.h"
+#include "help.h"
 
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/FILEP/IFIL
@@ -1301,11 +1294,8 @@ C           another file.
       character outs*124,ACT*1
       logical is_open,XST
       integer ISTRW
-      character helpinsub*24   ! subroutine name
-      character helptopic*24   ! string (unique) for topic
-      integer nbhelp           ! number of help lines found
 
-      helpinsub='OPCFD'        ! set for cfiles
+      helpinsub='mocfd'        ! set for cfiles
       helptopic='res_cfd_lib_name'
       call gethelptext(helpinsub,helptopic,nbhelp)
       LTMP='UNKNOWN'
@@ -1490,6 +1480,7 @@ C   IMFLIST(LISTID,3) = Z cell
 #include "schedule.h"
 #include "geometry.h"
 #include "prj3dv.h"
+#include "help.h"
 
       common/getmenu/menutype,igetind(65),igetflux(65)
       common/CFDSV/IRECPC,ICFDSV,IEQSV(5+MCTM)
@@ -1536,11 +1527,7 @@ C   IMFLIST(LISTID,3) = Z cell
       integer*8 iid1,iid2,iixx,iiyy,iik,iicol,ibsize
 #endif
 
-      character helpinsub*24   ! subroutine name
-      character helptopic*24   ! string (unique) for topic
-      integer nbhelp           ! number of help lines found
-
-      helpinsub='MCFDV'        ! set for cfiles
+      helpinsub='mocfd'        ! set for cfiles
 
 C Assume that the CFD library has been opened and a domain selected.
       XST=.true.
@@ -2203,7 +2190,7 @@ C Toggle delimeter.
           helptopic='res_flow_delimeter'
           call gethelptext(helpinsub,helptopic,nbhelp)
           IWM=1
-          CALL EASKATOG(' ','Column  delimeter:',
+          CALL EASKATOG(' ','Column delimeter:',
      &      'multi-space','single space','tab','comma','tagged',
      &      'cancel',' ',IWM,nbhelp)
           if(iwm.eq.1)then
@@ -2587,6 +2574,7 @@ C   IMFLIST(LISTID,3) = Z cell
       COMMON/ALL/NI,NJ,NK,NIM1,NJM1,NKM1,NIM2,NJM2,NKM2
       common/EQTION3/CALLMA(MNZ),CALPOL(MCTM,MNZ),POLNAM(MCTM,MNZ),
      &               NCTM(MNZ),JHUMINDX(MNZ),URFC(MCTM)
+      LOGICAL CALLMA,CALPOL
       character POLNAM*12
 
       real vals,Usqrd,Vsqrd,Wsqrd,val

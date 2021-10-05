@@ -13,11 +13,6 @@ C warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
 C PURPOSE. See the GNU General Public License for more
 C details.
 
-C You should have received a copy of the GNU General Public
-C License along with ESP-r. If not, write to the Free
-C Software Foundation, Inc., 59 Temple Place, Suite 330,
-C Boston, MA 02111-1307 USA.
-
 C This file contains the following subroutines:
 C   minput
 C   mgraph
@@ -44,6 +39,7 @@ c ymax   : Expected maximum value of variable along the y axis.
 
       subroutine minput
 #include "plant.h"
+#include "help.h"
 
       common/outin/iuout,iuin,ieout
       common/c9/npcomp,nci(mpcom),cdata(mpcom,mmiscd)
@@ -57,12 +53,7 @@ c ymax   : Expected maximum value of variable along the y axis.
       dimension IVALS(mpcom)
       character pcname*15, outs*124
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='minput'  ! set for subroutine
+      helpinsub='monitor'  ! set for subroutine
 
 c Get number of components.
       if(npcomp.eq.1) then
@@ -176,7 +167,7 @@ C since not all compilers use the same default.
       dimension ncoord(mpcom,2,2)
 
       character label1*10,etext*72,clabel*20,nulter*1,tab*1
-      CHARACTER DS*7,DS1*10,DE*7,DE1*10
+      CHARACTER DS*7,DS1*10,DE*7,DE1*10,DS2*8,DE2*8
       character*12 statev(3)
       logical colok
 #ifdef OSI
@@ -233,9 +224,9 @@ c Display header information.
 
 C Generate view period string.
       CALL EDAY(ISD1,ISM1,IODS)
-      CALL STDATE(IYEAR,IODS,DS,DS1)
+      CALL STDATE(IYEAR,IODS,DS,DS1,DS2)
       CALL EDAY(ISD2,ISM2,IODF)
-      CALL STDATE(IYEAR,IODF,DE,DE1)
+      CALL STDATE(IYEAR,IODF,DE,DE1,DE2)
       write(etext,'(7a,i4)') 'Period',tab,DS1,' to ',DE1,' Year',tab,
      &  IYEAR
       iside=2

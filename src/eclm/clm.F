@@ -27,6 +27,7 @@ C climatic data sets compatible with ESP-r.
 #include "espriou.h"
 #include "seasons.h"
 #include "climate.h"
+#include "help.h"
       
       integer lnblnk  ! function definition
 
@@ -130,12 +131,6 @@ C Ask to overwrite flag.
       integer*8 ilf,igfw,igfh,ild,igdw,igdh
 #endif
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found (will be non-zero
-                         ! because default message will be created
-
 C Initial assumptions. Pass module name to C code structure.
       call ezero
       call curmodule('clm ')
@@ -158,12 +153,12 @@ C Initial assumptions. Pass module name to C code structure.
       ID2=31
       IM2=12
       IT2=24
-      IDS=1
+      IDS=1     ! Initial assumption for a whole year.
       IDF=365
       KDS=1
       KDF=24
-      IYEAR=2020
-      ICYEAR=2020
+      IYEAR=2021
+      ICYEAR=2021
       cfgroot='  '
       LCFGF='  '
       AUTOVR=.false.  ! by default, ask to overwrite files
@@ -239,7 +234,7 @@ C size of window display.
 
 C Set pixels high to iappw and pixels wide to factor in monitor size.
       iapphi=iappw
-      iappwi=int(real(iappw)*(1024.0/780.0))
+      iappwi=int(real(iappw)*(1024.0/725.0))
 
 C Set initial menu width and text feedback number of lines.
       if(iappw.gt.0.and.iappw.lt.100)then
@@ -581,7 +576,7 @@ C Present the opening display and control menu.
       INO=-3
       CALL EMENU('Weather analysis',ITEM,NITEM,INO)
 
-c Exist the weather analysis tool.
+c Exit the weather analysis tool.
       IF(INO.EQ.NITEM)THEN
         write(outs248,'(3a)')'Climate_selected',tab,
      &    LCMDFL(1:lnblnk(LCMDFL))
@@ -1025,8 +1020,10 @@ C asking user which year to transfer.
           CALL EASKS(CLMLOC,' ','Weather station name:',
      &      42,'North_Pole','weather site',IER,nbhelp)
 
+          helpinsub='common'  ! get from common.help
           helptopic='clm_latitude_match'
           call gethelptext(helpinsub,helptopic,nbhelp)
+          helpinsub='clm'     ! reset for MAIN
           CALL EASKR(CLAT,' ','Weather station latitude?',
      &      -89.9,'W',89.9,'W',30.0,'weather latitude',IER,nbhelp)
 
@@ -1274,6 +1271,7 @@ C hour in a specified day.
 
       SUBROUTINE CLMTOT
 #include "climate.h"
+#include "help.h"
 
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/OUTPCH/ICOUT
@@ -1305,13 +1303,7 @@ C hour in a specified day.
       integer*8 ilf,igfw,igfh,ild,igdw,igdh
 #endif
 
-C For help messages
-      character helpinsub*24   ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found (will be non-zero
-                         ! because default message will be created
-
-      helpinsub='CLMTOT'  ! set for this subroutine
+      helpinsub='clm'  ! set for this subroutine
 
 C If in type 8 terminal make the text display area larger before
 C displaying the following data.
@@ -1363,7 +1355,7 @@ C If output to file alter the edisp unit number.
       endif
 
 C Read values of the weather parameters for this day.
-      CALL CLMGET(IYD)
+      CALL CLMGET(IYD,IER)
 
 C Output all values in tabular form.
       CALL CSITEH
@@ -1415,6 +1407,8 @@ C ********************* SETUP
 C SETUP provides the menus and control logic for the preferences menu.
       SUBROUTINE SETUP(ITRU,IER)
 
+#include "help.h"
+
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/SET1/IYEAR,IBDOY,IEDOY,IFDAY,IFTIME
 
@@ -1422,13 +1416,8 @@ C SETUP provides the menus and control logic for the preferences menu.
       CHARACTER SETUPM*36
       integer nitms,ISETUP  ! max items and current menu item
 
-C For help messages
-      character helpinsub*24   ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
 C Present the preferences menu. ISETUP is the menu index returned.
-      helpinsub='SETUP'  ! set for this subroutine
+      helpinsub='clm'  ! set for this subroutine
     2 IER=0
       ISETUP=-2
 

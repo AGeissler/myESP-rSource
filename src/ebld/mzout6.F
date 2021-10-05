@@ -13,11 +13,6 @@ C warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
 C PURPOSE. See the GNU General Public License for more
 C details.
 
-C You should have received a copy of the GNU General Public
-C License along with ESP-r. If not, write to the Free
-C Software Foundation, Inc., 59 Temple Place, Suite 330,
-C Boston, MA 02111-1307 USA.
-
 C This file contains the following routines:
 C      MZOUT6
 
@@ -55,7 +50,7 @@ C ----------------------------------------------------------------
 
       character LTMP*72
       character tab*1
-      CHARACTER DS*7,DS1*10,DE*7,DE1*10
+      CHARACTER DS*7,DS1*10,DE*7,DE1*10,DS2*8,DE2*8
       CHARACTER min*420
 
 C For DHW and ncm calculations:
@@ -166,9 +161,9 @@ c Save option is six.
 
 C Generate view period string.
       CALL EDAY(ISD1,ISM1,IODS)
-      CALL STDATE(IYEAR,IODS,DS,DS1)
+      CALL STDATE(IYEAR,IODS,DS,DS1,DS2)
       CALL EDAY(ISD2,ISM2,IODF)
-      CALL STDATE(IYEAR,IODF,DE,DE1)
+      CALL STDATE(IYEAR,IODF,DE,DE1,DE2)
 
 C Most of the items in this/next loop are not used (i.e. written out) 
 C at the moment but may be a good idea to use them in the future.
@@ -177,8 +172,8 @@ C at the moment but may be a good idea to use them in the future.
         CALL EDAYR(INT(TVMEM(I,2,2)),ID2,IM2)
         CALL EDAYR(INT(TVMEM(I,3,2)),ID3,IM3)
         CALL EDAYR(INT(TVMEM(I,4,2)),ID4,IM4)
-        CALL STDATE(IYEAR,INT(TVMEM(I,3,2)),DS,DS1)
-        CALL STDATE(IYEAR,INT(TVMEM(I,4,2)),DE,DE1)
+        CALL STDATE(IYEAR,INT(TVMEM(I,3,2)),DS,DS1,DS2)
+        CALL STDATE(IYEAR,INT(TVMEM(I,4,2)),DE,DE1,DE2)
         PH=ZPH(I)/1000.0
         PC=ZPC(I)/1000.0
         TPH=TZPH(I)/((1000.00*NTSTEP)*ZBASEA(I))

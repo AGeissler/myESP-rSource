@@ -62,7 +62,8 @@ C Markdown flag.
       
       character outs*124,xfile*144,tg*1,delim*1
 
-      character DESCRD*5,DDX*7,DDX1*10,DHX*5,sp*1,outsd*124
+      character DESCRD*5,DESCRJ*5,DDX*7,DDX1*10,DDX2*8,DHX*5,sp*1
+      character outsd*124
       CHARACTER*31 LABELS(18)
       CHARACTER*15 TITLE1(18)
 
@@ -139,17 +140,17 @@ C If snapshot IOH1 is timesteps rather than integer hours.
    42   FORMAT(' Causal load breakdown (kW) at air point for zone',I3,
      &         ': ',A12)
         call edisp(itru,outs)
-        CALL STDATE(IYEAR,IODS,DDX,DDX1)
-        CALL ESTIME(NTS,IDAVER,IOH1,DHX,DESCRD,TIMER)
+        CALL STDATE(IYEAR,IODS,DDX,DDX1,DDX2)
+        CALL ESTIME(NTS,IDAVER,IOH1,DHX,DESCRD,DESCRJ,TIMER)
         write(outs,'(A,A10,A,A5)') ' Time: ',DDX1,'@',DHX
         call edisp(itru,outs)
       else
         if(markdown)then
           call edisp(itru,' ')
-          write(outs,'(a)') '## Causal energy breakdown (kWhrs)'	
+          write(outs,'(a)') '## Causal energy breakdown (kWhrs)'
           call edisp(itru,outs)
           write(outs,'(2a,i3,2a)') ': Causal energy breakdown (kWhrs) ',
-     &      'at air point for zone',IZONE,': ',zname(IZONE)	
+     &      'at air point for zone',IZONE,': ',zname(IZONE)
           call edisp(itru,outs)
         else
           call edisp(itru,' ')
@@ -206,10 +207,10 @@ C Perform ZONE sums and averages.
 
 C Print out the results for each path.
       DO 150 I=1,17
-        IF(I.LT.16)goto 82
+        IF(I.LT.17)goto 82
 
 C Decode the current environmental control actuation point into
-C appropraite text. 
+C appropriate text. 
 C << recode without the GOTO >>
         II=NIT+2
         GOTO(812,811,82,814),II

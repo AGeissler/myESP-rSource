@@ -26,17 +26,13 @@ C Natural Resources Canada, 1996, 1998 1999.
 C ibst (integer) is the index of the user selection to be returned
 
       subroutine bsimtype(ibst)
+#include "help.h"
       dimension bl(145),IVAL(145)
       character bl*65,outs*72
       logical ok
       integer ibst  ! index of user selection
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='bsimtype'  ! set for subroutine
+      helpinsub='bsimsel'  ! set for subroutine
       helptopic='bsimtype_selection'
       call gethelptext(helpinsub,helptopic,nbhelp)
 

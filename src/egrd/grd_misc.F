@@ -13,11 +13,6 @@ C warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
 C PURPOSE. See the GNU General Public License for more
 C details.
 
-C You should have received a copy of the GNU General Public
-C License along with ESP-r. If not, write to the Free
-C Software Foundation, Inc., 59 Temple Place, Suite 330,
-C Boston, MA 02111-1307 USA.
-
 C Miscel routines needed by grd.
 C MZMISC - equivalent to subroutine in esrubld/precal.F
 C MESH - equivalent to subroutine in esruish/miscel.F
@@ -157,6 +152,7 @@ C (equivalent to subroutine in esruish/miscel.F)
       SUBROUTINE MESH(IZONE,IS)
 #include "building.h"
 #include "geometry.h"
+#include "help.h"
 
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/TC/ITC,ICNT
@@ -166,12 +162,7 @@ C (equivalent to subroutine in esruish/miscel.F)
       CHARACTER outs*124
       logical OK
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='MESH'  ! set for subroutine
+      helpinsub='grd_misc'  ! set for subroutine
 
 C Find max and min X & Z values for this surface.
       XMAX=-1.E+10

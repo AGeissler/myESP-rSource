@@ -484,8 +484,8 @@ C ********************************************************************
       integer nnds,nndz,nndc,nndl
 C      common/ts4/itsitr(msch),itrpas
 C      integer itsitr,itrpas
-C      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
-C      integer ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its
+C      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS,idynow
+C      integer ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
 
 C common to hold indices of merit (U-value, SHGC) of CFC for reporting
       common/cfc_U_SHGC/hr_l_to_l(mcom,ms,me,me),

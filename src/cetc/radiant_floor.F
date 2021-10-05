@@ -624,8 +624,8 @@ C See the above reports for more details.
          ConBf(irf)  = ConBp(irf)
          ConDf(irf)  = ConDp(irf)
 
+C Calculate series coefficients: Aij abd Fij. See the above reports for more details.
          IF (ModelFlag .EQ. 1) THEN
-C           calculate series coefficients: Aij abd Fij. See the above reports for more details
             DO 10 I = 1, Nmax
                 II = I - 1
                 DO 10 J = 1, Nmax
@@ -637,12 +637,11 @@ C           calculate series coefficients: Aij abd Fij. See the above reports fo
     
                 Acof(irf,I,J) = 8.*SIN(OmegX*DXq) * COS(OmegX*Xq) *
      &                 SIN(OmegY*DYq) / DEN
-                Fcof(irf,I,J) = 0.
-    
+                Fcof(irf,I,J) = 0.    
  10         CONTINUE
-         ELSEIF ( ModelFlag .EQ. 2 ) THEN
 
-C        Initiate MatrixA, VectorC, and VectorT.
+C Initiate MatrixA, VectorC, and VectorT.
+         ELSEIF ( ModelFlag .EQ. 2 ) THEN
             MatrixA(:,:) = 0.0
             VectorC(:) = 0.0
             VectorT(:) = 0.0

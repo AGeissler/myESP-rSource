@@ -32,6 +32,7 @@ C will have been defined prior to calling edmrt.
 #include "geometry.h"
 #include "epara.h"
 #include "prj3dv.h"
+#include "help.h"
       
       integer lnblnk  ! function definition
 
@@ -62,34 +63,13 @@ C will have been defined prior to calling edmrt.
       logical newgeo
       integer ISTRW
 
-C Passed parameters for cfgtogg
-#ifdef OSI
-      integer icfg_type  ! model cfg type
-      integer icfgz      ! if non-zero then there are zones
-      integer icfgn      ! if non-zero then there are networks
-      integer icfgc      ! if non-zero then cfg file known
-      integer icfgdfn    ! if non-zero then cdf domain exists
-      integer iicfgz     ! there are zone related images
-      integer iicfgn     ! there are network related images
-      integer iicfgc     ! there are control related images
-      integer iicfgdfn   ! there are cfd related images
-#else
-      integer*8 icfg_type,icfgz,icfgn,icfgc,icfgdfn,iicfgz
-      integer*8 iicfgn,iicfgc,iicfgdfn
-#endif
-
 #ifdef OSI
       integer iside,isize,ifont     ! passed to viewtext
 #else
       integer*8 iside,isize,ifont   ! passed to viewtext
 #endif
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='EDMRT'  ! set for subroutine
+      helpinsub='edmrt'  ! set for subroutine
 
       cfgmod=.false.
 
@@ -451,11 +431,8 @@ C the zone, obstructions and sensors.
       nznog(1)=ICOMP
       izgfoc=ICOMP
       CALL redraw(IER)
-      call cfgtogg(icfg_type,icfgz,icfgn,icfgc,icfgdfn,
-     &                             iicfgz,iicfgn,iicfgc,iicfgdfn)
       if(MMOD.EQ.8)then
-        call opencfg(icfg_type,icfgz,icfgn,icfgc,icfgdfn,
-     &                             iicfgz,iicfgn,iicfgc,iicfgdfn)
+        call redrawbuttons()
         WRITE(etext,'(2A)')'Model: ',modeltitle(1:lnblnk(modeltitle))
         iside=1; isize=1; ifont=1
         call viewtext(etext,iside,isize,ifont)
@@ -716,6 +693,7 @@ C EDMRTS: Edit details of a MRT sensor block.
 #include "model.h"
 #include "geometry.h"
 #include "prj3dv.h"
+#include "help.h"
       
       integer lnblnk  ! function definition
 
@@ -732,34 +710,13 @@ C EDMRTS: Edit details of a MRT sensor block.
       DIMENSION IVLST(MTV)
       integer INPICK  ! to use with epkvert
 
-C Passed parameters for cfgtogg
-#ifdef OSI
-      integer icfg_type  ! model cfg type
-      integer icfgz      ! if non-zero then there are zones
-      integer icfgn      ! if non-zero then there are networks
-      integer icfgc      ! if non-zero then cfg file known
-      integer icfgdfn    ! if non-zero then cdf domain exists
-      integer iicfgz     ! there are zone related images
-      integer iicfgn     ! there are network related images
-      integer iicfgc     ! there are control related images
-      integer iicfgdfn   ! there are cfd related images
-#else
-      integer*8 icfg_type,icfgz,icfgn,icfgc,icfgdfn,iicfgz
-      integer*8 iicfgn,iicfgc,iicfgdfn
-#endif
-
 #ifdef OSI
       integer iside,isize,ifont     ! passed to viewtext
 #else
       integer*8 iside,isize,ifont     ! passed to viewtext
 #endif
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='EDMRTS'  ! set for subroutine
+      helpinsub='edmrt'  ! set for subroutine
 
 C Echo current information and then offer choice of manual
 C edit or select zone vertex.
@@ -792,11 +749,8 @@ C draw the sensor cubes.  Set all surface lines to standard width.
       nznog(1)=ICOMP
       izgfoc=ICOMP
       CALL redraw(IER)
-      call cfgtogg(icfg_type,icfgz,icfgn,icfgc,icfgdfn,
-     &                             iicfgz,iicfgn,iicfgc,iicfgdfn)
       if(MMOD.EQ.8)then
-        call opencfg(icfg_type,icfgz,icfgn,icfgc,icfgdfn,
-     &                             iicfgz,iicfgn,iicfgc,iicfgdfn)
+        call redrawbuttons()
         WRITE(etext,'(2A)')'Model: ',modeltitle(1:lnblnk(modeltitle))
         iside=1; isize=1; ifont=1
         call viewtext(etext,iside,isize,ifont)

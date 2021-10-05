@@ -14,8 +14,9 @@ C PURPOSE. See the GNU General Public License for more
 C details.
 
 
-C This file contains the following routines:
+C This file contains the following subroutine.
 C mznuma - main controller for the numerical simulation.
+
 
 C ******************** mznuma ********************
 C Main controller for the numerical simulation.
@@ -155,7 +156,7 @@ C Common for 3D building model.
       common/globct/qfutgb(mcf),tfutgb(mcf),tnpgb(mcf)
 
 
-C Specification of timestep averaging is required
+C Specification of timestep averaging required
 C so configuration can be passed to h3kreports.
       common/avrage/idaver
 
@@ -295,7 +296,7 @@ C Path to model.
       common/rpath/path
       character path*72
 
-      integer spr_problem
+      integer agt_problem
       
 C SUN F90 has spotty support for cpu_time intrinsic.
 #ifdef F90
@@ -440,11 +441,11 @@ C Ensure all control commons are initialised to "off".
         call FMI_CLEARCTL()
       endif
 
-C Initialise sprites.
-      CALL SPRINIT
+C Initialise agents.
+      CALL AGT_INITSIM
 
 C Initialise gremlins.
-      CALL GRMINIT
+      CALL GRM_INITSIM
 
 C Initialise HVAC variables.
       call ZERO_HVAC_VAR
@@ -683,8 +684,7 @@ C Building side time step.
 
 C If monitoring is on then in start-up period display message.
       if((montrb.eq.1.or.monitr.eq.1).and.itcnst.gt.0)
-     & call usrmsg(' ',
-     &     ' Monitoring will commence shortly.','-')
+     & call edisp(iuout,'Progress:')
 
 C Remember the 'start value' of the unix system clock.
       call getsecs(istime)
@@ -757,7 +757,7 @@ C Initialise ground temperature profile parameters.
          call Ground_Temp_Profile
       endif
 
-C *** Start simulation day-loop.
+C Start simulation day-loop.
 C (i = curr day, iss = simulation start day, isf = simulation finish day)
       do 10 i=iss,isf
 
@@ -877,7 +877,7 @@ C ground temperatures.
         endif
 
 C Present day.
-        CALL CLMRDBD(idyp,idyf,IER)
+        CALL CLMGET(idyp,IER)
         CALL CLMDN2O
 
 C Note that the 'future' year may correspond to another weather file.
@@ -1065,7 +1065,7 @@ C Set the future time-row hour value.
             btimef=float(ihrp)+float(its)/float(ntstep)
 
 C Activate gremlins.
-            if (.not.bInStartup()) CALL GRMCTL(ier)
+            if (.not.bInStartup()) CALL GRM_CTL(ier)
 
 C New day events in SHOCC occur when btimef first exceeds midnight.
             if(btimef.gt.24.0)then
@@ -1143,7 +1143,7 @@ C Set itsmus if output is required at this time-row.
             call eclose(rem,0.00,0.0001,close)
             if (close.and.itrflg.eq.0) itsmus=1
 
-C Access functional mock-up interface for occupant behaviour modelling.
+C Access functional mock-up interface, e.g. for occupant behaviour modelling.
             if (is_FMU) then
               if (.not.bInStartup()) then
                 call FMI_SIMSTEP(IER)
@@ -1717,8 +1717,8 @@ C << NOTE: dummy call REP_UPDATE only has 3 parameters >>
             call ReportNextTimeStep(nsinc,btimep,myday,iStartupFlag,
      &                              iQuick_run)    ! <- store logged data
 
-C Activate sprites.
-            if (.not.bInStartup()) CALL SPRCTL(spr_problem,ier)
+C Activate agents.
+            if (.not.bInStartup()) CALL AGT_CTL(agt_problem,ier)
    30     continue
 
           if(itsct.eq.2.and.iagain.eq.1)goto 27
@@ -1798,12 +1798,10 @@ C report was issued more than 5 seconds ago).
           iltime=ictime
           ietim=istime+(ictime-istime)*100/iperc
 
-C Unix variant.
-          write(outs,'(I4,A,A)') iperc,
-     &      '% complete; expected finish time: ',
-     &      ectime(ietim)
-C NT variant.
-C         write(outs,'(I4,A)') iperc,'% complete; '
+C Progress report.
+          write(outs,'(2x,I4,2A)') iperc,
+     &      '% complete; expected finish time ',ectime(ietim)
+
           if(endless)then
             continue
           else
@@ -1828,8 +1826,8 @@ C only once per day.
 
        endif seasonal_run_test
 
-C Sprite problem check. If a problem is detected stop the simulation here.
-        if (spr_problem.eq.1) call SPRSTOP(iday)
+C Agent problem check. If a problem is detected stop the simulation here.
+        if (agt_problem.eq.1) call AGT_STOP(iday)
 
 C Day loop now complete.
    10 continue
@@ -1882,7 +1880,7 @@ C SUN F90 has spotty support for cpu_time intrinsic.
 C Report simulation runtime.
       CALL cpu_time(sec_b)
       write(outs,'(A,F9.1,A)')
-     &     'Simulation completed:',sec_b-sec_a,'s cpu time.'
+     &     'CPU time:',sec_b-sec_a,'s.'
       CALL EDISP(iuout,outs)
 #endif
 

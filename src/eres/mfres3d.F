@@ -491,7 +491,7 @@ C      iicol=0  ! red
 C ************************* MFWFDRAWNC 
 C MFWFDRAWNC Fluid flow file: draw active node & components.
 C colour is either 'r' red or 'g' grey50 for components.
-C Omitt node names indnm=0 or component names icmpnm for clarity
+C Omit node names indnm=0 or component names icmpnm for clarity.
       SUBROUTINE MFWFDRAWNC(col,indnm,icmpnm)
 
 #include "building.h"
@@ -729,9 +729,9 @@ C      character outs*124
       real COG1,COG2,COG3
       DIMENSION COG1(3),COG2(3),COG3(3)
 #ifdef OSI
-      integer iix1,iiy1,iix2,iiy2,iicol,iid4,ibsize,ipixw
+      integer iix1,iiy1,iix2,iiy2,iicol,iid4,ibsize,ipixw,ipixh
 #else
-      integer*8 iix1,iiy1,iix2,iiy2,iicol,iid4,ibsize,ipixw
+      integer*8 iix1,iiy1,iix2,iiy2,iicol,iid4,ibsize,ipixw,ipixh
 #endif
 
       if(MMOD.lt.8) return  ! in text mode do not draw
@@ -791,7 +791,7 @@ C Draw the value word at half-way point.
       CALL VECTRN(COG2,ETSMAT,COG3,IER)
       call u2pixel(COG3(1),COG3(2),iix1,iiy1)
       write(t13,'(A)')word(1:lnblnk(word))
-      call textpixwidth(t13,ipixw)
+      call textpixwidth(t13,ipixw,ipixh)
       iid4 = iix1-(ipixw/2)
       iicol=0   ! red
       ibsize=0

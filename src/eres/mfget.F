@@ -1,11 +1,11 @@
 C This file is part of the ESP-r system.
 C Copyright Energy Systems Research Unit, University of
-C Strathclyde, Glasgow Scotland, 2001.
+C Strathclyde, Glasgow, Scotland, 2001-.
 
 C ESP-r is free software.  You can redistribute it and/or
 C modify it under the terms of the GNU General Public
 C License as published by the Free Software Foundation
-C (version 2 orlater).
+C (version 2 or later).
 
 C ESP-r is distributed in the hope that it will be useful
 C but WITHOUT ANY WARRANTY; without even the implied
@@ -123,6 +123,7 @@ C columns listed above.
 #include "schedule.h"
 #include "net_flow.h"
 #include "net_flow_data.h"
+#include "help.h"
       
       integer lnblnk  ! function definition
 
@@ -203,11 +204,7 @@ C air flow reporting.
       integer*8 iid1,iid2,iixx,iiyy,iik,iicol,ibsize
 #endif
 
-      character helpinsub*24   ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='MFMENU'  ! set for cfiles
+      helpinsub='mfget'  ! set for cfiles
 
 C Parameters required to indicate if user should be asked for additional
 C information about the selected metric.
@@ -1363,7 +1360,7 @@ C Ask if only flows associated with a single node.
           IDH=1
           IDNO=1
           call MENUATOL('Select a flow option',' ',
-     &   'a individual connections','b total of connections',
+     &   'a individual connections','b total of connections @node',
      &   'c total entering node','d total to/from ambient',
      &   'e inter-nodal flow ','f cancel ',' ',' ',' ',' ',' ',
      &   ' ',IDH,IDNO,nbhelp)
@@ -1375,15 +1372,15 @@ C Ask if only flows associated with a single node.
             iuchoice=2  ! remember total of connections
             NNPK=1
             PROMPT1=
-     &       'Select the node which is associated with the connections'
-            PROMPT2='you want to display flow information for.'
+     &       'Select node(s) associated with the connections you'
+            PROMPT2='want to display flow information for.'
             helptopic='res_mass_flow_nod_select'
             call gethelptext(helpinsub,helptopic,nbhelp)
             call ASKMFNOD(INOPT,NNPK,INPK,PROMPT1,PROMPT2,nbhelp)
             nlistnode=NNPK
-            do i=1,nlistnode      ! make up list of nodes and bounds.
+            do i=1,nlistnode        ! make up list of nodes and bounds
               listnode(i)=INPK(i)
-              j=listnode(i)
+              j=listnode(i)         ! get bounds of node position
               xw=HNOD(j,1); yw=HNOD(j,2); zw=HNOD(j,3)
               if(fxmin.gt.xw) fxmin=xw
               if(fxmax.le.xw) fxmax=xw
@@ -1578,8 +1575,10 @@ C nodes questions above. I.E. total flow entering was requested.
               endif
             endif
           enddo  ! of nlistconn
-        write(6,*) 'node list is',nlistnode,(listnode(I),I=1,nlistnode)     
-        write(6,*) 'cmp list is',nlistcmp,(listcmp(I),I=1,nlistcmp) 
+          
+C Debug.
+C        write(6,*) 'node list is',nlistnode,(listnode(I),I=1,nlistnode)     
+C        write(6,*) 'cmp list is',nlistcmp,(listcmp(I),I=1,nlistcmp) 
         endif
 
 C Debug.
@@ -2773,6 +2772,7 @@ C EDMFGOGET allows removal of output requests for flow networks.
 #include "epara.h"
 #include "building.h"
 #include "net_flow.h"
+#include "help.h"
 
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
       COMMON/SIMPIK/ISIM,ISTADD,ID1,IM1,ID2,IM2,ISDS,ISDF,NTS,ISAVE
@@ -2791,12 +2791,7 @@ C glmflabel char*32 is longer label for flow item
       dimension INCGET(MFRS),ORDER(MFRS),OGET(MFRS)
       integer MVERT,IVERT ! max items and current menu item
 
-C For help messages
-      character helpinsub*24   ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='EDMFGOGET'  ! set for cfiles
+      helpinsub='mfget'  ! set for cfiles
 
 C Sort ORDER of IMFGETNO array for display purposes.
       do I=1,NMFGET

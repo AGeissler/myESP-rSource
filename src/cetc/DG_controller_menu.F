@@ -27,13 +27,12 @@ C Edit plant control function II.
 #include "building.h"
 #include "plant.h" 
 #include "DG_controller_include.h"
+#include "help.h"
 
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
-      common/pophelp/H(60)
 
 C.....ESP-r common block variables
       integer iuout, iuin,ieout
-      character H*72            !<- array for help prompts.
 
 C.....Array containing user-defined DG controller configuration
       real fDG_configuration(misc)     

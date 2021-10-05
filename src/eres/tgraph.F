@@ -33,6 +33,7 @@ C causal relationships to be visually inspected.
 #include "prj3dv.h"
 #include "net_flow.h"
 #include "net_flow_data.h"
+#include "help.h"
 
       COMMON/FILEP/IFIL
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
@@ -62,12 +63,7 @@ C causal relationships to be visually inspected.
       integer*8 iiw1,iiw2,iiw3,iiw4,iimenu
 #endif
 
-C For help messages
-      character helpinsub*24   ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='MOGRAF'  ! set for subroutine
+      helpinsub='tgraph'  ! set for subroutine
 
 C Setup menu text.
       ITEM(1) ='2 result set          '
@@ -182,7 +178,7 @@ C Clear current viewing box and re-establish image bounds.
           CALL startbuffer
 
 C Setup and pass in parameters to win3d.
-          iiw1=4; iiw2=4; iiw3=3; iiw4=3; iimenu=menuchw
+          iiw1=4; iiw2=4; iiw3=3; iiw4=4; iimenu=menuchw
           iigl=igl; iigr=igr; iigt=igt; iigb=igb; iigw=igw; iigwh=igwh
           CALL win3d(iimenu,iiw1,iiw2,iiw3,iiw4,
      &      iigl,iigr,iigt,iigb,iigw,iigwh)
@@ -283,7 +279,8 @@ C output. if act='p' then iget parameters are already set.
       integer lbypos(MS)        ! position of y of labels
       logical lbclose           ! are we going to obscure a label
       character prompt*124
-      character ALABEL(6)*12,t20*24,t36*36,act*1
+      character ALABEL(6)*12,BLABEL(6)*12  ! 1st and 2nd graph labels.
+      character t20*24,t36*36,act*1
       character graftitle*64,grlbl*24,t24*24
 
       integer YAXSET,ADDLIN,horaxisdiv
@@ -297,14 +294,14 @@ C output. if act='p' then iget parameters are already set.
 #ifdef OSI
       integer igx,iigx  ! see array above
       integer igwid,igheight  ! for use with axiscale
-      integer iupdown,isym,iid1,iid2   ! passed to etplot
-      integer iicol,ibsize
+      integer iupdown,isym,iid1,iid2,iid3   ! passed to etplot
+      integer iicol,ibsize,ipixw,ipixh
       integer iigl,iigr,iigt,iigb,iigw,iigwh
 #else
       integer*8 igx,iigx  ! see array above
       integer*8 igwid,igheight  ! for use with axiscale
-      integer*8 iupdown,isym,iid1,iid2   ! passed to etplot
-      integer*8 iicol,ibsize
+      integer*8 iupdown,isym,iid1,iid2,iid3   ! passed to etplot
+      integer*8 iicol,ibsize,ipixw,ipixh
       integer*8 iigl,iigr,iigt,iigb,iigw,iigwh
 #endif
 
@@ -503,22 +500,32 @@ C Axis 4 only active or not.
       endif
 
       if(IROC.eq.0)then
-        ALABEL(1)='Temp. C'
+        ALABEL(1)='Temperature'
+        BLABEL(1)='(C)'
 
 C Could be KW for next units depends on scaling.
-        ALABEL(2)='Load W'
-        if (kwatts) ALABEL(2)='Load KW'
-        ALABEL(3)='Int. W/m^2'
+        ALABEL(2)='Load'
+        BLABEL(2)='(W)'
+        if (kwatts) BLABEL(2)='(KW)'
+        ALABEL(3)='Intensity'
+        BLABEL(3)='(W/m^2)'
         ALABEL(4)='Misc.'
+        BLABEL(4)='(various)'
       elseif(IROC.eq.1)then
 
 C IROC, if rate of change of variable alter the axis label.
-        ALABEL(1)='Temp. C/hr'
-        ALABEL(2)='Load W/hr'
-        if (kwatts) ALABEL(2)='Load KW/hr'
-        ALABEL(3)='Int. W/m^2/hr'
-        ALABEL(4)='Misc./hr'
+        ALABEL(1)='Temperature'
+        BLABEL(1)='(C/hr)'
+        ALABEL(2)='Load'
+        BLABEL(2)='(W/hr)'
+        if (kwatts) BLABEL(2)='(KW/hr)'
+        ALABEL(3)='Intensity'
+        BLABEL(3)='(W/m^2/h)'
+        ALABEL(4)='Misc.'
+        BLABEL(4)='(various/hr)'
       endif
+
+C Set which topics are on left or right.
       ILR(1)=0
       ILR(2)=1
       ILR(3)=1
@@ -579,16 +586,27 @@ C draw vertical axis.
           iigx=int(igx(I))
           call axiscale(igwid,igheight,TSTART-1.0,TFINSH,YMIN(I),
      &                  YMAX(I),TSC,YSC(I),sca,Xadd,Yadd(I))
+
+C Establish the width and height of the label.
+          call textpixwidth(ALABEL(i),ipixw,ipixh)  ! get its width
           if (ILR(I).eq.0) then
             call dintervalf(YMIN(I),YMAX(I),ddy1,ny,0)
             call vrtaxisdd(YMIN(I),YMAX(I),iigx,iigb,iigt,Yadd(I),
-     &        YSC(I),0,ddy1,ny,ilr(I),ALABEL(I))
+     &        YSC(I),0,ddy1,ny,ilr(I),'  ')
+            if(ilr(I).eq.0)then
+              iid1=15; iid2=igt-(ipixh-2); iid3=igt-1    ! If on left do left justified.
+            else
+              iid1=igx(I); iid2=igt-(ipixh-2); iid3=igt-1
+            endif
+            call textsizeatxy(iid1,iid2,ALABEL(I),ibsize,'-',iicol)
+            call textsizeatxy(iid1,iid3,BLABEL(I),ibsize,'-',iicol)
           else
             call dintervalf(YMIN(I),YMAX(I),ddy1,ny,0)
             call vrtaxisdd(YMIN(I),YMAX(I),iigx,iigb,iigt,Yadd(I),
      &        YSC(I),0,ddy1,ny,ilr(I),'  ')
-            iid1=igx(I); iid2=igt-5;
+            iid1=igx(I); iid2=igt-(ipixh-2); iid3=igt-1
             call textsizeatxy(iid1,iid2,ALABEL(I),ibsize,'-',iicol)
+            call textsizeatxy(iid1,iid3,BLABEL(I),ibsize,'-',iicol)
           endif
         endif
  100  continue
@@ -654,7 +672,7 @@ C Check for local comfort outside valididty of algorithms.
               endif
             endif
 
-C Convert watts to KW if necessary.
+C Convert watts to kW if necessary.
             if (IGETNO(IX,8).eq.2.and.kwatts) then
               if (IGETNO(IX,1).ne.8.and.IGETNO(IX,1).ne.9.and.
      &            IGETNO(IX,1).ne.10.and.IGETNO(IX,1).ne.30.and.
@@ -662,7 +680,7 @@ C Convert watts to KW if necessary.
      &            IGETNO(IX,1).ne.33) then
 
 C The data is a load and not related to plant. By default these loads 
-C are in W but plant is being displayed so convert to KW if directed
+C are in W but plant is being displayed so convert to kW if directed
 C to by ireportunit.
                 if(ireportunit.eq.0.or.ireportunit.eq.2)then
                   Yold(IX)=Yold(IX)/1000.
@@ -693,7 +711,7 @@ C Convert watts to kW if necessary.
      &            IGETNO(IX,1).ne.33) then
 
 C The data is a load and not related to plant. By default these loads 
-C are in W but plant is being displayed so convert to KW if directed
+C are in W but plant is being displayed so convert to kW if directed
 C to by ireportunit.
                 if(ireportunit.eq.0.or.ireportunit.eq.2)then
                   VAL2(IX,J)=VAL2(IX,J)/1000.
@@ -786,86 +804,86 @@ C Is this close to a previous label position? Try up to six
 C variant positions to see if an un-obstructed Y can be found.
         if(lbthusfar.eq.0)then
           lbthusfar=1
-          lbypos(lbthusfar)=iid2
+          lbypos(lbthusfar)=int(iid2)
         else
           lbclose=.false.
           do loop=1,lbthusfar
-            lbdelta=abs(lbypos(loop)-iid2)
+            lbdelta=iabs(lbypos(loop)-int(iid2))
             if(lbdelta.lt.6) lbclose=.true.
           enddo
           if(lbclose)then        ! will obstruct try 7 pixels higher
             lbclose=.false.
             do loop=1,lbthusfar
-              lbdelta=abs(lbypos(loop)-(iid2-7))
+              lbdelta=iabs(lbypos(loop)-(int(iid2)-7))
               if(lbdelta.lt.6) lbclose=.true.
             enddo
             if(.NOT.lbclose)then ! that will work so reset iid2
               iid2=iid2-6
               lbthusfar=lbthusfar+1
-              lbypos(lbthusfar)=iid2
+              lbypos(lbthusfar)=int(iid2)
             else                 ! will obstruct try 14 pixels higher
               lbclose=.false.
               do loop=1,lbthusfar
-                lbdelta=abs(lbypos(loop)-(iid2-14))
+                lbdelta=iabs(lbypos(loop)-(int(iid2)-14))
                 if(lbdelta.lt.6) lbclose=.true.
               enddo
               if(.NOT.lbclose)then ! that will work so reset iid2
                 iid2=iid2-14
                 lbthusfar=lbthusfar+1
-                lbypos(lbthusfar)=iid2
+                lbypos(lbthusfar)=int(iid2)
               else                 ! will obstruct try 21 pixels higher
                 lbclose=.false.
                 do loop=1,lbthusfar
-                  lbdelta=abs(lbypos(loop)-(iid2-21))
+                  lbdelta=iabs(lbypos(loop)-(int(iid2)-21))
                   if(lbdelta.lt.6) lbclose=.true.
                 enddo
                 if(.NOT.lbclose)then ! that will work so reset iid2
                   iid2=iid2-21
                   lbthusfar=lbthusfar+1
-                  lbypos(lbthusfar)=iid2
+                  lbypos(lbthusfar)=int(iid2)
                 else                 ! will obstruct try 28 pixels higher
                   lbclose=.false.
                   do loop=1,lbthusfar
-                    lbdelta=abs(lbypos(loop)-(iid2-28))
+                    lbdelta=iabs(lbypos(loop)-(int(iid2)-28))
                     if(lbdelta.lt.6) lbclose=.true.
                   enddo
                   if(.NOT.lbclose)then ! that will work so reset iid2
                     iid2=iid2-28
                     lbthusfar=lbthusfar+1
-                    lbypos(lbthusfar)=iid2
+                    lbypos(lbthusfar)=int(iid2)
                   else               ! will obstruct try 7 pixels lower
                     lbclose=.false.
                     do loop=1,lbthusfar
-                      lbdelta=abs(lbypos(loop)-(iid2+7))
+                      lbdelta=iabs(lbypos(loop)-(int(iid2)+7))
                       if(lbdelta.lt.6) lbclose=.true.
                     enddo
                     if(.NOT.lbclose)then ! that will work so reset iid2
                       iid2=iid2+6
                       lbthusfar=lbthusfar+1
-                      lbypos(lbthusfar)=iid2
+                      lbypos(lbthusfar)=int(iid2)
                     else                 ! will obstruct try 14 pixels lower
                       lbclose=.false.
                       do loop=1,lbthusfar
-                        lbdelta=abs(lbypos(loop)-(iid2+14))
+                        lbdelta=iabs(lbypos(loop)-(int(iid2)+14))
                         if(lbdelta.lt.6) lbclose=.true.
                       enddo
                       if(.NOT.lbclose)then ! that will work so reset iid2
                         iid2=iid2+14
                         lbthusfar=lbthusfar+1
-                        lbypos(lbthusfar)=iid2
+                        lbypos(lbthusfar)=int(iid2)
                       else                 ! will obstruct try 21 pixels lower 
                         lbclose=.false.
                         do loop=1,lbthusfar
-                          lbdelta=abs(lbypos(loop)-(iid2+21))
+                          lbdelta=iabs(lbypos(loop)-(int(iid2)+21))
                           if(lbdelta.lt.6) lbclose=.true.
                         enddo
                         if(.NOT.lbclose)then ! that will work so reset iid2
                           iid2=iid2+21
                           lbthusfar=lbthusfar+1
-                          lbypos(lbthusfar)=iid2
+                          lbypos(lbthusfar)=int(iid2)
                         else                 ! give up
                           lbthusfar=lbthusfar+1
-                          lbypos(lbthusfar)=iid2
+                          lbypos(lbthusfar)=int(iid2)
                           continue  ! give up shifting
                         endif
                       endif
@@ -876,7 +894,7 @@ C variant positions to see if an un-obstructed Y can be found.
             endif
           else                   ! no obstruction remember and proceed
             lbthusfar=lbthusfar+1
-            lbypos(lbthusfar)=iid2
+            lbypos(lbthusfar)=int(iid2)
           endif
         endif
         ibsize=0
@@ -935,9 +953,9 @@ C To extend logic to maximise plotting area.
       integer onright  ! number of axis on right
       integer onleft   ! whether there is an axis on the left
 
-      CHARACTER ETEXT*124, RSNAME*40
+      CHARACTER ETEXT*136, RSNAME*40
       character rfile*72,PFILE*72,MSTRFILE*72,LAFRES*72
-      CHARACTER PDESCR*60,SDESCR*44,outsd*124,outsd1*126
+      CHARACTER PDESCR*64,SDESCR*44,outsd*124,outsd1*126
       character graftitle*64,grlbl*24,t64*64
 #ifdef OSI
       integer iside,isize,ifont       ! passed to viewtext
@@ -1013,24 +1031,24 @@ C Set button font width so that space around graph is correct.
           if(onleft.eq.0)then
 
 C Setup and pass in parameters to win3d.
-            iiw1=3; iiw2=34; iiw3=5; iiw4=3; iimenu=menuchw
+            iiw1=3; iiw2=34; iiw3=7; iiw4=3; iimenu=menuchw
             iigl=igl; iigr=igr; iigt=igt; iigb=igb; iigw=igw;iigwh=igwh
             CALL win3d(iimenu,iiw1,iiw2,iiw3,iiw4,
      &        iigl,iigr,iigt,iigb,iigw,iigwh)
           else
-            iiw1=9; iiw2=34; iiw3=5; iiw4=3; iimenu=menuchw
+            iiw1=7; iiw2=34; iiw3=7; iiw4=3; iimenu=menuchw
             iigl=igl; iigr=igr; iigt=igt; iigb=igb; iigw=igw;iigwh=igwh
             CALL win3d(iimenu,iiw1,iiw2,iiw3,iiw4,
      &        iigl,iigr,iigt,iigb,iigw,iigwh)
           endif
         elseif(onright.eq.1)then
           if(onleft.eq.0)then
-            iiw1=3; iiw2=42; iiw3=5; iiw4=3; iimenu=menuchw
+            iiw1=3; iiw2=42; iiw3=7; iiw4=3; iimenu=menuchw
             iigl=igl; iigr=igr; iigt=igt; iigb=igb; iigw=igw;iigwh=igwh
             CALL win3d(iimenu,iiw1,iiw2,iiw3,iiw4,
      &        iigl,iigr,iigt,iigb,iigw,iigwh)
           else
-            iiw1=9; iiw2=42; iiw3=5; iiw4=3; iimenu=menuchw
+            iiw1=7; iiw2=42; iiw3=7; iiw4=3; iimenu=menuchw
             iigl=igl; iigr=igr; iigt=igt; iigb=igb; iigw=igw;iigwh=igwh
             CALL win3d(iimenu,iiw1,iiw2,iiw3,iiw4,
      &        iigl,iigr,iigt,iigb,iigw,iigwh)
@@ -1040,12 +1058,12 @@ C Setup and pass in parameters to win3d.
 C Set the right termination of the horizontal axis to 43 char in so that
 C there is room for two axis on the right.
           if(onleft.eq.0)then
-            iiw1=3; iiw2=53; iiw3=5; iiw4=3; iimenu=menuchw
+            iiw1=3; iiw2=53; iiw3=7; iiw4=3; iimenu=menuchw
             iigl=igl; iigr=igr; iigt=igt; iigb=igb; iigw=igw;iigwh=igwh
             CALL win3d(iimenu,iiw1,iiw2,iiw3,iiw4,
      &        iigl,iigr,iigt,iigb,iigw,iigwh)
           else
-            iiw1=9; iiw2=53; iiw3=5; iiw4=3; iimenu=menuchw
+            iiw1=7; iiw2=53; iiw3=7; iiw4=3; iimenu=menuchw
             iigl=igl; iigr=igr; iigt=igt; iigb=igb; iigw=igw;iigwh=igwh
             CALL win3d(iimenu,iiw1,iiw2,iiw3,iiw4,
      &        iigl,iigr,iigt,iigb,iigw,iigwh)
@@ -1061,11 +1079,12 @@ C Cast values back depending on machine type.
 
       lsn1=MIN0(lnblnk(RFILE),42)
       if(NSIM.gt.1)then
-        WRITE(ETEXT,'(3A,I4,2A)')'Lib: ',RFILE(1:lsn1),' Set:',ISIM,
-     &    ': ',RSNAME(ISIM)(1:lnblnk(RSNAME(ISIM)))
+        WRITE(ETEXT,'(3A,I4,3A)')'Results library: ',RFILE(1:lsn1),
+     &    '; results set:',ISIM,
+     &    ': (',RSNAME(ISIM)(1:lnblnk(RSNAME(ISIM))),')'
       else
-        WRITE(ETEXT,'(4A)')'Lib: ',RFILE(1:lsn1),
-     &    ': ',RSNAME(ISIM)(1:lnblnk(RSNAME(ISIM)))
+        WRITE(ETEXT,'(5A)')'Results library: ',RFILE(1:lsn1),
+     &    '; (',RSNAME(ISIM)(1:lnblnk(RSNAME(ISIM))),')'
       endif
       iside=1; isize=0; ifont=1
       if(mmod.eq.8)then
@@ -1075,7 +1094,7 @@ C Cast values back depending on machine type.
       endif
 
       WRITE(ETEXT,'(3A)')PDESCR(1:lnblnk(PDESCR)),' ',
-     &  SDESCR(11:lnblnk(SDESCR))
+     &  SDESCR(12:lnblnk(SDESCR))
       iside=2
       if(mmod.eq.8)then
         call viewtext(etext,iside,isize,ifont)
@@ -1136,18 +1155,14 @@ C ******************** MOCOPT ********************
 C Returns control graph options selected by user.
 
       SUBROUTINE MOCOPT
+#include "help.h"
               
       COMMON/OUTIN/IUOUT,IUIN,IEOUT              
       COMMON/CGHOPT/ERPLOT,TRPLOT,SPPLOT,NCTLGH,ICTLGH,ISP,ITHR
       COMMON/CTLDAT/SPH,SPC,TRH,TRC,ICF,IDTYP,IPER,IBLW,PLTCTL,ILOOP
       LOGICAL ERPLOT,TRPLOT,SPPLOT,ITHR,ISP,PLTCTL,OK
 
-C For help messages
-      character helpinsub*24   ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='MOCOPT'  ! set for subroutine
+      helpinsub='tgraph'  ! set for subroutine
 
       CALL EDISP(IUOUT,' ') 
       helptopic='res_control_point_t'

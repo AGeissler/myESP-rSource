@@ -1,6 +1,6 @@
 C This file is part of the ESP-r system.
 C Copyright Energy Systems Research Unit, University of
-C Strathclyde, Glasgow Scotland, 2001.
+C Strathclyde, Glasgow, Scotland, 2001-.
 
 C ESP-r is free software.  You can redistribute it and/or
 C modify it under the terms of the GNU General Public
@@ -13,63 +13,59 @@ C warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
 C PURPOSE. See the GNU General Public License for more
 C details.
 
-C You should have received a copy of the GNU General Public
-C License along with ESP-r. If not, write to the Free
-C Software Foundation, Inc., 59 Temple Place, Suite 330,
-C Boston, MA 02111-1307 USA.
-
 C filelist.F contains:
 C  browsefilelist: presents user with list of files recovered from
 C    a call to getfileslist to select from.
 C  printfileslist: reports a list of file and/or folder names
 C    recovered from call to C function getfileslist.
 
-C ********* browsefilelist
-C browsefilelist presents user with list of files recovered from
-C a call to getfileslist to select from.
-C Parameter act (chr*1) 'p' print packet list, 'l' line by line
-C   list, 'b' browse (popup menu), '?' find if any files exist.
-C Parameter `where` (char*3) says where to look for the file,
-C parameter `what` (char*3) says what type of file,
-C parameter `sfile` is the file name returned (including the
-C   path from current working directory to file).
-C parameter `snpfile` is the file name returned (without path).
-C parameter nlist is the number of files matching criteria.
-C parameter ier returned as 2 if problem writing file name path.
+
+C ******************** browsefilelist ********************
+C Presents user with list of files recovered from
+C a call to getfileslist.
+C  act     - 'p' print packet list, 'l' line by line listing,
+C            'b' browse (popup menu), '?' determine if files exist.
+C  where   - where to look for the file.
+C  what    - what type of file.
+C  sfile   - file name returned (including the path from the 
+C            current working directory).
+C  snpfile - the file name returned (without path).
+C  nlist   - the number of files matching criteria.
+C  ier     - returned as 2 if problem writing file.
 
       subroutine browsefilelist(act,where,what,sfile,snpfile,nlist,ier)
 #include "espriou.h"
 #include "building.h"
 #include "model.h"
+#include "help.h"
 
       integer lnblnk  ! function definition
 
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
-      character h*72
-      common/pophelp/h(60)
       common/rpath/path
 
-C Where ESP-r was installed (as recorded when it was compiled).
+C Where ESP-r is installed.
       common/deflt4/dinstpath
       
-      integer nboflistf  ! how many folders or file names passed
-      integer listfoldertype   ! zero if unused one if folder two if file
+      integer nboflistf        ! number of folders or file names passed
+      integer listfoldertype   ! 0 if unused, 1 if folder, 2 if file
       integer lenlistfolder    ! width of each string
       character*72 listfolder  ! array of folder or file names
       common/listfold/nboflistf,listfoldertype(MFFOLD),
      &                lenlistfolder(MFFOLD),listfolder(MFFOLD)
 
-C where can be: `cfg` (looks in cfg folder), `dbs` (looks in ../dbs),
+C 'where' can be: `cfg` (looks in cfg folder), `dbs` (looks in ../dbs),
 C   `zon` (looks in ../zones), `net` (looks in ../nets),
 C   `ctl` (looks in ../ctl), `img` (looks in ../images),
 C   `rad` (looks in ../rad), `doc` (looks in ../doc),
-C   `usr` (looks in users home folder).
-C   `pat` (looks in {where esp-r installed}/training/pattern).
-C   `clm` (looks in {where esp-r installed}/climate).
-C   `dbm` (looks in {where esp-r installed}/databases).
+C   `usr` (looks in user's home folder).
+C   `pat` (looks in {esp-r install folder}/training/pattern).
+C   `clm` (looks in {esp-r install folder}/climate).
+C   `dbm` (looks in {esp-r install folder}/databases).
 C   `hva`(looks in ../hvac), `bsm` (looks in ../bsm).
+C   `msc` (looks in ../msc).
 
-C what can be: `dir` list of folders, `fil` any files in the folders,
+C 'what' can be: `dir` list of folders, `fil` any files in the folders,
 C   `cfg` configuration files, `ctl` control files,
 C   `afn` air flow networks, `gnf` graphic network files,
 C   `res` results files, `mfr` mass flow results
@@ -85,7 +81,9 @@ C   `xbm` X bitmap files, `gif` gif image files,
 C   `ipv` IPV definition file, `rep` IPV report file
 C   `qac` QA contents file, `zip` cflo3 zip (geometry) file, 
 C   `hva` hvac files, `bsm` (looks for BASESIMP files),
+C   `msc` miscel. files,
 C   `jsn` .json files.
+
       integer ivlist
       dimension ivlist(MFFOLD)
       character where*3,what*3,sfile*72,snpfile*72,tsfile*72
@@ -115,7 +113,11 @@ C to the selected file to have it relative to the cfg folder.
       integer*8 nnlistf
 #endif
 
-C Set folder separator (fs) to \ or / as required.
+      helpinsub='filelist'  ! set for subroutine
+      helptopic='browse_file_list'
+      call gethelptext(helpinsub,helptopic,nbhelp)
+
+C Set folder separator (fs) to / or \ as required.
       ier=0
       call isunix(unixok)
       if(unixok)then
@@ -124,12 +126,12 @@ C Set folder separator (fs) to \ or / as required.
         fs = char(92)
       endif
 
-C Save back any file name passed into the subroutine.
+C Save any file name passed to this subroutine.
       tsfile=sfile
 
 C Make up the path (usually relative to the cfg folder of the
-C model. odir is the current working directory (which is where the
-C project manager was started from). On OSX odir is the full path
+C model. 'odir' is the current working directory (i.e. where
+C project manager was invoked). With OSX, 'odir' is the full path
 C to the current working directory.
       subpath=' '; odir=' '
       call usrdir(odir)
@@ -147,11 +149,11 @@ C to use one of them.
      &    path(1:lnblnk(path)),dbspth(1:lnblnk(dbspth)),fs
         write(relative,'(2a)',iostat=ios,err=2) path(1:lnblnk(path)),
      &    dbspth(1:lnblnk(dbspth))
-      elseif(where(1:3).eq.'hva')then
+      elseif(where(1:3).eq.'tmp')then
         write(subpath,'(4a)',iostat=ios,err=1) odir(1:lnblnk(odir)),fs,
-     &    path(1:lnblnk(path)),hvacpth(1:lnblnk(hvacpth))
+     &    path(1:lnblnk(path)),tmppth(1:lnblnk(tmppth))
         write(relative,'(2a)',iostat=ios,err=2) path(1:lnblnk(path)),
-     &    hvacpth(1:lnblnk(hvacpth))
+     &    tmppth(1:lnblnk(tmppth))
       elseif(where(1:3).eq.'zon')then
         write(subpath,'(4a)',iostat=ios,err=1) odir(1:lnblnk(odir)),fs,
      &    path(1:lnblnk(path)),zonepth(1:lnblnk(zonepth))
@@ -167,11 +169,11 @@ C to use one of them.
      &    path(1:lnblnk(path)),ctlpth(1:lnblnk(ctlpth))
         write(relative,'(2a)',iostat=ios,err=2) path(1:lnblnk(path)),
      &    ctlpth(1:lnblnk(ctlpth))
-      elseif(where(1:3).eq.'aim')then
+      elseif(where(1:3).eq.'msc')then
         write(subpath,'(4a)',iostat=ios,err=1) odir(1:lnblnk(odir)),fs,
-     &    path(1:lnblnk(path)),ctlpth(1:lnblnk(aimpth))
+     &    path(1:lnblnk(path)),mscpth(1:lnblnk(mscpth))
         write(relative,'(2a)',iostat=ios,err=2) path(1:lnblnk(path)),
-     &    aimpth(1:lnblnk(aimpth))
+     &    mscpth(1:lnblnk(mscpth))
       elseif(where(1:3).eq.'img')then
         write(subpath,'(4a)',iostat=ios,err=1) odir(1:lnblnk(odir)),fs,
      &    path(1:lnblnk(path)),imgpth(1:lnblnk(imgpth))
@@ -187,11 +189,6 @@ C to use one of them.
      &    path(1:lnblnk(path)),docpth(1:lnblnk(docpth))
         write(relative,'(2a)',iostat=ios,err=2) path(1:lnblnk(path)),
      &    docpth(1:lnblnk(docpth))
-      elseif(where(1:3).eq.'bsm')then
-        write(subpath,'(4a)',iostat=ios,err=1) odir(1:lnblnk(odir)),fs,
-     &    path(1:lnblnk(path)),bsmpth(1:lnblnk(bsmpth))
-        write(relative,'(2a)',iostat=ios,err=2) path(1:lnblnk(path)),
-     &    bsmpth(1:lnblnk(bsmpth))
       elseif(where(1:3).eq.'usr')then
         write(subpath,'(2a)',iostat=ios,err=1) upath(1:lnblnk(upath)),
      &    fs
@@ -217,8 +214,8 @@ C to use one of them.
         endif
       elseif(where(1:3).eq.'dbm')then
 
-C The install path works ok as-is in Unix variants, however it
-C needs to be backslashed to properly work in Native Windows.
+C The install path works ok as-is in Unix but needs to be
+C backslashed for Windows.
         if(unixok)then
           write(subpath,'(4a)',iostat=ios,err=1)
      &      dinstpath(1:lnblnk(dinstpath)),fs,'databases',fs
@@ -229,11 +226,6 @@ C needs to be backslashed to properly work in Native Windows.
         endif
         write(relative,'(a)',iostat=ios,err=2)
      &    subpath(1:lnblnk(subpath))
-      elseif(where(1:3).eq.'bsm')then
-        write(subpath,'(4a)',iostat=ios,err=1) odir(1:lnblnk(odir)),fs,
-     &    path(1:lnblnk(path)),bsmpth(1:lnblnk(bsmpth))
-        write(relative,'(2a)',iostat=ios,err=2) path(1:lnblnk(path)),
-     &    bsmpth(1:lnblnk(bsmpth))
       endif
 
 #ifdef MINGW
@@ -259,9 +251,9 @@ C In OSX no need to prepend odir (just use the relative path defined above).
       elseif(what(1:3).eq.'ctl')then
         action='ctl'
         write(outs,*) 'control files in ',subpath
-      elseif(what(1:3).eq.'aim')then
-        action='aim'
-        write(outs,*) 'aim2 files in ',subpath
+      elseif(what(1:3).eq.'msc')then
+        action='msc'
+        write(outs,*) 'miscel. files in ',subpath
       elseif(what(1:3).eq.'hva')then
         action='hva'
         write(outs,*) 'hvac models in ',subpath
@@ -366,9 +358,6 @@ C Depending on `act`, print or browse or just return with number of files.
 
 C Try to use information gathered from file scan.
         if(nboflistf.gt.0)then
-          h(1)='The following files match the search criteria.'
-          h(2)='Select one to use or, if none selected, it will'
-          h(3)='revert to prior value. '
           ix=1
           maxw=1
           do 76 ij=1,nboflistf
@@ -398,7 +387,7 @@ C Sort both file name lists in ascending order.
 C Present menu of sorted files and then use listfolders
 C (which is sorted the same way) for the returned file name.
           CALL EPICKS(IX,ivlist,outs,' ',
-     &      maxw,nboflistf,listfc70s,'Available files',IER,3)
+     &      maxw,nboflistf,listfc70s,'Available files',IER,nbhelp)
           if(ix.eq.1)then
             write(sfile,'(3a)')relative(1:lnblnk(relative)),fs,
      &        listfolders(ivlist(ix))(1:lenlistfolders(ivlist(ix)))
@@ -406,7 +395,7 @@ C (which is sorted the same way) for the returned file name.
      &        listfolders(ivlist(ix))(1:lenlistfolders(ivlist(ix)))
           else
 
-C Nothing selected, revert to original name. << expand logic here >>
+C Nothing selected, revert to original name.
             sfile=tsfile
             snpfile=tsfile
           endif
@@ -463,29 +452,29 @@ C      call getfileslist(subpath,action,nlistf)
 C      call printfileslist(outs,'p')
       end  ! of browsefilelist
 
-C ********* browsefilelistmulti
-C browsefilelistmulti presents user with list of files recovered from
-C a call to getfileslist to select from and returns multiple files.
-C Parameter act (chr*1) 'p' print packet list, 'l' line by line
-C   list, 'b' browse (popup menu), '?' find if any files exist.
-C Parameter `where` (char*3) says where to look for the file,
-C parameter `what` (char*3) says what type of file,
-C parameter `sfile` is the file name returned (including the
-C   path from current working directory to file).
-C parameter `snpfile` is the file name returned (without path).
-C parameter nlist is the number of files matching criteria.
-C parameter ier returned as 2 if problem writing file name path.
+C ******************** browsefilelistmulti ********************
+C Presents user with list of files recovered from
+C a call to getfileslist and returns multiple files.
+C  act     - 'p' print packet list, 'l' line by line listing,
+C            'b' browse (popup menu), '?' determine if files exist.
+C  where   - where to look for the file.
+C  what    - what type of file.
+C  sfile   - file name returned (including the path from the 
+C            current working directory).
+C  snpfile - the file name returned (without path).
+C  nlist   - the number of files matching criteria.
+C  ier     - returned as 2 if problem writing file.
 
       subroutine browsefilelistmulti(act,where,what,sfilelist,
      &  snpfilelist,nlist,ier)
 #include "espriou.h"
-C espriou.h for parameter MFFOLD
 #include "building.h"
 #include "model.h"
+#include "help.h"
 
       integer lnblnk  ! function definition
 
-C Parameters
+C Parameters.
       character act*1
       character where*3,what*3
       character*72 sfilelist(MFFOLD),snpfilelist(MFFOLD)
@@ -493,11 +482,9 @@ C Parameters
       integer ier
 
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
-      character h*72
-      common/pophelp/h(60)
       common/rpath/path
 
-C Where ESP-r was installed (as recorded when it was compiled).
+C Where ESP-r is installed.
       common/deflt4/dinstpath
       
       integer nboflistf  ! how many folders or file names passed
@@ -548,12 +535,12 @@ C Array for browse menu.
       character*70 listfc70(MFFOLD)
       character*70 listfc70s(MFFOLD)
 
-C relative is the portion of the path which needs to be prepended
-C to the selected file to have it relative to the cfg folder.
+C 'relative' is the portion of the path which needs to be prepended
+C to the selected file to be relative to the model cfg folder.
       character action*3,outs*248,relative*60,msg*42
       character subpath*84   ! combined path
       character subpathd*84  ! to use for native windows
-      character odir*84      ! the directory executable was started from
+      character odir*84      ! the folder in which prj was invoked
       logical unixok
       integer lnodir, lnpath
 
@@ -563,7 +550,11 @@ C to the selected file to have it relative to the cfg folder.
       integer*8 nnlistf
 #endif
 
-C Set folder separator (fs) to \ or / as required.
+      helpinsub='filelist'
+      helptopic='browse_file_list_mul'
+      call gethelptext(helpinsub,helptopic,nbhelp)
+
+C Set folder separator (fs) to / or \ as required.
       ier=0
       call isunix(unixok)
       if(unixok)then
@@ -579,7 +570,7 @@ C Clear arrays.
         snpfilelist(loop)='  '
       enddo
       
-C Save back any file name passed into the subroutine.
+C Save file name passed to this subroutine.
 C      tsfile=sfile
 
 C Make up the path (usually relative to the cfg folder of the
@@ -602,11 +593,11 @@ C to use one of them.
      &    path(1:lnblnk(path)),dbspth(1:lnblnk(dbspth)),fs
         write(relative,'(2a)',iostat=ios,err=2) path(1:lnblnk(path)),
      &    dbspth(1:lnblnk(dbspth))
-      elseif(where(1:3).eq.'hva')then
+      elseif(where(1:3).eq.'tmp')then
         write(subpath,'(4a)',iostat=ios,err=1) odir(1:lnblnk(odir)),fs,
-     &    path(1:lnblnk(path)),hvacpth(1:lnblnk(hvacpth))
+     &    path(1:lnblnk(path)),tmppth(1:lnblnk(tmppth))
         write(relative,'(2a)',iostat=ios,err=2) path(1:lnblnk(path)),
-     &    hvacpth(1:lnblnk(hvacpth))
+     &    tmppth(1:lnblnk(tmppth))
       elseif(where(1:3).eq.'zon')then
         write(subpath,'(4a)',iostat=ios,err=1) odir(1:lnblnk(odir)),fs,
      &    path(1:lnblnk(path)),zonepth(1:lnblnk(zonepth))
@@ -622,11 +613,11 @@ C to use one of them.
      &    path(1:lnblnk(path)),ctlpth(1:lnblnk(ctlpth))
         write(relative,'(2a)',iostat=ios,err=2) path(1:lnblnk(path)),
      &    ctlpth(1:lnblnk(ctlpth))
-      elseif(where(1:3).eq.'aim')then
+      elseif(where(1:3).eq.'msc')then
         write(subpath,'(4a)',iostat=ios,err=1) odir(1:lnblnk(odir)),fs,
-     &    path(1:lnblnk(path)),ctlpth(1:lnblnk(aimpth))
+     &    path(1:lnblnk(path)),mscpth(1:lnblnk(mscpth))
         write(relative,'(2a)',iostat=ios,err=2) path(1:lnblnk(path)),
-     &    aimpth(1:lnblnk(aimpth))
+     &    mscpth(1:lnblnk(mscpth))
       elseif(where(1:3).eq.'img')then
         write(subpath,'(4a)',iostat=ios,err=1) odir(1:lnblnk(odir)),fs,
      &    path(1:lnblnk(path)),imgpth(1:lnblnk(imgpth))
@@ -642,11 +633,6 @@ C to use one of them.
      &    path(1:lnblnk(path)),docpth(1:lnblnk(docpth))
         write(relative,'(2a)',iostat=ios,err=2) path(1:lnblnk(path)),
      &    docpth(1:lnblnk(docpth))
-      elseif(where(1:3).eq.'bsm')then
-        write(subpath,'(4a)',iostat=ios,err=1) odir(1:lnblnk(odir)),fs,
-     &    path(1:lnblnk(path)),bsmpth(1:lnblnk(bsmpth))
-        write(relative,'(2a)',iostat=ios,err=2) path(1:lnblnk(path)),
-     &    bsmpth(1:lnblnk(bsmpth))
       elseif(where(1:3).eq.'usr')then
         write(subpath,'(2a)',iostat=ios,err=1) upath(1:lnblnk(upath)),
      &    fs
@@ -684,11 +670,6 @@ C needs to be backslashed to properly work in Native Windows.
         endif
         write(relative,'(a)',iostat=ios,err=2)
      &    subpath(1:lnblnk(subpath))
-      elseif(where(1:3).eq.'bsm')then
-        write(subpath,'(4a)',iostat=ios,err=1) odir(1:lnblnk(odir)),fs,
-     &    path(1:lnblnk(path)),bsmpth(1:lnblnk(bsmpth))
-        write(relative,'(2a)',iostat=ios,err=2) path(1:lnblnk(path)),
-     &    bsmpth(1:lnblnk(bsmpth))
       endif
 
 #ifdef MINGW
@@ -714,9 +695,9 @@ C In OSX no need to prepend odir (just use the relative path defined above).
       elseif(what(1:3).eq.'ctl')then
         action='ctl'
         write(outs,*) 'control files in ',subpath
-      elseif(what(1:3).eq.'aim')then
-        action='aim'
-        write(outs,*) 'aim2 files in ',subpath
+      elseif(what(1:3).eq.'msc')then
+        action='msc'
+        write(outs,*) 'miscel. files in ',subpath
       elseif(what(1:3).eq.'hva')then
         action='hva'
         write(outs,*) 'hvac models in ',subpath
@@ -821,9 +802,6 @@ C Depending on `act`, print or browse or just return with number of files.
 
 C Try to use information gathered from file scan.
         if(nboflistf.gt.0)then
-          h(1)='The following files match the search criteria.'
-          h(2)='Select one to use or, if none selected, it will'
-          h(3)='revert to prior value. '
           ix=1
           maxw=1
           do 76 ij=1,nboflistf
@@ -857,7 +835,7 @@ C (which is sorted the same way) to select up to nboflistf.
           call edisp(iuout,msg)
           IX=nboflistf
           CALL EPICKS(IX,ivlist,outs,' ',
-     &      maxw,nboflistf,listfc70s,'Available json files',IER,3)
+     &      maxw,nboflistf,listfc70s,'Available json files',IER,nbhelp)
           if(ix.ge.1)then
             do loop=1,IX
              write(sfilelist(loop),'(3a)')
@@ -918,13 +896,12 @@ C      call printfileslist(outs,'p')
       end  ! of browsefilelistmulti
 
 
-C ********* printfileslist
-C printfileslist reports a list of file and/or folder names
+C ******************** printfileslist ********************
+C Reports a list of file and/or folder names
 C recovered from call to C function getfileslist.
-      subroutine printfileslist(title,act)
 
+      subroutine printfileslist(title,act)
 #include "espriou.h"
-C espriou.h for parameter MFFOLD
       
       integer nboflistf  ! how many folders or file names passed
       integer listfoldertype   ! zero if unused one if folder two if file
@@ -933,7 +910,7 @@ C espriou.h for parameter MFFOLD
       common/listfold/nboflistf,listfoldertype(MFFOLD),
      &                lenlistfolder(MFFOLD),listfolder(MFFOLD)
 
-C Passed parameters
+C Passed parameters.
       character*(*) title   ! title of the printed list
       character act*1       ! action l is list p is packed lines
 
@@ -955,7 +932,6 @@ C Sort file name list in ascending order.
         enddo
         call SORTSTRA(listfolders,nboflistf)
         do ij=1,nboflistf
-C          write(6,*) ij,' ',listfolders(ij)
           lenlistfolders(ij)=lnblnk(listfolders(ij))
         enddo
 
@@ -964,7 +940,7 @@ C          write(6,*) ij,' ',listfolders(ij)
         call edisp248(iuout,title,90)
         if(act.eq.'l')then
           do 42 i=1,nboflistf
-            if(lenlistfolders(i).gt.1)then  ! do not bother with blank or 1 char names
+            if(lenlistfolders(i).gt.1)then  ! ignore blank or 1 character names
               write(printfile,'(a)') 
      &          listfolders(i)(1:lenlistfolders(i))
               call edisp(iuout,printfile)

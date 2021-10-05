@@ -13,14 +13,6 @@ C warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
 C PURPOSE. See the GNU General Public License for more
 C details.
 
-C You should have received a copy of the GNU General Public
-C License along with ESP-r. If not, write to the Free
-C Software Foundation, Inc., 59 Temple Place, Suite 330,
-C Boston, MA 02111-1307 USA.wing subroutines which are used
-C by a number of ESP-r modules (a different version of ctlexp
-C is used by esrumfs and esrures but those viariants may be
-C moved into this file at some point in the future.
-
 C   CTLEXP: Control feedback to export wireframe or text feedback area.
 C   CTLEXPMFS: mfs module varaitn for export of text/graphic feedback area.
 C   CTLDUMPT: Control text dump (ctlexp T mode equiv without dialog).
@@ -38,17 +30,17 @@ C ixloc signals whether path is local or remote and is passed back
 C   to common block for retention until the second call to ctlexp
 
       subroutine ctlexp(xfile,ixopen,ixloc,ixunit,tg,msg,IER)
+#include "help.h"
 
       integer lnblnk  ! function definition
 
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
-      common/pophelp/h(60)
       common/rpath/path
 
 C << need to find equivalent to autook common block variable >>
 C << outs probably needs to be longer if xfile is longer >>
       character*(*) msg,xfile
-      character H*72,path*72,outs*124,outs248*248,tg*1,ixpfile*144
+      character path*72,outs*124,outs248*248,tg*1,ixpfile*144
       character longtfile*144,longtfiledos*144
       logical concat,remote,unixok
       integer lenxfile
@@ -64,6 +56,7 @@ C Initial name for export parameter file is xfile+par.
 
 C Check if Unix-based or DOS based.
       call isunix(unixok)
+      helpinsub='ctlexp'  ! set for subroutine
 
 C Each call is a toggle. If open then close text or graphics command
 C file. If graphics, ask if file should be further converted.
@@ -112,13 +105,12 @@ C and change any / to \.
            write(outs,'(A,A)') 'The current path is: ',path
            call edisp(iuout,' ')
            call edisp(iuout,outs)
-           h(1)='By default, the export file will be placed in'
-           h(2)='the model folder. Otherwise nominate a folder and'
-           h(3)='file name for the export file.'
+           helptopic='export_location'
+           call gethelptext(helpinsub,helptopic,nbhelp)
            write(outs,'(A,A)') 'The model is in folder ',path
            CALL EASKABC(outs,'Place export file in:',
      &       'model folder','user-defined folder','cancel',
-     &       ixloc,3)
+     &       ixloc,nbhelp)
            if(ixloc.eq.3)then
              ixopen=0
              return    ! does ixopen need to be reset?
@@ -126,8 +118,8 @@ C and change any / to \.
         else
           ixloc = 2   ! ixloc needs to be non-zero for subsequent code to work.
         endif
-        h(1)='This file is a text file, which can be used in'
-        h(2)='reports or sent to third party tools. '
+        helptopic='export_file_type'
+        call gethelptext(helpinsub,helptopic,nbhelp)
         iglib = igraphiclib()  ! find out if X11 or GTK or text support only.
         llt=lnblnk(xfile)
         if(iglib.eq.1.or.iglib.eq.3)then
@@ -144,7 +136,7 @@ C and change any / to \.
           ISTRW=96
         endif
         CALL EASKF(xfile,' ','Export file name?',
-     &    ISTRW,'export.txt','binary events db',IER,2)
+     &    ISTRW,'export.txt','binary events db',IER,nbhelp)
 
 C If user requested cancel then return after resetting ixopen to zero.
         if(ier.eq.-3)then
@@ -225,16 +217,16 @@ C msg    - prepended to dialog as export happens.
 C ixopen - a toggle reset each time ctlexp is called to signal open or close file.
 C ixunit - file unit number for the export file.
       subroutine ctlexpmfs(xfile,ixopen,ixunit,ixpunit,tg,msg,IER)
+#include "help.h"
 
       integer lnblnk  ! function definition
 
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
-      common/pophelp/h(60)
       common/rcmd/LCMDFL
       common/rpath/path
 
       character*(*) msg,xfile
-      character H*72,path*72,outs*124,outs248*248,tg*1
+      character path*72,outs*124,outs248*248,tg*1
       character ixpfile*72,ttext*42,LCMDFL*144
       character longtfile*144,longtfiledos*144
       logical concat,remote,unixok
@@ -248,6 +240,7 @@ C Initial name for export parameter file is ixfile+par.
       else
         ixpfile = 'data.grt.par'
       endif
+      helpinsub='ctlexp'  ! set for subroutine
 
 C Each call is a toggle.
       ixopen=ixopen+1
@@ -283,18 +276,17 @@ C Each call is a toggle.
         if(remote)then
           write(outs,'(A,A)') 'The current path is: ',path
           call edisp(iuout,outs)
-          h(1)='If using path then the export file will be placed in'
-          h(2)='the model folder. Otherwise nominate a folder and'
-          h(3)='file name for the export file.'
+          helptopic='export_location'
+          call gethelptext(helpinsub,helptopic,nbhelp)
           CALL EASKABC(outs,'Locate export file:',
-     &      'in model folder','another folder','cancel',iw,3)
+     &      'in model folder','another folder','cancel',iw,nbhelp)
           if(iw.eq.3)then
             ixopen=0
             return    ! does ixopen need to be reset?
           endif
         endif
-        h(1)='This file is a text file, which can be used in'
-        h(2)='reports or sent to third party tools.'
+        helptopic='export_file_type'
+        call gethelptext(helpinsub,helptopic,nbhelp)
         iglib = igraphiclib()  ! find out if X11 or GTK or text support only.
         llt=lnblnk(xfile)
         if(iglib.eq.1.or.iglib.eq.3)then
@@ -311,7 +303,7 @@ C Each call is a toggle.
           ISTRW=96
         endif
         CALL EASKF(xfile,' ','Export file name?',
-     &    ISTRW,'export.txt','binary events db',IER,2)
+     &    ISTRW,'export.txt','binary events db',IER,nbhelp)
 
 C If user requested a cancel then return after resetting ixopen.
         if(ier.eq.-3)then
@@ -401,10 +393,11 @@ C If tabular info then create the headder to the xvgr parameter file.
           write(ixpunit,'(a)') '  view ymin 0.15'
           write(ixpunit,'(a)') '  view ymax 0.85'
 
-          h(1)='3rd party graphing usually has a main title...'
+          helptopic='export_graph_title'
+          call gethelptext(helpinsub,helptopic,nbhelp)
           ttext = 'Simulation Results'
           call easks(ttext,'Title for 3rd party graph: ',' ',42,
-     &      'Simulation Results ','3rd party title',IER,1)
+     &      'Simulation Results ','3rd party title',IER,nbhelp)
           write(ixpunit,'(3a)') 'title "',
      &      ttext(1:lnblnk(ttext)),'"'
           write(ixpunit,'(a)') 'title font 4'

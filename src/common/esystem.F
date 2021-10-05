@@ -32,7 +32,7 @@ C IER=3 signals model is too complex for current executables.
 
       SUBROUTINE ERSYS(FILE,IUC,IUF,MODE,ITRC,IER)
       IMPLICIT NONE
-      integer  iUC, iUF, iTRC, iER
+      integer  IUC, IUF, ITRC, IER
       CHARACTER*72 FILE
       CHARACTER*4 MODE
       logical bSilent
@@ -59,8 +59,7 @@ C Common block variables are:
 C INDCFG - is the configuration file index where: 0= registration, 
 C          1= building only, 2= plant only, 3= building and plant.
 C ICFGV  - version of the model configuration file. Version 4 was
-C          introduced in May 2008 to explicitly hold data e.g. IPV
-C          data previously held in separate files.
+C          introduced in May 2008.
 
 C Data from site.h:
 C siteexposureindex - site exposure index: 1 = city centre, normal case;
@@ -131,7 +130,6 @@ C IER=3 signals model is overly complex for current executables.
 #include "site.h"
 #include "plant.h"
 #include "power.h"
-#include "FMI.h"
 #include "geometry.h"
 #include "esprdbfile.h"
 #include "net_flow.h"
@@ -153,6 +151,7 @@ C IER=3 signals model is overly complex for current executables.
 #include "schedule.h"
 #include "UserSimulationToggles.h"
 #include "qrun.h"      
+#include "help.h"
 
       INTEGER, PARAMETER :: MSTMC=20
 
@@ -168,7 +167,6 @@ C IER=3 signals model is overly complex for current executables.
 
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
       INTEGER :: mmod,limit,limtty
-      COMMON/POPHELP/H(60)
       COMMON/FILEP/IFIL  ! base file unit number
       INTEGER :: ifil
       COMMON/ER1/IER1
@@ -253,10 +251,11 @@ C         'FZON' is related to zone composition
 C         'FNET' is related to network composition
 C         'FCTL' is related to control composition
 C         'FDFS' is related to CFD domains
+C         'FPLN' is related to plant networks
 C         'FPER' is related to predicted performance
 C         '****' is a general image displayed at startup
       character imgfmt*4  ! GIF XBMP TIF JPG
-      character imgfoc*4  ! FZON FNET FCTL FDFS
+      character imgfoc*4  ! FZON FNET FCTL FDFS FPLN
       character limgfil*72  ! file name (extend to 144 char)
       character imgdoc*248  ! text associated with image
       common/imagf/imgfmt(MIMG),imgfoc(MIMG),limgfil(MIMG),imgdoc(MIMG)
@@ -507,8 +506,8 @@ C  zSWA  - shortwave absorption (W).
 
       INTEGER IRNCMD,IRNCMF
       INTEGER ICREPORT,IDOL,IDAYNUM,IMTHNUM,IDWKNUM,IDTYY
-      INTEGER iCount, jCount      ! counters
-      INTEGER iTemp_day_beg, iTemp_day_end, iTemp_start, iTemp_end   ! temporary variables
+      INTEGER iCount                                   ! counters
+      INTEGER iTemp_day_beg, iTemp_day_end             ! temporary variables
       INTEGER iStart_beg, iStart_end                   ! temporary variables
       INTEGER iPrevious_day_end, iPrevious_season      ! temporary variables
       LOGICAL bDayFound, bSpanNewYear
@@ -516,17 +515,11 @@ C  zSWA  - shortwave absorption (W).
       integer iexcludediff_flag
       common/excludediff/iexcludediff_flag
 
-C Simulation parameters.
-      COMMON/SPFL/spfileok,perok,cfdperok,tstepok,saveok,autook,exitok,
-     &  startupok
-      LOGICAL spfileok,perok,cfdperok,tstepok,saveok,autook,exitok,
-     &  startupok
-
       LOGICAL dll,browse,context
       LOGICAL XST,OK,DOK,IGDCVS,IGDCNC,IGDNDC,IGDTAQ,cnnok
       LOGICAL OK3DCVS,OK3DCNC,OK3DNDC,OK3DTAQ
       logical foundmould,foundsbem
-      CHARACTER loutstr*248,OUTSTR*124,OUTS*124,text*124,t117*117,h*72
+      CHARACTER loutstr*248,OUTSTR*124,OUTS*124,text*124,t117*117
       CHARACTER LCFD*72
       CHARACTER*72 LAPROB,LPNF,BPF
       character lworking*144
@@ -555,7 +548,6 @@ C Simulation parameters.
       character pstring*40 ! for season days and months
       integer INDU    ! to detect old zone utility files
       logical newgeo  ! to use for testing if new/old geometry file
-      integer lndbp   ! for length of standard database path
       logical unixok  ! to check for database path file separators
       logical havetitile ! set true if modeltitle scanned
       integer itru    ! unit for output
@@ -563,11 +555,10 @@ C Simulation parameters.
       integer loop    ! for looping     
       INTEGER :: id1,id2,id3,id4,icon,icomp,icc,i,ia,ibrowse,ierv
       INTEGER :: im1,im2,im3,im4,iier,irec,ipos,ios,inod,inisz,igrdp
-      INTEGER :: irva,is,iset_start,k,kv,iwarn,j,iv,iva,iunit,iunit1,lc
-      INTEGER :: itwpr,itrunc,iss,isva,istat,n,m,items,lastcc
+      INTEGER :: irva,is,iset_start,k,kv,j,iv,iva,iunit,iunit1,lc
+      INTEGER :: itwpr,itrunc,iss,isva,istat,n,m,items
       INTEGER :: lcfgl,lcfgr,louts,ncn,nd
       real    :: vp1,vp2,vp3,vp4,vp5  ! for ies control points
-      integer itmp
 
 #ifdef OSI
       integer iincomp,iincon    ! to pass number of zones connections to c code
@@ -594,6 +585,7 @@ C Function references used to parse *sim-toggle tags.
       real fCtoR_err 
       integer iCtoI_err
       logical bStringsMatch
+      integer iucbk
      
       newgeo=.false.  ! assume older format geometry.
 
@@ -656,7 +648,7 @@ C Variable will be reset if 'iflgevapC(icomp)' included in .cfg.
         iflgevapC(icomp) = 0
  88   continue
 
-C Initialise flag for quick run simulation (default is 'no')   . 
+C Initialise flag for quick run simulation (default is 'no'). 
       iQuick_run = 0 
  
 C Initialise NCM data read flags.
@@ -707,9 +699,10 @@ C Clear zone related files and flags.
         ipausecas(i)=0  ! unmark pause to re-scan zone operation file
    43 continue
 
-C Assume older version of configuration file.
-      icfgv=2
-
+C Assume standard version of configuration file and that user has
+C set no preference for upgrading.
+      icfgv=4
+      usecurcfg=0
       nuco=0
 
 C Initialise the indices.
@@ -731,7 +724,7 @@ C to support compatibility with legacy assumption of 3 day types
 C set nbdaytype = 3 but instantiate the calendar variables for
 C weekday/saturday/sunday/holiday and calendar day type tags. Newer
 C cfg files will have a *list section and thus update nbdaytype.
-C The initial day types cannot (??) be deleted and more day types if 
+C The initial day types cannot (?) be deleted and more day types if 
 C defined will be stored in CALENTAG(5) onwards.
       IF(NBDAYTYPE.LT.3)THEN
         nbdaytype=3
@@ -749,6 +742,7 @@ C Open the configuration file, return if not found otherwise set
 C currentfile to the configuration file.
       IER=0
       INDCFG=1
+      IUCBK=IUC
       CALL EFOPSEQ(IUC,FILE,1,IER)
       IF(IER.LT.0)THEN
         if(dll)then
@@ -793,115 +787,117 @@ C Read '*CONFIGURATION' and flag if a new format file otherwise
 C treat as an old format.  If '*CONFIGURATION3.0' read zone info
 C via tags. If '* CONFIGURATION4.' then expect to find IPV data
 C embedded in the configuration file.
-      CALL STRIPC(IUC,OUTSTR,99,ND,1,'config index',IER)
+      CALL LSTRIPC(IUC,LOUTSTR,99,ND,1,'config index',IER)
       IF(IER.NE.0)goto 1
-      if(OUTSTR(1:17).eq.'* CONFIGURATION3.'.or.
-     &   OUTSTR(1:17).eq.'* CONFIGURATION4.')then
-        if(OUTSTR(1:17).eq.'* CONFIGURATION3.')icfgv=3
-        if(OUTSTR(1:17).eq.'* CONFIGURATION4.')icfgv=4
-  34    CALL STRIPC(IUC,OUTSTR,99,ND,1,'date stamp',IER)
+      if(LOUTSTR(1:17).eq.'* CONFIGURATION3.'.or.
+     &   LOUTSTR(1:17).eq.'* CONFIGURATION4.')then
+        if(LOUTSTR(1:17).eq.'* CONFIGURATION3.')icfgv=3
+        if(LOUTSTR(1:17).eq.'* CONFIGURATION4.')icfgv=4
+  34    CALL LSTRIPC(IUC,LOUTSTR,99,ND,1,'date stamp',IER)
         IF(IER.NE.0)goto 1
         K=0
-        CALL EGETW(OUTSTR,K,WORD,'W','header tags',IFLAG)
+        CALL EGETW(LOUTSTR,K,WORD,'W','header tags',IFLAG)
         IF(IFLAG.NE.0)goto 1
         if(WORD(1:5).eq.'*Date'.or.WORD(1:5).eq.'*date')then
-          CALL EGETRM(OUTSTR,K,ectime,'W','date stamp',IER)  ! missing date stamp not fatal
+          CALL EGETRM(LOUTSTR,K,ectime,'W','date stamp',IER)  ! missing date stamp not fatal
           goto 34
         elseif(WORD(1:5).eq.'*root')then
-          CALL EGETRM(OUTSTR,K,cfgroot,'W','root name',IER)
+          CALL EGETRM(LOUTSTR,K,cfgroot,'W','root name',IER)
           IF(IER.NE.0)goto 1
           goto 34
         elseif(WORD(1:7).eq.'*zonpth')then
-          CALL EGETRM(OUTSTR,K,zonepth,'W','path to zones',IER)
+          CALL EGETRM(LOUTSTR,K,zonepth,'W','path to zones',IER)
           IF(IER.NE.0)goto 1
           goto 34
         elseif(WORD(1:7).eq.'*netpth')then
-          CALL EGETRM(OUTSTR,K,netpth,'W','path to nets',IER)
+          CALL EGETRM(LOUTSTR,K,netpth,'W','path to nets',IER)
           IF(IER.NE.0)goto 1
           goto 34
         elseif(WORD(1:7).eq.'*ctlpth')then
-          CALL EGETRM(OUTSTR,K,ctlpth,'W','path to ctl',IER)
+          CALL EGETRM(LOUTSTR,K,ctlpth,'W','path to ctl',IER)
           IF(IER.NE.0)goto 1
           goto 34
         elseif(WORD(1:7).eq.'*aimpth')then
-          CALL EGETRM(OUTSTR,K,aimpth,'W','path to aim2',IER)
+          goto 34          ! Depricated.
+        elseif(WORD(1:7).eq.'*mscpth')then
+          CALL EGETRM(LOUTSTR,K,mscpth,'W','path to miscel. files',IER)
           IF(IER.NE.0)goto 1
           goto 34
         elseif(WORD(1:7).eq.'*imgpth')then
-          CALL EGETRM(OUTSTR,K,imgpth,'W','path to img',IER)
+          CALL EGETRM(LOUTSTR,K,imgpth,'W','path to img',IER)
           IF(IER.NE.0)goto 1
           goto 34
         elseif(WORD(1:7).eq.'*tmppth')then  ! do not bother with this folder name
           goto 34
         elseif(WORD(1:7).eq.'*docpth')then
-          CALL EGETRM(OUTSTR,K,docpth,'W','path to documents',IER)
+          CALL EGETRM(LOUTSTR,K,docpth,'W','path to documents',IER)
           IF(IER.NE.0)goto 1
           goto 34
         elseif(WORD(1:7).eq.'*radpth')then
-          CALL EGETRM(OUTSTR,K,radpth,'W','path to radnce',IER)
+          CALL EGETRM(LOUTSTR,K,radpth,'W','path to radnce',IER)
           IF(IER.NE.0)goto 1
           goto 34
         elseif(WORD(1:7).eq.'*dbspth')then
-          CALL EGETRM(OUTSTR,K,dbspth,'W','path to loc databases',IER)
+          CALL EGETRM(LOUTSTR,K,dbspth,'W','path to loc databases',IER)
           IF(IER.NE.0)goto 1
           goto 34
         elseif(WORD(1:8).eq.'*hvacpth')then
-          CALL EGETRM(OUTSTR,K,hvacpth,'W','path to hvac',IER)
+          goto 34          ! Depricated.
+        elseif(WORD(1:8).eq.'*tmppth')then
+          CALL EGETRM(LOUTSTR,K,tmppth,'W','path to temp files',IER)
           IF(IER.NE.0)goto 1
           goto 34
         elseif(WORD(1:7).eq.'*bsmpth')then
-          CALL EGETRM(OUTSTR,K,bsmpth,'W','path to BASESIMP',IER)
-          IF(IER.NE.0)goto 1
-          goto 34
+          goto 34          ! Depricated (these are zone files).
         elseif(WORD(1:8).eq.'*radcore')then
-          CALL EGETWI(OUTSTR,K,radcores,1,4,'W','radiance cores',IER)
+          CALL EGETWI(LOUTSTR,K,radcores,1,4,'W','radiance cores',IER)
           IF(IER.NE.0)goto 1
           goto 34
         elseif(WORD(1:4).eq.'*ies')then
 
 C IES data to pass to radiance. Read until *endies. Currently 10 entities
 C are supported.
-          CALL EGETWI(OUTSTR,K,nbofies,1,10,'F','IES entries',IER)
+          CALL EGETWI(LOUTSTR,K,nbofies,1,10,'F','IES entries',IER)
           IF(IER.NE.0)goto 1
           loop=0
-  335     CALL STRIPC(IUC,OUTSTR,99,ND,1,'IES tag data',IER)
+  335     CALL LSTRIPC(IUC,LOUTSTR,99,ND,1,'IES tag data',IER)
           K=0
-          CALL EGETW(OUTSTR,K,WORD,'W','IES header tags',IFLAG)
+          CALL EGETW(LOUTSTR,K,WORD,'W','IES header tags',IFLAG)
           if(WORD(1:8).eq.'*nameies')then
             loop=loop+1    ! increment loop
-            CALL EGETW(OUTSTR,K,iesname(loop),'W','IES name',IFLAG)
-            CALL EGETRM(OUTSTR,K,iesmenu(loop),'W','IES menu',IER)
+            CALL EGETW(LOUTSTR,K,iesname(loop),'W','IES name',IFLAG)
+            CALL EGETRM(LOUTSTR,K,iesmenu(loop),'W','IES menu',IER)
           elseif(WORD(1:7).eq.'*iesraw')then
-            CALL EGETRM(OUTSTR,K,iesfile(loop),'W','IES file',IER)
+            CALL EGETRM(LOUTSTR,K,iesfile(loop),'W','IES file',IER)
           elseif(WORD(1:8).eq.'*fixture')then
-            CALL EGETWR(OUTSTR,K,ieslen(loop),0.,0.,'-','IESlen',IER)
-            CALL EGETWR(OUTSTR,K,ieswid(loop),0.,0.,'-','IESwid',IER)
-            CALL EGETWR(OUTSTR,K,iesht(loop),0.,0.,'-','IESht',IER)
-            CALL EGETW(OUTSTR,K,iesalong(loop),'W','along axs',IFLAG)
+            CALL EGETWR(LOUTSTR,K,ieslen(loop),0.,0.,'-','IESlen',IER)
+            CALL EGETWR(LOUTSTR,K,ieswid(loop),0.,0.,'-','IESwid',IER)
+            CALL EGETWR(LOUTSTR,K,iesht(loop),0.,0.,'-','IESht',IER)
+            CALL EGETW(LOUTSTR,K,iesalong(loop),'W','along axs',IFLAG)
           elseif(WORD(1:7).eq.'*ctlies')then
-            CALL EGETWI(OUTSTR,K,iespercents(loop),1,5,'F',
+            CALL EGETWI(LOUTSTR,K,iespercents(loop),1,5,'F',
      &        'nb ies pc',IER)
             vp1=0.0; vp2=0.0; vp3=0.0; vp4=0.0; vp5=0.0
             if(iespercents(loop).eq.1)then
-              CALL EGETWR(OUTSTR,K,vp1,0.,1.,'-','IES step 1',IER)
+              CALL EGETWR(LOUTSTR,K,vp1,0.,1.,'-','IES step 1',IER)
             elseif(iespercents(loop).eq.2)then
-              CALL EGETWR(OUTSTR,K,vp1,0.,1.,'-','IES step 1',IER)
-              CALL EGETWR(OUTSTR,K,vp2,0.,1.,'-','IES step 2',IER)
+              CALL EGETWR(LOUTSTR,K,vp1,0.,1.,'-','IES step 1',IER)
+              CALL EGETWR(LOUTSTR,K,vp2,0.,1.,'-','IES step 2',IER)
             elseif(iespercents(loop).eq.3)then
-              CALL EGETWR(OUTSTR,K,vp1,0.,1.,'-','IES step 1',IER)
-              CALL EGETWR(OUTSTR,K,vp2,0.,1.,'-','IES step 2',IER)
-              CALL EGETWR(OUTSTR,K,vp3,0.,1.,'-','IES step 3',IER)
+              CALL EGETWR(LOUTSTR,K,vp1,0.,1.,'-','IES step 1',IER)
+              CALL EGETWR(LOUTSTR,K,vp2,0.,1.,'-','IES step 2',IER)
+              CALL EGETWR(LOUTSTR,K,vp3,0.,1.,'-','IES step 3',IER)
             elseif(iespercents(loop).eq.4)then
-              CALL EGETWR(OUTSTR,K,vp1,0.,1.,'-','IES step 1',IER)
-              CALL EGETWR(OUTSTR,K,vp2,0.,1.,'-','IES step 2',IER)
-              CALL EGETWR(OUTSTR,K,vp3,0.,1.,'-','IES step 3',IER)
-              CALL EGETWR(OUTSTR,K,vp4,0.,1.,'-','IES step 4',IER)
+              CALL EGETWR(LOUTSTR,K,vp1,0.,1.,'-','IES step 1',IER)
+              CALL EGETWR(LOUTSTR,K,vp2,0.,1.,'-','IES step 2',IER)
+              CALL EGETWR(LOUTSTR,K,vp3,0.,1.,'-','IES step 3',IER)
+              CALL EGETWR(LOUTSTR,K,vp4,0.,1.,'-','IES step 4',IER)
             elseif(iespercents(loop).eq.5)then
-              CALL EGETWR(OUTSTR,K,vp1,0.,1.,'-','IES step 1',IER)
-              CALL EGETWR(OUTSTR,K,vp2,0.,1.,'-','IES step 2',IER)
-              CALL EGETWR(OUTSTR,K,vp3,0.,1.,'-','IES step 3',IER)
-              CALL EGETWR(OUTSTR,K,vp4,0.,1.,'-','IES step 4',IER)
-              CALL EGETWR(OUTSTR,K,vp5,0.,1.,'-','IES step 5',IER)
+              CALL EGETWR(LOUTSTR,K,vp1,0.,1.,'-','IES step 1',IER)
+              CALL EGETWR(LOUTSTR,K,vp2,0.,1.,'-','IES step 2',IER)
+              CALL EGETWR(LOUTSTR,K,vp3,0.,1.,'-','IES step 3',IER)
+              CALL EGETWR(LOUTSTR,K,vp4,0.,1.,'-','IES step 4',IER)
+              CALL EGETWR(LOUTSTR,K,vp5,0.,1.,'-','IES step 5',IER)
             endif
             iessteps(loop,1)=vp1; iessteps(loop,2)=vp2
             iessteps(loop,3)=vp3; iessteps(loop,4)=vp4
@@ -911,19 +907,9 @@ C are supported.
           endif
           goto 335    ! read more ies data lines
         elseif(WORD(1:5).eq.'*indx')then
-          CALL EGETWI(OUTSTR,K,INDCFG,0,3,'F','config index',IER)
+          CALL EGETWI(LOUTSTR,K,INDCFG,0,3,'F','config index',IER)
           IF(IER.NE.0)goto 1
         endif
-      elseif(OUTSTR(1:7).eq.'* CONFI')then
-        icfgv=2  ! if we got here then it was not v3 or v4
-        CALL STRIPC(IUC,OUTSTR,99,ND,1,'config index',IER)
-        IF(ND.EQ.1)THEN
-          K=0
-          CALL EGETWI(OUTSTR,K,INDCFG,0,3,'F','config index',IER)
-          IF(IER.NE.0)GOTO 1
-        ELSE
-          CALL USRMSG(' configuration index mismatch',OUTSTR,'W')
-        ENDIF
       else
         call usrmsg('Does not appear to be a config file: ',FILE,'W')
         ier=1
@@ -952,61 +938,77 @@ C Reporting.
 
 C Read all data from the system configuration file.
 C Latitude & longitude difference.
-      CALL STRIPC(IUC,OUTSTR,0,ND,1,'latitude & long dif',IER)
+      CALL LSTRIPC(IUC,LOUTSTR,0,ND,1,'latitude & long dif',IER)
       IF(IER.NE.0)goto 1
-      K=0
-      CALL EGETWR(OUTSTR,K,sitelat,-90.,90.,'W','Latitude',IER)
-      SLAT=sitelat
-      CALL EGETWR(OUTSTR,K,sitelongdif,-15.,15.,'W',
-     &  'Longitude dif from time meridian',IER)
-      SLON=sitelongdif
+      if(LOUTSTR(1:8).eq.'*latlong')then
+        K=9
+        CALL EGETWR(LOUTSTR,K,sitelat,-90.,90.,'W','Latitude',IER)
+        SLAT=sitelat
+        CALL EGETWR(LOUTSTR,K,sitelongdif,-15.,15.,'W',
+     &    'Longitude dif from time meridian',IER)
+        SLON=sitelongdif
+      else
+        K=0
+        CALL EGETWR(LOUTSTR,K,sitelat,-90.,90.,'W','Latitude',IER)
+        SLAT=sitelat
+        CALL EGETWR(LOUTSTR,K,sitelongdif,-15.,15.,'W',
+     &    'Longitude dif from time meridian',IER)
+        SLON=sitelongdif
+      endif
       IF(IER.NE.0) GOTO 1
 
 C Site exposure and ground reflectance.
-      CALL STRIPC(IUC,OUTSTR,99,ND,1,'ground reflectance',IER)
+      CALL LSTRIPC(IUC,LOUTSTR,99,ND,1,'ground reflectance',IER)
       IF(IER.NE.0)goto 1
-      K=0
-      CALL EGETWI(OUTSTR,K,siteexposureindex,1,8,'W',
-     &  'Site exposure index',IER)
-      CALL EGETWR(OUTSTR,K,groundrefl,0.,1.,'W','Ground reflect',IER)
+      if(LOUTSTR(1:5).eq.'*site')then
+        K=6
+        CALL EGETWI(LOUTSTR,K,siteexposureindex,1,8,'W',
+     &    'Site exposure index',IER)
+        CALL EGETWR(LOUTSTR,K,groundrefl,0.,1.,'W','Ground reflect',IER)
+      else
+        K=0
+        CALL EGETWI(LOUTSTR,K,siteexposureindex,1,8,'W',
+     &    'Site exposure index',IER)
+        CALL EGETWR(LOUTSTR,K,groundrefl,0.,1.,'W','Ground reflect',IER)
+      endif
       IF(IER.NE.0) GOTO 1
 
 C Index of exposure and related data.
       IF(siteexposureindex.EQ.8) THEN
-        CALL STRIPC(IUC,OUTSTR,3,ND,1,'user defined site exposure',IER)
+        CALL LSTRIPC(IUC,LOUTSTR,3,ND,1,'user defined site exposure',
+     &    IER)
         IF(IER.NE.0)goto 1
         K=0
-        CALL EGETWR(OUTSTR,K,skyview,0.,1.,'W','Sky view',IER)
-        CALL EGETWR(OUTSTR,K,groundview,0.,1.,'W','Ground view',IER)
-        CALL EGETWR(OUTSTR,K,buildingview,0.,1.,'W','Building vew',IER)
+        CALL EGETWR(LOUTSTR,K,skyview,0.,1.,'W','Sky view',IER)
+        CALL EGETWR(LOUTSTR,K,groundview,0.,1.,'W','Ground view',IER)
+        CALL EGETWR(LOUTSTR,K,buildingview,0.,1.,'W','Building vew',IER)
         IF(IER.NE.0) GOTO 1
 
 C Range checking.
         IF(ABS(skyview+groundview+buildingview-1.).GT..001) 
      &    CALL USRMSG(
-     &    ' Total exposure out of range in',OUTSTR,'W')
+     &    ' Total exposure out of range in',LOUTSTR,'W')
       ENDIF
 
 C Reporting.
       IF(ITRC.GE.1.AND.ITRC.LT.4)CALL SITEINFO(itru)
 
-C If initial configuration format (without database sections) then
-C skip to building/plant section.
-      if(icfgv.eq.1) goto 45
-      if(icfgv.gt.1)then
+      if(icfgv.ge.3)then
 
 C If '* CONFIGURATION' found then read in the databases.
-        CALL STRIPC(IUC,OUTSTR,0,ND,1,'* DATABASES',IER)
+        CALL LSTRIPC(IUC,LOUTSTR,0,ND,1,'* DATABASES',IER)
         if(IER.NE.0)return
-        if(OUTSTR(1:7).ne.'* DATAB')then
+        if(LOUTSTR(1:7).eq.'* DATAB'.or.LOUTSTR(1:6).eq.'*datab')then
+          continue
+        else
           call edisp(itru,' Did not find `* DATABASES` ')
           ier=1
           return
         endif
       endif
 
-C Read common data until '* PROJ LOG' found. If tag start with *std
-C then set the whichdbpath variable to signal that it is in
+C Read common data until '* PROJ LOG' or '*notes' found. If tag start with
+C *std then set the whichdbpath variable to signal that it is in
 C the standard location. If tag does not start with *std then
 C check the intial portion of the file name to see if it is a
 C local or absolute path and, if absolute, whether it matches the
@@ -1014,7 +1016,6 @@ C standard path.
 
 C Since some file names could be long strings, LSTRIPC and LOUTSTR are used.
   44  continue
-      lndbp=lnblnk(standarddbpath)
       call isunix(unixok)
       CALL LSTRIPC(IUC,LOUTSTR,99,ND,1,'db names',IER)
       K=0
@@ -1310,10 +1311,10 @@ C Reporting.
         ENDIF
 
 C Read the file header and check for second-line tag. 
-        CALL STRIPC(IUNIT,OUTSTR,0,ITEMS,1,' ',IER)
-        CALL STRIPC(IUNIT,OUTSTR,0,ITEMS,1,' ',IER)
+        CALL LSTRIPC(IUNIT,LOUTSTR,0,ITEMS,1,' ',IER)
+        CALL LSTRIPC(IUNIT,LOUTSTR,0,ITEMS,1,' ',IER)
         J=0
-        IF(OUTSTR(:9).NE.'SECTION_1'.OR.IER.NE.0)THEN
+        IF(LOUTSTR(:9).NE.'SECTION_1'.OR.IER.NE.0)THEN
           outs='Problem scanning contaminant file...aborting cfg scan'
           if(dll)then
             dllsubr='mzinpt'
@@ -1515,15 +1516,15 @@ C Flag for quick run method.
 
 C There is a calendar of day types defined read its name.
         CALL EGETRM(LOUTSTR,K,calename,'W','calendar name',IER)
- 443    CALL STRIPC(IUC,OUTSTR,0,ND,1,'calendar data',IER)
+ 443    CALL LSTRIPC(IUC,LOUTSTR,0,ND,1,'calendar data',IER)
         K=0
-        CALL EGETW(OUTSTR,K,WORD,'W','calendar tag',IFLAG)
+        CALL EGETW(LOUTSTR,K,WORD,'W','calendar tag',IFLAG)
         if(WORD(1:9).eq.'*calentag')then
           idty=idty+1
-          CALL EGETP(OUTSTR,K,calentag(idty),'W','cal tag',IER)
-          CALL EGETP(OUTSTR,K,calendayname(idty),'W',
+          CALL EGETP(LOUTSTR,K,calentag(idty),'W','cal tag',IER)
+          CALL EGETP(LOUTSTR,K,calendayname(idty),'W',
      &      'cal day name',IER)
-          CALL EGETWI(OUTSTR,K,nbcaldays(idty),0,365,'W',
+          CALL EGETWI(LOUTSTR,K,nbcaldays(idty),0,365,'W',
      &      'days assoc with day type',IER)
           goto 443
         elseif(WORD(1:5).eq.'*list')then
@@ -1531,7 +1532,7 @@ C There is a calendar of day types defined read its name.
 
 C For each day of the year, read from the 365 indicies into the
 C icalender array.
-          CALL EGETWI(OUTSTR,K,NBDAYTYPE,3,MDTY,'W','day types',IER)
+          CALL EGETWI(LOUTSTR,K,NBDAYTYPE,3,MDTY,'W','day types',IER)
           CALL EGETWIA(IUC,IRCC,365,0,MDTY,'W','calendar day types',IER)
           DO 118 KV=1,365
             icalender(KV)=IRCC(KV)
@@ -1551,19 +1552,19 @@ C icalender array.
 C Seasonal data (similar to climatelist file scan in rcdblist.F).
       elseif(WORD(1:8).eq.'*seasons')then
         ihaveseason=1   ! signal a local definition exists
- 444    CALL STRIPC(IUC,OUTSTR,0,ND,1,'seasons data',IER)
+ 444    CALL LSTRIPC(IUC,LOUTSTR,0,ND,1,'seasons data',IER)
         K=0
-        CALL EGETW(OUTSTR,K,WORD,'W','seasons tag',IFLAG)
+        CALL EGETW(LOUTSTR,K,WORD,'W','seasons tag',IFLAG)
         if(WORD(1:5).eq.'*aide')then
-          call egetrm(outstr,K,clmlaid,'W','brief description',IER)
+          call egetrm(loutstr,K,clmlaid,'W','brief description',IER)
           goto 444
         elseif(WORD(1:5).eq.'*name')then
-          call egetrm(outstr,K,clmlnam,'W','menu entry',IER)
+          call egetrm(loutstr,K,clmlnam,'W','menu entry',IER)
           goto 444
         elseif(WORD(1:9).eq.'*winter_t')then
 
 C Instantiate typper common block variables ia1wins,ia1winf,ia2wins,ia2winf.
-          call egetrm(outstr,K,pstring,'W','winter typ',IER)
+          call egetrm(loutstr,K,pstring,'W','winter typ',IER)
 
 C Start and end day of both winters.
           K=0
@@ -1583,7 +1584,7 @@ C Start and end day of both winters.
         elseif(WORD(1:9).eq.'*spring_t')then
 
 C Instantiate typper common block variables ia1sprs,ia1sprf,ia2sprs,ia2sprf .
-          call egetrm(outstr,K,pstring,'W','spring typ',IER)
+          call egetrm(loutstr,K,pstring,'W','spring typ',IER)
 
 C Start and end day and typical day of spring and autumn.
           K=0
@@ -1603,7 +1604,7 @@ C Start and end day and typical day of spring and autumn.
         elseif(WORD(1:9).eq.'*summer_t')then
 
 C Instantiate typper common block variables iasums & iasumf.
-          call egetrm(outstr,K,pstring,'W','summer typ',IER)
+          call egetrm(loutstr,K,pstring,'W','summer typ',IER)
           K=0
           CALL EGETWI(pstring,K,ID1,1,31,'F','day',IER)
           CALL EGETWI(pstring,K,IM1,1,12,'F','month',IER)
@@ -1616,7 +1617,7 @@ C Instantiate typper common block variables iasums & iasumf.
 
 C Read winter season - two periods, e.g. nov-dec & jan-feb
 C into common block typsea (is1wins,is1winf,is2wins,is2winf).
-          call egetrm(outstr,K,pstring,'W','winter sea',IER)
+          call egetrm(loutstr,K,pstring,'W','winter sea',IER)
           K=0
           CALL EGETWI(pstring,K,ID1,1,31,'F','day',IER)
           CALL EGETWI(pstring,K,IM1,1,12,'F','month',IER)
@@ -1635,7 +1636,7 @@ C into common block typsea (is1wins,is1winf,is2wins,is2winf).
 
 C Read transition season - two periods, e.g. mar-may & sep-oct
 C cinto ommon block typsea (is1sprs,is1sprf,is2sprs,is2sprf).
-          call egetrm(outstr,K,pstring,'W','trans sea',IER)
+          call egetrm(loutstr,K,pstring,'W','trans sea',IER)
           K=0
           CALL EGETWI(pstring,K,ID1,1,31,'F','day',IER)
           CALL EGETWI(pstring,K,IM1,1,12,'F','month',IER)
@@ -1653,7 +1654,7 @@ C cinto ommon block typsea (is1sprs,is1sprf,is2sprs,is2sprf).
         elseif(WORD(1:9).eq.'*summer_s')then
 
 C Read summer season, e.g. jun-aug into common block typsea (is1sums,is1sumf).
-          call egetrm(outstr,K,pstring,'W','summer sea',IER)
+          call egetrm(loutstr,K,pstring,'W','summer sea',IER)
           K=0
           CALL EGETWI(pstring,K,ID1,1,31,'F','day',IER)
           CALL EGETWI(pstring,K,IM1,1,12,'F','month',IER)
@@ -1666,8 +1667,8 @@ C Read summer season, e.g. jun-aug into common block typsea (is1sums,is1sumf).
 
 C Read and store comments into the HELP array for later display.
           nbclmlhelp=0
- 445      CALL STRIPC(IUC,OUTSTR,0,ND,0,'help line',IER)
-          if(OUTSTR(1:11).eq.'*season_end')then
+ 445      CALL LSTRIPC(IUC,LOUTSTR,0,ND,0,'help line',IER)
+          if(LOUTSTR(1:11).eq.'*season_end')then
             continue
           else
             goto 445
@@ -1838,7 +1839,7 @@ C SBEM project specific NCM description file.
         CALL EGETW(LOUTSTR,K,LASBEM,'W','SBEM file',IER)
         ISBEM=2  ! to signal we have NCM description
         IRNCMF=1
-      elseif(WORD(1:4).eq.'*not')then
+      elseif(WORD(1:5).eq.'*not ')then
 
 C Flag to check if UK NCM notional model
         INOTI=1
@@ -1950,7 +1951,7 @@ C Flag for solar processing.
         SimToggleError: if ( bError ) then        
           if ( .not. bSilent ) then 
             call usrmsg(
-     &           ' Could not parse simulation toggle ',outstr,'W')
+     &           ' Could not parse simulation toggle ',loutstr,'W')
           else 
             ier=1 
             return
@@ -2020,12 +2021,12 @@ C Read the name of the tdf file and check if it exists.
 C Try to open as ascii file first. If that fails try as a binary file.
           CALL EFOPSEQ(IUTDF,LTDFA,1,IER)
           if(ier.eq.0)then
-            CALL STRIPC(IUTDF,outstr,99,ND,1,'header',IER)
-            if(OUTSTR(1:9).eq.'ASCIITDF3')THEN
+            CALL LSTRIPC(IUTDF,loutstr,99,ND,1,'header',IER)
+            if(LOUTSTR(1:9).eq.'ASCIITDF3')THEN
               ITDFLG=3
-            elseif(OUTSTR(1:9).eq.'ASCIITDF2')THEN
+            elseif(LOUTSTR(1:9).eq.'ASCIITDF2')THEN
               ITDFLG=2
-            elseif(OUTSTR(1:12).eq.'TDFdatabase2')THEN
+            elseif(LOUTSTR(1:12).eq.'TDFdatabase2')THEN
               ITDFLG=1
             else
 
@@ -2088,27 +2089,27 @@ C Reset simulation flags if itdflg not zero.
 
 C Read references to TDF id's and then the related tasks and zones.
           M=0
-   59     CALL STRIPC(IUC,OUTSTR,99,ND,1,'instance names',IER)
+   59     CALL LSTRIPC(IUC,LOUTSTR,99,ND,1,'instance names',IER)
           IF(IER.NE.0)GOTO 58
-          IF(OUTSTR(1:9).EQ.'* end tdf')GOTO 58
+          IF(LOUTSTR(1:9).EQ.'* end tdf')GOTO 58
           M=M+1
           DBTAG(M)=' '
           DBTASK(M)=' '
           DBZN(M)=' '
           DBSN(M)=' '
           K=0
-          CALL EGETW(OUTSTR,K,WORD,'W','tdf instance name',IER)
+          CALL EGETW(LOUTSTR,K,WORD,'W','tdf instance name',IER)
           DBTAG(M)=WORD(1:12)
           if(ND.gt.1)then
-            CALL EGETW(OUTSTR,K,WORD,'W','related task/type',IER)
+            CALL EGETW(LOUTSTR,K,WORD,'W','related task/type',IER)
             DBTASK(M)=WORD(1:12)
           endif
           if(ND.gt.2)then
-            CALL EGETW(OUTSTR,K,WORD,'W','related zone',IER)
+            CALL EGETW(LOUTSTR,K,WORD,'W','related zone',IER)
             DBZN(M)=WORD(1:15)
           endif
           if(ND.gt.3)then
-            CALL EGETW(OUTSTR,K,WORD,'W','related surface',IER)
+            CALL EGETW(LOUTSTR,K,WORD,'W','related surface',IER)
             DBSN(M)=WORD(1:15)
           endif            
           WRITE(OUTS,'(A,I2,8A)') ' Tdf item:',M,':',DBTAG(M),
@@ -2149,14 +2150,14 @@ C to empty strings even if they are not defind in the input file.
           write(scfdres(iss), '(A)')  '  '
           
 C Count number of items to see if legacy set or extended set.
-          CALL STRIPC(IUC,OUTSTR,99,ND,1,'sim set',IER)
+          CALL LSTRIPC(IUC,LOUTSTR,99,ND,1,'sim set',IER)
 
-          if (OUTSTR(1:14) .eq. '*start_my_sets' ) then
+          if (LOUTSTR(1:14) .eq. '*start_my_sets' ) then
             bMY_sim_sps = .true.
-            CALL STRIPC(IUC,OUTSTR,99,ND,1,'sim set',IER)
-          elseif ( OUTSTR(1:12) .eq. '*end_my_sets') then
+            CALL LSTRIPC(IUC,LOUTSTR,99,ND,1,'sim set',IER)
+          elseif ( LOUTSTR(1:12) .eq. '*end_my_sets') then
             bMY_sim_sps = .false.
-            CALL STRIPC(IUC,OUTSTR,99,ND,1,'sim set',IER)
+            CALL LSTRIPC(IUC,LOUTSTR,99,ND,1,'sim set',IER)
           endif
           
 C Set flag indicating if set describes a multi-year period
@@ -2169,74 +2170,76 @@ C No extended sps data found so set to global values.
             ispnstepex(iss)=ispnstep
             issaveex(iss)=issave; isavghex(iss)=isavgh
           else
-            CALL EGETWI(OUTSTR,K,isstupex(iss),0,300,'W','startup',IER)
-            CALL EGETWI(OUTSTR,K,isbnstepex(iss),1,60,'W','bld ts',IER)
+            CALL EGETWI(LOUTSTR,K,isstupex(iss),0,300,'W','startup',IER)
+            CALL EGETWI(LOUTSTR,K,isbnstepex(iss),1,60,'W','bld ts',IER)
             if(INDCFG.eq.2.or.INDCFG.eq.3)then
-             CALL EGETWI(OUTSTR,K,ispnstepex(iss),1,100,'W','pl ts',IER)
+             CALL EGETWI(LOUTSTR,K,ispnstepex(iss),1,100,'W','pl ts',
+     &         IER)
             else
-             CALL EGETWI(OUTSTR,K,ispnstepex(iss),0,100,'W','pl ts',IER)
+             CALL EGETWI(LOUTSTR,K,ispnstepex(iss),0,100,'W','pl ts',
+     &         IER)
             endif
-            CALL EGETWI(OUTSTR,K,issaveex(iss),0,5,'W','save lv',IER)
-            CALL EGETWI(OUTSTR,K,isavghex(iss),0,1,'W','save hr',IER)
+            CALL EGETWI(LOUTSTR,K,issaveex(iss),0,5,'W','save lv',IER)
+            CALL EGETWI(LOUTSTR,K,isavghex(iss),0,1,'W','save hr',IER)
           endif
-          CALL EGETWI(OUTSTR,K,isstday(iss),1,31,'W','start day',IER)
-          CALL EGETWI(OUTSTR,K,isstmon(iss),1,12,'W','start month',IER)
+          CALL EGETWI(LOUTSTR,K,isstday(iss),1,31,'W','start day',IER)
+          CALL EGETWI(LOUTSTR,K,isstmon(iss),1,12,'W','start month',IER)
           if ( bMY_sim_sps )
-     &      CALL EGETWI(OUTSTR,K,iMY_Period_Start_years(iss),
+     &      CALL EGETWI(LOUTSTR,K,iMY_Period_Start_years(iss),
      &                 1900,2100,'W','start year',IER)
-          CALL EGETWI(OUTSTR,K,isfnday(iss),1,31,'W','end day',IER)
-          CALL EGETWI(OUTSTR,K,isfnmon(iss),1,12,'W','end month',IER)          
+          CALL EGETWI(LOUTSTR,K,isfnday(iss),1,31,'W','end day',IER)
+          CALL EGETWI(LOUTSTR,K,isfnmon(iss),1,12,'W','end month',IER)          
           if ( bMY_sim_sps )
-     &      CALL EGETWI(OUTSTR,K,iMY_Period_end_years(iss),
+     &      CALL EGETWI(LOUTSTR,K,iMY_Period_end_years(iss),
      &                 1900,2100,'W','end year',IER)
           
 C << Opportunity for improvement: error trap duplicate set names >>
-          CALL EGETRM(OUTSTR,K,spfdescr(iss),'W','set name',IER)
+          CALL EGETRM(LOUTSTR,K,spfdescr(iss),'W','set name',IER)
           iscfdactivate(iss)=-1
- 334      CALL STRIPC(IUC,OUTSTR,0,ND,1,'res names',IER)
+ 334      CALL LSTRIPC(IUC,LOUTSTR,0,ND,1,'res names',IER)
           K=0
-          CALL EGETW(OUTSTR,K,WORD,'W','res tags',IFLAG)
+          CALL EGETW(LOUTSTR,K,WORD,'W','res tags',IFLAG)
 
 C Might have a simulation preset without CFD information, so initialise
 C iscfdactivate to -1. This can then be used as a test for such cases.
           if(WORD(1:5).eq.'*sblr')then
-            CALL EGETRM(OUTSTR,K,sblres(iss),'W','zone res',IER)
+            CALL EGETRM(LOUTSTR,K,sblres(iss),'W','zone res',IER)
           elseif(WORD(1:5).eq.'*sflr')then
-            CALL EGETRM(OUTSTR,K,sflres(iss),'W','netw res',IER)
+            CALL EGETRM(LOUTSTR,K,sflres(iss),'W','netw res',IER)
           elseif(WORD(1:5).eq.'*splr')then
-            CALL EGETRM(OUTSTR,K,splres(iss),'W','plnt res',IER)
+            CALL EGETRM(LOUTSTR,K,splres(iss),'W','plnt res',IER)
           elseif(WORD(1:6).eq.'*smstr')then
-            CALL EGETRM(OUTSTR,K,smstres(iss),'W','moist res',IER)
+            CALL EGETRM(LOUTSTR,K,smstres(iss),'W','moist res',IER)
           elseif(WORD(1:5).eq.'*selr')then
-            CALL EGETRM(OUTSTR,K,selres(iss),'W','elect res',IER)
+            CALL EGETRM(LOUTSTR,K,selres(iss),'W','elect res',IER)
           elseif(WORD(1:6).eq.'*scfdr')then
 
 C Read cfd assessment attributes and then the cfd results file name.
 C isicfdys(iss),isicfdyf(iss),scftims(iss),scftimf(iss). If 
 C iscfdactivate(iss) is -1 then ignore CFD domain and do not
 C check for valid calendar periods or bother to scan file name.
-            CALL EGETWI(OUTSTR,K,iscfdactivate(iss),-1,1,'W',
+            CALL EGETWI(LOUTSTR,K,iscfdactivate(iss),-1,1,'W',
      &        'activate',IER)
             if(iscfdactivate(iss).eq.-1)then
-              CALL EGETWI(OUTSTR,K,isicfdys(iss),1,365,'-',
+              CALL EGETWI(LOUTSTR,K,isicfdys(iss),1,365,'-',
      &        'cfd start',IER)
-              CALL EGETWI(OUTSTR,K,isicfdyf(iss),1,365,'-',
+              CALL EGETWI(LOUTSTR,K,isicfdyf(iss),1,365,'-',
      &        'cfd finish',IER)
-              CALL EGETWR(OUTSTR,K,scftims(iss),1.0,25.0,'-',
+              CALL EGETWR(LOUTSTR,K,scftims(iss),1.0,25.0,'-',
      &        'cfd start time',IER)
-              CALL EGETWR(OUTSTR,K,scftimf(iss),1.0,25.0,'-',
+              CALL EGETWR(LOUTSTR,K,scftimf(iss),1.0,25.0,'-',
      &        'cfd finish time',IER)
               scfdres(iss)='UNKNOWN'
             else
-              CALL EGETWI(OUTSTR,K,isicfdys(iss),1,365,'W',
+              CALL EGETWI(LOUTSTR,K,isicfdys(iss),1,365,'W',
      &        'cfd start',IER)
-              CALL EGETWI(OUTSTR,K,isicfdyf(iss),1,365,'W',
+              CALL EGETWI(LOUTSTR,K,isicfdyf(iss),1,365,'W',
      &        'cfd finish',IER)
-              CALL EGETWR(OUTSTR,K,scftims(iss),1.0,25.0,'W',
+              CALL EGETWR(LOUTSTR,K,scftims(iss),1.0,25.0,'W',
      &        'cfd start time',IER)
-              CALL EGETWR(OUTSTR,K,scftimf(iss),1.0,25.0,'W',
+              CALL EGETWR(LOUTSTR,K,scftimf(iss),1.0,25.0,'W',
      &        'cfd finish time',IER)
-              CALL EGETRM(OUTSTR,K,scfdres(iss),'W','cfd res',IER)
+              CALL EGETRM(LOUTSTR,K,scfdres(iss),'W','cfd res',IER)
             endif
           elseif(WORD(1:5).eq.'*spvr')then
             continue
@@ -2313,29 +2316,18 @@ C Take into account startup period.
         CALL EGETRM(LOUTSTR,K,sipvres,'W','ipv report',IER)
         goto 44
       elseif(WORD(1:7).eq.'*annipv')then
-
-C Annual IPV report depreciated in favour of sipvres.
-        continue
-        goto 44
+        goto 44   ! Annual IPV report depreciated in favour of sipvres.
       elseif(WORD(1:7).eq.'*B-NAME')then
-
-C Next tokens relate to building address.
-        CALL EGETRM(LOUTSTR,K,pjname,'W','project name',IER)
-        goto 44
+        goto 44   ! Deprecated token.
       elseif(WORD(1:10).eq.'*B-ADDRESS')then
-        CALL EGETRM(LOUTSTR,K,baddress,'W','building address',IER)
-        goto 44
+        goto 44   ! Deprecated token.
       elseif(WORD(1:7).eq.'*B-CITY')then
         goto 44
       elseif(WORD(1:11).eq.'*B-POSTCODE')then
         goto 44
       elseif(WORD(1:7).eq.'*O-NAME')then
-
-C Next tokens relate to owner/client address.
-        CALL EGETRM(LOUTSTR,K,ownername,'W','owner name',IER)
         goto 44
       elseif(WORD(1:10).eq.'*O-ADDRESS')then
-        CALL EGETRM(LOUTSTR,K,owneraddr,'W','owner address',IER)
         goto 44
       elseif(WORD(1:7).eq.'*O-CITY')then
         goto 44
@@ -2346,12 +2338,10 @@ C Next tokens relate to owner/client address.
 
 C Next tokens relate to simulationist address.
       elseif(WORD(1:7).eq.'*C-NAME')then
-        CALL EGETRM(LOUTSTR,K,certifname,'W','simu staff name',IER)
-        goto 44
+         goto 44
       elseif(WORD(1:12).eq.'*C-TELEPHONE')then
         goto 44
       elseif(WORD(1:10).eq.'*C-ADDRESS')then
-        CALL EGETRM(LOUTSTR,K,certaddress,'W','simu staff address',IER)
         goto 44
       elseif(WORD(1:7).eq.'*C-CITY')then
         goto 44
@@ -2361,12 +2351,21 @@ C Next tokens relate to simulationist address.
       elseif(loutstr(1:10).eq.'* PROJ LOG')then
 
 C Project log file, read and then go on to fabric/plant description.
-        CALL STRIPC(IUC,LOUTSTR,0,ND,1,'project log file',IER)
+        CALL LSTRIPC(IUC,LOUTSTR,0,ND,1,'notes file',IER)
         write(lmodellog,'(a)') LOUTSTR(1:LNBLNK(LOUTSTR))
+        goto 45
+
+      elseif(loutstr(1:6).eq.'*notes')then
+
+C Project notes file, read and then go on to fabric/plant description.
+        CALL EGETRM(LOUTSTR,K,lmodellog,'W','notes file',IER)
         goto 45
       
       elseif ( .not. bSilent ) then
-        call usrmsg(' Unknown entry format... ',outstr,'W')
+
+C Ish has a file unit clash with help text scan so manually set
+C the h() arrays.
+        call usrmsg(' Unknown entry format... ',loutstr,'W')
         dok=.true.
         h(1)='An unknown tag or line was found in the configuration'
         h(2)='file. The file might be corrupt or for a different'
@@ -2374,7 +2373,9 @@ C Project log file, read and then go on to fabric/plant description.
         h(4)=' '
         h(5)='Depending on the error, it might be possible to read'
         h(6)='the rest of the file - exercise caution! '
-        CALL EASKOK(' ','Continue reading configuration file?',OK,6)
+        nbhelp=6
+        CALL EASKOK(' ','Continue reading configuration file?',OK,
+     &     nbhelp)
         if(.NOT.ok)then
           ier=1
           return
@@ -2384,6 +2385,8 @@ C Project log file, read and then go on to fabric/plant description.
         call edisp(iuout,'Unknown entry in .cfg file:')
         call edisp(iuout, WORD)
         call edisp248(iuout,loutstr,90)
+        call edisp(iuout,'or possibly')
+        call edisp(iuout,outstr)
         ier=1
         return
 
@@ -2396,56 +2399,23 @@ C End of LSTRIPC and LOUTSTRT scanning.
 
 C Warn user if notional or stripped model. These are generated
 C automatically and should not be modified through project manager.
- 45   H(1)='Additional models are built during the calculation '
-      H(2)='process for the UK NCM. These should not be modified '
-      H(3)='manually i.e. using the project manager (or any other)'
-      H(4)='interface. These models are '
-      H(5)=' *_str.cfg stripped model'
-      H(6)=' *_not.cfg notional model'
-      H(7)=' *_typ.cfg typical model'
-      H(8)=' *_ref.cfg reference model'
-      H(9)=' '
-      h(10)='Only proceed if you are sure of what you are doing'
-      IWARN=0
-      IF(INOTI.EQ.1.AND.ITRC.NE.4)THEN
-        IWARN=1
-        OUTS=
-     &  'This is a UK NCM notional model and should not be modified.'
-      ELSEIF(INOTI.EQ.2.AND.ITRC.NE.4)THEN
-        IWARN=1
-        OUTS=
-     &  'This is a UK NCM reference model and should not be modified.'
-      ELSEIF(INOTI.EQ.3.AND.ITRC.NE.4)THEN
-        IWARN=1
-        OUTS=
-     &  'This is a UK NCM typical model and should not be modified.'
-      ELSEIF(INOTI.EQ.4.AND.ITRC.NE.4)THEN
-        IWARN=1
-        OUTS=
-     &  'This is a UK NCM stripped model and should not be modified.'
-      ELSEIF(ISBEM.EQ.2.AND.INOTI.EQ.0.AND.ITRC.NE.4)THEN
-        continue  ! this model is original which includes NCM file.
-      ENDIF
-      IF(IWARN.EQ.1.AND..NOT.AUTOOK)THEN
-         call easkok(OUTS,'Continue?',OK,10)
-         IF(.NOT.OK)STOP
-      ENDIF
+ 45   continue
 
       IF(INDCFG.EQ.2)goto 888  ! If plant only jump
 
 C If building or building & plant then read in the building info.
 C At this point there may be ground information, if abscent then
 C this is the `* Building` section.
-      CALL STRIPC(IUC,OUTSTR,0,ND,1,'building name',IER)
+      CALL LSTRIPC(IUC,LOUTSTR,0,ND,1,'building name',IER)
       IF(IER.NE.0)goto 1
-      if(OUTSTR(1:8).eq.'* Ground'.or.OUTSTR(1:8).eq.'* GROUND')then
- 344    CALL STRIPC(IUC,OUTSTR,0,ND,1,'ground info',IER)
+      if(LOUTSTR(1:8).eq.'* Ground'.or.LOUTSTR(1:8).eq.'* GROUND')then
+ 344    CALL LSTRIPC(IUC,LOUTSTR,0,ND,1,'ground info',IER)
         K=0
-        CALL EGETW(OUTSTR,K,WORD,'W','ground tags',IFLAG)
+        CALL EGETW(LOUTSTR,K,WORD,'W','ground tags',IFLAG)
 
 C External longwave radiation: if gtmp tag present in cfg file, get profile.
         IF(WORD(1:5).EQ.'*gtmp')THEN
-          CALL EGETWRA(IUC,getVal,12,-9.0,99.0,'W','Ex lg rad',IER)
+          CALL EGETWRA(IUC,getVal,12,-15.0,99.0,'W','Ex lg rad',IER)
           iExtLgRadFlag = 1
 C Store profile in array.
           DO 27 jMon=1,12
@@ -2456,33 +2426,33 @@ C Store profile in array.
 
 C 3D ground control volumes file.
           IGDCVS=.TRUE.
-          CALL EGETRM(OUTSTR,K,LGDCVS,'W','3d ground vols',IER)
+          CALL EGETRM(LOUTSTR,K,LGDCVS,'W','3d ground vols',IER)
 
 C 3D ground connections file.
         elseif(WORD(1:4).eq.'*cnc')then
           IGDCNC=.TRUE.
-          CALL EGETRM(OUTSTR,K,LGDCNC,'W','3d ground conns',IER)
+          CALL EGETRM(LOUTSTR,K,LGDCNC,'W','3d ground conns',IER)
 
 C 3D ground nodes coordinates file.
         elseif(WORD(1:4).eq.'*ndc')then
           IGDNDC=.TRUE.
-          CALL EGETRM(OUTSTR,K,LGDNDC,'W','3d ground cords',IER)
+          CALL EGETRM(LOUTSTR,K,LGDNDC,'W','3d ground cords',IER)
 
 C 3D ground nodes coordinates file.
         elseif(WORD(1:4).eq.'*taq')then
           IGDTAQ=.TRUE.
-          CALL EGETRM(OUTSTR,K,LGDTAQ,'W','3d ground temps',IER)
+          CALL EGETRM(LOUTSTR,K,LGDTAQ,'W','3d ground temps',IER)
 
 C Ground topology.
         elseif(WORD(1:4).eq.'*gtp')then
-          CALL EGETRM(OUTSTR,K,GTGEOM,'W','ground topology',IER)
+          CALL EGETRM(LOUTSTR,K,GTGEOM,'W','ground topology',IER)
 
 C Ground monthly temperature profiles. 2nd item is the number of profiles.
         elseif(WORD(1:4).eq.'*mgp')then
-          CALL EGETWI(OUTSTR,K,NGRDP,1,MGRDP,'F','grn prfls',IER)
+          CALL EGETWI(LOUTSTR,K,NGRDP,1,MGRDP,'F','grn prfls',IER)
           IF(NGRDP.eq.0) goto 344
           DO 28 IGRDP=1,NGRDP
-            CALL EGETWRA(IUC,GVA,12,-9.,99.,'W','Gr tmp',IER)
+            CALL EGETWRA(IUC,GVA,12,-15.,99.,'W','Gr tmp',IER)
             DO 29 J=1,12
               UGRDTP(J,IGRDP)=GVA(J)
    29       CONTINUE
@@ -2491,14 +2461,14 @@ C Reporting.
             IF(ITRC.GE.1.AND.ITRC.LT.4)THEN
               CALL EDISP(iuout,' ')
               CALL EDISP(iuout,' Ground temperature profile Jan-Dec:')
-              WRITE(OUTS,'(12F6.1)')(UGRDTP(J,IGRDP),J=1,12)
+              WRITE(OUTS,'(12F7.2)')(UGRDTP(J,IGRDP),J=1,12)
               CALL EDISP(iuout,OUTS)
             ENDIF
   28      CONTINUE
 
 C Ground monthly humidity profiles. 2nd item is the number of profiles.
         elseif(WORD(1:4).eq.'*mgh')then
-          CALL EGETWI(OUTSTR,K,NGRDPH,1,MGRDP,'F','grn prfls',IER)
+          CALL EGETWI(LOUTSTR,K,NGRDPH,1,MGRDP,'F','grn prfls',IER)
           IF(NGRDPH.eq.0) goto 344
           IF(NGRDPH.ne.NGRDP)then
             WRITE(OUTS,'(A,I2,A)')
@@ -2512,7 +2482,7 @@ C Ground monthly humidity profiles. 2nd item is the number of profiles.
             STOP
           ENDIF
           DO 36 IGRDP=1,NGRDPH
-            CALL EGETWRA(IUC,GVA,12,-9.,3000.,'W','Gr hum',IER)
+            CALL EGETWRA(IUC,GVA,12,300.,3000.,'W','Gr hum',IER)
             DO 37 J=1,12
               UGRDHUM(J,IGRDP)=GVA(J)
    37       CONTINUE
@@ -2521,7 +2491,7 @@ C Reporting.
             IF(ITRC.GE.1.AND.ITRC.LT.4)THEN
               CALL EDISP(iuout,' ')
               CALL EDISP(iuout,' Ground humidity profile Jan-Dec:')
-              WRITE(OUTS,'(12F6.1)')(UGRDHUM(J,IGRDP),J=1,12)
+              WRITE(OUTS,'(12F6.0)')(UGRDHUM(J,IGRDP),J=1,12)
               CALL EDISP(iuout,OUTS)
             ENDIF
   36      CONTINUE
@@ -2536,14 +2506,15 @@ C Set 3D ground flag if 3D files found and read next section.
 
 C Read more ground related information.
         goto 344
-      elseif(OUTSTR(1:10).eq.'* Building'.or.
-     &       OUTSTR(1:10).eq.'* BUILDING')then
-        CALL STRIPC(IUC,OUTSTR,0,ND,1,'model name',IER)
+      elseif(LOUTSTR(1:10).eq.'* Building'.or.
+     &       LOUTSTR(1:10).eq.'* BUILDING'.or.
+     &       LOUTSTR(1:9).eq.'*building')then
+        CALL LSTRIPC(IUC,LOUTSTR,0,ND,1,'model name',IER)
         IF(IER.NE.0)goto 1
-        modeltitle=OUTSTR(1:72)
+        modeltitle=LOUTSTR(1:72)
         havetitile=.true.
       else
-        modeltitle=OUTSTR(1:72)
+        modeltitle=LOUTSTR(1:72)
         havetitile=.true.
       endif
 
@@ -2570,10 +2541,10 @@ C If SBEM database tag was not found instantiate it.
       endif
 
 C Number of building zones.
-      CALL STRIPC(IUC,OUTSTR,0,ND,1,'no of zones',IER)
+      CALL LSTRIPC(IUC,LOUTSTR,0,ND,1,'no of zones',IER)
       IF(IER.NE.0)goto 1
       K=0
-      CALL EGETWI(OUTSTR,K,NCOMP,0,MCOM,'W','zones',IER)
+      CALL EGETWI(LOUTSTR,K,NCOMP,0,MCOM,'W','zones',IER)
 
 C If greater complexity than executables can deal with
 C set ier=3 and generate a message.
@@ -2605,246 +2576,217 @@ C Reporting.
 
 C Zone file names.
       icomp=0
-   46 if(icfgv.eq.3.or.icfgv.eq.4)then
-        CALL STRIPC(IUC,OUTSTR,99,ND,1,'zone data',IER)
-        IF(IER.NE.0)goto 1
-        K=0
-        CALL EGETW(OUTSTR,K,WORD,'W','tags',IFLAG)
-        if(WORD(1:5).ne.'*zend')then
-          CALL EGETRM(OUTSTR,K,text,'W','remaining text',IFLAG)
-        endif
-        IF(IFLAG.NE.0)goto 1
-        if(WORD(1:4).eq.'*zon')then
-          OK3DCVS=.FALSE.
-          OK3DCNC=.FALSE.
-          OK3DNDC=.FALSE.
-          OK3DTAQ=.FALSE.
-          icomp=icomp+1
-          K=5
-          CALL EGETWI(OUTSTR,K,NCCODE(ICOMP),1,100,'W',
-     &                                 'zone index',IER)
-          IF(IER.NE.0) GOTO 1
+   46 if(icfgv.lt.3)then
+        msgl2='File format is pre-1996 and no longer supported.'
+        call usrmsg('Detected an ancient model cfg file.',
+     &     'File format is pre-1996 and no longer supported.','W')
+        CALL ERPFREE(IUC,ISTAT)
+        RETURN
+      endif
+      CALL LSTRIPC(IUC,LOUTSTR,99,ND,1,'zone data',IER)
+      IF(IER.NE.0)goto 1
+      K=0
+      CALL EGETW(LOUTSTR,K,WORD,'W','tags',IFLAG)
+      if(WORD(1:5).ne.'*zend')then
+        CALL EGETRM(LOUTSTR,K,text,'W','remaining text',IFLAG)
+      endif
+      IF(IFLAG.NE.0)goto 1
+      if(WORD(1:4).eq.'*zon')then
+        OK3DCVS=.FALSE.
+        OK3DCNC=.FALSE.
+        OK3DNDC=.FALSE.
+        OK3DTAQ=.FALSE.
+        icomp=icomp+1
+        K=5
+        CALL EGETWI(LOUTSTR,K,NCCODE(ICOMP),1,100,'W','zone index',IER)
+        IF(IER.NE.0) GOTO 1
 
 C If the line includes 'water' or 'Water' then set to true and also
 C set the fluid K D C A. This should reduce need to go into simulation
 C toggles to set water filled zones.
-          if(ND.gt.2)then
-            CALL EGETW(OUTSTR,K,WORD2,'W','air or water',IFLAG)
-            if(WORD2(1:5).eq.'water'.or.WORD2(1:5).eq.'Water')then
-              znotair(icomp)=.TRUE.
-              zSWAp(icomp)=0.0; zSWAf(icomp)=0.0
-            else
-              znotair(icomp)=.FALSE.  ! usual assumption of air filled
-            endif
+        if(ND.gt.2)then
+          CALL EGETW(LOUTSTR,K,WORD2,'W','air or water',IFLAG)
+          if(WORD2(1:5).eq.'water'.or.WORD2(1:5).eq.'Water')then
+            znotair(icomp)=.TRUE.
+            zSWAp(icomp)=0.0; zSWAf(icomp)=0.0
           else
             znotair(icomp)=.FALSE.  ! usual assumption of air filled
           endif
-        elseif(WORD(1:4).eq.'*opr')then
-          LPROJ(icomp)=text(1:72)
-        elseif(WORD(1:9).eq.'*pausecas')then
+        else
+          znotair(icomp)=.FALSE.  ! usual assumption of air filled
+        endif
+      elseif(WORD(1:4).eq.'*opr')then
+        LPROJ(icomp)=text(1:72)
+      elseif(WORD(1:9).eq.'*pausecas')then
 
 C Flag to pause assessment at each timestep to allow for
 C a zone casual gain to be adapted. No impact if tag missing.
-          ipausecas(icomp)=1
-        elseif(WORD(1:4).eq.'*geo')then
-          LGEOM(icomp)=text(1:72)
-        elseif(WORD(1:4).eq.'*con')then
-          LTHRM(icomp)=text(1:72)
-        elseif(WORD(1:4).eq.'*utl')then
-          msgl2='This is no longer supported. Skipping.'
-          call usrmsg('Detected a legacy zone utility file.',
-     &      msgl2,'W')
-        elseif(WORD(1:4).eq.'*obs')then
-          iobs(icomp)=1
-          ZOBS(icomp)=text(1:72)
-        elseif(WORD(1:4).eq.'*tmc')then
-          itw(icomp)=1
-          LTWIN(icomp)=text(1:72)
-        elseif(WORD(1:4).eq.'*cfc')then
-          icfc(icomp)=1
-          lcfcin(icomp)=text(1:72)
-        elseif(WORD(1:4).eq.'*ivf')then
-          ivf(icomp)=1
-          LVIEW(icomp)=text(1:72)
-        elseif(WORD(1:4).eq.'*cgc')then
-          icgc(icomp)=1
-          LCGCIN(icomp)=text(1:72)
-        elseif(WORD(1:4).eq.'*ise')then  ! embedded S/I calculation
-          isi(icomp)=1
-          ISIcalc=1
-          LSHAD(icomp)=text(1:72)
+        ipausecas(icomp)=1
+      elseif(WORD(1:4).eq.'*geo')then
+        LGEOM(icomp)=text(1:72)
+      elseif(WORD(1:4).eq.'*con')then
+        LTHRM(icomp)=text(1:72)
+      elseif(WORD(1:4).eq.'*utl')then
+        msgl2='This is no longer supported. Skipping.'
+        call usrmsg('Detected a legacy zone utility file.',
+     &    msgl2,'W')
+      elseif(WORD(1:4).eq.'*obs')then
+        iobs(icomp)=1
+        ZOBS(icomp)=text(1:72)
+      elseif(WORD(1:4).eq.'*tmc')then
+        itw(icomp)=1
+        LTWIN(icomp)=text(1:72)
+      elseif(WORD(1:4).eq.'*cfc')then
+        icfc(icomp)=1
+        lcfcin(icomp)=text(1:72)
+      elseif(WORD(1:4).eq.'*ivf')then
+        ivf(icomp)=1
+        LVIEW(icomp)=text(1:72)
+      elseif(WORD(1:4).eq.'*cgc')then
+        icgc(icomp)=1
+        LCGCIN(icomp)=text(1:72)
+      elseif(WORD(1:4).eq.'*ise')then  ! embedded S/I calculation
+        isi(icomp)=1
+        ISIcalc=1
+        LSHAD(icomp)=text(1:72)
+
 C Ensure ../tmp exists and that an empty file with the name of the S/I file
 C referenced in the cfg file is placed there.
-          write(doit,'(4a)') 'mkdir -p ../tmp; rm -f ',
+        write(doit,'(4a)') 'mkdir -p ../tmp; rm -f ',
      &        LSHAD(icomp)(1:lnblnk(LSHAD(icomp))),'; echo " " > ',
      &        LSHAD(icomp)(1:lnblnk(LSHAD(icomp)))
-          call runit(doit,'-')
-        elseif(WORD(1:4).eq.'*isi')then  ! existing S/I file
-          isi(icomp)=1
-          ISIcalc=2
-          LSHAD(icomp)=text(1:72)
-        elseif(WORD(1:4).eq.'*ihc')then
-          ihc(icomp)=1
-          LHCCO(icomp)=text(1:72)
-        elseif(WORD(1:4).eq.'*ibc')then
-          msgl2='This is no longer supported. Skipping.'
-          call usrmsg('Detected a default window bind control descr.',
-     &     msgl2,'W')
-        elseif(WORD(1:4).eq.'*iaf')then
-          msgl2='No longer supported (use temporal). Skipping.'
-          call usrmsg('Detected ascii time step air flows.',
-     &     msgl2,'W')
-        elseif(WORD(1:4).eq.'*icg')then
-          msgl2='No longer supported (use temporal). Skipping.'
-          call usrmsg('Detected ascii time step casual gains.',
-     &     msgl2,'W')
-        elseif(WORD(1:4).eq.'*cfd')then
-          LCFD(icomp)=text(1:72)   ! conflation type
-          call FINDFIL(LCFD(ICOMP),XST)
-          if(XST)then
-            write(currentfile,'(a)') LCFD(ICOMP)(1:lnblnk(LCFD(ICOMP)))
-            CALL EFOPSEQ(IUF,LCFD(ICOMP),1,IER)
-            IF(IER.NE.0)goto 1
-            CALL STRIPC(IUF,OUTSTR,0,ND,1,'dfd line 1',IER)
-            if(OUTSTR(1:15).eq.'DFS DESCRIPTION')then
-              CALL STRIPC(IUF,OUTSTR,0,ND,1,'dfd line 2',IER)
-              K=0
-              CALL EGETW(OUTSTR,K,WORD,'W','tag',IFLAG)
-              if(WORD(1:11).eq.'*conflation')then
-                CALL EGETWI(OUTSTR,K,iv,0,7,'F','confla type',IER)
-                IFCFD(icomp)=iv
-              else
-                call usrmsg('DFD (ver 1) conflation tag missing in:',
-     &          LCFD(ICOMP),'W')
-              endif
-            elseif(OUTSTR(1:7).eq.'*DFS V2')then
-              CALL STRIPC(IUF,OUTSTR,0,ND,1,'dfd line 2',IER)
-              K=0
-              CALL EGETW(OUTSTR,K,WORD,'W','tag',IFLAG)
-              if(WORD(1:11).eq.'*conflation')then
-                CALL EGETWI(OUTSTR,K,iv,0,7,'F','confla type',IER)
-                IFCFD(icomp)=iv
-              else
-                call usrmsg('DFD (ver 2) conflation tag missing in:',
-     &          LCFD(ICOMP),'W')
-              endif
+        call runit(doit,'-')
+      elseif(WORD(1:4).eq.'*isi')then  ! existing S/I file
+        isi(icomp)=1
+        ISIcalc=2
+        LSHAD(icomp)=text(1:72)
+      elseif(WORD(1:4).eq.'*ihc')then
+        ihc(icomp)=1
+        LHCCO(icomp)=text(1:72)
+      elseif(WORD(1:4).eq.'*ibc')then
+        msgl2='This is no longer supported. Skipping.'
+        call usrmsg('Detected a default window bind control descr.',
+     &    msgl2,'W')
+      elseif(WORD(1:4).eq.'*iaf')then
+        msgl2='No longer supported (use temporal). Skipping.'
+        call usrmsg('Detected ascii time step air flows.',
+     &    msgl2,'W')
+      elseif(WORD(1:4).eq.'*icg')then
+        msgl2='No longer supported (use temporal). Skipping.'
+        call usrmsg('Detected ascii time step casual gains.',
+     &    msgl2,'W')
+      elseif(WORD(1:4).eq.'*cfd')then
+        LCFD(icomp)=text(1:72)   ! conflation type
+        call FINDFIL(LCFD(ICOMP),XST)
+        if(XST)then
+          write(currentfile,'(a)') LCFD(ICOMP)(1:lnblnk(LCFD(ICOMP)))
+          CALL EFOPSEQ(IUF,LCFD(ICOMP),1,IER)
+          IF(IER.NE.0)goto 1
+          CALL LSTRIPC(IUF,LOUTSTR,0,ND,1,'dfd line 1',IER)
+          if(LOUTSTR(1:15).eq.'DFS DESCRIPTION')then
+            CALL LSTRIPC(IUF,LOUTSTR,0,ND,1,'dfd line 2',IER)
+            K=0
+            CALL EGETW(LOUTSTR,K,WORD,'W','tag',IFLAG)
+            if(WORD(1:11).eq.'*conflation')then
+              CALL EGETWI(LOUTSTR,K,iv,0,7,'F','confla type',IER)
+              IFCFD(icomp)=iv
             else
-              call usrmsg('Referenced file not a DFD description:',
+              call usrmsg('DFD (ver 1) conflation tag missing in:',
      &          LCFD(ICOMP),'W')
             endif
-            CALL ERPFREE(IUF,ISTAT)
-            NCONF=NCONF+1
-            icfdnd(NCONF)=ICOMP
-            write(currentfile,'(a)') FILE(1:lnblnk(FILE))
-          else
-            call usrmsg('DFD file not found:',LCFD(ICOMP),'W')
-          endif
-        elseif(WORD(1:4).eq.'*cvs')then
-          OK3DCVS=.true.
-          L3DCVS(icomp)=text(1:72)
-        elseif(WORD(1:4).eq.'*cnc')then
-          OK3DCNC=.true.
-          L3DCNC(icomp)=text(1:72)
-        elseif(WORD(1:4).eq.'*ndc')then
-          OK3DNDC=.true.
-          L3DNDC(icomp)=text(1:72)
-        elseif(WORD(1:4).eq.'*3dt')then
-          OK3DTAQ=.true.
-          L3DTAQ(icomp)=text(1:72)
-        elseif(WORD(1:4).eq.'*mst')then
-          MSTRZN(icomp)=.true.
-          LMOIST(icomp)=text(1:72)
-          MSTROK=.TRUE.
-        elseif(WORD(1:4).eq.'*shz')then  ! SHOCC zone file
-          SHOCCshzFile(icomp)=text(1:72)
-          XST=.FALSE.
-          call FINDFIL(SHOCCshzFile(icomp),XST)
-          if(XST) then
-            bZoneSHOCCed(icomp)=.true.
-          else
-            write(outs,'(3a)') 'SHOCC zone file ',
-     &        SHOCCshzFile(icomp)(1:lnblnk(SHOCCshzFile(icomp))),
-     &        ' not found!'
-          endif
-        elseif(WORD(1:4).eq.'*bsm')then  ! BASESIMP description
-          LBSIMP(icomp)=text(1:72)
-          XST=.FALSE.
-          call FINDFIL(LBSIMP(icomp),XST)
-          if(XST)then
-            iBSIMP(icomp)=1
-          else
-            write(outs,'(3a)') 'BASESIMP file ',
-     &        LBSIMP(icomp)(1:lnblnk(LBSIMP(icomp))),
-     &        ' not found!'
-            if(dll)then
-              dllsubr='ersys'
-              dllmesg=outs
-              ier=2
-              return
+          elseif(LOUTSTR(1:7).eq.'*DFS V2')then
+            CALL LSTRIPC(IUF,LOUTSTR,0,ND,1,'dfd line 2',IER)
+            K=0
+            CALL EGETW(LOUTSTR,K,WORD,'W','tag',IFLAG)
+            if(WORD(1:11).eq.'*conflation')then
+              CALL EGETWI(LOUTSTR,K,iv,0,7,'F','confla type',IER)
+              IFCFD(icomp)=iv
             else
-              call edisp(iuout,outs)
-              iBSIMP(icomp)=0
+              call usrmsg('DFD (ver 2) conflation tag missing in:',
+     &        LCFD(ICOMP),'W')
             endif
-          endif
-        elseif(WORD(1:4).eq.'*csm')then
-          if(IndxSt.eq.0)then
-            IndxSt=icomp
-            LGrdSt=text(1:72)
           else
-            msgl2='Only the 1st structured zone considered.'
-            CALL USRMSG('Multiple structured zones!',msgl2,'W')
+            call usrmsg('Referenced file not a DFD description:',
+     &        LCFD(ICOMP),'W')
           endif
-        elseif(WORD(1:5).eq.'*zend')then
-          if(OK3DCVS.and.OK3DCNC.and.OK3DNDC.and.OK3DTAQ)then
-            ZONE3D(icomp)=.TRUE.
-          else
-            ZONE3D(icomp)=.FALSE.
-          endif
-          if(icomp.lt.ncomp)then  ! loop back for next zone
-            goto 46
-          else
-            goto 142
-          endif
-        elseif(WORD(1:4).eq.'*cnn')then
-          goto 23
+          CALL ERPFREE(IUF,ISTAT)
+          NCONF=NCONF+1
+          icfdnd(NCONF)=ICOMP
+          write(currentfile,'(a)') FILE(1:lnblnk(FILE))
         else
-          call usrmsg('Unknown configuration file tag:',WORD,'W')
+          call usrmsg('DFD file not found:',LCFD(ICOMP),'W')
         endif
-        goto 46
-      elseif(icfgv.lt.3)then
-        DO 20 ICOMP=1,NCOMP
-          CALL STRIPC(IUC,OUTSTR,0,ND,1,'zone code',IER)
-          IF(IER.NE.0)goto 1
-          K=0
-          CALL EGETWI(OUTSTR,K,NCCODE(ICOMP),1,100,'W','zone code',IER)
-          IF(IER.NE.0) GOTO 1
-
-          CALL STRIPC(IUC,OUTSTR,0,ND,1,'operation file',IER)
-          IF(IER.NE.0)goto 1
-          LPROJ(ICOMP)=OUTSTR(1:72)
-          CALL STRIPC(IUC,OUTSTR,0,ND,1,'geometry file',IER)
-          IF(IER.NE.0)goto 1
-          LGEOM(ICOMP)=OUTSTR(1:72)
-          CALL STRIPC(IUC,OUTSTR,0,ND,1,'constr file',IER)
-          IF(IER.NE.0)goto 1
-          LTHRM(ICOMP)=OUTSTR(1:72)
-          CALL STRIPC(IUC,OUTSTR,0,ND,1,'utility flag',IER)
-          IF(IER.NE.0)goto 1
-          K=0
-          CALL EGETWI(OUTSTR,K,INDU,0,1,'F','utility flg',IER)
-          IF(IER.NE.0) GOTO 1
-
-C Warn user about old utility file.
-          if(INDU.EQ.1)then
-            call edisp(iuout,'Manual update: edit the entries in the')
-            call edisp(iuout,'zone utility file and add them to the')
-            call edisp(iuout,'model cfg file via a text editor.')
-            msgl2='File type no longer supported. Skipping.'
-            call usrmsg('Detected a legacy zone utility file.',
-     &        msgl2,'W')
+      elseif(WORD(1:4).eq.'*cvs')then
+        OK3DCVS=.true.
+        L3DCVS(icomp)=text(1:72)
+      elseif(WORD(1:4).eq.'*cnc')then
+        OK3DCNC=.true.
+        L3DCNC(icomp)=text(1:72)
+      elseif(WORD(1:4).eq.'*ndc')then
+        OK3DNDC=.true.
+        L3DNDC(icomp)=text(1:72)
+      elseif(WORD(1:4).eq.'*3dt')then
+        OK3DTAQ=.true.
+        L3DTAQ(icomp)=text(1:72)
+      elseif(WORD(1:4).eq.'*mst')then
+        MSTRZN(icomp)=.true.
+        LMOIST(icomp)=text(1:72)
+        MSTROK=.TRUE.
+      elseif(WORD(1:4).eq.'*shz')then  ! SHOCC zone file
+        SHOCCshzFile(icomp)=text(1:72)
+        XST=.FALSE.
+        call FINDFIL(SHOCCshzFile(icomp),XST)
+        if(XST) then
+          bZoneSHOCCed(icomp)=.true.
+        else
+          write(outs,'(3a)') 'SHOCC zone file ',
+     &      SHOCCshzFile(icomp)(1:lnblnk(SHOCCshzFile(icomp))),
+     &      ' not found!'
+        endif
+      elseif(WORD(1:4).eq.'*bsm')then  ! BASESIMP description
+        LBSIMP(icomp)=text(1:72)
+        XST=.FALSE.
+        call FINDFIL(LBSIMP(icomp),XST)
+        if(XST)then
+          iBSIMP(icomp)=1
+        else
+          write(outs,'(3a)') 'BASESIMP file ',
+     &      LBSIMP(icomp)(1:lnblnk(LBSIMP(icomp))),' not found!'
+          if(dll)then
+            dllsubr='ersys'
+            dllmesg=outs
+            ier=2
+            return
+          else
+            call edisp(iuout,outs)
+            iBSIMP(icomp)=0
           endif
-   20   CONTINUE
+        endif
+      elseif(WORD(1:4).eq.'*csm')then
+        if(IndxSt.eq.0)then
+          IndxSt=icomp
+          LGrdSt=text(1:72)
+        else
+          msgl2='Only the 1st structured zone considered.'
+          CALL USRMSG('Multiple structured zones!',msgl2,'W')
+        endif
+      elseif(WORD(1:5).eq.'*zend')then
+        if(OK3DCVS.and.OK3DCNC.and.OK3DNDC.and.OK3DTAQ)then
+          ZONE3D(icomp)=.TRUE.
+        else
+          ZONE3D(icomp)=.FALSE.
+        endif
+        if(icomp.lt.ncomp)then  ! loop back for next zone
+          goto 46
+        else
+          goto 142
+        endif
+      elseif(WORD(1:4).eq.'*cnn')then
+        goto 23
+      else
+        call usrmsg('Unknown configuration file tag:',WORD,'W')
       endif
+      goto 46
 
 C Geometry file, get or derive the zone name via reading the file.
 C Make temporary use of file unit IUF. 
@@ -2979,30 +2921,30 @@ C Reporting.
   22  continue
 
 C Read in the building connectivity information.
-      CALL STRIPC(IUC,OUTSTR,0,ND,1,'no of connections',IER)
+      CALL LSTRIPC(IUC,LOUTSTR,0,ND,1,'no of connections',IER)
       IF(IER.NE.0)goto 1
 
 C Jump to 23 if the building type model does not have any zones
 C so the subsequent line might be *cnn.
-  23  if(OUTSTR(1:4).eq.'*cnn')then
+  23  if(LOUTSTR(1:4).eq.'*cnn')then
         cnnok=.true.
         K=0
-        CALL EGETW(OUTSTR,K,WORD,'W','connections tag',IER)
-        CALL EGETRM(OUTSTR,K,LCNN,'W','connections file',IER)
+        CALL EGETW(LOUTSTR,K,WORD,'W','connections tag',IER)
+        CALL EGETRM(LOUTSTR,K,LCNN,'W','connections file',IER)
         call FINDFIL(LCNN,XST)
         if(XST)then
           write(currentfile,'(a)') LCNN(1:lnblnk(LCNN))
           CALL EFOPSEQ(IUF,LCNN,1,IER)
           IF(IER.NE.0)goto 1
-          CALL STRIPC(IUF,OUTSTR,0,ND,1,'connex file header',IER)
-          if(OUTSTR(1:12).ne.'*connections')then
+          CALL LSTRIPC(IUF,LOUTSTR,0,ND,1,'connex file header',IER)
+          if(LOUTSTR(1:12).ne.'*connections')then
             CALL USRMSG(' not a connections file ',LCNN,'W')
             goto 1
           endif
-          CALL STRIPC(IUF,OUTSTR,0,ND,1,'connex file date',IER)
-          CALL STRIPC(IUF,OUTSTR,0,ND,1,'no of connex',IER)
+          CALL LSTRIPC(IUF,LOUTSTR,0,ND,1,'connex file date',IER)
+          CALL LSTRIPC(IUF,LOUTSTR,0,ND,1,'no of connex',IER)
           K=0
-          CALL EGETWI(OUTSTR,K,NCON,3,MCON,'W','no connex',IER)
+          CALL EGETWI(LOUTSTR,K,NCON,3,MCON,'W','no connex',IER)
           IF(IER.NE.0) GOTO 1
         else
           if(NCOMP.eq.0)then
@@ -3023,7 +2965,7 @@ C so the subsequent line might be *cnn.
       else
         cnnok=.false.
         K=0
-        CALL EGETWI(OUTSTR,K,NCON,3,MCON,'W','no connection',IER)
+        CALL EGETWI(LOUTSTR,K,NCON,3,MCON,'W','no connection',IER)
         IF(IER.NE.0) GOTO 1
       endif
 
@@ -3039,22 +2981,22 @@ C Reporting: generate header for connections.
 C Read from either the connections or configuration file.
         if(cnnok)then
           write(currentfile,'(a)') LCNN(1:lnblnk(LCNN))
-          CALL STRIPC(IUF,OUTSTR,0,ND,1,'connections',IER)
+          CALL LSTRIPC(IUF,LOUTSTR,0,ND,1,'connections',IER)
         else
           write(currentfile,'(a)') FILE(1:lnblnk(FILE))
-          CALL STRIPC(IUC,OUTSTR,0,ND,1,'connections',IER)
+          CALL LSTRIPC(IUC,LOUTSTR,0,ND,1,'connections',IER)
         endif
         IF(IER.NE.0)goto 1
         K=0
-        CALL EGETWI(OUTSTR,K,IC1(ICON),1,MCOM,'F','conn src zone',IER)
+        CALL EGETWI(LOUTSTR,K,IC1(ICON),1,MCOM,'F','conn src zone',IER)
         IF(IER.NE.0) GOTO 1
-        CALL EGETWI(OUTSTR,K,IE1(ICON),1,MS,'F','conn src surf',IER)
+        CALL EGETWI(LOUTSTR,K,IE1(ICON),1,MS,'F','conn src surf',IER)
         IF(IER.NE.0) GOTO 1
-        CALL EGETWI(OUTSTR,K,ICT(ICON),-1,7,'F','conn type',IER)
+        CALL EGETWI(LOUTSTR,K,ICT(ICON),-1,7,'F','conn type',IER)
         IF(IER.NE.0) GOTO 1
-        CALL EGETWI(OUTSTR,K,IC2(ICON),0,0,'-','conn other zone',IER)
+        CALL EGETWI(LOUTSTR,K,IC2(ICON),0,0,'-','conn other zone',IER)
         IF(IER.NE.0) GOTO 1
-        CALL EGETWI(OUTSTR,K,IE2(ICON),0,0,'-','conn other surf',IER)
+        CALL EGETWI(LOUTSTR,K,IE2(ICON),0,0,'-','conn other surf',IER)
         IF(IER.NE.0) GOTO 1
 
 C If ground connection IC2=0 then IE2 is the profile reference.
@@ -3062,22 +3004,22 @@ C If ground connection IC2=0 then IE2 is the profile reference.
           IF(IC2(ICON).EQ.0.AND.IE2(ICON).GT.NGRDP)THEN
             CALL USRMSG(
      &      'Ground connection referenced an unknown monthly profile!',
-     &        OUTSTR,'W')
+     &        LOUTSTR,'W')
           ENDIF
           IF(IC2(ICON).EQ.-3.AND..NOT.GRND3D)CALL USRMSG(
-     &    '3D ground model not available but referenced in',OUTSTR,'W')
+     &    '3D ground model not available but referenced in',LOUTSTR,'W')
         ENDIF
 
 C Range checking.
         IF(ICT(ICON).EQ.0)THEN
           IF(IC2(ICON).NE.0.OR.IE2(ICON).NE.0) CALL USRMSG(
-     &      'Ext conn (4th & 5th items) should be 0 in',OUTSTR,'W')
+     &      'Ext conn (4th & 5th items) should be 0 in',LOUTSTR,'W')
         ENDIF
         IF(ICT(ICON).EQ.3)THEN
           IF(IC2(ICON).LT.1.OR.IC2(ICON).GT.MCOM)CALL USRMSG(
-     &      'Int conn other zone (4th item) unknown in',OUTSTR,'W')
+     &      'Int conn other zone (4th item) unknown in',LOUTSTR,'W')
           IF(IE2(ICON).LT.1.OR.IE2(ICON).GT.MS)CALL USRMSG(
-     &      'Int conn other surf (5th item) unknown in',OUTSTR,'W')
+     &      'Int conn other surf (5th item) unknown in',LOUTSTR,'W')
         ENDIF
    21 CONTINUE
 
@@ -3101,6 +3043,8 @@ C If MODE='ALL ' fill obstruction data structures
 C but there is a case where a version 1.1 geometry file might
 C not yet include obstruction blocks that were in legacy zone
 C obstructions files. If this is the case then scan them.
+            write(currentfile,'(a)') 
+     &        LGEOM(icomp)(1:lnblnk(LGEOM(icomp)))
             call georead(iuf,LGEOM(ICOMP),ICOMP,1,itru,ier)
             if(MODE(1:3).eq.'ALL'.or.MODE(1:3).eq.'all')then
               if(iobs(icomp).eq.1)then
@@ -3144,7 +3088,7 @@ C obstruction file if older model.
 C Call to zgupdate is after connection lists established.
           call zgupdate(0,icomp,ier)
     
-C For MODE='ALL ' also find co-planer surfaces & edges of similar materials. 
+C For MODE='ALL ' also find co-planer surfaces & edges of similar materials.
           if(MODE(1:3).eq.'ALL'.or.MODE(1:3).eq.'all')then
             call suredgeadj(itrc,'-',icomp,ier)
 
@@ -3193,49 +3137,54 @@ C Read in anchors or group-of-zones if available. For each, get
 C its name, number of links and then the links. If the string 
 C is not *Anchor or *Group then it is probably the index for flow.
       write(currentfile,'(a)') FILE(1:lnblnk(FILE))
-      CALL STRIPC(IUC,OUTSTR,0,ND,1,'anchors or flow',IER)
+      if(IUC.ne.IUCBK) IUC=IUCBK
+      CALL LSTRIPC(IUC,LOUTSTR,0,ND,1,'anchors or flow',IER)
+      if(IER.eq.2) then
+        IER=0  ! In ish this can be a fault point but we have enough
+        goto 6
+      endif
       IF(IER.NE.0)goto 1
       
-      if(OUTSTR(1:7).eq.'*Anchor')then
+      if(LOUTSTR(1:7).eq.'*Anchor')then
         K=8
-        CALL EGETWI(OUTSTR,K,NALOC,0,20,'F','NALOC',IER)
+        CALL EGETWI(LOUTSTR,K,NALOC,0,20,'F','NALOC',IER)
         IF(IER.NE.0) GOTO 1
         do ia=1,NALOC
-          CALL STRIPC(IUC,OUTSTR,99,ND,1,'anchor name',IER)
+          CALL LSTRIPC(IUC,LOUTSTR,99,ND,1,'anchor name',IER)
           K=0
-          CALL EGETW(OUTSTR,K,WORD,'W','anchor name',IER)
+          CALL EGETW(LOUTSTR,K,WORD,'W','anchor name',IER)
           write(ALOCLBL(ia),'(a12)') WORD(1:12)
           if(ND.gt.2)then
-            CALL EGETW(OUTSTR,K,WORD,'W','anchor type',IER)
+            CALL EGETW(LOUTSTR,K,WORD,'W','anchor type',IER)
             write(ALOCTYP(ia),'(a4)') WORD(1:4)
           else
             write(ALOCTYP(ia),'(a4)') 'UNKN'
           endif
-          CALL EGETWI(OUTSTR,K,IALOC(ia),0,99,'F','anchor link',IER)
+          CALL EGETWI(LOUTSTR,K,IALOC(ia),0,99,'F','anchor link',IER)
           IRVA=IALOC(ia)
           CALL EGETWIA(IUC,IVA,IRVA,0,0,'-','anchor assoc links',IER)
           DO LC=1,IALOC(ia)
             lstanchr(ia,LC)=IVA(LC)
           ENDDO
         enddo
-        CALL STRIPC(IUC,OUTSTR,0,ND,1,'anchor end',IER)
-      elseif(OUTSTR(1:6).eq.'*Group')then
+        CALL LSTRIPC(IUC,LOUTSTR,0,ND,1,'anchor end',IER)
+      elseif(LOUTSTR(1:6).eq.'*Group')then
         K=7
-        CALL EGETWI(OUTSTR,K,nzgroup,0,32,'F','nzgroup',IER)
+        CALL EGETWI(LOUTSTR,K,nzgroup,0,32,'F','nzgroup',IER)
         IF(IER.NE.0) GOTO 1
         do ia=1,nzgroup
-          CALL STRIPC(IUC,OUTSTR,99,ND,1,'group name',IER)
+          CALL LSTRIPC(IUC,LOUTSTR,99,ND,1,'group name',IER)
           K=0
-          CALL EGETP(OUTSTR,K,WORD,'W','group name',IER)
+          CALL EGETP(LOUTSTR,K,WORD,'W','group name',IER)
           write(zglbl(ia),'(a)') WORD(1:16)
-          CALL EGETWI(OUTSTR,K,izgnumber(ia),0,99,'F','how many',IER)
+          CALL EGETWI(LOUTSTR,K,izgnumber(ia),0,99,'F','how many',IER)
           IRVA=izgnumber(ia)
           CALL EGETWIA(IUC,IVA,IRVA,0,0,'-','group assoc links',IER)
           DO LC=1,izgnumber(ia)
             izglist(ia,LC)=IVA(LC)
           ENDDO
         enddo
-        CALL STRIPC(IUC,OUTSTR,0,ND,1,'anchor end',IER)
+        CALL LSTRIPC(IUC,LOUTSTR,0,ND,1,'anchor end',IER)
       else
 
 C No anchors or groups so this might be a flow network.
@@ -3244,18 +3193,18 @@ C No anchors or groups so this might be a flow network.
 
 C Check if there is an fluid (1=text, 2=graphic) air flow network
 C available (0 = no).
-      CALL STRIPC(IUC,OUTSTR,0,ND,1,'flow network index',IER)
+      CALL LSTRIPC(IUC,LOUTSTR,0,ND,1,'flow network index',IER)
       IF(IER.NE.0)goto 1
  343  K=0
-      CALL EGETWI(OUTSTR,K,IAIRN,0,3,'F','IAIRN',IER)
+      CALL EGETWI(LOUTSTR,K,IAIRN,0,3,'F','IAIRN',IER)
       IF(IER.NE.0) GOTO 1
 
 C Process a fluid (=air) flow network.
       IF(IAIRN.ge.1)THEN
 
 C Read name of flow network file (text or graphic type).
-        CALL STRIPC(IUC,OUTSTR,0,ND,1,'leakage file',IER)
-        LAPROB=OUTSTR(1:72)
+        CALL LSTRIPC(IUC,LOUTSTR,0,ND,1,'leakage file',IER)
+        LAPROB=LOUTSTR(1:72)
         IF(IER.NE.0)goto 1
 
 C Determine building zone to fluid (=air) network node mapping. Flow nodes
@@ -3290,9 +3239,9 @@ C Fill valid component arrays.
 
 C Read the file header and check for first-line tag. If 4 items
 C then it is a legacy file so rewind the file and call emfread.
-C If OUTSTR is *Graphical_network, call netread; if OUTSTR is
+C If LOUTSTR is *Graphical_network, call netread; if LOUTSTR is
 C *Flow_network, call EMF3DREAD.
-        CALL STRIPC(IUF,OUTSTR,99,ND,0,'1st line of file',IER)
+        CALL LSTRIPC(IUF,LOUTSTR,99,ND,0,'1st line of flow file',IER)
         if(IER.NE.0)then
           outs='Problem scanning flow network file, aborting cfg scan!'
           if(dll)then
@@ -3308,7 +3257,7 @@ C *Flow_network, call EMF3DREAD.
 
 C Graphic network flow file, scan it (silently) and transfer data
 C to network flow common blocks.
-        if(OUTSTR(1:18).EQ.'*Graphical_network')then
+        if(LOUTSTR(1:18).EQ.'*Graphical_network')then
           IAIRN = 2
           CALL ERPFREE(IUF,ISTAT)
           call NETREAD(IUF,'S',IER)
@@ -3316,7 +3265,7 @@ C to network flow common blocks.
 
 C Text network flow file, scan it (silently) and transfer data
 C to network flow common blocks.
-        elseif(OUTSTR(1:13).EQ.'*Flow_network')then
+        elseif(LOUTSTR(1:13).EQ.'*Flow_network')then
           IAIRN = 3
           CALL ERPFREE(IUF,ISTAT)
           CALL MFCDAT
@@ -3347,11 +3296,11 @@ C Read one record into a string. If there is only one word
 C on the line then it is probably an older version of the file; try
 C reading another line or two to get to list.
         write(currentfile,'(a)') FILE(1:lnblnk(FILE))
-        CALL STRIPC(IUC,OUTSTR,99,ND,1,'node-zone list',IER)
+        CALL LSTRIPC(IUC,LOUTSTR,99,ND,1,'node-zone list',IER)
         if(ND.eq.1.and.NCOMP.ne.1)then
-          CALL STRIPC(IUC,OUTSTR,99,ND,1,'old pressc.db1',IER)
+          CALL LSTRIPC(IUC,LOUTSTR,99,ND,1,'old pressc.db1',IER)
           if(ND.eq.1)then
-            CALL STRIPC(IUC,OUTSTR,99,ND,1,'old mass resl',IER)
+            CALL LSTRIPC(IUC,LOUTSTR,99,ND,1,'old mass resl',IER)
           endif
         endif
         IF(IER.NE.0)then
@@ -3378,7 +3327,7 @@ C reading more lines if necessary.
         K=0
         isva=ncomp
         inisz=MCOM
-        call egetagwsa(outstr,k,IUC,isva,namen,inisz,'W',
+        call egetagwsa(loutstr,k,IUC,isva,namen,inisz,'W',
      &    'node name or node index',ierv)
 
 C For each zone take namen() and check it against the node names in
@@ -3391,6 +3340,13 @@ C Test for valid fluid network node name.
    31     INOD=INOD+1
           IF(NODID(1:12).EQ.NDNAM(INOD)(1:12)) GOTO 32
           IF(INOD.LT.NNOD) GOTO 31
+          if(NODID(1:2).eq.'0 ')then
+            continue  ! A zero signals there is no associated zone.
+          else
+            write(outs,'(3a)') 'Did not find matching node name ',NODID,
+     &        ' in the cfg file zone-node list'
+            call edisp(iuout,outs)
+          endif
           GOTO 33
    32     ICAAS(ICOMP)=INOD  ! name is valid
           GOTO 35
@@ -3457,19 +3413,19 @@ C There may be a * Ground line for either a plant only or building
 C + plant model.
  888  continue
       IF(INDCFG.EQ.2.OR.INDCFG.EQ.3)THEN
-        CALL STRIPC(IUC,OUTSTR,0,ND,1,'building name',IER)
+        CALL LSTRIPC(IUC,LOUTSTR,0,ND,1,'building name',IER)
         IF(IER.NE.0)goto 1
-        if(OUTSTR(1:8).eq.'* Ground'.or.OUTSTR(1:8).eq.'* GROUND')then
-3440      CALL STRIPC(IUC,OUTSTR,0,ND,1,'ground info',IER)
+        if(LOUTSTR(1:8).eq.'* Ground'.or.LOUTSTR(1:8).eq.'* GROUND')then
+3440      CALL LSTRIPC(IUC,LOUTSTR,0,ND,1,'ground info',IER)
           K=0
-          CALL EGETW(OUTSTR,K,WORD,'W','ground tags',IFLAG)
+          CALL EGETW(LOUTSTR,K,WORD,'W','ground tags',IFLAG)
 
 C Ground monthly temperature profiles (2nd item is the number of profiles).
           IF(WORD(1:4).EQ.'*mgp')THEN
-            CALL EGETWI(OUTSTR,K,NGRDP,1,MGRDP,'F','grn prfls',IER)
+            CALL EGETWI(LOUTSTR,K,NGRDP,1,MGRDP,'F','grn prfls',IER)
             IF(NGRDP.eq.0) goto 3440
             DO 280 IGRDP=1,NGRDP
-              CALL EGETWRA(IUC,GVA,12,-9.,99.,'W','Gr tmp',IER)
+              CALL EGETWRA(IUC,GVA,12,-15.,99.,'W','Gr tmp',IER)
               DO 290 J=1,12
                 UGRDTP(J,IGRDP)=GVA(J)
   290         CONTINUE
@@ -3478,7 +3434,7 @@ C Reporting.
               IF(ITRC.GE.1.AND.ITRC.LT.4)THEN
                 CALL EDISP(iuout,' ')
                 CALL EDISP(iuout,'Ground temperature profile Jan-Dec:')
-                WRITE(OUTS,'(12F6.1)')(UGRDTP(J,IGRDP),J=1,12)
+                WRITE(OUTS,'(12F7.2)')(UGRDTP(J,IGRDP),J=1,12)
                 CALL EDISP(iuout,OUTS)
               ENDIF
  280        CONTINUE
@@ -3488,7 +3444,7 @@ C Reporting.
         endif
 
 C Identify plant file; skip if this is a '* Plant' record.
-1001    CALL STRIPC(IUC,OUTSTR,0,ND,1,'* plant',IER)
+1001    CALL LSTRIPC(IUC,LOUTSTR,0,ND,1,'* plant',IER)
         IF(IER.NE.0)then
           outs='Problem reading * PLANT line.'
           if(dll)then
@@ -3501,37 +3457,38 @@ C Identify plant file; skip if this is a '* Plant' record.
             goto 1
           endif
         endif
-        LPNF=OUTSTR(1:72)
+        LPNF=LOUTSTR(1:72)
         IF(LPNF(1:4).EQ.'*end') THEN
           goto 1001
         ENDIF
         IF(LPNF(1:7).EQ.'* Plant'.OR.LPNF(1:7).EQ.'* PLANT') THEN
-          CALL STRIPC(IUC,OUTSTR,0,ND,1,'plant network',IER)
+          CALL LSTRIPC(IUC,LOUTSTR,0,ND,1,'plant network',IER)
           if(IER.NE.0)then
             call edisp(iuout,'Problem reading plant network file!')
             goto 1
           endif
-          LPNF=OUTSTR(1:72)
+          LPNF=LOUTSTR(1:72)
 
 C Read boundary file name. If IIER returns end of file, fall through. 
-          CALL STRIPC(IUC,OUTSTR,0,ND,1,'boundary/model name',IIER)
+          write(currentfile,'(a)') FILE(1:lnblnk(FILE))
+          CALL LSTRIPC(IUC,LOUTSTR,0,ND,1,'boundary/model name',IIER)
           if (IIER.eq.2) then
             IIER=0
             BPF='  '
           else
-            BPF=OUTSTR(1:72)
+            BPF=LOUTSTR(1:72)
           endif
           IF(BPF(1:10).EQ.'* Boundary'.OR.
      &       BPF(1:10).EQ.'* BOUNDARY') THEN
-            CALL STRIPC(IUC,OUTSTR,0,ND,1,'* boundary',IER)
-            BPF=OUTSTR(1:72)
+            CALL LSTRIPC(IUC,LOUTSTR,0,ND,1,'* boundary',IER)
+            BPF=LOUTSTR(1:72)
             if(INDCFG.eq.2.and.BPF(1:3).eq.'../') then
-              CALL STRIPC(IUC,OUTSTR,0,ND,1,'model name',IIER)
+              CALL LSTRIPC(IUC,LOUTSTR,0,ND,1,'model name',IIER)
               IF(IIER.eq.0)then
-                modeltitle=OUTSTR(1:72)
+                modeltitle=LOUTSTR(1:72)
                 havetitile=.true.
               elseif(IIER.eq.2)then
-                modeltitle=OUTSTR(1:72)
+                modeltitle=LOUTSTR(1:72)
                 havetitile=.true.
                 iier=0
               else
@@ -3541,10 +3498,10 @@ C Read boundary file name. If IIER returns end of file, fall through.
             else
               IF(INDCFG.EQ.2)then
                 IF(IIER.eq.0)then
-                  modeltitle=OUTSTR(1:72)
+                  modeltitle=LOUTSTR(1:72)
                   havetitile=.true.
                 elseif(IIER.eq.2)then
-                  modeltitle=OUTSTR(1:72)
+                  modeltitle=LOUTSTR(1:72)
                   havetitile=.true.
                   iier=0
                 else
@@ -3556,10 +3513,10 @@ C Read boundary file name. If IIER returns end of file, fall through.
           ELSE
             IF(INDCFG.EQ.2)then  ! no * Boundary found so is modeltitle
               IF(IIER.eq.0)then
-                modeltitle=OUTSTR(1:72)
+                modeltitle=LOUTSTR(1:72)
                 havetitile=.true.
               elseif(IIER.eq.2)then
-                modeltitle=OUTSTR(1:72)
+                modeltitle=LOUTSTR(1:72)
                 havetitile=.true.
                 iier=0
               else
@@ -3591,56 +3548,71 @@ C Read boundary file name. If IIER returns end of file, fall through.
 
 C If plant only, read another line for the model name if not already done.
         if(.NOT.havetitile)then
-          CALL STRIPC(IUC,OUTSTR,0,ND,1,'model name',IER)
+          CALL LSTRIPC(IUC,LOUTSTR,0,ND,1,'model name',IER)
           IF(IER.NE.0)goto 1
-          modeltitle=OUTSTR(1:72)
+          modeltitle=LOUTSTR(1:72)
         endif
 
 C Free plant components database and/or fluid flow network file.
         IF(IUNIT1.NE.0) CALL ERPFREE(IUNIT1,ISTAT)
       endif
 
-C Functional Mock-up Interface (FMU): to specify an FMU insert
-C the following line at the end of a system configuration file.
-C *FMI [path to FMI specification file]
-      CALL FMI_CLEARALL()
-      CALL STRIPC(IUC,OUTSTR,0,ND,0,'FMI line',IIER)
-      if (IIER.eq.2) then
-        IIER=0
-      elseif (IIER.eq.1) then
-        IIER=0
-      elseif (IIER.eq.0) then
-        if(lnblnk(outstr).le.1) goto 6
-        K=0
-        CALL EGETW(OUTSTR,K,WORD,'W','*FMI',IER)
-        if (WORD(1:4).eq.'*FMI') then
+C Check for optional final tags. These might be:
+C FMI
+C agents
+C gremlins
 
-C Read FMI specification file name, open file, read 2 lines for number
-C of FMUs and set flag if any are defined.
-          CALL EGETW(OUTSTR,K,FMISFL,'W','FMI spec file',IER)
-          CALL ERPFREE(IUF,IIER)
-          CALL EFOPSEQ(IUF,FMISFL,1,IIER)
-          CALL STRIPC(IUF,OUTSTR,0,ND,0,'FMI spec file 1st line',IIER)
-          CALL STRIPC(IUF,OUTSTR,0,ND,0,'FMI spec file 2nd line',IIER)
-          K=0
-          CALL EGETW(OUTSTR,K,WORD,'W','*numFMUs',IIER)
-          CALL EGETWI(OUTSTR,K,FMUNOF,0,MFMU,'W','number of FMUs',IIER)
-          if (IIER.ne.0) then
-            outs=' Error getting number of FMUs from FMI spec file.'
-            CALL edisp(iuout,outs)
-            CALL edisp(iuout,' FMI will not be activated.')
-          else
-            if (FMUNOF.gt.0) then
-              IS_FMU=.true.
-            endif
-          endif
-          CALL ERPFREE(IUF,IIER)
-        else
-          goto 1   ! unexpected input
-        endif
-      else
-        goto 1     ! unexpected input
+C Initilise commons assuming no definitions.
+      CALL FMI_CLEARALL
+      CALL AGT_INIT
+      CALL GRM_INIT
+
+C Try to read another line.
+   61 CALL LSTRIPC(IUC,LOUTSTR,0,ND,0,'cfg line',iier)
+      if (iier.eq.1 .or. iier.eq.2) then ! end of file
+        iier=0
+        goto 6
+      elseif (lnblnk(loutstr).le.1) then ! end of file
+        goto 6
+      elseif (iier.ne.0) then ! error
+        IER=iier
+        goto 1
       endif
+
+C Get tag.
+      K=0
+      CALL EGETW(LOUTSTR,K,WORD,'W','cfg tag',IER)
+
+C Functional Mock-up Interface (FMI).
+      if (WORD(1:4).eq.'*FMI') then
+        call FMI_CHK(LOUTSTR,K,IUF,iier)
+        if (iier.ne.0) then
+          CALL edisp(iuout,' Error getting number of FMU directives,')
+          CALL edisp(iuout,' FMI will not be activated.')
+        endif
+
+C Agent.
+      elseif (WORD(1:7).eq.'*agent') then
+        call AGT_CHK(LOUTSTR,K,IUF,iier)
+        if (iier.ne.0) then
+          CALL edisp(iuout,' Error getting number of agents,')
+          CALL edisp(iuout,' agents will not be activated.')
+        endif
+        
+C Gremlins.
+      elseif (WORD(1:8).eq.'*gremlin') then
+        call GRM_CHK(LOUTSTR,K,IUF,iier)
+        if (iier.ne.0) then
+          CALL edisp(iuout,' Error getting number of gremlins,')
+          CALL edisp(iuout,' gremlins will not be activated.')
+        endif
+
+C Unexpected content.
+      else
+        goto 1
+      endif
+
+      goto 61
 
 C Building and plant descriptions now complete.
     6 CALL ERPFREE(IUC,ISTAT)
@@ -3667,11 +3639,11 @@ C Pass information about the current model to the C interface.
 C Error handling.
   1   if(dll)then
         dllsubr='ersys'
-        write(dllmesg,'(2a)')'Problem scanning cfg line: ',OUTSTR(1:40)
+        write(dllmesg,'(2a)')'Problem scanning cfg line: ',LOUTSTR(1:40)
         ier=2
         return
       else
-        CALL USRMSG('Problem with configuration line:',OUTSTR,'W')
+        CALL USRMSG('Problem with configuration line:',LOUTSTR,'W')
         call edisp(iuout,'Check the system  configuration file.')
         IER=1
         GOTO 6

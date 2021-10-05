@@ -1,6 +1,6 @@
 C This file is part of the ESP-r system.
 C Copyright Energy Systems Research Unit, University of
-C Strathclyde, Glasgow Scotland, 2001.
+C Strathclyde, Glasgow Scotland, 2001-.
 
 C ESP-r is free software.  You can redistribute it and/or
 C modify it under the terms of the GNU General Public
@@ -13,28 +13,20 @@ C warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
 C PURPOSE. See the GNU General Public License for more
 C details.
 
-C You should have received a copy of the GNU General Public
-C License along with ESP-r. If not, write to the Free
-C Software Foundation, Inc., 59 Temple Place, Suite 330,
-C Boston, MA 02111-1307 USA.
 
-C ************ MFINIT 
+C ******************** MFINIT ********************
 C Sets default values for iteration parameters, Pstack calculation
 C model, matrix solver type and trace output flag. Assigns unit
 C numbers for the flow network description (IFPRB), weather (IFCLM)
 C and results (IFRES) files.
 
       SUBROUTINE MFINIT(IFPRB,IFCLM,IFRES)
-
 #include "building.h"
 #include "net_flow.h"
 #include "net_flow_data.h"
 #include "esprdbfile.h"
-C esprdbfile.h supplies the following:
-C LAPRES,IAPRES (for window pressure databases)
-C ICLIM,LCLIM (for climate file)
-C default file names for databases
 #include "espriou.h"
+#include "help.h"
       
       integer lnblnk  ! function definition
 
@@ -60,12 +52,7 @@ C Defaults.
       integer ier
       integer ISTRW
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found (will be non-zero
-                         ! because default message will be created
-      helpinsub='MFINIT'  ! set for subroutine
+      helpinsub='mfinit'  ! set for subroutine
 
 C Initiates filling of flow component data arrays.
       CALL MFCDAT
@@ -90,7 +77,7 @@ C exist, confirm with user that this is to hold a new description.
       END IF
       helptopic='mass_flow_overview'
       call gethelptext(helpinsub,helptopic,nbhelp)
-  289 CALL EASKS(LAPROB,'Flow network description file?',' ',
+  289 CALL EASKS(LAPROB,' ','Network flow file?',
      &     72,DAPROB,'mass flow network file',IER,nbhelp)
       IF(LAPROB.EQ.' ')GOTO 289
       CALL ERPFREE(IFPRB,ISTAT)
@@ -126,10 +113,7 @@ C reason IAPRES is still zero then set to 11.
       helptopic='pres_coef_file_overview'
       call gethelptext(helpinsub,helptopic,nbhelp)
 
- 288  write(outs248,'(2a)') 'Current pressure coefficients db is ',
-     &  LAPRES(1:lnblnk(LAPRES))
-      call edisp248(iuout,outs248,100)
-      lltmp=LAPRES
+ 288  lltmp=LAPRES
       llt=lnblnk(lltmp)
       iglib = igraphiclib()
       if(iglib.eq.1.or.iglib.eq.3)then
@@ -145,8 +129,8 @@ C reason IAPRES is still zero then set to 11.
       else
         ISTRW=96
       endif
-      CALL EASKF(lltmp,'Pressure coefficients database?',' ',
-     &  ISTRW,DAPRES,'pressure coefficients db',IER,nbhelp)
+      CALL EASKF(lltmp,' ','Pressure coefficients database?',
+     &  72,DAPRES,'pressure coefficients db',IER,nbhelp)
 
       IF(LLTMP.EQ.' ')GOTO 288
       LAPRES=lltmp
@@ -185,8 +169,8 @@ C Assign weather file and read year number.
       else
         ISTRW=96
       endif
-      CALL EASKF(lltmp,'Climate file?',' ',
-     &  ISTRW,DCLIM,'weather file',IER,nbhelp)
+      CALL EASKF(lltmp,' ','Weather file?',
+     &  72,DCLIM,'weather file',IER,nbhelp)
       CALL ERPFREE(IFCLM,ISTAT)
       ier=0
       call EFOPRAN(IFCLM,lltmp,144,1,IER)
@@ -204,10 +188,10 @@ C Assign results file; make sure this is not the problem file.
       call gethelptext(helpinsub,helptopic,nbhelp)
       DFILE='new.mfr'
       LTMP=LAFRES
-      CALL EASKS(LTMP,'Network flow simulation results file?',
-     &  ' ',72,DFILE,'flow results file',IER,nbhelp)
+      CALL EASKS(LTMP,' ','Flow simulation results file?',
+     &      72,DFILE,'flow results file',IER,nbhelp)
       IF(LTMP(1:lnblnk(LTMP)).EQ.LAPROB(1:lnblnk(LAPROB)))THEN
-        CALL USRMSG('Same as the flow network description file!',
+        CALL USRMSG('Same as the network flow file!',
      &  'Please enter another file name.','W')
         GOTO 50
       ENDIF

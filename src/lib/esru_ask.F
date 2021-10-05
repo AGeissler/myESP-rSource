@@ -28,20 +28,18 @@ C cpwpk displays a copyright notice via help text data structure.
 C It saves and recover any current contextual help messages.
 C The integer parameter il is not used.
       subroutine cpwpk(il)
-      common/pophelp/h(60)
+#include "help.h"
       dimension dh(60)
-      character H*72,dh*72
+      character dh*72
 
 C First copy any existing help into dh array.
       do 50 i=1,60
         dh(i)=h(i)
    50 continue
-
-      H(1)='ESP-r is distributed as free software under the terms of'
-      H(2)='the GNU General Public License as published by the Free'
-      H(3)='Software Foundation (Version 2 or later), Details available'
-      H(4)='at https://opensource.org/licenses/gpl-license.'
-      CALL PHELPD('ESP-r license',4,'-',0,0,IER)
+      helpinsub='lib'  ! set for subroutine
+      helptopic='GPL_license'
+      call gethelptext(helpinsub,helptopic,nbhelp)
+      CALL PHELPD('ESP-r license',nbhelp,'-',0,0,IER)
 
 C Recover previous help via dh array.
       do 51 i=1,60
@@ -59,9 +57,9 @@ C If initonly is 1 then only assign the h() array and do not display
 C If initonly is 0 save prior h(), update h(), display and re-establish prior.
 C module (char *4) identifies the ESP-r module.
       subroutine askabout(module,initonly)
-      common/pophelp/h(60)
+#include "help.h"
       dimension dh(60)
-      character H*72,dh*72,module*4
+      character dh*72,module*4
 
 C First copy any existing help into dh array.
       if(initonly.eq.0)then
@@ -72,42 +70,37 @@ C First copy any existing help into dh array.
       else
 
       endif
+      helpinsub='lib'  ! set for subroutine
 
       if(module(1:3).eq.'aco')then
-        H(1)='This module supports an appraisal of the acoustic'
-        H(2)='reverberation time within a zone.'
+        helptopic='module_aco'
+        call gethelptext(helpinsub,helptopic,nbhelp)
         if(initonly.eq.0)then
-          CALL PHELPD('aco opening',2,'-',0,0,IER)
+          CALL PHELPD('aco opening',nbhelp,'-',0,0,IER)
         endif
       elseif(module(1:3).eq.'b2e')then
-        H(1)='This module manages the process of updating measured'
-        H(2)='data when running ESP-r in BEMS emulation mode.'
+        helptopic='module_b2e'
+        call gethelptext(helpinsub,helptopic,nbhelp)
         if(initonly.eq.0)then
-          CALL PHELPD('b2e opening',2,'-',0,0,IER)
+          CALL PHELPD('b2e opening',nbhelp,'-',0,0,IER)
         endif
       elseif(module(1:3).eq.'bps')then
-        H(1)='This module subjects a model to an integrated simulation'
-        H(2)='depending on the available domain information relating'
-        H(3)='to the building(s), plant and/or control elements.'
+        helptopic='module_bps'
+        call gethelptext(helpinsub,helptopic,nbhelp)
         if(initonly.eq.0)then
-          CALL PHELPD('bps opening',3,'-',0,0,IER)
+          CALL PHELPD('bps opening',nbhelp,'-',0,0,IER)
         endif
       elseif(module(1:3).eq.'cfg')then
-        H(1)='This module checks the building topology by matching'
-        H(2)='zone surfaces. Where a probable match is found, it is'
-        H(3)='presented for user confirmation or association with a'
-        H(4)='standard boundary condition (external, ground, adiabetic'
-        H(5)='etc.). The test tolerance may be set to accommodate'
-        H(6)='minor differences between zone descriptions.'
+        helptopic='module_cfg'
+        call gethelptext(helpinsub,helptopic,nbhelp)
         if(initonly.eq.0)then
-          CALL PHELPD('cfg opening',6,'-',0,0,IER)
+          CALL PHELPD('cfg opening',nbhelp,'-',0,0,IER)
         endif
       elseif(module(1:3).eq.'cdb')then
-        H(1)='This module manages icons relating to flow, plant'
-        H(2)='and electrical components as used in graphical'
-        H(3)='network definition.'
+        helptopic='module_cdb'
+        call gethelptext(helpinsub,helptopic,nbhelp)
         if(initonly.eq.0)then
-          CALL PHELPD('cdb opening',3,'-',0,0,IER)
+          CALL PHELPD('cdb opening',nbhelp,'-',0,0,IER)
         endif
 C      elseif(module(1:3).eq.'clm')then
 C Help moved to esruclm.help
@@ -115,291 +108,120 @@ C        if(initonly.eq.0)then
 C          CALL PHELPD('clm opening',24,'clm_dbitems ',0,0,IER)
 C        endif
       elseif(module(1:3).eq.'dbm')then
-        H(1)='This module provides information on the various'
-        H(2)='databases used by ESP-r modules.'
+        helptopic='module_dbm'
+        call gethelptext(helpinsub,helptopic,nbhelp)
         if(initonly.eq.0)then
-          CALL PHELPD('dbm opening',2,'-',0,0,IER)
+          CALL PHELPD('dbm opening',nbhelp,'-',0,0,IER)
         endif
       elseif(module(1:3).eq.'dfs')then
-        H(1)='This module allows an independent solution of a '
-        H(2)='CFD domains (i.e. with no thermal zone conflation).'
+        helptopic='module_dfs'
+        call gethelptext(helpinsub,helptopic,nbhelp)
         if(initonly.eq.0)then
-          CALL PHELPD('dfs opening',2,'-',0,0,IER)
+          CALL PHELPD('dfs opening',nbhelp,'-',0,0,IER)
         endif
       elseif(module(1:3).eq.'dfv')then
-        H(1)='This module allows CFD flow results to be viewed as'
-        H(2)='a simulation progresses.'
+        helptopic='module_dfv'
+        call gethelptext(helpinsub,helptopic,nbhelp)
         if(initonly.eq.0)then
-          CALL PHELPD('dfv opening',2,'-',0,0,IER)
+          CALL PHELPD('dfv opening',nbhelp,'-',0,0,IER)
         endif
       elseif(module(1:4).eq.'ecnv')then
-        h(1)='This module controls various data conversions, e.g. from'
-        h(2)='an ESP-r geometry format to DXF.'
+        helptopic='module_ecnv'
+        call gethelptext(helpinsub,helptopic,nbhelp)
         if(initonly.eq.0)then
-          CALL PHELPD('ecnv opening',2,'-',0,0,IER)
+          CALL PHELPD('ecnv opening',nbhelp,'-',0,0,IER)
         endif
       elseif(module(1:3).eq.'e2r')then
-        H(1)='This module converts an ESP-r model definition into'
-        H(2)='a form that can be interpreted by the RADIANCE lighting'
-        H(3)='simulation package. It then executes RADIANCE as required'
-        H(4)='by the ESP-r integrated simulation that is underway.'
+        helptopic='module_e2r'
+        call gethelptext(helpinsub,helptopic,nbhelp)
         if(initonly.eq.0)then
-          CALL PHELPD('e2r opening',4,'-',0,0,IER)
+          CALL PHELPD('e2r opening',nbhelp,'-',0,0,IER)
         endif
       elseif(module(1:3).eq.'eco')then
-        H(1)='This module support a life cycle analysis of the'
-        H(2)='of the current model.'
+        helptopic='module_eco'
+        call gethelptext(helpinsub,helptopic,nbhelp)
         if(initonly.eq.0)then
-          CALL PHELPD('eco opening',2,'-',0,0,IER)
+          CALL PHELPD('eco opening',nbhelp,'-',0,0,IER)
         endif
       elseif(module(1:3).eq.'grd')then
-        H(1)='This module supports the definition of multi-dimensional'
-        H(2)='grids for building constructions and the ground.'
+        helptopic='module_grd'
+        call gethelptext(helpinsub,helptopic,nbhelp)
         if(initonly.eq.0)then
           CALL PHELPD('grd opening',2,'-',0,0,IER)
         endif
       elseif(module(1:3).eq.'ish')then
-        H(1) ='This module pre-calculates the shading of external'
-        H(2) ='surfaces and the insolation of internal surfaces for'
-        H(3) ='a typical day in each month and passes these data to'
-        H(4) ='the ESP-r Integrated Simulator.'
+        helptopic='module_ish'
+        call gethelptext(helpinsub,helptopic,nbhelp)
         if(initonly.eq.0)then
-          CALL PHELPD('ish opening',4,'-',0,0,IER)
+          CALL PHELPD('ish opening',nbhelp,'-',0,0,IER)
         endif
       elseif(module(1:3).eq.'mfs')then
-        H(1)='This module is a standalone solver for network flow'
-        H(2)='problems (i.e. with no building/ plant conflation).'
+        helptopic='module_mfs'
+        call gethelptext(helpinsub,helptopic,nbhelp)
         if(initonly.eq.0)then
-          CALL PHELPD('mfs opening',2,'-',0,0,IER)
+          CALL PHELPD('mfs opening',nbhelp,'-',0,0,IER)
         endif
       elseif(module(1:3).eq.'mld')then
-        h(1)='This is the main menu for mould growth results'
-        h(2)='analysis. The user can examine the growing'
-        h(3)='conditions for a particular mould from the results'
-        h(4)='of a building simulation (with combined heat and'
-        h(5)='moisture transfer).'  
-        h(6)='Statistics - reports the time conditions are'
-        h(7)='suitable for the growth of a particular mould.'
+        helptopic='module_mld'
+        call gethelptext(helpinsub,helptopic,nbhelp)
         if(initonly.eq.0)then
-          CALL PHELPD('mld opening',7,'-',0,0,IER)
+          CALL PHELPD('mld opening',nbhelp,'-',0,0,IER)
         endif
       elseif(module(1:3).eq.'mrt'.or.module(1:3).eq.'vwf')then
-        H(1)='MRT attrib & calc: Reads a viewfactor file which'
-        H(2)='  includes the definition of MRT sensors within a'
-        H(3)='  zone.  The user may calculate viewfactors for the'
-        H(4)='  sensors or use previously computed viewfactors to'
-        H(5)='  be used for re-evaluation of position dependent'
-        H(6)='  MRT with different sets of surface temperatures.'
-        H(7)='  '
-        H(8)='View factor calc: Calculate viewfactors for all'
-        H(9)='  surfaces of the input geometry. '
-        H(10)=' '
-        H(11)='Merge: Write zone viewfactors to file. '
-        H(12)=' '
-        H(13)='Calc Parameters: Change number of bubbles on a'
-        H(14)='  surface, or number of patches on bubble. '
-        H(15)=' '
-        H(16)='Display surface info: list out the attributes of'
-        H(17)='  the surfaces [depending on trace verbosity] '
+        helptopic='module_mrt'
+        call gethelptext(helpinsub,helptopic,nbhelp)
         if(initonly.eq.0)then
-          CALL PHELPD('vwf opening',17,'-',0,0,IER)
+          CALL PHELPD('vwf opening',nbhelp,'-',0,0,IER)
         endif
       elseif(module(1:3).eq.'net'.or.module(1:4).eq.'enet')then
-        H(1)='Welcome to the ESP-r graphic network tool. '
-        H(2)=' '
-        h(3)='You can access a description of the facilities and hints'
-        h(4)='for use in the menu ? options. '
+        helptopic='module_net'
+        call gethelptext(helpinsub,helptopic,nbhelp)
         if(initonly.eq.0)then
-          CALL PHELPD('enet opening',4,'-',0,0,IER)
+          CALL PHELPD('enet opening',nbhelp,'-',0,0,IER)
         endif
       elseif(module(1:3).eq.'pdb')then
-        h(1) =' The MENU commands have the following meaning :'
-        h(2) =' '
-        h(3) =' HELP    this facility.'
-        h(4) =' '
-        h(5) =' LIST    chronological, sequential, alphabetical or'
-        h(6) ='         user-defined-order list of the database'
-        h(7) =' '
-        h(8) =' INSERT  allows plant components to be entered into'
-        h(9) ='         the database'
-        h(10)=' '
-        h(11)=' DELETE  allows components to be deleted from'
-        h(12)='         the database'
-        h(13)=' '
-        h(14)=' EDIT    enables component attributes to be'
-        h(15)='         individually edited'
-        h(16)=' '
-        h(17)=' FINISH  terminates the current program run'
+        helptopic='module_pdb'
+        call gethelptext(helpinsub,helptopic,nbhelp)
         if(initonly.eq.0)then
-          CALL PHELPD('pdb opening',17,'-',0,0,IER)
+          CALL PHELPD('pdb opening',nbhelp,'-',0,0,IER)
         endif
       elseif(module(1:3).eq.'plt')then
-        h(1) =' Menu "ESRUplt" commands are as follows :'
-        h(2) =' 1:  initiates the input section of the program'
-        h(3) ='     reading all data files and performing all'
-        h(4) ='     time independant pre-simulation calculations.'
-        h(5) ='     Menu picks "2" and "3" cannot be selected'
-        h(6) ='     until the data has been successfully entered.'
-        h(7) =' 2:  invokes the simulation section of the program'
-        h(8) =' 3:  permits the re-specification of a climate file'
-        h(9) =' t:  allows the user to retrieve selected results'
-        h(10)='     from a subroutine trace facility. This facility'
-        h(11)='     is for use primarily by the experienced user.'
-        h(12)=' '
-        h(13)=' w:  stops non-fatal warning messages being'
-        h(14)='     printed. However, the total number of warning'
-        h(15)='     messages will be output in the simulation'
-        h(16)='     description prior to commencement of simulation.'
-        h(17)=' ?:  invokes this and other descriptive messages'
-        h(18)='     as an aid to inexperienced users. These '
-        h(19)='     messages are a synopsis of, and should be used'
-        h(20)='     in conjunction with, the ESP documentation set'
-        h(21)='     "ESP-r A Building and Plant Energy Simulation'
-        h(22)='     System".'
+        helptopic='module_plt'
+        call gethelptext(helpinsub,helptopic,nbhelp)
         if(initonly.eq.0)then
-          CALL PHELPD('plt opening',22,'-',0,0,IER)
+          CALL PHELPD('plt opening',nbhelp,'-',0,0,IER)
         endif
-C      elseif(module(1:3).eq.'prj')then
-C        H(1)=' '
-C        if(initonly.eq.0)then
-C          CALL PHELPD('prj opening',50,'-',0,0,IER)
-C        endif
       elseif(module(1:3).eq.'pro')then
-        H(1)= '     ESP-r Standard Profiles Database '
-        H(2)= '   ================================ '
-        H(3)= ' '
-        H(4)= ' The data requirements are summarised below :- '
-        H(5)= ' '
-        H(6)= ' for each profile - number of events.'
-        H(7)= ' '
-        H(8)= ' for each event - start and finish hours'
-        H(9)= '                  percentage of first magnitude '
-        H(10)='                  percentage of second magnitude '
-        H(11)=' '
-        H(12)='Currently you may add new profiles at the end of the'
-        H(13)='database or, for existing profiles alter event con- '
-        H(14)='tents but not the number of events. '
-        H(15)=' '
-        H(16)='Profiles in this database are currently used to  '
-        H(17)='assist in the defintion of zone operations.  The'
-        H(18)='standard is found in /usr/esru/esp-r/databases '
+        helptopic='module_pro'
+        call gethelptext(helpinsub,helptopic,nbhelp)
         if(initonly.eq.0)then
-          CALL PHELPD('pro opening',18,'-',0,0,IER)
+          CALL PHELPD('pro opening',nbhelp,'-',0,0,IER)
         endif
       elseif(module(1:3).eq.'res')then
-        H(1)='Results analysis is the simulation results '
-        H(2)='recovery facility for ESP-r. '
-        H(4)=' '
-        H(5)='It always begins with the specification of a results'
-        H(6)='library which may contain results for one or more '
-        H(7)='simulations performed by the Simulator. '
-        H(8)=' '
-        H(9) ='The symbols >> in a menu denotes a toggle selection,'
-        H(10)='the inclusion of a [?] in a prompt means that a'
-        H(11)='default and explanation of the item is available.'
-        H(12)=' '
-        H(13)='Current menu options are: '
-        H(14)=' 1 select result file - select this if the results'
-        H(15)='   file needs to be changed. Not used very often'
-        H(16)='   as res is usually started with a specified file'
-        H(17)='   name.'
-        H(18)=' 2 select result set - if more than one assessment'
-        H(19)='   is stored in the file (perhaps for a different'
-        H(20)='   period) you can re-select using this facility.'
-        H(21)=' 3 define output period - allows you to `zoom in`'
-        H(22)='   on a portion of an assessment.'
-        H(23)=' 4 select zones - allows you to select one or more'
-        H(24)='   zones to include in a graph or report.'
-        H(25)=' a graphs - includes a range of graph types e.g.'
-        H(26)='   variable(s) vs time, frequency binns.'
-        H(27)=' c timestep reports - tabular listings of data at'
-        H(28)='   each timestep over the selected period.'
-        H(29)=' d enquire about - e.g. statistics, energy balances,'
-        H(30)='   hours over/under, frequency binn tables'
-        H(31)=' e plant results - anything to do with detailed'
-        H(32)='   system components and their performance metrics.'
-        H(33)=' f indoor environmental quality - comfort and air'
-        H(34)='   quality issues'
-        H(35)=' g electrical results - if an electical domain is'
-        H(36)='   included in the model all reports/graphs are here.'
-        H(37)=' h CFD - if there is a CFD domain, 2D and 3D graphs'
-        H(38)='   and images at slices can be produced here.'
+        helptopic='module_res'
+        call gethelptext(helpinsub,helptopic,nbhelp)
         if(initonly.eq.0)then
-          CALL PHELPD('res opening',38,'-',0,0,IER)
+          CALL PHELPD('res opening',nbhelp,'-',0,0,IER)
         endif
       elseif(module(1:3).eq.'tdf')then
         continue  ! tdf functionality has been moved into esruprj
       elseif(module(1:3).eq.'vew')then
-        H(1)= ' ? HELP     to list command options available'
-        H(2)= ' Byebye     to exit'
-        H(3)= ' /Input     to TYPE IN numerical values of E F or M '
-        H(4)= ' Eye point  to pick the Eye-point with cursor'
-        H(5)= ' Foc &Midp  to pick the Focus and Mid-points together'
-        H(6)= ' Mid point  to pick the Mid-point alone'
-        H(7)= ' Hidden     to remove hidden lines'
-        H(8)= ' Dashed     to draw them dashed'
-        H(9)= ' Visible    to draw them solid'
-        H(10)=' Lens mm    to specify Lens focal length (in mm)'
-        H(11)=' *Enlarg %  to specify Enlargement factor'
-        H(12)=' Angle vew  to specify viewcone angle (degrees)'
-        H(13)='       (negative for biggest picture that will fit)'
-        H(14)='  '
-        H(15)= ' 4 Orthogr  to select orthogonal projection'
-        H(16)= ' 3 Perspec  to select perspective projection'
-        H(17)= ' 2 || horz  to select parallel proj. onto horiz. plane'
-        H(18)= ' 1 || vert  to select parallel proj. onto vert. plane'
-        H(19)= ' Type all   to list all current view parameters'
-        H(20)= ' Input all  to type in all view parameters'
-        H(21)= ' Screen     to draw the picture'
-        H(22)= ' Out file   to file it in a picture-file'
-        H(23)= ' New file   to select a new input file'
-        H(24)=' +Def vews  to select default views'
+        helptopic='module_vew'
+        call gethelptext(helpinsub,helptopic,nbhelp)
         if(initonly.eq.0)then
-          CALL PHELPD('vew opening',24,'-',0,0,IER)
+          CALL PHELPD('vew opening',nbhelp,'-',0,0,IER)
         endif
       elseif(module(1:4).eq.'wire')then
-        h(1)= 'This interface provides control of the wireframe image'
-        h(2)= 'of the model geometry. There are several sections as'
-        h(3)= 'follows: '
-        h(4)= ' View orientation - allows you to defined the eye point'
-        h(5)= '   (where you are looking from), the view point (what'
-        h(6)= '   you are looking at). Both of these can be edited by'
-        h(7)= '   typing in new values or by using the up/down arrows'
-        h(8)= '   to the right of each number.'
-        h(9)= '   The view bounds can be toggled from optimum to use'
-        h(10)='   a user specified angle of view. Reducing the angle'
-        h(11)='   of view will act to zoom into the view.'
-        h(12)=' '
-        h(13)=' Display information toggles - this toggles off various'
-        h(14)='   attributes (e.g. zone names, site grid).'
-        h(15)=' '
-        h(16)=' Display grid - controls whether a dotted grid is drawn'
-        h(17)='   and the density of the grid.'
-        h(18)=' '
-        h(19)=' Zones to display - one box for each zone in the model'
-        h(20)='   (unticking removes that zone from the view)'
-        h(21)=' '
-        h(22)=' Display options - three sets of options:'
-        h(23)='   View type: pick one of these'
-        h(24)='   Include: allows you to draw all or a subset of the'
-        h(25)='     model geometry e.g. only surfaces facing outside.'
-        h(26)='   Hilight: allows you to identify specific attributes'
-        h(27)='     of entities by drawing them in a bold line.'
-        h(28)=' '
-        h(29)='To apply one or more changes click on the Apply button.'
-        h(30)=' '
-        h(31)='To apply one or more changes and close the wireframe '
-        h(32)='control interface click on the OK button. '
-        h(33)=' '
-        h(34)='Note: a few of the selections are not yet operational. '
+        helptopic='module_wire'
+        call gethelptext(helpinsub,helptopic,nbhelp)
         if(initonly.eq.0)then
-          CALL PHELPD('wirefram ctl',34,'-',0,0,IER)
+          CALL PHELPD('wirefram ctl',nbhelp,'-',0,0,IER)
         endif
       else
-        H(1)='Did not find a matching ESP-r application name.'
-        H(2)='So no one has linked this facility yet. '
+        helptopic='module_unknown'
+        call gethelptext(helpinsub,helptopic,nbhelp)
         if(initonly.eq.0)then
-          CALL PHELPD('ask about mismatch',2,'-',0,0,IER)
+          CALL PHELPD('ask about mismatch',nbhelp,'-',0,0,IER)
         endif
       endif
 
@@ -417,20 +239,17 @@ C found in the ESP-r distribution lib folder) with file ending
 C of *.help
       subroutine gethelptext(sub,topic,nbhelp)
 #include "espriou.h"
+#include "help.h"
       
       integer lnblnk  ! function definition
 
 C Parameters.
       character sub*24   ! subroutine name
       character topic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found (will be non-zero
-                         ! because default message will be created
 
 C Commons.
       integer ifil
       COMMON/FILEP/IFIL
-      character h*72
-      common/pophelp/h(60)
       integer iuout,iuin,ieout
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
 
@@ -456,6 +275,10 @@ C Local variables.
       logical havetopic     ! set true if topic matches
       character app*24      ! application name (local)
 #include "espinstalldir.h"
+
+      helpinsub='lib'      ! not currently used
+      helptopic='gethelptext'
+      write(outs,'(3a)') helpinsub,' ',helptopic
 
 C Get to work.
       app = helpinapp      ! set local app
@@ -564,14 +387,18 @@ C        call edisp(iuout,helpfil)   ! debug
         ihfil=ifil+8              ! set file unit number for res
       elseif(folder(1)(1:7).eq.'esrumrt')then
         ihfil=ifil+8              ! set file unit number for mrt
+      elseif(folder(1)(1:7).eq.'esruish')then
+        ihfil=ifil+8              ! set file unit number for ish
       else
         ihfil=ifil+2              ! set file unit number
       endif
       CALL ERPFREE(ihfil,ISTAT) ! free it
       CALL EFOPSEQ(ihfil,helpfil,1,IER)
       if(ier.ne.0)then
-        call edisp(iuout,'Could not find help text file.')
-        call edisp(iuout,helpfil)
+        write(outs,'(2a )')' Could not find help text file: ',
+     &    helpfil(1:lnblnk(helpfil))
+        call edisp(iuout,' ')
+        call edisp(iuout,outs)
         nbhelp=-1
         return
       endif
@@ -704,8 +531,7 @@ C make up a standard message.
 C Check if there is an alternative help text file. If not give up.
         if(trywhich.eq.1)then
           if(folder(2)(1:7).eq.'UNKNOWN')then
-C            call edisp(iuout,'alt folder was UNKNOWN')
-            h(1)='No alt contextual help text was found for the topic'
+            h(1)='No contextual help text was found for the topic'
             write(h(2),'(5a)') topic(1:lnt),' in ',sub(1:lns),
      &        ' of application ',app(1:lna)
             nbhelp=2
@@ -715,7 +541,6 @@ C            call edisp(iuout,'alt folder was UNKNOWN')
           goto 42  ! try scaning the alternative file
         elseif(trywhich.eq.2)then
           if(folder(3)(1:7).eq.'UNKNOWN')then
-C            call edisp(iuout,'2nd alt folder was UNKNOWN')
             h(1)='No alt contextual help text was found for the topic'
             write(h(2),'(5a)') topic(1:lnt),' in ',sub(1:lns),
      &        ' of application ',app(1:lna)
@@ -726,7 +551,6 @@ C            call edisp(iuout,'2nd alt folder was UNKNOWN')
           goto 42  ! try scaning the alternative file
         elseif(trywhich.eq.3)then
           if(folder(4)(1:7).eq.'UNKNOWN')then
-C            call edisp(iuout,'3rd alt folder was UNKNOWN')
             h(1)='No alt contextual help text was found for the topic'
             write(h(2),'(5a)') topic(1:lnt),' in ',sub(1:lns),
      &        ' of application ',app(1:lna)
@@ -750,6 +574,7 @@ C            call edisp(iuout,'3rd alt folder was UNKNOWN')
 C subroutine to generate line of help text for an integer dialog
 C in terms of default and current value. 
       subroutine helpcurrentint(idef,icur,ermsg,nbhelp,newnbhelp,ier)
+#include "help.h"
       
       integer lnblnk  ! function definition
 
@@ -757,13 +582,10 @@ C Parameters.
       integer idef         ! default value for this number
       integer icur         ! current value
       CHARACTER*(*) ERMSG  ! error message from dialog
-      integer nbhelp       ! original nb of help lines
       integer newnbhelp    ! number of help lines after additional line(s)
       integer ier          ! zero is ok
 
 C Commons.
-      character h*72
-      common/pophelp/h(60)
       integer iuout,iuin,ieout
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
 
@@ -772,6 +594,10 @@ C Local variables.
       integer iw2,iw1      ! length of two integers
       character outs*124 ! for messages
       CHARACTER STR1*10,STR2*10
+
+      helpinsub='lib'      ! not currently used
+      helptopic='helpcurrentint'
+      write(outs,'(3a)') helpinsub,' ',helptopic
 
 C Get to work.
       CALL INTSTR(icur,STR2,IW2,IER)
@@ -804,6 +630,7 @@ C Get to work.
 C subroutine to generate line of help text for an real dialog
 C in terms of default and current value. 
       subroutine helpcurrentreal(def,cur,ermsg,nbhelp,newnbhelp,ier)
+#include "help.h"
       
       integer lnblnk  ! function definition
 
@@ -811,13 +638,11 @@ C Parameters.
       real def         ! default value for this number
       real cur         ! current value
       CHARACTER*(*) ERMSG  ! error message from dialog
-      integer nbhelp       ! original nb of help lines
+C      integer nbhelp       ! original nb of help lines
       integer newnbhelp    ! number of help lines after additional line(s)
       integer ier          ! zero is ok
 
 C Commons.
-      character h*72
-      common/pophelp/h(60)
       integer iuout,iuin,ieout
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
 
@@ -826,6 +651,10 @@ C Local variables.
       integer iw2,iw1      ! length of two integers
       character outs*124 ! for messages
       CHARACTER STR1*16,STR2*16
+
+      helpinsub='lib'      ! not currently used
+      helptopic='helpcurrentreal'
+      write(outs,'(3a)') helpinsub,' ',helptopic
 
 C Get to work.
       CALL REL16STR(def,STR1,IW1,IER)
@@ -858,24 +687,26 @@ C Get to work.
 C subroutine to generate line of help text for an string dialog
 C if no lines of help have been defined in the calling code. 
       subroutine helpwithblank(ermsg,nbhelp,newnbhelp,ier)
+#include "help.h"
       
       integer lnblnk  ! function definition
 
 C Parameters.
       CHARACTER*(*) ERMSG  ! error message from dialog
-      integer nbhelp       ! original nb of help lines
       integer newnbhelp    ! number of help lines after additional line(s)
       integer ier          ! zero is ok
 
 C Commons.
-      character h*72
-      common/pophelp/h(60)
       integer iuout,iuin,ieout
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
 
 C Local variables.
       integer ln           ! length of error message
-      character outs*124 ! for messages
+      character outs*124   ! for messages
+
+      helpinsub='lib'      ! not currently used
+      helptopic='helpwithblank'
+      write(outs,'(3a)') helpinsub,' ',helptopic
 
 C Get to work.
       IF(nbhelp.GT.0)THEN

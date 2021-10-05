@@ -580,8 +580,8 @@ C      end
       return
       end
 
-      subroutine opencfg(icfg_type,icfgz,icfgn,icfgc,icfgdfn,iicfgz,
-     &  iicfgn,iicfgc,iicfgdfn)
+      subroutine opencfg(icfg_type,icfgz,icfgs,icfgnet,icfgc,
+     &  icfgpln,icfgeln,icfgren,icfgfab,icfgbeh,icfgsim)
       return
       end
 
@@ -645,9 +645,9 @@ C      end
       return
       end
 
-      subroutine textpixwidth(buff,ipixw)
+      subroutine textpixwidth(buff,ipixw,ipixh)
       character*(*) buff
-      integer ipixw
+      integer ipixw,ipixh
       return
       end
 

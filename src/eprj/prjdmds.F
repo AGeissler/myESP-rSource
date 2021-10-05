@@ -58,6 +58,7 @@ C file unit for the demands file. IER=0 is OK.
 #include "model.h"
 #include "ipvdata.h"
 #include "schedule.h"
+#include "help.h"
       
       integer lnblnk  ! function definition
 
@@ -88,13 +89,8 @@ C Flags noting whether casual gain periods are currently sorted.
       LOGICAL OK,XST,MODOPR
       integer NITEMS,INO ! max items and current menu item
       integer ISTRW
-      
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
 
-      helpinsub='PRJDMDS'  ! set for subroutine
+      helpinsub='prjdmds'  ! set for subroutine
 
 C
 C GFILE is the default file name for project gains file.
@@ -474,6 +470,7 @@ C IWSS is the calendar day type passed from the calling code.
 #include "epara.h"
 #include "ipvdata.h"
 #include "schedule.h"
+#include "help.h"
 
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
@@ -494,13 +491,8 @@ C blodlabel(1)='Other',(2)='Lights',(3)='SmPowr',(4)='Fans',(5)='Pumps',(6)='Lif
       character calename*32,calentag*12,calendayname*32
       integer IEBCGTS,IWM  ! for radio buttons
       integer MVERT,IVERT ! max items and current menu item
-      
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
 
-      helpinsub='EDBCAS'  ! set for subroutine
+      helpinsub='prjdmds'  ! set for subroutine
 
 C Labels for loads.
       write(ll1,'(a)') blodlabel(1)
@@ -808,6 +800,7 @@ C patterns.
 #include "ipvdata.h"
 #include "profile.h"
 #include "schedule.h"
+#include "help.h"
 
 C << introduce concept of profiles with multiple day types as well
 C << as multiple casual gain types
@@ -834,13 +827,8 @@ C Profile database commons via profile.h.
       character fs*1   ! file separator
       logical unixok  ! to check for database path file separators
       integer ICGTL   ! for radio button
-      
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
 
-      helpinsub='SBCASL'  ! set for subroutine
+      helpinsub='prjdmds'  ! set for subroutine
 
 C Set folder separator (fs) to \ or / as required.
       call isunix(unixok)

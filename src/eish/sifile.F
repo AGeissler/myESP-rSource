@@ -207,6 +207,7 @@ C once per day.
       subroutine ssave(icomp,ier)
 #include "building.h"
 #include "geometry.h"
+#include "help.h"
 
       common/outin/iuout,iuin,ieout
       common/filep/ifil
@@ -219,12 +220,7 @@ C once per day.
       character outs*124
       logical ok
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp         ! number of help lines found
-
-      helpinsub='ssave'      ! set for subroutine
+      helpinsub='sifile'      ! set for subroutine
 
 C S/I file unit number.
       ifilsi=ifil+3
@@ -331,6 +327,7 @@ C once per day-month.
       subroutine isave(icomp,ier)
 #include "building.h"
 #include "geometry.h"
+#include "help.h"
 
       common/outin/iuout,iuin,ieout
       common/data1/ical,idifc,init
@@ -347,15 +344,11 @@ C once per day-month.
       character outs*124,paction*16,month*3
       logical ok,close
 
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp         ! number of help lines found
-
       data month/'Jan','Feb','Mar','Apr','May','Jun','Jul','Aug',
      &           'Sep','Oct','Nov','Dec'/
 
 C S/I file unit number.
-      helpinsub='isave'  ! set for subroutine
+      helpinsub='sifile'  ! set for subroutine
       ifilsi=ifil+3
       ier=0
 

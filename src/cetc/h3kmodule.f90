@@ -132,7 +132,7 @@ MODULE h3kmodule
          rvClimateDryBulbTemperature, rvClimateRelativeHumidity, rvClimateWindVelocity, &
          rvClimateWindDirection, rvClimateCloudCover, rvClimateSkyTemperature, &
          rvClimateSkyTemperatureDepression, rvClimateAmbientAirTsat, rvClimateVapourPressure, &
-         rvBuildingAllZonesFreeCooling
+         rvClimateAmbientAirPress, rvClimateAmbientAirDens, rvBuildingAllZonesFreeCooling
    Type(ReportVariable) :: rvBuildingTimePresent, rvBuildingTimeFuture,rvBuildingHourPresent, &
          rvBuildingHourFuture,rvBuildingDayNumberPresent, rvBuildingDayNumberFuture,&
          rvBuildingYearPresent,rvBuildingYearFuture, rvBuildingDayPresent,rvBuildingMonth, &
@@ -151,6 +151,7 @@ MODULE h3kmodule
          rvElecNetNodesTransmissionReal, rvElecNetNodesTransmissionReative, &
          rvElecNetHybridComponentFlux, rvElecNetPowerOnlyComponents, &
          rvMfnTotalNodeFlowRate,rvMfnTotalNodeVolFlowRate,rvMfnTotalNodeTemp, &
+         rvMfnNodeTotPressure, rvMfnNodeAirDensity, &
          rvMfnConnectPressureDrop, rvMfnConnectFlowRate,rvMfnConnectVeloc, &
          rvMfnContamCon, rvMfnConnectCtlOnFrac, rvMfnTRM, rvZoneLabel
    Type(ReportVariable) :: rvSurfaceArea, rvSurfLayMatnam, rvSurfLayDens, rvSurfLayThick, rvMLCArea
@@ -1188,6 +1189,18 @@ CONTAINS
       rvClimateAmbientAirTsat%Description = 'ambient air saturation temperature'
       Call AddVariable(rvClimateAmbientAirTsat)
 
+      rvClimateAmbientAirPress%VariableName = 'climate/ambient_air_press'
+      rvClimateAmbientAirPress%MetaType = 'units'
+      rvClimateAmbientAirPress%VariableType = '(Pa)'
+      rvClimateAmbientAirPress%Description = 'atmospheric pressure'
+      Call AddVariable(rvClimateAmbientAirPress)
+
+      rvClimateAmbientAirDens%VariableName = 'climate/ambient_air_density'
+      rvClimateAmbientAirDens%MetaType = 'units'
+      rvClimateAmbientAirDens%VariableType = '(kg/m3)'
+      rvClimateAmbientAirDens%Description = 'ambient air density'
+      Call AddVariable(rvClimateAmbientAirDens)
+
       rvBuildingTimePresent%VariableName = 'building/time/present'
       rvBuildingTimePresent%MetaType = 'units'
       rvBuildingTimePresent%VariableType = '(hours)'
@@ -1471,6 +1484,18 @@ CONTAINS
       rvMfnTotalNodeTemp%VariableType = '(oC)'
       rvMfnTotalNodeTemp%Description = 'mfn node temperature'
       Call AddVariable(rvMfnTotalNodeTemp)
+
+      rvMfnNodeTotPressure%VariableName = 'mfn/*/*/totpress'
+      rvMfnNodeTotPressure%MetaType = 'units'
+      rvMfnNodeTotPressure%VariableType = '(Pa)'
+      rvMfnNodeTotPressure%Description = 'mfn node total pressure'
+      Call AddVariable(rvMfnNodeTotPressure)
+
+      rvMfnNodeAirDensity%VariableName = 'mfn/*/*/density'
+      rvMfnNodeAirDensity%MetaType = 'units'
+      rvMfnNodeAirDensity%VariableType = '(kg/m3)'
+      rvMfnNodeAirDensity%Description = 'mfn node dry air density'
+      Call AddVariable(rvMfnNodeAirDensity)
 
       rvMfnConnectPressureDrop%VariableName = 'mfn/*/*/Dp'
       rvMfnConnectPressureDrop%MetaType = 'units'

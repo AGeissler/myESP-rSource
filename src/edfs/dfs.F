@@ -1,6 +1,6 @@
 C This file is part of the ESP-r system.
 C Copyright Energy Systems Research Unit, University of
-C Strathclyde, Glasgow Scotland, 2001.
+C Strathclyde, Glasgow, Scotland, 2001-.
 
 C ESP-r is free software.  You can redistribute it and/or
 C modify it under the terms of the GNU General Public
@@ -12,8 +12,6 @@ C but WITHOUT ANY WARRANTY; without even the implied
 C warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
 C PURPOSE. See the GNU General Public License for more
 C details.
-
-
 
 
 C ********************* DFS *********************
@@ -32,6 +30,7 @@ C and top offsets. If these are 0 then use default values.
 #include "material.h"
 #include "espriou.h"
 #include "prj3dv.h"
+#include "help.h"
 
       integer lnblnk  ! function definition
 
@@ -66,7 +65,7 @@ C CFD common blocks.
       common/param2/TITLE(MNZ),CFTRFL(MNZ),LPHI(MNZ)
       COMMON/SIMT/TSTEP,NSINC
       COMMON/ICFNOD/ICFD,ICP
-      COMMON/ICFCHN/ICFMON(MNZ),ICFTMP,ICFLIB
+      COMMON/ICFCHN/ICFMON(MNZ),ICFDBC(MNZ),ICFTMP,ICFLIB
 
 C Flow visualization common blocks.
       COMMON/VISFIL/LVEC,LBIT
@@ -146,12 +145,6 @@ C Ask to overwrite flag.
       integer ISHSB,ISHAO,IFACES
       integer ISTRW
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found (will be non-zero
-                         ! because default message will be created
-
 #ifdef OSI
       integer iigl,iigr,iigt,iigb,iigw,iigwh
       integer iiw1,iiw2,iiw3,iiw4,iimenu
@@ -228,7 +221,8 @@ C File units.
       NSIGFIG=3
       IFL=IFIL+1
       ICFLIB=IFIL+2
-      ICFMON=IFIL+3
+      ICFMON(1)=IFIL+3
+      ICFDBC(1)=IFIL+5
       matver=0.0     ! initial assumption of binary materials database
       AUTOVR=.false. ! by default, ask to overwrite files
 
@@ -304,7 +298,7 @@ C Determine terminal type and set write unit to stderr for rule scripts.
 
 C Set pixels high to iappw and pixels wide to factor in monitor size.
       iapphi=iappw
-      iappwi=int(real(iappw)*(1024.0/780.0))
+      iappwi=int(real(iappw)*(1024.0/725.0))
 
       if(iappw.gt.0.and.iappw.lt.100)then
         menuchw = MAX0(int(27*iappw*0.01),10)
@@ -936,9 +930,11 @@ C Should the results files be removed ?
         if (OK) then
           CALL EFDELET(ICFLIB,ISTAT)
           CALL EFDELET(ICFMON(ICFD),ISTAT)
+          CALL EFDELET(ICFDBC(ICFD),ISTAT)
         else
           CALL ERPFREE(ICFLIB,ISTAT)
           CALL ERPFREE(ICFMON(ICFD),ISTAT)
+          CALL ERPFREE(ICFDBC(ICFD),ISTAT)
         endif
 
 C Should the cfd temporary file be removed ?
@@ -988,6 +984,10 @@ C Dummy subroutine needed to compile (called from library code).
       end
       
       SUBROUTINE GRAAPH(IDRW1,IDRW2)
+      return
+      end
+
+      subroutine redrawbuttons()
       return
       end
 

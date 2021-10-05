@@ -784,41 +784,29 @@ C zones and if the model is updated only data for the number of
 C items held in the file will be scanned.
    42   CALL STRIPC(IUF,OUTSTR,99,ND,1,'NCM data line',IER)
         if(OUTSTR(1:12).eq.'Project name')then
-          K=14
-          CALL EGETRM(OUTSTR,K,pjname,'W','pjname',IER)
-          goto 42
+          goto 42   ! Deprecated tag.
         elseif(OUTSTR(1:16).eq.'Building address')then
-          K=18
-          CALL EGETRM(OUTSTR,K,baddress,'W','NCM baddress',IER)
-          goto 42
+          goto 42   ! Deprecated tag.
         elseif(OUTSTR(1:13).eq.'Building city')then
           goto 42
         elseif(OUTSTR(1:17).eq.'Building Postcode')then
           K=19
           goto 42
         elseif(OUTSTR(1:19).eq.'Building owner name')then
-          K=21
-          CALL EGETRM(OUTSTR,K,ownername,'W','NCM ownername',IER)
           goto 42
         elseif(OUTSTR(1:24).eq.'Building owner telephone')then
           goto 42
         elseif(OUTSTR(1:22).eq.'Building owner address')then
-          K=24
-          CALL EGETRM(OUTSTR,K,owneraddr,'W','NCM owneraddr',IER)
           goto 42
         elseif(OUTSTR(1:19).eq.'Building owner city')then
           goto 42
         elseif(OUTSTR(1:23).eq.'Building owner Postcode')then
           goto 42
         elseif(OUTSTR(1:14).eq.'Certifier name')then
-          K=16
-          CALL EGETRM(OUTSTR,K,certifname,'W','NCM certifname',IER)
           goto 42
         elseif(OUTSTR(1:19).eq.'Certifier telephone')then
           goto 42
         elseif(OUTSTR(1:17).eq.'Certifier address')then
-          K=19
-          CALL EGETRM(OUTSTR,K,certaddress,'W','NCM certaddress',IER)
           goto 42
         elseif(OUTSTR(1:14).eq.'Certifier city')then
           goto 42
@@ -1217,20 +1205,6 @@ C<< Create facility to read/write file with user defined name
 C Write high level project specific detail. 
       WRITE(IUF,'(A)',IOSTAT=IOS,ERR=3) '*SBEM 1.1'
 
-C Model cfg file holds the building and owner and simulationist info.
-C      WRITE(IUF,'(2A)',IOSTAT=IOS,ERR=3)'Project name, ',
-C     &  pjname(1:lnblnk(pjname))
-C      WRITE(IUF,'(2A)',IOSTAT=IOS,ERR=3)'Building address, ',
-C     &  baddress(1:lnblnk(baddress))
-C      WRITE(IUF,'(2A)',IOSTAT=IOS,ERR=3)
-C     &  'Building owner name, ',ownername(1:lnblnk(ownername))
-C      WRITE(IUF,'(2A)',IOSTAT=IOS,ERR=3)
-C     &  'Building owner address, ',owneraddr(1:lnblnk(owneraddr))
-C      WRITE(IUF,'(2A)',IOSTAT=IOS,ERR=3)'Certifier name, ',
-C     &  certifname(1:lnblnk(certifname))
-C      WRITE(IUF,'(2A)',IOSTAT=IOS,ERR=3)
-C     &  'Certifier address, ',certaddress(1:lnblnk(certaddress))
-
       WRITE(IUF,'(2A)',IOSTAT=IOS,ERR=3)'UPR number, ',
      &  UPRN(1:lnblnk(UPRN))
    
@@ -1569,20 +1543,14 @@ C<< Create facility to read/write file with user defined name
 
 C Write high level project specific detail
       WRITE(IUF,'(A)',IOSTAT=IOS,ERR=3) '*SBEM 1.1'
-      WRITE(IUF,'(2A)',IOSTAT=IOS,ERR=3)'Project_name,',
-     &  pjname(1:lnblnk(pjname))
+      WRITE(IUF,'(2A)',IOSTAT=IOS,ERR=3)'Project_name,','xxxx'
       WRITE(IUF,'(A)',IOSTAT=IOS,ERR=3)'*Site'
-      WRITE(IUF,'(2A)',IOSTAT=IOS,ERR=3)'Building_address,',
-     &  baddress(1:lnblnk(baddress))
-      WRITE(IUF,'(2A)',IOSTAT=IOS,ERR=3)
-     &  'Building_owner_name,',ownername(1:lnblnk(ownername))
-      WRITE(IUF,'(2A)',IOSTAT=IOS,ERR=3)
-     &  'Building_owner_address,',owneraddr(1:lnblnk(owneraddr))
+      WRITE(IUF,'(2A)',IOSTAT=IOS,ERR=3)'Building_address,','xxxx'
+      WRITE(IUF,'(2A)',IOSTAT=IOS,ERR=3)'Building_owner_name,','xxxx'
+      WRITE(IUF,'(2A)',IOSTAT=IOS,ERR=3)'Building_owner_address,','xxxx'
       WRITE(IUF,'(A)',IOSTAT=IOS,ERR=3)'*Certifier'
-      WRITE(IUF,'(2A)',IOSTAT=IOS,ERR=3)'Certifier_name,',
-     &  certifname(1:lnblnk(certifname))
-      WRITE(IUF,'(2A)',IOSTAT=IOS,ERR=3)
-     &  'Certifier_address,',certaddress(1:lnblnk(certaddress))
+      WRITE(IUF,'(2A)',IOSTAT=IOS,ERR=3)'Certifier_name,','xxxx'
+      WRITE(IUF,'(2A)',IOSTAT=IOS,ERR=3)'Certifier_address,','xxxx'
       WRITE(IUF,'(2A)',IOSTAT=IOS,ERR=3)'UPR_number,',
      &  UPRN(1:lnblnk(UPRN))
    

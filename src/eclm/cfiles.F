@@ -18,6 +18,8 @@ C License along with ESP-r. If not, write to the Free
 C Software Foundation, Inc., 59 Temple Place, Suite 330,
 C Boston, MA 02111-1307 USA.
 
+
+C This file contains the following subroutines:
 C MKBCLM: Allows a period of climatic data in a suitable ASCII file
 C         to be transferred to a binary weather file.
 C COLTOBCLM: Allows a period of column climatic data in a suitable ASCII file
@@ -32,9 +34,10 @@ C CLMPUT: Writes one day's weather data to the current weather file.
 C EPWTOBCLM: Allows a period of climatic data from EPW format ASCII file
 C         to be transferred to a binary weather file.
 
-C 'MKBCLM' Allows a period of climatic data in a suitable ASCII file
-C to be transferred to a binary weather file.  The ASCII file should 
-C contain weather metric values for each hour.  Metrics are defined in
+C ******************** MKBCLM ******************
+C Allows a period of weather data in an ASCII weather file
+C to be transferred to a binary file. The ASCII file should 
+C contain weather metric values for each hour as defined in
 C climate.h.
 
 C *** Version 2+ weather files ***
@@ -90,10 +93,11 @@ C elsewhere.
       SUBROUTINE MKBCLM(ITRU,ICDESC,LASCI,IUNIT,IDS,IDF,silent,IER)
 #include "esprdbfile.h"
 #include "climate.h"
+#include "help.h"
 
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
 
-C Session log file (for errors etc.)
+C Session log file (for errors etc.).
       character isfile*72
       common/logs/isfile
 
@@ -110,12 +114,7 @@ C Session log file (for errors etc.)
 
       integer CFIND(MCM) ! Metric indices of each column in the file
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found (will be non-zero
-
-      helpinsub='MKBCLM'  ! set for cfiles
+      helpinsub='cfiles'  ! set for cfiles
 
 C Open the ASCII file for reading.
       if(iunit.eq.0)then
@@ -126,7 +125,7 @@ C Open the ASCII file for reading.
 
       CALL EFOPSEQ(IUNIT,LASCI,1,IER)
       if(ier.ne.0)then
-        call usrmsg(' Problem opening...',LASCI,'W')
+        call usrmsg('Problem opening ',LASCI,'W')
         ier = 1
         return
       endif
@@ -189,7 +188,7 @@ C Get column field.
               read(outs(1:lnblnk(outs)),*)icol
               if (icol.lt.1.or.icol.gt.CFMCM) then                
                 write(outs,'(a,i2.2)')
-     &            ' Error: invalid column for weather parameter ',i
+     &            'Invalid column for weather parameter ',i
                 call edisp(iuout,outs)
                 CALL ERPFREE(IUNIT,ISTAT)
                 RETURN
@@ -205,9 +204,6 @@ C Check we have at least the required metrics.
           CALL CLMCHKMET(IER)
           if (IER.ne.0) goto 1003
 
-C Assume period is for a full year.
-          IDS=1
-          IDF=365
         endif
 
       elseif (ND.eq.2 .and. OUTSTR(1:9).eq.'*CLIMATE ') then
@@ -337,8 +333,10 @@ C Define the year if not already done.
           CALL EASKR(CFLAT,' ','Station latitude?',
      &      -89.9,'W',89.9,'W',30.0,'weather latitude',IER,nbhelp)
           
+          helpinsub='common' ! get from common.help
           helptopic='define_longitude_diff'
           call gethelptext(helpinsub,helptopic,nbhelp)
+          helpinsub='cfiles'  ! set for cfiles
           CALL EASKR(CFLONG,' ',
      &      'Station longitude difference?',
      &      -14.9,'W',14.9,'W',0.0,'weather long',IER,nbhelp)
@@ -462,7 +460,7 @@ C Close ASCIIfile.
       END
 
 
-C 'COLTOBCLM' Allows a period of column climatic data in a suitable
+C 'COLTOBCLM' Allows a period of column weather data in a suitable
 C ASCII file to be transferred to a binary weather file.  The ASCII file
 C should have columns of data (integers or reals) for at least diffuse
 C solar, direct or global solar, dry bulb, wind speed, wind direction
@@ -475,10 +473,11 @@ C tenths W/m2 or (sum direct+diffuse) KJ integer or real using one of
 C three methods to evaluate the diffuse component.
 C For dry bulb degrees C real, integer tenths deg C
 C For wind speed m/s real, m/s integer, integer tenths m/s, knots
-C integer or real.
+C integer or real, km/hr real.
 C For wind direction degrees from north real or integer, integer tenths
 C degrees
 C For RH  % real, tenths % integer, between 0. and 1.
+C For atmospheric pressure Pa, kPa, hPa, bar, psi atm.
 
 C At the end of the process we have at least ...
 
@@ -504,6 +503,7 @@ C elsewhere.
 #include "espriou.h"
 #include "climate.h"
 #include "epara.h"
+#include "help.h"
 
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
 
@@ -528,12 +528,7 @@ C elsewhere.
       integer ival
       logical btog,bcol
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found (will be non-zero
-
-      helpinsub='COLTOBCLM'  ! set for cfiles
+      helpinsub='cfiles'  ! set for cfiles
 
 C Initialiase defaults for easkr in the case of single dir+dif solar value
       longit_for_diffuse_calcs=0.
@@ -541,14 +536,14 @@ C Initialiase defaults for easkr in the case of single dir+dif solar value
 
 C Open the ASCII file for reading.
       if(iunit.eq.0)then
-        call usrmsg(' Problem with file unit for ...',LASCI,'W')
+        call usrmsg('Problem with file unit for ',LASCI,'W')
         ier = 1
         return
       endif
 
       CALL EFOPSEQ(IUNIT,LASCI,1,IER)
       if(ier.ne.0)then
-        call usrmsg(' Problem opening ...',LASCI,'W')
+        call usrmsg('Problem opening ',LASCI,'W')
         ier = 1
         return
       endif
@@ -571,7 +566,6 @@ C Actual read of ASCII import file.
       K=K+1
       CALL  EDISP(IUOUT,OUTSTR)
       IF(K.LT.8)GOTO 7
-      CALL EDISP(IUOUT,'  .......  ')
       CALL EDISP(IUOUT,' ')
       CALL ERPFREE(IUNIT,ISTAT)
 
@@ -589,7 +583,7 @@ C Page this menu if needed.
       else
         WRITE(IMPT(3),'(A)') '3 Demarcation lines: yes skip'
       endif
-      write(IMPT(4),'(A,A)') '4 Enter site data   '
+      write(IMPT(4),'(A,A)') '4 Enter site data'
       IMPT(5) =      '  - - Column associations & units: - - - '
 
       ILEN=MCM*2
@@ -641,9 +635,9 @@ C Different units for different metrics.
               elseif(ITUNITS(imet).eq.2)then
                 units='tenths W/m^2 integer'
               elseif(ITUNITS(imet).eq.3)then
-                units='dir+dif KJ/m2 real  '
+                units='dir+dif KJ/m^2 real '
               elseif(ITUNITS(imet).eq.4)then
-                units='dir+dif KJ/m2 int   '
+                units='dir+dif KJ/m^2 int  '
               endif
               MITUNITS(imet)=4
 
@@ -658,8 +652,10 @@ C Different units for different metrics.
                 units='knots real          '
               elseif(ITUNITS(imet).eq.4)then
                 units='knots integer       '
+              elseif(ITUNITS(imet).eq.5)then
+                units='km/hr real       '
               endif
-              MITUNITS(imet)=4
+              MITUNITS(imet)=5
 
             elseif (imet.eq.6) then ! wind direction
               if(ITUNITS(imet).eq.0)then
@@ -715,13 +711,15 @@ C Different units for different metrics.
               elseif(ITUNITS(imet).eq.4)then
                 units='tenths kPa integer  '
               elseif(ITUNITS(imet).eq.5)then
-                units='bar real            '
+                units='hPa real            '
               elseif(ITUNITS(imet).eq.6)then
-                units='psi real            '
+                units='bar real            '
               elseif(ITUNITS(imet).eq.7)then
+                units='psi real            '
+              elseif(ITUNITS(imet).eq.8)then
                 units='atm real            '
               endif
-              MITUNITS(imet)=7
+              MITUNITS(imet)=8
 
             endif
 
@@ -915,8 +913,7 @@ C Set up CMCOL and CMXST, and initialise ICLM.
             CMXST(imet)=.false.
           endif
         enddo
-        if (CMXST(4) .and. .not.CMXST(2) .and.
-     &    (ITUNITS(4).eq.3 .or. ITUNITS(4).eq.4)) then
+        if (CMXST(4) .and. .not.CMXST(2)) then ! Also set diffuse as it will be derived.
           CMXST(2)=.true.
           CMCOL(2)=icol+1
         endif
@@ -1040,12 +1037,15 @@ C Different units for different metrics.
                   CALL EGETWR(OUTSTR,K,rval,0.0,0.0,'-',
      &              'glo w/m2 real',IER)
                   ICLM(J,CMCOL(4))= NINT(rval)
+                  btog=.true.
                 elseif(ITUNITS(4).eq.1)then
                   CALL EGETWI(OUTSTR,K,ival,0,0,'-','glo w/m2 int',IER)
                   ICLM(J,CMCOL(4))=ival
+                  btog=.true.
                 elseif(ITUNITS(4).eq.2)then
                  CALL EGETWI(OUTSTR,K,ival,0,0,'-','glo 10th w/m2',IER)
                   ICLM(J,CMCOL(4))=ival/10  ! to get back to w/m2
+                  btog=.true.
                 elseif(ITUNITS(4).eq.3)then
                   CALL EGETWR(OUTSTR,K,rval,0.0,0.0,'-',
      &              'glo KJ/m2 real',IER)
@@ -1061,7 +1061,7 @@ C Also need to derive the diffuse as per the approach for decoding
 C Korean MET office data.
                 if (btog) then
                   call edayr(IDD,imonth,iday)
-                  CALL APPRDIFFUSE(iyear,imonth,iday,J,ICLM(J,4),
+                  CALL APPRDIFFUSE(iyear,imonth,iday,J,ICLM(J,CMCOL(4)),
      &              longit_for_diffuse_calcs,differ_from_Greenwich,DRAD)
                   IDRAD=NINT(DRAD)
                   ICLM(J,CMCOL(2))=IDRAD
@@ -1085,6 +1085,10 @@ C Korean MET office data.
                 elseif(ITUNITS(5).eq.4)then
                   CALL EGETWI(OUTSTR,K,ival,0,0,'-','vel knot int',IER)
                   ICLM(J,CMCOL(5))= NINT((ival*10)*0.51444)
+                elseif(ITUNITS(5).eq.5)then
+                  CALL EGETWR(OUTSTR,K,rval,0.0,0.0,'-',
+     &              'vel km/hr real',IER)
+                  ICLM(J,CMCOL(5))= NINT((rval*10.0)*0.2777)
                 endif
 
               elseif(N1.eq.IMSTC(6))then
@@ -1162,14 +1166,18 @@ C Korean MET office data.
      &              IER)
                   ICLM(J,CMCOL(10))= ival*100
                 elseif(ITUNITS(10).eq.5)then
+                  CALL EGETWR(OUTSTR,K,rval,0.0,0.0,'-','pres hPa real',
+     &              IER)
+                  ICLM(J,CMCOL(10))= NINT(rval*100.0)
+                elseif(ITUNITS(10).eq.6)then
                   CALL EGETWR(OUTSTR,K,rval,0.0,0.0,'-','pres bar real',
      &              IER)
                   ICLM(J,CMCOL(10))= NINT(rval*100000.0)
-                elseif(ITUNITS(10).eq.6)then
+                elseif(ITUNITS(10).eq.7)then
                   CALL EGETWR(OUTSTR,K,rval,0.0,0.0,'-','pres psi real',
      &              IER)
                   ICLM(J,CMCOL(10))= NINT(rval*6894.757)
-                elseif(ITUNITS(10).eq.7)then
+                elseif(ITUNITS(10).eq.8)then
                   CALL EGETWR(OUTSTR,K,rval,0.0,0.0,'-','pres atm real',
      &              IER)
                   ICLM(J,CMCOL(10))= NINT(rval*101325.0)
@@ -1281,7 +1289,7 @@ C Rearrange the column order of climate metrics, if needed.
         WRITE(IAF,'(A,I1)',IOSTAT=ISTAT,ERR=1003)'*WEATHER ',NMCM
 
 C Create a header section with site details.
-        WRITE(IAF,'(A)',IOSTAT=ISTAT,ERR=1003)CFLOC
+        WRITE(IAF,'(A)',IOSTAT=ISTAT,ERR=1003)CFLOC(1:lnblnk(CFLOC))
         
         WRITE(outs,'(I6,2F8.2)',IOSTAT=ISTAT,ERR=1003)CFYEAR,CFLAT,
      &    CFLONG
@@ -1491,6 +1499,7 @@ C files may have first line STN_ID if this is found skip and try next.
       SUBROUTINE MKOREANCLM(LASCI,IUNIT,ACT,IER)
 #include "esprdbfile.h"
 #include "climate.h"
+#include "help.h"
 
 C Parameters
       character LASCI*96 ! file name to import
@@ -1524,12 +1533,7 @@ C Parameters
       real longit_for_diffuse_calcs,differ_from_Greenwich
       integer IDRAD
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found (will be non-zero
-
-      helpinsub='MKOREANCLM'  ! set for cfiles
+      helpinsub='cfiles'  ! set for cfiles
 
 C Open the ASCII file for reading.
       if(iunit.eq.0)then
@@ -1896,6 +1900,7 @@ C silent is a logical toggle: true keeps user interactions to a minimum.
 #include "esprdbfile.h"
 #include "espriou.h"
 #include "climate.h"
+#include "help.h"
       
       integer lnblnk  ! function definition
       integer igraphiclib  ! external definition
@@ -1930,12 +1935,7 @@ C or passed into clm module).
       character fs*1
       character actreturn*1  ! users preference
 
-C For help messages
-      character helpinsub*24   ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found (will be non-zero
-
-      helpinsub='CFILIN'  ! set for cfiles
+      helpinsub='cfiles'  ! set for cfiles
       tab = CHAR(9)
       minu = CHAR(39)
       second = CHAR(34)
@@ -2359,6 +2359,7 @@ C read in.
 #include "esprdbfile.h"
 #include "espriou.h"
 #include "climate.h"
+#include "help.h"
       
       integer lnblnk  ! function definition
 
@@ -2393,12 +2394,7 @@ C Initial guess on string sizes.
       character city*32,provence*24,country*24,source*24
       character dayname*8,clmcomment*72,dpdescr*24
 
-C For help messages
-      character helpinsub*24   ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found (will be non-zero
-
-      helpinsub='EPWTOBCLM'
+      helpinsub='cfiles'
 
       city=' '
       provence=' '

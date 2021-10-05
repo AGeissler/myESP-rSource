@@ -150,7 +150,7 @@ C << TO BE DONE >>
 
 
 C Connection data. Given a minimum record width of 40 (revise to
-C use multiples of 40 rather than 20.
+C use multiples of 40 rather than 20).
       limit=nzrl; limit1=nzrl-1
       XW=FLOAT(NCON)/FLOAT(limit)
       N=INT(XW)+1
@@ -370,6 +370,7 @@ C save set.
 #include "model.h"
 C UA1 from uncertainty.h
 #include "uncertainty.h"
+#include "help.h"
       
       integer lnblnk  ! function definition
 
@@ -454,12 +455,7 @@ C 'simulation toggles' menu.
                                  ! weather file is hour-centered (default)
                                  ! or 1 if half-hour centered.
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='MZLS2'  ! set for subroutine
+      helpinsub='blibsv'  ! set for subroutine
 
 C Initialise once per hour storage facility.  (Future work could
 C involve storage of results at higher frequency.
@@ -1451,7 +1447,7 @@ C *** Results save level 1.
           endif
         endif
 
-C Results save level 2 (or above but not 6).
+C *** Results save level 2 (or above but not 6).
       elseif (ISAVE.ge.2) then
 
 C Surface-related averages: internal temperature, external solar absorption
@@ -1582,7 +1578,7 @@ C Averages for each casual gain (after control applied).
 
 C Save future to current for these casual gains. Since the
 C future value is still needed for trace output, delay zeroing
-C until after this output if invoked).
+C until after this output if invoked.
         ctlperocupc(icomp,1)=ctlperocupc(icomp,2)
         ctlperocupr(icomp,1)=ctlperocupr(icomp,2)
         ctlperocupl(icomp,1)=ctlperocupl(icomp,2)
@@ -2377,22 +2373,23 @@ C CFD surface convection heat flux.
         QCFDP(ICOMP,I)=QCFDF(ICOMP,I)
 
         NN=NNDC(ICOMP,I)-1
-      DO 10 J=1,NN
+      DO 20 J=1,NN
         TPC(ICOMP,I,J)=TFC(ICOMP,I,J)
         GENFLXP(ICOMP,I,J)=GENFLXF(ICOMP,I,J)
-   10 CONTINUE
+   20 continue
+   10 continue
       RETURN
       END
 
 C ******************** SURBAL ********************
-C Calculates surface energy balances for future time row.
-C Present time row data is copied from future before new calculation, 
+C Calculates surface energy balances at the future time row.
+C Present time row data is copied from future values before new calculation
 C so that variable thermophysical properties are accounted for (e.g. 
-C in blind shutter control, or bcl99).  If variable thermophysical 
+C in blind shutter control or bcl99). If variable thermophysical 
 C properties are defined as a function of e.g. temperature (i.e. IVTHPZ
-C is true) then a separate calculation is made as the conductivity etc 
-C is held in a separate set of commons.
-C Possibly all calculations should use the IVTHPZ in the future?
+C is true) then a separate calculation is made as conductivity etc 
+C are held in a separate set of commons.
+C << All calculations should use IVTHPZ in future>>
 
       SUBROUTINE SURBAL(ICOMP)
 #include "building.h"
@@ -2604,9 +2601,9 @@ C Convection.
           qconve(ICOMP,ISFN,2)=hcof(ICOMP,ISFN)*sna(ICOMP,ISFN)*
      &                                            (tf-tfc(ICOMP,ISFN,1))
 
-C Calculate Outside Face Convection for CFCs
-C ONLY IF OUTDOOR BLIND IS PRESENT - OTHERWISE 
-C STANDARD ESP-R CALCULATION APPLIES
+C Calculate outside face convection for CFCs
+C only if outdoor blind is present - otherwise 
+C standard ESP-r calculation applies.
           icfcType = icfcfl(icomp,isfn) !CFC type
           IF(icfcType.ge.1)then !surface is CFC
 
@@ -2629,9 +2626,9 @@ C Longwave radiation (ground, buildings, sky).
           qlwrsk(ICOMP,ISFN,1)=qlwrsk(ICOMP,ISFN,2)
           qlwrsk(ICOMP,ISFN,2)=QELWFK(ISFN)*sna(ICOMP,ISFN)
 
-C Calculate Outside Face Longwave Radiation for CFCs
-C ONLY IF OUTDOOR BLIND IS PRESENT - OTHERWISE 
-C STANDARD ESP-R CALCULATION APPLIES
+C Calculate outside Fface longwave radiation for CFCs
+C only if outdoor blind is present - otherwise 
+C standard ESP-r calculation applies.
         icfcType = icfcfl(icomp,isfn) !CFC type
         IF(icfcType.ge.1)then !surface is CFC
 

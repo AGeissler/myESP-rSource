@@ -13,11 +13,6 @@ C warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
 C PURPOSE. See the GNU General Public License for more
 C details.
 
-C You should have received a copy of the GNU General Public
-C License along with ESP-r. If not, write to the Free
-C Software Foundation, Inc., 59 Temple Place, Suite 330,
-C Boston, MA 02111-1307 USA.
-
 C This file contains a dummy subroutine which is used by the
 C Makefile of plt without taking on board the complete counterpart of:
 C *** CFMNGE      SUBROUTINE CFMNGE(IC,icfd)

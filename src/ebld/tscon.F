@@ -13,11 +13,6 @@ C warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
 C PURPOSE. See the GNU General Public License for more
 C details.
 
-C You should have received a copy of the GNU General Public
-C License along with ESP-r. If not, write to the Free
-C Software Foundation, Inc., 59 Temple Place, Suite 330,
-C Boston, MA 02111-1307 USA.
-
 C This file contains the following routines:
 C      TSCINP
 C      TSCON1
@@ -98,6 +93,7 @@ C ITRPAS       : Counts number of iterations performed so far.
 
       SUBROUTINE TSCINP
 #include "building.h"
+#include "help.h"
 
       COMMON/TS/ITSFLG,NTSCPD,ITSSCH(MSCH,5),itsmus
       COMMON/TS1/NF(MSCH),IFL(MSCH,MCVT1),FD(MSCH,MCVT1),ITSCF1,
@@ -121,12 +117,7 @@ C ITRPAS       : Counts number of iterations performed so far.
       character     outs*80
       integer NITEMS,INO  ! max items and current menu item
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='TSCINP'  ! set for subroutine
+      helpinsub='tscon'  ! set for subroutine
 
 C Initialise timestep controllers variables.
     1 ITSFLG=1

@@ -23,6 +23,7 @@ C ******* Setup of image quality and calculation options.
 #include "building.h"
 #include "model.h"
 #include "e2r_common.h"
+#include "help.h"
       
       integer lnblnk  ! function definition
 
@@ -48,12 +49,7 @@ C Radiance processor cores.
 
       logical OK
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='RIFFORM'  ! set for subroutine
+      helpinsub='rifform'  ! set for subroutine
       
 C Set folder separator (fs) to \ or / as required.
       call isunix(unixok)

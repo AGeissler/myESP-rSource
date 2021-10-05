@@ -13,11 +13,6 @@ C warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
 C PURPOSE. See the GNU General Public License for more
 C details.
 
-C You should have received a copy of the GNU General Public
-C License along with ESP-r. If not, write to the Free
-C Software Foundation, Inc., 59 Temple Place, Suite 330,
-C Boston, MA 02111-1307 USA.
-
 C This file contains the following routines:
 C (related to image creation via gridding, point containment tests)
 
@@ -321,7 +316,7 @@ C from south, west or top.
 C Check if cell is blocked.
             IBLK=0
             do 100 IV=1,NVOL(ICFD)
-              if (IVTYPE(IV,ICFD).eq.30) then
+              if (IVTYPE(IV,ICFD).ge.30.and.IVTYPE(IV,ICFD).lt.40) then
                 OK=LINVOL(ILAY,L1,L2,
      &                  IVCELLS(IV,ICFD,1),IVCELLS(IV,ICFD,2),
      &                  JVCELLS(IV,ICFD,1),JVCELLS(IV,ICFD,2),
@@ -412,7 +407,7 @@ C Check if cell is blocked.
 C Check if cell is blocked.
             IBLK=0
             do 101 IV=1,NVOL(ICFD)
-              if (IVTYPE(IV,ICFD).eq.30) then
+              if (IVTYPE(IV,ICFD).ge.30.and.IVTYPE(IV,ICFD).lt.40) then
                 OK=LINVOL(L1,ILAY,L2,
      &                  IVCELLS(IV,ICFD,1),IVCELLS(IV,ICFD,2),
      &                  JVCELLS(IV,ICFD,1),JVCELLS(IV,ICFD,2),
@@ -503,7 +498,7 @@ C Check if cell is blocked.
 C Check if cell is blocked.
             IBLK=0
             do 102 IV=1,NVOL(ICFD)
-              if (IVTYPE(IV,ICFD).eq.30) then
+              if (IVTYPE(IV,ICFD).ge.30.and.IVTYPE(IV,ICFD).lt.40) then
                 OK=LINVOL(L1,L2,ILAY,
      &                  IVCELLS(IV,ICFD,1),IVCELLS(IV,ICFD,2),
      &                  JVCELLS(IV,ICFD,1),JVCELLS(IV,ICFD,2),

@@ -30,6 +30,8 @@ C **********************************************************************
 
 #include "building.h"
 #include "model.h"
+#include "help.h"
+
 C Declare calling parameters 
       INTEGER, INTENT(IN)  :: ICOMP     
       INTEGER, INTENT(INOUT)  :: IER
@@ -91,12 +93,7 @@ C      CHARACTER :: delimiter
       REAL bsTGavg,bsTGamp,bsTGps
       integer ISTRW
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='BASESIMP_INPUTS'  ! set for subroutine
+      helpinsub='basesimp_inputs'  ! set for subroutine
        
 C Set folder separator (fs) to \ or / as required.
       call isunix(unixok)
@@ -126,14 +123,8 @@ C Declares initial default values for basesimp inputs.
       TGamp = 0.1               ! degC
       TGps = 0.1                ! radians 
 
-C Define the basesimp relative path (assuming user is in cfg folder).
-      if(bsmpth(1:2).eq.'  ') then
-        write(bsmpth,'(3a)') '..',fs,'bsm'
-      endif
-
-C Check if the zone bsm file already exists. If not it might be
-C necessary to create a folder in the same directory as the
-C standard set of folders called ../bsm if it does not already exist.
+C Basesimp files go in the zones folder.
+C Check if the zone bsm file already exists.
       call FINDFIL(LBSIMP(ICOMP),exists)
       IF(exists)THEN
         CALL EDISP(IUOUT,
@@ -141,13 +132,13 @@ C standard set of folders called ../bsm if it does not already exist.
         CALL EDISP(IUOUT,LBSIMP(ICOMP))
         zonehasone = .true.
       ELSE
-        INQUIRE(FILE=bsmpth,EXIST=exists)
-        if(exists)then   ! the folder exists
+        INQUIRE(FILE=zonepth,EXIST=exists)
+        if(exists)then   ! the zones folder exists
           continue
         else
 
 C Use the pattern in folders.F to issue mkdir command.
-          write(doit,'(2a)') 'mkdir ',bsmpth
+          write(doit,'(2a)') 'mkdir ',zonepth
           call usrmsg('Creating model folder:',doit,'-')
           call runit(doit,'-')
           zonehasone = .false.
@@ -430,7 +421,7 @@ C Checks whether or not default.bsm file exists,rewrites or creates it.
       else
         iuo=66
         IF(iBSIMP(ICOMP).EQ.0)THEN
-          write(bsmFile,'(3a)') bsmpth(1:lnblnk(bsmpth)),fs,
+          write(bsmFile,'(3a)') zonepth(1:lnblnk(zonepth)),fs,
      &      'default.bsm'
         ELSE
           bsmFile=snpfile

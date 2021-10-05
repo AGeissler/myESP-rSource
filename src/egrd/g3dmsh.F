@@ -13,11 +13,6 @@ C warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
 C PURPOSE. See the GNU General Public License for more
 C details.
 
-C You should have received a copy of the GNU General Public
-C License along with ESP-r. If not, write to the Free
-C Software Foundation, Inc., 59 Temple Place, Suite 330,
-C Boston, MA 02111-1307 USA.
-
 C This file contains the following subroutines:
 
 C INSPTS defines the intersection points in a surface.
@@ -537,6 +532,7 @@ C *********************************************************************
 #include "geometry.h"
 #include "esprdbfile.h"
 #include "material.h"
+#include "help.h"
 
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/GR3D01/INDXS(MS),THKS(MS),DCOSS(MS,3,3)
@@ -564,12 +560,7 @@ C *********************************************************************
       DIMENSION XCRD(MGV),ZCRD(MGV)
       integer ier
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='CZCNVS'  ! set for subroutine
+      helpinsub='g3dmsh'  ! set for subroutine
 
 C If materials database not opened warn the user.
       call eclose(matver,1.1,0.001,closemat1)

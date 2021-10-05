@@ -1,11 +1,12 @@
 *help_text ish
-*item winshd ashrae_window_calcs
+
+*item ashrae ashrae_window_calcs
 'The ASHRAE window shading calculator is a simplified'
 'method applicable to rectangular windows with overhangs'
 'and/or side fins.'
 *enditem
 
-*item winshd ashrae_window_orien
+*item ashrae ashrae_window_orien
 'The azimuth angle is measured clockwise from North'
 'in degrees.'
 *enditem
@@ -69,14 +70,14 @@
 'subsequently required and may be deleted.'
 *enditem
 
-*item shdprb obs_not_associated
+*item ish obs_not_associated
 'Where obstructions are not associated with a zone,'
 'external surface shading cannot be calculated. Note'
 'that it is still possible to calculate internal'
 'surface insolation for such a zone.'
 *enditem
 
-*item opendb warning_about_bin_mat
+*item ish warning_about_bin_mat
 'It is likely that the materials db associated with'
 'this model is for use under a different operating'
 'system. ESP-r will attempt to locate an ASCII version'
@@ -84,13 +85,13 @@
 'the required binary format if you agree.'
 *enditem
 
-*item pickssur diffuse_shading_request
+*item miscel diffuse_shading_request
 'Shading of diffuse radiation is included by default.'
 'In some cases (e.g. validation tests), it may be'
 'necessary to exclude this effect.'
 *enditem
 
-*item pickssur surface_selection_notes
+*item miscel surface_selection_notes
 'A shading analysis computes the time varying patterns'
 'of shading on external model surfaces, while an insolation'
 'analysis tracks the solar radiation entering a zone'
@@ -101,7 +102,7 @@
 ' + for insolation, the source surface must be transparent.'
 *enditem
 
-*item askday specify_day_of_year
+*item miscel specify_day_of_year
 'The date is either specified as a day and month number or'
 'as a year day (Jan 1 = 1, Dec 31 = 365).'
 *enditem
@@ -111,14 +112,14 @@
 'required if these are not recorded in the zone geometry file).'
 *enditem
 
-*item ssave data_already_exists
+*item sifile data_already_exists
 'This month has previously been processed. You may wish to'
 'overwrite the shading data with the new calculation results.'
 'Alternatively, it is possible to replace the zone shading &'
 'insolation file with a new one.'
 *enditem
 
-*item isave data_already_exists
+*item sifile data_already_exists
 'This month has previously been processed. You may wish to'
 'overwrite the insolation data with the new calculation results.'
 'Alternatively, it is possible to replace the zone shading &'

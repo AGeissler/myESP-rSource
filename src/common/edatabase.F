@@ -13,11 +13,6 @@ C warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
 C PURPOSE. See the GNU General Public License for more
 C details.
 
-C You should have received a copy of the GNU General Public
-C License along with ESP-r. If not, write to the Free
-C Software Foundation, Inc., 59 Temple Place, Suite 330,
-C Boston, MA 02111-1307 USA.
-
 C The file edatabase.f is a collection of support facilities for 
 C reading and reporting ESP-r databases and contains the following:
 
@@ -51,12 +46,11 @@ C DRAIR is the air gap layer resistance for 3 orientations.
 #include "material.h"
 #include "espriou.h"
 #include "CFC_common.h"
-C espriou.h provides currentfile.
-      
+#include "help.h"
+
       integer lnblnk  ! function definition
 
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
-      common/pophelp/h(60)
       
       COMMON/FOPENED/CFGOK,MLDBOK,MATDBOK,CTLOK,OPTKOK,CFCDBOK
       LOGICAL        CFGOK,MLDBOK,MATDBOK,CTLOK,OPTKOK,layermatch
@@ -65,7 +59,7 @@ C espriou.h provides currentfile.
       logical closemat1,closemat2,close4,closecfc1,closecfc2
       logical unixok
 
-      CHARACTER OUTSTR*124,NAM*72,H*72,outs*124
+      CHARACTER OUTSTR*124,NAM*72,outs*124
       CHARACTER RSTR*124
       CHARACTER WORD*20,MLCN*12
       character DES*48   ! the contents of line with MLC attributes
@@ -80,7 +74,18 @@ C espriou.h provides currentfile.
 C Note that the text which follows the thickness of the layer
 C is extracted from the materials database and should not
 C be edited by the user as it is scanned to check the specific
-C named material matches.
+C named material matches. There is a file unit clash in ish so
+C the h() arrays are set manually.
+      helpinsub='edatabase'  ! set for subroutine
+      helptopic='scan_mlcdb'
+      h(1)='The scanning of MLC databases fills a number of arrays'
+      h(2)='of data. '
+      h(3)='A set of assumptions on the R value of an air gap in'
+      h(4)='case the composite construction is used in different'
+      h(5)='orientations are requested.  This information supports'
+      h(6)='the automatic creation of zone construction files.'
+      nbhelp=6
+C      call gethelptext(helpinsub,helptopic,nbhelp)
 
 C Keep track of how many times materials db read fails.
       matmiss=0
@@ -514,11 +519,6 @@ C There are two or less items on the line so the materials db name
 C has not been included. If air ask for the air gap
 C values, otherwise get element name from materials db.
             IF(IPR(I,IL).EQ.0)THEN
-
-      H(1)='A set of assumptions on the R value of an air gap in'
-      H(2)='case the composite construction is used in different'
-      H(3)='orientations are requested.  This information supports'
-      H(4)='the automatic creation of zone construction files.'
               WRITE(OUTSTR,117)IL,mlcname(I)(1:lnmlcname(i)),
      &          DTHK(I,IL)*1000.0
   117         FORMAT('Default R value for air gap ',I2,' in ',a,
@@ -530,8 +530,8 @@ C values, otherwise get element name from materials db.
                  VAL=DRAIR(I,IL,1)
               endif
               CALL EASKR(VAL,OUTSTR,
-     &             ' if the construction orientation is vertical: ',
-     &             0.0,'W',99.9,'W',0.17,'def air gap R',IER,4)
+     &           ' if the construction orientation is vertical: ',
+     &           0.0,'W',99.9,'W',0.17,'def air gap R',IER,nbhelp)
               DRAIR(I,IL,1)=VAL
 
               if(DRAIR(I,IL,2).lt.0.001)then
@@ -540,8 +540,8 @@ C values, otherwise get element name from materials db.
                  VAL=DRAIR(I,IL,2)
               endif
               CALL EASKR(VAL,OUTSTR,
-     &             ' if the construction is a floor or ceiling  : ',
-     &             0.0,'W',99.9,'W',0.17,'def air gap R',IER,4)
+     &          ' if the construction is a floor or ceiling: ',
+     &          0.0,'W',99.9,'W',0.17,'def air gap R',IER,nbhelp)
               DRAIR(I,IL,2)=VAL
 
               if(DRAIR(I,IL,3).lt.0.001)then
@@ -550,8 +550,8 @@ C values, otherwise get element name from materials db.
                  VAL=DRAIR(I,IL,3)
               endif
               CALL EASKR(VAL,OUTSTR,
-     &             ' if the construction is sloped or UNKNOWN   : ',
-     &             0.0,'W',99.9,'W',0.17,'def air gap R',IER,4)
+     &          ' if the construction is sloped or UNKNOWN: ',
+     &          0.0,'W',99.9,'W',0.17,'def air gap R',IER,nbhep)
               DRAIR(I,IL,3)=VAL
             ELSE
               ier=0
@@ -680,12 +680,11 @@ C DRAIR is the air gap layer resistance for 3 orientations.
 #include "material.h"
 #include "espriou.h"
 #include "CFC_common.h"
-C espriou.h provides currentfile.
-      
+#include "help.h"
+    
       integer lnblnk  ! function definition
 
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
-      common/pophelp/h(60)
       
       COMMON/FOPENED/CFGOK,MLDBOK,MATDBOK,CTLOK,OPTKOK,CFCDBOK
       LOGICAL        CFGOK,MLDBOK,MATDBOK,CTLOK,OPTKOK,layermatch
@@ -694,7 +693,7 @@ C espriou.h provides currentfile.
       logical closemat1,closemat2,close4,closecfc1,closecfc2
       logical unixok
 
-      CHARACTER OUTSTR*124,NAM*72,H*72,outs*124
+      CHARACTER OUTSTR*124,NAM*72,outs*124
       CHARACTER RSTR*124,WORD32*32,WORD248*248,LOUTSTR*248
       CHARACTER WORD*20,MLCN*32
       character DES*48   ! the contents of line with MLC attributes
@@ -709,7 +708,18 @@ C espriou.h provides currentfile.
 C Note that the text which follows the thickness of the layer
 C is extracted from the materials database and should not
 C be edited by the user as it is scanned to check the specific
-C named material matches.
+C named material matches. Manually set h() array so ish file
+C unit clash is not an issue.
+      helpinsub='edatabase'  ! set for subroutine
+      helptopic='scan_mlcdb2'
+      h(1)='The scanning of MLC databases fills a number of arrays'
+      h(2)='of data. '
+      h(3)='A set of assumptions on the R value of an air gap in'
+      h(4)='case the composite construction is used in different'
+      h(5)='orientations are requested.  This information supports'
+      h(6)='the automatic creation of zone construction files.'
+      nbhelp=6
+C      call gethelptext(helpinsub,helptopic,nbhelp)
 
 C Keep track of how many times materials db read fails.
       matmiss=0
@@ -1238,17 +1248,17 @@ C the wrong format.
       END
 
 
-
-C ******* matchmlcdesc
-C matchmlcdesc parse string (DES) and see if it matches a MLC
-C item - if so return its MLC index. DES might be from SMLCN or some 
+C ******************** matchmlcdesc ********************
+C Parse string (DES) and see if it matches a MLC item If so,
+C return its MLC index. DES might be from SMLCN or some 
 C other source.
+
       subroutine matchmlcdesc(DES,imlcindex)
 #include "building.h"
 #include "esprdbfile.h"
 #include "material.h"
 
-C Passed parameters DES length is flexable.
+C Passed parameters DES length is flexible.
       character*(*) DES
       integer imlcindex
 
@@ -1257,17 +1267,18 @@ C Local variable.
       integer ii,lnmlcn,lndesc
 
 C Look for index for MLCN in the current constructions file.
-      imlcindex=0  ! assume no matching MLC          
+      imlcindex=0  ! Assume no matching MLC.         
       WRITE(MLCN,'(A)')DES
       lnmlcn=lnblnk(MLCN)
       if(MLCN(1:4).eq.'UNKN') return
       do ii=1,nmlc
         if(MLCN(1:lnmlcn).eq.mlcname(ii)(1:lnmlcname(ii))) then
-          imlcindex=ii   ! remember MLC index     
+          imlcindex=ii   ! Remember MLC index.    
         endif
       end do
       return
       end
+
 
 C ************* ismlcsymmetric
 C isitsymmetric checks construction (index ifoc) to see if its layers
@@ -2323,23 +2334,26 @@ C IER=0 OK, IER=1 problem.
 #include "building.h"
 #include "esprdbfile.h"
 #include "material.h"
+#include "help.h"
       
       integer lnblnk  ! function definition
 
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
-      common/pophelp/h(60)
       COMMON/FOPENED/CFGOK,MLDBOK,MATDBOK,CTLOK,OPTKOK,CFCDBOK
       LOGICAL        CFGOK,MLDBOK,MATDBOK,CTLOK,OPTKOK,CFCDBOK
 
       DIMENSION IVAL(MMLC+1),COMPS(MMLC+1)
       CHARACTER*(*) PROMPT1,PROMPT2
-      CHARACTER H*72,COMPS*38
+      CHARACTER COMPS*38
 C mlcname*32 + 1 + mlctype*4 = 37 minimum ... give COMPS one buffer char
 
       integer lnmlcn
 
       IER=0
       ISEL=0
+      helpinsub='edatabase'  ! set for subroutine
+      helptopic='select_mlcdb'
+      call gethelptext(helpinsub,helptopic,nbhelp)
 
 C If the common block MLC has not yet been filled the read in the
 C conposite construction database.
@@ -2361,20 +2375,6 @@ C conposite construction database.
 C Create a menu showing the available database items.  Allow user to
 C select one and then list details of this construction based on info
 C in the materials database.
-      H(1)='This information will be written into a zone construc-'
-      H(2)='tion file according to the types of multilayer'
-      H(3)='construction used by each surface.'
-      H(4)='If you want to unreference a construction and reset'
-      H(5)='it to UNKNOWN select the initial item in the list.'
-      H(6)=' '
-      H(7)=' '
-      H(8)='For Controls of bidirectional data only: '
-      H(9)='Select the construction for which the controls and the '
-      H(10)='switch between different datasets will be applied on.'
-      H(11)='WARNING: Avoid assigning more than one control loop '
-      H(12)='to the same construction, especially when these controls '
-      H(13)='are attempting to assign different datasets. The first '          
-      H(14)='loop will be used if this mistake is made by the users. '
 
 C Present list based on the name and type of the MLC.
       WRITE(COMPS(1),'(A)')'UNKNOWN (at this time) '
@@ -2384,7 +2384,7 @@ C Present list based on the name and type of the MLC.
    66 CONTINUE
       IX=1
       CALL EPICKS(IX,IVAL,PROMPT1,PROMPT2,
-     &  33,NMLC+1,COMPS,'Construction composites',IER,14)
+     &  33,NMLC+1,COMPS,'Construction composites',IER,nbhelp)
 
       IF(IX.EQ.0)RETURN
       ISEL=IVAL(1)
@@ -3111,26 +3111,21 @@ C for the optical properties choice. Displays choices held in common
 C GPICK which was derived from a call to ___.
       SUBROUTINE EDWINO(SOPT,IER)
 #include "building.h"
-      common/pophelp/h(60)
+#include "help.h"
       COMMON/GPICK/GS(MGOPT),nopt
-      CHARACTER GS*52,H*72,SOPT*12
+      CHARACTER GS*52,SOPT*12
       DIMENSION IGVAL(60)
 
       IER=0
       noptz=nopt
+      helpinsub='edatabase'  ! set for subroutine
+      helptopic='select_optical'
+      call gethelptext(helpinsub,helptopic,nbhelp)
 
 C Insolation, present a list of current default insolation choices.
-      H(1)='The following selections are based on data supplied '
-      H(2)='by the Environmental Advisory Service of Pilkington '
-      H(3)='Flat Glass Limited.  Other suppliers can be included'
-      H(4)='by request.'
-      H(5)='Selections with an internal blind assume it is at 45'
-      H(6)='degrees, reflectance of 50%, absorptance 39% and'
-      H(7)='transmittance 11%.'
-
       IX=1
       CALL EPICKS(IX,IGVAL,' ',' Glazing types: ',
-     &            52,noptz,GS,'raw opticals',IER,7)
+     &            52,noptz,GS,'raw opticals',IER,nbhelp)
       IF(IX.EQ.0)THEN
         SOPT='UNKNOWN'
       ELSEIF(IX.EQ.1)THEN

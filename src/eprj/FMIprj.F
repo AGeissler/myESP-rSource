@@ -28,6 +28,7 @@ C FMI_ED controls the definition and editing of FMI links.
 #include "model.h"
 #include "FMI.h"
 #include "espriou.h"
+#include "help.h"
 
       common/FILEP/IFIL
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
@@ -35,18 +36,13 @@ C FMI_ED controls the definition and editing of FMI links.
       DIMENSION ITEMS(14)
       character ITEMS*56
       character ctmp*72,fs*1,FMISFL_tmp*72
-      logical unixok,xst,saved,none,ret
+      logical unixok,xst,saved,none
       integer itmp,itmp2,itmp3,itmp4,IFMU,NITEMS,IPICK
 
       character*124 outs,errstr,errval
       character*72 sfile,snpfile
 
-C For help messages.
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='FMI_ED'  ! set for subroutine
+      helpinsub='FMIprj'
 
 C Set folder separator (fs) to \ or / as required.
       call isunix(unixok)
@@ -116,7 +112,7 @@ C If it doesn't, offer user choice to choose another or open a new file.
           IER=3
           goto 666
         endif
-        CALL FMI_RDSCFL(IUF,IER)
+        CALL FMI_RD(IUF,IER)
       else
         CALL EASKAB(' File not found.','Options:',
      &    'specify another','make new file',itmp,0)
@@ -125,6 +121,7 @@ C If it doesn't, offer user choice to choose another or open a new file.
      &    FMISFL_tmp(1:lnblnk(FMISFL_tmp)),' will be created.'
         CALL edisp(iuout,outs)
       endif
+
 C If we've made it this far, we should have a valid FMI spec file name.
 C Save this to common.
       FMISFL=FMISFL_tmp
@@ -132,7 +129,6 @@ C Save this to common.
 C Set up menu.
       IFMU=1
       saved=.true.
-      ret=.false.
     4 if (FMUNOF.eq.0) then
         none=.true.
       else
@@ -181,15 +177,8 @@ C Set up menu.
 
       CALL EMENU('FMI specification',ITEMS,NITEMS,IPICK)
 
-      if (none) then
-        helptopic='FMI_spec_none'
-      else
-        helptopic='FMI_spec_some'
-      endif
-      CALL gethelptext(helpinsub,helptopic,nbhelp)
-
-      if (IPICK.eq.NITEMS) then
 C Exit, offering user chance to save modified data.
+      if (IPICK.eq.NITEMS) then
         if ((.not.saved).and.(.not.none)) then
           CALL EASKABC(' Modified data not saved!','Options:',
      &      'save and exit','exit without saving','cancel',itmp,0)
@@ -214,7 +203,7 @@ C Exit, offering user chance to save modified data.
      &          'save anyway','cancel',itmp,0)
               if (itmp.eq.2) goto 4
             endif
-            CALL FMI_WTSCFL(IUF,IER)
+            CALL FMI_WT(IUF,IER)
             if (FMUNOF.gt.0) then
               is_FMU=.true.
             else
@@ -232,13 +221,19 @@ C Exit, offering user chance to save modified data.
         endif
         goto 999
 
-      elseif (IPICK.eq.NITEMS-1) then
 C Show help.
+      elseif (IPICK.eq.NITEMS-1) then
+        if (none) then
+          helptopic='FMI_spec_none'
+        else
+          helptopic='FMI_spec_some'
+        endif
+        CALL gethelptext(helpinsub,helptopic,nbhelp)
         CALL PHELPD('FMI specification help',nbhelp,'-',0,0,IER)
 
-      elseif (IPICK.eq.NITEMS-2) then
 C Save, checking that all FMU files have been defined and warning user
 C if not.
+      elseif (IPICK.eq.NITEMS-2) then
         xst=.false.
         do itmp=1,FMUNOF
           if (FMUFIL(IFMU)(1:7).eq.'UNKNOWN') then
@@ -259,27 +254,27 @@ C if not.
      &      'save anyway','cancel',itmp,0)
           if (itmp.eq.2) goto 4
         endif
-        CALL FMI_WTSCFL(IUF,IER)
+        CALL FMI_WT(IUF,IER)
         saved=.true.
 
-      elseif (IPICK.eq.NITEMS-3) then
 C List data.
+      elseif (IPICK.eq.NITEMS-3) then
         if (none) then
           CALL USRMSG(' No FMU specifications to list!',' ','-')
           goto 4
         endif
         CALL FMI_LIST(IUOUT,IFMU,'A',IER)
 
-      elseif (IPICK.eq.NITEMS-4) then
 C Manage FMU specifications.
+      elseif (IPICK.eq.NITEMS-4) then
         helptopic='manage_FMUs'
         CALL gethelptext(helpinsub,helptopic,nbhelp)
         CALL EASKABCD(' ','Options:',
      &    'add','delete','copy','cancel',itmp,nbhelp)
 
-        if (itmp.eq.1) then
 C Add an FMU spec at the end of the list. First check that it doesn't
 C exceed the maximum. Commons should already be initialised.
+        if (itmp.eq.1) then
           if ((FMUNOF+1).gt.MFMU) then
             write(outs,'(a,i1,a)')
      &        ' Cannot add another FMU; maximum is ',MFMU,'.'
@@ -290,10 +285,10 @@ C exceed the maximum. Commons should already be initialised.
           IFMU=FMUNOF
           if (saved) saved=.false.
 
-        elseif (itmp.eq.2) then
 C Delete an FMU spec. Ask user for what number.
 C Need to shift all common data for subsequent sets down by an FMU
 C index, clear the last set, and decrement the number of FMUs.
+        elseif (itmp.eq.2) then
           if (none) then
             CALL USRMSG(' No FMU specifications to delete!',' ','-')
             goto 4
@@ -343,11 +338,11 @@ C index, clear the last set, and decrement the number of FMUs.
           FMUNOF=FMUNOF-1
           if (saved) saved=.false.
 
-        elseif (itmp.eq.3) then
 C Copy an FMU spec. First check that it won't exceed maximum. Ask user
 C for what number.
 C Need to increment number of FMUs, then copy commons for selected FMU
 C to the last (new) one.
+        elseif (itmp.eq.3) then
           if (none) then
             CALL USRMSG(
      &        ' No FMU specifications to copy!',' ','-')
@@ -398,21 +393,20 @@ C to the last (new) one.
           IFMU=FMUNOF
           if (saved) saved=.false.
         endif
-C After any action, or if cancel is selected, return to menu.
 
-      elseif (.not.none) then
 C These options are only available if there is at least one FMU.
+      elseif (.not.none) then
 
-        if (IPICK.eq.1) then
 C Cycle through FMUs.
 C NOTE: In future when many FMUs are allowed, this toggle might need to
 C be changed to an EASKI dialogue or a list.
+        if (IPICK.eq.1) then
           IFMU=IFMU+1
           if (IFMU.gt.FMUNOF) IFMU=1
 
-        elseif (IPICK.eq.2) then
 C Define FMU file. Ask user, then check to see if it exists, and query
 C user if it does not.
+        elseif (IPICK.eq.2) then
           write(ctmp,'(2a)')cfgroot(1:lnblnk(cfgroot)),'.fmu'
     6     helptopic='enter_FMU_file'
           CALL gethelptext(helpinsub,helptopic,nbhelp)
@@ -429,20 +423,20 @@ C user if it does not.
           endif
           if (saved) saved=.false.
 
-        elseif (IPICK.eq.3) then
 C Edit description.
+        elseif (IPICK.eq.3) then
           CALL EASKS(FMUDSC(IFMU),' ',' FMU description?',30,
      &      'This FMU is ...','FMU description',IER,nbhelp)
           if (saved) saved=.false.
 
-        elseif (IPICK.eq.4) then
 C Define timeout.
+        elseif (IPICK.eq.4) then
           CALL EASKR(FMUTO(IFMU),' ',' Timeout?',0.0,'F',1.0,'-',0.0,
      &      'FMU timeout',IER,0)
           if (saved) saved=.false.
 
-        elseif (IPICK.eq.5) then
 C Toggle logging.
+        elseif (IPICK.eq.5) then
           if (FMULOG(IFMU).eq.0) then
             FMULOG(IFMU)=1
           else
@@ -450,17 +444,16 @@ C Toggle logging.
           endif
           if (saved) saved=.false.
 
-        elseif (IPICK.eq.7) then
 C Inputs.
+        elseif (IPICK.eq.7) then
           CALL FMI_EDINP(IFMU,saved,IER)
 
-        elseif (IPICK.eq.8) then
 C Outputs.
+        elseif (IPICK.eq.8) then
           CALL FMI_EDOUT(IFMU,saved,IER)
 
         endif
       endif
-C Return to menu whenever we run off the end of the logic tree.
       goto 4
 
   999 RETURN
@@ -488,6 +481,7 @@ C creates directives for data to be passed from ESP-r to the FMU.
 #include "FMI.h"
 #include "epara.h"
 #include "geometry.h"
+#include "help.h"
 
       logical saved
 
@@ -509,12 +503,7 @@ C creates directives for data to be passed from ESP-r to the FMU.
       logical get_pagstr
       real rtmp
 
-C For help messages.
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='FMI_EDINP'  ! set for subroutine
+      helpinsub='FMIprj'
 
       get_pagstr=.false.
 
@@ -596,31 +585,30 @@ C Control options.
       NITEMS=M+MCTL
       CALL EMENU('FMU inputs',ITEMS,NITEMS,IPICK)
 
-      helptopic='FMU_input'
-      CALL gethelptext(helpinsub,helptopic,nbhelp)
-
-      if (IPICK.eq.NITEMS) then
 C Exit
+      if (IPICK.eq.NITEMS) then
         goto 999
 
-      elseif (IPICK.eq.NITEMS-1) then
 C Show help.
+      elseif (IPICK.eq.NITEMS-1) then
+        helptopic='FMU_input'
+        CALL gethelptext(helpinsub,helptopic,nbhelp)
         CALL PHELPD('FMU inputs help',nbhelp,'-',0,0,IER)
 
-      elseif (IPICK.eq.NITEMS-2) then
 C List data (more verbose than data shown in interface).
+      elseif (IPICK.eq.NITEMS-2) then
         CALL FMI_LIST(IUOUT,IFMU,'I',IER)
 
-      elseif (IPICK.eq.NITEMS-3) then
 C Manage inputs.
+      elseif (IPICK.eq.NITEMS-3) then
         helptopic='manage_inputs'
         CALL gethelptext(helpinsub,helptopic,nbhelp)
         CALL EASKABCD(' ','Options:',
      &    'add','delete','copy','cancel',itmp,nbhelp)
 
-        if (itmp.eq.1) then
 C Add an input at end of list. First check that it doesn't exceed the
 C maximum. Commons should already be initialised.
+        if (itmp.eq.1) then
           if ((FMUNUMI(IFMU)+1).gt.MFMUI) then
             write(outs,'(a,i2,a)')
      &        ' Cannot add another input; maximum per FMU is ',MFMUI,'.'
@@ -629,6 +617,7 @@ C maximum. Commons should already be initialised.
           endif
           FMUNUMI(IFMU)=FMUNUMI(IFMU)+1
           if (saved) saved=.false.
+
 C If the menu is paged, store some variables so it will return to the
 C same page when this menu is exited, and repopulate paging commons.
           if (IPFLG.gt.0) then
@@ -638,10 +627,10 @@ C same page when this menu is exited, and repopulate paging commons.
           endif
           goto 6
 
-        elseif (itmp.eq.2) then
 C Delete an input. List inputs then ask user what number.
 C Need to shift input common data for subsequent sets down by an input
 C index, clear the last set, and decrement the number of inputs.
+        elseif (itmp.eq.2) then
           if (FMUNUMI(IFMU).eq.0) then
             CALL USRMSG(' No inputs to delete!',' ','-')
             goto 4
@@ -670,13 +659,12 @@ C index, clear the last set, and decrement the number of inputs.
           FMUIVNM(IFMU,FMUNUMI(IFMU))='UNKNOWN'
           FMUNUMI(IFMU)=FMUNUMI(IFMU)-1
           if (saved) saved=.false.
-C Do not need to repopulate paging commons if deleting.
 
-        elseif (itmp.eq.3) then
 C Copy an input. First check that it won't exceed maximum. List inputs
 C then ask user what number.
 C Need to increment number of inputs, then copy commons for selected one
 C to the last (new) one.
+        elseif (itmp.eq.3) then
           if ((FMUNUMI(IFMU)+1).gt.MFMUI) then
             write(outs,'(a,i2,a)')
      &        ' Cannot add another input; maximum per FMU is ',MFMUI,'.'
@@ -700,6 +688,7 @@ C to the last (new) one.
           FMUIINS(IFMU,FMUNUMI(IFMU))=FMUIINS(IFMU,itmp)
           FMUIVNM(IFMU,FMUNUMI(IFMU))=FMUIVNM(IFMU,itmp)
           if (saved) saved=.false.
+
 C If the menu is paged, store some variables so it will return to the
 C same page when this menu is exited, and repopulate paging commons.
           if (IPFLG.gt.0) then
@@ -710,18 +699,17 @@ C same page when this menu is exited, and repopulate paging commons.
           goto 6
         endif
 
-      elseif (IPICK.eq.NITEMS-4) then
 C Only active if there is paging.
+      elseif (IPICK.eq.NITEMS-4) then
         if (IPFLG.gt.0) then
           IPACT=EDIT
           ILEN=FMUNUMI(IFMU)
           CALL EKPAGE(IPACT)
         endif
 
+C Edit details for an input.
       elseif (IPICK.gt.MHEAD.and.IPICK.le.(NITEMS-MCTL)) then
         CALL KEYIND(NITEMS,IPICK,IFOC,IO)
-
-C Edit details for an input.
         IINP=IFOC
     5   write(ITEMS(1),'(a,i1)')' FMU number: ',IFMU
         write(ITEMS(2),'(2a)')  ' description: ',FMUDSC(IFMU)
@@ -769,27 +757,24 @@ C Edit details for an input.
         NITEMS=12
         CALL EMENU('Edit FMU input data',ITEMS,NITEMS,IPICK)
 
-        helptopic='edit_input'
-        CALL gethelptext(helpinsub,helptopic,nbhelp)
-
-        if (IPICK.eq.NITEMS) then
 C Return.
+        if (IPICK.eq.NITEMS) then
           if (get_pagstr) goto 6
           goto 4
 
-        elseif (IPICK.eq.NITEMS-1) then
 C Show help.
+        elseif (IPICK.eq.NITEMS-1) then
+          helptopic='edit_input'
+          CALL gethelptext(helpinsub,helptopic,nbhelp)
           CALL PHELPD('FMU input editing help',nbhelp,'-',0,0,IER)
 
-        elseif (IPICK.eq.5) then
 C Pick a zone. First give an option to select the ambient environment.
+        elseif (IPICK.eq.5) then
           CALL EASKABC(' Ambient environment or a building zone?',' ',
      &      'ambient','building zone','cancel',itmp,nbhelp)
           if (itmp.eq.1) then
             FMUIZON(IFMU,IINP)=0
           elseif (itmp.eq.2) then
-C Store some variables to prevent zone pick corrupting paging on
-C previous menu.
             pagstr(1)=IST
             pagstr(2)=IPM
             get_pagstr=.true.
@@ -800,23 +785,22 @@ C previous menu.
           endif
           if (saved) saved=.false.
 
-        elseif (IPICK.eq.6) then
 C Based on the zone choice, ask user to pick from FMI input variables.
 C If zone has not yet been defined, warn user and do no allow pick.
+        elseif (IPICK.eq.6) then
           itmp=FMUIZON(IFMU,IINP)
           if (itmp.lt.0) then
             CALL USRMSG(' Please define zone before choosing variable.',
      &        ' ','-')
 
-          elseif (itmp.eq.0) then
 C Pick from ambient FMI input variables.
 C Note: this may need to be a multi-page menu in the future.
+          elseif (itmp.eq.0) then
             itmp=0
             do i=1,MFMIIREFS
               if (FMIIAorZ(i).eq.0.or.FMIIAorZ(i).eq.2) then
                 itmp=itmp+1
-C Remember index of variables participating in list.
-                arrtmp(itmp)=i
+                arrtmp(itmp)=i  ! remember indices
                 CALL EMKEY(itmp,KEY,IER)
                 write(ITEMS(itmp),'(a1,1x,a)')KEY,
      &            FMIIREFS(i)(1:lnblnk(FMIIREFS(i)))
@@ -832,15 +816,14 @@ C Remember index of variables participating in list.
               if (saved) saved=.false.
             endif
 
-          elseif (itmp.gt.0) then
 C Pick from zone FMI input variables.
 C Note: this may need to be a multi-page menu in the future.
+          elseif (itmp.gt.0) then
             itmp=0
             do i=1,MFMIIREFS
               if (FMIIAorZ(i).eq.1.or.FMIIAorZ(i).eq.2) then
                 itmp=itmp+1
-C Remember index of variables participating in list.
-                arrtmp(itmp)=i
+                arrtmp(itmp)=i  ! remember indices
                 CALL EMKEY(itmp,KEY,IER)
                 write(ITEMS(itmp),'(a1,1x,a)')KEY,
      &            FMIIREFS(i)(1:lnblnk(FMIIREFS(i)))
@@ -857,8 +840,8 @@ C Remember index of variables participating in list.
             endif
           endif
 
-        elseif (IPICK.eq.7) then
 C Define supplementary data.
+        elseif (IPICK.eq.7) then
           if (FMUIVAR(IFMU,IINP).gt.0) then
             if (FMIINSUP(FMUIVAR(IFMU,IINP)).gt.0) then
               ctmp_30=''
@@ -883,8 +866,8 @@ C Define supplementary data.
             endif
           endif
 
-        elseif (IPICK.eq.8) then
 C Define FMU instance name.
+        elseif (IPICK.eq.8) then
           ctmp_30=FMUIINS(IFMU,IINP)
           CALL EASKS(ctmp_30,' ',' FMU instance name?',30,'  ',
      &      'FMU instance',IER,nbhelp)
@@ -893,8 +876,8 @@ C Define FMU instance name.
             if (saved) saved=.false.
           endif
 
-        elseif (IPICK.eq.9) then
 C Define FMU variable name.
+        elseif (IPICK.eq.9) then
           ctmp_32=FMUIVNM(IFMU,IINP)
           CALL EASKS(ctmp_32,' ',' FMU variable name?',32,'  ',
      &      'FMU variable',IER,nbhelp)
@@ -928,6 +911,7 @@ C       loops as well as zones.
 #include "FMI.h"
 #include "epara.h"
 #include "geometry.h"
+#include "help.h"
 
       logical saved
 
@@ -948,12 +932,7 @@ C       loops as well as zones.
       INTEGER M,i,itmp,NITEMS,pagstr(2)
       logical get_pagstr
 
-C For help messages.
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='FMI_EDOUT'  ! set for subroutine
+      helpinsub='FMIprj'
 
       get_pagstr=.false.
 
@@ -1035,31 +1014,30 @@ C Control options.
       NITEMS=M+MCTL
       CALL EMENU('FMU outputs',ITEMS,NITEMS,IPICK)
 
-      helptopic='FMU_output'
-      CALL gethelptext(helpinsub,helptopic,nbhelp)
-
-      if (IPICK.eq.NITEMS) then
 C Exit
+      if (IPICK.eq.NITEMS) then
         goto 999
 
-      elseif (IPICK.eq.NITEMS-1) then
 C Show help.
+      elseif (IPICK.eq.NITEMS-1) then
+        helptopic='FMU_output'
+        CALL gethelptext(helpinsub,helptopic,nbhelp)
         CALL PHELPD('FMU outputs help',nbhelp,'-',0,0,IER)
 
-      elseif (IPICK.eq.NITEMS-2) then
 C List data (more verbose than data shown in interface).
+      elseif (IPICK.eq.NITEMS-2) then
         CALL FMI_LIST(IUOUT,IFMU,'O',IER)
 
-      elseif (IPICK.eq.NITEMS-3) then
 C Manage outputs.
+      elseif (IPICK.eq.NITEMS-3) then
         helptopic='manage_outputs'
         CALL gethelptext(helpinsub,helptopic,nbhelp)
         CALL EASKABCD(' ','Options:',
      &    'add','delete','copy','cancel',itmp,nbhelp)
 
-        if (itmp.eq.1) then
 C Add an output at end of list. First check that it doesn't exceed the
 C maximum. Commons should already be initialised.
+        if (itmp.eq.1) then
           if ((FMUNUMO(IFMU)+1).gt.MFMUO) then
             write(outs,'(a,i2,a)')
      &       ' Cannot add another output; maximum per FMU is ',MFMUO,'.'
@@ -1068,6 +1046,7 @@ C maximum. Commons should already be initialised.
           endif
           FMUNUMO(IFMU)=FMUNUMO(IFMU)+1
           if (saved) saved=.false.
+
 C If the menu is paged, store some variables so it will return to the
 C same page when this menu is exited, and repopulate paging commons.
           if (IPFLG.gt.0) then
@@ -1077,10 +1056,10 @@ C same page when this menu is exited, and repopulate paging commons.
           endif
           goto 6
 
-        elseif (itmp.eq.2) then
 C Delete an output. List outputs then ask user what number.
 C Need to shift output common data for subsequent sets down by an output
 C index, clear the last set, and decrement the number of outputs.
+        elseif (itmp.eq.2) then
           if (FMUNUMO(IFMU).eq.0) then
             CALL USRMSG(' No outputs to delete!',' ','-')
             goto 4
@@ -1110,11 +1089,11 @@ C index, clear the last set, and decrement the number of outputs.
           FMUNUMO(IFMU)=FMUNUMO(IFMU)-1
           if (saved) saved=.false.
 
-        elseif (itmp.eq.3) then
 C Copy an output. First check that it won't exceed maximum. List outputs
 C then ask user what number.
 C Need to increment number of outputs, then copy commons for selected one
 C to the last (new) one.
+        elseif (itmp.eq.3) then
           if ((FMUNUMO(IFMU)+1).gt.MFMUO) then
             write(outs,'(a,i2,a)')
      &       ' Cannot add another output; maximum per FMU is ',MFMUO,'.'
@@ -1138,6 +1117,7 @@ C to the last (new) one.
           FMUOINS(IFMU,FMUNUMO(IFMU))=FMUOINS(IFMU,itmp)
           FMUOVNM(IFMU,FMUNUMO(IFMU))=FMUOVNM(IFMU,itmp)
           if (saved) saved=.false.
+
 C If the menu is paged, store some variables so it will return to the
 C same page when this menu is exited, and repopulate paging commons.
           if (IPFLG.gt.0) then
@@ -1147,18 +1127,17 @@ C same page when this menu is exited, and repopulate paging commons.
           endif
           goto 6
         endif
-C After any action or if cancel is selected, return to menu.
 
-      elseif (IPICK.eq.NITEMS-4) then
 C Only active if there is paging.
+      elseif (IPICK.eq.NITEMS-4) then
         if (IPFLG.gt.0) then
           IPACT=EDIT
           ILEN=FMUNUMO(IFMU)
           CALL EKPAGE(IPACT)
         endif
 
-      elseif (IPICK.gt.MHEAD.and.IPICK.le.(NITEMS-MCTL)) then
 C Edit details for an output.
+      elseif (IPICK.gt.MHEAD.and.IPICK.le.(NITEMS-MCTL)) then
         IOUT=IPICK-MHEAD
     5   write(ITEMS(1),'(a,i1)')' FMU number: ',IFMU
         write(ITEMS(2),'(2a)')  ' description: ',FMUDSC(IFMU)
@@ -1206,20 +1185,19 @@ C Edit details for an output.
         NITEMS=12
         CALL EMENU('Edit FMU output data',ITEMS,NITEMS,IPICK)
 
-        helptopic='edit_output'
-        CALL gethelptext(helpinsub,helptopic,nbhelp)
-
-        if (IPICK.eq.NITEMS) then
 C Return.
+        if (IPICK.eq.NITEMS) then
           if (get_pagstr) goto 6
           goto 4
 
-        elseif (IPICK.eq.NITEMS-1) then
 C Show help.
+        elseif (IPICK.eq.NITEMS-1) then
+          helptopic='edit_output'
+          CALL gethelptext(helpinsub,helptopic,nbhelp)
           CALL PHELPD('FMU output editing help',nbhelp,'-',0,0,IER)
 
-        elseif (IPICK.eq.5) then
 C Pick a zone. First give an option to select the ambient environment.
+        elseif (IPICK.eq.5) then
           CALL EASKABC(' Ambient environment or a building zone?',' ',
      &      'ambient','building zone','cancel',itmp,nbhelp)
           if (itmp.eq.1) then
@@ -1238,6 +1216,7 @@ C previous menu.
             goto 5
           endif
           if (saved) saved=.false.
+
 C If the menu is paged, store some variables so it will return to the
 C same page when this menu is exited, and repopulate paging commons.
           if (IPFLG.gt.0) then
@@ -1246,23 +1225,22 @@ C same page when this menu is exited, and repopulate paging commons.
             get_pagstr=.true.
           endif
 
-        elseif (IPICK.eq.6) then
 C Based on the zone choice, ask user to pick from FMI output variables.
 C If zone has not yet been defined, warn user and do no allow pick.
+        elseif (IPICK.eq.6) then
           itmp=FMUOZON(IFMU,IOUT)
           if (itmp.lt.0) then
             CALL USRMSG(' Please define zone before choosing variable.',
      &        ' ','-')
 
-          elseif (itmp.eq.0) then
 C Pick from ambient FMI output variables.
 C Note: this may need to be a multi-page menu in the future.
+          elseif (itmp.eq.0) then
             itmp=0
             do i=1,MFMIOREFS
               if (FMIOAorZ(i).eq.0.or.FMIOAorZ(i).eq.2) then
                 itmp=itmp+1
-C Remember index of variables participating in list.
-                arrtmp(itmp)=i
+                arrtmp(itmp)=i  ! remember indices
                 CALL EMKEY(itmp,KEY,IER)
                 write(ITEMS(itmp),'(a1,1x,a)')KEY,
      &            FMIOREFS(i)(1:lnblnk(FMIOREFS(i)))
@@ -1278,15 +1256,14 @@ C Remember index of variables participating in list.
               if (saved) saved=.false.
             endif
 
-          elseif (itmp.gt.0) then
 C Pick from zone FMI output variables.
 C Note: this may need to be a multi-page menu in the future.
+          elseif (itmp.gt.0) then
             itmp=0
             do i=1,MFMIOREFS
               if (FMIOAorZ(i).eq.1.or.FMIOAorZ(i).eq.2) then
                 itmp=itmp+1
-C Remember index of variables participating in list.
-                arrtmp(itmp)=i
+                arrtmp(itmp)=i  ! remember indices
                 CALL EMKEY(itmp,KEY,IER)
                 write(ITEMS(itmp),'(a1,1x,a)')KEY,
      &            FMIOREFS(i)(1:lnblnk(FMIOREFS(i)))
@@ -1303,8 +1280,8 @@ C Remember index of variables participating in list.
             endif
           endif
 
-        elseif (IPICK.eq.7) then
 C Define supplementary data.
+        elseif (IPICK.eq.7) then
           if (FMUOVAR(IFMU,IOUT).gt.0) then
             if (FMIONSUP(FMUOVAR(IFMU,IOUT)).gt.0) then
               ctmp_30=''
@@ -1329,8 +1306,8 @@ C Define supplementary data.
             endif
           endif
 
-        elseif (IPICK.eq.8) then
 C Define FMU instance name.
+        elseif (IPICK.eq.8) then
           ctmp_30=FMUOINS(IFMU,IOUT)
           CALL EASKS(ctmp_30,' ',' FMU instance name?',30,'  ',
      &      'FMU instance',IER,nbhelp)
@@ -1339,8 +1316,8 @@ C Define FMU instance name.
             if (saved) saved=.false.
           endif
 
-        elseif (IPICK.eq.9) then
 C Define FMU variable name.
+        elseif (IPICK.eq.9) then
           ctmp_32=FMUOVNM(IFMU,IOUT)
           CALL EASKS(ctmp_32,' ',' FMU variable name?',32,'  ',
      &      'FMU variable',IER,nbhelp)

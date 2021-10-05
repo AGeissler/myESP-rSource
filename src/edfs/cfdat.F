@@ -1,11 +1,11 @@
 C This file is part of the ESP-r system.
 C Copyright Energy Systems Research Unit, University of
-C Strathclyde, Glasgow Scotland, 2001.
+C Strathclyde, Glasgow, Scotland, 2001-.
 
 C ESP-r is free software.  You can redistribute it and/or
 C modify it under the terms of the GNU General Public
 C License as published by the Free Software Foundation 
-C (version 2 orlater).
+C (version 2 or later).
 
 C ESP-r is distributed in the hope that it will be useful
 C but WITHOUT ANY WARRANTY; without even the implied
@@ -13,10 +13,6 @@ C warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
 C PURPOSE. See the GNU General Public License for more
 C details.
 
-C You should have received a copy of the GNU General Public
-C License along with ESP-r. If not, write to the Free
-C Software Foundation, Inc., 59 Temple Place, Suite 330,
-C Boston, MA 02111-1307 USA.
 
 C This file contains routines to (1) Read in the CFD domain configuration file 
 C and (2) calculate static, derived data from this file.
@@ -31,7 +27,8 @@ C  SETGEO - sets the geometry for the CFD domain in terms of ESP-r's standard
 C           geometry model (needed for graphic feedback scaling).
 
 C ********************* CFDDTA *********************
-C CFDDTA - Reads the CFD configuration file.
+C Reads the CFD configuration file.
+
       SUBROUTINE CFDDTA(itrc,itu,ICOMP,IBLD,IMFN,IER)
 #include "building.h"
 #include "cfd.h"
@@ -124,7 +121,8 @@ C Solution methods.
 C Boundary condition commons.
       common/KEYVOLS/NVOL(MNZ),IVOLF(MNVLS,MNZ),IVCELLS(MNVLS,MNZ,2),
      &               JVCELLS(MNVLS,MNZ,2),KVCELLS(MNVLS,MNZ,2)
-      common/KEYVOLN/VOLNAME(MNVLS,MNZ),VCsurf(MNVLS,MNZ)
+      common/KEYVOLN/VOLNAME(MNVLS,MNZ),VCsurf(MNVLS,MNZ),
+     &               BLKSURF(MNVLS,MNZ,6)
       common/KEYVDAT/IVTYPE(MNVLS,MNZ),VOLTemp(MNVLS,MNZ),
      &          VOLHeat(MNVLS,MNZ),IVConfl(MNVLS,MNZ),VOLHum(MNVLS,MNZ),
      &          VOLCO2(MNVLS,MNZ),VOLVel(MNVLS,MNZ),VOLDir(MNVLS,MNZ,2),
@@ -143,7 +141,7 @@ C Flow visualization common blocks.
       logical urlx,vrlx,wrlx,prlx,krlx,erlx,trlx
       logical origin,xgrid,ygrid,zgrid,zegrid,ortho
 
-      character VOLNAME*12, VCsurf*12
+      character VOLNAME*12, VCsurf*12, BLKSURF*12
       CHARACTER VAR*2
       Character*1 THSRC,RELFAC,OPNTYP
       Character*124 OUTSTR,WORD,WORD1,WORD2
@@ -1341,7 +1339,7 @@ C Monitoring file.
       KMONT(ICFD)=IVAL+1
       CALL EGETW(OUTSTR,K,WORD,'W',' Monitoring file name.',IER)
       if(IER.NE.0)then
-        call edisp(IUOUT,' Cannot convert monitoring file name.')
+        call edisp(IUOUT,'Cannot convert monitoring file name.')
         goto 999
       endif
       CFTRFL(ICFD)=WORD(1:72)
@@ -1466,7 +1464,7 @@ C   from common block variable icp.
       integer lnssn,lnsurf
 
       do 10 IS=1,nzsur(icp)
-        icon=IZSTOCN(icp,is)
+C        icon=IZSTOCN(icp,is)
         lnssn=lnblnk(SNAME(icp,is))
         lnsurf=lnblnk(SURF)
         IF(SNAME(icp,is)(1:lnssn).EQ.SURF(1:lnsurf))then
@@ -1485,12 +1483,7 @@ C INICNT - Initialize some constant parameters.
 #include "building.h"
 #include "cfd.h"
 
-      COMMON/ICFNOD/ICFD,ICP
-      common/GRIDFN/NCELX(MNREG,MNZ),NCELY(MNREG,MNZ),NCELZ(MNREG,MNZ),
-     &  NCELZE(MNREG,MNZ),XREG(MNREG,MNZ),YREG(MNREG,MNZ),
-     &  ZREG(MNREG,MNZ),ZREGE(MNREG,MNZ),Xplaw(MNREG,MNZ),
-     &  Yplaw(MNREG,MNZ),Zplaw(MNREG,MNZ),Zplawe(MNREG,MNZ),NREG(4,MNZ)
-      COMMON/ALL/NI,NJ,NK,NIM1,NJM1,NKM1,NIM2,NJM2,NKM2
+C      COMMON/ICFNOD/ICFD,ICP
       COMMON/FLUPRf/URFVIS,VISCOS,PRANDT,SH,
      1            DENf(ntcelx,ntcely,ntcelz),VIS(ntcelx,ntcely,ntcelz),
      2            BETA(ntcelx,ntcely,ntcelz)
@@ -1539,28 +1532,6 @@ C The "pee function".
       PFUN=PRANDL/PRANDT
       PFUN=9.24*(PFUN**0.75-1.0)*(1.0+0.28*EXP(-0.007*PFUN))
 
-C Grid related data.
-      NIM2=0
-      NJM2=0
-      NKM2=0
-
-C Calculate the total number of cells in each direction.
-      DO 10 I=1,NREG(1,ICFD)
-        NIM2=NIM2+ABS(NCELX(I,ICFD))
-   10 CONTINUE
-      DO 20 I=1,NREG(2,ICFD)
-        NJM2=NJM2+ABS(NCELY(I,ICFD))
-   20 CONTINUE
-      DO 30 I=1,NREG(3,ICFD)
-        NKM2=NKM2+ABS(NCELZ(I,ICFD))
-   30 CONTINUE
-      NIM1=NIM2+1
-      NJM1=NJM2+1
-      NKM1=NKM2+1
-      NI=NIM1+1
-      NJ=NJM1+1
-      NK=NKM1+1
-
       RETURN
       END
 
@@ -1590,14 +1561,15 @@ C solid boundaries.
 C Boundary condition commons.
       common/KEYVOLS/NVOL(MNZ),IVOLF(MNVLS,MNZ),IVCELLS(MNVLS,MNZ,2),
      &               JVCELLS(MNVLS,MNZ,2),KVCELLS(MNVLS,MNZ,2)
-      common/KEYVOLN/VOLNAME(MNVLS,MNZ),VCsurf(MNVLS,MNZ)
+      common/KEYVOLN/VOLNAME(MNVLS,MNZ),VCsurf(MNVLS,MNZ),
+     &               BLKSURF(MNVLS,MNZ,6)
       common/KEYVDAT/IVTYPE(MNVLS,MNZ),VOLTemp(MNVLS,MNZ),
      &          VOLHeat(MNVLS,MNZ),IVConfl(MNVLS,MNZ),VOLHum(MNVLS,MNZ),
      &          VOLCO2(MNVLS,MNZ),VOLVel(MNVLS,MNZ),VOLDir(MNVLS,MNZ,2),
      &          VOLArea(MNVLS,MNZ),VOLPres(MNVLS,MNZ),
      &          VOLPol(MCTM,MNVLS,MNZ)
 
-      character VOLNAME*12, VCsurf*12
+      character VOLNAME*12, VCsurf*12, BLKSURF*12
       CHARACTER*124 OUTSTR,WORD,outs
       CHARACTER TSBND*1,SURFAC*1,SURF*12,LCFD*72
       LOGICAL CALLU,CALLV,CALLW,CALLT,CALLC,KEMDL,BUOY,BOUSSI,ZEROT,

@@ -46,6 +46,7 @@ C Passed parameter
      &  NCELZE(MNREG,MNZ),XREG(MNREG,MNZ),YREG(MNREG,MNZ),
      &  ZREG(MNREG,MNZ),ZREGE(MNREG,MNZ),Xplaw(MNREG,MNZ),
      &  Yplaw(MNREG,MNZ),Zplaw(MNREG,MNZ),Zplawe(MNREG,MNZ),NREG(4,MNZ)
+      COMMON/ALL/NI,NJ,NK,NIM1,NJM1,NKM1,NIM2,NJM2,NKM2
       COMMON/ICFNOD/ICFD,ICP
       common/GRIDEFN/origin,xgrid,ygrid,zgrid,zegrid,ortho
 
@@ -53,6 +54,26 @@ C Data associated with Z axis curvilinear gridding.
       common/curvg1/ZHI(ntcelx),ZLO(ntcelx),ZWest(ntcelz),ZEast(ntcelz)
 
       logical origin,xgrid,ygrid,zgrid,zegrid,ortho
+
+C Calculate the total number of cells in each direction.
+      NIM2=0
+      NJM2=0
+      NKM2=0
+      DO I=1,NREG(1,ICFD)
+        NIM2=NIM2+ABS(NCELX(I,ICFD))
+      ENDDO
+      DO I=1,NREG(2,ICFD)
+        NJM2=NJM2+ABS(NCELY(I,ICFD))
+      ENDDO
+      DO I=1,NREG(3,ICFD)
+        NKM2=NKM2+ABS(NCELZ(I,ICFD))
+      ENDDO
+      NIM1=NIM2+1
+      NJM1=NJM2+1
+      NKM1=NKM2+1
+      NI=NIM1+1
+      NJ=NJM1+1
+      NK=NKM1+1
 
 C Generating grid for X-axis.
       ICELx=2

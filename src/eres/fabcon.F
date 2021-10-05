@@ -39,6 +39,7 @@ C MOFCON is the main controlling routine for the output
 C of inter-fabric temperature and condensation conditions.
 
       SUBROUTINE MOFCON
+#include "help.h"
 
       COMMON/SIMPIK/ISIM,ISTADD,ID1,IM1,ID2,IM2,ISDS,ISDF,NTS,ISAVE
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
@@ -50,12 +51,7 @@ C of inter-fabric temperature and condensation conditions.
       integer NITMS,INO ! max items and current menu item
       integer IW,IWS    ! user choices
 
-C For help messages
-      character helpinsub*24   ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='MOFCON'  ! set for cfiles
+      helpinsub='fabcon'  ! set for cfiles
 
 C Setup for menu.
    3  ITEM(1) ='2 select result set    '
@@ -190,9 +186,9 @@ C to the fabric temperature or condensation information.
       COMMON/SIMPIK/ISIM,ISTADD,ID1,IM1,ID2,IM2,ISDS,ISDF,NTS,ISAVE
       COMMON/SET1/IYEAR,IBDOY,IEDOY,IFDAY,IFTIME
 
-      CHARACTER ETEXT*94,PDESCR*60,SDESCR*44,RSNAME*40,CSTR*25
+      CHARACTER ETEXT*94,PDESCR*64,SDESCR*44,RSNAME*40,CSTR*25
       character rfile*72,PFILE*72,MSTRFILE*72,LAFRES*72
-      character TSTR*6,ZN*12,SN*12,DS*7,DS1*10
+      character TSTR*6,ZN*12,SN*12,DS*7,DS1*10,DS2*8
       integer lml   ! string length for construction name.
 #ifdef OSI
       integer iside,isize,ifont     ! passed to viewtext
@@ -227,11 +223,12 @@ C Setup and pass in parameters to win3d.
 
       lsn1=MIN0(lnblnk(RFILE),32)
       if(NSIM.gt.1)then
-        WRITE(ETEXT,'(3A,I4,A,A)')'Lib: ',RFILE(1:lsn1),' Set:',ISIM,
-     &    ': ',RSNAME(ISIM)(1:lnblnk(RSNAME(ISIM)))
+        WRITE(ETEXT,'(3A,I4,A,2A)')'Results library: ',
+     &    RFILE(1:lsn1),'; results set:',ISIM,
+     &    ' (',RSNAME(ISIM)(1:lnblnk(RSNAME(ISIM))),')'
       else
-        WRITE(ETEXT,'(4A)')'Lib: ',RFILE(1:lsn1),
-     &    ': ',RSNAME(ISIM)(1:lnblnk(RSNAME(ISIM)))
+        WRITE(ETEXT,'(5A)')'Results library: ',RFILE(1:lsn1),
+     &    '; (',RSNAME(ISIM)(1:lnblnk(RSNAME(ISIM))),')'
       endif
       if(MMOD.EQ.8)then
         iside=1; isize=0; ifont=1
@@ -274,7 +271,7 @@ C Display surface information.
         call edisp(iuout,ETEXT)
       endif
 
-      call STDATE(IYEAR,IDAYO,DS,DS1)
+      call STDATE(IYEAR,IDAYO,DS,DS1,DS2)
       WRITE(ETEXT,'(3A,f6.2)')' Time ',DS1,' at ',TIMO
       if(MMOD.EQ.8)then
         iside=4; isize=0; ifont=1
@@ -310,6 +307,7 @@ C timestep.
       DIMENSION TSURF(MS),TSO(MS),ihit(ms)
       CHARACTER*1 A(MS)
       character outs*124,xfile*144,TDESCR*5,DESCR1*10,DESCR*7
+      character DESCR2*8
       character tg*1,delim*1,CSTR*25
       logical found
 
@@ -343,7 +341,7 @@ C For each day of the reporting period.
 
 C Heading.
         if(iverb.eq.1)then
-          CALL STDATE(IYEAR,IDO,DESCR,DESCR1)
+          CALL STDATE(IYEAR,IDO,DESCR,DESCR1,DESCR2)
           call edisp(itru,' ')
           write(outs,'(a,a,a,a10)')' Summary condensation report for: ',
      &      zname(IZONE)(1:lnzname(IZONE)),' on ',DESCR1
@@ -418,8 +416,7 @@ C multilayered construction at any user-specified time.
 #include "building.h"
 #include "esprdbfile.h"
 #include "material.h"
-C esprdbfile.h supplies the following:
-C LFMAT,IFMAT,LFMUL,IFMUL (for materials and constructions database)
+#include "help.h"
 
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/SET1/IYEAR,IBDOY,IEDOY,IFDAY,IFTIME
@@ -442,12 +439,7 @@ C VDIF is diffusion res, IPRZ is material array index for each layer.
       character outs*124,NAM*72
       logical ok
 
-C For help messages
-      character helpinsub*24   ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='MOINTC'  ! set for subroutine
+      helpinsub='fabcon'  ! set for subroutine
 
       IPICK=0
 
@@ -898,7 +890,7 @@ C IPRZ is materials array index for each layer.
 
       DIMENSION TMP(MN),PSS(MN),PS(MN),VRN(MN)
       CHARACTER CSTR*25,outs*124,TDESCR*5,xfile*144
-      character ZN*12,SN*12,DS*7,DS1*10,tg*1,delim*1
+      character ZN*12,SN*12,DS*7,DS1*10,DS2*8,tg*1,delim*1
       integer legmat  ! local variable for legacy index.
       logical closemat1,closemat2
 
@@ -1103,7 +1095,7 @@ C vapour pressure at any part of the construction.
 
 C Condensation occurs.
               CALL STIME(ITIMO,TDESCR)
-              CALL STDATE(IYEAR,IDAYO,DS,DS1)
+              CALL STDATE(IYEAR,IDAYO,DS,DS1,DS2)
               write(outs,'(8A)') ' Condensation: ',
      &          SN(1:lnblnk(SN)),' of ',ZN(1:lnblnk(ZN)),
      &          ' on ',DS1,' at ',TDESCR

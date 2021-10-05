@@ -5,17 +5,17 @@
 # on linux, cygwin, mingw, OS X and Windows platforms.
 
 # Source and target directories.
-HOMEdir=`pwd`			# Current directory.
-DESTdir=/opt/esp-r		# Installation directory.
+HOMEdir=`pwd`				# Current directory.
+DESTdir=/opt/esp-r			# Installation directory.
 ESPdir=$DESTdir
-DATdir="${HOMEdir}/data"	# Source data directory.
+DATdir="${HOMEdir}/data"		# Source data directory.
 DOCdir="${HOMEdir}/doc"		# Source documents directory.
 SCRIPTdir="${HOMEdir}/src/bin"	# Source scripts directory.
-MODdir="${HOMEdir}/models"	# Source models directory.
-TRAdir="${MODdir}/training"	# Source training models.
-VALdir="${MODdir}/validation"	# Source validation models.
-SRCdir="${HOMEdir}/src"         # Source code directory.
-COSIMdir=" "		        # Harmonizer installation directory.
+MODdir="${HOMEdir}/models"		# Source models directory.
+TRAdir="${MODdir}/training"		# Source training models.
+VALdir="${MODdir}/validation"		# Source validation models.
+SRCdir="${HOMEdir}/src"		# Source code directory.
+COSIMdir=" "				# Harmonizer installation directory.
 
 # Compilation settings.
 mode="interactive"         # Provide feedback during installation. 
@@ -28,7 +28,7 @@ opt="-O1"                  # optimization to be applied
 FFLAGS="-I../include "     # Fortran compiler flags.
 CFLAGS="-I../include "     # C compiler flags.
 LD_FLAGS=" "               # Link-loader flags.
-complexity="2"             # Model complixity.
+complexity="2"             # Model complexity (medium by default).
 platform="auto-detect"     # Installation platform.
 install_dbs="yes"          # Install databases.
 install_training="yes"     # Install training models.
@@ -51,7 +51,8 @@ unversioned="no"           # Check for versioning info.
 # functionality is automatically encapsulated in bps).
 programs="aco b2e bps dfs dfv cdb c2e clm e2r ecnv eco enet grd ish mfs mld mrt pdb prj res vew"
 programs=" ${programs} "   # Leading/ trailing space added for regexp matching.
-targets=" "		   # Will be overwitten later.
+targets=" "		    # Will be overwitten later.
+third_party="no"           # Suggest installation of third party tools at end of script.
 
 # Determine computer architecture and availability of stat.
 architecture=`uname -s`	   # Kernel name.
@@ -150,6 +151,7 @@ fi
 # If Targets is empty, build all programs.
 if [ "${targets}" = " " ]; then
   targets="${programs}"
+  third_party="yes"
 else
   # Add a trailing space for regexp search.
   targets="${targets} "
@@ -241,15 +243,15 @@ if [ $help -eq 1 ]; then
   echo "           -O3 compiler optimisation ~x1.8 speed"
   echo " "
   echo "    --small"
-  echo "           Constrained model size for computers with"
+  echo "           Smallest executable size for computers with"
   echo "           limited memory, e.g. a virtual machine."
   echo " "
   echo "    --medium"
-  echo "           Standard model size (the default)."
+  echo "           Medium executable size (the default)."
   echo " "
   echo "    --complex"
-  echo "           Complex model case for computers with"
-  echo "           large memory and disk space."
+  echo "           Large executable size to accommodate complex"
+  echo "           models (requires high memory and disk capacity."
   echo " "
   echo "    -h, --help"
   echo "           Display this help message."
@@ -452,7 +454,7 @@ fi
 echo " "
 echo "Executing ESP-r installation script."
 echo " "
-echo "This creates and the ESP-r system based on the source files found in"
+echo "This creates the ESP-r system based on the source files found in"
 echo "directory ${HOMEdir}"
 echo "and installs the result in directory ${DESTdir}."
 echo " "
@@ -2091,13 +2093,26 @@ if [ "$install_exes" = "yes" ]; then
   cp -r ${HOMEdir}/modish ${DESTdir}/bin
 fi
 
-echo " "
-echo " Installation complete."
-echo " "
-echo " Please ensure that you update your PATH environment"
-echo " variable to include the location of the ESP-r executables"
-echo " and any other support tools."
-echo " "
+if [ "$third_party" = "yes" ]; then
+  echo " "
+  echo " Installation complete."
+  echo " "
+  echo " You may wish to install the following 3rd Party programs that are"
+  echo " used by ESP-r modules."
+  echo "  - Radiance, for lighting simulation (https://www.radiance-online.org/);"
+  echo "  - gtool, a CAD front-end (see /opt/esp-r/manual/gtool_install_ubuntu.pdf);"
+  echo "  - obFMU, for occupant behaviour (https://behavior.lbl.gov/?q=obFMUdownload);"
+  echo "  - wings3d, for .obj file viewing (www.wings3d.com); and"
+  echo "  - paraview, for CFD air movement visualisation (www.paraview.org)."
+  echo " "
+  echo " New installations can be tested using the scripts in the 'tester' folder."
+  echo " "
+  echo " Please ensure that you update your PATH environment variable to include"
+  echo " the location of the ESP-r executables and any support tools."
+else
+  echo " "
+  echo " Installation complete."
+fi
 
 exit
 

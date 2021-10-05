@@ -15,6 +15,7 @@ C and says 'viewer bye-bye', and does a stop.
 
 #include "viewer.h"
 #include "viewer.h2"
+#include "help.h"
 
       COMMON/SPAD/MMOD,LIMIT,LIMTTY 
       COMMON/NNAAMM/NAMDS,NAMPIC
@@ -44,12 +45,7 @@ C Redirected text/graphics parameters.
       integer*8 iid1,iid2,iixx,iiyy,iik
 #endif
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found (will be non-zero
-                         ! because default message will be created
-      helpinsub='CHAT'  ! set for subroutine
+      helpinsub='chat'  ! set for subroutine
 
 C MENU OF COMMANDS
       DATA XEQ,YEQ,ZEQ/'X=   ','Y=   ','Z=   '/

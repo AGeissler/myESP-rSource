@@ -26,6 +26,7 @@ C Calculation of zone view factors.
 #include "material.h"
 #include "espriou.h"
 #include "prj3dv.h"
+#include "help.h"
       
       integer lnblnk  ! function definition
       integer igraphiclib  ! external definition
@@ -133,12 +134,6 @@ C Ask to overwrite flag.
 #endif
       integer NITEMS,INO ! max items and current menu item
       integer IGFACTold,NPATCHold ! local vars to remember grid/patch settings
-
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found (will be non-zero
-                         ! because default message will be created
 
 C Common block variable meanings:
 C     NSURMF  -  total number of surfaces
@@ -262,7 +257,7 @@ c Initialise output device, assume minimal trace.
 
 C Set pixels high to iappw and pixels wide to factor in monitor size.
       iapphi=iappw
-      iappwi=int(real(iappw)*(1024.0/780.0))
+      iappwi=int(real(iappw)*(1024.0/725.0))
 
       if(iappw.gt.0.and.iappw.lt.100)then
         menuchw = MAX0(int(32*iappw*0.01),16)
@@ -974,6 +969,7 @@ C Calculate viewfactors for a zone.
 #include "building.h"
 #include "model.h"
 #include "geometry.h"
+#include "help.h"
 
       COMMON/FILEP/IFIL
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
@@ -997,13 +993,7 @@ C outfile is the geometry file name for the zone with cube added.
       logical OK,GEOLOAD,MRTLOAD
       dimension iivis(MSM)
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found (will be non-zero
-                         ! because default message will be created
-
-      helpinsub='CALVF'  ! set for this subroutine
+      helpinsub='espvwf'  ! set for this subroutine
 
 c Initialize FF(i,j) and IVIS(i,j).
       IUF = IFIL+1
@@ -1685,5 +1675,9 @@ C Not one of the legal menu choices.
       goto 3
 
       END
+
+      subroutine redrawbuttons()
+      return
+      end
 
 

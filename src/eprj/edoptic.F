@@ -35,11 +35,7 @@ C file to manage the reading and saving of this db.
 #include "building.h"
 #include "epara.h"
 #include "esprdbfile.h"
-
-C esprdbfile.h supplies the following:
-C LAPRES,IAPRES (for window pressure database)
-C LOPTDB,IOPTDB (for optical database)
-C LPRFDB,IPRODB (for event profile database)
+#include "help.h"
       
       integer lnblnk  ! function definition
 
@@ -64,12 +60,7 @@ C LPRFDB,IPRODB (for event profile database)
       logical unixok  ! to check for database path file separators
       integer NITMS,INO ! max items and current menu item
 
-C For help messages.
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='EDOPT'  ! set for subroutine
+      helpinsub='edoptic'  ! set for subroutine
 
 C Set folder separator (fs) to \ or / as required.
       call isunix(unixok)
@@ -556,6 +547,7 @@ C ******************* EDITOPT
 C EDITOPT edits one set of optical properties via common block. 
       SUBROUTINE EDITOPT(IW,GTYPE,GDESCR,edited,IER)
 #include "building.h"
+#include "help.h"
       
       integer lnblnk  ! function definition
 
@@ -590,12 +582,7 @@ C ilabs is string arry for layer insert/delet selection.
       integer*8 iiw1,iiw2,iiw3,iiw4,iimenu,iicol
 #endif
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='EDITOPT'  ! set for subroutine
+      helpinsub='edoptic'  ! set for subroutine
 
       IER=0
       edited=.false.
@@ -1092,6 +1079,7 @@ C IMPOPT reads in an optical report from Window 5.1 or 5.2 or 6.x
       SUBROUTINE IMPOPT(iwin4,IER)
 #include "building.h"
 #include "model.h"
+#include "help.h"
       
       integer lnblnk  ! function definition
 
@@ -1108,12 +1096,7 @@ C wlname is LBL Window name for layer, wlthk is mm thickness.
       character sfile*72,snpfile*72
       character longtfile*144,fname*96
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='IMPOPT'  ! set for subroutine
+      helpinsub='edoptic'  ! set for subroutine
 
 C Locate the xbm files via the installed path.
       call isunix(unixok)
@@ -1381,6 +1364,7 @@ C ************* IMPWIS
 C IMPWIS clears common block GOPTED and sets it up for a new set.
       SUBROUTINE IMPWIS(iwis,GDESCR,IER)
 #include "building.h"
+#include "help.h"
       
       integer lnblnk  ! function definition
 
@@ -1399,12 +1383,7 @@ C Passed parameters
       logical standalone
       real v1,v2,v3,v4,v5,v6  ! for data being scanned
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='IMPWIS'  ! set for subroutine
+      helpinsub='edoptic'  ! set for subroutine
 
 C Free unit and check if import file exists.
       helptopic='optical_import_wis'
@@ -1863,8 +1842,7 @@ C optic properties. These are usually the result of measurements.
 #include "epara.h"
 #include "esprdbfile.h"
 #include "prj3dv.h"
-C MSTMC is number of different bidirectional datasets, limited
-C to 20 for the present.
+#include "help.h"
       
 C      integer lnblnk  ! function definition
 
@@ -1891,12 +1869,7 @@ C      logical ok
 C      character outs*124
       integer MVERT,IVERT ! max items and current menu item
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='edbioptics'  ! set for subroutine
+      helpinsub='edoptic'  ! set for subroutine
 
 C Initialise connection menu size variables based on window size. 
 C IVERT is the menu position, MVERT the current number of menu lines.
@@ -2085,9 +2058,8 @@ C optic properties. These are usually the result of measurements.
 #include "model.h"
 #include "epara.h"
 #include "e2r_common.h"
-
-C espriou.h provides current file.
 #include "espriou.h"
+#include "help.h"
       
       integer lnblnk  ! function definition
 
@@ -2105,18 +2077,13 @@ C espriou.h provides current file.
       real RVC(13)
       logical isfeet
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
 #ifdef OSI
       integer nnlistf  ! for use with getfileslist
 #else
       integer*8 nnlistf
 #endif
 
-      helpinsub='setupies'  ! set for subroutine
+      helpinsub='edoptic'  ! set for subroutine
 
 C Locate the IES files via the installed path.
       call isunix(unixok)
@@ -2372,6 +2339,7 @@ C model files) for passing to Radiance.
 
 C espriou.h provides current file.
 #include "espriou.h"
+#include "help.h"
       
       integer lnblnk  ! function definition
 
@@ -2390,12 +2358,7 @@ C espriou.h provides current file.
       character ITEMS*24
       dimension ITEMS(8),IVALS(8)
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='setupdiffuse'  ! set for subroutine
+      helpinsub='edoptic'  ! set for subroutine
 
 C Locate the IES files via the installed path.
       call isunix(unixok)

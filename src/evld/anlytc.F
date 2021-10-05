@@ -38,11 +38,10 @@ C ********** AnlCnd **********
 
       SUBROUTINE AnlCnd
 #include "building.h"
+#include "help.h"
 
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/FILEP/IFIL
-      character h*72
-      common/pophelp/h(60)
       COMMON/Vld01/NLayer,Cond(ME),Dens(ME),Cp(ME),DX(ME),NPLyr(ME)
       COMMON/Vld02/Tinit,IndBO,IndBI,Tout,Tin,Hout,Hin
       COMMON/Vld04/DTime,NTime,MonNod,NRoot,NIter
@@ -60,6 +59,12 @@ C ********** AnlCnd **********
       logical VldOK
 
       integer MITEM,INO ! max items and current menu item
+
+C << TODO shift h()= statements into a *.help file. >>
+
+      helpinsub='anlytc'  ! set for subroutine
+      helptopic='AnlCnd'
+      call gethelptext(helpinsub,helptopic,nbhelp)
 
       MonNod=1
       VldOK=.false.
@@ -304,17 +309,20 @@ C ********** VldAdv **********
 
       SUBROUTINE VldAdv
 #include "building.h"
+#include "help.h"
 
-      common/pophelp/h(60)
       COMMON/GR1D04/GAM,RGAM
       COMMON/Vld01/NLayer,Cond(ME),Dens(ME),Cp(ME),DX(ME),NPLyr(ME)
       COMMON/Vld04/DTime,NTime,MonNod,NRoot,NIter
 
-      character h*72
       character*32 item(11)
       CHARACTER*72 Msg
       integer NTimeT,NRootT,NIterT  ! local values for editing.
       integer MITEM,INO ! max items and current menu item
+
+      helpinsub='anlytc'  ! set for subroutine
+      helptopic='VldAdv'
+      call gethelptext(helpinsub,helptopic,nbhelp)
       
    10 INO=-3
       WRITE(ITEM(1),'(A13,F8.1,A2)')'1 Time step: ',DTime,' s'
@@ -448,13 +456,15 @@ C Exit advanced options menu.
 C ********** VldBnd **********
 
       SUBROUTINE VldBnd(TempB,HTranB)
+#include "help.h"
       integer iCountWords
 
-      common/pophelp/h(60)
-
-      character h*72
       character StrVal*25
       CHARACTER*72 Msg
+
+      helpinsub='anlytc'  ! set for subroutine
+      helptopic='VldBnd'
+      call gethelptext(helpinsub,helptopic,nbhelp)
       
       WRITE(StrVal,'(2F9.1)')TempB,HTranB
       H(1)=' You should enter the following data:'
@@ -481,14 +491,17 @@ C ********** VldCon **********
       SUBROUTINE VldCon
 #include "epara.h"
 #include "building.h"
-
-      common/pophelp/h(60)
+#include "help.h"
 
       COMMON/Vld01/NLayer,Cond(ME),Dens(ME),Cp(ME),DX(ME),NPLyr(ME)
 
-      CHARACTER KEY*1,H*72
+      CHARACTER KEY*1
       character*47 ITEM(20)
       integer NITEMS,INO ! max items and current menu item
+
+      helpinsub='anlytc'  ! set for subroutine
+      helptopic='VldCon'
+      call gethelptext(helpinsub,helptopic,nbhelp)
 
 C Initialise connection menu size variables based on window size. 
 C INO is the menu position, NITEMS the current number of menu lines.
@@ -615,13 +628,16 @@ C ********** VConEd **********
 
       SUBROUTINE VConEd(I,ier)
 #include "building.h"
+#include "help.h"
       integer iCountWords
-
-      common/pophelp/h(60)
 
       COMMON/Vld01/NLayer,Cond(ME),Dens(ME),Cp(ME),DX(ME),NPLyr(ME)
 
-      CHARACTER*72 StrVal,H,Msg
+      CHARACTER*72 StrVal,Msg
+
+      helpinsub='anlytc'  ! set for subroutine
+      helptopic='VConEd'
+      call gethelptext(helpinsub,helptopic,nbhelp)
 
       WRITE(StrVal,602)Cond(I),Dens(I),Cp(I),DX(I),NPLyr(I)
  602  FORMAT(2X,F8.4,2X,F8.1,2X,F8.1,2X,F8.4,2X,I4)
@@ -802,13 +818,10 @@ C ********** VCpyDr **********
       SUBROUTINE VCpyDr(NPER,ier)
 #include "building.h"
 #include "model.h"
-
-C geometry.h provides commons G0 and G2.
-C #include "geometry.h"
+#include "help.h"
 
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/FILEP/IFIL
-      common/pophelp/h(60)
 
       integer ncomp,ncon
       COMMON/C1/NCOMP,NCON
@@ -816,12 +829,16 @@ C #include "geometry.h"
       common/rcmd/LCMDFL
       COMMON/Vld10/VlDirR,VlDirL
 
-      character h*72,doit*124,MODE*4
+      character doit*124,MODE*4
       CHARACTER*72 path
       character VlDirR*96,VlDirL*72
       character LCMDFL*144
 
       logical xst
+
+      helpinsub='anlytc'  ! set for subroutine
+      helptopic='VCpyDr'
+      call gethelptext(helpinsub,helptopic,nbhelp)
 
 C Check if the root validation folder is available.
       IER=0

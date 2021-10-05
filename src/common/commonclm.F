@@ -28,7 +28,7 @@ C CLMARR    Arrange weather parameter column order.
 C ********** CLMGET **********
 C Recover one day's data from weather file.
 C Assumes that the header data has already been read.
-      SUBROUTINE CLMGET(IDAY)
+      SUBROUTINE CLMGET(IDAY,IER)
 #include "climate.h"
 
       integer iday  ! passed in julian day of the year
@@ -45,10 +45,15 @@ C Check if we are trying to read the same data we already have.
 
 C Read data from climate file.
 C CMDAYR is set in CLMRDBD.
-      CALL CLMRDBD(IDAY,IDAY,IER)
+      if (IDAY.eq.365) then
+        idayf=1
+      else
+        idayf=IDAY+1
+      endif
+      CALL CLMRDBD(IDAY,idayf,IER)
       if (IER.gt.0) goto 666
 
-C Data now in CMIVAL. Convert this to actual values and put into CMVAL.
+C Data now in CMIVAL. Convert this to actual values and put into CMRVAL.
       do j=1,24
         do k=1,MCM
           if (CMXST(K)) then
@@ -64,7 +69,7 @@ C Data now in CMIVAL. Convert this to actual values and put into CMVAL.
   999 RETURN
 
   666 call edisp(iuout,
-     &  ' Error encountered; substituting zeros for data.')
+     &  'CLMGET error; substituting zeros for data.')
       do j=1,24
         do k=1,MCM
           CMRVAL(K,J)=0.0
@@ -82,7 +87,7 @@ C RLONGT = Longitudinal difference, East is positive, West is negative
 C          of the reference meridian, e.g. Greenwich (0 deg) for the UK.
 C RLATIT = Latitude, North is positive, South is negative.
       SUBROUTINE AZALT(IYD,ITS,RLONGT,RLATIT,SOLALT,SOLAZI)
-      implicit none
+#include "help.h"
       
       real esind,ecosd  ! function definitions
 
@@ -96,8 +101,6 @@ C RLATIT = Latitude, North is positive, South is negative.
       common/OUTIN/IUOUT,IUIN,IEOUT
       integer iuout,iuin,ieout
       COMMON/UAZALT/INIT,GLAT,GLON
-      character h*72
-      common/pophelp/h(60)
 
 C Local definitions.
       logical OK,close
@@ -106,6 +109,7 @@ C Local definitions.
       real ALT,SDLAT,CDLAT,AZMUTH
       real A,B,EQTIME,X,Y
 
+      helpinsub='common3dv'  ! set for subroutine
       PI = 4.0 * ATAN(1.0)
       INIT = 0
       GLAT = 55.9
@@ -183,10 +187,10 @@ C in north or south hemispheres.
    10 CONTINUE
       RETURN
 
-   14 h(1)='There are some limits that should not be exceeded.'
-      h(2)='If you say no, the program will STOP. '
+   14 helptopic='azalt_limits'
+      call gethelptext(helpinsub,helptopic,nbhelp)
       CALL EASKOK('Lat. +/- 89.9 deg. or Long. diff. +/- 14.9 deg.',
-     &  'Continue with default values?',OK,2)
+     &  'Continue with default values?',OK,nbhelp)
       if(.NOT.OK)then
         call pauses(3)   ! pause for 3 seconds then abort program.
         close(ieout)
@@ -217,11 +221,11 @@ C  icuryear (integer) the applicable year
 #include "seasons.h"
 #include "ipvdata.h"
 #include "climate.h"
+#include "help.h"
 
       integer lnblnk  ! function definition
 
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
-      common/pophelp/h(60)
       COMMON/SET1/IYEAR,IBDOY,IEDOY,IFDAY,IFTIME
       COMMON/CLMSET/ICYEAR,ICDNGH,CLAT,CLONG
       COMMON/RADTYP/IDNGH
@@ -229,8 +233,9 @@ C  icuryear (integer) the applicable year
 C dm* variables are from ipvdata.h.
 C sea* variables are from season.h
 
-      character H*72,outs*124,PERST1*14,PERST2*44,PERST3*44
+      character outs*124,PERST1*14,PERST2*44,PERST3*44
       character DESCR*7,DESCR1*10,title*40,hold*32,act*1,topic*1
+      character DESCR2*8
       DIMENSION ALT(24),AZI(24),GHSUM(MSPS),DAYGLOB(MSPS)
 
       real DNJ       ! T below heating deg-hours
@@ -253,6 +258,7 @@ C  hddratio is the season / assessment ratio for heating
       logical ok
 
 C Clear initial values and parameters for whole period.
+      helpinsub='common3dv'  ! set for subroutine
       DNM=0.
       HRM=0.
       UPMC=0.
@@ -307,7 +313,7 @@ C Loop through each seasonal period.
 C For each day in the season read climate data, set parameters and analyse.
         DO 10 I=IDSS,IDSF
           IDD=I
-          CALL CLMGET(IDD)
+          CALL CLMGET(IDD,IER)
           CALL AZALT(IDD,1,CLONG,CLAT,ALT,AZI)
           DNJ=0
           UPJC=0.
@@ -390,31 +396,22 @@ C UPDATE WHOLE PERIOD
         UPMC=0.
         HRMC=0.
   42  continue   ! end of season loop
+
 C Loop through each week in each season and check against the
 C calculated average data.
 C Loop through each seasonal period.
-      h(1)='Typical weeks are found by scanning the weather data'
-      h(2)='for a week in each season which has the least deviation'
-      h(3)='in heating degree-days (DD), cooling degree-days, and'
-      h(4)='solar radiation. '
-      h(5)=' '
-      h(6)='It reports the parameters it uses to determine the'
-      h(7)='best fit as well as several ratios between the best'
-      h(8)='week and the season (ratio of julian days, ratio of'
-      h(9)='heating degree-days and ratio of cooling degree-days'
-      h(10)='all of which are parameters required for generating'
-      h(11)='an integrated performance view (IPV).'
+      helptopic='typical_week_scan'
+      call gethelptext(helpinsub,helptopic,nbhelp)
       call easkab(' ','Options:','search for typical weeks',
-     &  'cancel',iok,11)
+     &  'cancel',iok,nbhelp)
       if(iok.eq.2)return
 
 C Allow user to define weightings.
-      H(1)='Weightings for heating degree-days, cooling degree-days'
-      H(2)='and solar radiation can be given. The default is equal'
-      H(3)='weighting.'
+      helptopic='dd_weightings'
+      call gethelptext(helpinsub,helptopic,nbhelp)
       write(hold,'(3f6.3)') hddw,cddw,radw
  143  CALL EASKS(HOLD,' ','Weightings for HDD, CDD & solar:',32,
-     &  ' 1.0 1.0 1.0 ','weightings for hdd cdd solar',IER,3)
+     &  ' 1.0 1.0 1.0 ','weightings for hdd cdd solar',IER,nbhelp)
       K=0
       CALL EGETWR(HOLD,K,hddw,0.0,1.0,'W','hdd weight',IER)
       CALL EGETWR(HOLD,K,cddw,0.0,1.0,'W','cdd weight',IER)
@@ -467,7 +464,7 @@ C For each day read climate data, set parameters and analyse.
         DO 11 I=IDSS,IDSF
           IDD=I
           ix=ix+1
-          CALL CLMGET(IDD)
+          CALL CLMGET(IDD,IER)
           CALL AZALT(IDD,1,CLONG,CLAT,ALT,AZI)
           DNJ=0
           UPJC=0
@@ -492,7 +489,7 @@ C Temperature below heating BASE,SAVE DEG-HRS IN DNJ.
             endif
             IF(TT.GT.cddbaset)then
 
-C Teperature above cooling BASE ,SAVE DEG-HRS IN UPJC.
+C Temperature above cooling BASE ,SAVE DEG-HRS IN UPJC.
               UPJC=UPJC+(TT-cddbaset)
             endif
    21     CONTINUE
@@ -512,7 +509,7 @@ C Compute parameters (total & average degree days) for this week.
           XHRC=24.0/HRMC
           XDN=DNM/24
           XUPC=UPMC/24
-          call stdate(icuryear,IDSOW,DESCR,DESCR1)
+          call stdate(icuryear,IDSOW,DESCR,DESCR1,DESCR2)
           YDN=XHR*XDN
           YUPC=XHRC*XUPC
           WRITE(outs,'(a,i2,3a,2F8.2,a,F8.3)')' Week:',iwk,
@@ -580,7 +577,7 @@ C Compute parameters for last week.
         XDN=DNM/24
         XUPC=UPMC/24
         iwk=iwk+1
-        call stdate(icuryear,IDSOW,DESCR,DESCR1)
+        call stdate(icuryear,IDSOW,DESCR,DESCR1,DESCR2)
         YDN=XHR*XDN
         YUPC=XHRC*XUPC
         WRITE(outs,'(a,i2,3a,2F8.2,a,F8.3)')' Week:',iwk,
@@ -614,7 +611,7 @@ C Deal with radiation here for last week of season.
         endif
 
 C Cast year and julian day at start of best fit week to a description.
-        call stdate(icuryear,iwkbstrt(k),DESCR,DESCR1)
+        call stdate(icuryear,iwkbstrt(k),DESCR,DESCR1,DESCR2)
         WRITE(outs,'(a,i3,3a,F6.2,a,F6.2)')' Best week number is ',
      &    iwkbest(k),' ',DESCR1,' with HDD of ',wkheatdd(k),
      &    ' & CDD of ',wkcooldd(k)
@@ -650,9 +647,10 @@ C there is no divide by zero.
      &      hddratio(k),' & cool DD:',cddratio(k)
           call edisp(iuout,outs)
           if(act.eq.'?')then
-            h(1)='Unless you have better information, say yes.'
+            helptopic='just_say_yes'
+            call gethelptext(helpinsub,helptopic,nbhelp)
             call easkok('Use best-fit week for the 1st winter season',
-     &       'typical assessment period in the climatelist?',ok,1)
+     &       'typical assessment period in the climatelist?',ok,nbhelp)
             if(ok)then
               ia1wins = iwkbstrt(k)
               ia1winf = iwkbstrt(k)+6
@@ -672,9 +670,10 @@ C Debug...
      &      hddratio(k),' & cool DD:',cddratio(k)
           call edisp(iuout,outs)
           if(act.eq.'?')then
-            h(1)='Unless you have better information, say yes. '
+            helptopic='just_say_yes'
+            call gethelptext(helpinsub,helptopic,nbhelp)
             call easkok('Use best-fit week for the spring season',
-     &       'typical assessment period in the climatelist?',ok,1)
+     &       'typical assessment period in the climatelist?',ok,nbhelp)
             if(ok)then
               ia1sprs = iwkbstrt(k)
               ia1sprf = iwkbstrt(k)+6
@@ -693,9 +692,10 @@ C Debug...
      &      hddratio(k),' & cool DD:',cddratio(k)
           call edisp(iuout,outs)
           if(act.eq.'?')then
-            h(1)='Unless you have better information, say yes.'
+            helptopic='just_say_yes'
+            call gethelptext(helpinsub,helptopic,nbhelp)
             call easkok('Use best-fit week for the summer season',
-     &       'typical assessment period in the climatelist?',ok,1)
+     &       'typical assessment period in the climatelist?',ok,nbhelp)
             if(ok)then
               iasums = iwkbstrt(k)
               iasumf = iwkbstrt(k)+6
@@ -714,9 +714,10 @@ C Debug...
      &      hddratio(k),' & cool DD:',cddratio(k)
           call edisp(iuout,outs)
           if(act.eq.'?')then
-            h(1)='Unless you have better information, say yes. '
+            helptopic='just_say_yes'
+            call gethelptext(helpinsub,helptopic,nbhelp)
             call easkok('Use best-fit week for the autumn season',
-     &       'typical assessment period in the climatelist?',ok,1)
+     &       'typical assessment period in the climatelist?',ok,nbhelp)
             if(ok)then
               ia2sprs = iwkbstrt(k)
               ia2sprf = iwkbstrt(k)+6
@@ -735,9 +736,10 @@ C Debug...
      &      hddratio(k),' & cool DD:',cddratio(k)
           call edisp(iuout,outs)
           if(act.eq.'?')then
-            h(1)='Unless you have better information, say yes. '
+            helptopic='just_say_yes'
+            call gethelptext(helpinsub,helptopic,nbhelp)
             call easkok('Use best-fit week for the 2nd winter season',
-     &       'typical assessment period in the climatelist?',ok,1)
+     &       'typical assessment period in the climatelist?',ok,nbhelp)
             if(ok)then
               ia2wins = iwkbstrt(k)
               ia2winf = iwkbstrt(k)+6
@@ -765,8 +767,8 @@ C day ratio.
         dmsmlpw(k)=dayratio
         dmfan(k)=dayratio
         dmdhw(k)=dayratio
-        h(1)='You might wish to record this information before'
-        h(2)='proceeding to the next season.'
+        helptopic='record_before_proceed'
+        call gethelptext(helpinsub,helptopic,nbhelp)
         if(act.eq.'?')then
           continue
         else
@@ -774,7 +776,7 @@ C day ratio.
             iok=1
           else
             call easkab('Options:',' ','next season','cancel',
-     &        iok,2)
+     &        iok,nbhelp)
           endif
           if(iok.eq.2)return
         endif
@@ -791,13 +793,13 @@ C weather file. IER=0 if yes, 1 if no.
 #include "climate.h"
 
       IER=1
-      if (CMXST(1)
-     &  .and.CMXST(2)
-     &  .and.(CMXST(3)
-     &    .or.CMXST(4))
-     &  .and.CMXST(5)
-     &  .and.CMXST(6)
-     &  .and.CMXST(7)) IER=0
+      if (CMXST(1)           ! Dry bulb temperature
+     &  .and.CMXST(2)        ! Diffuse horizontal solar intensity
+     &  .and.(CMXST(3)       ! Direct normal solar intensity
+     &    .or.CMXST(4))      ! Global horizonal solar intensity
+     &  .and.CMXST(5)        ! Wind speed
+     &  .and.CMXST(6)        ! Wind direction
+     &  .and.CMXST(7)) IER=0 ! Relative humidity
 
       RETURN
       END
@@ -945,7 +947,8 @@ C Read data.
      &  (CFIVAL(i,25),i=1,CFMCM)
 
 
-C Assign values to CMIVAL and range check.
+C Assign values to CMIVAL and range check. Do not warn if
+C no atmospheric pressure has been defined.
       do j=1,25
         do i=1,MCM
           icol=CMCOL(i)
@@ -960,11 +963,15 @@ C Assign values to CMIVAL and range check.
      &          ' is greater than maximum'
               CALL EDISP(IUOUT,outs)
             elseif (ival.lt.CFMIN(i)) then
-              l=lnblnk(CMNAMF(i))
-              write(outs,'(3a,i2.2,a,i3.3,a)')' Warning: ',
-     &          CMNAMF(i)(1:l),' at hour ',j,' day ',IDAYP,
-     &          ' is less than minimum'
-              CALL EDISP(IUOUT,outs)
+              if(i.eq.10.and.ival.eq.0)then
+                continue  ! Case of pressure not having been set.
+              else
+                l=lnblnk(CMNAMF(i))
+                write(outs,'(3a,i2.2,a,i3.3,a)')' Warning: ',
+     &            CMNAMF(i)(1:l),' at hour ',j,' day ',IDAYP,
+     &            ' is less than minimum'
+                CALL EDISP(IUOUT,outs)
+              endif
             endif
             CMIVAL(i,j)=ival
           endif
@@ -1027,7 +1034,7 @@ C fixed record width of 144 (24 hours * 6 parameters). Version 2
 C weather files have a record width of 24 hours * MCM parameters 
 C (defined in climate.h). This subroutine maintains back-compatibility
 C using a list of all possible values for MCM, including previous
-C versions (MCMALL in climate.h). The version of the waether file
+C versions (MCMALL in climate.h). The version of the weather file
 C is also set (CFVER in climate.h).
 
 C IEXIST is passed to EFOPRAN (in esru_lib.F):

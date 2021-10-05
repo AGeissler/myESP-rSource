@@ -28,6 +28,7 @@ C Handles results view/setup requests for plant.
 
       subroutine plttab
 #include "plant.h"
+#include "help.h"
       
       integer lnblnk  ! function definition
 
@@ -98,11 +99,7 @@ C this clash.
       integer IWM  ! for radio button
       integer NITMS,INO ! max items and current menu item
 
-      character helpinsub*24   ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='plttab'  ! set for subroutine
+      helpinsub='moplnt'  ! set for subroutine
 
 C Default value for GRTOOL file hourly flag = 0 (off).
       IHFLAG=0
@@ -649,16 +646,12 @@ C SELPC displays a selection list of plant components
 C for the user to select from.
       subroutine selpc(mnpc,mcomp,pcnam1,npc)
 #include "plant.h"
+#include "help.h"
       dimension mcomp(mpcom)
 
       character pcnam1(mpcom)*15
 
-C For help messages
-      character helpinsub*24   ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='selpc'  ! set for subroutine
+      helpinsub='moplnt'  ! set for subroutine
 
 c Get number of components.
       if(npc.eq.1) then
@@ -690,12 +683,7 @@ C If user cancels file browse set ier to -3.
 #include "model.h"
 #include "plant.h"
 #include "esprdbfile.h"
-C esprdbfile.h supplies the following:
-C LAPRES,IAPRES (for window pressure database)
-C LOPTDB,IOPTDB (for optical database)
-C LPCDB/IPCDB (for plant template database)
-C ICLIM,LCLIM (for climate file)
-C default file names for databases
+#include "help.h"
 
       integer lnblnk  ! function definition
       integer igraphiclib  ! external definition
@@ -743,12 +731,7 @@ C Defaults.
       integer nsim  ! number of simulations
       integer ISTRW
 
-C For help messages
-      character helpinsub*24   ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='opnplt'  ! set for subroutine
+      helpinsub='moplnt'  ! set for subroutine
 
       IUNITp=ifil+10
       DFILE='plant.plr'
@@ -1160,6 +1143,7 @@ C naout (number of additional output data) is returned.
 #include "esprdbfile.h"
 #include "gencompDB.h"
 #include "gencompDB_common.h"
+#include "help.h"
 
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/FILEP/IFIL
@@ -1180,12 +1164,7 @@ C Common for new format component database
       character lltmp*144  ! to re-create plant database file name with path
       character domain_s*16,category_s*16
       
-C For help messages
-      character helpinsub*24   ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='dbdat'  ! set for subroutine
+      helpinsub='moplnt'  ! set for subroutine
 
 C Set folder separator (fs) to \ or / as required.
       call isunix(unixok)
@@ -1413,6 +1392,7 @@ C the command line was a plant results file.
 #include "building.h"
 #include "site.h"
 #include "plant.h"
+#include "help.h"
 C act='p' iget parameters already set.
       
       integer lnblnk  ! function definition
@@ -1469,9 +1449,9 @@ C Flags identifying if results libries are available. =0 no lib, =1 lib exists.
       dimension Yold(65),TIMEold(65),val(MSYSRS)
       character outs*124,TLABEL*60,trange*20,tranged*20
       character ALABEL(6)*12,t20*20,act*1
-      CHARACTER PDESCR*60,SDESCR*44,DESCR*7,DESCR1*10
+      CHARACTER PDESCR*64,SDESCR*44,DESCR*7,DESCR1*10,DESCR2*8
       character SPLABEL*32,GPLABEL*20
-      CHARACTER DESCRH*5,DESCRD*5,NT*14,XT*14
+      CHARACTER DESCRH*5,DESCRD*5,DESCRJ*5,NT*14,XT*14
       character graftitle*64,grlbl*24,t24*24
       character ETEXT*124,t64*64
       dimension FMAX(MSYSRS), FMIN(MSYSRS), FTOTSD(MSYSRS)
@@ -1501,12 +1481,7 @@ C Flags identifying if results libries are available. =0 no lib, =1 lib exists.
 
       logical colok,ok,unixok
 
-C For help messages
-      character helpinsub*24   ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='SYSOUTP'  ! set for subroutine
+      helpinsub='moplnt'  ! set for subroutine
 
 C Begin with the menu type=4 (performance metrics).
       menutype=4
@@ -2095,7 +2070,7 @@ C Setup and pass in parameters to win3d.
         ENDIF
 
         WRITE(ETEXT,'(3A)')PDESCR(1:lnblnk(PDESCR)),' ',
-     &    SDESCR(11:lnblnk(SDESCR))
+     &    SDESCR(12:lnblnk(SDESCR))
         iside=1; isize=0; ifont=1
         if(mmod.eq.8)then
           call viewtext(etext,iside,isize,ifont)
@@ -2137,7 +2112,7 @@ C write out labels for each column at the start.
            ctime=float(ioh1-1)/24.0+enterval+float(iods)
         endif
         iday=INT(ctime)
-        CALL STDATE(IYEAR,IDAY,DESCR,DESCR1)
+        CALL STDATE(IYEAR,IDAY,DESCR,DESCR1,DESCR2)
         if (IDHFLG.eq.1) then
           outs='# '
           call edisp(itru,outs)
@@ -2765,7 +2740,7 @@ C Setup and pass in parameters to win3d.
             call startbuffer()
 
             WRITE(ETEXT,'(3A)')PDESCR(1:lnblnk(PDESCR)),' ',
-     &        SDESCR(11:lnblnk(SDESCR))
+     &        SDESCR(12:lnblnk(SDESCR))
             iside=1; isize=0; ifont=1
             call viewtext(etext,iside,isize,ifont)
             TLABEL='  '
@@ -2881,15 +2856,15 @@ C Create string description for time of maximum occurrance.
 C TMAX & TMIN will have been recorded as a Julian day.
           MAXDOY=INT(TMAX(I))
           TMAXHR= (TMAX(I)-INT(TMAX(I)))*24.0
-          call STDATE(IYEAR,MAXDOY,DESCR,DESCR1)
-          call EDTIME(TMAXHR,DESCRH,DESCRD,TIMER)
+          call STDATE(IYEAR,MAXDOY,DESCR,DESCR1,DESCR2)
+          call EDTIME(TMAXHR,DESCRH,DESCRD,DESCRJ,TIMER)
           write (XT,'(3a)')DESCR(1:6),'@',DESCRH
 
 C Create string description for time of minimum occurrance.
           MINDOY=INT(TMIN(I))
           TMINHR= (TMIN(I)-INT(TMIN(I)))*24.0
-          call STDATE(IYEAR,MINDOY,DESCR,DESCR1)
-          call EDTIME(TMINHR,DESCRH,DESCRD,TIMER)
+          call STDATE(IYEAR,MINDOY,DESCR,DESCR1,DESCR2)
+          call EDTIME(TMINHR,DESCRH,DESCRD,DESCRJ,TIMER)
           write (NT,'(a,a,a)')DESCR(1:6),'@',DESCRH
           t20=GPLABEL(I)
           write (outs,'(a,1x,2(f8.2,2x,a12,2x),2(f7.2,3x))') t20,
@@ -2918,15 +2893,15 @@ C Display stats + hrs above.
 C Create string description for time of maximum occurrance.
           MAXDOY=INT(TMAX(I)/24.)+IODS
           TMAXHR=AMOD(TMAX(I),24.)
-          call STDATE(IYEAR,MAXDOY,DESCR,DESCR1)
-          call EDTIME(TMAXHR,DESCRH,DESCRD,TIMER)
+          call STDATE(IYEAR,MAXDOY,DESCR,DESCR1,DESCR2)
+          call EDTIME(TMAXHR,DESCRH,DESCRD,DESCRJ,TIMER)
           write (XT,'(a,a,a)')DESCR(1:6),'@',DESCRH
 
 C Create string description for time of minimum occurrance.
           MINDOY=INT(TMIN(I)/24.)+IODS
           TMINHR=AMOD(TMIN(I),24.)
-          call STDATE(IYEAR,MINDOY,DESCR,DESCR1)
-          call EDTIME(TMINHR,DESCRH,DESCRD,TIMER)
+          call STDATE(IYEAR,MINDOY,DESCR,DESCR1,DESCR2)
+          call EDTIME(TMINHR,DESCRH,DESCRD,DESCRJ,TIMER)
           write (NT,'(3a)')DESCR(1:6),'@',DESCRH
           AYAB=float(IQHRS(I))*float(NOUT)/float(NTS)
           t20=GPLABEL(I)
@@ -2960,15 +2935,15 @@ C Display stats + hrs below.
 C Create string description for time of maximum occurrance.
           MAXDOY=INT(TMAX(I)/24.)+IODS
           TMAXHR=AMOD(TMAX(I),24.)
-          call STDATE(IYEAR,MAXDOY,DESCR,DESCR1)
-          call EDTIME(TMAXHR,DESCRH,DESCRD,TIMER)
+          call STDATE(IYEAR,MAXDOY,DESCR,DESCR1,DESCR2)
+          call EDTIME(TMAXHR,DESCRH,DESCRD,DESCRJ,TIMER)
           write (XT,'(3a)')DESCR(1:6),'@',DESCRH
 
 C Create string description for time of minimum occurrance.
           MINDOY=INT(TMIN(I)/24.)+IODS
           TMINHR=AMOD(TMIN(I),24.)
-          call STDATE(IYEAR,MINDOY,DESCR,DESCR1)
-          call EDTIME(TMINHR,DESCRH,DESCRD,TIMER)
+          call STDATE(IYEAR,MINDOY,DESCR,DESCR1,DESCR2)
+          call EDTIME(TMINHR,DESCRH,DESCRD,DESCRJ,TIMER)
           write (NT,'(3a)')DESCR(1:6),'@',DESCRH
           AYAB=float(IQHRS(I))*float(NOUT)/float(NTS)
           t20=GPLABEL(I)

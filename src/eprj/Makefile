@@ -26,9 +26,9 @@ default: $(PROG)
 .o :
 	$(MCC) $(FFLAGS) -c $<
 
-MODULE_OBJECTS = h3kmodule.o startup.o aim2_module.o aim2_inputs.o CFC_Module.o
+MODULE_OBJECTS = h3kmodule.o startup.o aim2_module.o aim2_inputs.o CFC_Module.o cadio_Module.o
 
-OBJECTS = prj.o anlytc.o arrow.o ascii_mat.o basesimp.o \
+OBJECTS = prj.o agtprj.o agtcom.o anlytc.o arrow.o ascii_mat.o basesimp.o \
 	  basesimp_inputs.o blcond.o bnlthp.o bpfcom.o bpfcontrl.o bscoeff.o bscoeff_extended.o \
 	  bsimsel.o c2fdum.o cadio.o cfdat.o cfdrw.o cfg3dv.o cfgmsc.o cfgrid.o cgd.o \
 	  clickonbitmap.o common3dv.o commonclm.o context.o ctlexp.o ctlwrt.o ctprob.o \
@@ -38,7 +38,7 @@ OBJECTS = prj.o anlytc.o arrow.o ascii_mat.o basesimp.o \
 	  edcfd.o edcfg.o edcon.o edcondb.o eddb.o edgeo.o edipv.o editCFC.o edmrt.o \
 	  edobs.o edonecon.o edoptic.o edpro.o edspmtl.o edtopol.o edzone.o egeometry.o \
 	  egbxml.o egrid.o egtgeom.o emeta.o emfnetw.o emkcfg.o enetmisc.o enetprj.o enetrewr.o \
-	  eroper.o esru_misc.o esystem.o exlgrad.o explor.o filelist.o folders.o \
+	  eroper.o esru_misc.o esystem.o exlgrad.o explor.o filelist.o folders.o grmprj.o grmcom.o\
 	  ground_temp_mains.o gtopol.o h3k_utils.o hcfmk.o hvacgui.o initalc.o insert.o item.o \
 	  maintn.o mcdbscn.o mfcdat.o mfelst.o mfnmsc.o mfprb1.o mfprb2.o mfprb3.o mfrlst.o \
 	  mksbem.o MultiYear_climate.o mvalid.o \
@@ -46,12 +46,12 @@ OBJECTS = prj.o anlytc.o arrow.o ascii_mat.o basesimp.o \
 	  predef3dv.o prjdmds.o prjfmk.o prjqa.o psychro.o rcdblist.o read3dv.o readTrnsys.o \
 	  rwipv.o rwroam.o rwsbem.o sendd.o sendflt.o senrwl.o sensa.o \
 	  setup.o sort.o spmisc.o stndrds.o tdfedit.o tdfile.o tdgraph.o \
-	  hvacinput.o qrun.o\
+	  hvacinput.o qrun.o matpol.o inside.o \
 	  PltDummy.o
 
 MODULES = aim2.mod aim2_calcdata.mod aim2_h2k_dummy.mod aim2_inputdata.mod aim2_inputs.mod \
 	  aim2_inputs_inputdata.mod start_up.mod parse_command_line.mod h3kmodule.mod \
-      CFC_Module.mod
+          CFC_Module.mod cadio_Module.mod
 
 ifeq ($(FMIarg),enableFMI)
 	FMI_OBJECTS = FMIcom.o FMIprj.o
@@ -293,6 +293,18 @@ qrun.F:
 FMIcom.F:
 	rm -f FMIcom.F
 	ln -s $(COMdir)/FMIcom.F .
+matpol.F:
+	rm -f matpol.F
+	ln -s $(COMdir)/matpol.F .
+inside.F:
+	rm -f inside.F
+	ln -s $(COMdir)/inside.F .
+agtcom.F:
+	rm -f agtcom.F
+	ln -s $(COMdir)/agtcom.F .
+grmcom.F:
+	rm -f grmcom.F
+	ln -s $(COMdir)/grmcom.F .
 
 strip:
 	strip $(PROG)
@@ -302,17 +314,18 @@ install:
 
 clean:
 	rm -f core $(PROG) $(PROG).exe $(MODULE_OBJECTS) $(OBJECTS) $(ALL_FMI_OBJECTS) $(MODULES) \
-	anlytc.F aim2_module.F arrow.F ascii_mat.F basesimp.F bscoeff.F bscoeff_extended.F \
+	agtcom.F anlytc.F aim2_module.F arrow.F ascii_mat.F basesimp.F bscoeff.F bscoeff_extended.F \
 	bsimsel.F c2fdum.F cfdat.F cfdrw.F cfgmsc.F \
 	cfgrid.F cgd.F common3dv.F commonclm.F ctlexp.F ctlwrt.F ctprob.F ctread.F DG_controller_menu.F \
 	CDBPlugins.F CDBCommon.F CDBExplore.F \
 	exlgrad.F dossupport.F e3dviews.F ecasctl.F econstr.F econtrol.F \
 	edatabase.F egeometry.F egrid.F egtgeom.F emfnetw.F emkcfg.F enetmisc.F enetrewr.F \
-	eroper.F esru_misc.F esystem.F filelist.F ground_temp_mains.F h3k_utils.F initalc.F \
+	eroper.F esru_misc.F esystem.F filelist.F grmcom.F ground_temp_mains.F h3k_utils.F initalc.F \
 	hvacinput.F item.F mcdbscn.F mfcdat.F mfelst.F mfnmsc.F mfrlst.F MultiYear_climate.F mvalid.F \
 	net2pdf.F newnet.F nwkrewr.F plelevvc.F pltcfg.F psychro.F rcdblist.F rwipv.F rwroam.F \
-	rwsbem.F senrwl.F sort.F spmisc.F stndrds.F startup.F tdfile.F  \
-	readTrnsys.F PltDummy.F qrun.F h3kmodule.f90 FMIcom.F CFC_Module.f90 cfc_module.mod
+	rwsbem.F senrwl.F sort.F spmisc.F stndrds.F startup.F tdfile.F matpol.F inside.F \
+	readTrnsys.F PltDummy.F qrun.F h3kmodule.f90 FMIcom.F CFC_Module.f90 cfc_module.mod \
+	cadio_module.mod
 
 distclean: clean
 

@@ -14,16 +14,15 @@ C PURPOSE. See the GNU General Public License for more
 C details.
 
 
-C Filter between various design tools.
-C AutoCAD Notes:
-C   it traps some AEC and AutoCAD constructs  which are
-C   not in keeping with energy analysis. It assumes CAD units
-C   a mm (unless otherwise instructed).
+C ******************** ecnv ********************
+C Provides data filters for different application programs.
+C AutoCAD note: traps some AEC and AutoCAD constructs that
+C are not required for energy analysis; assumes units are
+C mm unless otherwise stated.
 
-C Portions of the DXF translation can be traced back (eventually) 
-C to code from ABACUS, Department of Architecture & Building Science.
       program ecnv
       USE START_UP
+      
 #include "building.h"
 #include "model.h"
 #include "esprdbfile.h"
@@ -32,6 +31,7 @@ C to code from ABACUS, Department of Architecture & Building Science.
 #include "espriou.h"
 #include "control.h"
 #include "dxfdata.h"
+#include "help.h"
 
       PARAMETER (MSTMC=20)
       
@@ -44,8 +44,6 @@ C to code from ABACUS, Department of Architecture & Building Science.
       integer indxzon
       character oformat*24,head*4
       common/dxfe/oformat,indxzon,head
-
-C ESP-r commons.
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
       common/rpath/path
@@ -57,14 +55,14 @@ C ESP-r commons.
       character bidirfile*72,bidirname*12
       COMMON/BIDIRFL/bidirfile,bidirname(MSTMC)
 
-C Significant figure reporting limit (NSIGFIG).
+C Significant figure reporting limit.
       common/SFIG/NSIGFIG
 
       COMMON/FOPENED/CFGOK,MLDBOK,MATDBOK,CTLOK,OPTKOK,CFCDBOK
 
-C Path to SHOCC input files
-C bSHOCCed     - logical flag whether project has SHOCC input
-C bZoneSHOCCed - logical array whether zones have SHOCC input
+C Path to SHOCC input files.
+C bSHOCCed     - logical flag indicating if model has SHOCC input
+C bZoneSHOCCed - logical array indicating if zoones have SHOCC input
 C SHOCCshlFile - path to SHOCC .shl file for SHOCC'd project library
 C SHOCCshzFile - path to SHOCC .shz file for each SHOCC'd zone
 C      common/SHOCCcfg/bSHOCCed,SHOCCshlFile,bZoneSHOCCed(mcom),
@@ -76,11 +74,11 @@ C Ask to overwrite flag.
       COMMON/OVRWT/AUTOVR
       logical AUTOVR
      
-C Name of current application
+C Name of current application.
       common/APPNAME/cAppName
       character cAppName*12     
 
-C Session log file (for errors etc.)
+C Session log file (for errors etc.).
       character iefile*72
       common/logs/iefile
 
@@ -112,17 +110,10 @@ C Data types for parcnv call.
                      ! is not yet used
       integer itmprm ! 1 is delete tmp files 0 is keep them
       real conv      ! passed as 0.001 if coords in mm
-
-C For help messages
-      common/pophelp/h(60)   ! needed for dynamic popup
-      character H*72
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
  
-C System parameter initializing. Use ioin for the input file,
-C ioout for primary output file, ioblk for block storage,
-C iotmp2 for miscel output files.
+C System parameter initialising. Use ioin for the input file,
+C ioout for primary output file, ioblk for block storage, and
+C iotmp2 for miscellaneous output files.
       call ezero
       call curmodule('ecnv')
       cAppName = 'ecnv'
@@ -149,7 +140,7 @@ C iotmp2 for miscel output files.
       AUTOVR=.false. ! by default ask to overwrite files
 
 C Get command line parameters. 
-C input formats are: [esp|dxf|ww] where:
+C input formats are [esp|dxf|ww] where:
 C   dxf = AutoCAD V11-14 ASCII files.
 C   ww = ww graphic vector command set (output by ESP-r graphic modules).
 
@@ -175,7 +166,6 @@ C   click are dxf points and lines to be used with clickonbitmap facility.
 
 C Confirm conversion of scale.
       dxfconv=conv
-C      dxfconv = 1.0
       layuse(1)=0
 
 C Set folder separator (fs) to \ or / as required.
@@ -190,13 +180,12 @@ C Set folder separator (fs) to \ or / as required.
       write(zonepth,'(a1,a1)')'.',fs
       write(netpth,'(a1,a1)')'.',fs
       write(ctlpth,'(a1,a1)')'.',fs
-      write(aimpth,'(a1,a1)')'.',fs
+      write(mscpth,'(a1,a1)')'.',fs
       write(imgpth,'(a1,a1)')'.',fs
       write(radpth,'(a1,a1)')'.',fs
       write(docpth,'(a1,a1)')'.',fs
       write(dbspth,'(a1,a1)')'.',fs
-      write(bsmpth,'(a1,a1)')'.',fs
-      write(hvacpth,'(a1,a1)')'.',fs
+      write(tmppth,'(a1,a1)')'.',fs
 
 C Assume construction input from 15 and materials from 16.
       IFMUL=15
@@ -206,7 +195,7 @@ C Assume construction input from 15 and materials from 16.
       call edisp(IUOUT,' ')
       CALL ESPrVersion("summary",cAppName,IUOUT)
 
-C Find the user's home folder then get user's custom settings.
+C Find user's home folder and get custom settings.
       call usrhome(upath)
       if(unixok)then
         write(esprc,'(3a)') upath(1:lnblnk(upath)),fs,'.esprc'
@@ -216,7 +205,7 @@ C Find the user's home folder then get user's custom settings.
       call scesprc(esprc,iotmp2,0,IIER)
 
 C Scan the defaults file for default system configuration file.
-C Make temporary use of file unit IFIL+5.  Note: escdef must come
+C Make temporary use of file unit IFIL+5. Note: escdef must come
 C after scan of .esprc file.
       call escdef(IFIL+5,'-',IER)
 
@@ -237,12 +226,11 @@ C Open the session file.
       write(ieout,'(2a)')'User,',uname(1:lnblnk(uname))
   903 continue
 
-C Convert from "c" strings to fortran strings, if unknown then exit.
+C Convert from 'c' strings to fortran strings; if unknown then exit.
 
 C Get input file and format.
       filname=inf
       write(outs,'(2a)')'Input file is: ',filname(1:lnblnk(filname))
-C      call edisp248(iuout,outs,100)
       if(iformat(1:3).eq.'dxf')then
 
 C Determine root name of dxf file (to make layer file from).
@@ -271,7 +259,7 @@ C Determine root name of dxf file (to make layer file from).
         stop 'ecnv aborted.'
       endif     
 
-C Get output format. If viewer then use a single file, if
+C Get output format. If viewer, use a single file, if
 C ESP-r then a series of files will be opened.
       filname2=ouf
       if(filname2(1:2).eq.'  '.or.filname2(1:7).eq.'UNKNOWN')then
@@ -279,15 +267,13 @@ C ESP-r then a series of files will be opened.
         stop 'ecnv aborted.'
       endif
 
-C Depending on the output format advise user or do some pre-processing.
+C Depending on the output format, advise user or do some pre-processing.
       if(oformat(1:6).eq.'viewer')then
-
         write(outs,'(2a)')'The viewer output file will be: ',
      &                  filname2(1:lnblnk(filname2))
         call edisp248(iuout,outs,100)
 
       elseif(oformat(1:4).eq.'vrml')then
-
         write(outs,'(2a)')'The vrml world will be: ',
      &                  filname2(1:lnblnk(filname2))
         call edisp248(iuout,outs,100)
@@ -302,7 +288,7 @@ C User filename2 for debug data for click output.
 
       elseif(oformat(1:3).eq.'esp')then
 
-C If esp then also find its path so zone files can be
+C If ESP-r then also find its path so zone files can be
 C placed in the same folder.
         write(outs,'(2a)')'The esp-r configuration file will be: ',
      &                  filname2(1:lnblnk(filname2))
@@ -310,20 +296,20 @@ C placed in the same folder.
         call fdroot(filname2,path,LCFGF)
         if(upgcfg(1:7).ne.'UNKNOWN')then
 
-C Instantiate and clear commons, scan the supplied problem
+C Instantiate and clear commons and scan the supplied problem
 C to update commons for configuration.
           call clrprb
-          call edisp(iuout,' Scanning the problem before updating...')
+          call edisp(iuout,' Scanning the problem before updating.')
           call escdef(iotmp2,'s',IER)
           MODE='ALL '
           call ERSYS(LCFGF,ioout,iotmp2,MODE,itrc,IER)
           if(IER.eq.0)then
           
-C We have successfully scanned in the configuration file. If we
-C assume that the user will be adding surface to a model with
-C no existing zones then we can set the number of connections
-C to zero. If there are exsting zones then warn the user there
-C might be problems.
+C Configuration file successfully scanned. If we assume that
+C the user will be adding surface to a model with not existing
+C zones then we can set the number of connections to zero. If
+C there are exsting zones then warn the user there might be
+C problems.
             CFGOK=.TRUE.
             if(NCOMP.gt.0)then
               call edisp(iuout,
@@ -367,13 +353,11 @@ C placed in the same folder.
         call edisp248(iuout,outs,100)
 
       elseif(oformat(1:4).eq.'xfig')then
-
         write(outs,'(2a)')'The xfig output file will be: ',
      &                  filname2(1:lnblnk(filname2))
         call edisp248(iuout,outs,100)
 
       elseif(oformat(1:3).eq.'THF'.or.oformat(1:3).eq.'thf')then
-
         write(outs,'(2a)')'The THF output file will be: ',
      &                  filname2(1:lnblnk(filname2))
         call edisp248(iuout,outs,100)
@@ -398,9 +382,8 @@ C If input format is gbxml and output is esp go and do this.
         INQUIRE (FILE=filname1,EXIST=XST)
         if(XST)then
 
-C Variables which were set at start of prj.F
-C Climate db is on channel IFIL (NB when not in use other binary
-C databases may make use of this unit temporarily).
+C Variables which were set at start of prj.F. Weather db is on
+C channel IFIL.
           ICLIM=IFIL; ipathclim=0
           LCLIM=DCLIM
           write(LAPRES,'(a)') DAPRES(1:lnblnk(DAPRES))
@@ -456,7 +439,7 @@ C If iverb passed as non-zero then change directive.
           call usrmsg('Processing of silent file complete.',
      &      'Exiting from project manager','P')
 
-C Clear allocatable arrays
+C Clear allocatable arrays.
           close(ieout)
           CALL ERPFREE(ieout,ISTAT)
           CALL DeallocateAllArrays
@@ -494,9 +477,6 @@ C Find the path and local file name.
         endif
 
 C If output format is viewer or dxf.
-
-C << consider more passed parameters to fine-tune entity types >>
-
         if(oformat(1:6).eq.'viewer'.or.oformat(1:3).eq.'dxf')then
           open(ioout,file=filname2,status='UNKNOWN', err=901)
           call e2vdxf(incobs)
@@ -520,8 +500,6 @@ C Create THF (THINGS) file.
 
 C Export to VRML which also includes an html file (which
 C makes use of ioblk file channel).
-
-C << consider updating to a newer format such as SVG >>
         if(oformat(1:4).eq.'vrml')then
           write(htmlfile,'(2a)') cfgroot(1:lnblnk(cfgroot)),'.html'
           open(ioblk,file=htmlfile,status='UNKNOWN', err=901)
@@ -545,7 +523,7 @@ C << consider updating to a newer format such as SVG >>
         endif
       endif
 
-C If we got to this point the conversion is from AutoCAD.
+C If we got to this point, the conversion is from AutoCAD.
       open(ioin ,file=filname1,status='OLD', err=900)
       open(ioout,file=filname2,status='UNKNOWN', err=901)
 
@@ -579,7 +557,7 @@ C to be scanned.
               goto 28
             endif
   27      continue
-          call edisp(iuout,'end of cfg file without finding *building')
+          call edisp(iuout,'End of cfg file without finding *building.')
          else
           call mksyshd(filname2,ier)
         endif
@@ -650,8 +628,9 @@ C Error messages.
  999  stop 'ecnv aborted.'
       end
 
-C **** wegeom
-C wegeom writes esp-r (older style) geometry file.
+C ******************** wegeom ********************
+C Writes esp-r (older style) geometry file.
+
       subroutine wegeom(iotmp2,iv,lf,ier)
 #include "building.h"
 #include "geometry.h"
@@ -666,8 +645,6 @@ C << update this to generate v1.1 geometry file >>
 
       COMMON/PRECTC/ITMCFL(MCOM,MS),TMCT(MCOM,MTMC,5),
      &       TMCA(MCOM,MTMC,ME,5),TMCREF(MCOM,MTMC),TVTR(MCOM,MTMC)
-
-C common prec17 is described in geometry.h.
 
 C Use YOS to hold dummy values for surface indentation.
       dimension ndum(MS),Y0S(MS)
@@ -724,8 +701,8 @@ C Write out sets of packed strings, for unused index and indentation.
       write(iotmp2,'(a)')
      &      '# no  name         type  posn  name         other side'
 
-C << logic below does not yet account for whether a surface is opaque
-C << or transparent, it also does not check the orientation of the
+C << Logic below does not yet account for whether a surface is opaque
+C << or transparent. It also does not check the orientation of the
 C << surfaces.
 
       do 60 is=1,NZSUR(iv)
@@ -737,7 +714,7 @@ C << surfaces.
      &        '  UNKN  UNKNOWN      UNKNOWN'
   60  continue
   
-C Set assumption that the user has edited base area to 1m2.
+C Set assumption that the user has edited base area to 1 m^2.
       IUZBASEA(iv)=1
       IZBASELIST(iv)=0
       ZBASEA(iv)=1.0
@@ -755,18 +732,18 @@ C Surfaces associated with base.
       return
 
    13 if(IOS.eq.2)then
-        CALL USRMSG(' No permission to write ',lf,'W')
+        CALL USRMSG('No permission to write ',lf,'W')
       else
-        CALL USRMSG(' File write error in ',lf,'W')
+        CALL USRMSG('File write error in ',lf,'W')
       endif
       close(iotmp2)
       IER=1
       return
 
    14 if(IOS.eq.2)then
-        CALL USRMSG(' No prmission to write array in ',lf,'W')
+        CALL USRMSG('No prmission to write array in ',lf,'W')
       else
-        CALL USRMSG(' Long array write error in ',lf,'W')
+        CALL USRMSG('Long array write error in ',lf,'W')
       endif
       close(iotmp2)
       IER=1
@@ -774,8 +751,8 @@ C Surfaces associated with base.
 
       end
 
-C ****** putcoods
-C  Putcoods writes co-ordinates into .vew file or esp geometry commons.
+C ******************** putcoods ********************
+C Writes co-ordinates into .vew file or esp geometry commons.
 
       subroutine putcoods(itrc)
 #include "building.h"
@@ -809,8 +786,8 @@ C Multiply current xx,yy,zz by transformation matrix
 
       llay=lnblnk(dxflayname(currlay))
 
-C If viewer format write coordinates either absolute or reset
-C from blk?org.  If one of the 'BLK_' layers then write to
+C If viewer format, write coordinates either absolute or reset
+C from blk?org. If one of the 'BLK_' layers then write to
 C the block storage file, otherwise to the normal output file.
 C For both file formats convert from mm to metres.  
       if(oformat(1:6).eq.'viewer')then
@@ -882,15 +859,6 @@ C named layers. If there are no named layers then accept '0'.
           if(head.eq.'TRN_')ITMCFL(indxzon,nbofsurf)=1
           call matchv(indxzon,nbofsurf,match,x1,y1,z1)
 
-C Debug.
-C          if(itrc.gt.1)then
-C            if(match)then
-C              write(outs,*) 'match for ',indxzon,nbofsurf,x1,y1,z1
-C            else
-C              write(outs,*) 'added to  ',indxzon,nbofsurf,x1,y1,z1
-C            endif
-C            call edisp(iuout,outs)
-C          endif
         endif
       elseif(oformat(1:5).eq.'click')then
         if (flagins.eq.0) then      
@@ -950,9 +918,10 @@ C Update bounds.
       return
       end
 
-C ********** readgc
-C Subroutine to read group code from dxf file. The parameter
+C ******************** readgc ********************
+C Reads group code from dxf file. Parameter
 C itrc sets debug mode if greater than one.
+
       subroutine readgc(itrc)
 #include "dxfdata.h"
 
@@ -966,7 +935,7 @@ C itrc sets debug mode if greater than one.
       if (gcode.lt.10) then
          read(ioin,'(A)') instring
 
-C Debug...
+C Debug.
          if(itrc.gt.1)then
            write(iuout,*) 'gcode linr nb & string ',gcode,lineno,
      &       ' ',instring(1:lnblnk(instring))
@@ -983,7 +952,7 @@ C Debug...
          read(ioin,*,end=500,err=600) coorx
          read(ioin,'(i6)') icode
 
-C Debug...
+C Debug.
          if(itrc.gt.1)then
            write(iuout,*) 'gcode is ',gcode,coorx,lineno
          endif
@@ -996,7 +965,7 @@ C Debug...
       else
          read(ioin,'(A)') instring
 
-C Debug...
+C Debug.
          if(itrc.gt.1)then
            write(iuout,*) 'gcode linr nb & string ',gcode,lineno,
      &       ' ',instring(1:lnblnk(instring))
@@ -1014,11 +983,12 @@ C Debug...
       stop 'ecnv aborted.'
       end
 
-C ****** matchl 
-C Given a layer, return related zone (im), name (RZNAME), and 
-C head of name (head).  If there were no named layers and the
+C ******************** matchl ********************
+C Given a layer, return related zone (im), name (RZNAME) and 
+C head of name (head). If there were no named layers and the
 C conversion is stuffing layer 1 named zero into a zone named
 C first then accept match.
+
       subroutine matchl(il,head,RZNAME,match,im)
 #include "building.h"
 #include "geometry.h"
@@ -1052,8 +1022,8 @@ C layer 1 named zero into a zone named first then accept match.
         endif
       endif
 
-C Check to see that we are not dealing with the special layer "0" or
-C "1".
+C Check to see that we are not dealing with the special layer
+C '0' or '1'.
       if(ltz.eq.1)then
         if(TZNAME(1:1).eq.'0'.or.TZNAME(1:1).eq.'1')then
           RZNAME='____'
@@ -1098,11 +1068,13 @@ C zone name.
       return
       end
 
-C **** matchv
+C ******************** matchv ********************
 C Matches or adds a vertex to a zone.
+
       subroutine matchv(iz,is,match,x1,y1,z1)
 #include "building.h"
 #include "geometry.h"
+
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
       integer IZSTOCN
       COMMON/C24/IZSTOCN(MCOM,MS)
@@ -1149,7 +1121,7 @@ C Update the surface topology.
       end
 
 
-C **** Make a string uppercase.
+C Make a string uppercase.
       subroutine strup(str,ustr)
       character*(*) str,ustr
       character*1 chr
@@ -1170,11 +1142,11 @@ C **** Make a string uppercase.
       return
       end
 
-C ********* mksyshd
-C mksyshd - write out the initial portion of the system configuration
+C ******************** mksyshd ********************
+C Write out the initial portion of the system configuration
 C file (up to where the zone information starts).
 
-C << to be done - this code should be identical to that included 
+C << This code should be identical to that included 
 C << in emkcfg up to the point of writing out the zone information.
 C << one option would be to pass a parameter to emkcfg to allow it
 C << to write only the header portion.
@@ -1198,7 +1170,7 @@ C << MUST be updated to reflect ipath and longer database names >>
       integer ioin,ioout,ioblk
       common/io/ioin,ioout,ioblk
       character imgfmt*4  ! GIF XBMP TIF JPG
-      character imgfoc*4  ! FZON FNET FCTL FDFS
+      character imgfoc*4  ! FZON FNET FCTL FDFS FPLN
       character limgfil*72  ! file name (extend to 144 char)
       character imgdoc*248  ! text associated with image
       common/imagf/imgfmt(MIMG),imgfoc(MIMG),limgfil(MIMG),imgdoc(MIMG)
@@ -1213,7 +1185,7 @@ C Primary energy and emissions conversions.
      &              pltco2,pltnox,pltsox,pfnco2,pfnnox,pfnsox,
      &              pspco2,pspnox,pspsox,phwco2,phwnox,phwsox
 
-C Path to SHOCC input files
+C Path to SHOCC input files.
 C bSHOCCed     - logical flag whether project has SHOCC input
 C bZoneSHOCCed - logical array whether zones have SHOCC input
 C SHOCCshlFile - path to SHOCC .shl file for SHOCC'd project library
@@ -1253,8 +1225,8 @@ C Comment for configuration index (upgrade registration level).
      &  '  # path to networks'
       WRITE(ioout,'(3a)',IOSTAT=IOS,ERR=3) '*ctlpth ',ctlpth,
      &  '  # path to controls'
-      WRITE(ioout,'(3a)',IOSTAT=IOS,ERR=3) '*aimpth ',aimpth,
-     &  '  # path to aim2'
+      WRITE(ioout,'(3a)',IOSTAT=IOS,ERR=3) '*mscpth ',mscpth,
+     &  '  # path to miscel files'
       WRITE(ioout,'(3a)',IOSTAT=IOS,ERR=3) '*radpth ',radpth,
      &  '  # path to radiance files'
       WRITE(ioout,'(3a)',IOSTAT=IOS,ERR=3) '*imgpth ',imgpth,
@@ -1263,8 +1235,6 @@ C Comment for configuration index (upgrade registration level).
      &  '  # path to project documents'
       WRITE(ioout,'(3a)',IOSTAT=IOS,ERR=3) '*dbspth ',dbspth,
      &  '  # path to local databases'
-      WRITE(ioout,'(3a)',IOSTAT=IOS,ERR=3) '*bsmpth ',bsmpth,
-     &  '  # path to BASESIMP files'
       WRITE(ioout,'(A,i4,a)',IOSTAT=IOS,ERR=3) '*indx ',INDCFG,
      &  indxcmt(1:lnblnk(indxcmt))
   30  FORMAT('# ESP-r system configuration defined by file ',/,'# ',A)
@@ -1430,7 +1400,7 @@ C Write primary energy conversions if these have been set.
       stop 'ecnv aborted.'
       end
 
-C Dummy routines from common3dv.F needed to match implied
+C Dummy subroutines from common3dv.F needed to match implied
 C calls in esru_lib.F
       SUBROUTINE ADJVIEW(IER)
       ier=0
@@ -1674,20 +1644,19 @@ C BNDOBJ: Does range checking on objects to be displayed.
 C  makeCFCfile: Creates a *.cfc file from imported GSLedit data.
 C LKMENU is called by INITPF (bps.F). It displays.
 
-C ************* CKVERT 
-C CKVERT: Checks vertex lists and returns whether zone is fully 
+C ******************** CKVERT ********************
+C Checks vertex lists and returns whether zone is fully 
 C bounded (bound=.true.) and which surfaces/vertex links are unmatched.
 C Number of unbounded edges in iub, number inverted surfaces inve.
 C IVB = 0 is silent, IVB=1 feedback on errors. act '-' report only,
 C act 'r' attempt repair.
-
-C << could this be done with G6 and with ??
 
       SUBROUTINE CKVERT(ivb,ICOMP,bounded,iub,inve,act,IER)
 #include "building.h"
 #include "model.h"
 #include "geometry.h"
 #include "prj3dv.h"
+
       integer ivb   ! verbosity
       integer icomp ! the current zone
       logical bounded ! true if fully bounded
@@ -1701,7 +1670,7 @@ C << could this be done with G6 and with ??
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
       common/appcols/mdispl,nifgrey,ncset,ngset,nzonec
 
-C Tollerance for surface matching.
+C Tolerance for surface matching.
       real ANGCC  ! angle between surfaces tolerance
       real CACC   ! tolerance between vertices
       real DACC   ! tolerance along line
@@ -1783,7 +1752,7 @@ C First see if reverse match has been found.
         if(matchab.ne.matchba)then
 
 C The imbalance between matchab and matchba is the number of problem
-C edges.  If ivimb=2 then probably two edges in same direction, if
+C edges. If ivimb=2 then probably two edges in same direction, if
 C ivimb=1 then we have an unmatched edge.
           bounded=.false.
           ivimb=(abs((matchab+10)-(matchba+10)))
@@ -1915,7 +1884,6 @@ C Debug.
 
           if(hilight)then
 
-C The hilight block of code removed from ecnv version.
           endif
         endif
  144  continue
@@ -1923,9 +1891,6 @@ C The hilight block of code removed from ecnv version.
 
 C If all edges of a surface are likely to be inverted offer
 C the user the option to invert.
-C Debug.
-C        write(6,*) 'reversed hits per surface ',invesur
-C        write(6,*) 'edges per surface ',NVER
         DO IS=1,NSUR
           if(NVER(IS).gt.0.and.(invesur(IS).eq.NVER(IS)))then
             write(louts,'(a,124i4)') 'current list: ',
@@ -1986,21 +1951,18 @@ C Update the geometry file.
       RETURN
       END
 
-C ******* initcaspattern - copy of source from prjmk.F
-C initcaspattern populates the casual gain common blocks for
+C ******************** initcaspattern ********************
+C Populates the casual gain common blocks for
 C a number of room use patterns with some diversity across
-C day types and during days. Called from PRJFMK
-      subroutine initcaspattern(icomp,igu,ier)
+C day types and during days. Called from PRJFMK.
 
+      subroutine initcaspattern(icomp,igu,ier)
 #include "building.h"
 #include "schedule.h"
+#include "help.h"
+
       common/caleni/nbdaytype,nbcaldays(MDTY),icalender(365)
       INTEGER NBDAYTYPE,NBCALDAYS,ICALENDER
-      
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found 
 
       integer loop
 
@@ -3661,7 +3623,7 @@ C menu (72 char) brief title of model
 #include "site.h"
 #include "esprdbfile.h"
 #include "espriou.h"
-C espriou.h provides currentfile and MFFOLD.
+#include "help.h"
       
       integer lnblnk  ! function definition
 
@@ -3681,7 +3643,7 @@ C Plant network.
 
 C Images.
       character imgfmt*4  ! GIF XBMP TIF JPG
-      character imgfoc*4  ! FZON FNET FCTL FDFS
+      character imgfoc*4  ! FZON FNET FCTL FDFS FPLN
       character limgfil*72  ! file name (extend to 144 char)
       character imgdoc*248  ! text associated with image
       common/imagf/imgfmt(MIMG),imgfoc(MIMG),limgfil(MIMG),imgdoc(MIMG)
@@ -3727,11 +3689,6 @@ C Passed in parameters.
       character WORDS(12)*32,testw*32
       character MODE*4
       integer ISTRW
-
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
 
       helpinsub='pregist'  ! set for subroutine
 
@@ -3899,13 +3856,13 @@ C Check that the control folder path is standard.
         call runit(doit,'-')
         call pausems(100)
 
-C Check that the aim2 folder path is standard.
-        call GETTOKENS(aimpth,IW,WORDS)
+C Check that the msc folder path is standard.
+        call GETTOKENS(mscpth,IW,WORDS)
         lnw=lnblnk(WORDS(IW))
         testw=WORDS(IW)
-        if(testw(1:lnw).eq.'aim2'.or.testw(lnw:lnw).eq.'.')then
-          write(doit,'(4a)') 'mkdir ',mpath(1:lnmp),fs,'aim2'
-          write(aimpth,'(3a)')'..',fs,'aim2'
+        if(testw(1:lnw).eq.'msc'.or.testw(lnw:lnw).eq.'.')then
+          write(doit,'(4a)') 'mkdir ',mpath(1:lnmp),fs,'msc'
+          write(mscpth,'(3a)')'..',fs,'msc'
         else
           write(doit,'(4a)') 'mkdir ',mpath(1:lnmp),fs,testw(1:lnw)
         endif
@@ -3967,13 +3924,13 @@ C Check that the doc folder path is standard.
         call runit(doit,'-')
         call pausems(100)
 
-C Check that the hvac folder path is standard.
-        call GETTOKENS(hvacpth,IW,WORDS)
+C Check that the tmp folder path is standard.
+        call GETTOKENS(tmppth,IW,WORDS)
         lnw=lnblnk(WORDS(IW))
         testw=WORDS(IW)
-        if(testw(1:lnw).eq.'hvac'.or.testw(lnw:lnw).eq.'.')then
-          write(doit,'(4a)') 'mkdir ',mpath(1:lnmp),fs,'hvac'
-          write(hvacpth,'(3a)')'..',fs,'hvac'
+        if(testw(1:lnw).eq.'tmp'.or.testw(lnw:lnw).eq.'.')then
+          write(doit,'(4a)') 'mkdir ',mpath(1:lnmp),fs,'tmp'
+          write(tmppth,'(3a)')'..',fs,'tmp'
         else
           write(doit,'(4a)') 'mkdir ',mpath(1:lnmp),fs,testw(1:lnw)
         endif
@@ -3994,19 +3951,6 @@ C Check that the dbs folder path is standard.
         call pausems(100)
 
         write(radpth,'(3a)')'..',fs,'rad'
-
-C Check that the bsm (BASESIMP) folder path is standard.
-        call GETTOKENS(bsmpth,IW,WORDS)
-        lnw=lnblnk(WORDS(IW))
-        testw=WORDS(IW)
-        if(testw(1:lnw).eq.'bsm'.or.testw(lnw:lnw).eq.'.')then
-          write(doit,'(4a)') 'mkdir ',mpath(1:lnmp),fs,'bsm'
-          write(dbspth,'(3a)')'..',fs,'bsm'
-        else
-          write(doit,'(4a)') 'mkdir ',mpath(1:lnmp),fs,testw(1:lnw)
-        endif
-        call runit(doit,'-')
-        call pausems(100)
 
 C Re-establish pwd and then project folders.
         write(path,'(4a)')mpath(1:lnblnk(mpath)),fs,'cfg',fs
@@ -4029,23 +3973,17 @@ C Write out the model log file within the model doc folder.
           write(lmodellog,'(4a)') docpth(1:lnblnk(docpth)),fs,
      &      cfgroot(1:lr),'.log'
         endif
-C        write(lmodellog,'(2a)') cfgroot(1:lnblnk(cfgroot)),'.log'
         write(currentfile,'(a)') lmodellog(1:lnblnk(lmodellog))
         IUNIT=IFIL+1
         CALL EFOPSEQ(IUNIT,lmodellog,3,IER)
-        write(iunit,'(2a)')'Project notes for ',LCFGF(1:lnblnk(LCFGF))
-        write(iunit,'(2a)')'Title: ',modeltitle(1:lnblnk(modeltitle))
-        write(iunit,'(2a)')'In folder: ',pwd(1:lnblnk(pwd))
-        write(iunit,'(2a)')'By: ',uname(1:lnblnk(uname))
+        write(iunit,'(4a)')'System configuration file: ',
+     &                  pwd(1:lnblnk(pwd)),'/',LCFGF(1:lnblnk(LCFGF))
+C       write(iunit,'(2a)')'By: ',uname(1:lnblnk(uname))
+        write(iunit,'(2a)')'Synopsis: ',
+     &                  modeltitle(1:lnblnk(modeltitle))
         call dstamp(dstmp)
-        write(iunit,'(2a)')'Date: ',dstmp
-        write(iunit,'(a)')'Client: '
-        write(iunit,'(a)')'Project reference: '
-        write(iunit,'(a)')'_____________________________'
-        write(iunit,'(a)')'Notes: '
-        write(iunit,'(a)')'  '
-        write(iunit,'(a)')'_____________________________'
-        write(iunit,'(a)')'  '
+        write(iunit,'(2a)')'Created: ',dstmp
+        write(iunit,'(a)')'Notes:'
         CALL ERPFREE(IUNIT,ISTAT)
         goto 77
 
@@ -4055,8 +3993,7 @@ C Assume a standard set of folders to hold the model description.
         IW=2
       endif
 
-C Setup the various paths to distributed folders and then create.
-C Check longer paths cause the path variable to have a string buffer overflow.
+C Set up the folders paths and then create.
       odir=' '
       call usrdir(odir)
       lnod=lnblnk(odir)
@@ -4071,22 +4008,21 @@ C Check longer paths cause the path variable to have a string buffer overflow.
         goto 289
       endif
 
-C Instantiate standard folder names for use within model configuration file.
+C Instantiate model folder names as referenced by the model configuration file.
       write(zonepth,'(3a)')'..',fs,'zones'
       write(netpth,'(3a)')'..',fs,'nets'
       write(ctlpth,'(3a)')'..',fs,'ctl'
-      write(aimpth,'(3a)')'..',fs,'aim2'
+      write(mscpth,'(3a)')'..',fs,'msc'
       write(imgpth,'(3a)')'..',fs,'images'
       write(radpth,'(3a)')'..',fs,'rad'
       write(docpth,'(3a)')'..',fs,'doc'
       write(dbspth,'(3a)')'..',fs,'dbs'
-      write(bsmpth,'(3a)')'..',fs,'bsm'
-      write(hvacpth,'(3a)')'..',fs,'hvac'
+      write(tmppth,'(3a)')'..',fs,'tmp'
       lncr=lnblnk(cfgroot)
       write(odir,'(a)')cfgroot(1:lncr)
       lnod=lncr
       write(doit,'(2a)') 'mkdir ',cfgroot(1:lncr)
-      call usrmsg('Creating folders...','  ','-')
+C      call usrmsg(' ','Creating folders ...','-')
       call runit(doit,'-')
       call pausems(100)
       write(doit,'(4a)') 'mkdir ',cfgroot(1:lncr),fs,'cfg'
@@ -4122,9 +4058,9 @@ C Instantiate standard folder names for use within model configuration file.
       write(doit,'(4a)') 'mkdir ',cfgroot(1:lncr),fs,'bsm'
       call runit(doit,'-')
       call pausems(100)
-      call usrmsg('Creating folders...done.','  ','P')
+C      call usrmsg(' ','Creating folders ... done.','P')
 
-C Re-establish pwd and then project folders.  Note longer paths
+C Re-establish pwd and then project folders. Note longer paths
 C can cause the path variable to have a string buffer overflow.
       odir=' '
       call usrdir(odir)
@@ -4154,7 +4090,7 @@ C General description of the model.
       call gethelptext(helpinsub,helptopic,nbhelp)
       modeltitle='  '
       ltmp=modeltitle
-      CALL EASKS(ltmp,' ','Model description?',
+      CALL EASKS(ltmp,' ','Model synopsis?',
      &  72,'Base case model','model description',IER,nbehlp)
       if(ltmp(1:2).ne.'  '.or.lnblnk(ltmp).gt.3)then
         modeltitle=ltmp
@@ -4231,24 +4167,19 @@ C information.
       else
         write(currentfile,'(a)') lmodellog(1:lnblnk(lmodellog))
         CALL EFOPSEQ(IUNIT,lmodellog,3,IER)
-        write(iunit,'(a,a)')'Project notes for ',LCFGF(1:lnblnk(LCFGF))
-        write(iunit,'(a,a)')'Title: ',modeltitle(1:lnblnk(modeltitle))
-        write(iunit,'(a,a)')'In folder: ',pwd(1:lnblnk(pwd))
-        write(iunit,'(a,a)')'By: ',uname(1:lnblnk(uname))
+        write(iunit,'(4a)')'System configuration file: ',
+     &                  pwd(1:lnblnk(pwd)),'/',LCFGF(1:lnblnk(LCFGF))
+C       write(iunit,'(2a)')'By: ',uname(1:lnblnk(uname))
+        write(iunit,'(2a)')'Synopsis: ',
+     &                  modeltitle(1:lnblnk(modeltitle))
         call dstamp(dstmp)
-        write(iunit,'(a,a)')'Date: ',dstmp
-        write(iunit,'(a)')'Client: '
-        write(iunit,'(a)')'Project reference: '
-        write(iunit,'(a)')'_____________________________'
-        write(iunit,'(a)')'Notes: '
-        write(iunit,'(a)')'  '
-        write(iunit,'(a)')'_____________________________'
-        write(iunit,'(a)')'  '
+        write(iunit,'(2a)')'First created: ',dstmp
+        write(iunit,'(a)')'Notes:'
         CALL ERPFREE(IUNIT,ISTAT)
       endif
 
 C Allow user to edit the log file. Append to path if
-C necessary.  If vi then spawn a new window to do the editing.
+C necessary. If vi then spawn a new window to do the editing.
 
 C << This would be a good place to offer an internal editing popup
 C << which uses GTK facilities.
@@ -4302,21 +4233,12 @@ C initial set of days.
         call gethelptext(helpinsub,helptopic,nbhelp)
         iyeart=iyear
         CALL EASKI(IYEART,' ','Assessment year?',
-     &    1900,'W',2051,'W',2007,'assessment year',IERI,nbhelp)
+     &    1900,'W',2051,'W',2021,'assessment year',IERI,nbhelp)
         if(ieri.eq.-3) then
           call calenmanage('i',ier)
         else
           iyear=iyeart
           call calenmanage('i',ier)
-
-C Comment out printing of initial calendar as it can cause a crash
-C on some 64bit computers.
-C          loop=8
-C          loopst=1
-C          call calenprint(iuout,'t',iyear,loopst,loop)
-C          call edisp(iuout,' ')
-C          call calenprint(iuout,'g',iyear,loopst,loop)
-C          call edisp(iuout,' ')
         endif
 
         helptopic='cfg_model_other'
@@ -4360,22 +4282,22 @@ C recognised as *std items and then written out in *std format.
       return
       end
 
-C ********** opendb
-C NOTE: if this code change - be sure to update the copy of this
-C subroutine embedded within esruish/ish.F and esrueco/ecoesp.F
-
-C Open materials, constructions and optical properties. In the 
-C case of materials, first assume it is a binary file, check its
+C ******************** opendb ********************
+C Open materials, constructions and optical properties databases.
+C In the case of materials, first assume it is a binary file, check its
 C contents and if a problem then scan new ascii format.
-C Uf that does not work try the older ascii materials file to
+C If that does not work try the older ascii materials file to
 C fill the materials data arrays.
-C If sucessful the material common blocks will be filled and
+C If sucessful, the material common blocks will be filled and
 C closemat1 or closemat2 will be set.
+C N.B. if this code changes, update the copy of this
+C subroutine as embedded within esruish/ish.F and esrueco/ecoesp.F.
 
       subroutine opendb(ier)
 #include "building.h"
 #include "esprdbfile.h"
 #include "material.h"
+#include "help.h"
       
       integer lnblnk  ! function definition
 
@@ -4391,11 +4313,6 @@ C closemat1 or closemat2 will be set.
       character lworking*144 
       integer lndbp   ! for length of standard path
       logical unixok
-
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
 
       helpinsub='opendb'  ! set for subroutine
 
@@ -4463,7 +4380,7 @@ C scan it into common blocks.
               ier=0
               call rlegacymat(IAF,LASCI,ier)  ! try older ascii format
               if(ier.ne.0)then
-                call usrmsg('No readable Materials were found or',
+                call usrmsg('No readable Materials were found',
      &                      'or the file was corrupt.','W')
                 MATDBOK=.FALSE.
               else
@@ -4475,7 +4392,7 @@ C Materials data in place, set this as the new file name and then
 C try and re-scan the Constructions.
                   call usrmsg(
      &              'An ASCII Materials db was found and used.',
-     &              'Re-scanning constructions...','P')
+     &              'Re-scanning constructions ...','P')
                   MATDBOK=.TRUE.
                   write(LFMAT,'(a)') LASCI(1:lnblnk(LASCI))
                   CALL ERPFREE(IFMUL,ISTAT)
@@ -4488,12 +4405,12 @@ C Search again for lworking.
                       MLDBOK=.TRUE.
                       call usrmsg(
      &                  'An ASCII Materials db was found and used.',
-     &                  'Re-scanning constructions...done.','-')
+     &                  'Re-scanning constructions ... done.','-')
                     else
                       MLDBOK=.FALSE.
                       call usrmsg(
      &                  'An ASCII Materials db was found and used.',
-     &                  'Re-scanning constructions...failed.','W')
+     &                  'Re-scanning constructions ... failed.','W')
                     endif
                   endif
                 else
@@ -4509,7 +4426,7 @@ C Materials data in place, set this as the new file name and then
 C try and re-scan the constructions.
               call usrmsg(
      &          'An ASCII Materials db was found and used.',
-     &          'Re-scanning constructions...','P')
+     &          'Re-scanning constructions ...','P')
               MATDBOK=.TRUE.
               write(LFMAT,'(a)') LASCI(1:lnblnk(LASCI))
               CALL ERPFREE(IFMUL,ISTAT)
@@ -4522,12 +4439,12 @@ C Search again for lworking.
                   MLDBOK=.TRUE.
                   call usrmsg(
      &              'An ASCII Materials db was found and used.',
-     &              'Re-scanning constructions...done.','-')
+     &              'Re-scanning constructions ... done.','-')
                 else
                   MLDBOK=.FALSE.
                   call usrmsg(
      &              'An ASCII Materials db was found and used.',
-     &              'Re-scanning constructions...failed.','W')
+     &              'Re-scanning constructions ... failed.','W')
                 endif
               endif
             endif
@@ -4591,18 +4508,21 @@ C      endif
       return
       end
 
-C POINTTOLINE: determines distance from a 3D point to a 3D line.
-C where ipoint is the index of the test vertex, iwhich1 is the index
+C ******************** POINTTOLINE ********************
+C Determines distance from a 3D point to a 3D line.
+C ipoint is the index of the test vertex, iwhich1 is the index
 C of the vertex at the start of the line, iwhich2 is the index of the
 C index at the end of the line, offset is the distance (m), match is
 C a logical set to true if close enough.
 C Only returns match=true if point was found along the line between
 C the two vertices (i.e. it discards matches beyond the end points.
 C It assumes that calling code will decide whether the distance
-C can be used. 
+C can be used.
+
       subroutine pointtoline(ipoint,iwhich1,iwhich2,offset,match)
 #include "building.h"
 #include "geometry.h"
+
       dimension vd(3),vd1(3),vd2(3)
       logical match
 
@@ -4660,8 +4580,8 @@ C so unpack via sqrt call.
       end
 
 
-C ********** calenmanage **************
-C Calenmanage sets up and manages a calendar for ESP-r. Currently
+C ******************** calenmanage ********************
+C Sets up and manages a calendar for ESP-r. Currently
 C up to 15 day types (MDTY) can be defined and one may be assigned to
 C each of the 365 days of the year.
 C calename (char*32) is the overall name of this calendar (e.g. `UK standard`)
@@ -4675,6 +4595,7 @@ C act (char*1) action to take 'i' initialise, '-' interactive
 
 C Note that there is no specific logic to remind a user to update the
 C model cfg file if a change is made.
+
       subroutine calenmanage(act,ier)
       implicit none
 
@@ -4684,13 +4605,12 @@ C model cfg file if a change is made.
 #include "esprdbfile.h"
 #include "espriou.h"  
 #include "schedule.h"
-
 #include "seasons.h"
-C seasons.h provides typper and typsea
+#include "help.h"
 
       integer lnblnk  ! function definition
 
-C Parameters passed
+C Parameters passed.
       character act*1 ! action to take
       integer ier     ! error state
 
@@ -4721,7 +4641,7 @@ C Local variables.
       integer iuf,iuo      ! additional file units
       integer itrc,itru    ! feedback verbosity
       integer icomp
-      integer ipatday1,ipatday2,ipatday3,ipatday4,ipatday5,ipatday6  ! remember what the new day types are
+      integer ipatday1,ipatday2,ipatday3,ipatday4,ipatday5,ipatday6  ! remember new day types
       integer idol,idaynum,idtyy,idwknum,imthnum  ! for determining day of week
       integer iudt         ! user preferences for new day types
       logical ok,xst
@@ -4747,18 +4667,13 @@ C 31
       dimension ixdvals(365)
       integer IDVALS,ixdvals
 
-      character vert*33,DS*7,DS1*10,key*1
+      character vert*33,DS*7,DS1*10,DS2*8,key*1
       character outs*124,head*18,tcalename*32,citem*52,clist*52
       character tcalentag*12,tcalendayn*32
       logical modify,browse
       logical havectl ! to remember if control file exists
       logical usecalendar  ! signal so easier to detect if other domains
                            ! have a different number of day types
-
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
 
       helpinsub='calenmanage'  ! set for subroutine
 
@@ -4847,7 +4762,7 @@ C current menu line index. Build up text strings for the menu.
         IF(L.GE.IST.AND.(L.LE.(IST+MIFULL)))THEN
           M=M+1
           CALL EMKEY(L,KEY,IER)
-          call stdate(iyear,l,DS,DS1)
+          call stdate(iyear,l,DS,DS1,DS2)
           WRITE(VERT(M),'(a1,1x,3a)') KEY,DS1,'  ',
      &      calentag(icalender(L))
         ENDIF
@@ -5039,8 +4954,8 @@ C overwrite or save to new file names.
 C Display a list of day type patterns.
               idno=1
               isw=0
-              call MENUATOL('  ','Daytype patterns',
-     &          'a retail open Monday-Saturday closed Sunday',
+              call MENUATOL(' ','Day type patterns:',
+     &          'a retail open Monday-Saturday, closed Sunday',
      &          'b winter trans summer weekdays & weekends',
      &          'c xxx','d xxx','e xxx','f xxx',
      &          ' ',' ',' ',' ',' ',' ',
@@ -5054,8 +4969,6 @@ C the calendar to match this.
                 if(nbdaytype+2.lt.MDTY)then
 
 C For the 1st retail day revise the controls and then the operations.
-                  call edisp(iuout,' ')
-                  call edisp(iuout,' Processing retail_open day...')
                   iudt=-1
                   call updatectlfornewdaytype(havectl,usecalendar,
      &              iudt,ier)
@@ -5115,7 +5028,7 @@ C to use the new Mon-Sat & Sunday types.
                   goto 73
 
                 else
-                  call usrmsg('Not able to add two more day types to',
+                  call usrmsg('Unable to add two more day types to',
      &              'the current model calendar.','W')
                   goto 73
                 endif
@@ -5428,7 +5341,7 @@ C user can select one or more.
      &    52,nbdaytype,citem,'available day types',IER,nbhelp)
        if(ix.ne.0)then
 
-C << potential place to support seasonal day type allocations >>
+C << Potential place to support seasonal day type allocations.>>
 
           IHDT=0
           CALL EASKABC(' ','Add day types:',
@@ -5436,7 +5349,7 @@ C << potential place to support seasonal day type allocations >>
           IF(IHDT.EQ.1)THEN
             idt=idvals(1)
             do 78 ld=1,365
-              call stdate(iyear,ld,DS,DS1)
+              call stdate(iyear,ld,DS,DS1,DS2)
               WRITE(clist(ld),'(3a)') DS1,'  ',
      &          calentag(icalender(ld))
   78        continue
@@ -5448,7 +5361,7 @@ C << potential place to support seasonal day type allocations >>
             if(ixd.ne.0)then
               do 79 idayloop=1,ixd
                 ifoc=ixdvals(idayloop)
-                call stdate(iyear,ifoc,DS,DS1)
+                call stdate(iyear,ifoc,DS,DS1,DS2)
                 icalender(ifoc)=idt
                 nbcaldays(idt)=nbcaldays(idt) + 1
                 write(outs,*) 'Revised day: ',ifoc,' ',DS1,' ',
@@ -5488,7 +5401,7 @@ C If there are enough items allow paging control via EKPAGE.
 
 C Edit day identified by KEYIND.
         CALL KEYIND(MVERT,IVERT,IFOC,IO)
-        call stdate(iyear,ifoc,DS,DS1)
+        call stdate(iyear,ifoc,DS,DS1,DS2)
         write(outs,*) 'For day: ',ifoc,' ',DS1,' ',
      &    icalender(ifoc),' ',calendayname(icalender(ifoc))
         call edisp(iuout,outs)
@@ -5520,26 +5433,19 @@ C Not one of the legal menu choices.
       IVERT=-2
       goto 3
 
-C Errors.
-C   14 if(IOS.eq.2)then
-C        CALL USRMSG(' No prmission to write array in ',' ','W')
-C      else
-C        CALL USRMSG(' Long arrary write error in ',' ','W')
-C      endif
-C      IER=1
-C      return
       end
 
-C ********** calenprint **************
-C Calenprint displays a calendar for year iyear beginning
+C ******************** calenprint ********************
+C Displays a calendar for year iyear beginning
 C at loopst for loop months. 
 C Currently it prints to text feedback or file only. Future
 C option is to display in graphic feedback with day types
 C as defined by calenmanage.
+
       subroutine calenprint(itru,act,iyear,loopst,loop)
 #include "building.h"
 
-C Parameters
+C Parameters.
       integer itru    ! reporting unit
       character act*1 ! action to take 't' text feedback, 'g' graphic feedback
       integer iyear   ! year to use for day of week calculations
@@ -5870,7 +5776,7 @@ C Fill second month with real data or blanks.
             endif
  146      continue
 
-C Repeat this 6 times (there can be this many lines of 7 days)
+C Repeat this 6 times (there can be this many lines of 7 days).
           do 149 lj=1,6
             if(lj.eq.1)then
               lstart=1
@@ -5984,29 +5890,22 @@ C Also include list of day types.
       endif
       return
 
-C Errors for debug printing.
-C   14 if(IOS.eq.2)then
-C        CALL USRMSG(' No prmission to write array in ',' ','W')
-C      else
-C        CALL USRMSG(' Long array write error in ',' ','W')
-C      endif
-C      IER=1
-C      return
       end
 
 
-C ********** updatectlfornewdaytype
-C updatectlfornewdaytype adds an additional day type to each of the
-C model control domains. 
+C ******************** updatectlfornewdaytype ********************
+C Adds an additional day type to each of the
+C model control domains.
+
       subroutine updatectlfornewdaytype(havectl,usecalendar,iudt,ier)
 #include "building.h"
 #include "control.h"
 
-C Parameters passed
+C Parameters passed.
       logical havectl ! to remember if control file exists
       logical usecalendar  ! signal so easier to detect if other domains
                            ! have a different number of day types
-      integer iudt         ! user preference to replicat existing day type or free float
+      integer iudt         ! user preference to replicate existing day type or free float
                            ! or interactive (iudt = -1)
       integer ier          ! error state
 
@@ -6119,22 +6018,24 @@ C that nbdaytpe is not incremented until after the addctld call.
       return
       end
       
-C *********************** SUBROUTINE FZYFNC (dummy)
-C This subroutine calculates the slopes and intercepts for
-C all the fuzzy membership functions read in by 'FZDATA'.
+C ******************** FZYFNC ********************
+C Dummy routine.
+C <<Calculates the slopes and intercepts for
+C all the fuzzy membership functions read in by 'FZDATA'.>>
       SUBROUTINE FZYFNC
       return
       end
 
-
-C ******** ADDCTLD
+C ******************** ADDCTLD ********************
 C Add or delete a building/plant/flow/global/optical control day type.
+
       SUBROUTINE ADDCTLD(icfoc,II,IDT,ACT)
 #include "building.h"
 #include "net_flow.h"
 #include "control.h"
+#include "help.h"
 
-C Parameters
+C Parameters.
       integer icfoc   ! control domain to work with 
       integer II      ! index of the control
       integer IDT     ! index of the day type to delete or add
@@ -6148,11 +6049,6 @@ C ACT is -- interactive use of the subroutine
       INTEGER nbdaytype,nbcaldays,icalender
 
       logical usecalendar  ! signal to prevent update of nbcdt
-
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
 
       helpinsub='ADDCTLD'  ! set for subroutine
       usecalendar=.false.  ! initial assumption
@@ -6570,22 +6466,34 @@ C update nbcdt - let it remain at zero.
       return
       end
       
-C ***************** BNDOBJ (dummy)
-C BNDOBJ: Does range checking on objects to be displayed.
+C ******************** BNDOBJ ********************
+C Dummy routine.
+C <<Range checking on objects to be displayed.>>
       SUBROUTINE BNDOBJ(ITRC,IER)
       integer ITRC,IER
       return
       end
       
-C ************************************** (dummy)
+C ******************** makCFCfile ********************
+C Dummy routine.
+
       subroutine makeCFCfile(icomp,ier)
       integer icomp,ier
       return
       end
 
-C ************************************** (dummy)
+C ******************** LKMENU ********************
+C Dummy routine.
+
       SUBROUTINE LKMENU(ICOMP)
       integer icomp
+      return
+      end
+
+C ******************** redrawbuttons ********************
+C Dummy routine.
+
+      subroutine redrawbuttons()
       return
       end
 

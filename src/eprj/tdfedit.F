@@ -15,14 +15,14 @@ C details.
 
 
 C tdfedit.F includes high level subroutines for access to
-C   temporal file data.
+C   temporal data.
 
 C tdfedit: is the controlling subroutine for access to
-C   temporal file data. 
-C CLRTABC: clears temporal commons TDFFH, tdset, tdaid,GDPER.
+C   temporal data. 
+C clrtabc: clears temporal commons TDFFH, tdset, tdaid, GDPER.
 C glbset(foc): global questions about TDF file. Foc is the topic.
-C EXTRACTS: writes an ascii exchange file beginning at TIMEJD.
-C TDFUPD: updates TDF file from an exchange file.
+C extracts: writes an ascii exchange file beginning at TIMEJD.
+C setuptdf: menus and control logic for temporal preferences.
 
       subroutine tdfedit(act,ier)
 #include "building.h"
@@ -30,6 +30,7 @@ C TDFUPD: updates TDF file from an exchange file.
 #include "epara.h"
 #include "net_flow.h"
 #include "tdf2.h"
+#include "help.h"
       
       integer lnblnk  ! function definition
 
@@ -80,11 +81,6 @@ C Logical flags for file openings.
 #endif
       integer IRE  ! for radio button
       integer MITEM,INO ! max items and current menu item
-
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
 
       helpinsub='tdfedit'  ! set for subroutine
 
@@ -174,7 +170,7 @@ C << so a conversion might be required first >>
         silent=.false.
       endif
 
-C If tdf file has been specified then load it.
+C If ascii tdf file has been specified then load it.
       if (LTDFA(1:4).eq.'UNKN'.or.LTDFA(1:2).eq.'  ') then
         XST=.false.
       else
@@ -196,8 +192,8 @@ C The file did not exist.
 
       if(action(1:6).eq.'import')then
 
-C Convert from ascii temporal file to scratch file. Ask for import file
-C name, confirm TDF scratch file name, Open scratch file and then
+C Convert from ascii temporal file to binary/scratch file. Ask for import
+C file name, confirm TDF scratch file name, Open scratch file and then
 C import data items. 
         msgl2='  '
         call USRMSG('Importing temporal data...',msgl2,'-')
@@ -339,7 +335,7 @@ C Set the menu control text.
         ITEM(MITEM-4)='r reporting >> verbose                 '
       ENDIF
       ITEM(MITEM-3)  ='! preferences                          '
-      ITEM(MITEM-2)  ='> Save|import|export|extract TDF file  '
+      ITEM(MITEM-2)  ='> save|import|export|extract TDF file  '
       ITEM(MITEM-1)  ='? help                                 '
       ITEM(MITEM)    ='- exit menu'
 
@@ -751,6 +747,7 @@ C If foc='init' do initial setup.
 #include "building.h"
 #include "net_flow.h"
 #include "tdf2.h"
+#include "help.h"
 
       COMMON/TRC/ITRC
       COMMON/SET1/IYEAR,IBDOY,IEDOY,IFDAY,IFTIME
@@ -760,12 +757,7 @@ C If foc='init' do initial setup.
       character foc*4,TTAG*12
       CHARACTER*72 tdaide,tmp72
 
-C For help messages.
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='glbset'  ! set for subroutine
+      helpinsub='tdfedit'  ! set for subroutine
       
       if(foc.eq.'init'.or.foc.eq.'date')then
 
@@ -842,7 +834,7 @@ C IER=0 OK, IER=1 problem. This facility supports module b2e.
 
       CHARACTER AFIL*72,FSTR*80,HDR*12
       CHARACTER tab*1,outs*124,msgl2*48
-      CHARACTER*5 DESCRH,DESCRD
+      CHARACTER*5 DESCRH,DESCRD,DESCRJ
 
       tab=','
       HDR  ='TDF exchange'
@@ -942,7 +934,7 @@ C check if RDOTY and TIMEJD are close.
             if(CLOSE)then
               ITREC=IP+49
               CALL ERTABU(ITRC,ITREC,IER)
-              CALL ESTIME(NTSPH,1,ITIME,DESCRH,DESCRD,TIMER)
+              CALL ESTIME(NTSPH,1,ITIME,DESCRH,DESCRD,DESCRJ,TIMER)
               write(outs,'(a,F10.6,3a)') 'Extracting data for ',
      &          RDOTY,' (@ ',DESCRH,')'
               if(ITRC.gt.1)call edisp(iuout,outs)
@@ -960,7 +952,7 @@ C Write subsequent records if requested.
             if(incrdone.lt.incr)then
               ITREC=IP+49
               CALL ERTABU(ITRC,ITREC,IER)
-              CALL ESTIME(NTSPH,1,ITIME,DESCRH,DESCRD,TIMER)
+              CALL ESTIME(NTSPH,1,ITIME,DESCRH,DESCRD,DESCRJ,TIMER)
               write(outs,'(a,F10.6,3a)') 'Extracting data for ',
      &          RDOTY,' (@ ',DESCRH,')'
               if(ITRC.gt.1)call edisp(iuout,outs)
@@ -998,6 +990,7 @@ C ********************* SETUPTDF *********************
 C Provides the menus and control logic for the temporal
 C data preference menu.
       SUBROUTINE SETUPTDF(IER)
+#include "help.h"
 
       COMMON/SET1/IYEAR,IBDOY,IEDOY,IFDAY,IFTIME
       CHARACTER LIMP*96,LEXP*96
@@ -1008,12 +1001,7 @@ C data preference menu.
       CHARACTER SETUPM*50,DFILE*96,tfile*96
       integer NITMS,ISETUP ! max items and current menu item
 
-C For help messages.
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub=' SETUPTDF'  ! set for subroutine
+      helpinsub='tdfedit'  ! set for subroutine
 
 C Present the preference menu, ISETUP is the menu index returned. Generate
 C the menu text from current common block into via UPSET.
@@ -1066,7 +1054,7 @@ C Help text for this menu.
 
 C Menu control.
       NITMS=7
-      CALL EMENU('Preferences',SETUPM,NITMS,ISETUP)
+      CALL EMENU('Temporal preferences',SETUPM,NITMS,ISETUP)
 
       IF(ISETUP.EQ.1)THEN
 

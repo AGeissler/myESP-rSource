@@ -25,6 +25,7 @@ C USER-SPECIFIED PERIOD.
       SUBROUTINE CLMGRF
 #include "climate.h"
 #include "epara.h"
+#include "help.h"
 
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
 C      COMMON/SPAD/MMOD,LIMIT,LIMTTY
@@ -57,12 +58,7 @@ C      COMMON/SPAD/MMOD,LIMIT,LIMTTY
       integer*8 iiw1,iiw2,iiw3,iiw4,iimenu
 #endif
 
-C For help messages
-      character helpinsub*24   ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='CLMGRF'  ! set for cfiles
+      helpinsub='clmgrf'  ! set for cfiles
 
       onleft = 0      ! initial assumption of no axis
       onright = 0
@@ -368,7 +364,7 @@ C NOW DRAW DISTRIBUTIONS.
 
 C READ VALUES OF THE CLIMATIC PARAMETERS FOR THIS DAY.
         ID=J
-        CALL CLMGET(ID)
+        CALL CLMGET(ID,IER)
         KS=0
         KF=24
         IF(J.EQ.IDS)KS=IT1

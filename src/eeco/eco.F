@@ -49,6 +49,7 @@ C default file names for databases
 #include "material.h"
 #include "espriou.h"
 #include "prj3dv.h"
+#include "help.h"
       
       integer lnblnk  ! function definition
 
@@ -192,11 +193,6 @@ C      CHARACTER tab*1
       integer*8 iicapture,iiazi    ! to pass to updcapt updazi
 #endif
       integer NITEMS,INO ! max items and current menu item
-
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
 
 C Initial assumptions (summary reporting).
       call ezero
@@ -1104,6 +1100,10 @@ C Dummy subroutine needed to compile (called from library code).
       end
       
       SUBROUTINE GRAAPH(IDRW1,IDRW2)
+      return
+      end
+
+      subroutine redrawbuttons()
       return
       end
 

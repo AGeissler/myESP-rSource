@@ -1,6 +1,6 @@
 C This file is part of the ESP-r system.
 C Copyright Energy Systems Research Unit, University of
-C Strathclyde, Glasgow Scotland, 2001.
+C Strathclyde, Glasgow, Scotland, 2001-.
 
 C ESP-r is free software.  You can redistribute it and/or
 C modify it under the terms of the GNU General Public
@@ -13,22 +13,16 @@ C warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
 C PURPOSE. See the GNU General Public License for more
 C details.
 
-C You should have received a copy of the GNU General Public
-C License along with ESP-r. If not, write to the Free
-C Software Foundation, Inc., 59 Temple Place, Suite 330,
-C Boston, MA 02111-1307 USA.
 
-C This file contains the following routines:
-C      mzcstr: control loop definition.
+C This file contains the following routine.
+C mzcstr - control loop definition.
 
-C ******************** mzcstr
-
-C `Mzcstr` allows the user to define the various mass flow 
-C control functions which will control the subsequent 
-C simulation. Each mass flow control function 
-C is read from the system control strategy file.
+C ******************** mzcstr ********************
+C Allows the user to select functions to control the
+C flow network throughout the simulation. 
 
       subroutine mzcstr(ier)
+#include "help.h"
 
       common/outin/iuout,iuin,ieout
       common/filep/ifil
@@ -38,16 +32,11 @@ C is read from the system control strategy file.
 
       character LCTLF*72,DFILE*72,LTMP*72,ctldoc*248
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found (will be non-zero
-                         ! because default message will be created
-      helpinsub='mzcstr' ! set for subroutine
+      helpinsub='fctlc' ! set for subroutine
 
       helptopic='confirm_flow_control'
       call gethelptext(helpinsub,helptopic,nbhelp)
-      CALL EASKOK(' ','Mass flow control?',OK,nbhelp)
+      CALL EASKOK(' ','Apply control to the flow network?',OK,nbhelp)
 
       IF(.NOT.OK)THEN
         CALL EZCTLI
@@ -87,8 +76,8 @@ C Read in the control file (close before returning from EZCTLR).
         ENDIF
       ENDIF
 
-C Now check to ensure that control and actuator nodes
-C actually exist in the associated zone.
+C Check to ensure that sensed and actuator nodes
+C exist in the associated zone.
       call ezctlc(ier)
 
       return

@@ -39,7 +39,8 @@ C Write IPV report based on description held in common.
 #include "esprdbfile.h"
 #include "ipvdata.h"
 #include "schedule.h"
-      
+#include "help.h"
+     
       integer lnblnk  ! function definition
 
       COMMON/FILEP/IFIL
@@ -119,17 +120,13 @@ C Pre calculated data (filtered).
       character SUFFIX*8,paction*16
       CHARACTER ltmp*72,LJTIME*8
       CHARACTER CLMLOC*42
-      character descr*7,descrst*10,descrfn*10,dstmp*24,sq*1
+      character descr*7,descrst*10,descrfn*10,descr2st*8,descr2fn*8
+      character dstmp*24,sq*1
       character ipvaction*3  ! to signal external IPV file
 
       logical XST,OK,pvok,usermode,within,dmdsok
       integer IWM  ! for radio button
       integer NITMS,INO ! max items and current menu item
-
-C For help messages
-      character helpinsub*24   ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
 
       helpinsub='ipvrep'  ! set for cfiles
 
@@ -522,8 +519,8 @@ C Write synopsis out as one long string.
         call edisp(itru,outs)
         call edisp(itru,'# start & finish days for each season')
         do 44 ij=1,nipvassmt
-          call stdate(iyear,ipvastjd(ij),descr,descrst)
-          call stdate(iyear,ipvafnjd(ij),descr,descrfn)
+          call stdate(iyear,ipvastjd(ij),descr,descrst,descr2st)
+          call stdate(iyear,ipvafnjd(ij),descr,descrfn,descr2fn)
           WRITE(outs,'(2a,i4,3a,i4,2a)',IOSTAT=IOS,ERR=1)
      &      descrst,' ',iyear,tab,descrfn,' ',iyear,
      &      tab,ipvadesc(ij)
@@ -535,7 +532,7 @@ C Write synopsis out as one long string.
         call edisp(itru,'# list of days with detailed information')
         if(nipvdispjd.ge.1)then
           do 944 L=1,nipvdispjd
-            call stdate(iyear,ipvdispjd(L),descr,descrst)
+            call stdate(iyear,ipvdispjd(L),descr,descrst,descr2st)
             WRITE(outs,'(2a,i4)',IOSTAT=IOS,ERR=1) 
      &        descrst,' ',iyear
             call edisp(itru,outs)
@@ -1327,7 +1324,7 @@ C There is information to display for this day.
         call chktime(iday,istart,iend)
         CALL EDAY(IOD1,IOM1,IODS)
         CALL EDAY(IOD2,IOM2,IODF)
-        call stdate(iyear,ipvdispjd(ik),descr,descrst)
+        call stdate(iyear,ipvdispjd(ik),descr,descrst,descr2st)
         WRITE(outs,'(4a,i4)',IOSTAT=IOS,ERR=1)'*day_to_display',tab,
      &    descrst,' ',iyear
         call edisp(itru,outs)
@@ -1859,7 +1856,8 @@ C Write IPV report based on description held in common.
 #include "building.h"
 #include "ipvdata.h"
 #include "schedule.h"
-      
+#include "help.h"
+     
       integer lnblnk  ! function definition
 
       COMMON/FILEP/IFIL
@@ -1891,12 +1889,7 @@ C For use with seasonal summaries.
       dimension SSWHD(MSPS),SSWCD(MSPS),SSWLD(MSPS),SSWFD(MSPS)
       dimension SSWSPD(MSPS),SSWDHWD(MSPS),SSWPVD(MSPS),sdenom(MSPS)
 
-C For help messages
-      character helpinsub*24   ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='mkannrep'  ! set for subroutine
+      helpinsub='ipvrep'  ! set for subroutine
 
 C Make up a single quote for IPV
       sq = char(39)
@@ -3328,6 +3321,7 @@ C Recover pv electrical output in terms of an hourly integration
 C of all nodes (W).
       subroutine aggregpv(iseas,pvok,pvmax,totpv,iier)
 #include "building.h"
+#include "help.h"
 C      COMMON/OUTIN/IUOUT,IUIN,IEOUT
 C      COMMON/FILEP/IFIL
 C      COMMON/PERO/IOD1,IOM1,IOH1,IOD2,IOM2,IOH2,IODS,IODF,NOUT,IAV
@@ -3347,12 +3341,7 @@ C      character selres*72
       logical OK,pvok
 C      logical XST
 
-C For help messages
-      character helpinsub*24   ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='aggregpv'  ! set for cfiles
+      helpinsub='ipvrep'  ! set for cfiles
 
 C Special material output.
       iier=0
@@ -3429,6 +3418,7 @@ C Assign user-specified export file - checking if local or remote.
 C act = 'o' to open new file, act = 'a' to append to an existing
 C file. tg is a character T text or X tabular info being saved.
       subroutine ipvexp(xfile,ixopen,ixunit,act,tg,msg,IER)
+#include "help.h"
       
       integer lnblnk  ! function definition
 
@@ -3448,12 +3438,7 @@ C Simulator parameters. autook signals silent operation.
       logical concat,remote,unixok,there
       integer ISTRW
 
-C For help messages
-      character helpinsub*24   ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='ipvexp'  ! set for cfiles
+      helpinsub='ipvrep'  ! set for cfiles
 
 C Check if Unix-based or DOS based.
       call isunix(unixok)

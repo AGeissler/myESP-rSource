@@ -28,6 +28,7 @@ C ****** GTOPOL
 #include "esprdbfile.h"
 #include "material.h"
 #include "prj3dv.h"
+#include "help.h"
       
       integer lnblnk  ! function definition
 
@@ -53,32 +54,12 @@ C ****** GTOPOL
       integer nitms,INO ! max items and current menu item
 
 #ifdef OSI
-      integer icfg_type  ! model cfg type
-      integer icfgz      ! if non-zero then there are zones
-      integer icfgn      ! if non-zero then there are networks
-      integer icfgc      ! if non-zero then cfg file known
-      integer icfgdfn    ! if non-zero then cdf domain exists
-      integer iicfgz     ! there are zone related images
-      integer iicfgn     ! there are network related images
-      integer iicfgc     ! there are control related images
-      integer iicfgdfn   ! there are cfd related images
-#else
-      integer*8 icfg_type,icfgz,icfgn,icfgc,icfgdfn,iicfgz
-      integer*8 iicfgn,iicfgc,iicfgdfn
-#endif
-
-#ifdef OSI
       integer iside,isize,ifont     ! passed to viewtext
 #else
       integer*8 iside,isize,ifont     ! passed to viewtext
 #endif
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='GTOPOL'  ! set for subroutine
+      helpinsub='gtopol'  ! set for subroutine
 
       grmod=.true.
 
@@ -171,10 +152,7 @@ C If ground needs drawing or updating do it here.
         endif
         izgfoc=0
         CALL redraw(IER)
-        call cfgtogg(icfg_type,icfgz,icfgn,icfgc,icfgdfn,
-     &                             iicfgz,iicfgn,iicfgc,iicfgdfn)
-        call opencfg(icfg_type,icfgz,icfgn,icfgc,icfgdfn,
-     &                             iicfgz,iicfgn,iicfgc,iicfgdfn)
+        call redrawbuttons()
         WRITE(ETEXT,'(2A)')'Model: ',modeltitle(1:lnblnk(modeltitle))
         iside=1; isize=1; ifont=1
         call viewtext(etext,iside,isize,ifont)
@@ -385,6 +363,7 @@ C IER=0 OK, IER=1 problem.
 #include "epara.h"
 #include "building.h"
 #include "prj3dv.h"
+#include "help.h"
       
       integer lnblnk  ! function definition
 
@@ -411,12 +390,7 @@ C IER=0 OK, IER=1 problem.
       integer*8 iix,iiy
 #endif
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='EDGVERT'  ! set for subroutine
+      helpinsub='gtopol'  ! set for subroutine
 
 C Initial values for vertex at angle facility.
       V1=1.0
@@ -1507,6 +1481,8 @@ C added at the end of the list.
       SUBROUTINE ADDGVERT(NUM,ACTION,IER)
 #include "building.h"
 #include "prj3dv.h"
+#include "help.h"
+
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
       common/grndpl/NGT,NGTV,XGT(MGTV),YGT(MGTV),ZGT(MGTV),JGVN(MGRT,8),
      &  NGVER(MGRT),IVEDGE(MGRT)
@@ -1518,12 +1494,7 @@ C added at the end of the list.
       CHARACTER OUTSTR*124,ACTION*1,HOLD*32,outs*124
       character GMLCN*32,GSNAME*6
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='ADDGVERT'  ! set for subroutine
+      helpinsub='gtopol'  ! set for subroutine
 
       check = .false.
       if(NUM.eq.0)then
@@ -1807,6 +1778,7 @@ C show attributes in list.
       SUBROUTINE EASKGSUR(IS,MOD,PROMPT1,PROMPT2,IER)
 #include "building.h"
 #include "epara.h"
+#include "help.h"
       
       integer lnblnk  ! function definition
 
@@ -1822,12 +1794,7 @@ C show attributes in list.
       LOGICAL SELECT
       integer MVERT,IVERT ! max items and current menu item
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='EASKGSUR'  ! set for subroutine
+      helpinsub='gtopol'  ! set for subroutine
 
       IER=0
       write(title,'(2a)') 'Surface attribs: ',
@@ -1963,6 +1930,7 @@ C Method checks for minimally linked vertices.
       SUBROUTINE ADDGSUR(ITRC,IWHICH,ACTION,IER)
 #include "building.h"
 #include "prj3dv.h"
+#include "help.h"
       
       integer lnblnk  ! function definition
       integer iCountWords
@@ -1989,12 +1957,7 @@ C Method checks for minimally linked vertices.
       integer*8 iix,iiy,iixx,iiyy,ixd,iyd,iik
 #endif
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='ADDGSUR'  ! set for subroutine
+      helpinsub='gtopol'  ! set for subroutine
     
       IER=0
       DOK=.false.
@@ -2364,6 +2327,7 @@ C IER=1 problem.
 #include "prj3dv.h"
 #include "esprdbfile.h"
 #include "material.h"
+#include "help.h"
       integer iCountWords
 
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
@@ -2400,12 +2364,7 @@ C IER=1 problem.
       integer*8 iupdown,isym,iix,iiy    ! passed to etplot
 #endif
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='EDGVLIST'  ! set for subroutine
+      helpinsub='gtopol'  ! set for subroutine
 
 C Initialise zone surface-vertex list menu size variables based on
 C window size. IVERT is the menu position, MVERT the current
@@ -3188,6 +3147,7 @@ C output: triangle list
       SUBROUTINE TRIANG(ier)
 #include "building.h"
 #include "prj3dv.h"
+#include "help.h"
 
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
@@ -3214,12 +3174,7 @@ C output: triangle list
       integer*8 iigl,iigr,iigt,iigb,iigw,iigwh
 #endif
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='TRIANG'  ! set for subroutine
+      helpinsub='gtopol'  ! set for subroutine
 
 C Cast values for linescale.
       iigl=igl;iigr=igr;iigt=igt;iigb=igb;iigw=igw;iigwh=igwh

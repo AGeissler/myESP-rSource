@@ -151,7 +151,7 @@ C.....Trace/error reporting unit numbers
       integer iuout,iuin,ieout
       integer itcf,itrace,izntrc,itu
 C.....Simulation time
-      integer ihrp, ihrf, idyp, idyf, idwp, idwf,nsinc,its
+      integer ihrp, ihrf, idyp, idyf, idwp, idwf,nsinc,its,idynow
       real ptimep, ptimef, btimep, btimef
 C.....Plant component data
       integer npcomp, nci
@@ -1149,7 +1149,7 @@ C     Declare common block variables
 C------------------------------------------------------------------------------------
       integer iuout,iuin,ieout
 C.....Simulation time
-      integer ihrp, ihrf, idyp, idyf, idwp, idwf,nsinc,its
+      integer ihrp, ihrf, idyp, idyf, idwp, idwf,nsinc,its,idynow
       real ptimep, ptimef
       integer npcomp, nci
       real cdata

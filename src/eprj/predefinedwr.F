@@ -29,6 +29,7 @@ C present in menus.
 #include "building.h"
 #include "esprdbfile.h"
 #include "predefined.h"
+#include "help.h"
 
       integer lnblnk  ! function definition
 
@@ -62,13 +63,8 @@ C << use parameters when available >>
       DIMENSION IVALS(MS),ITEMSS(MS)
       CHARACTER ITEMSS*32
       integer ISTRW
-     
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
 
-      helpinsub='choosepredef'  ! set for subroutine
+      helpinsub='predefinedwr'  ! set for subroutine
 
 C Help text for this menu.
       helptopic='select_predefined'
@@ -106,9 +102,8 @@ C Loop to present categories (menus).
         write(ITEMSS(loop),'(A)')cats(loop)
       enddo
       inpick=1
-      CALL EPICKS(INPICK,IVALS,'Categories of predefined objects',
-     &  'Select none to abort.',32,numcat,ITEMSS,
-     &  'Predefined categories.',IER,nbhelp)
+      CALL EPICKS(INPICK,IVALS,' ',' ',32,numcat,ITEMSS,
+     &  'Predefined categories',IER,nbhelp)
       if(inpick.gt.0)then
         ifoc=IVALS(inpick)
         if(ifoc.eq.0)then
@@ -145,9 +140,8 @@ C Loop through items which match the selected category.
 
 C Now select from matching entries.
       inpick=1
-      CALL EPICKS(INPICK,IVALS,'Available predefined objects',
-     &  'Select none to abort.',32,matching,ITEMSS,
-     &  'Available predefined objects.',IER,nbhelp)
+      CALL EPICKS(INPICK,IVALS,' ',' ',32,matching,ITEMSS,
+     &  'Available predefined objects',IER,nbhelp)
       if(inpick.gt.0)then
 
 C Decode which one and set name and ier.
@@ -167,7 +161,7 @@ C Decode which one and set name and ier.
       return
       end
 
-C ******************************** PREDEFSCAN
+C ******************** PREDEFSCAN ********************
 C Read tag-data version of predefined objects file for high level
 C tags to assist user selection.
 
@@ -383,13 +377,12 @@ C If there were no errors in reading header line then read another.
 
       END
        
-C ****** PREDEFEMBED
+C ******************** PREDEFEMBED ********************
 C Read tag-data version of predefined objects file and merge
 C these data structures into the zone (ICOMP).
 C Currently entity is found in predefined.h.
 
       SUBROUTINE PREDEFEMBED(IFA,LASCI,ICOMP,DX,DY,DZ,DA,name,prec,IER)
-      
       IMPLICIT NONE
       
 #include "building.h"
@@ -399,11 +392,8 @@ C Currently entity is found in predefined.h.
 #include "material.h"
 #include "predefined.h"
 #include "espriou.h"
-C espriou.h provides currentfile.
 
-      integer lnblnk  ! function definition
-
-C Parameters
+      integer lnblnk      ! function definition
       integer IFA         ! ascii file unit number
       character LASCI*144 ! ascii file name
       integer icomp       ! zone to embed
@@ -641,7 +631,7 @@ C Keep track of zones so can be appended to the existing model zones.
           CALL EGETW(LOUTSTR,K,WORD,'W','zone name',IER)
           CALL EGETW(LOUTSTR,K,WORD,'W','air or water',IER)
           CALL EGETP(LOUTSTR,K,phrase,'W','description',IER)
-C << TODO data structures >>
+
         endif
       elseif(WORD(1:5).EQ.'*surf')then
 
@@ -1007,10 +997,12 @@ C Apply the updated indices to the mass surface list.
         enddo  ! of ix
 
 C Add the bounding surfaces to the zone. However if this is
-C a new zone the only the 1st connection will be known.
-C << this logic needs to be adapted >>
+C a new zone the only the 1st connection will be known. If
+C nsur is still zero set icon without looking at izstocn.
         do ix=1,nbbound
-          if(izstocn(icomp,nsur).eq.0)then
+          if(nsur.eq.0)then
+            icon=NCON+1   ! used next free connection
+          elseif(izstocn(icomp,nsur).eq.0)then
             icon=NCON+1   ! used next free connection
           else
             ICON=IZSTOCN(icomp,nsur)+1
@@ -1083,10 +1075,10 @@ C Re-display the zone on exit.
       end
 
  
-C ******************** GEO2OBJ 
-C GEO2OBJ reads V1.1 zone geometry data and to fill predefined object
+C ******************** GEO2OBJ **************8*****
+C Reads V1.1 zone geometry data and fills predefined object
 C common blocks.
-C << ?? multi-zone >>
+
       SUBROUTINE GEO2OBJ(IUNIT,LGEOMF,ITRU,IER)
 #include "building.h"
 #include "model.h"
@@ -1094,13 +1086,9 @@ C << ?? multi-zone >>
 #include "esprdbfile.h"
 #include "material.h"
 #include "predefined.h"
-
-C espriou.h provides currentfile.
 #include "espriou.h"
 
       integer lnblnk  ! function definition
-
-C Parameters
       integer IUNIT  ! file unit to read
       CHARACTER LGEOMF*72 ! geometry file to scan
       integer ITRU   ! file unit for feedback
@@ -1906,26 +1894,19 @@ C Errors for loutstr reads.
       END
 
  
-C ******************** OBJQA 
-C OBJQ generates a QA report on a predefined object or writes a block
+C ******************** OBJQA ********************
+C Generates a report on a predefined object or writes a block
 C of text to patch into a predefined database.
 
 C << data structure needed for *mzitem QA >>
 
       SUBROUTINE OBJQA(ifilg,ASCIIF,ACT,IER)
 #include "building.h"
-C #include "model.h"
-C #include "geometry.h"
 #include "esprdbfile.h"
 #include "material.h"
 #include "predefined.h"
 
-C espriou.h provides currentfile.
-C #include "espriou.h"
-
       integer lnblnk  ! function definition
-
-C Parameters
       integer ifilg  ! file unit to write
       character ASCIIF*72 ! geometry file to create
       character ACT*2 ! action to take QA or EX
@@ -1942,7 +1923,6 @@ C Parameters
       logical hasmass,hasbound,hasvis,odd
 
       tab=','    ! make the separator a comma.
-C      objectcat='UNKNOWN'
 
       if(ACT(1:2).eq.'QA')then
 
@@ -2102,9 +2082,7 @@ C << adapt to support more complex edge lists? >>
       elseif(ACT(1:2).eq.'EX')then
 
 C If act is EX then export a block of text.
-
 C << make variant for *mzitem >>
-
         CALL EFOPSEQ(IFILG,ASCIIF,4,IER)
         write(ifilg,'(a)',IOSTAT=IOS,ERR=13) '# '
         write(ifilg,'(5a)') '*item,',objname(1:lnblnk(objname)),',',
@@ -2353,24 +2331,19 @@ C Error messages.
 
       end
        
-C ******************************** RPREDEFCOM
+C ******************** RPREDEFCOM ********************
 C Read tag-data version of predefined objects file item into commons.
-      SUBROUTINE RPREDEFCOM(IFA,LASCI,name,IER)
-      
+
+      SUBROUTINE RPREDEFCOM(IFA,LASCI,name,IER) 
       IMPLICIT NONE
       
 #include "building.h"
-C #include "model.h"
-C #include "geometry.h"
 #include "esprdbfile.h"
 #include "material.h"
 #include "predefined.h"
 #include "espriou.h"
-C espriou.h provides currentfile.
 
       integer lnblnk  ! function definition
-
-C Parameters
       integer IFA         ! ascii file unit number
       character LASCI*144 ! ascii file name
       character name*12   ! item to embed
@@ -2845,7 +2818,10 @@ C If there were no errors in reading header line then read another.
       return
       end
 
-C clearobjcommons resets and clears the common blocks in predefined.h
+
+C ******************** clearobjcommons ********************
+C Resets and clears the common blocks in predefined.h.
+
       subroutine clearobjcommons()
 #include "building.h"
 #include "predefined.h"

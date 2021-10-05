@@ -54,6 +54,7 @@ C and should just write out this data.
 #include "model.h"
 #include "geometry.h"
 #include "schedule.h"
+#include "help.h"
       
       integer lnblnk  ! function definition
 
@@ -89,13 +90,8 @@ C updated when the user exits).
       integer NIGU,IGU,NITEMS,INO ! max items and current menu item
       integer islot, iatr1   ! used when defining from scratch
       integer ISTRW
-      
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
 
-      helpinsub='PRJFMK'  ! set for subroutine
+      helpinsub='prjfmk'  ! set for subroutine
        
 C Set folder separator (fs) to \ or / as required.
       call isunix(unixok)
@@ -245,7 +241,7 @@ C Debug.
       else
         call usrmsg('Updating model to reflect changes',
      &        'in zone operations file name...','-')
-        CALL EMKCFG('-',ier)
+        CALL EMKCFG('s',ier)
         call usrmsg('Updating model to reflect changes',
      &        'in zone operations file name...done.','-')
       endif
@@ -478,7 +474,7 @@ C Write file and return.
      &        'in zone operations data or file name...','-')
             LPROJ(ICOMP)=LTMP
             CALL EMKOPER(IUO,LPROJ(ICOMP),ICOMP,IER)
-            CALL EMKCFG('-',ier)
+            CALL EMKCFG('s',ier)
             call usrmsg(
      &        'Updating model to reflect changes',
      &        'in zone operations data or file name...done.','-')
@@ -519,10 +515,8 @@ C flows are to preserve ach or volume of flow.
           if(igu.eq.2.or.igu.eq.4)then
  38         isource=0
             izdef=0
-            call askzone(isource,izdef,
-     &        'Air flow pattern taken from which zone?',
-     &        'Source Zone','-','Air flow import requires a zone.',
-     &        33,ier)
+            call askzone(isource,izdef,'Source Zone',
+     &        '-','Air flow import requires a zone.',33,ier)
             if (IER.ne.0.or.isource.eq.ICOMP) then
               write (OUTS,'(3a)')  'the current (',
      &          zname(ICOMP)(1:lnzname(ICOMP)),').'
@@ -648,9 +642,8 @@ C Ask which zone, then confirm whether absolute W values are to be scaled.
             endif
  39         isource=0
             izdef=0
-            call askzone(isource,izdef,'Casual gains from which zone?',
-     &        'Source Zone','-','Casual gain import requires a zone.',
-     &        33,ier)
+            call askzone(isource,izdef,'Source Zone',
+     &        '-','Casual gain import requires a zone.',33,ier)
             if (IER.ne.0.or.isource.eq.ICOMP) then
               write (OUTS,'(3a)')  'the current (',
      &          zname(ICOMP)(1:lnzname(ICOMP)),').'
@@ -895,7 +888,7 @@ C and rewrite the system configuration file.
           else
             MODOPR=.false.  ! signal that we have saved the file.
           endif
-          CALL EMKCFG('-',IER)
+          CALL EMKCFG('s',IER)
         else
           call usrmsg('Cannot save problem while in browse',
      &                'mode. You must first `own` the model!','W')
@@ -924,18 +917,15 @@ C << must be revised for multiple day types and periods. >>
 #include "building.h"
 #include "geometry.h"
 #include "schedule.h"
+#include "help.h"
 
-      DIMENSION IVALS(3), ALTS(3)
-      CHARACTER hold*40,outs*80,outs2*80
-      CHARACTER ALTS*31
+      dimension IVALS(3), ALTS(3)
+      character hold*40,outs*80,outs2*80
+      character ALTS*31
+      character vctlstr*24,comment*76
       integer iwhich,iwhich2  ! for user choices
-      
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
 
-      helpinsub='EDAFCTL'  ! set for subroutine
+      helpinsub='prjfmk'  ! set for subroutine
        
 C Flow control browse & editing.
       helptopic='zone_flow_menu_summary'
@@ -995,36 +985,9 @@ C Flow control browse & editing.
 C Generate a brief description.
 C << this does not yet take into account day type >>
       if(ip3ver(icomp).le.21)then
+        call ventctlstr(icomp,1,'S',vctlstr,comment)
+        ctlstr(icomp,1)=vctlstr
         IY=ITCTL(ICOMP)
-        if(IY.eq.-14)then
-          ctlstr(icomp,1)='infil only: wind speed  '
-        elseif(IY.eq.-13)then
-          ctlstr(icomp,1)='infil only: ext db temp '
-        elseif(IY.eq.-12)then
-          ctlstr(icomp,1)='infil only: adj zone tmp'
-        elseif(IY.eq.-11)then
-          ctlstr(icomp,1)='infil only: zone temp   '
-        elseif(IY.eq.-4)then
-          ctlstr(icomp,1)='vent only: wind speed   '
-        elseif(IY.eq.-3)then
-          ctlstr(icomp,1)='vent only: ext db temp  '
-        elseif(IY.eq.-2)then
-          ctlstr(icomp,1)='vent only: adj zone temp'
-        elseif(IY.eq.-1)then
-          ctlstr(icomp,1)='vent only: zone temp    '
-        elseif(IY.eq.4)then
-          ctlstr(icomp,1)='infil & vent: wind speed'
-        elseif(IY.eq.3)then
-          ctlstr(icomp,1)='infil & vent: ext db T  '
-        elseif(IY.eq.2)then
-          ctlstr(icomp,1)='infil & vent: adj zone T'
-        elseif(IY.eq.1)then
-          ctlstr(icomp,1)='infil & vent: zone T    '
-        elseif(IY.eq.0)then
-          ctlstr(icomp,1)='no control of air flow  '
-        else
-          ctlstr(icomp,1)='unknown flow control   '
-        endif
       elseif(ip3ver(icomp).ge.30)then
 
 C << to be done >>
@@ -1074,9 +1037,8 @@ c the lower range.
         TAL(ICOMP)=0.0
       elseif(j.eq.2)then
         IV=IVL(ICOMP)
-        call askzone(iv,IVL(icomp),'Ventilation from which zone?',
-     &    'Source Zone','-','Ventilation definition requires a zone.',
-     &    33,ier)
+        call askzone(iv,IVL(icomp),'Source Zone',
+     &    '-','Ventilation definition requires a zone.',33,ier)
         IVL(ICOMP)=IV
         VAL=ACVL(ICOMP)
         ratio = VOL(ICOMP)/VOL(IV)
@@ -1112,9 +1074,8 @@ C Define air flow when the sensed variable is above the middle range.
         TAU(ICOMP)=0.0
       elseif(j.eq.2)then
         IV=IVU(ICOMP)
-        call askzone(iv,IVU(icomp),'Ventilation from which zone?',
-     &    'Source Zone','-','Ventilation definition requires a zone.',
-     &    33,ier)
+        call askzone(iv,IVU(icomp),'Source Zone',
+     &    '-','Ventilation definition requires a zone.',33,ier)
         IVU(ICOMP)=IV
         VAL=ACVU(ICOMP)
         ratio = VOL(ICOMP)/VOL(IV)
@@ -1149,9 +1110,8 @@ C Define air flow when the sensed variable is above the high range.
         TAH(ICOMP)=0.0
       elseif(j.eq.2)then
         IV=IVH(ICOMP)
-        call askzone(iv,IVH(icomp),'Ventilation from which zone?',
-     &    'Source Zone','-','Ventilation definition requires a zone.',
-     &    33,ier)
+        call askzone(iv,IVH(icomp),'Source Zone',
+     &    '-','Ventilation definition requires a zone.',33,ier)
         IVH(ICOMP)=IV
         VAL=ACVH(ICOMP)
         ratio = VOL(ICOMP)/VOL(IV)
@@ -1194,6 +1154,7 @@ C IER=0 is OK.
 #include "geometry.h"
 #include "schedule.h"
 #include "epara.h"
+#include "help.h"
       
 C      integer lnblnk  ! function definition
 
@@ -1207,19 +1168,15 @@ C      integer lnblnk  ! function definition
       INTEGER NBDAYTYPE,NBCALDAYS,ICALENDER
 
       character vert(35)*33,KEY*1,title*33
+      character vctlstr*24,comment*76
       character LTMP*72,louts*248
       character afact*8,iflow*8,vflow*8,outs*124,sfile*72,snpfile*72
       logical XST,closezero,closeone,closetwo
       integer KSTR(MDTY),ix,iy
       integer IW  ! for radio button
       integer MVERT,IVERT ! max items and current menu item
-      
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
 
-      helpinsub='EDAIR2'  ! set for subroutine
+      helpinsub='prjfmk'  ! set for subroutine
       
 C Initial menu entry setup.
       idtyp = 1
@@ -1239,7 +1196,8 @@ C Set up top of menu.
   44  if (ITCTL(ICOMP).eq.0) then 
         write(VERT(1),'(A)') '1 air flow control (none)'
       else
-        write(VERT(1),'(2A)') '1 control: ',ctlstr(icomp,1)(1:22)
+        call ventctlstr(icomp,1,'S',vctlstr,comment)
+        write(VERT(1),'(2A)') '1 control: ',vctlstr(1:22)
       endif
       vert(2) =              '  -----------------------------'
       write(vert(3),'(3a,i2,a)') '> air flow>> ',calentag(idtyp),' (',
@@ -1383,7 +1341,6 @@ C flows are to preserve ac/h or volume of flow.
  38         isource=0
             izdef=0
             call askzone(isource,izdef,
-     &        'Air flow pattern from which zone?',
      &        'Source Zone','-','Ventilation import requires a zone.',
      &        33,ier)
             if (IER.ne.0.or.isource.eq.ICOMP) then
@@ -1553,6 +1510,7 @@ C IER=0 is OK.
 #include "geometry.h"
 #include "schedule.h"
 #include "epara.h"
+#include "help.h"
       
 C      integer lnblnk  ! function definition
 
@@ -1575,17 +1533,13 @@ C of one signals m3/h and a value of 2 signals m3/s.
       character vert(35)*33,KEY*1,title*33
       character LTMP*72,louts*248
       character afact*8,iflow*8,vflow*8,outs*124,sfile*72,snpfile*72
+      character vctlstr*24,comment*76
       logical XST,closezero,closeone,closetwo
       integer KSTR(MDTY)
       integer IW   ! for radio button
       integer MVERT,IVERT ! max items and current menu item
-      
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
 
-      helpinsub='EDAIR3'  ! set for subroutine
+      helpinsub='prjfmk'  ! set for subroutine
       
 C Return if the version is not three.
       if(ip3ver(icomp).lt.30)then
@@ -1612,7 +1566,8 @@ C Set up top of menu.
   44  if (ITCTL(ICOMP).eq.0) then 
         write(VERT(1),'(A)') '1 air flow control (none)'
       else
-        write(VERT(1),'(2A)') '1 control: ',ctlstr(icomp,1)(1:22)
+        call ventctlstr(icomp,1,'S',vctlstr,comment)
+        write(VERT(1),'(2A)') '1 control: ',vctlstr(1:22)
       endif
       vert(2) =              '  -----------------------------'
       write(vert(3),'(3a,i2,a)') '> air flow>> ',calentag(idtyp),' (',
@@ -1760,7 +1715,6 @@ C flows are to preserve ac/h or volume of flow.
  38         isource=0
             izdef=0
             call askzone(isource,izdef,
-     &        'Air flow pattern from which zone?',
      &        'Source Zone','-','Ventilation import requires a zone.',
      &        33,ier)
             if (IER.ne.0.or.isource.eq.ICOMP) then
@@ -1931,10 +1885,13 @@ C     =2 infil, =0 ventilation attributes.
 
       subroutine EDAIRFL(ICOMP,IDT,IPER,itype)
 #include "building.h"
+#include "model.h"
 #include "geometry.h"
 #include "schedule.h"
+#include "help.h"
 
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
+      COMMON/FILEP/IFIL
       common/caleni/nbdaytype,nbcaldays(MDTY),icalender(365)
       INTEGER NBDAYTYPE,NBCALDAYS,ICALENDER
 
@@ -1943,16 +1900,11 @@ C     =2 infil, =0 ventilation attributes.
 C Working variables
       real ACIX,ACVX,TAX,XTA,XACH
       integer IACSX,IACFX,IPTX
-      
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
+      logical ok
 
-      helpinsub='EDAIRFL'  ! set for subroutine
+      helpinsub='prjfmk'  ! set for subroutine
 
-C << This subroutine will need further code changes to implement
-C << user cancel actions.
+      IUO=IFIL+1
 
 C If new period then set defaults otherwise get data from common.
       if (IPER.eq.0) then
@@ -1981,11 +1933,11 @@ C Ask for start and finish times.
         write (HOLD,'(2i5,a)') IACSX,IACFX,'  '
         CALL EASKS(HOLD,OUTS,' ',16,' 0 24 ','air st-fn hr',IER,nbhelp)
         K=0
-        CALL EGETWI(HOLD,K,IVS,0,24,'F','period start',IER)
-        CALL EGETWI(HOLD,K,IVF,IVS+1,24,'F','period end',IER)
+        CALL EGETWI(HOLD,K,IIVS,0,24,'F','period start',IER)
+        CALL EGETWI(HOLD,K,IIVF,IIVS+1,24,'F','period end',IER)
         if (IER.ne.0) goto 10
-        IACSX=IVS
-        IACFX=IVF
+        IACSX=IIVS
+        IACFX=IIVF
       endif
 
 C Ask for infiltration and ventilation flow rates.
@@ -2066,9 +2018,8 @@ C Ask for source zone/ temperature.
 
 C Present zone list.
  38         IV=IPTX
-            call askzone(IV,IPTX,'Ventilation from which zone?',
-     &     'Source Zone','-','Ventilation definition requires a zone.',
-     &      33,ier)
+            call askzone(IV,IPTX,'Source Zone',
+     &        '-','Ventilation definition requires a zone.',33,ier)
             if (IER.ne.0.or.IV.eq.ICOMP) then
               write (OUTS,'(3a)')  'the current zone (',
      &          zname(ICOMP)(1:lnzname(ICOMP)),').'
@@ -2083,8 +2034,31 @@ C Present zone list.
             call EDISP(IUOUT,OUTS)
             write (OUTS,'(a,F8.2,a,F8.2,a)') 
      &        '(Current zone volume =',VOL(icomp),
-     &        'Source zone volume =',VOL(iv),')'
+     &        ' Source zone volume =',VOL(iv),')'
             call EDISP(IUOUT,OUTS)
+            XACHDest= ACVX*VOL(ICOMP)/3600.       ! Convert to m^3/s in destination.
+            XACHSource = XACHDest*3600.0/VOL(IV)  ! Convert to ach in source zone.
+            write (OUTS,'(a,F8.3,a,F8.2,a,F8.2,a)') 
+     &        '(Current zone m^3/s =',XACHDest,' and ',ACVX,
+     &        ' ac/h is ',XACHSource,' ac/h in the source zone.)'
+            call EDISP(IUOUT,OUTS)
+
+C Confirm whether a matching mixing should be added to the source zone.
+            call easkok(' ',
+     &        'Enable balanced mixing between the two zones?',OK,nbhelp)
+            if(ok)then
+               CALL ERPFREE(IUO,ISTAT)
+               CALL EMKOPER(IUO,LPROJ(ICOMP),ICOMP,IER)   ! Save current 'destination' zone information.
+               CALL ERPFREE(IUO,ISTAT)
+               CALL EROPER(ITRC,ITRU,IUO,IV,IER)          ! Read the 'source' zone.
+               ACV(IDT,IPER)=XACHSource                   ! Update source zone commons.
+               IPT(IDT,IPER)=ICOMP
+               TA(IDT,IPER)=0.0
+               CALL ERPFREE(IUO,ISTAT)
+               CALL EMKOPER(IUO,LPROJ(IV),IV,IER)         ! Save the 'source' zone.
+               CALL ERPFREE(IUO,ISTAT)
+               CALL EROPER(ITRC,ITRU,IUO,ICOMP,IER)       ! Re-read the current 'destination' zone.
+            endif
             IPTX=IV
             TAX=0.
           elseif (IGU.eq.2) then
@@ -2197,6 +2171,7 @@ C  ICD - copy (=2) delete (=1) flag
 #include "building.h"
 #include "geometry.h"
 #include "schedule.h"
+#include "help.h"
 
       common/calena/calename,calentag(MDTY),calendayname(MDTY)
       CHARACTER CALENAME*32,CALENTAG*12,CALENDAYNAME*32
@@ -2207,13 +2182,8 @@ C  ICD - copy (=2) delete (=1) flag
       INTEGER IGOON,ILET,IDT,IDTY,IAFP,IX,KSTR(MDTY),ilistlen,ilm
 
       dimension IVERT(3*MA),ITEMP(3*MA)
-      
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
 
-      helpinsub='CDAIRFL'  ! set for subroutine
+      helpinsub='prjfmk'  ! set for subroutine
 
       ilistlen=0
 
@@ -2358,6 +2328,7 @@ C << initial intent to guide later revisions?
 #include "model.h"
 #include "geometry.h"
 #include "schedule.h"
+#include "help.h"
       
       integer lnblnk  ! function definition
 
@@ -2389,13 +2360,8 @@ C Scratch copy of air flow pattern from an operations file.
       LOGICAL XST,unixok
       INTEGER IDTY
       character actflatfile*1  ! parameter to pass
-      
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
 
-      helpinsub='COPYAIRFL'  ! set for subroutine
+      helpinsub='prjfmk'  ! set for subroutine
 
 C Set folder separator (fs) to \ or / as required.
       call isunix(unixok)
@@ -2610,7 +2576,7 @@ C Save the destination operation file.
      &  'Updating model to reflect changes in destination',
      &  'operations data or file name...','-')
       CALL EMKOPER(IUO,LPROJ(idest),idest,IER)
-      CALL EMKCFG('-',ier)
+      CALL EMKCFG('s',ier)
       call usrmsg(
      &  'Updating model to reflect changes in destination',
      &  'operations data or file name...done.','-')
@@ -3260,6 +3226,7 @@ C ITRC is the trace level, IER=0 is OK.
 #include "geometry.h"
 #include "schedule.h"
 #include "epara.h"
+#include "help.h"
       
       integer lnblnk  ! function definition
 
@@ -3303,13 +3270,8 @@ C   267W in a 5.0m^2 base zone.
       character act*8,iwatt*8
       integer kstr,ILLEN,IQ,IX,I,IDU,IDT,IOPT,IDTYP
       dimension kstr(MDTY),ILLEN(MDTY)
-      
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
 
-      helpinsub='EDCAS'  ! set for subroutine
+      helpinsub='prjfmk'  ! set for subroutine
 
 C If not browsing, take the information from loadcnt
 C and decide if the periods need to be updated.
@@ -3788,9 +3750,8 @@ C confirm whether absolute W values are to be scaled.
           if(IW.eq.4)then
  39         isource=0
             izdef=0
-            call askzone(isource,izdef,'Casual gains from which zone?',
-     &        'Source Zone','-','Casual import requires a zone.',
-     &        36,ier)
+            call askzone(isource,izdef,'Source Zone',
+     &        '-','Casual import requires a zone.',36,ier)
             if (IER.ne.0.or.isource.eq.ICOMP) then
               write (OUTS,'(3a)')  'the current zone (',
      &          zname(ICOMP)(1:lnzname(ICOMP)),').'
@@ -3988,10 +3949,9 @@ C << use in the zone operation file timings
 
 #include "building.h"
 #include "esprdbfile.h"
-C esprdbfile.h supplies the following:
-C LPRFDB,IPRODB (for event profile database)
 #include "profile.h"
 #include "schedule.h"
+#include "help.h"
 
 C Electrical data flag and elctrical data.
       common/elecflg/ielf(mcom)
@@ -4012,13 +3972,8 @@ C Profile database commons via profile.h.
 
       integer IPPFT,IPPHAST  ! for local editing.
       logical unixok  ! to check for database path file separators
-      
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
 
-      helpinsub='SCASL'  ! set for subroutine
+      helpinsub='prjfmk'  ! set for subroutine
 
 C Set folder separator (fs) to \ or / as required.
       call isunix(unixok)
@@ -4184,6 +4139,7 @@ C If silent is true then use icgs & icgf parameters.
 #include "building.h"
 #include "geometry.h"
 #include "schedule.h"
+#include "help.h"
 
 C Passed parameters
       integer ICOMP,ICGTX,ICGUX,IDT,IPER,icgsX,icgfX
@@ -4207,13 +4163,8 @@ C Electrical data flag and elctrical data.
       real xairvel,xtnbmen,xtnbwomen,xtnbchild,xmetabolic,xclo
       integer IALL
       real LGAIN
-      
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
 
-      helpinsub='EDCASGN'  ! set for subroutine
+      helpinsub='prjfmk'  ! set for subroutine
 
 C If new period then set defaults based on the key word, otherwise 
 C get data from common.
@@ -4266,11 +4217,11 @@ C Ask for start and finish times.
       CALL EASKS(hold,outs,' ',24,' 0 24 ','cas st-fn hr',IER,nbhelp)
       if(ier.eq.-3) return  ! user canceled
       K=0
-      CALL EGETWI(hold,K,IVS,0,24,'F','period start',IER)
-      CALL EGETWI(hold,K,IVF,IVS+1,24,'F','period end',IER)
+      CALL EGETWI(hold,K,IIVS,0,24,'F','period start',IER)
+      CALL EGETWI(hold,K,IIVF,IIVS+1,24,'F','period end',IER)
       if (IER.ne.0) goto 10
-      ICGSX=IVS
-      ICGFX=IVF
+      ICGSX=IIVS
+      ICGFX=IIVF
 
 C Warn user if the zone base area is still zero.
       call eclose(ZBASEA(ICOMP),0.0,0.01,close)
@@ -4700,6 +4651,7 @@ C  ICD - copy (=2) delete (=1) flag
       subroutine CDCASGN(ICOMP,ICD)
 #include "building.h"
 #include "schedule.h"
+#include "help.h"
 
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
       common/caleni/nbdaytype,nbcaldays(MDTY),icalender(365)
@@ -4718,13 +4670,8 @@ C Electrical data flag and elctrical data.
       character VERT(3*MC)*42
       dimension IVERT(MC),ITEMP(3*MC),kstr(MDTY)
       integer ilistlen
-      
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
 
-      helpinsub='CDCASGN'  ! set for subroutine
+      helpinsub='prjfmk'  ! set for subroutine
       helptopic='casual_copy_delete'
       call gethelptext(helpinsub,helptopic,nbhelp)
 
@@ -4858,6 +4805,7 @@ C << initial intent to guide later revisions?
 #include "model.h"
 #include "geometry.h"
 #include "schedule.h"
+#include "help.h"
       
       integer lnblnk  ! function definition
 
@@ -4922,13 +4870,8 @@ C Scratch version of P3N
       character actflatfile*1
       integer idty
       integer ISTRW
-      
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
 
-      helpinsub='IMPORTZCASG'  ! set for subroutine
+      helpinsub='prjfmk'  ! set for subroutine
 
 C Set folder separator (fs) to \ or / as required.
       call isunix(unixok)
@@ -6176,6 +6119,7 @@ C << ?? 4th slot >>
 
 #include "building.h"
 #include "schedule.h"
+#include "help.h"
       
       integer lnblnk  ! function definition
 
@@ -6186,13 +6130,8 @@ C << ?? 4th slot >>
       INTEGER ILN
       dimension iper(24),iperf(24)
       character hold*48,OUTS*12,LOUTS*24,VOUTS*50
-      
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
 
-      helpinsub='initcasday'  ! set for subroutine
+      helpinsub='prjfmk'  ! set for subroutine
       helptopic='operations_initial'
       call gethelptext(helpinsub,helptopic,nbhelp)
 
@@ -6274,6 +6213,7 @@ C adds a new casual gain and periods to an existing regime.
 
 #include "building.h"
 #include "schedule.h"
+#include "help.h"
       
       integer lnblnk  ! function definition
       integer icomp   ! which zone
@@ -6291,13 +6231,8 @@ C adds a new casual gain and periods to an existing regime.
       real rf,cf
       logical ok
       logical firsttime
-      
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
 
-      helpinsub='initcasday'  ! set for subroutine
+      helpinsub='prjfmk'  ! set for subroutine
       helptopic='operations_initial'
       call gethelptext(helpinsub,helptopic,nbhelp)
 
@@ -6501,6 +6436,7 @@ C with the start times of each period and iperf(24) with finish
 C times for each period.
 C << Note change to real when casual gains data structure improves >>
       subroutine initcasper(nper,iper,iperf,act,label)
+#include "help.h"
 
 C Passed parameters
       integer nper  ! user supplied number of periods
@@ -6511,13 +6447,8 @@ C Passed parameters
 
       character cstr*72,msg*72
       real incr
-      
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
 
-      helpinsub='initcasper'  ! set for subroutine
+      helpinsub='prjfmk'  ! set for subroutine
       helptopic='operations_allocate_per'
       call gethelptext(helpinsub,helptopic,nbhelp)
 
@@ -6575,17 +6506,13 @@ C day types and during days. Called from PRJFMK
 
 #include "building.h"
 #include "schedule.h"
+#include "help.h"
       common/caleni/nbdaytype,nbcaldays(MDTY),icalender(365)
       INTEGER NBDAYTYPE,NBCALDAYS,ICALENDER
-      
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found 
 
       integer loop
 
-      helpinsub='initcaspattern'  ! set for subroutine
+      helpinsub='prjfmk'  ! set for subroutine
 
 C For each of the current day tpes.
       DO 399 I=1,NBDAYTYPE

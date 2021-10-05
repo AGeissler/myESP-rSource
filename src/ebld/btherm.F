@@ -1,8 +1,8 @@
 C This file is part of the ESP-r system.
 C Copyright Energy Systems Research Unit, University of
-C Strathclyde, Glasgow Scotland, 2001.
+C Strathclyde, Glasgow Scotland, 2001-.
 
-C ESP-r is free software.  You can redistribute it and/or
+C ESP-r is free software. You can redistribute it and/or
 C modify it under the terms of the GNU General Public
 C License as published by the Free Software Foundation 
 C (version 2 orlater).
@@ -13,10 +13,6 @@ C warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
 C PURPOSE. See the GNU General Public License for more
 C details.
 
-C You should have received a copy of the GNU General Public
-C License along with ESP-r. If not, write to the Free
-C Software Foundation, Inc., 59 Temple Place, Suite 330,
-C Boston, MA 02111-1307 USA.
 
 C   This file contains the following variable thermophysical
 C   properties subroutines:
@@ -29,10 +25,10 @@ C        mzthrm
 C        mzlayr
 C        mzcoe4
 
-C *************************  MZVTHP  **************************
-C MZVTHP controls the variable thermophysical properties 
+C ********************  MZVTHP  ********************
+C Cntrols the variable thermophysical properties 
 C simulation.
-C *************************************************************
+
       SUBROUTINE MZVTHP(ICOMP)
 #include "building.h"
 
@@ -79,33 +75,35 @@ C properties.
       RETURN
       END
 
-C *************************  THZERO  **************************
-C THZERO initializes all variables associated with the nonlinear
+C ********************  THZERO  ********************
+C Initialises all variables associated with the nonlinear
 C thermal properties.
-C *************************************************************
+
       SUBROUTINE THZERO
 #include "building.h"
 
       COMMON/VTHP11/NTHF,IBTHAL(MTHF,3)
       COMMON/VTHP12/NTHEQ(MTHF),BTHDT(MTHF,MTHEQ,MDATA)
 
-C Initialize all variables of the nonlinear thermal properties 
+C Initialise all variables of the nonlinear thermal properties 
       NTHF=0
       DO 10 ITHF=1,MTHF
         NTHEQ(ITHF)=0
         IBTHAL(ITHF,1)=0
         IBTHAL(ITHF,2)=0
         IBTHAL(ITHF,3)=0
-      DO 10 IEQ=1,MTHEQ
-      DO 10 IDATA=1,MDATA
-        BTHDT(ITHF,IEQ,IDATA)=0.0
+        DO 11 IEQ=1,MTHEQ
+          DO 12 IDATA=1,MDATA
+            BTHDT(ITHF,IEQ,IDATA)=0.0
+   12     CONTINUE
+   11   CONTINUE
    10 CONTINUE
       RETURN
       END
 
-C *************************  MZITHP  **********************************
-C MZITHP initializes the variable thermophysical properties variables.
-C *********************************************************************
+C ********************  MZITHP  ********************
+C Initialises the variable thermophysical properties variables.
+
       SUBROUTINE MZITHP
 #include "building.h"
 
@@ -139,7 +137,7 @@ C Set the variable thermophysical properties flags.
           IVTHPZ(ICOMP)=.FALSE.
         ENDIF
         NC=NCONST(ICOMP)
-      DO 10 I=1,NC
+      DO 11 I=1,NC
 
 C Only if the condtruction is not lumped.
         IF(ILUMP(ICOMP,I).NE.1)THEN
@@ -148,11 +146,11 @@ C Only if the condtruction is not lumped.
           NE=NELTS(ICOMP,I)
           DO 20 IL=1,NE
 
-C Check if the current layer is an air gap for which fixed properties are
-C assigned.
+C Check if the current layer is an air gap for which fixed
+C properties area ssigned.
             CALL LYRTYP(ICOMP,I,IL,IAIR)
             NDL=NNDL(ICOMP,I,IL)
-          DO 20 IDL=1,NDL+1
+          DO 21 IDL=1,NDL+1
             IF(IDL.LE.NDL)THEN
               IDC=IDC+1
               IF(IAIR.GT.0)THEN
@@ -170,15 +168,17 @@ C assigned.
               THDNSs(ICOMP,I,IHCV)=THRMLI(ICOMP,I,IL,2)
               THCAPs(ICOMP,I,IHCV)=THRMLI(ICOMP,I,IL,3)
             ENDIF
+   21     CONTINUE
    20     CONTINUE
         ENDIF
+   11 CONTINUE
    10 CONTINUE
       RETURN
       END
 
-C *************************  MZITCF  **********************************
-C MZITCF sets the thermal coupling terms.
-C *********************************************************************
+C ******************** MZITCF ********************
+C Sets the thermal coupling terms.
+
       SUBROUTINE MZITCF(ICOMP)
 #include "building.h"
 
@@ -196,7 +196,7 @@ C *********************************************************************
       NC=NCONST(ICOMP)
       DO 10 I=1,NC
         NDC=NNDC(ICOMP,I)
-        DO 10 IDC=1,NDC
+        DO 11 IDC=1,NDC
 
 C Update present coefficients - using saved present values - and
 C future using standard values from mzcoe1 (or mzcoe2).
@@ -214,14 +214,15 @@ C Save future coefficient values (allowing for time step 4 control).
             CPs(ICOMP,I,IDC,2)=C(ICOMP,I,IDC,2)
             QCPs(ICOMP,I,IDC)=QC(ICOMP,I,IDC)
           endif
+   11   CONTINUE
    10 CONTINUE
       RETURN
       END
 
-C *****************************  MTHPES  ******************************
-C MTHPES sets the present values of thermal properties equal to the
+C ******************** MTHPES ********************
+C Sets the present values of thermal properties equal to the
 C saved values from the last time step.
-C *********************************************************************
+
       SUBROUTINE MTHPES(ICOMP)
 #include "building.h"
 
@@ -255,10 +256,10 @@ C Set the present variables.
       RETURN
       END
 
-C *****************************  MTHFEI  ******************************
-C MTHFEI sets the future thermophysical properties values equal to the 
+C ******************** MTHFEI ********************
+C Sets the future thermophysical properties values equal to the 
 C initial values.
-C *********************************************************************
+
       SUBROUTINE MTHFEI(ICOMP)
 #include "building.h"
 
@@ -280,37 +281,38 @@ C Only if the condtruction is not lumped.
           NE=NELTS(ICOMP,I)
           DO 20 IL=1,NE
 
-C Check if the current layer is an air gap for which fixed properties are
-C assigned.
+C Check if the current layer is an air gap for which fixed
+C properties are assigned.
             CALL LYRTYP(ICOMP,I,IL,IAIR)
             NDL=NNDL(ICOMP,I,IL)
-          DO 20 IDL=1,NDL+1
-            IF(IDL.LE.NDL)THEN
-              IDC=IDC+1
-              IF(IAIR.GT.0)THEN
-                THCONf(I,IDC)=THRMLI(ICOMP,I,IL,4)/RGAPS(ICOMP,I,IAIR)
-              ELSE
-                THCONf(I,IDC)=THRMLI(ICOMP,I,IL,1)
+            DO 30 IDL=1,NDL+1
+              IF(IDL.LE.NDL)THEN
+                IDC=IDC+1
+                IF(IAIR.GT.0)THEN
+                 THCONf(I,IDC)=THRMLI(ICOMP,I,IL,4)/RGAPS(ICOMP,I,IAIR)
+                ELSE
+                  THCONf(I,IDC)=THRMLI(ICOMP,I,IL,1)
+                ENDIF
               ENDIF
-            ENDIF
-            IHCV=IHCV+1
-            IF(IAIR.GT.0)THEN
-              THDNSf(I,IHCV)=1.3
-              THCAPf(I,IHCV)=1005.5
-            ELSE
-              THDNSf(I,IHCV)=THRMLI(ICOMP,I,IL,2)
-              THCAPf(I,IHCV)=THRMLI(ICOMP,I,IL,3)
-            ENDIF
+              IHCV=IHCV+1
+              IF(IAIR.GT.0)THEN
+                THDNSf(I,IHCV)=1.3
+                THCAPf(I,IHCV)=1005.5
+              ELSE
+                THDNSf(I,IHCV)=THRMLI(ICOMP,I,IL,2)
+                THCAPf(I,IHCV)=THRMLI(ICOMP,I,IL,3)
+              ENDIF
+   30       CONTINUE
    20     CONTINUE
         ENDIF
    10 CONTINUE
       RETURN
       END
 
-C ***********************  MZKOND (ICOMP) *********************
-C MZKOND estimates the actual value of the thermal conductivity
+C ********************  MZKOND ********************
+C Estimates the actual value of the thermal conductivity
 C depending on the type of the layer. If the user defined the
-C thermal conductivity of the layer to be :
+C thermal conductivity of the layer to be:
 C       1- constant: then Ka  = Ks
 C       2- temperature dependent: then 
 C               Ka = Ks + A * [ Ta - Ts ] 
@@ -333,7 +335,7 @@ C          linear.
 C         -This subroutine can be easily improved to involve higher 
 C          orders of dependency, by including it in a bigger IF
 C          statements structure. 
-C *************************************************************
+
       SUBROUTINE MZKOND(ICOMP)
 #include "building.h"
 
@@ -373,13 +375,13 @@ C Define the layer type.
             ENDIF
             NHT=NNDL(ICOMP,I,J)
 
-C DELH: space step for heat nodes
+C DELH: space step for heat nodes.
             DELH=THRMLI(ICOMP,I,J,4)/FLOAT(NHT)
             INDS=INDE
             INDE=INDE+NHT
             INDX=IVKON(ICOMP,I,J)
 
-C If k_value of this layer is constant, check next layer.
+C Conductivity of this layer is constant, check next layer.
             IF(INDX.NE.0)THEN
               CNDCT1=0.0
               CNDCT2=0.0
@@ -388,8 +390,8 @@ C If k_value of this layer is constant, check next layer.
                 K1=INDL
                 K2=INDL+1
 
-C If k_value of this layer is temperature dependent, or temp. & moisture
-C dependent, then
+C Conductivity of this layer is temperature dependent, or temperature
+C and moisture dependent.
                 IF(INDX.EQ.1.OR.INDX.EQ.3)THEN 
                   TT1=TFC(ICOMP,I,K1)
                   IF(INDL.EQ.NDC-1)THEN
@@ -400,8 +402,8 @@ C dependent, then
                   TK=(TT1+TT2)/2.-THRMLI(ICOMP,I,J,5)
                   CNDCT1=THRMLI(ICOMP,I,J,6)*TK
 
-C If k_value of this layer is moisture dependent, or temp. & moisture
-C dependent, then 
+C Conductivity of this layer is moisture dependent, or temperature
+C and moisture dependent. 
                 ELSEIF(INDX.EQ.2.OR.INDX.EQ.3)THEN
                   IF(MSTROK.AND.MSTRZN(ICOMP))THEN
 
@@ -409,12 +411,12 @@ C Define heat node boundaries.
                     X1=X2
                     X2=X2+DELH
 
-C Calculate the total thermal resistance with accounting for moisture 
-C content dependnece.
+C Calculate the total thermal resistance while accounting for moisture 
+C content dependence.
                     CALL RESMST(ICOMP,I,J,X1,X2,TOTRES)
 
 C Estimate the change in thermal conductivity due to moisture content 
-C dependnece.
+C dependence.
                     CNDCT2=DELH/TOTRES-THRMLI(ICOMP,I,J,1)
                   ENDIF
                 ELSE
@@ -429,10 +431,10 @@ C dependnece.
       RETURN
       END
 
-C *********************************************************************
-C RESMST estimates the thermal resistance for a sigment of a layer 
+C ******************** RESMST ********************
+C Estimates the thermal resistance for a sigment of a layer 
 C including the effect of moisture content.
-C *********************************************************************
+
       SUBROUTINE RESMST(ICOMP,I,IL,X1,X2,TOTRES)
 #include "building.h"
 
@@ -477,10 +479,10 @@ C Thermal resistance = delta x / thermal conductivity.
       RETURN
       END
 
-C **********************************************************************
-C CONMST calculates the inter-moisture nodal thermal conductivity as
+C ******************** CONMST ********************
+C Calculates the inter-moisture nodal thermal conductivity as
 C a function of moisture content.
-C **********************************************************************
+
       FUNCTION CONMST(ICOMP,I,INM,IL)
 #include "building.h"
 #include "moist.h"
@@ -499,17 +501,17 @@ C **********************************************************************
       U=U02(iMoistModel(ICOMP),RH,Uh,CFF,EXPT,DNSTY)
 
 C Thermal conductivity = 
-C       dry conductivity * moisture dependence factor * moisture content
+C      dry conductivity * moisture dependence factor * moisture content
       CONMST=THRMLI(ICOMP,I,IL,1)+THRMLI(ICOMP,I,IL,7)*U
       RETURN
       END
 
-C *****************************  MZNTHP  ******************************
+C ********************  MZNTHP ********************
 C For each function controlling the  thermal properties of the building
 C materials; and according to the actuator location; MZTHRM computes
 C the new values of the layers thermal  properties by using the 
 C equation defined by the user.
-C *********************************************************************
+
       SUBROUTINE MZNTHP(ICOMP)
 #include "building.h"
 
@@ -521,7 +523,7 @@ C *********************************************************************
 
       NC=NCONST(ICOMP)
 
-C for each thermal control function
+C For each thermal control function.
       DO 10 I=1,NTHF
        
 C First, define the location of the actuator;
@@ -538,7 +540,6 @@ C IBTHAL(I,1) = Z
 C    IBTHAL(I,2)=C  
 C       IBTHAL(I,3)=L : layer L of construction C in zone Z has
 C                       temperature dependent thermal properties.
-             
         IB1=IBTHAL(I,1)
         IB2=IBTHAL(I,2)
         IB3=IBTHAL(I,3)
@@ -586,10 +587,10 @@ C Single layer case.
       RETURN
       END
 
-C **************************    MZLAYR    *****************************
-C MZLAYR calculates thermal properties values for a layer based on the 
+C ******************** MZLAYR ********************
+C Calculates thermal properties values for a layer based on the 
 C activated thermal control function.
-C *********************************************************************
+
       SUBROUTINE MZLAYR(IEQ,ICOMP,IS,IL,INDS,INDE)
 #include "building.h"
 
@@ -649,11 +650,12 @@ C Density or heat capacity.
       RETURN
       END
 
-C ***************************** MZTHSFP ********************************
-C MZTHSFP saves the future thermal property values.
-C *********************************************************************
+C ******************** MZTHSFP ********************
+C Saves the future thermal property values.
+
       SUBROUTINE MZTHSFP(ICOMP)
 #include "building.h"
+
       COMMON/PREC9/NCONST(MCOM),NELTS(MCOM,MS),NGAPS(MCOM,MS),
      &NPGAP(MCOM,MS,MGP)
       COMMON/VTHP22/THCONf(MS,MN),THDNSf(MS,MHCV),THCAPf(MS,MHCV)
@@ -682,10 +684,10 @@ C Only if the condtruction is not lumped.
       RETURN
       END
 
-C ***************************** MZCOE4 ********************************
-C MZCOE4 modifies the coefficients computed by MZCOE1 (or MZCOE2 if the
+C ******************** MZCOE4 ********************
+C Modifies the coefficients computed by MZCOE1 (or MZCOE2 if the
 C time step was less than one hour)
-C *********************************************************************
+
       SUBROUTINE MZCOE4(ICOMP)
 #include "building.h"
 

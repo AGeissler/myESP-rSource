@@ -1,8 +1,8 @@
 C This file is part of the ESP-r system.
 C Copyright Energy Systems Research Unit, University of
-C Strathclyde, Glasgow Scotland, 2001.
+C Strathclyde, Glasgow, Scotland, 2001-.
 
-C ESP-r is free software.  You can redistribute it and/or
+C ESP-r is free software. You can redistribute it and/or
 C modify it under the terms of the GNU General Public
 C License as published by the Free Software Foundation
 C (version 2 or later).
@@ -13,15 +13,11 @@ C warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
 C PURPOSE. See the GNU General Public License for more
 C details.
 
-C You should have received a copy of the GNU General Public
-C License along with ESP-r. If not, write to the Free
-C Software Foundation, Inc., 59 Temple Place, Suite 330,
-C Boston, MA 02111-1307 USA.
 
-C This file defines ESP-r climate metrics. The idea is that each climate
+C This file defines ESP-r weather metrics. The idea is that each climate
 C metric has an integer index. Data structures of values, names, limits, 
-C etc. are all referenced with this integer. Adding a new climate metric
-C is then a simple procedure of defining it in this header, and adding 
+C etc. are all referenced with this integer. Adding a new metric
+C is then a simple procedure of defining it in this header and adding 
 C code into ESP-r that uses it.
 
 C Index | Metric
@@ -139,22 +135,20 @@ C CFMIN  - Minimum values (in climate file units)
 C Common block definitions.
 
 C CLMFIL
-C CFVER  - Climate file/database version
-C CFYEAR - Climate year
+C CFVER  - Weather file/database version
+C CFYEAR - Weather year
 C CFLOC  - Location
 C CFLAT  - Latitude
-C CFLONG - Longitude
-C CFMCM  - Maximum number of metrics in this climate file (*24 = record width)
-
+C CFLONG - Longitude difference
+C CFMCM  - Maximum number of metrics in this weather file (*24 = record width)
 C CLMMET
-C NCM    - Number of climate metrics
-C CMCOL  - Columns in the climate file of each metric (not present if 0)
+C NCM    - Number of weather metrics
+C CMCOL  - Columns in the weather file of each metric (not present if 0)
 C CMXST  - Flags indicating which metrics are present
-
 C CLMVAL
-C CMIVAL - One day of integer values from climate file, plus an extra
-C time step for future values of the last hour
-C CMRVAL - One day of real climate values
+C CMIVAL - One day of integer values from weather file, plus an extra
+C          time step for future values of the last hour
+C CMRVAL - One day of real weather values
 C CMDAYR - The day of data currently in CMRVAL, to prevent reading the same data again
 
       COMMON/CLMFIL/CFVER,CFYEAR,CFLAT,CFLONG,CFMCM,CFLOC
@@ -170,16 +164,10 @@ C CMDAYR - The day of data currently in CMRVAL, to prevent reading the same data
       integer CMDAYR,CMIVAL
       real CMRVAL
 
-
 C Note - subroutines are defined in commonclm.F, marked with tag <CLMNEW2OLD>,
 C to map these commons to existing old data structures. 
 C The old data structures should be depreciated in favour of this header.
 C This is a work in progress.
-
-
-
-
-
 
 
 

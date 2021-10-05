@@ -41,6 +41,7 @@ C via clicking on a bitmap.
 #include "geometry.h"
 #include "esprdbfile.h"
 #include "material.h"
+#include "help.h"
       
       integer lnblnk  ! function definition
 
@@ -176,11 +177,6 @@ C an object has been saved the set justentered to false.
       integer*8 iixoffset,iiyoffset,iiwidth,iihight
       integer*8 iixbul,iiybul,iixblr,iiyblr,iilix,iiliy
 #endif
-
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
 
       helpinsub='clickonbitmap'  ! set for subroutine
 
@@ -649,8 +645,8 @@ C << Unix vs NT needs to be updated >>
           endif
 
           write(zd,'(2a)') zn(1:lnblnk(zn)),' describes a...'
- 43       CALL EASKS(zd,' What does it represent ',
-     &      ' ( <64 char) ?',64,'no description entered','zone descr',
+ 43       CALL EASKS(zd,' ','What does it represent?',
+     &         64,'no description entered','zone descr',
      &      IER,nbhelp)
           IF(zd.eq.' '.or.ier.ne.0)goto 43
         endif
@@ -2433,16 +2429,14 @@ C instantiate the common blocks.
             endif
 
 C Convert corners into a gen body and update nzsur and nztv
-C << could we use pxbase pybase instead of xx yy? >>
-C            CALL EREGC(lastwalllist,Z1,Z2,XX,YY)
             CALL EREGC(lastwalllist,Z1,Z2,pxbase,pybase)
             NSUR=lastwalllist+2
 
 C Debug.
-            write(6,'(a,6i4)') 'i nw is ',NW,lastwalllist,NSUR,NTV,
-     &        nbofdoorpts,nbofwindowpts
-            write(6,'(a,42F7.3)') 'xx is ',(pxbase(j),J=1,lastwalllist)
-            write(6,'(a,42F7.3)') 'yy is ',(pybase(j),J=1,lastwalllist)
+C            write(6,'(a,6i4)') 'i nw is ',NW,lastwalllist,NSUR,NTV,
+C     &        nbofdoorpts,nbofwindowpts
+C            write(6,'(a,42F7.3)') 'xx is ',(pxbase(j),J=1,lastwalllist)
+C            write(6,'(a,42F7.3)') 'yy is ',(pybase(j),J=1,lastwalllist)
 
 C Set door idjvn logic as a while loop for up to 20 doors.
             if(nbofdoorpts.gt.0)then
@@ -3971,6 +3965,7 @@ C ITRU = unit number for user output, IER=0 OK, IER=1 problem.
 #include "model.h"
 #include "geometry.h"
 #include "prj3dv.h"
+#include "help.h"
       COMMON/FILEP/IFIL
       LOGICAL ok,matchver
       character act*1
@@ -3988,12 +3983,7 @@ C Tollerance for surface matching.
       integer iwhich1,iwhich2,iwhich3  ! for user selections
       logical found,closex,closey,closez
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='CKADDVERTINSURF'  ! set for subroutine
+      helpinsub='clickonbitmap'  ! set for subroutine
 
       iwhich3=0; iwhich1=0; iwhich2=0
 
@@ -4021,6 +4011,8 @@ C Similar logic to ADDVERT. Consider found if within CACC.
      &        dist,') to existing vertex',ixx,' @',
      &        X(ixx),Y(ixx),Z(ixx)
             call edisp(itru,outs)
+            helptopic='clickon_copy_close'
+            call gethelptext(helpinsub,helptopic,nbhelp)
             call easkok('Copied point close to existing vertex.',
      &        'Skip?',found,nbhelp)
             goto 145
@@ -4131,6 +4123,7 @@ C IER=0 OK, IER=1 problem.
 #include "model.h"
 #include "geometry.h"
 #include "prj3dv.h"
+#include "help.h"
 
       integer icomp
       real QX,QY,QZ
@@ -4153,12 +4146,7 @@ C Tollerance for surface matching.
       integer iwhich1,iwhich2,iwhich3  ! for user selections
       logical found
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='MERGEVERTINSURF'  ! set for subroutine
+      helpinsub='clickonbitmap'  ! set for subroutine
 
       iwhich3=0; iwhich1=0; iwhich2=0
 
@@ -4218,7 +4206,7 @@ C inserting the new vertex index.
               if(offset.le.CACC)then
                 ok=.true.
               else
-                helptopic='vertex_close_edge'
+                helptopic='vertex_near_edge'
                 call gethelptext(helpinsub,helptopic,nbhelp)
                 call easkok(' ',
      &            'Insert vertex into adjacent surface?',ok,nbhelp)
@@ -4327,6 +4315,7 @@ C clickobstructions *******************
 #include "geometry.h"
 #include "esprdbfile.h"
 #include "material.h"
+#include "help.h"
       integer lnblnk  ! function definition
 
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
@@ -4367,11 +4356,6 @@ C Pixel (upper left and lower right corners) of where the bitmap is draw.
       integer*8 iik
       integer*8 iicol
 #endif
-
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
 
       helpinsub='clickonbitmap'  ! set for subroutine
 
@@ -4747,6 +4731,7 @@ C clickfurn *******************
 #include "building.h"
 #include "model.h"
 #include "geometry.h"
+#include "help.h"
 
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
 
@@ -4789,11 +4774,6 @@ C Pixel (upper left and lower right corners) of where the bitmap is draw.
       integer*8 iik
       integer*8 iicol
 #endif
-
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
 
       helpinsub='clickonbitmap'  ! set for subroutine
 

@@ -13,11 +13,6 @@ C warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
 C PURPOSE. See the GNU General Public License for more
 C details.
 
-C You should have received a copy of the GNU General Public
-C License along with ESP-r. If not, write to the Free
-C Software Foundation, Inc., 59 Temple Place, Suite 330,
-C Boston, MA 02111-1307 USA.
-
 C Contents:
 C   ASKRNOD:  Presents a selection list of mass flow nodes with no calls
 C             to editing routines. 
@@ -33,6 +28,7 @@ C ASKRNOD presents a list of mass flow nodes returning the index IS.
 #include "net_flow.h"
 #include "net_flow_data.h"
 #include "epara.h"
+#include "help.h"
     
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
       DIMENSION VERT(35),FTYPN(10)
@@ -43,12 +39,7 @@ C ASKRNOD presents a list of mass flow nodes returning the index IS.
       LOGICAL SELECT
       integer MVERT,IVERT  ! max items and current menu item
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found (will be non-zero
-                         ! because default message will be created
-      helpinsub='ASKRNOD' ! set for subroutine
+      helpinsub='mfrlst' ! set for subroutine
 
 C Initialise node menu variables based on window size. 
 C IVERT is the menu position, MVERT the current number 
@@ -183,6 +174,7 @@ C ASKRCMP presents a list of mass flow components returning the index IS.
 #include "net_flow.h"
 #include "net_flow_data.h"
 #include "epara.h"
+#include "help.h"
     
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
 
@@ -192,12 +184,7 @@ C ASKRCMP presents a list of mass flow components returning the index IS.
       LOGICAL SELECT
       integer MVERT,IVERT ! max items and current menu item
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found (will be non-zero
-                         ! because default message will be created
-      helpinsub='ASKRCMP' ! set for subroutine
+      helpinsub='mfrlst' ! set for subroutine
 
 C Initialise node menu variables based on window size. 
 C IVERT is the menu position, MVERT the current number 
@@ -313,6 +300,7 @@ C Starting and ending node numbers.
 #include "net_flow.h"
 #include "net_flow_data.h"
 #include "epara.h"
+#include "help.h"
       DIMENSION VERT(35)
 
       character*(*) head
@@ -320,12 +308,7 @@ C Starting and ending node numbers.
       LOGICAL SELECT
       integer MVERT,IVERT ! max items and current menu item
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found (will be non-zero
-                         ! because default message will be created
-      helpinsub='ASKRCON'  ! set for subroutine
+      helpinsub='mfrlst'  ! set for subroutine
 
 C Initialise node menu variables based on window size. 
 C IVERT is the menu position, MVERT the current number 

@@ -172,8 +172,10 @@ C.....Surface orientation flags
      &     Cas_Lat_dat(MCOM)    !  - Latent (W)
       real Cas_Rad_dat, Cas_Con_dat, Cas_Lat_dat
 
-      COMMON/CasPowerDat/Cas_Lights(MCOM),Cas_Equip(MCOM)
+      COMMON/CasPowerDat/Cas_Lights(MCOM),Cas_Equip(MCOM),
+     &     Cas_Lights2(MCOM),Cas_Equip2(MCOM)
       real Cas_Lights, Cas_Equip     ! Electrical power of lights and equipment (casual gain data), W
+      real Cas_Lights2, Cas_Equip2   ! dito. for use w/o electrical net, W
 
 
 C.....Window properties
@@ -1901,7 +1903,6 @@ C.....Adverse internal gains
      &         cZone_Chars)
 
       if(bH3KExtentionsActive() .and. iQuick_run == 1)then
-C.......Lighting power (from casual gains)
 C       Set flag allowing h3kreports to scale this data fro seasonal
 C       reporting purposes. 3 = scale_gen
         if ( bFirst_call_bld  )
@@ -1910,12 +1911,6 @@ C       reporting purposes. 3 = scale_gen
      &      3,
      &      .true.)
 
-        call AddToReport(
-     &     rvBldZnLightPow%Identifier,
-     &     Cas_Lights(iZone),
-     &     cZone_Chars)
-
-C.......Equipment power (from casual gains)
 C.......Set for Quickrun 3 = scale_gen
         if ( bFirst_call_bld  )
      &     call SetAdditionalValues(
@@ -1923,12 +1918,19 @@ C.......Set for Quickrun 3 = scale_gen
      &      3,
      &      .true.)
 
-        call AddToReport(
-     &         rvBldZnEquipPow%Identifier,
-     &         Cas_Equip(iZone),
-     &         cZone_Chars)
-     
       end if
+
+C.....Lighting power (from casual gains)
+      call AddToReport(
+     &     rvBldZnLightPow%Identifier,
+     &     Cas_Lights2(iZone),
+     &     cZone_Chars)
+
+C.....Equipment power (from casual gains)
+      call AddToReport(
+     &         rvBldZnEquipPow%Identifier,
+     &         Cas_Equip2(iZone),
+     &         cZone_Chars)
 
 
 C-----------------------------------------------------------------------
@@ -2518,6 +2520,9 @@ C*******************************************************************************
       use h3kmodule
       IMPLICIT NONE
 
+      include "building.h"
+      include "site.h"
+
 C.....Climate data (present time row)
       COMMON/CLIMI/QFP,QFF,TP,TF,QDP,QDF,VP,VF,DP,DF,HP,HF
 C QFP Diffuse horizontal radiation - present time row
@@ -2614,8 +2619,17 @@ C.....Sky temperature depression
 C.....Ambient air saturation temperature
       call AddToReport(
      &    rvClimateAmbientAirTsat%Identifier,
-     &    DEWPT(HUMR(TF,HF,1013.),1013.))
+     &    DEWPT(HUMR(TF,HF,1013.),atmpres/100.))
 
+C.....Atmospheric pressure
+      call AddToReport(
+     &    rvClimateAmbientAirPress%Identifier,
+     &    atmpres)
+
+C.....Ambient air density
+      call AddToReport(
+     &    rvClimateAmbientAirDens%Identifier,
+     &    extairden)
 
       RETURN
       END
@@ -4019,7 +4033,7 @@ C      CHARACTER LAPROB*72
 
 C      COMMON/MFLOW1/NNOD,NCMP,NCNN
 C Network size
-C      integer     NNOD  !  - number of nodes (building zones and/or plant components)
+C      integer     NNOD  ! - number of nodes (building zones and/or plant components)
 C      Integer     NCMP  ! - number of fluid flow components (flow restrictions)
 C      integer     NCNN  ! - number of interconnections (branches)
 C
@@ -4043,30 +4057,32 @@ C                         0: TNOD is constant
 C                         1: TNOD equals DRYB
 C                 NDTYP=3 wind pressure coefficients index
 C                         surface azimuth (degrees clockwise from north)
-C
 C      COMMON/MFLOW4/ITND(MNOD),TNOD(MNOD)
-C      integer     ITND !  - node temperature index; if ITND(I)=N then TNOD(I)=TNOD(N)
+C      integer   ITND  ! - node temperature index; if ITND(I)=N then TNOD(I)=TNOD(N)
 C      real      TNOD  ! - node fluid temperature (C)
+C
+C      COMMON/MFLOW5/RHON(MNOD)
+C      real RHON       !  node fluid density (kg/m^3)
 
 C Components: fixed input data
 C      COMMON/MFLOW8/CMNAM(MCMP),LTPCMP(MCMP)
-C      character*12     CMNAM ! - identifier/name
+C      character*12     CMNAM  ! - identifier/name
 C      Character*60     LTPCMP ! - short description of that type
 
 C      COMMON/MFLOW9/ITPCMP(MCMP),ISDCMP(MCMP),ISDCNN(MCMP),
 C     &              SUPCMP(MCMP,MCMS)
 C      integer     ITPCMP ! - type number
-C      integer     ISDCMP  ! - number of supplementary data items (max. MCMS)
-C      integer     ISDCNN  ! - number of connection level supplementary items (max. MCNS)
-C      real         SUPCMP ! - component supplementary data items (1st item = fluid type)
+C      integer     ISDCMP ! - number of supplementary data items (max. MCMS)
+C      integer     ISDCNN ! - number of connection level supplementary items (max. MCNS)
+C      real        SUPCMP ! - component supplementary data items (1st item = fluid type)
 
 C Connections: fixed input data
 C      COMMON/MFLW10/NODPS(MCNN),HGTPS(MCNN),NODNE(MCNN),HGTNE(MCNN),
 C     &              ITPCON(MCNN),NDSCNN(MCNN,MCNS)
-C      integer     NODPS ! - node number on positive side of connection
-C      real          HGTPS ! - height of +ve linkage point relative to NODPS (m)
-C      integer     NODNE ! - node number on negative side of connection
-C      Real          HGTNE ! - height of -ve linkage point relative to NODNE (m)
+C      integer     NODPS  ! - node number on positive side of connection
+C      real        HGTPS  ! - height of +ve linkage point relative to NODPS (m)
+C      integer     NODNE  ! - node number on negative side of connection
+C      Real        HGTNE  ! - height of -ve linkage point relative to NODNE (m)
 C      integer     ITPCON ! - number of linking fluid flow component
 C      integer     NDSCNN ! - connection level component supplementary node numbers
 
@@ -4156,24 +4172,39 @@ C...........Set string name to water/air/unknown (the latter shouldn't really ha
 
          NDNAM_len = LNBLNK(NDNAM(ii))
 C.........output node data
-      ! total mass flow entering a node *******************************
+      ! total mass flow entering a node ********************************
          call AddToReport(
      &      rvMfnTotalNodeFlowRate%Identifier,
      &      real(FLWIN(ii)),
      &      fluid(1:fluid_len),
      &      NDNAM(ii)(1:NDNAM_len))
 
-       ! total volume flow entering a node *******************************
+       ! total volume flow entering a node *****************************
          call AddToReport(
      &      rvMfnTotalNodeVolFlowRate%Identifier,
      &      real(FLWINV(ii)),
      &      fluid(1:fluid_len),
      &      NDNAM(ii)(1:NDNAM_len))
 
-       ! node temperature from flow network *******************************
+       ! node temperature from flow network ****************************
          call AddToReport(
      &      rvMfnTotalNodeTemp%Identifier,
      &      TNOD(ii),
+     &      fluid(1:fluid_len),
+     &      NDNAM(ii)(1:NDNAM_len))
+
+       ! Total pressure at node ****************************************
+         call AddToReport(
+     &      rvMfnNodeTotPressure%Identifier,
+     &      real(PRES(ii)),
+     &      fluid(1:fluid_len),
+     &      NDNAM(ii)(1:NDNAM_len))
+
+       ! Density at node, based on atmospheric pressure ****************
+         call AddToReport(
+     &      rvMfnNodeAirDensity%Identifier,
+C     &      real(DENSIT(NDFLD(ii),TNOD(ii))),
+     &      RHON(ii),
      &      fluid(1:fluid_len),
      &      NDNAM(ii)(1:NDNAM_len))
 

@@ -612,8 +612,10 @@ C Note: llpos, lrpos etc are the position in the iszjvn list at each
 C of the corners of the surface.
       CALL ZSURLEHI(IZ,IS,XYMAX,ZMAX,llpos,lrpos,ulpos,urpos)
       if(llpos.gt.0.and.ulpos.gt.0)then
-        edgelower=szcoords(iz,iszjvn(iz,is,llpos),3)
-        edgeupper=szcoords(iz,iszjvn(iz,is,ulpos),3)
+        if(iszjvn(iz,is,llpos).ne.0.and.iszjvn(iz,is,ulpos).ne.0)then
+          edgelower=szcoords(iz,iszjvn(iz,is,llpos),3)
+          edgeupper=szcoords(iz,iszjvn(iz,is,ulpos),3)
+        endif
       endif
 
 C For DOOR variants.
@@ -1142,7 +1144,7 @@ C If associated with a specific zone also read and draw it.
         DO loop=1,NCOMP
           if(ICAAS(loop).gt.0)then
             i=ICAAS(loop)
-            if(NDNAM(i).eq.NDNAM(IFNOD))then
+            if(NDNAM(i)(1:12).eq.NDNAM(IFNOD)(1:12))then
               write(outs,'(3A)')zname(loop)(1:lnzname(loop)),
      &          ' is currently linked to: ',NDNAM(I)
               call edisp(iuout,' ')
@@ -1307,7 +1309,7 @@ c adjacent connections (in grey) and highlight the current connection.
         do loop=1,NCOMP
           if(ICAAS(loop).gt.0)then
             i=ICAAS(loop)
-            if(NDNAM(i).eq.NDNAM(NODPS(IFCN)))then
+            if(NDNAM(i)(1:12).eq.NDNAM(NODPS(IFCN))(1:12))then
               write(outs,'(3A)')zname(loop)(1:lnzname(loop)),
      &          ' is currently linked to +node: ',NDNAM(I)
               call edisp(iuout,' ')
@@ -1328,7 +1330,7 @@ c adjacent connections (in grey) and highlight the current connection.
         do loop=1,NCOMP
           if(ICAAS(loop).gt.0)then
             i=ICAAS(loop)
-            if(NDNAM(i).eq.NDNAM(NODNE(IFCN)))then
+            if(NDNAM(i)(1:12).eq.NDNAM(NODNE(IFCN))(1:12))then
               write(outs,'(3A)')zname(loop)(1:lnzname(loop)),
      &          ' is currently linked to -node: ',NDNAM(I)
               call edisp(iuout,' ')
@@ -1361,9 +1363,12 @@ c adjacent connections (in grey) and highlight the current connection.
         MODIFYVIEW=.TRUE.; MODBND=.TRUE.
         ITORG=1; ITGRD=1; ITBND=1  ! do not show origin or grid
         CALL redraw(IER)
+      elseif(nbzones.eq.0)then
+        continue
       endif
 
 C Draw the positive node.
+      if(iposn.eq.0) return
       col='r'     ! red for current node.
       altcol='b'  ! blue alternative colour
       name=NDNAM(iposn)
@@ -1433,6 +1438,7 @@ C Draw the connection betwen node and component (but not to the other node).
       endif
 
 C Draw negative node.
+      if(inegn.eq.0) return
       col='r'     ! red for current node.
       altcol='b'  ! blue alternative colour
       name=NDNAM(inegn)
@@ -1594,6 +1600,7 @@ C would save lots of duplication of effort.
 #include "net_flow.h"
 #include "net_flow_data.h"
 #include "prj3dv.h"
+#include "help.h"
 
 C Parameters passed
       integer ICMP        ! index of component
@@ -1616,12 +1623,7 @@ C Parameters passed
       integer llpos,lrpos,ulpos,urpos     ! closest to BB corners for parent
       logical dupedges
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='mfcompposition'  ! set for subroutine
+      helpinsub='mfprb3'  ! set for subroutine
 
       IER=0
 
@@ -1671,9 +1673,7 @@ C General image option flags. Rescan the zone geometry file.
 C Reset all surface lines to standard width and display the zone.
           MODIFYVIEW=.TRUE.; MODBND=.TRUE.
           CALL INLNST(1)
-          nzg=1
-          nznog(1)=IZ
-          izgfoc=IZ
+          nzg=1; nznog(1)=IZ; izgfoc=IZ
           CALL redraw(IER)
 
           ISO=1
@@ -1687,8 +1687,11 @@ C of the corners of the surface.
           call zsurfprm(iz,iso,dupedges,perim)
           CALL ZSURLEHI(IZ,ISO,XYMAX,ZMAX,llpos,lrpos,ulpos,urpos)
           if(llpos.gt.0.and.ulpos.gt.0)then
-            edgelower=szcoords(iz,iszjvn(iz,iso,llpos),3)
-            edgeupper=szcoords(iz,iszjvn(iz,iso,ulpos),3)
+            if(iszjvn(iz,iso,llpos).ne.0.and.
+     &         iszjvn(iz,iso,ulpos).ne.0)then
+              edgelower=szcoords(iz,iszjvn(iz,iso,llpos),3)
+              edgeupper=szcoords(iz,iszjvn(iz,iso,ulpos),3)
+            endif
           endif
           write(outs,'(a,3f8.3)') 'Surface COG is:',
      &      SURCOG(iz,iso,1),SURCOG(iz,iso,2),SURCOG(iz,iso,3)
@@ -1740,9 +1743,14 @@ C In the future remember the COG/upper/lower/manual decision.
             CALL EASKS(HOLD,'Position in space?',
      &        ' ',36,' 1.0  0.0  0.0 ','position',IER,nbhelp)
           endif
-        else
+
+C Update CMPASSOC to reflect this surface choice and update network files.
+          CMPASSOC(ICMP,1)=ZNAME(iz)
+          CMPASSOC(ICMP,2)=SNAME(Iz,iso)
+          call updatebothflownetworks(ier)
 
 C No selection so just return current position.
+        else
           cx=HCMP(ICMP,1,1)
           cy=HCMP(ICMP,1,2)
           cz=HCMP(ICMP,1,3)
@@ -1789,6 +1797,7 @@ C If boundary wind or fixed pressure offset from the surface.
 #include "net_flow.h"
 #include "net_flow_data.h"
 #include "prj3dv.h"
+#include "help.h"
 
 C Parameters passed
       integer INOD        ! index of node
@@ -1811,12 +1820,7 @@ C Parameters passed
       integer llpos,lrpos,ulpos,urpos     ! closest to BB corners for parent
       logical dupedges
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='mfnodeposition'  ! set for subroutine
+      helpinsub='mfprb3'  ! set for subroutine
 
       IER=0
 
@@ -1923,8 +1927,11 @@ C of the corners of the surface.
           call zsurfprm(iz,iso,dupedges,perim)
           CALL ZSURLEHI(IZ,ISO,XYMAX,ZMAX,llpos,lrpos,ulpos,urpos)
           if(llpos.gt.0.and.ulpos.gt.0)then
-            edgelower=szcoords(iz,iszjvn(iz,iso,llpos),3)
-            edgeupper=szcoords(iz,iszjvn(iz,iso,ulpos),3)
+            if(iszjvn(iz,iso,llpos).ne.0.and.
+     &         iszjvn(iz,iso,ulpos).ne.0)then
+              edgelower=szcoords(iz,iszjvn(iz,iso,llpos),3)
+              edgeupper=szcoords(iz,iszjvn(iz,iso,ulpos),3)
+            endif
           endif
           write(outs,'(a,3f8.3)') 'Surface COG is:',
      &      SURCOG(iz,iso,1),SURCOG(iz,iso,2),SURCOG(iz,iso,3)
@@ -2024,9 +2031,9 @@ C both legacy and a 3D flow file while drawing over wireframe.
 #include "net_flow_data.h"
 #include "control.h"
 #include "esprdbfile.h"
-C esprdbfile.h supplies the following:
-C LPRFDB,IPRODB (for event profile database)
 #include "prj3dv.h"
+#include "help.h"
+
       INTEGER, PARAMETER :: MNWKTYP=6  ! from gnetwk.h
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/FILEP/IFIL
@@ -2059,19 +2066,14 @@ C Documentation shared with graphic flow network.
       REAL vergnf   ! 1.0 is 3D variant of ASCII network
 
       DIMENSION IVALS(MCOM)
-      CHARACTER outs*144
+      CHARACTER outs*144,name*12
       CHARACTER prompt*72,fs*1
       CHARACTER LTMP*72
       logical unixok
       integer loop
       integer ulpos,urpos     ! closest to BB corners for parent
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='scan_flow_use'  ! set for subroutine
+      helpinsub='mfprb3'  ! set for subroutine
 
 C Set folder separator (fs) to \ or / as required.
       call isunix(unixok)
@@ -2238,6 +2240,19 @@ C have instantiated ICAAS array.
         call create_zone_node(IZT)
         call pausems(500)
       ENDDO
+
+C Also create an `ambient` node available for linking to extracts.
+      NNOD=NNOD+1; NDTYP(NNOD)=3; NDFLD(NNOD)=1
+      NDNAM(NNOD)='ambient'; name=NDNAM(NNOD)
+      xw=-1.0; yw=-1.0; zw=1.0
+      HNOD(NNOD,1)=xw; HNOD(NNOD,2)=yw; HNOD(NNOD,3)=zw
+      SUPNOD(NNOD,2)=180.0
+      SUPNOD(NNOD,1)=1.0
+      TNOD(NNOD)=0.0
+      NODASSOC(NNOD,1)='-'; NODASSOC(NNOD,2)='-'
+      call symbol_flow_nd(name,'bw','r',xw,yw,zw)
+      call pausems(100)
+
       CALL USRMSG(
      &  'Generating flow nodes for selected zones ...done.',
      &  'Next components and connections will be generated.','-')
@@ -2440,6 +2455,8 @@ C controls have been defined attempt to create.
 #include "net_flow.h"
 #include "net_flow_data.h"
 #include "prj3dv.h"
+#include "help.h"
+
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/FILEP/IFIL
       integer ncomp,ncon
@@ -2519,12 +2536,7 @@ C Variables for passing to crackfromsurfatr.
       real crmm           ! crack width in mm
       character act*1     ! to support request for flow rates
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='create_s_node_cmp'  ! set for subroutine
+      helpinsub=' mfprb3'  ! set for subroutine
 
 C Set folder separator (fs) to \ or / as required.
       call isunix(unixok)
@@ -2568,8 +2580,11 @@ C Note: llpos, lrpos etc are the position in the iszjvn list at each
 C of the corners of the surface.
       CALL ZSURLEHI(IZ,IS,XYMAX,ZMAX,llpos,lrpos,ulpos,urpos)
       if(llpos.gt.0.and.ulpos.gt.0)then
-        edgelower=szcoords(iz,iszjvn(izone,isurf,llpos),3)
-        edgeupper=szcoords(iz,iszjvn(izone,isurf,ulpos),3)
+        if(iszjvn(izone,isurf,llpos).ne.0.and.
+     &     iszjvn(izone,isurf,ulpos).ne.0)then
+          edgelower=szcoords(iz,iszjvn(izone,isurf,llpos),3)
+          edgeupper=szcoords(iz,iszjvn(izone,isurf,ulpos),3)
+        endif
       endif
 
 C Figure out the delta for the boundary node would be if
@@ -2683,9 +2698,10 @@ C Open door - common orifice component, (type 40) IVALCM(10) MF040I
         elseif(SUSE(iz,is,2)(1:5).eq.'BIDIR'.or.
      &         SUSE(iz,is,2)(1:10).eq.'AJAR-BIDIR')then
 
-C Bidirectional door - door component,  IVALCM(14)=130 MF130I
-C assume width = door width, height = door height, discharge factor = 0.5.
+C Bidirectional flow - door component,  IVALCM(14)=130 MF130I
+C Assume: width = surface width except if it is wide adjust to limit excessive flows.
 C If AJAR-BIDIR limit width to 100mm.
+C height = door height, discharge factor = 0.5.
 C Need to draw component at surf COG but the real base is at bottom
 C edge.
           if(SUSE(iz,is,2)(1:5).eq.'BIDIR')then
@@ -3090,7 +3106,7 @@ C Reality checks here...
             do loop2=1,NCOMP      ! find matching zone index
               if(ICAAS(loop2).gt.0)then
                 i=ICAAS(loop2)
-                if(NDNAM(i).eq.NDNAM(IC))then
+                if(NDNAM(i)(1:12).eq.NDNAM(IC)(1:12))then
                   issoz=loop2; found=.true.
                 endif
               endif 
@@ -3250,7 +3266,7 @@ C Reality checks here...
               do loop2=1,NCOMP      ! find matching zone index
                 if(ICAAS(loop2).gt.0)then
                   i=ICAAS(loop2)
-                  if(NDNAM(i).eq.NDNAM(IC))then
+                  if(NDNAM(i)(1:12).eq.NDNAM(IC)(1:12))then
                     issoz=loop2; found=.true.
                   endif
                 endif 
@@ -3294,7 +3310,7 @@ C Reality checks here...
             do loop2=1,NCOMP      ! find matching zone index
               if(ICAAS(loop2).gt.0)then
                 i=ICAAS(loop2)
-                if(NDNAM(i).eq.NDNAM(IC))then
+                if(NDNAM(i)(1:12).eq.NDNAM(IC)(1:12))then
                   issoz=loop2; found=.true.
                 endif
               endif 
@@ -3473,7 +3489,7 @@ C Reality checks here...
               do loop2=1,NCOMP      ! find matching zone index
                 if(ICAAS(loop2).gt.0)then
                   i=ICAAS(loop2)
-                  if(NDNAM(i).eq.NDNAM(IC))then
+                  if(NDNAM(i)(1:12).eq.NDNAM(IC)(1:12))then
                     issoz=loop2; found=.true.
                   endif
                 endif 
@@ -3512,7 +3528,7 @@ C Reality checks here...
             do loop2=1,NCOMP      ! find matching zone index
               if(ICAAS(loop2).gt.0)then
                 i=ICAAS(loop2)
-                if(NDNAM(i).eq.NDNAM(IC))then
+                if(NDNAM(i)(1:12).eq.NDNAM(IC)(1:12))then
                   issoz=loop2; found=.true.
                 endif
               endif 
@@ -4009,8 +4025,10 @@ C Note: llpos, lrpos etc are the position in the iszjvn list at each
 C of the corners of the surface.
       CALL ZSURLEHI(IZ,IS,XYMAX,ZMAX,llpos,lrpos,ulpos,urpos)
       if(llpos.gt.0.and.ulpos.gt.0)then
-        edgelower=szcoords(iz,iszjvn(iz,is,llpos),3)
-        edgeupper=szcoords(iz,iszjvn(iz,is,ulpos),3)
+        if(iszjvn(iz,is,llpos).ne.0.and.iszjvn(iz,is,ulpos).ne.0)then
+          edgelower=szcoords(iz,iszjvn(iz,is,llpos),3)
+          edgeupper=szcoords(iz,iszjvn(iz,is,ulpos),3)
+        endif
       endif
 
 C Figure out the delta for the boundary node would be if
@@ -4172,6 +4190,8 @@ C Create a bidirectional component from surface attributes via passed parameters
 #include "net_flow.h"
 #include "net_flow_data.h"
 #include "prj3dv.h"
+#include "help.h"
+
       integer iz,is       ! current zone and surface
       character zpos*1    ! 'U' 'C' 'L' position indicator
       character ajar*1    ! 'A' is ajar 'B' is bidirectional
@@ -4227,12 +4247,7 @@ C Global flow component options.
       character ccol*1,zsn*28,prompt*72
       logical dupedges
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='bidirfromsurfatr'  ! set for subroutine
+      helpinsub='mfprb3'  ! set for subroutine
        
       loop=IZSTOCN(iz,is)              ! establish connection
 
@@ -4242,7 +4257,9 @@ C of the corners of the surface.
       call gethelptext(helpinsub,helptopic,nbhelp)
       CALL ZSURLEHI(IZ,IS,XYMAX,ZMAX,llpos,lrpos,ulpos,urpos)
       if(llpos.gt.0.and.ulpos.gt.0)then
-        edgelower=szcoords(iz,iszjvn(iz,is,llpos),3)
+        if(iszjvn(iz,is,llpos).ne.0)then
+          edgelower=szcoords(iz,iszjvn(iz,is,llpos),3)
+        endif
       endif
 
 C Figure out the delta for the boundary node would be if
@@ -4267,21 +4284,31 @@ C Make up names and strings.
       
       call zsurfprm(iz,is,dupedges,perim)
 
-C Need to draw component at surf COG but the real base is at bottom edge.
+C Draw component at surf COG but the real base is at bottom edge.
       xc=SURCOG(iz,is,1); yc=SURCOG(iz,is,2) ! remember
       zc=SURCOG(iz,is,3)
       if(ajar(1:1).eq.'B'.or.ajar(1:1).eq.'b')then
         write(name,'(a,i2.2,a,i3.3)') pname,iz,':',is
-        VAL1=XYMAX; VAL2=ZMAX
+
+C If XYMAX a nominal `door` dimension use it but if surface width greater than 2m
+C limit the width so as to dampen excess flows.
+        if(XYMAX.le.1.0)then
+          VAL1=XYMAX
+        elseif(XYMAX.gt.1.0.and.XYMAX.le.2.0)then
+          VAL1=1.0
+        else
+          VAL1=2.0
+        endif
+        VAL2=ZMAX
         VAL3=ABS(ZCOG(iz,3)-edgelower)  ! base to zone COG
         VAL4=SURCOG(iz,is,3)-ZCOG(IZ,3) ! surf COG to zone COG
         write(outs,'(6a,f6.1,a,f6.1,a,3f7.3,a,f6.3)') zsn(1:lnzsn),
-     &    '  ',name,' ',uname,' bidir w= ',XYMAX,
+     &    '  ',name,' ',uname,' bidir w= ',VAL1,
      &    ' h=',ZMAX,' coef 0.5 base @XYZ',xc,yc,zc,
      &    ' delta to zone COG',VAL3
       elseif(ajar(1:1).eq.'A'.or.ajar(1:1).eq.'a')then
 
-C Bidirectional door - door component,  IVALCM(14)=130 MF130I
+C Bidirectional flow - door component,  IVALCM(14)=130 MF130I
 C assume width = 100mm, height = door height, discharge factor = 0.5.
         write(name,'(a,i2.2,a,i3.3)') pname,iz,':',is
         VAL1=0.1
@@ -4474,6 +4501,8 @@ C Create a orifice component from surface attributes via passed parameters.
 #include "net_flow.h"
 #include "net_flow_data.h"
 #include "prj3dv.h"
+#include "help.h"
+
       integer iz,is       ! current zone and surface
       character zpos*1    ! 'U' 'C' 'L' position indicator
       character pname*5   ! prepend name i.e. DoOPz
@@ -4543,12 +4572,7 @@ C Global flow component options.
       character ccol*1,zsn*28,prompt*102
       logical dupedges,found
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='orificefromsurfatr'  ! set for subroutine
+      helpinsub='mfprb3'  ! set for subroutine
       
       loop=IZSTOCN(iz,is)              ! establish connection
 
@@ -4558,8 +4582,10 @@ C of the corners of the surface.
       call gethelptext(helpinsub,helptopic,nbhelp)
       CALL ZSURLEHI(IZ,IS,XYMAX,ZMAX,llpos,lrpos,ulpos,urpos)
       if(llpos.gt.0.and.ulpos.gt.0)then
-        edgelower=szcoords(iz,iszjvn(iz,is,llpos),3)
-        edgeupper=szcoords(iz,iszjvn(iz,is,ulpos),3)
+        if(iszjvn(iz,is,llpos).ne.0.and.iszjvn(iz,is,ulpos).ne.0)then
+          edgelower=szcoords(iz,iszjvn(iz,is,llpos),3)
+          edgeupper=szcoords(iz,iszjvn(iz,is,ulpos),3)
+        endif
       endif
 
 C Figure out the delta for the boundary node would be if
@@ -4798,7 +4824,7 @@ C Reality checks here...
         do loop2=1,NCOMP      ! find matching zone index
           if(ICAAS(loop2).gt.0)then
             i=ICAAS(loop2)
-            if(NDNAM(i).eq.NDNAM(IC))then
+            if(NDNAM(i)(1:12).eq.NDNAM(IC)(1:12))then
               issoz=loop2; found=.true.
             endif
           endif 
@@ -4927,8 +4953,11 @@ C Note: llpos, lrpos etc are the position in the iszjvn list at each
 C of the corners of the surface.
       CALL ZSURLEHI(IZ,IS,XYMAX,ZMAX,llpos,lrpos,ulpos,urpos)
       if(llpos.gt.0.and.ulpos.gt.0)then
-        edgelower=szcoords(iz,iszjvn(izone,isurf,llpos),3)
-        edgeupper=szcoords(iz,iszjvn(izone,isurf,ulpos),3)
+        if(iszjvn(izone,isurf,llpos).ne.0.and.
+     &     iszjvn(izone,isurf,ulpos).ne.0)then
+          edgelower=szcoords(iz,iszjvn(izone,isurf,llpos),3)
+          edgeupper=szcoords(iz,iszjvn(izone,isurf,ulpos),3)
+        endif
       endif
 
 C Figure out the delta for the boundary node would be if
@@ -5607,6 +5636,8 @@ C attributes.
 #include "building.h"
 #include "net_flow.h"
 #include "FMI.h"
+#include "help.h"
+
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
       INTEGER :: iuout,iuin,ieout
 
@@ -5637,12 +5668,7 @@ C Global flow component options.
       logical proceed       ! true signals to proceed with network creation.
       character outs*124
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='globalflowprefs'  ! set for subroutine
+      helpinsub='mfprb3'  ! set for subroutine
       helptopic='menu_global_flowpref'
       call gethelptext(helpinsub,helptopic,nbhelp)
 

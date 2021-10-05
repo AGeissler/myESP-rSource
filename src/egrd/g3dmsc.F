@@ -13,11 +13,6 @@ C warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
 C PURPOSE. See the GNU General Public License for more
 C details.
 
-C You should have received a copy of the GNU General Public
-C License along with ESP-r. If not, write to the Free
-C Software Foundation, Inc., 59 Temple Place, Suite 330,
-C Boston, MA 02111-1307 USA.
-
 C *********************************************************************
 C This file contains the following subroutines and functions:
 
@@ -155,9 +150,10 @@ C *********************************************************************
 
 C *************************     SUPORT      ***************************
 C SUPORT displays the multi-D gridding support facilities menu.
-C *********************************************************************
+
       SUBROUTINE SUPORT(IZ)
 #include "building.h"
+#include "help.h"
       
       integer lnblnk  ! function definition
 
@@ -174,12 +170,7 @@ C *********************************************************************
       integer ier
       integer MITEM,INO ! max items and current menu item
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='SUPORT'  ! set for subroutine
+      helpinsub='g3dmsc'  ! set for subroutine
 
       IF(IZ.EQ.-1)THEN
         BFLCVS=LGDCVS

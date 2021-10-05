@@ -36,6 +36,7 @@ C an extrusion.
 #include "geometry.h"
 #include "esprdbfile.h"
 #include "prj3dv.h"
+#include "help.h"
       
       integer lnblnk  ! function definition
 
@@ -67,12 +68,7 @@ C an extrusion.
 
       integer iglib   ! if 1 then X11, if 2 then GTK, if 3 then text only.
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='SCRZONE'  ! set for subroutine
+      helpinsub='edzone'  ! set for subroutine
 
 C << Consider how a more robust cancel facility can
 C << be established. Possibly one that deletes the new zone
@@ -138,8 +134,8 @@ C << Unix vs NT needs to be updated >>
       LPROJ(ICOMP)=OFILE
 
       write(zd,'(2a)') zname(ICOMP)(1:lnzname(ICOMP)),' describes a'
- 43   CALL EASKS(zd,'What does it represent?','(<64 characters)',
-     &  64,'no description entered','zone descr',IER,nbhelp)
+ 43   CALL EASKS(zd,' ','What does it represent?',
+     &     64,'no description entered','zone descr',IER,nbhelp)
       IF(zd.eq.' '.or.ier.ne.0)goto 43
       zdesc(ICOMP)=zd
       lnzdesc(ICOMP)=lnblnk(zd)  ! update the length of this string.
@@ -439,6 +435,7 @@ C Controls the creation of a new zone.
 #include "prj3dv.h"
 #include "esprdbfile.h"
 #include "material.h"
+#include "help.h"
       
       integer lnblnk  ! function definition
       integer itrc    ! trace level
@@ -479,14 +476,9 @@ C Predefined entity variables.
       character ZN*12,zd*64,msg*72
       real objbb(3)
       character predef*144,temp*12
-
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
       integer ianother   ! flag for jumping to a different zone
 
-      helpinsub='NEWZONE'  ! set for subroutine
+      helpinsub='edzone'  ! set for subroutine
 
 C Set folder separator (fs) to \ or / as required.
       newgeo=.false.  ! assume older format geometry.
@@ -934,7 +926,7 @@ C Establish name of the zone. Base this on the predefined entity.
 
         write(zd,'(3a)') zname(IC)(1:lnzname(IC)),' ',objmenu
  43     CALL EASKS(zd,' ','What does it represent?',
-     &    64,'no description entered','zone descr',IER,nbhelp)
+     &       64,'no description entered','zone descr',IER,nbhelp)
         IF(zd.eq.' '.or.ier.ne.0)goto 43
         zdesc(IC)=zd
         lnzdesc(IC)=lnblnk(zd)  ! update the length of this string.
@@ -1078,6 +1070,7 @@ C DELZONE systematicly removes a thermal zone.
 #include "control.h"
 #include "schedule.h"
 #include "prj3dv.h"
+#include "help.h"
       
       integer lnblnk  ! function definition
 
@@ -1110,12 +1103,7 @@ C DELZONE systematicly removes a thermal zone.
       character ltmp*72
       character OUTSTR*124
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='DELZONE'  ! set for subroutine
+      helpinsub='edzone'  ! set for subroutine
 
       if(browse)then
         call usrmsg('Cannot remove a zone while in browse ',
@@ -1751,6 +1739,7 @@ C COPYZONE systematicly replicates a list of thermal zones.
 #include "net_flow.h"
 #include "schedule.h"
 #include "prj3dv.h"
+#include "help.h"
       
       integer lnblnk  ! function definition
 
@@ -1832,12 +1821,7 @@ C Zone casual gain control data.
       character lctmp*72
       character sfile*72,snpfile*72
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='COPYZONE'  ! set for subroutine
+      helpinsub='edzone'  ! set for subroutine
 
       if(browse)then
         call usrmsg('Cannot copy zone(s) while in browse ',
@@ -1939,8 +1923,10 @@ C zone index so that the related commons are filled.
           return
         ENDIF
 
+        helpinsub='edcfg'   ! multiple dialogs use this
         helptopic='zone_name_description'
         call gethelptext(helpinsub,helptopic,nbhelp)
+        helpinsub='edzone'  ! reset for subroutine
         write(msg,'(2a)') 'The original zone name: ',zname(NCOMP)
         call edisp(iuout,' ')
         call edisp(iuout,msg)
@@ -1964,9 +1950,8 @@ C zone index so that the related commons are filled.
         call edisp(iuout,outs)
         write(zd,'(2a)') 
      &    zname(NCOMP)(1:lnzname(NCOMP)),' describes a '
-  40    CALL EASKS(zd,'What does it represent?',
-     &    ' (<64 char)',64,'no description entered','zone descr',
-     &    IER,nbhelp)
+  40    CALL EASKS(zd,' ','What does it represent?',
+     &       64,'no description entered','zone descr',IER,nbhelp)
         IF(zd.eq.' '.or.ier.ne.0)goto 40
         zdesc(NCOMP)=zd
         lnzdesc(NCOMP)=lnblnk(zd)  ! update the length of this string.
@@ -1976,8 +1961,10 @@ C Save zone geometry, read in obstructions, write out to another
 C file and then recover the zone commons.
         if(IOBS(ic).eq.1)then
           OKOB=.true.
+          helpinsub='edcfg'   ! multiple dialogs use this
           helptopic='options_for_copy_obs'
           call gethelptext(helpinsub,helptopic,nbhelp)
+          helpinsub='edzone'  ! reset for subroutine
           CALL EASKABC('The source zone had an obstructions file.',
      &      'Options:','copy obstructions file','use source file',
      &      'ignore it',IRT,nbhelp)
@@ -2054,7 +2041,7 @@ C If there are visual entities.
           okzr=.true.
           if(VAL.LT.-.01.OR.VAL.GT..01)then
 
-C Rotation choices. Clear pending rotateit, update prior rotateit.
+C Rotation choices.
             rotateit(ncomp,1)=VAL
             CALL EASKABCD(' ','Rotation choices:',
      &        'vertex 1 of zone','site origin',
@@ -2066,9 +2053,6 @@ C Rotation choices. Clear pending rotateit, update prior rotateit.
               rotateit(ncomp,2)=x1
               rotateit(ncomp,3)=y1
               CALL ESCROT(VAL,x1,y1)
-              rotateit(ncomp,4)=rotateit(ncomp,1)   ! shift the pending rotation
-              rotateit(ncomp,5)=rotateit(ncomp,2)   ! and the origin of the zone
-              rotateit(ncomp,6)=rotateit(ncomp,3)
               rotateit(ncomp,1)=0.0
               rotateit(ncomp,2)=0.0
               rotateit(ncomp,3)=0.0
@@ -2078,9 +2062,6 @@ C Rotation choices. Clear pending rotateit, update prior rotateit.
               rotateit(ncomp,2)=x1
               rotateit(ncomp,3)=y1
               CALL ESCROT(VAL,x1,y1)
-              rotateit(ncomp,4)=rotateit(ncomp,1)   ! shift the pending rotation
-              rotateit(ncomp,5)=rotateit(ncomp,2)   ! and the origin of the zone
-              rotateit(ncomp,6)=rotateit(ncomp,3)
               rotateit(ncomp,1)=0.0
               rotateit(ncomp,2)=0.0
               rotateit(ncomp,3)=0.0
@@ -2094,9 +2075,6 @@ C Rotation choices. Clear pending rotateit, update prior rotateit.
               rotateit(ncomp,2)=x1
               rotateit(ncomp,3)=y1
               CALL ESCROT(VAL,x1,y1)
-              rotateit(ncomp,4)=rotateit(ncomp,1)   ! shift the pending rotation
-              rotateit(ncomp,5)=rotateit(ncomp,2)   ! and the origin of the zone
-              rotateit(ncomp,6)=rotateit(ncomp,3)
               rotateit(ncomp,1)=0.0
               rotateit(ncomp,2)=0.0
               rotateit(ncomp,3)=0.0
@@ -2286,8 +2264,10 @@ C in the copied zone).
 
 C Ask if user wants to copy or point to other zone files.
 C Construction and zone TMC file.
+        helpinsub='edcfg'   ! multiple dialogs use this
         helptopic='copy_constr_options'
         call gethelptext(helpinsub,helptopic,nbhelp)
+        helpinsub='edzone'  ! reset for subroutine
         call FINDFIL(LTHRM(IC),XST)
         irop=1
         if(XST)then
@@ -2435,8 +2415,10 @@ C Find out if there are tmc files in the model ../zones folder.
 
 C Operations file. If source has a file, offer options to copy or
 C point to it, otherwise offer option to browse for an existing file.
+        helpinsub='edcfg'   ! multiple dialogs use this
         helptopic='copy_operation_options'
         call gethelptext(helpinsub,helptopic,nbhelp)
+        helpinsub='edzone'  ! reset for subroutine
         call FINDFIL(LPROJ(IC),XST)
         irop=1
         if(XST)then
@@ -2552,8 +2534,10 @@ C associated zone geometry file.
           write(outs,'(2a)')'Found: ',LVIEW(IC)(1:lnblnk(LVIEW(IC)))
           call edisp(iuout,' ')
           call edisp(iuout,outs)
+          helpinsub='edcfg'   ! multiple dialogs use this
           helptopic='copy_vwf_options'
           call gethelptext(helpinsub,helptopic,nbhelp)
+          helpinsub='edzone'  ! reset for subroutine
           irop=1
           CALL EASKATOG(
      &      'Source zone has a view factor file.',
@@ -2611,8 +2595,10 @@ C Find out if there are viewfactor files in the model ../zones folder.
 
 C See if the source zone has a casual gain control file.
         if(ICGC(ic).eq.1)then
+          helpinsub='edcfg'   ! multiple dialogs use this
           helptopic='copy_cgc_options'
           call gethelptext(helpinsub,helptopic,nbhelp)
+          helpinsub='edzone'  ! reset for subroutine
           irop=1
           write(outs,'(2a)')'Found: ',LCGCIN(IC)(1:lnblnk(LCGCIN(IC)))
           call edisp(iuout,' ')
@@ -2715,8 +2701,10 @@ C Find out if there are casual gain control files in the model ../zones folder.
 
 C See if the source zone has a convection regime file.
         if(IHC(ic).eq.1)then
+          helpinsub='edcfg'   ! multiple dialogs use this
           helptopic='copy_hc_options'
           call gethelptext(helpinsub,helptopic,nbhelp)
+          helpinsub='edzone'  ! reset for subroutine
           irop=1
           write(outs,'(2a)')'Found: ',LHCCO(IC)(1:lnblnk(LHCCO(IC)))
           call edisp(iuout,' ')
@@ -2933,6 +2921,7 @@ C contents of the model.
 #include "model.h"
 #include "geometry.h"
 #include "CFC_common.h"
+#include "help.h"
       
       integer lnblnk  ! function definition
 
@@ -2942,19 +2931,12 @@ C Passed parameters
       logical silent  ! if true then use silent recalc
 
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
-      character h*72
-      common/pophelp/h(60)
       common/pmchange/comold,tmcold,vwfold,ishold,cfcold
 
       logical comold,tmcold,vwfold,ishold,ok,QUIET
       logical unixok,cfcold
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='SUMRCHG'  ! set for subroutine
+      helpinsub='edzone'  ! set for subroutine
 
 C Check if Unix-based or DOS based.
       call isunix(unixok)

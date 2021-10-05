@@ -778,43 +778,12 @@ C Local variables for GetCommandLineArguments.
       end subroutine parclm
 
 
-C***********************************************************************************************************************
-C ********* parsish
-C parsish allows the module ish to be passed a terminal, size, config file,
-C zone focus and actions arguments from the invocation line.  
-C***********************************************************************************************************************
-      subroutine parsish(termtype,iappw,iappx,iappy,inf,zone,act,
-     &  ascif)
-      
-      IMPLICIT NONE
-C Declare  calling parameter types
-      integer, intent(inout)  ::  termtype,iappw,iappx,iappy
-      character(144), intent(inout)  :: inf
-      character(16), intent(inout) :: act, zone
-      character(96), intent(inout) :: ascif
 
-C Local variables for GetCommandLineArguments.
-      integer :: module, iverb
-      real ::  data1,data2,data3
-      character(144) :: inf2
-      character(96) :: actf
-      character(12) :: aim, aut
-      character(4) :: browse
-      character(30) :: sps
-
-      module = CONST_PARSISH
-      call GetCommandLineArguments(module,termtype,iappw,iappx,
-     &             iappy,inf,inf2,zone,act,actf,aut,ascif,aim,browse,
-     &             iverb,sps,data1,data2,data3)
-      
-      end subroutine parsish
-
-
-C***********************************************************************************************************************
+C*****************************************************************************
 C ********* parsprj 
 C parsprj allows terminal, size, config file, zone focus and actions arguments
 C (including 3 real data) to be passed to the prj from the invocation line.  
-C***********************************************************************************************************************
+C*****************************************************************************
       subroutine parsprj(termtype,iappw,iappx,iappy,inf,zone,act,
      &        data1,data2,data3,iverb)
 

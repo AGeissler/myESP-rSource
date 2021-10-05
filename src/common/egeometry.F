@@ -17,11 +17,11 @@ C egeometry.f provides the following facilities:
 C  EGOMIN:  Reads zone geometry data as ASCII strings, with or without
 C           range checking and printed summary.
 C  EMKGEO:  Write an annotated geometry file (GEN type) based
-C           on common blocks G0 G1 G2 G2OPT G3 G4 G6
+C           on common blocks G0 G1 G2 G2OPT G4 G6
 C  GEOREAD: Reads V1.1 zone geometry data as ASCII strings, with or without
 C           range checking and printed summary.
-C GEOWRITE: Write a geometry file (GEN V1.1 type) based on infor-
-C           mation currently held in common blocks G0 G1 G3 G4 G6.
+C GEOWRITE: Write a geometry file (GEN V1.1 type) based on
+C           information currently held in common blocks G0 G1 G4 G6.
 C  ERECC:   Converts REC (rectilinear) into a G1 description.
 C  ERECC3A: Converts REC (rectilinear with 2 rotations) into a G1 common block.
 C  CNVBLK:  Converts REC (rectilinear) into GB1 common block.
@@ -317,15 +317,11 @@ C If only 3 items on first line read another loutstr and try to continue.
         nbwalls(ICOMP)=4        ! there are 4 walls in box
 
 C Now convert to a gen description. Pass in critical dimensions
-C and expect the data back via common G1. After this move the
-C rotateit from pending to previous.
+C and expect the data back via common G1.
         CALL ERECC(XO1,YO1,ZO1,DX1,DY1,DZ1,AR1)
         NZSUR(ICOMP)=NSUR
         NZTV(ICOMP)=NTV
         CTYPE(icomp)='GEN '
-        rotateit(ICOMP,4)=rotateit(ICOMP,1)   ! shift the pending rotation
-        rotateit(ICOMP,5)=rotateit(ICOMP,2)   ! and the origin of the zone
-        rotateit(ICOMP,6)=rotateit(ICOMP,3)
         rotateit(ICOMP,1)=0.0; rotateit(ICOMP,2)=0.0
         rotateit(ICOMP,3)=0.0
 
@@ -356,15 +352,12 @@ C Read base vertex data.
         rotateit(ICOMP,2)=XX(1)   ! and the origin of the zone
         rotateit(ICOMP,3)=YY(1)
 
-C Now convert to GEN body type and place into in common block.
+C Now convert to GEN body type and place via common block G1.
         CALL EREGC(NW,Z1,Z2,XX,YY)
         IF(AR1.LT.-.01.OR.AR1.GT..01)then
           x1=X(1)
           y1=Y(1)
-          CALL ESCROT(AR1,x1,y1)
-          rotateit(ICOMP,4)=rotateit(ICOMP,1)   ! shift the pending rotation
-          rotateit(ICOMP,5)=rotateit(ICOMP,2)   ! and the origin of the zone
-          rotateit(ICOMP,6)=rotateit(ICOMP,3)
+          CALL ESCROT(AR1,x1,y1)  ! Apply rotation to G1 commons.
           rotateit(ICOMP,1)=0.0; rotateit(ICOMP,2)=0.0
           rotateit(ICOMP,3)=0.0
         endif
@@ -446,7 +439,6 @@ C list can be quite long so use stripc1k.
         DO 10 I=1,NZSUR(ICOMP)
 
           call stripc1k(IUNIT,lkoutstr,99,ND,1,'vertex list',IER)
-C          call lstripc(IUNIT,loutstr,99,ND,1,'vertex list',IER)
           IF(IER.NE.0)goto 1001
           IF(ND.GE.4)THEN
             K=0
@@ -460,7 +452,6 @@ C Now proceed to read vertices on one or more lines.
               IF(IERV.NE.0) THEN
                 call edisp(ITRU,' reading continuation line...')
                 call stripc1k(IUNIT,lkoutstr,0,ND,0,'vertex XYZ',IER)
-C                call lstripc(IUNIT,loutstr,0,ND,0,'vertex XYZ',IER)
                 IF(IER.NE.0)goto 1001
                 K=0
                 CALL EGETWI(lkoutstr,K,IVAL,0,MTV,'F','vertex',IERV)
@@ -471,14 +462,11 @@ C                call lstripc(IUNIT,loutstr,0,ND,0,'vertex XYZ',IER)
           ENDIF
    10   CONTINUE
 
-C Rotate if required. then shift pending to prior rotateit
+C Rotate if required.
         if(AR1.LT.-.01.OR.AR1.GT..01)then
           x1=X(1)
           y1=Y(1)
           CALL ESCROT(AR1,x1,y1)
-          rotateit(ICOMP,4)=rotateit(ICOMP,1)   ! remmeber the pending rotation
-          rotateit(ICOMP,5)=rotateit(ICOMP,2)   ! and the origin of the zone
-          rotateit(ICOMP,6)=rotateit(ICOMP,3)
           rotateit(ICOMP,1)=0.0
           rotateit(ICOMP,2)=0.0
           rotateit(ICOMP,3)=0.0
@@ -509,7 +497,6 @@ C non zero then it represents a depreciated default window.
       CALL EGETWIA(IUNIT,IVA,IRVA,0,MG,'F','def window list',IER)
 
 C Read the window dimension details and advise user (if IVA non-zero).
-
       DO 16 KS=1,NZSUR(ICOMP)
         IF( IVA(KS).GT.0 )THEN
           DO 18 KW=1,IVA(KS)
@@ -533,8 +520,8 @@ C Read the window dimension details and advise user (if IVA non-zero).
         ENDIF
    16 CONTINUE
 
-
-C Read surface indentations (one per surface).
+C Read surface indentations (one per surface) associated
+C with 3D conduction.
       IRVA=NZSUR(ICOMP)
       CALL EGETWRA(IUNIT,YY,IRVA,0.,1.,'W','surfaces recess',IER)
       DO 22 KS=1,NZSUR(ICOMP)
@@ -1044,13 +1031,11 @@ C Close geometry data file before exiting.
 
 
 C ************* EMKGEO
-C Generic routine to write a geometry file (GEN type) based on infor-
-C mation currently held in common blocks G0 G1 G3 G4 G6.  It is
-C assumed that this information has been checked.
+C Generic routine to write a geometry file (GEN type) based on
+C information currently held in common blocks G0 G1 G4 G6.  It
+C is assumed that this information has been checked.
 C GENFIL is the name of the file to be written to (any existing file
 C by this name is overwritten).
-
-C << consider how to move away from common G1 >>
 
       SUBROUTINE EMKGEO(IFILG,GENFIL,ICOMP,iwf,IER)
 #include "building.h"
@@ -1097,8 +1082,7 @@ C Clear dummy array.
       newgeo=.false.  ! assume older format geometry.
 
 C Since GEN coords are nominally in site coordinates there is no need
-C to have any rotation (only the newer version geometry file saves both
-C the rotation angle and the point of rotation.
+C to have any rotation.
       AR=rotateit(icomp,1)
 
 C Open any existing file by this name (ask user for confirmation to
@@ -1297,8 +1281,6 @@ C       +ve).
 
 C Return ier=3 if icomp is greater than MCOM.
 C Return ier=4 if number of surfaces is greater than MS.
-
-C Also now can include a token to remember users prior rotateit request.
 
       SUBROUTINE GEOREAD(IUNIT,LGEOMF,ICOMP,IR,ITRU,IER)
 #include "building.h"
@@ -1654,8 +1636,10 @@ C is short, but will be extended to 248 char.
 
 C Next look for *vertex lines, incrementing the value of NTV
 C as each of these lines is scanned. If the tag is *edges then
-C increment the value of NSUR and then scan JVN data. If ier
-C equals 2 then end of file reached so close.
+C increment the value of NSUR and then scan JVN data. If the
+C tag is *surf then there should be 10 further phrases on the
+C line. 
+C If ier equals 2 then end of file reached so close.
    62   CALL STRIPC1K(IUNIT,lkout,99,ND,0,'*vertex *edges tags',IER)
         if(IER.EQ.2)then
 
@@ -1698,24 +1682,10 @@ C Optional tag to hold pending request to rotate the zone.
           goto 62
         elseif(WORD(1:16).eq.'*previous_rotate')then
 
-C Optional tag to hold most recent request to rotate the zone (in
-C order to support an un-do.
-          CALL EGETWR(lkout,K,AR1,-360.,360.,'W','prior rotation',IER)
-          rotateit(ICOMP,4)=AR1   ! remember the previous rotation
-          if(ND.gt.2)then
-            CALL EGETWR(lkout,K,AR1,0.,0.,'-','prev rotation X',IER)
-            rotateit(icomp,5)=AR1
-            CALL EGETWR(lkout,K,AR1,0.,0.,'-','prev rotation Y',IER)
-            rotateit(icomp,6)=AR1
-          else
-            rotateit(icomp,5)=0.0  ! assume site origin to rotate around
-            rotateit(icomp,6)=0.0
-          endif
+C Deprecated option.
           goto 62
         elseif(WORD(1:6).eq.'*edges')then
 
-C << This does not read beyond MS surfaces but we need to find a way
-C << to fail more gracefully.
           NEDGE=NEDGE+1
 
 C Check that the number of surfaces is within complexity limits.
@@ -1765,8 +1735,14 @@ C Now proceed to read vertices on one or more lines.
           goto 62
         elseif(WORD(1:5).eq.'*surf')then
 
-C Increment counter for surfaces (NS).
-          NS=NS+1
+          NS=NS+1          ! Increment counter for surfaces (NS).
+          if(ND.lt.11)then
+            write(loutstr,'(a,i2,a,i3,a,i2,2a)') 
+     &        'Insufficient tokens in line for zone ',ICOMP,
+     &        ' surf ',NS,' tokens ',ND,' in ',lkout(1:lnblnk(lkout))
+            call edisp248(iuout,loutstr,120)
+            call pauses(2)
+          endif
           if(NS.eq.1)then
 
 C If this is the first *surf encountered then set NSUR equal to the
@@ -1839,14 +1815,21 @@ C Parent name, allow for future spaces in parent name.
             CALL EGETP(lkout,K,WORD,'W','surface parent',IER)
             write(sparent(ICOMP,NS),'(a)') WORD(1:lnblnk(WORD))
 
-C Surface usage - two tokens.
-            CALL EGETW(lkout,K,WORD,'W','surface use 1',IER)
-            write(SUSE(ICOMP,NS,1),'(a)') WORD(1:lnblnk(WORD))
-            CALL EGETW(lkout,K,WORD,'W','surface use 2',IER)
-            write(SUSE(ICOMP,NS,2),'(a)') WORD(1:lnblnk(WORD))
+C Surface usage - two tokens. If there was a fault then the token might
+C be longer than SUSE and it is probably the construction. Check first.
+            CALL EGETP(lkout,K,WORD,'W','surface use 1',IER)
+            if(lnblnk(WORD).gt.12)then
+              write(SUSE(ICOMP,NS,1),'(a)') '-'
+              write(SUSE(ICOMP,NS,2),'(a)') '-'
+              write(SMLCN(ICOMP,NS),'(a)') WORD(1:lnblnk(WORD))
+            else
+              write(SUSE(ICOMP,NS,1),'(a)') WORD(1:lnblnk(WORD))
+              CALL EGETW(lkout,K,WORD,'W','surface use 2',IER)
+              write(SUSE(ICOMP,NS,2),'(a)') WORD(1:lnblnk(WORD))
 
 C Surface construction name, allow for spaces.
-            CALL EGETP(lkout,K,WORD,'W','surface construction',IER)
+              CALL EGETP(lkout,K,WORD,'W','surface construction',IER)
+            endif
             write(SMLCN(ICOMP,NS),'(a)') WORD(1:lnblnk(WORD))
 
 C Check if there is a matching MLC name find out which one it is.
@@ -2303,9 +2286,9 @@ C standard obstruction block when converted into a GB1 common block.
             XOB(icomp,nbo)=VX
             YOB(icomp,nbo)=VY
             ZOB(icomp,nbo)=VZ
-            CALL EGETWR(lkout,K,VX,0.,150.,'W','obs X dis',IER)
-            CALL EGETWR(lkout,K,VY,0.,150.,'W','obs Y dis',IER)
-            CALL EGETWR(lkout,K,VZ,0.,150.,'W','obs Z dis',IER)
+            CALL EGETWR(lkout,K,VX,-150.,150.,'W','obs X dis',IER)
+            CALL EGETWR(lkout,K,VY,-150.,150.,'W','obs Y dis',IER)
+            CALL EGETWR(lkout,K,VZ,-150.,150.,'W','obs Z dis',IER)
             DXOB(icomp,nbo)=VX
             DYOB(icomp,nbo)=VY
             DZOB(icomp,nbo)=VZ
@@ -2680,9 +2663,9 @@ C Errors for lkout reads.
       END
 
 C ************* GEOWRITE
-C GEOWRITE to write a geometry file (GEN V1.1 type) based on infor-
-C mation currently held in common blocks G0 G1 G3 G4 G6.  It is
-C assumed that this information has been checked.
+C GEOWRITE to write a geometry file (GEN V1.1 type) based on
+C information currently held in common blocks G0 G1 G4 G6.  It
+C is assumed that this information has been checked.
 C GENFIL is the name of the file to be written to (any existing file
 C by this name is overwritten).
 C ICOMP is the zone number,
@@ -2692,8 +2675,6 @@ C with user before overwriting.
 
 C If iobs()=2 then there are blocks to write out within the
 C geometry file.
-
-C If the user requested a rotation then remember it via rotateit array.
 
       SUBROUTINE GEOWRITE(IFILG,GENFIL,ICOMP,ITRU,iwf,IER)
 #include "building.h"
@@ -2721,6 +2702,7 @@ C ZNAME (12 char) - the zone name (from geometry.h).
 C ZDESC (64 char) - zone notes (from geometry.h).
       integer IZSTOCN
       COMMON/C24/IZSTOCN(MCOM,MS)
+      COMMON/C3/IC1(MCON),IE1(MCON),ICT(MCON),IC2(MCON),IE2(MCON)
 
 C Thermal bridge common block is described in esruprj/edgeo.F
       integer nbrdg, ibrdg
@@ -2755,7 +2737,6 @@ C Obstruction blocks common GS5/GS6 is found in geometry.h.
       logical newgeo  ! to use for testing if new/old geometry file.
       logical havebrdge ! to use for thermal bridge existance.
       logical hasobstr  !  true if IOBS() is set to 1 and NB > 0
-      logical rotationknown  ! true if we need to remember a rotation
 
       IER=0
       tab=','    ! make the separator a comma.
@@ -2800,19 +2781,6 @@ C Write out the header including date stamp and documentation.
 
       write(ifilg,'(a)',IOSTAT=IOS,ERR=13)zdesc(ICOMP)(1:lnzdesc(ICOMP))
 
-C If rotateit array is all zero then skip. Otherwise write out the last
-C directive that the user gave.
-      call eclose3(rotateit(icomp,4),rotateit(icomp,5),
-     &  rotateit(icomp,6),0.0,0.0,0.0,0.01,rotationknown)
-      if(rotationknown)then
-        continue
-      else
-        write(ifilg,'(a,f8.2,a,f8.3,a,f8.3,a,f8.3,a)',IOSTAT=IOS,
-     &    ERR=13) '*previous_rotate ',
-     &    rotateit(icomp,4),tab,rotateit(icomp,5),tab,
-     &    rotateit(icomp,6),'  # prior rotation angle X Y'
-      endif
-
       write(ifilg,'(a)',IOSTAT=IOS,ERR=13)
      &  '# tag, X co-ord, Y co-ord, Z co-ord'
 
@@ -2855,12 +2823,21 @@ C Surface list. Write as a packed list comma separated.
         icc=izstocn(icomp,i)
 
 C Based on the current contents of SOTHER(,,1) create a buffer SO
-C to write out.
+C to write out. If any of the expected strings are blank write placeholders.
         if(icc.gt.0)then
           lso=lnblnk(SOTHER(icomp,i,1))
           lso2=lnblnk(SOTHER(icomp,i,2))
+          if(lso2.eq.0)then
+            SOTHER(icomp,i,2)='000'; lso2=3
+          endif
           lso3=lnblnk(SOTHER(icomp,i,3))
+          if(lso3.eq.0)then
+            SOTHER(icomp,i,3)='000'; lso3=3
+          endif
           lsml=lnblnk(SMLCN(icomp,i))
+          if(lsml.eq.0)then
+            SMLCN(icomp,i)='UNKNOWN'; lsml=7
+          endif
           lspa=lnblnk(SPARENT(icomp,i))
           if(lspa.gt.12) lspa=12
           lsna=lnblnk(SNAME(icomp,i))
@@ -2887,7 +2864,7 @@ C     &      SUSE(icomp,i,2)(1:luse2),' ',SMLCN(icomp,i)(1:lsml),' ',
 C     &      SOTF(icomp,i)(1:lsot),' ',SOTHER(icomp,i,1)(1:lso),' ',
 C     &      SOTHER(icomp,i,2)(1:lso2),' ',SOTHER(icomp,i,3)(1:lso3)
 C          call SDELIM(outs,outsd,'C',IW)
-C          write(6,*) outsd(1:lnblnk(outsd))
+C          write(6,*) '2915 ',outsd(1:lnblnk(outsd))
 
           WRITE(left,'(10a)',IOSTAT=ios,ERR=13) '*surf ',
      &      SNAME(icomp,i)(1:lsna),' ',SVFC(icomp,i),' ',
@@ -4596,7 +4573,7 @@ C        call edisp2tr(itu,outstr)
       end
 
 C ********************** ZINFO
-C 'ZINFO' takes data from the zone geometry commons G1,G2,G3 and returns
+C Takes data from the zone geometry commons G1,G2 and returns
 C several derived values.
       SUBROUTINE ZINFO(icomp,ZOA,ZVOL,act)
 #include "building.h"
@@ -5297,9 +5274,9 @@ C act is '-' derive geometric data or 'c' also determine parent
       subroutine suredgeadj(itrc,act,izone,ier)
 #include "building.h"
 #include "geometry.h"
+#include "help.h"
 
       common/OUTIN/IUOUT,IUIN,IEOUT
-      common/pophelp/h(60)
 
       real bridgelen ! Length (m) of potential thermal bridges in each zone.
                     ! See code below for what each means.
@@ -5311,7 +5288,7 @@ C act is '-' derive geometric data or 'c' also determine parent
       integer IZSTOCN
       COMMON/C24/IZSTOCN(MCOM,MS)
 
-      CHARACTER outs*124,act*1,h*72
+      CHARACTER outs*124,act*1
       logical closeazi,closeelv,foundone,ok,same
 
 C iwhich is local variable to sort most often referenced adjacent surf.
@@ -5322,6 +5299,18 @@ C iwhich is local variable to sort most often referenced adjacent surf.
       real dista,distc
 C      real distb ! currently not used
       logical closeux,closeuy,closeuz
+
+C There is a file unit clash between gethelptext and file units
+C in ish. Bypass call to gethelptext and set h() manually.
+C      helpinsub='egeometry'  ! set for subroutine
+C      helptopic='check_adjacency'
+      h(1)='The shape & edges of the two surfaces suggest'
+      h(2)='that one is a subsurface.'
+      h(3)=' '
+      h(4)='You may also be asked if the parent surface is in the'
+      h(5)='current zone.'
+      nbhelp=5
+C      call gethelptext(helpinsub,helptopic,nbhelp)
 
       if(izone.ne.0.and.izone.le.NCOMP)then
         if(act.eq.'c')then
@@ -5677,20 +5666,17 @@ C bother the user. If ibinval was set to zero then clear SPARENT.
                       write(outs,'(5a)') 'Is ',sname(izone,isurf),
      &                  ' a subsurface of ',
      &                  sname(IC1(ibinval),IE1(ibinval)),'?'
-                    h(1)='The shape & edges of the two surfaces suggest'
-                    h(2)='that one is a subsurface.'
-                      call easkok(' ',outs,ok,2)
+                      call easkok(' ',outs,ok,nbhelp)
                     endif
                     if(ok)then
                       SPARENT(izone,isurf)=
      &                  sname(IC1(ibinval),IE1(ibinval))
                     endif
                   else
-                    h(1)='Is parent surface in the current zone.'
                     izz=ic1(icc)
                     write(outs,'(5a)') 'Does ',sname(izz,isurf),
      &                ' have a parent surface in ',zname(izz),'?'
-                    call easkok(' ',outs,ok,2)
+                    call easkok(' ',outs,ok,nbhelp)
                     if(ok)then
                       write(outs,'(5a)') 'Specify parent surface for ',
      &                  sname(izz,isurf),' in ',zname(izz),'.'
@@ -5784,7 +5770,7 @@ C Initialise various variables
           idupv(isur,i)=0     ! clear duplicate vertex index
           iduplist(isur,i)=0  ! clear duplicate position
         enddo  ! of i
-        do i=1,12             ! hard coded to match geometry.h
+        do i=1,MCHILD
           ichild(iCC,i)=0     ! clear array holding children
           igchild(iCC,i)=0    ! clear array holding grand children
         enddo  ! of i
@@ -6033,7 +6019,7 @@ C Clear arrays.
           nbgchild(icc)=0    ! assume no grand children
           iparent(icc)=0     ! assume no parent
           igparent(icc)=0    ! assume no grandparent
-          do i=1,12             ! hard coded to match geometry.h
+          do i=1,MCHILD
             ichild(icc,i)=0     ! clear array holding children
             igchild(icc,i)=0    ! clear array holding grand children
           enddo  ! of i
@@ -6309,10 +6295,10 @@ C << zone geometry file if havec24 is true?
 #include "model.h"
 #include "geometry.h"
 #include "prj3dv.h"
+C #include "help.h"
 
       integer lnblnk  ! function definition
 
-      common/pophelp/h(60)
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/FILEP/IFIL
       integer IZSTOCN
@@ -6324,10 +6310,14 @@ C SUREQN is the surface equation A*X + B*Y + C*Z = D
 C SURVN is point 1 unit vectpr off of surface COG along the normal.
 
       LOGICAL OK,dok
-      CHARACTER h*72,outs*124
+      CHARACTER outs*124
 
       integer lng     ! length of geometry file name
       integer itrct   ! temporary trace level
+
+C      helpinsub='egeometry'  ! set for subroutine
+C      helptopic='geo_scan_problem'
+C      call gethelptext(helpinsub,helptopic,nbhelp)
 
 C Assuming this routine is called in order: read in the geometry file
 C using georead or egomin and pass across into the appropriate array.
@@ -6340,9 +6330,7 @@ C using georead or egomin and pass across into the appropriate array.
         endif
         call georead(IFIL+1,LGEOM(ICOMP),ICOMP,1,iuout,ier)
         IF(IER.NE.0)THEN
-          h(1)='When scanning the zone geometry file to build up an'
-          h(2)='overall list of surfaces, a problem was encountered.'
-          CALL EASKOK('Problem found!','Retry? ',OK,2)
+          CALL EASKOK('Problem found!','Retry?',OK,nbhelp)
           IF(OK)goto 25
           goto 99
         ENDIF

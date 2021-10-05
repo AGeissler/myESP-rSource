@@ -33,6 +33,7 @@ C ******************************************************************************
 #include "building.h"
 #include "plant.h"
 #include "power.h"
+#include "help.h"
 
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
@@ -59,12 +60,7 @@ C Electrical network results library details.
       integer NITMS,INO ! max items and current menu item
       integer ISTRW
 
-C For help messages
-      character helpinsub*24   ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='ENETRES'  ! set for cfiles
+      helpinsub='enetres'  ! set for cfiles
 
 C Open the electrical results library if necessary. Suggest a file
 C name based on the naming scheme for the zone and flow results.
@@ -403,6 +399,7 @@ C **********************************************************************
 #include "building.h"
 #include "plant.h"
 #include "power.h"
+#include "help.h"
 
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
 
@@ -437,12 +434,7 @@ C Type casting (all varaiables and arrays cast explicitly)
       integer IWM  ! for radio button
       integer NITEMS,INO ! max items and current menu item
 
-C For help messages
-      character helpinsub*24   ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='ERSMENU'  ! set for subroutine
+      helpinsub='enetres'  ! set for subroutine
 
 C Firstly clear all existing selections and initialise variables.
       CALL EDISP (IUOUT,' ')

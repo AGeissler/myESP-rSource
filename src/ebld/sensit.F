@@ -41,8 +41,8 @@ C simulations to be run.
 
       SUBROUTINE SENRNS(IER)
 #include "building.h"
-C Common blocks UA4 within uncertainty.h
 #include "uncertainty.h"
+#include "help.h"
 
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/FILEP/IFIL
@@ -72,12 +72,7 @@ C Logical flag for uncertainty header has been printed.
 
       DIMENSION IVAL(4)
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='SENRNS'  ! set for subroutine
+      helpinsub='sensit'  ! set for subroutine
       helptopic='select_sensit_method'
       call gethelptext(helpinsub,helptopic,nbhelp)
 

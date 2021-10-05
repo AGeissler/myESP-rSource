@@ -44,7 +44,8 @@ C Selection/control for surface causal energy breakdown.
 
       CHARACTER TSTR*10,CSTR*25
       CHARACTER SN*12,ZN*12
-      character DESCRD*5,DDX*7,DDX1*10,DHX*5,outs*124
+      character DESCRD*5,DESCRJ,DDX*7,DDX1*10,DDX2*8,DHX*5
+      character outs*124
 
 C Read in the zone geometry data.
       IUNIT=IFIL+1
@@ -90,8 +91,8 @@ C Get surface and zone name.
         WRITE(outs,43)TSTR,SNA(IZONE,ISFN),CSTR
         call edisp(itru,outs)
 
-        CALL STDATE(IYEAR,IODS,DDX,DDX1)
-        CALL ESTIME(NTS,IDAVER,IOH1*NTS,DHX,DESCRD,TIMER)
+        CALL STDATE(IYEAR,IODS,DDX,DDX1,DDX2)
+        CALL ESTIME(NTS,IDAVER,IOH1*NTS,DHX,DESCRD,DESCRJ,TIMER)
         write(outs,'(A,A10,A,A5)') 'Time: ',DDX1,'@',DHX
         call edisp(itru,outs)
       else

@@ -18,6 +18,7 @@ C ********************* SETUP *********************
 C Provides the menus and control logic for the res preference menu.
 
       SUBROUTINE SETUP(ITRU,IER)
+#include "help.h"
 
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/SIMPIK/ISIM,ISTADD,ID1,IM1,ID2,IM2,ISDS,ISDF,NTS,ISAVE
@@ -33,12 +34,7 @@ C Provides the menus and control logic for the res preference menu.
       CHARACTER SETUPM*50,pifltog*4,lpifl*96,ltmp*96
       integer NITMS,ISETUP ! max items and current menu item
 
-C For help messages
-      character helpinsub*24   ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='SETUP'  ! set for subroutine
+      helpinsub='setres'  ! set for subroutine
 
 C Present the preferences menu, ISETUP is the menu index returned. Generate
 C the menu text from current common block into via UPSET.
@@ -60,6 +56,8 @@ C Get date strings.
         SETUPM(2)='a Display format for date>> 10 Jan              '
       ELSEIF(IFDAY.EQ.2)THEN
         SETUPM(2)='a Display format for date>> Fri 10 Jan          '
+      ELSEIF(IFDAY.EQ.3)THEN
+        SETUPM(2)='a Display format for date>> 10/01/21            '
       ENDIF
 
 C Display of time of day.
@@ -69,6 +67,8 @@ C Display of time of day.
         SETUPM(3)='b Display format for time>> 10.50               '
       ELSEIF(IFTIME.EQ.2)THEN
         SETUPM(3)='b Display format for time>> 0.4166 (day frac)   '
+      ELSEIF(IFTIME.EQ.3)THEN
+        SETUPM(3)='b Display format for time>> 10:30               '
       ENDIF
       SETUPM(4)=' ______________________________________           '
       SETUPM(5)='              '
@@ -92,16 +92,18 @@ C Instantiate h() array for the menu.
 
       IF(ISETUP.EQ.2)THEN
 
-C Allow user to toggle between 'Fri 10 Jan'/'10 Jan'/'DOY 124' format.
+C Allow user to toggle between 'Fri 10 Jan'/'10 Jan'/'DOY 124'/'10/01/21' format.
         IFDAY=IFDAY+1
-        IF(IFDAY.GT.2)IFDAY=0
+        IF(IFDAY.GT.3)IFDAY=0
       ELSEIF(ISETUP.EQ.3)THEN
 
-C Allow user to toggle between '10h00'/'10.00'/'0.41666' format. Only
+C Allow user to toggle between '10h00'/'10.00'/'0.41666'/'10:00' format. Only
 C allow decimal day representation if day format is DOY.
         IFTIME=IFTIME+1
-        IF(IFDAY.EQ.0.AND.IFTIME.GT.2)IFTIME=0
-        IF(IFDAY.GE.1.AND.IFTIME.GT.1)IFTIME=0
+        IF(IFDAY.EQ.0.AND.IFTIME.GT.3)IFTIME=0
+        IF(IFDAY.EQ.1.AND.IFTIME.GT.1)IFTIME=0
+        IF(IFDAY.EQ.2.AND.IFTIME.GT.1)IFTIME=2
+        IF(IFDAY.EQ.3.AND.IFTIME.GT.3)IFTIME=0
       ELSEIF(ISETUP.EQ.5)THEN
         continue
       ELSEIF(ISETUP.EQ.6)THEN

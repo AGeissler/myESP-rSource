@@ -27,6 +27,7 @@ C (Similar to MZINPT in espbps/input.f.)
 #include "net_flow.h"
 #include "tdf2.h"
 #include "esprdbfile.h"
+#include "help.h"
 
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/FILEP/IFIL
@@ -50,12 +51,7 @@ C (Similar to MZINPT in espbps/input.f.)
       logical dmdsok
       integer ISTRW
 
-C For help messages.
-      character helpinsub*24   ! subroutine name
-      character helptopic*24   ! string (unique) for topic
-      integer nbhelp           ! number of help lines found
-
-      helpinsub='MOGCFG'       ! set for subroutine
+      helpinsub='replsim'       ! set for subroutine
 
 C The common code method of reading in a system configuration file
 C uses the same common blocks as MOINIT so there is no convenient way

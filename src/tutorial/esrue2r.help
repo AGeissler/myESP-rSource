@@ -1,4 +1,5 @@
 *help_text e2r
+
 *item e2r e2r_cfg_file_not_found
 'The model configuration file holds the definition '
 'of the building/ plant to be simulated, including the'
@@ -85,13 +86,12 @@
 'user defined view to use.'
 *enditem
 
-*subroutine SKYFORM
-*item SKYFORM sky_def_local_file
+*item e2rform sky_def_local_file
 ' Supply a local file name (i.e. without a path).'
 ' This file holds the sky definition.'
 *enditem
 
-*item SKYFORM sky_distribution_menu
+*item e2rform sky_distribution_menu
 'This menu defines the sky distribution function for a'
 'Radiance scene.'
 ' '
@@ -129,24 +129,23 @@
 '  sky description file in the text window.'
 *enditem
 
-*item SKYFORM sky_not_CIE_menu
+*item e2rform sky_not_CIE_menu
 'You have requested a daylight factor calculation but the'
 'sky type is not a CIE standard overcast sky. DF are not often'
 'calculated with a different sky type.'
 *enditem
 
-*item SKYFORM sky_description_browse
+*item e2rform sky_description_browse
 'Browsing lists the file contents in the text feedback'
 'area, editing spawns an editor with the file name.'
 *enditem
 
-*item SKYFORM sky_file_not_generated
+*item e2rform sky_file_not_generated
 'Recent work has not yet been used to generated a sky'
 'file for use by radiance. If you exit without creating'
 'the sky file the model will be incomplete. '
 *enditem
 
-*subroutine e2rform
 *item e2rform e2r_outside_comp
 'This menu defines the composition of the Radiance'
 'scene in terms of materials and geometry (inside and'
@@ -204,8 +203,7 @@
 'if you exit before the file is generated. '
 *enditem
 
-*subroutine mkriofil
-*item mkriofil writing_transpar_stuff
+*item e2rform writing_transpar_stuff
 'Based on the attributes of ESP-r surfaces and the optical properties'
 'gathered from the databases information is streamed into a file'
 'for use by Radiance.'
@@ -231,7 +229,7 @@
 'if they are included in your model.'
 *enditem
 
-*item mkriofil precalculate_indirect_i
+*item e2rform precalculate_indirect_i
 'Large sources of indirect illumination should have their'
 'distributions pre-calculated as this optimises the rendering process.'
 '(Note: the pre-calculation is achieved  '
@@ -239,9 +237,12 @@
 'large surfaces should be subdivided within mkillum.'
 *enditem
 
-*subroutine VCONE
-*subroutine VEWFORM
-*item VEWFORM view_form_creation
+*item e2rform writing_ies_xforms
+'Light distributions fron fixtures can be imported from'
+so-called IES data files.  Please specify the file name.'
+*enditem
+
+*item e2rvp view_form_creation
 'You must either select one of the known views or create'
 'a new view point. If no view selected the first one will be'
 'created.'
@@ -256,14 +257,14 @@
 'file.'
 *enditem
 
-*item VEWFORM ext_MRTview
+*item e2rvp ext_MRTview
 'The purpose of the currently selected scene is to create'
 'external views. MRT sensors exist inside a model, so it is'
 'not recommended to create view points at MRT sensors within'
 'the current scene. You should create a new scene for your'
 'specific purpose.'
 
-*item VEWFORM view_definition_menu
+*item e2rvp view_definition_menu
 'This menu selects the viewpoint and direction, from'
 'where the Radiance image will be viewed.'
 ' '
@@ -316,7 +317,7 @@
 'the elevations are primarily for checking. '
 *enditem
 
-*item VEWFORM eyepoint_editing
+*item e2rvp eyepoint_editing
 'The eyepoint is in metres in the coordinate system '
 'of the site. '
 ' '
@@ -328,50 +329,49 @@
 'as well as the -vo (near trim) and -va (aft trim) distances.'
 *enditem
 
-*item VEWFORM reflect_rad_view_in_per
+*item e2rvp reflect_rad_view_in_per
 'The wireframe view can be updated to approximate'
 'the radiance view (does not work well for internal'
 'views). '
 *enditem
 
-*item VEWFORM edit_or_accept_current
+*item e2rvp edit_or_accept_current
 'Editing is manual editing of the value. If it is ok then use the'
 'accept current.'
 '  '
 'You will be given an option to pause and confirm the view.'
 *enditem
 
-*item VEWFORM view_azimuth_edit
+*item e2rvp view_azimuth_edit
 'The view azimuth 0= looking north, 90 =looking east.'
 *enditem
 
-*item VEWFORM view_angle_edit
+*item e2rvp view_angle_edit
 'The view angle is normally 60 deg.  The range'
 'is 20. < x < 179.'
 *enditem
 
-*item VEWFORM e2r_east_axis
+*item e2rvp e2r_east_axis
 'Adjust axis min and max to allow more distant view.'
 *enditem
 
-*item VEWFORM e2r_north_axis
+*item e2rvp e2r_north_axis
 'Adjust axis min and max to allow more distant view.'
 *enditem
 
-*item VEWFORM e2r_remind_to_save
+*item e2rvp e2r_remind_to_save
 'Recent changes in the view parameters might be lost'
 'if you exit without saving the data. '
 *enditem
 
-*subroutine whichrif
-*item whichrif scene_selection_list
+*item radcfg scene_selection_list
 'A scene will be selected from those available'
 'The scene list can be modified by selecting *'
 '  '
 'The < command selects by index rather than a-z.'
 *enditem
 
-*item whichrif scene_manage_list
+*item radcfg scene_manage_list
 'As with other entities a standard set of add/delete'
 'and copy functions is provided. '
 '  '
@@ -384,8 +384,7 @@
 '  '
 *enditem
 
-*subroutine newscene
-*item newscene purpose_of_rif_scene
+*item radcfg purpose_of_rif_scene
 'The purpose of the scene is used when creating the '
 'scene description files. It is also used to control'
 'the application of Radiance.'
@@ -418,7 +417,7 @@
 '   in the sky.'
 *enditem
 
-item newscene pick_zone_for_int_view
+item radcfg pick_zone_for_int_view
 'Pick a zone as the focus zone for the Radiance internal'
 'image calculations. This is needed whether regardless of'
 'how many zones are in the model. Picking a specific zone'
@@ -426,7 +425,7 @@ item newscene pick_zone_for_int_view
 'zones in the model.'
 *enditem
 
-*item newscene e2r_new_scene_name
+*item radcfg e2r_new_scene_name
 'Many Radiance models may be created for a given ESP-r '
 'thermal model. Each of these Radiance models is called'
 'a scene, e.g. one scene may be of the buildings '
@@ -441,8 +440,7 @@ item newscene pick_zone_for_int_view
 'to identify the scenes contents.'
 *enditem
 
-*subroutine ADDSCENE
-*item ADDSCENE create_scene_interactive
+*item radcfg create_scene_interactive
 'Radiance desktop creates allows the creation of separate'
 'scenes each with a specific purpose. A modest scene can be'
 'created silently with assumed defaults. '
@@ -451,13 +449,12 @@ item newscene pick_zone_for_int_view
 'definition section to update or add detail to the model.'
 *enditem
 
-*subroutine setdfgrid
-*item setdfgrid select_zone_for_df
+*item radcfg select_zone_for_df
 'Pick a zone as the focus zone for the Radiance'
 'daylight factor calculations.'
 *enditem
 
-*item setdfgrid distance_to_df_grid
+*item radcfg distance_to_df_grid
 'The grid points on the chosen surface can be '
 'transformed along the surface normal to give points in'
 'a parallel plane.  This is useful for calculating'
@@ -472,7 +469,7 @@ item newscene pick_zone_for_int_view
 'to that selected edge.'
 *enditem
 
-*item setdfgrid df_grid_density
+*item radcfg df_grid_density
 ' A bounding box is created for the selected surface.'
 ' The grid is specified by intersection points of lines'
 ' parallel and perpendicular to the selected edge.'
@@ -491,8 +488,7 @@ item newscene pick_zone_for_int_view
 'Give the name of this file without a path.'
 *enditem
  
- *subroutine autorad
-*item autorad e2r_proceed_with_sim
+*item radcmds e2r_proceed_with_sim
 'You can start the visual simulation at this point by'
 'answering yes. If you say no you can start the simulation'
 'later. Note the simulation can take several minutes, if '
@@ -505,15 +501,13 @@ item newscene pick_zone_for_int_view
 'process so watch the process in the command window.'
 *enditem
 
-*subroutine settime
-*item settime standard_times_of_day
+*item radcmds standard_times_of_day
 'Pick a season/ time for the sky. This is a quick way to get an'
 'image which has the sun in typical locations in the sky (morning'
 'afternoon and winter and summer).'
 *enditem
 
-*subroutine genimage
-*item genimage single_time_or_sequence
+*item radcmds single_time_or_sequence
 'Rendering can be for one instant in time or at intervals'
 'e.g. every 10 or 15 or 20 minutes during a period of a day.'
 'You can adjust the parameters needed to create a set of images'
@@ -543,7 +537,7 @@ item newscene pick_zone_for_int_view
 'to increase brighness by 20% and decrease contrast by 20%.'
 *enditem
 
-*item genimage render_to_screen_or_file
+*item radcmds render_to_screen_or_file
 'Rendering can only be directed to screen on colour'
 'monitors.  You can adjust the visualisation '
 'parameters interactively and a summary of commands'
@@ -552,7 +546,7 @@ item newscene pick_zone_for_int_view
 'If running on Windows you should choose file option.'
 *enditem
 
-*item genimage end_time_of_animation
+*item radcmds end_time_of_animation
 'The end of the animation is assumed to be on the same'
 'day and must be less than 24.0'
 '  '
@@ -582,15 +576,14 @@ item newscene pick_zone_for_int_view
 'to increase brighness by 20% and decrease contrast by 20%.'
 *enditem
 
-*item genimage overwrite_existing_pic
+*item radcmds overwrite_existing_pic
 'The image processing tends to [hang] when trying to'
 'overwrite an existing image. Choose a different root'
 'name for the image(s) if you can.'
 '  '
 *enditem
 
-*subroutine getfalse
-*item getfalse e2r_falsecolour
+*item radcmds e2r_falsecolour
 'False colour images with lux contours can be defined. You'
 'are asked about the range of expected lux within the image'
 'as well as the number of contours to plot.'
@@ -598,8 +591,7 @@ item newscene pick_zone_for_int_view
 'You may need to experiment to find appropriate parameters.'
 *enditem
 
-*subroutine getdf
-*item getdf e2r_df_convergence
+*item radcmds e2r_df_convergence
 'The calculations will strart with one ambient bounce and'
 'gradually increase the number of bounces until the change'
 'is less than a value (convergence criteria). The smaller'
@@ -610,19 +602,18 @@ item newscene pick_zone_for_int_view
 'process. '
 *enditem
 
-*item getdf e2r_df_confusion
+*item radcmds e2r_df_confusion
 'Sometimes Radiance gets confused. This is one place'
 'where starting again can correct this. '
 *enditem
 
-*item getdf e2r_df_file_overwrite
+*item radcmds e2r_df_file_overwrite
 'Daylight factors can be written to a file. If this file already'
 'exists you have a chance to save the past by giving a'
 'slightly different file name for the calculatons.'
 *enditem
 
-*subroutine getlux
-*item getdf e2r_lux_convergence
+*item radcmds e2r_lux_convergence
 'The calculations will strart with one ambient bounce and'
 'gradually increase the number of bounces until the change'
 'is less than a value (convergence criteria). The smaller'
@@ -633,19 +624,18 @@ item newscene pick_zone_for_int_view
 'process. '
 *enditem
 
-*item getdf e2r_lux_confusion
+*item radcmds e2r_lux_confusion
 'Sometimes Radiance gets confused. This is one place'
 'where starting again can correct this. '
 *enditem
 
-*item getdf e2r_lux_file_overwrite
+*item radcmds e2r_lux_file_overwrite
 'Illuminance can be written to a file. If this file already'
 'exists you have a chance to save the past by giving a'
 'slightly different file name for the calculatons.'
 *enditem
 
-*subroutine RIFFORM
-*item RIFFORM e2r_scene_files_menu
+*item rifform e2r_scene_files_menu
 'This menu selects the scene description files to'
 'be used in the octree.'
 ' '
@@ -682,26 +672,26 @@ item newscene pick_zone_for_int_view
 'not included in a thermal simulation.'
 *enditem
 
-*item RIFFORM image_quality_options
+*item rifform image_quality_options
 'Image quality sets a number of command parameters'
 'and influences the processing time.  Most of the time'
 'a low quality image will suffice (and there are opts '
 'which can get close to medium quality). '
 *enditem
 
-*item RIFFORM e2r_detail_level_options
+*item rifform e2r_detail_level_options
 'Detail level: Use low for zones with few surfaces (ie'
 'as in a thermal problem), use Medium if furnature and'
 'objects, use High if lots of detail and textures. '
 *enditem
 
-*item RIFFORM e2r_light_var_options
+*item rifform e2r_light_var_options
 'Light level variability: Use Low for zones which are '
 'uniformally lit by lighting fixtures, Medium if there'
 'is diffuse skylight and High if direct sunlight. '
 *enditem
 
-*item RIFFORM e2r_light_system_options
+*item rifform e2r_light_system_options
 'A direct (artificial) lighting system is one where '
 'reflections from surfaces are unimportant.'
 'If the space is naturally lit then reflections are '
@@ -711,46 +701,46 @@ item newscene pick_zone_for_int_view
 'lightshelfs, an atrium or similar devices.'
 *enditem
 
-*item RIFFORM e2r_pixel_size_options
+*item rifform e2r_pixel_size_options
 'Set overall image width in pixels (smaller numbers '
 'process more quickly). The height and thus image'
 'pixel aspect are automatically set from the view'
 'data (-vh and -vv options).'
 *enditem
 
-*item RIFFORM e2r_penumbras_options
+*item rifform e2r_penumbras_options
 'Penumbras (soft shadows) in image is processor intensive'
 'and some users prefer this. '
 *enditem
 
-*item RIFFORM track_progress_options
+*item rifform track_progress_options
 'Computations can take a moment to several hours - so '
 'a % completion report is available. '
 *enditem
 
-*item RIFFORM e2r_viewpoint_options
+*item rifform e2r_viewpoint_options
 'Initial/simple view points are built up based on a  '
 'bounding box defined by minimimum & maximum X Y Z  '
 'coordinates.  If view has been set to inside or  '
 'outside this is also indicated in the string.  '
 *enditem
 
-*item RIFFORM e2r_ambient_file_name
+*item rifform e2r_ambient_file_name
 'This holds temporary information on ambient light'
 'when a number of viewpoints are to be generated of '
 'the same scene.  NOT desirable othewise. '
 *enditem
 
-*item RIFFORM e2r_options_file_name
+*item rifform e2r_options_file_name
 'This holds additional calculation option commands'
 'in a file. '
 *enditem
 
-*item RIFFORM e2r_pic_root_name
+*item rifform e2r_pic_root_name
 'This is the root name for pictures created with [rad]'
 *enditem
 
-*item RIFFORM e2r_RIF_file_name
+*item rifform e2r_RIF_file_name
 'A RIF (Raidance Input File) specifies the composition'
 'of the problem for Radiance as well as parameters for'
 'images quality and calculation parameters. '
@@ -759,13 +749,17 @@ item newscene pick_zone_for_int_view
 'a new one will be created with typical defaults. '
 *enditem
 
-*item RIFFORM e2r_manual_edit_rif
+*item rifform e2r_manual_edit_rif
 'The manual edit function allows for [experts] to work'
 'their magic on the current contents. After editing'
 'the re-read file function should be used.'
 *enditem
 
-*item RIFFORM e2r_view_name_for_test
+*item rifform e2r_view_name_for_test
 'Please select one view to associate with the [rad]'
 'test. If no view selected the default used.'
+*enditem
+
+*item utils res_MRT_pick_menu
+'Select the MRT sensor for comfort reporting.'
 *enditem

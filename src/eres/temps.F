@@ -13,11 +13,6 @@ C warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
 C PURPOSE. See the GNU General Public License for more
 C details.
 
-C You should have received a copy of the GNU General Public
-C License along with ESP-r. If not, write to the Free
-C Software Foundation, Inc., 59 Temple Place, Suite 330,
-C Boston, MA 02111-1307 USA.
-
 C This file contains the following routines:
 C MODEWP - dew point temperature
 C MOMNRD - area weighted MRT
@@ -385,7 +380,7 @@ C Check if there are CFD results available for this time step.
         if (ok) then
           CALL GETIFRM(IDAY,JC1,IFRAME,IER)
           if (IER.ne.0) then
-            write(outs,'(a,i3.3,a,i2.2,a,i2.2)')
+            write(outs,'(a,i3.3,a,i4.4,a,i2.2)')
      &        ' SENOPT: CFD results not avialable for day ',IDAY,
      &        ' timestep ',JC1,' in zone ',IZONE
             CALL EDISP(IUOUT,outs)
@@ -435,7 +430,7 @@ C Calculate operative temperature.
         if (WWVEL.le.0.1) then
           OpT=0.5*GVAL(JC1)+0.5*TAIR
         else
-          OpT=(TAIR*SQRT(10.0*WWVEL)+IMRT)/(1+SQRT(10.0*WWVEL))
+          OpT=(TAIR*SQRT(10.0*WWVEL)+GVAL(JC1))/(1+SQRT(10.0*WWVEL))
         endif
         GVAL(JC1)=OpT
       enddo

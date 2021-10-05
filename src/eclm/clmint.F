@@ -24,6 +24,7 @@ C component data is given for both isotropic and anisotropic skies.
 
       SUBROUTINE CLMINT
 #include "climate.h"
+#include "help.h"
 
       COMMON/OUTPCH/ICOUT
       COMMON/CLMSET/ICYEAR,ICDNGH,CLAT,CLONG
@@ -37,12 +38,7 @@ C component data is given for both isotropic and anisotropic skies.
       character outs*124
       logical ok
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found (will be non-zero
-
-      helpinsub='CLMINT'  ! set for cfiles
+      helpinsub='clmint'  ! set for cfiles
 
     6 FHSUM=0.
       GHSUM=0.
@@ -78,7 +74,7 @@ C If output to file alter the edisp unit number.
 C NOW READ VALUES OF THE WEATHER PARAMETERS FOR THIS DAY.
       DO 10 I=IDS,IDF
       IDAY=I
-      CALL CLMGET(IDAY)
+      CALL CLMGET(IDAY,IER)
       CALL AZALT(IDAY,1,CLONG,CLAT,ALT,AZI)
       DO 20 J=1,24
       IF(ALT(J).LT.0.001)THEN

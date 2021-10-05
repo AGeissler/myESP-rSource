@@ -1,11 +1,11 @@
 C This file is part of the ESP-r system.
 C Copyright Energy Systems Research Unit, University of
-C Strathclyde, Glasgow Scotland, 2001.
+C Strathclyde, Glasgow, Scotland, 2001-.
 
 C ESP-r is free software.  You can redistribute it and/or
 C modify it under the terms of the GNU General Public
 C License as published by the Free Software Foundation 
-C (version 2 orlater).
+C (version 2 or later).
 
 C ESP-r is distributed in the hope that it will be useful
 C but WITHOUT ANY WARRANTY; without even the implied
@@ -13,10 +13,6 @@ C warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
 C PURPOSE. See the GNU General Public License for more
 C details.
 
-C You should have received a copy of the GNU General Public
-C License along with ESP-r. If not, write to the Free
-C Software Foundation, Inc., 59 Temple Place, Suite 330,
-C Boston, MA 02111-1307 USA.
 
 C This file contains the routines used in the interactive graphics display 
 C for the network tool. 
@@ -31,8 +27,9 @@ C             parameters (for drawing scroll bars).
 C   NETWSNAP  Calculates the position of grid point co-ordinates
 C             when grid snappping is on.
 
-C *************************** NWKSLCTC *************************
-C NWKSLCTC is called from the c-side to check if an object has been selected
+
+C ******************** NWKSLCTC ********************
+C Called from the c-side to check if an object has been selected
 C IT is toggle of status for icon (1) or connection (2).
 C IS is the index of the icon.
 C ISA is the index of the connection waypoint.
@@ -40,9 +37,10 @@ C ISELECT is a flag passed to the routine which determines whether a
 C component can be selected (ISELECT=1)
 C IACTIVE is returned if ISELECT=0 but the component is already marked
 C as selected.
-      SUBROUTINE NWKSLCTC(IX,IY,IT,IS,ISA,ISELECT,IACTIVE)
 
+      SUBROUTINE NWKSLCTC(IX,IY,IT,IS,ISA,ISELECT,IACTIVE)
 #include "gnetwk.h"
+
 C Icon commons
 C Selected entity (component and connection) common
       COMMON/NWKSEL/ISEL(MICN),CSEL(MNCNN)
@@ -267,13 +265,14 @@ C Update the icon position.
       RETURN
       END
 
-C ********************* GRIDUPDT *********************************
-C GRIDUPDT is called from the c-library and updates the network grid properties
-C Zoom ,snap, etc, etc.
-      SUBROUTINE GRIDUPDT(IZOOM,IGRIDU,IGRIDS,ISNP,IPAN,DX,DY)
 
+C ********************* GRIDUPDT *********************************
+C Called from the c-library and updates the network grid properties
+C Zoom ,snap, etc.
+
+      SUBROUTINE GRIDUPDT(IZOOM,IGRIDU,IGRIDS,ISNP,IPAN,DX,DY)
 #include "gnetwk.h"
-C Grid commons
+
       COMMON/NWKGRD/GRMAX(3),GRSPC(3),GRLYRH(MLYRS)
       COMMON/NWKGRDL/GON,SON
       COMMON/NWKVEW/SCALF,VIEWCEN(3),VIEWLIM(6),IVIEW
@@ -283,7 +282,8 @@ C Grid commons
 C Note: the integers were defined as long-int in the C code
 C so might need #ifdef OSI for this to work correctly.
 
-C Debug write(6,*) IZOOM,IGRIDU,IGRIDS,ISNP,IPAN,DX,DY
+C Debug.
+C      write(6,*) IZOOM,IGRIDU,IGRIDS,ISNP,IPAN,DX,DY
 
 C Switch on/off the grid spacing.
       IF(IGRIDS.EQ.-1)THEN
@@ -456,7 +456,8 @@ C networks this can lead to the initial point getting lost.
         ENDIF
   10  CONTINUE
 
-C Debug write(6,*)'INCOMP IB ',INCOMP,IB,ICSTRT,ICSTRTP,ICEND,ICENDP,ICPC
+C Debug.
+C      write(6,*)'INCOMP IB ',INCOMP,IB,ICSTRT,ICSTRTP,ICEND,ICENDP,ICPC
 
       IF(INCOMP.GT.0.AND.IB.EQ.1)THEN
 
@@ -489,7 +490,8 @@ C There can be up to MCIP way-points.
           CALL NETWSNAP(X,Y,XS,YS)
           CIP(ICPC,1)=XS
           CIP(ICPC,2)=YS
-C Debug   write(6,*) 'waypoint ',icpc,XS,YS
+C Debug.
+C         write(6,*) 'waypoint ',icpc,XS,YS
           CALL U2PIXEL(CIP(ICPC,1),CIP(ICPC,2),iimx,iimy)
           IXR=int(iimx)
           IYR=int(iimy)
@@ -592,17 +594,20 @@ C     &      datrib,dmenuatr,igatrdom,dgtagatr,dgatrib,dgmenuatr,IER)
 C Loop through and find the relevant domain id to which to attribute the
 C connections data.
 
-C Debug.   write(6,*) 'Added a connection ...'
+C Debug.
+C          write(6,*) 'Added a connection ...'
 C          write(6,*) 'number of domains in db ',nbdomain
 
           do 42 id=1,nbdomain
 
-C Debug.    write(6,*) 'network domain type ',inwktyp
+C Debug.
+C           write(6,*) 'network domain type ',inwktyp
 C           write(6,*) 'domain ids ',idomain(id)
 
             if(idomain(id).eq.inwktyp)then
 
-C Debug       write(6,*)'number of data attributes ',iatrdom(id)
+C Debug.
+C           write(6,*)'number of data attributes ',iatrdom(id)
 
               idatrdom(NICNN)=iatrdom(id)
               if(iatrdom(id).gt.0)then
@@ -861,7 +866,7 @@ C          write(6,*) 'domain ids ',idomain(id)
           if(idomain(id).eq.inwktyp)then
 
 C Debug.
-C            write(6,*)'number of data attributes ',iatrdom(id)
+C           write(6,*)'number of data attributes ',iatrdom(id)
 
             idatrdom(NICNN)=iatrdom(id)
             if(iatrdom(id).gt.0)then
@@ -956,16 +961,15 @@ C the user wishes to edit attributes.
       ihavenewcnn=nicnn
 
 C Debug.
-      write(6,*) 'info ',nicnn,ICNSP(NICNN),ICNEP(NICNN),
-     &   NCONWP(NICNN),ihavenewcnn
+C      write(6,*) 'info ',nicnn,ICNSP(NICNN),ICNEP(NICNN),
+C     &   NCONWP(NICNN),ihavenewcnn
 
       RETURN
       END
 
 
 C ******************* GNWKQUERY *********************
-C GNWKQUERY is called by the c-side to get the current network viewing parameters
-C
+C Called by the c-side to get the current network viewing parameters.
 C IQ - query identifier
 C PV - vertical view extents
 C TV - vertical view limits
@@ -976,8 +980,8 @@ C TH - horizontal view limits
 C CH - current horiz. view centre
 
       SUBROUTINE GNWKQUERY(IQ,PV,TV,CV,PH,TH,CH)
-
 #include "gnetwk.h"
+
       COMMON/NWKVEW/SCALF,VIEWCEN(3),VIEWLIM(6),IVIEW
 
       IQ=-1
@@ -994,7 +998,8 @@ C network domain so scroll bar use.
         CV=VIEWCEN(2)/TV
         IQ=1
       ELSEIF(IVIEW.EQ.2)THEN
-C X-Z view
+
+C X-Z view.
         TH=FLOAT(MGRXL)
         PH=(VIEWLIM(2)-VIEWLIM(1))/TH
         CH=VIEWCEN(1)/TH
@@ -1020,14 +1025,14 @@ C      write(6,*) 'gnwkquery ',IQ,PV,TV,CV,PH,TH,CH
       RETURN
       END
 
+
 C ************************ NETWSNAP *************************
-C This routine calculates the position of grid point co-ordinates
-C when grid snappping is on
+C Calculates the position of grid point co-ordinates
+C when grid snappping is on.
 
       SUBROUTINE NETWSNAP(X,Y,XS,YS)
-
 #include "gnetwk.h"
-C Grid commons
+
       COMMON/NWKGRD/GRMAX(3),GRSPC(3),GRLYRH(MLYRS)
       COMMON/NWKVEW/SCALF,VIEWCEN(3),VIEWLIM(6),IVIEW
       COMMON/NWKGRDL/GON,SON
@@ -1074,3 +1079,4 @@ C If not use the returned co-ordinates
 C End grid snapping routine
       RETURN
       END
+

@@ -13,11 +13,6 @@ C warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
 C PURPOSE. See the GNU General Public License for more
 C details.
 
-C You should have received a copy of the GNU General Public
-C License along with ESP-r. If not, write to the Free
-C Software Foundation, Inc., 59 Temple Place, Suite 330,
-C Boston, MA 02111-1307 USA.
-
 C This file contains the following routines:
 
 C      mzcstr: control loop definition.
@@ -38,6 +33,7 @@ C is read from the system control strategy file.
 #include "net_flow.h"
 #include "espriou.h"
 #include "control.h"
+#include "help.h"
       
       integer lnblnk  ! function definition
 
@@ -67,12 +63,7 @@ C is read from the system control strategy file.
       character ctldoc*248,outs*124
       logical OK,pbyfil,bfngn,pcfngn,ffngn
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='mzcstr'  ! set for subroutine
+      helpinsub='bctlf'  ! set for subroutine
 
 C If in autoexec mode as defined by the simulator parameter file then 
 C use the control file specified in the cfg file.
@@ -226,6 +217,7 @@ C `Function Generator` sensor .
 
 #include "building.h"
 #include "control.h"
+#include "help.h"
       
       common/outin/iuout,iuin,ieout
 
@@ -235,12 +227,7 @@ C `Function Generator` sensor .
       character hold*40,nterm*1
       logical bfngn
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='BFGRSD'  ! set for subroutine
+      helpinsub='bctlf'  ! set for subroutine
 
       nterm=CHAR(0)
 
@@ -351,6 +338,7 @@ C the plant-side type -6 `Function Generator` sensor.
 
 #include "building.h"
 #include "control.h"
+#include "help.h"
       
       common/outin/iuout,iuin,ieout
       
@@ -360,12 +348,7 @@ C the plant-side type -6 `Function Generator` sensor.
       character hold*40,nterm*1
       logical pcfngn
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='PFGRSD'  ! set for subroutine
+      helpinsub='bctlf'  ! set for subroutine
 
       nterm=CHAR(0)
 
@@ -477,6 +460,7 @@ C  mass flow sensor type -6 `Function Generator` sensor.
 #include "building.h"
 #include "net_flow.h"
 #include "control.h"
+#include "help.h"
       
       common/outin/iuout,iuin,ieout
       
@@ -485,12 +469,7 @@ C  mass flow sensor type -6 `Function Generator` sensor.
       character outs*124,hold*40,nterm*1
       logical ffngn
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='FFGRSD'  ! set for subroutine
+      helpinsub='bctlf'  ! set for subroutine
 
       nterm=CHAR(0)
 

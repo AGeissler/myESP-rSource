@@ -13,11 +13,6 @@ C warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
 C PURPOSE. See the GNU General Public License for more
 C details.
 
-C You should have received a copy of the GNU General Public
-C License along with ESP-r. If not, write to the Free
-C Software Foundation, Inc., 59 Temple Place, Suite 330,
-C Boston, MA 02111-1307 USA.
-
 C This file contains the following subroutines:
 C PCRD takes user input for a plant component
 C PCRDF takes file input for a plant component
@@ -32,18 +27,14 @@ C blocks PCBLKA and PCBLKB.
       SUBROUTINE PCRD
 #include "plantdb.h"
 #include "pdb_data.h"
+#include "help.h"
 
       common/OUTIN/IUOUT,IUIN,IEOUT
 
       character buffer*120, ltmp*80, text*20
       CHARACTER*24 TUNIX
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found (will be non-zero
-                         ! because default message will be created
-      helpinsub='PCRD'   ! set for subroutine
+      helpinsub='pcompi'   ! set for subroutine
 
 C Reset component index
       INDXPC=0

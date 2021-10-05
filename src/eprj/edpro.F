@@ -45,6 +45,7 @@ C   control information to the configuration control file.
 #include "epara.h"
 #include "esprdbfile.h"
 #include "profile.h"
+#include "help.h"
       
       integer lnblnk  ! function definition
 
@@ -61,12 +62,7 @@ C   control information to the configuration control file.
       logical unixok    ! to check for database path file separators
       integer MVERT,INO ! max items and current menu item
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='CASFMK'  ! set for subroutine
+      helpinsub='edpro'  ! set for subroutine
 
 C Set folder separator (fs) to \ or / as required.
       call isunix(unixok)
@@ -300,6 +296,7 @@ C << as multiple casual gain types
 #include "epara.h"
 #include "esprdbfile.h"
 #include "profile.h"
+#include "help.h"
       
       integer lnblnk  ! function definition
 
@@ -329,12 +326,7 @@ C << as multiple casual gain types
       integer*8 iiw1,iiw2,iiw3,iiw4,iimenu
 #endif
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='EDPROF'  ! set for subroutine
+      helpinsub='edpro'  ! set for subroutine
 
 C Set folder separator (fs) to \ or / as required.
       call isunix(unixok)
@@ -571,16 +563,12 @@ C EDEVENT: Edit details of a profile event.
       SUBROUTINE EDEVENT(IPR,IFOC,IER)
 #include "esprdbfile.h"
 #include "profile.h"
+#include "help.h"
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
       character outs*124
       logical shiftnext
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='EDEVENT'  ! set for subroutine
+      helpinsub='edpro'  ! set for subroutine
 
 C << probably need to pass in the day type index as well >>
 

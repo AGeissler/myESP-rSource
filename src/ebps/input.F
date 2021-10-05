@@ -1,11 +1,11 @@
 C This file is part of the ESP-r system.
 C Copyright Energy Systems Research Unit, University of
-C Strathclyde, Glasgow Scotland, 2001-.
+C Strathclyde, Glasgow, Scotland, 2001-.
 
 C ESP-r is free software.  You can redistribute it and/or
 C modify it under the terms of the GNU General Public
 C License as published by the Free Software Foundation 
-C (version 2 orlater).
+C (version 2 or later).
 
 C ESP-r is distributed in the hope that it will be useful
 C but WITHOUT ANY WARRANTY; without even the implied
@@ -17,10 +17,13 @@ C details.
 C This file contains the following subroutines.
 C mzinpt - controls input of data that defines a building
 C          and/or plant configuration for simulation.
-C mzprec -
-C mzutil -
-C usesps -
+C mzprec - computes time-independent zone properties.
+C mzutil - reads additional zone information where active.
+C usesps - passes simulation definition data in configuration file to
+C          simulation controller.
+C ckcurmatch - scan and report mis-matches.
  
+
 C ******************** mzinpt ********************
 C Controls input of data that defines a building and/or plant configuration
 C for simulation.
@@ -129,6 +132,7 @@ C                                    inside surface temperature of the specified
 #include "MultiYear_simulations.h"
 #include "UserSimulationToggles.h"
 #include "climate.h"
+#include "help.h"
 
       INTEGER, PARAMETER :: MSTMC=20
       
@@ -298,11 +302,7 @@ C Status of multi-year weather database.
 C Atmospheric pressure and density.
       REAL PRESSURE_ALT,AIR_DENSITY
 
-      character helpinsub*24   ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='mzinpt'  ! set for cfiles
+      helpinsub='input'  ! set for cfiles
 
 C Reset error indicator and check if running as a dll.
       ier1=0
@@ -829,20 +829,7 @@ C Note that this file uses a different error flag than
 C the global model definition as it can be specified separately.
          CALL CLMOPB(0,IClmErr)
          IF(iClmErr.eq.0)THEN
-            CALL CLMRDBMD(IClmErr)
-   
-C If older configuration, confirm the year.
-            if(icfgv.lt.3)then
-              helptopic='get_year_from_climate'
-              call gethelptext(helpinsub,helptopic,nbhelp)
-               IYEAR=ICYEAR
-               CALL EASKI(IYEAR,
-     &           'No model year defined (weather file year shown).',
-     &           'Simulation year?',
-     &           1900,'W',2050,'@',ICYEAR,'year from clim',
-     &           IClmErr,nbhelp)
-            endif
-            
+            CALL CLMRDBMD(IClmErr)           
          ELSE
 
 C Set weather definition flag to false .
@@ -1387,7 +1374,7 @@ C Check physical properties where possible.
               if(IWMOFF.ne.1)call edisp(iuout,outs)
               write(outs,'(A,A,2i3,A)')' the number of air gaps (',
      &         SMLCN(NZ1,NS1),NGAPS(NZ1,NS1),NGAPS(NZ2,NS2),
-     &         ') don not match.'
+     &         ') do not match.'
               if(IWMOFF.ne.1)call edisp(iuout,outs)
               IWARN=IWARN+1
               goto 20
@@ -1560,7 +1547,7 @@ C Reads additional zone descriptions if active.
       common/bsmtdef/iBSIMP(MCOM),LBSIMP(MCOM)
       COMMON/cfcall/icfcal(MNZ)
       COMMON/ACCrec/IACC(MNZ)
-      COMMON/ICFCHN/ICFMON(MNZ),ICFTMP,ICFLIB
+      COMMON/ICFCHN/ICFMON(MNZ),ICFDBC(MNZ),ICFTMP,ICFLIB
       common/param2/TITLE(MNZ),CFTRFL(MNZ),LPHI(MNZ)
       common/shad0/ISIcalc,icalcD,icalcM
 
@@ -1653,7 +1640,7 @@ C CFD domain.
         ICP=ICOMP
 
 C Set flags that indicate whether there is thermal and/or
-C netwrok air flow conflation. These flags affect how
+C network air flow conflation. These flags affect how
 C the .dfd file is read in. Five conflation mechanisms
 C are supported.
 C IBLD=1 - thermal conflation active and mapping between
@@ -1686,6 +1673,7 @@ C Set currentfile.
             CALL DFDREAD(ICOMP,itrc,itu,IER)
           endif
           CALL CFDLENS
+          CALL DEFINESSO
 
 C Open CFD monitoring file.
           ICFMON(ICFD) = IFIL + 19 + (ICFD-1)*100
@@ -1694,15 +1682,26 @@ C Open CFD monitoring file.
             write(outs,'(a,i2,a)') 
      &        'Error opening CFD monitoring file for domain ',ICFD,'.'
             call edisp(iuout,outs)
-          endif            
+          endif
+
+C Open CFD boundary condition export file.
+          ICFDBC(ICFD) = IFIL+24+(ICFD-1)*100
+          write(lfil,'(a14,i2.2,a4)')'../tmp/CFD-BC_',icfd,'.txt'
+          call efopseq(ICFDBC(ICFD),lfil,3,ier)
+          if(ier.ne.0)then
+            write(outs,'(a,i2,a)') 
+     &   'Error opening CFD boundary condition export file for domain ',
+     &      ICFD,'.'
+            call edisp(iuout,outs)
+          endif
 
 C If adaptive conflation control is active then open a file to record
 C the actions of the controller.
           if (ABS(IFCFD(ICOMP)).eq.4.or.ABS(IFCFD(ICOMP)).eq.5) then
-            write(lfil,'(a12,i2.2,a4)')'ACC-actions_',icfd,
-     &        '.rec'
+            write(lfil,'(a19,i2.2,a4)')'../tmp/ACC-actions_',icfd,
+     &        '.txt'
             IACC(ICFD) = IFIL + 29 + (ICFD-1)*100
-            call efopseq(IACC(ICFD),lfil,4,ier)
+            call efopseq(IACC(ICFD),lfil,3,ier)
             if(ier.ne.0)then
               write(outs,'(a,i2,a)') 
      &          'Error opening ACC-actions file for domain ',ICFD,'.'

@@ -26,11 +26,7 @@ C This version of FMI_ED just brings up a text box informing the user
 C that FMI is not available.
 
       SUBROUTINE FMI_ED(IER)
-
-C For help messages.
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
+#include "help.h"
 
       helpinsub='FMI_ED'  ! set for subroutine
       helptopic='FMI_disabled'

@@ -26,6 +26,7 @@ C ******************** MZCASI ********************************
 C MZCASI sets the present and future time-row total convective and
 C radiant casual gains.  Any control action (e.g. occupant behaviour, 
 C lighting)is applied here.
+
 C Returned variables are:
 C QCASRT - summation of the present and future time-row total radiant
 C          injections.
@@ -152,7 +153,8 @@ C presently used.
  
 C Store electrical power of lights and equipment, 
 C set up as casual gains on a zone-by-zone basis.
-      COMMON/CasPowerDat/Cas_Lights(MCOM),Cas_Equip(MCOM)
+      COMMON/CasPowerDat/Cas_Lights(MCOM),Cas_Equip(MCOM),
+     &     Cas_Lights2(MCOM),Cas_Equip2(MCOM)
 
 C Casual gain data.
 C NCGPER - number of periods for each gain (zone, day type, gain type).
@@ -180,7 +182,7 @@ C Adaptive comfort.
       COMMON/ADPCOM/PREVSTATWIN,PREVSTATFAN,PREVSTATLIGHT,TOTPWR(MCOM),
      &              TRMSTAT
 
-C Dnamic person model.
+C Dynamic person model.
       COMMON/CASGNSO/META1(MCOM,MDTY,MGTY,MGPER),
      &         NBMEN(MCOM,MDTY,MGTY,MGPER),NBWOM(MCOM,MDTY,MGTY,MGPER),
      &         NBCHI(MCOM,MDTY,MGTY,MGPER),CONCC(MCOM,MDTY,MGTY,MGPER),
@@ -310,7 +312,7 @@ C Named constants for timerows.
       logical OK
       logical bInStartup  ! logical function returning true if in startup period
 
-C SPR
+C Occupancy, for agents.
       common/occup/isocc(MCOM)
       logical isocc
 
@@ -481,7 +483,7 @@ C each casual gain so that it can be used within MZLS3.
         ctlperequipl(icomp,2)=VAL(ISD+8)
         ctlperotherl(icomp,2)=0.0
 
-C SPR: set occupancy flag.
+C Set occupancy flag for agents.
         isocc(ICOMP)=.false.
         if ((ctlperocupc(icomp,2)+
      &       ctlperocupr(icomp,2)+
@@ -764,7 +766,7 @@ C Initialise LGHT_ncm_Energy(icomp).
  333        continue
           endif          
 
-C CTotal number of start-up timesteps.
+C Total number of start-up timesteps.
 C           numbStartTimesteps=itcnst*NTSTEP*24
           if(i_countsteps(icomp).gt.numbStartTimesteps)then
 
@@ -954,36 +956,32 @@ C Determine the current period.
 C This if statement used to calculate the sensible and latent load from occupants in case of dynamic people.
 C Metabolic rate (METAo) is converted to watts: 1 Met = 58 W/m^2 and the mean surface area of the human body
 C is approximately 1.8 m^2 .
-           iGainSlot=iabs(ICGT(IDAY,IGN))
-           if(iGainSlot.gt.0)then
+          iGainSlot=iabs(ICGT(IDAY,IGN))
+          if(iGainSlot.gt.0)then
 
-             INDX=ICOMP*(-1)   ! negate the zone index for use in mzmixt
-             CALL MZMIXT(INDX,TMRT,TMIX)
-             TAIR=TPA(ICOMP)
-             TOP=0.5*TMRT+0.5*TAIR 
+            INDX=ICOMP*(-1)   ! negate the zone index for use in mzmixt
+            CALL MZMIXT(INDX,TMRT,TMIX)
+            TAIR=TPA(ICOMP)
+            TOP=0.5*TMRT+0.5*TAIR 
 C             call MZVAPC(ICOMP,ZRH,CNDS)   ! not used
-    
-             RHOCC=PCRH2(TPA(ICOMP),GPA(ICOMP),PATMOS)/100.0
-             if (RHOC.GE.100) then
-              RHOCC=0.99
-              endif
-             HMETA1=META1(ICOMP,IDAY,IGN,IPER)
+  
+            RHOCC=PCRH2(TPA(ICOMP),GPA(ICOMP),PATMOS)/100.0
+            if (RHOC.GE.100) RHOCC=0.99
+            HMETA1=META1(ICOMP,IDAY,IGN,IPER)
 C             HMETA2=META2(ICOMP,IDAY,IGN,IPER)           
-             METAo=META1(ICOMP,IDAY,IGN,IPER)*58*1.8
-             CONCCO=CONCC(ICOMP,IDAY,IGN,IPER)
-             RADCCO=RADCC(ICOMP,IDAY,IGN,IPER)
-             tatsix=itmp(6)/10.
+            METAo=META1(ICOMP,IDAY,IGN,IPER)*58*1.8
+            CONCCO=CONCC(ICOMP,IDAY,IGN,IPER)
+            RADCCO=RADCC(ICOMP,IDAY,IGN,IPER)
+            tatsix=itmp(6)/10.
 
 C Dynamic clothing prediction based on t out at 6 am and Tmix.
-             CLOTHO=10**(0.2134-0.0063*tatsix-0.0165*TMIX)
-             if(CLOTHO.le.0.4)CLOTHO=0.4
-             if(CLOTHO.GE.1.1)CLOTHO=1.1
-             if (NSINC.LE.2)then
-             msegflag=0
-             endif
-             TOCN=NBMEN(ICOMP,IDAY,IGN,IPER)+
+            CLOTHO=10**(0.2134-0.0063*tatsix-0.0165*TMIX)
+            if(CLOTHO.le.0.4)CLOTHO=0.4
+            if(CLOTHO.GE.1.1)CLOTHO=1.1
+            if (NSINC.LE.2)msegflag=0
+            TOCN=NBMEN(ICOMP,IDAY,IGN,IPER)+
      &          NBWOM(ICOMP,IDAY,IGN,IPER)+NBCHI(ICOMP,IDAY,IGN,IPER)
-             if(caskeytype(ICOMP,iGainSlot)(1:13).eq.
+            if(caskeytype(ICOMP,iGainSlot)(1:13).eq.
      &          'dynamicpeople'.and. 
      &            lodatr1(ICOMP,IGN).GT.0.or.TOCN.GT.0.1) then
 
@@ -999,12 +997,12 @@ C       E = rate of heat loss by evaporation, respiration and elimination;
 C       R = radiation rate;
 C       C = conduction and convection rate;
 C       S = body heat storage rate.
-               if(lodatr1(ICOMP,IGN).eq.1)then
-                 SGAIN=198.42617-3.80901*TOP-0.05419*TOP**2-0.42472*
+              if(lodatr1(ICOMP,IGN).eq.1)then
+                SGAIN=198.42617-3.80901*TOP-0.05419*TOP**2-0.42472*
      &             METAo+0.00171*METAo**2+0.01287*TOP*METAo-
      &             0.00004*TOP*METAo**2+0.00002*METAo*TOP**2-
      &             0.00000038516*METAo**2*TOP**2    
-                 LGAIN=227.89011-14.95202*TOP+0.24884*TOP**2-
+                LGAIN=227.89011-14.95202*TOP+0.24884*TOP**2-
      &             2.56734 *METAo+0.00715*METAo**2+
      &             0.132*TOP*METAo-0.00017*TOP*METAo**2-
      &             0.00107*METAo*TOP**2
@@ -1012,79 +1010,64 @@ C       S = body heat storage rate.
 C Polynomial equation from Energy Plus (function of Temperature and metabolic rate).
 C If E should be always positive, this polynomial is inefficient, for example when
 C temperature goes below 14C at Met = 100 W (ASHRAE).
-               elseif(lodatr1(ICOMP,IGN).eq.2)then
-                 SGAIN=6.461927+0.946892*METAo+0.0000255737*METAo**2+
+              elseif(lodatr1(ICOMP,IGN).eq.2)then
+                SGAIN=6.461927+0.946892*METAo+0.0000255737*METAo**2+
      &             7.139322*TOP-0.0627909*TOP*METAo+
      &             0.0000589172*TOP*METAo**2-
      &             0.19855*TOP**2+0.000940018*TOP**2*METAo-
      &             0.00000149532*TOP**2*METAo**2
-                 LGAIN=METAo-SGAIN 
+                LGAIN=METAo-SGAIN 
 
-               elseif(lodatr1(ICOMP,IGN).eq.3)then
-                 if(TOCN.GT.0.1)then
+              elseif(lodatr1(ICOMP,IGN).eq.3)then
+                if(TOCN.GT.0.1)then
 
 C Call the dynamic two node model (subroutine in dynamicoccup.F).
-                   call DynamicOcc(ICOMP,METAo,CLOTHO)  
-                   SGAIN=skcon(ICOMP)
-                   LGAIN=sklat(ICOMP)
-                 endif
- 
-               elseif(lodatr1(ICOMP,IGN).eq.4)then
-                 if(TOCN.GE.0.5)then
-                   headflux1=0.0 
-                   trunkflux1=0.0
-                   larmflux1=0.0
-                   rarmflux1=0.0
-                   llegflux1=0.0
-                   rlegflux1=0.0
-                   H2Oexp1=0.0
-                   H2Oswt1=0.0
-                   headflux2=0.0 
-                   trunkflux2=0.0
-                   larmflux2=0.0
-                   rarmflux2=0.0
-                   llegflux2=0.0
-                   rlegflux2=0.0
-                   H2Oexp2=0.0
-                   H2Oswt2=0.0
+                  call DynamicOcc(ICOMP,METAo,CLOTHO)  
+                  SGAIN=skcon(ICOMP)
+                  LGAIN=sklat(ICOMP)
+                endif
 
-C Call the dynamic multi-node, multi-segmented, physiological model.
-C                  if(HMETA2.GT.1)then
-C                  call segmentedocc(HMETA1,Top,RHOCC,1,CLOTHO)
-C                  call segmentedocc(HMETA2,Top,RHOCC,2,CLOTHO)                    
-C                  SGAIN=Qoccsens1+Qoccsens2 
-C                  LGAIN=Qocclat1+Qocclat2
-C                  msegflag=1
-C                  else
-                   call segmentedocc(HMETA1,Top,RHOCC,1,CLOTHO)
-                   SGAIN=Qoccsens1
-                   LGAIN=Qocclat1
-                   cfdcheck=0
-                   msegflag=1
-C                  endif
-                 endif
-               endif
+              elseif(lodatr1(ICOMP,IGN).eq.4)then
+                if(TOCN.GE.0.5)then
+                  headflux1=0.0 
+                  trunkflux1=0.0
+                  larmflux1=0.0
+                  rarmflux1=0.0
+                  llegflux1=0.0
+                  rlegflux1=0.0
+                  H2Oexp1=0.0
+                  H2Oswt1=0.0
+                  headflux2=0.0 
+                  trunkflux2=0.0
+                  larmflux2=0.0
+                  rarmflux2=0.0
+                  llegflux2=0.0
+                  rlegflux2=0.0
+                  H2Oexp2=0.0
+                  H2Oswt2=0.0
+                endif
+              endif
 
 C CGSECo CGSERo and CGLATo are the total convective radiative and
 C latent load from occupants taking into consideration number of
 C people and age/gender.
-                 CGSECo=(SGAIN*NBMEN(ICOMP,IDAY,IGN,IPER)+
-     &              0.85*SGAIN*NBWOM(ICOMP,IDAY,IGN,IPER)+
-     &              0.75*SGAIN*NBCHI(ICOMP,IDAY,IGN,IPER))*
-     &              CONCCO
-                 CGSERo=(SGAIN*NBMEN(ICOMP,IDAY,IGN,IPER)+
-     &              0.85*SGAIN*NBWOM(ICOMP,IDAY,IGN,IPER)+
-     &              0.75*SGAIN*NBCHI(ICOMP,IDAY,IGN,IPER))*
-     &              RADCCO
-                 CGLATo=LGAIN*NBMEN(ICOMP,IDAY,IGN,IPER)+
-     &              0.85*LGAIN*NBWOM(ICOMP,IDAY,IGN,IPER)+
-     &              0.75*LGAIN*NBCHI(ICOMP,IDAY,IGN,IPER)
+              CGSECo=(SGAIN*NBMEN(ICOMP,IDAY,IGN,IPER)+
+     &          0.85*SGAIN*NBWOM(ICOMP,IDAY,IGN,IPER)+
+     &          0.75*SGAIN*NBCHI(ICOMP,IDAY,IGN,IPER))*
+     &          CONCCO
+              CGSERo=(SGAIN*NBMEN(ICOMP,IDAY,IGN,IPER)+
+     &          0.85*SGAIN*NBWOM(ICOMP,IDAY,IGN,IPER)+
+     &          0.75*SGAIN*NBCHI(ICOMP,IDAY,IGN,IPER))*
+     &          RADCCO
+              CGLATo=LGAIN*NBMEN(ICOMP,IDAY,IGN,IPER)+
+     &          0.85*LGAIN*NBWOM(ICOMP,IDAY,IGN,IPER)+
+     &          0.75*LGAIN*NBCHI(ICOMP,IDAY,IGN,IPER)
 
-                  CGSENC(ICOMP,IDAY,IGN,IPER)=CGSECo
-                  CGSENR(ICOMP,IDAY,IGN,IPER)=CGSERo
-                  CGLAT(ICOMP,IDAY,IGN,IPER)=CGLATo
-              endif
-           endif
+              CGSENC(ICOMP,IDAY,IGN,IPER)=CGSECo
+              CGSENR(ICOMP,IDAY,IGN,IPER)=CGSERo
+              CGLAT(ICOMP,IDAY,IGN,IPER)=CGLATo
+            endif
+          endif
 
 C Set future casual gain values if there are periods defined.
           if(IPER.gt.0)then
@@ -1103,7 +1086,7 @@ C by value from FMU.
               endif
               CGCTL(ICOMP,2,IGN)=CGCTL(ICOMP,2,IGN)*rtmp
 
-C SPR: Set occupancy flag.
+C Set occupancy flag for agents.
               if (IGN.eq.1) then
                 isocc(ICOMP)=.false.
                 if ((CGSENC(ICOMP,IDAY,IGN,IPER)+
@@ -1164,12 +1147,18 @@ C Keep track of electrical loads for trace.
   75            CONTINUE
               ENDIF 
             endif
+
+            Cas_Lights2(icomp) = CGCTL(ICOMP,2,2)*
+     &          (CGSENC(ICOMP,IDAY,2,IPER)+CGSENR(ICOMP,IDAY,2,IPER))
+            Cas_Equip2(icomp)  = CGCTL(ICOMP,2,3)*
+     &          (CGSENC(ICOMP,IDAY,3,IPER)+CGSENR(ICOMP,IDAY,3,IPER))
+
           endif
  10     continue   ! end of gain type loop
       
 C Store real power consumption for lights and equipment.
-          Cas_Lights(icomp) = -1. * pezon(icomp,2)    ! lights are casual gain type 2
-          Cas_Equip(icomp) = -1. * pezon(icomp,3)     ! equipment is casual gain type 3     
+        Cas_Lights(icomp) = -1. * pezon(icomp,2)    ! lights are casual gain type 2
+        Cas_Equip(icomp) = -1. * pezon(icomp,3)     ! equipment is casual gain type 3
       
 
        ENDIF    ! HOT3000 Base Loads conditional block
@@ -1327,7 +1316,7 @@ C Remember future values for next timestep.
       QCRS(ICOMP)=QCASR(2)
       QLAT(ICOMP)=QLATN(2)
     
-C If first timeste, set previous values to current.
+C If first timestep, set previous values to current.
       if(NSINC.eq.1)then
         QCASC(1)=QCASC(2)
         QCASR(1)=QCASR(2)
@@ -2286,7 +2275,7 @@ C Warn about negative luminance.
               call edisp(iuout,outs)
             endif
 
-C Check if direct sun, If yes then calculate its contribution
+C Check if direct sun, if yes then calculate its contribution
 C to sensor illuminance.
             call eclose(QDIR,0.00,0.01,closea)
             if(closea)then

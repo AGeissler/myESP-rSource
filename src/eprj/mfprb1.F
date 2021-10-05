@@ -39,12 +39,11 @@ C fluid flow model description file.
 #include "model.h"
 #include "geometry.h"
 #include "esprdbfile.h"
-C esprdbfile.h supplies the following:
-C LPRFDB,IPRODB (for event profile database)
 #include "net_flow.h"
 #include "net_flow_data.h"
 #include "prj3dv.h"
-      
+#include "help.h"
+
       integer lnblnk  ! function definition
       INTEGER, PARAMETER :: MNWKTYP=6  ! from gnetwk.h
       COMMON/FILEP/IFIL
@@ -94,12 +93,7 @@ C      COMMON/MFLITR/MAXITF,FERREL,FERMFL,PMAX,STEFFR,MFTRAC,ITER,IOK
       logical nowind
       integer ISTRW
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='MFPROB'  ! set for subroutine
+      helpinsub='mfprb1'  ! set for subroutine
 
 C Set folder separator (fs) to \ or / as required.
       call isunix(unixok)
@@ -833,6 +827,8 @@ C << if IAIRN=3 could we use mfnodeposition ?? >>
 #include "model.h"
 #include "geometry.h"
 #include "prj3dv.h"
+#include "help.h"
+
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
       COMMON/FILEP/IFIL
@@ -853,12 +849,7 @@ C << if IAIRN=3 could we use mfnodeposition ?? >>
       integer IVV   ! for radio button
       logical changed
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='FLOWNODES'  ! set for subroutine
+      helpinsub='mfprb1'  ! set for subroutine
 
       CALL USRMSG(' ','Input/edit node data: ','-')
       changed=.false.
@@ -998,7 +989,7 @@ C (Re)Set all surfaces to standard line width.
             IC=-1; IZ=-1
             WRITE(OUTS,'(A)') 
      &        'Select zone to associated with this node. '
-            CALL ASKZONE(IC,0,OUTS,'Select zone:','-','mfn locate',
+            CALL ASKZONE(IC,0,'Select zone:','-','mfn locate',
      &        32,IER)
             call usrmsg(' ',' ','-')
             if(IC.EQ.0.OR.IC.EQ.-1)then
@@ -1045,7 +1036,7 @@ C (Re)Set all surfaces to standard line width.
             CALL redraw(IER)
           endif
           WRITE(OUTS,'(A)') 'Select the zone containing the surface.'
-          CALL ASKZONE(IZ,0,OUTS,'Select zone','-','wpn locate',
+          CALL ASKZONE(IZ,0,'Select zone','-','wpn locate',
      &      32,IER)
           IF(IZ.NE.0)then
             VALHX=ZCOG(IZ,1); VALHY=ZCOG(IZ,2)
@@ -1266,6 +1257,8 @@ C Menu to edit flow node attributes.
 #include "geometry.h"
 #include "epara.h"
 #include "prj3dv.h"
+#include "help.h"
+
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/FILEP/IFIL
 
@@ -1290,12 +1283,7 @@ C Menu to edit flow node attributes.
       integer iz,iso,izuser,isouser  ! for selected zone and surface
       logical changed,found
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='FLOWNODES'  ! set for subroutine
+      helpinsub='mfprb1'  ! set for subroutine
 
       changed=.false.
       ifoc=0;
@@ -1525,11 +1513,10 @@ C (Re)Set all surfaces to standard line width.
               CALL redraw(IER)
             endif
 
-            write(outs,'(a,a)')'Which zone is associated with ',
+            write(outs,'(a,a)')'Zone associated with ',
      &        NDNAM(IFNOD)
             IC=-1; IZ=-1
-            CALL ASKZONE(IC,0,OUTS,'Select zone:','-','mfn locate',
-     &        32,IER)
+            CALL ASKZONE(IC,0,OUTS,'-','mfn locate',32,IER)
             call usrmsg(' ',' ','-')
             if(IC.EQ.0.OR.IC.EQ.-1)then
               ZVOL=SUPNOD(IFNOD,2)
@@ -1571,7 +1558,7 @@ C (Re)Set all surfaces to standard line width.
             CALL redraw(IER)
           endif
           WRITE(OUTS,'(A)') 'Select the zone containing the surface.'
-          CALL ASKZONE(IZ,0,OUTS,'Select zone','-','wpn locate',
+          CALL ASKZONE(IZ,0,'Select zone','-','wpn locate',
      &      32,IER)
           IF(IZ.NE.0)then
             VALHX=ZCOG(IZ,1); VALHY=ZCOG(IZ,2)
@@ -1889,6 +1876,8 @@ C       'C' - Copy
 #include "net_flow.h"
 #include "net_flow_data.h"
 #include "prj3dv.h"
+#include "help.h"
+
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/AFN/IAIRN,LAPROB,ICAAS(MCOM)
@@ -1900,12 +1889,7 @@ C       'C' - Copy
       LOGICAL OK,iswater
       logical changed
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='MFCDES'  ! set for subroutine
+      helpinsub='mfprb1'  ! set for subroutine
       changed=.false.
    
       IF(MOD.EQ.'A'.OR.MOD.EQ.'E')THEN
@@ -1943,10 +1927,32 @@ C Highlight component.
         helptopic='flow_network_comp_name'
         call gethelptext(helpinsub,helptopic,nbhelp)
 
-C Proceed?
-        write(msg,'(3a)') 'Edit component ',CMPID(1:lnblnk(CMPID)),'?  '
-        call easkok(' ',msg,OK,nbhelp)
-        if(.NOT.OK)return
+  422    write(msg,'(2a)') 'Edit component ',CMPID(1:lnblnk(CMPID))
+        CALL EASKABC(' ','Options:',
+     &    'Review details',msg,'Continue',ICLC,nbhelp)
+        
+C Echo summary of this component and confirm user wishes to proceed.
+        if(ICLC.eq.1.or.ICLC.eq.2)then
+          WRITE(outs,'(1X,A60)') LTPCMP(IFCMP)
+          call edisp(iuout,' ')
+          call edisp(iuout,outs)
+          CALL EDISP(iuout,
+     &      ' Component    Type C+ L+ X Y Z Position Description')
+          WRITE(outs,'(1x,a,i5,i3,i3,3f6.1,1x,a)')
+     &      CMNAM(IFCMP),ITPCMP(IFCMP),
+     &      ISDCMP(IFCMP),ISDCNN(IFCMP),HCMP(IFCMP,1,1),
+     &      HCMP(IFCMP,1,2),HCMP(IFCMP,1,3),LTPCMP(IFCMP)
+            call edisp(iuout,outs)
+          lnczn=lnblnk(CMPASSOC(IFCMP,1))
+          lncsn=lnblnk(CMPASSOC(IFCMP,2))
+          write(outs,'(4a)') ' Associated with ',
+     &      CMPASSOC(IFCMP,1)(1:lnczn),':',
+     &      CMPASSOC(IFCMP,2)(1:lncsn)
+          call edisp(iuout,outs)
+        else
+          return                ! return to calling subroutine
+        endif
+        if(ICLC.eq.1) goto 422  ! offer use choice again
 
  4      T12=CMPID
         CALL EASKS(T12,' ',' Component name (<= 12 characters):',
@@ -2188,31 +2194,33 @@ C MOD - 'A' - Add
 C       'D' - Delete
 C       'E' - Edit
 C       'C' - Copy
+
       SUBROUTINE MFLDES(MOD,ICON)
 #include "building.h"
 #include "net_flow.h"
 #include "net_flow_data.h"
+#include "control.h"
 #include "prj3dv.h"
+#include "help.h"
 
       integer lnblnk  ! function definition
 
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
+      common/FILEP/IFIL
+      INTEGER :: ifil
       COMMON/AFN/IAIRN,LAPROB,ICAAS(MCOM)
       INTEGER :: iairn,icaas
       CHARACTER LAPROB*72
+      common/cctlnm/ctldoc,lctlf
+      character CTLDOC*248,LCTLF*72
 
       CHARACTER outs*124,msg*72
       CHARACTER MOD*1
-      LOGICAL OK,DMFCON
-      logical changed
+      LOGICAL OK,DMFCON,XST
+      logical changed,cfound
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='MFLDES'  ! set for subroutine
+      helpinsub='mfprb1'  ! set for subroutine
       changed=.false.
       IFCN=0
 
@@ -2247,17 +2255,29 @@ C matching fluid types and return data.
      &    ') @ ',HCMP(ITPCON(IFCN),1,3)
           call edisp(iuout,outs)
 
-          write(msg,'(7a)') 'Edit connection ',NDNAM(NODPS(IFCN)),'->',
-     &      NDNAM(NODNE(IFCN)),' via ',CMNAM(ITPCON(IFCN)),'? '
-          call easkok(' ',msg,OK,nbhelp)
-          if(.NOT.OK)return
-    
-          call easkok(' ','Accept currently associated nodes? ',
-     &         OK,nbhelp)
-          IF(OK)then
+          write(msg,'(7a)') 'Options for connection  ',
+     &      NDNAM(NODPS(IFCN)),'->',NDNAM(NODNE(IFCN)),
+     &      ' via ',CMNAM(ITPCON(IFCN)),': '
+
+C Offer choice of reversing connection or editing connection.
+          CALL EASKABCD(msg,' ','reverse connection',
+     &      'accept current nodes & pick cmp','edit all',
+     &      'continue',ICLC,nbhelp)
+          if(ICLC.eq.1)then
+            IS=NODNE(IFCN)
+            IE=NODPS(IFCN)
+            INODPS=IS; NODPS(IFCN)=IS
+            INODNE=IE; NODNE(IFCN)=IE
+            changed=.true.
+            goto 80  ! jump to specify the linking component
+          elseif(ICLC.eq.2)then
             INODPS=NODPS(IFCN)
             INODNE=NODNE(IFCN)
             goto 80  ! jump to specify the linking component
+          elseif(ICLC.eq.3)then
+            continue
+          elseif(ICLC.eq.4)then
+            return
           endif
 
 C Generate prompt for positive node.
@@ -2265,7 +2285,7 @@ C Generate prompt for positive node.
      &    '  First (+ve) node: (currently ',NDNAM(NODPS(IFCN)),')'
         ELSE
           WRITE(OUTS,'(A)')
-     &'  First (+ve) node: (currently NONE)'
+     &    '  First (+ve) node: (currently NONE)'
         ENDIF
         CALL EPMENSV
         call ASKRNOD(outs,'-',IS,IER)
@@ -2273,10 +2293,10 @@ C Generate prompt for positive node.
         IF(IS.EQ.0) RETURN
         IF(MOD.EQ.'E')THEN
           WRITE(OUTS,'(A,A12,A)')
-     &'  Second (-ve) node: (currently ',NDNAM(NODNE(IFCN)),')'
+     &    '  Second (-ve) node: (currently ',NDNAM(NODNE(IFCN)),')'
         ELSE
           WRITE(OUTS,'(A)')
-     &'  Second (-ve) node: (currently NONE)'
+     &    '  Second (-ve) node: (currently NONE)'
         ENDIF
         CALL EPMENSV
         call ASKRNOD(outs,'-',IE,IER)
@@ -2294,7 +2314,7 @@ C Generate prompt for positive node.
           helptopic='flow_fluid_not_match'
           call gethelptext(helpinsub,helptopic,nbhelp)
           call easkok('Fluid type mismatch!','Retry?',
-     &          OK,nbhelp)
+     &        OK,nbhelp)
           IF(.NOT.OK) RETURN
           goto 19
         endif
@@ -2535,7 +2555,7 @@ C Refresh the network overly now that NCNN has been updated.
           call MFWFDRAW('r')
         endif
         
-      ELSEIF(MOD.EQ.'D')THEN
+      ELSEIF(MOD.EQ.'D')THEN     ! -------- delete connection
         IFCN=ICON
         if(MMOD.eq.8.and.IAIRN.eq.3)then
           call draw_connect_assoc(IFCN)
@@ -2543,7 +2563,8 @@ C Refresh the network overly now that NCNN has been updated.
         call easkok(' ','Delete this connection? ',OK,nbhelp)
         if(.NOT.OK)return
 
-C Delete a connection
+C Delete a connection. First check if there is a flow control which
+C is associated with any subsequent connection and decrement IFAN(?,2).
         IFCN=ICON
         IF(IFCN.LT.NCNN) THEN
           DO 76 I=IFCN,NCNN-1
@@ -2558,6 +2579,29 @@ C Delete a connection
         ENDIF
         NCNN=NCNN-1  
         changed=.true.
+        call updatebothflownetworks(ier)
+
+C If flow control check for controls associated with connections
+C greater than ICON and decrement IFAN connection index.
+        IUF=IFIL+2
+        ICTLF=IUF
+        CALL ERPFREE(ICTLF,ISTAT)
+        call FINDFIL(LCTLF,XST)
+        if(XST)then
+          CALL EZCTLR(ICTLF,0,IUOUT,IER)
+          cfound=.false.
+          if(NCC.gt.0)then
+            DO I=1,NCC
+              if(IFAN(I,1).eq.-3)then
+                if(IFAN(I,2).gt.ICON)then
+                  IFAN(I,2)=IFAN(I,2)-1
+                  cfound=.true.
+                endif
+              endif
+            ENDDO
+            if(cfound) call CTLWRT(ICTLF,IER)
+          endif
+        endif
 
 C Refresh the network overly.
         if(MMOD.eq.8.and.IAIRN.eq.3)then
@@ -2567,9 +2611,8 @@ C Refresh the network overly.
           CALL redraw(IER)
           call MFWFDRAW('r')
         endif
-
-C Copy a connection   
-      ELSEIF(MOD.EQ.'C')THEN
+ 
+      ELSEIF(MOD.EQ.'C')THEN     ! -------- copy connection
         IFCN=ICON
         if(MMOD.eq.8.and.IAIRN.eq.3)then 
           call draw_connect_assoc(IFCN)
@@ -2618,6 +2661,8 @@ C Fluid flow model file: edit or input wind speed reduction factor
 #include "model.h"
 #include "geometry.h"
 #include "prj3dv.h"
+#include "help.h"
+
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/FILEP/IFIL
       COMMON/MFLCLM/DRYB,QDIF,QDNR,IRVH,WDIR,WSPD,WRED
@@ -2627,12 +2672,7 @@ C Fluid flow model file: edit or input wind speed reduction factor
       CHARACTER outs*124
       LOGICAL OK
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='MFWRED'  ! set for subroutine
+      helpinsub='mfprb1'  ! set for subroutine
 
 C Warn if current wind reduction factor is zero
       helptopic='flow_wind_reduction'
@@ -2664,8 +2704,7 @@ C Direct input of wind speed reduction factor.
 C Allow the user to select the roof of the building
       CALL PHELPD('wind model',nbhelp,'-',0,0,IER)
       IZ=0
-      CALL ASKZONE(IZ,0,'Select the zone containing the roof.',
-     &  'Select zone','-','wpn locate',32,IER)
+      CALL ASKZONE(IZ,0,'Select zone','-','wpn locate',32,IER)
       ISZONE=IZ
       IF(IZ.NE.0) VALHZ=ZCOG(IZ,3)
       call usrmsg(' ',' ','-')
@@ -2788,6 +2827,7 @@ C            be a new network
 #include "net_flow.h"
 #include "net_flow_data.h"
 #include "prj3dv.h"
+#include "help.h"
 
       INTEGER, PARAMETER :: MNWKTYP=6  ! from gnetwk.h
 
@@ -2855,12 +2895,7 @@ C components needed for a network equivalent of zone operations.
       integer gr02forcurrent,gr04forcurrent,gr06forcurrent
       integer nodeforcurrent,IGN
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='MFNAUTO'  ! set for subroutine
+      helpinsub='mfprb1'  ! set for subroutine
 
 C Set folder separator (fs) to \ or / as required.
       call isunix(unixok)

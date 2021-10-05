@@ -13,11 +13,6 @@ C warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
 C PURPOSE. See the GNU General Public License for more
 C details.
 
-C You should have received a copy of the GNU General Public
-C License along with ESP-r. If not, write to the Free
-C Software Foundation, Inc., 59 Temple Place, Suite 330,
-C Boston, MA 02111-1307 USA.
-
 C This file contains subroutines to write and read property fields.
 C Contains:
 C  PRNPHI - Write PHI files (The format required by PHOTON - PHOENICS graphic analyser)
@@ -346,7 +341,7 @@ C Call with parameter "IFRAME" which is the time step!
      &  izende(MNZ)
       COMMON/ICFNOD/ICFD,ICP
       common/blksso/NBLK(MNZ),INBLK(MNVLS,MNZ),NSSO(MNZ),
-     &          INSSO(MNVLS,MNZ)
+     &          INSSO(MNVLS,MNZ),BLKTEMP(MNVLS,MNZ,6)
       common/KEYVOLS/NVOL(MNZ),IVOLF(MNVLS,MNZ),IVCELLS(MNVLS,MNZ,2),
      &               JVCELLS(MNVLS,MNZ,2),KVCELLS(MNVLS,MNZ,2)    
       common/KEYVDAT/IVTYPE(MNVLS,MNZ),VOLTemp(MNVLS,MNZ),
@@ -510,7 +505,7 @@ C
      &  izende(MNZ)
       COMMON/ICFNOD/ICFD,ICP
       common/blksso/NBLK(MNZ),INBLK(MNVLS,MNZ),NSSO(MNZ),
-     &          INSSO(MNVLS,MNZ)
+     &          INSSO(MNVLS,MNZ),BLKTEMP(MNVLS,MNZ,6)
       common/KEYVOLS/NVOL(MNZ),IVOLF(MNVLS,MNZ),IVCELLS(MNVLS,MNZ,2),
      &               JVCELLS(MNVLS,MNZ,2),KVCELLS(MNVLS,MNZ,2)    
       common/KEYVDAT/IVTYPE(MNVLS,MNZ),VOLTemp(MNVLS,MNZ),

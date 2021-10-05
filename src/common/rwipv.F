@@ -619,7 +619,7 @@ C See ipvdata.h and ripvdat for IPV common block information.
 
       character outs*124,outs2*248
       character act*1
-      character descr*7,descrst*10,descrfn*10
+      character descr*7,descrst*10,descrfn*10,descr2st*8,descr2fn*8
       character zdescr*248   ! sized to hold 72 zone names
       character descra*7,descrb*7,descrc*7,descrd*7,descre*7
 
@@ -667,8 +667,8 @@ C See ipvdata.h and ripvdat for IPV common block information.
         if(nipvassmt.eq.0)then
           call edisp(itru,'Simulations not yet defined.')
         elseif(nipvassmt.eq.1)then
-          call stdate(iyear,ipvastjd(1),descr,descrst)
-          call stdate(iyear,ipvafnjd(1),descr,descrfn)
+          call stdate(iyear,ipvastjd(1),descr,descrst,descr2st)
+          call stdate(iyear,ipvafnjd(1),descr,descrfn,descr2fn)
           jjd1=(ipvafnjd(1)-ipvastjd(1))+1
           if(markdown)then
             write(outs,'(4a,i4,2a)') 'annual  ',descrst,' to ',
@@ -679,8 +679,8 @@ C See ipvdata.h and ripvdat for IPV common block information.
           endif
           call edisp(itru,outs)
         elseif(nipvassmt.eq.3)then
-          call stdate(iyear,ipvastjd(1),descr,descrst)
-          call stdate(iyear,ipvafnjd(1),descr,descrfn)
+          call stdate(iyear,ipvastjd(1),descr,descrst,descr2st)
+          call stdate(iyear,ipvafnjd(1),descr,descrfn,descr2fn)
           jjd1=(ipvafnjd(1)-ipvastjd(1))+1
           if(markdown)then
             write(outs,'(4a,i4,2a)') 'winter  ',descrst,' to ',
@@ -690,8 +690,8 @@ C See ipvdata.h and ripvdat for IPV common block information.
      &      descrfn,jjd1,' ',ipvadesc(1)
           endif
           call edisp(itru,outs)
-          call stdate(iyear,ipvastjd(2),descr,descrst)
-          call stdate(iyear,ipvafnjd(2),descr,descrfn)
+          call stdate(iyear,ipvastjd(2),descr,descrst,descr2st)
+          call stdate(iyear,ipvafnjd(2),descr,descrfn,descr2fn)
           jjd2=(ipvafnjd(2)-ipvastjd(2))+1
           if(markdown)then
             write(outs,'(4a,i4,2a)') 'trans   ',descrst,' to ',
@@ -701,8 +701,8 @@ C See ipvdata.h and ripvdat for IPV common block information.
      &      descrfn,jjd2,' ',ipvadesc(2)
           endif
           call edisp(itru,outs)
-          call stdate(iyear,ipvastjd(3),descr,descrst)
-          call stdate(iyear,ipvafnjd(3),descr,descrfn)
+          call stdate(iyear,ipvastjd(3),descr,descrst,descr2st)
+          call stdate(iyear,ipvafnjd(3),descr,descrfn,descr2fn)
           jjd3=(ipvafnjd(3)-ipvastjd(3))+1
           if(markdown)then
             write(outs,'(4a,i4,2a)')  'summer  ',descrst,' to ',
@@ -713,8 +713,8 @@ C See ipvdata.h and ripvdat for IPV common block information.
           endif
           call edisp(itru,outs)
         elseif(nipvassmt.eq.5)then
-          call stdate(iyear,ipvastjd(1),descr,descrst)
-          call stdate(iyear,ipvafnjd(1),descr,descrfn)
+          call stdate(iyear,ipvastjd(1),descr,descrst,descr2st)
+          call stdate(iyear,ipvafnjd(1),descr,descrfn,descr2fn)
           jjd1=(ipvafnjd(1)-ipvastjd(1))+1
           if(markdown)then
             write(outs,'(4a,i4,2a)')  '1st win  ',descrst,' to ',
@@ -724,8 +724,8 @@ C See ipvdata.h and ripvdat for IPV common block information.
      &        descrfn,jjd1,' ',ipvadesc(1)
           endif
           call edisp(itru,outs)
-          call stdate(iyear,ipvastjd(2),descr,descrst)
-          call stdate(iyear,ipvafnjd(2),descr,descrfn)
+          call stdate(iyear,ipvastjd(2),descr,descrst,descr2st)
+          call stdate(iyear,ipvafnjd(2),descr,descrfn,descr2fn)
           jjd2=(ipvafnjd(2)-ipvastjd(2))+1
           if(markdown)then
             write(outs,'(4a,i4,2a)')  'spring   ',descrst,' to ',
@@ -735,8 +735,8 @@ C See ipvdata.h and ripvdat for IPV common block information.
      &      descrfn,jjd2,' ',ipvadesc(2)
           endif
           call edisp(itru,outs)
-          call stdate(iyear,ipvastjd(3),descr,descrst)
-          call stdate(iyear,ipvafnjd(3),descr,descrfn)
+          call stdate(iyear,ipvastjd(3),descr,descrst,descr2st)
+          call stdate(iyear,ipvafnjd(3),descr,descrfn,descr2fn)
           jjd3=(ipvafnjd(3)-ipvastjd(3))+1
           if(markdown)then
             write(outs,'(4a,i4,2a)')  'summer   ',descrst,' to ',
@@ -746,8 +746,8 @@ C See ipvdata.h and ripvdat for IPV common block information.
      &      descrfn,jjd3,' ',ipvadesc(3)
           endif
           call edisp(itru,outs)
-          call stdate(iyear,ipvastjd(4),descr,descrst)
-          call stdate(iyear,ipvafnjd(4),descr,descrfn)
+          call stdate(iyear,ipvastjd(4),descr,descrst,descr2st)
+          call stdate(iyear,ipvafnjd(4),descr,descrfn,descr2fn)
           jjd4=(ipvafnjd(4)-ipvastjd(4))+1
           if(markdown)then
             write(outs,'(4a,i4,2a)')  'autumn   ',descrst,' to ',
@@ -757,8 +757,8 @@ C See ipvdata.h and ripvdat for IPV common block information.
      &      descrfn,jjd4,' ',ipvadesc(4)
           endif
           call edisp(itru,outs)
-          call stdate(iyear,ipvastjd(5),descr,descrst)
-          call stdate(iyear,ipvafnjd(5),descr,descrfn)
+          call stdate(iyear,ipvastjd(5),descr,descrst,descr2st)
+          call stdate(iyear,ipvafnjd(5),descr,descrfn,descr2fn)
           jjd5=(ipvafnjd(5)-ipvastjd(5))+1
           if(markdown)then
             write(outs,'(4a,i4,2a)')  '2nd win  ',descrst,' to ',
@@ -774,7 +774,7 @@ C Display days.
         if(nipvdispjd.gt.0)then
           call edisp(itru,'  ')
           do 155 ix=1,nipvdispjd
-            call stdate(iyear,ipvdispjd(ix),descr,descrst)
+            call stdate(iyear,ipvdispjd(ix),descr,descrst,descr2st)
             write(outs,'(3a)')  'display day ',descrst,'.'
             call edisp(itru,outs)
   155     continue
@@ -793,19 +793,19 @@ C Display days.
           call edisp(itru,
      &    '         winter  spring  summer  autumn  winter')
         endif
-        call stdate(iyear,is1wins,descra,descrst)
-        call stdate(iyear,is1sprs,descrb,descrst)
-        call stdate(iyear,is1sums,descrc,descrst)
-        call stdate(iyear,is2sprs,descrd,descrst)
-        call stdate(iyear,is2wins,descre,descrst)
+        call stdate(iyear,is1wins,descra,descrst,descr2st)
+        call stdate(iyear,is1sprs,descrb,descrst,descr2st)
+        call stdate(iyear,is1sums,descrc,descrst,descr2st)
+        call stdate(iyear,is2sprs,descrd,descrst,descr2st)
+        call stdate(iyear,is2wins,descre,descrst,descr2st)
         write(outs,'(10a)') '  start  ',descra,' ',descrb,' ',descrc,
      &    ' ',descrd,' ',descre
         call edisp(itru,outs)
-        call stdate(iyear,is1winf,descra,descrfn)
-        call stdate(iyear,is1sprf,descrb,descrfn)
-        call stdate(iyear,is1sumf,descrc,descrfn)
-        call stdate(iyear,is2sprf,descrd,descrfn)
-        call stdate(iyear,is2winf,descre,descrfn)
+        call stdate(iyear,is1winf,descra,descrfn,descr2fn)
+        call stdate(iyear,is1sprf,descrb,descrfn,descr2fn)
+        call stdate(iyear,is1sumf,descrc,descrfn,descr2fn)
+        call stdate(iyear,is2sprf,descrd,descrfn,descr2fn)
+        call stdate(iyear,is2winf,descre,descrfn,descr2fn)
         write(outs,'(10a)') '  finish ',descra,' ',descrb,' ',descrc,
      &    ' ',descrd,' ',descre
         call edisp(itru,outs)

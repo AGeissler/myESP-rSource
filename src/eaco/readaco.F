@@ -13,11 +13,6 @@ C warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
 C PURPOSE. See the GNU General Public License for more
 C details.
 
-C You should have received a copy of the GNU General Public
-C License along with ESP-r. If not, write to the Free
-C Software Foundation, Inc., 59 Temple Place, Suite 330,
-C Boston, MA 02111-1307 USA.
-
 C SCNACO : Scans the acoustic file (.aco)
 C SCNZONEACO : Scans the information at the zone level and detect if occupant and furniture
 C IPubFur : Using a public or furniture name, returns the corresponding index in the Aco file.
@@ -58,6 +53,7 @@ C IW(Integer) : 1 = read BCF silently (=2 if not)
       SUBROUTINE SCNACO(IEask,IER)
 #include "building.h"
 #include "acoustic.h"
+#include "help.h"
       
       integer lnblnk  ! function definition
 
@@ -75,13 +71,8 @@ C IW(Integer) : 1 = read BCF silently (=2 if not)
       CHARACTER ACOName*72,LabFreq*4,CalName*12
       CHARACTER PubType*12, FurType*12, FurCat*4
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
 C Initialiastion
-      helpinsub='SCNACO'  ! set for subroutine
+      helpinsub='readaco'  ! set for subroutine
       IER=0
       ACOOK = .TRUE.
       NbFurnit = 0
@@ -262,6 +253,7 @@ C IW(Integer) : 1 = read ACO silently (=2 if not)
       SUBROUTINE SCNZONEACO(ZoneName,IEask,IER)
 #include "building.h"
 #include "acoustic.h"
+#include "help.h"
       
       integer lnblnk  ! function definition
 
@@ -279,14 +271,8 @@ C IW(Integer) : 1 = read ACO silently (=2 if not)
       CHARACTER LabFreq*4,CalName*12
       CHARACTER ACOName*72, ZoneLabel*12,ZoneName*12,CovSurf*12
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found (will be non-zero
-                         ! because default message will be created
-
 C Initialiastion
-      helpinsub='SCNZONEACO'  ! set for subroutine
+      helpinsub='readaco'  ! set for subroutine
       IER=0
       ACOOK = .TRUE.
       IDisp = 0

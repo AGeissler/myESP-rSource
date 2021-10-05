@@ -13,11 +13,6 @@ C warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
 C PURPOSE. See the GNU General Public License for more
 C details.
 
-C You should have received a copy of the GNU General Public
-C License along with ESP-r. If not, write to the Free
-C Software Foundation, Inc., 59 Temple Place, Suite 330,
-C Boston, MA 02111-1307 USA.
-
 C Common source in building/plant/ flow/ global/ optical control.
 C Included subroutines:
 C ADDCNTL  Add or delete a building/plant/flow/optical/complex fenestration
@@ -40,6 +35,7 @@ C control.
 #include "building.h"
 #include "net_flow.h"
 #include "control.h"
+#include "help.h"
 
 C Parameters
       integer icfoc   ! control domain to work with 
@@ -54,12 +50,7 @@ C Parameters
       character outs*124
       dimension rper(30),rperf(30)
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='ADDCNTL'  ! set for subroutine
+      helpinsub='bpfcom'  ! set for subroutine
 
       if(ACT.eq.'D')then
 
@@ -1014,6 +1005,7 @@ C Add or delete a building/plant/flow/global/optical control day type.
 #include "building.h"
 #include "net_flow.h"
 #include "control.h"
+#include "help.h"
 
 C Parameters
       integer icfoc   ! control domain to work with 
@@ -1031,12 +1023,7 @@ C ACT is -- interactive use of the subroutine
 
       logical usecalendar  ! signal to prevent update of nbcdt
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='ADDCTLD'  ! set for subroutine
+      helpinsub='bpfcom'  ! set for subroutine
       usecalendar=.false.  ! initial assumption
 
 C The nn value represents the day types that existed prior to the intervention.
@@ -1460,6 +1447,7 @@ C control period.
 #include "building.h"
 #include "net_flow.h"
 #include "control.h"
+#include "help.h"
 
 C Parameters
       integer icfoc   ! control domain to work with 
@@ -1467,12 +1455,7 @@ C Parameters
       integer ID      ! day type to act on
       character ACT*1 ! action to take - D (delete) or A (add)
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='ADDCTLDP'  ! set for subroutine
+      helpinsub='bpfcom'  ! set for subroutine
       helptopic='ctl_period_manage'
       call gethelptext(helpinsub,helptopic,nbhelp)
       CALL PHELPD('period-options',nbhelp,'-',0,0,IER)
@@ -1931,15 +1914,11 @@ C times for each period. If act='e' the allow
 C editing of current array values. If act='i' initialise and 
 C edit.
       subroutine initperi(nper,iper,iperf,act)
+#include "help.h"
       character act*1,cstr*80
       dimension iper(30),iperf(30)
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='initperi'  ! set for subroutine
+      helpinsub='bpfcom'  ! set for subroutine
 
       if(nper.le.24)incr=1
       if(nper.lt.12)incr=2
@@ -1996,17 +1975,13 @@ C times for each period. If act='e' the allow
 C editing of current array values. If act='i' initialise and 
 C edit.
       subroutine initperr(nper,rper,rperf,act)
+#include "help.h"
       character act*1,cstr*248
       dimension rper(30),rperf(30)
       real incr
       integer ISTRW
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='initperr'  ! set for subroutine
+      helpinsub='bpfcom'  ! set for subroutine
 
       incr=1.0   ! initial guess of increment in case nper > 24
       if(nper.le.24)incr=1.

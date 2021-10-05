@@ -12,11 +12,6 @@ C warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
 C PURPOSE. See the GNU General Public License for more
 C details.
 
-C You should have received a copy of the GNU General Public
-C License along with ESP-r. If not, write to the Free
-C Software Foundation, Inc., 59 Temple Place, Suite 330,
-C Boston, MA 02111-1307 USA.
-
 C ***************** SPMINIT
 C This subroutine reads information for special building materials from the user 
 C defined file SPMFIL. Data is read into the special material common blocks.
@@ -32,8 +27,8 @@ C spmflg   - flag indicating whether special materials are active (0 or 1).
       subroutine SPMINIT
 
 #include "building.h"
+#include "help.h"
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
-      common/pophelp/h(60)
 
 C Special materials file flag.
       common/spmfxst/ispmxist,spflnam 
@@ -66,15 +61,11 @@ C DSC data / spline function data
       real hold_data(mspmdat)
 
       character outs*124,outstr*124,spmlabel*16
-      character*72 path,spflnam,H,ltmp*72
+      character*72 path,spflnam,ltmp*72
 
-      H(1)='The special materials file contains information'
-      H(2)='relating to advanced materials within the existing'
-      H(3)='building construction. Examples of such materials'
-      H(4)='include; photovoltaics, electrochromics, phase-'
-      H(5)='change etc .... If you have created such a file'
-      H(6)='enter the name of the file; if not press ok and'
-      H(7)='you will be returned to the main menu.'
+      helpinsub='spmisc'  ! set for subroutine
+      helptopic='spmisc_file_contents'
+      call gethelptext(helpinsub,helptopic,nbhelp)
 
 C Set the number of special material data items per line
       nspmdatl=10
@@ -88,7 +79,7 @@ C Open special materials file on temporary file channel.
       ltmp=spflnam
       if(ltmp(1:2).eq.'  '.or.ltmp(1:4).eq.'UNKN')then
       call easks(ltmp,' Special Materials file ?',
-     &' ',72,' ','special materials file',IER,7)
+     &' ',72,' ','special materials file',IER,nbhelp)
       endif
       spflnam=ltmp
       if(IER.NE.0) then
@@ -205,11 +196,11 @@ C defined.
       subroutine SPMWRIT
 #include "building.h"
 #include "model.h"
+#include "help.h"
 
       integer lnblnk
 
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
-      common/pophelp/h(60)
 
       common/spmatl/nspmnod,ispmloc(mspmnod,3),ispmtyp(mspmnod,2),
      &nnodat(mspmnod),spmdat(mspmnod,mspmdat) 
@@ -237,7 +228,7 @@ C DSC data / spline function data
                               ! heat function.
       character fnamDSCdat*72 ! DSC data file name for current spm entry
 
-      character outs*124,deflnam*72,spflnam*72,h*72
+      character outs*124,deflnam*72,spflnam*72
       character spmlabel*16,lfil*72
       logical ok
 
@@ -245,18 +236,19 @@ C DSC data / spline function data
 
 C Set the number of special material data items per line
       nspmdatl=10
+      helpinsub='spmisc'
 
 C Determine whether a special materials file is to be created
       if(ispmxist.eq.1) then
-        h(1)='Special materials information has been'
-        h(2)='defined but recent changes not yet saved!'
-        call easkok(' ','Update special materials file?',ok,2)
+        helptopic='spmisc_changes'
+        call gethelptext(helpinsub,helptopic,nbhelp)
+        call easkok(' ','Update special materials file?',ok,nbhelp)
         if(.not.ok) return
       endif
       deflnam='data.spm'
       lfil=spflnam
-      h(1)='This file contains information about special materials'
-      h(2)='associated with a problem.'
+      helptopic='spmisc_info'
+      call gethelptext(helpinsub,helptopic,nbhelp)
  4    call easks(lfil,' ','Special materials filename?',72,
      &  deflnam,' SPM filename',IER,2)
       if(lfil.ne.' ')spflnam=lfil

@@ -35,6 +35,7 @@ C user-specified variable.
       SUBROUTINE MO3DPL
 #include "building.h"
 #include "geometry.h"
+#include "help.h"
 
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/FILEP/IFIL
@@ -68,13 +69,9 @@ C user-specified variable.
       integer jsur,jclm,ICI  ! for radio buttons
       integer NITMS,INO ! max items and current menu item
 
-C For help messages
-      character helpinsub*24   ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
       integer IUNIT      ! for the scratch file used in drawing
 
-      helpinsub='MO3DPL'  ! set for subroutine
+      helpinsub='plot3d'  ! set for subroutine
 
       DATA ITITLX/'Time-steps'/
       DATA ITITLZ/'Year day  '/
@@ -650,9 +647,10 @@ C MASK is 1000 pairs (MHIGH & MLOW). YDATA set to 8000 to
 C support ~330 days in the graph.
       INTEGER MASK(2000),IVER(12),IAXIS(3),IPOS(3)
       REAL XDATA(360),YDATA(360),ZDATA(360),VERTEX(16),
-     1     YDATA1(8000),XLT(2),YLT(2),XYZARW(6,3),COEFF(5)
+     &     YDATA1(8000),XLT(2),YLT(2),XYZARW(6,3),COEFF(5),
+     &     XSGL,YSGL,ZSGL
 
-      CHARACTER LNAME*72,ETEXT*72,PDESCR*60,SDESCR*44
+      CHARACTER LNAME*72,ETEXT*86,PDESCR*64,SDESCR*44
       character rfile*72,PFILE*72,MSTRFILE*72,LAFRES*72
       CHARACTER*40 TITLE,NAME
       CHARACTER*10 AXIS(3),ANAME,ANAME1
@@ -710,7 +708,7 @@ C        iiw1=9; iiw2=16; iiw3=7; iiw4=2; iimenu=menuchw
 
 C Generate strings for the library, the period and then the
 C focus zone and data range.
-      WRITE(ETEXT,'(1X,A44,A,A20)')SDESCR,' Lib:',RFILE(1:20)
+      WRITE(ETEXT,'(1X,A,A,A)')SDESCR,' results library:',RFILE(1:20)
       iside=1; isize=0; ifont=1
       if(mmod.eq.8)then
         call viewtext(etext,iside,isize,ifont)
@@ -718,7 +716,7 @@ C focus zone and data range.
         call viewtextwwc(etext,iside,isize,ifont)
       endif
 
-      WRITE(ETEXT,'(1x,A60)')PDESCR
+      WRITE(ETEXT,'(1x,A)')PDESCR
       iside=2
       if(mmod.eq.8)then
         call viewtext(etext,iside,isize,ifont)
@@ -903,15 +901,18 @@ C Store 3D coordinates for axis arrow heads.
           XYZARW(6,2)=0.0
 
 60        Z1=ZDATA(ILINE)  ! first day index
+          XSGL=0.0
+          YSGL=0.0
 
 C Plot each line on the second pass only.
 C Note: Z1 in PLOT3e should be an array of 360 elements but does not
 C work if done that way. Here XDATA is the timesteps of the day and
 C YDATA is the performance values for each timestep.
-          CALL PLOT3E(1110,XDATA,YDATA,Z1,XSCALE,YSCALE,ZSCALE,
-     1                IPASS,XMAX,XMIN,YMAX,YMIN,SCALE,II,JVXYZ,INCI,
-     2                ILINE,IFIRST,NXPNTS,COEFF,MASK,VERTEX,
-     3                XLT,YLT,IALT,XLAST,YLAST)
+          CALL PLOT3E(1110,XDATA,YDATA,ZDATA,XSGL,YSGL,Z1,
+     &                XSCALE,YSCALE,ZSCALE,
+     &                IPASS,XMAX,XMIN,YMAX,YMIN,SCALE,II,JVXYZ,INCI,
+     &                ILINE,IFIRST,NXPNTS,COEFF,MASK,VERTEX,
+     &                XLT,YLT,IALT,XLAST,YLAST)
 70      CONTINUE
 
         IF(IPASS.EQ.2) GOTO 78
@@ -994,12 +995,15 @@ C            write(6,'(a,9i5)') '@ line 950 iline',iline,
 C     &        irec,npr,ix1,ix2,ix3,il,nzpnts,nxpnts
 C          endif 
           X1=XDATA(ILINE)
+          YSGL=0.0
+          ZSGL=0.0
 
 C Plot each line.
-          CALL PLOT3E(11,X1,YDATA,ZDATA,XSCALE,YSCALE,ZSCALE,
-     1                IPASS,XMAX,XMIN,YMAX,YMIN,SCALE,II,JVXYZ,INCI,
-     2                ILINE,IFIRST,NZPNTS,COEFF,MASK,VERTEX,
-     3                XLT,YLT,IALT,XLAST,YLAST)
+          CALL PLOT3E(11,XDATA,YDATA,ZDATA,X1,YSGL,ZSGL,
+     &                XSCALE,YSCALE,ZSCALE,
+     &                IPASS,XMAX,XMIN,YMAX,YMIN,SCALE,II,JVXYZ,INCI,
+     &                ILINE,IFIRST,NZPNTS,COEFF,MASK,VERTEX,
+     &                XLT,YLT,IALT,XLAST,YLAST)
 
 C Next 4 lines are correct accoring to forchk, but do not seem to
 C work so use original code above.
@@ -1132,8 +1136,8 @@ C Draw the frame (context of the surface plot).
       PARAMETER ( DRAW=1,MOVE=0,NOMARK=0 )
       REAL COEFF(5),XLT(2),YLT(2)
 
-      DIMENSION  VERTEX(16),MASK(2000),ARRAY(360),IVER(12)
-      dimension  zdat(360)
+      DIMENSION  VERTEX(16),MASK(2000),XDATA(360),YDATA(360),ZDATA(360),
+     &           IVER(12)
 #ifdef OSI
       integer iupdown,isym    ! passed to etplot
 #else
@@ -1141,12 +1145,9 @@ C Draw the frame (context of the surface plot).
 #endif
 
       DO 2 I=1,5
-        ARRAY(I)=VERTEX(2*IVER(I)-1)
-        ARRAY(I+5)=VERTEX(2*IVER(I))
+        XDATA(I)=VERTEX(2*IVER(I)-1)
+        YDATA(I)=VERTEX(2*IVER(I))
 2     CONTINUE
-      do 3 I=1,360
-        zdat(I)=0.0
-3     continue
 
       IPASS=2
 
@@ -1161,7 +1162,7 @@ C     1     IPASS,XMAX,XMIN,YMAX,YMIN,SCALE,II,JVXYZ,INCI,
 C     2          -1,0,5,COEFF,MASK,VERTEX,XLT,YLT,IALT,XLAST,YLAST)
 
 C Should work with ydat, but doesn`t
-      CALL PLOT3E(110,ARRAY,ydat,zdat,1.0,1.0,0.0,
+      CALL PLOT3E(110,XDATA,YDATA,ZDATA,0.0,0.0,0.0,1.0,1.0,0.0,
      1     IPASS,XMAX,XMIN,YMAX,YMIN,SCALE,II,JVXYZ,INCI,
      2          -1,0,5,COEFF,MASK,VERTEX,XLT,YLT,IALT,XLAST,YLAST)
 
@@ -1285,10 +1286,11 @@ C This subroutine is compiler sensitive. Code assumes that subroutines
 C calling PLOT3E might not pass the full arrays XDATA YDATA ZDATA. Newer
 C compilers are more strict.
 
-      SUBROUTINE  PLOT3E(IVXYZ,XDATA,YDATA,ZDATA,XSCALE,YSCALE,ZSCALE,
-     1              IPASS,XMAX,XMIN,YMAX,YMIN,SCALE,II,JVXYZ,INCI,
-     2              NLINE,IFIRST,NPNTS,COEFF,MASK,VERTEX,
-     3              XLT,YLT,IALT,XLAST,YLAST)
+      SUBROUTINE  PLOT3E(IVXYZ,XDATA,YDATA,ZDATA,XSGL,YSGL,ZSGL,
+     &              XSCALE,YSCALE,ZSCALE,
+     &              IPASS,XMAX,XMIN,YMAX,YMIN,SCALE,II,JVXYZ,INCI,
+     &              NLINE,IFIRST,NPNTS,COEFF,MASK,VERTEX,
+     &              XLT,YLT,IALT,XLAST,YLAST)
 
       integer menuchw,igl,igr,igt,igb,igw,igwh
       COMMON/VIEWPX/menuchw,igl,igr,igt,igb,igw,igwh
@@ -1305,7 +1307,7 @@ C compilers are more strict.
       integer*8 iupdown,isym    ! passed to etplot
 #endif
 
-C If 17th parameter was -1 do not clear the mask array. 
+C If NLINE=-1 do not clear the mask array. 
       IF(NLINE.EQ.-1) GOTO 15
       IF (NLINE .NE. IFIRST)  GOTO  20
       LIMITX =1000
@@ -1342,15 +1344,15 @@ C Need to test limits for the XDATA and YDATA array.
       DO 530 K = 1,NPNTS
         II=II + INCI
         GOTO  (90,100),INDX
-   90   X = XDATA(1)*XSCALE
+   90   X = XSGL*XSCALE
         GOTO  110
   100   X = XDATA(II)*XSCALE
   110   GOTO (120,130),INDY
-  120   Y = YDATA(1)*YSCALE
+  120   Y = YSGL*YSCALE
         GOTO  140
   130   Y = YDATA(II)*YSCALE
   140   GOTO (150,160),INDZ
-  150   Z = ZDATA(1)*ZSCALE
+  150   Z = ZSGL*ZSCALE
         GOTO  170
   160   Z = ZDATA(II)*ZSCALE
   170   XXX = COEFF(1)*X + COEFF(2)*Z

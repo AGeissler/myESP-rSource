@@ -1,11 +1,11 @@
 C This file is part of the ESP-r system.
 C Copyright Energy Systems Research Unit, University of
-C Strathclyde, Glasgow Scotland, 2001.
+C Strathclyde, Glasgow, Scotland, 2001-.
 
 C ESP-r is free software.  You can redistribute it and/or
 C modify it under the terms of the GNU General Public
 C License as published by the Free Software Foundation 
-C (version 2 orlater).
+C (version 2 or later).
 
 C ESP-r is distributed in the hope that it will be useful
 C but WITHOUT ANY WARRANTY; without even the implied
@@ -13,95 +13,99 @@ C warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
 C PURPOSE. See the GNU General Public License for more
 C details.
 
-C You should have received a copy of the GNU General Public
-C License along with ESP-r. If not, write to the Free
-C Software Foundation, Inc., 59 Temple Place, Suite 330,
-C Boston, MA 02111-1307 USA.
 
-C Contains lisolv1, lisolv2, lisolv3, lisolv4
+C This file contains the following subroutines.
+C lisolv1 - solve linear equations sweeping forward and backward
+C           in y and z directions.
+C lisolv2 - solve linear equations sweeping forward and backward
+C           in x and z directions.
+C lisolv3 - solve linear equations sweeping forward and backward
+C           in x, y and z directions.
+C lisolv4 - linear solver for calling biconjugate gradient method.
+C           Sets up arrays for prosessing in solver routine NBAND7.
+C Subroutines supporting lisolv4:
+C PRPMATR - prepares all matrices to solve AY=F
+C IND1D   - converts 3D array index to 1D
+C IND3D   - converts 1D array index to 3D
+C NBAND7  - Solver applying biconjugate gradient method.
 
-C Code supporting lisolv4:
-C  PRPMATR: Prepares all matrices to solve AY=F
-C  IND1D  : Converts 3D array index to 1D
-C  IND3D  : Converts 1D array index to 3D
-C  LISOLV4 : Linear solver for calling biconjugate gradient method.
-C  NBAND7 : Solver applying biconjugate gradient method.
 
-C**** LISOLV1 ****
-C  Solve the linear system of equations sweeping forward in y and z
-C  directions.
-C
+C ******************** LISOLV1 ********************
+C Solve the linear system of equations sweeping forward in y and z
+C directions.
+
       SUBROUTINE LISOLV1(ISTART,JSTART,KSTART,NI,NJ,NK,PHI,NSWP)
 #include "building.h"
 #include "cfd.h"
+
       DIMENSION PHI(ntcelx,ntcely,ntcelz),A(mcel1d),B(mcel1d),C(mcel1d),
      &          D(mcel1d)
       COMMON/COEF/AP(ntcelx,ntcely,ntcelz),AE(ntcelx,ntcely,ntcelz),
-     1            AW(ntcelx,ntcely,ntcelz),AN(ntcelx,ntcely,ntcelz),
-     2            AS(ntcelx,ntcely,ntcelz),AH(ntcelx,ntcely,ntcelz),
-     3            AL(ntcelx,ntcely,ntcelz),SU(ntcelx,ntcely,ntcelz),
-     4            SP(ntcelx,ntcely,ntcelz)     
+     &            AW(ntcelx,ntcely,ntcelz),AN(ntcelx,ntcely,ntcelz),
+     &            AS(ntcelx,ntcely,ntcelz),AH(ntcelx,ntcely,ntcelz),
+     &            AL(ntcelx,ntcely,ntcelz),SU(ntcelx,ntcely,ntcelz),
+     &            SP(ntcelx,ntcely,ntcelz)     
 
       NIM1=NI-1
       NJM1=NJ-1
-      NKM1=NK-1
-                                                        
+      NKM1=NK-1                                                    
       JSTM1=JSTART-1
       KSTM1=KSTART-1
 
 C Loop for correct number of sweeps.
       do 5 ISWP=1,NSWP
 
-C-----COMMENCE W-E SWEEP
+C Commence W-E sweep.
       DO 100 I=ISTART,NIM1
 
         A(JSTM1)=0.0      
-C-----COMMENCE H-L SWEEP
+C Commence H-L sweep.
         DO 103 K=KSTART,NKM1
           C(JSTM1)=PHI(I,JSTM1,K)
 
-C-----COMMENCE S-N TRAVERSE                                             
+C Commence S-N traverse.                                             
           DO 101 J=JSTART,NJM1
 
-C-----ASSEMBLE TDMA COEFFICIENTS                                        
+C Assemble TDMA coefficients.                                        
             A(J)=AN(I,J,K)
             B(J)=AS(I,J,K)
             C(J)=AE(I,J,K)*PHI(I+1,J,K)+AW(I,J,K)*PHI(i-1,j,K)+
      &           AH(I,J,K)*PHI(I,J,K+1)+AL(I,J,K)*PHI(i,j,K-1)+SU(I,J,K)
             D(J)=AP(I,J,K)
 
-C-----CALCULATE COEFFICIENTS OF RECURRENCE FORMULA
+C Calculate coefficients of recurrence formula.
             TERM=1./(D(J)-B(J)*A(J-1))
             A(J)=A(J)*TERM
   101       C(J)=(C(J)+B(J)*C(J-1))*TERM
 
-C-----OBTAIN NEW PHI'S                                                  
+C Obtain new PHI.                                               
           DO 102 JJ=JSTART,NJM1
             J=NJ+JSTM1-JJ
   102       PHI(i,j,K)=A(J)*PHI(I,J+1,K)+C(J)  
   103   CONTINUE
 
         A(KSTM1)=0.0
-C-----COMMENCE N-S SWEEP
+
+C Commence N-S sewwp.
         DO 104 J=JSTART,NJM1
           C(KSTM1)=PHI(I,J,KSTM1)
 
-C-----COMMENCE H-L TRAVERSE                                             
+C Commence H-L traverse.                                             
           DO 105 K=KSTART,NKM1
 
-C-----ASSEMBLE TDMA COEFFICIENTS                                        
+C Assemble TDMA coefficients.                                        
             A(K)=AH(I,J,K)
             B(K)=AL(I,J,K)
             C(K)=AE(I,J,K)*PHI(I+1,J,K)+AW(I,J,K)*PHI(i-1,j,K)+
      &           AN(I,J,K)*PHI(I,J+1,K)+AS(I,J,K)*PHI(i,j-1,K)+SU(I,J,K)
             D(K)=AP(I,J,K)                                                      
 
-C-----CALCULATE COEFFICIENTS OF RECURRENCE FORMULA
+C Calculate coefficients of recurrence formula.
             TERM=1./(D(K)-B(K)*A(K-1))
             A(K)=A(K)*TERM
   105       C(K)=(C(K)+B(K)*C(K-1))*TERM
 
-C-----OBTAIN NEW PHI'S                                                  
+C Obtain new PHI.                                               
           DO 106 KK=KSTART,NKM1
             K=NK+KSTM1-KK
   106       PHI(i,j,K)=A(K)*PHI(I,J,K+1)+C(K)
@@ -113,10 +117,11 @@ C-----OBTAIN NEW PHI'S
       RETURN                                                            
       END                                                               
 
-C**** LISOLV2 ****
-C     Solve the linear system of equations sweeping forward and backward in 
-C     x and z directions.
-C
+
+C ******************** LISOLV2 ********************
+C Solve the linear system of equations sweeping forward and backward in 
+C x and z directions.
+
       SUBROUTINE LISOLV2(ISTART,JSTART,KSTART,IEND,JEND,KEND,PHI,NSWP)
 #include "building.h"
 #include "cfd.h"
@@ -124,10 +129,10 @@ C
       DIMENSION PHI(ntcelx,ntcely,ntcelz),A(mcel1d),B(mcel1d),C(mcel1d),
      &          D(mcel1d)
       COMMON/COEF/AP(ntcelx,ntcely,ntcelz),AE(ntcelx,ntcely,ntcelz),
-     1            AW(ntcelx,ntcely,ntcelz),AN(ntcelx,ntcely,ntcelz),
-     2            AS(ntcelx,ntcely,ntcelz),AH(ntcelx,ntcely,ntcelz),
-     3            AL(ntcelx,ntcely,ntcelz),SU(ntcelx,ntcely,ntcelz),
-     4            SP(ntcelx,ntcely,ntcelz)     
+     &            AW(ntcelx,ntcely,ntcelz),AN(ntcelx,ntcely,ntcelz),
+     &            AS(ntcelx,ntcely,ntcelz),AH(ntcelx,ntcely,ntcelz),
+     &            AL(ntcelx,ntcely,ntcelz),SU(ntcelx,ntcely,ntcelz),
+     &            SP(ntcelx,ntcely,ntcelz)     
 
       IENDM1=IEND-1
       JENDM1=JEND-1
@@ -138,62 +143,64 @@ C
 C Loop for correct number of sweeps.
       do 5 ISWP=1,NSWP
 
-C---Foward sweep 
-C-----COMMENCE W-E SWEEP
+C Foward sweep 
+C Commence W-E sweep.
       DO 100 I=ISTART,IENDM1
 
         A(JSTM1)=0.0
-C-----COMMENCE H-L SWEEP
+
+C Commence H-L sweep.
         DO 103 K=KSTART,KENDM1
           C(JSTM1)=PHI(I,JSTM1,K)
 
-C-----COMMENCE S-N TRAVERSE
+C Commence S-N traverse.
           DO 101 J=JSTART,JENDM1
 
-C-----ASSEMBLE TDMA COEFFICIENTS
+C Assemble TDMA coefficients.
             A(J)=AN(I,J,K)
             B(J)=AS(I,J,K)
             C(J)=AE(I,J,K)*PHI(I+1,J,K)+AW(I,J,K)*PHI(i-1,j,K)+
      &           AH(I,J,K)*PHI(I,J,K+1)+AL(I,J,K)*PHI(i,j,K-1)+SU(I,J,K)
             D(J)=AP(I,J,K)
 
-C-----CALCULATE COEFFICIENTS OF RECURRENCE FORMULA
+C Calculate coefficients of recurrence formula.
             TERM=1./(D(J)-B(J)*A(J-1))
             A(J)=A(J)*TERM
   101       C(J)=(C(J)+B(J)*C(J-1))*TERM
 
-C-----OBTAIN NEW PHI'S
+C Obtain new PHI.
           DO 102 JJ=JSTART,JENDM1
             J=JEND+JSTM1-JJ
   102       PHI(i,j,K)=A(J)*PHI(I,J+1,K)+C(J)
   103   CONTINUE
   100 CONTINUE
 
-C---Backward sweep
-C-----COMMENCE W-E SWEEP
+C Backward sweep.
+C Commence W-E sweep.
       DO 200 I=IENDM1,ISTART,-1
 
         A(JSTM1)=0.0
-C-----COMMENCE H-L SWEEP
+
+C Commence H-L sweep.
         DO 203 K=KENDM1,KSTART,-1
           C(JSTM1)=PHI(I,JSTM1,K)
 
-C-----COMMENCE S-N TRAVERSE
+C Commence S-N traverse.
           DO 201 J=JSTART,JENDM1
 
-C-----ASSEMBLE TDMA COEFFICIENTS
+C Assemble TDMA coefficients.
             A(J)=AN(I,J,K)
             B(J)=AS(I,J,K)
             C(J)=AE(I,J,K)*PHI(I+1,J,K)+AW(I,J,K)*PHI(i-1,j,K)+
      &           AH(I,J,K)*PHI(I,J,K+1)+AL(I,J,K)*PHI(i,j,K-1)+SU(I,J,K)
             D(J)=AP(I,J,K)
 
-C-----CALCULATE COEFFICIENTS OF RECURRENCE FORMULA
+C Calculate coefficients of recurrence formula.
             TERM=1./(D(J)-B(J)*A(J-1))
             A(J)=A(J)*TERM
   201       C(J)=(C(J)+B(J)*C(J-1))*TERM
 
-C-----OBTAIN NEW PHI'S                                                  
+C Obtain new PHI.                                                 
           DO 202 JJ=JSTART,JENDM1
             J=JEND+JSTM1-JJ
   202       PHI(i,j,K)=A(J)*PHI(I,J+1,K)+C(J)
@@ -204,34 +211,31 @@ C-----OBTAIN NEW PHI'S
       RETURN
       END
 
-C**** LISOLV3 ****
-C     Solve the linear system of equations sweeping forward and backward in 
-C     x, y and z directions.
+
+C ******************** LISOLV3 ********************
+C Solve the linear system of equations sweeping forward and backward in 
+C x, y and z directions.
 
       SUBROUTINE LISOLV3(ISTART,JSTART,KSTART,IEND,JEND,KEND,PHI,NSWP)
 #include "building.h"
 #include "cfd.h"
 
       COMMON/COEF/AP(ntcelx,ntcely,ntcelz),AE(ntcelx,ntcely,ntcelz),
-     1            AW(ntcelx,ntcely,ntcelz),AN(ntcelx,ntcely,ntcelz),
-     2            AS(ntcelx,ntcely,ntcelz),AH(ntcelx,ntcely,ntcelz),
-     3            AL(ntcelx,ntcely,ntcelz),SU(ntcelx,ntcely,ntcelz),
-     4            SP(ntcelx,ntcely,ntcelz)
+     &            AW(ntcelx,ntcely,ntcelz),AN(ntcelx,ntcely,ntcelz),
+     &            AS(ntcelx,ntcely,ntcelz),AH(ntcelx,ntcely,ntcelz),
+     &            AL(ntcelx,ntcely,ntcelz),SU(ntcelx,ntcely,ntcelz),
+     &            SP(ntcelx,ntcely,ntcelz)
 
       dimension A(mcel1d),B(mcel1d),C(mcel1d),D(mcel1d)
       dimension PHI(ntcelx,ntcely,ntcelz)
 
-Carvalho - Start
-
       COMMON/CONST/GREAT,small,GRAV
       common/INCALC/INCALU,INCALV,INCALW,INCALK,INCALD,INCALT,
-     1              IZEROT,IZanKE,IMITZ
+     &              IZEROT,IZanKE,IMITZ
 
       LOGICAL INCALU,INCALV,INCALW,INCALK,INCALD,INCALT
       LOGICAL IZEROT,IZanKE,IMITZ
-Carvalho - End
 
-C---------------------------------------------------------------------------|
       IENDM1=IEND-1
       JENDM1=JEND-1
       KENDM1=KEND-1
@@ -239,75 +243,70 @@ C---------------------------------------------------------------------------|
       JSTM1=JSTART-1
       ISTM1=ISTART-1
 
-C---------------------------------------------------------------------------|
-
 C Loop for correct number of sweeps.
       do 5 ISWP=1,NSWP
 
       IF(INCALU) THEN
 
-C-----Forward sweep
-
-C-----COMMENCE S->N SWEEP
-
+C Forward sweep.
+C Commence S->N sweep.
       DO 300 J=JSTART,JENDM1
-
         A(ISTM1)=0.0
-C-----COMMENCE L->H SWEEP
+
+C Commence L->H sweep.
         DO 303 K=KSTART,KENDM1
           C(ISTM1)=PHI(ISTM1,J,K)
 
-C-----COMMENCE W-E TRAVERSE
+C Commence W-E traverse.
           DO 301 I=ISTART,IENDM1
 
-C-----ASSEMBLE TDMA COEFFICIENTS
+C Assemble TDMA coefficients.
             A(I)=AE(I,J,K)
             B(I)=AW(I,J,K)
             C(I)=AH(I,J,K)*PHI(I,J,K+1)+AL(I,J,K)*PHI(i,j,K-1)+
      &           AN(I,J,K)*PHI(I,J+1,K)+AS(I,J,K)*PHI(i,j-1,K)+SU(I,J,K)
             D(I)=AP(I,J,K)
 
-C-----CALCULATE COEFFICIENTS OF RECURRENCE FORMULA
+C Calculate coefficients of recurrence formula.
             TERM=ANOTZERO(D(I)-B(I)*A(I-1))
             A(I)=A(I)/TERM
             C(I)=(C(I)+B(I)*C(I-1))/TERM
   301     continue
 
-C-----OBTAIN NEW PHI'S
+C Obtain new PHI.
           DO 302 II=ISTART,IENDM1
             I=IEND+ISTM1-II
   302       PHI(i,j,K)=A(I)*PHI(I+1,J,K)+C(I)
   303   CONTINUE
   300 CONTINUE
 
-C-----Backward sweep
-
-C-----COMMENCE S->N SWEEP
-
+C Backward sweep.
+C Commence S->N sweep.
       DO 400 J=JENDM1,JSTART,-1
 
         A(ISTM1)=0.0
-C-----COMMENCE L->H SWEEP
+
+C Commence L->H sweep.
         DO 403 K=KENDM1,KSTART,-1
           C(ISTM1)=PHI(ISTM1,J,K)
 
-C-----COMMENCE W-E TRAVERSE
+C Commence W-E TRAVERSE.
           DO 401 I=ISTART,IENDM1
 
-C-----ASSEMBLE TDMA COEFFICIENTS
+C Assemble TDMA coefficients.
             A(I)=AE(I,J,K)
             B(I)=AW(I,J,K)
             C(I)=AH(I,J,K)*PHI(I,J,K+1)+AL(I,J,K)*PHI(i,j,K-1)+
      &           AN(I,J,K)*PHI(I,J+1,K)+AS(I,J,K)*PHI(i,j-1,K)+SU(I,J,K)
             D(I)=AP(I,J,K)
 
-C-----CALCULATE COEFFICIENTS OF RECURRENCE FORMULA
+C Calculate coefficients of recurrence formula.
             TERM=ANOTZERO(D(I)-B(I)*A(I-1))
             A(I)=A(I)/TERM
             C(I)=(C(I)+B(I)*C(I-1))/TERM
   401     continue
 
-C-----OBTAIN NEW PHI'S
+C Obtain new PHI.
           DO 402 II=ISTART,IENDM1
             I=IEND+ISTM1-II
   402       PHI(i,j,K)=A(I)*PHI(I+1,J,K)+C(I)
@@ -317,68 +316,64 @@ C-----OBTAIN NEW PHI'S
 
       IF(INCALV) THEN
 
-C-----Foward sweep
-
-C-----COMMENCE W->E SWEEP
+C Foward sweep.
+C Commence W->E sweep.
       DO 100 I=ISTART,IENDM1
 
-C-----COMMENCE L->H SWEEP
-
+C Commence L->H sweep.
         A(JSTM1)=0.0
         DO 103 K=KSTART,KENDM1
           C(JSTM1)=PHI(I,JSTM1,K)
 
-C-----COMMENCE S-N TRAVERSE
+C Commence S-N TRAVERSE.
           DO 101 J=JSTART,JENDM1
 
-C-----ASSEMBLE TDMA COEFFICIENTS
+C Assemble TDMA coefficients.
             A(J)=AN(I,J,K)
             B(J)=AS(I,J,K)
             C(J)=AE(I,J,K)*PHI(I+1,J,K)+AW(I,J,K)*PHI(i-1,j,K)+
      &           AH(I,J,K)*PHI(I,J,K+1)+AL(I,J,K)*PHI(i,j,K-1)+SU(I,J,K)
             D(J)=AP(I,J,K)
 
-C-----CALCULATE COEFFICIENTS OF RECURRENCE FORMULA
+C Calculate coefficient of recurrence formula.
             TERM=ANOTZERO(D(J)-B(J)*A(J-1))
             A(J)=A(J)/TERM
             C(J)=(C(J)+B(J)*C(J-1))/TERM
   101     continue
 
-C-----OBTAIN NEW PHI'S
+C Obtain new PHI.
           DO 102 JJ=JSTART,JENDM1
             J=JEND+JSTM1-JJ
   102       PHI(i,j,K)=A(J)*PHI(I,J+1,K)+C(J)
   103   CONTINUE
   100 CONTINUE
 
-C-----Backward sweep
-
-C-----COMMENCE E->W SWEEP
+C Backward sweep.
+C Commence E->W sweep.
       DO 200 I=IENDM1,ISTART,-1
 
-C-----COMMENCE H->L SWEEP
-
+C Commence H->L sweep.
         A(JSTM1)=0.0
         DO 203 K=KENDM1,KSTART,-1
           C(JSTM1)=PHI(I,JSTM1,K)
 
-C-----COMMENCE S-N TRAVERSE
+C Commence S-N traverse.
           DO 201 J=JSTART,JENDM1
 
-C-----ASSEMBLE TDMA COEFFICIENTS
+C Assemble TDMA coefficients.
             A(J)=AN(I,J,K)
             B(J)=AS(I,J,K)
             C(J)=AE(I,J,K)*PHI(I+1,J,K)+AW(I,J,K)*PHI(i-1,j,K)+
      &           AH(I,J,K)*PHI(I,J,K+1)+AL(I,J,K)*PHI(i,j,K-1)+SU(I,J,K)
             D(J)=AP(I,J,K)
 
-C-----CALCULATE COEFFICIENTS OF RECURRENCE FORMULA
+C Calculate coefficients of recurrence formula.
             TERM=ANOTZERO(D(J)-B(J)*A(J-1))
             A(J)=A(J)/TERM
             C(J)=(C(J)+B(J)*C(J-1))/TERM
   201     continue
 
-C-----OBTAIN NEW PHI'S
+C Obtain new PHI.
           DO 202 JJ=JSTART,JENDM1
             J=JEND+JSTM1-JJ
   202       PHI(i,j,K)=A(J)*PHI(I,J+1,K)+C(J)
@@ -390,18 +385,16 @@ C-----OBTAIN NEW PHI'S
       RETURN
       END
 
-C lisolv_4 contains the following routines to ...
 
-
-C ********************** PRPMATR **********************
-C PRPMATR : prepares all matrices to solve AY=F
-C Filling the data from the discretization coeffs. matrices
-C  Prepares 1D-matrx A for solving AY=F by NBAND7
-C  Y : initial approx. vector & final solution vector
-C  F : free members vector      
-C  PHI : transport variable (to be calculated) 3D-array
-C The  discretization coefs. are in 3D arrays
-C  AW, AE, AS, AN, AL, AH, AP, SU
+C ******************** PRPMATR ********************
+C Pepares all matrices to solve AY=F filling the data
+C from the discretisation coefficient matrices.
+C Prepares 1D-matrx A for solving AY=F by NBAND7
+C  Y: initial approx. vector & final solution vector
+C  F: free members vector      
+C  PHI: transport variable (to be calculated) 3D-array
+C The  discretisation coefficients are in 3D arrays
+C AW, AE, AS, AN, AL, AH, AP and SU.
 
       SUBROUTINE PRPMATR(ISTART,IEND,JSTART,JEND,KSTART,KEND,A,Y,F,PHI)
 #include "building.h"
@@ -420,7 +413,7 @@ C  AW, AE, AS, AN, AL, AH, AP, SU
       DIMENSION F(ntcelx*ntcely*ntcelz)
       DIMENSION PHI(ntcelx,ntcely,ntcelz)
 
-C ALL NODES OF THE MATRIX ARE ASSUMED TO BE INTERNAL.
+C All nodes of the matrix are assumed to be internal.
       DO 10 K=KSTART,KEND
         DO 10 J=JSTART,JEND
            I=ISTART
@@ -451,14 +444,15 @@ C ALL NODES OF THE MATRIX ARE ASSUMED TO BE INTERNAL.
            AH(I,J,K)=0.0
  30   CONTINUE
 
-C FIND THE SPAN OF INDICES FOR ALL SPACE DIRECTIONS.
+C Find the span of indices for all space directions.
       ISPAN=IEND-ISTART+1
       JSPAN=JEND-JSTART+1
       KSPAN=KEND-KSTART+1
 
       NumPtsTtl=ISPAN*JSPAN*KSPAN
 
-C Distances from main diagonal to other diagonals (1,2,3 and left and right).
+C Distances from main diagonal to other diagonals (1,2,3 and
+C left and right).
       I1L=NumPtsTtl
       I1R=2*NumPtsTtl
       I2L=3*NumPtsTtl
@@ -492,8 +486,8 @@ C Initial approximation for solution vector.
       END
 
 
-C ********************** IND1D **********************
-C IND1D : converts 3D array index to 1D
+C ******************** IND1D ********************
+C Converts 3D array index to 1D.
 
       INTEGER FUNCTION IND1D(ISTART,IEND,JSTART,JEND,KSTART,KEND,I,J,K)
       ISPAN=IEND-ISTART+1
@@ -503,8 +497,9 @@ C      KSPAN=KEND-KSTART+1
       return
       END
 
-C ********************** IND3D **********************
-C IND3D : converts 1D array index to 3D
+
+C ******************** IND3D ********************
+C Converts 1D array index to 3D.
 
 C      SUBROUTINE IND3D(ISTART,IEND,JSTART,JEND,KSTART,KEND,IND,I,J,K)
 C #include "cfd.h"
@@ -523,11 +518,13 @@ c      K=KSTART+K-1
 C      return
 c      END
 
-C ********************** LISOLV4 **********************
-C LISOLV4: Linear solver for calling biconjugate gradient method.  Sets 
+
+C ******************** LISOLV4 ********************
+C Linear solver for calling biconjugate gradient method.  Sets 
 C up arrays for prosessing in solver routine NBAND7.
 
-      SUBROUTINE LISOLV4(ISTART,JSTART,KSTART,IEND,JEND,KEND,PHI,NITMXN)
+      SUBROUTINE LISOLV4(ISTART,JSTART,KSTART,IEND,JEND,KEND,PHI,
+     &                                                     NITMXN)
 #include "building.h"
 #include "cfd.h"
 
@@ -586,9 +583,11 @@ C Transfering solution from Y to PHI
       return
       END
 
-C ********************** NBAND7 **********************
-C NBAND7: Solver applying biconjugate gradient method.
-C SINGLE PRECISION VERSION
+
+C ******************** NBAND7 ********************
+C Solver applying biconjugate gradient method.
+C Single precision version.
+
       SUBROUTINE NBAND7(N,M,L,A,Y,F,EPSR,EPSA,epsnit,nit,IREPTN,NITMXN)
 #include "building.h"
 #include "cfd.h"
@@ -611,7 +610,7 @@ C SINGLE PRECISION VERSION
         IG = IFREE + M
       ENDIF
 
-C Debug...
+C Debug.
 C Dump A matrix
 C      WRITE(6,'(a)')'dump A'
 C      WRITE(6,201) N,L,M,I1L,I1R,I2L,I2R,I3L,I3R,IG
@@ -694,9 +693,6 @@ C A minimum number of 2 iterations (NIT.LT.2) improves the
 C behaviour when approaching convergence.
       IF (EPSNIT.GE.EPSR.AND.RR.GE.EPSA.AND.(1.E0-RDROP).GE.1.E-6.AND.
      &            NIT.LT.NITMXN.OR.NIT.LT.2) THEN
-
-C Debug...
-C      IF (NIT.LT.NITMXN) THEN
         DO 60 J = N, 1, -1
           A(ITM+J) = F(J) + A(I1R+J)*A(ITM+J+1) + 
      &             A(I2R+J)*A(ITM+J+L) + A(I3R+J)*A(ITM+J+M)

@@ -15,14 +15,18 @@ C details.
 
 
 C tdfile.f - Temporal file I/O facilities for ESP-r modules.
-C Current version February 2005.
+C There are three types of files associated with temporal data:
+C - an ascii file which is referenced in the model
+C - a binary/scratch file which is used as prj edits data or
+C   to aid random access in bps and res.
+C - a so-called exchange file ??
 
 C Contents:
 C Supplyandcheck - where user supplies an existing temporal file (tfile)
 C       and conversions are made depending on the calling module. 
 C ERTDF reads an binary/scratch) TDF file header and returns info
 C       into common blocks. 
-C EWTDF writes a TDF scratch file from info in common blocks.
+C EWTDF writes a TDF binary/scratch file from info in common blocks.
 C EWTDFA writes an ascii TDF file from info in common blocks.
 C TDFAIMPT imports a version 2/3 ascii TDF file into commons. 
 C ERTABU reads one timestep data from scratch file.
@@ -804,7 +808,7 @@ C IER=0 OK, IER=1 problem.
 
       CHARACTER FSTR*80,HDR*12,tdaide*72
       CHARACTER msgl2*48
-      CHARACTER tdbdate*24  ! data stamp for temporal scratch file
+      CHARACTER tdbdate*24  ! data stamp for temporal binary/scratch file
       character tail*8
       integer ier
 
@@ -932,15 +936,16 @@ C Binary file read errors.
 
       END
 
-C ************* EWTDFA 
-C EWTDFA writes an ascii TDF file (AFIL) on unit IAFIL, from info in
+C ************* EWTDFA *************
+C Writes an ascii TDF file (AFIL) on unit IAFIL, from info in
 C common blocks and scanning the binary scratch file for timestep data.
 C ITRC is the trace level, IER=0 OK, IER=1 problem.
 C iadcols is used to adjust the number of columns of data to
-C   be written (i.e. nuwpr+iadcols). If iadcols is positive then
-C   additional columns of default data will be written. If iadcols is
-C   negative then fewer columns will be written.
-C   If nuwpr+iadcols > nwpr then a modified nwpr is written out.
+C be written (i.e. nuwpr+iadcols). If iadcols is positive then
+C additional columns of default data will be written. If iadcols is
+C negative then fewer columns will be written.
+C If nuwpr+iadcols > nwpr then a modified nwpr is written out.
+
       SUBROUTINE EWTDFA(ITRC,AFIL,IAFIL,iiadcols,IER)
 #include "building.h"
 #include "net_flow.h"
@@ -987,7 +992,7 @@ C If not already opened free unit and check if file exists.
         RETURN
       ENDIF
 
-C The scratch file will have already defined ihrec.
+C The binary scratch file will have already defined ihrec.
       NDATA=NITDF
 
 C Write the header information.
@@ -1074,7 +1079,7 @@ C Record which points to the beginning of each item header.
         end do
       endif
 
-C Now scan the scratch file for timestep data. If this is the initail
+C Now scan the binary scratch file for timestep data. If this is the initail
 C creation of data the scratch file will be blank so just clear the
 C tabular fields.
       IF(NITDF.gt.0)THEN
@@ -1116,7 +1121,7 @@ C Export file write errors.
 
 C ************* TDFAIMPT
 C TDFAIMPT imports (act='i') or checks (act='c') a v2 or v3 ascii TDF file
-C into common blocks and into the current binary file LTDF on the currnt
+C into common blocks and into the current binary scratch file LTDF on the currnt
 C file unit IUTDF. The checking option restricts itself to the header of
 C the file and does not work with the scratch file. This is useful if
 C the user only wishes to associate building information with the temporal
@@ -1390,7 +1395,7 @@ C ntbits() for each item. If it differs, warn user and reset.
          nuwpr=itnuwpr
        endif
 
-C We have sufficient information to create a new scratch file
+C We have sufficient information to create a new binary scratch file
 C so jump to 145 to do this (code in common with the 'i' version.
         goto 145
       elseif(WORD(1:13).eq.'*tabular_data')then
@@ -1527,7 +1532,6 @@ C      CALL EDISP(IUOUT,OUTS)
 C Update the scratch file. If ndata has been lost, reset from nitdf.
       if(ndata.eq.0) ndata=nitdf
       IRVA=NDATA
-C      CALL EGETWIA(iafil,IHREC,IRVA,0,0,'-','pointers',IER)
       CALL EGETWIA1K(iafil,IHREC,IRVA,0,0,'-','pointers',IER)
       call usrmsg(' ','Updating the scratch file...','-')
       CALL EWTDF(IER)

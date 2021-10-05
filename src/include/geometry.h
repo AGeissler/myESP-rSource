@@ -10,11 +10,8 @@ C shape (8 char) - META file zone shape (extrude, poly, box)
 C rotateit (zone,1) pending angle of rotation using std conventions for REC zones or any shape
 C rotateit (zone,2) pending X coordinate to rotate around
 C rotateit (zone,3) pending Y coordinate to rotate around
-C rotateit (zone,4) prior angle of rotation to support un-do operations
-C rotateit (zone,5) prior X coordinate to rotate around
-C rotateit (zone,6) prior Y coordinate to rotate around
       real rotateit
-      common/metadat/rotateit(mcom,6)
+      common/metadat/rotateit(mcom,3)
 
 C gversion (real) version of the geometry file (1.0 legacy, 1.1 current).
 C igupgrade (integer) 0 = do nothing, 1 = leave at 1.0, 2 = upgrade to 1.1
@@ -199,7 +196,7 @@ C LNBLOCKNAME,LNBLOCKMAT - length of strings.
       common/GS8LN/LNBLOCKNAME(MCOM,MB),LNBLOCKMAT(MCOM,MB)
 
 C Visual entities to pass to Radiance and for model decoration.
-      integer nbvis        ! number of visual entitie in a zone
+      integer nbvis        ! number of visual entities in a zone
       real XOV,YOV,ZOV     ! coordinates of each visual origin.
       real DXOV,DYOV,DZOV  ! width depth and height of each visual block
       real BANGOV          ! three rotation angles of a visual block

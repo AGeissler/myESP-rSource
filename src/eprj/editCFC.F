@@ -47,6 +47,8 @@ C ********************************************************************
 #include "esprdbfile.h"
 #include "material.h"
 #include "CFC_common.h"
+#include "help.h"
+
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
       integer iuout,iuin,ieout
       COMMON/FILEP/IFIL
@@ -75,12 +77,7 @@ C ********************************************************************
       LOGICAL legacy_CFC_xst, CFC2_xst
       integer iShdLayers
 
-C For help messages.
-      character helpinsub*24  ! subroutine name
-      character helptopic*24  ! string (unique) for topic
-      integer nbhelp          ! number of help lines found
-
-      helpinsub='makeCFCfile'     ! set for subroutine
+      helpinsub='editCFC'     ! set for subroutine
       
       vb_xst = .false.
       drp_xst = .false.
@@ -1111,6 +1108,8 @@ C ********************************************************************
       subroutine importGSLedit(IUF,GSLfile,icomp,icfctp,isur,IER)
 #include "building.h"
 #include "CFC_common.h"
+#include "help.h"
+
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
       integer iuout,iuin,ieout
       COMMON/T1/NE(MS),NAIRG(MS),IPAIRG(MS,MGP),RAIRG(MS,MGP)
@@ -1130,12 +1129,7 @@ C ********************************************************************
 
       logical vb_xst,drp_xst,rld_xst,bug_xst
 
-C For help messages.
-      character helpinsub*24  ! subroutine name
-      character helptopic*24  ! string (unique) for topic
-      integer nbhelp          ! number of help lines found
-
-      helpinsub='importGSLedit'     ! set for subroutine
+      helpinsub='editCFC'     ! set for subroutine
 
       vb_xst = .false. ! slat-type blind
       drp_xst = .false. ! pleated drape
@@ -2223,6 +2217,7 @@ C `h` heat transfer (comvective) methods, `-` zone names only.
 #include "epara.h"
 #include "CFC_common.h"
 #include "geometry.h"
+#include "help.h"
 
       COMMON/C24/IZSTOCN(MCOM,MS) !array which holds the connection index
       integer izstocn
@@ -2241,12 +2236,7 @@ C `h` heat transfer (comvective) methods, `-` zone names only.
 
       DIMENSION IVA(MS)
 
-C For help messages.
-      character helpinsub*24  ! subroutine name
-      character helptopic*24  ! string (unique) for topic
-      integer nbhelp          ! number of help lines found
-
-      helpinsub='askCFCtype'     ! set for subroutine
+      helpinsub='editCFC'     ! set for subroutine
       helptopic='CFC_type_select'
       call gethelptext(helpinsub,helptopic,nbhelp)
       

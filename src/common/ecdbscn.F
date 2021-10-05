@@ -13,11 +13,6 @@ C warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
 C PURPOSE. See the GNU General Public License for more
 C details.
 
-C You should have received a copy of the GNU General Public
-C License along with ESP-r. If not, write to the Free
-C Software Foundation, Inc., 59 Temple Place, Suite 330,
-C Boston, MA 02111-1307 USA.
-
 C This routine scans a section of the defined electrical components data base  
 C for special materials data (based on the mode passed to the routine). This
 C can be either descriptive strings (for menus); data items or ; 
@@ -38,19 +33,19 @@ C        the routine.
 #include "building.h" 
 #include "esprdbfile.h"
 #include "power.h" 
-      
+#include "help.h"
+     
       integer lnblnk  ! function definition
 
       COMMON/ECMPDBNAM/ECMPDBFL
       COMMON/FILEP/IFIL
-      COMMON/POPHELP/H(60)
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/DEFLT3/DFCFD,DECMPDBFL,DICONDBFL
 
       DIMENSION SSTR(90),VAR(MPWDAT),SPMISC(MPWDAT)
 
       CHARACTER*124 OUTSTR
-      CHARACTER ECMPDBFL*72,SSTR*72,ltmp*72,h*72,DFILE*72
+      CHARACTER ECMPDBFL*72,SSTR*72,ltmp*72,DFILE*72
       CHARACTER DIVR1*6,DIVR2*6,DIVR3*6
       character*72 DFCFD,DECMPDBFL,DICONDBFL
       REAL VAR,SPMISC
@@ -60,6 +55,9 @@ C        the routine.
       IER=0
       ltmp='  '
       OK=.FALSE.
+      helpinsub='ecdbscb'  ! set for subroutine
+      helptopic='electrical_cmps_db'
+      call gethelptext(helpinsub,helptopic,nbhelp)
       
 C Open the electrical components database file 
  2    IF(ECMPDBFL(1:3).EQ.'UNK'.or.ECMPDBFL(1:2).EQ.'  ') THEN
@@ -69,10 +67,9 @@ C base list.
 C << this should be in the defaults file >>
         ECMPDBFL=DECMPDBFL
         DFILE=DECMPDBFL
-        h(1)='<< help to be added >>  '
         ltmp=ECMPDBFL
-        CALL EASKS(ltmp,'Electrical components database filename ?',
-     &     ' ',72,DFILE,'ecomp dbnam',IER,1)
+        CALL EASKS(ltmp,'Electrical components database filename?',
+     &     ' ',72,DFILE,'ecomp dbnam',IER,nbhelp)
         if(LTMP(1:2).ne.'  '.and.LTMP(1:4).ne.'UNKN') ECMPDBFL=ltmp
       ENDIF
 
@@ -99,11 +96,8 @@ C Assign field dividers based on the call type.
       IECFIL=IFIL+1
       CALL EFOPSEQ(IECFIL,ECMPDBFL,1,IER)
       IF(IER.NE.0) THEN
-        h(1)='The standard database of electrical components located'
-        write(h(2),'(2a)') 'at ',DECMPDBFL(1:lnblnk(DECMPDBFL))
-        h(3)='seems to be missing or has a different name. '
         CALL EASKOK('Electrical components database not found!',
-     &    'Retry?',OK,3)
+     &    'Retry?',OK,nbhelp)
         IF(.NOT.OK) THEN 
           IER=1
           CALL ERPFREE(IECFIL,ISTAT)

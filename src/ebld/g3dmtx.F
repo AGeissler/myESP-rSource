@@ -13,11 +13,6 @@ C warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
 C PURPOSE. See the GNU General Public License for more
 C details.
 
-C You should have received a copy of the GNU General Public
-C License along with ESP-r. If not, write to the Free
-C Software Foundation, Inc., 59 Temple Place, Suite 330,
-C Boston, MA 02111-1307 USA.
-
 C *********************************************************************
 C This file contains the following 3D zone modelling routines:
 
@@ -897,6 +892,7 @@ C *********************************************************************
 
 #include "building.h"
 #include "control.h"
+#include "help.h"
 
       common/outin/iuout,iuin,ieout
 
@@ -920,12 +916,7 @@ C *********************************************************************
       character outs*124
       logical OK
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='CONT3D'  ! set for subroutine
+      helpinsub='g3dmtx'  ! set for subroutine
 
       BB1=B1
       BB2=B2

@@ -37,6 +37,7 @@ C ********************************************************************
       SUBROUTINE LKMENU(ICOMP)
 #include "building.h"
 #include "geometry.h"
+#include "help.h"
 
       COMMON/HELP/IHELPM
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
@@ -50,12 +51,7 @@ C ********************************************************************
       integer NITEM,INO ! max items and current menu item
       LOGICAL OK
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='LKMENU'  ! set for subroutine
+      helpinsub='blcond'  ! set for subroutine
 
   10  INO=-3
       ITEM(1)='a constant                   '
@@ -203,6 +199,7 @@ C to be defined with constant, or temperature and/or moisture content
 C dependent thermal conductivity.
 C *******************************************************************
       SUBROUTINE DFNMNU(TEXT,INO)
+#include "help.h"
 
       COMMON/HELP/IHELPM
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
@@ -211,12 +208,7 @@ C *******************************************************************
       CHARACTER TEXT*50
       integer NITEM,INO ! max items and current menu item
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='DFNMNU'  ! set for subroutine
+      helpinsub='blcond'  ! set for subroutine
 
    10 ITEM(1)='a select zone            '
       ITEM(2)='b select constructions   '
@@ -310,6 +302,7 @@ C ******************************************************************
       SUBROUTINE SURFMN(ICOMP,TEXT,INPICK,IVALS)
 #include "building.h"
 #include "geometry.h"
+#include "help.h"
 
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
       integer IZSTOCN
@@ -319,12 +312,7 @@ C ******************************************************************
       CHARACTER*20 ITEM(MS)
       CHARACTER TEXT*50
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='SURFMN'  ! set for subroutine
+      helpinsub='blcond'  ! set for subroutine
 
       DO 10 I=1,NZSUR(icomp)
         ioc=IZSTOCN(icomp,i)
@@ -440,6 +428,7 @@ C thermal conductivity.
 C *******************************************************************
       SUBROUTINE LAYRMN(I,TEXT,INPICK,IVALL)
 #include "building.h"
+#include "help.h"
 
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/T1/NE(MS),NAIRG(MS),IPAIRG(MS,MGP),RAIRG(MS,MGP)
@@ -447,12 +436,7 @@ C *******************************************************************
       CHARACTER*20 ITEM(ME)
       CHARACTER TEXT*50
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='LAYRMN'  ! set for subroutine
+      helpinsub='blcond'  ! set for subroutine
 
       NGP=NAIRG(I)
       M=1
@@ -507,18 +491,14 @@ C *****************************  TRMMSG  ******************************
 C TRMMSG controls the appearance of the termination message.
 C *********************************************************************
       SUBROUTINE TRMMSG(ICNTM)
+#include "help.h"
 
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
       LOGICAL OK
       integer icntmt  ! local variable for editing
       character msg*72
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp         ! number of help lines found
-
-      helpinsub='TRMMSG'     ! set for subroutine
+      helpinsub='blcond'     ! set for subroutine
 
       helptopic='surf_cond_warning'
       call gethelptext(helpinsub,helptopic,nbhelp)
@@ -549,16 +529,12 @@ C location, and lets him to decide which type he wants to select,
 C the old type or the new type.
 C *******************************************************************
       SUBROUTINE KCHKMN(KCHK,INDX,INDX2)
+#include "help.h"
 
       CHARACTER*80 MSG1,MSG2
       LOGICAL OK
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='KCHKMN'  ! set for subroutine
+      helpinsub='blcond'  ! set for subroutine
 
       IF(KCHK.EQ.1)THEN
         MSG2='temperature dependent ... change?'

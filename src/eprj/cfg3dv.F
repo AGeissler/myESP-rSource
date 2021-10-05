@@ -140,13 +140,13 @@ C Local variables to pass to edline and axiscale.
 #ifdef OSI
       integer igwid,igheight  ! for use with axiscale
       integer iix,iiy,iixlast,iiylast,iixc,iiyc,iid1,iid2
-      integer iicol
+      integer iicol,ipixw,ipixh
       integer iigl,iigr,iigt,iigb,iigw,iigwh
       integer iiw1,iiw2,iiw3,iiw4,iimenu
 #else
       integer*8 igwid,igheight  ! for use with axiscale
       integer*8 iix,iiy,iixlast,iiylast,iixc,iiyc,iid1,iid2
-      integer*8 iicol
+      integer*8 iicol,ipixw,ipixh
       integer*8 iigl,iigr,iigt,iigb,iigw,iigwh
       integer*8 iiw1,iiw2,iiw3,iiw4,iimenu
 #endif
@@ -254,7 +254,7 @@ C re-create t13 after textpixwidth call.
         t13=' '; iicol=0
         write(t13,'(A)')zname(nznog(IZ))(1:lnzname(nznog(IZ)))
         CALL winfnt(izsize)
-        call textpixwidth(t13,ipixw)
+        call textpixwidth(t13,ipixw,ipixh)
         write(t13,'(A)')zname(nznog(IZ))(1:lnzname(nznog(IZ)))
         iixc = iix - (ipixw/2)
         call textatxy(iixc,iiy,t13,'-',iicol)

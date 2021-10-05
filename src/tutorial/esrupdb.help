@@ -1,6 +1,6 @@
 *help_text pdb
-*subroutine PCLIST
-*item PCLIST pdb_list_options_menu
+
+*item pc_manip pdb_list_options_menu
 'The plant components database can be listed: '
 ' Sequential      : by code number'
 ' Alphabetical    : by plant descriptions'
@@ -15,62 +15,35 @@
 'when a sorted list option is selected from the menu.'
 *enditem
 
-*item PCLIST pdb_list_ascii_fail
+*item pc_manip pdb_list_ascii_fail
 'It was not possible to write the ASCII file. Please'
 'check whether you have permission to write in that '
 'folder and whether you have sufficient disk space.'
 *enditem
 
-*item PCLIST pdb_list_ascii_overwrite
+*item pc_manip pdb_list_ascii_overwrite
 'The current contents of the ASCII file will be '
 'overwittten if you say yes.  '
 *enditem
 
-*item PCLIST pdb_ascii_write_pause
+*item pc_manip pdb_ascii_write_pause
 'A pause to look at the report... '
 *enditem
 
-*subroutine PCFIND
-*item PCFIND pdb_is_confused
+*item pc_manip pdb_is_confused
 'Pdb is confused. The component search failed. If you'
 'want to try again say no to this question. '
 *enditem
 
-*subroutine PCDELT
-*item PCDELT pdb_ok_to_delete
+*item pc_manip pdb_ok_to_delete
 'Chance to not delete the component. '
 *enditem
 
-*item PCDELT pdb_is_confused
+*item pc_manip pdb_is_confused
 'Pdb is confused. It could not finish writing the file'
 'and this is an option to exit the application. '
 *enditem
 
-*subroutine PCGET
-*item PCGET pdb_is_confused
-'Pdb is confused. It could not finish writing the file'
-'and this is an option to exit the application. '
-*enditem
-
-*subroutine PCPUT
-*item PCPUT pdb_is_confused
-'Pdb is confused. It could not finish writing the file'
-'and this is an option to exit the application. '
-*enditem
-
-*subroutine PCRMV
-*item PCRMV pdb_is_confused
-'Pdb is confused. It could not compact the file'
-'and this is an option to exit the application. '
-*enditem
-
-*subroutine PCUPDT
-*item PCUPDT pdb_is_confused
-'Pdb is confused. It could not update the file'
-'and this is an option to exit the application. '
-*enditem
-
-*subroutine pcedit
 *item pcedit pdb_generic_type_descr
 'The generic type describes the group under which a '
 'component comes under. For instance, a water pump '
@@ -201,8 +174,7 @@
 'to give you a chance to re-consider.'
 *enditem
 
-*subroutine PCENTR
-*item PCENTR pdb_input_file_choices
+*item pcentr pdb_input_file_choices
 'The input file should be identical in format to that  '
 'exported from pdb.'
 'If you select read from file:'
@@ -214,11 +186,11 @@
 '  is identical to that obtained from ESRUpdb (list).'
 *enditem
 
-*item PCENTR pdb_input_review_pause
+*item pcentr pdb_input_review_pause
 'Pause to review data. No returns to editing.'
 *enditem
 
-*item PCRD pdb_generic_type
+*item pcompi pdb_generic_type
 'The generic type describes the group under which a '
 'component comes under. For instance, a water pump '
 'generic type is used for both centrifugal and '
@@ -226,14 +198,14 @@
 'A maximum of 40 characters may be used.'
 *enditem
 
-*item PCRD pdb_component_descr
+*item pcompi pdb_component_descr
 'The component description gives an explanation of a '
 'component such as a name and any relevant information'
 'to uniquely identify a component.'
 'A maximum of 80 characters may be used.'
 *enditem
 
-*item PCRD pdb_component_index
+*item pcompi pdb_component_index
 'The component index indicates which type of component'
 'is required. At present two types are available.'
 'A single component and a meta component. A meta '
@@ -243,21 +215,21 @@
 'a heating coil, dampers and duct arrangement.'
 *enditem
 
-*item PCRD pdb_model_code
+*item pcompi pdb_model_code
 'The component code is an integer value which is used'
 'in ESRUbps to point to corresponding coefficient'
 *enditem
 
-*item PCRD pdb_nb_of_nodes
+*item pcompi pdb_nb_of_nodes
 'Each component has a number of nodes (finite volumes)'
 *enditem
 
-*item PCRD pdb_nb_of_nonzero
+*item pcompi pdb_nb_of_nonzero
 'Please indicte the number of non-zero matrix coeffients'
 'which describe the component.'
 *enditem
 
-*item PCRD pdb_position_of_non_zero
+*item pcompi pdb_position_of_non_zero
 'Give a list of integer values which represent the'
 'position of non-zero matrix coefficients. '
 'For example the following matrix contains 2 non-'
@@ -268,14 +240,14 @@
 ' 1 and 4.'
 *enditem
 
-*item PCRD pdb_connectivity_list
+*item pcompi pdb_connectivity_list
 'Give a list of integer values which represent the'
 'connectivity value of each node. '
 'For example if a node expects to recieve 2 connec-'
 'tions then a value of 2 is specified for it.'
 *enditem
 
-*item PCRD pdb_state_variable_index
+*item pcompi pdb_state_variable_index
 'The state variable index indicates the functionality'
 'of a plant component model and the nature of a node.'
 'The following index values are supported: '
@@ -287,23 +259,23 @@
 'solid    9              19                   29'
 *enditem
 
-*item PCRD pdb_nb_of_meta_comps
+*item pcompi pdb_nb_of_meta_comps
 'You are asked to specify the number of standard components which'
 'will form this meta component.'
 *enditem
 
-*item PCRD pdb_meta_comp_indexs
+*item pcompi pdb_meta_comp_indexs
 'A meta component comprises a number of components'
 'which exist in database. In order to identify'
 'these components, their code numbers must be'
 *enditem
 
-*item PCRD pdb_meta_connections
+*item pcompi pdb_meta_connections
 'Each meta component will have a number of component inter-connections'
 'and you are now asked to say how many inter-connections.'
 *enditem
 
-*item PCRD pdb_meta_connection_data
+*item pcompi pdb_meta_connection_data
 ' Describe each connection using the following format'
 ' C1  N1  CT  C2  N2  MDR  MISC1  MISC2'
 ' Where:'
@@ -317,7 +289,7 @@
 ' MISC2: Second miscellaneous data'
 *enditem
 
-*item PCRD component_ADATA_array
+*item pcompi component_ADATA_array
 'The ADATA array holds static data for a component and'
 'their values are assumed to be fixed throughout the'
 'simulation. The BDATA on the other hand holds dynamic'
@@ -327,29 +299,28 @@
 'rates, humidity ratio ..etc.'
 *enditem
 
-*item PCRD component_ADATA_descr
+*item pcompi component_ADATA_descr
 'Provide a user friendly description of the ADATA variable!'
 'You will then be asked to supply an initial ADATA value and a minimum'
 'and maximum range for this ADATA variable.'
 *enditem
 
-*item PCRD component_BDATA_descr
+*item pcompi component_BDATA_descr
 'Provide a user friendly description of the BDATA variable!'
 'You will then be asked to supply an initial BDATA value and a minimum'
 'and maximum range for this BDATA variable.'
 *enditem
 
-*item PCRD component_CDATA_descr
+*item pcompi component_CDATA_descr
 'Provide a user friendly description of the CDATA (control) variable!'
 *enditem
 
-*item PCRD comp_additional_outputs
+*item pcompi comp_additional_outputs
 'Plant components performance is recorded via one or more additional'
 'outputs e.g. heat injection.  You will be asked for a brief '
 'description an index (?) which defines the type of each output.'
 *enditem
 
-*subroutine PCWRT
 *item pdb pdb_file_name_select
 'The plant component database binary file holds the'
 'description of available components. If the name'
@@ -375,8 +346,7 @@
 'is an option to exit the application. '
 *enditem
 
-*subroutine list
-*item list pdb_could_not_scan
+*item pdb pdb_could_not_scan
 'Pdb is confused, it could not scan the database. This'
 'is an option to exit the application. '
 *enditem

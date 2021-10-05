@@ -13,11 +13,6 @@ C warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
 C PURPOSE. See the GNU General Public License for more
 C details.
 
-C You should have received a copy of the GNU General Public
-C License along with ESP-r. If not, write to the Free
-C Software Foundation, Inc., 59 Temple Place, Suite 330,
-C Boston, MA 02111-1307 USA.
-
 C The file edtopol.f is a collection of support facilities for 
 C creating and editing the problem topology ie. connection lists. 
 
@@ -37,10 +32,9 @@ C ITRU = unit number for user output, IER=0 OK, IER=1 problem.
 #include "building.h"
 #include "model.h"
 #include "site.h"
-
-C geometry.h provides commons G0/G1 and G2.
 #include "geometry.h"
 #include "prj3dv.h"
+#include "help.h"
       
       integer lnblnk  ! function definition
 
@@ -70,12 +64,7 @@ C SO is a tempporary array to hold current surface SOTHER.
       logical newgeo  ! to use for testing if new/old geometry file.
       integer icz,ics ! associated zone and surface
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='EDACONN'  ! set for subroutine
+      helpinsub='edonecon'  ! set for subroutine
 
 C Set for redraw if image on first entry (if refresh set to after
 C each edit). Set flag for updating geometry file (for changed

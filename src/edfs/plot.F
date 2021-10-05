@@ -1,6 +1,6 @@
 C This file is part of the ESP-r system.
 C Copyright Energy Systems Research Unit, University of
-C Strathclyde, Glasgow Scotland, 2001.
+C Strathclyde, Glasgow Scotland, 2001-.
 
 C ESP-r is free software.  You can redistribute it and/or
 C modify it under the terms of the GNU General Public
@@ -13,18 +13,15 @@ C warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
 C PURPOSE. See the GNU General Public License for more
 C details.
 
-C You should have received a copy of the GNU General Public
-C License along with ESP-r. If not, write to the Free
-C Software Foundation, Inc., 59 Temple Place, Suite 330,
-C Boston, MA 02111-1307 USA.
 
-C Contains:
-C  PLOT - monitors itteration process.
+C This file contains the following subroutines.
+C  PLOT - monitors the iteration process.
+C  REPLOT - scale plots for new number of maximum iterations.
 
 C ********************* PLOT *********************
-C PLOT - This routine traces the iteration processes by
-C  ploting residuals of the equation and monitoring values.
-C Up to 4 variables can be displayed MFRP iteration values are plotted.
+C Plots residuals and monitored parameters as the iterative
+C solution proceeds.
+C ICFD   - CFD domain being processed.
 C IPLT   - Index for the current value to be plotted.
 C NPLT   - Number of iterations between plotting.
 C ITM    - Time-step index.
@@ -35,7 +32,9 @@ C CRES   - current residuals.
 C CMON   - current monitoring values.
 C LRES   - labels for residuals.
 C LMON   - labels for monitoring values.
-      SUBROUTINE PLOT(iplt,NPLT,ITM,NITER,RMX,NCRV,CRES,CMON,LRES,LMON)
+
+      SUBROUTINE PLOT(ICFD,iplt,NPLT,ITM,NITER,RMX,NCRV,CRES,CMON,
+     &                                                   LRES,LMON)
 #include "building.h"
 #include "cfd.h"
 
@@ -48,6 +47,8 @@ C Stores all MFRP residuals, maximum and minimum residuals and max X value.
 C Stores all MFRP monitoring values, maximum and minimum values.
       COMMON/MON/XMONIT(4,MFRP),XMONMX(4),XMONMN(4)
 
+      common/param1/MAXITR(MNZ),IMONT(MNZ),JMONT(MNZ),KMONT(MNZ),
+     &             IPPHI(MNZ),SRMAX(MNZ)
       COMMON/CONST/GREAT,small,GRAV
 
       CHARACTER title*124,LRES(4)*24,LMON(4)*24,LINE(4)*5
@@ -75,18 +76,18 @@ C Stores all MFRP monitoring values, maximum and minimum values.
 C Cast values for linescale.
       iigl=igl;iigr=igr;iigt=igt;iigb=igb;iigw=igw;iigwh=igwh
 
-C Increment plot counter.  Check if negative (indicates max iterations
-C have been increased, therefore force redraw).
+C Increment plot counter. Check if negative (indicates maximum
+C iterations have been increased, therefore force redraw).
       if (iplt.lt.0) then
         iplt=iplt*(-1)
         RDR=.TRUE.
       endif
       iplt=iplt+1
 
-C Create local max residual
+C Create local maximum residual.
       XRMX=LOG(RMX)
 
-C Initialized values when subroutine is first called.
+C Initialise values when subroutine is first called.
       IF(IPLT.EQ.1)THEN
         RDR=.TRUE.
         XMAX=10.0
@@ -107,21 +108,21 @@ C Initialized values when subroutine is first called.
  5      continue
       ENDIF
 
-C Copy current values into common.
+C Copy current values to common.
       do 10 I=1,NCRV
         CRES(I)=AMAX1(CRES(I),small)
         RESID(I,IPLT)=LOG(CRES(I))
         XMONIT(I,IPLT)=CMON(I)
  10   continue
 
-C Re-set maximum number of iteration.
+C Re-set maximum number of iterations.
  11   IF(IPLT.GT.INT(XMAX))THEN
         XMAX=XMAX+10.0
         RDR=.TRUE.
         GOTO 11
       ENDIF
 
-C Re-set Maximum and Minimum residuals.
+C Re-set mximum and minimum residuals.
       do 20 I=1,NCRV
         if (RESID(I,IPLT).gt.RESMX) then
           RESMX=RESID(I,IPLT)
@@ -195,13 +196,13 @@ C Scale and draw monitoring plot.
 
 C Print title. IPS is used to keep track of number of title lines.
       IPS=1
-      write(title,'(12x,a,38x,a)') 'RESIDUALS','MONITORING VALUES'
+      write(title,'(20x,a,38x,a)') 'RESIDUALS','MONITORED VALUES'
       iside=IPS
       isize=1
       ifont=0
       call viewtext(title,iside,isize,ifont)
 
-C Plot residuals curves.
+C Plot residuals.
       do 30 I=1,NCRV
 
 C Rescale axis for first curve.
@@ -214,7 +215,7 @@ C Rescale axis for first curve.
           CALL linescale(iigl,xadd,xsc,iigb,yadd,ysc)
         endif
 
-C If graph was re-scaled re-draw all residuals.
+C If graph was re-scaled, re-draw all residuals.
         IF(RDR)THEN
           iupdown=0
           isym=0
@@ -237,16 +238,16 @@ C Else just plot current iteration value.
         ENDIF
  30   continue
 
-C Plot a star where the max residual value is on the curve.
+C Plot a '<' indicating the maximum residual value as residuals approach.
       XMARK=XMAX*1.01
       iupdown=0
       isym=13
       CALL etplot(XMARK,XRMX,iupdown,isym)
 
-C Plot monitoring curves.
+C Plot monitored parameters.
       do 40 I=1,NCRV
 
-C Rescale axis for each curve.
+C Rescale axis for each parameter.
         YMAX=XMONMX(I)
         YMIN=XMONMN(I)
         igheight=igwh
@@ -281,7 +282,7 @@ C Else just plot current iteration value.
 C Label curves.
       do 50 I=1,NCRV
         IPS=IPS+1
-        write(title,'(2(2(a,1x),a,1PE11.3,1x))')
+        write(title,'(2(2(a,2x),a,1PE11.2,3x))')
      &          LINE(I),LRES(I),'=',CRES(I),LINE(I),LMON(I),'=',CMON(I)
         iside=IPS
         isize=1
@@ -289,7 +290,7 @@ C Label curves.
         call viewtext(title,iside,isize,ifont)
  50   continue
 
-C Display time-step index and iteration index.
+C Display time-step, iteration stage and residual criterion.
       IPS=IPS+2
       write(title,'(a,i5)')'ITST=',ITM
       iside=IPS
@@ -302,13 +303,20 @@ C Display time-step index and iteration index.
       isize=0
       ifont=0
       call viewtext(title,iside,isize,ifont)
+      IPS=IPS+1
+      write(title,'(a,F4.2)')'< = ',SRMAX(ICFD)
+      iside=IPS
+      isize=0
+      ifont=0
+      call viewtext(title,iside,isize,ifont)
       call forceflush()
 
       RETURN
       END
 
 C ********************* REPLOT *********************
-C REPLOT - scale plots for new number of maximum iterations.
+C Scale plots for new number of maximum iterations.
+
       SUBROUTINE REPLOT(MOLD,MNEW,IPLOT)
 #include "building.h"
 #include "cfd.h"

@@ -32,14 +32,11 @@ C----------------------------------------
 C CLMDAY: defines a restricted period during a day for analysis
 C puropses. 
       SUBROUTINE CLMDAY(IER)
+#include "help.h"
       COMMON/DAYSF/KDS,KDF
       CHARACTER hold*24
 
-C For help messages
-      character helpinsub*24,helptopic*24 ! strings for help
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='CLMDAY'  ! set for cfiles
+      helpinsub='clmper'  ! set for cfiles
       helptopic='period_at_least'
       call gethelptext(helpinsub,helptopic,nbhelp)
       write(HOLD,'(I6,I4)') KDS,KDF
@@ -61,13 +58,10 @@ C ************* ONEDAY
 C Interface for specification of one day. Returns ID
 C based on the current settings of IFDAY. 
       SUBROUTINE ONEDAY(IFDAY,IDAY,ID,IM,IER)
+#include "help.h"
       CHARACTER hold*24
 
-C For help messages
-      character helpinsub*24,helptopic*24 ! strings for help
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='ONEDAY'  ! set for cfiles
+      helpinsub='clmper'  ! set for cfiles
 
       IER=0
       helptopic='period_within_calendar'
@@ -105,7 +99,7 @@ C Manual inclusion of a parameter from building.h
       parameter (MIPVA=MSPS)
 
 #include "seasons.h"
-C seasons.h provides typper and typsea
+#include "help.h"
 
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/SET1/IYEAR,IBDOY,IEDOY,IFDAY,IFTIME
@@ -117,11 +111,7 @@ C seasons.h provides typper and typsea
       character PERST1*14,PERST2*44,PERST3*44
       integer NITEM,INO  ! max items and current menu item
 
-C For help messages
-      character helpinsub*24,helptopic*24 ! strings for help
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='SELPER'  ! set for cfiles
+      helpinsub='clmper'  ! set for cfiles
 
 C Assume whole day requested.
       ier=0
@@ -281,18 +271,15 @@ C ************* CLMPER
 C CLMPER: Provides interface to specification of a period of days. It
 C returns IDS and IDF based on the current settings of IFDAY. 
       SUBROUTINE CLMPER(IFDAY,IER)
+#include "help.h"
+
       COMMON/PERC/ID1,IM1,IT1,ID2,IM2,IT2,IDS,IDF,INEW
-      common/pophelp/h(60)
-      CHARACTER H*72,hold*24
+      CHARACTER hold*24
       
       integer ier  ! for error state
       integer ifday  ! indicates the format for days.
 
-C For help messages
-      character helpinsub*24,helptopic*24 ! strings for help
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='CLMPER'  ! set for cfiles
+      helpinsub='clmper'  ! set for cfiles
 
       IER=0
       helptopic='period_output_time'
@@ -361,10 +348,9 @@ C << the text block from within clm!
 #include "building.h"
 #include "esprdbfile.h"
 #include "espriou.h"
-C espriou.h provides currentfile, cdblfil.
 #include "seasons.h"
-C seasons.h provides typper and typsea
 #include "climate.h"
+#include "help.h"
       
       integer lnblnk  ! function definition
 
@@ -393,12 +379,14 @@ C ITM is main item editing menu.
       character ITM(25)*38
       character NMTHNM(12)*3,DAYNAM(7)*3
       character descr*7,descrst*10,descrfn*10,descrstn*10
-      character descrstp*10
+      character descr2st*8,descr2fn*8,descr2stn*8
+      character descrstp*10,descr2stp*8
       character DFILE*72,outs*124,louts*248
-      character DESCRX*7,DESCR1X*10,DESCR1*10,hold*40
+      character DESCRX*7,DESCR1X*10,DESCR1*10
+      character DESCR2X*8,DESCR2*8
       CHARACTER CLMLOC*42,t42*42,d42*42,t72*72,d72*72
       character llasci*144,llitem*144,longtfile*144,longtfiledos*144
-      character tedlbl*20,teditor*20,tmode*8,doit*248
+      character tedlbl*20,teditor*20,tmode*8,doit*248,hold*40
       logical unixok,xst,concat,mxmn
       logical havedrawn   ! if the user has asked to draw graph
       logical altered     ! if user changes period.
@@ -420,18 +408,13 @@ C ITM is main item editing menu.
       integer*8 iicapture   ! to pass to updcapt
       integer*8 ilf,igfw,igfh,ild,igdw,igdh
 #endif
-
-C For help messages
-      character helpinsub*24,helptopic*24 ! strings for help
-      integer nbhelp     ! number of help lines found
-
      
       DATA NMTHNM/'Jan','Feb','Mar','Apr','May','Jun','Jul',
      &'Aug','Sep','Oct','Nov','Dec'/
       DATA DAYNAM/'Mon','Tue','Wed','Thu','Fri','Sat','Sun'/
 
 C Check if Unix-based or DOS based.
-      helpinsub='editemclimatelist'  ! set for clmper
+      helpinsub='clmper'  ! set for clmper
       call isunix(unixok)
       havedrawn = .false.
       altered = .false.
@@ -484,47 +467,47 @@ C If clmlnam and clmlaid are not set fill them with default information.
       WRITE(ITM(3),'(2A)')     'c clm file: ',clmldbfile(1:26)
       WRITE(ITM(4),'(2A)')     'd available: ',clmlavail
       WRITE(ITM(5),'(A)')      ' ----seasons----------------------days'
-      call stdate(iyear,is1wins,descr,descrst)
-      call stdate(iyear,is1winf,descr,descrfn)
+      call stdate(iyear,is1wins,descr,descrst,descr2st)
+      call stdate(iyear,is1winf,descr,descrfn,descr2fn)
       jjd1=(is1winf-is1wins)+1
       call edayr(1,id1,im1)
       CALL EWEEKD(id1,im1,IYEAR,jjd1t)  ! get day of week at start of year.
       WRITE(ITM(6),'(4a,i4)')  'e  1st win ',descrst,'  ',descrfn,jjd1
-      call stdate(iyear,is1sprs,descr,descrst)
-      call stdate(iyear,is1sprf,descr,descrfn)
+      call stdate(iyear,is1sprs,descr,descrst,descr2st)
+      call stdate(iyear,is1sprf,descr,descrfn,descr2fn)
       jjd2=(is1sprf-is1sprs)+1
       WRITE(ITM(7),'(4a,i4)')  'f  spring  ',descrst,'  ',descrfn,jjd2
-      call stdate(iyear,is1sums,descr,descrst)
-      call stdate(iyear,is1sumf,descr,descrfn)
+      call stdate(iyear,is1sums,descr,descrst,descr2st)
+      call stdate(iyear,is1sumf,descr,descrfn,descr2fn)
       jjd3=(is1sumf-is1sums)+1
       WRITE(ITM(8),'(4a,i4)')  'g  summer  ',descrst,'  ',descrfn,jjd3
-      call stdate(iyear,is2sprs,descr,descrst)
-      call stdate(iyear,is2sprf,descr,descrfn)
+      call stdate(iyear,is2sprs,descr,descrst,descr2st)
+      call stdate(iyear,is2sprf,descr,descrfn,descr2fn)
       jjd4=(is2sprf-is2sprs)+1
       WRITE(ITM(9),'(4a,i4)')  'h  autumn  ',descrst,'  ',descrfn,jjd4
-      call stdate(iyear,is2wins,descr,descrst)
-      call stdate(iyear,is2winf,descr,descrfn)
+      call stdate(iyear,is2wins,descr,descrst,descr2st)
+      call stdate(iyear,is2winf,descr,descrfn,descr2fn)
       jjd5=(is2winf-is2wins)+1
       WRITE(ITM(10),'(4a,i4)') 'i  2nd win ',descrst,'  ',descrfn,jjd5
       WRITE(ITM(11),'(A)')     ' ----typical periods--------------days'
-      call stdate(iyear,ia1wins,descr,descrst)
-      call stdate(iyear,ia1winf,descr,descrfn)
+      call stdate(iyear,ia1wins,descr,descrst,descr2st)
+      call stdate(iyear,ia1winf,descr,descrfn,descr2fn)
       jjd1=(ia1winf-ia1wins)+1
       WRITE(ITM(12),'(4a,i4)') 'j  1st win ',descrst,'  ',descrfn,jjd1
-      call stdate(iyear,ia1sprs,descr,descrst)
-      call stdate(iyear,ia1sprf,descr,descrfn)
+      call stdate(iyear,ia1sprs,descr,descrst,descr2st)
+      call stdate(iyear,ia1sprf,descr,descrfn,descr2fn)
       jjd2=(ia1sprf-ia1sprs)+1
       WRITE(ITM(13),'(4a,i4)') 'k  spring  ',descrst,'  ',descrfn,jjd2
-      call stdate(iyear,iasums,descr,descrst)
-      call stdate(iyear,iasumf,descr,descrfn)
+      call stdate(iyear,iasums,descr,descrst,descr2st)
+      call stdate(iyear,iasumf,descr,descrfn,descr2fn)
       jjd3=(iasumf-iasums)+1
       WRITE(ITM(14),'(4a,i4)') 'l  summer  ',descrst,'  ',descrfn,jjd3
-      call stdate(iyear,ia2sprs,descr,descrst)
-      call stdate(iyear,ia2sprf,descr,descrfn)
+      call stdate(iyear,ia2sprs,descr,descrst,descr2st)
+      call stdate(iyear,ia2sprf,descr,descrfn,descr2fn)
       jjd4=(ia2sprf-ia2sprs)+1
       WRITE(ITM(15),'(4a,i4)') 'm  autumn  ',descrst,'  ',descrfn,jjd4
-      call stdate(iyear,ia2wins,descr,descrst)
-      call stdate(iyear,ia2winf,descr,descrfn)
+      call stdate(iyear,ia2wins,descr,descrst,descr2st)
+      call stdate(iyear,ia2winf,descr,descrfn,descr2fn)
       jjd5=(ia2winf-ia2wins)+1
       WRITE(ITM(16),'(4a,i4)') 'n  2nd win ',descrst,' ',descrfn,jjd5
       WRITE(ITM(17),'(A)')     '< scan weather for best-fit weeks'
@@ -686,10 +669,10 @@ C 1st winter season
 C Edit the current period in terms of day and month. Also check to
 C see if next period overlaps and correct.
    91   hold = ' '
-        helptopic='climate_winter_season'
+        helptopic='climate_season'
         call gethelptext(helpinsub,helptopic,nbhelp)
-        call stdate(iyear,is1wins,descr,descrst)
-        call stdate(iyear,is1winf,descr,descrfn)
+        call stdate(iyear,is1wins,descr,descrst,descr2st)
+        call stdate(iyear,is1winf,descr,descrfn,descr2fn)
         WRITE(outs,'(4a)')  ' 1st winter ',descrst,' - ',descrfn
         call edisp(iuout,outs)
 
@@ -724,10 +707,10 @@ C If first season is not 1 Jan then warn user.
 C Spring season.
 C Edit the current period in terms of day and month.
    92   hold = ' '
-        helptopic='climate_spring_season'
+        helptopic='climate_season'
         call gethelptext(helpinsub,helptopic,nbhelp)
-        call stdate(iyear,is1sprs,descr,descrst)
-        call stdate(iyear,is1sprf,descr,descrfn)
+        call stdate(iyear,is1sprs,descr,descrst,descr2st)
+        call stdate(iyear,is1sprf,descr,descrfn,descr2fn)
         WRITE(outs,'(4a)')  ' Spring ',descrst,' - ',descrfn
         call edisp(iuout,outs)
         call edayr(is1sprs,id1,im1)
@@ -736,14 +719,14 @@ C Edit the current period in terms of day and month.
         if(jjd2t.ne.jjd1t)then
           if(jjd2t.gt.jjd1t)then
             jprev=is1sprs-(jjd2t-jjd1t)
-            call stdate(iyear,jprev,descr,descrstp)
+            call stdate(iyear,jprev,descr,descrstp,descr2stp)
             jnext=is1sprs-(jjd2t-jjd1t)+7
-            call stdate(iyear,jnext,descr,descrstn)
+            call stdate(iyear,jnext,descr,descrstn,descr2stn)
           elseif(jjd2t.lt.jjd1t)then
             jnext=is1sprs-(jjd1t-jjd2t)
-            call stdate(iyear,jnext,descr,descrstn)
+            call stdate(iyear,jnext,descr,descrstn,descr2stn)
             jprev=is1sprs-(jjd1t-jjd2t)-7
-            call stdate(iyear,jnext,descr,descrstp)
+            call stdate(iyear,jnext,descr,descrstp,descr2stp)
           endif
           write(louts,'(8a)') 'Spring starts on a ',
      &      DAYNAM(jjd2t),' and prior season starts on a ',
@@ -778,10 +761,10 @@ C Edit the current period in terms of day and month.
 C Summer season.
 C Edit the current period in terms of day and month.
    93   hold = ' '
-        helptopic='climate_summer_season'
+        helptopic='climate_season'
         call gethelptext(helpinsub,helptopic,nbhelp)
-        call stdate(iyear,is1sums,descr,descrst)
-        call stdate(iyear,is1sumf,descr,descrfn)
+        call stdate(iyear,is1sums,descr,descrst,descr2st)
+        call stdate(iyear,is1sumf,descr,descrfn,descr2fn)
         WRITE(outs,'(4a)')  ' Summer ',descrst,' - ',descrfn
         call edisp(iuout,outs)
         call edayr(is1sums,id1,im1)
@@ -790,14 +773,14 @@ C Edit the current period in terms of day and month.
         if(jjd3t.ne.jjd1t)then
           if(jjd3t.gt.jjd1t)then
             jprev=is1sums-(jjd3t-jjd1t)
-            call stdate(iyear,jprev,descr,descrstp)
+            call stdate(iyear,jprev,descr,descrstp,descr2stp)
             jnext=is1sums-(jjd3t-jjd1t)+7
-            call stdate(iyear,jnext,descr,descrstn)
+            call stdate(iyear,jnext,descr,descrstn,descr2stn)
           elseif(jjd3t.lt.jjd1t)then
             jnext=is1sums-(jjd1t-jjd3t)
-            call stdate(iyear,jnext,descr,descrstn)
+            call stdate(iyear,jnext,descr,descrstn,descr2stn)
             jprev=is1sums-(jjd1t-jjd3t)-7
-            call stdate(iyear,jnext,descr,descrstp)
+            call stdate(iyear,jnext,descr,descrstp,descr2stp)
           endif
           write(louts,'(8a)') 'Summer starts on a ',
      &      DAYNAM(jjd3t),' and winter starts on a ',
@@ -832,10 +815,10 @@ C Edit the current period in terms of day and month.
 C Autumn season.
 C Edit the current period in terms of day and month.
    94   hold = ' '
-        helptopic='climate_autumn_season'
+        helptopic='climate_season'
         call gethelptext(helpinsub,helptopic,nbhelp)
-        call stdate(iyear,is2sprs,descr,descrst)
-        call stdate(iyear,is2sprf,descr,descrfn)
+        call stdate(iyear,is2sprs,descr,descrst,descr2st)
+        call stdate(iyear,is2sprf,descr,descrfn,descr2fn)
         WRITE(outs,'(4a)')  ' Autumn ',descrst,' - ',descrfn
         call edisp(iuout,outs)
         call edayr(is2sprs,id1,im1)
@@ -844,14 +827,14 @@ C Edit the current period in terms of day and month.
         if(jjd4t.ne.jjd1t)then
           if(jjd4t.gt.jjd1t)then
             jprev=is2sprs-(jjd4t-jjd1t)
-            call stdate(iyear,jprev,descr,descrstp)
+            call stdate(iyear,jprev,descr,descrstp,descr2stp)
             jnext=is2sprs-(jjd4t-jjd1t)+7
-            call stdate(iyear,jnext,descr,descrstn)
+            call stdate(iyear,jnext,descr,descrstn,descr2stn)
           elseif(jjd4t.lt.jjd1t)then
             jnext=is2sprs-(jjd1t-jjd4t)
-            call stdate(iyear,jnext,descr,descrstn)
+            call stdate(iyear,jnext,descr,descrstn,descr2stn)
             jprev=is2sprs-(jjd1t-jjd4t)-7
-            call stdate(iyear,jnext,descr,descrstp)
+            call stdate(iyear,jnext,descr,descrstp,descr2stp)
           endif
           write(louts,'(8a)') 'Autumn starts on a ',
      &      DAYNAM(jjd4t),' and winter starts on a ',
@@ -886,10 +869,10 @@ C Edit the current period in terms of day and month.
 C 2nd winter season.
 C Edit the current period in terms of day and month.
    95   hold = ' '
-        helptopic='climate_winter2_season'
+        helptopic='climate_season'
         call gethelptext(helpinsub,helptopic,nbhelp)
-        call stdate(iyear,is2wins,descr,descrst)
-        call stdate(iyear,is2winf,descr,descrfn)
+        call stdate(iyear,is2wins,descr,descrst,descr2st)
+        call stdate(iyear,is2winf,descr,descrfn,descr2fn)
         WRITE(outs,'(4a)')  ' 2nd winter ',descrst,' - ',descrfn
         call edisp(iuout,outs)
         call edayr(is2wins,id1,im1)
@@ -898,14 +881,14 @@ C Edit the current period in terms of day and month.
         if(jjd5t.ne.jjd1t)then
           if(jjd5t.gt.jjd1t)then
             jprev=is2wins-(jjd5t-jjd1t)
-            call stdate(iyear,jprev,descr,descrstp)
+            call stdate(iyear,jprev,descr,descrstp,descr2stp)
             jnext=is2wins-(jjd5t-jjd1t)+7
-            call stdate(iyear,jnext,descr,descrstn)
+            call stdate(iyear,jnext,descr,descrstn,descr2stn)
           elseif(jjd5t.lt.jjd1t)then
             jnext=is2wins-(jjd1t-jjd5t)
-            call stdate(iyear,jnext,descr,descrstn)
+            call stdate(iyear,jnext,descr,descrstn,descr2stn)
             jprev=is2wins-(jjd1t-jjd5t)-7
-            call stdate(iyear,jnext,descr,descrstp)
+            call stdate(iyear,jnext,descr,descrstp,descr2stp)
           endif
           write(louts,'(8a)') '2nd winter starts on a ',
      &      DAYNAM(jjd5t),' and 1st winter starts on a ',
@@ -935,10 +918,10 @@ C Edit the current period in terms of day and month.
 C 1st winter period
 C Edit the current period in terms of day and month.
    96   hold = ' '
-        helptopic='climate_winter1_season'
+        helptopic='climate_season'
         call gethelptext(helpinsub,helptopic,nbhelp)
-        call stdate(iyear,ia1wins,descr,descrst)
-        call stdate(iyear,ia1winf,descr,descrfn)
+        call stdate(iyear,ia1wins,descr,descrst,descr2st)
+        call stdate(iyear,ia1winf,descr,descrfn,descr2fn)
         WRITE(outs,'(4a)')  ' 1st winter typical ',descrst,' - ',
      &    descrfn
         call edisp(iuout,outs)
@@ -960,10 +943,10 @@ C Edit the current period in terms of day and month.
 C Spring period.
 C Edit the current period in terms of day and month.
    97   hold = ' '
-        helptopic='climate_spring_season'
+        helptopic='climate_season'
         call gethelptext(helpinsub,helptopic,nbhelp)
-        call stdate(iyear,ia1sprs,descr,descrst)
-        call stdate(iyear,ia1sprf,descr,descrfn)
+        call stdate(iyear,ia1sprs,descr,descrst,descr2st)
+        call stdate(iyear,ia1sprf,descr,descrfn,descr2fn)
         WRITE(outs,'(4a)')  ' Spring typical ',descrst,' - ',
      &    descrfn
         call edisp(iuout,outs)
@@ -985,10 +968,10 @@ C Edit the current period in terms of day and month.
 C Summer period.
 C Edit the current period in terms of day and month.
    98   hold = ' '
-        helptopic='climate_summer_season'
+        helptopic='climate_season'
         call gethelptext(helpinsub,helptopic,nbhelp)
-        call stdate(iyear,iasums,descr,descrst)
-        call stdate(iyear,iasumf,descr,descrfn)
+        call stdate(iyear,iasums,descr,descrst,descr2st)
+        call stdate(iyear,iasumf,descr,descrfn,descr2fn)
         WRITE(outs,'(4a)')  ' Summer typical ',descrst,' - ',
      &    descrfn
         call edisp(iuout,outs)
@@ -1010,10 +993,10 @@ C Edit the current period in terms of day and month.
 C Autumn period.
 C Edit the current period in terms of day and month.
    99   hold = ' '
-        helptopic='climate_autumn_season'
+        helptopic='climate_season'
         call gethelptext(helpinsub,helptopic,nbhelp)
-        call stdate(iyear,ia2sprs,descr,descrst)
-        call stdate(iyear,ia2sprf,descr,descrfn)
+        call stdate(iyear,ia2sprs,descr,descrst,descr2st)
+        call stdate(iyear,ia2sprf,descr,descrfn,descr2fn)
         WRITE(outs,'(4a)')  ' Autumn typical ',descrst,' - ',
      &    descrfn
         call edisp(iuout,outs)
@@ -1035,10 +1018,10 @@ C Edit the current period in terms of day and month.
 C 2nd winter period.
 C Edit the current period in terms of day and month.
   100   hold = ' '
-        helptopic='climate_winter2_season'
+        helptopic='climate_season'
         call gethelptext(helpinsub,helptopic,nbhelp)
-        call stdate(iyear,ia2wins,descr,descrst)
-        call stdate(iyear,ia2winf,descr,descrfn)
+        call stdate(iyear,ia2wins,descr,descrst,descr2st)
+        call stdate(iyear,ia2winf,descr,descrfn,descr2fn)
         WRITE(outs,'(4a)')  ' 2nd winter typical ',descrst,' - ',
      &    descrfn
         call edisp(iuout,outs)
@@ -1115,7 +1098,7 @@ C Find day of week for start of the period.
 C Loop for each day, reading data from weather file.
           DO 10 I=IDS,IDF
             IDD=I
-            CALL CLMGET(IDD)
+            CALL CLMGET(IDD,IER)
 
 C Set parameters for current day and analyse max, min mean.
             XMAXJ=-1E+10
@@ -1147,9 +1130,9 @@ C Convert day to D,M values and compute parameters for this week or month.
             XMAX=XMAXM
             XMIN=XMINM
             CALL EDAYR(KDMN,KDN,KMN)
-            call stdate(iyear,KDMN,DESCR,DESCR1)
+            call stdate(iyear,KDMN,DESCR,DESCR1,DESCR2)
             CALL EDAYR(KDMX,KDX,KMX)
-            call stdate(iyear,KDMX,DESCRX,DESCR1X)
+            call stdate(iyear,KDMX,DESCRX,DESCR1X,DESCR2X)
             line = 3+kmn
             write(clmlhelp(line),
      &        '(1x,a,f9.1,a,i2,2a,F11.1,a,i2,2a,f8.1)')
@@ -1192,9 +1175,9 @@ C Now compute parameters for last month.
           XMAX=XMAXM
           XMIN=XMINM
           CALL EDAYR(KDMN,KDN,KMN)
-          call stdate(iyear,KDMN,DESCR,DESCR1)
+          call stdate(iyear,KDMN,DESCR,DESCR1,DESCR2)
           CALL EDAYR(KDMX,KDX,KMX)
-          call stdate(iyear,KDMX,DESCRX,DESCR1X)
+          call stdate(iyear,KDMX,DESCRX,DESCR1X,DESCR2X)
           line = 15
           write(clmlhelp(line),
      &      '(1x,a,f9.1,a,i2,2a,F11.1,a,i2,2a,f8.1)')
@@ -1218,48 +1201,48 @@ C Now for the `all line'.
           XMAX=XMAXI
           XMIN=XMINI
           CALL EDAYR(IDMN,KDMN,KMMN)
-          call stdate(iyear,IDMN,DESCR,DESCR1)
+          call stdate(iyear,IDMN,DESCR,DESCR1,DESCR2)
           CALL EDAYR(IDMX,KDMX,KMMX)
-          call stdate(iyear,IDMX,DESCRX,DESCR1X)
+          call stdate(iyear,IDMX,DESCRX,DESCR1X,DESCR2X)
           line = 16
           write(clmlhelp(line),
      &      '(a,f6.1,a,i2,2a,F7.1,a,i2,2a,f8.1)')
      &      ' Annual',XMIN,' @',ITMN,'h00 ',DESCR1,
      &      XMAX,' @',ITMX,'h00 ',DESCR1X,XMEAN
           write(clmlhelp(17),'(a)') ' ---Seasons & typical periods---'
-          call stdate(iyear,is1wins,descr,descrst)
-          call stdate(iyear,is1winf,descr,descrfn)
+          call stdate(iyear,is1wins,descr,descrst,descr2st)
+          call stdate(iyear,is1winf,descr,descrfn,descr2fn)
           write(clmlhelp(18),'(4a)') 'Winter season is ',descrst,' - ',
      &      descrfn
-          call stdate(iyear,ia1wins,descr,descrst)
+          call stdate(iyear,ia1wins,descr,descrst,descr2st)
           write(clmlhelp(19),'(2a)') 'Typical winter week begins ',
      &      descrst
-          call stdate(iyear,is1sprs,descr,descrst)
-          call stdate(iyear,is1sprf,descr,descrfn)
+          call stdate(iyear,is1sprs,descr,descrst,descr2st)
+          call stdate(iyear,is1sprf,descr,descrfn,descr2fn)
           write(clmlhelp(20),'(4a)') 'Spring season is ',descrst,' - ',
      &      descrfn
-          call stdate(iyear,ia1sprs,descr,descrst)
+          call stdate(iyear,ia1sprs,descr,descrst,descr2st)
           write(clmlhelp(21),'(2a)') 'Typical spring week begins ',
      &      descrst
-          call stdate(iyear,is1sums,descr,descrst)
-          call stdate(iyear,is1sumf,descr,descrfn)
+          call stdate(iyear,is1sums,descr,descrst,descr2st)
+          call stdate(iyear,is1sumf,descr,descrfn,descr2fn)
           write(clmlhelp(22),'(4a)') 'Summer season is ',descrst,' - ',
      &      descrfn
-          call stdate(iyear,iasums,descr,descrst)
+          call stdate(iyear,iasums,descr,descrst,descr2st)
           write(clmlhelp(23),'(2a)') 'Typical summer week begins ',
      &      descrst
-          call stdate(iyear,is2sprs,descr,descrst)
-          call stdate(iyear,is2sprf,descr,descrfn)
+          call stdate(iyear,is2sprs,descr,descrst,descr2st)
+          call stdate(iyear,is2sprf,descr,descrfn,descr2fn)
           write(clmlhelp(24),'(4a)') 'Autumn season is ',descrst,' - ',
      &      descrfn
-          call stdate(iyear,ia2sprs,descr,descrst)
+          call stdate(iyear,ia2sprs,descr,descrst,descr2st)
           write(clmlhelp(25),'(2a)') 'Typical autumn week begins ',
      &      descrst
-          call stdate(iyear,is2wins,descr,descrst)
-          call stdate(iyear,is2winf,descr,descrfn)
+          call stdate(iyear,is2wins,descr,descrst,descr2st)
+          call stdate(iyear,is2winf,descr,descrfn,descr2fn)
           write(clmlhelp(26),'(4a)') 'Winter season is ',descrst,' - ',
      &      descrfn
-          call stdate(iyear,ia2wins,descr,descrst)
+          call stdate(iyear,ia2wins,descr,descrst,descr2st)
           write(clmlhelp(27),'(2a)') 'Typical winter week begins ',
      &      descrst
           nbclmlhelp=27
@@ -1436,7 +1419,9 @@ C seasons.h provides typper and typsea
       character tab*1
       CHARACTER CLMLOC*42
       character descr*7,descrst*10,descrfn*10  ! for season dates
+      character descr2st*8,descr2fn*8
       character descrst1*10,descrfn1*10        ! for 2nd season dates
+      character descr2st1*8,descr2fn1*8        ! for 2nd season dates
 
       tab=CHAR(9) 
      
@@ -1458,10 +1443,10 @@ C with default information.
       call edayr(is1winf,id2,im2)
       call edayr(is2wins,id3,im3)
       call edayr(is2winf,id4,im4)
-      call stdate(iyear,is1wins,descr,descrst)
-      call stdate(iyear,is1winf,descr,descrfn)
-      call stdate(iyear,is2wins,descr,descrst1)
-      call stdate(iyear,is2winf,descr,descrfn1)
+      call stdate(iyear,is1wins,descr,descrst,descr2st)
+      call stdate(iyear,is1winf,descr,descrfn,descr2fn)
+      call stdate(iyear,is2wins,descr,descrst1,descr2st1)
+      call stdate(iyear,is2winf,descr,descrfn1,descr2fn1)
       write(iuf,'(a,8i3,8a)')'*winter_s',id1,im1,id2,im2,id3,im3,
      &  id4,im4,' # seasons ',descrst,'--',descrfn,' & ',descrst1,
      &    '--',descrfn1
@@ -1469,27 +1454,27 @@ C with default information.
       call edayr(is1sprf,id2,im2)
       call edayr(is2sprs,id3,im3)
       call edayr(is2sprf,id4,im4)
-      call stdate(iyear,is1sprs,descr,descrst)
-      call stdate(iyear,is1sprf,descr,descrfn)
-      call stdate(iyear,is2sprs,descr,descrst1)
-      call stdate(iyear,is2sprf,descr,descrfn1)
+      call stdate(iyear,is1sprs,descr,descrst,descr2st)
+      call stdate(iyear,is1sprf,descr,descrfn,descr2fn)
+      call stdate(iyear,is2sprs,descr,descrst1,descr2st1)
+      call stdate(iyear,is2sprf,descr,descrfn1,descr2fn1)
       write(iuf,'(a,8i3,8a)')'*spring_s',id1,im1,id2,im2,id3,im3,
      &  id4,im4,' # seasons ',descrst,'--',descrfn,' & ',descrst1,
      &  '--',descrfn1
       call edayr(is1sums,id1,im1)
       call edayr(is1sumf,id2,im2)
-      call stdate(iyear,is1sums,descr,descrst)
-      call stdate(iyear,is1sumf,descr,descrfn)
+      call stdate(iyear,is1sums,descr,descrst,descr2st)
+      call stdate(iyear,is1sumf,descr,descrfn,descr2fn)
       write(iuf,'(a,4i3,4a)')'*summer_s',id1,im1,id2,im2,
      &  ' # summer season ',descrst,'--',descrfn
       call edayr(ia1wins,id1,im1)
       call edayr(ia1winf,id2,im2)
       call edayr(ia2wins,id3,im3)
       call edayr(ia2winf,id4,im4)
-      call stdate(iyear,ia1wins,descr,descrst)
-      call stdate(iyear,ia1winf,descr,descrfn)
-      call stdate(iyear,ia2wins,descr,descrst1)
-      call stdate(iyear,ia2winf,descr,descrfn1)
+      call stdate(iyear,ia1wins,descr,descrst,descr2st)
+      call stdate(iyear,ia1winf,descr,descrfn,descr2fn)
+      call stdate(iyear,ia2wins,descr,descrst1,descr2st1)
+      call stdate(iyear,ia2winf,descr,descrfn1,descr2fn1)
       write(iuf,'(a,8i3,8a)')'*winter_t',id1,im1,id2,im2,id3,im3,
      &  id4,im4,' # typical ',descrst,'--',descrfn,' & ',descrst1,
      &  '--',descrfn1
@@ -1497,17 +1482,17 @@ C with default information.
       call edayr(ia1sprf,id2,im2)
       call edayr(ia2sprs,id3,im3)
       call edayr(ia2sprf,id4,im4)
-      call stdate(iyear,ia1sprs,descr,descrst)
-      call stdate(iyear,ia1sprf,descr,descrfn)
-      call stdate(iyear,ia2sprs,descr,descrst1)
-      call stdate(iyear,ia2sprf,descr,descrfn1)
+      call stdate(iyear,ia1sprs,descr,descrst,descr2st)
+      call stdate(iyear,ia1sprf,descr,descrfn,descr2fn)
+      call stdate(iyear,ia2sprs,descr,descrst1,descr2st1)
+      call stdate(iyear,ia2sprf,descr,descrfn1,descr2fn1)
       write(iuf,'(a,8i3,8a)')'*spring_t',id1,im1,id2,im2,id3,im3,
      &  id4,im4,' # typical ',descrst,'--',descrfn,' & ',descrst1,
      &  '--',descrfn1
       call edayr(iasums,id1,im1)
       call edayr(iasumf,id2,im2)
-      call stdate(iyear,iasums,descr,descrst)
-      call stdate(iyear,iasumf,descr,descrfn)
+      call stdate(iyear,iasums,descr,descrst,descr2st)
+      call stdate(iyear,iasumf,descr,descrfn,descr2fn)
       write(iuf,'(a,4i3,4a)')'*summer_t',id1,im1,id2,im2,
      &  ' # typical summer ',descrst,'--',descrfn
       write(iuf,'(a)')'*help_start'
@@ -1531,7 +1516,7 @@ C climatelist.  It calls clmddscan to do most of the work.
       SUBROUTINE DDRADSUM(act)
 #include "building.h"
 #include "seasons.h"
-C seasons.h provides typper, typsea, sea* variables
+#include "help.h"
 
       COMMON/OUTPCH/ICOUT
       COMMON/SET1/IYEAR,IBDOY,IEDOY,IFDAY,IFTIME
@@ -1542,11 +1527,7 @@ C seasons.h provides typper, typsea, sea* variables
 
       real HBT,CBT   ! local base temperatures for heating and cooling DD calcs
 
-C For help messages
-      character helpinsub*24,helptopic*24 ! strings for help
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='DDRADSUM'  ! set for cfiles
+      helpinsub='clmper'  ! set for cfiles
 
       if(is1wins.eq.0.or.is2wins.eq.0.or.is1sprs.eq.0)then
         call usrmsg('No winter|transition|summer season definitions',

@@ -589,7 +589,7 @@ C ICLIM,LCLIM (for climate file)
         
 C read in temperature values for present day
 C note: the climate file has already been opened - from the calling subroutine
-      call CLMGET(iday_number)
+      call CLMGET(iday_number,istat)
 
 C A new common block is created for storing the daily dry bulb temperatures
 C common/daily_dry_bulb/DBT_day. 

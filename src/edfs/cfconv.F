@@ -1,6 +1,6 @@
 C This file is part of the ESP-r system.
 C Copyright Energy Systems Research Unit, University of
-C Strathclyde, Glasgow Scotland, 2001.
+C Strathclyde, Glasgow Scotland, 2001-.
 
 C ESP-r is free software.  You can redistribute it and/or
 C modify it under the terms of the GNU General Public
@@ -13,17 +13,13 @@ C warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
 C PURPOSE. See the GNU General Public License for more
 C details.
 
-C You should have received a copy of the GNU General Public
-C License along with ESP-r. If not, write to the Free
-C Software Foundation, Inc., 59 Temple Place, Suite 330,
-C Boston, MA 02111-1307 USA.
-
-C Contains:
-C  CFAREA - Calculates the area of ESP-r surfaces covered by CFD solid boundaries.
-C  CFCONV - Calculate convection coefficients based on the CFD predictions.
+C This file contains the following subroutines.
+C  CFAREA - calculates the area of ESP-r surfaces covered by CFD solid boundaries.
+C  CFCONV - calculate convection coefficients based on the CFD predictions.
 
 C ********************* CFAREA *********************
 C CFAREA - Calculates the area of ESP-r surfaces covered by CFD solid boundaries.
+
       SUBROUTINE CFAREA(NCNST)
 #include "building.h"
 #include "cfd.h"
@@ -49,7 +45,7 @@ C CFD solid boundaries on each surface. ATCFD(j) holds the area of the j'th
 C ESP-r surface.
 
 
-C Initialize all areas to zero.
+C Initialise all areas to zero.
       DO 10 IS=1,NCNST
         ATCFD(IS)=0.0
  10   CONTINUE
@@ -93,8 +89,7 @@ C CFCONV - Calculate convection coefficients based on the CFD predictions.
 #include "building.h"
 #include "cfd.h"
 
-
-      COMMON/ICFCHN/ICFMON(MNZ),ICFTMP,ICFLIB
+      COMMON/ICFCHN/ICFMON(MNZ),ICFDBC(MNZ),ICFTMP,ICFLIB
       COMMON/CFDARE/ATCFD(MNSBZ)
       COMMON/Sbdary/NSB(MNZ),ISBi(MNSBZ,MNZ),ISBf(MNSBZ,MNZ),
      &              JSBi(MNSBZ,MNZ),JSBf(MNSBZ,MNZ),
@@ -105,18 +100,18 @@ C CFCONV - Calculate convection coefficients based on the CFD predictions.
       COMMON/CFDCON/CONVF(MNZ,MNSBZ)
       COMMON/ICFNOD/ICFD,ICP
       COMMON/CONST/GREAT,small,GRAV
-      COMMON/cfdfil/LCFD(MCOM),IFCFD(MCOM)
-      COMMON/ALL/NI,NJ,NK,NIM1,NJM1,NKM1,NIM2,NJM2,NKM2
-      COMMON/GEOM/XP(ntcelx),YP(ntcely),ZP(ntcelz),
+C      COMMON/cfdfil/LCFD(MCOM),IFCFD(MCOM)
+C      COMMON/ALL/NI,NJ,NK,NIM1,NJM1,NKM1,NIM2,NJM2,NKM2
+C      COMMON/GEOM/XP(ntcelx),YP(ntcely),ZP(ntcelz),
      1            DXEP(ntcelx),DXPW(ntcelx),DYNP(ntcely),DYPS(ntcely),
      2            DZHP(ntcelz),DZPL(ntcelz),
      3            SEW(ntcelx),SNS(ntcely),SHL(ntcelz),
      4            XU(ntcelx),YV(ntcely),ZW(ntcelz)
-      COMMON/FLUPRf/URFVIS,VISCOS,PRANDT,SH,
-     1            DENf(ntcelx,ntcely,ntcelz),VIS(ntcelx,ntcely,ntcelz),
-     2            BETA(ntcelx,ntcely,ntcelz)
-      COMMON/TEMPf/Tf(ntcelx,ntcely,ntcelz),GAMH(ntcelx,ntcely,ntcelz),
-     1             RESORT,NSWPT,URFT,FSDTT,PRANDL,PFUN
+C      COMMON/FLUPRf/URFVIS,VISCOS,PRANDT,SH,
+C     1            DENf(ntcelx,ntcely,ntcelz),VIS(ntcelx,ntcely,ntcelz),
+C     2            BETA(ntcelx,ntcely,ntcelz)
+C      COMMON/TEMPf/Tf(ntcelx,ntcely,ntcelz),GAMH(ntcelx,ntcely,ntcelz),
+C     1             RESORT,NSWPT,URFT,FSDTT,PRANDL,PFUN
 
       DIMENSION SFNAM(MNSBZ),HC(MNSBZ),TIS(MNSBZ)
 
@@ -133,28 +128,28 @@ C subroutine. TAIR is either equal to ESP-r's prediction for the future air-poin
 C temperature (for surface conflation) or is equal to the CFD-averaged temperatures
 C (for integrated conflation). The results are written to the CFD monitoring file.
 
-C Initialize the character array indicating presence of 1-way surface conflation.
+C Initialise character array indicating presence of 1-way surface conflation.
       DO 10 L=1,NSB(ICFD)
         IS=ISUFLC(L,ICFD)
         oneway(IS) = '  '
    10 CONTINUE
 
-C Get the temperature of each ESP-r surface. Set flag indicating presence of 1-way
+C Get the temperature of each zone surface. Set flag indicating presence of 1-way
 C surface conflation.
       DO 20 L=1,NSB(ICFD)
         IS=ISUFLC(L,ICFD)
         TIS(IS)=SSB(L,ICFD)
         if(ITCtype(L,ICFD).ge.1 .and. ITCtype(L,ICFD).le.8)
-     &                                                   oneway(IS)='**'
+     &                                    oneway(IS)='**'
    20 CONTINUE
 
 C Write header line to monitoring file.
       write(ifl,*)
-      write(ifl,*) 'CFD-predicted Surface Convection and Coefficients:'
+      write(ifl,*) 'CFD predicted surface convection and coefficients'
       write(ifl,*)
 
-C Examine each ESP-r surface in turn. Calculate driving potential for surface
-C convection (Tsurf - Tair) then normalize the heat transfer by the driving
+C Examine each zone surface in turn. Calculate driving potential for surface
+C convection (Tsurf - Tair) then normalise the heat transfer by the driving
 C potential and the surface area. Write results to monitoring file.
       DO 30 IS=1,NCNST
         DELT = ABS(TAIR-TIS(IS))
@@ -168,8 +163,8 @@ C potential and the surface area. Write results to monitoring file.
    30 CONTINUE
 
       write(ifl,*)
-      write(ifl,*) 'If 1-way surface conflation (indicated by **) is ',
-     &             'in use the heat transfer results given here are'
+      write(ifl,*) 'If 1-way surface conflation (indicated by **) is',
+     &             'in use, the heat transfer results given here are'
       write(ifl,*) 'for information purposes only; they will not be ',
      &             'used by BSim.'
 

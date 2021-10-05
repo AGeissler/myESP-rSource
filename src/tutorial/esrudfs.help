@@ -1,6 +1,6 @@
 *help_text dfs
-*subroutine CFCALC
-*item CFCALC dfs_mass_residual
+
+*item cfcalc dfs_mass_residual
 'If mass residual is maximum and velocity residuals are'
 'close to convergence criterion then selecting OK here'
 'is usually the best option for convergence'
@@ -18,7 +18,6 @@
 'appear to be decreasing'
 *enditem
 
-*subroutine cgd
 *item cgd dfs_display_list_grid
 'This facility displays or lists the CFD grid.'
 ' '
@@ -43,8 +42,7 @@
 'view from this menu.''
 *enditem
 
-*subroutine CHECK
-*item CHECK dfs_convergence_accept
+*item chkconvg dfs_convergence_accept
 'Based on the convergence criteria you gave the solution'
 'did not converge before the iteration limit was reached.'
 '  '
@@ -52,7 +50,7 @@
 'You will be asked for a new limit (up to 10000).'
 *enditem
 
-*item CHECK under_relaxation_factor
+*item chkconvg under_relaxation_factor
 'Changing the under-relaxation factors may help the '
 'problem to converge.  Generally making the values '
 'smaller will help but the solution will take longer '
@@ -70,7 +68,6 @@
 'And lastly you can alter the number of sweeps.'
 *enditem
 
-*subroutine SCHMIDTT
 *item dfs dfs_config_file_name
 'To run a simulation a domain configuration file name must be'
 'provided, otherwise one must be created before running the'
@@ -140,15 +137,13 @@
 'you re-calculate.'
 *enditem
 
-*subroutine CALCLMA
-*item CALCLMA
+*item locmage dfs_convergence_accept
 'Based on the convergence criteria you gave the solution'
 'reached the iteration limit before convergence. If you '
 'do not accept the solution more iterations will be tried.'
 *enditem
 
-*subroutine VISOUT
-*item VISOUT dfs_2D_slice_menu
+*item visual dfs_2D_slice_menu
 'This facility is used to generate images of the'
 'flow distribution predicted by the CFD calculations.'
 'The flow at any 2-dimensional slice of the zone can'
@@ -165,7 +160,7 @@
 'generating the image. '
 *enditem
 
-*item VISOUT 2D_slice_view_name
+*item visual 2D_slice_view_name
 'Please supply a root name for the image.  '
 'In the case of a dynamic viualisation the frame number'
 'will be appended to this name.'
@@ -184,14 +179,14 @@
 ' View from Top or Bottom asks for Z layer'
 *enditem
 
-*item VISOUT 2D_slice_resolution
+*item visual 2D_slice_resolution
 'Higher resolution requires greater processing time'
 'and disk space. [Low] quality images are often'
 'sufficient, although [medium] and [high] quality'
 'may be desirable for inclusion in publications.'
 *enditem
 
-*item VISOUT 2D_slice_multi_edit
+*item visual 2D_slice_multi_edit
 'Please supply a root name for the image.  '
 'In the case of a dynamic viualisation the frame number'
 'will be appended to this name.'
@@ -215,18 +210,17 @@
 'may be desirable for inclusion in publications.'
 *enditem
 
-*item VISOUT 2D_slice_arrows
+*item visual 2D_slice_arrows
 'By altering these settings, you can control'
 'the appearance of the flow vectors.'
 *enditem
 
-*item VISOUT 2D_slice_frequency
+*item visual 2D_slice_frequency
 'For a conflated simulation images can be created at'
 'the required frequency.'
 *enditem
 
-*subroutine VISMAK
-*item VISMAK 2D_animation_select
+*item visual 2D_animation_select
 'Depending on the type of reporting that you have selected'
 'there are several options:'
 '  '
@@ -235,8 +229,7 @@
 'from the previous view should be used.
 *enditem
 
-*subroutine FTV
-*item FTV vector_colour_choice
+*item visual vector_colour_choice
 'The colour of the vector will depend on the chosen'
 'metric (air speed or temperature or mean age of air or'
 'concentration).'
@@ -246,28 +239,26 @@
 'to see what works best for the image.'
 *enditem
 
-*item FTV contaminant_select_list
+*item visual contaminant_select_list
 'The contaminant selection menu does not yet have'
 'any help associated with it. ;-( '
 *enditem
-*item FTV contaminant_scale_req
+
+*item visual contaminant_scale_req
 'You are requested to provide a maximum and minimum value for the'
 'scale of the vertical axis. '
 *enditem
 
-*subroutine GETVECLIB
-*item GETVECLIB range_for_colour_scale
+*item visual range_for_colour_scale
 'The colour scale for the graph requires a maximum and minimum'
 'temperature for setting the colour scale.'
 *enditem
 
-*subroutine wrFVP
-*item wrFVP flow_vis_parameter_file
+*item visual flow_vis_parameter_file
 'Information about the flow visuals can be saved to a text file'
 'for later review. Please supply a file name.'
 *enditem
 
-*subroutine dfv
 *item dfv dfv_results_menu
 'There is not much help for results sub-menu of dfv ;-( '
 '  '
@@ -295,6 +286,7 @@
 '  '
 'to quit MATLAB, enter: quit'
 *enditem
+
 *item dfv contaminant_scale_req
 'You are requested to provide a maximum and minimum value for the'
 'scale of the vertical axis. '

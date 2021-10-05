@@ -29,6 +29,7 @@ C IER=0 OK, IER=1 problem.
       SUBROUTINE EDSPLIST(MODE,IVAL,IER)
 #include "epara.h"
 #include "building.h"
+#include "help.h"
 
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
       common/filep/ifil
@@ -49,12 +50,7 @@ C IER=0 OK, IER=1 problem.
       LOGICAL ISPOPEN, XST,NEW,OK,OKK
       integer MVERT,IVERT,ID ! max items and current menu item
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='EDSPLIST'  ! set for subroutine
+      helpinsub='edspmtl'  ! set for subroutine
 
       OK=.FALSE.
       OKK=.FALSE.
@@ -91,7 +87,7 @@ C Open or create a special materials file.
         helptopic='special_file_contents'
         call gethelptext(helpinsub,helptopic,nbhelp)
         
-        call easks(lfil,' ',' Special materials file?',72,
+        call easks(lfil,' ','Special materials file?',72,
      &    deflnam,' SPM filename',IER,nbhelp)
         if(lfil(1:2).ne.'  ')spflnam=lfil
         XST=.false.
@@ -203,9 +199,9 @@ C If a long list include page facility text.
 
 C Now display the menu.
       IF(MODE.EQ.'LM'.OR.MODE.EQ.'EM')THEN
-        CALL EMENU(' Advanced materials',VERT,MVERT,IVERT) 
+        CALL EMENU('Advanced materials',VERT,MVERT,IVERT) 
       ELSE     
-        CALL EMENU(' Embedded renewables',VERT,MVERT,IVERT)
+        CALL EMENU('Embedded renewables',VERT,MVERT,IVERT)
       ENDIF
 
       IF(IVERT.LE.MHEAD) THEN
@@ -229,11 +225,11 @@ C List help text for the vertex menu.
 
 C Alter list by deleting/ editing.
         CALL EASKABCD(' ','Options:','delete component',
-     &    'add component','edit component','cancel',IRT,nbhelp)
+     &    'new component','edit component','cancel',IRT,nbhelp)
         if(IRT.eq.1)then
           
 C Delete the chosen special component.
-          CALL EMENU(' Delete which component',VERT,MVERT,ID)
+          CALL EMENU('Delete which component',VERT,MVERT,ID)
           CALL KEYIND(MVERT,ID,IFOC,IO)
           ISPD=ITKEY(IFOC)
           IF(ISPD.LT.NSPMNOD) THEN
@@ -332,6 +328,7 @@ C    data item valuess.
 #include "esprdbfile.h"
 #include "material.h"
 #include "prj3dv.h"
+#include "help.h"
       
       integer lnblnk  ! function definition
 
@@ -373,12 +370,7 @@ C sstr in spdesc.
       CHARACTER PCITM(35)*42,DEPRE*40,KEY*1,DESCRC*25
       integer nspitm,imout,NSPITEM2,IMOUT2,NITMS,IVERT,ino ! max items and current menu item
 
-C For help messages.
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='EDSPM'  ! set for subroutine
+      helpinsub='edspmtl'  ! set for subroutine
 
 C Establish if material data arrays have been filled. If not return
 C with ier=1.
@@ -534,8 +526,8 @@ C Set up the menu
 
 C Label lthe material according to type
   99  labl=spdefnam
-      call easks(labl,' ','Label for material (no spaces)?',16,
-     &  spdefnam,'  spm label ', IER,nbhelp)
+      call easks(labl,' ','Label?',16,
+     &  spdefnam,'spm label', IER,nbhelp)
       spmlabel(ispmn)=labl
 
 C Get data items for special material.
@@ -553,7 +545,7 @@ C Skip the 1st 5 data items - these are required to hold positional data
 C for the outlet.
           do 29 idat=6,nspdat
             if(dadesc(idat)(1:4).eq.'    ') then
-              write(outs,'(a,i2)') ' Enter data item: ',idat
+              write(outs,'(a,i2)') 'Enter data item: ',idat
             else
               write(outs,'(a)') dadesc(idat)
             endif
@@ -604,7 +596,7 @@ c      ISO=ispmloc(IVAL,2)
      &  'Select zone to in which locate the special component. '
       ENDIF
       IZ=0
-      CALL ASKZONE(IZ,0,OUTS,'Select zone','-','spm locate',32,IER)
+      CALL ASKZONE(IZ,0,'Select zone','-','spm locate',32,IER)
       call usrmsg(' ',' ','-')
       if(IZ.eq.0) return
       call georead(IFIL+1,LGEOM(IZ),IZ,1,iuout,IER)
@@ -795,7 +787,7 @@ C For ducted wind turbine - select the position of the DWT outlet
       if(ispmtyp(ispmn,1).eq.3)then
         WRITE(OUTS,'(A)') 
      &  'Select zone to in which locate the DWT outlet. '
-        CALL ASKZONE(IZ,0,OUTS,'Select zone','-','spm locate',32,IER)
+        CALL ASKZONE(IZ,0,'Select zone','-','spm locate',32,IER)
         call usrmsg(' ',' ','-')
         if(IZ.eq.0) return
         call georead(IFIL+1,LGEOM(IZ),IZ,1,iuout,IER)

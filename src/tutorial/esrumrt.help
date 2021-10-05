@@ -1,4 +1,5 @@
 *help_text mrt
+
 *item espvwf user_supplied_cfg
 'The model configuration file holds the definition '
 'of the building/ plant to be simulated, including the'
@@ -29,8 +30,7 @@
 'this task.'
 *enditem
 
-*subroutine CALVF
-*item CALVF user_review_of_calcs
+*item espvwf user_review_of_calcs
 'Please review the results of the calculations. If all'
 'of the factors for each surface sum close to 1.0 then'
 'a yes is appropriate. '
@@ -40,7 +40,7 @@
 'resolution of the grid. '
 *enditem
 
-*item EDMRTC position_dep_mrt_menu
+*item mrtinput position_dep_mrt_menu
 'This menu allows position dependent Mean Radiant '
 'Temperature analysis to be carried out base on one'
 'or more [sensors] placed within a zone. '
@@ -54,19 +54,19 @@
 'and to update the viewfactor file. '
 *enditem
 
-*item EDSURT surf_temp_mrt_menu
+*item mrtinput surf_temp_mrt_menu
 'This menu allows the zone surface temperatures to be'
 'displayed and edited.'
 'Note that the surface emissivities are NOT currently'
 *enditem
 
-*item EDSURT new_emissivity_dialog
+*item mrtinput new_emissivity_dialog
 'Emissivities can be read from zone construction'
 'file or from measurements. Range 0.01 to 0.99.'
 'NOTE: not used in the current version!'
 *enditem
 
-*item EDSURT new_temperature_dialog
+*item mrtinput new_temperature_dialog
 'Temperatures can be from simulation results or'
 'from measurements.'
 *enditem

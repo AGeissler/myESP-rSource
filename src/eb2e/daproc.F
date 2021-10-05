@@ -825,7 +825,7 @@ C ITRC is the trace level, IER=0 OK, IER=1 problem.
 
       CHARACTER AFIL*72,FOCUS*8,tail*8
       character outstr*248,WORD*20,task*16,outs*124,msgl2*48
-      CHARACTER*5 DESCRH,DESCRD
+      CHARACTER*5 DESCRH,DESCRD,DESCRJ
 
 C If not already opened free unit and check if file exists.
       IER=0
@@ -942,7 +942,7 @@ C Check if the read record falls within the tolerance band.
               ITREC=IP+49
               noread=noread+1
             endif
-            CALL ESTIME(NTSPH,1,ITIME,DESCRH,DESCRD,TIMER)
+            CALL ESTIME(NTSPH,1,ITIME,DESCRH,DESCRD,DESCRJ,TIMER)
             write(outs,'(a,F10.6,2a)') 'Updating data for ',RDOTY,
      &        ' @ ',DESCRH
             if(ITRC.gt.1)call edisp(iuout,outs)

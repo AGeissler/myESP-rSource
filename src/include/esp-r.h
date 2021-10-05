@@ -152,7 +152,7 @@ int ixavail();
 void  wstxpt_(long int* x,long int* y,char* buff,int len);
 void  textatxywwc_(long int* x,long int* y,char* buff,char* act,long int *n,int len);
 void  textatxy_(long int* x,long int* y,char* buff,char* act,long int *n,int len);
-void  textpixwidth_(char* buff,long int* pixelwidth,int len);
+void  textpixwidth_(char* buff,long int* pixelwidth,long int* pixelheight,int len);
 void  viewtextwwc_(char* msg,long int* linep,long int* side,long int* size,int len);
 void  viewtext_(char* msg,long int* linep,long int* side,long int* size,int len);
 void  findviewtext_(long int* charposp,long int* linep,long int* size,long int* irx,

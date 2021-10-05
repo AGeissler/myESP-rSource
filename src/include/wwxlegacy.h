@@ -94,8 +94,9 @@ void	eewmenu_(char* titleptr,long int* impx,long int* impy,long int* iwth,long i
 	long int* irpy,long int* ivfw,long int* ivfwsp,long int* ivfwul,int len_title);
 /* int	aux_menu(XEvent event); */
 void	refreshenv_();
-void	opencfg_(long int* cfg_type,long int* icfgz,long int* icfgn,long int* icfgc,
-                 long int* icfgdfn,long int* iicfgz,long int* iicfgn,long int* iicfgc,long int* iicfgdfn);
+void	opencfg_(long int* cfg_type,long int* icfgz,long int* icfgs,long int* icfgnet,long int* icfgc,
+                 long int* icfgpln,long int* icfgeln,long int* icfgren,long int* icfgfab,
+		 long int* icfgbeh,long int* icfgsim);
 void	findrtb_(long int* right,long int* top,long int* bottom);
 void	fprofma_(char* sstr, long int* nstr, char* title, char* list, long int* nlist, char* listtypes,
 		 long int* impx, long int* impy, long int* impcwth, long int swidth[], long int listact[],

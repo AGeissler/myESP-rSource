@@ -13,11 +13,6 @@ C warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
 C PURPOSE. See the GNU General Public License for more
 C details.
 
-C You should have received a copy of the GNU General Public
-C License along with ESP-r. If not, write to the Free
-C Software Foundation, Inc., 59 Temple Place, Suite 330,
-C Boston, MA 02111-1307 USA.
-
 C ESRU: e2r viewpoint facilities.
 C  VCONE: View cone for plan/elevation.
 C  VEWFORM: View control and definition.
@@ -124,6 +119,7 @@ C ******* Default views formation.
 #include "geometry.h"
 #include "prj3dv.h"
 #include "e2r_common.h"
+#include "help.h"
       
       integer lnblnk  ! function definition
 
@@ -171,12 +167,7 @@ C ******* Default views formation.
       integer*8 iix,iiy,iixx,iiyy,iik
 #endif
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='VEWFORM'  ! set for subroutine
+      helpinsub='e2rvp'  ! set for subroutine
 
 C Cast values for linescale.
       iigl=igl;iigr=igr;iigt=igt;iigb=igb;iigw=igw;iigwh=igwh

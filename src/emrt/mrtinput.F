@@ -13,11 +13,6 @@ C warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
 C PURPOSE. See the GNU General Public License for more
 C details.
 
-C You should have received a copy of the GNU General Public
-C License along with ESP-r. If not, write to the Free
-C Software Foundation, Inc., 59 Temple Place, Suite 330,
-C Boston, MA 02111-1307 USA.
-
 C ************* EDMRTC 
 C Control MRT sensor based calculations.
 C ITRU = unit number for user output, IER=0 OK, IER=1 problem.
@@ -26,6 +21,7 @@ C ITRU = unit number for user output, IER=0 OK, IER=1 problem.
 #include "building.h"
 #include "model.h"
 #include "geometry.h"
+#include "help.h"
 
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
 
@@ -50,13 +46,7 @@ C ITRU = unit number for user output, IER=0 OK, IER=1 problem.
       character outs*124
       integer MVERT,IVERT ! max items and current menu item
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found (will be non-zero
-                         ! because default message will be created
-
-      helpinsub='EDMRTC'  ! set for subroutine
+      helpinsub='mrtinput'  ! set for subroutine
 
 C Initialise zone vertex menu size variables based on window size. 
 C IVERT is the menu position, MVERT the current number of menu lines.
@@ -223,6 +213,7 @@ C IER=0 OK, IER=1 problem.
 #include "building.h"
 #include "geometry.h"
 #include "epara.h"
+#include "help.h"
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
 
       COMMON/MRT2/GEOLOAD,MRTLOAD
@@ -237,13 +228,7 @@ C IER=0 OK, IER=1 problem.
       LOGICAL GEOLOAD,MRTLOAD
       integer MVERT,IVERT ! max items and current menu item
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found (will be non-zero
-                         ! because default message will be created
-
-      helpinsub='EDSURT'  ! set for subroutine
+      helpinsub='mrtinput'  ! set for subroutine
 
 C Initial menu entry setup return if no file has been read in.
       IF(.NOT.GEOLOAD)RETURN

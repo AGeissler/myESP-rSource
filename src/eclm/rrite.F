@@ -29,6 +29,8 @@ C weather file.
       SUBROUTINE RRITE
 #include "esprdbfile.h"
 #include "climate.h"
+#include "help.h"
+
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/RADTYP/IDNGH
@@ -59,11 +61,7 @@ C weather file.
       integer*8 ilf,igfw,igfh,ild,igdw,igdh
 #endif
 
-C For help messages
-      character helpinsub*24,helptopic*24
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='RRITE'  ! set for MAIN
+      helpinsub='rrite'  ! set for MAIN
       altered=.false.
   31  CONTINUE
 
@@ -73,7 +71,7 @@ C Day to be transferred.
       call ONEDAY(IFDAY,IDAY,IOD,IOM,IER)
 
 C Read in the current data so partial editing possible.
-      CALL CLMGET(IDAY)
+      CALL CLMGET(IDAY,IER)
 
 C Determine the record in the weather file.
       IREC=IDAY
@@ -318,6 +316,8 @@ C SITEDIT edits site related data in a weather file.
       SUBROUTINE SITEDIT
 #include "esprdbfile.h"
 #include "climate.h"
+#include "help.h"
+
       COMMON/FILEP/IFIL
       COMMON/RADTYP/IDNGH
 
@@ -326,15 +326,13 @@ C SITEDIT edits site related data in a weather file.
       COMMON/SET1/IYEAR,IBDOY,IEDOY,IFDAY,IFTIME
       CHARACTER CLMLOC*42,T30*42,outs*124
 
-C For help messages
-      character helpinsub*24,helptopic*24
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='SITEDIT'  ! set for MAIN
+      helpinsub='rrite'  ! set for MAIN
 
 C Ask for the year (2007 convenintly has monday on 1 Jan).
+      helpinsub='common' ! get from common.help
       helptopic='what_is_the_year'
       call gethelptext(helpinsub,helptopic,nbhelp)
+      helpinsub='rrite'  ! reset for SITEDIT
       CALL EASKI(IYEAR,' ','Year',
      &         1900,'F',2051,'W',2019,'year',IER,nbhelp)
       CFYEAR=IYEAR
@@ -347,13 +345,17 @@ C Determine the weather data location.
      &  42,'North_Pole','weather site. ',IER,nbhelp)
       if(T30(1:2).ne.'  ') CFLOC=T30
 
-      helptopic='what_is_latitude'
+      helpinsub='common' ! get from common.help
+      helptopic='clm_latitude_match'
       call gethelptext(helpinsub,helptopic,nbhelp)
+      helpinsub='rrite'  ! reset for SITEDIT
       CALL EASKR(CFLAT,' ','Station latitude?',
      &  -89.9,'W',89.9,'W',30.0,'weather latitude',IER,nbhelp)
 
-      helptopic='what_is_long_diff'
+      helpinsub='common' ! get from common.help
+      helptopic='define_longitude_diff'
       call gethelptext(helpinsub,helptopic,nbhelp)
+      helpinsub='rrite'  ! reset for SITEDIT
       CALL EASKR(CFLONG,' ',
      &  'Station longitude difference?',
      &  -14.9,'W',14.9,'W',0.0,'weather long diff',IER,nbhelp)

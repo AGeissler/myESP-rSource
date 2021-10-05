@@ -39,6 +39,7 @@ C MENUTYPE 9: Psychrometric chart
 #include "prj3dv.h"
 #include "net_flow.h"
 #include "net_flow_data.h"
+#include "help.h"
       COMMON/FILEP/IFIL
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
 
@@ -64,12 +65,7 @@ C MENUTYPE 9: Psychrometric chart
       integer*8 iiw1,iiw2,iiw3,iiw4,iimenu
 #endif
 
-C For help messages
-      character helpinsub*24   ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='MOSTYLE'  ! set for subroutine
+      helpinsub='resutil'  ! set for subroutine
 
 C Create menu.
       ITEM(1) ='   Graphs:            '

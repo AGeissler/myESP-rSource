@@ -23,6 +23,7 @@ C  hour of the day. Logic is similar to subroutine azalt in
 C  esrucom/commonclm.F
 
       SUBROUTINE AZALTS(IYD,IHR,ITS,RLONGT,RLATIT,SOLALT,SOLAZI)
+#include "help.h"
 
 C Parameters:
       integer IYD,IHR,ITS
@@ -39,12 +40,7 @@ C Local definitions:
       real PI,DECLIN,SDDECL,CDDECL,CDTIME,TIME,TIMCOE,ABSTMC,ASDTIM
       real ALT,SDLAT,CDLAT,AZMUTH
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found (will be non-zero
-                         ! because default message will be created
-      helpinsub='AZALTS'  ! set for MAIN
+      helpinsub='azalts'  ! set for MAIN
 
       PI = 4.0 * ATAN(1.0)
 

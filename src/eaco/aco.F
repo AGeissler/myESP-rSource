@@ -43,14 +43,10 @@ C                           furniture
 #include "geometry.h"
 #include "acoustic.h"
 #include "esprdbfile.h"
-C esprdbfile.h supplies the following:
-C LAPRES,IAPRES (for window pressure database)
-C LOPTDB,IOPTDB (for optical database)
-C LFMAT,IFMAT,LFMUL,IFMUL (for materials and constructions database)
 #include "material.h"
 #include "espriou.h"
 #include "prj3dv.h"
-C prj3dv.h provides common blocks drwmat clip and image
+#include "help.h"
       
       integer lnblnk  ! function definition
 
@@ -136,7 +132,7 @@ C Session log file (for errors etc.)
       CHARACTER*72 path
       CHARACTER fs*1,outsd*124
       CHARACTER TxtZone*72,CLMRF*72,TTmp*72
-      CHARACTER CalcName*12,DESCR*7,DESCR1*10 
+      CHARACTER CalcName*12,DESCR*7,DESCR1*10,DESCR2*8 
       CHARACTER tg*1,delim*1,xfile*144,LabFreq*4
       CHARACTER PubType*12,FurType*12,FurCat*4,CovSurf*12
       character dstmp*24,uname*24,tfile*72
@@ -158,18 +154,12 @@ C Session log file (for errors etc.)
 #endif
       integer NITEMS,INO  ! max items and current menu item
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found (will be non-zero
-                         ! because default message will be created
-
 C Initial assumptions (summary reporting).
       call ezero
       call curmodule('aco ')
       cAppName = 'aco'
       helpinapp='aco'  ! set once for the application
-      helpinsub='RevTime'  ! set for MAIN
+      helpinsub='aco'  ! set for MAIN
       IUIN = 5
       IUOUT = 6
       ixunit = 7
@@ -709,7 +699,7 @@ C Read contents
                  CurM = FactorM(CHR,CTair,4000)
                  IDay=INT(Time)
                  THR=Time
-                 call STDATE(IYEAR,IDay,DESCR,DESCR1)
+                 call STDATE(IYEAR,IDay,DESCR,DESCR1,DESCR2)
                  WRITE(outs,421)  Time, CTair, CHR, CurM
  421             FORMAT(1x,3(F6.2,5x),F7.5)
                  CALL EDISP(iuout,outs)
@@ -1012,6 +1002,10 @@ C Dummy subroutine needed to compile (called from library code).
       end
 
       SUBROUTINE GRAAPH(IDRW1,IDRW2)
+      return
+      end
+
+      subroutine redrawbuttons()
       return
       end
 

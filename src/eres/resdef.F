@@ -32,6 +32,7 @@ C routines.
       SUBROUTINE MORFIL(iftype)
 #include "building.h"
 #include "plant.h"
+#include "help.h"
       
       integer lnblnk  ! function definition
 
@@ -73,12 +74,7 @@ C Simulator parameters.
       logical XST
       integer ISTRW
 
-C For help messages
-      character helpinsub*24   ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='MORFIL'  ! set for subroutine
+      helpinsub='resdef'  ! set for subroutine
 
       INIT1=0
       INIT2=0
@@ -181,7 +177,7 @@ C Debug.
 C      write(outs248,*) 'MORFIL: local file is now ',ltmp
 C      call edisp248(iuout,outs248,100)
 C      write(outs248,*) 'MORFIL: rev path is ',path
-C       call edisp248(iuout,outs248,100)
+C      call edisp248(iuout,outs248,100)
 
       CALL ERPFREE(iunit,ISTAT)
       call FINDFIL(ltmp,xst)
@@ -399,6 +395,7 @@ C TNAME (temporary value)
       SUBROUTINE MORESS
 #include "building.h"
 #include "control.h"
+#include "help.h"
 
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/DEFLT/IDEFLT
@@ -441,12 +438,7 @@ C SCNAME is the first 12 characters of the overall control name.
 
       DIMENSION ITMPSETS(MNRS)
 
-C For help messages
-      character helpinsub*24   ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='MORESS'  ! set for subroutine
+      helpinsub='resdef'  ! set for subroutine
 
 C Set number of chosen sets to zero and clear array NSNO.
       IMET=0
@@ -749,6 +741,7 @@ C               the output interval if NOUT > 1 (IAV=1 yes; IAV=0 no)
 
       SUBROUTINE MOOPER
 #include "building.h"
+#include "help.h"
 
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/DEFLT/IDEFLT
@@ -770,15 +763,10 @@ C               the output interval if NOUT > 1 (IAV=1 yes; IAV=0 no)
       logical headingcontext ! has set or period changed so heading needs reprint
       common/libhead/libheading,headingcontext
 
-      character outs*124,PDESCR*60
+      character outs*124,PDESCR*64
       logical ok
 
-C For help messages
-      character helpinsub*24   ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='MOOPER'  ! set for subroutine
+      helpinsub='resdef'  ! set for subroutine
 
 C Default set-up: output results for whole of simulation period at same 
 C timestep as simulation, assume no filtering.
@@ -857,6 +845,7 @@ C NZNO - zone number of each.
 #include "building.h"
 #include "model.h"
 #include "geometry.h"
+#include "help.h"
 
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/DEFLT/IDEFLT
@@ -872,12 +861,7 @@ C NZNO - zone number of each.
       DIMENSION zn(MCON)
       character*(20) zn  ! local string array of typical menu width
 
-C For help messages
-      character helpinsub*24   ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='MOZDFN'  ! set for subroutine
+      helpinsub='resdef'  ! set for subroutine
 
 C If default setup then link in all zones in the model. Setup local
 C array zn for use in the selection list.
@@ -923,8 +907,6 @@ C menus. Internally EPICKS adds 4 to the width passed. So
 C for typical 23 character menu use 20.
       call ASKMULTIZON(INPIC,IVALS,'Which zones to include:',
      &  'zone list','-',IER) 
-C      CALL EPICKS(INPIC,IVALS,' ','Which zones to include:',
-C     &  20,NCOMP,zn,' zone list',IER,nbhelp)
       NZ=INPIC
       DO 40 I=1,INPIC
         NZNO(I)=IVALS(I)
@@ -937,7 +919,7 @@ C Two zones cannot have the same number.
           J1=NZNO(I)
           J2=NZNO(J)
           IF(J1.EQ.J2)then
-            call edisp(iuout,' Two zones cannot have the same number.')
+            call edisp(iuout,'Two zones cannot have the same index.')
             goto 7
           endif
    30   CONTINUE
@@ -976,6 +958,7 @@ C ier is zero if no problems and -3 if user issued a cancel.
 #include "geometry.h"
 #include "esprdbfile.h"
 #include "schedule.h"
+#include "help.h"
 
       integer lnblnk  ! function definition
       integer igraphiclib  ! external definition
@@ -1033,18 +1016,13 @@ C longtmp is the model configuration file with full path.
       logical XST,CFGOK,MLDBOK,MATDBOK,CTLOK,OPTKOK,CFCDBOK
       logical dmdsok  ! for dispersed demands
 
-C For help messages
-      character helpinsub*24   ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
 C For weather file.
       logical unixok,concat
       character fs*1
       character llclmdb*144  ! to expand weather file
       integer lndbp          ! length of weather folder path
 
-      helpinsub='MOINIT'  ! set for subroutine
+      helpinsub='resdef'  ! set for subroutine
 
 
 C Set folder separator (fs) to \ or / as required.

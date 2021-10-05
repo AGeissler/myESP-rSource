@@ -42,6 +42,7 @@ C imode = 3 the user is interested in curve fitting.
 #include "esprdbfile.h"
 #include "climate.h"
 #include "epara.h"
+#include "help.h"
       
       integer lnblnk  ! function definition
 
@@ -71,12 +72,7 @@ C PLAST holds previous values of current focus.
       integer NITEMS,INO  ! max items and current menu item
       integer menumetric(MCM)
 
-C For help messages
-      character helpinsub*24   ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='CLPRED'  ! set for this subroutine
+      helpinsub='clpred'  ! set for this subroutine
    1  ISAVE=1
       if(imode.eq.1)then
         CALL EDISP(IUOUT,'Select period')
@@ -92,7 +88,7 @@ C For help messages
       ID=0
       DO 55 I=IYDS,IYDF
         ID=ID+1
-        CALL CLMGET(I)
+        CALL CLMGET(I,IER)
         DO 656 J=1,24
           do K=1,MCM
             if (CMXST(K)) then
@@ -523,6 +519,7 @@ C POLYTR transforms weather data for a given period according to some
 C polynomial function
       SUBROUTINE POLYTR(ICLMT,IYDS,IYDF)
 #include "climate.h"
+#include "help.h"
 
       PARAMETER (MT=24,MD=365)
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
@@ -531,12 +528,7 @@ C polynomial function
       character COEFFS*72,STR*72,outs*124
       integer ILC  ! for radio button
 
-C For help messages
-      character helpinsub*24   ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='POLYTR'  ! set for this subroutine
+      helpinsub='clpred'  ! set for this subroutine
 
 C Setup limits for weather parameters
       if (ICLMT.eq.1 .or. ICLMT.eq.5) then
@@ -724,6 +716,7 @@ C solar irradiance for any site at any time of day for particular
 C values of atmospheric turbidity and precipitable water content.
       SUBROUTINE PSOLRD(IYDS,IYDF)
 #include "climate.h"
+#include "help.h"
 
       PARAMETER (MT=24,MD=365)
       COMMON/PCLIM/PCLMVAL(MCM,MD,MT),PLAST(MD,MT)
@@ -732,17 +725,12 @@ C values of atmospheric turbidity and precipitable water content.
       character outs*124
       logical ok
 
-C For help messages
-      character helpinsub*24   ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
       DATA PI/3.14159265/,ISC/1353/
       DATA B/-0.129641,-6.42111E-2,-0.46883E-2,0.0844097E-2,
      &        0.412828E-2,-0.801046E-2,0.220414E-2,-0.0191442E-2,
      &       -1.12096E-4,1.53069E-4,-0.429818E-4,0.0374176E-4 /
 
-      helpinsub='PSOLRD'  ! set for this subroutine
+      helpinsub='clpred'  ! set for this subroutine
       RLATIT=0.
       helptopic='north_is_positive'
       call gethelptext(helpinsub,helptopic,nbhelp)

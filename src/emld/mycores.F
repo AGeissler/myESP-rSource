@@ -46,6 +46,7 @@ C         1 - silent
 
 #include "mould.h"
 #include "esprdbfile.h"
+#include "help.h"
       
       integer lnblnk  ! function definition
 
@@ -78,13 +79,7 @@ C << this should become part of model cfg file >>
       character*72 DFCFD,DECMPDBFL,DICONDBFL
       integer nitem,ino  ! max items and current menu item
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found (will be non-zero
-                         ! because default message will be created
-
-      helpinsub='mycorecv'  ! set for subroutine
+      helpinsub='mycores'  ! set for subroutine
 
 C Open the mould database.
       if(iopmld.eq.0) then
@@ -260,6 +255,7 @@ C ****************** mycograph *****************************
       subroutine mycograph
 
 #include "mould.h"
+#include "help.h"
 
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
@@ -293,13 +289,7 @@ C ****************** mycograph *****************************
       integer*8 iigl,iigr,iigt,iigb,iigw,iigwh
 #endif
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found (will be non-zero
-                         ! because default message will be created
-
-      helpinsub='mycograph'  ! set for subroutine
+      helpinsub='mycores'  ! set for subroutine
 
 C Check in graphics mode.
       IF(MMOD.ne.8) return

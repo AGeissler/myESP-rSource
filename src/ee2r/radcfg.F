@@ -246,6 +246,7 @@ C If MODE is 's' then create a static list, 'm' then allow modification.
 #include "building.h"
 #include "epara.h"
 #include "e2r_common.h"
+#include "help.h"
 
       COMMON/FILEP/IFIL
 
@@ -257,12 +258,7 @@ C If MODE is 's' then create a static list, 'm' then allow modification.
       integer IW  ! for radio button
       integer MVERT,IVERT  ! max items and current menu item
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='whichrif'  ! set for subroutine
+      helpinsub='radcfg'  ! set for subroutine
 
  1    IER=0
       SELECT=.false.
@@ -482,6 +478,7 @@ C if MODE='-' is similar to 'a' but does not use word default in dialog.
 #include "model.h"
 #include "geometry.h"
 #include "e2r_common.h"
+#include "help.h"
 
       integer lnblnk  ! function definition
 
@@ -496,12 +493,7 @@ C if MODE='-' is similar to 'a' but does not use word default in dialog.
       character dname*28,tname*28
       character dname72*72,tname72*72
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='newscene'  ! set for subroutine
+      helpinsub='radcfg'  ! set for subroutine
 
 C Ask for purpose of scene if new scene.
       if (MODE.eq.'s') then
@@ -810,17 +802,13 @@ C ADDSCENE allows the creation of a default translation from ESP-r to radiance.
 #include "building.h"
 #include "model.h"
 #include "e2r_common.h"
+#include "help.h"
 
       integer lnblnk  ! function definition
 
       CHARACTER pfile*72
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='ADDSCENE'  ! set for subroutine
+      helpinsub='radcfg'  ! set for subroutine
 
 C Ask if a default image should be created.
       helptopic='create_scene_interactive'
@@ -868,6 +856,7 @@ C if MODE is not - then sensor points file name confirmation required.
 #include "geometry.h"
 #include "prj3dv.h"
 #include "e2r_common.h"
+#include "help.h"
 
       integer lnblnk  ! function definition
 
@@ -888,12 +877,7 @@ C if MODE is not - then sensor points file name confirmation required.
 
       dimension IVALS(MCOM), PEQN(4), ITEMV(MV)
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='setdfgrid'  ! set for subroutine
+      helpinsub='radcfg'  ! set for subroutine
 
 C New grid so set number of grid points to zero.
       NDFP=0

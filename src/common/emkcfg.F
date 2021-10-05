@@ -49,6 +49,9 @@ C Writes the model data to the system configuration file.
 #include "plant.h"
 #include "power.h"
 #include "FMI.h"
+#include "help.h"
+#include "agent.h"
+#include "gremlin.h"
 
       INTEGER, PARAMETER :: MSTMC=20
       integer lnblnk  ! function definition
@@ -56,7 +59,6 @@ C Writes the model data to the system configuration file.
       INTEGER :: ifil
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
       INTEGER :: iuout,iuin,ieout
-      common/pophelp/h(60)
       integer ncomp,ncon
       COMMON/C1/NCOMP,NCON
       COMMON/C3/IC1(MCON),IE1(MCON),ICT(MCON),IC2(MCON),IE2(MCON)
@@ -78,7 +80,7 @@ C Configuration control.
 
 C Images.
       character imgfmt*4    ! GIF XBMP TIF JPG
-      character imgfoc*4    ! FZON FNET FCTL FDFS
+      character imgfoc*4    ! FZON FNET FCTL FDFS FPLN
       character limgfil*72  ! file name (extend to 144 char)
       character imgdoc*248  ! text associated with image
       common/imagf/imgfmt(MIMG),imgfoc(MIMG),limgfil(MIMG),imgdoc(MIMG)
@@ -307,7 +309,7 @@ C Zone fluid.
       CHARACTER LPNF*72
       CHARACTER*72 BPF
       CHARACTER*72 L3DCVS,L3DCNC,L3DNDC,L3DTAQ,LMOIST,LGrdSt
-      CHARACTER ctldoc*248,LCTLF*72,H*72
+      CHARACTER ctldoc*248,LCTLF*72
       CHARACTER spflnam*72
       character GTGEOM*72,LCFD*72,DCNN*72
       CHARACTER DBTAG*12,DBTASK*12,DBZN*15,indxcmt*24,DBSN*15
@@ -321,6 +323,7 @@ C Zone fluid.
       CHARACTER CNTMFIL*72,CONTMNAM*12,CNTMDESC*124
       character descr*7,descrst*10,descrfn*10  ! for season dates
       character descrst1*10,descrfn1*10        ! for 2nd season dates
+      character descr2st*8,descr2fn*8,descr2st1*8,descr2fn1*8
       
 C Array of mass flow nodes for writing.
       character namen*12
@@ -335,6 +338,7 @@ C Array of mass flow nodes for writing.
       logical dogrnd
       character dstmp*24
       character ALOC*12
+      character tokens*156,comment*76,aligned_str*156
 
 C Multi-weather simulations preset
       logical bMY_set_open 
@@ -348,6 +352,7 @@ C Multi-weather simulations preset
       INTEGER :: ier,i,ia,iav,icc,icd,id1,id2,id3,id4,im1,im2,im3,im4
       INTEGER :: ij,img,ios,iss,iuf,iw,j,l,lcfgl,lcfgr,lct,lctn,loutlen
       INTEGER :: loutln,ncn,lnzglbl
+      logical cmtopr,cmtgeo,cmtcon,cmttmc,cmtivf,cmtisi  ! comment on file types
       
       IUF=IFIL+1
       IER=0
@@ -358,18 +363,17 @@ C Open any existing file by this name or create a new file.
         IER=1
         RETURN
       ENDIF
+      helpinsub='emkcfg'  ! set for subroutine
+      helptopic='cfg_version_reminder'
+      call gethelptext(helpinsub,helptopic,nbhelp)
+
+      cmtopr=.false.; cmtgeo=.false.; cmtcon=.false.
+      cmttmc=.false.; cmtivf=.false.; cmtisi=.false. 
 
 C Remind user that a newer version of the file can be written.
-      if(icfgv.lt.3)then
-        h(1)='The version 3 format merges the contents of the zone'
-        h(2)='utility files into the configuration file. Models'
-        h(3)='created or updated after 1996 should use this format.'
-        h(4)=' '
-        h(5)='The version 4 format includes within the cfg file'
-        h(6)='some data previously held in separate files and also'
-        h(7)='user an updated version of the zone geometry file.'
+      if(icfgv.lt.4)then
         CALL EASKAB('Configuration file loaded was in old format.',
-     &    'Save in:','latest format','cancel',IW,7)
+     &    'Save in:','latest format','cancel',IW,nbhelp)
         if(IW.EQ.2)then
           call edisp(iuout,'System configuration file not updated.')
           return
@@ -379,7 +383,7 @@ C Upgrade file format.
 
 C If no model root name has been set, make from configuration file.
 C If filename > 4 char it might have a .cfg attached.
-          icfgv=4     ! use version 4 format
+          icfgv=4; usecurcfg=1     ! use version 4 format
           lcfgr=lnblnk(LCFGF)
           lcfgl=lcfgr-3
           if(lcfgr.gt.4)then
@@ -406,12 +410,11 @@ C If filename > 4 char it might have a .cfg attached.
 
 C Check connections file.
           if(ncon.gt.1)then
-  290       H(1)='The zone topology is held in a connections file.'
-            write(LCNN,'(2a)')cfgroot(1:lnblnk(cfgroot)),'.cnn'
+  290       write(LCNN,'(2a)')cfgroot(1:lnblnk(cfgroot)),'.cnn'
             DCNN=LCNN
             ltmp=LCNN
             CALL EASKS(ltmp,' ','Connections file name?',
-     &        72,DCNN,'system connx file name',IER,1)
+     &        72,DCNN,'system connx file name',IER,nbhelp)
             if(ltmp(1:2).ne.'  '.and.ltmp(1:4).ne.'UNKN')then
               LCNN=ltmp
             else
@@ -425,17 +428,16 @@ C then get the name of the connections file.
             write(LCNN,'(2a)') cfgroot(1:lnblnk(cfgroot)),'.cnn'
           endif
         endif
-      elseif(icfgv.ge.3)then
+      else
 
 C Also check connections file if in interactive mode.
         if(ncon.gt.1)then
           if(act.eq.'-'.and.LCNN(1:4).eq.'UNKN')then
-  292       H(1)='The zone topology is held in a connections file.'
-            write(LCNN,'(2a)')cfgroot(1:lnblnk(cfgroot)),'.cnn'
+  292       write(LCNN,'(2a)')cfgroot(1:lnblnk(cfgroot)),'.cnn'
             DCNN=LCNN
             ltmp=LCNN
             CALL EASKS(ltmp,' ','Connections file name?',
-     &        72,DCNN,'system connx file name',IER,1)
+     &        72,DCNN,'system connx file name',IER,nbhelp)
             if(ltmp(1:2).ne.'  '.and.ltmp(1:4).ne.'UNKN')then
               LCNN=ltmp
             else
@@ -457,14 +459,12 @@ C take the default name for the connections file.
       if(INDCFG.EQ.0)then
         if(NCOMP.eq.1.and.LGEOM(1)(1:4).ne.'dumm')then
           INDCFG=1
-C          call edisp(iuout,'Upgrading from registration to zone.')
           write(LCNN,'(2a)') cfgroot(1:lnblnk(cfgroot)),'.cnn'
           if(act(1:1).eq.'-')then
-  289       H(1)='The zone topology is held in a connections file.'
-            DCNN='model.cnn'
+  289       DCNN='model.cnn'
             ltmp=LCNN
             CALL EASKS(ltmp,' ','Connections file name?',72,
-     &        DCNN,'system connx file name',IER,1)
+     &        DCNN,'system connx file name',IER,nbhelp)
             if(ltmp(1:2).ne.'  '.and.ltmp(1:4).ne.'UNKN')then
               LCNN=ltmp
             else
@@ -473,20 +473,16 @@ C          call edisp(iuout,'Upgrading from registration to zone.')
           endif
           if(LPNF(1:4).ne.'UNKN'.and.LPNF(1:2).ne.'  ')then
             INDCFG=3
-C            call edisp(iuout,'Upgrading from zone to zone + plant.')
           endif
         elseif(ncomp.gt.1)then
           INDCFG=1
-C          call edisp(iuout,'Upgrading from registration to zone.')
           if(LPNF(1:4).ne.'UNKN'.and.LPNF(1:2).ne.'  ')then
             INDCFG=3
-C            call edisp(iuout,'Upgrading from zone to zone + plant.')
           endif
         endif
       elseif(INDCFG.EQ.1)then
         if(LPNF(1:4).ne.'UNKN'.and.LPNF(1:2).ne.'  ')then
           INDCFG=3
-C          call edisp(iuout,'Upgrading from zone to zone + plant.')
         endif
       endif
 
@@ -498,44 +494,71 @@ C Comment for configuration index.
 
 C Begin writing the file with version number in the header.
       if(icfgv.eq.3)then
-        WRITE(IFCFG,'(A)',IOSTAT=IOS,ERR=3) '* CONFIGURATION3.0'
+        write(tokens,'(a)') '* CONFIGURATION3.0'
+        write(comment,'(a)') 'ESP-r model configuration V3'
+        call align_comment(32,tokens,comment,aligned_str)
+        write(IFCFG,'(a)') aligned_str(1:lnblnk(aligned_str))
       elseif(icfgv.eq.4)then
-        WRITE(IFCFG,'(A)',IOSTAT=IOS,ERR=3) '* CONFIGURATION4.0'
+        write(tokens,'(a)') '* CONFIGURATION4.0'
+        write(comment,'(a)') 'ESP-r model configuration V4'
+        call align_comment(32,tokens,comment,aligned_str)
+        write(IFCFG,'(a)') aligned_str(1:lnblnk(aligned_str))
       endif
 
-      WRITE(IFCFG,30,IOSTAT=IOS,ERR=3) LCFGF(1:lnblnk(LCFGF))
       call dstamp(dstmp)
-      WRITE(IFCFG,'(3a)',IOSTAT=IOS,ERR=3) '*date ',dstmp,
-     &  '  # latest file modification'
+      write(tokens,'(2a)') '*date ',dstmp
+      write(comment,'(a)') 'latest file modification'
+      call align_comment(32,tokens,comment,aligned_str)
+      write(IFCFG,'(a)') aligned_str(1:lnblnk(aligned_str))
       WRITE(IFCFG,'(2A)',IOSTAT=IOS,ERR=3) '*root ',
      &  cfgroot(1:lnblnk(cfgroot))
-      WRITE(IFCFG,'(3a)',IOSTAT=IOS,ERR=3) '*zonpth ',zonepth,
-     &  '  # path to zone file'
-      WRITE(IFCFG,'(3a)',IOSTAT=IOS,ERR=3) '*netpth ',netpth,
-     &  '  # path to network files'
-      WRITE(IFCFG,'(3a)',IOSTAT=IOS,ERR=3) '*ctlpth ',ctlpth,
-     &  '  # path to control files'
-      WRITE(IFCFG,'(3a)',IOSTAT=IOS,ERR=3) '*aimpth ',aimpth,
-     &  '  # path to aim2 files'
-      WRITE(IFCFG,'(3a)',IOSTAT=IOS,ERR=3) '*radpth ',radpth,
-     &  '  # path to radiance files'
-      WRITE(IFCFG,'(3a)',IOSTAT=IOS,ERR=3) '*imgpth ',imgpth,
-     &  '  # path to project images'
-      WRITE(IFCFG,'(3a)',IOSTAT=IOS,ERR=3) '*docpth ',docpth,
-     &  '  # path to project documents'
-      WRITE(IFCFG,'(3a)',IOSTAT=IOS,ERR=3) '*dbspth ',dbspth,
-     &  '  # path to local databases'
-      WRITE(IFCFG,'(3a)',IOSTAT=IOS,ERR=3) '*hvacpth ',hvacpth,
-     &  '  # path to HVAC files'
-      WRITE(IFCFG,'(3a)',IOSTAT=IOS,ERR=3) '*bsmpth ',bsmpth,
-     &  '  # path to BASESIMP files'
-      WRITE(IFCFG,'(A,i2,a)',IOSTAT=IOS,ERR=3) '*radcore ',radcores,
-     &  '  # cores available to Radiance'
+      write(tokens,'(2a)') '*zonpth ',zonepth
+      write(comment,'(a)') 'path to zone files'
+      call align_comment(32,tokens,comment,aligned_str)
+      write(IFCFG,'(a)') aligned_str(1:lnblnk(aligned_str))
+      write(tokens,'(2a)') '*netpth ',netpth
+      write(comment,'(a)') 'path to network files'
+      call align_comment(32,tokens,comment,aligned_str)
+      write(IFCFG,'(a)') aligned_str(1:lnblnk(aligned_str))
+      write(tokens,'(2a)') '*ctlpth ',ctlpth
+      write(comment,'(a)') 'path to control files'
+      call align_comment(32,tokens,comment,aligned_str)
+      write(IFCFG,'(a)') aligned_str(1:lnblnk(aligned_str))
+      write(tokens,'(2a)') '*mscpth ',mscpth
+      write(comment,'(a)') 'path to miscel. files'
+      call align_comment(32,tokens,comment,aligned_str)
+      write(IFCFG,'(a)') aligned_str(1:lnblnk(aligned_str))
+      write(tokens,'(2a)') '*radpth ',radpth
+      write(comment,'(a)') 'path to radiance files'
+      call align_comment(32,tokens,comment,aligned_str)
+      write(IFCFG,'(a)') aligned_str(1:lnblnk(aligned_str))
+      write(tokens,'(2a)') '*imgpth ',imgpth
+      write(comment,'(a)') 'path to project images'
+      call align_comment(32,tokens,comment,aligned_str)
+      write(IFCFG,'(a)') aligned_str(1:lnblnk(aligned_str))
+      write(tokens,'(2a)') '*docpth ',docpth
+      write(comment,'(a)') 'path to project documents'
+      call align_comment(32,tokens,comment,aligned_str)
+      write(IFCFG,'(a)') aligned_str(1:lnblnk(aligned_str))
+      write(tokens,'(2a)') '*dbspth ',dbspth
+      write(comment,'(a)') 'path to local databases'
+      call align_comment(32,tokens,comment,aligned_str)
+      write(IFCFG,'(a)') aligned_str(1:lnblnk(aligned_str))
+      write(tokens,'(2a)') '*tmppth ',tmppth
+      write(comment,'(a)') 'path to temporary files'
+      call align_comment(32,tokens,comment,aligned_str)
+      write(IFCFG,'(a)') aligned_str(1:lnblnk(aligned_str))
+      write(tokens,'(a,i2)') '*radcore ',radcores
+      write(comment,'(a)') 'cores available to Radiance'
+      call align_comment(32,tokens,comment,aligned_str)
+      write(IFCFG,'(a)') aligned_str(1:lnblnk(aligned_str))
 
 C If there are IES files and entities associated with the model:
       if(nbofies.gt.0)then
-        write(IFCFG,'(a,i2,a)',IOSTAT=IOS,ERR=3) '*ies ',nbofies,
-     &    '  # number of IES entities'
+        write(tokens,'(a,i2)') '*ies ',nbofies
+        write(comment,'(a)') 'number of IES entities'
+        call align_comment(32,tokens,comment,aligned_str)
+        write(IFCFG,'(a)') aligned_str(1:lnblnk(aligned_str))
         do loop=1,nbofies
           write(IFCFG,'(4a)',IOSTAT=IOS,ERR=3) '*nameies ',
      &      iesname(loop)(1:lnblnk(iesname(loop))),', ',iesmenu(loop)
@@ -550,20 +573,30 @@ C If there are IES files and entities associated with the model:
         write(IFCFG,'(a)',IOSTAT=IOS,ERR=3) '*endies '
       endif
 
-      WRITE(IFCFG,'(A,i4,a)',IOSTAT=IOS,ERR=3) '*indx ',INDCFG,
-     &  indxcmt(1:lnblnk(indxcmt))
-  30  FORMAT('# ESP-r system configuration defined by file ',/,'# ',A)
+      write(tokens,'(A,i4)') '*indx ',INDCFG
+      IF(INDCFG.EQ.0) comment='project registration'
+      IF(INDCFG.EQ.1) comment='building only'
+      IF(INDCFG.EQ.2) comment='plant only'
+      IF(INDCFG.EQ.3) comment='building & plant'
+      call align_comment(32,tokens,comment,aligned_str)
+      write(IFCFG,'(a)') aligned_str(1:lnblnk(aligned_str))
 
-      WRITE(IFCFG,800,IOSTAT=IOS,ERR=2) sitelat,sitelongdif
- 800  FORMAT(F7.3,2X,F7.3,
-     & '  # latitude & longitude difference (from reference meridian)')
-
-      WRITE(IFCFG,8001,IOSTAT=IOS,ERR=2) siteexposureindex,groundrefl
-8001  FORMAT(I7,2X,F6.3,'  # site exposure & ground reflectivity')
-      IF(siteexposureindex.EQ.8)
-     &  WRITE(IFCFG,'(3F8.3,A)',IOSTAT=IOS,ERR=2)
-     &    skyview,groundview,buildingview,
-     &    '  # views to sky, ground & surrounding obstructions'
+      write(tokens,'(F7.3,2X,F7.3)') sitelat,sitelongdif
+      write(comment,'(a)') 
+     &  'latitude & longitude difference (from reference meridian)'
+      call align_comment(32,tokens,comment,aligned_str)
+      write(IFCFG,'(a)') aligned_str(1:lnblnk(aligned_str))
+      write(tokens,'(I7,2X,F6.3)') siteexposureindex,groundrefl
+      write(comment,'(a)') 'site exposure & ground reflectivity'
+      call align_comment(32,tokens,comment,aligned_str)
+      write(IFCFG,'(a)') aligned_str(1:lnblnk(aligned_str))
+      if(siteexposureindex.EQ.8)then
+        write(tokens,'(3F8.3)') skyview,groundview,buildingview
+        write(comment,'(a)') 
+     &    'views to sky, ground & surrounding obstructions'
+        call align_comment(32,tokens,comment,aligned_str)
+        write(IFCFG,'(a)') aligned_str(1:lnblnk(aligned_str))
+      endif
 
 C Write databases related to this model. Databases are located
 C in the ESP-r standard location or the local model folder.
@@ -633,11 +666,11 @@ C in the ESP-r standard location or the local model folder.
      &      MCMPDBFL(1:lnblnk(MCMPDBFL))
       endif
       if(ipathmould.eq.0.or.ipathmould.eq.1)then
-        WRITE(IFCFG,'(3A)',IOSTAT=IOS,ERR=2) '*mould ',
-     &    lfmould(1:lnblnk(lfmould)),'  # mould isopleths'
+        WRITE(IFCFG,'(2A)',IOSTAT=IOS,ERR=2) '*mould ',
+     &    lfmould(1:lnblnk(lfmould))
       elseif(ipathmould.eq.2)then
-        WRITE(IFCFG,'(3A)',IOSTAT=IOS,ERR=2) '*stdmould  ',
-     &    lfmould(1:lnblnk(lfmould)),'  # mould isopleths'
+        WRITE(IFCFG,'(2A)',IOSTAT=IOS,ERR=2) '*stdmould  ',
+     &    lfmould(1:lnblnk(lfmould))
       endif
 
 C Ground reflectivity model (no-snow monthly albedos & snow albedo
@@ -671,22 +704,22 @@ C Plant components database.
       endif
 
 C UK SBEM database.
-        if(ipathsbem.eq.0.or.ipathsbem.eq.1)then
-          WRITE(IFCFG,'(2a)',IOSTAT=IOS,ERR=2) '*sbem ',
-     &      LSBEM(1:lnblnk(LSBEM))
-        elseif(ipathsbem.eq.2)then
-          WRITE(IFCFG,'(2a)',IOSTAT=IOS,ERR=2) '*stdsbem ',
-     &      LSBEM(1:lnblnk(LSBEM))
-        endif
+      if(ipathsbem.eq.0.or.ipathsbem.eq.1)then
+        WRITE(IFCFG,'(2a)',IOSTAT=IOS,ERR=2) '*sbem ',
+     &    LSBEM(1:lnblnk(LSBEM))
+      elseif(ipathsbem.eq.2)then
+        WRITE(IFCFG,'(2a)',IOSTAT=IOS,ERR=2) '*stdsbem ',
+     &    LSBEM(1:lnblnk(LSBEM))
+      endif
 
 C Predefined objects database.
-        if(ipathpredef.eq.0.or.ipathpredef.eq.1)then
-          WRITE(IFCFG,'(2a)',IOSTAT=IOS,ERR=2) '*predef ',
-     &      LPREDEF(1:lnblnk(LPREDEF))
-        elseif(ipathpredef.eq.2)then
-          WRITE(IFCFG,'(2a)',IOSTAT=IOS,ERR=2) '*stdpredef ',
-     &      LPREDEF(1:lnblnk(LPREDEF))
-        endif
+      if(ipathpredef.eq.0.or.ipathpredef.eq.1)then
+        WRITE(IFCFG,'(2a)',IOSTAT=IOS,ERR=2) '*predef ',
+     &    LPREDEF(1:lnblnk(LPREDEF))
+      elseif(ipathpredef.eq.2)then
+        WRITE(IFCFG,'(2a)',IOSTAT=IOS,ERR=2) '*stdpredef ',
+     &    LPREDEF(1:lnblnk(LPREDEF))
+      endif
 
 C HVAC.
       IF (ihvacflag.EQ.1)then
@@ -738,11 +771,15 @@ C Wind-generated electricity.
 
 C Solar radiation handling.
       if(iSlr_half_hr_flg.eq.0)then
-        WRITE(IFCFG,'(A,i2,A)',IOSTAT=IOS,ERR=2) '*slr_half_hr ',
-     &    iSlr_half_hr_flg,'  # solar data hour centred'
+        write(tokens,'(a,i2)') '*slr_half_hr ',iSlr_half_hr_flg
+        write(comment,'(a)') 'solar data hour centred'
+        call align_comment(48,tokens,comment,aligned_str)
+        write(IFCFG,'(a)') aligned_str(1:lnblnk(aligned_str))
       else
-        WRITE(IFCFG,'(A,i2,A)',IOSTAT=IOS,ERR=2) '*slr_half_hr ',
-     &    iSlr_half_hr_flg,'  # solar data half-hour centred'
+        write(tokens,'(a,i2)') '*slr_half_hr ',iSlr_half_hr_flg
+        write(comment,'(a)') 'solar data half-hour centred'
+        call align_comment(48,tokens,comment,aligned_str)
+        write(IFCFG,'(a)') aligned_str(1:lnblnk(aligned_str))
       endif
 
 C Site altitude.
@@ -766,33 +803,42 @@ C Diffuse shading flag.
       
 C Quick run method  
       if(iQuick_run.eq.0)then
-        WRITE(IFCFG,'(A,i2,A)',IOSTAT=IOS,ERR=2) '*quick_run ',
-     &    iQuick_run,'  # no'
+        write(tokens,'(a,i2)') '*quick_run ',iQuick_run
+        write(comment,'(a)') 'no'
+        call align_comment(48,tokens,comment,aligned_str)
+        write(IFCFG,'(a)') aligned_str(1:lnblnk(aligned_str))
       else
-        WRITE(IFCFG,'(A,i2,A)',IOSTAT=IOS,ERR=2) '*quick_run ',
-     &    iQuick_run,'  # yes'
+        write(tokens,'(a,i2)') '*quick_run ',iQuick_run
+        write(comment,'(a)') 'yes'
+        call align_comment(48,tokens,comment,aligned_str)
+        write(IFCFG,'(a)') aligned_str(1:lnblnk(aligned_str))
       endif  
   
 C SHOCC.
       IF ( bSHOCCed ) then
-         WRITE(IFCFG,'(3A)',IOSTAT=IOS,ERR=2) '*shl ',
-     &     SHOCCshlFile(1:lnblnk(SHOCCshlFile)),
-     &     '  # SHOCC project library'
+        write(tokens,'(2a)') '*shl ',
+     &    SHOCCshlFile(1:lnblnk(SHOCCshlFile))
+        write(comment,'(a)') 'SHOCC project library'
+        call align_comment(48,tokens,comment,aligned_str)
+        write(IFCFG,'(a)') aligned_str(1:lnblnk(aligned_str))
       endif
 
 C BCD (boundary condition definiton file).
       if ( bBC_data_defined ) then
-         WRITE(IFCFG,'(3A)',IOSTAT=IOS,ERR=2) '*bcd ',
-     &     cBC_data_file_name(1:lnblnk(cBC_data_file_name)),
-     &     '  # BCD file name'
+        write(tokens,'(2a)') '*bcd ',
+     &    cBC_data_file_name(1:lnblnk(cBC_data_file_name))
+        write(comment,'(a)') 'BCD file name'
+        call align_comment(48,tokens,comment,aligned_str)
+        write(IFCFG,'(a)') aligned_str(1:lnblnk(aligned_str))
       endif 
 
 C Lookup table.
       if ( bLookup_data_defined ) then
-         WRITE(IFCFG,'(3A)',IOSTAT=IOS,ERR=2) '*tab  ',
-     &     cLookup_data_file_name
-     &     (1:lnblnk(cLookup_data_file_name)),
-     &     '  # Lookup table file'
+        write(tokens,'(2a)') '*tab ',cLookup_data_file_name
+     &    (1:lnblnk(cLookup_data_file_name))
+        write(comment,'(a)') 'Lookup table file'
+        call align_comment(48,tokens,comment,aligned_str)
+        write(IFCFG,'(a)') aligned_str(1:lnblnk(aligned_str))
       endif 
 
 C Write control file if known.
@@ -803,8 +849,10 @@ C Write control file if known.
       elseif(lctlf(1:2).eq.'  ')then
         continue
       else
-        WRITE(IFCFG,'(2a)',IOSTAT=IOS,ERR=2) '*ctl ',
-     &    LCTLF(1:lnblnk(LCTLF))
+        write(tokens,'(2a)') '*ctl ',LCTLF(1:lnblnk(LCTLF))
+        write(comment,'(a)') 'building/system control file'
+        call align_comment(48,tokens,comment,aligned_str)
+        write(IFCFG,'(a)') aligned_str(1:lnblnk(aligned_str))
       endif
 
 C Renewable energy system.
@@ -864,11 +912,21 @@ C Simulation toggles.
         do 443 icd = 1,nbdaytype
           lct=lnblnk(calentag(icd))
           lctn=lnblnk(calendayname(icd))
-          write(IFCFG,'(5a,i3)',IOSTAT=IOS,ERR=2) '*calentag ',
+          write(tokens,'(5a,i3)') '*calentag ',
      &      calentag(icd)(1:lct),', ',calendayname(icd)(1:lctn),', ',
      &      nbcaldays(icd)
+          write(comment,'(a)') 'day type name, menu entry, instances'
+          call align_comment(48,tokens,comment,aligned_str)
+          if(icd.eq.1)then
+            write(IFCFG,'(a)') aligned_str(1:lnblnk(aligned_str))  ! Comment on first day type
+          else
+            write(IFCFG,'(a)') tokens(1:lnblnk(tokens))
+          endif
  443    continue
-        write(IFCFG,'(a,1I4)',IOSTAT=IOS,ERR=2) '*list ',nbdaytype
+        write(tokens,'(a,i4)') '*list ',nbdaytype
+        write(comment,'(a)') 'day types & type for each day of year'
+        call align_comment(48,tokens,comment,aligned_str)
+        write(IFCFG,'(a)') aligned_str(1:lnblnk(aligned_str))
         itrunc=1
         ipos=1
         do while (itrunc.ne.0)
@@ -896,8 +954,10 @@ C Uncertainty analysis.
 
 C Alternative weekends definition.
       if(idwe1.ne.6.or.idwe2.ne.7)then
-        WRITE(IFCFG,'(a,2I3,a)',IOSTAT=IOS,ERR=2) '*weekend ',
-     &    idwe1,idwe2,' # alternative weekend definition'
+        write(tokens,'(a,2I3)') '*weekend ',idwe1,idwe2
+        write(comment,'(a)') 'alternative weekend definition'
+        call align_comment(32,tokens,comment,aligned_str)
+        write(IFCFG,'(a)') aligned_str(1:lnblnk(aligned_str))
       endif
 
 C Seasonal definitions associated with the weather file.
@@ -910,68 +970,96 @@ C Seasonal definitions associated with the weather file.
         call edayr(is1winf,id2,im2)
         call edayr(is2wins,id3,im3)
         call edayr(is2winf,id4,im4)
-        call stdate(iyear,is1wins,descr,descrst)
-        call stdate(iyear,is1winf,descr,descrfn)
-        call stdate(iyear,is2wins,descr,descrst1)
-        call stdate(iyear,is2winf,descr,descrfn1)
-        write(IFCFG,'(a,8i3,8a)')'*winter_s ',id1,im1,id2,im2,id3,im3,
-     &    id4,im4,'  # seasons ',descrst,'--',descrfn,' & ',descrst1,
-     &    '--',descrfn1
+        call stdate(iyear,is1wins,descr,descrst,descr2st)
+        call stdate(iyear,is1winf,descr,descrfn,descr2fn)
+        call stdate(iyear,is2wins,descr,descrst1,descr2st1)
+        call stdate(iyear,is2winf,descr,descrfn1,descr2fn1)
+        write(tokens,'(a,8i3)') '*winter_s ',id1,im1,id2,im2,id3,im3,
+     &    id4,im4
+        write(comment,'(8a)') 'winter season ',descrst,'--',descrfn,
+     &    ' & ',descrst1,'--',descrfn1
+        call align_comment(48,tokens,comment,aligned_str)
+        write(IFCFG,'(a)') aligned_str(1:lnblnk(aligned_str))
+
         call edayr(is1sprs,id1,im1)
         call edayr(is1sprf,id2,im2)
         call edayr(is2sprs,id3,im3)
         call edayr(is2sprf,id4,im4)
-        call stdate(iyear,is1sprs,descr,descrst)
-        call stdate(iyear,is1sprf,descr,descrfn)
-        call stdate(iyear,is2sprs,descr,descrst1)
-        call stdate(iyear,is2sprf,descr,descrfn1)
-        write(IFCFG,'(a,8i3,8a)')'*spring_s ',id1,im1,id2,im2,id3,im3,
-     &    id4,im4,'  # seasons ',descrst,'--',descrfn,' & ',descrst1,
-     &    '--',descrfn1
+        call stdate(iyear,is1sprs,descr,descrst,descr2st)
+        call stdate(iyear,is1sprf,descr,descrfn,descr2fn)
+        call stdate(iyear,is2sprs,descr,descrst1,descr2st1)
+        call stdate(iyear,is2sprf,descr,descrfn1,descr2fn1)
+        write(tokens,'(a,8i3)') '*spring_s ',id1,im1,id2,im2,id3,im3,
+     &    id4,im4
+        write(comment,'(8a)') 'spring season ',descrst,'--',descrfn,
+     &    ' & ',descrst1,'--',descrfn1
+        call align_comment(48,tokens,comment,aligned_str)
+        write(IFCFG,'(a)') aligned_str(1:lnblnk(aligned_str))
+
         call edayr(is1sums,id1,im1)
         call edayr(is1sumf,id2,im2)
-        call stdate(iyear,is1sums,descr,descrst)
-        call stdate(iyear,is1sumf,descr,descrfn)
-        write(IFCFG,'(a,4i3,4a)')'*summer_s ',id1,im1,id2,im2,
-     &    '  # summer season ',descrst,'--',descrfn
+        call stdate(iyear,is1sums,descr,descrst,descr2st)
+        call stdate(iyear,is1sumf,descr,descrfn,descr2fn)
+        write(tokens,'(a,4i3)') '*summer_s ',id1,im1,id2,im2
+        write(comment,'(4a)') 'summer season ',descrst,'--',descrfn
+        call align_comment(48,tokens,comment,aligned_str)
+        write(IFCFG,'(a)') aligned_str(1:lnblnk(aligned_str))
+
         call edayr(ia1wins,id1,im1)
         call edayr(ia1winf,id2,im2)
         call edayr(ia2wins,id3,im3)
         call edayr(ia2winf,id4,im4)
-        call stdate(iyear,ia1wins,descr,descrst)
-        call stdate(iyear,ia1winf,descr,descrfn)
-        call stdate(iyear,ia2wins,descr,descrst1)
-        call stdate(iyear,ia2winf,descr,descrfn1)
-        write(IFCFG,'(a,8i3,8a)')'*winter_t ',id1,im1,id2,im2,id3,im3,
-     &    id4,im4,'  # typical ',descrst,'--',descrfn,' & ',descrst1,
-     &    '--',descrfn1
+        call stdate(iyear,ia1wins,descr,descrst,descr2st)
+        call stdate(iyear,ia1winf,descr,descrfn,descr2fn)
+        call stdate(iyear,ia2wins,descr,descrst1,descr2st1)
+        call stdate(iyear,ia2winf,descr,descrfn1,descr2fn1)
+
+        write(tokens,'(a,8i3)') '*winter_t ',id1,im1,id2,im2,id3,im3,
+     &    id4,im4
+        write(comment,'(8a)') 'winter typical ',descrst,'--',descrfn,
+     &    ' & ',descrst1,'--',descrfn1
+        call align_comment(48,tokens,comment,aligned_str)
+        write(IFCFG,'(a)') aligned_str(1:lnblnk(aligned_str))
+
         call edayr(ia1sprs,id1,im1)
         call edayr(ia1sprf,id2,im2)
         call edayr(ia2sprs,id3,im3)
         call edayr(ia2sprf,id4,im4)
-        call stdate(iyear,ia1sprs,descr,descrst)
-        call stdate(iyear,ia1sprf,descr,descrfn)
-        call stdate(iyear,ia2sprs,descr,descrst1)
-        call stdate(iyear,ia2sprf,descr,descrfn1)
-        write(IFCFG,'(a,8i3,8a)')'*spring_t ',id1,im1,id2,im2,id3,im3,
-     &    id4,im4,'  # typical ',descrst,'--',descrfn,' & ',descrst1,
-     &    '--',descrfn1
+        call stdate(iyear,ia1sprs,descr,descrst,descr2st)
+        call stdate(iyear,ia1sprf,descr,descrfn,descr2fn)
+        call stdate(iyear,ia2sprs,descr,descrst1,descr2st1)
+        call stdate(iyear,ia2sprf,descr,descrfn1,descr2fn1)
+
+        write(tokens,'(a,8i3)') '*spring_t ',id1,im1,id2,im2,id3,im3,
+     &    id4,im4
+        write(comment,'(8a)') 'spring typical ',descrst,'--',descrfn,
+     &    ' & ',descrst1,'--',descrfn1
+        call align_comment(48,tokens,comment,aligned_str)
+        write(IFCFG,'(a)') aligned_str(1:lnblnk(aligned_str))
+
         call edayr(iasums,id1,im1)
         call edayr(iasumf,id2,im2)
-        call stdate(iyear,iasums,descr,descrst)
-        call stdate(iyear,iasumf,descr,descrfn)
-        write(IFCFG,'(a,4i3,4a)')'*summer_t ',id1,im1,id2,im2,
-     &    '  # typical summer ',descrst,'--',descrfn
+        call stdate(iyear,iasums,descr,descrst,descr2st)
+        call stdate(iyear,iasumf,descr,descrfn,descr2fn)
+        write(tokens,'(a,4i3)') '*summer_t ',id1,im1,id2,im2
+        write(comment,'(4a)') 'summer typical ',descrst,'--',descrfn
+        call align_comment(48,tokens,comment,aligned_str)
+        write(IFCFG,'(a)') aligned_str(1:lnblnk(aligned_str))
         write(IFCFG,'(a)')'*season_end'
       endif
 
-      WRITE(IFCFG,'(a,I4,a)',IOSTAT=IOS,ERR=2) '*year ',
-     &  IYEAR,'  # assessment year'
+      write(tokens,'(a,i4)') '*year ',IYEAR
+      write(comment,'(a)') 'assessment year'
+      call align_comment(48,tokens,comment,aligned_str)
+      write(IFCFG,'(a)') aligned_str(1:lnblnk(aligned_str))
 
 C Water filled zone data.
-      WRITE(IFCFG,'(a,f4.1,3f7.1,a)',IOSTAT=IOS,ERR=2) 
-     &  '*water_in_zones ',zfldK,zfldD,zfldC,zfldA,
-     &  '  # water cond, density, spec heat, shortwave abs'
+      write(tokens,'(a,f4.1,3f7.1)') '*water_in_zones ',
+     &  zfldK,zfldD,zfldC,zfldA
+      write(comment,'(a)') 
+     &  'water cond, density, spec heat, shortwave abs'
+      call align_comment(48,tokens,comment,aligned_str)
+      write(IFCFG,'(a)') aligned_str(1:lnblnk(aligned_str))
 
 C NCM.
       IF(ISBEM.GE.1)THEN
@@ -983,17 +1071,27 @@ C NCM.
         endif
       ENDIF
       IF(INOTI.EQ.1)THEN
-        WRITE(OUTS,'(A)')
-     &      '*not  # UK NCM notional model (10% thermal bridges'
-        WRITE(IFCFG,'(a)',IOSTAT=IOS,ERR=2)OUTS(1:LNBLNK(OUTS))
+        write(tokens,'(a)') '*not'
+        write(comment,'(a)')'UK NCM notional model (10% thermal bridges'
+        call align_comment(32,tokens,comment,aligned_str)
+        write(IFCFG,'(a)') aligned_str(1:lnblnk(aligned_str))
       ELSEIF(INOTI.EQ.2)THEN
-        WRITE(OUTS,'(A)')'*ref  # UK NCM reference model'
+        write(tokens,'(a)') '*ref'
+        write(comment,'(a)') 'UK NCM reference model'
+        call align_comment(32,tokens,comment,aligned_str)
+        write(IFCFG,'(a)') aligned_str(1:lnblnk(aligned_str))
         WRITE(IFCFG,'(a)',IOSTAT=IOS,ERR=2)OUTS(1:LNBLNK(OUTS))
       ELSEIF(INOTI.EQ.3)THEN
-        WRITE(OUTS,'(A)')'*typ  # UK NCM typical model'
+        write(tokens,'(a)') '*typ'
+        write(comment,'(a)') 'UK NCM typical model'
+        call align_comment(32,tokens,comment,aligned_str)
+        write(IFCFG,'(a)') aligned_str(1:lnblnk(aligned_str))
         WRITE(IFCFG,'(a)',IOSTAT=IOS,ERR=2)OUTS(1:LNBLNK(OUTS))
       ELSEIF(INOTI.EQ.4)THEN
-        WRITE(OUTS,'(A)')'*str  # UK NCM stripped model'
+        write(tokens,'(a)') '*str'
+        write(comment,'(a)') 'UK NCM stripped model'
+        call align_comment(32,tokens,comment,aligned_str)
+        write(IFCFG,'(a)') aligned_str(1:lnblnk(aligned_str))
         WRITE(IFCFG,'(a)',IOSTAT=IOS,ERR=2)OUTS(1:LNBLNK(OUTS))
       ENDIF
 
@@ -1015,18 +1113,35 @@ C Primary energy conversions.
      &   '# prim energy conv (heat,cool,lights,fan,sml pwr,hot water)'
         WRITE(IFCFG,'(a,6F6.3)',IOSTAT=IOS,ERR=2) '*pecnv ',
      &    pcnvht,pcnvcl,pcnvlt,pcnvfn,pcnvsp,pcnvhw
-        WRITE(IFCFG,'(a,3F9.3,a)',IOSTAT=IOS,ERR=2) '*htemis ',
-     &    phtco2,phtnox,phtsox,'  # heating emissions CO2,NOX,SOX'
-        WRITE(IFCFG,'(a,3F9.3,a)',IOSTAT=IOS,ERR=2) '*clemis ',
-     &    pclco2,pclnox,pclsox,'  # cooling emissions CO2,NOX,SOX'
-        WRITE(IFCFG,'(a,3F9.3,a)',IOSTAT=IOS,ERR=2) '*ltemis ',
-     &    pltco2,pltnox,pltsox,'  # lighting emissions CO2,NOX,SOX'
-        WRITE(IFCFG,'(a,3F9.3,a)',IOSTAT=IOS,ERR=2) '*fnemis ',
-     &    pfnco2,pfnnox,pfnsox,'  # fan/pump emissions CO2,NOX,SOX'
-        WRITE(IFCFG,'(a,3F9.3,a)',IOSTAT=IOS,ERR=2) '*spemis ',
-     &    pspco2,pspnox,pspsox,'  # small power emissions CO2,NOX,SOX'
-        WRITE(IFCFG,'(a,3F9.3,a)',IOSTAT=IOS,ERR=2) '*hwemis ',
-     &    phwco2,phwnox,phwsox,'  # DHW emissions CO2,NOX,SOX'
+        write(tokens,'(a,3F9.3)') '*htemis ',phtco2,phtnox,phtsox
+        write(comment,'(a)') 'heating emissions CO2,NOX,SOX'
+        call align_comment(32,tokens,comment,aligned_str)
+        write(IFCFG,'(a)') aligned_str(1:lnblnk(aligned_str))
+
+        write(tokens,'(a,3F9.3)') '*clemis ',pclco2,pclnox,pclsox
+        write(comment,'(a)') 'cooling emissions CO2,NOX,SOX'
+        call align_comment(32,tokens,comment,aligned_str)
+        write(IFCFG,'(a)') aligned_str(1:lnblnk(aligned_str))
+
+        write(tokens,'(a,3F9.3)') '*ltemis ',pltco2,pltnox,pltsox
+        write(comment,'(a)') 'lighting emissions CO2,NOX,SOX'
+        call align_comment(32,tokens,comment,aligned_str)
+        write(IFCFG,'(a)') aligned_str(1:lnblnk(aligned_str))
+
+        write(tokens,'(a,3F9.3)') '*fnemis ',pfnco2,pfnnox,pfnsox
+        write(comment,'(a)') 'fan/pump emissions CO2,NOX,SOX'
+        call align_comment(32,tokens,comment,aligned_str)
+        write(IFCFG,'(a)') aligned_str(1:lnblnk(aligned_str))
+
+        write(tokens,'(a,3F9.3)') '*spemis ',pspco2,pspnox,pspsox
+        write(comment,'(a)') 'small power emissions CO2,NOX,SOX'
+        call align_comment(32,tokens,comment,aligned_str)
+        write(IFCFG,'(a)') aligned_str(1:lnblnk(aligned_str))
+
+        write(tokens,'(a,3F9.3)') '*hwemis ',phwco2,phwnox,phwsox
+        write(comment,'(a)') 'DHW emissions CO2,NOX,SOX'
+        call align_comment(32,tokens,comment,aligned_str)
+        write(IFCFG,'(a)') aligned_str(1:lnblnk(aligned_str))
       endif
 
 C IPV.
@@ -1150,15 +1265,17 @@ C Temporal definitions.
 
 C Simulation parameter presets.
       if(nsset.gt.0)then
+        write(tokens,'(A,6i4)') '*sps ',nsset,isstup,isbnstep,ispnstep,
+     &    issave,isavgh
         if(isavgh.eq.0)then
-          WRITE(IFCFG,'(A)',IOSTAT=IOS,ERR=2)
-     &'# sim setup: no. sets startup zone_ts plant_ts save_lv @ each ts'
+          write(comment,'(2a)') 'parameter sets, default startup, ',
+     &      'zone & plant ts, save level & frequency'
         else
-          WRITE(IFCFG,'(A)',IOSTAT=IOS,ERR=2)
-     &'# sim setup: no. sets startup zone_ts plant_ts save_lv @ 1 ts/hr'
+          write(comment,'(2a)') 'parameter sets, default startup, ',
+     &      'zone & plant ts, save level @ 1 ts/hr'
         endif
-        WRITE(IFCFG,'(A,6i4)',IOSTAT=IOS,ERR=2) '*sps ',nsset,isstup,
-     &    isbnstep,ispnstep,issave,isavgh
+        call align_comment(48,tokens,comment,aligned_str)
+        write(IFCFG,'(a)') aligned_str(1:lnblnk(aligned_str))
 
 C Multi-year weather data (only works with save level 5).
         bMY_set_open = .false.
@@ -1172,18 +1289,34 @@ C Flag indicating start of multi-year climate record.
 
 C Extended simulation parameter sets.
           if ( bMY_period_support(iss) ) then
-            WRITE(IFCFG,'(5I4,2I3,I5,2I3,I5,2x,2A)',IOSTAT=IOS,ERR=2)
+            write(tokens,'(5I4,2I3,I5,2I3,I5,2x,A)') 
      &        isstupex(iss),isbnstepex(iss),ispnstepex(iss),
      &        issaveex(iss),isavghex(iss),isstday(iss),isstmon(iss),
      &        iMY_period_start_years(iss),isfnday(iss),isfnmon(iss),
      &        iMY_period_end_years(iss),
-     &        spfdescr(iss)(1:lnblnk(spfdescr(iss))),'  # period & name'
+     &        spfdescr(iss)(1:lnblnk(spfdescr(iss)))
+            if(iss.eq.1)then
+              write(comment,'(2a)') 'startup, zone & plant ts, ',
+     &          'save level, @ ts, period start DM & end DM'
+              call align_comment(48,tokens,comment,aligned_str)
+              write(IFCFG,'(a)') aligned_str(1:lnblnk(aligned_str))
+            else
+              write(IFCFG,'(a)') tokens(1:lnblnk( tokens))
+            endif
           else
-            WRITE(IFCFG,'(9I4,2x,2A)',IOSTAT=IOS,ERR=2)
+            write(tokens,'(9I4,2x,A)') 
      &        isstupex(iss),isbnstepex(iss),ispnstepex(iss),
      &        issaveex(iss),isavghex(iss),isstday(iss),isstmon(iss),
      &        isfnday(iss),isfnmon(iss),
-     &        spfdescr(iss)(1:lnblnk(spfdescr(iss))),'  # period & name'
+     &        spfdescr(iss)(1:lnblnk(spfdescr(iss)))
+            if(iss.eq.1)then
+              write(comment,'(2a)') 'startup, zone & plant ts, ',
+     &          'save level, @ ts, period start DM & end DM'
+              call align_comment(48,tokens,comment,aligned_str)
+              write(IFCFG,'(a)') aligned_str(1:lnblnk(aligned_str))
+            else
+              write(IFCFG,'(a)') tokens(1:lnblnk( tokens))
+            endif
           endif 
           if(INDCFG.ne.2)WRITE(IFCFG,'(2A)',IOSTAT=IOS,ERR=2)'*sblr ',
      &      sblres(iss)(1:lnblnk(sblres(iss)))
@@ -1199,7 +1332,7 @@ C Extended simulation parameter sets.
      &      '*selr ',selres(iss)(1:lnblnk(selres(iss)))
 
 C CFD.
-          if(CFDOK)then
+          if(iscfdactivate(iss).gt.-1)then
             WRITE(IFCFG,'(A,3I4,2F7.3,2A)',IOSTAT=IOS,ERR=2)
      &       '*scfdr ',iscfdactivate(iss),isicfdys(iss),isicfdyf(iss),
      &       scftims(iss),scftimf(iss),' ',
@@ -1243,25 +1376,26 @@ C IPV annual report.
         endif
       endif
 
-C Building and client address.
-      WRITE(IFCFG,'(A)',IOSTAT=IOS,ERR=2) 
-     &  '# Name and address of building'
-      WRITE(IFCFG,'(2A)',IOSTAT=IOS,ERR=2)'*B-NAME ',
-     &  pjname(1:lnblnk(pjname))
-      WRITE(IFCFG,'(2A)',IOSTAT=IOS,ERR=2)'*B-ADDRESS ',
-     &  baddress(1:lnblnk(baddress))
-      WRITE(IFCFG,'(A)',IOSTAT=IOS,ERR=2) 
-     &  '# Contact information for building owner'
-      WRITE(IFCFG,'(2A)',IOSTAT=IOS,ERR=2)'*O-NAME ',
-     &  ownername(1:lnblnk(ownername))
-      WRITE(IFCFG,'(2A)',IOSTAT=IOS,ERR=2)'*O-ADDRESS ',
-     &  owneraddr(1:lnblnk(owneraddr))
-      WRITE(IFCFG,'(A)',IOSTAT=IOS,ERR=2) 
-     &  '# Contact information for simulation team'
-      WRITE(IFCFG,'(2A)',IOSTAT=IOS,ERR=2)'*C-NAME ',
-     &  certifname(1:lnblnk(certifname))
-      WRITE(IFCFG,'(2A)',IOSTAT=IOS,ERR=2)'*C-ADDRESS ',
-     &  certaddress(1:lnblnk(certaddress))
+C Building and client address (deprecated).
+C      write(tokens,'(2a)') '*B-NAME ',pjname(1:lnblnk(pjname))
+C      write(comment,'(a)') 'name and address of building'
+C      call align_comment(48,tokens,comment,aligned_str)
+C      write(IFCFG,'(a)') aligned_str(1:lnblnk(aligned_str))
+C      WRITE(IFCFG,'(2A)',IOSTAT=IOS,ERR=2)'*B-ADDRESS ',
+C     &  baddress(1:lnblnk(baddress))
+C      write(tokens,'(2a)') '*O-NAME ',ownername(1:lnblnk(ownername))
+C      write(comment,'(a)') 'contact information for building owner'
+C      call align_comment(48,tokens,comment,aligned_str)
+C      write(IFCFG,'(a)') aligned_str(1:lnblnk(aligned_str))
+C      WRITE(IFCFG,'(2A)',IOSTAT=IOS,ERR=2)'*O-ADDRESS ',
+C     &  owneraddr(1:lnblnk(owneraddr))
+C      write(tokens,'(2a)') '*C-NAME ',certifname(1:lnblnk(certifname))
+C      write(comment,'(a)') 'contact information for simulation team'
+C      call align_comment(48,tokens,comment,aligned_str)
+C      write(IFCFG,'(a)') aligned_str(1:lnblnk(aligned_str))
+C      WRITE(IFCFG,'(2A)',IOSTAT=IOS,ERR=2)'*C-ADDRESS ',
+C     &  certaddress(1:lnblnk(certaddress))
+
       WRITE(IFCFG,'(A)',IOSTAT=IOS,ERR=2) '* PROJ LOG'
       WRITE(IFCFG,'(A)',IOSTAT=IOS,ERR=2)lmodellog(1:lnblnk(lmodellog))
 
@@ -1323,63 +1457,122 @@ C Fabric portion of description.
      &  modeltitle(1:lnblnk(modeltitle))
  5006 FORMAT('* Building',/,A)
 
-      WRITE(IFCFG,'(I7,A)',IOSTAT=IOS,ERR=2) NCOMP,' # number of zones'
+      write(tokens,'(i7)') NCOMP
+      write(comment,'(a)') 'number of zones'
+      call align_comment(48,tokens,comment,aligned_str)
+      write(IFCFG,'(a)') aligned_str(1:lnblnk(aligned_str))
 
       DO 920 I = 1,NCOMP
         if(znotair(I))then  ! if water filled
-          WRITE(IFCFG,'(A,I3,2A)',IOSTAT=IOS,ERR=2)
-     &      '*zon ',NCCODE(I),' Water  # reference for ',zname(I)
+          write(tokens,'(a,i3,a)') '*zon ',NCCODE(I),' Water'
+          write(comment,'(2a)') 'reference for ',zname(I)
+          call align_comment(48,tokens,comment,aligned_str)
+          write(IFCFG,'(a)') aligned_str(1:lnblnk(aligned_str))
         else
-          WRITE(IFCFG,'(A,I3,2A)',IOSTAT=IOS,ERR=2)
-     &      '*zon ',NCCODE(I),'  # reference for ',zname(I)
+          write(tokens,'(a,i3)') '*zon ',NCCODE(I)
+          write(comment,'(2a)') 'reference for ',zname(I)
+          call align_comment(48,tokens,comment,aligned_str)
+          write(IFCFG,'(a)') aligned_str(1:lnblnk(aligned_str))
         endif
-        WRITE(IFCFG,'(3A)',IOSTAT=IOS,ERR=2)
-     &    '*opr ',LPROJ(I)(1:LNBLNK(LPROJ(I))),'  # schedules'
-        WRITE(IFCFG,'(3A)',IOSTAT=IOS,ERR=2)
-     &    '*geo ',LGEOM(I)(1:LNBLNK(LGEOM(I))),'  # geometry'
-        WRITE(IFCFG,'(3A)',IOSTAT=IOS,ERR=2)
-     &    '*con ',LTHRM(I)(1:LNBLNK(LTHRM(I))),'  # constructions'
+        write(tokens,'(2a)') '*opr ',LPROJ(I)(1:LNBLNK(LPROJ(I)))
+        write(comment,'(a)') 'schedules'
+        if(.NOT.cmtopr)then
+          call align_comment(48,tokens,comment,aligned_str)
+          write(IFCFG,'(a)') aligned_str(1:lnblnk(aligned_str))
+          cmtopr=.true.      ! only show 1st instance of comment
+        else
+          write(IFCFG,'(a)') tokens(1:lnblnk(tokens))
+        endif
+        write(tokens,'(2a)') '*geo ',LGEOM(I)(1:LNBLNK(LGEOM(I)))
+        write(comment,'(a)') 'geometry'
+        if(.NOT.cmtgeo)then
+          call align_comment(48,tokens,comment,aligned_str)
+          write(IFCFG,'(a)') aligned_str(1:lnblnk(aligned_str))
+          cmtgeo=.true.      ! only show 1st instance of comment
+        else
+          write(IFCFG,'(a)') tokens(1:lnblnk(tokens))
+        endif
+        write(tokens,'(2a)') '*con ',LTHRM(I)(1:LNBLNK(LTHRM(I)))
+        write(comment,'(a)') 'constructions'
+        if(.NOT.cmtcon)then
+          call align_comment(48,tokens,comment,aligned_str)
+          write(IFCFG,'(a)') aligned_str(1:lnblnk(aligned_str))
+          cmtcon=.true.      ! only show 1st instance of comment
+        else
+          write(IFCFG,'(a)') tokens(1:lnblnk(tokens))
+        endif
         if(IOBS(I).EQ.1)then
-          WRITE(IFCFG,'(3A)',IOSTAT=IOS,ERR=2)
-     &      '*obs ',ZOBS(I)(1:lnblnk(ZOBS(I))),'  # obstructions'
+          write(tokens,'(2a)') '*obs ',ZOBS(I)(1:lnblnk(ZOBS(I)))
+          write(comment,'(a)') 'obstructions'
+          call align_comment(48,tokens,comment,aligned_str)
+          write(IFCFG,'(a)') aligned_str(1:lnblnk(aligned_str))
         endif
         if(ITW(I).EQ.1)then
-          WRITE(IFCFG,'(3A)',IOSTAT=IOS,ERR=2)
-     &    '*tmc ',LTWIN(I)(1:lnblnk(LTWIN(I))),
-     &    '  # transparent constructions'
+          write(tokens,'(2a)') '*tmc ',LTWIN(I)(1:lnblnk(LTWIN(I)))
+          write(comment,'(a)') 'transparent constructions'
+          if(.NOT.cmttmc)then
+            call align_comment(48,tokens,comment,aligned_str)
+            write(IFCFG,'(a)') aligned_str(1:lnblnk(aligned_str))
+            cmttmc=.true.      ! only show 1st instance of comment
+          else
+            write(IFCFG,'(a)') tokens(1:lnblnk(tokens))
+          endif
         endif
         if(icfc(I).EQ.1)then
-          WRITE(IFCFG,'(3A)',IOSTAT=IOS,ERR=2)
-     &    '*cfc ',lcfcin(I)(1:lnblnk(lcfcin(I))),
-     &    '  # complex fenestration constr'
+          write(tokens,'(2a)') '*cfc ',lcfcin(I)(1:lnblnk(lcfcin(I)))
+          write(comment,'(a)') 'complex fenestration constructions'
+          call align_comment(48,tokens,comment,aligned_str)
+          write(IFCFG,'(a)') aligned_str(1:lnblnk(aligned_str))
         endif
         if(IVF(I).EQ.1)then
-          WRITE(IFCFG,'(3A)',IOSTAT=IOS,ERR=2)
-     &      '*ivf ',LVIEW(I)(1:LNBLNK(LVIEW(I))),'  # view factors'
+          write(tokens,'(2a)') '*ivf ',LVIEW(I)(1:LNBLNK(LVIEW(I)))
+          write(comment,'(a)') 'view factors'
+          if(.NOT.cmtivf)then
+            call align_comment(48,tokens,comment,aligned_str)
+            write(IFCFG,'(a)') aligned_str(1:lnblnk(aligned_str))
+            cmtivf=.true.      ! only show 1st instance of comment
+          else
+            write(IFCFG,'(a)') tokens(1:lnblnk(tokens))
+          endif
         endif
         if(ICGC(I).EQ.1)then
-          WRITE(IFCFG,'(3A)',IOSTAT=IOS,ERR=2)
-     &    '*cgc ',LCGCIN(I)(1:lnblnk(LCGCIN(I))),
-     &    '  # casual gain control'
+          write(tokens,'(2a)') '*cgc ',LCGCIN(I)(1:lnblnk(LCGCIN(I)))
+          write(comment,'(a)') 'casual gain control'
+          call align_comment(48,tokens,comment,aligned_str)
+          write(IFCFG,'(a)') aligned_str(1:lnblnk(aligned_str))
         endif
         if(ISI(I).EQ.1)then
           if(ISIcalc.eq.1)then
             write(LSHAD(I),'(A,I0,A)') '../tmp/Z',I,'.shd'
-            WRITE(IFCFG,'(3A)',IOSTAT=IOS,ERR=2)
-     &        '*ise ',LSHAD(I)(1:lnblnk(LSHAD(I))),
-     &        '  # embedded S/I calculation'
+            write(tokens,'(2a)') '*ise ',LSHAD(I)(1:lnblnk(LSHAD(I)))
+            write(comment,'(a)') 'embedded S/I calculation'
+            if(.NOT.cmtisi)then
+              call align_comment(48,tokens,comment,aligned_str)
+              write(IFCFG,'(a)') aligned_str(1:lnblnk(aligned_str))
+              cmtisi=.true.      ! only show 1st instance of comment
+            else
+              write(IFCFG,'(a)') tokens(1:lnblnk(tokens))
+            endif
           elseif(ISIcalc.eq.2)then
-            WRITE(IFCFG,'(3A)',IOSTAT=IOS,ERR=2)
-     &        '*isi ',LSHAD(I)(1:lnblnk(LSHAD(I))),
-     &        '  # pre-constructed S/I file'
+            write(tokens,'(2a)') '*isi ',LSHAD(I)(1:lnblnk(LSHAD(I)))
+            write(comment,'(a)') 'pre-constructed S/I file'
+            if(.NOT.cmtisi)then
+              call align_comment(48,tokens,comment,aligned_str)
+              write(IFCFG,'(a)') aligned_str(1:lnblnk(aligned_str))
+              cmtisi=.true.      ! only show 1st instance of comment
+            else
+              write(IFCFG,'(a)') tokens(1:lnblnk(tokens))
+            endif
           endif
         endif
 
 C Zone convection coefficient file.
         if(IHC(I).EQ.1)then
-          WRITE(IFCFG,'(3A)',IOSTAT=IOS,ERR=2)'*ihc ',
-     &        LHCCO(I)(1:LNBLNK(LHCCO(I))),
-     &        '  # convective heat transfer coefficient file'
+          write(tokens,'(2a)') '*ihc ',LHCCO(I)(1:lnblnk(LHCCO(I)))
+          write(comment,'(a)')
+     &      'convective heat transfer coefficient file'
+          call align_comment(48,tokens,comment,aligned_str)
+          write(IFCFG,'(a)') aligned_str(1:lnblnk(aligned_str))
         endif
 
 C Zone CFD file.
@@ -1388,51 +1581,63 @@ C Zone CFD file.
         elseif(LCFD(I)(1:7).eq.'UNKNOWN'.or.LCFD(I)(1:2).eq.'  ')then
           continue
         else
-          WRITE(IFCFG,'(3a)',IOSTAT=IOS,ERR=2)
-     &      '*cfd ',LCFD(I)(1:lnblnk(LCFD(I))),'  # cfd domain file'
+          write(tokens,'(2a)') '*cfd ',LCFD(I)(1:lnblnk(LCFD(I)))
+          write(comment,'(a)') 'cfd domain file'
+          call align_comment(48,tokens,comment,aligned_str)
+          write(IFCFG,'(a)') aligned_str(1:lnblnk(aligned_str))
         endif
 
 C 3D zone files.
         if(ZONE3D(I))then
-          WRITE(IFCFG,'(3A)',IOSTAT=IOS,ERR=2)
-     &      '*cvs ',L3DCVS(I)(1:lnblnk(L3DCVS(I))),
-     &      '  # 3D volumes file'
-          WRITE(IFCFG,'(3A)',IOSTAT=IOS,ERR=2)
-     &      '*cnc ',L3DCNC(I)(1:lnblnk(L3DCNC(I))),
-     &      '  # 3D connections file'
-          WRITE(IFCFG,'(3A)',IOSTAT=IOS,ERR=2)
-     &      '*ndc ',L3DNDC(I)(1:lnblnk(L3DNDC(I))),
-     &      '  # 3D coordinates file'
-          WRITE(IFCFG,'(3A)',IOSTAT=IOS,ERR=2)
-     &      '*3dt ',L3DTAQ(I)(1:lnblnk(L3DTAQ(I))),
-     &      '  # 3D temperatures file'
+          write(tokens,'(2a)') '*cvs ',L3DCVS(I)(1:lnblnk(L3DCVS(I)))
+          write(comment,'(a)') '3D volumes file'
+          call align_comment(48,tokens,comment,aligned_str)
+          write(IFCFG,'(a)') aligned_str(1:lnblnk(aligned_str))
+          write(tokens,'(2a)') '*cnc ',L3DCNC(I)(1:lnblnk(L3DCNC(I)))
+          write(comment,'(a)') '3D connections file'
+          call align_comment(48,tokens,comment,aligned_str)
+          write(IFCFG,'(a)') aligned_str(1:lnblnk(aligned_str))
+          write(tokens,'(2a)') '*ndc ',L3DNDC(I)(1:lnblnk(L3DNDC(I)))
+          write(comment,'(a)') '3D coordinates file'
+          call align_comment(48,tokens,comment,aligned_str)
+          write(IFCFG,'(a)') aligned_str(1:lnblnk(aligned_str))
+          write(tokens,'(2a)') '*3dt ',L3DTAQ(I)(1:lnblnk(L3DTAQ(I)))
+          write(comment,'(a)') '3D temperatures file'
+          call align_comment(48,tokens,comment,aligned_str)
+          write(IFCFG,'(a)') aligned_str(1:lnblnk(aligned_str))
         endif
 
 C Zone construction moisture file.
         if(MSTRZN(I))then
-          WRITE(IFCFG,'(3A)',IOSTAT=IOS,ERR=2)
-     &      '*mst ',LMOIST(I)(1:lnblnk(LMOIST(I))),
-     &      '  # construction moisture file'
+          write(tokens,'(2a)') '*mst ',LMOIST(I)(1:lnblnk(LMOIST(I)))
+          write(comment,'(a)') 'construction moisture file'
+          call align_comment(48,tokens,comment,aligned_str)
+          write(IFCFG,'(a)') aligned_str(1:lnblnk(aligned_str))
         endif
 
 C Construction structured mesh file.
         if(IndxSt.EQ.I)then
-          WRITE(IFCFG,'(3A)',IOSTAT=IOS,ERR=2)
-     &      '*csm ',LGrdSt(1:lnblnk(LGrdSt)),
-     &      '  # construction structured mesh file'
+          write(tokens,'(2a)') '*csm ',LGrdSt(1:lnblnk(LGrdSt))
+          write(comment,'(a)') 'construction structured mesh file'
+          call align_comment(48,tokens,comment,aligned_str)
+          write(IFCFG,'(a)') aligned_str(1:lnblnk(aligned_str))
         endif
 
 C SHOCC (sub-hour occupancy file).
         if(bZoneSHOCCed(I))then
-          WRITE(IFCFG,'(3A)',IOSTAT=IOS,ERR=2)
-     &      '*shz ',SHOCCshzFile(I)(1:lnblnk(SHOCCshzFile(I))),
-     &      '  # SHOCC file'
+          write(tokens,'(2a)') 
+     &      '*shz ',SHOCCshzFile(I)(1:lnblnk(SHOCCshzFile(I)))
+          write(comment,'(a)') 'SHOCC file'
+          call align_comment(48,tokens,comment,aligned_str)
+          write(IFCFG,'(a)') aligned_str(1:lnblnk(aligned_str))
         endif
 
 C BASEIMP file.
         if(iBSIMP(I).EQ.1)then
-          WRITE(IFCFG,'(3A)',IOSTAT=IOS,ERR=2)
-     &      '*bsm ',LBSIMP(I)(1:lnblnk(LBSIMP(I))),'  # BASESIMP file'
+          write(tokens,'(2a)') '*bsm ',LBSIMP(I)(1:lnblnk(LBSIMP(I)))
+          write(comment,'(a)') 'BASESIMP file'
+          call align_comment(48,tokens,comment,aligned_str)
+          write(IFCFG,'(a)') aligned_str(1:lnblnk(aligned_str))
         endif
 
 C Zone files end marker.
@@ -1440,8 +1645,10 @@ C Zone files end marker.
   920 CONTINUE
 
 C Zone surface connections file.
-      WRITE(IFCFG,'(3A)',IOSTAT=IOS,ERR=2)
-     &  '*cnn ',LCNN(1:lnblnk(LCNN)),'  # surface connections file'
+      write(tokens,'(2a)') '*cnn ',LCNN(1:lnblnk(LCNN))
+      write(comment,'(a)') 'surface connections file'
+      call align_comment(48,tokens,comment,aligned_str)
+      write(IFCFG,'(a)') aligned_str(1:lnblnk(aligned_str))
 
 C Re-build zone surface-to-connection hash array.
       do 43 icc = 1, NCON
@@ -1494,11 +1701,15 @@ C Zone groups.
 
 C Fluid flow network file.
       if(IAIRN.EQ.0)then
-        WRITE(IFCFG,'(i4,a)',IOSTAT=IOS,ERR=2)IAIRN,
-     &    '  # no fluid flow network'
+        write(tokens,'(i4)') IAIRN
+        write(comment,'(a)') 'no fluid flow network'
+        call align_comment(48,tokens,comment,aligned_str)
+        write(IFCFG,'(a)') aligned_str(1:lnblnk(aligned_str))
       elseif(IAIRN.ge.1)then
-        WRITE(IFCFG,'(i4,a)',IOSTAT=IOS,ERR=2)IAIRN,
-     &    '  # fluid flow network'
+        write(tokens,'(i4)') IAIRN
+        write(comment,'(a)') 'fluid flow network'
+        call align_comment(48,tokens,comment,aligned_str)
+        write(IFCFG,'(a)') aligned_str(1:lnblnk(aligned_str))
       endif
       IF(IAIRN.ge.1)then
         WRITE(IFCFG,'(2A)',IOSTAT=IOS,ERR=2)
@@ -1524,8 +1735,10 @@ C Fluid flow network file.
 C Plant network.
  9021 if(INDCFG.EQ.2.or.INDCFG.EQ.3)then
         WRITE(IFCFG,'(a)',IOSTAT=IOS,ERR=2) '* Plant'
-        WRITE(IFCFG,'(2a)',IOSTAT=IOS,ERR=2)LPNF(1:lnblnk(LPNF)),
-     &    '  # plant network file'
+        write(tokens,'(a)') LPNF(1:lnblnk(LPNF))
+        write(comment,'(a)') 'plant network file'
+        call align_comment(48,tokens,comment,aligned_str)
+        write(IFCFG,'(a)') aligned_str(1:lnblnk(aligned_str))
         if(BPF(1:3).EQ.'../')then
           WRITE(IFCFG,'(a)',IOSTAT=IOS,ERR=2) '* Boundary'
           WRITE(IFCFG,'(a)',IOSTAT=IOS,ERR=2)BPF
@@ -1537,9 +1750,21 @@ C Plant network.
       endif
 
 C FMI.
-      if (is_FMU.and.FMISFL.ne.'UNKNOWN') then
+      if (is_FMU.and.FMISFL(1:7).ne.'UNKNOWN') then
         write(IFCFG,'(a,a,a)',IOSTAT=IOS,ERR=2)
      &    '*FMI ',FMISFL(1:lnblnk(FMISFL)),'  # FMI specification file'
+      endif
+      
+C Agents.
+      if (IS_AGT.and.AGTFIL(1:7).ne.'UNKNOWN') then
+        write(IFCFG,'(a,a,a)',IOSTAT=IOS,ERR=2)
+     &    '*agent ',AGTFIL(1:lnblnk(AGTFIL)),'  # agent file'
+      endif
+
+C Gremlins.
+      if (IS_GRM.and.GRMFIL(1:7).ne.'UNKNOWN') then
+        write(IFCFG,'(a,a,a)',IOSTAT=IOS,ERR=2)
+     &    '*gremlin ',GRMFIL(1:lnblnk(GRMFIL)),'  # gremlin file'
       endif
 
 C Close the system configration file.
@@ -1725,6 +1950,7 @@ C Parameters
       logical dup,first
 
       CHARACTER CXSTR*78
+      character msg*124
 
       IPROB=0
       ICC=0
@@ -1753,8 +1979,10 @@ C If this is the first warning, print out heading.
               CALL EDISP(iuout,CXSTR)
               first=.true.
             endif
-            call edisp(iuout,
-     &        'Current surface does not match contiguity.')
+            write(msg,'(a,2i3,a,i3,a,i5)') 'Current surface ',IZ,IS,
+     &        ' does not match connection surface',IE1(ICC),
+     &        ' for connection ',ICC
+            call edisp(iuout,msg)
             CALL CONXINF(1,ICC,CXSTR)
             CALL EDISP(iuout,CXSTR)
             prob=.true.

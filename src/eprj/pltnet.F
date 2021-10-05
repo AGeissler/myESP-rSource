@@ -30,10 +30,7 @@ C Plant network definition/editing.
       subroutine epltnet(iedit,ier)
 
 #include "esprdbfile.h"
-C esprdbfile.h supplies the following:
-C LAPRES,IAPRES (for window pressure database)
-C LOPTDB,IOPTDB (for optical database)
-C LPCDB/IPCDB (for plant template database)
+#include "help.h"
 
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/FILEP/IFIL
@@ -45,12 +42,7 @@ C Plant network.
       character mode*1,LPNF*72
       integer NITMS,INO ! max items and current menu item
 
-C For help messages.
-      character helpinsub*24  ! subroutine name
-      character helptopic*24  ! string (unique) for topic
-      integer nbhelp          ! number of help lines found
-
-      helpinsub='epltnet'     ! set for subroutine
+      helpinsub='pltnet'     ! set for subroutine
 
 C Use next unit up from plant network file for the plant database.
       ifpnf=IFIL+1
@@ -110,6 +102,7 @@ C Supports editing of network plant components.
       subroutine edcomp(ipcomp)
 
 #include "plant.h"
+#include "help.h"
 
       COMMON/C9/NPCOMP,NCI(MPCOM),CDATA(MPCOM,MMISCD) 
       COMMON/PCPAR/NPI(MPCOM), TADATA(MPCOM,MADATA) 
@@ -122,12 +115,7 @@ C Supports editing of network plant components.
       character pcname*15,txt*72,hfpdsc*68,t15*15,outs*124
       character*68 mscdsc, cvrdsc
 
-C For help messages.
-      character helpinsub*24  ! subroutine name
-      character helptopic*24  ! string (unique) for topic
-      integer nbhelp          ! number of help lines found
-
-      helpinsub='edcomp'     ! set for subroutine
+      helpinsub='pltnet'     ! set for subroutine
 
 C Ask the user what they want to edit.
       helptopic='plant_comp_attributes'
@@ -445,6 +433,7 @@ C **CDB affected
 #include "plant.h"
 #include "gencompDB.h"
 c#include "gencompDB_common.h"
+#include "help.h"
 
       COMMON/C9/NPCOMP,NCI(MPCOM),CDATA(MPCOM,MMISCD)
       COMMON/C9plus/UCdbNam(MPCOM),CdbCat(MPCOM),CDBDesc(MPCOM)
@@ -469,12 +458,7 @@ C Common for new format component database.
       LOGICAL SELECT,OK
       integer MVERT,IVERT,IDVERT ! max items and current menu item
 
-C For help messages.
-      character helpinsub*24  ! subroutine name
-      character helptopic*24  ! string (unique) for topic
-      integer nbhelp          ! number of help lines found
-
-      helpinsub='ASKPCMP'     ! set for subroutine
+      helpinsub='pltnet'     ! set for subroutine
 
 C Initialise node menu variables based on window size. 
 C IVERT is the menu position, MVERT the current number 
@@ -568,22 +552,8 @@ C If MOD has been passed as a M then add an item at the end.
       cVERT(M+6)  ='- exit menu'
 
 C Help text for this menu.
-      if(MOD.EQ.'C')then  
-        helptopic='plant_cmp_lst'
-        call gethelptext(helpinsub,helptopic,nbhelp)
-      elseif(MOD.EQ.'Z')then
-        helptopic='plant_zone_link'
-        call gethelptext(helpinsub,helptopic,nbhelp)
-      elseif(MOD.EQ.'A')then
-        helptopic='plant_air_link'
-        call gethelptext(helpinsub,helptopic,nbhelp)
-      elseif(MOD.EQ.'K')then
-        helptopic='plant_known_link'
-        call gethelptext(helpinsub,helptopic,nbhelp)
-      else
-        helptopic='plant_cmp_list'
-        call gethelptext(helpinsub,helptopic,nbhelp)
-      endif
+      helptopic='plant_cmp_lst'
+      call gethelptext(helpinsub,helptopic,nbhelp)
 
 C Display the menu.
       CALL EMENU(head,cVERT,MVERT,IVERT)
@@ -620,7 +590,7 @@ C Allow a component to be added, checked for uniqueness and returned.
 C Code to allow deletion commented out until support code in place.
         IF(MOD.EQ.'M'.OR.MOD.EQ.'m')THEN
           IOPT=-1
-          helptopic='plant_cmp_add'
+          helptopic='plant_cmp_list'
           call gethelptext(helpinsub,helptopic,nbhelp)
           CALL EASKABC(' ','Options:','add',
      &         'delete','cancel',IOPT,nbhelp)
@@ -698,6 +668,7 @@ C interaction is begun.
 #include "plant.h"
 #include "building.h"
 #include "geometry.h"
+#include "help.h"
 
       COMMON/C10/NPCON,IPC1(MPCON),IPN1(MPCON),IPCT(MPCON),
      &           IPC2(MPCON),IPN2(MPCON),PCONDR(MPCON),PCONSD(MPCON,2)
@@ -715,12 +686,7 @@ C interaction is begun.
       LOGICAL SELECT,OK
       integer MVERT,IVERT,IDVERT ! max items and current menu item
 
-C For help messages.
-      character helpinsub*24  ! subroutine name
-      character helptopic*24  ! string (unique) for topic
-      integer nbhelp          ! number of help lines found
-
-      helpinsub='ASKPCON'     ! set for subroutine
+      helpinsub='pltnet'     ! set for subroutine
 
 C Initialise node menu variables based on window size. 
 C IVERT is the menu position, MVERT the current number 
@@ -951,6 +917,7 @@ C interaction is begun.
 #include "plant.h"
 #include "building.h"
 #include "geometry.h"
+#include "help.h"
 
       COMMON/C11/NCONT,IPCC(MPCOM),INDCP(MPCOM),CNTDAT(MPCOM,3)  
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
@@ -963,12 +930,7 @@ C interaction is begun.
       LOGICAL SELECT,OK
       integer MVERT,IVERT ! max items and current menu item
 
-C For help messages.
-      character helpinsub*24  ! subroutine name
-      character helptopic*24  ! string (unique) for topic
-      integer nbhelp          ! number of help lines found
-
-      helpinsub='ASKCONT'     ! set for subroutine
+      helpinsub='pltnet'     ! set for subroutine
 
 C Initialise node menu variables based on window size. 
 C IVERT is the menu position, MVERT the current number 
@@ -1079,8 +1041,6 @@ C Script directed input if not in graphic mode.
 C Allow a component to be added, checked for uniqueness and returned.
 C Code to allow deletion commented out until support code in place.
         IF(MOD.EQ.'M'.OR.MOD.EQ.'m')THEN
-          helptopic='plant_cont_add'
-          call gethelptext(helpinsub,helptopic,nbhelp)
           CALL EASKAB(' ','Containment options:','add ',
      &      'cancel',IOPT,nbhelp)
           IF(IOPT.EQ.1) THEN
@@ -1116,8 +1076,6 @@ C Decode from the potential long list to the comp no via KEYIND.
         SELECT=.TRUE.
         IS=IFOC
         IF(MOD.EQ.'M'.OR.MOD.EQ.'m')THEN
-          helptopic='plant_cont_ed'
-          call gethelptext(helpinsub,helptopic,nbhelp)
           CALL EASKOK(' ','Edit containment',OK,nbhelp)
           IF(OK) CALL CNTDEF('E',IS)
           ILEN=NCONT
@@ -1236,6 +1194,7 @@ C **CDB affected
 
 #include "plant.h"
 #include "esprdbfile.h"
+#include "help.h"
       
       integer lnblnk  ! function definition
 
@@ -1261,11 +1220,6 @@ c      character domain_s*16,category_s*16
       integer iglib   ! if 1 then X11, if 2 then GTK, if 3 then text only.
       integer icdbf   !0 if old format, 1 if new format.
       integer ISTRW
-
-C For help messages.
-      character helpinsub*24  ! subroutine name
-      character helptopic*24  ! string (unique) for topic
-      integer nbhelp          ! number of help lines found
 
       helpinsub='opnpdb'     ! set for subroutine
 

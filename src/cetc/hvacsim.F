@@ -15,11 +15,6 @@ C warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
 C PURPOSE. See the GNU General Public License for more
 C details.
 
-C You should have received a copy of the GNU General Public
-C License along with ESP-r. If not, write to the Free
-C Software Foundation, Inc., 59 Temple Place, Suite 330,
-C Boston, MA 02111-1307 USA.
-
 c The file contains the following routines:
 c  START_HVAC_SIM
 c   start the simulation of HVAC systems performance by
@@ -150,7 +145,7 @@ c     *********************************************************************
 C Function determining if HOT3000 features enabled?
       logical bH3KExtentionsActive
       
-c hvac system file and flag:  	ihvacflag=1 there is hvac file
+c hvac system file and flag:  ihvacflag=1 there is hvac file
 c ihvacflag=0 no hvac file
       common/hvacinfo/ihvacflag,hvacfile
 

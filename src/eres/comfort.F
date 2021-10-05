@@ -37,6 +37,7 @@ C        = 'E' return PMV (effective temperature) in GVAL.
 #include "cfd.h"
 #include "net_flow.h"
 #include "net_flow_data.h"
+#include "help.h"
       
       integer lnblnk  ! function definition
 
@@ -74,11 +75,6 @@ C Pre-calculated data (filtered).
       logical ok,concat,unixok
       integer IOT  ! for radio button
       integer NITMS,INO ! max items and current menu item
-
-C For help messages.
-      character helpinsub*24   ! subroutine name
-      character helptopic*24   ! unique string for topic
-      integer nbhelp           ! number of help lines
 
       COMMON/FILEP/IFIL
       COMMON/ICFNOD/ICFD,ICP
@@ -122,7 +118,7 @@ C Directives for GOCFDGET (more efficient than RDCFDAT).
       DATA ID/31,28,31,30,31,30,31,31,30,31,30,31/
 
 C Check if Unix or Windows.
-      helpinsub='MOCMFT'  ! set for subroutine
+      helpinsub='comfort'  ! set for subroutine
       call isunix(unixok)
 
 C Initialise comfort variables.
@@ -519,7 +515,7 @@ C Find CFD point closest to MRT sensor.
      &                      ZOC(IMRT)+DZC(IMRT)/2,XC,YC,ZC,IER)
             CALL FDCFDPT(1,XC,YC,ZC,IIX,IIY,IIZ,IER)
             if (IER.ne.0) then
-              call edisp(Iuout,',')
+              call edisp(iuout,' ')
               call edisp(iuout,' Problem finding CFD point!')
             else
               IXCEL(IZONE)=IIX-1
@@ -843,7 +839,7 @@ C Initially assume no dissatisfaction.
       PPD=0.0 
 
 C Local thermal discomfort due to vertical air temperature difference 
-C between head (@1.1m) and feet(@0.1m). Input XX) is temperature difference. 
+C between head (@1.1m) and feet(@0.1m). Input XX is temperature difference. 
       if(iflag.eq.1) then 
 c        if (XX.lt.1.0.or.XX.gt.8.0) then
 c          iflag=-1
@@ -944,12 +940,11 @@ C Input XX is ventilation rate given (l/s)
         else
           PPD=100.0
         endif
-C No equivalent in BS EN ISO 7730:2005
 
 C Dissatisfied due to CO2 above outdoors. 
 C Input CO2 concentration as calculated by conc.F (kg/kg).
 C The CO2 value needed to interpolate the graph in the standard
-C is in ppmv
+C is in ppmv.
       elseif(iflag.eq.8) then 
 
 C Convert kg/kg to mg/m^3 using density at 20C: 
@@ -1196,7 +1191,7 @@ C   izend - z axis end vertex
 
 C ********** VERTdT
 C Finds the vertical air temperature difference between the top
-C and bottom of an MRT sensor. Uses CFD results for the same zone
+C of an MRT sensor and floor level. Uses CFD results for the same zone
 C as the MRT sensor. Gets results for 1 day and puts these in GVAL.
 
       SUBROUTINE VERTdT(IDAY,IZONE,IMRT,IER)
@@ -1230,8 +1225,7 @@ C initialise CFD to building domain transformation matrices.
       endif
       CALL INIT_CFDTRANS(IER)
 
-C Get coordinates in the center of top face of MRT sensor asnd determine
-C dT between this point and floor level.
+C Get coordinates in the center of top face of the MRT sensor.
       IUF=IFIL+1
       LMRT=LVIEW(IZONE)
       call ERMRT(0,IUOUT,IUF,LMRT,IZONE,IER)
@@ -1245,6 +1239,7 @@ C dT between this point and floor level.
       HI(2)=YOC(IMRT)+DY
       HI(3)=ZOC(IMRT)+DZC(IMRT)
 
+C Find high and low CFD cells.
       CALL GRIDGEO
       CALL CFDTRANS(2,HI(1),HI(2),HI(3),XC,YC,ZC,IER)
       CALL FDCFDPT(1,XC,YC,ZC,IHI(1),IHI(2),IHI(3),IER)
@@ -1260,9 +1255,9 @@ C dT between this point and floor level.
 
       if (IHI(1).eq.ILO(1).and.IHI(2).eq.ILO(2).and.IHI(3).eq.ILO(3))
      &  then
-        write(outs,'(2a,i2,a,i2,a)')'VERTdT: The same CFD grid point',
-     &    ' is closest to the top and bottom surfaces of MRT sensor ',
-     &    IMRT,' in zone ',IZONE,'.'
+        write(outs,'(a,i2,a,i2,a)')
+     &    'VERTdT: The top surface of MRT sensor ',IMRT,
+     &    ' is too close to the floor in zone ',IZONE,'.'
         call edisp(iuout,' ')
         call edisp(iuout,outs)
         write(outs,'(2a)')          '        Either make the MRT',
@@ -1284,10 +1279,10 @@ C Check if there are CFD results available for this time step.
   
         CALL RDCFDAT(IFRAME)
 
-C Get CFD air temperature at point closest to MRT sensor upper face.
+C Get CFD air temperature at high cell.
         THI=Tf(IHI(1),IHI(2),IHI(3))
 
-C Get CFD air temperature at point closest to MRT sensor lower face.
+C Get CFD air temperature at low cell.
         TLO=Tf(ILO(1),ILO(2),ILO(3))
         GVAL(JTS)=abs(THI-TLO)
 

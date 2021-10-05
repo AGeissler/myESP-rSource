@@ -1,4 +1,4 @@
-ESP-r: An integrated building performance simulation program.
+ESP-r: A dynamic building performance simulation program.
 
 
 1. ACKNOWLEDGMENTS
@@ -71,31 +71,39 @@ directory and compiler family:
   $ sudo ./Install -d <installation path> --gcc4
 
 ESP-r is able to work cooperatively with third party support tools,
-most notably gtool for 3D geometry definition and Radiance for lighting
-simulation.
+most notably gtool for 3D geometry definition and Radiance for
+lighting simulation. A list of support tools and their location
+for download is provided at the end of an installation.
 
-7. POST INSTALLATION CONFIGURATION
+7. RELEASE TESTING
+
+A release includes scripts that when run quantify the difference in
+in predictions with any prior release. Please consult the file
+'tester_example_use.txt' in folder 'tester/scripts' for further
+information.
+
+8. POST INSTALLATION CONFIGURATION
 
 On most Linux and Cygwin systems, the only post-installation
 configuration is to update the PATH environment variable
 to include the location of the installed ESP-r binaries.
 Run ESP-r by issuing the command 'ESP-r' in a terminal window.
 
-8. DOCUMENTATION
+9. DOCUMENTATION
 
 Publications describing the theory and operation of ESP-r are
 available on the publications page at the above Web site, while
 other resources (such as coding standards and learning materials)
 are available from the downloads page.
 
-9. VALIDATION
+10. VALIDATION
 
 ESP-r has participated in a large number of validation projects
 and includes the ability (activated via the 'self check' option
 in the Project Manager) to automatically perform analytic and
 ASHRAE 140 BESTEST tests.
 
-10. QUALITY ASSURANCE AND RELEASE TESTING
+11. QUALITY ASSURANCE AND RELEASE TESTING
 
 Development of ESP-r continues, and its predictions are
 subject to change as new features are added and existing
@@ -103,13 +111,13 @@ facilities improved. To guarantee the reliability of ESP-r
 results, a quality assurance procedure is performed prior
 to each release. 
 
-11. SUPPORT
+12. SUPPORT
 
 The quickest route to a remedy for an ESP-r installation or
 application problem is to ask for help on the ESP-r mailing
 list as described above.
 
-12. MODIFYING THE SOURCE CODE
+13. MODIFYING THE SOURCE CODE
 
 Under the terms of the GPL lcence you are free to modify the
 source code in any way you require for your own use. Should you

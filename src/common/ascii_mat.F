@@ -101,7 +101,7 @@ C legacy ASCII material database LASCI opened on unit IFA.
 #include "esprdbfile.h"
 #include "material.h"
 #include "espriou.h"
-C espriou.h provides currentfile.
+#include "help.h"
       
       integer lnblnk  ! function definition
 
@@ -129,12 +129,7 @@ C Name of current application - only invoke editing if prj.
       integer iln,iln2 ! length of name strings
       logical dupfound,concat,unixok,ok
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='rlegacymat'  ! set for subroutine
+      helpinsub='ascii_mat'  ! set for subroutine
       helptopic='legacymat_scan'
       call gethelptext(helpinsub,helptopic,nbhelp)
 

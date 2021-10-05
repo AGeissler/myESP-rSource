@@ -13,11 +13,6 @@ C warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
 C PURPOSE. See the GNU General Public License for more
 C details.
 
-C You should have received a copy of the GNU General Public
-C License along with ESP-r. If not, write to the Free
-C Software Foundation, Inc., 59 Temple Place, Suite 330,
-C Boston, MA 02111-1307 USA.
-
 C *********************************************************************
 C This file contains the following subroutines:
 
@@ -35,11 +30,12 @@ C *********************************************************************
 
 C ***************************  MENU3D  ********************************
 C MENU3D displays the multi-gridding menu.
-C *********************************************************************
+
       SUBROUTINE MENU3D(ITRC)
 #include "building.h"
 #include "geometry.h"
 #include "prj3dv.h"
+#include "help.h"
 
       COMMON/FILEP/IFIL
 
@@ -62,12 +58,7 @@ C *********************************************************************
       integer ier
       integer MITEM,INO ! max items and current menu item
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='MENU3D'  ! set for subroutine
+      helpinsub='bgrd3d'  ! set for subroutine
 
       SZN=' '
       IZ=0
@@ -302,22 +293,18 @@ C Return to the main multi-gridding menu.
 
 C ***************************    DFNCMP    ****************************
 C DFNCMP displays the components definition menu.
-C *********************************************************************
+
       SUBROUTINE DFNCMP(IZ,SZN,IDRW1,IDRW2)
 #include "building.h"
 #include "prj3dv.h"
+#include "help.h"
 
       DIMENSION ITEM(8)
 
       CHARACTER ITEM*26,SZN*15
       integer MITEM,INO  ! max items and current menu item
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='DFNCMP'  ! set for subroutine
+      helpinsub='bgrd3d'  ! set for subroutine
 
    10 INO=-3
       WRITE(ITEM(1),'(A,A)')'  zone : ',SZN
@@ -368,19 +355,15 @@ C Return to the main multi-gridding menu.
 
 C **************************    DFNCNC     ****************************
 C DFNCNC displays the connections definition menu.
-C *********************************************************************
+
       SUBROUTINE DFNCNC(ICOMP,SZN,IDRW1,IDRW2)
 #include "building.h"
 #include "prj3dv.h"
+#include "help.h"
 
       CHARACTER ITEM(9)*26,SZN*15
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='DFNCNC'  ! set for subroutine
+      helpinsub='bgrd3d'  ! set for subroutine
 
    10 INO=-3
       WRITE(ITEM(1),'(A,A)')'  zone : ',SZN
@@ -437,22 +420,18 @@ C Return to the main multi-gridding menu.
 
 C ****************************   DFNCSS    ****************************
 C DFNCSS displays the surface-surface connections indices menu.
-C *********************************************************************
+
       SUBROUTINE DFNCSS
 #include "epara.h"
 #include "building.h"
+#include "help.h"
 
       COMMON/GR3D06/INDXSS(MSSZ),INDXSE(MSEZ),INDXEE(MEEZ),INDXEC(MECZ)
       COMMON/GR3D51/NUMSS,IBDYSS(MSSZ,2),ILNBSS(MSSZ,2),IVRTSS(MSSZ,2)
 
       CHARACTER VERT(35)*33,KEY*1,STTS*4
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='DFNCSS'  ! set for subroutine
+      helpinsub=' bgrd3d'  ! set for subroutine
 
 C Initialise connection menu size variables based on window size. 
 C IVERT is the menu position, MVERT the current number of menu lines.
@@ -539,11 +518,12 @@ C Return to multi-gridding menu.
 
 C ****************************   DFNCSE    ****************************
 C DFNCSE displays the surface-edge connections indices menu.
-C *********************************************************************
+
       SUBROUTINE DFNCSE(IZ)
 #include "epara.h"
 #include "building.h"
 #include "geometry.h"
+#include "help.h"
 
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
       integer IZSTOCN
@@ -557,12 +537,7 @@ C *********************************************************************
       CHARACTER VERT(35)*35,KEY*1,STTS*4,ENAME*9,TEXT*72
       CHARACTER STATS*16
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='DFNCSE'  ! set for subroutine
+      helpinsub='bgrd3d'  ! set for subroutine
 
 C Initialise connection menu size variables based on window size. 
 C IVERT is the menu position, MVERT the current number of menu lines.
@@ -673,11 +648,12 @@ C Return to multi-gridding menu.
 
 C ****************************   DFNCEE    ****************************
 C DFNCEE displays the edge-edge connections indices menu.
-C *********************************************************************
+
       SUBROUTINE DFNCEE(IZ)
 #include "epara.h"
 #include "building.h"
 #include "geometry.h"
+#include "help.h"
 
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
       integer IZSTOCN
@@ -691,12 +667,7 @@ C *********************************************************************
       CHARACTER TEXT*72,STATS*16
       CHARACTER VERT(35)*19,KEY*1,STTS*4
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='DFNCEE'  ! set for subroutine
+      helpinsub='bgrd3d'  ! set for subroutine
 
 C Initialise connection menu size variables based on window size. 
 C IVERT is the menu position, MVERT the current number of menu lines.
@@ -802,11 +773,12 @@ C Return to multi-gridding menu.
 
 C ****************************   DFNCEC    ****************************
 C DFNCEC displays the edge-corner connections indices menu.
-C *********************************************************************
+
       SUBROUTINE DFNCEC(IZ)
 #include "epara.h"
 #include "building.h"
 #include "geometry.h"
+#include "help.h"
 
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
       integer IZSTOCN
@@ -822,12 +794,7 @@ C *********************************************************************
       CHARACTER TEXT*72,STATS*16
       CHARACTER VERT(35)*33,KEY*1,STTS*4,ENAME*9,CNAME*11
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='DFNCEC'  ! set for subroutine
+      helpinsub='bgrd3d'  ! set for subroutine
 
 C Initialise connection menu size variables based on window size. 
 C IVERT is the menu position, MVERT the current number of menu lines.
@@ -964,13 +931,11 @@ C Return to multi-gridding menu.
 
 C ***************************      SELZON     *************************
 C SELZON displays the zone selection menu.
-C *********************************************************************
       SUBROUTINE SELZON(ITRC,SZN,ZONOK,IZ)
 #include "building.h"
 #include "model.h"
-
-C geometry.h provides commons G0/G1 and G2.
 #include "geometry.h"
+#include "help.h"
 
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/FILEP/IFIL
@@ -989,12 +954,7 @@ C geometry.h provides commons G0/G1 and G2.
 
       CHARACTER SZN*12
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='SELZON'  ! set for subroutine
+      helpinsub='bgrd3d'  ! set for subroutine
 
       IUNIT=IFIL+2
 
@@ -1084,10 +1044,10 @@ C Initialize the edges and corners gridding.
 
 C ***************************     READ3D     **************************
 C READ3D reads 3D gridding configuration file.
-C *********************************************************************
       SUBROUTINE READ3D(IZ)
 #include "building.h"
 #include "geometry.h"
+#include "help.h"
 
       COMMON/FILEP/IFIL
 
@@ -1117,12 +1077,7 @@ C *********************************************************************
       CHARACTER STRG*124,FILE3D*72
       CHARACTER WORD*124
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='READ3D'  ! set for subroutine
+      helpinsub='bgrd3d'  ! set for subroutine
 
       IER=0
 
@@ -1425,10 +1380,10 @@ C For all edge-corner connection surfaces.
 
 C ****************************    SAVE3D   ****************************
 C SAVE3D saves 3D gridding configuration file.
-C *********************************************************************
       SUBROUTINE SAVE3D(IZ)
 #include "building.h"
 #include "geometry.h"
+#include "help.h"
 
       COMMON/FILEP/IFIL
 
@@ -1458,12 +1413,7 @@ C *********************************************************************
       CHARACTER*72 FILE3D
       CHARACTER WORD*124
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='SAVE3D'  ! set for subroutine
+      helpinsub='bgrd3d'  ! set for subroutine
 
       WRITE(WORD,'(A,A4)')zname(IZ)(1:lnzname(IZ)),'.c3d'
       FILE3D=WORD(1:72)

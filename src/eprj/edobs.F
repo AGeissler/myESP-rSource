@@ -38,14 +38,14 @@ C Use file unit IPRODB temporarily.
 #include "geometry.h"
 #include "epara.h"
 #include "esprdbfile.h"
-C esprdbfile.h supplies the following:
-C LPRFDB,IPRODB (for event profile database)
 #include "material.h"
 #include "prj3dv.h"
+#include "help.h"
       
       integer lnblnk  ! function definition
 
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
+      common/SPAD/MMOD,LIMIT,LIMTTY
 
       COMMON/gzonpik/izgfoc,nzg,nznog(mcom)
 
@@ -68,27 +68,7 @@ C LPRFDB,IPRODB (for event profile database)
       real angr   ! rotation angle
       real VALX,VALY,VALZ ! locals for editing
 
-#ifdef OSI
-      integer icfg_type  ! model cfg type
-      integer icfgz      ! if non-zero then there are zones
-      integer icfgn      ! if non-zero then there are networks
-      integer icfgc      ! if non-zero then cfg file known
-      integer icfgdfn    ! if non-zero then cdf domain exists
-      integer iicfgz     ! there are zone related images
-      integer iicfgn     ! there are network related images
-      integer iicfgc     ! there are control related images
-      integer iicfgdfn   ! there are cfd related images
-#else
-      integer*8 icfg_type,icfgz,icfgn,icfgc,icfgdfn,iicfgz
-      integer*8 iicfgn,iicfgc,iicfgdfn
-#endif
-
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='EDOBS'  ! set for subroutine
+      helpinsub='edobs'  ! set for subroutine
 
 C Check if Unix-based or DOS based.
       call isunix(unixok)
@@ -652,8 +632,7 @@ C time for copy use zeros, otherwise re-present the previous values.
             ITOBS = nbo
             CALL EPMENSV       ! save the calling menu layout
   78        CALL redraw(IER)  ! redraw wireframe
-            call cfgtogg(icfg_type,icfgz,icfgn,icfgc,icfgdfn,
-     &                   iicfgz,iicfgn,iicfgc,iicfgdfn)
+            if(MMOD.EQ.8) call redrawbuttons()
 
 C Edit the copied block.
             CALL EDOBSB(ITRU,IUF,ICOMP,nbo,ianother,IER)
@@ -738,10 +717,9 @@ C code blocks it is still necessary to re-scan the zone files.
       SUBROUTINE ECROBS(ITRC,ITRU,IUF,ICOMP,silent,IER)
 #include "building.h"
 #include "model.h"
-
-C geometry.h provides commons G0/G2/precz/GS5/GS6.
 #include "geometry.h"
 #include "prj3dv.h"
+#include "help.h"
       
       integer lnblnk  ! function definition
 
@@ -754,12 +732,7 @@ C geometry.h provides commons G0/G2/precz/GS5/GS6.
       logical clkok   ! to register user actions in dialog
       integer ISTRW
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='ECROBS'  ! set for subroutine
+      helpinsub='edobs'  ! set for subroutine
 
 C Set folder separator (fs) to \ or / as required.
       call isunix(unixok)
@@ -1065,6 +1038,7 @@ C have already been filled.
 #include "esprdbfile.h"
 #include "material.h"
 #include "prj3dv.h"
+#include "help.h"
 
 C Parameters
       integer ITRU   ! unit for writing errors
@@ -1090,12 +1064,7 @@ C Parameters
       real top        ! for the highest point of the block
       integer NITMS,IVERT ! max items and current menu item
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='EDOBSB'  ! set for subroutine
+      helpinsub='edobs'  ! set for subroutine
 
 C Initial values for point at angle facility.
       V1=1.0; AZ=0.0; EL=0.0; top=0.0
@@ -1186,9 +1155,9 @@ C for these types and which includes an option to convert to general.
         WRITE(VERT(15),'(A,F8.3,A)')'  top @       :',top,' (Z)'
         VERT(16)                  = '  ____________________________  '
         VERT(17)                  = '  zone bounds  X    Y     Z     '
-        WRITE(VERT(18),'(A,3F8.3)') '  max: ',ZXMX(iz),ZYMX(iz),
+        WRITE(VERT(18),'(A,3F8.2)') '  max: ',ZXMX(iz),ZYMX(iz),
      &    ZZMX(iz)
-        WRITE(VERT(19),'(A,3F8.3)') '  min: ',ZXMN(iz),ZYMN(iz),
+        WRITE(VERT(19),'(A,3F8.2)') '  min: ',ZXMN(iz),ZYMN(iz),
      &    ZZMN(iz)
         VERT(20)                  = '  ____________________________  '
         if(ib.gt.1.and.ib.lt.nbobs(iz))then
@@ -1782,6 +1751,7 @@ C of the reveal (adj wall), OWID is the width of the obstruction block.
 #include "model.h"
 #include "geometry.h"
 #include "esprdbfile.h"
+#include "help.h"
       
       integer lnblnk  ! function definition
 
@@ -1808,12 +1778,7 @@ C Note: mat is only passed as the first 12 char of construction.
       logical newgeo  ! to use for testing if new/old geometry file.
       integer nbo     ! local counter
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='EREVEAL'  ! set for subroutine
+      helpinsub='edobs'  ! set for subroutine
 
 C Check if ok to add 4 obstructions.
       IUF=IPRODB
@@ -2031,14 +1996,14 @@ C Use file unit IPRODB temporarily.
 #include "geometry.h"
 #include "epara.h"
 #include "esprdbfile.h"
-C esprdbfile.h supplies the following:
-C LPRFDB,IPRODB (for event profile database)
 #include "material.h"
 #include "prj3dv.h"
+#include "help.h"
       
       integer lnblnk  ! function definition
 
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
+      common/SPAD/MMOD,LIMIT,LIMTTY
 
       COMMON/gzonpik/izgfoc,nzg,nznog(mcom)
 
@@ -2062,27 +2027,7 @@ C LPRFDB,IPRODB (for event profile database)
       real angr   ! rotation angle
       real VALX,VALY,VALZ ! locals for editing
 
-#ifdef OSI
-      integer icfg_type  ! model cfg type
-      integer icfgz      ! if non-zero then there are zones
-      integer icfgn      ! if non-zero then there are networks
-      integer icfgc      ! if non-zero then cfg file known
-      integer icfgdfn    ! if non-zero then cdf domain exists
-      integer iicfgz     ! there are zone related images
-      integer iicfgn     ! there are network related images
-      integer iicfgc     ! there are control related images
-      integer iicfgdfn   ! there are cfd related images
-#else
-      integer*8 icfg_type,icfgz,icfgn,icfgc,icfgdfn,iicfgz
-      integer*8 iicfgn,iicfgc,iicfgdfn
-#endif
-
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='EDVIS'  ! set for subroutine
+      helpinsub='edobs'  ! set for subroutine
 
 C Check if Unix-based or DOS based.
       call isunix(unixok)
@@ -2815,8 +2760,7 @@ C time for copy use zeros, otherwise re-present the previous values.
               ITOBS = nbo
               CALL EPMENSV       ! save the calling menu layout
   78          CALL redraw(IER)  ! redraw wireframe
-              call cfgtogg(icfg_type,icfgz,icfgn,icfgc,icfgdfn,
-     &                   iicfgz,iicfgn,iicfgc,iicfgdfn)
+              if(MMOD.EQ.8) call redrawbuttons()
 
 C Edit the copied visual entity.
               CALL EDVISB(ITRU,IUF,ICOMP,nbo,ianother,IER)
@@ -2907,6 +2851,7 @@ C have already been filled.
 #include "esprdbfile.h"
 #include "material.h"
 #include "prj3dv.h"
+#include "help.h"
 
 C Parameters
       integer ITRU   ! unit for writing errors
@@ -2931,12 +2876,7 @@ C Parameters
       real top        ! for the highest point of the visual entity
       integer NITMS,IVERT ! max items and current menu item
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='EDVISB'  ! set for subroutine
+      helpinsub='edobs'  ! set for subroutine
 
 C Initial values for point at angle facility.
       V1=1.0; AZ=0.0; EL=0.0; top=0.0
@@ -3513,6 +3453,7 @@ C have already been filled.
 #include "esprdbfile.h"
 #include "material.h"
 #include "prj3dv.h"
+#include "help.h"
 
 C Parameters
       integer ICOMP  ! zone number
@@ -3541,12 +3482,7 @@ C      character outs*124
       integer ibe,J,K,iv  ! for loops
       integer iw          ! for selection
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='EDVISOBJ'  ! set for subroutine
+      helpinsub='edobs'  ! set for subroutine
 
 C Initial values for bounding box and clear local arrays.
       IUF=IPRODB  ! in order to update the zone geometry file

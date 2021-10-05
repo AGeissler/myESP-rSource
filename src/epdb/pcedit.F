@@ -13,11 +13,6 @@ C warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
 C PURPOSE. See the GNU General Public License for more
 C details.
 
-C You should have received a copy of the GNU General Public
-C License along with ESP-r. If not, write to the Free
-C Software Foundation, Inc., 59 Temple Place, Suite 330,
-C Boston, MA 02111-1307 USA.
-
 C PCEDIT of ESRUpdb
 
 C This routine allows the user to edit certain items of a component.
@@ -36,6 +31,7 @@ C            for this component.
       subroutine pcedit(ival)
 #include "plantdb.h"
 #include "pdb_data.h"
+#include "help.h"
 
       common/OUTIN/IUOUT,IUIN,IEOUT
       common/FILEP/IFIL
@@ -49,11 +45,6 @@ C            for this component.
       integer nitems,ino ! max items and current menu item
       integer iuchan     ! for listing details
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found (will be non-zero
-                         ! because default message will be created
       helpinsub='pcedit' ! set for subroutine
 
 C The following statement writes a dummy variable on the last record

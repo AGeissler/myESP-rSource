@@ -13,17 +13,13 @@ C warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
 C PURPOSE. See the GNU General Public License for more
 C details.
 
-C You should have received a copy of the GNU General Public
-C License along with ESP-r. If not, write to the Free
-C Software Foundation, Inc., 59 Temple Place, Suite 330,
-C Boston, MA 02111-1307 USA.
-
 C The net2pdf subroutine reads in net connections and components
 C files and converts them to a plant network file.
 
       SUBROUTINE NET2PNF
 
 #include "plant.h"
+#include "help.h"
 
       common /pcddsc/ pcdesc(maxpc), npref(mpcom)
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
@@ -35,11 +31,10 @@ C files and converts them to a plant network file.
       common /datdsc/ mscdsc(madata), cvrdsc(mconvr)
       common/pcnam/pcname(mpcom)
       COMMON/CONET/IPCOMPA,IPCOMPB
-      common/pophelp/h(60)
       DIMENSION ival(mpcom)
       LOGICAL OK
 
-      CHARACTER H*72,TYPE*15,MRK*7,txt1*40
+      CHARACTER TYPE*15,MRK*7,txt1*40
       CHARACTER*25 NDATA1,NDATA2,CNAME1,CNAME2,DUMNAM1,DUMNAM2,DUMNAM3
       character pcdesc*80,pcname*15,icnf*74,conf*74, outs*124
       character cvrdsc*68,mscdsc*68,txt*68 

@@ -34,6 +34,7 @@ C calculate external surface pressure coefficients.
 
 #include "building.h"
 #include "prj3dv.h"
+#include "help.h"
 
       common/CPCALC/icpcon,ble,bwi,bhi,blox,bloy,bloz,orient,irt,ra,
      &              sbh,pad,wvpe
@@ -43,12 +44,7 @@ C calculate external surface pressure coefficients.
 
       logical moddb,close
 
-C For help messages.
-      character helpinsub*24  ! subroutine name
-      character helptopic*24  ! string (unique) for topic
-      integer nbhelp          ! number of help lines found
-
-      helpinsub='cpcdat'     ! set for subroutine
+      helpinsub='prescoef'     ! set for subroutine
 
 C If values are zero then set defaults.
       call eclose(ble,0.0,0.001,CLOSE)
@@ -233,6 +229,7 @@ C should calculate pressure coefficients.
 #include "geometry.h"
 #include "net_flow.h"
 #include "prj3dv.h"
+#include "help.h"
 
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
@@ -269,12 +266,7 @@ C should calculate pressure coefficients.
       integer*8 iix,iiy
 #endif
 
-C For help messages.
-      character helpinsub*24  ! subroutine name
-      character helptopic*24  ! string (unique) for topic
-      integer nbhelp          ! number of help lines found
-
-      helpinsub='EDCPFAC'     ! set for subroutine
+      helpinsub='prescoef'     ! set for subroutine
 
 C Initialise facade coordinates menu size variables based on window size. 
 C IVERT is the menu position, MVERT the current number of menu lines.
@@ -660,6 +652,7 @@ C and calculate the pressure coeffcients
 #include "building.h"
 #include "net_flow.h"
 #include "esprdbfile.h"
+#include "help.h"
       
       integer lnblnk  ! function definition
 
@@ -686,12 +679,7 @@ C and calculate the pressure coeffcients
       integer iglib  ! are we running X11 or GTK
       integer ISTRW
 
-C For help messages.
-      character helpinsub*24  ! subroutine name
-      character helptopic*24  ! string (unique) for topic
-      integer nbhelp          ! number of help lines found
-
-      helpinsub='CPCACAL'     ! set for subroutine
+      helpinsub='prescoef'     ! set for subroutine
 
 C Parameters to see whether for a surface a coordinate set has been 
 C defined
@@ -1258,6 +1246,7 @@ C Display a pressure coefficient database and allow changes.
 #include "net_flow.h"
 #include "epara.h"
 #include "esprdbfile.h"
+#include "help.h"
 
       COMMON/MFLWPR/NPRE,FPRE(MPOS,MPRD)
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
@@ -1280,12 +1269,7 @@ C Display a pressure coefficient database and allow changes.
       logical unixok  ! to check for database path file separators
       integer NITMS,IVERT,INOO ! max items and current menu item
 
-C For help messages.
-      character helpinsub*24  ! subroutine name
-      character helptopic*24  ! string (unique) for topic
-      integer nbhelp          ! number of help lines found
-
-      helpinsub='EDPCDB'     ! set for subroutine
+      helpinsub='prescoef'     ! set for subroutine
 
 C Set folder separator (fs) to \ or / as required.
       call isunix(unixok)
@@ -1552,6 +1536,7 @@ C set or the values of the pressure coefficients.
 
 #include "building.h"
 #include "net_flow.h"
+#include "help.h"
 
       integer iCountWords
 
@@ -1562,12 +1547,7 @@ C set or the values of the pressure coefficients.
       character hold2*40
       logical moddb
 
-C For help messages.
-      character helpinsub*24  ! subroutine name
-      character helptopic*24  ! string (unique) for topic
-      integer nbhelp          ! number of help lines found
-
-      helpinsub='EDPCST'     ! set for subroutine
+      helpinsub='prescoef'     ! set for subroutine
 
       IER=0
       moddb =.false.

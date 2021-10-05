@@ -1278,7 +1278,6 @@ c----56--1---------2---------3---------4---------5---------6---------7---------8
 
 
 C Declarations for local variables and variables passed in common blocks.
-      INTEGER   ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,iDAYN
       INTEGER   isd1,ism1,isd2,ism2,isds,isdf,ntstep
       logical CLOSE2
 

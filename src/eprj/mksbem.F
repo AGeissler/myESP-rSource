@@ -55,8 +55,9 @@ C  defLeakage allows the definition of the AHU and ductwork
 C           leakage details.
 C  ENLARGE  performs geometric enlargement (contraction) of a surface.
 
-C ********************* MMGFUN
-C MMGFUN controls all UK NCM related tasks
+C ******************** MMGFUN *********************
+C Controls all UK NCM related tasks.
+
       SUBROUTINE MMGFUN
       
       USE AIM2_InputData, ONLY: iAIM2
@@ -69,7 +70,6 @@ C MMGFUN controls all UK NCM related tasks
 #include "lookup_data.h"
 #include "roam.h"
 #include "net_flow.h"
-C UA1 in uncertainty.h
 #include "uncertainty.h"
 #include "model.h"
 #include "site.h"
@@ -77,6 +77,7 @@ C UA1 in uncertainty.h
 #include "schedule.h"
 #include "plant.h"
 #include "power.h"
+#include "help.h"
 
       integer lnblnk  ! function definition
 
@@ -208,12 +209,7 @@ C Extended simulation parameters for each set.
       character LASBEM_O*72  ! to re-establish the ncm file name
       CHARACTER*72 LCNN_O
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='MMGFUN'  ! set for subroutine
+      helpinsub='mksbem'  ! set for subroutine
 
 C Initialise
       OK=.TRUE.
@@ -555,19 +551,21 @@ C before returning.
       RETURN
       END
 
-C ********************* sbmedit
-C sbmedit define high level data associated with UK NCM methodology and
-C write stripped model.
+C ******************** sbmedit ********************
+C Defines high level data associated with UK NCM methodology and
+C writes stripped model.
 C iuact is returned based on the users action:
 C   iuact = 0  user selected the - exit option
 C   iuact = 1  user asked to generate notional
 C   iuact = 2  user asked to procced to calculations
 C ier is returned as non-zero if there was a problem.
+
       subroutine sbmedit(iuact,ier)
 #include "building.h"
 #include "geometry.h"
 #include "sbem.h"
 #include "model.h"
+#include "help.h"
 
       integer lnblnk  ! function definition
 
@@ -595,7 +593,7 @@ C ier is returned as non-zero if there was a problem.
       character TRYMATCH*40,ITEMZ*50
       integer mainactivity       ! the index 1-25? of the general categories of activity
 
-C For tdf to call arlist:
+C For tdf to call arlist.
       dimension itemfromactivity(MAC) ! To remember which major activity was the source
       integer itemfromactivity        ! of the item in the selection list
       dimension iselected(5) !NCM HVAC system control adjustment index
@@ -613,12 +611,7 @@ C For tdf to call arlist:
       CHARACTER*32 SURFOTF
       LOGICAL CLOSER
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='sbmedit'  ! set for subroutine
+      helpinsub='mksbem'  ! set for subroutine
       CLOSER=.TRUE.
 
 C Change cfgroot to have only 28 characters instead of the usual 32 (to
@@ -643,7 +636,7 @@ C configuration file names.
       APE='_typ  '
       CALL FNCNGR(LCFGF,APE,EXT,LCFGF_T)
 
-C Remember zone specific files
+C Remember zone specific files.
       DO 1 ICOMP=1,NCOMP
         LGEOM_O(ICOMP)=LGEOM(ICOMP)
  1    CONTINUE
@@ -876,17 +869,17 @@ C Add new DHW system
      &        0.,'F',0.,'-',10.,'DHW gen eff ',IER,nbhelp)
             ITEMS(1)='natural gas                      '
             ITEMS(2)='LPG                              '
-            ITEMS(3)='Biogas                           '
-            ITEMS(4)='Oil                              '
-            ITEMS(5)='Coal                             '
-            ITEMS(6)='Biomass                          '
-            ITEMS(7)='Waste heat                       '
-            ITEMS(8)='Grid supplied electricity        '
+            ITEMS(3)='biogas                           '
+            ITEMS(4)='oil                              '
+            ITEMS(5)='coal                             '
+            ITEMS(6)='biomass                          '
+            ITEMS(7)='waste heat                       '
+            ITEMS(8)='grid electricity                 '
             ITEMS(9)='                                 '
             IDA=1
             JSTR(1)=0
  910        CALL EPICKS(IDA,JSTR,
-     &      ' ','Choose fuel type for DHW generator',
+     &      ' ','Fuel type for DHW generator?',
      &      30,8,ITEMS,'Choose fuel type for DHW generator',IER,nbhelp)
             IF(JSTR(1).EQ.0)GOTO 910
 
@@ -1005,17 +998,17 @@ C Edit existing DHW system
      &      ' ',0.,'F',0.,'-',10.,'DHW gen eff ',IER,nbhelp)
           ITEMS(1)='natural gas                   '
           ITEMS(2)='LPG                           '
-          ITEMS(3)='Biogas                        '
-          ITEMS(4)='Oil                           '
-          ITEMS(5)='Coal                          '
-          ITEMS(6)='Biomass                       '
-          ITEMS(7)='Waste heat                    '
-          ITEMS(8)='Grid supplied electricity     '
+          ITEMS(3)='biogas                        '
+          ITEMS(4)='oil                           '
+          ITEMS(5)='coal                          '
+          ITEMS(6)='biomass                       '
+          ITEMS(7)='waste heat                    '
+          ITEMS(8)='Grid electricity              '
           ITEMS(9)='                              '
           IDA=1
           JSTR(1)=IDHFL(IDHWSYS)
  913      CALL EPICKS(IDA,JSTR,
-     &      ' ','Choose fuel type for DHW generator',
+     &      ' ','Fuel type for DHW generator?',
      &      30,8,ITEMS,'Choose fuel type for DHW generator',IER,nbhelp)
           IF(JSTR(1).EQ.0)GOTO 913
 
@@ -1048,11 +1041,11 @@ C Add storage and loop information
             DHWSPD(IDHWSYS,5)=0.0
             IF(IDM.EQ.1)THEN
               CALL EASKR(DHWSPD(IDHWSYS,1),
-     &          'Enter system volume (litres)',
-     &          ' ',0.,'F',1000.,'-',100.,'DHW capacity ',IER,nbhelp)
+     &          ' ','System volume (litres)?',
+     &          0.,'F',1000.,'-',100.,'DHW capacity ',IER,nbhelp)
             ELSEIF(IDM.EQ.2)THEN
               CALL EASKR(DHWSPD(IDHWSYS,2),
-     &          'Enter system losses (MJ/month)',' ',0.,
+     &          ' ','System losses (MJ/month)?',0.,
      &          'F',1000000.,'-',10000.,'DHW capacity ',IER,nbhelp)
             ENDIF
             CALL EASKABC('Is there a water circulation loop',
@@ -1063,21 +1056,21 @@ C Add storage and loop information
      &          ' ','yes','no',IDO,nbhelp)
               IF(IDO.EQ.1)THEN
                 CALL EASKR(DHWSPD(IDHWSYS,3),
-     &            'Enter circulation losses (W/m)',' ',0.,
+     &            'Circulation losses (W/m)?',' ',0.,
      &            'F',10.,'-',50.,'DHW circ loss',IER,nbhelp)
               ENDIF
               CALL EASKAB('Do you know pump power (kW)',
      &          ' ','yes','no',IDP,nbhelp)
               IF(IDP.EQ.1)THEN
                 CALL EASKR(DHWSPD(IDHWSYS,4),
-     &            'Enter pump power (kW)',' ',0.,
+     &            ' ','Pump power (kW)?',0.,
      &            'F',10.,'-',10.,'DHW pump power ',IER,nbhelp)
               ENDIF
               CALL EASKAB('Do you know loop length (m)',
      &          ' ','yes','no',IDQ,nbhelp)
               IF(IDQ.EQ.1)THEN
                 CALL EASKR(DHWSPD(IDHWSYS,5),
-     &            'Enter loop length (m)',' ',0.,
+     &            ' ','Loop length (m)?',0.,
      &            'F',10000.,'-',1000.,'DHW loop length ',IER,nbhelp)
               ENDIF
             ENDIF
@@ -1817,7 +1810,7 @@ C Refresh the temporal file.
 
       end
 
-C ********************* LSTNCM
+C ******************** LSTNCM ********************
 C LSTNCM lists the current contents of the NCM description.
 C Passed act (1 char) to define what to list:
 C  act = 'a' lists all
@@ -1828,6 +1821,7 @@ C  act = 'p' project level information
 C  act = 's' system information
 C  act = 'o' occupancy information
 C  act = 'l' lighting information
+
       SUBROUTINE LSTNCM(act,itu)
 #include "building.h"
 #include "geometry.h"
@@ -2196,12 +2190,13 @@ C lighting type
       return
       end
 
-C ********************* EDSBMSYS
-C EDSBMSYS edits the system definition within the UK NCM file.
+C ******************** EDSBMSYS ********************
+C Edits the system definition within the UK NCM file.
 
       subroutine edsbmsys()
 #include "building.h"
 #include "sbem.h"
+#include "help.h"
 
       common/OUTIN/IUOUT,IUIN,IEOUT
       integer iuout,iuin,ieout
@@ -2215,12 +2210,7 @@ C EDSBMSYS edits the system definition within the UK NCM file.
                        !mechanical extract/supply ventilation system
       integer nitEmH,IHO ! max items and current menu item
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='edsbmsys'  ! set for subroutine
+      helpinsub='mksbem'  ! set for subroutine
 
 C Edit HVAC and system information after a display of current contents.
       call lstncm('s',iuout)
@@ -2537,12 +2527,13 @@ C Ask if there is a supply/extract fun (for nat. ventil. cases only)
       return
       end
 
-C ********************* EDSBMBLD
-C EDSBMBLD edits the building contact definition within the UK NCM file.
+C ******************** EDSBMBLD ********************
+C Edits the building contact definition within the UK NCM file.
 
       subroutine edsbmbld()
 #include "building.h"
 #include "sbem.h"
+#include "help.h"
 
       common/OUTIN/IUOUT,IUIN,IEOUT
       integer iuout,iuin,ieout
@@ -2550,12 +2541,7 @@ C EDSBMBLD edits the building contact definition within the UK NCM file.
       character HEAD*30,ITEMS*50,D64*64,D20*20,outs*124
       integer nitms,INO ! max items and current menu item
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='edsbmbld'  ! set for subroutine
+      helpinsub='mksbem'  ! set for subroutine
 
 C Enter building, owner and verifier information
       call edisp(iuout,' ')          
@@ -2756,12 +2742,13 @@ C Display information
       end
 
 
-C ********************* EDSBASSOR
-C EDSBMASSOR edits the assessor contact definition within the UK NCM file.
+C ******************** EDSBASSOR ********************
+C Edits the assessor contact definition within the UK NCM file.
 
       subroutine edsbmassor()
 #include "building.h"
 #include "sbem.h"
+#include "help.h"
 
       common/OUTIN/IUOUT,IUIN,IEOUT
       integer iuout,iuin,ieout
@@ -2769,12 +2756,7 @@ C EDSBMASSOR edits the assessor contact definition within the UK NCM file.
       character HEAD*30,ITEMS*50,D64*64,outs*124
       integer nitms,INO ! max items and current menu item
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='edsbmassor'  ! set for subroutine
+      helpinsub='mksbem'  ! set for subroutine
 
 C List current state of the energy assessor data.
       call lstncm('e',iuout)
@@ -3007,14 +2989,15 @@ C Define the complexity level
       return
       end
 
-C ********************* EDSBMREGS
-C EDSBMREGS edits the building regs definition within the UK NCM file.
+C ******************** EDSBMREGS ********************
+C Edits the building regs definition within the UK NCM file.
 
       subroutine edsbmregs()
 #include "building.h"
 #include "geometry.h"
 #include "sbem.h"
 #include "epara.h"
+#include "help.h"
 
       common/OUTIN/IUOUT,IUIN,IEOUT
       integer iuout,iuin,ieout
@@ -3023,7 +3006,7 @@ C EDSBMREGS edits the building regs definition within the UK NCM file.
 
       character KEY*1,outs*124
       character*35 ZITEMS(MCOM+4)
-      CHARACTER*46 CIBSESTR2(4) ! concatenation of no. floors and area
+      CHARACTER*46 CIBSESTR2(4) ! concatenation of number of floors and area
       DIMENSION JSTR(8)
       dimension IVALSS(29)       ! array to get epicks answer from
       dimension iedit(MCOM) !to use for menu & saving of air leakage (ach per zone)
@@ -3032,12 +3015,7 @@ C EDSBMREGS edits the building regs definition within the UK NCM file.
       logical NEAR
       real Air_infilt
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='edsbmregs'  ! set for subroutine
+      helpinsub='mksbem'  ! set for subroutine
 
 C Echo the current state of regulations.
       call lstncm('b',iuout)
@@ -3276,13 +3254,13 @@ C After setting up echo back what was selected.
       return
       end
 
-C ********************* EMKSTRIPPED
-C EMKSTRIPPED is the first pass for creating stripped model 
+C ******************** EMKSTRIPPED ********************
+C Is the first pass for creating stripped model 
 C after all of the NCM details have been defined. Initially part of the
 C fall-though from choice 14 in sbmedit ('Proceed with setting up
 C required models ') which returned iuact=1.
-      subroutine EMKSTRIPPED(iuact,ier)
 
+      subroutine EMKSTRIPPED(iuact,ier)
 #include "building.h"
 #include "geometry.h"
 #include "sbem.h"
@@ -3292,6 +3270,7 @@ C required models ') which returned iuact=1.
 #include "model.h"
 #include "espriou.h"
 #include "prj3dv.h"
+#include "help.h"
 
       integer lnblnk  ! function definition
 
@@ -3345,7 +3324,7 @@ C Where ESP-r was installed (as recorded when it was compiled).
 
       LOGICAL NEWGEO
       logical unixok,XST
-      logical ctl_Zonelink_match !This si to allow the sorted activity indices to be matched with
+      logical ctl_Zonelink_match !This is to allow the sorted activity indices to be matched with
                                  !the original ones. The zone numbers can then be used to link the
                                  !controls to zones.
       character APE*6,EXT*4
@@ -3354,7 +3333,7 @@ C Where ESP-r was installed (as recorded when it was compiled).
       real CDAY,RDOTY            ! reals for timestamp calculations
       integer itime,ip           ! integers for timestamp calculations
       integer iafil              ! file unit for writing temporal header
-      integer icolumns           ! number of colums for tdf file depending on the unique non-zero activities
+      integer icolumns           ! number of columns for tdf file depending on the unique non-zero activities
 
       integer inxt_column !the next available column in the tdf file
       DIMENSION iactiv_tdf_item(MCOM)
@@ -3379,12 +3358,7 @@ C For tdf to call arlist:
       REAL val_converted
       real ZD  ! depth for ground temp calc
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='EMKSTRIPPED'  ! set for subroutine
+      helpinsub='mksbem'  ! set for subroutine
 
 C Set folder separator (fs) to \ or / as required.
       call isunix(unixok)
@@ -4012,12 +3986,12 @@ C Keep writing now the items needed for cfg file
       return
       end
 
-C ********************* refreshtemporal
-C refreshtemporal takes the current NCM description and rebuilds
+C ******************** refreshtemporal ********************
+C Takes the current NCM description and rebuilds
 C the hourly temporal database. Used if the occupancy assigned
 C to a zone changes (but nothing else does).
-      subroutine refreshtemporal()
 
+      subroutine refreshtemporal()
 #include "building.h"
 #include "geometry.h"
 #include "sbem.h"
@@ -4027,6 +4001,7 @@ C to a zone changes (but nothing else does).
 #include "model.h"
 #include "espriou.h"
 #include "prj3dv.h"
+#include "help.h"
 
       integer lnblnk  ! function definition
 
@@ -4112,12 +4087,7 @@ C For tdf to call arlist:
       REAL val_converted
       real ZD  ! depth for ground temp calc
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='EMKSTRIPPED'  ! set for subroutine
+      helpinsub='mksbem'  ! set for subroutine
 
 C Set folder separator (fs) to \ or / as required.
       call isunix(unixok)
@@ -4619,8 +4589,8 @@ C Keep writing now the items needed for cfg file
 
       end
 
-C ********************* EMKSBM
-C EMKSBM creates a model variant based on the SBEM methodology. Details
+C ******************** EMKSBM ********************
+C Creates a model variant based on the SBEM methodology. Details
 C of this can be found in relevant EU and UK building regulations.
 C This subroutine copies the cfg, cnn and mandatory zones files and
 C makes a new model representative of the notional building.
@@ -4634,6 +4604,7 @@ C This logic has been superceeded by EMKSBM2 which uses a
 C zone by zone approach rather than passing multiple times
 C though the whole model to identify, remove and rebuild the
 C facade.
+
       SUBROUTINE EMKSBM(ier)
 #include "building.h"
 #include "geometry.h"
@@ -4642,6 +4613,7 @@ C facade.
 #include "model.h"
 #include "material.h"
 #include "prj3dv.h"
+#include "help.h"
 
       integer lnblnk  ! function definition
 
@@ -4717,12 +4689,7 @@ C mlcindex for each of these required constructions.
 
       integer igcz,igcs  ! grand child associated zone and surface
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='EMKSBM'  ! set for subroutine
+      helpinsub='mksbem'  ! set for subroutine
 
 C Initialise variables
       SN=' '
@@ -6000,12 +5967,12 @@ C Update constructions and tmc files if applicable.
       RETURN
       END
 
-C ********************* EMKSBM2
-C The setup part of creating notional model.
-
+C ******************** EMKSBM2 ********************
+C The setup part of creating a notional model.
 C Note: because a notional assessment is writing a save 6 file for
 C a period which may differ from any IPV definition. It might be
 C better to simply not write out any IPV definitions.
+
       SUBROUTINE EMKSBM2(ier)
 #include "building.h"
 #include "geometry.h"
@@ -6013,6 +5980,7 @@ C better to simply not write out any IPV definitions.
 #include "esprdbfile.h"
 #include "model.h"
 #include "material.h"
+#include "help.h"
 
       integer lnblnk  ! function definition
 
@@ -6060,12 +6028,7 @@ C mlcindex for each of these required constructions.
       integer nbdbstries  ! how many iterations looking for req constr
       logical unixok,xst
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='EMKSBM2'  ! set for subroutine
+      helpinsub='mksbem'  ! set for subroutine
 
 C Check if Notional Model Flag has been set (NCM data has been defined)
 C If not then advise user and send him/her back
@@ -6315,8 +6278,8 @@ C If there is an existing shading file copy it to the new name.
       end
 
 
-C ********************* EMKSBMZN
-C EMKSBMZN updates a zone based on the SBEM methodology. Details
+C ******************** EMKSBMZN ********************
+C Updates a zone based on the SBEM methodology. Details
 C of this can be found in relevant EU and UK building regulations.
 C This subroutine copies the cfg, cnn and mandatory zones files and
 C makes a new model representative of the notional building.
@@ -6326,6 +6289,7 @@ C are changed and so are the constructions and materials databases.
 C If ier=0 no problems, ier=2 insufficient data.
 C This routine assumes newer geometry files are being used and
 C it also assumes that the cfg and cnn have already been setup.
+
       SUBROUTINE EMKSBMZN(icomp,ier)
 #include "building.h"
 #include "geometry.h"
@@ -6334,6 +6298,7 @@ C it also assumes that the cfg and cnn have already been setup.
 #include "model.h"
 #include "material.h"
 #include "prj3dv.h"
+#include "help.h"
 
       integer lnblnk  ! function definition
 
@@ -6407,12 +6372,7 @@ C mlcindex for each of these required constructions.
      &  mlciint_g,mlciWall_NI,mlciWall_ty,mlciFL_rty,mlciwin_Typ_G,
      &  mlciSol_gr_typ
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='EMKSBM'  ! set for subroutine
+      helpinsub='mksbem'  ! set for subroutine
 
 C Initialise variables
       SN=' '; SPN=' '
@@ -7590,15 +7550,15 @@ C Update constructions and tmc files if applicable.
       END
 
 
-C ********************* EMKREF
-C EMKREF creates a model variant based on the SBEM methodology. Details
+C ******************** EMKREF ********************
+C Creates a model variant based on the SBEM methodology. Details
 C of this can be found in relevant EU and UK building regulations.
 C This subroutine copies and modifies the cfg file and
 C makes a new model representative of the reference building.
-
 C Note: because a reference assessment is writing a save 6 file for
 C a period which may differ from any IPV definition. It might be
 C better to simply not write out any IPV definitions.
+
       SUBROUTINE EMKREF
       IMPLICIT NONE
 #include "building.h"
@@ -7607,11 +7567,11 @@ C better to simply not write out any IPV definitions.
 
       INTEGER IER,LNBLNK,lns
 
-C Initialise
+C Initialise.
       IER=0
       cfgroot=cfgroot_r  ! set to reference
 
-C Change name of configuration file to filename_ref.cfg
+C Change name of configuration file to filename_ref.cfg.
       LCFGF=LCFGF_R
 
 C Adapt original title of model.
@@ -7626,16 +7586,16 @@ C Adapt original title of model.
       RETURN
       END
 
-C ********************* EMKTYP
-C EMKTYP creates a model variant based on the SBEM methodology. Details
+C ******************** EMKTYP ********************
+C Creates a model variant based on the SBEM methodology. Details
 C of this can be found in relevant EU and UK building regulations.
 C This subroutine copies and modifies the cfg file and
 C makes a new model representative of the typical building.
 C Changes to the model are then made.
-
 C Note: because a typical assessment is writing a save 6 file for
 C a period which may differ from any IPV definition. It might be
 C better to simply not write out any IPV definitions.
+
       SUBROUTINE EMKTYP
       IMPLICIT NONE
 #include "sbem.h"
@@ -7801,8 +7761,8 @@ C Change name of configuration file to filename_typ.cfg
       RETURN
       END
 
-************************* SIMRUN *****************************
-C Subroutine SIMRUN runs silent simulations of the actual and notional
+C ******************** SIMRUN ********************
+C Runs silent simulations of the actual and notional
 C building as described in SBEM - EPBD documents
 
       SUBROUTINE SIMRUN(IMODE)
@@ -7810,6 +7770,7 @@ C building as described in SBEM - EPBD documents
 #include "sbem.h"
 #include "building.h"
 #include "model.h"
+
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
       INTEGER IUOUT,IUIN,IEOUT
       integer childterminal  ! picks up mmod from starting of prj
@@ -7898,8 +7859,8 @@ C lighting for this UK NCM (stripped/notional/reference/typical) model
       RETURN
       END
 
-************************* RSL6TF *****************************
-C Subroutine RSL6TF reads an ESP-r generated save level 6 results text
+C ******************** RSL6TF ********************
+C Reads an ESP-r generated save level 6 results text
 C file. Any changes made to the save level 6 file writing in mzout6.F
 C will affect this subroutine so should be taken into account.
 C This subroutine fills requisite common blocks for UK NCM calculations
@@ -7908,6 +7869,7 @@ C IMODE = 1 -> Stripped model
 C IMODE = 2 -> Notional model
 C IMODE = 3 -> Reference model
 C IMODE = 4 -> Typical model
+
       SUBROUTINE RSL6TF(IMODE)
       IMPLICIT NONE
 #include "sbem.h"
@@ -7915,6 +7877,8 @@ C IMODE = 4 -> Typical model
 #include "model.h"
 #include "geometry.h"
 #include "espriou.h"
+#include "help.h"
+
       integer lnblnk  ! function definition
 
       COMMON/FILEP/IFIL
@@ -7945,12 +7909,7 @@ C Monthly averaging parameters
       REAL Aux_Supply(12)
       REAL Light_Supply(12)
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='RSL6TF'  ! set for subroutine
+      helpinsub='mksbem'  ! set for subroutine
 
       DO 34 IM=1,12
         DHW_Supply(IM)  =0. ; DHW_Demand(IM)  =0.
@@ -9081,8 +9040,8 @@ C Write detailed Latex input file
       RETURN
       END
 
-************************** BERTER ********************************
-c Subroutine BERTER generates
+C ******************** BERTER ********************
+c Generates:
 C BER = stripped building CO2 emissions rate
 C TER = target CO2 emissions rate calculated by applying improvement
 C       factors onto notional building CO2 emissions rate
@@ -9884,8 +9843,8 @@ C      TyERE=TyERE/TBASEA
       RETURN
       END
 
-************************* NCMCAL *****************************
-C Subroutine NCMCAL checks if sufficient information is present in the
+C ******************** NCMCAL ********************
+C Checks if sufficient information is present in the
 C model in order to generate the BRUKL input file. Sufficient
 C information being:
 C 1. Information about project (building), owner and certifier.
@@ -9911,6 +9870,7 @@ C Then maps energy use to zone linkage of SBEM plant and systems and
 C generates Building Emission Rating and Target Emission Rating, BER
 C and TER.
 C It finally generate BRUKL input document and other SBEM reports.
+
       SUBROUTINE NCMCAL(IER)
 #include "sbem.h"
 #include "building.h"
@@ -9919,6 +9879,7 @@ C It finally generate BRUKL input document and other SBEM reports.
 #include "geometry.h"
 #include "material.h"
 #include "espriou.h"
+
       common/FILEP/IFIL
 
       integer ncomp,ncon
@@ -10013,10 +9974,10 @@ C the overall build_UA will be less than usual
         b_totheatloss=totheatloss(iz)+b_totheatloss
  31   continue
 
-C Read *.ncm
+C Read *.ncm.
       CALL RSBEM
 
-C Start writing BRUKL file
+C Start writing BRUKL file.
 C Building, owner, certifier detail...
       ILEN=LNBLNK(LASBEM)
       WRITE(BRUKFL,'(2A)')LASBEM(1:ILEN-4),'_brukl.inp'
@@ -10128,7 +10089,7 @@ C Recover the ISO 6946 U values as in prjqa.F.
             write(TMPSTR2,'(a)') SUSE(ICOMP,IS,1)
 
 C Floors may not have usage defined (because it is mandatorily required
-C only for exterior surfaces)
+C only for exterior surfaces).
             IF(SVFC(ICOMP,IS)(1:4).EQ.'FLOR')THEN
               IF(FLOR_MAX_U.LT.UVD)THEN
                 FLOR_MAX_U=UVD
@@ -10396,7 +10357,7 @@ C << we need a value for $HG-TYPE >>
         CALL ECLOSE(TMPREAL,0.0,0.01,ISNEAR)
 
 C If cooling efficiency is near zero set its value to default of 0
-C (ref: BRUKL document of 9 July 2008)
+C (ref: BRUKL document of 9 July 2008).
         IF(ISNEAR)TMPREAL=0.
         WRITE(IUF,'(a,F6.3)',iostat=ios)'  COOL-GEN-EER       = ',
      &    TMPREAL
@@ -10754,7 +10715,7 @@ C This will have to be based on the location of the study
      &  '  WEATHER                    =  LON'
 
 C Notional building has infiltration of 10m3/m2h at 50Pa (Paragraph 30
-C NCM Modelling Guide v4d of March 2008)
+C NCM Modelling Guide v4d of March 2008).
       WRITE(IUF,'(a)',iostat=ios)
      &  '  Q50-INF                    = 10'
 
@@ -11024,8 +10985,9 @@ C Run batch file to call BRUKL.exe
  3    CONTINUE ! error message to go here
       END
 
-************************* EPCCAL *****************************
-C Subroutine EPCCAL generates the UK Energy Performance input file.
+C ******************** EPCCAL ********************
+C Generates the UK Energy Performance input file.
+
       SUBROUTINE EPCCAL(IER)
       IMPLICIT NONE
 
@@ -11034,6 +10996,7 @@ C Subroutine EPCCAL generates the UK Energy Performance input file.
 #include "model.h"
 #include "geometry.h"
 #include "espriou.h"
+
       integer lnblnk  ! function definition
       integer ier
 
@@ -15806,16 +15769,18 @@ C Run batch file to call EPCgen.exe
  3    CONTINUE ! error message to go here
       END
 
-************************* defLeakage *****************************
-C Subroutine defLeakage allows the definition of the AHU and ductwork
+C ******************** defLeakage ********************
+C Allows the definition of the AHU and ductwork
 C leakage details. Applicable only to specific systems (those with
 C Specific Fan Power defined).
 C isystCurrent: is the current system for which leakage is calculated
 C (it will be selected/defined by the user when entering NCM HVAC
-C information)
+C information).
+
       SUBROUTINE defLeakage(isystCurrent,IER)
       IMPLICIT NONE
 #include "sbem.h"
+#include "help.h"
 
       common/outin/iuout,iuin,ieout
       integer iuout,iuin,ieout
@@ -15829,12 +15794,7 @@ C information)
       integer IansLeakage
       integer nitms,ino ! max items and current menu item
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='defLeakage'  ! set for subroutine
+      helpinsub='mksbem'  ! set for subroutine
 
       pickedsomething=.false.
       menulogical=.false.
@@ -15966,8 +15926,8 @@ C << ELSE may not needed for this >>
       end do
       END
 
-************************* ENLARGE *****************************
-C Subroutine ENLARGE performs geometric enlargement (contraction) of a
+C ******************** ENLARGE ********************
+C Performs geometric enlargement (contraction) of a
 C surface and for a given vertex (POINT) it returns a transformed
 C vertex (TRANS) based on a scale factor (factor) and a centre of
 C enlargement (coe). TRANS will be somewhere along the line between
@@ -15976,6 +15936,7 @@ C of the surface who's size is to be adjusted.
 C Factor can be a fraction (in which case it is a contraction of a
 C geometric surface or may be greater than one in which case it is an
 C enlargement.
+
       SUBROUTINE ENLARGE(POINT,TRANS,COE,FACTOR)
       DIMENSION POINT(3),COE(3),TRANS(3)
       DO 1 I=1,3
@@ -15987,14 +15948,15 @@ c        TRANS(I)=(ABS(1.-FACTOR))*COE(I)+FACTOR*POINT(I)
       RETURN
       END
 
-C ************** okforncm ********************
-C Subroutine okforncm scans the current model to find out if it is
+C ******************** okforncm ********************
+C SScans the current model to find out if it is
 C sufficiently attributed for use with the UK NCM method.
 C Parameters:
 C   ier = 0 if ok, ier = 1 if problem during scan, ier = 2 model
 C      has older cfg version, ier=3 zone geometry is older version,
 C      ier=4 geometry overly complex, ier=5 missing NCM description.
 C   act = '-' work silently, 'w' print warnings.
+
       subroutine okforncm(act,ier)
 #include "building.h"
 #include "geometry.h"
@@ -16108,8 +16070,8 @@ C << to be done >>
       end
 
 
-C ************** GTCALC ********************
-C Subroutine GTCALC scans the climate file associated with the model and
+C ******************** GTCALC ********************
+C Scans the weather file associated with the model and
 C writes out a ground temperature profile based on dry bulb temperature.
 C After calling this subroutine the cfg file should be saved in order to
 C make sure this information is written to file.
@@ -16207,11 +16169,10 @@ C As assumed in EPW (m2/day) - seems very low.
 C Calculate average monthly air temperature from climate file.
       DO 55 I=1,365
         II=I
-        IREC=II
-        READ(IFIL,REC=IREC,IOSTAT=ISTAT,ERR=103)((ICLM(J,K),K=1,6),
-     &         J=1,24)
+C Read weather data for current day into CMRVAL(). See commonclm.F.
+        call CLMGET(II,IER)
         DO 656 J=1,24
-          TEMP=REAL(ICLM(J,2))/10.
+          TEMP=CMRVAL(1,J)
           IF(I.LE.31)THEN
             tTEMP(1)=tTEMP(1)+TEMP/(31.*24.)
           ELSEIF(I.LE.59)THEN

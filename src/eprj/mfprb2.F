@@ -52,6 +52,8 @@ C Supports position - needs testing.
 #include "geometry.h"
 #include "net_flow.h"
 #include "net_flow_data.h"
+#include "help.h"
+
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/MFLOWIT/fndegc,imix 
@@ -67,12 +69,7 @@ C Supports position - needs testing.
       integer loop
       logical iswater
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='MF010I'  ! set for subroutine
+      helpinsub='mfprb2'  ! set for subroutine
 
 C Set number of supplementary data items.
       IER=0
@@ -187,6 +184,8 @@ C Supports position - needs testing.
 #include "geometry.h"
 #include "net_flow.h"
 #include "net_flow_data.h"
+#include "help.h"
+
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
 C      COMMON/MFLOWIT/fndegc,imix 
@@ -202,12 +201,7 @@ C      COMMON/MFLOWIT/fndegc,imix
       integer loop
       logical ok,isrelated
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='MF011I'  ! set for subroutine
+      helpinsub='mfprb2'  ! set for subroutine
 
 C Set number of supplementary data items.
       IER=0
@@ -323,6 +317,8 @@ C
 #include "geometry.h"
 #include "net_flow.h"
 #include "net_flow_data.h"
+#include "help.h"
+
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/MFLOWIT/fndegc,imix 
@@ -339,12 +335,7 @@ C
       logical iswater
       logical ok,isrelated
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='MF012I'  ! set for subroutine
+      helpinsub='mfprb2'  ! set for subroutine
 
 C Set number of supplementary data items.
       IER=0
@@ -481,6 +472,8 @@ C Supports position - needs testing.
 #include "geometry.h"
 #include "net_flow.h"
 #include "net_flow_data.h"
+#include "help.h"
+
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/MFLOWIT/fndegc,imix 
@@ -497,12 +490,7 @@ C Supports position - needs testing.
       logical iswater
       logical ok,isrelated
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='MF015I'  ! set for subroutine
+      helpinsub='mfprb2'  ! set for subroutine
 
 C Set number of supplementary data items.
       IER=0
@@ -631,6 +619,8 @@ C Supports position - needs testing.
 #include "geometry.h"
 #include "net_flow.h"
 #include "net_flow_data.h"
+#include "help.h"
+
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/MFLOWIT/fndegc,imix 
@@ -647,12 +637,7 @@ C Supports position - needs testing.
       logical iswater
       logical ok,isrelated
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='MF017I'  ! set for subroutine
+      helpinsub='mfprb2'  ! set for subroutine
 
 C Set number of supplementary data items.
       IER=0
@@ -782,6 +767,8 @@ C quadratic law volume flow resistance component (dP = a.m/ro+b.(m/ro)^2)
 #include "geometry.h"
 #include "net_flow.h"
 #include "net_flow_data.h"
+#include "help.h"
+
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/MFLOWIT/fndegc,imix 
@@ -798,12 +785,7 @@ C quadratic law volume flow resistance component (dP = a.m/ro+b.(m/ro)^2)
       logical iswater
       logical ok,isrelated
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='MF020I'  ! set for subroutine
+      helpinsub='mfprb2'  ! set for subroutine
 
 C Set number of supplementary data items.
       IER=0
@@ -932,6 +914,8 @@ C quadratic law mass flow resistance component (dP = a.m + b.m^2)
 #include "geometry.h"
 #include "net_flow.h"
 #include "net_flow_data.h"
+#include "help.h"
+
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/MFLOWIT/fndegc,imix 
@@ -948,12 +932,7 @@ C quadratic law mass flow resistance component (dP = a.m + b.m^2)
       logical iswater
       logical ok,isrelated
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='MF025I'  ! set for subroutine
+      helpinsub='mfprb2'  ! set for subroutine
 
 C Set number of supplementary data items.
       IER=0
@@ -1082,6 +1061,8 @@ C constant volume flow rate component (m = rho . a)
 #include "geometry.h"
 #include "net_flow.h"
 #include "net_flow_data.h"
+#include "help.h"
+
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/MFLOWIT/fndegc,imix 
@@ -1098,12 +1079,7 @@ C constant volume flow rate component (m = rho . a)
       integer loop
       logical iswater,isrelated
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='MF030I'  ! set for subroutine
+      helpinsub='mfprb2'  ! set for subroutine
 
 C Set number of supplementary data items.
       IER=0
@@ -1221,6 +1197,7 @@ C Generic request for a fixed volume flow rate.
 #include "building.h"
 #include "net_flow.h"
 #include "net_flow_data.h"
+#include "help.h"
 
 C Parameters passed:
       character act*1  ! '4' offer 4 choice '5' offer 5 choice interface
@@ -1232,12 +1209,7 @@ C Parameters passed:
       CHARACTER prompt*72,hold*32,outs*124
       logical ok
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='askforflowrate'  ! set for subroutine
+      helpinsub='mfprb2'  ! set for subroutine
 
       WRITE(outs,'(A)') LTPCMP(ICMP)
       call edisp(iuout,outs)
@@ -1346,6 +1318,8 @@ C constant mass flow rate component (m = a)
 #include "geometry.h"
 #include "net_flow.h"
 #include "net_flow_data.h"
+#include "help.h"
+
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/MFLOWIT/fndegc,imix 
@@ -1362,12 +1336,7 @@ C constant mass flow rate component (m = a)
       logical iswater
       logical ok,isrelated
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='MF035I'  ! set for subroutine
+      helpinsub='mfprb2'  ! set for subroutine
 
 C Set number of supplementary data items.
       IER=0
@@ -1492,6 +1461,8 @@ C common orifice flow component (m = rho Cd A (2/rho dP)**.5)
 #include "geometry.h"
 #include "net_flow.h"
 #include "net_flow_data.h"
+#include "help.h"
+
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/MFLOWIT/fndegc,imix 
@@ -1508,12 +1479,7 @@ C common orifice flow component (m = rho Cd A (2/rho dP)**.5)
       logical iswater
       logical ok,isrelated
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='MF040I'  ! set for subroutine
+      helpinsub='mfprb2'  ! set for subroutine
 
 C Set number of supplementary data items.
       IER=0
@@ -1642,6 +1608,8 @@ C Supports positioin - needs testing.
 #include "geometry.h"
 #include "net_flow.h"
 #include "net_flow_data.h"
+#include "help.h"
+
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/MFLOWIT/fndegc,imix 
@@ -1658,12 +1626,7 @@ C Supports positioin - needs testing.
       logical iswater
       logical ok,isrelated
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='MF050I'  ! set for subroutine
+      helpinsub='mfprb2'  ! set for subroutine
 
 C Set number of supplementary data items.
       IER=0
@@ -1792,6 +1755,8 @@ C Support position.
 #include "geometry.h"
 #include "net_flow.h"
 #include "net_flow_data.h"
+#include "help.h"
+
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/AFN/IAIRN,LAPROB,ICAAS(MCOM)
@@ -1807,12 +1772,7 @@ C Support position.
       logical iswater
       logical ok,isrelated
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='MF110I'  ! set for subroutine
+      helpinsub='mfprb2'  ! set for subroutine
 
 C Set number of supplementary data items.
       IER=0
@@ -1926,6 +1886,8 @@ C specific air flow crack component. Supports position.
 #include "geometry.h"
 #include "net_flow.h"
 #include "net_flow_data.h"
+#include "help.h"
+
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/AFN/IAIRN,LAPROB,ICAAS(MCOM)
@@ -1939,12 +1901,7 @@ C specific air flow crack component. Supports position.
       logical ok,isrelated
       integer loop
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='MF120I'  ! set for subroutine
+      helpinsub='mfprb2'  ! set for subroutine
 
 C Set number of supplementary data items.
       IER=0
@@ -2072,6 +2029,8 @@ C Supports position - needs testing.
 #include "geometry.h"
 #include "net_flow.h"
 #include "net_flow_data.h"
+#include "help.h"
+
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/AFN/IAIRN,LAPROB,ICAAS(MCOM)
@@ -2086,12 +2045,7 @@ C Supports position - needs testing.
       integer loop
       logical ok,isrelated
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='MF130I'  ! set for subroutine
+      helpinsub='mfprb2'  ! set for subroutine
 
 C Set number of supplementary data items.
       IER=0
@@ -2218,6 +2172,8 @@ C Supports position - needs testing.
 #include "geometry.h"
 #include "net_flow.h"
 #include "net_flow_data.h"
+#include "help.h"
+
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/MFLOWIT/fndegc,imix 
@@ -2235,12 +2191,7 @@ C Supports position - needs testing.
       logical iswater
       logical ok,isrelated
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='MF210I'  ! set for subroutine
+      helpinsub='mfprb2'  ! set for subroutine
 
 C Set number of supplementary data items.
       PI=4.*ATAN(1.)
@@ -2423,6 +2374,7 @@ C Supports position - needs testing.
 #include "geometry.h"
 #include "net_flow.h"
 #include "net_flow_data.h"
+#include "help.h"
 
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
@@ -2438,12 +2390,7 @@ C Supports position - needs testing.
       real cx,cy,cz
       integer loop
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='MF211I'  ! set for subroutine
+      helpinsub='mfprb2'  ! set for subroutine
 
 C Set number of supplementary data items.
       PI=4.*ATAN(1.)
@@ -2571,18 +2518,15 @@ C     SUPCMP(ICMP,13) - Ccp coefficient a5 (-)
 #include "building.h"
 #include "net_flow.h"
 #include "net_flow_data.h"
+#include "help.h"
+
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
 
       CHARACTER outs*124
       logical OK,close
       logical iswater
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='MF220I'  ! set for subroutine
+      helpinsub='mfprb2'  ! set for subroutine
 
 C Synopsis of flow component.
       WRITE(outs,'(a,A60,a)') 'Summary of flow component ',
@@ -2656,16 +2600,12 @@ C     SUPCMP(ICMP,13) - Ccp coefficient a5 (-)
 #include "building.h"
 #include "net_flow.h"
 #include "net_flow_data.h"
+#include "help.h"
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
       character outs*124
       logical OK,close
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='MF230I'  ! set for subroutine
+      helpinsub='mfprb2'  ! set for subroutine
 
 C Show short description of flow component.
       IER=0
@@ -2739,16 +2679,12 @@ C     SUPCMP(ICMP,17) - Ccp coefficient a9 (-)
 #include "building.h"
 #include "net_flow.h"
 #include "net_flow_data.h"
+#include "help.h"
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
       character outs*124
       logical OK,close
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='MF240I'  ! set for subroutine
+      helpinsub='mfprb2'  ! set for subroutine
 
 C Set/check number of supplementary data items.
       IER=0
@@ -2826,16 +2762,12 @@ C     SUPCMP(ICMP,17) - Ccp coefficient a9 (-)
 #include "building.h"
 #include "net_flow.h"
 #include "net_flow_data.h"
+#include "help.h"
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
       character outs*124
       logical OK,close
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='MF250I'  ! set for subroutine
+      helpinsub='mfprb2'  ! set for subroutine
 
       IER=0
 
@@ -2907,6 +2839,7 @@ C << Position not yet done >>
 #include "building.h"
 #include "net_flow.h"
 #include "net_flow_data.h"
+#include "help.h"
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/MFLOWIT/fndegc,imix 
 
@@ -2920,12 +2853,7 @@ C more than degree of curve (maxp>=ideg)
       doubleprecision xval(maxp),yval(maxp),RIHAS(IDEG)
       logical iswater
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='MF310I'  ! set for subroutine
+      helpinsub='mfprb2'  ! set for subroutine
 
 C Set number of supplementary data items.
       IER=0
@@ -3074,17 +3002,13 @@ C general flow corrector (ie. valve or damper)
 #include "building.h"
 #include "net_flow.h"
 #include "net_flow_data.h"
+#include "help.h"
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/MFLOWIT/fndegc,imix 
       CHARACTER prompt*48,outs*124,MSG*18
       logical iswater
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='MF410I'  ! set for subroutine
+      helpinsub='mfprb2'  ! set for subroutine
 
 C Set number of supplementary data items.
       IER=0
@@ -3171,17 +3095,13 @@ C See synopsis for SUPCMP data.
 #include "building.h"
 #include "net_flow.h"
 #include "net_flow_data.h"
+#include "help.h"
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/MFLOWIT/fndegc,imix 
       CHARACTER hold*48,prompt*48,outs*124,MSG*18
       logical iswater
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='MF420I'  ! set for subroutine
+      helpinsub='mfprb2'  ! set for subroutine
 
 C Set/check number of supplementary data items.
       IER=0
@@ -3246,17 +3166,13 @@ C fixed flow rates controller. See synopsis for SUPCMP data.
 #include "building.h"
 #include "net_flow.h"
 #include "net_flow_data.h"
+#include "help.h"
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/MFLOWIT/fndegc,imix 
       CHARACTER hold*32,prompt*48,outs*124,MSG*18
       logical iswater
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='MF460I'  ! set for subroutine
+      helpinsub='mfprb2'  ! set for subroutine
 
 C Set number of supplementary data items
       IER=0
@@ -3306,18 +3222,14 @@ C fixed flow rates controller. See synopsis for SUPCMP data.
 #include "building.h"
 #include "net_flow.h"
 #include "net_flow_data.h"
+#include "help.h"
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/MFLOWIT/fndegc,imix 
       CHARACTER prompt*48,outs*124,MSG*18
       logical iswater
       PARAMETER (MCCN=3)
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='MF500I'  ! set for subroutine
+      helpinsub='mfprb2'  ! set for subroutine
 
 C Set number of supplementary data items
       IER=0

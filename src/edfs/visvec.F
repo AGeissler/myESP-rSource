@@ -13,11 +13,6 @@ C warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
 C PURPOSE. See the GNU General Public License for more
 C details.
 
-C You should have received a copy of the GNU General Public
-C License along with ESP-r. If not, write to the Free
-C Software Foundation, Inc., 59 Temple Place, Suite 330,
-C Boston, MA 02111-1307 USA.
-
 C This file contains the following routines:
 C (related to image creation via vector commands)
 C  MAKS2D - draws a 2 d silce of flow vectors on screen.  
@@ -314,6 +309,7 @@ C      write(6,*) 'within MAKS3D SCmin,SCmax',SCmin,SCmax
 
 C Need to reset scale factors - do this by redrawing the domain.
       call VGRID3D(0,1)
+
 C Loop through all vectors.
       do 10 I=2,NIM1
         do 101 J=2,NJM1

@@ -21,6 +21,7 @@ C Boston, MA 02111-1307 USA.
 C HISCLM draws a histogram of the frequencies of occurance of values
 C of the user-specified time-dependant variable.
       SUBROUTINE HISCLM(IP)
+#include "help.h"
 
       PARAMETER (MF=100)
 
@@ -52,12 +53,7 @@ C      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       integer*8 iiw1,iiw2,iiw3,iiw4,iimenu
 #endif
 
-C For help messages
-      character helpinsub*24   ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found (will be non-zero
-
-      helpinsub='HISCLM'  ! set for cfiles
+      helpinsub='cfrqdis'  ! set for cfiles
 
 C Identify specific variable to examine
 C and set up relevant label type for axis.
@@ -169,6 +165,7 @@ C falls inside each bin.
       SUBROUTINE HISFRQ (IGET)
 
 #include "climate.h"
+#include "help.h"
 
       PARAMETER (MF=100)
 
@@ -183,12 +180,7 @@ C falls inside each bin.
       character CHA*20
       logical ok
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found (will be non-zero
-
-      helpinsub='HISFRQ'  ! set for cfiles
+      helpinsub='cfrqdis'  ! set for cfiles
 
 C Reset the number of bins, the maximum hits in one bin etc.
       DXBIN=0.0
@@ -259,7 +251,7 @@ C Calculate bin sizes from max and min of data.
          ID = I
 
 C Read values of the climatic parameters for this day.
-         CALL CLMGET(ID)
+         CALL CLMGET(ID,IER)
 
 c Set time range.
          JS=KDS
@@ -317,7 +309,7 @@ C Fill bins with hits.
         ID = I
 
 C Read values of the climatic parameters for this day.
-        CALL CLMGET(ID)
+        CALL CLMGET(ID,IER)
 
 C Set time range.
         JS=KDS

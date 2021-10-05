@@ -1,3 +1,7 @@
+C This file is part of the ESP-r system.
+C Copyright Energy Systems Research Unit, University of
+C Strathclyde, Glasgow Scotland, 2001-.
+
 C ESP-r is free software.  You can redistribute it and/or
 C modify it under the terms of the GNU General Public
 C License as published by the Free Software Foundation 
@@ -22,6 +26,7 @@ C  MZSIMH - Lists the current simulator parameters (dates, save option etc.)
 C  MZTRAC - Define quantities to be traced.
 C  MZINFO - Displays values of the currently set simulation parameters.
 
+
 C ******************** SIMCON ********************
 C Sets the final parameters before executing a simulation. MZNUMA is 
 C called the required number of times, saving results after each
@@ -45,6 +50,9 @@ C      USE H3KSTORE_FC_DATA,ONLY: iCurrent_FCT_OUTPUT_FILE
 #include "UserSimulationToggles.h"
 #include "plant.h"
 #include "FMI.h"
+#include "agent.h"
+#include "gremlin.h"
+#include "help.h"
 
       common/filep/ifil
       INTEGER :: ifil
@@ -110,12 +118,7 @@ C Toggle for extreme silent running (endless) mode.
       REAL :: tstep
       integer J
 
-C Help messages.
-      character helpinsub*24   ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='SIMCON'  ! set for cfiles
+      helpinsub='simcon'  ! set for cfiles
 
       OK=.FALSE.
 
@@ -132,19 +135,55 @@ C If simulator is in silent running mode, set flag to terminate run
          return
       endif
 
-C Read FMI spec file to set FMI commons.
+C Read functional mock-up interface specification file.
       if (is_FMU) then
         IUNIT=IFIL+1
         CALL ERPFREE(IUNIT,IER)
         CALL EFOPSEQ(IUNIT,FMISFL,1,IER)
-        call FMI_RDSCFL(IUNIT,IER)
+        call FMI_RD(IUNIT,IER)
         CALL ERPFREE(IUNIT,IER)
         if (IER.eq.1) then
 C If simulator is in silent running mode, set flag to terminate run
            if ( autook ) exitok = .true.
            return
         endif  
-      endif          
+      endif
+      
+C Read agent specification file and open log file.
+      if (IS_AGT) then
+        IUNIT=IFIL+1
+        CALL ERPFREE(IUNIT,IER)
+        CALL EFOPSEQ(IUNIT,AGTFIL,1,IER)
+        call AGT_RD(IUNIT,IER)
+        CALL ERPFREE(IUNIT,IER)
+        if (IER.eq.1) then
+          if ( autook ) exitok = .true.
+          return
+        endif
+        call AGT_INITLOG(IER)
+        if (IER.ne.0) then
+          if ( autook ) exitok = .true.
+          return
+        endif
+      endif
+      
+C Read gremlin specification file and open log file.
+      if (IS_GRM) then
+        IUNIT=IFIL+1
+        CALL ERPFREE(IUNIT,IER)
+        CALL EFOPSEQ(IUNIT,GRMFIL,1,IER)
+        call GRM_RD(IUNIT,IER)
+        CALL ERPFREE(IUNIT,IER)
+        if (IER.eq.1) then
+          if ( autook ) exitok = .true.
+          return
+        endif
+        call GRM_INITLOG(IER)
+        if (IER.ne.0) then
+          if ( autook ) exitok = .true.
+          return
+        endif
+      endif
 
 C Calculate the BASESIMP heat loss factors.
       CALL BSFCCTL
@@ -173,12 +212,12 @@ C Reimpose any user-specified simulation toggles as needed.
       if ( bUserGAM ) GAM = fUserGAM        ! equation implicitness
       if ( bUserSolar ) ISOLAR = iUserSolar ! solar processing   
       if ( bUserPltSolvConfig ) then   
-        MAXITP                   = iUserMAXITP    
-        itrclp                   = iUserITRCLP    
-        PERREL                   = fUserPERREL    
-        PERTMP                   = fUserPERTMP    
-        PERFLX                   = fUserPERFLX    
-        PERMFL                   = fUserPERMFL    
+        MAXITP = iUserMAXITP    
+        itrclp = iUserITRCLP    
+        PERREL = fUserPERREL    
+        PERTMP = fUserPERTMP    
+        PERFLX = fUserPERFLX    
+        PERMFL = fUserPERMFL    
         fH2_iteration_tolerance  = fUserH2iterTol 
       endif  
       
@@ -269,23 +308,21 @@ C No results file for save level 5.
         call edisp(iuout,' ')
         CALL MZSAVE(ISIMN1,ISIMN2)
         if(INDCFG.eq.1)then
-          write(outs,'(A,I3)')'Building results file, saved result-set'
-     &                                                      ,ISIMN1
+          write(outs,'(A,I3)')'Saved building result-set',ISIMN1
           call edisp(iuout,outs)
         elseif(INDCFG.eq.2)then
-          write(outs,'(A,I3)')'Plant results file, saved result-set'
-     &                                                      ,ISIMN2
+          write(outs,'(A,I3)')'Saved plant result-set',ISIMN2
           call edisp(iuout,outs)
         elseif(INDCFG.eq.3)then
           write(outs,1870)ISIMN1
- 1870     format('Building results file, saved result-set',I3,' and')
+ 1870     format('Saved building result-set',I3,' and')
           if(endless.or.issilient)then
             continue
           else
             call edisp(iuout,outs)
           endif
           write(outs,1871)ISIMN2
- 1871     format('Plant results file, saved result-set',I3)
+ 1871     format('plant result-set',I3)
           if(endless.or.issilient)then
             continue
           else
@@ -294,8 +331,8 @@ C No results file for save level 5.
         endif
         if (ISIM.le.1.or.ISIM.eq.NRSIM) then
           write(outs,1872)ISD1,ISM1,ISD2,ISM2
- 1872     format('     for period: day',I3,' month',I3,
-     &                        ' to day',I3,' month',I3)
+ 1872     format(3x,'for period day',I3,' month',I3,
+     &              ' to day',I3,' month',I3)
           if(endless.or.issilient)then
             continue
           else
@@ -308,9 +345,8 @@ C No results file for save level 5.
       end
 
 C ******************** MZSIML ********************
-
-C MZSIML is the main energy simulation controlling routine
-C performing the following functions:
+C The main energy simulation controlling routine
+C performing the following functions.
 
 C On each entry a routine is called which assigns the user's
 C solution library and transfers zone description
@@ -320,7 +356,7 @@ C On first entry only the simulation period is requested.
 C This period is subsequently assumed in force unless
 C explicitly changed.
 
-C After each simulation request a routine is called which
+C After each simulation request, a routine is called which
 C allows definition of the simulation control parameters.
 
 C The '>1SAVE' command MUST be chosen after each simulation
@@ -330,7 +366,7 @@ C library for subsequent review.
 C The '<1DEL' command deletes the last simulation result
 C set saved in the solutions library.
 
-C The '0SAVE' command does not write to results library.
+C The '0SAVE' command does not write to the results library.
 C Simulation results retrieved from 'OUTPUT'.
 C The '1SAVE', '2SAVE' and '3SAVE' commands cause minimum,
 C moderate and all simulation results to be transferred to
@@ -362,6 +398,7 @@ C and information on the saved result set.
 #include "monitor.h"
 #include "cfd.h"
 #include "UserSimulationToggles.h"
+#include "help.h"
 
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
 
@@ -422,20 +459,15 @@ C Toggle for extreme silent running (endless) mode.
       integer NITMS,INO  ! max items and current menu item
       integer J
 
-C Help messages.
-      character helpinsub*24   ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='MZSIML'  ! set for cfiles
+      helpinsub='simcon'  ! set for cfiles
 
 C Intialise timestep controller flag. By default, timestep controller
-C is disabled.  Also initialise number of TSC operations to zero.
-C Initialise pwer simulation flag.
+C is disabled. Also initialise number of TSC operations to zero.
+C Initialise power simulation flag.
       ITSFLG=0
       NTSCPD=0
 
-C Intialise climate interpolation flag. By default, climate interpolation
+C Intialise weather data interpolation flag. By default, interpolation
 C is enabled.
       ICLMFL=0
 
@@ -464,19 +496,17 @@ C Default mass flow simulation iteration parameters are set in MFLWSU
 C Default fluid (air) flow simulation is once per zone timestep
 C (MFBSNC=1). This is over-ruled when plant fluid flow simulation
 C is active, in which case fluid flow simulation will be performed
-C every plant time-step <<check with essam on this!!!>>.
+C every plant time-step.
       MFBSNC=1
       if(IFLWN.eq.1)MFBSNC=IFLWN
 
-C Initialise plant side matrix solver. By default, the Gaussian approach
+C Initialise plant side matrix solver. By default, the Gaussian approach.
       IPMSLV=1
 
-C Initialize user defined plant side convergence params to default values   
-
+C Initialise user-defined plant side convergence params to default values .  
       UsrPltConfig: if ( bUserPltSolvConfig ) then 
       
-        ! Use specified plant solution parameters 
-        
+C Use specified plant solution parameters.
         MAXITP  = iUserMAXITP   
         ITRCLP  = iUserITRCLP   
         PERREL  = fUserPERREL   
@@ -487,17 +517,10 @@ C Initialize user defined plant side convergence params to default values
       
       else 
       
-        ! save comptued values to report to user. 
-      
+C Save computed values for user report. 
       endif UsrPltConfig
-   
 
-C Initialise all zones to air-filled (done in esystem.F)
-C      do 114 iwz=1,mcom
-C        znotair(iwz)=.false.
-C 114  continue
-
-C Initialise reading in of vertical solar data.
+C Initialise reading of vertical solar data.
       VTSOL=.false.
 
 C Couple zone/plant & mass flow calculation trace output channels.
@@ -542,16 +565,16 @@ c save level 5
       if(ISAVE.eq.0)then
         ITEM(6)= '  monitor (not available)    '
       else
-        ITEM(6)= 'm monitor simulation progress'
+        ITEM(6)= 'm monitor progress           '
       endif
       ITEM(7)=   's commence simulation        '
       ITEM(8)=   't time-step control          '
       ITEM(9)=   '                             '
       ITEM(10)=  '< delete last result set     '
       ITEM(11)=  '  ....................       '
-      ITEM(12)=  'g simulation control toggles '
+      ITEM(12)=  'g simulation options         '
       ITEM(13)=  'i view simulation parameters '
-      ITEM(14)=  'o view level 0 save result   '
+      ITEM(14)=  'o view save level 0 result   '
       ITEM(15)=  '  ....................       '
       ITEM(16)=  '? help                       '
       ITEM(17)=  '- exit menu                  '
@@ -573,7 +596,7 @@ C simulator parameter file.
         CALL EMENU('Simulation control',ITEM,NITMS,INO)
       endif
 
-C Results db name.
+C Results database name.
       if(ino.eq.1)then
         call tstamp('>','bps: change results library')
         CALL MZLIBF
@@ -618,8 +641,8 @@ C Graphic monitor setup.
 C Commence simulation.
       elseif(ino.eq.7)then
 
-C If a convection control file exists for any zone then
-C force a save level 4.
+C If a surface convection control file exists for any zone then
+C force a level 4 save.
         SAVE4=.false.
         do 42 ICOMP=1,NCOMP
           if(IHC(ICOMP).EQ.1.and.ISAVE.lt.4)SAVE4=.true.
@@ -741,6 +764,7 @@ C Set simulation control toggles.
 #include "power.h"
 #include "net_flow.h"
 #include "UserSimulationToggles.h"
+#include "help.h"
 
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
 
@@ -838,11 +862,7 @@ C Used to define the sky temperature calculation method.
       logical VTSOL
       integer NITMS,INO  ! max items and current menu item
 
-      character helpinsub*24   ! subroutine name
-      character helptopic*24   ! string (unique) for topic
-      integer nbhelp           ! number of help lines found
-
-      helpinsub='simtog'  ! set for cfiles
+      helpinsub='simcon'  ! set for cfiles
 
 C Make up strings for the current set of toggles.
   92  ino= -4
@@ -974,14 +994,14 @@ C Make up strings for the current set of toggles.
       ITEMG(32)=    'y indoor TWB = outdoor TWB '    
       ITEMG(33)=    '  ________________________________      '      
       ITEMG(34)=    '? help                                  '
-      ITEMG(35)=    '- exit to simulation menu               '
+      ITEMG(35)=    '- exit menu                             '
       NITMS=35
 
 C Help text for this menu.
       helptopic='sim_toggles_menu'
       call gethelptext(helpinsub,helptopic,nbhelp)
 
-      CALL EMENU('Simulation control',ITEMG,NITMS,INO)
+      CALL EMENU('Simulation options',ITEMG,NITMS,INO)
 
       if(INO.eq.1)then
 
@@ -989,7 +1009,7 @@ C Averaging on/off.
   126   CALL EASKI(IDAVER,' ','Results averaging 0) On or 1) Off? ',
      &    0,'F',1,'F',0,'Results averaging iq 14',IER,nbhelp)
         IF(IER.NE.0)GOTO 126
-        call tstamp('>','SIM: edit timestep averaging')
+        call tstamp('>','BPS: edit timestep averaging')
       elseif(INO.eq.2)then
 
 C Zone side equations implicitness degree.
@@ -1156,13 +1176,13 @@ C Plant solution technique.
 
         IF(IER.NE.0) GOTO 309
 
-C Update parameters         
-        MAXITP                  = iUserMAXITP    
-        itrclp                  = iUserITRCLP    
-        PERREL                  = fUserPERREL    
-        PERTMP                  = fUserPERTMP    
-        PERFLX                  = fUserPERFLX    
-        PERMFL                  = fUserPERMFL    
+C Update parameters.        
+        MAXITP = iUserMAXITP    
+        itrclp = iUserITRCLP    
+        PERREL = fUserPERREL    
+        PERTMP = fUserPERTMP    
+        PERFLX = fUserPERFLX    
+        PERMFL = fUserPERMFL    
         fH2_iteration_tolerance = fUserH2iterTol          
         
 C Perhaps plant solution iteration parameters are altered, so always
@@ -1399,9 +1419,11 @@ C Help.
 
       end
 
-C ************ MSTTOG
+C ******************** MSTTOG ********************
 C Set moisture flow toggles.
+
       subroutine msttog
+#include "help.h"
 
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/MOIST11/MITRM,RITRMP,RITRMF
@@ -1412,12 +1434,7 @@ C Set moisture flow toggles.
       CHARACTER ITEMG(11)*40 
       integer NITMS,INO  ! max items and current menu item
 
-C For help messages
-      character helpinsub*24   ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='msttog'  ! set for cfiles
+      helpinsub='simcon'  ! set for cfiles
 
   10  INO=-4
       WRITE(ITEMG(1),'(A,F5.2)')
@@ -1504,10 +1521,11 @@ C Redisplay the moisture flow solution parameters menu.
       goto 10
       end
 
-C ************ STMTOG
+C ******************** STMTOG ********************
 C Set building construction structured mesh toggles.
 
       subroutine STMTOG
+#include "help.h"
 
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/GRSD120/RLnrSD,RRLnrSD
@@ -1517,12 +1535,7 @@ C Set building construction structured mesh toggles.
       CHARACTER ITEMG(10)*40 
       integer NITMS,INO  ! max items and current menu item
 
-C For help messages
-      character helpinsub*24   ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='STMTOG'  ! set for cfiles
+      helpinsub='simcon'  ! set for cfiles
 
    10 INO=-4
       IF(InSSlv.EQ.1)THEN
@@ -1611,7 +1624,7 @@ C Redisplay the moisture flow solution parameters menu.
       goto 10
       end
 
-C ****** MZSPER 
+C ******************** MZSPER ********************
 C Allows user definition of the simulation
 C period (in terms of start and finish day and month
 C numbers) and the computational time step (measured
@@ -1629,6 +1642,7 @@ C TIMSEC       - length of time increment in seconds
       SUBROUTINE MZSPER
 #include "building.h"
 #include "MultiYear_simulations.h"
+#include "help.h"
 
       COMMON/SET1/IYEAR,IBDOY,IEDOY,IFDAY,IFTIME
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
@@ -1657,12 +1671,7 @@ C Once per hour storage of results, averaged over that hour.
 
       logical hri,defok,OK
 
-C For help messages
-      character helpinsub*24   ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='MZSPER'  ! set for cfiles
+      helpinsub='simcon'  ! set for cfiles
 
 C Request simulation period in user defined format of d-o-y
 C or day and month, return julian days and convert to month
@@ -1790,7 +1799,7 @@ C Check against user preference in simulation parameters.
       RETURN
       END
 
-C ****** askaboutcfd
+C ******************** askaboutcfd ********************
 C Confirms simulation periods for CFD assessments.
 C If there is a simulation parameter set with attributes about
 C the cfd assessments some of common block CFSEUP will have
@@ -1799,11 +1808,13 @@ C been filled in.
       subroutine askaboutcfd
 #include "building.h"
 #include "cfd.h"
+#include "help.h"
 
       COMMON/SET1/IYEAR,IBDOY,IEDOY,IFDAY,IFTIME
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/PERS/ISD1,ISM1,ISD2,ISM2,ISDS,ISDF,NTSTEP
       common/C1/NCOMP,NCON
+      COMMON/SPAD/MMOD,LIMIT,LIMTTY
       
 C Active domain common.
       common/ACTDOM/CFDOK
@@ -1833,12 +1844,7 @@ C cfdperok - has period been defined by preset.
       logical OK
       integer preRF_DorU
 
-C For help messages
-      character helpinsub*24   ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='askaboutcfd'  ! set for cfiles
+      helpinsub='simcon'  ! set for cfiles
       helptopic='cfd_setup_dialogs'
       call gethelptext(helpinsub,helptopic,nbhelp)
 
@@ -1863,22 +1869,26 @@ C Disable CFD calculations during the startup period.
         enddo
 
 C Currently this information is not included in cfg file
-C so must ask.
-        CALL EASKOK('Display CFD predictions as the',
-     &              'simulation progresses?',OK,nbhelp)
-        IF(OK)then
-          ICFVIEW=1  ! call dfv module when convergence reached
-          if(ICFVIEWMAXT.eq.0) ICFVIEWMINT=10; ICFVIEWMAXT=30
-          CALL EASKI(ICFVIEWMINT,' ',
-     &      'CFD temperature display minimum (integer)?',
-     &      0,'F',100,'-',1,'CFD minimum display T',IER,nbhelp)
-          CALL EASKI(ICFVIEWMAXT,' ',
-     &      'CFD Temperature display maximum (integer)?',
-     &      0,'F',100,'-',1,'CFD max display T',IER,nbhelp)
-        ELSE
+C so must ask, unless in script mode.
+        if (MMOD.eq.-6) then
           ICFVIEW=0
-          if(ICFVIEWMAXT.eq.0) ICFVIEWMINT=10; ICFVIEWMAXT=30
-        ENDIF
+        else
+          CALL EASKOK('Display CFD predictions as the',
+     &                'simulation progresses?',OK,nbhelp)
+          IF(OK)then
+            ICFVIEW=1  ! call dfv module when convergence reached
+            if(ICFVIEWMAXT.eq.0) ICFVIEWMINT=10; ICFVIEWMAXT=30
+            CALL EASKI(ICFVIEWMINT,' ',
+     &        'CFD temperature display minimum value?',
+     &        0,'F',100,'-',1,'CFD minimum display T',IER,nbhelp)
+            CALL EASKI(ICFVIEWMAXT,' ',
+     &        'CFD temperature display maximum value?',
+     &        0,'F',100,'-',1,'CFD max display T',IER,nbhelp)
+          ELSE
+            ICFVIEW=0
+            if(ICFVIEWMAXT.eq.0) ICFVIEWMINT=10; ICFVIEWMAXT=30
+          ENDIF
+        endif
 
 C Period has been defined get start & end days, but since isds and isdf
 C would have been defined in a separate call to MZPER make sure these
@@ -1948,6 +1958,7 @@ C prior to each simulation commencing.
 #include "esprdbfile.h"
 #include "control.h"
 #include "UserSimulationToggles.h"
+#include "help.h"
      
       integer lnblnk  ! function definition
 
@@ -2031,12 +2042,7 @@ C Toggle for extreme silent running (endless) mode.
       LOGICAL OK
       LOGICAL ILTHPS,ILTHPZ,global,glbrwd
 
-C For help messages
-      character helpinsub*24   ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='MZSIMH'  ! set for cfiles
+      helpinsub='simcon'  ! set for cfiles
       helptopic='sim_starting_report'
       call gethelptext(helpinsub,helptopic,nbhelp)
 
@@ -2100,7 +2106,7 @@ C Write out appropriate message.
         write(louts,'(a,a)')'Weather file: ',
      &                      LCLIM(1:lnblnk(LCLIM))
         call edisp248(icout,louts,100)
-        if(NCF.eq.0.and.NCL.eq.0)then
+        if(NCF.eq.0.and.NCL.eq.0.and.NCC.eq.0)then
           call edisp(icout,'Control: free-floating')
         else
           write(louts,'(a,a)')'Control file: ',
@@ -2132,59 +2138,58 @@ C Write out appropriate message.
       NPTS=NTSTEP*NTSTPP
       TMIN=60.0/NTSTEP
       TMINP=TIMSEC/60.
-      write(outs,'(a,I6,a)')'Simulation period: ',IDAYS,' day(s)'
-      if(endless.or.issilient)then
-        continue
-      else
-        call edisp(icout,' ')
-        call edisp(icout,outs)
-      endif
+C      write(outs,'(a,I6,a)')'Simulation period: ',IDAYS,' day(s).'
+C      if(endless.or.issilient)then
+C        continue
+C      else
+C        call edisp(icout,' ')
+C        call edisp(icout,outs)
+C      endif
 
 C Derive string for simulation period.
-      CALL EPERSTR(IYEAR,ISDS,1,ISDF,24,1,2,0,PERST1,PERST2,PERST3,IER)
+      call edisp(icout,' ')
+      CALL EPERSTR(IYEAR,ISDS,1,ISDF,24,1,1,0,PERST1,PERST2,PERST3,IER)
       if(endless.or.issilient)then
         continue
       else
-        write(outs,'(16X,A)')PERST2
+        write(outs,'(2A)')'Simulation ',PERST2
       endif
       call edisp(icout,outs)
-      write(outs,'(a,I6,a)')'Start-up period: ',ITCNST,' day(s)'
+      write(outs,'(a,I6,a)')'Start-up period: ',ITCNST,' day(s).'
       if(endless.or.issilient)then
         continue
       else
-        call edisp(iuout,' ')
         call edisp(icout,outs)
       endif
 
       IF(INDCFG.EQ.2)goto 131
       if(irdact.eq.0)then
-        write(outs,'(a,I7,a,F5.2,a)')'Zone time steps: ',NTSTEP,
-     &    '/hr ( ',TMIN,' minute intervals saved at each time step)'
+        write(outs,'(a,F5.2,a)')'Building time steps: ',TMIN,
+     &                                           ' minutes.'
       else
-        write(outs,'(a,I7,a,F5.2,a)')'Zone time steps:',NTSTEP,
-     &    ' / hr ( ',TMIN,' minute intervals saved once per hour)'
+        write(outs,'(a,F5.2,a)')'Building time steps: ',TMIN,
+     &                                           ' minutes.'
       endif 
       if(endless.or.issilient)then
         continue
       else
         call edisp(icout,outs)
       endif
-      write(outs,'(a,I6)') 'Number of zones: ',NCOMP
+      write(outs,'(a,I6,a)') 'Number of zones: ',NCOMP,'.'
       if(endless.or.issilient)then
         continue
       else
         call edisp(icout,outs)
       endif
-      write(outs,'(a,I7)') 'Zone-time increments:',NZTS
-      if(endless.or.issilient)then
-        continue
-      else
-        call edisp(icout,outs)
-      endif
+C      write(outs,'(a,I7,a)') 'Zone-time increments:',NZTS,'.'
+C      if(endless.or.issilient)then
+C        continue
+C      else
+C        call edisp(icout,outs)
+C      endif
 
       IF(INDCFG.EQ.1)goto 133
-  131 write(outs,'(a,I5,a,F6.2,a)')'Plant time-steps: ',NPTS,
-     &  ' / hr ( ',TMINP,' minute intervals)'
+  131 write(outs,'(a,F6.2,a)')'Plant time-steps: ',TMINP,' minutes.'
       call edisp(icout,outs)
   133 IF(INDCFG.EQ.2)goto 135
       IF(ISAVE.GT.0)goto 42
@@ -2196,7 +2201,7 @@ C Derive string for simulation period.
       goto 135
    42 IF(BYTE.GT.2000.0)goto 14
       write(outs,'(a,F8.1,a)')'Building results file size: ',BYTE,
-     &                        ' Kbytes'
+     &                        ' Kbytes.'
       if(isave.eq.1.or.isave.eq.2.or.isave.eq.3.or.isave.eq.4)then
         if(endless)then
           continue
@@ -2207,7 +2212,7 @@ C Derive string for simulation period.
       goto 135
    14 BYTE=BYTE/1024.0
       write(outs,'(a,F8.1,a)')'Building results file size: ',BYTE,
-     &                        ' Mbytes'
+     &                        ' Mbytes.'
       if(isave.eq.1.or.isave.eq.2.or.isave.eq.3.or.isave.eq.4)then
         if(endless)then
           continue
@@ -2226,12 +2231,12 @@ C Derive string for simulation period.
       BYTE=FLOAT(NWORD)*4.0/1024.0
       IF(BYTE.GT.2000.0)goto 137
       write(outs,'(a,F7.1,a)')'Plant results file size: ',BYTE,
-     &                        ' Kbytes'
+     &                        ' Kbytes.'
       call edisp(icout,outs)
       goto 136
   137 BYTE=BYTE/1024.0
       write(outs,'(a,F7.1,a)')'Plant results file size: ',BYTE,
-     &                        ' Mbytes'
+     &                        ' Mbytes.'
       call edisp(icout,outs)
 
 C Time-step controller status.
@@ -2239,13 +2244,14 @@ C Time-step controller status.
         if(endless.or.issilient)then
           continue
         else
-          call edisp(icout, 'Time-step controller: not active')
+          continue
+C          call edisp(icout, 'Time-step controller not active')
         endif
       ELSE
         if(endless.or.issilient)then
           continue
         else
-          call edisp(icout, 'Time-step controller: active')
+          call edisp(icout, 'Time-step controller active.')
         endif
       ENDIF
 
@@ -2348,11 +2354,11 @@ C or mixed, based on time-step evaluation.
 
       endif UserPltConfigSettings
       
-C Default solar treatment, solar ON.
+C Default - solar on.
       IF(ISOLAR.NE.0)call edisp(icout,'Solar processing off')
 
 C Default - results are averaged.
-      IF(IDAVER.NE.0)call edisp(icout,'Solar averaging off')
+      IF(IDAVER.NE.0)call edisp(icout,'Results averaging off')
 
 C Option to terminate - ignore if in autoexec mode as defined in 
 C the simulator parameter file.
@@ -2392,7 +2398,8 @@ C information above to assist in identification.
     7 RETURN
       END
 
-C ****** MZTRAC
+
+C ******************** MZTRAC ********************
 C Allows the user to select areas of bps for trace output.
 
 C Common block variables are:
@@ -2410,6 +2417,7 @@ C ICNT    - counts trace output for page numbering purposes
 #include "building.h"
 #include "model.h"
 #include "geometry.h"
+#include "help.h"
       
       integer lnblnk  ! function definition
 
@@ -2436,11 +2444,7 @@ C Common for libsv3 trace.
       logical OK
       integer NITEMS,INO  ! max items and current menu item
 
-      character helpinsub*24   ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='MZTRAC'  ! set for cfiles
+      helpinsub='simcon'  ! set for cfiles
       helptopic='trace_setup_dialogs'
       call gethelptext(helpinsub,helptopic,nbhelp)
 
@@ -2716,7 +2720,8 @@ C in the pre-simulation period.
       RETURN
       END
 
-C ****** mzinfo
+
+C ******************** mzinfo ********************
 C Displays the values of the currently set simulation
 C parameters. If itru=iuout then goes to the display, 
 C if itru=33 then works as a header to the trace.
@@ -2766,7 +2771,7 @@ C if itru=33 then works as a header to the trace.
       endif
       call edisp(itru,' ')
 
-      call edisp(itru,'Simulation parameters as currently set:')
+      call edisp(itru,'Simulation parameters:')
 
       write(outs,2)isd1,ism1
     2 format('Period from day',i3,' of month',i3)
@@ -2777,33 +2782,32 @@ C if itru=33 then works as a header to the trace.
       call edisp(itru,outs)
 
       if(isave.eq.1)then
-        call edisp(itru,'Save option 1 (minimum). ')
+        call edisp(itru,'Save option 1 (minimum).')
       elseif(isave.eq.2)then
-        call edisp(itru,'Save option 2 (moderate). ')
+        call edisp(itru,'Save option 2 (moderate).')
       elseif(isave.eq.3)then
-        call edisp(itru,'Save option 3 (maximum). ')
+        call edisp(itru,'Save option 3 (maximum).')
       elseif(isave.eq.4)then
-        call edisp(itru,'Save option 4 (energy balance). ')
-c added Save level 5 information
+        call edisp(itru,'Save option 4 (energy balance).')
       elseif(isave.eq.5)then
-        call edisp(itru,'Save option 5 (Hot3000). ')
+        call edisp(itru,'Save option 5 (Hot3000).')
       endif
 
       call edisp(itru,'Control description:')
       call edisp248(itru,ctldoc,72)
 
       write(outs,94)ncf
-   94 format('No.of control functions = ',i2)
+   94 format('Control functions = ',i2)
       call edisp(itru,outs)
 
       write(outs,95)ncl
-   95 format('No.of control loops = ',i2)
+   95 format('Control loops = ',i2)
       call edisp(itru,outs)
 
       if(ncf.eq.0)goto 12
 
-      call edisp(itru,' Control  Associated ')
-      call edisp(itru,' function zone ')
+      call edisp(itru,' Control    Associated ')
+      call edisp(itru,' function   zone ')
       do 10 i=1,ncf
         n=0
         ic=0
@@ -2827,22 +2831,27 @@ c added Save level 5 information
           write(outs,16)i,(io(j),j=1,n)
           call edisp(itru,outs)
         endif
-   16   format(i6,4x,24(i2,','))
+   16   format(i5,7x,24(i2,','))
       endif
 
    12 return
       end
 
-C ****** CFDTOG
+
+C ******************** CFDTOG ********************
 C Set CFD coupling toggles.
 
       subroutine CFDTOG
 #include "building.h"
 #include "cfd.h"
+#include "help.h"
 
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/CFDTOGS/ACCON,CFD2BLD,CFD2MFS
       COMMON/GGDH/GENB1(ntcelx,ntcely,ntcelz),GGDH
+      COMMON/RFNGRD/DOFLT,DORFN,IFNDWT(MNZ),NRFN,IRFNCLS(MNZ,MRFN,3),
+     &  NRFND,IRFND(MNZ,MRFNT,3)
+      logical DOFLT,DORFN
 
       integer ACCON,CFD2BLD,CFD2MFS
       logical GGDH
@@ -2850,15 +2859,10 @@ C Set CFD coupling toggles.
       CHARACTER ITEMG(10)*40 
       integer NITMS,INO  ! max items and current menu item
 
-C For help messages
-      character helpinsub*24   ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='CFDTOG'  ! set for cfiles
+      helpinsub='simcon'  ! set for cfiles
       
  10   INO=-4
-      ITEMG(1)=    ' ---------- COUPLING OPTIONS ---------- '
+      ITEMG(1)=    ' ------------ CFD OPTIONS ------------- '
       if(ACCON.eq.1)then
         ITEMG(2)=  'a adaptive turbulence model >> On       '
       elseif(ACCON.eq.0)then
@@ -2887,16 +2891,25 @@ C For help messages
         call edisp(iuout,'Unrecognized value of CFD2MFS')
         return
       endif
-      ITEMG(5)=    ' ----------- Solver Options ----------- '
       if (GGDH) then
-        ITEMG(6)=  'd general Gradient Diffusion Hyp. >> On '
+        ITEMG(5)=  'd general gradient diffusion hyp. >> On '
       else
-        ITEMG(6)=  'd general Gradient Diffusion Hyp. >> Off'
+        ITEMG(5)=  'd general gradient diffusion hyp. >> Off'
       endif
-      ITEMG(7)=    '  ________________________________      '
-      ITEMG(8)=    '? help                                  '
-      ITEMG(9)=    '- exit menu                             '
-      NITMS=9
+      if (DOFLT) then
+        ITEMG(6)=  'e residual flatline detection >> On     '
+      else
+        ITEMG(6)=  'e residual flatline detection >> Off    '
+      endif
+      if (DORFN) then
+        ITEMG(7)=  'e automatic grid refinement >> On       '
+      else
+        ITEMG(7)=  'e automatic grid refinement >> Off      '
+      endif
+      ITEMG(8)=    '  ________________________________      '
+      ITEMG(9)=    '? help                                  '
+      ITEMG(10)=   '- exit menu                             '
+      NITMS=10
 
 C Help text for this menu.
       helptopic='cfd_coupling_toggles'
@@ -2928,13 +2941,29 @@ C 1-way CFD-MFS conflation.
 C 2-way CFD-MFS conflation.
           CFD2MFS=2
         endif
-      elseif(INO.eq.6)then
+      elseif(INO.eq.5)then
         if(.not.GGDH)then
 C GGDH on.
           GGDH=.TRUE.
         else
 C GGDH off.
           GGDH=.FALSE.
+        endif
+      elseif(INO.eq.6)then
+        if(.not.DOFLT)then
+C Residual flatline detection on.
+          DOFLT=.TRUE.
+        else
+C Residual flatline detection off.
+          DOFLT=.FALSE.
+        endif
+      elseif(INO.eq.7)then
+        if(.not.DORFN)then
+C Grid refinement on.
+          DORFN=.TRUE.
+        else
+C Grid refinement off.
+          DORFN=.FALSE.
         endif
       elseif(INO.eq.(NITMS-1))then
 C Help.

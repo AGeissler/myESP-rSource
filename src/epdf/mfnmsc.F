@@ -13,11 +13,6 @@ C warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
 C PURPOSE. See the GNU General Public License for more
 C details.
 
-C You should have received a copy of the GNU General Public
-C License along with ESP-r. If not, write to the Free
-C Software Foundation, Inc., 59 Temple Place, Suite 330,
-C Boston, MA 02111-1307 USA.
-
 C ************************* genmfn **************************
 C This subroutine generates a massflow network for the
 C plant problem.
@@ -260,18 +255,16 @@ C Ask user for related mass flow network files.
 #include "building.h"
 #include "plant.h"
 #include "esprdbfile.h"
-C esprdbfile.h supplies the following:
-C LAPRES,IAPRES (for window pressure databases)
+#include "help.h"
 
       COMMON/FFN/IFLWN,ICFFS(MPCON)
       COMMON/AFN/IAIRN,LAPROB,ICAAS(MCOM)
       COMMON/RESLIB/RFILE,PFILE,MSTRFILE,LAFRES
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
-      common/pophelp/h(60)
       LOGICAL OK
       character LAPROB*72
       character rfile*72,PFILE*72,MSTRFILE*72,LAFRES*72
-      character H*72,lltmp*144,ltmp*72
+      character lltmp*144,ltmp*72
 
       h(1)='This file is assumed to exist. '
       ltmp=laprob

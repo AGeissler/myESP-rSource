@@ -22,14 +22,11 @@ C ESP-r-to-Radiance model translator and driver.
 #include "building.h"
 #include "model.h"
 #include "esprdbfile.h"
-C esprdbfile.h supplies the following:
-C LAPRES,IAPRES (for window pressure database)
-C LOPTDB,IOPTDB (for optical database)
-C LFMAT,IFMAT,LFMUL,IFMUL (for materials and constructions database)
 #include "material.h"
 #include "espriou.h"
 #include "prj3dv.h"
 #include "e2r_common.h"
+#include "help.h"
       
       integer lnblnk  ! function definition
       integer igraphiclib  ! external definition
@@ -131,11 +128,6 @@ C Ask to overwrite flag.
       integer*8 iiw1,iiw2,iiw3,iiw4,iimenu
 #endif
       integer NITEMS,INO ! max items and current menu item
-
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
 
 C Initialize global common data.
       call ezero
@@ -313,7 +305,7 @@ C Initialise output device, assume minimal trace.
 
 C Set pixels high to iappw and pixels wide to factor in monitor size.
       iapphi=iappw
-      iappwi=int(real(iappw)*(1024.0/780.0))
+      iappwi=int(real(iappw)*(1024.0/725.0))
 
       if(iappw.gt.0.and.iappw.lt.100)then
         menuchw = MAX0(int(32*iappw*0.01),12)
@@ -1271,9 +1263,6 @@ C See if there is a pwdtocfg which can be recovered from within
 C the command line file.
 C << filen is the same as LCFGF so do we need fdroot call? >>
       call fdpwdtocfg(LCMDFL,ppath,filen)
-C      write(6,*) 'pwdtocfg ',pwdtocfg(1:lnblnk(pwdtocfg))
-C      write(6,*) 'pp ',ppath(1:lnblnk(ppath))
-C      write(6,*) 'fi ',filen(1:lnblnk(filen))
 
 C Configuration file and path are held in common/rcmd/LCMDFL
       call fdroot(LCMDFL,path,LCFGF)
@@ -1340,8 +1329,6 @@ C invoking e2r.
             write(runpath,'(3a)') pwdtocfg(2:lnblnk(pwdtocfg)),
      &        radpth(1:lnblnk(radpth)),fs
             lnrp=lnblnk(runpath)  ! remember this
-C            write(6,*) 'lnrp ',lnrp,pwdtocfg
-C            write(6,*) 'runpath ',runpath
           endif
         else
 
@@ -1355,8 +1342,9 @@ C << variant for non-unix >>
             lnrp=lnblnk(runpath)  ! remember this
           endif
         endif
-        write(outs,'(2a)') 'The place where rad will be invoked is ',
+        write(outs,'(2a)') 'Output files will be placed in ',
      &     runpath(1:lnrp)
+        call edisp(iuout,' ')
         call edisp(iuout,outs)
       endif
 
@@ -1406,7 +1394,8 @@ C lfile contains path as well as file name.
 
 
 C ************* inqu_tmc *************
-C inqu_tmc: Check if tmc control active.
+C Check if tmc control is active.
+
       subroutine inqu_tmc
 #include "building.h"
 #include "model.h"
@@ -1455,16 +1444,15 @@ C Check if tmc control found.
       return
       end
 
-C*******************************************************************
-C SUR3DLEHI Determines the overall length and height of a
-C surface (bounding box) and passes the vaules back as WID and HIGH.
-C Uses a temporary transform into 2D to get this data.
+C ******************** SUR3DLEHI ********************
+C Determines the overall length and height of a surface
+C (bounding box) and passes the values back as WID and HIGH.
+C Uses a temporary 2D transform to get these data.
 
       SUBROUTINE SUR3DLEHI(izone,IS,WID,HIGH,BB)
 #include "building.h"
 #include "geometry.h"
 
-C Parameters
       integer izone  ! the focus zone
       integer is     ! the focus surface
       real wid,high  ! pass back width and height of bounding box
@@ -1556,6 +1544,7 @@ C      write(6,*) 'h w',HIGH,WID
 
 C ************* imgdisp *************
 C Dummy routine (needed for call back from c).
+
       subroutine imgdisp(iforce,focus,ier)
       character focus*4
       return
@@ -1576,5 +1565,9 @@ C Dummy routine (needed for call back from c).
       end
       
       SUBROUTINE GRAAPH(IDRW1,IDRW2)
+      return
+      end
+
+      subroutine redrawbuttons()
       return
       end

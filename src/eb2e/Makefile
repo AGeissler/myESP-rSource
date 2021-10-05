@@ -29,7 +29,7 @@ OBJECTS = b2e.o CDBPlugins.o CDBCommon.o CDBExplore.o\
 	c2fdum.o clispline.o ctlwrt.o ctread.o daproc.o econtrol.o egeometry.o \
 	emfnetw.o emkcfg.o eroper.o esru_misc.o esystem.o filelist.o initalc.o item.o mfcdat.o \
 	nwkrewr.o pltcfg.o readTrnsys.o rwipv.o rwsbem.o simcomis.o sort.o tdfile.o \
-	FMIcom.o
+	FMIcom.o agtcom.o grmcom.o
 
 MODULES = aim2.mod aim2_calcdata.mod aim2_h2k_dummy.mod aim2_inputdata.mod start_up.mod parse_command_line.mod
 
@@ -117,6 +117,12 @@ tdfile.F:
 FMIcom.F:
 	rm -f FMIcom.F
 	ln -s $(COMdir)/FMIcom.F .
+agtcom.F:
+	rm -f agtcom.F
+	ln -s $(COMdir)/agtcom.F .
+grmcom.F:
+	rm -f grmcom.F
+	ln -s $(COMdir)/grmcom.F .
 
 strip:
 	strip $(PROG)
@@ -130,7 +136,7 @@ clean:
 	c2fdum.F ctlwrt.F ctread.F econtrol.F egeometry.F emfnetw.F emkcfg.F esru_misc.F \
 	eroper.F esystem.F filelist.F initalc.F item.F mfcdat.F nwkrewr.F pltcfg.F sort.F startup.F tdfile.F \
 	readTrnsys.F rwipv.F rwsbem.F \
-	FMIcom.F
+	FMIcom.F agtcom.F grmcom.F
 
 distclean: clean
 

@@ -949,7 +949,7 @@ C the model.
 #include "espriou.h"
 #include "control.h"
 #include "seasons.h"
-C #include "ipvdata.h"
+#include "help.h"
 
       integer lnblnk  ! function definition
 
@@ -1026,11 +1026,6 @@ C Global or bespoke room use.
 C Keyword for building type.
       character btype*24
       common/buildinguse/btype
-
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
 
       integer inumXMLmetrics !counts for the number of xml metrics defined
 
@@ -1127,6 +1122,8 @@ C Working array for parent surface(s) while testing insertion of openings.
 
       IER=0; idebg=1
       IFCFG=IFIL+5
+      helpinsub='egbxml'  ! set for subroutine
+      helptopic='parsing_overview'
 
 C Determine operating system
       call isunix(unixok)
@@ -1204,8 +1201,7 @@ C For each of the possible ESP-r zones, clear values.
         zn(loop)=' '; spname(loop)=' '
         nbwalls(iz) = 0
         rotateit(iz,1) = 0.0; rotateit(iz,2) = 0.0
-        rotateit(iz,3) = 0.0; rotateit(iz,4) = 0.0
-        rotateit(iz,5) = 0.0; rotateit(iz,6) = 0.0
+        rotateit(iz,3) = 0.0
         zorigin(iz,1) = 0.0; zorigin(iz,2) = 0.0
         zorigin(iz,3) = 0.0
         zsize(iz,1) = 0.0; zsize(iz,2) = 0.0

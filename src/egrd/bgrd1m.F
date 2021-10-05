@@ -13,11 +13,6 @@ C warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
 C PURPOSE. See the GNU General Public License for more
 C details.
 
-C You should have received a copy of the GNU General Public
-C License along with ESP-r. If not, write to the Free
-C Software Foundation, Inc., 59 Temple Place, Suite 330,
-C Boston, MA 02111-1307 USA.
-
 C *********************************************************************
 C  This file contains the following 1-D moisture node distribution 
 C  subroutines:
@@ -34,10 +29,9 @@ C *********************************************************************
       SUBROUTINE MENU1M(IDRW1,IDRW2,ITRC)
 #include "building.h"
 #include "model.h"
-
-C geometry.h provides commons G0/G2/g6/c20/precz.
 #include "geometry.h"
 #include "prj3dv.h"
+#include "help.h"
 
       integer iCountWords
 
@@ -65,12 +59,7 @@ C geometry.h provides commons G0/G2/g6/c20/precz.
 
       DIMENSION IVALZ(MCOM),IVALS(MS)
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='MENU1M'  ! set for subroutine
+      helpinsub='bgrd1m'  ! set for subroutine
 
       IUNIT=IFIL+1
       IZ=0
@@ -287,6 +276,8 @@ C *********************************************************************
       SUBROUTINE HYGRIC(IZ)
 #include "building.h"
 #include "geometry.h"
+#include "help.h"
+
       integer iCountWords
 
       COMMON/HELP/IHELPM
@@ -306,12 +297,7 @@ C *********************************************************************
 
       DIMENSION IVALS(MS),IVALL(ME)
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='HYGRIC'  ! set for subroutine
+      helpinsub='bgrd1m'  ! set for subroutine
 
       IS=1
       IL=1

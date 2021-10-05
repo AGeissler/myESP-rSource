@@ -73,14 +73,15 @@ static box	elev,elevplus,elevminus;	/* buttons for view elevation changes */
 static box     altb,querb,defb,okb;	/* boxes for alts,query help, default, confirm */
 static box     updown_text;	/* box for resizing text feedback */
 static box     a,b,c,d,e,f,g;	/* boxes for multiple choices */
-static box	cfgz,cfgn,cfgc,cfgdfn;	/* boxes for problem type */
-static box	mouse,mouse1,mouse2,mouse3;	/* box for mouse button help */
-static char mseb1h[10],mseb2h[10],mseb3h[10]; /* mouse help strings */
+static box	cfgz,cfgs,cfgn,cfgc,cfgpln,cfgeln,cfgren;	/* boxes for problem type */
+static box	cfgfab,cfgbeh,cfgsim;
+static box	mouse,mouse1,mouse2,mouse3;	                      /* box for mouse button help */
+static char mseb1h[10],mseb2h[10],mseb3h[10];                         /* mouse help strings */
 static int aziplus_left,aziminus_left,azi_left,elevplus_left,elevminus_left,elev_left; /* left of azi&elev boxes */
-static int b_setup, l_setup, b_cpw, l_cpw;	/* ll of setup, copyright boxs */
-static int wire_left,capture_left,captext_left;	/* left of wire frame and capture control box */
-static long int ocfgz,ocfgn,ocfgc,ocfgdfn; /* persistant toggles for problem type boxes */
-static long int iiocfgz,iiocfgn,iiocfgc,iiocfgdfn; /* persistant toggles for problem type images */
+static int b_setup, l_setup, b_cpw, l_cpw;	                       /* ll of setup, copyright boxs */
+static int wire_left,capture_left,captext_left;	                       /* left of wire frame and capture control box */
+static long int ocfgz,ocfgs,ocfgn,ocfgc,ocfgpln,ocfgeln;     /* persistant toggles model feature boxes */
+static long int ocfgren,ocfgfab,ocfgbeh,ocfgsim; 
 static int disp_opened = 0;     /* flag for existance of text display box. */
 static int dialogue_lines = 0;  /* number of lines of text in dialogue box */
 static int disp_lines = 0;      /* number of lines of text in text display box */
@@ -311,26 +312,27 @@ void refreshenv_()
    return;
 } /* refreshenv */
 
-/* ******  Place configuration buttons on screen ********** */
-void opencfg_(cfg_type,icfgz,icfgn,icfgc,icfgdfn,iicfgz,iicfgn,iicfgc,iicfgdfn)
+/* ******  Place model feature buttons on screen ********** */
+void opencfg_(cfg_type,icfgz,icfgs,icfgnet,icfgc,icfgpln,icfgeln,icfgren,icfgfab,icfgbeh,icfgsim)
   long int *cfg_type;	/* type of problem configuration */
-  long int *icfgz,*icfgn,*icfgc,*icfgdfn;     /* toggles for zones/networks/control/domain boxes */
-  long int *iicfgz,*iicfgn,*iicfgc,*iicfgdfn;	/* indicators for associated images */
+  long int *icfgz,*icfgs,*icfgnet,*icfgc,*icfgpln,*icfgeln,*icfgren; /* toggles for feature boxes */
+  long int *icfgfab,*icfgbeh,*icfgsim; 
 {
- long int eyex,eyey,sym,sz;  /* centre for image symbols and symbol index and size */
  long int saved_font;
  int bh,hdl;
- int oocfgz = (int) *icfgz;	/* toggle for zones button */
- int iioocfgz = (int) *iicfgz;	/* toggle for zones images */
- int oocfgn = (int) *icfgn;	/* toggle for network button */
- int iioocfgn = (int) *iicfgn;	/* toggle for network images */
- int oocfgc = (int) *icfgc;	/* toggle for control button */
- int iioocfgc = (int) *iicfgc;	/* toggle for control images */
- int oocfgdfn = (int) *icfgdfn;	/* toggle for domain button */
- int iioocfgdfn = (int) *iicfgdfn;	/* toggle for domain images */
- ocfgz = oocfgz; ocfgn = oocfgn; ocfgc = oocfgc; ocfgdfn = oocfgdfn; /* remember toggles */
- iiocfgz = iioocfgz; iiocfgn = iioocfgn; iiocfgc = iioocfgc; iiocfgdfn = iioocfgdfn; /* remember images */
-
+ int oocfgz = (int) *icfgz;	        /* toggle for zones button */
+ int oocfgs = (int) *icfgs;	        /* toggle for Context button */
+ int oocfgn = (int) *icfgnet;	        /* toggle for Fluid flow button */
+ int oocfgc = (int) *icfgc;	        /* toggle for Control button */
+ int oocfgpln = (int) *icfgpln;	        /* toggle for HAVC button */
+ int oocfgeln = (int) *icfgeln;	        /* toggle for Electrical button */
+ int oocfgren = (int) *icfgren;	        /* toggle for Renewables button */
+ int oocfgfab = (int) *icfgfab;	        /* toggle for Enhanced fabric button */
+ int oocfgbeh = (int) *icfgbeh;	        /* toggle for Behaviour button */
+ int oocfgsim = (int) *icfgsim;	        /* toggle for automation button */
+ ocfgz = oocfgz; ocfgs = oocfgs; ocfgn = oocfgn; ocfgc = oocfgc; /* remember toggles */
+ ocfgpln = oocfgpln; ocfgeln = oocfgeln; ocfgren = oocfgren; ocfgfab = oocfgfab; 
+ ocfgbeh = oocfgbeh; ocfgsim = oocfgsim;
   return;
 } /* opencfg */
 

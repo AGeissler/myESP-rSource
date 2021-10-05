@@ -37,7 +37,8 @@ C Manual inclusion of a parameter from building.h
       parameter (MSPS=30)
       parameter (MIPVA=MSPS)
 
-#include "seasons.h"  
+#include "seasons.h"
+#include "help.h"
 
       integer lnblnk  ! function definition
 
@@ -51,7 +52,6 @@ C Parameters
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
       common/warncounter/iecount
       COMMON/FILEP/IFIL
-      common/pophelp/h(60)
       common/clmltext/clmlnam,clmlaid,clmldbfile,clmlavail,clmlhelp(60)
       character clmlnam*42,clmlaid*72,clmldbfile*144,clmlavail*10
       character clmlhelp*72
@@ -59,15 +59,10 @@ C Parameters
       dimension name(124), mitem(35)
       character name*42,mitem*42,OUTSTR*124,WORD*20
       character group*32,key*1,look*42,tlook*42
-      character llclmdb*144,h*72
+      character llclmdb*144
       integer NCO,ICO ! max items and current menu item
       integer ISTRW
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found (will be non-zero
-                         ! because default message will be created
       helpinsub='rdblist'
 
 C Set default early winter, spring, summer, autumn, late winter periods.
@@ -201,9 +196,8 @@ C User supplied file. Use file browser with the GTK version.
       ELSEIF(ICO.EQ.(NCO-3))THEN
         clmdb=' '
         llclmdb=' '
-        h(1)='Enter an ESP-r weather file as located in the'
-        h(2)='standard ESP-r folder (/opt/esp-r/climate) or'
-        h(3)='another folder of your choice.'
+        helptopic='request_weather_file'
+        call gethelptext(helpinsub,helptopic,nbhelp)
  289    llt=lnblnk(llclmdb)
         iglib = igraphiclib()  ! find out if X11 or GTK or text support only.
         if(iglib.eq.1.or.iglib.eq.3)then
@@ -220,7 +214,7 @@ C User supplied file. Use file browser with the GTK version.
           ISTRW=96
         endif
         CALL EASKF(llclmdb,' ','Weather file name?',
-     &    ISTRW,DCLIM,'weather file name',IER,3)
+     &    ISTRW,DCLIM,'weather file name',IER,nbhelp)
         IF(llclmdb(1:2).EQ.'  ')GOTO 289
 
 C Cast back to clmdb.
@@ -536,6 +530,7 @@ C Manual inclusion of a parameter from building.h
       parameter (MIPVA=MSPS)
 
 #include "seasons.h"
+#include "help.h"
 
       integer lnblnk  ! function definition
       integer iCountWords
@@ -544,7 +539,6 @@ C Parameters passed.
       character act*1,parent*1,actreturn*1,clmdb*144
 
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
-      common/pophelp/h(60)
 
 C Strings associated with one climatelist item.
 C clmlnam    - the selection list string
@@ -561,7 +555,7 @@ C Numbers associated with one climatelist item.
 
       character OUTSTR*124,WORD*20,louts*248
       character outs*124
-      character h*72,pstring*40
+      character pstring*40
 
   4   CALL STRIPC(idblfil,OUTSTR,0,ND,0,'item line',IER)
 
@@ -777,7 +771,6 @@ C Reached the end of the item, check if it is to be chosen. Reset
 C the first line of the scanned documentation/help to compensate
 C for the line used in EASKOK.
         if(act.eq.'r')then
-          h(1)='Make a selection!'
           lasth = MIN0(nbclmlhelp,60)
           do 1546 iasth=1,lasth
             call edisp(iuout,clmlhelp(iasth))
@@ -786,7 +779,7 @@ C for the line used in EASKOK.
             if(parent(1:1).eq.'c')then
               call usrmsg('Weather file is offline!',' ','W')
               CALL EASKAB(' ','Options:','Exit clm',
-     &          'Select another from list',IW,1)
+     &          'Select another from list',IW,nbhelp)
               if(IW.eq.2)then
                 clmdb='UNKNOWN'
                 actreturn='m'
@@ -799,7 +792,7 @@ C for the line used in EASKOK.
             elseif(parent(1:1).eq.'p')then
               call usrmsg('Weather file offline!',' ','W')
               CALL EASKAB(' ','Options:','continue',
-     &          'select another',IW,1)
+     &          'select another',IW,nbhelp)
               if(IW.eq.2)then
                 clmdb='UNKNOWN'
                 actreturn='m'
@@ -812,7 +805,7 @@ C for the line used in EASKOK.
             endif
           elseif(clmlavail(1:6).eq.'ONLINE')then
             if(parent(1:1).eq.'c')then
-              CALL EASKAB(' ','Options:','use it','reselect',IW,1)
+              CALL EASKAB(' ','Options:','use it','reselect',IW,nbhelp)
               if(IW.eq.2)then
                 clmdb='UNKNOWN'
                 actreturn='m'

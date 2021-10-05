@@ -1121,7 +1121,7 @@ C Read m. flow control functions information and perform checks.
         IF(IER.NE.0)GOTO 99
 
 C Range checking.
-        if(ifsn(ii,1).lt.-4) goto 1004
+        if(ifsn(ii,1).lt.-7) goto 1004
         if(ifsn(ii,2).lt.0.or.ifsn(ii,3).lt.0)goto 1062
 
 C Reporting: Get a string describing the current sensor based on common.
@@ -2643,7 +2643,8 @@ C Flow control type.
         IF(IFCTYP(II,JJ,KK).eq.30)SSTR='delt pD > flow    '
         IF(IFCTYP(II,JJ,KK).eq.31)SSTR='delt RH > flow    '
         IF(IFCTYP(II,JJ,KK).eq.41)SSTR='contam conc > flow'
-        IF(IFSN(II,1).EQ.-3)SSTR='outside ambient > flow  '
+        IF(IFSN(II,1).EQ.-3)SSTR='ambient > flow    '
+        IF(IFSN(II,1).EQ.-7)SSTR='casual gain > flow'
       ELSEIF(WHICH.EQ.'L'.OR.WHICH.EQ.'l')THEN
 
 C Control law.
@@ -3525,14 +3526,30 @@ C          call edisp248(6,message,80)
           cm(7)=bmiscd(II,JJ,KK,7)
           cm(8)=bmiscd(II,JJ,KK,8)
           cm(9)=bmiscd(II,JJ,KK,9)
-          write(lmsg,'(2a,f9.1,a,f9.1,a,f9.1,a,f9.1,a,f7.2,a,f7.2,a
-     &    ,F7.2,a,F7.2)') 
+          write(lmsg,
+     &     '(2a,f9.1,a,f9.1,a,f9.1,a,f9.1,a,f7.2,a,f7.2,a,F7.2,a,F7.2)') 
      &    msg1,' max heating capacity ',cm(2),
      &    'W min heating capacity ',cm(3),'W max cooling capacity ',
      &    cm(4),'W min cooling capacity ',cm(5),
      &    'W. Heating setpoint ',cm(6),'C cooling setpoint ',
      &    cm(7),' Running mean response parameter ',CM(8),
      &    ' Comfort band (default is 2) ',CM(9)
+          call SDELIM(lmsg,message,'S',IW)
+        ELSEIF(IBCLAW(II,JJ,KK).eq.33)THEN
+          SSTR='occupant activated'
+          msg1=' '
+          cm(1)=bmiscd(II,JJ,KK,1)
+          cm(2)=bmiscd(II,JJ,KK,2)
+          cm(3)=bmiscd(II,JJ,KK,3)
+          cm(4)=bmiscd(II,JJ,KK,4)
+          cm(5)=bmiscd(II,JJ,KK,5)
+          cm(6)=bmiscd(II,JJ,KK,6)
+          cm(7)=bmiscd(II,JJ,KK,7)
+          write(lmsg,'(2a,f9.1,a,f9.1,a,f9.1,a,f9.1,a,f7.2,a,f7.2)') 
+     &    msg1,' max heating capacity ',cm(2),
+     &    'W min heating capacity ',cm(3),'W max cooling capacity ',
+     &    cm(4),'W min cooling capacity ',cm(5),
+     &    'W. Heating setpoint ',cm(6),'C cooling setpoint ',cm(7)
           call SDELIM(lmsg,message,'S',IW)
         ELSEIF(IBSN(II,1).EQ.-99)then
           SSTR='control law not used'
@@ -4565,6 +4582,12 @@ C representing the index of the node.
             WRITE(SSTRB,'(6a)')'senses node (',NNAM(1:LNBLNK(NNAM)),') '
      &      ,DESC(1:lnblnk(desc)),', contm: ',contmnam(icsn(3))
           ENDIF
+        ELSEIF(icsn(1).eq.-7)THEN
+          write(zn,'(a)') zname(icsn(2))
+            WRITE(SSTR,'(a,i1,3a)')'senses casual gain index ',icsn(3),
+     &        ' in ',zn(1:lnblnk(zn)),'.'
+            WRITE(SSTR,'(a,i1,3a)')'senses casual gain index ',icsn(3),
+     &        ' in ',zn(1:lnblnk(zn)),'.'
         ENDIF
       elseif(icfoc.eq.5)then
 

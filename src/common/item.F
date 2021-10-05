@@ -26,9 +26,8 @@ C IER=0 OK, IER=1 problem.
 #include "building.h"
 #include "net_flow.h"
 #include "tdf2.h"
+#include "help.h"
 
-      character h*72
-      common/pophelp/h(60)
       COMMON/TDFGH1/NITEMS
       COMMON/TDFGH2/GTYPES(MTI),GMENUS(MTI)
       DIMENSION ISGGT(MTI+4),IVAL(MTI+4),IVALSS(MTI)
@@ -36,6 +35,10 @@ C IER=0 OK, IER=1 problem.
       CHARACTER GMENUS*24,GTYPES*8
       CHARACTER KEY*1,ISGGT*36,FOCUS*8
       integer nitms,INO ! max items and current menu item
+
+      helpinsub='item'  ! set for subroutine
+      helptopic='scan_temporal_items'
+      call gethelptext(helpinsub,helptopic,nbhelp)
 
 C Read the generic descriptions to see what is available.
       IER=0
@@ -56,10 +59,6 @@ C      ISGGT(M+2)='- Exit                      '
       DO 3 IT=1,NITEMS
         WRITE(ISGGT(IT),'(3a)')GMENUS(IT),' ',GTYPES(IT)
     3 CONTINUE
-
-C Instantiate h() strings for this menu.
-      h(1)='The tab type menu does not yet have'
-      h(2)='any help associated with it. '
 
 C Make a menu of available generic items.
       INPICK=1

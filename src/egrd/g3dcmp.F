@@ -13,11 +13,6 @@ C warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
 C PURPOSE. See the GNU General Public License for more
 C details.
 
-C You should have received a copy of the GNU General Public
-C License along with ESP-r. If not, write to the Free
-C Software Foundation, Inc., 59 Temple Place, Suite 330,
-C Boston, MA 02111-1307 USA.
-
 C *********************************************************************
 C This file contains the following routines:
 
@@ -63,11 +58,12 @@ C *********************************************************************
 C *********************************************************************
 C GRDSRF is the main controller for surfaces discretization. It 
 C displays the main menu for surfaces.
-C *********************************************************************
+
       SUBROUTINE GRDSRF(IZ,IDRW1,IDRW2)
 #include "building.h"
 #include "geometry.h"
 #include "prj3dv.h"
+#include "help.h"
       integer iCountWords
 
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
@@ -88,12 +84,7 @@ C *********************************************************************
       CHARACTER ITEM*28,SZN*12,STTS*5
       integer MITEM,INO ! max items and current menu item
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='GRDSRF'  ! set for subroutine
+      helpinsub='g3dcmp'  ! set for subroutine
 
       SZN=zname(IZ)
       SSRF=' '
@@ -937,11 +928,12 @@ C Create new gridding line.
 C **************************  GRDEDG  *********************************
 C GRDEDG is the main controller for edges discretization. It displays
 C the main menu for edges.
-C *********************************************************************
+
       SUBROUTINE GRDEDG(IZ,IDRW1,IDRW2)
 #include "building.h"
 #include "geometry.h"
 #include "prj3dv.h"
+#include "help.h"
       integer iCountWords
 
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
@@ -962,12 +954,7 @@ C *********************************************************************
       real DZX   ! To avoid variable name clash with DX from geometry.h
       integer MITEM,INO ! max items and current menu item
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='GRDEDG'  ! set for subroutine
+      helpinsub='g3dcmp'  ! set for subroutine
 
       SZN=zname(IZ)
       SRF(1)=' '
@@ -1343,11 +1330,12 @@ C Draw the gridding lines.
 
 C **************************   CONEDG   *******************************
 C CONEDG displays the edge construction menu.
-C *********************************************************************
+
       SUBROUTINE CONEDG(IZ,IEG)
 #include "building.h"
 #include "geometry.h"
 #include "prj3dv.h"
+#include "help.h"
       integer iCountWords
 
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
@@ -1372,12 +1360,7 @@ C *********************************************************************
       real DXX,DYX   ! To avoid variable name clash with DX from geometry.h
       integer MITEM,INO ! max items and current menu item
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='CONEDG'  ! set for subroutine
+      helpinsub='g3dcmp'  ! set for subroutine
 
 C Define the two surfaces.
       IS1=ISFEDG(IEG,1)
@@ -1980,11 +1963,12 @@ C *********************************************************************
 C **************************  GRDCRN  *********************************
 C GRDCRN is the main controller for corners discretization. It displays
 C the main menu for corners.
-C *********************************************************************
+
       SUBROUTINE GRDCRN(IZ,IDRW1,IDRW2)
 #include "building.h"
 #include "geometry.h"
 #include "prj3dv.h"
+#include "help.h"
       integer iCountWords
 
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
@@ -2007,12 +1991,7 @@ C *********************************************************************
       real DZX   ! To avoid variable name clash with DX from geometry.h
       integer MITEM,INO  ! max items and current menu item
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='GRDCRN'  ! set for subroutine
+      helpinsub='g3dcmp'  ! set for subroutine
 
       SZN=zname(IZ)
       SRF(1)=' '
@@ -2394,11 +2373,12 @@ C Draw the gridding lines.
 
 C **************************   CONCRN   *******************************
 C CONCRN displays the corner construction menu.
-C *********************************************************************
+
       SUBROUTINE CONCRN(IZ,ICR)
 #include "building.h"
 #include "geometry.h"
 #include "prj3dv.h"
+#include "help.h"
       integer iCountWords
 
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
@@ -2423,12 +2403,7 @@ C *********************************************************************
       real DXX,DYX   ! To avoid variable name clash with DX from geometry.h
       integer MITEM,INO ! max items and current menu item
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='CONCRN'  ! set for subroutine
+      helpinsub='g3dcmp'  ! set for subroutine
 
 C Define the three surfaces.
       IS1=ISFCRN(ICR,1)

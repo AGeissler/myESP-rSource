@@ -266,6 +266,7 @@ C data structure.
       SUBROUTINE  ENCPOL(I,NA,NAP,IAPNT,APOL)
 
 #include "building.h"
+
       COMMON/G1M/XM(MTV),YM(MTV),ZM(MTV),NSURM,JVNM(MSM,MV),
      &           NVERM(MSM),NTVM
 
@@ -308,3 +309,33 @@ C Decode into polygons.
 
       RETURN
       END
+
+C ***************** ESMANYZON 
+C ESMANYZON populates G1M with geometry for any zone.
+
+      SUBROUTINE ESMANYZON(iz)
+
+#include "building.h"
+#include "geometry.h"
+
+      COMMON/G1M/XM(MTV),YM(MTV),ZM(MTV),NSURM,JVNM(MSM,MV),
+     &           NVERM(MSM),NTVM
+
+      NTVM=NZTV(iz)
+      DO 65 iv=1,NTVM
+        XM(iv)=SZCOORDS(iz,iv,1)
+        YM(IV)=SZCOORDS(iz,iv,2)
+        ZM(IV)=SZCOORDS(iz,iv,3)
+   65 CONTINUE
+
+      NSURM=NZSUR(iz)
+      DO 66 is=1,NSURM
+        NVERM(is)=ISZNVER(iz,is)
+        DO 67 iv=1,NVERM(is)
+          JVNM(is,iv)=ISZJVN(iz,is,iv)
+   67   CONTINUE
+   66 CONTINUE
+
+      RETURN
+      END
+      

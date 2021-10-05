@@ -13,11 +13,6 @@ C warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
 C PURPOSE. See the GNU General Public License for more
 C details.
 
-C You should have received a copy of the GNU General Public
-C License along with ESP-r. If not, write to the Free
-C Software Foundation, Inc., 59 Temple Place, Suite 330,
-C Boston, MA 02111-1307 USA.
-
 C This file contains subroutines which allow data to be recovered from
 C a TDF binary (scratch) file.
 
@@ -38,6 +33,8 @@ C day and VAL(2...) are timestep fields.
 #include "net_flow.h"
 #include "tdf2.h"
 #include "sbem.h"
+#include "help.h"
+
       common/tc/itc,icnt
       common/trace/itcf,itrace(mtrace),izntrc(mcom),itu
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
@@ -61,12 +58,7 @@ C  4th value is whether to interpolate for this timestepX.
       dimension VAL(MBITS+2)
       logical traceok,FOUND,closer
 
-C For help messages
-      character helpinsub*24   ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='RCTDFB'  ! set for cfiles
+      helpinsub='tdrecbps'  ! set for cfiles
       idebug=0
 
 C Trace output ?
@@ -242,6 +234,8 @@ C day and VAL(2...) are timestep fields.
 #include "net_flow.h"
 #include "tdf2.h"
 #include "sbem.h"
+#include "help.h"
+
       common/tc/itc,icnt
       common/trace/itcf,itrace(mtrace),izntrc(mcom),itu
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
@@ -265,12 +259,7 @@ C  4th value is whether to interpolate for this timestepX.
       dimension VAL(MTABC+2)
       logical traceok,FOUND,closer
 
-C For help messages
-      character helpinsub*24   ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='RCTDFBALL'  ! set for cfiles
+      helpinsub='tdrecbps'  ! set for cfiles
 
 C Trace output ?
       traceok = .true.

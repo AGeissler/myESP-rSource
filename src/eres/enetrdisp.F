@@ -572,8 +572,8 @@ C Electrical network results library details.
       INTEGER NVAL1,NVAL2,EFILT
   
       CHARACTER MODE*1,EVLABU*4,EVLABS*16,OUTPUTS*216,SOUTP*18,OUTS*124,
-     &DELIM*1,XFILE*144,HDR1*216,HDR2*216,DESCR*7,DESCR1*10,PDESCR*60,
-     &SDESCR*44,ELRFLNAM*144,SSTR*3,TG*1
+     &DELIM*1,XFILE*144,HDR1*216,HDR2*216,DESCR*7,DESCR1*10,PDESCR*64,
+     &SDESCR*44,ELRFLNAM*144,SSTR*3,TG*1,DESCR2*8
 
 C Initialise the output string 
       OUTPUTS=' '
@@ -604,7 +604,8 @@ C and EVLABU.
 C Firstly write the text header
         IF(IHFLAG.EQ.0)THEN
           CALL EDISP(ICOUT,'# Timestep miscellaneous information.')
-          WRITE(OUTS,'(2A)')'# Electrical results lib: ',ELRFLNAM(1:30)
+          WRITE(OUTS,'(2A)')'# Electrical results library: ',
+     &      ELRFLNAM(1:30)
           CALL EDISP(ICOUT,OUTS)
           WRITE(OUTS,'(2A)')'# ',PDESCR
           CALL EDISP(ICOUT,OUTS)
@@ -693,7 +694,7 @@ C Increment the day counter Check if the header string needs written
 
 C Calculate the day
               IDAY=IOD1+(ITS/(24*NETS))
-              CALL STDATE(IYEAR,IDAY,DESCR,DESCR1)
+              CALL STDATE(IYEAR,IDAY,DESCR,DESCR1,DESCR2)
               IF(IXOPEN.EQ.1)THEN
                 OUTS='# '
                 CALL EDISP(IXUNIT,OUTS)
@@ -880,7 +881,7 @@ C Array of recovered data
       REAL EVAL1,EVAL2
       INTEGER NVAL1,NVAL2,EVAXIS,EVMARK,EVLINE,EFILT
       CHARACTER ETEXT*124,LOUT*96,SLOUT*22
-      CHARACTER PDESCR*60,SDESCR*44,ELRFLNAM*144
+      CHARACTER PDESCR*64,SDESCR*44,ELRFLNAM*144
       CHARACTER EVLABS*16,EVLABU*4,EXLAB*5
 
       integer iglib   ! if 1 then X11, if 2 then GTK, if 3 then text only.
@@ -1005,6 +1006,7 @@ C  ***********************************************************************
 #include "plant.h"
 #include "power.h"
 #include "epara.h"
+#include "help.h"
       
       integer lnblnk  ! function definition
 
@@ -1019,12 +1021,7 @@ C  ***********************************************************************
       DIMENSION VERT(MERAWD)
       integer MVERT,IVERT ! max items and current menu item
 
-C For help messages
-      character helpinsub*24   ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='ENRFILT'  ! set for subroutine
+      helpinsub='enetrdisp'  ! set for subroutine
 
 C Ensure that the selected data information is avalaible
       II=1

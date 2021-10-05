@@ -37,6 +37,7 @@ C   act    - 's' for silent mode, '-' for user interaction mode.
       subroutine inscon(icomp,icstat,act)
 #include "building.h"
 #include "geometry.h"
+#include "help.h"
       
       integer lnblnk  ! function definition
 
@@ -67,11 +68,6 @@ C                 in common.
       integer nboftmc ! equivalent of ntmc returned from findtmc
       integer ier
       integer irpt    ! level of graphic reporting and delay
-
-C For help messages.
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
 
 C Day of average solar declination in each month.
       data iavdec/17,15,16,15,15,11,17,16,16,16,15,11/

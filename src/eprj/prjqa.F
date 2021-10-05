@@ -16,11 +16,11 @@ C details.
 
 C Project manager model quality assurance. This file includes the
 C following subroutines.
-C   prjqa:   writes out a QA report (to screen or file) for the current model.
+C   prjqa:   writes out a contents (to screen or file) for the current model.
 C   mupdate: checks current model to see if it should be updated.
 
 C ******************** prjqa ********************
-C Writes a QA report (to screen or file) for the current model.
+C Writes contents report (to screen or file) for the current model.
 
       subroutine prjqa(inpic,ivals,silent,ier)
 
@@ -53,6 +53,7 @@ C      common/aim2def/iAIM2,LAIM2
 #include "power.h"
 #include "prj3dv.h"
 #include "bc_data.h"
+#include "help.h"
 
       integer lnblnk  ! function definition
 
@@ -344,11 +345,6 @@ C in the current model. A -1 means not applicable
       REAL :: tareamlc,trn,ttrn,tvol,tvtr,tvtr2
       REAL :: UVD,UVI,UVU,vtranper
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
       helpinsub='prjqa'  ! set for subroutine
       
 C Check if Unix-based or DOS based.
@@ -426,7 +422,7 @@ C If silent mode then set file name and jump to report generation.
         destination=1
         itu = ixunit
 
-C Create model QA report in the doc folder if possible. Use similar 
+C Create model contents report in the doc folder if possible. Use similar 
 C pattern to management of lmodellog.
         lr=lnblnk(cfgroot)
         if(docpth(1:2).eq.'  '.or.docpth(1:2).eq.'./')then
@@ -448,7 +444,7 @@ C pattern to management of lmodellog.
      &      cfgroot(1:lr),'.contents'
         endif
         write(xfile,'(a)') lmodelqa(1:lnblnk(lmodelqa))
-        call ctldumpt(xfile,ixopen,ixloc,ixunit,'QA text',IER)
+        call ctldumpt(xfile,ixopen,ixloc,ixunit,'contents',IER)
         if(ier.eq.-3)then
           destination = 0
           itu = iuout
@@ -486,7 +482,7 @@ C Generate the report based on current options.
       else
 
 C Assume file names not included and destination to screen (zero)
-C and itu set so QA report is written to screen.
+C and itu set so contents is written to screen.
         destination=0
         itu = iuout
 
@@ -500,8 +496,8 @@ C Setup the selection menu.
       items(3) ='3 graphing tool               '
       items(4) ='4 diagram editing tool        '
       items(5) ='5 image viewer                '
-      items(6) ='  -------------------------   '
-      items(7) ='... QA report content:        '
+      items(6) ='  _________________________   '
+      items(7) ='... contents options:         '
       if(siteinfo.eq.0)then
         items(8)='a site info >> none'
       elseif(siteinfo.eq.1)then
@@ -572,44 +568,23 @@ C Setup the selection menu.
         items(16)='h                           '
       elseif(zonecolumns.eq.0)then
         items(16)='h zone columns >>  summary  '
-C        call edisp(iuout,' ')
-C        call edisp(iuout,'ID Name Volume Floor area Description.')
       elseif(zonecolumns.eq.1)then
         items(16)='h zone columns >>  sub-set A'
-C        call edisp(iuout,' ')
-C        call edisp(iuout,'ID Name Surface nb & areas Description.')
       elseif(zonecolumns.eq.2)then
         items(16)='h zone columns >>  sub-set B'
-C        call edisp(iuout,' ')
-C        call edisp(iuout,'ID Name Volume Surface areas Description.')
       elseif(zonecolumns.eq.3)then
         items(16)='h zone columns >>  all      '
-C        call edisp(iuout,' ')
-C        call edisp(iuout,
-C     &  'ID Name Volume Surface nb & areas Floor area Description.')
       endif
       if(surfcolumns.eq.-1)then
         items(17)='i                           '
       elseif(surfcolumns.eq.0)then
         items(17)='i surf columns >>  summary  '
-C        call edisp(iuout,' ')
-C        call edisp(iuout,
-C     &  'ID area azim name USE-P composition boundary.')
       elseif(surfcolumns.eq.1)then
         items(17)='i surf columns >>  sub-set A'
-C        call edisp(iuout,' ')
-C        call edisp(iuout,
-C     &'ID area azim name optics USE-P composition boundary.')
       elseif(surfcolumns.eq.2)then
         items(17)='i surf columns >>  sub-set B'
-C        call edisp(iuout,' ')
-C        call edisp(iuout,
-C     &'ID area azim elev name optics USE-P-S composition boundary.')
       elseif(surfcolumns.eq.3)then
         items(17)='i surf columns >>  all      '
-C        call edisp(iuout,' ')
-C        call edisp(iuout,
-C     &'ID area azim elev name optics loc USE-P-S composition boundary.')
       endif
       if(schedinfo.eq.-1)then
         items(18)='j operations >> none'
@@ -640,26 +615,26 @@ C     &'ID area azim elev name optics loc USE-P-S composition boundary.')
         items(21)='m file names >> included'
       endif
       if(destination.eq.0)then
-        items(22)='> QA report >> text feedback'
+        items(22)='> contents >> text feedback'
       elseif(destination.eq.1)then
         if(lmodelqa(1:4).eq.'UNKN'.or.lmodelqa(1:2).eq.'  ')then
-          items(22)='> QA report >> file UNKNOWN'
+          items(22)='> contents >> file UNKNOWN'
         else
-          write(items(22),'(2a)') '> QA report >> ',lmodelqa(1:17) 
+          write(items(22),'(2a)') '> contents >> ',lmodelqa(1:17) 
         endif
       endif
-      items(23)  ='! generate QA report       '
+      items(23)  ='! generate contents       '
       if(destination.eq.0)then
         if(lmodelqa(1:4).eq.'UNKN'.or.lmodelqa(1:2).eq.'  ')then
-          items(24)='  QA report not yet defined'
+          items(24)='  contents not yet defined'
         else
-          write(items(24),'(2a)') '* edit QA: ',lmodelqa(1:21) 
+          write(items(24),'(2a)') '* edit: ',lmodelqa(1:24) 
         endif
       elseif(destination.eq.1)then
         if(lmodelqa(1:4).eq.'UNKN'.or.lmodelqa(1:2).eq.'  ')then
-          items(24)='  QA report not yet defined'
+          items(24)='  report not yet defined'
         else
-          write(items(24),'(2a)') '* edit QA: ',lmodelqa(1:21) 
+          write(items(24),'(2a)') '* edit: ',lmodelqa(1:24) 
         endif
       endif
       items(25)  ='  _________________________'
@@ -683,7 +658,7 @@ C Help selected.
       elseif(ino.eq.26)then
         helptopic='setup_qa_report'
         call gethelptext(helpinsub,helptopic,nbhelp)
-        CALL PHELPD('QA overview',nbhelp,'-',0,0,IER)
+        CALL PHELPD('contents overview',nbhelp,'-',0,0,IER)
       elseif(ino.eq.1)then
 
 C << need to sort out changing to main project folder >>
@@ -1102,7 +1077,7 @@ C folder if it exists.
           itu = ixunit
           if(lmodelqa(1:4).eq.'UNKN'.or.lmodelqa(1:2).eq.'  ')then
 
-C Create model QA report in the doc folder if possible. Use similar 
+C Create model contents in the doc folder if possible. Use similar 
 C pattern to management of lmodellog.
             lr=lnblnk(cfgroot)
             if(docpth(1:2).eq.'  '.or.docpth(1:2).eq.'./')then
@@ -1131,7 +1106,7 @@ C GTK it will include the full path to the file.
           endif
           call edisp(iuout,'  ')
           CALL EASKXORGTKF(lguess,' ',
-     &      'Model contents file:',lldef,lltmp,'QA file',IER,nbhelp)
+     &      'Model contents file:',lldef,lltmp,'contents',IER,nbhelp)
 
 C Jump back and re-display the menu.
           if(ier.eq.-3)then
@@ -1157,8 +1132,8 @@ C Save the model configuration file to register the report.
 C Copy lmodelqa to xfile so that ctlexp can deal with it.
           write(xfile,'(2a)')lmodelqa(1:lnblnk(lmodelqa))
 
-C          call ctlexp(xfile,ixopen,ixloc,ixunit,'T','QA text',IER)
-          call ctldumpt(xfile,ixopen,ixloc,ixunit,'QA text',IER)
+C          call ctlexp(xfile,ixopen,ixloc,ixunit,'T','contents',IER)
+          call ctldumpt(xfile,ixopen,ixloc,ixunit,'contents',IER)
           if(ier.eq.-3)then
             destination = 0
             itu = iuout
@@ -1192,7 +1167,7 @@ C If vi then spawn a new window to do the editing.
         endif
         call edisp(iuout,'  ')
         CALL EASKXORGTKF(lguess,' ',
-     &    'Model contents file?',lldef,lltmp,'QA file',IER,nbhelp)
+     &    'Model contents file?',lldef,lltmp,'contents file',IER,nbhelp)
 
 C Jump back and re-display the menu.
         if(ier.eq.-3)then
@@ -1223,7 +1198,7 @@ C Not one of the standard choices.
       endif
       goto 3
 
-C Generate the QA report.
+C Generate the model contents report.
   55  call tstamp('>','PRJ: zone summary')
       call dstamp(dstmp)
       if(markdown)then
@@ -1342,30 +1317,6 @@ C Re-read sbem db and then the descriptive file.
               call lstncm('e',itu)
             endif
 
-C Check if any of the address fields are known.
-            if(certifname(1:15).eq.'not yet defined'.and.
-     &         certaddress(1:15).eq.'not yet defined')then
-              continue  ! nothing to write
-            else
-              if(markdown)then
-                call edisp(itu,
-     &          '------------------------   ---------------')
-                write(outs,'(2a)')'Simulationist name         ',
-     &            certifname 
-                call edisp(itu,outs)     
-                write(outs,'(2a)')'Simulationist address      ',
-     &            certaddress   
-                call edisp(itu,outs)   
-                call edisp(itu,
-     &          '------------------------   ---------------')
-              else
-                call edisp(itu,' ')
-                write(outs,'(2a)')'Simulationist name: ',certifname 
-                call edisp(itu,outs)     
-                write(outs,'(2a)')'Simulationist address: ',certaddress   
-                call edisp(itu,outs)   
-              endif
-            endif
             call edisp(itu,'  ')          
             if(LASBEM(1:4).eq.'UNKN')then
               continue
@@ -1384,21 +1335,6 @@ C Check if any of the address fields are known.
           else
             write(outs,'(2a)')'Project name: ',pjname(1:lnblnk(pjname))
             call edisp(itu,outs)
-            if(baddress(1:15).eq.'not yet defined')then
-              continue  ! nothing to write
-            else
-              write(outs,'(2a)')'Building address: ',baddress
-              call edisp(itu,outs)
-              write(outs,'(2a)')'Building owner name: ',ownername
-              call edisp(itu,outs)   
-              write(outs,'(2a)')'Building owner address: ',owneraddr 
-              call edisp(itu,outs) 
-              call edisp(itu,' ')
-              write(outs,'(2a)')'Simulationist name: ',certifname 
-              call edisp(itu,outs)     
-              write(outs,'(2a)')'Simulationist address: ',certaddress   
-              call edisp(itu,outs)   
-            endif
           endif          
         endif
 
@@ -2080,6 +2016,7 @@ C Control in the model
 C List description of control and then the various zone descriptions.
 C List control data.
         call edisp(itu,' ')
+        IUF=IFIL+2
         ICTLF=IUF
         CALL ERPFREE(ICTLF,ISTAT)
         call FINDFIL(LCTLF,XST)
@@ -2281,7 +2218,7 @@ C Is a boundary data file (ESRU flavor) ...
             xst=.false.
             call FINDFIL(BPF,xst)
             if (xst) then
-              IFBPF=IFIL+1 ! standard +9 seems to be used for QA output in prj ...
+              IFBPF=IFIL+1 ! Standard +9 seems to be used for contents in prj.
               write(currentfile,'(a)') BPF(1:lnblnk(BPF))
               CALL EFOPSEQ(ifbpf,BPF,1,IER)
               IF(IER.LT.0)THEN
@@ -2666,12 +2603,12 @@ C If there is external glazing or skylights then report.
             call rel16str(wallper(IZZ),t16a,lna,ier)
             call rel16str(uavwall(IZZ),t16b,lnb,ier)
             if(markdown)then
-              write(outs,'(3a,F5.1,a,F5.3,3a)')'Facade opaque is ',
+              write(outs,'(3a,F6.1,a,F5.3,3a)')'Facade opaque is ',
      &          t16c(1:lnc),' m^2^ & ',wallper(IZZ),
      &          ' % of floor area & average U of ',
      &          uavwall(IZZ)/areawall(IZZ),' & UA of ',t16b(1:lnb),'. '
             else
-              write(outs,'(3a,F5.1,a,F5.3,3a)')' Facade opaque is ',
+              write(outs,'(3a,F6.1,a,F5.3,3a)')' Facade opaque is ',
      &          t16c(1:lnc),'m2 & ',wallper(IZZ),
      &          ' % of floor area & average U of ',
      &          uavwall(IZZ)/areawall(IZZ),' & UA of ',t16b(1:lnb),'. '
@@ -3699,13 +3636,13 @@ C << report on kg of each >>
 
 C If writing to file call ctldumpt to close it and switch back to text feedback.
       if(destination.eq.1)then
-        call ctldumpt(xfile,ixopen,ixloc,ixunit,'QA text',IER)
+        call ctldumpt(xfile,ixopen,ixloc,ixunit,'contents',IER)
         destination=0
         if(silent)then
           continue
         else
           call edisp(iuout,
-     &     'QA file can be viewed via the `edit file` option.')
+     &     'Contents can be viewed via the `edit file` option.')
           call edisp(iuout,' ')
         endif
       endif
@@ -3735,6 +3672,7 @@ C not in browsing mode.
 #include "esprdbfile.h"
 #include "espriou.h"
 #include "seasons.h"
+#include "help.h"
       
       integer lnblnk  ! function definition
 
@@ -3755,7 +3693,7 @@ C IPV data.
 
 C Images.
       character imgfmt*4    ! GIF XBMP TIF JPG
-      character imgfoc*4    ! FZON FNET FCTL FDFS
+      character imgfoc*4    ! FZON FNET FCTL FDFS FPLN
       character limgfil*72  ! file name (extend to 144 char)
       character imgdoc*248  ! text associated with image
       common/imagf/imgfmt(MIMG),imgfoc(MIMG),limgfil(MIMG),imgdoc(MIMG)
@@ -3775,6 +3713,8 @@ C Images.
       logical MODOPR        ! to flag if zone operations file needs changing.
       logical opernew       ! if true then all operations are current.
       logical forceoper     ! force if any operation is older
+      logical haveihc       ! model includes htc files
+      logical haveivf       ! model include viewfactor files
       logical QUIET         ! for use in updating zone construction files
 
 C Flags noting whether casual gain periods are currently sorted.
@@ -3787,12 +3727,7 @@ C For dealing with climate file.
       character fs*1
       integer llt,lndbp
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub=' mupdate'   ! set for subroutine
+      helpinsub='prjqa'   ! set for subroutine
       
 C Check if Unix-based or DOS based.
       call isunix(unixok)
@@ -3812,6 +3747,9 @@ C also some zone obstruction files then there is
 C still a need to upgrade.
       allnew=.true.
       opernew=.true.
+      forceoper=.false.
+      haveihc=.false.
+      haveivf=.false.
       do 775 iz=1,ncomp
         if(gversion(iz).lt.1.1) then
           allnew=.false.
@@ -3835,6 +3773,9 @@ C to version 2.1.
         elseif(ip3ver(iz).eq.2)then
           opernew=.false.
         endif
+
+        if(ihc(iz).gt.0) haveihc=.true.  ! there are htc files so ask
+        if(ivf(iz).gt.0) haveivf=.true.  ! there are viewfactor files so ask
   775 continue
 
       if(opernew)then
@@ -3889,7 +3830,8 @@ C igupgrade was set to 2 in preferences also force an upgrade.
         helptopic='model_upgrade_older'
         call gethelptext(helpinsub,helptopic,nbhelp)
 
-        call easkok('Model uses an out-of-date format for some files!',
+        call easkok(
+     &    'Model uses an out-of-date format for geometry files!',
      &    'Update to latest format?',ok,
      &     nbhelp)
         if(ok)then
@@ -4033,10 +3975,6 @@ C geometry file and zobs() cleared for this zone and iobs set.
                 continue
               endif
             endif
-
-C The documentation in the zone construction and tmc files might
-C have changed to scan and write out these files.
-C << to be done >>
   776     continue
         endif
       endif
@@ -4047,18 +3985,15 @@ C an older format write to a newer format.
         helptopic='model_upgrade_older'
         call gethelptext(helpinsub,helptopic,nbhelp)
 
-        call easkok('Model uses an out-of-date format for some files!',
-     &    'Update to latest format?',ok,
-     &     nbhelp)
+        call easkok(' ','Refresh zone operation files?',ok,nbhelp)
         if(ok)then
-          call edisp(iuout,
-     &    'You might wish to update the documentation in the zone')
-          call edisp(iuout,
-     &    'operations (more space for air and casual gains notes).')
           do iz=1,ncomp
             IUO=IFIL+1
             call FINDFIL(LPROJ(iz),XST)
             IF(XST)THEN
+
+C Scan the operation file. If old format ip3ver will have been
+C reset to 21 so that it will write to latest format.
               CALL ERPFREE(IUO,ISTAT)
               CALL EROPER(ITRC,ITRU,IUO,iz,IER)
 
@@ -4089,19 +4024,9 @@ C Do cursory check to see if the daytypes in the file are sorted.
      &            'Sunday casual gains might be unsorted.')
               endif
 
-C If ip3ver=0 then force it to write to version 2 and if it
-C ip3ver=1 then write to version 2 and if already 2 then write
-C to version 21.
-              if(ip3ver(iz).eq.0)then
-                MODOPR=.true.
-                ip3ver(iz)=2
-              elseif(ip3ver(iz).eq.1)then
-                MODOPR=.true.
-                ip3ver(iz)=2
-              elseif(ip3ver(iz).eq.2)then
-                MODOPR=.true.
-                ip3ver(iz)=21
-              endif
+C Force ip3ver to be 21 and set MODOPR TRUE.
+              MODOPR=.true.
+              ip3ver(iz)=21
 
 C Save the file, sorting the periods if necessary.
               if(MODOPR)then
@@ -4130,6 +4055,52 @@ C EDCON does nothing if files do not exist.
         ENDDO
         QUIET=.FALSE.
       endif
+
+C If there are htc files ask if they should be updated.
+      if(haveihc)then
+        helptopic='model_upgrade_older'
+        call gethelptext(helpinsub,helptopic,nbhelp)
+
+        call easkok(' ','Refresh zone heat transfer files?',ok,nbhelp)
+        if(ok)then
+          do iz=1,ncomp
+            IUO=IFIL+1
+            if(ihc(iz).eq.1) then
+              call FINDFIL(LHCCO(iz),XST)
+              if(XST)then
+                CALL ERPFREE(IUO,ISTAT)
+                call ehtcff(LHCCO(iz),IUO,IER)
+                CALL ERPFREE(IUO,ISTAT)
+                call EMKHTC(LHCCO(iz),iz,IUO,ITRU,IER)
+              endif
+            endif
+          enddo
+        endif
+      endif
+
+C If there are viewfactor files ask if they should be updated.
+      if(haveivf)then
+        helptopic='model_upgrade_older'
+        call gethelptext(helpinsub,helptopic,nbhelp)
+
+        call easkok(' ','Refresh zone viewfactor files?',ok,nbhelp)
+        if(ok)then
+          do iz=1,ncomp
+            IUO=IFIL+1
+            if(ivf(iz).eq.1) then
+              call FINDFIL(LVIEW(iz),XST)
+              if(XST)then
+                CALL ERPFREE(IUO,ISTAT)
+                CALL ERMRT(ITRC,ITRU,IUO,LVIEW(iz),iz,IER)
+                CALL ERPFREE(IUO,ISTAT)
+                CALL EMKMRT(LVIEW(iz),LGEOM(iz),NZSUR(iz),IUO,iz,'v',
+     &            IER)
+              endif
+            endif
+          enddo
+        endif
+      endif
+
 
 C Save the model configuration file before continuing.
       CALL EMKCFG('-',IER)
@@ -4212,25 +4183,6 @@ C Update the model configuration file.
 
         else
           return
-        endif
-      endif
-
-C Read in and write out the control file if it exists. Why test
-C for the version number?  Because older versions of ESP-r did
-C not have atributed control files.
-      if(icfgv.lt.3)then
-        if(LCTLF(1:2).eq.'  '.or.LCTLF(1:4).eq.'UNKN')then
-          continue
-        else
-          ICTLF=IFIL+1
-          CALL ERPFREE(ICTLF,ISTAT)
-          XST=.false.
-          call FINDFIL(LCTLF,XST)
-          if(XST)then
-            CALL EZCTLR(ICTLF,0,IUOUT,IER)
-            CALL CTLWRT(ICTLF,IER)
-            call usrmsg(' ',' ','-')
-          endif
         endif
       endif
 

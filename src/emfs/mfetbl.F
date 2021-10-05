@@ -1,6 +1,6 @@
 C This file is part of the ESP-r system.
 C Copyright Energy Systems Research Unit, University of
-C Strathclyde, Glasgow Scotland, 2001.
+C Strathclyde, Glasgow Scotland, 2001-.
 
 C ESP-r is free software.  You can redistribute it and/or
 C modify it under the terms of the GNU General Public
@@ -13,10 +13,6 @@ C warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
 C PURPOSE. See the GNU General Public License for more
 C details.
 
-C You should have received a copy of the GNU General Public
-C License along with ESP-r. If not, write to the Free
-C Software Foundation, Inc., 59 Temple Place, Suite 330,
-C Boston, MA 02111-1307 USA.
 
 C *************** MFETBL
 C Raw tabular output of energy in a flow stream. Results via stderr 
@@ -25,16 +21,14 @@ C     DATTIM - Julian date; where Jan 1th 1:00 = 1.0
 C     IOCHAN  - output channel: =IUOUT (via stdout) or =21 (to a file)
 C     IDIM   - flow units: kg/s (IDIM=1), m^3/hr (IDIM=2), 1/hr (IDIM=3)
 C     NDONAM - name of node(s) corresponding to column contents
-      SUBROUTINE MFETBL(itrc,IFRES,ier)
 
+      SUBROUTINE MFETBL(itrc,IFRES,ier)
 #include "building.h"
 #include "net_flow.h"
 #include "net_flow_data.h"
 #include "esprdbfile.h"
-C esprdbfile.h supplies the following:
-C LAPRES,IAPRES (for window pressure databases)
-C ICLIM,LCLIM (for climate file)
-      
+#include "help.h"
+ 
       integer lnblnk  ! function definition
 
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
@@ -59,12 +53,7 @@ C ICLIM,LCLIM (for climate file)
       logical OK,intg
       integer NITMS,INO ! max items and current menu item
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found (will be non-zero
-                         ! because default message will be created
-      helpinsub='MFETBL' ! set for subroutine
+      helpinsub='mfetbl' ! set for subroutine
 
 C Integration initially off.
       intg=.false.

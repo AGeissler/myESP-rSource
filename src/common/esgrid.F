@@ -13,11 +13,6 @@ C warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
 C PURPOSE. See the GNU General Public License for more
 C details.
 
-C You should have received a copy of the GNU General Public
-C License along with ESP-r. If not, write to the Free
-C Software Foundation, Inc., 59 Temple Place, Suite 330,
-C Boston, MA 02111-1307 USA.
-
 C ****************************   READST    ****************************
 C READST read ASCII structured mesh data file.
 C *********************************************************************
@@ -295,10 +290,10 @@ C SAVEST
 C *********************************************************************
       SUBROUTINE SAVEST(IComp,ITRC,IER)
 #include "building.h"
+#include "help.h"
 
       COMMON/FILEP/IFIL
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
-      common/pophelp/h(60)
       COMMON/PREC9/NCONST(MCOM),NELTS(MCOM,MS),NGAPS(MCOM,MS),
      &             NPGAP(MCOM,MS,MGP)
 
@@ -315,18 +310,18 @@ C *********************************************************************
       COMMON/GRSD64/IBLayS(MBND),IBLayE(MBND)
       COMMON/GRSD101/LGrdSt
 
-      CHARACTER LGrdSt*72,H*72,ltmp*72
+      CHARACTER LGrdSt*72,ltmp*72
+
+      helpinsub='esgrid'  ! set for subroutine
+      helptopic='struc_mesh_write'
+      call gethelptext(helpinsub,helptopic,nbhelp)
 
       IER=0
       IOUT=IUOUT
       IIN=IFIL+1
-      H(1)='    Input the name for the zone file in which'
-      H(2)=' the structured mesh configuration details are'
-      H(3)=' to be saved.'
-      H(4)=' '
       ltmp=LGrdSt
-      CALL EASKS(ltmp,'Structured mesh file name ?',' ',
-     &       72,' ',' Structured mesh file ',IER,3)
+      CALL EASKS(ltmp,'Structured mesh file name?',' ',
+     &  72,' ','Structured mesh file',IER,nbhelp)
       if(ltmp(1:2).ne.'  '.and.ltmp(1:4).ne.'UNKN')then
         LGrdSt=ltmp
       endif

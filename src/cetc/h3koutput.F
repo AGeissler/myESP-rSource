@@ -820,7 +820,8 @@ C     tzph,tzpc are zone heating/cooling use over time.
       character LTMP*72,h*72,outs*124,louts*248
       character tab*1
       DIMENSION MTHNAM(12)
-      CHARACTER DS*7,DS1*10,DE*7,DE1*10,MTHNAM*3
+      CHARACTER DS*7,DS1*10,DE*7,DE1*10,DS2*8,DE2*8
+      character MTHNAM*3
       logical OK
 
       DATA MTHNAM/'Jan','Feb','Mar','Apr','May','Jun','Jul','Aug',
@@ -856,9 +857,9 @@ c     Save option is zero.
 
 C     Generate view period string.
       CALL EDAY(ISD1,ISM1,IODS)
-      CALL STDATE(IYEAR,IODS,DS,DS1)
+      CALL STDATE(IYEAR,IODS,DS,DS1,DS2)
       CALL EDAY(ISD2,ISM2,IODF)
-      CALL STDATE(IYEAR,IODF,DE,DE1)
+      CALL STDATE(IYEAR,IODF,DE,DE1,DE2)
       write(outs,'(7a,i4)') 'Period',tab,DS1,' to ',DE1,' Year',tab,
      &     IYEAR
       call edisp(IWU,outs)
@@ -873,8 +874,8 @@ C     each zone.
       DO 10 I=1,NCOMP
          T1=TVMEM(I,1,1)
          T2=TVMEM(I,2,1)
-         CALL STDATE(IYEAR,INT(TVMEM(I,1,2)),DS,DS1)
-         CALL STDATE(IYEAR,INT(TVMEM(I,2,2)),DE,DE1)
+         CALL STDATE(IYEAR,INT(TVMEM(I,1,2)),DS,DS1,DS2)
+         CALL STDATE(IYEAR,INT(TVMEM(I,2,2)),DE,DE1,DE2)
          WRITE(outs,'(2a,f7.2,3a,f5.2,a,f7.2,3a,f5.2)')zname(I),tab,
      &        ZTU(I),tab,DS1,'@',T1,tab,ZTL(I),tab,DE1,'@',T2
          call edisp(IWU,outs)
@@ -900,8 +901,8 @@ C     Report on heating/cooling capacity and demands for each zone.
          CALL EDAYR(INT(TVMEM(I,2,2)),ID2,IM2)
          CALL EDAYR(INT(TVMEM(I,3,2)),ID3,IM3)
          CALL EDAYR(INT(TVMEM(I,4,2)),ID4,IM4)
-         CALL STDATE(IYEAR,INT(TVMEM(I,3,2)),DS,DS1)
-         CALL STDATE(IYEAR,INT(TVMEM(I,4,2)),DE,DE1)
+         CALL STDATE(IYEAR,INT(TVMEM(I,3,2)),DS,DS1,DS2)
+         CALL STDATE(IYEAR,INT(TVMEM(I,4,2)),DE,DE1,DS2)
          PH=ZPH(I)/1000.0
          PC=ZPC(I)/1000.0
          TPH=TZPH(I)/(1000.0*NTSTEP)
@@ -944,25 +945,25 @@ c     Write save option 0 data.
       call edisp(IWU,' ')
       call edisp(IWU,'All zones:')
       CALL EDAY(LD1,LM1,IODS)
-      CALL STDATE(IYEAR,IODS,DS,DS1)
+      CALL STDATE(IYEAR,IODS,DS,DS1,DS2)
       write(outs,'(2a,f6.1,6a,f5.2)')' Max_Temp',tab,VA,tab,' in ',
      &     zname(IA)(1:lnzname(IA)),' on ',DS1,'@',TZA
       call edisp(IWU,outs)
       
       CALL EDAY(LD2,LM2,IODS)
-      CALL STDATE(IYEAR,IODS,DS,DS1)
+      CALL STDATE(IYEAR,IODS,DS,DS1,DS2)
       write(outs,'(2a,f6.1,6a,f5.2)')' Min_Temp',tab,VB,tab,' in ',
      &     zname(IB)(1:lnzname(IB)),' on ',DS1,'@',TZB
       call edisp(IWU,outs)
       
       CALL EDAY(LD3,LM3,IODS)
-      CALL STDATE(IYEAR,IODS,DS,DS1)
+      CALL STDATE(IYEAR,IODS,DS,DS1,DS2)
       write(outs,'(2a,f6.1,6a,f5.2)')' Max_Heat',tab,VC,tab,' in ',
      &     zname(IC)(1:lnzname(IC)),' on ',DS1,'@',TZC
       call edisp(IWU,outs)
       
       CALL EDAY(LD4,LM4,IODS)
-      CALL STDATE(IYEAR,IODS,DS,DS1)
+      CALL STDATE(IYEAR,IODS,DS,DS1,DS2)
       write(outs,'(2a,f6.1,6a,f5.2)')' Max_Cool',tab,VD,tab,' in ',
      &     zname(ID)(1:lnzname(ID)),' on ',DS1,'@',TZD
       call edisp(IWU,outs)

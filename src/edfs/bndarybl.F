@@ -1,11 +1,11 @@
 C This file is part of the ESP-r system.
 C Copyright Energy Systems Research Unit, University of
-C Strathclyde, Glasgow Scotland, 2001.
+C Strathclyde, Glasgow, Scotland, 2001-.
 
 C ESP-r is free software.  You can redistribute it and/or
 C modify it under the terms of the GNU General Public
 C License as published by the Free Software Foundation 
-C (version 2 orlater).
+C (version 2 or later).
 
 C ESP-r is distributed in the hope that it will be useful
 C but WITHOUT ANY WARRANTY; without even the implied
@@ -13,19 +13,16 @@ C warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
 C PURPOSE. See the GNU General Public License for more
 C details.
 
-C You should have received a copy of the GNU General Public
-C License along with ESP-r. If not, write to the Free
-C Software Foundation, Inc., 59 Temple Place, Suite 330,
-C Boston, MA 02111-1307 USA.
 
 C This file contains subroutines for imposing momentum and turbulence 
-C boundary conditions on blockages when k-e model is active and thermal 
-C boundary conditions for all turbulence models
+C boundary conditions on blockages when the k-e model is active.
 C The subroutines are named BLKBND* with the final letters representing 
 C the equations being set up/ solved.
 
+
 C ********************* BLKBNDU *********************
-C BLKBNDU - set boundary conditions for U velocity for blockages.
+C Set boundary conditions for U velocity for blockages.
+
       SUBROUTINE BLKBNDU(IBLK)
 #include "building.h"
 #include "cfd.h"
@@ -144,9 +141,9 @@ C Blockage on High face of adjacent cell.
       END
 
 
-
 C ********************* BLKBNDV *********************
-C BLKBNDV - set boundary conditions for V velocity for blockages.
+C Set boundary conditions for V velocity for blockages.
+
       SUBROUTINE BLKBNDV(IBLK)
 #include "building.h"
 #include "cfd.h"
@@ -267,7 +264,8 @@ C Blockage on High face of adjacent cell.
 
 
 C ********************* BLKBNDW *********************
-C BLKBNDW - set boundary conditions for W velocity for blockages.
+C Set boundary conditions for W velocity for blockages.
+
       SUBROUTINE BLKBNDW(IBLK)
 #include "building.h"
 #include "cfd.h"
@@ -386,8 +384,9 @@ C Blockage on North face of adjacent cell.
 
 
 C ********************* BLKBNDKE *********************
-C BLKBNDKE - set boundary conditions for turbulent kinetic 
-C   energy for blockages.
+C Set boundary conditions for turbulent kinetic energy
+C for blockages.
+
       SUBROUTINE BLKBNDKE(IBLK)
 #include "building.h"
 #include "cfd.h"
@@ -557,8 +556,9 @@ C Calculate and set source terms in adjacent cells if inside domain.
 
 
 C ********************* BLKBNDED *********************
-C BLKBNDED - set boundary conditions for the dissipation of turbulent kinetic 
-C   energy due to solid face for blockages.
+C Set boundary conditions for the dissipation of turbulent
+C kinetic energy due to solid face for blockages.
+
       SUBROUTINE BLKBNDED(IBLK)
 #include "building.h"
 #include "cfd.h"
@@ -675,15 +675,21 @@ C Calculate and set source terms.
 
 
 C ********************* BLKBNDT *********************
-C BLKBNDT - set boundary conditions for the temperature/ heat flux 
-C   due to solid face for blockages.
-C   VOLHeat is the heat flux in [W/m2], for the  whole blockage, 
-C   prescribed by the user.
+C Set boundary conditions for the temperature/ heat flux 
+C due to solid face for blockages.
+C VOLHeat is the heat flux [W/m^2] for the  whole blockage, 
+C as prescribed by the user.
+
       SUBROUTINE BLKBNDT(IBLK)
 #include "building.h"
 #include "cfd.h"
 
       COMMON/ICFNOD/ICFD,ICP
+      COMMON/GEOM/XP(ntcelx),YP(ntcely),ZP(ntcelz),
+     1            DXEP(ntcelx),DXPW(ntcelx),DYNP(ntcely),DYPS(ntcely),
+     2            DZHP(ntcelz),DZPL(ntcelz),
+     3            SEW(ntcelx),SNS(ntcely),SHL(ntcelz),
+     4            XU(ntcelx),YV(ntcely),ZW(ntcelz)
       COMMON/GEOM3/AreaHLP(ntcelx,ntcely),AreaHLU(ntcelx,ntcely),
      &             AreaHLV(ntcelx,ntcely),AreaEWP(ntcely,ntcelz),
      &             AreaEWV(ntcely,ntcelz),AreaEWW(ntcely,ntcelz),
@@ -693,12 +699,14 @@ C   prescribed by the user.
       COMMON/FLUPRf/URFVIS,VISCOS,PRANDT,SH,
      1            DENf(ntcelx,ntcely,ntcelz),VIS(ntcelx,ntcely,ntcelz),
      2            BETA(ntcelx,ntcely,ntcelz)
+      COMMON/TURB/GEN(ntcelx,ntcely,ntcelz),CD,CMU,C1,C2,C3,CAPPA,ELOG,
+     &            TURBIN,ALAMDA,PRTE,PRED
       COMMON/COEF/AP(ntcelx,ntcely,ntcelz),AE(ntcelx,ntcely,ntcelz),
      1            AW(ntcelx,ntcely,ntcelz),AN(ntcelx,ntcely,ntcelz),
      2            AS(ntcelx,ntcely,ntcelz),AH(ntcelx,ntcely,ntcelz),
      3            AL(ntcelx,ntcely,ntcelz),SU(ntcelx,ntcely,ntcelz),
      4            SP(ntcelx,ntcely,ntcelz)
-      COMMON/ITERAT/NITER
+C      COMMON/ITERAT/NITER
       common/KEYVOLS/NVOL(MNZ),IVOLF(MNVLS,MNZ),IVCELLS(MNVLS,MNZ,2),
      &               JVCELLS(MNVLS,MNZ,2),KVCELLS(MNVLS,MNZ,2)
       common/KEYVDAT/IVTYPE(MNVLS,MNZ),VOLTemp(MNVLS,MNZ),
@@ -714,7 +722,8 @@ C   prescribed by the user.
      2            P(ntcelx,ntcely,ntcelz),PP(ntcelx,ntcely,ntcelz),
      3            TEf(ntcelx,ntcely,ntcelz),EDf(ntcelx,ntcely,ntcelz)
 
-!!! These common passes the environmnetal parameters arround each body segment to the physiology model 
+C These commons pass the environmnetal parameters around each body segment
+C to the physiology model.
       REAL headflux1,trunkflux1,larmflux1,rarmflux1,llegflux1,
      &     rlegflux1,H2Oexp1,H2Oswt1,Qoccsens1,Qocclat1,COflux,
      &     Tsko_av1,Tco_av1,Tsk_av1
@@ -737,8 +746,17 @@ C   prescribed by the user.
       COMMON/segtemp2/tavhead2,tavtrunk2,tavarml2,tavarmr2,tavlegl2,
      &       tavlegr2
       COMMON/ocfluxo/H2Oexp,H2Oswt,COnflux
-      common/KEYVOLN/VOLNAME(MNVLS,MNZ),VCsurf(MNVLS,MNZ)
-      character VOLNAME*12,VCsurf*12
+      common/KEYVOLN/VOLNAME(MNVLS,MNZ),VCsurf(MNVLS,MNZ),
+     &               BLKSURF(MNVLS,MNZ,6)
+      character VOLNAME*12,VCsurf*12,BLKSURF*12
+      common/blksso/NBLK(MNZ),INBLK(MNVLS,MNZ),NSSO(MNZ),
+     &          INSSO(MNVLS,MNZ),BLKTEMP(MNVLS,MNZ,6)
+      common/INCALC/INCALU,INCALV,INCALW,INCALK,INCALD,INCALT,
+     1              IZEROT,IZanKE,IMITZ
+      LOGICAL INCALU,INCALV,INCALW,INCALK,INCALD,INCALT,IZEROT,IZanKE
+      LOGICAL IMITZ
+
+      logical skip
 
       REAL SAT1X,SAT2X,SAT3X,SAT4X,FAT1X,FAT2X,FAT3X,FAT4X
       REAL SAT1Y,SAT2Y,SAT3Y,SAT4Y,FAT1Y,FAT2Y,FAT3Y,FAT4Y
@@ -761,6 +779,9 @@ C   prescribed by the user.
       FAT2Y=0.0
       FAT3Y=0.0
       FAT4Y=0.0
+
+      CDTERM=CMU**0.25
+
 C Set values for all faces.
       do 40 IFACE=1,6
         IST=IVCELLS(IBLK,ICFD,1)
@@ -814,35 +835,41 @@ C Blockage on West face of adjacent cell.
               if (IFACE.eq.1) then
                 AREA=AreaEWP(JJ,KK)
                 AW(II,JJ,KK)=0.
+                DW=XP(II)-XU(II)
 
 C Blockage on East face of adjacent cell.
               elseif (IFACE.eq.2) then
                 AREA=AreaEWP(JJ,KK)
                 AE(II,JJ,KK)=0.
+                DW=XU(II+1)-XP(II)
 
 C Blockage on South face of adjacent cell.
               elseif (IFACE.eq.3) then
                 AREA=AreaNSP(II,KK)
                 AS(II,JJ,KK)=0.
+                DW=YP(JJ)-YV(JJ)
 
 C Blockage on North face of adjacent cell.
               elseif (IFACE.eq.4) then
                 AREA=AreaNSP(II,KK)
                 AN(II,JJ,KK)=0.
+                DW=YV(JJ+1)-YP(JJ)
 
 C Blockage on Low face of adjacent cell.
               elseif (IFACE.eq.5) then
                 AREA=AreaHLP(II,JJ)
                 AL(II,JJ,KK)=0.
+                DW=ZP(KK)-ZW(KK)
 
 C Blockage on High face of adjacent cell.
               elseif (IFACE.eq.6) then
                 AREA=AreaHLP(II,JJ)
                 AH(II,JJ,KK)=0.
+                DW=ZW(KK+1)-ZP(KK)
               endif
 
 C Set combined convective/ diffusive flux terms.
-             if (VOLNAME(IBLK,ICFD).eq.'head1')then
+              if (VOLNAME(IBLK,ICFD).eq.'head1')then
                 SU(II,JJ,KK)=SU(II,JJ,KK)+headflux1*AREA/SH
               Elseif(VOLNAME(IBLK,ICFD).eq.'head2')then
                 SU(II,JJ,KK)=SU(II,JJ,KK)+headflux2*AREA/SH
@@ -876,8 +903,55 @@ C Set combined convective/ diffusive flux terms.
      &             VOLNAME(IBLK,ICFD).eq.'Occ7')then
                 SU(II,JJ,KK)=SU(II,JJ,KK)+COnflux*AREA/SH
               Else
-               SU(II,JJ,KK)=SU(II,JJ,KK)+VOLHeat(IBLK,ICFD)*AREA/SH
-               Endif
+
+C Impose prescribed heat flux.
+                if (IVTYPE(IBLK,ICFD).eq.30) then
+                  SU(II,JJ,KK)=SU(II,JJ,KK)+VOLHeat(IBLK,ICFD)*AREA/SH
+
+C We have a prescribed temperature.
+C Calculate heat flux using log-law wall functions.
+                elseif (IVTYPE(IBLK,ICFD).eq.31 .or.
+     &                  IVTYPE(IBLK,ICFD).eq.32 .or.
+     &                  IVTYPE(IBLK,ICFD).eq.33) then
+                  if (IVTYPE(IBLK,ICFD).eq.33) then
+                    if (BLKSURF(IBLK,ICFD,iface)(1:4).eq.'NONE') then
+                      skip=.true.
+                    else
+                      VOLTemp(IBLK,ICFD)=BLKTEMP(IBLK,ICFD,iface)
+                      skip=.false.
+                    endif
+                  endif
+
+                  if (.not.skip) then
+                    if (INCALK.or.IMITZ) then
+                      YPLUS=DENf(II,JJ,KK)*
+     &                  SQRT(ABS(TEf(II,JJ,KK)))*CDTERM*DW/VISCOS
+                      IF(YPLUS.GT.11.63) THEN
+
+C y+ is within log-law region. UPLUS is u+; ELOG is `E';
+C CAPPA is the von Karmann constant. GT is an intermediate
+C quantity and includes the value of T+ in its denominator.
+                        UPLUS=ALOG(ELOG*YPLUS)/CAPPA
+                        GT=DENf(II,JJ,KK)*CDTERM*
+     &                    SQRT(ABS(TEf(II,JJ,KK)))/(PRANDT*(UPLUS+PFUN))
+                      ELSE
+
+C y+ is within laminar sub-layer.
+                        GT=VISCOS/(PRANDL*DW)
+                      ENDIF
+                    else
+
+C We have laminar conditions.
+                      GT=VISCOS/(PRANDL*DW)
+                    endif
+
+C Now calculate the source terms (V&M eq.9.13 & eq.9.24).
+                    TERM=GT*AREA
+                    SU(II,JJ,KK)=SU(II,JJ,KK)+TERM*VOLTemp(IBLK,ICFD)
+                    SP(II,JJ,KK)=SP(II,JJ,KK)-TERM
+                  endif
+                endif
+              Endif
 c       write(*,*)'SU_contrib=',VOLHeat(IBLK,ICFD) 
 c      pause'heat blockage'
  30         continue
@@ -910,99 +984,98 @@ C Loop through whole blockage.
           do JJ=JST,JFN
             do KK=KST,KFN
 
-
-C<< Calculating the average aire temperature and relative humidity of blockage nearest air cell
+C<< Calculating the average air temperature and relative humidity of blockage nearest air cell
 C<< four cell points at Zstart and four at Zfinish 
-                if(II.eq.IST.and.JJ.eq.JST.and.KK.eq.KST)then
+              if(II.eq.IST.and.JJ.eq.JST.and.KK.eq.KST)then
                 SAT1X=Tf(II,JJ-1,KK)    
                 SAT1Y=Tf(II-1,JJ,KK)                  
                 SARH1=HUMF(II,JJ-1,KK)
-                Svel1=SQRT((SQRT(abs(Uf(II,JJ-1,KK))**2+
-     &               abs(Vf(II,JJ-1,KK))**2)))**2+abs(Wf(II,JJ-1,KK))**2)            
-                elseif(II.eq.IST.and.JJ.eq.JFN.and.KK.eq.KST)then
+                Svel1=SQRT(Uf(II,JJ-1,KK)**2+
+     &            Vf(II,JJ-1,KK)**2+Wf(II,JJ-1,KK)**2)            
+              elseif(II.eq.IST.and.JJ.eq.JFN.and.KK.eq.KST)then
                 SAT2X=Tf(II,JJ+1,KK)
                 SAT2Y=Tf(II-1,JJ,KK)
                 SARH2=HUMF(II,JJ+1,KK)
-                Svel2=SQRT((SQRT(abs(Uf(II,JJ+1,KK))**2+
-     &               abs(Vf(II,JJ+1,KK))**2)))**2+abs(Wf(II,JJ+1,KK))**2)
-                elseif(II.eq.IFN.and.JJ.eq.JST.and.KK.eq.KST)then
+                Svel2=SQRT(Uf(II,JJ+1,KK)**2+
+     &            Vf(II,JJ+1,KK)**2+Wf(II,JJ+1,KK)**2)
+              elseif(II.eq.IFN.and.JJ.eq.JST.and.KK.eq.KST)then
                 SAT3X=Tf(II,JJ-1,KK)
                 SAT3Y=Tf(II+1,JJ,KK)
                 SARH3=HUMF(II,JJ-1,KK)
-                Svel3=SQRT((SQRT(abs(Uf(II,JJ-1,KK))**2+
-     &               abs(Vf(II,JJ-1,KK))**2)))**2+abs(Wf(II,JJ-1,KK))**2)
-                elseif(II.eq.IFN.and.JJ.eq.JFN.and.KK.eq.KST)then
+                Svel3=SQRT(Uf(II,JJ-1,KK)**2+
+     &            Vf(II,JJ-1,KK)**2+Wf(II,JJ-1,KK)**2)
+              elseif(II.eq.IFN.and.JJ.eq.JFN.and.KK.eq.KST)then
                 SAT4X=Tf(II,JJ+1,KK)
                 SAT4Y=Tf(II+1,JJ,KK)
                 SARH4=HUMF(II,JJ+1,KK)
-                Svel4=SQRT((SQRT(abs(Uf(II,JJ+1,KK))**2+
-     &               abs(Vf(II,JJ+1,KK))**2)))**2+abs(Wf(II,JJ+1,KK))**2)
-                elseif(II.eq.IST.and.JJ.eq.JST.and.KK.eq.KFN)then
+                Svel4=SQRT(Uf(II,JJ+1,KK)**2+
+     &            Vf(II,JJ+1,KK)**2+Wf(II,JJ+1,KK)**2)
+              elseif(II.eq.IST.and.JJ.eq.JST.and.KK.eq.KFN)then
                 FAT1X=Tf(II,JJ-1,KK)
                 FAT1Y=Tf(II-1,JJ,KK)                    
                 FARH1=HUMF(II,JJ-1,KK)
-                Fvel1=SQRT((SQRT(abs(Uf(II,JJ-1,KK))**2+
-     &               abs(Vf(II,JJ-1,KK))**2)))**2+abs(Wf(II,JJ-1,KK))**2)
-                elseif(II.eq.IST.and.JJ.eq.JFN.and.KK.eq.KFN)then
+                Fvel1=SQRT(Uf(II,JJ-1,KK)**2+
+     &            Vf(II,JJ-1,KK)**2+Wf(II,JJ-1,KK)**2)
+              elseif(II.eq.IST.and.JJ.eq.JFN.and.KK.eq.KFN)then
                 FAT2X=Tf(II,JJ+1,KK)
                 FAT2Y=Tf(II-1,JJ,KK)
                 FARH2=HUMF(II,JJ+1,KK)
-                Fvel2=SQRT((SQRT(abs(Uf(II,JJ+1,KK))**2+
-     &               abs(Vf(II,JJ+1,KK))**2)))**2+abs(Wf(II,JJ+1,KK))**2)
-                elseif(II.eq.IFN.and.JJ.eq.JST.and.KK.eq.KFN)then
+                Fvel2=SQRT(Uf(II,JJ+1,KK)**2+
+     &            Vf(II,JJ+1,KK)**2+Wf(II,JJ+1,KK)**2)
+              elseif(II.eq.IFN.and.JJ.eq.JST.and.KK.eq.KFN)then
                 FAT3X=Tf(II,JJ-1,KK)
                 FAT3Y=Tf(II+1,JJ,KK)
                 FARH3=HUMF(II,JJ-1,KK)
-                Fvel3=SQRT((SQRT(abs(Uf(II,JJ-1,KK))**2+
-     &               abs(Vf(II,JJ-1,KK))**2)))**2+abs(Wf(II,JJ-1,KK))**2)
-                elseif(II.eq.IFN.and.JJ.eq.JFN.and.KK.eq.KFN)then
+                Fvel3=SQRT(Uf(II,JJ-1,KK)**2+
+     &            Vf(II,JJ-1,KK)**2+Wf(II,JJ-1,KK)**2)
+              elseif(II.eq.IFN.and.JJ.eq.JFN.and.KK.eq.KFN)then
                 FAT4X=Tf(II,JJ+1,KK)
                 FAT4Y=Tf(II+1,JJ,KK)
                 FARH4=HUMF(II,JJ+1,KK)
-                Fvel4=SQRT((SQRT(abs(Uf(II,JJ-1,KK))**2+
-     &               abs(Vf(II,JJ-1,KK))**2)))**2+abs(Wf(II,JJ-1,KK))**2)
-                endif
+                Fvel4=SQRT(Uf(II,JJ-1,KK)**2+
+     &            Vf(II,JJ-1,KK)**2+Wf(II,JJ-1,KK)**2)
+              endif
 
+            enddo
           enddo
         enddo
-      enddo
 
-      If (VOLNAME(IBLK,ICFD).eq.'head1')then
+        If (VOLNAME(IBLK,ICFD).eq.'head1')then
                 tavhead1=(FAT1X+FAT2X+FAT3X+FAT4X+FAT1Y+FAT2Y+FAT3Y
      &                +FAT4Y)/8.0
                 hrhead=(SARH1+SARH2+SARH3+SARH4+FARH1+FARH2+FARH3+
      &           FARH4)/8.0
                 Velhead1=(Svel1+Svel2+Svel3+Svel4+Fvel1+Fvel2+Fvel3+
      &            Fvel4)/8
-      elseif (VOLNAME(IBLK,ICFD).eq.'trunk1')then
+        elseif (VOLNAME(IBLK,ICFD).eq.'trunk1')then
           tavtrunk1=(SAT1X+SAT2X+SAT3X+SAT4X+FAT1X+FAT2X+FAT3X+
      &     FAT4X+SAT1Y+SAT2Y+SAT3Y+SAT4Y+FAT1Y+FAT2Y+FAT3Y+FAT4Y)/16.0
                 hrtrunk=(SARH1+SARH2+SARH3+SARH4+FARH1+FARH2+FARH3+
      &           FARH4)/8.0
                 Veltrunk1=(Svel1+Svel2+Svel3+Svel4+Fvel1+Fvel2+Fvel3+
      &            Fvel4)/8
-      elseif (VOLNAME(IBLK,ICFD).eq.'armr1')then
+        elseif (VOLNAME(IBLK,ICFD).eq.'armr1')then
                 tavarmr1=(SAT1X+SAT2X+FAT1X+FAT2X+SAT1Y+SAT2Y+
      &            FAT1Y+FAT2Y)/8.0
                 hrarmr=(SARH1+SARH2+SARH3+SARH4+FARH1+FARH2+FARH3+
      &           FARH4)/8.0
                 Velarmr1=(Svel1+Svel2+Svel3+Svel4+Fvel1+Fvel2+Fvel3+
      &            Fvel4)/8
-      elseif (VOLNAME(IBLK,ICFD).eq.'arml1')then
+        elseif (VOLNAME(IBLK,ICFD).eq.'arml1')then
                 tavarml1=(SAT3X+SAT4X+FAT3X+FAT4X+SAT3Y+SAT4Y+
      &           FAT3Y+FAT4Y)/8.0
                 hrarml=(SARH1+SARH2+SARH3+SARH4+FARH1+FARH2+FARH3+
      &           FARH4)/8.0
                 Velarml1=(Svel1+Svel2+Svel3+Svel4+Fvel1+Fvel2+Fvel3+
      &            Fvel4)/8
-      elseif (VOLNAME(IBLK,ICFD).eq.'legr1')then
+        elseif (VOLNAME(IBLK,ICFD).eq.'legr1')then
                 tavlegr1=(SAT1X+SAT2X+SAT3X+SAT4X+SAT1Y+SAT2Y+SAT3Y+
      &           SAT4Y+FAT1Y+FAT2Y)/10.0
                 hrlegr=(SARH1+SARH2+SARH3+SARH4+FARH1+FARH2+FARH3+
      &           FARH4)/8.0
                 Vellegr1=(Svel1+Svel2+Svel3+Svel4+Fvel1+Fvel2+Fvel3+
      &            Fvel4)/8
-      elseif (VOLNAME(IBLK,ICFD).eq.'legl1')then
+        elseif (VOLNAME(IBLK,ICFD).eq.'legl1')then
                 tavlegl1=(SAT1X+SAT2X+SAT3X+SAT4X+SAT1Y+SAT2Y+SAT3Y+
      &           SAT4Y+FAT3Y+FAT4Y)/10.0
                 hrlegl=(SARH1+SARH2+SARH3+SARH4+FARH1+FARH2+FARH3+
@@ -1010,35 +1083,35 @@ C<< four cell points at Zstart and four at Zfinish
                 Vellegl1=(Svel1+Svel2+Svel3+Svel4+Fvel1+Fvel2+Fvel3+
      &            Fvel4)/8
                 cfdcheck=2
-C********************************
-      elseif (VOLNAME(IBLK,ICFD).eq.'head2')then
+
+        elseif (VOLNAME(IBLK,ICFD).eq.'head2')then
                 tavhead2=(FAT1X+FAT2X+FAT3X+FAT4X+FAT1Y+FAT2Y+FAT3Y
      &                +FAT4Y)/8.0
-      elseif (VOLNAME(IBLK,ICFD).eq.'trunk2')then
+        elseif (VOLNAME(IBLK,ICFD).eq.'trunk2')then
           tavtrunk2=(SAT1X+SAT2X+SAT3X+SAT4X+FAT1X+FAT2X+FAT3X+
      &     FAT4X+SAT1Y+SAT2Y+SAT3Y+SAT4Y+FAT1Y+FAT2Y+FAT3Y+FAT4Y)/16.0
-      elseif (VOLNAME(IBLK,ICFD).eq.'armr2')then
+        elseif (VOLNAME(IBLK,ICFD).eq.'armr2')then
                 tavarmr2=(SAT1X+SAT2X+FAT1X+FAT2X+SAT1Y+SAT2Y+
      &            FAT1Y+FAT2Y)/8.0
-      elseif (VOLNAME(IBLK,ICFD).eq.'arml2')then
+        elseif (VOLNAME(IBLK,ICFD).eq.'arml2')then
                 tavarml2=(SAT3X+SAT4X+FAT3X+FAT4X+SAT3Y+SAT4Y+
      &           FAT3Y+FAT4Y)/8.0
-      elseif (VOLNAME(IBLK,ICFD).eq.'legr2')then
+        elseif (VOLNAME(IBLK,ICFD).eq.'legr2')then
                 tavlegr2=(SAT1X+SAT2X+SAT3X+SAT4X+SAT1Y+SAT2Y+SAT3Y+
      &           SAT4Y+FAT1Y+FAT2Y)/10.0
-      elseif (VOLNAME(IBLK,ICFD).eq.'legl2')then
+        elseif (VOLNAME(IBLK,ICFD).eq.'legl2')then
                 tavlegl2=(SAT1X+SAT2X+SAT3X+SAT4X+SAT1Y+SAT2Y+SAT3Y+
      &           SAT4Y+FAT3Y+FAT4Y)/10.0
                 cfdcheck=2
 
-      endif
+        endif
 !               print *,tavhead1, Velhead1, tavlegl1, vellegl1 
       ENDIF
       RETURN
       END
 
 C ********************* TRBSRCU *********************
-C TRBSRCU: stress/velocity at next-to-wall point for solid BC's, U-vel dir.
+C Stress/velocity at next-to-wall point for solid BCs, U-vel dir.
 
       FUNCTION TRBSRCU(I,J,K,Dface)
 #include "building.h"
@@ -1079,7 +1152,7 @@ C Interpolate values of k and density.
       end
       
 C ********************* TRBSRCV *********************
-C TRBSRCV: stress/velocity at next-to-wall point for solid BC's, V-vel dir.
+C Stress/velocity at next-to-wall point for solid BCs, V-vel dir.
 
       FUNCTION TRBSRCV(I,J,K,Dface)
 #include "building.h"
@@ -1120,7 +1193,7 @@ C Interpolate values of k and density.
       end
       
 C ********************* TRBSRCW *********************
-C TRBSRCW: stress/velocity at next-to-wall point for solid BC's, W-vel dir.
+C Stress/velocity at next-to-wall point for solid BCs, W-vel dir.
 
       FUNCTION TRBSRCW(I,J,K,Dface)
 #include "building.h"
@@ -1162,7 +1235,7 @@ C Interpolate values of k and density.
       
       
 C ********************* YUANBC *********************
-C YUANBCW: boundary conditions on solid wall for Yuan wall functions.
+C Boundary conditions on solid wall for Yuan wall functions.
 
       FUNCTION YUANBC(I,J,K,Dface)
 #include "building.h"

@@ -1,6 +1,6 @@
 C This file is part of the ESP-r system.
 C Copyright Energy Systems Research Unit, University of
-C Strathclyde, Glasgow Scotland, 2001.
+C Strathclyde, Glasgow Scotland, 2001-.
 
 C ESP-r is free software.  You can redistribute it and/or
 C modify it under the terms of the GNU General Public
@@ -12,11 +12,6 @@ C but WITHOUT ANY WARRANTY; without even the implied
 C warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
 C PURPOSE. See the GNU General Public License for more
 C details.
-
-C You should have received a copy of the GNU General Public
-C License along with ESP-r. If not, write to the Free
-C Software Foundation, Inc., 59 Temple Place, Suite 330,
-C Boston, MA 02111-1307 USA.
 
 C This file contains the following routines:
 
@@ -38,11 +33,10 @@ C      mzcnb1
 C      mzcnb2
 C      mzpst1
 C      mzback
-C MZGSUP controls the simulation within the 3D ground start up period.
-C FILL1G fills up the 1D ground temperature array.
+C      MZGSUP - controls the simulation within the 3D ground start up period.
+C      FILL1G - fills up the 1D ground temperature array.
 
-C ******************** mzwdar
-
+C ******************** mzwdar ********************
 C Computes the total area of internal and external default windows
 c for transfer to the results database.  This cannot
 C be done prior to the time loop because the necessary adjacency
@@ -50,6 +44,7 @@ C information is not established until the simulation commences.
 
 C << there is probably no reason to call this subroutine as there
 C << are no longer any so-called default windows and doors.
+
       subroutine mzwdar(icomp)
 #include "building.h"
 
@@ -90,12 +85,10 @@ C Write dummy values for default doors and windows to results library.
       goto 5
       end
 
-C *********************************************************************
-C MTXCTL controls the zone heat matrix solving process according to the
+C ******************** MTXCTL ********************
+C Controls the zone heat matrix solving process according to the
 C sensor location of the associated control function.
-C *********************************************************************
       SUBROUTINE MTXCTL(ICOMP)
-
 #include "building.h"
 #include "control.h"
 
@@ -105,19 +98,19 @@ C *********************************************************************
       common/cctl/icascf(mcom)
       COMMON/GRND110/GRNDSP
 
-C CFD
+C CFD.
       COMMON/cfdfil/LCFD(MCOM),IFCFD(MCOM)
 
       LOGICAL        GRNDSP
       character LCFD*72
 
-c      if(ncf.eq.0)then
-c
+C      if(ncf.eq.0)then
+C
 C No control is imposed.
-c        IF(.NOT.GRNDSP.AND.
-c     &   ((IFCFD(ICOMP).EQ.2.AND.NSINC.GT.1).OR.
-c     &    (IFCFD(ICOMP).EQ.-2.AND.IDYP.GE.ISDS)))then
-c
+C        IF(.NOT.GRNDSP.AND.
+C     &   ((IFCFD(ICOMP).EQ.2.AND.NSINC.GT.1).OR.
+C     &    (IFCFD(ICOMP).EQ.-2.AND.IDYP.GE.ISDS)))then
+C
 C Solve matrix considering inside airflow modelled by CFD.
 c          call mzmrx5(icomp)
 c        else
@@ -156,7 +149,6 @@ c        endif
 c      endif
 c      return
 c      end
-
 
       if(ncf.eq.0)goto 11
       ii=icascf(icomp)
@@ -197,8 +189,7 @@ C Control is on mixed air and surface temperatures.
       return
       end
 
-C ******************** mzmrx1
-
+C ******************** mzmrx1 ********************
 C The main controller for the matrix handling and
 C solution relating to air point temperature control.
 
@@ -230,8 +221,7 @@ C Back substitute in reduced construction matrices.
       return
       end
 
-C ******************** mzmrx2
-
+C ******************** mzmrx2 ********************
 C The main controller for the matrix handling and
 C solution relating to surface temperature control.
 
@@ -263,8 +253,7 @@ C Back substitute in reduced construction matrices.
       return
       end
 
-C ******************** mzmrx3
-
+C ******************** mzmrx3 ********************
 C This is the main controller for the matrix handling
 C and solution relating to intra-constructional temperature
 C control.
@@ -297,8 +286,7 @@ C Back substitute in reduced construction matrices.
       return
       end
 
-C ******************** mzmrx4
-
+C ******************** mzmrx4 ********************
 C This is the main controller for the matrix handling
 C and solution relating to mixed air/ mean radiant
 C temperature control.
@@ -331,8 +319,7 @@ C Back substitute in reduced construction matrices.
       return
       end
 
-C ******************** mzcnf1
-
+C ******************** mzcnf1 ********************
 C Reduce a partitioned construction matrix to the end of
 C the forward reduction stage and pass across the adjusted
 C coefficients relating to the internal surface (future) term,
@@ -368,7 +355,6 @@ C mzsad1 where the next-to-surface coefficient can be eliminated
 C from the corresponding surface equation.
 
       subroutine mzcnf1(icomp,iconst)
-
 #include "building.h"
 #include "control.h"
 
@@ -400,11 +386,11 @@ C surface node.
          wa(iconst,1,i)=w(iconst,1,i)
    10 continue
 
-C Is plant interaction node intra-constructional ?
+C Is plant interaction node intra-constructional?
       if(ncf.eq.0.or.ic.eq.0)goto 2
       if(iban(ic,3).gt.0)goto 3
 
-C No !
+C No!
     2 wa(iconst,1,4)=0.
       goto 4
 
@@ -434,7 +420,7 @@ C Proceed with forward reduction.
       a3=wa(iconst,n,3)
       a4=wa(iconst,n,4)
 
-C Trace output ?
+C Trace output?
       if(itc.le.0.or.nsinc.lt.itc)goto 9999
       if(itrace(27).eq.0.or.nsinc.gt.itcf.or.
      &   izntrc(icomp).ne.1)goto 9999
@@ -455,8 +441,7 @@ C Trace output ?
  9999 return
       end
 
-C ******************** mzcnf2
-
+C ******************** mzcnf2 ********************
 C  Reduces a partitioned construction matrix to the end of the
 C  forward reduction stage and passes across the adjusted coefficients
 C  (two sets) relating to the internal constructional control node
@@ -495,7 +480,6 @@ C  node coefficient can be eliminated from the corresponding surface
 C  equation and the control node coefficient introduced if appropriate.
 
       subroutine mzcnf2(icomp,iconst)
-
 #include "building.h"
 #include "control.h"
 
@@ -681,7 +665,7 @@ C `a' and `b' coefficients.
       a4=wa(iconst,n,4)
    96 continue
 
-C  Trace output ?
+C  Trace output?
       if(itc.le.0.or.nsinc.lt.itc)goto 9999
       if(itrace(27).eq.0.or.nsinc.gt.itcf.or.
      &   izntrc(icomp).ne.1)goto 9999
@@ -733,8 +717,7 @@ C b3 and b4.
       return
       end
 
-C ******************** mzsad1
-
+C ******************** mzsad1 ********************
 C Adjust the appropriate surface node equation
 C coefficients in terms of the results of mzcnf1.
 C That is:
@@ -755,7 +738,6 @@ C                            coefficients and coefficient 1
 C                            is zero.
 
       subroutine mzsad1(icomp,iconst)
-
 #include "building.h"
 #include "control.h"
 
@@ -855,8 +837,7 @@ C Output adjusted coefficients.
 
       end
 
-C ******************** mzsad2
-
+C ******************** mzsad2 ********************
 C Adjust the appropriate surface node equation
 C coefficients in terms of the results of mzcnf2.
 C That is:
@@ -875,7 +856,6 @@ C 1 X X X X X X    2 3 4  ) where 1,2,3 are adjusted coefficients,
 C                           and coefficient 4 is introduced.
 
       subroutine mzsad2(icomp,iconst)
-
 #include "building.h"
 #include "control.h"
 
@@ -999,7 +979,7 @@ c        n4=nc+4
   300   continue
       endif
 
-C Trace output ?
+C Trace output?
       if(itrace(28).eq.0.or.nsinc.gt.itcf.or.
      &   izntrc(icomp).ne.1)goto 9999
       if(itc.le.0.or.nsinc.lt.itc)goto 9999
@@ -1041,9 +1021,9 @@ C Output adjusted coefficients.
       stop
 
       end
-C ******************** mzcms1
 
-C mzcms1 reduces the coefficients of the surface and air point
+C ******************** mzcms1 ********************
+C Reduces the coefficients of the surface and air point
 C node equations to the end of the forward reduction stage. The
 C air and plant (carried through) coefficients are then passed
 C to 'mzpst1' where the air/plant equation is solved depending
@@ -1176,7 +1156,7 @@ C Now commence back-substitution operation.
    50 continue
    40 continue
 
-C Trace output 2 ?
+C Trace output 2?
       if(itc.le.0.or.nsinc.lt.itc)goto 9999
       if(itrace(29).eq.0.or.nsinc.gt.itcf.or.
      &  izntrc(icomp).ne.1)goto 9999
@@ -1200,9 +1180,8 @@ C Show first 24 surface.
  9999 return
       end
 
-C ******************** mzcms2
-
-C Mzcms2 reduces the coefficients of the surface and air
+C ******************** mzcms2 ********************
+C Reduces the coefficients of the surface and air
 C point node equations to the end of the forward reduction
 C stage.   The appropriate control surface and plant
 C (carried through) coefficients are then solved in
@@ -1250,7 +1229,6 @@ C The last equation is solved in 'mzpst1' and the back
 C substitution completed.
 
       subroutine mzcms2(icomp)
-
 #include "building.h"
 #include "control.h"
 
@@ -1342,7 +1320,7 @@ C b3 = present term coefficient.
       b2=e(n1,n2)
       b3=e(n1,n3)
 
-C Trace output 1 ?
+C Trace output 1?
       if(itc.le.0.or.nsinc.lt.itc)goto 999
       if(itrace(29).eq.0.or.nsinc.gt.itcf.or.
      &   izntrc(icomp).ne.1)goto 999
@@ -1383,7 +1361,7 @@ C Commence back-substitution operation.
    60 continue
    50 continue
 
-C Trace output 2 ?
+C Trace output 2?
       if(itc.le.0.or.nsinc.lt.itc)goto 9999
       if(itrace(29).eq.0.or.nsinc.gt.itcf.or.
      &   izntrc(icomp).ne.1)goto 9999
@@ -1407,9 +1385,8 @@ C Show first 24 surface.
  9999 return
       end
 
-C ******************** mzcms3
-
-C mzcms3 reduces the coefficients of the surface and air point
+C ******************** mzcms3 ********************
+C Reduces the coefficients of the surface and air point
 C node equations to the end of the forward reduction stage. The
 C surface, air and plant (carried through) coefficients are then 
 C passed to 'mzpst1' where the air/plant equation is solved 
@@ -1462,9 +1439,9 @@ C N3 relates to the present term
 C N5 relates to the control term
 
       subroutine mzcms3(icomp)
-
 #include "building.h"
 #include "control.h"
+
       common/trace/itcf,itrace(mtrace),izntrc(mcom),itu
 
       common/tc/itc,icnt
@@ -1566,7 +1543,7 @@ C Now commence back-substitution operation.
           e(n2,k)=0.0
 125   continue
 
-C Trace output 2 ?
+C Trace output 2?
       if(itc.le.0.or.nsinc.lt.itc)goto 9999
       if(itrace(29).eq.0.or.nsinc.gt.itcf.or.
      &   izntrc(icomp).ne.1)goto 9999
@@ -1590,9 +1567,8 @@ C Show first 24 surface.
  9999 return
       end
       
-C ******************** mzcms4
-
-C Mzcms4 reduces the coefficients of the surface and air point
+C ******************** mzcms4 ********************
+C Reduces the coefficients of the surface and air point
 C node equations to the end of the forward reduction stage.   The
 C air and plant (carried through) coefficients are then passed
 C to 'mzpst1' where the air/plant equation is solved to give the
@@ -1709,9 +1685,8 @@ C as a function of the user-imposed control strategy.
       return
       end
 
-C ******************** mzcnb1
-
-C Mzcnb1 implements back substitution operation on the
+C ******************** mzcnb1 ********************
+C Implements back substitution operation on the
 C construction matrices - relating to the non intra-
 C construction control point case - and solves for the
 C intra-nodal temperatures.
@@ -1738,15 +1713,13 @@ C intra-nodal temperatures.
       return
       end
 
-C ******************** mzcnb2
-
-C Mzcnb2 implements back substitution operation on the
+C ******************** mzcnb2 ********************
+C Implements back substitution operation on the
 C construction matrices - relating to the intra-construction
 C control point case - and solves for the intra-nodal
 C temperatures.
 
       subroutine mzcnb2(icomp,iconst)
-      
 #include "building.h"
 #include "geometry.h"
 #include "control.h"
@@ -1801,19 +1774,18 @@ C Determine surface temperature,
       return
       end
 
-C ******************** mzpst1
-
-C Mzpst1 solves the air temperature/plant capacity
+C ******************** mzpst1 ********************
+C Solves the air temperature/plant capacity
 C (perhaps carried through) equation (b1*t+b2*q=b3) in
 C terms of the control function information previously
 C defined.
 
       subroutine mzpst1(b1,b2,b3,icomp,qf)
-
 #include "building.h"
 #include "geometry.h"
 #include "control.h"
 #include "blc25_open_windows.h"
+#include "help.h"
 
       common/tc/itc,icnt
 
@@ -1850,12 +1822,7 @@ C defined.
       character outs*144
       logical OK,global,glbrwd
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='mzpst1'  ! set for subroutine
+      helpinsub='matsv'  ! set for subroutine
 
 C Zeroise free-cooling variables.
       fFreeCoolDelivered(icomp) = 0.
@@ -2093,16 +2060,14 @@ C Mixed injection.
 
       end
 
-C ******************** mzback
-
-C Mzback implements back substitution in a zone matrix
+C ******************** mzback ********************
+C Implements back substitution in a zone matrix
 C in the case of "mixed" temperature control. If the
 C zone also has a mixed actuator then the e array must
 C be re-established to include the radiant and convective
 C input.
 
       subroutine mzback(q)
-
 #include "building.h"
 #include "control.h"
 
@@ -2215,7 +2180,7 @@ C Conduct backward substitution.
   220 continue
   210 continue
 
-C Trace output ?
+C Trace output?
       if(itc.le.0.or.nsinc.lt.itc)goto 9999
       if(itrace(29).eq.0.or.nsinc.gt.itcf.or.
      &   izntrc(icomp).ne.1)goto 9999
@@ -2239,9 +2204,9 @@ C Show first 24 surface.
  9999 return
       end
 
-C ****************************    MZGSUP    ***************************
-C MZGSUP controls the simulation within the 3D ground start up period.
-C *********************************************************************
+C ******************** MZGSUP ********************
+C Controls the simulation within the 3D ground start up period.
+
       SUBROUTINE MZGSUP(ISS)
 #include "building.h"
 #include "net_flow.h"
@@ -2342,7 +2307,7 @@ C Set the future time-row hour value.
           btimef=float(ihrp)+float(its)/float(ntstep)
           if(btimef.gt.24.0)btimef=btimef-24.
 
-C Determine climatic parameters at the present and future time row. 
+C Determine weather parameters at the present and future time row. 
           call mzclmpt(1)
 
 C Determine for each component and surface, the defining
@@ -2413,9 +2378,9 @@ C Day loop now complete.
       RETURN
       END
 
-C **************************    FILL1G    *****************************
-C FILL1G fills up the 1D ground temperature array.
-C *********************************************************************
+C ******************** FILL1G ********************
+C Fills up the 1D ground temperature array.
+
       SUBROUTINE FILL1G
 #include "building.h"
 

@@ -28,6 +28,7 @@ C geometry.h provides commons G0/G1/G2/G5/c20/precz.
 #include "geometry.h"
 #include "prj3dv.h"
 #include "espriou.h"
+#include "help.h"
       
       integer lnblnk  ! function definition
 
@@ -92,12 +93,7 @@ C     character L144*144,lltmp*144
       integer*8 iix,iiy
 #endif
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='EDCASCTL'  ! set for subroutine
+      helpinsub='edcasctl'  ! set for subroutine
 
 C Set folder separator (fs) to \ or / as required.
       call isunix(unixok)

@@ -71,6 +71,7 @@ C   CDBParamEdit -  Allows a user to edit the data associated with a specific pa
 #include "model.h"
 #include "espriou.h"
 #include "gencompDB.h"
+#include "help.h"
 
       integer lnblnk  ! function definition
       integer igraphiclib  ! external definition
@@ -83,7 +84,6 @@ C Facilities are provided to enter, list, edit and
 C delete component descriptions.
 C The routine PCHELP contains a description of a 
 C database entry.
-      common/pophelp/h(60)
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
       COMMON/VIEWPX/menuchw,igl,igr,igt,igb,igw,igwh
 
@@ -118,7 +118,7 @@ C Ask to overwrite flag.
 
       logical   unixok,OK,XST,EDITS,CDBOPEN
       CHARACTER ZITEM(14)*28 
-      CHARACTER LTMP*72,h*72,inf*144,L144*144
+      CHARACTER LTMP*72,inf*144,L144*144
       character cdbfile*144,lcmdfl*144,outs248*248
       character*72 DFCFD,DECMPDBFL,DMCMPDBFL,DICONDBFL
       character path*72,fs*1,scanning*8
@@ -141,6 +141,8 @@ C If left & top offsets are 0 then use defaults.
       CDBOPEN=.FALSE.
       call parpsf(MODL,iappw,iappx,iappy,inf)
       AUTOVR=.false. ! by default, ask to overwrite files
+
+      helpinsub='cdb'  ! set for subroutine
 
 C Set folder separator (fs) to \ or / as required.
       call isunix(unixok)
@@ -250,13 +252,9 @@ C        call edisp248(iuout,outs248,80)
       endif
 
 C Initialize plant component database file.
-  100 h(1)='The component database file holds the'
-      h(2)='description of available components. If the name'
-      h(3)='given matches an existing file, it will be read in'
-      h(4)='and the components data will be available for'
-      h(5)='listing and editing. If there is no such file then'
-      h(6)='a new one will be created to hold data for new'
-      h(7)='components.'
+  100 helptopic='cdb_overview'
+      call gethelptext(helpinsub,helptopic,nbhelp)
+
       L144=LCMDFL
       llt=lnblnk(L144)
       
@@ -278,7 +276,7 @@ C name with the full path.
         ISTRW=96
       endif
       CALL EASKF(L144,'Open this database? ',' ',
-     &  ISTRW,DICONDBFL,' Database name ',IER,7)
+     &  ISTRW,DICONDBFL,' Database name ',IER,nbhelp)
 
       if(L144(1:2).ne.'  ')THEN
         LCMDFL=L144
@@ -303,12 +301,9 @@ C Read the full database into memory.
         
         IF(IER.NE.0) THEN
           CDBOPEN=.FALSE.
-          h(1)='The components database file is typically held in'
-          h(2)='/usr/esru/esp-r/databases/components.db1'
-          h(3)=' '
-          h(4)='Check that this folder exists in your ESP-r '
-          h(5)='installation.'
-          CALL EASKOK('Problem reading file!','Retry?',OK,5)
+          helptopic='component_db_location'
+          call gethelptext(helpinsub,helptopic,nbhelp)
+          CALL EASKOK('Problem reading file!','Retry?',OK,nbhelp)
           if(OK) THEN
             GOTO 100
           endif
@@ -320,11 +315,8 @@ C Read the full database into memory.
 C File doesn't exist.
         CDBOPEN=.FALSE.
         OK=.false.
-        h(1)='The components database file is typically held in'
-        h(2)='/usr/esru/esp-r/databases/components.db1'
-        h(3)=' '
-        h(4)='Please check that this file or the file '
-        h(5)='you have specified actually exist.'
+        helptopic='component_db_missing'
+        call gethelptext(helpinsub,helptopic,nbhelp)
         CALL EASKOK('File not found!.','Retry?',OK,5)
         IF(OK) GOTO 100
       ENDIF

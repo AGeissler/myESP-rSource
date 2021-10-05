@@ -22,6 +22,7 @@ C Main controller for the design questions facility.
       SUBROUTINE MODESQ
 #include "building.h"
 #include "geometry.h"
+#include "help.h"
 
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/OUTPCH/ICOUT
@@ -43,12 +44,7 @@ C Main controller for the design questions facility.
       logical close
       integer NITMS,INO ! max items and current menu item
 
-C For help messages.
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp         ! number of help lines found
-
-      helpinsub='MODESQ'     ! set for cfiles
+      helpinsub='design'     ! set for cfiles
 
       ITEM(1) ='2 result set    '
       ITEM(2) ='3 period        '

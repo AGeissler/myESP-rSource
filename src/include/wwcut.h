@@ -117,7 +117,7 @@ void	textatxywwc_(long int* x,long int* y,char* buff,char* act,long int* n,int l
 void	textatxy_(long int* x,long int* y,char* buff,char* act,long int* n,int len);
 void	textsizeatxywwc_(long int* x,long int* y,char* buff,long int* size,char* act,long int* n,int len);
 void	textsizeatxy_(long int* x,long int* y,char* buff,long int* size,char* act,long int* n,int len);
-void	textpixwidth_(char* buff,long int* pixelwidth,int len);
+void	textpixwidth_(char* buff,long int* pixelwidth,long int* pixelheight,int len);
 void	winfnt_(long int* n);
 void	charsusingfnt_(long int* n, long int* cw, long int* nlines);
 void	xbox(box b, unsigned long fgc, unsigned long bgc, int flags);
@@ -235,8 +235,9 @@ void	eewmenu_(char* titleptr,long int* impx,long int* impy,long int* iwth,long i
 /* int	aux_menu(XEvent event); */
 void	refreshenv_();
 void	opencpw_();
-void	opencfg_(long int* cfg_type,long int* icfgz,long int* icfgn,long int* icfgc,
-                 long int* icfgdfn,long int* iicfgz,long int* iicfgn,long int* iicfgc,long int* iicfgdfn);
+void	opencfg_(long int* cfg_type,long int* icfgz,long int* icfgs,long int* icfgnet,long int* icfgc,
+                 long int* icfgpln,long int* icfgeln,long int* icfgren,long int* icfgfab,
+		 long int* icfgbeh,long int* icfgsim);
 void	opensetup_();
 void	updwire_(long int* avail);
 void	updcapt_(long int* avail);

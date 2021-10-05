@@ -13,11 +13,6 @@ C warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
 C PURPOSE. See the GNU General Public License for more
 C details.
 
-C You should have received a copy of the GNU General Public
-C License along with ESP-r. If not, write to the Free
-C Software Foundation, Inc., 59 Temple Place, Suite 330,
-C Boston, MA 02111-1307 USA.
-
 C This file contains additional routines developed within 
 C the framework of COPERNICUS project "Integrated Design
 C Optimization of Building Energy Performance and 
@@ -106,7 +101,7 @@ C Boundary condition commons.
 
 C Common blocks for blockages and small supply openings
       common/blksso/NBLK(MNZ),INBLK(MNVLS,MNZ),NSSO(MNZ),
-     &          INSSO(MNVLS,MNZ)
+     &          INSSO(MNVLS,MNZ),BLKTEMP(MNVLS,MNZ,6)
 
       LOGICAL INCALU,INCALV,INCALW,INCALT,INCALK,INCALD
       LOGICAL IZEROT,IZanKE,IMITZ

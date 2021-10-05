@@ -1,6 +1,6 @@
 C This file is part of the ESP-r system.
 C Copyright Energy Systems Research Unit, University of
-C Strathclyde, Glasgow Scotland, 2001.
+C Strathclyde, Glasgow, Scotland, 2001-.
 
 C ESP-r is free software.  You can redistribute it and/or
 C modify it under the terms of the GNU General Public
@@ -13,17 +13,11 @@ C warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
 C PURPOSE. See the GNU General Public License for more
 C details.
 
-C You should have received a copy of the GNU General Public
-C License along with ESP-r. If not, write to the Free
-C Software Foundation, Inc., 59 Temple Place, Suite 330,
-C Boston, MA 02111-1307 USA.
 
-C Tabular output for network air flow: 
-C   MFTABL formatted tabular output
-C   MFRTBL raw tabular output.
+C This file contains the following ubroutines.
+C MFTABL - formatted tabular output.
+C MFRTBL - raw tabular output.
 
-C Note: MFTABL and MFRTBL used with ASCII version of network flow results
-C       file and is not called for versions after November 2002.
 C ***************** MFTABL 
 C Tabular output (formatted) of results; local variables:
 C     IDIM   - flow units: kg/s (IDIM=1), m^3/hr (IDIM=2), 1/hr (IDIM=3)
@@ -38,10 +32,11 @@ C     NTSPH  - number of simulation time steps per hour
 C     VOL() - volume used for calculating change rate in case IDIM=3
 
       SUBROUTINE MFTABL(itrc,IFRES,ier)
-
 #include "building.h"
 #include "net_flow.h"
 #include "net_flow_data.h"
+#include "help.h"
+
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/OUTPCH/ICOUT
@@ -65,12 +60,7 @@ C     VOL() - volume used for calculating change rate in case IDIM=3
       character PERST1*14,PERST2*44,PERST3*44
       integer NITMS,INO ! max items and current menu item
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found (will be non-zero
-                         ! because default message will be created
-      helpinsub='MFTABL' ! set for subroutine
+      helpinsub='mftabl' ! set for subroutine
 
       IDIM=1
       VOL(1)=1.
@@ -104,22 +94,22 @@ C yet set.
 
 C Set up menu.
    10 INO=-2
-      ITEM(1) ='p Analysis period      '
-      ITEM(2) ='u Reporting units:     '
+      ITEM(1) ='p analysis period      '
+      ITEM(2) ='u reporting units      '
       ITEM(3) ='  ___________________  '
-      ITEM(4) ='a Select nodes         '
-      ITEM(5) ='b Display data         '
-      ITEM(6) ='c Deselect nodes       '
+      ITEM(4) ='a select nodes         '
+      ITEM(5) ='b display data         '
+      ITEM(6) ='c deselect nodes       '
       ITEM(7) ='  ___________________  '
-      ITEM(8) ='? Help                 '
-      ITEM(9) ='- Exit                 '
+      ITEM(8) ='? help                 '
+      ITEM(9) ='- exit menu            '
       NITMS=9
 
 C Help text for menu.
       helptopic='mfs_analysis_menu'
       call gethelptext(helpinsub,helptopic,nbhelp)
 
-   12 CALL EMENU('Reporting (formatted)',ITEM,NITMS,INO)
+   12 CALL EMENU('Tabular output',ITEM,NITMS,INO)
 
       IF(INO.EQ.1)THEN
 
@@ -205,10 +195,10 @@ c Help facilities.
 
 C Position read-pointer at first record of simulation day IDAYF
 
-C Flush current table through IUOUT or to a file
+C Flush current table through IUOUT or to a file.
    50 if(NNDO.EQ.0)then
-        call usrmsg(' Nothing selected yet,',
-     &              ' returning to start of reporting...','W')
+        call usrmsg('Nothing selected yet,',
+     &              'returning to start of reporting.','W')
         GOTO 10
       endif
 
@@ -218,12 +208,12 @@ C output to file.
       itru = icout
       if(ixopen.eq.1)then
         itru = ixunit
-        call edisp(iuout,' Output will be directed to file... ')
+        call edisp(iuout,'Output will be directed to file.')
       endif
 
       CALL MFSKIP(IFRES,NNOD,NCNN,IFYD,IDAYF,IER)
       if(IER.NE.0)then
-        call edisp(iuout,' Problem positioning point in results file.')
+        call edisp(iuout,'Problem positioning point in results file.')
         GOTO 100
       endif
 
@@ -232,7 +222,7 @@ C Start day part of main output loop by writing table header
       CALL EDAYR(IDAY,ID,IM)
       call edisp(itru,' ')
       call edisp(itru,
-     &' Node pressure and fluid flow entering (+ve) or leaving (-ve)')
+     &'Node pressure and flow entering (+ve) or leaving (-ve)')
       write(outs,'(A,I3,A,I2,A,I4,A)')' Day',ID,' of month ',IM,
      &     ' (',IRY,')'
       call edisp(itru,outs)
@@ -251,8 +241,8 @@ C Start day part of main output loop by writing table header
       END IF
       WRITE(outs,1053)
       call edisp(itru,outs)
-10502 FORMAT('       ',2('|',3X,'Pa',5X,2(2X,A6,3X)))
-1053  FORMAT(' ======',2('|',32('=')))
+10502 FORMAT('      ',2('|',3X,'Pa',5X,2(2X,A6,3X)))
+1053  FORMAT(' =====',2('|',32('=')))
 
 C Start hour part of output loop by reading flow rates and pressures
       DO 58 IH=1,NTSPD
@@ -283,7 +273,7 @@ C Parse this string and recapture fluid type, temperature, pressure.
         TNOD(INOD)=RV1
         PRES(INOD)=RV2
         IF(IERL.NE.0)then
-          call edisp(iuout,' Problem reading node data.')
+          call edisp(iuout,'Problem reading node data.')
           GOTO 100
         endif
    52 CONTINUE
@@ -354,10 +344,8 @@ C
 #include "net_flow.h"
 #include "net_flow_data.h"
 #include "esprdbfile.h"
-C esprdbfile.h supplies the following:
-C LAPRES,IAPRES (for window pressure databases)
-C ICLIM,LCLIM (for climate file)
-      
+#include "help.h"
+
       integer lnblnk  ! function definition
 
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
@@ -389,12 +377,7 @@ C 248 character buffer suppors ~15 columns of data.
       integer NITMS,INO ! max items and current menu item
       integer lnb       ! width of output line
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found (will be non-zero
-                         ! because default message will be created
-      helpinsub='MFRTBL' ! set for subroutine
+      helpinsub='mftabl' ! set for subroutine
 
       IDIM=1
       VOL(1)=1.
@@ -430,25 +413,25 @@ C yet set.
 
 C Set up menu.
    10 INO=-2
-      ITEM(1) ='p Analysis period      '
-      ITEM(2) ='u Reporting units:     '
+      ITEM(1) ='p analysis period      '
+      ITEM(2) ='u reporting units      '
       ITEM(3) ='  ___________________  '
-      ITEM(4) ='a Select nodes         '
-      ITEM(5) ='b Select connections   '
-      ITEM(6) ='c Clear selections     '
-      ITEM(7) ='d Show selection status'
+      ITEM(4) ='a select nodes         '
+      ITEM(5) ='b select connections   '
+      ITEM(6) ='c clear selections     '
+      ITEM(7) ='d show selection status'
       ITEM(8) ='  ___________________  '
-      ITEM(9) ='! List selections      '
+      ITEM(9) ='! list selections      '
       ITEM(10)='  ___________________  '
-      ITEM(11)='? Help                 '
-      ITEM(12)='- Exit                 '
+      ITEM(11)='? help                 '
+      ITEM(12)='- exit menu            '
       NITMS=12
 
 C Help for this menu.
       helptopic='mfs_raw_table_overview'
       call gethelptext(helpinsub,helptopic,nbhelp)
   
-   12 CALL EMENU('Reporting (raw)',ITEM,NITMS,INO)
+   12 CALL EMENU('Tabular output (raw)',ITEM,NITMS,INO)
 
       IF(INO.EQ.1)THEN
 
@@ -481,8 +464,8 @@ C Display format for date is Fri 10 Jan.
 C Change flow results output units
    70   helptopic='mfs_table_express_flow'
         call gethelptext(helpinsub,helptopic,nbhelp)
-        CALL EASKABC(' Express flow results as: ',' ',
-     &   'kg/s','volume as m^3/hr','volume as ac/h',IDIM,nbhelp)
+        CALL EASKABC(' ','Flow results units:',
+     &   'kg/s','m^3/h','AC/h',IDIM,nbhelp)
         IF(IER.NE.0) GOTO 70
       ELSEIF(INO.EQ.4)THEN
 
@@ -554,21 +537,21 @@ C Add one or more connections to the table
 
 C Show status.
         call edisp(iuout,' Current files: ')
-        WRITE(outs,'(A,A)') ' Problem : ',LAPROB(1:LNBLNK(LAPROB))
+        WRITE(outs,'(A,A)') ' Problem: ',LAPROB(1:LNBLNK(LAPROB))
         call edisp(iuout,outs)
-        WRITE(outs,'(A,A)') ' Cp-wind : ',LAPRES(1:LNBLNK(LAPRES))
+        WRITE(outs,'(A,A)') ' Cp-wind: ',LAPRES(1:LNBLNK(LAPRES))
         call edisp(iuout,outs)
-        WRITE(louts,'(A,A)') ' Climate : ',LCLIM(1:LNBLNK(LCLIM))
+        WRITE(louts,'(A,A)') ' Weather: ',LCLIM(1:LNBLNK(LCLIM))
         call edisp248(iuout,louts,100)
-        WRITE(outs,'(A,A)') ' Results : ',LAFRES(1:LNBLNK(LAFRES))
+        WRITE(outs,'(A,A)') ' Results: ',LAFRES(1:LNBLNK(LAFRES))
         call edisp(iuout,outs)
         call edisp(iuout,' ')
         IF(IDIM.EQ.1) THEN
           WRITE(outs,10302) ' kg/s ',NCOL,MCOLT
         ELSE IF(IDIM.EQ.2) THEN
-          WRITE(outs,10302) 'm^3/hr',NCOL,MCOLT
+          WRITE(outs,10302) ' m^3/hr',NCOL,MCOLT
         ELSE
-          WRITE(outs,10302) ' 1/hr ',NCOL,MCOLT
+          WRITE(outs,10302) ' AC/hr ',NCOL,MCOLT
         END IF
 10302   FORMAT(' Table status: pressure in Pa; flow in ',A6,';',I3,
      &         ' columns defined (max. =',I3,')')
@@ -597,7 +580,6 @@ C Explain option
       ENDIF
       GOTO 10
 
-
 C Flush current table through IUOUT or to a file. If icout
 C was lost reset to text feedback prior to checking for
 C output to file.
@@ -611,20 +593,20 @@ C output to file.
 
 C First general table info and column headers
       call edisp(itru,'# MFRTBL: current files:')
-      WRITE(outs,*) '# Problem : ',LAPROB(1:LNBLNK(LAPROB))
+      WRITE(outs,*) '# Problem: ',LAPROB(1:LNBLNK(LAPROB))
       call edisp(itru,outs)
-      WRITE(outs,*) '# Cp-wind : ',LAPRES(1:LNBLNK(LAPRES))
+      WRITE(outs,*) '# Cp-wind: ',LAPRES(1:LNBLNK(LAPRES))
       call edisp(itru,outs)
-      WRITE(louts,*) '# Climate : ',LCLIM(1:LNBLNK(LCLIM))
+      WRITE(louts,*) '# Weather: ',LCLIM(1:LNBLNK(LCLIM))
       call edisp248(itru,louts,100)
-      WRITE(outs,*) '# Results : ',LAFRES(1:LNBLNK(LAFRES))
+      WRITE(outs,*) '# Results: ',LAFRES(1:LNBLNK(LAFRES))
       call edisp(itru,outs)
       IF(IDIM.EQ.1) THEN
          WRITE(outs,10902) ' kg/s '
       ELSE IF(IDIM.EQ.2) THEN
-         WRITE(outs,10902) 'm^3/hr'
+         WRITE(outs,10902) ' m^3/hr'
       ELSE
-         WRITE(outs,10902) ' 1/hr '
+         WRITE(outs,10902) ' AC/hr '
       END IF
 
       call edisp(itru,outs)
@@ -678,7 +660,7 @@ C Parse this string and recapture fluid type, temperature, pressure.
         TNOD(INOD)=RV1
         PRES(INOD)=RV2
         IF(IERL.NE.0)then
-          call edisp(iuout,' Problem reading node data.')
+          call edisp(iuout,'Problem reading node data.')
           GOTO 100
         endif
    92 CONTINUE

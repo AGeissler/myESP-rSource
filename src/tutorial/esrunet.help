@@ -1,6 +1,6 @@
 *help_text net
-*subroutine scanicondb
-*item scanicondb scan_of_icon_db
+
+*item icndbscn scan_of_icon_db
 'Icons for this application are held in a file which is'
 'typically named icons.db1 in the ESP-r distribution'
 'databases folder suc as /usr/esru/esp-r/databases or'
@@ -10,8 +10,7 @@
 'will be very difficult to do any work.'
 *enditem
 
-*subroutine NETICONDATR
-*item NETICONDATR component_data_edit
+*item netwedit component_data_edit
 'This menu displays data which can be edited for'
 'this component. The name of of the component can'
 'also be changed to a UNIQUE NAME no blanks (be sure'
@@ -30,8 +29,7 @@
 'within the graphic area and select the option.'
 *enditem
 
-*subroutine updintunknflow
-*item updintunknflow network_mismatch_detect
+*item netwedit network_mismatch_detect
 'As the model is updated in terms of its form or the'
 'network is adjusted a mismatch was detected between'
 'the zone volume and the volume of the network node'
@@ -41,8 +39,7 @@
 'If you say yes the zone attributes will be used. '
 *enditem
 
-*subroutine updwindflow
-*item updwindflow network_mismatch_detect
+*item netwedit network_mismatch_detect
 'As the model is updated in terms of its form or the'
 'network is adjusted a mismatch was detected between'
 'the zone volume and the volume of the network node'
@@ -52,8 +49,7 @@
 'If you say yes the zone attributes will be used. '
 *enditem
 
-*subroutine NETCNNDATR
-*item NETCNNDATR connection_attributes
+*item netwedit connection_attributes
 'This menu displays the connection attribute which'
 'can be edited.'
 '  '
@@ -68,8 +64,7 @@
 'and then use button3 to move it.'
 *enditem
 
-*subroutine NETIDATR
-*item NETIDATR component_cat_edits
+*item netwedit component_cat_edits
 'This menu displays the categoties of data which'
 'can be edited for this component.'
 '  '
@@ -84,7 +79,7 @@
 'The data you can change follows the standard item pattern.'
 *enditem
 
-*item NETIDATR network_mismatch_detect
+*item netwedit network_mismatch_detect
 'As the model is updated in terms of its form or the'
 'network is adjusted a mismatch was detected between'
 'the zone volume and the volume of the network node'
@@ -93,8 +88,7 @@
 'If you say yes the zone attributes will be used. '
 *enditem
 
-*subroutine NETCDATR
-*item NETCDATR connection_attributes
+*item netwedit connection_attributes
 'This menu displays the categoties of data which'
 'can be edited for this connection.'
 '  '
@@ -104,15 +98,14 @@
 'be selected and their attributes edited.
 *enditem
 
-*subroutine NETWSNAP
-*item NETWORK net_summary_file
+*item network net_summary_file
 'This summary file is written by the project manager'
 'before invoking net. It is used by net to access the'
 'context of the model (where zones and surfaces are'
 'located.'
 *enditem
 
-*item NETWORK have_new_connection
+*item network have_new_connection
 'Recently a new connection was added to the network.'
 'Before doing anything else you should define its '
 'attributes. You can also edit attributes by clicking'
@@ -122,7 +115,7 @@
 'and then use button3 to move it.'
 *enditem
 
-*item NETWORK net_overview
+*item network net_overview
 'The graphic network module produces graphic descriptions'
 'of networks related to simulation. It accesses a database'
 'of icons and supports both the linking and attribution of 
@@ -180,7 +173,7 @@
 'A -5m is the maximum negative axis value.'
 *enditem
 
-*item NETWORK grid_spacing
+*item network grid_spacing
 'The graphical display can be scaled by defining the spacing of'
 'the grid. You have optioins to alter the XY spacing as well as'
 'the Z spacing. (middle button not-near-any-icon gives you some'
@@ -193,7 +186,7 @@
 'left do not work well if in negative X or Y.'
 *enditem
 
-*item NETWORK convert_to_text_network
+*item network convert_to_text_network
 'The icon based network file can be used by the simulator if'
 'all the components are fully attributed and the connection heights'
 'are correct. For safety, use the export facility to create an'
@@ -215,19 +208,18 @@
 'using the test option.'
 *enditem
 
-*subroutine NETWMIC
-*item NETWMIC unique_name_required
+*item network unique_name_required
 'Requires components to have a unique name, which contains'
 'no blank spaces.'
 *enditem
 
-*item NETWMIC icon_categories
+*item network icon_categories
 'The menu options relate to different categories'
 'of icons which may be selected for use with the'
 'current domain in the network tool.'
 *enditem
 
-*item NETWMIC icon_cat_components
+*item network icon_cat_components
 'Select a component from the list, which will '
 'then be drawn into the network. '
 '  '
@@ -236,22 +228,21 @@
 'component; this appears in the text window.'
 *enditem
 
-*item NETWMIC pause_to_consider
+*item network pause_to_consider
 'Pause in case you decide not to delete connections.'
 *enditem
 
-*subroutine NETWMCO
-*item NETWMCO pause_to_consider
+*item network pause_to_consider
 'Pause, in case you made a selection error. '
 *enditem
 
-*item NETWMCO position_manual
+*item network position_manual
 'As an alternative to mouse click identification you'
 'can type in an X Y Z coordinate near )~0.25m) the entity.'
 ' '
 *enditem
 
-*item NETWMCO check_mouse_menu
+*item network check_mouse_menu
 'For defining mass flow connections you can also use menu'
 'selections from lists of nodes and components to create'
 'both legs of a connection. This approach generates a single'
@@ -260,8 +251,7 @@
 'method.'
 *enditem
 
-*subroutine NETGDATR
-*item NETGDATR net_global_data
+*item network net_global_data
 'This menu displays the categoties of global data which'
 'can be edited for this domain/network.'
 '  '
@@ -289,7 +279,7 @@
 'Please select an item or  exit to the previous menu.'
 *enditem
 
-*item NETGDATR net_category_attrib
+*item network net_category_attrib
 'This list displays the attributes for this category.'
 'Click on the data item to edit its attributes.'
 'You will be asked for minimum and maximum values'
@@ -298,8 +288,7 @@
 'Some items also have text attributes to edit.'
 *enditem
 
-*subroutine selrelexttag
-*item selrelexttag net_pressure_coef
+*item network net_pressure_coef
 'To enable the calculation of wind-induced surface'
 'pressures (as required by ESP-r-s fluid flow'
 'simulators), a database of angle dependent'
@@ -319,13 +308,13 @@
 'external node.'
 *enditem
 
-*item selrelexttag external_overview
+*item network external_overview
 'Each thermal zone has attributes such as name,'
 'volume and a centre of gravity which can be used'
 'by a flow network component.'
 *enditem
 
-*item selrelexttag
+*item network external_overview
 'The zone attributes are volume and location (centre)'
 'and these can be taken from the model rather than '
 'typing them in manually. '
@@ -336,7 +325,7 @@
 'and adjust values by overiding the initial values.'
 *enditem
 
-*item selrelexttag place_at_lowest_point
+*item network place_at_lowest_point
 'The options listed would place the component at the'
 'lowest point of the surface, the COG or the top point'
 'of the surface. You can also manually supply a value.'

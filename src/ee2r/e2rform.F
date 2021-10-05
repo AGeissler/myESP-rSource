@@ -13,11 +13,6 @@ C warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
 C PURPOSE. See the GNU General Public License for more
 C details.
 
-C You should have received a copy of the GNU General Public
-C License along with ESP-r. If not, write to the Free
-C Software Foundation, Inc., 59 Temple Place, Suite 330,
-C Boston, MA 02111-1307 USA.
-
 C ESRU: radiance translator - sky, room and outside definition facilities.
 C  SKYFORM: Sky calculations & file generation.
 C  E2RFORM: Inside and outside materials and composition generation.
@@ -29,13 +24,15 @@ C ******* Sky calculations. *******
 #include "building.h"
 #include "site.h"
 #include "e2r_common.h"
+#include "help.h"
       
       integer lnblnk  ! function definition
 
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/FILEP/IFIL
 
-      character item*30,DESCRH*5,DESCRD*5,DESCR*7,DESCR1*10
+      character item*30
+      character DESCRH*5,DESCRD*5,DESCRJ*5,DESCR*7,DESCR1*10,DESCR2*8
       character skopt*3,outs*124,tfile*72
       character ltmp72*72,dtmp72*72
       integer NITEMS,INO ! max items and current menu item
@@ -44,12 +41,7 @@ C ******* Sky calculations. *******
 
       logical OK,XST
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='SKYFORM'  ! set for subroutine
+      helpinsub='e2rform'  ! set for subroutine
 
       ITA1 = IFIL+6
       ITA2 = IFIL+7
@@ -88,8 +80,8 @@ C If daylight factors then set sky to CIE overcast.
       write(ITEM(2),'(A,F6.1)') 'b Longitude diff: ',sitelongdif
 
       write(ITEM(3),'(A,I6)')   'c Year: ',iryear
-      call STDATE(IRYEAR,irdoy,DESCR,DESCR1)
-      call EDTIME(rtime,DESCRH,DESCRD,TIMER)
+      call STDATE(IRYEAR,irdoy,DESCR,DESCR1,DESCR2)
+      call EDTIME(rtime,DESCRH,DESCRD,DESCRJ,TIMER)
       write(ITEM(4),'(A,A,A,A)') 'd Date: ',DESCR1,' @ ',DESCRH
       write(ITEM(5),'(A,F6.1)')  'e Ground refl: ',rgrfl
       if(isky.eq.1)then
@@ -257,6 +249,7 @@ C ACT = 's' silent, ACT = 'i' interactive.
 #include "model.h"
 #include "e2r_common.h"
 #include "prj3dv.h"
+#include "help.h"
       
       integer lnblnk  ! function definition
 
@@ -274,11 +267,6 @@ C ACT = 's' silent, ACT = 'i' interactive.
       character*72 tfile
       character item*32,ACT*1,GTGEOM*72
       integer NITEMS,INO ! max items and current menu item
-
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
 
       helpinsub='e2rform'  ! set for subroutine
       ITA1 = IFIL+6
@@ -473,6 +461,7 @@ C If ACT='i' then interactive, ACT='s' for silent.
 #include "material.h"
 #include "e2r_common.h"
 #include "prj3dv.h"
+#include "help.h"
     
       integer lnblnk  ! function definition
 
@@ -525,12 +514,7 @@ C << and probably also for obs3 ? >>
       LOGICAL OK,fict,extern,XST,similar
       logical havediffusesources,founddiffuse
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='mkriofil'  ! set for subroutine
+      helpinsub='e2rform'  ! set for subroutine
 
       ITA1 = IFIL+6
       ITA2 = IFIL+7
@@ -1759,6 +1743,7 @@ C If ACT='i' then interactive, ACT='s' for silent.
 #include "material.h"
 #include "e2r_common.h"
 #include "prj3dv.h"
+#include "help.h"
     
       integer lnblnk  ! function definition
 
@@ -1788,12 +1773,7 @@ C Local variables
       dimension iescontrolledname(5)  ! rad files for different control states
       integer loop,loop2,iiessteps(5)
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='mkxform'  ! set for subroutine
+      helpinsub='e2rform'  ! set for subroutine
 
       ITA1 = IFIL+6
       ISTAT=0

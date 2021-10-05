@@ -10,13 +10,11 @@ C into the cfg folder
       common/pwdlnint/lnpwdi,lnpwdc
 
 C Configuration file information.
-      integer icfgv  ! version of configuration file which determines
-                     ! the format and contents of the file:
-                     ! version 1 did not have *database section
-                     ! version 2 did not use tag data format (before 1996)
-                     ! version 3 used zone obstruction files and IPV files
-                     ! version 4 current version from May 2008
-      common/CFGV/icfgv
+      integer icfgv         ! version of configuration file which determines
+                            ! the format and contents of the file:
+                            ! version 3 circa 1996, version 4 from May 2008
+      integer usecurcfg     ! preference for current (1) or legacy (-1) version
+      common/CFGV/icfgv,usecurcfg
 
       integer ifcfg         ! file unit for model configuration file
       character cfgroot*32  ! root name of the model used to generate file names
@@ -39,10 +37,10 @@ C folder names are in the form of ../nets the string length is short.
       character ctlpth*24,imgpth*24   ! to control files and model images
       character radpth*24,docpth*24   ! to radiance model files and documents
       character dbspth*24             ! to local common data
-      character aimpth*24,bsmpth*24   ! to AIM2 files and BASIMP files
-      character hvacpth*24            ! to ideal HVAC files
+      character mscpth*24             ! to miscel files i.e. AIM2 and BASIMP files
+      character tmppth*24             ! to temporary i.e. results and z?.shd files
       common/paths/zonepth,netpth,ctlpth,imgpth,radpth,docpth,
-     &             dbspth,aimpth,bsmpth,hvacpth
+     &             dbspth,mscpth,tmppth
 
       character upath*72  ! Path to the user's home folder (this is often
                           ! combined with local path names to make up a

@@ -124,6 +124,7 @@ C This is the main network management routine.
 #include "espriou.h"
 #include "esprdbfile.h"
 #include "epara.h"
+#include "help.h"
       
       integer lnblnk  ! function definition
 
@@ -246,18 +247,13 @@ C WORDSS array of string tokens from each NWICHNIS.
       integer*8 iiw1,iiw2,iiw3,iiw4,iimenu
 #endif
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
 C Initialize global common data. IUEX is file unit for the
 C model external data summary.
       CALL EZERO
       call curmodule('net ')
       cAppName = 'net'
       helpinapp='net'  ! set once for the application
-      helpinsub='NETWORK'  ! set for MAIN
+      helpinsub='network'  ! set for MAIN
       IUOUT=6
       IUIN=5
       IFIL=10
@@ -1459,6 +1455,7 @@ C << rather overwrite an existing icons data.
 
 #include "gnetwk.h"
 #include "epara.h"
+#include "help.h"
       
       integer lnblnk  ! function definition
 
@@ -1532,13 +1529,7 @@ C WORDSS array of string tokens from each NWICHNIS.
       integer*8 iii,iix,iiy  ! for use with trackview
 #endif
 
-
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='NETWMIC'  ! set for subroutine
+      helpinsub='network'  ! set for subroutine
 
 C Set the component reporting flag.
       MREPT=.FALSE.
@@ -2448,6 +2439,7 @@ C be called from the c-side to delete a connection (mode='c')
 #include "gnetwk.h"
 #include "net_flow.h"
 #include "epara.h"
+#include "help.h"
 
 C Selected entity (component and connection) common
       COMMON/NWKSEL/ISEL(MICN),CSEL(MNCNN)
@@ -2476,12 +2468,7 @@ C associated with a flow node.
       integer*8 iii,iix,iiy,iiwx,iiwy  ! for use with trackview
 #endif
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='NETWMCO'  ! set for subroutine
+      helpinsub='network'  ! set for subroutine
 
 C Depending on if user wants to add/delete/copy/edit a component      
       IOPT=IMOPT
@@ -2973,7 +2960,7 @@ C it in black and use a smaller font if the scale is less than 1.
       elseif(iglib.eq.2)then
         if(SCALF.lt.1.0)CALL winfnt(4)
       endif
-      call textpixwidth(LABL,ipixw)
+      call textpixwidth(LABL,ipixw,ipixh)
       iixlc = iixl - (ipixw/2)
       WRITE(LABL,'(A12)') NWICNM(ICN)
       if(iglib.eq.1)then
@@ -3102,14 +3089,14 @@ C      REAL MATRIX_A,MATRIX_B
       integer iix1,iiy1,iix2,iiy2  ! passed to edline
       integer iixlc,isize
       integer iix,iiy,iixl,iiyl,iixr,iiyu
-      integer iicol
+      integer iicol,ipixw,ipixh
       integer iiw4
 #else
       integer*8 iupdown,isym    ! passed to etplot
       integer*8 iix1,iiy1,iix2,iiy2 ! passed to edline
       integer*8 iixlc,isize
       integer*8 iix,iiy,iixl,iiyl,iixr,iiyu
-      integer*8 iicol
+      integer*8 iicol,ipixw,ipixh
       integer*8 iiw4
 #endif
 
@@ -3307,7 +3294,7 @@ C it in black and use a smaller font if the scale is less than 1.
         elseif(iglib.eq.2)then
           if(SCALF.lt.1.0)CALL winfnt(4)
         endif
-        call textpixwidth(LABL,ipixw)
+        call textpixwidth(LABL,ipixw,ipixh)
         iixlc = iixl - (ipixw/2)
         WRITE(LABL,'(A12)') NWICNM(ICN)
         if(iglib.eq.1)then
@@ -3936,6 +3923,7 @@ C any of the simulation parameters have been touched.
 
 # include "epara.h"
 # include "gnetwk.h"
+#include "help.h"
       
       integer lnblnk  ! function definition
 
@@ -3982,12 +3970,7 @@ C CATIES is menu entry for each data field
       integer*8 impx,impy,iw
 #endif
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='NETGDATR'  ! set for subroutine
+      helpinsub='network'  ! set for subroutine
 
 C Clear the menu structures.
       NCATI=0
@@ -4285,6 +4268,7 @@ C are returned. If ier=-1 then summary file was not available.
 #include "gnetwk.h"
 #include "net_flow.h"
 #include "epara.h"
+#include "help.h"
       
       integer lnblnk  ! function definition
       integer icn     ! index of current icon
@@ -4320,12 +4304,7 @@ C znamecon is the zone name associated with inside face a conneciton
       integer NITMS,IVERT,IDUM ! max items and current menu item and placeholder
       real xa,xh  ! for editing attributes
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='selrelexttag'  ! set for subroutine
+      helpinsub='network'  ! set for subroutine
 
 C Rewind summary file if it exists (assumed to be open on unit iuex).
       if(isexavail)then

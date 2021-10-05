@@ -25,6 +25,7 @@ C 'PCPUT' is called to add it to the datatbase.
         SUBROUTINE PCENTR
 #include "plantdb.h" 
 #include "pdb_data.h" 
+#include "help.h"
       
       integer lnblnk  ! function definition
 
@@ -40,12 +41,7 @@ C 'PCPUT' is called to add it to the datatbase.
       character lltmp*144,L144*144
       LOGICAL OK
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found (will be non-zero
-                         ! because default message will be created
-      helpinsub='PCENTR' ! set for subroutine
+      helpinsub='pcentr' ! set for subroutine
 
 C Build menu items.
  100  helptopic='pdb_input_file_choices'

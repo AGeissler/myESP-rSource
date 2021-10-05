@@ -1,3 +1,7 @@
+C This file is part of the ESP-r system.
+C Copyright Energy Systems Research Unit, University of
+C Strathclyde, Glasgow, Scotland, 2001-.
+
 C ESP-r is free software.  You can redistribute it and/or
 C modify it under the terms of the GNU General Public
 C License as published by the Free Software Foundation 
@@ -18,6 +22,7 @@ C EDZCOMP         - editing of zone composition.
 C globaltransform - move all zones.
 C globalrotate    - rotation all zones.
 C globalscale     - scale all zones.
+
 
 C ******************** EDCFG ********************
 C Controls editing of a system configuration file and allows updated 
@@ -41,6 +46,7 @@ C information to be saved to a new file.
 #include "prj3dv.h"
 #include "espriou.h"
 #include "FMI.h"
+#include "help.h"
 
 C Function definition.
       INTEGER :: lnblnk
@@ -154,7 +160,7 @@ C Global flow component options.
       integer iglib   ! to test for X11 interface
       integer iappwpc ! application height as % of nominal size
 
-      dimension ITEMS(30)
+      dimension ITEMS(31)
       character*72 LAPROB,DFILE,LPNF,tfile
       character longtfile*144,longtfiledos*144
       character ITEMS*34,ETEXT*82
@@ -207,26 +213,6 @@ C ihvacflag=1 indicates HVAC models are active; 0 indicates no HVAC models.
       dimension HVAC_ITEMS(nhvac_items)
       integer ISTRW
 
-C Passed parameters for cfgtogg.
-#ifdef OSI
-      integer icfg_type  ! model cfg type
-      integer icfgz      ! if non-zero then there are zones
-      integer icfgn      ! if non-zero then there are networks
-      integer icfgc      ! if non-zero then cfg file known
-      integer icfgdfn    ! if non-zero then cdf domain exists
-      integer iicfgz     ! there are zone related images
-      integer iicfgn     ! there are network related images
-      integer iicfgc     ! there are control related images
-      integer iicfgdfn   ! there are cfd related images
-#else
-      integer*8 icfg_type,icfgz,icfgn,icfgc,icfgdfn,iicfgz
-      integer*8 iicfgn,iicfgc,iicfgdfn
-#endif
-
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
       helpinsub='edcfg'  ! set for subroutine
       
 C Set folder separator (fs) to \ or / as required.
@@ -264,90 +250,91 @@ C are active.
       WRITE(ITEMS(4),'(A,I2,A)')' ..... Building (',
      &                         NCOMP,' zones) .....'
       ITEMS(5)   ='c composition'
-      WRITE(ITEMS(6),'(A,I2,A)')' ..... Networks (',
+      ITEMS(6)   ='d management agents'
+      WRITE(ITEMS(7),'(A,I2,A)')' ..... Networks (',
      &                         nets,' defined) .....'
       if(indcfg.ge.2.or.ihvacflag.gt.0)then
-        ITEMS(7)='d plant & systems (defined)'
+        ITEMS(8)='e plant & systems (defined)'
       else
-        ITEMS(7)='d plant & systems'
+        ITEMS(8)='e plant & systems'
       endif
 
 C Check flags for air flow type. (How does the reference to iAIM2
 C work? If iAIM2=0 then the next line tests for iAIM2=1.)
       IF (iairn.lt.1) THEN
         IF (iAIM2.EQ.1) THEN
-          ITEMS(8)='e empirical air infiltration'
+          ITEMS(9)='f empirical air infiltration'
         ELSE
-          ITEMS(8)='e prescribed fluid flow'
+          ITEMS(9)='f prescribed fluid flow'
         ENDIF
       ELSE
         if(iairn.ge.1)then
-          ITEMS(8)='e network flow (defined)'
+          ITEMS(9)='f network flow (defined)'
         else
-          ITEMS(8)='e network flow'
+          ITEMS(9)='f network flow'
         endif
       ENDIF
       if(ientxist.gt.0)then
-        ITEMS(9)='f electrical (defined)'
+        ITEMS(10)='g electrical (defined)'
       else
-        ITEMS(9)='f electrical'
+        ITEMS(10)='g electrical'
       endif
       if(nocntm.gt.0)then
-        ITEMS(10)='g contaminant (defined)'
+        ITEMS(11)='h contaminant (defined)'
       else
-        ITEMS(10)='g contaminant'
+        ITEMS(11)='h contaminant'
       endif
-      WRITE(ITEMS(11),'(A,I2,A)')' ..... Controls (',
+      WRITE(ITEMS(12),'(A,I2,A)')' ..... Controls (',
      &                ictl,' defined) .....'
       if(ncf.eq.0)then
-        WRITE(ITEMS(12),'(A)')     'j zones'
+        WRITE(ITEMS(13),'(A)')     'i zones'
       else
-        WRITE(ITEMS(12),'(A,I2,A)')'j zones (',ncf,' loop)'
+        WRITE(ITEMS(13),'(A,I2,A)')'i zones (',ncf,' loop)'
       endif
       if(ncl.eq.0)then
-        WRITE(ITEMS(13),'(A)')     'k plant & systems'
+        WRITE(ITEMS(14),'(A)')     'j plant & systems'
       else
-        WRITE(ITEMS(13),'(A,I2,A)')'k plant & systems (',ncl,' loops)'
+        WRITE(ITEMS(14),'(A,I2,A)')'j plant & systems (',ncl,' loops)'
       endif
       if(ncc.eq.0)then
-        WRITE(ITEMS(14),'(A)')     'l network flow'
+        WRITE(ITEMS(15),'(A)')     'k network flow'
       else
-        WRITE(ITEMS(14),'(A,I2,A)')'l network flow (',ncc,' loops)'
+        WRITE(ITEMS(15),'(A,I2,A)')'k network flow (',ncc,' loops)'
       endif
       if(nof.eq.0)then
-        WRITE(ITEMS(15),'(A)')     'm optics'
+        WRITE(ITEMS(16),'(A)')     'l optics'
       else
-        WRITE(ITEMS(15),'(A,I2,A)')'m optics (',nof,' loops)'
+        WRITE(ITEMS(16),'(A,I2,A)')'l optics (',nof,' loops)'
       endif
       if(ngf.eq.0)then
-        WRITE(ITEMS(16),'(A)')     'n global system'
+        WRITE(ITEMS(17),'(A)')     'm global system'
       else
-        WRITE(ITEMS(16),'(A,I2,A)')'n global system (',ngf,' loops)'
+        WRITE(ITEMS(17),'(A,I2,A)')'m global system (',ngf,' loops)'
       endif
       if(nCFCctlloops.eq.0)then
-        WRITE(ITEMS(17),'(A)')     'o complex fenestration '
+        WRITE(ITEMS(18),'(A)')     'n complex fenestration '
       else
-        WRITE(ITEMS(17),'(A,I2,A)')
-     &   'o complex fenestration (',nCFCctlloops,' loops)'
+        WRITE(ITEMS(18),'(A,I2,A)')
+     &   'n complex fenestration (',nCFCctlloops,' loops)'
       endif
       if(is_FMU)then
-        WRITE(ITEMS(18),'(A,I2,A)')'p FMI (',FMUNOF,' FMUs)'
+        WRITE(ITEMS(19),'(A,I2,A)')'o FMI (',FMUNOF,' FMUs)'
       else
-        WRITE(ITEMS(18),'(A)')     'p FMI'
+        WRITE(ITEMS(19),'(A)')     'o FMI'
       endif
-      WRITE(ITEMS(19),'(A)')       ' ..... Uncertainty .....'
-      ITEMS(20)  ='q define         '
-      ITEMS(21)  =' ..... Actions .....'
-      ITEMS(22)  ='r visualisation'
-      ITEMS(23)  ='s simulation'
-      ITEMS(24)  ='t results analysis'
-      ITEMS(25)  ='u QA report'
-      ITEMS(26)  ='v calibration'
-      ITEMS(27)  =' ...... Miscellaneous .....'
-      ITEMS(28)  ='! save model'
-      ITEMS(29)  ='? help'
-      ITEMS(30)  ='- exit menu'
-      nitems=30
+      ITEMS(20)=' ..... Uncertainty .....'
+      ITEMS(21)='q define'
+      ITEMS(22)=' ..... Actions .....'
+      ITEMS(23)='r visualisation'
+      ITEMS(24)='s simulation'
+      ITEMS(25)='t results analysis'
+      ITEMS(26)='u contents report'
+      ITEMS(27)='v calibration'
+      ITEMS(28)=' ...... Miscellaneous .....'
+      ITEMS(29)='! save model'
+      ITEMS(30)='? help'
+      ITEMS(31)='- exit menu'
+      nitems=31
 
 C Help text for this menu.
       helptopic='model_comprises_br_sim'
@@ -386,10 +373,7 @@ C (Re)set all surfaces to standard line width.
 
 C Redraw the configuration buttons.
           if(MMOD.EQ.8)then
-            call cfgtogg(icfg_type,icfgz,icfgn,icfgc,icfgdfn,
-     &                             iicfgz,iicfgn,iicfgc,iicfgdfn)
-            call opencfg(icfg_type,icfgz,icfgn,icfgc,icfgdfn,
-     &                             iicfgz,iicfgn,iicfgc,iicfgdfn)
+            call redrawbuttons()
             WRITE(ETEXT,'(2A)')'Model: ',
      &        modeltitle(1:lnblnk(modeltitle))
             iside=1; isize=1; ifont=1
@@ -402,21 +386,21 @@ C Redraw the configuration buttons.
           CALL EMENU('Browse/edit/simulate',ITEMS,nitems,INO)
         endif
       endif
-      IF(INO.EQ.nitems)THEN
-
+      
 C Exit back to calling menu and clear dialogue box.
+      IF(INO.EQ.nitems)THEN
         CALL USRMSG(' ',' ','-')
         RETURN
-      ELSEIF(INO.EQ.nitems-1)THEN
-
+        
 C Help text for the menu.
+      ELSEIF(INO.EQ.nitems-1)THEN
         helptopic='model_comprises_br_sim'
         call gethelptext(helpinsub,helptopic,nbhelp)
         CALL PHELPD('configuration images',nbhelp,'-',0,0,IER)
         goto 3
-      ELSEIF(INO.EQ.nitems-2)THEN
-
+        
 C Save current common block information to file.
+      ELSEIF(INO.EQ.nitems-2)THEN
         if(browse)then
           call usrmsg('Cannot save the model while in browse',
      &                'mode. You must own the model.','W')
@@ -436,21 +420,19 @@ C the older format.
           call usrmsg('Please re-enter.',' ','W')
           goto 89
         endif
-        if(icfgv.eq.3.or.icfgv.eq.4)then
 
 C Check connections file.
-          if(ncon.gt.1)then
-  289       write(DCNN,'(a,a)')cfgroot(1:lnblnk(cfgroot)),'.cnn'
-            if(LCNN(1:1).eq.' ')LCNN=DCNN
-            ltmp=LCNN
-            CALL EASKS(ltmp,' ','Surface connections file name?',
-     &        72,DCNN,'surface connx file name',IER,nbhelp)
-            if(ltmp(1:2).ne.'  '.and.ltmp(1:4).ne.'UNKN')then
-              LCNN=ltmp
-            else
-              call usrmsg('Please re-enter the file name. ',' ','W')
-              goto 289
-            endif
+        if(ncon.gt.1)then
+  289     write(DCNN,'(a,a)')cfgroot(1:lnblnk(cfgroot)),'.cnn'
+          if(LCNN(1:1).eq.' ')LCNN=DCNN
+          ltmp=LCNN
+          CALL EASKS(ltmp,' ','Surface connections file name?',
+     &      72,DCNN,'surface connx file name',IER,nbhelp)
+          if(ltmp(1:2).ne.'  '.and.ltmp(1:4).ne.'UNKN')then
+            LCNN=ltmp
+          else
+            call usrmsg('Please re-enter the file name. ',' ','W')
+            goto 289
           endif
         endif
 
@@ -467,9 +449,9 @@ C Check connections file.
         goto 3
       ELSEIF(INO.EQ.1)THEN
         continue
-      ELSEIF(INO.EQ.2)THEN
-
+        
 C Technical domains associated with the model.
+      ELSEIF(INO.EQ.2)THEN
         if(indcfg.eq.0)outs='Currently registration only'
         if(indcfg.eq.1)outs='Currently building only'
         if(indcfg.eq.2)outs='Currently plant only'
@@ -497,33 +479,35 @@ C Technical domains associated with the model.
         endif
         IF(MMOD.EQ.8)then
           LN=max(1,LNBLNK(modeltitle))
-          call cfgtogg(icfg_type,icfgz,icfgn,icfgc,icfgdfn,
-     &                 iicfgz,iicfgn,iicfgc,iicfgdfn)
-          call opencfg(icfg_type,icfgz,icfgn,icfgc,icfgdfn,
-     &                 iicfgz,iicfgn,iicfgc,iicfgdfn)
+          call redrawbuttons()
           WRITE(ETEXT,'(2A)')'Model: ',modeltitle(1:ln)
           iside=1; isize=1; ifont=1
           call viewtext(etext,iside,isize,ifont)
         endif
-      ELSEIF(INO.EQ.3)THEN
-
+        
 C Model context.
+      ELSEIF(INO.EQ.3)THEN
         IF(CFGOK)THEN
           CALL EDSITE(ITRC,IER)
         ELSE
           CALL USRMSG('Please define your model first.',' ','W')
         ENDIF
         goto 3
-      elseif(INO.EQ.5)THEN
-
+        
 C Go to zones definition menu.
+      elseif(INO.EQ.5)THEN
         call EDZCOMP(ITRC,ITRU,IER)
-      ELSEIF(INO.EQ.7)THEN
 
+C Define management agents.
+      elseif(INO.eq.6)then
+        call tstamp('>','PRJ: entering management agent control')
+        call AGT_MNG(0,IER)
+      
 C Plant network description: select either an idealised HVAC network model (from the
 C options offered) or define a new plant network model. In the former case, set the
 C required parameters. In the latter case, ask for a plant network file, display its
 C contents and invoke editing facilities.
+      ELSEIF(INO.EQ.8)THEN
         IF(.NOT.CFGOK)THEN
           CALL USRMSG('Please define your plant network model first.',
      &                ' ','W')
@@ -691,9 +675,8 @@ C If an error has been encountered then reset the configuration type.
           enddo  ! of while hvind ne nhvac_items
         endif
 
-      ELSEIF(INO.EQ.8)THEN
-
 C Air flow definition: this can be held in text or graphics format.
+      ELSEIF(INO.EQ.9)THEN
         XSTL=.false.
         helptopic='submenu_flow_options'
         call gethelptext(helpinsub,helptopic,nbhelp)
@@ -923,7 +906,6 @@ C or bi-directional windows or doors at the outside.
                   endif
                   if(isbi) nbbi=nbbi+1        ! increment counts
                   if(isopen) nbopen=nbopen+1
-                  write(6,*) iz,is,isbi,isopen,nbbi,nbopen
                 enddo
                 if(nbopen.eq.0.and.nbbi.eq.0)then
                   call edisp(iuout,
@@ -1406,68 +1388,66 @@ C network are known.
           call edisp(iuout,'Updating configuration flow links...done.')
           call edisp(iuout,' ')
         endif
-      ELSEIF(INO.EQ.9)THEN
-
+        
 C Electrical network description.
+      ELSEIF(INO.EQ.10)THEN
         call tstamp('>','PRJ: entering electrical network')
         call ELECNET
-      ELSEIF(INO.EQ.10)THEN
-
-C Contaminant model description
+        
+C Contaminant model description.
+      ELSEIF(INO.EQ.11)THEN
         call tstamp('>','PRJ: entering contaminant model')
         call CTPROB
-      ELSEIF(INO.EQ.12)THEN
-
+        
 C Zone control description.
+      ELSEIF(INO.EQ.13)THEN
         call tstamp('>','PRJ: entering zone control')
         icfoc=0
         CALL CONTRL(ITRC,ITRU,icfoc,IER)
         CTLOK=.TRUE.
-      ELSEIF(INO.EQ.13)THEN
-
+        
 C Plant control description.
+      ELSEIF(INO.EQ.14)THEN
         call tstamp('>','PRJ: entering plant control')
         icfoc=1
         CALL CONTRL(ITRC,ITRU,icfoc,IER)
         CTLOK=.TRUE.
-      ELSEIF(INO.EQ.14)THEN
-
+        
 C Flow control description.
+      ELSEIF(INO.EQ.15)THEN
         call tstamp('>','PRJ: entering flow control')
         icfoc=2
         CALL CONTRL(ITRC,ITRU,icfoc,IER)
         CTLOK=.TRUE.
-      ELSEIF(INO.EQ.15)THEN
 
 C Optical control description.
+      ELSEIF(INO.EQ.16)THEN
         call tstamp('>','PRJ: entering optics control')
         icfoc=5
         CALL CONTRL(ITRC,ITRU,icfoc,IER)
         CTLOK=.TRUE.
-      ELSEIF(INO.EQ.16)THEN
-
+        
 C Global control description.
+      ELSEIF(INO.EQ.17)THEN
         call tstamp('>','PRJ: entering global control')
         icfoc=3
         CALL CONTRL(ITRC,ITRU,icfoc,IER)
         CTLOK=.TRUE.
-      ELSEIF(INO.EQ.17)THEN
-
+        
 C Complex fenestration control description.
+      ELSEIF(INO.EQ.18)THEN
         call tstamp('>','PRJ: entering complex fen. control')
         icfoc=6
         CALL CONTRL(ITRC,ITRU,icfoc,IER)
         CTLOK=.TRUE.
 
-C <FMI>
-      ELSEIF(INO.EQ.18)THEN
+C FMI.
+      ELSEIF(INO.EQ.19)THEN
         call tstamp('>','PRJ: entering FMI specification')
         call FMI_ED(IER)
-C </FMI>
-
-      ELSEIF(INO.EQ.20)THEN
 
 C Call uncertainty definition controller.
+      ELSEIF(INO.EQ.21)THEN
 C        helptopic='password_is_needed'
 C        call gethelptext(helpinsub,helptopic,nbhelp)
 C        call easki(IPASS,' ','Password?',
@@ -1476,9 +1456,9 @@ C        if (IPASS.eq.101) then
           call tstamp('>','PRJ: entering uncertainty control')
           call UNCERTA()
 C        endif
-      ELSEIF(INO.EQ.22)THEN
 
 C Select visualisation option.
+      ELSEIF(INO.EQ.23)THEN
         IF(CFGOK)THEN
           helptopic='model_visual_options'
           call gethelptext(helpinsub,helptopic,nbhelp)
@@ -1495,15 +1475,14 @@ C Select visualisation option.
           CALL USRMSG(' ','Please define your model first!','W')
         ENDIF
         goto 3
-      ELSEIF(INO.EQ.23)THEN
-
+        
 C Call simulation controller.
+      ELSEIF(INO.EQ.24)THEN
         call tstamp('>','PRJ: entering simulation setup')
         call simula(ier)
-      ELSEIF(INO.EQ.24)THEN
 
-C Call results analysis module assuming same simulation parameter
-C set as the last simulation. If isset not instantiated then set = 1.
+C Call results analysis module.        
+      ELSEIF(INO.EQ.25)THEN
 
 C Logic to react when browsing a model. If remote set to 'true' then
 C the results file should be placed in the user's home folder.
@@ -1543,10 +1522,12 @@ C Set folder separator (fs) to \ or / as required.
           fs = char(92)
         endif
 
-        if(nsset.gt.0)then
-
 C If there are simulation parameter sets, use the names of the results
 C files splres or sblres and prepend user home folder if remote is 'true'.
+        if(nsset.gt.0)then
+
+C Assume same simulation parameter set as the last simulation. 
+C If isset not instantiated then set = 1.
           if(isset.eq.0)isset=1
           if(INDCFG.eq.2)then
             if(splres(isset)(1:2).ne.'  '.and.
@@ -1629,7 +1610,7 @@ C If windows look for spaces and/or forward slashes.
           longtfile=longtfiledos
         endif
 
-C If prj initial size is a % of default, pass this on to a child process with
+C If prj initial size is a % of default, pass this to a child process with
 C an offset from the prj start position.
         if(iappw.eq.690)then
           iappwpc=100
@@ -1654,19 +1635,20 @@ C an offset from the prj start position.
           endif
           call edisp(iuout,doit)
         endif
-        call usrmsg('Starting assessment recovery via',doit,'-')
+C        call usrmsg('Starting assessment recovery via',doit,'-')
         if(tmode(1:7).eq.'graphic')then ! use '-' to request execute_command_line
           call runit(doit,'-')
         else
           call runit(doit,tmode)
         endif
 
-      ELSEIF(INO.EQ.25)THEN
-
-C Execute editor and report generation tools. Start with assumption
-C that all zones in the model are to be included.
+C Execute editor and report generation tools. 
+      ELSEIF(INO.EQ.26)THEN
+        
         call tstamp('>','PRJ: enter report controller')
         silent= .false.
+        
+C Start with assumption that all zones in the model are to be included.
         inpic=NCOMP
         do 29 iz=1,inpic
           ivals(iz)=iz
@@ -1711,10 +1693,8 @@ C If markdown true reset after report generated.
           endif
         endif
 
-      ELSEIF(INO.EQ.26)THEN
-
-C Calibration. First check if there is an uncertainty definition
-C in the model. If there is list its directives.
+C Calibration.
+      ELSEIF(INO.EQ.27)THEN
         call CALIB(ITRC,ITRU,IER)
         goto 3
       ELSE
@@ -1745,6 +1725,7 @@ C output, IER=0 indicates no error.
 #include "schedule.h"
 #include "prj3dv.h"
 #include "cfd.h"
+#include "help.h"
       
       integer lnblnk  ! function definition
 
@@ -1797,7 +1778,7 @@ C Flag noting whether casual gain periods are currently sorted.
       
       character ITEMS*34
       integer ivals
-      dimension ITEMS(26),IVALS(MCOM)
+      dimension ITEMS(27),IVALS(MCOM)
       integer iznumber        ! how many zones in the list
       dimension izclist(MCOM) ! list of zones
 
@@ -1822,37 +1803,13 @@ C Flag noting whether casual gain periods are currently sorted.
       integer ianother   ! flag for jumping to prior or next zone
       integer ISTRW
 
-C Passed parameters for cfgtogg.
-#ifdef OSI
-      integer icfg_type  ! model cfg type
-      integer icfgz      ! if non-zero then there are zones
-      integer icfgn      ! if non-zero then there are networks
-      integer icfgc      ! if non-zero then cfg file known
-      integer icfgdfn    ! if non-zero then cdf domain exists
-      integer iicfgz     ! there are zone related images
-      integer iicfgn     ! there are network related images
-      integer iicfgc     ! there are control related images
-      integer iicfgdfn   ! there are cfd related images
-#else
-      integer*8 icfg_type,icfgz,icfgn,icfgc,icfgdfn,iicfgz
-      integer*8 iicfgn,iicfgc,iicfgdfn
-#endif
-
 #ifdef OSI
       integer iside,isize,ifont     ! passed to viewtext
 #else
       integer*8 iside,isize,ifont   ! passed to viewtext
 #endif
 
-C For help messages.
-      character helpinsub*24  ! subroutine name
-      character helptopic*24  ! string (unique) for topic
-      integer nbhelp          ! number of help lines found
-
-      common/pophelp/h(60)
-      character H*72
-
-      helpinsub='EDZCOMP'     ! set for subroutine
+      helpinsub='edcfg'     ! set for subroutine
 
 C Set folder separator (fs) to \ or / as required.
       call isunix(unixok)
@@ -1883,17 +1840,18 @@ C Begin with high level menu.
       ITEMS(14)  ='i lighting casual gain control  '
       ITEMS(15)  ='j computational fluid dynamics  '
       ITEMS(16)  ='k adaptive gridding & moisture  '
-      ITEMS(17)  =' _____________________________  '    
-      ITEMS(18)  =' .... Special components ....   '
-      ITEMS(19)  ='m integrated renewables         '
-      ITEMS(20)  ='n active materials              '
-      ITEMS(21)  ='o optical properties            '
-      ITEMS(22)  =' _____________________________  '
-      ITEMS(23)  ='! zone grouping                 '
-      ITEMS(24)  ='* global tasks                  '
-      ITEMS(25)  ='? help                          '
-      ITEMS(26)  ='- exit menu                     '
-      nitems=26
+      ITEMS(17)  ='l occupant agents               '
+      ITEMS(18)  =' _____________________________  '    
+      ITEMS(19)  =' .... Special components ....   '
+      ITEMS(20)  ='m integrated renewables         '
+      ITEMS(21)  ='n active materials              '
+      ITEMS(22)  ='o optical properties            '
+      ITEMS(23)  =' _____________________________  '
+      ITEMS(24)  ='! zone grouping                 '
+      ITEMS(25)  ='* global tasks                  '
+      ITEMS(26)  ='? help                          '
+      ITEMS(27)  ='- exit menu                     '
+      nitems=27
 
 C If user has defined model and perhaps resized the display then
 C redraw the model image.
@@ -1914,10 +1872,7 @@ C (Re)Set all surfaces to standard line width.
           CALL redraw(IER)
         endif
         if(MMOD.eq.8)then
-          call cfgtogg(icfg_type,icfgz,icfgn,icfgc,icfgdfn,
-     &                             iicfgz,iicfgn,iicfgc,iicfgdfn)
-          call opencfg(icfg_type,icfgz,icfgn,icfgc,icfgdfn,
-     &                             iicfgz,iicfgn,iicfgc,iicfgdfn)
+          call redrawbuttons()
           WRITE(etext,'(2A)')'Model: ',modeltitle(1:lnblnk(modeltitle))
           iside=1; isize=1; ifont=1
           call viewtext(etext,iside,isize,ifont)
@@ -2235,7 +2190,7 @@ C Transforms and rotations.
             iglib = igraphiclib()  ! find out if X11 or GTK or text support only.
  244        if(iglib.eq.2)then
               ISTRW=32
-              CALL EASKSCMD(HOLD,' ','X, Y & Z axes transform (m):',
+              CALL EASKSCMD(HOLD,' ','X, Y & Z axes transforms (m):',
      &        'skip transform',clkok,ISTRW,' 0. 0. 0.','transforms XYZ',
      &        iser,nbhelp)
               if(clkok)iclkok=2   ! notice skip transform button
@@ -2243,7 +2198,7 @@ C Transforms and rotations.
                 goto 3
               endif
             else
-              CALL EASKS2CMD(HOLD,' ','X, Y & Z axes transforms (m:',
+              CALL EASKS2CMD(HOLD,' ','X, Y & Z axes transforms (m):',
      &        'cancel copy','omit transform',iclkok,32,' 0. 0. 0.',
      &        'transforms XYZ',iser,nbhelp)
               if(iclkok.eq.1)then ! notice X11 cancel option
@@ -2438,7 +2393,7 @@ C Zone operations file.
       elseif(INO.EQ.4)THEN
  250    IC=-1
         izdef=0
-        call askzone(ic,izdef,' ','Zone operations',
+        call askzone(ic,izdef,'Zone operations',
      &    'o','Zone index for operations.',34,ier)
         IF(IC.EQ.0.OR.IC.EQ.-1)then
           MODIFYVIEW=.TRUE.
@@ -2540,22 +2495,22 @@ C Calculation type option.
         H(5)='the simulation run-time. Alternatively, the ish methods'
         H(6)='can be accessed throughout a simulation to regenerate'
         H(7)='the data as a simulation proceeds. A third option is'
-        H(8)='to impose a rudimentary treatment: zero shading and'
+        H(8)='to impose a prescribed treatment: zero shading and'
         H(9)='the assignment of the solar flux penetrating windows'
         H(10)='to prescribed internal surfaces. This last treatment'
         H(11)='is appropriate at an early design stage when details'
         H(12)='of internal and external obstructions are not known.'
-        CALL EASKABCD(' ','Calculation options:','rudimentary',
+        CALL EASKABCD(' ','Calculation options:','prescribed',
      &           'embedded','monthly file','cancel',IW,12)
         ISIcalc=IW-1 ! dictates the S/I calculation directive in the cfg file
 
-C Rudimentary or cancel selected.
+C Prescribed or cancel selected.
         if(IW.eq.1.or.IW.eq.4) goto 3
 
 C Zone selection.
  253    IC=-1
         izdef=0
-        call askzone(ic,izdef,' ','Zone selection for shd/ins',
+        call askzone(ic,izdef,'Zone for shading attribution',
      &         's','Zone index for shading.',34,ier)
         IF(IC.EQ.0.OR.IC.EQ.-1)GOTO 3  ! no zone selected
 
@@ -2712,9 +2667,9 @@ C call to hcfmk presents the option to dereference it.
       elseif(INO.EQ.12)THEN
  260    IC=-1
         izdef=0
-        call askzone(ic,izdef,' ',
-     &           'Zone selection for convection coeff.',
-     &           'h','Zone index for hc.',34,ier)
+        call askzone(ic,izdef,
+     &    'Zone for convection attribution',
+     &    'h','Zone index for hc.',34,ier)
         IF(IC.EQ.0.OR.IC.EQ.-1)GOTO 3
         IUO=IFIL+1
         call tstamp('>','PRJ: enter hc file')
@@ -2732,7 +2687,7 @@ C the file.
       elseif(INO.EQ.13)THEN
  251    IC=-1
         izdef=0
-        call askzone(ic,izdef,' ','Zone selection for view factors',
+        call askzone(ic,izdef,'Zone for view factor attribution',
      &         'v','Zone index for viewfact.',34,ier)
         IF(IC.EQ.0.OR.IC.EQ.-1)GOTO 3
         if(IC.eq.99)then
@@ -2804,8 +2759,7 @@ C Casual gain control.
         call gethelptext(helpinsub,helptopic,nbhelp)
  252    IC=-1
         izdef=0
-        call askzone(ic,izdef,' ',
-     &        'Zone selection for casual gain control',
+        call askzone(ic,izdef,'Zone for casual gain control',
      &        'g','Zone index for cgc.',34,ier)
         IF(IC.EQ.0.OR.IC.EQ.-1)GOTO 3
         IUF=IFIL+1
@@ -2864,7 +2818,7 @@ C CFD domain.
 
         IC=-1
         izdef=0
-        call askzone(ic,izdef,' ','Zone selection for CFD domain',
+        call askzone(ic,izdef,'Zone for CFD attribution',
      &         'd','Zone index for cfd.',34,ier)
         IF(IC.EQ.0.OR.IC.EQ.-1)GOTO 3
         call georead(IFIL+1,LGEOM(IC),IC,1,iuout,IER)
@@ -2881,23 +2835,19 @@ C Offer CFD domain inclusion option.
      &    ' in the model?'
         CALL EASKOK(' ',outs,OK,nbhelp)
         IF(OK)then
-C          call usrmsg('Including CFD domain ...',' ','-')
           CALL EMKCFG('-',IER)
           IF(ICFD.GT.NCONF)NCONF=NCONF+1
-C          call usrmsg('Including CFD domain ... done.',' ','-')
         else
           IFCFD(IC)=0 
           LCFD(IC)='UNKNOWN'
-C          call usrmsg('Dereferencing CFD domain ...',' ','-')
           CALL EMKCFG('-',IER)
           IF(ICFD.LE.NCONF)NCONF=NCONF-1
-C          call usrmsg('Dereferencing CFD domain ... done.',' ','-')
         endif
 
 C Adaptive constructional gridding.
       elseif(INO.EQ.16)THEN
         IC=-1
-        CALL EASKGEOF('Zone selection for adaptive gridding',CFGOK,IC,
+        CALL EASKGEOF('Zone for adaptive gridding',CFGOK,IC,
      &    '-',34,IER)
         IF(IC.EQ.0.OR.IC.EQ.-1)GOTO 3
         write(ZN,'(A)') zname(IC)
@@ -3055,16 +3005,22 @@ C Confirm file names.
           endif
         endif
 
+C Occupant agents.
+      elseif(INO.eq.17)then
+        itmp=0
+        CALL EASKGEOF('Select a zone',CFGOK,itmp,'-',34,IER)
+        if (itmp.gt.0 .and. itmp.le.NCOMP) call AGT_MNG(itmp,IER)
+
 C Building-integrated renewables.
-      elseif(INO.EQ.19)THEN
+      elseif(INO.EQ.20)THEN
         call EDSPLIST('EG',IDV,IER)
 
 C Active materials.
-      elseif(INO.EQ.20)THEN
+      elseif(INO.EQ.21)THEN
         call EDSPLIST('EM',IDV,IER)
 
 C Optical properties.
-      elseif(INO.EQ.21)THEN
+      elseif(INO.EQ.22)THEN
         helptopic='advaned_optics_tasks'
         call gethelptext(helpinsub,helptopic,nbhelp)
         CALL EASKABCD(' ','Options:',
@@ -3109,7 +3065,8 @@ C  ier = 0 if no problems found.
 #include "esprdbfile.h"
 #include "prj3dv.h"
 #include "material.h"
-C espriou.h for parameter MFFOLD
+#include "help.h"
+
       
       integer lnblnk  ! function definition
 
@@ -3152,22 +3109,6 @@ C Defaults.
       character pwd*84
       character cfgpath*144  ! full path to cfg folder for refocus
       character thecfgis*72 ! cfg file only & cfg/cfg_file
-      
-C Passed parameters for cfgtogg
-#ifdef OSI
-      integer icfg_type  ! model cfg type
-      integer icfgz      ! if non-zero then there are zones
-      integer icfgn      ! if non-zero then there are networks
-      integer icfgc      ! if non-zero then cfg file known
-      integer icfgdfn    ! if non-zero then cdf domain exists
-      integer iicfgz     ! there are zone related images
-      integer iicfgn     ! there are network related images
-      integer iicfgc     ! there are control related images
-      integer iicfgdfn   ! there are cfd related images
-#else
-      integer*8 icfg_type,icfgz,icfgn,icfgc,icfgdfn,iicfgz
-      integer*8 iicfgn,iicfgc,iicfgdfn
-#endif
 
 C Passed parameters for pregist.
       character root*32,mpath*72,menu*72
@@ -3181,12 +3122,7 @@ C Passed parameters for pregist.
       integer*8 numberofzones ! to pass to updwire rather than ncomp
 #endif
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='NEWPRB'  ! set for subroutine
+      helpinsub='edcfg'  ! set for subroutine
 
 C Set folder separator (fs) to \ or / as required.
       call isunix(unixok)
@@ -3781,10 +3717,7 @@ C          call edisp(iuout,outs)
         IF(MMOD.EQ.8)then
           numberofzones=ncomp
           call updwire(numberofzones)
-          call cfgtogg(icfg_type,icfgz,icfgn,icfgc,icfgdfn,
-     &                             iicfgz,iicfgn,iicfgc,iicfgdfn)
-          call opencfg(icfg_type,icfgz,icfgn,icfgc,icfgdfn,
-     &                           iicfgz,iicfgn,iicfgc,iicfgdfn)
+          call redrawbuttons()
           WRITE(etext,'(2A)')'Model: ',modeltitle(1:lnblnk(modeltitle))
           iside=1; isize=1; ifont=1
           call viewtext(etext,iside,isize,ifont)
@@ -3978,6 +3911,7 @@ C << it would be clearer if all model I/O happened there >>
       subroutine visualz(act,ier)
 #include "building.h"
 #include "model.h"
+#include "help.h"
       
       integer lnblnk  ! function definition
       integer ier
@@ -4005,12 +3939,7 @@ C Parameters.
       integer iappwpc   ! application height as % of nominal size
       integer lnradcf,lnltmp  ! lengths of file names
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='visualz'  ! set for subroutine
+      helpinsub='edcfg'  ! set for subroutine
 
 C Set folder separator (fs) to \ or / as required.
       call isunix(unixok)
@@ -4072,7 +4001,6 @@ C and change any / to \.
      &    longtfile(1:lnblnk(longtfile)),' -of viewer -out ',
      &    lltmp(1:lnblnk(lltmp))
         call usrmsg('starting conversion via',doit,'-')
-        write(6,*) doit(1:lnblnk(doit))
         call runit(doit,'-')
 
 C Tell user about the new file.
@@ -4183,8 +4111,8 @@ C Set browsing no.
 
  319    ltmp=lradcf
         dradcf='scene.rcf'
-        CALL EASKS(ltmp,' Radiance scene file for this model?',
-     &    '  ',72,dradcf,'Radiance scene file name',IER,nbhelp)
+        CALL EASKS(ltmp,' ','Radiance scene file?',
+     &    72,dradcf,'Radiance scene file name',IER,nbhelp)
         if(ltmp.eq.' ')goto 319 
 
 C rcf name OK and differs from prior name, update cfg file and start e2r.
@@ -4222,7 +4150,6 @@ C an offset from prj start position.
           write(doit,'(6a)') 'e2r -mode ',tmode,
      &      ' -s 0 0 0 -file ',longtfile(1:lnblnk(longtfile)),brw,' & '
         endif
-        call usrmsg('starting Radiance desktop via',doit,'-')
         if(tmode(1:7).eq.'graphic')then ! tmode for runit is different from
                                         ! tmode ESP-r command line argument
           call runit(doit,'-')          ! use '-' to request execute_command_line
@@ -4302,16 +4229,14 @@ C << Place to associate images (when logic ready.) >>
       return
       end
 
-C **************** globaltransform
-C globaltransform is passed instructions on a transform to be globally
-C applied to zones in an esp-r model. It knows about dependencies and
-C will act on or warn users as appropriate (if in interactive mode).
-C Parameters:
-C   valx,valy,valz (real) are the transforms (m) for each axis.
-C   izlistnb (integer) is the number of selected zones
-C   izlist is the array holding selected zone indicies to transform
-C   silent (logical) if true then do not ask user about transforms
-C      of obstruction data.
+C ******************** globaltransform ********************
+C Applies global transforms to model zones. Parameters:
+C   valx,valy,valz - transforms (m) for each axis.
+C   izlistnb - number of selected zones.
+C   izlist - array of selected zones to transform.
+C   silent - if true, do not ask user about transforms
+C            of obstruction data.
+
       subroutine globaltransform(valx,valy,valz,izlistnb,izlist,
      &  silent,itru,ier)
       implicit none
@@ -4321,6 +4246,7 @@ C      of obstruction data.
 #include "model.h"
 #include "geometry.h"
 #include "prj3dv.h"
+#include "help.h"
       
       integer lnblnk  ! function definition
       real valx,valy,valz  ! the transforms
@@ -4350,12 +4276,7 @@ C      of obstruction data.
       integer inod,icmp  ! for flow logic
       real zoa,zvol
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='globaltransform'  ! set for subroutine
+      helpinsub='edcfg'  ! set for subroutine
       helptopic='global_transform_options'
       call gethelptext(helpinsub,helptopic,nbhelp)
        
@@ -4553,23 +4474,19 @@ C Report to the user the implications of the recent change in the model.
       return
       end
 
-C **************** globalrotate
-C globalrotate is passed instructions on a rotation to be globally
-C applied to zones in an esp-r model. It knows about dependencies and
-C will act on or warn users as appropriate (if in interactive mode).
-C Parameters:
-C   val (real) is the rotation angle (degrees, +ve anticlockwise)
-C   x1,y1 (real) are the X Y point to rotate around
-C   izlistnb (integer) is the number of selected zones
-C   izlist is the array holding selected zone indicies to rotate
-C   silent (logical) if true then do not ask user about rotations
-C      of obstruction data.
+C ******************** globalrotate ********************
+C Applies rotation to selected zones. Parameters:
+C   val - the rotation angle (degrees, +ve anticlockwise)
+C   x1,y1 - the X Y point to rotate around
+C   izlistnb - the number of selected zones
+C   izlist - an array holding the zones to rotate
+C   silent - if true, do not ask user about rotations
+C            of obstruction data.
 
-C Also apply rotation directives to rotateit array so that later the
-C user can un-do this action.
+C Stores the rotation directives in the rotateit array so
+C that this action can be undone.
 
       subroutine globalrotate(val,x1,y1,izlistnb,izlist,silent,itru,ier)
-
       implicit none
 #include "building.h"
 #include "net_flow.h"
@@ -4577,6 +4494,7 @@ C user can un-do this action.
 #include "model.h"
 #include "geometry.h"
 #include "prj3dv.h"
+#include "help.h"
       
       integer lnblnk  ! function definition
       integer izlistnb,izlist,itru,ier  ! type for passed parameters
@@ -4606,12 +4524,7 @@ C user can un-do this action.
       integer i,inod,icmp
       real zoa,zvol
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='globalrotate'  ! set for subroutine
+      helpinsub='edcfg'  ! set for subroutine
       helptopic='global_rotate_options'
       call gethelptext(helpinsub,helptopic,nbhelp)
 
@@ -4658,8 +4571,6 @@ C Remember user directive for future un-do.
           rotateit(iicomp,1)=0.0
           rotateit(iicomp,2)=0.0
           rotateit(iicomp,3)=0.0
-          rotateit(iicomp,4)=val
-          rotateit(iicomp,5)=x1; rotateit(iicomp,6)=y1
           if(igupgrade.eq.2.and.(.NOT.newgeo))then
             gversion(iicomp) =1.1
             newgeo = .true.
@@ -4851,6 +4762,7 @@ C      of obstruction data.
 #include "model.h"
 #include "geometry.h"
 #include "prj3dv.h"
+#include "help.h"
       
       integer lnblnk  ! function definition
       real valx,valy,valz  ! the scaling factors for each axis 
@@ -4876,12 +4788,7 @@ C      of obstruction data.
       integer ibe   ! loop for faces of obstruction
       real zoa,zvol
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='globalscale'  ! set for subroutine
+      helpinsub='edcfg'  ! set for subroutine
       helptopic='global_transform_options'
       call gethelptext(helpinsub,helptopic,nbhelp)
        

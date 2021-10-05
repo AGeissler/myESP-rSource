@@ -33,10 +33,10 @@ C ****************** SDDEF001 ******************
 C SDDEF001 - Material properties distribution definition.
       subroutine SDDEF001(ICDEF,IER)
 #include "building.h"
-C Common blocks UA1 UA3 within uncertainty.h
 #include "uncertainty.h"
 #include "esprdbfile.h"
 #include "material.h"
+#include "help.h"
 
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
 
@@ -55,12 +55,7 @@ C Common blocks UA1 UA3 within uncertainty.h
 
       DIMENSION IVALP(6),IVALE(MMLC*ME),IELM(MMLC*ME)
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='SDDEF001'  ! set for subroutine
+      helpinsub='sendd'  ! set for subroutine
       
       IER=0
 
@@ -237,6 +232,7 @@ C Common blocks UA3 within uncertainty.h
 #include "uncertainty.h"
 #include "esprdbfile.h"
 #include "material.h"
+#include "help.h"
 
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
 
@@ -255,12 +251,7 @@ C Common blocks UA3 within uncertainty.h
 
       DIMENSION IVALE(MMLC*ME)
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='SDDEF002'  ! set for subroutine
+      helpinsub='sendd'  ! set for subroutine
       
       IER=0
 
@@ -375,8 +366,8 @@ C ****************** SDDEF003 ******************
 C SDDEF003 - Weather parameters distribution definition.
       subroutine SDDEF003(ICDEF,IER)
 #include "building.h"
-C Common blocks UA3 within uncertainty.h
 #include "uncertainty.h"
+#include "help.h"
 
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
 
@@ -388,12 +379,7 @@ C Common blocks UA3 within uncertainty.h
 
       DIMENSION IVALP(6)
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='SDDEF003'  ! set for subroutine
+      helpinsub='sendd'  ! set for subroutine
 
       helptopic='uncert_climate'
       call gethelptext(helpinsub,helptopic,nbhelp)  
@@ -450,8 +436,8 @@ C << for period end.
 #include "building.h"
 #include "model.h"
 #include "schedule.h"
-C Common blocks UA3 within uncertainty.h
 #include "uncertainty.h"
+#include "help.h"
 
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
 
@@ -467,12 +453,7 @@ C Common blocks UA3 within uncertainty.h
 
       integer IRT  ! for radio button
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='SDDEF004'  ! set for subroutine
+      helpinsub='sendd'  ! set for subroutine
       helptopic='uncert_operations'
       call gethelptext(helpinsub,helptopic,nbhelp)
       
@@ -580,18 +561,13 @@ C in the zone tmc file. The location definition includes
 C zone & TMC type & TMC period
       subroutine SDDEF006(ICDEF,IER)
 #include "building.h"
-C Common blocks UA3 within uncertainty.h
 #include "uncertainty.h"
+#include "help.h"
 
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
       integer ICDEF  ! current index
-      
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
 
-      helpinsub='SDDEF006'  ! set for subroutine
+      helpinsub='sendd'  ! set for subroutine
       helptopic='uncert_blind'
       call gethelptext(helpinsub,helptopic,nbhelp)
       
@@ -627,8 +603,8 @@ C Zone air volume supported IDATR(ICDEF,1)=1
 C Surface area if IDATR(ICDEF,1)=2
       subroutine SDDEF101(ICDEF,IER)
 #include "building.h"
-C Common blocks UA3 within uncertainty.h
 #include "uncertainty.h"
+#include "help.h"
 
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
 
@@ -638,13 +614,8 @@ C Common blocks UA3 within uncertainty.h
 
       CHARACTER ITEM(2)*16
       character message*48
-      
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
 
-      helpinsub='SDDEF101'  ! set for subroutine
+      helpinsub='sendd'  ! set for subroutine
        helptopic='uncert_air_volume'
       call gethelptext(helpinsub,helptopic,nbhelp)
       
@@ -712,8 +683,8 @@ C SDDEF1001 - Control distribution definition.
 #include "building.h"
 #include "model.h"
 #include "schedule.h"
-C Common blocks UA3 within uncertainty.h
 #include "uncertainty.h"
+#include "help.h"
 
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
 
@@ -728,13 +699,8 @@ C Common blocks UA3 within uncertainty.h
       common/caleni/nbdaytype,nbcaldays(MDTY),icalender(365)
       INTEGER NBDAYTYPE,NBCALDAYS,ICALENDER
       integer KSTR(MDTY)
-      
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
 
-      helpinsub='SDDEF1001'  ! set for subroutine
+      helpinsub='sendd'  ! set for subroutine
       helptopic='uncert_control'
       call gethelptext(helpinsub,helptopic,nbhelp)
       
@@ -791,6 +757,7 @@ C ****************** SDDBOUND ******************
 C SDDBOUND - Operations distribution definition. Returned value
 C of IALLOW specifies whether % or abs or explicit.
       subroutine SDDBOUND(IALLOW,XMPERC,XMABS,XLOW,XHIGH,IER)
+#include "help.h"
       integer IALLOW  ! passed in 3= %, abs and explicit changes;
                       ! 2= % and abs only; 1=exp only;
       real XMPERC     ! default %
@@ -800,13 +767,8 @@ C of IALLOW specifies whether % or abs or explicit.
       real DFLTRANGE     ! topic & attribute increments
       integer IDFLTR     ! 1=% 2=abs
       common/UADFLT/DFLTRANGE(6,6),IDFLTR(6,6)
-      
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
 
-      helpinsub='SDDBOUND'  ! set for subroutine
+      helpinsub='sendd'  ! set for subroutine
 
       if (IALLOW.eq.3) then
 

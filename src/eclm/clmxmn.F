@@ -56,7 +56,7 @@ C Re-establish julian days.
 
 C READ VALUES OF THE CLIMATIC PARAMETERS FOR THIS DAY.
       ID=I
-      CALL CLMGET(ID)
+      CALL CLMGET(ID,IER)
       JS=1
       JF=24
       IF(I.EQ.IIDS)JS=IT1

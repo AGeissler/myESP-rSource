@@ -34,6 +34,7 @@ C to superimpose any direct shading.
       subroutine graph(icomp)
 #include "building.h"
 #include "geometry.h"
+#include "help.h"
 
       integer icomp  ! the focus zone
 
@@ -62,10 +63,6 @@ C to superimpose any direct shading.
       integer*8 iigl,iigr,iigt,iigb,iigw,iigwh
       integer*8 iiw1,iiw2,iiw3,iiw4,iimenu
 #endif
-
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
 
       helpinsub='graph'  ! set for subroutine
 

@@ -1,6 +1,6 @@
 C This file is part of the ESP-r system.
 C Copyright Energy Systems Research Unit, University of
-C Strathclyde, Glasgow Scotland, 2001.
+C Strathclyde, Glasgow Scotland, 2001-.
 
 C ESP-r is free software.  You can redistribute it and/or
 C modify it under the terms of the GNU General Public
@@ -17,11 +17,11 @@ C details.
 C ********************* DFV *********************
 C Stand-alone CFD display module. It takes an ASCII CFD
 C performance-at-a-timestep file and displays a 3D vector image.
-C Passed :iappw, iappx, iappy as pixel width of application, left
+C Passed: iappw, iappx and iappy as pixel width of application, left
 C and top offsets. If these are 0 then use default values.
 
-C Pass it both the DFD file and the timestep performance file.
-C As  cfdv -file room.dfd -actfile cfd3dascii_0??? -range T T
+C Pass it both the .dfd file and the timestep results file:
+C cfdv -file ?.dfd -actfile cfd3dascii_0??? -range T T
 
       program dfv
       USE START_UP
@@ -33,6 +33,7 @@ C As  cfdv -file room.dfd -actfile cfd3dascii_0??? -range T T
 #include "material.h"
 #include "espriou.h"
 #include "prj3dv.h"
+#include "help.h"
 
       integer lnblnk  ! function definition
 
@@ -68,7 +69,7 @@ C CFD common blocks.
       common/param2/TITLE(MNZ),CFTRFL(MNZ),LPHI(MNZ)
       COMMON/SIMT/TSTEP,NSINC
       COMMON/ICFNOD/ICFD,ICP
-      COMMON/ICFCHN/ICFMON(MNZ),ICFTMP,ICFLIB
+      COMMON/ICFCHN/ICFMON(MNZ),ICFDBC(MNZ),ICFTMP,ICFLIB
 
 C Flow visualization common blocks.
       COMMON/VISFIL/LVEC,LBIT
@@ -154,6 +155,10 @@ C Commons from mocfd.F (RDCFDAT)
      &              IRESvw(MCOM,6),VLSCvw(MCOM,6),VTSCvw(MCOM,6),
      &              HLSCvw(MCOM,6),HTSCvw(MCOM,6),IFRQvw(MCOM,6)
       COMMON/VISSET/imgqua,NOXX,NOZZ,tscal,hLscal,hWscal,vLscal
+      common/GRIDFN/NCELX(MNREG,MNZ),NCELY(MNREG,MNZ),NCELZ(MNREG,MNZ),
+     &  NCELZE(MNREG,MNZ),XREG(MNREG,MNZ),YREG(MNREG,MNZ),
+     &  ZREG(MNREG,MNZ),ZREGE(MNREG,MNZ),Xplaw(MNREG,MNZ),
+     &  Yplaw(MNREG,MNZ),Zplaw(MNREG,MNZ),Zplawe(MNREG,MNZ),NREG(4,MNZ)
 
       integer ISIMDAY ! Julian day within the cfd3dasci file
       real SIMTIMEF   ! time associated with the cfd3dasci file
@@ -198,12 +203,6 @@ C length of performance file plus last digits now previous and next.
 C last 4 char in name, file name for previous and next timesteps.
       character last4*4,cfd3dasciprev*72,cfd3dascinext*72
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found (will be non-zero
-                         ! because default message will be created
-
 #ifdef OSI
       integer iigl,iigr,iigt,iigb,iigw,iigwh
       integer iiw1,iiw2,iiw3,iiw4,iimenu
@@ -233,7 +232,7 @@ C Clear all arrays.
       call ezero
       call curmodule('dfv ')
       cAppName = 'dfv'
-      helpinapp='dfv'  ! set once for the application
+      helpinapp='dfs'  ! set once for the application
       helpinsub='dfv'  ! set for MAIN
 
 C Initialization for matlab.
@@ -394,7 +393,8 @@ C Open the text display box equal to LIMTTY if MMOD = 8.
       IF(MMOD.EQ.8)THEN
 
 C Setup and pass in parameters to win3d.
-        iiw1=6; iiw2=4; iiw3=4; iiw4=2; iimenu=menuchw
+C        iiw1=6; iiw2=4; iiw3=4; iiw4=2; iimenu=menuchw
+        iiw1=2; iiw2=2; iiw3=3; iiw4=1; iimenu=menuchw
         iigl=igl; iigr=igr; iigt=igt; iigb=igb; iigw=igw; iigwh=igwh
         CALL win3d(iimenu,iiw1,iiw2,iiw3,iiw4,
      &    iigl,iigr,iigt,iigb,iigw,iigwh)
@@ -538,13 +538,33 @@ C          VLSCvw(1,1)=1.0; vLscal=1.0 ! defaults
           HTSCvw(1,1)=1.0; hWscal=1.0
           IFRQvw(1,1)=4
 
-C Set the geometry for the CFD domain in terms of ESP-r's standard
-C geometry model.
-          CALL SETGEO
-
 C Set the number of pixels required for the image.  This is a function
 C of the resolution specified by the user and the geometry of the model.
           CALL SETRES(ISUR)
+
+C Fill commons for a nominal south facing surface so that TRNSF1 
+C and LENS have something to work with. Base the dimensions on the
+C size of the domain.
+          XLEN=0.0; YLEN=0.0; ZLEN=0.0
+          do IGR=1,NREG(1,ICFD)
+            XLEN=XLEN+XREG(IGR,ICFD)
+          enddo
+          do IGR=1,NREG(2,ICFD)
+            YLEN=YLEN+YREG(IGR,ICFD)
+          enddo
+          do IGR=1,NREG(3,ICFD)
+            ZLEN=ZLEN+ZREG(IGR,ICFD)
+          enddo
+
+          nver(1)=4
+          x(1)=0.; x(2)=XLEN; x(3)=XLEN; x(4)=0.
+          y(1)=0.; y(2)=0.; y(3)=0.; y(4)=0.
+          z(1)=0.; z(2)=0.; z(3)=ZLEN; z(4)=ZLEN
+          jvn(1,1)=1; jvn(1,2)=2; jvn(1,3)=3; jvn(1,4)=4;
+          XMN=0; YMN=0.; ZMN=0.
+          XMX=XLEN; YMX=YLEN; ZMX=ZLEN
+          VIEWM(1)=(XLEN*0.5); VIEWM(2)=(YLEN*0.5) 
+          VIEWM(3)=(ZLEN*0.5)
 
 C Translate and rotate the site co-ordinate system to a face co-ordinate
 C system for the viewing surface.
@@ -777,13 +797,6 @@ C ICFDZ - thermal zone associated with each CFD domain
       character outs*124
       real VAL
 
-C For help messages.
-      character helpinsub*24   ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='readcfd3dascii'  ! set for cfiles
-
 C Set unit number.
       IER=0; ICTM=0; ISIMDAY=0; SIMTIMEF=0.0
       iunit=38
@@ -991,8 +1004,8 @@ C Dummy subroutines needed by common3dv.F
       return
       end
 
-      subroutine cfgtogg(icfg_type,icfgz,icfgn,icfgc,icfgdfn,
-     &                             iicfgz,iicfgn,iicfgc,iicfgdfn)
+      subroutine cfgtogg(icfg_type,icfgz,icfgn,icfgc,icfgdfn,icfgpln,
+     &                   iicfgz,iicfgn,iicfgc,iicfgdfn,iicfgpln)
       return
       end
 
@@ -1549,6 +1562,10 @@ C        write(6,*) 'temp ',temp,icolindex
         call forceflush()
       enddo
 
+      return
+      end
+
+      subroutine redrawbuttons()
       return
       end
 

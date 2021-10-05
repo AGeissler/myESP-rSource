@@ -37,6 +37,7 @@ C IER=0 OK, IER=1 problem.
 #include "model.h"
 #include "net_flow.h"
 #include "tdf2.h"
+#include "help.h"
 
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/TDFGH2/GTYPES(MTI),GMENUS(MTI)
@@ -49,12 +50,7 @@ C IER=0 OK, IER=1 problem.
       CHARACTER GMENUS*24,GTYPES*8
       CHARACTER GAIDE*36,GHELP*72,GDHDRT*72,GMH*32
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='ITINSRT'  ! set for subroutine
+      helpinsub='maintn'  ! set for subroutine
 
 C Choose one of the generic types to create at the insertion point (ifoc).
 C Copy over default information into instance commons. IFG is the index

@@ -13,11 +13,6 @@ C warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
 C PURPOSE. See the GNU General Public License for more
 C details.
 
-C You should have received a copy of the GNU General Public
-C License along with ESP-r. If not, write to the Free
-C Software Foundation, Inc., 59 Temple Place, Suite 330,
-C Boston, MA 02111-1307 USA.
-
 C  Zoneslist : Display Zones list and wait for INIPIC item selected
 C  ZNLIST :    Takes the current selected zones and builds a descriptive
 C              string to be used in headers.
@@ -32,6 +27,7 @@ C Display Zones list and wait for INIPIC item selected
       SUBROUTINE Zoneslist
 #include "building.h"
 #include "geometry.h"
+#include "help.h"
 
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/gzonpik/izgfoc,nzg,nznog(mcom)
@@ -45,12 +41,7 @@ C Display Zones list and wait for INIPIC item selected
       LOGICAL CFGOK,MLDBOK,MATDBOK,CTLOK,OPTKOK,CFCDBOK
       DIMENSION IVALZ(MCOM)
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='Zoneslist'  ! set for subroutine
+      helpinsub='acoesp'  ! set for subroutine
 
       do 5 i=1,MCOM
         NbSurSel(i) = 0
@@ -249,6 +240,7 @@ C HeightCo (Real) : Height [m] of the constructions, for LCA calculation.
 #include "geometry.h"
 #include "esprdbfile.h"
 #include "material.h"
+#include "help.h"
 
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/FOPENED/CFGOK,MLDBOK,MATDBOK,CTLOK,OPTKOK,CFCDBOK
@@ -259,12 +251,7 @@ C HeightCo (Real) : Height [m] of the constructions, for LCA calculation.
 
       DIMENSION IVALZ(MCOM)
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='CompoList'  ! set for subroutine
+      helpinsub='acoesp'  ! set for subroutine
 
 C Read database if not already done.
       if (.not.MLDBOK) then 

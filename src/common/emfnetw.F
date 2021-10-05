@@ -5,18 +5,13 @@ C Strathclyde, Glasgow Scotland, 2001.
 C ESP-r is free software.  You can redistribute it and/or
 C modify it under the terms of the GNU General Public
 C License as published by the Free Software Foundation 
-C (version 2 orlater).
+C (version 2 or later).
 
 C ESP-r is distributed in the hope that it will be useful
 C but WITHOUT ANY WARRANTY; without even the implied
 C warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
 C PURPOSE. See the GNU General Public License for more
 C details.
-
-C You should have received a copy of the GNU General Public
-C License along with ESP-r. If not, write to the Free
-C Software Foundation, Inc., 59 Temple Place, Suite 330,
-C Boston, MA 02111-1307 USA.
 
 C emfnetw.F holds common code for reading and listing mass flow
 C descriptive files and contains the following routines:
@@ -478,16 +473,24 @@ C      write(6,*) 'prefs ',OUTSTR(1:lnblnk(OUTSTR))
       CALL EGETW(OUTSTR,K,WORD,'W','preference tag',IER)
       if(WORD(1:7).eq.'*IPSMOD')then
         CALL EGETWI(OUTSTR,K,IPSMOD,0,0,'-','pref IPSMOD',IER)
-        haveglobal=.TRUE.  ! remember this
+        if(IPSMOD.eq.0)then
+          IPSMOD=1           ! a zero value not valid reset to default
+        else
+          haveglobal=.TRUE.  ! remember this
+        endif
       elseif(WORD(1:7).eq.'*MFBSNC')then
         CALL EGETWI(OUTSTR,K,MFBSNC,0,0,'-','pref MFBSNC',IER)
-        haveglobal=.TRUE.  ! remember this
+        haveglobal=.TRUE.    ! remember this
       elseif(WORD(1:7).eq.'*MSLVTP')then
         CALL EGETWI(OUTSTR,K,MSLVTP,0,0,'-','pref MSLVTP',IER)
-        haveglobal=.TRUE.  ! remember this
+        if(MSLVTP.eq.0)then
+           MSLVTP=2          ! a zero value not valid reset to default
+        else
+          haveglobal=.TRUE.  ! remember this
+        endif
       elseif(WORD(1:7).eq.'*MFTRAC')then
         CALL EGETWI(OUTSTR,K,MFTRAC,0,0,'-','pref MFTRAC',IER)
-        haveglobal=.TRUE.  ! remember this
+        haveglobal=.TRUE.    ! remember this
       endif
 
 C Note: some variables in the commons are not included and are currently
@@ -537,7 +540,8 @@ C It assumes that the file is already open.
 #include "net_flow.h"
 #include "net_flow_data.h"
 #include "espriou.h"
-C espriou.h provides currentfile.
+#include "help.h"
+
       INTEGER, PARAMETER :: MNWKTYP=6  ! from gnetwk.h
       
       integer lnblnk  ! function definition
@@ -549,7 +553,6 @@ C Network flow commons are as follows:
 C as defined in net_flow_data.h)
 
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
-      COMMON/POPHELP/H(60)
       COMMON/AFN/IAIRN,LAPROB,ICAAS(MCOM)
       character LAPROB*72
       COMMON/MFLCLM/DRYB,QDIF,QDNR,IRVH,WDIR,WSPD,WRED
@@ -573,9 +576,21 @@ C alter preferences. Typically filled with standard values.
 
       DIMENSION RVA(MCMS),NDID(MNOD)
       CHARACTER OUTSTR*124,WORD*20,NODID*12,NDID*12,CMPID*12,OUTS*124
-      CHARACTER LFIL*72,H*72,WORD2*24,ectime*24
+      CHARACTER LFIL*72,WORD2*24,ectime*24
       CHARACTER*72 DFILE
       LOGICAL CONT,OK
+
+C There is a file unit clash for ish so manually set h() arrays.
+      helpinsub='emfnetw'  ! set for subroutine
+      helptopic='scan_3d_flow'
+      h(1)='A 3D flow network description file holds information'
+      h(2)='on network topology: the components, their connectivity,'
+      h(3)='component spatial position, component data and connection'
+      h(4)='routing.'
+      h(5)=' '
+      h(6)='If you give a unique file name that does not yet exist this'
+      nbhelp=6
+C      call gethelptext(helpinsub,helptopic,nbhelp)
 
 C 'Reset' error indicator and clear node & component names
 C and attributes.
@@ -603,18 +618,13 @@ C Open the file with user defined or existing filename
       ELSE
         LFIL='UNKNOWN'
       ENDIF
-      H(1)='A 3D flow network description file holds information '
-      H(2)='on network topology: the components, their connectivity, '
-      H(3)='component spatial position, component data and connection'
-      H(4)='routing.                                                 '
       IF(MODE.EQ.'R'.OR.MODE.EQ.'N')THEN
         CALL EASKS(LFIL,'3D flow network description file? ',' ',72,
-     &    DFILE,'file open',IER,4)
+     &    DFILE,'file open',IER,nbhelp)
         IF(LFIL(1:3).NE.'   '.AND.LFIL(1:3).NE.'UNK') THEN
           LAPROB=LFIL
         ELSE
-          h(1)='Blank file name or UNKNOWN entered.'
-          CALL EASKOK('Illegal filename!','Retry?',OK,1)
+          CALL EASKOK('Illegal filename!','Retry?',OK,nbhelp)
           IF(OK)THEN
             GOTO 2
           ELSE
@@ -623,14 +633,13 @@ C Open the file with user defined or existing filename
         ENDIF
       ELSE
 
-C Read in silently.
+C Check file existence.
         IF(LFIL(1:3).NE.'   '.AND.LFIL(1:3).NE.'UNK') THEN
-          WRITE(OUTS,'(3A)')' Reading 3D flow network...',
-     &      LAPROB(1:LNBLNK(LAPROB)),'.'
-          CALL USRMSG(OUTS,' ','-')
+C          WRITE(OUTS,'(3A)')'Reading 3D flow network.',
+C     &      LAPROB(1:LNBLNK(LAPROB)),'.'
         ELSE
-          CALL EDISP(IUOUT,'Warning: 3D flow network filename was')
-          CALL EDISP(IUOUT,'blank - network has not been read in.')
+          CALL EDISP(IUOUT,'3D flow network filename was blank!')
+          CALL EDISP(IUOUT,'Network not defined.')
           RETURN
         ENDIF
       ENDIF
@@ -642,9 +651,7 @@ C Open the 3D flow network file.
           WRITE(OUTS,'(3A)')
      &  'File ',LFIL(1:LNBLNK(LFIL)),' is a new network description.'
 
-          h(1)='The file does not exist and will be used for'
-          h(2)='a new network.'
-          CALL EASKOK(OUTS,'Proceed?',OK,2)     
+          CALL EASKOK(OUTS,'Proceed?',OK,nbhelp)     
           IF(OK) THEN
             RETURN
           ELSE
@@ -659,9 +666,7 @@ C Open the 3D flow network file.
         WRITE(OUTS,'(3A)')
      &    ' Problem opening ',LFIL(1:LNBLNK(LFIL)),'!'
 
-        h(1)='The file was expected to exist, but was not found or'
-        h(2)='could not be read. Check the name before retrying.'
-        CALL EASKOK(OUTS,'Retry?',OK,2)
+        CALL EASKOK(OUTS,'Retry?',OK,nbhelp)
         IF(OK) THEN
           GOTO 2
         ELSE
@@ -680,10 +685,10 @@ C Read the file header and check for first-line tag.
           CALL EGETWR(OUTSTR,K,vergnf,0.,2.,'-','version',IER)
         endif
         IAIRN = 3
-        CALL EDISP(IUOUT,' ')    
-        WRITE(OUTS,'(3A)') 
-     &    'Opened 3D flow network file: ',LFIL(1:LNBLNK(LFIL)),'.' 
-        CALL USRMSG(OUTS,' ','-') 
+C       CALL EDISP(IUOUT,' ')    
+C       WRITE(OUTS,'(3A)') 
+C     &    'Opened 3D flow network file: ',LFIL(1:LNBLNK(LFIL)),'.' 
+C       CALL USRMSG(OUTS,' ','-') 
       else
         WRITE(OUTS,'(3A)') 'File: ',LFIL(1:LNBLNK(LFIL)), 
      &    ' is not a 3D flow network file.'
@@ -991,13 +996,21 @@ C      write(6,*) 'prefs ',OUTSTR(1:lnblnk(OUTSTR))
       CALL EGETW(OUTSTR,K,WORD,'W','preference tag',IER)
       if(WORD(1:7).eq.'*IPSMOD')then
         CALL EGETWI(OUTSTR,K,IPSMOD,0,0,'-','pref IPSMOD',IER)
-        haveglobal=.TRUE.  ! remember this
+        if(IPSMOD.eq.0)then
+          IPSMOD=1           ! a zero value not valid reset to default
+        else
+          haveglobal=.TRUE.  ! remember this
+        endif
       elseif(WORD(1:7).eq.'*MFBSNC')then
         CALL EGETWI(OUTSTR,K,MFBSNC,0,0,'-','pref MFBSNC',IER)
         haveglobal=.TRUE.  ! remember this
       elseif(WORD(1:7).eq.'*MSLVTP')then
         CALL EGETWI(OUTSTR,K,MSLVTP,0,0,'-','pref MSLVTP',IER)
-        haveglobal=.TRUE.  ! remember this
+        if(MSLVTP.eq.0)then
+           MSLVTP=2          ! a zero value not valid reset to default
+        else
+          haveglobal=.TRUE.  ! remember this
+        endif
       elseif(WORD(1:7).eq.'*MFTRAC')then
         CALL EGETWI(OUTSTR,K,MFTRAC,0,0,'-','pref MFTRAC',IER)
         haveglobal=.TRUE.  ! remember this
@@ -2066,6 +2079,8 @@ C Implied do loop in the write statement for connections.
 
 C If simulation preferences were defined write tag:data at end of the file.
       if(haveglobal)then
+        if(IPSMOD.eq.0) IPSMOD=1
+        if(MSLVTP.eq.0) MSLVTP=2
         write(IFPRB,'(a,i2,a)') '*IPSMOD',IPSMOD,'  # stack calc'
         write(IFPRB,'(a,i2,a)') '*MFBSNC',MFBSNC,'  # timing'
         write(IFPRB,'(a,i2,a)') '*MSLVTP',MSLVTP,'  # flow solution'
@@ -2351,6 +2366,8 @@ C     &      ISDCNN(ITPCON(ICNN))
 
 C If simulation preferences were defined write tag:data at end of the file.
       if(haveglobal)then
+        if(IPSMOD.eq.0) IPSMOD=1  ! set to default if zero
+        if(MSLVTP.eq.0) MSLVTP=2
         write(IFPRB,'(a,i2,a)') '*IPSMOD',IPSMOD,'  # stack calc'
         write(IFPRB,'(a,i2,a)') '*MFBSNC',MFBSNC,'  # timing'
         write(IFPRB,'(a,i2,a)') '*MSLVTP',MSLVTP,'  # flow solution'

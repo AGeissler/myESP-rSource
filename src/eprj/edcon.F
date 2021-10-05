@@ -35,8 +35,6 @@ C output, IER=0 OK.
       SUBROUTINE EDCON(ITRC,ITRU,ICOMP,QUIET,IER)
 #include "building.h"
 #include "model.h"
-
-C geometry.h provides commons G0/G2/c20/precz.
 #include "geometry.h"
 #include "esprdbfile.h"
 #include "epara.h"
@@ -44,6 +42,7 @@ C geometry.h provides commons G0/G2/c20/precz.
 #include "CFC_common.h"
 #include "prj3dv.h"
 #include "material.h"
+#include "help.h"
 
       integer lnblnk  ! function definition
 
@@ -81,34 +80,13 @@ C geometry.h provides commons G0/G2/c20/precz.
       character*72 CFCFILE
       integer MVERT,IVERT ! max items and current menu item
 
-C Passed parameters to cfgtogg
-#ifdef OSI
-      integer icfg_type  ! model cfg type
-      integer icfgz      ! if non-zero then there are zones
-      integer icfgn      ! if non-zero then there are networks
-      integer icfgc      ! if non-zero then cfg file known
-      integer icfgdfn    ! if non-zero then cdf domain exists
-      integer iicfgz     ! there are zone related images
-      integer iicfgn     ! there are network related images
-      integer iicfgc     ! there are control related images
-      integer iicfgdfn   ! there are cfd related images
-#else
-      integer*8 icfg_type,icfgz,icfgn,icfgc,icfgdfn,iicfgz
-      integer*8 iicfgn,iicfgc,iicfgdfn
-#endif
-
 #ifdef OSI
       integer iside,isize,ifont     ! passed to viewtext
 #else
       integer*8 iside,isize,ifont     ! passed to viewtext
 #endif
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='EDCON'  ! set for subroutine
+      helpinsub='edcon'  ! set for subroutine
 
 C Clear number of TMC's and layers in each before loading common data.
       NTMC=0
@@ -330,7 +308,7 @@ C from the surface attributes.
           if(ltmp(1:2).ne.'  '.and.ltmp(1:4).ne.'UNKN')then
             LTWIN(ICOMP)=ltmp
           endif
-          CALL EMKCFG('-',IER)
+          CALL EMKCFG('s',IER)
         endif
 
         if(IWA.eq.2.or.IWB.eq.2.or.QUIET)then
@@ -397,12 +375,12 @@ C of the *.cfc file is assembled in subroutine 'makeCFCfile'.
           endif
           CALL PHELPD('CFC instructions',nbhelp,'-',0,0,IER)
 
-          CALL EMKCFG('-',IER)
+          CALL EMKCFG('s',IER)
 
           CALL makeCFCfile(ICOMP,IER)
           IF(IER.EQ.1)THEN
             icfc(icomp)=0
-            CALL EMKCFG('-',IER)
+            CALL EMKCFG('s',IER)
             RETURN
           ENDIF
        endif
@@ -488,11 +466,8 @@ C has resized the display, redraw.
       nznog(1)=ICOMP
       izgfoc=ICOMP
       CALL redraw(IER)
-      call cfgtogg(icfg_type,icfgz,icfgn,icfgc,icfgdfn,
-     &             iicfgz,iicfgn,iicfgc,iicfgdfn)
       if(MMOD.EQ.8)then
-        call opencfg(icfg_type,icfgz,icfgn,icfgc,icfgdfn,
-     &               iicfgz,iicfgn,iicfgc,iicfgdfn)
+        call redrawbuttons()
         WRITE(etext,'(2A)')'Model: ',modeltitle(1:lnblnk(modeltitle))
         iside=1; isize=1; ifont=2
         call viewtext(etext,iside,isize,ifont)
@@ -640,7 +615,7 @@ C and save the system configuration file.
             RETURN
           ENDIF
         endif
-        CALL EMKCFG('-',IER)
+        CALL EMKCFG('s',IER)
       else
         call usrmsg('Cannot save model in browse mode,',
      &              'you must own it!','W')
@@ -675,7 +650,7 @@ C needed and now it is not.
            CALL ERPFREE(IUF,ISTAT)
            CALL EFOPSEQ(IUF,LTWIN(ICOMP),1,IER)
            CALL EFDELET(IUF,ISTAT)
-           CALL EMKCFG('-',IER)
+           CALL EMKCFG('s',IER)
          endif
       endif
 
@@ -756,10 +731,9 @@ C IER=1 problem. Make use of construction information in common MLC.
 #include "building.h"
 #include "geometry.h"
 #include "esprdbfile.h"
-C esprdbfile.h supplies the following:
-C LFMAT,IFMAT,LFMUL,IFMUL (for materials and constructions database)
 #include "material.h"
 #include "CFC_common.h"
+#include "help.h"
 
 C      integer lnblnk  ! function definition
 
@@ -798,14 +772,9 @@ C CFClayers db properties
       CHARACTER KEY*1,HOLD*48,TOPTIC*12,optic*12
       integer ISDN,INODA ! max items and current menu item
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
 C Thermal property checking values follow.
       DATA CONCH/250./,DENCH/4000./,SHTCH/3000./,THKCH/0.5/
-      helpinsub='EDSCON'  ! set for subroutine
+      helpinsub='edcon'  ! set for subroutine
 
 C Establish if material data arrays have been filled. If not return
 C with ier=1.
@@ -1501,6 +1470,7 @@ C the number of composite layers to build this up.
 #include "building.h"
 #include "model.h"
 #include "geometry.h"
+#include "help.h"
 
       integer lnblnk  ! function definition
 
@@ -1528,13 +1498,10 @@ C Parameter
 
       dimension ival(MS)
       CHARACTER TOPTIC*12,louts*248,lkouts*1000
+      character dstmp*24
+      character tokens*156,comment*76,aligned_str*156
 
-C For help messages.
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp         ! number of help lines found
-
-      helpinsub='MKTWIN'     ! set for subroutine
+      helpinsub='edcon'     ! set for subroutine
 
 C If in quiet mode then the file should exist, but if it is not a
 C silly name open it and inform.
@@ -1559,18 +1526,17 @@ C silly name open it and inform.
 
 C Write out the transparent construction file data.
       WRITE(IFU,30,IOSTAT=ISTAT,ERR=98)
-     &  zname(ICOMP)(1:lnzname(ICOMP)),
-     &  LTWIN(ICOMP)(1:lnblnk(LTWIN(ICOMP)))
-  30  FORMAT('# transparent properties of ',a,' defined in ',a)
+     &  zname(ICOMP)(1:lnzname(ICOMP))
+  30  FORMAT('# transparent properties of ',a)
 
-C Build one or two packed strings and write out. Should be good
-C for up to NZSUR() of ~120.
-      WRITE(IFU,'(I4,A)',IOSTAT=ISTAT,ERR=98)NZSUR(icomp),
-     &  '   # surfaces'
-      do 32 ij=1,MS
+      write(tokens,'(I4)') NZSUR(icomp)
+      write(comment,'(a)') 
+     &  'number of surfaces followed by tmc index for each surface:'
+      call align_comment(48,tokens,comment,aligned_str)
+      write(IFU,'(a)') aligned_str(1:lnblnk(aligned_str))
+      do ij=1,MS
         ival(ij)=ITMCFL(icomp,ij)
-  32  continue
-      WRITE(IFU,'(A)',IOSTAT=ISTAT,ERR=98)'# tmc index for each surface'
+      enddo
       itrunc=1
       ipos=1
       do while (itrunc.ne.0)
@@ -1581,62 +1547,95 @@ C for up to NZSUR() of ~120.
 
 C For each of the TMC types.
       DO 100 I=1,NTMC
-        WRITE(IFU,'(I4,2x,A,A,I2)',IOSTAT=ISTAT,ERR=98)NGLAZ(I),
-     &    TOPTIC(ICOMP,I),' # layers in tmc type',I
+        write(tokens,'(I4,2A)') NGLAZ(I),'  ',TOPTIC(ICOMP,I) 
+        write(comment,'(a,i2)') 'layers in tmc type',I
+        call align_comment(48,tokens,comment,aligned_str)
+        write(IFU,'(a)') aligned_str(1:lnblnk(aligned_str))
 
-        WRITE(IFU,'(A)',IOSTAT=ISTAT,ERR=98)
-     &         '# Transmission @ 5 angles & visible tr.'
-        WRITE(IFU,'(6F8.3)',IOSTAT=ISTAT,ERR=98)
-     &              (TMCT(ICOMP,I,J),J=1,5),TVTR(ICOMP,I)
+        write(tokens,'(6F7.3)') (TMCT(ICOMP,I,J),J=1,5),TVTR(ICOMP,I)
+        write(comment,'(a)') 'transmission @ 5 angles & visible tr.'
+        call align_comment(48,tokens,comment,aligned_str)
+        write(IFU,'(a)') aligned_str(1:lnblnk(aligned_str))
 
-        WRITE(IFU,'(A)',IOSTAT=ISTAT,ERR=98)
-     &         '# For each layer absorption @ 5 angles'
-        DO 120 J=1,NGLAZ(I)
-          WRITE(IFU,'(5F8.3)',IOSTAT=ISTAT,ERR=98)
-     &                (TMCA(ICOMP,I,J,K),K=1,5)
-  120   CONTINUE
-        WRITE(IFU,'(I4,A)',IOSTAT=ISTAT,ERR=98)IBCMT(ICOMP,I),
-     &               '  # optical control flag'
+        DO J=1,NGLAZ(I)
+          write(tokens,'(5F7.3)') (TMCA(ICOMP,I,J,K),K=1,5)
+          write(comment,'(a)') 'for each layer absorption @ 5 angles'
+          if(j.eq.1)then
+            call align_comment(48,tokens,comment,aligned_str)
+            write(IFU,'(a)') aligned_str(1:lnblnk(aligned_str))
+          else
+            write(IFU,'(a)') tokens(1:lnblnk(tokens))
+          endif
+        enddo
+        write(tokens,'(i4)') IBCMT(ICOMP,I)
+        write(comment,'(a)') 'optical control flag'
+        call align_comment(48,tokens,comment,aligned_str)
+        write(IFU,'(a)') aligned_str(1:lnblnk(aligned_str))
         IF(IBCMT(ICOMP,I).EQ.0)GOTO 100
-        WRITE(IFU,'(2I4,A)',IOSTAT=ISTAT,ERR=98)NBCTMC(ICOMP,I),
-     &      IBCSUR(ICOMP,I),'  # no control periods & sensor loc'
+
+        write(tokens,'(2i4)') NBCTMC(ICOMP,I),IBCSUR(ICOMP,I)
+        write(comment,'(a)') 'number of control periods & sensor loc'
+        call align_comment(48,tokens,comment,aligned_str)
+        write(IFU,'(a)') aligned_str(1:lnblnk(aligned_str))
 
         WRITE(IFU,'(A)',IOSTAT=ISTAT,ERR=98)
      &         '# Replacement properties for each control period'
         DO 121 K=1,NBCTMC(ICOMP,I)
-          WRITE(IFU,'(2I4,A)',IOSTAT=ISTAT,ERR=98)IBCST(ICOMP,K,I),
-     &        IBCFT(ICOMP,K,I),'   # period start and end '
+          write(tokens,'(2i4)') IBCST(ICOMP,K,I),IBCFT(ICOMP,K,I)
+          write(comment,'(a)') 'period start and end'
+          call align_comment(48,tokens,comment,aligned_str)
+          write(IFU,'(a)') aligned_str(1:lnblnk(aligned_str))
 
           if(NBCTT(ICOMP,K,I).eq.0)then
-            WRITE(IFU,'(I4,F6.1,A)',IOSTAT=ISTAT,ERR=98)
-     &        NBCTT(ICOMP,K,I),BACTPT(ICOMP,K,I),
-     &        '  # sensing total radiation @ actuation point'
+            write(tokens,'(I4,F6.1)') NBCTT(ICOMP,K,I),
+     &        BACTPT(ICOMP,K,I)
+            write(comment,'(a)') 
+     &        'sensing total radiation @ actuation point'
+            call align_comment(48,tokens,comment,aligned_str)
+            write(IFU,'(a)') aligned_str(1:lnblnk(aligned_str))
           elseif(NBCTT(ICOMP,K,I).eq.1)then
-            WRITE(IFU,'(I4,F6.1,A)',IOSTAT=ISTAT,ERR=98)
-     &        NBCTT(ICOMP,K,I),BACTPT(ICOMP,K,I),
-     &        '  # sensing ambient temperature @ actuation point'
+            write(tokens,'(I4,F6.1)') NBCTT(ICOMP,K,I),
+     &        BACTPT(ICOMP,K,I)
+            write(comment,'(a)') 
+     &        'sensing ambient temperature @ actuation point'
+            call align_comment(48,tokens,comment,aligned_str)
+            write(IFU,'(a)') aligned_str(1:lnblnk(aligned_str))
           elseif(NBCTT(ICOMP,K,I).eq.2)then
-            WRITE(IFU,'(I4,F6.1,A)',IOSTAT=ISTAT,ERR=98)
-     &        NBCTT(ICOMP,K,I),BACTPT(ICOMP,K,I),
-     &        '  # sensing zone temperature @ actuation point'
+            write(tokens,'(I4,F6.1)') NBCTT(ICOMP,K,I),
+     &        BACTPT(ICOMP,K,I)
+            write(comment,'(a)') 
+     &        'sensing zone temperature @ actuation point'
+            call align_comment(48,tokens,comment,aligned_str)
+            write(IFU,'(a)') aligned_str(1:lnblnk(aligned_str))
           elseif(NBCTT(ICOMP,K,I).eq.3)then
-            WRITE(IFU,'(I4,F6.1,A)',IOSTAT=ISTAT,ERR=98)
-     &        NBCTT(ICOMP,K,I),BACTPT(ICOMP,K,I),
-     &        '  # sensing daylight coeff. @ actuation point'
+            write(tokens,'(I4,F6.1)') NBCTT(ICOMP,K,I),
+     &        BACTPT(ICOMP,K,I)
+            write(comment,'(a)') 
+     &        'sensing daylight coeff. @ actuation point'
+            call align_comment(48,tokens,comment,aligned_str)
+            write(IFU,'(a)') aligned_str(1:lnblnk(aligned_str))
           elseif(NBCTT(ICOMP,K,I).eq.4)then
-            WRITE(IFU,'(I4,F6.1,A)',IOSTAT=ISTAT,ERR=98)
-     &        NBCTT(ICOMP,K,I),BACTPT(ICOMP,K,I),
-     &        '  # sensing lightswitch @ actuation point'
+            write(tokens,'(I4,F6.1)') NBCTT(ICOMP,K,I),
+     &        BACTPT(ICOMP,K,I)
+            write(comment,'(a)') 
+     &        'sensing lightswitch @ actuation point'
+            call align_comment(48,tokens,comment,aligned_str)
+            write(IFU,'(a)') aligned_str(1:lnblnk(aligned_str))
           elseif(NBCTT(ICOMP,K,I).eq.-99)then
-            WRITE(IFU,'(I4,F6.1,A)',IOSTAT=ISTAT,ERR=98)
-     &        NBCTT(ICOMP,K,I),BACTPT(ICOMP,K,I),
-     &        '  # sensing time @ actuation point'
+            write(tokens,'(I4,F6.1)') NBCTT(ICOMP,K,I),
+     &        BACTPT(ICOMP,K,I)
+            write(comment,'(a)') 
+     &        'sensing time @ actuation point'
+            call align_comment(48,tokens,comment,aligned_str)
+            write(IFU,'(a)') aligned_str(1:lnblnk(aligned_str))
           endif
 
-          WRITE(IFU,'(A)',IOSTAT=ISTAT,ERR=98)
-     &       '# Alt solar & vis trans followed by absorp for each layer'
-          WRITE(IFU,'(6F8.3)',IOSTAT=ISTAT,ERR=98)
-     &                (TMCT2(ICOMP,I,M,K),M=1,5),TVTR2(ICOMP,I,K)
+          write(tokens,'(6F7.3)') 
+     &      (TMCT2(ICOMP,I,M,K),M=1,5),TVTR2(ICOMP,I,K)
+          write(comment,'(a)') 
+     &      'alt solar & vis trans followed by absorp for each layer'
+          call align_comment(48,tokens,comment,aligned_str)
+          write(IFU,'(a)') aligned_str(1:lnblnk(aligned_str))
           DO 122 J=1,NGLAZ(I)
             WRITE(IFU,'(5F8.3)',IOSTAT=ISTAT,ERR=98)
      &                  (TMCA2(ICOMP,I,J,M,K),M=1,5)
@@ -1680,6 +1679,7 @@ C through each of the existing surfaces and finds unique optical types.
 #include "geometry.h"
 #include "esprdbfile.h"
 #include "material.h"
+#include "help.h"
 
       integer lnblnk  ! function definition
 
@@ -1710,12 +1710,7 @@ C through each of the existing surfaces and finds unique optical types.
       CHARACTER outs*124
       CHARACTER msg*28
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='EDTWIN'  ! set for subroutine
+      helpinsub='edcon'  ! set for subroutine
 
 C If tmc data has already been read in (ie NTMC>0) then move on to
 C a display of the current data.
@@ -2162,6 +2157,7 @@ C Takes in and returns data via common block GOPT. If WHICH='T' for
 C transparent construction data editing.
       SUBROUTINE EOPTKS(ITRC,ITRU,WHICH,IER)
 #include "building.h"
+#include "help.h"
 
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
 
@@ -2171,12 +2167,7 @@ C transparent construction data editing.
 
       integer ntlt   ! for local editing.
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='EOPTKS'  ! set for subroutine
+      helpinsub='edcon'  ! set for subroutine
 
 C The user will be allowed to use a item from the optical database or
 C to put in the data directly.  77 is a jump back point in case the

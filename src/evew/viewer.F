@@ -7,6 +7,8 @@ C VIEWER MAIN PROGRAM
 #include "viewer.h"
 #include "viewer.h2"
 #include "espriou.h"
+#include "help.h"
+
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
       integer menuchw,igl,igr,igt,igb,igw,igwh
@@ -51,12 +53,6 @@ C Session log file (for errors etc.)
 #endif
 
       integer iglib   ! if 1 then X11, if 2 then GTK, if 3 then text only.
-
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found (will be non-zero
-                         ! because default message will be created
 
 C Viewer works as follows:
 C call input which initialises everything and reads in
@@ -114,7 +110,7 @@ C If iappw <200 then take this as a percentage size.
 
 C Set pixels high to iappw and pixels wide to factor in monitor size.
       iapphi=iappw
-      iappwi=int(real(iappw)*(800.0/780.0))
+      iappwi=int(real(iappw)*(800.0/740.0))
 
       if(iappw.gt.0.and.iappw.lt.100)then
         menuchw = MAX0(int(11*iappw*0.01),8)

@@ -25,6 +25,7 @@ C component status, act = 'u' for user supplied points.
 #include "building.h"
 #include "site.h"
 #include "plant.h"
+#include "help.h"
       
       integer lnblnk  ! function definition
 
@@ -51,8 +52,8 @@ C component status, act = 'u' for user supplied points.
       dimension UTD(20),URH(20)     
       CHARACTER*23 ITEM(12)
       CHARACTER HOLD*24,act*1,pcname*15,pcnam1*15,head*124
-      CHARACTER DESCRH*5,outs*124,DESCR*7,DESCR1*10
-      CHARACTER ETEXT*124,PDESCR*60,SDESCR*44
+      CHARACTER DESCRH*5,outs*124,DESCR*7,DESCR1*10,DESCR2*8
+      CHARACTER ETEXT*124,PDESCR*64,SDESCR*44
       logical ok,ask,unixok
       integer NITMS,INO ! max items and current menu item
       
@@ -62,12 +63,7 @@ C component status, act = 'u' for user supplied points.
       integer*8 iside,isize,ifont     ! passed to viewtext
 #endif
 
-C For help messages
-      character helpinsub*24   ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='PSYCHART'  ! set for subroutine
+      helpinsub='psychart'  ! set for subroutine
 
       SMALL=1E-20
 
@@ -272,7 +268,7 @@ C Make up a string describing this time.
         else
            ctime=float(ioh1-1)/24.0+enterval+float(iods)
         endif
-        CALL STDATE(IYEAR,iods,DESCR,DESCR1)
+        CALL STDATE(IYEAR,iods,DESCR,DESCR1,DESCR2)
         itstep=((ioh1-1)+(iods-IPSDS)*24)*npts
         if(itstep.eq.0)itstep=1
         itstepstart=itstep
@@ -301,7 +297,7 @@ C Make up a string describing this time.
   77    idift=itstep-itstepstart
         ctime=ctime+(enterval*idift)*float(nout)
         iday=INT(ctime)
-        CALL STDATE(IYEAR,IDAY,DESCR,DESCR1)
+        CALL STDATE(IYEAR,IDAY,DESCR,DESCR1,DESCR2)
         call DASYSTIME(itstep,TIME)
         MINH=INT(time)
         MINU=INT((time-AINT(time))*60.+0.5)
@@ -413,7 +409,7 @@ C first day of output.
         CALL HDDATE(PDESCR)
         CALL HDSTEP(SDESCR)
         WRITE(ETEXT,'(3A)')PDESCR(1:lnblnk(PDESCR)),' ',
-     &    SDESCR(11:lnblnk(SDESCR))
+     &    SDESCR(12:lnblnk(SDESCR))
         ENTERVAL=1.0/FLOAT(NPTS)/24.0
         if(idaver.eq.0) then
           ctime=float(ioh1-1)/24.0+ENTERVAL/2.+float(iods)
@@ -433,9 +429,9 @@ C        write(6,*) 'start and finish for ',TSTART,TFINSH,ctime
           ctime=ctime+(enterval*float(nout))
           iday=INT(ctime)
           if(iday.gt.0)then
-            CALL STDATE(IYEAR,IDAY,DESCR,DESCR1)
+            CALL STDATE(IYEAR,IDAY,DESCR,DESCR1,DESCR2)
           else
-            CALL STDATE(IYEAR,iods,DESCR,DESCR1)
+            CALL STDATE(IYEAR,iods,DESCR,DESCR1,DESCR2)
           endif
           call DASYSTIME(ii,TIME)
           MINH=INT(time)
@@ -697,6 +693,7 @@ C If MOD = 'M' then include option to add an item.
 #include "plant.h"
 #include "building.h"
 #include "site.h"
+#include "help.h"
 
       COMMON/C9/NPCOMP,NCI(MPCOM),CDATA(MPCOM,MMISCD)
       COMMON/PPERS/IPSD1,IPSM1,IPSD2,IPSM2,IPSDS,IPSDF,NPTS,ipsav
@@ -715,12 +712,7 @@ C If MOD = 'M' then include option to add an item.
       LOGICAL SELECT
       integer MSVERT,ISVERT ! max items and current menu item
 
-C For help messages.
-      character helpinsub*24   ! subroutine name
-      character helptopic*24   ! string (unique) for topic
-      integer nbhelp           ! number of help lines found
-
-      helpinsub='ASKPSYCMP'  ! set for subroutine
+      helpinsub='psychart'  ! set for subroutine
 
 C Initialise node menu variables based on window size. 
 C ISVERT is the menu position, MSVERT the current number 

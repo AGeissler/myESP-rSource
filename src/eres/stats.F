@@ -31,6 +31,7 @@ C results.
 
       SUBROUTINE MOSTAT
 #include "building.h"
+#include "help.h"
       
       integer lnblnk  ! function definition
 
@@ -81,7 +82,7 @@ C SNAPSH is a logical flag to request variation in header.
       dimension ITEM(25),ITEMONTH(7)
       character ITEM*23,ITEMONTH*32
       character tg*1,delim*1,xfile*144
-      character PDESCR*60,SDESCR*44
+      character PDESCR*64,SDESCR*44
       character prompt*124,outs*124
       character rfile*72,PFILE*72,MSTRFILE*72,LAFRES*72
       character RSNAME*40
@@ -89,12 +90,7 @@ C SNAPSH is a logical flag to request variation in header.
       integer IWM,ihd  ! for radio buttons
       integer NITMS,INO ! max items and current menu item
 
-C For help messages
-      character helpinsub*24   ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='MOSTAT'  ! set for subroutine
+      helpinsub='stats'  ! set for subroutine
 
       DATA NDYMTH/31,59,90,120,151,181,212,243,273,304,334,365/
       DATA NMTHNM/'Jan','Feb','Mar','Apr','May','Jun','Jul',
@@ -290,15 +286,16 @@ C Call the menu of choices (this also sets some default options).
         if((.NOT.libheading).and.(.NOT.headingcontext))then
           libheading=.true.; headingcontext=.true.
           if(NSIM.gt.1)then
-          write(outs,'(3A,I4,2A)')'Lib: ',RFILE(1:lsn1),' Set:',ISIM,
-     &      ': ',RSNAME(ISIM)(1:lnblnk(RSNAME(ISIM)))
+          write(outs,'(3A,I4,3A)')'Results library: ',
+     &      RFILE(1:lsn1),'; results set:',ISIM,
+     &      ' (',RSNAME(ISIM)(1:lnblnk(RSNAME(ISIM))),')'
           else
-            write(outs,'(4A)')'Lib: ',RFILE(1:lsn1),
-     &      ': ',RSNAME(ISIM)(1:lnblnk(RSNAME(ISIM)))
+            write(outs,'(5A)')'Results library: ',RFILE(1:lsn1),
+     &      '; (',RSNAME(ISIM)(1:lnblnk(RSNAME(ISIM))),')'
           endif
           call edisp(itru,outs)
           write(outs,'(3A)')PDESCR(1:lnblnk(PDESCR)),' ',
-     &     SDESCR(11:lnblnk(SDESCR))
+     &     SDESCR(12:lnblnk(SDESCR))
           call edisp(itru,outs)
         endif
 
@@ -402,15 +399,16 @@ C If the heading has not already been written do so.
         if((.NOT.libheading).and.(.NOT.headingcontext))then
           libheading=.true.; headingcontext=.true.
           if(NSIM.gt.1)then
-          write(outs,'(3A,I4,2A)')'Lib: ',RFILE(1:lsn1),' Set:',ISIM,
-     &      ': ',RSNAME(ISIM)(1:lnblnk(RSNAME(ISIM)))
+          write(outs,'(3A,I4,3A)')'Results library: ',
+     &      RFILE(1:lsn1),'; results set:',ISIM,
+     &      ' (',RSNAME(ISIM)(1:lnblnk(RSNAME(ISIM))),')'
           else
-            write(outs,'(4A)')'Lib: ',RFILE(1:lsn1),
-     &      ': ',RSNAME(ISIM)(1:lnblnk(RSNAME(ISIM)))
+            write(outs,'(5A)')'Results library: ',RFILE(1:lsn1),
+     &      '; (',RSNAME(ISIM)(1:lnblnk(RSNAME(ISIM))),')'
           endif
           call edisp(itru,outs)
           write(outs,'(3A)')PDESCR(1:lnblnk(PDESCR)),' ',
-     &     SDESCR(11:lnblnk(SDESCR))
+     &     SDESCR(12:lnblnk(SDESCR))
           call edisp(itru,outs)
         endif
 
@@ -468,15 +466,16 @@ C scanning data. Call MOSURC for each selected zone in turn.
         if((.NOT.libheading).and.(.NOT.headingcontext))then
           libheading=.true.; headingcontext=.true.
           if(NSIM.gt.1)then
-          write(outs,'(3A,I4,2A)')'Lib: ',RFILE(1:lsn1),' Set:',ISIM,
-     &      ': ',RSNAME(ISIM)(1:lnblnk(RSNAME(ISIM)))
+          write(outs,'(3A,I4,3A)')'Results library: ',
+     &      RFILE(1:lsn1),'; results set:',ISIM,
+     &      ' (',RSNAME(ISIM)(1:lnblnk(RSNAME(ISIM))),')'
           else
-            write(outs,'(4A)')'Lib: ',RFILE(1:lsn1),
-     &      ': ',RSNAME(ISIM)(1:lnblnk(RSNAME(ISIM)))
+            write(outs,'(5A)')'Results library: ',RFILE(1:lsn1),
+     &      '; (',RSNAME(ISIM)(1:lnblnk(RSNAME(ISIM))),')'
           endif
           call edisp(itru,outs)
           write(outs,'(3A)')PDESCR(1:lnblnk(PDESCR)),' ',
-     &     SDESCR(11:lnblnk(SDESCR))
+     &     SDESCR(12:lnblnk(SDESCR))
           call edisp(itru,outs)
         endif
 
@@ -905,10 +904,11 @@ C Remember if we are dealing with surface information (longer names in reporting
       character outs*124,act*1
       character fill*9  ! spaces for surface reporting
       character prompt*124,prompte*124
-      CHARACTER DESCR*7,DESCR1*10,DESCRH*5,DESCRD*5,NT*14,XT*14
-      CHARACTER RSNAME*40
+      character DESCR*7,DESCR1*10,DESCR2*8,DESCRH*5,DESCRD*5,DESCRJ*5
+      character NT*14,XT*14
+      character RSNAME*40
       character rfile*72,PFILE*72,MSTRFILE*72,LAFRES*72
-      CHARACTER PDESCR*60,SDESCR*44
+      character PDESCR*64,SDESCR*44
 
       logical LARGE,HAVEIT
 
@@ -1134,8 +1134,9 @@ C not yet printed the heading do so and mark as printed.
      &          ' Set:',ISIM
               call edisp(itru,outs)
             else
-              WRITE(outs,'(3A,I4,2A)')'# Lib: ',RFILE(1:lsn1),' Set:',
-     &          ISIM,': ',RSNAME(ISIM)(1:lnblnk(RSNAME(ISIM)))
+              WRITE(outs,'(3A,I4,3A)')'# Results library: ',
+     &          RFILE(1:lsn1),'; results set:',
+     &          ISIM,' (',RSNAME(ISIM)(1:lnblnk(RSNAME(ISIM))),')'
               call edisp(itru,outs)
             endif
           else
@@ -1146,17 +1147,17 @@ C not yet printed the heading do so and mark as printed.
               write(outs,'(2A)')'### Library ',RFILE(1:lsn1)
               call edisp(itru,outs)
             else
-              WRITE(outs,'(4A)')'# Lib: ',RFILE(1:lsn1),
-     &         ': ',RSNAME(ISIM)(1:lnblnk(RSNAME(ISIM)))
+              WRITE(outs,'(5A)')'# Results library: ',RFILE(1:lsn1),
+     &         '; (',RSNAME(ISIM)(1:lnblnk(RSNAME(ISIM))),')'
               call edisp(itru,outs)
             endif
           endif
           if(markdown)then
             write(outs,'(4A)')'### ',PDESCR(1:lnblnk(PDESCR)),' ',
-     &        SDESCR(11:lnblnk(SDESCR))
+     &        SDESCR(12:lnblnk(SDESCR))
           else
             WRITE(outs,'(4A)')'# ',PDESCR(1:lnblnk(PDESCR)),' ',
-     &                    SDESCR(11:lnblnk(SDESCR))
+     &        SDESCR(12:lnblnk(SDESCR))
           endif
           call edisp(itru,outs)
         endif
@@ -1175,15 +1176,16 @@ C not yet printed the heading do so and mark as printed.
         if((.NOT.libheading).and.(.NOT.headingcontext))then
           libheading=.true.; headingcontext=.true.
           if(NSIM.gt.1)then
-            WRITE(outs,'(3A,I4,2A)')'Lib: ',RFILE(1:lsn1),' Set:',ISIM,
-     &       ': ',RSNAME(ISIM)(1:lnblnk(RSNAME(ISIM)))
+            WRITE(outs,'(3A,I4,3A)')'Results library: ',
+     &        RFILE(1:lsn1),'; results set:',ISIM,
+     &       ' (',RSNAME(ISIM)(1:lnblnk(RSNAME(ISIM))),')'
           else
-            WRITE(outs,'(4A)')'Lib: ',RFILE(1:lsn1),
-     &       ': ',RSNAME(ISIM)(1:lnblnk(RSNAME(ISIM)))
+            WRITE(outs,'(5A)')'Results library: ',RFILE(1:lsn1),
+     &       '; (',RSNAME(ISIM)(1:lnblnk(RSNAME(ISIM))),')'
           endif
           call edisp(itru,outs)
           WRITE(outs,'(3A)')PDESCR(1:lnblnk(PDESCR)),' ',
-     &                      SDESCR(11:lnblnk(SDESCR))
+     &                      SDESCR(12:lnblnk(SDESCR))
           call edisp(itru,outs)
         endif
         write (outs,'(a)') SLABEL(NGET)
@@ -1284,15 +1286,15 @@ C Now generate climate data output text.
 C Create string description for time of maximum occurrance.
           MAXDOY=INT(TMAX(1)/24.)+IODS
           TMAXHR=AMOD(TMAX(1),24.)
-          call STDATE(IYEAR,MAXDOY,DESCR,DESCR1)
-          call EDTIME(TMAXHR,DESCRH,DESCRD,TIMER)
+          call STDATE(IYEAR,MAXDOY,DESCR,DESCR1,DESCR2)
+          call EDTIME(TMAXHR,DESCRH,DESCRD,DESCRJ,TIMER)
           write (XT,'(3a)')DESCR(1:6),'@',DESCRH
 
 C Create string description for time of minimum occurrance.
           MINDOY=INT(TMIN(1)/24.)+IODS
           TMINHR=AMOD(TMIN(1),24.)
-          call STDATE(IYEAR,MINDOY,DESCR,DESCR1)
-          call EDTIME(TMINHR,DESCRH,DESCRD,TIMER)
+          call STDATE(IYEAR,MINDOY,DESCR,DESCR1,DESCR2)
+          call EDTIME(TMINHR,DESCRH,DESCRD,DESCRJ,TIMER)
           write (NT,'(3a)')DESCR(1:6),'@',DESCRH
           if (IROC.eq.-1) then  ! integrate data
             if(markdown)then
@@ -1479,15 +1481,15 @@ C Write tag line if tagged output requested.
 C Create string description for time of maximum occurrance.
             MAXDOY=INT(TMAX(I)/24.)+IODS
             TMAXHR=AMOD(TMAX(I),24.)
-            call STDATE(IYEAR,MAXDOY,DESCR,DESCR1)
-            call EDTIME(TMAXHR,DESCRH,DESCRD,TIMER)
+            call STDATE(IYEAR,MAXDOY,DESCR,DESCR1,DESCR2)
+            call EDTIME(TMAXHR,DESCRH,DESCRD,DESCRJ,TIMER)
             write (XT,'(3a)')DESCR(1:6),'@',DESCRH
 
 C Create string description for time of minimum occurrance.
             MINDOY=INT(TMIN(I)/24.)+IODS
             TMINHR=AMOD(TMIN(I),24.)
-            call STDATE(IYEAR,MINDOY,DESCR,DESCR1)
-            call EDTIME(TMINHR,DESCRH,DESCRD,TIMER)
+            call STDATE(IYEAR,MINDOY,DESCR,DESCR1,DESCR2)
+            call EDTIME(TMINHR,DESCRH,DESCRD,DESCRJ,TIMER)
             write (NT,'(3a)')DESCR(1:6),'@',DESCRH
 
             if(markdown)then        ! Build up string for displaying.
@@ -1569,15 +1571,15 @@ C zone latent loads do the following report.
 C Create string description for time of maximum occurrance.
             MAXDOY=INT(DIVMXT/24.)+IODS
             TMAXHR=AMOD(DIVMXT,24.)
-            call STDATE(IYEAR,MAXDOY,DESCR,DESCR1)
-            call EDTIME(TMAXHR,DESCRH,DESCRD,TIMER)
+            call STDATE(IYEAR,MAXDOY,DESCR,DESCR1,DESCR2)
+            call EDTIME(TMAXHR,DESCRH,DESCRD,DESCRJ,TIMER)
             write (XT,'(3a)')DESCR(1:6),'@',DESCRH
 
 C Create string description for time of minimum occurrance.
             MINDOY=INT(DIVMNT/24.)+IODS
             TMINHR=AMOD(DIVMNT,24.)
-            call STDATE(IYEAR,MINDOY,DESCR,DESCR1)
-            call EDTIME(TMINHR,DESCRH,DESCRD,TIMER)
+            call STDATE(IYEAR,MINDOY,DESCR,DESCR1,DESCR2)
+            call EDTIME(TMINHR,DESCRH,DESCRD,DESCRJ,TIMER)
             write (NT,'(3a)')DESCR(1:6),'@',DESCRH
             
             if(markdown)then       ! Build up string for displaying markdown loads.
@@ -1852,7 +1854,7 @@ C Get common precz from geometry.h
 
       character outs*124,act*1
       character prompt*124
-      CHARACTER PDESCR*60,SDESCR*44,RSNAME*40
+      CHARACTER PDESCR*64,SDESCR*44,RSNAME*40
       character rfile*72,PFILE*72,MSTRFILE*72,LAFRES*72
       logical display
 
@@ -1976,9 +1978,10 @@ C Now display the calculated data.
       lsn1=MIN0(lnblnk(RFILE),42)
       if (NS.lt.2) then
         write (outs,'(1X,5A)')
-     &    SDESCR,' Lib:',RFILE(1:lsn1),' Set:',RSNAME(ISIM)(1:22)
+     &    SDESCR,' results library:',RFILE(1:lsn1),'; results set:',
+     &    RSNAME(ISIM)(1:22)
       else
-        write (outs,'(1X,3A)') SDESCR,' Lib:',RFILE(1:lsn1)
+        write (outs,'(1X,3A)') SDESCR,' results library:',RFILE(1:lsn1)
       endif
 
 C If heading has not yet been written do so now.
@@ -2019,6 +2022,7 @@ C act='p' iget parameters already set.
 
       SUBROUTINE MOSQHR(act,iabove,tval)
 #include "building.h"
+#include "help.h"
 
       integer lnblnk
       
@@ -2063,10 +2067,11 @@ C Remember if we are dealing with surface information (longer names in reporting
       common/focussurf/SLISTR
 
       character prompt*124,outs*124
-      CHARACTER DESCR*7,DESCR1*10,DESCRH*5,DESCRD*5,NT*14,XT*14
-      CHARACTER RSNAME*40
+      character DESCR*7,DESCR1*10,DESCR2*8,DESCRH*5,DESCRD*5,DESCRJ*5
+      character NT*14,XT*14
+      character RSNAME*40
       character rfile*72,PFILE*72,MSTRFILE*72,LAFRES*72
-      CHARACTER PDESCR*60,SDESCR*44,act*1
+      character PDESCR*64,SDESCR*44,act*1
       character fill*9  ! added spaces for surface reporting
 
       dimension YMAX(MZS), YMIN(MZS), YTOT(MZS)
@@ -2082,12 +2087,7 @@ C Remember if we are dealing with surface information (longer names in reporting
 
       real toAdd
 
-C For help messages
-      character helpinsub*24   ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='MOSQHR'  ! set for subroutine
+      helpinsub='stats'  ! set for subroutine
 
 C If output to file alter the edisp unit number.
       itru = icout
@@ -2179,6 +2179,8 @@ C Initialise arrays.
         isOccPrev(IX)=0
         TOccStart(IX)=0.0
         TOccFinish(IX)=0.0 
+        TPerStart(IX)=0.0
+        TPerFinish(IX)=0.0
       enddo
 
 C Calculate time values for first and last time steps, and duration
@@ -2343,8 +2345,9 @@ C actual duration.
 
 C Debug.
 C            write(375,*)'TIME,IX,isAct(IX),isOcc(IX),isActPrev(IX),',
-C     & 'isOccPrev(IX),TActive(IX),TOccup(IX)=',TIME,IX,isAct(IX),
-C     & isOcc(IX),isActPrev(IX),isOccPrev(IX),TActive(IX),TOccup(IX)
+C     & 'isOccPrev(IX),TActive(IX),TOccup(IX),TPerFinish(IX),',
+C     & 'TPerStart(IX)=',TIME,IX,isAct(IX),isOcc(IX),isActPrev(IX),
+C     & isOccPrev(IX),TActive(IX),TOccup(IX),TPerFinish(IX),TPerStart(IX)
 
  421      CONTINUE
  400    CONTINUE
@@ -2378,16 +2381,17 @@ C changed.
           write(outs,'(2A)')'### Library ',RFILE(1:lsn1)
           call edisp(itru,outs)
         else
-          WRITE(outs,'(3A,I4,2A)')
-     &    'Lib: ',RFILE(1:lsn1),' Set:',ISIM,': ',RSNAME(ISIM)
+          WRITE(outs,'(3A,I4,3A)')
+     &     'Results library: ',RFILE(1:lsn1),'; results set:',ISIM,' (',
+     &      RSNAME(ISIM),')'
           call edisp(itru,outs)
         endif
         if(markdown)then
           write(outs,'(4A)')'### ',PDESCR(1:lnblnk(PDESCR)),' ',
-     &      SDESCR(11:lnblnk(SDESCR))
+     &      SDESCR(12:lnblnk(SDESCR))
         else
           WRITE(outs,'(4A)')'# ',PDESCR(1:lnblnk(PDESCR)),' ',
-     &      SDESCR(11:lnblnk(SDESCR))
+     &      SDESCR(12:lnblnk(SDESCR))
         endif
         call edisp(itru,outs)
       endif
@@ -2475,15 +2479,15 @@ C Now generate climate data output text.
 C Create string description for time of maximum occurrance.
           MAXDOY=INT(TMAX(1)/24.)+IODS
           TMAXHR=AMOD(TMAX(1),24.)
-          call STDATE(IYEAR,MAXDOY,DESCR,DESCR1)
-          call EDTIME(TMAXHR,DESCRH,DESCRD,TIMER)
+          call STDATE(IYEAR,MAXDOY,DESCR,DESCR1,DESCR2)
+          call EDTIME(TMAXHR,DESCRH,DESCRD,DESCRJ,TIMER)
           write (XT,'(3a)')DESCR(1:6),'@',DESCRH
 
 C Create string description for time of minimum occurrance.
           MINDOY=INT(TMIN(1)/24.)+IODS
           TMINHR=AMOD(TMIN(1),24.)
-          call STDATE(IYEAR,MINDOY,DESCR,DESCR1)
-          call EDTIME(TMINHR,DESCRH,DESCRD,TIMER)
+          call STDATE(IYEAR,MINDOY,DESCR,DESCR1,DESCR2)
+          call EDTIME(TMINHR,DESCRH,DESCRD,DESCRJ,TIMER)
           write (NT,'(3a)')DESCR(1:6),'@',DESCRH
 
 C Calculate total time above and below query value. If there is
@@ -2630,15 +2634,15 @@ C User requested single line header, use the curren separator.
 C Create string description for time of maximum occurrance.
             MAXDOY=INT(TMAX(I)/24.)+IODS
             TMAXHR=AMOD(TMAX(I),24.)
-            call STDATE(IYEAR,MAXDOY,DESCR,DESCR1)
-            call EDTIME(TMAXHR,DESCRH,DESCRD,TIMER)
+            call STDATE(IYEAR,MAXDOY,DESCR,DESCR1,DESCR2)
+            call EDTIME(TMAXHR,DESCRH,DESCRD,DESCRJ,TIMER)
             write (XT,'(3a)')DESCR(1:6),'@',DESCRH
 
 C Create string description for time of minimum occurrance.
             MINDOY=INT(TMIN(I)/24.)+IODS
             TMINHR=AMOD(TMIN(I),24.)
-            call STDATE(IYEAR,MINDOY,DESCR,DESCR1)
-            call EDTIME(TMINHR,DESCRH,DESCRD,TIMER)
+            call STDATE(IYEAR,MINDOY,DESCR,DESCR1,DESCR2)
+            call EDTIME(TMINHR,DESCRH,DESCRD,DESCRJ,TIMER)
             write (NT,'(3a)')DESCR(1:6),'@',DESCRH
 
 C Calculate total time above and below query value. If there is
@@ -2854,7 +2858,7 @@ C Markdown flag.
       character prompt*124,outs*148,outsd*148,prompte*124
       CHARACTER RSNAME*40
       character rfile*72,PFILE*72,MSTRFILE*72,LAFRES*72
-      CHARACTER PDESCR*60,SDESCR*44,act*1
+      CHARACTER PDESCR*64,SDESCR*44,act*1
       DIMENSION YDUM(MTS),YAGRHT(MTS),YAGRCL(MTS)
       logical close
 
@@ -2943,8 +2947,9 @@ C Energy requirements.
      &          ' Set:',ISIM
               call edisp(itru,outs)
             else
-              write(outs,'(3A,I4,2A)')'Lib: ',RFILE(1:lsn1),' Set:',
-     &          ISIM,': ',RSNAME(ISIM)(1:lnblnk(RSNAME(ISIM)))
+              write(outs,'(3A,I4,3A)')'Results library: ',
+     &          RFILE(1:lsn1),'; results set:',
+     &          ISIM,' (',RSNAME(ISIM)(1:lnblnk(RSNAME(ISIM))),')'
               call edisp(itru,outs)
             endif
           else
@@ -2955,17 +2960,17 @@ C Energy requirements.
               write(outs,'(2A)')'### Library ',RFILE(1:lsn1)
               call edisp(itru,outs)
             else
-              write(outs,'(4A)')'Lib: ',RFILE(1:lsn1),
-     &        ': ',RSNAME(ISIM)(1:lnblnk(RSNAME(ISIM)))
+              write(outs,'(5A)')'Results library: ',RFILE(1:lsn1),
+     &        '; (',RSNAME(ISIM)(1:lnblnk(RSNAME(ISIM))),')'
               call edisp(itru,outs)
             endif
           endif
           if(markdown)then
             write(outs,'(4A)')'### ',PDESCR(1:lnblnk(PDESCR)),' ',
-     &        SDESCR(11:lnblnk(SDESCR))
+     &        SDESCR(12:lnblnk(SDESCR))
           else
             write(outs,'(3A)')PDESCR(1:lnblnk(PDESCR)),' ',
-     &        SDESCR(11:lnblnk(SDESCR))
+     &        SDESCR(12:lnblnk(SDESCR))
           endif
           call edisp(itru,outs)
         endif
@@ -3240,7 +3245,7 @@ C << file does not need to be scanned to get the surface emissivity.
       logical headingcontext ! has set or period changed so heading needs reprint
       common/libhead/libheading,headingcontext
 
-      CHARACTER PDESCR*60,SDESCR*44,CSTR*25
+      CHARACTER PDESCR*64,SDESCR*44,CSTR*25
       CHARACTER*18 LABELS(13)
       CHARACTER*5 LABSurf(2)
       character outs*124,act*1,prompt*124
@@ -3302,15 +3307,16 @@ C Energy requirements.
       if((.NOT.libheading).and.(.NOT.headingcontext))then
         libheading=.true.; headingcontext=.true.
         if(NSIM.gt.1)then
-          write(outs,'(3A,I4,2A)')'Lib: ',RFILE(1:lsn1),' Set:',ISIM,
-     &      ': ',RSNAME(ISIM)(1:lnblnk(RSNAME(ISIM)))
+          write(outs,'(3A,I4,3A)')'Results library: ',
+     &      RFILE(1:lsn1),'; results set:',ISIM,
+     &      ' (',RSNAME(ISIM)(1:lnblnk(RSNAME(ISIM))),')'
         else
-          write(outs,'(4A)')'Lib: ',RFILE(1:lsn1),
-     &      ': ',RSNAME(ISIM)(1:lnblnk(RSNAME(ISIM)))
+          write(outs,'(5A)')'Results library: ',RFILE(1:lsn1),
+     &      '; (',RSNAME(ISIM)(1:lnblnk(RSNAME(ISIM))),')'
         endif
         call edisp(itru,outs)
         write(outs,'(3A)')PDESCR(1:lnblnk(PDESCR)),' ',
-     &   SDESCR(11:lnblnk(SDESCR))
+     &   SDESCR(12:lnblnk(SDESCR))
         call edisp(itru,outs)
       endif
 

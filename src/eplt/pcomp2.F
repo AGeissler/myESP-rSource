@@ -1,6 +1,6 @@
 C This file is part of the ESP-r system.
 C Copyright Energy Systems Research Unit, University of
-C Strathclyde, Glasgow Scotland, 2001.
+C Strathclyde, Glasgow Scotland, 2001-.
 
 C ESP-r is free software.  You can redistribute it and/or
 C modify it under the terms of the GNU General Public
@@ -13,17 +13,8 @@ C warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
 C PURPOSE. See the GNU General Public License for more
 C details.
 
-C You should have received a copy of the GNU General Public
-C License along with ESP-r. If not, write to the Free
-C Software Foundation, Inc., 59 Temple Place, Suite 330,
-C Boston, MA 02111-1307 USA.
 
-C **********************************************************************
-C PCOMP2 of ESRUbps
-C
-C For an overview of functions and plant component sub-routines
-C currently available, see "pcomp1.f"
-C The following plant component sub-routines are collected here:
+C This file contains the following subroutines. 
 C  CMP20C   1 node (ISV=20) WCH boiler
 C  CMP21C   2 node (ISV=20) WCH radiator
 C  CMP22C   1 node (ISV=20) WCH pipe
@@ -65,8 +56,7 @@ C  TYPE6    TRNSYS type component for WCH boiler with aquastat control
 C
 C
 C ******************** CMP20C ********************
-C
-C CMP20C generates for plant component IPCOMP with plant db code 200 ie.
+C Generates for plant component IPCOMP with plant db code 200 ie.
 C 1 node (ISV=20) WCH boiler & flux control
 C matrix equation coefficients COUT (in order: self-coupling, cross-
 C coupling, and present-time coefficients) for energy balance (ISTATS=1),
@@ -76,7 +66,7 @@ C            2 Mass weighted average specific heat (J/kgK)
 C            3 UA modulus (W/K)
 C     BDATA: none
 C     CDATA: 1 Heating duty (W)
-C
+
       SUBROUTINE CMP20C(IPCOMP,COUT,ISTATS)
        use h3kmodule
 #include "plant.h"
@@ -8596,7 +8586,7 @@ C   0 space heat, 1 DHW low, 2 DHW high
 
       COMMON/ITERINDEX/ITERNU !plant iteration number
 
-      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS,idynow
       COMMON/Pctime/TIMSEC
       COMMON/PCTC/TC(MPCOM)
 
@@ -8732,7 +8722,7 @@ C Electrical details for specified plant components
       REAL SHTFLD
 
       INTEGER ITC,ICNT,ITCF,ITRACE,IZNTRC,ITU,ITERNU,
-     &IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS,IMPEXP
+     &IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS,idynow,IMPEXP
 
       INTEGER NPCDAT,IPOFS1,IPOFS2,ICON1,INOD1,napdat,
      &IPCOMP,ISTATS,I,ICONDX,ICONTP,IX1,NCI,NITMS,NPCOMP,
@@ -9153,10 +9143,14 @@ C         Heating and cooling power at current compressor frequency.
 C           COPmodel 5 is a "hidden mode" which tweaks the approximate
 C           COP-behaviour as function of the relative inverter frequency
 C           for a specific heat pump model (cta Optiheat Inverta Economy
-C           Compact, OH I 9ec).
-            CP=(RelCompFreq*(CP100-CP0)+CP0)*
-     &          (1.0 + (-0.0015119 + 0.00022779 * (100.*RelCompFreq) +
+C           Compact, OH I 9ec). SH mode, only.
+            if (bSHrqd) then
+              CP=(RelCompFreq*(CP100-CP0)+CP0)*
+     &          (1.0 + (-0.0015119 + 0.00022779 * (100.*RelCompFreq)
      &           + (-1.2154e-5) * (100.*RelCompFreq)**2))
+            else
+              CP=RelCompFreq*(CP100-CP0)+CP0
+            endif
           endif
 
 cx          write(*,'(8(a,f7.3))')'Mode 3: Ta=',Ta,', Td=',Td,

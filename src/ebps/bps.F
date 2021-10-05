@@ -1,6 +1,6 @@
 C This file is part of the ESP-r system.
 C Copyright Energy Systems Research Unit, University of
-C Strathclyde, Glasgow Scotland, 2001.
+C Strathclyde, Glasgow Scotland, 2001-.
 
 C ESP-r is free software.  You can redistribute it and/or
 C modify it under the terms of the GNU General Public
@@ -45,14 +45,23 @@ C           ifil+15 3D nodes longwave file
 C           ifil+16 3D temporarily file
 C           ifil+17 moisture flow results file
 C           ifil+18 CFD results file
-C           ifil+19 CFD monitoring file
+C           ifil+19+(ICFD-1)*100 CFD monitoring file
 C           ifil+20 CFD temporarily file for use during simulation
 C           ifil+21 Power flow results library
 C           ifil+22 any supplementery temporarily opened file
 C           ifil+23 first nochan (occupied utility file channel)
 C                   NB nochan+x is used in several places
+C           ifil+24+(ICFD-1)*100 CFD boundary condition export
+C           ifil+25 Used by acoustics module
+C           ifil+26 Used by acoustics module
+C           ifil+27 Used by acoustics module
+C           ifil+28 User-specified fuel-cell electrical loads
+C           ifil+29+(ICFD-1)*100 CFD ACC actions log
+C           ifil+30 Fuel cell electrical load scratch file
 C           ifil+31 Read in vertical solar data
 C           ifil+32 (fort.42) Vertical solar output channel
+C           ifil+33 Agent log file
+C           ifil+34 Gremlin log file
 C           ifil+40 snow depth ASCII file
 C           ifil+41 snow depth binary file
 C           ifil+45 (fort.55) PV output channel
@@ -90,7 +99,8 @@ C#include "../cetc/AIMS_module.F"
 C GCEP.
 C#include "../cetc/GCEP_module.F"
 
-#include "BlockData.h"   ! initialise variables in stratified_tank and NCHE commons
+C Initialise variables in stratified_tank and NCHE commons.
+#include "BlockData.h"   
 
       program bps
       USE START_UP, ONLY: UsePassedCommandLine
@@ -161,6 +171,7 @@ C a subroutine rather than as an application.
 #include "material.h"
 #include "espriou.h"
 #include "climate.h"
+#include "help.h"
 
       integer lnblnk  ! function definition
 
@@ -241,7 +252,7 @@ C Path to model and command line file (if any).
       logical browse
 
 C CFD output channels.
-      COMMON/ICFCHN/ICFMON(MNZ),ICFTMP,ICFLIB
+      COMMON/ICFCHN/ICFMON(MNZ),ICFDBC(MNZ),ICFTMP,ICFLIB
       common/CFDres/photon,flwvis
 
 C CFD results library.
@@ -252,11 +263,13 @@ C CFD visualisation.
       CHARACTER*72 Lflpar
       COMMON/ACT/ACTCNN(MCNN)
 
-C CFD small openings.
-      common/SSOinit/areaSSO
-
 C CFD coupling toggles
       common/CFDTOGS/ACCON,CFD2BLD,CFD2MFS
+
+C CFD grid refinement.
+      COMMON/RFNGRD/DOFLT,DORFN,IFNDWT(MNZ),NRFN,IRFNCLS(MNZ,MRFN,3),
+     &  NRFND,IRFND(MNZ,MRFNT,3)
+      logical DOFLT,DORFN
 
 C Project journal on/off, unit number, cmd, file name.
       common/journopt/journio,iuj,journcmd,jfile
@@ -285,7 +298,7 @@ C Illuminance database.
 C Active domain common (expand to other domains?).
       common/ACTDOM/CFDOK
       LOGICAL CFDOK
-      
+
 C Significant figure reporting limit (NSIGFIG).
       common/SFIG/NSIGFIG
 
@@ -305,8 +318,8 @@ C Session log file (for errors etc.)
 C Flag for enabling h3k customizations 
 
       common/H3KCustom/bEnableH3kExtensions
-      logical bEnableH3kExtensions 
-     
+      logical bEnableH3kExtensions
+
       real UNMETHRS  ! for each zone counter for unmet hours.
       COMMON/UNMET/UNMETHRS(MCOM)
 
@@ -317,12 +330,12 @@ C Toggle for extreme silent running (endless) mode.
 C Logical flag for uncertainty header has been printed.
       logical uncertheadprinted
       common/uncerthead/uncertheadprinted
-      
+
       integer iverb     ! verbosity passed on command line
 
       LOGICAL OK,dok,OK3D
       LOGICAL INPOK,XST
-      logical unixok,there,photon,flwvis,dll,ACTCNN,areaSSO
+      logical unixok,there,photon,flwvis,dll,ACTCNN
       logical concat
 
       character*29 item(15)
@@ -367,10 +380,6 @@ C Flags for multi-year simulation menus.
       integer*8 iicapture   ! to pass to updcapt
 #endif
 
-      character helpinsub*24   ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
 C Active domain.  Assume not active, check if running in dll mode
 C and clear dll subroutine name and error details.
       CFDOK=.false.
@@ -384,10 +393,13 @@ C coupling component is detected by the plant domain.
 
 C Prior to commencing simulation, delete "console_out.txt", if found.
       INQUIRE (FILE="console_out.txt",EXIST=XST)
-      if(XST)then 
-            OPEN( UNIT=ifil+83, FILE="console_out.txt" )         
+      if(XST)then
+            OPEN( UNIT=ifil+83, FILE="console_out.txt" )
             CLOSE ( UNIT=ifil+83, STATUS='DELETE' )
       endif
+
+C Remove Modish lock file.
+      call system("rm -f ../tmp/Z*.lock.tmp")
 
 C Mark in log file, start of simulation.
       if( dll ) then
@@ -405,8 +417,8 @@ C Mark in log file, start of simulation.
  1    continue
 
 C Disable h3k customisations by default.
-      bEnableH3kExtensions = .false. 
- 
+      bEnableH3kExtensions = .false.
+
 C Assume that the configuration, mlc db, primitive db, control file
 C have not been read in.
       CFGOK=.FALSE.
@@ -415,8 +427,8 @@ C have not been read in.
       CTLOK=.FALSE.
       spfileok=.false.
       LUALF='UNKNOWN'
-      RFILE='Bldres'
-      PFILE='PWrres'
+      RFILE='BLDres'
+      PFILE='PWRres'
       LAFRES='FLWres'
       CFRESF='CFDres'
       MSTRFILE='MSTres'
@@ -424,6 +436,7 @@ C have not been read in.
         Lflpar(I)='UNKNOWN'
         UNMETHRS(I)=0  ! reset counter of unmet hours
  5    continue
+      sps='  '
 
 C CFD results output. `photon' indicates whether PHOTON phi files will
 C be created; `flwvis' indicates whether ESP-r's in-built flow visualization
@@ -437,13 +450,12 @@ C CFD results library: IRECPC=current record; ICFDSV=results version.
       IRECPC=0
       ICFDSV=3
 
-C Flag indicating that CFD `small opening' areas have not yet been calculated.
-      areaSSO = .FALSE.
-
 C Default CFD coupling toggles.
-      ACCON=1   ! Adaptive Conflation Controller active
-      CFD2BLD=1 ! 1-way CFD-building conflation
-      CFD2MFS=2 ! 2-way CFD-mass flow network conflation
+      ACCON=1        ! Adaptive Conflation Controller active
+      CFD2BLD=1      ! 1-way CFD-building conflation
+      CFD2MFS=2      ! 2-way CFD-mass flow network conflation
+      DOFLT=.True.   ! Residual flatline detection on
+      DORFN=.False.  ! Automatic grid refinement off
 
 C Illuminance values held in database.
       NDBENT=0
@@ -473,7 +485,7 @@ C Some initial values, which may be changed later:
 
       cAppName = 'bps'
       helpinapp='bps'  ! set once for the application
-      helpinsub='SubBps'  ! set for MAIN
+      helpinsub='bps'  ! set for MAIN
 
 C Set parameters for DLL run.
 C all console write is rerouted to the log file
@@ -518,7 +530,7 @@ C Check for endless running mode.
         call edisp(iuout,'Reality-Emulator endless-running mode.')
         call tstamp('>','bps: Endless-running mode')
       endif
-      
+
 C Create new child thread to timeout simulation if required.
 C << Note this is temporarily commented out and should be
 C << re-established for CETC use.
@@ -556,7 +568,7 @@ C at begining for details. These must not be changed elsewhere.
       ILWV=IFIL+15
       ITF3=IFIL+16
       IMSTR=IFIL+17
-      ICFLIB=IFIL+18  
+      ICFLIB=IFIL+18
       ICFTMP=IFIL+20
       nochan=ifil+23
       ISTemp=IFIL+60
@@ -586,7 +598,7 @@ C Initialise output device: -10 forces user selection.
 
 C Set pixels high to iappw and pixels wide to factor in monitor size.
       iapphi=iappw
-      iappwi=int(real(iappw)*(1024.0/780.0))
+      iappwi=int(real(iappw)*(1024.0/725.0))
 
       if(iappw.gt.0.and.iappw.lt.100)then
         menuchw = MAX0(int(32*iappw*0.01),16)
@@ -1042,7 +1054,7 @@ C a climate file by reading records 366 and 367.
         call gethelptext(helpinsub,helptopic,nbhelp)
         iclim=ifil
         call erpfree(iclim,istat)
-        
+
         llt=lnblnk(LCLIM)
         write(llclmdb,'(a)') LCLIM(1:llt)
 
@@ -1070,7 +1082,7 @@ C a climate file by reading records 366 and 367.
 C Cast expanded weather file name back to LCLIM.
         llt=lnblnk(llclmdb)
         write(LCLIM,'(a)') llclmdb(1:llt)
-        call tstamp('>','bps: change climate')
+        call tstamp('>','bps: change weather')
         call tstamp('>',LCLIM)
         ier=0
         call CLMOPB(0,IER)
@@ -1086,15 +1098,7 @@ C Cast expanded weather file name back to LCLIM.
           endif
           IRTYPE=0
           IF(ICDNGH.EQ.123)IRTYPE=1
-          if(icfgv.lt.3)then
-            helptopic='old_ask_for_year'
-            call gethelptext(helpinsub,helptopic,nbhelp)
-            IYEAR=ICYEAR
-            CALL EASKI(IYEAR,' ','Simulation year?',
-     &          1900,'W',3000,'@',ICYEAR,'year from clim',IER,nbhelp)
-          endif
-C Set flag: climate data ok
-          bSY_climate_defined = .true.
+          bSY_climate_defined = .true.  ! Set flag: climate data ok
 
         ELSE
           bSY_climate_defined = .false.
@@ -1259,9 +1263,9 @@ C Clean up and exit.
         else
 
 C Write unmet hours to channel 27 before closing bps.
-C << Future action is to enable unmet hours recovery in res. >>
-          write(27,'(a)') 
-     &      'Unmet set-point hours for each zone at end of simulation.'
+C << Need to enable unmet hours recovery in res. >>
+          write(27,'(a)')
+     &      'Unmet set-point hours during simulation.'
           do I=1,NCOMP
             write(27,'(a,i2,1x,a,f8.1)') 'Zone ',I,zname(I),UNMETHRS(I)
           enddo
@@ -1312,6 +1316,12 @@ C Clear allocatable arrays.
         endif
         CALL DeallocateAllArrays
         call epagend
+
+C Remove modish lock and temporary files.
+        call system("rm -f ../tmp/Z*.lock.tmp") !
+        call system("rm -f ../tmp/*.store.tmp") !
+        call system("rm -f ../tmp/*.temp.*")
+        call system("rm -f ../tmp/*.temp")
         return
       else
 
@@ -1355,7 +1365,7 @@ C Command line parser for bps.
 
       subroutine parbps(iverb,termtype,iappw,iappx,iappy,inf,browse,
      &  sps,aut,actf,mca,nbsets)
-      
+
       integer lnblnk  ! function definition
       integer, intent(inout)  ::  iverb, termtype,iappw,iappx,iappy
       character(144), intent(inout)  :: inf
@@ -1466,7 +1476,7 @@ C If one parameter.
         goto 41
       endif
   42  continue
-  
+
       if ( iverb == 2 ) then
         write(outs,'(6a)') 'Starting ',appn(1:lnblnk(appn)),
      &    ' in mode ',mode(1:lnblnk(mode)),' with file ',
@@ -1549,7 +1559,7 @@ C Depending on computer type, set integer size of passed parameters.
 #else
       integer*8 JITZNM,JITSNM,JITVNO,JITOBS,JITVIS,JITVOBJ,JITSNR
       integer*8 JITGRD,JITORG,JITBND,JITDSP,JITHLS,JITHLZ,JITPPSW
-#endif     
+#endif
       return
       end
 
@@ -1600,7 +1610,7 @@ C Depending on computer type, set integer size of passed parameters.
       ier=0
       return
       end
-      
+
       SUBROUTINE EDMLDB2(chgdb,ACTION,isel,IER)
       logical chgdb
       character*1 ACTION

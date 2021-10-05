@@ -14,9 +14,8 @@ C PURPOSE. See the GNU General Public License for more
 C details.
 
 
-C folders.f provides creation and editing facilities related to
-C maintaining model folders and files. This file contains the
-C following subroutines.
+C This file provides creation and editing facilities related to
+C maintaining model folders and files.
 C  pregist  - register a new project.
 C  pfolders - maintain model folders.
 C  edimage  - specification of an associated imagew.
@@ -44,6 +43,7 @@ C assumed to be created silently within the current folder.
 #include "site.h"
 #include "esprdbfile.h"
 #include "espriou.h"
+#include "help.h"
       
       integer lnblnk  ! function definition
 
@@ -68,7 +68,7 @@ C Plant network.
 
 C Images.
       character imgfmt*4    ! GIF, XBMP, TIF or JPG
-      character imgfoc*4    ! FZON, FNET, FCTL or FDFS
+      character imgfoc*4    ! FZON FNET FCTL FDFS FPLN
       character limgfil*72  ! file name
       character imgdoc*248  ! associated text
       common/imagf/imgfmt(MIMG),imgfoc(MIMG),limgfil(MIMG),imgdoc(MIMG)
@@ -114,17 +114,13 @@ C Calendar.
       character MODE*4
       integer ISTRW
 
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string for topic
-      integer nbhelp         ! number of help lines found
-
 #ifdef OSI
       integer nnlistf        ! for use with getfileslist
 #else
       integer*8 nnlistf
 #endif
 
-      helpinsub='pregist'    ! set for subroutine
+      helpinsub='folders'    ! set for subroutine
 
 C Set folder separator (fs) to \ or / as required.
       call isunix(unixok)
@@ -257,16 +253,9 @@ C mpath and standard ESP-r model sub-folders.
         call pausems(100)
         write(doit,'(4a)') 'mkdir ',mpath(1:lnmp),fs,'cfg'
         write(folderreadme,'(5a)') mpath(1:lnmp),fs,'cfg',fs,
-     &    'Readme.txt'
+     &    'readme.txt'
         call runit(doit,'-')
         call pausems(100)
-        write(currentfile,'(a)') folderreadme(1:lnblnk(folderreadme))
-        IUNIT=IFIL+1
-        CALL EFOPSEQ(IUNIT,folderreadme,3,IER)
-        write(iunit,'(a)')'This folder holds the model configuration'
-        write(iunit,'(a)')'(.cfg) and surface connection lists'
-        write(iunit,'(a)')'(.cnn) files.'
-        CALL ERPFREE(IUNIT,ISTAT)
 
 C Check the control folder path.
         call GETTOKENS(ctlpth,IW,WORDS)
@@ -276,35 +265,29 @@ C Check the control folder path.
           write(doit,'(4a)') 'mkdir ',mpath(1:lnmp),fs,'ctl'
           write(ctlpth,'(3a)')'..',fs,'ctl'
           write(folderreadme,'(5a)') mpath(1:lnmp),fs,'ctl',fs,
-     &    'Readme.txt'
+     &    'readme.txt'
         else
           write(doit,'(4a)') 'mkdir ',mpath(1:lnmp),fs,testw(1:lnw)
           write(folderreadme,'(5a)') mpath(1:lnmp),fs,testw(1:lnw),fs,
-     &    'Readme.txt'
+     &    'readme.txt'
         endif
         call runit(doit,'-')
         call pausems(100)
-        write(currentfile,'(a)') folderreadme(1:lnblnk(folderreadme))
-        IUNIT=IFIL+1
-        CALL EFOPSEQ(IUNIT,folderreadme,3,IER)
-        write(iunit,'(a)')'This folder holds control definitions for'
-        write(iunit,'(a)')'building, flow and plant components.'
-        CALL ERPFREE(IUNIT,ISTAT)
 
-C Check the aim2 folder path.
-        call GETTOKENS(aimpth,IW,WORDS)
+C Check the msc folder path.
+        call GETTOKENS(mscpth,IW,WORDS)
         lnw=lnblnk(WORDS(IW))
         testw=WORDS(IW)
-        if(testw(1:lnw).eq.'aim2'.or.testw(lnw:lnw).eq.'.')then
-          write(doit,'(4a)') 'mkdir ',mpath(1:lnmp),fs,'aim2'
-          write(aimpth,'(3a)')'..',fs,'aim2'
+        if(testw(1:lnw).eq.'msc'.or.testw(lnw:lnw).eq.'.')then
+          write(doit,'(4a)') 'mkdir ',mpath(1:lnmp),fs,'msc'
+          write(mscpth,'(3a)')'..',fs,'msc'
         else
           write(doit,'(4a)') 'mkdir ',mpath(1:lnmp),fs,testw(1:lnw)
         endif
         call runit(doit,'-')
         call pausems(100)
 
-C Check that zones folder path.
+C Check the zones folder path.
         call GETTOKENS(zonepth,IW,WORDS)
         lnw=lnblnk(WORDS(IW))
         testw=WORDS(IW)
@@ -312,19 +295,18 @@ C Check that zones folder path.
           write(doit,'(4a)') 'mkdir ',mpath(1:lnmp),fs,'zones'
           write(zonepth,'(3a)')'..',fs,'zones'
           write(folderreadme,'(5a)') mpath(1:lnmp),fs,'zones',fs,
-     &    'Readme.txt'
+     &    'readme.txt'
         else
           write(doit,'(4a)') 'mkdir ',mpath(1:lnmp),fs,testw(1:lnw)
           write(folderreadme,'(5a)') mpath(1:lnmp),fs,testw(1:lnw),fs,
-     &    'Readme.txt'
+     &    'readme.txt'
         endif
         call runit(doit,'-')
         call pausems(100)
         write(currentfile,'(a)') folderreadme(1:lnblnk(folderreadme))
         IUNIT=IFIL+1
         CALL EFOPSEQ(IUNIT,folderreadme,3,IER)
-        write(iunit,'(a)')'This folder holds building definition.'
-        write(iunit,'(a)')'files.'
+        write(iunit,'(a)')'This folder holds the zone definition files.'
         CALL ERPFREE(IUNIT,ISTAT)
 
 C Check the nets folder path.
@@ -335,19 +317,19 @@ C Check the nets folder path.
           write(doit,'(4a)') 'mkdir ',mpath(1:lnmp),fs,'nets'
           write(netpth,'(3a)')'..',fs,'nets'
           write(folderreadme,'(5a)') mpath(1:lnmp),fs,'nets',fs,
-     &    'Readme.txt'
+     &    'readme.txt'
         else
           write(doit,'(4a)') 'mkdir ',mpath(1:lnmp),fs,testw(1:lnw)
           write(folderreadme,'(5a)') mpath(1:lnmp),fs,testw(1:lnw),fs,
-     &    'Readme.txt'
+     &    'readme.txt'
         endif
         call runit(doit,'-')
         call pausems(100)
         write(currentfile,'(a)') folderreadme(1:lnblnk(folderreadme))
         IUNIT=IFIL+1
         CALL EFOPSEQ(IUNIT,folderreadme,3,IER)
-        write(iunit,'(a)')'This folder holds network decriptions files'
-        write(iunit,'(a)')'for fluid and electrical power flow. '
+        write(iunit,'(a)')'This folder holds network decription files'
+        write(iunit,'(a)')'for fluid and electrical power flow.'
         CALL ERPFREE(IUNIT,ISTAT)
 
 C Check the images folder path.
@@ -358,11 +340,11 @@ C Check the images folder path.
           write(doit,'(4a)') 'mkdir ',mpath(1:lnmp),fs,'images'
           write(imgpth,'(3a)')'..',fs,'images'
           write(folderreadme,'(5a)') mpath(1:lnmp),fs,'images',fs,
-     &    'Readme.txt'
+     &    'readme.txt'
         else
           write(doit,'(4a)') 'mkdir ',mpath(1:lnmp),fs,testw(1:lnw)
           write(folderreadme,'(5a)') mpath(1:lnmp),fs,testw(1:lnw),fs,
-     &    'Readme.txt'
+     &    'readme.txt'
         endif
         call runit(doit,'-')
         call pausems(100)
@@ -370,8 +352,8 @@ C Check the images folder path.
         IUNIT=IFIL+1
         CALL EFOPSEQ(IUNIT,folderreadme,3,IER)
         write(iunit,'(a)')'This folder holds images associated with'
-        write(iunit,'(a)')'the model, e.g. site photos or key.'
-        write(iunit,'(a)')'simulation results.'
+        write(iunit,'(a)')'the model, e.g. site photos, key.'
+        write(iunit,'(a)')'simulation results etc.'
         CALL ERPFREE(IUNIT,ISTAT)
 
 C Check the doc folder path.
@@ -382,11 +364,11 @@ C Check the doc folder path.
           write(doit,'(4a)') 'mkdir ',mpath(1:lnmp),fs,'doc'
           write(docpth,'(3a)')'..',fs,'doc'
           write(folderreadme,'(5a)') mpath(1:lnmp),fs,'doc',fs,
-     &    'Readme.txt'
+     &    'readme.txt'
         else
           write(doit,'(4a)') 'mkdir ',mpath(1:lnmp),fs,testw(1:lnw)
           write(folderreadme,'(5a)') mpath(1:lnmp),fs,testw(1:lnw),fs,
-     &    'Readme.txt'
+     &    'readme.txt'
         endif
         call runit(doit,'-')
         call pausems(100)
@@ -394,15 +376,14 @@ C Check the doc folder path.
         IUNIT=IFIL+1
         CALL EFOPSEQ(IUNIT,folderreadme,3,IER)
         write(iunit,'(a)')'This folder holds documentation associated'
-        write(iunit,'(a)')'with the model e.g. construction documents'
-        write(iunit,'(a)')'lists of assumptions or project goals.'
+        write(iunit,'(a)')'with the model.'
         CALL ERPFREE(IUNIT,ISTAT)
 
         write(doit,'(4a)') 'mkdir ',mpath(1:lnmp),fs,'rad'
         call runit(doit,'-')
         call pausems(100)
         write(folderreadme,'(5a)') mpath(1:lnmp),fs,'rad',fs,
-     &    'Readme.txt'
+     &    'readme.txt'
         write(currentfile,'(a)') folderreadme(1:lnblnk(folderreadme))
         IUNIT=IFIL+1
         CALL EFOPSEQ(IUNIT,folderreadme,3,IER)
@@ -413,13 +394,13 @@ C Check the doc folder path.
 
         write(radpth,'(3a)')'..',fs,'rad'
 
-C Check the hvac folder path.
-        call GETTOKENS(hvacpth,IW,WORDS)
+C Check the temporary files folder path.
+        call GETTOKENS(tmppth,IW,WORDS)
         lnw=lnblnk(WORDS(IW))
         testw=WORDS(IW)
-        if(testw(1:lnw).eq.'hvac'.or.testw(lnw:lnw).eq.'.')then
-          write(doit,'(4a)') 'mkdir ',mpath(1:lnmp),fs,'hvac'
-          write(hvacpth,'(3a)')'..',fs,'hvac'
+        if(testw(1:lnw).eq.'tmp'.or.testw(lnw:lnw).eq.'.')then
+          write(doit,'(4a)') 'mkdir ',mpath(1:lnmp),fs,'tmp'
+          write(tmppth,'(3a)')'..',fs,'tmp'
         else
           write(doit,'(4a)') 'mkdir ',mpath(1:lnmp),fs,testw(1:lnw)
         endif
@@ -434,31 +415,11 @@ C Check the dbs folder path.
           write(doit,'(4a)') 'mkdir ',mpath(1:lnmp),fs,'dbs'
           write(dbspth,'(3a)')'..',fs,'dbs'
           write(folderreadme,'(5a)') mpath(1:lnmp),fs,'dbs',fs,
-     &    'Readme.txt'
+     &    'readme.txt'
         else
           write(doit,'(4a)') 'mkdir ',mpath(1:lnmp),fs,testw(1:lnw)
           write(folderreadme,'(5a)') mpath(1:lnmp),fs,testw(1:lnw),fs,
-     &    'Readme.txt'
-        endif
-        call runit(doit,'-')
-        call pausems(100)
-        write(currentfile,'(a)') folderreadme(1:lnblnk(folderreadme))
-        IUNIT=IFIL+1
-        CALL EFOPSEQ(IUNIT,folderreadme,3,IER)
-        write(iunit,'(a)')'This folder holds local model databases'
-        write(iunit,'(a)')'that differ from the standard databases'
-        write(iunit,'(a)')'included in the ESP-r distribution.'
-        CALL ERPFREE(IUNIT,ISTAT)
-
-C Chec the bsm folder path.
-        call GETTOKENS(bsmpth,IW,WORDS)
-        lnw=lnblnk(WORDS(IW))
-        testw=WORDS(IW)
-        if(testw(1:lnw).eq.'bsm'.or.testw(lnw:lnw).eq.'.')then
-          write(doit,'(4a)') 'mkdir ',mpath(1:lnmp),fs,'bsm'
-          write(dbspth,'(3a)')'..',fs,'bsm'
-        else
-          write(doit,'(4a)') 'mkdir ',mpath(1:lnmp),fs,testw(1:lnw)
+     &    'readme.txt'
         endif
         call runit(doit,'-')
         call pausems(100)
@@ -488,19 +449,14 @@ C Populate the model log file.
         write(currentfile,'(a)') lmodellog(1:lnblnk(lmodellog))
         IUNIT=IFIL+1
         CALL EFOPSEQ(IUNIT,lmodellog,3,IER)
-        write(iunit,'(2a)')'Project notes for ',LCFGF(1:lnblnk(LCFGF))
-        write(iunit,'(2a)')'Title: ',modeltitle(1:lnblnk(modeltitle))
-        write(iunit,'(2a)')'Folder: ',pwd(1:lnblnk(pwd))
-        write(iunit,'(2a)')'Author: ',uname(1:lnblnk(uname))
+        write(iunit,'(4a)')'System configuration file: ',
+     &                  pwd(1:lnblnk(pwd)),'/',LCFGF(1:lnblnk(LCFGF))
+C       write(iunit,'(2a)')'By: ',uname(1:lnblnk(uname))
+        write(iunit,'(2a)')'Synopsis: ',
+     &                  modeltitle(1:lnblnk(modeltitle))
         call dstamp(dstmp)
-        write(iunit,'(2a)')'Date: ',dstmp
-        write(iunit,'(a)')'Client: '
-        write(iunit,'(a)')'Project reference: '
-        write(iunit,'(a)')'_____________________________'
-        write(iunit,'(a)')'Notes: '
-        write(iunit,'(a)')'  '
-        write(iunit,'(a)')'_____________________________'
-        write(iunit,'(a)')'  '
+        write(iunit,'(2a)')'Ceated: ',dstmp
+        write(iunit,'(a)')'Notes:'
         CALL ERPFREE(IUNIT,ISTAT)
         goto 77
 
@@ -528,13 +484,12 @@ C Instantiate standard sub-folders within model folder.
       write(zonepth,'(3a)')'..',fs,'zones'
       write(netpth,'(3a)')'..',fs,'nets'
       write(ctlpth,'(3a)')'..',fs,'ctl'
-      write(aimpth,'(3a)')'..',fs,'aim2'
+      write(mscpth,'(3a)')'..',fs,'msc'
       write(imgpth,'(3a)')'..',fs,'images'
       write(radpth,'(3a)')'..',fs,'rad'
       write(docpth,'(3a)')'..',fs,'doc'
       write(dbspth,'(3a)')'..',fs,'dbs'
-      write(bsmpth,'(3a)')'..',fs,'bsm'
-      write(hvacpth,'(3a)')'..',fs,'hvac'
+      write(tmppth,'(3a)')'..',fs,'tmp'
       lncr=lnblnk(cfgroot)
       write(odir,'(a)')cfgroot(1:lncr)
       lnod=lncr
@@ -544,86 +499,39 @@ C Instantiate standard sub-folders within model folder.
       write(doit,'(4a)') 'mkdir ',cfgroot(1:lncr),fs,'cfg'
       write(cfgpath,'(3a)') cfgroot(1:lncr),fs,'cfg'
       call runit(doit,'-')
-      write(folderreadme,'(5a)') cfgroot(1:lncr),fs,'cfg',fs,
-     &  'Readme.txt'
-      write(currentfile,'(a)') folderreadme(1:lnblnk(folderreadme))
-      IUNIT=IFIL+1
-      CALL EFOPSEQ(IUNIT,folderreadme,3,IER)
-      write(iunit,'(a)')'This folder holds the model configuration'
-      write(iunit,'(a)')'(.cfg)] and surface connections (.cnn) files'
-      write(iunit,'(a)')'for the model.'
-      CALL ERPFREE(IUNIT,ISTAT)
       call pausems(100)
       
       write(doit,'(4a)') 'mkdir ',cfgroot(1:lncr),fs,'ctl'
       call runit(doit,'-')
-      write(folderreadme,'(5a)') cfgroot(1:lncr),fs,'ctl',fs,
-     &  'Readme.txt'
-      write(currentfile,'(a)') folderreadme(1:lnblnk(folderreadme))
-      IUNIT=IFIL+1
-      CALL EFOPSEQ(IUNIT,folderreadme,3,IER)
-      write(iunit,'(a)')'This folder holds control definitions for'
-      write(iunit,'(a)')'building, flow and plant components.'
-      CALL ERPFREE(IUNIT,ISTAT)
       call pausems(100)
       
-      write(doit,'(4a)') 'mkdir ',cfgroot(1:lncr),fs,'aim2'
+      write(doit,'(4a)') 'mkdir ',cfgroot(1:lncr),fs,'msc'
+      call runit(doit,'-')
+      call pausems(100)
+      
+      write(doit,'(4a)') 'mkdir ',cfgroot(1:lncr),fs,'tmp'
       call runit(doit,'-')
       call pausems(100)
       
       write(doit,'(4a)') 'mkdir ',cfgroot(1:lncr),fs,'zones'
       call runit(doit,'-')
-      write(folderreadme,'(5a)') cfgroot(1:lncr),fs,'zones',fs,
-     &  'Readme.txt'
-      write(currentfile,'(a)') folderreadme(1:lnblnk(folderreadme))
-      IUNIT=IFIL+1
-      CALL EFOPSEQ(IUNIT,folderreadme,3,IER)
-      write(iunit,'(a)')'This folder holds building definition.'
-      write(iunit,'(a)')'files.'
-      CALL ERPFREE(IUNIT,ISTAT)
       call pausems(100)
       
       write(doit,'(4a)') 'mkdir ',cfgroot(1:lncr),fs,'nets'
       call runit(doit,'-')
-      write(folderreadme,'(5a)') cfgroot(1:lncr),fs,'nets',fs,
-     &  'Readme.txt'
-      write(currentfile,'(a)') folderreadme(1:lnblnk(folderreadme))
-      IUNIT=IFIL+1
-      CALL EFOPSEQ(IUNIT,folderreadme,3,IER)
-      write(iunit,'(a)')'This folder holds network decriptions files'
-      write(iunit,'(a)')'for fluid and electrical power flow.'
-      CALL ERPFREE(IUNIT,ISTAT)
       call pausems(100)
       
       write(doit,'(4a)') 'mkdir ',cfgroot(1:lncr),fs,'images'
       call runit(doit,'-')
-      write(folderreadme,'(5a)') cfgroot(1:lncr),fs,'images',fs,
-     &  'Readme.txt'
-      write(currentfile,'(a)') folderreadme(1:lnblnk(folderreadme))
-      IUNIT=IFIL+1
-      CALL EFOPSEQ(IUNIT,folderreadme,3,IER)
-      write(iunit,'(a)')'This folder holds images associated with'
-      write(iunit,'(a)')'the model, e.g. site photos or key.'
-      write(iunit,'(a)')'simulation results.'
-      CALL ERPFREE(IUNIT,ISTAT)
       call pausems(100)
       
       write(doit,'(4a)') 'mkdir ',cfgroot(1:lncr),fs,'doc'
       call runit(doit,'-')
-      write(folderreadme,'(5a)') cfgroot(1:lncr),fs,'doc',fs,
-     &  'Readme.txt'
-      write(currentfile,'(a)') folderreadme(1:lnblnk(folderreadme))
-      IUNIT=IFIL+1
-      CALL EFOPSEQ(IUNIT,folderreadme,3,IER)
-      write(iunit,'(a)')'This folder holds documentation associated'
-      write(iunit,'(a)')'with the model e.g. construction documents'
-      write(iunit,'(a)')'lists of assumptions or project goals.'
-      CALL ERPFREE(IUNIT,ISTAT)
       call pausems(100)
       
       write(doit,'(4a)') 'mkdir ',cfgroot(1:lncr),fs,'rad'
       write(folderreadme,'(5a)') cfgroot(1:lncr),fs,'rad',fs,
-     &  'Readme.txt'
+     &  'readme.txt'
       call runit(doit,'-')
       write(currentfile,'(a)') folderreadme(1:lnblnk(folderreadme))
       IUNIT=IFIL+1
@@ -636,24 +544,8 @@ C Instantiate standard sub-folders within model folder.
       
       write(doit,'(4a)') 'mkdir ',cfgroot(1:lncr),fs,'dbs'
       call runit(doit,'-')
-      write(folderreadme,'(5a)') cfgroot(1:lncr),fs,'dbs',fs,
-     &  'Readme.txt'
-      write(currentfile,'(a)') folderreadme(1:lnblnk(folderreadme))
-      IUNIT=IFIL+1
-      CALL EFOPSEQ(IUNIT,folderreadme,3,IER)
-        write(iunit,'(a)')'This folder holds local model databases'
-        write(iunit,'(a)')'that differ from the standard databases'
-        write(iunit,'(a)')'included in the ESP-r distribution.'
-      CALL ERPFREE(IUNIT,ISTAT)
       call pausems(100)
       
-      write(doit,'(4a)') 'mkdir ',cfgroot(1:lncr),fs,'hvac'
-      call runit(doit,'-')
-      call pausems(100)
-      write(doit,'(4a)') 'mkdir ',cfgroot(1:lncr),fs,'bsm'
-      call runit(doit,'-')
-      call pausems(100)
-
 C Re-establish pwd and then project folders.
       odir=' '
       call usrdir(odir)
@@ -679,13 +571,13 @@ C General description of the model.
       call gethelptext(helpinsub,helptopic,nbhelp)
       modeltitle='  '
       ltmp=modeltitle
-      CALL EASKS(ltmp,' ','Model description?',
+      CALL EASKS(ltmp,' ','Model synopsis?',
      &  72,'Base case model','model description',IER,nbehlp)
       if(ltmp(1:2).ne.'  '.or.lnblnk(ltmp).gt.3)then
         modeltitle=ltmp
       else
         call usrmsg('Blank line not acceptable!',
-     &    'Enter a description (<7 characters)','W')
+     &    'Enter a synopsis','W')
         goto 52
       endif
 
@@ -752,19 +644,14 @@ C Determine if file exists; if not, create and write basic information.
       else
         write(currentfile,'(a)') lmodellog(1:lnblnk(lmodellog))
         CALL EFOPSEQ(IUNIT,lmodellog,3,IER)
-        write(iunit,'(a,a)')'Project notes for ',LCFGF(1:lnblnk(LCFGF))
-        write(iunit,'(a,a)')'Title: ',modeltitle(1:lnblnk(modeltitle))
-        write(iunit,'(a,a)')'Folder: ',pwd(1:lnblnk(pwd))
-        write(iunit,'(a,a)')'Author: ',uname(1:lnblnk(uname))
+        write(iunit,'(4a)')'System configuration file: ',
+     &                  pwd(1:lnblnk(pwd)),'/',LCFGF(1:lnblnk(LCFGF))
+C       write(iunit,'(2a)')'By: ',uname(1:lnblnk(uname))
+        write(iunit,'(2a)')'Synopsis: ',
+     &                  modeltitle(1:lnblnk(modeltitle))
         call dstamp(dstmp)
-        write(iunit,'(a,a)')'Date: ',dstmp
-        write(iunit,'(a)')'Client: '
-        write(iunit,'(a)')'Project reference: '
-        write(iunit,'(a)')'_____________________________'
-        write(iunit,'(a)')'Notes: '
-        write(iunit,'(a)')'  '
-        write(iunit,'(a)')'_____________________________'
-        write(iunit,'(a)')'  '
+        write(iunit,'(2a)')'Created: ',dstmp
+        write(iunit,'(a)')'Notes:'
         CALL ERPFREE(IUNIT,ISTAT)
       endif
 
@@ -870,7 +757,7 @@ C initial set of days.
         call gethelptext(helpinsub,helptopic,nbhelp)
         iyeart=iyear
         CALL EASKI(IYEART,' ','Assessment year?',
-     &    1900,'W',3000,'W',2020,'assessment year',IERI,nbhelp)
+     &    1900,'W',3000,'W',2021,'assessment year',IERI,nbhelp)
         if(ieri.eq.-3) then
           call calenmanage('i',ier)
         else
@@ -933,15 +820,17 @@ C as is done in cadio.F.  If running in script mode do not refocus.
       return
       end
 
-C ********** refocus
-C refucus restarts prj within the model cfg folder and focused
+C ******************** refocus ********************
+C Restarts prj within the model cfg folder and focused
 C on a specific cfg file. After the restart it calls a STOP on
 C the current prj. ier returned as -2 if user declines refocus.
+
       subroutine refocus(cfgpath,thecfgis,ier)
 #include "building.h"
 #include "model.h"
+#include "help.h"
 
-C Parameters
+C Parameters.
       character cfgpath*144 ! full path to cfg folder for refocus
       character thecfgis*72 ! cfg file only & cfg/cfg_file
       integer ier  ! zero if ok -2 if user delines refocus
@@ -954,7 +843,7 @@ C Parameters
       common/OUTIN/IUOUT,IUIN,IEOUT
       common/warncounter/iecount
 
-C Session log file (for errors etc.)
+C Session log file (for errors etc.).
       character iefile*72
       common/logs/iefile
 
@@ -963,12 +852,7 @@ C Session log file (for errors etc.)
       character tmode*8
       logical unixok
 
-C For help messages.
-      character helpinsub*24  ! subroutine name
-      character helptopic*24  ! string (unique) for topic
-      integer nbhelp          ! number of help lines found
-
-      helpinsub='refocus'     ! set for subroutine
+      helpinsub='folders'     ! set for subroutine
       helptopic='warn_restart'
       call gethelptext(helpinsub,helptopic,nbhelp)
 
@@ -1004,7 +888,7 @@ C Invoke prj in same mode and size and initial start.
           write(doit,'(5a)') 'cd ',cfgpath(1:lnblnk(cfgpath)),
      &      '; prj -file ',thecfgis(1:lnblnk(thecfgis)),' & '
         endif
-        call edisp248(iuout,doit,100)
+C        call edisp248(iuout,doit,100)
         call runit(doit,'-')
         call pausems(1000)
 
@@ -1023,9 +907,10 @@ C          return
 C        endif
       else
 
-C For Non-unix place a & between the commands and also set the
+C For non-unix place & between the commands and also set the
 C text string tmode='bg' to partially mimic background mode.
-        call edisp(iuout,'proposed command:')
+        call edisp(iuout,' ')
+        call edisp(iuout,'Proposed command:')
         write(doit,'(4a)') 'cd ',cfgpath(1:lnblnk(cfgpath)),
      &    ' & prj -file ',thecfgis(1:lnblnk(thecfgis))
         call edisp248(iuout,doit,100)
@@ -1054,7 +939,7 @@ C Invoke prj in same mode and size and initial start.
            write(doit,'(4a)') 'cd ',cfgpath(1:lnblnk(cfgpath)),
      &       ' & prj -file ',thecfgis(1:lnblnk(thecfgis))
          endif
-         call edisp248(iuout,doit,100)
+C         call edisp248(iuout,doit,100)
          call pausems(2000)
 
 C << See if we can implement a bg for tmode in esru_lib.F. >>
@@ -1080,15 +965,15 @@ C        endif
 
       end  ! of refocus
      
-C ********** pfolders
+C ******************** pfolders ********************
 C Maintain model folders.
+
       subroutine pfolders(ier)
 #include "building.h"
 #include "model.h"
-
-C geometry.h provides commons G0 and G2.
 #include "geometry.h"
 #include "espriou.h"
+#include "help.h"
       
       integer lnblnk  ! function definition
 
@@ -1122,18 +1007,13 @@ C External text editor.
 C Logicals for testing XML
       logical xst  ! equivalent of similar on other side
       
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
 #ifdef OSI
       integer nnlistf  ! for use with getfileslist
 #else
       integer*8 nnlistf
 #endif
 
-      helpinsub='pfolders'  ! set for subroutine
+      helpinsub='folders'  ! set for subroutine
 
 C Set folder separator (fs) to \ or / as required.
       changedit=.false.
@@ -1207,14 +1087,14 @@ C Remind user of available cfg files.
       ITEMS(3)  =            ' ... Relative path to:'
       WRITE(ITEMS(4),'(2A)') 'b zones: ',zonepth(1:20)
       WRITE(ITEMS(5),'(2A)') 'c control: ',ctlpth(1:20)
-      WRITE(ITEMS(6),'(2A)') 'd aim2: ',aimpth(1:20)
+      WRITE(ITEMS(6),'(2A)') 'd miscel.: ',mscpth(1:20)
       WRITE(ITEMS(7),'(2A)') 'e network: ',netpth(1:20)
       WRITE(ITEMS(8),'(2A)') 'f images: ',imgpth(1:20)
       WRITE(ITEMS(9),'(2A)') 'g document: ',docpth(1:20)
       WRITE(ITEMS(10),'(2A)')'i radiance: ',radpth(1:20)
       WRITE(ITEMS(11),'(2A)')'j local db: ',dbspth(1:20)
-      WRITE(ITEMS(12),'(2A)')'k hvac: ',hvacpth(1:20)
-      WRITE(ITEMS(13),'(2A)')'k BASESIMP: ',bsmpth(1:20)
+      WRITE(ITEMS(12),'(2A)')'k temporary: ',tmppth(1:20)
+      WRITE(ITEMS(13),'(A)') 'r: '
       ITEMS(14)  =           'l zone files                 '
       ITEMS(15)  =           'n list ASCII file            '
       ITEMS(16)  =           'o edit ASCII file            '
@@ -1296,22 +1176,22 @@ C Help text for this menu.
 
       elseif(ino.eq.6)then
         if(.NOT.browse)then
-          t24=aimpth
+          t24=mscpth
           CALL EASKS(t24,
-     &      'Relative path from cfg folder to aim2 folder?',
+     &      'Relative path from cfg folder to miscel. files folder?',
      &      'Confirm:',
-     &       24,'../aim2','relative aim2 path',IER,nbhelp)
+     &       24,'../msc','relative msc path',IER,nbhelp)
           if(t24(1:2).ne.'  '.and.t24(1:4).ne.'UNKN')then
-            aimpth=t24
+            mscpth=t24
             changedit=.true.
             sfile=' '
             snpfile=' '
-            call browsefilelist('p','aim2','fil',sfile,snpfile,nil,iier)
+            call browsefilelist('p','msc','fil',sfile,snpfile,nil,iier)
           endif
         else
           sfile=' '
           snpfile=' '
-          call browsefilelist('p','aim2','fil',sfile,snpfile,nli,iier)
+          call browsefilelist('p','msc','fil',sfile,snpfile,nli,iier)
         endif
 
       elseif(ino.eq.7)then
@@ -1416,17 +1296,17 @@ C << interface for dbspath here >>
 
       elseif(ino.eq.12)then
         if(.NOT.browse)then
-          t24=hvacpth
+          t24=tmppth
           CALL EASKS(t24,
-     &      'Relative path from cfg folder to hvac folder?',
+     &      'Relative path from cfg folder to tmp folder?',
      &      'Confirm:',
-     &       24,'../hvac','relative hvac path',IER,nbhelp)
+     &       24,'../tmp','relative tmp path',IER,nbhelp)
           if(t24(1:2).ne.'  '.and.t24(1:4).ne.'UNKN')then
-            hvacpth=t24
+            tmppth=t24
             changedit=.true.
             sfile=' '
             snpfile=' '
-            call browsefilelist('p','hva','hvac',sfile,snpfile,nli,iier)
+            call browsefilelist('p','tmp','fil',sfile,snpfile,nli,iier)
           endif
         else
           sfile=' '
@@ -1435,24 +1315,7 @@ C << interface for dbspath here >>
         endif
 
       elseif(ino.eq.13)then
-        if(.NOT.browse)then
-          t24=bsmpth
-          CALL EASKS(t24,
-     &      'Relative path from cfg folder to BASESIMP folder?',
-     &      'Confirm:',
-     &       24,'../bsm','relative bsm path',IER,nbhelp)
-          if(t24(1:2).ne.'  '.and.t24(1:4).ne.'UNKN')then
-            bsmpth=t24
-            changedit=.true.
-            sfile=' '
-            snpfile=' '
-            call browsefilelist('p','bsm','bsm',sfile,snpfile,nli,iier)
-          endif
-        else
-          sfile=' '
-          snpfile=' '
-          call browsefilelist('p','bsm','bsm',sfile,snpfile,nli,iier)
-        endif
+        continue
 
       elseif(ino.eq.14)then
 C Zone file composition.
@@ -1527,24 +1390,22 @@ C List files in weather file folder.
 
       end
 
-C ****** edimage
+C ******************** edimage ********************
 C Controls specification of an image associated with the
 C model.
 C limg (char*72) is the image file name
 C iformat (char*4) image format 'GIF ' 'TIF ' 'XBMP' or 'PNG '
-C ifocus (char*4) image focus '****' 'FZON' 'FNET' 'FCTL' 'FDFS' or 'FPER'
+C ifocus (char*4) image focus '****' 'FZON' 'FNET' 'FCTL' 'FDFS' 'FPLN' 'FPER'
       subroutine edimage(limg,iformat,ifocus,ier)
+#include "help.h"
 
       logical XST,OK
       character iformat*4,ifocus*4,limg*72,t5*5
+      character*24 focuslist(16)
+      dimension ilist(16)
       integer IRT,IRF  ! for radio buttons
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='edimage'  ! set for subroutine
+      helpinsub='folders'  ! set for subroutine
 
 C Display current information.
       ier=0
@@ -1594,24 +1455,62 @@ C      call edisp(iuout,outs)
       helptopic='image_topic'
       call gethelptext(helpinsub,helptopic,nbhelp)
       IRF=1
-      call EASKATOG(' ','Image focus?',
-     &  'general','building','networks','control',
-     &  'CFD','performance','other',IRF,nbhelp)
+      focuslist(1)='general'
+      focuslist(2)='building'
+      focuslist(3)='site objects'
+      focuslist(4)='flow networks'
+      focuslist(5)='power networks'
+      focuslist(6)='plant networks'
+      focuslist(7)='control'
+      focuslist(8)='CFD'
+      focuslist(9)='special materials'
+      focuslist(10)='3D conduction'
+      focuslist(11)='moisture'
+      focuslist(12)='hi-res occupants'
+      focuslist(13)='simulation directives'
+      focuslist(14)='IPV'
+      focuslist(15)='predictions'
+      focuslist(16)='other topic'
+      INPIC=1
+      CALL EPICKS(INPIC,ilist,' ','Related topci:',
+     &      24,15,focuslist,'image focus',IER,nbhelp)
+C      call EASKATOG(' ','Image focus?',
+C     &  'general','building','networks','control',
+C     &  'CFD','performance','other',IRF,nbhelp)
+      IRF=ilist(1)
       if(IRF.eq.1)then
         write(ifocus,'(a4)') '****'
       elseif(IRF.eq.2)then
         write(ifocus,'(a4)') 'FZON'
       elseif(IRF.eq.3)then
-        write(ifocus,'(a4)') 'FNET'
+        write(ifocus,'(a4)') 'FSIT'
       elseif(IRF.eq.4)then
-        write(ifocus,'(a4)') 'FCTL'
+        write(ifocus,'(a4)') 'FNET'
       elseif(IRF.eq.5)then
-        write(ifocus,'(a4)') 'FDFS'
+        write(ifocus,'(a4)') 'FELN'
       elseif(IRF.eq.6)then
+        write(ifocus,'(a4)') 'FPLN'
+      elseif(IRF.eq.7)then
+        write(ifocus,'(a4)') 'FCTL'
+      elseif(IRF.eq.8)then
+        write(ifocus,'(a4)') 'FDFS'
+      elseif(IRF.eq.9)then
+        write(ifocus,'(a4)') 'FSPM'
+      elseif(IRF.eq.10)then
+        write(ifocus,'(a4)') 'F3DC'
+      elseif(IRF.eq.11)then
+        write(ifocus,'(a4)') 'FMOI'
+      elseif(IRF.eq.12)then
+        write(ifocus,'(a4)') 'FHRO'
+      elseif(IRF.eq.13)then
+        write(ifocus,'(a4)') 'FSIM'
+      elseif(IRF.eq.14)then
+        write(ifocus,'(a4)') 'FIPV'
+      elseif(IRF.eq.15)then
         write(ifocus,'(a4)') 'FPER'
-      else
+      elseif(IRF.eq.16)then
  144    t5='**** '
-        CALL EASKS(t5,' ','Image type character code?',
+        CALL EASKS(t5,' ','Image topic character code?',
      &    5,'**** ','usr image focus',IER,nbhelp)
         if(t5(1:1).eq.' ')goto 144
         ifocus=t5(1:4)
@@ -1619,14 +1518,16 @@ C      call edisp(iuout,outs)
       return
       end
 
-C ****** EDBUILD 
+C ******************** EDBUILD ********************
 C Edits building information for system configuration file.
-C ITRU unit number for user output. IER=0 indicates no error. 
+C ITRU unit number for user output. IER=0 indicates no error.
+
       subroutine edbuild(IZ,IER)
 #include "building.h"
 #include "model.h"
 #include "geometry.h"
 #include "CFC_common.h"
+#include "help.h"
       
       integer lnblnk  ! function definition
 
@@ -1662,12 +1563,7 @@ C ITRU unit number for user output. IER=0 indicates no error.
       integer*8 impx,impy,iwe
 #endif
 
-C For help messages.
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='edbuild'  ! set for subroutine
+      helpinsub='folders'  ! set for subroutine
 
 C Note L is a temporary file and D is used for defaul file names.
       modcfg=.FALSE.

@@ -13,11 +13,6 @@ C warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
 C PURPOSE. See the GNU General Public License for more
 C details.
 
-C You should have received a copy of the GNU General Public
-C License along with ESP-r. If not, write to the Free
-C Software Foundation, Inc., 59 Temple Place, Suite 330,
-C Boston, MA 02111-1307 USA.
-
 C This file contains the following subroutines:
 
 C   minptb
@@ -50,6 +45,7 @@ c               3: zone temperature and plant flux.
 #include "building.h"
 #include "geometry.h"
 #include "monitor.h"
+#include "help.h"
 
       common/outin/iuout,iuin,ieout
       
@@ -61,12 +57,7 @@ c               3: zone temperature and plant flux.
       dimension IVALS(MCOM)
       character hold*24
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='minptb'  ! set for subroutine
+      helpinsub='montrb'  ! set for subroutine
 
 c Initialize array.
       do 5 i=1,MDPH
@@ -85,7 +76,7 @@ c Get number of zones.
    10   mnzn=NCOMP
         helptopic='monitor_facility_menu'
         call gethelptext(helpinsub,helptopic,nbhelp)
-        CALL EPICKS(mnzn,IVALS,' ',' Which zones to include: ',
+        CALL EPICKS(mnzn,IVALS,' ','Zones to include',
      &    12,NCOMP,zname,'monitor list',IER,nbhelp)
          if(ier.ne.0) goto 10
          if(mnzn.eq.0)return
@@ -97,8 +88,8 @@ c Get number of each zone.
       endif
 
 c Get desired state variable.
-      CALL EASKABCD( 'State variables:',' ','temperature (C)',
-     &  'plant flux (W)','both','cancel',mbstv,nbhelp)
+      CALL EASKABCD(' ','Parameters:','temperature',
+     &  'plant flux','both','cancel',mbstv,nbhelp)
       if(mbstv.eq.4)then
         mbstv=0
         mnzn=0
@@ -109,7 +100,7 @@ c Get expected minimum and maximum values for state variable.
 c For option 1 and 2, read min and max data.
       if(mbstv.eq.1.or.mbstv.eq.2) then
    30   WRITE(hold,'(2F9.2)')yminb(1),ymaxb(1)
-        CALL EASKS(hold,' Minimum and maximum values:',' ',24,' ',
+        CALL EASKS(hold,' ','Minimum & maximum values?',24,' ',
      &      'min & max values',IER,nbhelp)
         K=0
         CALL EGETWR(HOLD,K,yminb(1),0.,0.,'-','mntr min',IER)
@@ -120,16 +111,16 @@ c For option 3, read min and max data for temperature
 c and plant flux.
       elseif(mbstv.eq.3) then
    33   WRITE(hold,'(2F9.2)')yminb(1),ymaxb(1)
-        CALL EASKS(hold,' Minimum and maximum temperature:',' ',24,' ',
-     &      'min & max values',IER,nbhelp)
+        CALL EASKS(hold,' ','Minimum & maximum temperature (C)?',24,
+     &      ' ','min & max values',IER,nbhelp)
         K=0
         CALL EGETWR(HOLD,K,yminb(1),0.,0.,'-','mntr min',IER)
         CALL EGETWR(HOLD,K,ymaxb(1),0.,0.,'-','mntr max',IER)
         if(ier.ne.0) goto 33
 
    36   WRITE(hold,'(2F9.1)')yminb(2),ymaxb(2)
-        CALL EASKS(hold,' Minimum and maximum plant (W):',' ',24,' ',
-     &      'min & max values',IER,nbhelp)
+        CALL EASKS(hold,' ','Minimum & maximum plant flux (W)?',24,
+     &      ' ','min & max values',IER,nbhelp)
         K=0
         CALL EGETWR(HOLD,K,yminb(2),0.,0.,'-','mntr min',IER)
         CALL EGETWR(HOLD,K,ymaxb(2),0.,0.,'-','mntr max',IER)
@@ -140,17 +131,10 @@ c and plant flux.
       end
 
 c ******************** zngrph ********************
-
-c 'mgraph' sets up graphics variables and draws axes
-c for subsequent plotting.
-
+c Sets up graphics variables and draws axes for
+c subsequent plotting.
 c If 'mode=1' then set up graph window and draw axes.
 c If 'mode=2' then plot data points.
-
-c Plotting commences after start-up period.
-c This is because the routine in which
-c values are assigned to zone temperatures is called
-c after the start-up period.
 
       subroutine zngrph(iss,isf,instep,mode)
 #include "building.h"
@@ -196,7 +180,7 @@ C since not all compilers use the same default.
       dimension ncoord(mcom,2,2), ncoord1(mcom,2,2),
      &          ncoord2(1,2,2)
 
-      CHARACTER DS*7,DS1*10,DE*7,DE1*10
+      CHARACTER DS*7,DS1*10,DE*7,DE1*10,DS2*8,DE2*8
       character etext*82, clabel*20,nterm*1,tab*1
       logical colok
 
@@ -258,11 +242,11 @@ c Display header information.
 
 C Generate view period string.
       CALL EDAY(ISD1,ISM1,IODS)
-      CALL STDATE(IYEAR,IODS,DS,DS1)
+      CALL STDATE(IYEAR,IODS,DS,DS1,DS2)
       CALL EDAY(ISD2,ISM2,IODF)
-      CALL STDATE(IYEAR,IODF,DE,DE1)
-      write(etext,'(7a,i4)') 'Period',tab,DS1,' to ',DE1,' Year',tab,
-     &  IYEAR
+      CALL STDATE(IYEAR,IODF,DE,DE1,DE2)
+      write(etext,'(7a,i4)') 'Period:',tab,DS1,' to ',DE1,', Year',
+     &                        tab,IYEAR
       iside=2; isize=1; ifont=1
       if(mmod.eq.8)then
         call viewtext(etext,iside,isize,ifont)
@@ -270,7 +254,7 @@ C Generate view period string.
         call viewtextwwc(etext,iside,isize,ifont)
       endif
 
-C If Plant flux then divide by 1000.0
+C For plant flux divide by 1000.
       if(mbstv.eq.2) then
          yminb(1)=yminb(1)/1000.
          ymaxb(1)=ymaxb(1)/1000.
@@ -290,12 +274,12 @@ c Determine scaling ratios for other y axis.
      &   call axiscale(igwid,igheight,xmin,xmax,yminb(2),ymaxb(2),
      &      xsc,ysc1,sca1,xadd,yadd1)
 
-c Draw a scale horizontal axis, move to beginning point.
+c Draw a scaled horizontal axis, move to beginning point.
       call dintervalf(Xmin,Xmax,ddy1,ny,1)
       call horaxisdd(xmin,xmax,iigl,iigr,iigb,xadd,xsc,1,
      &  ddy1,ny,'Time (h)')
 
-c Draw a scale vertical axis.
+c Draw a scaled vertical axis.
       call dintervalf(yminb(1),ymaxb(1),DY,NDEC,1)
       call vrtaxisdd(yminb(1),ymaxb(1),iigl,iigb,iigt,yadd,ysc,1,
      &  DY,NDEC,0,':')
@@ -350,19 +334,18 @@ c Draw a scale vertical axis.
         endif
       endif
 
-c initialise data items count 'icount'.
+C Initialise data items count 'icount'.
       if(mmod.eq.8) call forceflush()
       icount=0
       return
 
-c Plot graph for zone(s) state variables.
-C If save option 0 then exit.
+C Plot selected parameters. If save option 0 then exit.
  2000 if((ISAVE.eq.0).or.(ISAVE.eq.6)) goto 999
       IF(IFS.GT.0)CALL winfnt(1)
       iunit=ifil+2
       do 20 j=1, instep
 
-C Draw External dry bulb temperature only if
+C Draw external dry bulb temperature only if
 C zone temperatures or zone temperatures and plant flux
 C options were invoked.
          if(mbstv.ne.2) then
@@ -384,7 +367,7 @@ C with no symbols.
                ncoord2(1,1,2)=igb-int((dbval+yadd)*ysc)
                iiy= igt+iyofst
                iix= 25
-               clabel(1:3)='EXT'
+               clabel(1:3)='Ext'
                call textatxy(iix,iiy,clabel,'-',iicol)
                iix5=iix+5
                iix35=iix+35
@@ -435,7 +418,7 @@ C Case when both variables are plotted.
             endif
 
 c If first point then store its coordinates and identify
-c each curve as 'Z??' where 'Z' stands for zone.
+c each plot.
             if(icount.eq.0) then
                if(colok)then
                  if(mzone(i).gt.0)then
@@ -496,7 +479,7 @@ c each curve as 'Z??' where 'Z' stands for zone.
                  call esymbolwwc(iixp1,iiyp1,i,0)
                endif
 
-c else start plotting.
+C Else start plotting.
             else
                if(colok)then
                  if(mzone(i).gt.0)then
@@ -563,7 +546,8 @@ c else start plotting.
       call forceflush()
       goto 999
 
- 1100 write(etext,'(A,i5,a)') ' zngrh: error at record',irec,'.'
+ 1100 write(etext,'(A,i5,a)') 'zngrh: error at record',irec,'.'
+      call edisp(iuout,' ')
       call edisp(iuout,etext)
 
   999 return

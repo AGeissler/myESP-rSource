@@ -1,6 +1,6 @@
 C This file is part of the ESP-r system.
 C Copyright Energy Systems Research Unit, University of
-C Strathclyde, Glasgow Scotland, 2001.
+C Strathclyde, Glasgow, Scotland, 2001-.
 
 C ESP-r is free software.  You can redistribute it and/or
 C modify it under the terms of the GNU General Public
@@ -14,7 +14,7 @@ C PURPOSE. See the GNU General Public License for more
 C details.
 
 
-C edcondb.F comprising:
+C This file contains the following subroutines.
 C  ELISTMAT: Controls display and editing of materials commons.
 C  ELISTCFC: Controls display and editing of CFClayers commons.
 C  EDONEMAT: Edits a material in the common block at array index index.
@@ -27,19 +27,22 @@ C  GVALUE: Calculate g-value optical properties of systems given info on
 C          individual glazing layers. In accordance with BS EN 410:1998
 C  allmat: Presents a list of all materials to select from.
 
-C ************* ELISTMAT 
-C ELISTMAT: Controls display and editing of materials commons.
+
+C ******************** ELISTMAT ********************
+C Controls display and editing of materials commons.
 C If ACTION = 'M' then include editing if ACTION = '-' only
 C allow choice.
+
       SUBROUTINE ELISTMAT(iwhich,chgdb,ACTION,imatarrayindex,IER)
 #include "epara.h"
 #include "building.h"
 #include "esprdbfile.h"
 #include "material.h"
+#include "help.h"
       
       integer lnblnk  ! function definition
 
-C Parameters
+C Parameters.
       integer iwhich         ! is the legacy database record CLARIFY USE
       logical chgdb          ! flagged true if a mod made during session
       integer imatarrayindex ! is the returned index in matdatarray
@@ -57,7 +60,7 @@ C CLSSEL (36 char) is an array for menu items for the selected class.
       character CLSSEL*36,CLSDES*34
       DIMENSION CLSDES(36),CLSSEL(30),ICLSSEL(30)
       character PDBM*86     ! array to hold summary of each material
-      DIMENSION PDBM(37)    ! within the category
+      DIMENSION PDBM(42)    ! within the category
       character managearray*32  ! string array for material management
       dimension managearray(150)
       integer iwhichmanage,iwhichmsel
@@ -81,12 +84,7 @@ C CLSSEL (36 char) is an array for menu items for the selected class.
       integer mclist  ! counter for materials found to be in this category
       integer ISTRW
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='ELISTMAT'  ! set for subroutine
+      helpinsub='edcondb'  ! set for subroutine
 
 C Set folder separator (fs) to \ or / as required.
       call isunix(unixok)
@@ -1122,6 +1120,7 @@ C allow choice.
 #include "esprdbfile.h"
 #include "material.h"
 #include "epara.h"
+#include "help.h"
       
       integer lnblnk  ! function definition
 
@@ -1151,16 +1150,11 @@ C CLSSEL (36 char) is an array for menu items for the selected class.
       integer NCO,ICO,NITMS,INO,IW  ! max items and current menu item
       integer ilist, imax, J
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
 C Multipage menu
       integer svIPM, svMPM, svIST, svMIFULL, iItem, svcfccat
       DIMENSION svcfccat(300)
 
-      helpinsub='ELISTCFC'  ! set for subroutine
+      helpinsub='edcondb'  ! set for subroutine
 
 C Set folder separator (fs) to \ or / as required.
       call isunix(unixok)
@@ -1909,6 +1903,7 @@ C mod is returned as true if data has changed.
 #include "building.h"
 #include "esprdbfile.h"
 #include "material.h"
+#include "help.h"
       
       integer lnblnk  ! function definition
 
@@ -1931,13 +1926,7 @@ C Local variables for gas materials.
       integer jsur   ! for radio button
       integer ISTRW
 
-
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='EDONEMAT'  ! set for subroutine
+      helpinsub='edcondb'  ! set for subroutine
 
 C If index is outwith range just return.
       if(index.gt.0.and.index.le.matdbitems)then
@@ -2264,6 +2253,7 @@ C mod is returned as true if data has changed.
 #include "esprdbfile.h"
 #include "material.h"
 #include "CFC_common.h"
+#include "help.h"
       
       integer lnblnk  ! function definition
 
@@ -2317,12 +2307,7 @@ C Local variables for gas materials.
       integer jsur   ! for radio button
       integer ISTRW
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='EDONECFC'  ! set for subroutine
+      helpinsub='edcondb'  ! set for subroutine
 
 C If index is outwith range just return.
       if(index.gt.0.and.index.le.cfcdbitems)then
@@ -2984,6 +2969,7 @@ C id string.
 #include "epara.h"
 #include "esprdbfile.h"
 #include "material.h"
+#include "help.h"
       
       integer lnblnk  ! function definition
 
@@ -3028,12 +3014,7 @@ C If this parameter is changed also change it in subroutine GVALUE
       integer ii  ! for current connection
       integer lnssmlc,lnt32 ! for string lengths
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='EDMLDB'  ! set for subroutine
+      helpinsub='edcondb'  ! set for subroutine
 
 C Set folder separator (fs) to \ or / as required.
       call isunix(unixok)
@@ -3764,6 +3745,7 @@ C allow choice.
 #include "geometry.h"
 #include "esprdbfile.h"
 #include "material.h"
+#include "help.h"
       
       integer lnblnk  ! function definition
 
@@ -3791,8 +3773,8 @@ C CLSDES (30 char) is an array for menu items listing each class.
 C CLSSEL (36 char) is an array for menu items for the selected class.
       character CLSSEL*36,CLSDES*38
       DIMENSION CLSDES(36),CLSSEL(30),ICLSSEL(30)
-      CHARACTER*66 MLCITM(37)
-      CHARACTER*66 MLCITMDEL(37)
+      CHARACTER*72 MLCITM(42)
+      CHARACTER*72 MLCITMDEL(42)
       character managearray*32  ! string array for material management
       dimension managearray(150)
       integer pointback(42)     ! to point back to item in list ?? not used
@@ -3823,12 +3805,7 @@ C If this parameter is changed also change it in subroutine EDMLDB
       integer mclist  ! counter for materials found to be in this category
       integer ISTRW
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='ELISTMLC2'  ! set for subroutine
+      helpinsub='edcondb'  ! set for subroutine
 
 C Set folder separator (fs) to \ or / as required.
       call isunix(unixok)
@@ -4229,7 +4206,7 @@ C        write(6,'(a,3i2)') 'EDMLDB2 4242 IFS,ITFS,IMFS',IFS,ITFS,IMFS
 
 C Generate menu strings for constructions in the class. Could check string widths!
     3   write(MLCITM(1),'(a)') 
-     &    ' Construction                 :Documentation'
+     &    ' Construction ID  :Name                     :Documentation'
         M=MHEAD
         ILEN=mlccatitems(IC) ! reset if constructions in this catetory changed
         mclist=0  ! counter for materials found to be in this category
@@ -4241,6 +4218,12 @@ C Generate menu strings for constructions in the class. Could check string width
             write(managearray(mclist),'(a)') mlcmenu(loop)
             iwhichmanage(mclist)=loop  ! management array to data array loop
             pointback(mclist)=loop
+            lsn=lnmlcname(loop)        ! create list for copy & delete
+            if(lsn.gt.12) lsn=12
+            lsm=lnmlcmenu(loop)
+            lfordoc = 72 - (lsn + lsm +6)    ! space left for doc
+            WRITE(MLCITMDEL(mclist),'(5a)') mlcname(loop)(1:lsn),' :',
+     &        mlcmenu(loop)(1:lsm),' :',mlcdoc(loop)(1:lfordoc)         
 
 C Test if the construction fits within the current paged menu and then
 C remember the array index that goes with the menu position (m). In
@@ -4249,14 +4232,13 @@ C case a new construction or a copy re-check iwid.
               M=M+1
               iwhicharray(M)=loop  ! menu position M relates to data array loop
               lsn=lnmlcname(loop)
+              if(lsn.gt.12) lsn=12
               lsm=lnmlcmenu(loop)
-              lfordoc = 66 - (lsm +4)    ! space left for doc
-              iwid=66
+              lfordoc = 72 - (lsn + lsm +6)    ! space left for doc
+              iwid=72
               CALL EMKEY(mclist,KEY,IER)
-              WRITE(MLCITM(M),'(a,1x,3a)')KEY,mlcmenu(loop)(1:lsm),
-     &            ' :',mlcdoc(loop)(1:lfordoc)         
-              WRITE(MLCITMDEL(mclist),'(3a)') mlcmenu(loop)(1:lsm),
-     &            ' :',mlcdoc(loop)(1:lfordoc)         
+              WRITE(MLCITM(M),'(a,1x,5a)')KEY,mlcname(loop)(1:lsn),
+     &          ' :',mlcmenu(loop)(1:lsm),' :',mlcdoc(loop)(1:lfordoc)         
             endif
           endif
         enddo
@@ -4564,8 +4546,8 @@ C Find its category and decrement its counter
      &           mlccatname(loop)(1:lnmlccatname(loop)))then
                 mlccatitems(loop)=mlccatitems(loop)-1
                 IC=loop  ! reset the focus category to one we have removed
-                write(6,*) 'One less item for ',mlccatname(loop),' ',
-     &            loop,mlccatitems(loop)
+C                write(6,*) 'One less item for ',mlccatname(loop),' ',
+C     &            loop,mlccatitems(loop)
               endif
             enddo
 
@@ -4677,8 +4659,6 @@ C Find its category and increment its counter/
      &           mlccatname(loop)(1:lnmlccatname(loop)))then
                 mlccatitems(loop)=mlccatitems(loop)+1
                 IC=loop  ! reset the focus category to one we have copied
-                write(6,*) 'Another item for ',mlccatname(loop),' ',
-     &            mlccatitems(loop),' focus now ',IC
                 ILEN=mlccatitems(IC) ! reset for materials in this catetory 
               endif
             enddo
@@ -4730,8 +4710,8 @@ C Find its category and increment its counter/
               if(mlcincat(NMLC)(1:lncatn).eq.
      &           mlccatname(loop)(1:lnmlccatname(loop)))then
                 mlccatitems(loop)=mlccatitems(loop)+1
-                write(6,*) 'Another item for ',mlccatname(loop),' ',
-     &            loop,mlccatitems(loop)
+C                write(6,*) 'Another item for ',mlccatname(loop),' ',
+C     &            loop,mlccatitems(loop)
               endif
             enddo
 
@@ -5139,6 +5119,7 @@ C geometry.h provides commons G0/G1/G2/G7/precz.
 #include "epara.h"
 #include "esprdbfile.h"
 #include "material.h"
+#include "help.h"
       
       integer lnblnk  ! function definition
 
@@ -5200,12 +5181,7 @@ C Note: size of MLED supports a dozen layers in a construction.
       integer ISTRW
       logical oktoreplace    ! signal update of MLC name references
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='EDWALL'  ! set for subroutine
+      helpinsub='edcondb'  ! set for subroutine
 
 C Check to see that optical properties are available.
       IF(.NOT.OPTKOK)THEN
@@ -7034,6 +7010,7 @@ C allmat presents a list of all materials to select from.
 #include "building.h"
 #include "esprdbfile.h"
 #include "material.h"
+#include "help.h"
 
 C Parameters
       integer imatarrayindex ! is the index in matdatarray
@@ -7044,12 +7021,7 @@ C      COMMON/OUTIN/IUOUT,IUIN,IEOUT
 C      character outs*124
       integer MVERT,IVERT ! max items and current menu item
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='allmat'  ! set for subroutine
+      helpinsub='edcondb'  ! set for subroutine
 
 C Set to zero first.
       imatarrayindex=0

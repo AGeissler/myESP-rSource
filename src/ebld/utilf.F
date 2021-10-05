@@ -27,6 +27,7 @@ C Reads the convection-regime file (version 2).
 #include "geometry.h"
 #include "model.h"
 #include "espriou.h"
+#include "help.h"
       
       INTEGER lnblnk  ! function definition
 
@@ -78,12 +79,7 @@ C       jj=6-8 ceiling upwd_inside, downwd_inside, external
 C       jj=9-11 sloped upwd_inside, downwd_inside, external
 C       jj=12-14 wall inside, partition, external
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='MZHCFV2'  ! set for subroutine
+      helpinsub='utilf'  ! set for subroutine
 
 C Initialize data.
       NHCFP(ICOMP,1)=0
@@ -449,6 +445,8 @@ C   commences with an offset of y=2*(2*misur).
 #include "building.h"
 #include "model.h"
 #include "geometry.h"
+#include "espriou.h"
+#include "help.h"
 
       COMMON/FILEP/IFIL
       COMMON/TC/ITC,ICNT
@@ -464,11 +462,7 @@ C   commences with an offset of y=2*(2*misur).
       logical OK
       integer ier
 
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='MZSHIN'  ! set for subroutine
+      helpinsub='utilf'  ! set for subroutine
 
 c Initialise shading file (use unit number = IFIL+1).
       JOUT=ITC

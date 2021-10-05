@@ -57,6 +57,7 @@ C -------------------------------HVACGIN-------------------------------
 #include "hvac_common.h"
 #include "furnace_common.h"
 #include "ashp_common.h"
+#include "help.h"
       
       COMMON/hvacinfo/ihvacflag,hvacfile
       COMMON/ER/IER
@@ -104,12 +105,7 @@ C -------------------------------HVACGIN-------------------------------
       LOGICAL add_flag                 ! returned from HVAC_MAIN_SUMMARY as true if user wishes to add a system
       LOGICAL lexist                   ! true if hvac folder exists
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='HVACGIN'  ! set for subroutine
+      helpinsub='hvacgui'  ! set for subroutine
 
       new_hvac=.false.
       hvacfile_good=.false.
@@ -123,32 +119,32 @@ C Set folder separator (fs) to \ or / as required.
         fs = char(92)
       endif
       
-C Check to see if hvac folder exists, if not create on and set hvacpth 
+C Check to see if msc folder exists, if not create on and set mscpth 
 C of the folder as it is used in creating the hvac file name
       CheckString=path((lnblnk(path)-3):lnblnk(path))
 C If user is using the standard set of folders, create hvac folder in 
 C model directory (same location as cfg, ctl, dbs, etc., folders)
       if(CheckString(1:4).eq.'cfg/')then
-        WRITE(TempString,'(3a)')path(1:(lnblnk(path)-4)),'hvac',fs
+        WRITE(TempString,'(3a)')path(1:(lnblnk(path)-4)),'msc',fs
         INQUIRE(FILE=TempString,EXIST=lexist)
         if (.not.lexist) then
-          write(doit,'(4a)') 'mkdir ',path(1:(lnblnk(path)-4)),'hvac'
+          write(doit,'(4a)') 'mkdir ',path(1:(lnblnk(path)-4)),'msc'
           call usrmsg('Creating folder:',doit,'-')
           call runit(doit,'-')
           call pausems(400)
-          write(hvacpth,'(3a)')'..',fs,'hvac'
+          write(mscpth,'(3a)')'..',fs,'msc'
         endif
-C Else if user is using a single folder, create hvac folder within that
+C Else if user is using a single folder, create msc folder within that
 C folder
       else
-        WRITE(TempString,'(3a)')path(1:(lnblnk(path))),'hvac',fs
+        WRITE(TempString,'(3a)')path(1:(lnblnk(path))),'msc',fs
         INQUIRE(FILE=TempString,EXIST=lexist)
         if (.not.lexist) then
-          write(doit,'(4a)') 'mkdir ',path(1:(lnblnk(path))),'hvac'
+          write(doit,'(4a)') 'mkdir ',path(1:(lnblnk(path))),'msc'
           call usrmsg('Creating folder:',doit,'-')
           call runit(doit,'-')
           call pausems(400)
-          write(hvacpth,'(3a)')'.',fs,'hvac'
+          write(mscpth,'(3a)')'.',fs,'msc'
         endif
       endif
       
@@ -165,11 +161,11 @@ C one. If an existing name also provide option to deference it.
             return
           endif
           LN=max(1,LNBLNK(cfgroot))
-          if(hvacpth(1:2).eq.'  '.or.hvacpth(1:2).eq.'./')then
-            WRITE(hvacfile,'(4a)') hvacpth(1:lnblnk(hvacpth)),fs,
+          if(mscpth(1:2).eq.'  '.or.mscpth(1:2).eq.'./')then
+            WRITE(hvacfile,'(4a)') mscpth(1:lnblnk(mscpth)),fs,
      &           cfgroot(1:LN),'.hvac'
           else
-            WRITE(hvacfile,'(4a)') hvacpth(1:lnblnk(hvacpth)),fs,
+            WRITE(hvacfile,'(4a)') mscpth(1:lnblnk(mscpth)),fs,
      &           cfgroot(1:LN),'.hvac'
           endif
 
@@ -239,7 +235,7 @@ C folder.
             call browsefilelist('b','hva','fil',sfile,snpfile,nfile,
      &                           iier)
             if(snpfile(1:2).ne.'  ')then
-              write(def_hvacfile,'(3a)')hvacpth(1:lnblnk(hvacpth)),fs,
+              write(def_hvacfile,'(3a)')mscpth(1:lnblnk(mscpth)),fs,
      &               snpfile(1:lnblnk(snpfile))
             else
 C If the user supplied a blank file then this is the same as
@@ -597,6 +593,7 @@ C the new system types added to the hvac_sys_typ array.
       SUBROUTINE HVAC_type(hvac_typ)
       
 #include "hvac_parameters.h"
+#include "help.h"
       
       INTEGER hvac_typ          ! choice to be returned from this subroutine
       INTEGER hvac_systems      ! number of hvac systems to choose from 
@@ -607,12 +604,7 @@ C the new system types added to the hvac_sys_typ array.
       DIMENSION hvac_choice(max_hvac_types)
       CHARACTER*26 hvac_sys_typ(hvac_systems) ! array of strings for system types
 
-C For help messages.
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='HVAC_type'  ! set for subroutine
+      helpinsub='hvacgui'  ! set for subroutine
 
 C Fill in array of idealised HVAC system types
       hvac_sys_typ(1)='Furnace                '
@@ -650,6 +642,7 @@ C FURNOPT - define furnace system
 #include "hvac_parameters.h"
 #include "hvac_common.h"
 #include "furnace_common.h"
+#include "help.h"
 
       INTEGER NCOMP, NCON         ! Number of zones in building
       common/C1/NCOMP, NCON
@@ -674,12 +667,7 @@ C FURNOPT - define furnace system
       INTEGER chosen_sys(14)
       INTEGER chosen_fuel(5)
 
-C For help messages.
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='FURNOPT'  ! set for subroutine
+      helpinsub='hvacgui'  ! set for subroutine
 
       ipck=1
       nfurntyp=14
@@ -961,6 +949,7 @@ C the hvac file for changes to be recorded.
 #include "hvac_parameters.h"
 #include "hvac_common.h"
 #include "furnace_common.h"
+#include "help.h"
 
       INTEGER NCOMP, NCON            ! Number of zones in system
       common/C1/NCOMP, NCON
@@ -979,12 +968,7 @@ C Common it up here.
       CHARACTER*50 zoneopt(ncomp+1)  ! Array of zone names associated with system
       LOGICAL exit                   ! returns as true if user does not complete system definition
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='BASEBOARD_INPUTS'  ! set for subroutine
+      helpinsub='hvacgui'  ! set for subroutine
 
       ier = 0
       exit=.false.
@@ -994,23 +978,6 @@ C Add hvac system type to array - baseboard = 3
 
 C Baseboard can only be primary system at this time.  Prompt for priority commented out below for future use.
       ipriority(i) = 1
-
-C Select the priority of the system
-C      if(priority.eq.0) then
-C        h(1) = 'Select whether the baseboard system is a primary'
-C        h(2) = 'system, or whether it serves as a backup system'
-C        h(3) = 'in the zones.'
-
-C        CALL EASKI(ipriority(i),'Specify the system priority',
-C     &             '1 for primary (default), 2 for backup', 1, 
-C     &             'F', 2, 'F', 1,'value must be 1 or 2',ier,3)
-c        if(ier.eq.-3)then
-C          exit=.true.
-C          return
-C        end if
-C      else
-C        ipriority(i) = priority
-C      end if
      
 C Select the number of zones the system is linked to
 
@@ -1148,6 +1115,7 @@ C variables. The user must save the hvac file for changes to be recorded.
 #include "hvac_parameters.h"
 #include "hvac_common.h"
 #include "ashp_common.h"
+#include "help.h"
 
       INTEGER NCOMP, NCON             ! Number of zones in system
       common/C1/NCOMP, NCON
@@ -1166,12 +1134,7 @@ C Common it up here.
       CHARACTER*50 zoneopt(ncomp+1)   ! Chacter array of zone names associated with hvac
       LOGICAL exit                    ! Returns as true if user does not complete system definition
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='HPHOT'  ! set for subroutine
+      helpinsub=' hvacgui'  ! set for subroutine
 
 C <<Need to put something here about the GCEP>>
 
@@ -1477,6 +1440,7 @@ C save the hvac file for changes to be recorded.
 #include "hvac_parameters.h"
 #include "hvac_common.h"
 #include "ashp_common.h"
+#include "help.h"
 
 C    fbackup = 1 if there is a backup, 0 if not
 
@@ -1501,11 +1465,7 @@ C    fbackup = 1 if there is a backup, 0 if not
       CHARACTER*9 periodout          ! Variable used for writing out current period
       INTEGER period_counter         ! Variable used for counting up until total number of periods
 
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='HPCOLD'  ! set for subroutine
+      helpinsub='hvacgui'  ! set for subroutine
       
       ier =0
       exit=.false.
@@ -2085,6 +2045,7 @@ C hvac system into the current hvac file (maximum of 5).
 #include "hvac_common.h"
 #include "furnace_common.h"
 #include "ashp_common.h"
+#include "help.h"
 
       COMMON/hvacinfo/ihvacflag,hvacfile
       
@@ -2103,12 +2064,7 @@ C hvac system into the current hvac file (maximum of 5).
       LOGICAL exit_flag                           ! logical returned to main HVAGIN as true if user chooses to exit
       LOGICAL ok
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='HVAC_MAIN_SUMMARY'  ! set for subroutine
+      helpinsub='hvacgui'  ! set for subroutine
 
       nhvac_summary=10
       edit=0
@@ -2214,6 +2170,7 @@ C option to edit the system chosen.
 #include "hvac_common.h"
 #include "furnace_common.h"
 #include "ashp_common.h"
+#include "help.h"
 
       INTEGER nsys_summary                   ! number of items in system summary
       PARAMETER (nsys_summary=12)            ! set number here
@@ -2228,11 +2185,7 @@ C option to edit the system chosen.
       LOGICAL editflag                       ! return to main summary is true if user
                                              ! wishes to edit current system
 
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='HVAC_SYS_SUMMARY'  ! set for subroutine
+      helpinsub='hvacgui'  ! set for subroutine
       
       editflag=.false.
       ipick=0

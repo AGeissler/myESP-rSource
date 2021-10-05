@@ -27,9 +27,8 @@ C SDDFLT001 set defaults based on material type.
 #include "building.h"
 #include "uncertainty.h"
 #include "esprdbfile.h"
-C esprdbfile.h supplies the following:
-C LFMAT,IFMAT,LFMUL,IFMUL (for materials and constructions database)
 #include "material.h"
+#include "help.h"
 
       real DFLTRANGE     ! topic & attribute increments
       integer IDFLTR     ! 1=% 2=abs
@@ -41,12 +40,7 @@ C LFMAT,IFMAT,LFMUL,IFMUL (for materials and constructions database)
       logical closemat1,closemat2,ok
       integer NCO,ICO ! max items and current menu item
 
-C For help messages.
-      character helpinsub*24  ! subroutine name
-      character helptopic*24  ! string (unique) for topic
-      integer nbhelp          ! number of help lines found
-
-      helpinsub='SDDFLT001'     ! set for subroutine
+      helpinsub='sendflt'     ! set for subroutine
       
 C Set default uncertainties. 5% as %. If user asks.
       helptopic='uncertainty_defaults'

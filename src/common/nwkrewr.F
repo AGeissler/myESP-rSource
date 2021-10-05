@@ -39,14 +39,13 @@ C << have a way to signal which symbol to use?
 #include "building.h"
 #include "gnetwk.h"
 #include "espriou.h"
-C espriou.h provides currentfile.
-      
+#include "help.h"
+
       integer lnblnk  ! function definition
 
 C Graphics and ESP-r default commons
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
 
-      COMMON/POPHELP/H(60)
       COMMON/AFN/IAIRN,LAPROB,ICAAS(MCOM)
       CHARACTER LAPROB*72
 
@@ -85,13 +84,16 @@ C Grid commons
       CHARACTER OUTS*124,OUTSTR*124,WORD*24,WORD1*24,WORD2*24,WORD3*40
       CHARACTER*72 DFILE
       character GRTAG*12  ! first token in an attribute line
-      CHARACTER LFIL*72,H*72,MODE*1,ectime*24,PHRASE*48
+      CHARACTER LFIL*72,MODE*1,ectime*24,PHRASE*48
       LOGICAL CONT,OK,dok
       integer iftype  ! to cast string to an index
 
 C Set a local counter for the number of icons INNINC. 
       INNICN=0
       CONT=.TRUE.
+      helpinsub='nwkrewr'  ! set for subroutine
+      helptopic='graphics_network'
+      call gethelptext(helpinsub,helptopic,nbhelp)
 
 C Open the file with user defined or existing filename
   2   DFILE='UNKNOWN'
@@ -100,18 +102,13 @@ C Open the file with user defined or existing filename
       ELSE
         LFIL='UNKNOWN'
       ENDIF
-      H(1)='A network graphics description file holds information    '
-      H(2)='on network topology: the components, their connectivity, '
-      H(3)='component spatial position, component data and connection'
-      H(4)='routing.                                                 '
       IF(MODE.EQ.'R'.OR.MODE.EQ.'N')THEN
         CALL EASKS(LFIL,' Network graphics description file? ',' ',72,
-     &    DFILE,' file open',IER,4)
+     &    DFILE,' file open',IER,nbhelp)
         IF(LFIL(1:3).NE.'   '.AND.LFIL(1:3).NE.'UNK') THEN
           LAPROB=LFIL
         ELSE
-          h(1)='Blank file name or UNKNOWN entered.'
-          CALL EASKOK('Filename blank!','Retry?',OK,1)
+          CALL EASKOK('Filename blank!','Retry?',OK,nbhelp)
           IF(OK)THEN
             GOTO 2
           ELSE
@@ -139,10 +136,8 @@ C Open the network graphics file.
           WRITE(OUTS,'(3A)')
      &  'File ',LFIL(1:LNBLNK(LFIL)),' is a new network description.'
           dok=.true.
-          h(1)='File does not exist and will be assumed created'
-          h(2)='for a new network unless you say no.'
           CALL EASKOK(OUTS,'Define a new network using this name?',
-     &      OK,2)     
+     &      OK,nbhelp)     
           IF(OK) THEN
             RETURN
           ELSE
@@ -156,9 +151,7 @@ C Open the network graphics file.
       ELSEIF(IER.NE.0.AND.IER.NE.-301) THEN
         WRITE(OUTS,'(3A)')
      &    ' Problem opening ',LFIL(1:LNBLNK(LFIL)),'.'
-        h(1)='The file was expected to exist but was not found or'
-        h(2)='could not be read.  '
-        CALL EASKOK(OUTS,'Retry?',OK,3)
+        CALL EASKOK(OUTS,'Retry?',OK,nbhelp)
         IF(OK) THEN
           GOTO 2
         ELSE
@@ -1217,10 +1210,9 @@ C << attributes when the graphic network is written out again
 C << disable this until we sort out what is happening.
 C      if(modify)then
 C        dok=.true.
-C        h(1)='text to be added'
 C        call easkok(
 C     &    'Heights of icons should reflect node and component',
-C     &    'height attributes. Update graphic network file?',ok,0)
+C     &    'height attributes. Update graphic network file?',ok,nbhelp)
 C        if(ok)then
 C          IM=1
 C          CALL NETWRITE(IM)

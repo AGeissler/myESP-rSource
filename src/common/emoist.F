@@ -13,18 +13,12 @@ C warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
 C PURPOSE. See the GNU General Public License for more
 C details.
 
-C You should have received a copy of the GNU General Public
-C License along with ESP-r. If not, write to the Free
-C Software Foundation, Inc., 59 Temple Place, Suite 330,
-C Boston, MA 02111-1307 USA.
 
-C *********************************************************************
-C EMSTRR reads a zone moisture data file.
-C *********************************************************************
+C ******************** EMSTRR ********************
+C Reads a zone moisture data file.
+
       SUBROUTINE EMSTRR(LMSTR,IUNIT,ICOMP,ITRC,ITRU,IER)
 #include "building.h"
-
-C espriou.h provides current file.
 #include "espriou.h"
 #include "moist.h"
 
@@ -44,7 +38,7 @@ C espriou.h provides current file.
 C Check if running in dll mode.
       call isadll(dll)
 
-C Open existing ASCII moisture data file as unit IUNIT.
+C Open existing ASCII moisture data file.
       CALL EFOPSEQ(IUNIT,LMSTR,1,IER)
       IF(IER.LT.0)THEN
         IER=1
@@ -52,26 +46,23 @@ C Open existing ASCII moisture data file as unit IUNIT.
       ENDIF
       write(currentfile,'(a)') LMSTR(1:lnblnk(LMSTR))
 
-C Check moisture file version
-C (legacy files begin with "#  moisture nodes/layer")
-
+C Check moisture file version (legacy files begin with "#  moisture nodes/layer").
 C Read lines from file, discarding comments. Look for header on
 C newer files. Older files will begin with a description. To allow for
 C description with spaces copy directly from OUTSTR rather than parsing
 C it into words.
- 
       CALL STRIPC(IUNIT,OUTSTR,0,ND,1,'moist version or header',IER)
       IF(IER.NE.0) goto 102
       if(outstr(1:9).eq.'*Moisture')then
         if(outstr(11:13).eq.'1.0')then
           iMoistVer(icomp)=1
-C         Defaults to legacy model
+C Defaults to legacy model
           iMoistModel(icomp)=LEGACY
 
         elseif(outstr(11:13).eq.'2.0')then
           iMoistVer(icomp)=2
-C         If moisture file version 2.0, read permeability / sorption
-C         isotherm model switch (legacy or Otto)
+C If moisture file version 2.0, read permeability/ sorption
+C isotherm model switch (legacy or Otto)
 
           CALL STRIPC(IUNIT,OUTSTR,0,ND,1,'moisture model',IER)
           IF(IER.NE.0) goto 103
@@ -84,16 +75,17 @@ C         isotherm model switch (legacy or Otto)
           endif
         endif
       else
-C       Rewind legacy file for read and set model to LEGACY
+C Rewind legacy file for read and set model to LEGACY
         REWIND(IUNIT,ERR=999)
         iMoistModel(icomp)=LEGACY
       endif
 
 C Read the moisture node distribution information.
-C MNDL number of nodes per layer for each zone, construction. 
-C MNDL a multiple of the number of nodes in the conduction calculation (i.e. multiple of 3).
-C MNDC number of nodes per construction.
-C MNDZ total number of nodes of all constructions in a zone.
+C MNDL - number of nodes per layer for each zone construction. 
+C        (this is a multiple of the number of nodes used in the
+C        conduction calculation, i.e. a multiple of 3.
+C MNDC - number of nodes per construction.
+C MNDZ - total number of nodes of all constructions in a zone.
       MNDS=MNDS-MNDZ(ICOMP)
       MNDZ(ICOMP)=0
       NC=NCONST(ICOMP)
@@ -149,9 +141,9 @@ C      zone,component,layer,data(1:3).
 
 C Read the data for moisture capacity for each layer.
 C ISORP - holds the index of each entry.
-C SORP - contains the sorption isotherm data.
-C SORP - contains 3 values describing the moisture capacity, as
-C        zone,component,layer,data(1:3)
+C SORP  - contains the sorption isotherm data (Uh, A and n).
+C SORP  - contains 3 values describing the moisture capacity, as
+C         zone,component,layer,data(1:3)
       DO 50 I=1,NC
         NE=NELTS(ICOMP,I)
       DO 50 IL=1,NE
@@ -175,9 +167,9 @@ C        zone,component,layer,data(1:3)
 
 C Read thermal vapor diffusion coefficient for each layer.
 C ITVAPD - holds the index. 
-C TVAPD - holds this single value.
-C All current exemplar models set the value to 0 since thermal vapout diffusion is not
-C an accepted process.
+C TVAPD  - holds this single value.
+C All current exemplar models set the value to 0 since thermal vapour diffusion is not
+C active.
 C        ./models/training/constr/adapt/zones/liv_room.mst
 C        ./models/training/burdie/zone/bed_3.mst-ii
 C        ./models/training/burdie/zone/bed_3.mst
@@ -206,14 +198,13 @@ C        ./models/training/wsf/zones/theZone_Otto.mst
 c Close zone moisture data file.
    6  CALL ERPFREE(IUNIT,ISTAT)
 
-c Trace output ?
+c Trace output.
       IF(ITRC.GE.1)THEN
         CALL EDISP(ITRU,'Zone moisture data file successfully read.')
       ENDIF
       RETURN
 
-C Error messages
-
+C Error messages.
  101  write(outs,'(3a)') 'EMSTRR: error reading ',OUTSTR(1:50),'...'
       call edisp(iuout,outs)
       ier=1
@@ -258,9 +249,9 @@ C File rewind errors.
 
       END
 
-C *********************************************************************
-C EMSTRW writes a zone moisture data file.
-C *********************************************************************
+C ******************** EMSTRW ********************
+C Writes a zone moisture data file.
+
       SUBROUTINE EMSTRW(LMSTR,IUNIT,ICOMP,ITRC,ITRU,IER)
 #include "building.h"
 #include "moist.h"
@@ -283,7 +274,7 @@ C Open ASCII moisture data file as unit IUNIT.
         RETURN
       ENDIF
 
-C Write the moisture node distribution information,
+C Write the moisture node distribution information
 C depending on file version.
       if (iMoistVer(ICOMP).eq.1) then
         WRITE(IUNIT,'(A)')'*Moisture 1.0'
@@ -321,13 +312,14 @@ C Write the data for water vapor permeability for each layer.
 C Write the data for moisture capacity for each layer.
       WRITE(IUNIT,'(A)')'# Sorption isotherm data for each layer'
       DO 40 I=1,NC
-        WRITE(IUNIT,'(A,I3)')'# indx |   associated data for surface',I
+        WRITE(IUNIT,'(A,I3)')
+     &          '# indx |   data (Uh, A, n) for construction',I
         NE=NELTS(ICOMP,I)
       DO 40 IL=1,NE
         IN=1
-        D1=SORP(ICOMP,I,IL,1)
-        D2=SORP(ICOMP,I,IL,2)
-        D3=SORP(ICOMP,I,IL,3)
+        D1=SORP(ICOMP,I,IL,1)  ! Uh
+        D2=SORP(ICOMP,I,IL,2)  ! A
+        D3=SORP(ICOMP,I,IL,3)  ! n
         WRITE(IUNIT,'(3X,I2,6X,3G10.3)')IN,D1,D2,D3
    40 CONTINUE
 
@@ -345,7 +337,7 @@ C Write the thermal vapor diffusion coefficient for each layer.
 c Close zone moisture data file.
       CALL ERPFREE(IUNIT,ISTAT)
 
-c Trace output ?
+c Trace output.
       IF(ITRC.GE.1)THEN
         CALL EDISP(ITRU,'zone moisture data file successfully saved.')
       ENDIF

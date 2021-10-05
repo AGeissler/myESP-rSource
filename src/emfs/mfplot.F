@@ -13,34 +13,27 @@ C warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
 C PURPOSE. See the GNU General Public License for more
 C details.
 
-C You should have received a copy of the GNU General Public
-C License along with ESP-r. If not, write to the Free
-C Software Foundation, Inc., 59 Temple Place, Suite 330,
-C Boston, MA 02111-1307 USA.
 
-C Following source code used with ASCII version of network
-C flow results plotting/graphing. Not called by versons
-C after November 2002.
-
-C *********** MFPLOT
-C Graphical output of mass flow results; local variables
-C     FLIN   - total flow entering node
-C     FLUT   - total flow leaving node
-C     FLWSIN - total flow entering node in each time step
-C     FLWSUT - total flow leaving node in each time step
-C     IDIM   - flow: 10^-3.kg/s (IDIM=1), m^3/hr (IDIM=2), 1/hr (IDIM=3)
-C     MPTS   - maximum number of time steps in one plot
-C     NDONUM - number of node for graphical output
-C     NDCNUM - number of coupled node
-C     NTSPD  - number of simulation time steps per day
-C     NTSPH  - number of simulation time steps per hour
-C     VOL() -  volume used for calculating change rate in case IDIM=3
+C ******************** MFPLOT ********************
+C Graphical output of mass flow results.
+C FLIN   - total flow entering node
+C FLUT   - total flow leaving node
+C FLWSIN - total flow entering node at each time step
+C FLWSUT - total flow leaving node at each time step
+C IDIM   - units: 1. kg/s, 2 m^3/hr, 3 AC/hr
+C MPTS   - maximum number of time steps in one plot
+C NDONUM - number of node for graphical output
+C NDCNUM - number of coupled node
+C NTSPD  - number of simulation time steps per day
+C NTSPH  - number of simulation time steps per hour
+C VOL()  - volume used for calculating AC/hr for IDIM=3
 
       SUBROUTINE MFPLOT(itrc,itru,IFRES,ier)
 #include "building.h"
 #include "espriou.h"
 #include "net_flow.h"
 #include "net_flow_data.h"
+#include "help.h"
       
       integer lnblnk  ! function definition
 
@@ -59,15 +52,15 @@ C     VOL() -  volume used for calculating change rate in case IDIM=3
 
       DOUBLE PRECISION FLW1,FLW2,PRES,RESID,SAFLW
 
-      PARAMETER       (MPTS=2400)
+      PARAMETER (MPTS=2400)
 
 C Currently only one node plotted.
-      PARAMETER       (MGNDO=1)
-      DIMENSION        VOL(MGNDO)
+      PARAMETER (MGNDO=1)
+      DIMENSION VOL(MGNDO)
 
-      CHARACTER*24      ITEM(10)
+      CHARACTER*24 ITEM(10)
       DOUBLE PRECISION FLIN,FLUT
-      DIMENSION        FLWSIN(MPTS),FLWSUT(MPTS)
+      DIMENSION FLWSIN(MPTS),FLWSUT(MPTS)
       CHARACTER LABEL1*10,LABEL2*10
       CHARACTER ETEXT*72,temp*28,WORD*20,OUTSTR*124
       character outs*124,nterm*1
@@ -76,7 +69,7 @@ C Currently only one node plotted.
       character rfile*72,PFILE*72,MSTRFILE*72,LAFRES*72
       logical OK
 
-      integer iglib   ! if 1 then X11, if 2 then GTK, if 3 then text only.
+      integer iglib     ! if 1 then X11, if 2 then GTK, if 3 then text only.
       integer NITMS,INO ! max items and current menu item
       real x0,y0,x1,y1  ! to avoid in-line calculations
 
@@ -98,15 +91,10 @@ C Currently only one node plotted.
       integer*8 iicol
 #endif
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found (will be non-zero
-                         ! because default message will be created
-      helpinsub='MFPLOT' ! set for subroutine
+      helpinsub='mfplot' ! set for subroutine
 
 C In order to pass strings across to C it is necessary to first
-C do an internal write placing an end marker which C can understand.
+C do an internal write placing an end marker that C can understand.
       nterm=CHAR(0)
 
       IDIM=1
@@ -150,15 +138,15 @@ C Initialize output period day and month numbers.
 
 C Let the user pick a menu item.
    10 INO=-2
-      ITEM(1) ='p Analysis period      '
-      ITEM(2) ='u Reporting units:     '
+      ITEM(1) ='p analysis period      '
+      ITEM(2) ='u reporting units     '
       ITEM(3) ='  ___________________  '
-      ITEM(4) ='s Select nodes         '
-      ITEM(5) ='d Draw graph           '
-      ITEM(6) ='c Clear nodes          '
+      ITEM(4) ='s select nodes         '
+      ITEM(5) ='d draw graph           '
+      ITEM(6) ='c clear nodes          '
       ITEM(7) ='  ___________________  '
-      ITEM(8) ='? Help                 '
-      ITEM(9) ='- Exit to main menu    '
+      ITEM(8) ='? help                 '
+      ITEM(9) ='- exit menu            '
 
       NITMS=9
 
@@ -199,11 +187,11 @@ C Display format for date is Fri 10 Jan.
 C Get flow results output dimension and set the Y-axis label.
    40   helptopic='mfs_express_flow_results'
         call gethelptext(helpinsub,helptopic,nbhelp)
-        CALL EASKABC(' Express flow results as: ',' ',
-     &   'kg/s','volume as m^3/hr','volume as ac/h',IDIM,nbhelp)
+        CALL EASKABC(' ','Flow results as:',
+     &   'kg/s','m^3/hr','AC/h',IDIM,nbhelp)
         IF(IER.NE.0) GOTO 40
-        IF(IDIM.EQ.1) LABEL1='10^-3.kg/s'
-        IF(IDIM.EQ.2) LABEL1='m^3/hr    '
+        IF(IDIM.EQ.1) LABEL1='kg/s'
+        IF(IDIM.EQ.2) LABEL1='m^3/hr'
         IF(IDIM.EQ.3) LABEL1='1/hr'
       ELSEIF(INO.EQ.4)then
 
@@ -218,7 +206,7 @@ C Set number and name of node for output.
           write(outs,'(3A,F8.2,A)')' The current volume of ',
      &      NDNAM(NDONUM),' is ',VOLUME,'m^3'
           CALL EASKR(VOLUME,' ',
-     &     ' Volume (m^3) in evaluating fluid change rates/hour? ',
+     &     'Volume for evaluating fluid change rates/hour?',
      &     0.0,'F',0.,'-',1.,'volume per hour',IER,nbhelp)
           VOL(NLINES)=VOLUME
         ELSE
@@ -228,7 +216,7 @@ C Set number and name of node for output.
 C Set number and name of coupled node.
    25   helptopic='mfs_display_all_one'
         call gethelptext(helpinsub,helptopic,nbhelp)
-        CALL EASKAB(' ',' Display flow via:',
+        CALL EASKAB(' ','Display flow via:',
      &    'all associated nodes','between one node',IW,nbhelp)
         if(IW.eq.1)then
           NDCNUM=0
@@ -379,7 +367,7 @@ C data already available.
       endif
 
 C Calculate fluid flow entering/leaving
-C the node (10^-3.kg/s or m^3/hr).
+C the node (kg/s or m^3/hr).
       CALL MFSNFL(IDIM,NDONUM,NDCNUM,FLIN,FLUT)
 
 C Assign flows; leaving flow is plotted +ve.

@@ -39,6 +39,7 @@ C IER=0 OK, IER=1 problem encountered.
 #include "geometry.h"
 #include "espriou.h"
 #include "prj3dv.h"
+#include "help.h"
       
       integer lnblnk  ! function definition
 
@@ -99,11 +100,7 @@ C Tolerances for surface matching.
       integer MITEM,INO ! max items and current menu item
       integer MVERT,IVERT ! max items and current menu item
 
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='EDCONN'  ! set for subroutine
+      helpinsub='edtopol'  ! set for subroutine
 
 C Check if Unix-based or DOS based.
       call isunix(unixok)
@@ -271,7 +268,7 @@ C If contiguity has problems then hilight the selection.
         ITEMS1(21)='* pause during check 0.5 sec'
       endif
       ITEMS1(22)=  '? help'
-      ITEMS1(23)=  '- exit mwnu'
+      ITEMS1(23)=  '- exit menu'
       MITEM=23
 
 C Help text for this menu.
@@ -686,49 +683,25 @@ C attributes.
         endif
 
 C Save current common block information to file, jump back and
-C update the display.  If icfgv = 3 or 4 then only need to update
-C the connections file.  If it changes also update the configuration file.
-        if(icfgv.eq.3.or.icfgv.eq.4)then
-  286     write(DCNN,'(a,a)')cfgroot(1:lnblnk(cfgroot)),'.cnn'
-          if(LCNN(1:1).eq.' ')LCNN=DCNN
+C update the display. 
+  286   write(DCNN,'(a,a)')cfgroot(1:lnblnk(cfgroot)),'.cnn'
+        if(LCNN(1:1).eq.' ')LCNN=DCNN
 
-          CALL EASKS(LCNN,' Updated surface connections file ?',' ',
-     &      72,DCNN,'system connx file name',IER,nbhelp)
-          IF(LCNN.EQ.' ')GOTO 286
-          CALL EMKCFG('-',IER)
-        elseif(icfgv.lt.3)then
-
-C Older configuration file format, ask for its name.
-          CFGFN=LCFGF
-          CALL EASKS(CFGFN,
-     &     'Updated configuration file name ? (best if a new file) ',
-     &     ' ',72,'xxx.cfg','revised config file',IER,nbhelp)
-          if(CFGFN.ne.' ')LCFGF=CFGFN
-          CALL EMKCFG('-',IER)
-        endif
+        CALL EASKS(LCNN,' Updated surface connections file ?',' ',
+     &    72,DCNN,'system connx file name',IER,nbhelp)
+        IF(LCNN.EQ.' ')GOTO 286
+        CALL EMKCFG('-',IER)
       ELSEIF(INO.EQ.17)THEN
 
-C Check vertex matches and rebuild configuration file. If icfgv = 3 or 4 then
-C only need to update the connections file. If it changes also update
-C the configuration file.
+C Check vertex matches and rebuild configuration file. 
         ITSNM=0
-        if(icfgv.eq.3.or.icfgv.eq.4)then
-  285     write(DCNN,'(a,a)')cfgroot(1:lnblnk(cfgroot)),'.cnn'
-          if(LCNN(1:1).eq.' ')then
-            LCNN=DCNN
-          endif
-          CALL EASKS(LCNN,' Updated surface connections file ?',' ',
-     &      72,DCNN,'system connx file name',IER,nbhelp)
-          IF(LCNN.EQ.' ')GOTO 285
-        elseif(icfgv.lt.3)then
-
-C Older configuration file format, ask for its name.
-          CFGFN=LCFGF
-          CALL EASKS(CFGFN,
-     &     'Updated configuration file name ? (best if a new file) ',
-     &     ' ',72,'xxx.cfg','revised config file',IER,nbhelp)
-          if(CFGFN.ne.' ')LCFGF=CFGFN
+  285   write(DCNN,'(a,a)')cfgroot(1:lnblnk(cfgroot)),'.cnn'
+        if(LCNN(1:1).eq.' ')then
+          LCNN=DCNN
         endif
+        CALL EASKS(LCNN,' Updated surface connections file ?',' ',
+     &    72,DCNN,'system connx file name',IER,nbhelp)
+        IF(LCNN.EQ.' ')GOTO 285
 
 C Look for connections.
         call tstamp('>','CFG: do graphic match of surfaces')
@@ -768,6 +741,7 @@ C user confirmation before writing to temporary configuration file.
 #include "site.h"
 #include "geometry.h"
 #include "prj3dv.h"
+#include "help.h"
       
       integer lnblnk  ! function definition
 
@@ -803,11 +777,7 @@ C Pause length during sequentail scan longpause (true=1 sec)
       logical selfcheck  ! set true if currently looking within zone
       real ANGCC  ! angular tolerance between surfaces
 
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='CONFIG'  ! set for subroutine
+      helpinsub='edtopol'  ! set for subroutine
 
 C CACC is the tolerance allowed between two vertices (can be user adjusted).
 C TOTHER is array of temporary new topology attributes for current zone.
@@ -1677,6 +1647,7 @@ C IER=0 OK, IER=1 problem.
 #include "site.h"
 #include "geometry.h"
 #include "prj3dv.h"
+#include "help.h"
       
       integer lnblnk  ! function definition
 
@@ -1703,12 +1674,7 @@ C Parameters: logical variables set the context of what to check
       CHARACTER OUTSTR*124,SO*12,ZN*12,TMP*54
       CHARACTER bl*2
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='ESACON'  ! set for subroutine
+      helpinsub='edtopol'  ! set for subroutine
 
 C General image option flags.
       bl='  '
@@ -2071,6 +2037,7 @@ C with a concept).
 #include "material.h"
 #include "epara.h"
 #include "prj3dv.h"
+#include "help.h"
       
       integer lnblnk  ! function definition
 
@@ -2094,12 +2061,7 @@ C Anchor commons defined in model.h.
       integer MVERT,IVERT ! max items and current menu item
       dimension IVALS(MCOM)
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='anchor'  ! set for subroutine
+      helpinsub='edtopol'  ! set for subroutine
 
 C Initialise connection menu size variables based on window size. 
 C IVERT is the menu position, MVERT the current number of menu lines.
@@ -2511,6 +2473,7 @@ C of connections associated with a concept).
       subroutine anchlist(iasel,ier)
 #include "building.h"
 #include "model.h"
+#include "help.h"
 
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
 
@@ -2519,12 +2482,7 @@ C of connections associated with a concept).
       character AL*12
       integer MVERT,IVERT ! max items and current menu item
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='anchlist'  ! set for subroutine
+      helpinsub='edtopol'  ! set for subroutine
 
       iasel=0
       ifoc=0
@@ -2716,6 +2674,7 @@ C Defines a group of zones associated with a specific concept.
 #include "material.h"
 #include "epara.h"
 #include "prj3dv.h"
+#include "help.h"
 
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
       
@@ -2731,11 +2690,6 @@ C Group commons defined in model.h.
       logical found,ok,foundone,okd,modmlc
       integer MVERT,IVERT ! max items and current menu item
       dimension IVALS(MCOM)
-
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
 
       helpinsub='group'  ! set for subroutine
 
@@ -2979,6 +2933,7 @@ C e.g. offices on level 3.
 #include "building.h"
 #include "model.h"
 #include "epara.h"
+#include "help.h"
 
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
 
@@ -2986,11 +2941,6 @@ C e.g. offices on level 3.
       CHARACTER AVERT*36,KEY*1
       character AL*16
       integer MVERT,IVERT ! max items and current menu item
-
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
 
       helpinsub='grouplist'  ! set for subroutine
 
@@ -3289,6 +3239,7 @@ C of non-symetric constructions.
 #include "esprdbfile.h"
 #include "material.h"
 #include "prj3dv.h"
+#include "help.h"
       
       integer lnblnk  ! function definition
 
@@ -3320,12 +3271,7 @@ C     dimension PELV(MS)
       character AL8*12,AL9*12,CXITM*48
       integer ltype,ins2,ins3   ! for radio buttons
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='serchrpl'  ! set for subroutine
+      helpinsub='edtopol'  ! set for subroutine
 
       iuf=IFIL+1
       newgeo=.false.  ! assume older format geometry.
@@ -3525,7 +3471,10 @@ C zone.
      &                    SN(1:lnblnk(SN)),' from ',
      &                    SMLCN(IC2(ioc),IE2(ioc))(1:lnicoth),
      &                    ' > ',TOSMLCN
-                        call edisp(iuout,outs)
+                        if(SMLCN(IC2(ioc),IE2(ioc))(1:lnicoth).ne.
+     &                     TOSMLCN(1:lnblnk(TOSMLCN)))then
+                          call edisp(iuout,outs)
+                        endif
                         call eclose(gversion(IC2(ioc)),1.1,0.01,newgeo)
                         if(newgeo)then
                           call georead(IFIL+2,LGEOM(IC2(ioc)),IC2(ioc),

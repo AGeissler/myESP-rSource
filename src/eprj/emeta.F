@@ -24,7 +24,7 @@ C  metawrite:  Creates an esp-r meta file. Data input is from
 C              the current zones common blocks.
 
 C ************* silentmodel
-C silentmodel creates a model from passed parameters.
+C Creates a model from passed parameters.
 C The parameters are:
 C action (8 char) as follows:
 C    'new' creates model folders based on information
@@ -36,7 +36,7 @@ C weather (32 char) the weather file name (no path included)
 C simact (6 char) assessments to be carried out '------' if
 C   none requested, otherwise follow pattern in edipv.F.
 
-C Current functionality is to update the climate & site data.
+C Current functionality is to update the weather & site data.
 
       subroutine silentmodel(action,root,mpath,weather,simact,ier)
 #include "building.h"
@@ -44,9 +44,7 @@ C Current functionality is to update the climate & site data.
 #include "site.h"
 #include "espriou.h"
 #include "esprdbfile.h"
-C esprdbfile.h supplies lclim.
 #include "seasons.h"
-C seasons.h provides typper and typsea
 #include "ipvdata.h"
 
       integer lnblnk  ! function definition
@@ -58,7 +56,7 @@ C Where ESP-r was installed (as recorded when it was compiled).
       common/deflt4/dinstpath
       character dinstpath*60
 
-C Climate data.
+C Weather data.
       COMMON/CLMSET/ICYEAR,ICDNGH,CLAT,CLONG
 
       COMMON/SET1/IYEAR,IBDOY,IEDOY,IFDAY,IFTIME
@@ -91,7 +89,7 @@ C Passed in parameters.
 
       IER=0
 
-C Determine operating system
+C Determine operating system.
       call isunix(unixok)
       if(unixok)then
         fs = char(47)
@@ -104,21 +102,8 @@ C Determine operating system
 C If the action is `new` then setup model folder(s) and the registration
 C level configuration file via call to pregist in `sn` mode.
 C If the action is `within` do not create new folders for the model.
-
-C Debug
-      if(unixok)then
-        write(6,*)  'action ',action,' ',root
-        write(6,*)  'menu ',modeltitle
-        write(6,*)  'mpath ',mpath
-        write(6,*)  'weather ',weather
-        write(6,*)  'clm ',lclim
-        write(6,*)  'assessments ',simact
-      endif
-
       call edisp(iuout,'  ')
       if(action(1:3).eq.'new')then
-        call edisp(iuout,'You will be asked a [YES RESTART] question.')
-        call edisp(iuout,'Click on the [CONTINUE] button instead!')
         write(menu,'(a)') modeltitle(1:lnblnk(modeltitle))
         call pregist('sn',root,mpath,menu,ier)
       elseif(action(1:6).eq.'within')then
@@ -426,7 +411,7 @@ C Parameters
       integer icascf
       common/cctl/icascf(mcom)
       common/deflt4/dinstpath
-      character dinstpath*60 ! instal folder as recorded when ESP-r was compiled
+      character dinstpath*60 ! install folder as recorded when ESP-r was compiled
       COMMON/OVRWT/AUTOVR
       logical AUTOVR
       common/SLNTFULL/ifullysilent
@@ -539,9 +524,6 @@ C Pending rotation angle and set point to origin of the zone.
 C Convert box into a gen description. Pass in critical dimensions
 C and expect the data back via common G1.
         CALL ERECC(XOCB,YOCB,ZOCB,DXCB,DYCB,DZCB,ANGR)
-        rotateit(ICOMP,4)=rotateit(ICOMP,1)   ! remmeber the pending rotation
-        rotateit(ICOMP,5)=rotateit(ICOMP,2)   ! and the origin of the zone
-        rotateit(ICOMP,6)=rotateit(ICOMP,3)
         rotateit(ICOMP,1)=0.0
         rotateit(ICOMP,2)=0.0
         rotateit(ICOMP,3)=0.0
@@ -575,9 +557,6 @@ C via common G1. ESCROT also works via G1.
           x1=XX(1)
           y1=YY(1)
           CALL ESCROT(AR,x1,y1)
-          rotateit(ICOMP,4)=rotateit(ICOMP,1)   ! remmeber the pending rotation
-          rotateit(ICOMP,5)=rotateit(ICOMP,2)   ! and the origin of the zone
-          rotateit(ICOMP,6)=rotateit(ICOMP,3)
           rotateit(ICOMP,1)=0.0
           rotateit(ICOMP,2)=0.0
           rotateit(ICOMP,3)=0.0
@@ -1128,8 +1107,7 @@ C For each of the possible ESP-r zones, clear values.
           nztv(iz) = 0; nbwalls(iz) = 0
           zname(iz) = ' '; shape(iz) = ' '
           rotateit(iz,1) = 0.0; rotateit(iz,2) = 0.0
-          rotateit(iz,3) = 0.0; rotateit(iz,4) = 0.0
-          rotateit(iz,5) = 0.0; rotateit(iz,6) = 0.0
+          rotateit(iz,3) = 0.0
           zorigin(iz,1) = 0.0; zorigin(iz,2) = 0.0
           zorigin(iz,3) = 0.0
           zsize(iz,1) = 0.0; zsize(iz,2) = 0.0; zsize(iz,3) = 0.0
@@ -1283,29 +1261,28 @@ C Debug.
       elseif(WORD(1:7).eq.'*ctlpth')then
         CALL EGETRM(OUTSTR,K,ctlpth,'W','path to ctl',IER)
         goto 43
-      elseif(WORD(1:7).eq.'*aimpth')then
-        CALL EGETRM(OUTSTR,K,aimpth,'W','path to aim2',IER)
+      elseif(WORD(1:7).eq.'*mscpth')then
+        CALL EGETRM(OUTSTR,K,mscpth,'W','path to miscel files',IER)
         goto 43
       elseif(WORD(1:7).eq.'*imgpth')then
         CALL EGETRM(OUTSTR,K,imgpth,'W','path to img',IER)
         goto 43
-      elseif(WORD(1:7).eq.'*tmppth')then  ! do not bother with this path
+      elseif(WORD(1:7).eq.'*tmppth')then
+        CALL EGETRM(OUTSTR,K,tmppth,'W','path to temporary files',IER)
         goto 43
       elseif(WORD(1:7).eq.'*docpth')then
         CALL EGETRM(OUTSTR,K,docpth,'W','path to documents',IER)
         goto 43
       elseif(WORD(1:7).eq.'*radpth')then
-        CALL EGETRM(OUTSTR,K,radpth,'W','path to radnce',IER)
+        CALL EGETRM(OUTSTR,K,radpth,'W','path to radiance',IER)
         goto 43
       elseif(WORD(1:7).eq.'*dbspth')then
         CALL EGETRM(OUTSTR,K,dbspth,'W','path to loc databases',IER)
         goto 43
       elseif(WORD(1:8).eq.'*hvacpth')then
-        CALL EGETRM(OUTSTR,K,hvacpth,'W','path to hvac',IER)
-        goto 43
+        goto 43      ! Depricated.
       elseif(WORD(1:7).eq.'*bsmpth')then
-        CALL EGETRM(OUTSTR,K,bsmpth,'W','path to BASESIMP',IER)
-        goto 43
+        goto 43      ! Depricated.
 
 C Databases. There may or may not be tags for specific databases. If
 C none is supplied assume the default names apply.
@@ -1688,7 +1665,7 @@ C And this is followed by one line each for each profile.
         CALL EGETWI(OUTSTR,K,groundtempsets,1,MGRDP,'F','grn prfls',IER)
         IF(groundtempsets.eq.0) goto 43
         DO 28 IGRDP=1,groundtempsets
-          CALL EGETWRA(IUNIT,GVA,12,-9.,99.,'W','Gr tmp',IER)
+          CALL EGETWRA(IUNIT,GVA,12,-15.,99.,'W','Gr tmp',IER)
           DO 29 J=1,12
             groundtemps(J,IGRDP)=GVA(J)
    29     CONTINUE
@@ -1965,18 +1942,7 @@ C Scan for pending X and Y coordinates to rotate around if there are 3 items on 
         goto 43
       elseif(WORD(1:18).eq.'*previous_rotation')then
 
-C Scan for prior X and Y coordinates rotated around if there are 3 items on the line.
-        CALL EGETWR(OUTSTR,K,rot,0.,0.,'-','prior rotation angle',IER)
-        rotateit(nsz,4)=rot
-        if(ND.gt.2)then
-          CALL EGETWR(OUTSTR,K,rot,0.,0.,'-','prior rotation X',IER)
-          rotateit(nsz,5)=rot
-          CALL EGETWR(OUTSTR,K,rot,0.,0.,'-','prior rotation Y',IER)
-          rotateit(nsz,6)=rot
-        else
-          rotateit(nsz,5)=0.0  ! assume site origin to rotate around
-          rotateit(nsz,6)=0.0
-        endif
+C Deprecated feature.
         goto 43
       elseif(WORD(1:15).eq.'*sim_parameters')then
 
@@ -2486,7 +2452,7 @@ C zone details and then write into the file.
 C Assume distributed folders.
       lnzp=lnblnk(zonepth)
       lnnp=lnblnk(netpth)
-      lnap=lnblnk(aimpth)
+      lnap=lnblnk(mscpth)
       lncp=lnblnk(ctlpth)
       lndcp=lnblnk(docpth)
       lndbp=lnblnk(dbspth)
@@ -2633,8 +2599,8 @@ C extracting to a set of standard ESP-r files.
      &  '  # path to networks'
       write(ifilg,'(3a)',IOSTAT=IOS,ERR=13) '*ctlpth ',ctlpth(1:lncp),
      &  '  # path to controls'
-      write(ifilg,'(3a)',IOSTAT=IOS,ERR=13) '*aimpth ',aimpth(1:lnap),
-     &  '  # path to aim2'
+      write(ifilg,'(3a)',IOSTAT=IOS,ERR=13) '*mscpth ',mscpth(1:lnap),
+     &  '  # path to miscel. files'
       write(ifilg,'(3a)',IOSTAT=IOS,ERR=13) '*radpth ',radpth,
      &  '  # path to radiance files'
       write(ifilg,'(3a)',IOSTAT=IOS,ERR=13) '*imgpth ',imgpth,
@@ -2860,20 +2826,6 @@ C is per zone, the nsc loop is for each coordinate.
      &      '*start_zone',tab,zname(nsz),'  # zone name'
           write(ifilg,'(4a)',IOSTAT=IOS,ERR=13)
      &      '*shape',tab,shape(nsz),'  # polygon enclosure'
-
-C If prior rotateit array is all zero then skip. Otherwise write out the last
-C directive that the user gave.  There is no facility to write a pending
-C rotation (because it will have already been carried out).
-          call eclose3(rotateit(nsz,4),rotateit(nsz,5),
-     &      rotateit(nsz,6),0.0,0.0,0.0,0.01,rotationknown)
-          if(rotationknown)then
-            continue
-          else
-            write(ifilg,'(a,f6.2,a,f8.3,a,f8.3,a,f8.3,a)',IOSTAT=IOS,
-     &        ERR=13) '*previous_rotate ',
-     &        rotateit(nsz,4),tab,rotateit(nsz,5),tab,
-     &        rotateit(nsz,6),'  # previous rotation angle X Y'
-          endif
 
 C Write out any pending rotate directives (usually only used by 3rd party).
           call eclose3(rotateit(nsz,1),rotateit(nsz,2),

@@ -1,6 +1,6 @@
 C This file is part of the ESP-r system.
 C Copyright Energy Systems Research Unit, University of
-C Strathclyde, Glasgow Scotland, 2001.
+C Strathclyde, Glasgow Scotland, 2001-.
 
 C ESP-r is free software.  You can redistribute it and/or
 C modify it under the terms of the GNU General Public
@@ -14,7 +14,7 @@ C PURPOSE. See the GNU General Public License for more
 C details.
 
 
-C ************* Program mfs *************
+C ******************** Program mfs ********************
 C Simulates fluid flows within building & plant configurations.
 C Solves a network representing one-dimensional fluid
 C flow in building and/or plant configurations.
@@ -32,7 +32,7 @@ C     IUIN   - read  unit (standard input).
 C     IMFTU  - write unit for fluid flow calculation trace information.
 C     ICOUT  - write unit for (non-fatal) warning messages.
 C     MMOD   - determines the device type attached to the current job.
-C All global COMMON variables are described in emfnetw.F.
+C Global COMMON variables are described in emfnetw.F.
 
       program mfs
       USE START_UP
@@ -42,6 +42,7 @@ C All global COMMON variables are described in emfnetw.F.
 #include "net_flow_data.h"
 #include "esprdbfile.h"
 #include "espriou.h"
+#include "help.h"
       
       integer lnblnk  ! function definition
 
@@ -79,6 +80,7 @@ C Activation of connections
       COMMON/ACT/ACTCNN(MCNN)
       character*72 LAPROB
       common/AFN/IAIRN,LAPROB,ICAAS(MCOM)
+      COMMON/MFCALC/IPSMOD,MSLVTP
 
 C Once per hour storage of results, averaged over that hour.
       common/c6/indcfg
@@ -107,7 +109,7 @@ C Ask to overwrite flag.
       character dstmp*24,uname*24,tfile*72
 
       character cVnum*38      ! returned from ESPrVersionNum
-      character pagestitle*68 ! for banner title via epages call
+      character pagestitle*72 ! for banner title via epages call
 
       integer iglib   ! if 1 then X11, if 2 then GTK, if 3 then text only.
       integer IWM     ! for radio button
@@ -123,12 +125,6 @@ C Ask to overwrite flag.
       integer*8 iiw1,iiw2,iiw3,iiw4,iimenu
       integer*8 iicapture   ! to pass to updcapt
 #endif
-
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found (will be non-zero
-                         ! because default message will be created
 
 C Initialize global common data.
       call ezero
@@ -204,6 +200,8 @@ C Stand-alone version of mfs. Set INDCFG accordingly.
 C Initialize once per hour storage of results counter.
       irdact=0
       irdcm=1
+      IPSMOD=1  ! initial assumption
+      MSLVTP=2  ! LU solver as in mfsbps.F
 
 C Activate all connections.
       DO 1 ICNN=1,MCNN
@@ -240,7 +238,7 @@ C Determine terminal type and set write unit to stderr for rule scripts.
 
 C Set pixels high to iappw and pixels wide to factor in monitor size.
       iapphi=iappw
-      iappwi=int(real(iappw)*(1024.0/780.0))
+      iappwi=int(real(iappw)*(1024.0/725.0))
 
       if(iappw.gt.0.and.iappw.lt.100)then
         menuchw = MAX0(int(27*iappw*0.01),16)
@@ -388,159 +386,159 @@ C distribution (IAPRES), climate (IFCLM) and results (IFRES) files
 
 C Let the user pick a menu item.
    10 INO=-5
-      ITEM(1) ='a Change problem       '
-      ITEM(2) ='b Initiate simulation  '
-      ITEM(3) ='c Tabular output       '
-      ITEM(4) ='d Graphical output     '
+      ITEM(1) ='a define problem       '
+      ITEM(2) ='b initiate simulation  '
+      ITEM(3) ='c tabular output       '
+      ITEM(4) ='d graphical output     '
       ITEM(5) ='  ____________________ '
-      ITEM(6) ='i Iteration parameters '
-      ITEM(7) ='s Stack assumptions    '
-      ITEM(8) ='m Solver type          '
-      ITEM(9) ='t Trace facilities     '
-      ITEM(10)='w Warning messages     '
+      ITEM(6) ='i iteration parameters '
+      ITEM(7) ='s stack assumptions    '
+      ITEM(8) ='m solver type          '
+      ITEM(9) ='t trace facilities     '
+      ITEM(10)='w warning messages     '
       ITEM(11)='  ____________________ '
-      ITEM(12)='  Formating...         '
+      ITEM(12)='  ... Formating ...    '
       if(ixopen.eq.1)then
-        ITEM(13)='> Output >> file  '
+        ITEM(13)='> output >> file     '
       elseif(ixopen.eq.0)then
-        ITEM(13)='> Output >> screen'
+        ITEM(13)='> output >> screen   '
       endif
       if(IHFLAG.eq.0)then
-        ITEM(14)='* Time >> 10h30   '
+        ITEM(14)='* time >> 10h30      '
       elseif(IHFLAG.eq.1)then
-        ITEM(14)='* Time >> 0.4375  '
+        ITEM(14)='* time >> 0.4375     '
       endif
       if(delim.eq.'-')then
-        ITEM(15)='^ Delim >> normal '
+        ITEM(15)='^ delimiter >> normal'
       elseif(delim.eq.'T')then
-        ITEM(15)='^ Delim >> TAB    '
+        ITEM(15)='^ delimiter >> tab   '
       elseif(delim.eq.'C')then
-        ITEM(15)='^ Delim >> comma  '
+        ITEM(15)='^ delimeter >> comma '
       elseif(delim.eq.'S')then
-        ITEM(15)='^ Delim >> space  '
+        ITEM(15)='^ delimiter >> space '
       endif
-      ITEM(16)='* Preferences          '
-      ITEM(17)='? Help                 '
-      ITEM(18)='- Finish mfs           '
+      ITEM(16)='* preferences          '
+      ITEM(17)='? help                 '
+      ITEM(18)='- exit module          '
       NITMS=18
 
 C Use askabout to instantiate the initial help messages (2nd parameter is one).
    12 call askabout('mfs ',1)
 
-      CALL EMENU('network flow solver',ITEM,NITMS,INO)
+      CALL EMENU('Network flow simulation',ITEM,NITMS,INO)
 
+C Exit module.
       IF(INO.EQ.NITMS)THEN
-
-C Finish mfs.
-C Close fluid flow problem description file
         CALL ERPFREE(IFPRB,ISTAT)
         call tstamp('>','Finish network flow analysis')
         close(ieout)
         CALL ERPFREE(ieout,ISTAT)
         CALL EPAGEND
         STOP
-      elseif(INO.EQ.NITMS-1)then
 
-C Help via the askabout facility in esru_ask.F The zero requests display
+C Menu help.
+      elseif(INO.EQ.NITMS-1)then
         call askabout('mfs ',0)
+
+C Preferences.        
       elseif(INO.EQ.NITMS-2)then
         CALL SETUP(ITRC,iuout,IER)
-      elseif(INO.EQ.1)then
 
-C Change to a different problem description.
+C Change problem description.
+      elseif(INO.EQ.1)then
         CALL MFINIT(IFPRB,IFCLM,IFRES)
         call tstamp('>','MFS: change network file')
-      elseif(INO.EQ.2)then
 
 C Invoke simulation.
+      elseif(INO.EQ.2)then
         GOTO 30
-      ELSEIF(INO.EQ.3)THEN
 
-C Tabular output of results; first read problem description file.
+C Tabular output.
+      ELSEIF(INO.EQ.3)THEN
         CALL MFLOAD(IFPRB,IER)
         IF(IER.NE.0)THEN
-          CALL USRMSG(' Problem encountered while loading the',
-     &                ' mass flow network description. ','W')
+          CALL USRMSG('Problem encountered while loading the',
+     &                'mass flow network description.','W')
           GOTO 10
         ENDIF
         IF(NNOD.LT.2.OR.NCMP.LT.1.OR.NCNN.LT.1)THEN
-          CALL USRMSG(' There do not appear to be sufficient nodes and',
-     &    ' connections available to create a network. ','W')
+          CALL USRMSG('Insufficient nodes and connections',
+     &    'to create a network.','W')
           GOTO 10
         ENDIF
         CALL MFCRIM(IFRES,IER)
         IF(IER.NE.0)THEN
-          CALL USRMSG(' There is a mismatch between the network',
-     &                ' description and the results file.','W')
+          CALL USRMSG('Mismatch between the network description',
+     &                'and results file.','W')
           GOTO 10
         ENDIF
 
         helptopic='tabular_format_options'
         call gethelptext(helpinsub,helptopic,nbhelp)
-        CALL EASKAB(' ','Do you want tabular output to be:',
-     &              'pretty print','raw & versatile',IW,nbhelp)
+        CALL EASKAB(' ','Tabular output:',
+     &              'formatted','raw',IW,nbhelp)
         IF(IW.EQ.1) THEN
           call tstamp('>','MFS: enter pretty print reporting')
           CALL MFTABL(itrc,IFRES,ier)
           call tstamp('>','MFS: exit pretty print reporting')
-        ELSE IF(IW.EQ.2) THEN
+        ELSEIF(IW.EQ.2) THEN
           call tstamp('>','MFS: enter raw reporting')
           CALL MFRTBL(itrc,IFRES,ier)
           call tstamp('>','MFS: exit raw reporting')
         END IF
-      ELSEIF(INO.EQ.4)THEN
 
 C Graphical output of results. Disabled on nongraphic terminals.
 C First read problem description file.
 C If not OK, or if not network data available, or if there is a
 C missmatch in the problem file and resuults file go back to menu.
+      ELSEIF(INO.EQ.4)THEN
         IF(MMOD.LT.0.AND.MMOD.NE.-6)THEN
-          CALL USRMSG(' ',' You must be in a graphic mode!','W')
+          CALL USRMSG(' ','You must be in a graphic mode!','W')
           GOTO 10
         ENDIF
         CALL MFLOAD(IFPRB,IER)
         IF(IER.NE.0)THEN
-          CALL USRMSG(' Problem encountered while loading the',
-     &                ' mass flow network description. ','W')
+          CALL USRMSG('Problem encountered while loading the',
+     &                'mass flow network description.','W')
           GOTO 10
         ENDIF
         IF(NNOD.LT.2.OR.NCMP.LT.1.OR.NCNN.LT.1)THEN
-          CALL USRMSG(' There do not appear to be sufficient nodes and',
-     &    ' connections available to create a network. ','W')
+          CALL USRMSG(' Insufficient nodes and connections',
+     &    ' to create a network.','W')
           GOTO 10
         ENDIF
         CALL MFCRIM(IFRES,IER)
         IF(IER.NE.0)THEN
-          CALL USRMSG(' There is a mismatch between the network',
-     &                ' description and the results file.','W')
+          CALL USRMSG('Mismatch between the network',
+     &                'description and results file.','W')
           GOTO 10
         ENDIF
         call tstamp('>','MFS: enter graphing')
         CALL MFPLOT(itrc,iuout,IFRES,ier)
         call tstamp('>','MFS: exit graphing')
-      ELSEIF(INO.EQ.6)THEN
 
 C Alter iteration parameters.
+      ELSEIF(INO.EQ.6)THEN
         CALL MFMODE(1)
         call tstamp('>','MFS: change iteration parameters')
-      ELSEIF(INO.EQ.7)THEN
 
-C Alter Pstack model.
+C Alter stack model.
+      ELSEIF(INO.EQ.7)THEN
         CALL MFMODE(2)
         call tstamp('>','MFS: change pstack parameters')
-      ELSEIF(INO.EQ.8)THEN
 
 C Alter solver type.
+      ELSEIF(INO.EQ.8)THEN
         CALL MFMODE(3)
         call tstamp('>','MFS: change solver type')
-      ELSEIF(INO.EQ.9)THEN
 
-C Alter trace flag
+C Alter trace flag.
+      ELSEIF(INO.EQ.9)THEN
         CALL MFMODE(4)
         call tstamp('>','MFS: change trace level')
-      ELSEIF(INO.EQ.10)THEN
 
 C Enable/disable non-fatal warning message printing.
+      ELSEIF(INO.EQ.10)THEN
         helptopic='mfs_review_warnings'
         call gethelptext(helpinsub,helptopic,nbhelp)
         CALL EASKOK(OUTSTR,'Print warning messages?',OK,nbhelp)
@@ -550,38 +548,40 @@ C Enable/disable non-fatal warning message printing.
           IF(MMOD.NE.-6) THEN
            ICOUT=99
            CALL EDISP(IUOUT,' ')
-           CALL EDISP(IUOUT,' Non-fatal run-time warnings will be  ')
-           CALL EDISP(IUOUT,' directed to a scratch file (fort.99).')
+           CALL EDISP(IUOUT,'Non-fatal run-time warnings will be  ')
+           CALL EDISP(IUOUT,'directed to file fort.99.')
           END IF
         ENDIF
+
+C Output destination.
       ELSEIF(INO.EQ.13)THEN
         call ctlexpmfs(xfile,ixopen,ixunit,ixpunit,'X','Tabular',IER)
-      ELSEIF(INO.EQ.14)THEN
-
+      
 C Toggle time format and day separators.
+      ELSEIF(INO.EQ.14)THEN
         IHFLAG=IHFLAG+1
         if(IHFLAG.GT.1)IHFLAG=0
-        if(IHFLAG.eq.0)then
-          call edisp(iuout,' ')
-          call edisp(iuout,'standard display time = 10h30 set ')
-        elseif(IHFLAG.eq.1)then
-          call edisp(iuout,' ')
-          call edisp(iuout,'3rd party graphing time = day fraction set')
-        endif
+C        if(IHFLAG.eq.0)then
+C          call edisp(iuout,' ')
+C          call edisp(iuout,'standard display time = 10h30 set ')
+C        elseif(IHFLAG.eq.1)then
+C          call edisp(iuout,' ')
+C          call edisp(iuout,'3rd party graphing time = day fraction set')
+C        endif
         helptopic='mfs_include_day_marker'
         call gethelptext(helpinsub,helptopic,nbhelp)
-        CALL EASKAB('Include mark between days when ',
-     &    'displaying or writing data :','no','yes',IDH,nbhelp)
+        CALL EASKAB('Include mark between days when',
+     &    'displaying or writing data?','no','yes',IDH,nbhelp)
         IDHFLG=IDH-1
-      ELSEIF(INO.EQ.15)THEN
 
 C Toggle delimeter.
+      ELSEIF(INO.EQ.15)THEN
         helptopic='mfs_tabular_delimeters'
         call gethelptext(helpinsub,helptopic,nbhelp)
         IWM=1
-        CALL EASKATOG(' ','Columns delimeter:',
-     &    'multiple spaces','single space','tab','comma','cancel',' ',
-     &    ' ',IWM,nbhelp)
+        CALL EASKATOG(' ','Columns delimeter options:',
+     &    'multiple spaces','single space','tab','comma','cancel',
+     &    ' ',' ',IWM,nbhelp)
         if(iwm.eq.1)then
           delim = '-'
         elseif(iwm.eq.2)then
@@ -591,12 +591,12 @@ C Toggle delimeter.
         elseif(iwm.eq.4)then
           delim = 'C'
         endif
+ 
       ELSE
         INO=-1
         GOTO 12
       ENDIF
       GOTO 10
-
 
 C Set up and do actual simulation; first read problem description file
 C If not OK, or if not network data available go back to menu.
@@ -653,22 +653,18 @@ C Transfer results to results file
       END
 
 C **************** MFSETU
-C Input start and stop dates; set simulation time step control data
-C Read wind pressure coefficients
-C Set known constant pressure nodes pressures and reset other nodes
-C Set initial values for flow, derivative and pressure history variables
-C Rewind results file (will only hold results of most recent ESRUmfs run)
+C Input start and finish dates and set simulation time step control data.
+C Read wind pressure coefficients.
+C Set known constant pressure nodes pressures and reset other nodes.
+C Set initial values for flow, derivative and pressure history variables.
+C Rewind results file (will only hold results of most recent simulation).
 C Indicate start of simulation and show iteration parameters
 
       SUBROUTINE MFSETU(IFRES)
-
 #include "building.h"
 #include "net_flow.h"
 #include "net_flow_data.h"
 #include "esprdbfile.h"
-C esprdbfile.h supplies the following:
-C LAPRES,IAPRES (for window pressure databases)
-C ICLIM,LCLIM (for climate file)
       
       integer lnblnk  ! function definition
 
@@ -699,13 +695,13 @@ C a default start and finish day.
       IFYD=1
       ILYD=31
 
-C Input start and stop dates
+C Input start and stop dates.
    10 CALL EASKPER('Simulation period:',IFYD,ILYD,IFDAY,IER)
       IF(IER.NE.0) GOTO 10
       CALL EDAYR(IFYD,IFD,IFM)
       CALL EDAYR(ILYD,ILD,ILM)
 
-C Set simulation time step control variables and progress flag
+C Set simulation time step control variables and progress flag.
       IRM=IFM
       IRD=IFD
       IRH=0
@@ -713,7 +709,7 @@ C Set simulation time step control variables and progress flag
       IYD=IFYD
       IPROG=0
 
-C Read pressure distribution file (coefficient for normal wind first)
+C Read pressure distribution file (coefficient for normal wind first).
       REWIND(IAPRES,ERR=999)
       READ(IAPRES,*,ERR=999) NPRE
       IF(NPRE.LE.0.OR.NPRE.GT.MPRD)then
@@ -725,7 +721,7 @@ C Read pressure distribution file (coefficient for normal wind first)
       READ(IAPRES,*,ERR=999) (FPRE(I,J),I=1,MPOS)
    22 CONTINUE
 
-C Set known constant pressure nodes pressures and reset other nodes
+C Set known constant pressure nodes pressures and reset other nodes.
       DO 32 INOD=1,NNOD
       IF(NDTYP(INOD).EQ.1.OR.NDTYP(INOD).EQ.2) THEN
          PRES(INOD)=SUPNOD(INOD,1)
@@ -734,7 +730,7 @@ C Set known constant pressure nodes pressures and reset other nodes
       END IF
    32 CONTINUE
 
-C Set initial values for flow, derivative and pressure history variables
+C Set initial values for flow, derivative and pressure history variables.
       DO 34 ICNN=1,NCNN
       HDP(ICNN)=DBLE(SMALL)
       HDV(ICNN)=1.0
@@ -742,58 +738,56 @@ C Set initial values for flow, derivative and pressure history variables
    34 CONTINUE
 
 C Rewind results file (by this action the results file will only
-C hold the results of the most recent ESRUmfs run)
+C hold the results of the most recent simulation).
       REWIND(IFRES,ERR=998)
 
 C Indicate start of simulation and show main calculation parameters
-      call edisp(IMFTU,' ESRUmfs simulation commenced with:')
-      WRITE(outs,'(A,A)') ' Problem : ',LAPROB(1:LNBLNK(LAPROB))
+      call edisp(IMFTU,'Network flow simulation commenced with:')
+      WRITE(outs,'(A,A)') 'Problem: ',LAPROB(1:LNBLNK(LAPROB))
       call edisp(IMFTU,outs)
-      WRITE(outs248,'(A,A)') ' Cp-wind : ',LAPRES(1:LNBLNK(LAPRES))
+      WRITE(outs248,'(A,A)') 'Cp-wind: ',LAPRES(1:LNBLNK(LAPRES))
       call edisp248(IMFTU,outs248,100)
-      WRITE(outs248,'(A,A)') ' Climate : ',LCLIM(1:LNBLNK(LCLIM))
+      WRITE(outs248,'(A,A)') 'Weather: ',LCLIM(1:LNBLNK(LCLIM))
       call edisp248(IMFTU,outs248,100)
-      WRITE(outs,'(A,A)') ' Results : ',LAFRES(1:LNBLNK(LAFRES))
+      WRITE(outs,'(A,A)') 'Results: ',LAFRES(1:LNBLNK(LAFRES))
       call edisp(IMFTU,outs)
-      WRITE(outs,'(A,I5)')
-     &' Iteration control parameters:     MAXITF       = ',MAXITF
+      call edisp(IMFTU,'Iteration control parameters:')
+      WRITE(outs,'(A,I5)') '   MAXITF = ',MAXITF
       call edisp(IMFTU,outs)
-      WRITE(outs,'(A,F9.3)')
-     &'                                   FERREL (%)   = ',FERREL*100.0
+      WRITE(outs,'(A,F9.3)') '   FERREL (%) = ',FERREL*100.0
       call edisp(IMFTU,outs)
-      WRITE(outs,'(A,F11.5)')
-     &'                                   FERMFL (kg/s)= ',FERMFL
+      WRITE(outs,'(A,F11.5)') '   FERMFL (kg/s)= ',FERMFL
       call edisp(IMFTU,outs)
-      WRITE(outs,'(A,F8.2)')
-     &'                                   PMAX   (Pa)  = ',PMAX
+      WRITE(outs,'(A,F8.2)') '   PMAX (Pa) = ',PMAX
       call edisp(IMFTU,outs)
-      WRITE(outs,'(A,F8.2)')
-     &'                                   STEFFR       = ',STEFFR
+      WRITE(outs,'(A,F8.2)') '   STEFFR = ',STEFFR
       call edisp(IMFTU,outs)
-      WRITE(outs,'(A,4X,I1)')
-     &' Calculation control parameters:   IPSMOD       = ',IPSMOD
+      call edisp(IMFTU,'Calculation control parameters:')
+      WRITE(outs,'(A,4X,I1)') '   IPSMOD = ',IPSMOD
       call edisp(IMFTU,outs)
-      WRITE(outs,'(A,4X,I1)')
-     &'                                   MSLVTP       = ',MSLVTP
+      WRITE(outs,'(A,4X,I1)') '   MSLVTP = ',MSLVTP
       call edisp(IMFTU,outs)
 
       RETURN
 
-C Stop due to 'unrecoverable' error
-  100 STOP ' MFSETU: unresolvable error !'
+C SUnrecoverable error.
+  100 STOP 'MFSETU: unresolvable error!'
 
-C Error trap on read error or silly data
-  999 CALL edisp(iuout,'  MFSETU: pressure db read error !')
+C Database read error.
+  999 CALL edisp(iuout,'MFSETU: pressure db read error!')
       goto 100
 
-  998 CALL edisp(iuout,'  MFSETU: unable to rewind results file!')
+C Rewind error.
+  998 CALL edisp(iuout,'MFSETU: unable to rewind results file!')
       goto 100
 
       END
 
 C ********************* SETUP 
-C SETUP provides the menu's and control logic for the mfs SETUP menu.
+C Displays the preferences menu.
+
       SUBROUTINE SETUP(itrc,ITRU,IER)
+#include "help.h"
 
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/DISPL/IDAYF,IDAYL,IFDAY,IFTIME
@@ -801,12 +795,7 @@ C SETUP provides the menu's and control logic for the mfs SETUP menu.
       CHARACTER SETUPM*36
       integer NITMS,ISETUP ! max items and current menu item
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found (will be non-zero
-                         ! because default message will be created
-      helpinsub='SETUP'  ! set for setup
+      helpinsub='mfs'  ! set for setup
 
 C Present the setup menu, ISETUP is the menu index returned. Generate
 C the menu text from current common block into via UPSET.
@@ -814,31 +803,31 @@ C the menu text from current common block into via UPSET.
       ISETUP=-2
 
       IF(IFDAY.EQ.0)THEN
-        SETUPM(1)='a Date display >> DOY  10           '
+        SETUPM(1)='a date display >> DOY  10           '
       ELSEIF(IFDAY.EQ.1)THEN
-        SETUPM(1)='a Date display >> 10 Jan            '
+        SETUPM(1)='a date display >> 10 Jan            '
       ELSEIF(IFDAY.EQ.2)THEN
-        SETUPM(1)='a Date display >> Fri 10 Jan        '
+        SETUPM(1)='a date display >> Fri 10 Jan        '
       ENDIF
 
 C Display of time of day.
       IF(IFTIME.EQ.0)THEN
-        SETUPM(2)='b Time display >> 10h30             '
+        SETUPM(2)='b time display >> 10h30             '
       ELSEIF(IFTIME.EQ.1)THEN
-        SETUPM(2)='b Time display >> 10.50             '
+        SETUPM(2)='b time display >> 10.50             '
       ELSEIF(IFTIME.EQ.2)THEN
-        SETUPM(2)='b Time display >> 0.4166 (day frac) '
+        SETUPM(2)='b time display >> 0.4166 (day frac) '
       ENDIF
       SETUPM(3)=  '  ____________________________      '
-      SETUPM(4)=  '? Help                              '
-      SETUPM(5)=  '- Exit to main menu                 '
+      SETUPM(4)=  '? help                              '
+      SETUPM(5)=  '- exit menu                         '
 
 C Help text for this menu.
       helptopic='mfs_setup_menu'
       call gethelptext(helpinsub,helptopic,nbhelp)
 
       NITMS=5
-      CALL EMENU('  Mfs preferences',SETUPM,NITMS,ISETUP)
+      CALL EMENU('Peferences',SETUPM,NITMS,ISETUP)
       IF(ISETUP.EQ.1)THEN
 
 C Allow user to toggle between 'Fri 10 Jan'/'10 Jan'/'DOY 124' format.
@@ -872,15 +861,14 @@ C Not one of the legal menu choices.
 
       END
 
-C ***** dummy routine for c code active descriptions buttons.
+C Dummy routine for c code active descriptions buttons.
       subroutine cfgpk(act)
       character act*1
 
       return
       end
 
-C Dummy routines from common3dv.F needed to match implied
-C calls in esru_lib.F
+C Dummy routines from common3dv.F needed to match calls in esru_lib.F
       SUBROUTINE ADJVIEW(IER)
       ier=0
       return

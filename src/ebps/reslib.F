@@ -1,8 +1,8 @@
 C This file is part of the ESP-r system.
 C Copyright Energy Systems Research Unit, University of
-C Strathclyde, Glasgow Scotland, 2001.
+C Strathclyde, Glasgow Scotland, 2001-.
 
-C ESP-r is free software.  You can redistribute it and/or
+C ESP-r is free software. You can redistribute it and/or
 C modify it under the terms of the GNU General Public
 C License as published by the Free Software Foundation 
 C (version 2 orlater).
@@ -14,7 +14,7 @@ C PURPOSE. See the GNU General Public License for more
 C details.
 
 
-C This file contains the following routines:
+C This file contains the following subroutines.
 C MZLIBF - makes ready the results file.
 C dealremote - deal with local and remote file names.
 C MZDEL  - deletes the last result-set saved in the building results file.
@@ -46,6 +46,7 @@ C results library as well.
 #include "power.h"
 #include "net_flow.h"
 #include "uncertainty.h"
+#include "help.h"
 
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/FILEP/IFIL
@@ -75,7 +76,7 @@ C Electrical network results library details.
      &NPREC
 
 C CFD unit numbers.
-      COMMON/ICFCHN/ICFMON(MNZ),ICFTMP,ICFLIB
+      COMMON/ICFCHN/ICFMON(MNZ),ICFDBC(MNZ),ICFTMP,ICFLIB
 
 C Active domain common.
       common/ACTDOM/CFDOK
@@ -103,11 +104,7 @@ C Toggle for extreme silent running (endless) mode.
 
       integer ier   ! file read/write error
 
-      character helpinsub*24   ! subroutine name
-      character helptopic*24   ! string (unique) for topic
-      integer nbhelp           ! number of help lines found
-
-      helpinsub='MZLIBF'       ! set for cfiles
+      helpinsub='reslib'       ! set for cfiles
 
 C If simulator was commissioned with browsing yes then by definition
 C we are running remotely and the results files should be saved
@@ -323,8 +320,6 @@ C file path name use FPOPEN.
           endif
         endif
 
-        write(outs,'(2A)')'Flow results file: ',LAFRES
-        call edisp(iuout,outs)
         call tstamp('>','BPS: create flow results')
         call tstamp('>',LAFRES)
 
@@ -573,7 +568,7 @@ C CFD results file.
           if(autook) then 
             iw=2
             if(remote)then
-              call dealremote('ds',remote,LTMP,IW)
+              call dealremote('di',remote,LTMP,IW)
             endif
             CFRESF=LTMP
           else
@@ -633,7 +628,7 @@ C Deal with names of various results files and checks if they will be
 C put in a location other than where the user invoked bps.
 C Input parameters:
 C  topic  - z=zone, f=network flow, p=plant, m=moisture, e=electrical,
-C           d=CFD ) with second character i=interactive s=silent
+C           d=CFD, with second character i=interactive, s=silent
 C  remote - if true then calculate the full path
 C  lfile  - file name which may be edited by user
 C Output parameter:
@@ -643,17 +638,14 @@ C           another location.
       subroutine dealremote(topic,remote,LFILE,IW)
 #include "building.h"
 #include "model.h"
+#include "help.h"
       
       integer lnblnk  ! function definition
       character topic*2,LFILE*72
       character ltmp*72,ltpath*72,filen*72
       logical unixok,remote
 
-      character helpinsub*24   ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='dealremote'  ! set for cfiles
+      helpinsub='reslib'  ! set for cfiles
 
       iw=1
       if(remote)then
@@ -744,10 +736,18 @@ C Depending on the domain of the file, confirm its name.
      &      72,'CFDres','CFD results lib',IER,nbhelp)
         elseif(IW.eq.2)then
           write(ltmp,'(2a)') upath(1:lnblnk(upath)),'/CFDres'
-          CALL EASKS(LFILE,' ' ,'CFD results file name?',
+          CALL EASKS(LFILE,' ','CFD results file name?',
      &      72,ltmp,'CFD results lib',IER,nbhelp)
         endif
       endif
+      
+C Pre-pend ../tmp/ to LFILE if in current path mode (i.e. prj was
+C was started in the model cfg directory.)
+      if(iw.eq.1) then
+        write(LTMP,'(2a)')'../tmp/',LFILE(1:lnblnk(LFILE))
+        LFILE=LTMP
+      endif
+
       return
       end
 

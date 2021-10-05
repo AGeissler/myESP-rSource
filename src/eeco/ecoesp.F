@@ -28,8 +28,7 @@ C << adapt to 144 char strings for LFMAT >>
 #include "building.h"
 #include "esprdbfile.h"
 #include "material.h"
-C esprdbfile.h supplies the following:
-C LFMAT,IFMAT,LFMUL,IFMUL (for materials and constructions database)
+#include "help.h"
       
       integer lnblnk  ! function definition
 
@@ -55,12 +54,7 @@ C Parameters
       integer NCO,NITMS,ICO,INO,IW ! max items and current menu item
       integer ISTRW
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='ELISTCMOD'  ! set for subroutine
+      helpinsub='ecoesp'  ! set for subroutine
 
 C Assume no changes to db amd user has not entered password.
       MODDB=.FALSE.
@@ -631,6 +625,7 @@ C the zone no are recorded in NZNOG
       SUBROUTINE Zoneslist
 #include "building.h"
 #include "geometry.h"
+#include "help.h"
 
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/gzonpik/izgfoc,nzg,nznog(mcom)
@@ -646,12 +641,7 @@ C the zone no are recorded in NZNOG
 
       DIMENSION IVALZ(MCOM)
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='Zoneslist'  ! set for subroutine
+      helpinsub='ecoesp'  ! set for subroutine
 
       do 5 i=1,MCOM
         NbSurSel(i) = 0
@@ -778,6 +768,7 @@ C Iskip : If = 0, then skip the list of surfaces menu
 #include "geometry.h"
 #include "epara.h"
 #include "prj3dv.h"
+#include "help.h"
 
       COMMON/FILEP/IFIL
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
@@ -796,12 +787,7 @@ C Iskip : If = 0, then skip the list of surfaces menu
       logical changedit
       integer MVERT,IVERT ! max items and current menu item
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='ZoneDisp'  ! set for subroutine
+      helpinsub='ecoesp'  ! set for subroutine
       helptopic='eco_surface_attribures'
       call gethelptext(helpinsub,helptopic,nbhelp)
 
@@ -983,6 +969,7 @@ C HeightCo (Real) : Height [m] of the composite, for LCA calculation.
 #include "geometry.h"
 #include "esprdbfile.h"
 #include "material.h"
+#include "help.h"
 
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
 
@@ -994,12 +981,7 @@ C HeightCo (Real) : Height [m] of the composite, for LCA calculation.
 
       DIMENSION IVALZ(MCOM)
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='CompoList'  ! set for subroutine
+      helpinsub='ecoesp'  ! set for subroutine
 
 
 C Read database if not already done.
@@ -1371,6 +1353,7 @@ C
 #include "LCA.h"
 #include "esprdbfile.h"
 #include "material.h"
+#include "help.h"
       
       integer lnblnk  ! function definition
 
@@ -1491,12 +1474,7 @@ C
       REAL LayerTot(MIMP),CompoTot(MIMP),ZoneTot(MIMP),StageTot(MIMP),
      &     WholeTot(MIMP),ProjTot(MIMP)
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='LCAcalc'  ! set for subroutine
+      helpinsub='ecoesp'  ! set for subroutine
  
 
 C Initialisation
@@ -2342,6 +2320,7 @@ C phylosophy as LCACalc
 #include "LCA.h"
 #include "esprdbfile.h"
 #include "material.h"
+#include "help.h"
       
       integer lnblnk  ! function definition
 
@@ -2468,12 +2447,7 @@ C phylosophy as LCACalc
       INTEGER NbEIALay, ICalType
       integer NITEMS,INO ! max items and current menu item
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='LCADet'  ! set for subroutine
+      helpinsub='ecoesp'  ! set for subroutine
  
 C Find version of materials database.
       call eclose(matver,1.1,0.01,closemat1)

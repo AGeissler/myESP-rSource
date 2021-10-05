@@ -32,6 +32,7 @@ C domain (air volume gridding not included).
 #include "material.h"
 #include "espriou.h"
 #include "prj3dv.h"
+#include "help.h"
 
       integer lnblnk  ! function definition
       integer igraphiclib  ! external definition
@@ -104,11 +105,6 @@ C Session log file (for errors etc.)
       integer*8 iicapture,iiazi    ! to pass to updcapt updazi
 #endif
       integer MITEM,INO ! max items and current menu item
-
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
 
 C Initialize global common data.
       call ezero
@@ -194,7 +190,7 @@ C display.
 
 C Set pixels high to iappw and pixels wide to factor in monitor size.
       iapphi=iappw
-      iappwi=int(real(iappw)*(1024.0/780.0))
+      iappwi=int(real(iappw)*(1024.0/725.0))
 
       if(iappw.gt.0.and.iappw.lt.100)then
         menuchw = MAX0(int(28*iappw*0.01),12)
@@ -664,6 +660,10 @@ C Dummy subroutine needed to compile (called from library code).
 
       SUBROUTINE CFDVIEW(IER)
       IER=0
+      return
+      end
+
+      subroutine redrawbuttons()
       return
       end
 

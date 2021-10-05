@@ -30,6 +30,7 @@ C Produces tabular output for a 24 hour period.
 #include "prj3dv.h"
 #include "net_flow.h"
 #include "net_flow_data.h"
+#include "help.h"
 
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
@@ -79,12 +80,7 @@ C      character spflnam*72
       integer*8 iiw1,iiw2,iiw3,iiw4,iimenu
 #endif
 
-C For help messages
-      character helpinsub*24   ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='MOTABL'  ! set for subroutine
+      helpinsub='table'  ! set for subroutine
 
 C Default value for GRTOOL file = 0 (off), day hash marks off.
       IHFLAG=0
@@ -343,7 +339,7 @@ C act='m' called from ipv metric with parameters already set.
       character act*1,sq*1,unit*7,t28*28,dg*1
       character LTIME*5,LJTIME*8
       character prompt*124,tg*1,delim*1,xfile*144
-      CHARACTER PDESCR*60,SDESCR*44,RSNAME*40,DESCR*7,DESCR1*10
+      CHARACTER PDESCR*64,SDESCR*44,RSNAME*40,DESCR*7,DESCR1*10,DESCR2*8
       character rfile*72,PFILE*72,MSTRFILE*72,LAFRES*72
       integer lnb    ! length of buffer to write to
       integer K,K4   ! counters
@@ -435,19 +431,21 @@ C a '#'. If user has set ILFLAG=2 then do not write # header lines.
           lsn1=MIN0(lnblnk(RFILE),42)
           if(NSIM.gt.1)then
             if(ILFLAG.le.1)then
-              write(outs248,'(3A,I4,2A)')'# Lib: ',RFILE(1:lsn1),
-     &        ' Set:',ISIM,': ',RSNAME(ISIM)(1:lnblnk(RSNAME(ISIM)))
+              write(outs248,'(3A,I4,3A)')'# Results library: ',
+     &         RFILE(1:lsn1),'; results set:',ISIM,': (',
+     &         RSNAME(ISIM)(1:lnblnk(RSNAME(ISIM))),')'
             else
-              write(outs248,'(3A,I4,2A)')' Lib: ',RFILE(1:lsn1),
-     &        ' Set:',ISIM,': ',RSNAME(ISIM)(1:lnblnk(RSNAME(ISIM)))
+              write(outs248,'(3A,I4,3A)')' Results library: ',
+     &         RFILE(1:lsn1),'; results set:',ISIM,': (',
+     &         RSNAME(ISIM)(1:lnblnk(RSNAME(ISIM))),')'
             endif
           else
             if(ILFLAG.le.1)then
-              write(outs248,'(4A)')'# Lib: ',RFILE(1:lsn1),
-     &        ': ',RSNAME(ISIM)(1:lnblnk(RSNAME(ISIM)))
+              write(outs248,'(5A)')'# Results library: ',RFILE(1:lsn1),
+     &        '; (',RSNAME(ISIM)(1:lnblnk(RSNAME(ISIM))),')'
             else
-              write(outs248,'(4A)')' Lib: ',RFILE(1:lsn1),
-     &        ': ',RSNAME(ISIM)(1:lnblnk(RSNAME(ISIM)))
+              write(outs248,'(5A)')' Results library: ',RFILE(1:lsn1),
+     &        '; (',RSNAME(ISIM)(1:lnblnk(RSNAME(ISIM))),')'
             endif
           endif
           if(ixopen.eq.1)then
@@ -464,7 +462,7 @@ C a '#'. If user has set ILFLAG=2 then do not write # header lines.
             endif
           endif
           WRITE(outs,'(4A)')'# ',PDESCR(1:lnblnk(PDESCR)),' ',
-     &      SDESCR(11:lnblnk(SDESCR))
+     &      SDESCR(12:lnblnk(SDESCR))
           if(ILFLAG.le.1)then
             call edisp(itru,outs)
           endif
@@ -475,11 +473,12 @@ C we can write to << ?? to be done >>
           call edisp(itru,'Timestep performance metrics.')
           lsn1=MIN0(lnblnk(RFILE),42)
           if(NSIM.gt.1)then
-            write(outs248,'(3A,I4,2A)')'Lib: ',RFILE(1:lsn1),' Set:',
-     &        ISIM,': ',RSNAME(ISIM)(1:lnblnk(RSNAME(ISIM)))
+            write(outs248,'(3A,I4,3A)')'Results library: ',
+     &        RFILE(1:lsn1),'; results set:',
+     &        ISIM,' (',RSNAME(ISIM)(1:lnblnk(RSNAME(ISIM))),')'
           else
-            write(outs248,'(4A)')'Lib: ',RFILE(1:lsn1),
-     &        ': ',RSNAME(ISIM)(1:lnblnk(RSNAME(ISIM)))
+            write(outs248,'(5A)')'Results library: ',RFILE(1:lsn1),
+     &        '; (',RSNAME(ISIM)(1:lnblnk(RSNAME(ISIM))),')'
           endif
           if(ixopen.eq.1)then
             lnb=lnblnk(outs248)   ! write directly to file
@@ -494,7 +493,7 @@ C we can write to << ?? to be done >>
           endif
 
           WRITE(outs,'(3A)')PDESCR(1:lnblnk(PDESCR)),' ',
-     &      SDESCR(11:lnblnk(SDESCR))
+     &      SDESCR(12:lnblnk(SDESCR))
           call edisp(itru,outs)
         endif
       endif
@@ -502,7 +501,7 @@ C we can write to << ?? to be done >>
       do 10 IDAY=IODS,IODF
 
 C Write day of results and column headings information (skip if IPV mode).
-        CALL STDATE(IYEAR,IDAY,DESCR,DESCR1)
+        CALL STDATE(IYEAR,IDAY,DESCR,DESCR1,DESCR2)
         if(act(1:1).ne.'m')then
           if (IDHFLG.eq.1.and.ixopen.eq.1) then
             outs='# '
@@ -917,7 +916,7 @@ C Markdown flag.
       integer ncomp,ncon
       COMMON/C1/NCOMP,NCON
 
-      CHARACTER PDESCR*60,SDESCR*44,CSTR*25,NMTHNM(12)*3
+      CHARACTER PDESCR*64,SDESCR*44,CSTR*25,NMTHNM(12)*3
       character outs*124,prompt*124,outsl*174
       CHARACTER RSNAME*40
       character rfile*72,PFILE*72,MSTRFILE*72,LAFRES*72
@@ -1231,8 +1230,9 @@ C Set header text and write it out if this has not yet been done.
      &        ' Set:',ISIM
             call edisp(itru,outs)
           else
-            WRITE(outs,'(3A,I4,2A)')'Lib: ',RFILE(1:lsn1),' Set:',ISIM,
-     &        ': ',RSNAME(ISIM)(1:lnblnk(RSNAME(ISIM)))
+            WRITE(outs,'(3A,I4,3A)')'Results library: ',RFILE(1:lsn1),
+     &         '; results set:',ISIM,
+     &        ' (',RSNAME(ISIM)(1:lnblnk(RSNAME(ISIM))),')'
             call edisp(itru,outs)
           endif
         else
@@ -1243,17 +1243,17 @@ C Set header text and write it out if this has not yet been done.
             write(outs,'(2A)')'### Library ',RFILE(1:lsn1)
             call edisp(itru,outs)
           else
-            WRITE(outs,'(4A)')'Lib: ',RFILE(1:lsn1),
-     &        ': ',RSNAME(ISIM)(1:lnblnk(RSNAME(ISIM)))
+            WRITE(outs,'(5A)')'Results library: ',RFILE(1:lsn1),
+     &        '; (',RSNAME(ISIM)(1:lnblnk(RSNAME(ISIM))),')'
             call edisp(itru,outs)
           endif
         endif
         if(markdown)then
           write(outs,'(4A)')'### ',PDESCR(1:lnblnk(PDESCR)),' ',
-     &      SDESCR(11:lnblnk(SDESCR))
+     &      SDESCR(12:lnblnk(SDESCR))
         else
           write(outs,'(3A)')PDESCR(1:lnblnk(PDESCR)),' ',
-     &      SDESCR(11:lnblnk(SDESCR))
+     &      SDESCR(12:lnblnk(SDESCR))
         endif
         call edisp(itru,outs)
         call edisp(itru,' ')

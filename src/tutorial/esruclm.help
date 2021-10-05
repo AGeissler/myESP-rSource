@@ -1,7 +1,5 @@
 *help_text clm
 
-*subroutine rdblist
-
 *item rdblist climatelist
 'These are the available weather files as included in the'
 'stated collection. Pick a file to examine its content. The'
@@ -10,8 +8,6 @@
 'editing the climatelist file and to mark individual files'
 'therein as being on- or off-line to ESP-r users.'   
 *enditem
-
-*subroutine clm
 
 *item clm weather_analysis_menu
 'This menu allows browsing, editing and analysis of the'
@@ -55,74 +51,43 @@
 'clear the current data.'
 *enditem
 
-*subroutine PSYCHART
-
-*item PSYCHART psychrometric_overview
+*item clmpsychart psychrometric_overview
 'Displays a graphical representation of the psychrometric'
 'processes of the ambient air.''
 *enditem
 
-*item PSYCHART psychrometric_min_max
+*item clmpsychart psychrometric_min_max
 'The chart focus can be adjusted by specifying the minimum'
 'and maximum values for temperature and the maximum value'
 'for moisture content.'
 *enditem
 
-*item PSYCHART psychrometric_data
+*item clmpsychart psychrometric_data
 'Chart data can be coloured by air temperature or'
 'relative humidity.'
 *enditem
 
-*subroutine MKBCLM
-
-*item MKBCLM define_year
+*item cfiles define_year
 'Enter the year in which the data was collected.'
 *enditem
 
-*item MKBCLM define_station_name
+*item cfiles define_station_name
 'Enter a weather station name (<30 char).'
 *enditem
 
-*item MKBCLM define_latitude
+*item cfiles define_latitude
 'Enter the station latitude in degrees (northern'
 'hemisphere +ve).'
 *enditem
 
-*item MKBCLM define_longitude_diff
-'Enter the difference between the weather station longitude'
-'and the reference meridian longitude for the time zone'
-'(East of the reference is positive).
-*enditem
-
-*item MKBCLM confirm_marker_line 
+*item cfiles confirm_marker_line 
 'If the ASCII file was exported from the weather'
 'module it will have a marker line at the start of'
 'each day. If the file does not have these markers'
 'then say no. '
 *enditem
 
-*subroutine COLTOBCLM
-
-*item COLTOBCLM define_year
-'Enter the year in which the data was collected.'
-*enditem
-
-*item COLTOBCLM define_station_name
-'Enter a weather station name (<30 char).'
-*enditem
-
-*item COLTOBCLM define_latitude
-'Enter the station latitude in degrees (northern'
-'hemisphere +ve).'
-*enditem
-
-*item COLTOBCLM define_longitude_diff
-'Enter the difference between the weather station longitude'
-'and the reference meridian longitude for the time zone'
-'(East of the reference is positive).
-*enditem
-
-*item COLTOBCLM define_day
+*item cfiles define_day
 'By default, weather collections are annual. You may set'
 'start and end days of the year for the data you are'
 'importing. If this period is less than a full year,'
@@ -130,20 +95,13 @@
 'in the resulting weather file.'
 *enditem
 
-*item COLTOBCLM korea_met_conversion'
+*item cfiles korea_met_conversion
 'Different models are available to estimate the diffuse'
 'solar energy from the given global solar data. The default'
 'model is by Erbs, Klein and Duffie'
 *enditem
 
-*item COLTOBCLM not_enough_metrics
-'An ESP-r weather file requires at least 6 parameters:'
-'dry bulb temperature, diffuse solar, direct or global solar,
-'wind speed, wind direction and relative humidity. Some'
-'of these parameters are missing.'
-*enditem
-
-*item COLTOBCLM clm_import_param
+*item cfiles clm_import_param
 'Weather data can be imported from column data files if'
 'you supply the name of the file and then select the'
 'columns to use for each of the data items (leaving the'
@@ -172,57 +130,31 @@
 '  RH - % real, tenths % integer or a real 0.0-1.0.'
 *enditem
 
-*item COLTOBCLM confirm_marker_line
+*item cfiles confirm_marker_line
 'The import file can have a comment line at the start of'
 'each day'
 *enditem
 
-*item COLTOBCLM not_enough_metrics
+*item cfiles not_enough_metrics
 'For a weather file to be usable, it must contain at least'
 'the following parameters: dry bulb temperature, diffuse'
 'horizontal solar, direct normal or global horizontal solar,'
 'wind speed, wind direction and relative humidity.'
 *enditem
 
-*subroutine MKOREANCLM
-
-*item MKOREANCLM confirm_lat_log_diff
+*item cfiles confirm_lat_log_diff
 'The weather longitude does not necessarily have to '
 'match the site latitude.  However, the difference '
 'should not be great or simulation results may be '
 'open to question.'
 *enditem
 
-*item MKOREANCLM local_time_difference
+*item cfiles local_time_difference
 'The local time difference from Greenwich is needed.'
 'Assume west is positive (e.g. use -2 for Greece) '
 *enditem
 
-*item MKOREANCLM korea_met_conversion'
-'The default conversion model is based on a publication'
-'from Muneer: Solar Radiation and Daylight models (1997)'
-'ISBN: 0-7506-2495-7.'
-' '
-'The Maxwell model is equation 3.4.2a and 3.4.2b of '
-'Muneer book on page 102. '
-'The Erbs, Klein and Duffie model is based on empirical '
-'correlations, documented in: Erbs D.G., Klein S.A., '
-'Duffie J.A. 1982. Estimation of the diffuse radiation'
-'fraction for hourly, daily and monthly-average global '
-'radiation. Solar Energy 28: pp.293-302.'
-' '
-'The three methods tend to give different estimates of'
-'diffuse radiation for a given global horizontal solar'
-'radiation value. The default method tends to give higher'
-'diffuse values. '
-' '
-'If in doubt, create a weather file for each of the'
-'methods and visually inspect the predictions.'
-*enditem
-
-*subroutine CFILIN
-
-*item CFILIN clm_file_contents
+*item cfiles clm_file_contents
 'A weather file holds hourly values for diffuse horizontal'
 'solar irradiance (W/m^2), dry bulb temperature (tenths C),'
 'direct normal or global horizontal solar irradiance (W/m^2),'
@@ -231,20 +163,12 @@
 'location is /usr/esru/esp-r/climate.'
 *enditem
 
-*item HISCLM clm_numb_below_graph
+*item cfrqdis clm_numb_below_graph
 'If you want to see the numbers as well as the '
 'graph say yes. '
 *enditem
 
-*subroutine HISCLM
-
-*item HISCLM clm_frq_distr_choice
-'Frequency distribution choices. '
-*enditem
-
-*subroutine HISFRQ
-
-*item HISFRQ clm_frq_distr_choice
+*item cfrqdis clm_frq_distr_choice
 'Priority can be given to either the number of frequency'
 'bins or the width of each bin. Specifying the number of'
 'frequency bins adjusts the width of each bin, while'
@@ -252,7 +176,7 @@
 'to the (user specified) width of each bin.'
 *enditem
 
-*item HISFRQ clm_frq_distr_bins
+*item cfrqdis clm_frq_distr_bins
 'Priority can be given to either the number of frequency'
 'bins or the width of each bin. Specifying the number of'
 'frequency bins adjusts the width of each bin, while'
@@ -260,29 +184,29 @@
 'to the (user specified) width of each bin.'
 *enditem
 
-*item HISFRQ clm_frq_min_bin
+*item cfrqdis clm_frq_min_bin
 'Give minimum bin value for the current parameter. '
 *enditem
 
-*item HISFRQ clm_frq_max_bin
+*item cfrqdis clm_frq_max_bin
 'Give maximum bin value for the current parameter. '
 *enditem
 
-*item HISFRQ clm_frq_max_hit
+*item cfrqdis clm_frq_max_hit
 'You have the option to specify the maximum number '
 'of <hits> for the bins. '
 *enditem
 
-*item HISFRQ clm_frq_max_hight
+*item cfrqdis clm_frq_max_hight
 'Height is in <hits> ?'
 *enditem
 
-*item CLMDAY period_at_least
+*item clmper period_at_least
 'Entering a start and end hour will exclude weather parameters'
 'outwith this range each day.'
 *enditem
 
-*item ONEDAY period_within_calendar
+*item clmper period_within_calendar
 'Specify any day within a calander year.'
 *enditem
 
@@ -407,11 +331,11 @@
 '  tab separator (for excel)'
 *enditem
 
-*item CLMTOT confirm_another_period
+*item clm confirm_another_period
 'If you do not want to carry on select no.'
 *enditem
 
-*item SETUP clm_setup_help
+*item clm clm_setup_help
 'The preferences menu allows the format of the'
 'preferences (date & time) to be adjusted. '
 ' '
@@ -420,46 +344,44 @@
 'complex images may be viewed in greater detail.'
 *enditem
 
-*item CLMGRF clm_solar_graph
+*item clmgrf clm_solar_graph
 'Both direct and diffuse solar share an axis. '
 *enditem
 
-*item CLMGRF clm_wind_graph
+*item clmgrf clm_wind_graph
 'Wind is in m/sec, direction in degrees. '
 *enditem
 
-*item CLMGRF clm_graph_facilities
+*item clmgrf clm_graph_facilities
 'Graph content is defined by selecting items from options'
 '1 though 6 and then selecting ! Draw. It is usually best '
 'to reduce the outoput period.'
 *enditem
 
-*item CLMINT clm_just_in_case
+*item clmint clm_just_in_case
 'Just in case you made an error!'
 *enditem
 
-*item CLMINT clm_another_say_no
+*item clmint clm_another_say_no
 'Enter yes or no.'
 *enditem
 
-*subroutine CLMMMSYNOP
-*item CLMMMSYNOP pause_to_study_listing
+*item clmmmm pause_to_study_listing
 'Pause point so you can study the listing.'
 *enditem
 
-*item SELPER  period_user_defined
+*item clmper  period_user_defined
 'The period defines the time range of the weather parameters'
 'to be processed. Either define the required period or select'
 'a preset.'
 *enditem
 
-*item CLMPER period_output_time
+*item clmper period_output_time
 'Enter the integer hour, day and month numbers of the period'
 'start and finish time as required. Hours are from 1 to 24.'
 *enditem
 
-*subroutine editemclimatelist
-*item editemclimatelist climate_list_facility
+*item clmper climate_list_facility
 'How to use the weather list facility: '
 ' '
 'Weather data resides in individual files and ESP includes'
@@ -496,93 +418,73 @@
 'season (drawn slightly below). '
 *enditem
 
-*item editemclimatelist climate_list_menu_txt
+*item clmper climate_list_menu_txt
 'Text for the selection list menu (<=32 char). '
 *enditem
-*item editemclimatelist climate_list_menu_aide
+
+*item clmper climate_list_menu_aide
 'Aide Memorie for the selection list menu (<=72 char). '
 *enditem
 
-*item editemclimatelist climate_list_loc
+*item clmper climate_list_loc
 'This is the <installed> location of the climate file.'
 '(remember to copy new weather files to this folder)'
 *enditem
 
-*item editemclimatelist climate_item_offline
+*item clmper climate_item_offline
 'Set to OFFLINE if weather files tend to be kept as'
 'compressed files or are held in a secure location. '
 *enditem
 
-*item editemclimatelist climate_winter_season
+*item clmper climate_season
 'Season start day & month and finish day and month. '
 *enditem
 
-*item editemclimatelist climate_spring_season
-'Season start day & month and finish day and month. '
-*enditem
-
-*item editemclimatelist climate_summer_season
-'Season start day & month and finish day and month. '
-*enditem
-
-*item editemclimatelist climate_autumn_season
-'Season start day & month and finish day and month. '
-*enditem
-
-*item editemclimatelist climate_winter2_season
-'Season start day & month and finish day and month. '
-*enditem
-
-*item editemclimatelist climate_winter1_season
-'Period start day & month and finish day and month. '
-*enditem
-
-*item editemclimatelist climate_list_doc
+*item clmper climate_list_doc
 'The list option displays each of the lines of '
 'documentation. The initialise option creates a '
 'standard summary of the weather data. The Edit '
 'option is not yet enabled (save and use a text editor).'
 *enditem
 
-*item editemclimatelist climate_current_info
+*item clmper climate_current_info
 'Information on the current weather file (seasons etc.)'
 'will be written to a small ASCII file which can be'
 'copied into /usr/esru/esp-r/climatelist file. '
 *enditem
 
-*item DDRADSUM dd_base_temp
+*item clmper dd_base_temp
 'Degree-days are calculated relative to a specific base'
 'temperature that is specified here.'
 *enditem
 
-*subroutine CLMSYN
-*item CLMSYN typical_weeks
+*item clmsyn typical_weeks
 'Typical weeks are found by scanning the weather data'
 'for a week in each season which has the least deviation'
 'in heating degree days, cooling degree days, and'
 'solar radiation. '
 *enditem
 
-*item CLMSYN synoptic_menu
+*item clmsyn synoptic_menu
 'To invoke a query select from options a through f and'
 'and then options 3 through 8. The typical week option'
 'provides output than can be helpful when creating a new'
 'weather collection via the climatelist file.'
 *enditem
 
-*item CLMSYN dd_day_week_month
+*item clmsyn dd_day_week_month
 'Degree-days can be summarised over different periods.'
 'This requires that the set period be greater than the'
 'reporting frequency.'
 *enditem
 
-*item CLMSYN days_in_range_limits
+*item clmsyn days_in_range_limits
 'The days within range option requires that you set a lower range'
 'limit as well as an upper range limit. Only values which fall'
 'within this range are reported.
 *enditem
 
-*item CSIEQN climate_severity_types
+*item clmsyn climate_severity_types
 'The CSI house types (1 to 30). Each variant is a combination'
 'of the thermal capacity of the building (low medium high),'
 'the position of the thermal capacity (inside middle outside)'
@@ -590,25 +492,7 @@
 '(tight standard), insultation level (standard high).'
 *enditem
 
-*item CLMDEG dd_base_temperature
-'Degree-days are calculated relative to a specific base'
-'temperature that is specified here.'
-*enditem
-
-*subroutine SYNOPDEG
-*item SYNOPDEG dd_base_temperatures
-'Degree-days are calculated relative to a specific base'
-'temperature that is specified here.'
-*enditem
-
-*subroutine SYNOPDEGS
-*item SYNOPDEGS dd_base_temperature
-'Degree-days are calculated relative to a specific base'
-'temperature that is specified here.'
-*enditem
-
-*subroutine SYNOPWDEG
-*item SYNOPWDEG dd_base_temperature
+*item clmsyn dd_base_temperature
 'Degree-days are calculated relative to a specific base'
 'temperature that is specified here.'
 *enditem
@@ -617,8 +501,7 @@
 'Pause point so you can study the data. '
 *enditem
 
-*subroutine CLPRED
-*item CLPRED curve_fitting_overview
+*item clpred curve_fitting_overview
 'This menu allows weather data to be changed. In order to '
 'make a change choose one of the weather parameters (direct'
 '/diffuse radiation, temperature etc.)'
@@ -651,20 +534,21 @@
 'modified depending on which wind direction segment it '
 'falls into.'
 *enditem
-*item CLPRED reminder_on_saving
+
+*item clpred reminder_on_saving
 'Any changes you might have made will only be '
 'written to THE CURRENT file if you agree. '
 ' '
 'If you have not made any changes then just say no.'
 *enditem
 
-*item CLPRED interdependant_rh_temp
+*item clpred interdependant_rh_temp
 'Temperature and RH are interdependant and some'
 'unrealistic combination may cause problems at'
 'simulation time. No checks are currently made.'
 *enditem
 
-*item CLPRED jk_page_direct_normal
+*item clpred jk_page_direct_normal
 'This model is based on the work of J K Page'
 '(Sheffield). It is used to predict the direct normal'
 'and the horizontal diffuse solar irradiance for any'
@@ -672,25 +556,24 @@
 'atmospheric turbidity and precipitable water content'
 *enditem
 
-*item CLPRED hour_max_min
+*item clpred hour_max_min
 'You are asked for the hour at maximum as well as the'
 'maximum value and the minimum value for the day. '
 *enditem
 
-*item CLPRED specify_more_variables
+*item clpred specify_more_variables
 'You did not specify all of the variables that '
 'are allowed. Say yes to include the remaining '
 'variables. '
 *enditem
 
-*item CLPRED io_error_message
+*item clpred io_error_message
  'A data i/o error has occured in the program'
  'and it is probably best not to go on. '
  'Program is taking one step back.'
 *enditem
 
-*subroutine POLYTR
-*item POLYTR polynomial_fit_overview
+*item clpred polynomial_fit_overview
 'A climate parameter can either be set to a constant value'
 'for the chosen period of time. Or it can be increased or'
 'decreased by a constant value (e.g. to increase all temp-'
@@ -711,26 +594,24 @@
 'required as input'
 *enditem
 
-*item POLYTR polynomial_coef
+*item clpred polynomial_coef
 'For the polynomial a1X + a0 enter a1 and a0 '
 'in that order and separated by a space'
 *enditem
 
-*item POLYTR polyr_io_error_message
+*item clpred polyr_io_error_message
  'A data i/o error has occured in the program'
  'and it is probably best not to go on. '
  'Program is taking one step back.'
 *enditem
 
-*subroutine PDRAW
-*subroutine PSOLRD
-*item PSOLRD north_is_positive
+*item clpred north_is_positive
 'North is positive, South is negative.'
 'East is positive, West is negative. '
 'Mass is used in determining air mass and turbidity. '
 *enditem
 
-*item PSOLRD recommended_turbidity
+*item clpred recommended_turbidity
 '     Recommended Turbidity Values:'
 ' '
 ' Clear weather in winter            0.09'
@@ -740,78 +621,58 @@
 ' Heavy warm hazy weather            0.45'
 *enditem
 
-*item PSOLRD review_derived_value
+*item clpred review_derived_value
 'You have been presented with a derived value. Plese '
 'review the value to see if it correct. If you say'
 'no you will be asked for precipitable water content. '
 *enditem
 
-*item PSOLRD precip_water_content
+*item clpred precip_water_content
 'Water content is in mm. '
 *enditem
 
-*item RRITE ok_to_update
+*item rrite ok_to_update
 'Changes were detected in the climate data. These'
 'may be lost if they are not saved back into the '
 'file. '
 *enditem
 
-*item RRITE one_day_at_a_time
+*item rrite one_day_at_a_time
 'Editing of weather data is done one day at a time.'
 'If you want to continue editing a different day '
 'say yes. '
 *enditem
 
-*item RRITE edit_hourly_menu
+*item rrite edit_hourly_menu
 'This menu allows weather data for each hour of a day to'
 'be edited. Edit by selecting an item or -Exit to escape.'
 *enditem
 
-*item RRITE one_day_data_summary
+*item rrite one_day_data_summary
 'Data are: '
 ' diffuse rad (W/m^2), glob hor rad (W/m^2), db temp (C),'
 'Relative Humidity (%), wind direc (deg from north),'
 'and speed (m/sec)'
 *enditem
 
-*item RRITE pick_a_metric
+*item rrite pick_a_metric
 'Choose a climate metric index.'
 'Available metrics in the current climate file'
 'are shown in the text feedback.'
 *enditem
 
-*item SITEDIT what_is_the_year
-'The year is required to find the day of the week'
-'for a given julian day. The year 2001 has 1 Jan'
-'as a Monday.'
-*enditem
-
-*item SITEDIT what_is_descr
+*item rrite what_is_descr
 'This description (<=30 char) is used in reporting.'
 *enditem
 
-*item SITEDIT what_is_latitude
-'The weather latitude does not necessarily have to match'
-'the site latitude, however, the difference should not be'
-'great or simulation results may be open to question.'
-*enditem
-
-*item SITEDIT what_is_long_diff
-'The weather longitude either the longitude difference from time'
-'meridian +east or its actual longitude does not necessarily have'
-'to match the model site, however, it should be close for best'
-'results. Make a note of which longitude you are using.'
-*enditem
-
-*subroutine EPWTOBCLM
-*item EPWTOBCLM missing_cld_data
+*item cfiles missing_cld_data
 'Some of this data is missing in the EPW file.'
 'If you choose to use the available data, periods of missing'
 'data will be filled in with values of 0 (this corresponds to'
 'no cloud). You can edit the data manually after importing if'
 'you wish.'
 
-*item EPWTOBCLM missing_prs_data
+*item cfiles missing_prs_data
 'Some of this data is missing in the EPW file.'
 'If you choose to use the available data, periods of missing'
 'data will be filled in with values of 101325 Pa (this'

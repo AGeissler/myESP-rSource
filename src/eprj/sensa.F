@@ -1,6 +1,6 @@
 C This file is part of the ESP-r system.
 C Copyright Energy Systems Research Unit, University of
-C Strathclyde, Glasgow Scotland, 2001.
+C Strathclyde, Glasgow Scotland, 2001-.
 
 C ESP-r is free software.  You can redistribute it and/or
 C modify it under the terms of the GNU General Public
@@ -17,7 +17,7 @@ C PURPOSE. See the GNU General Public License for more
 C details.
 
 
-C Controling routines for parametric studies:
+C Controlling routines for parametric studies.
 C   UNCERTA:  This is the top level uncertainty definition menu. 
 C   DISPOPT:  Displays the options available for the chosen 
 C             type: change / location / link.
@@ -55,12 +55,13 @@ C CHKPRIM     Scans the layers of the MLC for a specific surface (copy)
 C UCTLAT01    Identifies control data should be changed for calibration.
 C
 
-C ***************** UNCERTA *********************
+C ******************** UNCERTA ********************
+
       subroutine UNCERTA()
 #include "building.h"
 #include "model.h"
-C Common blocks UA2 UA3 UA4 within uncertainty.h
 #include "uncertainty.h"
+#include "help.h"
       
       integer lnblnk  ! function definition
 
@@ -76,12 +77,7 @@ C Common blocks UA2 UA3 UA4 within uncertainty.h
 
       LOGICAL LIBXST
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='UNCERTA'  ! set for subroutine
+      helpinsub='sensa'  ! set for subroutine
       
       IUALF=IFIL
       helptopic='uncert_overview_a'
@@ -196,16 +192,16 @@ C Link uncertainties with locations.
 
       END
 
-C ***************** DISPOPT *********************
-C DISPOPT displays the contents of the changes, locations or 
+C ******************** DISPOPT ********************
+C Displays the contents of the changes, locations or 
 C actions common depending on the value of ITYP.
 C ITYP: 1=changes, 2=locations, 3=actions
 
       subroutine DISPOPT(ITYP,IUALF)
 #include "building.h"
 #include "epara.h"
-C Common blocks UA1 UA2 UA3 UA4 within uncertainty.h
 #include "uncertainty.h"
+#include "help.h"
 
 C muadel should be equivalent to max(MNCNG,MNIL,MNACT))
       parameter (muadel=50)
@@ -216,12 +212,7 @@ C muadel should be equivalent to max(MNCNG,MNIL,MNACT))
       dimension IDEL(muadel)
       integer NITMS,INO ! max items and current menu item
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='DISPOPT'  ! set for subroutine
+      helpinsub='sensa'  ! set for subroutine
       
       IER=0
       if (ITYP.lt.1.and.ITYP.gt.3) return
@@ -423,12 +414,11 @@ C decremented within locdef).
       END
 
 
-C ***************** DEFUAL *********************
-C DEFUAL create a set of default uncertainties
+C ******************** DEFUAL ********************
+C Create a set of default uncertainties.
 
       subroutine DEFUAL
 #include "building.h"
-C Common blocks UA3 within uncertainty.h
 #include "uncertainty.h"
 
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
@@ -436,7 +426,7 @@ C Common blocks UA3 within uncertainty.h
       IERR=0
       IER=0
 
-C Need controlling menu here - select uncertainty category.
+C <Need controlling menu here to select uncertainty category.>
 
 C IDTYPU = 3 : Weather parameters
 C        IDTYPU(ICDEF)=3
@@ -472,14 +462,14 @@ C        call SDDEF1001(ICDEF,IER)
       return
       END
 
-C ***************** CNGDEF *********************
-C CNGDEF allows the user to define the distribution of an uncertainty.
-C ICDEF  If equal to zero then add a new definition, else edit.
+C ******************** CNGDEF ********************
+C Allows user to define the distribution of an uncertainty.
+C ICDEF - If equal to zero then add a new definition, else edit.
 
       subroutine CNGDEF(ICDEF,IERR)
 #include "building.h"
-C Common blocks UA1 UA3 within uncertainty.h
 #include "uncertainty.h"
+#include "help.h"
 
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
 
@@ -487,12 +477,7 @@ C Common blocks UA1 UA3 within uncertainty.h
       CHARACTER ITEM(17)*32, outs*124
       integer NITMS,INO ! max items and current menu item
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='CNGDEF'  ! set for subroutine
+      helpinsub='sensa'  ! set for subroutine
       
       IERR=0
       IER=0
@@ -518,22 +503,22 @@ C sorted into different `types' or categories.
       call edisp(iuout,'  ')
       call edisp(iuout,' Uncertainty category selection. ')
       ITEM(1) =' Databases ...               '
-      ITEM(2) ='a  Weather                   '
-      ITEM(3) ='   Pressure (N/A)            '
-      ITEM(4) ='c  Thermophysical properties '
-      ITEM(5) ='d  Construction composites   '
-      ITEM(6) ='e  Optical properties (draft)'
-      ITEM(7) ='f  Ideal controls'
+      ITEM(2) ='a  weather                   '
+      ITEM(3) ='   pressure (N/A)            '
+      ITEM(4) ='c  thermophysical properties '
+      ITEM(5) ='d  construction composites   '
+      ITEM(6) ='e  optical properties (draft)'
+      ITEM(7) ='f  ideal controls'
       ITEM(8) =' --------------------------- '
       ITEM(9) =' Zones composition ...       '
-      ITEM(10)='g  Geometry (air volume)     '
-      ITEM(11)='   Boundary conditions (N/A) '
-      ITEM(12)='i  Zone operations           '
-      ITEM(13)='j  Convection coefficients   '
-      ITEM(14)='   Casual gain control (N/A) '
+      ITEM(10)='g  geometry (air volume)     '
+      ITEM(11)='   boundary conditions (N/A) '
+      ITEM(12)='i  zone operations           '
+      ITEM(13)='j  convection coefficients   '
+      ITEM(14)='   casual gain control (N/A) '
       ITEM(15)=' --------------------------- '
-      ITEM(16)='? Help                       '
-      ITEM(17)='- Exit                       '
+      ITEM(16)='? help                       '
+      ITEM(17)='- exit this menu             '
       NITMS=17
 
 C Display current.
@@ -641,8 +626,8 @@ C Passed icdef of zero i.e. new uncertainty
       return
       END
 
-C ***************** LOCDEF *********************
-C LOCDEF The location definition menu allows the user to define the 
+C ******************** LOCDEF ********************
+C The location definition menu allows the user to define the 
 C areas within the thermal model where or periods when uncertainties exist. 
 C The user is asked a series of questions and is provided with 
 C a list of options to choose from where applicable.  
@@ -651,14 +636,15 @@ C in the adjacent zone will also be selected automatically.
 C ITEM   If equal to zero then add a new definition, else edit. 
 C IERR is zero is ok, 101 if there was a problem with the location
 C   specification and 2 if there was a cancel issued during editing.
+
       subroutine LOCDEF(ITEM,IERR)
 #include "building.h"
 #include "model.h"
 #include "geometry.h"
 #include "esprdbfile.h"
 #include "material.h"
-C Common blocks UA1 UA2 within uncertainty.h
 #include "uncertainty.h"
+#include "help.h"
 
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/FILEP/IFIL
@@ -687,12 +673,7 @@ C Common blocks UA1 UA2 within uncertainty.h
       integer icurrent   ! which location we are dealing with
       logical found,foundmat,chdb,modmlc
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='LOCDEF'  ! set for subroutine
+      helpinsub='sensa'  ! set for subroutine
       
 C Set initial values (for the whole year).
       IERR=0
@@ -1159,27 +1140,22 @@ C Provide id string name.
 
       END
 
-C ***************** LINKDEF *********************
+C ******************** LINKDEF ********************
 C LINKDEF allows the association of changes with locations to 
 C make actions.  These actions are then used by the simulator 
 C to model the described uncertainty. 
-C ITEM   If equal to zero then add a new definition, else edit. 
+C ITEM  - If equal to zero then add a new definition, else edit. 
 
       subroutine LINKDEF(ITEM,IERR)
 #include "building.h"
-C Common blocks UA1 UA2 UA3 UA4 within uncertainty.h
 #include "uncertainty.h"
+#include "help.h"
 
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
 
       DIMENSION IVALC(MNCNG),IVALL(MNIL)
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub=' LINKDEF'  ! set for subroutine
+      helpinsub='sensa'  ! set for subroutine
       
       IERR=0
       IER=0
@@ -1238,8 +1214,8 @@ C Everything is OK re selection therefore add type selection to common.
 
       END
 
-C ************************ UPELM **************************
-C UPELM retrieves the unique materials used in the ESP-r 
+C ******************** UPELM ********************
+C Retrieves the unique materials used in the ESP-r 
 C model. This is done by copying all the materials used 
 C into an array, then sorting them via a bubble search removing 
 C any duplicates.
@@ -1249,14 +1225,10 @@ C any duplicates.
 #include "esprdbfile.h"
 #include "material.h"
 
-C      COMMON/OUTIN/IUOUT,IUIN,IEOUT
-
       COMMON/FOPENED/CFGOK,MLDBOK,MATDBOK,CTLOK,OPTKOK,CFCDBOK
       LOGICAL        CFGOK,MLDBOK,MATDBOK,CTLOK,OPTKOK,CFCDBOK
 
       INTEGER PRIMLIST(MMLC*ME)
-
-C      CHARACTER MLCITM(35)*40,KEY*1,NAM*72,TITL*72
 
       LOGICAL CHANGED
 
@@ -1316,7 +1288,8 @@ C Sort list deleting duplicates.
       return
       END
 
-C ***************** CALIB *********************
+C ******************** CALIB ********************
+
       subroutine CALIB(ITRC,ITRU,IER)
 #include "building.h"
 #include "model.h"
@@ -1326,14 +1299,10 @@ C ***************** CALIB *********************
 #include "tdf2.h"
 #include "esprdbfile.h"
 #include "material.h"
-
-C espriou.h provides current file.
 #include "espriou.h"
-
-C FMI.h provides FMU connection flag.
 #include "FMI.h"
+#include "help.h"
 
-C Function definition
       INTEGER :: lnblnk
       
       common/FILEP/IFIL
@@ -1387,7 +1356,7 @@ C Scripts used to run calibro calibrations for up to 48 zones.
       common/jsontable/nbcalibrorun,nbofzonetj(18,48),nbofzonegf(18,48),
      &  tablejson(18,48,20,3),tablegof(18,48,20,2)
 
-C And to hold average information for all the runs for each zone.
+C Hold average information for all the runs for each zone.
       real avgtablejson ! dimensioned (izone,iact) estimate
       real avgtablegof  ! dimensioned (izone,iobs) after
       integer itisact         ! matching uncertainty distribution
@@ -1440,12 +1409,8 @@ C Remember how many calibro runs were requested.
       INTEGER :: IUNIT
       INTEGER :: IUALF
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='CALIB'  ! set for subroutine
+      helpinsub='sensa'  ! set for subroutine
+      helptopic='calib_overview'
 
       call isunix(unixok)
       preview=.false.
@@ -1458,9 +1423,7 @@ C in the model. If there is list its directives.
       if(.NOT.LIBXST)then
         call edisp(iuout,' ')
         call edisp(iuout,
-     &    'There are no uncertainties associated')
-        call edisp(iuout,
-     &    'with the model. Please define some.')
+     &    'No uncertainties associated with the model. Please define.')
         return
       endif
 
@@ -1475,7 +1438,7 @@ C The next check is whether there is a temporal file with observed
 C data included.
       if(iabs(itdflg).eq.0)then
         call edisp(iuout,' ')
-        call edisp(iuout,'No temporal data has been defined.')
+        call edisp(iuout,'No temporal data defined.')
         call edisp(iuout,
      &    'Please use facility for temporal definitions.')
         return
@@ -1655,7 +1618,6 @@ C Check if there is a calibro_done file, if found remove it.
         call EFDELET(iunit,ISTAT)
       endif
 
-
 C Check to see if there is already a model cfg file with
 C _cal in the name. If someone previously ran this facility
 C there offer to skip the creation of variant and go straight
@@ -1688,7 +1650,6 @@ C        WRITE(ITEMSM(9),'(A)') 'i update model with suggestions'
 C        WRITE(ITEMSM(10),'(A)')'j use calibrated model'
 C        WRITE(ITEMSM(11),'(A)')'k tidy csh & csv files'
 C        WRITE(ITEMSM(12),'(A)')'l reload base case model'
-
 
         CALL EASKATOG('Options',': ',     
      &    're-generate model','do calibration',
@@ -1758,8 +1719,8 @@ C Switch focus to the calibration variant and jump to 43.
             endif
             goto 44
           else
-            call usrmsg('Unable to scan calibration cfg file',
-     &        'reverting to last cfg file.','W')
+            call usrmsg('Unable to scan calibration cfg file!',
+     &        'Reverting to last cfg file.','W')
             write(LCFGF,'(a)') OLDLCFGF(1:lnblnk(OLDLCFGF))
             MODE='ALL '
             IUF=IPRODB   ! assign second file unit to the events db unit
@@ -1896,8 +1857,6 @@ C Run the local or server scripts. These could take a rather long
 C time so they are started ion the background and control is then
 C returned to this calling code.
       call runlocalorserver(islocal)
-    
-C --------------------------------
 
 C If running sequential then loop and check for the existance
 C of the file calibro_done.
@@ -2024,8 +1983,8 @@ C Clear the nbservercalibrorun array.
      &                snpfilelist(loopj)(1:lnblnk(snpfilelist(loopj)))
 
                     INQUIRE (FILE=LTEMP,EXIST=LIBXST)
-C Debug.
 
+C Debug.
                     if (LIBXST) then
                       write(6,*) 'scanning json ',ltemp(1:lnblnk(ltemp))
                       call previewofjson(ltemp,preview,silent,IER)
@@ -2046,7 +2005,7 @@ C Print what was found within ihowmanycalibroruns
         endif
         
 C Ask for file or browse file name. Parse the file and report directives.
-        CALL EASKABC(' ','Apply suggestion options:',
+        CALL EASKABC(' ','Options:',
      &    'scan a .json file','use average from many runs',
      &    'cancel',iaplyoption,nbhelp)
         if(iaplyoption.eq.1)then
@@ -2063,9 +2022,6 @@ C Ask for file or browse file name. Parse the file and report directives.
             if(snpfile(1:2).ne.'  ')then
               write(LTEMP,'(a)')snpfile(1:lnblnk(snpfile))
 
-C Debug.
-C              write(6,*) 'the browsed file is ',ltemp(1:lnblnk(ltemp))
-C              write(6,*) 'the snpfile is ',snpfile(1:lnblnk(snpfile))
             else
               LTEMP=DTEMP
               CALL EASKS(LTEMP,'Json file from Calibro (full path):',
@@ -2104,7 +2060,6 @@ C Use average value. Use similar logic as in printjsontable.
           goto 43  ! present user with options
         endif
 
-
 C If previewing return user to higher level question.
         if(preview)then
           call edisp(iuout,
@@ -2127,7 +2082,7 @@ C Re-establish the base case model and return.
             call usrmsg('Unable to revert to base case cfg file',
      &        'Exiting prj.','P')
 
-C Clear allocatable arrays
+C Clear allocatable arrays.
             CALL DeallocateAllArrays
             close(ieout)
             CALL ERPFREE(ieout,ISTAT)
@@ -2145,7 +2100,6 @@ C Clear allocatable arrays
       elseif(isauto.eq.4)then
 
 C Delay scanning.
-
       elseif(isauto.eq.5)then
 
 C Re-establish the base case model and return.
@@ -2161,7 +2115,7 @@ C Re-establish the base case model and return.
             call usrmsg('Unable to revert to base case cfg file',
      &        'Exiting prj.','P')
 
-C Clear allocatable arrays
+C Clear allocatable arrays.
             CALL DeallocateAllArrays
             close(ieout)
             CALL ERPFREE(ieout,ISTAT)
@@ -2175,10 +2129,11 @@ C Clear allocatable arrays
       return
       end ! of CALIB
 
-C ***************** clearcalibarrays
-C clearcalibarrays figures out the names of the files and the
+C ******************** clearcalibarrays ********************
+C Determines the names of the files and the
 C various labels that will be created or used during a calibration.
 C If there are observed matches set anymeasured TRUE.
+
       subroutine clearcalibarrays(anymeasured)
 #include "building.h"
 #include "model.h"
@@ -2187,14 +2142,11 @@ C If there are observed matches set anymeasured TRUE.
 #include "tdf2.h"
 #include "esprdbfile.h"
 #include "material.h"
-
-C FMI.h provides FMU connection flag.
 #include "FMI.h"
 
-C Function definition
       INTEGER :: lnblnk
 
-C Passed parameter
+C Passed parameter.
       logical anymeasured
       
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
@@ -2462,9 +2414,9 @@ C collected to pass to calibro.
       return
       end ! of clearcalibarrays
 
-C ***************** clearcshcsvfiles
-C clearcshcsvfiles clears csv and csh files from prior calibration
-C work.
+C ******************** clearcshcsvfiles ********************
+C Clears csv and csh files from prior calibration work.
+
       subroutine clearcshcsvfiles(usingcalversion,NNAME)
 #include "building.h"
 #include "model.h"
@@ -2472,11 +2424,9 @@ C work.
 #include "tdf2.h"
 #include "esprdbfile.h"
 #include "material.h"
-
-C FMI.h provides FMU connection flag.
 #include "FMI.h"
 
-C Function definition
+C Function definition.
       INTEGER :: lnblnk
       
       common/FILEP/IFIL
@@ -2671,7 +2621,6 @@ C Replace _ with - in the root name.
           endif
           write(the_file,'(3a)') caliroot(1:lnblnk(caliroot)),
      &      zdashn(loopz)(1:lnzn),'.tar.gz '
-C          write(6,*) 'attempt remove ',the_file(1:lnblnk(the_file))
           call FINDFIL(the_file,XST)   ! name of compressed zone tar
           if(XST)then
             CALL EFOPSEQ(iunit,the_file,1,IER)
@@ -2688,12 +2637,13 @@ C          write(6,*) 'attempt remove ',the_file(1:lnblnk(the_file))
       enddo
 
       return
-      end  ! of clearcshcsvfiles
+      end
 
-C ***************** createcalvariantfiles
+C ******************** createcalvariantfiles ********************
 C createcalvariantfiles - creates variant cfg and zone files 
 C based on the uncertainties that have been defined e.g.
-C domlc,dogeo,doopr,doctl,doblnd.
+C domlc, dogeo, doopr, doctl, doblnd.
+
       subroutine createcalvariantfiles(domlc,dogeo,doopr,doctl,doblnd,
      &  docnn)
 #include "building.h"
@@ -2701,11 +2651,8 @@ C domlc,dogeo,doopr,doctl,doblnd.
 #include "net_flow.h"
 #include "esprdbfile.h"
 #include "material.h"
-
-C FMI.h provides FMU connection flag.
 #include "FMI.h"
 
-C Function definition
       INTEGER :: lnblnk
       
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
@@ -2740,13 +2687,13 @@ C Function definition
       call isunix(unixok)
 
 
-C If materials and/or mlc or optical call VER_MLC_MAT
+C If materials and/or mlc or optical call VER_MLC_MAT.
       write(APE,'(a)') '_cal'
       if(domlc.or.doblnd)then
         call VER_MLC_MAT(APE)
       endif
 
-C If geometry then call VER_GEO_CON_TMC
+C If geometry then call VER_GEO_CON_TMC.
       if(dogeo)then
         nbitem=ncomp
         do loop=1,ncomp
@@ -2779,9 +2726,9 @@ C If operations then call VER_OPR.
         call edisp(iuout,'* Control file being copied.')
       endif
 
-C Write out configuration file
-C But first change names of results libraries zones, flow, plant,
-C moisture, electrical cfd and IPV
+C Write out configuration file but first
+C change names of results libraries zones, flow, plant,
+C moisture, electrical, cfd and IPV.
       if(domlc.or.dogeo.or.doopr.or.doctl.or.doblnd)then
         DO 123 ISPS=1,NSSET
           EXT='.res'
@@ -2835,14 +2782,15 @@ C If a variant connections file also required set this up.
       return
       end  ! of createcalvariantfiles
 
+C ******************** docalibrationruns  ********************
+C Ivokes the simulations needed for calibration.
 
-C ***************** docalibrationruns
-C docalibrationruns invokes the simulations needed for calibration.
       subroutine docalibrationruns(itrc,ier)
 #include "building.h"
 #include "model.h"
 #include "net_flow.h"
 #include "tdf2.h"
+#include "help.h"
 
       integer itrc,ier
 
@@ -2872,6 +2820,7 @@ C Extended simulation parameters for each set.
       REAL :: scftims,scftimf       ! CFD simulation start & finish time
 
       character descra*7,descrb*7,descrst*10,descrfn*10
+      character descr2st*8,descr2fn*8
       character tmode*8,doit*248
       character outs*148,aut*12,key*1
       character longtfile*144,longtfiledos*144
@@ -2883,12 +2832,7 @@ C dd is character array for selecting simulation parameter sets.
       INTEGER :: ic,ii
       INTEGER :: ijdstart,ijdfinish,IRT,isauto
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='CALIB'  ! set for subroutine
+      helpinsub='sensa'  ! set for subroutine
       
       call isunix(unixok)
       aut=' silent'
@@ -2907,16 +2851,16 @@ C select them before proceeding.
 C Select an existing set or cancel.
       do ii=1, nsset
         CALL EDAY(isstday(ii),isstmon(ii),ijdstart)
-        call stdate(iyear,ijdstart,descra,descrst)
+        call stdate(iyear,ijdstart,descra,descrst,descr2st)
         CALL EDAY(isfnday(ii),isfnmon(ii),ijdfinish)
-        call stdate(iyear,ijdfinish,descrb,descrfn)
+        call stdate(iyear,ijdfinish,descrb,descrfn,descr2fn)
         CALL EMKEY(ii,KEY,IER)
         write(dd(ii),'(7a)') key,' ',spfdescr(ii)
      &    (1:lnblnk(spfdescr(ii))),' ',descrst,'-',descrfn
       enddo
-      dd(nsset+1)='! CANCEL SIMULATION'
+      dd(nsset+1)='! cancel           '
       dd(nsset+2)='? help             '
-      dd(nsset+3)='- end              '
+      dd(nsset+3)='- exit             '
       ic=nsset+3
 
       if(MMOD.eq.8)then
@@ -2932,9 +2876,11 @@ C Select an existing set or cancel.
         ier=1
         return
       elseif(IRT.eq.ic-1) then
+        helpinsub='prj'  ! set other source
         helptopic='prj_sim_set_menu'
         call gethelptext(helpinsub,helptopic,nbhelp)
         CALL PHELPD('Simulation sets',nbhelp,'-',0,0,IER)
+        helpinsub='sensa'  ! reset for subroutine
         goto 170
       elseif(IRT.ge.1.and.IRT.le.nsset)then
         isset=IRT  ! choose an existing set
@@ -2985,15 +2931,16 @@ C can be run. Assume a monti-carlo assessment with 90 runs.
      &  '-file ',longtfile(1:lnblnk(longtfile)),brw,' -p ',
      &  spfdescr(isset)(1:lnblnk(spfdescr(isset))),aut,
      &  ' -mca 90'
-      call usrmsg('Begining simulation via',doit,'-')
+C      call usrmsg('Begining simulation via',doit,'-')
       call runit(doit,tmode)
 
       return
-      end ! of docalibrationruns
+      end
 
-C ***************** doextractsetdata
-C doextractsetdata creates and executes shell scripts to recover
+C ******************** doextractsetdata ********************
+C Creates and executes shell scripts to recover
 C data from a MontiCarlo results set.
+
       subroutine doextractsetdata(itrc,ier)
 #include "building.h"
 #include "model.h"
@@ -3002,14 +2949,9 @@ C data from a MontiCarlo results set.
 #include "tdf2.h"
 #include "esprdbfile.h"
 #include "material.h"
-
-C espriou.h provides current file.
 #include "espriou.h"
-
-C FMI.h provides FMU connection flag.
 #include "FMI.h"
 
-C Function definition
       INTEGER :: lnblnk
       
       common/FILEP/IFIL
@@ -3217,11 +3159,9 @@ C and or forward slashes.
       if(havefile)then
         write(doit,'(2a)') './weather_extract.csh ',
      &    longtfile(1:lnblnk(longtfile))
-        call edisp(iuout,doit)
-        call usrmsg('Starting assessment recovery via',doit,'-')
         call runit(doit,tmode)
       else
-        call edisp(iuout,'Could not find results file.')
+        call edisp(iuout,'Results file not found!')
       endif
 
 C Count the number of lines in the bc.csv file for later comparison
@@ -3240,10 +3180,11 @@ C Scan the file of predictions counting the number of lines.
   104   CALL ERPFREE(IUNIT,ISTAT)
       ENDIF
 
-C Now make up a script to extract observation data into csv files.
+C Construct a script to extract observation data into csv files.
 C Do this once per observation. It is important that the number
 C of lines created matches the number of lines of data in the
 C associated predictions file.
+      call edisp(iuout,' ')
       call edisp(iuout,'Extraction of observations...')
       do loop=1,nbiobservitem
         itis=iobservitem(loop)
@@ -3312,8 +3253,6 @@ C observations, if Windows based look for spaces and or forward slashes.
         if(havefile)then
           write(doit,'(4a)') './',obs_extr(1:lnblnk(obs_extr)),
      &      ' ',longtfile(1:lnblnk(longtfile))
-          call edisp(iuout,doit)
-          call usrmsg('Starting observed recovery via',doit,'-')
           call runit(doit,tmode)
           call pausems(1000)
         else
@@ -3407,12 +3346,10 @@ C and or forward slashes.
         if(havefile)then
           write(doit,'(4a)') './',sim_extr(1:lnblnk(sim_extr)),
      &      ' ',longtfile(1:lnblnk(longtfile))
-          call edisp(iuout,doit)
-          call usrmsg('Starting sim recovery via',doit,'-')
           call runit(doit,tmode)
           call pausems(1000)
         else
-          call edisp(iuout,'Could not find results file.')
+          call edisp(iuout,'Results file not found!')
         endif
 
 C Scan the file of predictions counting the number of lines.
@@ -3567,11 +3504,12 @@ C Read the data lines.
       return
       end ! of doextractsetdata
 
-C ***************** docreatescripts
+C ******************** docreatescripts ********************
 C docreatescripts concatenates the model and zone calibration
 C csv file names into lists needed in support of creating tar.gz
 C files to send to server based Calibro or local Calibro.
 C returns islocal for use in subsequent runlocalorserver call.
+
       subroutine docreatescripts(islocal,ier)
 #include "building.h"
 #include "model.h"
@@ -3579,23 +3517,15 @@ C returns islocal for use in subsequent runlocalorserver call.
 #include "tdf2.h"
 #include "esprdbfile.h"
 #include "material.h"
-
-C espriou.h provides current file.
 #include "espriou.h"
-
-C FMI.h provides FMU connection flag.
 #include "FMI.h"
 
-C Function definition
       INTEGER :: lnblnk
       
       common/FILEP/IFIL
       INTEGER :: ifil
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
       INTEGER :: iuout,iuin,ieout
-
-C      common/spfldat/nsset,isset,isstup,isbnstep,ispnstep,issave,isavgh
-C      INTEGER :: nsset,isset,isstup,isbnstep,ispnstep,issave,isavgh
 
 C TDF related.
       COMMON/TDFFLG0/DBTAG(MIT),DBTASK(MIT),DBZN(MIT),DBSN(MIT)
@@ -3747,7 +3677,7 @@ C Clear tfcmdlistz.
         tfcmdlistz(loop)=.false.
       enddo
 
-C Now add in the *sim.csv files.
+C Add in the *sim.csv files.
       k=ke
       loopz=0
       do loop=1,ITEMSTD
@@ -3786,9 +3716,6 @@ C          lncmdlistz(loopz)=lnblnk(cmdlistz(loopz))+1
       k=k-1    ! get rid of trailing comma
       ke=k+37  ! request both json and pdf outputs
       write(cmdlist(k:ke),'(a)') ' --fmt json,pdf --res cal,sa,train,ds'
-C      write(6,*)'cmdlist3 ',cmdlist(1:lnblnk(cmdlist))
-C      write(6,*)' '
-C      write(6,*)'tarlist3 ',tarlist(1:lnblnk(tarlist))
 
 C At this point there will be a calibro_input_model.csv but the
 C server needs calibro_input.csv. Re-copy the fort.37 to this
@@ -3813,15 +3740,14 @@ C Create model level tar file for server use and compress it.
       tmode='text'
       write(doit1k,'(4a)') 'tar cf ',caliroot(1:lnblnk(caliroot)),
      &  '.tar ',tarlist(1:lnblnk(tarlist))
-      call edisp(iuout,'Creating model level tar file')
-      write(6,*) doit1k(1:lnblnk(tarlist))
+      call edisp(iuout,'Creating model .tar file.')
       call runit(doit1k,tmode)
       call pausems(1000)
 
 C Compress the model level tar file.
       write(doit,'(3a)') 'gzip ',caliroot(1:lnblnk(caliroot)),
      &  '.tar '
-      call edisp(iuout,'Compressing model tar file.')
+      call edisp(iuout,'Compressing model .tar file.')
       call runit(doit,tmode)
       call pausems(1000)
 
@@ -3832,9 +3758,7 @@ C zone based files.
       call runit(doit,tmode)
       call pausems(500)
 
-C -----------------------------------
-
-C calibro is a stocastic process so run it 5-9 times. Get user
+C calibro is a stochastic process so run it 5-9 times. Get user
 C confirmation.
       ihowmanycalibroruns=5
       call EASKI(ihowmanycalibroruns,
@@ -3902,10 +3826,6 @@ C Append a ' --fmt json,pdf --res cal,sa,train,ds' to the zone command.
               write(cmdlistz(loopz)(kz:kze),'(a)') 
      &          ' --fmt json,pdf --res cal,sa,train,ds '
               lncmdlistz(loopz)=lnblnk(cmdlistz(loopz))
-C Debug.
-C              write(6,'(a,i3,3a)') 'zf',loopz,' ',
-C     &          cmdlistz(loopz)(1:lnblnk(cmdlistz(loopz)))
-C              tfcmdlistz(loopz)=.true.  ! signal we have done
 
 C Place this command in a script file for later execution. Also
 C copy the resulting files to include the zone name.
@@ -4011,14 +3931,14 @@ C              call pausems(500)
               write(doit1k,'(5a)') 'tar cf ',
      &          caliroot(1:lnblnk(caliroot)),zdashn(loopz)(1:lnzn),
      &          '.tar ',tarlistz(loopz)(1:lnblnk(tarlistz(loopz)))
-              call edisp(iuout,'Creating zone tar file')
+              call edisp(iuout,'Creating zone .tar file.')
               call runit(doit1k,tmode)
               call pausems(500)
               tfcmdlistz(loopz)=.true.  ! signal we have done
               write(doit,'(4a)') 'gzip ',
      &          caliroot(1:lnblnk(caliroot)),zdashn(loopz)(1:lnzn),
      &          '.tar '
-              call edisp(iuout,'Compressing zone tar file.')
+              call edisp(iuout,'Compressing zone .tar file.')
               call runit(doit,tmode)
               call pausems(500)
             endif
@@ -4031,9 +3951,8 @@ C              call pausems(500)
 
       elseif(islocal.eq.2)then
 
-C Sever commands - complete these tasks:
-C For each of the zone scripts make them executable.
-C Clear tfcmdlistz.
+C For each of the zone scripts make them executable and
+C clear tfcmdlistz.
         tmode='text'
         do loop=1,48
           tfcmdlistz(loop)=.false.
@@ -4116,8 +4035,9 @@ C any existing file by that name.
       return
       end  ! of docreatescripts
 
-C ***************** runlocalorserver
-C runlocalorserver invokes calibro runs locally or on a server.
+C ******************** runlocalorserver ********************
+C Invokes calibro runs locally or on a server.
+
       subroutine runlocalorserver(islocal)
 #include "building.h"
 #include "model.h"
@@ -4125,20 +4045,14 @@ C runlocalorserver invokes calibro runs locally or on a server.
 #include "tdf2.h"
 #include "esprdbfile.h"
 #include "material.h"
-
-C FMI.h provides FMU connection flag.
 #include "FMI.h"
 
-C Function definition
       INTEGER :: lnblnk
 
       integer islocal  ! 1=local 2=server
       
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
       INTEGER :: iuout,iuin,ieout
-
-C      common/spfldat/nsset,isset,isstup,isbnstep,ispnstep,issave,isavgh
-C      INTEGER :: nsset,isset,isstup,isbnstep,ispnstep,issave,isavgh
 
 C TDF related.
       COMMON/TDFFLG0/DBTAG(MIT),DBTASK(MIT),DBZN(MIT),DBSN(MIT)
@@ -4237,7 +4151,7 @@ C Clear tfcmdlistz.
                 call edisp(iuout,outs)  ! do it in forground
                 write(doit,'(2a)')'./',
      &            calibro_local(loopz)(1:lnblnk(calibro_local(loopz)))
-C If in parallel the created .json files can get confused.
+C If in parallel, the created .json files can get confused.
 C                write(doit,'(3a)')'./',
 C     &            calibro_local(loopz)(1:lnblnk(calibro_local(loopz))),
 C     &            ' & ' 
@@ -4262,7 +4176,7 @@ C tarlist and also setup a script file in case user wants
 C to run it again. calibro is a stocastic process so run 
 C it 5-9 times.
         CALL EASKABC(' ','Server options:',
-     &    'run all zones together','each zone a separate run',
+     &    'run zones together','run zones separately',
      &    'cancel',ioption,nbhelp)
         tmode='text'
         if(ioption.eq.1)then
@@ -4324,6 +4238,7 @@ C calibration tasks.
                   call edisp(iuout,outs)
                   call isunix(unixok)
                   if(unixok)then
+
 C Try to do it explicitly so it persists until finished.
                     write(doit,'(3a)') 'xterm -e ./',
      &             calibro_mktar(loopz)(1:lnblnk(calibro_mktar(loopz))),
@@ -4354,12 +4269,13 @@ C Try to do it explicitly so it persists until finished.
       endif
 
       return
-      end  ! of runlocalorserver
+      end
 
 
-C ***************** previewofjson
-C previewofjson scans a .json file and recovers the patterns
+C ******************** previewofjson ********************
+C Scans a .json file and recovers the patterns
 C so suggestions can be previewed or acted upon.
+
       subroutine previewofjson(LTEMP,preview,silent,IER)
 #include "building.h"
 #include "model.h"
@@ -4368,15 +4284,10 @@ C so suggestions can be previewed or acted upon.
 #include "tdf2.h"
 #include "esprdbfile.h"
 #include "material.h"
-
-C espriou.h provides current file.
 #include "espriou.h"
-
-C FMI.h provides FMU connection flag.
 #include "FMI.h"
 
-C Function definition
-      INTEGER :: lnblnk
+      INTEGER :: lnblnk ! Function definition.
       
       common/FILEP/IFIL
       INTEGER :: ifil
@@ -4410,14 +4321,14 @@ C Function definition
       lsquare = char(91)   ! [
       rsquare = char(93)   ! ]
       
-C If the .json file exists scan it.
+C If the .json file exists, scan it.
       INQUIRE (FILE=LTEMP,EXIST=LIBXST)
       if (.NOT.LIBXST) then
         write(outs,'(3a)') 'JSON file ',LTEMP(1:lnblnk(LTEMP)),
      &    ' does not exist.'
         call edisp(iuout,outs)
         ier=1
-        return  ! present user choices again
+        return  ! Present user choices again.
       endif
       call edisp(iuout,'  ')
       write(outs,'(2A)')
@@ -4434,11 +4345,11 @@ C If the .json file exists scan it.
       endif
       write(currentfile,'(a)') LTEMP(1:lnblnk(LTEMP))
 
-C Read lines from the file looking for specific key phrases.
+C Read lines from the file and look for specific key phrases.
   77  call lstripc(IUNIT,loutstr,99,ND,1,'json line 1',IER)
 
-C If we reach the end of the file and in preview mode jump back
-C otherwise close the model and revert to original.
+C If end of the file reached in preview mode, jump back.
+C Otherwise revert to the original model.
       IF(IER.NE.0)then
         return
       endif
@@ -4517,8 +4428,6 @@ C Now look for the new attribute to apply to the uncertainty.
         call egetrm(loutstr,K,buffer,'W','tokens',IER)
         k=0
         call EGETJSNTAGR(buffer,K,FIRST,rv,0.01,1.0,'-','ESTM',ier)
-C        write(6,*) 'jtag is ',FIRST(1:lnblnk(FIRST))
-C        write(6,*) 'real attribute is ',rv
 
 C Apply or preview the suggested change.
 C        preview=.true.
@@ -4533,13 +4442,14 @@ C        preview=.true.
       return
       end
 
-C ***************** createjsontable
-C createjsontable fills the jsontable array based on scanning a number of
+C ******************** createjsontable ********************
+C Fills the jsontable array based on scanning a number of
 C json files. If .json were created via local Calibro then the variable
 c nbcalibrorun will have been reset prior to scanning the .json files for
 C a specific zone. In the case of server runs the user will have supplied
 C a list of .json files and we will not know the state of nbcalibrorun
 C when each was created.
+
       subroutine createjsontable(jsonfile,islocal,ier)
 #include "building.h"
 #include "model.h"
@@ -4548,14 +4458,9 @@ C when each was created.
 #include "net_flow.h"
 #include "esprdbfile.h"
 #include "material.h"
-
-C espriou.h provides current file.
 #include "espriou.h"
-
-C FMI.h provides FMU connection flag.
 #include "FMI.h"
 
-C Function definition
       INTEGER :: lnblnk
 
       character jsonfile*96
@@ -4574,12 +4479,12 @@ C Function definition
       common/jsontable/nbcalibrorun,nbofzonetj(18,48),nbofzonegf(18,48),
      &  tablejson(18,48,20,3),tablegof(18,48,20,2)
 
-C For server runs we have to establish how many calibro runs were made
+C For server runs, establish how many calibro runs were made
 C on a zone-by-zone basis.
       integer nbservercalibrorun  ! counter for server based calibro runs
       common/jsontableserver/nbservercalibrorun(48)
 
-C And to hold average information for all the runs for each zone.
+C Hold average information for all runs for each zone.
       real avgtablejson ! dimensioned (izone,iact) estimate
       real avgtablegof  ! dimensioned (izone,iobs) after
       integer itisact         ! matching uncertainty distribution
@@ -4725,7 +4630,7 @@ C If indices are still zero then we did not find a match.
         endif
 
 C Find the associated zone. If there is more than one just take the
-C first. TODO see if there is other logic that would apply.
+C first.
         if(NZGU(itwhere).ge.1)then
           nbzone=1
           izlist(1)=NZNOGU(itwhere,1)
@@ -4742,8 +4647,6 @@ C Re-establish nbcalibrorun for this zone.
           write(actphrase(nbcalibrorun,iz,nbtj),'(a)') 
      &      currentactphrase(1:lnblnk(currentactphrase))
         endif
-C        write(6,'(a,7i3,2a)') 'splitcalinputhead ',itact,itis,itwhere,
-C     &    nbzone,nbcalibrorun,iz,nbtj,' ',currentactphrase
         goto 77
       elseif(JTAG(1:8).eq.'ESTIMATE')then
 
@@ -4752,6 +4655,7 @@ C Convert phrase into a real and do range checks.
         itact=nbofzonetj(nbcalibrorun,iz)
         read(phrase,*,ERR=1002)rv1
         tablejson(nbcalibrorun,iz,itact,1)=rv1
+        
 C Accummulate into avgtablejson and remember which distribution
 C and location.
         avgtablejson(iz,itact)=avgtablejson(iz,itact)+rv1
@@ -4781,8 +4685,6 @@ C to deal with multiple zones.
         nbgf=nbofzonegf(nbcalibrorun,iz)
         write(dataphrase(nbcalibrorun,iz,nbgf),'(a)') 
      &    PHRASE(1:lnblnk(PHRASE))
-C        write(6,'(a,7i3,2a)') 'splitcalinputhead_d ',itact,itis,itwhere,
-C     &    nbzone,nbcalibrorun,iz,nbgf,' ',PHRASE(1:lnblnk(PHRASE))
         goto 77
       elseif(JTAG(1:6).eq.'BEFORE')then
         iz=NZNOGU(itwhere,1)
@@ -4798,7 +4700,6 @@ C     &    nbzone,nbcalibrorun,iz,nbgf,' ',PHRASE(1:lnblnk(PHRASE))
 
 C Accumulate into avgtablegof.
         avgtablegof(iz,nbdsets)=avgtablegof(iz,nbdsets)+gof2
-C        write(6,*) 'tablejson indices ',nbcalibrorun,iz,itact,nbdsets
         goto 77
       else
         goto 77  ! read another line
@@ -4806,12 +4707,13 @@ C        write(6,*) 'tablejson indices ',nbcalibrorun,iz,itact,nbdsets
 
  1002 continue
       goto 77
-      end  ! of createjsontable
+      end
 
-C *********** printjsontable 
-C printjsontable prints the common blocks jsontable & jsontabletext
+C ******************** printjsontable ********************
+C Prints the common blocks jsontable & jsontabletext.
 C Do this to the text window of the application interface as well as
 C to a fort.34 file.
+
       subroutine printjsontable()
 #include "building.h"
 #include "model.h"
@@ -4821,11 +4723,8 @@ C to a fort.34 file.
 #include "tdf2.h"
 #include "esprdbfile.h"
 #include "material.h"
-
-C FMI.h provides FMU connection flag.
 #include "FMI.h"
 
-C Function definition
       INTEGER :: lnblnk
       
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
@@ -4839,7 +4738,7 @@ C Function definition
       common/jsontable/nbcalibrorun,nbofzonetj(18,48),nbofzonegf(18,48),
      &  tablejson(18,48,20,3),tablegof(18,48,20,2)
 
-C And to hold average information for all the runs for each zone.
+C Hold average information for all the runs for each zone.
       real avgtablejson ! dimensioned (izone,iact) estimate
       real avgtablegof  ! dimensioned (izone,iobs) after
       integer itisact         ! matching uncertainty distribution
@@ -5017,8 +4916,9 @@ C for use in reporting.
       return
       end  ! of printjsontable
 
-C **************** applysuggestion
-C applysuggestion applies the 'estimate' based on the implied topic.
+C ******************** applysuggestion ********************
+C Applies the 'estimate' based on the implied topic.
+
       subroutine applysuggestion(ITRC,ITRU,preview,silent,itis,itact,
      &  rv,proceed)
 #include "building.h"
@@ -5026,7 +4926,6 @@ C applysuggestion applies the 'estimate' based on the implied topic.
 #include "geometry.h"
 #include "esprdbfile.h"
 #include "material.h"
-C Common blocks UA1 UA2 within uncertainty.h
 #include "uncertainty.h"
 
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
@@ -5045,7 +4944,7 @@ C Ask to overwrite flag.
       COMMON/OVRWT/AUTOVR
       logical AUTOVR
 
-C Parameters
+C Parameters.
       logical preview  ! are we looking or doing?
       integer itis  ! index of uncertainty distribution
       real rv       ! the delta to apply
@@ -5167,15 +5066,17 @@ C Reset AUTOVR to ask before overwriting files.
       end  ! of applysuggestion
       
 
-C ***************** EGETJSNTAGPHR
-C EGETJSNTAGPHR gets first json tag after position K from the STRING of
+C ******************** EGETJSNTAGPHR ********************
+C Gets first json tag after position K from the STRING of
 C characters and the phrase after :. Strips the leading " and the
 C trailing ". Returns k at the trailing phase " Spaces within tag are ok.
 C Provides a warning message if ACT='W', a failure message if ACT='F' and does
-C no message if ACT='-'. Expects a json line similar to:
-C   "calibration": "cellular",
+C no message if ACT='-'.
+C Expects a json line similar to "calibration": "cellular",
+
       SUBROUTINE EGETJSNTAGPHR(STRING,K,JTAG,PHRASE,ACT,MSG,ier)
 #include "espriou.h"
+
       common/OUTIN/IUOUT,IUIN,IEOUT
 
       CHARACTER*(*) JTAG,PHRASE, STRING, MSG
@@ -5250,8 +5151,6 @@ C Copy PHRASE from STRING, character by character until " is found.
       goto 30          ! get another character
 
   100 continue
-C      write(6,*) 'jtag is ',jtag(1:lnblnk(jtag))
-C      write(6,*) 'phrase is ',phrase(1:lnblnk(phrase))
       RETURN
 
   999 if(ACT.EQ.'-')then
@@ -5304,18 +5203,18 @@ C      write(6,*) 'phrase is ',phrase(1:lnblnk(phrase))
       endif
       return
 
-      END  ! of EGETJSNTAGPHR
+      END
  
-
-C ***************** EGETJSNTAGR
-C EGETJSNTAGR gets first json tag after position K from the STRING of
+C ******************** EGETJSNTAGR ********************
+C Gets first json tag after position K from the STRING of
 C characters and the real number after :. Strips the leading " and the
 C trailing ". Returns k at the trailing phase " Spaces within tag are ok.
 C Provides a warning message if ACT='W', a failure message if ACT='F' and does
-C no message if ACT='-'. Expects a json line similar to:
-C   "ESTIMATE": 0.0345,
+C no message if ACT='-'. Expects a json line similar to "ESTIMATE": 0.0345".
+
       SUBROUTINE EGETJSNTAGR(STRING,K,JTAG,RV,RMN,RMX,RACT,MSG,ier)
 #include "espriou.h"
+
       common/OUTIN/IUOUT,IUIN,IEOUT
 
       CHARACTER*(*) JTAG,STRING, MSG
@@ -5387,8 +5286,6 @@ C Copy PHRASE from STRING, character by character until a ',' is found.
       goto 30          ! get another character
 
   100 continue
-C      write(6,*) 'jtag is ',jtag(1:lnblnk(jtag))
-C      write(6,*) 'phrase is ',phrase(1:lnblnk(phrase))
 
 C Convert phrase into a real and do range checks.
       read(phrase,*,ERR=1002)rv
@@ -5544,12 +5441,14 @@ C Check RV against minimum and respond based on RACT.
 
       END  ! of EGETJSNTAGR
 
-C ***************** splitstratchar
-C splitstratchar splits a string at a specific character returning 2 str.
+C ******************** splitstratchar ********************
+C Splits a string at a specific character returning 2 str.
 C example if char is a dot it splits spandrel_ins_thick.all_insul_fram
-C into spandrel_ins_thick and all_insul_fram
+C into spandrel_ins_thick and all_insul_fram.
+
       SUBROUTINE splitstratchar(STRING,CH,FIRST,SECOND,ier)
-C#include "espriou.h"
+
+
       common/OUTIN/IUOUT,IUIN,IEOUT
 
       CHARACTER*(*) STRING,FIRST,SECOND
@@ -5609,8 +5508,6 @@ C Copy PHRASE from STRING, character by character until " is found.
       goto 30          ! get another character
 
   100 continue
-C      write(6,*) 'first is ',first(1:lnblnk(first))
-C      write(6,*) 'second is ',second(1:lnblnk(second))
       RETURN
 
   999 CALL EDISP248(iuout,loutstr,100)
@@ -5621,27 +5518,26 @@ C      write(6,*) 'second is ',second(1:lnblnk(second))
       endif
       GOTO 100
 
-      END ! of splitstratchar
+      END
  
 C Variants of code in sensit.F and sentimn.F to adapt model files.
 C   UMLCAE02   Edits data: thickness in MLC's.
 C        call UAE02(IZONE,IACT,DIR)  ! MLC layer thickness
 
 C ******************** UMLCAE02 ********************
-C UMLCAE02 edits layer thicknesses in MLC db.
+C Edits layer thicknesses in MLC db.
 C Naming convention:
-C IACT: index of uncertainty what and where
-C DIR: change directive...
-C ACT: 'p' preview 'e' edit
+C  IACT: index of uncertainty what and where
+C  DIR: change directive...
+C  ACT: 'p' preview 'e' edit
+
       SUBROUTINE UMLCAE02(IACT,DIR,ACT)
 #include "building.h"
-C #include "geometry.h"
-C Common blocks UA2 UA3 UA4 within uncertainty.h
 #include "uncertainty.h"
 #include "esprdbfile.h"
 #include "material.h"
 
-C Parameters
+C Parameters.
       integer IACT
       real DIR
       character ACT*1      
@@ -5778,27 +5674,23 @@ C Now update the MLC database.
         CALL EMKAMLD2(iuout,IER) ! write it out
       endif
       RETURN
-      END ! of UMLCAE02
+      END
 
-C *******************************
-C In esrubld/sensit
-C      elseif (IDTYPU(IACTD(IACT,1)).eq.4) then 
-C        call UAE04(IZONE,IACT,DIR)  ! casual gains or scheduled air
-C UCASAE04 edits/previews casual gains and scheduled air movement
-C in zone files.
+C ******************** UCASAE04 ********************
+
+C Edits/previews casual gains and scheduled air movement in zones.
 
       SUBROUTINE UCASAE04(IZONE,IACT,DIR,ACT)
       include "building.h"
       include "model.h"
       include "schedule.h"
+      include "uncertainty.h"
 
-C Parameters
+C Parameters.
       integer IZONE,IACT
       real DIR
       character ACT*1 
      
-C Common blocks UA2 UA3 UA4 within uncertainty.h
-      include "uncertainty.h"
       common/FILEP/IFIL
       INTEGER :: ifil
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
@@ -6163,17 +6055,13 @@ C Write zone operations file.
       RETURN
       END  ! of UCASAE04
 
-C Copy of block of code from esrubld/sensit.F
 C ******************** UAEDIT ********************
-C UAEDIT edits the given data item (VAL) depending on change flag (ICFLAG)
+C Edits the given data item (VAL) depending on change flag (ICFLAG)
 C and given direction or magnitude (DIR).
 C ICHK: -1 check min val, +1 check max val, 0 check both vals
+
       SUBROUTINE UAEDIT (VAL,ICFLAG,UPval,DOWNval,DIR,ichk,vmin,vmax)
 #include "building.h"
-
-C Debug.
-C      write(6,'(a)')'UAEDIT VAL ICFLAG UPval DWNval DIR ichk vmn vmx'
-C      write(6,*) VAL,ICFLAG,UPval,DOWNval,DIR,ichk,vmin,vmax
 
       if (ICFLAG.eq.1) then
 
@@ -6194,7 +6082,6 @@ C distribution (scaled to +-1) or a uniform distribution (+-1).
           VAL=VAL+(DOWNval*DIR)
         endif
       endif
-C      write(6,*) 'Updated VAL ',VAL
       
 C Check limits.
       if (ICHK.le.0) then
@@ -6207,6 +6094,7 @@ C Check limits.
       RETURN
       END  ! of UAEDIT
 
+C ******************** UMATAE01 ********************
 C Update model databases and zone geometry files to reflect
 C changes in thermophysical properties as done in UAE01.
 C UMATAE01 updates conductivity, density or specific heat values in 
@@ -6218,16 +6106,17 @@ C IZ, IS: current zone and surface being checked (these are listed in
 C               the common/ua2/ arrays).
 C      if (IDTYPU(IACTD(IACT,1)).eq.1) then 
 C        call UAE01(IZONE,IACT,DIR)  ! thermophysical properties
+
       subroutine UMATAE01(IZONE,IACT,DIR,ACT)  ! thermophysical properties
       use CFC_Module , ONLY: ITMCFCDB
 #include "building.h"
 #include "model.h"
 #include "geometry.h"
-C Common blocks UA2 UA3 UA4 within uncertainty.h
 #include "uncertainty.h"
 #include "esprdbfile.h"
 #include "material.h"
-C Parameters
+
+C Parameters.
       integer IZONE,IACT
       real DIR
       character ACT*1 
@@ -6368,8 +6257,6 @@ C its attributes and update the relevant layer with new material.
                  mlcdbitems=NMLC
                  nbpastmlc=nbpastmlc+1
                  pastmlc(nbpastmlc)=IMLC
-C                 write(6,*) 'making _cal of ',nbpastmlc,
-C     &             pastmlc(nbpastmlc)
                  lnml=lnblnk(mlcname(IMLC))
                  write(mlcname(NMLC),'(2a)')mlcname(IMLC)(1:lnml),
      &             '_cal'
@@ -6395,8 +6282,6 @@ C Find its category and increment its counter/
      &                mlccatname(loop2)(1:lnmlccatname(loop2)))then
                      mlccatitems(loop2)=mlccatitems(loop2)+1
                      IC=loop2  ! reset the focus category to one we have copied
-C                     write(6,*) 'Another item for ',mlccatname(loop2),
-C     &                 ' ',mlccatitems(loop2),' focus now ',IC
                    endif
                  enddo
 
@@ -6448,9 +6333,6 @@ C Have we already dealt with this material?
                endif
 
                call getnextascislot(ip,inext)
-C               write(6,'(f9.3,2i4,2a,i4)') 
-C     &           DTHK(IMLC,IE),IPRMAT(IMLC,IE),ip,
-C     &           matname(IPRMAT(IMLC,IE)),' next slot is ',inext
 
 C << _cal issue >>
 C If there is room in the materials database make a copy.
@@ -6499,7 +6381,7 @@ C                 write(matname(ILNE),'(a)') t32(1:lnblnk(t32))
                  nbpastmat=nbpastmat+1
                  pastmat(nbpastmat)=iorig  ! remember
 
-C Now depending on what needs to change update the relevant
+C Depending on what needs to change update the relevant
 C material attribute.
                  write(outs,*) 'from:'
                  call edisp(iuout,outs)
@@ -6535,8 +6417,8 @@ C material attribute.
      &             matdboute(ILNE),matdbina(ILNE),matdbouta(ILNE)
                  call edisp(iuout,outs)
 
-C And update the materials database. Following code is
-C similar to that in edcondb.F
+C Update the materials database. (Following code is
+C similar to that in edcondb.F).
                  call erpfree(ifmat,istat)  ! in case it is still open
                  IAF=IFIL+1
                  call erpfree(iaf,istat)  ! in case it is still open
@@ -6569,18 +6451,17 @@ C the _cal material. And write out the zone geometry file.
       RETURN
       END  ! of UMATAE01
 
-
-C Variant of CHKPRIM in esrubld/sensit.F
 C ******************** CHKPRIM ********************
-C CHKPRIM scans the layers of the MLC for a specific surface
+C Scans the layers of the MLC for a specific surface
 C and returns if and where a specific material is used.
+
       SUBROUTINE CHKPRIM(IZONE,ISURF,IPRIM,NEL,IEL,IMLC)
 #include "building.h"
 #include "geometry.h"
 #include "esprdbfile.h"
 #include "material.h"
 
-C Passed parameters:
+C Parameters.
       integer izone  ! requested zone
       integer isurf  ! surface in the zone
       integer iprim  ! legacy material index
@@ -6592,7 +6473,9 @@ C Passed parameters:
       DIMENSION IEL(ME)
 
 C Set number of matching layers to zero.
+
       NEL=0
+
 C Find correct MLC. Check if the legacy material index matches
 C the passed value. C Find matching MLC.
       ioc=IZSTOCN(izone,isurf)
@@ -6606,16 +6489,17 @@ C the passed value. C Find matching MLC.
  20   continue
 
       RETURN
-      END  ! of CHKPRIM
+      END
 
-C UCTLAT01 Identifies control data should be changed for calibration.
+C ******************** UCTLAT01 ********************
+C Identifies control data should be changed for calibration.
+
       SUBROUTINE UCTLAT01(IACT,DIR,ACT)
-
 #include "building.h"
 #include "uncertainty.h"
 #include "control.h"
 
-C Parameters
+C Parameters.
       integer IACT
       real DIR
       character ACT*1 
@@ -6840,8 +6724,9 @@ C Write out the control file.
       end  ! of UCTLAT01
 
 C ******************** UATFLG ********************
-C UATFLG determines if control data is within NTG start day/time and
+C Determines if control data is within NTG start day/time and
 C NTG finish day/time.
+
       SUBROUTINE UATFLG(IDAY,IHOUR,ILOC,IVALID)
 #include "building.h"
 #include "uncertainty.h"
@@ -6849,6 +6734,7 @@ C NTG finish day/time.
       COMMON/UA2T/NTLOC(MNIL),NTG(MNIL,4)
 
       IVALID=0
+
 C For uncertainty location ILOC check if in valid period.
 C If iday is negative check time only.
       if (IDAY.lt.0) then
@@ -6870,22 +6756,19 @@ C If iday is negative check time only.
         endif
       endif
 
-C Return to editing routine.
-
       RETURN
-      END  ! of UATFLG
+      END
 
-C *************** splitcalinputhead
-C splitcalinputhead takes a PHRASE such as facade_blinds:open_a_blinds
+C ******************** splitcalinputhead ********************
+C Takes a PHRASE such as facade_blinds:open_a_blinds
 C and figures out which iact and zone(s) are associated.
+
       subroutine splitcalinputhead(PHRASE,itact,itis,itwhere,
      &  nbzone,izlist)
 #include "building.h"
-C#include "model.h"
-C UA1 in uncertainty.h
 #include "uncertainty.h"
 
-C Function definition
+C Function definition.
       INTEGER :: lnblnk
 
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
@@ -6920,10 +6803,6 @@ C well as a maching LLOC.
         lnloc=lnblnk(LLOC(loop3))
         if((first(1:lnfirst).eq.LCNG(loop2)(1:lnlcng)).and.
      &     (second(1:lnsec).eq.LLOC(loop3)(1:lnloc)))then
-C Debug.
-C          write(6,*) '... ',
-C     &      LCNG(loop2)(1:lnlcng),' vs ',first(1:lnfirst),' & ',
-C     &      LLOC(loop3)(1:lnloc),' vs ',second(1:lnsec)
           itis=loop2
           itwhere=loop3
           itact=loop ! the action index
@@ -6954,8 +6833,9 @@ C      write(6,*) 'splitcalinputhead ',itact,itis,itwhere,nbzone,izlist
       return
       end  ! of splitcalinputhead
 
-C ************ makescriptexecutable
-C makescriptexecutable is passed a file name and applies a+x to it.
+C ******************** makescriptexecutable ********************
+C Is passed a file name and applies a+x to it.
+
       subroutine makescriptexecutable(filename)
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
       INTEGER :: iuout,iuin,ieout
@@ -6980,7 +6860,6 @@ C makescriptexecutable is passed a file name and applies a+x to it.
         call runit(doit,tmode)
       endif
       write(msg,'(2a)')'Look for script ',filename(1:lnfn)
-C      call edisp(iuout,msg)
       call pausems(500)
       return
       end  ! of makescriptexecutable

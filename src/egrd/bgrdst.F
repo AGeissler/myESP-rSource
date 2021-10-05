@@ -13,11 +13,6 @@ C warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
 C PURPOSE. See the GNU General Public License for more
 C details.
 
-C You should have received a copy of the GNU General Public
-C License along with ESP-r. If not, write to the Free
-C Software Foundation, Inc., 59 Temple Place, Suite 330,
-C Boston, MA 02111-1307 USA.
-
 C *********************************************************************
 C This file contains the following subroutines:
 
@@ -39,10 +34,11 @@ C *********************************************************************
 
 C ***************************  MENUSG  ********************************
 C MENUSG displays the strucrured gridding menu.
-C *********************************************************************
+
       SUBROUTINE MENUSG(ITRC)
 #include "building.h"
 #include "prj3dv.h"
+#include "help.h"
 
       COMMON/FILEP/IFIL
 
@@ -55,12 +51,7 @@ C *********************************************************************
       CHARACTER*72 LGrdSt
       integer MITEM,INO ! max items and current menu item
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='MENUSG'  ! set for subroutine
+      helpinsub='bgrdst'  ! set for subroutine
 
       SZN=' '
       IZ=0
@@ -199,11 +190,12 @@ C Return to the main multi-gridding menu.
 
 C ****************************   LCLCMP    ****************************
 C LCLCMP displays the local components indices menu.
-C *********************************************************************
+
       SUBROUTINE LCLCMP(IZ)
 #include "epara.h"
 #include "building.h"
 #include "geometry.h"
+#include "help.h"
 
       integer IZSTOCN
       COMMON/C24/IZSTOCN(MCOM,MS)
@@ -213,12 +205,7 @@ C *********************************************************************
       CHARACTER KEY*1,ITEM(20)*31,STTS*13
       integer NITEMS,INO  ! max items and current menu item
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='LCLCMP'  ! set for subroutine
+      helpinsub='bgrdst'  ! set for subroutine
 
 C Initialise connection menu size variables based on window size. 
 C INO is the menu position, NITEMS the current number of menu lines.
@@ -302,8 +289,9 @@ C Return to multi-gridding menu.
 
 C ***************************    IMPCMP    ****************************
 C IMPCMP displays the menu for defining imported component.
-C *********************************************************************
+
       SUBROUTINE IMPCMP(IComp)
+#include "help.h"
 
       COMMON/GRSD41/RefWidth,NRow,NCol,NLay
 
@@ -312,12 +300,7 @@ C *********************************************************************
       CHARACTER ITEM*22
       integer MITEM,INO ! max items and current menu item
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='IMPCMP'  ! set for subroutine
+      helpinsub='bgrdst'  ! set for subroutine
 
       CALL INTSTM
       ICalc=0
@@ -375,9 +358,10 @@ C Return to the main multi-gridding menu.
 
 C ****************************   DFNGRD    ****************************
 C DFNGRD displays the grid data menu.
-C *********************************************************************
+
       SUBROUTINE DFNGRD
 #include "building.h"
+#include "help.h"
 
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
 
@@ -389,12 +373,7 @@ C *********************************************************************
       CHARACTER ITEM*32,LstMsh*72
       LOGICAL IsEven
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='DFNGRD'  ! set for subroutine
+      helpinsub='bgrdst'  ! set for subroutine
 
       ICalc=0
    10 INO=-3
@@ -621,9 +600,10 @@ C Return to the main multi-gridding menu.
 
 C *************************      EDTMSH      **************************
 C EDTMSH allows editing mesh widths.
-C *********************************************************************
+
       SUBROUTINE EDTMSH(NDim,LDim,DimName)
 #include "building.h"
+#include "help.h"
       integer iCountWords
 
       DIMENSION LDim(MLEV)
@@ -631,12 +611,7 @@ C *********************************************************************
       CHARACTER*72 Promp,StrVal,Msg
       CHARACTER DimName*7
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='EDTMSH'  ! set for subroutine
+      helpinsub='bgrdst'  ! set for subroutine
 
       helptopic='3d_mesh_width_edit'
       call gethelptext(helpinsub,helptopic,nbhelp)
@@ -675,9 +650,10 @@ C For help messages
 
 C *************************      DVDMSH      **************************
 C DVDMSH allows dividing mesh widths.
-C *********************************************************************
+
       SUBROUTINE DVDMSH(NDim,LDim,IndDim)
 #include "building.h"
+#include "help.h"
       integer iCountWords
 
       COMMON/GRSD51/NMtr,IMtrS(MMTR),IMtrE(MMTR)
@@ -694,12 +670,7 @@ C *********************************************************************
       CHARACTER*72 Promp,StrVal,Msg
       CHARACTER DimName*6
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='DVDMSH'  ! set for subroutine
+      helpinsub='bgrdst'  ! set for subroutine
 
       helptopic='3d_mesh_divide'
       call gethelptext(helpinsub,helptopic,nbhelp)
@@ -797,9 +768,10 @@ C Update boundary geometries.
 
 C *************************      DLTMSH      **************************
 C DLTMSH allows deleting mesh widths.
-C *********************************************************************
+
       SUBROUTINE DLTMSH(NDim,LDim,IndDim)
 #include "building.h"
+#include "help.h"
 
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/GRSD51/NMtr,IMtrS(MMTR),IMtrE(MMTR)
@@ -816,12 +788,7 @@ C *********************************************************************
       CHARACTER*72 Promp
       CHARACTER DimName*6
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='DLTMSH'  ! set for subroutine
+      helpinsub=' bgrdst'  ! set for subroutine
       helptopic='grd_3d_mesh_delete'
       call gethelptext(helpinsub,helptopic,nbhelp)
 
@@ -923,11 +890,12 @@ C Check the material geometries first.
 
 C ****************************   DFNMTR    ****************************
 C DFNMTR displays the material geometry menu.
-C *********************************************************************
+
       SUBROUTINE DFNMTR(IComp)
 #include "epara.h"
 #include "building.h"
 #include "geometry.h"
+#include "help.h"
 
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
 
@@ -942,12 +910,7 @@ C *********************************************************************
       CHARACTER KEY*1,LstMtr*72,SrfNm*12
       character*38 ITEM(20)
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='DFNMTR'  ! set for subroutine
+      helpinsub='bgrdst'  ! set for subroutine
 
       ICalc=0
 
@@ -1112,9 +1075,10 @@ C Return to multi-gridding menu.
 
 C ****************************   MTRINP    ****************************
 C MTRINP allows editing and adding material geometries.
-C *********************************************************************
+
       SUBROUTINE MTRINP(I)
 #include "building.h"
+#include "help.h"
       integer iCountWords
 
       COMMON/GRSD41/RefWidth,NRow,NCol,NLay
@@ -1126,12 +1090,7 @@ C *********************************************************************
       CHARACTER*72 Promp,StrVal,Msg
       LOGICAL IsEven
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='MTRINP'  ! set for subroutine
+      helpinsub='bgrdst'  ! set for subroutine
       helptopic='manage_mat_geom'
       call gethelptext(helpinsub,helptopic,nbhelp)
       
@@ -1193,10 +1152,11 @@ C For help messages
 
 C ****************************   DFNBND    ****************************
 C DFNBND displays the surface boundary menu.
-C *********************************************************************
+
       SUBROUTINE DFNBND
 #include "epara.h"
 #include "building.h"
+#include "help.h"
 
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
 
@@ -1208,12 +1168,7 @@ C *********************************************************************
       CHARACTER KEY*1,ExtInt*8,LstBnd*60
       character*32 ITEM(20)
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='DFNBND'  ! set for subroutine
+      helpinsub='bgrdst'  ! set for subroutine
 
       ICalc=0
 
@@ -1372,9 +1327,10 @@ C Return to multi-gridding menu.
 
 C ****************************   BNDINP    ****************************
 C BNDINP allows editing and adding boundary geometries.
-C *********************************************************************
+
       SUBROUTINE BNDINP(I)
 #include "building.h"
+#include "help.h"
       integer iCountWords
 
       COMMON/GRSD41/RefWidth,NRow,NCol,NLay
@@ -1386,12 +1342,7 @@ C *********************************************************************
       CHARACTER*72 Promp,StrVal,Msg
       LOGICAL IsEven
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='BNDINP'  ! set for subroutine
+      helpinsub='bgrdst'  ! set for subroutine
 
       WRITE(Promp,'(A)')'Enter the required indices:'
       WRITE(StrVal,'(8(3X,I3))')IBndZ(I),IBndS(I),IBRowS(I),
@@ -1453,13 +1404,12 @@ C For help messages
 
 C ***************************      SLCTZN     *************************
 C SLCTZN displays the zone selection menu.
-C *********************************************************************
+
       SUBROUTINE SLCTZN(ITRC,SZN,IZ,ZONOK)
 #include "building.h"
 #include "model.h"
-
-C geometry.h provides commons G0/G1/G2/precz.
 #include "geometry.h"
+#include "help.h"
 
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/FILEP/IFIL
@@ -1485,12 +1435,7 @@ C geometry.h provides commons G0/G1/G2/precz.
 
       CHARACTER SZN*12
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='SLCTZN'  ! set for subroutine
+      helpinsub='bgrdst'  ! set for subroutine
 
       IUNIT=IFIL+2
 
@@ -1564,8 +1509,9 @@ C Show the zone selection menu.
 C ***************************   FHDSTM   ******************************
 C FHDSTM controls the drawing of the free hand sketch for the cross 
 C section of a given gridding level.
-C *********************************************************************
+
       SUBROUTINE FHDSTM(ICalc)
+#include "help.h"
       integer iCountWords
 
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
@@ -1576,12 +1522,7 @@ C *********************************************************************
       CHARACTER*12 StrVal
       LOGICAL IsEven
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='FHDSTM'  ! set for subroutine
+      helpinsub='bgrdst'  ! set for subroutine
 
 C Return if not in graghical mode.
       IF(MMOD.LT.8.OR.NRow.LT.7)RETURN

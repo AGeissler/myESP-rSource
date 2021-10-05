@@ -59,23 +59,12 @@ C Passed parameters.
       integer JITZNM,JITSNM,JITVNO,JITOBS,JITVIS,JITVOBJ,JITSNR,JITGRD
       integer JITORG,JITBND,JITDSP,JITHLS,JITHLZ,JITPPSW
       integer jizgfoc,jnzg,jnznog,jnznogv      
-      integer icfg_type  ! model cfg type
-      integer icfgz      ! if non-zero then there are zones
-      integer icfgn      ! if non-zero then there are networks
-      integer icfgc      ! if non-zero then cfg file known
-      integer icfgdfn    ! if non-zero then cdf domain exists
-      integer iicfgz     ! there are zone related images
-      integer iicfgn     ! there are network related images
-      integer iicfgc     ! there are control related images
-      integer iicfgdfn   ! there are cfd related images
 #else
       integer*8 iside,isize,ifont     ! passed to viewtext
       integer*8 numberofzones
       integer*8 JITZNM,JITSNM,JITVNO,JITOBS,JITVIS,JITVOBJ,JITSNR
       integer*8 JITGRD,JITORG,JITBND,JITDSP,JITHLS,JITHLZ,JITPPSW
       integer*8 jizgfoc,jnzg,jnznog,jnznogv
-      integer*8 icfg_type,icfgz,icfgn,icfgc,icfgdfn,iicfgz
-      integer*8 iicfgn,iicfgc,iicfgdfn
 #endif
 
       real EVX,EVY,EVZ,VX,VY,VZ,EAN,GDIS
@@ -149,13 +138,8 @@ C If viewpoint or bounds different then initialise viewing paramters.
 C Draw the selected bodies.
         CALL DRAWESP(IER)
 
-C Show domain buttons.
-        if(mmod.eq.8)then
-          call cfgtogg(icfg_type,icfgz,icfgn,icfgc,icfgdfn,
-     &                             iicfgz,iicfgn,iicfgc,iicfgdfn)
-          call opencfg(icfg_type,icfgz,icfgn,icfgc,icfgdfn,
-     &                             iicfgz,iicfgn,iicfgc,iicfgdfn)
-        endif
+C Show feature buttons.
+        if(mmod.eq.8) call redrawbuttons()
 
 C Remind user of which model even when looking at one zone.
         WRITE(ETEXT,'(2A)')'Model: ',modeltitle(1:lnblnk(modeltitle))
@@ -497,7 +481,7 @@ C Passed paramter.
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
 
 C Local variables
-      character outs*124,ETEXT*60,DESCRH*5,DESCRD*5
+      character outs*124,ETEXT*60,DESCRH*5,DESCRD*5,DESCRJ*5
       integer NTS,IMO,IDO,IJDAY,IT,IER
       logical doanim
       real STIME,X1,Y1,Z1
@@ -547,7 +531,7 @@ C Ask for initial date and time and present view.
           call redraw(IER)
 
 C Generate a heading for the view.
-          CALL EDTIME(STIME,DESCRH,DESCRD,TIMER)
+          CALL EDTIME(STIME,DESCRH,DESCRD,DESCRJ,TIMER)
           WRITE(ETEXT,'(A,I2,1X,A3,A,A5,A,F6.1,A,F5.1)')
      &      ' View: ',IDO,MTHNAM(IMO),' @',DESCRH,
      &      '  azim:',SAZI,' elev:',SALT
@@ -598,7 +582,7 @@ C User asked for next hour, increment and display unless below horizon.
           call redraw(IER)
 
 C Generate a heading for the view.
-          CALL EDTIME(STIME,DESCRH,DESCRD,TIMER)
+          CALL EDTIME(STIME,DESCRH,DESCRD,DESCRJ,TIMER)
           WRITE(ETEXT,'(A,I2,1X,A3,A,A5,A,F6.1,A,F5.1)')
      &      ' View: ',IDO,MTHNAM(IMO),' @',DESCRH,
      &      '  azim:',SAZI,' elev:',SALT
@@ -637,7 +621,7 @@ C User asked for animation.
           call redraw(IER)
 
 C Generate a heading for the view.
-          CALL EDTIME(STIME,DESCRH,DESCRD,TIMER)
+          CALL EDTIME(STIME,DESCRH,DESCRD,DESCRJ,TIMER)
           WRITE(ETEXT,'(A,I2,1X,A3,A,A5,A,F6.1,A,F5.1)')
      &      ' View: ',IDO,MTHNAM(IMO),' @',DESCRH,
      &      '  azim:',SAZI,' elev:',SALT
@@ -2084,13 +2068,13 @@ C IER is returned as non-zero if there is a problem.
 #include "building.h"
 #include "model.h"
 #include "geometry.h"
+#include "help.h"
 
 C Passed parameters.
       integer IUO,IER
       logical CFGOK
       
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
-      common/pophelp/h(60)
       COMMON/FILEP/IFIL
       
       integer ncomp,ncon
@@ -2103,26 +2087,27 @@ C Passed parameters.
 
 C Use JGVNT for ground surfaces and JVNZ to hold inverted order for zone.
       DIMENSION IVALS(MCOM),JGVNT(MGRT,8),JVNZ(MS,MV)
-      CHARACTER H*72
       CHARACTER GMLCN*32,GSNAME*6,outs*124
 
       IER=0
       IUF=IFIL+1
+      helpinsub='common3dv'  ! set for subroutine
 
 C Write to previously opened viewer file.
 
 C Present a list of zone names to pick from if the configuration file
 C has been read in, otherwise ask for zones one by one.
   106 IF(CFGOK)THEN
-        H(1)=' Pick one, several or all zones for inclusion'
+        helptopic='zones_for_inclusion'
+        call gethelptext(helpinsub,helptopic,nbhelp)
         INPIC=NCOMP
-        CALL EPICKS(INPIC,IVALS,' ',' Which zones to include: ',
-     &    12,NCOMP,zname,' zone list',IER,1)
+        CALL EPICKS(INPIC,IVALS,' ','Which zones to include: ',
+     &    12,NCOMP,zname,' zone list',IER,nbhelp)
       ELSE
-        H(1)='More than one zone can be selected.'
-        H(2)='A cancel request leaves the selection list unchanged.'
-        CALL EASKI(INPIC,' ',' Number of zone to include ? ',
-     &       1,'W',MCOM,'W',1,'no of zones',IERI,2)
+        helptopic='zones_for_inclusion'
+        call gethelptext(helpinsub,helptopic,nbhelp)
+        CALL EASKI(INPIC,' ','Number of zone to include?',
+     &       1,'W',MCOM,'W',1,'no of zones',IERI,nbhelp)
         if(ieri.eq.-3) goto 105
         IF(INPIC.EQ.0)GOTO 105
 
@@ -2145,11 +2130,10 @@ C << task to be done >>
         IF(IVALS(IZ).GT.0)THEN
           call georead(IUF,LGEOM(IVALS(IZ)),IVALS(IZ),1,iuout,IER)
           IF(IER.NE.0)THEN
-            h(1)='While scanning the model`s zone geometry a problem'
-            h(2)='was encountered. Perhaps a recent change corrupted'
-            h(3)='the model? '
+            helptopic='zones_scan_fault'
+            call gethelptext(helpinsub,helptopic,nbhelp)
             CALL EASKOK('Problem while scanning geometry.',
-     &                 'Retry?',OK,3)
+     &                 'Retry?',OK,nbhelp)
             if(ok)goto 106
             goto 83
           ENDIF
@@ -2236,10 +2220,9 @@ C Write obstructions to output file.
 C If there is a ground description ask if to be included and then
 C add at the bottom of the file.
       if(NGTV.gt.0)then
-        h(1)='The model includes a descrition of the surface of the'
-        h(2)='ground at the site. If you say yes it will be included'
-        h(3)='in the view. '
-        CALL EASKOK(' ','Include ground topography?',OK,3)
+        helptopic='include_ground_in_view'
+        call gethelptext(helpinsub,helptopic,nbhelp)
+        CALL EASKOK(' ','Include ground topography?',OK,nbhelp)
         if(OK)then
 
 C Write surface information to the viewer file. First invert edges.

@@ -1,4 +1,5 @@
 *help_text eco
+
 *item eco unit_for_results
 'When reporting it is possible to set alternative reporting'
 'units:'
@@ -73,8 +74,7 @@
 'be done for the corresponding material mass [kg].'
 *enditem
 
-*subroutine ELISTCMOD
-*item ELISTCMOD eco_material_classes
+*item ecoesp eco_material_classes
 'The classifications shown in the display include up to'
 '18 elements.'
 '  '
@@ -88,7 +88,7 @@
 'description of up to 32 characters.'
 *enditem
 
-*item ELISTCMOD eco_material_prop
+*item ecoesp eco_material_prop
 'The information in this display is based on data from'
 'a materials database.  Databases of this'
 'type are used to build a construction database.'
@@ -112,27 +112,23 @@
 'supply a descriptive block of text up to 248 characters.'
 *enditem
 
-*subroutine Zoneslist
-*item Zoneslist eco_pick_zones
+*item ecoesp eco_pick_zones
 ' Pick one, several or All zones for inclusion '
 ' from the list provided. '
 ' You may choose them in any order. '
 *enditem
 
-*subroutine ZoneDisp
-*item ZoneDisp eco_surface_attribures
+*item ecoesp eco_surface_attribures
 'The surface attributes of the zone geometry file,'
 *enditem
 
-*subroutine CompoList
-*item CompoList eco_select_from_list
+*item ecoesp eco_select_from_list
 'Pick one, several or All constructions for inclusion in a'
 'the output from the list provided. '
 'You may choose them in any order. '
 *enditem
 
-*subroutine LCAcalc
-*item LCAcalc eco_LCA_calculations
+*item ecoesp eco_LCA_calculations
 'Selection of the LCA results'
 ' '
 'LCA results can be display as :'
@@ -150,7 +146,7 @@
 '   the impacts from cradle to grave.'
 *enditem
 
-*item LCAcalc eco_LCA_elementary
+*item ecoesp eco_LCA_elementary
 'ELEMENTARY LCA PHASE'
 ' '
 'The LCA results display will correspond to your '
@@ -193,8 +189,7 @@
 ' 13 Recycled waste : Mass of recycled waste '
 *enditem
 
-*subroutine LCADet
-*item LCADet eco_LCA_results
+*item ecoesp eco_LCA_results
 'Selection of the LCA results'
 ' '
 'LCA results can be display as :'
@@ -212,7 +207,7 @@
 '   the impacts from cradle to grave.'
 *enditem
 
-*item LCADet eco_res_elementary
+*item ecoesp eco_res_elementary
 'ELEMENTARY LCA PHASE'
 ' '
 'The LCA results display will correspond to your '

@@ -72,9 +72,8 @@ C **************************************************************
       SUBROUTINE THMENU(ITRC)
 #include "building.h"
 #include "model.h"
-
-C geometry.h provides commons G0/G1/G2/G5/precz.
 #include "geometry.h"
+#include "help.h"
 
       COMMON/FILEP/IFIL
       COMMON/HELP/IHELPM
@@ -102,12 +101,7 @@ C geometry.h provides commons G0/G1/G2/G5/precz.
       character ltmp*72
       integer NITEM,INO ! max items and current menu item
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='THMENU'  ! set for subroutine
+      helpinsub='bnlthp'  ! set for subroutine
 
 C Read the complete building thermal and geometical data.
       IUNIT=IFIL+1
@@ -391,6 +385,7 @@ C is called by THMENU .
 C ****************************************************************
       SUBROUTINE THRMEQ(ITHF)
 #include "building.h"
+#include "help.h"
       integer iCountWords
 
       COMMON/FILEP/IFIL
@@ -401,12 +396,6 @@ C ****************************************************************
       CHARACTER*72 TITLE,THFIL,EQNTXT,EQNMSG
       integer NITMS,INO,INO1,INO2 ! max items and current menu item
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='THRMEQ'  ! set for subroutine
 
       INDEX1=0
       IUNIT=IFIL+1

@@ -1,6 +1,6 @@
 C This file is part of the ESP-r system.
 C Copyright Energy Systems Research Unit, University of
-C Strathclyde, Glasgow Scotland, 2001.
+C Strathclyde, Glasgow, Scotland, 2001-.
 
 C ESP-r is free software.  You can redistribute it and/or
 C modify it under the terms of the GNU General Public
@@ -13,15 +13,12 @@ C warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
 C PURPOSE. See the GNU General Public License for more
 C details.
 
-C You should have received a copy of the GNU General Public
-C License along with ESP-r. If not, write to the Free
-C Software Foundation, Inc., 59 Temple Place, Suite 330,
-C Boston, MA 02111-1307 USA.
 
-C `CTLWRT` Takes configuration control common block data and saves to
+C ******************** CTLWRT ********************
+C Takes configuration control common block data and saves to
 C an ascii file.
-      SUBROUTINE CTLWRT(IUNIT,IER)
 
+      SUBROUTINE CTLWRT(IUNIT,IER)
 #include "building.h"
 #include "net_flow.h"
 #include "net_flow_data.h"
@@ -48,6 +45,7 @@ C an ascii file.
       CHARACTER lctlf*72,ctldoc*248,daytype*12
       character outs*296,outsd*296
       character DS*7,DS1*10,DE*7,DE1*10,SSTR*96,SSTR1*96,SSTR2*248
+      character DS2*8,DE2*8
 
       IER=0
 
@@ -106,8 +104,8 @@ C Building control information.
         ENDIF
         DO 20 J=1,NN
           JJ=J
-          CALL STDATE(IYEAR,IBCDV(II,JJ,1),DS,DS1)
-          CALL STDATE(IYEAR,IBCDV(II,JJ,2),DE,DE1)
+          CALL STDATE(IYEAR,IBCDV(II,JJ,1),DS,DS1,DS2)
+          CALL STDATE(IYEAR,IBCDV(II,JJ,2),DE,DE1,DE2)
           write(outs,'(4a)') '  # valid ',DS1,' - ',DE1
           WRITE(IUNIT,'(2I5,a)',IOSTAT=ios,ERR=1)(IBCDV(II,JJ,K),K=1,2),
      &      outs(1:lnblnk(outs))
@@ -195,8 +193,8 @@ C Plant control information.
 
         DO 50 J=1,NN
           JJ=J
-          CALL STDATE(IYEAR,IPCDV(II,JJ,1),DS,DS1)
-          CALL STDATE(IYEAR,IPCDV(II,JJ,2),DE,DE1)
+          CALL STDATE(IYEAR,IPCDV(II,JJ,1),DS,DS1,DS2)
+          CALL STDATE(IYEAR,IPCDV(II,JJ,2),DE,DE1,DE2)
           write(outs,'(4a)') '  # valid ',DS1,' - ',DE1
           WRITE(IUNIT,'(2I5,a)',IOSTAT=ios,ERR=1)(IPCDV(II,JJ,K),K=1,2),
      &      outs(1:lnblnk(outs))
@@ -278,8 +276,8 @@ C Flow control information.
 
         DO 501 J=1,NN
           JJ=J
-          CALL STDATE(IYEAR,IFCDV(II,JJ,1),DS,DS1)
-          CALL STDATE(IYEAR,IFCDV(II,JJ,2),DE,DE1)
+          CALL STDATE(IYEAR,IFCDV(II,JJ,1),DS,DS1,DS2)
+          CALL STDATE(IYEAR,IFCDV(II,JJ,2),DE,DE1,DE2)
           write(outs,'(4a)') '  # valid ',DS1,' - ',DE1
           WRITE(IUNIT,'(2I5,a)',IOSTAT=ios,ERR=1)(IFCDV(II,JJ,K),K=1,2),
      &      outs(1:lnblnk(outs))
@@ -385,8 +383,8 @@ C Global control information.
 
         DO 450 J=1,NN
           JJ=J
-          CALL STDATE(IYEAR,IFCDV(II,JJ,1),DS,DS1)
-          CALL STDATE(IYEAR,IFCDV(II,JJ,2),DE,DE1)
+          CALL STDATE(IYEAR,IFCDV(II,JJ,1),DS,DS1,DS2)
+          CALL STDATE(IYEAR,IFCDV(II,JJ,2),DE,DE1,DE2)
           write(outs,'(4a)') '  # valid ',DS1,' - ',DE1
           WRITE(IUNIT,'(2i5,a)',IOSTAT=ios,ERR=1)(IGCDV(II,JJ,K),K=1,2),
      &      outs(1:lnblnk(outs))
@@ -467,8 +465,8 @@ C Optical control information.
 
         DO 200 J=1,NN
           JJ=J
-          CALL STDATE(IYEAR,IOCDV(II,JJ,1),DS,DS1)
-          CALL STDATE(IYEAR,IOCDV(II,JJ,2),DE,DE1)
+          CALL STDATE(IYEAR,IOCDV(II,JJ,1),DS,DS1,DS2)
+          CALL STDATE(IYEAR,IOCDV(II,JJ,2),DE,DE1,DE2)
           write(outs,'(4a)') '  # valid ',DS1,' - ',DE1
           WRITE(IUNIT,'(2I5,a)',IOSTAT=ios,ERR=1)(IOCDV(II,JJ,K),K=1,2),
      &      outs(1:lnblnk(outs))
@@ -552,8 +550,8 @@ C Complex fenestration control information.
         ENDIF
         DO 209 J=1,NN
           JJ=J
-          CALL STDATE(IYEAR,iCFCctldatevalid(II,JJ,1),DS,DS1)
-          CALL STDATE(IYEAR,iCFCctldatevalid(II,JJ,2),DE,DE1)
+          CALL STDATE(IYEAR,iCFCctldatevalid(II,JJ,1),DS,DS1,DS2)
+          CALL STDATE(IYEAR,iCFCctldatevalid(II,JJ,2),DE,DE1,DE2)
           write(outs,'(4a)') '  # valid ',DS1,' - ',DE1
           WRITE(IUNIT,'(2I5,a)',IOSTAT=ios,ERR=1)
      &     (iCFCctldatevalid(II,JJ,K),K=1,2),outs(1:lnblnk(outs))

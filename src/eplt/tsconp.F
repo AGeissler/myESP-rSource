@@ -5,7 +5,7 @@ C Strathclyde, Glasgow Scotland, 2001.
 C ESP-r is free software.  You can redistribute it and/or
 C modify it under the terms of the GNU General Public
 C License as published by the Free Software Foundation 
-C (version 2 orlater).
+C (version 2 or later).
 
 C ESP-r is distributed in the hope that it will be useful
 C but WITHOUT ANY WARRANTY; without even the implied
@@ -73,6 +73,7 @@ c               ptsdat(?,9): 2nd component number...etc.  }
 
       subroutine ptscin
 #include "plant.h"
+#include "help.h"
 
       common/outin/iuout,iuin,ieout
       common/c9/npcomp,nci(mpcom),cdata(mpcom,mmiscd)
@@ -82,12 +83,7 @@ c               ptsdat(?,9): 2nd component number...etc.  }
       logical ok,close0,close1,close2,close3,close31,close32,close33
       logical close34
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='ptscin'  ! set for subroutine
+      helpinsub='tsconp'  ! set for subroutine
       helptopic='plant_ts_control'
       call gethelptext(helpinsub,helptopic,nbhelp)
       

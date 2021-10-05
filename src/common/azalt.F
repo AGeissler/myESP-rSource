@@ -27,15 +27,12 @@ C ************
 C 'AZALT' CALCULATES THE SOLAR AZIMUTH AND THE SOLAR ALTITUDE
 C ANGLES AT EACH HOUR OF THE DAY , FOR ANY SITE.
       SUBROUTINE AZALT(IYD,ITS,RLONGT,RLATIT,SOLALT,SOLAZI)
+#include "help.h"
+
       COMMON/UAZALT/INIT,GLAT,GLON
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
       DIMENSION SOLALT(24),SOLAZI(24)
       logical OK,close
-
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
 
       helpinsub='AZALT'  ! set for subroutine
       helptopic='azalt_limits'

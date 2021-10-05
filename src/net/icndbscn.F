@@ -75,8 +75,8 @@ C
      &  datrib,dmenuatr,igatrdom,dgtagatr,dgatrib,dgmenuatr,IER)
 #include "gnetwk.h" 
 #include "espriou.h"
-C espriou.h provides currentfile.
-      
+#include "help.h"
+
       integer lnblnk  ! function definition
 
       COMMON/ICONDBNAM/ICONDBFL
@@ -97,12 +97,7 @@ C espriou.h provides currentfile.
 
       LOGICAL OK,CONT
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='scanicondb'  ! set for subroutine
+      helpinsub='icndbscn'  ! set for subroutine
 
       IER=0
       ltmp='  '

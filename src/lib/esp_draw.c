@@ -452,9 +452,10 @@ int  len;        /* len is length passed from fortran */
 /* ********* textpixwidth_() find width of string (buff) in current font. ******* */
 /* << note - should use the actual font - so it needs to know if this is for
  * << for a graphic or text or menu context. still TO BE DONE. */
-void textpixwidth_(buff,pixelwidth,len)
+void textpixwidth_(buff,pixelwidth,pixelheight,len)
 char *buff;
 long int *pixelwidth;	/* width of the string in pixels */
+long int *pixelheight;	/* height of the string in pixels */
 int  len;        /* len is length passed from fortran */
 {
  PangoFontDescription *pfd;	/* to hold test font */
@@ -526,6 +527,7 @@ int  len;        /* len is length passed from fortran */
  pango_layout_get_extents (layout, NULL, &logical_rect);  /* find box the text fits within */
  vfw = MAX (width, PANGO_PIXELS (logical_rect.width));
  if (vfw > 1 ) *pixelwidth = (long int) vfw;
+ if (vfw > 1 ) *pixelheight = (long int) f_height;
 /* debug g_print("phrase %s is %d %d %d pixels wide\n",buffer,vfw,width,PANGO_PIXELS (logical_rect.width)); */
  g_object_unref (layout);  /* clear the layout */
 

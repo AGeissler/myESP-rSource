@@ -440,22 +440,24 @@ C Given: IOM1, IOD1, IOH1 and IOM2, IOD2, IOH2
       COMMON/AVRAGE/IDAVER
       COMMON/SET1/IYEAR,IBDOY,IEDOY,IFDAY,IFTIME
 
-      CHARACTER*60 DESCR
-      CHARACTER DS*7,DS1*10,DE*7,DE1*10
+      CHARACTER*64 DESCR
+      CHARACTER DS*7,DS1*10,DE*7,DE1*10,DS2*8,DE2*8
       CHARACTER T1H*5,T1D*5,T2H*5,T2D*5
+      character T1J*5,T2J*5
 
 C Compute realistic times by taking into account the
 C half time-step shift if IDAVER=0.
 C Generate view period string based on IBDOY,IEDOY,BTIM,ETIM
-      CALL STDATE(IYEAR,IODS,DS,DS1)
-      CALL STDATE(IYEAR,IODF,DE,DE1)
-      CALL ESTIME(NTS,IDAVER,IOH1,T1H,T1D,TIMER1)
-      CALL ESTIME(NTS,IDAVER,IOH2*NTS,T2H,T2D,TIMER2)
+      CALL STDATE(IYEAR,IODS,DS,DS1,DS2)
+      CALL STDATE(IYEAR,IODF,DE,DE1,DE2)
+      CALL ESTIME(NTS,IDAVER,IOH1,T1H,T1D,T1J,TIMER1)
+      CALL ESTIME(NTS,IDAVER,IOH2*NTS,T2H,T2D,T2J,TIMER2)
 
       IF(IFDAY.EQ.1.OR.IFDAY.EQ.0)THEN
         IF(IFTIME.EQ.0)THEN
           WRITE(descr,7)DS,T1H,IYEAR,DE,T2H,IYEAR
-    7     FORMAT('Period: ',A,'@',A,'(',I4,') to ',A,'@',A,'(',I4,')')
+   7      FORMAT('Output period: ',A,'@',A,'(',I4,') to ',
+     &            A,'@',A,'(',I4,')')
         ELSE
           WRITE(descr,7)DS,T1D,IYEAR,DE,T2D,IYEAR
         ENDIF
@@ -465,6 +467,9 @@ C Generate view period string based on IBDOY,IEDOY,BTIM,ETIM
         ELSE
           WRITE(descr,7)DS1,T1D,IYEAR,DE1,T2D,IYEAR
         ENDIF
+      ELSEIF(IFDAY.EQ.3)THEN
+          WRITE(descr,8)T1J,DS2,T2J,DE2
+    8     FORMAT('Output period: ',A,' on ',A,' to ',A,' on ',A)
       ENDIF
       RETURN
       END
@@ -491,7 +496,7 @@ C Generate a descriptive string.
       NTM=INT(60.0/FLOAT(NTS))
       NTOM=INT(60.0/(FLOAT(NTS)/FLOAT(NOUT)))
       WRITE(SDESCR,1)NTM,NTOM,AVRCH(1:ILN)
-    1 FORMAT('Time steps: sim@',I2.2,'m, output@',I2.2,'m ',A)
+    1 FORMAT('Time steps: (STS=',I2.2,'m, OTS=',I2.2,'m)',A)
 
       RETURN
       END
@@ -687,7 +692,7 @@ C Get common block precz/lnprecz from geometry.h
       enddo
       if(length.lt.124)then
         WRITE(outs,5,iostat=ios,err=1)(zname(NZNO(I)),I=1,NZ)
-    5   FORMAT(' Zones: ',20(a,' '))
+    5   FORMAT('Zones: ',20(a,' '))
         call sdelim(outs,outsd,'S',IW)
         zdescr=outsd
         return
@@ -696,7 +701,7 @@ C Get common block precz/lnprecz from geometry.h
           WRITE(ZDESCR,'(A,I3,2A)')' Zone (',NZNO(1),') ',zname(NZNO(1))
         elseif(NZ.gt.1.and.NZ.LE.28)THEN
           WRITE(outs,6,iostat=ios,err=1)(NZNO(I),I=1,NZ)
-    6     FORMAT(' Zones: ',28(I4))
+    6     FORMAT('Zones: ',28(I4))
           call sdelim(outs,outsd,'S',IW)
           zdescr=outsd
         ELSEIF(NZ.GT.28.AND.NZ.LE.38)THEN
@@ -706,7 +711,7 @@ C Get common block precz/lnprecz from geometry.h
           zdescr=outsd
         ELSEIF(NZ.GT.38)THEN
           if(NZ.eq.NCOMP)then
-            write(zdescr,'(a)') ' Zones: all'
+            write(zdescr,'(a)') 'Zones: all'
           else
             iloop=MIN0(40,NZ)
             WRITE(outs,8,iostat=ios,err=1)(NZNO(I),I=1,iloop)
@@ -746,10 +751,10 @@ C zone names on one or two lines, otherwise use numbers.
       integer length,isecond,i,lna
       
 #ifdef OSI
-      integer iix,iiy,iicol,iiline,iicx,ipixw,iisize,ibsize
+      integer iix,iiy,iicol,iiline,iicx,ipixw,ipixh,iisize,ibsize
       integer ipixright,ipixright2nd  ! pixel width of name & position at right
 #else
-      integer*8 iix,iiy,iicol,iiline,iicx,ipixw,iisize,ibsize
+      integer*8 iix,iiy,iicol,iiline,iicx,ipixw,ipixh,iisize,ibsize
       integer*8 ipixright,ipixright2nd
 #endif
 
@@ -769,13 +774,13 @@ C zone index that fit within 72 characters.
 C Full name of zone can be written. Find position of "Zones"
 C Set icx to last character position before looping through zones.
         word='Zones: '
-        iiline=line; iicx=1; iisize=isize
+        iiline=line; iicx=0; iisize=isize
         call findviewtext(iicx,iiline,iisize,iix,iiy)
         iicol=0; ibsize=0
         call textsizeatxy(iix,iiy,word,ibsize,'-',iicol)
         call forceflush()
-        call textpixwidth(word,ipixw)  ! get its width
-        ipixright=iix+ipixw+3   ! pixel where next word should start
+        call textpixwidth(word,ipixw,ipixh)  ! get its width and 
+        ipixright=iix+ipixw                  ! where next word should start
         icx=9
         do i=1,NZ
 
@@ -789,8 +794,8 @@ C Then get index of colour for this zone, then plot text in that colour.
           iicol=NZNO(i)
           call textsizeatxy(iix,iiy,word,ibsize,'z',iicol)
           call forceflush()
-          call textpixwidth(word,ipixw)  ! get its width
-          ipixright=iix+ipixw+3   ! pixel where next word should start
+          call textpixwidth(word,ipixw,ipixh)
+          ipixright=iix+ipixw
           icx=icx+lna+1
         enddo
         iicol=0
@@ -808,8 +813,8 @@ C Set ix to last character position before looping through zones.
         ipixright2nd=ipixright  ! for use in 2nd line
         iicol=0; ibsize=0
         call textsizeatxy(iix,iiy,word,ibsize,'-',iicol)
-        call textpixwidth(word,ipixw)  ! get its width
-        ipixright=iix+ipixw+3   ! pixel where next word should start
+        call textpixwidth(word,ipixw,ipixh)
+        ipixright=iix+ipixw
         icx=9
         iloop=MIN0(isecond,NZ)
         do i=1,iloop
@@ -821,8 +826,8 @@ C Then get index of colour for this zone, then plot text in that colour.
           if(iix.lt.ipixright) iix=ipixright
           lna=lnzname(NZNO(i))
           write(word,'(a)',iostat=ios,err=1) zname(NZNO(I))(1:lna)
-          call textpixwidth(word,ipixw)  ! get its width
-          ipixright=iix+ipixw+3   ! pixel where next word should start
+          call textpixwidth(word,ipixw,ipixh)
+          ipixright=iix+ipixw
           iicol=NZNO(i)
           call textsizeatxy(iix,iiy,word,ibsize,'z',iicol)
           icx=icx+lna+1
@@ -842,8 +847,8 @@ C Then get index of colour for this zone, then plot text in that colour.
             if(iix.lt.ipixright) iix=ipixright
             lna=lnzname(NZNO(i))
             write(word,'(a)',iostat=ios,err=1) zname(NZNO(I))(1:lna)
-            call textpixwidth(word,ipixw)  ! get its width
-            ipixright=iix+ipixw+3   ! pixel where next word should start
+            call textpixwidth(word,ipixw,ipixh)
+            ipixright=iix+ipixw
             iicol=NZNO(i)
             call textsizeatxy(iix,iiy,word,ibsize,'z',iicol)
             icx=icx+lna+1
@@ -861,8 +866,8 @@ C Normal size res graphics window can hold ~30 on each line.
           word='Zones: '
           iiline=line; iicx=1; iisize=isize
           call findviewtext(iicx,iiline,iisize,iix,iiy)
-          call textpixwidth(word,ipixw)  ! get its width
-          ipixright=iix+ipixw+3   ! pixel where next word should start
+          call textpixwidth(word,ipixw,ipixh)  ! get its width
+          ipixright=iix+ipixw     ! pixel where next word should start
           ipixright2nd=ipixright  ! for use in 2nd line
           iicol=0; ibsize=0
           call textsizeatxy(iix,iiy,word,ibsize,'-',iicol)
@@ -875,8 +880,8 @@ C Normal size res graphics window can hold ~30 on each line.
             write(word,'(i3.3)',iostat=ios,err=1) NZNO(I)
             iicol=NZNO(i)
             call textsizeatxy(iix,iiy,word,ibsize,'z',iicol)
-            call textpixwidth(word,ipixw)  ! get its width
-            ipixright=iix+ipixw+3   ! pixel where next word should start
+            call textpixwidth(word,ipixw,ipixh)  ! get its width
+            ipixright=iix+ipixw
             icx=icx+lna+1
           enddo
           iicol=0
@@ -889,8 +894,8 @@ C Write out digits on two lines.
           word='Zones: '
           iiline=line; iicx=1; iisize=isize
           call findviewtext(iicx,iiline,iisize,iix,iiy)
-          call textpixwidth(word,ipixw)  ! get its width
-          ipixright=iix+ipixw+3   ! pixel where next word should start
+          call textpixwidth(word,ipixw,ipixh)  ! get its width
+          ipixright=iix+ipixw     ! pixel where next word should start
           ipixright2nd=ipixright  ! for use in 2nd line
           iicol=0; ibsize=0
           call textsizeatxy(iix,iiy,word,ibsize,'-',iicol)
@@ -903,8 +908,8 @@ C Write out digits on two lines.
             write(word,'(i3.3)',iostat=ios,err=1) NZNO(I)
             iicol=NZNO(i)
             call textsizeatxy(iix,iiy,word,ibsize,'z',iicol)
-            call textpixwidth(word,ipixw)  ! get its width
-            ipixright=iix+ipixw+3   ! pixel where next word should start
+            call textpixwidth(word,ipixw,ipixh)
+            ipixright=iix+ipixw
             icx=icx+lna+1
           enddo
           iicol=0
@@ -919,8 +924,8 @@ C Write out digits on two lines.
             call findviewtext(iicx,iiline,iisize,iix,iiy)
             lna=3  ! lna=2
             write(word,'(i3.3)',iostat=ios,err=1) NZNO(I)
-            call textpixwidth(word,ipixw)  ! get its width
-            ipixright=iix+ipixw+3   ! pixel where next word should start
+            call textpixwidth(word,ipixw,ipixh)
+            ipixright=iix+ipixw
             iicol=NZNO(i)
             call textsizeatxy(iix,iiy,word,ibsize,'z',iicol)
             icx=icx+lna+1
@@ -1073,6 +1078,7 @@ C calling facilities menu layout.
       SUBROUTINE ASKZON(IZONE,IMW)
 #include "building.h"
 #include "geometry.h"
+#include "help.h"
 
 C Parameters.
       integer izone          ! which zone was selected
@@ -1088,12 +1094,7 @@ C Parameters.
       DIMENSION zn(MCON)
       character*(IMW) zn
 
-C For help messages
-      character helpinsub*24   ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='ASKZON'  ! set for subroutine
+      helpinsub='utils'  ! set for subroutine
 
 C If only one zone in problem then supply it.
       if(NZ.eq.1)then
@@ -1149,6 +1150,7 @@ C the user is interested in for stats/ graphs/ listings etc.
       SUBROUTINE PICKSUR(IZ,NP,IVA,IER)
 #include "building.h"
 #include "geometry.h"
+#include "help.h"
 
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
       
@@ -1160,12 +1162,7 @@ C the user is interested in for stats/ graphs/ listings etc.
       character ST(MS)*12,CSTR*25
       character outs*124
 
-C For help messages
-      character helpinsub*24   ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='PICKSUR'  ! set for subroutine
+      helpinsub='utils'  ! set for subroutine
 
 C Check for illegal zone number.
       IER=0
@@ -1210,6 +1207,7 @@ C anchor type 'SURF'. Definitions in model.h.
       SUBROUTINE PICKANC(ATYPE,IZLST,ISLST,NSANC,IER)
 #include "building.h"
 #include "model.h"
+#include "help.h"
 
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
 
@@ -1220,12 +1218,7 @@ C anchor type 'SURF'. Definitions in model.h.
       character ATYPE*4
       character ST(20)*12,outs*124
 
-C For help messages
-      character helpinsub*24   ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='PICKANC'  ! set for subroutine
+      helpinsub='utils'  ! set for subroutine
 
       IER=0
 
@@ -1286,6 +1279,7 @@ C selected zones
 #include "building.h"
 #include "model.h"
 #include "geometry.h"
+#include "help.h"
 
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/FILEP/IFIL
@@ -1299,12 +1293,7 @@ C selected zones
 
       character ST(60)*22,outs*124,LMRT*72
 
-C For help messages
-      character helpinsub*24   ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='PIKMRTS'  ! set for subroutine
+      helpinsub='utils'  ! set for subroutine
 
       IER=0
 
@@ -1386,6 +1375,7 @@ C the user is interested in.
 
       SUBROUTINE ASKICN(IZONE,ISFN,INN)
 #include "building.h"
+#include "help.h"
 
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
       
@@ -1396,12 +1386,7 @@ C the user is interested in.
 
       character outs*124
 
-C For help messages
-      character helpinsub*24   ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='ASKICN'  ! set for subroutine
+      helpinsub='utils'  ! set for subroutine
 
       IF(IZONE.GE.1.OR.IZONE.LE.NCOMP)THEN
         IF(ISFN.GE.1.OR.ISFN.LE.NCONST(IZONE))THEN
@@ -1432,6 +1417,7 @@ C month. Default time initially displayed are taken from input values of
 C IMO, IDO and TIME.
 
       SUBROUTINE ASKRTIM(IFDAY,IMO,IDO,IJDAY,TIME,IT,IER)
+#include "help.h"
 
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/SIMPIK/ISIM,ISTADD,ID1,IM1,ID2,IM2,ISDS,ISDF,NTS,ISAVE
@@ -1439,14 +1425,9 @@ C IMO, IDO and TIME.
       character HOLD*24,HOLD2*24
       DIMENSION ID(12)
 
-C For help messages
-      character helpinsub*24   ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
       DATA ID/31,28,31,30,31,30,31,31,30,31,30,31/
 
-      helpinsub='ASKRTIM'  ! set for subroutine
+      helpinsub='utils'  ! set for subroutine
       IER=0
       helptopic='res_output_time_pick'
       call gethelptext(helpinsub,helptopic,nbhelp)
@@ -1546,6 +1527,7 @@ C Compute average over NOUT timesteps.
 C ************* ASKPER 
 C ASKPER: Provides interface to specification of a period of days. 
       SUBROUTINE ASKPER(IFDAY,IER)
+#include "help.h"
 
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
 
@@ -1554,22 +1536,17 @@ C ASKPER: Provides interface to specification of a period of days.
 
       DIMENSION MTHNAM(12)
 
-      CHARACTER HOLD*20,PDESCR*60,outs*124,MTHNAM*3
-
-C For help messages
-      character helpinsub*24   ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
+      CHARACTER HOLD*20,PDESCR*64,outs*124,MTHNAM*3
 
       DATA MTHNAM/'Jan','Feb','Mar','Apr','May','Jun','Jul','Aug',
      &            'Sep','Oct','Nov','Dec'/
 
 C Write out simulation period.
-      helpinsub='ASKPER'  ! set for subroutine
+      helpinsub='utils'  ! set for subroutine
       write (PDESCR,'(2(i3,a4,a))') ID1,MTHNAM(IM1),' to',
-     &                                        ID2,MTHNAM(IM2),'.'
+     &                              ID2,MTHNAM(IM2),'.'
       write (outs,'(2a)')
-     &       ' Current result set contains data for the period:',PDESCR
+     &  ' Current result set contains data for the period:',PDESCR
       call edisp(iuout,outs)
 
       IER=0
@@ -1668,6 +1645,7 @@ C msg (width variable) is prepended to dialog as export happens
 C ixopen is a toggle reset each time ctlexp is called to signal open or close file.
 C ixunit is the file unit number for the export file.
       subroutine ctlexp(xfile,ixopen,ixunit,ixpunit,tg,msg,IER)
+#include "help.h"
       integer lnblnk  ! function definition
 
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
@@ -1691,12 +1669,7 @@ C   the file name.
       integer lenxfile
       integer ISTRW
 
-C For help messages
-      character helpinsub*24   ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='ctlexp'  ! set for subroutine
+      helpinsub='utils'  ! set for subroutine
 
       lenxfile=lnblnk(xfile)
 

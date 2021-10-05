@@ -1,11 +1,11 @@
 C This file is part of the ESP-r system.
 C Copyright Energy Systems Research Unit, University of
-C Strathclyde, Glasgow Scotland, 2001.
+C Strathclyde, Glasgow, Scotland, 2001-.
 
 C ESP-r is free software.  You can redistribute it and/or
 C modify it under the terms of the GNU General Public
 C License as published by the Free Software Foundation 
-C (version 2 orlater).
+C (version 2 or later).
 
 C ESP-r is distributed in the hope that it will be useful
 C but WITHOUT ANY WARRANTY; without even the implied
@@ -13,10 +13,6 @@ C warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
 C PURPOSE. See the GNU General Public License for more
 C details.
 
-C You should have received a copy of the GNU General Public
-C License along with ESP-r. If not, write to the Free
-C Software Foundation, Inc., 59 Temple Place, Suite 330,
-C Boston, MA 02111-1307 USA.
 
 C This file contains the following routines:
 C      MODGRF - controls selection of frequency histogram
@@ -34,9 +30,11 @@ C act='t' only text output allowed (called from stats.F).
 C act='p' iget parameters already set.
 C act='-' graphic output
 C index is the goget index.
+
       SUBROUTINE MODGRF(act,index)
 #include "building.h"
 #include "ipvdata.h"
+#include "help.h"
       
       integer lnblnk  ! function definition
 
@@ -88,12 +86,13 @@ C Selection menu for graphs and/or tables.
       real FNTS        ! real number of timesteps per hour
       real XONE        ! minimum of range if bin width one
 
-C For help messages
-      character helpinsub*24   ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
+#ifdef OSI
+      integer iside,isize,ifont       ! passed to viewtext
+#else
+      integer*8 iside,isize,ifont     ! passed to viewtext
+#endif
 
-      helpinsub='MODGRF'  ! set for subroutine
+      helpinsub='frqdis'  ! set for subroutine
       XDIFF=0.0           ! set initial value
       isone=.false.; ishalf=.false.; isother=.false.
 
@@ -605,8 +604,10 @@ C after image and advise user.
         if(MMOD.eq.8)then
           CALL MODHED('g',zlist,iocupf,ialstused)
           TLABEL='  '
-          write (TLABEL,'(a,a13,f5.1)')
-     &       SLABEL(NGET)(1:LNSLABEL(NGET)),', Bin width =',DXBIN
+          write (TLABEL,'(a,a13,f5.1,a)')
+     &       SLABEL(NGET)(1:LNSLABEL(NGET)),', (Bin width =',DXBIN,')'
+          iside=5; isize=1; ifont=1
+          call viewtext(TLABEL,iside,isize,ifont)
           if(IG.eq.1.or.IG.eq.4)then
             order=0
             call easkab(' ','Scale options:','distribution (hits)',
@@ -869,8 +870,10 @@ C corresponding to graphical result display.
       COMMON/OUTPCH/ICOUT
       integer menuchw,igl,igr,igt,igb,igw,igwh
       COMMON/VIEWPX/menuchw,igl,igr,igt,igb,igw,igwh
+      common/appcols/mdispl,nifgrey,ncset,ngset,nzonec
       COMMON/SIMPIK/ISIM,ISTADD,ID1,IM1,ID2,IM2,ISDS,ISDF,NTS,ISAVE
       COMMON/EXPORTI/ixopen,ixunit,ixpunit
+      COMMON/ZONPIK/NZ,NZNO(MCOM)
 
       COMMON/RESLIB/RFILE,PFILE,MSTRFILE,LAFRES
       COMMON/SETNAM/RSNAME(MNRS)
@@ -880,7 +883,7 @@ C corresponding to graphical result display.
       logical headingcontext ! has set or period changed so heading needs reprint
       common/libhead/libheading,headingcontext
 
-      CHARACTER ETEXT*94,GTEXT*94,PDESCR*60,SDESCR*44,act*1
+      CHARACTER ETEXT*94,GTEXT*94,PDESCR*64,SDESCR*44,act*1
       character rfile*72,PFILE*72,MSTRFILE*72,LAFRES*72
       character outsd*124,outsd1*142,RSNAME*40
       logical zlist
@@ -908,7 +911,8 @@ C text dialogue box that would normally be displayed.
 
 C Reduce the white space on the right so the label percent is not
 C so separated from the axis.
-          iiw1=12; iiw2=12; iiw3=5; iiw4=3; iimenu=menuchw
+          call winfnt(ifs)
+          iiw1=8; iiw2=11; iiw3=7; iiw4=3; iimenu=menuchw
           iigl=igl; iigr=igr; iigt=igt; iigb=igb; iigw=igw; iigwh=igwh
           ilf=2; ild=LIMTTY
           iglib = igraphiclib()  ! find out if X11 or GTK or text support only.
@@ -934,11 +938,12 @@ C If output to file alter the edisp unit number.
 
       lsn1=MIN0(lnblnk(RFILE),32)
       if(NSIM.gt.1)then
-        WRITE(ETEXT,'(3A,I4,2A)')'Lib: ',RFILE(1:lsn1),' Set:',ISIM,
+        WRITE(ETEXT,'(3A,I4,2A)')'Results library: ',
+     &    RFILE(1:lsn1),'; results set:',ISIM,
      &    ': ',RSNAME(ISIM)(1:lnblnk(RSNAME(ISIM)))
       else
-        WRITE(ETEXT,'(4A)')'Lib: ',RFILE(1:lsn1),
-     &    ': ',RSNAME(ISIM)(1:lnblnk(RSNAME(ISIM)))
+        WRITE(ETEXT,'(4A)')'Results library: ',RFILE(1:lsn1),
+     &    '; ',RSNAME(ISIM)(1:lnblnk(RSNAME(ISIM)))
       endif
       GTEXT=ETEXT
       if(act.eq.'g')then
@@ -951,7 +956,7 @@ C If output to file alter the edisp unit number.
       endif
 
       WRITE(ETEXT,'(3A)')PDESCR(1:lnblnk(PDESCR)),' ',
-     &   SDESCR(11:lnblnk(SDESCR))
+     &   SDESCR(12:lnblnk(SDESCR))
       GTEXT=ETEXT
       if(act.eq.'g')then
         iside=2; isize=0; ifont=1
@@ -975,16 +980,20 @@ C if names of zones can be shown.
             call edisp(itru,GTEXT)
           endif
         else
-          call znlist(outsd,len,ierr) 
-          if(ierr.ne.1)then
-            write(outsd1,'(2a)')'Frequency in ',outsd
-            if(act.eq.'g')then
-              iside=3; isize=0; ifont=1
-              call viewtext(outsd1,iside,isize,ifont)
-            else
-              call edisp(itru,outsd1)
+C          if(nzonec.ge.NZ)then  ! Spading off, comment out option.
+C            call colznlist(3,1,ierr)
+C          else
+            call znlist(outsd,len,ierr) 
+            if(ierr.ne.1)then
+              write(outsd1,'(2a)')'Frequency in ',outsd
+              if(act.eq.'g')then
+                iside=3; isize=0; ifont=1
+                call viewtext(outsd1,iside,isize,ifont)
+              else
+                call edisp(itru,outsd1)
+              endif
             endif
-          endif
+C          endif
         endif
         if(iocupf.eq.1)then
           GTEXT=' Filtered by occupancy'
@@ -1031,20 +1040,39 @@ C Parameters
       integer order  ! 0 standard 1 reversed
       integer hits   ! 0 distrib via hits 1 distrib via hours
 
+      integer ncomp,ncon
+      common/C1/NCOMP,NCON
       COMMON/SIMPIK/ISIM,ISTADD,ID1,IM1,ID2,IM2,ISDS,ISDF,NTS,ISAVE
       COMMON/FREQS/NBINS,XBIN1,XBINN,DXBIN,IFREQ,IHITS,IMISS,INBIN(MF)
       integer ICBIN,IRCBIN
       COMMON/FREQS1/ICBIN(MF),IRCBIN(MF),ITOTAL
       integer menuchw,igl,igr,igt,igb,igw,igwh
       COMMON/VIEWPX/menuchw,igl,igr,igt,igb,igw,igwh
+      common/appcols/mdispl,nifgrey,ncset,ngset,nzonec
+      COMMON/ZONPIK/NZ,NZNO(MCOM)
+      character LABEL*12
+      logical colok
 
 #ifdef OSI
       integer igwid,igheight  ! for use with axiscale
       integer iigl,iigr,iigt,iigb,iigw,iigwh
+      integer iicol,ibsize,ipixw,ipixh
+      integer iid1,iid2
 #else
       integer*8 igwid,igheight  ! for use with axiscale
       integer*8 iigl,iigr,iigt,iigb,iigw,iigwh
+      integer*8 iicol,ibsize,ipixw,ipixh
+      integer*8 iid1,iid2
 #endif
+
+
+C Check if colour graph is possible.
+      colok=.false.
+      if(nzonec.ge.NCOMP)colok=.true.
+      if(colok)then
+        iicol=0; ibsize=0
+        call winscl('-',iicol)  ! ensure axis drawn in black
+      endif
 
 C Set vertical scale.
       if(hits.eq.0)then
@@ -1074,13 +1102,21 @@ C Stuff into static variables for later access.
 
 C Left axis.
       if(hits.eq.0)then
+        LABEL='Distribution'
+        call textpixwidth(LABEL,ipixw,ipixh)    ! get its width
+        iid1=15; iid2=igt-(ipixh-2); iid3=igt-1  ! Do left justified.
         call dintervalf(Ymin,Ymax,ddy1,ny,0)
         call vrtaxisdd(YMIN,YMAX,iigl,iigb,iigt,Yadd,ysc,0,
-     &    ddy1,ny,0,'Distribution')
+     &    ddy1,ny,0,'  ')
+        call textsizeatxy(iid1,iid2,LABEL,ibsize,'-',iicol)
       else
+        LABEL='Hours'
+        call textpixwidth(LABEL,ipixw,ipixh)  ! get its width
+        iid1=15; iid2=igt-(ipixh-2); iid3=igt-1  ! Do left justified.
         call dintervalf(Ymin,Ymax,ddy1,ny,0)
         call vrtaxisdd(YMIN,YMAX,iigl,iigb,iigt,Yadd,ysc,0,
-     &    ddy1,ny,0,'Hours')
+     &    ddy1,ny,0,'  ')
+        call textsizeatxy(iid1,iid2,LABEL,ibsize,'-',iicol)
       endif
 
 C Horizontal axis, label depending on data type.
@@ -1088,15 +1124,15 @@ C If moderate data range use mode 1, otherwise try 0.
       if((XMAX-XMIN).lt.5.0)then
         call dintervalf(Xmin,Xmax,ddy1,ny,0)
         call horaxisdd(XMIN,XMAX,iigl,iigr,iigb,Xadd,xsc,0,
-     &    ddy1,ny,alabel)
+     &    ddy1,ny,'  ')
       elseif((XMAX-XMIN).ge.5.0.and.(XMAX-XMIN).lt.1000.)then
         call dintervalf(Xmin,Xmax,ddy1,ny,1)
         call horaxisdd(XMIN,XMAX,iigl,iigr,iigb,Xadd,xsc,1,
-     &    ddy1,ny,alabel)
+     &    ddy1,ny,'  ')
       else
         call dintervalf(Xmin,Xmax,ddy1,ny,0)
         call horaxisdd(XMIN,XMAX,iigl,iigr,iigb,Xadd,xsc,0,
-     &    ddy1,ny,alabel)
+     &    ddy1,ny,'  ')
       endif
 
 C Right axis.
@@ -1106,9 +1142,13 @@ C      PMAX=(YMAX/FLOAT(ITOTAL))*100.0
       igheight=igwh
       call axiscale(igwid,igheight,XMIN,XMAX,PMIN,PMAX,xsc,psc,sca,
      &              Xadd,Padd)
+      iid1=iigr; iid2=igt-(ipixh-2)
+      ALABEL='Percent'
+      call textpixwidth(ALABEL,ipixw,ipixh)  ! get its width
       call dintervalf(PMIN,PMAX,ddy1,ny,0)
       call vrtaxisdd(PMIN,PMAX,iigr,iigb,iigt,Padd,psc,0,
-     &  ddy1,ny,1,'Percent')
+     &  ddy1,ny,1,'  ')
+      call textsizeatxy(iid1,iid2,ALABEL,ibsize,'-',iicol)
 
 C Plot histogram, draw grey box if YBIN > 0.
       XBIN = XMIN

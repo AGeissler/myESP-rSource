@@ -30,6 +30,7 @@ C results file, then displays the menu.
 #include "material.h"
 #include "espriou.h"
 #include "prj3dv.h"
+#include "help.h"
       
       integer lnblnk  ! function definition
 
@@ -103,7 +104,7 @@ C Session log file (for errors etc.)
       character iefile*72
       common/logs/iefile
 
-      integer ireportunit ! 0 is default, 1 is W, 2 is KW, 3 is J.
+      integer ireportunit ! 0 is default, 1 is W, 2 is kW, 3 is J.
       common/repunit/ireportunit
 
 C CFD commons.
@@ -171,11 +172,6 @@ C Ask to overwrite flag.
       integer iglib     ! if 1 then X11, 2 then GTK, 3 then text only
       integer NITMS,INO ! max items and current menu item
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! unique string for topic
-      integer nbhelp         ! number of help lines found
-
 C Initialise global common data.
       call ezero
       call curmodule('res ')
@@ -192,8 +188,8 @@ C Initialise global common data.
       IFS=0
       ITFS=1
       IMFS=1
-      IFDAY=2
-      IFTIME=0
+      IFDAY=3
+      IFTIME=3
       ICLIM=IFIL+5
       IOPTDB=IFIL+6
       IUTDF=IFIL+7
@@ -287,7 +283,7 @@ C Initialise output device.
 
 C Set pixels high to iappw and pixels wide to factor in monitor size.
       iapphi=iappw
-      iappwi=int(real(iappw)*(1024.0/780.0))
+      iappwi=int(real(iappw)*(1024.0/725.0))
 
       if(iappw.gt.0.and.iappw.lt.100)then
         menuchw = MAX0(int(26*iappw*0.01),18)
@@ -795,6 +791,7 @@ C or at specific points thereafter.
       subroutine imgdisp(iforce,focus,ier)
 #include "building.h"
 #include "model.h"
+#include "help.h"
       
       integer lnblnk  ! function definition
 
@@ -836,12 +833,7 @@ C   limgfil (72 char) - name of the image file.
 
       logical concat,show,unixok
 
-C For help messages.
-      character helpinsub*24 ! calling subroutine.
-      character helptopic*24 ! help topic.
-      integer nbhelp         ! number of help lines found.
-
-      helpinsub='imgdisp'  ! set for cfiles
+      helpinsub='res'  ! set for cfiles
 
 C Check if Unix- or DOS-based.
       call isunix(unixok)

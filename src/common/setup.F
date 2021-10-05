@@ -16,11 +16,11 @@ C details.
 
 C file setup.F includes facilities for display of dates, time and files.
       SUBROUTINE SETUP(IER)
+#include "help.h"
       
       integer lnblnk  ! function definition
 
       common/OUTIN/IUOUT,IUIN,IEOUT
-      common/pophelp/h(60)
       common/FILEP/IFIL
       common/SET1/IYEAR,IBDOY,IEDOY,IFDAY,IFTIME
       common/texted/tedlbl,teditor
@@ -29,12 +29,15 @@ C file setup.F includes facilities for display of dates, time and files.
       common/FOPENED/CFGOK,MLDBOK,MATDBOK,CTLOK,OPTKOK,CFCDBOK
       logical OK,CFGOK,MLDBOK,MATDBOK,CTLOK,OPTKOK,concat,CFCDBOK
       dimension ITEMS1(18)
-      character LFIL*72,SFILE*72,H*72,tfile*72,longtfile*144
+      character LFIL*72,SFILE*72,tfile*72,longtfile*144
       character OUTSTR*124,ITEMS1*47,doit*248,tedlbl*20,teditor*20
       character PERST1*14,PERST2*44,PERST3*44,tmode*8
       integer nitms,INO1 ! max items and current menu item
 
    33 INO1=-4
+      helpinsub='setup'  ! set for subroutine
+      helptopic='various_setup_inputs'
+      call gethelptext(helpinsub,helptopic,nbhelp)
 
 C Get date strings.
       IVBTIM=1
@@ -75,10 +78,8 @@ C Display of time of day.
       IF(INO1.EQ.1)THEN
 
 C Define the beginning and ending dates for simulation.
-        H(1)='The year is required to find the date of a given'
-        H(2)='year day.'
-        CALL EASKI(IYEAR,' ',' Please enter year?',
-     &             1900,'W',2051,'W',2007,'year',IER,2)
+        CALL EASKI(IYEAR,' ','Please enter year?',
+     &    1900,'W',2051,'W',2007,'year',IER,nbhelp)
         CALL EASKPER('Assessment period:',IBDOY,IEDOY,IFDAY,IER)
       ELSEIF(INO1.EQ.2)THEN
 
@@ -97,28 +98,22 @@ C allow decimal day representation if day format is DOY
       ELSEIF(INO1.EQ.6)THEN
 
 C List out an ASCII file.
-        H(1)='The specified ASCII file will be read and displayed'
-        H(2)='in the text window page by page.'
     6   CALL EASKS(LFIL,' ASCII file name?',
-     &    ' ',72,' ','ASCII file',IER,2)
+     &    ' ',72,' ','ASCII file',IER,nbhelp)
 
         IUNIT=IFIL+1
         CALL LISTAS(IUNIT,LFIL,IER)
         IF(IER.LT.0)THEN
-          h(1)='Either the file does not exist or the name'
-          h(2)='includes non-printing characters.'
           CALL EASKOK('Problem opening ASCII file!',
-     &               'Retry?',OK,2)
+     &               'Retry?',OK,nbhelp)
           IF(OK)GOTO 6
         ENDIF
       ELSEIF(INO1.EQ.7)THEN
 
 C Allow user to edit a file. Append to path if necessary.
 C If vi then spawn a new window to do the editing in.
-        H(1)='An ASCII format file can be edited using the current'
-        H(2)='defined text editor.'
         CALL EASKS(LFIL,' ASCII file to edit ? ',
-     &    ' ',72,' ','ASCII file',IER,2)
+     &    ' ',72,' ','ASCII file',IER,nbhelp)
         call addpath(LFIL,longtfile,concat)
         tmode='-'
         if(teditor(1:2).eq.'vi'.or.teditor(1:4).eq.'nano')tmode='text'
@@ -128,20 +123,16 @@ C If vi then spawn a new window to do the editing in.
       ELSEIF(INO1.EQ.8)THEN
 
 C Ask for commented file name and open it, IER=-301 if not found.
-        H(1)='An annotated file may be stripped of all comments'
-        H(2)='so that it is compatible with older applications.'
     8   CALL EASKS(LFIL,' Commented file name?',
-     &      ' ',72,' ','commented file name',IER,2)
+     &      ' ',72,' ','commented file name',IER,nbhelp)
 
         IUNIT=IFIL+1
         CALL EFOPSEQ(IUNIT,LFIL,1,IER)
         IF(IER.LT.0)GOTO 8
 
 C Ask for name of file to put uncommented text into.
-        H(1)='An annotated file may be stripped of all comments'
-        H(2)='so that it is compatible with older applications.'
     9   CALL EASKS(SFILE,' Uncommented file name?',
-     &    ' ',72,' ','Uncommented file name',IER,2)
+     &    ' ',72,' ','Uncommented file name',IER,nbhelp)
 
 c Place output into IFIL+2, first close that unit, open any exiting
 C file with this name, delete it and create a new file.
@@ -165,23 +156,7 @@ C Place miscellaneous testing applications here.
         CALL USRMSG(' ','No options offered at this time.','-')
 
       ELSEIF(INO1.EQ.10)THEN
-        H(1)='This menu allows the display format for dates and'
-        H(2)='times to be changed.  The active year can also be'
-        H(3)='defined as required by controllers that require day'
-        H(4)='of the week information.'
-        H(5)=' '
-        H(6)='One option lists a specified ASCII file - sometimes'
-        H(7)='useful if you have need to directly view the contents'
-        H(8)='of a problem describing entity such as the system'
-        H(9)='configuration file or a zone geometry file.  There'
-        H(10)='is also an option to strip comments from files where'
-        H(11)='that will make them compatible with older versions'
-        H(12)='of the Project Manager.  Editing an ASCII file - such'
-        H(13)='as the job notes file - requires a text editor which'
-        H(14)='is currently defined to be:'
-        write(H(15),'(a,a,a)')'      ',teditor(1:lnblnk(teditor)),'.'
-        H(16)='This can be re-defined in your .esprc file.'
-        CALL PHELPD('geneeral preferences',16,'-',0,0,IER)
+        CALL PHELPD('geneeral preferences',nbhelp,'-',0,0,IER)
       ELSEIF(INO1.EQ.11)THEN
         RETURN
       else

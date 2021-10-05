@@ -33,7 +33,7 @@ OBJECTS = ecnv.o ascii_mat.o c2fdum.o ctlwrt.o ctread.o \
 	  esystem.o filelist.o item.o low_lev.o mfcdat.o mid_lev.o \
 	  nwkrewr.o pltcfg.o rcdblist.o readTrnsys.o rwipv.o rwsbem.o sort.o \
 	  tdfile.o wwxfig.o \
-	  FMIcom.o
+	  FMIcom.o agtcom.o grmcom.o
       
 MODULES = aim2.mod aim2_calcdata.mod aim2_h2k_dummy.mod aim2_inputdata.mod start_up.mod \
 	parse_command_line.mod h3kmodule.mod CFC_Module.mod
@@ -155,6 +155,12 @@ h3kmodule.f90:
 FMIcom.F:
 	rm -f FMIcom.F
 	ln -s $(COMdir)/FMIcom.F .
+agtcom.F:
+	rm -f agtcom.F
+	ln -s $(COMdir)/agtcom.F .
+grmcom.F:
+	rm -f grmcom.F
+	ln -s $(COMdir)/grmcom.F .
 
 strip:
 	strip $(PROG)
@@ -170,7 +176,7 @@ clean:
 	emfnetw.F emkcfg.F enetmisc.F enetrewr.F eroper.F esru_misc.F esystem.F \
 	filelist.F item.F mfcdat.F nwkrewr.F pltcfg.F readTrnsys.F rwipv.F rwsbem.F \
 	rcdblist.F sort.F startup.F tdfile.F h3kmodule.f90 \
-	FMIcom.F CFC_Module.f90 cfc_module.mod
+	FMIcom.F agtcom.F grmcom.F CFC_Module.f90 cfc_module.mod
 
 distclean: clean
 

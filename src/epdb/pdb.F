@@ -22,6 +22,7 @@ C details.
 #include "pdb_data.h"
 #include "esprdbfile.h"
 #include "espriou.h"
+#include "help.h"
 
       integer lnblnk  ! function definition
       integer igraphiclib  ! external definition
@@ -89,12 +90,6 @@ C Ask to overwrite flag.
       integer*8 iigl,iigr,iigt,iigb,iigw,iigwh
       integer*8 iiw1,iiw2,iiw3,iiw4,iimenu
 #endif
-
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found (will be non-zero
-                         ! because default message will be created
 
 C Initialise output device, assume minimal trace, and a smallish
 C display.  If passed zero size and offsets use default, if size
@@ -680,6 +675,7 @@ C 'ix'          : returns number of selections made.
       subroutine list(inpc,ival,nitems,ix)
 #include "plantdb.h"
 #include "pdb_data.h"
+#include "help.h"
 
       common/FILEP/IFIL
       COMMON/ERRS/ISTAT,IREC
@@ -689,13 +685,7 @@ C 'ix'          : returns number of selections made.
       CHARACTER comp*80,cdesc*80,outs*124
       logical ok
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp         ! number of help lines found (will be non-zero
-                             ! because default message will be created
-
-      helpinsub='list'       ! set for MAIN
+      helpinsub='pdb'       ! set for MAIN
 
 C Write description of each component in string array.
       DO 10 L=1,inpc

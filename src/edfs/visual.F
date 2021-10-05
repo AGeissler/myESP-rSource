@@ -32,6 +32,7 @@ C Define the parameters for the visualisation of results.
 
       subroutine VISOUT(ICOMP)
 #include "building.h"
+#include "help.h"
       
       integer lnblnk  ! function definition
       integer iCountWords
@@ -53,12 +54,7 @@ C Define the parameters for the visualisation of results.
       integer IWM,IWE   ! for radio buttons
       integer NITMS,INO ! max items and current menu item
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='VISOUT'  ! set for subroutine
+      helpinsub='visual'  ! set for subroutine
 
 C Check for visualidsation data.
       if (Lflpar(ICOMP)(1:7).ne.'UNKNOWN') call rdFVP(ICOMP,ier)
@@ -100,8 +96,8 @@ C current menu line index. Build up text strings for the menu.
 
 C Number of actual items displayed.
       NITMS=M+MCTL
-      ITEM(M+1)=' ----------------------- '
-      ITEM(M+2)='* add/ delete view '
+      ITEM(M+1)=' -----------------------'
+      ITEM(M+2)='* add/ delete view'
       ITEM(M+3)='! list current'
       ITEM(M+4)='> save view information'
       ITEM(M+5)='= create image(s)'
@@ -441,6 +437,7 @@ C  imgtyp = 5 : ParaView data file.
 
       subroutine VISMAK(ICOMP,IFRAME)
 #include "building.h"
+#include "help.h"
       
       integer lnblnk  ! function definition
 
@@ -457,12 +454,7 @@ C  imgtyp = 5 : ParaView data file.
       character name*12,t12*12,LBIT*72,LVEC*72
       logical GENVEW
 
-C For help messages.
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='VISMAK'  ! set for subroutine
+      helpinsub='visual'  ! set for subroutine
 
 C Any views.
       if (Nview(ICOMP).eq.0) then
@@ -554,6 +546,7 @@ C imgtyp - Output image type.
       subroutine FTV(ICOMP,IM,ISUR,ilayer,name,IFRAME)
 #include "building.h"
 #include "cfd.h"
+#include "help.h"
       
       integer lnblnk  ! function definition
       integer iCountWords
@@ -570,16 +563,7 @@ C imgtyp - Output image type.
       integer ISCALAR  ! for radio button
       integer NITMS,INO  ! max items and current menu item
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='FTV'  ! set for subroutine
-
-C Set the geometry for the CFD domain in terms of ESP-r's standard
-C geometry model.
-      CALL SETGEO
+      helpinsub='visual'  ! set for subroutine
 
 C Set the number of pixels required for the image.  This is a function
 C of the resolution specified by the user and the geometry of the model.
@@ -708,7 +692,7 @@ C  results in format for use in the flow visualization routines.
 #include "cfd.h"
 
       COMMON/FILEP/IFIL
-      COMMON/ICFCHN/ICFMON(MNZ),ICFTMP,ICFLIB
+      COMMON/ICFCHN/ICFMON(MNZ),ICFDBC(MNZ),ICFTMP,ICFLIB
 
       COMMON/ALL/NI,NJ,NK,NIM1,NJM1,NKM1,NIM2,NJM2,NKM2
       COMMON/VARf/Uf(ntcelx,ntcely,ntcelz),Vf(ntcelx,ntcely,ntcelz),
@@ -830,8 +814,9 @@ C  results in format for use in the flow visualization routines.
       SUBROUTINE GETVECLIB(vecfil)
 #include "building.h"
 #include "cfd.h"
+#include "help.h"
 
-      COMMON/ICFCHN/ICFMON(MNZ),ICFTMP,ICFLIB
+      COMMON/ICFCHN/ICFMON(MNZ),ICFDBC(MNZ),ICFTMP,ICFLIB
 
       COMMON/ALL/NI,NJ,NK,NIM1,NJM1,NKM1,NIM2,NJM2,NKM2
       COMMON/TEMPf/Tf(ntcelx,ntcely,ntcelz),GAMH(ntcelx,ntcely,ntcelz),
@@ -853,12 +838,7 @@ C  results in format for use in the flow visualization routines.
 
       character vecfil*72,OUTSTR*124,t24*24
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='GETVECLIB'  ! set for subroutine
+      helpinsub='visual'  ! set for subroutine
 
 C Ask for temperature scale max and min
         t24='  25.0  15.0'
@@ -1182,6 +1162,7 @@ C   which contains specifications on bitmap images to generate.
 
       SUBROUTINE wrFVP(ICOMP,ier)
 #include "building.h"
+#include "help.h"
 
       common/FILEP/IFIL
 
@@ -1194,12 +1175,7 @@ C   which contains specifications on bitmap images to generate.
 
       character Lflpar*72,t72*72,LBITrt*12,outs*124
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='wrFVP'  ! set for subroutine
+      helpinsub='visual'  ! set for subroutine
 
 C Check that we have a file name.
       if (Lflpar(ICOMP)(1:7).eq.'UNKNOWN'.or.
@@ -1342,6 +1318,7 @@ C ASKCFDCTM asks the user to select a CFD contaminant.
 
 #include "building.h"
 #include "cfd.h"
+#include "help.h"
 
       COMMON/ICFNOD/ICFD,ICP
       common/EQTION3/CALLMA(MNZ),CALPOL(MCTM,MNZ),POLNAM(MCTM,MNZ),
@@ -1352,12 +1329,7 @@ C ASKCFDCTM asks the user to select a CFD contaminant.
 c      integer NITMS,INO  ! max items and current menu item
       integer IVALZ(MCTM)
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='ASKCFDCTM'  ! set for subroutine
+      helpinsub='visual'  ! set for subroutine
 
       ICTM=0
 

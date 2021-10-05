@@ -214,7 +214,7 @@ C CPCALC description
 C Images.
       common/imagf/imgfmt(MIMG),imgfoc(MIMG),limgfil(MIMG),imgdoc(MIMG)
       character imgfmt*4  ! GIF XBMP TIF JPG
-      character imgfoc*4  ! FZON FNET FCTL FDFS
+      character imgfoc*4  ! FZON FNET FCTL FDFS FPLN etc.
       character limgfil*72  ! file name (extend to 144 char)
       character imgdoc*248  ! text associated with image
 
@@ -312,9 +312,10 @@ C Initial assumption is no SHOCC files.
       LGDTAQ='UNKNOWN'
       LGRD1D='UNKNOWN'
       LNLTHP='UNKNOWN'
-      zonepth='./'; netpth='./'; ctlpth='./'; aimpth='./'
-      imgpth='./'; radpth='./'; dbspth='./'; bsmpth='./'; hvacpth='./'
-      lradcf='UNKNOWN'
+      zonepth='../zones'; netpth='../nets'; ctlpth='../ctl'
+      mscpth='../msc'; imgpth='../img'; radpth='../rad'
+      dbspth='../dbs'; tmppth='../tmp'
+      lradcf=' '
       cfgroot=' '
       LCTLF='UNKNOWN'
       LCNN='UNKNOWN'
@@ -582,8 +583,7 @@ C Clear SHOCC zone information as well.
         shape(IX)=' '
         gversion(ix)=1.0
         rotateit(ix,1)=0.0; rotateit(ix,2)=0.0
-        rotateit(ix,3)=0.0; rotateit(ix,4)=0.0
-        rotateit(ix,5)=0.0; rotateit(ix,6)=0.0
+        rotateit(ix,3)=0.0
         zorigin(ix,1)=0.0; zorigin(ix,2)=0.0; zorigin(ix,3)=0.0
         zsize(ix,1)=0.0; zsize(ix,2)=0.0; zsize(ix,3)=0.0
         znbmass(ix) = 0
@@ -677,12 +677,6 @@ C Clear the linear thermal bridges variables
       ENDDO    ! of I
 
 C Clear sbem string arrays (from sbem.h).
-      pjname=' not yet defined'
-      baddress=' not yet defined'
-      ownername=' not yet defined'
-      owneraddr=' not yet defined'
-      certifname=' not yet defined'
-      certaddress=' not yet defined'
       UPRN='000000000000'
       Accr_Scheme=' not yet defined'
       assessRegNumber='ABCD123456'
@@ -724,11 +718,14 @@ C Clear IES data files (see model.h for details).
       return
       end
 
-C ***** Find toggles for active description buttons and check to
-C see if there are images associated with descriptive buttons.
-      subroutine cfgtogg(icfg_type,icfgz,icfgn,icfgc,icfgdfn,
-     &                             iicfgz,iicfgn,iicfgc,iicfgdfn)
+C Find toggles for active description buttons and check to
+C see if there are  associated images.
+      subroutine cfgtogg(icfg_type,icfgz,icfgs,icfgnet,icfgc,
+     &  icfgpln,icfgeln,icfgfab,icfgbeh,icfgsim,
+     &  iicfgz,iicfgs,iicfgnet,iicfgc,iicfgpln,
+     &  iicfgeln,iicfgfab,iicfgbeh,iicfgsim)
 #include "building.h"
+#include "geometry.h"
 #include "plant.h"
 #include "power.h"
 
@@ -736,30 +733,60 @@ C Passed parameters because these are also used by c function opencfg
 #ifdef OSI
       integer icfg_type  ! model cfg type
       integer icfgz      ! if non-zero then there are zones
-      integer icfgn      ! if non-zero then there are networks
-      integer icfgc      ! if non-zero then cfg file known
-      integer icfgdfn    ! if non-zero then cdf domain exists
+      integer icfgs      ! if non-zero then there are site ground obstr
+      integer icfgnet    ! if non-zero then there Fluid flow
+      integer icfgc      ! if non-zero then ctl file known
+      integer icfgpln    ! if non-zero then plant network exists
+      integer icfgeln    ! if non-zero then electrical network exists
+      integer icfgfab    ! if non-zero then Enhanced Fabric
+      integer icfgbeh    ! if non-zero then Behaviour
+      integer icfgsim    ! if non-zero then automation
       integer iicfgz     ! there are zone related images
-      integer iicfgn     ! there are network related images
+      integer iicfgs     ! if non-zero then there are site images
+      integer iicfgnet   ! there are fluid flow related images
       integer iicfgc     ! there are control related images
-      integer iicfgdfn   ! there are cfd related images
+      integer iicfgpln   ! if non-zero then plant network images
+      integer iicfgeln   ! if non-zero then electrical network images
+      integer iicfgfab   ! if non-zero then Enhanced fabric images
+      integer iicfgbeh   ! if non-zero then Behaviour images
+      integer iicfgsim   ! if non-zero then automation images
 #else
-      integer*8 icfg_type,icfgz,icfgn,icfgc,icfgdfn,iicfgz
-      integer*8 iicfgn,iicfgc,iicfgdfn
+      integer*8 icfg_type,icfgz,icfgs,icfgnet,icfgc,icfgpln
+      integer*8 icfgeln,icfgfab,icfgbeh,icfgsim
+      integer*8 iicfgz,iicfgs,iicfgnet,iicfgc,iicfgpln
+      integer*8 iicfgeln,iicfgfab,iicfgbeh,iicfgsim
 #endif
 
+C icfgnet = 0 none, = 1 flow network only, = 2 CFD only, = 3 network and CFD.
+C icfgfab =0 none, = 1 3D conduction, =2 moisture, =3 special materials, = 4 all.
       integer ncomp,ncon
       common/C1/NCOMP,NCON
       common/C6/INDCFG
       COMMON/cfdfil/LCFD(MCOM),IFCFD(MCOM)
       common/AFN/IAIRN,LAPROB,ICAAS(MCOM)
       common/cctlnm/ctldoc,lctlf
+      common/GR3D100/BLDG3D,ZONE3D(MCOM)
+      LOGICAL BLDG3D,ZONE3D
+      COMMON/GTFIL/GTGEOM
+      character GTGEOM*72
+      common/spfldat/nsset,isset,isstup,isbnstep,ispnstep,issave,isavgh
+      INTEGER :: nsset,isset,isstup,isbnstep,ispnstep,issave,isavgh
+      common/IPVF/lipvdatf
+      CHARACTER lipvdatf*72
+      logical isdynamicocup   ! true if zone includes dynamicpeople 
+      common/dynamico/isdynamicocup(MCOM) 
+      common/spmfxst/ispmxist,spflnam
+      INTEGER :: ispmxist
+      character spflnam*72
       character imgfmt*4  ! GIF XBMP TIF JPG
-      character imgfoc*4  ! FZON FNET FCTL FDFS
+      character imgfoc*4  ! FZON FNET FCTL FDFS FPLN etc.
       character limgfil*72  ! file name (extend to 144 char)
       character imgdoc*248  ! text associated with image
       common/imagf/imgfmt(MIMG),imgfoc(MIMG),limgfil(MIMG),imgdoc(MIMG)
-
+      common/C23/IFPNF,LPNF
+      character*72 LPNF
+      common/MOIST01/MSTROK,MSTRZN(MCOM)
+      LOGICAL MSTROK,MSTRZN
       integer noimg  ! number of images
       integer iton   ! zero if images not yet shown, one if yes
       common/imagfi/noimg,iton
@@ -770,203 +797,379 @@ C Passed parameters because these are also used by c function opencfg
       icfg_type = INDCFG
       icfgz = 0
       if(INDCFG.eq.1.or.INDCFG.eq.3)icfgz = 1
-      icfgn = 0
-      if(INDCFG.eq.2.or.INDCFG.eq.3)icfgn = 1
-      if(ientxist.gt.0)icfgn = 1
-      if(IAIRN.ge.1)icfgn = 1
+      icfgnet = 0
+      if(IAIRN.ge.1)icfgnet = 1
       if(LCTLF(1:7).eq.'UNKNOWN')then
         icfgc = 0
       else
         icfgc = 1
       endif
+      if(LPNF(1:7).eq.'UNKNOWN')then
+        icfgpln = 0
+      else
+        icfgpln = 1
+      endif
+      if(ientxist.eq.0)then
+        icfgeln = 0
+      else
+        icfgeln = 1
+      endif
+      icfgfab = 0
+      if(BLDG3D)then
+        if(icfgfab.eq.0)then
+          icfgfab = 1
+        elseif(icfgfab.eq.2)then
+          icfgfab = 4
+        endif
+      endif
+      if(ispmxist.ne.0)then
+        if(icfgfab.eq.0)icfgfab = 3
+        if(icfgfab.eq.1)icfgfab = 4
+        if(icfgfab.eq.2)icfgfab = 4
+      endif
+      icfgsim = 0
+      if(nsset.gt.1) icfgsim = 1
+      if(lipvdatf(1:7).eq.'UNKNOWN')then
+        continue
+      else
+        icfgsim = 1
+      endif
+      if(GTGEOM(1:7).eq.'UNKNOWN')then
+        icfgs = 0
+      else
+        icfgs = 1
+      endif
 
-C Loop through all zones to see if there is a domain flow description.
-      icfgdfn = 0
+C Loop through all zones for other features.
+      icfgbeh = 0
       if(NCOMP.gt.0)then
         do 42 i=1,NCOMP
           if(LCFD(i)(1:2).eq.'  '.or.LCFD(i)(1:4).eq.'UNKN')then
+            continue
           else
-           icfgdfn = 1
-           goto 43
+            if(icfgnet.eq.0)then
+              icfgnet = 2   ! If no flow network signal CFD only.
+            elseif(icfgnet.eq.1)then
+              icfgnet = 3   ! Signal both network and CFD.
+            elseif(icfgnet.eq.2)then
+              icfgnet = 2   ! Keep CFD only.
+            elseif(icfgnet.eq.3)then
+              icfgnet = 3   ! Keep both network and CFD.
+            endif
           endif
+          if(MSTRZN(i))then
+             if(icfgfab.eq.0) icfgfab = 2
+             if(icfgfab.eq.1) icfgfab = 4
+             if(icfgfab.eq.3) icfgfab = 4
+          endif
+          if(isdynamicocup(i)) icfgbeh = 1
+          if(nbobs(i).gt.0) icfgs = 1
   42    continue
-  43    continue
       endif
       if(noimg.eq.0)then
-        iicfgz=0
-        iicfgn=0
-        iicfgc=0
-        iicfgdfn=0
+        iicfgz=0; iicfgs=0; iicfgnet=0; iicfgc=0;
+        iicfgeln=0; iicfgfab=0; iicfgbeh=0
+        iicfgsim=0
       else
         if(icfgz.ne.0)then
           iicfgz=0
           do img=1,noimg
-              if(imgfoc(img)(1:4).eq.'FZON')iicfgz=iicfgz+1
-          enddo ! of img
+            if(imgfoc(img)(1:4).eq.'FZON')iicfgz=iicfgz+1
+          enddo
         endif
-        if(icfgn.ne.0)then
-          iicfgn=0
+        if(icfgs.ne.0)then
+          iicfgs=0
           do img=1,noimg
-              if(imgfoc(img)(1:4).eq.'FNET')iicfgn=iicfgn+1
-          enddo ! of img
+            if(imgfoc(img)(1:4).eq.'FSIT')iicfgs=iicfgs+1
+          enddo
+        endif
+        if(icfgnet.ne.0)then
+          iicfgnet=0
+          do img=1,noimg
+            if(imgfoc(img)(1:4).eq.'FNET')iicfgnet=iicfgnet+1
+          enddo
+        endif
+        if(icfgeln.ne.0)then
+          iicfgeln=0
+          do img=1,noimg
+            if(imgfoc(img)(1:4).eq.'FELN')iicfgeln=iicfgeln+1
+          enddo
+        endif
+        if(icfgpln.ne.0)then
+          iicfgpln=0
+          do img=1,noimg
+            if(imgfoc(img)(1:4).eq.'FPLN')iicfgpln=iicfgpln+1
+          enddo
         endif
         if(icfgc.ne.0)then
           iicfgc=0
           do img=1,noimg
-              if(imgfoc(img)(1:4).eq.'FCTL')iicfgc=iicfgc+1
-          enddo  ! of img
+            if(imgfoc(img)(1:4).eq.'FCTL')iicfgc=iicfgc+1
+          enddo
         endif
-        if(icfgdfn.ne.0)then
-          iicfgdfn=0
+        if(icfgnet.ne.0)then
           do img=1,noimg
-              if(imgfoc(img)(1:4).eq.'FDFS')iicfgdfn=iicfgdfn+1
-          enddo  ! of img
+            if(imgfoc(img)(1:4).eq.'FDFS')iicfgnet=iicfgnet+1
+          enddo
+        endif
+        iicfgfab=0
+        if(icfgfab.ne.0)then
+          do img=1,noimg
+            if(imgfoc(img)(1:4).eq.'F3DC')iicfgfab=iicfgfab+1
+            if(imgfoc(img)(1:4).eq.'FSPM')iicfgfab=iicfgfab+1
+            if(imgfoc(img)(1:4).eq.'FMOI')iicfgfab=iicfgfab+1
+          enddo
+        endif
+        if(icfgsim.ne.0)then
+          iicfgsim=0
+          do img=1,noimg
+            if(imgfoc(img)(1:4).eq.'FSIM')iicfgsim=iicfgsim+1
+          enddo
+        endif
+        if(icfgbeh.ne.0)then
+          iicfgbeh=0
+          do img=1,noimg
+            if(imgfoc(img)(1:4).eq.'FHRO')iicfgbeh=iicfgbeh+1
+          enddo
         endif
       endif
 
       return
       end
 
-C ***** Notice that an active description button has been pressed.
+C ***** Notice that an active model feature button has been pressed.
       subroutine cfgpk(act)
 #include "building.h"
-#include "model.h"
 #include "net_flow.h"
 #include "control.h"
-#include "plant.h"
-#include "power.h"
+#include "help.h"
 
-      common/pophelp/h(60)
+C The 'act' character for each of the topics:
+C s=site, n=fluid flow, c=control, p=plant e=elec net
+C m=moisture, o=occupants, a=automation
+C z= zones t= enhanced fabric
 
-      integer ncomp,ncon
-      common/C1/NCOMP,NCON
-      COMMON/C23/IFPNF,LPNF
-      COMMON/AFN/IAIRN,LAPROB,ICAAS(MCOM)
-      COMMON/cfdfil/LCFD(MCOM),IFCFD(MCOM)
+      character act*1
 
-C Control
-      common/cctlnm/ctldoc,lctlf
+C Passed parameters because these are also used by c function opencfg
+#ifdef OSI
+      integer icfg_type  ! model cfg type
+      integer icfgz      ! if non-zero then there are zones
+      integer icfgs      ! if non-zero then there is Context
+      integer icfgnet    ! if non-zero then there is Fluid flow
+      integer icfgc      ! if non-zero then ctl file known
+      integer icfgpln    ! if non-zero then HVAC exists
+      integer icfgeln    ! if non-zero then Electrical exists
+      integer icfgfab    ! if non-zero then Enhanced fabric
+      integer icfgbeh    ! if non-zero then Behaviour
+      integer icfgsim    ! if non-zero then automation
+      integer iicfgz     ! there are zone related images
+      integer iicfgs     ! if non-zero then there are site images
+      integer iicfgnet   ! there are network related images
+      integer iicfgc     ! there are control related images
+      integer iicfgpln   ! if non-zero then plant network images
+      integer iicfgeln   ! if non-zero then electrical network images
+      integer iicfgfab   ! if non-zero then Enhanced fabric images
+      integer iicfgbeh   ! if non-zero then Behaviour images
+      integer iicfgsim   ! if non-zero then automation images
+#else
+      integer*8 icfg_type,icfgz,icfgs,icfgnet,icfgc,icfgpln
+      integer*8 icfgeln,icfgfab,icfgbeh,icfgsim
+      integer*8 iicfgz,iicfgs,iicfgnet,iicfgc,iicfgpln
+      integer*8 iicfgeln,iicfgfab,iicfgbeh,iicfgsim
+#endif
 
-C Images.
-      integer noimg  ! number of images
-      integer iton   ! zero if images not yet shown, one if yes
-      common/imagfi/noimg,iton
-      COMMON/CONTM/CNTMFIL,CNTMDESC,NTSTEPC
-      COMMON/CONTM0/NCONTM,NOCNTM,CONTMNAM(MCONTM)
+      helpinsub='esru_misc'  ! set for subroutine
+      helptopic='cfg_button_press'
+      call gethelptext(helpinsub,helptopic,nbhelp)
 
-      character h*72,act*1
-      CHARACTER LCFD*72
-      CHARACTER LAPROB*72,LPNF*72,CNTMFIL*72
-      CHARACTER ctldoc*248,lctlf*72
-      character CNTMDESC*124,CONTMNAM*12
-
-      call usrmsg('Scanning for related images. Please wait...',' ','-')
-      if(act.eq.'r')then
+C Get the current model facilities.
+       call cfgtogg(icfg_type,icfgz,icfgs,icfgnet,icfgc,
+     &   icfgpln,icfgeln,icfgfab,icfgbeh,icfgsim,
+     &   iicfgz,iicfgs,iicfgnet,iicfgc,iicfgpln,
+     &   iicfgeln,iicfgfab,iicfgbeh,iicfgsim)
 
 C Registration, show all available images.
+      if(act.eq.'r')then
         call imgdisp(0,'****',ier)
-        h(1)='The current model is named:'
-        write(h(2),'(a)')modeltitle
-        h(3)='The model is documented in: '
-        write(h(4),'(a)')lmodellog(1:70)
-        h(5)=' '
-        write(h(6),'(a,i2,a)')'There are ',noimg,' linked images.'
-        h(7)=' '
-        h(8)='There are no zones, networks or control defined yet. '
-        CALL PHELPD('registration button popup',8,'-',0,0,IER)
+        h(1)='The current model has only been registered and there'
+        h(2)='are no zones, controls or systems defined.'
+        nbhelp=2
+        CALL PHELPD('registration button popup',nbhelp,'-',0,0,IER)
+
+C Context button.
+      elseif(act.eq.'s')then
+        if(icfgs.gt.0)then
+          call imgdisp(1,'FSIT',ier)
+          h(1)='The model includes solar obstructions and/or ground'
+          h(2)='topology.'
+          nbhelp=2
+          CALL PHELPD('site button popup',nbhelp,'-',0,0,IER)
+        endif
+
+C Zone button related images.
       elseif(act.eq.'z')then
+        if(icfgz.gt.0) call imgdisp(1,'FZON',ier)
 
-C Zone button, show zone/site/gridding related images.
-        call imgdisp(1,'FZON',ier)
-        h(1)='The current model is named:'
-        write(h(2),'(a)')modeltitle
-        h(3)=' '
-        write(h(4),'(a,i3,a,i4,a)')'It is composed of',NCOMP,
-     &    ' zones and',NCON,' surfaces.'
-        h(5)=' '
-        h(6)='The model is documented in: '
-        write(h(7),'(a)')lmodellog(1:70)
-        nh=7
-        do 42 i=1,NCOMP
-          if(LCFD(i).eq.'UNKNOWN')then
-          else
-            nh=nh+1
-            write(h(nh),'(a,a)')' CFD via ',LCFD(i)(1:56)
-          endif
-  42    continue
-        CALL PHELPD('zones button popup',nh,'-',0,0,IER)
+C Show fluid flow related images.
       elseif(act.eq.'n')then
+        if(icfgnet.eq.0)then
+          continue
+        elseif(icfgnet.eq.1)then
+          call imgdisp(1,'FNET',ier)
+          h(1)='The model includes an air or water flow network.'
+          h(2)='Details are found in the network interface or the'
+          h(3)='model contents reports. '
+          h(4)='The model does not include CFD domains.'
+          nh=4
+        elseif(icfgnet.eq.2)then
+          call imgdisp(1,'FDFS',ier)
+          call imgdisp(1,'FNET',ier)
+          h(1)='The model does not include a flow network.'
+          h(2)='The model includes one or more CFD domains.'
+          nh=2
+        elseif(icfgnet.eq.3)then
+          call imgdisp(1,'FDFS',ier)
+          call imgdisp(1,'FNET',ier)
+          h(1)='The model includes an air or water flow network.'
+          h(2)='Details are found in the network interface or the'
+          h(3)='model contents reports. '
+          h(4)='The model also includes one or more CFD domains.'
+          nh=4
+        endif
+        if(icfgnet.ne.0)then
+          nbhelp=nh
+          CALL PHELPD('Fluid flow button popup',nbhelp,'-',0,0,IER)
+        endif
 
-C Show network related images.
-        call imgdisp(1,'FNET',ier)
-        h(1)='Active networks:'
-        nh=1
-        if(LAPROB(1:2).eq.'  ')then
-        else
-          nh=nh+1
-          write(h(nh),'(a,a)')'  Flow via ',LAPROB(1:56)
+C Electrical button.
+      elseif(act.eq.'e')then
+        if(icfgeln.gt.0)then
+          call imgdisp(1,'FELN',ier)
+          h(1)='The model includes an electrical power network and'
+          h(2)='has the potential to simulate power flows between'
+          h(3)='the grid, generating components and electrical demands'
+          h(4)='associated with lighting and small power devices.'
+          nbhelp=4
+          CALL PHELPD('electrical button popup',nbhelp,'-',0,0,IER)
         endif
-        if(NOCNTM.EQ.1)then
-          nh=nh+1
-          write(h(nh),'(a,a)')'  Contaminants via ',CNTMFIL(1:56)
-        endif
-        if(LPNF(1:2).eq.'  '.or.LPNF(1:4).eq.'UNKN')then
-        else
-          nh=nh+1
-          write(h(nh),'(a,a)')'  Plant via ',LPNF(1:56)
-        endif
-        if(ientxist.gt.0)then
-          nh=nh+1
-          write(h(nh),'(a,a)')'  Electrical via ',entflnam(1:56)
-        endif
-        CALL PHELPD('networks button popup',nh,'-',0,0,IER)
+
+C Show control-related images.
       elseif(act.eq.'c')then
-
-C Show control related images (assumes that control has already been scanned).
-        call imgdisp(1,'FCTL',ier)
-        if(ncf.gt.0.or.ncl.gt.0.or.ncc.gt.0.or.ngf.gt.0)then
-          write(h(1),'(a,a)')'System control via ',LCTLF(1:50)
-          nh=1
+        if(icfgc.gt.0)then 
+          call imgdisp(1,'FCTL',ier)
+          h(1)='The model includes environmental controls related to'
+          h(2)='the following domains:'
+          nh=2
           if(ncf.gt.0)then
             nh=nh+1
-            write(h(nh),'(3a,i3,a)')' Zones - ',znctldoc(1:45),
-     &      '(',ncf,' loops)'
+            write(h(nh),'(a)')' Zones - control included.'
+          else
+            nh=nh+1
+            write(h(nh),'(a)')' Zones - no control included.'
           endif
           if(ncl.gt.0)then
             nh=nh+1
-            write(h(nh),'(3a,i2,a)')' Plant - (',plctldoc(1:45),
-     &      '(',ncl,' loops)'
+            write(h(nh),'(a)')' Plant - control included.'
+          else
+            nh=nh+1
+            write(h(nh),'(a)')' Plant - no control included.'
           endif
           if(ncc.gt.0)then
             nh=nh+1
-            write(h(nh),'(3a,i2,a)')' Flow - ',flctldoc(1:45),
-     &       '(',ncc,' loops)'
+            write(h(nh),'(a)')' Flow - control included.'
+          else
+            nh=nh+1
+            write(h(nh),'(a)')' Flow - no control included.'
           endif
           if(ngf.gt.0)then
             nh=nh+1
-            write(h(nh),'(3a,i2,a)') ' Global - ',glctldoc(1:45),
-     &       '(',ngf,' loops)'
+            write(h(nh),'(a)') ' Global - control included.'
+          else
+            nh=nh+1
+            write(h(nh),'(a)') ' Global - no control included.'
           endif
-          CALL PHELPD('control button popup',nh,'-',0,0,IER)
-        else
-          h(1)='This model has no control definitions.'
-          CALL PHELPD('control button popup',1,'-',0,0,IER)
+          nbhelp=nh
+          CALL PHELPD('control button popup',nbhelp,'-',0,0,IER)
         endif
-      elseif(act.eq.'d')then
 
-C Domain flow button, show cfd image.
-        call imgdisp(1,'FDFS',ier)
+C Enhanced fabric button, show image.
+      elseif(act.eq.'t')then
+        if(icfgfab.eq.0)then
+          continue
+        elseif(icfgfab.eq.1)then
+          call imgdisp(1,'F3DC',ier)
+          h(1)='The model includes zones with 2D or 3D conduction'
+          h(2)='gridding. These facilities are managed by the grd'
+          h(3)='ESP-r module.'
+          h(4)='The model does not include materials with moisture'
+          h(5)='properties.'
+          h(6)='The model does not include adaptive materials such as'
+          h(7)='PV modules and electrochromic glazing.'
+          nbhelp=7
+        elseif(icfgfab.eq.2)then
+          call imgdisp(1,'FMOI',ier)
+          h(1)='The model does not include 2D or 3D conduction.'
+          h(2)='The model includes materials and surfaces with moisture'
+          h(3)='attributes and has the potential to assess moisture'
+          h(4)='transport.'
+          h(5)='The model does not include adaptive materials such as'
+          h(6)='PV modules and electrochromic glazing.'
+          nbhelp=6
+        elseif(icfgfab.eq.3)then
+          call imgdisp(1,'FSPM',ier)
+          h(1)='The model does not include 2D or 3D conduction.'
+          h(2)='The model does includes adaptive materials such as'
+          h(3)='PV modules and electrochromic glazing.'
+          h(4)='The model does not include materials with moisture'
+          h(5)='properties.'
+          nbhelp=5
+        elseif(icfgfab.eq.4)then
+          call imgdisp(1,'F3DC',ier)
+          call imgdisp(1,'FSPM',ier)
+          call imgdisp(1,'FMOI',ier)
+          h(1)='The model includes zones with 2D or 3D conduction'
+          h(2)='gridding. '
+          h(3)='The model also includes materials and surfaces with'
+          h(4)='mosture attributes and has the potential to assess'
+          h(5)='moisture transport.'
+          h(6)='The model also includes adaptive materials such as'
+          h(7)='PV modules and electrochromic glazing.'
+          nbhelp=7
+        endif
+        if(icfgfab.ne.0)then
+          CALL PHELPD('3D conduction button popup',nbhelp,'-',0,0,IER)
+        endif
+
+C HVAC button.
+      elseif(act.eq.'p')then
+        if(icfgpln.gt.0)then
+          call imgdisp(1,'FPLN',ier)
+          h(1)='The model includes HVAC via a component network.'
+          nbhelp=1
+          CALL PHELPD('HVAC button popup',nbhelp,'-',0,0,IER)
+        endif
+
+C Automation button.
+      elseif(act.eq.'a')then
+        if(icfgsim.gt.0)then
+          call imgdisp(1,'FSIM',ier)
+          h(1)='The model includes scripts or simulation parameter '
+          h(2)='set definitions to automate assessments.'
+          nbhelp=2
+          CALL PHELPD('Automation button popup',nbhelp,'-',0,0,IER)
+        endif
       endif
       return
       end
 
-C ************** EGOMST
-C EGOMST:  Reads site obstruction data as ASCII strings, with or without
+C ******************** EGOMST ********************
+C Reads site obstruction data as ASCII strings, with or without
 C range checking and printed summary. An obstruction block name (up to
 C 12 characters) may be included as an option and is returned via BLOCKNAME.
+
       SUBROUTINE EGOMST(IUNIT,ICOMP,LOBS,IR,ITRC,ITRU,IER)
 #include "building.h"
-C geometry.h provides common block GS5/GS6/GS7/GS8
 #include "geometry.h"
 #include "espriou.h"
 
@@ -1142,13 +1345,13 @@ C Trace.
       END
 
 
-C ************** MKGOMST
-C MKGOMST: Creates an annotated site obstruction file based
+C ******************** MKGOMST ********************
+C Creates an annotated site obstruction file based
 C on passed parameters and the contents of common GS5.
+
       SUBROUTINE MKGOMST(IAF,ZF,ICOMP,IER)
 #include "building.h"
 #include "model.h"
-C geometry.h provides common block GS5/GS6/GS7/GS8
 #include "geometry.h"
 
       integer lnblnk  ! function definition
@@ -1215,9 +1418,10 @@ C Close site file.
 
       END
 
-C ************* ERMRT
-C ERMRT Read the MRT sensor definition file. IC is the zone index
-C (for use in mrt).  IER=0 OK, IER=1 problem IER=3 surface mismatch.
+C ******************** ERMRT ********************
+C Read the MRT sensor definition file. IC is the zone index
+C (for use in mrt). IER=0 OK, IER=1 problem, IER=3 surface mismatch.
+
       SUBROUTINE ERMRT(ITRC,ITRU,IUF,LMRT,IC,IER)
 #include "building.h"
 #include "geometry.h"
@@ -1260,10 +1464,13 @@ C Check if running in dll mode.
       ENDIF
       write(currentfile,'(a)') LMRT(1:lnblnk(LMRT))
 
-C Read first line which must be *VIEWFACTORS
+C Read first line which must be *VIEWFACTORS or *viewfactors
       CALL STRIPC(IUF,OUTSTR,0,ND,1,'line 1',IER)
       if(IER.NE.0)return
-      if(OUTSTR(1:12).NE.'*VIEWFACTORS')then
+      if(OUTSTR(1:12).eq.'*VIEWFACTORS'.or.
+     &   OUTSTR(1:12).eq.'*viewfactors')then
+        continue
+      else
         write(outs,'(3a)') LMRT(1:lnblnk(LMRT)),
      &    ' is not a view factor file.'
         if(dll)then
@@ -1283,7 +1490,7 @@ C currently not used - mrt accesses configuration file.
       CALL STRIPC(IUF,OUTSTR,0,ND,1,'geom file',IER)
       K=0
       CALL EGETW(OUTSTR,K,WORD,'W','*GEOM tag',IFLAG)
-      if(WORD(1:5).eq.'*GEOM')then
+      if(WORD(1:5).eq.'*GEOM'.or.WORD(1:5).eq.'*geom')then
         call EGETRM(OUTSTR,K,LGEO,'W','assoc geom file',IER)
       else
         LGEO='UNKNOWN'
@@ -1360,8 +1567,8 @@ C Skip past the row sums.
         CALL STRIPC(IUF,OUTSTR,0,ND,1,'row sums',IER)
   331 CONTINUE
 
-C Write out trace if requested.
-C MS senstive, change is MS>99.
+C Write trace if requested.
+C MS sensitive, change if MS>99.
       if(itrc.gt.0)then
         call edisp(itru,' Black body view factors')
         if(NZS.le.22)then
@@ -1663,10 +1870,13 @@ C MS senstive, change if MS>99.
 C If there are sensors continue.
       if(NCUB(IC).eq.0)goto 100
 
-C If next line is *MRT_SENSOR
+C If next line is *MRT_SENSOR or *mrt_sensor:
       CALL STRIPC(IUF,OUTSTR,0,ND,1,'line 1',IER)
       if(IER.NE.0)return
-      if(OUTSTR(1:11).NE.'*MRT_SENSOR')then
+      if(OUTSTR(1:11).eq.'*MRT_SENSOR'.or.
+     &   OUTSTR(1:11).eq.'*mrt_sensor')then
+        continue
+      else
         write(outs,'(3a)') LMRT(1:lnblnk(LMRT)),
      &    ' is missing a MRT sensor definition.'
         if(dll)then
@@ -1707,11 +1917,16 @@ C Clear array of view factors from each cube to geometry.
   41    continue
   40  continue
 
-C Read each sensor block. If no name then assign the sensor index
-C as the name via internal read. If FOCUS is the same as the current
+C Read each sensor block. Read additional line if *MRT_SENSOR.
+C If no name then assign the sensor index as the name
+C via internal read. If FOCUS is the same as the current
 C sensor name then read the viewfactors and exit.
       DO 10 I=1,NCUB(IC)
         CALL STRIPC(IUF,OUTSTR,99,ND,1,'sensor block',IER)
+        if(OUTSTR(1:11).eq.'*MRT_SENSOR'.or.
+     &     OUTSTR(1:11).eq.'*mrt_sensor')then
+          CALL STRIPC(IUF,OUTSTR,99,ND,1,'sensor block',IER)
+        endif
         IF(IER.NE.0)return
         IF(ND.EQ.8.OR.ND.EQ.9)THEN
           K=0
@@ -1734,13 +1949,14 @@ C sensor name then read the viewfactors and exit.
         ENDIF
 
 C If view factors have been previously defined the keyword *MRTVIEW
-C will appear next and relevant data should be read in if the
-C current sensor name mathches FOCUS (then return).
+C or *mrt_viewfactors will appear next and relevant data should 
+C be read in if the current sensor name mathches FOCUS (then return).
 C Otherwise the file will have the keyword *NOMRTVIEW and zeros.
         CALL STRIPC(IUF,OUTSTR,0,ND,1,'viewfactor key',IER)
         K=0
         CALL EGETW(OUTSTR,K,WORD,'W','viewfactor key',IFLAG)
-        if(WORD(1:8).eq.'*MRTVIEW')then
+        if(WORD(1:8).eq.'*MRTVIEW'.or.
+     &     WORD(1:16).eq.'*mrt_viewfactors')then
           IVFOK(i)=1
         elseif(WORD(1:10).eq.'*NOMRTVIEW')then
           IVFOK(i)=0
@@ -1760,14 +1976,15 @@ C Close the file and free the unit number.
       END
 
 
-C ************* EMKMRT
-C EMKMRT Write viewfactor/MRT sensor definition file based on
+C ******************** EMKMRT ********************
+C Write viewfactor/MRT sensor definition file based on
 C information currently held in common blocks MRTC, MRTF.
 C LMRT is the name of the file to be written to (any existing file
 C by this name is overwritten).  zname is the zone name (12 char),
 C ICOMP is the zone number.
 C ITRU unit number for user output, IER=0 OK, IER=1 problem.
 C act character*1 if 'a' then area weighted, if 'r' ray traced.
+
       SUBROUTINE EMKMRT(LMRT,LGEOM,NZS,IUF,ICOMP,act,IER)
 #include "building.h"
 #include "geometry.h"
@@ -1779,6 +1996,7 @@ C act character*1 if 'a' then area weighted, if 'r' ray traced.
       dimension rval(MS)
       character LMRT*72,LGEOM*72,act*1
       character louts*496
+      character tokens*124,comment*76,aligned_str*124
 
       IER=0
 
@@ -1790,33 +2008,38 @@ C (ask user for confirmation to over-write) or create a new file.
         RETURN
       ENDIF
 
-C Write out the file data.
-      WRITE(IUF,30,IOSTAT=IOS,ERR=14)
-     &  zname(ICOMP)(1:lnzname(ICOMP)),LMRT(1:lnblnk(LMRT))
-  30  FORMAT('# zone viewfactors and MRT sensor definition of ',a,/,
-     &'# defined in ',a)
+C Write data.
+      WRITE(comment,'(2a)',IOSTAT=IOS,ERR=14)
+     &  'zone viewfactors and MRT sensors for ',
+     &  zname(ICOMP)(1:lnzname(ICOMP))
+C      WRITE(tokens,'(A)',IOSTAT=IOS,ERR=14)'*VIEWFACTORS'
+      WRITE(tokens,'(A)',IOSTAT=IOS,ERR=14)'*viewfactors'
+      call align_comment(24,tokens,comment,aligned_str)
+      write(IUF,'(a)') aligned_str(1:lnblnk(aligned_str))
 
-      WRITE(IUF,'(A)',IOSTAT=IOS,ERR=14)'*VIEWFACTORS'
-      WRITE(IUF,'(A,A)',IOSTAT=IOS,ERR=14)'*GEOM  ',
+      WRITE(IUF,'(A,A)',IOSTAT=IOS,ERR=14)'*geom  ',
      &  LGEOM(1:lnblnk(LGEOM))
-      WRITE(IUF,'(3I4,A)',IOSTAT=IOS,ERR=14)
-     &  NCUB(ICOMP),NZS,ICOMP,
-     &  '   # numb mrt sensors, numb zone surfs, zone index'
+      WRITE(tokens,'(3I4)',IOSTAT=IOS,ERR=14) NCUB(ICOMP),NZS,ICOMP
+      WRITE(comment,'(a)',IOSTAT=IOS,ERR=14)
+     &  'number of mrt sensors & zone surfaces, zone index'
+      call align_comment(24,tokens,comment,aligned_str)
+      write(IUF,'(a)') aligned_str(1:lnblnk(aligned_str))
+
       if(act.eq.'a')then
         WRITE(IUF,'(A)',IOSTAT=IOS,ERR=14)
-     &    '# Area weighted zone viewfactors follow'
+     &    '# Area weighted zone viewfactors follow:'
       else
-        WRITE(IUF,'(A)',IOSTAT=IOS,ERR=14)'# Zone viewfactors follow'
+        WRITE(IUF,'(A)',IOSTAT=IOS,ERR=14)'# Zone viewfactors follow:'
       endif
 
 C Write matrix, one line at a time. Begin by copying data to a single
 C dimension array and then generating & writing out as much as 496 chars.
 C Use arlist2 because 12 characters is plenty for representing view
 C factors.
-      DO 930 I = 1,NZS
-        do 32 j = 1,NZS
+      do I = 1,NZS
+        do j = 1,NZS
           rval(j)=VEWF(i,j)
-  32    continue
+        enddo
         itrunc=1
         ipos=1
         do while (itrunc.ne.0)
@@ -1824,31 +2047,44 @@ C factors.
           write(iuf,'(1x,a)',IOSTAT=ios,ERR=14) louts(1:loutlen)
           ipos=itrunc+1
         end do
-  930 CONTINUE
+      enddo
 
 C Print sum over a row of view factors. Commented
 C because it might influence use of view factors in bps.
-      DO 462 I =  1,NZS
+      do I =  1,NZS
         fr=0.0
-        DO 461 J =  1,NZS
+        do J =  1,NZS
           fr=fr+VEWF(i,j)
-461     CONTINUE
+        enddo
         WRITE(IUF,4060)i,fr
-4060    FORMAT(' sum over row ',i3,' is : ',F14.10)
-462   CONTINUE
+4060    FORMAT(' sum over row ',i3,' is : ',F12.8)
+      enddo
 
 C If there are any cubes the save this information as well.
       if(NCUB(ICOMP).eq.0)goto 999
-      WRITE(IUF,'(A)',IOSTAT=IOS,ERR=14) '*MRT_SENSOR'
-      WRITE(IUF,'(A)',IOSTAT=IOS,ERR=14)
-     & '# OK, Xorig, Yorig, Zorig,   DX,    DY,    DZ, rotation,  name'
+      WRITE(IUF,'(A)',IOSTAT=IOS,ERR=14)'# '
+C      WRITE(tokens,'(A)',IOSTAT=IOS,ERR=14) '*MRT_SENSOR'
+      WRITE(tokens,'(A)',IOSTAT=IOS,ERR=14) '*mrt_sensor'
+      WRITE(comment,'(A)',IOSTAT=IOS,ERR=14)
+     &'OK, Xorig,  Yorig,  Zorig,   DX,    DY,    DZ, rotation,  name'
+      call align_comment(14,tokens,comment,aligned_str)
+      write(IUF,'(a)') aligned_str(1:lnblnk(aligned_str))
 
       DO 1180 I=1,NCUB(ICOMP)
+
+C Write heading for subsequent sensors.
+        if(I.gt.1)then
+          WRITE(tokens,'(A)',IOSTAT=IOS,ERR=14) '*mrt_sensor'
+          WRITE(comment,'(A)',IOSTAT=IOS,ERR=14)
+     &'OK, Xorig,  Yorig,  Zorig,   DX,    DY,    DZ, rotation,  name'
+          call align_comment(14,tokens,comment,aligned_str)
+          write(IUF,'(a)') aligned_str(1:lnblnk(aligned_str))
+        endif
         WRITE(IUF,34)IVFOK(I),XOC(I),YOC(I),ZOC(I),DXC(I),DYC(I),
      &    DZC(I),CANG(I),CUBN(I),I
-  34    FORMAT(I4,6F8.3,F7.1,2X,A6,'   # sensor ',I2)
+  34    FORMAT(8x,I8,6F8.3,F7.1,2X,A6,'   # sensor ',I2)
         if(IVFOK(I).eq.1)then
-          WRITE(IUF,'(A)',IOSTAT=IOS,ERR=14)'*MRTVIEW'
+          WRITE(IUF,'(A)',IOSTAT=IOS,ERR=14)'*mrt_viewfactors'
         else
           WRITE(IUF,'(A)',IOSTAT=IOS,ERR=14)'*NOMRTVIEW'
         endif
@@ -1856,9 +2092,9 @@ C If there are any cubes the save this information as well.
 
 C For each face of MRT sensor compose 1D array and generate packed
 C string(s) as required.
-          do 132 j = 1,NZS
+          do j = 1,NZS
             rval(j)=ffl(i,iv,j)
-  132     continue
+          enddo
           itrunc=1
           ipos=1
           do while (itrunc.ne.0)
@@ -1887,11 +2123,13 @@ C Error messages.
 
       END
 
-C ****** stuf4xyz
-C stuf4xyz instantiates 4 vertices in x(MV),y(MV),z(MV) from raw data.
+C ******************** stuf4xyz *******************
+C Instantiates 4 vertices in x(MV),y(MV),z(MV) from raw data.
 C Useful for block shapes prior to call to PLEQN.
+
       subroutine stuf4xyz(x,y,z,x1,y1,z1,x2,y2,z2,x3,y3,z3,x4,y4,z4)
 #include "building.h"
+
       dimension x(MV), y(MV), z(MV)
       X(1) = x1
       Y(1) = y1
@@ -1908,8 +2146,8 @@ C Useful for block shapes prior to call to PLEQN.
       return
       end
 
-C ********************  PLEQN
-C PLEQN finds the equation EQN to a plane containing a polygon which
+C ********************  PLEQN ********************
+C Finds the equation EQN to a plane containing a polygon which
 C is defined as a set of X() Y() Z() verticies tracing in order the
 C edges of the polygon.  The plane is the best fit from points and its
 C equation is in the form:
@@ -2022,8 +2260,8 @@ C Calculate constant term.
       END
 
 
-C ******************** EPLNEQN
-C EPLNEQN finds the equation EQN to a plane containing a polygon which
+C ******************** EPLNEQN ********************
+C Finds the equation EQN to a plane containing a polygon which
 C is defined as a set of X Y Z verticies tracing in order the edges of
 C the polygon (this information is contained in PNTLST).  The plane is
 C the best fit from PNTLST and its equation is in the form:
@@ -2035,12 +2273,10 @@ C verticies.  For solid bodies whose faces have been described anti-
 C clockwise when viewed from the outside the unit normals within this
 C routine will point outwards from the body.
 
-C Note: this subroutine is not called
-
       SUBROUTINE EPLNEQN(ITRU,MORS,ISTA,PNTLST,CG,EQN,IERR)
 #include "building.h"
 
-C Parameters
+C Parameters.
       integer itru  ! unit for writing errors
       integer mors  ! indicates handedness of polygon - see below
       integer ISTA  ! start pointer to pntlst
@@ -2056,7 +2292,7 @@ C Parameters
       CHARACTER outs*124
       logical close
 
-C INPUTS.
+C Inputs.
 C    PNTLST(ISTA)      NO. OF POINTS IN THE POLYGON.
 C    PNTLST(ISTA+1)    FIRST VERTEX X COORD.
 C    PNTLST(ISTA+2)    FIRST VERTEX Y COORD.
@@ -2074,8 +2310,7 @@ C           IF -1 THEN THE MAGNITUDE OF THE UNIT NORMAL IS .LT.10E-4
 C           IF -2 THEN LESS THAN 3 POINTS IN THE POLYGON.
 C           IF -3 THEN MORS IS OUT OF RANGE.
 
-C INTERNAL VARIABLES.
-
+C Internal variables.
 C    PNT(MV,3)   AN ARRAY OF VERTEX POINTS.
 C    E(MV,3)     AN ARRAY OF EDGE VECTORS.
 C    VN(MV,3)    AN ARRAY OF NORMAL VECTORS.
@@ -2163,8 +2398,8 @@ C MORS flag not recognised.
       RETURN
       END
 
-C ********************* ETRANSW
-C ETRANSW used when creating an insert rectangular shape into a surface.
+C ******************** ETRANSW ********************
+C Used when creating an insert rectangular shape into a surface.
 C OFFSET is the offset from the polygon (zero tpically).
 
 C STEP 1 - Find equation of surface (EQN(4)) via PLEQN and get centre
@@ -2181,9 +2416,11 @@ C          ORTTRN to give vertices in global co-ords.
 C N is the number of surface vertices, X,Y,Z are the surface vertex arrays,
 C DX,DZ are the window offsets, DDX,DDZ are the window width & hieght,
 C XXW,YYW,ZZW are the transformed window coords in surface coord system.
+
       SUBROUTINE ETRANSW(ITRC,ITRU,N,X,Y,Z,OFFSET,DX,DZ,DDX,DDZ,
      &                   XXW,YYW,ZZW)
 #include "building.h"
+
       DIMENSION  X(MV),Y(MV),Z(MV),XXW(4),YYW(4),ZZW(4)
       DIMENSION  TMAT(4,4),RMAT(4,4)
       DIMENSION  VP(3),EP(3),EQN(4)
@@ -2248,8 +2485,8 @@ C the Z point by OFFSET.
       RETURN
       END
 
-C ********************* ETRANFRAME
-C ETRANFRAME used when creating an fixed width frame into a surface. It
+C ******************** ETRANFRAME ********************
+C Used when creating an fixed width frame into a surface. It
 C is assumed that an initial polygon of N edges will result in a frame
 C polygon of N edges, however nwvert is returned with the actual number
 C of vertices.
@@ -2268,7 +2505,7 @@ C          ORTTRN to give vertices in global co-ords.
       SUBROUTINE ETRANFRAME(ITRC,N,X,Y,Z,FRW,XXF,YYF,ZZF,nwvert,IER)
 #include "building.h"
 
-C Passed parameters:
+C Passed parameters.
       integer N     ! number of edges in the parent polygon
       real X,Y,Z    ! array of coordinates of parent polygon
       DIMENSION  X(MV),Y(MV),Z(MV)
@@ -2280,7 +2517,7 @@ C Passed parameters:
 
       common/OUTIN/IUOUT,IUIN,IEOUT
 
-C Local variables:
+C Local variables.
       DIMENSION  TMAT(4,4),RMAT(4,4)
       DIMENSION  VP(3),EP(3),EQN(4)
       real XN,YN    ! 2D coordinate array (raw)
@@ -2299,7 +2536,7 @@ C Local variables:
       real pi,ang3
 
 C Check if we can deal with additional complexity in parent surface.
-      ITVX = N  ! remember N
+      ITVX = N
       if((N+2+ITVX).gt.MTV)then
         call edisp(iuout,
      &    'Frame more complex than ESP-r can work with. Returning.')
@@ -2341,19 +2578,16 @@ C check from terminus vertex back to 1 & 2nd vertices.
         if(I.lt.N-2)then
           call ang3vtx(x(i),y(i),z(i),x(i+1),y(i+1),z(i+1),
      &      x(i+2),y(i+2),z(i+2),ang3)
-C          write(6,*) 'angle v ',i,i+1,i+2,ang3
           call eclose(ang3,180.,1.0,close180)
           if(close180) is180(I)=.true.
         elseif(I.eq.N-1)then
           call ang3vtx(x(i),y(i),z(i),x(i+1),y(i+1),z(i+1),
      &      x(1),y(1),z(1),ang3)
-C          write(6,*) 'angle v ',i,i+1,' 1',ang3
           call eclose(ang3,180.,1.0,close180)
           if(close180) is180(I)=.true.
         elseif(I.eq.N)then
           call ang3vtx(x(i),y(i),z(i),x(1),y(1),z(1),
      &      x(2),y(2),z(2),ang3)
-C          write(6,*) 'angle v ',i,' 1 2',ang3
           call eclose(ang3,180.,1.0,close180)
           if(close180) is180(I)=.true.
         endif
@@ -2363,9 +2597,6 @@ C          write(6,*) 'angle v ',i,' 1 2',ang3
         XN(I)=X1
         YN(I)=Y1
   300 CONTINUE
-
-C Debug of list of angles that are close to 180 degrees.
-C      write(6,*) 'angles  ',is180
 
 C Offset the 2D coordinates so that lower left is at zero zero.
       if(XMIN.lt.0.0)then
@@ -2428,7 +2659,7 @@ C corner data.
         XMX= (XPN(I1)+XPN(I2))/2.0  ! half way along X
         YMY= (YPN(I1)+YPN(I2))/2.0  ! half way along Y
 
-C Calculate equation of perpendicular bisector a1y+b1x=c1
+C Calculate equation of perpendicular bisector a1y+b1x=c1.
         BCLOSE=.FALSE.
         CALL ECLOSE(DY,0.,0.01,BCLOSE)
         IF(BCLOSE) THEN
@@ -2474,7 +2705,7 @@ C << need to check to see that sin does not return zero >>
         ENDIF
 
 C Solve equation of perpendicular bisector and inner lines
-C to calculate M'or M''
+C to calculate M'or M''.
 C M' = (M'x,M'y)   M''=(M''x,M''y)
         DM=(A1*B2)-(A2*B1)
         CALL ECLOSE(DM,0.,0.01,MCLOSE)
@@ -2488,7 +2719,7 @@ C M' = (M'x,M'y)   M''=(M''x,M''y)
         AMXX=((C1*A2)-(C22*A1))/((B1*A2)-(A1*B2)) ! at other side of bisector
         AMYY=((C1*B2)-(C22*B1))/((A1*B2)-(A2*B1))
 
-C Figure out if M'or M'' is  contained within polygon
+C Figure out if M'or M'' is  contained within polygon.
         CALL PNPOLY(AMX,AMY,XPN,YPN,ITVX,IN_OUT)
         IF(IN_OUT.EQ.1) THEN
           NWVERT=NWVERT+1
@@ -2571,43 +2802,34 @@ C vertical. Note: working within packed list.
       END
 
 
-C ..................................................................
-C SUBROUTINE PNPOLY
-C PURPOSE
-C   TO DETERMINE WHETHER A POINT IS INSIDE A POLYGON
-C USAGE
-C   CALL PNPOLY (PX, PY, XX, YY, N, INOUT )
+C ******************** PNPOLY ********************
+C Determines whether a point is inside a polygon.
+C Method:
+C   A vertical line is drawn through the point in question. If it
+c   crosses the polygon boundary an odd number of times then the
+c   point is inside the polygon.
+C Parameters:
+C   PX   - X-coordinate of point.
+C   PY   - Y-coordinate of point.
+C   XX   - N long vector containing x-coordinates of vertices of polygon.
+C   YY   - N long vector containg y-coordinates of vertices of polygon.
+C   N    - Number of vertices in the polygon.
+C  INOUT - Signal returned:
+C           -1 if the point is outside the polygon;
+c            0 if the point is on an edge or at a vertex;
+c            1 if the point is inside the polygon.
+C Remarks:
+C   The vertices may be listed clockwise or anticlockwise.
+C   The first may optionally be repeated, if so N may optionally
+c   be increased by 1.
+C   The input polygon may be a compound polygon consisting
+c   of several separate subpolygons. If so, the first vertex
+c   of each subpolygon must be repeated, and when calculating
+C   N, these first vertices must be counted twice.
+C   The size of the arrays must be increased if N > MAXDIM.
 
-C DESCRIPTION OF THE PARAMETERS
-C   PX   - X-COORDINATE OF POINT IN QUESTION.
-C   PY   - Y-COORDINATE OF POINT IN QUESTION.
-C   XX   - N LONG VECTOR CONTAINING X-COORDINATES OF
-C          VERTICES OF POLYGON.
-C   YY   - N LONG VECTOR CONTAING Y-COORDINATES OF
-C          VERTICES OF POLYGON.
-C   N    - NUMBER OF VERTICES IN THE POLYGON.
-C  INOUT - THE SIGNAL RETURNED:
-C           -1 IF THE POINT IS OUTSIDE OF THE POLYGON,
-C           0 IF THE POINT IS ON AN EDGE OR AT A VERTEX,
-C           1 IF THE POINT IS INSIDE OF THE POLYGON.
-
-C REMARKS
-C   THE VERTICES MAY BE LISTED CLOCKWISE OR ANTICLOCKWISE.
-C   THE FIRST MAY OPTIONALLY BE REPEATED, IF SO N MAY C OPTIONALLY
-C   BE INCREASED BY 1.
-C   THE INPUT POLYGON MAY BE A COMPOUND POLYGON CONSISTING
-C   OF SEVERAL SEPARATE SUBPOLYGONS. IF SO, THE FIRST VERTEX
-C   OF EACH SUBPOLYGON MUST BE REPEATED, AND WHEN CALCULATING
-C   N, THESE FIRST VERTICES MUST BE COUNTED TWICE.
-C   INOUT IS THE ONLY PARAMETER WHOSE VALUE IS CHANGED.
-C   THE SIZE OF THE ARRAYS MUST BE INCREASED IF N > MAXDIM
-C
-C METHOD
-C   A VERTICAL LINE IS DRAWN THRU THE POINT IN QUESTION. IF IT
-C   CROSSES THE POLYGON AN ODD NUMBER OF TIMES, THEN THE
-C   POINT IS INSIDE OF THE POLYGON.
-C ..................................................................
       SUBROUTINE PNPOLY(PX,PY,XX,YY,N,INOUT)
+
       common/OUTIN/IUOUT,IUIN,IEOUT
       REAL X(200),Y(200),XX(N),YY(N)
       LOGICAL MX,MY,NX,NY
@@ -2644,14 +2866,16 @@ C ..................................................................
       END
 
 
-C ********************* TRANSUR
-C TRANSUR transforms a surface along its normal.
-C OFFSET is the offset from the base polygon (0.02 typically).
-C NB       = no. base surf vertices,
-C XB,YB,ZB = base surf vertex arrays,
-C XT,YT,ZT =  transformed surf vertex arrays,
+C ******************** TRANSUR ********************
+C Transforms a surface along its normal.
+C OFFSET   - the offset from the base polygon (0.02 typically).
+C NB       - number of base surface vertices.
+C XB,YB,ZB - base surface vertex arrays.
+C XT,YT,ZT - transformed surface vertex arrays.
+
       SUBROUTINE TRANSUR(ITRC,ITRU,NB,XB,YB,ZB,OFFSET,XT,YT,ZT,sname)
 #include "building.h"
+
       DIMENSION  XB(MV),YB(MV),ZB(MV),XT(MV),YT(MV),ZT(MV)
       DIMENSION  VP(3),EQN(4),TRNS(3)
       CHARACTER sname*28,outs*144,out96*124
@@ -2687,13 +2911,13 @@ C If error, return transformed points same as initial.
         CALL EDISP(ITRU,outs)
         CALL EDISP(ITRU,' Transforming coords: ')
         ipos=1
-        call arlist2(ipos,NB,XT,MV,'S',out96,loutlen,itrunc)
+        call arlist3(ipos,NB,XT,MV,'S',out96,loutlen,itrunc)
         WRITE(outs,'(a,a)') ' X coords:',out96(1:loutlen)
         CALL EDISP(ITRU,outs)
-        call arlist2(ipos,NB,YT,MV,'S',out96,loutlen,itrunc)
+        call arlist3(ipos,NB,YT,MV,'S',out96,loutlen,itrunc)
         WRITE(outs,'(a,a)') ' Y coords:',out96(1:loutlen)
         CALL EDISP(ITRU,outs)
-        call arlist2(ipos,NB,ZT,MV,'S',out96,loutlen,itrunc)
+        call arlist3(ipos,NB,ZT,MV,'S',out96,loutlen,itrunc)
         WRITE(outs,'(a,a)') ' Z coords:',out96(1:loutlen)
         CALL EDISP(ITRU,outs)
       ENDIF
@@ -2701,9 +2925,11 @@ C If error, return transformed points same as initial.
       RETURN
       END
 
-C ******* UV2AZ
+C ******************** UV2AZ ********************
 C Recover azimuth & elevation from unit vector.
+
       SUBROUTINE UV2AZ(vdx,vdy,vdz,azim,elev)
+
       logical clx0,cly0,clx1,cly1,clxm1,clym1
       PI = 4.0 * ATAN(1.0)
       RAD = PI/180.
@@ -2723,7 +2949,7 @@ C Reduce the azimuth calculation to a 2D problem.
       dist = vdx**2 + vdy**2
       dist = sqrt(dist)
 
-C Check if tollerably close to an axis.
+C Check if tolerably close to an axis.
       CALL ECLOSE(vdx,0.0,0.001,clx0)
       CALL ECLOSE(vdy,0.0,0.001,cly0)
       CALL ECLOSE(vdx,1.0,0.001,clx1)
@@ -2748,15 +2974,14 @@ C Check if tollerably close to an axis.
         azim=360.0-(acos(vdy/dist)/RAD)
       endif
 
-C Debug.
-C      write(6,*)'UV2AZ azim elev <<vdx vdy vdz=',azim,elev,vdx,vdy,vdz
-
       return
       end
 
-C ******* LN2AZ
-C LN2AZ Recover azimuth & elevation vector from two coordinates in space.
+C ******************** LN2AZ ********************
+C Recover azimuth & elevation vector from two coordinates in space.
+
       SUBROUTINE LN2AZ(x1,y1,z1,x2,y2,z2,azim,elev)
+
       logical clx0,cly0,clx1,cly1,clxm1,clym1
       PI = 4.0 * ATAN(1.0)
       RAD = PI/180.
@@ -2779,7 +3004,7 @@ C Reduce the azimuth calculation to a 2D problem.
       dist = (vdx*vdx) + (vdy*vdy)
       dist = sqrt(dist)
 
-C Check if tollerably close to an axis.
+C Check if tolerably close to an axis.
       CALL ECLOSE(vdx,0.0,0.001,clx0)
       CALL ECLOSE(vdy,0.0,0.001,cly0)
       CALL ECLOSE(vdx,1.0,0.001,clx1)
@@ -2806,8 +3031,9 @@ C Check if tollerably close to an axis.
       return
       end
 
-C ******* AZ2UV
+C ******************** AZ2UV ********************
 C Recover unit vector from azimuth & elevation.
+
       SUBROUTINE AZ2UV(azim,elev,vdx,vdy,vdz)
       PI = 4.0 * ATAN(1.0)
       RAD = PI/180.
@@ -2825,24 +3051,22 @@ C Reconstitute the viewing vector.
         vdy = XYDIS*COS(RYAZI)
       ENDIF
 
-C Debug.
-C      write(6,*)'AZ2UV azim elev >>vdx vdy vdz=',azim,elev,vdx,vdy,vdz
-
       return
       end
 
-C ********************* CHECKWARP
-C CHECKWARP transforms surface into 2D and checks if points are
-C are not in the plane of the surface.
+C ******************** CHECKWARP ********************
+C Transforms surface into 2D and checks if points are
+C in the plane of the surface.
 
-C STEP 1 - Find equation of surface (EQN(4)) via PLEQN and get centre
-C          Centre of Gravity (VP(3))
+C STEP 1 - Find equation of surface (EQN(4)) via PLEQN and get Centre of Gravity (VP(3))
 C STEP 2 - Set up Eye Point normal to plane at C. of G. (EP(3))
 C STEP 3 - Find matrix and reverse matrix via EYEMAT to transform > 2D
-C isurf is the current surface index (for reporting)
-C N is the number of surface vertices, X,Y,Z are the surface vertex arrays,
-C iwhich is worst vertex off plane and ofby is amount it deviates.
-C ivoff is the number of vertices which are more than 3mm off.
+C isurf  - Current surface index (for reporting)
+C N      - Number of surface vertices.
+C X,Y,Z  - Surface vertex arrays,
+C iwhich - Worst vertex off plane and ofby is amount it deviates.
+C ivoff  - Number of vertices which are more than 3mm off.
+
       SUBROUTINE CHECKWARP(ITRC,itru,isurf,N,X,Y,Z,iwhich,ofby,ivoff)
       implicit none
 #include "building.h"
@@ -2854,10 +3078,9 @@ C Passed parameters.
       DIMENSION  X(MV),Y(MV),Z(MV)
       integer iwhich     ! which point has largest difference
       real ofby          ! largest difference
-      integer ivoff      ! nb of points beyond tollerance
+      integer ivoff      ! nb of points beyond tolerance
 
-C Local variables
-
+C Local variables.
       integer i,j,ierr   ! types for local variables
       real TMAT,RMAT,VP,EP,EQN
       DIMENSION  TMAT(4,4),RMAT(4,4)
@@ -2897,7 +3120,7 @@ C Call eyemat with 1m offset.
       CALL  EYEMAT(EP,VP,offset,TMAT,RMAT)
 
 C Transform all points in surface and check for ZZZ which differs
-C from the 1m offset.The tollerance is currently set to 5mm.
+C from the 1m offset. The tolerance is currently set to 5mm.
       ivoff=0
       ofby=0.0
       DO 300 I=1,N
@@ -2922,9 +3145,10 @@ C from the 1m offset.The tollerance is currently set to 5mm.
       END
 
 
-C ***************** ESCZONE
-C ESZONE makes a copy of the current contents of common blocks G1 G3
-C G4 G5 into SG1 SG2 SG3 SG4 SG5.
+C ******************** ESCZONE ********************
+C Makes a copy of the current contents of common blocks G1
+C G4 G5 into SG1 SG2 SG4 SG5.
+
       SUBROUTINE ESCZONE(ICOMP)
 #include "building.h"
 #include "geometry.h"
@@ -2978,9 +3202,10 @@ C block for later recovery.
       END
 
 
-C **************** ERCZONE
-C ERZONE recovers the saved contents of common blocks G1 G2 G3
-C G4 G5 from SG1 SG2 SG3 SG4 SG5.
+C ******************** ERCZONE ********************
+C Recovers the saved contents of common blocks G1 G2
+C G4 G5 from SG1 SG2 SG4 SG5.
+
       SUBROUTINE ERCZONE(ICOMP)
 #include "building.h"
 #include "geometry.h"
@@ -3033,7 +3258,7 @@ C block for later recovery.
       RETURN
       END
 
-C **************** EASKGEOF
+C ******************** EASKGEOF ********************
 C EASKGEOF asks for the zone number and geometry file name. If the
 C configuration file has been read present a list of zone names,
 C otherwise ask for a specific zone number and file name.
@@ -3041,11 +3266,13 @@ C If MOD = m or M then allowing a new zone to be created or one
 C to be deleted (passed back as a negative zone number).
 C If MOD = t or T then the focus is thermophysical.
 C It is assumed that the user will make one selection only.
+
       SUBROUTINE EASKGEOF(PROMPT,CFGOK,IZONE,MOD,IMW,IER)
 #include "building.h"
 #include "model.h"
 #include "geometry.h"
 #include "epara.h"
+#include "help.h"
 
 C Parameters.
       character*(*) PROMPT   ! text for menu heading
@@ -3055,18 +3282,20 @@ C Parameters.
       integer IMW            ! menu width
       integer IER            ! zero is no problem
 
-      common/pophelp/h(60)
-
       integer ncomp,ncon
       COMMON/C1/NCOMP,NCON
       common/user/browse
-      LOGICAL SELECT,delzone,browse,cpyzone,XST
+      LOGICAL SEL,delzone,browse,cpyzone,XST
 
       DIMENSION VERT(35)
       character*(IMW) VERT
-      CHARACTER KEY*1,DFILE*72,H*72
+      CHARACTER KEY*1,DFILE*72
       CHARACTER*72 LFILG
       integer MVERT,IVERT  ! max items and current menu item
+
+      helpinsub='esru_misc'  ! set for subroutine
+      helptopic='ask_for_geometry'
+      call gethelptext(helpinsub,helptopic,nbhelp)
 
 C If no configuration file then ask for zone number and name.
       delzone = .false.
@@ -3074,14 +3303,8 @@ C If no configuration file then ask for zone number and name.
       IF(.NOT.CFGOK)THEN
         IER=0
         IZONE=1
-        H(1)='The zone number is required only for reporting'
-        H(2)='purposes but should match the numbering expected'
-        H(3)='in the system configuration file.'
-        H(4)=' '
-        H(5)='A cancel instruction lets you start the zone '
-        H(6)='creation process again. '
-        CALL EASKI(IZONE,PROMPT,' Zone number?',
-     &             1,'F',MCOM,'W',1,'zone number',IERI,6)
+        CALL EASKI(IZONE,PROMPT,'Zone number?',
+     &    1,'F',MCOM,'W',1,'zone number',IERI,nbhelp)
         if(ieri.eq.-3)then
 
 C User requested a cancel set izone to zero to signal that
@@ -3090,11 +3313,9 @@ C nothing has been selected.
           RETURN
         endif
 
-        H(1)='A zone geometry file will be selected via input of the'
-        H(2)='file name since no system configuration file exists.'
         DFILE='new.geo'
    79   CALL EASKS(LFILG,PROMPT,' Geometry file name?',
-     &    72,DFILE,'geom name',IER,2)
+     &    72,DFILE,'geom name',IER,nbhelp)
         IF(LFILG.NE.' ')THEN
           LGEOM(IZONE)=LFILG
         ELSE
@@ -3106,7 +3327,7 @@ C nothing has been selected.
 C Initialise zone menu variables based on window size.
 C IVERT is the menu position, MVERT the current number of menu lines.
 C Use shorter menu depending on what MOD is.
-      SELECT=.FALSE.
+      SEL=.false.
       MHEAD=0
       if(browse)then
         MCTL=3
@@ -3186,11 +3407,6 @@ C no need to show additional options.
         ENDIF
       endif
 
-C Help messages for the menus below.
-C Produce help text.
-      H(1)='A zone geometry file will be selected via the name of'
-      H(2)='the zone held in the system configuration file.'
-
 C Display the menu.
       call usrmsg(PROMPT,'  ','-')
       if(MOD.EQ.'M'.OR.MOD.EQ.'m')then
@@ -3201,35 +3417,33 @@ C Display the menu.
         CALL EMENU('Zones',VERT,MVERT,IVERT)
       endif
 
-C Debug.
-C      write(6,*) 'zone selected (list) is ',IVERT,MOD
       IF(IVERT.LE.MHEAD)THEN
         IVERT=-1
         goto 3
-      ELSEIF(IVERT.EQ.MVERT)THEN
 
 C If no selection has been made before exit then return with 0.
-        IF(.NOT.SELECT)IZONE=0
+      ELSEIF(IVERT.EQ.MVERT)THEN
+        IF(.NOT.SEL)IZONE=0
         call usrmsg('  ','no zone selected','-')
         RETURN
-      ELSEIF(IVERT.EQ.0)THEN
 
 C If nothing from list return with 0.
+      ELSEIF(IVERT.EQ.0)THEN
         IZONE=0
         call usrmsg('  ','no zone selected','-')
         RETURN
       ELSEIF(IVERT.EQ.(MVERT-1))THEN
 
 C Display help text.
-        CALL PHELPD('zone geom file section',2,'-',0,0,IER)
-      ELSEIF(IVERT.GT.MHEAD.AND.IVERT.LT.(MVERT-MCTL+1))THEN
+        CALL PHELPD('zone geom file section',nbhelp,'-',0,0,IER)
 
 C Decode from the potentially long list to the zone number via KEYIND.
 C If delete zone selected previously then turn zone into negative as
 C follows -11 = del zone 1, -12 = del zone 2.  In the case of
 C copying a zone add 100.
+      ELSEIF(IVERT.GT.MHEAD.AND.IVERT.LT.(MVERT-MCTL+1))THEN
         CALL KEYIND(MVERT,IVERT,IFOC,IO)
-        SELECT=.TRUE.
+        SEL=.TRUE.
         if(delzone)then
           IZONE = (IFOC + 10) * (-1)
         else
@@ -3264,27 +3478,21 @@ C User can modify zone list.
 
 C Allow a zone to be added or deleted.
           IF(MOD.EQ.'M'.OR.MOD.EQ.'m')THEN
-            H(1)='As with other entities a standard set of add/delete'
-            H(2)='and copy functions is provided.  Existing zones to'
-            H(3)='be copied are transformed in space, given a new '
-            H(4)='name and all partitions reset to external. '
-            CALL EASKATOG(' ','Action: ','add zone','delete zone',
+            CALL EASKATOG(' ','Options:','add zone','delete zone',
      &        'copy zone','copy zones or group','cancel',
-     &        ' ',' ',IW,4)
-C            CALL EASKABCD(' ','Action: ','add zone','delete zone',
-C     &        'copy zone','cancel',IW,4)
+     &        ' ',' ',IW,nbhelp)
             if(IW.EQ.1)then
               delzone = .false.
               IZONE=NCOMP+1
               RETURN
             elseif(IW.EQ.2)then
               delzone = .true.
-              call usrmsg(' ','Select zone to delete... ','-')
+              call usrmsg(' ','Select zone to delete.','-')
               IVERT=-2
               goto 3
             elseif(IW.EQ.3)then
               cpyzone = .true.
-              call usrmsg(' ','Select zone to copy... ','-')
+              call usrmsg(' ','Select zone to copy.','-')
               IVERT=-2
               goto 3
             elseif(IW.EQ.4)then
@@ -3339,8 +3547,8 @@ C Not one of the legal menu choices.
 
       END
 
-C **************** ASKZONE
-C ASKZONE presents  a list of zones to select from.
+C ******************** ASKZONE ********************
+C Presents a list of zones to select from.
 C It is passed a prompt, menu title, default
 C index and indicates current index (if zero then says no prior
 C selection). It is assumed that the user will make one selection only.
@@ -3348,17 +3556,18 @@ C MOD display modifier - `c` note constructions defined, `o` note
 C operations defined, `s` note shading defined, `z` note zone attrib
 C complete, `v` note view factors, `g` casual gain ctl, `d` domain flow,
 C `h` heat transfer (convective) methods, `-` zone names only.
-      SUBROUTINE ASKZONE(IZONE,IDZONE,prompt,title,mod,errmsg,IMW,IER)
+
+      SUBROUTINE ASKZONE(IZONE,IDZONE,title,mod,errmsg,IMW,IER)
 #include "building.h"
 #include "model.h"
 #include "geometry.h"
 #include "schedule.h"
 #include "epara.h"
+#include "help.h"
 
 C Parameters.
       integer izone          ! which zone was selected
       integer idzone         ! default suggestion
-      character*(*) PROMPT   ! text for dialog
       character*(*) TITLE    ! text for menu heading
       character MOD*1        ! m M or t T
       character*(*) ERRMSG   ! text for error
@@ -3367,24 +3576,27 @@ C Parameters.
 
       COMMON/FILEP/IFIL
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
-      common/pophelp/h(60)
 
       integer ncomp,ncon
       COMMON/C1/NCOMP,NCON
       common/cfdfil/LCFD(MCOM),IFCFD(MCOM)
 
-      LOGICAL SELECT,XST
+      LOGICAL SEL,XST
 
       DIMENSION VERT(35)
       character*(IMW) VERT
       CHARACTER KEY*1
-      character h*72,outs*124
+      character outs*124
       CHARACTER*72 LCFD,shdafile
       integer MVERT,IVERT  ! max items and current menu item
 
+      helpinsub='esru_misc'  ! set for subroutine
+      helptopic='ask_zone_single'
+      call gethelptext(helpinsub,helptopic,nbhelp)
+
 C Initialise zone menu variables based on window size.
 C IVERT is the menu position, MVERT the current number of menu lines.
-      SELECT=.FALSE.
+      SEL=.FALSE.
       MHEAD=0
       if(mod.eq.'-')then
         MCTL=4
@@ -3567,9 +3779,6 @@ C If a long list include page facility text and info on portion seen.
         VERT(M+4)  ='- exit menu             '
       endif
 
-C Help message for this menu.
-      h(1)='Select the required zone from the menu.'
-
 C Display the menu.
       CALL EMENU(title,VERT,MVERT,IVERT)
       IF(IVERT.LE.MHEAD)THEN
@@ -3578,7 +3787,7 @@ C Display the menu.
       ELSEIF(IVERT.EQ.MVERT)THEN
 
 C If no selection has been made before exit then display error message.
-        IF(.NOT.SELECT.and.mod.eq.'-')then
+        IF(.NOT.SEL.and.mod.eq.'-')then
           call usrmsg(errmsg,'You must select one.','W')
           IVERT=-2
           goto 92
@@ -3587,7 +3796,7 @@ C If no selection has been made before exit then display error message.
       ELSEIF(IVERT.EQ.(MVERT-1))THEN
 
 C Display help text.
-        CALL PHELPD('zone geom file section',1,'-',0,0,IER)
+        CALL PHELPD('zone geom file section',nbhelp,'-',0,0,IER)
       ELSEIF(IVERT.EQ.(MVERT-2).and.IDZONE.ne.0.and.MCTL.eq.4)THEN
 
 C Take default zone.
@@ -3607,7 +3816,7 @@ C Take default zone when there is also a global choice.
 
 C Decode from the potentially long list to the zone number via KEYIND.
         CALL KEYIND(MVERT,IVERT,IFOC,IO)
-        SELECT=.TRUE.
+        SEL=.TRUE.
         IZONE = IFOC
         RETURN
       ELSEIF(IVERT.EQ.(MVERT-3).and.MCTL.eq.4)THEN
@@ -3635,8 +3844,8 @@ C Not one of the legal menu choices.
 
       END
 
-C **************** ASKMULTIZONE
-C ASKMULTIZONE presents a list of zones to select one or more from.
+C ******************** ASKMULTIZONE ********************
+C Presents a list of zones to select one or more from.
 C It is passed a prompt, menu title, and number of allowable items inpic
 C It returns inpick and array IVALS.
 C MOD display modifier - `c` note constructions defined, `o` note
@@ -3646,18 +3855,19 @@ C `h` heat transfer (comvective) methods, 'b' obstruction blocks,
 C `-` zone names only.
 C If there have been groups-of-zones defined also include these
 C in the list (at the bottom).
+
       SUBROUTINE ASKMULTIZONE(INPIC,IVALS,prompt,title,mod,IER)
 #include "building.h"
 #include "model.h"
 #include "geometry.h"
 #include "schedule.h"
 #include "epara.h"
+#include "help.h"
 
       integer lnblnk  ! function definition
 
       COMMON/FILEP/IFIL
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
-      common/pophelp/h(60)
 
       integer ncomp,ncon
       COMMON/C1/NCOMP,NCON
@@ -3669,8 +3879,12 @@ C in the list (at the bottom).
       DIMENSION VERT(35),IVALS(MCOM)
       DIMENSION GERT(32),IGVAL(32)  ! For groups.
       CHARACTER VERT*27,gert*20,KEY*1,prompt2*36
-      character h*72,mod*1,outs*124,msg*96
+      character mod*1,outs*124,msg*96
       CHARACTER*72 LCFD
+
+      helpinsub='esru_misc'  ! set for subroutine
+      helptopic='ask_zone_multi'
+      call gethelptext(helpinsub,helptopic,nbhelp)
 
 C Clear IVALS and INPICK.
       IER=0
@@ -3863,49 +4077,33 @@ C If groups defined.
         VERT(M+2)  ='? help                  '
         VERT(M+3)  ='- exit menu             '
       endif
-      write(prompt2,'(a)') ' select one or more...'
+      write(prompt2,'(a)') 'Select one or more...'
 
 C Instantiate help message for this menu.
       if(mod.eq.'-')then
-        H(1)='Zones may be selected via the names in the list.'
-        h(2)='If you have just updated a file it may not show up'
-        h(3)='as defined until you exit and re-enter this menu. '
-        h(4)=' '
+        helptopic='ask_zone_mod-'
+        call gethelptext(helpinsub,helptopic,nbhelp)
       elseif(mod.eq.'c')then
-        h(1)='The list of zone construction files includes an '
-        h(2)='indicator of whether the file exists or not. There'
-        h(3)='are some tasks which require a file to exist.'
-        h(4)=' '
+        helptopic='ask_zone_modc'
+        call gethelptext(helpinsub,helptopic,nbhelp)
       elseif(mod.eq.'o')then
-        h(1)='The list of zone operation files includes an '
-        h(2)='indicator of whether the file exists or not. There'
-        h(3)='are some tasks which require a file to exist.'
-        h(4)=' '
+        helptopic='ask_zone_modo'
+        call gethelptext(helpinsub,helptopic,nbhelp)
       elseif(mod.eq.'s')then
-        h(1)='The list of zone shading files includes an '
-        h(2)='indicator of whether the file exists or not. You'
-        h(3)='can update existing files or mark shading/insulatoin'
-        h(4)='to be included in the analysis or dereferenced.'
+        helptopic='ask_zone_mods'
+        call gethelptext(helpinsub,helptopic,nbhelp)
       elseif(mod.eq.'v')then
-        h(1)='The list of zone viewfactor files includes an '
-        h(2)='indicator of whether the file exists or not. You'
-        h(3)='can update existing files or mark shading/insulatoin'
-        h(4)='to be included in the analysis or dereferenced.'
+        helptopic='ask_zone_modv'
+        call gethelptext(helpinsub,helptopic,nbhelp)
       elseif(mod.eq.'g')then
-        h(1)='The list of zone casual gain control files includes an'
-        h(2)='indicator of whether the file exists or not. You'
-        h(3)='can select zones to include or derefernce as'
-        h(4)='required.'
+        helptopic='ask_zone_modg'
+        call gethelptext(helpinsub,helptopic,nbhelp)
       elseif(mod.eq.'d')then
-        h(1)='The list of zone CFD domain files includes an'
-        h(2)='indicator of whether the file exists or not. You'
-        h(3)='can select zones to include or derefernce as'
-        h(4)='required.'
+        helptopic='ask_zone_modg'
+        call gethelptext(helpinsub,helptopic,nbhelp)
       elseif(mod.eq.'h')then
-        h(1)='The list of zone hc regime files includes an'
-        h(2)='indicator of whether the file exists or not. You'
-        h(3)='can select zones to include or derefernce as'
-        h(4)='required.'
+        helptopic='ask_zone_modh'
+        call gethelptext(helpinsub,helptopic,nbhelp)
       endif
 
 C Display the menu.
@@ -3915,10 +4113,6 @@ C Display the menu.
         IVERT=-1
         goto 3
       ELSEIF(IVERT.EQ.MVERT)THEN
-
-C Debug.
-C        write(6,*) 'inpic is ',inpic
-C        write(6,*) 'ivals is ',ivals
 
         RETURN
       ELSEIF(IVERT.EQ.(MVERT-1))THEN
@@ -4000,18 +4194,19 @@ C Not one of the legal menu choices.
 
       END
 
-C ******************* EASKSUR
-C EASKSUR presents a list of surfaces in a zone IZONE returning the
+C ******************** EASKSUR ********************
+C Presents a list of surfaces in a zone IZONE returning the
 C index IS. It assumes that a geometry file has been read in.
 C If MOD = '-' name list only, MOD = 'M' attribute Many, MOD = 'A'
 C show attributes in list, MOD = 'U' as 'A' but also include SUSE,
 C MOD = 'V' as 'M' but also include SUSE.
+
       SUBROUTINE EASKSUR(IZONE,IS,MOD,PROMPT1,PROMPT2,IER)
 #include "building.h"
 #include "geometry.h"
 #include "epara.h"
+#include "help.h"
 
-      common/pophelp/h(60)
       integer ncomp,ncon
       COMMON/C1/NCOMP,NCON
       integer IZSTOCN
@@ -4022,9 +4217,9 @@ C MOD = 'V' as 'M' but also include SUSE.
       DIMENSION VERT(35),VERTS(35),VERTU(35)
 
       CHARACTER*(*) PROMPT1,PROMPT2
-      CHARACTER H*72,KEY*1,MOD*1,title*29
+      CHARACTER KEY*1,MOD*1,title*29
       CHARACTER VERT*32,VERTS*44,VERTU*56
-      LOGICAL SELECT
+      LOGICAL SEL
       integer loopstart,loopend,i,icc   ! for looping
       logical usesbasesimp
 
@@ -4035,9 +4230,13 @@ C MOD = 'V' as 'M' but also include SUSE.
         RETURN
       ENDIF
 
+      helpinsub='esru_misc'  ! set for subroutine
+      helptopic='ask_surface'
+      call gethelptext(helpinsub,helptopic,nbhelp)
+
 C Initialise surface menu variables based on window size.
 C IVERT is the menu position, MVERT the current number of menu lines.
-      SELECT=.FALSE.
+      SEL=.FALSE.
       if(MOD.eq.'-')then
         write(title,'(2a)')' Surfaces in ',
      &    zname(IZONE)(1:lnzname(IZONE))
@@ -4185,14 +4384,9 @@ C If MOD has been passed as a M then return -2 to indicate further processing
       VERT(M+3)   ='? help              '
       VERTS(M+3)  ='? help              '
       VERTU(M+3)  ='? help              '
-      VERT(M+4)   ='- exit              '
-      VERTS(M+4)  ='- exit              '
-      VERTU(M+4)  ='- exit              '
-
-C Instantiate help message for this menu.
-      H(1)='Select a surface from the menu.'
-      H(2)='For construction layer selection, first'
-      H(3)='select the surface and then the layer.'
+      VERT(M+4)   ='- exit menu         '
+      VERTS(M+4)  ='- exit menu         '
+      VERTU(M+4)  ='- exit menu         '
 
 C Display the menu.
       call usrmsg(PROMPT1,PROMPT2,'-')
@@ -4213,8 +4407,7 @@ C Display the menu.
       ELSEIF(IVERT.EQ.MVERT)THEN
 
 C If no selection has been made before exit then return with 0.
-        IF(.NOT.SELECT)IS=0
-        call usrmsg(' ',' ','-')
+        IF(.NOT.SEL)IS=0
 
 C Checks the surfaces in the current zone to see if any of the surface
 C attributes are 'BASESIMP'.  If there are any then present the
@@ -4238,7 +4431,8 @@ C BASESIMP editing facility (once).
       ELSEIF(IVERT.EQ.(MVERT-2))THEN
 
 C Allow user to say several to be attributed.
-        IF(MOD.EQ.'M'.OR.MOD.EQ.'m')THEN
+        IF(MOD.EQ.'M'.OR.MOD.EQ.'m'.or.
+     &     MOD.EQ.'V'.OR.MOD.EQ.'v')THEN
           IS= -2
           call usrmsg(' ',' ','-')
           RETURN
@@ -4257,7 +4451,7 @@ C If there are enough items allow paging control via EKPAGE.
 
 C Decode from the potential long list to the zone number via KEYIND.
         CALL KEYIND(MVERT,IVERT,IFOC,IO)
-        SELECT=.TRUE.
+        SEL=.TRUE.
         IS=IFOC
         call usrmsg(' ',' ','-')
         RETURN
@@ -4271,18 +4465,18 @@ C Not one of the legal menu choices.
 
       END
 
-
-C ******************* EASKMSUR
-C EASKMSUR presents a list of surfaces in a zone IZONE returning array
+C ******************** EASKMSUR ********************
+C Presents a list of surfaces in a zone IZONE returning array
 C of surface indices ISLIST. It assumes that a geometry file has been read in.
 C Designed to show attributes in list.
+
       SUBROUTINE EASKMSUR(IZONE,INPICK,ISLIST,PROMPT1,PROMPT2,IER)
 #include "building.h"
 #include "geometry.h"
 #include "epara.h"
+#include "help.h"
 
       common/OUTIN/IUOUT,IUIN,IEOUT
-      common/pophelp/h(60)
       integer ncomp,ncon
       COMMON/C1/NCOMP,NCON
       integer IZSTOCN
@@ -4292,9 +4486,13 @@ C Designed to show attributes in list.
       DIMENSION ISCNLIST(MCON)! selected surface connection
 
       CHARACTER*(*) PROMPT1,PROMPT2
-      CHARACTER H*72,VERTS*44,KEY*1,title*29,outs*124
-      LOGICAL SELECT
+      CHARACTER VERTS*44,KEY*1,title*29,outs*124
+      LOGICAL SEL
       integer i,j,icc   ! for looping
+
+      helpinsub='esru_misc'  ! set for subroutine
+      helptopic='ask_m_surface'
+      call gethelptext(helpinsub,helptopic,nbhelp)
 
       IER=0
       IF(IZONE.GT.NCOMP.OR.IZONE.EQ.0)THEN
@@ -4312,7 +4510,7 @@ C Designed to show attributes in list.
 
 C Initialise surface menu variables based on window size.
 C IVERT is the menu position, MVERT the current number of menu lines.
-      SELECT=.FALSE.
+      SEL=.FALSE.
       write(title,'(2a)')'  Surfaces in ',
      &  zname(IZONE)(1:lnzname(IZONE))
       MHEAD=1
@@ -4388,12 +4586,7 @@ C If a long list include page facility text.
       ENDIF
 
       VERTS(M+2)  ='? help              '
-      VERTS(M+3)  ='- exit              '
-
-C Instantiate help message for this menu.
-      H(1)='Surface(s) in the zone may be selected via its name'
-      H(2)='in the list. Up to 8 surfaces can be deleted in one'
-      H(3)='action.'
+      VERTS(M+3)  ='- exit menu         '
 
 C Display the menu.
       call usrmsg(PROMPT1,PROMPT2,'-')
@@ -4404,7 +4597,7 @@ C Display the menu.
       ELSEIF(IVERT.EQ.MVERT)THEN
 
 C If no selection has been made before exit then return with 0.
-        IF(.NOT.SELECT)INPICK=0
+        IF(.NOT.SEL)INPICK=0
         call usrmsg(' ',' ','-')
 C       write(6,*)'ivlist',(ISLIST(J),J=1,10)
         RETURN  ! return to the parent call
@@ -4435,7 +4628,7 @@ C Decode from the potential long list to the zone number via KEYIND.
           enddo
           INPICK=INPICK-1         ! decrement
         else
-          SELECT=.TRUE.
+          SEL=.TRUE.
           INPICK=INPICK+1
           ISLIST(INPICK)=IFOC
           iccc=IZSTOCN(izone,IFOC)  ! get which connection
@@ -4459,8 +4652,8 @@ C Not one of the legal menu choices.
 
       END
 
-C ********* asksnode
-C Subroutine asksnode provides a selection list for the layers
+C ******************** asksnode ********************
+C Provides a selection list for the layers
 C and nodes within a construction. Passed zone index (icomp)
 C and surface index (IS) and returns layer index (ilay) and
 C optionally the node index (inode). It assumes that relevant
@@ -4471,15 +4664,19 @@ C databases have been opened.
 #include "geometry.h"
 #include "esprdbfile.h"
 #include "material.h"
+#include "help.h"
 
       common/OUTIN/IUOUT,IUIN,IEOUT
-      common/pophelp/h(60)
-
-C Special materials file flag
+      
+C Special materials file flag.
       DIMENSION PNAM(ME),item(ME+10)
       integer header,footer
-      character item*32,NAM*72,PNAM*20,H*72,outs*124
+      character item*32,NAM*72,PNAM*20,outs*124
       logical closemat1,closemat2  ! to check version of materials db.
+
+      helpinsub='esru_misc'  ! set for subroutine
+      helptopic='ask_constr_node'
+      call gethelptext(helpinsub,helptopic,nbhelp)
 
 C Check name of surface with construction name in MLC common.
       imatch=0
@@ -4492,7 +4689,7 @@ C Check name of surface with construction name in MLC common.
       call eclose(matver,1.1,0.001,closemat1)  ! check materials version 1.1.
       call eclose(matver,1.2,0.001,closemat2)  ! check materials version 1.2.
 
-C Write menu displaying a list of layer names
+C Write menu displaying a list of layer names.
       header=3
       footer=3
       write(item(1),'(a,a)') 'a surface name: ',SNAME(icomp,is)
@@ -4520,30 +4717,20 @@ C Pick up the material name of each layer. Uses zero matarrayindex to signal gap
   10  continue
       item(ndisp+footer-2)='  ----------------------------'
       item(ndisp+footer-1)='? help  '
-      item(ndisp+footer)  ='- exit  '
+      item(ndisp+footer)  ='- exit menu'
       ino=-1
       nitms=ndisp+footer
-
-C Instantiate help messages for this menu.
-      h(1)='Choose a layer at which to situate a special'
-      h(2)='materials node.                                     '
 
   7   call emenu('Surface layers & nodes',item,nitms,ino)
       if(ino.gt.header.and.ino.le.ndisp) then
 
 C Ask for the nodal location, first calculate a location at centre.
         nodloc=2*(ino-header)
-        h(1)='Select a node within the layer (the value shown is'
-        h(2)='at the centre of the layer). Nodes are indexed from'
-        h(3)='the outside face to the inside face and the default'
-        h(4)='nodal scheme uses 3 nodes per layer. '
-        h(5)=' '
-        h(6)='A cancel leaves the model unchanged. '
         nodloca=nodloc-1
         nodlocb=nodloc+1
         nodlocd=nodloc
         call easki(nodloc,' Position material at ',' which node ? ',
-     &    nodloca,'W',nodlocb,'W',nodlocd,'spm node',IERI,6)
+     &    nodloca,'W',nodlocb,'W',nodlocd,'spm node',IERI,nbhelp)
         if(ieri.eq.-3)then
           ier=1
           return
@@ -4553,7 +4740,7 @@ C Ask for the nodal location, first calculate a location at centre.
           return
         endif
       elseif(ino.eq.ndisp+footer-1) then
-        call phelpd('Special material',2,'-',0,0,IER)
+        call phelpd('Special material',nbhelp,'-',0,0,IER)
         ino=-1
         goto 7
       elseif (ino.eq.ndisp+footer) then
@@ -4568,12 +4755,12 @@ C Ask for the nodal location, first calculate a location at centre.
 
       end
 
-C ******************** SURADJ
-C SURADJ is a updated version of MOFADJ which returns information about
-C connections between surfaces.  Given IZONE & ISFN (the zone and
-C surface under consideration) it returns the following information:
-C IE identifies the zone coupling index
+C ******************** SURADJ ********************
+C Returns information about connections between surfaces (a updates version
+C of MOFADJ).  Given IZONE & ISFN (the zone and surface under consideration),
+C it returns the following information:
 
+C IE: identifies the zone coupling index
 C IE=-1: not yet defined
 C IE=0 : external and both TMP=0.0/ISC=0
 C IE=1 : internal to identical environment, both TMP=0.0/ISC=0
@@ -4589,6 +4776,7 @@ C TMP  : is IE2 (constant temperature if IE=2)
 
       SUBROUTINE SURADJ(IZONE,ISFN,IE,TMP,IZC,ISC,IC,DESCR)
 #include "building.h"
+
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/C3/IC1(MCON),IE1(MCON),ICT(MCON),IC2(MCON),IE2(MCON)
       integer IZSTOCN
@@ -4651,9 +4839,9 @@ C Knowing IE establish TMP, IZC,ISC.
       RETURN
       END
 
-C *****************************    FLNAME    **************************
-C FLNAME provides a name for a defined file type.
-C *********************************************************************
+C ******************** FLNAME ********************
+C Provides a name for a defined file type.
+
       SUBROUTINE FLNAME(ICOMP,FILENM,FLTYP,EXT,NHLP,IER)
 #include "building.h"
 #include "geometry.h"
@@ -4697,12 +4885,13 @@ C *********************************************************************
       RETURN
       END
 
-C **************** ZSID
-C ZSID returns compact descriptions of the zone:surface.
+C ******************** ZSID ********************
+C Returns compact descriptions of the zone:surface.
 C ZSDES has no truncation, ZSDESC compacts to 20 char with minimum
 C of truncation, ZSDESS has maximum risk of truncation.
-C << check if calling code knows that current geometry file read is >>
+C << Check if calling code knows that current geometry file read is >>
 C << not required for this. >>
+
       SUBROUTINE ZSID(IZ,IS,ZSDES,ZSDESC,ZSDESS)
 #include "building.h"
 #include "geometry.h"
@@ -4760,8 +4949,8 @@ C << not required for this. >>
       RETURN
       END
 
-C ************* ZNARLIST
-C ZNARLIST takes number of items (inlist) in the array (list)
+C ******************** ZNARLIST ********************
+C Takes number of items (inlist) in the array (list)
 C of size (insize) and builds a descriptive string (zdescr)
 C of character length (length) to be used in reports.
 C Similar to code ZLIST in esrures/utils.F.
@@ -4819,15 +5008,18 @@ C Trap for I/O errors.
       return
       END
 
-C -------- discovercfg
-C Discovercfg provides a list of model cfg files within a passed
+C ******************** discovercfg ********************
+C Provides a list of model cfg files within a passed
 C folder and returns full path of selected in sfile. If user did
 C not select ier is -1, if there were no matching files ier is -2
 C and ier = 1 was an error in composition.
+
       subroutine discovercfg(subpath,sfile,ier)
 #include "espriou.h"
 #include "building.h"
 #include "model.h"
+#include "help.h"
+
       common/SPAD/MMOD,LIMIT,LIMTTY
       character subpath*84 ! folder to scan for cfg
       character sfile*144  ! full path of cfg file name selected
@@ -4852,19 +5044,14 @@ C Local variables.
       character*72 listfolders(MFFOLD)  ! for sorted
       integer lenlistfolders(MFFOLD)    ! for sorted
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
 #ifdef OSI
       integer nnlistf  ! for use with getfileslist
 #else
       integer*8 nnlistf
 #endif
 
-      helpinsub='discovercfg'  ! set for subroutine
-      helptopic='cfg_avail_files'
+      helpinsub='esru_misc'  ! set for subroutine
+      helptopic='cfg_discover'
       call gethelptext(helpinsub,helptopic,nbhelp)
 
 C Echo search criteria.
@@ -4923,8 +5110,6 @@ C          write(6,*) ij,' ',listfc70s(ij)
 C Select from the list. If prj was started in model cfg folder
 C (pwdtocfg = !) write with pwdinitial, otherwise also include
 C the pwdtocfg part of the path.
-C        write(6,*) 'pwdtocfg is ',pwdtocfg(1:lnblnk(pwdtocfg))
-C        write(6,*) 'pwdinitial is ',pwdinitial(1:lnblnk(pwdinitial))
         CALL EPICKS(IX,ivlist,outs,' ',
      &    maxw,nboflistf,listfc70s,'Available models',IER,nbhelp)
         if(ix.eq.1)then
@@ -4946,8 +5131,6 @@ C        write(6,*) 'pwdinitial is ',pwdinitial(1:lnblnk(pwdinitial))
         ier=-2   ! no matching files found
       endif
 
-C Debug.
-C      write(6,*) 'sfile is ',sfile(1:lnblnk(sfile))
       return
 
 C Error conditions.
@@ -4967,16 +5150,16 @@ C Error conditions.
       return
       end
 
-C ******* FDPWDTOCFG
+C ******************** FDPWDTOCFG ********************
 C Given a file name (fstring) and using the current value
 C of pwdinitial (if applications have established this via a
 C call usrdir(pwdinitial) as they start) then this checks if fstring
 C contains a (pwdtocfg) and a file name (filen). Begins with similar
 C logic to fdroot from esru_lib.F and filen should be the same as
 C the file name returned in fdroot.
-C fdpwdtocfg updates the common block variable pwdtocfg.
+C Updates the common block variable pwdtocfg.
+C Ppath is returned for information purposes << consider removing >>
 
-C Ppath is returned for information purposes << consider removing this >>
       SUBROUTINE fdpwdtocfg(fstring,ppath,filen)
 #include "espriou.h"
 #include "building.h"
@@ -4987,11 +5170,11 @@ C Ppath is returned for information purposes << consider removing this >>
       character fs*1
       character testpwdtocfg*72
       logical unixok
-      integer ilbfstr  ! last actual char in fstring
-      integer ipos     ! the leftward moving character position
-      integer ilstr    ! declaired length of fstring
+      integer ilbfstr   ! last actual char in fstring
+      integer ipos      ! the leftward moving character position
+      integer ilstr     ! declaired length of fstring
       integer ilenfilen ! declaired length of filen to be returned
-      integer ilenpath ! declaired length of path to be returned
+      integer ilenpath  ! declaired length of path to be returned
 
 C Set fileseparator depending on OS.
       call isunix(unixok)
@@ -5064,9 +5247,7 @@ C pwdinitial looking for the same characters.
         if(loop.eq.lnpwdi.and.ipos.gt.lnpwdi)then
           write(pwdtocfg,'(a)') ppath(loop+1:ipos)
           lnpwdc=lnblnk(pwdtocfg)
-C Debug
-C          write(6,*) ipos,loop,lnpwdi,lnpwdc,ppath(1:lnblnk(ppath))
-C          write(6,*) 'pwdtocfg ',pwdtocfg(1:lnblnk(pwdtocfg))
+
         elseif(loop.eq.lnpwdi.and.ipos.eq.lnpwdi)then
           write(pwdtocfg,'(a)') '!'
         endif
@@ -5090,12 +5271,8 @@ C << not sure >>
       end
 
 
-C ******************** DeallocateAllArrays ****************************
-C *********************************************************************
-
-C DeallocateAllArrays deallocates all the memory asociated with
-C allocatable arrays.
-C *********************************************************************
+C ******************** DeallocateAllArrays ********************
+C Deallocates all the memory asociated with allocatable arrays.
 
       SUBROUTINE DeallocateAllArrays
 
@@ -5108,8 +5285,11 @@ C *********************************************************************
       END SUBROUTINE DeallocateAllArrays
 
 
-C A fortran implementation of the c surboutine dinterval.
+C ******************** dintervalf ********************
+C Fortran implementation of the c surboutine dinterval.
+
       subroutine dintervalf(v1,v2,dv,ndec,mode)
+
       real v1,v2,dv
       integer ndec,mode
 C When 'mode'=1 the hour interval on the graphical time (x-axis) is
@@ -5119,6 +5299,7 @@ C             v < 48 dv=6, v < 96 dv=12 else dv=24.
 C Should be the same logic as in esru_x.c.
       real v,dvv,x,w
       integer ix
+      logical close10,close5,close3,close2,close1
       if(mode.eq.0)then
         vv = v2 - v1
         v = abs(vv)
@@ -5138,21 +5319,31 @@ C        if (vr.lt.0.5) w = 0.5
 
         dvv = w * 0.1 * dz
         if (vv.lt.0.0) dvv = -dvv
+        call eclose(w,10.0,0.01,close10)
+        call eclose(w,5.0,0.01,close5)
+        call eclose(w,3.0,0.01,close3)
+        call eclose(w,2.0,0.01,close2)
+        call eclose(w,1.0,0.01,close1)
 
         nd = 1 - ix
-        if (w.eq.10.0)then
-          nd=nd-1
-        elseif (w.eq.5.0)then
-          nd = 1
-        elseif (w.eq.3.0)then
-          nd = 1
-        elseif (w.eq.2.0)then
-          nd = 1
-        elseif (w.eq.1.0)then
-          nd = 2
+        if(close10)nd=nd-1
+        if(close5)nd=1
+        if(close3)nd=1
+        if(close2)nd=1
+        if(close1)nd=2
+C        if (w.eq.10.0)then
+C          nd=nd-1
+C        elseif (w.eq.5.0)then
+C          nd = 1
+C        elseif (w.eq.3.0)then
+C          nd = 1
+C        elseif (w.eq.2.0)then
+C          nd = 1
+C        elseif (w.eq.1.0)then
+C          nd = 2
 C        elseif (w.eq.0.5)then
 C          nd = 1
-        endif
+C        endif
         if (nd.lt.0) nd = 0
       else
         v = v2 - v1
@@ -5169,5 +5360,37 @@ C          nd = 1
       endif
       dv = dvv
       ndec = nd
+      return
+      end
+
+
+C ******************** align_comment ********************
+C Add comment after a specific column and return formatted line.
+
+      subroutine align_comment(icolumn,string,comment,aligned_str)
+
+      integer lnblnk
+      integer icolumn              ! Column to start comment.
+      character*(*) string         ! Data or token string.
+      character*(*) comment        ! Comment string.
+      character*(*) aligned_str    ! Composed string.
+      character*48  hash_str       ! Filler string to be created.
+      integer lnstring,lncomment   ! Length of strings.
+      integer lnprehash            ! Blanks before hash
+
+C If lnstring is less than icolumn create hash_str to fill in the gap.
+C Otherwise if lnstring is greater than icolumn the hash_str is '  # '
+      lnstring=lnblnk(string)
+      lncomment=lnblnk(comment)
+      if(lnstring.lt.(icolumn-3))then
+        lnprehash=(icolumn-lnstring)+1
+        hash_str='                                               '
+        write(hash_str(lnprehash:lnprehash),'(a)') '#' 
+      else
+        lnprehash=3
+        write(hash_str,'(a)') '  # '
+      endif
+      write(aligned_str,'(3a)') string(1:lnstring),
+     &  hash_str(1:lnprehash+1),comment(1:lncomment)
       return
       end

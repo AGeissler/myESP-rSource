@@ -5,18 +5,13 @@ C Strathclyde, Glasgow Scotland, 2001.
 C ESP-r is free software.  You can redistribute it and/or
 C modify it under the terms of the GNU General Public
 C License as published by the Free Software Foundation 
-C (version 2 orlater).
+C (version 2 or later).
 
 C ESP-r is distributed in the hope that it will be useful
 C but WITHOUT ANY WARRANTY; without even the implied
 C warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
 C PURPOSE. See the GNU General Public License for more
 C details.
-
-C You should have received a copy of the GNU General Public
-C License along with ESP-r. If not, write to the Free
-C Software Foundation, Inc., 59 Temple Place, Suite 330,
-C Boston, MA 02111-1307 USA.
 
 C ************************** ENETREWR *********************************
 C enetrewr.F contains the following routines:
@@ -105,13 +100,13 @@ C *********************************************************************
 #include "plant.h"
 #include "power.h"
 #include "espriou.h"
+#include "help.h"
+
 C Common Blocks
-      
       integer lnblnk  ! function definition
 
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/FILEP/IFIL
-      COMMON/POPHELP/H(60)
 
 C Hybrid components that calculate nodal voltages
       COMMON/calcV_LOC/iplant_calcV_LOC(MENOD),iPV_calcV_LOC(MENOD)
@@ -141,7 +136,7 @@ C Type casting (all varaiables and arrays cast explicitly)
 
 C Characters
       CHARACTER MODE*1
-      character LFIL*72,DEFLNAM*72,H*72
+      character LFIL*72,DEFLNAM*72
       character OUTS248*248,OUTSTR*124,OUTS*124
 
       LOGICAL OK,CONT
@@ -150,6 +145,10 @@ C Characters
       DIMENSION IVPC(3)          !- array used to read PCU sending node and receiving node
 
       PARAMETER (BIG=1E+15)
+
+      helpinsub='enetrewr'  ! set for subroutine
+      helptopic='elec_network_file'
+      call gethelptext(helpinsub,helptopic,nbhelp)
 
 C Fill the network type string array
       ENTYPESTR(1)='d.c.' 
@@ -182,13 +181,9 @@ C Open the file with user defined or existing filename
       ELSE
         LFIL='UNKNOWN'
       ENDIF
-      H(1)='A power network description file holds information on'
-      H(2)='the electrical network topography, the components'
-      H(3)='which connect to the network and the electrical'
-      H(4)='conductors between the nodes.'
       IF(MODE.EQ.'R'.OR.MODE.EQ.'N')THEN
         CALL EASKS(LFIL,' Electrical network description file? ',' ',72,
-     &  DEFLNAM,' file open',IER,4)
+     &  DEFLNAM,' file open',IER,nbhelp)
         IF(LFIL(1:3).NE.'   '.AND.LFIL(1:3).NE.'UNK') THEN
           ENTFLNAM=LFIL
         ELSE
@@ -216,10 +211,9 @@ C Open the electrical network file.
       CALL EFOPSEQ(IEUNIT,ENTFLNAM,1,IER)
       IF(IER.EQ.-301) THEN
         IF(MODE.NE.'S') THEN
-          h(1)='Chance to correct error in file name.'
           WRITE(OUTS,'(3A)')
      &  'File ',LFIL(1:LNBLNK(LFIL)),' is as new network description.'
-          CALL EASKOK(OUTS,'Proceed?',OK,1)
+          CALL EASKOK(OUTS,'Proceed?',OK,nbhelp)
           IF(OK) THEN
             RETURN
           ELSE
@@ -232,10 +226,9 @@ C Open the electrical network file.
         ENDIF
       ELSEIF(IER.NE.0.AND.IER.NE.-301) THEN
 
-        h(1)='Chance to correct for error in file name or location.'
         WRITE(OUTS,'(3A)')
      &  'Problem opening ',LFIL(1:LNBLNK(LFIL)),'.'
-        CALL EASKOK(OUTS,'Retry?',OK,1)
+        CALL EASKOK(OUTS,'Retry?',OK,nbhelp)
         IF(OK) THEN
           GOTO 2
         ELSE
@@ -1068,6 +1061,7 @@ C *********************************************************************
 #include "model.h"
 #include "plant.h"
 #include "power.h"
+#include "help.h"
       
       integer lnblnk  ! function definition
 
@@ -1075,7 +1069,6 @@ C Common Blocks
 
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/FILEP/IFIL
-      COMMON/POPHELP/H(60)
 
 C Hybrid components that calculate nodal voltages
       COMMON/calcV_LOC/iplant_calcV_LOC(MENOD),iPV_calcV_LOC(MENOD)
@@ -1097,10 +1090,13 @@ C Type casting (all varaiables and arrays cast explicitly)
       real fENFVersionNum            !-version number of electrical network file
 
 C Characters
-      CHARACTER*72 LFIL,DEFLNAM,H
+      CHARACTER*72 LFIL,DEFLNAM
       CHARACTER OUTS*124,longtfile*144
       LOGICAL CONCAT
 
+      helpinsub='enetrewr'  ! set for subroutine
+      helptopic='elec_network_write'
+      call gethelptext(helpinsub,helptopic,nbhelp)
 
 C Set the variable for the number of data items printed per line in
 C reporting (=INC+1) 
@@ -1126,17 +1122,8 @@ C Why is there an addpath call at this point? >>
       IF(CONCAT) LFIL=longtfile(1:72)
 
 C Ask the user for the file name and open the temporary file with
-      H(1)='This file will contain all the information relating to the'
-      H(2)='electrical network:                                       '
-      H(3)='  general electrical network details;                     '
-      H(4)='  electrical nodes;                                       '
-      H(5)='  connected hybrid components (i.e. PV, plant, etc.);     '
-      H(6)='  connected power only components (i.e. wind turbines);   '
-      H(7)='  connecting components (i.e. lines, cables);             '
-      H(8)='  network topology.                                       '
-
       CALL EASKS(LFIL,' ',' Electrical network filename ?',72,
-     &  DEFLNAM,' elec file',IER,8)
+     &  DEFLNAM,' elec file',IER,nbhelp)
       IF(LFIL(1:2).NE.'  ') ENTFLNAM=LFIL
 
 C Open the file 
@@ -1152,7 +1139,6 @@ C Open the file
 C Write out the version number
       write(ieunit,'(A)') '* FileVersion'
       write(ieunit,'(F10.2)') fENFVersionNum
-
 
 C Write out the file header and general electrical network info.
       WRITE(IEUNIT,'(A)')'* electrical network'

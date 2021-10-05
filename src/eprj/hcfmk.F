@@ -40,6 +40,7 @@ C control file.
 #include "schedule.h"
 #include "geometry.h"
 #include "prj3dv.h"
+#include "help.h"
       
       integer lnblnk  ! function definition
 
@@ -74,27 +75,7 @@ C Short and long descriptions of correlations.
       dimension hcshtdescr(-1:99),hclngdescr(-1:99)
       integer IVALS(19)
 
-#ifdef OSI
-      integer icfg_type  ! model cfg type
-      integer icfgz      ! if non-zero then there are zones
-      integer icfgn      ! if non-zero then there are networks
-      integer icfgc      ! if non-zero then cfg file known
-      integer icfgdfn    ! if non-zero then cdf domain exists
-      integer iicfgz     ! there are zone related images
-      integer iicfgn     ! there are network related images
-      integer iicfgc     ! there are control related images
-      integer iicfgdfn   ! there are cfd related images
-#else
-      integer*8 icfg_type,icfgz,icfgn,icfgc,icfgdfn,iicfgz
-      integer*8 iicfgn,iicfgc,iicfgdfn
-#endif
-
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='HCFMK'  ! set for subroutine
+      helpinsub='hcfmk'  ! set for subroutine
 
 C Make up the list of hctypes for user to select from.
       hctypes(1) ='bouyancy via in-floor heating'
@@ -373,10 +354,7 @@ C names, turn off grid and origin.
       itsnm=0; itorg=1; itgrd=1
       nzg=1; nznog(1)=ICOMP; izgfoc=ICOMP
       CALL redraw(IER)
-      call cfgtogg(icfg_type,icfgz,icfgn,icfgc,icfgdfn,
-     &                             iicfgz,iicfgn,iicfgc,iicfgdfn)
-      if(MMOD.EQ.8)call opencfg(icfg_type,icfgz,icfgn,icfgc,icfgdfn,
-     &                             iicfgz,iicfgn,iicfgc,iicfgdfn)
+      if(MMOD.EQ.8) call redrawbuttons()
 
 C Confirm if one day type or follow current day types.
    21 INO = -2
@@ -623,6 +601,7 @@ C id:   Day type to focus on.
 #include "building.h"
 #include "model.h"
 #include "geometry.h"
+#include "help.h"
       
       integer lnblnk  ! function definition
 
@@ -639,12 +618,7 @@ C id:   Day type to focus on.
       CHARACTER SN*12,outs*124,hcfpdescr*72
       logical OK
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='HCFMK'  ! set for subroutine
+      helpinsub='hcfmk'  ! set for subroutine
 
 C These approaches are active for all time-steps of the simulation
 C (i.e. there is only one convection-calculation control period).
@@ -866,10 +840,10 @@ C IOPT: 1 = heater under a window, 2 = heater not under a window.
 #include "building.h"
 #include "model.h"
 #include "geometry.h"
+#include "help.h"
       
       integer lnblnk  ! function definition
 
-      common/pophelp/h(60)
       COMMON/HCFP/IHCDT,IHCFP(MDTY),ST(MDTY,MBP),EN(MDTY,MBP),
      &            HCI(MDTY,MBP,MS),HCE(MDTY,MBP,MS),ICTL(MDTY,MBP),
      &            IHCI(MDTY,MBP,MS),IHCE(MDTY,MBP,MS),
@@ -880,15 +854,10 @@ C IOPT: 1 = heater under a window, 2 = heater not under a window.
       INTEGER NBDAYTYPE,NBCALDAYS,ICALENDER
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
 
-      CHARACTER SN*12,outs*124,h*72,hcfpdescr*72
+      CHARACTER SN*12,outs*124,hcfpdescr*72
       logical OK
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='HCFMK'  ! set for subroutine
+      helpinsub='hcfmk'  ! set for subroutine
 
 C These approaches are active for all time-steps of the simulation
 C (i.e. there is only one convection-calculation control period).
@@ -1123,6 +1092,7 @@ C       4 = ??
 #include "building.h"
 #include "model.h"
 #include "geometry.h"
+#include "help.h"
       
       integer lnblnk  ! function definition
 
@@ -1143,12 +1113,7 @@ C       4 = ??
       real airflow   ! temprary value for editing
       integer NITEMS,Ioa,Idiff,Ifor ! max items and current menu item
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='HCFMK'  ! set for subroutine
+      helpinsub='hcfmk'  ! set for subroutine
 
 C These approaches are active for all time-steps of the simulation
 C (i.e. there is only one convection-calculation control period).
@@ -1424,6 +1389,7 @@ C        intentional supply or extract of air from the room.
 #include "building.h"
 #include "model.h"
 #include "geometry.h"
+#include "help.h"
       
       integer lnblnk  ! function definition
 
@@ -1440,12 +1406,7 @@ C        intentional supply or extract of air from the room.
       CHARACTER SN*12,outs*124,hcfpdescr*72
       logical OK
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='HCFMK'  ! set for subroutine
+      helpinsub='hcfmk'  ! set for subroutine
 
 C These approaches are active for all time-steps of the simulation
 C (i.e. there is only one convection-calculation control period).
@@ -1535,10 +1496,9 @@ C Ceiling.
 C If more than one day type confirm if these defaults for fixed
 C correlations should be applied to subsequent days.
       if(IHCDT.eq.NBDAYTYPE)then
-        helpinsub='HCFMK'  ! set for subroutine
+        helpinsub='hcfmk'  ! set for subroutine
         helptopic='zone_htc_daytypes'
         call gethelptext(helpinsub,helptopic,nbhelp)
-        helpinsub='EconvD'  ! set for subroutine
         NS=NZSUR(icomp)
         CALL EASKOK('Regime follows model day types.',
      &    'Apply these defaults to subsequent days?',OK,nbhelp)
@@ -1587,6 +1547,7 @@ C IOPT: 1 = VAV with CV heat, 2 = VAV with VV heating, 3 = CV with var temp.
 #include "building.h"
 #include "model.h"
 #include "geometry.h"
+#include "help.h"
       
       integer lnblnk  ! function definition
 
@@ -1603,12 +1564,7 @@ C IOPT: 1 = VAV with CV heat, 2 = VAV with VV heating, 3 = CV with var temp.
       logical ok
       integer NITEMS,Ioa ! max items and current menu item
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='HCFMK'  ! set for subroutine
+      helpinsub='hcfmk'  ! set for subroutine
 
 C These approaches are active for all time-steps of the simulation
 C (i.e. there is only one convection-calculation control period).
@@ -1794,6 +1750,7 @@ C If iopt is non-zero then user is being specific.
       SUBROUTINE EHCMAN(ITRU,IUF,ICOMP,iopt,id,IER)
 #include "building.h"
 #include "model.h"
+#include "help.h"
 
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/HCFP/IHCDT,IHCFP(MDTY),ST(MDTY,MBP),EN(MDTY,MBP),
@@ -1814,12 +1771,7 @@ C Short and long descriptions of correlations.
       character hclngdescr*48   ! long description
       dimension hcshtdescr(-1:99),hclngdescr(-1:99)
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='EHCMAN'  ! set for subroutine
+      helpinsub='hcfmk'  ! set for subroutine
 
    20 INO = -2
       ITEM(1) ='a Initialise fixed hc values '
@@ -2015,6 +1967,7 @@ C If iopt is non-zero then user is being specific.
 #include "building.h"
 #include "model.h"
 #include "geometry.h"
+#include "help.h"
 
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/HCFP/IHCDT,IHCFP(MDTY),ST(MDTY,MBP),EN(MDTY,MBP),
@@ -2032,12 +1985,7 @@ C If iopt is non-zero then user is being specific.
       character msg*42
       logical close,ok
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='EHCMANINIT'  ! set for subroutine
+      helpinsub='hcfmk'  ! set for subroutine
 
 C Create from scratch. Initialise values to default value before
 C calling editing routine. If fixed coefficients allow user to
@@ -2216,6 +2164,7 @@ C IOPT: 1 = Molina & Maestre, 2 = Bar-Cohen correlation.
 #include "building.h"
 #include "model.h"
 #include "geometry.h"
+#include "help.h"
       
       integer lnblnk  ! function definition
 
@@ -2238,12 +2187,7 @@ C CWIDTH and CHEIGHT are the channel width and height
       character*24 hcphrase(5)
       logical ok
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='HCFMK'  ! set for subroutine
+      helpinsub='hcfmk'  ! set for subroutine
 
 C These approaches are active for all time-steps of the simulation
 C (i.e. there is only one convection-calculation control period).
@@ -2285,7 +2229,7 @@ C Choose where is the air comming into the channel.
           IAORZ=0
           hcphrase(3) = 'from outdoor'
         ELSE
-          CALL ASKZONE(IAORZ,0,' Air enters channel from which zone?',
+          CALL ASKZONE(IAORZ,0,
      &      'Air origin zone','-','A zone must be selected',32,ier)
         ENDIF
         IF (IAORZ.EQ.ICOMP) THEN
@@ -2450,6 +2394,7 @@ C IOPT is user topic preference.
 #include "epara.h"
 #include "building.h"
 #include "geometry.h"
+#include "help.h"
       
       integer lnblnk  ! function definition
 
@@ -2472,12 +2417,7 @@ C IOPT is user topic preference.
       integer NITEMS,INO ! max items and current menu item
       integer ivals(99)
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='EPHCF'  ! set for subroutine
+      helpinsub='hcfmk'  ! set for subroutine
 
       NS=NZSUR(IZ)
 
@@ -3059,6 +2999,7 @@ C       jj=12-14 wall inside, partition, external
       character*12 sn(MS)
       character hcfpdescr*72,dstmp*24,t117*117,FILE*72
       CHARACTER louts*248
+      character tokens*124,comment*76,aligned_str*124
 
       if(AUTOVR)then
         CALL EFOPSEQ(IUF,FILE,3,IER)
@@ -3073,20 +3014,38 @@ C one line if necessary.
       enddo
 
       call dstamp(dstmp)
-      write(iuf,'(2a)',IOSTAT=ISTAT,ERR=990)  '*HC_CTL for zone ',
+      write(tokens,'(a)',IOSTAT=ISTAT,ERR=990)  '*HC_CTL'
+      write(comment,'(2a)',IOSTAT=ISTAT,ERR=990)  
+     &  'heat transfer control for ',
      &  zname(icomp)(1:lnzname(icomp))
-      write(iuf,'(2a)',IOSTAT=ISTAT,ERR=990)  '*Date,',dstmp
-      write(iuf,'(a,i3)',IOSTAT=ISTAT,ERR=990)'*Days,',IHCDT
+      call align_comment(32,tokens,comment,aligned_str)
+      write(iuf,'(a)') aligned_str(1:lnblnk(aligned_str))
+      write(tokens,'(2a)',IOSTAT=ISTAT,ERR=990)  '*Date,',dstmp
+      write(comment,'(a)') 'latest file modification'
+      call align_comment(32,tokens,comment,aligned_str)
+      write(iuf,'(a)') aligned_str(1:lnblnk(aligned_str))
+      write(tokens,'(a,i3)',IOSTAT=ISTAT,ERR=990)'*Days',IHCDT
+      write(comment,'(a)') 'number of control day types'
+      call align_comment(32,tokens,comment,aligned_str)
+      write(iuf,'(a)') aligned_str(1:lnblnk(aligned_str))
       do L=1,IHCDT
         if(IHCDT.eq.1)then
-          WRITE(IUF,'(I3,a)',IOSTAT=ISTAT,ERR=990)
-     &    IHCFP(L),' # number control intervals for all day types'
+          WRITE(tokens,'(I3)',IOSTAT=ISTAT,ERR=990) IHCFP(L)
+          write(comment,'(a)') 
+     &      'number control intervals for all day types'
+          call align_comment(32,tokens,comment,aligned_str)
+          write(iuf,'(a)') aligned_str(1:lnblnk(aligned_str))
         else
-          WRITE(IUF,'(I3,2a)',IOSTAT=ISTAT,ERR=990)
-     &    IHCFP(L),' # number control intervals for ',calentag(L)
+          WRITE(tokens,'(I3)',IOSTAT=ISTAT,ERR=990) IHCFP(L)
+          write(comment,'(2a)') 'number control intervals for ',
+     &      calentag(L)
+          call align_comment(32,tokens,comment,aligned_str)
+          write(iuf,'(a)') aligned_str(1:lnblnk(aligned_str))
         endif
-        WRITE(IUF,'(I3,a)',IOSTAT=ISTAT,ERR=990)
-     &    NZSUR(ICOMP),' # number of surfaces'
+        write(tokens,'(I3)',IOSTAT=ISTAT,ERR=990) NZSUR(ICOMP)
+        write(comment,'(a)') 'number of surfaces'
+        call align_comment(32,tokens,comment,aligned_str)
+        write(iuf,'(a)') aligned_str(1:lnblnk(aligned_str))
         itrunc=1
         ipos=1
         do while (itrunc.ne.0)
@@ -3099,21 +3058,29 @@ C one line if necessary.
         end do
 
         DO 930 I = 1,IHCFP(L)
-          WRITE(IUF,'(F6.2,3X,F6.2,a)',IOSTAT=ISTAT,ERR=990)
-     &    ST(L,I),EN(L,I),' # start and end time of interval'
+          WRITE(tokens,'(F6.2,F7.2)',IOSTAT=ISTAT,ERR=990)
+     &    ST(L,I),EN(L,I)
+          write(comment,'(a)') 'start and end time of interval'
+          call align_comment(32,tokens,comment,aligned_str)
+          write(iuf,'(a)') aligned_str(1:lnblnk(aligned_str))
+
+          WRITE(tokens,'(I3)',IOSTAT=ISTAT,ERR=990) ICTL(L,I)
           if(ICTL(L,I).eq.1)then
-            WRITE(IUF,'(I3,a)',IOSTAT=ISTAT,ERR=990)
-     &      ICTL(L,I),' # fixed coefficients calculation control type'
+            write(comment,'(a)')
+     &        'fixed coefficients calculation control type'
           elseif(ICTL(L,I).eq.2)then
-            WRITE(IUF,'(I3,a)',IOSTAT=ISTAT,ERR=990)
-     &      ICTL(L,I),' # fixed correlation calculation control type'
+            write(comment,'(a)')
+     &        'fixed correlation calculation control type'
           elseif(ICTL(L,I).eq.3)then
-            WRITE(IUF,'(I3,a)',IOSTAT=ISTAT,ERR=990)
-     &      ICTL(L,I),' # adaptive calculation control type'
+            write(comment,'(a)')
+     &        'adaptive calculation control type'
           elseif(ICTL(L,I).eq.4)then
-            WRITE(IUF,'(I3,a)',IOSTAT=ISTAT,ERR=990)
-     &      ICTL(L,I),' # CEN calculation control type'
+            write(comment,'(a)')
+     &        'CEN calculation control type'
           endif
+          call align_comment(32,tokens,comment,aligned_str)
+          write(iuf,'(a)') aligned_str(1:lnblnk(aligned_str))
+
           write(iuf,'(2a)',IOSTAT=ISTAT,ERR=990) '*Doc,',
      &    hcfpdescr(L,i)(1:lnblnk(hcfpdescr(L,i)))
           if(ICTL(L,I).eq.1) then
@@ -3175,28 +3142,50 @@ C Control laws and associated data for each surface
    37       continue
 
 C  Additional information for air channels
-            WRITE(IUF,'(I3,F6.3,F6.3,A)',IOSTAT=ISTAT,ERR=990)
-     &      IAORZ,CWIDTH,CHEIGHT,
-     &  ' # Air origin zone (+ chan. width & height if Bar-Cohen cor.)'
+            WRITE(tokens,'(I3,2F6.3)',IOSTAT=ISTAT,ERR=990)
+     &        IAORZ,CWIDTH,CHEIGHT
+            write(comment,'(a)')
+     &    'Air origin zone (+ chan. width & height if Bar-Cohen cor.)'
+            call align_comment(32,tokens,comment,aligned_str)
+            write(iuf,'(a)') aligned_str(1:lnblnk(aligned_str))
 
           elseif(ICTL(L,I).eq.4) then
 
 C CEN 13791 mode sets values for specific locations.
-            WRITE(IUF,'(a,2F7.1,a)',IOSTAT=ISTAT,ERR=990)
-     &      '*basetop ',CENLOC(L,I,1),CENLOC(L,I,2),
-     &      ' #  index (within the zone) of a typcial base & top'
-            WRITE(IUF,'(a,3F7.3,a)',IOSTAT=ISTAT,ERR=990)
-     &      '*floor   ',CENLOC(L,I,3),CENLOC(L,I,4),CENLOC(L,I,5),
-     &      ' #  CEN floor upwd_inside, downwd_inside, external'
-            WRITE(IUF,'(a,3F7.3,a)',IOSTAT=ISTAT,ERR=990)
-     &      '*ceiling ',CENLOC(L,I,6),CENLOC(L,I,7),CENLOC(L,I,8),
-     &      ' #  CEN ceiling upwd_inside, downwd_inside, external'
-            WRITE(IUF,'(a,3F7.3,a)',IOSTAT=ISTAT,ERR=990)
-     &      '*slope   ',CENLOC(L,I,9),CENLOC(L,I,10),CENLOC(L,I,11),
-     &      ' #  CEN sloped upwd_inside, downwd_inside, external'
-            WRITE(IUF,'(a,3F7.3,a)',IOSTAT=ISTAT,ERR=990)
-     &      '*wall    ',CENLOC(L,I,12),CENLOC(L,I,13),CENLOC(L,I,14),
-     &      ' #  CEN wall inside, partition, external'
+            WRITE(tokens,'(a,2F7.1)',IOSTAT=ISTAT,ERR=990)
+     &      '*basetop ',CENLOC(L,I,1),CENLOC(L,I,2)
+            write(comment,'(a)')
+     &        'surface indices of a typcial base & top'
+            call align_comment(32,tokens,comment,aligned_str)
+            write(iuf,'(a)') aligned_str(1:lnblnk(aligned_str))
+
+            WRITE(tokens,'(a,3F7.3)',IOSTAT=ISTAT,ERR=990)
+     &      '*floor   ',CENLOC(L,I,3),CENLOC(L,I,4),CENLOC(L,I,5)
+            write(comment,'(a)')
+     &        'CEN floor upwd_inside, downwd_inside, external'
+            call align_comment(32,tokens,comment,aligned_str)
+            write(iuf,'(a)') aligned_str(1:lnblnk(aligned_str))
+
+            WRITE(tokens,'(a,3F7.3)',IOSTAT=ISTAT,ERR=990)
+     &      '*ceiling ',CENLOC(L,I,6),CENLOC(L,I,7),CENLOC(L,I,8)
+            write(comment,'(a)')
+     &        'CEN ceiling upwd_inside, downwd_inside, external'
+            call align_comment(32,tokens,comment,aligned_str)
+            write(iuf,'(a)') aligned_str(1:lnblnk(aligned_str))
+
+            WRITE(tokens,'(a,3F7.3)',IOSTAT=ISTAT,ERR=990)
+     &      '*slope   ',CENLOC(L,I,9),CENLOC(L,I,10),CENLOC(L,I,11)
+            write(comment,'(a)')
+     &        'CEN sloped upwd_inside, downwd_inside, external'
+            call align_comment(32,tokens,comment,aligned_str)
+            write(iuf,'(a)') aligned_str(1:lnblnk(aligned_str))
+
+            WRITE(tokens,'(a,3F7.3)',IOSTAT=ISTAT,ERR=990)
+     &      '*wall    ',CENLOC(L,I,12),CENLOC(L,I,13),CENLOC(L,I,14)
+            write(comment,'(a)')
+     &        'CEN wall inside, partition, external'
+            call align_comment(32,tokens,comment,aligned_str)
+            write(iuf,'(a)') aligned_str(1:lnblnk(aligned_str))
           endif
   930   CONTINUE
       ENDDO  ! of IHCDT

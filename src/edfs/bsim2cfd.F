@@ -1,6 +1,6 @@
 C This file is part of the ESP-r system.
 C Copyright Energy Systems Research Unit, University of
-C Strathclyde, Glasgow Scotland, 2001.
+C Strathclyde, Glasgow, Scotland, 2001-.
 
 C ESP-r is free software.  You can redistribute it and/or
 C modify it under the terms of the GNU General Public
@@ -13,44 +13,18 @@ C warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
 C PURPOSE. See the GNU General Public License for more
 C details.
 
-C You should have received a copy of the GNU General Public
-C License along with ESP-r. If not, write to the Free
-C Software Foundation, Inc., 59 Temple Place, Suite 330,
-C Boston, MA 02111-1307 USA.
 
-C Contains:
-C  BS2CFDSB - Maps BSim thermal conditions onto CFD solid boundaries.
-C  TREFBC - Calculate the reference temperature for the surface convection.
-C  BS2CFDBLK - Maps BSim thermal conditions onto CFD blockages.
+C This file contains.
+C  BS2CFDSB  - Maps BSim thermal conditions to CFD solid boundaries.
+C  TREFBC    - Calculates the reference temperature for surface convection.
+C  BS2CFDBLK - Maps BSim thermal conditions to CFD blockages.
+
 
 C ********************* BS2CFDSB *********************
-C BS2CFDSB - Maps BSim thermal conditions onto CFD solid boundaries. Only used
-C            when there is thermal conflation.
-
-      SUBROUTINE BS2CFDSB
-#include "building.h"
-#include "cfd.h"
-
-      COMMON/FVALS/TFS(MCOM,MS),QFS(MCOM)
-      COMMON/PVALS/TPS(MCOM,MS),QPS(MCOM)
-      COMMON/CONCOE/HCIP(MCOM,MS),HCIF(MCOM,MS),HCOP(MCOM,MS),
-     &              HCOF(MCOM,MS)
-      COMMON/Sbdary/NSB(MNZ),ISBi(MNSBZ,MNZ),ISBf(MNSBZ,MNZ),
-     &              JSBi(MNSBZ,MNZ),JSBf(MNSBZ,MNZ),
-     &              KSBi(MNSBZ,MNZ),KSBf(MNSBZ,MNZ),
-     &              ISUFLC(MNSBZ,MNZ),IWSB(MNSBZ,MNZ),SSB(MNSBZ,MNZ),
-     &              SSBHC(MNSBZ,MNZ),IVOLNSB(MNSBZ,MNZ),
-     &              ITCtype(MNSBZ,MNZ),icTREF(MNSBZ,MNZ)
-      COMMON/ICFNOD/ICFD,ICP
-      COMMON/ACCrec/IACC(MNZ)
-      COMMON/cfdfil/LCFD(MCOM),IFCFD(MCOM)
-
-      CHARACTER*72 LCFD
-
-C This subroutine imposes thermal boundary conditions (BCs) on the CFD domain
+C Imposes thermal boundary conditions (BCs) on the CFD domain
 C when BSim and CFD are thermally conflated, mapping BSim thermal conditions
-C to the CFD solid boundaries. The data that are mapped depend upon the thermal
-C conflation `type'. There are 14 `types' in total:
+C to the CFD solid boundaries. The data mapped depend on the thermal
+C conflation type as follows.
 C    1  `One-way surface' conflation; k-epsilon model with log-law wall
 C       functions; Qsurf calculated by CFD. Tsurf passed from BSim.
 C    2  `One-way surface' conflation; MIT 0-eqn model; Qsurf calculated by CFD.
@@ -99,6 +73,31 @@ C    ITCtype : thermal conflation `type'.
 C    TFS : BSim's `future' surface temperature.
 C    TPS : BSim's `present' surface temperature.
 C    HCIF : BSim's `future' surface convection coefficient.
+
+      SUBROUTINE BS2CFDSB
+#include "building.h"
+#include "cfd.h"
+
+      COMMON/FVALS/TFS(MCOM,MS),QFS(MCOM)
+      COMMON/PVALS/TPS(MCOM,MS),QPS(MCOM)
+      COMMON/CONCOE/HCIP(MCOM,MS),HCIF(MCOM,MS),HCOP(MCOM,MS),
+     &              HCOF(MCOM,MS)
+      COMMON/Sbdary/NSB(MNZ),ISBi(MNSBZ,MNZ),ISBf(MNSBZ,MNZ),
+     &              JSBi(MNSBZ,MNZ),JSBf(MNSBZ,MNZ),
+     &              KSBi(MNSBZ,MNZ),KSBf(MNSBZ,MNZ),
+     &              ISUFLC(MNSBZ,MNZ),IWSB(MNSBZ,MNZ),SSB(MNSBZ,MNZ),
+     &              SSBHC(MNSBZ,MNZ),IVOLNSB(MNSBZ,MNZ),
+     &              ITCtype(MNSBZ,MNZ),icTREF(MNSBZ,MNZ)
+      common/KEYVDAT/IVTYPE(MNVLS,MNZ),VOLTemp(MNVLS,MNZ),
+     &          VOLHeat(MNVLS,MNZ),IVConfl(MNVLS,MNZ),VOLHum(MNVLS,MNZ),
+     &          VOLCO2(MNVLS,MNZ),VOLVel(MNVLS,MNZ),VOLDir(MNVLS,MNZ,2),
+     &          VOLArea(MNVLS,MNZ),VOLPres(MNVLS,MNZ),
+     &          VOLPol(MCTM,MNVLS,MNZ)
+      COMMON/ICFNOD/ICFD,ICP
+      COMMON/ACCrec/IACC(MNZ)
+      COMMON/cfdfil/LCFD(MCOM),IFCFD(MCOM)
+
+      CHARACTER*72 LCFD
 
 C Treat each CFD solid boundary in turn, mapping BSim thermal conditions to the
 C CFD boundary according to the BC `type'.
@@ -163,6 +162,7 @@ C Record ACC actions (end).
         else
           call edisp(iuout,' Error: invalid BC type')
         endif
+        VOLTemp(IVOLNSB(L,ICFD),ICFD)=SSB(L,ICFD)
    20 CONTINUE
 
       RETURN
@@ -170,7 +170,19 @@ C Record ACC actions (end).
 
 
 C ********************* TREFBC *********************
-C TREFBC - Calculate the reference temperature for the surface convection.
+C This subroutine calculates the reference temperature (TREF) to use in the
+C calculation of surface convection for thermal conflation ITCtypes 4, 5,
+C 6, and 7. That is, when BSim passes CFD the surface temperature and the
+C convection coefficient, and surface convection is calculated by:
+C   Q = A*HC*(Twall - Tref)
+C                     ^^^^
+C TREF is the temperature of the room air to use in the boundary condition.
+
+C There are two possibilities for calculating TREF (indicated by icTREF):
+C   1.  For ITCtypes 4 and 6, TREF is taken as ESP-r's `future' air-point temp.
+C   2.  For ITCtypes 5 and 7, TREF is calculated using the CFD temperatures from
+C       the previous iteration; in this case, it is averaged over the CFD domain
+C       since ESP-r's convection model assumes the room air to be well mixed.
 
       SUBROUTINE TREFBC(L,TREF)
 #include "building.h"
@@ -178,11 +190,11 @@ C TREFBC - Calculate the reference temperature for the surface convection.
 
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/ALL/NI,NJ,NK,NIM1,NJM1,NKM1,NIM2,NJM2,NKM2
-      COMMON/GEOM/XP(ntcelx),YP(ntcely),ZP(ntcelz),
-     1            DXEP(ntcelx),DXPW(ntcelx),DYNP(ntcely),DYPS(ntcely),
-     2            DZHP(ntcelz),DZPL(ntcelz),
-     3            SEW(ntcelx),SNS(ntcely),SHL(ntcelz),
-     4            XU(ntcelx),YV(ntcely),ZW(ntcelz)
+C      COMMON/GEOM/XP(ntcelx),YP(ntcely),ZP(ntcelz),
+C     1            DXEP(ntcelx),DXPW(ntcelx),DYNP(ntcely),DYPS(ntcely),
+C     2            DZHP(ntcelz),DZPL(ntcelz),
+C     3            SEW(ntcelx),SNS(ntcely),SHL(ntcelz),
+C     4            XU(ntcelx),YV(ntcely),ZW(ntcelz)
       COMMON/GEOM2/VolP(ntcelx,ntcely,ntcelz),
      &             VolU(ntcelx,ntcely,ntcelz),
      &             VolV(ntcelx,ntcely,ntcelz),
@@ -201,29 +213,12 @@ C TREFBC - Calculate the reference temperature for the surface convection.
      &              SSBHC(MNSBZ,MNZ),IVOLNSB(MNSBZ,MNZ),
      &              ITCtype(MNSBZ,MNZ),icTREF(MNSBZ,MNZ)
 
-C This subroutine calculates the reference temperature (TREF) to use in the
-C calculation of surface convection for thermal conflation ITCtypes 4, 5,
-C 6, and 7. That is, when BSim passes CFD the surface temperature and the
-C convection coefficient, and surface convection is calculated by:
-C   Q = A*HC*(Twall - Tref)
-C                     ^^^^
-C TREF is the temperature of the room air to use in the boundary condition.
-
-C There are two possibilities for calculating TREF (indicated by icTREF):
-C   1 : For ITCtypes 4 and 6, TREF is taken as ESP-r's `future' air-point temp.
-C   2 : For ITCtypes 5 and 7, TREF is calculated using the CFD temperatures from
-C       the previous iteration; in this case, it is averaged over the CFD domain
-C       since ESP-r's convection model assumes the room air to be well mixed.
-
-
+C Return 'future' air-point temperature for zone.
       IF( icTREF(L,ICFD).eq.1 ) THEN
-
-C Return `future' air-point temperature for zone.
         TREF = TFA(ICP)
-      ELSEIF (icTREF(L,ICFD).eq.2) THEN
 
 C Average temperature over CFD domain.
-C Initialize variables.
+      ELSEIF (icTREF(L,ICFD).eq.2) THEN
         rmass=0.
         total=0.
 
@@ -239,7 +234,7 @@ C blockages have been implemented to exclude the blocked regions.
 C Return the mass-averaged temperature to the calling routine.
         TREF = total/rmass
       ELSE
-        call edisp(iuout,' Error: invalid method for calculating TREF.')
+        call edisp(iuout,'Error: invalid method for calculating TREF.')
       ENDIF
 
       RETURN
@@ -247,8 +242,8 @@ C Return the mass-averaged temperature to the calling routine.
 
 
 C ********************* BS2CFDBLK *********************
-C BS2CFDBLK - Maps BSim thermal conditions onto CFD blockages. Only used
-C             when there is thermal conflation.
+C Maps BSim thermal conditions onto CFD blockages. Only used
+C when there is thermal conflation.
 
       SUBROUTINE BS2CFDBLK
 #include "building.h"
@@ -260,17 +255,23 @@ C             when there is thermal conflation.
      &            KHSf(MNHS,2,MNZ),HSID(MNHS,2,MNZ),SHS(MNHS,2,MNZ),
      &            BHS(MNHS,2,MNZ)
       COMMON/ICFNOD/ICFD,ICP
+      common/blksso/NBLK(MNZ),INBLK(MNVLS,MNZ),NSSO(MNZ),
+     &          INSSO(MNVLS,MNZ),BLKTEMP(MNVLS,MNZ,6)
+      common/KEYVOLN/VOLNAME(MNVLS,MNZ),VCsurf(MNVLS,MNZ),
+     &               BLKSURF(MNVLS,MNZ,6)
+      character VOLNAME*12,VCsurf*12,BLKSURF*12
+      common/KEYVDAT/IVTYPE(MNVLS,MNZ),VOLTemp(MNVLS,MNZ),
+     &          VOLHeat(MNVLS,MNZ),IVConfl(MNVLS,MNZ),VOLHum(MNVLS,MNZ),
+     &          VOLCO2(MNVLS,MNZ),VOLVel(MNVLS,MNZ),VOLDir(MNVLS,MNZ,2),
+     &          VOLArea(MNVLS,MNZ),VOLPres(MNVLS,MNZ),
+     &          VOLPol(MCTM,MNVLS,MNZ)
+      COMMON/FVALS/TFS(MCOM,MS),QFS(MCOM)
+      COMMON/PVALS/TPS(MCOM,MS),QPS(MCOM)
 
       CHARACTER*72 HSID
       LOGICAL BHS
 
-C This subroutine imposes BSim thermal conditions onto `blocked' areas
-C of the CFD domain. Currently this is only used when a blocked heat source
-C of type `APT' (short for `air-point') is prescribed. Functionality of this
-C subroutine can be expanded in the future to map the temperatures and heat
-C flows of ESP-r surfaces onto the CFD domain when the treatment of blockages
-C is refined.
-
+C This section used for experimental radiator handling.
       M=1
       DO 30 L=1,NHS(M,ICFD)
         IF(HSID(L,M,ICFD).EQ.'APT'.OR.HSID(L,M,ICFD).EQ.'apt')then
@@ -278,5 +279,21 @@ C is refined.
         endif
    30 CONTINUE
 
+C This section maps surface temperatures onto blockages.
+      do IBLK=1,NBLK(ICFD)
+        IV=INBLK(IBLK,ICFD)
+        if (IVTYPE(IV,ICFD).eq.32) then
+          IS=IDSURF(BLKSURF(IV,ICFD,1))
+          VOLTemp(IV,ICFD)=0.5*(TFS(ICP,IS)+TPS(ICP,IS))
+        elseif (IVTYPE(IV,ICFD).eq.33) then
+          do i=1,6
+            if (BLKSURF(IV,ICFD,i)(1:4).ne.'NONE') then
+              IS=IDSURF(BLKSURF(IV,ICFD,i))
+              BLKTEMP(IV,ICFD,i)=0.5*(TFS(ICP,IS)+TPS(ICP,IS))
+            endif
+          enddo
+        endif
+      enddo
+      
       RETURN
       END

@@ -1,11 +1,11 @@
 C This file is part of the ESP-r system.
 C Copyright Energy Systems Research Unit, University of
-C Strathclyde, Glasgow Scotland, 2001.
+C Strathclyde, Glasgow, Scotland, 2001-.
 
 C ESP-r is free software.  You can redistribute it and/or
 C modify it under the terms of the GNU General Public
 C License as published by the Free Software Foundation 
-C (version 2 orlater).
+C (version 2 or later).
 
 C ESP-r is distributed in the hope that it will be useful
 C but WITHOUT ANY WARRANTY; without even the implied
@@ -13,17 +13,13 @@ C warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
 C PURPOSE. See the GNU General Public License for more
 C details.
 
-C You should have received a copy of the GNU General Public
-C License along with ESP-r. If not, write to the Free
-C Software Foundation, Inc., 59 Temple Place, Suite 330,
-C Boston, MA 02111-1307 USA.
-
-C Contains:
+C This fil contains the following subroutines.
 C  CFMNGE - Invoke CFD routine and print output files. (version for cfd module)
 
 
 C ********************* CFMNGE *********************
-C CFMNGE - Invoke CFD routine and print output files. (version for cfd module)
+C Invoke CFD routine and print output files (version for dfs).
+
       SUBROUTINE CFMNGE(ICOMP,IND)
 #include "building.h"
 #include "cfd.h"
@@ -31,7 +27,7 @@ C CFMNGE - Invoke CFD routine and print output files. (version for cfd module)
       common/outin/iuout,iuin,ieout
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
 
-      COMMON/ICFCHN/ICFMON(MNZ),ICFTMP,ICFLIB
+      COMMON/ICFCHN/ICFMON(MNZ),ICFDBC(MNZ),ICFTMP,ICFLIB
       common/utlcom/photon,matlab,textout,flwvis,xslice,yslice,zslice
       common/slicom/islice,jslice,kslice
 
@@ -49,7 +45,7 @@ C CFMNGE - Invoke CFD routine and print output files. (version for cfd module)
      &              SSBHC(MNSBZ,MNZ),IVOLNSB(MNSBZ,MNZ),
      &              ITCtype(MNSBZ,MNZ),icTREF(MNSBZ,MNZ)
 
-C Flow visualization common blocks.
+C Flow visualisation common blocks.
       COMMON/VISFIL/LVEC,LBIT
 
       DIMENSION HC(MNSBZ),SFNAM(MNSBZ)
@@ -103,13 +99,16 @@ C Read present values of the variables and some grid parameters.
 C Calculate geometrical quantities.
       CALL GRID(IER)
 
-C Set up boundary conditions which are independent of the airflow.
+C Set up boundary conditions that are independent of air flow.
       CALL INDBND
       CALL INOUT
 
 C Invoke CFD simulation.
       ifl=ICFMON(ICFD)
       IF(NSINC.EQ.1)call efopseq(ifl,CFTRFL(ICFD),3,ier)
+      ifl=ICFDBC(ICFD)
+      word='../tmp/CFD-BC_01.txt'
+      IF(NSINC.EQ.1)call efopseq(ifl,word,3,ier)
       CALL CFCALC(NSINC,TSTEP,IMFACT,IBLACT,CONVER)
 
 C Convection coefficients.
@@ -149,7 +148,7 @@ C Write future field values of variables to be used in the next time-step.
       REWIND(ifl)
       CALL PRNNEW(ifl)
     
-C Write results files (flow visualization + matlab, or photon, or text).
+C Write results files (flow visualisation + matlab, photon or text).
       ISPER=NSINC
       IF((INT(ISPER/IPRPHI)*IPRPHI).NE.ISPER)GOTO 99
       ifl=ICFLIB

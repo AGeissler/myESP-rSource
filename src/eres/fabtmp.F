@@ -402,7 +402,7 @@ C If act = i then initial display, if act = s then single step display.
       COMMON/SETNAM/RSNAME(MNRS)
       COMMON/SIMPKA/NSIM
 
-      CHARACTER ETEXT*94,GTEXT*94,PDESCR*60,SDESCR*44,CSTR*25
+      CHARACTER ETEXT*94,GTEXT*94,PDESCR*64,SDESCR*44,CSTR*25
       character rfile*72,PFILE*72,MSTRFILE*72,LAFRES*72
       character TSTR*6,ZN*12,RSNAME*40,SN*12
       character act*1
@@ -446,11 +446,12 @@ C Setup and pass in parameters to win3d.
 
       lsn1=MIN0(lnblnk(RFILE),32)
       if(NSIM.gt.1)then
-        WRITE(ETEXT,'(3A,I4,2A)')'Lib: ',RFILE(1:lsn1),' Set:',ISIM,
-     &    ': ',RSNAME(ISIM)(1:lnblnk(RSNAME(ISIM)))
+        WRITE(ETEXT,'(3A,I4,3A)')'Results library: ',
+     &    RFILE(1:lsn1),'; results set:',ISIM,
+     &    ' (',RSNAME(ISIM)(1:lnblnk(RSNAME(ISIM))),')'
       else
-        WRITE(ETEXT,'(4A)')'Lib: ',RFILE(1:lsn1),
-     &    ': ',RSNAME(ISIM)(1:lnblnk(RSNAME(ISIM)))
+        WRITE(ETEXT,'(5A)')'Results library: ',RFILE(1:lsn1),
+     &    '; (',RSNAME(ISIM)(1:lnblnk(RSNAME(ISIM))),')'
       endif
       if(MMOD.EQ.8)then
         iside=1; isize=0; ifont=1
@@ -460,7 +461,7 @@ C Setup and pass in parameters to win3d.
       endif
 
       WRITE(ETEXT,'(3A)')PDESCR(1:lnblnk(PDESCR)),' ',
-     &   SDESCR(11:lnblnk(SDESCR))
+     &   SDESCR(12:lnblnk(SDESCR))
       GTEXT=ETEXT
       if(MMOD.EQ.8)then
         iside=2; isize=0; ifont=1
@@ -538,7 +539,8 @@ C IPRZ is materials array index for each layer.
       common/T8/IPRZ(MS,ME)
 
       DIMENSION XVAL1(MZS)
-      character act*1,ETEXT*94,TDESCR*5,DS*7,DS1*10,CSTR*25,TCSTR*25
+      character act*1,ETEXT*94,TDESCR*5,DS*7,DS1*10,DS2*8
+      character CSTR*25,TCSTR*25
       character ZN*12
 #ifdef OSI
       integer iside,isize,ifont     ! passed to viewtext
@@ -646,7 +648,7 @@ C each timestep. Pause 200msec at each timestep.
               endif
             endif
             call STIME(j,TDESCR)
-            call STDATE(IYEAR,ID,DS,DS1)
+            call STDATE(IYEAR,ID,DS,DS1,DS2)
             WRITE(ETEXT,'(4A)')' Time ',DS1,' at ',TDESCR
             iside=5; isize=0; ifont=1
             call viewtext(etext,iside,isize,ifont)
@@ -692,7 +694,7 @@ C Re-Draw construction section.
             call forceflush
           else
             call STIME(j,TDESCR)
-            call STDATE(IYEAR,ID,DS,DS1)
+            call STDATE(IYEAR,ID,DS,DS1,DS2)
             WRITE(ETEXT,'(4A)')' Time ',DS1,' at ',TDESCR
             iside=5; isize=0; ifont=1
             call viewtext(etext,iside,isize,ifont)

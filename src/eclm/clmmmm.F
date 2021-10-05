@@ -38,6 +38,7 @@ C PERIOD ACCORDINGLY.
       common/exporttgi/ixopen,ixloc,ixunit
  
       character DESCR*7,DESCR1*10,DESCRX*7,DESCR1X*10
+      character DESCR2*8,DESCR2X*8
       character outs*124,act*1
       character NMTHNM(12)*3
       
@@ -87,7 +88,7 @@ C DAY BY DAY.
 
 C READ VALUES OF THE CLIMATIC PARAMETERS FOR THIS DAY.
         IDD=I
-        CALL CLMGET(IDD)
+        CALL CLMGET(IDD,IER)
 
 C SET PARAMETERS FOR THIS DAY.
         XMAXJ=-1E+10
@@ -133,9 +134,9 @@ C Compute parameters for this week or month.
 C CONVERT YEAR DAY NOS OF MAX & MIN TIMES TO
 C DAY AND MONTH NUMBER FORMAT.
         CALL EDAYR(KDMN,KDN,KMN)
-        call stdate(iyear,KDMN,DESCR,DESCR1)
+        call stdate(iyear,KDMN,DESCR,DESCR1,DESCR2)
         CALL EDAYR(KDMX,KDX,KMX)
-        call stdate(iyear,KDMX,DESCRX,DESCR1X)
+        call stdate(iyear,KDMX,DESCRX,DESCR1X,DESCR2X)
 
 C If reporting days then include month. If reporting months
 C print out same data. If reporting weeks give different format.
@@ -212,9 +213,9 @@ C COMPUTE PARAMETERS FOR THIS MONTH
 C CONVERT YEAR DAY NOS OF MAX & MIN TIMES TO
 C DAY AND MONTH NUMBER FORMAT.
       CALL EDAYR(KDMN,KDN,KMN)
-      call stdate(iyear,KDMN,DESCR,DESCR1)
+      call stdate(iyear,KDMN,DESCR,DESCR1,DESCR2)
       CALL EDAYR(KDMX,KDX,KMX)
-      call stdate(iyear,KDMX,DESCRX,DESCR1X)
+      call stdate(iyear,KDMX,DESCRX,DESCR1X,DESCR2X)
       write(outs,'(1x,a3,8x,f8.1,a,i2,2a,F8.1,a,i2,2a,f8.1)')
      & NMTHNM(KMN),XMIN,' @',KTMN,'h00 ',DESCR1(1:6),
      & XMAX,' @',KTMX,'h00 ',DESCR1X(1:6),XMEAN
@@ -240,9 +241,9 @@ C COMPUTE PARAMETERS FOR WHOLE PERIOD.
 C CONVERT YEAR DAY NOS OF MAX & MIN TIMES TO
 C DAY AND MONTH NUMBER FORMAT.
       CALL EDAYR(IDMN,KDMN,KMMN)
-      call stdate(iyear,IDMN,DESCR,DESCR1)
+      call stdate(iyear,IDMN,DESCR,DESCR1,DESCR2)
       CALL EDAYR(IDMX,KDMX,KMMX)
-      call stdate(iyear,IDMX,DESCRX,DESCR1X)
+      call stdate(iyear,IDMX,DESCRX,DESCR1X,DESCR2X)
       write(outs,'(a,f8.1,a,i2,2a,F8.1,a,i2,2a,f8.1)')
      & ' All period ',XMIN,' @',ITMN,'h00 ',DESCR1,
      & XMAX,' @',ITMX,'h00 ',DESCR1X,XMEAN
@@ -269,6 +270,7 @@ C PERIOD ACCORDINGLY.
 
       SUBROUTINE CLMMMSYNOP(IP)
 #include "climate.h"
+#include "help.h"
 
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
       COMMON/OUTPCH/ICOUT
@@ -278,15 +280,11 @@ C PERIOD ACCORDINGLY.
       common/exporttgi/ixopen,ixloc,ixunit
  
       character DESCR*7,DESCR1*10,DESCRX*7,DESCR1X*10
+      character DESCR2*8,DESCR2X*8,DESCRW2*8
       character DESCRW*7,DESCRW1*10,outs*124
       logical ok
 
-C For help messages
-      character helpinsub*24   ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='CLMMMSYNOP'  ! set for cfiles
+      helpinsub='clmmmm'  ! set for cfiles
       
 C If output to file alter the edisp unit number.
       itru = icout
@@ -332,7 +330,7 @@ C DAY BY DAY.
 C READ VALUES OF THE CLIMATIC PARAMETERS FOR THIS DAY.
         ix=ix+1
         IDD=I
-        CALL CLMGET(IDD)
+        CALL CLMGET(IDD,IER)
 
 C SET PARAMETERS FOR THIS DAY.
         XMAXJ=-1E+10
@@ -381,12 +379,12 @@ C COMPUTE PARAMETERS FOR THIS MONTH.
 
 C CONVERT YEAR DAY NOS OF MAX & MIN TIMES TO
 C DAY AND MONTH NUMBER FORMAT.
-        call stdate(iyear,IDSOW,DESCRW,DESCRW1)
+        call stdate(iyear,IDSOW,DESCRW,DESCRW1,DESCRW2)
         CALL EDAYR(KDMN,KDN,KMN)
-        call stdate(iyear,KDMN,DESCR,DESCR1)
+        call stdate(iyear,KDMN,DESCR,DESCR1,DESCR2)
         CALL EDAYR(KDMX,KDX,KMX)
-        call stdate(iyear,KDMX,DESCRX,DESCR1X)
-        call stdate(iyear,IDSOW,DESCRW,DESCRW1)
+        call stdate(iyear,KDMX,DESCRX,DESCR1X,DESCR2X)
+        call stdate(iyear,IDSOW,DESCRW,DESCRW1,DESCRW2)
         write(outs,'(2a,f8.1,a,i2,2a,F8.1,a,i2,2a,f8.1)')
      &    ' Wk of ',DESCRW1,XMIN,' @',KTMN,'h00 ',DESCR1(1:6),
      &    XMAX,' @',KTMX,'h00 ',DESCR1X(1:6),XMEAN
@@ -463,9 +461,9 @@ C COMPUTE PARAMETERS FOR WHOLE PERIOD.
 C CONVERT YEAR DAY NOS OF MAX & MIN TIMES TO
 C DAY AND MONTH NUMBER FORMAT.
       CALL EDAYR(IDMX,KDMX,KMMX)
-      call stdate(iyear,IDMN,DESCR,DESCR1)
+      call stdate(iyear,IDMN,DESCR,DESCR1,DESCR2)
       CALL EDAYR(IDMN,KDMN,KMMN)
-      call stdate(iyear,IDMX,DESCRX,DESCR1X)
+      call stdate(iyear,IDMX,DESCRX,DESCR1X,DESCR2X)
       write(outs,'(a,f8.1,a,i2,2a,F8.1,a,i2,2a,f8.1)')
      & ' All period ',XMIN,' @',ITMN,'h00 ',DESCR1,
      & XMAX,' @',ITMX,'h00 ',DESCR1X,XMEAN

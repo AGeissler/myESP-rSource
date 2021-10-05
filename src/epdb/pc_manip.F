@@ -13,11 +13,6 @@ C warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
 C PURPOSE. See the GNU General Public License for more
 C details.
 
-C You should have received a copy of the GNU General Public
-C License along with ESP-r. If not, write to the Free
-C Software Foundation, Inc., 59 Temple Place, Suite 330,
-C Boston, MA 02111-1307 USA.
-
 C pc_manip hold routines which manipulate entities in
 C a plant component templates.
 
@@ -87,6 +82,7 @@ C write it to the terminal.
       SUBROUTINE PCLIST
 #include "plantdb.h"
 #include "pdb_data.h"
+#include "help.h"
       
       integer lnblnk  ! function definition
 
@@ -109,12 +105,7 @@ C write it to the terminal.
       integer NITEMS,MNUPIK ! max items and current menu item
       integer lastmmod      ! so can restore display
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found (will be non-zero
-                         ! because default message will be created
-      helpinsub='PCLIST'  ! set for MAIN
+      helpinsub='pc_manip'  ! set for MAIN
 
 C Check library is not empty.
       IF (NPC .EQ. 0) THEN
@@ -382,6 +373,7 @@ C component and its associated data returned.
       SUBROUTINE PCFIND (ICDE)
 #include "plantdb.h"
 #include "pdb_data.h"
+#include "help.h"
 
       common/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/FILEP/IFIL
@@ -390,13 +382,7 @@ C component and its associated data returned.
 
       logical ok
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp         ! number of help lines found (will be non-zero
-                             ! because default message will be created
-
-      helpinsub='PCFIND'     ! set for subroutine
+      helpinsub='pc_manip'     ! set for subroutine
 
       DO 100 I = 1,NPC
         IREC = ITMLOC(I,1)
@@ -434,6 +420,7 @@ C selected before deletion.
       SUBROUTINE PCDELT
 #include "plantdb.h"  
 #include "pdb_data.h"
+#include "help.h"
   
       common/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/FILEP/IFIL
@@ -445,12 +432,7 @@ C selected before deletion.
       dimension ival(MAXPC)
       logical ok
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found (will be non-zero
-                         ! because default message will be created
-      helpinsub='PCDELT' ! set for subroutine
+      helpinsub='pc_manip' ! set for subroutine
 
 C Check if library empty.
       IF (NPC .GT. 0)   GOTO 100
@@ -550,6 +532,7 @@ C PCGET of ESRUpdb
       SUBROUTINE PCGET (INDEX)
 #include "plantdb.h" 
 #include "pdb_data.h"
+#include "help.h"
 
       common/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/FILEP/IFIL
@@ -558,12 +541,7 @@ C PCGET of ESRUpdb
 
       logical ok
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp         ! number of help lines found (will be non-zero
-                             ! because default message will be created
-      helpinsub='PCGET'      ! set for subroutine
+      helpinsub='pc_manip'      ! set for subroutine
 
 C Get current component description from
 C the required position in the library.
@@ -778,6 +756,7 @@ C PCPUT of ESRUpdb
       SUBROUTINE PCPUT (NDX)
 #include "plantdb.h" 
 #include "pdb_data.h"
+#include "help.h"
  
       common/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/FILEP/IFIL
@@ -787,12 +766,7 @@ C PCPUT of ESRUpdb
       character outs*124
       logical ok
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp         ! number of help lines found (will be non-zero
-                             ! because default message will be created
-      helpinsub='PCPUT'      ! set for subroutine
+      helpinsub='pc_manip'      ! set for subroutine
 
 C Put current component description into
 C the required position in the library.
@@ -1050,6 +1024,7 @@ C ********* PCRMV ********
       SUBROUTINE PCRMV (NDX)
 #include "plantdb.h"
 #include "pdb_data.h"
+#include "help.h"
 
       common/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/FILEP/IFIL
@@ -1061,12 +1036,7 @@ C Delete entry by compacting library
       logical ok
       character outs*124
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp         ! number of help lines found (will be non-zero
-                             ! because default message will be created
-      helpinsub='PCRMV'      ! set for subroutine
+      helpinsub='pc_manip'      ! set for subroutine
 
 C Copy non null records down
       NNDX = NDX + 1
@@ -1122,6 +1092,7 @@ C zeroize header information
       SUBROUTINE PCUPDT (IFLG)
 #include "plantdb.h"
 #include "pdb_data.h"
+#include "help.h"
 
       common/OUTIN/IUOUT,IUIN,IEOUT
       common/FILEP/IFIL
@@ -1131,12 +1102,7 @@ C zeroize header information
       CHARACTER PZDESC*25
       logical ok
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp         ! number of help lines found (will be non-zero
-                             ! because default message will be created
-      helpinsub='PCUPDT'     ! set for subroutine
+      helpinsub='pc_manip'     ! set for subroutine
 
 C Write header.
       IF (IFLG .EQ. 0) THEN

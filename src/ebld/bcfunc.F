@@ -54,6 +54,7 @@ C      BCL30:  heat injection extraction controller from temporal
 C      BCL31:  heat transfer controller from given node of one zone
 C              to air point node of another zone
 C      BCL32:  multi-criteria controller to model pervasive control
+C      BCL33:  Occupancy-linked basic control
 C      BCL99:  constructional thermo-physical property variation.
 C      MZRCPL: mixed temperature iteration.
 C      ZRHCTL: relative humidity controlling routine.
@@ -283,6 +284,10 @@ C CL32 A multi-criteria controller that gets its inputs from an external
 C file and provides control based on the state of these inputs
       case (32)
         call BCL32
+
+C CL33 Basic control, but only active when zone is occupied.
+      case (33)
+        call BCL33(IER)
       
 C New control laws should be inserted here.
       case default 
@@ -708,7 +713,7 @@ C Recover control point data.
 #include "building.h"
 #include "net_flow.h"
 #include "tdf2.h"
-#include "control.h"      
+#include "control.h"
 
       common/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/PSTSOL/ICF,IDTYP,IPER,BB1,BB2,BB3,IICOMP,TNP,QFUT,TFUT
@@ -859,12 +864,11 @@ C     &       ' column ',isd,' value ',tctl,' for ctl loop ',icf
       END
 
 C ******************** BCL00 ********************
-
 C This routine solves the air temperature/plant capacity
 C (perhaps carried through) equation (B1*T+B2*Q=B3) in
 C terms of the prevailing control function information
 C and to obtain the desired mixed node temperature in the curent zone.
-C To do this the mixed temperature is computed on the basis of
+C To do this, the mixed temperature is computed on the basis of
 C the present time row surface and air point temperatures.
 
       SUBROUTINE BCL00
@@ -892,6 +896,9 @@ C the present time row surface and air point temperatures.
 
       COMMON/BCL10M/LASTH(MCOM),LASTC(MCOM)
       CHARACTER*3 LASTH,LASTC
+      
+      COMMON/CMSVAR/NSEN(MCF),ISMOD(MCF),IBMSN(MCF,MSEN,4),
+     &TAUXSN(MCF,MSEN)
 
       character outs*124
       logical atrace  ! is trace active
@@ -929,7 +936,7 @@ C Make decision based on imposed control philosophy.
       B2=BB2
       B3=BB3
 
-C Trace output ?
+C Trace output?
  9993 IF(atrace)then
         write(outs,'(A,I4,A,I4)')' Subroutine BCL00 Zone',IICOMP,
      &    ' Trace output',ICNT
@@ -1025,7 +1032,7 @@ C  assuming present time-row surface temperatures.
     7 CALL MZMIXT(IICOMP,TMRT,TMIX)
       ITYPE=IBCLAW(ICF,IDTYP,IPER)
       if(itype.eq.31)goto 6  ! jump back for trace
-      if(ITYPE.eq.1)then
+      if(ITYPE.eq.1 .or. ITYPE.eq.33)then
         GOTO 8
       elseif (ITYPE.eq.2) then
         GOTO 9
@@ -1035,12 +1042,53 @@ C  assuming present time-row surface temperatures.
         GOTO 12
       elseif (ITYPE.eq.10) then
         GOTO 10
+      elseif (ITYPE.eq.11) then
+        GOTO 30
       else
         GOTO 99
       endif
 
+C Control type 11, set point from temporal.
+   30 QHM=BMISCD(ICF,IDTYP,IPER,2)
+      QHN=BMISCD(ICF,IDTYP,IPER,3)
+      QCM=-BMISCD(ICF,IDTYP,IPER,4)
+      QCN=-BMISCD(ICF,IDTYP,IPER,5)
+
+C NSEN(ICF) = number of auxiliary sensors for control function.
+      NSEN(ICF)=INT(BMISCD(ICF,IDTYP,IPER,6))
+
+C ISM = mode of operation flag:-
+C ISM = 1: TDIF = (ref sensor)-(greatest value of auxiliary sensors);
+C ISM = 2: TDIF = (ref sensor)-(least value of auxiliary sensors);
+C ISM = 3: TDIF = (ref sensor)-(mean value of auxiliary sensors).
+C ISM = 4: TDIF = (ref sensor)-(weighting of auxiliary sensors).
+      ISM=INT(BMISCD(ICF,IDTYP,IPER,7))
+
+C SNWGHT() is the sensor weighting when ISM=4.
+C If only one sensor read attributes and then get scaling and offset
+C based on whether there is weighting or not. This follows the same
+C logic used in econtrol.F subroutine EVCNTRLAW.
+      if(NSEN(ICF).eq.1)then
+        IBMSN(ICF,1,1)=INT(BMISCD(ICF,IDTYP,IPER,8))
+        IBMSN(ICF,1,2)=INT(BMISCD(ICF,IDTYP,IPER,9))
+        IBMSN(ICF,1,3)=INT(BMISCD(ICF,IDTYP,IPER,10))
+        IBMSN(ICF,1,4)=INT(BMISCD(ICF,IDTYP,IPER,11))
+      endif
+     
+C Determine sensed temperatures.
+      CALL CFMVAR(ier)
+      if(ier.eq.2)then
+        return
+      endif
+
+      TL=TAUXSN(ICF,1)
+      TU=TAUXSN(ICF,1)
+
+C Continue as for a basic control.
+      GOTO 31
+
 C Thermostatic control period: is temperature within
-C range.
+C range?
 
 C Control data is established from the BMISCD array.
     8 TL=BMISCD(ICF,IDTYP,IPER,6)
@@ -1049,7 +1097,7 @@ C Control data is established from the BMISCD array.
       QHL=BMISCD(ICF,IDTYP,IPER,3)
       QC=-BMISCD(ICF,IDTYP,IPER,4)
       QCL=-BMISCD(ICF,IDTYP,IPER,5)
-      IF(TMIX.LE.TU.AND.TMIX.GE.TL)THEN 
+   31 IF(TMIX.LE.TU.AND.TMIX.GE.TL)THEN 
 C << This line added to prevent function inheriting
 C    value of T from previous invocation if this
 C    clause is true. >>
@@ -1057,10 +1105,10 @@ C    clause is true. >>
         GOTO 81
       ENDIF
 
-C Is 'mixed' temperature too high ?
+C Is 'mixed' temperature too high?
       IF(TMIX.GT.TU)GOTO 13
 
-C Temperature too low - heat to lower limit! .....
+C Temperature too low - heat to lower limit.
       IPLT=1
       QMX=QH
       QMN=QHL
@@ -1068,35 +1116,37 @@ C Temperature too low - heat to lower limit! .....
       TMIX=TL
       T=(TMIX-TMRT*(1.-CONV))/CONV
 
-C ..... and compute required capacity .....
+C Determine required capacity.
    17 Q=(B3-B1*T)/B2
 
-C CONVERT FROM /M2 IF NECESSARY.
+C Convert from /m^2 if necessary.
       QQ=Q
       IF(ISUR.GT.0)QQ=Q*SNA(IICOMP,ISUR)
 
-C ..... is this available ?
+C Is this amount available?
       IF(QQ.LE.QH.AND.QQ.GE.QC)GOTO 14
       IF(QQ.GT.QH)GOTO 15
 
-C Required cooling capacity not available hence set to
-C available amount.  ? Unmet ?
+C Required cooling capacity not available, set to
+C available amount.
+C << What about unmet? >>
       Q=QC
       IF(ISUR.GT.0)Q=Q/SNA(IICOMP,ISUR)
 
-C ..... and compute air temperature to result.
+C Determine air temperature to result.
    16 T=(B3-B2*Q)/B1
       GOTO 14
 
-C Required heating capacity not available hence set to
-C available amount.  ? Unmet ?
+C Required heating capacity not available, set to
+C available amount.
+C << What about unmet? >>
    15 Q=QH
       IF(ISUR.GT.0)Q=Q/SNA(IICOMP,ISUR)
 
-C ..... and compute air temperature to result.
+C Determine air temperature to result.
       GOTO 16
 
-C Temperature too high - cool to upper limit!
+C Temperature too high - cool to upper limit.
    13 IPLT=2
       QMX=QC
       QMN=QCL
@@ -1106,18 +1156,15 @@ C Temperature too high - cool to upper limit!
       GOTO 17
 
 C Establish actual future time-row
-C 'mixed' temperature .....
+C 'mixed' temperature.
    14 TFUT=T
-
-C ..... by executing back substitution operation
-C of reduced zone matrix.
-   81 CALL MZBACK(Q)
+   81 CALL MZBACK(Q)  ! Back substitution operation of zone matrix.
       B1=BB1
       B2=BB2
       B3=BB3
       CALL MZMIXT(IICOMP,TMRT,TMIX)
 
-C Is future time-row 'mixed' value acceptable ?
+C Is future time-row 'mixed' value acceptable?
       TUP=TU+0.05
       TLOW=TL-0.05
       IF(ITYPE.NE.3)GOTO 211
@@ -1393,8 +1440,8 @@ C Total heating/cooling.
       END
 
 C ******************** BCL01 ********************
-C BCL01 is a legacy interface to BCL01_extended, which also offers 
-C a simplistic 'free-cool' algorithm or reading flux from temporal.
+C A legacy interface to BCL01_extended, which offers
+C free-cooling or reading flux from a temporal file.
 C To enable legacy behavior, it invokes BCL01_extended with the 
 C behaviour flag set to 0
 
@@ -1699,7 +1746,7 @@ C performance.
 C Set free cooling flag for zone to true. 
       if(IBehaviour.EQ.1)bFreeCoolCtl(iicomp) = .true.
 
-C Setpoints must be between 10oC and 30oC for passive solar computations
+C Setpoints must be between 10C and 30C for passive solar computations.
       if ( fHeatSetpoint(iicomp).lt.10.0 .or.
      &     fHeatSetpoint(iicomp).gt.30.0 ) bZoneHeated(iicomp) = .false.
       if ( fCoolSetpoint(iicomp).lt.10.0 .or.
@@ -1905,7 +1952,7 @@ C Determine required plant capacity.
       Q=(BB3-BB1*TCont)/BB2
 
 C Is heat flux determined according to surface area?
-      if ( IBAN(ICF,1).EQ.IICOMP.AND.IBAN(ICF,2).GT.0) then
+      if (IBAN(ICF,1).EQ.IICOMP.AND.IBAN(ICF,2).GT.0) then
         bQBySurf = .true.  ! Yes
         ISUR=IBAN(ICF,2)
       else   ! No.
@@ -1921,7 +1968,7 @@ C from W/m^2 to W.
       endif 
       
 C Determine if this capacity can be delivered using free-cooling 
-C (this is simple algorithm at present). Apply free cooing if: 
+C (this is a simple algorithm at present). Apply free cooing if: 
 C    1. free cooling is enabled;
 C    2. cooling is requested;
 C    3. outdoor temperature < (zone temp - free cooling threshold)
@@ -2051,14 +2098,6 @@ C Keep track if trace is not active.
             if (bInStartup())then
               continue
             else
-
-C Temporary for BH project
-C              if( IICOMP.eq.1.and.(btimef.lt.5.0.or.btimef.ge.7.0))
-C     &            UNMETHRS(IICOMP)=UNMETHRS(IICOMP)+hrfrac
-C              if( IICOMP.eq.2.and.((btimef.lt.5.0.or.btimef.ge.7.0).or.
-C     &           (btimef.lt.14.or.btimef.ge.16.0)))
-C     &            UNMETHRS(IICOMP)=UNMETHRS(IICOMP)+hrfrac
-C /Temporary
               UNMETHRS(IICOMP)=UNMETHRS(IICOMP)+hrfrac
             endif
          elseif ( QFUT.le.QHM.and.TFUT.ge.HSP)then  ! if within capacity and at/above setpoint
@@ -6814,6 +6853,7 @@ C running mean comfort temperature calculated from the climate database
 
 #include "building.h"
 #include "control.h"
+#include "help.h"
 
 C climate file commons
       COMMON/FILEP/IFIL
@@ -6835,12 +6875,7 @@ C climate file commons
       character dllsubr*12,dllmesg*124,outs*124
       logical dll
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='BCL24'  ! set for subroutine
+      helpinsub='bcfunc'  ! set for subroutine
 
 C Check to see if running in dll mode.
       call isadll(dll)
@@ -8334,6 +8369,183 @@ c     &storeCap/(3600/NTSTEP),',',
       RETURN
       END
 
+C ******************** BCL33
+C Basic controller, but only active when zone is occupied. Judges
+C occupancy by type 1 casual gains taken from operations or temporal.
+      SUBROUTINE BCL33(IER)
+
+#include "building.h"
+#include "control.h"
+#include "net_flow.h"
+#include "tdf2.h"
+#include "FMI.h"
+
+      COMMON/TC/ITC,ICNT
+      COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
+      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
+      COMMON/BTIME/BTIMEP,BTIMEF
+      common/dllerr/dllsubr,dllmesg
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
+      COMMON/PSTSOL/ICF,IDTYP,IPER,BB1,BB2,BB3,IICOMP,TNP,QFUT,TFUT
+      common/CASGNS/NCGPER(MCOM,MDTY,MGTY),TCGS(MCOM,MDTY,MGTY,MGPER),
+     &        CGSENC(MCOM,MDTY,MGTY,MGPER),CGSENR(MCOM,MDTY,MGTY,MGPER),
+     &        CGLAT(MCOM,MDTY,MGTY,MGPER),CGCTL(MCOM,2,MGTY)
+      common/caleni/nbdaytype,nbcaldays(MDTY),icalender(365)
+      INTEGER NBDAYTYPE,NBCALDAYS,ICALENDER
+
+      character dllsubr*12,dllmesg*124,outs*124
+      logical dll
+      real val(MBITS+2)
+
+C Check to see if running in dll mode.
+      call isadll(dll)
+
+C Fatal error test.
+      IF(BMISCD(ICF,IDTYP,IPER,1).NE.6.)GOTO 99
+
+C Trace output
+      IF(ITC.GT.0.AND.NSINC.GE.ITC.AND.NSINC.LE.ITCF.AND.
+     &   ITRACE(41).NE.0) then
+        if (IBSN(ICF,1).GT.0.and.IBAN(ICF,1).eq.0) then
+          write(outs,'(a,i3)') 
+     &      'Entering subroutine BCL33 sensing in zone ',
+     &      IBSN(ICF,1)
+          call edisp(itu,' ')
+          call edisp(itu,outs)
+        elseif (IBSN(ICF,1).GT.0.and.IBAN(ICF,1).GT.0) then
+          write(outs,'(a,i3,a,i3)') 
+     &      'Entering subroutine BCL33 sensing in zone ',
+     &      IBSN(ICF,1),' and actuating in zone ',IBAN(ICF,1)
+          call edisp(itu,' ')
+          call edisp(itu,outs)
+        else
+          call edisp(itu,' ')
+          call edisp(itu,' Entering subroutine BCL33')
+        endif
+        CALL DAYCLK(IDYP,BTIMEF,ITU)
+      endif
+
+C QHM = max heating capacity (W)
+C QHN = min heating capacity (W)
+C QCM = max cooling capacity (W)
+C QCN = min cooling capacity (W)
+C HSP = heating set point temp. (deg.C)
+C CSP = cooling set point temp. (deg.C)
+      QHM=BMISCD(ICF,IDTYP,IPER,2)
+      QHN=BMISCD(ICF,IDTYP,IPER,3)
+      QCM=-BMISCD(ICF,IDTYP,IPER,4)
+      QCN=-BMISCD(ICF,IDTYP,IPER,5)
+      HSP=BMISCD(ICF,IDTYP,IPER,6)
+      CSP=BMISCD(ICF,IDTYP,IPER,7)
+      
+      QFUT=0.
+      TFUT=TNP
+      iheat=0
+      icool=0
+
+C Check for occupancy.
+      iz=IICOMP
+      igtyp=1
+      occg=-1.0
+
+C Check if there is an appropriate temporal entity for the zone.
+      if (ICASUAL3(iz).ne.0) then
+        IFOC=ICASUAL3(iz)
+        CALL RCTDFB(itrc,btimef,VAL,ISD,IFOC,IER)
+        if (igtyp.eq.1) then
+          occg=VAL(ISD)+VAL(ISD+1)+VAL(ISD+2)
+        elseif (igtyp.eq.2) then
+          occg=VAL(ISD+3)+VAL(ISD+4)+VAL(ISD+5)
+        elseif (igtyp.eq.3) then
+          occg=VAL(ISD+6)+VAL(ISD+7)+VAL(ISD+8)
+        endif
+        
+C No temporal gains, so use operations file.
+      else
+        idtyp=icalender(IDYP)
+
+        DO IGNO=1,NCGPER(iz,idtyp,igtyp)
+          IF(IHRP.GE.TCGS(iz,idtyp,igtyp,IGNO).AND.
+     &       IHRP.LE.TCGS(iz,idtyp,igtyp,IGNO+1))THEN
+
+C <FMI>
+C If FMI occupancy control is active, need to multiply gains by control
+C value.
+            if (FMUDOCTL(iz,7)) then
+              occg=(CGSENC(iz,idtyp,igtyp,IGNO) +
+     &              CGSENR(iz,idtyp,igtyp,IGNO) +
+     &              CGLAT(iz,idtyp,igtyp,IGNO)) * FMUCTL(iz,7)
+            else
+C </FMI>
+              occg=CGSENC(iz,idtyp,igtyp,IGNO) +
+     &             CGSENR(iz,idtyp,igtyp,IGNO) +
+     &             CGLAT(iz,idtyp,igtyp,IGNO) 
+            endif
+          ENDIF
+        enddo
+      endif
+
+C If there is no occupancy, return.
+      if (occg.le.0.0) RETURN
+
+C Determine sensed temperature.
+      CALL CFVAR(TCTL,IER)
+      if(ier.eq.2)then
+        return
+      endif
+
+      if (TCTL.lt.HSP) then
+        Q=(BB3-BB1*HSP)/BB2
+        IF(Q.LE.QHM.AND.Q.GE.QHN)GOTO 23
+        IF(Q.GT.QHM)GOTO 33
+        Q=QHN
+        GOTO 23
+   33   Q=QHM
+   23   TFUT=(BB3-BB2*Q)/BB1
+        QFUT=Q
+        IPLT=1
+        QMX=QHM
+        QMN=QHN
+        TCONT=HSP
+      elseif (TCTL.gt.CSP) then
+        Q=(BB3-BB1*CSP)/BB2
+        IF(Q.GE.QCM.AND.Q.LE.QCN)GOTO 22
+        IF(Q.LT.QCM)GOTO 55
+        Q=QCN
+        GOTO 22
+   55   Q=QCM
+   22   TFUT=(BB3-BB2*Q)/BB1
+        QFUT=Q
+        IPLT=2
+        QMX=QCM
+        QMN=QCN
+        TCONT=CSP
+      else
+        RETURN
+      endif
+
+C Mixed actuation.
+      IF(IBAN(ICF,1).EQ.-2)CALL MZRCPL(IICOMP,BB1,BB2,BB3,TCONT,0.05,
+     &IPLT,QMX,QMN,TFUT,QFUT)
+
+      RETURN
+   99 write(outs,'(a)')' BCL33: data incomplete.'
+      if(dll)then
+        dllsubr='BCL33'
+        dllmesg=outs
+        ier=2
+        return
+      else
+        call edisp(iuout,outs)
+        close(ieout)
+        CALL ERPFREE(ieout,ISTAT)
+        call epwait
+        call epagend
+        STOP
+      endif
+      RETURN
+      END
+
 C ******************** BCL99 ********************
 C BCL99 modifies the thermo-physical properties of up to three 
 C multi-layered construction(s).
@@ -8606,15 +8818,13 @@ C Modify if computational time-step is less than one hour.
       end
 
 c ******************** MZRCPL ********************
-
-c This routine is called by particular BCL?? routines
-c when plant has been specified as having a radiant
-c and convective component. Some iteration takes place.
+c Called by BCL?? routines when plant has been specified as having
+c a radiant and convective component. Some iteration takes place.
 
       SUBROUTINE MZRCPL(IC,AA,BB,CC,TCTL,TR,IPLT,QMX,QMN,TE,Q)
-
 #include "building.h"
 #include "control.h"
+
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
       integer iuout,iuin,ieout
 
@@ -8657,11 +8867,11 @@ c and convective component. Some iteration takes place.
 C If called from BCL06, any sensor will do
       IF(IBCLAW(ICF,IDTYP,IPER).EQ.6) GOTO 123
 
-c Check that a valid control law is calling this routine !
+c Check that a valid control law is calling this routine.
       IF(IBSN(ICF,1).GE.0.AND.IBSN(ICF,2).EQ.0)GOTO 123
       IF(IBSN(ICF,1).EQ.-2)GOTO 123
 
-c Inform user of problems!
+c Inform user of problems.
       call edisp(iuout,
      &  ' Actuator and sensor not available with this')
       call edisp(iuout,' release. Simulation terminated!')
@@ -8671,7 +8881,7 @@ c Inform user of problems!
       call epagend
       STOP
 
-C Trace output
+C Trace output.
  123  atrace = .false.
       IF(ITC.GT.0.AND.NSINC.GE.ITC.AND.NSINC.LE.ITCF.AND.
      &   ITRACE(41).NE.0)atrace = .true.
@@ -8688,7 +8898,7 @@ C Trace output
 c Iteration counter.
       ITER=0
 
-c Initialise QSUM the total plant supplied to the calculated
+c Initialise QSUM the total plant flux supplied to the calculated
 c value for a convective actuator only.
       QSUM=Q
       TOLD=TE
@@ -8714,23 +8924,25 @@ c of radiant plant and a new forward reduction conducted.
       DO 10 I=1,NC
         NN=NNDC(IC,I)
 
-C Calculate the plant radiative and convective component in W/m2.
+C Calculate the plant radiative component in W/m^2.
         PADDR=QSUM*(1.-CONV(IC))*ei(ic,i)/emarea(ic)
 
 C Re-assign E variable.
         E(I,N3)=E(I,N3)+QC(IC,I,NN)*PADDR*GAM
 
-C Trace...
+C Trace output.
       if(atrace)then
         write(outs,*)'Radiant: PADDR qsum qc() n(i,n3) n1 n3',
      &    PADDR,QSUM,QC(IC,I,NN),E(I,N3),i,n3
         call edisp(ITU,outs)
       endif
    10 CONTINUE
+   
+C Plant convective component.
       PADDC=QSUM*CONV(IC)
       E(N1,N3)=E(N1,N3)+ACAPS*PADDC*GAM
 
-C Trace...
+C Trace output.
       if(atrace)then
         write(outs,*)'Convec: PADDC QSUM acaps n(n1,n3) n1 n3 ',
      &    PADDC,QSUM,ACAPS,E(N1,N3),n1,n3
@@ -8763,11 +8975,13 @@ c Present term coefficient.
       B3=E(N1,N3)
 
       TNEW=B3/B1
-C Trace.
+      
+C Trace output.
       if(atrace)then
         write(outs,*)'B1 B2 B3 TNEW TOLD',B1,B2,B3,TNEW,TOLD
         call edisp(ITU,outs)
       endif
+
       IF(ABS(TNEW-TOLD).LT.0.001)GOTO 2
 
       TDIFF=ABS(TCTL-TNEW)
@@ -8787,7 +9001,7 @@ C Trace.
       TOLD=TNEW
       IF(ITER.LE.25.AND.TDIFF.GT.TR)GOTO 1
 
-c TDIFF acceptable. Conduct backward substitution.
+C TDIFF acceptable. Conduct backward substitution.
     2 QQ=0.
       TE=TNEW
       DO 50 I=1,NC
@@ -8807,6 +9021,7 @@ c TDIFF acceptable. Conduct backward substitution.
       BB=B2
       CC=B3
       Q=QSUM
+      
       if(atrace)then
         write(outs,*)' Returning AA BB CC Q ',AA,BB,CC,Q
         call edisp(ITU,outs)
@@ -8817,8 +9032,7 @@ c TDIFF acceptable. Conduct backward substitution.
       END
 
 C ******************** SUBROUTINE FZINIT ********************
-C This routine is called every time-step to zeroise common variables
-C used in fuzzy logic control functions.
+C Zeroises common variables as used in fuzzy logic control functions.
 
       SUBROUTINE FZINIT
 #include "building.h"

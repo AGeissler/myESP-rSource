@@ -13,11 +13,6 @@ C warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
 C PURPOSE. See the GNU General Public License for more
 C details.
 
-C You should have received a copy of the GNU General Public
-C License along with ESP-r. If not, write to the Free
-C Software Foundation, Inc., 59 Temple Place, Suite 330,
-C Boston, MA 02111-1307 USA.
-
 C *********************************************************************
 C  This file contains the following 1-D node distribution subroutines:
 
@@ -31,10 +26,11 @@ C *********************************************************************
 C ******************************  MENU1D  *****************************
 C MENU1D generates the 1D node distribution menu. It is called via the 
 C main multi-D gridding menu.
-C *********************************************************************
+
       SUBROUTINE MENU1D
 #include "building.h"
 #include "geometry.h"
+#include "help.h"
 
       COMMON/FILEP/IFIL
       COMMON/HELP/IHELPM
@@ -61,12 +57,7 @@ C *********************************************************************
 
       DIMENSION IVALSZ(MCOM),IVALSC(MS),IVALSL(ME)
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='MENU1D'  ! set for subroutine
+      helpinsub='bgrd1d'  ! set for subroutine
 
       IUNIT=IFIL+1
       SAVEOK=.FALSE.
@@ -267,9 +258,10 @@ C menu after performing the request.
 
 C *******************************  AUTG1D  ****************************
 C AUTG1D generates the variable node distribution menu.
-C *********************************************************************
+
       SUBROUTINE AUTG1D
 #include "building.h"
+#include "help.h"
 
       COMMON/HELP/IHELPM
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
@@ -290,12 +282,7 @@ C *********************************************************************
 
       DIMENSION FRN(MS,ME)
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='AUTG1D'  ! set for subroutine
+      helpinsub='bgrd1d'  ! set for subroutine
 
       IF(IADP.EQ.1)THEN
          ONFF='ON '
@@ -439,10 +426,11 @@ C distribution menu after performing the request.
 
 C ******************************  LUMPMN  *****************************
 C LUMPMN generates the lumped construction menu.
-C *********************************************************************
+
       SUBROUTINE LUMPMN
 #include "building.h"
 #include "geometry.h"
+#include "help.h"
 
       COMMON/FILEP/IFIL
       COMMON/HELP/IHELPM
@@ -472,12 +460,7 @@ C *********************************************************************
       CHARACTER ITEMZ(MCOM)*20,ITEMC(MS+2)*28,HCFILE*72,OUTSTR*124
       integer NITMS,INO ! max items and current menu item
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='LUMPMN'  ! set for subroutine
+      helpinsub='bgrd1d'  ! set for subroutine
 
 C Initialise the external and internal convective heat transfer 
 C coefficient.

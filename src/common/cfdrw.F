@@ -1,6 +1,6 @@
 C This file is part of the ESP-r system.
 C Copyright Energy Systems Research Unit, University of
-C Strathclyde, Glasgow Scotland, 2001.
+C Strathclyde, Glasgow, Scotland, 2001-.
 
 C ESP-r is free software.  You can redistribute it and/or
 C modify it under the terms of the GNU General Public
@@ -13,36 +13,30 @@ C warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
 C PURPOSE. See the GNU General Public License for more
 C details.
 
-C You should have received a copy of the GNU General Public
-C License along with ESP-r. If not, write to the Free
-C Software Foundation, Inc., 59 Temple Place, Suite 330,
-C Boston, MA 02111-1307 USA.
 
-C Read and write new cfd description.
-C DFDSV:     Saves the room air movement description file (version 2).
-C DFDREAD:   Reads the CFD configuration file (version 2,2.1 and 2.2)
+C This file contains the following subroutines.
+C DFDSV:     Saves the zone cfd description file (version 2).
+C DFDREAD:   Reads the zone cfd description file (version 2,2.1 and 2.2)
 C NEW2OLD:   Copies new data structure to old.
-C CFMFSU:    Set up CFD to mass flow connections/ components.
-C MFLISTemp: List common block contents for debugging only.
-C CFDDEFLT: Sets default values for all solution equation data items.
-C SCHCHK:   Checks the turbulent schmidt number of all containments.
-C BCEKCK:   Checks the boundary conditions of all boundary cells  
-C RESETCFD: Clear all CFD commons that are independant of domain and
-C           zone.
-C CFDLIST:  Lists available CFD domain files and their zone 
-C           associations.
+C CFMFSU:    Set up CFD to mass flow connections/components.
+C MFLISTemp: List common block contents for debugging.
+C CFDDEFLT:  Sets default values for all solution equation data items.
+C SCHCHK:    Checks the turbulent Schmidt number of containments.
+C BCEKCK:    Checks the boundary conditions of boundary cells  
+C RESETCFD:  Clear CFD commons that are independent of domain and zone.
+C CFDLIST:   Lists available CFD domain files and their zone 
+C            associations.
 
-C ************* DFDSV 
-C DFDSV saves the room air movement description file (version 2).
-C IUF unit number for CFD input file.
-C IZONE is the index of the zone with a CFD domain.
-C IER=0 indicates no error.
+
+C ******************** DFDSV ********************
+C Saves the room air movement description file (version 2).
+C IUF   - unit number for CFD input file.
+C IZONE - the index of the zone with a CFD domain.
+C IER=0 - indicates no error.
 
       SUBROUTINE DFDSV(IUF,IZONE,IER)
 #include "building.h"
 #include "cfd.h"
-      
-C      integer lnblnk  ! function definition
 
 C Passed parameters.
       integer iuf,izone,ier
@@ -67,27 +61,28 @@ C Passed parameters.
       
       common/cfdfil/LCFD(MCOM),IFCFD(MCOM)
       COMMON/ICFNOD/ICFD,ICP
+
+C CALLU (logical) - U equation to be solved.
+C CALLV (logical) - V equation to be solved.
+C CALLW (logical) - W equation to be solved.
+C CALLT (logical) - temperature equation to be solved.
+C CALLC (logical) - depreciated variable, replaced by CALPOL.
+C KEMDL (logical) - k-epsilon turbulence equations to be solved.
+C BUOY (logical)  - buoyancy equation to be solved.
+C BOUSSI (logical)- use Boussinesq approximation.
+C ZEROT (logical) - use zero-equation, fixed-eddy-viscosity turbulence.
+C ZandKE (logical)- use fixed eddy viscosity then k-epsilon.
+C MITzero (logical)- use the zero-equation model.
       common/EQTION/CALLU(MNZ),CALLV(MNZ),CALLW(MNZ),CALLT(MNZ),
      &             CALLC(MNZ),KEMDL(MNZ),BUOY(MNZ),BOUSSI(MNZ),
      &             ZEROT(MNZ),ZandKE(MNZ),MITzero(MNZ)
-C CALLU (logical) U equation to be solved.
-C CALLV (logical) V equation to be solved.
-C CALLW (logical) W equation to be solved.
-C CALLT (logical) Temperature equation to be solved.
-C CALLC (logical) Depreciated variable, replaced by CALPOL.
-C KEMDL (logical) k-epsilon turbulence equations to be solved.
-C BUOY (logical) buoyancy equation to be solved.
-C BOUSSI (logical) use Boussinesq approx.
-C ZEROT (logical) use Zero-equation fixed-eddy-viscosity turbulence.
-C ZandKE (logical) use fixed eddy viscosity then k-epsilon.
-C MITzero (logical) use the MIT zero-equation model
 
-      common/EQTION3/CALLMA(MNZ),CALPOL(MCTM,MNZ),POLNAM(MCTM,MNZ),
-     &               NCTM(MNZ),JHUMINDX(MNZ),URFC(MCTM)
 C CALPOL Calculate contaminant concentration
 C CALLMA (logical) calculate local mean age of air.
 C NCTM total number of contaminants in a model
 C JHUMINDX contaminant number representing water (humidity)
+      common/EQTION3/CALLMA(MNZ),CALPOL(MCTM,MNZ),POLNAM(MCTM,MNZ),
+     &               NCTM(MNZ),JHUMINDX(MNZ),URFC(MCTM)
 
       COMMON/ZTURB/rMOOT(MNZ),nZtoKE(MNZ)
       COMMON/BUOYAN/BUOYA,BOUSSA,TBAR(MNZ)
@@ -95,30 +90,32 @@ C JHUMINDX contaminant number representing water (humidity)
 C Solution methods.
       common/METHDS/ITURB(MNZ),IBUOY(MNZ)
 
-C Boundary condition commons.  Key volume geometries.
-C NVOL - number of key volumes
-C IVOLF - interesting region of volume (e.g. a face, whole volume)
-C IVCELLS - start and end cell in x direction
-C JVCELLS - start and end cell in y direction
-C KVCELLS - start and end cell in z direction
+C NVOL    - number of key volumes.
+C IVOLF   - interesting region of volume (e.g. a face, whole volume).
+C IVCELLS - start and end cell in x direction.
+C JVCELLS - start and end cell in y direction.
+C KVCELLS - start and end cell in z direction.
       common/KEYVOLS/NVOL(MNZ),IVOLF(MNVLS,MNZ),IVCELLS(MNVLS,MNZ,2),
      &               JVCELLS(MNVLS,MNZ,2),KVCELLS(MNVLS,MNZ,2)
 
-C VOLNAME - id name of key volume
-C VCsurf - zone surface name for thermal conflation
-      common/KEYVOLN/VOLNAME(MNVLS,MNZ),VCsurf(MNVLS,MNZ)
+C VOLNAME - name of key volume.
+C VCsurf  - zone surface name for thermal conflation.
+C BLKSURF - surface names for blockage conflation.
+      common/KEYVOLN/VOLNAME(MNVLS,MNZ),VCsurf(MNVLS,MNZ),
+     &               BLKSURF(MNVLS,MNZ,6)
+      character VOLNAME*12,VCsurf*12,BLKSURF*12
 
-C IVTYPE - volume boundary condition type (e.g. source, velocity)
-C VOLTemp - BC temperature if applicable
-C VOLHeat - BC heat flux if applicable
-C IVConfl - surface handshaking if applicable
-C VOLHum - BC humidity if applicable
-C VOLCO2 - BC CO2 generation above ambient if applicable
-C VOLPol - BC pollutant generation above ambient if applicable
-C VOLVel - BC air velocity if applicable
-C VOLDir - BC air velocity direction vectors if applicable
-C VOLArea - BC small opening area if applicable
-C VOLPres - BC volume pressure if applicable
+C IVTYPE  - volume boundary condition (BC) type (e.g. source, velocity).
+C VOLTemp - BC temperature if applicable.
+C VOLHeat - BC heat flux if applicable.
+C IVConfl - surface handshaking if applicable.
+C VOLHum  - BC humidity if applicable.
+C VOLCO2  - BC CO2 generation above ambient if applicable.
+C VOLPol  - BC pollutant generation above ambient if applicable.
+C VOLVel  - BC air velocity if applicable.
+C VOLDir  - BC air velocity direction vectors if applicable.
+C VOLArea - BC small opening area if applicable.
+C VOLPres - BC volume pressure if applicable.
       common/KEYVDAT/IVTYPE(MNVLS,MNZ),VOLTemp(MNVLS,MNZ),
      &          VOLHeat(MNVLS,MNZ),IVConfl(MNVLS,MNZ),VOLHum(MNVLS,MNZ),
      &          VOLCO2(MNVLS,MNZ),VOLVel(MNVLS,MNZ),VOLDir(MNVLS,MNZ,2),
@@ -129,34 +126,38 @@ C VOLPres - BC volume pressure if applicable
      &             IPPHI(MNZ),SRMAX(MNZ)
       common/cfdini/INITFL(MNZ)
       common/GRIDEFN/origin,xgrid,ygrid,zgrid,zegrid,ortho
-      COMMON/CFDMFS1/ICFDNOD(MNZ),ICFDCNN(MNVLS,MNZ)
+
+C ICFDNOD - mass flow network node representative of CFD domain.
+C ICFDCNN - list of mfs connections representative of CFD domain openings.
+      common/CFDMFS1/ICFDNOD(MNZ),ICFDCNN(MNVLS,MNZ)
+
       common/cfdconf/ICFBLD(MNZ),ICFMFS(MNZ)
-C ICFDNOD = mass flow network node representative of CFD domain
-C ICFDCNN = list of mfs connections representative of CFD openings
+
+C ICTDFAF - 0, constant source strengths are defined.
+C         - 1, contamiant sources defined in contaminants network are
+C           used as sources within CFD domain (it is still possible to 
+C           fall back to static source strengths in CFD standalone mode).
+C SRCE    - source name defined in contaminant network model that is 
+C           used as source type BC within CFD domain.
+C ICCSRC  - 1, opening type BC also will act as source of contaminants
+C           in or out of CFD domain (only possible with mfs/dfs conflation).
       COMMON/CTDFAF/ICTDFAF(MNZ),SRCE(MNVLS,MCTM,MNZ),ICCSRC(MNZ)
-C ICTDFAF = 1 if contamiant sources defined in contaminants network are
-C           used as sources within CFD domain, it is still possible to 
-C           fall back to static source strengths in CFD standalone
-C         = 0 if only static (constant) source strengths are defined
-C SRCE = source name defined in contaminant network model that is 
-C        used as source type boundary condition within CFD.
-C ICCSRC = 1 if opening type BC also will act as sources of contaminants
-C          being brought into/out of CFD domain. Only possible with mfs
-C          - dfs conflation.
+
+C IDCasgn - identification number of casual gain type assocated with
+C           key volume.
+C FCasgn  - fraction of this casual gain emitted to the key volume.
       common/KEYCASGN/IDcasgn(MNVLS,MNZ),Fcasgn(MNVLS,MNZ)
-C IDCasgn = Identification number of casual gain type assocated with
-C this key volume
-C FCasgn  = Fraction of this casual gain emitted into the key volume
+
+C SCHMT  - turbulent Schmidt number for contaminants (= 2*Schmidt number).
+C GFM    - gram formula mass for contaminants.
+C VCRIT  - specific volume at critical point for contaminants.
+C TBOIL  - boiling point for contaminants.
+C TCRIT  - critical point for contaminants.
+C ISCHMT - 0, specified as a constant.
+C        - 1, parametric specification for SCHMT, i.e. from critical
+C          and other properties.     
       COMMON/SCHMTT/SCHMT(MCTM,MNZ),GFM(MCTM,MNZ),VCRIT(MCTM,MNZ),
      &       TBOIL(MCTM,MNZ),TCRIT(MCTM,MNZ),ISCHMT(MCTM,MNZ)
-C SCHMT = Turbulent Schmidt number for contaminants (=2*Schmidt number)
-C GFM = gram formula mass for contaminants
-C VCRIT = specific volume at critical point for contaminants
-C TBOIL = boiling point for contaminants
-C TCRIT = critical point for contaminants
-C ISCHMT = 1 if parametric specification for SCHMT i.e. from critical
-C            and other properties
-C        = 0 if specified as a constant
 
       logical origin,xgrid,ygrid,zgrid,zegrid,ortho
       LOGICAL CALLU,CALLV,CALLW,CALLT,CALLC,KEMDL,BUOY,BOUSSI
@@ -168,7 +169,7 @@ C        = 0 if specified as a constant
       character PCCSTR*256,PCCSTRA*26,PCCSTRB*12
       CHARACTER*72 TITLE,CFTRFL,LPHI
 
-      character VOLNAME*12, FACE*6, VCsurf*12, SRCE*12
+      character FACE*6, SRCE*12
 
 C Reset error condition flag.
       IER=0
@@ -176,33 +177,33 @@ C Reset error condition flag.
 
 C File header and conflation.
       write(IUF,'(a)',IOSTAT=ios,ERR=3)
-     &  '*DFS V2.2 # Zone air movement description.'
+     &  '*DFS V2.2 # Zone CFD domain description.'
       if(IFCFD(izone).eq.0)then
         write(IUF,'(a,i2,a)',IOSTAT=ios,ERR=3)'*conflation',
      &    IFCFD(izone),
-     &    '  # for use with stand-alone cfd solver only'
+     &    '  # for use with stand-alone CFD solver'
       elseif(IFCFD(izone).eq.1)then
         write(IUF,'(a,i2,a)',IOSTAT=ios,ERR=3)'*conflation',
      &    IFCFD(izone),
-     &    '  # thermal 1: derives surface hc from cfd'
+     &    '  # zone surface convection from CFD solution'
       elseif(IFCFD(izone).eq.2)then
         write(IUF,'(a,i2,a)',IOSTAT=ios,ERR=3)'*conflation',
      &    IFCFD(izone),
-     &    '  # thermal 2: surface hc and air temp from cfd'
+     &    '  # zone surface convection and air temp. from CFD solution'
       elseif(IFCFD(izone).eq.3)then
         write(IUF,'(a,i2,a)',IOSTAT=ios,ERR=3)'*conflation',
      &    IFCFD(izone),
-     &    '  # mass flow and cfd cooperate for solution'
+     &    '  # network flow and CFD solvers cooperate'
       else
         write(IUF,'(a,i2,a)',IOSTAT=ios,ERR=3)'*conflation',
      &    IFCFD(izone),
-     &    '  # conflation type'
+     &    '  # CFD model temporally adapted'
       endif
 
 C Title, date and documentation.
       write(IUF,'(2a)',IOSTAT=ios,ERR=3) '*title ',TITLE(ICFD)
-      write(IUF,'(a)',IOSTAT=ios,ERR=3)
-     &  '# user supplied notes for this domain'
+C     write(IUF,'(a)',IOSTAT=ios,ERR=3)
+C     &  '# user supplied notes for this domain'
 C      do 10 id=1,??
 C        write(IUF,'(2a)',IOSTAT=ios,ERR=3)
 C     &    '*doc ',??(id)(1:lnblnk(??(id)))
@@ -227,36 +228,36 @@ C Geometry and gridding.
      &  NREG(2,ICFD),NREG(3,ICFD),NREG(4,ICFD),
      &  '  # regions in X Y Zw Ze directions'
       write(IUF,'(a)',IOSTAT=ios,ERR=3) 
-     &  '# Negative cell number enables symetrical gridding.'
+     &  '# -ve cell number indicates symmetrical gridding.'
       write(IUF,'(a)',IOSTAT=ios,ERR=3) '*xregion'
       do 20 ix=1,NREG(1,ICFD)
         write(IUF,'(i4,2f8.3,a)') NCELX(ix,ICFD),XREG(ix,ICFD),
-     &    Xplaw(ix,ICFD),' # no cells, length, power law coeff'
+     &    Xplaw(ix,ICFD),' # no. cells, length, power law coefficient'
  20   continue
       write(IUF,'(a)',IOSTAT=ios,ERR=3) '*yregion'
       do 30 ix=1,NREG(2,ICFD)
         write(IUF,'(i4,2f8.3,a)') NCELY(ix,ICFD),YREG(ix,ICFD),
-     &    Yplaw(ix,ICFD),' # no cells, length, power law coeff'
+     &    Yplaw(ix,ICFD),' # no. cells, length, power law coefficient'
  30   continue
       write(IUF,'(a)',IOSTAT=ios,ERR=3) '*zwregion'
       do 40 ix=1,NREG(3,ICFD)
         write(IUF,'(i4,2f8.3,a)') NCELZ(ix,ICFD),ZREG(ix,ICFD),
-     &    Zplaw(ix,ICFD),' # no cells, length, power law coeff'
+     &    Zplaw(ix,ICFD),' # no. cells, length, power law coefficient'
  40   continue
 
       if(NREG(4,ICFD).gt.0)then
         write(IUF,'(a)',IOSTAT=ios,ERR=3) '*zeregion'
         do 50 ix=1,NREG(4,ICFD)
           write(IUF,'(i4,2f8.3,a)') NCELZE(ix,ICFD),ZREGE(ix,ICFD),
-     &      Zplawe(ix,ICFD),' # no cells, length, power law coeff'
+     &     Zplawe(ix,ICFD),' # no. cells, length, power law coefficient'
  50     continue
       endif
 
-C Volumes witin the domain.
+C Volumes within the domain.
       write(IUF,'(a)',IOSTAT=ios,ERR=3) 
-     &  '# Define the volumes for the CFD domain.'
+     &  '# Volumes within the CFD domain.'
       write(IUF,'(a,i4)',IOSTAT=ios,ERR=3)'*volumes ',NVOL(ICFD)
-      write(IUF,'(a)',IOSTAT=ios,ERR=3)'# name  type  Ii If Ji Jf Ki Kf'
+      write(IUF,'(a)',IOSTAT=ios,ERR=3)'# name  type  Is If Js Jf Ks Kf'
       do 60 I=1,NVOL(ICFD)
         if (IVOLF(I,ICFD).eq.1) then
           FACE='West'
@@ -309,6 +310,7 @@ C Boundary conditions.
      &           ' Symmetrical | Confl ',IVConfl(I,ICFD),VCsurf(I,ICFD)
         endif
  70   continue
+
       write(IUF,'(a)',IOSTAT=ios,ERR=3) 
      &  '# Air flow boundary conditions.'
       write(IUF,'(a)',IOSTAT=ios,ERR=3)'*air_flow '
@@ -392,17 +394,28 @@ C Boundary conditions.
      &           ,FCasgn(I,ICFD),PCCSTR
         endif
  90   continue
-      write(IUF,'(a)',IOSTAT=ios,ERR=3) '# Blockages.'
+      write(IUF,'(a)',IOSTAT=ios,ERR=3) '# Domain blockages.'
       write(IUF,'(a)',IOSTAT=ios,ERR=3) '*blockages'
       do 100 I=1,NVOL(ICFD)
         if (IVTYPE(I,ICFD).eq.30) then
           write(IUF,'(2a,f12.3)',IOSTAT=ios,ERR=3) 
-     &           VOLNAME(I,ICFD),' Heat',VOLHeat(I,ICFD)
+     &           VOLNAME(I,ICFD),' Heat ',VOLHeat(I,ICFD)
+        elseif (IVTYPE(I,ICFD).eq.31) then
+          write(IUF,'(2a,f12.3)',IOSTAT=ios,ERR=3) 
+     &           VOLNAME(I,ICFD),' Temp ',VOLTemp(I,ICFD)
+        elseif (IVTYPE(I,ICFD).eq.32) then
+          write(IUF,'(2a,f12.2,2a)',IOSTAT=ios,ERR=3)     
+     &           VOLNAME(I,ICFD),' Temp ',VOLTemp(I,ICFD),' | Confl ',
+     &           VCsurf(I,ICFD)
+        elseif (IVTYPE(I,ICFD).eq.33) then
+          write(IUF,'(2a,f12.2,7a)',IOSTAT=ios,ERR=3)     
+     &           VOLNAME(I,ICFD),' Temp ',VOLTemp(I,ICFD),' | Confl ',
+     &           BLKSURF(I,ICFD,1),BLKSURF(I,ICFD,2),BLKSURF(I,ICFD,3),
+     &           BLKSURF(I,ICFD,4),BLKSURF(I,ICFD,5),BLKSURF(I,ICFD,6)
         endif
  100  continue
 
-
-C Solution methods
+C Solution methods.
       write(IUF,'(a)',IOSTAT=ios,ERR=3)'*solution_methods'
       if (ITURB(ICFD).eq.0) then
         write(IUF,'(a)',IOSTAT=ios,ERR=3) 'Turbulence 0 # ignored'
@@ -412,7 +425,7 @@ C Solution methods
         write(IUF,'(a,f6.2,a)',IOSTAT=ios,ERR=3) 'Turbulence 2 ',
      &                            rMOOT(ICFD),' # fixed eddy viscosity'
       elseif (ITURB(ICFD).eq.3) then
-        write(IUF,'(a)',IOSTAT=ios,ERR=3) 'Turbulence 3 # MIT'
+        write(IUF,'(a)',IOSTAT=ios,ERR=3) 'Turbulence 3 # zero equation'
       elseif (ITURB(ICFD).eq.4) then
         write(IUF,'(a,f6.2,i5,a)',IOSTAT=ios,ERR=3) 'Turbulence 4 ',
      &        rMOOT(ICFD),nZtoKE(ICFD),' # fixed eddy viscosity -> k-e'
@@ -421,20 +434,19 @@ C Solution methods
         write(IUF,'(a)',IOSTAT=ios,ERR=3) 'Buoyancy 0 # ignored'
       elseif (IBUOY(ICFD).eq.1) then
         write(IUF,'(a,f6.4,a)',IOSTAT=ios,ERR=3)'Buoyancy 1 ',
-     &                URFCD(ICFD),' # full calc, density lin relax fac'
+     &      URFCD(ICFD),' # included, density linear relax. factor'
       elseif (IBUOY(ICFD).eq.2) then
         write(IUF,'(a,f6.2,a)',IOSTAT=ios,ERR=3) 'Buoyancy 2 ',
-     &                               Tbar(ICFD),' # Boussinesq approx.'
+     &                        Tbar(ICFD),' # Boussinesq approximation.'
       endif
-
 
 C Equations to be solved, initial values and relaxation factors.
       write(IUF,'(a)',IOSTAT=ios,ERR=3)'# Equations to be solved:'
       write(IUF,'(a)',IOSTAT=ios,ERR=3)'*solution_equations'
       write(IUF,'(a)',IOSTAT=ios,ERR=3)
-     &  '#  Type  Initial value  Relaxation type and factors'
+     &  '#  Type  Initial value  Relaxation type and high/low factors'
 
-C Pressure
+C Pressure.
       write(IUF,'(a,f8.3,a,f6.3,1X,f6.3)',IOSTAT=ios,ERR=3) 
      &  'Pressure ',PINIT(ICFD),' Linear ',URFCP(ICFD),URFCP2(ICFD)
 
@@ -473,7 +485,7 @@ C Concentration.
         ENDIF
  123  CONTINUE
 
-C Local mean age.
+C Local mean age of air.
       if(CALLMA(ICFD))then
         write(IUF,'(a)',IOSTAT=ios,ERR=3)
      &       'Lmage  n/a Linear  n/a # currently 0.9 is always assumed'
@@ -485,7 +497,7 @@ C Convergance criteria.
       write(IUF,'(i6,G12.4,a)',IOSTAT=ios,ERR=3) MAXITR(ICFD),
      &                     SRMAX(ICFD),' No'
       write(IUF,'(a,3i4,a)',IOSTAT=ios,ERR=3)  '*monitor ',
-     &  IMONT(ICFD)-1,JMONT(ICFD)-1,KMONT(ICFD)-1,'  CFD.mon'
+     &  IMONT(ICFD)-1,JMONT(ICFD)-1,KMONT(ICFD)-1,'  ../tmp/CFD.mon'
       if (INITFL(ICFD)) then
         write(IUF,'(a)',IOSTAT=ios,ERR=3) '*reint  YES'
       else
@@ -500,9 +512,9 @@ C Close file.
       return
 
  3    if(IOS.eq.2)then
-        CALL USRMSG(' File permission error in ',LCFD(izone),'W')
+        CALL USRMSG('File permission error in ',LCFD(izone),'W')
       else
-        CALL USRMSG(' File write error in ',LCFD(izone),'W')
+        CALL USRMSG('File write error in ',LCFD(izone),'W')
       endif
       IER=1
       CALL ERPFREE(IUF,ISTAT)
@@ -510,62 +522,50 @@ C Close file.
 
       end
 
-C This file contains routines to (1) Read in the CFD domain configuration file 
-C and (2) calculate static, derived data from this file.
-C Contains:
-C RCFD   - reads CFD configuration file.
-C IGETCN - Identify mass flow connection.
-C IGETND - Identify mass flow network node associated with a CFD node.
-C IDSURF - Identify building surface number.
-C INICNT - Initialize simulation constant parameters.
-C CFDSBREAD - Reads in data and sets variables describing CFD solid boundaries.
-C SETGEO - sets the geometry for the CFD domain in terms of ESP-r's standard
-C          geometry model (needed for graphic feedback scaling).
 
-C ********************* DFDREAD *********************
-C DFDREAD - Reads the CFD configuration file (version 2,2.1 and 2.2)
-C IZONE is the index of the model zone
-C itrc signals verbose reporting if greater than zero
-C itu is the unit to send reports to
-C IER is set to one if file cannot be read, otherwise negative if
-C     there is an error while scanning file.
+C ******************** DFDREAD *********************
+C Reads the CFD domain configuration file (versions 2,2.1 and 2.2).
+C IZONE - index of the model zone.
+C itrc  - signals verbose reporting if greater than zero.
+C itu   - the unit to send reports to
+C IER   - set to one if file cannot be read, otherwise negative if
+C         there is an error while scanning file.
+
       SUBROUTINE DFDREAD(IZONE,itrc,itu,IER)
 #include "building.h"
 #include "cfd.h"
 #include "net_flow.h"
 #include "geometry.h"
 #include "espriou.h"
-C espriou.h provides currentfile.
       
       integer lnblnk  ! function definition
 
 C Passed parameters.
       integer izone,itrc,itu,ier
 
-C Grid and Geometry definition:
-C   NREG(?,ICFD) - Number of regions in each direction(?: 1- x, 2- y, 3- z).
-C   NCELX(IREG,ICFD) - Number of cells in x-direction per region(IREG) per
+C Grid and geometry definition:
+C  NREG(?,ICFD)      - Number of regions in each direction(?: 1- x, 2- y, 3- z).
+C  NCELX(IREG,ICFD)  - Number of cells in x-direction per region(IREG) per
 C                      domain(ICFD).
-C   NCELY(IREG,ICFD) - Number of cells in y-direction per region per domain(ICFD).
-C   NCELZ(IREG,ICFD) - Number of cells in z-direction per region per domain(ICFD.
-C   NCELZe(IREG,ICFD) - Number of cells in z (east)-direction.
-
-C   XREG(IREG,ICFD) - x-dimension of the region IREG per domain (ICFD).
-C   YREG(IREG,ICFD) - y-dimension of the region IREG per domain (ICFD).
-C   ZREG(IREG,ICFD) - z-dimension of the region IREG per domain (ICFD).
-C   ZREGe(IREG,ICFD) - z (east) -dimension of the region IREG per domain (ICFD).
-
-C   Xplaw(IREG,ICFD) - x-power law coefficient of region IREG per domain (ICFD).
-C   Yplaw(IREG,ICFD) - y-power law coefficient of region IREG per domain (ICFD). 
-C   Zplaw(IREG,ICFD) - West wall z-power law coef of region IREG per domain (ICFD).
-C   Zplawe(IREG,ICFD) - East wall z-power law coef of region IREG per domain (ICFD).
-C      (used in the case of curvilinear Z)
+C  NCELY(IREG,ICFD)  - Number of cells in y-direction per region per domain(ICFD).
+C  NCELZ(IREG,ICFD)  - Number of cells in z-direction per region per domain(ICFD.
+C  NCELZe(IREG,ICFD) - Number of cells in z (east)-direction.
+C  XREG(IREG,ICFD)   - x-dimension of the region IREG per domain (ICFD).
+C  YREG(IREG,ICFD)   - y-dimension of the region IREG per domain (ICFD).
+C  ZREG(IREG,ICFD)   - z-dimension of the region IREG per domain (ICFD).
+C  ZREGe(IREG,ICFD)  - z (east) -dimension of the region IREG per domain (ICFD).
+C  Xplaw(IREG,ICFD)  - x-power law coefficient of region IREG per domain (ICFD).
+C  Yplaw(IREG,ICFD)  - y-power law coefficient of region IREG per domain (ICFD). 
+C  Zplaw(IREG,ICFD)  - West wall z-power law coef of region IREG per domain (ICFD).
+C  Zplawe(IREG,ICFD) - East wall z-power law coef of region IREG per domain (ICFD)
+C                      (used in the case of curvilinear Z)
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/FILEP/IFIL
       common/GRIDFN/NCELX(MNREG,MNZ),NCELY(MNREG,MNZ),NCELZ(MNREG,MNZ),
      &  NCELZE(MNREG,MNZ),XREG(MNREG,MNZ),YREG(MNREG,MNZ),
      &  ZREG(MNREG,MNZ),ZREGE(MNREG,MNZ),Xplaw(MNREG,MNZ),
      &  Yplaw(MNREG,MNZ),Zplaw(MNREG,MNZ),Zplawe(MNREG,MNZ),NREG(4,MNZ)
+      COMMON/ALL/NI,NJ,NK,NIM1,NJM1,NKM1,NIM2,NJM2,NKM2
       COMMON/FDTRFC/FLSDTU(MNZ),FLSDTV(MNZ),FLSDTW(MNZ),FLSDTP(MNZ),
      &              FLSDTT(MNZ),FLSDTK(MNZ),FLSDTE(MNZ)
       COMMON/LINRFC/URFCU(MNZ),URFCV(MNZ),URFCW(MNZ),URFCP(MNZ),
@@ -582,16 +582,16 @@ C      (used in the case of curvilinear Z)
       common/EQTION3/CALLMA(MNZ),CALPOL(MCTM,MNZ),POLNAM(MCTM,MNZ),
      &               NCTM(MNZ),JHUMINDX(MNZ),URFC(MCTM)
       common/param1/MAXITR(MNZ),IMONT(MNZ),JMONT(MNZ),KMONT(MNZ),
-     1             IPPHI(MNZ),SRMAX(MNZ)
+     &             IPPHI(MNZ),SRMAX(MNZ)
       common/param2/TITLE(MNZ),CFTRFL(MNZ),LPHI(MNZ)
       common/cfdini/INITFL(MNZ)
       COMMON/ICFNOD/ICFD,ICP
       COMMON/CONST/GREAT,small,GRAV
       COMMON/cfdfil/LCFD(MCOM),IFCFD(MCOM)
 
-C Conflation common:
-C   ICFBLD(ICFD)=building conflation mechanism (not used at present)
-C   ICFMFS(ICFD)=mass flow conflation mechanism (0=none, 1=active)
+C Conflation.
+C  ICFBLD(ICFD)=building conflation mechanism (not used at present)
+C  ICFMFS(ICFD)=mass flow conflation mechanism (0=none, 1=active)
       common/cfdconf/ICFBLD(MNZ),ICFMFS(MNZ)
       COMMON/CFDMFS1/ICFDNOD(MNZ),ICFDCNN(MNVLS,MNZ)
       COMMON/MFS/IMFACT
@@ -610,10 +610,12 @@ C Domain geometry.
 C Solution methods.
       common/METHDS/ITURB(MNZ),IBUOY(MNZ)
 
-C Boundary condition commons.  
+C Boundary conditions.  
       common/KEYVOLS/NVOL(MNZ),IVOLF(MNVLS,MNZ),IVCELLS(MNVLS,MNZ,2),
      &               JVCELLS(MNVLS,MNZ,2),KVCELLS(MNVLS,MNZ,2)
-      common/KEYVOLN/VOLNAME(MNVLS,MNZ),VCsurf(MNVLS,MNZ)
+      common/KEYVOLN/VOLNAME(MNVLS,MNZ),VCsurf(MNVLS,MNZ),
+     &               BLKSURF(MNVLS,MNZ,6)
+      character VOLNAME*12, VCsurf*12, BLKSURF*12
       common/KEYVDAT/IVTYPE(MNVLS,MNZ),VOLTemp(MNVLS,MNZ),
      &          VOLHeat(MNVLS,MNZ),IVConfl(MNVLS,MNZ),VOLHum(MNVLS,MNZ),
      &          VOLCO2(MNVLS,MNZ),VOLVel(MNVLS,MNZ),VOLDir(MNVLS,MNZ,2),
@@ -621,9 +623,9 @@ C Boundary condition commons.
      &          VOLPol(MCTM,MNVLS,MNZ)
       common/KEYCASGN/IDcasgn(MNVLS,MNZ),Fcasgn(MNVLS,MNZ)
 
-C Common blocks for blockages and small supply openings
+C Common blocks for blockages and small supply openings.
       common/blksso/NBLK(MNZ),INBLK(MNVLS,MNZ),NSSO(MNZ),
-     &          INSSO(MNVLS,MNZ)
+     &          INSSO(MNVLS,MNZ),BLKTEMP(MNVLS,MNZ,6)
 
 C Common block for calculation of turbulent Schmidt number for contaminants.
       COMMON/SCHMTT/SCHMT(MCTM,MNZ),GFM(MCTM,MNZ),VCRIT(MCTM,MNZ),
@@ -641,8 +643,6 @@ C Common block for calculation of turbulent Schmidt number for contaminants.
       CHARACTER TITLE*72,CFTRFL*72,LPHI*72,LCFD*72
       CHARACTER TYPE*6,phrase*64
       CHARACTER outs*124,outs_pre*124
-      character VOLNAME*12, VCsurf*12
-C      character LCND*12, LXND*12, LCNN*12
       LOGICAL BUOYA,BOUSSA
 
 C Set volume counters to zero.
@@ -674,8 +674,8 @@ C conflation type.
         K=0
         CALL EGETW(OUTSTR,K,WORD,'W','conflation tag',IER)
         if (WORD(1:11).ne.'*conflation') then
-          call usrmsg('Could not read conflation type!',
-     &                'Cannot continue reading file. ','W')
+          call usrmsg('Cannot read conflation type!',
+     &                'Abandoning reading .dfd file.','W')
           IER=1
           CALL ERPFREE(IFL,ISTAT)
           return
@@ -693,7 +693,7 @@ C conflation type.
         return
       endif
 
-C Read in title.
+C Read title.
       TITLE(ICFD)='  '
       CALL STRIPC(IFL,OUTSTR,0,ND,1,' DFD title',IER)
       K=0
@@ -753,8 +753,6 @@ C Text feedback.
         endif
         call edisp(itu,' ')  
       endif
-
-C Possibly more descriptive text here... << >>
 
 C Read in vertex linking.
       CALL STRIPC(IFL,OUTSTR,0,ND,1,' therm geom',IER)
@@ -833,15 +831,14 @@ C Set ORTHO and write feedback if required.
 
 C Check for error flag.
       if (IER.ne.0) then
-        call usrmsg('Error reading gridding regions.',
-     &              'Cannot continue reading file. ','W')
+        call usrmsg('Error reading gridding regions!',
+     &              'Abandoning file read.','W')
         IER=1
         CALL ERPFREE(IFL,ISTAT)
         return
       endif
 
-C Read gridding geometry.
-C First check if orthogonal or not.
+C Read gridding geometry. First check if orthogonal.
       if (ORTHO) then
         NAX=3
       else
@@ -860,7 +857,7 @@ C Set total domain length in each direction.
       ZLEN=0.0
       ZLENe=0.0
 
-C Now loop through each gridding direction.
+C Loop through each gridding direction.
       do 10 IAX=1,NAX
         CALL STRIPC(IFL,OUTSTR,0,ND,1,'grid axis',IER)
         K=0
@@ -868,13 +865,14 @@ C Now loop through each gridding direction.
         if (WORD(1:8).eq.'*xregion') then
           xgrid=.TRUE.
 
-C For each region read: no of cells, section length and power law coef.
+C For each region read: number of cells, section length and power law
+C coefficient.
           do 20 IGR=1,NREG(1,ICFD)
             CALL STRIPC(IFL,OUTSTR,0,ND,1,'x region data',IER)
             K=0
             MIN=NTCELX*(-1)
             CALL EGETWI(OUTSTR,K,IVAL,MIN,NTCELX,'F',
-     &                          'Number of x cells',IER)
+     &                          'Number of x cells?',IER)
             NCELX(IGR,ICFD)=IVAL
             CALL EGETWR(OUTSTR,K,VAL,0.0001,1000.0,'W',
      &                           'Size of x region',IER)
@@ -886,7 +884,7 @@ C For each region read: no of cells, section length and power law coef.
             if (itrc.gt.0) then
               write(outs,'(a,i4,a,i4,a,f6.2,a,f6.3)') 'X Region',IGR,
      &        ', cells:',ABS(NCELX(IGR,ICFD)),', size:',XREG(IGR,ICFD),
-     &                              ', power law coef:',Xplaw(IGR,ICFD)
+     &                             ', power law coeff.:',Xplaw(IGR,ICFD)
               call edisp(itu,outs)
             endif
  20       continue
@@ -895,7 +893,7 @@ C For each region read: no of cells, section length and power law coef.
             call edisp(itu,outs)
           endif
 
-C Only NTCELX-2 cells allowed, otherwise array bounds exceeded 
+C Only NTCELX-2 cells allowed, otherwise array bounds exceeded.
           if(NTCX.GT.(NTCELX-2))then
             write(outs,'(a,i4)') ' Current limit is ',NTCELX-2 
             call usrmsg(' Too many cells in X direction.',outs,'W')
@@ -905,25 +903,25 @@ C Only NTCELX-2 cells allowed, otherwise array bounds exceeded
         elseif (WORD(1:8).eq.'*yregion') then
           ygrid=.TRUE.
 
-C For each region read: no of cells, section length and power law coef.
+C For each region, read: no. of cells, section length and power law coefficient.
           do 30 IGR=1,NREG(2,ICFD)
             CALL STRIPC(IFL,OUTSTR,0,ND,1,'y region data',IER)
             K=0
             MIN=NTCELY*(-1)
             CALL EGETWI(OUTSTR,K,IVAL,MIN,NTCELY,'F',
-     &                          'Number of y cells',IER)
+     &                          'Number of y cells?',IER)
             NCELY(IGR,ICFD)=IVAL
             CALL EGETWR(OUTSTR,K,VAL,0.0001,1000.0,'W',
      &                           'Size of y region',IER)
             YREG(IGR,ICFD)=VAL
-            CALL EGETWR(OUTSTR,K,VAL,0.,0.,'-','Power law coef',IER)
+            CALL EGETWR(OUTSTR,K,VAL,0.,0.,'-','Power law coeff.',IER)
             Yplaw(IGR,ICFD)=VAL
             NTCY=NTCY+ABS(NCELY(IGR,ICFD))
             YLEN=YLEN+YREG(IGR,ICFD)
             if (itrc.gt.0) then
               write(outs,'(a,i4,a,i4,a,F6.2,a,F6.3)') 'Y Region',IGR,
      &                       ', cells:',ABS(NCELY(IGR,ICFD)),', size:',
-     &               YREG(IGR,ICFD),', power law coef:',Yplaw(IGR,ICFD)
+     &               YREG(IGR,ICFD),', power law coeff:',Yplaw(IGR,ICFD)
               call edisp(itu,outs)
             endif
  30       continue
@@ -932,8 +930,8 @@ C For each region read: no of cells, section length and power law coef.
             call edisp(itu,outs)
           endif
           if(NTCY.GT.(NTCELY-2))then
-            write(outs,'(a,i4)') ' Current limit is ',NTCELY-2
-            call usrmsg(' Too many cells in Y direction.',outs,'W')
+            write(outs,'(a,i4)') 'Current limit is ',NTCELY-2
+            call usrmsg('Too many cells in Y direction.',outs,'W')
             ier=1
             ygrid=.FALSE.
           endif
@@ -941,25 +939,25 @@ C For each region read: no of cells, section length and power law coef.
           zgrid=.TRUE.
 
 
-C For each region read: no of cells, section length and power law coef.
+C For each region, read: no. of cells, section length and power law coefficient.
           do 40 IGR=1,NREG(3,ICFD)
             CALL STRIPC(IFL,OUTSTR,0,ND,1,'z region data',IER)
             K=0
             MIN=NTCELZ*(-1)
             CALL EGETWI(OUTSTR,K,IVAL,MIN,NTCELZ,'F',
-     &                          'Number of z cells',IER)
+     &                          'Number of z cells?',IER)
             NCELZ(IGR,ICFD)=IVAL
             CALL EGETWR(OUTSTR,K,VAL,0.0001,1000.0,'W',
      &                           'Size of z region',IER)
             ZREG(IGR,ICFD)=VAL
-            CALL EGETWR(OUTSTR,K,VAL,0.,0.,'-','Power law coef',IER)
+            CALL EGETWR(OUTSTR,K,VAL,0.,0.,'-','Power law coeff.',IER)
             Zplaw(IGR,ICFD)=VAL
             NTCZ=NTCZ+ABS(NCELZ(IGR,ICFD))
             ZLEN=ZLEN+ZREG(IGR,ICFD)
             if (itrc.gt.0) then
               write(outs,'(a,i3,a,i4,a,F6.2,a,F6.3)') 'Z Region',IGR,
      &                     ', cells:',ABS(NCELZ(IGR,ICFD)),', size:',
-     &             ZREG(IGR,ICFD),', power law coef:',Zplaw(IGR,ICFD)
+     &             ZREG(IGR,ICFD),', power law coeff.:',Zplaw(IGR,ICFD)
               call edisp(itu,outs)
             endif
  40       continue
@@ -969,20 +967,20 @@ C For each region read: no of cells, section length and power law coef.
           endif
           if(NTCZ.GT.(NTCELZ-2))then
             write(outs,'(a,i4)') ' Current limit is ',NTCELZ-2
-            call usrmsg(' Too many cells in Z direction.',outs,'W')
+            call usrmsg('Too many cells in Z direction.',outs,'W')
             ier=1
             zgrid=.FALSE.
           endif
         elseif (WORD(1:9).eq.'*zeregion') then
           zegrid=.TRUE.
 
-C For each region read: no of cells, section length and power law coef.
+C For each region, read: no. of cells, section length and power law coefficient.
           do 50 IGR=1,NREG(4,ICFD)
             CALL STRIPC(IFL,OUTSTR,0,ND,1,'ze region data',IER)
             K=0
             MIN=NTCELZ*(-1)
             CALL EGETWI(OUTSTR,K,IVAL,MIN,NTCELZ,'F',
-     &                          'Number of ze cells',IER)
+     &                          'Number of ze cells?',IER)
             NCELZe(IGR,ICFD)=IVAL
             CALL EGETWR(OUTSTR,K,VAL,0.0001,1000.0,'W',
      &                           'Size of ze region',IER)
@@ -1012,7 +1010,7 @@ C For each region read: no of cells, section length and power law coef.
 C Check that total number of cells in both Z dirs are the same.
           if (NTCZ.ne.NTCZe) then
             call usrmsg('Total number of cells on East and West',
-     &                  'face differ. Not allowed in curviliniear!','W')
+     &            'face differ; disallowed in curviliniear mode!','W')
             ier=1
             zgrid=.FALSE.
             zegrid=.FALSE.
@@ -1026,8 +1024,8 @@ C Check that total number of cells in both Z dirs are the same.
 C Check for error flag.
       if (IER.ne.0) then
         call usrmsg(
-     &    'A warning has occured while reading the gridding data.',
-     &    'Please check the data.  Continuing to read file.','W')
+     &    'Warning while reading the gridding data;',
+     &    'please check. Continuing to read the file.','W')
         xgrid=.FALSE.
         ygrid=.FALSE.
         zgrid=.FALSE.
@@ -1053,6 +1051,26 @@ C Only do this for orthogonal directions (i.e. omit Ze axis)
         NCELZ(1,ICFD)=1
         ZREG(1,ICFD)=1.0
       endif
+
+C Calculate the total number of cells in each direction.
+      NIM2=0
+      NJM2=0
+      NKM2=0
+      DO I=1,NREG(1,ICFD)
+        NIM2=NIM2+ABS(NCELX(I,ICFD))
+      ENDDO
+      DO I=1,NREG(2,ICFD)
+        NJM2=NJM2+ABS(NCELY(I,ICFD))
+      ENDDO
+      DO I=1,NREG(3,ICFD)
+        NKM2=NKM2+ABS(NCELZ(I,ICFD))
+      ENDDO
+      NIM1=NIM2+1
+      NJM1=NJM2+1
+      NKM1=NKM2+1
+      NI=NIM1+1
+      NJ=NJM1+1
+      NK=NKM1+1
 
 C Read in key volumes in domain.
       CALL STRIPC(IFL,OUTSTR,0,ND,1,'key volumes',IER)
@@ -1140,7 +1158,7 @@ C Read in volume name, type and geometry.
 C Check if all boundary cells have been defined as boundary conditions.
       CALL BCEKCK(ITRC)
 
-C Now read solid boundary conditions.
+C Read solid boundary conditions.
       CALL STRIPC(IFL,OUTSTR,0,ND,1,'solid volumes',IER)
       K=0
       CALL EGETW(OUTSTR,K,WORD,'W','solid volumes tag',IER)
@@ -1250,7 +1268,7 @@ C Loop back again for next solid BC.
         endif
       endif
 
-C= Now read air flow opening boundary conditions.
+C Read air flow opening boundary conditions.
 C Read file until *sources line is reached.
  98   CALL STRIPC(IFL,OUTSTR,99,ND,1,'air flow data',IER)
       K=0
@@ -1284,7 +1302,7 @@ C                  ICFMFS(ICFD)=1
      &            'redefine opening type boundary conditions','W')
                 ELSEIF(VER.GT.2.05.AND.VER.LT.2.25)THEN
 
-C Mass flow connection data for version 2.1 and 2.2
+C Mass flow connection data for version 2.1 and 2.2.
                   CALL EGETWI(OUTSTR,K,INODE,0,MNOD,'w','CFD nod',IER)
                   CALL EGETWI(OUTSTR,K,ICNNE,0,MCNN,'w','conn. #',IER)
                   ICFMFS(ICFD)=1
@@ -1519,7 +1537,7 @@ C Loop back again for next air flow BC.
           call edisp(itu,' ')
         endif
 
-C Read number of contaminants defined and which one is water (humidity)
+C Read number of contaminants defined and which one is water (humidity).
         CALL EGETWI(OUTSTR,K,NCTM(ICFD),0,MCTM,'w','# of contaminants',
      &    IER)
         CALL EGETW(OUTSTR,K,WORD,'W','string in *sources line',IER)
@@ -1528,7 +1546,7 @@ C Read number of contaminants defined and which one is water (humidity)
         CALL EGETWI(OUTSTR,K,JHUMINDX(ICFD),0,MCTM,'w','water index',
      &    IER)
 
-C Read data to calculate turbulent Schmidt number
+C Read data to calculate turbulent Schmidt number.
         IF(VER.GT.2.15.AND.VER.LT.2.25)THEN
           DO 156 ICTM=1,NCTM(ICFD)
             CALL STRIPC(IFL,OUTSTR,0,ND,1,'tur schmdt #',IER)
@@ -1553,7 +1571,7 @@ C Read data to calculate turbulent Schmidt number
         ENDIF
       endif
 
-C List conflated mfs (if one is active) before describing *blockages
+C List conflated mfs (if one is active) before describing *blockages.
       IF((ICFMFS(ICFD).GT.0).and.(cAppName.ne.'dfs').and.
      &                                                 (itrc.gt.0))THEN
         CALL EDISP(ITU,' Following conflated flow network will be used')
@@ -1562,7 +1580,7 @@ C List conflated mfs (if one is active) before describing *blockages
         CALL EDISP(ITU,' ')
       ENDIF
 
-C Read line containing contaminant name information
+C Read line containing contaminant name information.
       IF(NCTM(ICFD).GE.1)THEN
         CALL STRIPC(IFL,OUTSTR,0,ND,1,'ctm names',IER)
         K=0
@@ -1618,18 +1636,11 @@ C Assume data in order.
             CALL EGETWR(OUTSTR,K,VALS,-10.,99.,'-','src heat',IER)
             VOLHeat(IV,ICFD)=VALS
 
-C Debug.
-C           write(6,*)'volheat',volheat(15,1),volheat(16,1)
-
             CALL EGETWI(OUTSTR,K,IVALS,0,MGTY,'-','cas gn id',IER)
             IDcasgn(IV,ICFD)=IVALS
-C Debug.
-C           write(6,*)'idcasgn',idcasgn(15,1),idcasgn(16,1)
 
             CALL EGETWR(OUTSTR,K,VALS,0.,1.,'-','frac of gain',IER)
             Fcasgn(IV,ICFD)=VALS
-C Debug.
-C           write(6,*)'fcasgn',fcasgn(15,1),fcasgn(16,1)
 
             DO 109 ICTM=1,NCTM(ICFD)
               CALL EGETWR(OUTSTR,K,VALS,0.,1.,'-','ctm generation',IER)
@@ -1693,7 +1704,7 @@ C Loop back again for next source BC.
       endif
 
 C Read line until reach *solutions line.
- 116  CALL STRIPC(IFL,OUTSTR,0,ND,1,'sources data',IER)
+ 116  CALL STRIPC(IFL,OUTSTR,99,ND,1,'sources data',IER)
       K=0
       CALL EGETW(OUTSTR,K,WORD,'W','sources tag',IER)
       if (WORD(1:17).ne.'*solution_methods') then 
@@ -1702,19 +1713,99 @@ C Read data and match to volume with same name.
 C read BLOCKAGES here.
         do 112 IV=1,NVOL(ICFD)
           if (VOLNAME(IV,ICFD).eq.WORD(1:12)) then
-            IVTYPE(IV,ICFD)=30
             NBLK(ICFD)=NBLK(ICFD)+1
             INBLK(NBLK(ICFD),ICFD)=IV
 
 C Assume data in order.
-            CALL EGETW(OUTSTR,K,WORD,'W','source heat flux',IER)
-            CALL EGETWR(OUTSTR,K,VALS,-10.,99.,'-','src heat',IER)
-            VOLHeat(IV,ICFD)=VALS
-            if (itrc.gt.0) then
-              write(outs,'(3a,f7.3,a)')'Blockage ',
-     &                    VOLNAME(IV,ICFD)(1:LNBLNK(VOLNAME(IV,ICFD))),
-     &                          ' has heat flux ',VOLHeat(IV,ICFD),' W'
-              call edisp(itu,outs)
+            CALL EGETW(OUTSTR,K,WORD,'W','blk type',IER)
+            if (WORD(1:4).eq.'Heat') then
+              CALL EGETWR(OUTSTR,K,VALS,-10.,99.,'-','blk heat',IER)
+              VOLHeat(IV,ICFD)=VALS
+              IVTYPE(IV,ICFD)=30
+              if (itrc.gt.0) then
+                write(outs,'(3a,f7.3,a)')'Blockage ',
+     &            VOLNAME(IV,ICFD)(1:LNBLNK(VOLNAME(IV,ICFD))),
+     &            ' has heat flux ',VOLHeat(IV,ICFD),' W/m^2'
+                call edisp(itu,outs)
+              endif
+              VCsurf(IV,ICFD)='NONE        '
+              do i=1,6
+                BLKSURF(IV,ICFD,i)='NONE        '
+              enddo
+            elseif (WORD(1:4).eq.'Temp') then
+              CALL EGETWR(OUTSTR,K,VALS,-10.,99.,'-','blk temp',IER)
+              VOLTemp(IV,ICFD)=VALS
+              IVTYPE(IV,ICFD)=31
+              if (itrc.gt.0) then
+                write(outs,'(3a,f7.3,a)')'Blockage ',
+     &            VOLNAME(IV,ICFD)(1:LNBLNK(VOLNAME(IV,ICFD))),
+     &            ' has temperature ',VOLHeat(IV,ICFD),' C'
+                call edisp(itu,outs)
+              endif
+              VCsurf(IV,ICFD)='NONE        '
+              do i=1,6
+                BLKSURF(IV,ICFD,i)='NONE        '
+              enddo
+            endif
+            if (ND.eq.4) then
+              CALL EGETW(OUTSTR,K,WORD,'W','conf',IER)
+              CALL EGETW(OUTSTR,K,WORD,'W','surface',IER)
+              VCsurf(IV,ICFD)=WORD(1:12)
+              if (itrc.gt.0) then
+                write(outs,'(2a)')
+     &            ' and is conflated to surface ',WORD(1:12)
+                call edisp(itu,outs)
+              endif
+              IVTYPE(IV,ICFD)=32
+              do i=1,6
+                BLKSURF(IV,ICFD,i)='NONE        '
+              enddo
+            elseif (ND.gt.4) then
+              CALL EGETW(OUTSTR,K,WORD,'W','conf',IER)
+              CALL EGETW(OUTSTR,K,WORD,'W','surface',IER)
+              BLKSURF(IV,ICFD,1)=WORD(1:12)
+              if (itrc.gt.0) then
+                write(outs,'(2a)')
+     &            ' east face is conflated to surface ',WORD(1:12)
+                call edisp(itu,outs)
+              endif
+              CALL EGETW(OUTSTR,K,WORD,'W','surface',IER)
+              BLKSURF(IV,ICFD,2)=WORD(1:12)
+              if (itrc.gt.0) then
+                write(outs,'(2a)')
+     &            ' west face is conflated to surface ',WORD(1:12)
+                call edisp(itu,outs)
+              endif
+              CALL EGETW(OUTSTR,K,WORD,'W','surface',IER)
+              BLKSURF(IV,ICFD,3)=WORD(1:12)
+              if (itrc.gt.0) then
+                write(outs,'(2a)')
+     &            ' north face is conflated to surface ',WORD(1:12)
+                call edisp(itu,outs)
+              endif
+              CALL EGETW(OUTSTR,K,WORD,'W','surface',IER)
+              BLKSURF(IV,ICFD,4)=WORD(1:12)
+              if (itrc.gt.0) then
+                write(outs,'(2a)')
+     &            ' south face is conflated to surface ',WORD(1:12)
+                call edisp(itu,outs)
+              endif
+              CALL EGETW(OUTSTR,K,WORD,'W','surface',IER)
+              BLKSURF(IV,ICFD,5)=WORD(1:12)
+              if (itrc.gt.0) then
+                write(outs,'(2a)')
+     &            ' high face is conflated to surface ',WORD(1:12)
+                call edisp(itu,outs)
+              endif
+              CALL EGETW(OUTSTR,K,WORD,'W','surface',IER)
+              BLKSURF(IV,ICFD,6)=WORD(1:12)
+              if (itrc.gt.0) then
+                write(outs,'(2a)')
+     &            ' low face is conflated to surface ',WORD(1:12)
+                call edisp(itu,outs)
+              endif
+              IVTYPE(IV,ICFD)=33
+              VCsurf(IV,ICFD)='NONE        '
             endif
           endif
  112    continue
@@ -1844,7 +1935,7 @@ C Read extra data for specific buoy models.
 C Check that turbulence is active if conflated.
       if (IBLD.eq.1.and.ITURB(ICFD).eq.0) then
         call usrmsg('You must use a turbulence model with building',
-     &           'conflation.  Setting k-e as a default.','W')
+     &           'conflation. Setting k-e as a default.','W')
         ITURB(ICFD)=1
         KEMDL(ICFD)=.true.
       endif
@@ -2177,6 +2268,7 @@ C Read frequency of result writing.
         CALL EGETWI(OUTSTR,K,IVAL,1,1000,'W','results freq.',IER)
         IPPHI(ICFD)=IVAL
       else
+
 C Unrecognised line, set error flag.
         IER=1
       endif
@@ -2198,37 +2290,38 @@ C Print message about version number
       END
 
 C ********************* NEW2OLD *********************
-C NEW2OLD - Copies new data structure to old.
+C Copies new data structure to old.
+
       SUBROUTINE NEW2OLD
 #include "building.h"
 #include "cfd.h"
 
 C Grid and Geometry definition:
-C   NREG(?,ICFD) - Number of regions in each direction(?: 1- x, 2- y, 3- z).
-C   NCELX(IREG,ICFD) - Number of cells in x-direction per region(IREG) per
-C                      domain(ICFD).
-C   NCELY(IREG,ICFD) - Number of cells in y-direction per region per domain(ICFD).
-C   NCELZ(IREG,ICFD) - Number of cells in z-direction per region per domain(ICFD.
-C   NCELZe(IREG,ICFD) - Number of cells in z (east)-direction.
+C   NREG(?,ICFD)     - Number of regions in each direction (?: 1- x, 2- y, 3- z).
+C   NCELX(IREG,ICFD) - Number of cells in x-direction per region (IREG) per
+C                      domain (ICFD).
+C   NCELY(IREG,ICFD) - Number of cells in y-direction per region per domain (ICFD).
+C   NCELZ(IREG,ICFD) - Number of cells in z-direction per region per domain (ICFD.
+C   NCELZe(IREG,ICFD)- Number of cells in z (east)-direction.
 
-C   XREG(IREG,ICFD) - x-dimension of the region IREG per domain (ICFD).
-C   YREG(IREG,ICFD) - y-dimension of the region IREG per domain (ICFD).
-C   ZREG(IREG,ICFD) - z-dimension of the region IREG per domain (ICFD).
+C   XREG(IREG,ICFD)  - x-dimension of the region IREG per domain (ICFD).
+C   YREG(IREG,ICFD)  - y-dimension of the region IREG per domain (ICFD).
+C   ZREG(IREG,ICFD)  - z-dimension of the region IREG per domain (ICFD).
 C   ZREGe(IREG,ICFD) - z (east) -dimension of the region IREG per domain (ICFD).
 
 C   Xplaw(IREG,ICFD) - x-power law coefficient of region IREG per domain (ICFD).
 C   Yplaw(IREG,ICFD) - y-power law coefficient of region IREG per domain (ICFD). 
 C   Zplaw(IREG,ICFD) - West wall z-power law coef of region IREG per domain (ICFD).
-C   Zplawe(IREG,ICFD) - East wall z-power law coef of region IREG per domain (ICFD).
-C      (used in the case of curvilinear Z)
+C   Zplawe(IREG,ICFD)- East wall z-power law coef of region IREG per domain (ICFD)
+C                     (used in the case of curvilinear Z).
       COMMON/NDMAP/NOPEN(MNZ),MFNODE(MCFND,MNZ),IOPENi(MCFND,MNZ),
-     &             IOPENf(MCFND,MNZ),JOPENi(MCFND,MNZ),
-     &             JOPENf(MCFND,MNZ),KOPENi(MCFND,MNZ),
-     &             KOPENf(MCFND,MNZ),FIXM(MCFND,MNZ),
-     &             FIXT(MCFND,MNZ),FIXC(MCFND,MNZ),
-     &             FIXK(MCFND,MNZ),FIXE(MCFND,MNZ),
-     &             IWOPEN(MCFND,MNZ),ICFDCN(MCFND,MNZ),
-     &             ICNACT(MCFND,MNZ),IVOLNOP(MCFND,MNZ)
+     &              IOPENf(MCFND,MNZ),JOPENi(MCFND,MNZ),
+     &              JOPENf(MCFND,MNZ),KOPENi(MCFND,MNZ),
+     &              KOPENf(MCFND,MNZ),FIXM(MCFND,MNZ),
+     &              FIXT(MCFND,MNZ),FIXC(MCFND,MNZ),
+     &              FIXK(MCFND,MNZ),FIXE(MCFND,MNZ),
+     &              IWOPEN(MCFND,MNZ),ICFDCN(MCFND,MNZ),
+     &              ICNACT(MCFND,MNZ),IVOLNOP(MCFND,MNZ)
       COMMON/Sbdary/NSB(MNZ),ISBi(MNSBZ,MNZ),ISBf(MNSBZ,MNZ),
      &              JSBi(MNSBZ,MNZ),JSBf(MNSBZ,MNZ),
      &              KSBi(MNSBZ,MNZ),KSBf(MNSBZ,MNZ),
@@ -2236,10 +2329,10 @@ C      (used in the case of curvilinear Z)
      &              SSBHC(MNSBZ,MNZ),IVOLNSB(MNSBZ,MNZ),
      &              ITCtype(MNSBZ,MNZ),icTREF(MNSBZ,MNZ)
       common/blksso/NBLK(MNZ),INBLK(MNVLS,MNZ),NSSO(MNZ),
-     &          INSSO(MNVLS,MNZ)
+     &              INSSO(MNVLS,MNZ),BLKTEMP(MNVLS,MNZ,6)
       common/EQTION/CALLU(MNZ),CALLV(MNZ),CALLW(MNZ),CALLT(MNZ),
-     &             CALLC(MNZ),KEMDL(MNZ),BUOY(MNZ),BOUSSI(MNZ),
-     &             ZEROT(MNZ),ZandKE(MNZ),MITzero(MNZ)
+     &              CALLC(MNZ),KEMDL(MNZ),BUOY(MNZ),BOUSSI(MNZ),
+     &              ZEROT(MNZ),ZandKE(MNZ),MITzero(MNZ)
       COMMON/PRSREF/IPRESF(MNZ),JPRESF(MNZ),KPRESF(MNZ)
       COMMON/ICFNOD/ICFD,ICP
       common/grdmax/NTCX,NTCY,NTCZ
@@ -2250,7 +2343,9 @@ C Solution methods.
 C Boundary condition commons.  
       common/KEYVOLS/NVOL(MNZ),IVOLF(MNVLS,MNZ),IVCELLS(MNVLS,MNZ,2),
      &               JVCELLS(MNVLS,MNZ,2),KVCELLS(MNVLS,MNZ,2)
-      common/KEYVOLN/VOLNAME(MNVLS,MNZ),VCsurf(MNVLS,MNZ)
+      common/KEYVOLN/VOLNAME(MNVLS,MNZ),VCsurf(MNVLS,MNZ),
+     &               BLKSURF(MNVLS,MNZ,6)
+      character VOLNAME*12, VCsurf*12, BLKSURF*12
       common/KEYVDAT/IVTYPE(MNVLS,MNZ),VOLTemp(MNVLS,MNZ),
      &          VOLHeat(MNVLS,MNZ),IVConfl(MNVLS,MNZ),VOLHum(MNVLS,MNZ),
      &          VOLCO2(MNVLS,MNZ),VOLVel(MNVLS,MNZ),VOLDir(MNVLS,MNZ,2),
@@ -2259,7 +2354,6 @@ C Boundary condition commons.
 
       LOGICAL CALLU,CALLV,CALLW,CALLT,CALLC,KEMDL,BUOY,BOUSSI
       LOGICAL ZEROT,ZandKE,MITzero
-      character VOLNAME*12, VCsurf*12
 
 C Turbulence model.
       if (ITURB(ICFD).eq.1) then
@@ -2437,6 +2531,15 @@ C        ltmp='Mass flow'
         elseif (IVTYPE(IKV,ICFD).eq.30) then
           IBK=IBK+1
           INBLK(IBK,ICFD)=IKV
+        elseif (IVTYPE(IKV,ICFD).eq.31) then
+          IBK=IBK+1
+          INBLK(IBK,ICFD)=IKV
+        elseif (IVTYPE(IKV,ICFD).eq.32) then
+          IBK=IBK+1
+          INBLK(IBK,ICFD)=IKV
+        elseif (IVTYPE(IKV,ICFD).eq.33) then
+          IBK=IBK+1
+          INBLK(IBK,ICFD)=IKV
         endif
  10   continue
 
@@ -2472,9 +2575,10 @@ C to the first opening.
       RETURN
       END
 
+
 C ********************* CFMFSU *********************
-C CFMFSU - set up CFD to mass flow connections/ components.
-C All connections to the dom_nod (ICFDNOD), are deactivated. 
+C Set up CFD to mass flow connections/ components.
+C All connections to the dom_nod (ICFDNOD) are deactivated. 
 C A new node (opn_nod) is created for this opening in the CFD domain. 
 C A new connection from this node is made to the node, ICFDNOD was 
 C connected to (ext_nod), using the same component.
@@ -2486,6 +2590,7 @@ C ITRC signals verbose reporting if greater than zero.
 C IND is the index of the node.
 C ICN is the index of the connection.
 C OPENNAM (char 12) name of the opening.
+
       subroutine CFMFSU(IV,ITRC,IND,ICN,OPENNAM)
 #include "building.h"
 #include "cfd.h"
@@ -2511,10 +2616,7 @@ C Passed parameters.
       LOGICAL OK,ACTCNN
       double precision FLW1,FLW2,PRES,RESID,SAFLW
 
-C Debug
-C      WRITE(6,*)'CFMFSU IV,IND,ICN,OPENNAM',IV,IND,ICN,OPENNAM
-
-C Get CFD opening number and CFD domain number as integer
+C Get CFD opening number and CFD domain number as integer.
       IER=0
       CALL INTSTR(IV,OPNO,ILN,IER)
       IF(IER.NE.0)RETURN
@@ -2523,7 +2625,7 @@ C Get CFD opening number and CFD domain number as integer
 
 C Check if this subroutine was called previously for the same opening
 C If yes then this subroutine should not run again (because it will make
-C more nodes and connections each time it is run)
+C more nodes and connections each time it is run).
       OK=.FALSE.
       DO 1 I=1,NNOD
         write(CHECKER1,'(3a)')ICFDSTR(1:ICFDLN),OPNO(1:ILN),
@@ -2553,7 +2655,7 @@ C Remove all connections with original node
         call edisp(iuout,outs)
         return
       elseif (itrc.gt.0) then
-        write(outs,'(6a)')' Found connection for nodes: ',LCFND,
+        write(outs,'(6a)')'Found connection for nodes: ',LCFND,
      &        ' & ',LEXND,' component ',LCOMPNT
         call edisp(iuout,outs)
       endif
@@ -2565,7 +2667,7 @@ C ICNRMV = list of connections to remove when CFD active.
       ICNRMV(NCNRMV,ICFD)=ICNN
 
 C A new node must be created to represent the control volumes of the 
-C opening
+C opening.
       NNOD=NNOD+1
       NDNAM(NNOD)=ICFDSTR(1:ICFDLN)//OPNO(1:ILN)
      &  //OPENNAM(1:(12-ILN-ICFDLN))
@@ -2578,17 +2680,12 @@ C opening
       TNOD(NNOD)=TNOD(IND)
       PRES(NNOD)=0.
 
-C Hold information about this new node in common also hold the CFD
-C opening type boundary condition that this node is representative of
+C Remember information about this new node as well as the CFD
+C opening type boundary condition that this node represents.
       NFNDN=NFNDN+1
       NFNPDN(ICFD)=NFNPDN(ICFD)+1
       MFNEWN(NFNPDN(ICFD),ICFD)=NNOD
       NCFDOPNO(NFNPDN(ICFD),ICFD)=IV
-
-C Debug
-c      write(6,*)'CFMFSU: NFNDN,NFNPDN(ICFD),MFNEWN(NFNPDN(ICFD),ICFD)',
-c     & ',NCFDOPNO(NFNPDN(ICFD),ICFD)',NFNDN,NFNPDN(ICFD),
-c     & MFNEWN(NFNPDN(ICFD),ICFD),NCFDOPNO(NFNPDN(ICFD),ICFD)
 
 C Following code is commented out because nodes representative of
 C openings will not have a volume SUPNOD(*,1)
@@ -2623,18 +2720,17 @@ C        ACTCNN(ICNON(N,IC))=.FALSE.
         ACTCNN(ICNON(NCNON,ICFD))=.FALSE.
 C 203  CONTINUE
 
-C Debug
-C      write(6,*)'CFMFSU(ACTCNN)',(ACTCNN(I),I=1,NCNN)
-
  2     return
        end
 
-C ************************* MFLISTemp
-C MFLISTemp - list common block contents for debugging only.
+C ******************** MFLISTemp ********************
+C List common block contents for debugging only.
+
       SUBROUTINE MFLISTemp
 #include "building.h"
 #include "net_flow.h"
 #include "net_flow_data.h"
+
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/MFLCLM/DRYB,QDIF,QDNR,IRVH,WDIR,WSPD,WRED
       CHARACTER outs*124,fldtyp*6,nodtyp*20
@@ -2679,8 +2775,6 @@ C Node data.
    30 CONTINUE
  1030   FORMAT(1X,A12,1x,a,a,G12.5,1X,G12.5,   1X,G12.5,1X,G12.5)
 10301   FORMAT(1X,A12,1x,a,a,G12.5,1X,3X,A6,3X,1X,G12.5,1X,G12.5)
-C 1030 FORMAT(1X,A6,I5,I5,1X,G12.5,1X,G12.5,   1X,G12.5,1X,G12.5)
-C10301 FORMAT(1X,A6,I5,I5,1X,G12.5,1X,3X,A6,3X,1X,G12.5,1X,G12.5)
 
 C Component data.
       IF(NCMP.EQ.0) GOTO 999
@@ -2766,7 +2860,7 @@ C Provide a heading string for each different component type.
         endif
    50 CONTINUE
 
-C Connections data
+C Connections data.
       IF(NCNN.EQ.0) GOTO 999
       CALL EDISP(IUOUT,' ')
       CALL EDISP(IUOUT,' Connections')
@@ -2786,7 +2880,7 @@ C Connections data
 
   100 RETURN
 
-C Error trap
+C Error trap.
   999 CALL USRMSG(' ',' MFLIST: no more information available!','W')
       GOTO 100
 
@@ -2794,7 +2888,8 @@ C Error trap
 
 
 C ********************* CFDDEFLT *********************
-C CFDDEFLT - Sets default values for all data items.
+C Sets default values for all data items.
+
       SUBROUTINE CFDDEFLT
 #include "building.h"
 #include "cfd.h"
@@ -2911,14 +3006,14 @@ C Monitoring cell.
       KMONT(ICFD)=1+NTCZ/2
 
 C Convergence criteria
-      MAXITR(ICFD)=500
+      MAXITR(ICFD)=5000
       SRMAX(ICFD)=0.01
 
       return
       end
 
 C ************************ SCHCHK ************************
-C SCHCHK checks the turbulent schmidt number of all containments
+C Checks the turbulent schmidt number of all containments
 C defined in the CFD domain to be non - zero. If any 
 C contaminant is zero it is set to the default value unity.
 
@@ -2942,10 +3037,10 @@ C contaminant is zero it is set to the default value unity.
       RETURN
       END
 
-C ************************ BCEKCK ************************
-C BCEKCK checks the boundary conditions of all boundary cells  
-C (blockages are yet not considered) to be defined.
+C ******************** BCEKCK ********************
+C Checks the boundary conditions of all cells.
 C itrc signals verbose reporting if greater than zero.
+
       SUBROUTINE BCEKCK(ITRC)
 #include "building.h"
 #include "cfd.h"
@@ -2959,17 +3054,21 @@ C Passed parameter.
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
       common/KEYVOLS/NVOL(MNZ),IVOLF(MNVLS,MNZ),IVCELLS(MNVLS,MNZ,2),
      &               JVCELLS(MNVLS,MNZ,2),KVCELLS(MNVLS,MNZ,2)
-      common/KEYVOLN/VOLNAME(MNVLS,MNZ),VCsurf(MNVLS,MNZ)
+      common/KEYVOLN/VOLNAME(MNVLS,MNZ),VCsurf(MNVLS,MNZ),
+     &               BLKSURF(MNVLS,MNZ,6)
+      character VOLNAME*12,VCsurf*12,BLKSURF*12
       common/grdmax/NTCX,NTCY,NTCZ
+      COMMON/ALL/NI,NJ,NK,NIM1,NJM1,NKM1,NIM2,NJM2,NKM2
 
-      character VOLNAME*12, VCsurf*12,OUTSTR*124,FACE*7,STARST*72
+      character OUTSTR*124,FACE*7,STARST*72
       INTEGER IXZST(NTCELX,NTCELZ),IXYHH(NTCELX,NTCELY)
       INTEGER IYZET(NTCELY,NTCELZ),IXZNT(NTCELX,NTCELZ)
       INTEGER IXYLL(NTCELX,NTCELY),IYZWT(NTCELY,NTCELZ)
+      INTEGER IBLKG(NTCELX,NTCELY,NTCELZ)
       LOGICAL WARN
       logical unixok
 
-C Clear arrays for boundary conditions on north south east west face. 
+C Clear arrays for boundary conditions on north, south, east & west face. 
        DO 45 II=1,NTCX
          DO 46 KK=1,NTCZ
            IXZST(II,KK)=0
@@ -2986,19 +3085,20 @@ C Clear arrays for boundary conditions on north south east west face.
            IYZWT(JJ,KK)=0         
  49      CONTINUE
  48    CONTINUE
-
-C Debug.
-C      do 901 iz=1,ntcz
-C      write(6,*)(ixzst(ix,iz),ix=1,ntcx)
-C 901  continue
-C       write(6,*)'ntcx,ntcy,ntcz',ntcx,ntcy,ntcz
+      do II=1,NTCX
+        do JJ=1,NTCY
+          do KK=1,NTCZ
+            IBLKG(II,JJ,KK)=0
+          enddo
+        enddo
+      enddo
 
       WARN=.FALSE.
       NBC=NVOL(ICFD)      
       DO 1 IBC=1,NBC
         IF(IVOLF(IBC,ICFD).EQ.1)THEN      
 
-C West facing boundary conditions
+C West facing boundary conditions.
           FACE='West'
           IF(IVCELLS(IBC,ICFD,2).EQ.2)THEN
             DO 101 IY=JVCELLS(IBC,ICFD,1)-1,JVCELLS(IBC,ICFD,2)-1
@@ -3012,7 +3112,7 @@ C West facing boundary conditions
           ENDIF
         ELSEIF(IVOLF(IBC,ICFD).EQ.2)THEN      
 
-C East facing boundary conditions
+C East facing boundary conditions.
           FACE='East'
           IF(IVCELLS(IBC,ICFD,1).EQ.NTCX+1)THEN
             DO 201 IY=JVCELLS(IBC,ICFD,1)-1,JVCELLS(IBC,ICFD,2)-1
@@ -3027,7 +3127,7 @@ C East facing boundary conditions
           ENDIF
         ELSEIF(IVOLF(IBC,ICFD).EQ.3)THEN      
 
-C South facing boundary conditions
+C South facing boundary conditions.
           FACE='South'
           IF(JVCELLS(IBC,ICFD,1).EQ.2)THEN
             DO 301 IX=IVCELLS(IBC,ICFD,1)-1,IVCELLS(IBC,ICFD,2)-1
@@ -3041,7 +3141,7 @@ C South facing boundary conditions
           ENDIF
         ELSEIF(IVOLF(IBC,ICFD).EQ.4)THEN      
 
-C North facing boundary conditions
+C North facing boundary conditions.
           FACE='North'
           IF(JVCELLS(IBC,ICFD,2).EQ.NTCY+1)THEN
             DO 401 IX=IVCELLS(IBC,ICFD,1)-1,IVCELLS(IBC,ICFD,2)-1
@@ -3056,7 +3156,7 @@ C North facing boundary conditions
           ENDIF
         ELSEIF(IVOLF(IBC,ICFD).EQ.5)THEN      
 
-C Low facing boundary conditions
+C Low facing boundary conditions.
           FACE='Low'
           IF(KVCELLS(IBC,ICFD,1).EQ.2)THEN
             DO 501 IX=IVCELLS(IBC,ICFD,1)-1,IVCELLS(IBC,ICFD,2)-1
@@ -3066,11 +3166,11 @@ C Low facing boundary conditions
  501        CONTINUE
           ELSE
             WARN=.TRUE.
-            STARST='It should start at cell # 1 in z direction'
+            STARST='It should start at cell #1 in z direction'
           ENDIF
         ELSEIF(IVOLF(IBC,ICFD).EQ.6)THEN      
 
-C High facing boundary conditions
+C High facing boundary conditions.
           FACE='High'
           IF(KVCELLS(IBC,ICFD,2).EQ.NTCZ+1)THEN
             DO 601 IX=IVCELLS(IBC,ICFD,1)-1,IVCELLS(IBC,ICFD,2)-1
@@ -3083,9 +3183,20 @@ C High facing boundary conditions
             WRITE(STARST,'(A,I3,A)')'It should stop at cell #'
      &      ,NTCZ,' in z direction'
           ENDIF
+        
+C Blockage boundary conditions.
+        ELSEIF (IVOLF(ibc,ICFD).eq.8) THEN
+          do ix=IVCELLS(ibc,ICFD,1)-1,IVCELLS(ibc,ICFD,2)-1
+            do iy=JVCELLS(ibc,ICFD,1)-1,JVCELLS(ibc,ICFD,2)-1
+              do iz=KVCELLS(ibc,ICFD,1)-1,KVCELLS(ibc,ICFD,2)-1
+                IBLKG(ix,iy,iz)=IBLKG(ix,iy,iz)+1
+              enddo
+            enddo
+          enddo
+
         ENDIF
 
-C Warn user if cell number starts/stops wrongly
+C Warn user if cell number starts/stops wrongly.
         IF(WARN)THEN
           WRITE(OUTSTR,'(4A)')'Boundary condition ',
      &      VOLNAME(IBC,ICFD)(1:LNBLNK(VOLNAME(IBC,ICFD))),' faces '
@@ -3125,13 +3236,14 @@ C        enddo
 C      ENDIF
 
 C Do checks and issue warning messages if any
-C North and South facing boundary conditions
+C North and South facing boundary conditions have
+C a problem.
       DO 311 IX=1,NTCX
         DO 312 IZ=1,NTCZ
           IF(IXZST(IX,IZ).NE.1)THEN
             WRITE(OUTSTR,'(A,I3,A,I3,2A)')'Boundary cell # x=',IX,
      &      ' and cell # z=',IZ,' are not defined as boundary ',
-     &      'conditions facing South or defined more than once '
+     &      'conditions facing South or defined more than once.'
             CALL EDISP(IUOUT,OUTSTR)
           ENDIF
           IF(IXZNT(IX,IZ).NE.1)THEN
@@ -3143,7 +3255,7 @@ C North and South facing boundary conditions
  312    CONTINUE
  311  CONTINUE
 
-C East and West facing boundary conditions
+C East and West facing boundary conditions.
       DO 411 IY=1,NTCY
         DO 412 IZ=1,NTCZ
           IF(IYZWT(IY,IZ).NE.1)THEN
@@ -3161,7 +3273,7 @@ C East and West facing boundary conditions
  412    CONTINUE
  411  CONTINUE
 
-C High and Low facing boundary conditions
+C High and Low facing boundary conditions.
       DO 511 IX=1,NTCX
         DO 512 IY=1,NTCY
           IF(IXYLL(IX,IY).NE.1)THEN
@@ -3178,12 +3290,27 @@ C High and Low facing boundary conditions
           ENDIF
  512    CONTINUE
  511  CONTINUE
+
+C Blockages.
+      do ix=1,NTCX
+        do iy=1,NTCY
+          do iz=1,NTCZ
+            if (IBLKG(ix,iy,iz).GT.1) then
+              WRITE(OUTSTR,'(A,I3,A,I3,A,I3,A)')'Cell # x=',ix,' y=',iy,
+     &          ' z=',iz,' is defined as more than one blockage.'
+              CALL EDISP(IUOUT,OUTSTR)
+            endif
+          enddo
+        enddo
+      enddo
+
       RETURN
       END
 
-C ************************ RESETCFD ************************
-C RESETCFD sets all CFD common blocks that are independant 
-C of domain and zone to initial values.
+C ******************** RESETCFD ********************
+C Sets all CFD common blocks, that are independent 
+C of domain and zone, to initial values.
+
       SUBROUTINE RESETCFD(IER)
 #include "building.h"
 #include "cfd.h"
@@ -3223,11 +3350,12 @@ C Passed parameters.
       RETURN
       END
 
-C ************************ CFDLIST ************************
-C CFDLIST writes to ITU a formatted list of all available CFD domain 
-C files, along with the zone to which they are associated.
-      SUBROUTINE CFDLIST(ITU,IER)
 
+C ******************** CFDLIST ********************
+C Writes to ITU a formatted list of all available CFD domain 
+C files, along with the zone to which they are associated.
+
+      SUBROUTINE CFDLIST(ITU,IER)
 #include "building.h"      
 #include "geometry.h"
 #include "cfd.h"
@@ -3255,7 +3383,6 @@ C files, along with the zone to which they are associated.
         endif
         write(outs,'(a,i2.2,4a,1X,a)')' Zone ',zref,' ("',
      &                zntmp(1:znln),'"): ',dntmp(1:dnln),cpld(1:cpldln)
-
         call edisp(itu,outs)
       enddo
 

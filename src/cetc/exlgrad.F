@@ -20,9 +20,9 @@ C License along with ESP-r. If not, write to the Free
 C Software Foundation, Inc., 59 Temple Place, Suite 330,
 C Boston, MA 02111-1307 USA.
        SUBROUTINE exlgrad(modsit)
+#include "help.h"
 
-
-C *************************************************************************
+C *******************
 C
 C created by Maria Mottillo
 C June 20, 2002
@@ -82,11 +82,8 @@ C  message is provided. If RACT = '-', no range checking is done.
 C  IER is error state (0 is okay).
 C  Words may be separated by blanks, tabs or commas. 
 
-       
-       IMPLICIT NONE
-       integer iCountWords
-
-        CHARACTER*72   h             
+        integer iCountWords
+           
         CHARACTER*124  OUTS
         CHARACTER*72   hold
         LOGICAL        modsit
@@ -109,7 +106,6 @@ C Common block created to store flag and user-input values.
 C These common blocks are copied over from EDSITE to 
 C define global variables needed.
         COMMON/OUTIN/IUOUT,IUIN,IEOUT
-        COMMON/POPHELP/h(60)
 
         CALL EDISP(IUOUT,' ')     
 

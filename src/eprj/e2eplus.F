@@ -1,6 +1,6 @@
 C This file is part of the ESP-r system.
 C Copyright Energy Systems Research Unit, University of
-C Strathclyde, Glasgow Scotland, 2001.
+C Strathclyde, Glasgow, Scotland, 2001-.
 
 C ESP-r is free software.  You can redistribute it and/or
 C modify it under the terms of the GNU General Public
@@ -13,22 +13,14 @@ C warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
 C PURPOSE. See the GNU General Public License for more
 C details.
 
-C You should have received a copy of the GNU General Public
-C License along with ESP-r. If not, write to the Free
-C Software Foundation, Inc., 59 Temple Place, Suite 330,
-C Boston, MA 02111-1307 USA.
 
-C ESRU EnergyPlus translator to version 3.0 to version 6.0 or 7.2.
-C Current source version Nov 2013.
-
-C E2eplus: Inside and outside materials and composition and schedules generation.
-
-C ******* Translate esp data to EnergyPlus file geom and materials.
-      SUBROUTINE e2eplus(itrc,ioout,ver,IER)
-
+C ******************** e2eplus ********************
+C Transfer ESP-r geometry and constructions data to an EnergyPlus file.
 C itrc (integer) =0 turns off reporting, =1 brief
 C ioout (integer) is the file unit to write to
 C ver (real) should be 7.2 8.0 8.5 8.8 9.0
+
+      SUBROUTINE e2eplus(itrc,ioout,ver,IER)
 #include "building.h"
 #include "model.h"
 #include "site.h"
@@ -36,6 +28,7 @@ C ver (real) should be 7.2 8.0 8.5 8.8 9.0
 #include "esprdbfile.h"
 #include "material.h"
 #include "schedule.h"
+#include "help.h"
       
       integer lnblnk  ! function definition
 
@@ -169,11 +162,6 @@ C << need to revise OPT to be 32 char >>
       logical treatasmass    ! if true treat surface as internal mass
       logical processasfen   ! if true treat surface as fenistration
       logical usectf,nooccupinday
-
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp         ! number of help lines found
 
 C Viewfactor to ground.
       dimension PROPG(8)
@@ -1798,7 +1786,7 @@ C the grandchild surface).
 C Begin by clearing the assumptions.
         DO 164 IS=1,NSUR
           icc=izstocn(mz,is)
-          usethisone(icc)=.true.  ! initial assumption to use
+          usethisone(icc)=.true.  ! Initial assumption.
           truechild(icc)=.true.
  164    continue
 
@@ -1814,12 +1802,12 @@ C surface as a true child.
           if((SUSE(mz,is,1)(1:5).eq.'FRAME'.or.
      &       SUSE(mz,is,1)(1:7).eq.'F-FRAME').and.
      &       nbchild(icc).gt.0.and.iparent(icc).gt.0)then
-            write(6,'(3a,i2,a,2i3)') ' Frame surface ',SNAME(mz,is),
-     &        ' nb children ',nbchild(icc),
-     &        ' cnn is ',ichild(icc,1),iparent(icc)
-            truechild(icc)=.true.  ! treat FRAME as true child
-            write(6,*) SNAME(mz,is),' truechild is ',truechild(icc)
-            goto 166  ! jump for next cycle of the loop
+C            write(6,'(3a,i2,a,2i3)') ' Frame surface ',SNAME(mz,is),
+C     &        ' nb children ',nbchild(icc),
+C     &        ' cnn is ',ichild(icc,1),iparent(icc)
+            truechild(icc)=.true.  ! Treat FRAME as true child.
+C            write(6,*) SNAME(mz,is),' truechild is ',truechild(icc)
+            goto 166  ! Jump for next cycle of the loop.
           endif
 
 C See if this surface happens to be a child in the strict sense.
@@ -1839,7 +1827,7 @@ C A non-zero iedgshr is the connection index of other surface.
  778      continue
 
 C Debug.
-          write(6,*) SNAME(mz,is),' truechild is ',truechild(icc)
+C          write(6,*) SNAME(mz,is),' truechild is ',truechild(icc)
  166    continue
 
         DO 64 IS=1,NSUR
@@ -1925,7 +1913,7 @@ C vertices linked to the child of the frame.
             if((SUSE(mz,is,1)(1:5).eq.'FRAME'.or.
      &         SUSE(mz,is,1)(1:7).eq.'F-FRAME').and.
      &         nbchild(icc).gt.0.and.iparent(icc).gt.0)then
-C Debug
+C Debug.
 C             write(6,*)'working on frame',icc,iccc      
               do iedg=1,isznver(mz,is)        ! loop this surface edges
                 foundone=0  ! reset
@@ -1983,12 +1971,12 @@ C                  write(6,*) 'keeping v',JVN(IS,iedg),iedgcnt
           endif
 
 C Debug.
-          do iedg=1,iedgcnt
-            write(6,*) mz,is,SNAME(mz,is),iedg,COORD(iedg,1),
-     &        COORD(iedg,2),COORD(iedg,3)
-          enddo
+C          do iedg=1,iedgcnt
+C            write(6,*) mz,is,SNAME(mz,is),iedg,COORD(iedg,1),
+C     &        COORD(iedg,2),COORD(iedg,3)
+C          enddo
 
-C Occassionally geometry is not correctly translated for frames around
+C Occasionally geometry is not correctly translated for frames around
 C glazing and if there are < 3 edges EPP gets a severe error.
           if(iedgcnt.lt.3)then
             write(outs,'(3a)') 'Skipping surface ',

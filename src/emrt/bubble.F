@@ -13,11 +13,6 @@ C warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
 C PURPOSE. See the GNU General Public License for more
 C details.
 
-C You should have received a copy of the GNU General Public
-C License along with ESP-r. If not, write to the Free
-C Software Foundation, Inc., 59 Temple Place, Suite 330,
-C Boston, MA 02111-1307 USA.
-
 C+++++++++++++++++++++++ BUBBLE
 C Bubble projects through bubble from each grid cell.
       SUBROUTINE  BUBBLE
@@ -578,7 +573,7 @@ C     (XO,YO,ZO) - POINT ON SURFACE WHERE PROJECTION HITS
       INPK = ISPNT(2,K)
       CALL  GETPOL(INPK,NA,NAP,IAPNT,APOL)
 
-      IF (.NOT.(INSIDEP(XT,YT,NA,IAPNT,APOL)))  GOTO  100
+      IF (.NOT.(INSIDEP(XT,YT,3,IAPNT,APOL)))  GOTO  100
       D = DK
       ISUR = K
       XO = XK

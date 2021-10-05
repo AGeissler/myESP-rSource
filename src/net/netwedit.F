@@ -1,11 +1,11 @@
 C This file is part of the ESP-r system.
 C Copyright Energy Systems Research Unit, University of
-C Strathclyde, Glasgow Scotland, 2001.
+C Strathclyde, Glasgow, Scotland, 2001-.
 
 C ESP-r is free software.  You can redistribute it and/or
 C modify it under the terms of the GNU General Public
 C License as published by the Free Software Foundation 
-C (version 2 orlater).
+C (version 2 or later).
 
 C ESP-r is distributed in the hope that it will be useful
 C but WITHOUT ANY WARRANTY; without even the implied
@@ -14,7 +14,7 @@ C PURPOSE. See the GNU General Public License for more
 C details.
 
 
-C netwedit.F contains:
+C This file contains the following subroutines.
 C   NETICONDATR   - edit an icon data attribute
 C   updintunknflow - update attributes of internal unkn press flow node
 C   updintknflow  - update attributes of internal known press flow node
@@ -24,20 +24,20 @@ C   NETCNNDATR    - edit a connection data attribute
 C   NETIDATR      - alternate edits of icon domain attributes.
 C   NETCDATR      - alternate edit of connection attributes.
 
-C ********************* NETICONDATR ************
-C NETICONDATR edits domain attributes of an icon.
+C ********************* NETICONDATR ********************
+C Edits domain attributes of an icon.
 C Similar to NETIDATR, but for icons with fewer attributes.
 C icnpick is the icon to edit.
+
       SUBROUTINE NETICONDATR(icnpick,ier)
 # include "epara.h"
 # include "gnetwk.h"
+#include "help.h"
       
       integer lnblnk  ! function definition
 
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
-      common/pophelp/h(60)
-      character h*72 
 
 C Icon commons from gnetwk.h      
 C Selected entity (component and connection) common
@@ -97,12 +97,7 @@ C WORDSS array of string tokens from each NWICHNIS.
       integer*8 impx,impy,iwe
 #endif
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='NETICONDATR'  ! set for subroutine
+      helpinsub='netwedit'  ! set for subroutine
 
 C Clear local storage arrays.
       icn=icnpick
@@ -657,6 +652,7 @@ C ************** updintunknflow
 C updintunknflow update attributes of internal unkn press flow node
       subroutine updintunknflow(icn,AVAL,SVAL,VALV)
 # include "gnetwk.h"
+#include "help.h"
       
       integer lnblnk  ! function definition
 
@@ -669,12 +665,7 @@ C User up to 6 real valus from external subroutine.
       character VNPSTR*12,stra*12,strb*12
       logical closev,closex,closey,closez,ok
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='updintunknflow'  ! set for subroutine
+      helpinsub='netwedit'  ! set for subroutine
 
 C If flow network (INWKTYP = 2) and the component is internal unknown
 C pressure (ATRICN(icn,1,1) is zero) and the fluid type is air
@@ -784,6 +775,7 @@ C It is passed arrays of reals (AVAL) and strings (SVAL) and then
 C coordinates updating icon data.
       subroutine updintknflow(icn,AVAL,SVAL,VALV)
 # include "gnetwk.h"
+#include "help.h"
       
       integer lnblnk  ! function definition
 
@@ -796,12 +788,7 @@ C User up to 6 real valus from external subroutine.
       character VNPSTR*12,stra*12,strb*12
       logical closev,closep,closez,ok
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='updintunknflow'  ! set for subroutine
+      helpinsub='netwedit'  ! set for subroutine
 
 C If flow network (INWKTYP = 2) and the component is internal known
 C pressure (ATRICN(icn,1,1) is 1) and the fluid type is air
@@ -868,7 +855,8 @@ C ************** updwindflow
 C updwindflow update attributes of boundary wind pressure flow node
 C from the arrays of reals and strings passed in. 
       subroutine updwindflow(icn,exttag,AVAL,SVAL,VALV)
-# include "gnetwk.h"
+#include "gnetwk.h"
+#include "help.h"
       
       integer lnblnk  ! function definition
 
@@ -885,12 +873,7 @@ C User up to 6 real valus from external subroutine.
       character VNPSTR*12,exttag*12
       logical ok,close
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='updwindflow'  ! set for subroutine
+      helpinsub='netwedit'  ! set for subroutine
 
 C If flow network (INWKTYP = 2) and the component is wind pressure
 C pressure (ATRICN(ICN,1,1)=3) and the fluid type is air
@@ -1001,7 +984,8 @@ C ************** updfixbound
 C updfixbound update attributes of boundary fixed pressure flow node
 C from the arrays of reals and strings passed in. 
       subroutine updfixbound(icn,exttag,AVAL,SVAL)
-# include "gnetwk.h"
+#include "gnetwk.h"
+#include "help.h"
       
       integer lnblnk  ! function definition
 
@@ -1017,11 +1001,6 @@ C User up to 6 real valus from external subroutine.
       character outs*124,outsd*124,SVAL*12
       character VNPSTR*12,exttag*12
       logical ok,close
-
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
 
       helpinsub='updfixbound'  ! set for subroutine
 
@@ -1123,8 +1102,9 @@ C Imatch is the index of the connection to edit.
 C      SUBROUTINE NETCNNDATR(IER,IX,IY)
       SUBROUTINE NETCNNDATR(IER,imatch)
 
-# include "epara.h"
-# include "gnetwk.h"
+#include "epara.h"
+#include "gnetwk.h"
+#include "help.h"
       
       integer lnblnk  ! function definition
 
@@ -1165,12 +1145,7 @@ C WORDSS and WORDSE are arrays of string tokens from each NWICHNIS.
       integer*8 impx,impy,iwe
 #endif
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='NETCNNDATR'  ! set for subroutine
+      helpinsub='netwedit'  ! set for subroutine
       helptopic='connection_attributes'
       call gethelptext(helpinsub,helptopic,nbhelp)
 
@@ -1474,15 +1449,14 @@ C NETIDATR alternative edits domain attributes of an icon.
 C This version is for icons with large numbers of items (data is
 C presented by category). This is not yet called from network.F.
       SUBROUTINE NETIDATR(ier)
-# include "epara.h"
-# include "gnetwk.h"
+#include "epara.h"
+#include "gnetwk.h"
+#include "help.h"
       
       integer lnblnk  ! function definition
 
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/SPAD/MMOD,LIMIT,LIMTTY 
-      common/pophelp/h(60)
-      character h*72 
 
 C Icon commons from gnetwk.h      
       COMMON/NWKVEW/SCALF,VIEWCEN(3),VIEWLIM(6),IVIEW
@@ -1541,18 +1515,13 @@ C WORDSS array of string tokens from each NWICHNIS.
       logical closect,closewt,closeft,closev,closex,closey,closez
       integer NECDATA,ICOUT1,NECDATAs,ICOUT2 ! max items and current menu item
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
 #ifdef OSI
       integer impx,impy,iwem,iix,iiy,iik  ! for use with trackview
 #else
       integer*8 impx,impy,iwe,iix,iiy,iik ! for use with trackview
 #endif
 
-      helpinsub='NETIDATR'  ! set for subroutine
+      helpinsub='netwedit'  ! set for subroutine
 
       if(INWKTYP.eq.1.or.INWKTYP.eq.3.or.INWKTYP.eq.6)then
         CALL USRMSG('Click on the component to edit',' ','-')
@@ -2151,8 +2120,9 @@ C NETCDATR alternate edit of connection data attributes. This version
 C spearates the editing of each category of atrribute.
       SUBROUTINE NETCDATR(IER,IX,IY)
 
-# include "epara.h"
-# include "gnetwk.h"
+#include "epara.h"
+#include "gnetwk.h"
+#include "help.h"
       
       integer lnblnk  ! function definition
 
@@ -2198,11 +2168,6 @@ C WORDSS and WORDSE are arrays of string tokens from each NWICHNIS.
      &IECDATEs*49,DATCATIE*12,TAGCATIE*12,t32*32
       integer NECDATA,ICOUT1,NECDATAs,ICOUT2 ! max items and current menu item
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
 #ifdef OSI
       integer impx,impy,iwe,iipx,iipy
 #else
@@ -2212,7 +2177,7 @@ C For help messages
 C Let the user select the connection to be edited (click on a 
 C way-point).
 
-      helpinsub='NETCDATR'  ! set for subroutine
+      helpinsub='netwedit'  ! set for subroutine
       IIPX=IX
       IIPY=IY
       CALL PIXEL2U(IIPX,IIPY,GX,GY)
@@ -2640,6 +2605,7 @@ C index of the existing icon.
 
 #include "gnetwk.h"
 #include "epara.h"
+#include "help.h"
       
       integer lnblnk  ! function definition
 
@@ -2685,12 +2651,7 @@ C ICITEM2 is ...
       integer NICITEM,IMOUT,NICITEM2,IMOUT2 ! max items and current menu item
       integer iglib   ! if 1 then X11, if 2 then GTK, if 3 then text only.
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='ICONREPLACE'  ! set for subroutine
+      helpinsub=' netwedit'  ! set for subroutine
 
 C Set the component reporting flag.
       MREPT=.FALSE.
@@ -2918,7 +2879,7 @@ C Get details of icon and then get its attributes (if any).
           write(NWICNME(icurrent),'(a)') icmenu(1:36)
     
 C Debug.
-          write(6,*) nbvert,nbedge,nbdot,nblabel,nbarc,nbatt,nbtext
+C          write(6,*) nbvert,nbedge,nbdot,nblabel,nbarc,nbatt,nbtext
 C          write(6,*) iedge
 C          write(6,*) idot
 C          write(6,*) ilabel
@@ -2932,7 +2893,7 @@ C         write(6,*) ICDNAM
 C         write(6,*) natrib 
 C         write(6,*) tagatr 
 C         write(6,*) atrib 
-         write(6,*) iconphrase 
+C         write(6,*) iconphrase 
 
 C For (natrib times) extract attributes of the icon (tags, values,
 C menu entries). Note atrib can have up to MIATRB attributes. Also

@@ -14,21 +14,22 @@ C PURPOSE. See the GNU General Public License for more
 C details.
 
 
-C explor.f provides menu and help facilities for the main item exploration
-C editing and viweing sections of TDF.  Written by the staff of ESRU
-C and making use of the ESRU standard library files libesru.a
+C explor.f provides menu and help facilities for the main temporal
+C item exploration, editing and viweing sections of TDF.
 
 C The following routines are included:
 C  SCHEDDT: returns a 3 and 8 character description of the day type.
-C  EDTITEM:  Edits static and period data for a tabular TDF item.
-C  EDPERD:  Edits period/temporal information related to an instance
+C  EDTITEM: edits static and period data for a tabular TDF item.
+C  EDPERD:  edits period/temporal information related to an instance
 C           in the TDF db.
-C  EDIMPT:  Edits data importation specification.
+C  EDIMPT:  edits data importation specification.
 
-C ******** SCHEDDT
-C SCHEDDT returns a 3 and 8 character description of the day type.
+C ******************** scheddt ********************
+C Returns a 3 and 8 character description of the day type.
+
       subroutine scheddt(indx,d3,d8)
       character d3*3,d8*8
+
       if(indx.eq.0)then
         d3='all'
         d8='All days'
@@ -51,16 +52,18 @@ C SCHEDDT returns a 3 and 8 character description of the day type.
       return
       end
 
-C ************* EDTITEM ******************************************
-C EDTITEM edits information about item (IFOC).
-C The common blocks ??? are updated by this routine.
+C ******************** EDTITEM ********************
+C Edits information about a temporal item (IFOC).
 C ITRU is the unit number for user output, IER=0 OK, IER=1 problem.
 C IALT is the number of text alternatives available for a text field.
+
       SUBROUTINE EDTITEM(ITRC,IFOC,IER)
 #include "building.h"
+#include "model.h"
 #include "net_flow.h"
 #include "tdf2.h"
 #include "epara.h"
+#include "help.h"
       
       integer lnblnk  ! function definition
 
@@ -76,17 +79,13 @@ C IALT is the number of text alternatives available for a text field.
       CHARACTER LIMP*96,LEXP*96
       COMMON/TDFIO/LIMP,IUIMP,ITIMP,LEXP,IUEXP,ITEXP
 
-C Explicit use of pophelp required because of dynamic generation.
-      common/pophelp/h(60)
-      character h*72  
-                        
       DIMENSION SALT(6),IVAL(6),IPD(34)
       CHARACTER KEY*1,SALT*16
       CHARACTER PROMP*32,MSG*32,head*52
       CHARACTER GAIDE*36,GHELP*72,GDHDRT*72,GMH*32
       CHARACTER GMF*32,MGMA*32,TTAG*12,TTAIDE*36
-      CHARACTER IPD*64,CSTR*54,DESCR*7,DESCR1*10,TPROMP*62
-      CHARACTER*5 DESCRH,DESCRD
+      CHARACTER IPD*64,CSTR*54,DESCR*7,DESCR1*10,DESCR2*8,TPROMP*62
+      CHARACTER*5 DESCRH,DESCRD,DESCRJ
       CHARACTER outs*124,LINE*72,OLINE*72,msgl2*48
       logical changed,clkok,textalt,edited,XST
       logical goback,gonext   ! for changing position in list
@@ -103,12 +102,7 @@ C Explicit use of pophelp required because of dynamic generation.
       integer*8 impx,impy,imw  ! for use with vwmenu
 #endif
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='EDTITEM'  ! set for subroutine
+      helpinsub='explor'  ! set for subroutine
       
       IER=0
 
@@ -142,7 +136,7 @@ C Standard menu entries first.
       WRITE(IPD(1),'(A,A)')  '1 Entry name : ',TAG(IFOC)
       WRITE(IPD(2),'(A,A)')  '2 Description: ',TAIDE(IFOC)(1:36)
       CDAY=itdbdoy+AINT(FLOAT(IST)/FLOAT(NTSPH*24))
-      CALL STDATE(itdyear,INT(CDAY),DESCR,DESCR1)
+      CALL STDATE(itdyear,INT(CDAY),DESCR,DESCR1,DESCR2)
       IFIELD=NTSTAT(IFOC)
       if(IFIELD.gt.0)then
 
@@ -185,7 +179,7 @@ C Loop through the temporal items until the page to be displayed.
           M=M+1
           CALL EMKEY(M-MHEAD+IFIELD,KEY,IER)
 
-C Read in this timesteps data.
+C Read in this timesteps data from scratch/binary file.
           CALL CLRTAB
           CALL ERTABU(ITRC,ITR,IER)
 
@@ -252,7 +246,7 @@ C string or julian day fraction depending on the user selected format.
           CDAY=AINT(FLOAT(IP)/FLOAT(NTSPH*24))
           ITIME=IP-(INT(CDAY)*NTSPH*24)
           RDOTY=real(itdbdoy)+CDAY+(real(ITIME)/(real(NTSPH)*24.))
-          CALL ESTIME(NTSPH,1,ITIME,DESCRH,DESCRD,TIMER)
+          CALL ESTIME(NTSPH,1,ITIME,DESCRH,DESCRD,DESCRJ,TIMER)
           IF(IFTIME.EQ.0)THEN
             WRITE(IPD(M),'(A1,1X,A5,1X,A54)') KEY,DESCRH,CSTR(1:54)
           ELSEIF(IFTIME.EQ.1)THEN
@@ -289,7 +283,7 @@ C Call the graphing routine.
         changed = .false.
       endif
 
-C Update scratch file if editing detected.
+C Update binary/scratch file if editing detected.
 C << when to update text file? >>
       if(edited)then
         msgl2='  '
@@ -377,7 +371,7 @@ C Produce help text for the menu.
 
         ELSEIF(INO.EQ.1)THEN
           CDAY=itdbdoy+AINT(FLOAT(IST)/FLOAT(NTSPH*24))
-          CALL STDATE(itdyear,INT(CDAY),DESCR,DESCR1)
+          CALL STDATE(itdyear,INT(CDAY),DESCR,DESCR1,DESCR2)
           write(outs,'(2a)') 'graph will focus on ',descr1
           call edisp(iuout,outs)
           igedoy=INT(CDAY)
@@ -548,7 +542,8 @@ C and array index.
 C Edit period data in format defined by generic type with the
 C current item data. Treat differently if Text/Real/Integer field.
 C If tabular the allow editing of the value only.
-C Read the timestep data for the period selected.
+C Read the timestep data for the period selected from the
+C scratch file.
         CALL KEYIND(IPDL,INODA,IWHICH,INOUT)
         ITS=IWHICH
         ITREC=ITS+49
@@ -559,8 +554,8 @@ C Read the timestep data for the period selected.
         CDAY=AINT(FLOAT(ITS)/FLOAT(NTSPH*24))
         ITIME=ITS-(INT(CDAY)*NTSPH*24)
         RDOTY=REAL(itdbdoy)+CDAY+(REAL(ITIME)/(REAL(NTSPH)*24.))
-        CALL STDATE(itdyear,INT(RDOTY),DESCR,DESCR1)
-        CALL ESTIME(NTSPH,1,ITIME,DESCRH,DESCRD,TIMER)
+        CALL STDATE(itdyear,INT(RDOTY),DESCR,DESCR1,DESCR2)
+        CALL ESTIME(NTSPH,1,ITIME,DESCRH,DESCRD,DESCRJ,TIMER)
         lntdfdes=lnblnk(TDFDES(IFOC,ISFLDS))
         IF(IFTIME.EQ.0)THEN
           WRITE(TPROMP,'(5A)') TDFDES(IFOC,ISFLDS)(1:lntdfdes),' @ ',
@@ -692,7 +687,7 @@ C index INT(TABU(ITCOL(IFOC,J))) rather than the text itself.
           if(TABU(ico).gt.TABUMX(ico))TABUMX(ico)=TABU(ico)
   602   CONTINUE
         ITREC=ITS+49
-        CALL EWTABU(ITRC,ITREC,IER)
+        CALL EWTABU(ITRC,ITREC,IER)  ! Write updated data to scratch file.
         msgl2=' Problem detected...'
         IF(IER.EQ.1) CALL USRMSG(' ',msgl2,'-')
         changed = .true.
@@ -702,7 +697,10 @@ C index INT(TABU(ITCOL(IFOC,J))) rather than the text itself.
           ITREC=ITS+49
           CALL TMPLOT(ITRC,IFOC,IER)
           changed = .false.
-          CALL EWTDF(IER)
+          CALL EWTDF(IER)  ! Write scratch file.
+
+C Also update the ascii temporal file? as in tdfedit.F line ~402.
+          call ewtdfa(itrc,ltdfa,iutdfa,0,ier)
           edited=.false.
           goto 42
         endif
@@ -863,6 +861,7 @@ C IPS is the timestep to insert data at.
 #include "building.h"
 #include "net_flow.h"
 #include "tdf2.h"
+#include "help.h"
       
       COMMON/FILEP/IFIL
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
@@ -878,12 +877,7 @@ C IPS is the timestep to insert data at.
       logical warncas,XST
       integer IMPTL,INODA ! max items and current menu item
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='EDIMPT'  ! set for subroutine
+      helpinsub='explor'  ! set for subroutine
 
 C Clear column association.
       DO 27 I=1,MBITS
@@ -1190,6 +1184,7 @@ C from a file and to which static value it matches.
 #include "building.h"
 #include "net_flow.h"
 #include "tdf2.h"
+#include "help.h"
       
       COMMON/FILEP/IFIL
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
@@ -1202,12 +1197,7 @@ C from a file and to which static value it matches.
       logical XST
       integer IMPTL,INODA ! max items and current menu item
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='EDSTATICIMPT'  ! set for subroutine
+      helpinsub='explor'  ! set for subroutine
 
 C Static item association.
       DO 27 I=1,MBITS

@@ -145,9 +145,6 @@ C  itrc the level of reporting (zero is quiet).
 #include "esprdbfile.h"
 #include "gencompDB.h"
 #include "gencompDB_common.h"
-C esprdbfile.h supplies the following:
-C LAPRES,IAPRES (for window pressure databases)
-C LPCDB/IPCDB (for plant template database)
       
       integer lnblnk  ! function definition
 

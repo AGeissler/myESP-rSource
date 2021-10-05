@@ -1,6 +1,6 @@
 C This file is part of the ESP-r system.
 C Copyright Energy Systems Research Unit, University of
-C Strathclyde, Glasgow Scotland, 2001.
+C Strathclyde, Glasgow, Scotland, 2001-.
 
 C ESP-r is free software.  You can redistribute it and/or
 C modify it under the terms of the GNU General Public
@@ -13,17 +13,21 @@ C warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
 C PURPOSE. See the GNU General Public License for more
 C details.
 
-C ******************** MFUTIL ********************
-C This module contains the following utility functions or subroutines
-C MFLOAD
-C DENSIT
-C DYVISC
-C MFCRIM
-C MFDAYS
-C MFSKIP
-C MFTSPH
-C MFSNFL
-C MFSTFL
+
+C This file contains the following subroutines.
+C MFLOAD - read a fluid flow network file.
+C DENSIT - calculate fluid density.
+C DYVISC - calculate fluid dynamic viscosity.
+C MFCRIM - checks if flow results file corresponds to current model.
+C MFDAYS - determine day numbers of first and last day in results file.
+C MFSKIP - skip to first record of simulation day IDAYF in results file.
+C MFTSPH - determine the simulation time step from results file.
+C MFSNFL - sum fluid flows entering and leaving a node (NODE) from
+C          one or all coupled nodes. 
+C MFSTFL - sums flows through each connection to coupled nodes to get each
+C          node's total fluid flow entering leaving.
+C Psat01m - calculates saturation vapour pressure ss a function of
+C           temperature 
 
 C ******************** MFLOAD ********************
 C Uses MFREAD (in MFPROB) to read a fluid flow network file (IAIRN=1),
@@ -231,7 +235,7 @@ C Warn user, but suppress redundant messages
         DENSIT=1001.1-0.082*VTEMP-0.0036*VTEMP*VTEMP
 
       ELSE
-         STOP 'DENSIT: unsupported fluid type!'
+         STOP 'DENSIT: fluid type is not 1 or 2!'
       ENDIF
 
       RETURN
@@ -494,9 +498,8 @@ C Note that TIME is read in Fn.3 format.
 C ******************** MFSNFL ********************
 C Sum fluid flows entering (FLIN) and leaving (FLUT) node (NODE) from
 C coupled node (NODC) or from all coupled nodes in case NODC=0. Entering
-C flow is +ve, leaving flow is -ve. For IDIM=1 the results are in
-C 10^-3 kg/s and when IDIM=2 or 3 the results are in m^3/hr.
-C DIMFAC - factor for calculating the appropriate flow dimension.
+C flow is +ve, leaving flow is -ve. For IDIM=1 the results are in kg/s
+C and when IDIM=2 or 3 the results are in m^3/hr.
 
       SUBROUTINE MFSNFL(IDIM,NODE,NODC,FLIN,FLUT)
 #include "building.h"
@@ -511,7 +514,7 @@ C DIMFAC - factor for calculating the appropriate flow dimension.
 
       FLIN=0.
       FLUT=0.
-      IF(IDIM.EQ.1) DIMFAC=1000.0
+      IF(IDIM.EQ.1) DIMFAC=1.0
 
       DO 10 ICNN=1,NCNN
       IDPS=NODPS(ICNN)
@@ -563,11 +566,10 @@ C DIMFAC - factor for calculating the appropriate flow dimension.
       END
 
 C ************************ MFSTFL ************************
-C Sums flows through each connection coupled nodes to get each
+C Sums flows through each connection to coupled nodes to get each
 C node's total fluid flow entering (FLWIN; +ve) or leaving
 C (FLWUT; -ve) respectively. In case of IDIM=1 the results will
 C be in kg/s and when IDIM=2 or 3 the results will be in m^3/hr.
-C DIMFAC - factor for calculating the appropriate flow dimension.
 
       SUBROUTINE MFSTFL(IDIM,FLWIN,FLWUT)
 #include "building.h"
@@ -581,8 +583,8 @@ C DIMFAC - factor for calculating the appropriate flow dimension.
       DOUBLE PRECISION FLWIN(MNOD),FLWUT(MNOD)
 
       DO 10 INOD=1,NNOD
-      FLWIN(INOD)=0
-      FLWUT(INOD)=0
+      FLWIN(INOD)=0.0
+      FLWUT(INOD)=0.0
    10 CONTINUE
 
 C Assign the fluid flows through each connection to its

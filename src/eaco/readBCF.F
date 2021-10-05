@@ -13,12 +13,6 @@ C warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
 C PURPOSE. See the GNU General Public License for more
 C details.
 
-C You should have received a copy of the GNU General Public
-C License along with ESP-r. If not, write to the Free
-C Software Foundation, Inc., 59 Temple Place, Suite 330,
-C Boston, MA 02111-1307 USA.
-
-
 C************ MatIndex*************
 C Using an Material name (XMat), returns its material block index in the 
 C BCF file. Scan the list of Mat name (CompoNam) and compare to XMat.
@@ -346,6 +340,7 @@ C ic Inetger: dummy variable use to skip "None" in list (transports, etc.)
 #include "acoustic.h"
 #include "esprdbfile.h"
 #include "material.h"
+#include "help.h"
       
       integer lnblnk  ! function definition
 
@@ -423,18 +418,13 @@ C Declare constant arrays
       REAL MaxImpTr(MIMP),MinImpTr(MIMP),MaxImp(MIMP),MinImp(MIMP)
       CHARACTER*4 AbrevImp
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
 C Initialiastion
       DATA MaxImpTr /100.,100.,100.,100./
       DATA MinImpTr /0.,0.,0.,0./
       DATA MaxImp /10000.,10000.,10000.,10000./
       DATA MinImp /0.,0.,0.,0./
 
-      helpinsub='SCNBCF'  ! set for subroutine
+      helpinsub='readBCF'  ! set for subroutine
 
       do 144 I=1,ME
         NbEIALay(I)=0

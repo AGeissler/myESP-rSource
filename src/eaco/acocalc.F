@@ -13,23 +13,16 @@ C warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
 C PURPOSE. See the GNU General Public License for more
 C details.
 
-C You should have received a copy of the GNU General Public
-C License along with ESP-r. If not, write to the Free
-C Software Foundation, Inc., 59 Temple Place, Suite 330,
-C Boston, MA 02111-1307 USA.
 
-C acocalc.F holds routines for reverberation time calculation:
+C This file contain routines for reverberation time calculation.
 C  MLCIndex : return the construction index in the BCF file using 
 C             the construction name of a surface. 
-
 C  factorM  : Calcul the air absorption coefficient according to 
 C             the air humidity, temperature, and sound frequency.
-
 C  SurfEquiCalc:  Calculate the equivalent surface area of zone (IZone)
 C                 using the method (Method) and return the values for
 C                 each frequency.
-
-C TRevCalc : Calculate the reverberation time of zone(s) using the
+C  TRevCalc: Calculate the reverberation time of zone(s) using the
 C            selected method.
 
 
@@ -140,7 +133,6 @@ C CovSurf   : Name of a surface behind a furniture (Extracted from ACA file)
 
 
       SUBROUTINE SurfEquiCalc(IZone,Method, IairAbso)
-
 #include "building.h"
 #include "geometry.h"
 #include "acoustic.h"

@@ -256,16 +256,17 @@ static box	wire, capture, captext ;	/* wireframe ctl, capture graphics & capture
 static box	azi,aziplus,aziminus;	/* buttons for view azimuth changes */
 static box	elev,elevplus,elevminus;	/* buttons for view elevation changes */
 static box     altb,altc,querb,defb,okb;	/* boxes for alts,query help, default, confirm */
-static box     updown_text;	/* box for resizing text feedback */
-static box     a,b,c,d,e,f,g;	/* boxes for multiple choices */
-static box	cfgz,cfgn,cfgc,cfgdfn;	/* boxes for problem type */
-static box	mouse,mouse1,mouse2,mouse3;	/* box for mouse button help */
-static char mseb1h[10],mseb2h[10],mseb3h[10]; /* mouse help strings */
+static box     updown_text;	                                        /* box for resizing text feedback */
+static box     a,b,c,d,e,f,g;	                                        /* boxes for multiple choices */
+static box      cfgs,cfgnet,cfgc,cfgpln,cfgeln,cfgren;	/* boxes for model features */
+static box	cfgfab,cfgbeh,cfgsim;
+static box	mouse,mouse1,mouse2,mouse3;	                        /* box for mouse button help */
+static char mseb1h[10],mseb2h[10],mseb3h[10];                           /* mouse help strings */
 static int aziplus_left,aziminus_left,azi_left,elevplus_left,elevminus_left,elev_left; /* left of azi&elev boxes */
-static int b_setup, l_setup, b_cpw, l_cpw;	/* ll of setup, copyright boxs */
-static int wire_left,capture_left,captext_left;	/* left of wire frame and capture control box */
-static long int ocfgz,ocfgn,ocfgc,ocfgdfn; /* persistant toggles for problem type boxes */
-static long int iiocfgz,iiocfgn,iiocfgc,iiocfgdfn; /* persistant toggles for problem type images */
+static int b_setup, l_setup, b_cpw, l_cpw;	                        /* ll of setup, copyright boxs */
+static int wire_left,capture_left,captext_left;	                        /* left of wire frame and capture control box */
+static long int ocfgz,ocfgs,ocfgnet,ocfgc,ocfgpln;          /* persistant toggles for problem type boxes */
+static long int ocfgeln,ocfgren,ocfgfab,ocfgbeh,ocfgsim;
 static int dbx1_avail = 0;      /* flag for existance of graphic display box */
 static int c3dcl,c3dcr,c3dct,c3dcb; /* dbx1 char offsets left, right, top, bottom */
 static int disp_opened = 0;     /* flag for existance of text display box. */
@@ -1691,9 +1692,10 @@ int  len;        /* len is length passed from fortran */
 }
 
 /* ********* Find width of string (buff) in current font. ******* */
-void textpixwidth_(buff,pixelwidth,len)
+void textpixwidth_(buff,pixelwidth,pixelheight,len)
 char *buff;
 long int *pixelwidth;	/* width of the string in pixels */
+long int *pixelheight;	/* height of the string in pixels */
 int  len;        /* len is length passed from fortran */
 {
  int ilen;
@@ -1706,6 +1708,7 @@ int  len;        /* len is length passed from fortran */
  XftTextExtents8(theDisp,fst,buff,ilen,&info);
  vfw = info.xOff;
  if (vfw > 1 ) *pixelwidth = (long int) vfw;
+ if (vfw > 1 ) *pixelheight = (long int) f_height;
  // debug fprintf(stderr,"phrase %s is %d pixels wide\n",buff,vfw);
 
  return;
@@ -9035,96 +9038,122 @@ point*/
 /* selected licence */
         saved_font = current_font; bottom = b_cpw; left = l_cpw;
         doitbox(cpw,"licence",7,9,&saved_font,&box_fnt,&bottom,&left,"copyright",'!');
-      } else if (cfg_boxs == 0 && xboxinside(cfgz,x,y)) {
+      } else if (ocfgs >= 1 && xboxinside(cfgs,x,y)) {
 
-/* Check buttons inside graphics feedback.  If in button then do required
-   operations, if not then return the x,y coord and which button was pressed.
-   if in config boxs cfgz (registration) */
+/* If in active feature box cfgs (Context: site obstructions and/or ground) */
         saved_font = current_font;
         if (saved_font != disp_fnt) winfnt_(&disp_fnt);
-        xbox(cfgz,fg,ginvert, BMCLEAR | BMNOT |BMEDGES);      /* invert box */
-        XftDrawString8(draw, &xft_color,fst,cfgz.b_left+3,cfgz.b_bottom-2,"registration ",13);
-        avail_cfg = 'r';
-        cfgpk_(&avail_cfg,len_avail);	/* pass back registration to fortran  */
-        xbox(cfgz,fg,white, BMCLEAR |BMEDGES);      /* invert box */
-        XftDrawString8(draw, &xft_color,fst,cfgz.b_left+3,cfgz.b_bottom-2,"registration ",13);
-        if (saved_font != disp_fnt) winfnt_(&saved_font);  /* restore std font */
-      } else if (cfg_boxs >= 1 && xboxinside(cfgz,x,y)) {
-
-/* if in config boxs cfgz (zones) */
-        saved_font = current_font;
-        if (saved_font != disp_fnt) winfnt_(&disp_fnt);
-        xbox(cfgz,fg,ginvert, BMCLEAR | BMNOT |BMEDGES);      /* invert box */
-        XftDrawString8(draw, &xft_color,fst,cfgz.b_left+3,cfgz.b_bottom-2,"zones        ",13);
-        avail_cfg = 'z';
+        xbox(cfgs,fg,ginvert, BMCLEAR | BMNOT |BMEDGES);      /* invert box */
+        XftDrawString8(draw, &xft_color,fst,cfgs.b_left+3,cfgs.b_bottom-2,"Context     ",12);
+        avail_cfg = 's';
         cfgpk_(&avail_cfg,len_avail);	/* pass back zones to fortran */
-        xbox(cfgz,fg,white, BMCLEAR |BMEDGES);      /* invert box */
-        XftDrawString8(draw, &xft_color,fst,cfgz.b_left+3,cfgz.b_bottom-2,"zones        ",13);
-        if (iiocfgz >= 1) {	/* zones images */
-          eyex = cfgz.b_right - 14;
-          eyey = cfgz.b_bottom - (f_height/2);
-          sym=29; sz=0; esymbol_(&eyex,&eyey,&sym,&sz);
-        }
+        xbox(cfgs,fg,white, BMCLEAR |BMEDGES);      /* invert box */
+        XftDrawString8(draw, &xft_color,fst,cfgs.b_left+3,cfgs.b_bottom-2,"Context     ",12);
         if (saved_font != disp_fnt) winfnt_(&saved_font);  /* restore std font */
-      } else if (cfg_boxs >= 0 && xboxinside(cfgn,x,y)) {
+      } else if (ocfgnet >= 1 && xboxinside(cfgnet,x,y)) {
 
-/* if in config boxs cfgn (network) */
+/* if in active config boxs cfgnet (Fluid flow) */
         saved_font = current_font;
         if (saved_font != disp_fnt) winfnt_(&disp_fnt);
-        xbox(cfgn,fg,ginvert, BMCLEAR | BMNOT |BMEDGES);      /* invert box */
-        XftDrawString8(draw, &xft_color,fst,cfgn.b_left+3,cfgn.b_bottom-2,"networks     ",13);
+        xbox(cfgnet,fg,ginvert, BMCLEAR | BMNOT |BMEDGES);      /* invert box */
+        XftDrawString8(draw, &xft_color,fst,cfgnet.b_left+3,cfgnet.b_bottom-2,"Fluid flow  ",12);
         if (saved_font != disp_fnt) winfnt_(&saved_font);  /* restore std font */
         avail_cfg = 'n';
         cfgpk_(&avail_cfg,len_avail);	/* pass back plant to fortran */
         saved_font = current_font;
         if (saved_font != disp_fnt) winfnt_(&disp_fnt);
-        xbox(cfgn,fg,white, BMCLEAR |BMEDGES);      /* invert box */
-        XftDrawString8(draw, &xft_color,fst,cfgn.b_left+3,cfgn.b_bottom-2,"networks     ",13);
-        if (iiocfgn >= 1) {	/* network images */
-          eyex = cfgn.b_right - 14;
-          eyey = cfgn.b_bottom - (f_height/2);
-          sym=29; sz=0; esymbol_(&eyex,&eyey,&sym,&sz);
-        }
+        xbox(cfgnet,fg,white, BMCLEAR |BMEDGES);      /* invert box */
+        XftDrawString8(draw, &xft_color,fst,cfgnet.b_left+3,cfgnet.b_bottom-2,"Fluid flow  ",12);
         if (saved_font != disp_fnt) winfnt_(&saved_font);  /* restore std font */
-      } else if (cfg_boxs >= 0 && xboxinside(cfgc,x,y)) {
+      } else if (ocfgpln >= 1 && xboxinside(cfgpln,x,y)) {
 
-/* if in config boxs cfgpwn (control) */
+/* if in active config boxs cfgpln (HVAC) */
+        saved_font = current_font;
+        if (saved_font != disp_fnt) winfnt_(&disp_fnt);
+        xbox(cfgpln,fg,ginvert, BMCLEAR | BMNOT |BMEDGES);      /* invert box */
+        XftDrawString8(draw, &xft_color,fst,cfgpln.b_left+3,cfgpln.b_bottom-2,"HVAC        ",12);
+        if (saved_font != disp_fnt) winfnt_(&saved_font);  /* restore std font */
+        avail_cfg = 'p';
+        cfgpk_(&avail_cfg,len_avail);	/* pass back plant to fortran */
+        saved_font = current_font;
+        if (saved_font != disp_fnt) winfnt_(&disp_fnt);
+        xbox(cfgpln,fg,white, BMCLEAR |BMEDGES);      /* invert box */
+        XftDrawString8(draw, &xft_color,fst,cfgpln.b_left+3,cfgpln.b_bottom-2,"HVAC        ",12);
+        if (saved_font != disp_fnt) winfnt_(&saved_font);  /* restore std font */
+      } else if (ocfgeln >= 1 && xboxinside(cfgeln,x,y)) {
+
+/* if in active config boxs cfgeln (Electrical) */
+        saved_font = current_font;
+        if (saved_font != disp_fnt) winfnt_(&disp_fnt);
+        xbox(cfgeln,fg,ginvert, BMCLEAR | BMNOT |BMEDGES);      /* invert box */
+        XftDrawString8(draw, &xft_color,fst,cfgeln.b_left+3,cfgeln.b_bottom-2,"Electrical  ",12);
+        if (saved_font != disp_fnt) winfnt_(&saved_font);  /* restore std font */
+        avail_cfg = 'e';
+        cfgpk_(&avail_cfg,len_avail);	/* pass back plant to fortran */
+        saved_font = current_font;
+        if (saved_font != disp_fnt) winfnt_(&disp_fnt);
+        xbox(cfgeln,fg,white, BMCLEAR |BMEDGES);      /* invert box */
+        XftDrawString8(draw, &xft_color,fst,cfgeln.b_left+3,cfgeln.b_bottom-2,"Electrical  ",12);
+        if (saved_font != disp_fnt) winfnt_(&saved_font);  /* restore std font */
+      } else if (ocfgc >= 1 && xboxinside(cfgc,x,y)) {
+
+/* if in active config boxs cfgc (control) */
         saved_font = current_font;
         if (saved_font != disp_fnt) winfnt_(&disp_fnt);
         xbox(cfgc,fg,ginvert, BMCLEAR | BMNOT |BMEDGES);      /* invert box */
-        XftDrawString8(draw, &xft_color,fst,cfgc.b_left+3,cfgc.b_bottom-2,"controls     ",13);
+        XftDrawString8(draw, &xft_color,fst,cfgc.b_left+3,cfgc.b_bottom-2,"Control     ",12);
         if (saved_font != disp_fnt) winfnt_(&saved_font);  /* restore std font */
         avail_cfg = 'c';
         cfgpk_(&avail_cfg,len_avail);	/* pass back plant to fortran */
         saved_font = current_font;
         if (saved_font != disp_fnt) winfnt_(&disp_fnt);
         xbox(cfgc,fg,white, BMCLEAR |BMEDGES);      /* invert box */
-        XftDrawString8(draw, &xft_color,fst,cfgc.b_left+3,cfgc.b_bottom-2,"controls     ",13);
-        if (iiocfgc >= 1) {	/* network images */
-          eyex = cfgc.b_right - 14;
-          eyey = cfgc.b_bottom - (f_height/2);
-          sym=29; sz=0; esymbol_(&eyex,&eyey,&sym,&sz);
-        }
+        XftDrawString8(draw, &xft_color,fst,cfgc.b_left+3,cfgc.b_bottom-2,"Control     ",12);
         if (saved_font != disp_fnt) winfnt_(&saved_font);  /* restore std font */
-      } else if (cfg_boxs >= 0 && xboxinside(cfgdfn,x,y)) {
+      } else if (ocfgren >= 1 && xboxinside(cfgren,x,y)) {
 
-/* if in config box cfgdfn (domain flow) */
+/* if in active config box cfgren (Renewables) */
         saved_font = current_font;
         if (saved_font != disp_fnt) winfnt_(&disp_fnt);
-        xbox(cfgdfn,fg,ginvert, BMCLEAR | BMNOT |BMEDGES);      /* invert box */
-        XftDrawString8(draw, &xft_color,fst,cfgdfn.b_left+3,cfgdfn.b_bottom-2,"domain flow  ",13);
+        xbox(cfgren,fg,ginvert, BMCLEAR | BMNOT |BMEDGES);      /* invert box */
+        XftDrawString8(draw, &xft_color,fst,cfgren.b_left+3,cfgren.b_bottom-2,"Renewables  ",12);
         if (saved_font != disp_fnt) winfnt_(&saved_font);  /* restore std font */
-        avail_cfg = 'd';
+        avail_cfg = 't';
         cfgpk_(&avail_cfg,len_avail);	/* pass back cfd to fortran */
         saved_font = current_font;
         if (saved_font != disp_fnt) winfnt_(&disp_fnt);
-        xbox(cfgdfn,fg,white, BMCLEAR |BMEDGES);      /* invert box */
-        XftDrawString8(draw, &xft_color,fst,cfgdfn.b_left+3,cfgdfn.b_bottom-2,"domain flow  ",13);
-        if (iiocfgdfn >= 1) {	/* network images */
-          eyex = cfgdfn.b_right - 14;
-          eyey = cfgdfn.b_bottom - (f_height/2);
-          sym=29; sz=0; esymbol_(&eyex,&eyey,&sym,&sz);
-        }
+        xbox(cfgren,fg,white, BMCLEAR |BMEDGES);      /* invert box */
+        XftDrawString8(draw, &xft_color,fst,cfgren.b_left+3,cfgren.b_bottom-2,"Renewables  ",12);
+        if (saved_font != disp_fnt) winfnt_(&saved_font);  /* restore std font */
+      } else if (ocfgbeh >= 1 && xboxinside(cfgbeh,x,y)) {
+
+/* if in active config box cfgbeh (Behaviour) */
+        saved_font = current_font;
+        if (saved_font != disp_fnt) winfnt_(&disp_fnt);
+        xbox(cfgbeh,fg,ginvert, BMCLEAR | BMNOT |BMEDGES);      /* invert box */
+        XftDrawString8(draw, &xft_color,fst,cfgbeh.b_left+3,cfgbeh.b_bottom-2,"Behaviour   ",12);
+        if (saved_font != disp_fnt) winfnt_(&saved_font);  /* restore std font */
+        avail_cfg = 'o';
+        cfgpk_(&avail_cfg,len_avail);	/* pass back cfd to fortran */
+        saved_font = current_font;
+        if (saved_font != disp_fnt) winfnt_(&disp_fnt);
+        xbox(cfgbeh,fg,white, BMCLEAR |BMEDGES);      /* invert box */
+        XftDrawString8(draw, &xft_color,fst,cfgbeh.b_left+3,cfgbeh.b_bottom-2,"Behaviour   ",12);
+        if (saved_font != disp_fnt) winfnt_(&saved_font);  /* restore std font */
+      } else if (ocfgsim >= 1 && xboxinside(cfgsim,x,y)) {
+
+/* if in active config box cfgsim (Automation) */
+        saved_font = current_font;
+        if (saved_font != disp_fnt) winfnt_(&disp_fnt);
+        xbox(cfgsim,fg,ginvert, BMCLEAR | BMNOT |BMEDGES);      /* invert box */
+        XftDrawString8(draw, &xft_color,fst,cfgsim.b_left+3,cfgsim.b_bottom-2,"Automation  ",12);
+        if (saved_font != disp_fnt) winfnt_(&saved_font);  /* restore std font */
+        avail_cfg = 'a';
+        cfgpk_(&avail_cfg,len_avail);	/* pass back cfd to fortran */
+        saved_font = current_font;
+        if (saved_font != disp_fnt) winfnt_(&disp_fnt);
+        xbox(cfgsim,fg,white, BMCLEAR |BMEDGES);      /* invert box */
+        XftDrawString8(draw, &xft_color,fst,cfgsim.b_left+3,cfgsim.b_bottom-2,"Automation  ",12);
         if (saved_font != disp_fnt) winfnt_(&saved_font);  /* restore std font */
       } else if (mouse_avail > 0 && xboxinside(mouse,x,y)) {
 
@@ -9349,9 +9378,12 @@ void refreshenv_()
    lttyc=disp_lines;
    updview_(&ifsc,&itfsc,&imfsc,&vl,&vr,&vt,&vb,&g3w,&g3h,&lttyc);
 
-   if(cfg_boxs >= 0) {                     /* if configuration boxs redraw them */
+/* If showing feature boxes call Fortran opencfg and get back indicators of */
+/* which features are active in this model. The returned items are held globally. */
+   if(cfg_boxs >= 0) {
      ltfont = butn_fnt;
-     opencfg_(&cfg_boxs,&ocfgz,&ocfgn,&ocfgc,&ocfgdfn,&iiocfgz,&iiocfgn,&iiocfgc,&iiocfgdfn);
+     opencfg_(&cfg_boxs,&ocfgz,&ocfgs,&ocfgnet,&ocfgc,&ocfgpln,&ocfgeln,
+              &ocfgren,&ocfgfab,&ocfgbeh,&ocfgsim);
    }
    return;
 } /* refreshenv */
@@ -9375,26 +9407,30 @@ void opencpw_()
  return;
 } /* opencpw */
 
-/* ******  Place configuration buttons on screen ********** */
-void opencfg_(cfg_type,icfgz,icfgn,icfgc,icfgdfn,iicfgz,iicfgn,iicfgc,iicfgdfn)
+/* ******  Place model feature buttons on screen ********** */
+void opencfg_(cfg_type,icfgz,icfgs,icfgnet,icfgc,icfgpln,icfgeln,icfgren,
+              icfgfab,icfgbeh,icfgsim)
   long int *cfg_type;	/* type of problem configuration */
-  long int *icfgz,*icfgn,*icfgc,*icfgdfn;     /* toggles for zones/networks/control/domain boxes */
-  long int *iicfgz,*iicfgn,*iicfgc,*iicfgdfn;	/* indicators for associated images */
+  long int *icfgz,*icfgs,*icfgnet,*icfgc,*icfgpln,*icfgeln;       /* toggles for model feature boxes */
+  long int *icfgren,*icfgfab,*icfgbeh,*icfgsim; 
 {
  XftDraw *draw;
  long int eyex,eyey,sym,sz;  /* centre for image symbols and symbol index and size */
  long int saved_font;
  int bh,hdl;
  int oocfgz = (int) *icfgz;	/* toggle for zones button */
- int iioocfgz = (int) *iicfgz;	/* toggle for zones images */
- int oocfgn = (int) *icfgn;	/* toggle for network button */
- int iioocfgn = (int) *iicfgn;	/* toggle for network images */
- int oocfgc = (int) *icfgc;	/* toggle for control button */
- int iioocfgc = (int) *iicfgc;	/* toggle for control images */
- int oocfgdfn = (int) *icfgdfn;	/* toggle for domain button */
- int iioocfgdfn = (int) *iicfgdfn;	/* toggle for domain images */
- ocfgz = oocfgz; ocfgn = oocfgn; ocfgc = oocfgc; ocfgdfn = oocfgdfn; /* remember toggles */
- iiocfgz = iioocfgz; iiocfgn = iioocfgn; iiocfgc = iioocfgc; iiocfgdfn = iioocfgdfn; /* remember images */
+ int oocfgs = (int) *icfgs;	/* toggle for Context button */
+ int oocfgnet = (int) *icfgnet;	/* toggle for Fluid flown and/or CFD button */
+ int oocfgc = (int) *icfgc;	/* toggle for Control button */
+ int oocfgpln = (int) *icfgpln;	/* toggle for HVAC button */
+ int oocfgeln = (int) *icfgeln;	/* toggle for Electrical network button */
+ int oocfgren = (int) *icfgren; /* toggle for Renewables button */
+ int oocfgfab = (int) *icfgfab;	/* toggle for Enhaanced fabric button */
+ int oocfgbeh = (int) *icfgbeh;	/* toggle for Behaviour */
+ int oocfgsim = (int) *icfgsim;	/* toggle for Automation button */
+ ocfgz = oocfgz;  ocfgs = oocfgs; ocfgnet = oocfgnet; ocfgc = oocfgc;  /* remember toggles at global level */
+ ocfgpln = oocfgpln; ocfgeln = oocfgeln; ocfgren = oocfgren;
+ ocfgfab = oocfgfab; ocfgbeh = oocfgbeh; ocfgsim = oocfgsim;
 
  saved_font = current_font;
  if (saved_font != disp_fnt) winfnt_(&disp_fnt);
@@ -9403,68 +9439,83 @@ void opencfg_(cfg_type,icfgz,icfgn,icfgc,icfgdfn,iicfgz,iicfgn,iicfgc,iicfgdfn)
 // Define local drawable for Xft font.
  draw = XftDrawCreate(theDisp,win,theVisual,theCmap);
 
-/*
- boxs are buttons, set them to unused area until required.
-*/
-  cfgz.b_top = cfgn.b_top = cfgc.b_top = cfgdfn.b_top = viewbx.b_top;
-  cfgz.b_bottom = cfgn.b_bottom = cfgc.b_bottom = cfgdfn.b_bottom = viewbx.b_top+1;
-  cfgz.b_left = cfgn.b_left = cfgc.b_left = cfgdfn.b_left = viewbx.b_left;
-  cfgz.b_right = cfgn.b_right = cfgc.b_right = cfgdfn.b_right = viewbx.b_left+1;
-
   bh = f_height+2;	/* box height is font height +2 */
-  hdl = viewbx.b_right - (f_width * 9);
+  hdl = viewbx.b_right - (f_width * 16);
   XftDrawString8(draw, &xft_color,fst,hdl,viewbx.b_top+bh-1,"Features",8);
-  if (cfg_boxs == 0){	/* registration level  */
-    cfgz.b_top = viewbx.b_top + bh;    cfgz.b_bottom = cfgz.b_top + bh;
-    cfgz.b_right = viewbx.b_right - 2; cfgz.b_left = cfgz.b_right - (f_width * 14);
-    xbox(cfgz,fg,white, BMCLEAR | BMEDGES);
-    XftDrawString8(draw, &xft_color,fst,cfgz.b_left+3,cfgz.b_bottom-2,"registration",12);
+  
+  cfgs.b_top = viewbx.b_top + (1 * bh) +2;    cfgs.b_bottom = cfgs.b_top + bh;
+  cfgs.b_right = viewbx.b_right - 2; cfgs.b_left = cfgs.b_right - (f_width * 16);
+  xbox(cfgs,fg,white, BMCLEAR | BMEDGES);
+  if (oocfgs >= 1) {	/* site */
+    XftDrawString8(draw, &xft_color,fst,cfgs.b_left+3,cfgs.b_bottom-2, "Context     ",12);
   } else {
-    if (oocfgz == 1) {	/* zones */
-      cfgz.b_top = viewbx.b_top + bh +2;    cfgz.b_bottom = cfgz.b_top + bh;
-      cfgz.b_right = viewbx.b_right - 2; cfgz.b_left = cfgz.b_right - (f_width * 13);
-      xbox(cfgz,fg,white, BMCLEAR | BMEDGES);
-      XftDrawString8(draw, &xft_color,fst,cfgz.b_left+3,cfgz.b_bottom-2,"zones      ",11);
-      if (iiocfgz >= 1) {	/* zones images */
-        eyex = cfgz.b_right - 14;
-        eyey = cfgz.b_bottom - (f_height/2);
-        sym=29; sz=0; esymbol_(&eyex,&eyey,&sym,&sz);
-      }
-    }
-    if (oocfgn == 1) {	/* network */
-      cfgn.b_top   = viewbx.b_top +bh +bh +6;   cfgn.b_bottom = cfgn.b_top + bh;
-      cfgn.b_right = viewbx.b_right - 2; cfgn.b_left = cfgn.b_right - (f_width * 13);
-      xbox(cfgn,fg,white, BMCLEAR | BMEDGES);
-      XftDrawString8(draw, &xft_color,fst,cfgn.b_left+3,cfgn.b_bottom-2,"networks   ",11);
-      if (iiocfgn >= 1) {	/* network images */
-        eyex = cfgn.b_right - 14;
-        eyey = cfgn.b_bottom - (f_height/2);
-        sym=29; sz=0; esymbol_(&eyex,&eyey,&sym,&sz);
-      }
-    }
-    if (oocfgc == 1) {	/* control */
-      cfgc.b_top   = viewbx.b_top + (3 * bh) +10;   cfgc.b_bottom = cfgc.b_top + bh;
-      cfgc.b_right = viewbx.b_right - 2; cfgc.b_left = cfgc.b_right - (f_width * 13);
-      xbox(cfgc,fg,white, BMCLEAR | BMEDGES);   /* draw the controls box */
-      XftDrawString8(draw, &xft_color,fst,cfgc.b_left+3,cfgc.b_bottom-2,"controls   ",11);
-      if (iiocfgc >= 1) {	/* network images */
-        eyex = cfgc.b_right - 14;
-        eyey = cfgc.b_bottom - (f_height/2);
-        sym=29; sz=0; esymbol_(&eyex,&eyey,&sym,&sz);
-      }
-    }
-    if (oocfgdfn == 1) {	/* domain flow */
-      cfgdfn.b_top   = viewbx.b_top + (4 * bh) +14;   cfgdfn.b_bottom = cfgdfn.b_top + bh;
-      cfgdfn.b_right = viewbx.b_right - 2; cfgdfn.b_left = cfgdfn.b_right - (f_width * 13);
-      xbox(cfgdfn,fg,white, BMCLEAR | BMEDGES);
-      XftDrawString8(draw, &xft_color,fst,cfgdfn.b_left+3,cfgdfn.b_bottom-2,"domain flow",11);
-      if (iiocfgdfn >= 1) {	/* network images */
-        eyex = cfgdfn.b_right - 14;
-        eyey = cfgdfn.b_bottom - (f_height/2);
-        sym=29; sz=0; esymbol_(&eyex,&eyey,&sym,&sz);
-      }
-    }
+    XftDrawString8(draw, &xft_grey50,fst,cfgs.b_left+3,cfgs.b_bottom-2,"Context     ",12);
   }
+  cfgpln.b_top   = viewbx.b_top + (2 * bh) +5;   cfgpln.b_bottom = cfgpln.b_top + bh;
+  cfgpln.b_right = viewbx.b_right - 2; cfgpln.b_left = cfgpln.b_right - (f_width * 16);
+  xbox(cfgpln,fg,white, BMCLEAR | BMEDGES);
+  if (oocfgpln >= 1) {	/* HVAC */
+    XftDrawString8(draw, &xft_color,fst,cfgpln.b_left+3,cfgpln.b_bottom-2, "HVAC        ",12);
+  } else {
+    XftDrawString8(draw, &xft_grey50,fst,cfgpln.b_left+3,cfgpln.b_bottom-2,"HVAC        ",12);
+  }
+  cfgeln.b_top   = viewbx.b_top + (3 * bh) +8;   cfgeln.b_bottom = cfgeln.b_top + bh;
+  cfgeln.b_right = viewbx.b_right - 2; cfgeln.b_left = cfgeln.b_right - (f_width * 16);
+  xbox(cfgeln,fg,white, BMCLEAR | BMEDGES);
+  if (oocfgeln >= 1) {	/* Electrical */
+    XftDrawString8(draw, &xft_color,fst,cfgeln.b_left+3,cfgeln.b_bottom-2, "Electrical  ",12);
+  } else {
+    XftDrawString8(draw, &xft_grey50,fst,cfgeln.b_left+3,cfgeln.b_bottom-2,"Electrical  ",12);
+  }
+  cfgren.b_top   = viewbx.b_top + (4 * bh) +11;   cfgren.b_bottom = cfgren.b_top + bh;
+  cfgren.b_right = viewbx.b_right - 2; cfgren.b_left = cfgren.b_right - (f_width * 16);
+  xbox(cfgren,fg,white, BMCLEAR | BMEDGES);
+  if (oocfgren >= 1) {	/* special materials */
+    XftDrawString8(draw, &xft_color,fst,cfgren.b_left+3,cfgren.b_bottom-2, "Renewables  ",12);
+  } else {
+    XftDrawString8(draw, &xft_grey50,fst,cfgren.b_left+3,cfgren.b_bottom-2,"Renewables  ",12);
+  }
+  cfgnet.b_top   = viewbx.b_top + (5 * bh) +14;   cfgnet.b_bottom = cfgnet.b_top + bh;
+  cfgnet.b_right = viewbx.b_right - 2; cfgnet.b_left = cfgnet.b_right - (f_width * 16);
+  xbox(cfgnet,fg,white, BMCLEAR | BMEDGES);
+  if (oocfgnet >= 1) {	/* network */
+    XftDrawString8(draw, &xft_color,fst,cfgnet.b_left+3,cfgnet.b_bottom-2, "Fluid flow  ",12);
+  } else {
+    XftDrawString8(draw, &xft_grey50,fst,cfgnet.b_left+3,cfgnet.b_bottom-2,"Fluid flow  ",12);
+  }
+  cfgc.b_top   = viewbx.b_top + (6 * bh) +17;   cfgc.b_bottom = cfgc.b_top + bh;
+  cfgc.b_right = viewbx.b_right - 2; cfgc.b_left = cfgc.b_right - (f_width * 16);
+  xbox(cfgc,fg,white, BMCLEAR | BMEDGES);   /* draw the controls box */
+  if (oocfgc >= 1) {	/* control */
+    XftDrawString8(draw, &xft_color,fst,cfgc.b_left+3,cfgc.b_bottom-2, "Control     ",12);
+  } else {
+    XftDrawString8(draw, &xft_grey50,fst,cfgc.b_left+3,cfgc.b_bottom-2,"Control    ",12);
+  }
+  cfgfab.b_top   = viewbx.b_top + (7 * bh) +20;   cfgfab.b_bottom = cfgfab.b_top + bh;
+  cfgfab.b_right = viewbx.b_right - 2; cfgfab.b_left = cfgfab.b_right - (f_width * 16);
+  xbox(cfgfab,fg,white, BMCLEAR | BMEDGES);
+  if (oocfgfab >= 1) {	/* special materials */
+    XftDrawString8(draw, &xft_color,fst,cfgfab.b_left+3,cfgfab.b_bottom-2, "Enhanced fabric",15);
+  } else {
+    XftDrawString8(draw, &xft_grey50,fst,cfgfab.b_left+3,cfgfab.b_bottom-2,"Enhanced fabric",15);
+  }
+  cfgbeh.b_top   = viewbx.b_top + (8 * bh) +23;   cfgbeh.b_bottom = cfgbeh.b_top + bh;
+  cfgbeh.b_right = viewbx.b_right - 2; cfgbeh.b_left = cfgbeh.b_right - (f_width * 16);
+  xbox(cfgbeh,fg,white, BMCLEAR | BMEDGES);
+  if (oocfgbeh >= 1) {	/* high res occupant */
+    XftDrawString8(draw, &xft_color,fst,cfgbeh.b_left+3,cfgbeh.b_bottom-2, "Behaviour   ",12);
+  } else {
+    XftDrawString8(draw, &xft_grey50,fst,cfgbeh.b_left+3,cfgbeh.b_bottom-2,"Behaviour   ",12);
+  }
+  cfgsim.b_top   = viewbx.b_top + (9 * bh) +26;   cfgsim.b_bottom = cfgsim.b_top + bh;
+  cfgsim.b_right = viewbx.b_right - 2; cfgsim.b_left = cfgsim.b_right - (f_width * 16);
+  xbox(cfgsim,fg,white, BMCLEAR | BMEDGES);
+  if (oocfgsim >= 1) {	/* high res occupant */
+    XftDrawString8(draw, &xft_color,fst,cfgsim.b_left+3,cfgsim.b_bottom-2, "Automation  ",12);
+  } else {
+    XftDrawString8(draw, &xft_grey50,fst,cfgsim.b_left+3,cfgsim.b_bottom-2,"Automation  ",12);
+  }
+
 
   if (saved_font != disp_fnt) winfnt_(&saved_font);  /* restore std font */
   XftDrawDestroy(draw);

@@ -13,11 +13,6 @@ C warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
 C PURPOSE. See the GNU General Public License for more
 C details.
 
-C You should have received a copy of the GNU General Public
-C License along with ESP-r. If not, write to the Free
-C Software Foundation, Inc., 59 Temple Place, Suite 330,
-C Boston, MA 02111-1307 USA.
-
 C Hight & Mid level routines for dxf translator.
 C scandxf: a high level scan of a DXF file 
 C   BLOCK: processes the block definitions in .dxf file
@@ -270,7 +265,7 @@ C Knowing zones, create other zone files.
                 call usrmsg('Configuration file is an old format. ',
      &            'skipping read... ','W')
                 stop 'ecnv aborted.'
-              elseif(icfgv.eq.3.or.icfgv.eq.4)then
+              elseif(icfgv.ge.3)then
                 WRITE(ioout,'(A,I3,A,A)',IOSTAT=IOS,ERR=2)
      &            '*zon ',NCCODE(k2),'   # reference for ',zname(k2)
                 WRITE(ioout,'(A,A,A)',IOSTAT=IOS,ERR=2)
@@ -487,7 +482,7 @@ C that LCNN is something other than UNKNOWN.
         if(LCNN(1:7).eq.'UNKNOWN')then
           write(LCNN,'(2a)') cfgroot(1:lnblnk(cfgroot)),'.cnn'
         endif
-        if(icfgv.eq.3.or.icfgv.eq.4)then
+        if(icfgv.ge.3)then
           WRITE(ioout,'(A,A,A)',IOSTAT=IOS,ERR=2)
      &        '*cnn  ',LCNN(1:lnblnk(LCNN)),'  # connections '
           CALL EFOPSEQ(iotmp2,LCNN,3,IER)
@@ -504,7 +499,7 @@ C that LCNN is something other than UNKNOWN.
   66      continue
   61    continue
         write(ioout,'(a)')'      0   # no mass flow analysis'
-        if(icfgv.eq.3.or.icfgv.eq.4)close(iotmp2)
+        if(icfgv.ge.3)close(iotmp2)
         close(ioout)
 
         if(itmprm.eq.1)then

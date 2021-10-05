@@ -13,11 +13,6 @@ C warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
 C PURPOSE. See the GNU General Public License for more
 C details.
 
-C You should have received a copy of the GNU General Public
-C License along with ESP-r. If not, write to the Free
-C Software Foundation, Inc., 59 Temple Place, Suite 330,
-C Boston, MA 02111-1307 USA.
-
 C eroper.f provides the following facilities:
 C  EROPER:   Reads all zone schedules from a user-constructed
 C            datafile.
@@ -133,13 +128,11 @@ C Maximum number of air change periods/day MA=5
 C Maximum number of casual gain periods (MC) set in building.h
 
       SUBROUTINE EROPER(ITRC,ITRU,IUO,ICOMP,IER)
-      include "building.h"
-      include "model.h"
-      include "schedule.h"
-      include "espriou.h"
-
+#include "building.h"
+#include "model.h"
+#include "schedule.h"
+#include "espriou.h"
 #include "bc_data.h"
-C espriou.h provides currentfile.
       
       integer lnblnk  ! function definition
 
@@ -206,6 +199,9 @@ C Electrical data flag and elctrical data.
      &BVOLT(MDTY,MC),IPHAS(MDTY,MC)
       INTEGER NEL,IPF,IPHAS
       REAL PF,PWR,BVOLT
+      logical isdynamic       ! true if reading a dynamicpeople  
+      logical isdynamicocup   ! true if zone includes dynamicpeople 
+      common/dynamico/isdynamicocup(MCOM) 
 
 C Error subroutine and error details for dll mode.
       common/dllerr/dllsubr,dllmesg
@@ -213,14 +209,15 @@ C Error subroutine and error details for dll mode.
       CHARACTER outstr*124,outs*124,outs2*124
       character dllsubr*12,dllmesg*124,WORD*20,loutstr*248
       character dstmp*24
+      character vctlstr*24,comment*76
       logical havehi,dll
-      integer idaytype        ! incremented for each new *day entry.
+      logical doupgrade       ! Flag that upgrade to v21 is needed.
+      integer idaytype        ! Incremented for each new *day entry.
       integer ijk,ireader
-      integer lsn             ! length of currentfile
+      integer lsn             ! Length of currentfile.
       real reader
       integer irange,icur     ! for looping
       integer implieddaytype  ! counter for implied day types
-      logical isdynamic       ! true if reading a dynamicpeople  
       
       ijk=0
       ireader=0
@@ -250,6 +247,7 @@ C Initialise project data file.
       ENDIF
       write(currentfile,'(a)') LPROJ(ICOMP)(1:lnblnk(LPROJ(ICOMP)))
       ip3ver(icomp)=0   ! reset prior to detect
+      isdynamicocup(icomp)=.false.
 
 C Initialise the iphase arrays to avoid zero array elements in precal.
 C Initialise the following arrays. This is important
@@ -273,19 +271,20 @@ C it into words.
       CALL STRIPC(IUO,OUTSTR,0,ND,1,'oper name or header',IER)
       IF(IER.NE.0) goto 1002
       if(outstr(1:11).eq.'*Operations')then
+        doupgrade=.false.
         if(outstr(13:15).eq.'1.0')then
-          ip3ver(icomp)=1
+          ip3ver(icomp)=1; doupgrade=.true.
         elseif(outstr(13:15).eq.'2.0')then
-          ip3ver(icomp)=2
+          ip3ver(icomp)=2; doupgrade=.true.
         elseif(outstr(13:15).eq.'2.1')then
           ip3ver(icomp)=21
         elseif(outstr(13:15).eq.'3.0')then
           ip3ver(icomp)=30
         endif
 
-C Ancient operation files assumed 3 day types. Reset ip3ver if there
+C Ancient operation files assumed 3 day types. Mark doupgrade if there
 C are more than 3 day types.
-        if(nbdaytype.gt.3.and.ip3ver(icomp).lt.2) ip3ver(icomp)=21
+        if(nbdaytype.gt.3.and.ip3ver(icomp).lt.2) doupgrade=.true.
         CALL STRIPC(IUO,OUTSTR,0,ND,1,'header',IER)
         IF(IER.NE.0) goto 1002
         K=0
@@ -356,41 +355,11 @@ C Thermostatic control data. If 4th item then
         IF(IER.NE.0) goto 1002
 
 C Generate a brief descrition and proceed acording to control type.
+        call ventctlstr(icomp,1,'S',vctlstr,comment)
+        ctlstr(icomp,1)=vctlstr
         IY=ITCTL(ICOMP)
-        if(IY.eq.-14)then
-          ctlstr(icomp,1)='infil only: wind speed  '
-        elseif(IY.eq.-13)then
-          ctlstr(icomp,1)='infil only: ext db temp '
-        elseif(IY.eq.-12)then
-          ctlstr(icomp,1)='infil only: adj zone tmp'
-        elseif(IY.eq.-11)then
-          ctlstr(icomp,1)='infil only: zone temp   '
-        elseif(IY.eq.-4)then
-          ctlstr(icomp,1)='vent only: wind speed   '
-        elseif(IY.eq.-3)then
-          ctlstr(icomp,1)='vent only: ext db temp  '
-        elseif(IY.eq.-2)then
-          ctlstr(icomp,1)='vent only: adj zone temp'
-        elseif(IY.eq.-1)then
-          ctlstr(icomp,1)='vent only: zone temp    '
-        elseif(IY.eq.4)then
-          ctlstr(icomp,1)='infil & vent: wind speed'
-        elseif(IY.eq.3)then
-          ctlstr(icomp,1)='infil & vent: ext db T  '
-        elseif(IY.eq.2)then
-          ctlstr(icomp,1)='infil & vent: adj zone T'
-        elseif(IY.eq.1)then
-          ctlstr(icomp,1)='infil & vent: zone T    '
-        elseif(IY.eq.0)then
-          ctlstr(icomp,1)='no control of air flow  '
+        if(IY.eq.0)then
           IJK=1
-        else
-
-C << put in a loop for each day type >>
-          ctlstr(icomp,1)='unknown flow control   '
-          ctlstr(icomp,2)='unknown flow control   '
-          ctlstr(icomp,3)='unknown flow control   '
-          goto 1022
         endif
 
 C << put in a loop for each day type >>
@@ -722,6 +691,7 @@ C value will be the same as iabs(ICGT).
      &             'dynamicpeople')then
                   ICGUnit(IDTY,I)=3  ! number of people
                   isdynamic=.true.
+                  isdynamicocup(icomp)=.true.
                 else
                   ICGUnit(IDTY,I)=0
                   isdynamic=.false.
@@ -731,6 +701,7 @@ C value will be the same as iabs(ICGT).
      &             'dynamicpeople')then
                   ICGUnit(IDTY,I)=3  ! number of people
                   isdynamic=.true.
+                  isdynamicocup(icomp)=.true.
                 elseif(caskeytype(icomp,ipslot)(1:6).eq.'people')then
                   ICGUnit(IDTY,I)=2
                   isdynamic=.false.
@@ -892,6 +863,9 @@ C File included a 5th label and we assume that this is this reserved use.
             endif
  1234     CONTINUE
         ENDIF 
+        if(doupgrade)then
+          ip3ver(icomp)=21  ! Upgrade the version for next write.
+        endif
       ENDIF     
  1235 CONTINUE
 
@@ -1030,12 +1004,11 @@ C FILE (variable width char) is the name of the file to scan.
 #include "building.h"
 #include "espriou.h"
 #include "schedule.h"
-C espriou.h provides currentfile.
-      
+#include "help.h"
+
       integer lnblnk  ! function definition
 
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
-      common/pophelp/h(60)
       common/caleni/nbdaytype,nbcaldays(MDTY),icalender(365)
       INTEGER NBDAYTYPE,NBCALDAYS,ICALENDER
 
@@ -1093,7 +1066,7 @@ C Error subroutine and error details for dll mode.
       CHARACTER outstr*124,outs*124
       CHARACTER*(*) FILE
       character dllsubr*12,dllmesg*124,WORD*20,loutstr*248,outs2*124
-      character dstmp*24,H*72
+      character dstmp*24
       character louts*248
       character actflatfile*1  ! action requested.
       logical havehi,dll,ok,dok
@@ -1103,6 +1076,9 @@ C Error subroutine and error details for dll mode.
 
       dok=.false.
       needtoaddone=.false.
+      helpinsub='eroper'  ! set for subroutine
+      helptopic='read_opr_schedules'
+      call gethelptext(helpinsub,helptopic,nbhelp)
 
 C Initialise number of day types assuming that it matches that
 C used in the current model.
@@ -1110,11 +1086,7 @@ C used in the current model.
  
       if(actflatfile(1:1).eq.'W')then
 C Compose help message
-        H(1) ='After importing schedules from another file please'
-        H(2) ='review the contents of the updated zone operation file.'
-        H(3) ='The import and/ or conversion may have been incomplete'
-        H(4) ='or the units confused. '
-        CALL PHELPD('Warning',4,'-',0,0,IER)
+        CALL PHELPD('Warning',nbhelp,'-',0,0,IER)
         call easkok(' ','Import data?',OK,4)
       elseif(actflatfile(1:1).eq.'-')then
         ok=.true.
@@ -1268,10 +1240,7 @@ C Generate a brief descrition and proceed acording to control type.
           CALL EGETWR(OUTSTR,K,TAHC,0.,0.,'-','h vent tmp',IER)
           IF(IER.NE.0) goto 1002
         else
-          ACIHC=0.
-          ACVHC=0.
-          IVHC=0
-          TAHC=0.
+          ACIHC=0.; ACVHC=0.; IVHC=0; TAHC=0.
         endif
 
 C Air change information. Expect 1 item defining nb period. If six
@@ -1603,12 +1572,11 @@ C FILE (variable width char) is the name of the file to scan.
       SUBROUTINE ZSCHEDHINT(IUO,FILE,IER)
 #include "building.h"
 #include "espriou.h"
-C espriou.h provides currentfile.
-      
+#include "help.h"
+
       integer lnblnk  ! function definition
 
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
-      COMMON/POPHELP/H(60)
       common/caleni/nbdaytype,nbcaldays(MDTY),icalender(365)
       INTEGER NBDAYTYPE,NBCALDAYS,ICALENDER
 
@@ -1619,13 +1587,15 @@ C Local variables (to protect info in common blovks)
       CHARACTER outs*124
       CHARACTER*(*) FILE
       character dllsubr*12,dllmesg*124
-      character h*72
       character louts*248
       logical dll,ok,dok
       integer ndty
       character longtfile*144
 
       dok=.true.
+      helpinsub='eroper'  ! set for subroutine
+      helptopic='list_schedules'
+      call gethelptext(helpinsub,helptopic,nbhelp)
 
 C List out the file contents and then ask the user for agreement
 C and for the number of day types. First check if running in dll mode.
@@ -1659,14 +1629,6 @@ C Initialise number of day types assuming that it matches that
 C used in the current model.
       NDTY=nbdaytype
 
-C Compose help message
-      h(1)='Review the contents of the file. If the schedule is ok'
-      h(2)='then proceed. If you say no the you will be returned to'
-      h(3)='the menu for another selection. '
-      h(4)=' '
-      h(5)='If the file has fewer day types than used by the model'
-      h(6)='type in the value matching the file. If it has more day'
-      h(7)='types the import may fail. '
       call edisp(iuout,
      &  '---end of file------------------------------------- ')
       call edisp(iuout,' ')
@@ -1676,10 +1638,10 @@ C Compose help message
       call edisp(iuout,
      &  'Review the contents listed to see if it matches. You will')
       call edisp(iuout,'be asked for the day types in the file.')
-      call easkok(' ','Continue with import?',OK,7)
+      call easkok(' ','Continue with import?',OK,nbhelp)
       if(.not.ok)return
-      CALL EASKI(ndty,'Number of calendar day types (see help)',
-     &      'Confirm:',0,'F',mdty,'F',4,'day types',IER,5) 
+      CALL EASKI(ndty,'Number of calendar day types:',
+     &  'Confirm:',0,'F',mdty,'F',4,'day types',IER,nbhelp) 
 
 C Now free project data file.
       CALL ERPFREE(IUO,ISTAT)
@@ -1690,6 +1652,7 @@ C --------- EMKOPER
 C Write zone operation common block data to file. It is assumed
 C that this information has been checked.  OPFIL is the name of
 C the file to be written to (confirm if to be overwritten).
+
       SUBROUTINE  EMKOPER(IUO,OPFIL,ICOMP,IER)
 #include "building.h"
 #include "geometry.h"
@@ -1718,8 +1681,10 @@ C Electrical data flag and elctrical data.
       REAL PF,PWR,BVOLT
       COMMON/OVRWT/AUTOVR
       logical AUTOVR
-      logical isdynamic       ! true if reading a dynamicpeople  
-
+      logical isdynamic       ! true if reading a dynamicpeople
+      logical close_a,close_b ! test if any ventilation directives 
+      character tokens*156,comment*76,aligned_str*156
+      character vctlstr*24
       character dstmp*24
       integer irange,icur  ! for looping
       
@@ -1743,28 +1708,33 @@ C If version 1/2/21/30 write out appropriate header. In order
 C to account for smaller step changes use 10x the version number
 C after 2.0  i.e. ip3ver 21 for 2.1.
       call dstamp(dstmp)
+      write(comment,'(2a)') 'zone operation definiions for ',
+     &  zname(ICOMP)(1:lnzname(ICOMP))
       if(ip3ver(icomp).eq.0)then
         continue
       elseif(ip3ver(icomp).eq.1)then
-        WRITE(IUO,'(A)',IOSTAT=IOS,ERR=1) '*Operations 1.0'
-        WRITE(IUO,'(3a)',IOSTAT=IOS,ERR=1) '*date ',dstmp,
-     &  '  # latest file modification '
+        write(tokens,'(a)') '*Operations 1.0'
+        call align_comment(46,tokens,comment,aligned_str)
+        write(IUO,'(a)') aligned_str(1:lnblnk(aligned_str))
       elseif(ip3ver(icomp).eq.2)then
-        WRITE(IUO,'(A)',IOSTAT=IOS,ERR=1) '*Operations 2.0'
-        WRITE(IUO,'(3a)',IOSTAT=IOS,ERR=1) '*date ',dstmp,
-     &  '  # latest file modification '
+        write(tokens,'(a)') '*Operations 2.0'
+        call align_comment(46,tokens,comment,aligned_str)
+        write(IUO,'(a)') aligned_str(1:lnblnk(aligned_str))
       elseif(ip3ver(icomp).eq.21)then
-        WRITE(IUO,'(A)',IOSTAT=IOS,ERR=1) '*Operations 2.1'
-        WRITE(IUO,'(3a)',IOSTAT=IOS,ERR=1) '*date ',dstmp,
-     &  '  # latest file modification '
+        write(tokens,'(a)') '*Operations 2.1'
+        call align_comment(46,tokens,comment,aligned_str)
+        write(IUO,'(a)') aligned_str(1:lnblnk(aligned_str))
       elseif(ip3ver(icomp).eq.30)then
-        WRITE(IUO,'(A)',IOSTAT=IOS,ERR=1) '*Operations 3.0'
-        WRITE(IUO,'(3a)',IOSTAT=IOS,ERR=1) '*date ',dstmp,
-     &  '  # latest file modification '
+        write(tokens,'(a)') '*Operations 3.0'
+        call align_comment(46,tokens,comment,aligned_str)
+        write(IUO,'(a)') aligned_str(1:lnblnk(aligned_str))
       endif
-      WRITE(IUO,30,IOSTAT=IOS,ERR=1)
-     &  zname(ICOMP)(1:lnzname(ICOMP)),OPFIL(1:lnblnk(OPFIL))
-  30  FORMAT('# operations of ',a,' defined in: ',/,'# ',a)
+      write(tokens,'(2a)') '*date ',dstmp
+      write(comment,'(a)') 'latest file modification'
+      call align_comment(46,tokens,comment,aligned_str)
+      write(IUO,'(a)') aligned_str(1:lnblnk(aligned_str))
+      WRITE(IUO,'(a)',IOSTAT=IOS,ERR=1) 
+     &  '# infiltration and ventilation notes:'
 
 C Write either the combined or scheduled air description.
       if(ip3ver(icomp).lt.21)then
@@ -1778,63 +1748,100 @@ C Write either the combined or scheduled air description.
 C Write air flow control data to the file.
 C If ipv3ver is 0, 1 or 2 write ventilation control data as if
 C there was only one day type and one period during the day.
+      WRITE(IUO,'(a)',IOSTAT=IOS,ERR=1)
+     &  '# infiltration and ventilation controls:'
       if(ip3ver(icomp).lt.21)then
-        WRITE(IUO,'(3A)',IOSTAT=IOS,ERR=1)
-     &    '# control(',ctlstr(icomp,1),'), low mid & high setpoints '
-        WRITE(IUO,'(I4,3F10.3)',IOSTAT=IOS,ERR=1)ITCTL(ICOMP),
+        call ventctlstr(icomp,1,'S',vctlstr,comment)
+        write(tokens,'(i4,3F10.2)') ITCTL(ICOMP),
      &      TLO(ICOMP),TUP(ICOMP),THI(ICOMP)
+        call align_comment(46,tokens,comment,aligned_str)
+        write(IUO,'(a)') aligned_str(1:lnblnk(aligned_str))
 
         IF(ITCTL(ICOMP).NE.0)THEN
-          WRITE(IUO,'(A)',IOSTAT=IOS,ERR=1)
-     &      '# lower: infil, vent, source, data'
-          WRITE(IUO,'(2F10.3,I5,F10.3)')ACIL(ICOMP),ACVL(ICOMP),
+          call ventctlstr(icomp,1,'L',vctlstr,comment)
+          write(tokens,'(2F10.3,I5,F10.2)') ACIL(ICOMP),ACVL(ICOMP),
      &        IVL(ICOMP),TAL(ICOMP)
-          WRITE(IUO,'(A)',IOSTAT=IOS,ERR=1)
-     &      '# middle: infil, vent, source, data'
-          WRITE(IUO,'(2F10.3,I5,F10.3)')ACIU(ICOMP),ACVU(ICOMP),
+          call align_comment(46,tokens,comment,aligned_str)
+          write(IUO,'(a)') aligned_str(1:lnblnk(aligned_str))
+
+          call ventctlstr(icomp,1,'M',vctlstr,comment)
+          write(tokens,'(2F10.3,I5,F10.2)') ACIU(ICOMP),ACVU(ICOMP),
      &      IVU(ICOMP),TAU(ICOMP)
-          WRITE(IUO,'(A)',IOSTAT=IOS,ERR=1)
-     &      '# high: infil, vent, source, data'
-          WRITE(IUO,'(2F10.3,I5,F10.3)')ACIH(ICOMP),ACVH(ICOMP),
+          call align_comment(46,tokens,comment,aligned_str)
+          write(IUO,'(a)') aligned_str(1:lnblnk(aligned_str))
+
+          call ventctlstr(icomp,1,'H',vctlstr,comment)
+          write(tokens,'(2F10.3,I5,F10.2)') ACIH(ICOMP),ACVH(ICOMP),
      &      IVH(ICOMP),TAH(ICOMP)
+          call align_comment(46,tokens,comment,aligned_str)
+          write(IUO,'(a)') aligned_str(1:lnblnk(aligned_str))
         ENDIF
 
       elseif(ip3ver(icomp).ge.21)then
 
 C Write the infiltration and ventilation control data.
-C << calendar day types to be done >>
-        WRITE(IUO,'(3A)',IOSTAT=IOS,ERR=1)
-     &    '# control(',ctlstr(icomp,1),'), low mid & high setpoints '
-        WRITE(IUO,'(I4,3F10.3)',IOSTAT=IOS,ERR=1)ITCTL(ICOMP),
+        call ventctlstr(icomp,1,'S',vctlstr,comment)
+        write(tokens,'(i4,3F10.2)') ITCTL(ICOMP),
      &      TLO(ICOMP),TUP(ICOMP),THI(ICOMP)
+        call align_comment(46,tokens,comment,aligned_str)
+        write(IUO,'(a)') aligned_str(1:lnblnk(aligned_str))
 
         IF(ITCTL(ICOMP).NE.0)THEN
-          WRITE(IUO,'(A)',IOSTAT=IOS,ERR=1)
-     &      '# lower: infil, vent, source, data'
-          WRITE(IUO,'(2F10.3,I5,F10.3)')ACIL(ICOMP),ACVL(ICOMP),
+          call ventctlstr(icomp,1,'L',vctlstr,comment)
+          write(tokens,'(2F10.3,I5,F10.2)') ACIL(ICOMP),ACVL(ICOMP),
      &        IVL(ICOMP),TAL(ICOMP)
-          WRITE(IUO,'(A)',IOSTAT=IOS,ERR=1)
-     &      '# middle: infil, vent, source, data'
-          WRITE(IUO,'(2F10.3,I5,F10.3)')ACIU(ICOMP),ACVU(ICOMP),
+          call align_comment(46,tokens,comment,aligned_str)
+          write(IUO,'(a)') aligned_str(1:lnblnk(aligned_str))
+
+          call ventctlstr(icomp,1,'M',vctlstr,comment)
+          write(tokens,'(2F10.3,I5,F10.2)') ACIU(ICOMP),ACVU(ICOMP),
      &      IVU(ICOMP),TAU(ICOMP)
-          WRITE(IUO,'(A)',IOSTAT=IOS,ERR=1)
-     &      '# high: infil, vent, source, data'
-          WRITE(IUO,'(2F10.3,I5,F10.3)')ACIH(ICOMP),ACVH(ICOMP),
+          call align_comment(46,tokens,comment,aligned_str)
+          write(IUO,'(a)') aligned_str(1:lnblnk(aligned_str))
+
+          call ventctlstr(icomp,1,'H',vctlstr,comment)
+          write(tokens,'(2F10.3,I5,F10.2)') ACIH(ICOMP),ACVH(ICOMP),
      &      IVH(ICOMP),TAH(ICOMP)
+          call align_comment(46,tokens,comment,aligned_str)
+          write(IUO,'(a)') aligned_str(1:lnblnk(aligned_str))
         ENDIF
 
       endif
 
 C For all versions, write each calendar day ventilation instructions.
       DO 400 IDTY=1,NBDAYTYPE
-        WRITE(IUO,'(1X,I5,2A)',IOSTAT=ISTAT,ERR=1)NAC(IDTY),
-     &  '   # number of flow periods in day type: ',calentag(idty)
+       write(tokens,'(i5)') NAC(IDTY)
+       write(comment,'(2a)') 'number of flow periods during ',
+     &   calentag(idty)
+       call align_comment(46,tokens,comment,aligned_str)
+       write(IUO,'(a)') aligned_str(1:lnblnk(aligned_str))
         IF (NAC(IDTY).GT.0)THEN
-          WRITE(IUO,'(A)',IOSTAT=IOS,ERR=1)
-     &    '# start, stop, infil, ventil, source, data'
           do I = 1,NAC(IDTY)
-            WRITE(IUO,5450,IOSTAT=IOS,ERR=1)IACS(IDTY,I),IACF(IDTY,I),
-     &            ACI(IDTY,I),ACV(IDTY,I),IPT(IDTY,I),TA(IDTY,I)
+            acim = (VOL(ICOMP)*ACI(IDTY,I))/3600.0
+            acvm = (VOL(ICOMP)*ACV(IDTY,I))/3600.0
+            write(tokens,'(i4,a,i3,a,2F9.3,i5,f9.2)') IACS(IDTY,I),',',
+     &       IACF(IDTY,I),',',ACI(IDTY,I),ACV(IDTY,I),IPT(IDTY,I),
+     &       TA(IDTY,I)
+            if(IPT(idty,i).eq.0)then
+              call eclose(ACV(IDTY,I),0.0,0.01,close_a)
+              call eclose(TA(IDTY,I),0.0,0.01,close_b)
+              if(close_a.and.close_b)then
+                write(comment,'(a,f7.4,a)') 
+     &          'start, stop, infil ach (',acim,'m^3/s)'
+              else
+                write(comment,'(a,f7.4,a,f7.4,a)') 
+     &          'start, stop, infil ach (',acim,
+     &          'm^3/s), vent ach (',acvm,
+     &          'm^3/s), source, @C'
+              endif
+            else
+              write(comment,'(a,f7.4,a,f7.4,2a)') 
+     &        'start stop infil ach (',acim,
+     &        'm^3/s) vent ach (',acvm,
+     &        'm^3/s) from ',zname(IPT(idty,I))(1:10)
+            endif
+            call align_comment(46,tokens,comment,aligned_str)
+            write(IUO,'(a)') aligned_str(1:lnblnk(aligned_str))
           enddo
         ENDIF
  400  CONTINUE
@@ -1851,15 +1858,13 @@ C Check the range of icgt, remember in irange and use for looping.
  700  continue
       if(irange.lt.3) irange=3
 
-C Debug.
-C      write(6,*) 'casual gain range is ',irange
-C      write(6,*) 'EMKOPER lodslot ',icomp,':',
-C     &  (lodslot(icomp,iph),iph=1,7)
-
       if(ip3ver(icomp).ge.21)then
 
 C Write tag *casual and then documentation for casual gains.
+        WRITE(IUO,'(A)',IOSTAT=IOS,ERR=1) 
+     &    '# casual gain type definitions:'
         WRITE(IUO,'(A)',IOSTAT=IOS,ERR=1) '*casual'
+        WRITE(IUO,'(A)',IOSTAT=IOS,ERR=1) '# notes on casual gains:'
         WRITE(IUO,'(A)',IOSTAT=IOS,ERR=1)
      &    oprdesc(ICOMP)(1:lnblnk(oprdesc(ICOMP)))
 
@@ -1867,11 +1872,11 @@ C For ip3ver >= 21 write casual gain attributes. Loop
 C through all the possible casual gain slots for this zone
 C and if lodslot is non-zero then write a *type line.
         WRITE(IUO,'(A)',IOSTAT=IOS,ERR=1) 
-     &    '# casual user-label type-key-word slot attributes'
+     &    '# casual label     type-key-word   slot index & attributes'
         isdynamic=.false.       ! Assume no dynamic people.
         do ir= 1,MGTY
           if(lodslot(icomp,ir).ne.0)then
-            WRITE(IUO,'(4A,3i3)',IOSTAT=IOS,ERR=1) '*type ',
+            WRITE(IUO,'(4A,3i4)',IOSTAT=IOS,ERR=1) '*type ',
      &        lodlabel(icomp,ir),' ',caskeytype(icomp,ir),
      &        lodslot(icomp,ir),lodatr1(icomp,ir),lodatr2(icomp,ir)
             if(caskeytype(icomp,ir)(1:13).eq.'dynamicpeople')then
@@ -1882,6 +1887,7 @@ C and if lodslot is non-zero then write a *type line.
         WRITE(IUO,'(A)',IOSTAT=IOS,ERR=1) '*end_type '
       endif
 
+      WRITE(IUO,'(a)',IOSTAT=IOS,ERR=1) '# casual gain schedules:'
       DO 600 IDTY=1,NBDAYTYPE
         WRITE(IUO,'(1X,I5,2A)',IOSTAT=IOS,ERR=1)NCAS(IDTY),
      &  '   # number of casual gains in day type: ',calentag(idty)
@@ -1913,7 +1919,7 @@ C and if lodslot is non-zero then write a *type line.
               WRITE(IUO,'(A)',IOSTAT=IOS,ERR=1)
      &         '# slot, period, sensible, latent, rad_frac, conv_frac'
               DO I = 1,NCAS(IDTY)
-               WRITE(IUO,'(3(I4,a),2(F9.1,a),F7.3,a,F7.3)',
+               WRITE(IUO,'(3(I4,a),2(F9.1,a),F7.2,a,F7.2)',
      &           IOSTAT=IOS,ERR=1) ICGT(IDTY,I),',',ICGS(IDTY,I),',',
      &           ICGF(IDTY,I),',',CMGS(IDTY,I),',',CMGL(IDTY,I),',',
      &           RADC(IDTY,I),',',CONC(IDTY,I)
@@ -1932,7 +1938,7 @@ C Key logic is to check caskeytype for each period for dynamicpeople.
               DO I = 1,NCAS(IDTY)
                 jicgt=iabs(ICGT(IDTY,I))
                 if(caskeytype(icomp,jicgt)(1:13).eq.'dynamicpeople')then
-                  WRITE(IUO,'(3(I4,a),6(F6.2,a),F7.3,a,F7.3)',
+                  WRITE(IUO,'(3(I4,a),6(F6.2,a),F7.2,a,F7.2)',
      &              IOSTAT=IOS,ERR=1) ICGT(IDTY,I),',',
      &              ICGS(IDTY,I),',',ICGF(IDTY,I),
      &              ',',tnbmen(IDTY,I),',',tnbwomen(IDTY,I),',',
@@ -1940,7 +1946,7 @@ C Key logic is to check caskeytype for each period for dynamicpeople.
      &              clov(IDTY,I),',',airvel(IDTY,I),',',RADC(IDTY,I),
      &              ',',CONC(IDTY,I)
                 else
-                  WRITE(IUO,'(3(I4,a),2(F9.1,a),F7.3,a,F7.3)',
+                  WRITE(IUO,'(3(I4,a),2(F9.1,a),F7.2,a,F7.2)',
      &              IOSTAT=IOS,ERR=1) ICGT(IDTY,I),',',
      &              ICGS(IDTY,I),',',ICGF(IDTY,I),',',CMGS(IDTY,I),
      &              ',',CMGL(IDTY,I),',',RADC(IDTY,I),',',CONC(IDTY,I)
@@ -1951,9 +1957,7 @@ C Key logic is to check caskeytype for each period for dynamicpeople.
         ENDIF
  600  CONTINUE
 
-5450  FORMAT(1X,I3,',',I3,',',2F9.3,I5,F9.3)
-5460  FORMAT(3(I4,','),F9.1,',',F9.1,',',F7.3,',',F7.3)
-5470  FORMAT(3(I4,','),F9.1,',',F9.1,',',F7.3,',',F8.3,',',F5.2,
+5470  FORMAT(3(I4,','),F9.1,',',F9.1,',',F7.2,',',F8.2,',',F5.2,
      &       ',',I2,',',F7.1,',',F7.1,',',I2)
 
 C Write out the gain labels to the file for future reference. In version
@@ -1996,8 +2000,8 @@ C << need to update reporting for different day types and ctl periods >>
 C Markdown flag.
       logical markdown
       common/markdownflag/markdown
-
-      CHARACTER outs*124
+      character vctlstr*24,comment*76
+      character outs*124
 
 C Write documentation on air schedules. 
       if(markdown)then
@@ -2011,36 +2015,9 @@ C Write documentation on air schedules.
       if(ip3ver(icomp).le.21)then
 
 C Older file versions only display ctlstr for first day and period.
+        call ventctlstr(icomp,1,'S',vctlstr,comment)
+        ctlstr(icomp,1)=vctlstr
         IY=ITCTL(ICOMP)
-        if(IY.eq.-14)then
-          ctlstr(icomp,1)='infil only: wind speed  '
-        elseif(IY.eq.-13)then
-          ctlstr(icomp,1)='infil only: ext db temp '
-        elseif(IY.eq.-12)then
-          ctlstr(icomp,1)='infil only: adj zone tmp'
-        elseif(IY.eq.-11)then
-          ctlstr(icomp,1)='infil only: zone temp   '
-        elseif(IY.eq.-4)then
-          ctlstr(icomp,1)='vent only: wind speed   '
-        elseif(IY.eq.-3)then
-          ctlstr(icomp,1)='vent only: ext db temp  '
-        elseif(IY.eq.-2)then
-          ctlstr(icomp,1)='vent only: adj zone temp'
-        elseif(IY.eq.-1)then
-          ctlstr(icomp,1)='vent only: zone temp    '
-        elseif(IY.eq.4)then
-          ctlstr(icomp,1)='infil & vent: wind speed'
-        elseif(IY.eq.3)then
-          ctlstr(icomp,1)='infil & vent: ext db T  '
-        elseif(IY.eq.2)then
-          ctlstr(icomp,1)='infil & vent: adj zone T'
-        elseif(IY.eq.1)then
-          ctlstr(icomp,1)='infil & vent: zone T    '
-        elseif(IY.eq.0)then
-          ctlstr(icomp,1)='no control of air flow  '
-        else
-          ctlstr(icomp,1)='unknown flow control    '
-        endif
         if(markdown)then
           write(outs,'(a,a)') 'Flow control ',ctlstr(icomp,1)
           call edisp2tr(itru,outs)
@@ -2092,36 +2069,9 @@ C Older file versions only display ctlstr for first day and period.
       elseif(ip3ver(icomp).ge.30)then
 
 C Display ctlstr for day and period << convert to multi days >>.
+        call ventctlstr(icomp,1,'S',vctlstr,comment)
+        ctlstr(icomp,1)=vctlstr
         IY=ITCTL(ICOMP)
-        if(IY.eq.-14)then
-          ctlstr(icomp,1)='infil only: wind speed  '
-        elseif(IY.eq.-13)then
-          ctlstr(icomp,1)='infil only: ext db temp '
-        elseif(IY.eq.-12)then
-          ctlstr(icomp,1)='infil only: adj zone tmp'
-        elseif(IY.eq.-11)then
-          ctlstr(icomp,1)='infil only: zone temp   '
-        elseif(IY.eq.-4)then
-          ctlstr(icomp,1)='vent only: wind speed   '
-        elseif(IY.eq.-3)then
-          ctlstr(icomp,1)='vent only: ext db temp  '
-        elseif(IY.eq.-2)then
-          ctlstr(icomp,1)='vent only: adj zone temp'
-        elseif(IY.eq.-1)then
-          ctlstr(icomp,1)='vent only: zone temp    '
-        elseif(IY.eq.4)then
-          ctlstr(icomp,1)='infil & vent: wind speed'
-        elseif(IY.eq.3)then
-          ctlstr(icomp,1)='infil & vent: ext db T  '
-        elseif(IY.eq.2)then
-          ctlstr(icomp,1)='infil & vent: adj zone T'
-        elseif(IY.eq.1)then
-          ctlstr(icomp,1)='infil & vent: zone T    '
-        elseif(IY.eq.0)then
-          ctlstr(icomp,1)='no control of air flow  '
-        else
-          ctlstr(icomp,1)='unknown flow control    '
-        endif
         if(markdown)then
           write(outs,'(a,a)') 'Control ',ctlstr(icomp,1)
           call edisp2tr(itru,outs)
@@ -2209,6 +2159,228 @@ C Write header for scheduled air flow.
 1230    CONTINUE
  400  CONTINUE
       RETURN
+      END
+
+
+C ******************* VENTCTLSTR 
+C Provides short and long phrases decoding ventilation control. 
+C act='L' low range comment, 'M' middle range comment,
+C 'H' high range comment, 'S' setpoints.
+
+      SUBROUTINE VENTCTLSTR(ICOMP,IDTY,act,vctlstr,vcomment)
+#include "building.h"
+#include "geometry.h"
+#include "schedule.h"
+
+      common/calena/calename,calentag(MDTY),calendayname(MDTY)
+      CHARACTER CALENAME*32,CALENTAG*12,CALENDAYNAME*32
+      common/caleni/nbdaytype,nbcaldays(MDTY),icalender(365)
+      INTEGER NBDAYTYPE,NBCALDAYS,ICALENDER
+
+C Markdown flag.
+      logical markdown
+      common/markdownflag/markdown
+
+      character*24 vctlstr         ! Overall air flow control
+      character*76 vcomment        ! Expanded comment
+      character*1 act
+      CHARACTER outs*124
+
+      itru=6
+
+      if(ip3ver(icomp).le.21)then
+
+C Older file versions only display ctlstr for first day and period.
+        acilm = (VOL(ICOMP)*ACIL(ICOMP))/3600.0
+        acvlm = (VOL(ICOMP)*ACVL(ICOMP))/3600.0
+        acium = (VOL(ICOMP)*ACIU(ICOMP))/3600.0
+        acvum = (VOL(ICOMP)*ACVU(ICOMP))/3600.0
+        acihm = (VOL(ICOMP)*ACIH(ICOMP))/3600.0
+        acvhm = (VOL(ICOMP)*ACVH(ICOMP))/3600.0
+        IY=ITCTL(ICOMP)
+
+        if(IY.eq.-14)then
+          vctlstr='infil only: wind speed  '
+        elseif(IY.eq.-13)then
+          vctlstr='infil only: ext db temp '
+        elseif(IY.eq.-12)then
+          vctlstr='infil only: adj zone tmp'
+        elseif(IY.eq.-11)then
+          vctlstr='infil only: zone temp   '
+        elseif(IY.eq.-4)then
+          vctlstr='vent only: wind speed   '
+        elseif(IY.eq.-3)then
+          vctlstr='vent only: ext db temp  '
+        elseif(IY.eq.-2)then
+          vctlstr='vent only: adj zone temp'
+        elseif(IY.eq.-1)then
+          vctlstr='vent only: zone temp    '
+        elseif(IY.eq.4)then
+          vctlstr='infil & vent: wind speed'
+        elseif(IY.eq.3)then
+          vctlstr='infil & vent: ext db T  '
+        elseif(IY.eq.2)then
+          vctlstr='infil & vent: adj zone T'
+        elseif(IY.eq.1)then
+          vctlstr='infil & vent: zone T    '
+        elseif(IY.eq.0)then
+          vctlstr='no control of air flow  '
+        else
+          vctlstr='unknown flow control    '
+        endif
+
+C Generate string for the lower, middle and high controls.
+C ITCTL(ICOMP) values -11 to -14 relate to infiltration only controls.
+        if(IY.eq.-14.or.IY.eq.-13.or.IY.eq.-12.or.IY.eq.-11)then
+          if(act.eq.'L')then
+            WRITE(vcomment,'(a,f7.2,a,F7.4,a)')
+     &        'lower  setpoint',TLO(ICOMP),' infil (',acilm,'m^3/s)'
+          elseif(act.eq.'M')then
+            WRITE(vcomment,'(a,f7.2,a,f7.4,a)')
+     &        'middle setpoint',TUP(ICOMP),' infil (',acium,'m^3/s)'
+          elseif(act.eq.'H')then
+            WRITE(vcomment,'(a,f7.2,a,f7.4,a)')
+     &        'high  setpoint',THI(ICOMP),' infil (',acihm,'m^3/s)'
+          elseif(act.eq.'S')then
+            write(vcomment,'(3a)') 'control index (',
+     &        vctlstr(1:lnblnk(vctlstr)),
+     &        '), low middle high setpoints'
+          endif
+
+C ITCTL(ICOMP) values -1 to -4 relate to ventilation only controls.
+        elseif(IY.eq.-4.or.IY.eq.-3.or.IY.eq.-2.or.IY.eq.-1)then
+          if(act.eq.'L')then
+            if(IVL(ICOMP).eq.0)then
+              WRITE(vcomment,'(A,F7.2,a,F7.4,a,I3,a,F7.2)')
+     &        'lower setpoint',TLO(ICOMP),' ventil (',
+     &        acvlm,'m^3/s) ',IVL(ICOMP),' @',TAL(ICOMP)
+            else
+              WRITE(vcomment,'(A,F7.2,a,F7.4,3a,F7.2)')
+     &        'lower setpoint',TLO(ICOMP),' ventil (',
+     &        acvlm,'m^3/s) from ',zname(IVL(ICOMP))(1:10),
+     &        ' @',TAL(ICOMP)
+            endif
+          elseif(act.eq.'M')then
+            if(IVU(ICOMP).eq.0)then
+              WRITE(vcomment,'(A,F7.2,a,F7.4,a,I3,a,F7.2)')
+     &        'middle setpoint',TUP(ICOMP),' ventil (',
+     &        acvum,'m^3/s) ',IVU(ICOMP),' @',TAU(ICOMP)
+            else
+              WRITE(vcomment,'(A,F7.2,a,F7.4,3a,F7.2)')
+     &        'middle setpoint',TUP(ICOMP),' ventil (',
+     &        acvum,'m^3/s) from ',zname(IVU(ICOMP))(1:10),
+     &        ' @',TAU(ICOMP)
+            endif
+          elseif(act.eq.'H')then
+            if(IVH(ICOMP).eq.0)then
+              WRITE(vcomment,'(A,F7.2,a,F7.4,a,I3,a,F7.2)')
+     &        'high setpoint',THI(ICOMP),' ventil (',
+     &        acvhm,'m^3/s) ',IVH(ICOMP),' @',TAH(ICOMP)
+            else
+              WRITE(vcomment,'(A,F7.2,a,F7.4,3a,F7.2)')
+     &        'high setpoint',THI(ICOMP),' ventil (',
+     &        acvhm,'m^3/s) from ',zname(IVH(ICOMP))(1:10),
+     &        ' @',TAH(ICOMP)
+            endif
+          elseif(act.eq.'S')then
+            write(vcomment,'(3a)') 'control index (',
+     &        vctlstr(1:lnblnk(vctlstr)),
+     &        '), low middle high setpoints'
+          endif
+
+C ITCTL(ICOMP) values 1 to 4 relate to infiltration and ventilation controls.
+        elseif(IY.eq.4.or.IY.eq.3.or.IY.eq.2.or.IY.eq.1)then
+          if(act.eq.'L')then
+            if(IVL(ICOMP).eq.0)then
+              WRITE(vcomment,'(a,f7.2,a,F8.4,a,F8.4,a,I3,a,F7.2)')
+     &        'lower setpoint',TLO(ICOMP),' infil (',acilm,
+     &        'm^3/s) vent (',acvlm,'m^3/s) ',IVL(ICOMP),' @',
+     &        TAL(ICOMP)
+            else
+              WRITE(vcomment,'(a,f7.2,a,F8.4,a,F8.4,3a,F7.2)')
+     &        'lower setpoint',TLO(ICOMP),' infil (',acilm,
+     &        'm^3/s) vent (',acvlm,'m^3/s) from ',
+     &        zname(IVL(ICOMP))(1:10),' @',TAL(ICOMP)
+            endif
+          elseif(act.eq.'M')then
+            if(IVU(ICOMP).eq.0)then
+              WRITE(vcomment,'(a,f7.2,a,F8.4,a,F8.4,a,I3,a,F7.2)')
+     &        'middle setpoint',TUP(ICOMP),' infil (',acium,
+     &        'm^3/s) vent (',acvum,'m^3/s) ',IVU(ICOMP),' @',
+     &        TAU(ICOMP)
+            else
+              WRITE(vcomment,'(a,f7.2,a,F8.4,a,F8.4,3a,F7.2)')
+     &        'middle setpoint',TUP(ICOMP),' infil (',acium,
+     &        'm^3/s) vent (',acvum,'m^3/s) from ',
+     &        zname(IVU(ICOMP))(1:10),' @',TAU(ICOMP)
+            endif
+          elseif(act.eq.'H')then
+            if(IVH(ICOMP).eq.0)then
+              WRITE(vcomment,'(a,f7.2,a,F8.4,a,F8.4,a,I3,a,F7.2)')
+     &        'high setpoint',THI(ICOMP),' infil (',acihm,
+     &        'm^3/s) vent (',acvhm,'m^3/s) ',IVH(ICOMP),' @',
+     &        TAH(ICOMP)
+            else
+              WRITE(vcomment,'(a,f7.2,a,F8.4,a,F8.4,3a,F7.2)')
+     &        'high setpoint',THI(ICOMP),' infil (',acihm,
+     &        'm^3/s) vent (',acvhm,'m^3/s) from ',
+     &         zname(IVH(ICOMP))(1:10),' @',TAH(ICOMP)
+            endif
+          elseif(act.eq.'S')then
+            write(vcomment,'(3a)') 'control index (',
+     &        vctlstr(1:lnblnk(vctlstr)),
+     &        '), low mid high setpoints'
+          endif
+        elseif(IY.eq.0)then
+          if(act.eq.'S')then
+            write(vcomment,'(3a)') 'control index (',
+     &        vctlstr(1:lnblnk(vctlstr)),
+     &        '), low middle high setpoints'
+          endif
+        endif
+        return
+      elseif(ip3ver(icomp).ge.30)then
+
+C Display ctlstr for day and period << convert to multi days >>.
+        IY=ITCTL(ICOMP)
+        if(IY.eq.-14)then
+          vctlstr='infil only: wind speed  '
+        elseif(IY.eq.-13)then
+          vctlstr='infil only: ext db temp '
+        elseif(IY.eq.-12)then
+          vctlstr='infil only: adj zone tmp'
+        elseif(IY.eq.-11)then
+          vctlstr='infil only: zone temp   '
+        elseif(IY.eq.-4)then
+          vctlstr='vent only: wind speed   '
+        elseif(IY.eq.-3)then
+          vctlstr='vent only: ext db temp  '
+        elseif(IY.eq.-2)then
+          vctlstr='vent only: adj zone temp'
+        elseif(IY.eq.-1)then
+          vctlstr='vent only: zone temp    '
+        elseif(IY.eq.4)then
+          vctlstr='infil & vent: wind speed'
+        elseif(IY.eq.3)then
+          vctlstr='infil & vent: ext db T  '
+        elseif(IY.eq.2)then
+          vctlstr='infil & vent: adj zone T'
+        elseif(IY.eq.1)then
+          vctlstr='infil & vent: zone T    '
+        elseif(IY.eq.0)then
+          vctlstr='no control of air flow  '
+        else
+          vctlstr='unknown flow control    '
+        endif
+        if(markdown)then
+          write(outs,'(a,a)') 'Control ',vctlstr
+          call edisp2tr(itru,outs)
+        else
+          write(outs,'(a,a)') ' Control: ',vctlstr
+          call edisp(itru,outs)
+        endif
+        return
+      endif
       END
 
 
@@ -2431,7 +2603,6 @@ C No electrical data.
      &              ICGS(IDTY,I),'-',ICGF(IDTY,I),CMGS(IDTY,I),
      &              CMGL(IDTY,I),RADC(IDTY,I),CONC(IDTY,I)
                 endif
-5362            FORMAT(a,I3,1x,A,I3,a,I2,F9.1,F9.1,F11.2,F11.2)
               endif
               call edisp(itru,outs)
 1270        CONTINUE
@@ -3304,6 +3475,7 @@ C UPDOPR  Updates all operations data when day types are incremented.
 #include "building.h"
 #include "model.h"
 #include "schedule.h"
+#include "help.h"
 
       integer iudayt    ! user preference 0 create default one period or
                         ! >0 copy an existing day type pattern.
@@ -3314,7 +3486,6 @@ C UPDOPR  Updates all operations data when day types are incremented.
       COMMON/C1/NCOMP,NCON
       common/caleni/nbdaytype,nbcaldays(MDTY),icalender(365)
       INTEGER NBDAYTYPE,NBCALDAYS,ICALENDER
-      common/pophelp/h(60)
 
       COMMON/ELP3N/NEL(MDTY),PF(MDTY,MC),IPF(MDTY,MC),PWR(MDTY,MC),
      &BVOLT(MDTY,MC),IPHAS(MDTY,MC)
@@ -3322,10 +3493,9 @@ C UPDOPR  Updates all operations data when day types are incremented.
       REAL PF,PWR,BVOLT
 
       INTEGER ITRC,ITRU,IUO,ICOMP,IER,ISTAT,NBDAYTYPEHOLD
-      CHARACTER H*72
       LOGICAL XST
 
-C Initialise local variables
+C Initialise local variables.
       ITRC=0
       ITRU=0
       IUO=IFIL+1
@@ -3334,15 +3504,9 @@ C Initialise local variables
       XST=.FALSE.
       NBDAYTYPEHOLD=NBDAYTYPE  ! remember NBDAYTYPE
 
-       H(1)='Zone operations files that have been defined in this '
-       H(2)='model need to be updated in order to reflect the new'
-       H(3)='day type just added. You will be given the option to '
-       H(4)='update (overwrite) the existing operations files.'
-       H(5)='Choose to overwrite (default option) or save giving'
-       H(6)='new names. If you choose to give new names then choose'
-       H(7)='to remember the new file name, otherwise the model will'
-       H(8)='be corrupted because operations files will not have the'
-       H(9)='new day types.'
+      helpinsub='eroper'  ! set for subroutine
+      helptopic='update_schedule_daytype'
+      call gethelptext(helpinsub,helptopic,nbhelp)
 
 C For every zone in the model do the following...
       DO 100 ICOMP=1,NCOMP
@@ -3354,7 +3518,8 @@ C Check if operations file exists
 C Display help 
           IF(ICOMP.EQ.1)CALL PHELPD('Information',9,'-',0,0,IER)
 
-C Read operations file for this zone
+C Read operations file for this zone. Temporarily decrement NBDAYTYPE
+C to be able to scan existing operation files.
           NBDAYTYPE=NBDAYTYPE-1
           CALL ERPFREE(IUO,ISTAT)
           CALL EROPER(ITRC,ITRU,IUO,ICOMP,IER)
@@ -3377,7 +3542,7 @@ C values as typical.
               TA(NBDAYTYPE,I)=0.
             ENDDO
           else
-            NAC(NBDAYTYPE)=NAC(iudayt) ! copy pattern from iudayt
+            NAC(NBDAYTYPE)=NAC(iudayt) ! Copy pattern from iudayt existing type.
             DO I=1,NAC(iudayt)
               IACS(NBDAYTYPE,I)=IACS(iudayt,I)
               IACF(NBDAYTYPE,I)=IACF(iudayt,I)
@@ -3421,28 +3586,26 @@ C values as typical.
               BVOLT(NBDAYTYPE,I)=BVOLT(iudayt,I)
               IPHAS(NBDAYTYPE,I)=IPHAS(iudayt,I)
             ENDDO
-            ip3ver(icomp)=21   !  Write zone operations file.
-            CALL EMKOPER(IUO,LPROJ(ICOMP),ICOMP,IER)
-            NBDAYTYPE=NBDAYTYPEHOLD  ! restore the origianl nb of day types
-            RETURN
           endif
 
 C For placeholder variant, make initial three gain periods (0-24) for occupancy,
 C lights and small power. 
-          DO 400 I=1,NCAS(NBDAYTYPE)
-            ICGT(NBDAYTYPE,I)=I
-            ICGF(NBDAYTYPE,I)=24
-            if(I.eq.1)then
-              RADC(NBDAYTYPE,I)=0.6
-              CONC(NBDAYTYPE,I)=0.4
-            elseif(I.eq.2)then
-              RADC(NBDAYTYPE,I)=0.5
-              CONC(NBDAYTYPE,I)=0.5
-            elseif(I.eq.3)then
-              RADC(NBDAYTYPE,I)=0.4
-              CONC(NBDAYTYPE,I)=0.6
-            endif
- 400      CONTINUE
+          if(iudayt.le.0)then        ! set placeholder infiltration & ventilation
+            DO 400 I=1,NCAS(NBDAYTYPE)
+              ICGT(NBDAYTYPE,I)=I
+              ICGF(NBDAYTYPE,I)=24
+              if(I.eq.1)then
+                RADC(NBDAYTYPE,I)=0.6
+                CONC(NBDAYTYPE,I)=0.4
+              elseif(I.eq.2)then
+                RADC(NBDAYTYPE,I)=0.5
+                CONC(NBDAYTYPE,I)=0.5
+              elseif(I.eq.3)then
+                RADC(NBDAYTYPE,I)=0.4
+                CONC(NBDAYTYPE,I)=0.6
+              endif
+ 400        CONTINUE
+          endif
 
           ip3ver(icomp)=21   !  Write zone operations file.
           CALL EMKOPER(IUO,LPROJ(ICOMP),ICOMP,IER)

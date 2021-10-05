@@ -13,11 +13,6 @@ C warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
 C PURPOSE. See the GNU General Public License for more
 C details.
 
-C You should have received a copy of the GNU General Public
-C License along with ESP-r. If not, write to the Free
-C Software Foundation, Inc., 59 Temple Place, Suite 330,
-C Boston, MA 02111-1307 USA.
-
 C *********************************************************************
 C This file contains the following ground modilling subroutines:
 
@@ -36,10 +31,12 @@ C *********************************************************************
 
 C **************************    MENUGM    *****************************
 C MENUGM displays the ground modelling menu.
-C *********************************************************************
+
       SUBROUTINE MENUGM(IDRW1)
 #include "building.h"
 #include "prj3dv.h"
+#include "help.h"
+
       integer iCountWords
 
       COMMON/FILEP/IFIL
@@ -59,12 +56,7 @@ C *********************************************************************
       integer ier
       integer MITEM,INO ! max items and current menu item
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='MENUGM'  ! set for subroutine
+      helpinsub='grnd3d'  ! set for subroutine
 
       MODIFYVIEW=.FALSE.
       SAVEOK=.FALSE.
@@ -370,11 +362,13 @@ C Return to the main multi-gridding menu.
 
 C **************************    GNDBND    *****************************
 C GNDBND displays the ground boundary menu.
-C *********************************************************************
+
       SUBROUTINE GNDBND(IDRW1)
 #include "building.h"
 #include "epara.h"
 #include "prj3dv.h"
+#include "help.h"
+
       integer iCountWords
 
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
@@ -387,12 +381,7 @@ C *********************************************************************
       CHARACTER ITEM(14)*28,ITEMS(6)*18,VERT(35)*35,KEY*1
       integer MVERT,IVERT  ! max items and current menu item
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='GNDBND'  ! set for subroutine
+      helpinsub='grnd3d'  ! set for subroutine
 
       IF(MODIFYVIEW.OR.IDRW1.NE.10)THEN
         IDRW1=10
@@ -673,11 +662,12 @@ C Return to multi-gridding menu.
 
 C ****************************    GNDMSH    ***************************
 C GNDMSH controls ground gridding.
-C *********************************************************************
+
       SUBROUTINE GNDMSH(IER)
 #include "building.h"
 #include "esprdbfile.h"
 #include "material.h"
+#include "help.h"
 
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/GRND05/NDXG,NDYG,NDZG,DXG(MGXYZ),DYG(MGXYZ),DZG(MGXYZ)
@@ -693,12 +683,7 @@ C *********************************************************************
       CHARACTER*72 LTMP
       integer ier
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='GNDMSH'  ! set for subroutine
+      helpinsub='grnd3d'  ! set for subroutine
 
 C Initialize the connections,nodes, and control volumes counters.
       NNDS=0
@@ -1175,9 +1160,10 @@ C UP.
 
 C *****************************    SAVEGM    **************************
 C SAVEGM saves the ground modelling configuration.
-C *********************************************************************
+
       SUBROUTINE SAVEGM
 #include "building.h"
+#include "help.h"
 
       COMMON/FILEP/IFIL
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
@@ -1187,12 +1173,7 @@ C *********************************************************************
 
       CHARACTER*72 FILGND
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='SAVEGM'  ! set for subroutine
+      helpinsub='grnd3d'  ! set for subroutine
 
       FILGND='ground.c3d'
       helptopic='3d_ground_config_file'
@@ -1263,9 +1244,10 @@ C For help messages
 
 C *************************    READGM    ******************************
 C READGM reads the ground modelling configuration.
-C *********************************************************************
+
       SUBROUTINE READGM
 #include "building.h"
+#include "help.h"
 
       COMMON/FILEP/IFIL
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
@@ -1275,12 +1257,7 @@ C *********************************************************************
 
       CHARACTER FILGND*72,STRG*124
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='READGM'  ! set for subroutine
+      helpinsub='grnd3d'  ! set for subroutine
 
       FILGND='ground.c3d'
       helptopic='3d_ground_config_file'

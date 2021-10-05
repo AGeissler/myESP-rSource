@@ -249,6 +249,7 @@ C--------------------------------------------------------
 C PLTFIL generates a pic file for use in forms package.
       SUBROUTINE PLTFIL
 #include "viewer.h"
+#include "help.h"
 
       integer lnblnk  ! function definition
 
@@ -258,12 +259,7 @@ C PLTFIL generates a pic file for use in forms package.
       character FNAME*72,NAMDS*30,NAMPIC*40
       logical XST
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found (will be non-zero
-                         ! because default message will be created
-      helpinsub='PLTFIL' ! set for subroutine
+      helpinsub='plot' ! set for subroutine
 
 C   SET OUTPUT DEVICE, debug unit and pic file unit.
       IOUTD=4

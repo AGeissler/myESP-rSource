@@ -5,18 +5,13 @@ C Strathclyde, Glasgow Scotland, 2001.
 C ESP-r is free software.  You can redistribute it and/or
 C modify it under the terms of the GNU General Public
 C License as published by the Free Software Foundation 
-C (version 2 orlater).
+C (version 2 or later).
 
 C ESP-r is distributed in the hope that it will be useful
 C but WITHOUT ANY WARRANTY; without even the implied
 C warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
 C PURPOSE. See the GNU General Public License for more
 C details.
-
-C You should have received a copy of the GNU General Public
-C License along with ESP-r. If not, write to the Free
-C Software Foundation, Inc., 59 Temple Place, Suite 330,
-C Boston, MA 02111-1307 USA.
 
 C enetmisc.F contains housekeeping routines for the electrical network that
 C are used by numerous esp-r modules.
@@ -233,9 +228,9 @@ C Presents a list of electrical nodes to the user and returns the selected node 
 #include "plant.h"
 #include "epara.h"
 #include "power.h"
+#include "help.h"
 
 C Commons
-      COMMON/POPHELP/H(60)
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
 
 C Type casting (all varaiables and arrays cast explicitly)
@@ -244,8 +239,11 @@ C Type casting (all varaiables and arrays cast explicitly)
 C Characters
       CHARACTER*1 KEY
       CHARACTER*54 VERT
-      CHARACTER*72 H
       integer MVERT,IVERT  ! max items and current menu item
+
+      helpinsub='enetmisc'  ! set for subroutine
+      helptopic='elect_node_select'
+      call gethelptext(helpinsub,helptopic,nbhelp)
 
 C Zero picked items. 
       NPK=0
@@ -297,13 +295,8 @@ C If a long list include page facility text.
       VERT(M+4)  ='? help                              '
       VERT(M+5)  ='- exit                              '
 
-C Help text for menu.
-  7   H(1)='The list shows the currently available nodes in the '
-      H(2)='electrical network. Please select one from the list'
-      H(3)='displayed.                                          '
-
 C Now display the menu.
-      CALL EMENU(' Electrical nodes',VERT,MVERT,IVERT)
+  7   CALL EMENU(' Electrical nodes',VERT,MVERT,IVERT)
       IF(IVERT.LE.MHEAD)THEN
 
 C Within the header so skip request.
@@ -312,7 +305,7 @@ C Within the header so skip request.
       ELSEIF(IVERT.EQ.MVERT)THEN
         RETURN
       ELSEIF(IVERT.EQ.MVERT-1)THEN 
-        CALL PHELPD('Select node',3,'-',0,0,IER) 
+        CALL PHELPD('Select node',nbhelp,'-',0,0,IER) 
         GOTO 7
       ELSEIF(IVERT.EQ.(MVERT-4))THEN
 
@@ -351,9 +344,9 @@ C component number.
 #include "plant.h"
 #include "epara.h"
 #include "power.h"
+#include "help.h"
 
 C Commons
-      COMMON/POPHELP/H(60)
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
 
 C Type casting (all variables and arrays cast explicitly)
@@ -362,8 +355,11 @@ C Type casting (all variables and arrays cast explicitly)
 C Characters
       CHARACTER*1 KEY
       CHARACTER*66 VERT
-      CHARACTER*72 H
       integer MVERT,IVERT  ! max items and current menu item
+
+      helpinsub='enetmisc'  ! set for subroutine
+      helptopic='hybrid_node_select'
+      call gethelptext(helpinsub,helptopic,nbhelp)
 
 C Zero picked items. 
       NPK=0
@@ -416,13 +412,8 @@ C If a long list include page facility text.
       VERT(M+4)  ='? help                              '
       VERT(M+5)  ='- exit                              '
 
-C Help text for menu.
-  7   H(1)='The list shows the available hybrid components '
-      H(2)='in the electrical network. Please select one from the '
-      H(3)='list displayed.                                       '
-
 C Now display the menu.
-      CALL EMENU(' Hybrid components ',VERT,MVERT,IVERT)
+  7   CALL EMENU(' Hybrid components ',VERT,MVERT,IVERT)
       CALL USRMSG('Select node(s) then exit',' ','-')
       IF(IVERT.LE.MHEAD)THEN
 
@@ -433,7 +424,7 @@ C Within the header so skip request.
         CALL USRMSG(' ',' ','-')
         RETURN
       ELSEIF(IVERT.EQ.MVERT-1)THEN 
-        CALL PHELPD('Select node',3,'-',0,0,IER)
+        CALL PHELPD('Select node',nbhelp,'-',0,0,IER)
         GOTO 7
       ELSEIF(IVERT.EQ.(MVERT-4))THEN
 
@@ -472,9 +463,9 @@ C component number.
 #include "plant.h"
 #include "epara.h"
 #include "power.h"
+#include "help.h"
 
 C Commons
-      COMMON/POPHELP/H(60)
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
 
       DIMENSION VERT(35),IPK(MPOWCOM)
@@ -482,8 +473,11 @@ C Commons
 C Characters
       CHARACTER*1 KEY
       CHARACTER*46 VERT
-      character*72 H
       integer MVERT,IVERT ! max items and current menu item
+
+      helpinsub='enetmisc'  ! set for subroutine
+      helptopic='power_node_select'
+      call gethelptext(helpinsub,helptopic,nbhelp)
 
 C Zero picked items. 
       NPK=0
@@ -535,13 +529,8 @@ C If a long list include page facility text.
       VERT(M+4)  ='? help                              '
       VERT(M+5)  ='- exit                              '
 
-C Help text for menu.
-  7   H(1)='The list shows the available power only components    '
-      H(2)='in the electrical network. Please select one from the '
-      H(3)='list displayed.                                       '
-
 C Now display the menu.
-      CALL EMENU(' Power only components:',VERT,MVERT,IVERT)
+  7   CALL EMENU(' Power only components:',VERT,MVERT,IVERT)
       CALL USRMSG('Select component(s) then exit',' ','-')
       IF(IVERT.LE.MHEAD)THEN
 
@@ -552,7 +541,7 @@ C Within the header so skip request.
         CALL USRMSG(' ',' ','-')
         RETURN
       ELSEIF(IVERT.EQ.MVERT-1)THEN
-        CALL PHELPD('Select node',3,'-',0,0,IER)
+        CALL PHELPD('Select node',nbhelp,'-',0,0,IER)
         GOTO 7
       ELSEIF(IVERT.EQ.(MVERT-4))THEN
 
@@ -593,21 +582,23 @@ C component number.
 #include "plant.h"
 #include "epara.h"
 #include "power.h"
+#include "help.h"
 
 C Commons
-      COMMON/POPHELP/H(60)
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
       integer IUOUT,IUIN,IEOUT
 
       DIMENSION VERT(35),IPK(MCONECOM)
 
-
 C Characters
       CHARACTER*1 KEY
       CHARACTER*34 VERT
-      CHARACTER*72 H
       integer MVERT,IVERT,NPK,I,L,M,IPK  ! max items and current menu item
       integer IER,IFOC,IPACT,IO
+
+      helpinsub='enetmisc'  ! set for subroutine
+      helptopic='power_connection_select'
+      call gethelptext(helpinsub,helptopic,nbhelp)
 
 C Zero picked items. 
       NPK=0
@@ -660,13 +651,8 @@ C If a long list include page facility text.
       VERT(M+4)  ='? help                           '
       VERT(M+5)  ='- exit                           '
 
-C Help text for menu.
-  7   H(1)='The list shows the current connecting components '
-      H(2)='in the electrical network. Please select one from the '
-      H(3)='list displayed.                                       '
-
 C Now display the menu.
-      CALL EMENU(' Connecting components: ',VERT,MVERT,IVERT)
+  7   CALL EMENU(' Connecting components: ',VERT,MVERT,IVERT)
       CALL USRMSG('Select component(s) then exit',' ','-')
       IF(IVERT.LE.MHEAD)THEN
 
@@ -677,7 +663,7 @@ C Within the header so skip request.
         CALL USRMSG(' ',' ','-')
         RETURN
       ELSEIF(IVERT.EQ.MVERT-1)THEN 
-        CALL PHELPD('Select node',3,'-',0,0,IER)
+        CALL PHELPD('Select node',nbhelp,'-',0,0,IER)
         GOTO 7
       ELSEIF(IVERT.EQ.(MVERT-4))THEN
 
@@ -716,9 +702,9 @@ C connection number.
 #include "plant.h"
 #include "epara.h"
 #include "power.h"
+#include "help.h"
 
 C Commons
-      COMMON/POPHELP/H(60)
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
 
 C Type casting (all varaiables and arrays cast explicitly)
@@ -727,8 +713,11 @@ C Type casting (all varaiables and arrays cast explicitly)
 C Characters
       CHARACTER*1 KEY
       CHARACTER*60 VERT
-      CHARACTER*72 H
       integer MVERT,IVERT  ! max items and current menu item
+
+      helpinsub='enetmisc'  ! set for subroutine
+      helptopic='elec_connection_select'
+      call gethelptext(helpinsub,helptopic,nbhelp)
 
 C Zero picked items. 
       NPK=0
@@ -783,13 +772,8 @@ C If a long list include page facility text.
       VERT(M+4)  ='? help                              '
       VERT(M+5)  ='- exit                              '
 
-C Help text for menu.
-  7   H(1)='The list shows the currently defined connections      '
-      H(2)='in the electrical network. Please select one from the '
-      H(3)='list displayed.                                       '
-
 C Now display the menu.
-      CALL EMENU(' Connections: ',VERT,MVERT,IVERT)
+  7   CALL EMENU(' Connections: ',VERT,MVERT,IVERT)
       CALL USRMSG('Select connection(s) then exit',' ','-')
       IF(IVERT.LE.MHEAD)THEN
 
@@ -801,7 +785,7 @@ C Within the header so skip request.
         CALL USRMSG(' ',' ','-')
         RETURN
       ELSEIF(IVERT.EQ.MVERT-1)THEN 
-        CALL PHELPD('Select node',3,'-',0,0,IER)
+        CALL PHELPD('Select node',nbhelp,'-',0,0,IER)
         GOTO 7
       ELSEIF(IVERT.EQ.(MVERT-4))THEN
 

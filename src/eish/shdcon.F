@@ -33,6 +33,7 @@ C Sets up the parameters relating to shading computation.
       subroutine shdcon(icomp,ier,act)
 #include "building.h"
 #include "geometry.h"
+#include "help.h"
       
       integer lnblnk  ! function definition
 
@@ -54,9 +55,6 @@ C Sets up the parameters relating to shading computation.
       logical ok
       logical newgeo  ! used to test for new/old geometry file
       integer ier
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp         ! number of help lines found
 
 C Day of average solar declination in each month.
       data iavdec/17,15,16,15,15,11,17,16,16,16,15,11/

@@ -2370,8 +2370,8 @@ C will be truncated at the width ISTRW.
       SUBROUTINE EPICKS(INPICK,IVALS,PROMP1,PROMP2,
      &                ISTRW,NSTALT,STALT,ERMSG,IER,NHELP)
 #include "epara.h"
+#include "help.h"
 
-      common/pophelp/h(60)
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
 
       LOGICAL FOUND,ALL
@@ -2380,7 +2380,7 @@ C will be truncated at the width ISTRW.
       dimension lista(35),listb(35)
       character lista*74,listb*74,KEY*1,outs*124
       CHARACTER*(*) PROMP1,PROMP2,ERMSG,STALT(*)
-      CHARACTER H*72,SEL*40
+      CHARACTER SEL*40
       integer MVERT,IVERT ! max items and current menu item
 
 #ifdef OSI
@@ -2389,7 +2389,10 @@ C will be truncated at the width ISTRW.
       integer*8 impx,impy,iw
 #endif
 
-C Fill the help string buffer.
+C Fill the help string buffer. Dummy use of helpinsub and helptopic.
+      helpinsub='lib'
+      helptopic='pickfromstringarray'
+      write(outs,'(3a)') helpinsub,' ',helptopic
       call dupphelp(NHELP+1)
 
 C At this point bring up a menu with the string alternatives, assuming
@@ -4000,7 +4003,7 @@ C          write(6,*) '< msgbox prompt ',prompt(1:lnblnk(prompt))
           CALL continuebox(prompt,cont)
         ELSEIF(LEVEL.EQ.'P'.OR.LEVEL.EQ.'p')THEN
           CALL msgbox(MSG1,MSG2)
-          call pauses(1)
+          call pausems(500)
         ELSEIF(LEVEL.EQ.'F'.OR.LEVEL.EQ.'f')THEN
 
 C Place in text window since about to exit from program.
@@ -4158,7 +4161,7 @@ C          write(6,*) '< msgbox prompt ',prompt(1:lnblnk(prompt))
           CALL continuebox(prompt,cont)
         ELSEIF(LEVEL.EQ.'P'.OR.LEVEL.EQ.'p')THEN
           CALL msgbox(MSG1,MSG2)
-          call pauses(1)
+          call pausems(500)
         ELSEIF(LEVEL.EQ.'F'.OR.LEVEL.EQ.'f')THEN
 
 C Place in text window since about to exit from program.
@@ -4489,13 +4492,13 @@ C ****** write current text buffer to an appropraite file
       subroutine proftxdump()
 #include "building.h"
 #include "model.h"
+#include "help.h"
 
 C Path to model and command line file (if any).
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
       common/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/FILEP/IFIL
       common/rpath/path
-      common/pophelp/h(60)
 
 C Indicator of possible focus zone.
       logical browse
@@ -4503,7 +4506,7 @@ C Indicator of possible focus zone.
       common/textbuf/dispbuf(500)
       common/textbufl/indexbuf,lnbuf(500)
 
-      character path*72,h*72,uname*24,fs*1
+      character path*72,uname*24,fs*1
       character sstr*144,title*18,ltypes*4
       character lltmp*144
       character dispbuf*144,outs*124
@@ -4635,12 +4638,12 @@ C ****** invoke graphics capture proforma
       subroutine profgrdump()
 #include "building.h"
 #include "model.h"
+#include "help.h"
 
 C Path to model and command line file (if any).
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
       common/OUTIN/IUOUT,IUIN,IEOUT
       common/rpath/path
-      common/pophelp/h(60)
 
 C Indicator of possible focus zone.
       logical browse
@@ -4650,7 +4653,7 @@ C Graphic capture, window dump: label, command.
       character gprlbl*20,gprcmd*48
       common/gprint/gprlbl,gprcmd
 
-      character path*72,h*72,uname*24,fs*1
+      character path*72,uname*24,fs*1
       character sstr*144
       character lltmp*144,outs*124
       character gcmd*144
@@ -4773,19 +4776,22 @@ C string for the subject. NHELP is the number of lines to be displayed.
 C IBX & IBY are the preferred coords of the lower left corner if in
 C terminal type 8.
       SUBROUTINE PHELPD(MSG,NHELP,OTHER,IBX,IBY,IER)
+#include "help.h"
 
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
       common/OUTIN/IUOUT,IUIN,IEOUT
-      common/pophelp/h(60)
-      dimension lh(30)
+      dimension lh(36)
       CHARACTER*(*) MSG,OTHER
-      CHARACTER h*72,outs*73,lh*73
+      CHARACTER outs*73,lh*73
       character IA*3
       integer IBX1,IBY1
 
 C Set coordinates IBX and IBY to zero (so parameter not needed).
       IBX1=0; IBY1=0
       IPM = 1
+      helpinsub='lib'
+      helptopic='phelpd'
+      write(outs,'(3a)') helpinsub,' ',helptopic
 
 C dh is duplicate help list.
 
@@ -4966,10 +4972,14 @@ C dupphelp(nh) copies current pop-uphelp common into a string array so that
 C C code does not destroy it. Note: this uses the esp_text.c version
 C rather than the esru_x.c version.
       SUBROUTINE dupphelp(NH)
+#include "help.h"
 
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
-      common/pophelp/h(60)
-      CHARACTER H*72,dh*72
+      character dh*72
+      character outs*124
+      helpinsub='lib'
+      helptopic='duphelp'
+      write(outs,'(3a)') helpinsub,' ',helptopic
 
       call clrhelp
       DO 50 I=1,NH
@@ -4983,9 +4993,13 @@ C ********************* PHELPW
 C PHELPW returns the width IWH of the longest text string in the common
 C pophelp where IL is the number of lines of help under consideration.
       SUBROUTINE PHELPW(IL,IHW,IER)
-      common/pophelp/h(60)
-      CHARACTER h*72
+#include "help.h"
       integer ill   ! local loop
+      character outs*124
+  
+      helpinsub='lib'       ! currently not used
+      helptopic='duphelp'
+      write(outs,'(3a)') helpinsub,' ',helptopic
 
       IER=0
       IHW=0
@@ -5005,8 +5019,6 @@ C ************* GETZONENAMES
 C GETZONENAMES calls the c function putzonename to fill the C zonenames variable.
       subroutine GETZONENAMES
 #include "building.h"
-
-C Get precz common block from geometry.h
 #include "geometry.h"
 
       integer ncomp,ncon
@@ -5136,11 +5148,11 @@ C in the list (at the bottom).
 #include "geometry.h"
 #include "schedule.h"
 #include "epara.h"
+#include "help.h"
 
       integer lnblnk  ! function definition
 
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
-      common/pophelp/h(60)
 
       integer ncomp,ncon
       COMMON/C1/NCOMP,NCON
@@ -5151,7 +5163,7 @@ C in the list (at the bottom).
       DIMENSION VERT(35),IVALS(MCOM)
       DIMENSION GERT(32),IGVAL(32)  ! For groups.
       CHARACTER VERT*23,gert*23,KEY*1,prompt2*36
-      character h*72,mod*1,outs*124,msg*96
+      character mod*1,outs*124,msg*96
 
 C Clear IVALS.
       IER=0
@@ -5159,6 +5171,9 @@ C Clear IVALS.
       DO 40 I=1,NCOMP
         IVALS(I)=0
    40 CONTINUE
+      helpinsub='lib'
+      helptopic='askmultizone'
+      call gethelptext(helpinsub,helptopic,nbhelp)
 
 C Makeup list of zone groups.
       if(nzgroup.gt.0)then
@@ -5232,11 +5247,6 @@ C If groups defined.
       endif
       write(prompt2,'(a)') ' select one or more...'
 
-C Instantiate help message for this menu.
-      H(1)='Zones may be selected via the names in the list.'
-      h(2)='If you have just updated a file it may not show up'
-      h(3)='as defined until you exit and re-enter this menu. '
-
 C Display the menu.
       call usrmsg(PROMPT,PROMPT2,'-')
       CALL EMENU(title,VERT,MVERT,IVERT)
@@ -5248,14 +5258,14 @@ C Display the menu.
       ELSEIF(IVERT.EQ.(MVERT-1))THEN
 
 C Display help text.
-        CALL PHELPD('zone files section',3,'-',0,0,IER)
+        CALL PHELPD('zone files section',nbhelp,'-',0,0,IER)
       ELSEIF(IVERT.EQ.(MVERT-2).AND.nzgroup.gt.0)THEN
 
 C Display a list of groups of associated zones.
         INPIC=1
         CALL EPMENSV
         CALL EPICKS(INPIC,IGVAL,' ','Available groups:',
-     &    23,nzgroup,gert,'group list',IER,1)
+     &    23,nzgroup,gert,'group list',IER,nbhelp)
         CALL EPMENRC
         write(msg,'(2a,i2,a)') 
      &    zglbl(IGVAL(1))(1:lnblnk(zglbl(IGVAL(1)))),' includes ',

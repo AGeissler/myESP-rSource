@@ -21,6 +21,7 @@ C mycotox
 C Iaqmenu controls indoor environmental quality choices.  All Mycotoxin
 C facilities are 'hidden' in the current version.
       SUBROUTINE iaqmenu
+#include "help.h"
 
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
@@ -40,12 +41,7 @@ C facilities are 'hidden' in the current version.
       character xfile*144,tg*1,delim*1
       integer NITMS,INO ! max items and current menu item
 
-C For help messages
-      character helpinsub*24   ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='iaqmenu'  ! set for cfiles
+      helpinsub='iaq'  ! set for cfiles
 
 C Default value for xvgr file = 0 (off).
       IHFLAG=0

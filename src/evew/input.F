@@ -2,6 +2,7 @@ C----------------------------------------------------
       SUBROUTINE INPUT(INIT)
 #include "viewer.h"
 #include "viewer.h2"
+#include "help.h"
       
       integer lnblnk  ! function definition
 
@@ -33,12 +34,6 @@ C----------------------------------------------------
 
       LOGICAL LOOK,NOIGN
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found (will be non-zero
-                         ! because default message will be created
-
       DATA MNP/8,6,6,5,4,5,4,4/
 C NO OF SURFACES.
       DATA MNS/6,5,5,5,4,5,4,4/
@@ -67,7 +62,7 @@ C SURFACE DESCRIPTIONS.
       DATA NAMDS0/' VIEWER  '/
 
 C----------------------------------------------------
-      helpinsub='INPUT'  ! set for suboutine
+      helpinsub='input'  ! set for suboutine
 
       IF (INIT.EQ.0)THEN
         LIB = 1

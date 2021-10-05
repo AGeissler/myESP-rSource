@@ -24,6 +24,7 @@ C rectangular window caused by overhang and/or side fins.
 
       subroutine winshd
 #include "building.h"
+#include "help.h"
 
       common/outin/iuout,iuin,ieout
       common/filech/ixopen,ixunit,ixpunit
@@ -36,17 +37,12 @@ C rectangular window caused by overhang and/or side fins.
       character outs*124,month*3
       logical ok
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
       data month/'Jan','Feb','Mar','Apr','May','Jun','Jul','Aug',
      &          'Sep','Oct','Nov','Dec'/
       data mdays/31,28,31,30,31,30,31,31,30,31,30,31/
 
 C If output to file, alter the edisp unit number.
-      helpinsub='winshd'  ! set for subroutine
+      helpinsub='ashrae'  ! set for subroutine
       itru = iuout
       if(ixopen.eq.1)then
         itru = ixunit

@@ -21,6 +21,7 @@ C writes the recovered data to array GOTDAT.
 #include "building.h"
 #include "mould.h"
 #include "espriou.h"
+#include "help.h"
       
       integer lnblnk  ! function definition
 
@@ -42,12 +43,7 @@ C writes the recovered data to array GOTDAT.
       integer*8 ipos,isize,iix,iiy      ! for use with etlabel
 #endif
 
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found (will be non-zero
-                         ! because default message will be created
-
-      helpinsub='vread'  ! set for subroutine
+      helpinsub='vfr'  ! set for subroutine
       helptopic='moisture_results_file'
       call gethelptext(helpinsub,helptopic,nbhelp)
 

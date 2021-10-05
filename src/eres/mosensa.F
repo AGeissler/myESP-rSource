@@ -38,6 +38,7 @@ C can proceed.
       SUBROUTINE MOSA
 #include "building.h"
 #include "geometry.h"
+#include "help.h"
 
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
@@ -52,12 +53,7 @@ C can proceed.
       CHARACTER ITEM(11)*25,outs*124
       integer NITMS,INO ! max items and current menu item
 
-C For help messages
-      character helpinsub*24   ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='MOSA'  ! set for subroutine
+      helpinsub='mosensa'  ! set for subroutine
 
 C Check that the result library contains the results from a 
 C uncertainty analysis.
@@ -133,6 +129,7 @@ C SAINTRA calculates summary statistics within result sets.
       SUBROUTINE SAINTRA
 #include "building.h"
 #include "geometry.h"
+#include "help.h"
 
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/OUTPCH/ICOUT
@@ -173,12 +170,7 @@ C          ilflag = 2 do not include # header lines in file.
 
       logical display, TOTALS
 
-C For help messages
-      character helpinsub*24   ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='SAINTRA'  ! set for subroutine
+      helpinsub='mosensa'  ! set for subroutine
 
 C Call the menu of choices (this also sets some default options).
 C The logical variable totals controls the displaying of cumulative 
@@ -788,6 +780,7 @@ C if act = 's' or plots graphs if act = 'g'.
       SUBROUTINE SAINTER(act)
 #include "building.h"
 #include "geometry.h"
+#include "help.h"
 
       character*1 act
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
@@ -846,12 +839,7 @@ C if act = 's' or plots graphs if act = 'g'.
       character prompt*124
       character t10*10  ! for graph line labels
 
-C For help messages
-      character helpinsub*24   ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='SAINTER'  ! set for subroutine
+      helpinsub='mosensa'  ! set for subroutine
 
 C Define prompt
       iglib = igraphiclib()  ! find out if X11 or GTK or text support only.
@@ -1439,6 +1427,7 @@ C SAPARSEN calculates individual parameter uncertainties.
       SUBROUTINE SAPARSEN
 #include "building.h"
 #include "geometry.h"
+#include "help.h"
 
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/OUTPCH/ICOUT
@@ -1467,12 +1456,7 @@ C SAPARSEN calculates individual parameter uncertainties.
       
       character outs*124,RSNAME*40
 
-C For help messages
-      character helpinsub*24   ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='SAPARSEN'  ! set for subroutine
+      helpinsub='mosensa'  ! set for subroutine
       
 C Call the menu of choices (this also sets some default options).
  1    MENUTYPE=6
@@ -1836,6 +1820,7 @@ C WHSET displays currently chosen sets and lets user toggle selections.
       SUBROUTINE WHSET
 #include "building.h"
 #include "epara.h"
+#include "help.h"
 
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
@@ -1852,12 +1837,7 @@ C WHSET displays currently chosen sets and lets user toggle selections.
       LOGICAL SELECT
       integer MVERT,IVERT ! max items and current menu item
 
-C For help messages
-      character helpinsub*24   ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='WHSET'  ! set for subroutine
+      helpinsub='mosensa'  ! set for subroutine
 
 C Display all sets in a menu
 C Initialise surface menu variables based on window size. 

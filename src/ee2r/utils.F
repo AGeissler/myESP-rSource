@@ -34,6 +34,7 @@ C selected zones
 #include "building.h"
 #include "model.h"
 #include "geometry.h"
+#include "help.h"
 
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/FILEP/IFIL
@@ -47,12 +48,7 @@ C selected zones
 
       character ST(60)*22,outs*124,LMRT*72
 
-C For help messages
-      character helpinsub*24   ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='PIKMRTS'  ! set for subroutine
+      helpinsub='utils'  ! set for subroutine
 
       IER=0
 

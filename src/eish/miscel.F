@@ -426,7 +426,6 @@ C to -1.0.
             if(i3pip.eq.0)then
               foshd(i,j)=-1.0  ! grid point not within focus surface
               ioshd(i,j)=-1
-            else
             endif
           enddo ! of j
         enddo   ! of i
@@ -1323,6 +1322,7 @@ C no selection.  'iva' is the array of selections.
       subroutine pickssur(izone,np,act,iva,ier)
 #include "building.h"
 #include "geometry.h"
+#include "help.h"
       
       integer ncomp,ncon
       common/c1/ncomp,ncon
@@ -1348,12 +1348,7 @@ C nsurfinso nb of insolation sources, isurfinso() list of insolation sources.
       integer i
       logical newgeo  ! Used to test for new/old geometry file.
 
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='pickssur'  ! set for subroutine
+      helpinsub='miscel'  ! set for subroutine
 
       ier=0
       if(izone.gt.ncomp.or.izone.eq.0)then
@@ -1514,17 +1509,14 @@ C 'ifday' is a toggle controlling the display and input of periods:
 C 0 = Julian day, 1 or 2 = day of month.
 
       subroutine askday(ifday,imo,ido,ijday,ier)
+#include "help.h"
 
       common/outin/iuout,iuin,ieout
       dimension id(12)
 
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
       data id/31,28,31,30,31,30,31,31,30,31,30,31/
 
-      helpinsub='askday'  ! set for subroutine
+      helpinsub='miscel'  ! set for subroutine
       ier=0
       helptopic='specify_day_of_year'
       call gethelptext(helpinsub,helptopic,nbhelp)

@@ -31,6 +31,7 @@ C time-dependent variables to be plotted for one or more zones.
       SUBROUTINE VWLIN
 #include "building.h"
 #include "prj3dv.h"
+#include "help.h"
       
       integer lnblnk  ! function definition
 
@@ -46,74 +47,69 @@ C time-dependent variables to be plotted for one or more zones.
       common/exporttg/xfile,tg,delim
       COMMON/EXPORTI/ixopen,ixunit,ixpunit
 
-      CHARACTER*24 ITEM(42)
-      character VITEM*24,HITEM*24,xfile*144,tg*1,delim*1
+      CHARACTER*26 ITEM(42)
+      character*12 vaxistitle(2)
+      character VITEM*26,HITEM*26,xfile*144,tg*1,delim*1
       integer NITMS,INO ! max items and current menu item
+      logical showedhelp
 
-C For help messages
-      character helpinsub*24   ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='VWLIN'  ! set for subroutine
+      helpinsub='vgraph'  ! set for subroutine
 
       MODIFYVIEW=.FALSE.
+      showedhelp=.false.
       VITEM=' '
       HITEM=' '
 
-      ITEM(1) ='2 Result set            '
-      ITEM(2) ='3 Define period         '
-      ITEM(3) ='4 Define zones          '
-      ITEM(4) ='  ___________________   '
-      ITEM(5) ='a Temp air inside       '
-      ITEM(6) ='b Temp air outside      '
-      ITEM(7) ='c Temp control point    '
-      ITEM(8) ='d Temp surface in (face)'
-      ITEM(9) ='e Temp surface ex (face)'
-      ITEM(10)='f Resultant temperature '
-      ITEM(11)='g Mean radiant temp     '
-      ITEM(12)='h Temp intra-surf       '
-      ITEM(13)='i N/A...                '
-      ITEM(14)='j N/A....               '
-      ITEM(15)='  ___________________   '
-      ITEM(16)='k Plant inject/extract  '
-      ITEM(17)='l Infiltration          '
-      ITEM(18)='m Ventilation (betwn zn)'
-      ITEM(19)='n N/A...                '
-      ITEM(20)='o N/A...                '
-      ITEM(21)='p N/A...                '
-      ITEM(22)='q Casual gains          '
-      ITEM(23)='r Surface convection    '
-      ITEM(24)='s Surface longwave rad  '
-      ITEM(25)='t Solar at ext face surf'
-      ITEM(26)='u Solar at int face surf'
-      ITEM(27)='v Zone RH               '
-      ITEM(28)='w Zone condensation     '
-      ITEM(29)='  ___________________   '
-      ITEM(30)='5 Solar direct radiation'
-      ITEM(31)='6 Solar diffuse rad     '
-      ITEM(32)='7 Wind speed            '
-      ITEM(33)='8 Wind direction        '
-      ITEM(34)='9 Ambient RH%           '
-      item(35)='+ Dew point Temp        '
-      item(36)='  ___________________   '
-      item(37)='! Draw graph            '
-      item(38)='= Set axis scale        '
-      item(39)='/ Clear all selections  '
-      item(40)='# Set units             '
+      ITEM(1) ='2 result set             '
+      ITEM(2) ='3        period          '
+      ITEM(3) ='4 zones                  '
+      ITEM(4) ='  ___________________    '
+      ITEM(5) ='a outside air temp.      '
+      ITEM(7) ='c control point temp.    '
+      ITEM(8) ='d inside surface temp.   '
+      ITEM(9) ='e outside surface temp.  '
+      ITEM(10)='f resultant temp.        '
+      ITEM(11)='g mean radiant temp.     '
+      ITEM(12)='h intra-constr. temp.    '
+      ITEM(13)='i                        '
+      ITEM(14)='j                        '
+      ITEM(15)='  ___________________    '
+      ITEM(16)='k plant flux             '
+      ITEM(17)='l infiltration           '
+      ITEM(18)='m ventilation            '
+      ITEM(19)='n                        '
+      ITEM(20)='o                        '
+      ITEM(21)='p                        '
+      ITEM(22)='q casual gains           '
+      ITEM(23)='r surface convection     '
+      ITEM(24)='s surface longwave rad.  '
+      ITEM(25)='t solar at external surf.'
+      ITEM(26)='u solar at internal surf '
+      ITEM(27)='v zone RH                '
+      ITEM(28)='w zone condensation      '
+      ITEM(29)='  ___________________    '
+      ITEM(30)='5 direct solar radiation '
+      ITEM(31)='6 diffuse solar radiation'
+      ITEM(32)='7 wind speed             '
+      ITEM(33)='8 wind direction         '
+      ITEM(34)='9 ambient RH             '
+      item(35)='+ dew point temp.        '
+      item(36)='  ___________________    '
+      item(37)='! draw                   '
+      item(38)='= axis scale             '
+      item(39)='/ clear                  '
+      item(40)='# units                  '
       if(ixopen.eq.1)then
-        item(41)='> Echo >> file        '
+        item(41)='> echo >> file        '
       elseif(ixopen.eq.0)then
-        item(41)='> Echo >> screen      '
+        item(41)='> echo >> screen      '
       endif
-      item(42)='- Exit                  '
+      item(42)='- exit menu              '
 
       CONVER=1000.
 
-      YMAXV=-1.E+9
-      YMINV=1.E+9
-      YMAXH=-1.E+9
-      YMINH=1.E+9
+      YMAXV=-1.E+9; YMINV=1.E+9
+      YMAXH=-1.E+9; YMINH=1.E+9
       NPICK=0
       NITMS=42
 
@@ -128,7 +124,7 @@ C In case the user has resized the display redraw
 C the image before presenting the command menu.
     5 if(MODIFYVIEW)then
         CALL VGHED(VITEM,HITEM)
-        CALL VGDRW(VITEM,HITEM)
+        CALL VGDRW(vaxistitle,HITEM)
         INO=-2
         MODIFYVIEW=.FALSE.
       endif
@@ -136,7 +132,10 @@ C the image before presenting the command menu.
 C Instantiate help string arrays for this menu.
       helptopic='res_var_var_menu'
       call gethelptext(helpinsub,helptopic,nbhelp)
-      CALL PHELPD('var var chart',nbhelp,'-',0,0,IER)
+      if(.NOT.showedhelp)then
+        CALL PHELPD('var var chart',nbhelp,'-',0,0,IER)
+        showedhelp=.true.
+      endif
 
       CALL EMENU(' Var.vs.Var',ITEM,NITMS,INO)
 
@@ -176,6 +175,82 @@ C values (to modify YMAX? and YMIN?).
         NPICK=NPICK+1
         IF(NPICK.EQ.1)THEN
           IVV=INO
+          if(INO.eq.5)then
+            vaxistitle(1)='Temp air'
+            vaxistitle(2)='inside'
+          elseif(INO.eq.6)then
+            vaxistitle(1)='Temp air'
+            vaxistitle(2)='outside'
+          elseif(INO.eq.7)then
+            vaxistitle(1)='Temp'
+            vaxistitle(2)='control pnt'
+          elseif(INO.eq.8)then
+            vaxistitle(1)='Temp surface'
+            vaxistitle(2)='inside face'
+          elseif(INO.eq.9)then
+            vaxistitle(1)='Temp surface'
+            vaxistitle(2)='other face'
+          elseif(INO.eq.10)then
+            vaxistitle(1)='Resultant'
+            vaxistitle(2)='temperature'
+          elseif(INO.eq.11)then
+            vaxistitle(1)='Mean radiant'
+            vaxistitle(2)='temperature'
+          elseif(INO.eq.12)then
+            vaxistitle(1)='Temperature'
+            vaxistitle(2)='intra-surf'
+          elseif(INO.eq.16)then
+            vaxistitle(1)='Plant inject'
+            vaxistitle(2)='/extract'
+          elseif(INO.eq.17)then
+            vaxistitle(1)='Infiltration'
+            vaxistitle(2)=''
+          elseif(INO.eq.18)then
+            vaxistitle(1)='Ventilation'
+            vaxistitle(2)='(between zn)'
+          elseif(INO.eq.22)then
+            vaxistitle(1)='Casual'
+            vaxistitle(2)='gains'
+          elseif(INO.eq.23)then
+            vaxistitle(1)='Surface'
+            vaxistitle(2)='convection'
+          elseif(INO.eq.24)then
+            vaxistitle(1)='Surface lng-'
+            vaxistitle(2)='wave radiatn'
+          elseif(INO.eq.25)then
+            vaxistitle(1)='Solar at'
+            vaxistitle(2)='other face'
+          elseif(INO.eq.26)then
+            vaxistitle(1)='Solar at'
+            vaxistitle(2)='inside face'
+          elseif(INO.eq.27)then
+            vaxistitle(1)='Zone'
+            vaxistitle(2)='RH%'
+          elseif(INO.eq.28)then
+            vaxistitle(1)='Zone'
+            vaxistitle(2)='condensation'
+          elseif(INO.eq.30)then
+            vaxistitle(1)='Solar direct'
+            vaxistitle(2)='radiation'
+          elseif(INO.eq.31)then
+            vaxistitle(1)='Solar diff'
+            vaxistitle(2)='radiation'
+          elseif(INO.eq.32)then
+            vaxistitle(1)='Wind'
+            vaxistitle(2)='speed'
+          elseif(INO.eq.33)then
+            vaxistitle(1)='Wind'
+            vaxistitle(2)='direction'
+          elseif(INO.eq.34)then
+            vaxistitle(1)='Ambient'
+            vaxistitle(2)='RH%'
+          elseif(INO.eq.35)then
+            vaxistitle(1)='Dew point'
+            vaxistitle(2)='temperature'
+          else
+            vaxistitle(1)='-'
+            vaxistitle(2)='-'
+          endif
           write(VITEM,'(A)')ITEM(INO)(3:lnblnk(ITEM(INO)))
         ELSEIF(NPICK.EQ.2)THEN
           IVH=INO
@@ -216,7 +291,7 @@ C !DRAW selected: plot paired variables over time.
       ENDIF
 
       CALL VGHED(VITEM,HITEM)
-      CALL VGDRW(VITEM,HITEM)
+      CALL VGDRW(vaxistitle,HITEM)
       goto 51
 
 C '=SCLE>' command selected: set maximum and minimum
@@ -276,6 +351,7 @@ C at the time of graph construction.
 
       SUBROUTINE VGMXN(JPICK)
 #include "building.h"
+#include "help.h"
 
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
 
@@ -292,12 +368,7 @@ C at the time of graph construction.
       DIMENSION XVAL1(MS)
       character outs*124
 
-C For help messages
-      character helpinsub*24   ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='VGMXN'  ! set for subroutine
+      helpinsub='vgraph'  ! set for subroutine
 
 C For each zone selected.
       DO 999 IZ=1,NZ
@@ -802,10 +873,9 @@ C Zone dew point temperature.
       END
 
 C ******************** VGDRW ********************
+C Initiates axis drawing and displays all requested profiles.
 
-C VGDRW initiates axis drawing and displays all requested profiles.
-
-      SUBROUTINE VGDRW(VITEM,HITEM)
+      SUBROUTINE VGDRW(vaxistitle,HITEM)
 #include "building.h"
 
       COMMON/SIMPIK/ISIM,ISTADD,ID1,IM1,ID2,IM2,ISDS,ISDF,NTS,ISAVE
@@ -817,7 +887,8 @@ C VGDRW initiates axis drawing and displays all requested profiles.
      &              IVPOS(MCOM),IVNOD(MCOM),VPSAT(MCOM)
 
       COMMON/GET1/VAL1(MZS,MTS),VAL2(MZS,MTS),VAL3(MZRL,MTS)
-      character VITEM*24,HITEM*24
+      character VITEM*26,HITEM*26
+      character*12 vaxistitle(2)
 #ifdef OSI
       integer iupdown,isym    ! passed to etplot
 #else
@@ -825,7 +896,7 @@ C VGDRW initiates axis drawing and displays all requested profiles.
 #endif
 
 C Initiate graph axis drawing.
-      CALL VAXIS(VITEM,HITEM)
+      CALL VAXIS(vaxistitle,HITEM)
 
 C Zone loop.
       DO 999 IZ=1,NZ
@@ -933,20 +1004,25 @@ C Set all possible values, computing average if requested.
       END
 
 C ******************** VAXIS ********************
+C Draws the graphical axes relating to the requested profiles.
 
-C VAXIS draws the graphical axes relating only to the requested profiles.
-      SUBROUTINE VAXIS(VITEM,HITEM)
+      SUBROUTINE VAXIS(vaxistitle,HITEM)
 
       COMMON/VGRAF1/YMAXV,YMINV,YMAXH,YMINH
       integer menuchw,igl,igr,igt,igb,igw,igwh
       COMMON/VIEWPX/menuchw,igl,igr,igt,igb,igw,igwh
-      character VITEM*24,HITEM*24,VIT*24,HIT*24
+      character HITEM*26,HIT*26
+      character*12 vaxistitle(2)
 #ifdef OSI
       integer igwid,igheight  ! for use with axiscale
       integer iigl,iigr,iigt,iigb,iigw,iigwh
+      integer iicol,ibsize,ipixw,ipixh
+      integer iid1,iid2,iid3
 #else
       integer*8 igwid,igheight  ! for use with axiscale
       integer*8 iigl,iigr,iigt,iigb,iigw,iigwh
+      integer*8 iicol,ibsize,ipixw,ipixh
+      integer*8 iid1,iid2,iid3
 #endif
 
 C Cast values for linescale.
@@ -980,11 +1056,14 @@ C horizontal and vertical axis.
       HIT=HITEM
       call dintervalf(YMINH,YMAXH,ddy1,ny,0)
       call horaxisdd(YMINH,YMAXH,iigl,iigr,iigb,Xadd,xsc,0,ddy1,ny,HIT)
-      VIT=' '
-      VIT=VITEM
+      call textpixwidth(vaxistitle(1),ipixw,ipixh)    ! get its width
+      iid1=15; iid2=igt-(ipixh); iid3=igt-1  ! Do left justified.
       CALL dintervalf(YMINV,YMAXV,ddy1,ny,0)
       call vrtaxisdd(YMINV,YMAXV,iigl,iigb,iigt,Yadd,ysc,0,
-     &  ddy1,ny,0,VIT)
+     &  ddy1,ny,0,'  ')
+      iicol=0; ibsize=0
+      call textsizeatxy(iid1,iid2,vaxistitle(1),ibsize,'-',iicol)
+      call textsizeatxy(iid1,iid3,vaxistitle(2),ibsize,'-',iicol)
 
       RETURN
 
@@ -992,8 +1071,7 @@ C horizontal and vertical axis.
 
 
 C ******************** VGHED ********************
-
-C VGHED outputs the appropriate header information corresponding
+C Outputs the appropriate header information corresponding
 C to graphical result display.
 
       SUBROUTINE VGHED(VITEM,HITEM)
@@ -1008,9 +1086,9 @@ C to graphical result display.
       COMMON/ZONPIK/NZ,NZNO(MCOM)
       COMMON/RESLIB/RFILE,PFILE,MSTRFILE,LAFRES
 
-      CHARACTER ETEXT*82
+      CHARACTER ETEXT*94
       character rfile*72,PFILE*72,MSTRFILE*72,LAFRES*72
-      CHARACTER PDESCR*60,SDESCR*44,VITEM*24,HITEM*24
+      CHARACTER PDESCR*64,SDESCR*44,VITEM*26,HITEM*26
       CHARACTER outsd*124,outsd1*126
       integer lsn1
 
@@ -1035,7 +1113,8 @@ C and the simulation and output timesteps.
       IF(MMOD.EQ.8)THEN
 
 C Setup and pass in parameters to win3d.
-        iiw1=10; iiw2=8; iiw3=5; iiw4=3; iimenu=menuchw
+C        iiw1=10; iiw2=8; iiw3=5; iiw4=3; iimenu=menuchw
+        iiw1=7; iiw2=8; iiw3=7; iiw4=3; iimenu=menuchw
         iigl=igl; iigr=igr; iigt=igt; iigb=igb; iigw=igw; iigwh=igwh
         iglib = igraphiclib()  ! find out if X11 or GTK or text support only.
         if(iglib.eq.1)then
@@ -1051,7 +1130,7 @@ C Setup and pass in parameters to win3d.
       ENDIF
 
       lsn1=MIN0(lnblnk(RFILE),42)
-      WRITE(ETEXT,'(1X,A,A,A)')SDESCR,' Lib:',RFILE(1:lsn1)
+      WRITE(ETEXT,'(1X,A,A,A)')SDESCR,' Results library:',RFILE(1:lsn1)
       iside=1; isize=0; ifont=1
       if(mmod.eq.8)then
         call viewtext(etext,iside,isize,ifont)
@@ -1059,7 +1138,7 @@ C Setup and pass in parameters to win3d.
         call viewtextwwc(etext,iside,isize,ifont)
       endif
 
-      WRITE(ETEXT,'(1X,A60)')PDESCR
+      WRITE(ETEXT,'(1X,A)')PDESCR
       iside=2
       if(mmod.eq.8)then
         call viewtext(etext,iside,isize,ifont)
@@ -1078,9 +1157,9 @@ C Setup and pass in parameters to win3d.
         endif
       endif
 
-      WRITE(ETEXT,'(4a)')' Variables: Vert=',
-     &  VITEM(1:lnblnk(VITEM)),'  Horiz=',HITEM(1:lnblnk(HITEM))
-      iside=4
+      WRITE(ETEXT,'(3a)')
+     &  VITEM(1:lnblnk(VITEM)),' vs ',HITEM(1:lnblnk(HITEM))
+      iside=5; isize=1
       if(mmod.eq.8)then
         call viewtext(etext,iside,isize,ifont)
       else
