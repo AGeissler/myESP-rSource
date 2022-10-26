@@ -301,9 +301,9 @@ C Get latitude in degrees minutes and seconds.
           call viewtext(gtext,iside,isize,ifont)
         else
           call viewtextwwc(gtext,iside,isize,ifont)
+          call edisp(iuout,' ')
+          call edisp(iuout,ETEXT)
         endif
-        call edisp(iuout,' ')
-        call edisp(iuout,ETEXT)
       else
         call edisp(iuout,' ')
         call edisp(iuout,GTEXT)

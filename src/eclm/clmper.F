@@ -568,7 +568,7 @@ C Reset the graphic context prior to leaving.
         if(MMOD.EQ.8)then
           IMFS=lastmenu
           call userfonts(IFS,ITFS,IMFS)
-          menuchw = 28
+          menuchw = 30
           LIMTTY=6
           LIMIT =6
 

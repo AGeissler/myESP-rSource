@@ -2,11 +2,11 @@
 #NOTE: TO USE THE PROGRAM AS A SCRIPT, THE LINE ABOVE SHOULD BE ERASED OR TURNED INTO A COMMENT.
 #!/usr/bin/perl
 # Modish
-$VERSION = '0.325';
+$VERSION = '0.4';
 # Author: Gian Luca Brunetti, Politecnico di Milano - gianluca.brunetti@polimi.it.
 # An intermediate version of the subroutine createconstrdbfile has been modified by ESRU (2038),
 # University of Strathclyde, Glasgow.
-# All rights reserved, 2015-20.
+# All rights reserved, 2015-22.
 # This is free software.  You can redistribute it and/or modify it under the terms of the
 # GNU General Public License, version 3, as published by the Free Software Foundation.
 
@@ -16,6 +16,8 @@ $VERSION = '0.325';
 # In version 0.301 (04.08.2020): added the ability of being called from ESP-r for monthly inquiries or embedded, daily inquiries.
 # In version 0.319 (02.09.2020): speedup modifications for the embedded mode, modification of the createconstrdbfile and creatematdbfiles subroutines.
 # In versions 0.321 to 0.325 (17.10.2020): bug fixes.
+# In versions 0.4 (20.12.2021): adapted code to changes in the e2r interaction;
+# reintroduced the possibility of non-embedded use; added the possibility of choosing which zones and surfaces to operate on.
 
 use v5.14;
 use Exporter;
@@ -71,11 +73,13 @@ $ABSTRACT = 'Modish is a program for modifying the shading factors in the ISH (s
 #
 # To launch Modish the following command has to be issued:
 #
-# perl ./modish PATH_TO_THE_ESP-r_CONFIGURATION_FILE.cfg zone_number surface_1_number surface_2_number surface_n_number
+# perl ./Modish.pm PATH_TO_THE_ESP-r_CONFIGURATION_FILE.cfg
 #
 # For example:
 #
-# perl ././Modish.pm /home/x/model/cfg/model.cfg 1 7 9 (which means: calculate for zone 1, surfaces 7 and 9.)
+# perl ./Modish.pm PATH_TO_THE_ESP-r_CONFIGURATION_FILE.cfg
+
+# More manners for launching ESP-r are presented in the help at the bottom of this page.
 #
 # In calculating the irradiance ratios, the program defaults to the following settings: diffuse reflections: 1 ; direct reflections: 7; surface grid: 2 x 2; direction vectors for each surface: 1 ; distance from the surface for calculating the irradiances: 0.01 (metres); ratio of the of the original shading factor to the "new" shading factor under which the new shading factor is used to substitute the original one in the ".shda" file. If this value is 0, it is inactive, there is no threshold.
 # These defaults are a compromise between quality and speed. They can be overridden by preparing a "modish_defaults.pl" file and placing it in the same directory from which modish is called.
@@ -1399,7 +1403,7 @@ sub readgeofile
       if ( $line =~ /\*surf,/ )
       {
         my @es = split( /\s+|,/, $line );
-        if ( not ( $es[7] =~ /OPAQUE/ ) )
+        if ( ( not ( $es[7] =~ /OPAQUE/ ) ) and ( $es[8] =~ /EXTERIOR/ ) )
         {
           say MONITOR "NOW FOUND: $line" ;
           push ( @transps, $es[12] );
@@ -1862,7 +1866,12 @@ sub readshdfile
   my %zonenumname = %{ $zonenumname_ref };
   my $zoneletter = $zonenumname{$zonenum};
   say MONITOR "4,5 SHDFILE: $shdfile";
-  my $mymonthname = getmonthname($mymonth);
+
+  my $mymonthname;
+  if ( "embedded" ~~ @calcprocedures )
+  {
+    $mymonthname = getmonthname($mymonth);
+  }
 
   my $shdafile = $shdfile . "a";
 
@@ -1937,7 +1946,7 @@ YYY
 ";
 
     #restoreshd( $shdfile );
-  }
+  } ###ZZZ NOT ACTIVE
 
   my $tempfile = $shdafile;
   $tempfile =~ s/\.shda/\.temp\.shda/ ;
@@ -1947,16 +1956,27 @@ YYY
   close SHDAFILE;
 
   my (@filearray, @rawlines, @months);
-  foreach my $line ( @shdalines )
-  {
-    if ( $line =~ /\* month:/ )
-    {
-      $line =~ s/(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)/$mymonthname/ ;
-    }
-    push ( @rawlines, $line );
-  }
-  my @treatedlines = treatshdfile ( @rawlines );
 
+  if ( "embedded" ~~ @calcprocedures )
+  {
+    foreach my $line ( @shdalines )
+    {
+      if ( $line =~ /\* month:/ )
+      {
+        $line =~ s/(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)/$mymonthname/ ;
+      }
+      push ( @rawlines, $line );
+    }
+  }
+  else
+  {
+    foreach my $line ( @shdalines )
+    {
+      push ( @rawlines, $line );
+    }
+  }
+
+  my @treatedlines = treatshdfile ( @rawlines );
 
   foreach my $line ( @treatedlines )
   { # THIS READS THE ".shda" FILES.
@@ -2187,7 +2207,7 @@ sub adjustlaunch
 
   my $oldskyfile = $skyfile . ".old";
   `mv -f $skyfile $oldskyfile`;
-  print REPORT "mv -f $skyfile $oldskyfile\n";
+  "mv -f $skyfile $oldskyfile\n";
   `mv -f $diffskyfile $skyfile`;
   print REPORT "mv -f $diffskyfile $skyfile\n";
 }
@@ -2197,8 +2217,9 @@ sub setrad
   # THIS CREATES THE RADIANCE SCENES.
   my ( $conffile, $radoctfile, $rcffile, $path, $radpath, $monthnum, $day, $hour, $countfirst, $exportconstrref,
     $exportreflref, $skycondition_ref, $countrad, $specularratios_ref, $calcprocedures_ref, $debug, $paths_ref,
-    $groundrefl, $count, $shdfile ) = @_;
+    $groundrefl, $count, $shdfile, $d_ref ) = @_;
     my $message;
+    my %d = %{ $d_ref };
 
     if ( $conffile =~ /_f1\./ )
     {
@@ -2362,10 +2383,23 @@ sub setrad
   #  defendshd( $shdfile );
   #}
 
+
+  my $cfgpath = $paths{cfgpath};
+  my $radpath = $paths{radpath};
+  my $shortconffile = $conffile;
+  $shortconffile =~ s/$cfgpath\///;
+  my $shortrcffile = $rcffile;
+  $shortrcffile =~ s/$radpath\///;
+  my $shortriffile = $riffile;
+  $shortriffile =~ s/$radpath\///;
+  my $parproc = $d{parproc};
+
+
 `cd $paths{cfgpath}
-e2r -file $conffile -mode text $debugstr <<YYY
+rm fort.*
+e2r -file $shortconffile -mode text <<YYY
 c
-$rcffile
+a
 a
 a
 $moment
@@ -2387,17 +2421,19 @@ c
 h
 y
 >
-$riffile
+$shortriffile
+u
+$parproc
 -
 -
 YYY
 `;
 
-
-  say REPORT "cd $paths{cfgpath}
-e2r -file $conffile -mode text $debugstr <<YYY
+say REPORT "cd $paths{cfgpath}
+rm fort.*
+e2r -file $shortconffile -mode text <<YYY
 c
-$rcffile
+a
 a
 a
 $moment
@@ -2419,7 +2455,9 @@ c
 h
 y
 >
-$riffile
+$shortriffile
+u
+$parproc
 -
 -
 YYY
@@ -2647,7 +2685,7 @@ sub pursue
   my $myday = $d{myday};
   my $mymonth = $d{mymonth};
   #say MONITOR "BEFORE PURSUE MYDAY $myday MYMONTH $mymonth";
-  say REPORT "BEFORE PURSUE MYDAY $myday MYMONTH $mymonth";
+  say REPORT "BEFORE PURSUE MYDAY $myday MYMONTH $mymonth \$zonenum $zonenum ";
 
   if ( $add eq "" ) { $add = " -aa 0.5 -dc .25 -dr 2 -ss 1 -st .05 -ds .004 -dt .002 -bv "; }
 
@@ -2804,7 +2842,7 @@ sub pursue
     setrad( $conffile, $radoctfile, $rcffile, $path, $radpath, 3,
       15, 12, $countfirst, $exportconstrref, $exportreflref, \%skycondition, $countrad,
       \@specularratios, \@calcprocedures, $debug, \%paths, $groundrefl,
-      $count, $shdfile );
+      $count, $shdfile, \%d );
     $count++;
   }
 
@@ -2945,7 +2983,7 @@ sub pursue
               setrad( $conffile, $radoctfile, $rcffile, $path, $radpath, $monthnum,
                 $day, $hour, $countfirst, $exportconstrref, $exportreflref, \%skycondition, $countrad,
                 \@specularratios, \@calcprocedures, $debug, \%paths, $groundrefl,
-                $count, $shdfile );
+                $count, $shdfile, \%d );
             }
 
             my $skycond = $skycondition{$monthnum};
@@ -3303,7 +3341,7 @@ solar source sun
                     }
                   }
 
-                  if ( $liXXX =~ /^Warning: sun altitude below zero/ )
+                  if ( $li =~ /^Warning: sun altitude below zero/ )
                   {
                     if ( $skycond eq "clear" )
                     {
@@ -4188,7 +4226,8 @@ sub createconstrdbfile
     say MONITOR "\$numobsconstr : " . dump ( $numobsconstr );
     say MONITOR "\%obsinf " . dump ( %obsinf );
 
-    if ( $numobsconstr > 0 )
+    if
+    ( $numobsconstr > 0 )
     {
       foreach my $line ( @updatedlines )
       {
@@ -6823,9 +6862,12 @@ sub modish
 { # MAIN PROGRAM
   open( MONITOR, ">>./monitor.txt" ) or die;
 
+  say MONITOR "ARGV: " . dump( @ARGV );
+
   if ( "-setdefaults" ~~ @ARGV )
   {
     shift @ARGV;
+
 
     say MONITOR "GOT BEFORE1 " . dump( @ARGV );
 
@@ -6843,13 +6885,14 @@ sub modish
     my $pwd = `pwd`;
     chomp $pwd;
     $conf = $pwd . "/" . $conf;
+    my $confpath_ = $pwd . "/" ;
 
     my @news;
     foreach ( @ARGV )
     {
-      if ( $_ eq "\1" ){ $_ = "1"; }; # % compute reflections from obs.'
+      if ( $_ eq "\1" ){ $_ = "1"; }; # % compute reflections from obs.
       if ( $_ eq "\2" ){ $_ = "2"; }; # % do not compute refl.from obs.
-      if ( $_ eq "\3" ){ $_ = "3"; }; # # shading factor correction
+      if ( $_ eq "\3" ){ $_ = "3"; }; # #
       if ( $_ eq "\4" ){ $_ = "4"; }; # # shd.f. corr. + diffuse piping
       if ( $_ eq "\5" ){ $_ = "5"; }; # # shd.f.c.+dif.pip.+ground refl
       if ( $_ eq "\6" ){ $_ = "6"; }; # # complete recalculation
@@ -6867,6 +6910,10 @@ sub modish
       if ( $_ eq "\24" ){ $_ = "20"; }; # | resolution: 2x2 diffuse & dir
       if ( $_ eq "\25" ){ $_ = "21"; }; # | resolution:2x2 diff 20x20 dir
       if ( $_ eq "\26" ){ $_ = "22"; }; # | resolution:1x1 diff 10x10 dir
+      if ( $_ eq "\27" ){ $_ = "23"; }; # |
+      if ( $_ eq "\28" ){ $_ = "24"; }; # | compute all zones &all surfs
+      if ( $_ eq "\29" ){ $_ = "25"; }; # | include all zones &all surfs
+      if ( $_ eq "\30" ){ $_ = "26"; }; # | if non-embedded: compute now.
       push( @news, $_ );
     }
 
@@ -6894,23 +6941,23 @@ sub modish
       }
     }
     elsif ( $news[0] eq "3" )
-    {
-      open(FIL, "./modish_defaults.pl" ) or die;
-      my @lins = <FIL>;
-      close FIL;
-
-      open(FIL, ">./modish_defaults.pl" ) or die;
-
-      foreach my $lin ( @lins )
-      {
-        if ( $lin =~ /^\@calcprocedures/ )
-        {
-          $lin = "\@calcprocedures = ( \"diluted\", \"gensky\", \"composite\", \"groundreflections\" ) ;\n";
-        }
-        print FIL $lin;
-      }
-      close FIL;
-    }
+    #{ # shading factor correction
+    #  open(FIL, "./modish_defaults.pl" ) or die;
+    #  my @lins = <FIL>;
+    #  close FIL;
+    #
+    #  open(FIL, ">./modish_defaults.pl" ) or die;
+    #
+    #  foreach my $lin ( @lins )
+    #  {
+    #    if ( $lin =~ /^\@calcprocedures/ )
+    #    {
+    #      $lin = "\@calcprocedures = ( \"diluted\", \"gensky\", \"composite\", \"groundreflections\" ) ;\n";
+    #    }
+    #    print FIL $lin;
+    #  }
+    #  close FIL;
+    #}
     elsif ( $news[0] eq "4" )
     {
       open(FIL, "./modish_defaults.pl" ) or die;
@@ -7446,37 +7493,81 @@ sub modish
       }
       close FIL;
     }
-#    elsif ( $news[0] eq "19" )
-#    {
+    elsif ( $news[0] eq "24" )
+    { # specify zones & surfs - optional
+      if (-e "./_modish_request.pl" )
+      {
+        `mv -f ./_modish_request.pl ./modish_request.pl`
+      }
+
+      if ( ( not (-e "./modish_request.pl" ) ) and ( not (-e "./_modish_request.pl" ) ) )
+      {
+        open(FIL, ">./modish_request.pl" );
+        say FIL "\n\n# #Fill in the values in the first row of this \"modish_request.pl\"`file,
+# then write here, in the second row, the name of the ESP-r config file,
+# then launch the shading reflection calculation from the ESP-r menu
+# about the shading calculations, in \"model context\".
+# The values to be filled into the first row above have to have this format:
 #
-#      open( FIL, "$conf") or die;
-#      my @lins = <FIL>;
-#      close FIL;
+# zone_number  opening_n_number  opening_y_number and ... and zone_number  opening_m_number  opening_z_number,
 #
-#      my @zones;
-#      foreach my $lin ( @lins )
-#      {
-#        if ( $lin =~ /^\*zon/ )
-#        {
-#          my @els = split( /\s+/, $lin );
-#          push( @zones, $els[1] );
-#        }
-#      }
-#      say MONITOR "HERE " . dump( @zones );
-#
-#      foreach my $zone ( @zones )
-#      {
-#        my $wait = `perl /opt/esp-r/bin/modish/Modish.pm $conf $zone`;
-#      }
-#    }
-#    elsif ( $news[0] eq "20" )
-#    {
-#      `perl /opt/esp-r/bin/modish/Modish.pm $conf 1`;
-#    }
-#    elsif ( $news[0] eq "21" )
-#    {
-#      `perl /opt/esp-r/bin/modish/Modish.pm $conf 2`;
-#    }
+# This series of numbers have to be written all in the first row,
+# and the row has always to be terminated by a comma.
+# For example:
+# 1 1 7 and 3 5,
+# would means: take into account the reflection from obstruction for zone 1, surfaces 1 and 7,
+# and zone 3, surface 5.
+# If calculations of reflection from obstruction are not requested, leave the line blank.
+# If the file \"modish_request.pl\" is absent,
+# all the existing transparent surfaces in all the existing zones of model, however,
+# will be taken into account in the calculation of reflections from obstructions,
+# and this may be very slow."
+      }
+      `nedit ./modish_request.pl`;
+    }
+    elsif ( $news[0] eq "25" )
+    { # do not specify zones & surfaces
+      `mv -f ./modish_request.pl ./_modish_request.pl`;
+    }
+    elsif ( $news[0] eq "26" )
+    { # launch monthly recalculation
+      my ($add, $file);
+      if ( scalar( @ARGV ) == 3 )
+      {
+        $add = pop ( @ARGV );
+      }
+      else
+      {
+        if ( -e "./modish_request.pl" )
+        {
+          $file = "./modish_request.pl";
+        }
+        elsif ( -e "./_modish_request.pl" )
+        {
+          $file = "./_modish_request.pl";
+        }
+
+        open(FIL, $file );
+        my @lins = <FIL>;
+        close FIL;
+
+        my $lin = $lins[0];
+        chomp $lin;
+
+        my $prepare = $lins[1];
+        chomp $prepare;
+        $prepare =~ s/  / /g;
+        $prepare =~ s/  / /g;
+        $prepare =~ s/  / /g;
+        $prepare =~ s/  / /g;
+        my @elts = split( " ", $prepare );
+        $add = $elts[0];
+      }
+      my $fullcfg = $confpath_ . $add;
+
+      say MONITOR "perl /opt/esp-r/bin/modish/Modish.pm $fullcfg $lin";
+      `perl /opt/esp-r/bin/modish/Modish.pm $fullcfg $lin`;
+    }
     exit;
   }
 
@@ -7497,29 +7588,99 @@ sub modish
   }
 
   my ( @things, @things2, $launchfile, $modishdefpath, %paths, $path, $myfile, $myday, $mymonth, $myzone, $zonenum, $launchtype, $cfgfile );
+
   if ( ( @ARGV ) and ( ( not ( "-mode" ~~ @ARGV ) ) and ( not ( "-file" ~~ @ARGV ) ) and ( not ( "-zone" ~~ @ARGV ) ) ) )
   {
     $launchtype = "commandline";
     @things = @_;
 
-    #if ( $launchline )
-    #{
-    #  @things2 = split( /\s+/, $launchline );
-    #  say MONITOR "THINGS2: " . dump(@things2);
-    #}
-
-    #if ( $#things2 > $#things )
-    #{
-    #  my $diff = $#things2 - $#things;
-    #  my @slice = @things2[($#things+1)..$#things2];
-    #  push ( @things, @slice );
-    #  say MONITOR "SLICE: " . dump(@slice);
-    #  say MONITOR "NEWTHINGS: " . dump(@things);
-    #}
-
     $launchfile = shift( @things );
 
     $path = $launchfile;
+
+    if ( not ( "-finalizing" ~~ @ARGV ) )
+    {
+      if ( -e "./modish_request.pl" )
+      {
+        say MONITOR "I AM 1";
+        open( THIS, "./modish_request.pl" );
+        my @lines = <THIS>;
+        close THIS;
+
+        my $line = $lines[0];
+        chomp $line;
+        say MONITOR "HERE LINE: " . dump( $line );
+        my @splits = split( "and", $line );
+        say MONITOR "HERE SPLITS: " . dump( @splits );
+        foreach my $elt ( @splits )
+        {
+          `perl /opt/esp-r/bin/modish/Modish.pm $launchfile $elt -finalizing`
+        }
+        exit;
+      }
+      elsif ( not ( scalar( @things ) == 0 ) )
+      {
+        say MONITOR "I AM 2";
+        $" = " ";
+        my @bucket;
+        my $counter = 0;
+        foreach my $elt ( @things )
+        {
+          if ( $elt ne "and" )
+          {
+            push ( @{ $bucket[$counter] }, $elt );
+          }
+          if ( $elt eq "and" )
+          {
+            $counter++;
+          }
+        }
+
+        foreach my $reqs_ref ( @bucket )
+        {
+          my @requests = @{ $reqs_ref };
+          `perl /opt/esp-r/bin/modish/Modish.pm $launchfile @requests -finalizing`;
+        }
+        exit;
+      }
+      elsif ( scalar( @things ) == 0 )
+      { say MONITOR "I AM 3";
+        open( THAT, $launchfile ) or die;
+        my @lines = <THAT>;
+        close THAT;
+
+        my @zones;
+        foreach my $line ( @lines )
+        {
+          chomp $line;
+          if ( $line =~ /^\*zon / )
+          {
+            $line =~ s/  / /g;
+            $line =~ s/  / /g;
+            $line =~ s/  / /g;
+            $line =~ s/  / /g;
+            $line =~ s/  / /g;
+            $line =~ s/  / /g;
+            my @splits = split( " ", $line );
+            my $num = $splits[1];
+            push ( @zones, $num );
+          }
+        } say MONITOR "HERE ZONES: " . dump ( @zones );
+
+        foreach my $zone ( @zones )
+        {
+          say MONITOR "HERE perl /opt/esp-r/bin/modish/Modish.pm $launchfile $zone -finalizing";
+          `perl /opt/esp-r/bin/modish/Modish.pm $launchfile $zone -finalizing`;
+        }
+        exit;
+      }
+    }
+
+    if ( "-finalizing" ~~ @ARGV )
+    {
+      pop @ARGV;
+      pop @things;
+    }
 
     if ( "embedded" ~~ @things )
     {
@@ -7633,6 +7794,7 @@ sub modish
         push( @settings );
       }
     }
+
     if ( scalar( @restpars ) == 0 ) { say "NO ZONE HAS BEEN SPECIFIED. EXITING." and die; }
 
     $zonenum = $restpars[0];
@@ -7652,7 +7814,33 @@ sub modish
         $zonenum = $elts[1];
       }
     }
-   @transpsurfs = @{ $zoneandsurfs{$zonenum} };
+
+    if ( -e "./modish_request.pl" )
+    {
+      open(THIS, ">./modish_request.pl" );
+      my @lines = <THIS>;
+      close THIS;
+
+      my $line = $lines[0];
+      chomp $line;
+      my @splits = split( "and", $line );
+
+      my @bag;
+      foreach my $elt ( @splits )
+      {
+        my @resplits = split( " ", $elt );
+        push( @bag, [ @resplits ] );
+      }
+
+      foreach my $elt ( @bag )
+      {
+        if ( $zonenum == $elt-->[0] )
+        {
+          shift @bag;
+          @transpsurfs = @bag;
+        }
+      }
+    }
   }
 
   my $zoneletter = $zonenumname{$zonenum};
@@ -8007,7 +8195,7 @@ sub modish
     if ( $transpsurfs_ref )
     {
       @transpsurfs = @{ $transpsurfs_ref };
-    }
+    } #say MONITOR "NEWLY ARRIVED \@transpsurfs: @transpsurfs ";
 
     if ( ( "embedded" ~~ @calcprocedures ) and ( not ( -e $modishlock ) ) )
 	  {
@@ -8097,7 +8285,7 @@ sub modish
     @geodata = @$geofilestructref;
     %surfslist = %$surfslistref;
     @obsdata = @$obsref;
-    %datalist = %$datalistref;
+    %datalist = %$datalistref; say MONITOR "\%datalist " . dump( %datalist );
     @obsmaterials = @{ $obsmaterialsref };
 
     #unless ( ( "embedded" ~~ @calcprocedures ) and ( ( -e $geofile_f ) or ( -e $geofile_f5 ) ) and ( -e $modishlock ) )
@@ -8326,7 +8514,10 @@ sub modish
     my ( $treatedlinesref, $filearrayref, $monthsref ) = readshdfile( $shdfile, \@calcprocedures, $conffile_f2, \%paths, $zonenum, \%zonenumname, $mymonth );
     @treatedlines = @$treatedlinesref;
     my @shdfilearray = @$filearrayref;
-    my @months = @$monthsref;
+    my @months = @$monthsref; say REPORT "FOUNDMONTHS : " . dump( @months );
+    say REPORT "\%zonenumname : " . dump( \%zonenumname );
+    say REPORT "\$zonenum : " . dump( $zonenum );
+
     my @shdsurfdata = getsurfshd( \@shdfilearray, \@months, \@surfnums, \@surfnames );
     @daylighthoursarr = checklight( \@shdfilearray, \@months );
     %daylighthours = populatelight( @daylighthoursarr );
@@ -8632,6 +8823,10 @@ YYY
   exit;
 }
 
+open( MONITOR, ">>./monitor.txt" ) or die;
+
+#say MONITOR "LAUNCHING: " . dump( @ARGV );
+
 if ( @ARGV )
 {
   modish( @ARGV );
@@ -8689,15 +8884,44 @@ modish( "/home/x/model/cfg/model.cfg", 1, 7, 9 );
 
 If instead the file Modish.pm is used as a script, it has to be launched from the command like with:
 
-perl ./modish PATH_TO_THE_ESP-r_CONFIGURATION_FILE.cfg zone_number surface_1_number surface_2_number surface_n_number
+perl ./Modish.pm PATH_TO_THE_ESP-r_CONFIGURATION_FILE.cfg zone_number surface_1_number surface_2_number surface_n_number
 
 For example:
 
-perl ./modish.pl/home/x/model/cfg/model.cfg 1 7 9 (which means: calculate for zone 1, surfaces 7 and 9.)
+perl ./Modish.pm/home/x/model/cfg/model.cfg 1 7 9 (which means: calculate for zone 1, surfaces 7 and 9.)
+
+(It should be noted that in embedded mode Modish.pm instead is called in a different manner by ESP-r: perl ./Modish.pm PATH_TO_THE_ESP-r_CONFIGURATION_FILE.cfg -day day_number month_number -zone zone_number,
+and tests all the transparent surfaces of that zone.
 
 The path of the ESP-r model configuration file has to be specified in full, like in the example above.
 
 To be sure that the code works as a script, the header "package" etc. should be transformed into a comment.
+
+In this case, if the surface numbers is omitted...:
+
+perl ./Modish.pm PATH_TO_THE_ESP-r_CONFIGURATION_FILE.cfg zone_number surface_1_number surface_2_number surface_n_number
+
+... all the transparent surfaces of that zone will be processed.
+
+By specifying the zone explicitly, it is possible to process also opaque surfaces, if needed.
+
+In the case that Modish is used as a command-line program, it is also possible to call specific zones and surfaces explicitly, by linking the sequences "zone_number surface_1_number ... surface_n_number with "and":
+
+perl ./Modish.pm  PATH_TO_THE_ESP-r_CONFIGURATION_FILE.cfg 1 7 9 and 2 16 and 5 7 9
+
+It is also possible to omit the surfaces from the lists. In that cases, all surfaces of those zones get processed:
+
+perl ./Modish.pm PATH_TO_THE_ESP-r_CONFIGURATION_FILE.cfg 1 and 2 and 5
+
+If no zones and no surfaces as specified, all transparent surfaces in all zones are processed. This might be slow, however:
+
+perl ./Modish.pm PATH_TO_THE_ESP-r_CONFIGURATION_FILE.cfg
+
+Another manner for specifying the zones and surfaces to be processed are writing them at the top of the file "modish_request.pl" in the cfg folder of the ESP-r model. That line will override the specifications from the command line.
+
+The functionality of Modish can also be accessed from inside ESP-r. About how to do that, see the ESP-r menus ("context").
+
+When Modish is launched from within ESP-r, it can also be used in embedded mode - that is, the calculations regarding the reflections from obstructions can be less than hourly.
 
 In calculating the irradiance ratios, the program defaults to: 5 direction vectors; diffuse reflections: 2 ; direct reflections: 7; surface grid: 2 x 2; distance from the surface for calculating the irradiances: 0.01 (metres).
 
@@ -8717,6 +8941,6 @@ Gian Luca Brunetti, E<lt>gianluca.brunetti@polimi.itE<gt>. The subroutine "creat
 
 =head1 COPYRIGHT AND LICENSE
 
-Copyright (C) 2008-2020 by Gian Luca Brunetti and Politecnico di Milano. This is free software. You can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, version 3.
+Copyright (C) 2008-2022 by Gian Luca Brunetti and Politecnico di Milano. This is free software. You can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, version 3.
 
 =cut

@@ -204,7 +204,7 @@ C Locate the actuated flow connection.
 
 C Match mass flow controller type.
       ICLCTP=IFCTYP(ICFP,IDTYPP,IPERP)
-      if(IFS1.EQ.-3.or.IFS1.EQ.-7) THEN
+      if(IFS1.EQ.-3) THEN
         if(ICLCTP.gt.0.and.ICLCTP.le.7)then
           WRITE(outs,*) ' CFFVAR: mass flow control function ',ICFP
           call edisp(iuout,outs)

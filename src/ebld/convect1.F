@@ -48,7 +48,6 @@ C ******************** MZCONV ********************
       COMMON/C1/NCOMP,NCON
       COMMON/PREC9/NCONST(MCOM),NELTS(MCOM,MS),NGAPS(MCOM,MS),
      &             NPGAP(MCOM,MS,MGP)
-      common/pers/isd1,ism1,isd2,ism2,isds,isdf,ntstep
       common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
       COMMON/BTIME/BTIMEP,BTIMEF
       COMMON/FVALC/TFC(MCOM,MS,MN),QFC(MCOM)
@@ -59,8 +58,6 @@ C ******************** MZCONV ********************
       COMMON/CONCOE/HCIP(MCOM,MS),HCIF(MCOM,MS),HCOP(MCOM,MS),
      &              HCOF(MCOM,MS)
       COMMON/CONVS/HCI(MCOM,MS),HCO(MCOM,MS)
-      COMMON/cfdfil/LCFD(MCOM),IFCFD(MCOM)
-      common/ndcfd/ncfdnd,icfdnd(MNZ),NCONF
       common/CORIND/ICORI(MCOM,MS),ICORE(MCOM,MS)
       COMMON/HCFIX2/NCHDT(MCOM),NHCFP(MCOM,MDTY),HCFPST(MCOM,MDTY,MBP),
      &       HCFPFT(MCOM,MDTY,MBP),HCFVI(MCOM,MDTY,MS,MBP),
@@ -74,12 +71,11 @@ C ******************** MZCONV ********************
       
 C Indicies of simulation toggles for inside and outside hc coef.
       common/hcthry/ihct,icorexhct
-
       COMMON/calcdCFD/mICORcfd(MCOM),mHCcfd(MCOM)
       common/caleni/nbdaytype,nbcaldays(MDTY),icalender(365)
       INTEGER NBDAYTYPE,NBCALDAYS,ICALENDER
 
-      character outs*124,LCFD*72
+      character outs*124
 
 C Iterate through each zone.
       DO 100 ICOMP=1,NCOMP
@@ -217,8 +213,18 @@ C Trace output ?
 C Output computed convection coefficients.
       DO 9994 ICOMP=1,NCOMP
         IF(IZNTRC(ICOMP).NE.1)goto 9994
+        call QPLANT(ICOMP,Qheat)
         call edisp(itu,' ')
-        write(outs,'(A,I3)')' Zone',ICOMP
+        if( Qheat.gt.0. ) then
+          write(outs,'(2A,I3,A)')' Zone ',
+     &    zname(icomp)(1:lnzname(icomp)),ICOMP,' heating ON.'
+        elseif( Qheat.lt.0. ) then
+          write(outs,'(2A,I3,A)')' Zone ',
+     &    zname(icomp)(1:lnzname(icomp)),ICOMP,' cooling ON.'
+        else
+          write(outs,'(2A,I3,A)')' Zone ',
+     &    zname(icomp)(1:lnzname(icomp)),ICOMP,'.'
+        endif
 
 C Vertical Bouyancy. IAORZ zero = outside temperature.
 C CWIDTH is the width (m) of ventilated channel.
@@ -370,6 +376,7 @@ C Logical variables for close to floor, ceiling, wall, other for CEN tests.
       logical isfloor,isceiling,iswall,isother
       logical dotrace
       character outs*124
+      character orien*8
 
 C Check which day type is applicable.
       if(NCHDT(ICOMP).eq.1.or.NCHDT(ICOMP).eq.0)then
@@ -394,9 +401,9 @@ C be superceeded by user specifications.
    32 dotrace=.false.
       IF(ITC.LE.0.OR.NSINC.LT.ITC)goto 9999
       IF(ITRACE(6).EQ.0.OR.NSINC.GT.ITCF)goto  9999
-      write(outs,'(A,I4,a,i3)')
+      write(outs,'(A,I4,2a,i3)')
      &  ' Subroutine HTOVERCEN  Trace output',ICNT,
-     &  ' for zone ',icomp
+     &  ' for ',zname(icomp)(1:lnzname(icomp)),icomp
       call edisp(itu,outs)
       CALL DAYCLK(idynow,BTIMEF,ITU)
       dotrace=.true.
@@ -411,11 +418,12 @@ C Check the direction of heat flow for the typical ceiling surface.
       DTC=TFS(ICOMP,iceil)-TFA(ICOMP)
       if(dotrace)then
         write(outs,'(a,i3,a,F7.3,a,i3,a,F7.3)') 
-     &    ' CEN base surface is ',ifloor,' with DTF',DTF,
+     &    ' CEN HC imposed base surface is ',ifloor,
+     &    ' with DTF',DTF,
      &    ' and top surface is ',iceil,' with DTC',DTC
         call edisp(itu,outs)
-        call edisp(itu,' Surface convection coefficients')
-        call edisp(itu,' Surface    Inside      `Outside`')
+        call edisp(itu,' Surface convection coefficients W/m^2K')
+        call edisp(itu,' Surface    Inside      `Outside`  Delta T')
         call edisp(itu,'            Future       Future')
       endif
 
@@ -426,6 +434,7 @@ C CEN standards are based on surface orientation as well
 C as the direction of heat flow. First determine if the surface
 C is a floor or ceiling. A 30 degree tollerence assumed e.g. a 
 C sloped surface within 30deg of a ceiling is counted as a ceiling.
+C CENLOC values are in W/m^2K.
         isfloor=.false.
         isceiling=.false.
         iswall=.false.
@@ -446,8 +455,12 @@ C sloped surface within 30deg of a ceiling is counted as a ceiling.
 C Get the Delta T for the current surface.
         DT=TFS(ICOMP,isur)-TFA(ICOMP)
         if(dotrace)then
-          write(itu,*) 'CEN isur,isfloor,isceiling,iswall,isother',
-     &      isur,isfloor,isceiling,iswall,isother,' current DT is ',DT
+          if(isfloor) orien='floor'
+          if(isceiling) orien='ceiling'
+          if(iswall) orien='wall'
+          if(isother) orien='other'
+C          write(itu,*) 'CEN isur,isfloor,isceiling,iswall,isother',
+C     &      isur,isfloor,isceiling,iswall,isother,' current DT is ',DT
         endif
 
         if(isfloor)then
@@ -482,15 +495,24 @@ C In case sloped then DT > zero is downwards flow.
         endif
 
 C Reset "outside" surface coefficents depending on the topology.
-  321   if( IE(ICOMP,ISUR).eq.0 )then
+C If CENLOC is -1 then do not reset the HCOF.
+        if( IE(ICOMP,ISUR).eq.0 )then
           if(isfloor)then
-            HCOF(ICOMP,ISUR)=CENLOC(ICOMP,L,IP,5)
+            if(CENLOC(ICOMP,L,IP,5).gt.0.0)then
+              HCOF(ICOMP,ISUR)=CENLOC(ICOMP,L,IP,5)
+            endif
           elseif(isceiling)then
-            HCOF(ICOMP,ISUR)=CENLOC(ICOMP,L,IP,8)
+            if(CENLOC(ICOMP,L,IP,8).gt.0.0)then
+              HCOF(ICOMP,ISUR)=CENLOC(ICOMP,L,IP,8)
+            endif
           elseif(iswall)then
-            HCOF(ICOMP,ISUR)=CENLOC(ICOMP,L,IP,14)
+            if(CENLOC(ICOMP,L,IP,14).gt.0.0)then
+              HCOF(ICOMP,ISUR)=CENLOC(ICOMP,L,IP,14)
+            endif
           elseif(isother)then
-            HCOF(ICOMP,ISUR)=CENLOC(ICOMP,L,IP,11)
+            if(CENLOC(ICOMP,L,IP,11).gt.0.0)then
+              HCOF(ICOMP,ISUR)=CENLOC(ICOMP,L,IP,11)
+            endif
           endif
         else
 
@@ -528,8 +550,8 @@ C a wall is treated as a ceiling.
         endif
         if(dotrace)then
           write(outs,9991)SNAME(ICOMP,ISUR),
-     &      HCIF(ICOMP,ISUR),HCOF(ICOMP,ISUR)
- 9991     format(1x,a12,F8.2,F8.2)
+     &      HCIF(ICOMP,ISUR),HCOF(ICOMP,ISUR),DT,orien
+ 9991     format(1x,a12,F8.2,F8.2,F8.2,2x,a)
           call edisp(itu,outs)
         endif
    40 CONTINUE

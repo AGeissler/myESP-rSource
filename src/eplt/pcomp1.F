@@ -424,7 +424,7 @@ C            1 Water vapour rate actually added to moist air (kg/s)
 
 C Calculation of vapour addition to moist air follows IEA X approach
 C involving humidifier effectiveness adjusted for actual face velocity.
-C For the steam humidifier a conmstant effectiveness of 99% is assumed.
+C For the steam humidifier a constant effectiveness of 99% is assumed.
 
 
       SUBROUTINE CMP02C(IPCOMP,COUT,ISTATS)

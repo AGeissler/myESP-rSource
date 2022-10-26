@@ -1645,13 +1645,27 @@ C First recover bounds of selected data when no averaging is required
 C << no occupancy sensing at this time >>
       if(iav.eq.0) then
         if(idaver.eq.0) then
-           ctime=float(ioh1-1)/24.0+ENTERVAL/2.+float(iods)
+          ctime=float(ioh1-1)/24.0+ENTERVAL/2.+float(iods)
         else
-           ctime=float(ioh1-1)/24.0+enterval+float(iods)
+          ctime=float(ioh1-1)/24.0+enterval+float(iods)
         endif
 
 C For each timestep.
-        do 100 ii=istart, iend, nout
+C         do 100 ii=istart, iend, nout
+        ii=istart
+        do iid=IODS,IODF
+        if (iid.eq.IODS) then
+          iihs=IOH1
+        else
+          iihs=1
+        endif
+        if (iid.eq.IODF) then
+          iihf=IOH2
+        else
+          iihf=24
+        endif
+        do iih=iihs,iihf
+        do iits=1,NPTS,NOUT
 
 C For each requested item.
           do 40 jstat=1,npget
@@ -1772,8 +1786,18 @@ C          write(6,'(F10.5,12(2x,G10.3))')
 C     &      ctime,(val(jjj),jjj=1,npget)
 
 C update ctime for the next loop.
-          ctime=ctime+enterval*float(nout)
-  100   continue
+C           ctime=ctime+enterval*float(nout)
+          ii=ii+nout
+          if(idaver.eq.0) then
+            ctime=float(iih-1)/24.0+ENTERVAL/2.+float(iid)
+          else
+            ctime=float(iih-1)/24.0+enterval+float(iid)
+          endif
+
+C   100   continue
+        enddo
+        enddo
+        enddo
       else
 
 C Case when averaging is required
@@ -1787,7 +1811,22 @@ C Case when averaging is required
         do 111 jj=1,npget
   111     val(jj)=0.0
         jcount=0
-        do 120 ii=istart, iend
+C         do 120 ii=istart, iend
+        ii=istart
+        do iid=IODS,IODF
+        if (iid.eq.IODS) then
+          iihs=IOH1
+        else
+          iihs=1
+        endif
+        if (iid.eq.IODF) then
+          iihf=IOH2
+        else
+          iihf=24
+        endif
+        do iih=iihs,iihf
+        do iits=1,NPTS,NOUT
+
           do 60 jstat=1,npget
             ipc =IPGETNO(jstat,2)
             nsnd=IPGETNO(jstat,3)
@@ -1918,13 +1957,25 @@ C by occupancy.
   61        continue
 
 C Tidy up in preparation for the next loop.
-            ctime=ctime+enterval*float(nout)
+C             ctime=ctime+enterval*float(nout)
+            ii=ii+nout
+            if(idaver.eq.0) then
+              ctime=float(iih-1)/24.0+ENTERVAL/2.+float(iid)
+     &              +ENTERVAL*float(nout)/2.
+            else
+              ctime=float(iih-1)/24.0+enterval+float(iid)
+     &              +ENTERVAL*float(nout)/2.
+            endif
+
             do 113 jj=1,npget
               val(jj)=0.0
   113       continue
             jcount=0
           endif
-  120   continue
+C   120   continue
+        enddo
+        enddo
+        enddo
       endif
 
 C Calculate average.
@@ -2185,7 +2236,21 @@ C Debug.
 C        write(6,*) 'initial ctime gtime ',ctime,gtime,enterval
 
 C For each timestep.
-        do 200 ii=istart, iend, nout
+C         do 200 ii=istart, iend, nout
+        ii=istart
+        do iid=IODS,IODF
+        if (iid.eq.IODS) then
+          iihs=IOH1
+        else
+          iihs=1
+        endif
+        if (iid.eq.IODF) then
+          iihf=IOH2
+        else
+          iihf=24
+        endif
+        do iih=iihs,iihf
+        do iits=1,NPTS,NOUT
 
 C For each requested item.
           do 240 jstat=1,npget
@@ -2278,27 +2343,28 @@ C     &            ctime,(val(jjj),jjj=1,npget)
 
           if (MENUTYPE.eq.4) then
 
-C Timestep listing. Fisrt split time into hours and minutes.
-            call DASYSTIME(II,TIME)
-            MINH=INT(time)
-            MINU=INT((time-AINT(time))*60.+0.5)
-            if(MINH.lt.10)then
-              IF(MINU.LT.10)THEN
-                WRITE(DESCRH,'(a1,i1,a2,i1)')'0',INT(TIME),'h0',MINU
-              ELSE
-                WRITE(DESCRH,'(a1,i1,a1,i2)')'0',INT(TIME),'h',MINU
-              ENDIF
-            else
-              IF(MINU.LT.10)THEN
-                WRITE(DESCRH,'(i2,a2,i1)')INT(TIME),'h0',MINU
-              ELSE
-                WRITE(DESCRH,'(i2,a1,i2)')INT(TIME),'h',MINU
-              ENDIF
-            endif
-            outs='  '
+C C Timestep listing. First split time into hours and minutes.
+C             MINH=iih-1
+C             MINU=INT((time-AINT(time))*60.+0.5)
+C             if(MINH.lt.10)then
+C               IF(MINU.LT.10)THEN
+C                 WRITE(DESCRH,'(a1,i1,a2,i1)')'0',INT(TIME),'h0',MINU
+C               ELSE
+C                 WRITE(DESCRH,'(a1,i1,a1,i2)')'0',INT(TIME),'h',MINU
+C               ENDIF
+C             else
+C               IF(MINU.LT.10)THEN
+C                 WRITE(DESCRH,'(i2,a2,i1)')INT(TIME),'h0',MINU
+C               ELSE
+C                 WRITE(DESCRH,'(i2,a1,i2)')INT(TIME),'h',MINU
+C               ENDIF
+C             endif
+C             outs='  '
             if (IHFLAG.eq.0) then 
 
 C Split flow time into hours and minutes, repeating every 24 hours.
+              ii_day=ii-(iid-IODS)*24*NPTS
+              call STIME(ii_day,DESCRH)
               write (outs,'(a5)') DESCRH
               K=6
             else
@@ -2306,10 +2372,10 @@ C Split flow time into hours and minutes, repeating every 24 hours.
               K=11
             endif
             do 410 IXY=1,NPGET
-              KE=K+11
+              KE=K+20
               if(KE.le.124)then
-                write (outs(K:KE),'(f11.4)') VAL(IXY)
-                K=K+11
+                write (outs(K:KE),'(f20.4)') VAL(IXY)
+                K=K+20
               endif
  410        continue
             call eddisp(itru,outs)
@@ -2407,13 +2473,24 @@ C Hours below.
           endif
 
 C Tidy up in preparation for the next loop.
-          ctime=ctime+enterval*float(nout)
+C           ctime=ctime+enterval*float(nout)
+          ii=ii+nout
+          if(idaver.eq.0) then
+            ctime=float(iih-1)/24.0+ENTERVAL/2.+float(iid)
+            gtime=TSTART
+          else
+            ctime=float(iih-1)/24.0+enterval+float(iid)
+            gtime=TSTART
+          endif
           gtime=gtime+float(nout)
 
 C Debug.
 C          write(6,*) 'incr ii ctime gtime ',ii,ctime,gtime
 
-  200   continue
+C   200   continue
+        enddo
+        enddo
+        enddo
       else
 
 C Case when averaging IS required
@@ -2429,7 +2506,21 @@ C Case when averaging IS required
         do 211 jj=1,npget
   211     val(jj)=0.0
         jcount=0
-        do 220 ii=istart, iend
+C         do 220 ii=istart, iend
+        ii=istart
+        do iid=IODS,IODF
+        if (iid.eq.IODS) then
+          iihs=IOH1
+        else
+          iihs=1
+        endif
+        if (iid.eq.IODF) then
+          iihf=IOH2
+        else
+          iihf=24
+        endif
+        do iih=iihs,iihf
+        do iits=1,NPTS,NOUT
           do 260 jstat=1,npget
             ipc =IPGETNO(jstat,2)
             nsnd=IPGETNO(jstat,3)
@@ -2529,27 +2620,29 @@ C     &            ctime,(val(jjj),jjj=1,npget)
 
             if (MENUTYPE.eq.4) then
 
-C Split time into hours and minutes.
-              call DASYSTIME(II,TIME)
-              MINH=INT(time)
-              MINU=INT((time-AINT(time))*60.+0.5)
-              if(MINH.lt.10)then
-                IF(MINU.LT.10)THEN
-                  WRITE(DESCRH,'(a1,i1,a2,i1)')'0',INT(TIME),'h0',MINU
-                ELSE
-                  WRITE(DESCRH,'(a1,i1,a1,i2)')'0',INT(TIME),'h',MINU
-                ENDIF
-              else
-                IF(MINU.LT.10)THEN
-                  WRITE(DESCRH,'(i2,a2,i1)')INT(TIME),'h0',MINU
-                ELSE
-                  WRITE(DESCRH,'(i2,a1,i2)')INT(TIME),'h',MINU
-                ENDIF
-              endif
+C C Split time into hours and minutes.
+C               call DASYSTIME(II,TIME)
+C               MINH=INT(time)
+C               MINU=INT((time-AINT(time))*60.+0.5)
+C               if(MINH.lt.10)then
+C                 IF(MINU.LT.10)THEN
+C                   WRITE(DESCRH,'(a1,i1,a2,i1)')'0',INT(TIME),'h0',MINU
+C                 ELSE
+C                   WRITE(DESCRH,'(a1,i1,a1,i2)')'0',INT(TIME),'h',MINU
+C                 ENDIF
+C               else
+C                 IF(MINU.LT.10)THEN
+C                   WRITE(DESCRH,'(i2,a2,i1)')INT(TIME),'h0',MINU
+C                 ELSE
+C                   WRITE(DESCRH,'(i2,a1,i2)')INT(TIME),'h',MINU
+C                 ENDIF
+C               endif
               outs='  '
               if (IHFLAG.eq.0) then 
 
 C Split flow time into hours and minutes, repeating every 24 hours.
+                ii_day=ii-(iid-IODS)*24*NPTS
+                call STIME(ii_day,DESCRH)
                 write (outs,'(a5)') DESCRH
                 K=6
               else
@@ -2660,14 +2753,25 @@ C Hours below.
             endif
 
 C Tidy up in preparation for the next loop.
-            ctime=ctime+enterval*float(nout)
+C             ctime=ctime+enterval*float(nout)
+            ii=ii+nout
+            if(idaver.eq.0) then
+              ctime=float(iih-1)/24.0+ENTERVAL/2.+float(iid)
+     &              +ENTERVAL*float(nout)/2.
+            else
+              ctime=float(iih-1)/24.0+enterval+float(iid)
+     &              +ENTERVAL*float(nout)/2.
+            endif
             gtime=gtime+float(nout)
             do 213 jj=1,npget
               val(jj)=0.0
   213       continue
             jcount=0
           endif
-  220   continue
+C   220   continue
+        enddo
+        enddo
+        enddo
       endif
 
 C Reset add profile.

@@ -1861,22 +1861,7 @@ C Re-establish glazing fractions based on UK NCM guidelines
 
 C Depending on the topic generate a string and display.
       if(act.eq.'a'.or.act.eq.'p')then
-        write(outs,'(2a)')'Project name: ',pjname(1:lnblnk(pjname))
-        call edisp(itu,outs)
-        write(outs,'(2a)')'Building address: ',
-     &    baddress(1:lnblnk(baddress))
-        call edisp(itu,outs)
-        write(outs,'(2a)')'Building owner name: ',
-     &    ownername(1:lnblnk(ownername))
-        call edisp(itu,outs)
-        write(outs,'(2a)')'Building owner address: ',
-     &    owneraddr(1:lnblnk(owneraddr))
-        call edisp(itu,outs)
-        write(outs,'(2a)')'Certifier name: ',
-     &    certifname(1:lnblnk(certifname))
-        call edisp(itu,outs)
-        write(outs,'(2a)')'Certifier address: ',
-     &    certaddress(1:lnblnk(certaddress))
+        write(outs,'(a)')'Certifier address: xxxx'
         call edisp(itu,outs)
       elseif(act.eq.'a'.or.act.eq.'e')then
         call edisp(itu,
@@ -2546,55 +2531,46 @@ C Edits the building contact definition within the UK NCM file.
 C Enter building, owner and verifier information
       call edisp(iuout,' ')          
       call edisp(iuout,'Details for code complience...')
-      write(outs,'(2a)')'Project name: ',pjname(1:lnblnk(pjname))
-      call edisp(iuout,outs)
-      write(outs,'(2a)')'Building address: ',
-     &  baddress(1:lnblnk(baddress))
-      call edisp(iuout,outs)
       call edisp(iuout,' ')          
       call edisp(iuout,'Details of client/owner...')
-      write(outs,'(2a)')'Building owner name: ',
-     &  ownername(1:lnblnk(ownername))
+      write(outs,'(a)')'Building owner name: xxxxx'
       call edisp(iuout,outs)   
-      write(outs,'(2a)')'Building owner address: ',
-     &  owneraddr(1:lnblnk(owneraddr)) 
+      write(outs,'(a)')'Building owner address: xxxxx'
       call edisp(iuout,outs) 
       call edisp(iuout,' ')          
       call edisp(iuout,'Details of simulationist...')
-      write(outs,'(2a)')'Simulationist name: ',
-     &  certifname(1:lnblnk(certifname)) 
+      write(outs,'(a)')'Simulationist name: xxxx'
       call edisp(iuout,outs)     
-      write(outs,'(2a)')'Simulationist address: ',
-     &  certaddress(1:lnblnk(certaddress))    
+      write(outs,'(a)')'Simulationist address: xxxx'   
       call edisp(iuout,outs)   
     
   15  CALL EDISP(IUOUT,
      &  'Enter/Confirm building, owner and certifier details')
       INO=-1
       ITEMS(1)  = 'a Project name: '
-      write(ITEMS(2),'(2A)') '  ',pjname(1:20)
+      write(ITEMS(2),'(A)') '  -'
       ITEMS(3)  = 'b Building address: '
-      write(ITEMS(4),'(2A)') '  ',baddress(1:48)
+      write(ITEMS(4),'(A)') '  -'
       ITEMS(5)  = 'c  '
       write(ITEMS(6),'(A)') '  '
       ITEMS(7)  = 'd  '
       write(ITEMS(8),'(A)') '  '
       ITEMS(9)  = 'e Building owner name: '
-      write(ITEMS(10),'(2A)') '  ',ownername(1:48)
+      write(ITEMS(10),'(A)') '  -'
       ITEMS(11) = 'f  '
       write(ITEMS(12),'(A)') '  '
       ITEMS(13) = 'g Building owner address: '
-      write(ITEMS(14),'(2A)') '  ',owneraddr(1:48)
+      write(ITEMS(14),'(A)') '  -'
       ITEMS(15) = 'h  '
       write(ITEMS(16),'(A)') '  '
       ITEMS(17) = 'i '
       write(ITEMS(18),'(A)') '  '
       ITEMS(19) = 'j Certifier name: '
-      write(ITEMS(20),'(2A)') '  ',certifname(1:48)
+      write(ITEMS(20),'(A)') '  -'
       ITEMS(21) = 'k  '
       write(ITEMS(22),'(A)') '  '
       ITEMS(23) = 'l Certifier address: '
-      write(ITEMS(24),'(2A)') '  ',certaddress(1:48)
+      write(ITEMS(24),'(A)') '  -'
       ITEMS(25) = 'm  '
       write(ITEMS(26),'(A)') '  '
       ITEMS(27) = 'n  '
@@ -2619,24 +2595,9 @@ C Menu for building details.
 C Produce help text for the menu.
         CALL PHELPD(HEAD,nbhelp,'-',0,0,IER)
       ELSEIF(INO.EQ.1)THEN
-
-C Building project description. Echo after edit.
-        D20='Project un-named'
-        CALL EASKS(pjname,'project name?','(20 characters maximum)',
-     &    20,D20,'project name',IER,nbhelp)
-        call tstamp('>','PRJ: edited project name')
-        write(outs,'(2a)')'Project name: ',pjname(1:lnblnk(pjname))
-        call edisp(iuout,outs)
+        continue 
       ELSEIF(INO.EQ.3)THEN
-
-C Building address. Echo after edit.
-        D64='No site selected.'
-        CALL EASKS(baddress,'building address?','(<64 characters)',
-     &    64,D64,'build address',IER,nbhelp)
-        call tstamp('>','PRJ: edited project address')
-        write(outs,'(2a)')'Building address: ',
-     &    baddress(1:lnblnk(baddress))
-        call edisp(iuout,outs)
+        continue 
       ELSEIF(INO.EQ.5)THEN
 
 C Building city name. Echo after edit.
@@ -2648,13 +2609,7 @@ C Building post code. Echo after edit.
       ELSEIF(INO.EQ.9)THEN
 
 C Building owner name. Echo after edit.
-        D64='Owner name withheld'
-        CALL EASKS(ownername,'Name of owner?','(<64 characters)',
-     &    64,D64,'owner name',IER,nbhelp)
-        call tstamp('>','PRJ: edited project owner name')
-        write(outs,'(2a)')'Building owner name: ',
-     &    ownername(1:lnblnk(ownername))
-        call edisp(iuout,outs)
+        continue
       ELSEIF(INO.EQ.11)THEN
 
 C Building owner phone number.
@@ -2662,13 +2617,7 @@ C Building owner phone number.
       ELSEIF(INO.EQ.13)THEN
 
 C Building owner address.
-        D64='Owner address withheld.'
-        CALL EASKS(owneraddr,'Address of owner?','(<64 characters)',
-     &    64,D64,'owner address',IER,nbhelp)
-        call tstamp('>','PRJ: edited project owner address')
-        write(outs,'(2a)')'Building owner address: ',
-     &    owneraddr(1:lnblnk(owneraddr))
-        call edisp(iuout,outs)
+        continue
       ELSEIF(INO.EQ.15)THEN
 
 C Building owner city.
@@ -2680,13 +2629,7 @@ C Building owner postcode.
       ELSEIF(INO.EQ.19)THEN
 
 C Building certifier name.
-        D64='Certifier name withheld.'
-        CALL EASKS(certifname,'Name of certifier?','(<64 characters)',
-     &    64,D64,'certifier name',IER,nbhelp)
-        call tstamp('>','PRJ: edited project certifier')
-        write(outs,'(2a)')'Certifier name: ',
-     &    certifname(1:lnblnk(certifname))
-        call edisp(iuout,outs)
+        continue
       ELSEIF(INO.EQ.21)THEN
 
 C Building certifier phone number.
@@ -2694,13 +2637,7 @@ C Building certifier phone number.
       ELSEIF(INO.EQ.23)THEN
 
 C Building certifier address.
-        D64='Certifier address withheld.'
-        CALL EASKS(certaddress,'Address of certifier?',
-     &    '(<64 characters)',64,D64,'certifier address',IER,nbhelp)
-        call tstamp('>','PRJ: edited project cert address')
-        write(outs,'(2a)')'Certifier address: ',
-     &    certaddress(1:lnblnk(certaddress))
-        call edisp(iuout,outs)
+        continue
       ELSEIF(INO.EQ.25)THEN
 
 C Building certifier city.
@@ -2710,27 +2647,7 @@ C Building certifier city.
 C Building certifier postcode.
         continue
       ELSEIF(INO.EQ.29)THEN
-
-C Enter all information
-        D20='Project un-named'
-        CALL EASKS(pjname,'project name?','(20 characters maximum)',
-     &    20,D20,'project name',IER,nbhelp)
-        D64='No site selected.'
-        CALL EASKS(baddress,'building address?','(<64 characters)',
-     &    64,D64,'build address',IER,nbhelp)
-        D64='Owner name withheld'
-        CALL EASKS(ownername,'Name of owner?','(<64 characters)',
-     &    64,D64,'owner name',IER,nbhelp)
-        D64='Owner address withheld.'
-        CALL EASKS(owneraddr,'Address of owner?','(<64 characters)',
-     &    64,D64,'owner address',IER,nbhelp)
-        D64='Certifier name withheld.'
-        CALL EASKS(certifname,'Name of certifier?',
-     &    '(<64 characters)',64,D64,'certifier name',IER,nbhelp)
-        D64='Certifier address withheld.'
-        CALL EASKS(certaddress,'Address of certifier?',
-     &    '(<64 characters)',64,D64,'certifier address',IER,nbhelp)
-        call lstncm('p',iuout)
+        continue
       ELSEIF(INO.EQ.31)THEN
 
 C Display information
@@ -5019,9 +4936,6 @@ C For each grand child.
                   IF(XKCCU(1:6).EQ.'P-DOOR')THEN
                     XPDAREA(ICC)=XPDAREA(ICC)+SNA(igcz,igcs)
                     XREAREA(ICC)=XREAREA(ICC)+SNA(igcz,igcs)
-                  ELSEIF(XKCCU(1:6).EQ.'V-DOOR')THEN
-                    XVDAREA(ICC)=XVDAREA(ICC)+SNA(igcz,igcs)
-                    XREAREA(ICC)=XREAREA(ICC)+SNA(igcz,igcs)
                   ELSEIF(XKCCU(1:8).EQ.'D-WINDOW')THEN
                     XDWAREA(ICC)=XDWAREA(ICC)+SNA(igcz,igcs)
                     XREAREA(ICC)=XREAREA(ICC)+SNA(igcz,igcs)
@@ -5050,9 +4964,6 @@ C areas to TARSURF as well as XPDAREA / XREAREA / XVDAREA etc.
                   TARSURF(ICC)=TARSURF(ICC)+SNA(IC1(JCC),IE1(JCC))
                   IF(XJCCU(1:6).EQ.'P-DOOR')THEN
                     XPDAREA(ICC)=XPDAREA(ICC)+SNA(IC1(JCC),IE1(JCC))
-                    XREAREA(ICC)=XREAREA(ICC)+SNA(IC1(JCC),IE1(JCC))
-                  ELSEIF(XJCCU(1:6).EQ.'V-DOOR')THEN
-                    XVDAREA(ICC)=XVDAREA(ICC)+SNA(IC1(JCC),IE1(JCC))
                     XREAREA(ICC)=XREAREA(ICC)+SNA(IC1(JCC),IE1(JCC))
                   ELSEIF(XJCCU(1:8).EQ.'D-WINDOW')THEN
                     XDWAREA(ICC)=XDWAREA(ICC)+SNA(IC1(JCC),IE1(JCC))
@@ -5094,9 +5005,6 @@ C areas to TARSURF as well as XPDAREA / XREAREA / XVDAREA etc.
                     TARSURF(ICC)=TARSURF(ICC)+SNA(IC1(JCC),IE1(JCC))
                     IF(XJCCU(1:6).EQ.'P-DOOR')THEN
                       XPDAREA(ICC)=XPDAREA(ICC)+SNA(IC1(JCC),IE1(JCC))
-                      XREAREA(ICC)=XREAREA(ICC)+SNA(IC1(JCC),IE1(JCC))
-                    ELSEIF(XJCCU(1:6).EQ.'V-DOOR')THEN
-                      XVDAREA(ICC)=XVDAREA(ICC)+SNA(IC1(JCC),IE1(JCC))
                       XREAREA(ICC)=XREAREA(ICC)+SNA(IC1(JCC),IE1(JCC))
                     ELSEIF(XJCCU(1:8).EQ.'D-WINDOW')THEN
                       XDWAREA(ICC)=XDWAREA(ICC)+SNA(IC1(JCC),IE1(JCC))
@@ -5155,9 +5063,6 @@ C areas to TARSURF as well as XPDAREA / XREAREA / XVDAREA etc.
                     TARSURF(ICC)=TARSURF(ICC)+SNA(IC1(JCC),IE1(JCC))
                     IF(XJCCU(1:6).EQ.'P-DOOR')THEN
                       XPDAREA(ICC)=XPDAREA(ICC)+SNA(IC1(JCC),IE1(JCC))
-                      XREAREA(ICC)=XREAREA(ICC)+SNA(IC1(JCC),IE1(JCC))
-                    ELSEIF(XJCCU(1:6).EQ.'V-DOOR')THEN
-                      XVDAREA(ICC)=XVDAREA(ICC)+SNA(IC1(JCC),IE1(JCC))
                       XREAREA(ICC)=XREAREA(ICC)+SNA(IC1(JCC),IE1(JCC))
                     ELSEIF(XJCCU(1:8).EQ.'D-WINDOW')THEN
                       XDWAREA(ICC)=XDWAREA(ICC)+SNA(IC1(JCC),IE1(JCC))
@@ -5438,84 +5343,6 @@ C Add surfaces attribution parameters
               SPARENT(ICOMP,IS)=SNAME(icomp,isur)
               SOTF(ICOMP,IS)='OPAQUE'  ! OTF type
               SUSE(ICOMP,IS,1)='P-DOOR'   ! USE
-              SUSE(ICOMP,IS,2)='-'
-
-C Update connections list before displaying notional model zone
-              call emkcfg('-',IER)
-              MODIFYVIEW=.TRUE.
-              NZSUR(ICOMP)=NSUR
-              call zgupdate(itrc,icomp,ier)
-              call geowrite(IUF,LGEOM(ICOMP),ICOMP,ITRU,3,IER)
-              call emkcfg('-',IER)
-
-C Precondition variables IS and TOTAREA to set them up for other child
-C surfaces that may need to be put into this original surface. E.g. if a
-C door and a window are to be added to original surface, the window is
-C added as child of door and not child of original surface.
-              is=nsur
-              TOTAREA=REQDAREA
-
-            ENDIF
-
-C Now put vehicle door in if there was one in the original model
-C and the new surface will be within complexity limits.
-            REQDAREA=XVDAREA(ICC)+
-     &               XDWAREA(ICC)+XNWAREA(ICC)
-            SCALEFACTORVD=SQRT(REQDAREA/TOTAREA)
-
-C Debug.
-C            write(6,*) 'V-door ',ICC,REQDAREA,SCALEFACTORVD,
-C     &        XVDAREA(ICC)
-
-            CALL ECLOSE(XVDAREA(ICC),0.0,0.1,NEAR)
-            if(2*NVER(IS)+2.lt.42.and.(.NOT.NEAR).and.
-     &        (NSUR+1.lt.MS)) then
-              IELF=IELF+1
-              ICON=ICON+1
-              NSUR=NSUR+1
-              NZTV(ICOMP)=NTV
-              WRITE(SNAME(ICOMP,NSUR),'(i2,2A)')
-     &          is,CHAR(96+IELF),'_Vdoor'  ! Name
-              WRITE(SN,'(i2,2A)')
-     &          is,CHAR(96+IELF),'_Vdoor'  ! Name
-              write(outs,'(2a)') 'Adding new V-door ',SN(1:lnblnk(SN))
-              call edisp(iuout,outs)
-              ISUR2=NSUR
-              DO 7312 NV=1,NVER(IS)
-                POINT(1)=X(JVN(IS,NV))
-                POINT(2)=Y(JVN(IS,NV))
-                POINT(3)=Z(JVN(IS,NV))
-                CALL ENLARGE(POINT,TRANS,COE,SCALEFACTORVD)
-                X(NTV+NV)=TRANS(1)
-                Y(NTV+NV)=TRANS(2)
-                Z(NTV+NV)=TRANS(3)
-                JVN(ISUR2,NV)=NTV+NV
-                JVN(IS,2*NVER(IS)-NV+2)=NTV+NV
- 7312         CONTINUE
-              JVN(IS,NVER(IS)+1)=JVN(IS,1)
-              JVN(IS,2*NVER(IS)+2)=JVN(IS,NVER(IS)+2)
-              NTV=NTV+NVER(IS)
-              NZTV(ICOMP)=NTV
-              NZSUR(ICOMP)=NSUR
-              NVER(ISUR2)=NVER(IS)
-              NVER(IS)=2*NVER(IS)+2
-
-C Update the connection list. Move all others up and then insert with
-C default values.
-              call addedsurf(icomp,icon,itrc,ier)
-
-C Add surfaces attribution parameters
-              ICT(ICON)=0
-              IC2(ICON)=0
-              IE2(ICON)=0
-              SOTHER(ICOMP,IS,1)='EXTERIOR'
-              SOTHER(ICOMP,IS,2)='0'
-              SOTHER(ICOMP,IS,3)='0'
-              SMLCN(ICOMP,IS)='Vehicle_door' ! MLC type
-              if(haveVehicle) smlcindex(ICOMP,IS)=mlciVehicle
-              SPARENT(ICOMP,IS)=SNAME(icomp,isur)
-              SOTF(ICOMP,IS)='OPAQUE'  ! OTF type
-              SUSE(ICOMP,IS,1)='V-DOOR'  ! USE
               SUSE(ICOMP,IS,2)='-'
 
 C Update connections list before displaying notional model zone
@@ -6596,9 +6423,6 @@ C For each grand child.
                 IF(XKCCU(1:6).EQ.'P-DOOR')THEN
                   XPDAREA(ICC)=XPDAREA(ICC)+SNA(IC1(kCC),IE1(kCC))
                   XREAREA(ICC)=XREAREA(ICC)+SNA(IC1(kCC),IE1(kCC))
-                ELSEIF(XKCCU(1:6).EQ.'V-DOOR')THEN
-                  XVDAREA(ICC)=XVDAREA(ICC)+SNA(IC1(kCC),IE1(kCC))
-                  XREAREA(ICC)=XREAREA(ICC)+SNA(IC1(kCC),IE1(kCC))
                 ELSEIF(XKCCU(1:8).EQ.'D-WINDOW')THEN
                   XDWAREA(ICC)=XDWAREA(ICC)+SNA(IC1(kCC),IE1(kCC))
                   XREAREA(ICC)=XREAREA(ICC)+SNA(IC1(kCC),IE1(kCC))
@@ -6634,9 +6458,6 @@ C areas to TARSURF as well as XPDAREA / XREAREA / XVDAREA etc.
                 TARSURF(ICC)=TARSURF(ICC)+SNA(IC1(jCC),IE1(jCC))
                 IF(XJCCU(1:6).EQ.'P-DOOR')THEN
                   XPDAREA(ICC)=XPDAREA(ICC)+SNA(IC1(jCC),IE1(jCC))
-                  XREAREA(ICC)=XREAREA(ICC)+SNA(IC1(jCC),IE1(jCC))
-                ELSEIF(XJCCU(1:6).EQ.'V-DOOR')THEN
-                  XVDAREA(ICC)=XVDAREA(ICC)+SNA(IC1(jCC),IE1(jCC))
                   XREAREA(ICC)=XREAREA(ICC)+SNA(IC1(jCC),IE1(jCC))
                 ELSEIF(XJCCU(1:8).EQ.'D-WINDOW')THEN
                   XDWAREA(ICC)=XDWAREA(ICC)+SNA(IC1(jCC),IE1(jCC))
@@ -6683,9 +6504,6 @@ C areas to TARSURF as well as XPDAREA / XREAREA / XVDAREA etc.
                   TARSURF(ICC)=TARSURF(ICC)+SNA(IC1(jCC),IE1(jCC))
                   IF(XJCCU(1:6).EQ.'P-DOOR')THEN
                     XPDAREA(ICC)=XPDAREA(ICC)+SNA(IC1(jCC),IE1(jCC))
-                    XREAREA(ICC)=XREAREA(ICC)+SNA(IC1(jCC),IE1(jCC))
-                  ELSEIF(XJCCU(1:6).EQ.'V-DOOR')THEN
-                    XVDAREA(ICC)=XVDAREA(ICC)+SNA(IC1(jCC),IE1(jCC))
                     XREAREA(ICC)=XREAREA(ICC)+SNA(IC1(jCC),IE1(jCC))
                   ELSEIF(XJCCU(1:8).EQ.'D-WINDOW')THEN
                     XDWAREA(ICC)=XDWAREA(ICC)+SNA(IC1(jCC),IE1(jCC))
@@ -6749,9 +6567,6 @@ C areas to TARSURF as well as XPDAREA / XREAREA / XVDAREA etc.
                   TARSURF(ICC)=TARSURF(ICC)+SNA(IC1(jCC),IE1(jCC))
                   IF(XJCCU(1:6).EQ.'P-DOOR')THEN
                     XPDAREA(ICC)=XPDAREA(ICC)+SNA(IC1(jCC),IE1(jCC))
-                    XREAREA(ICC)=XREAREA(ICC)+SNA(IC1(jCC),IE1(jCC))
-                  ELSEIF(XJCCU(1:6).EQ.'V-DOOR')THEN
-                    XVDAREA(ICC)=XVDAREA(ICC)+SNA(IC1(jCC),IE1(jCC))
                     XREAREA(ICC)=XREAREA(ICC)+SNA(IC1(jCC),IE1(jCC))
                   ELSEIF(XJCCU(1:8).EQ.'D-WINDOW')THEN
                     XDWAREA(ICC)=XDWAREA(ICC)+SNA(IC1(jCC),IE1(jCC))
@@ -7019,87 +6834,6 @@ C Add surfaces attribution parameters
             SPARENT(ICOMP,IS)=SNAME(icomp,isur)
             SOTF(ICOMP,IS)='OPAQUE'  ! OTF type
             SUSE(ICOMP,IS,1)='P-DOOR'   ! USE
-            SUSE(ICOMP,IS,2)='-'
-
-C Update connections list before displaying notional model zone
-            call emkcfg('-',IER)
-            MODIFYVIEW=.TRUE.
-            NZSUR(ICOMP)=NSUR
-            call zgupdate(itrc,icomp,ier)
-            call geowrite(IUF,LGEOM(ICOMP),ICOMP,ITRU,3,IER)
-            call emkcfg('-',IER)
-
-C Precondition variables IS and TOTAREA to set them up for other child
-C surfaces that may need to be put into this original surface. E.g. if a
-C door and a window are to be added to original surface, the window is
-C added as child of door and not child of original surface.
-            is=nsur
-            TOTAREA=REQDAREA
-
-          ENDIF
-
-C Now put vehicle door in if there was one in the original model
-C and the new surface will be within complexity limits.
-          REQDAREA=XVDAREA(ICC)+
-     &             XDWAREA(ICC)+XNWAREA(ICC)
-          SCALEFACTORVD=SQRT(REQDAREA/TOTAREA)
-
-C Debug.
-C          write(6,*) 'V-door ',ICC,REQDAREA,SCALEFACTORVD,
-C     &      XVDAREA(ICC)
-
-          CALL ECLOSE(XVDAREA(ICC),0.0,0.1,NEAR)
-          if(2*NVER(IS)+2.lt.42.and.(.NOT.NEAR).and.
-     &      (NSUR+1.lt.MS)) then
-            IELF=IELF+1
-            ICON=ICON+1
-            NSUR=NSUR+1
-            NZTV(ICOMP)=NTV
-            WRITE(SNAME(ICOMP,NSUR),'(i2,2A)')
-     &        is,CHAR(96+IELF),'_Vdoor'  ! Name
-            WRITE(SN,'(i2,2A)')
-     &        is,CHAR(96+IELF),'_Vdoor'  ! Name
-            write(outs,'(4a)') 'Adding new V-door ',SN(1:lnblnk(SN)),
-     &        ' into ',SPN(1:lnblnk(SPN))
-            call edisp(iuout,outs)
-            ISUR2=NSUR
-            DO 7312 NV=1,NVER(IS)
-              POINT(1)=X(JVN(IS,NV))
-              POINT(2)=Y(JVN(IS,NV))
-              POINT(3)=Z(JVN(IS,NV))
-              CALL ENLARGE(POINT,TRANS,COE,SCALEFACTORVD)
-              X(NTV+NV)=TRANS(1)
-              Y(NTV+NV)=TRANS(2)
-              Z(NTV+NV)=TRANS(3)
-              JVN(ISUR2,NV)=NTV+NV
-              JVN(IS,2*NVER(IS)-NV+2)=NTV+NV
- 7312       CONTINUE
-            JVN(IS,NVER(IS)+1)=JVN(IS,1)
-            JVN(IS,2*NVER(IS)+2)=JVN(IS,NVER(IS)+2)
-            NTV=NTV+NVER(IS)
-            NZTV(ICOMP)=NTV
-            NZSUR(ICOMP)=NSUR
-            NVER(ISUR2)=NVER(IS)
-            NVER(IS)=2*NVER(IS)+2
-
-C Update the connection list. Move all others up and then insert with
-C default values.
-C            write(6,*) 'before adddedsurf b ',icon,NZSUR(icomp)
-            call addedsurf(icomp,icon,itrc,ier)
-C            write(6,*) 'after adddedsurf b ',icon,NZSUR(icomp),ier
-
-C Add surfaces attribution parameters
-            ICT(ICON)=0
-            IC2(ICON)=0
-            IE2(ICON)=0
-            SOTHER(ICOMP,IS,1)='EXTERIOR'
-            SOTHER(ICOMP,IS,2)='0'
-            SOTHER(ICOMP,IS,3)='0'
-            SMLCN(ICOMP,IS)='Vehicle_door' ! MLC type
-            if(haveVehicle) smlcindex(icomp,is)=mlciVehicle
-            SPARENT(ICOMP,IS)=SNAME(icomp,isur)
-            SOTF(ICOMP,IS)='OPAQUE'  ! OTF type
-            SUSE(ICOMP,IS,1)='V-DOOR'  ! USE
             SUSE(ICOMP,IS,2)='-'
 
 C Update connections list before displaying notional model zone
@@ -9993,8 +9727,8 @@ C Building, owner, certifier detail...
       WRITE(IUF,'(a)',iostat=ios)  '$ ESP-r -> BRUKL 3.2.b'
       WRITE(IUF,'(A)',IOSTAT=IOS,ERR=3) '$'
       WRITE(IUF,'(A)',IOSTAT=IOS,ERR=3) '"BRUKL-PROJECT" = GENERAL'
-      WRITE(IUF,'(4A)',IOSTAT=IOS,ERR=3)'  P-NAME             = ',
-     &  '"',pjname(1:lnblnk(pjname)),'"'
+      WRITE(IUF,'(2A)',IOSTAT=IOS,ERR=3)'  P-NAME             = ',
+     &  '"xxxx"'
       IF(IBUSERTYP.NE.0)THEN
         write(TMPSTR2,'(a)') BTYPNAME(IBUSERTYP)
       ELSE
@@ -10002,16 +9736,16 @@ C Building, owner, certifier detail...
       ENDIF
       WRITE(IUF,'(2A)',IOSTAT=IOS,ERR=3)'  B-TYPE             = ',
      &  TMPSTR2(1:LNBLNK(TMPSTR2))
-      WRITE(IUF,'(4A)',IOSTAT=IOS,ERR=3)'  B-ADDRESS          = ',
-     &  '"',BADDRESS(1:lnblnk(BADDRESS)),'"'
-      WRITE(IUF,'(4A)',IOSTAT=IOS,ERR=3)'  O-NAME             = ',
-     &  '"',ownername(1:lnblnk(ownername)),'"'
-      WRITE(IUF,'(4A)',IOSTAT=IOS,ERR=3)'  O-ADDRESS          = ',
-     &  '"',owneraddr(1:lnblnk(owneraddr)),'"'
-      WRITE(IUF,'(4A)',IOSTAT=IOS,ERR=3)'  C-NAME             = ',
-     &  '"',certifname(1:lnblnk(certifname)),'"'
-      WRITE(IUF,'(4A)',IOSTAT=IOS,ERR=3)'  C-ADDRESS          = ',
-     &  '"',certaddress(1:lnblnk(certaddress)),'"'
+      WRITE(IUF,'(2A)',IOSTAT=IOS,ERR=3)'  B-ADDRESS          = ',
+     &  '"xxxx"'
+      WRITE(IUF,'(2A)',IOSTAT=IOS,ERR=3)'  O-NAME             = ',
+     &  '"xxxxx"'
+      WRITE(IUF,'(2A)',IOSTAT=IOS,ERR=3)'  O-ADDRESS          = ',
+     &  '"xxxxxx"'
+      WRITE(IUF,'(2A)',IOSTAT=IOS,ERR=3)'  C-NAME             = ',
+     &  '"xxxx"'
+      WRITE(IUF,'(2A)',IOSTAT=IOS,ERR=3)'  C-ADDRESS          = ',
+     &  '"xxxx"'
 
 C Calculation engine and interface detail...
       WRITE(IUF,'(2A)',IOSTAT=IOS,ERR=3)'  CENGINE            = ',
@@ -10109,26 +9843,6 @@ C only for exterior surfaces).
               N_P_DR=N_P_DR+1
               EXP_AREA=EXP_AREA+SNA(ICOMP,IS)
 c              EXP_COND=EXP_COND+SNA(ICOMP,IS)*UVH
-            ELSEIF(TMPSTR2(1:6).EQ.'H-DOOR')THEN
-              IF(H_DR_MAX_U.LT.UVH)THEN
-                H_DR_MAX_U=UVH
-                H_DR_MAX_N=SNAME(ICOMP,IS)
-                I_H_DR=1
-              ENDIF
-              H_DR_AVG_U=H_DR_AVG_U+UVH
-              N_H_DR=N_H_DR+1
-              EXP_AREA=EXP_AREA+SNA(ICOMP,IS)
-c              EXP_COND=EXP_COND+SNA(ICOMP,IS)*UVH
-            ELSEIF(TMPSTR2(1:6).EQ.'V-DOOR')THEN
-              IF(V_DR_MAX_U.LT.UVH)THEN
-                V_DR_MAX_U=UVH
-                V_DR_MAX_N=SNAME(ICOMP,IS)
-                I_V_DR=1
-              ENDIF
-              V_DR_AVG_U=V_DR_AVG_U+UVH
-              N_V_DR=N_V_DR+1
-              EXP_AREA=EXP_AREA+SNA(ICOMP,IS)
-c              EXP_COND=EXP_COND+SNA(ICOMP,I)*UVH
             ELSEIF(TMPSTR2(1:7).EQ.'F-FRAME'.OR.TMPSTR2(1:5).EQ.
      &      'FRAME')THEN
               ! No checks on window frames are made
@@ -10291,32 +10005,6 @@ C write out information for personnel doors
       else
         WRITE(IUF,'(2a)',iostat=ios)    '  P-DOOR-MAX         = ',
      &    '"No Personnel doors in project"'
-      endif
-
-C write out information for vehicle doors
-      WRITE(IUF,'(a,f6.3)',iostat=ios)  '  V-DOOR-U-AVE       = ',
-     &  V_DR_AVG_U
-      WRITE(IUF,'(a,f6.3)',iostat=ios)  '  V-DOOR-U-MAX       = ',
-     &  V_DR_MAX_U
-      if(I_V_DR.gt.0)then
-        WRITE(IUF,'(2a)',iostat=ios)    '  V-DOOR-MAX         = ',
-     &    V_DR_MAX_N
-      else
-        WRITE(IUF,'(2a)',iostat=ios)    '  V-DOOR-MAX         = ',
-     &    '"No vehicle doors in project"'
-      endif
-
-C write out information for high usage doors
-      WRITE(IUF,'(a,f6.3)',iostat=ios)  '  H-DOOR-U-AVE       = ',
-     &  H_DR_AVG_U
-      WRITE(IUF,'(a,f6.3)',iostat=ios)  '  H-DOOR-U-MAX       = ',
-     &  H_DR_MAX_U
-      if(I_H_DR.gt.0)then
-        WRITE(IUF,'(2a)',iostat=ios)    '  H-DOOR-MAX         = ',
-     &  H_DR_MAX_N
-      else
-        WRITE(IUF,'(2a)',iostat=ios)    '  H-DOOR-MAX         = ',
-     &    '"No High usage entrance doors in project"'
       endif
 
 C Following is no longer in use
@@ -11164,8 +10852,8 @@ C Building, owner, certifier detail...
       WRITE(IUF,'(a)',iostat=ios)  '$ ESP-r -> EPCgen '
       WRITE(IUF,'(A)',IOSTAT=IOS,ERR=3) '$'
       WRITE(IUF,'(A)',IOSTAT=IOS,ERR=3) '"EPC-PROJECT" = GENERAL'
-      WRITE(IUF,'(4A)',IOSTAT=IOS,ERR=3)' P-NAME              = ',
-     &  '"',pjname(1:lnblnk(pjname)),' "'
+      WRITE(IUF,'(2A)',IOSTAT=IOS,ERR=3)' P-NAME              = ',
+     &  '"xxxx "'
 
 C UPRN stands for the Unique Property Reference Number (UPRN) of the building
       WRITE(IUF,'(4A)',IOSTAT=IOS,ERR=3)' UPRN            = ','"',
@@ -11185,8 +10873,8 @@ C B-INSP-DATE specifies the inspection date of the building by the Energy Assess
      &  TMPSTR2(1:LNBLNK(TMPSTR2))
 
 C Specifies one line of the building address
-      WRITE(IUF,'(4A)',IOSTAT=IOS,ERR=3)' B-ADDRESS-0         = ',
-     &  '"',BADDRESS(1:lnblnk(BADDRESS)),' "'
+      WRITE(IUF,'(2A)',IOSTAT=IOS,ERR=3)' B-ADDRESS-0         = ',
+     &  '"xxxx "'
 
 C << B-LOC-DESCRIPTION may be an additional output in the future >>
 
@@ -11194,14 +10882,14 @@ C Specifies the total floor area of the building in m^2
       WRITE(IUF,'(a,f8.2)',IOSTAT=IOS,ERR=3)' BUILDING-AREA       = ',
      &   tot_floor_area
 
-      WRITE(IUF,'(4A)',IOSTAT=IOS,ERR=3)' O-NAME              = ',
-     &  '"',ownername(1:lnblnk(ownername)),' "'
-      WRITE(IUF,'(4A)',IOSTAT=IOS,ERR=3)' O-ADDRESS           = ',
-     &  '"',owneraddr(1:lnblnk(owneraddr)),' "'
-      WRITE(IUF,'(4A)',IOSTAT=IOS,ERR=3)' C-NAME              = ',
-     &  '"',certifname(1:lnblnk(certifname)),' "'
-      WRITE(IUF,'(4A)',IOSTAT=IOS,ERR=3)' C-ADDRESS           = ',
-     &  '"',certaddress(1:lnblnk(certaddress)),' "'
+      WRITE(IUF,'(2A)',IOSTAT=IOS,ERR=3)' O-NAME              = ',
+     &  '"xxxxx "'
+      WRITE(IUF,'(2A)',IOSTAT=IOS,ERR=3)' O-ADDRESS           = ',
+     &  '"xxxxxx "'
+      WRITE(IUF,'(2A)',IOSTAT=IOS,ERR=3)' C-NAME              = ',
+     &  '"xxxx "'
+      WRITE(IUF,'(2A)',IOSTAT=IOS,ERR=3)' C-ADDRESS           = ',
+     &  '"xxxx "'
 
 C Accreditation Scheme (E,W and NI only)
       WRITE(IUF,'(4A)',IOSTAT=IOS,ERR=3)' C-ACCRED-SCHEME     = ',

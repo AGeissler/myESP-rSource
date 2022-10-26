@@ -1853,7 +1853,7 @@ C Common blocks UA2 UA3 UA4 within uncertainty.h
 
       integer ncomp,ncon
       COMMON/C1/NCOMP,NCON
-      COMMON/TMCB3/NBCTT(MCOM,MBP,MTMC),BACTPT(MCOM,MBP,MTMC)
+      COMMON/TMCB3/NBCTT(MCOM,MTMC),BACTPT(MCOM,MTMC)
 
       character USETNAME*96   ! the synopsis for each MC-run
       character uheader*1000  ! header including name of each uncertainty changed
@@ -1976,12 +1976,12 @@ C If unique then include it in the header.
           write (36,'(a,i3,a,2i3,a,f7.1)') 
      &      'NZNOGU(ICL,II):',NZNOGU(ICL,II),
      &      ' NTGU:',NTGU(ICL,II,1),NTGU(ICL,II,2),' BACTPT:',
-     &       BACTPT(IZ,NTGU(ICL,II,2),NTGU(ICL,II,1))
+     &       BACTPT(IZ,NTGU(ICL,II,1))
 
-          T1=BACTPT(IZ,NTGU(ICL,II,2),NTGU(ICL,II,1))
-          T2=BACTPT(IZ,NTGU(ICL,II,2),NTGU(ICL,II,1))
+          T1=BACTPT(IZ,NTGU(ICL,II,1))
+          T2=BACTPT(IZ,NTGU(ICL,II,1))
           call UAEDIT(T2,ICF,DAT1,DAT2,DIR,-1,0.0,0.0)
-          BACTPT(IZ,NTGU(ICL,II,2),NTGU(ICL,II,1))=T2
+          BACTPT(IZ,NTGU(ICL,II,1))=T2
 
 C Increment counter of data so as to check against itemunique array.
           nbdatahits=nbdatahits+1

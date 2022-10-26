@@ -50,13 +50,6 @@ C-----------------------------------------------------------------------------
        INTEGER IUIN            !-read unit number
        INTEGER IEOUT           !-error unit number
 
-       COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
-       INTEGER ITCF            !-building-side time increment
-                               !-to end trace output 
-       INTEGER ITRACE          !-trace call index
-       INTEGER IZNTRC          !-zone trace index
-       INTEGER ITU             !-trace output unit number
-
        COMMON/C9/NPCOMP,NCI(MPCOM),CDATA(MPCOM,MMISCD)
        INTEGER NPCOMP          !-number of plant components
        INTEGER NCI             !-number of possible control variables for component

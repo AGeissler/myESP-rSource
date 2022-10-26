@@ -26,7 +26,6 @@ C Main controller for agents.
       subroutine AGT_CTL(problem,ier)
 
 #include "building.h"
-#include "geometry.h"
 #include "agent.h"
 
       integer problem,ier
@@ -37,9 +36,6 @@ C Main controller for agents.
 
       character outs*128
       integer probtyp,probtyps(MAGT)
-      integer cmptyp
-      character dq*1
-      dq = char(34)  ! double quote
 
 C If there has already been a problem flagged, just return.
       if (problem.eq.1) goto 999
@@ -179,7 +175,7 @@ C Write an agent complaint to the log file.
       common/PREC7/ITCNST
       character*8 datestr,dum1,dum2
       character*5 timestr,dum3,dum4
-      character stype*10,zonam*12,pdesc*40
+      character stype*10,zonam*12
 
 C Get time and date.
       call stdate(IYEAR,IDYP,dum1,dum2,datestr)
@@ -244,7 +240,6 @@ C Kill simulation with error code 42.
       write(6,'(a)')'A management agent has halted the simulation.'
       write(6,'(a)')'Results have been saved for the simulated period.'
   999 STOP 42
-      return
 
    11 format(a,i2,4a)
    99 format(a,i2,a)
@@ -272,7 +267,6 @@ C Criteria - Zone dry bulb temperature 18 - 25 deg. C
 C Complaints - type 1 or 2
       subroutine AGT01(iagt,probtyp,ier)
 #include "building.h"
-#include "geometry.h"
 #include "agent.h"
 
       integer probtyp
@@ -302,7 +296,7 @@ C Complaints - type 3
 
 #include "agent.h"
 
-      integer probtyp,cmptyp,probtyps(MAGT)
+      integer probtyp,probtyps(MAGT)
 
       probtyp=0
 

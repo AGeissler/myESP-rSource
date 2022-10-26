@@ -503,11 +503,13 @@ C correct topic then read it otherwise scan another line.
             lnhl=lnblnk(helpline)
 C Debug (to text feedback).
 C            call edisp(iuout,helpline)
-            nbhelp=nbhelp+1
-            if(lnhl.le.1)then
-              h(nbhelp)='  '
-            else
-              write(h(nbhelp),'(a)') helpline(1:lnhl)
+            if(nbhelp.lt.60)then
+              nbhelp=nbhelp+1
+              if(lnhl.le.1)then
+                h(nbhelp)='  '
+              else
+                write(h(nbhelp),'(a)') helpline(1:lnhl)
+              endif
             endif
             cycle   ! keep scanning
           else

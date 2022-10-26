@@ -321,7 +321,7 @@ C Set folder separator (fs) to \ or / as required.
       write(docpth,'(a1,a1)')'.',fs
       write(dbspth,'(a1,a1)')'.',fs
       write(tmppth,'(a1,a1)')'.',fs
-      IYEAR=2021
+      IYEAR=2022
       IBDOY=1
       IEDOY=365
       cfgroot=' '
@@ -589,7 +589,7 @@ C update document.
         call isinstalled(hold32,found_curl)
         if(found_curl)then
           write(doit,'(4a)') 'curl --connect-timeout 3 -f -s ',
-     &      'http://www.esru.strath.ac.uk/',
+     &      'https://www.esru.strath.ac.uk/',
      &      'Downloads/ESP-r/update_notes.txt -o ',
      &      '/tmp/update_notes.txt'
           call runit(doit,'-')
@@ -1574,7 +1574,7 @@ C Save model (23 without asking for file name & 24 asking for file name).
           goto 3
         endif
 
-C Ask for file name.
+C Ask for file name. If save as and V4.2 then offer to save as V4.0
         if(INO.EQ.24)then
           helptopic='updated_cfg_file_name'
           call gethelptext(helpinsub,helptopic,nbhelp)
@@ -1589,19 +1589,16 @@ C Ask for file name.
             goto 89
           endif
 
-C Give option to alter the root name.
+C Give option to alter the base name of the project files.
           helptopic='model_root_name'
           call gethelptext(helpinsub,helptopic,nbhelp)
           t32=cfgroot
-          CALL EASKS(t32,' ','Root name for the project?',
+          CALL EASKS(t32,' ','Base name for project files?',
      &      32,'project','root name',
      &      IER,nbhelp)
           if(t32(1:2).ne.'  '.and.t32(1:4).ne.'UNKN')cfgroot=t32
         endif
 
-C If configuration file format is version 3 then check to see if there
-C are any utility files. If found then ask is the user wants to save
-C in older format.
         if(icfgv.ge.3)then
 
 C Also check about connections file.
@@ -1626,7 +1623,11 @@ C Also check about connections file.
 
         call tstamp('>','prj: update configuration')
         call tstamp('>',LCFGF)
-        CALL EMKCFG('-',IER)
+        if(INO.EQ.24)then
+          CALL EMKCFG('v',IER)  ! Ask user about version as well.
+        else
+          CALL EMKCFG('-',IER)
+        endif
         IF(IER.EQ.1)THEN
           call usrmsg('Problem creating new file. Check disk',
      &                'space or write permission.','W')
@@ -4661,6 +4662,7 @@ C Path to model and command line file (if any).
       integer ncomp,ncon
       COMMON/C1/NCOMP,NCON
       common/FILEP/IFIL
+      character*72 lipvdatf
       common/IPVF/lipvdatf
       integer childterminal  ! picks up mmod from starting of prj
       common/childt/childterminal
@@ -4684,6 +4686,9 @@ C Currently set true if graphic network file exists, false otherwise.
       COMMON/CONTM/CNTMFIL,CNTMDESC,NTSTEPC
       common/ndcfd/ncfdnd,icfdnd(MNZ),NCONF
       integer ncfdnd,icfdnd,NCONF
+      common/shad0/ISIcalc,icalcD,icalcM
+      integer ISIcalc,icalcD,icalcM
+      COMMON/CLMSET/ICYEAR,ICDNGH,CLAT,CLONG
 
       DIMENSION IVALS(MCOM),IVALSS(8),SALT(8)
 
@@ -4694,9 +4699,9 @@ C ivalsg keeps track of whether a geometry file has alread been copied.
       dimension items(MCOM)
 
       character CNTMFIL*72
-      CHARACTER*72 LIPVDATF,NNAME,msg1,MSG2,LCFD
+      CHARACTER*72 NNAME,msg1,MSG2,LCFD
       character ctldoc*248,lctlf*72
-      CHARACTER*72 LAPROB
+      CHARACTER*72 LAPROB,lshda,lshdb
       CHARACTER OUTSTR*124
       CHARACTER APE*6,EXT*4,OUTS*124,doit*248,tmode*8
       CHARACTER SALT*31,CNTMDESC*124
@@ -4768,13 +4773,15 @@ C of constructions does not re-do it.
 
 C If there is an existing shading file copy it to new name
 C so that subsequent changes are applied to the new file.
-
-C << what this logic does not yet do is check and see if there is an
-C << ascii version of the shading file and copy that as well.
-
+C If ISIcalc has not yet been set and there is a zone shading file
+C set ISIcalc =2. Also copy any existing .shda file.
             if(ISI(icomp).eq.1)then
+              if(ISIcalc.eq.0) ISIcalc = 2
               EXT='.shd'
               CALL FNCNGR(LSHAD(ICOMP),APE,EXT,NNAME)
+              XST=.FALSE.
+              write(lshda,'(2a)') 
+     &          LSHAD(ICOMP)(1:LNBLNK(LSHAD(ICOMP))),'a'
               if(unixok)then
                 WRITE(doit,'(4A)')'cp ',
      &            LSHAD(ICOMP)(1:LNBLNK(LSHAD(ICOMP))),' ',
@@ -4784,9 +4791,28 @@ C << ascii version of the shading file and copy that as well.
      &            LSHAD(ICOMP)(1:LNBLNK(LSHAD(ICOMP))),' ',
      &            NNAME(1:LNBLNK(NNAME))
               endif
-C              CALL USRMSG('Copying shading file via:',doit,'-')
+              CALL USRMSG('Copying shading file via:',doit,'-')
               CALL RUNIT(doit,'-')
+
+C Update lshad and then use that to create the shda file to copy to.
               write(LSHAD(ICOMP),'(a)') NNAME(1:lnblnk(NNAME))
+
+              call FINDFIL(lshda,XST)
+              if(XST)then
+                write(lshdb,'(2a)') 
+     &            LSHAD(ICOMP)(1:LNBLNK(LSHAD(ICOMP))),'a'
+                if(unixok)then
+                  WRITE(doit,'(4A)')'cp ',
+     &              lshda(1:LNBLNK(lshda)),' ',
+     &              lshdb(1:LNBLNK(lshdb))
+                else
+                  WRITE(doit,'(4A)')'copy /y ',
+     &              lshda(1:LNBLNK(lshda)),' ',
+     &              lshdb(1:LNBLNK(lshdb))
+                endif
+                CALL USRMSG('Copying ascii shading file via:',doit,'-')
+                CALL RUNIT(doit,'-')
+              endif
             endif
 
 C If there is an existing viewfactor file copy it to new name
@@ -4876,10 +4902,17 @@ C              CALL USRMSG('Copying obstruction file via:',doit,'-')
           call edisp(iuout,
      &      '* New geometry files available for subsequent changes.')
         endif
+
+C Find existing shading and viewfactor files. 
+C << If embedded shading calcs ignore ???. >>
         ishdq=-1
         ivfwq=-1
         do 43 iz=1,ncomp
-          if(ISI(iz).eq.1)ishdq=1
+          if(ISIcalc.eq.1)then
+            continue    ! ignore if embeded calculations used
+          else 
+            if(ISI(iz).eq.1)ishdq=1
+          endif
           if(IVF(iz).eq.1)ivfwq=1
   43    continue
         if(ishdq.eq.1)then
@@ -5265,11 +5298,42 @@ C configuration file has been updated.
 C Climate, latitiude and longitude. First check if the model
 C includes shading files.
         ishd=-1
-        do 42 iz=1,ncomp
-          if(ISI(iz).eq.1)ishd=1
-  42    continue
+        if(ISIcalc.eq.1)then
+          continue
+        else
+          do 42 iz=1,ncomp
+            if(ISI(iz).eq.1)ishd=1
+  42      continue
+        endif
 
+C Open clm module. Remind user to record the weather file location.
+        call usrmsg('Please check the feedback in the clm module',
+     &    'for the latitude and longitude difference values.','W')
         CALL EDDBCLM(moddb,ape,ishad)
+
+        helptopic='context_lat_long'
+        call gethelptext(helpinsub,helptopic,nbhelp)
+        write(outs,'(a,2F8.1)') 'The current model location is ',
+     &    sitelat,sitelongdif
+        call edisp(iuout,' ')
+        call edisp(iuout,outs)
+        write(outs,'(a,2F8.1)') 'The weather site is ',
+     &    clat,clong
+        call edisp(iuout,outs)
+
+        slat=sitelat  ! sitelat is in common C4 in site.h
+        
+        CALL EASKR(SLAT,' ','Site latitude?',
+     &       -89.9,'W',89.9,'W',55.9,'site latitude',IER,nbhelp)
+        IF(IER.EQ.0)sitelat=SLAT
+
+        slon=sitelongdif  ! sitelongdif is in common C4 in site.h
+        CALL EASKR(SLON,
+     &    'Site longitude difference from local time meridian',
+     &    '(East +ve, West -ve)?',-15.0,'W',15.0,'W',-4.1,
+     &    'longitude difference',IER,nbhelp)
+        IF(IER.EQ.0)sitelongdif=SLON
+
 
         IF(NGRDP.NE.0)THEN
           call edisp(IUOUT,
@@ -5278,32 +5342,28 @@ C includes shading files.
         ENDIF
 
 C If there is an IPV file also update it.
-        if(icfgv.lt.4)then
-          call FINDFIL(lipvdatf,XST)
-          call isunix(unixok)
-          IF(XST)THEN
-            call edisp(IUOUT,
-     &        '* IPV file has been updated to match climate.')
-            call edisp(IUOUT,'Please update the IPV titles.')
-            ipvaction='ipv'
-            CALL RIPVDAT(IFIL+1,LIPVDATF,ipvaction,IER)
-            EXT='.ipv'
-            CALL FNCNGR(LIPVDATF,APE,EXT,NNAME)
-            if(unixok)then
-              WRITE(doit,'(4A)')'cp ',LIPVDATF(1:LNBLNK(LIPVDATF)),' ',
-     &          NNAME(1:LNBLNK(NNAME))
-            else
-              WRITE(doit,'(4A)')'copy /y ',
-     &          LIPVDATF(1:LNBLNK(LIPVDATF)),' ',
-     &          NNAME(1:LNBLNK(NNAME))
-            endif
-C          CALL USRMSG('Copying IPV file via:',doit,'-')
-            CALL RUNIT(doit,'-')
-            write(LIPVDATF,'(a)') NNAME(1:lnblnk(NNAME))
-            updatetitle=.true.
+        call FINDFIL(lipvdatf,XST)
+        call isunix(unixok)
+        IF(XST)THEN
+          call edisp(IUOUT,
+     &      '* IPV file has been updated to match climate.')
+          call edisp(IUOUT,'Please update the IPV titles.')
+          ipvaction='ipv'
+          CALL RIPVDAT(IFIL+1,LIPVDATF,ipvaction,IER)
+          EXT='.ipv'
+          CALL FNCNGR(LIPVDATF,APE,EXT,NNAME)
+          if(unixok)then
+            WRITE(doit,'(4A)')'cp ',LIPVDATF(1:LNBLNK(LIPVDATF)),' ',
+     &        NNAME(1:LNBLNK(NNAME))
           else
-            updatetitle=.false.   ! nothing to do
+            WRITE(doit,'(4A)')'copy /y ',
+     &        LIPVDATF(1:LNBLNK(LIPVDATF)),' ',
+     &        NNAME(1:LNBLNK(NNAME))
           endif
+          CALL USRMSG('Copying IPV file via:',doit,'-')
+          CALL RUNIT(doit,'-')
+          write(LIPVDATF,'(a)') NNAME(1:lnblnk(NNAME))
+          updatetitle=.true.
         else
           if(nipvassmt.eq.0)then
             updatetitle=.false.   ! nothing to do
@@ -5315,8 +5375,6 @@ C          CALL USRMSG('Copying IPV file via:',doit,'-')
 C Update the titles.
         if(updatetitle)then
           CALL EASKS(ipvtitl,' ','Project title for this variant?',
-     &    40,'project','description modifier',IER,0)
-          CALL EASKS(ipvvers,' ','Project version for this variant?',
      &    40,'project','description modifier',IER,0)
           ISTRW=72
           CALL EASKS248(ipvsynop,'Synopsis',' ',ISTRW,
@@ -5498,8 +5556,6 @@ C Update the titles.
         if(updatetitle)then
           CALL EASKS(ipvtitl,' ','Project title for this variant?',
      &     40,'project','description modifier',IER,0)
-          CALL EASKS(ipvvers,' ','Project version for this variant?',
-     &     40,'project','description modifier',IER,0)
           ISTRW=72
           CALL EASKS248(ipvsynop,'Synopsis',' ',ISTRW,
      &    'Project synopsis for this variant','synopsis',IER,5)
@@ -5515,8 +5571,6 @@ C Update the titles.
           endif
           CALL IPVDAT('I')
           CALL EASKS(ipvtitl,' ','Project title for this variant?',
-     &     40,'project','description modifier',IER,0)
-          CALL EASKS(ipvvers,' ','Project version for this variant?',
      &     40,'project','description modifier',IER,0)
           ISTRW=72
           CALL EASKS248(ipvsynop,'Synopsis',' ',ISTRW,

@@ -86,6 +86,7 @@ C CFD solution manager.
      &              IZEROT,IZanKE,IMITZ
       COMMON/INCALP/INCALPOL(MCTM)
       COMMON/BUOYAN/BUOYA,BOUSSA,TBAR(MNZ)
+      LOGICAL BUOYA,BOUSSA
       COMMON/MFS/IMFACT
       COMMON/ICFNOD/ICFD,ICP
       COMMON/LINRFC1/URFCD(MNZ)
@@ -112,12 +113,19 @@ C CFD solution manager.
      &          VOLPol(MCTM,MNVLS,MNZ)
       common/KEYCASGN/IDcasgn(MNVLS,MNZ),Fcasgn(MNVLS,MNZ)
 
-C NBLK() is the number of blockages in each domain.
-C INBLK() points to the volume that defines the blockage shape.
-C NSSO() is the number of small supply openings in each domain.
-C INSSO() points to the volume that defines the small supply shape.
+C NBLK is the number of blockages in each domain.
+C INBLK points to the volume that defines the blockage shape.
+C NSSO is the number of small supply openings in each domain.
+C INSSO points to the volume that defines the small supply shape.
+C BLKTEMP is used to transfer surface temperatures from the building
+C side to CFD.
       common/blksso/NBLK(MNZ),INBLK(MNVLS,MNZ),NSSO(MNZ),
-     &          INSSO(MNVLS,MNZ),BLKTEMP(MNVLS,MNZ,6)
+     &          INSSO(MNVLS,MNZ),BLKTEMP(MNVLS,6)
+     
+C BCOFF is used to disable occupant-linked BCs if the occupant is not
+C present.
+      COMMON/CFDBCOFF/BCOFF(MNVLS)
+      logical BCOFF
 
       common/SSOinit/areaSSO
       common/CASGNS/NCGPER(MCOM,MDTY,MGTY),TCGS(MCOM,MDTY,MGTY,MGPER),
@@ -136,14 +144,14 @@ C      COMMON/ALL/NI,NJ,NK,NIM1,NJM1,NKM1,NIM2,NJM2,NKM2
 
       DIMENSION CRES(4),CMON(4)
 
-      LOGICAL LRENORM,OK,dok,closer,MKURFL
-      LOGICAL INCALU,INCALV,INCALW,INCALT,INCALK,INCALD,BUOYA,BOUSSA
+      LOGICAL LRENORM,OK,closer,MKURFL
+      LOGICAL INCALU,INCALV,INCALW,INCALT,INCALK,INCALD
       LOGICAL IZEROT,IZanKE,IMITZ
       LOGICAL CALLU,CALLV,CALLW,CALLT,CALLC,KEMDL,CONVER,BUOY,BOUSSI
       LOGICAL ZEROT,ZandKE,MITzero,Uqinit
       LOGICAL CALPOL,CALLMA
       LOGICAL areaSSO,gophrun,INCALPOL
-      logical unixok
+C      logical unixok
 
       real sec_pre,sec_now,sec_tkn
       integer NITER_pre
@@ -261,8 +269,8 @@ C refinement.
         IRFNCLS(ICFD,i,1)=0
       enddo
       nitrav=100    ! iterations to average over
-      xstucrin=0.1  ! allowable proportional negative difference in averaged residuals
-      xstucrip=0.1  ! allowable proportional positive difference in averaged residuals
+      xstucrin=0.02 ! minimum negative change in averaged residuals, as proportion of convergence criterion
+      xstucrip=0.1  ! minimum positive change in averaged residuals, as proportion of convergence criterion
       nstucriall=2  ! number of times in a row for all residuals
       nstucrione=5  ! number of times in a row for one residual
 
@@ -419,6 +427,7 @@ C Check for blockages. If found then set velocities to zero.
       if(NBLK(ICFD).gt.0) then 
         do 60 IVO=1,NBLK(ICFD)
           IV=INBLK(IVO,ICFD) 
+          if (BCOFF(iv)) cycle
           do 70 I=IVCELLS(IV,ICFD,1),IVCELLS(IV,ICFD,2)
             do 71 J=JVCELLS(IV,ICFD,1),JVCELLS(IV,ICFD,2)
               do 72 K=KVCELLS(IV,ICFD,1),KVCELLS(IV,ICFD,2)
@@ -624,13 +633,14 @@ C Check for maximum iterations or acceptable maximum residual.
       IF(NITER.EQ.MAXIT)GOTO 302
       IF(SORCE.lt.SORMAX.and.NITER.ge.20)GOTO 302
 
-C At regular intervals, check for flatlined residuals characterised by: 
+C At regular intervals after 1000 interations, check for flatlined
+C residuals characterised by: 
 C 1. All averaged residuals changing < xstucri*100% over the last
 C    nitrav iterations, nstucriall times in a row.
 C 2. Any one averaged residual changing < xstucri*100% over the last
 C    nitrav interations, nstucrione times in a row.  Only check
 C    equations that have not already converged for this condition.
-      if (DOFLT) then
+      if (DOFLT .and. NITER.gt.1000) then
         resorma=resorma+RESORM/real(nitrav)
         if (INCALU) resorua=resorua+RESORU/real(nitrav)
         if (INCALV) resorva=resorva+RESORV/real(nitrav)
@@ -653,9 +663,9 @@ C    equations that have not already converged for this condition.
         elseif ((NITER/nitrav)*nitrav.eq.NITER) then
           xdif=resormap-resorma
           ok=.false.
-          if (xdif.gt.0. .and. xdif.lt.resormap*xstucrin) then
+          if (xdif.gt.0. .and. xdif.lt.SORMAX*xstucrin) then
             ok=.true.
-          elseif (xdif.lt.0. .and. xdif.gt.-resormap*xstucrip) then
+          elseif (xdif.lt.0. .and. xdif.gt.-SORMAX*xstucrip) then
             ok=.true.
           endif
           if (ok) then
@@ -956,6 +966,9 @@ C Converged within iteration limit.
         endif
 
       ENDIF   ! end convergence test
+
+C Set blockage temperatures.
+      call BLKSETT
  
 C Write final monitoring/residual information if not done above.
   42  if(mod(NITER,NPLT).ne.0)then
@@ -988,6 +1001,7 @@ C Debug.
 C      write(6,*) 'LMA',CALLMA(ICFD),'  gopher',gophrun
 
       if (CALLMA(ICFD).and.(.not.gophrun)) call calclma(ITIMST)
+
       RETURN
       
 C Format statements.
@@ -1030,12 +1044,11 @@ C Initialise CFD simulation parameters.
       COMMON/LOCAGE/AGEf(ntcelx,ntcely,ntcelz)
       common/EQTION3/CALLMA(MNZ),CALPOL(MCTM,MNZ),POLNAM(MCTM,MNZ),
      &               NCTM(MNZ),JHUMINDX(MNZ),URFC(MCTM)
+      CHARACTER POLNAM*12
+      LOGICAL CALLMA,CALPOL
       COMMON/CFDPOL/POLCONCp(MCTM,ntcelx,ntcely,ntcelz),
      1              POLCONCf(MCTM,ntcelx,ntcely,ntcelz)
       COMMON/ICFNOD/ICFD,ICP
-
-      CHARACTER POLNAM*12
-      LOGICAL CALLMA,CALPOL
      
 C Initialise variables.
       DO 200 I=1,NI
@@ -1191,6 +1204,7 @@ C first iteration.
       COMMON/CONST/GREAT,small,GRAV
       COMMON/URFDEN/URFDEN
       COMMON/BUOYAN/BUOYA,BOUSSA,TBAR(MNZ)
+      LOGICAL BUOYA,BOUSSA
       common/INCALC/INCALU,INCALV,INCALW,INCALK,INCALD,INCALT,
      1              IZEROT,IZanKE,IMITZ
       COMMON/INCALP/INCALPOL(MCTM)
@@ -1199,14 +1213,14 @@ C first iteration.
       COMMON/ZTURB/rMOOT(MNZ),nZtoKE(MNZ)
       common/KEYVOLS/NVOL(MNZ),IVOLF(MNVLS,MNZ),IVCELLS(MNVLS,MNZ,2),
      &               JVCELLS(MNVLS,MNZ,2),KVCELLS(MNVLS,MNZ,2)
-
-C Common blocks for blockages and small supply openings.
       common/blksso/NBLK(MNZ),INBLK(MNVLS,MNZ),NSSO(MNZ),
-     &          INSSO(MNVLS,MNZ),BLKTEMP(MNVLS,MNZ,6)
+     &          INSSO(MNVLS,MNZ),BLKTEMP(MNVLS,6)     
+      COMMON/CFDBCOFF/BCOFF(MNVLS)
+      logical BCOFF
 
       CHARACTER POLNAM*12
       LOGICAL INCALU,INCALV,INCALW,INCALT,INCALK,INCALD
-      LOGICAL BUOYA,BOUSSA,IZEROT,IZanKE,IMITZ
+      LOGICAL IZEROT,IZanKE,IMITZ
       LOGICAL CALLMA,CALPOL,OK,LINVOL,INCALPOL
 
       DO 100 I=1,NI
@@ -1304,6 +1318,7 @@ C Only do this after the first iteration is complete.
             if (ICALL.eq.2.and.NBLK(ICFD).gt.0) then
               do 2006 IVO=1,NBLK(ICFD)
                 IV=INBLK(IVO,ICFD)
+                if (BCOFF(iv)) cycle
 
 C If inside the blockage then set VIS and GAMH to zero.
                 OK=LINVOL(I,J,K,
@@ -1388,10 +1403,10 @@ C obtain velocity component in X direction.
       COMMON/RFNGRD/DOFLT,DORFN,IFNDWT(MNZ),NRFN,IRFNCLS(MNZ,MRFN,3),
      &              NRFND,IRFND(MNZ,MRFNT,3)
       logical DOFLT,DORFN
-
-C Common blocks for blockages and small supply openings.
       common/blksso/NBLK(MNZ),INBLK(MNVLS,MNZ),NSSO(MNZ),
-     &          INSSO(MNVLS,MNZ),BLKTEMP(MNVLS,MNZ,6)
+     &          INSSO(MNVLS,MNZ),BLKTEMP(MNVLS,6)
+      COMMON/CFDBCOFF/BCOFF(MNVLS)
+      logical BCOFF
 
       LOGICAL INCALU,INCALV,INCALW,INCALK,INCALD,INCALT,IZEROT,IZanKE
       LOGICAL IMITZ
@@ -1514,9 +1529,11 @@ C Log-law or Yuan wall functions.
 
 C Check for blockages.
         if(NBLK(ICFD).gt.0) then 
-          do 200 IVO=1,NBLK(ICFD)
-            call BLKBNDU(INBLK(IVO,ICFD))
- 200      continue
+          do iblk=1,NBLK(ICFD)
+            iv=INBLK(iblk,ICFD)
+            if (BCOFF(iv)) cycle
+            call BLKBNDU(iv)
+          enddo
         endif
       ELSEIF(IMITZ)THEN
 
@@ -1573,7 +1590,8 @@ C cell that has the corrected momentum.
 C Check for blockages. 
             if(NBLK(ICFD).gt.0) then
               do 2007 IVO=1,NBLK(ICFD)
-                IV=INBLK(IVO,ICFD)  
+                IV=INBLK(IVO,ICFD)
+                if (BCOFF(iv)) cycle
 
 C If inside the blockage or blockage to the west then set resor to zero.
                 OK=LINVOL(I,J,K,
@@ -1684,6 +1702,7 @@ C Check for blockages.
 C Loop through whole blockage,set U_velocity to zero.
         do 2002 IVO=1,NBLK(ICFD)
           IV=INBLK(IVO,ICFD) 
+          if (BCOFF(iv)) cycle
           IST=max(3,IVCELLS(IV,ICFD,1))
           do 2001 I=IST,IVCELLS(IV,ICFD,2)
             do 2001 J=JVCELLS(IV,ICFD,1),JVCELLS(IV,ICFD,2)
@@ -1816,10 +1835,10 @@ C to obtain velocity component in y direction.
       COMMON/RFNGRD/DOFLT,DORFN,IFNDWT(MNZ),NRFN,IRFNCLS(MNZ,MRFN,3),
      &              NRFND,IRFND(MNZ,MRFNT,3)
       logical DOFLT,DORFN
-
-C Common blocks for blockages and small supply openings.
       common/blksso/NBLK(MNZ),INBLK(MNVLS,MNZ),NSSO(MNZ),
-     &          INSSO(MNVLS,MNZ),BLKTEMP(MNVLS,MNZ,6)
+     &          INSSO(MNVLS,MNZ),BLKTEMP(MNVLS,6)
+      COMMON/CFDBCOFF/BCOFF(MNVLS)
+      logical BCOFF
 
       LOGICAL INCALU,INCALV,INCALW,INCALK,INCALD,INCALT,IZEROT,IZanKE
       LOGICAL IMITZ
@@ -1942,8 +1961,10 @@ C Log-law or Yuan wall functions.
 
 C Check for blockages.
         if(NBLK(ICFD).gt.0) then 
-          do 200 IVO=1,NBLK(ICFD)
-            call BLKBNDV(INBLK(IVO,ICFD))
+          do 200 iblk=1,NBLK(ICFD)
+            iv=INBLK(iblk,ICFD)
+            if (BCOFF(iv)) cycle
+            call BLKBNDV(iv)
  200      continue
         endif
       ELSEIF(IMITZ)THEN
@@ -2004,6 +2025,7 @@ C Check for blockages.
 C If inside the blockage or blockage to the south then set resor to zero.
               do 2007 IVO=1,NBLK(ICFD)
                 IV=INBLK(IVO,ICFD)  
+                if (BCOFF(iv)) cycle
                 OK=LINVOL(I,J,K,
      &                  IVCELLS(IV,ICFD,1),IVCELLS(IV,ICFD,2),
      &                  JVCELLS(IV,ICFD,1),(JVCELLS(IV,ICFD,2)+1),
@@ -2110,6 +2132,7 @@ C Loop through whole blockage,set V_velocity to zero
       if(NBLK(ICFD).gt.0) then 
         do 2002 IVO=1,NBLK(ICFD)
           IV=INBLK(IVO,ICFD) 
+          if (BCOFF(iv)) cycle
           JST=max(3,JVCELLS(IV,ICFD,1))
           do 2001 I=IVCELLS(IV,ICFD,1),IVCELLS(IV,ICFD,2)
             do 2001 J=JST,JVCELLS(IV,ICFD,2)
@@ -2217,6 +2240,7 @@ C to obtain velocity component in z direction.
      3            AL(ntcelx,ntcely,ntcelz),SU(ntcelx,ntcely,ntcelz),
      4            SP(ntcelx,ntcely,ntcelz)
       COMMON/BUOYAN/BUOYA,BOUSSA,TBAR(MNZ)
+      LOGICAL BUOYA,BOUSSA
       common/INCALC/INCALU,INCALV,INCALW,INCALK,INCALD,INCALT,
      1              IZEROT,IZanKE,IMITZ
       COMMON/CONST/GREAT,small,GRAV
@@ -2238,12 +2262,11 @@ C to obtain velocity component in z direction.
       COMMON/RFNGRD/DOFLT,DORFN,IFNDWT(MNZ),NRFN,IRFNCLS(MNZ,MRFN,3),
      &              NRFND,IRFND(MNZ,MRFNT,3)
       logical DOFLT,DORFN
-
-C Common blocks for blockages and small supply openings.
       common/blksso/NBLK(MNZ),INBLK(MNVLS,MNZ),NSSO(MNZ),
-     &          INSSO(MNVLS,MNZ),BLKTEMP(MNVLS,MNZ,6)
+     &          INSSO(MNVLS,MNZ),BLKTEMP(MNVLS,6)
+      COMMON/CFDBCOFF/BCOFF(MNVLS)
+      logical BCOFF
 
-      LOGICAL BUOYA,BOUSSA
       LOGICAL INCALU,INCALV,INCALW,INCALK,INCALD,INCALT,IZEROT,IZanKE
       LOGICAL IMITZ
       LOGICAL OK,LINVOL
@@ -2391,8 +2414,10 @@ C Log-law or Yuan wall functions.
 
 C Check for blockages.
         if(NBLK(ICFD).gt.0) then 
-          do 200 IVO=1,NBLK(ICFD)
-            call BLKBNDW(INBLK(IVO,ICFD))
+          do 200 iblk=1,NBLK(ICFD)
+            iv=INBLK(iblk,ICFD)
+            if (BCOFF(iv)) cycle
+            call BLKBNDW(iv)
  200      continue
         endif
       ELSEIF(IMITZ)THEN
@@ -2458,6 +2483,7 @@ C Check for blockages.
 C If inside the blockage or blockage to the low then set resor to zero.
               do 2007 IVO=1,NBLK(ICFD)
                 IV=INBLK(IVO,ICFD)  
+                if (BCOFF(iv)) cycle
                 OK=LINVOL(I,J,K,
      &                  IVCELLS(IV,ICFD,1),IVCELLS(IV,ICFD,2),
      &                  JVCELLS(IV,ICFD,1),JVCELLS(IV,ICFD,2),
@@ -2564,6 +2590,7 @@ C Check for blockages.
 C Loop through whole blockage,set W_velocity to zero 
         do 2002 IVO=1,NBLK(ICFD)
           IV=INBLK(IVO,ICFD) 
+          if (BCOFF(iv)) cycle
           KST=max(3,KVCELLS(IV,ICFD,1))
           do 2001 I=IVCELLS(IV,ICFD,1),IVCELLS(IV,ICFD,2)
             do 2001 J=JVCELLS(IV,ICFD,1),JVCELLS(IV,ICFD,2)
@@ -2666,10 +2693,10 @@ C equation and solve the matrix to obtain pressure corrections.
 
       common/KEYVOLS/NVOL(MNZ),IVOLF(MNVLS,MNZ),IVCELLS(MNVLS,MNZ,2),
      &               JVCELLS(MNVLS,MNZ,2),KVCELLS(MNVLS,MNZ,2)
-
-C Common blocks for blockages and small supply openings.
       common/blksso/NBLK(MNZ),INBLK(MNVLS,MNZ),NSSO(MNZ),
-     &          INSSO(MNVLS,MNZ),BLKTEMP(MNVLS,MNZ,6)
+     &          INSSO(MNVLS,MNZ),BLKTEMP(MNVLS,6)
+      COMMON/CFDBCOFF/BCOFF(MNVLS)
+      logical BCOFF
 
       COMMON/CONST/GREAT,small,GRAV
       COMMON/RFNGRD/DOFLT,DORFN,IFNDWT(MNZ),NRFN,IRFNCLS(MNZ,MRFN,3),
@@ -2724,6 +2751,7 @@ C are set to zero.
             if(NBLK(ICFD).gt.0) then 
               do 2006 IVO=1,NBLK(ICFD)
                 IV=INBLK(IVO,ICFD) 
+                if (BCOFF(iv)) cycle
                 OK=LINVOL(I,J,K,
      &                  IVCELLS(IV,ICFD,1),IVCELLS(IV,ICFD,2),
      &                  JVCELLS(IV,ICFD,1),JVCELLS(IV,ICFD,2),
@@ -2879,6 +2907,7 @@ C Check scalar cells on both boundaries in U direction for blockages.
                 IUcor=0
                 do 5101 IVO=1,NBLK(ICFD)
                   IV=INBLK(IVO,ICFD) 
+                  if (BCOFF(iv)) cycle
                   OK=LINVOL(I,J,K,
 C     &                    (IVCELLS(IV,ICFD,1)+1),(IVCELLS(IV,ICFD,2)+1),
      &                     IVCELLS(IV,ICFD,1),IVCELLS(IV,ICFD,2),
@@ -2903,6 +2932,7 @@ C Check scalar cells on both boundaries in V direction for blockages.
                 IVcor=0
                 do 5102 IVO=1,NBLK(ICFD)
                   IV=INBLK(IVO,ICFD) 
+                  if (BCOFF(iv)) cycle
                   OK=LINVOL(I,J,K,
      &                     IVCELLS(IV,ICFD,1),IVCELLS(IV,ICFD,2),
 C     &                    (JVCELLS(IV,ICFD,1)+1),(JVCELLS(IV,ICFD,2)+1),
@@ -2927,6 +2957,7 @@ C Check scalar cells on both boundaries in W direction for blockages.
                 IWcor=0
                 do 5103 IVO=1,NBLK(ICFD)
                   IV=INBLK(IVO,ICFD) 
+                  if (BCOFF(iv)) cycle
                   OK=LINVOL(I,J,K,
      &                     IVCELLS(IV,ICFD,1),IVCELLS(IV,ICFD,2),
      &                     JVCELLS(IV,ICFD,1),JVCELLS(IV,ICFD,2),
@@ -2971,6 +3002,7 @@ C Check for blockages and exclude them from calculation.
               IPcor=0
               do 5007 IVO=1,NBLK(ICFD)
                 IV=INBLK(IVO,ICFD) 
+                if (BCOFF(iv)) cycle
 
 C If outside the blockage correct pressure.
                 OK=LINVOL(I,J,K,
@@ -3055,39 +3087,16 @@ C equation and solve the matrix to obtain temperatures.
       COMMON/RFNGRD/DOFLT,DORFN,IFNDWT(MNZ),NRFN,IRFNCLS(MNZ,MRFN,3),
      &              NRFND,IRFND(MNZ,MRFNT,3)
       logical DOFLT,DORFN
-
-C Common blocks for blockages and small supply openings.
       common/blksso/NBLK(MNZ),INBLK(MNVLS,MNZ),NSSO(MNZ),
-     &          INSSO(MNVLS,MNZ),BLKTEMP(MNVLS,MNZ,6)
+     &          INSSO(MNVLS,MNZ),BLKTEMP(MNVLS,6)
+      COMMON/CFDBCOFF/BCOFF(MNVLS)
+      logical BCOFF
 
       LOGICAL INCALU,INCALV,INCALW,INCALK,INCALD,INCALT,IZEROT,IZanKE
       LOGICAL IMITZ
       LOGICAL OK,LINVOL
 
       double precision RESOR, SORVOL, resorfn(MRFN)
-
-C Check for blockages.
-      if(NBLK(ICFD).gt.0) then 
-        do 10 IVO=1,NBLK(ICFD)
-          IV=INBLK(IVO,ICFD)
-
-C Loop through whole blockage, set U_vel boundary conditions on E,W faces.     
-          do 20 I=IVCELLS(IV,ICFD,1),IVCELLS(IV,ICFD,2)
-            do 21 J=JVCELLS(IV,ICFD,1),JVCELLS(IV,ICFD,2)
-              do 22 K=KVCELLS(IV,ICFD,1),KVCELLS(IV,ICFD,2)   
-                Tf(I,J,K)=TINIT(ICFD) 
-c << look here and make a finer output >> 
-c                Tf(I+1,J,K)=Tf(I,J,K)
-c                Tf(I-1,J,K)=Tf(I,J,K)
-c                Tf(I,J+1,K)=Tf(I,J,K)
-c                Tf(I,J-1,K)=Tf(I,J,K)
-c                Tf(I,J,K+1)=Tf(I,J,K)
-c                Tf(I,J,K-1)=Tf(I,J,K)     
- 22           continue
- 21         continue
- 20       continue
- 10     continue
-      endif
 
       DO 100 I=2,NIM1
         DO 1001 J=2,NJM1
@@ -3168,18 +3177,20 @@ C Apply boundary conditions.
 
 C Use one of the turbulent boundary condition treatments.
         CALL BNDARTT
-
-C Check for blockages.
-        if(NBLK(ICFD).gt.0) then 
-          do 2016 IVO=1,NBLK(ICFD)
-            call BLKBNDT(INBLK(IVO,ICFD))
- 2016     continue
-        endif
       ELSE
 
 C Use laminar boundary conditions.
         CALL MODTL
       ENDIF
+ 
+C Check for blockages.
+      if(NBLK(ICFD).gt.0) then 
+        do IVO=1,NBLK(ICFD)
+          iv=INBLK(IVO,ICFD)
+          if (BCOFF(iv)) cycle
+          call BLKBNDT(iv)
+        enddo
+      endif
 
 C Remaining coefficients and residual source calculation.
       RESORT=0.0
@@ -3201,6 +3212,7 @@ C If inside the blockage or to the west then set resor to zero.
             if(NBLK(ICFD).gt.0) then 
               do 2006 IVO=1,NBLK(ICFD)
                 IV=INBLK(IVO,ICFD) 
+                if (BCOFF(iv)) cycle
                 OK=LINVOL(I,J,K,
      &                  IVCELLS(IV,ICFD,1),IVCELLS(IV,ICFD,2),
      &                  JVCELLS(IV,ICFD,1),JVCELLS(IV,ICFD,2),
@@ -3253,10 +3265,11 @@ C Under-relaxation.
  300  CONTINUE
 
 C Check for blockages.
-C Set the temperature inside the blockage equal to the initial one. 
+C Ensure blockages do not participate in the solution. 
       if(NBLK(ICFD).gt.0) then 
         do 2007 IVO=1,NBLK(ICFD)
           IV=INBLK(IVO,ICFD)  
+          if (BCOFF(iv)) cycle
           do 2017 I=IVCELLS(IV,ICFD,1),IVCELLS(IV,ICFD,2)
             do 2107 J=JVCELLS(IV,ICFD,1),JVCELLS(IV,ICFD,2)
               do 2207 K=KVCELLS(IV,ICFD,1),KVCELLS(IV,ICFD,2)
@@ -3333,6 +3346,7 @@ C energy equation and solve the matrix.
       COMMON/TEMPf/Tf(ntcelx,ntcely,ntcelz),GAMH(ntcelx,ntcely,ntcelz),
      &             RESORT,NSWPT,URFT,FSDTT,PRANDL,PFUN
       COMMON/BUOYAN/BUOYA,BOUSSA,TBAR(MNZ)
+      LOGICAL BUOYA,BOUSSA
       COMMON/CONST/GREAT,small,GRAV
       COMMON/SUSP/SUKD(ntcelx,ntcely,ntcelz),SPKD(ntcelx,ntcely,ntcelz)
       COMMON/TIMSTP/DT
@@ -3347,12 +3361,12 @@ C energy equation and solve the matrix.
       COMMON/RFNGRD/DOFLT,DORFN,IFNDWT(MNZ),NRFN,IRFNCLS(MNZ,MRFN,3),
      &              NRFND,IRFND(MNZ,MRFNT,3)
       logical DOFLT,DORFN
-
-C Common blocks for blockages and small supply openings.
       common/blksso/NBLK(MNZ),INBLK(MNVLS,MNZ),NSSO(MNZ),
-     &          INSSO(MNVLS,MNZ),BLKTEMP(MNVLS,MNZ,6)
+     &          INSSO(MNVLS,MNZ),BLKTEMP(MNVLS,6)
+      COMMON/CFDBCOFF/BCOFF(MNVLS)
+      logical BCOFF
 
-      LOGICAL BUOYA,BOUSSA,GGDH
+      LOGICAL GGDH
       LOGICAL OK, LINVOL
 
       double precision RESOR, SORVOL, resorfn(MRFN)
@@ -3361,6 +3375,7 @@ C Check for blockages and set TEf.
       if(NBLK(ICFD).gt.0) then 
         do 10 IVO=1,NBLK(ICFD)
           IV=INBLK(IVO,ICFD)
+          if (BCOFF(iv)) cycle
 
 C Loop through whole blockage.
           do 20 I=IVCELLS(IV,ICFD,1),IVCELLS(IV,ICFD,2)
@@ -3477,7 +3492,7 @@ C energy could result. Note: (SP is always negative, SU - positive):
                 SU(I,J,K)=SU(I,J,K)+AMAX1(0.0,GENB)*VOL
                 SP(I,J,K)=SP(I,J,K)+AMIN1(0.0,GENB)*VOL/
      &                                      anotzero(TEf(I,J,K))
-               ELSE
+              ELSE
 
 C Apply General Gradient Diffusion Hypothesys (GGDH).
 C When using GGDH it is reasonable to set the under-relaxation
@@ -3552,7 +3567,9 @@ C Modify problem.
 C Check for blockages.
       if(NBLK(ICFD).gt.0) then 
         do 200 IVO=1,NBLK(ICFD)
-          call BLKBNDKE(INBLK(IVO,ICFD))
+          iv=INBLK(IVO,ICFD)
+          if (BCOFF(iv)) cycle
+          call BLKBNDKE(iv)
  200    continue
       endif
 
@@ -3575,6 +3592,7 @@ C Check for blockages.
             if(NBLK(ICFD).gt.0) then 
               do 2006 IVO=1,NBLK(ICFD)
                 IV=INBLK(IVO,ICFD)
+                if (BCOFF(iv)) cycle
 
 C If inside the blockage set resor to zero.
                 OK=LINVOL(I,J,K,
@@ -3635,11 +3653,17 @@ C Loop through whole blockage, set the turbulent kinetic energy to zero.
       if(NBLK(ICFD).gt.0) then 
         do 2000 IVO=1,NBLK(ICFD)
           IV=INBLK(IVO,ICFD) 
+          if (BCOFF(iv)) cycle
           do 2001 I=IVCELLS(IV,ICFD,1),IVCELLS(IV,ICFD,2)
             do 2001 J=JVCELLS(IV,ICFD,1),JVCELLS(IV,ICFD,2)
               do 2001 K=KVCELLS(IV,ICFD,1),KVCELLS(IV,ICFD,2) 
-                SU(I,J,K)=0.0
-                AP(I,J,K)=GREAT
+C                SU(I,J,K)=0.0
+C                AP(I,J,K)=GREAT
+                AE(I,J,K)=0.0; AW(I,J,K)=0.0
+                AN(I,J,K)=0.0; AS(I,J,K)=0.0
+                AH(I,J,K)=0.0; AL(I,J,K)=0.0
+                SP(I,J,K)=0.0; SU(I,J,K)=0.0
+                AP(I,J,K)=1.0
  2001     continue
  2000   continue
       endif
@@ -3705,6 +3729,7 @@ C dissipation equation and solve the matrix.
       COMMON/TEMPf/Tf(ntcelx,ntcely,ntcelz),GAMH(ntcelx,ntcely,ntcelz),
      1             RESORT,NSWPT,URFT,FSDTT,PRANDL,PFUN
       COMMON/BUOYAN/BUOYA,BOUSSA,TBAR(MNZ)
+      LOGICAL BUOYA,BOUSSA
       COMMON/CONST/GREAT,small,GRAV
       COMMON/SUSP/SUKD(ntcelx,ntcely,ntcelz),SPKD(ntcelx,ntcely,ntcelz)
       COMMON/TIMSTP/DT
@@ -3719,12 +3744,12 @@ C dissipation equation and solve the matrix.
       COMMON/RFNGRD/DOFLT,DORFN,IFNDWT(MNZ),NRFN,IRFNCLS(MNZ,MRFN,3),
      &              NRFND,IRFND(MNZ,MRFNT,3)
       logical DOFLT,DORFN
-
-C Common blocks for blockages and small supply openings.
       common/blksso/NBLK(MNZ),INBLK(MNVLS,MNZ),NSSO(MNZ),
-     &          INSSO(MNVLS,MNZ),BLKTEMP(MNVLS,MNZ,6)
+     &          INSSO(MNVLS,MNZ),BLKTEMP(MNVLS,6)
+      COMMON/CFDBCOFF/BCOFF(MNVLS)
+      logical BCOFF
 
-      LOGICAL BUOYA,BOUSSA,GGDH
+      LOGICAL GGDH
       LOGICAL OK, LINVOL
 
       double precision RESOR, SORVOL, resorfn(MRFN)
@@ -3855,7 +3880,9 @@ C Modify problem.
 C Check for blockages.
       if(NBLK(ICFD).gt.0) then 
         do 2106 IVO=1,NBLK(ICFD)
-          call BLKBNDED(INBLK(IVO,ICFD))
+          iv=INBLK(IVO,ICFD)
+          if (BCOFF(iv)) cycle
+          call BLKBNDED(iv)
  2106   continue
       endif
 
@@ -3878,7 +3905,8 @@ C Check for blockages.
 C If inside the blockage then set resor to zero.
             if(NBLK(ICFD).gt.0) then 
               do 2006 IVO=1,NBLK(ICFD)
-                IV=INBLK(IVO,ICFD) 
+                IV=INBLK(IVO,ICFD)
+                if (BCOFF(iv)) cycle 
                 OK=LINVOL(I,J,K,
      &                  IVCELLS(IV,ICFD,1),IVCELLS(IV,ICFD,2),
      &                  JVCELLS(IV,ICFD,1),JVCELLS(IV,ICFD,2),
@@ -3936,6 +3964,7 @@ C Check for blockages.
       if(NBLK(ICFD).gt.0) then 
         do 2000 IVO=1,NBLK(ICFD)
           IV=INBLK(IVO,ICFD)
+          if (BCOFF(iv)) cycle
 
 C Loop through whole blockage, set the dissipation to a small value.
           do 2001 I=IVCELLS(IV,ICFD,1),IVCELLS(IV,ICFD,2)
@@ -4230,11 +4259,10 @@ C Establish domain inlet and outlet conditions.
      &            BETA(ntcelx,ntcely,ntcelz)
 C      COMMON/THETA/THETA1(MCFND,MNZ),THETA2(MCFND,MNZ)
       COMMON/BUOYAN/BUOYA,BOUSSA,TBAR(MNZ)
+      LOGICAL BUOYA,BOUSSA
       COMMON/BCTYPCEL/IBCTPC(ntcelx,ntcely,ntcelz)
 C      COMMON/ITERAT/NITER
 
-      LOGICAL BUOYA,BOUSSA
-      real diff
       real Utmp,Vtmp,Wtmp
 
       XMONIN=0.0
@@ -4992,7 +5020,7 @@ C e.g. AE()=APLAWCF(DFE,-CE) and for other faces AW()=APLAWCF(DFW,CW).
 
       FUNCTION APLAWCF(DF,C)
 
-      if (abs(C/DF).gt.10.) then
+      if (abs(C/DF).gt.9.99) then  ! floating point error if close to 10.0.
         APLAWCF=AMAX1(C,0.)
       else
         APLAWCF=DF*AMAX1(0.,(1.-0.1*ABS(C/DF))**5)+AMAX1(C,0.)
@@ -5023,9 +5051,12 @@ C Assumes output file on iunit is already open.
       LOGICAL CALLMA,CALPOL
       CHARACTER POLNAM*12
       common/blksso/NBLK(MNZ),INBLK(MNVLS,MNZ),NSSO(MNZ),
-     &          INSSO(MNVLS,MNZ),BLKTEMP(MNVLS,MNZ,6)
+     &          INSSO(MNVLS,MNZ),BLKTEMP(MNVLS,6)
+      COMMON/CFDBCOFF/BCOFF(MNVLS)
+      logical BCOFF
 
       do iv=1,NVOL(ICFD)
+        if (BCOFF(iv)) cycle
         ityp=IVTYPE(iv,ICFD)
         write(iunit,'(a)')' '
         write(iunit,'(a,i3.3)')'volume: ',iv
@@ -5078,17 +5109,23 @@ C Assumes output file on iunit is already open.
         elseif (ityp.eq.33) then
           write(iunit,'(a)')'type: blockage, face temperatures'
           write(iunit,'(a,f8.2)')'east temperature (C): ',
-     &      BLKTEMP(iv,ICFD,1)
+     &      BLKTEMP(iv,1)
           write(iunit,'(a,f8.2)')'west temperature (C): ',
-     &      BLKTEMP(iv,ICFD,2)
+     &      BLKTEMP(iv,2)
           write(iunit,'(a,f8.2)')'north temperature (C): ',
-     &      BLKTEMP(iv,ICFD,3)
+     &      BLKTEMP(iv,3)
           write(iunit,'(a,f8.2)')'south temperature (C): ',
-     &      BLKTEMP(iv,ICFD,4)
+     &      BLKTEMP(iv,4)
           write(iunit,'(a,f8.2)')'high temperature (C): ',
-     &      BLKTEMP(iv,ICFD,5)
+     &      BLKTEMP(iv,5)
           write(iunit,'(a,f8.2)')'low temperature (C): ',
-     &      BLKTEMP(iv,ICFD,6)
+     &      BLKTEMP(iv,6)
+        elseif (ityp.eq.34) then
+          write(iunit,'(a)')'type: blockage, heat flux (from gain)'
+          write(iunit,'(a,f8.2)')'heat flux (W): ',VOLHeat(iv,ICFD)
+        elseif (ityp.eq.35) then
+          write(iunit,'(a)')'type: blockage, heat flux (from person)'
+          write(iunit,'(a,f8.2)')'heat flux (W): ',VOLHeat(iv,ICFD)
         endif
       enddo
 
@@ -5107,7 +5144,6 @@ C have been made.
 #include "building.h"
 #include "cfd.h"
 
-      integer imode,ier
       logical refined
 
       COMMON/ICFNOD/ICFD,ICP

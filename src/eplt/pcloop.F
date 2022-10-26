@@ -3060,8 +3060,9 @@ c connection number.
 c If this is first pass, then initialise second 
 c data item of array 'tmdr'.
       if(ipass.eq.0) then
-         do 77 i=1,MCF
-  77     tmdr(i,2)=0.0
+         do i=1,MCF
+           tmdr(i,2)=0.0
+         enddo
          ipass=1
       endif
       
@@ -3369,8 +3370,9 @@ C      ipass = 0
 c If this is first pass, then initialise second 
 c data item of array 'tmdr'.
       if(ipass.eq.0) then
-         do 77 i=1,MCF
-  77     tmdr(i,2)=0.0
+         do i=1,MCF
+           tmdr(i,2)=0.0
+         enddo
          ipass=1
       endif
 
@@ -4554,14 +4556,15 @@ C Set MMLCL = Maximum number of loops to be sensed
       
 C Init...
       if(nsinc.eq.1)then
-        do 50 i=1,mcdp
+        do i=1,mcdp
           iDay1=0
           iPeriod=0
           timeDelay(i)=0.
           savedTimeDelay(i)=0.0
- 50     continue
-        do 51 i=1,mmlcl
- 51     previousTemp=0.
+        enddo
+        do i=1,mmlcl
+          previousTemp=0.
+        enddo
       endif
 
 C Fatal error test.

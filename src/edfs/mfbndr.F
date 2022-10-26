@@ -24,7 +24,7 @@ C gettemp - averages the present and future zone temperature.
 C ******************** MFBNDR *********************
 C Invoked with argument 0, 1, 2 or 3:
 C  0. - deactivates conflated mfs and activates dry mfs; 
-C  1. - initialises dfs mass flows to 'dry' mfs calculated values;
+C  1. - initialises mfs connections representing CFD connections;
 C  2. - normalises all mass_in and mass_out and imposes all airflows
 C       as velocity type boundary conditions;
 C  3. - does a pressure correction to set dfs and mfs pressure datum
@@ -81,7 +81,8 @@ C  NFNPDN  - as above, per domain.
      &               NFNPDN(MNZ)
       COMMON/CFDMFS4/VOLVELOLD(MNVLS,MNZ),VOLTEMPOLD(MNVLS,MNZ),
      & VOLHUMOLD(MNVLS,MNZ),VOLDIROLD(MNVLS,MNZ,2),IVTYPEOLD(MNVLS,MNZ)
-      COMMON/MFCFD/NCNRMV,ICNRMV(MCFND,MNZ),NCNON,ICNON(2*MCFND,MNZ)
+      COMMON/MFCFD/NCNRMV(MNZ),ICNRMV(MCFND,MNZ),
+     &             NCNON(MNZ),ICNON(2*MCFND,MNZ)
       COMMON/ACT/ACTCNN(MCNN)
       COMMON/MFCALC/IPSMOD,MSLVTP
 
@@ -171,89 +172,89 @@ C Calculate connections stack pressure based on previous flow direction.
         END IF
  5011 CONTINUE
 
-C Impose mass flows to the CFD domain as velocity type boundary condition
-      IOPNO=1
+C Impose mass flows to the CFD domain as velocity type boundary 
+C condition.
 C      FLOWIN=0.0
-      DO 570 IV=1,NVOL(ICFD)
-        IF(IV.EQ.NCFDOPNO(IOPNO,ICFD))THEN
+      DO 570 infn=1,NFNPDN(ICFD)
+        IV=NCFDOPNO(infn,ICFD)
 
 C Get mass flow node (opn_nod) associated with this CFD opening.         
-          INOD=MFNEWN(IOPNO,ICFD)
+        INOD=MFNEWN(infn,ICFD)
 
 C Get connection of this node with the node external to CFD domain (JNOD).
 C INDEX=-1 means flow is going out of CFD domain and vice versa.
-          DO 571 ICNN=1,NCNN
-            FLWNET=FLW1(ICNN)+FLW2(ICNN)
-            IF(NODPS(ICNN).EQ.INOD.AND.NODNE(ICNN).LE.(NNOD-NFNDN)
-     &         .AND.NODNE(ICNN).NE.ICFDNOD(ICFD))THEN
-              JNOD=NODNE(ICNN)
-              IF(FLWNET.GT.0.0)THEN
-                INDEX=-1
-              ELSEIF(FLWNET.LE.0.0)THEN
-                INDEX=1
-              ENDIF
-              GOTO 1010
-            ELSEIF(NODNE(ICNN).EQ.INOD.AND.NODPS(ICNN).LE.(NNOD-NFNDN)
-     &             .AND.NODPS(ICNN).NE.ICFDNOD(ICFD))THEN
-              JNOD=NODPS(ICNN)
-              ICN=ICNN
-              IF(FLWNET.GT.0.0)THEN
-                INDEX=1
-              ELSEIF(FLWNET.LE.0.0)THEN
-                INDEX=-1
-              ENDIF
-              GOTO 1010
-            ELSE
-              GOTO 571
+        DO 571 ICNN=1,NCNN
+          FLWNET=FLW1(ICNN)+FLW2(ICNN)
+          IF(NODPS(ICNN).EQ.INOD.AND.NODNE(ICNN).LE.(NNOD-NFNDN)
+     &       .AND.NODNE(ICNN).NE.ICFDNOD(ICFD))THEN
+            JNOD=NODNE(ICNN)
+            IF(FLWNET.GT.0.0)THEN
+              INDEX=-1
+            ELSEIF(FLWNET.LE.0.0)THEN
+              INDEX=1
             ENDIF
+            GOTO 1010
+          ELSEIF(NODNE(ICNN).EQ.INOD.AND.NODPS(ICNN).LE.(NNOD-NFNDN)
+     &           .AND.NODPS(ICNN).NE.ICFDNOD(ICFD))THEN
+            JNOD=NODPS(ICNN)
+            ICN=ICNN
+            IF(FLWNET.GT.0.0)THEN
+              INDEX=1
+            ELSEIF(FLWNET.LE.0.0)THEN
+              INDEX=-1
+            ENDIF
+            GOTO 1010
+          ELSE
+            GOTO 571
+          ENDIF
 
 C Before changing boundary condition, hold original values.
- 1010       IVTYPEOLD(IV,ICFD)  = IVTYPE(IV,ICFD)
-            VOLVELOLD(IV,ICFD)  = VOLVel(IV,ICFD)
-            VOLTEMPOLD(IV,ICFD) = VOLTemp(IV,ICFD)
+ 1010     IVTYPEOLD(IV,ICFD)  = IVTYPE(IV,ICFD)
+          VOLVELOLD(IV,ICFD)  = VOLVel(IV,ICFD)
+          VOLTEMPOLD(IV,ICFD) = VOLTemp(IV,ICFD)
 C            VOLHUMOLD(IV,ICFD)  = VOLHum(IV,ICFD)
 C            VOLDIROLD(IV,ICFD,1)= VOLDir(IV,ICFD,1)
 C            VOLDIROLD(IV,ICFD,2)= VOLDir(IV,ICFD,2)
-  
+
 C Set this boundary condition to velocity depending on flow in/out.
 C VOLArea values have been set to dimensionless ratios in DEFINESSO,
 C and VOLVel in this instance is in the same units as FLOW.
-            IVTYPE(IV,ICFD)=11
-            FLOW=REAL(FLWNET)
-            IF(INDEX.EQ.1)THEN
-              VOLVel(IV,ICFD)=ABS(FLOW)/VOLArea(IV,ICFD)
+          IVTYPE(IV,ICFD)=11
+          FLOW=REAL(FLWNET)
+          IF(INDEX.EQ.1)THEN
+            VOLVel(IV,ICFD)=ABS(FLOW)/VOLArea(IV,ICFD)
 C              FLOWIN=FLOWIN+VOLVel(IV,ICFD)
-            ELSEIF(INDEX.EQ.-1)THEN
-              VOLVel(IV,ICFD)=-ABS(FLOW)/VOLArea(IV,ICFD)
-            ENDIF
+          ELSEIF(INDEX.EQ.-1)THEN
+            VOLVel(IV,ICFD)=-ABS(FLOW)/VOLArea(IV,ICFD)
+          ENDIF
 
 C Get air temperature of sending zone.
-            FOUND=.FALSE.
-            DO 572 IZN=1,MCOM
-              IF(ICAAS(IZN).EQ.JNOD)THEN
-                TMPRTR=0.5*(TPA(IZN)+TFA(IZN))
-                FOUND=.TRUE. 
-              ENDIF
- 572        CONTINUE
+          FOUND=.FALSE.
+          DO 572 IZN=1,MCOM
+            IF(ICAAS(IZN).EQ.JNOD)THEN
+              TMPRTR=0.5*(TPA(IZN)+TFA(IZN))
+              FOUND=.TRUE. 
+            ENDIF
+  572     CONTINUE
 
-            IF(.NOT.FOUND)THEN
+          IF(.NOT.FOUND)THEN
 
 C Find sending node.
-              if (FLOW.gt.0.) then ! net flow NODPS -> NODNE
-                TMPNODN=NODPS(ICNN)
-              else                 ! net flow NODNE -> NODPS
-                TMPNODN=NODNE(ICNN)
-              endif
-              IF((NDTYP(TMPNODN).EQ.2.AND.NINT(SUPNOD(TMPNODN,2)).EQ.1)
-     &          .OR.NDTYP(TMPNODN).EQ.3) then ! external temp
-                call gettemp(TMPRTR)
-              ELSEIF(ITND(TMPNODN).GT.0) then ! temp from another node
-                TMPRTR=TNOD(ITND(TMPNODN))
-              ELSE                            ! constant temp
-                TMPRTR=TNOD(TMPNODN)
-              ENDIF
+            if (FLOW.gt.0.) then ! net flow NODPS -> NODNE
+              TMPNODN=NODPS(ICNN)
+            else                 ! net flow NODNE -> NODPS
+              TMPNODN=NODNE(ICNN)
+            endif
+            IF((NDTYP(TMPNODN).EQ.2.AND.NINT(SUPNOD(TMPNODN,2)).EQ.1)
+     &         .OR.NDTYP(TMPNODN).EQ.3) then ! external temp
+              call gettemp(TMPRTR)
+            ELSEIF(ITND(TMPNODN).GT.0) then ! temp from another node
+              TMPRTR=TNOD(ITND(TMPNODN))
+            ELSE                            ! constant temp
+              TMPRTR=TNOD(TMPNODN)
             ENDIF
-            VOLTemp(IV,ICFD)=TMPRTR
+          ENDIF
+          VOLTemp(IV,ICFD)=TMPRTR
 
 C *** CFD debug start
 C      VOLVEL(IV,ICFD)=0.0
@@ -265,9 +266,7 @@ C<< To include direction components and humidity
 C            VOLDir(IV,ICFD,1)=0.0
 C            VOLDir(IV,ICFD,2)=0.0
 C            VOLHum(IV,ICFD)=0.0
- 571      CONTINUE
-          IOPNO=IOPNO+1
-        ENDIF
+ 571    CONTINUE
  570  CONTINUE
 
 C Normalise all flowrates so that equal mass flows into and out of CFD
@@ -310,19 +309,7 @@ C IPK=3 if they are not.
 
 C CFD-mfs conflation has been attempted and hopefully achieved, reset
 C both domains to their original settings.
-C Activate all connections.
- 100  DO 200 ICN=1,MCNN
-        ACTCNN(ICN)=.TRUE.
- 200  CONTINUE
-
-C Deactivate CFD mass flow connections.
-      DO 201 IC=1,NCONF
-        DO 202 N=1,NCNON
-          ACTCNN(ICNON(N,IC))=.FALSE.
-  202   CONTINUE
-  201 CONTINUE
-
-      CALL MFSOLV
+ 100  CALL MFSOLV
 
 C Restore original CFD boundary conditions
       DO 577 IV=1,NVOL(ICFD)
@@ -358,15 +345,6 @@ C cfd-mfs iterations are done.
       COMMON/ICFNOD/ICFD,ICP
       common/ndcfd/ncfdnd,icfdnd(MNZ),NCONF
       common/outin/iuout,iuin,ieout
-     
-      COMMON/NDMAP/NOPEN(MNZ),MFNODE(MCFND,MNZ),IOPENi(MCFND,MNZ),
-     &             IOPENf(MCFND,MNZ),JOPENi(MCFND,MNZ),
-     &             JOPENf(MCFND,MNZ),KOPENi(MCFND,MNZ),
-     &             KOPENf(MCFND,MNZ),FIXM(MCFND,MNZ),
-     &             FIXT(MCFND,MNZ),FIXC(MCFND,MNZ),
-     &             FIXK(MCFND,MNZ),FIXE(MCFND,MNZ),
-     &             IWOPEN(MCFND,MNZ),ICFDCN(MCFND,MNZ),
-     &             ICNACT(MCFND,MNZ),IVOLNOP(MCFND,MNZ)
       COMMON/VARf/Uf(ntcelx,ntcely,ntcelz),Vf(ntcelx,ntcely,ntcelz),
      &            Wf(ntcelx,ntcely,ntcelz),
      &            P(ntcelx,ntcely,ntcelz),PP(ntcelx,ntcely,ntcelz),
@@ -375,13 +353,14 @@ C cfd-mfs iterations are done.
      &               JVCELLS(MNVLS,MNZ,2),KVCELLS(MNVLS,MNZ,2)
       COMMON/ALL/NI,NJ,NK,NIM1,NJM1,NKM1,NIM2,NJM2,NKM2
       common/blksso/NBLK(MNZ),INBLK(MNVLS,MNZ),NSSO(MNZ),
-     &          INSSO(MNVLS,MNZ),BLKTEMP(MNVLS,MNZ,6)
-
+     &          INSSO(MNVLS,MNZ),BLKTEMP(MNVLS,6)
+      COMMON/CFDBCOFF/BCOFF(MNVLS)
+      logical BCOFF
       COMMON/MFLW11/PSTACK(MCNN),HDP(MCNN),HDV(MCNN),HFL(MCNN)
       COMMON/MFLRES/FLW1(MCNN),FLW2(MCNN),PRES(MNOD),
      &              RESID(MNOD),SAFLW(MNOD)
-
-      COMMON/MFCFD/NCNRMV,ICNRMV(MCFND,MNZ),NCNON,ICNON(2*MCFND,MNZ)
+      COMMON/MFCFD/NCNRMV(MNZ),ICNRMV(MCFND,MNZ),
+     &             NCNON(MNZ),ICNON(2*MCFND,MNZ)
       COMMON/ACT/ACTCNN(MCNN)
       COMMON/CFDMFS2/MFNEWN(MNVLS,MNZ),NFNDN,NCFDOPNO(MNVLS,MNZ),
      &               NFNPDN(MNZ)
@@ -438,6 +417,7 @@ C Check for blockages.
             IF(NBLK(ICFD).GT.0) THEN 
               DO 2006 IVO=1,NBLK(ICFD)
                 IV=INBLK(IVO,ICFD) 
+                if (BCOFF(iv)) cycle
                 OK=LINVOL(I,J,K,
      &                  IVCELLS(IV,ICFD,1),IVCELLS(IV,ICFD,2),
      &                  JVCELLS(IV,ICFD,1),JVCELLS(IV,ICFD,2),
@@ -473,19 +453,16 @@ C INOD is the opn_nod
 C ICNEXT is the connection from KNOD to INOD
 C ICNDOM is the connection from JNOD to INOD (INOD is always +ve node)
 C For each opn_nod correct the pressure.
-      DO 1981 INOD=NNOD-NFNDN+1,NNOD
-
-C Get key volume representative of this opn_node.
-        DO 1982 IVL=1,MNVLS
-          IF(MFNEWN(IVL,ICFD).EQ.INOD)M=IVL
- 1982   CONTINUE
+      DO 1981 INFN=1,NFNPDN(ICFD)
+        inod=MFNEWN(INFN,ICFD) ! flow network node for this connection
+        iv=NCFDOPNO(INFN,ICFD) ! key volume for this connection
 
 C Get CFD predicted pressure at cells representative of this key volume.
         PRESSURE=0.0
         NCIO=0
-        DO 9051 I=IOPENi(M,ICFD),IOPENf(M,ICFD)
-          DO 9052 J=JOPENi(M,ICFD),JOPENf(M,ICFD)
-            DO 9053 K=KOPENi(M,ICFD),KOPENf(M,ICFD)
+        DO 9051 I=IVCELLS(iv,ICFD,1),IVCELLS(iv,ICFD,2)
+          DO 9052 J=JVCELLS(iv,ICFD,1),JVCELLS(iv,ICFD,2)
+            DO 9053 K=KVCELLS(iv,ICFD,1),KVCELLS(iv,ICFD,2)
               PRESSURE=PRESSURE+P(I,J,K)
               NCIO=NCIO+1
  9053       CONTINUE
@@ -518,27 +495,23 @@ C flow direction.
    50 CONTINUE
 
 C Activate conflated network.
-      DO 1 ICN=1,MCNN
-        ACTCNN(ICN)=.TRUE.
-   1  CONTINUE
-      DO 21 IC=1,NCONF
-        DO 2001 N=1,NCNRMV
-          ACTCNN(ICNRMV(N,IC))=.FALSE.
- 2001   CONTINUE
- 21   CONTINUE
+      do n=1,NCNRMV(ICFD)
+        ACTCNN(ICNRMV(n,ICFD))=.false.
+      enddo
+      do n=1,NCNON(ICFD)
+        ACTCNN(ICNON(n,ICFD))=.true.
+      enddo
 
 C Call mass flow solver.
       CALL MFSOLV
 
 C Deactivate conflated network.
-      DO 111 ICN=1,MCNN
-        ACTCNN(ICN)=.TRUE.
- 111  CONTINUE
-      DO 201 IC=1,NCONF
-        DO 202 N=1,NCNON
-          ACTCNN(ICNON(N,IC))=.FALSE.
-  202   CONTINUE
-  201 CONTINUE
+      do n=1,NCNRMV(ICFD)
+        ACTCNN(ICNRMV(n,ICFD))=.true.
+      enddo
+      do n=1,NCNON(ICFD)
+        ACTCNN(ICNON(n,ICFD))=.false.
+      enddo
 
 C Now check against previous flow rates and pressures and return with 
 C information if within tolerance or not.

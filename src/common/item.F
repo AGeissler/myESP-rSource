@@ -201,7 +201,10 @@ C Observed zone cooling for display in res
       GMENUS(33)='Supply water temperat: ' 
 
       GTYPES(34)='PUMPVFR'   ! use this for measured volume flow rates in plant water loops (e.g. for pumps in underfloor heating)
-      GMENUS(34)='Pump volume flow rate: ' 
+      GMENUS(34)='Pump volume flow rate: '
+      
+      GTYPES(35)='PRCSIG'    ! use this for price signal, for example for smart controls
+      GMENUS(35)='Price signal: '
       
 C If not looking for a specific item then return.
       IF(FOCUS(1:7).EQ.'ALLCLMT')THEN
@@ -785,6 +788,18 @@ C Rain indicator, currently only used for FMI: one data item.
         GDHDRT(3)='Water flow rate (l/h):'
         GMF(1)='REAL,1,0.0036,0.0036,800.0'
         MGMA(1)='Water flow rate (l/h): '
+        FOUND=.TRUE.   
+
+      ELSEIF(FOCUS(1:6).EQ.'PRCSIG')THEN
+        GAIDE   ='Price signal'
+        GHELP(1)='Price signal for'
+        GHELP(2)='smart control'
+        GMH='2,1,0,0,1,0,-999.0'
+        GDHDRT(1)='   time  | price      |'
+        GDHDRT(2)='   of day| signal     |' 
+        GDHDRT(3)='Price signal (-):'
+        GMF(1)='REAL,1,1.0,-999.9,999.9'
+        MGMA(1)='Price signal (-): '
         FOUND=.TRUE.   
 
       ELSEIF(FOCUS(1:4).EQ.'ALL ')THEN

@@ -243,31 +243,32 @@ C Initiates the zone moisture variables.
         DO 20 IL=1,NELTS(ICOMP,I)
           NM=MNDL(ICOMP,I,IL)
           NMP1=NM+1
-        DO 20 IM=1,NMP1
-          IF(IM.LT.NMP1)THEN
-            ITM1=ITM1+1
-            Pp(ICOMP,I,ITM1)=Pinit
-            Fp(ICOMP,I,ITM1)=0.0
-            Pf(ICOMP,I,ITM1)=Pinit
-            Ff(ICOMP,I,ITM1)=0.0
-            UM0=PERM(ICOMP,I,IL,1)
-            UM100=PERM(ICOMP,I,IL,2)
-            B=PERM(ICOMP,I,IL,3)
-            iMM=iMoistModel(ICOMP)
-            DX=DELT01(iMM,RH,UM0,UM100,B)
+          DO IM=1,NMP1
+            IF(IM.LT.NMP1)THEN
+              ITM1=ITM1+1
+              Pp(ICOMP,I,ITM1)=Pinit
+              Fp(ICOMP,I,ITM1)=0.0
+              Pf(ICOMP,I,ITM1)=Pinit
+              Ff(ICOMP,I,ITM1)=0.0
+              UM0=PERM(ICOMP,I,IL,1)
+              UM100=PERM(ICOMP,I,IL,2)
+              B=PERM(ICOMP,I,IL,3)
+              iMM=iMoistModel(ICOMP)
+              DX=DELT01(iMM,RH,UM0,UM100,B)
 
 C If small value, report problem.
-            if(DX.lt.0.99E-15)then
-              write(outs,'(a,3i3)') 
-     &         'INITMZ: small vapour perm. at zone/surf/layer: ',
-     &         icomp,i,IL
-              call edisp(iuout,outs)
-              DELTs(ICOMP,I,ITM1)=DX
-            else
-              DELTs(ICOMP,I,ITM1)=DX
-            endif
-            DTPs(ICOMP,I,ITM1)=TVAPD(ICOMP,I,IL)
-          ENDIF
+              if(DX.lt.0.99E-15)then
+                write(outs,'(a,3i3)') 
+     &           'INITMZ: small vapour perm. at zone/surf/layer: ',
+     &           icomp,i,IL
+                call edisp(iuout,outs)
+                DELTs(ICOMP,I,ITM1)=DX
+              else
+                DELTs(ICOMP,I,ITM1)=DX
+              endif
+              DTPs(ICOMP,I,ITM1)=TVAPD(ICOMP,I,IL)
+            ENDIF
+          enddo
    20   CONTINUE
         ITM1=ITM1+1
         Pp(ICOMP,I,ITM1)=Pinit
@@ -335,9 +336,9 @@ C Sets the moisture nodes present temperatures by linear interpolation.
 C For lumped constructions.
         IF(ILUMP(ICOMP,I).GE.1)THEN
           THICK=0.
-          DO 20 IL=1,NE
+          DO IL=1,NE
             THICK=THICK+THRMLI(ICOMP,I,IL,4)
-   20     CONTINUE
+          ENDDO
           DELXh=THICK/2.0
           XSUMM=0.
           DO 30 IL=1,NE
@@ -351,30 +352,31 @@ C Trap divition by zero (1.0 is a guessed alternative).
               call edisp(iuout,outs)
               DELXm=THICK/1.0
             endif
-          DO 30 INM=1,MNDL(ICOMP,I,IL)
-            INMT=INMT+1
+            DO INM=1,MNDL(ICOMP,I,IL)
+              INMT=INMT+1
 
 C Trap for division by zero.
-            if(DELXh.gt.0.0)then
-              INH1=INT(XSUMM/DELXh)
-            else
-              write(outs,*) 'DELXh out of range @',ICOMP,I,IL
-              call edisp(iuout,outs)
-              INH1=INT(XSUMM/1.0)
-            endif
-            XINTP=XSUMM-DELXh*INH1
-            INH1=INH1+1
-            T1P=TPC(ICOMP,I,INH1)
-            INH2=INH1+1
-            IF(INH2.EQ.NHT)THEN
-              T2P=TPS(ICOMP,I)
-            ELSE
-              T2P=TPC(ICOMP,I,INH2)
-            ENDIF
-            RATIO=XINTP/DELXh
-            TMPp(I,INMT)=RATIO*(T2P-T1P)+T1P
-            TMNp(ICOMP,I,INMT)=TMPp(I,INMT) ! save with zone info
-            XSUMM=XSUMM+DELXm
+              if(DELXh.gt.0.0)then
+                INH1=INT(XSUMM/DELXh)
+              else
+                write(outs,*) 'DELXh out of range @',ICOMP,I,IL
+                call edisp(iuout,outs)
+                INH1=INT(XSUMM/1.0)
+              endif
+              XINTP=XSUMM-DELXh*INH1
+              INH1=INH1+1
+              T1P=TPC(ICOMP,I,INH1)
+              INH2=INH1+1
+              IF(INH2.EQ.NHT)THEN
+                T2P=TPS(ICOMP,I)
+              ELSE
+                T2P=TPC(ICOMP,I,INH2)
+              ENDIF
+              RATIO=XINTP/DELXh
+              TMPp(I,INMT)=RATIO*(T2P-T1P)+T1P
+              TMNp(ICOMP,I,INMT)=TMPp(I,INMT) ! save with zone info
+              XSUMM=XSUMM+DELXm
+            enddo
    30     CONTINUE
         ELSE
           IRN=1
@@ -544,30 +546,31 @@ C Sets the moisture nodes future temperatures by linear interpolation.
 C For lumped constructions.
         IF(ILUMP(ICOMP,I).GE.1)THEN
           THICK=0.
-          DO 20 IL=1,NE
+          DO IL=1,NE
             THICK=THICK+THRMLI(ICOMP,I,IL,4)
-   20     CONTINUE
+          ENDDO
           DELXh=THICK/2.0
           XSUMM=0.
           DO 30 IL=1,NE
             THICK=THRMLI(ICOMP,I,IL,4)
             DELXm=THICK/FLOAT(MNDL(ICOMP,I,IL))
-          DO 30 INM=1,MNDL(ICOMP,I,IL)
-            INMT=INMT+1
-            INH1=INT(XSUMM/DELXh)
-            XINTP=XSUMM-DELXh*INH1
-            INH1=INH1+1
-            T1F=TFC(ICOMP,I,INH1)
-            INH2=INH1+1
-            IF(INH2.EQ.NHT)THEN
-              T2F=TFS(ICOMP,I)
-            ELSE
-              T2F=TFC(ICOMP,I,INH2)
-            ENDIF
-            RATIO=XINTP/DELXh
-            TMPnew=RATIO*(T2F-T1F)+T1F
-            TMPf(I,INMT)=RLXlnT*TMPnew+RRLXlnT*TMPf(I,INMT)
-            XSUMM=XSUMM+DELXm
+            DO INM=1,MNDL(ICOMP,I,IL)
+              INMT=INMT+1
+              INH1=INT(XSUMM/DELXh)
+              XINTP=XSUMM-DELXh*INH1
+              INH1=INH1+1
+              T1F=TFC(ICOMP,I,INH1)
+              INH2=INH1+1
+              IF(INH2.EQ.NHT)THEN
+                T2F=TFS(ICOMP,I)
+              ELSE
+                T2F=TFC(ICOMP,I,INH2)
+              ENDIF
+              RATIO=XINTP/DELXh
+              TMPnew=RATIO*(T2F-T1F)+T1F
+              TMPf(I,INMT)=RLXlnT*TMPnew+RRLXlnT*TMPf(I,INMT)
+              XSUMM=XSUMM+DELXm
+            ENDDO
    30     CONTINUE
         ELSE
           IRN=1
@@ -632,10 +635,10 @@ C moisture storage term for air.
 
 C Set the present time convective mass transfer coefficients.
       NC=NCONST(ICOMP)
-      DO 10 I=1,NC
+      DO I=1,NC
         BETAip(ICOMP,I)=BETAif(ICOMP,I)
         BETAop(ICOMP,I)=BETAof(ICOMP,I)
-   10 CONTINUE
+      ENDDO
 
 C For construction moisture nodes.
       DO 20 I=1,NC
@@ -643,10 +646,11 @@ C For construction moisture nodes.
         ITM=0
         DO 30 IL=1,NE
           NM=MNDL(ICOMP,I,IL)
-        DO 30 IM=1,NM
-          ITM=ITM+1
-          DELTp(I,ITM)=DELTs(ICOMP,I,ITM)
-          DTPp(I,ITM)=DTPs(ICOMP,I,ITM)
+          DO IM=1,NM
+            ITM=ITM+1
+            DELTp(I,ITM)=DELTs(ICOMP,I,ITM)
+            DTPp(I,ITM)=DTPs(ICOMP,I,ITM)
+          ENDDO
    30   CONTINUE
    20 CONTINUE
       RETURN
@@ -673,9 +677,10 @@ C Update the values for moisture new future parameters.
       Sn=Sf(ICOMP)
       NC=NCONST(ICOMP)
       DO 10 I=1,NC
-      DO 10 IM=1,MNDC(ICOMP,I)
-        Pn(I,IM)=Pf(ICOMP,I,IM)
-        Fn(I,IM)=Ff(ICOMP,I,IM)
+        DO IM=1,MNDC(ICOMP,I)
+          Pn(I,IM)=Pf(ICOMP,I,IM)
+          Fn(I,IM)=Ff(ICOMP,I,IM)
+        ENDDO
    10 CONTINUE
       RETURN
       END
@@ -997,9 +1002,10 @@ C Save the future pressure distribution for convergence test.
       NC=NCONST(ICOMP)
       DO 10 I=1,NC
         NM=MNDC(ICOMP,I)
-      DO 10 IM=1,NM
-        Pn(I,IM)=Pf(ICOMP,I,IM)
-        Fn(I,IM)=Ff(ICOMP,I,IM)
+        DO IM=1,NM
+          Pn(I,IM)=Pf(ICOMP,I,IM)
+          Fn(I,IM)=Ff(ICOMP,I,IM)
+        ENDDO
    10 CONTINUE
       RETURN
       END
@@ -1302,48 +1308,49 @@ C Solves the zone moisture matrix by Gauss Seidel method.
 C Construction moisture nodes.
       DO 20 I=1,NC
         MNC=MNDC(ICOMP,I)
-      DO 20 IM=1,MNC
-        Pnsave=Pn(I,IM)
-        Fnsave=Fn(I,IM)
-        IF(IM.EQ.1)THEN
-          Pn1=0.
-        ELSE
-          IM1=IM-1
-          Pn1=Pn(I,IM1)
-        ENDIF
-        IF(IM.EQ.MNC)THEN
-          Pn2=Pnair
-        ELSE
-          IM2=IM+1
-          Pn2=Pn(I,IM2)
-        ENDIF
-        TC=TMPf(I,IM)
-        Ps=Psat01(TC)
-        DOMAIN=W(I,IM,2)
-        IF(ABS(DOMAIN).LT.1.0e-28)THEN
+        DO IM=1,MNC
+          Pnsave=Pn(I,IM)
+          Fnsave=Fn(I,IM)
+          IF(IM.EQ.1)THEN
+            Pn1=0.
+          ELSE
+            IM1=IM-1
+            Pn1=Pn(I,IM1)
+          ENDIF
+          IF(IM.EQ.MNC)THEN
+            Pn2=Pnair
+          ELSE
+            IM2=IM+1
+            Pn2=Pn(I,IM2)
+          ENDIF
+          TC=TMPf(I,IM)
+          Ps=Psat01(TC)
+          DOMAIN=W(I,IM,2)
+          IF(ABS(DOMAIN).LT.1.0e-28)THEN
           WRITE(MSG,'(A,3I4)')'ERROR: very small domain for',ICOMP,I,IM
-          CALL EDISP(IUOUT,MSG)
-          WRITE(MSG,'(A,I5)')'at time step',NSINC
-          CALL EDISP(IUOUT,MSG)
-          WRITE(MSG,'(A,G14.4)')' DOMAIN: ',DOMAIN
-          CALL EDISP(IUOUT,MSG)
-          stop
-        ENDIF
-        SUM=W(I,IM,5)-W(I,IM,1)*Pn1-W(I,IM,3)*Pn2-W(I,IM,4)*Sn
-        Fn(I,IM)=0.0
+            CALL EDISP(IUOUT,MSG)
+            WRITE(MSG,'(A,I5)')'at time step',NSINC
+            CALL EDISP(IUOUT,MSG)
+            WRITE(MSG,'(A,G14.4)')' DOMAIN: ',DOMAIN
+            CALL EDISP(IUOUT,MSG)
+            stop
+          ENDIF
+          SUM=W(I,IM,5)-W(I,IM,1)*Pn1-W(I,IM,3)*Pn2-W(I,IM,4)*Sn
+          Fn(I,IM)=0.0
 C        Pnew=(SUM-Fn(I,IM))/DOMAIN
-        Pnew=SUM/DOMAIN
-        Pn(I,IM)=RLXln*SNGL(Pnew)+RRLXln*Pnsave
-        IF(Pn(I,IM).LT.0.1)Pn(I,IM)=0.1
-        RH=Pn(I,IM)/Ps
-        IF(RH.GT.RHmax)THEN
-          RH=RHmax
-          Pn(I,IM)=RH*Ps
-        ENDIF
-        Fnew=SNGL(SUM)-Pn(I,IM)*DOMAIN
-        Fn(I,IM)=RLXlnF*Fnew+RRLXlnF*Fnsave
-        IF(Fn(I,IM).LT.0.0)Fn(I,IM)=0.0
+          Pnew=SUM/DOMAIN
+          Pn(I,IM)=RLXln*SNGL(Pnew)+RRLXln*Pnsave
+          IF(Pn(I,IM).LT.0.1)Pn(I,IM)=0.1
+          RH=Pn(I,IM)/Ps
+          IF(RH.GT.RHmax)THEN
+            RH=RHmax
+            Pn(I,IM)=RH*Ps
+          ENDIF
+          Fnew=SNGL(SUM)-Pn(I,IM)*DOMAIN
+          Fn(I,IM)=RLXlnF*Fnew+RRLXlnF*Fnsave
+          IF(Fn(I,IM).LT.0.0)Fn(I,IM)=0.0
 C        ENDIF
+        ENDDO
    20 CONTINUE
 
 C Air node.
@@ -1362,10 +1369,10 @@ C Air node.
         stop
       ENDIF
       SUM=E(1,IPA)-E(1,IQA)*Snair
-      DO 10 I=1,NC
+      DO I=1,NC
         IMsurf=MNDC(ICOMP,I)
         SUM=SUM-E(1,I)*Pn(I,IMsurf)
-  10  CONTINUE
+      ENDDO
       Fnair=0.0
 C      Pnew=(SUM-Fnair)/DOMAIN
       Pnew=SUM/DOMAIN
@@ -1424,14 +1431,15 @@ C Check for convergence in pressure values.
         RETURN
       ENDIF
       DO 10 I=1,NCONST(ICOMP)
-      DO 10 IM=1,MNDC(ICOMP,I)
-        RESP=(Pf(ICOMP,I,IM)-Pn(I,IM))*FACTOR
-        ARESP=ABS(RESP)
-        RESXP=AMAX1(RESXP,ARESP)
-        IF(RESXP.GT.RITRMP)THEN
-          CONVP=.FALSE.
-          RETURN
-        ENDIF
+        DO IM=1,MNDC(ICOMP,I)
+          RESP=(Pf(ICOMP,I,IM)-Pn(I,IM))*FACTOR
+          ARESP=ABS(RESP)
+          RESXP=AMAX1(RESXP,ARESP)
+          IF(RESXP.GT.RITRMP)THEN
+            CONVP=.FALSE.
+            RETURN
+          ENDIF
+        ENDDO
    10 CONTINUE
       CONVP=.TRUE.
       RETURN
@@ -1476,14 +1484,15 @@ C Check for convergence in fluid values.
         RETURN
       ENDIF
       DO 10 I=1,NCONST(ICOMP)
-      DO 10 IM=1,MNDC(ICOMP,I)
-        RESF=(Ff(ICOMP,I,IM)-Fn(I,IM))*FACTOR
-        ARESF=ABS(RESF)
-        RESXF=AMAX1(RESXF,ARESF)
-        IF(RESXF.GT.RITRMF)THEN
-          CONVF=.FALSE.
-          RETURN
-        ENDIF
+        DO IM=1,MNDC(ICOMP,I)
+          RESF=(Ff(ICOMP,I,IM)-Fn(I,IM))*FACTOR
+          ARESF=ABS(RESF)
+          RESXF=AMAX1(RESXF,ARESF)
+          IF(RESXF.GT.RITRMF)THEN
+            CONVF=.FALSE.
+            RETURN
+          ENDIF
+        ENDDO
    10 CONTINUE
       CONVF=.TRUE.
       RETURN
@@ -1510,9 +1519,10 @@ C Updates the future variables from n'th variables.
       NC=NCONST(ICOMP)
       DO 10 I=1,NC
         NM=MNDC(ICOMP,I)
-        DO 10 IM=1,NM
+        DO IM=1,NM
           Pf(ICOMP,I,IM)=Pn(I,IM)
           Ff(ICOMP,I,IM)=Fn(I,IM)
+        ENDDO
    10 CONTINUE
       RETURN
       END
@@ -1595,16 +1605,17 @@ C If this construction is lumped.
               IER=1
               RETURN
             ENDIF
-          DO 20 IL=1,NELTS(ICOMP,I)
-            SUM=FLOAT(MNDL(ICOMP,I,IL)/NNDL(ICOMP,I,IL))+1.0
-            RMNDR=AMOD(SUM,2.0)
-            IF(RMNDR.GT.1.0E-4)THEN
-              WRITE(MSG,'(1a,3(i3,a))')
+            DO IL=1,NELTS(ICOMP,I)
+              SUM=FLOAT(MNDL(ICOMP,I,IL)/NNDL(ICOMP,I,IL))+1.0
+              RMNDR=AMOD(SUM,2.0)
+              IF(RMNDR.GT.1.0E-4)THEN
+                WRITE(MSG,'(1a,3(i3,a))')
      &          'heat node numbers at layer (',ICOMP,',',I,',',IL,').'
-              CALL USRMSG('unacceptable ratio of moisture to',MSG,'W')
-              IER=1
-              RETURN
-            ENDIF
+                CALL USRMSG('unacceptable ratio of moisture to',MSG,'W')
+                IER=1
+                RETURN
+              ENDIF
+            ENDDO
    20     CONTINUE
         ENDIF
    10 CONTINUE

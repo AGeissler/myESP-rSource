@@ -109,8 +109,8 @@ C For number of openings NOPEN
 
 C Saved state of the visualisation.
       COMMON/MODVIS/IVISMOD
-      COMMON/CFDVIS/HAS_GEOM,ISHSB,ISHAO,IFACES,ISHBLK,
-     &              ISHSRC,ISHGEO,INITD
+      COMMON/CFDVIS/HAS_GEOM,ISHSB,ISHAO,IFACES,ISHBLK,ISHSRC,ISHGEO,
+     &              INITD
       logical HAS_GEOM
       character INITD*6
 

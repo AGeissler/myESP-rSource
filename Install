@@ -5,26 +5,26 @@
 # on linux, cygwin, mingw, OS X and Windows platforms.
 
 # Source and target directories.
-HOMEdir=`pwd`				# Current directory.
-DESTdir=/opt/esp-r			# Installation directory.
+HOMEdir=`pwd`			# Current directory.
+DESTdir=/opt/esp-r		# Installation directory.
 ESPdir=$DESTdir
-DATdir="${HOMEdir}/data"		# Source data directory.
+DATdir="${HOMEdir}/data"	# Source data directory.
 DOCdir="${HOMEdir}/doc"		# Source documents directory.
 SCRIPTdir="${HOMEdir}/src/bin"	# Source scripts directory.
-MODdir="${HOMEdir}/models"		# Source models directory.
-TRAdir="${MODdir}/training"		# Source training models.
-VALdir="${MODdir}/validation"		# Source validation models.
-SRCdir="${HOMEdir}/src"		# Source code directory.
-COSIMdir=" "				# Harmonizer installation directory.
+MODdir="${HOMEdir}/models"	# Source models directory.
+TRAdir="${MODdir}/training"	# Source training models.
+VALdir="${MODdir}/validation"	# Source validation models.
+SRCdir="${HOMEdir}/src"         # Source code directory.
+COSIMdir=" "		        # Harmonizer installation directory.
 
 # Compilation settings.
-mode="interactive"         # Provide feedback during installation. 
+mode="interactive"         # Feedback during installation. 
 xml_support="yes"          # Support for XML output.
 SQLite_support="no"        # Support for SQLite output.
 FMI_support="no"           # Support for FMI connectivity.
 debugging="no"             # Support for debugging symbols.
 EXE=""                     # Executable file extension.
-opt="-O1"                  # optimization to be applied
+opt="-O1"                  # Optimisation to be applied
 FFLAGS="-I../include "     # Fortran compiler flags.
 CFLAGS="-I../include "     # C compiler flags.
 LD_FLAGS=" "               # Link-loader flags.
@@ -51,7 +51,7 @@ unversioned="no"           # Check for versioning info.
 # functionality is automatically encapsulated in bps).
 programs="aco b2e bps dfs dfv cdb c2e clm e2r ecnv eco enet grd ish mfs mld mrt pdb prj res vew"
 programs=" ${programs} "   # Leading/ trailing space added for regexp matching.
-targets=" "		    # Will be overwitten later.
+targets=" "	           # Will be overwitten later.
 third_party="no"           # Suggest installation of third party tools at end of script.
 
 # Determine computer architecture and availability of stat.
@@ -247,11 +247,11 @@ if [ $help -eq 1 ]; then
   echo "           limited memory, e.g. a virtual machine."
   echo " "
   echo "    --medium"
-  echo "           Medium executable size (the default)."
+  echo "           Medium executable size (default)."
   echo " "
   echo "    --complex"
   echo "           Large executable size to accommodate complex"
-  echo "           models (requires high memory and disk capacity."
+  echo "           models (requires high memory and disk capacity)."
   echo " "
   echo "    -h, --help"
   echo "           Display this help message."
@@ -312,7 +312,7 @@ if [ $help -eq 1 ]; then
   echo "    -v, --verbose"
   echo "           Print compilation messages to screen."
   echo " "
-  echo "      --platform <OS>"
+  echo "    --platform <OS>"
   echo "           Specify platform operating system (e.g. '--platform Linux')"
   echo " "
   echo " Notes:"
@@ -1389,7 +1389,7 @@ if [ "$corrupted_tree" = "yes" ] || [ "$create_espr_dir" = "yes" ]; then
       exit
     fi
   fi
-  rm -rf $ESPdir/*
+  rm -rf $ESPdir
   mkdir $ESPdir
   mkdir $ESPdir/bin
   mkdir $ESPdir/climate
@@ -1903,8 +1903,6 @@ if [ "$install_training" = "yes" ]; then
   echo "    - installing training and validation models:"
 # Special case.
   rm -rf ${ESPdir}/training ${ESPdir}/validation
-  cd ${MODdir}/training/cg_ctl/daylit_coef/cfg
-  $CLM -mode text -file dec94_clm -act asci2bin silent dec94_clm.a >/dev/null
   cd ${MODdir}/training/Temporal_Clm
   $CLM -mode text -file 15265.climate -act asci2bin 15265.climate.a >/dev/null
 # Update weather databases in validation models.

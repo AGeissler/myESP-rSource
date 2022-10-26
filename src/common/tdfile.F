@@ -369,6 +369,7 @@ C in the configuration file if called from simulator or res.
             IGLOVRT=0
             IRAININD=0
             IGRNDRFL=0
+            IPRCSIG=0
 
 C Search instances in temporal file to find match(s).
             NDATA=NITDF
@@ -422,7 +423,9 @@ C in the tdf file.
               elseif(TTYPE(ifoc)(1:7).EQ.'RAININD')then
                 IRAININD=ifoc
               elseif(TTYPE(ifoc)(1:7).EQ.'GRNDRFL')then
-                IGRNDRFL=ifoc                
+                IGRNDRFL=ifoc
+              elseif(TTYPE(ifoc)(1:7).EQ.'PRCSIG')then
+                IPRCSIG=ifoc
               endif
               WRITE(OUTS,'(A,I2,7A,I2,A)')
      &            ' Tdf item:',M,' :',DBTAG(M),

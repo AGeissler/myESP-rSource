@@ -486,8 +486,6 @@ C If the first or only season then write out a heading.
 
         write(outs,'(3a)') '*title',tab,ipvtitl
         call edisp(itru,outs)
-        write(outs,'(3a)') '*version',tab,ipvvers
-        call edisp(itru,outs)
         call dstamp(dstmp)
         write(outs,'(3a)') '*date',tab,dstmp
         call edisp(itru,outs)

@@ -20,10 +20,11 @@ C CFDGGRD - define domain gridding.
 C CFDSVAR - controls the editing of CFD solution variables.
 C CFDEDAT - controls the editing of CFD equations.
 C CFDEDATC- controls the editing of contaminant relaxation factors.
-C CFDBVAR - controls the editing of CFD boundary variables.
+C CFDBVAR - controls the editing of CFD boundary conditions.
 C DELCFDBC- deletes a CFD boundary condition.
 C MKCFDBC - deletes a CFD boundary condition.
 C GENCFDBC- controlling routine for boundary condition auto-generation.
+C GENOCBC - auto-generates BCs representing occupants.
 C GENEDGBC- auto-generates edge BCs from zone geometry.
 C GENVOBC - auto-generates blockages from zone visual entities.
 C GENOSBC - auto-generates blockages in areas that fall outside the zone.
@@ -118,6 +119,17 @@ C Do not increment NCONF yet, as user might not include the domain.
         CALL CFDDEFLT
       endif
       ICP = izone
+
+C Ensure operations file has been read for dynamic occupant information.
+      IUO=IFIL+1
+      CALL ERPFREE(IUO,ISTAT)
+      CALL EROPER(0,IUOUT,IUO,ICP,IER)
+      if (IER.ne.0) then
+        write(outstr,'(2a)')'If you wish to use dynamic occupants,',
+     &    ' please define zone operations before continuing.'
+        call edisp(IUOUT,outstr) 
+      endif
+
       TITLE(ICFD) = '...'
 
 C Set the flag to indicate that the data has not been saved to the
@@ -145,13 +157,13 @@ C Setup help text for main menu.
       call gethelptext(helpinsub,helptopic,nbhelp)
 
 C Get the name of the CFD input file.
-      if(LCFD(izone)(1:2).eq.'  ')then
-        if(netpth(1:2).eq.'  '.or.netpth(1:2).eq.'./')then
+      if(LCFD(izone)(1:7).eq.'UNKNOWN')then
+        if(zonepth(1:2).eq.'  '.or.zonepth(1:2).eq.'./')then
           WRITE(LCFD(izone),'(A,A4)')
      &      zname(izone)(1:lnzname(izone)),'.dfd'
         else
-          WRITE(LCFD(izone),'(A,A,A,A4)') netpth(1:lnblnk(netpth)),'/',
-     &      zname(izone)(1:lnzname(izone)),'.dfd'
+          WRITE(LCFD(izone),'(A,A,A,A4)') zonepth(1:lnblnk(zonepth)),
+     &      '/',zname(izone)(1:lnzname(izone)),'.dfd'
         endif
       endif
       ltmp=LCFD(izone)
@@ -1373,12 +1385,12 @@ C Convergence criteria.
 C Additional data needed for some models.
       COMMON/ZTURB/rMOOT(MNZ),nZtoKE(MNZ)
       COMMON/BUOYAN/BUOYA,BOUSSA,TBAR(MNZ)
+      LOGICAL BUOYA,BOUSSA
  
       character ITEM(33)*40,ltmp*16,dtmp*16, POLNAM*12
 
       LOGICAL CALLU,CALLV,CALLW,CALLT,CALLC,KEMDL,BUOY,BOUSSI
       LOGICAL ZEROT,ZandKE,MITzero
-      LOGICAL BUOYA,BOUSSA
       LOGICAL CALPOL,CALLMA
       integer NITMS,INO ! max items and current menu item
 
@@ -1464,12 +1476,12 @@ C Now create menu.
         ITEM(19)= 'n turbulence >> none'
       elseif (ITURB(ICFD).eq.1) then
         ITEM(19)= 'n turbulence >> k-e'
-        write(ITEM(20),'(a,E8.2E2,a,E8.2E2)')'o initial value - k: ',
-     &                                 TEINIT(ICFD),'; e: ',EDINIT(ICFD)
-        write(ITEM(21),'(a,f5.2,a,f5.2)')'p high relax. factor - k: ',
-     &                                   URFCK(ICFD),'; e: ',URFCE(ICFD)
+        write(ITEM(20),'(a,E7.2E1,a,E7.2E1)')'o initial value - k: ',
+     &    TEINIT(ICFD),'; e: ',EDINIT(ICFD)
+        write(ITEM(21),'(a,f5.2,a,f5.2)')'p high relx. factor - k: ',
+     &    URFCK(ICFD),'; e: ',URFCE(ICFD)
         write(ITEM(22),'(a,f5.2,a,f5.2)')'q low relax. factor - k:',
-     &                                 URFCK2(ICFD),'; e: ',URFCE2(ICFD)
+     &    URFCK2(ICFD),'; e: ',URFCE2(ICFD)
       elseif (ITURB(ICFD).eq.2) then
         ITEM(19)= 'n turbulence >> fixed eddy viscosity'
         write (ITEM(20),'(a,f6.2)') 'o eddy viscosity: ',rMOOT(ICFD)
@@ -1488,7 +1500,7 @@ C Now create menu.
       elseif (IBUOY(ICFD).eq.1) then
         ITEM(24)= 'r buoyancy >> ideal gas'
       elseif (IBUOY(ICFD).eq.2) then
-        ITEM(24)= 'r buoyancy >> Boussinesq approximation'
+        ITEM(24)= 'r buoyancy >> Boussinesq approx.'
         write(ITEM(25),'(a,f6.2)')'s Reference temperature: ',
      &                                                       TBAR(ICFD)
       endif
@@ -1873,7 +1885,6 @@ C Controls the editing of CFD boundary parameters.
 #include "help.h"
 
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
-
       COMMON/ICFNOD/ICFD,ICP
       COMMON/OUTIN/IUOUT,IUIN,IEOUT   
       common/cfdconf/ICFBLD(MNZ),ICFMFS(MNZ)
@@ -1887,6 +1898,7 @@ C Controls the editing of CFD boundary parameters.
      &          VOLArea(MNVLS,MNZ),VOLPres(MNVLS,MNZ),
      &          VOLPol(MCTM,MNVLS,MNZ)
       common/GRIDEFN/origin,xgrid,ygrid,zgrid,zegrid,ortho
+      COMMON/GFONT/IFS,ITFS,IMFS
 
       dimension IDEL(MNVLS)
 
@@ -1898,11 +1910,12 @@ C Controls the editing of CFD boundary parameters.
       logical origin,xgrid,ygrid,zgrid,zegrid,ortho,show
       integer INB     ! for radio button
       integer NITMS,INO,IAIN ! max items and current menu item
-      real dum(1)
+      real dum(1),dums(MCTM)
 
       helpinsub='edcfd'  ! set for subroutine
 
-      MHEAD=2
+C Set up multi-page menu.
+ 4    MHEAD=3
       MCTL=5
       ILEN=NVOL(ICFD)
       IPACT=CREATE
@@ -1914,46 +1927,50 @@ C Menu entry setup.
 C Create menu text.
       M=MHEAD
       ITEM(1)='1 infer BCs from geometry'
-      ITEM(2)=' --------------------'
+      ITEM(2)='2 place occupant BCs'
+      ITEM(3)=' --------------------'
       do 10 I=1,ILEN
         IF(I.GE.IST.AND.(I.LE.(IST+MIFULL)))THEN
           M=M+1
           call EMKEY(I,KEY,IER)
           t24='  '
           if (IVTYPE(I,ICFD).eq.1) then
-            t24='Solid  | Temp'
+            t24='Solid   | Temp'
           elseif (IVTYPE(I,ICFD).eq.2) then
-            t24='Solid  | Heat'
+            t24='Solid   | Heat'
           elseif (IVTYPE(I,ICFD).eq.3) then
-            t24='Solid  | Symmetrical'
+            t24='Solid   | Symmetrical'
           elseif (IVTYPE(I,ICFD).eq.4) then
-            t24='Solid  | Conflated'
+            t24='Solid   | Conflated'
           elseif (IVTYPE(I,ICFD).eq.5) then
-            t24='Solid  | Conflated'
+            t24='Solid   | Conflated'
           elseif (IVTYPE(I,ICFD).eq.6) then
-            t24='Solid  | Conflated'
+            t24='Solid   | Conflated'
           elseif (IVTYPE(I,ICFD).eq.10) then
-            t24='Opening| Pressure'
-            IF (ICFMFS(ICFD).EQ.1)T24='Opening| Mass flow nwk'
+            t24='Opening | Pressure'
+            IF (ICFMFS(ICFD).EQ.1)T24='Opening | Mass flow nwk'
           elseif (IVTYPE(I,ICFD).eq.11) then
-            t24='Opening| Velocity'
-            IF (ICFMFS(ICFD).EQ.1)T24='Opening| Mass flow nwk'
+            t24='Opening | Velocity'
+            IF (ICFMFS(ICFD).EQ.1)T24='Opening | Mass flow nwk'
           elseif (IVTYPE(I,ICFD).eq.12) then
-            t24='Opening| Zero gradient'
-            IF (ICFMFS(ICFD).EQ.1)T24='Opening| Mass flow nwk'
+            t24='Opening | Zero gradient'
+            IF (ICFMFS(ICFD).EQ.1)T24='Opening | Mass flow nwk'
           elseif (IVTYPE(I,ICFD).eq.13) then
-            t24='Opening| Mass flow nwk'
-            IF (ICFMFS(ICFD).EQ.1)T24='Opening| Mass flow nwk'
+            t24='Opening | Mass flow nwk'
           elseif (IVTYPE(I,ICFD).eq.20) then
-            t24='Source | Contaminant'
+            t24='Source  | Contaminant'
           elseif (IVTYPE(I,ICFD).eq.30) then
-            t24='Blockage | Heat flux'
+            t24='Blockage| Heat flux'
           elseif (IVTYPE(I,ICFD).eq.31) then
-            t24='Blockage | Temperature'
+            t24='Blockage| Temperature'
           elseif (IVTYPE(I,ICFD).eq.32) then
-            t24='Blockage | Conflated'
+            t24='Blockage| Conflated'
           elseif (IVTYPE(I,ICFD).eq.33) then
-            t24='Blockage | Conflated'
+            t24='Blockage| Conflated'
+          elseif (IVTYPE(I,ICFD).eq.34) then
+            t24='Blockage| Casual gain'
+          elseif (IVTYPE(I,ICFD).eq.35) then
+            t24='Blockage| Occupant'
           else
             t24='UNKNOWN'
           endif
@@ -1972,7 +1989,7 @@ C If a long list include page facility text.
      &    ' --------'
       ENDIF
       ITEM(M+2)='+ add/ delete boundary definition'
-      ITEM(M+3)='! view gridding'
+      ITEM(M+3)='! grid parameters'
       ITEM(M+4)='? help'
       ITEM(M+5)='- exit menu'
 
@@ -1990,9 +2007,21 @@ C Help text for this menu.
       helptopic='cfd_boundary_variables'
       call gethelptext(helpinsub,helptopic,nbhelp)
 
+C Set fixed width font.
+      itmp=IMFS
+      if(IMFS.eq.4) IMFS=0
+      if(IMFS.eq.5) IMFS=1
+      if(IMFS.eq.6) IMFS=2
+      if(IMFS.eq.7) IMFS=3
+      call userfonts(IFS,ITFS,IMFS)
+
 C Display menu.
       INO=-1
       CALL EMENU('Boundary conditions',ITEM,NITMS,INO)
+      
+C Return to previous font.
+      IMFS=itmp
+      call userfonts(IFS,ITFS,IMFS)
 
 C Do things in reverse order.
       if (INO.eq.NITMS) then
@@ -2067,7 +2096,10 @@ C A source has been added.
             if (IER.eq.0) then
               call st2name(t12,d12)
             endif
-            call MKCFDBC(show,20,9,0,0,0,0,0,0,d12,t12,dum,1,
+            do ictm=1,MCTM
+              dums(ictm)=0.0
+            enddo
+            call MKCFDBC(show,20,9,0,0,0,0,0,0,d12,t12,dums,MCTM,
      &        0.0,0.0,0.0,0.0,0.0,IER)
             call EDSRC(NVOL(ICFD),IER)
             call NEW2OLD
@@ -2101,13 +2133,7 @@ C Delete a boundary condition.
             CALL DELCFDBC(IDEL(1))
           endif
         endif
-
-C Update paging commons.
-        MHEAD=3
-        MCTL=5
-        ILEN=NVOL(ICFD)
-        IPACT=CREATE
-        CALL EKPAGE(IPACT)
+        goto 4
 
       elseif (INO.eq.(NITMS-4)) then
  
@@ -2129,30 +2155,26 @@ C Existing volume, edit according to type.
           call EDAIRO(IAIN,IER)
         elseif(IVTYPE(IAIN,ICFD).ge.20.and.IVTYPE(IAIN,ICFD).lt.30)then
           call EDSRC(IAIN,IER)
+          goto 4
         elseif(IVTYPE(IAIN,ICFD).ge.30.and.IVTYPE(IAIN,ICFD).lt.40)then
           call EDBLK(IAIN,IER)
         endif
 
-C Update paging commons.
-        MHEAD=3
-        MCTL=5
-        ILEN=NVOL(ICFD)
-        IPACT=CREATE
-        CALL EKPAGE(IPACT)
-      elseif (INO.eq.1) then
-
 C Infer boundary conditions from geometry.
-        CALL GENCFDBC(0,IER)
+      elseif (INO.eq.1) then
+        CALL GENCFDBC(3,IER)
         if (IER.ne.0) then
-          CALL EDISP(IUOUT,'Boundary conditions not generated.')
+          CALL EDISP(IUOUT,'Error during BC generation.')
         endif
-
-C Update paging commons.
-        MHEAD=2
-        MCTL=5
-        ILEN=NVOL(ICFD)
-        IPACT=CREATE
-        CALL EKPAGE(IPACT)
+        goto 4
+        
+C Place occupant BCs.
+      elseif (INO.eq.2) then
+        CALL GENCFDBC(4,IER)
+        if (IER.ne.0) then
+          CALL EDISP(IUOUT,'Error during BC generation.')
+        endif
+        goto 4
 
       endif
       goto 5
@@ -2160,7 +2182,7 @@ C Update paging commons.
       end
 
 C ******************** DELCFDBC ********************
-C Delets a CFD boundary condition (with index ibc).
+C Deletes a CFD boundary condition (with index ibc).
 
       SUBROUTINE DELCFDBC(ibc)
 #include "building.h"
@@ -2177,6 +2199,9 @@ C Delets a CFD boundary condition (with index ibc).
      &          VOLCO2(MNVLS,MNZ),VOLVel(MNVLS,MNZ),VOLDir(MNVLS,MNZ,2),
      &          VOLArea(MNVLS,MNZ),VOLPres(MNVLS,MNZ),
      &          VOLPol(MCTM,MNVLS,MNZ)
+      COMMON/CTDFAF/ICTDFAF(MNZ),SRCE(MNVLS,MCTM,MNZ),ICCSRC(MNZ),
+     &              ICC2NC(MCTM,MNZ),SRCFRC(MNVLS,MCTM,MNZ)
+      character SRCE*12
 
 C Move all definitions greater than selected volume up one slot.
       do I=ibc,NVOL(ICFD)
@@ -2202,7 +2227,9 @@ C Move all definitions greater than selected volume up one slot.
           VOLArea(I,ICFD)=VOLArea(I+1,ICFD)
           VOLPres(I,ICFD)=VOLPres(I+1,ICFD)
           do J=1,MCTM
-            VOLPol(J,I,ICFD)=VOLPol(J,I,ICFD)
+            VOLPol(J,I,ICFD)=VOLPol(J,I+1,ICFD)
+            SRCE(I,J,ICFD)=SRCE(I+1,J,ICFD)
+            SRCFRC(I,J,ICFD)=SRCFRC(I+1,J,ICFD)
           enddo
           BLKSURF(I,ICFD,1)=BLKSURF(I+1,ICFD,1)
           BLKSURF(I,ICFD,2)=BLKSURF(I+1,ICFD,2)
@@ -2225,6 +2252,8 @@ C Move all definitions greater than selected volume up one slot.
           VOLArea(I,ICFD)=0.; VOLPres(I,ICFD)=0.
           do J=1,MCTM
             VOLPol(J,I,ICFD)=0.
+            SRCE(I,J,ICFD)=' '
+            SRCFRC(I,J,ICFD)=0.0
           enddo
           BLKSURF(I,ICFD,1)='NONE'; BLKSURF(I,ICFD,2)='NONE'
           BLKSURF(I,ICFD,3)='NONE'; BLKSURF(I,ICFD,4)='NONE'
@@ -2260,6 +2289,8 @@ C 30 = heat flux
 C 31 = temperature
 C 32 = conflated to single surface
 C 33 = conflated to multiple surfaces
+C 34 = casual gain
+C 35 = dynamic person
 
 C ifac (IVOLF): face
 C  1 = west
@@ -2290,12 +2321,28 @@ C itype=10: VOLTemp,VOLArea,VOLPres,-      ,-
 C itype=11: VOLTemp,VOLArea,VOLVel ,VOLDir1,VOLDir2
 C itype=12: VOLTemp,VOLArea,-      ,-      ,-
 C itype=13: VOLTemp,VOLArea,VOLVel ,-      ,-
-C itype=20: VOLHeat,VOLHum ,VOLCO2 ,-      ,-
+C itype=20: VOLHeat,IDcasgn,Fcasgn ,occtype,-
 C itype=30: VOLHeat,-      ,-      ,-      ,-
 C itype=31: VOLTemp,-      ,-      ,-      ,-
 C itype=32: VOLTemp,-      ,-      ,-      ,-
 C itype=33: surface numbers for west, north, south, high, and low faces
 C           respectively (confsurf is name for east surface)
+C itype=34: IDcasgn,Fcasgn ,-      ,-      ,-      
+C itype=35: occtype,occpart,-      ,-      ,-
+
+C occtype:
+C 1.0 = man
+C 2.0 = woman
+C 3.0 = child
+
+C occpart:
+C 1.0 = head
+C 2.0 = trunk
+C 3.0 = left arm
+C 4.0 = right arm
+C 5.0 = left leg
+C 6.0 = right leg
+C 7.0 = whole bady
 
 C If show is true, will highlight the boundary condition in the 3D model
 C display and print text feedback, then pause for half a second.
@@ -2317,6 +2364,7 @@ C IER=2: cells already contain a blockage or source (silent) < currently unused 
 
       COMMON/OUTIN/IUOUT,IUIN,IEOUT    
       COMMON/ICFNOD/ICFD,ICP
+      COMMON/SPAD/MMOD,LIMIT,LIMTTY
       common/KEYVOLS/NVOL(MNZ),IVOLF(MNVLS,MNZ),IVCELLS(MNVLS,MNZ,2),
      &               JVCELLS(MNVLS,MNZ,2),KVCELLS(MNVLS,MNZ,2)
       common/KEYVOLN/VOLNAME(MNVLS,MNZ),VCsurf(MNVLS,MNZ),
@@ -2342,11 +2390,15 @@ C IER=2: cells already contain a blockage or source (silent) < currently unused 
      &              SSBHC(MNSBZ,MNZ),IVOLNSB(MNSBZ,MNZ),
      &              ITCtype(MNSBZ,MNZ),icTREF(MNSBZ,MNZ)
       common/blksso/NBLK(MNZ),INBLK(MNVLS,MNZ),NSSO(MNZ),
-     &          INSSO(MNVLS,MNZ),BLKTEMP(MNVLS,MNZ,6)
+     &          INSSO(MNVLS,MNZ),BLKTEMP(MNVLS,6)
       COMMON/CFDVIS/HAS_GEOM,ISHSB,ISHAO,IFACES,ISHBLK,ISHSRC,ISHGEO,
      &              INITD
       logical HAS_GEOM
       character INITD*6
+      common/KEYCASGN/IDcasgn(MNVLS,MNZ),Fcasgn(MNVLS,MNZ)
+      COMMON/CTDFAF/ICTDFAF(MNZ),SRCE(MNVLS,MCTM,MNZ),ICCSRC(MNZ),
+     &              ICC2NC(MCTM,MNZ),SRCFRC(MNVLS,MCTM,MNZ)
+      character SRCE*12
 
       character outs*124,stype*8,sfac*15
 
@@ -2475,10 +2527,24 @@ C IER=2: cells already contain a blockage or source (silent) < currently unused 
         JVCELLS(n,ICFD,1)=j1; JVCELLS(n,ICFD,2)=j2
         KVCELLS(n,ICFD,1)=k1; KVCELLS(n,ICFD,2)=k2
         VOLNAME(n,ICFD)=nam
-        VOLPol(1:size(pol),n,ICFD)=pol
+        VOLPol(1:npol,n,ICFD)=pol
+        do i=1,npol
+          SRCE(n,i,ICFD)=' '
+          SRCFRC(n,i,ICFD)=0.0
+        enddo
         VOLHeat(n,ICFD)=dat1
-        VOLHum(n,ICFD)=dat2
-        VOLCO2(n,ICFD)=dat3
+        IDcasgn(n,ICFD)=NINT(dat2)
+        Fcasgn(n,ICFD)=dat3
+        itmp=NINT(dat4)
+        if (itmp.eq.1) then
+          VCsurf(n,ICFD)='man'
+        elseif (itmp.eq.2) then
+          VCsurf(n,ICFD)='woman'
+        elseif (itmp.eq.3) then
+          VCsurf(n,ICFD)='child'
+        else
+          VCsurf(n,ICFD)='none'
+        endif
       elseif (itype.eq.30) then
         NVOL(ICFD)=NVOL(ICFD)+1
         n=NVOL(ICFD)
@@ -2542,7 +2608,7 @@ C IER=2: cells already contain a blockage or source (silent) < currently unused 
         VOLTemp(n,ICFD)=0.
         VCsurf(n,ICFD)=' '
         BLKSURF(n,ICFD,1)=confsurf
-        itmp=INT(dat1)
+        itmp=NINT(dat1)
         if (itmp.eq.0) then
           BLKSURF(n,ICFD,2)='NONE'
         else
@@ -2572,6 +2638,66 @@ C IER=2: cells already contain a blockage or source (silent) < currently unused 
         else
           BLKSURF(n,ICFD,6)=SNAME(ICP,itmp)
         endif
+      elseif (itype.eq.34) then
+        NVOL(ICFD)=NVOL(ICFD)+1
+        n=NVOL(ICFD)
+        IVTYPE(n,ICFD)=itype
+        IVOLF(n,ICFD)=ifac
+        IVCELLS(n,ICFD,1)=i1; IVCELLS(n,ICFD,2)=i2
+        JVCELLS(n,ICFD,1)=j1; JVCELLS(n,ICFD,2)=j2
+        KVCELLS(n,ICFD,1)=k1; KVCELLS(n,ICFD,2)=k2
+        VOLNAME(n,ICFD)=nam
+        VOLTemp(n,ICFD)=0.
+        VCsurf(n,ICFD)=' '
+        BLKSURF(n,ICFD,1)='NONE'
+        BLKSURF(n,ICFD,2)='NONE'
+        BLKSURF(n,ICFD,3)='NONE'
+        BLKSURF(n,ICFD,4)='NONE'
+        BLKSURF(n,ICFD,5)='NONE'
+        BLKSURF(n,ICFD,6)='NONE'
+        IDcasgn(n,ICFD)=NINT(dat1)
+        Fcasgn(n,ICFD)=dat2
+      elseif (itype.eq.35) then
+        NVOL(ICFD)=NVOL(ICFD)+1
+        n=NVOL(ICFD)
+        IVTYPE(n,ICFD)=itype
+        IVOLF(n,ICFD)=ifac
+        IVCELLS(n,ICFD,1)=i1; IVCELLS(n,ICFD,2)=i2
+        JVCELLS(n,ICFD,1)=j1; JVCELLS(n,ICFD,2)=j2
+        KVCELLS(n,ICFD,1)=k1; KVCELLS(n,ICFD,2)=k2
+        VOLNAME(n,ICFD)=nam
+        VOLTemp(n,ICFD)=0.
+        VCsurf(n,ICFD)=' '
+        itmp=NINT(dat1)
+        if (itmp.eq.1) then
+          BLKSURF(n,ICFD,1)='man'
+        elseif (itmp.eq.2) then
+          BLKSURF(n,ICFD,1)='woman'
+        elseif (itmp.eq.3) then
+          BLKSURF(n,ICFD,1)='child'
+        else
+          BLKSURF(n,ICFD,1)='UNKNOWN'
+        endif
+        itmp=NINT(dat2)
+        if (itmp.eq.1) then
+          BLKSURF(n,ICFD,2)='head'
+        elseif (itmp.eq.2) then
+          BLKSURF(n,ICFD,2)='trunk'
+        elseif (itmp.eq.3) then
+          BLKSURF(n,ICFD,2)='left_arm'
+        elseif (itmp.eq.4) then
+          BLKSURF(n,ICFD,2)='right_arm'
+        elseif (itmp.eq.5) then
+          BLKSURF(n,ICFD,2)='left_leg'
+        elseif (itmp.eq.6) then
+          BLKSURF(n,ICFD,2)='right_leg'
+        else
+          BLKSURF(n,ICFD,2)='whole_body'
+        endif
+        BLKSURF(n,ICFD,3)='NONE'
+        BLKSURF(n,ICFD,4)='NONE'
+        BLKSURF(n,ICFD,5)='NONE'
+        BLKSURF(n,ICFD,6)='NONE'
       else
         IER=1
         write(outs,'(a,i2)')'MKCFDBC: unrecognised type ',itype
@@ -2625,8 +2751,10 @@ C IER=2: cells already contain a blockage or source (silent) < currently unused 
         write(outs,'(6a)')' Created ',stype(1:lstype),' BC',
      &    sfac(1:lsfac),'called ',nam(1:lnblnk(nam))
         call EDISP(IUOUT,outs)
-        call redraw(IER)
-        call pausems(500)
+        if (MMOD.eq.8) then
+          call redraw(IER)
+          call pausems(500)
+        endif
       endif
 
   999 RETURN
@@ -2634,9 +2762,11 @@ C IER=2: cells already contain a blockage or source (silent) < currently unused 
 
 C ******************** GENCFDBC ********************
 C Infers CFD boundary conditions from zone geometry.
-C  imode = 0 - all BCs.
+C  imode = 0 - all
 C  imode = 1 - edge BCs (solid + opening).
 C  imode = 2 - internal BCs (blockages + sources).
+C  imode = 3 - 1 + 2
+C  imode = 4 - occupant BCs
 
       SUBROUTINE GENCFDBC(imode,IER)
 #include "building.h"
@@ -2664,6 +2794,7 @@ C  imode = 2 - internal BCs (blockages + sources).
       logical HAS_GEOM
       character INITD*6
       COMMON/C24/IZSTOCN(MCOM,MS)
+      common/dynamico/isdynamicocup(MCOM)
 
       character outs*124,t6*6,t12*12
       logical ok
@@ -2683,37 +2814,45 @@ C If there are already some defined, ask user if they want to clear
 C existing boundary conditions.
       if (NVOL(ICFD).gt.0) then
         if (imode.eq.0) then
-          outs='Clear existing boundary conditions?'
-          ok=.true.
+          iw=1
           helptopic='cfdbc_infer_delete_exist'
           call gethelptext(helpinsub,helptopic,nbhelp)
-          CALL EASKOK(' ',outs,ok,nbhelp)
-          if (ok) then
+          CALL EASKABC('Clear all boundary conditions?',' ','yes','no',
+     &      'cancel',iw,nbhelp)
+          if (iw.eq.1) then
             do I=1,NVOL(ICFD)              
               call DELCFDBC(I)
             enddo
+          elseif (iw.eq.3) then
+            return
           endif
-        elseif (imode.eq.1) then
-          outs='Clear edge boundary conditions?'
-          ok=.true.
+        endif
+        if (imode.eq.1 .or. imode.eq.3 .or. imode.eq.0) then
+          iw=1
           helptopic='cfdbc_infer_delete_exist'
           call gethelptext(helpinsub,helptopic,nbhelp)
-          CALL EASKOK(' ',outs,ok,nbhelp)
-          if (ok) then
+          CALL EASKABC('Clear solid and opening boundary conditions?',
+     &      ' ','yes','no','cancel',iw,nbhelp)
+          if (iw.eq.1) then
             do I=1,NVOL(ICFD)
               if (IVTYPE(I,ICFD).lt.20) call DELCFDBC(I)
             enddo
+          elseif (iw.eq.3) then
+            return
           endif
-        elseif (imode.eq.2) then
-          outs='Clear internal boundary conditions?'
-          ok=.true.
+        endif
+        if (imode.eq.2 .or. imode.eq.3 .or. imode.eq.0) then
+          iw=1
           helptopic='cfdbc_infer_delete_exist'
           call gethelptext(helpinsub,helptopic,nbhelp)
-          CALL EASKOK(' ',outs,ok,nbhelp)
-          if (ok) then
+          CALL EASKABC('Clear source and blockage boundary conditions?',
+     &      ' ','yes','no','cancel',iw,nbhelp)
+          if (iw.eq.1) then
             do I=1,NVOL(ICFD)
               if (IVTYPE(I,ICFD).ge.20) call DELCFDBC(I)
             enddo
+          elseif (iw.eq.3) then
+            return
           endif
         endif
       endif
@@ -2755,7 +2894,7 @@ C Grab the X, Y, and Z coordinates of the domain extremes (in CFD axes)
       endif
 
 C Loop through zone surfaces.
-      if (imode.eq.1 .or. imode.eq.0) then
+      if (imode.eq.1 .or. imode.eq.3 .or. imode.eq.0) then
 
 C Create solid and opening BCs.
         if (NZSUR(ICP).gt.0) then
@@ -2792,8 +2931,12 @@ C their parent.
      &        'Please check text feedback above.')
           endif
         else        
-          CALL EDISP(IUOUT,'*** No surfaces detected ***')
+          CALL EDISP(IUOUT,'* No surfaces detected *')
         endif
+      endif
+
+C Create blockage BCs.
+      if (imode.eq.2 .or. imode.eq.3 .or. imode.eq.0) then
 
 C Create blockages for cells that fall outside the zone.
         write(outs,'(a)')
@@ -2807,16 +2950,13 @@ C Create blockages for cells that fall outside the zone.
           CALL EDISP(IUOUT,'! Problem encountered !')
         endif
         CALL EDISP(IUOUT,' ')
-      endif
 
-C Create blockage BCs.
 C Because we need to check all visual entities against one another to
 C check for intersections, we loop through entities inside the
 C subroutine instead of at this level.
-      if (imode.eq.2 .or. imode.eq.0) then
         if (NBVIS(ICP).gt.0) then
           write(outs,'(a)')
-     &      '*** Scanning visual entities for blockage BCs ***'
+     &      'Scanning visual entities for blockage BCs.'
           CALL EDISP(IUOUT,outs)
           CALL GENVOBC(ISTAT)
           if (ISTAT.ne.0) then            
@@ -2826,9 +2966,26 @@ C subroutine instead of at this level.
      &        'Please check text feedback above.')
           endif
         else
-          CALL EDISP(IUOUT,'*** No visual entities detected ***')
+          CALL EDISP(IUOUT,'* No visual entities detected *')
         endif
       endif
+
+C Place occupant BCs.
+      if (imode.eq.4 .or. imode.eq.0) then
+
+C First, check if dynamic people are defined in the zone operations.
+C If they're not, pop up a message asking the user to define them.
+        if (isdynamicocup(ICP).eq.0) then
+          helptopic='cfdbc_infer_occ_notdy'
+          call gethelptext(helpinsub,helptopic,nbhelp)
+          CALL PHELPD('Function not available',nbhelp,'-',0,0,IER)
+        else
+          write(outs,'(a)')
+     &      'Commencing auto-generation of occupant BCs.'
+          CALL EDISP(IUOUT,outs)
+          call GENOCBC(ISTAT)
+        endif
+      endif          
 
 C Restore visualisation settings.
       ISHSB=IISHSB; ISHAO=IISHAO; ISHBLK=IISHBLK; ISHSRC=IISHSRC
@@ -2837,6 +2994,310 @@ C Restore visualisation settings.
 
   999 RETURN
       END
+
+
+C ******************** GENOCBC ********************
+C Used in the auto-generation of CFD BCs.
+C Creates blockages and sources representing occupants.
+
+C istat:
+C 1 = error
+C 2 = no occupants
+
+      SUBROUTINE GENOCBC(istat)
+#include "building.h"
+#include "cfd.h"
+#include "help.h"
+#include "schedule.h"
+#include "prj3dv.h"
+      
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
+      COMMON/ICFNOD/ICFD,ICP
+      common/caleni/NBDAYTYPE,NBCALDAYS(MDTY),ICALENDER(365)
+      COMMON/SPAD/MMOD,LIMIT,LIMTTY
+      common/dynamico/isdynamicocup(MCOM)
+      COMMON/CFDVIS/HAS_GEOM,ISHSB,ISHAO,IFACES,ISHBLK,ISHSRC,ISHGEO,
+     &              INITD
+      logical HAS_GEOM
+      character INITD*6
+      COMMON/ALL/NI,NJ,NK,NIM1,NJM1,NKM1,NIM2,NJM2,NKM2
+      COMMON/GEOM/XP(ntcelx),YP(ntcely),ZP(ntcelz),
+     &  DXEP(ntcelx),DXPW(ntcelx),DYNP(ntcely),DYPS(ntcely),
+     &  DZHP(ntcelz),DZPL(ntcelz),SEW(ntcelx),SNS(ntcely),SHL(ntcelz),
+     &  XU(ntcelx),YV(ntcely),ZW(ntcelz)
+      common/KEYVOLS/NVOL(MNZ),IVOLF(MNVLS,MNZ),IVCELLS(MNVLS,MNZ,2),
+     &  JVCELLS(MNVLS,MNZ,2),KVCELLS(MNVLS,MNZ,2)
+      common/blksso/NBLK(MNZ),INBLK(MNVLS,MNZ),NSSO(MNZ),
+     &  INSSO(MNVLS,MNZ),BLKTEMP(MNVLS,6)
+
+      logical ok,INSIDEP,dosrc
+      character outs*124,t12*12
+      DIMENSION apol(1000)
+      real dum(1)
+#ifdef OSI
+      integer ik,ix,iy,iix,iiy
+#else
+      integer*8 ik,ix,iy,iix,iiy
+#endif     
+
+      helpinsub='edcfd'
+
+      istat=0
+
+C First, scan zone operations to determine the maximum number of each
+C occupant type.   
+      ok=.false.
+      do igty=1,MGTY
+        if (caskeytype(ICP,igty)(1:14).eq.'dynamic_people') then
+          ok=.true.
+          exit
+        endif
+      enddo
+
+      if (.not.ok) then
+        istat=1
+        outs='GENOCBC: error while scanning zone operations.'
+        call edisp(ieout,outs)
+        return
+      endif
+
+      mxmen=0; imen=0
+      mxwom=0; iwom=0
+      mxchi=0; ichi=0
+      do idty=1,NBDAYTYPE
+        if (NCAS(idty).gt.0) then
+          do ip=1,NCAS(idty)
+            if (ABS(ICGT(idty,ip)).eq.igty) then
+              if (TNBMEN(idty,ip).gt.mxmen) mxmen=NINT(TNBMEN(idty,ip))
+              if (TNBWOMEN(idty,ip).gt.mxwom)
+     &          mxwom=NINT(TNBWOMEN(idty,ip))
+              if (TNBCHILD(idty,ip).gt.mxchi)
+     &          mxchi=NINT(TNBCHILD(idty,ip))
+            endif
+          enddo
+        endif
+      enddo
+
+      if (mxmen.eq.0 .and. mxwom.eq.0 .and. mxchi.eq.0) then
+        istat=2
+        outs='No occupants detected.'
+        call edisp(iuout,outs)
+        return
+      endif
+
+C If we're using the segmented model, we need a source as well as the
+C blockage.
+      if (isdynamicocup(ICP).eq.4) then
+        dosrc=.true.
+      else
+        dosrc=.false.
+      endif
+
+C Create BCs for each person.
+
+C TODO: For the time being, just create a single whole body blockage. In
+C future we could extend this to create individual parts for the
+C segmented model.
+      do ip=1,mxmen+mxwom+mxchi
+
+C ipty: 1 = man, 2 = woman, 3 = child
+        if (ip.le.mxmen) then
+          ipty=1; imen=imen+1; xhgt=1.75; xwdt=0.4;  xdpt=0.3
+          write(outs,'(a,i3,a)')'Processing occupant ',ip,' (man) ...'
+        elseif (ip.le.mxmen+mxwom) then
+          ipty=2; iwom=iwom+1; xhgt=1.6;  xwdt=0.4;  xdpt=0.3
+          write(outs,'(a,i3,a)')'Processing occupant ',ip,' (woman) ...'
+        else
+          ipty=3; ichi=ichi+1; xhgt=1.3;  xwdt=0.35; xdpt=0.25
+          write(outs,'(a,i3,a)')'Processing occupant ',ip,' (child) ...'
+        endif
+        call edisp(iuout,outs)
+
+C Starting estimate is in the middle of the domain, facing north.
+C idir: 1 = north/south, 2 = east/west
+        i=NIM1/2; j=NJM1/2; idir=1
+
+C If we're in graphic mode, ask user to click where they want to place
+C the occupant.
+    3   if (MMOD.eq.8) then
+          call edisp(iuout,
+     &    '  Click where on the floor you want to place this occupant.')
+          call edisp(iuout,
+     &      '  Press v to reposition the view, c to cancel.')
+          ISHSB=-1; ISHAO=-1; ISHBLK=-1; ISHSRC=-1; ISHGEO=0; IFACES=1
+          call redraw(IER)          
+    1     CALL trackview(ik,ix,iy)
+          if (ik.eq.118) then ! pressed v
+            call tmpmenu
+            goto 1
+          elseif (ik.eq.99) then ! pressed c
+            outs='Cancelled, skipping this occupant.'
+            call edisp(IUOUT,outs)
+            goto 2
+          endif
+
+C Find a cell on the low face that corresponds to the location clicked.
+          ok=.false.
+          k=2
+          do i=2,NIM1
+            do j=2,NJM1
+              
+C Transform lower face corners to screen coords.
+              ier=0
+              iapnt=1
+              apol(iapnt)=4.0
+              CALL CFDTRANS(1,XU(i),YV(j),ZW(k),x0,y0,z0,ier)
+              CALL ORTTRN(x0,y0,z0,TSMAT,x1,y1,z1,ier)
+              call u2pixel(x1,y1,iix,iiy)
+              if (ier.ne.0) then
+                istat=1
+                outs='GENOCBC: error converting coordinates.'
+                call edisp(ieout,outs)
+                return
+              endif
+              apol(2)=real(iix); apol(3)=real(iiy); apol(4)=0.0
+              CALL CFDTRANS(1,XU(i+1),YV(j),ZW(k),x0,y0,z0,ier)
+              CALL ORTTRN(x0,y0,z0,TSMAT,x1,y1,z1,ier)
+              call u2pixel(x1,y1,iix,iiy)
+              if (ier.ne.0) then
+                istat=1
+                outs='GENOCBC: error converting coordinates.'
+                call edisp(ieout,outs)
+                return
+              endif
+              apol(5)=real(iix); apol(6)=real(iiy); apol(7)=0.0
+              CALL CFDTRANS(1,XU(i+1),YV(j+1),ZW(k),x0,y0,z0,ier)
+              CALL ORTTRN(x0,y0,z0,TSMAT,x1,y1,z1,ier)
+              call u2pixel(x1,y1,iix,iiy)
+              if (ier.ne.0) then
+                istat=1
+                outs='GENOCBC: error converting coordinates.'
+                call edisp(ieout,outs)
+                return
+              endif
+              apol(8)=real(iix); apol(9)=real(iiy); apol(10)=0.0
+              CALL CFDTRANS(1,XU(i),YV(j+1),ZW(k),x0,y0,z0,ier)
+              CALL ORTTRN(x0,y0,z0,TSMAT,x1,y1,z1,ier)
+              call u2pixel(x1,y1,iix,iiy)
+              if (ier.ne.0) then
+                istat=1
+                outs='GENOCBC: error converting coordinates.'
+                call edisp(ieout,outs)
+                return
+              endif
+              apol(11)=real(iix); apol(12)=real(iiy); apol(13)=0.0
+
+C Check if clicked point is within the face.
+              ok=INSIDEP(real(ix),real(iy),3,iapnt,apol)
+              if (ok) exit
+            enddo
+            if (ok) exit
+          enddo
+          if (.not.ok) then
+            call edisp(iuout,'Invalid point, try again.')
+            goto 1
+          endif
+
+C Confirm direction.
+          call EASKAB('What direction does the occupant face?',' ',
+     &      'North or South (J)','East or West (I)',idir,nbhelp)
+
+C Find cells to block considering approximate size.
+          iis=i; iif=i; xis=XU(i)
+          ijs=j; ijf=j; xjs=YV(j)
+          iks=k; ikf=k; xks=ZW(k)
+          if (idir.eq.1) then
+            xi=xwdt; xj=xdpt
+          elseif (idir.eq.2) then
+            xi=xdpt; xj=xwdt
+          endif
+          xk=xhgt
+          do i=iis+1,NIM1
+            if (XP(i)-xis.ge.xi) exit
+            iif=i
+          enddo
+          do j=ijs+1,NJM1
+            if (YP(j)-xjs.ge.xj) exit
+            ijf=j
+          enddo
+          do k=iks+1,NKM1
+            if (ZP(k)-xks.ge.xk) exit
+            ikf=k
+          enddo
+
+C If not in graphic mode, just ask user to specify extents.
+        else
+          iis=1; iif=NIM1; ijs=1; ijf=NJM1; iks=1; ikf=NKM1; iface=8
+          call PIKCELS(iis,iif,ijs,ijf,iks,ikf,iface,IER)
+          if (IER.ne.0) then
+            istat=1
+            outs='GENOCBC: error specifying BC extents.'
+            call edisp(IEOUT,outs)
+            return
+          endif
+        endif
+
+Create new blockage BC.
+    4   dum=(/0/)
+        if (ipty.eq.1) then
+          write (t12,'(a3,i3.3,a3,i3.3)')'blk',NBLK(ICFD)+1,'_om',imen
+        elseif (ipty.eq.2) then
+          write (t12,'(a3,i3.3,a3,i3.3)')'blk',NBLK(ICFD)+1,'_ow',iwom
+        elseif (ipty.eq.3) then
+          write (t12,'(a3,i3.3,a3,i3.3)')'blk',NBLK(ICFD)+1,'_oc',ichi
+        else
+          istat=1
+          outs='GENOCBC: invalid occupant type.'
+          call edisp(IEOUT,outs)
+          return
+        endif
+        call MKCFDBC(.true.,35,8,iis,iif,ijs,ijf,iks,ikf,t12,
+     &    '            ',dum,1,real(ipty),7.0,0.0,0.0,0.0,IER)
+        if (IER.ne.0) then
+          istat=1
+          outs='GENOCBC: error creating BC.'
+          call edisp(IEOUT,outs)
+          return
+        endif
+
+C If in graphic mode ...
+        if (MMOD.eq.8) then
+
+C Ask user if this is correct.
+          iopt=1
+          helptopic='cfdbc_infer_occ_prevw'          
+          call gethelptext(helpinsub,helptopic,nbhelp)
+          call EASKABCD('Preview of occupant.','Options:',
+     &      'confirm','click location','manual edit','cancel',iopt,
+     &      nbhelp)
+          if (iopt.eq.2) then ! pick on display again
+            call DELCFDBC(NVOL(ICFD))
+            goto 3
+          elseif (iopt.eq.3) then ! manually edit extents
+            call DELCFDBC(NVOL(ICFD))
+            iface=8
+            call PIKCELS(iis,iif,ijs,ijf,iks,ikf,iface,IER)
+            if (IER.ne.0) then
+              istat=1
+              outs='GENOCBC: error specifying BC extents.'
+              call edisp(IEOUT,outs)
+              return
+            endif
+            goto 4
+          elseif (iopt.eq.4) then ! cancel
+            call DELCFDBC(NVOL(ICFD))
+            outs='Cancelled, skipping this occupant.'
+            call edisp(IUOUT,outs)
+          endif
+          ISHBLK=-1
+          call redraw(IER)
+        endif
+    2   continue 
+      enddo
+
+      return
+      end
+
 
 C ******************** GENOSBC ********************
 C Used in the auto-generation of CFD BCs inferred from geometry.
@@ -2850,13 +3311,12 @@ C zone.
 
       integer istat
 
-      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/ICFNOD/ICFD,ICP
       COMMON/ALL/NI,NJ,NK,NIM1,NJM1,NKM1,NIM2,NJM2,NKM2
       common/KEYVOLS/NVOL(MNZ),IVOLF(MNVLS,MNZ),IVCELLS(MNVLS,MNZ,2),
      &               JVCELLS(MNVLS,MNZ,2),KVCELLS(MNVLS,MNZ,2)
       common/blksso/NBLK(MNZ),INBLK(MNVLS,MNZ),NSSO(MNZ),
-     &          INSSO(MNVLS,MNZ),BLKTEMP(MNVLS,MNZ,6)
+     &          INSSO(MNVLS,MNZ),BLKTEMP(MNVLS,6)
 
       character outs*124,t12*12,tt12*12
       logical LINVOL,coni,conj,conk,con,lfac,ok
@@ -2942,7 +3402,7 @@ C Diagonal surfaces might match more than one face, so check for this.
                   ish=0; isl=0
                   ifac=-56
                 endif
-                CALL CFDSURFC(is,ii,ij,ik,ifac,iapnt,apol,lfac,istat)
+                CALL CFDSURFC(is,ii,ij,ik,ifac,iapnt(1),apol,lfac,istat)
                 if (istat.ne.0) return
                 if (ifac.eq.1 .or. ifac.eq.2) then
                   if (ifac.eq.1) then
@@ -2957,7 +3417,8 @@ C Diagonal surfaces might match more than one face, so check for this.
                     isn=0; iss=0
                     ifac=56
                   endif
-                  CALL CFDSURFC(is,ii,ij,ik,ifac,iapnt,apol,lfac,istat)
+                  CALL CFDSURFC(is,ii,ij,ik,ifac,iapnt(1),apol,lfac,
+     &              istat)
                   if (istat.ne.0) return
                   if (ifac.eq.3) then
                     isn=is; iss=0
@@ -2977,7 +3438,8 @@ C Diagonal surfaces might match more than one face, so check for this.
                     isn=0; iss=is
                   endif
                   ifac=56
-                  CALL CFDSURFC(is,ii,ij,ik,ifac,iapnt,apol,lfac,istat)
+                  CALL CFDSURFC(is,ii,ij,ik,ifac,iapnt(1),apol,lfac,
+     &              istat)
                   if (istat.ne.0) return
                   if (ifac.eq.5) then
                     ish=is; isl=0
@@ -3032,7 +3494,7 @@ C Loop through surfaces.
 C Check for east boundary.
                     ifac=1
                     CALL CFDSURFC(
-     &                is,iii,ijst,ikst,ifac,iapnt,apol,lfac,istat)
+     &                is,iii,ijst,ikst,ifac,iapnt(1),apol,lfac,istat)
                     if (istat.ne.0) return
                     if (lfac) then
                       iifn=iii
@@ -3048,7 +3510,7 @@ C possible number of blockages.
                     if (is.ne.isn) then
                       ifac=3
                       CALL CFDSURFC(
-     &                  is,iii,ijst,ikst,ifac,iapnt,apol,lfac,istat)
+     &                  is,iii,ijst,ikst,ifac,iapnt(1),apol,lfac,istat)
                       if (istat.ne.0) return
                       if (lfac) then
                         if (isn.eq.0) then
@@ -3062,7 +3524,7 @@ C possible number of blockages.
                     if (is.ne.iss) then
                       ifac=4
                       CALL CFDSURFC(
-     &                  is,iii,ijst,ikst,ifac,iapnt,apol,lfac,istat)
+     &                  is,iii,ijst,ikst,ifac,iapnt(1),apol,lfac,istat)
                       if (istat.ne.0) return
                       if (lfac) then
                         if (iss.eq.0) then
@@ -3076,7 +3538,7 @@ C possible number of blockages.
                     if (is.ne.ish) then
                       ifac=5
                       CALL CFDSURFC(
-     &                  is,iii,ijst,ikst,ifac,iapnt,apol,lfac,istat)
+     &                  is,iii,ijst,ikst,ifac,iapnt(1),apol,lfac,istat)
                       if (istat.ne.0) return
                       if (lfac) then
                         if (ish.eq.0) then
@@ -3090,7 +3552,7 @@ C possible number of blockages.
                     if (is.ne.isl) then
                       ifac=6
                       CALL CFDSURFC(
-     &                  is,iii,ijst,ikst,ifac,iapnt,apol,lfac,istat)
+     &                  is,iii,ijst,ikst,ifac,iapnt(1),apol,lfac,istat)
                       if (istat.ne.0) return
                       if (lfac) then
                         if (isl.eq.0) then
@@ -3135,7 +3597,7 @@ C Check for new boundaries.
                       if (is.ne.isn) then
                         ifac=3
                         CALL CFDSURFC(
-     &                    is,iii,iij,ikst,ifac,iapnt,apol,lfac,istat)
+     &                    is,iii,iij,ikst,ifac,iapnt(1),apol,lfac,istat)
                         if (istat.ne.0) return
                         if (lfac) then
                           if (isn.eq.0) then
@@ -3149,7 +3611,7 @@ C Check for new boundaries.
                       if (is.ne.ise) then
                         ifac=1
                         CALL CFDSURFC(
-     &                    is,iii,iij,ikst,ifac,iapnt,apol,lfac,istat)
+     &                    is,iii,iij,ikst,ifac,iapnt(1),apol,lfac,istat)
                         if (istat.ne.0) return
                         if (lfac) then
                           if (ise.eq.0 .and. iii.eq.iifn) then
@@ -3163,7 +3625,7 @@ C Check for new boundaries.
                       if (is.ne.isw) then
                         ifac=2
                         CALL CFDSURFC(
-     &                    is,iii,iij,ikst,ifac,iapnt,apol,lfac,istat)
+     &                    is,iii,iij,ikst,ifac,iapnt(1),apol,lfac,istat)
                         if (istat.ne.0) return
                         if (lfac) then
                           if (isw.eq.0 .and. iii.eq.iist) then
@@ -3177,7 +3639,7 @@ C Check for new boundaries.
                       if (is.ne.ish) then
                         ifac=5
                         CALL CFDSURFC(
-     &                    is,iii,iij,ikst,ifac,iapnt,apol,lfac,istat)
+     &                    is,iii,iij,ikst,ifac,iapnt(1),apol,lfac,istat)
                         if (istat.ne.0) return
                         if (lfac) then
                           if (ish.eq.0) then
@@ -3191,7 +3653,7 @@ C Check for new boundaries.
                       if (is.ne.isl) then
                         ifac=6
                         CALL CFDSURFC(
-     &                    is,iii,iij,ikst,ifac,iapnt,apol,lfac,istat)
+     &                    is,iii,iij,ikst,ifac,iapnt(1),apol,lfac,istat)
                         if (istat.ne.0) return
                         if (lfac) then
                           if (isl.eq.0) then
@@ -3243,8 +3705,8 @@ C Loop through surfaces.
 C Check for new boundaries.
                         if (is.ne.ish) then
                           ifac=5
-                          CALL CFDSURFC(
-     &                      is,iii,iij,iik,ifac,iapnt,apol,lfac,istat)
+                          CALL CFDSURFC(is,iii,iij,iik,ifac,iapnt(1),
+     &                      apol,lfac,istat)
                           if (istat.ne.0) return
                           if (lfac) then
                             if (ish.eq.0) then
@@ -3257,8 +3719,8 @@ C Check for new boundaries.
                         endif
                         if (is.ne.ise) then
                           ifac=1
-                          CALL CFDSURFC(
-     &                      is,iii,iij,iik,ifac,iapnt,apol,lfac,istat)
+                          CALL CFDSURFC(is,iii,iij,iik,ifac,iapnt(1),
+     &                      apol,lfac,istat)
                           if (istat.ne.0) return
                           if (lfac) then
                             if (ise.eq.0 .and. iii.eq.iifn) then
@@ -3271,8 +3733,8 @@ C Check for new boundaries.
                         endif
                         if (is.ne.isw) then
                           ifac=2
-                          CALL CFDSURFC(
-     &                      is,iii,iij,iik,ifac,iapnt,apol,lfac,istat)
+                          CALL CFDSURFC(is,iii,iij,iik,ifac,iapnt(1),
+     &                      apol,lfac,istat)
                           if (istat.ne.0) return
                           if (lfac) then
                             if (isw.eq.0 .and. iii.eq.iist) then
@@ -3285,8 +3747,8 @@ C Check for new boundaries.
                         endif
                         if (is.ne.isn) then
                           ifac=3
-                          CALL CFDSURFC(
-     &                      is,iii,iij,iik,ifac,iapnt,apol,lfac,istat)
+                          CALL CFDSURFC(is,iii,iij,iik,ifac,iapnt(1),
+     &                      apol,lfac,istat)
                           if (istat.ne.0) return
                           if (lfac) then
                             if (isn.eq.0 .and. iij.eq.ijfn) then
@@ -3299,8 +3761,8 @@ C Check for new boundaries.
                         endif
                         if (is.ne.iss) then
                           ifac=4
-                          CALL CFDSURFC(
-     &                      is,iii,iij,iik,ifac,iapnt,apol,lfac,istat)
+                          CALL CFDSURFC(is,iii,iij,iik,ifac,iapnt(1),
+     &                      apol,lfac,istat)
                           if (istat.ne.0) return
                           if (lfac) then
                             if (iss.eq.0 .and. iij.eq.ijst) then
@@ -3377,7 +3839,7 @@ C isur - surface index
 #include "cfd.h"
 
       integer ii,ij,ik,idim
-      dimension iapnt(100),apol(1000)
+      dimension apol(1000)
       logical edge
       
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
@@ -3543,12 +4005,11 @@ C it will only detect the first match in the order above.
 
       SUBROUTINE CFDSURFC(is,ii,ij,ik,ifac,iapnt,apol,ans,ier)
 #include "building.h"
-#include "geometry.h"
 #include "cfd.h"
 
       integer is,ii,ij,ik,ifac,ier
       logical ans
-      dimension iapnt(100),apol(1000)
+      dimension apol(1000)
       
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/GEOM/XP(ntcelx),YP(ntcely),ZP(ntcelz),
@@ -3560,7 +4021,7 @@ C it will only detect the first match in the order above.
      &           NVERM(MSM),NTVM
 
       character outs*128
-      logical INSIDEP,con,coni,conj,conk
+      logical INSIDEP,coni,conj,conk
       dimension xic(MV),xjc(MV),xkc(MV),xdum(3),xeqn(4)
 
       ier=0
@@ -3838,7 +4299,7 @@ C ISTAT = 2: Entity(s) skipped, but no error.
      &            SEW(ntcelx),SNS(ntcely),SHL(ntcelz),
      &            XU(ntcelx),YV(ntcely),ZW(ntcelz)
       common/blksso/NBLK(MNZ),INBLK(MNVLS,MNZ),NSSO(MNZ),
-     &          INSSO(MNVLS,MNZ),BLKTEMP(MNVLS,MNZ,6)
+     &          INSSO(MNVLS,MNZ),BLKTEMP(MNVLS,6)
 
       character outs*124,vetyp*4,t12*12,tt12*12
       logical ok,cureng,preveng,show,dou,dov,dow
@@ -5592,7 +6053,7 @@ C geometry files are updated, this code shouild be updated accordingly.
         elseif (t12(1:5).eq.'CRACK') then
           ibctyp=4
         elseif (t12(1:4).eq.'OPEN') then
-          CALL ZSURLEHI(ICP,ISUR,XYDIS,ZDIS,i1,i2,i3,i4)
+          CALL ZSURLEHI(ICP,ISUR,XYDIS,ZDIS,i1,i2,i3,i4,DZLLFF)
           if (XYDIS/ZDIS.gt.1.0) then
             ibctyp=6
           else
@@ -8249,19 +8710,19 @@ C IER=0 indicates no error.
       helpinsub='edcfd'  ! set for subroutine
 
 C Adjust each cell by -1 as dfs adds fictitious cells around the domain.
-      Ii=IVCELLS(IAO,ICFD,1)-1; If=IVCELLS(IAO,ICFD,2)-1
+      Ii=IVCELLS(IAO,ICFD,1)-1; Iif=IVCELLS(IAO,ICFD,2)-1
       Ji=JVCELLS(IAO,ICFD,1)-1; Jf=JVCELLS(IAO,ICFD,2)-1
       Ki=KVCELLS(IAO,ICFD,1)-1; Kf=KVCELLS(IAO,ICFD,2)-1
 
 C Check if new opening.
-      if (Ii.lt.0.or.If.lt.0.or.
+      if (Ii.lt.0.or.Iif.lt.0.or.
      &    Ji.lt.0.or.Jf.lt.0.or.
      &    Ki.lt.0.or.Kf.lt.0) then 
         t20='Air opening'
         if(IVOLF(IAO,ICFD).ne.0)IFACE=IVOLF(IAO,ICFD)
-        call PIKCELS(Ii,If,Ji,Jf,Ki,Kf,IFACE,IER)
+        call PIKCELS(Ii,Iif,Ji,Jf,Ki,Kf,IFACE,IER)
         IVOLF(IAO,ICFD)=IFACE
-        IVCELLS(IAO,ICFD,1)=Ii+1; IVCELLS(IAO,ICFD,2)=If+1
+        IVCELLS(IAO,ICFD,1)=Ii+1; IVCELLS(IAO,ICFD,2)=Iif+1
         JVCELLS(IAO,ICFD,1)=Ji+1; JVCELLS(IAO,ICFD,2)=Jf+1
         KVCELLS(IAO,ICFD,1)=Ki+1; KVCELLS(IAO,ICFD,2)=Kf+1
         call NEW2OLD
@@ -8309,7 +8770,7 @@ C Create a menu showing definitions for different conflation schemes.
       write (ITMSS(2),'(a,a)')   'b type: ',ltmp
       write (ITMSS(3),'(a)')     ' -----------------------------'
       write (ITMSS(4),'(a,a)')   '         Is  If  Js  Jf  Ks  Kf '
-      write (ITMSS(5),'(a,6(i3,1x))') 'c cells:',Ii,If,Ji,Jf,Ki,Kf
+      write (ITMSS(5),'(a,6(i3,1x))') 'c cells:',Ii,Iif,Ji,Jf,Ki,Kf
       write (ITMSS(7),'(a)')     ' -----------------------------'
       if (IVTYPE(IAO,ICFD).eq.10) then
         write(ITMSS(6),'(a)')   '  '
@@ -8372,9 +8833,20 @@ C Display menu.
 
 C Choose an opening type.
         IWO=1
-        CALL EASKATOG(' ','Opening types:','pressure',
-     &    'velocity','zero gradient','from flow network',
-     &    'cancel',' ',' ',IWO,nbhelp)
+
+C Zero gradient BCs do not work, disabled in the interface for the time
+C being.
+C        CALL EASKATOG(' ','Opening types:','pressure',
+C     &    'velocity','zero gradient','from flow network',
+C     &    'cancel',' ',' ',IWO,nbhelp)
+        CALL EASKATOG(' ','Opening types:','pressure','velocity',
+     &    'from flow network','cancel',' ',' ',' ',IWO,nbhelp)
+        if (iwo.eq.3) then
+          iwo=4
+        elseif (iwo.eq.4) then
+          iwo=5
+        endif
+        
         IF(IWO.EQ.4)THEN
           ICFMFS(ICFD)=1
           CALL MFCONF(ICFD)
@@ -8391,39 +8863,39 @@ C Reset location to whole of volume for non-face choices.
           IVOLF(IAO,ICFD)=7
         else
           t20='Air opening'
-          call PIKFACE(t20,VOLNAME(IAO,ICFD),Ii,If,Ji,Jf,Ki,Kf,
+          call PIKFACE(t20,VOLNAME(IAO,ICFD),Ii,Iif,Ji,Jf,Ki,Kf,
      &      IVOLF(IAO,ICFD),IER)
         endif
       elseif (INO.eq.5) then
         t20='Air opening'
         if(IVOLF(IAO,ICFD).ne.0)IFACE=IVOLF(IAO,ICFD)
-        call PIKCELS(Ii,If,Ji,Jf,Ki,Kf,IFACE,IER)
+        call PIKCELS(Ii,Iif,Ji,Jf,Ki,Kf,IFACE,IER)
         IVOLF(IAO,ICFD)=IFACE
-        IVCELLS(IAO,ICFD,1)=Ii+1; IVCELLS(IAO,ICFD,2)=If+1
+        IVCELLS(IAO,ICFD,1)=Ii+1; IVCELLS(IAO,ICFD,2)=Iif+1
         JVCELLS(IAO,ICFD,1)=Ji+1; JVCELLS(IAO,ICFD,2)=Jf+1
         KVCELLS(IAO,ICFD,1)=Ki+1; KVCELLS(IAO,ICFD,2)=Kf+1
         call NEW2OLD
       elseif (INO.eq.8) then
         if (IVTYPE(IAO,ICFD).eq.10) then
           VAL=VOLPres(IAO,ICFD)
-          call EASKR(VAL,' ','Cell pressure?',
+          call EASKR(VAL,' ','Cell pressure (Pa)?',
      &      0.,'W',10000.,'W',50.0,'pressure',IER,nbhelp)
           if (IER.eq.0) VOLPres(IAO,ICFD)=VAL
         elseif (IVTYPE(IAO,ICFD).eq.11) then
           VAL=VOLVel(IAO,ICFD)
           call EASKR(VAL,' ',
-     &      'Mass flow rate at chosen face of cells?',
+     &      'Mass flow rate (kg/s)?',
      &       -50.,'W',50.,'W',0.5,'flow rate',IER,nbhelp)
           if (IER.eq.0) VOLVel(IAO,ICFD)=VAL
         elseif (IVTYPE(IAO,ICFD).eq.13) then
           VAL=VOLVel(IAO,ICFD)
-          call EASKR(VAL,' ','Mass flow rate entering cells?',
+          call EASKR(VAL,' ','Mass flow rate entering cells (kg/s)?',
      &      -10.,'W',10.,'W',0.02,'mass flow',IER,nbhelp)
           if (IER.eq.0) VOLVel(IAO,ICFD)=VAL
         endif
       elseif (INO.eq.9) then
         VAL=VOLTemp(IAO,ICFD)
-        call EASKR(VAL,' ','Temperature of air entering domain?',
+        call EASKR(VAL,' ','Temperature of air entering domain (C)?',
      &     -50.,'W',50.,'W',20.,'temperature',IER,nbhelp)
         if (IER.eq.0) VOLTemp(IAO,ICFD)=VAL
       elseif (INO.eq.9) then
@@ -8552,20 +9024,20 @@ C IER=0 indicates no error.
       helpinsub='edcfd'  ! set for subroutine
 
 C Adjust each cell by -1 as dfs adds fictitious cells around the domain.
-      Ii=IVCELLS(ISB,ICFD,1)-1; If=IVCELLS(ISB,ICFD,2)-1
+      Ii=IVCELLS(ISB,ICFD,1)-1; Iif=IVCELLS(ISB,ICFD,2)-1
       Ji=JVCELLS(ISB,ICFD,1)-1; Jf=JVCELLS(ISB,ICFD,2)-1
       Ki=KVCELLS(ISB,ICFD,1)-1; Kf=KVCELLS(ISB,ICFD,2)-1
       itrc=0   ! silent feedback initially
 
 C Check if new solid boundary.
-      if (Ii.lt.0.or.If.lt.0.or.
+      if (Ii.lt.0.or.Iif.lt.0.or.
      &    Ji.lt.0.or.Jf.lt.0.or.
      &    Ki.lt.0.or.Kf.lt.0) then 
         t20='Solid boundary'
         if(IVOLF(ISB,ICFD).ne.0)IFACE=IVOLF(ISB,ICFD)
-        call PIKCELS(Ii,If,Ji,Jf,Ki,Kf,IFACE,IER)
+        call PIKCELS(Ii,Iif,Ji,Jf,Ki,Kf,IFACE,IER)
         IVOLF(ISB,ICFD)=IFACE
-        IVCELLS(ISB,ICFD,1)=Ii+1; IVCELLS(ISB,ICFD,2)=If+1
+        IVCELLS(ISB,ICFD,1)=Ii+1; IVCELLS(ISB,ICFD,2)=Iif+1
         JVCELLS(ISB,ICFD,1)=Ji+1; JVCELLS(ISB,ICFD,2)=Jf+1
         KVCELLS(ISB,ICFD,1)=Ki+1; KVCELLS(ISB,ICFD,2)=Kf+1
         call NEW2OLD
@@ -8614,19 +9086,19 @@ C Create a menu showing definitions for different conflation schemes.
       write (ITMSS(2),'(a,a)')   'b type: ',ltmp
       write (ITMSS(3),'(a)')     ' -----------------------------'
       write (ITMSS(4),'(a,a)')   '         Is  If  Js  Jf  Ks  Kf '
-      write (ITMSS(5),'(a,6(i3,1x))') 'c cells:',Ii,If,Ji,Jf,Ki,Kf
+      write (ITMSS(5),'(a,6(i3,1x))') 'c cells:',Ii,Iif,Ji,Jf,Ki,Kf
 
 C If not silent echo some XYZ coordinates in space. Need to offset
 C indicies to get correct position.
-C      write(6,*) 'XU Ii Ii+1 If If+1 If+2 If+3 ',Ii,If,
-C     &  XU(Ii),XU(Ii+1),XU(If),XU(If+1),XU(If+2),XU(If+3)
+C      write(6,*) 'XU Ii Ii+1 If If+1 If+2 If+3 ',Ii,Iif,
+C     &  XU(Ii),XU(Ii+1),XU(Iif),XU(Iif+1),XU(Iif+2),XU(Iif+3)
 C      write(6,*) 'XP Ii Ii+1 If If+1 If+2 ',
-C     &  XP(Ii),XP(Ii+1),XP(If),XP(If+1),XP(If+2)
-C      write(6,*) 'DXEP Ii Ii+1 If If+1 If+2 If+3',Ii,If,
-C     &  DXEP(Ii),DXEP(Ii+1),DXEP(If),DXEP(If+1),DXEP(If+2)
+C     &  XP(Ii),XP(Ii+1),XP(Iif),XP(Iif+1),XP(Iif+2)
+C      write(6,*) 'DXEP Ii Ii+1 If If+1 If+2 If+3',Ii,Iif,
+C     &  DXEP(Ii),DXEP(Ii+1),DXEP(Iif),DXEP(Iif+1),DXEP(Iif+2)
       call edisp(iuout,
      &  'Cell X start & end     Y start & end     Z start & end')
-      write(outs,'(6f10.4)') XU(Ii+1),XU(If+2),YV(Ji+1),YV(Jf+2),
+      write(outs,'(6f10.4)') XU(Ii+1),XU(Iif+2),YV(Ji+1),YV(Jf+2),
      &  ZW(Ki+1),ZW(Kf+2)
       call edisp(iuout,outs)
       write (ITMSS(6),'(a,a)')   '  face: ',FACE
@@ -8746,9 +9218,9 @@ C Remember non-conflated option if building surface chosen.
       elseif (INO.eq.5) then
         t20='Solid boundary'
         if(IVOLF(ISB,ICFD).ne.0)IFACE=IVOLF(ISB,ICFD)
-        call PIKCELS(Ii,If,Ji,Jf,Ki,Kf,IFACE,IER)
+        call PIKCELS(Ii,Iif,Ji,Jf,Ki,Kf,IFACE,IER)
         IVOLF(ISB,ICFD)=IFACE
-        IVCELLS(ISB,ICFD,1)=Ii+1; IVCELLS(ISB,ICFD,2)=If+1
+        IVCELLS(ISB,ICFD,1)=Ii+1; IVCELLS(ISB,ICFD,2)=Iif+1
         JVCELLS(ISB,ICFD,1)=Ji+1; JVCELLS(ISB,ICFD,2)=Jf+1
         KVCELLS(ISB,ICFD,1)=Ki+1; KVCELLS(ISB,ICFD,2)=Kf+1
         call NEW2OLD
@@ -8800,6 +9272,7 @@ C IER=0 indicates no error.
 
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
       COMMON/ICFNOD/ICFD,ICP
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       common/KEYVOLS/NVOL(MNZ),IVOLF(MNVLS,MNZ),IVCELLS(MNVLS,MNZ,2),
      &               JVCELLS(MNVLS,MNZ,2),KVCELLS(MNVLS,MNZ,2)
       common/KEYVOLN/VOLNAME(MNVLS,MNZ),VCsurf(MNVLS,MNZ),
@@ -8814,7 +9287,8 @@ C IER=0 indicates no error.
      &               NCTM(MNZ),JHUMINDX(MNZ),URFC(MCTM)
       COMMON/SCHMTT/SCHMT(MCTM,MNZ),GFM(MCTM,MNZ),VCRIT(MCTM,MNZ),
      &       TBOIL(MCTM,MNZ),TCRIT(MCTM,MNZ),ISCHMT(MCTM,MNZ)
-      COMMON/CTDFAF/ICTDFAF(MNZ),SRCE(MNVLS,MCTM,MNZ),ICCSRC(MNZ)
+      COMMON/CTDFAF/ICTDFAF(MNZ),SRCE(MNVLS,MCTM,MNZ),ICCSRC(MNZ),
+     &              ICC2NC(MCTM,MNZ),SRCFRC(MNVLS,MCTM,MNZ)
       COMMON/CONTM0/NCONTM,NOCNTM,CONTMNAM(MCONTM)
       COMMON/CONTM5/SPMSUP(MSPMNO,MCSD),SSLINK2(MSPMNO,MNOD),
      &      NSSNO(MNOD),SPMTYP(MSPMNO),SSNAME(MSPMNO),NSPMNO,
@@ -8825,17 +9299,31 @@ C IER=0 indicates no error.
      &              INITD
       logical HAS_GEOM
       character INITD*6
+      common/cfdfil/LCFD(MCOM),IFCFD(MCOM)
+      character LCFD*72
+      common/dynamico/isdynamicocup(MCOM)
+      COMMON/LINRFC/URFCU(MNZ),URFCV(MNZ),URFCW(MNZ),URFCP(MNZ),
+     &              URFCT(MNZ),URFCK(MNZ),URFCE(MNZ),URFCVS(MNZ),
+     &              URFCC(MNZ,MCTM)
+      COMMON/LINRFC2/URFCU2(MNZ),URFCV2(MNZ),URFCW2(MNZ),URFCP2(MNZ),
+     &              URFCT2(MNZ),URFCK2(MNZ),URFCE2(MNZ),URFCVS2(MNZ),
+     &              URFCC2(MNZ,MCTM)
+      COMMON/GFONT/IFS,ITFS,IMFS
+      COMMON/INITIA/UINIT(MNZ),VINIT(MNZ),WINIT(MNZ),PINIT(MNZ),
+     &              TINIT(MNZ),TEINIT(MNZ),EDINIT(MNZ),POLINIT(MNZ,MCTM)
+      COMMON/CONTM6/CNCNI(MCONTM,MNOD)
+      COMMON/AFN/IAIRN,LAPROB,ICAAS(MCOM)
+      CHARACTER LAPROB*72
 
       character ITMSS(14+MCTM)*60,ITUM(MCTM+1)*50,WORD*50
-      character ltmp*26,t12*12,d12*12,t20*20,FACE*7,HOLD*32,WORD1*12
+      character t12*12,d12*12,t20*20,HOLD*32,WORD1*12
       character VOLNAME*12,VCsurf*12,BLKSURF*12
       character*12 SRCNAM,POLNAM,CONTMNAM,SSNAME,SRCE
-      CHARACTER CNAM*12,CNAME*3,NNAME*3,ITMSS1(14+MCTM)*60
-      CHARACTER*60 ITMSS2(14+MCTM)*60,ITMSS3(14+MCTM)*60
+      CHARACTER ITMSS1(14+MCTM)*60,ITMSS2(14+MCTM)*60
       character outs*124
       LOGICAL CALPOL,CALLMA,OK
       INTEGER SPMTYP,SSLINK1,SSLINK2
-      integer NITMS,INO,NITMSS1,IIO,NITMSS2,IXO,NITUM,INUO,NITMSS3 ! max items and current menu item
+      integer NITMS,INO,NITMSS1,IIO,NITMSS2,IXO,NITUM,INUO ! max items and current menu item
 
       helpinsub='edcfd'  ! set for subroutine
 
@@ -8844,100 +9332,93 @@ C Initialise SRCE.
         DO 420 ICTM=1,NCTM(ICFD)
           DO 520 II=1,NVOL(ICFD)
             SRCE(II,ICTM,ICFD)=' '
+            SRCFRC(II,ICTM,ICFD)=0.0
  520      CONTINUE
  420    CONTINUE
       ENDIF
 
 C Adjust each cell by -1 as dfs adds fictitious cells around the domain.
-      Ii=IVCELLS(ISB,ICFD,1)-1; If=IVCELLS(ISB,ICFD,2)-1
+      Ii=IVCELLS(ISB,ICFD,1)-1; Iif=IVCELLS(ISB,ICFD,2)-1
       Ji=JVCELLS(ISB,ICFD,1)-1; Jf=JVCELLS(ISB,ICFD,2)-1
       Ki=KVCELLS(ISB,ICFD,1)-1; Kf=KVCELLS(ISB,ICFD,2)-1
 
 C Check if new source.
-      if (Ii.lt.0.or.If.lt.0.or.
+      if (Ii.lt.0.or.Iif.lt.0.or.
      &    Ji.lt.0.or.Jf.lt.0.or.
      &    Ki.lt.0.or.Kf.lt.0) then 
         t20='Source definition'
         if(IVOLF(ISB,ICFD).ne.0)IFACE=IVOLF(ISB,ICFD)
-        call PIKCELS(Ii,If,Ji,Jf,Ki,Kf,IFACE,IER)
+        call PIKCELS(Ii,Iif,Ji,Jf,Ki,Kf,IFACE,IER)
         IVOLF(ISB,ICFD)=IFACE
-        IVCELLS(ISB,ICFD,1)=Ii+1; IVCELLS(ISB,ICFD,2)=If+1
+        IVCELLS(ISB,ICFD,1)=Ii+1; IVCELLS(ISB,ICFD,2)=Iif+1
         JVCELLS(ISB,ICFD,1)=Ji+1; JVCELLS(ISB,ICFD,2)=Jf+1
         KVCELLS(ISB,ICFD,1)=Ki+1; KVCELLS(ISB,ICFD,2)=Kf+1
         call NEW2OLD
       endif
 
-C Generate text for location index.
- 5    FACE='  '
-      if (IVOLF(ISB,ICFD).eq.1) then
-        FACE='West   '
-      elseif (IVOLF(ISB,ICFD).eq.2) then
-        FACE='East   '
-      elseif (IVOLF(ISB,ICFD).eq.3) then
-        FACE='South  '
-      elseif (IVOLF(ISB,ICFD).eq.4) then
-        FACE='North  '
-      elseif (IVOLF(ISB,ICFD).eq.5) then
-        FACE='Low    '
-      elseif (IVOLF(ISB,ICFD).eq.6) then
-        FACE='High   '
-      elseif (IVOLF(ISB,ICFD).eq.7) then
-        FACE='Whole  '
-      elseif (IVOLF(ISB,ICFD).eq.8) then
-        FACE='Block  '
-      elseif (IVOLF(ISB,ICFD).eq.9) then
-        FACE='Source '
-      endif
-
-C Set boundary type string.
-      ltmp=FACE
- 144  if (IVTYPE(ISB,ICFD).eq.20)then
-        ltmp='Static source'
-        IF(ICTDFAF(ICFD).EQ.1)LTMP='From ctm network'
-      endif
-
 C Create a menu showing definitions for different sources.
-      write (ITMSS(1),'(a,a)')   'a Name: ',VOLNAME(ISB,ICFD)
-      write (ITMSS(2),'(a,a)')   'b Type:',ltmp
-      write (ITMSS(3),'(a)')     ' -----------------------------'
-      write (ITMSS(4),'(a,a)')   '         Is  If  Js  Jf  Ks  Kf '
-      write (ITMSS(5),'(a,6(i3,1x))') 'c Cells:',Ii,If,Ji,Jf,Ki,Kf
-      write (ITMSS(6),'(a)')     ' -----------------------------'
-      write(ITMSS(7),'(a,f8.0)')'e Heat flux (W)',VOLHeat(ISB,ICFD)
-      write(ITMSS(8),'(a,i3)') 'f Cas gain index  ',IDCasgn(ISB,ICFD)
-      write(ITMSS(9),'(a,f4.2)')'g Cas gain fraction ',FCasgn(ISB,ICFD)
-      write (ITMSS(10),'(a)')    '  Contaminant | source strength '
-      WRITE (ITMSS(11),'(A)')    '     name     | (kg/s) or name  '
-      IF(ICTDFAF(ICFD).EQ.1)THEN
-        DO 141 ICTM=1,NCTM(ICFD)
-          CALPOL(ICTM,ICFD)=.TRUE.
-          WORD1=SRCE(ISB,ICTM,ICFD)
-          IF(WORD1(:1).EQ.' ')WORD1='none'
-          IF(JHUMINDX(ICFD).NE.ICTM)THEN
-            WRITE(ITMSS(11+ICTM),'(A,2X,A,1X,A)')CHAR(103+ICTM),
-     &      POLNAM(ICTM,ICFD),WORD1
-          ELSE
-            WRITE(ITMSS(11+ICTM),'(A,2X,A,1X,2A)')CHAR(103+ICTM),
-     &      POLNAM(ICTM,ICFD),WORD1,' (humidity) '
-          ENDIF
- 141    CONTINUE   
-      ELSE
-        DO 131 ICTM=1,NCTM(ICFD)
-          CALPOL(ICTM,ICFD)=.TRUE.
-          IF(JHUMINDX(ICFD).NE.ICTM)THEN
-            WRITE(ITMSS(11+ICTM),'(A,1X,A,1X,F12.10)')CHAR(103+ICTM),
-     &      POLNAM(ICTM,ICFD),VOLPOL(ICTM,ISB,ICFD)
-          ELSE
-            WRITE(ITMSS(11+ICTM),'(A,1X,A,1X,F12.10,A)')CHAR(103+ICTM),
-     &      POLNAM(ICTM,ICFD),VOLPOL(ICTM,ISB,ICFD),' (humidity) '
-          ENDIF
- 131    CONTINUE   
-      ENDIF
-      ITMSS(12+NCTM(ICFD)) =' -----------------------------'
-      ITMSS(13+NCTM(ICFD)) = '+ Add/Delete Contaminant'
-      ITMSS(14+NCTM(ICFD))='? help'
-      ITMSS(15+NCTM(ICFD))='- exit menu'
-      NITMS=15+NCTM(ICFD)
+ 144  write (ITMSS(1),'(a,a)')  'a name: ',VOLNAME(ISB,ICFD)
+      if (NOCNTM.eq.1 .and. ICFMFS(ICFD).eq.1) then
+        IF(ICTDFAF(ICFD).EQ.1)then
+          write (ITMSS(2),'(a)')'b network coupling: on'
+        else
+          write (ITMSS(2),'(a)')'b network coupling: off'
+        endif
+      else
+        write (ITMSS(2),'(a)')  '  network coupling: not available'
+      endif
+      write (ITMSS(3),'(a)')    ' -----------------------------'
+      write (ITMSS(4),'(a,a)')  '         Is  If  Js  Jf  Ks  Kf '
+      write (ITMSS(5),'(a,6(i3,1x))')'c cells:',Ii,Iif,Ji,Jf,Ki,Kf
+      write (ITMSS(6),'(a)')    ' -----------------------------'
+      write(ITMSS(7),'(a,f8.0)')'e heat flux (W): ',VOLHeat(ISB,ICFD)
+      write(ITMSS(8),'(a,i3)')  'f cas gain index: ',IDCasgn(ISB,ICFD)
+      write(ITMSS(9),'(a,f4.2)')'g gain fraction: ',FCasgn(ISB,ICFD)
+
+C This option reserved for when multi-segmented dynamic people model is
+C fixed.
+C      write(ITMSS(10),'(2a)')   'h occupant type: ',VCsurf(ISB,ICFD)
+      write(ITMSS(10),'(a)')
+     &  '  ----------------------------------------'
+      write (ITMSS(11),'(a)')
+     &  '  contaminant     | source strength (kg/s)'
+      WRITE (ITMSS(12),'(A)')
+     &  '     name         | or name and fraction  '
+      DO ICTM=1,NCTM(ICFD)
+        CALPOL(ICTM,ICFD)=.TRUE.
+        WORD1=SRCE(ISB,ICTM,ICFD)
+        if (WORD1(:1).EQ.' ') then ! constant source
+          write(hold,'(F12.10)')VOLPOL(ICTM,ISB,ICFD)
+        elseif (WORD1(1:6).EQ.'CFDOPN') then ! represents opening
+          read(WORD1(7:9),'(i3.3)')ix
+          icnn=ICFDCNN(ix,ICFD)
+          if (NODPS(ICNN).eq.ICFDNOD(ICFD)) then
+            hold=NDNAM(NODNE(ICNN))
+          elseif (NODNE(ICNN).eq.ICFDNOD(ICFD)) then
+            hold=NDNAM(NODPS(ICNN))
+          else
+            hold='UNKNOWN'
+          endif
+        elseif (JHUMINDX(ICFD).eq.ictm .and. 
+     &          VCsurf(ISB,ICFD)(1:4).ne.'none') then ! represents occupant moisture
+          hold='occupant'
+        else ! represents network source
+          write(hold,'(a12,1x,f5.3)')SRCE(ISB,ICTM,ICFD),
+     &     SRCFRC(ISB,ICTM,ICFD)
+        ENDIF
+        IF(JHUMINDX(ICFD).NE.ICTM)THEN
+          WRITE(ITMSS(12+ICTM),'(A1,1X,A16,1X,A)')CHAR(104+ICTM),
+     &        POLNAM(ICTM,ICFD),hold
+        ELSE
+          WRITE(ITMSS(12+ICTM),'(A1,1X,A12,A4,1X,A)')CHAR(104+ICTM),
+     &        POLNAM(ICTM,ICFD),' (m)',hold
+        ENDIF
+      ENDDO
+      NITMS=16+NCTM(ICFD)
+      ITMSS(NITMS-3)='  ----------------------------------------'
+      ITMSS(NITMS-2)='+ add/delete contaminant'
+      ITMSS(NITMS-1)='? help'
+      ITMSS(NITMS)=  '- exit menu'
 
       IF(MMOD.EQ.8)THEN
         isrc=0
@@ -8972,19 +9453,35 @@ C Recalculate gridding in case this has changed.
         call redraw(ier)
       ENDIF
 
+      IF(VOLNAME(ISB,ICFD)(1:4).EQ.'SRC_')THEN
+        helptopic='src_ctmnetwork_warn'
+        call gethelptext(helpinsub,helptopic,nbhelp)
+        CALL PHELPD('Warning!',nbhelp,'-',0,0,IER)
+      ENDIF
+
+C Set fixed width font.
+      itmp=IMFS
+      if(IMFS.eq.4) IMFS=0
+      if(IMFS.eq.5) IMFS=1
+      if(IMFS.eq.6) IMFS=2
+      if(IMFS.eq.7) IMFS=3
+      call userfonts(IFS,ITFS,IMFS)
+      
 C Display menu.
       INO=-1
-      IF(VOLNAME(ISB,ICFD)(1:4).EQ.'SRC_')THEN
-        CALL PHELPD('Warning',nbhelp,'-',0,0,IER)
-      ENDIF
       CALL EMENU('Sources edit',ITMSS,NITMS,INO)
+
+C Return to previous font.
+      IMFS=itmp
+      call userfonts(IFS,ITFS,IMFS)
+
       if (INO.lt.1) then
         goto 7
       elseif (ITMSS(INO)(1:1).eq.' ') then
         goto 7
-      elseif (INO.eq.1) then
 
-C Get boundary name.
+C Set boundary name.
+      elseif (INO.eq.1) then
         t12=VOLNAME(ISB,ICFD)
         d12='  '
         call EASKS(t12,' ','Source name?',12,d12,'src name',
@@ -8994,281 +9491,377 @@ C Get boundary name.
           VOLNAME(ISB,ICFD)=d12
         endif
 
-C Set coupling with contaminants network on/off
+C Set coupling with contaminants network on/off.
       elseif (INO.eq.2) then
-        CALL EASKABC(' ','Specify coundary condition:','static',
-     &    'from contaminants network','cancel',IHOWL,nbhelp)
+        CALL EASKABC('Contaminant network coupling','Options:','off',
+     &    'on','cancel',IHOWL,nbhelp)
         IF(IHOWL.EQ.1)THEN
+          if (ICTDFAF(ICFD).eq.1) then
+            CALL EASKOK('All linkage data will be cleared!','continue?',
+     &        OK,nbhelp)
+            IF(.NOT.OK)GOTO 144
+          endif
+
+C Clear coupling commons.
           ICTDFAF(ICFD)=0
+          do ictm=1,MCTM
+            ICC2NC(ictm,ICFD)=0
+            do iiv=1,NVOL(ICFD)
+              if (IVTYPE(iiv,ICFD).eq.20) then
+                SRCE(iiv,ictm,ICFD)=' '
+                SRCFRC(iiv,ictm,ICFD)=0.0
+              endif
+            enddo
+          enddo
         ELSEIF(IHOWL.EQ.2)THEN
 
+          if (ICTDFAF(ICFD).eq.1) goto 144
 
-C Take contaminant definitions from contaminant flow network
-          CALL EASKOK(' ','Link CFD and contaminant network?',
-     &          OK,nbhelp)
-          IF(.NOT.OK)GOTO 144
-          IF(ICFMFS(ICFD).NE.1)THEN
-            CALL PHELPD(' ',nbhelp,'-',0,0,IER)
-          ENDIF
+          if (NCTM(ICFD).eq.0) then
+            call edisp(iuout,'Please define contaminant(s) first.')
+            goto 144
+          endif
+
+C Take contaminant definitions from contaminant flow network.
           ICTDFAF(ICFD)=1
-          NCTM(ICFD)=NCONTM
-          IF(ICCSRC(ICFD).NE.1)THEN
-            ICCSRC(ICFD)=1
 
-C Add one more source type boundary condition for each opening type
-C boundary conditions and define the source strength to be from 
-            NOBC=NVOL(ICFD)
-            DO 3056 IV=1,NOBC
-              IF(IVTYPE(IV,ICFD).GE.10.AND.IVTYPE(IV,ICFD).LE.13)THEN
-                NVOL(ICFD)=NVOL(ICFD)+1
-                NUMVOL=NVOL(ICFD)
-                WRITE(VOLNAME(NUMVOL,ICFD),'(2A)')'SRC_',
-     &          VOLNAME(IV,ICFD)(1:8)
-                IVTYPE(NUMVOL,ICFD)=20
-                IVOLF(NUMVOL,ICFD)=9
-                DO 3057 L=1,2
-                  IVCELLS(NUMVOL,ICFD,L)=IVCELLS(IV,ICFD,L)
-                  JVCELLS(NUMVOL,ICFD,L)=JVCELLS(IV,ICFD,L)
-                  KVCELLS(NUMVOL,ICFD,L)=KVCELLS(IV,ICFD,L)
- 3057           CONTINUE
-                VOLHEAT(NUMVOL,ICFD)=0.0
-                IDCASGN(NUMVOL,ICFD)=0
-                FCASGN(NUMVOL,ICFD)=0.0
-                DO 3058 ICTM=1,NCTM(ICFD)
-                  VOLPOL(ICTM,NUMVOL,ICFD)=0.0
-                  CALL INTSTR(ICTM,CNAM,ILEN,IER)
-                  IF(ILEN.EQ.1)THEN
-                    WRITE(CNAME,'(2A)')'00',CNAM(:1)
-                  ELSEIF(ILEN.EQ.2)THEN                
-                    WRITE(CNAME,'(2A)')'0',CNAM(:2)
-                  ELSEIF(ILEN.EQ.3)THEN
-                    WRITE(CNAME,'(A)')CNAM(:3)
-                  ENDIF
-                  ICNN=ICFDCNN(IV,ICFD)
-                  IF(NODPS(ICNN).EQ.ICFDNOD(ICFD))THEN
-                    IEXTNOD=NODNE(ICNN)
-                  ELSEIF(NODNE(ICNN).EQ.ICFDNOD(ICFD))THEN
-                    IEXTNOD=NODPS(ICNN)
-                  ELSE
-                    GOTO 3059
-                  ENDIF
-                  CALL INTSTR(IEXTNOD,CNAM,ILEN,IER)
-                  IF(ILEN.EQ.1)THEN
-                    WRITE(NNAME,'(2A)')'00',CNAM(:1)
-                  ELSEIF(ILEN.EQ.2)THEN                
-                    WRITE(NNAME,'(2A)')'0',CNAM(:2)
-                  ELSEIF(ILEN.EQ.3)THEN
-                    WRITE(NNAME,'(A)')CNAM(:3)
-                  ENDIF
-                  WRITE(SRCE(NUMVOL,ICTM,ICFD),'(3A)')'SRC',CNAME,NNAME
- 3059             CONTINUE
- 3058           CONTINUE
-              ENDIF
- 3056       CONTINUE
-          ENDIF
-
-C Ask which contaminant (or none) is moisture .
-          ITMSS1(1) = ' name:  '
-          ITMSS1(2) ='         '
-          DO 2122 ICTM=1,NCTM(ICFD)
-            WRITE(ITMSS1(2+ICTM),'(2A,A12)')CHAR(96+ICTM),' ',
-     &      CONTMNAM(ICTM)
- 2122     CONTINUE
-          ITMSS1(NCTM(ICFD)+3) ='# none of the above'
-          ITMSS1(NCTM(ICFD)+4) =' ------------------------'
-          ITMSS1(NCTM(ICFD)+5) ='? help                   '
-          ITMSS1(NCTM(ICFD)+6) ='- exit menu              '
-          NITMSS1=NCTM(ICFD)+6
- 2121     IIO=-1
-
-C Help text for this menu.
-          CALL EMENU('Moisture is ... ',ITMSS1,NITMSS1,IIO)
-          IF(IIO.EQ.NCTM(ICFD)+6)THEN
-            IF(JHUMINDX(ICFD).EQ.0)THEN
-              call edisp(iuout,'None of the contaminants is moisture')
-              GOTO 2121
+C Initial coupling setup.
+C There are existing CFD contaminants, offer the chance to associate
+C these with network contaminants.
+ 3100     do icctm=1,NCTM(ICFD)
+            do inctm=1,NCONTM
+              WRITE(ITMSS1(inctm),'(2A,A12)')CHAR(96+inctm),' ',
+     &          CONTMNAM(inctm)
+            enddo
+            ITMSS1(NCTM(ICFD)+1) =' ------------------------'
+            ITMSS1(NCTM(ICFD)+2) ='? help                   '
+            ITMSS1(NCTM(ICFD)+3) ='- none of the above      '
+            NITMSS1=NCTM(ICFD)+3
+            IIO=-1
+            write(outs,'(4a)')'Select a network contaminant that',
+     &        ' represents CFD contaminant ',POLNAM(icctm,ICFD),'.'
+            call edisp(iuout,outs)
+            write(outs,'(3a)')'Which is contaminant ',
+     &        POLNAM(icctm,ICFD),'?'
+            CALL EMENU(outs,ITMSS1,NITMSS1,IIO)
+            IF(IIO.EQ.NITMSS1)THEN
+              ICC2NC(icctm,ICFD)=0
+            ELSEIF(IIO.EQ.NITMSS1-1)THEN
+              helptopic='cfd_ctm_network_assoc'
+              call gethelptext(helpinsub,helptopic,nbhelp)
+              CALL PHELPD('CFD contaminant network association',
+     &          nbhelp,'-',0,0,IER)
+            ELSEIF(IIO.GE.1.AND.IIO.LE.NCTM(ICFD))THEN
+              ICC2NC(icctm,ICFD)=IIO
+              POLINIT(ICFD,icctm)=CNCNI(IIO,ICAAS(ICP)) ! take initial conc from network
+            ELSE
+              GOTO 3100
             ENDIF
-          ELSEIF(IIO.EQ.NCTM(ICFD)+5)THEN
-            call edisp(iuout,'Choose a moisture contaminant.')
-            GOTO 2121
-          ELSEIF(IIO.EQ.NCTM(ICFD)+3)THEN
-            JHUMINDX(ICFD)=0
-          ELSEIF(IIO.GT.2.AND.IIO.LE.NCTM(ICFD)+2)THEN
-            JHUMINDX(ICFD)=IIO-2
-          ELSE
-            GOTO 2121
-          ENDIF
-
-C Take contaminant name from contaminant network
-          DO 789 ICTM=1,NCTM(ICFD)
-            POLNAM(ICTM,ICFD)=CONTMNAM(ICTM)
-
-C Ask for information to calculate Schmidt number
-            helptopic='cfd_contam_distribution'
-            call gethelptext(helpinsub,helptopic,nbhelp)
-            CALL EASKABC(
-     &        'How to specify turbulent Schmidt No.?',
-     &        POLNAM(ICTM,ICFD),'parameters','manual','default',
-     &        ISCHM,nbhelp)
-            IF(ISCHM.EQ.1)THEN
-              ISCHMT(ICTM,ICFD)=1
-              CALL EASKS(HOLD,
-     &          'enter mol mass(g/mol),crit vol(cm^3/mol)',
-     &          'boiling pt (K) and crit pt (K)',32,
-     &          ' 44.0 94.0 217.0 304.0',' ',IER,nbhelp)
-              K=0
-              CALL EGETWR(HOLD,K,VL1,1.,1000.,'W','molar mass',IER)
-              CALL EGETWR(HOLD,K,VL2,1.,1000.,'W','crit vol',IER)
-              CALL EGETWR(HOLD,K,VL3,100.,500.,'W','T_boil',IER)
-              CALL EGETWR(HOLD,K,VL4,100.,1000.,'W','T_crit',IER)
-              GFM(ICTM,ICFD)=VL1; VCRIT(ICTM,ICFD)=VL2; 
-              TBOIL(ICTM,ICFD)=VL3; TCRIT(ICTM,ICFD)=VL4
-            ELSEIF(ISCHM.EQ.2)THEN
-              ISCHMT(ICTM,ICFD)=0
-              call EASKR(VAL,'What is Turbulent Schmidt Number for',
-     &          POLNAM(ICTM,ICFD),0.1,'W',2.5,'W',1.,'schmidt #',
-     &          IER,nbhelp)
-              SCHMT(ICTM,ICFD)=VAL
-            ELSEIF(ISCHM.EQ.3)THEN
-              ISCHMT(ICTM,ICFD)=0; SCHMT(ICTM,ICFD)=1.0
-              IF(JHUMINDX(ICFD).EQ.ICTM)SCHMT(ICTM,ICFD)=0.59
+          enddo
+          
+C Ask if any of the network contaminants are moisture.
+          if (JHUMINDX(ICFD).eq.0) then
+            DO ICTM=1,NCONTM
+              WRITE(ITMSS1(ICTM),'(2A,A12)')CHAR(96+ICTM),' ',
+     &          CONTMNAM(ICTM)
+            enddo
+            ITMSS1(NCTM(ICFD)+1) =' ------------------------'
+            ITMSS1(NCTM(ICFD)+2) ='? help                   '
+            ITMSS1(NCTM(ICFD)+3) ='- none of the above      '
+            NITMSS1=NCTM(ICFD)+3
+ 3200       IIO=-1
+            CALL EMENU('Which is moisture?',ITMSS1,NITMSS1,IIO)
+            IF(IIO.EQ.NITMSS1)THEN
+              CONTINUE
+            ELSEIF(IIO.EQ.NITMSS1-1)THEN
+              helptopic='cfd_ctm_network_moist'
+              call gethelptext(helpinsub,helptopic,nbhelp)
+              CALL PHELPD('CFD contaminant network moisture',
+     &          nbhelp,'-',0,0,IER)
+              goto 3200
+            ELSEIF(IIO.GE.1.AND.IIO.LE.NCTM(ICFD))THEN
+              JHUMINDX(ICFD)=NCTM(ICFD)+IIO
+            ELSE
+              GOTO 3200
             ENDIF
- 789      CONTINUE
-          helptopic='cfd_contam_sinks'
-          call gethelptext(helpinsub,helptopic,nbhelp)
-          CALL EASKOK('Link contaminant network source/sink with this',
-     &      'CFD source type boundary condition?',OK,nbhelp)
-          IF(OK)THEN
-            DO 3040 ICTM=1,NCTM(ICFD)
-              IX=2
-              ITMSS2(1)= ' Source/ sink name:'
-              DO 3050 ISPMNO=1,NSPMNO
-                IF(SSLINK1(ISPMNO,ICTM).NE.0)THEN
-                  WRITE(ITMSS2(IX),'(A,1X,A)')CHAR(96+IX-1),
-     &            SSNAME(SSLINK1(ISPMNO,ICTM))
-                  IX=IX+1
-                ENDIF
- 3050         CONTINUE
-              ITMSS2(IX)  = ' '
-              ITMSS2(IX+1)= '0 none'
-              ITMSS2(IX+2)= ' ------------------'
-              ITMSS2(IX+3)= '? help'
-              ITMSS2(IX+4)= '- exit'
-              NITMSS2=IX+4
-              WRITE(outs,'(2A)')  'Sources and sinks for contaminant ',
-     &                       CONTMNAM(ICTM)
+          endif
+
+C Create new CFD contaminants for network contaminants that have not
+C already been associated.
+          do inctm=1,NCONTM
+            ok=.true.
+            do icctm=1,NCTM(ICFD)
+              if (ICC2NC(icctm,ICFD).eq.inctm) then
+                ok=.false.
+                exit
+              endif
+            enddo
+            if (.not.ok) cycle
+            NCTM(ICFD)=NCTM(ICFD)+1; icctm=NCTM(ICFD)
+            POLNAM(icctm,ICFD)=CONTMNAM(inctm)
+            ICC2NC(icctm,ICFD)=inctm
+            URFCC(ICFD,icctm)=0.9 ! default URFs
+            URFCC2(ICFD,icctm)=0.5
+            POLINIT(ICFD,icctm)=CNCNI(inctm,ICAAS(ICP)) ! take initial conc from network
+            do iiv=1,NVOL(ICFD)
+              if (IVTYPE(iiv,ICFD).eq.20) then
+                VOLPOL(icctm,iiv,ICFD)=0.0
+                SRCE(iiv,icctm,ICFD)=' '
+                SRCFRC(iiv,icctm,ICFD)=0.0
+              endif
+            enddo
+
+C Ask for information to calculate Schmidt number.
+            if (icctm.eq.JHUMINDX(ICFD)) then
+              write(outs,'(3a)')'Contaminant ',POLNAM(icctm,ICFD),
+     &          ' is water vapour, turbulent Schmidt number is 0.59.'
               call edisp(iuout,outs)
-              call edisp(iuout,
-     &          'are displayed. Choose which one represents this')
-              call edisp(iuout,
-     &          'source type CFD boundary condition (if at all)')
- 3041         IXO=-1
-              WRITE(WORD,'(2A)')'Choose source type for contaminant ',
-     &                       CONTMNAM(ICTM)
-              IF(IX.EQ.2)GOTO 3042
+              ISCHMT(ICTM,ICFD)=0; SCHMT(ICTM,ICFD)=0.59
+            else
+              helptopic='cfd_contam_schmidt'
+              call gethelptext(helpinsub,helptopic,nbhelp)
+              CALL EASKABCD('Specify turbulent Schmidt number for',
+     &          POLNAM(icctm,ICFD),'dynamic','fixed','CO2',
+     &          'water vapour',ISCHM,nbhelp)
+              IF(ISCHM.EQ.1)THEN
+                ISCHMT(icctm,ICFD)=1
+                HOLD=' 44.0 94.0 217.0 304.0 '
+                CALL EASKS(HOLD,
+     &            'enter mol mass(g/mol), crit vol(cm^3/mol)',
+     &            'boiling pt (K), and crit pt (K)',32,
+     &            ' 44.0 94.0 217.0 304.0 ','schmidt param',IER,
+     &            nbhelp)
+                K=0
+                CALL EGETWR(HOLD,K,VL1,1.,1000.,'W','molar mass',IER)
+                CALL EGETWR(HOLD,K,VL2,1.,1000.,'W','crit vol',IER)
+                CALL EGETWR(HOLD,K,VL3,100.,500.,'W','T_boil',IER)
+                CALL EGETWR(HOLD,K,VL4,100.,1000.,'W','T_crit',IER)
+                GFM(icctm,ICFD)=VL1; VCRIT(icctm,ICFD)=VL2; 
+                TBOIL(icctm,ICFD)=VL3; TCRIT(icctm,ICFD)=VL4
+              ELSEIF(ISCHM.EQ.2)THEN
+                ISCHMT(icctm,ICFD)=0
+                call EASKR(VAL,'Fixed turbulent Schmidt number for',
+     &            POLNAM(icctm,ICFD),0.1,'W',2.5,'W',1.,'schmidt #',
+     &            IER,nbhelp)
+                SCHMT(icctm,ICFD)=VAL
+              ELSEIF(ISCHM.EQ.3)THEN
+                ISCHMT(icctm,ICFD)=1
+                GFM(icctm,ICFD)=44.0; VCRIT(icctm,ICFD)=94.0
+                TBOIL(icctm,ICFD)=217.0; TCRIT(icctm,ICFD)=304.0
+              elseif (ischm.eq.4) then
+                ISCHMT(icctm,ICFD)=0; SCHMT(icctm,ICFD)=0.59
+              ENDIF
+            endif
+          enddo
+
+C Add a source type boundary condition for each opening type boundary
+C condition, and use SRCE to store strings to associate them.
+          NOBC=NVOL(ICFD)
+          DO IV=1,NOBC
+            IF(IVTYPE(IV,ICFD).GE.10.AND.IVTYPE(IV,ICFD).LE.19)THEN
+              NVOL(ICFD)=NVOL(ICFD)+1
+              NUMVOL=NVOL(ICFD)
+              WRITE(VOLNAME(NUMVOL,ICFD),'(2A)')'SRC_',
+     &          VOLNAME(IV,ICFD)(1:8)
+              IVTYPE(NUMVOL,ICFD)=20
+              IVOLF(NUMVOL,ICFD)=9
+              DO L=1,2
+                IVCELLS(NUMVOL,ICFD,L)=IVCELLS(IV,ICFD,L)
+                JVCELLS(NUMVOL,ICFD,L)=JVCELLS(IV,ICFD,L)
+                KVCELLS(NUMVOL,ICFD,L)=KVCELLS(IV,ICFD,L)
+              enddo
+              VOLHEAT(NUMVOL,ICFD)=0.0
+              IDCASGN(NUMVOL,ICFD)=0
+              FCASGN(NUMVOL,ICFD)=0.0
+              VCSURF(NUMVOL,ICFD)='none'
+              DO ICTM=1,NCTM(ICFD)
+                VOLPOL(ICTM,NUMVOL,ICFD)=0.0
+                if (ICC2NC(ictm,ICFD).ne.0) then
+                  write(SRCE(NUMVOL,ictm,ICFD),'(a,i3.3)')'CFDOPN',IV
+                  SRCFRC(NUMVOL,ictm,ICFD)=1.0
+                else
+                  SRCE(NUMVOL,ictm,ICFD)=' '
+                  SRCFRC(NUMVOL,ictm,ICFD)=0.0
+                endif
+              enddo
+            ENDIF
+          enddo
+
+          if (NSPMNO.gt.0) then
+            helptopic='cfd_contam_sinks'
+            call gethelptext(helpinsub,helptopic,nbhelp)
+            CALL EASKOK('Link contaminant network source/sinks',
+     &        'to this source boundary condition?',OK,nbhelp)
+          else
+            OK=.false.
+          endif
+          IF(OK)THEN
+            DO icctm=1,NCTM(ICFD)
+              inctm=ICC2NC(icctm,ICFD)
+              if (inctm.eq.0) cycle
+              IX=1
+              DO ISPMNO=1,NSPMNO
+                IF(SSLINK1(ISPMNO,inctm).NE.0)THEN
+                  WRITE(ITMSS2(IX),'(A,1X,A)')CHAR(96+IX),
+     &            SSNAME(SSLINK1(ISPMNO,inctm))
+                  IX=IX+1
+                endif
+              enddo
+              IF (IX.EQ.1) then
+                write(outs,'(3a)')
+     &            'No sources/sinks defined for network contaminant ',
+     &            CONTMNAM(inctm),'.'
+                call edisp(iuout,outs)
+                SRCE(ISB,icctm,ICFD)=' '
+                SRCFRC(ISB,icctm,ICFD)=0.0
+                cycle
+              endif
+              ITMSS2(IX)=   ' ------------------'
+              ITMSS2(IX+1)= '? help'
+              ITMSS2(IX+2)= '- none of the above'
+              NITMSS2=IX+2
+              WRITE(outs,'(3A)')
+     &          'Select source/sink for network contaminant ',
+     &          CONTMNAM(inctm),'.'
+              call edisp(iuout,outs)
+ 3300         IXO=-1
+              WRITE(WORD,'(3A)')'Contaminant ',CONTMNAM(inctm),
+     &          ' source/sink'
               CALL EMENU(WORD,ITMSS2,NITMSS2,IXO)
               IF(IXO.EQ.NITMSS2)THEN
-                CONTINUE
+                SRCE(ISB,icctm,ICFD)=' '
+                SRCFRC(ISB,icctm,ICFD)=0.0
               ELSEIF(IXO.EQ.NITMSS2-1)THEN
-                helptopic='cfd_contam_sinks'
-                call gethelptext(helpinsub,helptopic,nbhelp)
                 CALL PHELPD('Choose source/sink',nbhelp,'-',0,0,IER)
-                GOTO 3041
-              ELSEIF(IXO.EQ.NITMSS2-3)THEN
-                SRCE(ISB,ICTM,ICFD)=' '
-              ELSEIF(IXO.GT.1.AND.IXO.LT.NITMSS2-3)THEN
-                SRCE(ISB,ICTM,ICFD)=SSNAME(SSLINK1(IXO-1,ICTM))
+                GOTO 3300
+              ELSEIF(IXO.GE.1 .AND. IXO.LE.NITMSS2-3)THEN
+                SRCE(ISB,icctm,ICFD)=SSNAME(SSLINK1(IXO,inctm))
+                val=1.0
+                CALL EASKR(val,'What fraction is injected here?',
+     &            '(0.0 - 1.0)',0.0,'F',1.0,'F',1.0,'src frac',IER,
+     &            nbhelp)
+                SRCFRC(ISB,icctm,ICFD)=val
               ELSE
-                GOTO 3041
+                GOTO 3300
               ENDIF
- 3040       CONTINUE
-            GOTO 3044
- 3042       call edisp(iuout,
-     &        'No sources/sinks defined for this contaminant')
- 3044       continue
+            enddo
           ENDIF
         ENDIF
         GOTO 144
 
 C Define CFD grid cells for source type boundary condition
       elseif (INO.eq.5) then
-        helptopic='cfd_source_boundary_edit'
-        call gethelptext(helpinsub,helptopic,nbhelp)
         t20='Source definition'
         if(IVOLF(ISB,ICFD).ne.0)IFACE=IVOLF(ISB,ICFD)
-        call PIKCELS(Ii,If,Ji,Jf,Ki,Kf,IFACE,IER)
+        call PIKCELS(Ii,Iif,Ji,Jf,Ki,Kf,IFACE,IER)
         IVOLF(ISB,ICFD)=IFACE
-        IVCELLS(ISB,ICFD,1)=Ii+1; IVCELLS(ISB,ICFD,2)=If+1
+        IVCELLS(ISB,ICFD,1)=Ii+1; IVCELLS(ISB,ICFD,2)=Iif+1
         JVCELLS(ISB,ICFD,1)=Ji+1; JVCELLS(ISB,ICFD,2)=Jf+1
         KVCELLS(ISB,ICFD,1)=Ki+1; KVCELLS(ISB,ICFD,2)=Kf+1
         call NEW2OLD
+
+C Set heat flux.
       elseif (INO.eq.7) then
-        helptopic='cfd_source_boundary_edit'
-        call gethelptext(helpinsub,helptopic,nbhelp)
         VAL=VOLHeat(ISB,ICFD)
         call EASKR(VAL,'Heat flux (W) in source volume?',
      &    ' ',-1000.,'W',1000.,'W',10.,'heat flux',IER,nbhelp)
         if (IER.eq.0) VOLHeat(ISB,ICFD)=VAL
-      elseif (INO.eq.8) then
 
-C<< Should ideally pop up a list of casual gain types from zone
-C operations file here with some regard for standalone running of dfs
-        helptopic='cfd_source_boundary_edit'
-        call gethelptext(helpinsub,helptopic,nbhelp)
-        IVAL=IDCasgn(ISB,ICFD)
-        call EASKI(IVAL,'Which casual gain index represents heat ',
-     &  'generation?',0,'W',3,'W',1,'casgn index',IERI,nbhelp)
-        if(ieri.eq.-3) goto 7
-        if (IER.eq.0) IDCasgn(ISB,ICFD)=IVAL
+C Link casual gain type.
+      elseif (INO.eq.8) then
+        if (IFCFD(ICFD).eq.0) then
+          call usrmsg('This domain is not coupled.',
+     &      'Option not available.','w')
+          goto 7
+        endif
+        ival=IDcasgn(ISB,ICFD)
+        call PIKCGTYP(ICP,ival,nbhelp)
+        IDcasgn(ISB,ICFD)=IVAL
+
+C Set casual gain fraction.
       elseif (INO.eq.9) then
-        helptopic='cfd_source_boundary_edit'
-        call gethelptext(helpinsub,helptopic,nbhelp)
+        if (IFCFD(ICFD).eq.0) then
+          call usrmsg('This domain is not coupled.',
+     &      'Option not available.','w')
+          goto 7
+        endif
         VAL=FCasgn(ISB,ICFD)
         call EASKR(VAL,'What fraction of casual gain is generated? ',
      &  ' ',0.,'W',1.,'W',1.,'casgn fraction',IER,nbhelp)
         if (IER.eq.0) FCasgn(ISB,ICFD)=VAL
-      elseif (INO.eq.13+NCTM(ICFD)) then
+
+C Set occupant type for link with dynamic people.
+C Temporarily disabled until multi-segmented model is fixed.
+      elseif (INO.eq.10) then  
+
+        call usrmsg('Option currently not available.',' ','w')
+        goto 7
+
+        if (IFCFD(ICFD).eq.0) then
+          call usrmsg('This domain is not coupled.',
+     &      'Option not available.','w')
+          goto 7
+        endif
+        if (isdynamicocup(ICP).ne.4) then
+          call usrmsg('Multi-segmented person model not defined.',
+     &      'Option not available.','w')
+          goto 7
+        endif
+        i=2
+        CALL EASKABCD('Occupant type?',' ','none','man','woman','child',
+     &    i,nbhelp) ! store occupant type in VCsurf for sources
+        if (i.eq.1) then
+          VCsurf(ISB,ICFD) = 'none'
+        elseif (i.eq.2) then
+          VCsurf(ISB,ICFD) = 'man'
+        elseif (i.eq.3) then
+          VCsurf(ISB,ICFD) = 'woman'
+        elseif (i.eq.4) then
+          VCsurf(ISB,ICFD) = 'child'
+        endif
+
+C Manage contaminants.
+      elseif (INO.eq.NITMS-2) then
         helptopic='cfd_contam_sinks'
         call gethelptext(helpinsub,helptopic,nbhelp)
         CALL EASKABC(' ','Contaminant source:','add',
      &      'delete','cancel',IOWL,nbhelp)
         IF(IOWL.EQ.1)THEN
-
-C Contaminants currently only work for CFD domain 1.
-C If the user tries to input contaminants in any other domain,
-C inform them and do not allow it.
-          IF(ICFD.NE.1)GOTO 756
-
-          IF(ICTDFAF(ICFD).EQ.1)THEN
-            helptopic='cfd_contam_delete_warn'
-            call gethelptext(helpinsub,helptopic,nbhelp)
-            CALL PHELPD('Not allowed',nbhelp,'-',0,0,IER)
-          ELSE
-            helptopic='cfd_contam_sinks'
-            call gethelptext(helpinsub,helptopic,nbhelp)
-            SRCNAM=' '
-            d12='Contaminant'
-            call EASKS(SRCNAM,'Contaminant name? ','  ',12,d12,
+          helptopic='cfd_contam_sinks'
+          call gethelptext(helpinsub,helptopic,nbhelp)
+          SRCNAM=' '
+          d12='Contaminant'
+          call EASKS(SRCNAM,'Contaminant name? ','  ',12,d12,
      &      'cntmnt name',IER,nbhelp)
-            NCTM(ICFD)=NCTM(ICFD)+1; ICTM=NCTM(ICFD)
-            POLNAM(NCTM(ICFD),ICFD)=SRCNAM
-            call EASKR(VAL,'What is source strength (kg/s) ',
-     &      ' ',0.,'W',10.,'W',1.,'src strenght',IER,nbhelp)
-            VOLPOL(NCTM(ICFD),ISB,ICFD)=VAL
-            CALPOL(NCTM(ICFD),ICFD)=.TRUE.
-            CALL EASKOK(' ','Is this contaminant water vapour?',OK,0)
-            IF(OK)JHUMINDX(ICFD)=ICTM
+          NCTM(ICFD)=NCTM(ICFD)+1; ICTM=NCTM(ICFD)
+          POLNAM(NCTM(ICFD),ICFD)=SRCNAM
+          call EASKR(VAL,'What is the source strength (kg/s) ',
+     &      ' ',0.,'W',10.,'W',1.,'src strength',IER,nbhelp)
+          VOLPOL(NCTM(ICFD),ISB,ICFD)=VAL
+          CALPOL(NCTM(ICFD),ICFD)=.TRUE.
+          CALL EASKOK(' ','Is this contaminant water vapour?',OK,0)
+          if (ok) then
+            JHUMINDX(ICFD)=ictm
+            write(outs,'(3a)')'Contaminant ',POLNAM(ictm,ICFD),
+     &        ' is water vapour, turbulent Schmidt number is 0.59.'
+            call edisp(iuout,outs)
+            ISCHMT(ICTM,ICFD)=0; SCHMT(ICTM,ICFD)=0.59
 
 C Ask for information to calculate Schmidt number.
-            helptopic='cfd_contam_schmidt_no'
+          else
+            helptopic='cfd_contam_schmidt'
             call gethelptext(helpinsub,helptopic,nbhelp)
-            CALL EASKABC(' ','How to specify turbulent Schmidt No.:',
-     &       'calculation','constant','default',ISCHM,nbhelp)
+            CALL EASKABCD('Specify turbulent Schmidt number for',
+     &        POLNAM(ICTM,ICFD),'dynamic','fixed','CO2',
+     &        'water vapour',ISCHM,nbhelp)
             IF(ISCHM.EQ.1)THEN
               ISCHMT(ICTM,ICFD)=1
-              CALL EASKS(HOLD,'enter mol mass(g/mol),crit vol(cm^3/mol)'
-     &        ,'boiling pt (K) and crit pt (K)',32
-     &        ,' 44.0 94.0 217.0 304.0',' ',IER,nbhelp)
+              HOLD=' 44.0 94.0 217.0 304.0 '
+              CALL EASKS(HOLD,
+     &          'enter mol mass(g/mol), crit vol(cm^3/mol)',
+     &          'boiling pt (K), and crit pt (K)',32,
+     &          ' 44.0 94.0 217.0 304.0 ','schmidt param',IER,
+     &          nbhelp)
               K=0
               CALL EGETWR(HOLD,K,VL1,1.,1000.,'W','molar mass',IER)
               CALL EGETWR(HOLD,K,VL2,1.,1000.,'W','crit vol',IER)
@@ -9278,172 +9871,234 @@ C Ask for information to calculate Schmidt number.
               TBOIL(ICTM,ICFD)=VL3; TCRIT(ICTM,ICFD)=VL4
             ELSEIF(ISCHM.EQ.2)THEN
               ISCHMT(ICTM,ICFD)=0
-              call EASKR(VAL,'What is Turbulent Schmidt Number?',
-     &           ' ',0.1,'W',2.5,'W',1.,'schmidt #',IER,nbhelp)
+              call EASKR(VAL,'Fixed turbulent Schmidt number for',
+     &          POLNAM(ICTM,ICFD),0.1,'W',2.5,'W',1.,'schmidt #',
+     &          IER,nbhelp)
               SCHMT(ICTM,ICFD)=VAL
             ELSEIF(ISCHM.EQ.3)THEN
-              ISCHMT(ICTM,ICFD)=0; SCHMT(ICTM,ICFD)=1.0
-              IF(JHUMINDX(ICFD).EQ.ICTM)SCHMT(ICTM,ICFD)=0.59
+              ISCHMT(ICTM,ICFD)=1
+              GFM(ICTM,ICFD)=44.0; VCRIT(ICTM,ICFD)=94.0
+              TBOIL(ICTM,ICFD)=217.0; TCRIT(ICTM,ICFD)=304.0
+            elseif (ischm.eq.4) then
+              ISCHMT(ICTM,ICFD)=0; SCHMT(ICTM,ICFD)=0.59
             ENDIF
-          ENDIF
+          endif
+          
+          ICC2NC(ictm,ICFD)=0
+          URFCC(ICFD,ictm)=0.9 ! default URFs
+          URFCC2(ICFD,ictm)=0.5
+          POLINIT(ICFD,ictm)=0.0004 ! default initial concentration
+          do iiv=1,NVOL(ICFD)
+            if (IVTYPE(iiv,ICFD).eq.20) then
+              VOLPOL(ictm,iiv,ICFD)=0.0
+              SRCE(iiv,ictm,ICFD)=' '
+              SRCFRC(iiv,ictm,ICFD)=0.0
+            endif
+          enddo
 
 C Delete contaminant.
         ELSEIF(IOWL.EQ.2)THEN
-          IF(ICTDFAF(ICFD).EQ.1)THEN
-            helptopic='cfd_contam_delete_warn'
-            call gethelptext(helpinsub,helptopic,nbhelp)
-            CALL PHELPD('Not allowed',nbhelp,'-',0,0,IER)
-          ELSE
-            WRITE(ITUM(1),'(a)')' Contaminant name: '
-            DO 132 ICTM=1,NCTM(ICFD)
-              WRITE(ITUM(1+ICTM),'(3A)')
+          WRITE(ITUM(1),'(a)')' Contaminant name: '
+          DO ICTM=1,NCTM(ICFD)
+            WRITE(ITUM(1+ICTM),'(3A)')
      &        CHAR(96+ICTM),' ',POLNAM(ICTM,ICFD)
- 132        CONTINUE
-            NITUM=1+NCTM(ICFD)
-            INUO=-1
-            CALL EMENU('Choose contaminant to delete',ITUM,NITUM,INUO)
-            DO 133 ICTM=INUO-1,NCTM(ICFD)-1
-              POLNAM(ICTM,ICFD)=POLNAM(ICTM+1,ICFD)
-              CALPOL(ICTM,ICFD)=CALPOL(ICTM+1,ICFD)
-              SCHMT(ICTM,ICFD)=SCHMT(ICTM+1,ICFD)
-              ISCHMT(ICTM,ICFD)=ISCHMT(ICTM+1,ICFD)
-              GFM(ICTM,ICFD)=GFM(ICTM+1,ICFD)
-              VCRIT(ICTM,ICFD)=VCRIT(ICTM+1,ICFD)
-              TBOIL(ICTM,ICFD)=TBOIL(ICTM+1,ICFD)
-              TCRIT(ICTM,ICFD)=TCRIT(ICTM+1,ICFD)
+          enddo
+          NITUM=1+NCTM(ICFD)
+          INUO=-1
+          CALL EMENU('Choose contaminant to delete',ITUM,NITUM,INUO)
+          DO ICTM=INUO-1,NCTM(ICFD)-1
+            POLNAM(ICTM,ICFD)=POLNAM(ICTM+1,ICFD)
+            CALPOL(ICTM,ICFD)=CALPOL(ICTM+1,ICFD)
+            SCHMT(ICTM,ICFD)=SCHMT(ICTM+1,ICFD)
+            ISCHMT(ICTM,ICFD)=ISCHMT(ICTM+1,ICFD)
+            GFM(ICTM,ICFD)=GFM(ICTM+1,ICFD)
+            VCRIT(ICTM,ICFD)=VCRIT(ICTM+1,ICFD)
+            TBOIL(ICTM,ICFD)=TBOIL(ICTM+1,ICFD)
+            TCRIT(ICTM,ICFD)=TCRIT(ICTM+1,ICFD)
+            ICC2NC(ictm,ICFD)=ICC2NC(ictm+1,ICFD)
+            URFCC(ICFD,ictm)=URFCC(ICFD,ictm+1)
+            URFCC2(ICFD,ictm)=URFCC2(ICFD,ictm+1)
 
 C Reset humidity/ water index if applicable.
-              IF(JHUMINDX(ICFD).EQ.INUO)THEN
-                JHUMINDX(ICFD)=0
-              ELSEIF(JHUMINDX(ICFD).GT.INUO)THEN
-                JHUMINDX(ICFD)=JHUMINDX(ICFD)-1
-              ENDIF
+            IF(JHUMINDX(ICFD).EQ.INUO)THEN
+              JHUMINDX(ICFD)=0
+            ELSEIF(JHUMINDX(ICFD).GT.INUO)THEN
+              JHUMINDX(ICFD)=JHUMINDX(ICFD)-1
+            ENDIF
 
 C Delete this contaminant from all key volumes.
-              DO 135 I=1,NVOL(ICFD)
+            DO I=1,NVOL(ICFD)
+              if (IVTYPE(i,ICFD).eq.20) then
                 VOLPOL(ICTM,I,ICFD)=VOLPOL(ICTM+1,I,ICFD)
- 135          CONTINUE
- 133        CONTINUE
+                SRCE(i,ictm,ICFD)=SRCE(i,ictm+1,ICFD)
+                SRCFRC(i,ictm,ICFD)=SRCFRC(i,ictm+1,ICFD)
+              endif
+            enddo
             POLNAM(NCTM(ICFD),ICFD)=' '
             CALPOL(NCTM(ICFD),ICFD)=.FALSE.
-            DO 134 I=1,NVOL(ICFD)
+            DO I=1,NVOL(ICFD)
               IF(IVTYPE(I,ICFD).EQ.20)VOLPOL(NCTM(ICFD),I,ICFD)=0.
- 134        CONTINUE
+            enddo
             NCTM(ICFD)=NCTM(ICFD)-1
-          ENDIF
+          enddo
         ENDIF
-        IF(ICTDFAF(ICFD).NE.1)GOTO 144
+        GOTO 144
 
 C Edit contaminants.
-      elseif (INO.gt.11.and.INO.lt.12+NCTM(ICFD)) then
-        ICTM=INO-11
-        IF(ICTDFAF(ICFD).EQ.1)THEN
-          helptopic='cfd_link_contam_sink'
-          call gethelptext(helpinsub,helptopic,nbhelp)
-          CALL PHELPD('Contaminants Edit',10,'-',0,0,IER)
-        ELSE
+      elseif (INO.gt.12.and.INO.lt.13+NCTM(ICFD)) then
+        ICTM=INO-12
+        helptopic='cfd_src_editctm'
+        call gethelptext(helpinsub,helptopic,nbhelp)
+        CALL EASKOK('Edit contaminant parameters?',' ',OK,nbhelp)
+
+        if (OK) then
           helptopic='cfd_link_contam_sink'
           call gethelptext(helpinsub,helptopic,nbhelp)
           SRCNAM=POLNAM(ICTM,ICFD)
           d12='Contaminant'
           call EASKS(SRCNAM,'Contaminant name?','  ',12,d12,
-     &    'cntmnt name',IER,nbhelp)
+     &     'cntmnt name',IER,nbhelp)
           POLNAM(ICTM,ICFD)=SRCNAM
-        ENDIF
-        
-        VAL=VOLPOL(ICTM,ISB,ICFD)
-        call EASKR(VAL,'Source strength (kg/s)?',
-     &    ' ',0.,'W',10.,'W',1.,'src strenght',IER,nbhelp)
-        VOLPOL(ICTM,ISB,ICFD)=VAL
-        CALL EASKOK(' ','Is this contaminant water vapour?',
-     &    OK,nbhelp)
-        IF(OK)THEN
-          JHUMINDX(ICFD)=ICTM
-        ELSE
-          IF(JHUMINDX(ICFD).EQ.ICTM)JHUMINDX(ICFD)=0
-        ENDIF
+          
+          CALL EASKOK(' ','Is this contaminant water vapour?',
+     &      OK,nbhelp)
+          IF(OK)THEN
+            JHUMINDX(ICFD)=ICTM
+          ELSE
+            IF(JHUMINDX(ICFD).EQ.ICTM)JHUMINDX(ICFD)=0
+          ENDIF
 
 C Ask for information to calculate Schmidt number.
-        helptopic='cfd_contam_schmidt_no'
-        call gethelptext(helpinsub,helptopic,nbhelp)
-        CALL EASKABC('How to specify turbulent Schmidt No.?'
-     &     ,' ','parameters','manual','default',ISCHM,nbhelp)
-        IF(ISCHM.EQ.1)THEN
-          ISCHMT(ICTM,ICFD)=1
-          CALL EASKS(HOLD,'enter mol mass (g/mol) crit vol (cm^3/mol)'
-     &      ,'boiling pt (K) and crit pt (K)',32
-     &      ,' 44.0 94.0 217.0 304.0',' ',IER,nbhelp)
-          K=0
-          CALL EGETWR(HOLD,K,VL1,1.,1000.,'W','molar mass',IER)
-          CALL EGETWR(HOLD,K,VL2,1.,1000.,'W','crit vol',IER)
-          CALL EGETWR(HOLD,K,VL3,100.,500.,'W','T_boil',IER)
-          CALL EGETWR(HOLD,K,VL4,100.,1000.,'W','T_crit',IER)
-          GFM(ICTM,ICFD)=VL1; VCRIT(ICTM,ICFD)=VL2; 
-          TBOIL(ICTM,ICFD)=VL3; TCRIT(ICTM,ICFD)=VL4
-        ELSEIF(ISCHM.EQ.2)THEN
-          ISCHMT(ICTM,ICFD)=0
-          call EASKR(VAL,'What is Turbulent Schmidt Number ',
-     &         ' ',0.5,'W',1.5,'W',1.,'schmidt #',IER,nbhelp)
-          SCHMT(ICTM,ICFD)=VAL
-        ELSEIF(ISCHM.EQ.3)THEN
-          ISCHMT(ICTM,ICFD)=0; SCHMT(ICTM,ICFD)=1.0
-          IF(JHUMINDX(ICFD).EQ.ICTM)SCHMT(ICTM,ICFD)=0.59
-        ENDIF
-
-C Now get source sink information from contaminants network
-        IF(ICTDFAF(ICFD).EQ.1)THEN
-          helptopic='cfd_link_contam_sink'
+          helptopic='cfd_contam_schmidt'
           call gethelptext(helpinsub,helptopic,nbhelp)
-          CALL EASKOK('Link contaminant network source/sink with this',
-     &      'CFD source type boundary condition?',OK,nbhelp)
-          IF(OK)THEN
-            IX=2
-            ITMSS3(1)= ' Source/ sink name:'
-            DO 2050 ISPMNO=1,NSPMNO
-              IF(SSLINK1(ISPMNO,ICTM).NE.0)THEN
-                WRITE(ITMSS3(IX),'(A,1X,A)')CHAR(96+IX-1),
-     &          SSNAME(SSLINK1(ISPMNO,ICTM))
-                IX=IX+1
-              ENDIF
- 2050       CONTINUE
-            ITMSS3(IX)  = ' '
-            ITMSS3(IX+1)= '0 none'
-            ITMSS3(IX+2)= ' ------------------'
-            ITMSS3(IX+3)= '? help'
-            ITMSS3(IX+4)= '- exit'
-            NITMSS3=IX+4
-            WRITE(outs,'(2A)')  'Sources and sinks for contaminant ',
-     &                       CONTMNAM(ICTM)
-            call edisp(iuout,outs)
-            call edisp(iuout,
-     &        'are displayed. Choose which one represents this')
-            call edisp(iuout,
-     &        'source type CFD boundary condition (if at all)')
- 2041       IXO=-1
-            WRITE(WORD,'(2A)')'Choose source type for contaminant ',
-     &                     CONTMNAM(ICTM)
-            IF(IX.EQ.2)GOTO 3043
-            CALL EMENU(WORD,ITMSS3,NITMSS3,IXO)
-            IF(IXO.EQ.NITMSS3)THEN
-              CONTINUE
-            ELSEIF(IXO.EQ.NITMSS3-1)THEN
-              helptopic='cfd_contam_sinks'
-              call gethelptext(helpinsub,helptopic,nbhelp)
-              CALL PHELPD('Choose source/sink',nbhelp,'-',0,0,IER)
-              GOTO 2041
-            ELSEIF(IXO.EQ.NITMSS3-3)THEN
-                SRCE(ISB,ICTM,ICFD)=' '
-            ELSEIF(IXO.GT.1.AND.IXO.LT.NITMSS3-3)THEN
-              SRCE(ISB,ICTM,ICFD)=SSNAME(SSLINK1(IXO-1,ICTM))
-            ELSE
-              GOTO 2041
-            ENDIF
+          CALL EASKABC('How to specify turbulent Schmidt No.?'
+     &      ,' ','parameters','manual','default',ISCHM,nbhelp)
+          IF(ISCHM.EQ.1)THEN
+            ISCHMT(ICTM,ICFD)=1
+            CALL EASKS(HOLD,'enter mol mass (g/mol) crit vol (cm^3/mol)'
+     &        ,'boiling pt (K) and crit pt (K)',32
+     &        ,' 44.0 94.0 217.0 304.0',' ',IER,nbhelp)
+            K=0
+            CALL EGETWR(HOLD,K,VL1,1.,1000.,'W','molar mass',IER)
+            CALL EGETWR(HOLD,K,VL2,1.,1000.,'W','crit vol',IER)
+            CALL EGETWR(HOLD,K,VL3,100.,500.,'W','T_boil',IER)
+            CALL EGETWR(HOLD,K,VL4,100.,1000.,'W','T_crit',IER)
+            GFM(ICTM,ICFD)=VL1; VCRIT(ICTM,ICFD)=VL2; 
+            TBOIL(ICTM,ICFD)=VL3; TCRIT(ICTM,ICFD)=VL4
+          ELSEIF(ISCHM.EQ.2)THEN
+            ISCHMT(ICTM,ICFD)=0
+            call EASKR(VAL,'What is Turbulent Schmidt Number ',
+     &        ' ',0.5,'W',1.5,'W',1.,'schmidt #',IER,nbhelp)
+            SCHMT(ICTM,ICFD)=VAL
+          ELSEIF(ISCHM.EQ.3)THEN
+            ISCHMT(ICTM,ICFD)=0; SCHMT(ICTM,ICFD)=1.0
+            IF(JHUMINDX(ICFD).EQ.ICTM)SCHMT(ICTM,ICFD)=0.59
           ENDIF
-          GOTO 3045
- 3043     call edisp(iuout,
-     &      'No sources/sinks defined for this contaminant')
- 3045     continue
-        ENDIF
+        endif
+
+C Get source sink information from contaminants network.
+        IF(ICTDFAF(ICFD).EQ.1)THEN
+          helptopic='cfd_src_editcpl'
+          call gethelptext(helpinsub,helptopic,nbhelp)
+          CALL EASKOK('Edit network coupling?',' ',OK,nbhelp)
+          if (.not.OK) goto 144
+          helptopic='cfd_ctm_network_assoc'
+          call gethelptext(helpinsub,helptopic,nbhelp)
+          icctm=ictm
+          do inctm=1,NCONTM
+            WRITE(ITMSS1(ICTM),'(2A,A12)')CHAR(96+ICTM),' ',
+     &        CONTMNAM(ICTM)
+          enddo
+          ITMSS1(NCTM(ICFD)+1) =' ------------------------'
+          ITMSS1(NCTM(ICFD)+2) ='? help                   '
+          ITMSS1(NCTM(ICFD)+3) ='- none of the above      '
+          NITMSS1=NCTM(ICFD)+3
+          IIO=-1
+          write(outs,'(4a)')'Select a network contaminant that',
+     &      ' represents CFD contaminant ',POLNAM(icctm,ICFD),'.'
+          call edisp(iuout,outs)
+          write(outs,'(3a)')'Which is contaminant ',
+     &      POLNAM(icctm,ICFD),'?'
+ 5264     CALL EMENU(outs,ITMSS1,NITMSS1,IIO)
+          IF(IIO.EQ.NITMSS1)THEN
+            ICC2NC(icctm,ICFD)=0
+          ELSEIF(IIO.EQ.NITMSS1-1)THEN
+            CALL PHELPD('CFD contaminant network association',
+     &       nbhelp,'-',0,0,IER)
+            goto 5264
+          ELSEIF(IIO.GE.1.AND.IIO.LE.NCTM(ICFD))THEN
+            ICC2NC(icctm,ICFD)=IIO              
+          ELSE
+            GOTO 5264
+          ENDIF
+
+          if (ICC2NC(ictm,ICFD).gt.0) then
+            IF(NSPMNO.gt.0)THEN
+              inctm=ICC2NC(ictm,ICFD)
+              IX=1
+              DO ISPMNO=1,NSPMNO
+                IF(SSLINK1(ISPMNO,inctm).NE.0)THEN
+                  WRITE(ITMSS2(IX),'(A,1X,A)')CHAR(96+IX),
+     &              SSNAME(SSLINK1(ISPMNO,inctm))
+                  IX=IX+1
+                endif
+              enddo
+              IF (IX.EQ.1) then
+                write(outs,'(3a)')
+     &            'No sources/sinks defined for network contaminant ',
+     &            CONTMNAM(inctm),'.'
+                call edisp(iuout,outs)
+                SRCE(ISB,ictm,ICFD)=' '
+                SRCFRC(ISB,ictm,ICFD)=0.0
+              endif
+              ITMSS2(IX)=   ' ------------------'
+              ITMSS2(IX+1)= '? help'
+              ITMSS2(IX+2)= '- none of the above'
+              NITMSS2=IX+2
+              WRITE(outs,'(3A)')
+     &          'Select source/sink for contaminant ',
+     &          POLNAM(icctm,ICFD),'.'
+              call edisp(iuout,outs)
+ 5294         IXO=-1
+              WRITE(WORD,'(3A)')'Contaminant ',POLNAM(icctm,ICFD),
+     &          ' source/sink'
+              CALL EMENU(WORD,ITMSS2,NITMSS2,IXO)
+              IF(IXO.EQ.NITMSS2)THEN
+                SRCE(ISB,ictm,ICFD)=' '
+                SRCFRC(ISB,ictm,ICFD)=0.0
+              ELSEIF(IXO.EQ.NITMSS2-1)THEN
+                CALL PHELPD('Choose source/sink',nbhelp,'-',0,0,IER)
+                GOTO 5294
+              ELSEIF(IXO.GE.1 .AND. IXO.LE.NITMSS2-3)THEN
+                SRCE(ISB,ictm,ICFD)=SSNAME(SSLINK1(IXO,inctm))
+                val=1.0
+                CALL EASKR(val,'What fraction is injected here?',
+     &            '(0.0 - 1.0)',0.0,'F',1.0,'F',1.0,'src frac',IER,
+     &            nbhelp)
+                SRCFRC(ISB,ictm,ICFD)=val
+              ELSE
+                GOTO 5294
+              ENDIF
+            else
+              SRCE(ISB,ictm,ICFD)=' '
+              SRCFRC(ISB,ictm,ICFD)=0.0
+            ENDIF
+          else
+            SRCE(ISB,ictm,ICFD)=' '
+            SRCFRC(ISB,ictm,ICFD)=0.0
+          endif
+        endif
+
+C Ask for static release rate.
+        if (SRCE(ISB,ictm,ICFD).eq.' ') then
+          helptopic='cfd_source_boundary_edit'
+          call gethelptext(helpinsub,helptopic,nbhelp)
+          VAL=VOLPOL(ICTM,ISB,ICFD)
+          call EASKR(VAL,'Release rate (kg/s)?',
+     &    ' ',0.,'W',10.,'W',1.,'src strength',IER,nbhelp)
+          VOLPOL(ICTM,ISB,ICFD)=VAL
+        endif
+
       elseif (INO.eq.(NITMS-1)) then
 
 C Create help for 'sources edit' menu.
@@ -9455,11 +10110,8 @@ C Create help for 'sources edit' menu.
       else
         goto 7
       endif
-        goto 5
-
-C Prevent user from entering contaminants.
-  756 CALL PHELPD('Contaminants',nbhelp,'-',0,0,IER)
       goto 144
+
       end
 
 
@@ -9471,11 +10123,11 @@ C IER=0 indicates no error.
 #include "building.h"
 #include "geometry.h"
 #include "cfd.h"
+#include "schedule.h"
 #include "help.h"
 
       COMMON/ICFNOD/ICFD,ICP
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
-
       common/KEYVOLS/NVOL(MNZ),IVOLF(MNVLS,MNZ),IVCELLS(MNVLS,MNZ,2),
      &               JVCELLS(MNVLS,MNZ,2),KVCELLS(MNVLS,MNZ,2)
       common/KEYVOLN/VOLNAME(MNVLS,MNZ),VCsurf(MNVLS,MNZ),
@@ -9492,16 +10144,20 @@ C IER=0 indicates no error.
      3            SEW(ntcelx),SNS(ntcely),SHL(ntcelz),
      4            XU(ntcelx),YV(ntcely),ZW(ntcelz)
       common/blksso/NBLK(MNZ),INBLK(MNVLS,MNZ),NSSO(MNZ),
-     &          INSSO(MNVLS,MNZ),BLKTEMP(MNVLS,MNZ,6)
+     &          INSSO(MNVLS,MNZ),BLKTEMP(MNVLS,6)
       COMMON/CFDVIS/HAS_GEOM,ISHSB,ISHAO,IFACES,ISHBLK,ISHSRC,ISHGEO,
      &              INITD
       logical HAS_GEOM
       character INITD*6
- 
+      common/KEYCASGN/IDcasgn(MNVLS,MNZ),Fcasgn(MNVLS,MNZ)
+      common/dynamico/isdynamicocup(MCOM)
+      common/cfdfil/LCFD(MCOM),IFCFD(MCOM)
+      character LCFD*72
+      
       character ITMSS(20)*50
       character ltmp*40,t12*12,d12*12,t20*20
 
-      logical ERROR
+      logical ERROR,isdynamic
       integer NITMS,INO ! max items and current menu item
 
       helpinsub='edcfd'  ! set for subroutine
@@ -9509,19 +10165,19 @@ C IER=0 indicates no error.
       call gethelptext(helpinsub,helptopic,nbhelp)
 
 C Adjust each cell by -1 as dfs adds fictitious cells around the domain.
-      Ii=IVCELLS(ISB,ICFD,1)-1; If=IVCELLS(ISB,ICFD,2)-1
+      Ii=IVCELLS(ISB,ICFD,1)-1; Iif=IVCELLS(ISB,ICFD,2)-1
       Ji=JVCELLS(ISB,ICFD,1)-1; Jf=JVCELLS(ISB,ICFD,2)-1
       Ki=KVCELLS(ISB,ICFD,1)-1; Kf=KVCELLS(ISB,ICFD,2)-1
 
 C Check if new blockage.
-      if (Ii.lt.0.or.If.lt.0.or.
+      if (Ii.lt.0.or.Iif.lt.0.or.
      &    Ji.lt.0.or.Jf.lt.0.or.
      &    Ki.lt.0.or.Kf.lt.0) then 
         t20='Blockage'
         if(IVOLF(ISB,ICFD).ne.0)IFACE=IVOLF(ISB,ICFD)
-        call PIKCELS(Ii,If,Ji,Jf,Ki,Kf,IFACE,IER)
+        call PIKCELS(Ii,Iif,Ji,Jf,Ki,Kf,IFACE,IER)
         IVOLF(ISB,ICFD)=IFACE
-        IVCELLS(ISB,ICFD,1)=Ii+1; IVCELLS(ISB,ICFD,2)=If+1
+        IVCELLS(ISB,ICFD,1)=Ii+1; IVCELLS(ISB,ICFD,2)=Iif+1
         JVCELLS(ISB,ICFD,1)=Ji+1; JVCELLS(ISB,ICFD,2)=Jf+1
         KVCELLS(ISB,ICFD,1)=Ki+1; KVCELLS(ISB,ICFD,2)=Kf+1
         call NEW2OLD
@@ -9530,27 +10186,31 @@ C Check if new blockage.
 C Set boundary type string.
     5 ltmp='  '
       if (IVTYPE(ISB,ICFD).eq.30) then
-        ltmp='Blockage - Heat flux'
+        ltmp='Blockage - heat flux'
       elseif (IVTYPE(ISB,ICFD).eq.31) then
-        ltmp='Blockage - Temperature'
+        ltmp='Blockage - temperature'
       elseif (IVTYPE(ISB,ICFD).eq.32) then
-        ltmp='Blockage - Conflated (single)'
+        ltmp='Blockage - surface'
       elseif (IVTYPE(ISB,ICFD).eq.33) then
-        ltmp='Blockage - Conflated (multiple)'
+        ltmp='Blockage - surfaces'
+      elseif (IVTYPE(ISB,ICFD).eq.34) then
+        ltmp='Blockage - casual gain'
+      elseif (IVTYPE(ISB,ICFD).eq.35) then
+        ltmp='Blockage - dynamic person'
       endif
 
 C Create a menu showing definitions for different conflation schemes.
-      xd=XU(If+2)-XU(Ii+1)  ! need to add 1 to indicies
+      xd=XU(Iif+2)-XU(Ii+1)  ! need to add 1 to indicies
       yd=YV(Jf+2)-YV(Ji+1)
       zd=ZW(Kf+2)-ZW(Ki+1)
       write (ITMSS(1),'(a,a)')   'a name: ',VOLNAME(ISB,ICFD)
       write (ITMSS(2),'(3a)')   'b type: ',ltmp
       write (ITMSS(3),'(a)')     ' -----------------------------'
       write (ITMSS(4),'(a,a)')   '         Is  If  Js  Jf  Ks  Kf '
-      write (ITMSS(5),'(a,6(i4))') 'c cells:',Ii,If,Ji,Jf,Ki,Kf
+      write (ITMSS(5),'(a,6(i4))') 'c cells:',Ii,Iif,Ji,Jf,Ki,Kf
       write (ITMSS(6),'(a)')     ' -----------------------------'
       write (ITMSS(7),'(a,f6.3,a,f6.3,a,f5.3)') '  Z cords: ',XU(Ii+1),
-     &                  ' to ',XU(If+2),' delta ',xd
+     &                  ' to ',XU(Iif+2),' delta ',xd
       write (ITMSS(8),'(a,f6.3,a,f6.3,a,f5.3)') '  Y cords: ',YV(Ji+1),
      &                  ' to ',YV(Jf+2),' delta ',yd
       write (ITMSS(9),'(a,f6.3,a,f6.3,a,f5.3)') '  Z cords: ',ZW(Ki+1),
@@ -9565,11 +10225,11 @@ C Create a menu showing definitions for different conflation schemes.
      &                             VOLTemp(ISB,ICFD)
         iitms=11
       elseif (IVTYPE(ISB,ICFD).eq.32) then
-        write(ITMSS(11),'(2a)')'e conflated to surface: ',
+        write(ITMSS(11),'(2a)')'e coupled to surface: ',
      &                             VCsurf(ISB,ICFD)
         iitms=11
       elseif (IVTYPE(ISB,ICFD).eq.33) then
-        write(ITMSS(11),'(a)')' Conflated surfaces'
+        write(ITMSS(11),'(a)')' Coupled surfaces'
         write(ITMSS(12),'(2a)')'f east face: ',BLKSURF(ISB,ICFD,1)
         write(ITMSS(13),'(2a)')'g west face: ',BLKSURF(ISB,ICFD,2)
         write(ITMSS(14),'(2a)')'h north face: ',BLKSURF(ISB,ICFD,3)
@@ -9577,6 +10237,14 @@ C Create a menu showing definitions for different conflation schemes.
         write(ITMSS(16),'(2a)')'j high face: ',BLKSURF(ISB,ICFD,5)
         write(ITMSS(17),'(2a)')'k low face: ',BLKSURF(ISB,ICFD,6)
         iitms=17
+      elseif (IVTYPE(ISB,ICFD).eq.34) then
+        write(ITMSS(11),'(a,i1)')'e gain index: ',IDcasgn(ISB,ICFD)
+        write(ITMSS(12),'(a,f4.2)')'f gain fraction: ',Fcasgn(ISB,ICFD)
+        iitms=12
+      elseif (IVTYPE(ISB,ICFD).eq.35) then
+        write(ITMSS(11),'(2a)')'e occupant type: ',BLKSURF(ISB,ICFD,1)
+        write(ITMSS(12),'(2a)')'f occupant part: ',BLKSURF(ISB,ICFD,2)
+        iitms=12
       endif
       ITMSS(iitms+1) =' -----------------------------'
       ITMSS(iitms+2)='? Help'
@@ -9620,17 +10288,61 @@ C Set blockage type.
       elseif (INO.eq.2) then
         helptopic='blockage_type'
         call gethelptext(helpinsub,helptopic,nbhelp)
-        CALL EASKATOG(' ','Select blockage type','heat','temperature',
-     &    'conflated (single)','conflated (multiple)','cancel',' ',' ',
-     &    IW,nbhelp)
-        if (IW.lt.5) IVTYPE(ISB,ICFD)=29+IW
+
+        if (IFCFD(ICFD).eq.0) then
+          CALL EASKABC(' ','Select blockage type','heat','temperature',
+     &      'cancel',IW,nbhelp)
+          if (IW.lt.3) IVTYPE(ISB,ICFD)=29+IW
+        else
+          
+C Check if dynamic occupants are available.
+          if (isdynamicocup(ICP).gt.0) then
+            t20='dynamic person'
+          else
+            t20='-'
+          endif
+
+  82      CALL EASKATOG(' ','Select blockage type','heat','temperature',
+     &      'surface','surfaces','casual gain',t20,'cancel',IW,
+     &      nbhelp)
+
+          if (IW.eq.6 .and. isdynamicocup(ICP).eq.0) goto 82
+
+C Set defaults if the type has changed.
+          if (29+IW.ne.IVTYPE(ISB,ICFD)) then
+            if (IW.eq.1) then
+              VOLHEAT(ISB,ICFD) = 0.0
+            elseif (IW.eq.2) then
+              VOLTemp(ISB,ICFD) = 0.0
+            elseif (IW.eq.3) then
+              VCsurf(ISB,ICFD) = 'NONE        '
+            elseif (IW.eq.4) then
+              do i=1,6
+                BLKSURF(ISB,ICFD,i) = 'NONE        '
+              enddo
+            elseif (IW.eq.5) then
+              IDcasgn(ISB,ICFD) = 1
+              Fcasgn(ISB,ICFD) = 1.0
+            elseif (IW.eq.6) then
+              BLKSURF(ISB,ICFD,1) = 'woman       ' ! use BLKSURF to store occupant charateristics
+              BLKSURF(ISB,ICFD,2) = 'whole_body  '
+            endif
+
+C Also make sure we clear IDcasgn if necessary.
+            if (IVTYPE(ISB,ICFD).eq.34) then
+              IDcasgn(ISB,ICFD)=0
+            endif            
+          endif
+          
+          if (IW.lt.7) IVTYPE(ISB,ICFD)=29+IW
+        endif
 
       elseif (INO.eq.5) then
  79     t20='Blockage'
         if(IVOLF(ISB,ICFD).ne.0)IFACE=IVOLF(ISB,ICFD)
-        call PIKCELS(Ii,If,Ji,Jf,Ki,Kf,IFACE,IER)
+        call PIKCELS(Ii,Iif,Ji,Jf,Ki,Kf,IFACE,IER)
         IVOLF(ISB,ICFD)=IFACE
-        IVCELLS(ISB,ICFD,1)=Ii+1; IVCELLS(ISB,ICFD,2)=If+1
+        IVCELLS(ISB,ICFD,1)=Ii+1; IVCELLS(ISB,ICFD,2)=Iif+1
         JVCELLS(ISB,ICFD,1)=Ji+1; JVCELLS(ISB,ICFD,2)=Jf+1
         KVCELLS(ISB,ICFD,1)=Ki+1; KVCELLS(ISB,ICFD,2)=Kf+1
         call NEW2OLD
@@ -9668,8 +10380,64 @@ C Check for illegal volume (vol must be 1 cells thick in all directions).
         elseif (IVTYPE(ISB,ICFD).eq.32) then
           CALL EASKSUR(ICP,IS,'-','Select a surface.',' ',IER)
           if (IER.eq.0 .and. IS.gt.0) VCsurf(ISB,ICFD)=SNAME(ICP,IS)
+        elseif (IVTYPE(ISB,ICFD).eq.34) then
+          ival=IDcasgn(ISB,ICFD)
+          call PIKCGTYP(ICP,ival,nbhelp)
+          IDcasgn(ISB,ICFD)=ival
+        elseif (IVTYPE(ISB,ICFD).eq.35) then
+          i=2
+          CALL EASKABC(' ','Occupant type','man','woman','child',i,
+     &      nbhelp)
+          if (i.eq.1) then
+            BLKSURF(ISB,ICFD,1) = 'man'
+          elseif (i.eq.2) then
+            BLKSURF(ISB,ICFD,1) = 'woman'
+          elseif (i.eq.3) then
+            BLKSURF(ISB,ICFD,1) = 'child'
+          endif
         endif
-        
+
+      elseif (INO.eq.12) then
+        if (IVTYPE(ISB,ICFD).eq.33) then
+          CALL EASKSUR(ICP,IS,'-','Select a surface.',' ',IER)
+          if (IER.eq.0) then
+            if (IS.eq.0) then
+              BLKSURF(ISB,ICFD,1)='NONE        '
+            else
+              BLKSURF(ISB,ICFD,1)=SNAME(ICP,IS)
+            endif
+          endif
+        elseif (IVTYPE(ISB,ICFD).eq.34) then
+          val=Fcasgn(ISB,ICFD)
+          call EASKR(val,'What fraction of casual gain is generated? ',
+     &      ' ',0.,'W',1.,'W',1.,'casgn fraction',IER,nbhelp)
+          if (IER.eq.0) FCasgn(ISB,ICFD)=val
+        elseif (IVTYPE(ISB,ICFD).eq.35) then
+          if (isdynamicocup(ICP).eq.4) then
+            ival=7
+            call easkatog('What body part does this represent?',' ',
+     &        'head','trunk','left arm','right_arm','left leg',
+     &        'right leg','whole body',ival,nbhelp)
+            if (ival.eq.1) then
+              BLKSURF(ISB,ICFD,2)='head'
+            elseif (ival.eq.2) then
+              BLKSURF(ISB,ICFD,2)='trunk'
+            elseif (ival.eq.3) then
+              BLKSURF(ISB,ICFD,2)='left_arm'
+            elseif (ival.eq.4) then
+              BLKSURF(ISB,ICFD,2)='right_arm'
+            elseif (ival.eq.5) then
+              BLKSURF(ISB,ICFD,2)='left_leg'
+            elseif (ival.eq.6) then
+              BLKSURF(ISB,ICFD,2)='right_leg'
+            elseif (ival.eq.7) then
+              BLKSURF(ISB,ICFD,2)='whole_body'
+            endif
+          else
+            call usrmsg('Segmented occupant model not in use.',
+     &        'Option not available.','w')
+          endif
+        endif
 C Help.
       elseif (INO.eq.(NITMS-1)) then
         helptopic='cfd_blockage_menu'
@@ -9680,8 +10448,8 @@ C Exit menu.
       elseif (INO.eq.NITMS) then
         return
 
-C Select conflated surface for any face.
-      elseif (INO.ge.12.and.INO.le.17) then
+C Select coupled surface for any face.
+      elseif (INO.gt.12.and.INO.le.17) then
         if (IVTYPE(ISB,ICFD).eq.33) then
           CALL EASKSUR(ICP,IS,'-','Select a surface.',' ',IER)
           if (IER.eq.0) then
@@ -9772,7 +10540,7 @@ C Display menu and then decode returned value.
 C ******************** PIKCELS ********************
 C Controls the editing of the cells defining a boundary region.
 
-      SUBROUTINE PIKCELS(Ii,If,Ji,Jf,Ki,Kf,IFACE,IER)
+      SUBROUTINE PIKCELS(Ii,Iif,Ji,Jf,Ki,Kf,IFACE,IER)
 #include "building.h"
 #include "cfd.h"
 #include "help.h"
@@ -9889,14 +10657,14 @@ C Setup Ii and If and dflt and t30 for each of the faces.
       if (IFACE.eq.1) then
 
 C West face.
-        Ii=1; If=1
-        write(dflt,'(6i4)') Ii,If,IONE,NTCY,IONE,NTCZ
+        Ii=1; Iif=1
+        write(dflt,'(6i4)') Ii,Iif,IONE,NTCY,IONE,NTCZ
         t30='(current face: west)'
       elseif (IFACE.eq.2) then
 
 C East face.
-        Ii=NTCX; If=NTCX
-        write(dflt,'(6i4)') Ii,If,IONE,NTCY,IONE,NTCZ
+        Ii=NTCX; Iif=NTCX
+        write(dflt,'(6i4)') Ii,Iif,IONE,NTCY,IONE,NTCZ
         t30='(current face: east)'
       elseif (IFACE.eq.3) then
 
@@ -9928,14 +10696,14 @@ C Unknown face.
         write(dflt,'(6i4)') IONE,NTCX,IONE,NTCY,IONE,NTCZ
         t30='(current face: UNKNOWN)'
       endif
-      if (Ii.lt.0.or.If.lt.0.or.
+      if (Ii.lt.0.or.Iif.lt.0.or.
      &    Ji.lt.0.or.Jf.lt.0.or.
      &    Ki.lt.0.or.Kf.lt.0) then 
         s30=dflt
       else
 
 C Ask for cells.
-        write(s30,'(6i4)') Ii,If,Ji,Jf,Ki,Kf
+        write(s30,'(6i4)') Ii,Iif,Ji,Jf,Ki,Kf
       endif
  10   call EASKS(s30,'Boundary cells (Ii If Ji Jf Ki Kf)?',
      &  t30,30,dflt,'bndry cells',IER,nbhelp)
@@ -9947,7 +10715,7 @@ C Read six cell locations.
       call EGETWI(s30,K,IVAL,1,NTCX,'F','x cells start',IER)
       if (IER.eq.0) Ii=IVAL
       call EGETWI(s30,K,IVAL,1,NTCX,'F','x cells end',IER)
-      if (IER.eq.0) If=IVAL
+      if (IER.eq.0) Iif=IVAL
       call EGETWI(s30,K,IVAL,1,NTCY,'F','y cells start',IER)
       if (IER.eq.0) Ji=IVAL
       call EGETWI(s30,K,IVAL,1,NTCY,'F','y cells end',IER)
@@ -9961,9 +10729,9 @@ C Read six cell locations.
       
 C Check for incompatable face/ cell definition
       if (IFACE.eq.1) then
-        if (Ii.ne.1.or.If.ne.1) IER=2
+        if (Ii.ne.1.or.Iif.ne.1) IER=2
       elseif (IFACE.eq.2) then
-        if (Ii.ne.NTCX.or.If.ne.NTCX) IER=2
+        if (Ii.ne.NTCX.or.Iif.ne.NTCX) IER=2
       elseif (IFACE.eq.3) then
         if (Ji.ne.1.or.Jf.ne.1) IER=2
       elseif (IFACE.eq.4) then
@@ -9987,7 +10755,7 @@ C Controls the editing of the face of the boundary region.
 C Check which two start/end locations are the same. Keeps
 C count of number of matches.
 
-      SUBROUTINE PIKFACE(BTYPE,BNAME,Ii,If,Ji,Jf,Ki,Kf,IFACE,IER)
+      SUBROUTINE PIKFACE(BTYPE,BNAME,Ii,Iif,Ji,Jf,Ki,Kf,IFACE,IER)
 #include "help.h"
 
       common/grdmax/NTCX,NTCY,NTCZ
@@ -10003,7 +10771,7 @@ C Check that face is needed.
 
 C Try to guess which face.
       IMTCH=0
-      if (Ii.eq.If) then
+      if (Ii.eq.Iif) then
         if (Ii.eq.1) then
 
 C West face.
@@ -10042,7 +10810,7 @@ C Top face.
 C Check for conflicts.
       if (IMTCH.eq.0) then
         call usrmsg ('Cells must be at a boundary face.','  ','W')
-        call PIKCELS(Ii,If,Ji,Jf,Ki,Kf,IFACE,IER)
+        call PIKCELS(Ii,Iif,Ji,Jf,Ki,Kf,IFACE,IER)
       elseif (IMTCH.gt.1) then
         call usrmsg ('Cannot resolve boundary face.',
      &               'Please choose from the following list.','W')
@@ -10053,9 +10821,9 @@ C Check for conflicts.
 
 C Check for incompatable face/ cell definition.
       if (IFACE.eq.1) then
-        if (Ii.ne.1.or.If.ne.1) IER=2
+        if (Ii.ne.1.or.Iif.ne.1) IER=2
       elseif (IFACE.eq.2) then
-        if (Ii.ne.NTCX.or.If.ne.NTCX) IER=2
+        if (Ii.ne.NTCX.or.Iif.ne.NTCX) IER=2
       elseif (IFACE.eq.3) then
         if (Ji.ne.1.or.Jf.ne.1) IER=2
       elseif (IFACE.eq.4) then
@@ -10095,7 +10863,7 @@ C Curvilinear boundary vertex numbers.
 
       logical clkok,found
 
-      DIMENSION COG1(3),COG2(3),COG3(3),JJVN(MV)
+      DIMENSION COG1(3),COG2(3),JJVN(MV)
       integer ISTRW
 
       CHARACTER HOLD*96,outs*124
@@ -10146,9 +10914,8 @@ C the individual vertex numbers from the list.
           found=.false.
           do 45 i=1,NTV
             COG1(1)=X(I); COG1(2)=Y(I); COG1(3)=Z(I)
-            CALL VECTRN(COG1,TEMAT,COG2,IER)
-            CALL VECTRN(COG2,ETSMAT,COG3,IER)
-            call u2pixel(COG3(1),COG3(2),iix,iiy)
+            CALL VECTRN(COG1,TSMAT,COG2,IER)
+            call u2pixel(COG2(1),COG2(2),iix,iiy)
             ixd=iix-iixx; iyd=iiy-iiyy
             if(abs(ixd).lt.5.and.abs(iyd).lt.5)then
               if(found)then
@@ -10206,9 +10973,8 @@ C Ask for and display the bottom defining vertices (west to east).
           found=.false.
           do 55 i=1,NTV
             COG1(1)=X(I); COG1(2)=Y(I); COG1(3)=Z(I)
-            CALL VECTRN(COG1,TEMAT,COG2,IER)
-            CALL VECTRN(COG2,ETSMAT,COG3,IER)
-            call u2pixel(COG3(1),COG3(2),iix,iiy)
+            CALL VECTRN(COG1,TSMAT,COG2,IER)
+            call u2pixel(COG2(1),COG2(2),iix,iiy)
             ixd=iix-iixx; iyd=iiy-iiyy
             if(abs(ixd).lt.5.and.abs(iyd).lt.5)then
               if(found)then

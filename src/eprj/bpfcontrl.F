@@ -73,6 +73,10 @@ C Usual proportional fonts used for non-control facilities.
       character calename*32,calentag*12,calendayname*32
       common/caleni/nbdaytype,nbcaldays(MDTY),icalender(365)
       INTEGER nbdaytype,nbcaldays,icalender
+
+C High level control scope key words.
+      character hcffpattern*12    ! heat, cool, or heat+cool plus detail
+      common/hlcontrol/hcffpattern(2)     
      
       LOGICAL        CFGOK,MLDBOK,MATDBOK,CTLOK,OPTKOK,CFCDBOK
 
@@ -85,6 +89,7 @@ C ipeerptbk is pointer from position in display to day type.
       CHARACTER outs*124,LASCI*72
       character t248*248,SSTR*96
       character sfile*72,snpfile*72,fs*1
+      character loopnameentry*32,sensentry*32,actentry*32
       logical LINKED,OK,XST,browse,unixok
       integer icomp
       integer IW   ! for radio button
@@ -250,7 +255,20 @@ C de-referencing the file.
      &    'specify another','make new file',IW,0)
         if(IW.eq.1)goto 44
 
-C Set defaults and ask user which control to focus on first.
+C Set scope and defaults and ask user which control to focus on first.
+        hcffpattern(1)='HEATCOOL'; hcffpattern(2)='-'
+        CALL EASKABCD('Extent of ideal environmental controls: ',
+     &    ' ','heating only','cooling only','heating & cooling',
+     &    'unknown',IW,nbhelp)
+        if(iw.eq.1)then
+          hcffpattern(1)='HEATONLY'; hcffpattern(2)='-'
+        elseif(iw.eq.2)then
+          hcffpattern(1)='COOLONLY'; hcffpattern(2)='-'
+        elseif(iw.eq.3)then
+          hcffpattern(1)='HEATCOOL'; hcffpattern(2)='-'
+        elseif(iw.eq.4)then
+          hcffpattern(1)='UNKNOWN'; hcffpattern(2)='-'
+        endif
         LINKED=.FALSE.
         call ADDCNTL(icfoc,'A')
       endif
@@ -267,7 +285,7 @@ C to a smaller fixed width font because this is a wide menu.
       call userfonts(IFS,ITFS,IMFS)
 
 C Setup for multi-page menu.
-  54  MHEAD=8
+  54  MHEAD=9
       MCTL=6
       call totctlper(icfoc,ncper)
       ILEN=ncper
@@ -285,41 +303,48 @@ C Initial menu entry setup, rescan for length of the list.
         write(VERT(3),'(A,A27)') 'c description: ',znctldoc(1:27)
         write(VERT(4),'(A,I2)')  '  loops      : ',ncf
         VERT(5)=                 'd link loops to zones'
+        write(VERT(6),'(2a)') 'e scope: ',hcffpattern(1)
       elseif(icfoc.eq.1)then
         write(VERT(1),'(A)')     'a control focus >> plant'
         write(VERT(3),'(A,A27)') 'c description: ',plctldoc(1:27)
         write(VERT(4),'(A,I2)')  '  loops      : ',ncl
         VERT(5)=                 ' '
+        VERT(6)=                 ' '
       elseif(icfoc.eq.2)then
         write(VERT(1),'(A)')     'a control focus >> vent/hydronic'
         write(VERT(3),'(A,A27)') 'c description: ',flctldoc(1:27)
         write(VERT(4),'(A,I2)')  '  loops      : ',ncc
         VERT(5)=                 ' '
+        VERT(6)=                 ' '
       elseif(icfoc.eq.3)then
         write(VERT(1),'(A)')     'a control focus >> global'
         write(VERT(3),'(A,A27)') 'c description: ',glctldoc(1:27)
         write(VERT(4),'(A,I2)')  '  loops      : ',ngf
         VERT(5)=                 '                                    '
+        VERT(6)=                 ' '
       elseif(icfoc.eq.4)then
         write(VERT(1),'(A)')     'a control focus >> power'
         write(VERT(3),'(A,A27)') 'c description: ',elctldoc(1:27)
         write(VERT(4),'(A,I2)')  '  loops      : ',necl
         VERT(5)=                 '                                    '
+        VERT(6)=                 ' '
       elseif(icfoc.eq.5)then
         write(VERT(1),'(A)')     'a control focus >> optics'
         write(VERT(3),'(A,A27)') 'c description: ',opticdoc(1:27)
         write(VERT(4),'(A,I2)')  '  loops      : ',nof
         VERT(5)=                 '                                    '
+        VERT(6)=                 ' '
       elseif(icfoc.eq.6)then
         write(VERT(1),'(A)')     
      &  'a control focus >> complex fenestration'
         write(VERT(3),'(A,A27)') 'c description: ',CFCctldoc(1:27)
         write(VERT(4),'(A,I2)')  '  loops      : ',nCFCctlloops
         VERT(5)=                 '                                    '
+        VERT(6)=                 ' '
       endif
-      VERT(6)= ' ___________________________________________________'
-      VERT(7)= ' cntl| sensor |actuator|    day     | valid  | periods'
-      VERT(8)= ' loop|location|location|    type    | during | in day '
+      VERT(7)= ' ___________________________________________________'
+      VERT(8)= ' cntl|   name           |   day     | valid  | periods'
+      VERT(9)= ' loop|                  |   type    | during | in day '
       m=MHEAD
 
 C Keep track of how many items will be in the variable length section
@@ -337,24 +362,22 @@ C of the menu.
               CALL EMKEY(M-MHEAD+4,KEY,IER)
               if(nbcdt(ii).eq.0.and.IJ.eq.1)then
                 iperptbk(m)=1
-                WRITE(VERT(M),'(A1,I4,3I3,3I3,1x,a12,3I4)') KEY,II,
-     &            IBSN(II,1),IBSN(II,2),IBSN(II,3),IBAN(II,1),
-     &            IBAN(II,2),IBAN(II,3),calentag(ij),ibcdv(II,IJ,1),
+                WRITE(VERT(M),'(A1,I4,1x,a,1x,a12,3I4)') KEY,II,
+     &            BCTLNAME(ii)(1:18),calentag(ij),ibcdv(II,IJ,1),
      &            ibcdv(II,IJ,2),nbcdp(II,1)
               elseif(nbcdt(ii).eq.0.and.IJ.gt.1)then
                 iperptbk(m)=ij
-                WRITE(VERT(M),'(A1,23X,a12,3I4)') KEY,
+                WRITE(VERT(M),'(A1,24X,a12,3I4)') KEY,
      &          calentag(ij),ibcdv(II,IJ,1),ibcdv(II,IJ,2),nbcdp(II,IJ)
               endif
               if(nbcdt(ii).ne.0.and.IJ.eq.1)then
                 iperptbk(m)=1
-                WRITE(VERT(M),'(A1,I4,3I3,3I3,1x,a12,3I4)')KEY,II,
-     &            IBSN(II,1),IBSN(II,2),IBSN(II,3),IBAN(II,1),
-     &            IBAN(II,2),IBAN(II,3),'all daytypes',ibcdv(II,IJ,1),
+                WRITE(VERT(M),'(A1,I4,1x,a,1x,a12,3I4)')KEY,II,
+     &            BCTLNAME(ii)(1:18),'all daytypes',ibcdv(II,IJ,1),
      &            ibcdv(II,IJ,2),nbcdp(II,IJ)
               elseif(nbcdt(ii).ne.0.and.IJ.gt.1)then
                 iperptbk(m)=IJ
-                WRITE(VERT(M),'(A1,23X,a12,3I4)')KEY,'all daytypes',
+                WRITE(VERT(M),'(A1,24X,a12,3I4)')KEY,'all daytypes',
      &          ibcdv(II,IJ,1),ibcdv(II,IJ,2),nbcdp(II,IJ)
               endif
             endif
@@ -372,9 +395,8 @@ C of the menu.
               CALL EMKEY(M-MHEAD+4,KEY,IER)
               if(npcdt(ii).eq.0.and.IJ.eq.1)then
                 iperptbk(m)=1
-                WRITE(VERT(M),'(A1,I4,3I3,3I3,1x,a12,3I4)') KEY,II,
-     &            IPSN(II,1),IPSN(II,2),IPSN(II,3),IPAN(II,1),
-     &            IPAN(II,2),IPAN(II,3),calentag(ij),ipcdv(II,IJ,1),
+                WRITE(VERT(M),'(A1,I4,1x,a,1x,a12,3I4)') KEY,II,
+     &            PCTLNAME(ii)(1:18),calentag(ij),ipcdv(II,IJ,1),
      &            ipcdv(II,IJ,2),npcdp(II,1)
               elseif(npcdt(ii).eq.0.and.IJ.gt.1)then
                 iperptbk(m)=ij
@@ -383,9 +405,8 @@ C of the menu.
               endif
               if(npcdt(ii).ne.0.and.IJ.eq.1)then
                 iperptbk(m)=1
-                WRITE(VERT(M),'(A1,I4,3I3,3I3,1x,a12,3I4)')KEY,II,
-     &            IPSN(II,1),IPSN(II,2),IPSN(II,3),IPAN(II,1),
-     &            IPAN(II,2),IPAN(II,3),'all daytypes',ipcdv(II,IJ,1),
+                WRITE(VERT(M),'(A1,I4,1x,a,1x,a12,3I4)')KEY,II,
+     &            PCTLNAME(ii)(1:18),'all daytypes',ipcdv(II,IJ,1),
      &            ipcdv(II,IJ,2),npcdp(II,IJ)
               elseif(npcdt(ii).ne.0.and.IJ.gt.1)then
                 iperptbk(m)=IJ
@@ -407,9 +428,8 @@ C of the menu.
               CALL EMKEY(M-MHEAD+4,KEY,IER)
               if(nfcdt(ii).eq.0.and.IJ.eq.1)then
                 iperptbk(m)=1
-                WRITE(VERT(M),'(A1,I4,3I3,3I3,1x,a12,3I4)') KEY,II,
-     &            IFSN(II,1),IFSN(II,2),IFSN(II,3),IFAN(II,1),
-     &            IFAN(II,2),IFAN(II,3),calentag(ij),ifcdv(II,IJ,1),
+                WRITE(VERT(M),'(A1,I4,1x,a,1x,a12,3I4)') KEY,II,
+     &            FCTLNAME(ii)(1:18),calentag(ij),ifcdv(II,IJ,1),
      &            ifcdv(II,IJ,2),nfcdp(II,1)
               elseif(nfcdt(ii).eq.0.and.IJ.gt.1)then
                 iperptbk(m)=ij
@@ -418,9 +438,8 @@ C of the menu.
               endif
               if(nfcdt(ii).ne.0.and.IJ.eq.1)then
                 iperptbk(m)=1
-                WRITE(VERT(M),'(A1,I4,3I3,3I3,1x,a12,3I4)')KEY,II,
-     &            IFSN(II,1),IFSN(II,2),IFSN(II,3),IFAN(II,1),
-     &            IFAN(II,2),IFAN(II,3),'all daytypes',ifcdv(II,IJ,1),
+                WRITE(VERT(M),'(A1,I4,1x,a,1x,a12,3I4)')KEY,II,
+     &            FCTLNAME(ii)(1:18),'all daytypes',ifcdv(II,IJ,1),
      &            ifcdv(II,IJ,2),nfcdp(II,IJ)
               elseif(nfcdt(ii).ne.0.and.IJ.gt.1)then
                 iperptbk(m)=IJ
@@ -442,9 +461,8 @@ C of the menu.
               CALL EMKEY(M-MHEAD+4,KEY,IER)
               if(ngcdt(ii).eq.0.and.IJ.eq.1)then
                 iperptbk(m)=1
-                WRITE(VERT(M),'(A1,I4,3I3,3I3,1x,a12,3I4)') KEY,II,
-     &            IGSN(II,1),IGSN(II,2),IGSN(II,3),IGAN(II,1),
-     &            IGAN(II,2),IGAN(II,3),calentag(ij),igcdv(II,IJ,1),
+                WRITE(VERT(M),'(A1,I4,1x,a,1x,a12,3I4)') KEY,II,
+     &            GCTLNAME(ii)(1:18),calentag(ij),igcdv(II,IJ,1),
      &            igcdv(II,IJ,2),ngcdp(II,1)
               elseif(ngcdt(ii).eq.0.and.IJ.gt.1)then
                 iperptbk(m)=ij
@@ -453,9 +471,8 @@ C of the menu.
               endif
               if(ngcdt(ii).ne.0.and.IJ.eq.1)then
                 iperptbk(m)=1
-                WRITE(VERT(M),'(A1,I4,3I3,3I3,1x,a12,3I4)')KEY,II,
-     &            IGSN(II,1),IGSN(II,2),IGSN(II,3),IGAN(II,1),
-     &            IGAN(II,2),IGAN(II,3),'all daytypes',igcdv(II,IJ,1),
+                WRITE(VERT(M),'(A1,I4,1x,a,1x,a12,3I4)')KEY,II,
+     &            GCTLNAME(ii)(1:18),'all daytypes',igcdv(II,IJ,1),
      &            igcdv(II,IJ,2),ngcdp(II,IJ)
               elseif(ngcdt(ii).ne.0.and.IJ.gt.1)then
                 iperptbk(m)=IJ
@@ -467,10 +484,8 @@ C of the menu.
  388    continue
       elseif(icfoc.eq.4.and.necl.gt.0)then
 
-C Power controls.
-      elseif(icfoc.eq.5.and.nof.gt.0)then
-
 C Optical controls.
+      elseif(icfoc.eq.5.and.nof.gt.0)then
         do 488 II=1,nof
           NN=NOCDT(II)
           if(NOCDT(II).eq.0)NN=nbdaytype
@@ -482,9 +497,8 @@ C Optical controls.
               CALL EMKEY(M-MHEAD+4,KEY,IER)
               if(nocdt(ii).eq.0.and.IJ.eq.1)then
                 iperptbk(m)=1
-                WRITE(VERT(M),'(A1,I4,3I3,3I3,1x,a12,3I4)') KEY,II,
-     &            IOSN(II,1),IOSN(II,2),IOSN(II,3),IOAN(II,1),
-     &            IOAN(II,2),IOAN(II,3),calentag(ij),iocdv(II,IJ,1),
+                WRITE(VERT(M),'(A1,I4,1x,a,1x,a12,3I4)') KEY,II,
+     &            OCTLNAME(ii)(1:18),calentag(ij),iocdv(II,IJ,1),
      &            iocdv(II,IJ,2),nocdp(II,1)
               elseif(nocdt(ii).eq.0.and.IJ.gt.1)then
                 iperptbk(m)=ij
@@ -493,9 +507,8 @@ C Optical controls.
               endif
               if(nocdt(ii).ne.0.and.IJ.eq.1)then
                 iperptbk(m)=1
-                WRITE(VERT(M),'(A1,I4,3I3,3I3,1x,a12,3I4)')KEY,II,
-     &            IOSN(II,1),IOSN(II,2),IOSN(II,3),IOAN(II,1),
-     &            IOAN(II,2),IOAN(II,3),'all daytypes',iocdv(II,IJ,1),
+                WRITE(VERT(M),'(A1,I4,1x,a,1x,a12,3I4)')KEY,II,
+     &            OCTLNAME(ii)(1:18),'all daytypes',iocdv(II,IJ,1),
      &            iocdv(II,IJ,2),nocdp(II,IJ)
               elseif(nocdt(ii).ne.0.and.IJ.gt.1)then
                 iperptbk(m)=IJ
@@ -519,10 +532,8 @@ C Complex fenestration controls.
               CALL EMKEY(M-MHEAD+4,KEY,IER)
               if(nCFCctldaytypes(ii).eq.0.and.IJ.eq.1)then
                 iperptbk(m)=1
-                WRITE(VERT(M),'(A1,I4,3I3,3I3,1x,a12,3I4)') KEY,II,
-     &          iCFCsensor(II,1),iCFCsensor(II,2),iCFCsensor(II,3),
-     &          iCFCactuator(II,1),iCFCactuator(II,2),
-     &          iCFCactuator(II,3),calentag(ij),
+                WRITE(VERT(M),'(A1,I4,1x,a,1x,a12,3I4)') KEY,II,
+     &          CFCCTLNAME(II)(1:18),calentag(ij),
      &          iCFCctldatevalid(II,IJ,1),
      &          iCFCctldatevalid(II,IJ,2),nCFCdayctlperiods(II,1)
               elseif(nCFCctldaytypes(ii).eq.0.and.IJ.gt.1)then
@@ -533,10 +544,8 @@ C Complex fenestration controls.
               endif
               if(nCFCctldaytypes(ii).ne.0.and.IJ.eq.1)then
                 iperptbk(m)=1
-                WRITE(VERT(M),'(A1,I4,3I3,3I3,1x,a12,3I4)')KEY,II,
-     &          iCFCsensor(II,1),iCFCsensor(II,2),iCFCsensor(II,3),
-     &          iCFCactuator(II,1),iCFCactuator(II,2),
-     &          iCFCactuator(II,3),'all daytypes',
+                WRITE(VERT(M),'(A1,I4,1x,a,1x,a12,3I4)')KEY,II,
+     &          CFCCTLNAME(II)(1:18),'all daytypes',
      &          iCFCctldatevalid(II,IJ,1),
      &          iCFCctldatevalid(II,IJ,2),nCFCdayctlperiods(II,1)
               elseif(nCFCctldaytypes(ii).ne.0.and.IJ.gt.1)then
@@ -562,7 +571,7 @@ C If a long list, include page facility text.
      &    ' -----------')
       ENDIF
       VERT(M+2)  ='+ add/delete/copy control loop            '
-      VERT(M+3)  ='! list or check current control data      '
+      VERT(M+3)  ='! list current control data               '
       VERT(M+4)  ='> save control data                       '
       VERT(M+5)  ='? help                                    '
       VERT(M+6)  ='- exit menu                               '
@@ -739,6 +748,21 @@ C Flag that links made.
      &    icfoc.eq.4.or.icfoc.eq.5.or.icfoc.eq.6)then
           continue
         endif
+      ELSEIF(IVERT.EQ.6)THEN
+
+C Set the scope.
+        CALL EASKABCD('Extent of ideal environmental controls: ',
+     &    ' ','heating only','cooling only','heating & cooling',
+     &    'unknown',IW,nbhelp)
+        if(iw.eq.1)then
+          hcffpattern(1)='HEATONLY'; hcffpattern(2)='-'
+        elseif(iw.eq.2)then
+          hcffpattern(1)='COOLONLY'; hcffpattern(2)='-'
+        elseif(iw.eq.3)then
+          hcffpattern(1)='HEATCOOL'; hcffpattern(2)='-'
+        elseif(iw.eq.4)then
+          hcffpattern(1)='UNKNOWN'; hcffpattern(2)='-'
+        endif
 
       ELSEIF(IVERT.EQ.MVERT)THEN
 
@@ -825,90 +849,84 @@ C          call edisp(IUOUT,'Saving system configuration file.')
           goto 92
         endif
       ELSEIF(IVERT.EQ.(MVERT-3))THEN
-        CALL EASKABC(' ','Options:',
-     &    'list control loops','edit control loops','cancel',
-     &    IRC,nbhelp)
-        if(irc.eq.1)then
 
 C List control data.
-          call edisp(itru,' ')
-          call edisp(itru,' Overall description:')
-          call edisp248(itru,ctldoc,72)
+        call edisp(itru,' ')
+        call edisp(itru,' Overall description:')
+        call edisp248(itru,ctldoc,72)
 
-          if(icfoc.eq.0.and.NCF.gt.0)then
-            WRITE(outs,'(a,I2,a)')' Zones control includes ',
-     &        NCF,' functions.'
-            call edisp(itru,outs)
-            call edisp248(itru,znctldoc,72)
-            do 144 ii=1,NCF
-              call LSTCNTL(itru,0,ii)
- 144        continue
-            call LSTCNTL(itru,0,0)
-          endif
-          if(icfoc.eq.1.and.NCL.gt.0)then
-            call edisp(itru,' ')
-            WRITE(outs,'(a,I2,a)')' Plant control includes ',
-     &        NCL,' loops.'
-            call edisp(itru,outs)
-            call edisp248(itru,plctldoc,72)
-            do 145 ii=1,NCL
-              call LSTCNTL(itru,1,ii)
- 145        continue
-          endif
-          if(icfoc.eq.2.and.NCC.gt.0)then
-            call edisp(itru,' ')
-            WRITE(outs,'(a,I2,a)')' Flow control includes ',
-     &        NCC,' loops.'
-            call edisp(itru,outs)
-            call edisp248(itru,flctldoc,72)
-            do 146 ii=1,NCC
-              call LSTCNTL(itru,2,ii)
- 146        continue
-          endif
-          if(icfoc.eq.3.and.NGF.gt.0)then
-            call edisp(itru,' ')
-            WRITE(outs,'(a,I2,a)')' Global control includes ',
-     &        NGF,' loops.'
-            call edisp(itru,outs)
-            call edisp248(itru,flctldoc,72)
-            do 147 ii=1,NGF
-              call LSTCNTL(itru,3,ii)
- 147        continue
-          endif
-          if(icfoc.eq.4.and.NECL.gt.0)then
-            call edisp(itru,' ')
-            WRITE(outs,'(a,I2,a)')' Electrical control includes ',
-     &        NECL,' loops.'
-            call edisp(itru,outs)
-            call edisp248(itru,elctldoc,72)
-            do 247 ii=1,NECL
-              call LSTCNTL(itru,4,ii)
- 247        continue
-          endif
-          if(icfoc.eq.5.and.nof.gt.0)then
-            call edisp(itru,' ')
-            WRITE(outs,'(a,I2,a)')' Optical control includes ',
-     &        nof,' loops.'
-            call edisp(itru,outs)
-            call edisp248(itru,opticdoc,72)
-            do 248 ii=1,nof
-              call LSTCNTL(itru,5,ii)
- 248        continue
-          endif
-          if(icfoc.eq.6.and.nCFCctlloops.gt.0)then
-            call edisp(itru,' ')
-            WRITE(outs,'(a,I2,a)')
-     &      ' Complex fenestration control includes ',
-     &      nCFCctlloops,' loops.'
-            call edisp(itru,outs)
-            call edisp248(itru,CFCctldoc,72)
-            do 249 ii=1,nCFCctlloops
-              call LSTCNTL(itru,6,ii)
- 249        continue
-          endif
-        elseif(irc.eq.2)then
-          call ezctlc(iier)
+        if(icfoc.eq.0.and.NCF.gt.0)then
+          WRITE(outs,'(a,I2,a)')' Zones control includes ',
+     &      NCF,' functions.'
+          call edisp(itru,outs)
+          call edisp248(itru,znctldoc,72)
+          do ii=1,NCF
+            call LSTCNTL(itru,0,ii)
+          enddo
+          call LSTCNTL(itru,0,0)
         endif
+        if(icfoc.eq.1.and.NCL.gt.0)then
+          call edisp(itru,' ')
+          WRITE(outs,'(a,I2,a)')' Plant control includes ',
+     &      NCL,' loops.'
+          call edisp(itru,outs)
+          call edisp248(itru,plctldoc,72)
+          do ii=1,NCL
+            call LSTCNTL(itru,1,ii)
+          enddo
+        endif
+        if(icfoc.eq.2.and.NCC.gt.0)then
+          call edisp(itru,' ')
+          WRITE(outs,'(a,I2,a)')' Flow control includes ',
+     &      NCC,' loops.'
+          call edisp(itru,outs)
+          call edisp248(itru,flctldoc,72)
+          do ii=1,NCC
+            call LSTCNTL(itru,2,ii)
+          enddo
+        endif
+        if(icfoc.eq.3.and.NGF.gt.0)then
+          call edisp(itru,' ')
+          WRITE(outs,'(a,I2,a)')' Global control includes ',
+     &      NGF,' loops.'
+          call edisp(itru,outs)
+          call edisp248(itru,flctldoc,72)
+          do ii=1,NGF
+            call LSTCNTL(itru,3,ii)
+          enddo
+        endif
+        if(icfoc.eq.4.and.NECL.gt.0)then
+          call edisp(itru,' ')
+          WRITE(outs,'(a,I2,a)')' Electrical control includes ',
+     &      NECL,' loops.'
+          call edisp(itru,outs)
+          call edisp248(itru,elctldoc,72)
+          do ii=1,NECL
+            call LSTCNTL(itru,4,ii)
+          enddo
+        endif
+        if(icfoc.eq.5.and.nof.gt.0)then
+          call edisp(itru,' ')
+          WRITE(outs,'(a,I2,a)')' Optical control includes ',
+     &      nof,' loops.'
+          call edisp(itru,outs)
+          call edisp248(itru,opticdoc,72)
+          do ii=1,nof
+            call LSTCNTL(itru,5,ii)
+          enddo
+        endif
+        if(icfoc.eq.6.and.nCFCctlloops.gt.0)then
+          call edisp(itru,' ')
+          WRITE(outs,'(a,I2,a)')
+     &      ' Complex fenestration control includes ',
+     &    nCFCctlloops,' loops.'
+          call edisp(itru,outs)
+          call edisp248(itru,CFCctldoc,72)
+          do ii=1,nCFCctlloops
+            call LSTCNTL(itru,6,ii)
+          enddo
+        endif
+
       ELSEIF(IVERT.EQ.(MVERT-4))THEN
 
 C Add or delete a zone control function.
@@ -998,18 +1016,54 @@ C Pull up a multi-choice dialog to see what should be edited.
         isw=0
         if(icfoc.eq.0)then
           NN=NBCDT(II)
+          write(loopnameentry,'(2a)') 'a name: ',BCTLNAME(ii)
+          write(sensentry,'(a,3i3)') 'b sensor details: ',
+     &      IBSN(II,1),IBSN(II,2),IBSN(II,3)
+          write(actentry,'(a,3i3)') 'c actuator details: ',
+     &      IBAN(II,1),IBAN(II,2),IBAN(II,3)
         elseif(icfoc.eq.1)then
           NN=NPCDT(II)
+          write(loopnameentry,'(2a)') 'a name: ',PCTLNAME(ii)
+          write(sensentry,'(a,5i3)') 'b sensor: ',
+     &      IPSN(II,1),IPSN(II,2),IPSN(II,3),IPSN(II,4),IPSN(II,5)
+          write(actentry,'(a,3i3)') 'c actuator details: ',
+     &      IPAN(II,1),IPAN(II,2),IPAN(II,3)
         elseif(icfoc.eq.2)then
           NN=NFCDT(II)
+          write(loopnameentry,'(2a)') 'a name: ',FCTLNAME(ii)
+          write(sensentry,'(a,3i3)') 'b sensor details: ',
+     &      IFSN(II,1),IFSN(II,2),IFSN(II,3)
+          write(actentry,'(a,3i3)') 'c actuator details: ',
+     &      IFAN(II,1),IFAN(II,2),IFAN(II,3)
         elseif(icfoc.eq.3)then
           NN=NGCDT(II)
+          write(loopnameentry,'(2a)') 'a name: ',GCTLNAME(ii)
+          write(sensentry,'(a,4i3)') 'b sensor details: ',
+     &      IGSN(II,1),IGSN(II,2),IGSN(II,3),IGSN(II,4)
+          write(actentry,'(a,3i3)') 'c actuator details: ',
+     &      IGAN(II,1),IGAN(II,2),IGAN(II,3)
         elseif(icfoc.eq.4)then
           NN=NECDT(II)
+          write(loopnameentry,'(2a)') 'a name: ',ECTLNAME(ii)
+          write(sensentry,'(a,3i3)') 'b sensor details: ',
+     &      IESN(II,1),IESN(II,2),IESN(II,3)
+          write(actentry,'(a,3i3)') 'c actuator details: ',
+     &      IEAN(II,1),IEAN(II,2),IEAN(II,3)
         elseif(icfoc.eq.5)then
           NN=NOCDT(II)
+          write(loopnameentry,'(2a)') 'a name: ',OCTLNAME(ii)
+          write(sensentry,'(a,4i3)') 'b sensor details: ',
+     &      IOSN(II,1),IOSN(II,2),IOSN(II,3),IOSN(II,4)
+          write(actentry,'(a,3i3)') 'c actuator details: ',
+     &      IOAN(II,1),IOAN(II,2),IOAN(II,3)
         elseif(icfoc.eq.6)then
           NN=nCFCctldaytypes(II)
+          write(loopnameentry,'(2a)') 'a name: ',CFCCTLNAME(ii)
+          write(sensentry,'(a,4i3)') 'b sensor details: ',
+     &      iCFCsensor(II,1),iCFCsensor(II,2),iCFCsensor(II,3),
+     &      iCFCsensor(II,4)
+          write(actentry,'(a,3i3)') 'c actuator details: ',
+     &      iCFCactuator(II,1),iCFCactuator(II,2),iCFCactuator(II,3)
         endif
 
 C The only time the sensor and actuator choices
@@ -1025,19 +1079,20 @@ C selection.
         call userfonts(IFS,ITFS,IMFS)
         if(idi.eq.1)then
           IF(NN.EQ.0.OR.NN.EQ.1)THEN
-            call MENUATOL(outs,'Editing Options',
-     &      'a sensor details','b actuator details',
-     &      'c period data',' ',' ',' ',
-     &      ' ',' ',' ',' ',' ',' ',isw,idno,nbhelp)
-            IF(ISW.EQ.3)ISW=4
+            call MENUATOL(outs,'Editing Options',loopnameentry,
+     &        sensentry,actentry,'d period data',' ',' ',
+     &        ' ',' ',' ',' ',' ',' ',isw,idno,nbhelp)
+            if(ISW.EQ.4)then
+              ISW=5
+            endif
           ELSE
-            call MENUATOL(outs,'Editing Options',
-     &     'a sensor details','b actuator details',
-     &     'c period of validity','d period data',' ',' ',
-     &     ' ',' ',' ',' ',' ',' ',isw,idno,nbhelp)
+            call MENUATOL(outs,'Editing Options',loopnameentry,
+     &        sensentry,actentry,'d period of validity',
+     &        'e period data',
+     &        ' ',' ',' ',' ',' ',' ',' ',isw,idno,nbhelp)
           ENDIF
         else
-          ISW=4  ! jump directly to the period data
+          ISW=5  ! jump directly to the period data
         endif
         IMFS=imfstorestore
         call userfonts(IFS,ITFS,IMFS)
@@ -1049,6 +1104,33 @@ C selection.
           call userfonts(IFS,ITFS,IMFS)
           goto 92
         elseif(ISW.eq.1)then
+
+C Edit the loop name.
+          if(icfoc.eq.0)then
+            CALL EASKS(BCTLNAME(ii),'Loop name?',' ',24,' ',
+     &        'Loop name',IER,nbhelp)
+          elseif(icfoc.eq.1)then
+            CALL EASKS(PCTLNAME(ii),'Loop name?',' ',24,' ',
+     &        'Loop name',IER,nbhelp)
+          elseif(icfoc.eq.2)then
+            CALL EASKS(FCTLNAME(ii),'Loop name?',' ',24,' ',
+     &        'Loop name',IER,nbhelp)
+          elseif(icfoc.eq.3)then
+            CALL EASKS(GCTLNAME(ii),'Loop name?',' ',24,' ',
+     &        'Loop name',IER,nbhelp)
+          elseif(icfoc.eq.4)then
+            CALL EASKS(ECTLNAME(ii),'Loop name?',' ',24,' ',
+     &        'Loop name',IER,nbhelp)
+          elseif(icfoc.eq.5)then
+            CALL EASKS(OCTLNAME(ii),'Loop name?',' ',24,' ',
+     &        'Loop name',IER,nbhelp)
+          elseif(icfoc.eq.6)then
+            CALL EASKS(CFCCTLNAME(ii),'Loop name?',' ',24,' ',
+     &        'Loop name',IER,nbhelp)
+          endif
+          goto 64
+
+        elseif(ISW.eq.2)then
 
 C Do not edit sensor information if Nicol control algorithm.
           IF(IFSN(II,1).eq.-3.AND.IFSN(II,2).EQ.7)THEN
@@ -1062,40 +1144,26 @@ C Do not edit sensor information if Nicol control algorithm.
 C Edit sensor location. 
           CALL EPMENSV
           if(icfoc.eq.0)then
-            isn1=IBSN(II,1)
-            isn2=IBSN(II,2)
-            isn3=IBSN(II,3)
-            isn4=IBSN(II,4)
+            isn1=IBSN(II,1); isn2=IBSN(II,2)
+            isn3=IBSN(II,3); isn4=IBSN(II,4)
             call senloc('Options:','Zone sensor',icfoc,II,
      &        isn1,isn2,isn3,isn4,isn5,isense,nsupl,'zone sensor',IER)
-            IBSN(II,1)=isn1
-            IBSN(II,2)=isn2
-            IBSN(II,3)=isn3
-            IBSN(II,4)=isn4
+            IBSN(II,1)=isn1; IBSN(II,2)=isn2
+            IBSN(II,3)=isn3; IBSN(II,4)=isn4
           elseif(icfoc.eq.1)then
-            isn1=IPSN(II,1)
-            isn2=IPSN(II,2)
-            isn3=IPSN(II,3)
-            isn4=IPSN(II,4)
-            isn5=IPSN(II,5)
+            isn1=IPSN(II,1); isn2=IPSN(II,2); isn3=IPSN(II,3)
+            isn4=IPSN(II,4); isn5=IPSN(II,5)
             call senloc('Options:','Plant sensor',icfoc,II,
      &        isn1,isn2,isn3,isn4,isn5,isense,nsupl,'plant sensor',IER)
-            IPSN(II,1)=isn1
-            IPSN(II,2)=isn2
-            IPSN(II,3)=isn3
-            IPSN(II,4)=isn4
-            IPSN(II,5)=isn5
+            IPSN(II,1)=isn1; IPSN(II,2)=isn2; IPSN(II,3)=isn3
+            IPSN(II,4)=isn4; IPSN(II,5)=isn5
           elseif(icfoc.eq.2)then
-            isn1=IFSN(II,1)
-            isn2=IFSN(II,2)
-            isn3=IFSN(II,3)
-            isn4=IFSN(II,4)
+            isn1=IFSN(II,1); isn2=IFSN(II,2)
+            isn3=IFSN(II,3); isn4=IFSN(II,4)
             call senloc('Options:','Flow sensor',icfoc,II,
      &        isn1,isn2,isn3,isn4,isn5,isense,nsupl,'flow sensor',IER)
-            IFSN(II,1)=isn1
-            IFSN(II,2)=isn2
-            IFSN(II,3)=isn3
-            IFSN(II,4)=isn4
+            IFSN(II,1)=isn1; IFSN(II,2)=isn2
+            IFSN(II,3)=isn3; IFSN(II,4)=isn4
 
 C Note isense is sensed flow condition used tp determine the flow controller type.    
             IFCTYP(II,1,1)=isense
@@ -1103,57 +1171,37 @@ C Note isense is sensed flow condition used tp determine the flow controller typ
 
 C Because changes in flow sensor usually require changes to actuation
 C call the flow actuation interactions now.
-            ian1=IFAN(II,1)
-            ian2=IFAN(II,2)
-            ian3=IFAN(II,3)
+            ian1=IFAN(II,1); ian2=IFAN(II,2); ian3=IFAN(II,3)
             call actloc('Options:','Flow actuator',icfoc,II,
      &        0,ian1,ian2,ian3,'flow actuator',IER)
-            IFAN(II,1)=ian1
-            IFAN(II,2)=ian2
-            IFAN(II,3)=ian3
+            IFAN(II,1)=ian1; IFAN(II,2)=ian2; IFAN(II,3)=ian3
           elseif(icfoc.eq.3)then
-            ign1=IGSN(II,1)
-            ign2=IGSN(II,2)
-            ign3=IGSN(II,3)
-            ign4=IGSN(II,4)
+            ign1=IGSN(II,1); ign2=IGSN(II,2)
+            ign3=IGSN(II,3); ign4=IGSN(II,4)
             call senloc('Options:','Global sensor',icfoc,II,
      &        ign1,ign2,ign3,ign4,ign5,isense,nsupl,'global sensor',IER)
-            IGSN(II,1)=ign1
-            IGSN(II,2)=ign2
-            IGSN(II,3)=ign3
-            IGSN(II,4)=ign4
+            IGSN(II,1)=ign1; IGSN(II,2)=ign2
+            IGSN(II,3)=ign3; IGSN(II,4)=ign4
           elseif(icfoc.eq.4)then
-            ien1=IESN(II,1)
-            ien2=IESN(II,2)
-            ien3=IESN(II,3)
+            ien1=IESN(II,1); ien2=IESN(II,2); ien3=IESN(II,3)
             call senloc('Options:','Electrical sensor',icfoc,II,
      &        ien1,ien2,ien3,ien4,ien5,isense,nsupl,'power sensor',IER)
-            IESN(II,1)=ien1
-            IESN(II,2)=ien2
-            IESN(II,3)=ien3
+            IESN(II,1)=ien1; IESN(II,2)=ien2; IESN(II,3)=ien3
           elseif(icfoc.eq.5)then
-            isn1=IOSN(II,1)
-            isn2=IOSN(II,2)
-            isn3=IOSN(II,3)
-            isn4=IOSN(II,4)
+            isn1=IOSN(II,1); isn2=IOSN(II,2)
+            isn3=IOSN(II,3); isn4=IOSN(II,4)
             call senloc('Options:','Optical sensor',icfoc,II,
      &       isn1,isn2,isn3,isn4,isn5,isense,nsupl,'optical sensor',IER)
-            IOSN(II,1)=isn1
-            IOSN(II,2)=isn2
-            IOSN(II,3)=isn3
-            IOSN(II,4)=isn4
+            IOSN(II,1)=isn1; IOSN(II,2)=isn2
+            IOSN(II,3)=isn3; IOSN(II,4)=isn4
           elseif(icfoc.eq.6)then
-            isn1=iCFCsensor(II,1)
-            isn2=iCFCsensor(II,2)
-            isn3=iCFCsensor(II,3)
-            isn4=iCFCsensor(II,4)
+            isn1=iCFCsensor(II,1); isn2=iCFCsensor(II,2)
+            isn3=iCFCsensor(II,3); isn4=iCFCsensor(II,4)
             call senloc('Options:','Complex fen. sensor',icfoc,II,
      &      isn1,isn2,isn3,isn4,isn5,isense,nsupl,
      &      'complex fen. sensor',IER)
-            iCFCsensor(II,1)=isn1
-            iCFCsensor(II,2)=isn2
-            iCFCsensor(II,3)=isn3
-            iCFCsensor(II,4)=isn4
+            iCFCsensor(II,1)=isn1; iCFCsensor(II,2)=isn2
+            iCFCsensor(II,3)=isn3; iCFCsensor(II,4)=isn4
           endif
           CALL EPMENRC
           if (ICFOC.ne.2) then
@@ -1161,126 +1209,92 @@ C call the flow actuation interactions now.
      &        'be necessary to update the actuator location.','W')
           endif
           goto 64
-        elseif(ISW.eq.2)then
+        elseif(ISW.eq.3)then
 
 C Edit actuator location.
 C If sensor location -99 ask for up to three surfaces where
 C substitutions will occur.
           CALL EPMENSV
           if(icfoc.eq.0)then 
-            isn1=IBSN(II,1)
-            ian1=IBAN(II,1)
-            ian2=IBAN(II,2)
-            ian3=IBAN(II,3)
+            isn1=IBSN(II,1); ian1=IBAN(II,1)
+            ian2=IBAN(II,2); ian3=IBAN(II,3)
             call actloc('Options:','Zone actuator',icfoc,II,
      &        isn1,ian1,ian2,ian3,'zone actuator',IER)
-            IBAN(II,1)=ian1
-            IBAN(II,2)=ian2
-            IBAN(II,3)=ian3
+            IBAN(II,1)=ian1; IBAN(II,2)=ian2; IBAN(II,3)=ian3
           elseif(icfoc.eq.1)then
-            ian1=IPAN(II,1)
-            ian2=IPAN(II,2)
-            ian3=IPAN(II,3)
+            ian1=IPAN(II,1); ian2=IPAN(II,2); ian3=IPAN(II,3)
             call actloc('Options:','Plant actuator',icfoc,II,
      &        0,ian1,ian2,ian3,'plant actuator',IER)
-            IPAN(II,1)=ian1
-            IPAN(II,2)=ian2
-            IPAN(II,3)=ian3
+            IPAN(II,1)=ian1; IPAN(II,2)=ian2; IPAN(II,3)=ian3
           elseif(icfoc.eq.2)then
-            ian1=IFAN(II,1)
-            ian2=IFAN(II,2)
-            ian3=IFAN(II,3)
+            ian1=IFAN(II,1); ian2=IFAN(II,2); ian3=IFAN(II,3)
             call actloc('Options:','Flow actuator',icfoc,II,
      &        0,ian1,ian2,ian3,'flow actuator',IER)
-            IFAN(II,1)=ian1
-            IFAN(II,2)=ian2
-            IFAN(II,3)=ian3
+            IFAN(II,1)=ian1; IFAN(II,2)=ian2; IFAN(II,3)=ian3
           elseif(icfoc.eq.3)then
-            ign1=IGAN(II,1)
-            ign2=IGAN(II,2)
-            ign3=IGAN(II,3)
+            ign1=IGAN(II,1); ign2=IGAN(II,2); ign3=IGAN(II,3)
             call actloc('Options:','Global actuator',icfoc,II,
      &        0,ign1,ign2,ign3,'global actuator',IER)
-            IGAN(II,1)=ign1
-            IGAN(II,2)=ign2
-            IGAN(II,3)=ign3
+            IGAN(II,1)=ign1; IGAN(II,2)=ign2; IGAN(II,3)=ign3
           elseif(icfoc.eq.4)then
-            ien1=IEAN(II,1)
-            ien2=IEAN(II,2)
-            ien3=IEAN(II,3)
+            ien1=IEAN(II,1); ien2=IEAN(II,2); ien3=IEAN(II,3)
             call actloc('Options:','Power actuator',icfoc,II,
      &        0,ien1,ien2,ien3,'power actuator',IER)
-            IEAN(II,1)=ien1
-            IEAN(II,2)=ien2
-            IEAN(II,3)=ien3
+            IEAN(II,1)=ien1; IEAN(II,2)=ien2; IEAN(II,3)=ien3
           elseif(icfoc.eq.5)then
-            ian1=IOAN(II,1)
-            ian2=IOAN(II,2)
-            ian3=IOAN(II,3)
+            CALL EPMENSV
+            idef=0
+            call askzone(isn1,idef,'Select associated zone','-',
+     &        'Specific zone',34,ier)
+             CALL EPMENRC
+            ian1=IOAN(II,1); ian2=IOAN(II,2); ian3=IOAN(II,3)
             call actloc('Options:','Optical actuator',icfoc,II,
-     &        0,ian1,ian2,ian3,'optical actuator',IER)
-            IOAN(II,1)=ian1
-            IOAN(II,2)=ian2
-            IOAN(II,3)=ian3
+     &        isn1,ian1,ian2,ian3,'optical actuator',IER)
+            IOAN(II,1)=ian1; IOAN(II,2)=ian2; IOAN(II,3)=ian3
           elseif(icfoc.eq.6)then 
-            isn1=iCFCsensor(II,1)
-            ian1=iCFCactuator(II,1)
-            ian2=iCFCactuator(II,2)
-            ian3=iCFCactuator(II,3)
+            isn1=iCFCsensor(II,1); ian1=iCFCactuator(II,1)
+            ian2=iCFCactuator(II,2); ian3=iCFCactuator(II,3)
             call actloc('Options:','Complex fen. actuator',icfoc,II,
      &        isn1,ian1,ian2,ian3,'complex fen. actuator',IER)
-            iCFCactuator(II,1)=ian1
-            iCFCactuator(II,2)=ian2
+            iCFCactuator(II,1)=ian1; iCFCactuator(II,2)=ian2
             iCFCactuator(II,3)=ian3
           endif
           CALL EPMENRC
           call usrmsg(' ',' ','-')
           goto 64
-        elseif(ISW.eq.3)then
+        elseif(ISW.eq.4)then
 
 C Edit date of validity (day type index is idi).
 C Only applicable if Periods of validity are active.
    48     if(icfoc.eq.0)then 
-            IBDOY=IBCDV(II,idi,1)
-            IEDOY=IBCDV(II,idi,2)
+            IBDOY=IBCDV(II,idi,1); IEDOY=IBCDV(II,idi,2)
             CALL EASKPER('Dates of validity:',IBDOY,IEDOY,IFDAY,IER)
-            IBCDV(II,idi,1)=IBDOY
-            IBCDV(II,idi,2)=IEDOY
+            IBCDV(II,idi,1)=IBDOY; IBCDV(II,idi,2)=IEDOY
             IF(IBCDV(II,idi,2).LT.IBCDV(II,idi,1))GOTO 48
           elseif(icfoc.eq.1)then 
-            IBDOY=IPCDV(II,idi,1)
-            IEDOY=IPCDV(II,idi,2)
+            IBDOY=IPCDV(II,idi,1); IEDOY=IPCDV(II,idi,2)
             CALL EASKPER('Dates of validity:',IBDOY,IEDOY,IFDAY,IER)
-            IPCDV(II,idi,1)=IBDOY
-            IPCDV(II,idi,2)=IEDOY
+            IPCDV(II,idi,1)=IBDOY; IPCDV(II,idi,2)=IEDOY
             IF(IPCDV(II,idi,2).LT.IPCDV(II,idi,1))GOTO 48
           elseif(icfoc.eq.2)then 
-            IBDOY=IFCDV(II,idi,1)
-            IEDOY=IFCDV(II,idi,2)
+            IBDOY=IFCDV(II,idi,1); IEDOY=IFCDV(II,idi,2)
             CALL EASKPER('Dates of validity:',IBDOY,IEDOY,IFDAY,IER)
-            IFCDV(II,idi,1)=IBDOY
-            IFCDV(II,idi,2)=IEDOY
+            IFCDV(II,idi,1)=IBDOY; IFCDV(II,idi,2)=IEDOY
             IF(IFCDV(II,idi,2).LT.IFCDV(II,idi,1))GOTO 48
           elseif(icfoc.eq.3)then
-            IBDOY=IGCDV(II,idi,1)
-            IEDOY=IGCDV(II,idi,2)
+            IBDOY=IGCDV(II,idi,1); IEDOY=IGCDV(II,idi,2)
             CALL EASKPER('Dates of validity:',IBDOY,IEDOY,IFDAY,IER)
-            IGCDV(II,idi,1)=IBDOY
-            IGCDV(II,idi,2)=IEDOY
+            IGCDV(II,idi,1)=IBDOY; IGCDV(II,idi,2)=IEDOY
             IF(IGCDV(II,idi,2).LT.IGCDV(II,idi,1))GOTO 48
           elseif(icfoc.eq.4)then
-            IBDOY=IECDV(II,idi,1)
-            IEDOY=IECDV(II,idi,2)
+            IBDOY=IECDV(II,idi,1); IEDOY=IECDV(II,idi,2)
             CALL EASKPER('Dates of validity:',IBDOY,IEDOY,IFDAY,IER)
-            IECDV(II,idi,1)=IBDOY
-            IECDV(II,idi,2)=IEDOY
+            IECDV(II,idi,1)=IBDOY; IECDV(II,idi,2)=IEDOY
             IF(IECDV(II,idi,2).LT.IECDV(II,idi,1))GOTO 48
           elseif(icfoc.eq.5)then
-            IBDOY=IOCDV(II,idi,1)
-            IEDOY=IOCDV(II,idi,2)
+            IBDOY=IOCDV(II,idi,1); IEDOY=IOCDV(II,idi,2)
             CALL EASKPER('Dates of validity:',IBDOY,IEDOY,IFDAY,IER)
-            IOCDV(II,idi,1)=IBDOY
-            IOCDV(II,idi,2)=IEDOY
+            IOCDV(II,idi,1)=IBDOY; IOCDV(II,idi,2)=IEDOY
             IF(IOCDV(II,idi,2).LT.IOCDV(II,idi,1))GOTO 48
           elseif(icfoc.eq.6)then
             IBDOY=iCFCctldatevalid(II,idi,1)
@@ -1292,7 +1306,7 @@ C Only applicable if Periods of validity are active.
      &         .LT.iCFCctldatevalid(II,idi,1))GOTO 48
           endif 
           goto 64
-        elseif(ISW.eq.4)then
+        elseif(ISW.eq.5)then
 
 C Edit period data (day type index is idi), first list the
 C current day type data..
@@ -1464,14 +1478,9 @@ C Plant common required for building/plant flux linkage
       common/calena/calename,calentag(MDTY),calendayname(MDTY)
       character calename*32,calentag*12,calendayname*32
 
-C High level controls (set when user first setup control file).
+C High level control scope key words.
       character hcffpattern*12    ! heat, cool, or heat+cool plus detail
-      character syspattern*12     ! system pattern plus detail
-      character perpattern*12     ! period pattern plus detail
-      character diverspattern*12  ! diversity pattern plus detail
-      character comfortpattern*12 ! comfort pattern plus detail
-      common/hlcontrol/hcffpattern(2),syspattern(2),perpattern(2),
-     &  diverspattern(2),comfortpattern(2)
+      common/hlcontrol/hcffpattern(2)     
 
       DIMENSION SALT(25),IVALS(24)
       CHARACTER*82 VERT(20)
@@ -1519,8 +1528,8 @@ C current IMFS or ITFS sizes and remember so can restore.
 C Initial menu entry setup.
    92 IER=0
       IVERT=-3
-      WRITE(vert(1),'(a,i3,1x,a)')
-     &' control loop',II,daytype
+      WRITE(vert(1),'(2a,i3,1x,a)')
+     &' loop ',BCTLNAME(ii)(1:lnblnk(BCTLNAME(ii))),II,daytype
       WRITE(vert(2),'(a,i3)')     ' number of periods:',NBCDP(II,JJ)
       WRITE(vert(3),'(a)') ' ________________________________________'
       WRITE(vert(4),'(a)')
@@ -2368,8 +2377,7 @@ C If no cooling capacity then set cooling set point to 100C.
             write(outs,'(1F9.2)')cm(8)
             call edisp(iuout,outs)
 
-C << check what kinds of sensors can actually be used here - probably should
-C << only select which zone and set the other values to zero.
+C Aux sensor can be dbT or mixed i.e. -2 zone nb convec%.
             I8=INT(cm(8))
             DO 140 L=1,I8              
               ndx=8+6*(L-1)
@@ -2652,8 +2660,9 @@ C Optical control day types.
       J=IV
       JJ=J
       logic_cminitial=.false.
+      
 C Logical needed to initialiase cm arrays
-C This initialiasation applies only to ioclaw=2. It will have to change in the future
+C This initialiasation applies only to bidirectional. It is work in progress.
       do 952 inmisc=1,6
         if(.not.logic_cminitial)then
           cm(2*inmisc)=-30.0
@@ -2664,7 +2673,8 @@ C This initialiasation applies only to ioclaw=2. It will have to change in the f
 C Initial menu entry setup.
    92 IER=0
       IVERT=-3
-      WRITE(vert(1),'(a,i3,a,i3)')' function',II,' day type',JJ
+      WRITE(vert(1),'(2a,i3,a,i3)')' loop ',
+     &  OCTLNAME(ii)(1:lnblnk(OCTLNAME(ii))),II,' day type',JJ
       WRITE(vert(2),'(a,i3)')     ' number of periods:',nocdp(II,JJ)
       WRITE(vert(3),'(a)') ' ________________________________________'
       WRITE(vert(4),'(a)')
@@ -2759,58 +2769,48 @@ C The writing pattern here is taken from the flow controls
 C Optics controller.  Set type to same as initial for this optics
 C function (ie. all periods are the same).
         ictyp=IOCTYP(II,1,1)
+        if(ictyp.eq.0) outs='currently: control of tmc optics'
+        if(ictyp.eq.1) outs='currently: optical bi-directional ctl'
+        call MENUATOL(outs,' Available types',
+     &   'a control tmc optics','b bidirectional control',
+     &   ' ',' ',
+     &   ' ',' ',' ',' ',' ',' ',' ',' ',ino,idno,nbhelp)
+        ictyp=ino-1
         IOCTYP(II,JJ,KK)=ictyp
-        if(ictyp.eq.2)then
-          write(outs,'(a,i3)')' Current controller type: ',ictyp
-          call edisp(iuout,outs)
-          call edisp(iuout,
-     &      'Note: to change this re-edit the optics sensor')
+
+        if(ictyp.eq.0)then
+         idno=2
+         write(outs,'(a,i3,a)')'Select a control law (currently: ',
+     &     iclaw,')'
+         call MENUATOL(outs,' Available laws',
+     &     'a no control','b not applicable ',
+     &     'c switch tmc optics','d switch bidirectional',
+     &      ' ',' ',' ',' ',' ',' ',' ',' ',ino,idno,nbhelp)
+          iclaw=ino-1
+        elseif(ictyp.eq.1)then
+          iclaw=3  ! set bidirectional
         endif
-        ino=iclaw
-        idno=2
-        write(outs,'(a,i3,a)')'Select a control law (currently: ',
-     &    iclaw,')'
-        call MENUATOL(outs,' Available laws',
-     &   'a switch optics ',
-     &   'b switch bidirectional sets (setp. & set)',' ',' ',' ',' ',
-     &   ' ',' ',' ',' ',' ',' ',ino,idno,nbhelp)
-        iclaw=ino
         IOCLAW(II,JJ,KK)=iclaw
 
-        if(ioclaw(II,JJ,KK).eq.1)then
-  61      CALL EASKR(tcps,' ','Period start time?',
-     &      0.,'F',24.,'F',0.,'control start',IER,nbhelp)
-          if(KK.GT.1)then
-            IF(tocps(II,JJ,KK-1).GE.tcps)then
-              call usrmsg(' Periods out of order..',' ','W')
-              GOTO 61
+  61    CALL EASKR(tcps,' ','Period start time?',
+     &    0.,'F',24.,'F',0.,'control start',IER,nbhelp)
+        if(KK.GT.1)then
+          IF(tocps(II,JJ,KK-1).GE.tcps)then
+            call usrmsg(' Periods out of order..',' ','W')
+            GOTO 61
             endif
-          else
-            CALL ECLOSE(tcps,0.0,0.001,close1)
-            IF(.NOT.close1)then
-              call usrmsg(' ',' First control must begin @ 0','W')
-              GOTO 61
-            endif
-          endif
-        elseif(ioclaw(II,JJ,KK).eq.2)then
-  62      CALL EASKR(tcps,' ','Period start time?',
-     &      0.,'F',24.,'F',0.,'control start',IER,nbhelp)
-          if(KK.GT.1)then
-            IF(tocps(II,JJ,KK-1).GE.tcps)then
-              call usrmsg(' Periods out of order..',' ','W')
-              GOTO 62
-            endif
-          else
-            CALL ECLOSE(tcps,0.0,0.001,close1)
-            IF(.NOT.close1)then
-              call usrmsg(' ',' First control must begin @ 0','W')
-              GOTO 62
-            endif
+        else
+          CALL ECLOSE(tcps,0.0,0.001,close1)
+          IF(.NOT.close1)then
+            call usrmsg(' ',' First control must begin @ 0','W')
+            GOTO 61
           endif
         endif
 
-C Ask for miscel. data.
-        if(ioclaw(II,JJ,KK).eq.1)then
+C Ask for miscel. data. iolaw zero sticks with default optical properties.
+        if(ioclaw(II,JJ,KK).eq.0)then
+          cm(1)=0.
+        elseif(ioclaw(II,JJ,KK).eq.1)then ! sets active state for legacy tmc control
           call edisp(iuout,
      &    'Parameters for this option need to be set in constructions')
           call edisp(iuout,
@@ -2832,20 +2832,10 @@ C Ask for miscel. data.
           iosn(ii,1)=-98
           iosn(ii,2)=1 ! so range checking does not give an error
         elseif(ioclaw(II,JJ,KK).eq.2)then
-C          cm(1)=12.
-C          cm(2)=10.0
-C          CALL EASKR(cm(2),' Set point:',' ',
-C     &      -1000.,'F',1000.,'F',10.,'setpoint',IER,nbhelp)
- 
-C Similar logic as the EDWINO Subroutine       
-C          CM(3)=1.0
-C          I3=int(cm(3))
-C          CALL EASKI(I3,' ','Which bidirectional set to use (1-40)?',
-C     &       1,'F',40,'F',1,'1st set is default',IERI,nbhelp)
-C          cm(3)=float(I3)
-C        endif
-
-C<<<<<<<<attempt to introduce an emenu here
+          cm(1)=1.0
+          CALL EASKR(cm(2),'Set-point:',' ',
+     &      -10000.,'F',10000.,'F',100.,'setpoint',IER,nbhelp)            
+        elseif(ioclaw(II,JJ,KK).eq.3)then  ! bidirectional optical
           logic_cminitial=.true.
           cm(1)=12.
   
@@ -3056,7 +3046,8 @@ C Complex fenestration control day types.
 C Initial menu entry setup.
    92 IER=0
       IVERT=-3
-      WRITE(vert(1),'(a,i3,a,i3)')' function',II,' day type',JJ
+      WRITE(vert(1),'(2a,i3,a,i3)')' loop ',
+     &  CFCCTLNAME(ii)(1:lnblnk(CFCCTLNAME(ii))),II,' day type',JJ
       WRITE(vert(2),'(a,i3)')     ' number of periods:',
      &                          nCFCdayctlperiods(II,JJ)
       WRITE(vert(3),'(a)') ' ________________________________________'
@@ -3378,7 +3369,8 @@ C Control day types.
 C Initial menu entry setup.
    92 IER=0
       IVERT=-3
-      WRITE(vert(1),'(a,i3,a,i3)')' function',II,' day type',JJ
+      WRITE(vert(1),'(2a,i3,a,i3)')' loop',
+     &  PCTLNAME(ii)(1:lnblnk(PCTLNAME(ii))),II,' day type',JJ
       WRITE(vert(2),'(a,i3)')     ' number of periods:',NPCDP(II,JJ)
       WRITE(vert(3),'(a)') ' ________________________________________'
       WRITE(vert(4),'(a)')
@@ -4348,7 +4340,8 @@ C number of menu lines.
 C Initial menu entry setup.
       IER=0
       IVERT=-3
-      WRITE(vert(1),'(a,i3,a,i3)')' function',II,' day type',JJ
+      WRITE(vert(1),'(2a,i3,a,i3)')' loop ',
+     &  FCTLNAME(ii)(1:lnblnk(FCTLNAME(ii))),II,' day type',JJ
       WRITE(vert(2),'(a,i3)')     ' number of periods:',NFCDP(II,JJ)
       WRITE(vert(3),'(a)') ' ________________________________________'
       WRITE(vert(4),'(a)')
@@ -4848,7 +4841,8 @@ C Control day types.
 C Initial menu entry setup.
    92 IER=0
       IVERT=-3
-      WRITE(vert(1),'(a,i3,a,i3)')' function',II,' day type',JJ
+      WRITE(vert(1),'(2a,i3,a,i3)')' loop ',
+     &  GCTLNAME(ii)(1:lnblnk(GCTLNAME(ii))),II,' day type',JJ
       WRITE(vert(2),'(a,i3)')     ' number of periods:',NGCDP(II,JJ)
       WRITE(vert(3),'(a)') ' ________________________________________'
       WRITE(vert(4),'(a)')
@@ -5304,12 +5298,18 @@ C help text blocks for the current control domain.
       elseif(icfoc.eq.5)then
         helptopic='senslocation_optical'
         call gethelptext(helpinsub,helptopic,nbhelp)
-        WRITE(VERT(1),'(a)') 'a senses current zone db temp         '
-        WRITE(VERT(2),'(a)') '  senses an ambient condition...      '
-        WRITE(VERT(3),'(a)') 'b   external dry bulb temperature     '
-        WRITE(VERT(4),'(a)') 'c   incident radiation at ext. surface'
-        WRITE(VERT(5),'(a)') 'd senses lux levels                   '
-        WRITE(VERT(6),'(a)') '  ------------------------------------'
+        WRITE(VERT(1),'(a)') 'a senses zone db temp                 '
+        WRITE(VERT(2),'(a)') 'b not applicable  '
+        WRITE(VERT(3),'(a)') '  senses an ambient condition...      '
+        WRITE(VERT(4),'(a)') 'c   dry bulb temperature              '
+        WRITE(VERT(5),'(a)') 'd   not applicable                    '
+        WRITE(VERT(6),'(a)') 'e   wind speed                        '
+        WRITE(VERT(7),'(a)') 'f   wind direction                    '
+        WRITE(VERT(8),'(a)') 'g   diffuse horizontal solar radiation'
+        WRITE(VERT(9),'(a)') 'h   direct normal solar radiation     '
+        WRITE(VERT(10),'(a)')'i   incident radiation at ext. surface'
+        WRITE(VERT(11),'(a)')'j senses lux levels                   '
+        WRITE(VERT(12),'(a)')'  ------------------------------------'
       elseif(icfoc.eq.6)then    ! complex fenestration
         helptopic='senslocation_CFC'
         call gethelptext(helpinsub,helptopic,nbhelp)
@@ -5433,6 +5433,15 @@ C items, but return isense as the control law.
 
 C Senses current zone db temp if ideal.
         isn1=0; isn2=0; isn3=0; nsup=0
+      elseif(ivert.eq.1.and.icfoc.eq.5)then
+
+C Senses specific zone db temp.
+        CALL EPMENSV
+        idef=0
+        call askzone(isn2,idef,'Select associated zone','-',
+     &    'Specific zone',34,ier)
+        CALL EPMENRC
+        isn1=1; isn3=0; nsup=0
       elseif(ivert.eq.1.and.(icfoc.eq.1.or.icfoc.eq.2))then
 
 C Senses output (plant control) or temperature (flow control) of a plant component.
@@ -5488,10 +5497,8 @@ C User has declined to measure difference between nodes.
 
 C If the user has not canceled instantiate from temporary values.
         nsup=0
-        isn1=isn1T
-        isn2=isn2T
-        isn3=isn3T
-        isn4=isn4T
+        isn1=isn1T; isn2=isn2T; 
+        isn3=isn3T; isn4=isn4T
         isn5=isn5T
         
       elseif((ivert.eq.1.and.icfoc.eq.3)
@@ -5504,7 +5511,8 @@ C Sensed condition does not matter.
 C Power control sensor not yet implemented, return zeros.
         isn1=0; isn2=0; isn3=0; nsup=0
       elseif(ivert.eq.2.and.
-     &      (icfoc.eq.0.or.icfoc.eq.1.or.icfoc.eq.2.or.icfoc.eq.6))then
+     &      (icfoc.eq.0.or.icfoc.eq.1.or.icfoc.eq.2.or.
+     &       icfoc.eq.5.or.icfoc.eq.6))then
 
 C Senses mix of zone db temp and MRT.
         isn1T=-2
@@ -5532,7 +5540,7 @@ C items, but return isense as the control law.
 C If the user has not canceled instantiate from temporary values.
         nsup=0; isn1=isn1T; isn2=isn2T; isn3=isn3T
       elseif(ivert.eq.4.and.
-     &      (icfoc.eq.0.or.icfoc.eq.1.or.icfoc.eq.2
+     &      (icfoc.eq.0.or.icfoc.eq.1.or.icfoc.eq.2.or.icfoc.eq.5
      &       .or.icfoc.eq.6))then
 
 C Senses outside db.
@@ -5544,28 +5552,24 @@ C Senses outside db.
         nsup=0; isn1=-3; isn2=0; isn3=0
         if(icfoc.eq.2)isense=0
       elseif(ivert.eq.5.and.
-     &      (icfoc.eq.0.or.icfoc.eq.1.or.icfoc.eq.6))then
+     &      (icfoc.eq.0.or.icfoc.eq.1.or.icfoc.eq.5.or.icfoc.eq.6))then
 
 C Senses sol-air temperature.
         nsup=0; isn1=-3; isn2=1; isn3=0
         if(icfoc.eq.2)isense=0
-      elseif(ivert.eq.4.and.icfoc.eq.5)then
+      elseif(ivert.eq.10.and.icfoc.eq.5)then
 
-C Senses incident solar radiation on a surface.
-C Ask for the specific zone.
+C Senses incident solar radiation on a surface. Ask for the specific zone.
+        isn1=-7
         CALL EPMENSV
         idef=0
-        call askzone(isn1,idef,'Select associated zone','-',
+        call askzone(isn2,idef,'Select associated zone','-',
      &    'Specific zone',34,ier)
         CALL EPMENRC
         SELECT=.TRUE.
         CALL EPMENSV
-        call EASKSUR(isn1,isn2,'-','Available surfaces.',' ',IER)
+        call EASKSUR(isn2,isn3,'-','Available surfaces.',' ',IER)
         CALL EPMENRC
-
-C<<<<< Need to confirm isn2 because it will need to be assigned to
-C<<<<< the outside face of the surface.
-        isn3=0
         nsup=0
       elseif(ivert.eq.10.and.icfoc.eq.6)then
       
@@ -5582,7 +5586,7 @@ C Ask for the specific zone.
         call EASKSUR(isn2,isn3,'-','Available surfaces.',' ',IER)
         CALL EPMENRC
         
-      elseif((ivert.eq.5.and.icfoc.eq.5).or.
+      elseif((ivert.eq.11.and.icfoc.eq.5).or.
      &       (ivert.eq.11.and.icfoc.eq.6))then
 
 C Sense lux via daylight coef method. 
@@ -5625,29 +5629,29 @@ C Ask for the specific zone.
 
         isn2=0; isn3=0; isn4=0
       elseif(ivert.eq.6.and.
-     &      (icfoc.eq.0.or.icfoc.eq.1.or.icfoc.eq.2
+     &      (icfoc.eq.0.or.icfoc.eq.1.or.icfoc.eq.2.or.icfoc.eq.5
      &       .or.icfoc.eq.6))then
 
 C Senses wind speed.
         nsup=0; isn1=-3; isn2=2; isn3=0
         if(icfoc.eq.2)isense=0
       elseif(ivert.eq.7.and.
-     &      (icfoc.eq.0.or.icfoc.eq.1.or.icfoc.eq.2
+     &      (icfoc.eq.0.or.icfoc.eq.1.or.icfoc.eq.2.or.icfoc.eq.5
      &       .or.icfoc.eq.6))then
 
 C Senses wind direction.
         nsup=0; isn1=-3; isn2=3; isn3=0
         if(icfoc.eq.2)isense=0
       elseif(ivert.eq.8.and.
-     &      (icfoc.eq.0.or.icfoc.eq.1.or.icfoc.eq.2
+     &      (icfoc.eq.0.or.icfoc.eq.1.or.icfoc.eq.2.or.icfoc.eq.5
      &       .or.icfoc.eq.6))then
 
 C Senses diffuse horizontal solar radiation.
         nsup=0; isn1=-3; isn2=4; isn3=0
         if(icfoc.eq.2)isense=0
       elseif(ivert.eq.9.and.
-     &      (icfoc.eq.0.or.icfoc.eq.1.or.icfoc.eq.2.or.
-     &       icfoc.eq.6))then
+     &      (icfoc.eq.0.or.icfoc.eq.1.or.icfoc.eq.2.or.icfoc.eq.5
+     &       .or.icfoc.eq.6))then
 
 C Senses direct normal solar radiation.
         nsup=0; isn1=-3; isn2=5; isn3=0
@@ -5857,6 +5861,7 @@ C flow connections.It is assumed that the user will make one selection only.
      &  errmsg,IER)
 
 #include "building.h"
+#include "model.h"
 #include "geometry.h"
 #include "net_flow.h"
 #include "net_flow_data.h"
@@ -5871,10 +5876,21 @@ C flow connections.It is assumed that the user will make one selection only.
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
       integer ifs,itfs,imfs
       COMMON/GFONT/IFS,ITFS,IMFS
+      common/FILEP/IFIL
+      INTEGER :: ifil
 
 C Usual proportional fonts used for non-control facilities.
       integer istdifs,istditfs,istdimfs
       common/gfontstd/istdifs,istditfs,istdimfs
+
+      COMMON/PRECTC/ITMCFL(MCOM,MS),TMCT(MCOM,MTMC,5),
+     &       TMCA(MCOM,MTMC,ME,5),TMCREF(MCOM,MTMC),TVTR(MCOM,MTMC)
+      COMMON/TMCB1/IBCMT(MCOM,MTMC)
+
+C Pointer from surface to associated optical control.
+      COMMON/TMCO1/IOTMCFL(MCOM,MS)
+      common/PRECT4/TOPTIC(MCOM,MTMC)
+      CHARACTER TOPTIC*12
       
       integer ncomp,ncon
       COMMON/C1/NCOMP,NCON
@@ -5883,6 +5899,7 @@ C Usual proportional fonts used for non-control facilities.
      &               ndcon(mpcom,mnodec)
       LOGICAL SELECT
       CHARACTER*(*) prompt,title,errmsg
+      CHARACTER optic*12
 
       DIMENSION VERT(35)
       CHARACTER VERT*40,KEY*1,prompt2*36
@@ -5891,6 +5908,7 @@ C Usual proportional fonts used for non-control facilities.
       logical vb_xst ! local variable to check if slat type blind exists in CFC
       logical shd_xst ! local variable to check if shading alyer exists in CFC
       logical modmlc  ! to select MLC
+      logical XST
       integer MVERT,IVERT ! max items and current menu item
 
       helpinsub='bpfcontrl'  ! set for subroutine
@@ -5899,6 +5917,7 @@ C Save current fonts and switch to the standard prj fonts.
       irecimfs=IMFS; irecitfs=ITFS; irecifs=IFS
       IMFS=istdimfs; IFS=istdifs; ITFS=istditfs
       call userfonts(IFS,ITFS,IMFS)
+      IUF=IFIL+2
       
 C Initialise zone menu variables based on window size. 
 C IVERT is the menu position, MVERT the current number of menu lines.
@@ -5914,7 +5933,7 @@ C IVERT is the menu position, MVERT the current number of menu lines.
       elseif(icfoc.eq.4)then  ! Power flow actuator
         MHEAD=2
       elseif(icfoc.eq.5)then  ! Optical actuator
-        MHEAD=1
+        MHEAD=2
       elseif(icfoc.eq.6)then  ! CFC actuator
         MHEAD=10
       endif
@@ -5987,7 +6006,8 @@ C Build up text strings for the menu.
       elseif(icfoc.eq.5)then
         helptopic='actlocation_optical'
         call gethelptext(helpinsub,helptopic,nbhelp)
-        WRITE(VERT(1),'(a)')'a optical properties (constructions)  '
+        WRITE(VERT(1),'(a)')'a optical properties (tmc type)       '
+        WRITE(VERT(2),'(a)')'b optical properties (bidirectional)  '
       elseif(icfoc.eq.6)then
         helptopic='actlocation_CFC'
         call gethelptext(helpinsub,helptopic,nbhelp)
@@ -6164,9 +6184,39 @@ C Power control sensor not yet implemented, return zeros.
         ian1=0; ian2=0; ian3=0
       elseif(ivert.eq.1.and.(icfoc.eq.5))then
 
-C Optics
-C Make a suggestion to control specific construction types
-C 1st item is -5, 2nd item number of constrction
+C Optics. See if any surfaces are tmcs and if so if there is an
+C alternative set of optics.
+
+C << what if multiple controllable tmcs in zone? >>
+        ian2=isn1  ! associated zone
+        ian1=0     ! that ian2 & ian3 point to zone and tmc index
+        XST=.false.
+        call FINDFIL(LTHRM(isn1),XST)
+        if(XST)then
+          CALL ECONST(LTHRM(isn1),IUF,isn1,0,IUOUT,IER)
+        endif
+        if(ITW(isn1).eq.1)then
+          CALL ERTWIN(0,IUOUT,IUF,LTWIN(isn1),isn1,IER)
+        endif
+        do ij=1,nzsur(isn1)
+          ITMC=ITMCFL(isn1,ij)
+          if(ITMC.GE.1) then
+
+C << ?? also check 
+            if(IBCMT(isn1,ITMC).ne.0)then  ! detect legacy or pointer to loop
+              optic=TOPTIC(isn1,ITMCFL(isn1,ij))
+              write(outs,'(a,i2,3a)') 'Optical set ',itmc,' ',optic,
+     &          ' has an alternative set of properties.'
+              call edisp(iuout,outs)
+              IOTMCFL(isn1,ij)=ii  ! point surface to control ii
+              ian3=itmc            ! point to this tmc
+            endif
+          endif
+        enddo
+      elseif(ivert.eq.2.and.(icfoc.eq.5))then
+
+C Bidirectional control: Make a suggestion to control specific construction
+C types 1st item is -5, 2nd item number of constrction
 C and the third can be 0
         call edisp(iuout,' ')
         write(outs,'(2A)') ' Avoid assigning more than one control ',
@@ -6189,6 +6239,7 @@ C and the third can be 0
           ian1=0; ian2=0; ian3=0
         endif
       elseif(ivert.eq.1.and.(icfoc.eq.6))then
+
 C Complex Fenestration      
 C       ian1 = actuator type (0 - shade ON/OFF, 1 - slat angle, 2- both (for schedule)
 C       ian2 = zone index
@@ -6475,15 +6526,9 @@ C Calendar data.
       common/calena/calename,calentag(MDTY),calendayname(MDTY)
       character calename*32,calentag*12,calendayname*32
 
-C High level controls (set when user first setup control file).
-C << find a place to hold this information in model files >>
+C High level control scope key words.
       character hcffpattern*12    ! heat, cool, or heat+cool plus detail
-      character syspattern*12     ! system pattern plus detail
-      character perpattern*12     ! period pattern plus detail
-      character diverspattern*12  ! diversity pattern plus detail
-      character comfortpattern*12 ! comfort pattern plus detail
-      common/hlcontrol/hcffpattern(2),syspattern(2),perpattern(2),
-     &  diverspattern(2),comfortpattern(2)
+      common/hlcontrol/hcffpattern(2)     
 
 C menu (32 char) menu text for each item
 C prompt1 (72 char) first easkr prompt
@@ -6771,34 +6816,84 @@ C new menu structure, return to the calling subroutine.
             if (iclaw.lt.25) write(TMP,'(a)') SALT(iclaw)  ! update string for menu
             if(iclaw.eq.1)then
               cmlocal(1)=7.0        ! this swap is supported, major menu change.
-              cmlocal(2)=1000.0     ! reset to default values
-              cmlocal(3)=0.0
-              cmlocal(4)=1000.0
-              cmlocal(5)=0.0
-              cmlocal(6)=20.0
-              cmlocal(7)=24.0
-              cmlocal(8)=0.0
-              cmlocal(9)=0.0
-              cmlocal(10)=0.0
-              cmlocal(12)=0.0
+              if(hcffpattern(1)(1:8).eq.'HEATONLY')then
+                cmlocal(2)=1000.0     ! reset to default values
+                cmlocal(3)=0.0
+                cmlocal(4)=0.0
+                cmlocal(5)=0.0
+                cmlocal(6)=20.0
+                cmlocal(7)=99.0
+                cmlocal(8)=0.0
+                cmlocal(9)=0.0
+                cmlocal(10)=0.0
+                cmlocal(12)=0.0
+              elseif(hcffpattern(1)(1:8).eq.'COOLONLY')then
+                cmlocal(2)=0.0     ! reset to default values
+                cmlocal(3)=0.0
+                cmlocal(4)=1000.0
+                cmlocal(5)=0.0
+                cmlocal(6)=0.0
+                cmlocal(7)=24.0
+                cmlocal(8)=0.0
+                cmlocal(9)=0.0
+                cmlocal(10)=0.0
+                cmlocal(12)=0.0
+              elseif(hcffpattern(1)(1:8).eq.'HEATCOOL'.or.
+     &           hcffpattern(1)(1:7).eq.'UNKNOWN')then
+                cmlocal(2)=1000.0     ! reset to default values
+                cmlocal(3)=0.0
+                cmlocal(4)=1000.0
+                cmlocal(5)=0.0
+                cmlocal(6)=20.0
+                cmlocal(7)=24.0
+                cmlocal(8)=0.0
+                cmlocal(9)=0.0
+                cmlocal(10)=0.0
+                cmlocal(12)=0.0
+              endif
               goto 90
             elseif(iclaw.eq.2)then
-              cmlocal(1)=0.0        ! this swap is supported, major menu change.
+              cmlocal(1)=0.0          ! this swap is supported, major menu change.
               goto 90
-            elseif(iclaw.eq.4)then
-              cmlocal(1)=4.0        ! this swap is supported, major menu change.
-              cmlocal(2)=1000.0     ! reset to default values
-              cmlocal(3)=1000.0
-              cmlocal(4)=20.0
-              cmlocal(5)=24.0
-              cmlocal(6)=0.0
-              cmlocal(7)=0.0
-              cmlocal(8)=0.0
-              cmlocal(9)=0.0
-              cmlocal(10)=0.0
-              cmlocal(12)=0.0
+            elseif(iclaw.eq.4)then    ! ideal fixed injection
+              cmlocal(1)=4.0
+              if(hcffpattern(1)(1:8).eq.'HEATONLY')then
+                cmlocal(2)=1000.0     ! reset to default values
+                cmlocal(3)=0.0
+                cmlocal(4)=20.0
+                cmlocal(5)=99.0
+                cmlocal(6)=0.0
+                cmlocal(7)=0.0
+                cmlocal(8)=0.0
+                cmlocal(9)=0.0
+                cmlocal(10)=0.0
+                cmlocal(12)=0.0
+              elseif(hcffpattern(1)(1:8).eq.'COOLONLY')then
+                cmlocal(2)=0.0     ! reset to default values
+                cmlocal(3)=1000.0
+                cmlocal(4)=0.0
+                cmlocal(5)=24.0
+                cmlocal(6)=0.0
+                cmlocal(7)=0.0
+                cmlocal(8)=0.0
+                cmlocal(9)=0.0
+                cmlocal(10)=0.0
+                cmlocal(12)=0.0
+              elseif(hcffpattern(1)(1:8).eq.'HEATCOOL'.or.
+     &           hcffpattern(1)(1:7).eq.'UNKNOWN')then
+                cmlocal(2)=1000.0     ! reset to default values
+                cmlocal(3)=1000.0
+                cmlocal(4)=20.0
+                cmlocal(5)=24.0
+                cmlocal(6)=0.0
+                cmlocal(7)=0.0
+                cmlocal(8)=0.0
+                cmlocal(9)=0.0
+                cmlocal(10)=0.0
+                cmlocal(12)=0.0
+              endif
               goto 90
-            elseif(iclaw.eq.5)then
+            elseif(iclaw.eq.5)then  ! PID controller
               cmlocal(1)=10.0       ! varies (this is the smallest) no yet supported.
               cmlocal(2)=1.0        ! reset to default values
               cmlocal(3)=1000.0
@@ -6812,24 +6907,54 @@ C new menu structure, return to the calling subroutine.
               cmlocal(11)=600.0
               cmlocal(12)=600.0
               goto 90
-            elseif(iclaw.eq.6)then
+            elseif(iclaw.eq.6)then  ! zone plant connector
               cmlocal(1)=5.0        ! varies (this is the smallest)
               ier=6
               return
-            elseif(iclaw.eq.7)then
+            elseif(iclaw.eq.7)then  ! multi-stage controller
               cmlocal(1)=12.0       ! this swap is supported, major menu change.
-              cmlocal(2)=0.0        ! reset to default values
-              cmlocal(3)=1000.0
-              cmlocal(4)=2000.0
-              cmlocal(5)=3000.0
-              cmlocal(6)=0.0
-              cmlocal(7)=1000.0
-              cmlocal(8)=2000.0
-              cmlocal(9)=3000.0
-              cmlocal(10)=20.0
-              cmlocal(11)=2.0
-              cmlocal(12)=24.0
-              cmlocal(13)=2.0
+
+              if(hcffpattern(1)(1:8).eq.'HEATONLY')then
+                cmlocal(2)=0.0        ! reset to default values
+                cmlocal(3)=1000.0
+                cmlocal(4)=2000.0
+                cmlocal(5)=3000.0
+                cmlocal(6)=0.0
+                cmlocal(7)=0.0
+                cmlocal(8)=0.0
+                cmlocal(9)=0.0
+                cmlocal(10)=20.0
+                cmlocal(11)=2.0
+                cmlocal(12)=99.0
+                cmlocal(13)=2.0
+              elseif(hcffpattern(1)(1:8).eq.'COOLONLY')then
+                cmlocal(2)=0.0        ! reset to default values
+                cmlocal(3)=0.0
+                cmlocal(4)=0.0
+                cmlocal(5)=0.0
+                cmlocal(6)=0.0
+                cmlocal(7)=1000.0
+                cmlocal(8)=2000.0
+                cmlocal(9)=3000.0
+                cmlocal(10)=0.0
+                cmlocal(11)=2.0
+                cmlocal(12)=24.0
+                cmlocal(13)=2.0
+              elseif(hcffpattern(1)(1:8).eq.'HEATCOOL'.or.
+     &           hcffpattern(1)(1:7).eq.'UNKNOWN')then
+                cmlocal(2)=0.0        ! reset to default values
+                cmlocal(3)=1000.0
+                cmlocal(4)=2000.0
+                cmlocal(5)=3000.0
+                cmlocal(6)=0.0
+                cmlocal(7)=1000.0
+                cmlocal(8)=2000.0
+                cmlocal(9)=3000.0
+                cmlocal(10)=20.0
+                cmlocal(11)=2.0
+                cmlocal(12)=24.0
+                cmlocal(13)=2.0
+              endif
               goto 90
             elseif(iclaw.eq.8)then
               cmlocal(1)=6.0
@@ -6844,11 +6969,11 @@ C new menu structure, return to the calling subroutine.
               cmlocal(10)=0.0
               cmlocal(12)=0.0
               goto 90
-            elseif(iclaw.eq.9)then
+            elseif(iclaw.eq.9)then  ! heat pipe
               cmlocal(1)=9.0
               ier=9
               return
-            elseif(iclaw.eq.10)then
+            elseif(iclaw.eq.10)then ! two position controller
               cmlocal(1)=6.0
               cmlocal(2)=1000.0     ! reset to default values
               cmlocal(3)=1000.0
@@ -6861,17 +6986,17 @@ C new menu structure, return to the calling subroutine.
               cmlocal(10)=0.0
               cmlocal(12)=0.0
               goto 90
-            elseif(iclaw.eq.11)then
-              cmlocal(1)=10.0       ! varies (this is the smallest)
+            elseif(iclaw.eq.11)then ! match temperature ideal
+              cmlocal(1)=10.0
               ier=11
               return
-            elseif(iclaw.eq.12)then
-              cmlocal(1)=10.0       ! varies (this is the smallest)
+            elseif(iclaw.eq.12)then ! match temperature on-off
+              cmlocal(1)=10.0
               ier=12
               return
-            elseif(iclaw.eq.13)then
+            elseif(iclaw.eq.13)then ! time proportioning separate on/off
               cmlocal(1)=12.0
-              cmlocal(2)=1000.0     ! reset to default values
+              cmlocal(2)=1000.0
               cmlocal(3)=1000.0
               cmlocal(4)=18.0
               cmlocal(5)=22.0
@@ -6884,9 +7009,9 @@ C new menu structure, return to the calling subroutine.
               cmlocal(12)=5.0
               cmlocal(13)=5.0
               goto 90
-            elseif(iclaw.eq.14)then
+            elseif(iclaw.eq.14)then ! three position control
               cmlocal(1)=14.0
-              cmlocal(2)=20.0       ! reset to default values
+              cmlocal(2)=20.0
               cmlocal(3)=2.0
               cmlocal(4)=1.0
               cmlocal(5)=2.0
@@ -6901,9 +7026,9 @@ C new menu structure, return to the calling subroutine.
               cmlocal(14)=0.0
               cmlocal(15)=1.0
               goto 90
-            elseif(iclaw.eq.15)then
+            elseif(iclaw.eq.15)then ! optimum start
               cmlocal(1)=6.0        ! varies (this is the smallest) no yet supported.
-              cmlocal(2)=1000.0     ! reset to default values
+              cmlocal(2)=1000.0
               cmlocal(3)=20.0
               cmlocal(4)=1.0
               cmlocal(5)=8.0
@@ -6913,29 +7038,29 @@ C new menu structure, return to the calling subroutine.
               cmlocal(9)=0.0
               cmlocal(10)=0.0
               goto 90
-            elseif(iclaw.eq.16)then
+            elseif(iclaw.eq.16)then ! optimum stop
               cmlocal(1)=9.0
               ier=16
               return
-            elseif(iclaw.eq.17)then
+            elseif(iclaw.eq.17)then ! fuzzy logic PI
               cmlocal(1)=7.0
               ier=17
               return
-            elseif(iclaw.eq.18)then
+            elseif(iclaw.eq.18)then ! null controller
               cmlocal(1)=0.0
               ier=18
               return
-            elseif(iclaw.eq.19)then
+            elseif(iclaw.eq.19)then ! multi-sensor on/off
               cmlocal(1)=6.0
               ier=19
               return
-            elseif(iclaw.eq.20)then
-              cmlocal(1)=1.0       ! varies (this is the smallest)
+            elseif(iclaw.eq.20)then ! latent source
+              cmlocal(1)=1.0
               ier=20
               return
-            elseif(iclaw.eq.21)then
+            elseif(iclaw.eq.21)then ! slave capacity controller
               cmlocal(1)=3.0
-              cmlocal(2)=1.0        ! reset to default values
+              cmlocal(2)=1.0
               cmlocal(3)=1000.0
               cmlocal(4)=1000.0
               cmlocal(5)=0.0
@@ -6968,7 +7093,7 @@ C At the moment it does what the control law 11 does
               cmlocal(3)=6.0
               ier=23
               goto 90
-            elseif(iclaw.eq.24)then
+            elseif(iclaw.eq.24)then ! adaptive comfort
               cmlocal(1)=8.0     
               cmlocal(2)=1000.0  
               cmlocal(3)=0.0
@@ -7369,15 +7494,6 @@ C   for control law one.
       common/sctlmenu/menu(misc),prompt1(misc),prompt2(misc)
       common/sctldata/ndec(misc),vmin(misc),vmax(misc),
      &  vdef(misc),nctlhelp,nmenulines
-
-C High level controls (set when user first setup control file).
-      character hcffpattern*12    ! heat, cool, or heat+cool plus detail
-      character syspattern*12     ! system pattern plus detail
-      character perpattern*12     ! period pattern plus detail
-      character diverspattern*12  ! diversity pattern plus detail
-      character comfortpattern*12 ! comfort pattern plus detail
-      common/hlcontrol/hcffpattern(2),syspattern(2),perpattern(2),
-     &  diverspattern(2),comfortpattern(2)
 
       character menu*32,prompt1*72,prompt2*72
 

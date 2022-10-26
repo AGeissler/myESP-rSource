@@ -56,7 +56,6 @@ C
 #include "building.h"
 #include "cfd.h"
 #include "net_flow.h"
-#include "net_flow_data.h"
 
       COMMON/ICFNOD/ICFD,ICP
       COMMON/VARf/Uf(ntcelx,ntcely,ntcelz),Vf(ntcelx,ntcely,ntcelz),
@@ -119,34 +118,9 @@ C Boundary condition commons.
 
 C Common blocks for blockages and small supply openings
       common/blksso/NBLK(MNZ),INBLK(MNVLS,MNZ),NSSO(MNZ),
-     &          INSSO(MNVLS,MNZ),BLKTEMP(MNVLS,MNZ,6)
-      COMMON/MFLRES/FLW1(MCNN),FLW2(MCNN),PRES(MNOD),
-     &              RESID(MNOD),SAFLW(MNOD)
-
-      DOUBLE PRECISION FLW1,FLW2,PRES,RESID,SAFLW
-
-C Commons for dynamic person model.
-      REAL headflux1,trunkflux1,larmflux1,rarmflux1,llegflux1,
-     &     rlegflux1,H2Oexp1,H2Oswt1,Qoccsens1,Qocclat1,COflux,
-     &     Tsko_av1,Tco_av1,Tsk_av1
-      COMMON/ocflux1/headflux1,trunkflux1,larmflux1,rarmflux1,llegflux1,
-     &        rlegflux1,H2Oexp1,H2Oswt1,Qoccsens1,Qocclat1,COflux,
-     &        Tsko_av1, Tco_av1, Tsk_av1
-      REAL tavhead1,tavtrunk1,tavarml1,tavarmr1,tavlegl1,tavlegr1
-      REAL hrhead,hrtrunk,hrarml,hrarmr,hrlegl,hrlegr,HMETA2
-      integer cfdcheck, msegflag
-      COMMON/segtemp1/tavhead1,tavtrunk1,tavarml1,tavarmr1,tavlegl1,
-     &       tavlegr1,hrhead,hrtrunk,hrarml,hrarmr,hrlegl,hrlegr,
-     &       cfdcheck, msegflag,HMETA2
-      REAL headflux2,trunkflux2,larmflux2,rarmflux2,llegflux2,
-     &     rlegflux2,H2Oexp2,H2Oswt2,Qoccsens2,Qocclat2,
-     &     Tsko_av2,Tco_av2,Tsk_av2
-      COMMON/ocflux2/headflux2,trunkflux2,larmflux2,rarmflux2,llegflux2,
-     &        rlegflux2,H2Oexp2,H2Oswt2,Qoccsens2,Qocclat2,
-     &        Tsko_av2, Tco_av2, Tsk_av2
-      REAL tavhead2,tavtrunk2,tavarml2,tavarmr2,tavlegl2,tavlegr2
-      COMMON/segtemp2/tavhead2,tavtrunk2,tavarml2,tavarmr2,tavlegl2,
-     &       tavlegr
+     &          INSSO(MNVLS,MNZ),BLKTEMP(MNVLS,6)
+      COMMON/CFDBCOFF/BCOFF(MNVLS)
+      logical BCOFF
 
       LOGICAL OK,LINVOL
       REAL POL3D(ntcelx,ntcely,ntcelz)
@@ -188,6 +162,7 @@ C Clear SU term.
 
 C Set SU at contaminant sources.
       do 60 IV=1,NVOL(ICFD)
+        if (BCOFF(iv)) cycle
         if (IVTYPE(IV,ICFD).eq.20) then
           do 70 I=IVCELLS(IV,ICFD,1),IVCELLS(IV,ICFD,2)
             do 71 J=JVCELLS(IV,ICFD,1),JVCELLS(IV,ICFD,2)
@@ -205,6 +180,7 @@ C Check for blockages.
 C Loop through whole blockage, set concentration to zero 
         do 10 IVO=1,NBLK(ICFD)
           IV=INBLK(IVO,ICFD)  
+          if (BCOFF(iv)) cycle
           do 20 I=IVCELLS(IV,ICFD,1),IVCELLS(IV,ICFD,2)
             do 21 J=JVCELLS(IV,ICFD,1),JVCELLS(IV,ICFD,2)
               do 22 K=KVCELLS(IV,ICFD,1),KVCELLS(IV,ICFD,2)   
@@ -301,6 +277,7 @@ C Check for blockages.
 C Go and set the boundary conditions  
         do 2016 IVO=1,NBLK(ICFD)
           IV=INBLK(IVO,ICFD)  
+          if (BCOFF(iv)) cycle
           call BLKBNDC(IV)
  2016   continue
       endif 
@@ -329,6 +306,7 @@ C Check for blockages.
 C If inside the blockage set resor to zero.
         do 2006 IVO=1,NBLK(ICFD)
           IV=INBLK(IVO,ICFD)  
+          if (BCOFF(iv)) cycle
           OK=LINVOL(I,J,K,
      &            IVCELLS(IV,ICFD,1),IVCELLS(IV,ICFD,2),
      &            JVCELLS(IV,ICFD,1),JVCELLS(IV,ICFD,2),
@@ -365,22 +343,15 @@ C Check for blockages.
 C If inside the blockage force concentration to zero. 
         do 2007 IVO=1,NBLK(ICFD)
           IV=INBLK(IVO,ICFD)  
+          if (BCOFF(iv)) cycle
           OK=LINVOL(I,J,K,
      &            IVCELLS(IV,ICFD,1),IVCELLS(IV,ICFD,2),
      &            JVCELLS(IV,ICFD,1),JVCELLS(IV,ICFD,2),
      &            KVCELLS(IV,ICFD,1),KVCELLS(IV,ICFD,2))
           if(OK) then
-
-C Set the temperature inside the blockage equal to the initial one. 
-            AE(I,J,K)=0.0
-            AW(I,J,K)=0.0
-            AN(I,J,K)=0.0
-            AS(I,J,K)=0.0
-            AH(I,J,K)=0.0
-            AL(I,J,K)=0.0
-            SP(I,J,K)=0.0
-            SU(I,J,K)=0.0
-            AP(I,J,K)=1.0
+            AE(I,J,K)=0.0; AW(I,J,K)=0.0; AN(I,J,K)=0.0
+            AS(I,J,K)=0.0; AH(I,J,K)=0.0; AL(I,J,K)=0.0
+            SP(I,J,K)=0.0; SU(I,J,K)=0.0; AP(I,J,K)=1.0
           endif
 
  2007   continue
@@ -1130,8 +1101,11 @@ C every time step.
      &          VOLCO2(MNVLS,MNZ),VOLVel(MNVLS,MNZ),VOLDir(MNVLS,MNZ,2),
      &          VOLArea(MNVLS,MNZ),VOLPres(MNVLS,MNZ),
      &          VOLPol(MCTM,MNVLS,MNZ)
-      COMMON/CTDFAF/ICTDFAF(MNZ),SRCE(MNVLS,MCTM,MNZ),ICCSRC(MNZ)
+      COMMON/CTDFAF/ICTDFAF(MNZ),SRCE(MNVLS,MCTM,MNZ),ICCSRC(MNZ),
+     &              ICC2NC(MCTM,MNZ),SRCFRC(MNVLS,MCTM,MNZ)
       CHARACTER SRCE*12
+      COMMON/CONTM0/NCONTM,NOCNTM,CONTMNAM(MCONTM)
+      character CONTMNAM*12
       COMMON/CONTM2/CNCAJAM(MPRODI),ZMCPAM(MPRODI)
       COMMON/CONTM5/SPMSUP(MSPMNO,MCSD),SSLINK2(MSPMNO,MNOD),
      &      NSSNO(MNOD),SPMTYP(MSPMNO),SSNAME(MSPMNO),NSPMNO,
@@ -1139,13 +1113,12 @@ C every time step.
       INTEGER SPMTYP,SSLINK1,SSLINK2
       CHARACTER SSNAME*12
       COMMON/CONTM9/SSSTR(MSPMNO,MCONTM)
-      common/KEYCASGN/IDcasgn(MNVLS,MNZ),Fcasgn(MNVLS,MNZ)
       common/KEYVOLN/VOLNAME(MNVLS,MNZ),VCsurf(MNVLS,MNZ),
      &               BLKSURF(MNVLS,MNZ,6)
       character VOLNAME*12,VCsurf*12,BLKSURF*12
       COMMON/CFDMFS1/ICFDNOD(MNZ),ICFDCNN(MNVLS,MNZ)
-      COMMON/CFDMFS2/MFNEWN(MNVLS,MNZ),NFNDN,NCFDOPNO(MNVLS,MNZ),
-     &               NFNPDN(MNZ)
+C      COMMON/CFDMFS2/MFNEWN(MNVLS,MNZ),NFNDN,NCFDOPNO(MNVLS,MNZ),
+C     &               NFNPDN(MNZ)
       COMMON/MFLRES/FLW1(MCNN),FLW2(MCNN),PRES(MNOD),
      &              RESID(MNOD),SAFLW(MNOD)
       DOUBLE PRECISION FLW1,FLW2,PRES,RESID,SAFLW
@@ -1153,96 +1126,93 @@ C every time step.
      &               NCTM(MNZ),JHUMINDX(MNZ),URFC(MCTM)
       LOGICAL CALLMA,CALPOL
       CHARACTER POLNAM*12
-      REAL headflux1,trunkflux1,larmflux1,rarmflux1,llegflux1,
-     &     rlegflux1,H2Oexp1,H2Oswt1,Qoccsens1,Qocclat1,COflux,
-     &     Tsko_av1,Tco_av1,Tsk_av1
-      COMMON/ocflux1/headflux1,trunkflux1,larmflux1,rarmflux1,llegflux1,
-     &        rlegflux1,H2Oexp1,H2Oswt1,Qoccsens1,Qocclat1,COflux,
-     &        Tsko_av1, Tco_av1, Tsk_av1
+      COMMON/CFDBCOFF/BCOFF(MNVLS)
+      logical BCOFF
+      real headflux1,trunkflux1,larmflux1,rarmflux1,llegflux1
+      real rlegflux1,H2Oexp1,H2Oswt1,Qoccsens1,Qocclat1
+C       real COflux,Tsko_av1,Tco_av1,Tsk_av1
+      COMMON/ocflux1/headflux1(MNZ),trunkflux1(MNZ),larmflux1(MNZ),
+     &  rarmflux1(MNZ),llegflux1(MNZ),rlegflux1(MNZ),H2Oexp1(MNZ),
+     &  H2Oswt1(MNZ),Qoccsens1(MCOM),Qocclat1(MCOM)
+C         COflux,Tsko_av1,Tco_av1,Tsk_av1     
+      common/dynamico/isdynamicocup(MCOM)
 
-      LOGICAL NOTFOUND
+C      LOGICAL NOTFOUND
 
-      DO 798 ICTM=1,NCTM(ICFD)
-        DO 698 IV=1,NVOL(ICFD)
-          IF(IVTYPE(IV,ICFD).EQ.20)THEN
+      DO IV=1,NVOL(ICFD)
+        if (BCOFF(iv)) cycle
+        IF(IVTYPE(IV,ICFD).EQ.20)THEN
+          DO ICTM=1,NCTM(ICFD)
 
 C Check if sources are linked with a contaminant network.
-            IF(ICTDFAF(ICFD).EQ.1)THEN
+            IF(ICTDFAF(ICFD).EQ.1 .and. ICC2NC(ictm,ICFD).gt.0)THEN
 
 C First set VOLPOL for source BCs explicitly linked with sources in the
 C contaminant network.
-C TEMPORARY - multiply by cas gain fraction
-              DO 699 ISPMNO=1,NSPMNO
-                IF(SRCE(IV,ICTM,ICFD)(1:12).EQ.
-     &          SSNAME(SSLINK1(ISPMNO,ICTM))(1:12))THEN
-                  IF(NSSNO(ICFDNOD(ICFD)).GT.0)THEN
-                    DO ISSNO=1,NSSNO(ICFDNOD(ICFD))
-                      IF(SSLINK2(ISSNO,ICFDNOD(ICFD)).EQ.ISPMNO)THEN
-                        VOLPOL(ICTM,IV,ICFD)=SSSTR(ISPMNO,ICTM)
-C                         VOLPOL(ICTM,IV,ICFD)=SSSTR(ISPMNO,ICTM)*
-C      &                  FCasgn(IV,ICFD)
-                      ENDIF
-                    ENDDO
+              if (SRCE(IV,ICTM,ICFD)(1:1).ne.' ') then
+                DO ISPMNO=1,NSPMNO
+                  IF(SRCE(IV,ICTM,ICFD).EQ.SSNAME(ISPMNO))THEN
+                    VOLPOL(ICTM,IV,ICFD)=
+     &              SSSTR(ISPMNO,ICC2NC(ICTM,ICFD))*SRCFRC(IV,ICTM,ICFD)
                   ENDIF
-                ENDIF
- 699          CONTINUE
+                enddo
+              endif
 
 C Now set sourcing/sinking due to air flows from links with air flow
-C network. Flow rate is -ve for flow going out from CFD domain.
-C TODO - Doing this with the volume name is very yuck, should find a
-C        better way.
-              IF(VOLNAME(IV,ICFD)(1:4).EQ.'SRC_')THEN
-                DO 701 IX=1,NVOL(ICFD)
-                  IF(VOLNAME(IV,ICFD)(5:12).EQ.
-     &               VOLNAME(IX,ICFD)(1:8))THEN
+C network. 
+              if (SRCE(IV,ICTM,ICFD)(1:6).eq.'CFDOPN') then
+                READ(SRCE(IV,ICTM,ICFD)(7:9),'(i3.3)')IX
+              
+C The extra connection might not be used, and I think the mass flow is
+C set to 0 when the MFS is re-initialised, so this code is bad.
+C C First, look for an extra connection added for the CFD-MFS conflation
+C C process.
+C                 NOTFOUND=.TRUE.
+C                 do IOPNO=1,NFNDN
+C                   if (IX.eq.NCFDOPNO(IOPNO,ICFD)) then
+C                     INOD=MFNEWN(IOPNO,ICFD)
+C                     ICNN=1
+C                     DO WHILE(ICNN.LE.NCNN.AND.NOTFOUND)
+C                       IF(NODPS(ICNN).EQ.INOD.OR.
+C      &                   NODNE(ICNN).EQ.INOD)THEN
+C                         NOTFOUND=.FALSE.   
+C                       ELSE
+C                         ICNN=ICNN+1
+C                       ENDIF
+C                     END DO
+C                   endif
+C                 enddo
 
-C First, look for an extra connection added for the CFD-MFS conflation
-C process.
-                    NOTFOUND=.TRUE.
-                    do IOPNO=1,NFNDN
-                      if (IX.eq.NCFDOPNO(IOPNO,ICFD)) then
-                        INOD=MFNEWN(IOPNO,ICFD)
-                        ICNN=1
-                        DO WHILE(ICNN.LE.NCNN.AND.NOTFOUND)
-                          IF(NODPS(ICNN).EQ.INOD.OR.
-     &                      NODNE(ICNN).EQ.INOD)THEN
-                            NOTFOUND=.FALSE.   
-                          ELSE
-                            ICNN=ICNN+1
-                          ENDIF
-                        END DO
-                      endif
-                    enddo
-
-C If this is not found, use the original connection.
-                    if (NOTFOUND) then
-                      ICNN=ICFDCNN(IX,ICFD)
-                    endif
-
-                    FLRATE=REAL(FLW2(ICNN)+FLW1(ICNN))
-                    IF(FLRATE.GT.0.0)THEN
-                      INOD=NODNE(ICNN)
-                    ELSE
-                      INOD=NODPS(ICNN)
-                    ENDIF
-                    IROWNO=NCTM(ICFD)*(INOD-1)+ICTM
-                    VOLPOL(ICTM,IV,ICFD)=CNCAJAM(IROWNO)*FLRATE
-                  ENDIF
- 701            CONTINUE
+                ICNN=ICFDCNN(IX,ICFD)
+                FLRATE=REAL(FLW2(ICNN)+FLW1(ICNN))
+                IF(FLRATE.GT.0.0)THEN ! Flow rate is -ve for flow leaving CFD domain.
+                  INOD=NODNE(ICNN)
+                ELSE
+                  INOD=NODPS(ICNN)
+                ENDIF
+                IROWNO=NCONTM*(INOD-1)+ICC2NC(ICTM,ICFD)
+                VOLPOL(ICTM,IV,ICFD)=CNCAJAM(IROWNO)*FLRATE*
+     &            SRCFRC(IV,ICTM,ICFD)
               ENDIF
             ENDIF
-
-C Finally, set moisture release rates from dynamic occupant model.
-C TODO - this will apply to all sources if the model is enabled, need to
-C        fix this.
-            if (POLNAM(ICTM,ICFD) .eq. 'Sweat1') then
-              VOLPOL(ICTM,IV,ICFD)=H2Oswt1+H2Oexp1
-            elseif (POLNAM(ICTM,ICFD) .eq. 'Sweat2') then
-              VOLPOL(ICTM,IV,ICFD)=H2Oswt2+H2Oexp2
+          enddo
+          
+C Finally, set moisture release rates from multi-segmented dynamic
+C occupant model.
+C Scale by occupant type as in casual.F.
+          if (JHUMINDX(ICFD).gt.0 .and. isdynamicocup(ICP).eq.4) then
+            if (VCsurf(iv,ICFD)(1:3) .eq. 'man') then
+              VOLPOL(JHUMINDX(ICFD),IV,ICFD)=H2Oswt1(ICFD)+H2Oexp1(ICFD)
+            elseif (VCsurf(iv,ICFD)(1:5) .eq. 'woman') then
+              VOLPOL(JHUMINDX(ICFD),IV,ICFD)=
+     &          0.85*(H2Oswt1(ICFD)+H2Oexp1(ICFD))
+            elseif (VCsurf(iv,ICFD)(1:5) .eq. 'child') then
+              VOLPOL(JHUMINDX(ICFD),IV,ICFD)=
+     &          0.75*(H2Oswt1(ICFD)+H2Oexp1(ICFD))
             endif
-          ENDIF
- 698    CONTINUE
- 798  CONTINUE
+          endif
+        endif
+      enddo
 
       RETURN
       END

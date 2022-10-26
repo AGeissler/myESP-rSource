@@ -109,6 +109,7 @@ C     &              Zplawe(MNREG,MNZ),NREG(3,MNZ)
       COMMON/RENORM/LRENORM
       COMMON/THETA/THETA1(MCFND,MNZ),THETA2(MCFND,MNZ)
       COMMON/BUOYAN/BUOYA,BOUSSA,TBAR(MNZ)
+      LOGICAL BUOYA,BOUSSA
       COMMON/ZTURB/rMOOT(MNZ),nZtoKE(MNZ)
       common/varIC/NINIT,uic,vic,wic,pic,kic,eic,tic
       common/relax/nrfac,urlx,vrlx,wrlx,prlx,krlx,erlx,trlx
@@ -149,7 +150,6 @@ C Flow visualization common blocks.
       CHARACTER outs*124
       CHARACTER*72 LVEC,LBIT
       character solveqn*80
-      LOGICAL BUOYA,BOUSSA
 
       IFL=IFIL+1
 
@@ -1457,7 +1457,7 @@ C   from common block variable icp.
       integer lnblnk  ! function definition
 
       integer IZSTOCN
-      COMMON/C24/IZSTOCN(MCOM,MS)
+C      COMMON/C24/IZSTOCN(MCOM,MS)
       COMMON/ICFNOD/ICFD,ICP
 
       CHARACTER SURF*12

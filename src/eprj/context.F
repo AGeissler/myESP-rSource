@@ -60,6 +60,7 @@ C ITRU unit number for user output, IER=0 indicates no error.
 
 C IPV description via ipvdata.h. If within cfg file then the file
 C name is replaced with 'internal'.
+      character lipvdatf*72
       common/IPVF/lipvdatf
 
 C CPCALC description
@@ -83,22 +84,31 @@ C iSlr_half_hr_flg =0 = hour-centred; 1 = half-hour centred.
       common/CWEC_SOL/iSlr_half_hr_flg
       integer iSlr_half_hr_flg
 
+      common/shad0/ISIcalc,icalcD,icalcM
+      integer ISIcalc,icalcD,icalcM
+
+      common/hcthry/ihct,icorexhct
+
       logical MODSIT,browse,XST,modish,OK,unixok
       logical FOUND
-      dimension SALT(8),IVALS(8)
+      dimension SALT(8),IVALS(8),SICALT(7)
       dimension SALTM(31),IVALSM(31)
       character*10 wkd1, wkd2
       character*10 wkday(7)
       character SEXP*31,SALT*31,hold*72
       character SEXPM*31,SALTM*31,holdM*72
+      character SICALT*51
 
 C ITEMS is menu for site/context items.
-      character*35 ITEMS(31)
+      character*35 ITEMS(32)
       character*72 GTGEOM
-      character lipvdatf*72,outs*124,ltmp*72
-      character act*1,GTNAME*15,fs*1
+      character outs*124,ltmp*72
+      character act*1,GTNAME*15,fs*1,msg*42
       character ipvact*3  ! to denote whether in cfd file or external
       CHARACTER doit*256
+      character ipvaction*3
+      dimension HCALT(15),IHCVAL(15)
+      character HCALT*42
 
       integer idwe1T,idwe2T,iyearT   ! local values for editing.
       integer icreport  ! to signal that calendar has been updated.
@@ -138,7 +148,7 @@ C      WRITE(SALT(8),53)skyview,groundview,buildingview
 C MODISH: initial assignments for reflections from obstructions.
       SALTM(1)= '1) compute reflections from obs'
       SALTM(2)= '1) do not compute refl.from obs'
-      SALTM(3)= '2) shading factor correction   '
+      SALTM(3)= '                               '
       SALTM(4)= '2) shd.f.corr. + diffuse piping'
       SALTM(5)= '2) shd.f.cor+dif.pip.+grnd refl'
       SALTM(6)= '2) completely recalculate s.f. '
@@ -158,7 +168,15 @@ C MODISH: initial assignments for reflections from obstructions.
       SALTM(20)='6) resolution:2x2 diffuse & dir'
       SALTM(21)='6) resolution:2x2 dif,20x20 dir'
       SALTM(22)='6) resolution:1x1 dif,10x10 dir'
-      SEXPM=SALTM(modishindex)
+      SALTM(23)='                               '
+      SALTM(24)='7) specify zons&surfs(optional)'
+      SALTM(25)='7) include all zones &all surfs'
+      SALTM(26)='8) if monthly: process now.    ' 
+      if(modishindex.ne.0)then
+        SEXPM=SALTM(modishindex)
+      else
+        SEXPM='  '
+      endif
 
 C Begin with high level menu.
     3 INO=-4
@@ -210,10 +228,17 @@ c      ITEMS(26)=                'v transient orientation         '
       ITEMS(26)=                'v update shading for reflections '
       ITEMS(27)=                ' _____________________________   '
       ITEMS(28)=                'w random perturbations           '
-      ITEMS(29)=                ' _____________________________   '
-      ITEMS(30)=                '? help                           '
-      ITEMS(31)=                '- exit menu                      '
-      nitms=31
+      if(ihct.eq.0.and.icorexhct.eq.0)then
+        ITEMS(29)=              'x surface htc methods (unset)    '
+      elseif(ihct.eq.1.and.icorexhct.eq.1)then
+        ITEMS(29)=              'x surface htc methods (defaults) '
+      elseif(ihct.gt.1.or.icorexhct.gt.1)then
+        ITEMS(29)=              'x surface htc methods (user set) '
+      endif
+      ITEMS(30)=                ' _____________________________   '
+      ITEMS(31)=                '? help                           '
+      ITEMS(32)=                '- exit menu                      '
+      nitms=32
 
 C Help text for this menu.
       helptopic='context_overview_menu'
@@ -233,8 +258,15 @@ C If there was a change in location, but no zones defined just return.
           if(ncomp.eq.0)then
             return
           endif
+
+C If there are existing shading files recalculate. If ISIcalc is
+C still zero then set it to 2 so that ish can run the monthly 
+C calculations. If ISIcalc = 1 then embedded calculations are
+C used so skip recalculation.
+          if(ISIcalc.eq.1) goto 44 ! embedded so jump
           do 42 iz=1,ncomp
             if(ISI(iz).eq.1)then
+              if(ISIcalc.eq.0) ISIcalc=2  ! if not set assign = 2
               call FINDFIL(LSHAD(iz),XST)
               if(XST)then
                 write(outs,'(3a)') 'Shading for ',
@@ -245,10 +277,10 @@ C If there was a change in location, but no zones defined just return.
             endif
   42      continue
           CALL EASKABC(
-     &        'Site changes may require shading adjustments!',
-     &        'Options:',
-     &        'recalculate (silent)','recalculate (interactive)',
-     &        'cancel',IRT,nbhelp)
+     &      'Site changes may require shading adjustments!',
+     &      'Options:',
+     &      'recalculate (silent)','recalculate (interactive)',
+     &      'cancel',IRT,nbhelp)
           if(IRT.eq.1.or.IRT.eq.2)then
             call edisp(iuout,'Processing zones.')
             if(IRT.eq.1)then
@@ -288,6 +320,7 @@ C starting up a new xterm (i.e. use '-' rather than 'text')
   43        continue
             call edisp(iuout,'Zones shading db update complete.')
           endif
+  44      continue
         endif
         RETURN
 
@@ -718,34 +751,18 @@ C Dispersed fan/pump/lift/DHW demands.
       ELSEIF(INO.EQ.18)THEN
         call prjdmds(itrc,itru,iuo,ier)
 
-C IPV data in the case of a legacy model cfg file.
+C IPV data. If it exists read it, if nothing yet initialise, save to
+C msc folder file and then edit.
       ELSEIF(INO.EQ.19)THEN
-        if(icfgv.lt.4)then
-          lr=lnblnk(cfgroot)
-          if(lnblnk(lipvdatf).eq.0)then
-            write(ltmp,'(2a)') cfgroot(1:lr),'.ipv'
-          elseif(lipvdatf(1:7).eq.'UNKNOWN')then
-            write(ltmp,'(2a)') cfgroot(1:lr),'.ipv'
-          elseif(lipvdatf(1:8).eq.'internal')then
-
-C Legacy cfg with internal IPV description. If nipvassmt is zero then
-C nothing has been created yet so initialise and save to the
-C configuration file. If there is data, call ipvdat and update the
-C configuration file when exiting.
-            if(nipvassmt.eq.0)then
-              call ipvdat('i')     ! fill with defaults
-              CALL EMKCFG('-',IER) ! remember this
-              call ipvdat('-')     ! edit data
-              CALL EMKCFG('-',IER) ! remember this
-            else
-              call ipvdat('-')
-              CALL EMKCFG('-',IER)
-            endif
-          else
-            ltmp=lipvdatf
-          endif
+        lr=lnblnk(cfgroot)
+        write(ltmp,'(4a)') mscpth(1:lnblnk(mscpth)),fs,
+     &    cfgroot(1:lr),'.ipv'
+        if(lipvdatf(1:7).eq.'UNKNOWN'.or.
+     &     lipvdatf(1:2).eq.'  ')then
+          call ipvdat('i')     ! fill with defaults
+          ipvaction='ipv'
  142      CALL EASKS(ltmp,' ','IPV description file?',
-     &               72,'xxx.ipv','IPV file',IER,nbhelp)
+     &      72,'xxx.ipv','IPV file',IER,nbhelp)
           if(ltmp(1:2).ne.'  ')then
             lipvdatf=ltmp
             call FINDFIL(lipvdatf,XST)
@@ -753,32 +770,57 @@ C configuration file when exiting.
               ipvact='ipv'
               call ripvdat(ifil+1,lipvdatf,ipvact,ier)
               call ipvdat('-')
+              CALL EMKCFG('-',IER) ! remember this
+              goto 3
             else
               ipvact='ipv'
               call ipvdat('i')
               call mkipvdat(ifil+1,lipvdatf,ipvact)
               call ipvdat('-')
+              CALL EMKCFG('-',IER) ! remember this
+              goto 3
             endif
           else
             call usrmsg('Please re-enter file name.',' ','W')
             goto 142
           endif
-        else
+          goto 3
+        elseif(lipvdatf(1:8).eq.'internal')then
 
-C IPV data is held within the configurtion file. Reset the file
-C name (since it is not used). If nipvassmt is still zero then
-C nothing has been created yet so initialise and save to the
-C configuration file. If there is data, call ipvdat and update the
-C configuration file when exiting.
-          lipvdatf='internal'
+C Internal IPV description. If nipvassmt is zero then
+C nothing has been created yet so initialise and save in msc folder.
           if(nipvassmt.eq.0)then
             call ipvdat('i')     ! fill with defaults
+            ipvaction='ipv'
+            lipvdatf=ltmp
+            call mkipvdat(ifil+1,lipvdatf,ipvaction)
             CALL EMKCFG('-',IER) ! remember this
             call ipvdat('-')     ! edit data
             CALL EMKCFG('-',IER) ! remember this
+            goto 3
           else
+            ipvaction='ipv'
+            lipvdatf=ltmp
+            call mkipvdat(ifil+1,lipvdatf,ipvaction)
             call ipvdat('-')
             CALL EMKCFG('-',IER)
+            goto 3
+          endif
+        else     ! a known file
+          call FINDFIL(lipvdatf,XST)
+          IF(XST)then
+            ipvact='ipv'
+            call ripvdat(ifil+1,lipvdatf,ipvact,ier)
+            call ipvdat('-')
+            CALL EMKCFG('-',IER) ! remember this
+            goto 3
+          else
+            ipvact='ipv'
+            call ipvdat('i')
+            call mkipvdat(ifil+1,lipvdatf,ipvact)
+            call ipvdat('-')
+            CALL EMKCFG('-',IER) ! remember this
+            goto 3
           endif
         endif
 
@@ -817,7 +859,7 @@ C in the folder with other ESP-r modules.
           write(doit,'(8a,I3,a)')
      &    'perl ',dinstpath(1:lnblnk(dinstpath)),fs,'bin',fs,
      &    'modish',fs,'Modish.pm -setdefaults ',
-     &    modishindex, ' >/dev/null'
+     &    modishindex,LCFGF,' >/dev/null'
           call runit(doit,'-')
           MODSIT=.true.
         else
@@ -829,7 +871,66 @@ C Random perturbations (aka gremlins).
       elseif (ino.eq.28) then
         itmp=0
         call GRM_MNG(itmp,IER)
-      ENDIF
+
+C Nominate inside and outside default heat transfer method.
+      elseif (ino.eq.29) then
+
+C External hc correlations:
+        if(icorexhct.eq.0) msg='no current exterior hc method'
+        if(icorexhct.eq.1) msg='default McAdams exterior hc method'
+        if(icorexhct.eq.2) msg='MoWiTT  exterior hc method'
+        if(icorexhct.eq.3) msg='Aya Hagishima correlation exterior hc'
+        if(icorexhct.eq.4) msg='Ya Liu (roof wind speed) exterior hc'
+        if(icorexhct.eq.5) msg='Ya Lui (raw wind speed) exterior hc'
+        if(icorexhct.eq.6) msg='Loveday (roof wind speed) exterior hc'
+        if(icorexhct.eq.7) msg='Loveday (raw wind speed) exterior hc'
+        if(icorexhct.eq.8) msg='CIBSE guide exterior hc'
+        if(icorexhct.eq.9) msg='ASHRAE Task Group  exterior hc'
+        if(icorexhct.eq.10)msg='Sturrock exterior hc'
+        if(icorexhct.eq.11)msg='Keith Nicol exterior hc'
+        if(icorexhct.eq.12)msg='S.E .G.Jayamaha exterior hc'
+        call edisp(iuout,' ')
+        call edisp(iuout,'Current method for external surf HTC ')
+        call edisp(iuout,msg)
+        helptopic='toggle_ext_hc_methods'
+        call gethelptext(helpinsub,helptopic,nbhelp)
+        HCALT(1)='the default ESP-r method'
+        HCALT(2)='MoWiTT low rise hc '
+        HCALT(3)='Aya Hagishima hc '
+        HCALT(4)='Ya Liu (roof wind speed) hc'
+        HCALT(5)='Ya Lui (raw wind speed) hc'
+        HCALT(6)='Ya Lui (weather station wind speed) hc'
+        HCALT(7)='Loveday (roof wind speed) hc'
+        HCALT(8)='Loveday (raw wind speed) hc'
+        HCALT(9)='CIBSE guide hc'
+        HCALT(10)='Loveday (mixed) hc'
+        HCALT(11)='British Standard'
+        HCALT(12)='ASHRAE Task Group hc'
+        HCALT(13)='Sturrock hc'
+        HCALT(14)='Keith Nicol hc'
+        HCALT(15)='S.E.G. Jayamaha hc'
+        IX=1
+        CALL EPICKS(IX,IHCVAL,' ','External surface convection model:',
+     &         42,15,HCALT,'ext hc model',IER,nbhelp)
+        icorexhct=IHCVAL(1)
+
+C If undefined set the default inside treatment.
+        helptopic='toggle_int_hc_methods'
+        call gethelptext(helpinsub,helptopic,nbhelp)
+
+        SICALT(1)='Alamdari and Hammond (default) '
+        SICALT(2)='Khalifa & Marshall, radiator located under window '
+        SICALT(3)='Khalifa & Marshall, no radiator under window  '
+        SICALT(4)='Halcrow, time invariant low    '
+        SICALT(5)='Halcrow, time invariant high   '
+        SICALT(6)='CIBSE guide, time invariant    '
+        SICALT(7)='CEN simplified calc method     '
+        IX=1
+        CALL EPICKS(IX,IVALS,' ','Internal surface convection model:',
+     &    51,7,SICALT,'hc model',IER,nbhelp)
+        ihct=IVALS(1)
+        if(ihct.eq.0) ihct=1
+      endif
       GOTO 3
 
       END
@@ -4153,6 +4254,8 @@ C files if possible.
 
       integer ncomp,ncon
       COMMON/C1/NCOMP,NCON
+      common/shad0/ISIcalc,icalcD,icalcM
+      integer ISIcalc,icalcD,icalcM
 
       character outs*248,shdafile*72
       logical XST,XSTA,OK,unixok
@@ -4166,39 +4269,51 @@ C files if possible.
 C Check if Unix-based or DOS based.
       call isunix(unixok)
       if(act.eq.'SITE'.or.act.eq.'site'.or.act.eq.'Site')then
-        do iz=1,ncomp
-          if(ISI(iz).eq.1)then
-            call FINDFIL(LSHAD(iz),XST)
-            if(XST)then
-              write(outs,'(3a)') 'Shading for ',
-     &          zname(iz)(1:lnzname(iz)),' is out of date.'
-              call edisp(iuout,' ')
-              call edisp(iuout,outs)
+        if(ISIcalc.eq.1)then
+          continue
+        else
+          do iz=1,ncomp
+            if(ISI(iz).eq.1)then
+              call FINDFIL(LSHAD(iz),XST)
+              if(XST)then
+                write(outs,'(3a)') 'Shading for ',
+     &            zname(iz)(1:lnzname(iz)),' is out of date.'
+                call edisp(iuout,' ')
+                call edisp(iuout,outs)
+              endif
             endif
-          endif
-        enddo
+          enddo
+        endif
       elseif(act.eq.'ASCI'.or.act.eq.'asci')then
-        do iz=1,ncomp
-          if(ISI(iz).eq.1)then
-            write(shdafile,'(2a)') lshad(iz)(1:lnblnk(lshad(iz))),'a'
-            call FINDFIL(shdafile,XST)
-            if(XST)then
-              write(outs,'(3a)') 'Shading for ',
+        if(ISIcalc.eq.1)then
+          continue
+        else
+          do iz=1,ncomp
+            if(ISI(iz).eq.1)then
+              write(shdafile,'(2a)') lshad(iz)(1:lnblnk(lshad(iz))),'a'
+              call FINDFIL(shdafile,XST)
+              if(XST)then
+                write(outs,'(3a)') 'Shading for ',
      &          zname(iz)(1:lnzname(iz)),' can be imported from ASCII.'
-              call edisp(iuout,outs)
+                call edisp(iuout,outs)
+              endif
             endif
-          endif
-        enddo
+          enddo
+        endif
       endif
 
 C Proceed to recalculate all shading/insolation to refelect
 C the site change.
       if(act.eq.'SITE'.or.act.eq.'site'.or.act.eq.'Site')then
-        helptopic='reflect_site_change'
-        call gethelptext(helpinsub,helptopic,nbhelp)
-        CALL EASKABC(' ','Reflect site change in shading options:',
-     &    'recalculate (silent)','recalculate (interactive)','cancel',
-     &    IRT,nbhelp)
+        if(ISIcalc.eq.1)then
+          IRT=3  ! skip if embedded calculations
+        else
+          helptopic='reflect_site_change'
+          call gethelptext(helpinsub,helptopic,nbhelp)
+          CALL EASKABC(' ','Reflect site change in shading options:',
+     &      'recalculate (silent)','recalculate (interactive)','cancel',
+     &      IRT,nbhelp)
+        endif
         if(IRT.eq.1.or.IRT.eq.2)then
           do 43 iz=1,ncomp
             if(ISI(iz).eq.0) goto 43
@@ -4230,60 +4345,65 @@ C as the command line.
      &      'Update of zones with shading files complete.')
         endif
       elseif(act.eq.'ASCI'.or.act.eq.'asci')then
-        helptopic='reflect_site_change'
-        call gethelptext(helpinsub,helptopic,nbhelp)
-        CALL EASKABCD(' ','Shading data options:',
-     &    'import from ASCII if available',
-     &    'recalculate missing (silent)',
-     &    'recalculate (interactive)','cancel',IRT,nbhelp)
-        if(IRT.eq.1.or.IRT.eq.2.or.IRT.eq.3)then
-          do iz=1,ncomp
-            if(ISI(iz).gt.0)then
-              call FINDFIL(LSHAD(iz),XST)
-              write(shdafile,'(2a)') lshad(iz)(1:lnblnk(lshad(iz))),'a'
-              call FINDFIL(shdafile,XSTA)
+        if(ISIcalc.eq.1)then
+          continue
+        else
+          helptopic='reflect_site_change'
+          call gethelptext(helpinsub,helptopic,nbhelp)
+          CALL EASKABCD(' ','Shading data options:',
+     &     'import from ASCII if available',
+     &     'recalculate missing (silent)',
+     &     'recalculate (interactive)','cancel',IRT,nbhelp)
+          if(IRT.eq.1.or.IRT.eq.2.or.IRT.eq.3)then
+            do iz=1,ncomp
+              if(ISI(iz).gt.0)then
+                call FINDFIL(LSHAD(iz),XST)
+                write(shdafile,'(2a)') 
+     &            lshad(iz)(1:lnblnk(lshad(iz))),'a'
+                call FINDFIL(shdafile,XSTA)
 
 C If ASCII available ask for import otherwise do with
 C an `-act update_silent` as the command line.
-              if(IRT.eq.1)then
-                if(XSTA)then
-                  call comissionish(iz,'sab',ier)
-                  if(ier.ne.0)then
+                if(IRT.eq.1)then
+                  if(XSTA)then
+                    call comissionish(iz,'sab',ier)
+                    if(ier.ne.0)then
                     call edisp(iuout,'Possible error in calculations.')
-                  endif
-                else
-                  if(XST)then
+                    endif
+                  else
+                    if(XST)then
 
 C << TODO read ISH file and ensure syntax is correct >>
-                    continue  ! bin exists so can skip recalculation
-                  else
-                    call comissionish(iz,'sua',ier)
+                      continue  ! bin exists so can skip recalculation
+                    else
+                      call comissionish(iz,'sua',ier)
+                      if(ier.ne.0)then
+                        call edisp(iuout,'Possible error in calcs.')
+                      endif
+                    endif
+                  endif
+                elseif(IRT.eq.2)then
+                  call comissionish(iz,'sra',ier)
+                  if(ier.ne.0)then
+                  call edisp(iuout,'Possible error in calculations.')
+                  endif
+                elseif(IRT.eq.3)then
+
+                  write(outs,'(3a)') 'Proceed with shading for ',
+     &              zname(iz)(1:lnzname(iz)),'?'
+                  CALL EASKOK(' ',outs,OK,nbhelp)
+                  if(OK)then
+                    call comissionish(iz,'ira',ier)
                     if(ier.ne.0)then
-                      call edisp(iuout,'Possible error in calcs.')
+                    call edisp(iuout,'Possible error in calculations.')
                     endif
                   endif
                 endif
-              elseif(IRT.eq.2)then
-                call comissionish(iz,'sra',ier)
-                if(ier.ne.0)then
-                  call edisp(iuout,'Possible error in calculations.')
-                endif
-              elseif(IRT.eq.3)then
-
-                write(outs,'(3a)') 'Proceed with shading for ',
-     &            zname(iz)(1:lnzname(iz)),'?'
-                CALL EASKOK(' ',outs,OK,nbhelp)
-                if(OK)then
-                  call comissionish(iz,'ira',ier)
-                  if(ier.ne.0)then
-                    call edisp(iuout,'Possible error in calculations.')
-                  endif
-                 endif
               endif
-            endif
-          enddo
-          call edisp(iuout,
-     &      'Update of zones with shading files complete.')
+            enddo
+            call edisp(iuout,
+     &        'Update of zones with shading files complete.')
+          endif
         endif
       endif
       return

@@ -153,6 +153,7 @@ C Assume: Mon=1, Tue=2, Wed=3, Thu=4, Fri=5, Sat=6, Sun=7
       INTEGER :: idwe1,idwe2
 
 C IPV description.
+      character*72 lipvdatf
       common/IPVF/lipvdatf
 
 C Non-linear thermophysical properties.
@@ -278,6 +279,10 @@ C Radiance processor cores.
       integer radcores
       common/radcor/radcores
 
+C Version of construction file. If not specified set at 21 (2.1)
+      integer izconstv,iztmcv
+      common/znconstrv/izconstv(MCOM),iztmcv(MCOM)
+
 C IES lighting distribution files from model.h
 
       CHARACTER LCFD*72
@@ -286,7 +291,7 @@ C IES lighting distribution files from model.h
       CHARACTER*72 L3DCVS,L3DCNC,L3DNDC,L3DTAQ,LMOIST
       character hvacfile*72,LBSIMP*72
       character ctldoc*248,lctlf*72
-      character GTGEOM*72,GTNAME*15,spflnam*72,lipvdatf*72
+      character GTGEOM*72,GTNAME*15,spflnam*72
       character*10 wkd1, wkd2
       character spfdescr*30
 
@@ -315,7 +320,7 @@ C Initial assumption is no SHOCC files.
       zonepth='../zones'; netpth='../nets'; ctlpth='../ctl'
       mscpth='../msc'; imgpth='../img'; radpth='../rad'
       dbspth='../dbs'; tmppth='../tmp'
-      lradcf=' '
+      lradcf='UNKNOWN'
       cfgroot=' '
       LCTLF='UNKNOWN'
       LCNN='UNKNOWN'
@@ -382,7 +387,7 @@ C Clear pre-simulation sets.
       enddo  ! of I
 
 C Clear IPV strings and number of assessmments.
-      ipvtitl=' '; ipvvers=' '; ipvsynop=' '; ipvsimu=' '
+      ipvtitl=' '; ipvsynop=' '; ipvsimu=' '
       nipvassmt=0; nipvdispjd=0
       ipvastjd(1)=0; ipvafnjd(1)=0; ipvdispjd(1)=0
 
@@ -490,7 +495,8 @@ C Per-zone areas and U-values.
         znotair(ix)=.FALSE.  ! assumption of air filled
         zSWAp(ix)=0.0; zSWAf(ix)=0.0
         ncub(ix)=0  ! clear number of mrt sensors in each zone
-
+        izconstv(ix)=0  ! assume legacy zone constructions
+        iztmcv(ix)=0    ! assume legacy zone TMC files
         do IXS = 1,MS
           SNAME(IX,IXS)=' '   ! clear surface name
           zboundarytype(IX,IXS,1)=0  ! clear surface boundary
@@ -651,7 +657,7 @@ C Clear the connection list.
         IC2(ICC)=0
         IE2(ICC)=0
       ENDDO  ! of ICC
-      icfgv=4  ! set cfg file version to latest type
+      icfgv=5  ! set cfg file version to latest type
       NCON=0
       ncomp=0
       siteexposureindex=1
@@ -773,8 +779,7 @@ C icfgfab =0 none, = 1 3D conduction, =2 moisture, =3 special materials, = 4 all
       INTEGER :: nsset,isset,isstup,isbnstep,ispnstep,issave,isavgh
       common/IPVF/lipvdatf
       CHARACTER lipvdatf*72
-      logical isdynamicocup   ! true if zone includes dynamicpeople 
-      common/dynamico/isdynamicocup(MCOM) 
+      common/dynamico/isdynamicocup(MCOM)
       common/spmfxst/ispmxist,spflnam
       INTEGER :: ispmxist
       character spflnam*72
@@ -862,7 +867,7 @@ C Loop through all zones for other features.
              if(icfgfab.eq.1) icfgfab = 4
              if(icfgfab.eq.3) icfgfab = 4
           endif
-          if(isdynamicocup(i)) icfgbeh = 1
+          if(isdynamicocup(i).gt.0) icfgbeh = 1
           if(nbobs(i).gt.0) icfgs = 1
   42    continue
       endif
@@ -1174,36 +1179,22 @@ C 12 characters) may be included as an option and is returned via BLOCKNAME.
 #include "espriou.h"
 
       integer lnblnk  ! function definition
-
-C Error messages (for use by low level I/O calls)
-      common/dllerr/dllsubr,dllmesg
-
       CHARACTER LOBS*72,OUTSTR*124,WORD*32
-      character dllsubr*12,dllmesg*124,outs*124
-      logical dll
+      character outs*124
       integer NGXD,NGZD  ! dummy values for depreciated NGX & NGZ
       real VX,VY,VZ   ! local values for XOB YOB ZOB
       integer llbm    ! length of block material
 
-C Check if running in dll mode.
-      call isadll(dll)
       IER=0
 
       CALL EFOPSEQ(IUNIT,LOBS,1,IER)
       IF(IER.LT.0)THEN
         write(outs,'(3a)') 'Obstructions file ',LOBS(1:lnblnk(LOBS)),
      &    ' could not be opened.'
-        if(dll)then
-          dllsubr='EGOMST'
-          dllmesg=outs
-          ier=2
-          return
-        else
-          call edisp(itru,outs)
-          IER=1
-          RETURN
-        endif
-      ENDIF
+        call edisp(itru,outs)
+        IER=1
+        RETURN
+      endif
       write(currentfile,'(a)') LOBS(1:lnblnk(LOBS))
 
 C Read past site information from the file and check for range errors.
@@ -1434,34 +1425,19 @@ C (for use in mrt). IER=0 OK, IER=1 problem, IER=3 surface mismatch.
       common/MRTF/FFL(MCUB,6,MSM),VEWF(MS,MS)
       common /cube5/fstgrp,fstsur,lstsur,strtgr
 
-C Error subroutine and error details for dll mode.
-      common/dllerr/dllsubr,dllmesg
-
       DIMENSION VA(MSM)
 
       CHARACTER LMRT*72,LGEO*72,OUTSTR*124,WORD*20,outs*124
-      character dllsubr*12,dllmesg*124
       integer fstgrp,fstsur,lstsur,strtgr
-      logical dll
-
-C Check if running in dll mode.
-      call isadll(dll)
 
       CALL EFOPSEQ(IUF,LMRT,1,IER)
       IF(IER.LT.0)THEN
         write(outs,'(3a)') 'Viewfactor file ',LMRT(1:lnblnk(LMRT)),
      &    ' could not be opened.'
-        if(dll)then
-          dllsubr='ERMRT'
-          dllmesg=outs
-          ier=2
-          return
-        else
-          call edisp(itru,outs)
-          IER=1
-          RETURN
-        endif
-      ENDIF
+        call edisp(itru,outs)
+        IER=1
+        RETURN
+      endif
       write(currentfile,'(a)') LMRT(1:lnblnk(LMRT))
 
 C Read first line which must be *VIEWFACTORS or *viewfactors
@@ -1473,16 +1449,9 @@ C Read first line which must be *VIEWFACTORS or *viewfactors
       else
         write(outs,'(3a)') LMRT(1:lnblnk(LMRT)),
      &    ' is not a view factor file.'
-        if(dll)then
-          dllsubr='ERMRT'
-          dllmesg=outs
-          ier=2
-          return
-        else
-          call edisp(itru,outs)
-          IER=1
-          RETURN
-        endif
+        call edisp(itru,outs)
+        IER=1
+        RETURN
       endif
 
 C Read name of geometry file this file matches.  Information
@@ -1511,36 +1480,20 @@ C << re-establish mrt blocks if they exist in geo file.
       if(IZINDX.ne.IC)then
         write(outs,'(3a)') LMRT(1:lnblnk(LMRT)),
      &    ' linked to wrong zone index.'
-        if(dll)then
-          dllsubr='ERMRT'
-          dllmesg=outs
-          ier=2
-          CALL ERPFREE(iuf,ISTAT)
-          return
-        else
-          call edisp(itru,outs)
-          IER=1
-          CALL ERPFREE(iuf,ISTAT)
-          return
-        endif
+        call edisp(itru,outs)
+        IER=1
+        CALL ERPFREE(iuf,ISTAT)
+        return
       endif
 
       if(NZS.ne.NZSUR(ic))then
 
         write(outs,'(3a)') LMRT(1:lnblnk(LMRT)),
      &    ' has different surface count to zone geometry.'
-        if(dll)then
-          dllsubr='ERMRT'
-          dllmesg=outs
-          ier=2
-          CALL ERPFREE(iuf,ISTAT)
-          return
-        else
-          call edisp(itru,outs)
-          IER=3  ! signal mismatch
-          CALL ERPFREE(iuf,ISTAT)
-          return
-        endif
+        call edisp(itru,outs)
+        IER=3  ! signal mismatch
+        CALL ERPFREE(iuf,ISTAT)
+        return
       endif
 
 C Test for number of MRT sensors. If zero in this file but NCUB(IC) is
@@ -1879,18 +1832,10 @@ C If next line is *MRT_SENSOR or *mrt_sensor:
       else
         write(outs,'(3a)') LMRT(1:lnblnk(LMRT)),
      &    ' is missing a MRT sensor definition.'
-        if(dll)then
-          dllsubr='ERMRT'
-          dllmesg=outs
-          ier=2
-          CALL ERPFREE(iuf,ISTAT)
-          return
-        else
-          call edisp(itru,outs)
-          IER=1
-          CALL ERPFREE(iuf,ISTAT)
-          return
-        endif
+        call edisp(itru,outs)
+        IER=1
+        CALL ERPFREE(iuf,ISTAT)
+        return
       endif
 
 
@@ -2272,6 +2217,8 @@ C rule MORS is the handedness of the axes defining the polygon
 C verticies.  For solid bodies whose faces have been described anti-
 C clockwise when viewed from the outside the unit normals within this
 C routine will point outwards from the body.
+
+C Note: this subroutine is not called.
 
       SUBROUTINE EPLNEQN(ITRU,MORS,ISTA,PNTLST,CG,EQN,IERR)
 #include "building.h"

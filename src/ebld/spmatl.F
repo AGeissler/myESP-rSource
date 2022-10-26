@@ -361,10 +361,18 @@ C Results output.
       strspm(ispmnod,2)='Efficiency (%)'
 
 C As a temporary measure, use zone-related variables, zspmf1 and zspmf2,
-C for results library storage. Output is limited to one special material
+C for results library storage. Output will be sum of special materials
 C per zone.
-      zspmf1(ispmloc(ispmnod,1))=dataspm(ispmnod,1)
-      zspmf2(ispmloc(ispmnod,1))=dataspm(ispmnod,2)
+      if (ispmnod.eq.1) then 
+         do i=1,mcom
+         zspmf1(i)=0.0
+         zspmf2(i)=0.0
+         enddo
+      endif
+      zspmf1(ispmloc(ispmnod,1))=
+     &  zspmf1(ispmloc(ispmnod,1))+dataspm(ispmnod,1)
+      zspmf2(ispmloc(ispmnod,1))=
+     &  zspmf2(ispmloc(ispmnod,1))+dataspm(ispmnod,2)
 
 C Save panel power output (for load flow simulation) and the current
 C panel voltage. (This could later be changed to a power converter
@@ -494,10 +502,18 @@ C Results output.
       strspm(ispmnod,2)='Efficiency (%)'
 
 C As a temporary measure, use zone-related variables, zspmf1 and zspmf2,
-C for results library storage. Output is limited to one special material
+C for results library storage. Output will be sum of special materials
 C per zone.
-      zspmf1(ispmloc(ispmnod,1))=dataspm(ispmnod,1)
-      zspmf2(ispmloc(ispmnod,1))=dataspm(ispmnod,2)
+      if (ispmnod.eq.1) then 
+        do i=1,mcom
+          zspmf1(i)=0.0
+          zspmf2(i)=0.0
+        enddo
+      endif
+      zspmf1(ispmloc(ispmnod,1))=
+     &  zspmf1(ispmloc(ispmnod,1))+dataspm(ispmnod,1)
+      zspmf2(ispmloc(ispmnod,1))=
+     &  zspmf2(ispmloc(ispmnod,1))+dataspm(ispmnod,2)
 
 C Save panel power output (for load flow simulation) and the current
 C panel voltage. (This could later be changed to a power converter

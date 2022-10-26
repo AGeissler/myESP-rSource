@@ -256,7 +256,7 @@ C when there is thermal conflation.
      &            BHS(MNHS,2,MNZ)
       COMMON/ICFNOD/ICFD,ICP
       common/blksso/NBLK(MNZ),INBLK(MNVLS,MNZ),NSSO(MNZ),
-     &          INSSO(MNVLS,MNZ),BLKTEMP(MNVLS,MNZ,6)
+     &          INSSO(MNVLS,MNZ),BLKTEMP(MNVLS,6)
       common/KEYVOLN/VOLNAME(MNVLS,MNZ),VCsurf(MNVLS,MNZ),
      &               BLKSURF(MNVLS,MNZ,6)
       character VOLNAME*12,VCsurf*12,BLKSURF*12
@@ -283,13 +283,13 @@ C This section maps surface temperatures onto blockages.
       do IBLK=1,NBLK(ICFD)
         IV=INBLK(IBLK,ICFD)
         if (IVTYPE(IV,ICFD).eq.32) then
-          IS=IDSURF(BLKSURF(IV,ICFD,1))
+          IS=IDSURF(VCsurf(IV,ICFD))
           VOLTemp(IV,ICFD)=0.5*(TFS(ICP,IS)+TPS(ICP,IS))
         elseif (IVTYPE(IV,ICFD).eq.33) then
           do i=1,6
             if (BLKSURF(IV,ICFD,i)(1:4).ne.'NONE') then
               IS=IDSURF(BLKSURF(IV,ICFD,i))
-              BLKTEMP(IV,ICFD,i)=0.5*(TFS(ICP,IS)+TPS(ICP,IS))
+              BLKTEMP(IV,i)=0.5*(TFS(ICP,IS)+TPS(ICP,IS))
             endif
           enddo
         endif

@@ -2726,14 +2726,14 @@ C      integer iupdown,isym    ! passed to etplot
 C      integer iix1,iiy1,iix2,iiy2  ! passed to edline
       integer iixlc,isize
       integer iix,iiy,iixl,iiyl,iixr,iiyu
-      integer iicol
+      integer iicol,ipixw,ipixh
 C      integer iiw4
 #else
 C      integer*8 iupdown,isym    ! passed to etplot
 C      integer*8 iix1,iiy1,iix2,iiy2 ! passed to edline
       integer*8 iixlc,isize
       integer*8 iix,iiy,iixl,iiyl,iixr,iiyu
-      integer*8 iicol
+      integer*8 iicol,ipixw,ipixh
 C      integer*8 iiw4
 #endif
 
@@ -4929,7 +4929,7 @@ C CHGSUN is called from C code in esru_x.ca and esp-r.c requesting solar view.
      &   JITOBS,JITSNR,JITGRD,JITORG,DIS,JITBND,JITDSP,JITHLS,JITHLZ,
      &   JITPPSW)
 
-C Passed paramters.
+C Passed parameters.
       real EVX,EVY,EVZ,VX,VY,VZ,EAN,DIS
 
 C Depending on computer type set integer size of passed parameters.
@@ -4978,6 +4978,23 @@ C EMKVIEW constructs a 'viewer' format file. This is a dummy subroutine.
 
       SUBROUTINE INLNST(ITYP)
       integer ityp
+      return
+      end
+      
+      SUBROUTINE CLIPPT(ax,ay,az,iclp)
+      iclp=0
+      return
+      end
+
+      SUBROUTINE CLIPLIN(ax,ay,az,iclp)
+      dimension ax(2),ay(2),az(2)
+      iclp=0
+      return
+      end
+      
+      SUBROUTINE CUTLIN(ax,ay,az,iclp)
+      dimension ax(2),ay(2),az(2)
+      iclp=0
       return
       end
 

@@ -187,12 +187,6 @@ C Strings
       CHARACTER*72 LASBEM       ! SBEM project specific file name (*.ncm)
       CHARACTER*3  SBREF        ! Scottish Accredited Construction Details followed (yes/no)
       CHARACTER*3  APCHK        ! Compliance of air permeabilty to be checked (yes/no)
-      CHARACTER*20 PJNAME       ! Project name
-      CHARACTER*64 BADDRESS     ! Building address
-      CHARACTER*64 OWNERNAME    ! Owner name
-      CHARACTER*64 OWNERADDR    ! Owner address
-      CHARACTER*64 CERTIFNAME   ! Certifier name
-      CHARACTER*64 CERTADDRESS  ! Certifier address
       CHARACTER*24 RENNAME      ! Names of renewable energy systems
       CHARACTER*64 UPRN         ! Unique Property Reference Number
       CHARACTER*64 Accr_Scheme  ! Accreditation Scheme of the energy 
@@ -213,7 +207,6 @@ C Strings
       CHARACTER*64 pjLevComplexity !Specifies the level of complexity of the project
                                    !4 choices: 'Undefined','Level 3','Level 4' and 'Level 5'   
       COMMON/SBEM05/DHWNAME(MNS),HVACNAME(MNS),LASBEM,SBREF,APCHK,
-     & PJNAME,BADDRESS,OWNERNAME,OWNERADDR,CERTIFNAME,CERTADDRESS,
      & RENNAME(MREN),UPRN,Accr_Scheme,assessRegNumber,
      & empl_Trading_name,addr_empl_Trading,party_disclosure,
      & qualifications_assessor,insurer_Company,policyNumberInsurance,

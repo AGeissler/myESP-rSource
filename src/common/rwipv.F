@@ -11,14 +11,64 @@ C on the parameter act (3 char) ='ipv' or ='cfg'
 
       character file*72,tab*1
       character outs*124,outsd*124,outsn*124,louts*248
-      character dstmp*24
       character act*3   ! indicate which file destination
+      character tokens*156,comment*76,aligned_str*156
+      character decode*32
       integer list
       dimension list(MCOM)  ! zone lists currently set to MCOM
       integer loutlen,itrunc,ipos  ! used with ailist call
 
 C      tab=CHAR(9)
       tab=','
+
+C Compose comment for opening line.
+      if(ipvsimu(1:6).eq.'icwint'.or.ipvsimu(1:6).eq.'Icwint')then
+        decode='winter typical week'
+      elseif(ipvsimu(1:6).eq.'icwinf'.or.ipvsimu(1:6).eq.'Icwinf')then
+        decode='winter typical fortnight'
+      elseif(ipvsimu(1:6).eq.'icwins'.or.ipvsimu(1:6).eq.'Icwins')then
+        decode='winter full season '
+      elseif(ipvsimu(1:6).eq.'icsprt'.or.ipvsimu(1:6).eq.'Icsprt')then
+        decode='spring typical week'
+      elseif(ipvsimu(1:6).eq.'icsprf'.or.ipvsimu(1:6).eq.'Icsprf')then
+        decode='spring typical fortnight'
+      elseif(ipvsimu(1:6).eq.'icsprs'.or.ipvsimu(1:6).eq.'Icsprs')then
+        decode='spring full season'
+      elseif(ipvsimu(1:6).eq.'icsumt'.or.ipvsimu(1:6).eq.'Icsumt')then
+        decode='summer typical week'
+      elseif(ipvsimu(1:6).eq.'icsumf'.or.ipvsimu(1:6).eq.'Icsumf')then
+        decode='summer typical fortnight'
+      elseif(ipvsimu(1:6).eq.'icsums'.or.ipvsimu(1:6).eq.'Icsums')then
+        decode='summer full season'
+      elseif(ipvsimu(1:6).eq.'icautt'.or.ipvsimu(1:6).eq.'Icautt')then
+        decode='autumn typical week'
+      elseif(ipvsimu(1:6).eq.'icautf'.or.ipvsimu(1:6).eq.'Icautf')then
+        decode='autumn typical fortnight'
+      elseif(ipvsimu(1:6).eq.'icauts'.or.ipvsimu(1:6).eq.'Icauts')then
+        decode='autumn full season'
+      elseif(ipvsimu(1:3).eq.'ias'.or.ipvsimu(1:3).eq.'Ias')then
+        decode='annual run'
+      elseif(ipvsimu(1:3).eq.'i1d'.or.ipvsimu(1:3).eq.'I1d')then
+        decode='single default'
+      elseif(ipvsimu(1:3).eq.'i3s'.or.ipvsimu(1:3).eq.'I3s')then
+        decode='three full seasons'
+      elseif(ipvsimu(1:3).eq.'i3t'.or.ipvsimu(1:3).eq.'I3t')then
+        decode='three seasons (typical weeks)'
+      elseif(ipvsimu(1:3).eq.'i5s'.or.ipvsimu(1:3).eq.'I5s')then
+        decode='five full seasons'
+      elseif(ipvsimu(1:3).eq.'i5t'.or.ipvsimu(1:3).eq.'I5t')then
+        decode='five seasons (typical weeks)'
+      endif
+      if(ipvform.eq.0)then
+        write(comment,'(a,i1,2a)') 'IPV V',ipvversion,
+     &  ' undefined report format ',decode(1:lnblnk(decode))
+      elseif(ipvform.eq.1)then
+        write(comment,'(a,i1,2a)') 'IPV V',ipvversion,
+     &    ' readable report format ',decode(1:lnblnk(decode)) 
+      elseif(ipvform.eq.2)then
+        write(comment,'(a,i1,2a)') 'IPV V',ipvversion,
+     &    ' tabbed report format ',decode(1:lnblnk(decode))
+      endif
 
 C Open any existing file by this name or create a new file.
       if(act(1:3).eq.'ipv')then
@@ -29,17 +79,20 @@ C Open any existing file by this name or create a new file.
           RETURN
         ENDIF
         ipvversion=4
-        WRITE(ifu,'(2A,i1,a,i1,3a)',IOSTAT=IOS,ERR=1003)'*IPV',tab,
-     &    ipvversion,tab,ipvform,tab,ipvsimu,'  # IPV data follows'
+        write(tokens,'(a,i1,a,i1,2a)') '*IPV  ',ipvversion,
+     &    ' ',ipvform,' ',ipvsimu
+        call align_comment(32,tokens,comment,aligned_str)
+        write(ifu,'(a)') aligned_str(1:lnblnk(aligned_str))
+
+
       elseif(act(1:3).eq.'cfg')then
         ipvversion=4
-        WRITE(ifu,'(A,i1,a,i1,3a)',IOSTAT=IOS,ERR=1003)'*ipv  ',
-     &    ipvversion,tab,ipvform,tab,ipvsimu,'  # IPV data follows'
+        write(tokens,'(a,i1,a,i1,2a)') '*ipv  ',ipvversion,
+     &    ' ',ipvform,' ',ipvsimu
+        call align_comment(32,tokens,comment,aligned_str)
+        write(ifu,'(a)') aligned_str(1:lnblnk(aligned_str))
       endif
       WRITE(ifu,'(3A)',IOSTAT=IOS,ERR=1003)'*title',tab,ipvtitl
-      WRITE(ifu,'(3A)',IOSTAT=IOS,ERR=1003)'*version',tab,ipvvers
-      call dstamp(dstmp)
-      write(ifu,'(3a)',IOSTAT=IOS,ERR=1003)'*date',tab,dstmp
 
 C Note: ipvsynop might be a long line.
       WRITE(ifu,'(3A)',IOSTAT=IOS,ERR=1003)'*synop',tab,
@@ -54,18 +107,20 @@ C Note: ipvsynop might be a long line.
       endif
 
 C Loop through each assessment period.
-      WRITE(outsn,'(A,i3)',IOSTAT=IOS,ERR=1003)'*simulations',
+      WRITE(tokens,'(A,i4)',IOSTAT=IOS,ERR=1003)'*simulations',
      &  nipvassmt
-      call SDELIM(outsn,outsd,'C',IW)
-      WRITE(ifu,'(A)',IOSTAT=IOS,ERR=1003) outsd(1:lnblnk(outsd))
+      write(comment,'(a,i1,2a)') 'assessments to run'
+      call align_comment(32,tokens,comment,aligned_str)
+      write(ifu,'(a)') aligned_str(1:lnblnk(aligned_str))
+      WRITE(ifu,'(A)',IOSTAT=IOS,ERR=1003)
+     & '# tag start doy finish doy description'
       do 44 ij=1,nipvassmt
 
 C Write comma separated for first two fields and append description.
-        WRITE(outs,'(a,2i4)',IOSTAT=IOS,ERR=1003)'*period',
+        WRITE(outs,'(a,2i8)',IOSTAT=IOS,ERR=1003)'*period',
      &    ipvastjd(ij),ipvafnjd(ij)
-        call SDELIM(outs,outsn,'C',IW)
-        WRITE(ifu,'(3a)',IOSTAT=IOS,ERR=1003) outsn(1:lnblnk(outsn)),
-     &    tab,ipvadesc(ij)
+        WRITE(ifu,'(3a)',IOSTAT=IOS,ERR=1003) outs(1:lnblnk(outs)),
+     &    '    ',ipvadesc(ij)
  44   continue
       WRITE(outsn,'(A,i3,10I4)',IOSTAT=IOS,ERR=1003)'*display_days',
      &   nipvdispjd,(ipvdispjd(L),L=1,nipvdispjd)
@@ -74,61 +129,61 @@ C Write comma separated for first two fields and append description.
 
 C Write ratios for each climatic season.
       WRITE(ifu,'(A)',IOSTAT=IOS,ERR=1003)
-     & 'season multipliers: heating|cooling|lights|fans|smallp|DWH'
-      WRITE(outsn,'(A,6F8.3)',IOSTAT=IOS,ERR=1003)'*win1',ddmheat(1),
+     & '# season multipliers'
+      WRITE(ifu,'(A)',IOSTAT=IOS,ERR=1003)
+     & '# name |heating |cooling|lights |fans  |smallpwr|DWH'
+      WRITE(outsn,'(A,6F8.3)',IOSTAT=IOS,ERR=1003)'*win1  ',ddmheat(1),
      &  ddmcool(1),ddmlight(1),ddmfan(1),ddmsmlpw(1),ddmdhw(1)
-      call SDELIM(outsn,outsd,'C',IW)
-      WRITE(ifu,'(A)',IOSTAT=IOS,ERR=1003) outsd(1:lnblnk(outsd))
+      WRITE(ifu,'(A)',IOSTAT=IOS,ERR=1003) outsn(1:lnblnk(outsn))
 
-      WRITE(outsn,'(A,6F8.3)',IOSTAT=IOS,ERR=1003)'*spr',ddmheat(2),
+      WRITE(outsn,'(A,6F8.3)',IOSTAT=IOS,ERR=1003)'*spr   ',ddmheat(2),
      &  ddmcool(2),ddmlight(2),ddmfan(2),ddmsmlpw(2),ddmdhw(2)
-      call SDELIM(outsn,outsd,'C',IW)
-      WRITE(ifu,'(A)',IOSTAT=IOS,ERR=1003) outsd(1:lnblnk(outsd))
+      WRITE(ifu,'(A)',IOSTAT=IOS,ERR=1003) outsn(1:lnblnk(outsn))
 
-      WRITE(outsn,'(A,6F8.3)',IOSTAT=IOS,ERR=1003)'*sum',ddmheat(3),
+      WRITE(outsn,'(A,6F8.3)',IOSTAT=IOS,ERR=1003)'*sum   ',ddmheat(3),
      &  ddmcool(3),ddmlight(3),ddmfan(3),ddmsmlpw(3),ddmdhw(3)
-      call SDELIM(outsn,outsd,'C',IW)
-      WRITE(ifu,'(A)',IOSTAT=IOS,ERR=1003) outsd(1:lnblnk(outsd))
+      WRITE(ifu,'(A)',IOSTAT=IOS,ERR=1003) outsn(1:lnblnk(outsn))
 
-      WRITE(outsn,'(A,6F8.3)',IOSTAT=IOS,ERR=1003)'*aut',ddmheat(4),
+      WRITE(outsn,'(A,6F8.3)',IOSTAT=IOS,ERR=1003)'*aut   ',ddmheat(4),
      &  ddmcool(4),ddmlight(4),ddmfan(4),ddmsmlpw(4),ddmdhw(4)
-      call SDELIM(outsn,outsd,'C',IW)
-      WRITE(ifu,'(A)',IOSTAT=IOS,ERR=1003) outsd(1:lnblnk(outsd))
+      WRITE(ifu,'(A)',IOSTAT=IOS,ERR=1003) outsn(1:lnblnk(outsn))
 
-      WRITE(outsn,'(A,6F8.3)',IOSTAT=IOS,ERR=1003)'*win2',ddmheat(5),
+      WRITE(outsn,'(A,6F8.3)',IOSTAT=IOS,ERR=1003)'*win2  ',ddmheat(5),
      &  ddmcool(5),ddmlight(5),ddmfan(5),ddmsmlpw(5),ddmdhw(5)
-      call SDELIM(outsn,outsd,'C',IW)
-      WRITE(ifu,'(A)',IOSTAT=IOS,ERR=1003) outsd(1:lnblnk(outsd))
+      WRITE(ifu,'(A)',IOSTAT=IOS,ERR=1003) outsn(1:lnblnk(outsn))
 
 C Write number of metrics followed for data for each.
-      WRITE(outsn,'(a,i3)',IOSTAT=IOS,ERR=1003)'*metrics',nms
-      call SDELIM(outsn,outsd,'C',IW)
-      WRITE(ifu,'(A)',IOSTAT=IOS,ERR=1003) outsd(1:lnblnk(outsd))
+      WRITE(tokens,'(A,i4)',IOSTAT=IOS,ERR=1003)'*metrics',nms
+      write(comment,'(a,i1,2a)') 'metrics to report'
+      call align_comment(32,tokens,comment,aligned_str)
+      write(ifu,'(a)') aligned_str(1:lnblnk(aligned_str))
       if(nms.gt.0)then
         WRITE(ifu,'(A)',IOSTAT=IOS,ERR=1003)
-     &  '# metric data: metric index, nb zones, 2 miscel , floor area'
+     &  '# metric results miscelaneous number floor scal- weigh- topic'
+        WRITE(ifu,'(A)',IOSTAT=IOS,ERR=1003)
+     &  '# name   index   data  data   zones  area  ing   ting'
         do 28 ijj=1,nms
           lnd=lnblnk(msdoc(ijj))
           lnz=lnblnk(metgroup(ijj))
           lng=lnblnk(metrglbl(ijj))
           if(ijj.le.9)then
-            WRITE(outsn,'(A,i1,4i4,F8.1,2F7.3,4a)',
+            WRITE(outsn,'(A,i1,4i6,F8.1,2F7.3,4a)',
      &       IOSTAT=IOS,ERR=1003)'*metric_',ijj,imetget(ijj),
      &       imetmsc(ijj,1),imetmsc(ijj,2),nzmg(ijj),emgflr(ijj),
-     &       emgsca(ijj),emgwtg(ijj),' ',msdoc(ijj)(1:lnd),' ',
+     &       emgsca(ijj),emgwtg(ijj),',',msdoc(ijj)(1:lnd),',',
      &       metgroup(ijj)(1:lnz)
-            call SDELIM(outsn,outsd,'C',IW)
+C            call SDELIM(outsn,outsd,'C',IW)
             WRITE(ifu,'(4A)',IOSTAT=IOS,ERR=1003)
-     &        outsd(1:lnblnk(outsd)),tab,metrglbl(ijj)(1:lng)
+     &        outsn(1:lnblnk(outsn)),tab,metrglbl(ijj)(1:lng)
           else
-            WRITE(outsn,'(A,i2,4i4,F8.1,2F7.3,4a)',
+            WRITE(outsn,'(A,i2,4i6,F8.1,2F7.3,4a)',
      &       IOSTAT=IOS,ERR=1003)'*metric_',ijj,imetget(ijj),
      &       imetmsc(ijj,1),imetmsc(ijj,2),nzmg(ijj),emgflr(ijj),
-     &       emgsca(ijj),emgwtg(ijj),' ',msdoc(ijj)(1:lnd),' ',
+     &       emgsca(ijj),emgwtg(ijj),',',msdoc(ijj)(1:lnd),',',
      &       metgroup(ijj)(1:lnz)
-            call SDELIM(outsn,outsd,'C',IW)
+C            call SDELIM(outsn,outsd,'C',IW)
             WRITE(ifu,'(4A)',IOSTAT=IOS,ERR=1003)
-     &        outsd(1:lnblnk(outsd)),tab,metrglbl(ijj)(1:lng)
+     &        outsn(1:lnblnk(outsn)),tab,metrglbl(ijj)(1:lng)
           endif
 
 C Copy izmg to single array list and then write via ailist call.
@@ -150,25 +205,27 @@ C Copy izmg to single array list and then write via ailist call.
 
 C Loop through each demand set and write out associated data.
       if(neds.gt.0)then
-        WRITE(ifu,'(2A,i2,a)',IOSTAT=IOS,ERR=1003)'*demand_sets',tab,
-     &    neds,'  # number of energy demand sets'
+        WRITE(tokens,'(A,i4)',IOSTAT=IOS,ERR=1003)'*demand_sets',neds
+        write(comment,'(a,i1,2a)') 'energy demands to report'
+        call align_comment(32,tokens,comment,aligned_str)
+        write(ifu,'(a)') aligned_str(1:lnblnk(aligned_str))
+        WRITE(ifu,'(2a)',IOSTAT=IOS,ERR=1003) '# tag     number',
+     &    ' miscelaneous aggreg floor scal- description'
+        WRITE(ifu,'(2a)',IOSTAT=IOS,ERR=1003) '#         zones ',
+     &    ' data  data   toggle area  ing'
         do 43 ij=1,neds
 
 C Write set of energy (demand/capacity) associated data.
-          WRITE(ifu,'(2a)',IOSTAT=IOS,ERR=1003) '# nb. zones,',
-     &      ' 2 miscel, aggregate_toggle floor area, scaling descrip'
           if(ij.le.9)then
-            WRITE(outsn,'(A,i1,4I4,F8.1,F7.3,2a)',IOSTAT=IOS,ERR=1003)
+            WRITE(outsn,'(A,i1,4I6,F8.1,F7.3,2a)',IOSTAT=IOS,ERR=1003)
      &      '*energy_',ij,nzedg(ij),idgmsc(ij,1),idgmsc(ij,2),iaggr,
-     &      edgflr(ij),edgsca(ij),' ',zedsdoc(ij)(1:lnblnk(zedsdoc(ij)))
-            call SDELIM(outsn,outsd,'C',IW)
-            WRITE(ifu,'(A)',IOSTAT=IOS,ERR=1003)outsd(1:lnblnk(outsd))
+     &      edgflr(ij),edgsca(ij),',',zedsdoc(ij)(1:lnblnk(zedsdoc(ij)))
+            WRITE(ifu,'(A)',IOSTAT=IOS,ERR=1003)outsn(1:lnblnk(outsn))
           else
-            WRITE(outsn,'(A,i2,4I4,F8.1,F7.3,2a)',IOSTAT=IOS,ERR=1003)
+            WRITE(outsn,'(A,i2,4I6,F8.1,F7.3,2a)',IOSTAT=IOS,ERR=1003)
      &      '*energy_',ij,nzedg(ij),idgmsc(ij,1),idgmsc(ij,2),iaggr,
-     &      edgflr(ij),edgsca(ij),' ',zedsdoc(ij)(1:lnblnk(zedsdoc(ij)))
-            call SDELIM(outsn,outsd,'C',IW)
-            WRITE(ifu,'(A)',IOSTAT=IOS,ERR=1003)outsd(1:lnblnk(outsd))
+     &      edgflr(ij),edgsca(ij),',',zedsdoc(ij)(1:lnblnk(zedsdoc(ij)))
+            WRITE(ifu,'(A)',IOSTAT=IOS,ERR=1003)outsn(1:lnblnk(outsn))
           endif
 
 C Copy izedg into list and the write out via ailist call.
@@ -190,11 +247,12 @@ C Copy izedg into list and the write out via ailist call.
 
 C Write nonspecific demands data.
       WRITE(ifu,'(A)',IOSTAT=IOS,ERR=1003)
-     &'# non-specific demands: occup/light/sm pwr/fans/pumps/lifts/dhw'
-      WRITE(outsn,'(A,7I4)',IOSTAT=IOS,ERR=1003)'*dmds',idmdinc(1),
+     &'# non-specific demands'
+      WRITE(ifu,'(A)',IOSTAT=IOS,ERR=1003)
+     &'# tag occup/light/sm pwr/fans/pumps/lifts/dhw'
+      WRITE(outsn,'(A,7I6)',IOSTAT=IOS,ERR=1003)'*dmds',idmdinc(1),
      & idmdinc(2),idmdinc(3),idmdinc(4),idmdinc(5),idmdinc(6),idmdinc(7)
-      call SDELIM(outsn,outsd,'C',IW)
-      WRITE(ifu,'(A)',IOSTAT=IOS,ERR=1003)outsd(1:lnblnk(outsd))
+      WRITE(ifu,'(A)',IOSTAT=IOS,ERR=1003)outsn(1:lnblnk(outsn))
 
 C If writing to external file use a different syntax and free the file.
 C If writing to cfg file use *end_ipv and do not close file.
@@ -293,7 +351,6 @@ C Energy demand sets.
         ipvsimu=' '
         lr=lnblnk(cfgroot)
         write(ipvtitl,'(a)') modeltitle(1:40)
-        write(ipvvers,'(2a)') 'Version ',cfgroot(1:lr)
         write(ipvsynop,'(2a)') ':The ',cfgroot(1:lr)
 
 C Metric sets.
@@ -339,7 +396,6 @@ C on the parameter act (3 char) ='ipv' or ='cfg'.
 
       character file*72,word*20
       character OUTSTR*124,LOUTSTR*248
-      character dstmp*24
       character act*3   ! indicate which file destination
       integer list
       dimension list(MCOM)  ! zone lists currently set to MCOM
@@ -389,52 +445,28 @@ C Clear (blank) IPV commons before reading.
       iset=0
 
 C Scan lines.
-  43  CALL STRIPC(ifu,OUTSTR,99,ND,1,'IPV data',IER)
+  43  CALL LSTRIPC(ifu,LOUTSTR,99,ND,1,'IPV data',IER)
       K=0
-      CALL EGETW(OUTSTR,K,WORD,'W','tag',IFLAG)
+      CALL EGETW(LOUTSTR,K,WORD,'W','tag',IFLAG)
       if(WORD(1:6).eq.'*title')then
-        CALL EGETRM(OUTSTR,K,ipvtitl,'W','title string',IER)
+        CALL EGETRM(LOUTSTR,K,ipvtitl,'W','title string',IER)
       elseif(WORD(1:8).eq.'*version')then
-        CALL EGETRM(OUTSTR,K,ipvvers,'W','version string',IER)
+        continue   ! optional ignore if tag found
       elseif(WORD(1:5).eq.'*date')then
-
-C If *date found get the rest of the line and then check to
-C see if the next (long) line starts with *synop or *syn1
-        CALL EGETRM(OUTSTR,K,dstmp,'W','date string',IER)
-        CALL LSTRIPC(ifu,LOUTSTR,99,ND,1,'synopsis',IER)
-        K=0
-        CALL EGETW(LOUTSTR,K,WORD,'W','tag',IFLAG)
-        if(WORD(1:5).eq.'*syn1')then
-          write(ipvsynop,'(a)') LOUTSTR(7:lnblnk(LOUTSTR))
-
-C Debug.
-C          write(6,*) ipvsynop
-
-          goto 43
-        elseif(WORD(1:6).eq.'*synop')then
-          write(ipvsynop,'(a)') LOUTSTR(8:lnblnk(LOUTSTR))
-          goto 43
-        endif
-      elseif(WORD(1:5).eq.'*syn2')then
-
-C Do not bother to read remainder of earlier multi-line synopsis.
-        continue
-      elseif(WORD(1:5).eq.'*syn3')then
-        continue
-      elseif(WORD(1:5).eq.'*syn4')then
-        continue
-      elseif(WORD(1:5).eq.'*syn5')then
-        continue
+        continue   ! optional ignore if tag found
+      elseif(WORD(1:6).eq.'*synop')then
+        write(ipvsynop,'(a)') LOUTSTR(8:lnblnk(LOUTSTR))
+        goto 43
       elseif(WORD(1:7).eq.'*images')then
-        CALL EGETWI(OUTSTR,K,nipvimg,0,4,'W','no of images',IER)
+        CALL EGETWI(LOUTSTR,K,nipvimg,0,4,'W','no of images',IER)
         if(nipvimg.gt.0)then
           do 42 i=1,nipvimg
-            CALL STRIPC(ifu,OUTSTR,0,ND,1,'image file',IER)
-            lipvimg(i)=OUTSTR(1:72)
+            CALL LSTRIPC(ifu,LOUTSTR,0,ND,1,'image file',IER)
+            lipvimg(i)=LOUTSTR(1:72)
   42      continue
         endif
       elseif(WORD(1:12).eq.'*simulations')then
-        CALL EGETWI(OUTSTR,K,nipvassmt,1,5,'W','simulations',IER)
+        CALL EGETWI(LOUTSTR,K,nipvassmt,1,5,'W','simulations',IER)
         iper=0
         if(ipvsimu.eq.'------')then
 
@@ -455,10 +487,10 @@ C at its value by looking at the number of assessments.
 C If the initial portion of ipvadesc is the same as the model root
 C name then discard the initial portion.
         iper=iper+1
-        CALL EGETWI(OUTSTR,K,ipvastjd(iper),1,365,'W','assmt st',IER)
-        CALL EGETWI(OUTSTR,K,ipvafnjd(iper),1,365,'W','assmt fn',IER)
+        CALL EGETWI(LOUTSTR,K,ipvastjd(iper),1,365,'W','assmt st',IER)
+        CALL EGETWI(LOUTSTR,K,ipvafnjd(iper),1,365,'W','assmt fn',IER)
         tipvadesc=' '
-        CALL EGETRM(OUTSTR,K,tipvadesc,'W','assmt descr',IER)
+        CALL EGETRM(LOUTSTR,K,tipvadesc,'W','assmt descr',IER)
         lncf=lnblnk(cfgroot)
         lnipva=lnblnk(tipvadesc)
         if(tipvadesc(1:lncf).eq.cfgroot(1:lncf))then
@@ -468,75 +500,75 @@ C name then discard the initial portion.
         endif
 
       elseif(WORD(1:13).eq.'*display_days')then
-        CALL EGETWI(OUTSTR,K,nipvdispjd,1,10,'W','displays',IER)
+        CALL EGETWI(LOUTSTR,K,nipvdispjd,1,10,'W','displays',IER)
         do 343 ij=1,nipvdispjd
-          CALL EGETWI(OUTSTR,K,ipvdispjd(ij),1,365,'W','display',IER)
+          CALL EGETWI(LOUTSTR,K,ipvdispjd(ij),1,365,'W','display',IER)
   343   continue
 
       elseif(WORD(1:5).eq.'*win1')then
-        CALL EGETWR(OUTSTR,K,ddmheat(1),0.,100.,'W','win h dd',IER)
-        CALL EGETWR(OUTSTR,K,ddmcool(1),0.,100.,'W','win c dd',IER)
-        CALL EGETWR(OUTSTR,K,ddmlight(1),0.,100.,'W','win lt dd',IER)
-        CALL EGETWR(OUTSTR,K,ddmfan(1),0.,100.,'W','win fn dd',IER)
-        CALL EGETWR(OUTSTR,K,ddmsmlpw(1),0.,100.,'W','win sp dd',IER)
-        CALL EGETWR(OUTSTR,K,ddmdhw(1),0.,100.,'W','win hw dd',IER)
+        CALL EGETWR(LOUTSTR,K,ddmheat(1),0.,100.,'W','win h dd',IER)
+        CALL EGETWR(LOUTSTR,K,ddmcool(1),0.,100.,'W','win c dd',IER)
+        CALL EGETWR(LOUTSTR,K,ddmlight(1),0.,100.,'W','win lt dd',IER)
+        CALL EGETWR(LOUTSTR,K,ddmfan(1),0.,100.,'W','win fn dd',IER)
+        CALL EGETWR(LOUTSTR,K,ddmsmlpw(1),0.,100.,'W','win sp dd',IER)
+        CALL EGETWR(LOUTSTR,K,ddmdhw(1),0.,100.,'W','win hw dd',IER)
       elseif(WORD(1:4).eq.'*trn'.or.WORD(1:4).eq.'*spr')then
-        CALL EGETWR(OUTSTR,K,ddmheat(2),0.,100.,'W','spr h dd',IER)
-        CALL EGETWR(OUTSTR,K,ddmcool(2),0.,100.,'W','spr c dd',IER)
-        CALL EGETWR(OUTSTR,K,ddmlight(2),0.,100.,'W','spr lt dd',IER)
-        CALL EGETWR(OUTSTR,K,ddmfan(2),0.,100.,'W','spr fn dd',IER)
-        CALL EGETWR(OUTSTR,K,ddmsmlpw(2),0.,100.,'W','spr sp dd',IER)
-        CALL EGETWR(OUTSTR,K,ddmdhw(2),0.,100.,'W','spr hw dd',IER)
+        CALL EGETWR(LOUTSTR,K,ddmheat(2),0.,100.,'W','spr h dd',IER)
+        CALL EGETWR(LOUTSTR,K,ddmcool(2),0.,100.,'W','spr c dd',IER)
+        CALL EGETWR(LOUTSTR,K,ddmlight(2),0.,100.,'W','spr lt dd',IER)
+        CALL EGETWR(LOUTSTR,K,ddmfan(2),0.,100.,'W','spr fn dd',IER)
+        CALL EGETWR(LOUTSTR,K,ddmsmlpw(2),0.,100.,'W','spr sp dd',IER)
+        CALL EGETWR(LOUTSTR,K,ddmdhw(2),0.,100.,'W','spr hw dd',IER)
       elseif(WORD(1:4).eq.'*sum')then
-        CALL EGETWR(OUTSTR,K,ddmheat(3),0.,100.,'W','sum h dd',IER)
-        CALL EGETWR(OUTSTR,K,ddmcool(3),0.,100.,'W','sum c dd',IER)
-        CALL EGETWR(OUTSTR,K,ddmlight(3),0.,100.,'W','sum lt dd',IER)
-        CALL EGETWR(OUTSTR,K,ddmfan(3),0.,100.,'W','sum fn dd',IER)
-        CALL EGETWR(OUTSTR,K,ddmsmlpw(3),0.,100.,'W','sum sp dd',IER)
-        CALL EGETWR(OUTSTR,K,ddmdhw(3),0.,100.,'W','sum hw dd',IER)
+        CALL EGETWR(LOUTSTR,K,ddmheat(3),0.,100.,'W','sum h dd',IER)
+        CALL EGETWR(LOUTSTR,K,ddmcool(3),0.,100.,'W','sum c dd',IER)
+        CALL EGETWR(LOUTSTR,K,ddmlight(3),0.,100.,'W','sum lt dd',IER)
+        CALL EGETWR(LOUTSTR,K,ddmfan(3),0.,100.,'W','sum fn dd',IER)
+        CALL EGETWR(LOUTSTR,K,ddmsmlpw(3),0.,100.,'W','sum sp dd',IER)
+        CALL EGETWR(LOUTSTR,K,ddmdhw(3),0.,100.,'W','sum hw dd',IER)
       elseif(WORD(1:4).eq.'*aut')then
-        CALL EGETWR(OUTSTR,K,ddmheat(4),0.,100.,'W','aut h dd',IER)
-        CALL EGETWR(OUTSTR,K,ddmcool(4),0.,100.,'W','aut c dd',IER)
-        CALL EGETWR(OUTSTR,K,ddmlight(4),0.,100.,'W','aut lt dd',IER)
-        CALL EGETWR(OUTSTR,K,ddmfan(4),0.,100.,'W','aut fn dd',IER)
-        CALL EGETWR(OUTSTR,K,ddmsmlpw(4),0.,100.,'W','aut sp dd',IER)
-        CALL EGETWR(OUTSTR,K,ddmdhw(4),0.,100.,'W','aut hw dd',IER)
+        CALL EGETWR(LOUTSTR,K,ddmheat(4),0.,100.,'W','aut h dd',IER)
+        CALL EGETWR(LOUTSTR,K,ddmcool(4),0.,100.,'W','aut c dd',IER)
+        CALL EGETWR(LOUTSTR,K,ddmlight(4),0.,100.,'W','aut lt dd',IER)
+        CALL EGETWR(LOUTSTR,K,ddmfan(4),0.,100.,'W','aut fn dd',IER)
+        CALL EGETWR(LOUTSTR,K,ddmsmlpw(4),0.,100.,'W','aut sp dd',IER)
+        CALL EGETWR(LOUTSTR,K,ddmdhw(4),0.,100.,'W','aut hw dd',IER)
       elseif(WORD(1:5).eq.'*win2')then
-        CALL EGETWR(OUTSTR,K,ddmheat(5),0.,100.,'W','win2 h dd',IER)
-        CALL EGETWR(OUTSTR,K,ddmcool(5),0.,100.,'W','win2 c dd',IER)
-        CALL EGETWR(OUTSTR,K,ddmlight(5),0.,100.,'W','win2 lt dd',IER)
-        CALL EGETWR(OUTSTR,K,ddmfan(5),0.,100.,'W','win2 fn dd',IER)
-        CALL EGETWR(OUTSTR,K,ddmsmlpw(5),0.,100.,'W','win2 sp dd',IER)
-        CALL EGETWR(OUTSTR,K,ddmdhw(5),0.,100.,'W','win2 hw dd',IER)
+        CALL EGETWR(LOUTSTR,K,ddmheat(5),0.,100.,'W','win2 h dd',IER)
+        CALL EGETWR(LOUTSTR,K,ddmcool(5),0.,100.,'W','win2 c dd',IER)
+        CALL EGETWR(LOUTSTR,K,ddmlight(5),0.,100.,'W','win2 lt dd',IER)
+        CALL EGETWR(LOUTSTR,K,ddmfan(5),0.,100.,'W','win2 fn dd',IER)
+        CALL EGETWR(LOUTSTR,K,ddmsmlpw(5),0.,100.,'W','win2 sp dd',IER)
+        CALL EGETWR(LOUTSTR,K,ddmdhw(5),0.,100.,'W','win2 hw dd',IER)
 
 C One of the sets of performance metrics and associated data.
 C First read out how many metrics, then for each metric write
 C out its zones, floor area, weighting and set description.
 
       elseif(WORD(1:8).eq.'*metrics')then
-        CALL EGETWI(OUTSTR,K,nms,0,12,'W','nb of metric sets',IER)
+        CALL EGETWI(LOUTSTR,K,nms,0,12,'W','nb of metric sets',IER)
         imset=0
       elseif(WORD(1:8).eq.'*metric_')then
         imset=imset+1
-        CALL EGETWI(OUTSTR,K,imetget(imset),0,99,'W','metric iget',IER)
-        CALL EGETWI(OUTSTR,K,imetmsc(imset,1),0,32,'W','metric msc 1',
+        CALL EGETWI(LOUTSTR,K,imetget(imset),0,99,'W','metric iget',IER)
+        CALL EGETWI(LOUTSTR,K,imetmsc(imset,1),0,32,'W','metric msc 1',
      &    IER)
-        CALL EGETWI(OUTSTR,K,imetmsc(imset,2),0,32,'W','metric msc 2',
+        CALL EGETWI(LOUTSTR,K,imetmsc(imset,2),0,32,'W','metric msc 2',
      &    IER)
-        CALL EGETWI(OUTSTR,K,nzmg(imset),0,MCOM,'W','nb of zones',IER)
-        CALL EGETWR(OUTSTR,K,emgflr(imset),1.,9999.,'W','metric flr',
+        CALL EGETWI(LOUTSTR,K,nzmg(imset),0,MCOM,'W','nb of zones',IER)
+        CALL EGETWR(LOUTSTR,K,emgflr(imset),1.,9999.,'W','metric flr',
      &    IER)
-        CALL EGETWR(OUTSTR,K,emgsca(imset),1.,9999.,'W','metric scale',
-     &    IER)
-        CALL EGETWR(OUTSTR,K,emgwtg(imset),0.,99.,'W','metric wtg',IER)
+        CALL EGETWR(LOUTSTR,K,emgsca(imset),1.,9999.,'W',
+     &    'metric scale',IER)
+        CALL EGETWR(LOUTSTR,K,emgwtg(imset),0.,99.,'W','metric wtg',IER)
 
 C Read the user defined set name and the short metric label. If version
 C 4 also read in the group name for the zones associated with the metric.
-        CALL EGETP(OUTSTR,K,msdoc(imset),'W','metric set descr',IER)
+        CALL EGETP(LOUTSTR,K,msdoc(imset),'W','metric set descr',IER)
         if(ipvversion.eq.4)then
-          CALL EGETP(OUTSTR,K,metgroup(imset),'W','metric group',IER)
+          CALL EGETP(LOUTSTR,K,metgroup(imset),'W','metric group',IER)
         endif
-        CALL EGETP(OUTSTR,K,metrglbl(imset),'W','metric 20 descr',IER)
+        CALL EGETP(LOUTSTR,K,metrglbl(imset),'W','metric 20 descr',IER)
 
 C Read in the associated zones (on multiple lines is needed). Be sure
 C to update warning range if model complexity changes in building.h
@@ -550,17 +582,17 @@ C to update warning range if model complexity changes in building.h
 
 C One of the sets of energy (demand/capacity) associated data.
       elseif(WORD(1:12).eq.'*demand_sets')then
-        CALL EGETWI(OUTSTR,K,neds,0,MIPVM,'W','no of demand sets',IER)
+        CALL EGETWI(LOUTSTR,K,neds,0,MIPVM,'W','no of demand sets',IER)
         iset=0
       elseif(WORD(1:8).eq.'*energy_')then
         iset=iset+1
-        CALL EGETWI(OUTSTR,K,nzedg(iset),0,MCOM,'W','nb of zones',IER)
-        CALL EGETWI(OUTSTR,K,idgmsc(iset,1),0,32,'W','demand msc',IER)
-        CALL EGETWI(OUTSTR,K,idgmsc(iset,2),0,32,'W','demand msc',IER)
-        CALL EGETWI(OUTSTR,K,iaggr,0,1,'W','aggregate toggle',IER)
-        CALL EGETWR(OUTSTR,K,edgflr(iset),1.,9999.,'W','enrg flr',IER)
-        CALL EGETWR(OUTSTR,K,edgsca(iset),0.,99.,'W','enrg wtg',IER)
-        CALL EGETRM(OUTSTR,K,zedsdoc(iset),'W','enrg descr',IER)
+        CALL EGETWI(LOUTSTR,K,nzedg(iset),0,MCOM,'W','nb of zones',IER)
+        CALL EGETWI(LOUTSTR,K,idgmsc(iset,1),0,32,'W','demand msc',IER)
+        CALL EGETWI(LOUTSTR,K,idgmsc(iset,2),0,32,'W','demand msc',IER)
+        CALL EGETWI(LOUTSTR,K,iaggr,0,1,'W','aggregate toggle',IER)
+        CALL EGETWR(LOUTSTR,K,edgflr(iset),1.,9999.,'W','enrg flr',IER)
+        CALL EGETWR(LOUTSTR,K,edgsca(iset),0.,99.,'W','enrg wtg',IER)
+        CALL EGETRM(LOUTSTR,K,zedsdoc(iset),'W','enrg descr',IER)
 
 C Fill izedg array via call to egetwia returning list.
         if(nzedg(iset).gt.0)then
@@ -573,13 +605,13 @@ C Fill izedg array via call to egetwia returning list.
 
 C Non-specific demands toggles for inclusion.
       elseif(WORD(1:5).eq.'*dmds')then
-        CALL EGETWI(OUTSTR,K,idmdinc(1),0,1,'W','occup dmd',IER)
-        CALL EGETWI(OUTSTR,K,idmdinc(2),0,1,'W','light dmd',IER)
-        CALL EGETWI(OUTSTR,K,idmdinc(3),0,1,'W','smpwr dmd',IER)
-        CALL EGETWI(OUTSTR,K,idmdinc(4),0,1,'W','fans dmd',IER)
-        CALL EGETWI(OUTSTR,K,idmdinc(5),0,1,'W','pumps dmd',IER)
-        CALL EGETWI(OUTSTR,K,idmdinc(6),0,1,'W','lifts dmd',IER)
-        CALL EGETWI(OUTSTR,K,idmdinc(7),0,1,'W','DHW dmd',IER)
+        CALL EGETWI(LOUTSTR,K,idmdinc(1),0,1,'W','occup dmd',IER)
+        CALL EGETWI(LOUTSTR,K,idmdinc(2),0,1,'W','light dmd',IER)
+        CALL EGETWI(LOUTSTR,K,idmdinc(3),0,1,'W','smpwr dmd',IER)
+        CALL EGETWI(LOUTSTR,K,idmdinc(4),0,1,'W','fans dmd',IER)
+        CALL EGETWI(LOUTSTR,K,idmdinc(5),0,1,'W','pumps dmd',IER)
+        CALL EGETWI(LOUTSTR,K,idmdinc(6),0,1,'W','lifts dmd',IER)
+        CALL EGETWI(LOUTSTR,K,idmdinc(7),0,1,'W','DHW dmd',IER)
       elseif(WORD(1:8).eq.'*end_ipv')then
         return  ! for ipv data within cfg file
       elseif(WORD(1:5).eq.'*end ')then
@@ -627,16 +659,12 @@ C See ipvdata.h and ripvdat for IPV common block information.
         if(markdown)then
           write(outs,'(2A)')     'Title ',ipvtitl
           call edisp2tr(itru,outs)
-          write(outs,'(2A)')     'Version ',ipvvers
-          call edisp2tr(itru,outs)
           call edisp(itru,'synopsis ')
           call edisp248(itru,ipvsynop,120)
           write(outs,'(A,I3)')   'Images  ',nipvimg
           call edisp2tr(itru,outs)
         else
           write(outs,'(2A)')     ' Title :',ipvtitl
-          call edisp(itru,outs)
-          write(outs,'(2A)')     'Version   : ',ipvvers
           call edisp(itru,outs)
           call edisp(itru,'synopsis:')
           call edisp248(itru,ipvsynop,80)

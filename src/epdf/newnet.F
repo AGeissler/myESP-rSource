@@ -315,9 +315,22 @@ C Manual linkage: read the flow network.
           IUF=IFIL+1
           CALL EFOPSEQ(IUF,LAPROB,1,IER)
 
-C << Note: should check to see if LAPROB is a network flow file or
-C << a graphic network file (as is done in esystem.F) 
-          CALL EMFREAD(IUF,IER)
+C Flow network file is text-based.
+          if(iairn.eq.1)then
+            CALL EMFREAD(IUF,IER)
+
+C Flow network file is graphical.
+          elseif(iairn.eq.2)then
+            CALL NETREAD(IUF,'S',IER)
+            CALL NETTOFLW(ier)
+
+C Flow network file is 3D.
+          elseif(iairn.eq.3)then
+            CALL MFCDAT
+            CALL EMF3DREAD(IUF,'R',IER)
+            CALL ERPFREE(IUF,ISTAT)
+          endif
+
           IF(IER.NE.0)THEN
             CALL EDISP(IUOUT,' ')
             CALL EDISP(IUOUT,'Problem reading fluid flow file!')
@@ -1206,7 +1219,7 @@ C Selects parameters of component (ipc) to edit.
       common /datdsc/ mscdsc(madata), cvrdsc(mconvr)
       common/pcnam/pcname(mpcom)
 
-      character mscdsc*68, cvrdsc*68,pcname*15,txt*28
+      character mscdsc*68, cvrdsc*68,pcname*15,txt*31
       CHARACTER parlst(madata)*70
       dimension ival(mpcom)
   

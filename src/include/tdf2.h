@@ -35,7 +35,7 @@ C Maximum number of timesteps in an hour.
       PARAMETER (MHTS=60)
       
 C Array size for maximum items available of temporal definition
-      PARAMETER (MTI=34)
+      PARAMETER (MTI=35)
       
 C Array size for maximum items of plant components for tdf purposes
       PARAMETER (MPCOMTDF=200) !initial attempt to take this from plant.h failed, so hardwiring it
@@ -148,6 +148,7 @@ C is the 6th item in the temporal file.
       integer IGRNDRFL  ! if non-zero, ground reflectance is provided at each time step
       integer ISUPPLWT  ! if non-zero, supply water temperature (PCL03) is provided at each time step
       integer IPUMPVFR  ! if non-zero, the volumetric flow rate (l/h in tdf converted to m3/s in PCL08) is provided at each time step
+      integer IPRCSIG   ! if non-zero, price signal per timestep available
       
       COMMON/TDFFLG2/IALLCLM,ICASUAL(MCOM),IZIVENT(MCOM),IRAIRVL(MCOM),
      &       ISETPTT(MCOM),ICTLSTA(MCOM),ISKYLUX,IDBTEXT,IWINDVL,
@@ -157,4 +158,4 @@ C is the 6th item in the temporal file.
      &       IDBTZNOBS(MCOM),ISURTOBS(MCOM,MS),IMFNTDFP(MNOD),IMFNTDFF,
      &       IPERVSEN,IStorageHeater(MCOM),IELECPWR(MCOM),ICFCCTL(MCOM),
      &       IRAININD,IZNRHOBS(MCOM),IZNHTOBS(MCOM),IZNCLOBS(MCOM),
-     &       IGRNDRFL,ISUPPLWT(MPCOMTDF),IPUMPVFR(MPCOMTDF)
+     &       IGRNDRFL,ISUPPLWT(MPCOMTDF),IPUMPVFR(MPCOMTDF),IPRCSIG

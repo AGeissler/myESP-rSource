@@ -980,6 +980,8 @@ C HeightCo (Real) : Height [m] of the composite, for LCA calculation.
       LOGICAL CFGOK,MLDBOK,MATDBOK,CTLOK,OPTKOK,CFCDBOK
 
       DIMENSION IVALZ(MCOM)
+      DIMENSION IVAL(MMLC+1),COMPS(MMLC+1)
+      CHARACTER COMPS*48
 
       helpinsub='ecoesp'  ! set for subroutine
 
@@ -1009,13 +1011,19 @@ C Otherwise select the zones from a list of zone names.
  7    helptopic='eco_select_from_list'
       call gethelptext(helpinsub,helptopic,nbhelp)
 
-C <<Jon : allowing *Select all surface allow only one pik for the moment (Max.: NMLC)
-
-C << convert to use mlcname and mlctype...>>
-
+      WRITE(COMPS(1),'(A)')'UNKNOWN (at this time) '
+      DO 66 IWW=1,NMLC
+        WRITE(COMPS(IWW+1),'(3A)')mlcname(IWW)(1:lnmlcname(iww)),' ',
+     &    mlctype(IWW)
+   66 CONTINUE
       INPIC=NMLC
-      CALL EPICKS(INPIC,IVALZ,' ',' Which composites to include:',
-     &  48,NMLC,Desc,' Composite(s) list',IDerr,nbhelp)
+      IX=1
+      CALL EPICKS(INPIC,IVAL,' ','Which composites to include:',
+     &  48,NMLC+1,COMPS,'Construction composites',IER,nbhelp)
+
+C      INPIC=NMLC
+C      CALL EPICKS(INPIC,IVALZ,' ',' Which composites to include:',
+C     &  48,NMLC,Desc,' Composite(s) list',IDerr,nbhelp)
 
 C Check for errors (if => exit sub).
       if (IDerr.ne.0) RETURN
@@ -1035,7 +1043,7 @@ C <<Jon : Icomfoc =? NComPik>>
 
       IComfoc = NComPik
       do 40 I=1,NComPik
-        LstComp(I)=IVALZ(I)
+        LstComp(I)=IVAL(I)
  40   continue
 
 C Two composites cannot have the same number.

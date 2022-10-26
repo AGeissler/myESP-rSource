@@ -484,7 +484,7 @@ C Technical domains associated with the model.
           iside=1; isize=1; ifont=1
           call viewtext(etext,iside,isize,ifont)
         endif
-        
+
 C Model context.
       ELSEIF(INO.EQ.3)THEN
         IF(CFGOK)THEN
@@ -493,7 +493,7 @@ C Model context.
           CALL USRMSG('Please define your model first.',' ','W')
         ENDIF
         goto 3
-        
+
 C Go to zones definition menu.
       elseif(INO.EQ.5)THEN
         call EDZCOMP(ITRC,ITRU,IER)
@@ -872,9 +872,7 @@ C or bi-directional windows or doors at the outside.
                     CYCLE
                   endif
                   if(SUSE(iz,is,1)(1:4).eq.'DOOR'.or.
-     &               SUSE(iz,is,1)(1:6).eq.'P-DOOR'.or.
-     &               SUSE(iz,is,1)(1:6).eq.'H-DOOR'.or.
-     &               SUSE(iz,is,1)(1:6).eq.'V-DOOR')then      ! For DOOR variants.
+     &               SUSE(iz,is,1)(1:6).eq.'P-DOOR')then      ! For DOOR variants.
                      if(SUSE(iz,is,2)(1:4).eq.'OPEN')then
                        isopen=.true.
                      elseif(SUSE(iz,is,2)(1:5).eq.'BIDIR'.or.
@@ -1388,31 +1386,31 @@ C network are known.
           call edisp(iuout,'Updating configuration flow links...done.')
           call edisp(iuout,' ')
         endif
-        
+
 C Electrical network description.
       ELSEIF(INO.EQ.10)THEN
         call tstamp('>','PRJ: entering electrical network')
         call ELECNET
-        
+
 C Contaminant model description.
       ELSEIF(INO.EQ.11)THEN
         call tstamp('>','PRJ: entering contaminant model')
         call CTPROB
-        
+
 C Zone control description.
       ELSEIF(INO.EQ.13)THEN
         call tstamp('>','PRJ: entering zone control')
         icfoc=0
         CALL CONTRL(ITRC,ITRU,icfoc,IER)
         CTLOK=.TRUE.
-        
+
 C Plant control description.
       ELSEIF(INO.EQ.14)THEN
         call tstamp('>','PRJ: entering plant control')
         icfoc=1
         CALL CONTRL(ITRC,ITRU,icfoc,IER)
         CTLOK=.TRUE.
-        
+
 C Flow control description.
       ELSEIF(INO.EQ.15)THEN
         call tstamp('>','PRJ: entering flow control')
@@ -1426,14 +1424,14 @@ C Optical control description.
         icfoc=5
         CALL CONTRL(ITRC,ITRU,icfoc,IER)
         CTLOK=.TRUE.
-        
+
 C Global control description.
       ELSEIF(INO.EQ.17)THEN
         call tstamp('>','PRJ: entering global control')
         icfoc=3
         CALL CONTRL(ITRC,ITRU,icfoc,IER)
         CTLOK=.TRUE.
-        
+
 C Complex fenestration control description.
       ELSEIF(INO.EQ.18)THEN
         call tstamp('>','PRJ: entering complex fen. control')
@@ -1475,7 +1473,7 @@ C Select visualisation option.
           CALL USRMSG(' ','Please define your model first!','W')
         ENDIF
         goto 3
-        
+
 C Call simulation controller.
       ELSEIF(INO.EQ.24)THEN
         call tstamp('>','PRJ: entering simulation setup')

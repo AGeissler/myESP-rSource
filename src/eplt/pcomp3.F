@@ -1043,14 +1043,16 @@ C Convert to kg/hr.
             xin(9)=out(9)
             xin(10)=bdata(ipcomp,17)
 
-            do 707 ii=1,20
-  707          out(ii)=sav1(ii)
+            do ii=1,20
+              out(ii)=sav1(ii)
+            enddo
             info(7)=info1
 
 C Call type1 to calculate heat gain.
             call type1(ptimep,xin,out,t,dt,par,info)
-            do 708 ii=1,20
-  708          sav1(ii)=out(ii)
+            do ii=1,20
+              sav1(ii)=out(ii)
+            enddo
 
 C Convert Q to Watts.
             Q=out(3)*1000./3600.
@@ -2328,8 +2330,9 @@ C nodes 6 to 10
 C Store variables future values
          PCTF(ICON1)=CONVAR(ICON1,1)
          PCRF(ICON1)=C1
-         do 24 ip=6,inodes
-   24      PUAF(INOD(ip))=UA
+         do ip=6,inodes
+           PUAF(INOD(ip))=UA
+         enddo
 
 C 1st phase mass (ie. water) balance coefficients
       ELSE IF(ISTATS.EQ.2) THEN
@@ -2337,26 +2340,27 @@ C 1st phase mass (ie. water) balance coefficients
 C Calculate self coupling coefficients for nodes 1 to 5.
          COUT(1)=1.
          COUT(2)=0.
-         DO 31 IP=2,(inodes-5)
+         DO IP=2,(inodes-5)
             cout(3*ip-3)=1.
             COUT(3*IP-2)=-1.
             COUT(3*IP-1)=0.
-   31    CONTINUE
+         ENDDO
 
 C Calculate self coupling coefficients for nodes 6 to 10.
 C 'ioffse' ensures that we are at the right coefficient.
          ioffst=5
-         DO 32 IP=6,inodes
+         DO IP=6,inodes
             COUT(2*IP-2+ioffst)=0.
             COUT(2*IP-1+ioffst)=1.
-   32    CONTINUE
+         ENDDO
 
 C calculate cross coupling coefficient.
          cout(25)=-pcondr(icon1)
 
 C Now establish RHS vector coefficients
-         do 35 ip=1,inodes
-   35       cout(25+ip)=0.0
+         do ip=1,inodes
+           cout(25+ip)=0.0
+         enddo
 
 C 2nd phase mass (ie. "vapour") balance coefficients
       ELSE IF(ISTATS.EQ.3) THEN
@@ -2364,26 +2368,27 @@ C 2nd phase mass (ie. "vapour") balance coefficients
 C Calculate self coupling coefficients for nodes 1 to 5.
          cout(1)=1.
          cout(2)=0.
-         DO 40 IP=2,(inodes-5)
+         DO IP=2,(inodes-5)
             cout(3*ip-3)=1.
             cout(3*ip-2)=-1.
             cout(3*ip-1)=0.
-   40    CONTINUE
+         ENDDO
 
 C Calculate self coupling coefficients for nodes 6 to 10.
 C 'ioffse' ensures that we are at the right coefficient.
          ioffst=5
-         DO 42 IP=6,inodes
+         DO IP=6,inodes
             COUT(2*IP-2+ioffst)=0.
             COUT(2*IP-1+ioffst)=1.
-   42    CONTINUE
+         ENDDO
 
 C calculate cross coupling coefficient.
          cout(25)=-pcondr(icon1)
 
 C Now establish RHS vector coefficients
-         do 45 ip=1,inodes
-   45       cout(25+ip)=0.0
+         do ip=1,inodes
+           cout(25+ip)=0.0
+         enddo
       END IF
 
 C Trace output

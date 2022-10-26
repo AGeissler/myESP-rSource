@@ -55,6 +55,7 @@ C      BCL31:  heat transfer controller from given node of one zone
 C              to air point node of another zone
 C      BCL32:  multi-criteria controller to model pervasive control
 C      BCL33:  Occupancy-linked basic control
+C      BCL34:  Optimum predictive control
 C      BCL99:  constructional thermo-physical property variation.
 C      MZRCPL: mixed temperature iteration.
 C      ZRHCTL: relative humidity controlling routine.
@@ -72,14 +73,10 @@ C The main building control function executive.
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
 
       COMMON/PSTSOL/ICF,IDTYP,IPER,BB1,BB2,BB3,IICOMP,TNP,QFUT,TFUT
-      common/dllerr/dllsubr,dllmesg
 
-      character dllsubr*12,dllmesg*124,outs*124
-      logical bNested,CLOSERH,dll
+      character outs*124
+      logical bNested,CLOSERH
       integer SENCON,ACTCON
-
-C Check if running in dll mode.
-      call isadll(dll)
     
 C 28 control functions active at present + thermo-physical
 C property substitution (BCL99).  If control function index
@@ -288,24 +285,21 @@ C file and provides control based on the state of these inputs
 C CL33 Basic control, but only active when zone is occupied.
       case (33)
         call BCL33(IER)
+        
+C CL34 Smart predictive control.
+      case (34)
+            call BCL34(IER)
       
 C New control laws should be inserted here.
       case default 
         write(outs,'(a,i3,a)')' Zone control function',IFUNC,
      &    ' is not implemented in this release.'
         call edisp(iuout,outs)
-        if(dll)then
-          dllsubr='MZBCTL'
-          dllmesg=outs
-          ier=2
-          return
-        else
-          close(ieout)
-          CALL ERPFREE(ieout,ISTAT)
-          call epwait
-          call epagend
-          STOP
-        endif
+        close(ieout)
+        CALL ERPFREE(ieout,ISTAT)
+        call epwait
+        call epagend
+        STOP
       
       end select CtlLaw 
 
@@ -331,20 +325,12 @@ C Set ICALL to zero to signal nested control property substitution.
           write(outs,'(2a)')' Error: Nested control functions must',
      &      ' refer to control functions -99 or 25.'
 
-          if(dll)then
-            dllsubr='MZBCTL'
-            dllmesg=outs
-            ier=2
-            return
-          else
-            call edisp(iuout,outs)
-            close(ieout)
-            CALL ERPFREE(ieout,ISTAT)
-            call epwait
-            call epagend
-            stop
-          endif
-
+          call edisp(iuout,outs)
+          close(ieout)
+          CALL ERPFREE(ieout,ISTAT)
+          call epwait
+          call epagend
+          stop
         endif
       endif
       RETURN
@@ -488,15 +474,12 @@ C Index for each potential temporal db entry type 0=not used are in
 C ommon tdfflg2
 
       common/bfngr/cfgsd(MCF,6),ibsnv(mcf,3),bfngn
-      common/dllerr/dllsubr,dllmesg
 
-      character dllsubr*12,dllmesg*124,outs*124
+      character outs*124
       DIMENSION VAL(MTABC+2)
       
-      logical bfngn,svcfgr,dll
+      logical bfngn,svcfgr
       
-C Check if running in dll mode.
-      call isadll(dll)
       svcfgr=.false.
 
 C If function genrator referenced and required function
@@ -535,19 +518,12 @@ C Sensor measures plant node state-space variable.
 C Which is obviously not allowed in case of bld.
         write(outs,'(a)')
      &   ' CFVAR: simulator does not support sensing plant node state.'
-        if(dll)then
-          dllsubr='CFVAR'
-          dllmesg=outs
-          ier=2
-          return
-        else
-          call edisp(iuout,outs)
-          close(ieout)
-          CALL ERPFREE(ieout,ISTAT)
-          call epwait
-          call epagend
-          STOP
-        endif
+        call edisp(iuout,outs)
+        close(ieout)
+        CALL ERPFREE(ieout,ISTAT)
+        call epwait
+        call epagend
+        STOP
       ELSEIF(IBSN(ICF,1).EQ.-2)THEN
          IZ=IBSN(ICF,2)
 
@@ -613,32 +589,6 @@ C Invalid controller type.
          ELSE
            WRITE(outs,'(a,i3,a,i3,a)') 'CFVAR: function',ICF,' type',
      &        ICTYP,'invalid controller type.'
-           if(dll)then
-             dllsubr='CFVAR'
-             dllmesg=outs
-             ier=2
-             return
-           else
-             call edisp(iuout,outs)
-             close(ieout)
-             CALL ERPFREE(ieout,ISTAT)
-             call epwait
-             call epagend
-             STOP
-           endif
-         ENDIF
-
-C Sensing mass flow component variable.          
-      ELSEIF(IBSN(ICF,1).EQ.-4)THEN
-C Which is currently not active in the case of bld.
-         write(outs,'(a)')
-     &  'CFVAR: simulator does not support sensing mass flow variable.'
-         if(dll)then
-           dllsubr='CFVAR'
-           dllmesg=outs
-           ier=2
-           return
-         else
            call edisp(iuout,outs)
            close(ieout)
            CALL ERPFREE(ieout,ISTAT)
@@ -646,6 +596,18 @@ C Which is currently not active in the case of bld.
            call epagend
            STOP
          endif
+
+C Sensing mass flow component variable.          
+      ELSEIF(IBSN(ICF,1).EQ.-4)THEN
+C Which is currently not active in the case of bld.
+         write(outs,'(a)')
+     &  'CFVAR: simulator does not support sensing mass flow variable.'
+         call edisp(iuout,outs)
+         close(ieout)
+         CALL ERPFREE(ieout,ISTAT)
+         call epwait
+         call epagend
+         STOP
       ELSEIF(IBSN(ICF,1).EQ.-5)THEN
 
 C Setpoint to be read from temporal file.
@@ -661,19 +623,12 @@ C     &       ' column ',isd,' value ',tctl,' for ctl loop ',icf
          else
            write(outs,'(a)')
      &     'CFVAR: ISETPTT does not point to a valid temporal item'
-           if(dll)then
-             dllsubr='CFVAR'
-             dllmesg=outs
-             ier=2
-             return
-           else
-             call edisp(iuout,outs)
-             close(ieout)
-             CALL ERPFREE(ieout,ISTAT)
-             call epwait
-             call epagend
-             STOP
-           endif
+           call edisp(iuout,outs)
+           close(ieout)
+           CALL ERPFREE(ieout,ISTAT)
+           call epwait
+           call epagend
+           STOP
          endif
       ELSEIF(IBSN(ICF,1).EQ.-6)THEN
          IFNC=IBSN(ICF,2)
@@ -691,19 +646,12 @@ C     &       ' column ',isd,' value ',tctl,' for ctl loop ',icf
 
  998  WRITE(outs,'(a,i3,a,i3,a)') 'CFVAR: function',ICF,' type',
      &  ICTYP,' incorrect match of sensor and controller type.'
-      if(dll)then
-        dllsubr='CFVAR'
-        dllmesg=outs
-        ier=2
-        return
-      else
-        call edisp(iuout,outs)
-        close(ieout)
-        CALL ERPFREE(ieout,ISTAT)
-        call epwait
-        call epagend
-        STOP
-      endif
+      call edisp(iuout,outs)
+      close(ieout)
+      CALL ERPFREE(ieout,ISTAT)
+      call epwait
+      call epagend
+      STOP
       END
 
 C ******************** CFMVAR ********************
@@ -725,13 +673,9 @@ C Recover control point data.
      &TAUXSN(MCF,MSEN)
       common/btime/btimep,btimef
 
-      common/dllerr/dllsubr,dllmesg
       DIMENSION VAL(MTABC+2)
-      character dllsubr*12,dllmesg*124,outs
-      logical dll
+      character outs*124
 
-C Check if in dll mode.
-      call isadll(dll)
       DO 28 J=1,NSEN(ICF)
         IF(IBMSN(ICF,J,1).EQ.0.OR.IBMSN(ICF,J,1).EQ.IICOMP)THEN
 C i.e. if sensor located in current zone
@@ -749,19 +693,13 @@ C Sensor measures plant node state-space variable.
 C Which is obviously not allowed in case of bld.
           write(outs,'(a)')
      &   'CFMVAR: simulator does not support sensing plant node state.'
-          if(dll)then
-            dllsubr='CFMVAR'
-            dllmesg=outs
-            ier=2
-            return
-          else
-            call edisp(iuout,outs)
-            close(ieout)
-            CALL ERPFREE(ieout,ISTAT)
-            call epwait
-            call epagend
-            STOP
-          endif
+          call edisp(iuout,outs)
+          close(ieout)
+          CALL ERPFREE(ieout,ISTAT)
+          call epwait
+          call epagend
+          STOP
+
 C Sensor measures a mix of zone air temp & MRT
         ELSEIF(IBMSN(ICF,J,1).EQ.-2)THEN
            IZ=IBMSN(ICF,J,2)
@@ -798,19 +736,12 @@ C Sensing mass flow component variable.
 C Which is obviously not allowed in case of bld.
            write(outs,'(a)')
      & 'CFMVAR: simulator does not support sensing mass flow variable.'
-          if(dll)then
-            dllsubr='CFMVAR'
-            dllmesg=outs
-            ier=2
-            return
-          else
-            call edisp(iuout,outs)
-            close(ieout)
-            CALL ERPFREE(ieout,ISTAT)
-            call epwait
-            call epagend
-            STOP
-          endif
+          call edisp(iuout,outs)
+          close(ieout)
+          CALL ERPFREE(ieout,ISTAT)
+          call epwait
+          call epagend
+          STOP
         ELSEIF(IBMSN(ICF,J,1).EQ.-5)THEN
 
 C Setpoint to be read from an external file or from temporal
@@ -829,34 +760,20 @@ C     &       ' column ',isd,' value ',tctl,' for ctl loop ',icf
           else
             write(outs,'(a)')
      &      'CFMVAR: ISETPTT does not point to a valid temporal item'
-            if(dll)then
-              dllsubr='CFMVAR'
-              dllmesg=outs
-              ier=2
-              return
-            else
-              call edisp(iuout,outs)
-              close(ieout)
-              CALL ERPFREE(ieout,ISTAT)
-              call epwait
-              call epagend
-              STOP
-            endif
-          endif
-        ELSEIF(IBMSN(ICF,J,1).EQ.-6)THEN
-          write(outs,'(a)')
-     &    'CFMVAR: version does not support -6 type AUXILIARY sensor.'
-          if(dll)then
-            dllsubr='CFMVAR'
-            dllmesg=outs
-            ier=2
-            return
-          else
             call edisp(iuout,outs)
+            close(ieout)
+            CALL ERPFREE(ieout,ISTAT)
             call epwait
             call epagend
             STOP
           endif
+        ELSEIF(IBMSN(ICF,J,1).EQ.-6)THEN
+          write(outs,'(a)')
+     &    'CFMVAR: version does not support -6 type AUXILIARY sensor.'
+          call edisp(iuout,outs)
+          call epwait
+          call epagend
+          STOP
         ENDIF
 28    CONTINUE
 
@@ -1574,10 +1491,8 @@ C Flags indicating zone is heated, cooled.
 C Heating and cooling setpoint (oC)
       real fHeatSetpoint(MCOM), fCoolSetpoint(MCOM)
 
-      common/dllerr/dllsubr,dllmesg
-
-      character dllsubr*12,dllmesg*124,outs*124
-      logical dll,CLOSERH
+      character outs*124
+      logical CLOSERH
 
       
 C Local variables for control algorithm.
@@ -1629,9 +1544,6 @@ C Determine if trace is on.
 
       hrfrac=1.0  ! fraction of hour in the current timestep
       if(NTSTEP.gt.1) hrfrac=1.0/float(NTSTEP)
-
-C Check to see if running in dll mode.
-      call isadll(dll)
 
 C Fatal error test.
       IF(IBehaviour.ne.2.and.BMISCD(ICF,IDTYP,IPER,1).LT.6.)GOTO 99
@@ -1919,20 +1831,20 @@ C Since sensed temperature is not within range, attempt to control
 C THIS zone's temperature.
       TCTL=TNP
 
-C <FOG>
-C Inserted for the EU Fog Project: if heating or cooling set point is set to
-C -1000., the controller will use the dew point temperature as the set point.
-C This is an alternative to humidification in that the zone RH is maintained
-C at ~100% RH.
-      IF(int(CSP).EQ.-1000 .OR. int(HSP).EQ.-1000)THEN
-        
-C Set point is the dew point temperature of the zone. 
-        HSP=DEWPT(GFA(IICOMP),PATMOS)
-        CSP=DEWPT(GFA(IICOMP),PATMOS)
-        IF(HSP.LT.0.0)HSP=0.0
-        IF(CSP.LT.0.0)CSP=0.0
-      ENDIF
-C </FOG>
+! C <FOG>
+! C Inserted for the EU Fog Project: if heating or cooling set point is set to
+! C -1000., the controller will use the dew point temperature as the set point.
+! C This is an alternative to humidification in that the zone RH is maintained
+! C at ~100% RH.
+!       IF(int(CSP).EQ.-1000 .OR. int(HSP).EQ.-1000)THEN
+!        
+! C Set point is the dew point temperature of the zone. 
+!         HSP=DEWPT(GFA(IICOMP),PATMOS)
+!         CSP=DEWPT(GFA(IICOMP),PATMOS)
+!         IF(HSP.LT.0.0)HSP=0.0
+!         IF(CSP.LT.0.0)CSP=0.0
+!       ENDIF
+! C </FOG>
 
 C Check zone temperature and determine if heating or cooling functions 
 C should be invoked.
@@ -2125,19 +2037,12 @@ C Keep track if trace is not active.
      
       RETURN
    99 write(outs,'(a)')' BCL01: data incomplete!'
-      if(dll)then
-        dllsubr='BCL01'
-        dllmesg=outs
-        ier=2
-        return
-      else
-        call edisp(iuout,outs)
-        close(ieout)
-        CALL ERPFREE(ieout,ISTAT)
-        call epwait
-        call epagend
-        STOP
-      endif
+      call edisp(iuout,outs)
+      close(ieout)
+      CALL ERPFREE(ieout,ISTAT)
+      call epwait
+      call epagend
+      STOP
       END
 
 C ******************** BCL02 ********************
@@ -6613,7 +6518,6 @@ C IACTIV (ACTIVITY of space) and IHTCLSETP (only heating and cooling setpoints)
       common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
       common/btime/btimep,btimef
       COMMON/PSTSOL/ICF,IDTYP,IPER,BB1,BB2,BB3,IICOMP,TNP,QFUT,TFUT
-      common/dllerr/dllsubr,dllmesg
       COMMON/FVALA/TFA(MCOM),QFA(MCOM)
       COMMON/CLIMIF/QFLWP,QFLWF,TFLWP,TFLWF,QDFLP,QDFLF,VFLP,VFLF,
      &             DFLP,DFLF,HFLP,HFLF
@@ -6622,13 +6526,10 @@ C These common TDFREL relate to setting cooling on if temperature exceeds
 C the heating set point by 1degC for the UKNCM notional model (and
 C associated DSM testing models)
 
-      character dllsubr*12,dllmesg*124,outs*124,cmsg*12
-      logical dll,near,closer
+      character outs*124,cmsg*12
+      logical near,closer
       DIMENSION VAL(MTABC+2), VALO(MTABC+2)
       integer COLUMNSETP ! column from control 23
-
-C Check to see if running in dll mode.
-      call isadll(dll)
 
 C Fatal error test.
       IF(BMISCD(ICF,IDTYP,IPER,1).LT.2.)GOTO 99
@@ -6830,19 +6731,12 @@ C Trace output format depending on whether VAV or CAV active.
 
       return
    99 write(outs,'(a)')' BCL23: data incomplete.'
-      if(dll)then
-        dllsubr='BCL23'
-        dllmesg=outs
-        ier=2
-        return
-      else
-        call edisp(iuout,outs)
-        close(ieout)
-        CALL ERPFREE(ieout,ISTAT)
-        call epwait
-        call epagend
-        STOP
-      endif
+      call edisp(iuout,outs)
+      close(ieout)
+      CALL ERPFREE(ieout,ISTAT)
+      call epwait
+      call epagend
+      STOP
       END
 
 C ******************** BCL24 ********************
@@ -6864,7 +6758,6 @@ C climate file commons
       COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
       common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
       COMMON/BTIME/BTIMEP,BTIMEF
-      common/dllerr/dllsubr,dllmesg
 
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/PSTSOL/ICF,IDTYP,IPER,BB1,BB2,BB3,IICOMP,TNP,QFUT,TFUT
@@ -6872,13 +6765,9 @@ C climate file commons
       DIMENSION ICLM(24,6)
       PARAMETER (MMD=20)
       REAL PREVTEMP(MMD)
-      character dllsubr*12,dllmesg*124,outs*124
-      logical dll
+      character outs*124
 
       helpinsub='bcfunc'  ! set for subroutine
-
-C Check to see if running in dll mode.
-      call isadll(dll)
 
 C Fatal error test.
       IF(BMISCD(ICF,IDTYP,IPER,1).LT.6.)GOTO 99
@@ -7071,19 +6960,12 @@ C      write(6,*)trm,TOP,TCOMF,iheat,icool,QFUT,pw,rn
 
       RETURN
    99 write(outs,'(a)')' BCL24: data incomplete.'
-      if(dll)then
-        dllsubr='BCL24'
-        dllmesg=outs
-        ier=2
-        return
-      else
-        call edisp(iuout,outs)
-        close(ieout)
-        CALL ERPFREE(ieout,ISTAT)
-        call epwait
-        call epagend
-        STOP
-      endif
+      call edisp(iuout,outs)
+      close(ieout)
+      CALL ERPFREE(ieout,ISTAT)
+      call epwait
+      call epagend
+      STOP
   999 helptopic='bcl24_io_error'
       call gethelptext(helpinsub,helptopic,nbhelp)
       CALL PHELPD('data i/o error',nbhelp,
@@ -8379,12 +8261,12 @@ C occupancy by type 1 casual gains taken from operations or temporal.
 #include "net_flow.h"
 #include "tdf2.h"
 #include "FMI.h"
+#include "gremlin.h"
 
       COMMON/TC/ITC,ICNT
       COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
       common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
       COMMON/BTIME/BTIMEP,BTIMEF
-      common/dllerr/dllsubr,dllmesg
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/PSTSOL/ICF,IDTYP,IPER,BB1,BB2,BB3,IICOMP,TNP,QFUT,TFUT
       common/CASGNS/NCGPER(MCOM,MDTY,MGTY),TCGS(MCOM,MDTY,MGTY,MGPER),
@@ -8393,15 +8275,11 @@ C occupancy by type 1 casual gains taken from operations or temporal.
       common/caleni/nbdaytype,nbcaldays(MDTY),icalender(365)
       INTEGER NBDAYTYPE,NBCALDAYS,ICALENDER
 
-      character dllsubr*12,dllmesg*124,outs*124
-      logical dll
+      character outs*124
       real val(MBITS+2)
 
-C Check to see if running in dll mode.
-      call isadll(dll)
-
 C Fatal error test.
-      IF(BMISCD(ICF,IDTYP,IPER,1).NE.6.)GOTO 99
+      IF(BMISCD(ICF,IDTYP,IPER,1).LT.6.)GOTO 99
 
 C Trace output
       IF(ITC.GT.0.AND.NSINC.GE.ITC.AND.NSINC.LE.ITCF.AND.
@@ -8437,6 +8315,19 @@ C CSP = cooling set point temp. (deg.C)
       QCN=-BMISCD(ICF,IDTYP,IPER,5)
       HSP=BMISCD(ICF,IDTYP,IPER,6)
       CSP=BMISCD(ICF,IDTYP,IPER,7)
+
+C <GRM>
+      if (NMCF.gt.0) then
+        do imcf=1,NMCF
+
+C Gremlin mischief type 1: heating capacity = 0.
+          if (MCFTYP(imcf).eq.1) then
+            QHM=0.
+            QHN=0.
+          endif
+        enddo
+      endif
+C </GRM>
       
       QFUT=0.
       TFUT=TNP
@@ -8530,20 +8421,355 @@ C Mixed actuation.
 
       RETURN
    99 write(outs,'(a)')' BCL33: data incomplete.'
-      if(dll)then
-        dllsubr='BCL33'
-        dllmesg=outs
-        ier=2
-        return
-      else
-        call edisp(iuout,outs)
-        close(ieout)
-        CALL ERPFREE(ieout,ISTAT)
-        call epwait
-        call epagend
-        STOP
+      call edisp(iuout,outs)
+      close(ieout)
+      CALL ERPFREE(ieout,ISTAT)
+      call epwait
+      call epagend
+      STOP
+      END
+
+C ******************** BCL34
+C Smart predictive controller. Uses a regression equation (degree 2, 
+C coefficients supplied by user) to predict heat requirement for the day
+C based on external dry bulb temperature and total solar. Then examines
+C a per time step signal (e.g. price of energy, from temporal) to find
+C the optimum periods to inject the heat, subject to constraints of
+C minimum portions in certain periods of the day.
+      SUBROUTINE BCL34(IER)
+
+#include "building.h"
+#include "control.h"
+#include "net_flow.h"
+#include "tdf2.h"
+#include "FMI.h"
+#include "climate.h"
+
+      COMMON/TC/ITC,ICNT
+      COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
+      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
+      COMMON/BTIME/BTIMEP,BTIMEF
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
+      COMMON/PSTSOL/ICF,IDTYP,IPER,BB1,BB2,BB3,IICOMP,TNP,QFUT,TFUT
+      COMMON/PERS/ISD1,ISM1,ISD2,ISM2,ISDS,ISDF,NTSTEP
+      common/trc/itrc
+      common/BCTL34/P1SH(MCOM),P1FH(MCOM),P2SH(MCOM),P2FH(MCOM),
+     &              P3SH(MCOM),P3FH(MCOM)
+
+      character outs*124
+      logical ok
+      real val(MBITS+2)
+      real xprcsig(60*24)
+
+C Fatal error test.
+      IF (BMISCD(ICF,IDTYP,IPER,1).LT.17.) then
+        IER=1
+        GOTO 666
       endif
+
+C Trace output
+      IF(ITC.GT.0.AND.NSINC.GE.ITC.AND.NSINC.LE.ITCF.AND.
+     &   ITRACE(41).NE.0) then
+        if (IBSN(ICF,1).GT.0.and.IBAN(ICF,1).eq.0) then
+          write(outs,'(a,i3)') 
+     &      'Entering subroutine BCL34 sensing in zone ',
+     &      IBSN(ICF,1)
+          call edisp(itu,' ')
+          call edisp(itu,outs)
+        elseif (IBSN(ICF,1).GT.0.and.IBAN(ICF,1).GT.0) then
+          write(outs,'(a,i3,a,i3)') 
+     &      'Entering subroutine BCL34 sensing in zone ',
+     &      IBSN(ICF,1),' and actuating in zone ',IBAN(ICF,1)
+          call edisp(itu,' ')
+          call edisp(itu,outs)
+        else
+          call edisp(itu,' ')
+          call edisp(itu,' Entering subroutine BCL34')
+        endif
+        CALL DAYCLK(IDYP,BTIMEF,ITU)
+      endif
+      
+C Heating capacity.
+      cap=BMISCD(ICF,IDTYP,IPER,2)
+
+C At the start of each day, calculate energy for the whole day.
+      if (ihrp.eq.1 .and. its.eq.1) then
+
+C Regression equation:
+C energy = c1 + c2*dbt + c3*sol + c4*dbt^2 + c5*dbt*sol + c6*sol^2
+        c1=BMISCD(ICF,IDTYP,IPER,3)
+        c2=BMISCD(ICF,IDTYP,IPER,4)
+        c3=BMISCD(ICF,IDTYP,IPER,5)
+        c4=BMISCD(ICF,IDTYP,IPER,6)
+        c5=BMISCD(ICF,IDTYP,IPER,7)
+        c6=BMISCD(ICF,IDTYP,IPER,8)
+
+C Price signal from temporal item itemp.
+        itemp=int(BMISCD(ICF,IDTYP,IPER,9))
+
+C Optimisation is constrained to force f1*energy within the period 
+C p1s to p1f. Same for f2 in p2, f3 in p3. Any remaining energy 
+C (i.e. 1-f1-f2-f3) is treated as "floating", and will be assigned
+C wherever is most optimal.
+        f1=BMISCD(ICF,IDTYP,IPER,10)
+        p1s=BMISCD(ICF,IDTYP,IPER,11)
+        p1f=BMISCD(ICF,IDTYP,IPER,12)
+        f2=BMISCD(ICF,IDTYP,IPER,13)
+        p2s=BMISCD(ICF,IDTYP,IPER,14)
+        p2f=BMISCD(ICF,IDTYP,IPER,15)
+        f3=BMISCD(ICF,IDTYP,IPER,16)
+        p3s=BMISCD(ICF,IDTYP,IPER,17)
+        p3f=BMISCD(ICF,IDTYP,IPER,18)
+
+C Get average external air temperature and total solar for the day.
+        xat=0.
+        xas=0.
+        do ih=1,24
+          xat=xat+CMRVAL(1,ih)
+          xas=xas+CMRVAL(2,ih)+CMRVAL(3,ih)
+        enddo
+        xat=xat/24.
+        xas=xas/24.
+
+C Predict energy requirement from regression equation.
+        xen=c1 + c2*xat + c3*xas + c4*xat**2. + c5*xat*xas + c6*xas**2.
+        xen=xen*1000.
+
+        if (xen.le.0.) then ! no heat requirement
+          P1SH(IICOMP)=26.
+          P1FH(IICOMP)=-1.
+          P2SH(IICOMP)=26.
+          P2FH(IICOMP)=-1.
+          P3SH(IICOMP)=26.
+          P3FH(IICOMP)=-1
+        
+        else ! some heat required
+
+C Get the price profile for the day.
+          ifoc=IPRCSIG
+          if (ifoc.eq.0 .or. ifoc.ne.itemp) then
+            IER=2
+            goto 666
+          endif
+          i=1
+          do ih=1,24
+            do iits=1,ntstep            
+              xtimef=float(ih)+float(iits)/float(ntstep)
+              if(xtimef.gt.24.0)xtimef=xtimef-24.
+              CALL RCTDFB(itrc,xtimef,val,isd,ifoc,IER)
+              if (IER.ne.0) then
+                IER=3
+                goto 666
+              endif
+              xprcsig(i)=VAL(isd)
+              i=i+1
+            enddo
+          enddo
+
+C Find number of time steps of heating in each period.
+          itst=ceiling(xen*ntstep/cap)
+          its1=nint(itst*f1)
+          its2=nint(itst*f2)
+          its3=nint(itst*f3)
+          itsf=itst-its1-its2-its3
+
+C Assign period 1 heating.
+          if (((p1f-p1s)*ntstep).LT.its1) then
+            write(outs,'(a)')
+     &        'BCL34 warning: period 1 too short for required heating.'
+            call edisp(iuout,outs)
+
+C Heat for full period, and add excess to floating.
+            ists1 = nint(p1s*ntstep) ! start time step
+            ifts1 = nint(p1f*ntstep) ! finish time step
+            itsf = itsf+max(0,its1-(ifts1-ists1+1))
+          else
+            xmin=999999999.0
+            do i=(floor(p1s*ntstep)+floor(its1/2.)),
+     &           (ceiling(p1f*ntstep)-ceiling(its1/2.)+1)
+              xagg = 0.
+              do j=(i-floor(its1/2.)),(i+ceiling(its1/2.)-1)
+                xagg=xagg+xprcsig(j)
+              enddo
+              if (xagg.lt.xmin) then
+                xmin=xagg
+                imin=i
+              endif
+            enddo
+            ists1=imin-floor(its1/2.) ! start time step
+            ifts1=imin+ceiling(its1/2.)-1 ! finish time step
+          endif
+        
+C Assign period 2 heating.
+          if (((p2f-p2s)*ntstep).LT.its2) then
+            write(outs,'(a)')
+     &        'BCL34 warning: period 2 too short for required heating.'
+            call edisp(iuout,outs)
+
+C Heat for full period, and add excess to floating.
+            ists2 = nint(p2s*ntstep) ! start time step
+            ifts2 = nint(p2f*ntstep) ! finish time step
+            itsf = itsf+max(0,its2-(ifts2-ists2+1))
+          else
+            xmin=999999999.0
+            do i=(floor(p2s*ntstep)+floor(its2/2.)),
+     &           (ceiling(p2f*ntstep)-ceiling(its2/2.)+1)
+              xagg = 0.
+              ok = .true.
+              do j=(i-floor(its2/2.)),(i+ceiling(its2/2.)-1)
+
+C Check for overlap with previous heating periods.
+                if (j.ge.ists1 .and. j.lt.ifts1) then
+                  ok = .false.
+                  exit
+                endif
+                xagg=xagg+xprcsig(j)
+              enddo
+              if (xagg.LT.xmin .and. ok) then
+                xmin=xagg
+                imin=i
+              endif
+            enddo
+            ists2=imin-floor(its2/2.) ! start time step
+            ifts2=imin+ceiling(its2/2.)-1 ! finish time step
+          endif
+        
+C Assign period 3 heating.
+          if (nint((p3f-p3s)*ntstep).LT.its3) then
+            write(outs,'(a)')
+     &        'BCL34 warning: period 3 too short for required heating.'
+            call edisp(iuout,outs)
+
+C Heat for full period, and add excess to floating.
+            ists3 = nint(p3s*ntstep) ! start time step
+            ifts3 = nint(p3f*ntstep) ! finish time step
+            itsf = itsf+max(0,its3-(ifts3-ists3+1))
+          else
+            xmin=999999999.0
+            do i=(floor(p3s*ntstep)+floor(its3/2.)),
+     &           (ceiling(p3f*ntstep)-ceiling(its3/2.)+1)
+              xagg = 0.
+              do j=(i-floor(its3/2.)),(i+ceiling(its3/2.)-1)
+
+C Check for overlap with previous heating periods.
+                if ((j.ge.ists1 .and. j.lt.ifts1) .or.
+     &              (j.ge.ists2 .and. j.lt.ifts2)) then
+                  ok = .false.
+                  exit
+                endif
+                xagg=xagg+xprcsig(j)
+              enddo
+              if (xagg.LT.xmin .and. ok) then
+                xmin=xagg
+                imin=i
+              endif
+            enddo
+            ists3=imin-floor(its3/2.) ! start time step
+            ifts3=imin+ceiling(its3/2.)-1 ! finish time step
+          endif
+
+C Assign floating heating, by extending one of the existing periods.
+          do i=1,itsf
+            xmin=999999999.0
+            iminpos = 0
+            if ((ists1-1).gt.0) then
+              xmin=xprcsig(ists1-1)
+              iminpos=1
+            endif
+            if ((ifts1+1).lt.ists2) then
+              if (xprcsig(ifts1+1).lt.xmin) then
+                xmin=xprcsig(ifts1+1)
+                iminpos=2
+              endif
+              if (xprcsig(ists2-1).lt.xmin) then
+                xmin=xprcsig(ists2-1)
+                iminpos=3
+              endif
+            endif
+            if ((ifts2+1).lt.ists3) then
+              if (xprcsig(ifts2+1).lt.xmin) then
+                xmin=xprcsig(ifts2+1)
+                iminpos=4
+              endif
+              if (xprcsig(ists3-1).lt.xmin) then
+                xmin=xprcsig(ists3-1)
+                iminpos=5
+              endif
+            endif
+            if (ifts3+1.le.(24*ntstep)) then
+              if (xprcsig(ifts3+1).lt.xmin) then
+                xmin=xprcsig(ifts3+1)
+                iminpos=6
+              endif
+            endif
+            if (iminpos.eq.0) then
+              IER=5
+              goto 666
+            elseif (iminpos.eq.1) then
+              ists1=ists1-1
+            elseif (iminpos.eq.2) then
+              ifts1=ifts1+1
+            elseif (iminpos.eq.3) then
+              ists2=ists2-1
+            elseif (iminpos.eq.4) then
+              ifts2=ifts2+1
+            elseif (iminpos.eq.5) then
+              ists3=ists3-1
+            elseif (iminpos.eq.6) then
+              ifts3=ifts3+1
+            endif
+          enddo
+        
+C Translate time steps to times.
+          P1SH(IICOMP)=float(ists1)/ntstep
+          P1FH(IICOMP)=float(ifts1)/ntstep
+          P2SH(IICOMP)=float(ists2)/ntstep
+          P2FH(IICOMP)=float(ifts2)/ntstep
+          P3SH(IICOMP)=float(ists3)/ntstep
+          P3FH(IICOMP)=float(ifts3)/ntstep
+        endif
+
+        write(373,*)IICOMP,xen,P1SH(IICOMP),P1FH(IICOMP),P2SH(IICOMP),
+     &    P2FH(IICOMP),P3SH(IICOMP),P3FH(IICOMP)
+      endif
+
+C Check if we should be heating now.
+      if (btimef.gt.P1SH(IICOMP) .and. btimef.le.P1FH(IICOMP)) then
+        Q=cap
+      elseif (btimef.gt.P2SH(IICOMP) .and. btimef.le.P2FH(IICOMP)) then
+        Q=cap
+      elseif (btimef.gt.P3SH(IICOMP) .and. btimef.le.P3FH(IICOMP)) then
+        Q=cap
+      else
+        Q=0.
+      endif
+      TFUT=(BB3-BB2*Q)/BB1
+      QFUT=Q
+      IPLT=1
+      QMX=Q
+      QMN=Q
+      TCONT=TFUT
+      IF(IBAN(ICF,1).EQ.-2)CALL MZRCPL(IICOMP,BB1,BB2,BB3,TCONT,0.05,
+     &IPLT,QMX,QMN,TFUT,QFUT)
+
       RETURN
+
+  666 if (IER.eq.1) then
+        write(outs,'(a)')' BCL34 error: wrong number of inputs.'
+      elseif (IER.eq.2) then
+        write(outs,'(a)')' BCL34 error: no signal temporal entity.'
+      elseif (IER.eq.3) then
+        write(outs,'(a)')' BCL34 error: could not get temporal data.'
+      elseif (IER.eq.5) then
+        write(outs,'(a)')' BCL34 error: unable to assign floating load.'
+      endif
+      call edisp(iuout,outs)
+      close(ieout)
+      CALL ERPFREE(ieout,ISTAT)
+      call epwait
+      call epagend
+      STOP
+
       END
 
 C ******************** BCL99 ********************

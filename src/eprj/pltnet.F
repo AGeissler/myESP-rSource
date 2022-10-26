@@ -552,8 +552,22 @@ C If MOD has been passed as a M then add an item at the end.
       cVERT(M+6)  ='- exit menu'
 
 C Help text for this menu.
-      helptopic='plant_cmp_lst'
-      call gethelptext(helpinsub,helptopic,nbhelp)
+      if(MOD.EQ.'C')then  
+        helptopic='plant_cmp_lst'
+        call gethelptext(helpinsub,helptopic,nbhelp)
+      elseif(MOD.EQ.'Z')then
+        helptopic='plant_zone_link'
+        call gethelptext(helpinsub,helptopic,nbhelp)
+      elseif(MOD.EQ.'A')then
+        helptopic='plant_air_link'
+        call gethelptext(helpinsub,helptopic,nbhelp)
+      elseif(MOD.EQ.'K')then
+        helptopic='plant_known_link'
+        call gethelptext(helpinsub,helptopic,nbhelp)
+      else
+        helptopic='plant_cmp_list'
+        call gethelptext(helpinsub,helptopic,nbhelp)
+      endif
 
 C Display the menu.
       CALL EMENU(head,cVERT,MVERT,IVERT)
@@ -1041,6 +1055,8 @@ C Script directed input if not in graphic mode.
 C Allow a component to be added, checked for uniqueness and returned.
 C Code to allow deletion commented out until support code in place.
         IF(MOD.EQ.'M'.OR.MOD.EQ.'m')THEN
+          helptopic='plant_cont_add'
+          call gethelptext(helpinsub,helptopic,nbhelp)
           CALL EASKAB(' ','Containment options:','add ',
      &      'cancel',IOPT,nbhelp)
           IF(IOPT.EQ.1) THEN
@@ -1076,6 +1092,8 @@ C Decode from the potential long list to the comp no via KEYIND.
         SELECT=.TRUE.
         IS=IFOC
         IF(MOD.EQ.'M'.OR.MOD.EQ.'m')THEN
+          helptopic='plant_cont_ed'
+          call gethelptext(helpinsub,helptopic,nbhelp)
           CALL EASKOK(' ','Edit containment',OK,nbhelp)
           IF(OK) CALL CNTDEF('E',IS)
           ILEN=NCONT

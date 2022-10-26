@@ -1858,8 +1858,12 @@ C Copy common block information
 C ******************** CTIADC ********************
 C Add, delete, copy, edit contaminants
 C Definitions of most variables is given in ctread.F
-C NADC is ??
-C MEDIT is ??
+C NADC takes the following values:
+C 0 = edit
+C 1 = add
+C 2 = delete
+C 3 = copy
+C MEDIT is contaminant number to edit.
       SUBROUTINE CTIADC(NADC,MEDIT)
 #include "building.h"
 #include "net_flow.h"
@@ -1895,6 +1899,7 @@ C MEDIT is ??
         IF(.NOT.OK)RETURN
         IADC=1
       ELSE
+        EDIT=.FALSE.
         IADC=NADC
       ENDIF
       IF(IADC.EQ.1) THEN

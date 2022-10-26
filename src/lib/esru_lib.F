@@ -1810,7 +1810,7 @@ C assign WORDS.
       endif
       return
     3 write(outs,*) 
-     &  'GETTOKENS: ran past end of internal string buffer: ',
+     &  'GETTOKENS: ran past end of internal 248 char buffer: ',
      &   A(1:lnblnk(A))
       call edisp248(iuout,outs,100)
       return
@@ -7967,7 +7967,7 @@ C attempts to mimic starting a background task.
 
         call execute_command_line (tmp, exitstat=i)
         if(i.gt.0.and.i.le.126)then
-
+C         call edisp(iuout,' task terminated with an error condition')
           LN=lnblnk(cmd)
           write(ltmp,'(a,i3,2a)') 'status ',i,' ',cmd(1:LN)
           call edisp248(iuout,ltmp,90)

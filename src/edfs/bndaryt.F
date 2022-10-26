@@ -106,7 +106,7 @@ C      COMMON/THETA/THETA1(MCFND,MNZ),THETA2(MCFND,MNZ)
 C      COMMON/ITERAT/NITER
 
       LOGICAL INCALU,INCALV,INCALW,INCALT,INCALK,INCALD
-      LOGICAL IZEROT,IZanKE,IMITZ,Uqinit,OK
+      LOGICAL IZEROT,IZanKE,IMITZ,Uqinit
 
 C ********************* MODUT *********************
 C U-direction boundary conditions - turbulent.
@@ -1843,7 +1843,6 @@ C heat sources.
 C Initialize variables.
       CDTERM=CMU**0.25
 
-
 C If flow is 1D or 2D set coefficients in other directions to zero.
       IF(.NOT.INCALU)THEN
         I=2
@@ -1873,14 +1872,12 @@ C If flow is 1D or 2D set coefficients in other directions to zero.
  2500   CONTINUE
       ENDIF
 
-
 C Reset heat flow to each solid boundary to zero. The heat flows for
 C the current iteration will be recalculated later in this subroutine.
       DO 2550 L=1,NSB(ICFD)
         IS=ISUFLC(L,ICFD)
         CONVF(ICFD,IS)=0.0
  2550 CONTINUE
-
 
 C Account for flow entering or leaving domain. Examine each opening in turn.
 C Note that treatment of `prescribed velocity' type BCs has already been handled
@@ -2998,8 +2995,8 @@ C <<do the same also for laminar conditions >>
       do 541 IV=1,NVOL(ICFD)
         if (IVTYPE(IV,ICFD).eq.20) then
           VOLTOT=(XU(IVCELLS(IV,ICFD,2)+1)-XU(IVCELLS(IV,ICFD,1)))*
-     &             (YV(JVCELLS(IV,ICFD,2)+1)-YV(JVCELLS(IV,ICFD,1)))*
-     &             (ZW(KVCELLS(IV,ICFD,2)+1)-ZW(KVCELLS(IV,ICFD,1)))
+     &           (YV(JVCELLS(IV,ICFD,2)+1)-YV(JVCELLS(IV,ICFD,1)))*
+     &           (ZW(KVCELLS(IV,ICFD,2)+1)-ZW(KVCELLS(IV,ICFD,1)))
           do 5411 I=IVCELLS(IV,ICFD,1),IVCELLS(IV,ICFD,2)
             do 5412 J=JVCELLS(IV,ICFD,1),JVCELLS(IV,ICFD,2)
               do 5413 K=KVCELLS(IV,ICFD,1),KVCELLS(IV,ICFD,2)
@@ -3024,14 +3021,14 @@ C  MODWMIT  - W-momentum boundary conditions - MIT 0-eqn model.
       SUBROUTINE BNDMIT
 #include "building.h"
 #include "cfd.h"
-      COMMON/NDMAP/NOPEN(MNZ),MFNODE(MCFND,MNZ),IOPENi(MCFND,MNZ),
-     &             IOPENf(MCFND,MNZ),JOPENi(MCFND,MNZ),
-     &             JOPENf(MCFND,MNZ),KOPENi(MCFND,MNZ),
-     &             KOPENf(MCFND,MNZ),FIXM(MCFND,MNZ),
-     &             FIXT(MCFND,MNZ),FIXC(MCFND,MNZ),
-     &             FIXK(MCFND,MNZ),FIXE(MCFND,MNZ),
-     &             IWOPEN(MCFND,MNZ),ICFDCN(MCFND,MNZ),
-     &             ICNACT(MCFND,MNZ),IVOLNOP(MCFND,MNZ)
+C       COMMON/NDMAP/NOPEN(MNZ),MFNODE(MCFND,MNZ),IOPENi(MCFND,MNZ),
+C      &             IOPENf(MCFND,MNZ),JOPENi(MCFND,MNZ),
+C      &             JOPENf(MCFND,MNZ),KOPENi(MCFND,MNZ),
+C      &             KOPENf(MCFND,MNZ),FIXM(MCFND,MNZ),
+C      &             FIXT(MCFND,MNZ),FIXC(MCFND,MNZ),
+C      &             FIXK(MCFND,MNZ),FIXE(MCFND,MNZ),
+C      &             IWOPEN(MCFND,MNZ),ICFDCN(MCFND,MNZ),
+C      &             ICNACT(MCFND,MNZ),IVOLNOP(MCFND,MNZ)
       common/KEYVOLS/NVOL(MNZ),IVOLF(MNVLS,MNZ),IVCELLS(MNVLS,MNZ,2),
      &               JVCELLS(MNVLS,MNZ,2),KVCELLS(MNVLS,MNZ,2)
       common/KEYVDAT/IVTYPE(MNVLS,MNZ),VOLTemp(MNVLS,MNZ),
@@ -3069,15 +3066,12 @@ C  MODWMIT  - W-momentum boundary conditions - MIT 0-eqn model.
      2            AS(ntcelx,ntcely,ntcelz),AH(ntcelx,ntcely,ntcelz),
      3            AL(ntcelx,ntcely,ntcelz),SU(ntcelx,ntcely,ntcelz),
      4            SP(ntcelx,ntcely,ntcelz)
-      COMMON/CONST/GREAT,small,GRAV
       common/INCALC/INCALU,INCALV,INCALW,INCALK,INCALD,INCALT,
      1              IZEROT,IZanKE,IMITZ
       COMMON/INTERP/SIFE(ntcelx),SIFW(ntcelx),SIFN(ntcely),SIFS(ntcely),
      &              SIFH(ntcelz),SIFL(ntcelz)
-      COMMON/THETA/THETA1(MCFND,MNZ),THETA2(MCFND,MNZ)
       COMMON/ICFNOD/ICFD,ICP
       COMMON/BCTYPCEL/IBCTPC(ntcelx,ntcely,ntcelz)
-      COMMON/ITERAT/NITER
 
       LOGICAL INCALU,INCALV,INCALW,INCALT,INCALK,INCALD
       LOGICAL IZEROT,IZanKE,IMITZ
@@ -3887,7 +3881,7 @@ C Check for convergence. Tolerence based on recommendation on p89 of Yuan thesis
 C Allow at most 20 iterations.
       iter = iter + 1
       err=0.
-      if (Uq.ne.0.) then
+      if (ABS(Uq).gt.small) then
         err=ABS(Uq-Uqold)/Uq
       endif
       if( err.gt.0.01 .and. iter.le.20 ) goto 10

@@ -323,7 +323,6 @@ C Call with parameter "IFRAME" which is the time step!
      3            TEf(ntcelx,ntcely,ntcelz),EDf(ntcelx,ntcely,ntcelz)
       COMMON/TEMPf/Tf(ntcelx,ntcely,ntcelz),GAMH(ntcelx,ntcely,ntcelz),
      1             RESORT,NSWPT,URFT,FSDTT,PRANDL,PFUN
-      COMMON/LOCAGE/AGEf(ntcelx,ntcely,ntcelz) 
       COMMON/GEOM/XP(ntcelx),YP(ntcely),ZP(ntcelz),
      1            DXEP(ntcelx),DXPW(ntcelx),DYNP(ntcely),DYPS(ntcely),
      2            DZHP(ntcelz),DZPL(ntcelz),
@@ -340,15 +339,6 @@ C Call with parameter "IFRAME" which is the time step!
       common/GRDVRTS/iorg(MNZ),ixend(MNZ),iyend(MNZ),izend(MNZ),
      &  izende(MNZ)
       COMMON/ICFNOD/ICFD,ICP
-      common/blksso/NBLK(MNZ),INBLK(MNVLS,MNZ),NSSO(MNZ),
-     &          INSSO(MNVLS,MNZ),BLKTEMP(MNVLS,MNZ,6)
-      common/KEYVOLS/NVOL(MNZ),IVOLF(MNVLS,MNZ),IVCELLS(MNVLS,MNZ,2),
-     &               JVCELLS(MNVLS,MNZ,2),KVCELLS(MNVLS,MNZ,2)    
-      common/KEYVDAT/IVTYPE(MNVLS,MNZ),VOLTemp(MNVLS,MNZ),
-     &          VOLHeat(MNVLS,MNZ),IVConfl(MNVLS,MNZ),VOLHum(MNVLS,MNZ),
-     &          VOLCO2(MNVLS,MNZ),VOLVel(MNVLS,MNZ),VOLDir(MNVLS,MNZ,2),
-     &          VOLArea(MNVLS,MNZ),VOLPres(MNVLS,MNZ),
-     &          VOLPol(MCTM,MNVLS,MNZ)
       common/rpath/path
       character*72 path,lpath
 
@@ -488,24 +478,17 @@ C
 #include "cfd.h"
 
       COMMON/FILEP/IFIL
-      COMMON/LOCAGE/AGEf(ntcelx,ntcely,ntcelz) 
       COMMON/GEOM/XP(ntcelx),YP(ntcely),ZP(ntcelz),
      1            DXEP(ntcelx),DXPW(ntcelx),DYNP(ntcely),DYPS(ntcely),
      2            DZHP(ntcelz),DZPL(ntcelz),
      3            SEW(ntcelx),SNS(ntcely),SHL(ntcelz),
      4            XU(ntcelx),YV(ntcely),ZW(ntcelz)
-      common/EQTION3/CALLMA(MNZ),CALPOL(MCTM,MNZ),POLNAM(MCTM,MNZ),
-     &               NCTM(MNZ),JHUMINDX(MNZ),URFC(MCTM)
-      LOGICAL CALPOL,CALLMA
-      CHARACTER POLNAM*12
-      COMMON/CFDPOL/POLCONCp(MCTM,ntcelx,ntcely,ntcelz),
-     1              POLCONCf(MCTM,ntcelx,ntcely,ntcelz)
       common/CFDSV/IRECPC,ICFDSV,IEQSV(5+MCTM)
       common/GRDVRTS/iorg(MNZ),ixend(MNZ),iyend(MNZ),izend(MNZ),
      &  izende(MNZ)
       COMMON/ICFNOD/ICFD,ICP
       common/blksso/NBLK(MNZ),INBLK(MNVLS,MNZ),NSSO(MNZ),
-     &          INSSO(MNVLS,MNZ),BLKTEMP(MNVLS,MNZ,6)
+     &          INSSO(MNVLS,MNZ),BLKTEMP(MNVLS,6)
       common/KEYVOLS/NVOL(MNZ),IVOLF(MNVLS,MNZ),IVCELLS(MNVLS,MNZ,2),
      &               JVCELLS(MNVLS,MNZ,2),KVCELLS(MNVLS,MNZ,2)    
       common/KEYVDAT/IVTYPE(MNVLS,MNZ),VOLTemp(MNVLS,MNZ),
@@ -516,9 +499,7 @@ C
       common/rpath/path
       character*72 path,lpath
 
-      integer IFRAME
-
-      real Xtmp,Ytmp,Ztmp,Xorg,Yorg,Zorg
+      real Xorg,Yorg,Zorg
 
 C 'lflname' is the name of the current output file
       character lflname*72
@@ -556,13 +537,13 @@ C Write the '.vtk' header (total of 4 lines)
       write(IUNIT,'(a)') 'ASCII'
       write(IUNIT,'(a)') 'DATASET UNSTRUCTURED_GRID'
 
-C Find number of sources.
+C Find number of openings.
       nopn=0
-      do iv=1,NVOL(ICFD)        
+      do iv=1,NVOL(ICFD)
         if(IVTYPE(iv,ICFD).ge.10 .and. IVTYPE(iv,ICFD).lt.20)nopn=nopn+1
       enddo
 
-C Write source vertices.
+C Write opening vertices.
       npt=nopn*4
       write(IUNIT,'(a,I4,a)')'POINTS ',npt,' float'
       do iv=1,NVOL(ICFD)

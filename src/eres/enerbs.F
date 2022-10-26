@@ -354,7 +354,7 @@ C Output results. Use the slots as per lines 544-559 in this file.
 
    81 FORMAT(A,4F12.2)
    82 FORMAT(A,2F12.2)
-   83 FORMAT(A,8X,' --         --  ',2F12.2)
+   83 FORMAT(A,8X,' --         --  ',2F20.2)
    84 FORMAT(A,2F12.2,8X,' --          --  ')
    86 FORMAT(A24,8X,' --         -- ')
 

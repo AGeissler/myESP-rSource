@@ -29,9 +29,11 @@ C HDSTEP: Creates a descriptive string for timestep information.
 C STIME:  Takes an integer timestep and returns a string DESCR '12h28'
 C SJTIME:  Takes an integer timestep and returns a string DESCR '12:28:30'
 C DATIME: Takes an integer timestep and returns a decimal hour of day e.g. 9.75
+C DDTIME: Takes an integer timestep and returns a double precision hour of day e.g. 9d75
 C STIMENA: takes an integer timestep and returns string the form '12h28'.
 C SJTIMENA: takes an integer timestep and returns string in the form '12:28:30'
 C DATIMENA: takes an integer timestep and returns a decimal hour of day.
+C DDTIMENA: takes an integer timestep and returns a double precision hour of day.
 C DASYSTIME: takes an integer plant timestep and returns a decimal hour of day.
 C ZNLIST: takes current selected zones and builds a descriptive for headers. 
 C COLZNLIST takes current selected zones and draws text in colour.
@@ -511,35 +513,47 @@ C and NTS in its calculations.
       COMMON/SIMPIK/ISIM,ISTADD,ID1,IM1,ID2,IM2,ISDS,ISDF,NTS,ISAVE
       COMMON/PERO/IOD1,IOM1,IOH1,IOD2,IOM2,IOH2,IODS,IODF,NOUT,IAV
       CHARACTER*5 DESCR
+      DOUBLE PRECISION TIME
 
 C Calculate decimal time of day.
-      call DATIME(ITIME,TIME)
+      call DDTIME(ITIME,TIME)
 
 C Split time into hours and minutes.
       MINH=INT(TIME)
-      MIN=INT((TIME-AINT(TIME))*60.+0.5)
-      WRITE(DESCR,'(i2.2,a1,i2.2)')INT(TIME),'h',MIN
+      MIN=NINT((TIME-DBLE(MINH))*60d0)
+      if (MINH.eq.24) MINH=0
+      WRITE(DESCR,'(i2.2,a1,i2.2)')MINH,'h',MIN
       RETURN
       END
 
 C ******************** SJTIME ********************
-C SJTIME takes an integer timestep and returns a string DESCR
+C Takes an integer timestep and returns a string DESCR,
 C which takes the form '12:28:30'. SJTIME takes into account IDAVER
 C and NTS in its calculations.
+C If NEXTDAY returns true, the hour value is 24, which means that by
+C most timestamp conventions this is actually the first time step of the
+C next day.
 
-      SUBROUTINE SJTIME(ITIME,DESCR)
+      SUBROUTINE SJTIME(ITIME,DESCR,NEXTDAY)
       COMMON/AVRAGE/IDAVER
       COMMON/SIMPIK/ISIM,ISTADD,ID1,IM1,ID2,IM2,ISDS,ISDF,NTS,ISAVE
       COMMON/PERO/IOD1,IOM1,IOH1,IOD2,IOM2,IOH2,IODS,IODF,NOUT,IAV
       CHARACTER*8 DESCR
+      DOUBLE PRECISION TIME
+
+      NEXTDAY=.false.
 
 C Calculate decimal time of day.
-      call DATIME(ITIME,TIME)
+      call DDTIME(ITIME,TIME)
 
 C Split time into hours and minutes.
       MINH=INT(TIME)
-      MIN=INT((TIME-AINT(TIME))*60.+0.5)
-      WRITE(DESCR,'(i2.2,a1,i2.2,a)')INT(TIME),':',MIN,':30'
+      MIN=NINT((TIME-DBLE(MINH))*60d0)
+      if (MINH.eq.24) then
+        MINH=0
+        NEXTDAY=.true.
+      endif
+      WRITE(DESCR,'(i2.2,a1,i2.2,a)')MINH,':',MIN,':00'
       RETURN
       END
 
@@ -566,6 +580,31 @@ C Calculate decimal time of day.
       RETURN
       END
 
+C ******************** DDTIME ********************
+C DDTIME takes an integer timestep and returns a double precision hour
+C of day.
+C DDTIME takes into account IDAVER and NTS in its calculations.
+
+      SUBROUTINE DDTIME(ITIME,TIME)
+      DOUBLE PRECISION TIME
+      COMMON/AVRAGE/IDAVER
+      COMMON/SIMPIK/ISIM,ISTADD,ID1,IM1,ID2,IM2,ISDS,ISDF,NTS,ISAVE
+      COMMON/PERO/IOD1,IOM1,IOH1,IOD2,IOM2,IOH2,IODS,IODF,NOUT,IAV
+
+C Calculate precision time of day.
+      if (IDAVER.EQ.0.and.IAV.eq.1) then
+        TIME=(dble(ITIME)+(dble(NOUT-2)/2d0))/dble(NTS)
+      elseif (IDAVER.EQ.1.and.IAV.eq.1) then
+        TIME=(dble(ITIME)+(dble(NOUT-1)/2d0))/dble(NTS)
+      elseif (IDAVER.EQ.0.and.IAV.eq.0) then
+        TIME=(dble(ITIME)-0d5)/dble(NTS)
+      elseif (IDAVER.EQ.1.and.IAV.eq.0) then
+        TIME=dble(ITIME)/dble(NTS)
+      endif
+
+      RETURN
+      END
+
 C ******************** STIMENA ********************
 C STIMENA takes an integer timestep and returns a string DESCR
 C which takes the form '12h28'. STIMENA takes into account NTS in its
@@ -577,14 +616,16 @@ C Used for results which are never time step averaged.
       COMMON/SIMPIK/ISIM,ISTADD,ID1,IM1,ID2,IM2,ISDS,ISDF,NTS,ISAVE
       COMMON/PERO/IOD1,IOM1,IOH1,IOD2,IOM2,IOH2,IODS,IODF,NOUT,IAV
       CHARACTER*5 DESCR
+      DOUBLE PRECISION TIME
 
 C Calculate decimal time of day.
-      call DATIMENA(ITIME,TIME)
+      call DDTIMENA(ITIME,TIME)
 
 C Split time into hours and minutes.
       MINH=INT(TIME)
-      MIN=INT((TIME-AINT(TIME))*60.+0.5)
-      WRITE(DESCR,'(i2.2,a1,i2.2)')INT(TIME),'h',MIN
+      MIN=NINT((TIME-DBLE(MINH))*60d0)
+      if (MINH.eq.24) MINH=0
+      WRITE(DESCR,'(i2.2,a1,i2.2)')MINH,'h',MIN
       RETURN
       END
 
@@ -599,14 +640,16 @@ C Used for results which are never time step averaged.
       COMMON/SIMPIK/ISIM,ISTADD,ID1,IM1,ID2,IM2,ISDS,ISDF,NTS,ISAVE
       COMMON/PERO/IOD1,IOM1,IOH1,IOD2,IOM2,IOH2,IODS,IODF,NOUT,IAV
       CHARACTER*8 DESCR
+      DOUBLE PRECISION TIME
 
 C Calculate decimal time of day.
-      call DATIMENA(ITIME,TIME)
+      call DDTIMENA(ITIME,TIME)
 
 C Split time into hours and minutes.
       MINH=INT(TIME)
-      MIN=INT((TIME-AINT(TIME))*60.+0.5)
-      WRITE(DESCR,'(i2.2,a1,i2.2,a)')INT(TIME),':',MIN,':30'
+      MIN=NINT((TIME-DBLE(MINH))*60d0)
+      if (MINH.eq.24) MINH=0
+      WRITE(DESCR,'(i2.2,a1,i2.2,a)')MINH,':',MIN,':30'
       RETURN
       END
 
@@ -624,6 +667,27 @@ C Calculate decimal time of day.
         TIME=(float(ITIME)+(float(NOUT-1)/2.0))/float(NTS)
       elseif (IAV.eq.0) then
         TIME=float(ITIME)/float(NTS)
+      endif
+
+      RETURN
+      END
+
+C ******************** DDTIMENA ********************
+C DDTIMENA takes an integer timestep and returns a double precision
+C hour of day.
+C DDTIMENA takes into account NTS in its calculations, but not IDAVER.
+C Used for results which are never time step averaged.
+
+      SUBROUTINE DDTIMENA(ITIME,TIME)
+      DOUBLE PRECISION TIME
+      COMMON/SIMPIK/ISIM,ISTADD,ID1,IM1,ID2,IM2,ISDS,ISDF,NTS,ISAVE
+      COMMON/PERO/IOD1,IOM1,IOH1,IOD2,IOM2,IOH2,IODS,IODF,NOUT,IAV
+
+C Calculate precision time of day.
+      if (IAV.eq.1) then
+        TIME=(dble(ITIME)+(dble(NOUT-1)/2d0))/dble(NTS)
+      elseif (IAV.eq.0) then
+        TIME=dble(ITIME)/dble(NTS)
       endif
 
       RETURN

@@ -57,7 +57,7 @@ C is read from the system control strategy file.
 
       COMMON/C23a/BPF
 
-      character LCTLF*72,DFILE*72,LTMP*72,LBND*72,DBND*72
+      character LCTLF*72,DFILE*72,LTMP*72,LBND*72
       character DPBND*72
       character BPF*72
       character ctldoc*248,outs*124

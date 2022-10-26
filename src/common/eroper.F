@@ -41,6 +41,7 @@ C checksort  Does a quick check of casual gains for sorted state.
 C SORTCAS    Sort an array of casual gains by casual gain type and then by
 C            starting time. (Uses a odified QUICKSORT).
 C UPDOPR     Updates all operations data when day types are incremented
+C PIKCGTYP   Offer user choice of currently defined casual gain types.
 
 C ******************** EROPER 
 C EROPER reads zone schedules from a user-constructed datafile.
@@ -157,7 +158,7 @@ C `people` basic occupant units are W and m2/person,
 C 'lighting' basic lighting units are W and W/m2,
 C `equipment` basic small power units are W and W/m2,
 C 'other' as '-' non-specific casual gains units are W and W/m2
-C `dynamicpeople` occupant with metabolic units are number of people and met rate, 
+C `dynamic_people` occupant with metabolic units are number of people and met rate, 
 C `net_utilities` same as legacy icgtyp = 5 (see ?? for documentation),
 C 'ALOtherElectric' used with H3K other appliances,
 C 'ALStoveNG' used with H3K stoves using natural gas,
@@ -199,18 +200,21 @@ C Electrical data flag and elctrical data.
      &BVOLT(MDTY,MC),IPHAS(MDTY,MC)
       INTEGER NEL,IPF,IPHAS
       REAL PF,PWR,BVOLT
-      logical isdynamic       ! true if reading a dynamicpeople  
-      logical isdynamicocup   ! true if zone includes dynamicpeople 
-      common/dynamico/isdynamicocup(MCOM) 
+      logical isdynamic       ! true if reading a dynamic_people  
 
-C Error subroutine and error details for dll mode.
-      common/dllerr/dllsubr,dllmesg
+C isdynamicocup signals the dynamic people model per zone:
+C 0 = no dynamic people
+C 1 = CIBSE polynomial
+C 2 = ASHRAE polynomial
+C 3 = two-node model
+C 4 = segmented model
+      common/dynamico/isdynamicocup(MCOM)
 
       CHARACTER outstr*124,outs*124,outs2*124
-      character dllsubr*12,dllmesg*124,WORD*20,loutstr*248
+      character WORD*20,loutstr*248
       character dstmp*24
       character vctlstr*24,comment*76
-      logical havehi,dll
+      logical havehi
       logical doupgrade       ! Flag that upgrade to v21 is needed.
       integer idaytype        ! Incremented for each new *day entry.
       integer ijk,ireader
@@ -223,10 +227,8 @@ C Error subroutine and error details for dll mode.
       ireader=0
       reader=0.0
       iH3K_Base_Loads(icomp) = 0
-      implieddaytype = 0
-
-C Check if running in dll mode.
-      call isadll(dll)
+      implieddaytype = 0      
+      isdynamicocup(icomp)=0
 
 C Initialise project data file.
       CALL EFOPSEQ(IUO,LPROJ(ICOMP),1,IER)
@@ -234,20 +236,12 @@ C Initialise project data file.
         write(outs,'(3a)') 'Operations file ',
      &    LPROJ(ICOMP)(1:lnblnk(LPROJ(ICOMP))),
      &    ' could not be opened.'
-        if(dll)then
-          dllsubr='EROPER'
-          dllmesg=outs
-          ier=2
-          return
-        else
-          call edisp(iuout,outs)
-          IER=1
-          RETURN
-        endif
-      ENDIF
+        call edisp(iuout,outs)
+        IER=1
+        RETURN
+      endif
       write(currentfile,'(a)') LPROJ(ICOMP)(1:lnblnk(LPROJ(ICOMP)))
       ip3ver(icomp)=0   ! reset prior to detect
-      isdynamicocup(icomp)=.false.
 
 C Initialise the iphase arrays to avoid zero array elements in precal.
 C Initialise the following arrays. This is important
@@ -554,6 +548,8 @@ C << update for dynamic people >>
      &      'user casual gain label',IER) 
           CALL EGETW(OUTSTR,K,caskeytype(ICOMP,ISLOT),'W',
      &      'casual gain type keyword',IER) 
+          if(caskeytype(ICOMP,ISLOT)(1:13).eq.'dynamicpeople') ! old file version
+     &      caskeytype(ICOMP,ISLOT)='dynamic_people'
           CALL EGETWI(OUTSTR,K,lodslot(icomp,ISLOT),0,99,'W',
      &      'casual gain slot position',IER)
           CALL EGETWI(OUTSTR,K,lodatr1(icomp,ISLOT),0,99,'W',
@@ -663,7 +659,7 @@ C and if there is only 1 item on the line it is number of periods.
             goto 40
           endif
 
-C If dynamicpeople then read into a different common block.
+C If dynamic_people then read into a different common block.
 C For newer files the first item will be an overloaded casual gain index.
 C The units implied depend on the value of ip3ver. For ip3ver <21 a 
 C positive ICGT implies the unit is Watts. 
@@ -687,21 +683,21 @@ C value will be the same as iabs(ICGT).
               endif
             elseif(ip3ver(icomp).eq.21)then
               if(ireader.gt.0)then
-                if(caskeytype(icomp,ipslot)(1:13).eq.
-     &             'dynamicpeople')then
+                if(caskeytype(icomp,ipslot)(1:14).eq.
+     &             'dynamic_people')then
                   ICGUnit(IDTY,I)=3  ! number of people
                   isdynamic=.true.
-                  isdynamicocup(icomp)=.true.
+                  isdynamicocup(icomp)=lodatr1(icomp,ipslot)
                 else
                   ICGUnit(IDTY,I)=0
                   isdynamic=.false.
                 endif
               elseif(ireader.lt.0)then
-                if(caskeytype(icomp,ipslot)(1:13).eq.
-     &             'dynamicpeople')then
+                if(caskeytype(icomp,ipslot)(1:14).eq.
+     &             'dynamic_people')then
                   ICGUnit(IDTY,I)=3  ! number of people
                   isdynamic=.true.
-                  isdynamicocup(icomp)=.true.
+                  isdynamicocup(icomp)=lodatr1(icomp,ipslot)
                 elseif(caskeytype(icomp,ipslot)(1:6).eq.'people')then
                   ICGUnit(IDTY,I)=2
                   isdynamic=.false.
@@ -721,7 +717,7 @@ C Debug.
 C          write(6,*) 'eroper 552 ',idty,i,ireader,ICGT(IDTY,I),
 C     &      ICGUnit(IDTY,I)
 
-C If dynamicpeople then read into a different common block
+C If dynamic_people then read into a different common block
           if(isdynamic)then
             CALL EGETWI(OUTSTR,K,IREADER,0,24,'W','gain st',IER)
             ICGS(IDTY,I)=IREADER
@@ -737,9 +733,9 @@ C If dynamicpeople then read into a different common block
             tnbchild(IDTY,I)=READER
             CALL EGETWR(OUTSTR,K,READER,0.,0.,'-','metabolic',IER)
             metabolic(IDTY,I)=READER
-            CALL EGETWR(OUTSTR,K,READER,0.,0.,'-','clo value',IER)
+            CALL EGETWR(OUTSTR,K,READER,0.,0.,'-','clo',IER)
             clov(IDTY,I)=READER
-            CALL EGETWR(OUTSTR,K,READER,0.,0.,'-','nb ocup',IER)
+            CALL EGETWR(OUTSTR,K,READER,0.,0.,'-','air velocity',IER)
             airvel(IDTY,I)=READER
             CALL EGETWR(OUTSTR,K,READER,0.,1.,'W','gain rad fr',IER)
             RADC(IDTY,I)=READER
@@ -877,18 +873,10 @@ C Now free project data file.
       RETURN
 
 C Error messages.
- 1000 if(dll)then
-        dllsubr='EROPER'
-        dllmesg=outs
-        ier=2
-        CALL ERPFREE(IUO,ISTAT)
-        return
-      else
-        call edisp(iuout,outs)
-        IER=1
-        CALL ERPFREE(IUO,ISTAT)
-        RETURN
-      endif
+ 1000 call edisp(iuout,outs)
+      IER=1
+      CALL ERPFREE(IUO,ISTAT)
+      RETURN
 
  1001 call usrmsg(' ',
      &  ' No casual gains labels found ...supplying defaults.','-')
@@ -905,19 +893,11 @@ C Error messages.
      &  OUTSTR(1:50),'...'
       lsn=MIN0(lnblnk(currentfile),110)
       write(outs2,'(2a)') 'in: ',currentfile(1:lsn)
-      if(dll)then
-        dllsubr='EROPER'
-        dllmesg=outs
-        ier=2
-        CALL ERPFREE(IUNIT,ios)
-        return
-      else
-        call edisp(iuout,outs)
-        call edisp(iuout,outs2)
-        IER=1
-        CALL ERPFREE(IUNIT,ios)
-        RETURN
-      endif
+      call edisp(iuout,outs)
+      call edisp(iuout,outs2)
+      IER=1
+      CALL ERPFREE(IUNIT,ios)
+      RETURN
 
  1022 write(outs,'(2a)')' Scheduled infiltration control unknown in',
      &  outstr(1:50)
@@ -1060,16 +1040,13 @@ C Electrical data flag and elctrical data.
       INTEGER NELC,IPFC,IPHASC
       REAL PFC,PWRC,BVOLTC
 
-C Error subroutine and error details for dll mode.
-      common/dllerr/dllsubr,dllmesg
-
       CHARACTER outstr*124,outs*124
       CHARACTER*(*) FILE
-      character dllsubr*12,dllmesg*124,WORD*20,loutstr*248,outs2*124
+      character WORD*20,loutstr*248,outs2*124
       character dstmp*24
       character louts*248
       character actflatfile*1  ! action requested.
-      logical havehi,dll,ok,dok
+      logical havehi,ok,dok
       logical needtoaddone     ! in case short on calendar day types
       INTEGER IDTY,IR,ndty
       REAL R
@@ -1093,25 +1070,15 @@ C Compose help message
       endif
       if(.not.ok)return
 
-C Check if running in dll mode.
-      call isadll(dll)
-
 C Initialise project data file.
  43   CALL EFOPSEQ(IUO,FILE,1,IER)
       IF(IER.NE.0)THEN
         write(louts,'(3a)') 'Operations file ',
      &    FILE(1:lnblnk(FILE)),' could not be opened.'
-        if(dll)then
-          dllsubr='ERZSCHED'
-          write(dllmesg,'(a)') louts(1:124)
-          ier=2
-          return
-        else
-          call edisp248(iuout,louts,100)
-          IER=1
-          RETURN
-        endif
-      ENDIF
+        call edisp248(iuout,louts,100)
+        IER=1
+        RETURN
+      endif
       write(currentfile,'(a)') FILE(1:lnblnk(FILE))
       ip3verc=0
 
@@ -1327,6 +1294,8 @@ C Read scratch variables for *type.
      &      'user casual gain label',IER) 
           CALL EGETW(OUTSTR,K,caskeytypec(ISLOT),'W',
      &      'casual gain keyword',IER) 
+          if(caskeytypec(ISLOT)(1:13).eq.'dynamicpeople') ! old file version
+     &      caskeytypec(ISLOT)='dynamic_people'
           CALL EGETWI(OUTSTR,K,lodslotc(ISLOT),0,99,'W',
      &      'casual gain slot position',IER)
           CALL EGETWI(OUTSTR,K,lodatr1c(ISLOT),0,99,'W',
@@ -1380,15 +1349,15 @@ C            ipslot=iabs(ir)  ! get equivalent of lodslot
               endif
             elseif(ip3verc.eq.21)then
               if(ir.gt.0)then
-                if(caskeytypec(jicgt)(1:13).eq.
-     &             'dynamicpeople')then
+                if(caskeytypec(jicgt)(1:14).eq.
+     &             'dynamic_people')then
                   ICGUnit(IDTY,I)=3  ! number of people
                 else
                   ICGUnitC(IDTY,I)=0
                 endif
               elseif(ir.lt.0)then
-                if(caskeytypec(jicgt)(1:13).eq.
-     &             'dynamicpeople')then
+                if(caskeytypec(jicgt)(1:14).eq.
+     &             'dynamic_people')then
                   ICGUnit(IDTY,I)=3  ! number of people
                 elseif(caskeytypec(jicgt)(1:6).eq.'people')then
                   ICGUnit(IDTY,I)=2
@@ -1412,7 +1381,7 @@ C     &      ICGUnitC(IDTY,I)
           ICGSC(IDTY,I)=IR
           CALL EGETWI(OUTSTR,K,IR,0,24,'W',' gain fn',IER)
           ICGFC(IDTY,I)=IR
-          if(caskeytypec(jicgt)(1:13).eq.'dynamicpeople')then
+          if(caskeytypec(jicgt)(1:14).eq.'dynamic_people')then
             CMGSC(IDTY,I)=0.0
             CMGLC(IDTY,I)=0.0
             CALL EGETWR(OUTSTR,K,R,0.,0.,'-',' tot men',IER)
@@ -1482,7 +1451,7 @@ C Fill defaults prior to scanning the labels.
             elseif(lodlabelc(ISLOT)(1:5).eq.'Small')then
               caskeytypec(ISLOT)='equipment'
             elseif(lodlabelc(ISLOT)(1:9).eq.'Metabolic')then
-              caskeytypec(ISLOT)='dynamicpeople'
+              caskeytypec(ISLOT)='dynamic_people'
             else
               caskeytypec(ISLOT)='-            '
             endif
@@ -1508,18 +1477,10 @@ C Now free project data file.
       RETURN
 
 C Error messages.
- 1000 if(dll)then
-        dllsubr='ERZSCHED'
-        write(dllmesg,'(a)') louts(1:124)
-        ier=2
-        CALL ERPFREE(IUO,ISTAT)
-        return
-      else
-        call edisp248(iuout,louts,100)
-        IER=1
-        CALL ERPFREE(IUO,ISTAT)
-        RETURN
-      endif
+ 1000 call edisp248(iuout,louts,100)
+      IER=1
+      CALL ERPFREE(IUO,ISTAT)
+      RETURN
 
  1001 call usrmsg(' ',
      &  ' No casual gains labels found ...supplying defaults.','-')
@@ -1534,7 +1495,7 @@ C Error messages.
       lodlabelc(5)='Ann.El    ' 
       caskeytypec(5)='net_utilities'  
       lodlabelc(6)='Metabolic ' 
-      caskeytypec(6)='dynamicpeople'  
+      caskeytypec(6)='dynamic_people'  
       lodlabelc(7)='NA        ' 
       caskeytypec(7)='-           '  
       goto 1235
@@ -1543,19 +1504,11 @@ C Error messages.
      &  OUTSTR(1:50),'...'
       lsn=MIN0(lnblnk(currentfile),110)
       write(outs2,'(2a)') 'in: ',currentfile(1:lsn)
-      if(dll)then
-        dllsubr='ERZSCHED'
-        dllmesg=outs
-        ier=2
-        CALL ERPFREE(IUNIT,ios)
-        return
-      else
-        call edisp(iuout,outs)
-        call edisp(iuout,outs2)
-        IER=1
-        CALL ERPFREE(IUNIT,ios)
-        RETURN
-      endif
+      call edisp(iuout,outs)
+      call edisp(iuout,outs2)
+      IER=1
+      CALL ERPFREE(IUNIT,ios)
+      RETURN
 
  1022 write(outs,'(2a)')' Scheduled infiltration control unknown in',
      &  outstr(1:50)
@@ -1580,15 +1533,11 @@ C FILE (variable width char) is the name of the file to scan.
       common/caleni/nbdaytype,nbcaldays(MDTY),icalender(365)
       INTEGER NBDAYTYPE,NBCALDAYS,ICALENDER
 
-C Error subroutine and error details for dll mode.
-      common/dllerr/dllsubr,dllmesg
-
 C Local variables (to protect info in common blovks)
       CHARACTER outs*124
       CHARACTER*(*) FILE
-      character dllsubr*12,dllmesg*124
       character louts*248
-      logical dll,ok,dok
+      logical ok,dok
       integer ndty
       character longtfile*144
 
@@ -1598,25 +1547,15 @@ C Local variables (to protect info in common blovks)
       call gethelptext(helpinsub,helptopic,nbhelp)
 
 C List out the file contents and then ask the user for agreement
-C and for the number of day types. First check if running in dll mode.
-      call isadll(dll)
-
-C Initialise project data file.
+C and for the number of day types. Initialise project data file.
       CALL EFOPSEQ(IUO,FILE,1,IER)
       IF(IER.NE.0)THEN
         write(louts,'(3a)') 'Operations file ',
      &    FILE(1:lnblnk(FILE)),' could not be opened.'
-        if(dll)then
-          dllsubr='ERZSCHED'
-          write(dllmesg,'(a)') louts(1:124)
-          ier=2
-          return
-        else
-          call edisp248(iuout,louts,100)
-          IER=1
-          RETURN
-        endif
-      ENDIF
+        call edisp248(iuout,louts,100)
+        IER=1
+        RETURN
+      endif
 
 C Display the contents of the file to the text feedback.
       call edisp(iuout,
@@ -1681,7 +1620,7 @@ C Electrical data flag and elctrical data.
       REAL PF,PWR,BVOLT
       COMMON/OVRWT/AUTOVR
       logical AUTOVR
-      logical isdynamic       ! true if reading a dynamicpeople
+      logical isdynamic       ! true if reading a dynamic_people
       logical close_a,close_b ! test if any ventilation directives 
       character tokens*156,comment*76,aligned_str*156
       character vctlstr*24
@@ -1879,7 +1818,7 @@ C and if lodslot is non-zero then write a *type line.
             WRITE(IUO,'(4A,3i4)',IOSTAT=IOS,ERR=1) '*type ',
      &        lodlabel(icomp,ir),' ',caskeytype(icomp,ir),
      &        lodslot(icomp,ir),lodatr1(icomp,ir),lodatr2(icomp,ir)
-            if(caskeytype(icomp,ir)(1:13).eq.'dynamicpeople')then
+            if(caskeytype(icomp,ir)(1:14).eq.'dynamic_people')then
                isdynamic=.true.  ! Signal different comments.
             endif
           endif         
@@ -1903,7 +1842,7 @@ C and if lodslot is non-zero then write a *type line.
      &          RADC(IDTY,I),CONC(IDTY,I),PF(IDTY,I),IPF(IDTY,I),
      &          PWR(IDTY,I),BVOLT(IDTY,I),IPHAS(IDTY,I) 
               ENDDO
-            else  ! Newer file format assume no dynamicpeople if electrical.
+            else  ! Newer file format assume no dynamic_people if electrical.
               WRITE(IUO,'(a,a)',IOSTAT=IOS,ERR=1)
      &        '# slot, period, sensible, latent, rad_frac, ',
      &        'conv_frac, pf, +/-, power, volt, phase'  
@@ -1934,10 +1873,11 @@ C and if lodslot is non-zero then write a *type line.
      &          '# slot, period, sensible, latent, rad_frac, conv_frac'
               endif
 
-C Key logic is to check caskeytype for each period for dynamicpeople.
+C Key logic is to check caskeytype for each period for dynamic_people.
               DO I = 1,NCAS(IDTY)
                 jicgt=iabs(ICGT(IDTY,I))
-                if(caskeytype(icomp,jicgt)(1:13).eq.'dynamicpeople')then
+                if(caskeytype(icomp,jicgt)(1:14).eq.
+     &             'dynamic_people')then
                   WRITE(IUO,'(3(I4,a),6(F6.2,a),F7.2,a,F7.2)',
      &              IOSTAT=IOS,ERR=1) ICGT(IDTY,I),',',
      &              ICGS(IDTY,I),',',ICGF(IDTY,I),
@@ -2456,7 +2396,7 @@ C        call edisp248(itru,oprdesc(icomp),100)
           IF(IELF(ICOMP).EQ.1) THEN
             DO 1269 I=1,NCAS(IDTY)
               jicgt=iabs(ICGT(IDTY,I))
-              if(caskeytype(icomp,jicgt)(1:13).eq.'dynamicpeople')then
+              if(caskeytype(icomp,jicgt)(1:14).eq.'dynamic_people')then
                 if(markdown)then
                   write(llbl2,'(4a)')lodlabel(ICOMP,jicgt)(1:10),
      &            ' ',caskeytype(icomp,jicgt)(1:10),' ocu'
@@ -2491,7 +2431,7 @@ C        call edisp248(itru,oprdesc(icomp),100)
                   endif
                 endif
               endif
-              if(caskeytype(icomp,jicgt)(1:13).eq.'dynamicpeople')then
+              if(caskeytype(icomp,jicgt)(1:14).eq.'dynamic_people')then
                 if(markdown)then
                   WRITE(outs,'(a,I3,1x,A,I3,a,I2,6F6.2,F8.2,F8.2,1x,
      &              F7.2,I3,F7.1,F7.1,I3)')
@@ -2538,7 +2478,7 @@ C No electrical data.
      &            idty,' gain ',I,' in zone ',ICOMP
                 goto 1270
               endif
-              if(caskeytype(icomp,jicgt)(1:13).eq.'dynamicpeople')then
+              if(caskeytype(icomp,jicgt)(1:14).eq.'dynamic_people')then
                 if(markdown)then
                   write(llbl2,'(4a)')lodlabel(ICOMP,jicgt)(1:10),
      &            ' ',caskeytype(icomp,jicgt)(1:10),' ocu'
@@ -2573,7 +2513,7 @@ C No electrical data.
                   endif
                 endif
               endif
-              if(caskeytype(icomp,jicgt)(1:13).eq.'dynamicpeople')then
+              if(caskeytype(icomp,jicgt)(1:14).eq.'dynamic_people')then
                 if(markdown)then
                   WRITE(outs,'(a,I4,2x,A,I4,a,I2,6F6.2,F11.2,F11.2)')
      &              calentag(idty)(1:10),I,llbl2,
@@ -3614,3 +3554,62 @@ C lights and small power.
       NBDAYTYPE=NBDAYTYPEHOLD  ! restore the origianl nb of day types
       RETURN
       END
+
+      
+C ******************** PIKCGTYP
+C Offers the user a choice of currently defined casual gain types.
+C Returns IWHICH=0 if cancel is selected or if there are no gain types.
+
+      SUBROUTINE PIKCGTYP(ICOMP,IWHICH,NBHELP)
+
+#include "building.h"
+#include "schedule.h"
+
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
+
+      character*12 ll1,ll2,ll3,ll4
+      character outs*124
+      logical ok
+      
+      ok=.false.
+      if (lodslot(icomp,1).gt.0) then
+        write(ll1,'(a)') lodlabel(icomp,1)
+        ok=.true.
+      else
+        write(ll1,'(a)') '-'
+      endif
+      if (lodslot(icomp,2).gt.0) then
+        write(ll2,'(a)') lodlabel(icomp,2)
+        ok=.true.
+      else
+        write(ll2,'(a)') '-'
+      endif
+      if (lodslot(icomp,3).gt.0) then
+        write(ll3,'(a)') lodlabel(icomp,3)
+        ok=.true.
+      else
+        write(ll3,'(a)') '-'
+      endif
+      if (lodslot(icomp,4).gt.0) then
+        write(ll4,'(a)') lodlabel(icomp,4)
+        ok=.true.
+      else
+        write(ll4,'(a)') '-'
+      endif
+      if (ok) then
+        itmp=IWHICH
+        CALL EASKATOG('Casual gain type?',' ',ll1,ll2,ll3,ll4,'cancel',
+     &    ' ',' ',itmp,nbhelp)
+        if (itmp.eq.5) then
+          IWHICH=0
+        else
+          IWHICH=itmp
+        endif
+      else
+        outs='No casual gain types defined for this zone.'
+        call edisp(IUOUT,outs)
+        IWHICH=0
+      endif
+
+      return
+      end

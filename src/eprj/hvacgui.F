@@ -70,7 +70,7 @@ C -------------------------------HVACGIN-------------------------------
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/rpath/path
       
-      CHARACTER path*72                !path
+      CHARACTER path*72                ! path
       CHARACTER hvacfile*72            ! hvac file name
       CHARACTER def_hvacfile*72        ! default hvac filename
       CHARACTER sfile*72               ! file name returned from browsefilelist (with file path)

@@ -455,8 +455,8 @@ C << it might not be necessary to set lodslot??? >>
           caskeytype(icomp,5)='net_utilities'  
           lodslot(icomp,5)=0; lodatr1(icomp,5)=0;  lodatr2(icomp,5)=0
           lodlabel(icomp,6)='Metabolic ' 
-          caskeytype(icomp,6)='dynamicpeople'  
-          lodslot(icomp,6)=0; lodatr1(icomp,6)=0;  lodatr2(icomp,6)=0
+          caskeytype(icomp,6)='dynamic_people'  
+          lodslot(icomp,6)=0; lodatr1(icomp,6)=3;  lodatr2(icomp,6)=0
           lodlabel(icomp,7)='N/A       '
           caskeytype(icomp,7)='-           '  
           lodslot(icomp,7)=0; lodatr1(icomp,7)=0;  lodatr2(icomp,7)=0
@@ -479,7 +479,7 @@ C Write file and return.
      &        'Updating model to reflect changes',
      &        'in zone operations data or file name...done.','-')
           ENDIF
-         return  
+          return  
         elseif(igu.eq.11)then
           goto 19
         elseif(igu.eq.12)then
@@ -3251,6 +3251,8 @@ C Electrical data flag and elctrical data.
 C How many of each gain type is there each zone/gaintype/daytype.
       common/loadcnt/loadcount(mcom,MGTY,MDTY),
      &  loadm2count(mcom,MGTY,MDTY),loadmixed(mcom,MGTY,MDTY)
+      common/dynamico/isdynamicocup(MCOM)
+
       logical browse,ok,silent,XST
       logical sorted,modopr
       integer ICGTS,IW  ! casual slot for radio buttons
@@ -3389,7 +3391,7 @@ C account ICGUnit and IELF attributes.
             write (VERT(M),303)KEY,ICGS(IDTYP,L),ICGF(IDTYP,L),
      &        lodlabel(icomp,jicgt),' m2p',CMGS(IDTYP,L),CMGL(IDTYP,L)
           endif
-        elseif(ICGUnit(IDTYP,L).eq.3)then  ! for dynamicpeople
+        elseif(ICGUnit(IDTYP,L).eq.3)then  ! for dynamic_people
           jicgt=iabs(ICGT(IDTYP,L))
           if (IELF(ICOMP).EQ.1) then
             if (PWR(IDTYP,L).gt.0.0001) then
@@ -3601,21 +3603,8 @@ C Add delete copy period or import full set of casual gains.
         if (IW.EQ.1) then 
 
 C Add new casual gain period.
-          ll1='-'; ll2='-'; ll3='-'; ll4='-'
-          if(lodslot(icomp,1).gt.0) write(ll1,'(a)') lodlabel(icomp,1)
-          if(lodslot(icomp,2).gt.0) write(ll2,'(a)') lodlabel(icomp,2)
-          if(lodslot(icomp,3).gt.0) write(ll3,'(a)') lodlabel(icomp,3)
-          if(lodslot(icomp,4).gt.0) write(ll4,'(a)') lodlabel(icomp,4)
-
-C << revise to offer selection of day types to apply new periods >>
-C << should be a menu which pairs the current user labels and types
-C << with the option to add another slot (label:type).
-
-C Check to see what the current units for for the selected
-C type and echo which type the user selected (easily forgotten)
-          CALL EASKATOG('New casual period for...','Confirm:',
-     &      ll1,ll2,ll3,ll4,'Cancel',' ',' ',ICGTS,nbhelp)
-          if (ICGTS.eq.5) goto 5  ! cancel request
+          call PIKCGTYP(icomp,icgts,nbhelp)
+          if (ICGTS.eq.0) goto 5  ! cancel request
           write(outs,'(5a)') 'Requested a new ',
      &      lodlabel(icomp,icgts),' ',caskeytype(icomp,icgts),
      &      ' period. Please supply details...'
@@ -3656,7 +3645,7 @@ C Ask about units prior to calling EDCASGN and reset icgts & icgus if required.
               igu=1; icgus=0
               CALL EASKATOG('For new gains the typical units will be',
      &          'Options:','Watts','Watts/m2','objects/m2->Watts',
-     &          'Square meters per object','Dynamic People',
+     &          'Square meters per object','Dynamic people',
      &          ' ',' ',IGU,nbhelp)
               if(IGU.eq.1)then
                 icgus=0
@@ -3859,13 +3848,14 @@ C Assign the next available slot.
 C Type to go with this casual gain.
           idno=islot
           isw=0
+          isdynamicocup(icomp)=0
           call MENUATOL('  ','Available types',
      &      'a -        not yet defined W & W/m2',
      &      'b people   basic occupant W & m2/p',
      &      'c lighting basic lighting W & W/m2',
      &      'd equipment basic small power W & W/m2',
      &      'e other    non-specific gains W & W/m2',
-     &      'f dynamicpeople nb people & metabolic',
+     &      'f dynamic_people nb people & metabolic',
      &      'g net_utilities as legacy icgtyp = 5',
      &      'h ALOtherElectric H3K other appliances',
      &      'i ALStoveNG H3K natural gas stoves',
@@ -3873,27 +3863,37 @@ C Type to go with this casual gain.
      &      'k ALDryer H3K clothes dryers',
      &      ' ',isw,idno,nbhelp)
           if(isw.eq.1)then
-            caskeytype(icomp,islot)='-           '
+            caskeytype(icomp,islot)='-               '
           elseif(isw.eq.2)then
-            caskeytype(icomp,islot)='people      '
+            caskeytype(icomp,islot)='people          '
           elseif(isw.eq.3)then
-            caskeytype(icomp,islot)='lighting    '
+            caskeytype(icomp,islot)='lighting        '
           elseif(isw.eq.4)then
-            caskeytype(icomp,islot)='equipment   '
+            caskeytype(icomp,islot)='equipment       '
           elseif(isw.eq.5)then
-            caskeytype(icomp,islot)='other       '  
+            caskeytype(icomp,islot)='other           '  
           elseif(isw.eq.6)then
-            caskeytype(icomp,islot)='dynamicpeople'  
+            caskeytype(icomp,islot)='dynamic_people  '  
+            iatr1=3
+            helptopic='dynamicpeople_model'
+            call gethelptext(helpinsub,helptopic,nbhelp)
+C            CALL EASKABCD('Which person model?',' ','CIBSE polynomial',
+C     &        'ASHRAE polynomial','two-node','segmented',iatr1,nbhelp)
+            CALL EASKABC('Which person model?',' ','CIBSE polynomial',
+     &        'ASHRAE polynomial','two-node',iatr1,nbhelp)
+            isdynamicocup(icomp)=iatr1
+            helptopic='operations_casual_labels'
+            call gethelptext(helpinsub,helptopic,nbhelp)
           elseif(isw.eq.7)then
-            caskeytype(icomp,islot)='net_utilities'  
+            caskeytype(icomp,islot)='net_utilities   '  
           elseif(isw.eq.8)then
-            caskeytype(icomp,islot)='ALOtherElectric'  
+            caskeytype(icomp,islot)='ALOtherElectric '  
           elseif(isw.eq.9)then
-            caskeytype(icomp,islot)='ALStoveNG   '  
+            caskeytype(icomp,islot)='ALStoveNG       '  
           elseif(isw.eq.10)then
-            caskeytype(icomp,islot)='ALStoveElectric'  
+            caskeytype(icomp,islot)='ALStoveElectric '  
           elseif(isw.eq.11)then
-            caskeytype(icomp,islot)='ALDryer     '  
+            caskeytype(icomp,islot)='ALDryer         '  
           endif
           lodslot(icomp,islot)=islot; lodatr1(icomp,islot)=iatr1
           lodatr2(icomp,islot)=0
@@ -3982,13 +3982,6 @@ C Set folder separator (fs) to \ or / as required.
       else
         fs = char(92)
       endif
-
-C Labels for loads.
-      ll1='-'; ll2='-'; ll3='-'; ll4='-'
-      if(lodslot(icomp,1).gt.0) write(ll1,'(a)') lodlabel(icomp,1)
-      if(lodslot(icomp,2).gt.0) write(ll2,'(a)') lodlabel(icomp,2)
-      if(lodslot(icomp,3).gt.0) write(ll3,'(a)') lodlabel(icomp,3)
-      if(lodslot(icomp,4).gt.0) write(ll4,'(a)') lodlabel(icomp,4)
 
 C Initial assumptions.
       ICGTX=1
@@ -4173,7 +4166,7 @@ C get data from common.
         CMGLX=0.
         if(caskeyt(1:6).eq.'people')then
           RADCX=0.6; CONCX=0.4
-        elseif(caskeyt(1:13).eq.'dynamicpeople')then
+        elseif(caskeyt(1:14).eq.'dynamic_people')then
           RADCX=0.6; CONCX=0.4
         elseif(caskeyt(1:8).eq.'lighting')then
           RADCX=0.3; CONCX=0.7
@@ -4415,7 +4408,7 @@ C Describe dynamic people:
 C number of men number of women, number
 C of children, avg metabolic rate, avg clothing level.
 
- 51     if(caskeyt(1:13).eq.'dynamicpeople')then
+ 51     if(caskeyt(1:14).eq.'dynamic_people')then
           xtnbmen=tnbmenx
           xtnbwomen=tnbwomenx
           xtnbchild=tnbchildx
@@ -4454,25 +4447,38 @@ C of children, avg metabolic rate, avg clothing level.
 
 C Other questions to enable testing the equations. << TODO >>
         call EASKR(xmetabolic,
-     &   'Average metabolic rate (with zero meaning none)?',
+     &   'Average metabolic rate (met)?',
      &   '  ',0.0,'W',10.0,'W',1.0,'metabolic rate',IERI,nbhelp)
         metabolicx=xmetabolic
-        call EASKR(xclo,
-     &   'Average cloting (clo) value (with zero meaning none)?',
-     &   '  ',0.0,'W',3.0,'W',1.0,'clo value',IERI,nbhelp)
+    
+        helptopic='operations_clo_model'
+        call gethelptext(helpinsub,helptopic,nbhelp)
+        call EASKAB('Clothing value?',' ','dynamic (default)',
+     &    'prescribed',ix,nbhelp)
+        if (ix.eq.1) then
+          xclo=-1.0
+        elseif (ix.eq.2) then
+          call EASKR(xclo,
+     &      'Clothing value (clo)?',
+     &      '  ',0.0,'W',3.0,'W',1.0,'clo value',IERI,nbhelp)
+        endif
         clox=xclo
+        helptopic='operations_dyppl_test'
+        call gethelptext(helpinsub,helptopic,nbhelp)
 C<< air velocity it may be used to calculate convective heat transfer from occupant
 c        call EASKR(xairvel,
 c     &   'Air velocity(m/s) value (with zero meaning none)?',
 c     &   '  ',0.0,'W',3.0,'W',1.0,'clo value',IERI,nbhelp)
 c        airvelx=xairvel
 C Ask about testing.
-        CALL EASKABC(' ','Test options:','DBT 20 MRT 20 RH 50',
-     &     'user defined MRT RH','cancel',ivopt,nbhelp)
+        CALL EASKABC('Estimate gains?','Options:',
+     &    'standard conditions','user defined conditions','cancel',
+     &    ivopt,nbhelp)
+        helptopic='operations_casual_data'
+        call gethelptext(helpinsub,helptopic,nbhelp)
         if(ivopt.eq.1)then
 C Tmix = CONV*Tair + RAD*Tmrt
-          TMIX=CONCX*20.0+RADCX*22.0
-          TOP=TMIX 
+          TOP=(20.0+22.0)/2.0
           if (metabolicx.GT.1.6)then  
             SGAIN=(-0.0471*TOP**2-3.3346*TOP+155.86)      ! When metabolic rate> 1.6 met
             LGAIN=(0.0729*TOP**2+1.7747*TOP+32.646)
@@ -4483,15 +4489,21 @@ C Tmix = CONV*Tair + RAD*Tmrt
             SGAIN=(-0.0577*TOP**2-2.8642*TOP+172.16)  ! When metabolic rate> 1.2 and <1.6 met
             LGAIN=(0.1231*TOP**2-1.8358*TOP+25.452)
           end if
-          write(6,*) 'dynamic sensible is ',SGAIN,' latent is',LGAIN,
-     &      ' for dbt mrt TMIX 20. 22. ',TMIX
+          write(outs,'(a,f5.1,a,f5.1,a,f5.1,a)')
+     &      'Estimated sensible is ',SGAIN,' W latent is ',LGAIN,
+     &      ' W for operative temperature ',TOP,' C.'
+          call edisp(IUOUT,outs)
         elseif(ivopt.eq.2)then
-          call EASKR(v1,'Test dry bulb temperature?',
-     &   '  ',0.0,'W',30.0,'W',1.0,'test drybulb',IERI,nbhelp)
-          call EASKR(v2,'Test MRT?',
-     &   '  ',0.0,'W',30.0,'W',1.0,'test mrt',IERI,nbhelp)
-          TMIX=CONCX*v1+RADCX*v2
-          TOP=TMIX 
+          v1=20.0
+          call EASKR(v1,'Test dry bulb temperature (C)?',
+     &   '  ',0.0,'W',30.0,'W',20.0,'test drybulb',IERI,nbhelp)
+          v2=22.0
+          call EASKR(v2,'Test MRT (C)?',
+     &   '  ',0.0,'W',30.0,'W',22.0,'test mrt',IERI,nbhelp)
+          v3=0.05
+          call EASKR(v3,'Test air velocity (m/s)?',
+     &   '  ',0.0,'W',1.0,'W',0.05,'test mrt',IERI,nbhelp)
+          TOP=(v2+(v1*sqrt(10*v3)))/(1+sqrt(10*v3))
           if (metabolicx.GT.1.6)then  
             SGAIN=(-0.0471*TOP**2-3.3346*TOP+155.86)      ! When metabolic rate> 1.6 met
             LGAIN=(0.0729*TOP**2+1.7747*TOP+32.646)
@@ -4502,8 +4514,10 @@ C Tmix = CONV*Tair + RAD*Tmrt
             SGAIN=(-0.0577*TOP**2-2.8642*TOP+172.16)  ! When metabolic rate> 1.2 and <1.6 met
             LGAIN=(0.1231*TOP**2-1.8358*TOP+25.452)
           end if
-          write(6,*) 'dynamic sensible is ',SGAIN,' latent is',LGAIN,
-     &      ' for dbt mrt TMIX',v1,v2,TMIX
+          write(outs,'(a,f5.1,a,f5.1,a,f5.1,a)')
+     &      'Estimated sensible is ',SGAIN,' W latent is ',LGAIN,
+     &      ' W for operative temperature ',TOP,' C.'
+          call edisp(IUOUT,outs)
         elseif(ivopt.eq.3)then
           continue
         endif
@@ -4901,7 +4915,7 @@ C << is it actually necessary to set these up now? >>
       lodlabel(idest,5)='Ann.El '  
       caskeytype(idest,5)='net_utilities'  
       lodlabel(idest,6)='Metabolic '  
-      caskeytype(idest,6)='dynamicpeople'  
+      caskeytype(idest,6)='dynamic_people'  
       lodlabel(idest,7)='N/A    ' 
       caskeytype(idest,7)='-           '  
   
@@ -5186,7 +5200,7 @@ C Save the destination operation file.
 C ********************* PLTCASGN *********************
 C PLTCASGN - plot casual gain data.
 
-C << for the case of dynamicpeople plot right axis as
+C << for the case of dynamic_people plot right axis as
 C << number of people rather than W/m2 (to be done)
 C << perhaps also a slightly different header
 
@@ -6224,6 +6238,7 @@ C adds a new casual gain and periods to an existing regime.
       INTEGER NBDAYTYPE,NBCALDAYS,ICALENDER,IDTY
       common/calena/calename,calentag(MDTY),calendayname(MDTY)
       CHARACTER CALENAME*32,CALENTAG*12,CALENDAYNAME*32
+      common/dynamico/isdynamicocup(MCOM)
       INTEGER ILN,nbper,igu
       dimension iper(24),iperf(24)
       character OUTS*12,LOUTS*24,VOUTS*50
@@ -6253,13 +6268,14 @@ C Explific type to go with this casual gain.
       idno=islot+1
       isw=0
       igu=1  ! assume watts as unit
+      isdynamicocup(icomp)=0
       call MENUATOL('  ','Available types',
      &  'a -        not yet defined W & W/m2',
      &  'b people   basic occupant W & m2/p',
      &  'c lighting basic lighting W & W/m2',
      &  'd equipment basic small power W & W/m2',
      &  'e other    non-specific gains W & W/m2',
-     &  'f dynamicpeople nb people & metabolic',
+     &  'f dynamic_people nb people & metabolic',
      &  'g net_utilities as legacy icgtyp = 5',
      &  'h ALOtherElectric H3K other appliances',
      &  'i ALStoveNG H3K natural gas stoves',
@@ -6299,18 +6315,22 @@ C Explific type to go with this casual gain.
      &    'Watts','Watts per square meter',
      &    'object/m2->Watts','not applicable',IGU,nbhelp)
       elseif(isw.eq.6)then
-        caskeytype(icomp,islot)='dynamicpeople'
+        caskeytype(icomp,islot)='dynamic_people'
         rf=0.6; cf=0.4  ! CIBSE Guide A 6.3
-        xiatr1=iatr1
-        CALL EASKI(xiatr1, 
-     &    'Number of model (1. CIBSE  2. E+   3. 2nodes', 
-     &    '4. detailed 25 body part)?',0,'W',100,'W',1,
-     &    'number of equation',IERI,nbhelp)
-          iatr1=xiatr1
-        CALL EASKABCD(' ',
-     &    'For metabolic dynamicpeople gains the units:',
-     &    'not applicable','not applicable',
-     &    'not applicable','number of people',IGU,nbhelp)
+        xiatr1=3
+        helptopic='dynamicpeople_model'
+        call gethelptext(helpinsub,helptopic,nbhelp)
+
+C Segmented model disabled until it can be made more robust.
+C        CALL EASKABCD('Which person model?',' ','CIBSE polynomial',
+C     &   'ASHRAE polynomial','two-node','segmented',xiatr1,nbhelp)
+        CALL EASKABC('Which person model?',' ','CIBSE polynomial',
+     &        'ASHRAE polynomial','two-node',iatr1,nbhelp)
+        isdynamicocup(icomp)=xiatr1
+        iatr1=xiatr1
+        helptopic='operations_initial'
+        call gethelptext(helpinsub,helptopic,nbhelp)
+        IGU=4 ! number of people units
       elseif(isw.eq.7)then
         caskeytype(icomp,islot)='net_utilities'  
         rf=0.5 ; cf=0.5 
@@ -6418,7 +6438,7 @@ C res can deal with 4 filled slots.
         if(islot.ge.4)then
           call usrmsg(
      &       'Four slots have been defined. This is the current',
-     &       'limit. You next task is to define magnitudes.','W')
+     &       'limit. Your next task is to define magnitudes.','W')
           return
         else
           CALL EASKOK(' ','Define another casual gain?',

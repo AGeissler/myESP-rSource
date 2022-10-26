@@ -34,14 +34,14 @@ C common/matpol.F: ENCPOL
 C Always checks the first polygon in the data structure.
       LOGICAL FUNCTION  INSIDEP(X,Y,IDIM,IAPNT,APOL)
 
-      DIMENSION  IAPNT(100),APOL(1000)
+      DIMENSION  APOL(1000)
 
       INSIDEP = .FALSE.
 
       LN=0
 
-      IP = IAPNT(1)
-      NP = INT(APOL(IP))
+      IP = IAPNT
+      NP = NINT(APOL(IP))
       IF (IDIM.eq.1) THEN
         KP1 = 1; KP2 = 2
       ELSEIF (IDIM.eq.2) THEN
@@ -97,14 +97,14 @@ C+++++++++++++++++++++++ INSIDEPNB
 C Variant of INSIDEP, that does not match if the point is on an edge.
       LOGICAL FUNCTION  INSIDEPNB(X,Y,IDIM,IAPNT,APOL)
 
-      DIMENSION  IAPNT(100),APOL(1000)
+      DIMENSION  APOL(1000)
 
       INSIDEPNB = .FALSE.
 
       LN=0
 
-      IP = IAPNT(1)
-      NP = INT(APOL(IP))
+      IP = IAPNT
+      NP = NINT(APOL(IP))
       IF (IDIM.eq.1) THEN
         KP1 = 1; KP2 = 2
       ELSEIF (IDIM.eq.2) THEN

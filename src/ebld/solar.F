@@ -173,6 +173,7 @@ C time rows. All units: W/m^2.
 #include "net_flow.h"
 #include "tdf2.h"
 #include "FMI.h"
+#include "control.h"
 
 C MSTMC - number of bidirectional datasets, limited to 20.
 C MSGAL - number of optical sets per optics db item. Set to 1 (later
@@ -193,13 +194,16 @@ C                 -90 to +90 in elevation and azimuth.
       COMMON/PREC12/EI(MCOM,MS),EE(MCOM,MS),AI(MCOM,MS),AE(MCOM,MS)
       COMMON/PRECTC/ITMCFL(MCOM,MS),TMCT(MCOM,MTMC,5),
      &       TMCA(MCOM,MTMC,ME,5),TMCREF(MCOM,MTMC),TVTR(MCOM,MTMC)
-      COMMON/PRECT2/TMCT2(MCOM,MTMC,5,MBP),TMCA2(MCOM,MTMC,ME,5,MBP),
-     &              TVTR2(MCOM,MTMC,MBP)
+      COMMON/PRECT2/TMCT2(MCOM,MTMC,5),TMCA2(MCOM,MTMC,ME,5),
+     &              TVTR2(MCOM,MTMC)
       COMMON/TMCB1/IBCMT(MCOM,MTMC)
-      COMMON/TMCB2/NBCTMC(MCOM,MTMC),IBCST(MCOM,MBP,MTMC),
-     &IBCFT(MCOM,MBP,MTMC),IBCSUR(MCOM,MTMC)
-      COMMON/TMCB3/NBCTT(MCOM,MBP,MTMC),BACTPT(MCOM,MBP,MTMC)
+      COMMON/TMCB2/NBCTMC(MCOM,MTMC),IBCST(MCOM,MTMC),
+     &IBCFT(MCOM,MTMC),IBCSUR(MCOM,MTMC)
+      COMMON/TMCB3/NBCTT(MCOM,MTMC),BACTPT(MCOM,MTMC)
       COMMON/TMCB4/IBOFOT(MCOM,MS),NBPONT(MCOM,MS),ECRAT(MCOM,MS)
+      COMMON/TMCO1/IOTMCFL(MCOM,MS)  ! associated optical control index
+      COMMON/TMCO2/IOCMT(MCOM,MTMC)  ! non-zero enables control
+      COMMON/OPTCTL/ICFO,IDTYPO,IPERO
       common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
       COMMON/CLIMI/QFP,QFF,TP,TF,QDP,QDF,VP,VF,DP,DF,HP,HF
       COMMON/SHAD2/ISHD(MCOM),IGCS(MCOM,MS),PO(MCOM,MS,MT),
@@ -210,6 +214,7 @@ C                 -90 to +90 in elevation and azimuth.
       COMMON/ADJC2/DIRT(MCOM,MS),DIFT(MCOM,MS),AIRT(MCOM,MS)
       COMMON/SUNPOS/SAZI,SALT,ISUNUP
       COMMON/FVALA/TFA(MCOM),QFA(MCOM)
+      COMMON/FVALS/TFS(MCOM,MS),QFS(MCOM)
       COMMON/COE32/QSOLI(MS,2),QSOLE(MS,2)
       COMMON/COE32I/QLOSSD(MCOM,MS),QLOSSF(MCOM,MS),
      &QLOSSA(MCOM,MS),QDOOR(MCOM)
@@ -427,8 +432,7 @@ C values; skip if iterating (and past first iteration).
       NC=NCONST(ICOMP)  ! number of surfaces in zone
       DO 10 I=1,NC
 
-C Internal opaque surface absorption
-C and internal window loss variables.
+C Clear internal opaque surface absorption & internal window loss variables.
         QIABS(I)=0.
         QLOSSD(ICOMP,I)=0.
         QLOSSF(ICOMP,I)=0.
@@ -475,9 +479,7 @@ C Initialise total flux entering zone
 
 C Initialise external solar flux for PV materials.
       DO 98 I=1,MS
-        EXRAD(I)=0.0
-        EXDIR(I)=0.0
-        EXDIF(I)=0.0
+        EXRAD(I)=0.0; EXDIR(I)=0.0; EXDIF(I)=0.0
 98    CONTINUE
 
 C Initialise 'remaining flux' for diffuse allocation
@@ -572,16 +574,14 @@ C Replace calculated values by measured values from file for selected
 C surfaces. Use the ratio of direct/diffuse as calculated to divide
 C the measured values into direct and diffuse components.
           if(vtsol)then
-
-C Check if it is a selected surface.
-            vsolfl=.false.
+            vsolfl=.false.  ! Check if it is a selected surface.
             do 141 iiii=1,mzs
               if (ipkzon(iiii).eq.icomp.and.
      &            ipksf(iiii).eq.ISRF) vsolfl=.true.
   141       continue
             if(vsolfl)then
 
-C First write out data into a temporary file for checking.
+C Write data into a temporary file for checking.
               CALL DAYCLK(IDYP,BTIMEF,42)
               write(42,*) 'zone number',icomp,' surface number',ISRF
               write(42,*)' Gh',QDF,' Dh',QFF
@@ -630,8 +630,8 @@ C Sum direct and diffuse components.
         ENDIF
    3  CONTINUE
 
-C TMC & WINDOW BLIND/SHUTTERS
-C Now we have the external radiation on each surface.
+C TMC & WINDOW BLIND/SHUTTER adaptations applied to
+C the known external radiation on each surface.
       DO 4 I=1,NC
         IF(ISHD(ICOMP).EQ.0.OR.ISHD(ICOMP).EQ.2)THEN
           POO=0.0
@@ -652,46 +652,246 @@ C****************************************************
 C If bidirectional, no control possible for the moment.
 C****************************************************
 
-C Test here if blind/shutter control is activated for this TMC.
+C Test if optical controls IOCMT or blind/shutter IBCMT
+C control embedded in tmc file are activated for this TMC.
+C A non-zero IOCMT is the optical control loop period.
         IF(ITMC.GT.0)then
-          if(IBCMT(ICOMP,ITMC).EQ.1)THEN
+          if(IOCMT(ICOMP,ITMC).ge.1)then
 
-C Window blind/shutter in place on this TMC. Test if it is active.
+C Optical control enabled at the current time for this tmc.
+C Test whether various sensed conditions are greater than
+C the setpoint from OMISCD. If so force IBOFOT to 1 and
+C also set NBPONT to 1 so that the first alternative optical
+C set in the tmc file is used.
+            loopo =IOTMCFL(ICOMP,I)       ! associated optical control loop
+            VO=OMISCD(loopo,IDTYPO,IPERO,2)
+            if(iosn(loopo,1).eq.1.and.iosn(loopo,2).gt.0)then  ! sensor attributes are for tmc control
+              if(iosn(loopo,3).eq.0)then  ! zone dbT
+                if(TFA(ICOMP).GT.OMISCD(loopo,IDTYPO,IPERO,2))then
+                  IBOFOT(ICOMP,I)=1
+                  NBPONT(ICOMP,I)=1
+              write(6,*) 'octl zone dbt exceeded',TFA(ICOMP),icomp,loopo,vo
+                endif
+              elseif(iosn(loopo,3).gt.0)then  ! surface T
+                if(TFS(ICOMP,iosn(loopo,3)).GT.
+     &            OMISCD(loopo,IDTYPO,IPERO,2))then
+                  IBOFOT(ICOMP,I)=1
+                  NBPONT(ICOMP,I)=1
+                endif
+              endif
+            elseif(iosn(loopo,1).eq.-2)then  ! mixed R/C sensing NOT YET CODED
+            elseif(iosn(loopo,1).eq.-3)then  ! ambient
+              if(iosn(loopo,2).eq.0)then     ! ambient dbT
+                if(TF.GT.OMISCD(loopo,IDTYPO,IPERO,2))then
+                  IBOFOT(ICOMP,I)=1
+                  NBPONT(ICOMP,I)=1
+                  write(6,*) 'octl amb dbt exceeded',
+     &              TF,icomp,loopo,vo
+                endif
+              elseif(iosn(loopo,2).eq.1)then ! sol-air temperature
+              elseif(iosn(loopo,2).eq.2)then ! wind speed VF
+                if(VF.GT.OMISCD(loopo,IDTYPO,IPERO,2))then
+                  IBOFOT(ICOMP,I)=1
+                  NBPONT(ICOMP,I)=1
+              write(6,*) 'octl wind spd exceeded',VF,icomp,loopo,vo
+                endif
+              elseif(iosn(loopo,2).eq.3)then ! wind direction DF
+                if(VF.GT.OMISCD(loopo,IDTYPO,IPERO,2))then
+                  IBOFOT(ICOMP,I)=1
+                  NBPONT(ICOMP,I)=1
+              write(6,*) 'octl wind dir exceeded',VF,icomp,loopo,vo
+                endif
+              elseif(iosn(loopo,2).eq.4)then ! dif hor rad QFF
+	        if(OMISCD(loopo,IDTYPO,IPERO,2).gt.1.0)then  ! ignore zero setpoint
+                  if(QFF.GT.OMISCD(loopo,IDTYPO,IPERO,2))then
+                    IBOFOT(ICOMP,I)=1
+                    NBPONT(ICOMP,I)=1
+                    write(6,*) 'octl dif hor exceeded',
+     &                VF,icomp,loopo,vo
+                  endif
+                endif
+              elseif(iosn(loopo,2).eq.5)then ! dir nor rad QDF
+	        if(OMISCD(loopo,IDTYPO,IPERO,2).gt.1.0)then  ! ignore zero setpoint
+                  if(QDF.GT.OMISCD(loopo,IDTYPO,IPERO,2))then
+                    IBOFOT(ICOMP,I)=1
+                    NBPONT(ICOMP,I)=1
+                    write(6,*) 'octl dir norm exceeded',
+     &                QDF,icomp,loopo,vo
+                  endif
+                endif
+              elseif(iosn(loopo,2).eq.6)then ! ext rel hum. HF
+	        if(OMISCD(loopo,IDTYPO,IPERO,2).gt.1.0)then  ! ignore zero setpoint
+                  if(HF.GT.OMISCD(loopo,IDTYPO,IPERO,2))then
+                    IBOFOT(ICOMP,I)=1
+                    NBPONT(ICOMP,I)=1
+                    write(6,*) 'octl RH exceeded',VF,icomp,loopo,vo
+                  endif
+                endif
+              endif
+            elseif(iosn(loopo,1).eq.-7)then  ! radiation at surf
+
+C Radiation activation: check which surface the sensor is on - if
+C IBCSUR()=0 then current surface.
+C POO/POO2 contains shading factor on corresponding opaque surface.
+              ISUR=iosn(loopo,3)
+              IF(ISUR.EQ.0)THEN
+                RAD=SRADDO(I)*(1.-POO)+SRADF(I)*(1-POFF)
+              ELSE
+                IF(ISHD(ICOMP).EQ.0.OR.ISHD(ICOMP).EQ.2)THEN
+                  POO2=0.0
+                  POFF2=0.0
+                ELSE
+                  POO2=PO(ICOMP,ISUR,IHRF)
+                  POFF2=POF(ICOMP,ISUR,IHRF)
+                ENDIF
+                RAD=SRADDO(ISUR)*(1.-POO2)+SRADF(ISUR)*(1.-POFF2)
+              ENDIF
+              IF(RAD.GT.OMISCD(loopo,IDTYPO,IPERO,2))THEN
+                IBOFOT(ICOMP,I)=1
+                NBPONT(ICOMP,I)=1
+                write(6,*) 'octl surf rad exceeded',RAD,icomp,loopo,vo
+              endif
+            elseif(iosn(loopo,1).eq.-8)then  ! daylight coef
+
+C Similar logic to line ~877 but with optical data types.
+              IBOFOT(ICOMP,I)=2
+              NBPONT(ICOMP,I)=1
+              NDCP =IOSN(loopo,3)
+              CALL MZSINT(ICOMP,QDIR,QDIF)
+              PI = 4.0 * ATAN(1.0)
+              RAD=PI/180.
+              call eclose(QDIF,0.00,0.01,closea)
+              if(closea.OR.(SALT.LT.0.))then
+                esky  = 0.; esun  = 0.;ELLUM = 0.
+              else
+                call LUMEFF(QDIF,QDIR,SALT,IDYP,skyeff,suneff)
+                esky=QDIF*skyeff
+                esun=QDIR*suneff
+                call REFILL(QDIF,QDIR,SALT,SAZI,IDYP,refell)
+                ang0=4.0*PI
+                sill = 0.0
+                do npatch = 1, 145
+                  dill=0.0
+                  call PATLUM(QDIF,QDIR,SALT,SAZI,IDYP,npatch,plv,ang)
+                  if(ang.lt.ang0)then
+                    nelem = npatch
+                    ang0 = ang
+                  endif
+                  plum=plv*esky/refell
+
+C If inconsistency (i.e. error) in irradiance data - plum < 0 set it to 0.
+                  if(plum.le.0.0)then
+                    if((npatch.ge.1).and.(npatch.le.30))then
+                      nzone = 1
+                    elseif((npatch.ge.31).and.(npatch.le.60))then
+                      nzone = 2
+                    elseif((npatch.ge.61).and.(npatch.le.84))then
+                      nzone = 3
+                    elseif((npatch.ge.85).and.(npatch.le.108))then
+                      nzone = 4
+                    elseif((npatch.ge.109).and.(npatch.le.126))then
+                      nzone = 5
+                    elseif((npatch.ge.127).and.(npatch.le.138))then
+                      nzone = 6
+                    elseif((npatch.ge.139).and.(npatch.le.144))then
+                      nzone = 7
+                    elseif(npatch.eq.145)then
+                      nzone = 8
+                    endif
+                    plum = esky/(2.0*PI*sin(alt(nzone)*rad))
+                    neglum = .true.
+                  else
+                    neglum = .false.
+                  endif
+                  dill=DCOEF(NDCP,1,npatch)*plum*(2.0*PI/145.0)
+                  sill = sill + dill
+                enddo
+                if(neglum)then
+                  write (outs,'(a)')
+     &     ' Sky patch luminance < = 0. Using uniform sky aproximation'
+                  call edisp(iuout,outs)
+                 write (outs,'(a,I3,a,f6.1,a,f6.1,a,f4.1)')' Day ',IDYP,
+     &           ' Direct ',QDIR,' Diffuse ',QDIF,' Sun altitude ',SALT
+                  call edisp(iuout,outs)
+                endif
+                call eclose(QDIR,0.00,0.01,closea)
+                if(closea)then
+                  dircon=0.0
+                else
+                  dircon=DCOEF(NDCP,1,nelem)*esun
+                endif
+                ELLUM = sill + dircon
+              endif
+              CALL eclose(ELLUM,0.00,0.01,closea)
+              IF(closea)then
+                TVT = TVTR(ICOMP,ITMC)
+              ELSE
+                TVT = 
+     &          (OMISCD(loopo,IDTYPO,IPERO,2)/ELLUM)*TVTR(ICOMP,ITMC)
+                IF(TVT.GE.TVTR(ICOMP,ITMC))THEN
+                  TVT = TVTR(ICOMP,ITMC)
+                ELSEIF(TVT.LE.TVTR2(ICOMP,ITMC))THEN
+                  TVT = TVTR2(ICOMP,ITMC)
+                ENDIF
+              ENDIF
+              ECRAT(ICOMP,I) = (TVT - TVTR2(ICOMP,ITMC))/
+     &                      (TVTR(ICOMP,ITMC)-TVTR2(ICOMP,ITMC))
+              write(6,*) 'octl daylight coef used',TVT,icomp,loopo
+            endif
+
+C Functional mock-up interface (FMI) as @ line ~1087.
+            if (FMUDOCTL(ICOMP,6)) then
+              call eclose(FMUCTL(ICOMP,6),0.0,0.001,bCloseToZero)
+              if (bCloseToZero) then
+                IBOFOT(ICOMP,I)=0
+                ECRAT(ICOMP,I)=1.
+                NBPONT(ICOMP,I)=0
+              else
+                IBOFOT(ICOMP,I)=1
+                ECRAT(ICOMP,I)=0.
+                NBPONT(ICOMP,I)=1
+              endif
+            endif
+            goto 42  ! jump past in-built tmc controls.
+          endif
+
+C Tmc file window blind/shutter logic for TMC. Test if it is active.
 C NP is no. of control periods for this TMC type.
+          if(IBCMT(ICOMP,ITMC).EQ.1)then
             NP=NBCTMC(ICOMP,ITMC)
             DO 5 K=1,NP
-              IT1=IBCST(ICOMP,K,ITMC)  ! period start
-              IT2=IBCFT(ICOMP,K,ITMC)  ! period end
+              IT1=IBCST(ICOMP,ITMC)  ! period start
+              IT2=IBCFT(ICOMP,ITMC)  ! period end
               IF(IHRF.GT.IT1.AND.IHRF.LE.IT2) THEN
-                IF(BACTPT(ICOMP,K,ITMC).LT.-98.0) THEN
+                IF(BACTPT(ICOMP,ITMC).LT.-98.0) THEN
 
 C No activation level.
                   IBOFOT(ICOMP,I)=1
                   ECRAT(ICOMP,I)=0.0
                   NBPONT(ICOMP,I)=K
-                ELSEIF(NBCTT(ICOMP,K,ITMC).EQ.-99) THEN
+                ELSEIF(NBCTT(ICOMP,ITMC).EQ.-99) THEN
 
 C Sensing time to swtich to alternative properties.
                   IBOFOT(ICOMP,I)=1
                   ECRAT(ICOMP,I)=0.0
                   NBPONT(ICOMP,I)=K
-                ELSEIF(NBCTT(ICOMP,K,ITMC).EQ.1) THEN
+                ELSEIF(NBCTT(ICOMP,ITMC).EQ.1) THEN
 
 C External air temperature activation.
-                  IF(TF.GT.BACTPT(ICOMP,K,ITMC))THEN
+                  IF(TF.GT.BACTPT(ICOMP,ITMC))THEN
                     IBOFOT(ICOMP,I)=1
                     ECRAT(ICOMP,I)=0.0
                     NBPONT(ICOMP,I)=K
                   ENDIF
-                ELSEIF(NBCTT(ICOMP,K,ITMC).EQ.2) THEN
+                ELSEIF(NBCTT(ICOMP,ITMC).EQ.2) THEN
 
 C Internal zone air temperature activation.
-                  IF(TFA(ICOMP).GT.BACTPT(ICOMP,K,ITMC))THEN
+                  IF(TFA(ICOMP).GT.BACTPT(ICOMP,ITMC))THEN
                     IBOFOT(ICOMP,I)=1
                     ECRAT(ICOMP,I)=0.0
                     NBPONT(ICOMP,I)=K
                   ENDIF
-                ELSEIF(NBCTT(ICOMP,K,ITMC).EQ.3) THEN
+                ELSEIF(NBCTT(ICOMP,ITMC).EQ.3) THEN
 
 C Maintain illuminance set point - daylight coefficient method
 C with linear interpolation of optical properties:
@@ -714,9 +914,7 @@ C Check if any diffuse irradiance and if sun is up - if not do not
 C calculate and set to zero:
                   call eclose(QDIF,0.00,0.01,closea)
                   if(closea.OR.(SALT.LT.0.))then
-                    esky  = 0.
-                    esun  = 0.
-                    ELLUM = 0.
+                    esky  = 0.; esun  = 0.; ELLUM = 0.
                   else
 
 C Direct normal and diffuse horizontal illuminance.
@@ -812,19 +1010,19 @@ C thermal zone.
                   IF(closea)then
                     TVT = TVTR(ICOMP,ITMC)
                   ELSE
-                    TVT = (BACTPT(ICOMP,K,ITMC)/ELLUM)*TVTR(ICOMP,ITMC)
+                    TVT = (BACTPT(ICOMP,ITMC)/ELLUM)*TVTR(ICOMP,ITMC)
                     IF(TVT.GE.TVTR(ICOMP,ITMC))THEN
                       TVT = TVTR(ICOMP,ITMC)
-                    ELSEIF(TVT.LE.TVTR2(ICOMP,ITMC,K))THEN
-                      TVT = TVTR2(ICOMP,ITMC,K)
+                    ELSEIF(TVT.LE.TVTR2(ICOMP,ITMC))THEN
+                      TVT = TVTR2(ICOMP,ITMC)
                     ENDIF
                   ENDIF
 
 C Calculate linear property change ratio for varying other
 C properties i.e. transmittance, absorptance and reflectance.
-                  ECRAT(ICOMP,I) = (TVT - TVTR2(ICOMP,ITMC,K))/
-     &                      (TVTR(ICOMP,ITMC)-TVTR2(ICOMP,ITMC,K))
-                ELSEIF(NBCTT(ICOMP,K,ITMC).EQ.4
+                  ECRAT(ICOMP,I) = (TVT - TVTR2(ICOMP,ITMC))/
+     &                      (TVTR(ICOMP,ITMC)-TVTR2(ICOMP,ITMC))
+                ELSEIF(NBCTT(ICOMP,ITMC).EQ.4
      &                 .AND.IBLND(ICOMP,I).GT.0) THEN
 
 C LIGHTSWITCH manual blind control. First set the resulting direct
@@ -871,7 +1069,7 @@ C POO/POO2 contains shading factor on corresponding opaque surface.
                     ENDIF
                     RAD=SRADDO(ISUR)*(1.-POO2)+SRADF(ISUR)*(1.-POFF2)
                   ENDIF
-                  IF(RAD.GT.BACTPT(ICOMP,K,ITMC))THEN
+                  IF(RAD.GT.BACTPT(ICOMP,ITMC))THEN
                     IBOFOT(ICOMP,I)=1
                     NBPONT(ICOMP,I)=K
                   ENDIF
@@ -897,9 +1095,10 @@ C blinds, and hence the FMU control value is synonymous with IBOFOT.
 
               ENDIF
    5        CONTINUE
-          endif
-        ENDIF
-    4 CONTINUE
+          endif     ! of IBCMT in-built tmc control
+  42      continue  ! jump point from optical control logic
+        ENDIF       ! test of surface being transparent
+   4  CONTINUE      ! surface loop
 
 C Update thermophysical properties. The control state is known
 C so call bcl99 to update properties of controlled windows.
@@ -997,39 +1196,27 @@ C Switch for surface name output.
 
           call AddToReport(
      &      rvSolarIncidentDirect%identifier,
-     &      SRADDO(I),
-     &      cZone_Chars,
-     &      cSurf_Chars)
+     &      SRADDO(I),cZone_Chars,cSurf_Chars)
 
           call AddToReport(
      &      rvSolarIncidentDiff%identifier,
-     &      SRADF(I),
-     &      cZone_Chars,
-     &      cSurf_Chars)
+     &      SRADF(I),cZone_Chars,cSurf_Chars)
 
           call AddToReport(
      &      rvShadingFractionDirect%identifier,
-     &      EXSHAD(I),
-     &      cZone_Chars,
-     &      cSurf_Chars)
+     &      EXSHAD(I),cZone_Chars,cSurf_Chars)
 
           call AddToReport(
      &      rvShadingFractionDiffuse%identifier,
-     &      EXSHADF(I),
-     &      cZone_Chars,
-     &      cSurf_Chars)
+     &      EXSHADF(I),cZone_Chars,cSurf_Chars)
 
           call AddToReport(
      &      rvSolarIncidentDirectShaded%identifier,
-     &      EXDIR(I),
-     &      cZone_Chars,
-     &      cSurf_Chars)
+     &      EXDIR(I),cZone_Chars,cSurf_Chars)
 
           call AddToReport(
      &      rvSolarIncidentDiffShaded%identifier,
-     &      EXDIF(I),
-     &      cZone_Chars,
-     &      cSurf_Chars)
+     &      EXDIF(I),cZone_Chars,cSurf_Chars)
 
           if ((SRADDO(I)+SRADF(I)).gt.0.) then
             SolIncAreaFrac=SNA(ICOMP,I)*(EXDIF(I)+EXDIR(I))/
@@ -1040,9 +1227,7 @@ C Switch for surface name output.
 
             call AddToReport(
      &        rvSolarShadeFrac%identifier,
-     &        SolIncAreaFrac,
-     &        cZone_Chars,
-     &        cSurf_Chars)
+     &        SolIncAreaFrac,cZone_Chars,cSurf_Chars)
 
         endif ! external?
 
@@ -1249,11 +1434,11 @@ C Control not possible at present for bi-directional case.
 C************************
               IF(IANS(I).EQ.0)THEN
                 IF(IBOFOT(ICOMP,I).EQ.2)THEN
-                  AMIN=TMCA2(ICOMP,ITMC,J,IND1(I),KP)
+                  AMIN=TMCA2(ICOMP,ITMC,J,IND1(I))
                   AMAX=TMCA(ICOMP,ITMC,J,IND1(I))
                   XX1=AMIN + (AMAX - AMIN)*ECRAT(ICOMP,I)
                 ELSEIF(IBOFOT(ICOMP,I).EQ.1)THEN
-                  XX1=TMCA2(ICOMP,ITMC,J,IND1(I),KP)
+                  XX1=TMCA2(ICOMP,ITMC,J,IND1(I))
                 ELSE
                   IF(IBIDIR.EQ.0) THEN
                    XX1=TMCA(ICOMP,ITMC,J,IND1(I))
@@ -1273,11 +1458,11 @@ C are less than the actual solar azimuth and elevation angles.
                   XX2=0.0
                 ELSE
                   IF(IBOFOT(ICOMP,I).EQ.2)THEN
-                    AMIN=TMCA2(ICOMP,ITMC,J,IND2(I),KP)
+                    AMIN=TMCA2(ICOMP,ITMC,J,IND2(I))
                     AMAX=TMCA(ICOMP,ITMC,J,IND2(I))
                     XX2=AMIN + (AMAX - AMIN)*ECRAT(ICOMP,I)
                   ELSEIF(IBOFOT(ICOMP,I).EQ.1)THEN
-                    XX2=TMCA2(ICOMP,ITMC,J,IND2(I),KP)
+                    XX2=TMCA2(ICOMP,ITMC,J,IND2(I))
                   ELSEIF(IBIDIR.EQ.0)THEN
                     XX2=TMCA(ICOMP,ITMC,J,IND2(I))
                   ELSE
@@ -1320,15 +1505,15 @@ C Now deal with diffuse absorbed radiation- not required for bi-directional
 C data as the diffuse transmittance is specified.
               IF(IBIDIR.EQ.0)THEN
                 IF(IBOFOT(ICOMP,I).EQ.2)THEN
-                  AMIN=TMCA2(ICOMP,ITMC,J,2,KP)
+                  AMIN=TMCA2(ICOMP,ITMC,J,2)
                   AMAX=TMCA(ICOMP,ITMC,J,2)
                   YY1=AMIN + (AMAX - AMIN)*ECRAT(ICOMP,I)
-                  AMIN=TMCA2(ICOMP,ITMC,J,3,KP)
+                  AMIN=TMCA2(ICOMP,ITMC,J,3)
                   AMAX=TMCA(ICOMP,ITMC,J,3)
                   YY2=AMIN + (AMAX - AMIN)*ECRAT(ICOMP,I)
                 ELSEIF(IBOFOT(ICOMP,I).EQ.1)THEN
-                  YY1=TMCA2(ICOMP,ITMC,J,2,KP)
-                  YY2=TMCA2(ICOMP,ITMC,J,3,KP)
+                  YY1=TMCA2(ICOMP,ITMC,J,2)
+                  YY2=TMCA2(ICOMP,ITMC,J,3)
                 ELSEIF(IBIDIR.EQ.0) THEN
                   YY1=TMCA(ICOMP,ITMC,J,2)
                   YY2=TMCA(ICOMP,ITMC,J,3)
@@ -1482,11 +1667,11 @@ C If IBOFOT()=2, then linear interpolation is ON - alternative values set.
             KP=NBPONT(ICOMP,I)
             IF(IANS(I).EQ.0)THEN
               IF(IBOFOT(ICOMP,I).EQ.2)THEN
-                STMIN=TMCT2(ICOMP,ITMC,IND1(I),KP)
+                STMIN=TMCT2(ICOMP,ITMC,IND1(I))
                 STMAX=TMCT(ICOMP,ITMC,IND1(I))
                 XX1=STMIN + (STMAX - STMIN)*ECRAT(ICOMP,I)
               ELSEIF(IBOFOT(ICOMP,I).EQ.1)THEN
-                XX1=TMCT2(ICOMP,ITMC,IND1(I),KP)
+                XX1=TMCT2(ICOMP,ITMC,IND1(I))
               ELSE
                  IF(IBIDIR.EQ.0) THEN
                    XX1=TMCT(ICOMP,ITMC,IND1(I))
@@ -1503,11 +1688,11 @@ C XX? is the direct-direct component; YY? is the direct-diffuse component
                 XX2=0
               ELSE
                 IF(IBOFOT(ICOMP,I).EQ.2)THEN
-                  STMIN=TMCT2(ICOMP,ITMC,IND2(I),KP)
+                  STMIN=TMCT2(ICOMP,ITMC,IND2(I))
                   STMAX=TMCT(ICOMP,ITMC,IND2(I))
                   XX2=STMIN + (STMAX - STMIN)*ECRAT(ICOMP,I)
                 ELSEIF(IBOFOT(ICOMP,I).EQ.1)THEN
-                  XX2=TMCT2(ICOMP,ITMC,IND2(I),KP)
+                  XX2=TMCT2(ICOMP,ITMC,IND2(I))
                 ELSEIF(IBIDIR.EQ.0)THEN
                   XX2=TMCT(ICOMP,ITMC,IND2(I))
                 ELSE
@@ -1558,15 +1743,15 @@ C Now for diffuse transmitted radiation - not required for bi-directional
 C data as the diffuse transmittance is specified.
             IF(IBIDIR.EQ.0)THEN
               IF(IBOFOT(ICOMP,I).EQ.2)THEN
-                STMIN=TMCT2(ICOMP,ITMC,2,KP)
+                STMIN=TMCT2(ICOMP,ITMC,2)
                 STMAX=TMCT(ICOMP,ITMC,2)
                 YY1=STMIN + (STMAX - STMIN)*ECRAT(ICOMP,I)
-                STMIN=TMCT2(ICOMP,ITMC,3,KP)
+                STMIN=TMCT2(ICOMP,ITMC,3)
                 STMAX=TMCT(ICOMP,ITMC,3)
                 YY2=STMIN + (STMAX - STMIN)*ECRAT(ICOMP,I)
               ELSEIF(IBOFOT(ICOMP,I).EQ.1)THEN
-                YY1=TMCT2(ICOMP,ITMC,2,KP)
-                YY2=TMCT2(ICOMP,ITMC,3,KP)
+                YY1=TMCT2(ICOMP,ITMC,2)
+                YY2=TMCT2(ICOMP,ITMC,3)
               ELSEIF(IBIDIR.EQ.0) THEN
                 YY1=TMCT(ICOMP,ITMC,2)
                 YY2=TMCT(ICOMP,ITMC,3)
@@ -3260,8 +3445,8 @@ C ABTOT is the total absorbed.
      &             NPGAP(MCOM,MS,MGP)
       COMMON/PRECTC/ITMCFL(MCOM,MS),TMCT(MCOM,MTMC,5),
      &       TMCA(MCOM,MTMC,ME,5),TMCREF(MCOM,MTMC),TVTR(MCOM,MTMC)
-      COMMON/PRECT2/TMCT2(MCOM,MTMC,5,MBP),TMCA2(MCOM,MTMC,ME,5,MBP),
-     &       TVTR2(MCOM,MTMC,MBP)
+      COMMON/PRECT2/TMCT2(MCOM,MTMC,5),TMCA2(MCOM,MTMC,ME,5),
+     &       TVTR2(MCOM,MTMC)
       COMMON/TMCB4/IBOFOT(MCOM,MS),NBPONT(MCOM,MS),ECRAT(MCOM,MS)
 
       COMMON/GR1D01/NNDS,NNDZ(MCOM),NNDC(MCOM,MS),NNDL(MCOM,MS,ME)
@@ -3277,15 +3462,15 @@ C Calculate relative absorptivities and transmission at 51 deg.
 
 C If IBOFOT()=1 the blind/shutter or If IBOFOT()=2 linear is on.
         IF (IBOFOT(ICOMP,ISUR).EQ.2) THEN
-          AMIN=TMCA2(ICOMP,ITMCFL(ICOMP,ISUR),LL,2,KP)
+          AMIN=TMCA2(ICOMP,ITMCFL(ICOMP,ISUR),LL,2)
           AMAX=TMCA(ICOMP,ITMCFL(ICOMP,ISUR),LL,2)
           XX1=AMIN + (AMAX - AMIN)*ECRAT(ICOMP,ISUR)
-          AMIN=TMCA2(ICOMP,ITMCFL(ICOMP,ISUR),LL,3,KP)
+          AMIN=TMCA2(ICOMP,ITMCFL(ICOMP,ISUR),LL,3)
           AMAX=TMCA(ICOMP,ITMCFL(ICOMP,ISUR),LL,3)
           XX2=AMIN + (AMAX - AMIN)*ECRAT(ICOMP,ISUR)
         ELSEIF(IBOFOT(ICOMP,ISUR).EQ.1) THEN
-          XX1=TMCA2(ICOMP,ITMCFL(ICOMP,ISUR),LL,2,KP)
-          XX2=TMCA2(ICOMP,ITMCFL(ICOMP,ISUR),LL,3,KP)
+          XX1=TMCA2(ICOMP,ITMCFL(ICOMP,ISUR),LL,2)
+          XX2=TMCA2(ICOMP,ITMCFL(ICOMP,ISUR),LL,3)
         ELSE
           XX1=TMCA(ICOMP,ITMCFL(ICOMP,ISUR),LL,2)
           XX2=TMCA(ICOMP,ITMCFL(ICOMP,ISUR),LL,3)
@@ -3294,15 +3479,15 @@ C If IBOFOT()=1 the blind/shutter or If IBOFOT()=2 linear is on.
         ABTOT=ABTOT+ABF(LL)
     1 CONTINUE
       IF (IBOFOT(ICOMP,ISUR).EQ.2) THEN
-        STMIN=TMCT2(ICOMP,ITMCFL(ICOMP,ISUR),2,KP)
+        STMIN=TMCT2(ICOMP,ITMCFL(ICOMP,ISUR),2)
         STMAX=TMCT(ICOMP,ITMCFL(ICOMP,ISUR),2)
         XX1=STMIN + (STMAX - STMIN)*ECRAT(ICOMP,ISUR)
-        STMIN=TMCT2(ICOMP,ITMCFL(ICOMP,ISUR),3,KP)
+        STMIN=TMCT2(ICOMP,ITMCFL(ICOMP,ISUR),3)
         STMAX=TMCT(ICOMP,ITMCFL(ICOMP,ISUR),3)
         XX2=STMIN + (STMAX - STMIN)*ECRAT(ICOMP,ISUR)
       ELSEIF (IBOFOT(ICOMP,ISUR).EQ.1) THEN
-        XX1=TMCT2(ICOMP,ITMCFL(ICOMP,ISUR),2,KP)
-        XX2=TMCT2(ICOMP,ITMCFL(ICOMP,ISUR),3,KP)
+        XX1=TMCT2(ICOMP,ITMCFL(ICOMP,ISUR),2)
+        XX2=TMCT2(ICOMP,ITMCFL(ICOMP,ISUR),3)
       ELSE
         XX1=TMCT(ICOMP,ITMCFL(ICOMP,ISUR),2)
         XX2=TMCT(ICOMP,ITMCFL(ICOMP,ISUR),3)
@@ -3617,17 +3802,17 @@ c given to continue with default treatment (ISHD=0)
 c applied to the zone.
  1000   WRITE(outs,2)I
     2   FORMAT('Zone',I3,', shading/insolation file cannot be opened.')
-        call usrmsg(' ',outs,'-')
+        call usrmsg(' ',outs,'W')
         goto 3
 
  1001   WRITE(outs,4)I
     4   FORMAT('Zone',I3,', bad data in shading/insolation file.')
-        call usrmsg(' ',outs,'-')
+        call usrmsg(' ',outs,'W')
         goto 3
 
  1002   WRITE(outs,5)I,IM
     5   FORMAT('Zone',I3,', no shading data for month',I3,'.')
-        call usrmsg(' ',outs,'-')
+        call usrmsg(' ',outs,'W')
 
     3   helptopic='ignore_shading_warning'
         call gethelptext(helpinsub,helptopic,nbhelp)
@@ -4073,7 +4258,7 @@ C Daylight coefficient patch altitudes.
                                         !for the different daylight setpoints and controls
                                         !(i.e. one for each of the 6 datasets for bidirectional sets)
       integer i_ctlZone  !This is used when the sensor is located to another zone and indicates
-                         !which zone. It will take the value of iosn(1,1).
+                         !which zone. It will take the value of iosn(?,1).
 
       common/caleni/nbdaytype,nbcaldays(MDTY),icalender(365)
       INTEGER NBDAYTYPE,NBCALDAYS,ICALENDER,NIN
@@ -4088,6 +4273,7 @@ C to use then use it. Otherwise use the first set.
 C Check that there is not any tdf bidirectional item associated with it
 C and that there are common optical controls
       elseif(IBIDIRS(ICOMP,ISURFNumber).eq.0.and.nof.gt.0)then
+
 C Determine year day number of present day
         IF(IHRP.NE.24) THEN
           IDAY=IDYP
@@ -4097,9 +4283,6 @@ C Determine year day number of present day
 
 C Process each optical control loop to test if it is active
         DO 100 iol=1,nof
-
-C<<<probably there is no need for this >>>>>
-          IOFP=iol
 
 C Set up day type and period pointers
           NDAYT=NOCDT(iol)
@@ -4129,7 +4312,7 @@ C If NDAYT=0 set data to all day types.
 
 C Check number of periods in each day and the start and finish times
    20     if(nin.le.-1.or.ndayt.lt.1)idtyp=icalender(iday)
-          NDAYP=NOCDP(IOFP,IDTYP)
+          NDAYP=NOCDP(iol,IDTYP)
           IF(NDAYP.EQ.0)then
             call edisp(iuout,' CONTRL: no day-periods defined')
             close(ieout)
@@ -4140,111 +4323,109 @@ C Check number of periods in each day and the start and finish times
           endif
           DO 22 IDAYP=1,NDAYP
             IPER=IDAYP
-            TOS=TOCPS(IOFP,IDTYP,IDAYP)
+            TOS=TOCPS(iol,IDTYP,IDAYP)
             IF(IDAYP.LT.NDAYP) THEN
-              TOF=TOCPS(IOFP,IDTYP,IDAYP+1)
+              TOF=TOCPS(iol,IDTYP,IDAYP+1)
             ELSE
               TOF=24.
             ENDIF
             if(BTIMEF.GT.TOS.AND.BTIMEF.LE.TOF)then
 
 C Call in the future here for different subroutines for different controls
-              ictl_constrdbindex_number=ioan(1,2)
+             ictl_constrdbindex_number=ioan(iol,2)
 
-              write(ctl_constrdb_name,'(a)')
+             write(ctl_constrdb_name,'(a)')
      &             mlcname(ictl_constrdbindex_number)
-              write(name_constr_ofStudy,'(a)')
+             write(name_constr_ofStudy,'(a)')
      &             SMLCN(icomp,ISURFNumber)
 
-C controls start here
-C<<< Consider changing ioan(1,1) in the future to ioan(iol,1)>>>>
-              if(ioan(1,1).eq.-5.and.ctl_constrdb_name(1:12).eq.
-     &           name_constr_ofStudy(1:12))then
-                if(ioclaw(1,IDTYP,IPER).eq.2)then
+C Bidirectional controls start here
+             if(ioan(iol,1).eq.-5.and.ctl_constrdb_name(1:12).eq.
+     &          name_constr_ofStudy(1:12))then
+               if(ioclaw(iol,IDTYP,IPER).eq.2)then
 
 C Current zone temperature sensor
-C<<<Check if instead if iosn(1,1) we should use iosn(iol,1) as in bcfunc.F>>>
-                  if(iosn(1,1).eq.0)then
+                 if(iosn(iol,1).eq.0)then
 
 C Allow max 6 setpoints and datasets to be used for the moment.
-                    if(TFA(ICOMP).GT.OMISCD(1,IDTYP,IPER,2))then
-                      ISET=int(OMISCD(1,IDTYP,IPER,3))
-                    elseif(TFA(ICOMP).GT.OMISCD(1,IDTYP,IPER,4))then
-                      ISET=int(OMISCD(1,IDTYP,IPER,5))
-                    elseif(TFA(ICOMP).GT.OMISCD(1,IDTYP,IPER,6))then
-                      ISET=int(OMISCD(1,IDTYP,IPER,7))
-                    elseif(TFA(ICOMP).GT.OMISCD(1,IDTYP,IPER,8))then
-                      ISET=int(OMISCD(1,IDTYP,IPER,9))
-                    elseif(TFA(ICOMP).GT.OMISCD(1,IDTYP,IPER,10))then
-                      ISET=int(OMISCD(1,IDTYP,IPER,11))
-                    elseif(TFA(ICOMP).GT.OMISCD(1,IDTYP,IPER,12))then
-                      ISET=int(OMISCD(1,IDTYP,IPER,13))
-                    else
-                      ISET=1
-                    endif
-                  elseif(iosn(1,1).eq.-3)then
+                   if(TFA(ICOMP).GT.OMISCD(iol,IDTYP,IPER,2))then
+                     ISET=int(OMISCD(iol,IDTYP,IPER,3))
+                   elseif(TFA(ICOMP).GT.OMISCD(iol,IDTYP,IPER,4))then
+                     ISET=int(OMISCD(iol,IDTYP,IPER,5))
+                   elseif(TFA(ICOMP).GT.OMISCD(iol,IDTYP,IPER,6))then
+                     ISET=int(OMISCD(iol,IDTYP,IPER,7))
+                   elseif(TFA(ICOMP).GT.OMISCD(iol,IDTYP,IPER,8))then
+                     ISET=int(OMISCD(iol,IDTYP,IPER,9))
+                   elseif(TFA(ICOMP).GT.OMISCD(iol,IDTYP,IPER,10))then
+                     ISET=int(OMISCD(iol,IDTYP,IPER,11))
+                   elseif(TFA(ICOMP).GT.OMISCD(iol,IDTYP,IPER,12))then
+                     ISET=int(OMISCD(iol,IDTYP,IPER,13))
+                   else
+                     ISET=1
+                   endif
+                 elseif(iosn(iol,1).eq.-3)then
 
 C Senses outside db.
 C Allow max 6 setpoints and datasets to be used for the moment.
-                    if(TF.GT.OMISCD(1,IDTYP,IPER,2))then
-                      ISET=int(OMISCD(1,IDTYP,IPER,3))
-                    elseif(TF.GT.OMISCD(1,IDTYP,IPER,4))then
-                      ISET=int(OMISCD(1,IDTYP,IPER,5))
-                    elseif(TF.GT.OMISCD(1,IDTYP,IPER,6))then
-                      ISET=int(OMISCD(1,IDTYP,IPER,7))
-                    elseif(TF.GT.OMISCD(1,IDTYP,IPER,8))then
-                      ISET=int(OMISCD(1,IDTYP,IPER,9))
-                    elseif(TF.GT.OMISCD(1,IDTYP,IPER,10))then
-                      ISET=int(OMISCD(1,IDTYP,IPER,11))
-                    elseif(TF.GT.OMISCD(1,IDTYP,IPER,12))then
-                      ISET=int(OMISCD(1,IDTYP,IPER,13))
-                    else
-                      ISET=1
-                    endif
+                   if(TF.GT.OMISCD(iol,IDTYP,IPER,2))then
+                     ISET=int(OMISCD(iol,IDTYP,IPER,3))
+                   elseif(TF.GT.OMISCD(iol,IDTYP,IPER,4))then
+                     ISET=int(OMISCD(iol,IDTYP,IPER,5))
+                   elseif(TF.GT.OMISCD(iol,IDTYP,IPER,6))then
+                     ISET=int(OMISCD(iol,IDTYP,IPER,7))
+                   elseif(TF.GT.OMISCD(iol,IDTYP,IPER,8))then
+                     ISET=int(OMISCD(iol,IDTYP,IPER,9))
+                   elseif(TF.GT.OMISCD(iol,IDTYP,IPER,10))then
+                     ISET=int(OMISCD(iol,IDTYP,IPER,11))
+                   elseif(TF.GT.OMISCD(iol,IDTYP,IPER,12))then
+                     ISET=int(OMISCD(iol,IDTYP,IPER,13))
+                   else
+                     ISET=1
+                   endif
 
 C Sense incident solar radiation on a surface
 C Find out first which surface
-                  elseif(iosn(1,1).eq.icomp.and.iosn(1,2).eq.
-     &                   ISURFNumber)then
+                 elseif(iosn(iol,1).eq.icomp.and.iosn(iol,2).eq.
+     &                  ISURFNumber)then
 
 C Calculate now radiation on the surface (as in MZSLGN)
 C First calculate the shading factor on the surface
 C Using the same calculation for POO and POFF as in MZSLGN
-                    if(ISHD(icomp).eq.0.or.ISHD(icomp).EQ.2)then
-                      shd_po_fctr_ctl=0.0
-                      shd_pof_fctr_ctl=0.0
-                    else
-                      shd_po_fctr_ctl=PO(ICOMP,ISURFNumber,IHRF)
-                      shd_pof_fctr_ctl=POF(ICOMP,ISURFNumber,IHRF)
-                    endif
-                    rad_on_surf=SRADDO*(1.-shd_po_fctr_ctl)
+                   if(ISHD(icomp).eq.0.or.ISHD(icomp).EQ.2)then
+                     shd_po_fctr_ctl=0.0
+                     shd_pof_fctr_ctl=0.0
+                   else
+                     shd_po_fctr_ctl=PO(ICOMP,ISURFNumber,IHRF)
+                     shd_pof_fctr_ctl=POF(ICOMP,ISURFNumber,IHRF)
+                   endif
+                   rad_on_surf=SRADDO*(1.-shd_po_fctr_ctl)
      &                         +SRADF*(1.-shd_pof_fctr_ctl)
 
 C Allow max 6 setpoints and datasets to be used for the moment.
-                    if(rad_on_surf.GT.OMISCD(1,IDTYP,IPER,2))then
-                      ISET=int(OMISCD(1,IDTYP,IPER,3))
-                    elseif(rad_on_surf.GT.OMISCD(1,IDTYP,IPER,4))then
-                      ISET=int(OMISCD(1,IDTYP,IPER,5))
-                    elseif(rad_on_surf.GT.OMISCD(1,IDTYP,IPER,6))then
-                      ISET=int(OMISCD(1,IDTYP,IPER,7))
-                    elseif(rad_on_surf.GT.OMISCD(1,IDTYP,IPER,8))then
-                      ISET=int(OMISCD(1,IDTYP,IPER,9))
-                    elseif(rad_on_surf.GT.OMISCD(1,IDTYP,IPER,10))then
-                      ISET=int(OMISCD(1,IDTYP,IPER,11))
-                    elseif(rad_on_surf.GT.OMISCD(1,IDTYP,IPER,12))then
-                      ISET=int(OMISCD(1,IDTYP,IPER,13))
-                    else
-                      ISET=1
-                    endif
+                   if(rad_on_surf.GT.OMISCD(iol,IDTYP,IPER,2))then
+                     ISET=int(OMISCD(iol,IDTYP,IPER,3))
+                   elseif(rad_on_surf.GT.OMISCD(iol,IDTYP,IPER,4))then
+                     ISET=int(OMISCD(iol,IDTYP,IPER,5))
+                   elseif(rad_on_surf.GT.OMISCD(iol,IDTYP,IPER,6))then
+                     ISET=int(OMISCD(iol,IDTYP,IPER,7))
+                   elseif(rad_on_surf.GT.OMISCD(iol,IDTYP,IPER,8))then
+                     ISET=int(OMISCD(iol,IDTYP,IPER,9))
+                   elseif(rad_on_surf.GT.OMISCD(iol,IDTYP,IPER,10))then
+                     ISET=int(OMISCD(iol,IDTYP,IPER,11))
+                   elseif(rad_on_surf.GT.OMISCD(iol,IDTYP,IPER,12))then
+                     ISET=int(OMISCD(iol,IDTYP,IPER,13))
+                   else
+                     ISET=1
+                   endif
 
 C ****ATTENTION:
 C The implementation here for the daylight coeffiecient method
-C is not a trivial task and is left for future work
+C is not a trivial task and is left for future work.
 C Sense lux via daylight coef method.
-                  elseif(iosn(1,1).eq.-8.AND.
+                 elseif(iosn(iol,1).eq.-8.AND.
      &                IBLND(ICOMP,ISURFNumber).GT.0)then
-                    continue
-                  elseif(iosn(1,1).eq.-9)then
+                   continue
+                 elseif(iosn(iol,1).eq.-9)then
 
 C Code taken from MZSLGN but not fully tested with bidirectional controls.
 C Calculates visible transmittance based on lux setpoint value
@@ -4253,8 +4434,8 @@ C transmittance from the set specified in the control file. It also returns the
 C set back to use for all bidirectional calculations
 
 C Find out first which surface
-                    if(iosn(1,2).eq.icomp.and.iosn(1,3).eq.
-     &                   ISURFNumber)then
+                   if(iosn(iol,2).eq.icomp.and.iosn(iol,3).eq.
+     &                ISURFNumber)then
 
 C Calculate sensor illuminance - daylight coefficient method:
 C Find which daylight coefficient set to use (use stage 1 i.e.
@@ -4262,220 +4443,219 @@ C maximal visible transmittance stage):
 
 C****Attention: NDCP assignment needs further testing
 C****is ISURFNumber for this assignment similar to the conventional TMC controls
-                      NDCP = ISURFNumber
-                    endif
+                     NDCP = ISURFNumber
+                   endif
 
 C Assume casual gains untouched and establish solar data for correct
 C time-row.  For conversion from radians to degrees.
-                    CALL MZSINT(ICOMP,QDIR,QDIF)
-
-                    PI = 4.0 * ATAN(1.0)
-                    RAD=PI/180.
+                   CALL MZSINT(ICOMP,QDIR,QDIF)
+                   PI = 4.0 * ATAN(1.0)
+                   RAD=PI/180.
 
 C Check if any diffuse irradiance and if sun is up - if not do not
 C calculate and set to zero:
-                    call eclose(QDIF,0.00,0.01,closea)
-                    if(closea.OR.(SALT.LT.0.))then
-                      esky  = 0.
-                      esun  = 0.
-                      ELLUM = 0.
-                    else
+                   call eclose(QDIF,0.00,0.01,closea)
+                   if(closea.OR.(SALT.LT.0.))then
+                     esky  = 0.; esun  = 0.; ELLUM = 0.
+                   else
 
 C Direct normal and diffuse horizontal illuminance:
-                      call LUMEFF(QDIF,QDIR,SALT,IDYP,skyeff,suneff)
-                      esky=QDIF*skyeff
-                      esun=QDIR*suneff
+                     call LUMEFF(QDIF,QDIR,SALT,IDYP,skyeff,suneff)
+                     esky=QDIF*skyeff; esun=QDIR*suneff
 
 C Calculate reference horizontal illuminance:
-                      call REFILL(QDIF,QDIR,SALT,SAZI,IDYP,refell)
+                     call REFILL(QDIF,QDIR,SALT,SAZI,IDYP,refell)
 
 C Define starting angle for test of sky element comprising sun:
-                      ang0=4.0*PI
+                     ang0=4.0*PI
 
 C Loop through all 145 sky patchs and calculate delta illuminance:
-                      sill = 0.0
-                      do 333 npatch = 1, 145
-                        dill=0.0
+                     sill = 0.0
+                     do 333 npatch = 1, 145
+                       dill=0.0
 
 C Calculate sky patch reference luminance:
-                        call PATLUM(QDIF,QDIR,SALT,SAZI,IDYP,npatch,plv,
-     &                    ang)
+                       call PATLUM(QDIF,QDIR,SALT,SAZI,IDYP,npatch,plv,
+     &                   ang)
 
 C Find sky element with minimum angle between sun position and element.
 C This identifies number of sky element for calculation of direct
 C illuminance contribution:
-                        if(ang.lt.ang0)then
-                          nelem = npatch
-                          ang0 = ang
-                        endif
+                       if(ang.lt.ang0)then
+                         nelem = npatch; ang0 = ang
+                       endif
 
 C Calculate luminance (cd/m^2) for given sky patch:
-                        plum=plv*esky/refell
+                       plum=plv*esky/refell
 
 C If inconsistency (i.e. error) in irradiance data - plum < 0 set it to 0:
-                        if(plum.le.0.0)then
-                          if((npatch.ge.1).and.(npatch.le.30))then
-                            nzone = 1
-                          elseif((npatch.ge.31).and.(npatch.le.60))then
-                            nzone = 2
-                          elseif((npatch.ge.61).and.(npatch.le.84))then
-                            nzone = 3
-                          elseif((npatch.ge.85).and.(npatch.le.108))then
-                            nzone = 4
-                          elseif((npatch.ge.109).and.(npatch.le.126))
-     &                      then
-                            nzone = 5
-                          elseif((npatch.ge.127).and.(npatch.le.138))
-     &                      then
-                            nzone = 6
-                          elseif((npatch.ge.139).and.(npatch.le.144))
-     &                      then
-                            nzone = 7
-                          elseif(npatch.eq.145)then
-                            nzone = 8
-                          endif
+                       if(plum.le.0.0)then
+                         if((npatch.ge.1).and.(npatch.le.30))then
+                           nzone = 1
+                         elseif((npatch.ge.31).and.(npatch.le.60))then
+                           nzone = 2
+                         elseif((npatch.ge.61).and.(npatch.le.84))then
+                           nzone = 3
+                         elseif((npatch.ge.85).and.(npatch.le.108))then
+                           nzone = 4
+                         elseif((npatch.ge.109).and.(npatch.le.126))
+     &                     then
+                           nzone = 5
+                         elseif((npatch.ge.127).and.(npatch.le.138))
+     &                     then
+                           nzone = 6
+                         elseif((npatch.ge.139).and.(npatch.le.144))
+     &                     then
+                           nzone = 7
+                         elseif(npatch.eq.145)then
+                           nzone = 8
+                         endif
 
 C Use aproximate solution assuming uniform sky luminance distribution
 C to estimate sky patch luminance:
-                          plum = esky/(2.0*PI*sin(alt(nzone)*rad))
-                          neglum = .true.
-                        else
-                          neglum = .false.
-                        endif
+                         plum = esky/(2.0*PI*sin(alt(nzone)*rad))
+                         neglum = .true.
+                       else
+                         neglum = .false.
+                       endif
 
 C Calculate delta illuminance at sensor from given sky patch:
-                        dill=DCOEF(NDCP,1,npatch)*plum*(2.0*PI/145.0)
-                        sill = sill + dill
-333                   continue
+                       dill=DCOEF(NDCP,1,npatch)*plum*(2.0*PI/145.0)
+                       sill = sill + dill
+333                  continue
 
 C Give warning about calculated negative luminance:
-                      if(neglum)then
-                        write (outs,'(a)')
+                     if(neglum)then
+                       write (outs,'(a)')
      &     ' Sky patch luminance < = 0. Using uniform sky aproximation'
-                        call edisp(iuout,outs)
-                        write (outs,'(a,I3,a,f6.1,a,f6.1,a,f4.1)')
+                       call edisp(iuout,outs)
+                       write (outs,'(a,I3,a,f6.1,a,f6.1,a,f4.1)')
      &                  ' Day ',IDYP,' Direct ',QDIR,' Diffuse ',QDIF,
      &                  ' Sun altitude ',SALT
                         call edisp(iuout,outs)
-                      endif
+                     endif
 
 C Check if any direct sun - if yes then calculate its contribution
 C into sensor illuminance:
-                      call eclose(QDIR,0.00,0.01,closea)
-                      if(closea)then
-                        dircon=0.0
-                      else
-                        dircon=DCOEF(NDCP,1,nelem)*esun
-                      endif
-                      ELLUM = sill + dircon
-                    endif
+                     call eclose(QDIR,0.00,0.01,closea)
+                     if(closea)then
+                       dircon=0.0
+                     else
+                       dircon=DCOEF(NDCP,1,nelem)*esun
+                     endif
+                     ELLUM = sill + dircon
+                   endif
 
 C Calculate necessary visible transmittance to maintain lux set point.
 C This works only for simple cases i.e. sensor illuminance proportional
 C to the visible transmittance of TMC - case with only one TMC type in
 C thermal zone:
-                    CALL eclose(ELLUM,0.00,0.01,closea)
-                    IF(closea)then
-                      TVT=TMVISUAL(1,1)
-                    else
+                   CALL eclose(ELLUM,0.00,0.01,closea)
+                   IF(closea)then
+                     TVT=TMVISUAL(1,1)
+                   else
 
 C ****ATTENTION:
 C The implementation here is not fully tested and has been put for experimental
 C and "tidy-up" reasons
-                      TVT=((OMISCD(1,IDTYP,IPER,2))/ELLUM)*TMVISUAL(1,1)
-                      TVT2=
-     &                 ((OMISCD(1,IDTYP,IPER,4))/ELLUM)*TMVISUAL(1,1)
-                      TVT3=
-     &                 ((OMISCD(1,IDTYP,IPER,6))/ELLUM)*TMVISUAL(1,1)
-                      TVT4=
-     &                 ((OMISCD(1,IDTYP,IPER,8))/ELLUM)*TMVISUAL(1,1)
-                      TVT5=
-     &                 ((OMISCD(1,IDTYP,IPER,10))/ELLUM)*TMVISUAL(1,1)
-                      TVT6=
-     &                 ((OMISCD(1,IDTYP,IPER,12))/ELLUM)*TMVISUAL(1,1)
-                      if(TVT.GT.TMVISUAL(1,int(OMISCD(1,IDTYP,IPER,3))))
-     &                  then
-                        TMVISUAL(1,int(OMISCD(1,IDTYP,IPER,3)))=TVT
-                        ISET=int(OMISCD(1,IDTYP,IPER,3))
-                      elseif(TVT.LE.
-     &                  TMVISUAL(1,int(OMISCD(1,IDTYP,IPER,3))))then
-                        if(TVT2.GT.
-     &                    TMVISUAL(1,int(OMISCD(1,IDTYP,IPER,5))))then
-                          TMVISUAL(1,int(OMISCD(1,IDTYP,IPER,5)))=TVT2
-                          ISET=int(OMISCD(1,IDTYP,IPER,5))
-                        elseif(TVT2.LE.
-     &                    TMVISUAL(1,int(OMISCD(1,IDTYP,IPER,5))))then
-                          if(TVT3.GT.
-     &                      TMVISUAL(1,int(OMISCD(1,IDTYP,IPER,7))))then
-                            TMVISUAL(1,int(OMISCD(1,IDTYP,IPER,7)))=TVT3
-                            ISET=int(OMISCD(1,IDTYP,IPER,7))
-                          elseif(TVT3.LE.
-     &                      TMVISUAL(1,int(OMISCD(1,IDTYP,IPER,7))))then
-                            if(TVT4.GT.
-     &                        TMVISUAL(1,int(OMISCD(1,IDTYP,IPER,9))))
-     &                        then
-                              TMVISUAL(1,int(OMISCD(1,IDTYP,IPER,9)))=
-     &                        TVT4
-                              ISET=int(OMISCD(1,IDTYP,IPER,9))
-                            elseif(TVT4.LE.
-     &                        TMVISUAL(1,int(OMISCD(1,IDTYP,IPER,9))))
-     &                        then
-                              if(TVT5.GT.
-     &                         TMVISUAL(1,int(OMISCD(1,IDTYP,IPER,11))))
-     &                          then
-                               TMVISUAL(1,int(OMISCD(1,IDTYP,IPER,11)))=
+                     TVT=
+     &                 ((OMISCD(iol,IDTYP,IPER,2))/ELLUM)*TMVISUAL(1,1)
+                     TVT2=
+     &                 ((OMISCD(iol,IDTYP,IPER,4))/ELLUM)*TMVISUAL(1,1)
+                     TVT3=
+     &                 ((OMISCD(iol,IDTYP,IPER,6))/ELLUM)*TMVISUAL(1,1)
+                     TVT4=
+     &                 ((OMISCD(iol,IDTYP,IPER,8))/ELLUM)*TMVISUAL(1,1)
+                     TVT5=
+     &                 ((OMISCD(iol,IDTYP,IPER,10))/ELLUM)*TMVISUAL(1,1)
+                     TVT6=
+     &                 ((OMISCD(iol,IDTYP,IPER,12))/ELLUM)*TMVISUAL(1,1)
+                     if(TVT.GT.
+     &                  TMVISUAL(1,int(OMISCD(iol,IDTYP,IPER,3))))then
+                       TMVISUAL(1,int(OMISCD(iol,IDTYP,IPER,3)))=TVT
+                       ISET=int(OMISCD(iol,IDTYP,IPER,3))
+                     elseif(TVT.LE.
+     &                 TMVISUAL(1,int(OMISCD(iol,IDTYP,IPER,3))))then
+                       if(TVT2.GT.
+     &                   TMVISUAL(1,int(OMISCD(iol,IDTYP,IPER,5))))then
+                         TMVISUAL(1,int(OMISCD(iol,IDTYP,IPER,5)))=TVT2
+                         ISET=int(OMISCD(iol,IDTYP,IPER,5))
+                       elseif(TVT2.LE.
+     &                   TMVISUAL(1,int(OMISCD(iol,IDTYP,IPER,5))))then
+                         if(TVT3.GT.
+     &                    TMVISUAL(1,int(OMISCD(iol,IDTYP,IPER,7))))then
+                          TMVISUAL(1,int(OMISCD(iol,IDTYP,IPER,7)))=TVT3
+                          ISET=int(OMISCD(iol,IDTYP,IPER,7))
+                         elseif(TVT3.LE.
+     &                    TMVISUAL(1,int(OMISCD(iol,IDTYP,IPER,7))))then
+                          if(TVT4.GT.
+     &                       TMVISUAL(1,int(OMISCD(iol,IDTYP,IPER,9))))
+     &                      then
+                             TMVISUAL(1,int(OMISCD(iol,IDTYP,IPER,9)))=
+     &                       TVT4
+                             ISET=int(OMISCD(iol,IDTYP,IPER,9))
+                          elseif(TVT4.LE.
+     &                      TMVISUAL(1,int(OMISCD(iol,IDTYP,IPER,9))))
+     &                      then
+                            if(TVT5.GT.
+     &                       TMVISUAL(1,int(OMISCD(iol,IDTYP,IPER,11))))
+     &                       then
+                             TMVISUAL(1,int(OMISCD(iol,IDTYP,IPER,11)))=
      &                          TVT5
-                                ISET=int(OMISCD(1,IDTYP,IPER,11))
-                              elseif(TVT5.LE.
-     &                         TMVISUAL(1,int(OMISCD(1,IDTYP,IPER,11))))
-     &                          then
+                               ISET=int(OMISCD(iol,IDTYP,IPER,11))
+                            elseif(TVT5.LE.
+     &                       TMVISUAL(1,int(OMISCD(iol,IDTYP,IPER,11))))
+     &                       then
 
 C Identation has been slightly changed here
-                                if(TVT6.GT.
-     &                         TMVISUAL(1,int(OMISCD(1,IDTYP,IPER,13))))
-     &                            then
-                               TMVISUAL(1,int(OMISCD(1,IDTYP,IPER,13)))=
-     &                            TVT6
-                                  ISET=int(OMISCD(1,IDTYP,IPER,13))
-                                else
-                                  continue
-                                endif
-                              endif
+                             if(TVT6.GT.
+     &                       TMVISUAL(1,int(OMISCD(iol,IDTYP,IPER,13))))
+     &                       then
+                             TMVISUAL(1,int(OMISCD(iol,IDTYP,IPER,13)))=
+     &                          TVT6
+                             ISET=int(OMISCD(iol,IDTYP,IPER,13))
+                             else
+                               continue
+                             endif
                             endif
                           endif
-                        endif
+                         endif
+                       endif
                       endif
-                    endif
+                   endif
 
-C Sense temperature in another zone
-                  elseif(iosn(1,1).gt.0.and.iosn(1,2).eq.0)then
+C Sense temperature in another zone.
+                 elseif(iosn(iol,1).gt.0.and.iosn(iol,2).eq.0)then
 
-C iosn(1,1) will specify which zone
-                    i_ctlZone=iosn(1,1)
+C iosn(?,1) will specify which zone
+                   i_ctlZone=iosn(iol,1)
 
 C Allow max 6 setpoints and datasets to be used for the moment.
-                    if(TFA(i_ctlZone).GT.OMISCD(1,IDTYP,IPER,2))then
-                      ISET=int(OMISCD(1,IDTYP,IPER,3))
-                    elseif(TFA(i_ctlZone).GT.OMISCD(1,IDTYP,IPER,4))then
-                      ISET=int(OMISCD(1,IDTYP,IPER,5))
-                    elseif(TFA(i_ctlZone).GT.OMISCD(1,IDTYP,IPER,6))then
-                      ISET=int(OMISCD(1,IDTYP,IPER,7))
-                    elseif(TFA(i_ctlZone).GT.OMISCD(1,IDTYP,IPER,8))then
-                      ISET=int(OMISCD(1,IDTYP,IPER,9))
-                    elseif(TFA(i_ctlZone).GT.OMISCD(1,IDTYP,IPER,10))
-     &                then
-                      ISET=int(OMISCD(1,IDTYP,IPER,11))
-                    elseif(TFA(i_ctlZone).GT.OMISCD(1,IDTYP,IPER,12))
-     &                then
-                      ISET=int(OMISCD(1,IDTYP,IPER,13))
-                    else
-                      ISET=1
-                    endif
+                   if(TFA(i_ctlZone).GT.OMISCD(iol,IDTYP,IPER,2))then
+                     ISET=int(OMISCD(iol,IDTYP,IPER,3))
+                   elseif(TFA(i_ctlZone).GT.
+     &                    OMISCD(iol,IDTYP,IPER,4))then
+                     ISET=int(OMISCD(iol,IDTYP,IPER,5))
+                   elseif(TFA(i_ctlZone).GT.
+     &                    OMISCD(iol,IDTYP,IPER,6))then
+                     ISET=int(OMISCD(iol,IDTYP,IPER,7))
+                   elseif(TFA(i_ctlZone).GT.
+     &                    OMISCD(iol,IDTYP,IPER,8))then
+                     ISET=int(OMISCD(iol,IDTYP,IPER,9))
+                   elseif(TFA(i_ctlZone).GT.
+     &                    OMISCD(iol,IDTYP,IPER,10))then
+                     ISET=int(OMISCD(iol,IDTYP,IPER,11))
+                   elseif(TFA(i_ctlZone).GT.
+     &                    OMISCD(iol,IDTYP,IPER,12))then
+                     ISET=int(OMISCD(iol,IDTYP,IPER,13))
+                   else
+                     ISET=1
+                   endif
 
 C End of all the bidirectional control options
-                  endif
-                endif
-              endif
+                 endif
+               endif
+             endif
             endif
   22      CONTINUE
  100    CONTINUE
@@ -4499,48 +4679,94 @@ C The main optical control function executive.
       common/caleni/nbdaytype,nbcaldays(MDTY),icalender(365)
       common/btime/btimep,btimef
       INTEGER NBDAYTYPE,NBCALDAYS,ICALENDER,NIN
-      integer N,iday,IFUNC
+      integer N,NP,iday,IFUNC
       logical inPeriod
 
-C Control functions active at present.
-      ICFO=ICOMP
-      ipero=0  ! clear value prior to test
+C Establish which optical control functions active at present.
+C Is there an optical loop that links with zone icomp?
+      if(NOF.eq.0) return
+      do j=1,NOF
+        if(IOAN(j,2).eq.icomp)then
+          ICFO=j   ! loop j actuates within zone icomp
 
 C If number of optical control day types are 0 then
 C same control on all day types.
-      N=NOCDT(ICFO) ! number of day types
-      iday=idyp
-      if(ihrp.eq.24)iday=idyf
-      if(N.eq.1)then ! All daytypes
-        IDTYPO=1
-      elseif(N.eq.0)then ! Follow calendar days
-        IDTYPO=ICALENDER(IDAY)
-      endif
+          N=NOCDT(ICFO) ! number of day types
+          iday=idyp
+          if(ihrp.eq.24)iday=idyf
+          if(N.eq.1)then ! All daytypes
+            IDTYPO=1
+          elseif(N.eq.0)then ! Follow calendar days
+            IDTYPO=ICALENDER(IDAY)
+          endif
+	
+C Is a control active at the current time?
+          np=nocdp(icfo,idtypo)
+          inPeriod=.false.
+          ipero=0  ! clear value prior to test
+          do 30 i=np,1,-1
+            if(.not.inPeriod.and.btimef.ge.tocps(icfo,idtypo,i))then
+              ipero=i
+              inPeriod=.true.
+            endif
+   30     continue
 
-      n=nocdp(icfo,idtypo)
-      inPeriod=.false.
-      do 30 i=n,1,-1
-        if(.not.inPeriod.and.btimef.ge.tocps(icfo,idtypo,i))then
-          ipero=i
-          inPeriod=.true.
+C If so invoke the control law specific logic.
+          if(ipero.gt.0.and.IDTYPO.gt.0)then
+            IFUNC=IABS(IOCLAW(ICFO,IDTYPO,ipero))
+            CtlLaw: select case (IFUNC)
+            case (0)     ! no optical control
+              call OCL00(icomp)
+            case (1)     ! timed on/off
+              call OCL01(icomp)
+            case (2)     ! tmc switching
+              call OCL02(icomp)
+            case (3)     ! bidirectional switching not yet implemented
+              call OCL01(icomp)
+            end select CtlLaw
+          endif
         endif
-   30 continue
+      enddo
 
-C If there is an optical control period then invoke the control logic.
-      if(ipero.gt.0.and.IDTYPO.gt.0)then
-        IFUNC=IABS(IOCLAW(ICFO,IDTYPO,ipero))
-        CtlLaw: select case (IFUNC)
-        case (1)
-          call OCL01(icomp)
-        end select CtlLaw
-      endif
+      return
+      end
+
+C ******************** OCL00
+C Un-set optical control of tmc by setting the flag IBCMDT=0
+
+      SUBROUTINE OCL00(icomp)
+
+#include "building.h"
+#include "control.h"
+
+      COMMON/OPTCTL/ICFO,IDTYPO,IPERO
+      COMMON/TMCB1/IBCMT(MCOM,MTMC)
+      COMMON/TMCO1/IOTMCFL(MCOM,MS)  ! associated optical control
+      COMMON/TMCO2/IOCMT(MCOM,MTMC)  ! non-zero enables control
+      COMMON/PREC9/NCONST(MCOM),NELTS(MCOM,MS),NGAPS(MCOM,MS),
+     &             NPGAP(MCOM,MS,MGP)
+      COMMON/PRECTC/ITMCFL(MCOM,MS),TMCT(MCOM,MTMC,5),
+     &       TMCA(MCOM,MTMC,ME,5),TMCREF(MCOM,MTMC),TVTR(MCOM,MTMC)
+      common/btime/btimep,btimef
+      integer NC
+
+      NC=NCONST(ICOMP)
+      Do 1 I=1,NC
+        ITMC=ITMCFL(ICOMP,I)
+        if(ITMC.gt.0)then
+          IBCMT(ICOMP,ITMC)=0
+          IOCMT(ICOMP,ITMC)=0
+C          write(6,*) 'ocl00 force off ',icomp,itmc,btimef
+        endif
+ 1    continue
 
       return
       end
 
 C ******************** OCL01
 C Set optical controls defined in (ahem?) constructions files on or off
-C This is done by setting the flag IBCMDT=1 or 0
+C This is done by setting the flag IBCMDT=1 or 0. To be depricated.
+
       SUBROUTINE OCL01(icomp)
 
 #include "building.h"
@@ -4548,10 +4774,13 @@ C This is done by setting the flag IBCMDT=1 or 0
 
       COMMON/OPTCTL/ICFO,IDTYPO,IPERO
       COMMON/TMCB1/IBCMT(MCOM,MTMC)
+      COMMON/TMCO1/IOTMCFL(MCOM,MS)  ! associated optical control
+      COMMON/TMCO2/IOCMT(MCOM,MTMC)  ! non-zero enables control
       COMMON/PREC9/NCONST(MCOM),NELTS(MCOM,MS),NGAPS(MCOM,MS),
      &             NPGAP(MCOM,MS,MGP)
       COMMON/PRECTC/ITMCFL(MCOM,MS),TMCT(MCOM,MTMC,5),
      &       TMCA(MCOM,MTMC,ME,5),TMCREF(MCOM,MTMC),TVTR(MCOM,MTMC)
+      common/btime/btimep,btimef
       integer NC,ISON
 
       ISON=nint(OMISCD(ICFO,IDTYPO,IPERO,2))
@@ -4560,6 +4789,53 @@ C This is done by setting the flag IBCMDT=1 or 0
         ITMC=ITMCFL(ICOMP,I)
         if(ITMC.gt.0)then
           IBCMT(ICOMP,ITMC)=ISON
+          IOCMT(ICOMP,ITMC)=ISON
+C          write(6,*) 'ocl01 force ',icomp,itmc,ISON,btimef
+        endif
+ 1    continue
+      return
+      end
+
+C ******************** OCL02
+C Set tmc optical controls available.
+
+      SUBROUTINE OCL02(icomp)
+
+#include "building.h"
+#include "control.h"
+
+      COMMON/OPTCTL/ICFO,IDTYPO,IPERO
+      COMMON/TMCB1/IBCMT(MCOM,MTMC)
+      COMMON/TMCO1/IOTMCFL(MCOM,MS)  ! associated optical control index
+      COMMON/TMCO2/IOCMT(MCOM,MTMC)  ! non-zero enables control
+      COMMON/PREC9/NCONST(MCOM),NELTS(MCOM,MS),NGAPS(MCOM,MS),
+     &             NPGAP(MCOM,MS,MGP)
+      COMMON/PRECTC/ITMCFL(MCOM,MS),TMCT(MCOM,MTMC,5),
+     &       TMCA(MCOM,MTMC,ME,5),TMCREF(MCOM,MTMC),TVTR(MCOM,MTMC)
+      common/btime/btimep,btimef
+      integer NC
+
+      NC=NCONST(ICOMP)
+
+C If the tmc is associated with a control then enable iocmt so that
+C in solar.F the setpoint can be checked.
+      Do 1 I=1,NC
+        ITMC=ITMCFL(ICOMP,I)    ! which tmc
+        IOTMC=IOTMCFL(ICOMP,I)  ! associated optical control loop
+        if(ITMC.ne.0.and.IOTMC.ne.0)then
+          if(IOAN(iotmc,2).eq.icomp.and.
+     &       IOAN(iotmc,3).eq.itmc)then
+            if(IOCLAW(ICFO,IDTYPO,IPERO).eq.0)then
+              IOCMT(ICOMP,ITMC)=0 ! ctl law 0 forces std optics
+            else
+              IOCMT(ICOMP,ITMC)=ipero ! enable for this tmc
+C              write(6,*) 'ocl02 enable',icomp,itmc,ipero,' @',btimef
+            endif
+          else
+            IOCMT(ICOMP,ITMC)=0 ! disable
+          endif
+        else
+          IOCMT(ICOMP,ITMC)=0   ! disable
         endif
  1    continue
 

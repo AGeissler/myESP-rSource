@@ -3508,8 +3508,9 @@ C
 C To be edited to include increased data entry nos. 
 
 C Establish static data derivable from the data read from database
-      DO 10 IDAT=4,36
-10      BDATA(IPCOMP,IDAT-3)=ADATA(IPCOMP,IDAT)
+      DO IDAT=4,36
+        BDATA(IPCOMP,IDAT-3)=ADATA(IPCOMP,IDAT)
+      ENDDO
 
 C Initialise parameters      
       InDeadB=.false.
@@ -3885,8 +3886,9 @@ C
 C To be edited to include increased data entry nos. 
 
 C Establish static data derivable from the data read from database
-      DO 10 IDAT=4,33
-10      BDATA(IPCOMP,IDAT-3)=ADATA(IPCOMP,IDAT)
+      DO IDAT=4,33
+        BDATA(IPCOMP,IDAT-3)=ADATA(IPCOMP,IDAT)
+      ENDDO
 
 C Initialise parameters      
       InDeadB=.false.
@@ -4160,8 +4162,9 @@ C
 C To be edited to include increased data entry nos. 
 
 C Establish static data derivable from the data read from database
-      DO 10 IDAT=4,34
-10      BDATA(IPCOMP,IDAT-3)=ADATA(IPCOMP,IDAT)
+      DO IDAT=4,34
+        BDATA(IPCOMP,IDAT-3)=ADATA(IPCOMP,IDAT)
+      ENDDO
 
 C Initialise parameters      
       InDeadB=.false.
@@ -4478,8 +4481,9 @@ C----------------
       CHARACTER OUTS*248
 
 C Establish static data derivable from the data read from database
-      DO 10 IDAT=4,51
-10      BDATA(IPCOMP,IDAT-3)=ADATA(IPCOMP,IDAT)
+      DO IDAT=4,51
+        BDATA(IPCOMP,IDAT-3)=ADATA(IPCOMP,IDAT)
+      ENDDO
 
 C Initialise parameters
       InDeadB=.false.

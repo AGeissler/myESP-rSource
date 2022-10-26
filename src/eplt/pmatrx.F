@@ -326,16 +326,17 @@ C must be altered
 
 C See if new parameters have been specified for this component
          IF(NPI(IPCOMP).GT.0) THEN
-            DO 707 ITEM=1,NMISC
-  707          ADATA(IPCOMP,ITEM)=TADATA(IPCOMP,ITEM)
+            DO ITEM=1,NMISC
+              ADATA(IPCOMP,ITEM)=TADATA(IPCOMP,ITEM)
+            ENDDO
 
 C If no then read default values.
          ELSE
-            do 24 item=1, nmisc
+            do item=1, nmisc
                irec=irec+1
                read(iunit,rec=irec,iostat=istat,err=994)
      &             dumstr,adata(ipcomp,item)
-   24       continue
+            enddo
          ENDIF
 
 C Fill the general plant component array
@@ -373,9 +374,9 @@ C coefficients; in defining connections between nodes, the operative
 C word is 'receive'.
 C First reset each node's connection counter KNHIT
          NCNS=0
-         DO 30 INOD=1,NNODE
+         DO INOD=1,NNODE
             KNHIT(INOD)=0
-   30    CONTINUE
+         ENDDO
          IF(NPCON.GT.0) THEN
             DO 39 IPCON=1,NPCON
 
@@ -409,11 +410,11 @@ C which is only possible in case of a type 3 inter-connection
          END IF
 
 C Establish component/node identification arrays IDENC and IDENN
-         DO 40 INOD=1,NNODE
+         DO INOD=1,NNODE
             INN=NPCDAT(IPCOMP,9)+INOD-1
             IDENC(INN)=IPCOMP
             IDENN(INN)=INOD
-   40    CONTINUE
+         ENDDO
 
 C Now set number of coefficients external to component
          NPCDAT(IPCOMP,7)=NCNS
@@ -474,9 +475,9 @@ C IFLD1/2 will be 0 for water, 1 for air, 9 for solid nodes
 
 C Get component connection coefficient positions IPOFS1 & IPOFS2,
 C first reset KNHIT
-      DO 72 IPNODE=1,MPNODE
-      KNHIT(IPNODE)=0
-   72 CONTINUE
+      DO IPNODE=1,MPNODE
+        KNHIT(IPNODE)=0
+      ENDDO
       IF(NPCON.GT.0) THEN
          DO 75 IPCON=1,NPCON
          IP1=IPC1(IPCON)
@@ -536,14 +537,16 @@ C in the matrix
       NPNOD=NPCDAT(NPCOMP,9)+NPCDAT(NPCOMP,8)-1
 
 C Set up pointer arrays ICONDX and ICONTP. First zeroize IC and ICONDX
-      DO 80 IPNODE=1,MPNODE
-      IC(IPNODE)=0
-   80 CONTINUE
-      DO 82 IPCOM=1,MPCOM
-      DO 82 INODEC=1,MNODEC
-      DO 82 IPCONC=1,MPCONC
-      ICONDX(IPCOM,INODEC,IPCONC)=0
-   82 CONTINUE
+      DO IPNODE=1,MPNODE
+        IC(IPNODE)=0
+      ENDDO
+      DO IPCOM=1,MPCOM
+        DO INODEC=1,MNODEC
+          DO IPCONC=1,MPCONC
+            ICONDX(IPCOM,INODEC,IPCONC)=0
+          ENDDO
+        ENDDO
+      ENDDO
 
 C IN defines the row location of the receiving node, that is the unique
 C node number. And so IC(IN) gives a counter for node connections in
@@ -601,19 +604,19 @@ C not have mass diversion ratios, PCONDR, which do not sum to unity.
 C If it does, this means that some mass is being lost from this node.
 C Note that this is not a fatal error. For example, there may be air
 C exhaust to outside. First reset each node's PCONDR-sum ZDR
-      DO 90 IPNOD=1,NPNOD
-      ZDR(IPNOD)=0.0
-   90 CONTINUE
+      DO IPNOD=1,NPNOD
+        ZDR(IPNOD)=0.0
+      ENDDO
 
 C Find pointers to diagonal terms.
 C Store in array iptrd.
       irow=1
-      do 120 icn=1,npmcoe
+      do icn=1,npmcoe
          if(ipofs2(icn,1).eq.ipofs1(icn)) then
             iptrd(irow)=icn
             irow=irow+1
          endif
-  120 continue
+      enddo
 
 C For each balance state, find required number
 C of new non-zero coefficients. Store pointers
@@ -700,7 +703,7 @@ C Note that PCONDR is set to 1 in case fluid mass flow solver active
              K=NPCDAT(IPC2(IPCON),9)+IPN2(IPCON)-1
              ZDR(K)=ZDR(K)+PCONDR(IPCON)
            ENDIF
-   92    CONTINUE
+  92     CONTINUE
 
          DO 94 IPNOD=1,NPNOD
            IF(IFLWN.EQ.0.OR.ICFFS(IPCON).EQ.0) THEN
@@ -1631,10 +1634,11 @@ C Now insert the present time-row coefficient (for each component node)
 C in ZMAT vector
       J01=NCOE+1
       J02=NCOE+NPCDAT(IPCOMP,8)
-      DO 12 JCOE=J01,J02
+      DO JCOE=J01,J02
         ZMAT(NXTZ)=OUT(JCOE)
         NXTZ=NXTZ+1
-   12 CONTINUE
+      ENDDO
+
 C Next component
    19 CONTINUE
 
@@ -1753,23 +1757,24 @@ C Trace output
       END IF
 
 C Create RHS vector from ZMAT vector
-      DO 14 I=1,NPNOD
-      RHS(I)=ZMAT(I)
-   14 CONTINUE
+      DO I=1,NPNOD
+        RHS(I)=ZMAT(I)
+      ENDDO
 
 C Create ACOEFS matrix from IPOFS1, IPOFS2 and PC vectors,
 C Do this only for solvers type 2 or 3.
       if(ipmslv.eq.2.or.ipmslv.eq.3) then
-         DO 10 I=1,NPNOD
-            DO 10 J=1,NPNOD
+        DO I=1,NPNOD
+          DO J=1,NPNOD
             ACOEFS(I,J)=0.0
-   10    CONTINUE
-         DO 102 I=1,NPMCOE
-            IF(IPOFS2(I,ISTATS).LT.0) GOTO 102
-            J=IPOFS1(I)
-            K=IPOFS2(I,ISTATS)
-            ACOEFS(J,K)=PC(I)
-  102    CONTINUE
+          ENDDO
+        ENDDO
+        DO 102 I=1,NPMCOE
+          IF(IPOFS2(I,ISTATS).LT.0) GOTO 102
+          J=IPOFS1(I)
+          K=IPOFS2(I,ISTATS)
+          ACOEFS(J,K)=PC(I)
+  102   CONTINUE
       endif
 
 C Trace output
@@ -1778,25 +1783,26 @@ C Trace output
          WRITE(ITU,*) ' Subroutine MZPMSV        Trace output ',ICNT
          ICNT=ICNT+1
          CALL DAYCLK(IDYP,PTIMEF,ITU)
-         DO 101 I=1,NPNOD
-           DO 101 J=1,NPNOD
-              ACOEFS(I,J)=0.0
-  101    CONTINUE
+         DO I=1,NPNOD
+           DO J=1,NPNOD
+             ACOEFS(I,J)=0.0
+           ENDDO
+         ENDDO
 
 C Create ACOEFS matrix from IPOFS1, IPOFS2 and PC vectors,
          DO 112 I=1,NPMCOE
-            IF(IPOFS2(I,ISTATS).LT.0) GOTO 112
-            J=IPOFS1(I)
-            K=IPOFS2(I,ISTATS)
-            ACOEFS(J,K)=PC(I)
+           IF(IPOFS2(I,ISTATS).LT.0) GOTO 112
+           J=IPOFS1(I)
+           K=IPOFS2(I,ISTATS)
+           ACOEFS(J,K)=PC(I)
   112    CONTINUE
 
 C Dump ACOEFS matrix
          WRITE(ITU,*) ' ACOEFS matrix (first 10 coeff./equation only)',
      &                ' for ISTATS = ',ISTATS
-         DO 16 IPNOD=1,NPNOD
-         WRITE(ITU,1016) (ACOEFS(IPNOD,JPNOD),JPNOD=1,MIN(100,NPNOD))
-   16    CONTINUE
+         DO IPNOD=1,NPNOD
+           WRITE(ITU,1016) (ACOEFS(IPNOD,JPNOD),JPNOD=1,MIN(100,NPNOD))
+         ENDDO
  1016    FORMAT(10G11.4)
 C Dump RHS vector
          WRITE(ITU,*) ' RHS vector'
@@ -1807,24 +1813,25 @@ C Now solve {SSV} from matrix equation {PC} {SSV} = {RHS}
       IF(IPMSLV.EQ.1) THEN
 
 C Initialise new non-zero elements beyond npmcoe.
-         do 777 j=npmcoe+1, ntcoe
- 777     pc(j)=0.0
+         do j=npmcoe+1, ntcoe
+           pc(j)=0.0
+         enddo
          call cmaslv(pc,rhs,ntcoe,npnod,istats)
 
 C Relocate matrix solution vector results in CSVF arrays
 C Loop over all nodes in the plant network
-         DO 300 IPNOD=1,NPNOD
-            CSVF(IPNOD,ISTATS)=rhs(IPNOD)
-  300    CONTINUE
+         DO IPNOD=1,NPNOD
+           CSVF(IPNOD,ISTATS)=rhs(IPNOD)
+         ENDDO
          goto 717
 
 C Or solve {SSV} from matrix equation {ACOEFS} {SSV} = {RHS}
       ELSE IF(IPMSLV.EQ.2) THEN
          CALL LUDCMS(ACOEFS,NPNOD,MPNODE,INDX,D)
          CALL LUBKSS(ACOEFS,NPNOD,MPNODE,INDX,RHS)
-         DO 20 IPNOD=1,NPNOD
-         SSV(IPNOD)=RHS(IPNOD)
-   20    CONTINUE
+         DO IPNOD=1,NPNOD
+           SSV(IPNOD)=RHS(IPNOD)
+         ENDDO
       ELSEIF(IPMSLV.EQ.3) THEN
          CALL JSOLVS(ACOEFS,NPNOD,MPNODE,SSV,RHS)
       else
@@ -1833,9 +1840,9 @@ C Or solve {SSV} from matrix equation {ACOEFS} {SSV} = {RHS}
 
 C Relocate matrix solution vector results in CSVF arrays
 C Loop over all nodes in the plant network
-      DO 30 IPNOD=1,NPNOD
-      CSVF(IPNOD,ISTATS)=SSV(IPNOD)
-   30 CONTINUE
+      DO IPNOD=1,NPNOD
+        CSVF(IPNOD,ISTATS)=SSV(IPNOD)
+      ENDDO
 
 C Trace output continued
  717     IF(ITC.GT.0.AND.NSINC.GE.ITC.AND.NSINC.LE.ITCF.AND.
@@ -2012,8 +2019,9 @@ C the backward substitution phase.
       data ising/0/
 
 C Forward reduce matrix A.
-      DO 10 I=2,N
-   10 A(1,I)=A(1,I)/A(1,1)
+      DO I=2,N
+        A(1,I)=A(1,I)/A(1,1)
+      ENDDO
       DO 50 K=2,N
       K1=K-1
       DO 20 IK=K,N
@@ -2038,8 +2046,9 @@ C terms of the reduced matrix. if det = 0.0 then matrix is singular.
 C This check is done only once when 'ising=0'.
       if (ising.eq.0) then
          det=1.0
-         do 707 i=1,n
-  707       det=det*a(i,i)
+         do i=1,n
+           det=det*a(i,i)
+         enddo
          if(det.eq.0.0) then
             write(*,710)
   710       format(/,'JSOLVS: Unresolvable error.',/
@@ -2101,22 +2110,22 @@ C NB LUDCMS is the single precision version of LUDCMP
 
 C Loop over rows to get implicit scaling information
       DO 12 I=1,N
-      AAMAX=0.0
-      DO 11 J=1,N
-      IF(ABS(A(I,J)).GT.AAMAX) AAMAX=ABS(A(I,J))
-   11 CONTINUE
-      IF(AAMAX.EQ.0.0) STOP ' LUDCMS: Singular matrix !'
-      VV(I)=1.0/AAMAX
+        AAMAX=0.0
+        DO J=1,N
+          IF(ABS(A(I,J)).GT.AAMAX) AAMAX=ABS(A(I,J))
+        ENDDO
+        IF(AAMAX.EQ.0.0) STOP ' LUDCMS: Singular matrix !'
+        VV(I)=1.0/AAMAX
    12 CONTINUE
 
 C Start loop over columns of Crout's method
       DO 19 J=1,N
       DO 14 I=1,J-1
-      SUM=A(I,J)
-      DO 13 K=1,I-1
-      SUM=SUM-A(I,K)*A(K,J)
-   13 CONTINUE
-      A(I,J)=SUM
+        SUM=A(I,J)
+        DO 13 K=1,I-1
+          SUM=SUM-A(I,K)*A(K,J)
+   13   CONTINUE
+        A(I,J)=SUM
    14 CONTINUE
 
 C Start search for largest pivot element
@@ -2136,9 +2145,9 @@ C Start search for largest pivot element
 C Perhaps interchange rows and scale factor
       IF(J.NE.IMAX) THEN
          DO 17 K=1,N
-         DUM=A(IMAX,K)
-         A(IMAX,K)=A(J,K)
-         A(J,K)=DUM
+           DUM=A(IMAX,K)
+           A(IMAX,K)=A(J,K)
+           A(J,K)=DUM
    17    CONTINUE
          D=-D
          VV(IMAX)=VV(J)
@@ -2149,7 +2158,7 @@ C Perhaps interchange rows and scale factor
       IF(J.NE.N) THEN
          DUM=1.0/A(J,J)
          DO 18 I=J+1,N
-         A(I,J)=A(I,J)*DUM
+           A(I,J)=A(I,J)*DUM
    18    CONTINUE
       END IF
    19 CONTINUE
@@ -2179,29 +2188,29 @@ C NB LUBKSS is the single precision version of LUBKSB
 C C Start forward substitution
       II=0
       DO 12 I=1,N
-      LL=INDX(I)
-      SUM=B(LL)
-      B(LL)=B(I)
-      IF(II.NE.0) THEN
-         DO 11 J=II,I-1
-         SUM=SUM-A(I,J)*B(J)
-   11    CONTINUE
-      ELSE IF(SUM.NE.0.0) THEN
-         II=I
-      END IF
-      B(I)=SUM
+        LL=INDX(I)
+        SUM=B(LL)
+        B(LL)=B(I)
+        IF(II.NE.0) THEN
+          DO J=II,I-1
+            SUM=SUM-A(I,J)*B(J)
+          ENDDO
+        ELSE IF(SUM.NE.0.0) THEN
+          II=I
+        END IF
+        B(I)=SUM
    12 CONTINUE
 
 C Start backsubstitution
       DO 14 I=N,1,-1
-      SUM=B(I)
-      if(abs(sum).lt.small) sum=0.0
-      IF(I.LT.N) THEN
-         DO 13 J=I+1,N
-         SUM=SUM-A(I,J)*B(J)
-   13    CONTINUE
-      END IF
-      B(I)=SUM/A(I,I)
+        SUM=B(I)
+        if(abs(sum).lt.small) sum=0.0
+        IF(I.LT.N) THEN
+          DO 13 J=I+1,N
+            SUM=SUM-A(I,J)*B(J)
+   13     CONTINUE
+        END IF
+        B(I)=SUM/A(I,I)
    14 CONTINUE
 
       RETURN
@@ -2350,25 +2359,26 @@ C b is also the solution vector.
 
 C Check for zero diagonals which could have resulted
 C from the forward reduction phase.
-         if(abs(a(iptrd(i))).lt.small) then
-            write(*,*)'cmaslv: Backsubstitution phase.'
-            write(*,*)'        Fatal error :Zero diagonal in row',i
-            stop
-         endif
-         x=b(i)
+        if(abs(a(iptrd(i))).lt.small) then
+          write(*,*)'cmaslv: Backsubstitution phase.'
+          write(*,*)'        Fatal error :Zero diagonal in row',i
+          stop
+        endif
+        x=b(i)
 
 C the following statement ensures that no ieee arithmetic
 C underflow signal occurrs.
-         if(abs(x).lt.small) x=0.0
-         if(i.ne.npnod) then
-            kcol=nrowc(i,2,istats)-1
-            do 70 k=nrowc(i,1,istats),1,-1
-               ndx=iptrod(kcol+k,istats)
-               icl=ipofs2(ndx,istats)
+        if(abs(x).lt.small) x=0.0
+        if(i.ne.npnod) then
+          kcol=nrowc(i,2,istats)-1
+          do 70 k=nrowc(i,1,istats),1,-1
+            ndx=iptrod(kcol+k,istats)
+            icl=ipofs2(ndx,istats)
             if(icl.le.i) goto 60
-   70       x=x-a(ndx)*b(icl)
-         endif
-   60    b(i)=x/a(iptrd(i))
+            x=x-a(ndx)*b(icl)
+   70     continue
+        endif
+   60 b(i)=x/a(iptrd(i))
       return
       end
 

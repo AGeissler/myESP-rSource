@@ -104,7 +104,7 @@ C -1=floor area/person -2 Light W/m2 -3=small power W/m2
       integer ICGUnit    ! unit for sensible day:period 0 is W, 1 is W/m2,
                          ! 2 is m2/p assumes 95W sensible & 45W latent),
                          ! 3 is number of people as per CIBSE Guide A table 1.4
-                         ! and if caskeytype = dynamicpeople then use extra information
+                         ! and if caskeytype = dynamic_people then use extra information
                          ! in operations file.
       real CMGS,CMGL     ! sensible and latent magnitude for each casual 
                          ! day:period, units depend on value of ICGT

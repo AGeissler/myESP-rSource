@@ -30,6 +30,8 @@ C Building control
      &     BMISCD(MCF,MCDT,MCDP,MISCC)
       INTEGER NCF,IBSN,IBAN,NBCDT,IBCDV,NBCDP,IBCTYP,IBCLAW
       REAL TBCPS,BMISCD
+      common/BCTLN/BCTLNAME(MCF)
+      character BCTLNAME*24
 
 C Mass flow network control
       COMMON/FCTL/NCC,IFSN(MCF,4),IFAN(MCF,3),NFCDT(MCF),
@@ -38,6 +40,8 @@ C Mass flow network control
      &       FMISCD(MCF,MCDT,MCDP,MISCC)
       INTEGER NCC,IFSN,IFAN,NFCDT,IFCDV,NFCDP,IFCTYP,IFCLAW
       REAL TFCPS,FMISCD
+      common/FCTLN/FCTLNAME(MCF)
+      character FCTLNAME*24
 
 C Plant control
       COMMON/PCTL/NCL,IPSN(MCF,5),IPAN(MCF,4),NPCDT(MCF),
@@ -46,6 +50,8 @@ C Plant control
      &       PMISCD(MCF,MCDT,MCDP,MISCC)
       INTEGER NCL,IPSN,IPAN,NPCDT,IPCDV,NPCDP,IPCTYP,IPCLAW
       REAL TPCPS,PMISCD          
+      common/PCTLN/PCTLNAME(MCF)
+      character PCTLNAME*24
 
 C Global control
       COMMON/GCTL/NGF,IGSN(MCF,4),IGAN(MCF,3),NGCDT(MCF),
@@ -54,6 +60,8 @@ C Global control
      &       GMISCD(MCF,MCDT,MCDP,MISCC)
       INTEGER NGF,IGSN,IGAN,NGCDT,IGCDV,NGCDP,IGCTYP,IGCLAW
       REAL TGCPS,GMISCD          
+      common/GCTLN/GCTLNAME(MCF)
+      character GCTLNAME*24
 
 C Optical controls
       COMMON/OCTL/NOF,IOSN(MCF,4),IOAN(MCF,3),NOCDT(MCF),
@@ -62,6 +70,8 @@ C Optical controls
      &       OMISCD(MCF,MCDT,MCDP,MISCC)
       INTEGER NOF,IOSN,IOAN,NOCDT,IOCDV,NOCDP,IOCTYP,IOCLAW
       REAL TOCPS,OMISCD          
+      common/OCTLN/OCTLNAME(MCF)
+      character OCTLNAME*24
 
 C Electrical control.
       COMMON/ECTL/NECL,IESN(MCF,3),IEAN(MCF,3),NECDT(MCF),
@@ -70,6 +80,8 @@ C Electrical control.
      &            IECLAW(MCF,MCDT,MCDP),EMISCD(MCF,MCDT,MCDP,MISCC)
       INTEGER NECL,IESN,IEAN,NECDT,IECDV,NECDP,IECTYP,IECLAW
       REAL TECPS,EMISCD          
+      common/ECTLN/ECTLNAME(MCF)
+      character ECTLNAME*24
 
 C Complex fenestration control. Data structure of CFC control
 C is summarized variables is documented in econtrol.F
@@ -85,3 +97,5 @@ C is summarized variables is documented in econtrol.F
       INTEGER iCFCctldatevalid, nCFCdayctlperiods
       INTEGER iCFCctltype,iCFCctllaw
       REAL    CFCctlperiodstart,CFCmiscdata
+      common/CFCCTLN/CFCCTLNAME(MCF)
+      character CFCCTLNAME*24

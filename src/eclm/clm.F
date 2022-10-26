@@ -93,7 +93,7 @@ C Ask to overwrite flag.
       COMMON/OVRWT/AUTOVR
       logical AUTOVR      
 
-      character ITEM*26
+      character ITEM*27
       dimension ITEM(22)
       character LASCI*96,outs*124,outs248*248
       character PERST1*14,PERST2*44,PERST3*44,LCMDFL*144
@@ -157,8 +157,8 @@ C Initial assumptions. Pass module name to C code structure.
       IDF=365
       KDS=1
       KDF=24
-      IYEAR=2021
-      ICYEAR=2021
+      IYEAR=2022
+      ICYEAR=2022
       cfgroot='  '
       LCFGF='  '
       AUTOVR=.false.  ! by default, ask to overwrite files
@@ -428,10 +428,10 @@ C with this conversion.
      &     paction(1:9).eq.'ascii2bin')then
           silent=.true.
           pascif=ascif
-          CALL CFILIN(silent)  ! Create empty weather file.
-          NTSPH=1              ! Import weather data from ASCII file.
-          CALL EPERSTR(IYEAR,IDS,IT1,IDF,IT2,NTSPH,
-     &            IFDAY,IFTIME,PERST1,PERST2,PERST3,IER)
+          CALL CFILIN(silent)                        ! Create empty weather file.
+          NTSPH=1                                    ! Import weather data from ASCII file.
+          CALL EPERSTR(IYEAR,IDS,IT1,IDF,IT2,NTSPH,  ! Confirm period
+     &      IFDAY,IFTIME,PERST1,PERST2,PERST3,IER)
           IUNIT=IFIL+1
           CALL MKBCLM(iuout,1,pascif,IUNIT,IDS,IDF,silent,IER)
           call tstamp('>','Finished weather module conversion ASCI2BIN')
@@ -1197,7 +1197,7 @@ C Get latitude in degrees minutes and seconds.
         call edisp(iuout,' ')
         call edisp(iuout,outs)
         NTSPH=1
-        CALL EPERSTR(IYEAR,IDS,IT1,IDF,IT2,NTSPH,
+        CALL EPERSTR(IYEAR,IDS,IT1,IDF,IT2,NTSPH,  ! confirm period
      &    IFDAY,IFTIME,PERST1,PERST2,PERST3,IER)
         write(outs,'(1X,A44)')PERST2
         call edisp(iuout,outs)
@@ -1554,7 +1554,7 @@ C calls in esru_lib.F
      &   JITOBS,JITSNR,JITGRD,JITORG,DIS,JITBND,JITDSP,JITHLS,JITHLZ,
      &   JITPPSW)
 
-C Passed paramters.
+C Passed parameters.
       real EVX,EVY,EVZ,VX,VY,VZ,EAN,DIS
 
 C Depending on computer type set integer size of passed parameters.

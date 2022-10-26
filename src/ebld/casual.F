@@ -57,6 +57,7 @@ C QLAT   - latent load for present (1) and future (2) time step.
 #include "OffsiteUtilitiesPublic.h"
 #include "h3k_report_data.h"
 #include "FMI.h"
+#include "cfd.h"
 
       common/filep/ifil
       common/tc/itc,icnt
@@ -186,37 +187,32 @@ C Dynamic person model.
       COMMON/CASGNSO/META1(MCOM,MDTY,MGTY,MGPER),
      &         NBMEN(MCOM,MDTY,MGTY,MGPER),NBWOM(MCOM,MDTY,MGTY,MGPER),
      &         NBCHI(MCOM,MDTY,MGTY,MGPER),CONCC(MCOM,MDTY,MGTY,MGPER),
-     &         RADCC(MCOM,MDTY,MGTY,MGPER),CLOTH(MCOM,MDTY,MGTY,MGPER),
-     &         META2(MCOM,MDTY,MGTY,MGPER)
+     &         RADCC(MCOM,MDTY,MGTY,MGPER),CLOTH(MCOM,MDTY,MGTY,MGPER)
+      REAL META1,NBMEN,NBWOM,NBCHI
       COMMON/PVALA/TPA(MCOM),QPA(MCOM)
       common/occload/sklat(MCOM),skcon(MCOM),skrad(MCOM),ttcr(MCOM),
      &     ttsk(MCOM)
-!      common/ocflux/COflux,H2Oexp,H2Oswt
-      REAL headflux1,trunkflux1,larmflux1,rarmflux1,llegflux1,
-     &     rlegflux1,H2Oexp1,H2Oswt1,Qoccsens1,Qocclat1,COflux,
-     &     Tsko_av1,Tco_av1,Tsk_av1
-      COMMON/ocflux1/headflux1,trunkflux1,larmflux1,rarmflux1,llegflux1,
-     &        rlegflux1,H2Oexp1,H2Oswt1,Qoccsens1,Qocclat1,COflux,
-     &        Tsko_av1, Tco_av1, Tsk_av1
-      REAL headflux2,trunkflux2,larmflux2,rarmflux2,llegflux2,
-     &     rlegflux2,H2Oexp2,H2Oswt2,Qoccsens2,Qocclat2,
-     &     Tsko_av2,Tco_av2,Tsk_av2
-      COMMON/ocflux2/headflux2,trunkflux2,larmflux2,rarmflux2,llegflux2,
-     &        rlegflux2,H2Oexp2,H2Oswt2,Qoccsens2,Qocclat2,
-     &        Tsko_av2, Tco_av2, Tsk_av2
+      real headflux1,trunkflux1,larmflux1,rarmflux1,llegflux1
+      real rlegflux1,H2Oexp1,H2Oswt1,Qoccsens1,Qocclat1
+C       real COflux,Tsko_av1,Tco_av1,Tsk_av1
+      COMMON/ocflux1/headflux1(MNZ),trunkflux1(MNZ),larmflux1(MNZ),
+     &  rarmflux1(MNZ),llegflux1(MNZ),rlegflux1(MNZ),H2Oexp1(MNZ),
+     &  H2Oswt1(MNZ),Qoccsens1(MCOM),Qocclat1(MCOM)
+C      &  COflux,Tsko_av1,Tco_av1,Tsk_av1
       common/FVALG/GFA(MCOM)
       COMMON/PVALG/GPA(MCOM)
       COMMON/MOIST53/Ppair(MCOM),Fpair(MCOM),Spair(MCOM)
-      REAL tavhead1,tavtrunk1,tavarml1,tavarmr1,tavlegl1,tavlegr1
-      REAL hrhead,hrtrunk,hrarml,hrarmr,hrlegl,hrlegr,HMETA2
-      integer cfdcheck, msegflag
-      COMMON/segtemp1/tavhead1,tavtrunk1,tavarml1,tavarmr1,tavlegl1,
-     &       tavlegr1,hrhead,hrtrunk,hrarml,hrarmr,hrlegl,hrlegr,
-     &       cfdcheck, msegflag,HMETA2
+      real tavhead1,tavtrunk1,tavarml1,tavarmr1,tavlegl1,tavlegr1
+      real hrhead,hrtrunk,hrarml,hrarmr,hrlegl,hrlegr,HMETA2
+      integer cfdcheck,msegflag
+      COMMON/segtemp1/tavhead1(MNZ),tavtrunk1(MNZ),tavarml1(MNZ),
+     &  tavarmr1(MNZ),tavlegl1(MNZ),tavlegr1(MNZ),hrhead(MNZ),
+     &  hrtrunk(MNZ),hrarml(MNZ),hrarmr(MNZ),hrlegl(MNZ),hrlegr(MNZ),
+     &  cfdcheck(MNZ),msegflag(MNZ),HMETA2(MNZ)
+      common/ndcfd/ncfdnd,icfdnd(MNZ),NCONF    
       REAL rlegflux,H2Oexp,H2Oswt
       REAL TPA, QPA,TAIR,TMRT
       REAL SGAIN,LGAIN,TOP,TOCN,CLOTHO,tatsix
-      REAL META1,META2,NBMEN,NBWOM,NBCHI
 
 C CGSECo, CGSERo and CGLATo - total convective, radiative and latent loads from
 C dynamic occupant model. (CGSENC, CGSENR and CGLAT previously defined in common/CASGNS/.)
@@ -945,45 +941,51 @@ C The 'fetchloads' subroutine will override '-1' if SHOCC calculates loads.
 
 C Determine the current period.
           IPER=NCGPER(ICOMP,IDAY,IGN)
-          do 30 I=1,NCGPER(ICOMP,IDAY,IGN)
-            if (BTIMEF.le.TCGS(ICOMP,IDAY,IGN,I+1).and.
-     &          BTIMEF.gt.TCGS(ICOMP,IDAY,IGN,I)) then
-              IPER=I
-            endif
- 30       continue
-          if(IPER.eq.0) IPER=1  ! to avoid zero array index
+          if (IPER.gt.0) then
+            do I=1,NCGPER(ICOMP,IDAY,IGN)
+              if (BTIMEF.le.TCGS(ICOMP,IDAY,IGN,I+1).and.
+     &            BTIMEF.gt.TCGS(ICOMP,IDAY,IGN,I)) then
+                IPER=I
+              endif
+            enddo
 
-C This if statement used to calculate the sensible and latent load from occupants in case of dynamic people.
-C Metabolic rate (METAo) is converted to watts: 1 Met = 58 W/m^2 and the mean surface area of the human body
-C is approximately 1.8 m^2 .
-          iGainSlot=iabs(ICGT(IDAY,IGN))
-          if(iGainSlot.gt.0)then
+C Calculate the sensible and latent load from occupants in case of
+C dynamic people.
+            if (caskeytype(ICOMP,IGN)(1:14).eq.'dynamic_people'
+     &          .and. lodatr1(ICOMP,IGN).GT.0) then
 
-            INDX=ICOMP*(-1)   ! negate the zone index for use in mzmixt
-            CALL MZMIXT(INDX,TMRT,TMIX)
-            TAIR=TPA(ICOMP)
-            TOP=0.5*TMRT+0.5*TAIR 
-C             call MZVAPC(ICOMP,ZRH,CNDS)   ! not used
+              INDX=ICOMP*(-1)   ! negate the zone index for use in mzmixt
+              CALL MZMIXT(INDX,TMRT,TMIX)
+              TAIR=TPA(ICOMP)
+              TOP=0.5*TMRT+0.5*TAIR 
+C              call MZVAPC(ICOMP,ZRH,CNDS)   ! not used
   
-            RHOCC=PCRH2(TPA(ICOMP),GPA(ICOMP),PATMOS)/100.0
-            if (RHOC.GE.100) RHOCC=0.99
-            HMETA1=META1(ICOMP,IDAY,IGN,IPER)
-C             HMETA2=META2(ICOMP,IDAY,IGN,IPER)           
-            METAo=META1(ICOMP,IDAY,IGN,IPER)*58*1.8
-            CONCCO=CONCC(ICOMP,IDAY,IGN,IPER)
-            RADCCO=RADCC(ICOMP,IDAY,IGN,IPER)
-            tatsix=itmp(6)/10.
+              RHOCC=PCRH2(TPA(ICOMP),GPA(ICOMP),PATMOS)/100.0
+              if (RHOC.GE.100) RHOCC=0.99
+              HMETA1=META1(ICOMP,IDAY,IGN,IPER)
+
+C Metabolic rate (METAo) is converted to watts.
+C 1 Met = 58 W/m^2 and the mean surface area of the human body is
+C approximately 1.8 m^2.
+              METAo=META1(ICOMP,IDAY,IGN,IPER)*58*1.8
+              CONCCO=CONCC(ICOMP,IDAY,IGN,IPER)
+              RADCCO=RADCC(ICOMP,IDAY,IGN,IPER)
 
 C Dynamic clothing prediction based on t out at 6 am and Tmix.
-            CLOTHO=10**(0.2134-0.0063*tatsix-0.0165*TMIX)
-            if(CLOTHO.le.0.4)CLOTHO=0.4
-            if(CLOTHO.GE.1.1)CLOTHO=1.1
-            if (NSINC.LE.2)msegflag=0
-            TOCN=NBMEN(ICOMP,IDAY,IGN,IPER)+
+              if (CLOTH(ICOMP,IDAY,IGN,IPER).lt.0.) then
+                tatsix=itmp(6)/10.
+                CLOTHO=10**(0.2134-0.0063*tatsix-0.0165*TMIX)
+                if(CLOTHO.le.0.4)CLOTHO=0.4
+                if(CLOTHO.GE.1.1)CLOTHO=1.1
+              else
+                CLOTHO=CLOTH(ICOMP,IDAY,IGN,IPER)
+              endif
+
+              if (NSINC.LE.2)msegflag=0
+              TOCN=NBMEN(ICOMP,IDAY,IGN,IPER)+
      &          NBWOM(ICOMP,IDAY,IGN,IPER)+NBCHI(ICOMP,IDAY,IGN,IPER)
-            if(caskeytype(ICOMP,iGainSlot)(1:13).eq.
-     &          'dynamicpeople'.and. 
-     &            lodatr1(ICOMP,IGN).GT.0.or.TOCN.GT.0.1) then
+     
+              if(TOCN.GT.0.1) then
 
 C Polynomial equation to calculate sensible and latent heat load
 C from occupant where Top and METAo are the operative zone temperature
@@ -997,80 +999,69 @@ C       E = rate of heat loss by evaporation, respiration and elimination;
 C       R = radiation rate;
 C       C = conduction and convection rate;
 C       S = body heat storage rate.
-              if(lodatr1(ICOMP,IGN).eq.1)then
-                SGAIN=198.42617-3.80901*TOP-0.05419*TOP**2-0.42472*
-     &             METAo+0.00171*METAo**2+0.01287*TOP*METAo-
-     &             0.00004*TOP*METAo**2+0.00002*METAo*TOP**2-
-     &             0.00000038516*METAo**2*TOP**2    
-                LGAIN=227.89011-14.95202*TOP+0.24884*TOP**2-
-     &             2.56734 *METAo+0.00715*METAo**2+
-     &             0.132*TOP*METAo-0.00017*TOP*METAo**2-
-     &             0.00107*METAo*TOP**2
+                if(lodatr1(ICOMP,IGN).eq.1)then
+                  SGAIN=198.42617-3.80901*TOP-0.05419*TOP**2-0.42472*
+     &              METAo+0.00171*METAo**2+0.01287*TOP*METAo-
+     &              0.00004*TOP*METAo**2+0.00002*METAo*TOP**2-
+     &              0.00000038516*METAo**2*TOP**2
+                  skcon(ICOMP) = SGAIN ! set for CFD
+                  LGAIN=227.89011-14.95202*TOP+0.24884*TOP**2-
+     &              2.56734 *METAo+0.00715*METAo**2+
+     &              0.132*TOP*METAo-0.00017*TOP*METAo**2-
+     &              0.00107*METAo*TOP**2
 
 C Polynomial equation from Energy Plus (function of Temperature and metabolic rate).
 C If E should be always positive, this polynomial is inefficient, for example when
 C temperature goes below 14C at Met = 100 W (ASHRAE).
-              elseif(lodatr1(ICOMP,IGN).eq.2)then
-                SGAIN=6.461927+0.946892*METAo+0.0000255737*METAo**2+
-     &             7.139322*TOP-0.0627909*TOP*METAo+
-     &             0.0000589172*TOP*METAo**2-
-     &             0.19855*TOP**2+0.000940018*TOP**2*METAo-
-     &             0.00000149532*TOP**2*METAo**2
-                LGAIN=METAo-SGAIN 
+                elseif(lodatr1(ICOMP,IGN).eq.2)then
+                  SGAIN=6.461927+0.946892*METAo+0.0000255737*METAo**2+
+     &              7.139322*TOP-0.0627909*TOP*METAo+
+     &              0.0000589172*TOP*METAo**2-
+     &              0.19855*TOP**2+0.000940018*TOP**2*METAo-
+     &              0.00000149532*TOP**2*METAo**2
+                  skcon(ICOMP) = SGAIN ! set for CFD
+                  LGAIN=METAo-SGAIN
 
-              elseif(lodatr1(ICOMP,IGN).eq.3)then
-                if(TOCN.GT.0.1)then
-
-C Call the dynamic two node model (subroutine in dynamicoccup.F).
-                  call DynamicOcc(ICOMP,METAo,CLOTHO)  
+C Two node model.
+                elseif(lodatr1(ICOMP,IGN).eq.3)THEN
+                  call DynamicOcc(ICOMP,METAo,CLOTHO)
                   SGAIN=skcon(ICOMP)
                   LGAIN=sklat(ICOMP)
-                endif
 
-              elseif(lodatr1(ICOMP,IGN).eq.4)then
-                if(TOCN.GE.0.5)then
-                  headflux1=0.0 
-                  trunkflux1=0.0
-                  larmflux1=0.0
-                  rarmflux1=0.0
-                  llegflux1=0.0
-                  rlegflux1=0.0
-                  H2Oexp1=0.0
-                  H2Oswt1=0.0
-                  headflux2=0.0 
-                  trunkflux2=0.0
-                  larmflux2=0.0
-                  rarmflux2=0.0
-                  llegflux2=0.0
-                  rlegflux2=0.0
-                  H2Oexp2=0.0
-                  H2Oswt2=0.0
+C Segmented person model.
+                elseif(lodatr1(ICOMP,IGN).eq.4)then
+                  call segmentedocc(ICOMP,METAo,TOP,RHOCC,CLOTHO)
+                  SGAIN=Qoccsens1(ICOMP)
+                  skcon(ICOMP)=SGAIN ! set in case CFD BC is whole_body
+                  LGAIN=Qocclat1(ICOMP)
                 endif
-              endif
 
 C CGSECo CGSERo and CGLATo are the total convective radiative and
 C latent load from occupants taking into consideration number of
 C people and age/gender.
-              CGSECo=(SGAIN*NBMEN(ICOMP,IDAY,IGN,IPER)+
-     &          0.85*SGAIN*NBWOM(ICOMP,IDAY,IGN,IPER)+
-     &          0.75*SGAIN*NBCHI(ICOMP,IDAY,IGN,IPER))*
-     &          CONCCO
-              CGSERo=(SGAIN*NBMEN(ICOMP,IDAY,IGN,IPER)+
-     &          0.85*SGAIN*NBWOM(ICOMP,IDAY,IGN,IPER)+
-     &          0.75*SGAIN*NBCHI(ICOMP,IDAY,IGN,IPER))*
-     &          RADCCO
-              CGLATo=LGAIN*NBMEN(ICOMP,IDAY,IGN,IPER)+
-     &          0.85*LGAIN*NBWOM(ICOMP,IDAY,IGN,IPER)+
-     &          0.75*LGAIN*NBCHI(ICOMP,IDAY,IGN,IPER)
+                CGSECo=(SGAIN*NBMEN(ICOMP,IDAY,IGN,IPER)+
+     &            0.85*SGAIN*NBWOM(ICOMP,IDAY,IGN,IPER)+
+     &            0.75*SGAIN*NBCHI(ICOMP,IDAY,IGN,IPER))*
+     &            CONCCO
+                CGSERo=(SGAIN*NBMEN(ICOMP,IDAY,IGN,IPER)+
+     &            0.85*SGAIN*NBWOM(ICOMP,IDAY,IGN,IPER)+
+     &            0.75*SGAIN*NBCHI(ICOMP,IDAY,IGN,IPER))*
+     &            RADCCO
+                CGLATo=LGAIN*NBMEN(ICOMP,IDAY,IGN,IPER)+
+     &            0.85*LGAIN*NBWOM(ICOMP,IDAY,IGN,IPER)+
+     &            0.75*LGAIN*NBCHI(ICOMP,IDAY,IGN,IPER)
 
-              CGSENC(ICOMP,IDAY,IGN,IPER)=CGSECo
-              CGSENR(ICOMP,IDAY,IGN,IPER)=CGSERo
-              CGLAT(ICOMP,IDAY,IGN,IPER)=CGLATo
+                CGSENC(ICOMP,IDAY,IGN,IPER)=CGSECo
+                CGSENR(ICOMP,IDAY,IGN,IPER)=CGSERo
+                CGLAT(ICOMP,IDAY,IGN,IPER)=CGLATo
+              else
+                CGSENC(ICOMP,IDAY,IGN,IPER)=0.0
+                CGSENR(ICOMP,IDAY,IGN,IPER)=0.0
+                CGLAT(ICOMP,IDAY,IGN,IPER)=0.0
+              endif
             endif
-          endif
 
 C Set future casual gain values if there are periods defined.
-          if(IPER.gt.0)then
             if(shcon.lt.0.) then
 
 C FMI: If occupancy, lighting or equipment control is active, multiply CGCTL
@@ -2853,12 +2844,12 @@ C the visible transmittance.
 
       common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
       COMMON/TMCB1/IBCMT(MCOM,MTMC)
-      COMMON/TMCB2/NBCTMC(MCOM,MTMC),IBCST(MCOM,MBP,MTMC),
-     &IBCFT(MCOM,MBP,MTMC),IBCSUR(MCOM,MTMC)
+      COMMON/TMCB2/NBCTMC(MCOM,MTMC),IBCST(MCOM,MTMC),
+     &IBCFT(MCOM,MTMC),IBCSUR(MCOM,MTMC)
       COMMON/PRECTC/ITMCFL(MCOM,MS),TMCT(MCOM,MTMC,5),
      &       TMCA(MCOM,MTMC,ME,5),TMCREF(MCOM,MTMC),TVTR(MCOM,MTMC)
-      COMMON/PRECT2/TMCT2(MCOM,MTMC,5,MBP),TMCA2(MCOM,MTMC,ME,5,MBP),
-     &              TVTR2(MCOM,MTMC,MBP)
+      COMMON/PRECT2/TMCT2(MCOM,MTMC,5),TMCA2(MCOM,MTMC,ME,5),
+     &              TVTR2(MCOM,MTMC)
 
 C TMC blind control flag.
       COMMON/TMCB4/IBOFOT(MCOM,MS),NBPONT(MCOM,MS),ECRAT(MCOM,MS)
@@ -2872,12 +2863,12 @@ C TMC blind/shutter is in place; test if active.
 C NP is number of control periods for this TMC type.
         NP=NBCTMC(IZONE,ITVTR)
         DO 43 KK=1,NP
-          IT1=IBCST(IZONE,KK,ITVTR)
-          IT2=IBCFT(IZONE,KK,ITVTR)
+          IT1=IBCST(IZONE,ITVTR)
+          IT2=IBCFT(IZONE,ITVTR)
           IF(IHRF.GT.IT1.AND.IHRF.LE.IT2.AND.
      &      IBOFOT(IZONE,ISURF).EQ.1)THEN
             BLIND = 1.0
-            VT=TVTR2(IZONE,ITVTR,KK)
+            VT=TVTR2(IZONE,ITVTR)
           ELSE
             BLIND = 0.0
             VT=TVTR(IZONE,ITVTR)

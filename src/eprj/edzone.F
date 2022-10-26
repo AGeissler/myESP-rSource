@@ -160,6 +160,8 @@ C Allow user choices of beginning as a simple shape (with image feedback).
         CALL EGETWR(HOLD,K,XO1,-999.9,999.9,'W','X origin',IER)
         CALL EGETWR(HOLD,K,YO1,-999.9,999.9,'W','Y origin',IER)
         CALL EGETWR(HOLD,K,ZO1,-9.9,999.9,'W','Z origin',IER)
+        write(outs,'(a,3f9.4)') 'Origin is ',XO1,YO1,ZO1
+        call edisp(iuout,outs)
 
  242    HOLD=' '
         WRITE(HOLD,'(1x,3f8.3)')DX1,DY1,DZ1
@@ -170,6 +172,8 @@ C Allow user choices of beginning as a simple shape (with image feedback).
         CALL EGETWR(HOLD,K,DY1,0.001,99.9,'W','box depth',IER)
         CALL EGETWR(HOLD,K,DZ1,0.001,99.9,'W','box height',IER)
         if(DX1.lt.0.001.or.DY1.lt.0.001)goto 242
+        write(outs,'(a,3f9.4)') 'Width depth height is ',DX1,DY1,DZ1
+        call edisp(iuout,outs)
 
         ANGR=0.
         CALL EASKR(ANGR,' ','Orientation?',
@@ -1772,15 +1776,15 @@ C Parameters passed:
       common/user/browse
       COMMON/PRECTC/ITMCFL(MCOM,MS),TMCT(MCOM,MTMC,5),
      &       TMCA(MCOM,MTMC,ME,5),TMCREF(MCOM,MTMC),TVTR(MCOM,MTMC)
-      COMMON/PRECT2/TMCT2(MCOM,MTMC,5,MBP),TMCA2(MCOM,MTMC,ME,5,MBP),
-     &              TVTR2(MCOM,MTMC,MBP)
+      COMMON/PRECT2/TMCT2(MCOM,MTMC,5),TMCA2(MCOM,MTMC,ME,5),
+     &              TVTR2(MCOM,MTMC)
       COMMON/PRECT3/NTMC,NGLAZ(MTMC)
       character TOPTIC*12
       common/PRECT4/TOPTIC(MCOM,MTMC)
       COMMON/TMCB1/IBCMT(MCOM,MTMC)
-      COMMON/TMCB2/NBCTMC(MCOM,MTMC),IBCST(MCOM,MBP,MTMC),
-     &             IBCFT(MCOM,MBP,MTMC),IBCSUR(MCOM,MTMC)
-      COMMON/TMCB3/NBCTT(MCOM,MBP,MTMC),BACTPT(MCOM,MBP,MTMC)
+      COMMON/TMCB2/NBCTMC(MCOM,MTMC),IBCST(MCOM,MTMC),
+     &             IBCFT(MCOM,MTMC),IBCSUR(MCOM,MTMC)
+      COMMON/TMCB3/NBCTT(MCOM,MTMC),BACTPT(MCOM,MTMC)
 
       common/BSCTL/ITPREP(MCOM,MTMC),ICZN,IMDB(3),IGLZ(3)
       COMMON/AFN/IAIRN,LAPROB,ICAAS(MCOM)
@@ -2340,20 +2344,20 @@ C Update itmcfl for the new zone.
                 ENDDO ! of J5
               ENDDO  ! of ISSTGL
               DO IBC=1,NBCTMC(IC,ISST)
-                IBCST(NCOMP,IBC,ISST)=IBCST(IC,IBC,ISST)
-                IBCFT(NCOMP,IBC,ISST)=IBCFT(IC,IBC,ISST)
-                NBCTT(NCOMP,IBC,ISST)=NBCTT(IC,IBC,ISST)
-                BACTPT(NCOMP,IBC,ISST)=BACTPT(IC,IBC,ISST)
-                TMCT2(NCOMP,IBC,1,ISST)=TMCT2(IC,IBC,1,ISST)
-                TMCT2(NCOMP,IBC,2,ISST)=TMCT2(IC,IBC,2,ISST)
-                TMCT2(NCOMP,IBC,3,ISST)=TMCT2(IC,IBC,3,ISST)
-                TMCT2(NCOMP,IBC,4,ISST)=TMCT2(IC,IBC,4,ISST)
-                TMCT2(NCOMP,IBC,5,ISST)=TMCT2(IC,IBC,5,ISST)
-                TVTR2(NCOMP,IBC,ISST)=TVTR2(IC,IBC,ISST)
+                IBCST(NCOMP,ISST)=IBCST(IC,ISST)
+                IBCFT(NCOMP,ISST)=IBCFT(IC,ISST)
+                NBCTT(NCOMP,ISST)=NBCTT(IC,ISST)
+                BACTPT(NCOMP,ISST)=BACTPT(IC,ISST)
+                TMCT2(NCOMP,ISST,1)=TMCT2(IC,ISST,1)
+                TMCT2(NCOMP,ISST,2)=TMCT2(IC,ISST,2)
+                TMCT2(NCOMP,ISST,3)=TMCT2(IC,ISST,3)
+                TMCT2(NCOMP,ISST,4)=TMCT2(IC,ISST,4)
+                TMCT2(NCOMP,ISST,5)=TMCT2(IC,ISST,5)
+                TVTR2(NCOMP,ISST)=TVTR2(IC,ISST)
                 DO ISSTGL=1,NGLAZ(ISST)
                   DO J5=1,5
-                    TMCA2(NCOMP,IBC,ISSTGL,J5,ISST)=
-     &                TMCA2(IC,IBC,ISSTGL,J5,ISST)
+                    TMCA2(NCOMP,ISST,ISSTGL,J5)=
+     &                TMCA2(IC,ISST,ISSTGL,J5)
                   ENDDO ! of J5
                 ENDDO  ! of ISSTGL
               ENDDO  ! of IBC
@@ -2834,6 +2838,9 @@ C act = 'ob+' or 'ob-' obstruction changes.
 #include "model.h"
 #include "CFC_common.h"
 
+      common/shad0/ISIcalc,icalcD,icalcM
+      integer ISIcalc,icalcD,icalcM
+
       common/pmchange/comold,tmcold,vwfold,ishold,cfcold
 
       CHARACTER act*3
@@ -2883,23 +2890,32 @@ C << refine testing for setting tmcold >>
       endif
       if(act(1:3).eq.'sf-'.or.act(1:3).eq.'sf+'.or.
      &   act(1:3).eq.'str')then
-        if(ISI(ICOMP).eq.1)then
-          call FINDFIL(LSHAD(ICOMP),XST)
-          if(XST)then
-            ishold = .true.
-          else
-            ishold = .false.
+        if(ISIcalc.ne.1)then            ! if not embedded calculation
+          if(ISIcalc.eq.0) ISIcalc = 2  ! reset if zero
+          if(ISI(ICOMP).eq.1)then
+            call FINDFIL(LSHAD(ICOMP),XST)
+            if(XST)then
+              ishold = .true.
+            else
+              ishold = .false.
+            endif
           endif
+        else
+          ishold = .false.  ! embedded
         endif
       endif
       if(act(1:3).eq.'ob-'.or.act(1:3).eq.'ob+')then
-        if(ISI(ICOMP).eq.1)then
-          call FINDFIL(LSHAD(ICOMP),XST)
-          if(XST)then
-            ishold = .true.
-          else
-            ishold = .false.
+        if(ISIcalc.ne.1)then  ! if not embedded calculation
+          if(ISI(ICOMP).eq.1)then
+            call FINDFIL(LSHAD(ICOMP),XST)
+            if(XST)then
+              ishold = .true.
+            else
+              ishold = .false.
+            endif
           endif
+        else
+          ishold = .false.  ! embedded
         endif
       endif
 
@@ -2932,9 +2948,11 @@ C Passed parameters
 
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
       common/pmchange/comold,tmcold,vwfold,ishold,cfcold
+      logical comold,tmcold,vwfold,ishold,cfcold
+      integer izconstv,iztmcv
+      common/znconstrv/izconstv(MCOM),iztmcv(MCOM)
 
-      logical comold,tmcold,vwfold,ishold,ok,QUIET
-      logical unixok,cfcold
+      logical ok,QUIET,unixok
 
       helpinsub='edzone'  ! set for subroutine
 
@@ -3044,8 +3062,26 @@ C If existing db out of date the perform recalculation.
      &    OK,nbhelp)
         endif
         if(OK)then
+
+C If current version of construction file continue with the
+C rebuild otherwise confirm with user whether to use legacy
+C format with seaparte tmc file.
           QUIET=.true.
           itru=iuout
+          if(izconstv(ICOMP).eq.21)then
+            continue
+          else
+            CALL EASKAB(' ','Save zone constructions:',
+     &        'via legacy format with separate tmc file',
+     &        'current format with optical data',IWB,nbhelp)
+            if(IWB.eq.1)then
+              izconstv(ICOMP)=0
+              iztmcv(ICOMP)=0
+            else
+              izconstv(ICOMP)=21
+              iztmcv(ICOMP)=21
+            endif
+          endif
           CALL EDCON(0,itru,ICOMP,QUIET,IER)
           QUIET=.false.
         endif

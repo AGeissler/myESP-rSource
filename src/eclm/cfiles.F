@@ -18,8 +18,6 @@ C License along with ESP-r. If not, write to the Free
 C Software Foundation, Inc., 59 Temple Place, Suite 330,
 C Boston, MA 02111-1307 USA.
 
-
-C This file contains the following subroutines:
 C MKBCLM: Allows a period of climatic data in a suitable ASCII file
 C         to be transferred to a binary weather file.
 C COLTOBCLM: Allows a period of column climatic data in a suitable ASCII file
@@ -204,6 +202,9 @@ C Check we have at least the required metrics.
           CALL CLMCHKMET(IER)
           if (IER.ne.0) goto 1003
 
+C Period set elsewhere.
+C          IDS=1
+C          IDF=365
         endif
 
       elseif (ND.eq.2 .and. OUTSTR(1:9).eq.'*CLIMATE ') then
@@ -913,7 +914,8 @@ C Set up CMCOL and CMXST, and initialise ICLM.
             CMXST(imet)=.false.
           endif
         enddo
-        if (CMXST(4) .and. .not.CMXST(2)) then ! Also set diffuse as it will be derived.
+        if (CMXST(4) .and. .not.CMXST(2) .and.
+     &    (ITUNITS(4).eq.3 .or. ITUNITS(4).eq.4)) then
           CMXST(2)=.true.
           CMCOL(2)=icol+1
         endif
@@ -1037,15 +1039,12 @@ C Different units for different metrics.
                   CALL EGETWR(OUTSTR,K,rval,0.0,0.0,'-',
      &              'glo w/m2 real',IER)
                   ICLM(J,CMCOL(4))= NINT(rval)
-                  btog=.true.
                 elseif(ITUNITS(4).eq.1)then
                   CALL EGETWI(OUTSTR,K,ival,0,0,'-','glo w/m2 int',IER)
                   ICLM(J,CMCOL(4))=ival
-                  btog=.true.
                 elseif(ITUNITS(4).eq.2)then
                  CALL EGETWI(OUTSTR,K,ival,0,0,'-','glo 10th w/m2',IER)
                   ICLM(J,CMCOL(4))=ival/10  ! to get back to w/m2
-                  btog=.true.
                 elseif(ITUNITS(4).eq.3)then
                   CALL EGETWR(OUTSTR,K,rval,0.0,0.0,'-',
      &              'glo KJ/m2 real',IER)
@@ -1905,6 +1904,7 @@ C silent is a logical toggle: true keeps user interactions to a minimum.
       integer lnblnk  ! function definition
       integer igraphiclib  ! external definition
 
+      COMMON/SPAD/MMOD,LIMIT,LIMTTY
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/INPER/INIT
       COMMON/FILEP/IFIL
@@ -1914,6 +1914,8 @@ C silent is a logical toggle: true keeps user interactions to a minimum.
       COMMON/PERC/ID1,IM1,IT1,ID2,IM2,IT2,IDS,IDF,INEW
       COMMON/RADTYP/IDNGH
       common/rcmd/LCMDFL
+      integer menuchw,igl,igr,igt,igb,igw,igwh
+      COMMON/VIEWPX/menuchw,igl,igr,igt,igb,igw,igwh
 
 C Climate list common.
       character clmlnam*42,clmlaid*72,clmldbfile*144,clmlavail*10
@@ -1934,6 +1936,8 @@ C or passed into clm module).
       character LCMDFL*144,clmdb*144,L144*144,lltmp*144
       character fs*1
       character actreturn*1  ! users preference
+      integer onleft  ! number of left axis
+      integer onright ! number of right axis
 
       helpinsub='cfiles'  ! set for cfiles
       tab = CHAR(9)
@@ -2106,6 +2110,8 @@ C abort.
       if (IER.ne.0) then
         close(ieout)
         CALL ERPFREE(ieout,ISTAT)
+        call edisp(iuout,
+     &    'Not enough parameters/columns in weather file.')
         call pauses(3)
         call EPAGEND
         STOP
@@ -2222,6 +2228,12 @@ C      write(6,*) 'latdms ',latdms
           endif
         endif
 C        call edisp(iuout,outs)
+
+C If in graphic mode echo to the graphic feedback title position.
+        if(MMOD.eq.8)then
+          imh=menuchw; onleft=0; onright=0
+          CALL GHEAD(imh,onleft,onright)
+        endif
         RETURN
       endif
 

@@ -1621,6 +1621,8 @@ C Input parameters.
       dimension c(12)
       integer last1,last2,ln,ip,n,i
 
+C Logic of if(statement)j1 j2 j3 is
+C if (result of statement is) <0  =0 >0
       ians=0
       np=npoint
       do 10 i=1,np

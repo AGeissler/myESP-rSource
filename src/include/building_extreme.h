@@ -1,7 +1,7 @@
-C ESP-r building-related definition file setting maximum
-C parameter values.
+! ESP-r building-related definition file setting maximum
+! parameter values.
 
-C Type declarations.
+! Type declarations.
       integer MCOM,MCON,MTV,MV,ME,MGP,MN,MP,MDY,MT,MA,MC,MBP,MTMS
       integer MTS,MGT,MCT,MTRACE,MGRDP,MLCOM,MDF,MDCFP,MDCFS,MDCFV
       integer MTMC,MGAL,MANG,MGOPT,MISC,MSEN,MO,MF,MGRT,MGTV,MST
@@ -16,7 +16,7 @@ C Type declarations.
       integer MCFC,MSPMRES,MBL,MSPMSPLM,MVOBJ,MVOBJE
       integer NTCELX,NTCELY,NTCELZ,MCEL1D,MNREG
 
-C Geometry.
+! Geometry.
       PARAMETER (MCOM=97)       ! Zones.
       PARAMETER (MS=450)        ! Surfaces/zone (set MNSBZ in cfd.h to at least 2*MS).
       PARAMETER (MCON=5200)     ! Surfaces in model.
@@ -26,91 +26,91 @@ C Geometry.
       PARAMETER (MSM=MS+6)      ! Used with view factors.
       PARAMETER (MBL=20)        ! Base surfaces/zone.
 
-C Ground topology.
+! Ground topology.
       PARAMETER (MGRT=400)      ! Surfaces.
       PARAMETER (MGTV=500)      ! Vertices.
 
-C Construction.
+! Construction.
       PARAMETER (ME=16)         ! Elements/construction.
       PARAMETER (MN=50)         ! Nodes/construction.
       PARAMETER (MGP=8)         ! Air gaps/construction.
       PARAMETER (MMLC=300)      ! Multilayered constructions in model.
       PARAMETER (MHCV=MN+ME)    ! Control volumes per construction.
 
-C Glazing.
+! Glazing.
       PARAMETER (MGT=MS)        ! Insolated glazings in zone
       PARAMETER (MTMC=20)       ! Glazing systems/zone,
       PARAMETER (MGAL=2)        ! Optical sets per optics db item.
       PARAMETER (MANG=9)        ! Angles at which optical data is held.
       PARAMETER (MGOPT=150)     ! Set size in optics database.
 
-C Shading/insolation.
+! Shading/insolation.
       PARAMETER (MB=500)        ! Site obstruction & visual blocks.
       PARAMETER (MOX=120)       ! Grid lines in x-direction.
       PARAMETER (MOZ=120)       ! Grid lines in z-direction.
       PARAMETER (MISUR=10)      ! Surfaces insolated from one source.
-      PARAMETER (MBP=7)         ! TMC blind control periods.
+      PARAMETER (MBP=7)         ! Heat transf control periods.
       PARAMETER (MVOBJ=100)     ! Visual objects
       PARAMETER (MVOBJE=14)     ! Visual entities per object.
 
-C Variable thermo-physical properties.
+! Variable thermo-physical properties.
       PARAMETER (MTHF=12)       ! Thermal functions.
       PARAMETER (MTHEQ=3)       ! Thermal equations.
       PARAMETER (MDATA=12)      ! Defining data items.
 
-C Special materials.
+! Special materials.
       PARAMETER (MSPMNOD=200)   ! Special materials.
       PARAMETER (MSPMDAT=21)    ! Defining data items.
       PARAMETER (MSPMRES=12)    ! Output data items
       PARAMETER (MSPMSPLM=150)  ! Spline data items
 
-C Casual gains.
+! Casual gains.
       PARAMETER (MCT=7,MGTY=7)  ! Casual gain types.
       PARAMETER (MDTY=15)       ! Day types.
       PARAMETER (MGPER=72)      ! Periods.
       PARAMETER (MC=24*MCT*MDTY)! Total casual gains.
 
-C Mean radiant temperature.
+! Mean radiant temperature.
       PARAMETER (MCUB=16)       ! Sensors in zone.
       PARAMETER (MGC=72000)     ! Surface grid cells (roughly associated with MS).
       PARAMETER (MPATCH=200)    ! Hemispherical patches.
 
-C Time.
+! Time.
       PARAMETER (MP=7)          ! Days in week.
       PARAMETER (MT=24)         ! Hours in day.
       PARAMETER (MDY=3)         ! Day types.
       PARAMETER (MA=24)         ! Air change periods.
 
-C Casual gain control.
+! Casual gain control.
       PARAMETER (MLCOM=4)       ! Periods.
       PARAMETER (MDF=9)         ! Daylight factor sets.
       PARAMETER (MDCFP=5)       ! Daylight coefficient sets.
       PARAMETER (MDCFS=2)
       PARAMETER (MDCFV=145)     ! Sky patches.
 
-C Systems control.
+! Systems control.
       PARAMETER (MSEN=4)
       PARAMETER (MISC=9+8*MSEN) ! Miscellaneous data items per control law.
       PARAMETER (MO=24)
       PARAMETER (MF=100)
       PARAMETER (MFP=4)         ! Fuzzy control periods.
 
-C Simulation control.
+! Simulation control.
       PARAMETER (MTRACE=60)     ! Trace parameters.
       PARAMETER (MTMS=1440)
       PARAMETER (MTS=1440)
       PARAMETER (MGRDP=43)      ! Ground temperature profiles.
 
-C Time-step control.
+! Time-step control.
       PARAMETER (MCVT1=6)
       PARAMETER (MCVT2=2)
       PARAMETER (MSCH=24)
       PARAMETER (IRWMAX=20)     ! For type 6.
 
-C Results analysis.
+! Results analysis.
       PARAMETER (MSPS=30)       ! Simulation parameter sets.
       PARAMETER (MNFA=4)        ! Factorial analyses.
-C      PARAMETER (MNRS=2**MNFA) ! Result sets (set to 100 for sensitivity analysis).
+!      PARAMETER (MNRS=2**MNFA) ! Result sets (set to 100 for sensitivity analysis).
       PARAMETER (MNRS=200)      ! Result sets (set to 100 for sensitivity analysis).
       PARAMETER (MIPVA=MSPS)    ! IPV assessments.
       PARAMETER (MIPVM=12)      ! IPV metrics.
@@ -120,11 +120,11 @@ C      PARAMETER (MNRS=2**MNFA) ! Result sets (set to 100 for sensitivity analys
                                 ! if MCOM>MS or MS+12 if MS>MCOM or MGP*5). For building_large.h
                                 ! use MS+12. See reslib.F for logic.
 
-C Mathematical model.
+! Mathematical model.
       PARAMETER (MEQ=MS+1)      ! Equations.
       PARAMETER (MTR=MS+4)      ! Equation terms.
 
-C Multi-gridding.
+! Multi-gridding.
       PARAMETER (MVS=50)        ! Local vertices per surface.
       PARAMETER (MGV=100)       ! Gridding vertices per surface.
       PARAMETER (MLS=100)       ! Gridding lines per surface.
@@ -153,14 +153,14 @@ C Multi-gridding.
       PARAMETER (MBTYP=10)      ! Boundary types for ground.
       PARAMETER (MNM=50)        ! Moisture nodes.
 
-C CFD gridding.
+! CFD gridding.
       PARAMETER (NTCELX=152)    ! Maximum number of cells in x direction
       PARAMETER (NTCELY=152)    ! Maximum number of cells in y direction
       PARAMETER (NTCELZ=152)    ! Maximum number of cells in z direction
       PARAMETER (MCEL1D=152)    ! Maximum number between ntcelx, ntcely and ntcelz
       PARAMETER (MNREG=76)      ! Maximum number of gridding regions per axis
 
-C Structured-gridding.
+! Structured-gridding.
       PARAMETER (MROW=12)       ! Rows.
       PARAMETER (MCOL=12)       ! Columns.
       PARAMETER (MLAY=12)       ! Layers.
@@ -171,7 +171,7 @@ C Structured-gridding.
       PARAMETER (MSNOD=MNOD3/10)! Surface nodes.
       PARAMETER (MMAT=MCON*ME)  ! Materials.
 
-C Miscellaneous.
+! Miscellaneous.
       PARAMETER (MCNDV=20)
       PARAMETER (MCNDC=100)
       PARAMETER (MPICK=30)

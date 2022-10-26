@@ -353,7 +353,7 @@ C Leakage description.
             CALL AirTightnessTypeMenu()
           ENDIF
 
-          CASE (2)
+        CASE (2)
           CALL LeakageDistribution()
 
         CASE (3)

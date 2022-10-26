@@ -32,13 +32,11 @@ C Assumes that the header data has already been read.
 #include "climate.h"
 
       integer iday  ! passed in julian day of the year
-      integer ifil,idngh,ier
-      COMMON/FILEP/IFIL
+      integer idngh,ier
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
       integer iuout,iuin,ieout
-      COMMON/RADTYP/IDNGH
 
-      integer j,k,IDAYP1
+      integer j,k
 
 C Check if we are trying to read the same data we already have.
       if (IDAY.eq.CMDAYR) goto 999
@@ -814,9 +812,6 @@ C version is known (CFVER in climate.h).
 #include "climate.h"
 
       COMMON/CLMSET/ICYEAR,ICDNGH,CLAT,CLONG
-      COMMON/RADTYP/IDNGH
-
-      dimension ISCM(MCM)
 
       if (CFVER.eq.1) then
         IREC=366

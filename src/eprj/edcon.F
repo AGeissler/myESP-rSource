@@ -44,7 +44,8 @@ C output, IER=0 OK.
 #include "material.h"
 #include "help.h"
 
-      integer lnblnk  ! function definition
+      integer lnblnk  ! Function definition.
+      logical QUIET   ! If true then purpose is an automatic upgrade.
 
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
       COMMON/FILEP/IFIL
@@ -61,6 +62,11 @@ C output, IER=0 OK.
       COMMON/TMCB1/IBCMT(MCOM,MTMC)
       COMMON/gzonpik/izgfoc,nzg,nznog(mcom)
       common/user/browse
+
+C Version of construction file. If not specified set at 21 (2.1)
+      integer izconstv,iztmcv
+      common/znconstrv/izconstv(MCOM),iztmcv(MCOM)
+
       COMMON/FOPENED/CFGOK,MLDBOK,MATDBOK,CTLOK,OPTKOK,CFCDBOK
 
       LOGICAL OK,CFGOK,MLDBOK,MATDBOK,CTLOK,OPTKOK,CFCDBOK
@@ -73,8 +79,9 @@ C output, IER=0 OK.
       CHARACTER SFILE*72,LTMP*72
       CHARACTER outs*124,VERT*48,KEY*1,head*31,ETEXT*82
       character TOPTIC*12,OPTIC*12
-      LOGICAL MODGEO,MODCON,TFOUND,XST,again,QUIET
-      logical newgeo  ! to use for testing if new/old geometry file.
+      LOGICAL MODGEO,MODCON,TFOUND,XST,again
+      logical newgeo   ! To use for testing if new/old geometry file.
+      logical warn_ctl ! Advise user to convert legacy tmc control.
 
       logical CFCFOUND !used to determine whether CFCs exist
       character*72 CFCFILE
@@ -185,7 +192,7 @@ C On entry display the current zone. Reset all surface lines to std.
       MODLEN=.TRUE.
       MODBND=.TRUE.
       again=.false.
-      if(.NOT.QUIET)then
+      if(.NOT.QUIET)then  ! If auto-update do not display zone.
         CALL ESCZONE(ICOMP)
         CALL BNDOBJ(0,IER)
         CALL ERCZONE(ICOMP)
@@ -200,6 +207,7 @@ C Read construction file into common.
       helptopic='pre_zone_constructions'
       call gethelptext(helpinsub,helptopic,nbhelp)
   42  CONTINUE
+      ier=0
       IF(again.or.LTHRM(ICOMP)(1:1).EQ.' '.OR.
      &            LTHRM(ICOMP)(1:7).EQ.'UNKNOWN')THEN
 
@@ -218,7 +226,7 @@ C Construction file name not yet specified.
 
       call FINDFIL(LTHRM(ICOMP),XST)
       if(XST)then
-        IF(QUIET) THEN
+        IF(QUIET) THEN   ! Ask EDZCON to do the upgrade.
           CALL EDZCON(ICOMP,MODGEO,MODCON,IER)
         ELSE
           write(outs,'(3a)') 'Found an existing constructions file: ',
@@ -231,9 +239,42 @@ C Construction file name not yet specified.
             CALL ECONST(LTHRM(ICOMP),IFIL+1,ICOMP,0,IUOUT,IER)
             if(ITW(ICOMP).eq.1)then
               CALL ERTWIN(ITRC,IUOUT,IUF,LTWIN(ICOMP),ICOMP,IER)
+              warn_ctl=.false.
+              do I=1,NTMC
+                if(IBCMT(ICOMP,i).gt.0) warn_ctl=.true.
+              enddo
+              if(warn_ctl)then
+                call usrmsg(
+     &            'Consider converting existing tmc control to an',
+     &            'optical control via transparent layer properties.',
+     &            'W')
+              endif
+            elseif(ITW(ICOMP).eq.2)then
+              do I=1,NTMC
+                if(IBCMT(ICOMP,i).ne.0) warn_ctl=.true.
+              enddo
+              if(warn_ctl)then
+                call usrmsg(
+     &            'This zone includes alternative optical properties',
+     &            'that could be controlled.','W')
+              endif
             endif
           elseif(IWA.EQ.2)then
             call tstamp('>','PRJ: scan db & rebuild zone construction')
+            if(izconstv(ICOMP).eq.21)then
+              continue
+            else
+              CALL EASKAB(' ','Save constructions:',
+     &          'using legacy format with separate tmc file',
+     &          'current format with optical data',IWB,nbhelp)
+              if(IWB.eq.1)then
+                izconstv(ICOMP)=0
+                iztmcv(ICOMP)=0
+              else
+                izconstv(ICOMP)=21
+                iztmcv(ICOMP)=21
+              endif
+            endif
             CALL EDZCON(ICOMP,MODGEO,MODCON,IER)
           elseif(IWA.eq.3)then
             call tstamp('>','PRJ: abandoned rebuild zone construction')
@@ -256,6 +297,16 @@ C If in quiet mode: the file should exist => error if we are here.
             goto 42
           endif
         ENDIF
+        CALL EASKAB(' ','Save constructions:',
+     &    'using legacy format with separate tmc file',
+     &    'current format with optical data',IWB,nbhelp)
+        if(IWB.eq.1)then
+          izconstv(ICOMP)=0
+          iztmcv(ICOMP)=0
+        else
+          izconstv(ICOMP)=21
+          iztmcv(ICOMP)=21
+        endif
         CALL EDZCON(ICOMP,MODGEO,MODCON,IER)
       endif
       if(IER.NE.0)then
@@ -293,13 +344,14 @@ C        write(6,*) icn1,SOTF(icomp,is),ITMCFL(ICOMP,IS),inoti
         IF(ITMCFL(ICOMP,IS).GT.0)TFOUND=.TRUE.
   60  CONTINUE
       IF(.NOT.TFOUND)THEN
-        IF(ITW(ICOMP).EQ.1)TFOUND=.TRUE.
+        IF(ITW(ICOMP).EQ.1.or.ITW(ICOMP).eq.2)TFOUND=.TRUE.
       ENDIF
 
 C If transparent surfaces, proceed to read existing data or create
-C from the surface attributes.
+C from the surface attributes based on the current version of zone
+C construction file.
       IF(TFOUND)THEN
-        if(ITW(ICOMP).ne.1)then
+        if(ITW(ICOMP).eq.0.and.izconstv(icomp).ne.21)then
           ITW(ICOMP)=1
           LTWIN(ICOMP)=DFILE
           ltmp=LTWIN(ICOMP)
@@ -317,28 +369,55 @@ C Request for tmc data from scratch. If there might be blind control
 C read in existing tmc file before recreating. Remember the number
 C of blind controls associated with each tmc and restore after
 C call to EDTWIN.
-          call FINDFIL(LTWIN(ICOMP),XST)
-          if(XST)then
-            CALL ERTWIN(ITRC,IUOUT,IUF,LTWIN(ICOMP),ICOMP,IER)
-            do 444 ix=1,ntmc
+          if(ITW(ICOMP).eq.1)then
+            call FINDFIL(LTWIN(ICOMP),XST)
+            if(XST)then
+              CALL ERTWIN(ITRC,IUOUT,IUF,LTWIN(ICOMP),ICOMP,IER)
+              do ix=1,ntmc
+                libcmt(ix)=IBCMT(ICOMP,ix)
+              enddo
+              NTMC=0
+            endif
+          elseif(ITW(ICOMP).eq.2)then
+            do ix=1,ntmc
               libcmt(ix)=IBCMT(ICOMP,ix)
-  444       continue
+            enddo
             NTMC=0
           endif
           CALL EDTWIN(ITRC,ITRU,ICOMP,IER)
-          do 445 ix=1,ntmc
+          warn_ctl=.false.
+          do ix=1,ntmc
             IBCMT(ICOMP,ix)=libcmt(ix)
-  445     continue
+            if(IBCMT(ICOMP,ix).gt.0) warn_ctl=.true.
+          enddo
+          if(warn_ctl)then
+            call usrmsg(
+     &        'Consider converting existing tmc control to an',
+     &        'optical control via transparent layer properties.','W')
+          endif
         else
 
 C If TMC file exists read it, otherwise create one.
-          call FINDFIL(LTWIN(ICOMP),XST)
-          if(XST)then
-            CALL ERTWIN(ITRC,IUOUT,IUF,LTWIN(ICOMP),ICOMP,IER)
-            ITW(ICOMP)=1
-          else
+          if(ITW(ICOMP).eq.1)then
+            call FINDFIL(LTWIN(ICOMP),XST)
+            if(XST)then
+              CALL ERTWIN(ITRC,IUOUT,IUF,LTWIN(ICOMP),ICOMP,IER)
+              ITW(ICOMP)=1
+              warn_ctl=.false.
+              do I=1,NTMC
+                if(IBCMT(ICOMP,i).gt.0) warn_ctl=.true.
+              enddo
+              if(warn_ctl)then
+                call usrmsg(
+     &          'Consider converting existing tmc control to an',
+     &          'optical control via transparent layer properties.','W')
+              endif
+            else
+              CALL EDTWIN(ITRC,ITRU,ICOMP,IER)
+              ITW(ICOMP)=1
+            endif
+          elseif(ITW(ICOMP).eq.2)then
             CALL EDTWIN(ITRC,ITRU,ICOMP,IER)
-            ITW(ICOMP)=1
           endif
         ENDIF
       ENDIF
@@ -590,17 +669,35 @@ C Save...
      &   LTHRM(ICOMP)(1:7).EQ.'UNKNOWN')THEN
 
 C Ask for name of file to put common block information into.
+C Also check if legacy or current format to be used.
         SFILE=' '
         CALL EASKS(SFILE,' New construction file? ',
      &    ' ',72,CFILE,'related constr file name',IER,nbhelp)
         IF(SFILE.NE.' ')LTHRM(ICOMP)=SFILE
       ENDIF
 
-C Save current information into a descriptive file
-C and save the system configuration file.
+C Save current information into a zone file
+C and update the system configuration file.
       if(cfgok)then
         IUF=IFIL+2
         call tstamp('>','PRJ: save zone construction')
+
+C If a legacy zone construction file set izconstv so that
+C a header is included when new file is written.
+        if(izconstv(ICOMP).eq.21)then
+          continue
+        else
+          CALL EASKAB(' ','Save zone constructions:',
+     &    'via legacy format with separate tmc file',
+     &    'current format with optical data',IWB,nbhelp)
+          if(IWB.eq.1)then
+            izconstv(ICOMP)=0
+            iztmcv(ICOMP)=0
+          else
+            izconstv(ICOMP)=21
+            iztmcv(ICOMP)=21
+          endif
+        endif
         CALL EMKCON(LTHRM(ICOMP),IUF,ICOMP,QUIET,IER)
         IF(IER.EQ.1)THEN
           helptopic='constr_write_error'
@@ -614,6 +711,22 @@ C and save the system configuration file.
             IER=1
             RETURN
           ENDIF
+        endif
+
+C If new format then the tmc file is redundant. Allow user to delete
+C if a tmc file was found.
+        if(izconstv(ICOMP).eq.21)then
+          XST=.false.
+          call FINDFIL(LTWIN(ICOMP),XST)
+          if(XST)then
+            CALL EASKOK(' ','Remove redundant zone tmc file?',OK,nbhelp)
+            if(OK)then
+              call usrmsg('Removing unused tmc file: ',LTWIN(ICOMP),'-')
+              CALL ERPFREE(IUF,ISTAT)
+              CALL EFOPSEQ(IUF,LTWIN(ICOMP),1,IER)
+              CALL EFDELET(IUF,ISTAT)
+            endif
+          endif
         endif
         CALL EMKCFG('s',IER)
       else
@@ -631,9 +744,13 @@ C If any of the surfaces are transparent save this info.
         IF(ITMCFL(ICOMP,IS).GT.0)TFOUND=.TRUE.
   61  CONTINUE
       IF(TFOUND)THEN
-        CALL MKTWIN(IUF,ICOMP,QUIET,IER)
-        IF(IER.EQ.1)RETURN
-        ITW(ICOMP)=1
+        if(izconstv(ICOMP).eq.21)then
+          itw(icomp)=2
+        else
+          CALL MKTWIN(IUF,ICOMP,QUIET,IER)
+          IF(IER.EQ.1)RETURN
+          ITW(ICOMP)=1
+        endif
 
 C If in quiet mode then files already exist => no need to save.
         IF(.NOT.QUIET) THEN
@@ -757,6 +874,10 @@ C Optical and geometric properties.
       COMMON/T1/NE(MS),NAIRG(MS),IPAIRG(MS,MGP),RAIRG(MS,MGP)
       COMMON/T2/CON(MS,ME),DEN(MS,ME),SHT(MS,ME),THK(MS,ME)
       COMMON/T4/EMISI(MS),EMISE(MS),ABSI(MS),ABSE(MS)
+
+C Version of construction file. If not specified set at 21 (2.1)
+      integer izconstv,iztmcv
+      common/znconstrv/izconstv(MCOM),iztmcv(MCOM)
 
 C Material properties.
       integer matarrayindex ! the indes within matdatarray
@@ -1231,6 +1352,10 @@ C Parameters
       COMMON/T4/EMISI(MS),EMISE(MS),ABSI(MS),ABSE(MS)
       COMMON/FOPENED/CFGOK,MLDBOK,MATDBOK,CTLOK,OPTKOK,CFCDBOK
 
+C Version of construction file. If not specified set at 21 (2.1)
+      integer izconstv,iztmcv
+      common/znconstrv/izconstv(MCOM),iztmcv(MCOM)
+
 C Material properties.
       integer matarrayindex ! the indes within matdatarray
 
@@ -1484,16 +1609,21 @@ C Parameter
 
       COMMON/PRECTC/ITMCFL(MCOM,MS),TMCT(MCOM,MTMC,5),
      &       TMCA(MCOM,MTMC,ME,5),TMCREF(MCOM,MTMC),TVTR(MCOM,MTMC)
-      COMMON/PRECT2/TMCT2(MCOM,MTMC,5,MBP),TMCA2(MCOM,MTMC,ME,5,MBP),
-     &              TVTR2(MCOM,MTMC,MBP)
+      COMMON/PRECT2/TMCT2(MCOM,MTMC,5),TMCA2(MCOM,MTMC,ME,5),
+     &              TVTR2(MCOM,MTMC)
 
       COMMON/PRECT3/NTMC,NGLAZ(MTMC)
       common/PRECT4/TOPTIC(MCOM,MTMC)
 
       COMMON/TMCB1/IBCMT(MCOM,MTMC)
-      COMMON/TMCB2/NBCTMC(MCOM,MTMC),IBCST(MCOM,MBP,MTMC),
-     &             IBCFT(MCOM,MBP,MTMC),IBCSUR(MCOM,MTMC)
-      COMMON/TMCB3/NBCTT(MCOM,MBP,MTMC),BACTPT(MCOM,MBP,MTMC)
+      COMMON/TMCB2/NBCTMC(MCOM,MTMC),IBCST(MCOM,MTMC),
+     &             IBCFT(MCOM,MTMC),IBCSUR(MCOM,MTMC)
+      COMMON/TMCB3/NBCTT(MCOM,MTMC),BACTPT(MCOM,MTMC)
+
+C Version of construction file. If not specified set at 21 (2.1)
+      integer izconstv,iztmcv
+      common/znconstrv/izconstv(MCOM),iztmcv(MCOM)
+
       logical XST
 
       dimension ival(MS)
@@ -1568,10 +1698,31 @@ C For each of the TMC types.
           endif
         enddo
         write(tokens,'(i4)') IBCMT(ICOMP,I)
-        write(comment,'(a)') 'optical control flag'
+        if(IBCMT(ICOMP,I).eq.1)then
+          write(comment,'(a)') 'optical control flag'
+        elseif(IBCMT(ICOMP,I).eq.0)then
+          write(comment,'(a)') 'no alternative optics'
+        elseif(IBCMT(ICOMP,I).lt.0)then
+          write(comment,'(a)') 'links to an optical control loop'
+        endif
         call align_comment(48,tokens,comment,aligned_str)
         write(IFU,'(a)') aligned_str(1:lnblnk(aligned_str))
         IF(IBCMT(ICOMP,I).EQ.0)GOTO 100
+        if(IBCMT(ICOMP,I).LT.0)then  ! only alternative optical set
+          write(tokens,'(6F7.3)') 
+     &      (TMCT2(ICOMP,I,M),M=1,5),TVTR2(ICOMP,I)
+          write(comment,'(a)') 
+     &      'alt solar & vis trans followed by absorp for each layer'
+          call align_comment(48,tokens,comment,aligned_str)
+          write(IFU,'(a)') aligned_str(1:lnblnk(aligned_str))
+          DO J=1,NGLAZ(I)
+            WRITE(IFU,'(5F8.3)',IOSTAT=ISTAT,ERR=98)
+     &                  (TMCA2(ICOMP,I,J,M),M=1,5)
+          ENDDO
+          ITPREP=0
+          WRITE(IFU,'(I4)',IOSTAT=ISTAT,ERR=98)ITPREP
+          goto 100   ! jump for next tmc
+        endif
 
         write(tokens,'(2i4)') NBCTMC(ICOMP,I),IBCSUR(ICOMP,I)
         write(comment,'(a)') 'number of control periods & sensor loc'
@@ -1581,49 +1732,49 @@ C For each of the TMC types.
         WRITE(IFU,'(A)',IOSTAT=ISTAT,ERR=98)
      &         '# Replacement properties for each control period'
         DO 121 K=1,NBCTMC(ICOMP,I)
-          write(tokens,'(2i4)') IBCST(ICOMP,K,I),IBCFT(ICOMP,K,I)
+          write(tokens,'(2i4)') IBCST(ICOMP,I),IBCFT(ICOMP,I)
           write(comment,'(a)') 'period start and end'
           call align_comment(48,tokens,comment,aligned_str)
           write(IFU,'(a)') aligned_str(1:lnblnk(aligned_str))
 
-          if(NBCTT(ICOMP,K,I).eq.0)then
-            write(tokens,'(I4,F6.1)') NBCTT(ICOMP,K,I),
-     &        BACTPT(ICOMP,K,I)
+          if(NBCTT(ICOMP,I).eq.0)then
+            write(tokens,'(I4,F6.1)') NBCTT(ICOMP,I),
+     &        BACTPT(ICOMP,I)
             write(comment,'(a)') 
      &        'sensing total radiation @ actuation point'
             call align_comment(48,tokens,comment,aligned_str)
             write(IFU,'(a)') aligned_str(1:lnblnk(aligned_str))
-          elseif(NBCTT(ICOMP,K,I).eq.1)then
-            write(tokens,'(I4,F6.1)') NBCTT(ICOMP,K,I),
-     &        BACTPT(ICOMP,K,I)
+          elseif(NBCTT(ICOMP,I).eq.1)then
+            write(tokens,'(I4,F6.1)') NBCTT(ICOMP,I),
+     &        BACTPT(ICOMP,I)
             write(comment,'(a)') 
      &        'sensing ambient temperature @ actuation point'
             call align_comment(48,tokens,comment,aligned_str)
             write(IFU,'(a)') aligned_str(1:lnblnk(aligned_str))
-          elseif(NBCTT(ICOMP,K,I).eq.2)then
-            write(tokens,'(I4,F6.1)') NBCTT(ICOMP,K,I),
-     &        BACTPT(ICOMP,K,I)
+          elseif(NBCTT(ICOMP,I).eq.2)then
+            write(tokens,'(I4,F6.1)') NBCTT(ICOMP,I),
+     &        BACTPT(ICOMP,I)
             write(comment,'(a)') 
      &        'sensing zone temperature @ actuation point'
             call align_comment(48,tokens,comment,aligned_str)
             write(IFU,'(a)') aligned_str(1:lnblnk(aligned_str))
-          elseif(NBCTT(ICOMP,K,I).eq.3)then
-            write(tokens,'(I4,F6.1)') NBCTT(ICOMP,K,I),
-     &        BACTPT(ICOMP,K,I)
+          elseif(NBCTT(ICOMP,I).eq.3)then
+            write(tokens,'(I4,F6.1)') NBCTT(ICOMP,I),
+     &        BACTPT(ICOMP,I)
             write(comment,'(a)') 
      &        'sensing daylight coeff. @ actuation point'
             call align_comment(48,tokens,comment,aligned_str)
             write(IFU,'(a)') aligned_str(1:lnblnk(aligned_str))
-          elseif(NBCTT(ICOMP,K,I).eq.4)then
-            write(tokens,'(I4,F6.1)') NBCTT(ICOMP,K,I),
-     &        BACTPT(ICOMP,K,I)
+          elseif(NBCTT(ICOMP,I).eq.4)then
+            write(tokens,'(I4,F6.1)') NBCTT(ICOMP,I),
+     &        BACTPT(ICOMP,I)
             write(comment,'(a)') 
      &        'sensing lightswitch @ actuation point'
             call align_comment(48,tokens,comment,aligned_str)
             write(IFU,'(a)') aligned_str(1:lnblnk(aligned_str))
-          elseif(NBCTT(ICOMP,K,I).eq.-99)then
-            write(tokens,'(I4,F6.1)') NBCTT(ICOMP,K,I),
-     &        BACTPT(ICOMP,K,I)
+          elseif(NBCTT(ICOMP,I).eq.-99)then
+            write(tokens,'(I4,F6.1)') NBCTT(ICOMP,I),
+     &        BACTPT(ICOMP,I)
             write(comment,'(a)') 
      &        'sensing time @ actuation point'
             call align_comment(48,tokens,comment,aligned_str)
@@ -1631,15 +1782,15 @@ C For each of the TMC types.
           endif
 
           write(tokens,'(6F7.3)') 
-     &      (TMCT2(ICOMP,I,M,K),M=1,5),TVTR2(ICOMP,I,K)
+     &      (TMCT2(ICOMP,I,M),M=1,5),TVTR2(ICOMP,I)
           write(comment,'(a)') 
      &      'alt solar & vis trans followed by absorp for each layer'
           call align_comment(48,tokens,comment,aligned_str)
           write(IFU,'(a)') aligned_str(1:lnblnk(aligned_str))
-          DO 122 J=1,NGLAZ(I)
+          DO J=1,NGLAZ(I)
             WRITE(IFU,'(5F8.3)',IOSTAT=ISTAT,ERR=98)
-     &                  (TMCA2(ICOMP,I,J,M,K),M=1,5)
-  122     CONTINUE
+     &                  (TMCA2(ICOMP,I,J,M),M=1,5)
+          ENDDO
           ITPREP=0
           WRITE(IFU,'(I4)',IOSTAT=ISTAT,ERR=98)ITPREP
   121   CONTINUE
@@ -1679,11 +1830,14 @@ C through each of the existing surfaces and finds unique optical types.
 #include "geometry.h"
 #include "esprdbfile.h"
 #include "material.h"
+#include "control.h"
 #include "help.h"
 
       integer lnblnk  ! function definition
 
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
+      common/FILEP/IFIL
+      INTEGER :: ifil
 
       integer IZSTOCN
       COMMON/C24/IZSTOCN(MCOM,MS)
@@ -1691,17 +1845,26 @@ C through each of the existing surfaces and finds unique optical types.
 
       COMMON/PRECTC/ITMCFL(MCOM,MS),TMCT(MCOM,MTMC,5),
      &       TMCA(MCOM,MTMC,ME,5),TMCREF(MCOM,MTMC),TVTR(MCOM,MTMC)
-      COMMON/PRECT2/TMCT2(MCOM,MTMC,5,MBP),TMCA2(MCOM,MTMC,ME,5,MBP),
-     &              TVTR2(MCOM,MTMC,MBP)
+      COMMON/PRECT2/TMCT2(MCOM,MTMC,5),TMCA2(MCOM,MTMC,ME,5),
+     &              TVTR2(MCOM,MTMC)
+      COMMON/TMCO1/IOTMCFL(MCOM,MS)
 
       COMMON/PRECT3/NTMC,NGLAZ(MTMC)
       common/PRECT4/TOPTIC(MCOM,MTMC)
 
       COMMON/TMCB1/IBCMT(MCOM,MTMC)
-      COMMON/TMCB2/NBCTMC(MCOM,MTMC),IBCST(MCOM,MBP,MTMC),
-     &             IBCFT(MCOM,MBP,MTMC),IBCSUR(MCOM,MTMC)
-      COMMON/TMCB3/NBCTT(MCOM,MBP,MTMC),BACTPT(MCOM,MBP,MTMC)
-      LOGICAL found,OK
+      COMMON/TMCB2/NBCTMC(MCOM,MTMC),IBCST(MCOM,MTMC),
+     &             IBCFT(MCOM,MTMC),IBCSUR(MCOM,MTMC)
+      COMMON/TMCB3/NBCTT(MCOM,MTMC),BACTPT(MCOM,MTMC)
+
+C Configuration control.
+      common/cctlnm/ctldoc,lctlf
+      CHARACTER CTLDOC*248,LCTLF*72
+
+      common/caleni/nbdaytype,nbcaldays(MDTY),icalender(365)
+      INTEGER nbdaytype,nbcaldays,icalender
+
+      LOGICAL found,OK,XST,QUIET
       logical canceled   ! toggle set if user interupts an edit session.
       logical modmlc     ! for selecting MLC
       integer IRT        ! for radio button
@@ -1724,6 +1887,7 @@ C to 0.
         IF(SOTF(icomp,is)(1:4).EQ.'OPAQ'.OR.
      &     SOTF(icomp,is)(1:3).EQ.'CFC')THEN
           ITMCFL(ICOMP,IS)=0
+          IOTMCFL(ICOMP,IS)=0
           GOTO 10
         ENDIF
 
@@ -1776,6 +1940,7 @@ C Switch back to opaque construction.
               smlcindex(icomp,is)=ISEL   ! update array
               ICF=ISEL
               ITMCFL(ICOMP,IS)=0
+              IOTMCFL(ICOMP,IS)=0
               SOTF(icomp,is)='OPAQUE'
               OPT='OPAQUE'
               goto 10
@@ -1818,6 +1983,7 @@ C << todo consider how one might treat a cancel request within eoptks
             GOTO 246
           else
             ITMCFL(ICOMP,IS)=0
+            IOTMCFL(ICOMP,IS)=0
             SOTF(ICOMP,IS)='OPAQUE'
             OPT='OPAQUE'
             goto 10
@@ -1877,7 +2043,7 @@ C Display of current information...
       CALL EDISP(ITRU,outs)
       CALL EDISP(ITRU,' ')
       CALL EDISP(ITRU,' Surface      Construction OPAQ/   Optical  ')
-      CALL EDISP(ITRU,' Name         Description  TRANS   Reference')
+      CALL EDISP(ITRU,' Name         Description  TRANS   Name')
       DO 31, ISR=1,NZSUR(icomp)
         icn1=izstocn(icomp,isr)
         lnsmlcn=lnblnk(SMLCN(icomp,isr))
@@ -1915,31 +2081,31 @@ C Display of current information...
         ENDIF
         CALL EDISP(ITRU,outs)
         DO 21 KK=1,NBCTMC(ICOMP,I)
-          if(NBCTT(ICOMP,KK,I).eq.0)then
+          if(NBCTT(ICOMP,I).eq.0)then
             msg=' sensing total radiation'
-          elseif(NBCTT(ICOMP,KK,I).eq.1)then
+          elseif(NBCTT(ICOMP,I).eq.1)then
             msg=' sensing ambient temperature'
-          elseif(NBCTT(ICOMP,KK,I).eq.2)then
+          elseif(NBCTT(ICOMP,I).eq.2)then
             msg=' sensing zone temperature'
-          elseif(NBCTT(ICOMP,KK,I).eq.3)then
+          elseif(NBCTT(ICOMP,I).eq.3)then
             msg=' sensing daylight coeff.'
-          elseif(NBCTT(ICOMP,KK,I).eq.4)then
+          elseif(NBCTT(ICOMP,I).eq.4)then
             msg=' Lightswitch (not available)'
-          elseif(NBCTT(ICOMP,KK,I).eq.-99)then
+          elseif(NBCTT(ICOMP,I).eq.-99)then
             msg=' sensing time only'
           endif
           WRITE(outs,'(A,I2,A,I2,A,I2,2A,F7.2)') ' Period ',KK,
-     &      ': from ',IBCST(ICOMP,KK,I),' to ',IBCFT(ICOMP,KK,I),
-     &      msg(1:lnblnk(msg)),' set @ ',BACTPT(ICOMP,KK,I)
+     &      ': from ',IBCST(ICOMP,I),' to ',IBCFT(ICOMP,I),
+     &      msg(1:lnblnk(msg)),' set @ ',BACTPT(ICOMP,I)
           CALL EDISP(ITRU,outs)
 
           CALL EDISP(ITRU,' Alt. direct trans @ 5 angles & vis trans  ')
-          WRITE(outs,'(2X,6F6.2)')(TMCT2(ICOMP,I,J5,KK),J5=1,5),
-     &                            TVTR2(ICOMP,I,KK)
+          WRITE(outs,'(2X,6F6.2)')(TMCT2(ICOMP,I,J5),J5=1,5),
+     &                            TVTR2(ICOMP,I)
           CALL EDISP(ITRU,outs)
           CALL EDISP(ITRU,' For each layer alt absorp @ 5 angles ')
           DO 35 IL=1,NGLAZ(I)
-            WRITE(outs,'(2X,5F7.3)')(TMCA2(ICOMP,I,IL,J5,KK),J5=1,5)
+            WRITE(outs,'(2X,5F7.3)')(TMCA2(ICOMP,I,IL,J5),J5=1,5)
             CALL EDISP(ITRU,outs)
    35     CONTINUE
    21   CONTINUE
@@ -1957,11 +2123,11 @@ C invokes a cancel during the editing.
 
 C Clear the optical control common blocks that might have
 C been set during the prior edit.
-          DO 204 IT=1,NTMC
+          DO IT=1,NTMC
             IBCMT(ICOMP,IT)=0
             NBCTMC(ICOMP,IT)=0
             IBCSUR(ICOMP,IT)=0
-  204     continue
+          enddo
           GOTO 200
         endif
       endif
@@ -1969,29 +2135,227 @@ C been set during the prior edit.
         if(IBCMT(ICOMP,IT).eq.1)then
           helptopic='detect_existing_opt_ctl'
           call gethelptext(helpinsub,helptopic,nbhelp)
-          WRITE(OUTS,'(A,I2,A)')' For TMC type ',IT,
-     &      ' there is an optical control. Options:'
-          CALL EASKABC(outs,' ','remove this optical control',
-     &      'edit this optical control','accept control as-is',
-     &      iwa,nbhelp)
+          WRITE(OUTS,'(2A,I2,A)') 'TMC type ',TOPTIC(ICOMP,IT),IT,
+     &      ' uses a legacy control. Options:'
+          CALL EASKATOG(outs,' ','delete','edit',
+     &     'accept as-is','define alternative optical property',
+     &     'convert to optical control file logic',' ',' ',IWA,nbhelp)
           if(iwa.eq.1)then
             IBCMT(ICOMP,IT)=0
             GOTO 22
           elseif(iwa.eq.2)then
-            OK=.true.
+            continue
           elseif(iwa.eq.3)then
             IBCMT(ICOMP,IT)=1
             GOTO 22
+          elseif(iwa.eq.4)then
+            IBCMT(ICOMP,IT)= -1
+            NBCTMC(ICOMP,IT)=1;  IBCSUR(ICOMP,IT)=0  ! fill in placeholders
+            IBCST(ICOMP,IT)=0; IBCFT(ICOMP,IT)=24
+            NBCTT(ICOMP,IT)= 0
+
+C Accept current alt optics or pick alternative optical properties.
+            helptopic='optical_control_summary'
+            call gethelptext(helpinsub,helptopic,nbhelp)
+            CALL EASKAB(' ','Options:',
+     &        'keep existing alternative optics',
+     &        'select a new set',iwb,nbhelp)
+            if(iwb.eq.1)then
+              goto 22
+            elseif(iwb.eq.2)then
+              CALL EOPTKS(ITRC,ITRU,'T',IER)
+              do ID=1,5
+                TMCT2(ICOMP,IT,ID)=DG(ID)
+              enddo
+              TVTR2(ICOMP,IT)=VTRN
+              do J=1,NGLAZ(IT)
+                TMCA2(ICOMP,IT,J,1)=AB(J,1)
+                TMCA2(ICOMP,IT,J,2)=AB(J,2)
+                TMCA2(ICOMP,IT,J,3)=AB(J,3)
+                TMCA2(ICOMP,IT,J,4)=AB(J,4)
+                TMCA2(ICOMP,IT,J,5)=AB(J,5)
+              enddo
+
+C Save changes to tmc file.
+              CALL EASKOK(' ','Save changes to tmc file?',OK,nbhelp)
+              IF(OK)THEN
+                QUIET=.true.
+                IUF=IFIL+1
+                CALL MKTWIN(IUF,ICOMP,QUIET,IER)
+              ENDIF
+              goto 22
+            endif
+          elseif(iwa.eq.5)then
+
+C Re-scan control file. Increment the number of optical controls,
+C use negative of that index as IBCMT. If there is only one tmc 
+C period and it does not start-end at 0 and 24 then create 3 periods:
+C The first and last freefloating. Convert to equivalent indices 
+C in the optical control commons.
+            ICTLF=IFIL+1
+            CALL ERPFREE(ICTLF,ISTAT)
+            call FINDFIL(LCTLF,XST)
+            if(XST)then
+              CALL EZCTLR(ICTLF,ITRC,IUOUT,IER)
+            else
+              call usrmsg('Control file not found. Canceling action.',
+     &        ' ','W')
+              goto 22
+            endif
+            NOF=NOF+1
+            IBCMT(ICOMP,IT)= -1*NOF  ! negate index
+            NOCDT(NOF)=1             ! assume one day type
+
+C Following code follows pattern in addctl but sets periods based
+C on the tmc control logic.
+            IV=NOCDT(nof)
+            write(outs,'(a,i2,a)')
+     &      ' Number of optical control day types (currently',IV,') :'
+            CALL EASKABC(outs,'(see help)',
+     &        'Follow calendar day types','Just one day type',
+     &        'Dates of validity (legacy)',IV,nbhelp)
+            if(iv.eq.1)then
+              NOCDT(nof)=0
+            elseif(iv.eq.2)then
+              NOCDT(nof)=1
+            elseif(iv.eq.3)then
+              IVP=3
+              CALL EASKI(IVP,'Number of user defined control periods',
+     &        'of validity in the whole year (see help) ',
+     &        0,'F',MCF,'-',1,'nb periods of validity',IERI,nbhelp)
+              if(ieri.eq.-3)then
+                nof=nof-1
+                return
+              else
+                NOCDT(nof)=IVP
+                IDOV=1     ! date of validity used
+              endif
+            endif
+            NN=NOCDT(nof)  ! assume zero means all calendar day types
+            IF(NN.EQ.0)NN=NBDAYTYPE
+            do 5 ik=1,NN
+              if(IDOV.EQ.1)then
+                IEDY=365
+                IF(IK.EQ.1)THEN
+                  IBDY=1
+                ELSE
+                  IBDY=IOCDV(NOF,IK-1,2)+1
+                ENDIF
+                CALL EASKPER('Dates of validity:',IBDY,IEDY,IFDY,IER)
+                IOCDV(NOF,IK,1)=IBDY
+                IOCDV(NOF,IK,2)=IEDY
+              else
+                IOCDV(NOF,IK,1)=1
+                IOCDV(NOF,IK,2)=365
+              endif
+              if(NBCTMC(ICOMP,IT).eq.1)then
+                if(IBCST(ICOMP,IT).eq.0.and.
+     &             IBCFT(ICOMP,IT).eq.24)then
+                  NOCDP(NOF,IK)=1          ! 1 period all day
+                  TOCPS(NOF,IK,1)=0.0
+                  IOCTYP(NOF,IK,1)=0
+                  IOCLAW(NOF,IK,1)=2
+                  OMISCD(NOF,IK,1,1)=1
+                  OMISCD(NOF,IK,1,2)=BACTPT(ICOMP,IT)
+                else
+                  NOCDP(NOF,IK)=3          ! 3 periods
+                  TOCPS(NOF,IK,1)=0.0
+                  TOCPS(NOF,IK,2)=IBCST(ICOMP,IT)
+                  TOCPS(NOF,IK,3)=IBCFT(ICOMP,IT)
+                  IOCTYP(NOF,IK,1)=0; IOCTYP(NOF,IK,2)=0
+                  IOCTYP(NOF,IK,3)=0
+                  IOCLAW(NOF,IK,1)=0; IOCLAW(NOF,IK,2)=2
+                  IOCLAW(NOF,IK,3)=0
+                  OMISCD(NOF,IK,1,1)=0; OMISCD(NOF,IK,2,1)=1
+                  OMISCD(NOF,IK,3,1)=0
+                  OMISCD(NOF,IK,2,2)=BACTPT(ICOMP,IT)
+                endif
+              else
+                NOCDP(NOF,IK)=1          ! 1 period all day
+                TOCPS(NOF,IK,1)=0.0
+                IOCTYP(NOF,IK,1)=0
+                IOCLAW(NOF,IK,1)=0
+                OMISCD(NOF,IK,1,1)=0
+              endif
+  5         continue
+            if(NOF.eq.1)then
+              write(opticdoc,'(a)')'Conversion from tmc control'
+            endif
+            if(NBCTT(ICOMP,IT).eq.0)then       ! radiation at a surface
+              IOSN(NOF,1)= -7; IOSN(NOF,2)=icomp
+              IOSN(NOF,3)=IBCSUR(ICOMP,IT) 
+            elseif(NBCTT(ICOMP,IT).eq.1)then   ! abient dbT
+              IOSN(NOF,1)= -3; IOSN(NOF,2)=0; IOSN(NOF,3)=0
+            elseif(NBCTT(ICOMP,IT).eq.2)then   ! zone db T
+              IOSN(NOF,1)=1; IOSN(NOF,2)=icomp; IOSN(NOF,3)=0 
+            elseif(NBCTT(ICOMP,IT).eq.3)then   ! lux level
+              IOSN(NOF,1)= -8; IOSN(NOF,2)=0
+              IOSN(NOF,3)=IBCSUR(ICOMP,IT) 
+            elseif(NBCTT(ICOMP,IT).eq.4)then   ! lightswitch NA
+              IOSN(NOF,1)= -8; IOSN(NOF,2)=0; IOSN(NOF,3)=0 
+            elseif(NBCTT(ICOMP,IT).eq.-99)then ! time
+              IOSN(NOF,1)= -3; IOSN(NOF,2)=0; IOSN(NOF,3)=0 ! use ambT as placeholder
+            endif
+            IOAN(NOF,1)=0; IOAN(NOF,2)=ICOMP; IOAN(NOF,3)=IT
+
+C Save to control file.
+            CALL EASKOK(' ','Save changes to control file?',OK,nbhelp)
+            IF(OK)THEN
+              ICTLF=IFIL+1
+              CALL CTLWRT(ICTLF,IER)
+            endif
+
+C Save changes to tmc file.
+            CALL EASKOK(' ','Save changes to tmc file?',OK,nbhelp)
+            IF(OK)THEN
+              QUIET=.true.
+              IUF=IFIL+1
+              CALL MKTWIN(IUF,ICOMP,QUIET,IER)
+            ENDIF
+            GOTO 22
           endif
         else
+
+C There is no existing tmc control.
           helptopic='detect_existing_opt_ctl'
           call gethelptext(helpinsub,helptopic,nbhelp)
-          WRITE(OUTS,'(A,I2,A)')'For TMC type ',IT,':'
-          CALL EASKOK(OUTS,'is there optical control?',OK,nbhelp)
-          IF(.NOT.OK)THEN
+          WRITE(OUTS,'(2A,I2,A)') 'For TMC type ',TOPTIC(ICOMP,IT),IT,
+     &      '. Options:'
+          CALL EASKABC(outs,' ','setup legacy tmc control',
+     &      'define alternative optical property','continue',iwa,nbhelp)
+          if(iwa.eq.1)then
+            continue
+          elseif(iwa.eq.2)then
+
+C Flag as suitable for an optical control in the control file.
+C This will be updated when an actual control is defined. Set
+C dummy values for tmc legacy control variables.
+            IBCMT(ICOMP,IT)= -1
+            NBCTMC(ICOMP,IT)=1;  IBCSUR(ICOMP,IT)=0
+            IBCST(ICOMP,IT)=0; IBCFT(ICOMP,IT)=24
+            NBCTT(ICOMP,IT)= 0
+
+C Pick the alternative optical properties.
+            helptopic='optical_control_summary'
+            call gethelptext(helpinsub,helptopic,nbhelp)
+            CALL EOPTKS(ITRC,ITRU,'T',IER)
+            do ID=1,5
+              TMCT2(ICOMP,IT,ID)=DG(ID)
+            enddo
+            TVTR2(ICOMP,IT)=VTRN
+            do J=1,NGLAZ(IT)
+              TMCA2(ICOMP,IT,J,1)=AB(J,1)
+              TMCA2(ICOMP,IT,J,2)=AB(J,2)
+              TMCA2(ICOMP,IT,J,3)=AB(J,3)
+              TMCA2(ICOMP,IT,J,4)=AB(J,4)
+              TMCA2(ICOMP,IT,J,5)=AB(J,5)
+            enddo
+            GOTO 22
+
+          elseif(iwa.eq.3)then
             IBCMT(ICOMP,IT)=0
             GOTO 22
-          ENDIF
+          endif
         endif
 
         helptopic='optical_control_summary'
@@ -1999,7 +2363,7 @@ C been set during the prior edit.
         IBCMT(ICOMP,IT)=1
         N1=NBCTMC(ICOMP,IT)
         CALL EASKI(N1,' ','Number of control periods?',
-     &    1,'F',MBP,'F',1,'no of control periods',IERI,nbhelp)
+     &    1,'F',1,'F',1,'no of control periods',IERI,nbhelp)
         if(ieri.eq.-3) then
           canceled=.true.
           goto 203
@@ -2027,17 +2391,17 @@ C For each control period get the appropriate replacement properties.
         call gethelptext(helpinsub,helptopic,nbhelp)
         DO 24 ICP=1,N1
           write(outs,'(A,I2)')' For control period ',ICP
-          VAL=REAL(IBCST(ICOMP,ICP,IT))
+          VAL=REAL(IBCST(ICOMP,IT))
           CALL EASKR(VAL,outs,' Begin at hour: ',
      &      0.00,'W',24.0,'W',0.0,'control start',IER,nbhelp)
-          IBCST(ICOMP,ICP,IT)=INT(VAL)
+          IBCST(ICOMP,IT)=INT(VAL)
 
-          VAL=REAL(IBCFT(ICOMP,ICP,IT))
+          VAL=REAL(IBCFT(ICOMP,IT))
           CALL EASKR(VAL,outs,' End at hour  : ',
      &      0.00,'W',24.0,'W',24.0,'control end',IER,nbhelp)
-          IBCFT(ICOMP,ICP,IT)=INT(VAL)
+          IBCFT(ICOMP,IT)=INT(VAL)
 
-          N3=NBCTT(ICOMP,ICP,IT)
+          N3=NBCTT(ICOMP,IT)
           IRT=1
           if(n3.eq.-99)then
             call EASKATOG('Controlled on: (currently time)','Confirm',
@@ -2077,41 +2441,41 @@ C     &      'lux level','LtSwitch','cancel',IRT,nbhelp)
      &      'lux level','LtSwitch (not avail)','cancel',IRT,nbhelp)
           endif
           if(irt.eq.1)then
-            NBCTT(ICOMP,ICP,IT)= -99
-            BACTPT(ICOMP,ICP,IT)=0.
+            NBCTT(ICOMP,IT)= -99
+            BACTPT(ICOMP,IT)=0.
           elseif(irt.eq.2)then
-            NBCTT(ICOMP,ICP,IT)= 0
-            VAL=BACTPT(ICOMP,ICP,IT)
+            NBCTT(ICOMP,IT)= 0
+            VAL=BACTPT(ICOMP,IT)
             CALL EASKR(VAL,' ','Radiation set point?',
      &        0.00,'W',1000.0,'W',0.0,'radiation set point',IER,nbhelp)
-            BACTPT(ICOMP,ICP,IT)=VAL
+            BACTPT(ICOMP,IT)=VAL
           elseif(irt.eq.3)then
-            NBCTT(ICOMP,ICP,IT)= 1
-            VAL=BACTPT(ICOMP,ICP,IT)
+            NBCTT(ICOMP,IT)= 1
+            VAL=BACTPT(ICOMP,IT)
             CALL EASKR(VAL,' ','Ambient temp. set point?',
      &        0.00,'W',1000.0,'W',0.0,'ambient set point',IER,nbhelp)
-            BACTPT(ICOMP,ICP,IT)=VAL
+            BACTPT(ICOMP,IT)=VAL
           elseif(irt.eq.4)then
-            NBCTT(ICOMP,ICP,IT)= 2
-            VAL=BACTPT(ICOMP,ICP,IT)
+            NBCTT(ICOMP,IT)= 2
+            VAL=BACTPT(ICOMP,IT)
             CALL EASKR(VAL,' ','Zone temp. set point',
      &        0.00,'W',1000.0,'W',0.0,'zone set point',IER,nbhelp)
-            BACTPT(ICOMP,ICP,IT)=VAL
+            BACTPT(ICOMP,IT)=VAL
           elseif(irt.eq.5)then
-            NBCTT(ICOMP,ICP,IT)= 3
-            VAL=BACTPT(ICOMP,ICP,IT)
+            NBCTT(ICOMP,IT)= 3
+            VAL=BACTPT(ICOMP,IT)
             CALL EASKR(VAL,' ','Lux set point',
      &        0.00,'W',1000.0,'W',0.0,'lux set point',IER,nbhelp)
-            BACTPT(ICOMP,ICP,IT)=VAL
+            BACTPT(ICOMP,IT)=VAL
           elseif(irt.eq.6)then
 
 C << ESP-r to Lightswitch is not currently implemented >>
-C            NBCTT(ICOMP,ICP,IT)= 4
-C            VAL=BACTPT(ICOMP,ICP,IT)
+C            NBCTT(ICOMP,IT)= 4
+C            VAL=BACTPT(ICOMP,IT)
 C            CALL EASKR(VAL,' ','Lightswitch lux set point?',
 C     &        0.00,'W',1000.0,'W',0.0,'LtSw illum. set point',
 C     &        IER,nbhelp)
-C            BACTPT(ICOMP,ICP,IT)=VAL
+C            BACTPT(ICOMP,IT)=VAL
           elseif(irt.eq.7)then
             return
           ENDIF
@@ -2123,17 +2487,17 @@ C the number of layers should match that of the base case.
 C << todo: consider how to react to a cancel request within eoptks
 
           CALL EOPTKS(ITRC,ITRU,'T',IER)
-          DO 42 ID=1,5
-            TMCT2(ICOMP,IT,ID,ICP)=DG(ID)
-   42     CONTINUE
-          TVTR2(ICOMP,IT,ICP)=VTRN
-          DO 44 J=1,NGLAZ(IT)
-            TMCA2(ICOMP,IT,J,1,ICP)=AB(J,1)
-            TMCA2(ICOMP,IT,J,2,ICP)=AB(J,2)
-            TMCA2(ICOMP,IT,J,3,ICP)=AB(J,3)
-            TMCA2(ICOMP,IT,J,4,ICP)=AB(J,4)
-            TMCA2(ICOMP,IT,J,5,ICP)=AB(J,5)
-   44     CONTINUE
+          do ID=1,5
+            TMCT2(ICOMP,IT,ID)=DG(ID)
+          enddo
+          TVTR2(ICOMP,IT)=VTRN
+          do J=1,NGLAZ(IT)
+            TMCA2(ICOMP,IT,J,1)=AB(J,1)
+            TMCA2(ICOMP,IT,J,2)=AB(J,2)
+            TMCA2(ICOMP,IT,J,3)=AB(J,3)
+            TMCA2(ICOMP,IT,J,4)=AB(J,4)
+            TMCA2(ICOMP,IT,J,5)=AB(J,5)
+          enddo
    24   CONTINUE
    22 CONTINUE
       GOTO 200
@@ -2284,12 +2648,12 @@ C each layer and keep track of time constant.
 c First determine maximum thermal diffusivity and associated
 c homogeneous layer. Locate if the MLC database item is used.
         found=.false.
-        do 42 icn=1,ncon
+        do icn=1,ncon
           if(smlcindex(ic1(icn),ie1(icn)).eq.ic) then
             found=.true.
             goto 43
           endif
-  42    continue
+        enddo
   43    if(found)then
           RES=0.
           CAP=0.

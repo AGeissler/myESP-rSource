@@ -17,6 +17,7 @@ C details.
 C This file contains routines for creating and editing a zone
 C convection-calculation control file:
 C   HCFMK   Controlling routine for creating/editing convection file.
+C   HCFMKHL High level questions about regime.
 C   EHCMAN  Controls manual creation/editing of convection file.
 C   EHCMANINT  Set initial values of convection file.
 C   EPHCF   Edits one period of convection-calculation control data.
@@ -61,7 +62,6 @@ C control file.
       CHARACTER*72 LTMP
       character HFILE*72,head*33
       CHARACTER ITEM(31)*48        ! menu items
-      character hctypes(19)*32
       character OUTSTR*124,outs*124
       character KEY*1
       logical OK,modcfg,XST,clkok
@@ -73,30 +73,8 @@ C Short and long descriptions of correlations.
       character hcshtdescr*32  ! short description
       character hclngdescr*48   ! long description
       dimension hcshtdescr(-1:99),hclngdescr(-1:99)
-      integer IVALS(19)
 
       helpinsub='hcfmk'  ! set for subroutine
-
-C Make up the list of hctypes for user to select from.
-      hctypes(1) ='bouyancy via in-floor heating'
-      hctypes(2) ='bouyancy via heated wall panel'
-      hctypes(3) ='bouyancy via other temp diff'
-      hctypes(4) ='heater under window'
-      hctypes(5) ='heater not under window'
-      hctypes(6) ='vertical channel - Molina'
-      hctypes(7) ='vertical channel - Bar-Cohen'
-      hctypes(8) ='mech HVAC VAV with CV heating'
-      hctypes(9) ='mech HVAC VAV with VV heating'
-      hctypes(10)='mech HVAC CV with variable temp'
-      hctypes(11)='via circulation fan'
-      hctypes(12)='mixed flow VAV with CV heating'
-      hctypes(13)='mixed flow VAV with VV heating'
-      hctypes(14)='mixed flow CV with variable temp'
-      hctypes(15)='User defined hc coefficients'
-      hctypes(16)='User defined hc correlations'
-      hctypes(17)='User defined adaptive correlat.'
-      hctypes(18)='Default CEN values'
-      hctypes(19)='User edited CEN values'
 
 C Before presenting hc regime, make up a suitable file name
 C in case it is useful.
@@ -230,109 +208,7 @@ C and jump back if hc facility entered in error.
 
 C Ask some high level questions prior to creating file.
 C Define number of day types, ask about which control regime.
-              call easkab('Daytypes for heat transfer coefficients',
-     &          'Options:','All days treated the same',
-     &          'follow model day types',IW,nbhelp)
-              if(IW.eq.1)IHCDT=1
-              if(IW.eq.2)IHCDT=NBDAYTYPE
-              iday=1   ! focus on the first (or all) day type
-              INPICK=1
-              CALL EPICKS(INPICK,IVALS,
-     &        'General pattern of heat transfer',
-     &        'and then define periods etc.',32,19,hctypes,
-     &        'Heat transfer coefficients/correlations',IER,nbhelp)
-              if(IVALS(1).eq.1)then
-                iopt=1  ! Regime `A'. Buoyancy caused by in-floor heating.
-                call EconvA(ITRU,IUF,ICOMP,iopt,iday,IER)
-              elseif(IVALS(1).eq.2)then
-                iopt=2  ! Regime `A'. Buoyancy caused by heated wall panel
-                call EconvA(ITRU,IUF,ICOMP,iopt,iday,IER)
-              elseif(IVALS(1).eq.3)then
-                iopt=3  ! Regime `A'. Buoyancy caused by buoyancy other temp diff.
-                call EconvA(ITRU,IUF,ICOMP,iopt,iday,IER)
-              elseif(IVALS(1).eq.4)then
-                iopt=1  ! Regime `B'. Buoyancy caused by heater under window.
-                call EconvB(ITRU,IUF,ICOMP,iopt,iday,IER)
-              elseif(IVALS(1).eq.5)then
-                iopt=2  ! Regime `B'. Buoyancy caused by heater not under window.
-                call EconvB(ITRU,IUF,ICOMP,iopt,iday,IER)
-              elseif(IVALS(1).eq.6)then
-                iopt=1  ! Open vertical channel convection - Molina & Maestre correlation
-                call EconvF (ITRU,IUF,ICOMP,iopt,iday,IER)
-              elseif(IVALS(1).eq.7)then
-                iopt=2  ! Open vertical channel convection - Bar-Cohen correlation
-                call EconvF (ITRU,IUF,ICOMP,iopt,iday,IER)
-              elseif(IVALS(1).eq.8)then
-                iopt=1  ! VAV with CV heating.
-                call EconvC(ITRU,IUF,ICOMP,iopt,iday,IER)
-              elseif(IVALS(1).eq.9)then
-                iopt=2  ! Regime `C'. VAV with VV heating.
-                call EconvC(ITRU,IUF,ICOMP,iopt,iday,IER)
-              elseif(IVALS(1).eq.10)then
-                iopt=3  ! Regime `C'. CV with variable temperature.
-                call EconvC(ITRU,IUF,ICOMP,iopt,iday,IER)
-              elseif(IVALS(1).eq.11)then
-                call EconvD(ITRU,IUF,ICOMP,iday,IER)  ! Fan
-              elseif(IVALS(1).eq.12)then
-                iopt=1  ! Regime `E'. Mixed flow model. VAV with CV heating.
-                call EconvE(ITRU,IUF,ICOMP,iopt,iday,IER)
-              elseif(IVALS(1).eq.13)then
-                iopt=2  ! Regime `E'. Mixed flow model. VAV with VV heating.
-                call EconvE(ITRU,IUF,ICOMP,iopt,iday,IER)
-              elseif(IVALS(1).eq.14)then
-                iopt=3  ! Regime `E'. Mixed flow model. CV with variable temperatures.
-                call EconvE(ITRU,IUF,ICOMP,iopt,iday,IER)
-              elseif(IVALS(1).eq.15)then
-                iopt=1
-                call easkab(' ','Options:','set initial values',
-     &            'manage one or more periods',IW,nbhelp)
-                if(IW.eq.1)then
-                  call EHCMANINIT(ICOMP,iopt,iday,IER)
-                  call EHCMAN(ITRU,IUF,ICOMP,iopt,iday,IER)  ! User supplied hc values.
-                else
-                  call EHCMAN(ITRU,IUF,ICOMP,iopt,iday,IER)  ! User supplied hc values.
-                endif
-              elseif(IVALS(1).eq.16)then
-                iopt=2
-                call easkab(' ','Options:','set initial values',
-     &            'manage one or more periods',IW,nbhelp)
-                if(IW.eq.1)then
-                  call EHCMANINIT(ICOMP,iopt,iday,IER)
-                  call EHCMAN(ITRU,IUF,ICOMP,iopt,iday,IER)  ! User supplied hc correlations.
-                else
-                  call EHCMAN(ITRU,IUF,ICOMP,iopt,iday,IER)  ! User supplied hc correlations.
-                endif
-              elseif(IVALS(1).eq.17)then
-                iopt=3
-                call easkab(' ','Options:','set initial values',
-     &            'manage one or more periods',IW,nbhelp)
-                if(IW.eq.1)then
-                  call EHCMANINIT(ICOMP,iopt,iday,IER)
-                  call EHCMAN(ITRU,IUF,ICOMP,iopt,iday,IER)  ! User supplied adaptive hc correlations.
-                else
-                  call EHCMAN(ITRU,IUF,ICOMP,iopt,iday,IER)  ! User supplied adaptive hc correlations.
-                endif
-              elseif(IVALS(1).eq.18)then
-                iopt=4
-                call easkab(' ','Options:','set initial values',
-     &            'manage one or more periods',IW,nbhelp)
-                if(IW.eq.1)then
-                  call EHCMANINIT(ICOMP,iopt,iday,IER)
-                  call EHCMAN(ITRU,IUF,ICOMP,iopt,iday,IER)  ! CEN default hc coefficients.
-                else
-                  call EHCMAN(ITRU,IUF,ICOMP,iopt,iday,IER)  ! CEN default hc coefficients.
-                endif
-              elseif(IVALS(1).eq.19)then
-                iopt=5
-                call easkab(' ','Options:','set initial values',
-     &            'manage one or more periods',IW,nbhelp)
-                if(IW.eq.1)then
-                  call EHCMANINIT(ICOMP,iopt,iday,IER)
-                  call EHCMAN(ITRU,IUF,ICOMP,iopt,iday,IER)  ! CEN user edited hc coefficients.
-                else
-                  call EHCMAN(ITRU,IUF,ICOMP,iopt,iday,IER)  ! CEN user edited hc coefficients.
-                endif
-              endif
+              call HCFMKHL(ITRU,IUF,ICOMP,IER)
             endif
             modcfg=.true.
           else
@@ -377,9 +253,10 @@ C Confirm if one day type or follow current day types.
      &     EN(iday,loop),' ',hcfpdescr(iday,loop)(1:32)
       enddo
       ITEM(m+n+1)=          '> save                        '
-      ITEM(m+n+2)=          '? help                        '
-      ITEM(m+n+3)=          '- exit                        '
-      NITEMS=m+n+3
+      ITEM(m+n+2)=          '! reset regime                '
+      ITEM(m+n+3)=          '? help                        '
+      ITEM(m+n+4)=          '- exit                        '
+      NITEMS=m+n+4
 
 C Redraw wireframe on each return.
       CALL INLNST(1)
@@ -425,7 +302,7 @@ C Recover and list out the available correlations.
         goto 21
       elseif(INO.eq.4)then
         goto 21
-      elseif(INO.gt.4.and.INO.lt.NITEMS-2)then
+      elseif(INO.gt.4.and.INO.lt.NITEMS-3)then
 
 C Depending on the value of hclngdescr jump to the correct subroutine.
         ifoc=ino-4
@@ -568,10 +445,17 @@ C Did not match so assume user defined hc coefficients.
         endif
         goto 21
 
-      elseif(INO.eq.NITEMS-2)then
+      elseif(INO.eq.NITEMS-3)then
 
 C Write data to file.
         CALL EMKHTC(LHCCO(ICOMP),ICOMP,IUF,ITRU,IER)
+        goto 21
+
+      elseif(INO.eq.NITEMS-2)then
+
+C User requests a redefintion of HC regime.
+        call HCFMKHL(ITRU,IUF,ICOMP,IER)
+        CALL EMKCFG('-',IER)
         goto 21
 
       elseif(INO.eq.NITEMS-1)then
@@ -591,6 +475,161 @@ C Error messages.
       return
       END
 
+
+C ******************** HCFMKHL ********************
+C HCFMKHL user chooses high level attributes of HC regime.
+
+      SUBROUTINE HCFMKHL(ITRU,IUF,ICOMP,IER)
+#include "building.h"
+#include "model.h"
+#include "help.h"
+      
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
+      COMMON/HCFP/IHCDT,IHCFP(MDTY),ST(MDTY,MBP),EN(MDTY,MBP),
+     &            HCI(MDTY,MBP,MS),HCE(MDTY,MBP,MS),ICTL(MDTY,MBP),
+     &            IHCI(MDTY,MBP,MS),IHCE(MDTY,MBP,MS),
+     &            CVdata(MDTY,MBP,MS,8)
+      common/calena/calename,calentag(MDTY),calendayname(MDTY)
+      character calename*32,calentag*12,calendayname*32
+      common/caleni/nbdaytype,nbcaldays(MDTY),icalender(365)
+      INTEGER NBDAYTYPE,NBCALDAYS,ICALENDER
+
+      character hctypes(19)*32
+      integer iday       ! for toggling through multiple day types
+
+      integer IVALS(19)
+
+      helpinsub='hcfmk'  ! set for subroutine
+
+C Make up the list of hctypes for user to select from.
+      hctypes(1) ='bouyancy via in-floor heating'
+      hctypes(2) ='bouyancy via heated wall panel'
+      hctypes(3) ='bouyancy via other temp diff'
+      hctypes(4) ='heater under window'
+      hctypes(5) ='heater not under window'
+      hctypes(6) ='vertical channel - Molina'
+      hctypes(7) ='vertical channel - Bar-Cohen'
+      hctypes(8) ='mech HVAC VAV with CV heating'
+      hctypes(9) ='mech HVAC VAV with VV heating'
+      hctypes(10)='mech HVAC CV with variable temp'
+      hctypes(11)='via circulation fan'
+      hctypes(12)='mixed flow VAV with CV heating'
+      hctypes(13)='mixed flow VAV with VV heating'
+      hctypes(14)='mixed flow CV with variable temp'
+      hctypes(15)='User defined hc coefficients'
+      hctypes(16)='User defined hc correlations'
+      hctypes(17)='User defined adaptive correlat.'
+      hctypes(18)='Default CEN values'
+      hctypes(19)='User edited CEN values'
+
+C Ask some high level questions prior to creating file.
+C Define number of day types, ask about which control regime.
+      helptopic='zone_htc_overview'
+      call gethelptext(helpinsub,helptopic,nbhelp)
+      call easkab('Daytypes for heat transfer coefficients',
+     &  'Options:','All days treated the same',
+     &  'follow model day types',IW,nbhelp)
+      if(IW.eq.1)IHCDT=1
+      if(IW.eq.2)IHCDT=NBDAYTYPE
+      iday=1   ! focus on the first (or all) day type
+      INPICK=1
+      CALL EPICKS(INPICK,IVALS,'General pattern of heat transfer',
+     &  'and then define periods etc.',32,19,hctypes,
+     &  'Heat transfer coefficients/correlations',IER,nbhelp)
+      if(IVALS(1).eq.1)then
+        iopt=1  ! Regime `A'. Buoyancy caused by in-floor heating.
+        call EconvA(ITRU,IUF,ICOMP,iopt,iday,IER)
+      elseif(IVALS(1).eq.2)then
+        iopt=2  ! Regime `A'. Buoyancy caused by heated wall panel
+        call EconvA(ITRU,IUF,ICOMP,iopt,iday,IER)
+      elseif(IVALS(1).eq.3)then
+        iopt=3  ! Regime `A'. Buoyancy caused by buoyancy other temp diff.
+        call EconvA(ITRU,IUF,ICOMP,iopt,iday,IER)
+      elseif(IVALS(1).eq.4)then
+        iopt=1  ! Regime `B'. Buoyancy caused by heater under window.
+        call EconvB(ITRU,IUF,ICOMP,iopt,iday,IER)
+      elseif(IVALS(1).eq.5)then
+        iopt=2  ! Regime `B'. Buoyancy caused by heater not under window.
+        call EconvB(ITRU,IUF,ICOMP,iopt,iday,IER)
+      elseif(IVALS(1).eq.6)then
+        iopt=1  ! Open vertical channel convection - Molina & Maestre correlation
+        call EconvF (ITRU,IUF,ICOMP,iopt,iday,IER)
+      elseif(IVALS(1).eq.7)then
+        iopt=2  ! Open vertical channel convection - Bar-Cohen correlation
+        call EconvF (ITRU,IUF,ICOMP,iopt,iday,IER)
+      elseif(IVALS(1).eq.8)then
+        iopt=1  ! VAV with CV heating.
+        call EconvC(ITRU,IUF,ICOMP,iopt,iday,IER)
+      elseif(IVALS(1).eq.9)then
+        iopt=2  ! Regime `C'. VAV with VV heating.
+        call EconvC(ITRU,IUF,ICOMP,iopt,iday,IER)
+      elseif(IVALS(1).eq.10)then
+        iopt=3  ! Regime `C'. CV with variable temperature.
+        call EconvC(ITRU,IUF,ICOMP,iopt,iday,IER)
+      elseif(IVALS(1).eq.11)then
+        call EconvD(ITRU,IUF,ICOMP,iday,IER)  ! Fan
+      elseif(IVALS(1).eq.12)then
+        iopt=1  ! Regime `E'. Mixed flow model. VAV with CV heating.
+        call EconvE(ITRU,IUF,ICOMP,iopt,iday,IER)
+      elseif(IVALS(1).eq.13)then
+        iopt=2  ! Regime `E'. Mixed flow model. VAV with VV heating.
+        call EconvE(ITRU,IUF,ICOMP,iopt,iday,IER)
+      elseif(IVALS(1).eq.14)then
+        iopt=3  ! Regime `E'. Mixed flow model. CV with variable temperatures.
+        call EconvE(ITRU,IUF,ICOMP,iopt,iday,IER)
+      elseif(IVALS(1).eq.15)then
+        iopt=1
+        call easkab(' ','Options:','set initial values',
+     &    'manage one or more periods',IW,nbhelp)
+        if(IW.eq.1)then
+          call EHCMANINIT(ICOMP,iopt,iday,IER)
+          call EHCMAN(ITRU,IUF,ICOMP,iopt,iday,IER)  ! User supplied hc values.
+        else
+          call EHCMAN(ITRU,IUF,ICOMP,iopt,iday,IER)  ! User supplied hc values.
+        endif
+      elseif(IVALS(1).eq.16)then
+        iopt=2
+        call easkab(' ','Options:','set initial values',
+     &    'manage one or more periods',IW,nbhelp)
+        if(IW.eq.1)then
+          call EHCMANINIT(ICOMP,iopt,iday,IER)
+          call EHCMAN(ITRU,IUF,ICOMP,iopt,iday,IER)  ! User supplied hc correlations.
+        else
+          call EHCMAN(ITRU,IUF,ICOMP,iopt,iday,IER)  ! User supplied hc correlations.
+        endif
+      elseif(IVALS(1).eq.17)then
+        iopt=3
+        call easkab(' ','Options:','set initial values',
+     &    'manage one or more periods',IW,nbhelp)
+        if(IW.eq.1)then
+          call EHCMANINIT(ICOMP,iopt,iday,IER)
+          call EHCMAN(ITRU,IUF,ICOMP,iopt,iday,IER)  ! User supplied adaptive hc correlations.
+        else
+          call EHCMAN(ITRU,IUF,ICOMP,iopt,iday,IER)  ! User supplied adaptive hc correlations.
+        endif
+      elseif(IVALS(1).eq.18)then
+        iopt=4
+        call easkab(' ','Options:','set initial values',
+     &    'manage one or more periods',IW,nbhelp)
+        if(IW.eq.1)then
+          call EHCMANINIT(ICOMP,iopt,iday,IER)
+          call EHCMAN(ITRU,IUF,ICOMP,iopt,iday,IER)  ! CEN default hc coefficients.
+        else
+          call EHCMAN(ITRU,IUF,ICOMP,iopt,iday,IER)  ! CEN default hc coefficients.
+        endif
+      elseif(IVALS(1).eq.19)then
+        iopt=5
+        call easkab(' ','Options:','set initial values',
+     &    'manage one or more periods',IW,nbhelp)
+        if(IW.eq.1)then
+          call EHCMANINIT(ICOMP,iopt,iday,IER)
+          call EHCMAN(ITRU,IUF,ICOMP,iopt,iday,IER)  ! CEN user edited hc coefficients.
+        else
+          call EHCMAN(ITRU,IUF,ICOMP,iopt,iday,IER)  ! CEN user edited hc coefficients.
+        endif
+      endif
+      return
+      end
 
 C ******************** EconvA ********************
 C EconvA controls the input of data related to convective regime A, buoyancy
@@ -3001,6 +3040,11 @@ C       jj=12-14 wall inside, partition, external
       CHARACTER louts*248
       character tokens*124,comment*76,aligned_str*124
 
+C Short and long descriptions of correlations.
+      character hcshtdescr*32  ! short description
+      character hclngdescr*48   ! long description
+      dimension hcshtdescr(-1:99),hclngdescr(-1:99)
+
       if(AUTOVR)then
         CALL EFOPSEQ(IUF,FILE,3,IER)
       else
@@ -3020,10 +3064,12 @@ C one line if necessary.
      &  zname(icomp)(1:lnzname(icomp))
       call align_comment(32,tokens,comment,aligned_str)
       write(iuf,'(a)') aligned_str(1:lnblnk(aligned_str))
-      write(tokens,'(2a)',IOSTAT=ISTAT,ERR=990)  '*Date,',dstmp
-      write(comment,'(a)') 'latest file modification'
-      call align_comment(32,tokens,comment,aligned_str)
-      write(iuf,'(a)') aligned_str(1:lnblnk(aligned_str))
+
+C Date string depricated.
+C      write(tokens,'(2a)',IOSTAT=ISTAT,ERR=990)  '*Date,',dstmp
+C      write(comment,'(a)') 'latest file modification'
+C      call align_comment(32,tokens,comment,aligned_str)
+C      write(iuf,'(a)') aligned_str(1:lnblnk(aligned_str))
       write(tokens,'(a,i3)',IOSTAT=ISTAT,ERR=990)'*Days',IHCDT
       write(comment,'(a)') 'number of control day types'
       call align_comment(32,tokens,comment,aligned_str)
@@ -3046,17 +3092,22 @@ C one line if necessary.
         write(comment,'(a)') 'number of surfaces'
         call align_comment(32,tokens,comment,aligned_str)
         write(iuf,'(a)') aligned_str(1:lnblnk(aligned_str))
-        itrunc=1
-        ipos=1
-        do while (itrunc.ne.0)
-          len117=1
-          nsur=nzsur(icomp)
-          call aslist(ipos,nsur,sn,MS,'S',t117,len117,itrunc)
-          WRITE(IUF,'(3a)',IOSTAT=ISTAT,ERR=990) '# (',
-     &      t117(1:len117),')'
-          ipos=itrunc+1
-        end do
 
+C If ICTL = 3 and only one period skip listing of surfaces.
+        if(IHCFP(L).eq.1.and.ICTL(L,1).eq.3)then
+          continue
+        else
+          itrunc=1
+          ipos=1
+          do while (itrunc.ne.0)
+            len117=1
+            nsur=nzsur(icomp)
+            call aslist(ipos,nsur,sn,MS,'S',t117,len117,itrunc)
+            WRITE(IUF,'(3a)',IOSTAT=ISTAT,ERR=990) '# (',
+     &        t117(1:len117),')'
+            ipos=itrunc+1
+          end do
+        endif
         DO 930 I = 1,IHCFP(L)
           WRITE(tokens,'(F6.2,F7.2)',IOSTAT=ISTAT,ERR=990)
      &    ST(L,I),EN(L,I)
@@ -3135,10 +3186,16 @@ C on as many lines as necessary.
 
           elseif(ICTL(L,I).eq.3) then
 
-C Control laws and associated data for each surface
+C Control laws and associated data for each surface.
+            call gethccornames(hcshtdescr,hclngdescr)
             do 37 J=1,NZSUR(ICOMP)
-              WRITE(IUF,'(8(f5.0))',IOSTAT=ISTAT,ERR=990)
+              icindex=nint(CVdata(L,I,J,2))
+              write(comment,'(3a)')
+     &          sn(J)(1:lnblnk(sn(J))),' ',hcshtdescr(icindex)
+              WRITE(tokens,'(8(f5.0))',IOSTAT=ISTAT,ERR=990)
      &            (CVdata(L,I,J,jj),jj=1,8)
+              call align_comment(42,tokens,comment,aligned_str)
+              write(iuf,'(a)') aligned_str(1:lnblnk(aligned_str))
    37       continue
 
 C  Additional information for air channels
@@ -3146,7 +3203,7 @@ C  Additional information for air channels
      &        IAORZ,CWIDTH,CHEIGHT
             write(comment,'(a)')
      &    'Air origin zone (+ chan. width & height if Bar-Cohen cor.)'
-            call align_comment(32,tokens,comment,aligned_str)
+            call align_comment(42,tokens,comment,aligned_str)
             write(iuf,'(a)') aligned_str(1:lnblnk(aligned_str))
 
           elseif(ICTL(L,I).eq.4) then
@@ -3244,13 +3301,13 @@ C Or does the file start with '*HC_CTL'?
           IHCDT=1  ! all days the same
         else
 
-C Rewind file check first line and if *HC_Ctl read 2nd line as datestamp.
+C Rewind file check first line and if *HC_Ctl.
           rewind(iuf,err=392)
           CALL STRIPC(IUF,OUTSTR,99,num1,1,'htc header',IER)
           if(OUTSTR(1:7).eq.'*HC_CTL'.or.
      &       OUTSTR(1:7).eq.'*hc_ctl')then
             newer=.true.
-            CALL STRIPC(IUF,OUTSTR,99,num1,1,'htc date',IER)
+            CALL STRIPC(IUF,OUTSTR,99,num1,1,'htc date or day type',IER)
             if(OUTSTR(1:5).eq.'*Date')then
               CALL STRIPC(IUF,OUTSTR,99,num1,1,'Day types',IER)
               if(OUTSTR(1:5).eq.'*Days')then
@@ -3261,6 +3318,10 @@ C Rewind file check first line and if *HC_Ctl read 2nd line as datestamp.
                 IHCDT=1  ! all days the same
                 backspace(IUF)  ! unread the current line of the file
               endif
+            elseif(OUTSTR(1:5).eq.'*Days')then
+              K=7
+              CALL EGETWI(OUTSTR,K,N,1,20,'F','nb day types',IER)
+              IHCDT=n
             endif
           else
 

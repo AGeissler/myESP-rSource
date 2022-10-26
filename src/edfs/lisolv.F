@@ -166,12 +166,14 @@ C Assemble TDMA coefficients.
 C Calculate coefficients of recurrence formula.
             TERM=1./(D(J)-B(J)*A(J-1))
             A(J)=A(J)*TERM
-  101       C(J)=(C(J)+B(J)*C(J-1))*TERM
+            C(J)=(C(J)+B(J)*C(J-1))*TERM
+  101     CONTINUE
 
 C Obtain new PHI.
           DO 102 JJ=JSTART,JENDM1
             J=JEND+JSTM1-JJ
-  102       PHI(i,j,K)=A(J)*PHI(I,J+1,K)+C(J)
+            PHI(i,j,K)=A(J)*PHI(I,J+1,K)+C(J)
+  102     CONTINUE
   103   CONTINUE
   100 CONTINUE
 
@@ -198,12 +200,14 @@ C Assemble TDMA coefficients.
 C Calculate coefficients of recurrence formula.
             TERM=1./(D(J)-B(J)*A(J-1))
             A(J)=A(J)*TERM
-  201       C(J)=(C(J)+B(J)*C(J-1))*TERM
+            C(J)=(C(J)+B(J)*C(J-1))*TERM
+  201     continue
 
 C Obtain new PHI.                                                 
           DO 202 JJ=JSTART,JENDM1
             J=JEND+JSTM1-JJ
-  202       PHI(i,j,K)=A(J)*PHI(I,J+1,K)+C(J)
+            PHI(i,j,K)=A(J)*PHI(I,J+1,K)+C(J)
+  202     CONTINUE
   203   CONTINUE
   200 CONTINUE
  5    continue
@@ -268,7 +272,8 @@ C Assemble TDMA coefficients.
             D(I)=AP(I,J,K)
 
 C Calculate coefficients of recurrence formula.
-            TERM=ANOTZERO(D(I)-B(I)*A(I-1))
+            TE=(D(I)-B(I)*A(I-1))
+            TERM=ANOTZERO(TE)
             A(I)=A(I)/TERM
             C(I)=(C(I)+B(I)*C(I-1))/TERM
   301     continue
@@ -276,7 +281,8 @@ C Calculate coefficients of recurrence formula.
 C Obtain new PHI.
           DO 302 II=ISTART,IENDM1
             I=IEND+ISTM1-II
-  302       PHI(i,j,K)=A(I)*PHI(I+1,J,K)+C(I)
+            PHI(i,j,K)=A(I)*PHI(I+1,J,K)+C(I)
+  302     CONTINUE
   303   CONTINUE
   300 CONTINUE
 
@@ -301,7 +307,8 @@ C Assemble TDMA coefficients.
             D(I)=AP(I,J,K)
 
 C Calculate coefficients of recurrence formula.
-            TERM=ANOTZERO(D(I)-B(I)*A(I-1))
+            TE=(D(I)-B(I)*A(I-1))
+            TERM=ANOTZERO(TE)
             A(I)=A(I)/TERM
             C(I)=(C(I)+B(I)*C(I-1))/TERM
   401     continue
@@ -309,7 +316,8 @@ C Calculate coefficients of recurrence formula.
 C Obtain new PHI.
           DO 402 II=ISTART,IENDM1
             I=IEND+ISTM1-II
-  402       PHI(i,j,K)=A(I)*PHI(I+1,J,K)+C(I)
+            PHI(i,j,K)=A(I)*PHI(I+1,J,K)+C(I)
+  402     CONTINUE
   403   CONTINUE
   400 CONTINUE
       ENDIF
@@ -336,7 +344,8 @@ C Assemble TDMA coefficients.
             D(J)=AP(I,J,K)
 
 C Calculate coefficient of recurrence formula.
-            TERM=ANOTZERO(D(J)-B(J)*A(J-1))
+            TE=(D(J)-B(J)*A(J-1))
+            TERM=ANOTZERO(TE)
             A(J)=A(J)/TERM
             C(J)=(C(J)+B(J)*C(J-1))/TERM
   101     continue
@@ -344,7 +353,8 @@ C Calculate coefficient of recurrence formula.
 C Obtain new PHI.
           DO 102 JJ=JSTART,JENDM1
             J=JEND+JSTM1-JJ
-  102       PHI(i,j,K)=A(J)*PHI(I,J+1,K)+C(J)
+            PHI(i,j,K)=A(J)*PHI(I,J+1,K)+C(J)
+  102     CONTINUE
   103   CONTINUE
   100 CONTINUE
 
@@ -368,7 +378,8 @@ C Assemble TDMA coefficients.
             D(J)=AP(I,J,K)
 
 C Calculate coefficients of recurrence formula.
-            TERM=ANOTZERO(D(J)-B(J)*A(J-1))
+            TE=(D(J)-B(J)*A(J-1))
+            TERM=ANOTZERO(TE)
             A(J)=A(J)/TERM
             C(J)=(C(J)+B(J)*C(J-1))/TERM
   201     continue
@@ -376,7 +387,8 @@ C Calculate coefficients of recurrence formula.
 C Obtain new PHI.
           DO 202 JJ=JSTART,JENDM1
             J=JEND+JSTM1-JJ
-  202       PHI(i,j,K)=A(J)*PHI(I,J+1,K)+C(J)
+            PHI(i,j,K)=A(J)*PHI(I,J+1,K)+C(J)
+  202     CONTINUE
   203   CONTINUE
   200 CONTINUE
       ENDIF

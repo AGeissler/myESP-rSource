@@ -83,9 +83,9 @@ C NCTM total number of contaminants in a model
 C JHUMINDX contaminant number representing water (humidity)
       common/EQTION3/CALLMA(MNZ),CALPOL(MCTM,MNZ),POLNAM(MCTM,MNZ),
      &               NCTM(MNZ),JHUMINDX(MNZ),URFC(MCTM)
-
       COMMON/ZTURB/rMOOT(MNZ),nZtoKE(MNZ)
       COMMON/BUOYAN/BUOYA,BOUSSA,TBAR(MNZ)
+      LOGICAL BUOYA,BOUSSA
 
 C Solution methods.
       common/METHDS/ITURB(MNZ),IBUOY(MNZ)
@@ -121,7 +121,6 @@ C VOLPres - BC volume pressure if applicable.
      &          VOLCO2(MNVLS,MNZ),VOLVel(MNVLS,MNZ),VOLDir(MNVLS,MNZ,2),
      &          VOLArea(MNVLS,MNZ),VOLPres(MNVLS,MNZ),
      &          VOLPol(MCTM,MNVLS,MNZ)
-
       common/param1/MAXITR(MNZ),IMONT(MNZ),JMONT(MNZ),KMONT(MNZ),
      &             IPPHI(MNZ),SRMAX(MNZ)
       common/cfdini/INITFL(MNZ)
@@ -130,7 +129,6 @@ C VOLPres - BC volume pressure if applicable.
 C ICFDNOD - mass flow network node representative of CFD domain.
 C ICFDCNN - list of mfs connections representative of CFD domain openings.
       common/CFDMFS1/ICFDNOD(MNZ),ICFDCNN(MNVLS,MNZ)
-
       common/cfdconf/ICFBLD(MNZ),ICFMFS(MNZ)
 
 C ICTDFAF - 0, constant source strengths are defined.
@@ -141,7 +139,10 @@ C SRCE    - source name defined in contaminant network model that is
 C           used as source type BC within CFD domain.
 C ICCSRC  - 1, opening type BC also will act as source of contaminants
 C           in or out of CFD domain (only possible with mfs/dfs conflation).
-      COMMON/CTDFAF/ICTDFAF(MNZ),SRCE(MNVLS,MCTM,MNZ),ICCSRC(MNZ)
+C ICC2NC  - maps CFD contaminants to network contaminants.
+C SRCFRC  - fraction of network source released at this BC.
+      COMMON/CTDFAF/ICTDFAF(MNZ),SRCE(MNVLS,MCTM,MNZ),ICCSRC(MNZ),
+     &              ICC2NC(MCTM,MNZ),SRCFRC(MNVLS,MCTM,MNZ)
 
 C IDCasgn - identification number of casual gain type assocated with
 C           key volume.
@@ -163,10 +164,10 @@ C          and other properties.
       LOGICAL CALLU,CALLV,CALLW,CALLT,CALLC,KEMDL,BUOY,BOUSSI
       LOGICAL ZEROT,ZandKE,MITzero
       LOGICAL CALPOL,CALLMA
-      LOGICAL BUOYA,BOUSSA,INITFL,PNAMWRT
+      LOGICAL INITFL,PNAMWRT
 
       character LCFD*72,POLNAM*12,PNMSTR*256
-      character PCCSTR*256,PCCSTRA*26,PCCSTRB*12
+      character PCCSTR*256,PCCSTRA*26,PCCSTRB*18
       CHARACTER*72 TITLE,CFTRFL,LPHI
 
       character FACE*6, SRCE*12
@@ -177,7 +178,7 @@ C Reset error condition flag.
 
 C File header and conflation.
       write(IUF,'(a)',IOSTAT=ios,ERR=3)
-     &  '*DFS V2.2 # Zone CFD domain description.'
+     &  '*DFS V2.3 # Zone CFD domain description.'
       if(IFCFD(izone).eq.0)then
         write(IUF,'(a,i2,a)',IOSTAT=ios,ERR=3)'*conflation',
      &    IFCFD(izone),
@@ -357,12 +358,12 @@ C Boundary conditions.
      &  JHUMINDX(ICFD),' )'
       DO 156 ICTM=1,NCTM(ICFD)
         IF(ISCHMT(ICTM,ICFD).EQ.0)THEN
-          WRITE(IUF,'(A,1X,I3,1X,F9.4)')POLNAM(ICTM,ICFD),0,
-     &      SCHMT(ICTM,ICFD)
+          WRITE(IUF,'(A,1X,I3,1X,F9.4,1x,i1)')POLNAM(ICTM,ICFD),0,
+     &      SCHMT(ICTM,ICFD),ICC2NC(ictm,ICFD)
         ELSEIF(ISCHMT(ICTM,ICFD).EQ.1)THEN
-          WRITE(IUF,'(A,1X,I3,1X,4F6.1)')POLNAM(ICTM,ICFD),1,
+          WRITE(IUF,'(A,1X,I3,1X,4F6.1,1x,i1)')POLNAM(ICTM,ICFD),1,
      &         GFM(ICTM,ICFD),VCRIT(ICTM,ICFD),TBOIL(ICTM,ICFD),
-     &         TCRIT(ICTM,ICFD)
+     &         TCRIT(ICTM,ICFD),ICC2NC(ictm,ICFD)
         ENDIF
  156  CONTINUE
       PNAMWRT=.FALSE.
@@ -371,47 +372,73 @@ C Boundary conditions.
           IF(.NOT.PNAMWRT)THEN
             CALL ASLIST2(1,NCTM(ICFD),POLNAM,MCTM,MNZ,ICFD,' ',PNMSTR,
      &        ILP,ILT)
-            write(IUF,'(3a)',IOSTAT=ios,ERR=3) '*volume name,',
-     &      'heat source,cas gain index and fraction, ',PNMSTR
+            write(IUF,'(4a)',IOSTAT=ios,ERR=3) '*volume name, ',
+     &        'heat source/fraction, cas gain index, ',
+     &        'occ type, source rates/fraction and names for: ',PNMSTR
             PNAMWRT=.TRUE.
           ENDIF
           NLEN=0
           PCCSTR=' '
           PCCSTRA=' '
+
+C Assemble string of contaminant release directives.
           DO 91 ICTM=1,NCTM(ICFD)
-            CALL RELSTR(VOLPOL(ICTM,I,ICFD),PCCSTRA,ILN,IER)
-            IF(SRCE(I,ICTM,ICFD)(:1).EQ.' '.OR.ICTDFAF(ICFD).NE.1)THEN
+            IF(SRCE(I,ICTM,ICFD)(:1).NE.' '.and.ICTDFAF(ICFD).EQ.1)THEN ! linked with network source
+              CALL RELSTR(SRCFRC(I,ICTM,ICFD),PCCSTRA,ILN,IER)
+              PCCSTRB=SRCE(I,ICTM,ICFD)
+            elseif (VCsurf(I,ICFD).ne.'none' .and.
+     &              ictm.eq.JHUMINDX(ICFD)) then ! occupant moisture release
+              CALL RELSTR(1.0,PCCSTRA,ILN,IER)
+              PCCSTRB='occupant'
+            ELSE ! prescribed release rate
+              CALL RELSTR(VOLPOL(ICTM,I,ICFD),PCCSTRA,ILN,IER)
               PCCSTRB='none'
-            ELSE
-              PCCSTRB=SRCE(I,ICTM,ICFD)(1:12)
             ENDIF
-            WRITE(PCCSTRA,'(A,1X,A)')PCCSTRA(1:ILN),PCCSTRB(1:12)
+            WRITE(PCCSTRA,'(A,1X,A)')PCCSTRA(1:ILN),
+     &        PCCSTRB(1:LNBLNK(PCCSTRB))
             WRITE(PCCSTR,'(A,1X,A)')PCCSTR(1:NLEN),PCCSTRA
-            NLEN=NLEN+ILN+1+12
+            NLEN=NLEN+ILN+1+LNBLNK(PCCSTRB)
  91       CONTINUE
-          write(IUF,'(A,1X,F7.1,1X,I3,1X,F4.2,1X,A)',IOSTAT=ios,ERR=3) 
-     &           VOLNAME(I,ICFD),VOLHeat(I,ICFD),IDCasgn(I,ICFD)
-     &           ,FCasgn(I,ICFD),PCCSTR
+            
+C Assemble string of heat release directives.
+          if (IDCASGN(i,ICFD).gt.0) then
+            write(PCCSTRB,'(F7.2,1X,I3)')FCASGN(i,ICFD),IDCASGN(i,ICFD)
+          else
+            write(PCCSTRB,'(F7.2,1X,I3)')VOLHEAT(i,ICFD),IDCASGN(i,ICFD)
+          endif
+
+C Write line.
+          write(IUF,'(A,1X,A,1X,A,1X,A)',IOSTAT=ios,ERR=3)
+     &      VOLNAME(I,ICFD),PCCSTRB(1:11),VCsurf(I,ICFD),
+     &      PCCSTR(1:NLEN+1)
         endif
  90   continue
       write(IUF,'(a)',IOSTAT=ios,ERR=3) '# Domain blockages.'
       write(IUF,'(a)',IOSTAT=ios,ERR=3) '*blockages'
       do 100 I=1,NVOL(ICFD)
         if (IVTYPE(I,ICFD).eq.30) then
-          write(IUF,'(2a,f12.3)',IOSTAT=ios,ERR=3) 
-     &           VOLNAME(I,ICFD),' Heat ',VOLHeat(I,ICFD)
+          write(IUF,'(2a,f12.2)',IOSTAT=ios,ERR=3) 
+     &      VOLNAME(I,ICFD),' Heat ',VOLHeat(I,ICFD)
         elseif (IVTYPE(I,ICFD).eq.31) then
-          write(IUF,'(2a,f12.3)',IOSTAT=ios,ERR=3) 
-     &           VOLNAME(I,ICFD),' Temp ',VOLTemp(I,ICFD)
+          write(IUF,'(2a,f12.2)',IOSTAT=ios,ERR=3) 
+     &      VOLNAME(I,ICFD),' Temp ',VOLTemp(I,ICFD)
         elseif (IVTYPE(I,ICFD).eq.32) then
-          write(IUF,'(2a,f12.2,2a)',IOSTAT=ios,ERR=3)     
-     &           VOLNAME(I,ICFD),' Temp ',VOLTemp(I,ICFD),' | Confl ',
-     &           VCsurf(I,ICFD)
+          write(IUF,'(2a,f8.2,2a)',IOSTAT=ios,ERR=3)     
+     &      VOLNAME(I,ICFD),' Temp ',VOLTemp(I,ICFD),' | Confl ',
+     &      VCsurf(I,ICFD)
         elseif (IVTYPE(I,ICFD).eq.33) then
-          write(IUF,'(2a,f12.2,7a)',IOSTAT=ios,ERR=3)     
-     &           VOLNAME(I,ICFD),' Temp ',VOLTemp(I,ICFD),' | Confl ',
-     &           BLKSURF(I,ICFD,1),BLKSURF(I,ICFD,2),BLKSURF(I,ICFD,3),
-     &           BLKSURF(I,ICFD,4),BLKSURF(I,ICFD,5),BLKSURF(I,ICFD,6)
+          write(IUF,'(2a,f8.2,7a)',IOSTAT=ios,ERR=3)     
+     &      VOLNAME(I,ICFD),' Temp ',VOLTemp(I,ICFD),' | Confl ',
+     &      BLKSURF(I,ICFD,1),BLKSURF(I,ICFD,2),BLKSURF(I,ICFD,3),
+     &      BLKSURF(I,ICFD,4),BLKSURF(I,ICFD,5),BLKSURF(I,ICFD,6)
+        elseif (IVTYPE(I,ICFD).eq.34) then
+          write(IUF,'(2a,f12.2,a,i3,1x,f4.2)',IOSTAT=ios,ERR=3) 
+     &      VOLNAME(I,ICFD),' Heat ',VOLHeat(I,ICFD),' | CasGn ',
+     &      IDcasgn(I,ICFD),Fcasgn(I,ICFD)
+        elseif (IVTYPE(I,ICFD).eq.35) then
+          write(IUF,'(2a,f12.2,2a,1x,a)',IOSTAT=ios,ERR=3) 
+     &      VOLNAME(I,ICFD),' Heat ',VOLHeat(I,ICFD),' | Persn ',
+     &      BLKSURF(I,ICFD,1),BLKSURF(I,ICFD,2)
         endif
  100  continue
 
@@ -479,9 +506,10 @@ C Turbulence.
 C Concentration.
       DO 123 ICTM=1,NCTM(ICFD)
         IF(CALPOL(ICTM,ICFD))THEN
-          write(IUF,'(2a,G10.3,1X,G10.3)',IOSTAT=ios,ERR=3) 
-     &                  POLNAM(ICTM,ICFD)(1:LNBLNK(POLNAM(ICTM,ICFD))),
-     &              '  n/a Linear  ',URFCC(ICFD,ICTM),URFCC2(ICFD,ICTM)
+          write(IUF,'(a,1x,G10.3,a,G10.3,1X,G10.3)',IOSTAT=ios,ERR=3)
+     &      POLNAM(ICTM,ICFD)(1:LNBLNK(POLNAM(ICTM,ICFD))),
+     &      POLINIT(ICFD,ICTM),' Linear  ',URFCC(ICFD,ICTM),
+     &      URFCC2(ICFD,ICTM)
         ENDIF
  123  CONTINUE
 
@@ -599,6 +627,7 @@ C  ICFMFS(ICFD)=mass flow conflation mechanism (0=none, 1=active)
       COMMON/NSSWP/NSSWPU(MNZ),NSSWPV(MNZ),NSSWPW(MNZ),NSSWPP(MNZ),
      &             NSSWPT(MNZ),NSSWPK(MNZ),NSSWPE(MNZ)
       COMMON/BUOYAN/BUOYA,BOUSSA,TBAR(MNZ)
+      LOGICAL BUOYA,BOUSSA
       COMMON/ZTURB/rMOOT(MNZ),nZtoKE(MNZ)
       common/grdmax/NTCX,NTCY,NTCZ
 
@@ -625,12 +654,18 @@ C Boundary conditions.
 
 C Common blocks for blockages and small supply openings.
       common/blksso/NBLK(MNZ),INBLK(MNVLS,MNZ),NSSO(MNZ),
-     &          INSSO(MNVLS,MNZ),BLKTEMP(MNVLS,MNZ,6)
+     &          INSSO(MNVLS,MNZ),BLKTEMP(MNVLS,6)
 
 C Common block for calculation of turbulent Schmidt number for contaminants.
       COMMON/SCHMTT/SCHMT(MCTM,MNZ),GFM(MCTM,MNZ),VCRIT(MCTM,MNZ),
      &       TBOIL(MCTM,MNZ),TCRIT(MCTM,MNZ),ISCHMT(MCTM,MNZ)
-      COMMON/CTDFAF/ICTDFAF(MNZ),SRCE(MNVLS,MCTM,MNZ),ICCSRC(MNZ)
+      COMMON/CTDFAF/ICTDFAF(MNZ),SRCE(MNVLS,MCTM,MNZ),ICCSRC(MNZ),
+     &              ICC2NC(MCTM,MNZ),SRCFRC(MNVLS,MCTM,MNZ)
+      character SRCE*12
+      COMMON/CONTM0/NCONTM,NOCNTM,CONTMNAM(MCONTM)
+      character CONTMNAM*12
+     
+      common/dynamico/isdynamicocup(MCOM)
 
       common/APPNAME/cAppName
       character cAppName*12
@@ -639,11 +674,10 @@ C Common block for calculation of turbulent Schmidt number for contaminants.
       LOGICAL INITFL,CALLU,CALLV,CALLW,CALLT,CALLC,KEMDL,BUOY,BOUSSI
       LOGICAL ZEROT,ZandKE,MITzero
       LOGICAL CALLMA,CALPOL
-      Character OUTSTR*124,WORD*124,POLNAM*12,SRCE*12
+      Character OUTSTR*124,WORD*124,POLNAM*12
       CHARACTER TITLE*72,CFTRFL*72,LPHI*72,LCFD*72
       CHARACTER TYPE*6,phrase*64
       CHARACTER outs*124,outs_pre*124
-      LOGICAL BUOYA,BOUSSA
 
 C Set volume counters to zero.
       NSSO(ICFD)=0
@@ -669,6 +703,7 @@ C conflation type.
       if(OUTSTR(1:7).eq.'*DFS V2')VER=2.0
       if(OUTSTR(1:9).eq.'*DFS V2.1')VER=2.1
       if(OUTSTR(1:9).eq.'*DFS V2.2')VER=2.2
+      if(OUTSTR(1:9).eq.'*DFS V2.3')VER=2.3
       if(OUTSTR(1:7).eq.'*DFS V2')then
         CALL STRIPC(IFL,OUTSTR,99,ND,1,'dfd confla type',IER)
         K=0
@@ -1215,43 +1250,43 @@ C Is not conflated.
                 outs_pre=outs
                 if (abs(IVTYPEtemp).eq.1) then
                   write(outs,'(2a)')outs_pre(1:LNBLNK(outs_pre)),
-     &                                                         ' Temp,'
+     &              ' Temp,'
                   outs_pre=outs
                   if (IVTYPEtemp.gt.0) then
                     write(outs,'(2a,f7.2,a)')
-     &                                   outs_pre(1:LNBLNK(outs_pre)),
+     &                outs_pre(1:LNBLNK(outs_pre)),
      &      ' with constant temperature ',VOLTemp(IV,ICFD),' degrees C'
                   else
                     write(outs,'(3a)')outs_pre(1:LNBLNK(outs_pre)),
      &           ' with temperature associated with building surface ',
-     &                       VCsurf(IV,ICFD)(1:LNBLNK(VCsurf(IV,ICFD)))
+     &                VCsurf(IV,ICFD)(1:LNBLNK(VCsurf(IV,ICFD)))
                   endif
                   call edisp(itu,outs)
                 elseif (abs(IVTYPEtemp).eq.2) then
                   write(outs,'(2a)')outs_pre(1:LNBLNK(outs_pre)),
-     &                                                         ' Heat,'
+     &              ' Heat,'
                   outs_pre=outs
                   if (IVTYPEtemp.gt.0) then
                     write(outs,'(2a,f7.2,a)')
-     &                                    outs_pre(1:LNBLNK(outs_pre)),
+     &                outs_pre(1:LNBLNK(outs_pre)),
      &                ' with constant heat flux ',VOLTemp(IV,ICFD),' W'
                     call edisp(itu,outs)
                   else
                     write(outs,'(3a)')outs_pre(1:LNBLNK(outs_pre)),
-     &                            ' associated with building surface ',
-     &                       VCsurf(IV,ICFD)(1:LNBLNK(VCsurf(IV,ICFD)))
+     &                ' associated with building surface ',
+     &                VCsurf(IV,ICFD)(1:LNBLNK(VCsurf(IV,ICFD)))
                     call edisp(itu,outs)
                   endif
                 elseif (abs(IVTYPEtemp).eq.3) then
                   write(outs,'(2a)')outs_pre(1:LNBLNK(outs_pre)),
-     &                                                   ' Symmetrical'
+     &              ' Symmetrical'
                   outs_pre=outs
                   if (IVTYPEtemp.gt.0) then
                     call edisp(itu,outs)
                   else
                     write(outs,'(3a)')outs_pre(1:LNBLNK(outs_pre)),
-     &                           ', associated with building surface ',
-     &                       VCsurf(IV,ICFD)(1:LNBLNK(VCsurf(IV,ICFD)))
+     &                ', associated with building surface ',
+     &                VCsurf(IV,ICFD)(1:LNBLNK(VCsurf(IV,ICFD)))
                     call edisp(itu,outs)
                   endif
                 endif
@@ -1300,9 +1335,9 @@ C                  ICFMFS(ICFD)=1
                   IMFACT=1
                   CALL USRMSG('An older version of dfd file is in use',
      &            'redefine opening type boundary conditions','W')
-                ELSEIF(VER.GT.2.05.AND.VER.LT.2.25)THEN
+                ELSEIF(VER.GT.2.05)THEN
 
-C Mass flow connection data for version 2.1 and 2.2.
+C Mass flow connection data for version 2.1+.
                   CALL EGETWI(OUTSTR,K,INODE,0,MNOD,'w','CFD nod',IER)
                   CALL EGETWI(OUTSTR,K,ICNNE,0,MCNN,'w','conn. #',IER)
                   ICFMFS(ICFD)=1
@@ -1373,9 +1408,9 @@ C                  ICFMFS(ICFD)=1
                   IMFACT=1
                   CALL USRMSG('An older version of dfd file is in use',
      &            'redefine opening type boundary conditions','W')
-                ELSEIF(VER.GT.2.05.AND.VER.LT.2.25)THEN
+                ELSEIF(VER.GT.2.05)THEN
 
-C Mass flow connection data for version 2.1 and 2.2
+C Mass flow connection data for version 2.1+.
                   CALL EGETWI(OUTSTR,K,INODE,0,MNOD,'w','CFD nod',IER)
                   CALL EGETWI(OUTSTR,K,ICNNE,0,MCNN,'w','conn. #',IER)
                   ICFMFS(ICFD)=1
@@ -1432,9 +1467,9 @@ C                  call CFMFSU(IV,ITRC,LCND,LXND,LCNN)
 C                  ICFMFS(ICFD)=1
                   CALL USRMSG('An older version of dfd file is in use',
      &            'redefine opening type boundary conditions','W')
-                ELSEIF(VER.GT.2.05.AND.VER.LT.2.25)THEN
+                ELSEIF(VER.GT.2.05)THEN
 
-C Mass flow connection data for version 2.1 and 2.2
+C Mass flow connection data for version 2.1+.
                   CALL EGETWI(OUTSTR,K,INODE,0,MNOD,'w','CFD nod',IER)
                   CALL EGETWI(OUTSTR,K,ICNNE,0,MCNN,'w','conn. #',IER)
                   ICFMFS(ICFD)=1
@@ -1488,9 +1523,9 @@ C                  call CFMFSU(IV,ITRC,LCND,LXND,LCNN)
 C                  ICFMFS(ICFD)=1
                   CALL USRMSG('An older version of dfd file is in use',
      &            'redefine opening type boundary conditions','W')
-                ELSEIF(VER.GT.2.05.AND.VER.LT.2.25)THEN
+                ELSEIF(VER.GT.2.05)THEN
 
-C Mass flow connection data for version 2.1 and 2.2.
+C Mass flow connection data for version 2.1+.
 C There is no provision for a mass type boundary condition in
 C Version 2.1 onwards but any opening type BC can be defined to be 
 C connected to the mass flow network. 
@@ -1540,18 +1575,19 @@ C Loop back again for next air flow BC.
 C Read number of contaminants defined and which one is water (humidity).
         CALL EGETWI(OUTSTR,K,NCTM(ICFD),0,MCTM,'w','# of contaminants',
      &    IER)
-        CALL EGETW(OUTSTR,K,WORD,'W','string in *sources line',IER)
-        IF(VER.GT.2.15.AND.VER.LT.2.25)K=63
+        IF(VER.GT.2.15)K=63
         IF(VER.GT.2.05.AND.VER.LT.2.15)K=57
         CALL EGETWI(OUTSTR,K,JHUMINDX(ICFD),0,MCTM,'w','water index',
      &    IER)
 
 C Read data to calculate turbulent Schmidt number.
-        IF(VER.GT.2.15.AND.VER.LT.2.25)THEN
+        IF(VER.GT.2.15)THEN
           DO 156 ICTM=1,NCTM(ICFD)
             CALL STRIPC(IFL,OUTSTR,0,ND,1,'tur schmdt #',IER)
             K=0
             CALL EGETW(OUTSTR,K,WORD,'W','ctm name',IER)
+            POLNAM(ICTM,ICFD)=WORD(1:12)
+            CALPOL(ICTM,ICFD)=.TRUE.
             CALL EGETWI(OUTSTR,K,ISCHMT(ICTM,ICFD),0,1,'w','shmdt index'
      &        ,IER)         
             IF(ISCHMT(ICTM,ICFD).EQ.0)THEN
@@ -1567,11 +1603,29 @@ C Read data to calculate turbulent Schmidt number.
               TBOIL(ICTM,ICFD)=VL3
               TCRIT(ICTM,ICFD)=VL4
             ENDIF
+            if (ver.gt.2.25) then ! read coupled network contaminant
+              CALL EGETWI(outstr,k,ival,0,MCONTM,'W','cpld ntwk ctm',
+     &          IER)
+              ICC2NC(ictm,ICFD)=ival
+              if (ival.gt.0) ICTDFAF(ICFD)=1
+            else ! older file version
+              if (NCTM(ICFD).eq.NCONTM) then
+                ICC2NC(ictm,ICFD)=ictm
+                ICTDFAF(ICFD)=1
+              else
+                ICC2NC(ictm,ICFD)=0
+                ICTDFAF(ICFD)=0
+                write(outs,'(a,i2.2,a)')
+     &            'Contaminant network coupling in CFD domain ',ICFD,
+     &            ' is corrupt.'
+                CALL USRMSG(outs,'Please redefine.','W')
+              endif
+            endif
  156      CONTINUE
         ENDIF
       endif
 
-C List conflated mfs (if one is active) before describing *blockages.
+C List conflated mfs if one is active.
       IF((ICFMFS(ICFD).GT.0).and.(cAppName.ne.'dfs').and.
      &                                                 (itrc.gt.0))THEN
         CALL EDISP(ITU,' Following conflated flow network will be used')
@@ -1580,113 +1634,135 @@ C List conflated mfs (if one is active) before describing *blockages.
         CALL EDISP(ITU,' ')
       ENDIF
 
-C Read line containing contaminant name information.
+C Check and report contaminant schmidt numbers.
       IF(NCTM(ICFD).GE.1)THEN
-        CALL STRIPC(IFL,OUTSTR,0,ND,1,'ctm names',IER)
-        K=0
-        CALL EGETW(OUTSTR,K,WORD,'W','ctm tag',IER)
-        IF(WORD(1:7).EQ.'*volume')THEN
-          IF(VER.GT.2.15.AND.VER.LT.2.25)K=53
-          IF(VER.GT.2.05.AND.VER.LT.2.15)K=52
-          DO 705 ICTM=1,NCTM(ICFD)
-            CALL EGETW(OUTSTR,K,WORD,'W','ctm names',IER)
-            POLNAM(ICTM,ICFD)=WORD(1:12)
-            CALPOL(ICTM,ICFD)=.TRUE.
- 705      CONTINUE
-        ENDIF
         CALL SCHCHK
         if (itrc.gt.0) then
-          do 711 ICTM=1,NCTM(ICFD)
+          do ICTM=1,NCTM(ICFD)
             write(outs,'(3a)')'Contaminant ',
-     &                  POLNAM(ICTM,ICFD)(1:LNBLNK(POLNAM(ICTM,ICFD))),
-     &                                 ' has turbulent Schmidt number'
+     &        POLNAM(ICTM,ICFD)(1:LNBLNK(POLNAM(ICTM,ICFD))),
+     &        ' has turbulent Schmidt number'
             outs_pre=outs
             if (ISCHMT(ICTM,ICFD).eq.1) then
               write(outs,'(2a)')outs_pre(1:LNBLNK(outs_pre)),
-     &                                  ' calculated at each time step'
+     &          ' calculated at each time step'
             else
               write(outs,'(a,1X,f8.4)')outs_pre(1:LNBLNK(outs_pre)),
-     &                                                  SCHMT(ICTM,ICFD)
+     &          SCHMT(ICTM,ICFD)
             endif
             call edisp(itu,outs)
-  711     continue
-        endif
-        if(itrc.gt.0)then
+          enddo
           call edisp(itu,' ')
         endif
-      ELSE
-        GOTO 706
-      ENDIF
+      endif
 
-C Read line until reach *blockages line.
-C Expecting the source tag (should match a volume name followed by
-C the source heat values, casual gain index in the zone and the
-c fraction of that gain which is treated as a heat source.
- 108  CALL STRIPC(IFL,OUTSTR,0,ND,1,'sources data',IER)
- 706  K=0
-      CALL EGETW(OUTSTR,K,WORD,'W','sources tag',IER)
+C Check for line specifying sources.
+      CALL STRIPC(IFL,OUTSTR,0,ND,1,'src or blk line',IER)
+      K=0
+      CALL EGETW(OUTSTR,K,WORD,'W','src or blk tag',IER)
+      IF(WORD(1:10).EQ.'*blockages') GOTO 116 ! not present, go straight to blockages.
+
+C Read sources until we reach *blockages line.
+ 108  CALL STRIPC(IFL,OUTSTR,0,ND,1,'src data',IER)
+      K=0
+      CALL EGETW(OUTSTR,K,WORD,'W','src name',IER)
       if (WORD(1:10).ne.'*blockages') then 
 
 C Read data and match to volume with same name.
         do 111 IV=1,NVOL(ICFD)
           if (VOLNAME(IV,ICFD).eq.WORD(1:12)) then
             IVTYPE(IV,ICFD)=20
-
-C Assume data in order.
-            CALL EGETWR(OUTSTR,K,VALS,-10.,99.,'-','src heat',IER)
+            CALL EGETWR(OUTSTR,K,VALS,-10.,99.,'-','src heat/frac',IER)
             VOLHeat(IV,ICFD)=VALS
-
             CALL EGETWI(OUTSTR,K,IVALS,0,MGTY,'-','cas gn id',IER)
             IDcasgn(IV,ICFD)=IVALS
-
-            CALL EGETWR(OUTSTR,K,VALS,0.,1.,'-','frac of gain',IER)
-            Fcasgn(IV,ICFD)=VALS
-
-            DO 109 ICTM=1,NCTM(ICFD)
-              CALL EGETWR(OUTSTR,K,VALS,0.,1.,'-','ctm generation',IER)
+            if (VER.lt.2.25) then ! old file format              
+              CALL EGETWR(OUTSTR,K,VALS,0.,1.,'-','frac of gain',IER)
+              Fcasgn(IV,ICFD)=VALS
+            else ! previous value might be fraction
+              if (IDCASGN(iv,ICFD).gt.0) then
+                FCASGN(iv,ICFD)=vals
+                VOLHeat(IV,ICFD)=0.0 ! will be dynamically updated
+              else
+                FCASGN(iv,ICFD)=0.0
+              endif
+            endif
+            if (VER.lt.2.25) then ! old file format
+              if (isdynamicocup(ICP).eq.4) then
+                write(outs,'(a17,i2,a20,a12,a30)')'Warning: in zone ',
+     &            ICP,' CFD domain, source ',VOLNAME(IV,ICFD),
+     &            ' occupant type is not defined.'
+                call edisp(iuout,outs)
+                write(outs,'(2a)')
+     &            'This is required for multi-segmented dynamic ',
+     &            'occupants; please correct this before simulating.'
+                call edisp(iuout,outs)
+                write(outs,'(a)')
+              endif
+              VCsurf(IV,ICFD)='none'
+            else
+              CALL EGETW(OUTSTR,K,WORD,'-','occ type',IER)
+              VCsurf(IV,ICFD)=WORD(1:12) ! use VCsurf for source occupant type
+            endif
+            DO ICTM=1,NCTM(ICFD)
+              CALL EGETWR(OUTSTR,K,VALS,0.,1.,'-','ctm gen/frac',IER)
               VOLPOL(ICTM,IV,ICFD)=VALS
-              IF(VER.GT.2.15.AND.VER.LT.2.25)THEN
-                CALL EGETW(OUTSTR,K,WORD,'W','ctm netwrk src model',IER)
-                IF(WORD(1:4).EQ.'none')THEN
+              IF(VER.GT.2.15)THEN
+                CALL EGETW(OUTSTR,K,WORD,'W','ctm netwrk src',IER)
+                IF(WORD(1:4).EQ.'none')THEN ! no link with network source
                   SRCE(IV,ICTM,ICFD)=' '
-                ELSE
-                  ICTDFAF(ICFD)=1
+                  SRCFRC(IV,ICTM,ICFD)=0.0
+                elseif (VCsurf(IV,ICFD).ne.'none' .and. 
+     &                  ictm.eq.JHUMINDX(ICFD)) then ! occupant moisture release
+                  SRCE(IV,ICTM,ICFD)=' ' ! linked through occupant type
+                  SRCFRC(IV,ICTM,ICFD)=1.0
+                  VOLPOL(ICTM,IV,ICFD)=0.0 ! will be dynamically updated
+                else ! linked with network source
                   SRCE(IV,ICTM,ICFD)=WORD(1:12)
+
+C Previous value read into VOLVOL is actually the fraction.
+                  VOLPOL(ICTM,IV,ICFD)=0.0 ! will be dynamically updated
+                  if (ver.gt.2.25) then                  
+                    SRCFRC(IV,ICTM,ICFD)=vals
+                  else ! for old files, assume fraction of 1.0
+                    SRCFRC(IV,ICTM,ICFD)=1.0
+                  endif
                 ENDIF
               ENDIF
- 109        CONTINUE
+            ENDDO
+
             if (itrc.gt.0) then
               write(outs,'(3a)')'Source ',
-     &                    VOLNAME(IV,ICFD)(1:LNBLNK(VOLNAME(IV,ICFD))),
-     &                                                ' has heat flux '
+     &          VOLNAME(IV,ICFD)(1:LNBLNK(VOLNAME(IV,ICFD))),' '
               outs_pre=outs
-              if (IDcasgn(IV,ICFD).eq.0) then
-                write(outs,'(2a,f7.3,a)')outs_pre(1:LNBLNK(outs_pre)),
-     &                                        ' ',VOLHeat(IV,ICFD),' W'
+              if (IDcasgn(IV,ICFD).gt.0) then
+                write(outs,'(2a,i3,a,f4.2)')outs_pre(1:LNBLNK(outs_pre))
+     &            ,'is associated with casual gain ',IDcasgn(IV,ICFD),
+     &            ', fraction ',Fcasgn(IV,ICFD)
               else
-                write(outs,'(2a,i3,a,f6.3)')
-     &    outs_pre(1:LNBLNK(outs_pre)),' associated with casual gain ',
-     &                   IDcasgn(IV,ICFD),', fraction ',Fcasgn(IV,ICFD)
+                write(outs,'(a,f7.3,a)')outs_pre(1:LNBLNK(outs_pre)),
+     &            'has constant heat flux of ',VOLHeat(IV,ICFD),' W'
               endif
               call edisp(itu,outs)
               if (NCTM(ICFD).ne.0) then
-                write(outs,'(a)')'  This source generates'
-                outs_pre=outs
                 do 234 ICTM=1,NCTM(ICFD)
-                  if (len(outs(1:LNBLNK(outs))).gt.23) then
-                    write(outs,'(2a)')outs_pre(1:LNBLNK(outs_pre)),','
-                    outs_pre=outs
-                  endif
-                  if (VOLPOL(ICTM,IV,ICFD).ne.0.0) then
-                    write(outs,'(2a,f13.10,2a)')
-     &           outs_pre(1:LNBLNK(outs_pre)),' ',VOLPOL(ICTM,IV,ICFD),
-     &                                         ' kg/s of contaminant ',
-     &                   POLNAM(ICTM,ICFD)(1:LNBLNK(POLNAM(ICTM,ICFD)))
-                    outs_pre=outs
-                    if (SRCE(IV,ICTM,ICFD).ne.' ') then
-                      write(outs,'(3a)')outs_pre(1:LNBLNK(outs_pre)),
-     &       ' associated with contaminant network ',SRCE(IV,ICTM,ICFD)
-                    endif
+                  write(outs,'(3a)')'  For contaminant ',
+     &              POLNAM(ICTM,ICFD)(1:LNBLNK(POLNAM(ICTM,ICFD))),
+     &              ' this source '
+                  outs_pre=outs
+                  if (VCsurf(IV,ICFD).ne.'none' .and. 
+     &                    ictm.eq.JHUMINDX(ICFD)) then
+                    write(outs,'(3a)')outs_pre(1:LNBLNK(outs_pre)),
+     &              'represents a ',VCsurf(IV,ICFD)
+                  elseif (SRCE(IV,ICTM,ICFD).ne.' ') then
+                    write(outs,'(2a,f5.3,2a)')
+     &                outs_pre(1:LNBLNK(outs_pre)),
+     &                'is associated with ',SRCFRC(IV,ICTM,ICFD)*100.,
+     &                ' % of network source ',SRCE(IV,ICTM,ICFD)
+                  else
+                    write(outs,'(2a,f13.10,a)')
+     &                outs_pre(1:LNBLNK(outs_pre)),
+     &                'generates ',VOLPOL(ICTM,IV,ICFD),' kg/s'
                   endif
   234           continue
                 call edisp(itu,outs)
@@ -1704,9 +1780,9 @@ C Loop back again for next source BC.
       endif
 
 C Read line until reach *solutions line.
- 116  CALL STRIPC(IFL,OUTSTR,99,ND,1,'sources data',IER)
+ 116  CALL STRIPC(IFL,OUTSTR,99,ND,1,'blk data',IER)
       K=0
-      CALL EGETW(OUTSTR,K,WORD,'W','sources tag',IER)
+      CALL EGETW(OUTSTR,K,WORD,'W','blk name',IER)
       if (WORD(1:17).ne.'*solution_methods') then 
 
 C Read data and match to volume with same name.
@@ -1716,96 +1792,138 @@ C read BLOCKAGES here.
             NBLK(ICFD)=NBLK(ICFD)+1
             INBLK(NBLK(ICFD),ICFD)=IV
 
-C Assume data in order.
             CALL EGETW(OUTSTR,K,WORD,'W','blk type',IER)
+            if (itrc.gt.0) then
+              write(outs,'(2a)')'Blockage ',
+     &          VOLNAME(IV,ICFD)(1:LNBLNK(VOLNAME(IV,ICFD)))
+              outs_pre=outs
+            endif
             if (WORD(1:4).eq.'Heat') then
               CALL EGETWR(OUTSTR,K,VALS,-10.,99.,'-','blk heat',IER)
               VOLHeat(IV,ICFD)=VALS
-              IVTYPE(IV,ICFD)=30
               if (itrc.gt.0) then
-                write(outs,'(3a,f7.3,a)')'Blockage ',
-     &            VOLNAME(IV,ICFD)(1:LNBLNK(VOLNAME(IV,ICFD))),
-     &            ' has heat flux ',VOLHeat(IV,ICFD),' W/m^2'
-                call edisp(itu,outs)
+                write(outs,'(2a)')outs_pre(1:lnblnk(outs_pre)),
+     &            ' has heat flux '
+                outs_pre=outs
               endif
-              VCsurf(IV,ICFD)='NONE        '
-              do i=1,6
-                BLKSURF(IV,ICFD,i)='NONE        '
-              enddo
+              if (ND.eq.3) then
+                IVTYPE(IV,ICFD)=30
+                VCsurf(IV,ICFD)='NONE        '
+                do i=1,6
+                  BLKSURF(IV,ICFD,i)='NONE        '
+                enddo
+                if (itrc.gt.0) then
+                  write(outs,'(a,f12.2,a)')outs_pre(1:lnblnk(outs_pre))
+     &              ,VOLHeat(IV,ICFD),' W/m^2'
+                  call edisp(itu,outs)
+                endif
+              elseif (ND.eq.7) then
+                CALL EGETW(OUTSTR,K,WORD,'W','CasGn or Persn',IER)
+                if (word(1:5).eq.'CasGn') then
+                  CALL EGETWI(OUTSTR,K,ivals,0,MGTY,'-','cas gn id',IER)
+                  IDcasgn(IV,ICFD)=ivals
+                  CALL EGETWR(OUTSTR,K,vals,0.,1.,'-','frac of gain',
+     &              IER)
+                  Fcasgn(IV,ICFD)=vals
+                  IVTYPE(IV,ICFD)=34
+                  VCsurf(IV,ICFD)='NONE        '
+                  do i=1,6
+                    BLKSURF(IV,ICFD,i)='NONE        '
+                  enddo
+                  if (itrc.gt.0) then
+                    write(outs,'(2a,i3,a,f4.2)')
+     &                outs_pre(1:LNBLNK(outs_pre)),
+     &                'associated with casual gain ',IDcasgn(IV,ICFD),
+     &                ', fraction ',Fcasgn(IV,ICFD)
+                    call edisp(itu,outs)
+                  endif
+                elseif (word(1:5).eq.'Persn') then
+                  CALL EGETW(OUTSTR,K,word,'-','occ type',IER)
+                  BLKSURF(IV,ICFD,1)=word(1:12)
+                  CALL EGETW(OUTSTR,K,word,'-','occ part',IER)
+                  BLKSURF(IV,ICFD,2)=word(1:12)
+                  IVTYPE(IV,ICFD)=35
+                  VCsurf(IV,ICFD)='NONE        '
+                  do i=3,6
+                    BLKSURF(IV,ICFD,i)='NONE        '
+                  enddo
+                  if (itrc.gt.0) then
+                    write(outs,'(5a)')outs_pre(1:LNBLNK(outs_pre)),
+     &                'representing the ',
+     &                BLKSURF(IV,ICFD,2)(1:lnblnk(BLKSURF(IV,ICFD,2))),
+     &                ' of a ',BLKSURF(IV,ICFD,1)
+                    call edisp(itu,outs)
+                  endif
+                endif
+              endif
             elseif (WORD(1:4).eq.'Temp') then
               CALL EGETWR(OUTSTR,K,VALS,-10.,99.,'-','blk temp',IER)
               VOLTemp(IV,ICFD)=VALS
-              IVTYPE(IV,ICFD)=31
               if (itrc.gt.0) then
-                write(outs,'(3a,f7.3,a)')'Blockage ',
-     &            VOLNAME(IV,ICFD)(1:LNBLNK(VOLNAME(IV,ICFD))),
-     &            ' has temperature ',VOLHeat(IV,ICFD),' C'
-                call edisp(itu,outs)
+                write(outs,'(2a)')outs_pre(1:lnblnk(outs_pre)),
+     &            ' has temperature '
+                outs_pre=outs
               endif
-              VCsurf(IV,ICFD)='NONE        '
-              do i=1,6
-                BLKSURF(IV,ICFD,i)='NONE        '
-              enddo
-            endif
-            if (ND.eq.4) then
-              CALL EGETW(OUTSTR,K,WORD,'W','conf',IER)
-              CALL EGETW(OUTSTR,K,WORD,'W','surface',IER)
-              VCsurf(IV,ICFD)=WORD(1:12)
-              if (itrc.gt.0) then
-                write(outs,'(2a)')
-     &            ' and is conflated to surface ',WORD(1:12)
-                call edisp(itu,outs)
+              if (ND.eq.3) then
+                IVTYPE(IV,ICFD)=31
+                VCsurf(IV,ICFD)='NONE        '
+                do i=1,6
+                  BLKSURF(IV,ICFD,i)='NONE        '
+                enddo
+                if (itrc.gt.0) then
+                  write(outs,'(a,f8.2,a)')outs_pre(1:lnblnk(outs_pre))
+     &              ,VOLTemp(IV,ICFD),' C'
+                  call edisp(itu,outs)
+                endif
+              elseif (ND.eq.6) then
+                CALL EGETW(OUTSTR,K,WORD,'W','conf',IER)
+                CALL EGETW(OUTSTR,K,WORD,'W','surface',IER)
+                VCsurf(IV,ICFD)=WORD(1:12)
+                IVTYPE(IV,ICFD)=32
+                do i=1,6
+                  BLKSURF(IV,ICFD,i)='NONE        '
+                enddo
+                if (itrc.gt.0) then
+                  write(outs,'(2a)')outs_pre(1:lnblnk(outs_pre)),
+     &              ' associated with surface ',WORD(1:12)
+                  call edisp(itu,outs)
+                endif
+              elseif (ND.eq.11) then
+                CALL EGETW(OUTSTR,K,WORD,'W','conf',IER)
+                IVTYPE(IV,ICFD)=33
+                VCsurf(IV,ICFD)='NONE        '
+                if (itrc.gt.0) then
+                  write(outs,'(2a)')outs_pre(1:lnblnk(outs_pre)),
+     &              ' associated per face'
+                  call edisp(itu,outs)
+                endif
+                do i=1,6
+                  CALL EGETW(OUTSTR,K,WORD,'W','surface',IER)
+                  BLKSURF(IV,ICFD,i)=WORD(1:12)
+                  if (itrc.gt.0) then
+                    if (i.eq.1) then
+                      write(outs,'(2a)')'  east face is surface ',
+     &                  WORD(1:12)
+                    elseif (i.eq.2) then
+                      write(outs,'(2a)')'  west face is surface ',
+     &                  WORD(1:12)
+                    elseif (i.eq.3) then
+                      write(outs,'(2a)')'  north face is surface ',
+     &                  WORD(1:12)
+                    elseif (i.eq.3) then
+                      write(outs,'(2a)')'  south face is surface ',
+     &                  WORD(1:12)
+                    elseif (i.eq.3) then
+                      write(outs,'(2a)')'  high face is surface ',
+     &                  WORD(1:12)
+                    elseif (i.eq.3) then
+                      write(outs,'(2a)')'  low face is surface ',
+     &                  WORD(1:12)
+                    endif
+                    call edisp(itu,outs)
+                  endif
+                enddo
               endif
-              IVTYPE(IV,ICFD)=32
-              do i=1,6
-                BLKSURF(IV,ICFD,i)='NONE        '
-              enddo
-            elseif (ND.gt.4) then
-              CALL EGETW(OUTSTR,K,WORD,'W','conf',IER)
-              CALL EGETW(OUTSTR,K,WORD,'W','surface',IER)
-              BLKSURF(IV,ICFD,1)=WORD(1:12)
-              if (itrc.gt.0) then
-                write(outs,'(2a)')
-     &            ' east face is conflated to surface ',WORD(1:12)
-                call edisp(itu,outs)
-              endif
-              CALL EGETW(OUTSTR,K,WORD,'W','surface',IER)
-              BLKSURF(IV,ICFD,2)=WORD(1:12)
-              if (itrc.gt.0) then
-                write(outs,'(2a)')
-     &            ' west face is conflated to surface ',WORD(1:12)
-                call edisp(itu,outs)
-              endif
-              CALL EGETW(OUTSTR,K,WORD,'W','surface',IER)
-              BLKSURF(IV,ICFD,3)=WORD(1:12)
-              if (itrc.gt.0) then
-                write(outs,'(2a)')
-     &            ' north face is conflated to surface ',WORD(1:12)
-                call edisp(itu,outs)
-              endif
-              CALL EGETW(OUTSTR,K,WORD,'W','surface',IER)
-              BLKSURF(IV,ICFD,4)=WORD(1:12)
-              if (itrc.gt.0) then
-                write(outs,'(2a)')
-     &            ' south face is conflated to surface ',WORD(1:12)
-                call edisp(itu,outs)
-              endif
-              CALL EGETW(OUTSTR,K,WORD,'W','surface',IER)
-              BLKSURF(IV,ICFD,5)=WORD(1:12)
-              if (itrc.gt.0) then
-                write(outs,'(2a)')
-     &            ' high face is conflated to surface ',WORD(1:12)
-                call edisp(itu,outs)
-              endif
-              CALL EGETW(OUTSTR,K,WORD,'W','surface',IER)
-              BLKSURF(IV,ICFD,6)=WORD(1:12)
-              if (itrc.gt.0) then
-                write(outs,'(2a)')
-     &            ' low face is conflated to surface ',WORD(1:12)
-                call edisp(itu,outs)
-              endif
-              IVTYPE(IV,ICFD)=33
-              VCsurf(IV,ICFD)='NONE        '
             endif
           endif
  112    continue
@@ -2280,8 +2398,8 @@ C Print message about version number
       IF(VER.GT.2.05.AND.VER.LT.2.15)THEN
         CALL EDISP(iuout,'dfd file version 2.1 detected, if you have')
         CALL EDISP(iuout,'contaminants defined then only these need to')
-        CALL EDISP(iuout,'be redefined. File will be saved as version')
-        CALL EDISP(iuout,'2.2 when saved.')
+        CALL EDISP(iuout,'be redefined. File will be updated to newest')
+        CALL EDISP(iuout,'version when saved.')
       ENDIF
 
       call NEW2OLD
@@ -2329,7 +2447,7 @@ C                     (used in the case of curvilinear Z).
      &              SSBHC(MNSBZ,MNZ),IVOLNSB(MNSBZ,MNZ),
      &              ITCtype(MNSBZ,MNZ),icTREF(MNSBZ,MNZ)
       common/blksso/NBLK(MNZ),INBLK(MNVLS,MNZ),NSSO(MNZ),
-     &              INSSO(MNVLS,MNZ),BLKTEMP(MNVLS,MNZ,6)
+     &              INSSO(MNVLS,MNZ),BLKTEMP(MNVLS,6)
       common/EQTION/CALLU(MNZ),CALLV(MNZ),CALLW(MNZ),CALLT(MNZ),
      &              CALLC(MNZ),KEMDL(MNZ),BUOY(MNZ),BOUSSI(MNZ),
      &              ZEROT(MNZ),ZandKE(MNZ),MITzero(MNZ)
@@ -2528,16 +2646,8 @@ C        ltmp='Mass flow'
           FIXM(IOP,ICFD)=VOLVel(IKV,ICFD)
           FIXT(IOP,ICFD)=VOLTemp(IKV,ICFD)
           FIXC(IOP,ICFD)=VOLCO2(IKV,ICFD)
-        elseif (IVTYPE(IKV,ICFD).eq.30) then
-          IBK=IBK+1
-          INBLK(IBK,ICFD)=IKV
-        elseif (IVTYPE(IKV,ICFD).eq.31) then
-          IBK=IBK+1
-          INBLK(IBK,ICFD)=IKV
-        elseif (IVTYPE(IKV,ICFD).eq.32) then
-          IBK=IBK+1
-          INBLK(IBK,ICFD)=IKV
-        elseif (IVTYPE(IKV,ICFD).eq.33) then
+        elseif (IVTYPE(IKV,ICFD).ge.30 .and. 
+     &          IVTYPE(IKV,ICFD).le.35) then
           IBK=IBK+1
           INBLK(IBK,ICFD)=IKV
         endif
@@ -2569,7 +2679,7 @@ C to the first opening.
             GOTO 321
           ENDIF
  302    CONTINUE
- 320  endif
+      endif
  321  continue
 
       RETURN
@@ -2585,7 +2695,7 @@ C connected to (ext_nod), using the same component.
 C Consequentially the number of new nodes created will be equal to the
 C number of openings in CFD domain. The nodes created here are internal
 C and constant pressure (type 1) type nodes.
-C IV is the index of the opening number.
+C IV is the index of the key volume number.
 C ITRC signals verbose reporting if greater than zero.
 C IND is the index of the node.
 C ICN is the index of the connection.
@@ -2603,8 +2713,8 @@ C Passed parameters.
       
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/ICFNOD/ICFD,ICP
-      common/ndcfd/ncfdnd,icfdnd(MNZ),NCONF
-      COMMON/MFCFD/NCNRMV,ICNRMV(MCFND,MNZ),NCNON,ICNON(2*MCFND,MNZ)
+      COMMON/MFCFD/NCNRMV(MNZ),ICNRMV(MCFND,MNZ),
+     &             NCNON(MNZ),ICNON(2*MCFND,MNZ)
       COMMON/ACT/ACTCNN(MCNN)
       COMMON/CFDMFS2/MFNEWN(MNVLS,MNZ),NFNDN,NCFDOPNO(MNVLS,MNZ),
      &               NFNPDN(MNZ)
@@ -2663,8 +2773,8 @@ C Remove all connections with original node
 C This connection will be deactivated while CFD is active, remember this
 C NCNRMV = number of connections to remove when CFD active.
 C ICNRMV = list of connections to remove when CFD active.
-      NCNRMV=NCNRMV+1
-      ICNRMV(NCNRMV,ICFD)=ICNN
+      NCNRMV(ICFD)=NCNRMV(ICFD)+1
+      ICNRMV(NCNRMV(ICFD),ICFD)=ICNN
 
 C A new node must be created to represent the control volumes of the 
 C opening.
@@ -2711,17 +2821,14 @@ C CFD domain node, using same component i.e. replacement connection.
 
 C NCNON = number of connections to activate for CFD connections.
 C ICNON = list of connections to activate for CFD connections.
-      NCNON=NCNON+1
-      ICNON(NCNON,ICFD)=NCNN
+      NCNON(ICFD)=NCNON(ICFD)+1
+      ICNON(NCNON(ICFD),ICFD)=NCNN
 
 C Deactivate CFD connection created.
-C      DO 203 IC=1,NCONF
-C        ACTCNN(ICNON(N,IC))=.FALSE.
-        ACTCNN(ICNON(NCNON,ICFD))=.FALSE.
-C 203  CONTINUE
+      ACTCNN(ICNON(NCNON,ICFD))=.FALSE.
 
- 2     return
-       end
+ 2    return
+      end
 
 C ******************** MFLISTemp ********************
 C List common block contents for debugging only.
@@ -2895,7 +3002,8 @@ C Sets default values for all data items.
 #include "cfd.h"
 
       COMMON/ICFNOD/ICFD,ICP
-      COMMON/MFCFD/NCNRMV,ICNRMV(MCFND,MNZ),NCNON,ICNON(2*MCFND,MNZ)
+      COMMON/MFCFD/NCNRMV(MNZ),ICNRMV(MCFND,MNZ),
+     &             NCNON(MNZ),ICNON(2*MCFND,MNZ)
       COMMON/FDTRFC/FLSDTU(MNZ),FLSDTV(MNZ),FLSDTW(MNZ),FLSDTP(MNZ),
      &              FLSDTT(MNZ),FLSDTK(MNZ),FLSDTE(MNZ)
       COMMON/LINRFC/URFCU(MNZ),URFCV(MNZ),URFCW(MNZ),URFCP(MNZ),
@@ -2913,32 +3021,31 @@ C Sets default values for all data items.
      &             ZEROT(MNZ),ZandKE(MNZ),MITzero(MNZ)
       common/EQTION3/CALLMA(MNZ),CALPOL(MCTM,MNZ),POLNAM(MCTM,MNZ),
      &               NCTM(MNZ),JHUMINDX(MNZ),URFC(MCTM)
+      CHARACTER*12 POLNAM
+      LOGICAL CALLMA,CALPOL
       COMMON/NSSWP/NSSWPU(MNZ),NSSWPV(MNZ),NSSWPW(MNZ),NSSWPP(MNZ),
      &             NSSWPT(MNZ),NSSWPK(MNZ),NSSWPE(MNZ)
       common/METHDS/ITURB(MNZ),IBUOY(MNZ)
       COMMON/CONST/GREAT,small,GRAV
-
       common/grdmax/NTCX,NTCY,NTCZ
       common/param1/MAXITR(MNZ),IMONT(MNZ),JMONT(MNZ),KMONT(MNZ),
      &             IPPHI(MNZ),SRMAX(MNZ)
       COMMON/ZTURB/rMOOT(MNZ),nZtoKE(MNZ)
-
-C Common identifying preliminary CFD simulation when running 
-C addaptive conflation.
       common/fvisgo/gophrun
-
+      LOGICAL gophrun
       COMMON/GGDH/GENB1(ntcelx,ntcely,ntcelz),GGDH
+      COMMON/BUOYAN/BUOYA,BOUSSA,TBAR(MNZ)
+      LOGICAL BUOYA,BOUSSA
       
       LOGICAL INITFL,CALLU,CALLV,CALLW,CALLT,CALLC,KEMDL,BUOY,BOUSSI
       LOGICAL ZEROT,ZandKE,MITzero,GGDH
-      LOGICAL CALLMA,gophrun,CALPOL
-      CHARACTER*12 POLNAM
 
 C Default not adaptive control.
       gophrun=.false.
       
 C Clear mass flow links.
-      NCNRMV=0
+      NCNRMV(ICFD)=0
+      NCNON(ICFD)=0
 
 C Equations to be solved, this includes methods.
       CALLT(ICFD)=.TRUE.
@@ -2946,8 +3053,9 @@ C Equations to be solved, this includes methods.
         CALPOL(ICTM,ICFD)=.FALSE.
  39   CONTINUE
       CALLMA(ICFD)=.FALSE.
-      ITURB(ICFD)=3
-      IBUOY(ICFD)=0
+      ITURB(ICFD)=1
+      IBUOY(ICFD)=2
+      TBAR(ICP)=20.0
       INITFL(ICFD)=.FALSE.
       GGDH=.FALSE.
 
@@ -3058,7 +3166,6 @@ C Passed parameter.
      &               BLKSURF(MNVLS,MNZ,6)
       character VOLNAME*12,VCsurf*12,BLKSURF*12
       common/grdmax/NTCX,NTCY,NTCZ
-      COMMON/ALL/NI,NJ,NK,NIM1,NJM1,NKM1,NIM2,NJM2,NKM2
 
       character OUTSTR*124,FACE*7,STARST*72
       INTEGER IXZST(NTCELX,NTCELZ),IXYHH(NTCELX,NTCELY)
@@ -3066,7 +3173,7 @@ C Passed parameter.
       INTEGER IXYLL(NTCELX,NTCELY),IYZWT(NTCELY,NTCELZ)
       INTEGER IBLKG(NTCELX,NTCELY,NTCELZ)
       LOGICAL WARN
-      logical unixok
+C      logical unixok
 
 C Clear arrays for boundary conditions on north, south, east & west face. 
        DO 45 II=1,NTCX
@@ -3318,25 +3425,19 @@ C of domain and zone, to initial values.
 C Passed parameters.
       integer ier
 
-      CHARACTER POLNAM*12
       COMMON/ICFNOD/ICFD,ICP
       COMMON/MFS/IMFACT
       COMMON/BUOYAN/BUOYA,BOUSSA,TBAR(MNZ)
-      COMMON/ZTURB/rMOOT(MNZ),nZtoKE(MNZ)
+      LOGICAL BUOYA,BOUSSA
       common/grdmax/NTCX,NTCY,NTCZ
       common/GRIDEFN/origin,xgrid,ygrid,zgrid,zegrid,ortho
-      COMMON/SCHMTT/SCHMT(MCTM,MNZ),GFM(MCTM,MNZ),VCRIT(MCTM,MNZ),
-     &       TBOIL(MCTM,MNZ),TCRIT(MCTM,MNZ),ISCHMT(MCTM,MNZ)
-      COMMON/CTDFAF/ICTDFAF(MNZ),SRCE(MNVLS,MCTM,MNZ),ICCSRC(MNZ)
-      character SRCE*12
       logical origin,xgrid,ygrid,zgrid,zegrid,ortho
-      LOGICAL BUOYA,BOUSSA
 
       ICFD=0
       ICP=0
       IMFACT=0
-      BUOYA=.false.
-      BOUSSA=.false.
+      BUOYA=.true.
+      BOUSSA=.true.
       NTCX=0
       NTCY=0
       NTCZ=0

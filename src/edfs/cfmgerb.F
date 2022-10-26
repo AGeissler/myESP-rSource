@@ -15,13 +15,14 @@ C details.
 
 
 C This file contains the following subroutines.
-C CFMNGE - Controls CFD calcs and results output when BSim and CFD are conflated.
-C SURFCONF - Calls CFMNGE each time step there is surface conflation.
-C CFDLIBHEAD - Write header information to cfd results file.
-C cfdlibdom - Write information describing the CFD domain model to results file.
-C cfdlib - Write results of CFD simulation to results file.
+C CFMNGE         - Controls CFD calcs and results output when BSim and CFD are conflated.
+C SURFCONF       - Calls CFMNGE each time step there is surface conflation.
+C CFDLIBHEAD     - Write header information to cfd results file.
+C cfdlibdom      - Write information describing the CFD domain model to results file.
+C cfdlib         - Write results of CFD simulation to results file.
 C readcfd3dascii - read ascii information from one timestep.
-C RFNAVG - average results if the grid has been refined mid-simulation.
+C RFNAVG         - average results if the grid has been refined mid-simulation.
+C CFDOCHK        - Check if occupants are present and deactivate BCs if needed.
 
 
 C ********************* CFMNGE *********************
@@ -38,20 +39,18 @@ C are conflated.
      &NPGAP(MCOM,MS,MGP)
       integer IZSTOCN
       COMMON/C24/IZSTOCN(MCOM,MS)
-
       COMMON/cfdfil/LCFD(MCOM),IFCFD(MCOM)
       COMMON/cfcall/icfcal(MNZ)
-
       COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS,idynow
       common/pers/isd1,ism1,isd2,ism2,isds,isdf,ntstep
       COMMON/FVALA/TFA(MCOM),QFA(MCOM)
       COMMON/ICFCHN/ICFMON(MNZ),ICFDBC(MNZ),ICFTMP,ICFLIB
-
       COMMON/CFDCNV/QCFDF(MCOM,MS),QCFDP(MCOM,MS)
       COMMON/ICFNOD/ICFD,ICP
       common/ndcfd/ncfdnd,icfdnd(MNZ),NCONF
       common/cfdini/INITFL(MNZ)
       common/param2/TITLE(MNZ),CFTRFL(MNZ),LPHI(MNZ)
+      CHARACTER*72 TITLE,CFTRFL,LPHI
       COMMON/INITIA/UINIT(MNZ),VINIT(MNZ),WINIT(MNZ),PINIT(MNZ),
      &              TINIT(MNZ),TEINIT(MNZ),EDINIT(MNZ),POLINIT(MNZ,MCTM)
       common/cfdconf/ICFBLD(MNZ),ICFMFS(MNZ)
@@ -75,7 +74,7 @@ C Commons for trace.
       DIMENSION HC(MNSBZ),SFNAM(MNSBZ)
 
       CHARACTER NBCHAR*10,SFNAM*12
-      CHARACTER*72 TITLE,outfil,CFTRFL,LPHI,LCFD,outs
+      CHARACTER*72 outfil,LCFD,outs
       LOGICAL INITFL,CONVER
       integer ACCON,CFD2BLD,CFD2MFS
       real TaCFD
@@ -130,7 +129,7 @@ C for this zone, but only on the gopher run if the ACC is active.
         icfcal(ICFD)=icfcal(ICFD)+1
       endif
 
-        TTRACK(ICP)=icfcal(ICFD)
+      TTRACK(ICP)=icfcal(ICFD)
 
 C Debug.
 C       write(6,*) 'CFMNGE (ICP,ICOMP,IND[icfd],icfcal)',ICP,ICOMP,
@@ -288,7 +287,7 @@ C Trace output.
       ENDIF
       GOTO 258
 
- 255  CALL MFBNDR(1)  ! Transfer mfs mass flows to CFD domain.
+ 255  CALL MFBNDR(1)  ! Initialise MFS connections representing CFD connections.
       CALL MFBNDR(2)  ! Impose mfs mass flows on CFD domain.
 
 C Trace output.
@@ -378,7 +377,6 @@ C is surface conflation.
 
       SUBROUTINE SURFCONF(ICOMP)
 #include "building.h"
-#include "schedule.h"
 #include "cfd.h"
 
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
@@ -386,12 +384,9 @@ C is surface conflation.
       COMMON/BTIME/BTIMEP,BTIMEF
       common/ndcfd/ncfdnd,icfdnd(MNZ),NCONF
       COMMON/cfdfil/LCFD(MCOM),IFCFD(MCOM)
-      common/pers/isd1,ism1,isd2,ism2,isds,isdf,ntstep
       COMMON/ACCrec/IACC(MNZ)
       COMMON/ICFNOD/ICFD,ICP
-      common/SSOinit/areaSSO
       COMMON/calcdCFD/mICORcfd(MCOM),mHCcfd(MCOM)
-
       integer ncomp,ncon
       COMMON/C1/NCOMP,NCON
       real CFTIMS,CFTIMF    ! start and finish times for CFD assessment
@@ -422,33 +417,24 @@ C is surface conflation.
      2            DZHP(ntcelz),DZPL(ntcelz),
      3            SEW(ntcelx),SNS(ntcely),SHL(ntcelz),
      4            XU(ntcelx),YV(ntcely),ZW(ntcelz)
-      REAL headflux1,trunkflux1,larmflux1,rarmflux1,llegflux1,
-     &     rlegflux1,H2Oexp1,H2Oswt1,Qoccsens1,Qocclat1,COflux,
-     &     Tsko_av1,Tco_av1,Tsk_av1
-      COMMON/ocflux1/headflux1,trunkflux1,larmflux1,rarmflux1,llegflux1,
-     &        rlegflux1,H2Oexp1,H2Oswt1,Qoccsens1,Qocclat1,COflux,
-     &        Tsko_av1, Tco_av1, Tsk_av1
-      REAL tavhead1,tavtrunk1,tavarml1,tavarmr1,tavlegl1,tavlegr1
-      REAL hrhead,hrtrunk,hrarml,hrarmr,hrlegl,hrlegr,HMETA2
-      integer cfdcheck, msegflag
-      COMMON/segtemp1/tavhead1,tavtrunk1,tavarml1,tavarmr1,tavlegl1,
-     &       tavlegr1,hrhead,hrtrunk,hrarml,hrarmr,hrlegl,hrlegr,
-     &       cfdcheck,msegflag,HMETA2
-      REAL headflux2,trunkflux2,larmflux2,rarmflux2,llegflux2,
-     &     rlegflux2,H2Oexp2,H2Oswt2,Qoccsens2,Qocclat2,
-     &     Tsko_av2,Tco_av2,Tsk_av2
-      COMMON/ocflux2/headflux2,trunkflux2,larmflux2,rarmflux2,llegflux2,
-     &        rlegflux2,H2Oexp2,H2Oswt2,Qoccsens2,Qocclat2,
-     &        Tsko_av2, Tco_av2, Tsk_av2
-      REAL tavhead2,tavtrunk2,tavarml2,tavarmr2,tavlegl2,tavlegr2
-      COMMON/segtemp2/tavhead2,tavtrunk2,tavarml2,tavarmr2,tavlegl2,
-     &       tavlegr
-      REAL ic(31,4),inc(31,4)
-      Integer inn,i
+C       real headflux1,trunkflux1,larmflux1,rarmflux1,llegflux1
+C       real rlegflux1,H2Oexp1,H2Oswt1,Qoccsens1,Qocclat1
+C C       real COflux,Tsko_av1,Tco_av1,Tsk_av1
+C       COMMON/ocflux1/headflux1(MNZ),trunkflux1(MNZ),larmflux1(MNZ),
+C      &  rarmflux1(MNZ),llegflux1(MNZ),rlegflux1(MNZ),H2Oexp1(MNZ),
+C      &  H2Oswt1(MNZ),Qoccsens1(MCOM),Qocclat1(MCOM)
+C C         COflux,Tsko_av1,Tco_av1,Tsk_av1
+C       REAL tavhead1,tavtrunk1,tavarml1,tavarmr1,tavlegl1,tavlegr1
+C       REAL hrhead,hrtrunk,hrarml,hrarmr,hrlegl,hrlegr,HMETA2
+C       integer cfdcheck, msegflag
+C       COMMON/segtemp1/tavhead1(MNZ),tavtrunk1(MNZ),tavarml1(MNZ),
+C      &  tavarmr1(MNZ),tavlegl1(MNZ),tavlegr1(MNZ),hrhead(MNZ),
+C      &  hrtrunk(MNZ),hrarml(MNZ),hrarmr(MNZ),hrlegl(MNZ),hrlegr(MNZ),
+C      &  cfdcheck(MNZ),msegflag(MNZ),HMETA2(MNZ)
+C      REAL ic(31,4)
       CHARACTER LCFD*72
       character cfd3dascii*72
       character doit*248
-      LOGICAL areaSSO
       CHARACTER*72 outs
       character ICFDSTR*10,ICPSTR*10
       character louts*1500,loutsd*1500 
@@ -489,6 +475,9 @@ C        if(NCONF.gt.1)then
 
 C Initialise the thermophysical variables and some gridding data.
   123   CALL INICNT
+
+C Check occupancy-linked blockages.
+        call CFDOCHK()
 
 C If the user has requested adaptive control over the conflation, then
 C invoke the controller to assess and prepare for the CFD run (i.e. adaptive
@@ -580,30 +569,24 @@ C                write(38,'(a,150f8.1)') 'AGEf: ',(AGEf(I,J,K),I=2,NI)
  101        continue
  10       continue
 
-C Write the body and skin temperature for current time step.
-          if (cfdcheck.GT.1.and.HMETA2.LT.1) then
+C C Write the body and skin temperature for current time step.
+C          if (cfdcheck(ICFD).GT.1.and.HMETA2(ICFD).LT.1) then
+C            open(unit=92,file="initial_condition1.txt",status="old")
+C            do i=1,25
+C              read (92,*) (ic(i,j),j=1,4)
+C              write(38,'( 6f11.5)') (ic(i,j),j=1,4)
+C            end do
+C            CLOSE ( UNIT=92 )
+C            write(38,*) tavhead1(ICFD),tavtrunk1(ICFD),tavarml1(ICFD),
+C     &        tavarmr1(ICFD),tavlegl1(ICFD),tavlegr1(ICFD),
+C     &        Qoccsens1(ICP),Qocclat1(ICP)
+C     &        ,Tsko_av1, Tco_av1, Tsk_av1
+C          endif
 
-          open(unit=92,file="initial_condition1.txt",status="old")
-          do i=1,25
-             read (92,*) (ic(i,j),j=1,4)
-             write(38,'( 6f9.5)') (ic(i,j),j=1,4)
-          end do
-          CLOSE ( UNIT=92 )
-           write(38,*) tavhead1,tavtrunk1,tavarml1,tavarmr1,
-     &       tavlegl1,tavlegr1,Qoccsens1,Qocclat1,
-     &       Tsko_av1, Tco_av1, Tsk_av1
-C          elseif (cfdcheck.GT.1.and.HMETA2.GT.1) then
-C          open(unit=94,file="initial_condition2.txt",status="old")
-C          do i=1,25
-C             read (94,*) (ic(i,j),j=1,4)
-C             write(38,'( 6f9.5)') (ic(i,j),j=1,4)
-C          end do
-C          CLOSE ( UNIT=94 )
-
-C           write(38,*) tavhead2,tavtrunk2,tavarml2,tavarmr2, 
-C     &       tavlegl2,tavlegr2,Qoccsens2,Qocclat2,
-C     &       Tsko_av2, Tco_av2, Tsk_av2
-           endif
+C          write(38,*) tavhead2,tavtrunk2,tavarml2,tavarmr2, 
+C    &       tavlegl2,tavlegr2,Qoccsens2,Qocclat2,
+C    &       Tsko_av2, Tco_av2, Tsk_av2
+C          endif
 
           write(38,'(a)') 'end_cfd3dascii'
           CLOSE ( UNIT=38 )
@@ -643,23 +626,19 @@ C day and timestep returned via ISIMDAY SIMTIMEF.
 #include "espriou.h"
 
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
-      COMMON/FILEP/IFIL
-      
       integer ncomp,ncon
       common/c1/ncomp,ncon
       COMMON/ICFNOD/ICFD,ICP
-
       COMMON/ALL/NI,NJ,NK,NIM1,NJM1,NKM1,NIM2,NJM2,NKM2
       COMMON/GEOM/XP(ntcelx),YP(ntcely),ZP(ntcelz),
      1            DXEP(ntcelx),DXPW(ntcelx),DYNP(ntcely),DYPS(ntcely),
      2            DZHP(ntcelz),DZPL(ntcelz),
      3            SEW(ntcelx),SNS(ntcely),SHL(ntcelz),
      4            XU(ntcelx),YV(ntcely),ZW(ntcelz)
-      COMMON/cfdfil/LCFD(MCOM),IFCFD(MCOM)
-      COMMON/cfdsmper/ICDYS,ICDYF,CFTS,CFTF
-      COMMON/cfdhsh/NCFDSZ,NRCFDOM(MNZ)
       common/EQTION3/CALLMA(MNZ),CALPOL(MCTM,MNZ),POLNAM(MCTM,MNZ),
      &               NCTM(MNZ),JHUMINDX(MNZ),URFC(MCTM)
+      CHARACTER POLNAM*12
+      LOGICAL CALPOL,CALLMA
       common/CFDSV/IRECPC,ICFDSV,IEQSV(5+MCTM)
       real CFTIMS,CFTIMF    ! start and finish times for CFD assessment
       integer ICFDYS,ICFDYF ! julian day-of-year at start and end of CFD
@@ -669,11 +648,6 @@ C day and timestep returned via ISIMDAY SIMTIMEF.
       logical DFVinvoked
       COMMON/CFSEUP/CFTIMS,CFTIMF,ICFDYS,ICFDYF,ICFAUX(MCOM),ICFVIEW,
      &  ICFVIEWMINT,ICFVIEWMAXT,DFVinvoked
-      
-C NCDOM - number of CFD domains.
-C ICDOM - CFD domain selected for output.
-C ICFDZ - thermal zone associated with each CFD domain.
-      COMMON/cfddoms/NCDOM,ICDOM,ICFDZ(MNZ)
       COMMON/VARf/Uf(ntcelx,ntcely,ntcelz),Vf(ntcelx,ntcely,ntcelz),
      1            Wf(ntcelx,ntcely,ntcelz),
      2            P(ntcelx,ntcely,ntcelz),PP(ntcelx,ntcely,ntcelz),
@@ -684,11 +658,6 @@ C ICFDZ - thermal zone associated with each CFD domain.
       COMMON/CFDPOL/POLCONCp(MCTM,ntcelx,ntcely,ntcelz),
      1              POLCONCf(MCTM,ntcelx,ntcely,ntcelz)
 
-      common/dllerr/dllsubr,dllmesg
-      character dllsubr*12,dllmesg*124
-
-      LOGICAL CALPOL,CALLMA,dll
-      CHARACTER LCFD*72,POLNAM*12
       character cfd3dascii*72
       character loutstr*1000,WORD*32
       character outs*124
@@ -702,18 +671,10 @@ C Set unit number and initial values of ISIMDAY & SIMTIMEF.
         write(outs,'(3a)') '   cfd3dascii file ../tmp/',
      &    cfd3dascii(1:lnblnk(cfd3dascii)),
      &    ' could not be opened.'
-        call isadll(dll)
-        if(dll)then
-          dllsubr='readcfd3dascii'
-          dllmesg=outs
-          ier=2
-          return
-        else
-          call edisp(IUOUT,outs)
-          IER=1
-          RETURN
-        endif
-      ENDIF
+        call edisp(IUOUT,outs)
+        IER=1
+        RETURN
+      endif
       write(currentfile,'(a)') cfd3dascii(1:lnblnk(cfd3dascii))
       
   42  CALL STRIPC1K(iunit,LOUTSTR,0,ND,1,'cfd3dlines',IER)
@@ -1041,6 +1002,8 @@ C CFD domain.
       LOGICAL ZEROT,ZandKE,MITzero
       common/EQTION3/CALLMA(MNZ),CALPOL(MCTM,MNZ),POLNAM(MCTM,MNZ),
      &               NCTM(MNZ),JHUMINDX(MNZ),URFC(MCTM)
+      CHARACTER POLNAM*12
+      LOGICAL CALPOL,CALLMA
       COMMON/ALL/NI,NJ,NK,NIM1,NJM1,NKM1,NIM2,NJM2,NKM2
       COMMON/GEOM/XP(ntcelx),YP(ntcely),ZP(ntcelz),
      1            DXEP(ntcelx),DXPW(ntcelx),DYNP(ntcely),DYPS(ntcely),
@@ -1051,8 +1014,7 @@ C CFD domain.
       common/GRDVRTS/iorg(MNZ),ixend(MNZ),iyend(MNZ),izend(MNZ),
      &  izende(MNZ)
 
-      CHARACTER outs*124, POLNAM*12
-      LOGICAL CALPOL,CALLMA
+      CHARACTER outs*124
 
 C Depending on CFD results version, execute appropriate code.
 C Version 1 has only momentum and temperature (deprecated).
@@ -1132,7 +1094,7 @@ C If there are no contaminants, just write an "x".
 C NOTE: It is theoretically possible for this to exceed the record width
 C of the library, though this would require an extremely specialised use
 C of the CFD with many contaminants. The risk is considered so minimal
-C as to be neglible for the time being.
+C as to be negligible for the time being.
       IREC=IREC+1
       if (NCTM(ICFD).gt.0) then
         WRITE(ICFLIB,REC=IREC,IOSTAT=ISTAT,ERR=1000)
@@ -1234,6 +1196,8 @@ C Write data to cfd results library.
       LOGICAL ZEROT,ZandKE,MITzero
       common/EQTION3/CALLMA(MNZ),CALPOL(MCTM,MNZ),POLNAM(MCTM,MNZ),
      &               NCTM(MNZ),JHUMINDX(MNZ),URFC(MCTM)
+      CHARACTER POLNAM*12
+      LOGICAL CALPOL,CALLMA
       COMMON/ALL/NI,NJ,NK,NIM1,NJM1,NKM1,NIM2,NJM2,NKM2
       COMMON/VARf/Uf(ntcelx,ntcely,ntcelz),Vf(ntcelx,ntcely,ntcelz),
      1            Wf(ntcelx,ntcely,ntcelz),
@@ -1249,8 +1213,7 @@ C Write data to cfd results library.
      &  NRFND,IRFND(MNZ,MRFNT,3)
       logical DOFLT,DORFN
 
-      CHARACTER outs*124, POLNAM*12
-      LOGICAL CALPOL,CALLMA
+      CHARACTER outs*124
 
       real xU(ntcelx,ntcely,ntcelz),xV(ntcelx,ntcely,ntcelz),
      &     xW(ntcelx,ntcely,ntcelz),xT(ntcelx,ntcely,ntcelz),
@@ -1363,7 +1326,6 @@ C Returns averaged future time step arrays and array sizes.
       integer avNI,avNJ,avNK,ier
 
       COMMON/ICFNOD/ICFD,ICP
-      common/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/RFNGRD/DOFLT,DORFN,IFNDWT(MNZ),NRFN,IRFNCLS(MNZ,MRFN,3),
      &  NRFND,IRFND(MNZ,MRFNT,3)
       logical DOFLT,DORFN
@@ -1579,4 +1541,112 @@ C Adjust state variable arrays.
 
       return
       end
+
+
+C ********************* CFDOCHK *********************
+C Checks occupancy at the current time step.
+C If occupants are not present, associated BCs are disabled.
+
+      SUBROUTINE CFDOCHK
+
+#include "building.h"
+#include "cfd.h"
+
+      common/dynamico/isdynamicocup(MCOM)
+      COMMON/ICFNOD/ICFD,ICP
+      COMMON/CALENI/NBDAYTYPE,NBCALDAYS(MDTY),ICALENDER(365)
+      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS,IDYNOW
+      COMMON/CASGNS/NCGPER(MCOM,MDTY,MGTY),TCGS(MCOM,MDTY,MGTY,MGPER),
+     &  CGSENC(MCOM,MDTY,MGTY,MGPER),CGSENR(MCOM,MDTY,MGTY,MGPER),
+     &  CGLAT(MCOM,MDTY,MGTY,MGPER),CGCTL(MCOM,2,MGTY)
+      COMMON/BTIME/BTIMEP,BTIMEF
+      COMMON/CASGNSO/META1(MCOM,MDTY,MGTY,MGPER),
+     &  NBMEN(MCOM,MDTY,MGTY,MGPER),NBWOM(MCOM,MDTY,MGTY,MGPER),
+     &  NBCHI(MCOM,MDTY,MGTY,MGPER),CONCC(MCOM,MDTY,MGTY,MGPER),
+     &  RADCC(MCOM,MDTY,MGTY,MGPER),CLOTH(MCOM,MDTY,MGTY,MGPER)
+      REAL META1,NBMEN,NBWOM,NBCHI
+      common/KEYVOLS/NVOL(MNZ),IVOLF(MNVLS,MNZ),IVCELLS(MNVLS,MNZ,2),
+     &  JVCELLS(MNVLS,MNZ,2),KVCELLS(MNVLS,MNZ,2)
+      COMMON/KEYVDAT/IVTYPE(MNVLS,MNZ),VOLTemp(MNVLS,MNZ),
+     &  VOLHeat(MNVLS,MNZ),IVConfl(MNVLS,MNZ),VOLHum(MNVLS,MNZ),
+     &  VOLCO2(MNVLS,MNZ),VOLVel(MNVLS,MNZ),VOLDir(MNVLS,MNZ,2),
+     &  VOLArea(MNVLS,MNZ),VOLPres(MNVLS,MNZ),VOLPol(MCTM,MNVLS,MNZ)
+      COMMON/KEYVOLN/VOLNAME(MNVLS,MNZ),VCsurf(MNVLS,MNZ),
+     &  BLKSURF(MNVLS,MNZ,6)
+      character VOLNAME*12,VCsurf*12,BLKSURF*12
+      COMMON/CFDBCOFF/BCOFF(MNVLS)
+      logical BCOFF
+
+C If there are no dynamic occupants, just activate all BCs.
+      if (isdynamicocup(ICP).eq.0) then
+        do iv=1,NVOL(ICFD)
+          BCOFF(iv)=.false.
+        enddo
+        RETURN
+      endif
+
+C Get current day type.
+      idaytyp = ICALENDER(IDYNOW)
+
+C Assume casual gain type 1 is occupants.
+      ign = 1
+
+C Determine the current period.
+      iper = NCGPER(ICP,idaytyp,ign)
+      do i=1,NCGPER(ICP,idaytyp,ign)
+        if (BTIMEF.le.TCGS(ICP,idaytyp,ign,i+1).and.
+     &      BTIMEF.gt.TCGS(ICP,idaytyp,ign,i)) then
+          iper = i
+          exit
+        endif
+      enddo
+
+C Check number of men, women and children.
+      inbmen=NINT(NBMEN(ICP,idaytyp,ign,iper))
+      inbwom=NINT(NBWOM(ICP,idaytyp,ign,iper))
+      inbchi=NINT(NBCHI(ICP,idaytyp,ign,iper))
+
+C Loop through occupant-linked BCs, and disable any that are not
+C present.
+      ibmen=0; ibwom=0; ibchi=0
+      ismen=0; iswom=0; ischi=0
+      do iv=1,NVOL(ICFD)
+        BCOFF(iv)=.false.
+        if (IVTYPE(iv,ICFD).eq.35) then
+          if (BLKSURF(iv,ICFD,2)(1:10).eq.'whole_body' .or. 
+     &        BLKSURF(iv,ICFD,2)(1:5).eq.'trunk') then
+            if (BLKSURF(iv,ICFD,1)(1:3).eq.'man') then
+              ibmen=ibmen+1
+              if (ibmen.gt.inbmen) BCOFF(iv)=.true.
+            elseif (BLKSURF(iv,ICFD,1)(1:5).eq.'woman') then
+              ibwom=ibwom+1
+              if (ibwom.gt.inbwom) BCOFF(iv)=.true.
+            elseif (BLKSURF(iv,ICFD,1)(1:5).eq.'child') then
+              ibchi=ibchi+1
+              if (ibchi.gt.inbchi) BCOFF(iv)=.true.
+            endif
+          endif
+        elseif (IVTYPE(iv,ICFD).eq.20) then
+          if (VCSURF(iv,ICFD)(1:3).eq.'man') then
+            ismen=ismen+1
+            if (ismen.gt.inbmen) BCOFF(iv)=.true.
+          elseif (VCSURF(iv,ICFD)(1:5).eq.'woman') then
+            iswom=iswom+1
+            if (iswom.gt.inbwom) BCOFF(iv)=.true.
+          elseif (VCSURF(iv,ICFD)(1:5).eq.'child') then
+            ischi=ischi+1
+            if (ischi.gt.inbchi) BCOFF(iv)=.true.
+          endif
+        endif
+
+C Debug.
+        if (BCOFF(iv)) write(6,*)'BC ',VOLNAME(iv,ICFD),
+     &    ' disabled @ ',IDYNOW,BTIMEF
+      enddo
+
+      RETURN
+      END
+
+
+
 

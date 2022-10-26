@@ -338,6 +338,7 @@ C density to provide more rapid assessments.
      &             CALLC(MNZ),KEMDL(MNZ),BUOY(MNZ),BOUSSI(MNZ),
      &             ZEROT(MNZ),ZandKE(MNZ),MITzero(MNZ)
       COMMON/BUOYAN/BUOYA,BOUSSA,TBAR(MNZ)
+      LOGICAL BUOYA,BOUSSA
       common/param1/MAXITR(MNZ),IMONT(MNZ),JMONT(MNZ),KMONT(MNZ),
      1             IPPHI(MNZ),SRMAX(MNZ)
       COMMON/RENORM/LRENORM
@@ -359,7 +360,6 @@ C density to provide more rapid assessments.
 
       LOGICAL CALLU,CALLV,CALLW,CALLT,CALLC,KEMDL,BUOY,BOUSSI
       LOGICAL ZEROT,ZandKE,MITzero
-      LOGICAL BUOYA,BOUSSA
       LOGICAL LRENORM
       LOGICAL gophrun
       CHARACTER*72 LCFD
@@ -864,6 +864,7 @@ C from `gopher' simulation.
      &             CALLC(MNZ),KEMDL(MNZ),BUOY(MNZ),BOUSSI(MNZ),
      &             ZEROT(MNZ),ZandKE(MNZ),MITzero(MNZ)
       COMMON/BUOYAN/BUOYA,BOUSSA,TBAR(MNZ)
+      LOGICAL BUOYA,BOUSSA
       COMMON/LINRFC/URFCU(MNZ),URFCV(MNZ),URFCW(MNZ),URFCP(MNZ),
      &              URFCT(MNZ),URFCK(MNZ),URFCE(MNZ),URFCVS(MNZ),
      &              URFCC(MNZ,MCTM)
@@ -875,7 +876,6 @@ C from `gopher' simulation.
 
       LOGICAL CALLU,CALLV,CALLW,CALLT,CALLC,KEMDL,BUOY,BOUSSI
       LOGICAL ZEROT,ZandKE,MITzero
-      LOGICAL BUOYA,BOUSSA
 
 C Make sure energy equation is solved.
       CALLT(ICFD) = .TRUE.
@@ -1599,7 +1599,7 @@ C mechanism.
       COMMON/ACCrec/IACC(MNZ)
 C      COMMON/cfdfil/LCFD(MCOM),IFCFD(MCOM)
 
-      CHARACTER*72 LCFD
+C      CHARACTER*72 LCFD
 
 C Set CFD opening to be manipulated.
       Iopen = 1

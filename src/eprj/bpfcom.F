@@ -47,6 +47,11 @@ C Parameters
       INTEGER nbdaytype,nbcaldays,icalender,IDOV,IBDY,IEDY,IFDY
       common/calena/calename,calentag(MDTY),calendayname(MDTY)
       character calename*32,calentag*12,calendayname*32
+
+C High level control scope key words.
+      character hcffpattern*12    ! heat, cool, or heat+cool plus detail
+      common/hlcontrol/hcffpattern(2)
+    
       character outs*124
       dimension rper(30),rperf(30)
 
@@ -333,7 +338,10 @@ C Complex fenestration.
      &                ' ','W')
           return
         endif
+
+C If there are no controls, set high level commons and ask about day types.
         if(icfoc.eq.0)then
+          hcffpattern(1)='HEATCOOL'; hcffpattern(2)='-'
           ncf=ncf+1
           ibsn(ncf,1)=0
           ibsn(ncf,2)=0
@@ -365,6 +373,21 @@ C if that is selected decrement ncf and return.
               IDOV=1     ! set to use date of validity
             endif
           endif
+
+C Set the scope.
+          CALL EASKABCD('Extent of ideal environmental controls: ',
+     &      ' ','heating only','cooling only','heating & cooling',
+     &      'unknown',IW,nbhelp)
+          if(iw.eq.1)then
+            hcffpattern(1)='HEATONLY'; hcffpattern(2)='-'
+          elseif(iw.eq.2)then
+            hcffpattern(1)='COOLONLY'; hcffpattern(2)='-'
+          elseif(iw.eq.3)then
+            hcffpattern(1)='HEATCOOL'; hcffpattern(2)='-'
+          elseif(iw.eq.4)then
+            hcffpattern(1)='UNKNOWN'; hcffpattern(2)='-'
+          endif
+
           NN=NBCDT(ncf)  ! assume zero means all calendar day types
           IF(NN.EQ.0)NN=NBDAYTYPE
           do 87 ik=1,NN
@@ -415,6 +438,8 @@ C              if(IDP.gt.1)tbcps(ncf,ik,IDP)=float(IDP)
               bmiscd(ncf,ik,IDP,1)=0.
   784       continue
   87      continue
+
+C Initial setup of plant controls.
         elseif(icfoc.eq.1)then
           ncl=ncl+1
           ipsn(ncl,1)=0
@@ -498,9 +523,9 @@ C              if(IDP.gt.1)tpcps(ncl,ik,IDP)=float(IDP)
               pmiscd(ncl,ik,IDP,1)=0.
  287        continue
  187      continue
-        elseif(icfoc.eq.2)then
 
 C Add a flow function.
+        elseif(icfoc.eq.2)then
           ncc=ncc+1
           ifsn(ncc,1)=-4
           ifsn(ncc,2)=0
@@ -588,6 +613,8 @@ C              if(IDP.gt.1)tfcps(ncc,ik,IDP)=float(IDP)
               fmiscd(ncc,ik,IDP,3)=1.
  586        continue
  587      continue
+
+C Setup global controls.
         elseif(icfoc.eq.3)then
           ngf=ngf+1
           igsn(ngf,1)=0
@@ -622,17 +649,15 @@ C Initial setup of day types.
             igclaw(ngf,ik,1)=2
             gmiscd(ngf,ik,1,1)=0.
  687      continue
+ 
+C Setup optical control.
         elseif(icfoc.eq.5)then
           nof=nof+1
-          iosn(nof,1)=0
-          iosn(nof,2)=0
-          iosn(nof,3)=0
-          ioan(nof,1)=0
-          ioan(nof,2)=0
-          ioan(nof,3)=0
+          iosn(nof,1)=0; iosn(nof,2)=0; iosn(nof,3)=0
+          ioan(nof,1)=0; ioan(nof,2)=0; ioan(nof,3)=0
 
 C Initial setup of day types. Offer the user a cancel option and
-C if that is selected decrement ncf and return.
+C if that is selected decrement nof and return.
           IV=NOCDT(nof)
           write(outs,'(a,i2,a)')
      &      ' Number of optical control day types (currently',IV,') :'
@@ -698,12 +723,11 @@ C Initialise and edit array of start times.
                 else
                   tocps(nof,ik,IDP)=float(IDP)
                 endif
-C              if(IDP.eq.1)tbcps(ncf,ik,IDP)=0.
-C              if(IDP.gt.1)tbcps(ncf,ik,IDP)=float(IDP)
               endif
-              ioctyp(nof,ik,IDP)=0
-              ioclaw(nof,ik,IDP)=2
+              ioctyp(nof,ik,IDP)=0  ! assume tmc optical and setpoint.
+              ioclaw(nof,ik,IDP)=0
               omiscd(nof,ik,IDP,1)=0.
+              omiscd(nof,ik,IDP,2)=20.
   6         continue
   5       continue
         elseif(icfoc.eq.6)then
@@ -1583,12 +1607,12 @@ C Add a control period (make period start 1 hour after the previous one.
           gmiscd(II,ID,IDP,2)=0.
           gmiscd(II,ID,IDP,3)=1.
         elseif(icfoc.eq.5.and.limit+1.LE.mcdp)then
-          nocdp(II,ID)=nocdp(II,ID)+1
+          nocdp(II,ID)=nocdp(II,ID)+1  ! begin with std optics
           IDP=nocdp(II,ID)
           tocps(II,ID,IDP)=0.
           if(IDP.gt.1)tocps(II,ID,IDP)=tocps(II,ID,IDP-1)+1.0
           ioctyp(II,ID,IDP)=0
-          ioclaw(II,ID,IDP)=2
+          ioclaw(II,ID,IDP)=0
           omiscd(II,ID,IDP,1)=0.
         elseif(icfoc.eq.6.and.limit+1.LE.MCDP)then
           nCFCdayctlperiods(II,ID)=nCFCdayctlperiods(II,ID)+1
@@ -1633,6 +1657,10 @@ C Markdown flag.
       character calename*32,calentag*12,calendayname*32
       common/caleni/nbdaytype,nbcaldays(MDTY),icalender(365)
       INTEGER nbdaytype,nbcaldays,icalender
+
+C High level control scope key words.
+      character hcffpattern*12    ! HEATONLY, COOLONLY, HEATCOOL or UNKNOWN
+      common/hlcontrol/hcffpattern(2)     
 
       character outs*124,SSTR*96
 
@@ -1917,6 +1945,10 @@ C edit.
 #include "help.h"
       character act*1,cstr*80
       dimension iper(30),iperf(30)
+     
+C High level control scope key words.
+      character hcffpattern*12    ! heat, cool, or heat+cool plus detail
+      common/hlcontrol/hcffpattern(2)     
 
       helpinsub='bpfcom'  ! set for subroutine
 
@@ -1980,6 +2012,10 @@ C edit.
       dimension rper(30),rperf(30)
       real incr
       integer ISTRW
+
+C High level control scope key words.
+      character hcffpattern*12    ! heat, cool, or heat+cool plus detail
+      common/hlcontrol/hcffpattern(2)     
 
       helpinsub='bpfcom'  ! set for subroutine
 

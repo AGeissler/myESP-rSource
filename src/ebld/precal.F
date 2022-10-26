@@ -415,12 +415,11 @@ C Derived casual gain and electrical data.
      &        CGSENC(MCOM,MDTY,MGTY,MGPER),CGSENR(MCOM,MDTY,MGTY,MGPER),
      &        CGLAT(MCOM,MDTY,MGTY,MGPER),CGCTL(MCOM,2,MGTY)
 C<< Dynamic people
-      REAL META1,META2,NBMEN,NBWOM,NBCHI
+      REAL META1,NBMEN,NBWOM,NBCHI
       common/CASGNSO/META1(MCOM,MDTY,MGTY,MGPER),
      &         NBMEN(MCOM,MDTY,MGTY,MGPER),NBWOM(MCOM,MDTY,MGTY,MGPER),
      &         NBCHI(MCOM,MDTY,MGTY,MGPER),CONCC(MCOM,MDTY,MGTY,MGPER),
-     &         RADCC(MCOM,MDTY,MGTY,MGPER),CLOTH(MCOM,MDTY,MGTY,MGPER),
-     &         META2(MCOM,MDTY,MGTY,MGPER)
+     &         RADCC(MCOM,MDTY,MGTY,MGPER),CLOTH(MCOM,MDTY,MGTY,MGPER)
       common/CASGNSE/ELQ(MCOM,MDTY,MGTY,MGPER,MPHAS),
      &               ELR(MCOM,MDTY,MGTY,MGPER,MPHAS)
 
@@ -492,7 +491,6 @@ C Zero derived gains.
             CGSENR(ICOMP,ID,IG,IP)=0.
             CGLAT(ICOMP,ID,IG,IP)=0.
             META1(MCOM,MDTY,MGTY,MGPER)=0.
-            META2(MCOM,MDTY,MGTY,MGPER)=0.
             NBMEN(MCOM,MDTY,MGTY,MGPER)=0.
             NBWOM(MCOM,MDTY,MGTY,MGPER)=0.
             NBCHI(MCOM,MDTY,MGTY,MGPER)=0.
@@ -542,7 +540,7 @@ C If the caskeytype matches something we are looking for do coupling.
      &     caskeytype(icomp,ityp)(1:15).eq.'ALOtherElectric'.or.
      &     caskeytype(icomp,ityp)(1:9).eq.'ALStoveNG'.or.
      &     caskeytype(icomp,ityp)(1:15).eq.'ALStoveElectric'.or.
-     &     caskeytype(icomp,ityp)(1:13).eq.'dynamicpeople'.or.
+     &     caskeytype(icomp,ityp)(1:14).eq.'dynamic_people'.or.
      &     caskeytype(icomp,ityp)(1:7).eq.'ALDryer')then
            ingc = ingc + 1 !Increment counter 
               
@@ -671,15 +669,19 @@ C Debug
             write(6,*) 'unknown m2/object',ICGUnit(iday,I),ITYP
           endif
 
-C << location for dynamic occupant >>
+C Dynamic occupants.
         elseif(ICGUnit(iday,I).eq.3)then
-          if(caskeytype(icomp,ityp)(1:13).eq.'dynamicpeople')then
-            write(outs,*) 'found dynamicpeople ',iday,i,ityp,
-     &        caskeytype(icomp,ityp)
+          if(caskeytype(icomp,ityp)(1:14).eq.'dynamic_people')then
+            if (itrc.gt.1) then 
+              write(outs,*) 'found dynamic_people ',iday,i,ityp,
+     &          caskeytype(icomp,ityp)
+              call edisp(iuout,outs)
+            endif
 
-C<< for each period of schedule and zone check for occupant presence number and Metabolic and Clothing, send them for furthur calculation
-C<< the dynamic model is called in Casual.F MZCASI for each time step if there is presence of occupant. 
-            if (itrc.gt.1) call edisp(iuout,outs)
+C For each period of schedule and zone check for occupant presence
+C number and Metabolic and Clothing, send them for furthur calculation.
+C The dynamic model is called in Casual.F MZCASI for each time step if
+C occupants are present.
             NCGPER(ICOMP,IDAY,ITYP)=NCGPER(ICOMP,IDAY,ITYP)+1
             IPER=NCGPER(ICOMP,IDAY,ITYP)
             TCGS(ICOMP,IDAY,ITYP,IPER)=ICGS(IDAY,I)
@@ -691,7 +693,6 @@ C<< the dynamic model is called in Casual.F MZCASI for each time step if there i
             RADCC(ICOMP,IDAY,ITYP,IPER)=RADC(IDAY,I)
             CONCC(ICOMP,IDAY,ITYP,IPER)=CONC(IDAY,I)
             CLOTH(ICOMP,IDAY,ITYP,IPER)=clov(IDAY,I)
-            META2(ICOMP,IDAY,ITYP,IPER)=airvel(IDAY,I)
           endif
         else
           write(6,*) 'unknown combination',ICGUnit(iday,I),ITYP
@@ -702,11 +703,12 @@ C<< the dynamic model is called in Casual.F MZCASI for each time step if there i
       iNumb_gain_coupling(icomp,iday)=INGC
 
 C If no gains defined then set one null period.
-      do 211 IG=1,MGTY
-        if (NCGPER(ICOMP,IDAY,IG).eq.0) then
-          NCGPER(ICOMP,IDAY,IG)=1
-        endif
- 211  continue
+C This commented to simplify logic in casual.F.
+C      do 211 IG=1,MGTY
+C        if (NCGPER(ICOMP,IDAY,IG).eq.0) then
+C          NCGPER(ICOMP,IDAY,IG)=1
+C        endif
+C 211  continue
       endif     ! are there casual gins defined
  300  continue  ! loop back to next day type
 

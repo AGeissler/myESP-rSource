@@ -77,31 +77,33 @@ C ABSE    - solar absorptivity of external surfaces.
 
       COMMON/PRECTC/ITMCFL(MCOM,MS),TMCT(MCOM,MTMC,5),
      &       TMCA(MCOM,MTMC,ME,5),TMCREF(MCOM,MTMC),TVTR(MCOM,MTMC)
-      COMMON/PRECT2/TMCT2(MCOM,MTMC,5,MBP),TMCA2(MCOM,MTMC,ME,5,MBP),
-     &              TVTR2(MCOM,MTMC,MBP)
+      COMMON/PRECT2/TMCT2(MCOM,MTMC,5),TMCA2(MCOM,MTMC,ME,5),
+     &              TVTR2(MCOM,MTMC)
 
       COMMON/PRECT3/NTMC,NGLAZ(MTMC)
       common/PRECT4/TOPTIC(MCOM,MTMC)
 
       COMMON/TMCB1/IBCMT(MCOM,MTMC)
-      COMMON/TMCB2/NBCTMC(MCOM,MTMC),IBCST(MCOM,MBP,MTMC),
-     &             IBCFT(MCOM,MBP,MTMC),IBCSUR(MCOM,MTMC)
-      COMMON/TMCB3/NBCTT(MCOM,MBP,MTMC),BACTPT(MCOM,MBP,MTMC)
+      COMMON/TMCB2/NBCTMC(MCOM,MTMC),IBCST(MCOM,MTMC),
+     &             IBCFT(MCOM,MTMC),IBCSUR(MCOM,MTMC)
+      COMMON/TMCB3/NBCTT(MCOM,MTMC),BACTPT(MCOM,MTMC)
 
       common/BSCTL/ITPREP(MCOM,MTMC),ICZN,IMDB(3),IGLZ(3)
+
+C Version of construction file. If not specified set at 21 (2.1)
+      integer izconstv,iztmcv
+      common/znconstrv/izconstv(MCOM),iztmcv(MCOM)
 
       COMMON/VTHP02/IVKON(MCOM,MS,ME)
       COMMON/VTHP30/ILTHPS,ILTHPZ(MCOM)
 
-C Error subroutine and error details for dll mode.
-      common/dllerr/dllsubr,dllmesg
-
-      DIMENSION IVA(MS),RVC(MS)
+      DIMENSION RVC(MS)
 
       CHARACTER OUTSTR*124,LCONS*72,outs248*248,WORD*20
       CHARACTER LUA*72,TOPTIC*12
-      character dllsubr*12,dllmesg*124,outs*124,outs2*124
-      LOGICAL CLOSE,ILTHPS,ILTHPZ,dll
+      character outs*124,outs2*124
+      character dstmp*24
+      LOGICAL CLOSE,ILTHPS,ILTHPZ
       logical TFOUND,readtmc
       integer lsn  ! length of currentfile
 
@@ -110,26 +112,34 @@ C Thermal property checking values follow.
 
       IER=0
 
-C Check if running in dll mode.
-      call isadll(dll)
-
 C Open existing ASCII construction data file as unit IUNIT.
       CALL EFOPSEQ(IUNIT,LCONS,1,IER)
       IF(IER.LT.0)THEN
         write(outs,'(3a)') 'Constructions file ',LCONS(1:lnblnk(LCONS)),
      &    ' could not be opened.'
-        if(dll)then
-          dllsubr='ECONST'
-          dllmesg=outs
-          ier=2
-          return
-        else
-          call edisp(ITRU,outs)
-          IER=1
-          RETURN
-        endif
-      ENDIF
+        call edisp(ITRU,outs)
+        IER=1
+        RETURN
+      endif
       write(currentfile,'(a)') LCONS(1:lnblnk(LCONS))
+
+C Attempt to read the first line and Isee if it is '*Constructions 2.1'
+      CALL STRIPC(IUNIT,OUTSTR,99,ND,1,'*Constructions',IER)
+      if(OUTSTR(1:18).eq.'*Constructions 2.1')then
+        izconstv(ICOMP)=21
+C Read the *date stamp.
+        CALL STRIPC(IUNIT,OUTSTR,99,ND,1,'*date',IER)
+        K=0
+        CALL EGETW(OUTSTR,K,WORD,'W','*date',IER)
+        if(WORD(1:5).eq.'*Date'.or.WORD(1:5).eq.'*date')then
+          CALL EGETRM(OUTSTR,K,dstmp,'W','date stamp',IER)
+          if(IER.ne.0) IER=0  ! missing date stamp not fatal
+        endif
+      else
+
+C Rewind the file and read legacy format.
+        REWIND(IUNIT,ERR=1001)
+      endif
 
 C Check if any of the surfaces are transparent.
       TFOUND=.FALSE.
@@ -143,16 +153,39 @@ C Read the number of layers and number of air gaps for each surface
 C defined in the geometry file. If the constructions file is
 C out of date the call to STRIPC can give a fatal error so check
 C if the number of items found on a line is 2 and if not gracefully
-C exit.
-      DO 51 I=1,NZSUR(icomp)
-        CALL STRIPC(IUNIT,OUTSTR,99,ND,1,'layers & gaps',IER)
-        IF(IER.NE.0)goto 1001
-        if(ND.NE.2)goto 1001
-        K=0
-        CALL EGETWI(OUTSTR,K,NE(I),1,ME,'F','layers',IER)
-        CALL EGETWI(OUTSTR,K,NAIRG(I),0,MGP,'F','air gap',IER)
-        IF(IER.NE.0)goto 1001
-   51 CONTINUE
+C exit. For newer file format also read in the surface properties
+C and the tmc index.
+      if(izconstv(ICOMP).eq.21)then
+        do I=1,NZSUR(icomp)
+          CALL STRIPC(IUNIT,OUTSTR,99,ND,1,'layers & gaps',IER)
+          IF(IER.NE.0)goto 1001
+          if(ND.LT.5)goto 1001
+          K=0
+          CALL EGETWI(OUTSTR,K,NE(I),1,ME,'F','layers',IER)
+          CALL EGETWI(OUTSTR,K,NAIRG(I),0,MGP,'F','air gap',IER)
+          CALL EGETWR(OUTSTR,K,EMISI(I),0.,1.,'W','emissivity in',IER)
+          CALL EGETWR(OUTSTR,K,EMISE(I),0.,1.,'W','emissivity out',IER)
+          CALL EGETWR(OUTSTR,K,ABSI(I),0.,1.,'W','absorptivity in',IER)
+          CALL EGETWR(OUTSTR,K,ABSE(I),0.,1.,'W','absorptivity out',IER)
+          CALL EGETWI(OUTSTR,K,itm,0,MTMC,'F','tmc index',IER)
+          ITMCFL(icomp,i)=itm
+          IF(itm.GT.0)TFOUND=.TRUE.
+        enddo
+        if(TFOUND)then     ! Signal subsequent to write embedded tmc.
+          iztmcv(icomp)=21
+          itw(icomp)=2
+        endif
+      else
+        do I=1,NZSUR(icomp)
+          CALL STRIPC(IUNIT,OUTSTR,99,ND,1,'layers & gaps',IER)
+          IF(IER.NE.0)goto 1001
+          if(ND.NE.2)goto 1001
+          K=0
+          CALL EGETWI(OUTSTR,K,NE(I),1,ME,'F','layers',IER)
+          CALL EGETWI(OUTSTR,K,NAIRG(I),0,MGP,'F','air gap',IER)
+          IF(IER.NE.0)goto 1001
+        enddo
+      endif
 
 C For each surface with air gaps read in the air gap position & U value.
       DO 10 I=1,NZSUR(icomp)
@@ -174,18 +207,10 @@ C Move across gap position and U value one item at a time.
               write(outs,'(a,i3,a,i3,a,i3,a)')
      &          ' Air gap resistance too small in zone',icomp,
      &          ' surface',i,' gap ',j,' please increase!'
-              if(dll)then
-                dllsubr='ECONSTR'
-                dllmesg=outs
-                ier=2
-                CALL ERPFREE(IUNIT,ios)
-                return
-              else
-                call usrmsg(' ',outs,'W')
-                IER=1
-                CALL ERPFREE(IUNIT,ios)
-                RETURN
-              endif
+              call usrmsg(' ',outs,'W')
+              IER=1
+              CALL ERPFREE(IUNIT,ios)
+              RETURN
             endif
   165     CONTINUE
         ENDIF
@@ -263,63 +288,301 @@ C conductivity.
      &        outstr(1:72)
             CALL EDISP248(iuout,outs248,92)
             outs=' incorrect number of thermophysical data'
-            if(dll)then
-              dllsubr='ECONSTR'
-              dllmesg=outs
-              ier=2
-              CALL ERPFREE(IUNIT,ios)
-              return
-            else
-              call usrmsg(' ',outs,'W')
-              IER=1
-              CALL ERPFREE(IUNIT,ios)
-              RETURN
-            endif
-          ENDIF
+            call usrmsg(' ',outs,'W')
+            IER=1
+            CALL ERPFREE(IUNIT,ios)
+            RETURN
+          endif
    40   CONTINUE
    30 CONTINUE
       IF(ILTHPZ(ICOMP))ILTHPS=.TRUE.
 
+      if(izconstv(ICOMP).eq.21)then
+        continue
+
 c Read surface emissivity and solar absorptivity data.  This may take
 C more than one line. Begin with inside face ir emissivity.
-      IF(NZSUR(icomp).GT.0) THEN
-        CALL EGETWRA(IUNIT,RVC,NZSUR(icomp),0.0001,0.999,'W',
-     &    'inside face emis',IER)
-        DO 114 KV=1,NZSUR(icomp)
-          EMISI(KV)=RVC(KV)
-  114   CONTINUE
-        IF(IER.NE.0) goto  1001
-      ENDIF
+      else
+        IF(NZSUR(icomp).GT.0) THEN
+          CALL EGETWRA(IUNIT,RVC,NZSUR(icomp),0.0001,0.999,'W',
+     &      'inside face emis',IER)
+          DO KV=1,NZSUR(icomp)
+            EMISI(KV)=RVC(KV)
+          ENDDO
+          IF(IER.NE.0) goto  1001
 
 C Outside side face ir emissivity.
-      IF(NZSUR(icomp).GT.0) THEN
-        CALL EGETWRA(IUNIT,RVC,NZSUR(icomp),0.0001,0.999,'W',
-     &    'outside face emis',IER)
-        DO 116 KV=1,NZSUR(icomp)
-          EMISE(KV)=RVC(KV)
-  116   CONTINUE
-      ENDIF
-      IF(IER.NE.0) GOTO 1001
+          CALL EGETWRA(IUNIT,RVC,NZSUR(icomp),0.0001,0.999,'W',
+     &      'outside face emis',IER)
+          DO KV=1,NZSUR(icomp)
+            EMISE(KV)=RVC(KV)
+          ENDDO
+          IF(IER.NE.0) GOTO 1001
 
 C Inside face solar absorption.
-      IF(NZSUR(icomp).GT.0) THEN
-        CALL EGETWRA(IUNIT,RVC,NZSUR(icomp),0.0001,0.999,'W',
-     &    'inside face abs',IER)
-        DO 118 KV=1,NZSUR(icomp)
-          ABSI(KV)=RVC(KV)
-  118   CONTINUE
-      ENDIF
-      IF(IER.NE.0) GOTO 1001
+          CALL EGETWRA(IUNIT,RVC,NZSUR(icomp),0.0001,0.999,'W',
+     &      'inside face abs',IER)
+          DO KV=1,NZSUR(icomp)
+            ABSI(KV)=RVC(KV)
+          ENDDO
+          IF(IER.NE.0) GOTO 1001
 
 C Outside face solar absorption.
-      IF(NZSUR(icomp).GT.0) THEN
-        CALL EGETWRA(IUNIT,RVC,NZSUR(icomp),0.0001,0.999,'W',
-     &    'outside face abs',IER)
-        DO 120 KV=1,NZSUR(icomp)
-          ABSE(KV)=RVC(KV)
-  120   CONTINUE
-      ENDIF
-      IF(IER.NE.0) GOTO 1001
+          CALL EGETWRA(IUNIT,RVC,NZSUR(icomp),0.0001,0.999,'W',
+     &      'outside face abs',IER)
+          DO KV=1,NZSUR(icomp)
+            ABSE(KV)=RVC(KV)
+          ENDDO
+        ENDIF
+        IF(IER.NE.0) GOTO 1001
+      endif
+
+C If there tmcs in the zone attempt to read optical data using
+C code derived from ERTWIN.
+      readtmc=.false.
+      if(TFOUND.and.izconstv(ICOMP).eq.21)then
+        CALL STRIPC(IUNIT,OUTSTR,99,ND,0,'*tmc',IER)
+        if(IER.eq.2) then
+          IER=0
+          CALL ERPFREE(IUNIT,ISTAT)
+          IF(ITRC.GE.1)CALL CONINF(ICOMP,0,ITRU)
+          RETURN
+        endif
+        K=0
+        CALL EGETW(OUTSTR,K,WORD,'W','*tmc',IER)
+        if(WORD(1:4).eq.'*tmc')then
+          CALL EGETW(OUTSTR,K,WORD,'W','YES',IER)
+          if(WORD(1:3).eq.'YES')then
+            readtmc=.true.
+          endif
+        else
+          continue
+        endif
+        if(readtmc)then
+          NTMC=0
+          DO I=1,NZSUR(icomp)
+            icn1=izstocn(icomp,i)
+            if(icn1.ne.0)then
+              IF(ITMCFL(ICOMP,I).NE.0.AND.
+     &          (SOTF(icomp,i)(1:4).EQ.'OPAQ'))THEN
+                WRITE(OUTS,'(5a)')'The TMC file ',LUA(1:lnblnk(LUA)),
+     &          ' not sure if ',SNAME(icomp,i),' is transparent.'
+                call edisp(itru,outs)
+                call edisp(itru,' Check your zone files.')
+              ENDIF
+            else
+              WRITE(OUTS,'(a,i3,a,i2,a)')
+     &         'While rebulding optics found surface ',i,' in zone ',
+     &         icomp,' does not exist in master connections list.'
+              call edisp(itru,outs)
+            endif
+            IF(ITMCFL(ICOMP,I).GT.NTMC)NTMC=ITMCFL(ICOMP,I)
+          enddo
+          IF(NTMC.EQ.0.OR.NTMC.GT.MTMC)THEN
+            CALL EDISP(ITRU,' No. of transparent types out of range.')
+            GOTO 1001
+          ENDIF
+
+          DO 20 I=1,NTMC
+
+c Establish the number of glazing layers and check that each item in
+C the list points to an existing set of properties.
+            CALL STRIPC(IUNIT,OUTSTR,99,ND,1,'glazing layers',IER)
+            IF(IER.NE.0)GOTO 1001
+            K=0
+            CALL EGETWI(OUTSTR,K,NTGLAZ,1,ME,'W','glazing elem',IER)
+            if(ND.eq.2)then
+              CALL EGETW(OUTSTR,K,WORD,'W','matching optics',IFLAG)
+              TOPTIC(ICOMP,I)=WORD(1:12)
+            endif
+            IERR=0
+            do J=1,NZSUR(icomp)
+              lnslmlcn=lnblnk(SMLCN(icomp,j))
+              IF(ITMCFL(ICOMP,J).EQ.I.AND.NTGLAZ.NE.NE(J))IERR=1
+              IF(IERR.EQ.1)THEN
+                write(outs,'(6a,1x,a)')
+     &          ' Mismatched TMC & mlc layers: ',
+     &          SNAME(icomp,j)(1:lnblnk(SNAME(icomp,j))),' in ',
+     &          zname(ICOMP)(1:lnzname(ICOMP)),' composed of ',
+     &          SMLCN(icomp,j)(1:lnslmlcn),TOPTIC(ICOMP,I)
+                call edisp(iuout,outs)
+                goto 1001
+              ENDIF
+            enddo
+            NGLAZ(I)=NTGLAZ
+
+C Read transmissions (T) for the transparent multi-layer construction.
+            CALL STRIPC(IUNIT,OUTSTR,99,ND,1,'transmission',IER)
+            IF(IER.NE.0)GOTO 1001
+            K=0
+            CALL EGETWR(OUTSTR,K,VAL,0.,0.999,'W','dir t @ 0',IER)
+            TMCT(ICOMP,I,1)=VAL
+            CALL EGETWR(OUTSTR,K,VAL,0.,0.999,'W','dir t @ 40',IER)
+            TMCT(ICOMP,I,2)=VAL
+            CALL EGETWR(OUTSTR,K,VAL,0.,0.999,'W','dir t @ 55',IER)
+            TMCT(ICOMP,I,3)=VAL
+            CALL EGETWR(OUTSTR,K,VAL,0.,0.999,'W','dir t @ 70',IER)
+            TMCT(ICOMP,I,4)=VAL
+            CALL EGETWR(OUTSTR,K,VAL,0.,0.999,'W','dir t @ 80',IER)
+            TMCT(ICOMP,I,5)=VAL
+            IF(ND.EQ.6)THEN
+              CALL EGETWR(OUTSTR,K,VAL,0.,0.999,'W','vis transmis',IER)
+              TVTR(ICOMP,I)=VAL
+            ELSE
+              TVTR(ICOMP,I)=0.85
+            ENDIF
+
+c Read absorptions (A) for each element.
+            do J=1,NTGLAZ
+              IRVC=5
+              CALL EGETWRA(IUNIT,RVC,IRVC,0.,0.999,'W','absorption',IER)
+              do J5=1,5
+                TMCA(ICOMP,I,J,J5)=RVC(J5)
+              enddo
+            enddo
+
+C Calculate reflectance.
+            SUM=TMCT(ICOMP,I,3)
+            do K=1,NTGLAZ
+              SUM=SUM+TMCA(ICOMP,I,K,3)
+            enddo
+            IF(SUM.LT.0..OR.SUM.GT.1.)then
+              write(outs,'(3a,i2,a,f6.3)')' In ',
+     &          zname(ICOMP)(1:lnzname(ICOMP)),' tmc ',
+     &          i,': the optical reflectance is ',SUM
+              CALL EDISP(ITRU,outs)
+              CALL EDISP(ITRU,' Reading of zone optics terminated.')
+              goto 1001
+            endif
+            TMCREF(ICOMP,I)=1.-SUM
+
+C Read in optical control information for this TMC type. The logic
+C differs for current and legacy tmc controls.
+            CALL STRIPC(IUNIT,OUTSTR,0,ND,1,'optical control',IER)
+            IF(IER.NE.0)GOTO 1001
+            K=0
+            CALL EGETWI(OUTSTR,K,IBCMT(ICOMP,I),-99,1,'W','control',IER)
+            if(IBCMT(ICOMP,I).EQ.0)then
+              GOTO 20
+            elseif(IBCMT(ICOMP,I).lt.0)then
+              IF(ITRC.GT.0)CALL EDISP(ITRU,
+     &          ' Points to an optical control loop.')
+              NBCTMC(ICOMP,I)=1; IBCSUR(ICOMP,I)=0
+              IBCST(ICOMP,I)=0; IBCFT(ICOMP,I)=24
+              NBCTT(ICOMP,I)=0; BACTPT(ICOMP,I)=0.0
+
+C Read replacement transmissions (T) for the transparent multi-layer construction
+C and replacement visible transmittance.
+              CALL STRIPC(IUNIT,OUTSTR,99,ND,1,'repl transmission',IER)
+              IF(IER.NE.0)GOTO 1001
+              K=0
+              CALL EGETWR(OUTSTR,K,VAL,0.,0.999,'W','dir t @ 0',IER)
+              TMCT2(ICOMP,I,1)=VAL
+              CALL EGETWR(OUTSTR,K,VAL,0.,0.999,'W','dir t @ 40',IER)
+              TMCT2(ICOMP,I,2)=VAL
+              CALL EGETWR(OUTSTR,K,VAL,0.,0.999,'W','dir t @ 55',IER)
+              TMCT2(ICOMP,I,3)=VAL
+              CALL EGETWR(OUTSTR,K,VAL,0.,0.999,'W','dir t @ 70',IER)
+              TMCT2(ICOMP,I,4)=VAL
+              CALL EGETWR(OUTSTR,K,VAL,0.,0.999,'W','dir t @ 80',IER)
+              TMCT2(ICOMP,I,5)=VAL
+              IF(ND.EQ.6)THEN
+                CALL EGETWR(OUTSTR,K,VAL,0.,0.999,'W','vis trans',IER)
+                TVTR2(ICOMP,I)=VAL
+              ELSE
+                TVTR2(ICOMP,I)=0.85
+              ENDIF
+
+
+C Read replacement absorptance for each substrate.
+              do J=1,NTGLAZ
+                CALL EGETWRA(IUNIT,RVC,5,0.,0.999,'W','alt abs',IER)
+                do J5=1,5
+                  TMCA2(ICOMP,I,J,J5)=RVC(J5)
+                enddo
+              enddo
+
+C Read dummy index for thermophysical property replacement.
+              CALL STRIPC(IUNIT,OUTSTR,0,ND,1,'alt thermo prop',IER)
+              IF(IER.NE.0)RETURN
+              K=0
+              CALL EGETWI(OUTSTR,K,IMLC,0,1,'-','alt pr',IER)
+              ITPREP(ICOMP,I)=IMLC
+              GOTO 20    ! jump past in-built control logic
+            endif
+
+C Legacy tmc control logic.
+            CALL STRIPC(IUNIT,OUTSTR,0,ND,1,'TMC control',IER)
+            IF(IER.NE.0)GOTO 1001
+            K=0
+            CALL EGETWI(OUTSTR,K,N1,0,1,'W','control per',IER)
+            NBCTMC(ICOMP,I)=N1
+            CALL EGETWI(OUTSTR,K,N2,0,MS,'W','control sen',IER)
+            IBCSUR(ICOMP,I)=N2
+
+C For each period.
+            DO 21 KK=1,N1
+              CALL STRIPC(IUNIT,OUTSTR,0,ND,1,'period range',IER)
+              IF(IER.NE.0)GOTO 1001
+              K=0
+              CALL EGETWI(OUTSTR,K,IS,0,24,'W','start',IER)
+              CALL EGETWI(OUTSTR,K,IF,IS,24,'W','end',IER)
+              IBCST(ICOMP,I)=IS
+              IBCFT(ICOMP,I)=IF
+
+              CALL STRIPC(IUNIT,OUTSTR,0,ND,1,'sensor data',IER)
+              IF(IER.NE.0)GOTO 1001
+              K=0
+              CALL EGETWI(OUTSTR,K,NCT,-99,4,'W','sensor type',IER)
+              NBCTT(ICOMP,I)=NCT
+              CALL EGETWR(OUTSTR,K,ACTP,0.,0.,'-','actuation pt',IER)
+              BACTPT(ICOMP,I)=ACTP
+
+C Read replacement transmissions (T) for the transparent multi-layer construction
+C and replacement visible transmittance.
+              CALL STRIPC(IUNIT,OUTSTR,99,ND,1,'repl transmission',IER)
+              IF(IER.NE.0)GOTO 1001
+              K=0
+              CALL EGETWR(OUTSTR,K,VAL,0.,0.999,'W','dir t @ 0',IER)
+              TMCT2(ICOMP,I,1)=VAL
+              CALL EGETWR(OUTSTR,K,VAL,0.,0.999,'W','dir t @ 40',IER)
+              TMCT2(ICOMP,I,2)=VAL
+              CALL EGETWR(OUTSTR,K,VAL,0.,0.999,'W','dir t @ 55',IER)
+              TMCT2(ICOMP,I,3)=VAL
+              CALL EGETWR(OUTSTR,K,VAL,0.,0.999,'W','dir t @ 70',IER)
+              TMCT2(ICOMP,I,4)=VAL
+              CALL EGETWR(OUTSTR,K,VAL,0.,0.999,'W','dir t @ 80',IER)
+              TMCT2(ICOMP,I,5)=VAL
+              IF(ND.EQ.6)THEN
+                CALL EGETWR(OUTSTR,K,VAL,0.,0.999,'W','vis transm',IER)
+                TVTR2(ICOMP,I)=VAL
+              ELSE
+                TVTR2(ICOMP,I)=0.85
+              ENDIF
+
+C Read replacement absorptance for each substrate.
+              do J=1,NTGLAZ
+                CALL EGETWRA(IUNIT,RVC,5,0.,0.999,'W','alt abs',IER)
+                do J5=1,5
+                  TMCA2(ICOMP,I,J,J5)=RVC(J5)
+                enddo
+              enddo
+
+C Now read in index for thermophysical property replacement
+C In this version, index will be zero; if not give error
+              CALL STRIPC(IUNIT,OUTSTR,0,ND,1,'alt thermo prop',IER)
+              IF(IER.NE.0)RETURN
+              K=0
+              CALL EGETWI(OUTSTR,K,IMLC,0,1,'-','alt pr',IER)
+              ITPREP(ICOMP,I)=IMLC
+   21       CONTINUE
+   20     CONTINUE
+        endif
+        if(izconstv(ICOMP).eq.21)then
+          itw(icomp)=2             ! signal embedded tmc file
+          LTWIN(icomp)='UNKNOWN'   ! clear tmc file name
+        endif
+      endif
 
 c Close thermal properties file.
       CALL ERPFREE(IUNIT,ISTAT)
@@ -332,19 +595,11 @@ c Trace output ?
      &  OUTSTR(1:50),'...'
       lsn=MIN0(lnblnk(currentfile),110)
       write(outs2,'(2a)') 'in: ',currentfile(1:lsn)
-      if(dll)then
-        dllsubr='ECONSTR'
-        dllmesg=outs
-        ier=2
-        CALL ERPFREE(IUNIT,ISTAT)
-        return
-      else
-        call edisp(itru,outs)
-        call edisp(itru,outs2)
-        IER=1
-        CALL ERPFREE(IUNIT,ISTAT)
-        RETURN
-      endif
+      call edisp(itru,outs)
+      call edisp(itru,outs2)
+      IER=1
+      CALL ERPFREE(IUNIT,ISTAT)
+      RETURN
 
       END
 
@@ -369,8 +624,6 @@ C Parameters
       logical QUIET        ! true acts silently
       integer IER          ! IER=0 OK, IER=1 problem
 
-      integer IZSTOCN
-      COMMON/C24/IZSTOCN(MCOM,MS)
       COMMON/VTHP14/THRMLI(MCOM,MS,ME,7)
       COMMON/VTHP02/IVKON(MCOM,MS,ME)
 
@@ -380,23 +633,26 @@ C Parameters
 
       COMMON/PRECTC/ITMCFL(MCOM,MS),TMCT(MCOM,MTMC,5),
      &       TMCA(MCOM,MTMC,ME,5),TMCREF(MCOM,MTMC),TVTR(MCOM,MTMC)
-      COMMON/PRECT2/TMCT2(MCOM,MTMC,5,MBP),TMCA2(MCOM,MTMC,ME,5,MBP),
-     &              TVTR2(MCOM,MTMC,MBP)
+      COMMON/PRECT2/TMCT2(MCOM,MTMC,5),TMCA2(MCOM,MTMC,ME,5),
+     &              TVTR2(MCOM,MTMC)
 
       COMMON/PRECT3/NTMC,NGLAZ(MTMC)
       common/PRECT4/TOPTIC(MCOM,MTMC)
 
       COMMON/TMCB1/IBCMT(MCOM,MTMC)
-      COMMON/TMCB2/NBCTMC(MCOM,MTMC),IBCST(MCOM,MBP,MTMC),
-     &             IBCFT(MCOM,MBP,MTMC),IBCSUR(MCOM,MTMC)
-      COMMON/TMCB3/NBCTT(MCOM,MBP,MTMC),BACTPT(MCOM,MBP,MTMC)
+      COMMON/TMCB2/NBCTMC(MCOM,MTMC),IBCST(MCOM,MTMC),
+     &             IBCFT(MCOM,MTMC),IBCSUR(MCOM,MTMC)
+      COMMON/TMCB3/NBCTT(MCOM,MTMC),BACTPT(MCOM,MTMC)
+
+C Version of construction file. If not specified set at 21 (2.1)
+      integer izconstv,iztmcv
+      common/znconstrv/izconstv(MCOM),iztmcv(MCOM)
 
       character outs*124,louts*248,lkouts*1000
       character dstmp*24
       character tokens*156,comment*76,aligned_str*156
       logical TFOUND
 
-      dimension ival(MS)
       CHARACTER TOPTIC*12
 
       IER=0
@@ -414,21 +670,54 @@ C If in quiet mode then file should exist.
         RETURN
       ENDIF
 
-C Write the construction file data.
-      WRITE(IFILT,'(2a)',IOSTAT=IOS,ERR=146) 
-     & '# thermophysical properties of ',zname(ICOMP)(1:lnzname(ICOMP))
-      WRITE(IFILT,'(2a)',IOSTAT=IOS,ERR=146) 
-     &'# no. of |no. of  |                surface|surface     ',
-     &'|construction '
-      WRITE(IFILT,'(2a)',IOSTAT=IOS,ERR=146) 
-     &'# layers |air gaps|                index  |name        ',
-     &'|name '
-
+C Write out the construction file data.
+C Begin with header and version and date.
+      if(izconstv(ICOMP).eq.21)then
+        write(comment,'(2a)') 'thermophysical properties of ',
+     &    zname(ICOMP)(1:lnzname(ICOMP))
+        write(tokens,'(a)') '*Constructions 2.1'
+        call align_comment(48,tokens,comment,aligned_str)
+        write(IFILT,'(a)') aligned_str(1:lnblnk(aligned_str))
+        call dstamp(dstmp)
+        write(comment,'(a)') 'latest file modification'
+        write(tokens,'(2a)') '*date ',dstmp
+        call align_comment(48,tokens,comment,aligned_str)
+        write(IFILT,'(a)') aligned_str(1:lnblnk(aligned_str))
+      else
+        WRITE(IFILT,'(2a)',IOSTAT=IOS,ERR=146) 
+     &  '# thermophysical properties of ',zname(ICOMP)(1:lnzname(ICOMP))
+      endif
+     
+      if(izconstv(ICOMP).eq.21)then
+        WRITE(IFILT,'(2a)',IOSTAT=IOS,ERR=146) 
+     &  '# layers|air | emissivity |absorptivity| tmc | ',
+     &  'surface|surface     |construction '
+        WRITE(IFILT,'(2a)',IOSTAT=IOS,ERR=146) 
+     &  '#       |gaps|inside other|inside other|index| ',
+     &  'index  |name        |name '
+      else 
+        WRITE(IFILT,'(2a)',IOSTAT=IOS,ERR=146) 
+     &  '# no. of |no. of  |              surface|surface     ',
+     &  '|construction '
+        WRITE(IFILT,'(2a)',IOSTAT=IOS,ERR=146) 
+     &  '# layers |air gaps|              index  |name        ',
+     &  '|name '
+      endif
       DO 1180 I=1,NZSUR(icomp)
         lnslmlcn=lnblnk(SMLCN(icomp,i))
-        WRITE(IFILT,5632,IOSTAT=IOS,ERR=146)NE(I),NAIRG(I),I,
+        lns=lnblnk(SNAME(icomp,i))
+        if(izconstv(ICOMP).eq.21)then
+          write(comment,'(i3,4a)') i,'  ',SNAME(icomp,i),' ',
+     &      SMLCN(icomp,i)(1:lnslmlcn)
+          write(tokens,'(2i6,4F7.2,i4)') NE(I),NAIRG(I),
+     &      EMISI(I),EMISE(I),ABSI(I),ABSE(I),ITMCFL(icomp,i)
+          call align_comment(48,tokens,comment,aligned_str)
+          write(IFILT,'(a)') aligned_str(1:lnblnk(aligned_str))
+        else
+          WRITE(IFILT,5632,IOSTAT=IOS,ERR=146)NE(I),NAIRG(I),I,
      &      SNAME(icomp,i),SMLCN(icomp,i)(1:lnslmlcn)
-5632    FORMAT(2I6,'                        # ',I3,'  ',A,' ',A)
+5632      FORMAT(2I6,'                        # ',I3,'  ',A,' ',A)
+        endif
 
 C Trap in case of mlc not being found.
         if(NE(I).eq.0)then
@@ -454,7 +743,7 @@ C Write air gap details.
           else
             write(comment,'(2a)') 'and for ',SNAME(icomp,i)(1:lns)
           endif
-          call align_comment(36,tokens,comment,aligned_str)
+          call align_comment(48,tokens,comment,aligned_str)
           write(IFILT,'(a)') aligned_str(1:lnblnk(aligned_str))
         ENDIF
 1190  CONTINUE
@@ -463,11 +752,11 @@ C Write layer thermophysical properties.
       WRITE(IFILT,'(a)',IOSTAT=IOS,ERR=146) 
      & '# layer thermophysical properties'
       WRITE(IFILT,'(2A)',IOSTAT=IOS,ERR=146)
-     & '# conduc-  |  density | specific | thick- |dpnd|',
-     & '  ref. |  temp. |moisture|surface|layer'
+     & '# conduc-  | density |specific | thick- |dpnd|',
+     & 'ref.| temp. |moisture|surface|layer'
       WRITE(IFILT,'(2A)',IOSTAT=IOS,ERR=146)
-     & '# tivity   |          | heat     |ness(m) |type|',
-     & '  temp | factor | factor |       |  '
+     & '# tivity   |         |heat     |ness(m) |type|',
+     & 'temp|factor | factor |       |  '
       DO 1220 I = 1,NZSUR(icomp)
         imatc=0
         call matchmlcdesc(SMLCN(icomp,i),imatc)
@@ -495,55 +784,205 @@ C And if matarrayindex is zero then establish NAM.
           WRITE(tokens,5662,IOSTAT=IOS,ERR=146)CON(I,J),DEN(I,J),
      &      SHT(I,J),THK(I,J),IVKON(ICOMP,I,J),
      &      (THRMLI(ICOMP,I,J,K),K=5,7)
-5662      FORMAT(1X,F10.4,',',F10.1,',',F10.1,',',F8.4,',',3X,I1,
-     &             ',',F7.2,',',F8.5,',',F8.5)
+5662      FORMAT(1X,F10.4,F10.1,F10.1,F8.4,3X,I1,F7.2,F8.5,F8.5)
           call align_comment(48,tokens,comment,aligned_str)
           write(IFILT,'(a)') aligned_str(1:lnblnk(aligned_str))
 1210    CONTINUE
 1220  CONTINUE
 
+C Signal whether there is optical data.
+      if(izconstv(ICOMP).eq.21)then
+        TFOUND=.FALSE.
+        do IS=1,NZSUR(icomp)
+          IF(SOTF(icomp,is)(1:4).NE.'OPAQ'.AND.
+     &       SOTF(icomp,is)(1:3).NE.'CFC')TFOUND=.TRUE.
+          IF(ITMCFL(ICOMP,IS).GT.0)TFOUND=.TRUE.
+        enddo
+        if(TFOUND)then
+          write(tokens,'(a)')  '*tmc YES'
+          write(comment,'(a)') 'optical properties:'
+          call align_comment(48,tokens,comment,aligned_str)
+          write(IFILT,'(a)') aligned_str(1:lnblnk(aligned_str))
+          itw(icomp)=2             ! signal embedded tmc file
+          LTWIN(icomp)='UNKNOWN'   ! clear tmc file name
+
+C Follows logic in edcon.F for generating a tmc file.
+          DO 100 I=1,NTMC
+            write(tokens,'(I4,2A)') NGLAZ(I),'  ',TOPTIC(ICOMP,I) 
+            write(comment,'(a,i2)') 'layers in tmc type',I
+            call align_comment(48,tokens,comment,aligned_str)
+            write(IFILT,'(a)') aligned_str(1:lnblnk(aligned_str))
+
+            write(tokens,'(6F7.3)') (TMCT(ICOMP,I,J),J=1,5),
+     &        TVTR(ICOMP,I)
+            write(comment,'(a)') 'transmission @ 5 angles & visible tr.'
+            call align_comment(48,tokens,comment,aligned_str)
+            write(IFILT,'(a)') aligned_str(1:lnblnk(aligned_str))
+
+            DO J=1,NGLAZ(I)
+              write(tokens,'(5F7.3)') (TMCA(ICOMP,I,J,K),K=1,5)
+              write(comment,'(a)')'for each layer absorption @ 5 angles'
+              if(j.eq.1)then
+                call align_comment(48,tokens,comment,aligned_str)
+                write(IFILT,'(a)') aligned_str(1:lnblnk(aligned_str))
+              else
+                write(IFILT,'(a)') tokens(1:lnblnk(tokens))
+              endif
+            enddo
+            write(tokens,'(i4)') IBCMT(ICOMP,I)
+            if(IBCMT(ICOMP,I).eq.1)then
+              write(comment,'(a)') 'optical control flag'
+            elseif(IBCMT(ICOMP,I).eq.0)then
+              write(comment,'(a)') 'no alternative optics'
+            elseif(IBCMT(ICOMP,I).lt.0)then
+              write(comment,'(a)') 'links to an optical control loop'
+            endif
+            call align_comment(48,tokens,comment,aligned_str)
+            write(IFILT,'(a)') aligned_str(1:lnblnk(aligned_str))
+            IF(IBCMT(ICOMP,I).EQ.0)GOTO 100
+            if(IBCMT(ICOMP,I).LT.0)then  ! only alternative optical set
+              write(tokens,'(6F7.3)') 
+     &          (TMCT2(ICOMP,I,M),M=1,5),TVTR2(ICOMP,I)
+              write(comment,'(a)') 
+     &      'alt solar & vis trans followed by absorp for each layer'
+              call align_comment(48,tokens,comment,aligned_str)
+              write(IFILT,'(a)') aligned_str(1:lnblnk(aligned_str))
+              DO J=1,NGLAZ(I)
+                WRITE(IFILT,'(5F8.3)',IOSTAT=ISTAT,ERR=98)
+     &                  (TMCA2(ICOMP,I,J,M),M=1,5)
+              ENDDO
+              ITPREP=0
+              WRITE(IFILT,'(I4)',IOSTAT=ISTAT,ERR=98)ITPREP
+              goto 100   ! jump for next tmc
+            endif
+
+            write(tokens,'(2i4)') NBCTMC(ICOMP,I),IBCSUR(ICOMP,I)
+            write(comment,'(a)')'number of control periods & sensor loc'
+            call align_comment(48,tokens,comment,aligned_str)
+            write(IFILT,'(a)') aligned_str(1:lnblnk(aligned_str))
+
+            WRITE(IFILT,'(A)',IOSTAT=ISTAT,ERR=98)
+     &         '# Replacement properties for each control period'
+            DO 121 K=1,NBCTMC(ICOMP,I)
+              write(tokens,'(2i4)') IBCST(ICOMP,I),IBCFT(ICOMP,I)
+              write(comment,'(a)') 'period start and end'
+              call align_comment(48,tokens,comment,aligned_str)
+              write(IFILT,'(a)') aligned_str(1:lnblnk(aligned_str))
+
+              if(NBCTT(ICOMP,I).eq.0)then
+                write(tokens,'(I4,F6.1)') NBCTT(ICOMP,I),
+     &            BACTPT(ICOMP,I)
+                write(comment,'(a)') 
+     &          'sensing total radiation @ actuation point'
+                call align_comment(48,tokens,comment,aligned_str)
+                write(IFILT,'(a)') aligned_str(1:lnblnk(aligned_str))
+              elseif(NBCTT(ICOMP,I).eq.1)then
+                write(tokens,'(I4,F6.1)') NBCTT(ICOMP,I),
+     &            BACTPT(ICOMP,I)
+                write(comment,'(a)') 
+     &            'sensing ambient temperature @ actuation point'
+                call align_comment(48,tokens,comment,aligned_str)
+                write(IFILT,'(a)') aligned_str(1:lnblnk(aligned_str))
+              elseif(NBCTT(ICOMP,I).eq.2)then
+                write(tokens,'(I4,F6.1)') NBCTT(ICOMP,I),
+     &            BACTPT(ICOMP,I)
+                write(comment,'(a)') 
+     &            'sensing zone temperature @ actuation point'
+                call align_comment(48,tokens,comment,aligned_str)
+                write(IFILT,'(a)') aligned_str(1:lnblnk(aligned_str))
+              elseif(NBCTT(ICOMP,I).eq.3)then
+                write(tokens,'(I4,F6.1)') NBCTT(ICOMP,I),
+     &            BACTPT(ICOMP,I)
+                write(comment,'(a)') 
+     &            'sensing daylight coeff. @ actuation point'
+                call align_comment(48,tokens,comment,aligned_str)
+                write(IFILT,'(a)') aligned_str(1:lnblnk(aligned_str))
+              elseif(NBCTT(ICOMP,I).eq.4)then
+                write(tokens,'(I4,F6.1)') NBCTT(ICOMP,I),
+     &            BACTPT(ICOMP,I)
+                write(comment,'(a)') 
+     &            'sensing lightswitch @ actuation point'
+                call align_comment(48,tokens,comment,aligned_str)
+                write(IFILT,'(a)') aligned_str(1:lnblnk(aligned_str))
+              elseif(NBCTT(ICOMP,I).eq.-99)then
+                write(tokens,'(I4,F6.1)') NBCTT(ICOMP,I),
+     &            BACTPT(ICOMP,I)
+                write(comment,'(a)') 
+     &            'sensing time @ actuation point'
+                call align_comment(48,tokens,comment,aligned_str)
+                write(IFILT,'(a)') aligned_str(1:lnblnk(aligned_str))
+              endif
+
+              write(tokens,'(6F7.3)') 
+     &          (TMCT2(ICOMP,I,M),M=1,5),TVTR2(ICOMP,I)
+              write(comment,'(a)') 
+     &      'alt solar & vis trans followed by absorp for each layer'
+              call align_comment(48,tokens,comment,aligned_str)
+              write(IFILT,'(a)') aligned_str(1:lnblnk(aligned_str))
+              DO J=1,NGLAZ(I)
+                WRITE(IFILT,'(5F8.3)',IOSTAT=ISTAT,ERR=98)
+     &                  (TMCA2(ICOMP,I,J,M),M=1,5)
+              ENDDO
+              ITPREP=0
+              WRITE(IFILT,'(I4)',IOSTAT=ISTAT,ERR=98)ITPREP
+  121       CONTINUE
+  100     CONTINUE
+
+        else
+          write(tokens,'(a)')  '*tmc NONE'
+          write(comment,'(a)') 'all surfaces are opaque'
+          call align_comment(48,tokens,comment,aligned_str)
+          write(IFILT,'(a)') aligned_str(1:lnblnk(aligned_str))
+        endif
+
 C Write out surface properties as one or more lines of packed
 C strings. Code should be good for any number of surfaces. Use
 C arlist2 because not so many digits of accuracy are needed.
-      WRITE(IFILT,'(a)',IOSTAT=IOS,ERR=146)
-     &  '# for each surface: inside face emissivity'
-      itrunc=1
-      ipos=1
-      do while (itrunc.ne.0)
-       call arlist3(ipos,nzsur(icomp),EMISI,MS,'C',lkouts,loutln,itrunc)
-       write(ifilt,'(1x,a)',IOSTAT=ios,ERR=146) lkouts(1:loutln)
-       ipos=itrunc+1
-      end do
+      else
+        WRITE(IFILT,'(a)',IOSTAT=IOS,ERR=146)
+     &    '# for each surface: inside face emissivity'
+        itrunc=1
+        ipos=1
+        do while (itrunc.ne.0)
+          call arlist3(ipos,nzsur(icomp),EMISI,MS,'C',lkouts,loutln,
+     &      itrunc)
+          write(ifilt,'(1x,a)',IOSTAT=ios,ERR=146) lkouts(1:loutln)
+          ipos=itrunc+1
+        end do
 
-      WRITE(IFILT,'(a)',IOSTAT=IOS,ERR=146)
-     &  '# for each surface: outside face emissivity'
-      itrunc=1
-      ipos=1
-      do while (itrunc.ne.0)
-       call arlist3(ipos,nzsur(icomp),EMISE,MS,'C',lkouts,loutln,itrunc)
-       write(ifilt,'(1x,a)',IOSTAT=ios,ERR=146) lkouts(1:loutln)
-       ipos=itrunc+1
-      end do
+        WRITE(IFILT,'(a)',IOSTAT=IOS,ERR=146)
+     &    '# for each surface: outside face emissivity'
+        itrunc=1
+        ipos=1
+        do while (itrunc.ne.0)
+         call arlist3(ipos,nzsur(icomp),EMISE,MS,'C',lkouts,loutln,
+     &     itrunc)
+         write(ifilt,'(1x,a)',IOSTAT=ios,ERR=146) lkouts(1:loutln)
+         ipos=itrunc+1
+        end do
 
-      WRITE(IFILT,'(a)',IOSTAT=IOS,ERR=146)
-     &  '# for each surface: inside face solar absorptivity'
-      itrunc=1
-      ipos=1
-      do while (itrunc.ne.0)
-       call arlist3(ipos,nzsur(icomp),ABSI,MS,'C',lkouts,loutln,itrunc)
-       write(ifilt,'(1x,a)',IOSTAT=ios,ERR=146) lkouts(1:loutln)
-       ipos=itrunc+1
-      end do
+        WRITE(IFILT,'(a)',IOSTAT=IOS,ERR=146)
+     &    '# for each surface: inside face solar absorptivity'
+        itrunc=1
+        ipos=1
+        do while (itrunc.ne.0)
+          call arlist3(ipos,nzsur(icomp),ABSI,MS,'C',lkouts,loutln,
+     &      itrunc)
+          write(ifilt,'(1x,a)',IOSTAT=ios,ERR=146) lkouts(1:loutln)
+          ipos=itrunc+1
+        end do
 
-      WRITE(IFILT,'(a)',IOSTAT=IOS,ERR=146)
-     &  '# for each surface: outside face solar absorptivity'
-      itrunc=1
-      ipos=1
-      do while (itrunc.ne.0)
-       call arlist3(ipos,nzsur(icomp),ABSE,MS,'C',lkouts,loutln,itrunc)
-       write(ifilt,'(1x,a)',IOSTAT=ios,ERR=146) lkouts(1:loutln)
-       ipos=itrunc+1
-      end do
+        WRITE(IFILT,'(a)',IOSTAT=IOS,ERR=146)
+     &    '# for each surface: outside face solar absorptivity'
+        itrunc=1
+        ipos=1
+        do while (itrunc.ne.0)
+          call arlist3(ipos,nzsur(icomp),ABSE,MS,'C',lkouts,loutln,
+     &      itrunc)
+          write(ifilt,'(1x,a)',IOSTAT=ios,ERR=146) lkouts(1:loutln)
+          ipos=itrunc+1
+        end do
+      endif
 
    99 CALL ERPFREE(IFILT,ISTAT)
       RETURN
@@ -556,6 +995,15 @@ C Error messages.
       endif
       IER=1
       GOTO 99
+
+C If in quiet mode: the file should exist => error if we are here.
+   98 IF (IER.EQ.-301) THEN
+        CALL USRMSG(' No permission to write ',CONFIL,'W')
+      ELSE
+        CALL USRMSG(' File write error in ',CONFIL,'W')
+      ENDIF
+      IER=1
+      goto 99
 
       END
 
@@ -807,6 +1255,9 @@ c              IBCMT=0 ; no, therefore standard TMC properties
 c                        hold at all times.
 c              IBCMT=1 ; yes, therefore properties are replaced
 c                        during specified periods.
+c              IBCMT<0 ; points to optical control in the model
+c                        control file in which case only the alt
+c                        optical properties are held in the tmc file.
 c TMCT    - direct solar transmittance at 5 representative
 c         incidence angles for TMC system (standard values).
 C TVTR    - visible transmitttance for the tmc (for daylighting).
@@ -814,8 +1265,8 @@ C TMCA    - absorptances for each glazing element at 5 representative
 C         incidence angles for TMC system (standard values).
 C NBCTMC  - number of distinct tmc control periods during a
 c         typical day (maximum=3).
-c IBCST   - start hour of each period (0-24).
-c IBCFT   - finish hour of each period.
+c IBCST   - start hour of period (0-24).
+c IBCFT   - finish hour of period.
 c TMCT2   - direct solar transmittance at 5 representative incidence
 c         angles for TMC system during each period (replacement values).
 C TVTR2   - visible transmitttance for the tmc (replacement value).
@@ -858,15 +1309,15 @@ c         (not used in the current implementation),
 
       COMMON/PRECTC/ITMCFL(MCOM,MS),TMCT(MCOM,MTMC,5),
      &       TMCA(MCOM,MTMC,ME,5),TMCREF(MCOM,MTMC),TVTR(MCOM,MTMC)
-      COMMON/PRECT2/TMCT2(MCOM,MTMC,5,MBP),TMCA2(MCOM,MTMC,ME,5,MBP),
-     &              TVTR2(MCOM,MTMC,MBP)
+      COMMON/PRECT2/TMCT2(MCOM,MTMC,5),TMCA2(MCOM,MTMC,ME,5),
+     &              TVTR2(MCOM,MTMC)
       COMMON/PRECT3/NTMC,NGLAZ(MTMC)
       common/PRECT4/TOPTIC(MCOM,MTMC)
 
       COMMON/TMCB1/IBCMT(MCOM,MTMC)
-      COMMON/TMCB2/NBCTMC(MCOM,MTMC),IBCST(MCOM,MBP,MTMC),
-     &             IBCFT(MCOM,MBP,MTMC),IBCSUR(MCOM,MTMC)
-      COMMON/TMCB3/NBCTT(MCOM,MBP,MTMC),BACTPT(MCOM,MBP,MTMC)
+      COMMON/TMCB2/NBCTMC(MCOM,MTMC),IBCST(MCOM,MTMC),
+     &             IBCFT(MCOM,MTMC),IBCSUR(MCOM,MTMC)
+      COMMON/TMCB3/NBCTT(MCOM,MTMC),BACTPT(MCOM,MTMC)
 
       common/BSCTL/ITPREP(MCOM,MTMC),ICZN,IMDB(3),IGLZ(3)
       
@@ -1034,18 +1485,63 @@ C Read in optical control information for this TMC type
         CALL STRIPC(IUA,OUTSTR,0,ND,1,'optical control',IER)
         IF(IER.NE.0)GOTO 1001
         K=0
-        CALL EGETWI(OUTSTR,K,IBCMT(ICOMP,I),0,1,'W','control',IER)
-        IF(IBCMT(ICOMP,I).EQ.0)THEN
+        CALL EGETWI(OUTSTR,K,IBCMT(ICOMP,I),-10,1,'W','control',IER)
+        if(IBCMT(ICOMP,I).EQ.0)then
 
 C Reporting.
           IF(ITRC.GT.0)CALL EDISP(ITRU,' There are no controls active.')
           GOTO 20
-        ENDIF
+        elseif(IBCMT(ICOMP,I).lt.0)then
+          IF(ITRC.GT.0)CALL EDISP(ITRU,
+     &      ' Points to an optical control loop.')
+          NBCTMC(ICOMP,I)=1; IBCSUR(ICOMP,I)=0
+          IBCST(ICOMP,I)=0; IBCFT(ICOMP,I)=24
+          NBCTT(ICOMP,I)=0; BACTPT(ICOMP,I)=0.0
+
+C Read replacement transmissions (T) for the transparent multi-layer construction
+C and replacement visible transmittance.
+          CALL STRIPC(IUA,OUTSTR,99,ND,1,'repl transmission',IER)
+          IF(IER.NE.0)GOTO 1001
+          K=0
+          CALL EGETWR(OUTSTR,K,VAL,0.,0.999,'W','dir t @ 0',IER)
+          TMCT2(ICOMP,I,1)=VAL
+          CALL EGETWR(OUTSTR,K,VAL,0.,0.999,'W','dir t @ 40',IER)
+          TMCT2(ICOMP,I,2)=VAL
+          CALL EGETWR(OUTSTR,K,VAL,0.,0.999,'W','dir t @ 55',IER)
+          TMCT2(ICOMP,I,3)=VAL
+          CALL EGETWR(OUTSTR,K,VAL,0.,0.999,'W','dir t @ 70',IER)
+          TMCT2(ICOMP,I,4)=VAL
+          CALL EGETWR(OUTSTR,K,VAL,0.,0.999,'W','dir t @ 80',IER)
+          TMCT2(ICOMP,I,5)=VAL
+          IF(ND.EQ.6)THEN
+            CALL EGETWR(OUTSTR,K,VAL,0.,0.999,'W','vis transmis',IER)
+            TVTR2(ICOMP,I)=VAL
+          ELSE
+            TVTR2(ICOMP,I)=0.85
+          ENDIF
+
+
+C Read replacement absorptance for each substrate.
+          do J=1,NTGLAZ
+            CALL EGETWRA(IUA,RVC,5,0.,0.999,'W','alt abs',IER)
+            do J5=1,5
+              TMCA2(ICOMP,I,J,J5)=RVC(J5)
+            enddo
+          enddo
+
+C Read dummy index for thermophysical property replacement.
+          CALL STRIPC(IUA,OUTSTR,0,ND,1,'alt thermo prop',IER)
+          IF(IER.NE.0)RETURN
+          K=0
+          CALL EGETWI(OUTSTR,K,IMLC,0,1,'-','alt pr',IER)
+          ITPREP(ICOMP,I)=IMLC
+          GOTO 20    ! jump past in-built control logic
+        endif
 
         CALL STRIPC(IUA,OUTSTR,0,ND,1,'TMC control',IER)
         IF(IER.NE.0)GOTO 1001
         K=0
-        CALL EGETWI(OUTSTR,K,N1,0,MBP,'W','control per',IER)
+        CALL EGETWI(OUTSTR,K,N1,0,1,'W','control per',IER)
         NBCTMC(ICOMP,I)=N1
         CALL EGETWI(OUTSTR,K,N2,0,MS,'W','control sen',IER)
         IBCSUR(ICOMP,I)=N2
@@ -1074,35 +1570,35 @@ C For each period.
           K=0
           CALL EGETWI(OUTSTR,K,IS,0,24,'W','start',IER)
           CALL EGETWI(OUTSTR,K,IF,IS,24,'W','end',IER)
-          IBCST(ICOMP,KK,I)=IS
-          IBCFT(ICOMP,KK,I)=IF
+          IBCST(ICOMP,I)=IS
+          IBCFT(ICOMP,I)=IF
 
           CALL STRIPC(IUA,OUTSTR,0,ND,1,'sensor data',IER)
           IF(IER.NE.0)GOTO 1001
           K=0
           CALL EGETWI(OUTSTR,K,NCT,-99,4,'W','sensor type',IER)
-          NBCTT(ICOMP,KK,I)=NCT
+          NBCTT(ICOMP,I)=NCT
           CALL EGETWR(OUTSTR,K,ACTP,0.,0.,'-','actuation pt',IER)
-          BACTPT(ICOMP,KK,I)=ACTP
+          BACTPT(ICOMP,I)=ACTP
 
 C Reporting.
           IF(ITRC.GT.0)THEN
-            if(NBCTT(ICOMP,KK,I).eq.0)then
+            if(NBCTT(ICOMP,I).eq.0)then
               msg=' sensing total radiation'
-            elseif(NBCTT(ICOMP,KK,I).eq.1)then
+            elseif(NBCTT(ICOMP,I).eq.1)then
               msg=' sensing ambient temperature'
-            elseif(NBCTT(ICOMP,KK,I).eq.2)then
+            elseif(NBCTT(ICOMP,I).eq.2)then
               msg=' sensing zone temperature'
-            elseif(NBCTT(ICOMP,KK,I).eq.3)then
+            elseif(NBCTT(ICOMP,I).eq.3)then
               msg=' sensing daylight coeff.'
-            elseif(NBCTT(ICOMP,KK,I).eq.4)then
+            elseif(NBCTT(ICOMP,I).eq.4)then
               msg=' Lightswitch2002.'
-            elseif(NBCTT(ICOMP,KK,I).eq.-99)then
+            elseif(NBCTT(ICOMP,I).eq.-99)then
               msg=' sensing time'
             endif
             WRITE(OUTS,'(A,I2,A,I2,A,I2,2A,F7.2)') ' Period ',KK,
-     &        ': from ',IBCST(ICOMP,KK,I),' to ',IBCFT(ICOMP,KK,I),
-     &        msg(1:lnblnk(msg)),' set @ ',BACTPT(ICOMP,KK,I)
+     &        ': from ',IBCST(ICOMP,I),' to ',IBCFT(ICOMP,I),
+     &        msg(1:lnblnk(msg)),' set @ ',BACTPT(ICOMP,I)
             CALL EDISP(ITRU,OUTS)
           ENDIF
 
@@ -1112,20 +1608,20 @@ C and replacement visible transmittance.
           IF(IER.NE.0)GOTO 1001
           K=0
           CALL EGETWR(OUTSTR,K,VAL,0.,0.999,'W','dir t @ 0',IER)
-          TMCT2(ICOMP,I,1,KK)=VAL
+          TMCT2(ICOMP,I,1)=VAL
           CALL EGETWR(OUTSTR,K,VAL,0.,0.999,'W','dir t @ 40',IER)
-          TMCT2(ICOMP,I,2,KK)=VAL
+          TMCT2(ICOMP,I,2)=VAL
           CALL EGETWR(OUTSTR,K,VAL,0.,0.999,'W','dir t @ 55',IER)
-          TMCT2(ICOMP,I,3,KK)=VAL
+          TMCT2(ICOMP,I,3)=VAL
           CALL EGETWR(OUTSTR,K,VAL,0.,0.999,'W','dir t @ 70',IER)
-          TMCT2(ICOMP,I,4,KK)=VAL
+          TMCT2(ICOMP,I,4)=VAL
           CALL EGETWR(OUTSTR,K,VAL,0.,0.999,'W','dir t @ 80',IER)
-          TMCT2(ICOMP,I,5,KK)=VAL
+          TMCT2(ICOMP,I,5)=VAL
           IF(ND.EQ.6)THEN
             CALL EGETWR(OUTSTR,K,VAL,0.,0.999,'W','vis transmis',IER)
-            TVTR2(ICOMP,I,KK)=VAL
+            TVTR2(ICOMP,I)=VAL
           ELSE
-            TVTR2(ICOMP,I,KK)=0.85
+            TVTR2(ICOMP,I)=0.85
           ENDIF
 
 
@@ -1133,19 +1629,19 @@ C Read replacement absorptance for each substrate.
           do J=1,NTGLAZ
             CALL EGETWRA(IUA,RVC,5,0.,0.999,'W','alt abs',IER)
             do J5=1,5
-              TMCA2(ICOMP,I,J,J5,KK)=RVC(J5)
+              TMCA2(ICOMP,I,J,J5)=RVC(J5)
             enddo
           enddo
 
 C Reporting.
           IF(ITRC.GT.0)THEN
             CALL EDISP(ITRU,' Alt direct trans @ 5 angles & vis tran  ')
-            WRITE(OUTS,'(2X,6F6.2)')(TMCT2(ICOMP,I,J5,KK),J5=1,5),
-     &                              TVTR2(ICOMP,I,KK)
+            WRITE(OUTS,'(2X,6F6.2)')(TMCT2(ICOMP,I,J5),J5=1,5),
+     &                              TVTR2(ICOMP,I)
             CALL EDISP(ITRU,OUTS)
             CALL EDISP(ITRU,' For each layer alt absorp @ 5 angles ')
             do IL=1,NTGLAZ
-              WRITE(OUTS,'(2X,5F7.3)')(TMCA2(ICOMP,I,IL,J5,KK),J5=1,5)
+              WRITE(OUTS,'(2X,5F7.3)')(TMCA2(ICOMP,I,IL,J5),J5=1,5)
               CALL EDISP(ITRU,OUTS)
             enddo
           ENDIF

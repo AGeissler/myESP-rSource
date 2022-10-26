@@ -21,11 +21,14 @@ PROG = bps$(EXE)
 DLL = bps".dll"
 default: $(PROG)
 
-.SUFFIXES: .o .F .f90 .cpp
+.SUFFIXES: .o .F .f90 .F90 .cpp
 .F.o:
 	$(MFC) $(FFLAGS) -c -fcray-pointer $<
 
 .f90.o:
+	$(MFC) $(FFLAGS) -c $<
+
+.F90.o:
 	$(MFC) $(FFLAGS) -c $<
 
 .cpp.o:
@@ -70,7 +73,7 @@ BPS_OBJECTS = bps.o adaptconf1.o adaptconf2.o adjb.o adjp.o ascii_mat.o \
 	  solar_collectors.o ground_temp_mains.o Lookup_data.o readTrnsys.o trnsys_wrapper.o trnsys_lib.o \
 	  tank_intank_hx.o mains_temp_draw_profiles.o stratified_tank.o stratified_tank_byp.o SiteUtilities.o RE-H2-ctl.o \
 	  ncm_overheating.o CFC_opt_props.o CFC_thermal_and_aux.o editCFC.o NCHE.o stratified_tank_1HX.o stratified_tank_2HX.o \
-	  AirFlowModelRoutines.o Res_elec_Ctl.o harmonizer_timing.o qrun.o agtsim.o grmsim.o agtcom.o grmcom.o
+	  AirFlowModelRoutines.o Res_elec_Ctl.o harmonizer_timing.o agtsim.o grmsim.o agtcom.o grmcom.o
 
 MODULES = aim2.mod aim2_calcdata.mod aim2_h2k_dummy.mod aim2_inputdata.mod aim2_timestep.mod start_up.mod parse_command_line.mod \
           h3kmodule.f90 CFC_Module.mod
@@ -457,9 +460,9 @@ sensit.F:
 sentim.F:
 	rm -f sentim.F
 	ln -s $(BLDdir)/sentim.F .
-segmentedocc.f90:
-	rm -f segmentedocc.f90
-	ln -s $(BLDdir)/segmentedocc.f90 .
+segmentedocc.F90:
+	rm -f segmentedocc.F90
+	ln -s $(BLDdir)/segmentedocc.F90 .
 segoccfunc.f90:
 	rm -f segoccfunc.f90
 	ln -s $(BLDdir)/segoccfunc.f90 .
@@ -686,10 +689,6 @@ shocc_dummy.c:
 	rm -f shocc_dummy.c
 	ln -s $(SHCdir)/shocc_dummy.c .
 
-qrun.F:
-	rm -f qrun.F
-	ln -s $(COMdir)/qrun.F
-
 ##Unused 'time-out' code.
 ##timeout.cpp:
 ##	rm -f timeout.cpp
@@ -820,7 +819,7 @@ clean:
 	mzout6.F mzoutp.F ncm_overheating.F nwkrewr.F pcloop.F pcomp1.F pcomp2.F pcomp3.F \
 	pcomp4.F pcomps1.F pcomps.F pcompDH.F plibsv.F plot.F pltcfg.F plt_bc_components.F \
 	plt_zone_gain_coupling.F pmatrx.F pplib.F ppsub.F precal.F \
-	psychro.F rnor.F rwipv.F rwroam.F rwsbem.F shocc_dummy.c senrwl.F sensit.F sentim.F segmentedocc.f90 \
+	psychro.F rnor.F rwipv.F rwroam.F rwsbem.F shocc_dummy.c senrwl.F sensit.F sentim.F segmentedocc.F90 \
 	segoccfunc.f90 solar.F sort.F Annex42_fuel_cell.F spmatl.F stofunc.F \
 	spmisc.F startup.F Annex42_combustion_CHP.F subsys.F tdfile.F trstyp.F tscon.F \
 	TWildCards.cpp utilf.F Vnt_data.mod wind_turbine_profile_model.F \
@@ -835,7 +834,7 @@ clean:
 	tank_intank_hx.F mains_temp_draw_profiles.F stratified_tank.F stratified_tank_byp.F \
 	FMIsim.F FMIc.c FMIsim_dummy.F FMIcom.F agtcom.F grmcom.F \
 	CFC_opt_props.F CFC_thermal_and_aux.F editCFC.F NCHE.F stratified_tank_1HX.F stratified_tank_2HX.F \
-	AirFlowModelRoutines.F Res_elec_Ctl.F h3kmodule.f90 qrun.F CFC_Module.f90 cfc_module.mod
+	AirFlowModelRoutines.F Res_elec_Ctl.F h3kmodule.f90 CFC_Module.f90 cfc_module.mod
 
 distclean: clean
 

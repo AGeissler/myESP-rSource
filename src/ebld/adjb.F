@@ -85,9 +85,9 @@ C ARF    - future time adjacent incident radiation & casual etc.
       COMMON/COE34/QCASRT(MCOM),QCASCT
 
 C Common containing zone casual gains
-      COMMON/CasDat/Cas_Rad_dat(MCOM),Cas_Con_dat(MCOM),
-     &     Cas_Lat_dat(MCOM)
-      real Cas_Rad_dat, Cas_Con_dat, Cas_Lat_dat
+C      COMMON/CasDat/Cas_Rad_dat(MCOM),Cas_Con_dat(MCOM),
+C     &     Cas_Lat_dat(MCOM)
+C      real Cas_Rad_dat, Cas_Con_dat, Cas_Lat_dat
 C Common saving coupled zones/surfaces
       common/Zone_Couplings/ bCoupled_Zone (MCOM,MS),
      &                       iCoupled_Zone (MCOM,MS),
@@ -116,8 +116,8 @@ C values for use as present values at the next time-step.
       DIMENSION tother(MS),qradcin(MS),qpltri(MS),qpltro(MS)
       DIMENSION qswsum(MS)
 C.....Named constnats for timerows
-      integer iPresent, iFuture
-      parameter (iPresent=1, iFuture=2) 
+C      integer iPresent, iFuture
+C      parameter (iPresent=1, iFuture=2) 
       
 C START SPECIAL mod for PASSYS
 C      DIMENSION tsurm(3)

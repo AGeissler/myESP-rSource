@@ -907,7 +907,7 @@ C Dummy routines from common3dv.F needed to match calls in esru_lib.F
      &   JITOBS,JITSNR,JITGRD,JITORG,DIS,JITBND,JITDSP,JITHLS,JITHLZ,
      &   JITPPSW)
 
-C Passed paramters.
+C Passed parameters.
       real EVX,EVY,EVZ,VX,VY,VZ,EAN,DIS
 
 C Depending on computer type set integer size of passed parameters.
@@ -1023,4 +1023,54 @@ C Should be the same logic as in esru_x.c.
       ndec = nd
       return
       end
+
+C And align_comment from esru_misc.F.
+
+C ******************** align_comment ********************
+C Add comment after a specific column and return formatted line.
+
+      subroutine align_comment(icolumn,string,comment,aligned_str)
+
+      integer lnblnk
+      integer icolumn              ! Column to start comment.
+      character*(*) string         ! Data or token string.
+      character*(*) comment        ! Comment string.
+      character*(*) aligned_str    ! Composed string.
+      character*48  hash_str       ! Filler string to be created.
+      integer lnstring,lncomment   ! Length of strings.
+      integer lnprehash            ! Blanks before hash
+
+C If lnstring is less than icolumn create hash_str to fill in the gap.
+C Otherwise if lnstring is greater than icolumn the hash_str is '  # '
+      lnstring=lnblnk(string)
+      lncomment=lnblnk(comment)
+      if(lnstring.lt.(icolumn-3))then
+        lnprehash=(icolumn-lnstring)+1
+        hash_str='                                               '
+        write(hash_str(lnprehash:lnprehash),'(a)') '#' 
+      else
+        lnprehash=3
+        write(hash_str,'(a)') '  # '
+      endif
+      write(aligned_str,'(3a)') string(1:lnstring),
+     &  hash_str(1:lnprehash+1),comment(1:lncomment)
+      return
+      end
+
+C The following from econstr.F
+      SUBROUTINE ECONST(LCONS,IUNIT,ICOMP,ITRC,ITRU,IER)
+      character LCONS*72
+      integer IUNIT,ICOMP,ITRC,ITRU,IER
+  
+      return
+      end
+
+      SUBROUTINE ERTWIN(ITRC,ITRU,IUA,LUA,ICOMP,IER)
+      character LUA*72
+      integer ITRC,ITRU,IUA,ICOMP,IER
+  
+      return
+      end
+     
+      
 

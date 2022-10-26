@@ -94,7 +94,9 @@ C Boundary condition commons.
      
 C Common blocks for blockages and small supply openings.
       common/blksso/NBLK(MNZ),INBLK(MNVLS,MNZ),NSSO(MNZ),
-     &          INSSO(MNVLS,MNZ),BLKTEMP(MNVLS,MNZ,6)
+     &          INSSO(MNVLS,MNZ),BLKTEMP(MNVLS,6)
+      COMMON/CFDBCOFF/BCOFF(MNVLS)
+      logical BCOFF
 
       character LRES(4)*24,LMON(4)*24
 
@@ -144,6 +146,7 @@ C Check for blockages.
 C Loop through whole blockage, decrease voltot by its volume.  
         do 10 IVO=1,NBLK(ICFD)
           IV=INBLK(IVO,ICFD)  
+          if (BCOFF(iv)) cycle
           do 20 I=IVCELLS(IV,ICFD,1),IVCELLS(IV,ICFD,2)
             do 21 J=JVCELLS(IV,ICFD,1),JVCELLS(IV,ICFD,2)
               do 22 K=KVCELLS(IV,ICFD,1),KVCELLS(IV,ICFD,2)   
@@ -264,6 +267,7 @@ C Check for blockages.
 C Go and set the boundary conditions  
         do 2016 IVO=1,NBLK(ICFD)
           IV=INBLK(IVO,ICFD)  
+          if (BCOFF(iv)) cycle
           call BLKBNDL(IV)
  2016   continue
       endif 
@@ -288,6 +292,7 @@ C Check for blockages.
 C If inside the blockage set resor to zero.
         do 2006 IVO=1,NBLK(ICFD)
           IV=INBLK(IVO,ICFD)  
+          if (BCOFF(iv)) cycle
           OK=LINVOL(I,J,K,
      &            IVCELLS(IV,ICFD,1),IVCELLS(IV,ICFD,2),
      &            JVCELLS(IV,ICFD,1),JVCELLS(IV,ICFD,2),
@@ -319,25 +324,18 @@ C and guarantees always a good convergence. Therefore local variable.
 C Check for blockages. 
       if(NBLK(ICFD).ne.0) then
       
-C If inside the blockage force concentration to zero. 
+C If inside the blockage force LMA to zero. 
         do 2007 IVO=1,NBLK(ICFD)
           IV=INBLK(IVO,ICFD)  
+          if (BCOFF(iv)) cycle
           OK=LINVOL(I,J,K,
      &            IVCELLS(IV,ICFD,1),IVCELLS(IV,ICFD,2),
      &            JVCELLS(IV,ICFD,1),JVCELLS(IV,ICFD,2),
      &            KVCELLS(IV,ICFD,1),KVCELLS(IV,ICFD,2))
           if(OK) then
-
-C Set the LMA inside the blockage equal to zero. 
-            AE(I,J,K)=0.0
-            AW(I,J,K)=0.0
-            AN(I,J,K)=0.0
-            AS(I,J,K)=0.0
-            AH(I,J,K)=0.0
-            AL(I,J,K)=0.0
-            SP(I,J,K)=0.0
-            SU(I,J,K)=0.0
-            AP(I,J,K)=1.0
+            AE(I,J,K)=0.0; AW(I,J,K)=0.0; AN(I,J,K)=0.0
+            AS(I,J,K)=0.0; AH(I,J,K)=0.0; AL(I,J,K)=0.0
+            SP(I,J,K)=0.0; SU(I,J,K)=0.0; AP(I,J,K)=1.0
           endif
 
  2007   continue

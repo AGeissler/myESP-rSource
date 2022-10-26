@@ -113,19 +113,23 @@ C be superceeded by user specifications.
       IF(IZNTRC(ICOMP).NE.1)goto 9999 ! check if zone output is rq'd
       IF( IHC(ICOMP).EQ.1 ) THEN
         if(isur.eq.1)then
-          write(outs,'(A,I4,a,i3,a,i3,a)')
+          write(outs,'(A,I5,2a,i4,2a,i3,a)')
      &    ' Subroutine HTBUOY  Trace output',ICNT,
-     &    ' for zone ',icomp,' & surface ',isur,
+     &    ' for ',zname(icomp)(1:lnzname(icomp)),icomp,' & surface ',
+     &    sname(icomp,isur)(1:lnsname(icomp,isur)),isur,
      &    ' (data may be superceeded by the zone convective regime).'
         else
-          write(outs,'(A,I4,a,i3,a,i3,a)')
+          write(outs,'(A,I5,2a,i3,2a,i3,a)')
      &    ' Subroutine HTBUOY  Trace output',ICNT,
-     &    ' for zone ',icomp,' & surface ',isur,'.'
+     &    ' for ',zname(icomp)(1:lnzname(icomp)),icomp,' & surface ',
+     &    sname(icomp,isur)(1:lnsname(icomp,isur)),isur,'.'
         endif
       else
-        write(outs,'(A,I4,a,i3,a,i3)')
+        write(outs,'(A,I5,2a,i3,2a,i3,a)')
      &    ' Subroutine HTBUOY  Trace output',ICNT,
-     &    ' for zone ',icomp,' & surface ',isur
+     &    ' for ',zname(icomp)(1:lnzname(icomp)),icomp,' & surface ',
+     &    sname(icomp,isur)(1:lnsname(icomp,isur)),isur,
+     &    ' (default treatment).'
       endif
       call edisp(itu,outs)
       CALL DAYCLK(idynow,BTIMEF,ITU)
@@ -200,8 +204,9 @@ C 1) radiator in room, but radiator NOT located under a window,
 C    surface under consideration located next to radiator.
         HC = 1.98*(DT**0.32)
         if(dotrace)then
-          write(outs,'(A,2F9.3)')
-     &      ' Khalifa & Marshall Tbl 2 eq 5 (vert): HC & DT',HC,DT
+          write(outs,'(2A,2F9.3)')
+     &      ' Khalifa & Marshall Tbl 2 eq 5 (vert)','
+     &       rad NOT under window: HC & DT',HC,DT
           call edisp(itu,outs)
         endif
       ELSEIF(ICOR.EQ.8)THEN
@@ -211,8 +216,9 @@ C room configuration (Table 2, eq.8 of K&M paper):
 C 1) fan heater in room, surfaces opposite fan.
         HC = 2.92*(DT**0.25)
         if(dotrace)then
-          write(outs,'(A,2F9.3)')
-     &      ' Khalifa & Marshall Tbl 2 eq 8 (vert): HC & DT',HC,DT
+          write(outs,'(2A,2F9.3)')
+     &      ' Khalifa & Marshall Tbl 2 eq 8 (vert)',
+     &      ' surface opposite fan: HC & DT',HC,DT
           call edisp(itu,outs)
         endif
       ELSEIF(ICOR.EQ.9)THEN
@@ -431,13 +437,13 @@ C air entering from another (lower) building zone.
         NUAIR=15.72D-6     ! m2/s
         veloc=0.0              ! m/s
         TFILM=(TFS(ICOMP,ISUR)+TFA(IAORZ))/2.0
-        BETA=1.0/(TFILM+273.15)    ! 1/K
+        BETA=1.0D0/(TFILM+2.7315D02)    ! 1/K
 
         RAS=1000.0*9.81*BETA*ABS(TFS(ICOMP,ISUR)-TFA(IAORZ))*
      &     CWIDTH**3.0*RHOAIR*CPAIR/(NUAIR*LAMBAIR)
          
         IF(RAS.le.1.0D+04) THEN
-          NUSS=1.0+1.7596678D-10*RAS**2.2984755
+          NUSS=1.0D0+1.7596678D-10*RAS**2.2984755
         ELSEIF ((RAS.gt.1.0D+04).AND.(RAS.le.5.0D+04)) THEN
           NUSS=0.028154*RAS**0.4134
         ELSE
@@ -574,7 +580,7 @@ C might take a multiplier parameter.
      &     +(1.23*((DT)**(1.0/3.0)))**6.0)**(1.0/6.0)
         HC=HC*2.6  ! test multiplier
         if(dotrace)then
-          write(outs,'(A,2F9.3)')' Alamdari: 2X HC & DT',HC,DT
+          write(outs,'(A,2F9.3)')' Alamdari: 2.6X HC & DT',HC,DT
           call edisp(itu,outs)
         endif
 
@@ -711,8 +717,9 @@ C 1) radiator located under window;
 C 2) room heated by heated vertical wall.
         HC=3.10*(DT**0.17)
         if(dotrace) then
-          write(outs,'(A,2F9.3)')
-     &      ' Khalifa & Marshall Tbl 2 eq 7 (ceil): HC & DT',HC,DT
+          write(outs,'(2A,2F9.3)')
+     &      ' Khalifa & Marshall Tbl 2 eq 7 (ceil)',
+     &      ' rad under window or heated wall: HC & DT',HC,DT
           call edisp(itu,outs)
         endif
       ELSEIF(ICOR.EQ.61)THEN
@@ -724,8 +731,9 @@ C 2) room with floor heating;
 C 3) radiator in room, but radiator not located under a window.
         HC = 2.72*(DT**0.13)
         if(dotrace) then
-          write(outs,'(A,2F9.3)')
-     &      ' Khalifa & Marshall Tbl 2 eq 4 (ceil): HC & DT',HC,DT
+          write(outs,'(2A,2F9.3)')
+     &      ' Khalifa & Marshall Tbl 2 eq 4 (ceil)',
+     &     ' fan or floor heating or rad no under window: HC & DT',HC,DT
           call edisp(itu,outs)
         endif
       ELSEIF(ICOR.EQ.70)then
@@ -857,7 +865,7 @@ C Fisher `thesis' correlation for free horizontal jet.
         HC = HCFish*ADJREF(ICOMP,ISUR)
         if(dotrace) then
           write(outs,'(A,3F9.3)')
-     &  ' Fisher thesis free hor jet (undere ceil): HC & HCFish & ACH',
+     &  ' Fisher thesis free hor jet (under ceil): HC & HCFish & ACH',
      &    HC,HCFish,ACH
           call edisp(itu,outs)
         endif
@@ -875,7 +883,7 @@ C A&H equation depends on direction of heat flow (iAandH).
         HC = ( HCforc**3. + HCfree**3. )**(1./3.)
         if(dotrace) then
           write(outs,'(A,4F9.3)')
-     &  ' Fisher thesis mixed radial (undr ceil): HC HCFish HCforc ACH',
+     & ' Fisher thesis mixed radial (under ceil): HC HCFish HCforc ACH',
      &    HC,HCFish,HCforc,ACH
           call edisp(itu,outs)
         endif
@@ -941,8 +949,10 @@ C Trace output ?
       dotrace=.false.
       IF(ITC.LE.0.OR.NSINC.LT.ITC)goto 9999
       IF(ITRACE(6).EQ.0.OR.NSINC.GT.ITCF)goto  9999
-      write(outs,'(A,I4)')
-     &  ' Subroutine HTCEXT  Trace output',ICNT
+      write(outs,'(A,I5,2a,i4,2a,i3)')
+     &  ' Subroutine HTCEXT  Trace output',ICNT,
+     &    ' for ',zname(icomp)(1:lnzname(icomp)),icomp,' & surface ',
+     &    sname(icomp,isur)(1:lnsname(icomp,isur)),isur
       call edisp(itu,outs)
       CALL DAYCLK(idynow,BTIMEF,ITU)
       dotrace=.true.

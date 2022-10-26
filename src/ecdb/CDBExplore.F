@@ -482,8 +482,9 @@ C Identify the number of data categories
       DESC=ITEMMENU(ID_S,IC_S,IT_S)
 
 
-      DO 10 IP=1,Max_Datcat
-  10  S_DATCAT(IP)=' '
+      DO IP=1,Max_Datcat
+        S_DATCAT(IP)=' '
+      ENDDO
 
       IF(NATRIBS(ICMP).NE.0)THEN
         DO 100 IAT=1,NATRIBS(ICMP)

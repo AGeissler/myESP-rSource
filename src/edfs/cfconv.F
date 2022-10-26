@@ -101,12 +101,13 @@ C CFCONV - Calculate convection coefficients based on the CFD predictions.
       COMMON/ICFNOD/ICFD,ICP
       COMMON/CONST/GREAT,small,GRAV
 C      COMMON/cfdfil/LCFD(MCOM),IFCFD(MCOM)
+C      CHARACTER*72 LCFD
 C      COMMON/ALL/NI,NJ,NK,NIM1,NJM1,NKM1,NIM2,NJM2,NKM2
 C      COMMON/GEOM/XP(ntcelx),YP(ntcely),ZP(ntcelz),
-     1            DXEP(ntcelx),DXPW(ntcelx),DYNP(ntcely),DYPS(ntcely),
-     2            DZHP(ntcelz),DZPL(ntcelz),
-     3            SEW(ntcelx),SNS(ntcely),SHL(ntcelz),
-     4            XU(ntcelx),YV(ntcely),ZW(ntcelz)
+C      1            DXEP(ntcelx),DXPW(ntcelx),DYNP(ntcely),DYPS(ntcely),
+C      2            DZHP(ntcelz),DZPL(ntcelz),
+C      3            SEW(ntcelx),SNS(ntcely),SHL(ntcelz),
+C      4            XU(ntcelx),YV(ntcely),ZW(ntcelz)
 C      COMMON/FLUPRf/URFVIS,VISCOS,PRANDT,SH,
 C     1            DENf(ntcelx,ntcely,ntcelz),VIS(ntcelx,ntcely,ntcelz),
 C     2            BETA(ntcelx,ntcely,ntcelz)
@@ -116,7 +117,6 @@ C     1             RESORT,NSWPT,URFT,FSDTT,PRANDL,PFUN
       DIMENSION SFNAM(MNSBZ),HC(MNSBZ),TIS(MNSBZ)
 
       CHARACTER*12 SFNAM
-      CHARACTER*72 LCFD
       CHARACTER*2 oneway(MNSBZ)
 
       ifl=ICFMON(ICFD)

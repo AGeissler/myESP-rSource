@@ -151,6 +151,7 @@ C ******* Default views formation.
       character doit*146,ltmp*72,lview*124
       character L144*144,lltmp*144,dtmp96*96
       character trvewsh*10,mrvewsh*30
+      character rifwave*72
       integer NITEMS,INO  ! max items and current menu item
       integer iglib
       integer ISTRW
@@ -224,6 +225,10 @@ C adding in the ground disk.
         tXMN=cx-DD; tXMX=cx+DD; 
         tYMN=cy-DD; tYMX=cy+DD
         tZMN=tZMN; tZMX=DD
+      else   ! For plan view just do the extents.
+        tXMN=XMN; tXMX=XMX
+        tYMN=YMN; tYMX=YMX
+        tZMN=ZMN; tZMX=ZMX
       endif
       MODBND=.FALSE.; MODLEN=.FALSE.
 
@@ -725,6 +730,14 @@ C Present list of views.
         MODBND=.TRUE.
         CALL BNDOBJ(1,IER)
         do_redraw =.true.
+        if(intext.eq.0)then
+          continue
+        else   ! For plan view revise the extents.
+          tXMN=XMN; tXMX=XMX
+          tYMN=YMN; tYMX=YMX
+          tZMN=ZMN; tZMX=ZMX
+        endif
+
       elseif(INO.EQ.3)then
         CALL EASKABCD(' View choices: ',' ','plan',
      &    'south elevation','east elevation','perspective?',IW,nbhelp)
@@ -733,25 +746,27 @@ C Present list of views.
 
       elseif(INO.EQ.5)THEN
 
-C Eye Point...(assume begins at centre of zone).
+C Eye Point...(assume begins at centre of zone).  Logic for
+C Picking on plan is faulty - comment out and just support
+C a direct edit.
         if(ITPPSW.eq.0)then
-          CALL EASKABC(' Specify via: ',' ','editing',
-     &     'pick on plan','ignore ?',IEE,nbhelp)
-          if(IEE.eq.3)then
-            goto 10
+          IEE=1
+C          CALL EASKABC(' Specify via: ',' ','editing',
+C     &     'pick on plan','ignore ?',IEE,nbhelp)
+C          if(IEE.eq.3)then
+C            goto 10
 
 C Select point from plan or current perspective.
-          elseif(IEE.eq.2)then
-            call usrmsg(' ',' Select point via cursor...','-')
-            igwid=igw
-            igheight=igwh
-            call axiscale(igwid,igheight,tXMN,tXMX,tYMN,tYMX,xsc,ysc,
-     &        sca,Xadd,Yadd)
-            call linescale(iigl,Xadd,sca,iigb,Yadd,sca)
+C          elseif(IEE.eq.2)then
+C            call usrmsg(' ',' Select point via cursor...','-')
+C            igwid=igw
+C            igheight=igwh
+C            call axiscale(igwid,igheight,tXMN,tXMX,tYMN,tYMX,xsc,ysc,
+C     &        sca,Xadd,Yadd)
+C            call linescale(iigl,Xadd,sca,iigb,Yadd,sca)
 
-C << implemented in GTK? >>
-            CALL trackview(iik,iix,iiy)
-            ix=int(iix); iy=int(iiy)
+C            CALL trackview(iik,iix,iiy)
+C            ix=int(iix); iy=int(iiy)
 
 C Debug.
 C            write(6,*) 'axiscale ',igwid,igheight,tXMN,tXMX,tYMN,tYMX,
@@ -764,32 +779,32 @@ C Transform back from mouse position to actual coordinate.
 C Note: the coordinate is an offset from the lower left corner
 C of the zone plan display and for zones which do not start at
 C the site origin we need to add in offsets.
-            if(ITPPSW.eq.0)then
-              ex=((FLOAT(ix-igl)/sca)-Xadd)+tXMN
-              ey=((FLOAT(igb-iy)/sca)-Yadd)+tYMN
-            elseif(ITPPSW.eq.1)then
-              ex=((FLOAT(ix-igl)/sca)-Xadd)+tXMN
-              ey=((FLOAT(igb-iy)/sca)-Yadd)+tZMN
-            elseif(ITPPSW.eq.2)then
-              ex=((FLOAT(ix-igl)/sca)-Xadd)+tYMN
-              ey=((FLOAT(igb-iy)/sca)-Yadd)+tZMN
-            elseif(ITPPSW.eq.3)then
-              ex=((FLOAT(ix-igl)/sca)-Xadd)+tXMN
-              ey=((FLOAT(igb-iy)/sca)-Yadd)+tYMN
-            endif
-            iupdown=0; isym=6
-            call etplot(ex,ey,iupdown,isym)
-            call forceflush()
-            WRITE(outs,'(a,f7.3,a,f7.3)')'The point is at x=',ex,
-     &                                   ' & y=',ey
-            CALL EASKOK(outs,'View OK?',OK,nbhelp)
-            IF(OK)then
-              rvpx=ex; rvpy=ey
-              vewdone=.false.; do_redraw =.true.
-              MODLEN=.true.; MODIFYVIEW=.TRUE.
-              rvpz=VIEWM(3)
-            endif
-          endif
+C            if(ITPPSW.eq.0)then
+C              ex=((FLOAT(iix-igl)/sca)-Xadd)+tXMN
+C              ey=((FLOAT(igb-iiy)/sca)-Yadd)+tYMN
+C            elseif(ITPPSW.eq.1)then
+C              ex=((FLOAT(iix-igl)/sca)-Xadd)+tXMN
+C              ey=((FLOAT(igb-iiy)/sca)-Yadd)+tZMN
+C            elseif(ITPPSW.eq.2)then
+C              ex=((FLOAT(iix-igl)/sca)-Xadd)+tYMN
+C              ey=((FLOAT(igb-iiy)/sca)-Yadd)+tZMN
+C            elseif(ITPPSW.eq.3)then
+C              ex=((FLOAT(iix-igl)/sca)-Xadd)+tXMN
+C              ey=((FLOAT(igb-iiy)/sca)-Yadd)+tYMN
+C            endif
+C            iupdown=0; isym=6
+C            call etplot(ex,ey,iupdown,isym)
+C            call forceflush()
+C            WRITE(outs,'(a,f7.3,a,f7.3)')'The point is at x=',ex,
+C     &                                   ' & y=',ey
+C            CALL EASKOK(outs,'View OK?',OK,nbhelp)
+C            IF(OK)then
+C              rvpx=ex; rvpy=ey
+C              vewdone=.false.; do_redraw =.true.
+C              MODLEN=.true.; MODIFYVIEW=.TRUE.
+C              rvpz=VIEWM(3)
+C            endif
+C          endif
         elseif(ITPPSW.eq.3)then
           CALL EASKABC(' Specify via: ',' ','editing',
      &     'accept current eyepoint','ignore ?',IEE,nbhelp)
@@ -1111,10 +1126,14 @@ C Set up view bounds (for fisheye view).
           endif
           WRITE(vewcmds(ipckvew),'(a)') doit  ! current cmd
         endif
+
+C Write both standard and wavefront versions of rif file.
         IFC=3
-        call MKRIF(ITA2,RIFNAME(ISCENE),IFC,0,IER)
+        call mkrif(ITA2,RIFNAME(ISCENE),IFC,0,'-',IER)
+        rifwave='obj.rif'
+        call mkrif(ITA2,rifwave,IFC,0,'w',IER)
         if (NBSRIF(ISCENE).eq.1) then
-          call mkrif(ita2,LBSRIF(ISCENE),IFC,1,ier)
+          call mkrif(ita2,LBSRIF(ISCENE),IFC,1,'-',ier)
         endif
         vewdone=.true.
 
