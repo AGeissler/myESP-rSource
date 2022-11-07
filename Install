@@ -1049,6 +1049,8 @@ case $xLibs in
 esac
 
 # Append XML include paths if needed.
+## brew install libxml2, install location:
+LIBXML2_INCLUDE="$LIBXML2_INCLUDE -I/usr/local/opt/libxml2/include/libxml2"
 case $xml_support in
   yes)  cINCLUDES="$cINCLUDES $LIBXML2_INCLUDE";;
   no)   cINCLUDES="$cINCLUDES";;
