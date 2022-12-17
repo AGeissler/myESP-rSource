@@ -258,8 +258,8 @@ C IHRD - number of days since start of plotting period in hours.
 C TIME - time in hours since start of first day plotted.
 C ATIME - actual time in the day for timestep J.
             IHRD=(IDAY-IODS)*24
-            call DATIME(J,ATIME)
-            TIME=float(IHRD)+ATIME
+            call DDTIME(J,ATIME)
+            TIME=real(dble(IHRD)+ATIME)
 
 C Within requested output period.
             IF(TIME.LT.(TSTART-1.0).or.TIME.GT.TFINSH)goto 421
@@ -842,6 +842,7 @@ C if act = 's' or plots graphs if act = 'g'.
       character outs*124
       character prompt*124
       character t10*10  ! for graph line labels
+      double precision atime
 
       helpinsub='mosensa'  ! set for subroutine
 
@@ -999,8 +1000,8 @@ C Compute current time.
 C IHRD - number of days since start of plotting period in hours.
 C TIME - time in hours since start of first day plotted.
           IHRD=(IDAY-IODS)*24
-          call DATIME(J,ATIME)
-          TIME=float(IHRD)+ATIME
+          call DDTIME(J,ATIME)
+          TIME=real(dble(IHRD)+ATIME)
 
 C Within requested output period.
           IF(TIME.LT.(TSTART-1.0).or.TIME.GT.TFINSH)goto 421
@@ -1128,8 +1129,8 @@ C Compute current time.
 C IHRD - number of days since start of plotting period in hours.
 C TIME - time in hours since start of first day plotted.
           IHRD=(IDAY-IODS)*24
-          call DATIME(J,ATIME)
-          TIME=float(IHRD)+ATIME
+          call DDTIME(J,ATIME)
+          TIME=real(dble(IHRD)+ATIME)
 
 C Within requested output period.
           IF(TIME.LT.(TSTART-1.0).or.TIME.GT.TFINSH)goto 4211
@@ -1459,6 +1460,7 @@ C SAPARSEN calculates individual parameter uncertainties.
       dimension IUNC(MNFA), IPT(MNRS,MNFA)
       
       character outs*124,RSNAME*40
+      double precision atime
 
       helpinsub='mosensa'  ! set for subroutine
       
@@ -1554,8 +1556,8 @@ C Compute current time.
 C IHRD - number of days since start of plotting period in hours.
 C TIME - time in hours since start of first day plotted.
             IHRD=(IDAY-IODS)*24
-            call DATIME(J,ATIME)
-            TIME=float(IHRD)+ATIME
+            call DDTIME(J,ATIME)
+            TIME=real(dble(IHRD)+ATIME)
 
 C Within requested output period.
             IF(TIME.LT.(TSTART-1.0).or.TIME.GT.TFINSH)goto 421
