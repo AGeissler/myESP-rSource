@@ -21,10 +21,11 @@ COSIMdir=" "		        # Harmonizer installation directory.
 mode="interactive"         # Feedback during installation. 
 xml_support="yes"          # Support for XML output.
 SQLite_support="no"        # Support for SQLite output.
-FMI_support="no"           # Support for FMI connectivity.
+FMI_support="prompt"       # Support for FMI connectivity.
 debugging="no"             # Support for debugging symbols.
 EXE=""                     # Executable file extension.
-opt="-O1"                  # Optimisation to be applied
+debian_copy="no"           # no=standard make install yes=make bincopy
+opt="-O1"                  # optimization to be applied
 FFLAGS="-I../include "     # Fortran compiler flags.
 CFLAGS="-I../include "     # C compiler flags.
 LD_FLAGS=" "               # Link-loader flags.
@@ -44,7 +45,7 @@ extendedDebug="no"         # Extended debugging.
 use_intel="no"             # Use Intel compilers.
 skip_ish_calcs="no"        # Binary shading file creation.
 reuse_ish_calcs="yes"      # Map ascii shading files to binary.
-clean="yes"                # Clean object files after compilation.
+clean="no"                 # Clean object files after compilation.
 unversioned="no"           # Check for versioning info.
 
 # ESP-r executables (bld & plt not included by default because their
@@ -56,11 +57,12 @@ third_party="no"           # Suggest installation of third party tools at end of
 
 # Determine computer architecture and availability of stat.
 architecture=`uname -s`	   # Kernel name.
-if [ "$architecture" = "Darwin" ]; then
-  machine="x86_64"
-else
-  machine=`uname -m`	   # Hardware name.
-fi
+machine=`uname -m`	   # Hardware name.
+case $machine in
+  x86_64) echo "Detected Intel chipset";;
+  arm64)  echo "Detected M1 chipset";;
+  aarch64)echo "Detected arm chipset";;
+esac
 if [ -x /usr/bin/stat ]; then
    stat_avail="yes"
 elif [ -x /bin/stat ]; then
@@ -83,6 +85,7 @@ if [ $# -ne 0 ]; then
         -d) shift;      DESTdir=$1; input="yes";
                         ESPdir=$DESTdir;           shift;;
         --force)        preserve_espr_dir="no";    shift;;
+        --debian)       debian_copy="yes";         shift;;
         --no_training | --no-training)
                         install_training="no";     shift;;
         --no_dbs | --no-dbs)
@@ -215,7 +218,7 @@ if [ $help -eq 1 ]; then
   echo "    --extra-debug"
   echo "           Adds pedantic range checking, floating-point"
   echo "           exception handling and stack dump capabilities"
-  echo "           (supported by Intel and gcc4 compilers)."
+  echo "           (supported by Intel and gcc compilers)."
   echo " "
   echo "    --quick_rebuild"
   echo "           Preserve object files after running the Install"
@@ -328,7 +331,7 @@ fi
 
 # xml support.
 if [ "$xml_support" = "yes" ] || [ "$xml_support" = "prompt" ]; then
-   if [ ! -d /usr/include/libxml2 ] && [ ! -d /usr/local/include/libxml2 ] && [ ! -d /usr/local/opt/libxml2 ]; then
+   if [ ! -d /usr/include/libxml2 ] && [ ! -d /usr/local/include/libxml2 ] && [ ! -d /opt/homebrew/opt/libxml2 ]; then
       xml_support="no"
       xml_libs_found="no"
       if [ "$mode" = "silent" ]; then
@@ -867,6 +870,27 @@ case $xLibs in
                   X11_found="yes"
                   XINSTALLDIR="/usr/lib/X11"
                 fi;;
+              arm64)
+                case $platform in
+                  mac) if [ -d /usr/X11R6/lib/X11 ] ; then
+                         X11_found="yes"
+                         XINSTALLDIR="/usr/X11R6"
+                       else
+                         if [ -d /opt/X11/lib/X11 ] ; then
+                           X11_found="yes"
+                           XINSTALLDIR="/opt/X11"
+                         fi
+                    fi;;
+                  *) if [ -d /usr/X11R6/lib64/X11 ] ; then
+                       X11_found="yes"
+                       XINSTALLDIR="/usr/X11R6"
+                     else
+                       if [ -d /usr/lib64/X11 ] ; then
+                         X11_found="yes"
+                         XINSTALLDIR="/usr/lib64"
+                       fi
+                     fi;;
+                esac;;
               *)
                 if [ -d /usr/X11R6/lib/X11 ] ; then
                   X11_found="yes"
@@ -990,6 +1014,7 @@ case $platform in
    mac) case $machine in
           i386)    fDefType="-DOSX -DOSI -DLIN -m32";;
           x86_64)  fDefType="-DOSX -DLIN -m64";;
+          arm64)   fDefType="-DOSX -DLIN -DM1 -m64";;
         esac;;
    mingw)      fDefType="-DMINGW";;
 esac
@@ -1050,7 +1075,7 @@ esac
 
 # Append XML include paths if needed.
 ## brew install libxml2, install location:
-LIBXML2_INCLUDE="$LIBXML2_INCLUDE -I/usr/local/opt/libxml2/include/libxml2"
+LIBXML2_INCLUDE="$LIBXML2_INCLUDE -I/opt/homebrew/opt/libxml2/include/libxml2"
 case $xml_support in
   yes)  cINCLUDES="$cINCLUDES $LIBXML2_INCLUDE";;
   no)   cINCLUDES="$cINCLUDES";;
@@ -1112,6 +1137,7 @@ case $xLibs in
          armv6l) ULIBS="$ULIBS -lxesru -L${XINSTALLDIR} -lX11 -lXft";;
          armv7l) ULIBS="$ULIBS -lxesru -L${XINSTALLDIR} -lX11 -lXft";;
          aarch64) ULIBS="$ULIBS -lxesru -L${XINSTALLDIR} -lX11 -lXft";;
+         arm64) ULIBS="$ULIBS -lxesru -L${XINSTALLDIR}/lib -lX11 -lXft";;
          x86_64) case $platform in
                  mac) ULIBS="$ULIBS -lxesru -L${XINSTALLDIR}/lib -lX11 -lXft";;
                  *) ULIBS="$ULIBS -lxesru -L${XINSTALLDIR}/lib64 -lX11 -lXft";;        
@@ -1187,6 +1213,7 @@ case $platform in
       armv6l) LD_FLAGS="-Wl,--reduce-memory-overheads";;
       armv7l) LD_FLAGS="-Wl,--reduce-memory-overheads";;
       aarch64) LD_FLAGS="-Wl,--reduce-memory-overheads";;
+      arm64) LD_FLAGS="-Wl,--reduce-memory-overheads";;
       *)      LD_FLAGS="-Wl,--reduce-memory-overheads";;
       esac;;
 esac
@@ -1745,6 +1772,7 @@ echo "*gprn,rectangular dump,import"                    >> ${ESPdir}/esprc
 echo "*tprn,Text dump,/tmp/tx_dump"                     >> ${ESPdir}/esprc
 echo "*gxwd,screen dump,import -window root"            >> ${ESPdir}/esprc
 echo "*cad,CAD package,gtool,UNKN"                      >> ${ESPdir}/esprc
+echo "*session,OFF"                                     >> ${ESPdir}/esprc
 case "${MCTYPE}" in
   mingw)
          echo "*image_display,TIF,iexplore.exe"         >> ${ESPdir}/esprc
@@ -1924,7 +1952,6 @@ if [ "$install_training" = "yes" ]; then
 #  find  ${ESPdir}/validation -name "\.git" | xargs rm -fr
 # Removing weather databases from models.
   cd ${MODdir}/
-  rm -f training/cg_ctl/daylit_coef/cfg/dec94_clm
   rm -f validation/CEN/13791/databases/WM_A.clm
   rm -f validation/CEN/13791/databases/WM_B.clm
   rm -f validation/CEN/13791/databases/Cond.clm

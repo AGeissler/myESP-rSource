@@ -3031,11 +3031,11 @@ C   IF IND=4 SUM=-AB-X = -(AB+X)
       IF(I.GT.IJ.OR.K.GT.KL)GO TO 10
       IF(N.GT.0)THEN
         M=J-I
-        M1=L-K
+        MM=L-K
         DO 20 IK=1,N
           I1=I+(IK-1)*M
           P=DBLE(A(I1))
-          I1=K+(IK-1)*M1
+          I1=K+(IK-1)*MM
           Q=DBLE(B(I1))
           R=R+P*Q
    20   CONTINUE

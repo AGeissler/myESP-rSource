@@ -13,6 +13,7 @@ These routines are called from ESP-r fortran code. The routines are :-
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <unistd.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <dirent.h>

@@ -541,14 +541,14 @@ C   IF FACE IS ADJACENT TO EDGE, OGNORE IT
 C***3.6
                           LIB=IPTR1(J)
                           LIB1=IPTR2(J)
-                          M1=ISIDOR(LIB)
+                          MM=ISIDOR(LIB)
                           M2=ISIDOR(LIB+1)
                           M3=ISIDOR(LIB+2)
                           DO 63 K1=1,4
    63                          A(K1,4)=1.
                           DO 51 K1=1,3
                                A(1,K1)=AAA(K1)
-                               A(2,K1)=PUPRVI(M1,K1)
+                               A(2,K1)=PUPRVI(MM,K1)
                                A(3,K1)=PUPRVI(M2,K1)
    51                          A(4,K1)=PUPRVI(M3,K1)
                           CALL KDET(A,N,N,N,DET1)

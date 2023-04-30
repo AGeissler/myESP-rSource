@@ -133,6 +133,7 @@ intialisation and graphics, using ww. The routines are :-
   
 */
 #include <stdio.h>
+#include <unistd.h>
 #include <math.h>
 #include <string.h>
 #include <stdlib.h>

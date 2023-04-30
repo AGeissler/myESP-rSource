@@ -2176,7 +2176,7 @@ C     FMIN                  - lower polynomial validity limit (kg/s)
 C     GM,DG                 - g(m), g'(m)
 C     LNIT                  - local iteration counter
 C     MFL                   - most recent calculated mass flow (kg/s)
-C     M1,GM1                - lower bound search interval m1 and g(m1)
+C     MM,GM1                - lower bound search interval MM and g(MM)
 C     M2,GM2                - upper bound search interval m2 and g(m2)
 C     RHO                   - fluid density (kg/m^3)
 
@@ -2194,7 +2194,7 @@ C     RHO                   - fluid density (kg/m^3)
 
       DOUBLE PRECISION FLW1,FLW2,PRES,RESID,SAFLW
       DOUBLE PRECISION DELP,DERIV
-      DOUBLE PRECISION MFL,M1,M2,XL,XH,DX,DXOLD,GM1,GM2,GM,DG
+      DOUBLE PRECISION MFL,MM,M2,XL,XH,DX,DXOLD,GM1,GM2,GM,DG
       character outs*124
       logical close
 
@@ -2231,28 +2231,28 @@ C hybrid approach takes a bisection step whenever N-R would take the
 C solution out of bounds, or whenever N-R is not reducing the size of
 C the brackets (ie. search interval bounds) rapidly enough.
 C See also: Press, W.H. et al. 1986. 'Numerical Recipes', pp. 258.
-C First initialise the brackets such that g(m1)*g(m2)<0.
+C First initialise the brackets such that g(MM)*g(m2)<0.
       MFL=FLW1(ICNN)
       IF(MFL.LT.FMIN) THEN
-         M1=MFL
+         MM=MFL
          M2=FMAX
       ELSE IF(MFL.GT.FMAX) THEN
-         M1=FMIN
+         MM=FMIN
          M2=MFL
       ELSE
-         M1=FMIN
+         MM=FMIN
          M2=FMAX
       END IF
 
 C Double the search interval if there is no root in current one.
       DO 10 IEXPAND=1,MAXITF
-      GM1=C0+M1*(C1+M1*(C2+M1*C3))
+      GM1=C0+MM*(C1+MM*(C2+MM*C3))
       GM2=C0+M2*(C1+M2*(C2+M2*C3))
       IF(GM1*GM2.LE.0) GOTO 15
       IF(MOD(IEXPAND,2).EQ.1) THEN
          M2=M2+(FMAX-FMIN)
       ELSE
-         M1=M1-(FMAX-FMIN)
+         MM=MM-(FMAX-FMIN)
       END IF
    10 CONTINUE
 
@@ -2284,16 +2284,16 @@ C Give warning and then continue as if mass flow rate was found.
 
 C OK, root is bracketed, orient the search so that g(ml) < 0.
    15 IF(GM1.LT.0.) THEN
-         XL=M1
+         XL=MM
          XH=M2
       ELSE
          XL=M2
-         XH=M1
+         XH=MM
       END IF
 
 C First guess for root already done (i.e. MFL = FLW1(ICNN)) so just
 C initialise 'step-size before last' and the last step.
-      DXOLD=DABS(M2-M1)
+      DXOLD=DABS(M2-MM)
       DX=DXOLD
       GM=C0+MFL*(C1+MFL*(C2+C3*MFL))
       DG=C1+MFL*(2*C2+3*C3*MFL)

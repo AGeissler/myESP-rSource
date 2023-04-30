@@ -1128,20 +1128,20 @@ C MTRINP allows editing and adding material geometries.
         CALL USRMSG(' ',' Box coordinates should be odd.','W')
         GOTO 10
       ENDIF
-      M1=IMRowS(I)+1
-      CALL EGETWI(StrVal,K,IMRowE(I),M1,NR,'W','end row',IER)
+      MM=IMRowS(I)+1
+      CALL EGETWI(StrVal,K,IMRowE(I),MM,NR,'W','end row',IER)
       IF(IsEven(IMRowE(I)))THEN
         CALL USRMSG(' ',' Box coordinates should be odd.','W')
         GOTO 10
       ENDIF
-      M1=IMColS(I)+1
-      CALL EGETWI(StrVal,K,IMColE(I),M1,NC,'W','end column',IER)
+      MM=IMColS(I)+1
+      CALL EGETWI(StrVal,K,IMColE(I),MM,NC,'W','end column',IER)
       IF(IsEven(IMColE(I)))THEN
         CALL USRMSG(' ',' Box coordinates should be odd.','W')
         GOTO 10
       ENDIF
-      M1=IMLayS(I)+1
-      CALL EGETWI(StrVal,K,IMLayE(I),M1,NL,'W','end layer',IER)
+      MM=IMLayS(I)+1
+      CALL EGETWI(StrVal,K,IMLayE(I),MM,NL,'W','end layer',IER)
       IF(IsEven(IMLayE(I)))THEN
         CALL USRMSG(' ',' Box coordinates should be odd.','W')
         GOTO 10
@@ -1380,20 +1380,20 @@ C BNDINP allows editing and adding boundary geometries.
         CALL USRMSG(' ',' Box coordinates should be odd.','W')
         GOTO 10
       ENDIF
-      M1=IBRowS(I)
-      CALL EGETWI(StrVal,K,IBRowE(I),M1,NR,'W','end row',IER)
+      MM=IBRowS(I)
+      CALL EGETWI(StrVal,K,IBRowE(I),MM,NR,'W','end row',IER)
       IF(IsEven(IBRowE(I)))THEN
         CALL USRMSG(' ',' Box coordinates should be odd.','W')
         GOTO 10
       ENDIF
-      M1=IBColS(I)
-      CALL EGETWI(StrVal,K,IBColE(I),M1,NC,'W','end column',IER)
+      MM=IBColS(I)
+      CALL EGETWI(StrVal,K,IBColE(I),MM,NC,'W','end column',IER)
       IF(IsEven(IBColE(I)))THEN
         CALL USRMSG(' ',' Box coordinates should be odd.','W')
         GOTO 10
       ENDIF
-      M1=IBLayS(I)
-      CALL EGETWI(StrVal,K,IBLayE(I),M1,NL,'W','end layer',IER)
+      MM=IBLayS(I)
+      CALL EGETWI(StrVal,K,IBLayE(I),MM,NL,'W','end layer',IER)
       IF(IsEven(IBLayE(I)))THEN
         CALL USRMSG(' ',' Box coordinates should be odd.','W')
         GOTO 10

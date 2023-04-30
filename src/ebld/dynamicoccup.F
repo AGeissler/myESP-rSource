@@ -206,14 +206,14 @@ C     &       META,' ',Tsk(2),' ',Tcr(2),' ',Tamb
       return
       end function SresT
 
-      real function LresT(M1,T1,HR1)
+      real function LresT(MM,T1,HR1)
       implicit none
-      real, intent(in):: M1,T1,HR1
+      real, intent(in):: MM,T1,HR1
       real  HRex,mres1
       real  hfg
       parameter (hfg=2.43e6)
 
-      mres1=1.43e-6*M1
+      mres1=1.43e-6*MM
       HRex=0.2*HR1+0.0277+6.5e-5*T1
       LresT=mres1*(hfg*(HRex-HR1))      
       return

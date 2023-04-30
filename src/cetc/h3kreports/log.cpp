@@ -16,8 +16,8 @@
 
 
 //Singleton variable and class
-log* log::ptr_Instance = NULL;
-log* log::Instance(){
+class log* log::ptr_Instance = NULL;
+class log* log::Instance(){
    if(ptr_Instance == NULL) //create a new instance
       ptr_Instance = new log();
 
