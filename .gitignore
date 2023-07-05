@@ -1,3 +1,5 @@
+*.a
 *.res
 *.o
 /.project
+/.svn
