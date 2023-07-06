@@ -598,8 +598,8 @@ C Image frequency (dynamic flow viualisation only).
 C Add/ delete image definition.
         helptopic='res_cfd_new_view'
         call gethelptext(helpinsub,helptopic,nbhelp)
-        call EASKATOG(' ','View definition:','add ','delete',
-     &    'MRT sensor','zone COG','cancel',' ',' ',
+        call EASKMBOX(' ','View definition:','add ','delete',
+     &    'MRT sensor','zone COG','cancel',' ',' ',' ',
      &    IW,nbhelp)
         if (IW.eq.1) then
 
@@ -616,8 +616,8 @@ C Add new image definition.
           helptopic='res_cfd_view_direc'
           call gethelptext(helpinsub,helptopic,nbhelp)
           IWM=1
-          CALL EASKATOG('','View direction:','south','east',
-     &      'north','west','top','bottom','  ',IWM,nbhelp)
+          CALL EASKMBOX('','View direction:','south','east',
+     &      'north','west','top','bottom','  ',' ',IWM,nbhelp)
           ISURvw(ICOMP,NV)=IWM
  102      IER=0
 
@@ -691,8 +691,8 @@ C View from bottom.
 C Image resolution.
           helptopic='res_cfd_view_resolution'
           call gethelptext(helpinsub,helptopic,nbhelp)
-          call EASKABC(' ','Image resolution?','Low','Medium','High',
-     &      IWR,nbhelp)
+          call EASKMBOX(' ','Image resolution?','Low','Medium','High',
+     &      ' ',' ',' ',' ',' ',IWR,nbhelp)
           IRESvw(ICOMP,NV)=IWR
 
 C Set defaults for customisation and frequency variables.
@@ -902,8 +902,8 @@ C be deleted or copied, respectively.
         IWE=1
         helptopic='res_cfd_view_edit'  ! combined messages
         call gethelptext(helpinsub,helptopic,nbhelp)
-        call EASKATOG(outs,'Edit:','name','view dir & layer',
-     &    'resolution','arrows','cancel',' ',' ',IWE,nbhelp)
+        call EASKMBOX(outs,'Edit:','name','view dir & layer',
+     &    'resolution','arrows','cancel',' ',' ',' ',IWE,nbhelp)
         if (IWE.eq.1) then
 
 C Image root name.
@@ -915,8 +915,8 @@ C Image root name.
 
 C View direction and layer.
           IWM=1
-          CALL EASKATOG(' ','View direction:','south','east',
-     &      'north','west','top','bottom',' ',IWM,nbhelp)
+          CALL EASKMBOX(' ','View direction:','south','east',
+     &      'north','west','top','bottom',' ',' ',IWM,nbhelp)
           ISURvw(ICOMP,NV)=IWM
  202      IER=0
 
@@ -983,8 +983,8 @@ C View from bottom.
 
 C Image resolution.
         elseif (IWE.eq.3) then
-          call EASKABC(' ','Image resolution:','low','medium','high',
-     &      IWR,nbhelp)
+          call EASKMBOX(' ','Image resolution:','low','medium','high',
+     &      ' ',' ',' ',' ',' ',IWR,nbhelp)
           IRESvw(ICOMP,NV)=IWR
         elseif (IWE.eq.4) then
 
@@ -2027,9 +2027,9 @@ C          write(outs,'(a)')'(currently rate of change)'
 C        endif
 C        helptopic='res_mass_flow_menu'
 C        call gethelptext(helpinsub,helptopic,nbhelp)
-C        CALL EASKABC('Data display options:',outs,
+C        CALL EASKMBOX('Data display options:',outs,
 C     &    'variable (default)','rate of change of variable','cancel',
-C     &    II,nbhelp)
+C     &    ' ',' ',' ',' ',' ',II,nbhelp)
 C        if(II.ne.3.and.(IROC.ne.(II-1)))then
 C          IROC=II-1
 C          call usrmsg (' ','Clearing current selections.','W')
@@ -2058,8 +2058,8 @@ C << revise for additional casual gain types >>
             helptopic='res_casual_gain_type'
             call gethelptext(helpinsub,helptopic,nbhelp)
  937        IOT=1
-            CALL EASKATOG(' ','Casual gain representing occupancy:',
-     &         'always occupied',ll1,ll2,ll3,'time',' ',' ',IOT,
+            CALL EASKMBOX(' ','Casual gain representing occupancy:',
+     &         'always occupied',ll1,ll2,ll3,'time',' ',' ',' ',IOT,
      &         nbhelp)
             if (IOT.gt.1.and.IOT.lt.5) then
               iocupf=1      
@@ -2150,8 +2150,8 @@ C Set axis limits for the current plot.
  555      continue
 
 C Ask user preference for horizontal axis.
-          CALL EASKABCD(' ','Horizontal axis divisions:','default',
-     &      'hours','days','weeks',horaxisdiv,nbhelp)
+          CALL EASKMBOX(' ','Horizontal axis divisions:','default',
+     &      'hours','days','weeks',' ',' ',' ',' ',horaxisdiv,nbhelp)
 
 C Redraw graph (if applicable).
           if (NMFGET.gt.0) then
@@ -2172,8 +2172,9 @@ C Toggle time format and day separators for all other display formats.
           endif
           helptopic='res_flow_hash_separator'
           call gethelptext(helpinsub,helptopic,nbhelp)
-          CALL EASKAB('Include mark between days when',
-     &      'displaying or writing data?','no','yes',IDH,nbhelp)
+          CALL EASKMBOX('Include mark between days when',
+     &      'displaying or writing data?','no','yes',
+     &      ' ',' ',' ',' ',' ',' ',IDH,nbhelp)
           IDHFLG=IDH-1
           goto 1
         endif
@@ -2190,9 +2191,9 @@ C Toggle delimeter.
           helptopic='res_flow_delimeter'
           call gethelptext(helpinsub,helptopic,nbhelp)
           IWM=1
-          CALL EASKATOG(' ','Column delimeter:',
+          CALL EASKMBOX(' ','Column delimeter:',
      &      'multi-space','single space','tab','comma','tagged',
-     &      'cancel',' ',IWM,nbhelp)
+     &      'cancel',' ',' ',IWM,nbhelp)
           if(iwm.eq.1)then
             delim = '-'
           elseif(iwm.eq.2)then
@@ -2226,8 +2227,9 @@ C Add or clear labels within a graph.
           if(ngrlbl.eq.0)then
             helptopic='res_mass_graph_title'
             call gethelptext(helpinsub,helptopic,nbhelp)
-            CALL EASKAB(' ','Graph label options:',
-     &        'edit/add','cancel',igopt,nbhelp)
+            CALL EASKMBOX(' ','Graph label options:',
+     &        'edit/add','cancel',' ',' ',' ',' ',' ',' ',
+     &        igopt,nbhelp)
             if(igopt.eq.1)then
               igrl=0
               grlbl(1)=' '; grlbl(2)=' '; grlbl(3)=' '; grlbl(4)=' '
@@ -2239,9 +2241,9 @@ C Add or clear labels within a graph.
           elseif(ngrlbl.gt.0)then
             helptopic='res_mass_graph_title'
             call gethelptext(helpinsub,helptopic,nbhelp)
-            CALL EASKABC(' ','Graph label options',
+            CALL EASKMBOX(' ','Graph label options',
      &        'clear existing ','edit/add','cancel',
-     &        igopt,nbhelp)
+     &        ' ',' ',' ',' ',' ',igopt,nbhelp)
             if(igopt.eq.1)then
               ngrlbl=0
               igrl=0
@@ -2357,8 +2359,8 @@ C Select a CFD cell if needed.
 C Ask user how they want to specify a cell - MRT sensor, room COG, or
 C pick one manually.
   346   iopt=1
-        call EASKABC(' ','Location:','pick cell','MRT sensor',
-     &    'zone COG',iopt,nbhelp)
+        call EASKMBOX(' ','Location:','pick cell','MRT sensor',
+     &    'zone COG',' ',' ',' ',' ',' ',iopt,nbhelp)
 
         NMFLST=NMFLST+1
         IMFGETNO(NMFGET,4)=NMFLST

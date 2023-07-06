@@ -4628,3 +4628,508 @@ C Evaluate NTUr using simpson's rule.
  
       return
       end
+
+
+C ******************** CMP144C ********************
+C Generates for plant component IPCOMP with plant db code 40 ie.
+C 1 node (ISV=21) AC  cooling coil & flux control
+C matrix equation coefficients COUT (in order: self-coupling, cross-
+C coupling, and present-time coefficients) for energy balance (ISTATS=1),
+C 1st phase mass balance (ISTATS=2), or 2nd phase mass (ISTATS=3)
+C This code and calculation method is derived from the methodology used in
+C the CalcDoe2DXCoil subroutine in EnergyPlus
+C     ADATA: 1 Component total mass (kg)
+C            2 Mass weighted average specific heat (J/kgK)
+C            3 UA modulus (W/K)
+C     BDATA: 1 Rated gross cooling capacity [W]
+C            2 gross rated SHR
+C            3 gross rated COP
+C            4 rated air volume flow rate [m3/s]
+C            5 Total cooling capacity curve a0
+C            6 Total cooling capacity curve a1
+C            7 Total cooling capacity curve a2
+C            8 Total cooling capacity curve a3
+C            9 Total cooling capacity curve a4
+C            10 Total cooling capacity curve a5
+C            11 Total cooling capacity curve a6
+C            12 Total cooling capacity curve a7
+C            13 Energy input ratio modifier curve b0
+C            14 Energy input ratio modifier curve b1
+C            15 Energy input ratio modifier curve b2
+C            16 Energy input ratio modifier curve b3
+C            17 Energy input ratio modifier curve b4
+C            18 Energy input ratio modifier curve b5
+C            19 Energy input ratio modifier curve b6
+C            20 Energy input ratio modifier curve b7
+C            21 Coil geometry parameter (calculated internally)
+C     CDATA: 1 Control Signal
+
+C     PCDATF/P
+C            1 Total cooling (W)
+C            2 Sensible cooling (W)
+C            3 Electrical load (W)
+C            4 COP (-)
+C            5 Condensate flow rate (kg/s)
+
+      SUBROUTINE CMP144C(IPCOMP,COUT,ISTATS)
+      use h3kmodule
+#include "plant.h"
+#include "building.h"
+
+C External functions------------------------------------------------
+      integer lnblnk
+C ------------------------------------------------------------------
+      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/TC/ITC,ICNT
+      COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
+
+      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+      COMMON/Pctime/TIMSEC
+      COMMON/PTIME/PTIMEP,PTIMEF
+      COMMON/PCTC/TC(MPCOM)
+
+      COMMON/PCEQU/IMPEXP,RATIMP
+      COMMON/PITER/MAXITP,PERREL,PERTMP,PERFLX,PERMFL,itrclp,
+     &             ICSV(MPNODE,MPVAR),CSVI(MPNODE,MPVAR)
+
+      COMMON/C9/NPCOMP,NCI(MPCOM),CDATA(MPCOM,MMISCD)
+      COMMON/C10/NPCON,IPC1(MPCON),IPN1(MPCON),IPCT(MPCON),
+     &           IPC2(MPCON),IPN2(MPCON),PCONDR(MPCON),PCONSD(MPCON,2)
+      COMMON/C12PS/NPCDAT(MPCOM,9),IPOFS1(MCOEFG),IPOFS2(MCOEFG,MPVAR)
+      COMMON/PDBDT/ADATA(MPCOM,MADATA),BDATA(MPCOM,MBDATA)
+      COMMON/PCVAL/CSVF(MPNODE,MPVAR),CSVP(MPNODE,MPVAR)
+      COMMON/PCVAR/PCTF(MPCON),PCRF(MPCON),PUAF(MPNODE),PCQF(MPNODE),
+     &             PCNTMF(MPCOM),
+     &             PCTP(MPCON),PCRP(MPCON),PUAP(MPNODE),PCQP(MPNODE),
+     &             PCNTMP(MPCOM)
+      COMMON/PCOND/CONVAR(MPCON,MCONVR),ICONTP(MPCON),
+     &             ICONDX(MPCOM,MNODEC,MPCONC)
+      COMMON/PCDAT/PCDATF(MPCOM,MPCDAT),PCDATP(MPCOM,MPCDAT)
+      COMMON/CLIMIP/QFPP,QFFP,TPP,TFP,QDPP,QDFP,VPP,VFP,DPP,DFP,HPP,HFP
+C Plant component ASCII names.
+      common/pcnam/pcname(mpcom)
+      character*15 pcname        ! Plant component names
+
+      COMMON/ATPRES/PATMOS
+      COMMON/WBULBO/IOPT
+
+      COMMON/PCRES/QDATA(MPCOM),PCAOUT(MPCOM,MPCRES),napdat(mpcom)
+
+C Electrical details for specified plant components
+      common/elpcp/NPEL,PFP(mpcom),IPFP(mpcom),PWRP(mpcom),
+     &BVOLTP(mpcom),IPHP(mpcom)
+
+      PARAMETER (SMALL=1.0E-15)
+      REAL      COUT(MPCOE)
+      character outs*124
+      logical closea
+      INTEGER iNameLength
+      real :: FlowInRatio ! Operating point flow ratio (actual/rated)
+      real :: InletWetBulb ! Inlet wet bulb temperature [oC]
+      real :: InletWetBulbCalc ! Inlet wet bulb temperature used for calculation
+      real :: InletHumRat ! Inlet humidity ratio [kg_v/kg_da]
+      real :: InletHumRatCalc ! Inlet humidity ratio used for performance calculation [kg_v/kg_da]
+      real :: werror  ! Estimated error for capacity calculation
+      integer :: Counter ! Iteration counter
+      real :: fCapCorr ! Correction factor for rated capacity
+      real :: fCapOp ! Total cooling capacity available at operating condition [W]
+      real :: fBFop ! bypass factor at operating condition [W]
+      real :: fSHRop ! sensible heat ratio at operating condition
+      real :: fHdelta ! Change in enthaply across the coil [J/kg]
+      real :: fEthADP ! Enthaply at coil apparatus dewpoint [J/kg]
+      real :: fTADP ! Temperature at coil apparatus dewpoint [oC]
+      real :: ghADP ! Humidity ratio at coil apparatus dewpoint [kg_v/kg_da]
+      real :: fEthTinWADP ! Enthaply at coil inlet drybulb and ADP humidity ratio [J/kg]
+      real :: fHoutlet ! Enthaply at coil outlet [J/kg]
+      real :: fHinlet ! Enthaply at coil inlet [J/kg]
+      real :: fhTinwout ! Enthaply at coil drybulb and coil outlet humidity ratio [J/kg]
+      real :: fFullLdOutAirHumRat ! Coil outlet humidity ratio [kg_v/kg_da]
+      real :: fFullLdOutAirTemp ! Coil outlet drybulb [oC]
+      real :: fCondRate ! Condensation mass flow rate [kg_w/s]
+      real :: fCpMin ! Specific heat of dry air [J/kgK]
+      real :: fQsens ! Sensible cooling capacity at operating conditons [W]
+      real :: fQlat ! Latent cooling capacity at operating conditons [W]
+      real :: fCOPcurr ! COP at operating conditons [-]
+      real :: fEIRop ! EIR at operating conditons [-]
+      real :: fEIR ! EIR at rating conditons [-]
+      real :: fEIRCorr ! EIR correction factor for operating conditions [-]
+      real :: TFP ! Future ambient drybulb temperature [oC]
+      real :: fPressBar ! Atmospheric pressure [mBar]
+
+      real :: ENTHP2,TDB,TSATH0,SPHTC2,SPVOL2,TWB ! Psychrometric functions
+
+      REAL, PARAMETER :: Tolerance = 0.01, MaxIter = 30, RF = 0.4
+      REAL, PARAMETER :: fMinCompTemp = -25.0, fMaxCompTemp=90.0
+
+C Trace output
+      IF(ITC.GT.0.AND.NSINC.GE.ITC.AND.NSINC.LE.ITCF.AND.
+     &   ITRACE(37).NE.0) WRITE(ITU,*) ' Entering subroutine CMP144C'
+
+C Check control data for relevant balance type
+      IF(ISTATS.EQ.1.AND.CDATA(IPCOMP,1).LT.0.) THEN
+         CALL DAYCLK(IDYP,PTIMEF,IUOUT)
+         WRITE(outs,*) ' CMP144C: invalid control data for component ',
+     &                  IPCOMP,' : ',CDATA(IPCOMP,1)
+         call edisp(iuout,outs)
+         call edisp(iuout,' CMP144C: unresolvable error.')
+         call epwait
+         call epagend
+         STOP
+      END IF
+
+C Initialize pointers to inter-connection(s) ICON, and node(s) INOD
+      ICON1=ICONDX(IPCOMP,1,1)
+      INOD1=NPCDAT(IPCOMP,9)
+
+C Mark temperature and mass flows for iteration
+      ICSV(INOD1,1)=1
+      CSVI(INOD1,1)=CSVF(INOD1,1)
+      ICSV(INOD1,2)=1
+      CSVI(INOD1,2)=CSVF(INOD1,2)
+      ICSV(INOD1,3)=1
+      CSVI(INOD1,3)=CSVF(INOD1,3)
+
+C Generate coefficients for energy balance equation
+      IF(ISTATS.EQ.1) THEN
+
+C First initialize UA modulus (for calculation of containment heat loss)
+         UA=ADATA(IPCOMP,3)
+         call eclose(PCNTMF(IPCOMP),-99.00,0.001,closea)
+         IF(closea) UA=0.
+         
+C Determine state of coil. 
+         IF(CONVAR(ICON1,2).GT.SMALL.AND.CDATA(IPCOMP,1).GE.0.5)THEN         
+C        Coil is active. Calculate performance at operating point
+
+            ! Mark 2nd phase mass flow rate for iteration
+            ICSV(INOD1,3)=1
+            CSVI(INOD1,3)=CSVF(INOD1,3)
+
+            ! Determine inlet flow ratio and humidityity
+            IF(PATMOS > 0.)THEN
+                fPressBar = PATMOS
+            ELSE
+            ! PATMOS has not been initialized or assigned a value. Assume 1 atm
+                fPressBar = 1012.5
+            ENDIF
+            InletHumRat = CONVAR(ICON1,3)/CONVAR(ICON1,2) ! First determine humidity ratio at inlet
+            InletWetBulb=
+     &          twb(CONVAR(ICON1,1),InletHumRat,fPressBar,IOPT)
+            FlowInRatio = (CONVAR(ICON1,2)
+     &          *SPVOL2(CONVAR(ICON1,1),InletHumRat,fPressBar))
+     &         /BDATA(IPCOMP,4)
+            ! Initialize inlet humidity ratio and wet bulb temperature
+            InletHumRatCalc = InletHumRat
+            InletWetBulbCalc= InletWetBulb
+
+! Get operating bypass factor
+            ! BDATA(IPCOMP,21) holds the coil geometry parameter Ao
+            fBFop = EXP(-1.*BDATA(IPCOMP,21)/CONVAR(ICON1,2))
+C           Check validity      
+            IF(fBFop>1.)THEN
+C              Bypass bactor cannot be greater than or equal to 1
+              call edisp(iuout,' CMP144C: fBFop above 1, reset to 0.98')
+              fBFop=0.98
+            ELSEIF(fBFop<=0.)THEN
+               call 
+     &       edisp(iuout,' CMP144C: fBFop below zero, reset to zero.')
+               fBFop=0.
+            ENDIF
+            
+            ! Check outdoor temperature state
+            IF(TFP<fMinCompTemp)THEN
+               CALL DAYCLK(IDYP,PTIMEF,IUOUT)
+               WRITE(outs,*) 
+     &        ' CMP144C: outdoor drybulb ',TFP, ' below minimum ',
+     &                        fMinCompTemp
+               call edisp(iuout,outs)
+            ENDIF
+            
+            ! Check for high ambient
+            IF(TFP>fMaxCompTemp)THEN
+               CALL DAYCLK(IDYP,PTIMEF,IUOUT)
+               WRITE(outs,*) 
+     &        ' CMP144C: outdoor drybulb ',TFP, ' above maximum ',
+     &                        fMaxCompTemp
+               call edisp(iuout,outs)
+            ENDIF
+
+C           Need to iterate in-case of dry-coil conditions
+            werror = 0.0 ! Initialize error
+            Counter = 0 ! Initialize counter
+            fHinlet=ENTHP2(CONVAR(ICON1,1),InletHumRat)*1000. ! Enthaply at the inlet [J/kg]
+            DO WHILE (ABS(werror) .gt. Tolerance .OR. Counter == 0)
+            ! Estimate the operating capacity
+               fCapCorr = BDATA(IPCOMP,5) + (BDATA(IPCOMP,6)
+     &         *InletWetBulbCalc) +(BDATA(IPCOMP,7)
+     &         *(InletWetBulbCalc**2.)) + (BDATA(IPCOMP,8)*TFP) 
+     &         +(BDATA(IPCOMP,9)*(TFP**2.))+(BDATA(IPCOMP,10)
+     &         *FlowInRatio)+(BDATA(IPCOMP,11)*(FlowInRatio**2.))
+     &         +(BDATA(IPCOMP,12)*InletWetBulbCalc*TFP*FlowInRatio)
+               fCapOp = fCapCorr*BDATA(IPCOMP,1)
+
+               fHdelta=fCapOp/CONVAR(ICON1,2) ! Change in enthalpy across the coil [J/kg]
+               fEthADP = fHinlet-(fHdelta/(1.-fBFop)) ! Enthaply at apparatus dewpoint (ADP) [J/kg]
+               fTADP = TSATH0(fEthADP/1000.,fPressBar) ! Saturation temperature [oC]
+               ghADP = HUMRT1(fTADP,100.,fPressBar,IOPT) ! Humidity ratio at ADP [kg_v/kg_da]
+               fEthTinWADP=ENTHP2(CONVAR(ICON1,1),ghADP)*1000. ! Enthaply at coil inlet drybulb and ADP humidity ratio [J/kg]
+               IF((fHinlet-fEthADP) > 1.E-10) THEN
+                 fSHRop = 
+     &               min(((fEthTinWADP-fEthADP)/(fHinlet-fEthADP)),1.) ! Operating condititon SHR
+               ELSE
+                 fSHRop = 1.
+               ENDIF
+               ! Now we check for dry evaporator conditions
+               IF(ghADP > InletHumRatCalc .OR. (Counter >=1 .AND. 
+     &                        Counter < MaxIter)) THEN
+                 IF(InletHumRatCalc == 0.) InletHumRatCalc = 0.00001 ! Reset to minimum
+                 werror = (InletHumRatCalc - ghADP) / InletHumRatCalc
+                 InletHumRatCalc=RF*ghADP+(1.-RF)*InletHumRatCalc
+                 InletWetBulbCalc=
+     &             twb(CONVAR(ICON1,1),InletHumRatCalc,fPressBar,IOPT)
+                 Counter=Counter+1
+                 IF(abs(werror) > Tolerance) THEN
+                    cycle ! Continue the iteration with modified inlet conditions
+                 ELSE
+                    exit ! Conditions are satisfied, exit
+                 ENDIF
+               ELSE
+                 exit ! Conditions are satisfied, exit
+               ENDIF
+            ENDDO
+C           Check validity of the capacity
+            IF(fCapOp<0)THEN
+               CALL DAYCLK(IDYP,PTIMEF,IUOUT)
+               WRITE(outs,*) 
+     &        ' CMP144C: total operating cap below zero for component ',
+     &                        IPCOMP,' : ',fCapOp
+               call edisp(iuout,outs)
+               WRITE(outs,*)' Capacity set to zero. '
+               call edisp(iuout,outs)
+               GOTO 47 ! Bad practice
+            END IF
+
+            fHoutlet=fHinlet-fHdelta ! Enthalpy at outlet [J/kg]
+            fhTinwout = fHinlet-(1.-fSHRop)*fHdelta
+            ! Re-arranged TAIRFE to solve for W [kg_v/kg_da]
+            fFullLdOutAirHumRat = ((fhTinwout/1000.)+0.026-
+     &               (CONVAR(ICON1,1)*1.006))/(2501.+
+     &               (1.805*CONVAR(ICON1,1)))
+            IF(fFullLdOutAirHumRat<=0.) 
+     &               fFullLdOutAirHumRat=MIN(0.00001,InletHumRat)
+            fFullLdOutAirTemp=TDB((fHoutlet/1000.),fFullLdOutAirHumRat)
+            ! Check for saturation and modify temp at constant enthalpy
+            IF(fFullLdOutAirTemp<TSATH0((fHoutlet/1000.),fPressBar))THEN
+               fFullLdOutAirTemp=TSATH0((fHoutlet/1000.),fPressBar)
+               fFullLdOutAirHumRat = ((fhTinwout/1000.)+0.026-
+     &               (CONVAR(ICON1,1)*1.006))/(2501.+
+     &               (1.805*CONVAR(ICON1,1)))
+            ENDIF
+            
+            ! Check for cold coil condition
+            IF(fFullLdOutAirTemp<2.)THEN
+               CALL DAYCLK(IDYP,PTIMEF,IUOUT)
+               WRITE(outs,*) 
+     &        ' CMP144C: coil outlet temperature less than 2 oC: ',
+     &                        fFullLdOutAirTemp
+               call edisp(iuout,outs)
+               WRITE(outs,*) 
+     &        '          This indicates possibility of frost/freeze'
+               call edisp(iuout,outs)
+            ENDIF
+            
+            ! Determine the condensation rate [kg_v/s]
+            fCondRate =
+     &       CONVAR(ICON1,3)-(fFullLdOutAirHumRat*CONVAR(ICON1,2))
+            IF(fCondRate<0.) fCondRate=0. ! Negative values can occur if humidity ratio of inlet is low
+
+C Determine separate sensible and latent cooling provided
+            fQsens=-1.*fSHRop*fCapOp
+            fQlat=-1*(fCapOp+fQsens) ! Used for trace only
+C Determine the operating EIR and COP
+            fEIR=1./BDATA(IPCOMP,3) ! EIR at rated conditions
+            fEIRCorr =BDATA(IPCOMP,13)+(BDATA(IPCOMP,14)*InletWetBulb)+
+     &         (BDATA(IPCOMP,15)*(InletWetBulb**2.0))+
+     &         (BDATA(IPCOMP,16)*TFP)+(BDATA(IPCOMP,17)*(TFP**2.0))
+     &         +(BDATA(IPCOMP,18)*FlowInRatio)+(BDATA(IPCOMP,19)*
+     &         (FlowInRatio**2.))+(BDATA(IPCOMP,20)*InletWetBulb
+     &         *TFP*FlowInRatio)
+            fEIRop = fEIRCorr*fEIR
+C           Check validity
+            IF(fEIRop<=0)THEN
+               CALL DAYCLK(IDYP,PTIMEF,IUOUT)
+               WRITE(outs,*) 
+     &            ' CMP144C: EIR equal or below zero. ',
+     &                       IPCOMP,' : ',fEIRop
+               call edisp(iuout,outs)
+               GOTO 47 ! Bad practice
+            ENDIF
+            fCOPcurr=1./fEIRop
+
+         ELSE
+            ! Coil is not active, no dehmudification assumed
+ 47         fCondRate = 0.
+            fCapOp = 0.
+            fQsens = 0.
+            fQlat = 0.
+            fEIR = 0.
+            fCOPcurr=0.
+         ENDIF
+
+C Transfer sensible to Q for use in coefficient generation
+         Q=fQsens
+
+C Establish heat capacity of component mass CM (J/K) and
+C fluid heat capacity rate(s) C (W/K), ie. SUM(mass flow * specific heat)
+         CM=ADATA(IPCOMP,1)*ADATA(IPCOMP,2)
+         C1=PCONDR(ICON1)*CONVAR(ICON1,2)*SHTFLD(1,CONVAR(ICON1,1))+
+     &      PCONDR(ICON1)*CONVAR(ICON1,3)*SHTFLD(2,CONVAR(ICON1,1))
+
+C Calculate current component time-constant TC
+         TC(IPCOMP)=CM/AMAX1(SMALL,(C1+UA))
+
+C Set up implicit/explicit weighting factor ALPHA (1 = fully implicit)
+         IF(IMPEXP.EQ.1) THEN
+            ALPHA=1.
+         ELSE IF(IMPEXP.EQ.2) THEN
+            ALPHA=RATIMP
+         ELSE IF(IMPEXP.EQ.3) THEN
+            IF(TIMSEC.GT.0.63*TC(IPCOMP)) THEN
+               ALPHA=1.
+            ELSE
+               ALPHA=RATIMP
+            END IF
+         ELSE IF(IMPEXP.EQ.4) THEN
+            CM=0.
+            ALPHA=1.
+         END IF
+
+C Establish matrix equation self- and cross-coupling coefficients
+         COUT(1)=ALPHA*(-C1-UA)-CM/TIMSEC
+         COUT(2)=ALPHA*C1
+C and then present-time coefficient (ie. right hand side)
+C PCRP(ICON1) - Present C1 value
+C PUAP(INOD1) - Present UA value
+C CSVP(INOD1,1) - Present Node temperature
+C PCTP(ICON1) - Present inlet temperature
+C PCNTMF(IPCOMP) - Future containment temperature
+C PCNTMP(IPCOMP) - Present containment temperature
+C PCQP(INOD1) - Present node flux injection
+         COUT(3)=((1.-ALPHA)*(PCRP(ICON1)+PUAP(INOD1))
+     &              -CM/TIMSEC)*CSVP(INOD1,1)
+     &             +(1.-ALPHA)*(-PCRP(ICON1))*PCTP(ICON1)
+     &             -ALPHA*UA*PCNTMF(IPCOMP)
+     &             -(1.-ALPHA)*PUAP(INOD1)*PCNTMP(IPCOMP)
+     &             -ALPHA*Q-(1.-ALPHA)*PCQP(INOD1)
+
+C Store "environment" variables future values
+         PUAF(INOD1)=UA
+         PCTF(ICON1)=CONVAR(ICON1,1)
+         PCRF(ICON1)=C1
+         PCQF(INOD1)=Q
+C Update electrical network values (?)
+         PWRP(IPCOMP)=fEIR*fCapOp
+         IEMODEL=1
+         CALL EMACH(IPCOMP,IEMODEL,PWRP(IPCOMP),PQ,PA)
+         PWRQ=PQ
+
+C Store total cooling, sensible cooling, electrical consumption, and COP
+C for Successive call
+         PCDATF(IPCOMP,1)=-1.*fCapOp ! Total cooling [W]
+         PCDATF(IPCOMP,2)=fQsens ! Sensible cooling
+         PCDATF(IPCOMP,3)=fEIR*fCapOp ! Total energy consumption [W]
+         PCDATF(IPCOMP,4)=fCOPcurr ! Current COP
+         PCDATF(IPCOMP,5)=fCondRate ! Condensation rate [kg_v/s]
+
+C Store additional output variables for the results file.
+         napdat(IPCOMP)=6
+         pcaout(IPCOMP,1)=-1.*PCDATF(IPCOMP,1)
+         pcaout(IPCOMP,2)=PWRP(IPCOMP)
+         pcaout(IPCOMP,3)=PWRQ
+         pcaout(IPCOMP,4)=-1.*fQsens
+         pcaout(IPCOMP,5)=fCOPcurr
+         pcaout(IPCOMP,6)=fCondRate
+
+C Store water vapour mass flow for iteration comparison
+         CSVI(INOD1,3)=CONVAR(ICON1,3)-fCondRate
+
+C 1st phase mass (ie. dry air) balance coefficients
+      ELSE IF(ISTATS.EQ.2) THEN
+         COUT(1)=1.
+         COUT(2)=-PCONDR(ICON1)
+         COUT(3)=0.
+
+C 2nd phase mass (ie. vapour) balance coefficients
+      ELSE IF(ISTATS.EQ.3) THEN
+C        Set the plant solver coefficients
+         COUT(1)=1.     ! Self coupling coefficient
+         fCondRate=PCDATF(IPCOMP,5)
+         IF(fCondRate>0.) THEN
+             COUT(2)=0.
+             COUT(3)=CONVAR(ICON1,3)-fCondRate
+         ELSE
+             COUT(2)=-PCONDR(ICON1)
+             COUT(3)=0.
+         ENDIF
+      END IF
+
+C---------------------------------------------------------------------------------
+C Make select results available in XML and CVS output.
+C---------------------------------------------------------------------------------
+         iNameLength = lnblnk(pcname(IPCOMP))
+         call AddToReport(rvpltCMPCoilToTCool%Identifier,
+     &           PCDATF(IPCOMP,1),
+     &           pcname(IPCOMP)(1:iNameLength))  
+         
+         call AddToReport(rvpltCMPCoilSnsCool%Identifier,
+     &           PCDATF(IPCOMP,2),
+     &           pcname(IPCOMP)(1:iNameLength))
+     
+         call AddToReport(rvpltCMPCoilElec%Identifier,
+     &           PCDATF(IPCOMP,3),
+     &           pcname(IPCOMP)(1:iNameLength)) 
+
+         call AddToReport(rvpltCMPCoilCOP%Identifier,
+     &           PCDATF(IPCOMP,4),
+     &           pcname(IPCOMP)(1:iNameLength))
+
+         call AddToReport(rvpltCMPCoilCond%Identifier,
+     &           PCDATF(IPCOMP,5),
+     &           pcname(IPCOMP)(1:iNameLength))
+
+C Trace output
+      IF(ITC.GT.0.AND.NSINC.GE.ITC.AND.NSINC.LE.ITCF.AND.
+     &   ITRACE(37).NE.0) THEN
+         WRITE(ITU,*) ' Component      ',IPCOMP,':'
+         WRITE(ITU,*) ' 1 node (ISV=21) AC  cooling coil & flux control'
+         WRITE(ITU,*) ' Matrix node(s) ',INOD1
+         WRITE(ITU,*) ' Connection(s)  ',ICON1
+         IF(ISTATS.EQ.1) THEN
+            WRITE(ITU,*) ' CM     = ',CM,' (J/K)'
+            WRITE(ITU,*) ' C1     = ',C1,' (W/K)'
+            WRITE(ITU,*) ' TC     = ',TC(IPCOMP),' (s)'
+            WRITE(ITU,*) ' ALPHA  = ',ALPHA,' (-)'
+            WRITE(ITU,*) ' UA     = ',UA,' (W/K)'
+            WRITE(ITU,*) ' PCNTMF = ',PCNTMF(IPCOMP),' (C)'
+            WRITE(ITU,*) ' CDATA  = ',CDATA(IPCOMP,1)
+         ELSE IF(ISTATS.EQ.3) THEN
+            WRITE(ITU,*) ' m_cond   = ',fCondRate,' (kg/kg)'
+            WRITE(ITU,*) ' Q_sens   = ',fQsens,' (W)'
+            WRITE(ITU,*) ' Q_lat   = ',fQlat,' (W)'
+            WRITE(ITU,*) ' COP   = ',fCOPcurr,' (-)'
+            WRITE(ITU,*) ' Elec Load   = ',fEIR*fCapOp,' (W)'
+         END IF
+         WRITE(ITU,*) ' Matrix coefficients for ISTATS = ',ISTATS
+         NITMS=3
+         WRITE(ITU,*) (COUT(I),I=1,NITMS)
+         IF(ITU.EQ.IUOUT) THEN
+            IX1=(IPCOMP/4)*4
+            IF(IX1.EQ.IPCOMP.OR.IPCOMP.EQ.NPCOMP) call epagew
+         END IF
+      END IF
+
+      IF(ITC.GT.0.AND.NSINC.GE.ITC.AND.NSINC.LE.ITCF.AND.
+     &   ITRACE(37).NE.0) WRITE(ITU,*) ' Leaving subroutine CMP144C'
+
+      RETURN
+      END

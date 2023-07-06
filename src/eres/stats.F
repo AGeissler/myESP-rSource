@@ -235,8 +235,9 @@ C data for all the zones chosen.
 
 C Setup for zone balance. Confirm if snapshot or integrated report.
 C If output to file alter the edisp unit number.
-        call EASKABC('Energy balance options: ',' ',
-     &    'snapshot','integrated over time','cancel',isnapsh,nbhelp)
+        call EASKMBOX('Energy balance options: ',' ',
+     &    'snapshot','integrated over time','cancel',
+     &    ' ',' ',' ',' ',' ',isnapsh,nbhelp)
         if(isnapsh.eq.1)then
           SNAPSH=.TRUE.
           IMO=IOM1; IDO=IOD1
@@ -260,8 +261,9 @@ C standard energy balance.  After finished then reset
 C the period to previous settings.
         helptopic='res_air_point_forms'
         call gethelptext(helpinsub,helptopic,nbhelp)
-        call EASKABC('Zone energy balance: ','(grouped by)',
-     &    'plant status','gain/loss','cancel',IWHICH,nbhelp)
+        call EASKMBOX('Zone energy balance: ','(grouped by)',
+     &    'plant status','gain/loss','cancel',
+     &    ' ',' ',' ',' ',' ',IWHICH,nbhelp)
         if(IWHICH.eq.3)goto 1
 
         itru = icout
@@ -351,8 +353,9 @@ C If output to file alter the edisp unit number.
         endif
         helptopic='res_surf_point_forms'
         call gethelptext(helpinsub,helptopic,nbhelp)
-        call EASKABC('Energy balance options: ',' ',
-     &    'snapshot','integrated over time','cancel',isnapsh,nbhelp)
+        call EASKMBOX('Energy balance options: ',' ',
+     &    'snapshot','integrated over time','cancel',
+     &    ' ',' ',' ',' ',' ',isnapsh,nbhelp)
         if(isnapsh.eq.1)then
           SNAPSH=.TRUE.
           IMO=IOM1
@@ -372,8 +375,9 @@ C If output to file alter the edisp unit number.
 
         helptopic='res_surf_point_forms'
         call gethelptext(helpinsub,helptopic,nbhelp)
-        call EASKABC('Surface energy balance: ','(grouped by)',
-     &    'plant status','gain/ loss','cancel',IWHICH,nbhelp)
+        call EASKMBOX('Surface energy balance: ','(grouped by)',
+     &    'plant status','gain/ loss','cancel',
+     &    ' ',' ',' ',' ',' ',IWHICH,nbhelp)
         if(IWHICH.eq.3)goto 1
         IWHICH=IWHICH+3
         itru = icout
@@ -867,9 +871,9 @@ C Toggle delimeter.
         helptopic='res_stats_delimiter'
         call gethelptext(helpinsub,helptopic,nbhelp)
         IWM=1
-        CALL EASKATOG('Delimeter to use between columns of data:',' ',
+        CALL EASKMBOX('Delimeter to use between columns of data:',' ',
      &    'normal spaces','single space','tab','comma','tagged',
-     &    'continue',' ',IWM,nbhelp)
+     &    'continue',' ',' ',IWM,nbhelp)
         if(iwm.eq.1)then
           delim = '-'
         elseif(iwm.eq.2)then
@@ -903,9 +907,9 @@ C Display help messages. Menu help text.
         helptopic='res_help_choices'
         call gethelptext(helpinsub,helptopic,nbhelp)
         ihd=1
-        call easkatog(' ','Help options:','overview','summary stats',
+        call easkmbox(' ','Help options:','overview','summary stats',
      &   'frequency table','energy balances','detailed stats',
-     &   'monthly gain loss','cancel',ihd,nbhelp)
+     &   'monthly gain loss','cancel',' ',ihd,nbhelp)
         if(ihd.eq.1)then
           helptopic='res_statistics_menu'
           call gethelptext(helpinsub,helptopic,nbhelp)
@@ -3205,13 +3209,13 @@ C Energy requirements.
 
 C User requested single line header, use the current separator.
             if(hcffpattern(1)(1:8).eq.'HEATONLY')then
-              write(outs,'(2A)')
+              write(outs,'(3A)')
      &          'Id Zone_name Sens_heat_kWh Sens_heat_kWhm2 ',
      &          'Heat_hrs  ','Humid_kWh Humid_hrs'
               call SDELIM(outs,outsd,delim,IW)
               call edisp(itru,outsd)
             elseif(hcffpattern(1)(1:8).eq.'COOLONLY')then
-              write(outs,'(2A)')
+              write(outs,'(3A)')
      &          'Id Zone_name ','Sens_cool_kWh Sens_cool_kWhm2 ',
      &          'Cool_hrs Dehumid_kWh Dehumid_hrs'
               call SDELIM(outs,outsd,delim,IW)

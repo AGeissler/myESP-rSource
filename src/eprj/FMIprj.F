@@ -114,8 +114,9 @@ C If it doesn't, offer user choice to choose another or open a new file.
         endif
         CALL FMI_RD(IUF,IER)
       else
-        CALL EASKAB(' File not found.','Options:',
-     &    'specify another','make new file',itmp,0)
+        CALL EASKMBOX(' File not found.','Options:',
+     &    'specify another','make new file',
+     &    ' ',' ',' ',' ',' ',' ',itmp,0)
         if (itmp.eq.1) goto 3
         write(outs,'(3a)')' New file ',
      &    FMISFL_tmp(1:lnblnk(FMISFL_tmp)),' will be created.'
@@ -180,8 +181,9 @@ C Set up menu.
 C Exit, offering user chance to save modified data.
       if (IPICK.eq.NITEMS) then
         if ((.not.saved).and.(.not.none)) then
-          CALL EASKABC(' Modified data not saved!','Options:',
-     &      'save and exit','exit without saving','cancel',itmp,0)
+          CALL EASKMBOX(' Modified data not saved!','Options:',
+     &      'save and exit','exit without saving','cancel',
+     &      ' ',' ',' ',' ',' ',itmp,0)
           if (itmp.eq.1) then
             xst=.false.
             do itmp=1,FMUNOF
@@ -199,8 +201,9 @@ C Exit, offering user chance to save modified data.
             enddo
             if (xst) then
               CALL edisp(iuout,outs)
-              CALL EASKAB(' Some FMU files not specified!','Options:',
-     &          'save anyway','cancel',itmp,0)
+              CALL EASKMBOX(' Some FMU files not specified!',
+     &          'Options:','save anyway','cancel',
+     &          ' ',' ',' ',' ',' ',' ',itmp,0)
               if (itmp.eq.2) goto 4
             endif
             CALL FMI_WT(IUF,IER)
@@ -250,8 +253,9 @@ C if not.
         enddo
         if (xst) then
           CALL edisp(iuout,outs)
-          CALL EASKAB(' Some FMU files not specified!','Options:',
-     &      'save anyway','cancel',itmp,0)
+          CALL EASKMBOX(' Some FMU files not specified!','Options:',
+     &      'save anyway','cancel',
+     &      ' ',' ',' ',' ',' ',' ',itmp,0)
           if (itmp.eq.2) goto 4
         endif
         CALL FMI_WT(IUF,IER)
@@ -269,8 +273,9 @@ C Manage FMU specifications.
       elseif (IPICK.eq.NITEMS-4) then
         helptopic='manage_FMUs'
         CALL gethelptext(helpinsub,helptopic,nbhelp)
-        CALL EASKABCD(' ','Options:',
-     &    'add','delete','copy','cancel',itmp,nbhelp)
+        CALL EASKMBOX(' ','Options:',
+     &    'add','delete','copy','cancel',
+     &    ' ',' ',' ',' ',itmp,nbhelp)
 
 C Add an FMU spec at the end of the list. First check that it doesn't
 C exceed the maximum. Commons should already be initialised.
@@ -417,8 +422,9 @@ C user if it does not.
           if (.not.xst) then
             helptopic='FMU_file_not_found'
             CALL gethelptext(helpinsub,helptopic,nbhelp)
-            CALL EASKAB('Cannot find file!','Options:',
-     &        'respectify','cancel',itmp,nbhelp)
+            CALL EASKMBOX('Cannot find file!','Options:',
+     &        'respectify','cancel',
+     &        ' ',' ',' ',' ',' ',' ',itmp,nbhelp)
             if (itmp.eq.1) goto 6
           endif
           if (saved) saved=.false.
@@ -603,8 +609,9 @@ C Manage inputs.
       elseif (IPICK.eq.NITEMS-3) then
         helptopic='manage_inputs'
         CALL gethelptext(helpinsub,helptopic,nbhelp)
-        CALL EASKABCD(' ','Options:',
-     &    'add','delete','copy','cancel',itmp,nbhelp)
+        CALL EASKMBOX(' ','Options:',
+     &    'add','delete','copy','cancel',
+     &    ' ',' ',' ',' ',itmp,nbhelp)
 
 C Add an input at end of list. First check that it doesn't exceed the
 C maximum. Commons should already be initialised.
@@ -770,8 +777,9 @@ C Show help.
 
 C Pick a zone. First give an option to select the ambient environment.
         elseif (IPICK.eq.5) then
-          CALL EASKABC(' Ambient environment or a building zone?',' ',
-     &      'ambient','building zone','cancel',itmp,nbhelp)
+          CALL EASKMBOX(' Ambient environment or a building zone?',
+     &      ' ','ambient','building zone','cancel',
+     &      ' ',' ',' ',' ',' ',itmp,nbhelp)
           if (itmp.eq.1) then
             FMUIZON(IFMU,IINP)=0
           elseif (itmp.eq.2) then
@@ -1032,8 +1040,9 @@ C Manage outputs.
       elseif (IPICK.eq.NITEMS-3) then
         helptopic='manage_outputs'
         CALL gethelptext(helpinsub,helptopic,nbhelp)
-        CALL EASKABCD(' ','Options:',
-     &    'add','delete','copy','cancel',itmp,nbhelp)
+        CALL EASKMBOX(' ','Options:',
+     &    'add','delete','copy','cancel',
+     &    ' ',' ',' ',' ',itmp,nbhelp)
 
 C Add an output at end of list. First check that it doesn't exceed the
 C maximum. Commons should already be initialised.
@@ -1198,8 +1207,9 @@ C Show help.
 
 C Pick a zone. First give an option to select the ambient environment.
         elseif (IPICK.eq.5) then
-          CALL EASKABC(' Ambient environment or a building zone?',' ',
-     &      'ambient','building zone','cancel',itmp,nbhelp)
+          CALL EASKMBOX(' Ambient environment or a building zone?',
+     &      ' ','ambient','building zone','cancel',
+     &      ' ',' ',' ',' ',' ',itmp,nbhelp)
           if (itmp.eq.1) then
             FMUOZON(IFMU,IOUT)=0
             if (saved) saved=.false.

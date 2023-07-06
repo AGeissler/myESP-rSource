@@ -45,6 +45,10 @@ C mm unless otherwise stated.
       character oformat*24,head*4
       common/dxfe/oformat,indxzon,head
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
+      logical ieopened     ! Has session file been started.
+      integer iecount      ! Does it hold error messages.
+      character iefile*72  ! The name of the session file.
+      common/logs/ieopened,iecount,iefile
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
       common/rpath/path
       common/FILEP/IFIL
@@ -77,10 +81,6 @@ C Ask to overwrite flag.
 C Name of current application.
       common/APPNAME/cAppName
       character cAppName*12     
-
-C Session log file (for errors etc.).
-      character iefile*72
-      common/logs/iefile
 
 C Simulation parameter presets.
       common/spfldat/nsset,isset,isstup,isbnstep,ispnstep,issave,isavgh
@@ -236,7 +236,7 @@ C Create and open a session log file based on user name, PID etc.
       call st2file(tfile,iefile)
 
 C Open the session file.
-      ieout=ifil+927          ! set to unused index 942
+      ieout=ifil+927          ! set to unused index 927
       open(ieout,file=iefile,status='UNKNOWN',err=903)
       write(ieout,'(a)')'Session log for cnv'
       call dstamp(dstmp) ! get curret time
@@ -1728,7 +1728,6 @@ C (the itv1 & itv2 need to be re-formed.
 C Take a line pair and then look and see if it is referenced in
 C reverse order just once. itv1 & itv2 are the vertices at the
 C start and end of each edge, its1 is the reference surface. 
-      if(ivb.ne.0)call tstamp('>','PRJ: checking vertex match')
       ipair=0; inve=0; iub=0
       DO IS=1,NSUR
         invesur(IS)=0
@@ -4253,9 +4252,7 @@ C initial set of days.
 
 C Create a system configuration file based on the registration
 C information.
-   77 call tstamp('>','PRJ: create configuration')
-      call tstamp('>',LCFGF)
-      CALL EMKCFG('-',IER)
+   77 CALL EMKCFG('-',IER)
       if(ier.eq.0)then
         CFGOK=.TRUE.
 
@@ -4884,9 +4881,9 @@ C Default season definitions.
 C Dialog based on whether or not seasons have been found.
 
           if(nbdaytype.ge.3.and.nbdaytype.le.MDTY)then
-            CALL EASKABCD(' ',' Options:','add day type',
+            CALL EASKMBOX(' ',' Options:','add day type',
      &        'add set of day types','n/a',
-     &        'cancel',IRT,nbhelp)
+     &        'cancel',' ',' ',' ',' ',IRT,nbhelp)
             if(irt.eq.1)then
 
 C If there is a control file, scan it and then loop through each of the
@@ -5351,8 +5348,9 @@ C user can select one or more.
 C << Potential place to support seasonal day type allocations.>>
 
           IHDT=0
-          CALL EASKABC(' ','Add day types:',
-     &    'one-by-one','by pattern','cancel',IHDT,nbhelp)
+          CALL EASKMBOX(' ','Add day types:',
+     &      'one-by-one','by pattern','cancel',
+     &      ' ',' ',' ',' ',' ',IHDT,nbhelp)
           IF(IHDT.EQ.1)THEN
             idt=idvals(1)
             do 78 ld=1,365
@@ -5960,9 +5958,10 @@ C that nbdaytpe is not incremented until after the addctld call.
           IDT=IUDT
         elseif(IUDT.eq.-1)then
           IHDTP=1             ! interactive session
-          CALL EASKABC('Control pattern for new day type (see help)?',
+          CALL EASKMBOX('Control pattern for new day type (see help)?',
      &      ' ','One period free floating',
-     &      'Use pattern of last day type','cancel',IHDTP,nbhelp)
+     &      'Use pattern of last day type','cancel',
+     &      ' ',' ',' ',' ',' ',IHDTP,nbhelp)
           if(IHDTP.eq.1)then
             dayact='SA'       ! assume silent addition
           elseif(IHDTP.eq.2)then
@@ -6086,9 +6085,9 @@ C Acquire help messages.
 
 C If interactive ask what to do, otherwise take passed directives.
       if(ACT(1:2).eq.'--')then
-        CALL EASKABCD('Options: ',' ','delete day type',
+        CALL EASKMBOX('Options: ',' ','delete day type',
      &    'add day type','copy existing day type','cancel',
-     &    IW,nbhelp)
+     &    ' ',' ',' ',' ',IW,nbhelp)
       elseif(ACT(1:2).eq.'SD'.or.ACT(1:2).eq.'sd')then
         IW=1
       elseif(ACT(1:2).eq.'SA'.or.ACT(1:2).eq.'sa')then

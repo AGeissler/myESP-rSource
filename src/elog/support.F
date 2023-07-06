@@ -24,7 +24,6 @@ C  EPAGEW:  Screen control: Wait before paging.
 C  EPWAIT:  Screen control: Wait without paging.
 C  EPAGEND: Screen control: Page then close window if open.
 C  ADDPATH: Return file name appended onto the path and logical concat.
-C  tstamp:  Date stamp with message.
 C  dstamp:  Get date stamp in the form: Fri Jan 23 09:34:31 1998.
 C  STRIPC1K strips comments from a ASCII file (1000 char long) string and returns the data.
 C  iCountWords: Counts the number of space/tab/comma-separated
@@ -1580,65 +1579,6 @@ C Limit feedback text length to fit within outs text buffer.
       return
       end
 
-C ****** Date stamp routine.
-C tstamp: generates a timestamped message.
-C act (char*1) = '-' Current time, = 'm' Message plus time
-C  = '>' append message to journal
-      subroutine tstamp(act,msg)
-      COMMON/OUTIN/IUOUT,IUIN,IEOUT
-      common/journopt/journio,iuj,journcmd,jfile
-
-      character*(*) msg
-      character dstmp*24,act*1,outs*124,journcmd*20,jfile*72
-      logical there
-
-      call dstamp(dstmp)
-      if(act.eq.'-')then
-        write(outs,'(A,A)')' Current time is : ',dstmp
-        call edisp(iuout,outs)
-      elseif(act.eq.'m')then
-        LN=max(1,lnblnk(msg))
-        write(outs,'(3A)')msg(1:LN),' @ ',dstmp
-        call edisp(iuout,outs)
-      elseif(act.eq.'>')then
-
-C If there is a journal file append the current message to it and close.
-        LN=max(1,lnblnk(msg))
-        write(outs,'(3A)')msg(1:LN),' @ ',dstmp
-        ltf=max(1,LNBLNK(jfile))
-        if(journio.eq.1.and.
-     &    (jfile(1:2).ne.'  '.and.jfile(1:4).ne.'UNKN'))then
-          there=.false.
-          INQUIRE(FILE=jfile(1:ltf),EXIST=there)
-          if(there)then
-            close(iuj)
-            open(iuj,file=jfile(1:ltf),position='APPEND',
-     &        status='UNKNOWN',err=1)
-            LN=max(1,lnblnk(outs))
-            write(iuj,'(a)',iostat=ios,err=2)outs(1:LN)
-            close(iuj)
-          endif
-        endif
-      endif
-
-      return
-
-   1  if(IOS.eq.2)then
-        call edisp(iuout,
-     &  'Permission issue while opening journal file, continuing.')
-      else
-        call edisp(iuout,'Error opening journal file, continuing.')
-      endif
-      return
-   2  if(IOS.eq.2)then
-        call edisp(iuout,
-     &  'Permission issue while updating journal file, continuing.')
-      else
-        call edisp(iuout,'Error updating journal file, continuing.')
-      endif
-      close(iuj)
-      return
-      end
 
 C ****** ectime function
 C ectime function as fixed length character*24 based on the
@@ -2509,15 +2449,15 @@ C Querry yes or no or default.
         IWI=1
         if (DEFLT) then
           if(DOK)then
-            call EASKATOG(MSG1,MSG2,'yes (default)','no',' ',' ',' ',
-     &      ' ',' ',IWI,newnbhelp)
+            call EASKMBOX(MSG1,MSG2,'yes (default)','no',' ',' ',' ',
+     &      ' ',' ',' ',IWI,newnbhelp)
           else
-            call EASKATOG(MSG1,MSG2,'yes','no (default)',' ',' ',' ',
-     &      ' ',' ',IWI,newnbhelp)
+            call EASKMBOX(MSG1,MSG2,'yes','no (default)',' ',' ',' ',
+     &      ' ',' ',' ',IWI,newnbhelp)
           endif
         else
-          call EASKATOG(MSG1,MSG2,'yes','no',' ',' ',' ',
-     &      ' ',' ',IWI,newnbhelp)
+          call EASKMBOX(MSG1,MSG2,'yes','no',' ',' ',' ',
+     &      ' ',' ',' ',IWI,newnbhelp)
         endif
         IF(IWI.eq.1)THEN
           OK=.TRUE.
@@ -2827,7 +2767,6 @@ C Set coordinates IBX and IBY to zero (so parameter not needed).
       lsmn=MIN0(lnblnk(msg),67)
       lsmn=max(1,LSMN)
       write(outs,'(a,a)',iostat=ios,err=1)'HELP: ',msg(1:lsmn)
-      call tstamp('>',outs)
       ILEN=NHELP
       call HPAGE('create',ILEN,MIFULL,MFULL,IST,IPM,MPM,IPFLG)
       IF(MMOD.EQ.8)THEN
@@ -2911,32 +2850,37 @@ C current line index.
       return
       END
 
-C ******************** EASKATOG
-C EASKABCD Generic choice of 3 - 7 items returning 1 to 7 according to
+
+C ******************** EASKMBOX ********************
+C Generic multi choice of 3 - 8 items returning 1 to 8 according to
 C which of the choices has been chosen.
 C MSG1 and MSG2 are prompts (upto 124 char) to be printed.
-C AOPT, BOPT & COPT, DOPT, EOPT, FOPT, GOPT are the text strings describing
-C the options available, (these should not be too long).  If all optons
-C are filled with text then all presneted.  If and option (beginning
-C with FOPT and working backwards is a single blank space then fewer
-C options are presented.
-C In the case of a graphic menu the c function abcdefbox will be called
+C AOPT, BOPT etc are the text strings describing available
+C options, (these should not be too long). Logic works backwards
+C to find the teminal non-blank option.
+C In the case of a graphic menu the c function openmultibox will be called
 C and the messages will appear in a dialogue box at the bottom of the
 C graphic window.
-      SUBROUTINE EASKATOG(MSG1,MSG2,AOPT,BOPT,COPT,DOPT,EOPT,FOPT,GOPT,
-     &  IWHICH,NHELP)
+
+      SUBROUTINE EASKMBOX(MSG1,MSG2,AOPT,BOPT,COPT,DOPT,EOPT,FOPT,GOPT,
+     &  HOPT,IWHICH,NHELP)
 
 C Parameters passed.
-      CHARACTER*(*) MSG1,MSG2,AOPT,BOPT,COPT,DOPT,EOPT,FOPT,GOPT
+      CHARACTER*(*) MSG1,MSG2,AOPT,BOPT,COPT,DOPT,EOPT,FOPT,GOPT,HOPT
       integer IWHICH ! selection passed back
       integer NHELP  ! number of help lines to display
 
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
+      integer ifs,itfs,imfs
+      COMMON/GFONT/IFS,ITFS,IMFS
       CHARACTER ANS*2,MSG3*248
+      integer lastfont,iuse,imaxwid
+      dimension choices(10)
+      character choices*42
 
 C See how many items there are to present.
-      nopt=7
+      nopt=8
       la=max(1,LNBLNK(AOPT))
       lb=max(1,LNBLNK(BOPT))
       lc=max(1,LNBLNK(COPT))
@@ -2944,12 +2888,24 @@ C See how many items there are to present.
       le=max(1,LNBLNK(EOPT))
       lf=max(1,LNBLNK(FOPT))
       lg=max(1,LNBLNK(GOPT))
+      lh=max(1,LNBLNK(HOPT))
       LN2=max(1,LNBLNK(MSG2))
+      if(lh.le.1)nopt=7
       if(lg.le.1)nopt=6
       if(lf.le.1)nopt=5
       if(le.le.1)nopt=4
       if(ld.le.1)nopt=3
       if(lc.le.1)nopt=2
+      imaxwid=0
+      if(la.gt.imaxwid)imaxwid =la
+      if(lb.gt.imaxwid)imaxwid =lb
+      if(lc.gt.imaxwid)imaxwid =lc
+      if(ld.gt.imaxwid)imaxwid =ld
+      if(le.gt.imaxwid)imaxwid =le
+      if(lf.gt.imaxwid)imaxwid =lf
+      if(lg.gt.imaxwid)imaxwid =lg
+      if(lh.gt.imaxwid)imaxwid =lh
+      write(6,*) 'imaxwid ',imaxwid
 
 C Print out message according to the combination of strings passed.
 C Setup a single line menu to pick from via EASKS.
@@ -2978,13 +2934,18 @@ C Setup a single line menu to pick from via EASKS.
      &    ' a) ',AOPT(1:la),' b) ',BOPT(1:lb),' c) ',COPT(1:lc),
      &    ' e) ',DOPT(1:ld),' f) ',EOPT(1:le),' g) ',FOPT(1:lf),
      &    ' i) ',GOPT(1:lg),' ? '
+        elseif(nopt.eq.8)then
+          WRITE(MSG3,'(19a)')' ',MSG2(1:LN2),
+     &    ' a) ',AOPT(1:la),' b) ',BOPT(1:lb),' c) ',COPT(1:lc),
+     &    ' e) ',DOPT(1:ld),' f) ',EOPT(1:le),' g) ',FOPT(1:lf),
+     &    ' i) ',GOPT(1:lg),' j) ',HOPT(1:lh),' ? '
         endif
 
 C Generate custom help text.
         call helpwithblank(msg3,nhelp,newnbhelp,ier)
         ans = '  '
         call lusrmsg(msg1,msg3,'?')
-        read(iuin,'(A2)')ANS
+        read(iuin,'(A2)',END=666)ANS
 
         IF(ANS(1:1).EQ.'a'.OR.ANS(1:1).EQ.'A')THEN
           IWHICH=1
@@ -3000,6 +2961,8 @@ C Generate custom help text.
           IWHICH=6
         ELSEIF(ANS(1:1).EQ.'i'.OR.ANS(1:1).EQ.'I')THEN
           IWHICH=7
+        ELSEIF(ANS(1:1).EQ.'j'.OR.ANS(1:1).EQ.'J')THEN
+          IWHICH=8
         ELSEIF(ANS(1:1).EQ.'h'.OR.ANS(1:1).EQ.'H'.or.
      &         ANS(1:1).eq.'?')THEN
 
@@ -3018,9 +2981,39 @@ C of help supplied and then provide the prompt again.
         ENDIF
       ELSEIF(MMOD.EQ.8)THEN
 
-C Querry which one.
-   19   CALL abcdefbox(MSG1,MSG2,AOPT,BOPT,COPT,DOPT,EOPT,FOPT,GOPT,IW)
-        IF(IW.EQ.8)THEN
+C Save off current menu font and if mono-space set to proportional.
+        lastfont=IFS
+        if(IFS.ge.0.and.IFS.le.3)then
+          IUSE=IFS+4
+          call userfonts(IUSE,ITFS,IMFS)
+        endif
+
+C Copy the choice strings into an array to pass to upd_box_choices.
+        do ic=1,10
+          choices(ic) = '  '
+        enddo
+
+        do ic=1,nopt
+          if(ic.eq.1) write(choices(ic),'(a)') AOPT(1:la) 
+          if(ic.eq.2) write(choices(ic),'(a)') BOPT(1:lb) 
+          if(ic.eq.3) write(choices(ic),'(a)') COPT(1:lc) 
+          if(ic.eq.4) write(choices(ic),'(a)') DOPT(1:ld) 
+          if(ic.eq.5) write(choices(ic),'(a)') EOPT(1:le) 
+          if(ic.eq.6) write(choices(ic),'(a)') FOPT(1:lf) 
+          if(ic.eq.7) write(choices(ic),'(a)') GOPT(1:lg) 
+          if(ic.eq.8) write(choices(ic),'(a)') HOPT(1:lh) 
+        enddo
+        iw=imaxwid
+        write(itypes,9)
+   9    format(10('-'))
+
+C Pass choices array into C data structures.
+   19   call upd_box_choices(choices,itypes,nopt,iw)
+
+C Querry which one. Note: openmultibox returns a 9 if help selected.
+        call openmultibox(MSG1,MSG2,IW)
+
+        IF(IW.EQ.9)THEN
 
 C A probable request for help has been received. Print out the lines
 C of help supplied and then provide the prompt again.
@@ -3029,10 +3022,21 @@ C of help supplied and then provide the prompt again.
           GOTO 19
         ENDIF
         IWHICH=IW
+     
+        IFS=lastfont    ! re-establish font
+        call userfonts(IFS,ITFS,IMFS)
       ENDIF
       RETURN
 
-      END
+C If an EOF is detected when reading from IUIN, we often get infinite
+C looping, creating infinite output. Stop the program.
+  666 write(IUOUT,*)'EASKMBOX: EOF detected, error in input commands.'
+      call pauses(1)
+      STOP
+
+      END  ! of EASKMBOX
+
+
 
 C ******** HPAGE
 C Control paging of pop-up help.

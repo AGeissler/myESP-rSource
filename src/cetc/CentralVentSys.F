@@ -1326,13 +1326,13 @@ c **********************************************************************
 
 c --- 27-08-2014: Patrice Pinel: Changed the hard coded density and specific heat for links to parameters HVIAirDensity and HVIAirCp defined in "Ventilation_Data.h".  
 c --- Also added a CVSmDotAir variable, representing the mass flow rate of air, since tests in cooling mode deal with Enthalpy and not temperature
-      CVSmDotAir = max(CVSSupplyRate, CVSExhaustRate)*HVIAirDensity/1000.   ! Mass flow rate of air (kg/s)
+      CVSmDotAir = max(CVSSupplyRate,CVSExhaustRate)*HVIAirDensity/1000.    ! Mass flow rate of air (kg/s)
       MCP = CVSmDotAir*HVIAirCp                                             ! Thermal inertia of air stream (W/K)
 
 ! 27-08-2014: Patrice Pinel: Put the calculation of zone fractions here.  
 ! Since they are used many times during analysis, to evaluate the psychrometric state of exhaust air and the zone loads, 
 ! it makes more sens to have them initialized only once.  
-      If (allocated(AIM2_zone_infil)) Then			                        ! The aim-2 data has been read in
+      If (allocated(AIM2_zone_infil)) Then                                  ! The aim-2 data has been read in
          CVSZoneFrac = 0.                                                   ! Initialize all zone fractions to zero
          Do iComp = 1,NCOMP                                                 ! Go through all zones
             Do iAIM = 1, AIM2_num_zones_infil                               ! Go through all AIM2 zones

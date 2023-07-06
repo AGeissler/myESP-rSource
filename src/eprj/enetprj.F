@@ -225,9 +225,9 @@ C Ask for a new network description
 
 C Assign new network type
         INP=1
-        CALL EASKATOG(' ','Network types:',
+        CALL EASKMBOX(' ','Network types:',
      &'d.c.','1-phase','2-phase','3-phase','balanced','mixed',
-     &'cancel',INP,nbhelp)
+     &'cancel',' ',INP,nbhelp)
         IF(INP.EQ.1)THEN
           ENTYPE=1
         ELSEIF(INP.EQ.2)THEN
@@ -448,8 +448,9 @@ C Within the header so skip request.
         IF(MODE.EQ.'E') THEN
 
 C Add, delete or copy a node. 
-          CALL EASKABCD(' ','Option','add node',
-     &      'delete node','copy node','cancel',IOPT,nbhelp)
+          CALL EASKMBOX(' ','Option','add node',
+     &      'delete node','copy node','cancel',
+     &      ' ',' ',' ',' ',IOPT,nbhelp)
           IF(IOPT.EQ.1) THEN
             NODE=NENOD+1
             CALL EDENOD('ADD',NODE)
@@ -606,8 +607,9 @@ C Within the header so skip request.
         GOTO 7
       ELSEIF(IVERT.EQ.MVERT-3)THEN 
         IF(MODE.EQ.'E') THEN
-          CALL EASKABCD(' ','Options:',
-     &'add','delete','copy','cancel',IWCH,nbhelp)
+          CALL EASKMBOX(' ','Options:',
+     &      'add','delete','copy','cancel',
+     &      ' ',' ',' ',' ',IWCH,nbhelp)
           IF(IWCH.EQ.1) THEN
             IHYB=99
             CALL EDEHYB('ADD',IHYB)
@@ -764,8 +766,9 @@ C Within the header so skip request.
         GOTO 7
       ELSEIF(IVERT.EQ.MVERT-3)THEN 
         IF(MODE.EQ.'E') THEN
-          CALL EASKABCD(' ','Options:',
-     &      'add','delete','copy','cancel',IWCH,nbhelp)
+          CALL EASKMBOX(' ','Options:',
+     &      'add','delete','copy','cancel',
+     &      ' ',' ',' ',' ',IWCH,nbhelp)
           IF(IWCH.EQ.1) THEN
             IPOW=99
             CALL EDEPOW('ADD',IPOW)
@@ -929,8 +932,9 @@ C Within the header so skip request.
         GOTO 7
       ELSEIF(IVERT.EQ.MVERT-3)THEN 
         IF(MODE.EQ.'E') THEN
-          CALL EASKABCD(' ','Options:',
-     &      'add','delete','copy','cancel',IWCH,nbhelp)
+          CALL EASKMBOX(' ','Options:',
+     &      'add','delete','copy','cancel',
+     &      ' ',' ',' ',' ',IWCH,nbhelp)
           IF(IWCH.EQ.1) THEN
             ICNC=99
             CALL EDECNC('ADD',ICNC)
@@ -1098,8 +1102,9 @@ C Within the header so skip request.
         GOTO 7
       ELSEIF(IVERT.EQ.MVERT-3)THEN 
         IF(MODE.EQ.'E') THEN
-          CALL EASKABCD(' ','Options:',
-     &      'add','delete','copy','cancel',IWCH,nbhelp)
+          CALL EASKMBOX(' ','Options:',
+     &      'add','delete','copy','cancel',
+     &      ' ',' ',' ',' ',IWCH,nbhelp)
           IF(IWCH.EQ.1) THEN
             ICON=99
             CALL EDECON('ADD',ICON)
@@ -1224,11 +1229,11 @@ C Ask the user how many nodes they want to add.
         call gethelptext(helpinsub,helptopic,nbhelp)
         NANOD=0
         INODT=1
-        CALL EASKATOG(
+        CALL EASKMBOX(
      &    '(No. in brackets = No. of nodes added).',
      &     'Type of node(s) to add?',
      &    'd.c (1)','1-phase (1)','2-phase (2) ','3-phase (3)',
-     &    'balanced (1)','cancel',' ',INODT,nbhelp)
+     &    'balanced (1)','cancel',' ',' ',INODT,nbhelp)
         
         IF(INODT.EQ.7.OR.INODT.EQ.6) RETURN
 
@@ -1284,12 +1289,10 @@ C Set the node number.
 C Determine the type of the node in question
             helptopic='elec_net_node_type'
             call gethelptext(helpinsub,helptopic,nbhelp)
-            CALL EASKABCD('What is the node type?',' ',
-     &                    'Variable voltage',
-     &                    'Fixed voltage',
-     &                    'Calc by PV',
-     &                    'Calc by plant component',
-     &                    ENODTYP(IENOD),nbhelp)
+            CALL EASKMBOX('What is the node type?',' ',
+     &        'Variable voltage','Fixed voltage',
+     &        'Calc by PV','Calc by plant component',
+     &        ' ',' ',' ',' ',ENODTYP(IENOD),nbhelp)
 
 C Set the node type for the multi-phase set
             IENT=ENODTYP(IENOD)
@@ -1651,12 +1654,10 @@ C Save the old node name
 C Ask for the new node type. 
         helptopic='elec_net_new_node_type'
         call gethelptext(helpinsub,helptopic,nbhelp)
-        CALL EASKABCD('What is the node type?',' ',
-     &                'Variable voltage',
-     &                'Fixed voltage',
-     &                'Calc by PV',
-     &                'Calc by plant component',
-     &                ENODTYP(IENOD),nbhelp)
+        CALL EASKMBOX('What is the node type?',' ',
+     &    'Variable voltage','Fixed voltage',
+     &    'Calc by PV','Calc by plant component',
+     &    ' ',' ',' ',' ',ENODTYP(IENOD),nbhelp)
 
 C Set the node type for the multi-phase set
         IENT=ENODTYP(IENOD)
@@ -1941,9 +1942,9 @@ C Ask the user if they want to add a zone/plant/special material component to th
 C and set the type and type string.
         helptopic='elec_net_attach_loads'
         call gethelptext(helpinsub,helptopic,nbhelp)
-        CALL EASKABCD(' ','Component options:',
+        CALL EASKMBOX(' ','Component options:',
      &  'zone electrical load','renewable source',
-     &  'plant component','cancel',
+     &  'plant component','cancel',' ',' ',' ',' ',
      &  IPHYB,nbhelp)   
 
         IF(IPHYB.EQ.4) RETURN 
@@ -3292,9 +3293,9 @@ C Case of a two-phase component in a three phase nodal group
 C Ask the user the other phase the component links
           helptopic='elec_net_2_to_3'
           call gethelptext(helpinsub,helptopic,nbhelp)
- 50       CALL EASKABCD('Which other phase of the three-phases does',
+ 50       CALL EASKMBOX('Which other phase of the three-phases does',
      &      'the two phase connector link to?','one','two','three',
-     &      'cancel',IPH,nbhelp)
+     &      'cancel',' ',' ',' ',' ',IPH,nbhelp)
           IF(IPH.EQ.4) THEN
             RETURN
           ELSEIF(IPH.EQ.ENODPH(INOD1)) THEN

@@ -174,9 +174,9 @@ C geometry facility first.
         helptopic='many_not_attributed'
         call gethelptext(helpinsub,helptopic,nbhelp)
         CALL PHELPD('unknowns atrib in constr',nbhelp,'-',0,0,IER)
-        CALL EASKAB(outs,'Options:',
+        CALL EASKMBOX(outs,'Options:',
      &    'supply construction attributes now',
-     &    'cancel',IWA,nbhelp)
+     &    'cancel',' ',' ',' ',' ',' ',' ',IWA,nbhelp)
         if(IWA.EQ.1)then
           continue
         else
@@ -231,11 +231,10 @@ C Construction file name not yet specified.
         ELSE
           write(outs,'(3a)') 'Found an existing constructions file: ',
      &            LTHRM(ICOMP)(1:lnblnk(LTHRM(ICOMP))),'.'
-          CALL EASKABC(outs,'Options:',
+          CALL EASKMBOX(outs,'Options:',
      &     'use it','recreate via geometry attributes',
-     &     'cancel',IWA,nbhelp)
+     &     'cancel',' ',' ',' ',' ',' ',IWA,nbhelp)
           IF(IWA.EQ.1)THEN
-            call tstamp('>','PRJ: use existing zone constructions')
             CALL ECONST(LTHRM(ICOMP),IFIL+1,ICOMP,0,IUOUT,IER)
             if(ITW(ICOMP).eq.1)then
               CALL ERTWIN(ITRC,IUOUT,IUF,LTWIN(ICOMP),ICOMP,IER)
@@ -260,13 +259,13 @@ C Construction file name not yet specified.
               endif
             endif
           elseif(IWA.EQ.2)then
-            call tstamp('>','PRJ: scan db & rebuild zone construction')
             if(izconstv(ICOMP).eq.21)then
               continue
             else
-              CALL EASKAB(' ','Save constructions:',
+              CALL EASKMBOX(' ','Save constructions:',
      &          'using legacy format with separate tmc file',
-     &          'current format with optical data',IWB,nbhelp)
+     &          'current format with optical data',
+     &          ' ',' ',' ',' ',' ',' ',IWB,nbhelp)
               if(IWB.eq.1)then
                 izconstv(ICOMP)=0
                 iztmcv(ICOMP)=0
@@ -277,7 +276,6 @@ C Construction file name not yet specified.
             endif
             CALL EDZCON(ICOMP,MODGEO,MODCON,IER)
           elseif(IWA.eq.3)then
-            call tstamp('>','PRJ: abandoned rebuild zone construction')
             return
           ENDIF
         ENDIF
@@ -290,16 +288,18 @@ C If in quiet mode: the file should exist => error if we are here.
         ELSE
           write(outs,'(1x,A,A)')LTHRM(ICOMP)(:lnblnk(LTHRM(ICOMP))),
      &        ' not found!'
-          CALL EASKAB(outs,'Options:','respecify',
-     &        'create using this name',IWB,nbhelp)
+          CALL EASKMBOX(outs,'Options:','respecify',
+     &      'create using this name',
+     &      ' ',' ',' ',' ',' ',' ',IWB,nbhelp)
           if(IWB.eq.1)then
             again=.true.
             goto 42
           endif
         ENDIF
-        CALL EASKAB(' ','Save constructions:',
+        CALL EASKMBOX(' ','Save constructions:',
      &    'using legacy format with separate tmc file',
-     &    'current format with optical data',IWB,nbhelp)
+     &    'current format with optical data',
+     &    ' ',' ',' ',' ',' ',' ',IWB,nbhelp)
         if(IWB.eq.1)then
           izconstv(ICOMP)=0
           iztmcv(ICOMP)=0
@@ -596,7 +596,6 @@ C Linear thermal conductivity.
         helptopic='zone_linear_cond'
         call gethelptext(helpinsub,helptopic,nbhelp)
         CALL PHELPD('linear properties',nbhelp,'-',0,0,IER)
-        call tstamp('>','PRJ: enter linear properties')
         CALL LKMENU(ICOMP)
         GOTO 777
       ELSEIF(IVERT.EQ.(MVERT-4))THEN
@@ -619,8 +618,6 @@ C TMC details, check that something transparent first.
       ELSEIF(IVERT.EQ.(MVERT-5))THEN
 
 C Browse.
-        call tstamp('>','PRJ: list zone constructions')
-
 C Switch to fixed font for text feedback.
         lastmenufont=IMFS
         lastbuttonfont=IFS
@@ -650,7 +647,6 @@ C Produce a menu of data related to this surface.
         CALL KEYIND(MVERT,IVERT,IFOC,IO)
         IS=IFOC
         CALL EPMENSV
-        call tstamp('>','PRJ: enter surface construction')
         CALL EDSCON(ITRU,ICOMP,IS,MODGEO,MODCON,IER)
         CALL EPMENRC
       ELSE
@@ -680,16 +676,16 @@ C Save current information into a zone file
 C and update the system configuration file.
       if(cfgok)then
         IUF=IFIL+2
-        call tstamp('>','PRJ: save zone construction')
 
 C If a legacy zone construction file set izconstv so that
 C a header is included when new file is written.
         if(izconstv(ICOMP).eq.21)then
           continue
         else
-          CALL EASKAB(' ','Save zone constructions:',
-     &    'via legacy format with separate tmc file',
-     &    'current format with optical data',IWB,nbhelp)
+          CALL EASKMBOX(' ','Save zone constructions:',
+     &      'via legacy format with separate tmc file',
+     &      'current format with optical data',
+     &      ' ',' ',' ',' ',' ',' ',IWB,nbhelp)
           if(IWB.eq.1)then
             izconstv(ICOMP)=0
             iztmcv(ICOMP)=0
@@ -1096,10 +1092,10 @@ C Additional option to choose CFC type.
           ino=2
         endif
         ilno=ino
-        CALL EASKABCD('Select a type for the surface.',' Surface type',
+        CALL EASKMBOX('Select a type for the surface.',' Surface type',
      &      'Opaque (all layers)','Transparent (at least 1 layer)',
      &      'Complex Fenestration Construction',
-     &      'cancel',ino,nbhelp)
+     &      'cancel',' ',' ',' ',' ',ino,nbhelp)
         IF(ilno.eq.ino)GOTO 12
         IF(ino.eq.0)GOTO 12
         IF(ino.EQ.1)THEN
@@ -1924,8 +1920,9 @@ C optical properties then the user will have to supply this manually.
         WRITE(outs,'(2A)') mlcname(ICF)(1:lnmlcname(ICF)),
      &    ' is not transparent!'
         IF(mlctype(ICF)(1:4).EQ.'OPAQ')THEN
-          CALL EASKAB(outs,' do you want to:','switch to opaque',
-     &    'select a transparent material',IWB,nbhelp)
+          CALL EASKMBOX(outs,' do you want to:','switch to opaque',
+     &      'select a transparent material',
+     &      ' ',' ',' ',' ',' ',' ',IWB,nbhelp)
           if(IWB.eq.1)then
 
 C Switch back to opaque construction.
@@ -1971,9 +1968,10 @@ C Check to see if this new construction has a known set of opticals.
      &     OPT(1:6).EQ.'OPAQUE')THEN
           WRITE(outs,'(1X,A,A)')SMLCN(icomp,is),
      &      ' has unknown optical properties!'
-          CALL EASKABC(outs,' Do you want to: ',
+          CALL EASKMBOX(outs,' Do you want to: ',
      &      'supply optical properties','select another composite',
-     &      'assign `opaque` to this one',IW,nbhelp)
+     &      'assign `opaque` to this one',
+     &      ' ',' ',' ',' ',' ',IW,nbhelp)
           IF(IW.EQ.1)THEN
 
 C << todo consider how one might treat a cancel request within eoptks
@@ -2137,9 +2135,10 @@ C been set during the prior edit.
           call gethelptext(helpinsub,helptopic,nbhelp)
           WRITE(OUTS,'(2A,I2,A)') 'TMC type ',TOPTIC(ICOMP,IT),IT,
      &      ' uses a legacy control. Options:'
-          CALL EASKATOG(outs,' ','delete','edit',
+          CALL EASKMBOX(outs,' ','delete','edit',
      &     'accept as-is','define alternative optical property',
-     &     'convert to optical control file logic',' ',' ',IWA,nbhelp)
+     &     'convert to optical control file logic',' ',' ',' ',IWA,
+     &     nbhelp)
           if(iwa.eq.1)then
             IBCMT(ICOMP,IT)=0
             GOTO 22
@@ -2157,9 +2156,10 @@ C been set during the prior edit.
 C Accept current alt optics or pick alternative optical properties.
             helptopic='optical_control_summary'
             call gethelptext(helpinsub,helptopic,nbhelp)
-            CALL EASKAB(' ','Options:',
+            CALL EASKMBOX(' ','Options:',
      &        'keep existing alternative optics',
-     &        'select a new set',iwb,nbhelp)
+     &        'select a new set',
+     &        ' ',' ',' ',' ',' ',' ',iwb,nbhelp)
             if(iwb.eq.1)then
               goto 22
             elseif(iwb.eq.2)then
@@ -2211,9 +2211,10 @@ C on the tmc control logic.
             IV=NOCDT(nof)
             write(outs,'(a,i2,a)')
      &      ' Number of optical control day types (currently',IV,') :'
-            CALL EASKABC(outs,'(see help)',
+            CALL EASKMBOX(outs,'(see help)',
      &        'Follow calendar day types','Just one day type',
-     &        'Dates of validity (legacy)',IV,nbhelp)
+     &        'Dates of validity (legacy)',
+     &        ' ',' ',' ',' ',' ',IV,nbhelp)
             if(iv.eq.1)then
               NOCDT(nof)=0
             elseif(iv.eq.2)then
@@ -2321,8 +2322,9 @@ C There is no existing tmc control.
           call gethelptext(helpinsub,helptopic,nbhelp)
           WRITE(OUTS,'(2A,I2,A)') 'For TMC type ',TOPTIC(ICOMP,IT),IT,
      &      '. Options:'
-          CALL EASKABC(outs,' ','setup legacy tmc control',
-     &      'define alternative optical property','continue',iwa,nbhelp)
+          CALL EASKMBOX(outs,' ','setup legacy tmc control',
+     &      'define alternative optical property','continue',
+     &      ' ',' ',' ',' ',' ',iwa,nbhelp)
           if(iwa.eq.1)then
             continue
           elseif(iwa.eq.2)then
@@ -2371,8 +2373,9 @@ C Pick the alternative optical properties.
         NBCTMC(ICOMP,IT)=N1
 
         N2=IBCSUR(ICOMP,IT)
-        CALL EASKAB(' ','Transparent surfaces controlled by:',
-     &    'separate sensors','a single sensor',IW,nbhelp)
+        CALL EASKMBOX(' ','Transparent surfaces controlled by:',
+     &    'separate sensors','a single sensor',
+     &    ' ',' ',' ',' ',' ',' ',IW,nbhelp)
         if(IW.eq.1)then
           IBCSUR(ICOMP,IT)=0
         else
@@ -2404,41 +2407,41 @@ C For each control period get the appropriate replacement properties.
           N3=NBCTT(ICOMP,IT)
           IRT=1
           if(n3.eq.-99)then
-            call EASKATOG('Controlled on: (currently time)','Confirm',
+            call EASKMBOX('Controlled on: (currently time)','Confirm',
      &      'time','incident radiation','ambient temp.','zone temp.',
-     &      'lux level','LtSwitch (not avail)','cancel',IRT,nbhelp)
+     &      'lux level','LtSwitch (not avail)','cancel',' ',IRT,nbhelp)
           elseif(n3.eq.0)then
-            call EASKATOG('Controlled on: (currently radiation)',
+            call EASKMBOX('Controlled on: (currently radiation)',
      &      'Confirm',
      &      'time','incident radiation','ambient temp.','zone temp.',
-     &      'lux level','LtSwitch (not avail)','cancel',IRT,nbhelp)
+     &      'lux level','LtSwitch (not avail)','cancel',' ',IRT,nbhelp)
           elseif(n3.eq.1)then
-            call EASKATOG(
+            call EASKMBOX(
      &      'Controlled on:(currently ambient temperature)','Confirm',
      &      'time','incident radiation','ambient temp.','zone temp.',
-     &      'lux level','LtSwitch (not avail)','cancel',IRT,nbhelp)
+     &      'lux level','LtSwitch (not avail)','cancel',' ',IRT,nbhelp)
           elseif(n3.eq.2)then
-            call EASKATOG(
+            call EASKMBOX(
      &      'Controlled on: (currently zone temperature)','Confirm',
      &      'time','incident radiation','ambient temp.','zone temp.',
-     &      'lux level','LtSwitch (not avail)','cancel',IRT,nbhelp)
+     &      'lux level','LtSwitch (not avail)','cancel',' ',IRT,nbhelp)
           elseif(n3.eq.3)then
-            call EASKATOG(
+            call EASKMBOX(
      &      'Controlled on: (currently daylight coefficients)',
      &      'Confirm',
      &      'time','incident radiation','ambient temp.','zone temp.',
-     &      'lux level','LtSwitch (not avail)','cancel',IRT,nbhelp)
+     &      'lux level','LtSwitch (not avail)','cancel',' ',IRT,nbhelp)
           elseif(n3.eq.4)then
             call usrmsg('Currently link to Lightswitch 2002 is not',
      &        'available. Please select something else.','W')
-C            call EASKATOG('Controlled on:','(currently Lightswitch)',
+C            call EASKMBOX('Controlled on:','(currently Lightswitch)',
 C     &      'time','incident radiation','ambient temp.','zone temp.',
-C     &      'lux level','LtSwitch','cancel',IRT,nbhelp)
+C     &      'lux level','LtSwitch','cancel',' ',IRT,nbhelp)
           else
-            call EASKATOG('Controlled on: (currently undefined)',
+            call EASKMBOX('Controlled on: (currently undefined)',
      &      'Confirm',
      &      'time','incident radiation','ambient temp.','zone temp.',
-     &      'lux level','LtSwitch (not avail)','cancel',IRT,nbhelp)
+     &      'lux level','LtSwitch (not avail)','cancel',' ',IRT,nbhelp)
           endif
           if(irt.eq.1)then
             NBCTT(ICOMP,IT)= -99
@@ -2541,8 +2544,9 @@ C << todo: consider adding a cancel option >>
 
   77  helptopic='manual_optical_editing'
       call gethelptext(helpinsub,helptopic,nbhelp)
-      CALL EASKAB(' Get optical properties from: ',' ',
-     &  ' manual data input',' optical database',IW,nbhelp)
+      CALL EASKMBOX(' Get optical properties from: ',' ',
+     &  ' manual data input',' optical database',
+     &  ' ',' ',' ',' ',' ',' ',IW,nbhelp)
       IF(IW.EQ.2)THEN
         CALL EDWINO(SOPT,IER)
         IF(SOPT.EQ.'UNKNOWN')RETURN
@@ -2606,7 +2610,7 @@ C For each of the layers provide the absorptions.
 
 C ******* SCNTCNST
 C Loop through referenced mlc and derives the longest timeconstant.
-      subroutine scntcnst(TDM,istd,TCM,ISTC)
+      subroutine scntcnst(TDM,istd,TCM,ISTC,ITCN)
 #include "building.h"
 #include "geometry.h"
 #include "esprdbfile.h"
@@ -2720,7 +2724,8 @@ c time constant.
       write(outs,'(A,A)')' Associated MLC construction is',
      &  mlcname(ISTC)(1:lnmlcname(ISTC))
       call edisp(iuout,outs)
-      write(outs,'(A,I3,A)')' Simulation start-up is',ITCNST,' days.'
+      write(outs,'(A,I3,A)')' Suggested simulation start-up is',
+     &  ITCNST,' days.'
       call edisp(iuout,outs)
 
       return

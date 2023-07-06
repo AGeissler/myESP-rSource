@@ -144,8 +144,9 @@ C Display menu.
 C Ask whether user supplied points or from system components.
         helptopic='psychrometric_data'
         call gethelptext(helpinsub,helptopic,nbhelp)
-        call easkabcd(' ','Options:','display data',
-     &    'colour by temperature','colour by RH','cancel',iwhich,2)
+        call easkmbox(' ','Options:','display data',
+     &    'colour by temperature','colour by RH','cancel',
+     &  ' ',' ',' ',' ',iwhich,2)
 
         if(iwhich.eq.4)goto 2
 

@@ -102,18 +102,19 @@ C plotted over the whole period or one timestep at a time.
           endif
           helptopic='condensation_animation'
           call gethelptext(helpinsub,helptopic,nbhelp)
-          CALL EASKABC('When plotting temperatures:',' ',
+          CALL EASKMBOX('When plotting temperatures:',' ',
      &      'show cumulative section','animate data display',
-     &      'continue',IW,nbhelp)
+     &      'continue',' ',' ',' ',' ',' ',IW,nbhelp)
           if(IW.eq.1)act='-'
           if(IW.eq.2)act='a'
           if(IW.eq.3) goto 3
 
 C Ask about speed
           IWS=2
-          CALL EASKABCD('Plotting speed:',' ',
+          CALL EASKMBOX('Plotting speed:',' ',
      &      'slower (200ms/step)','normal (100ms/step)',
-     &      'fast (50ms/step)','25ms/step',IWS,nbhelp)
+     &      'fast (50ms/step)','25ms/step',
+     &      ' ',' ',' ',' ',IWS,nbhelp)
 
 C Get element thicknesses for this construction.
           CALL MOTHKE(ICOMP,ISUR)
@@ -523,8 +524,9 @@ C Display header, draw axis and then profiles.
       if(.NOT.ok)then
         RETURN
       endif
-      CALL EASKABC('Consider:',' ','Different surface',
-     &  'Different day or time','Both ? ',IW,nbhelp)
+      CALL EASKMBOX('Consider:',' ','Different surface',
+     &  'Different day or time','Both ? ',' ',' ',' ',' ',' ',
+     &  IW,nbhelp)
       if(IW.eq.3)then
         IPICK=0
         goto 5

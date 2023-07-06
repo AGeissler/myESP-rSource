@@ -298,8 +298,6 @@ C IES lighting distribution files from model.h
       INTEGER :: i,icc,ibe,ibu,j,ixs,ix,iivu,isystcurrent,imu
       INTEGER :: ies
 
-      call tstamp('>','PRJ: clearing model commons')
-
 C Clear any allocated arrays
       CALL DeallocateAllArrays
 
@@ -3425,9 +3423,9 @@ C User can modify zone list.
 
 C Allow a zone to be added or deleted.
           IF(MOD.EQ.'M'.OR.MOD.EQ.'m')THEN
-            CALL EASKATOG(' ','Options:','add zone','delete zone',
+            CALL EASKMBOX(' ','Options:','add zone','delete zone',
      &        'copy zone','copy zones or group','cancel',
-     &        ' ',' ',IW,nbhelp)
+     &        ' ',' ',' ',IW,nbhelp)
             if(IW.EQ.1)then
               delzone = .false.
               IZONE=NCOMP+1

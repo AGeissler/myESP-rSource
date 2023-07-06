@@ -103,9 +103,13 @@ C Set actuation condition
       ENDIF
 
 C If actuator is not located in zone then no control is imposed
-C regardless of control function prevailing at this time.
-C (default to free-float)
-      IF(SENCON.EQ.-1.OR.ACTCON.EQ.-1.OR.(SENCON.NE.ACTCON)) IFUNC=2  
+C regardless of control function prevailing at this time unless
+C it is a slave controller. (default to free-float)
+      if(IFUNC.eq.21)then
+        continue
+      else
+        IF(SENCON.EQ.-1.OR.ACTCON.EQ.-1.OR.(SENCON.NE.ACTCON)) IFUNC=2
+      endif  
 
 C For the special case of mixed sensor in current zone
       IF(IBSN(ICF,1).EQ.-2.AND.
@@ -708,26 +712,19 @@ C Sensor measures a mix of zone air temp & MRT
         ELSEIF(IBMSN(ICF,J,1).EQ.-3)THEN
 
 C Sensor measures ambient conditions
-C 0 - Dry bulb temp
-           IF(IBMSN(ICF,J,2).EQ.0)THEN
+           IF(IBMSN(ICF,J,2).EQ.0)THEN       ! 0 - Dry bulb temp
               TAUXSN(ICF,J)=TF
-C 1 = Sol-air temp
-           ELSEIF(IBMSN(ICF,J,2).EQ.1)THEN
-              TAUXSN(ICF,J)=SOLAIR(TF,QFF,QDF)   
-C 2 = wind velocity 
-           ELSEIF(IBMSN(ICF,J,2).EQ.2)THEN
+           ELSEIF(IBMSN(ICF,J,2).EQ.1)THEN   ! 1 = Sol-air temp
+              TAUXSN(ICF,J)=SOLAIR(TF,QFF,QDF)    
+           ELSEIF(IBMSN(ICF,J,2).EQ.2)THEN   ! 2 = wind velocity
               TAUXSN(ICF,J)=VF 
-C 3 = wind direction
-           ELSEIF(IBMSN(ICF,J,2).EQ.3)THEN
+           ELSEIF(IBMSN(ICF,J,2).EQ.3)THEN   ! 3 = wind direction
               TAUXSN(ICF,J)=DF
-C 4 = diffuse horizontal radiation
-           ELSEIF(IBMSN(ICF,J,2).EQ.4)THEN
+           ELSEIF(IBMSN(ICF,J,2).EQ.4)THEN   ! 4 = diffuse horizontal radiation
               TAUXSN(ICF,J)=QFF
-C 5 = direct normal radiation
-           ELSEIF(IBMSN(ICF,J,2).EQ.5)THEN
+           ELSEIF(IBMSN(ICF,J,2).EQ.5)THEN   ! 5 = direct normal radiation
               TAUXSN(ICF,J)=QDF
-C 6 = relative humidity
-           ELSEIF(IBMSN(ICF,J,2).EQ.6)THEN
+           ELSEIF(IBMSN(ICF,J,2).EQ.6)THEN   ! 6 = relative humidity
               TAUXSN(ICF,J)=HF
            ENDIF
         ELSEIF(IBMSN(ICF,J,1).EQ.-4)THEN
@@ -816,6 +813,11 @@ C the present time row surface and air point temperatures.
       
       COMMON/CMSVAR/NSEN(MCF),ISMOD(MCF),IBMSN(MCF,MSEN,4),
      &TAUXSN(MCF,MSEN)
+      
+      COMMON/SLAVE1/QHB(MCF),QCB(MCF),Qmst(MCF),
+     &              bMasterFreeCoolFlag(MCF)
+      real QHB, QCB, Qmst
+      logical bMasterFreeCoolFlag
 
       character outs*124
       logical atrace  ! is trace active
@@ -846,7 +848,8 @@ C Make decision based on imposed control philosophy.
       IF(NSINC.EQ.1)GOTO 6
       ITER1=0
       NDIV=2
-      GOTO 7
+      GOTO 7   ! Proceed to evaluate the environmental control.
+
     6 QFUT=0.
       CALL MZBACK(Q)
       B1=BB1
@@ -923,6 +926,9 @@ C and we don't get the setpoint.
               continue
             else
               UNMETHRS(IICOMP)=UNMETHRS(IICOMP)+(1.0/real(NTSTEP))
+C Debug.
+C              write(6,'(a,f8.2,a,i3)')' heating capacity insufficient ',
+C     &          UNMETHRS(IICOMP),' hours in zone ',IICOMP
             endif
           elseif ( QFUT.le.QH.and.TFUT.ge.TL)then  ! if within capacity and setpoint
             continue
@@ -936,6 +942,8 @@ C and we don't get the setpoint.
               continue
             else
               UNMETHRS(IICOMP)=UNMETHRS(IICOMP)+(1.0/real(NTSTEP))
+C              write(6,'(a,f8.2,a,i3)')' cooling capacity insufficient ',
+C     &          UNMETHRS(IICOMP),' hours in zone ',IICOMP
             endif
           elseif ( QFUT.le.QC.and.TFUT.le.TU)then  ! if within capacity and setpoint
             continue
@@ -944,8 +952,10 @@ C and we don't get the setpoint.
       endif
  9999 RETURN
 
-C  Compute future time-row 'mixed' temperature but
-C  assuming present time-row surface temperatures.
+C Compute future time-row 'mixed' temperature but
+C assuming present time-row surface temperatures.
+C A subset of ITYPE are supported. Add in additional
+C ITYPE in the future to allow for mixed sensors.
     7 CALL MZMIXT(IICOMP,TMRT,TMIX)
       ITYPE=IBCLAW(ICF,IDTYP,IPER)
       if(itype.eq.31)goto 6  ! jump back for trace
@@ -954,55 +964,140 @@ C  assuming present time-row surface temperatures.
       elseif (ITYPE.eq.2) then
         GOTO 9
       elseif (ITYPE.eq.3) then
-        GOTO 11
+
+C Logic derived from BCL03 - pre-heating/cooling period: first determine
+C if no-plant temperature is within range of subsequent period control
+C temperatures.
+        TU=BMISCD(ICF,IDTYP,IPER,7)
+        TL=BMISCD(ICF,IDTYP,IPER,6)
+        QH=BMISCD(ICF,IDTYP,IPER,2)
+        QHL=BMISCD(ICF,IDTYP,IPER,3)
+        QC=-BMISCD(ICF,IDTYP,IPER,4)
+        QCL=-BMISCD(ICF,IDTYP,IPER,5)
+        JJ=IPER+1
+        IF(IPER.EQ.NBCDP(ICF,IDTYP))JJ=1
+        IF(TMIX.LE.BMISCD(ICF,IDTYP,JJ,7).AND.TMIX.GE.
+     &     BMISCD(ICF,IDTYP,JJ,6))GOTO 81
+
+C Determine target air temperature for current time step.
+        IF(TMIX.LT.BMISCD(ICF,IDTYP,JJ,6))THEN
+           TMIX=BMISCD(ICF,IDTYP,JJ,6)
+          IPLT=1
+          QMX=QH
+          QMN=QHL
+        ENDIF
+        IF(TMIX.GT.BMISCD(ICF,IDTYP,JJ,7))THEN
+          TMIX=BMISCD(ICF,IDTYP,JJ,7)
+          IPLT=2
+          QMX=QC
+          QMN=QCL
+        ENDIF
+        TARG=(TMIX-TMRT*(1.-CONV))/CONV
+        T=TFA(IICOMP)+(TARG-TFA(IICOMP))/(ABS(TFIN-BTIMEF)+1.)
+        GOTO 17
       elseif (ITYPE.eq.4) then
-        GOTO 12
+
+C Logic extracted from BCL04 - fixed heat injection/extraction
+C period: is temperature within control range?
+        TU=BMISCD(ICF,IDTYP,IPER,5)
+        TL=BMISCD(ICF,IDTYP,IPER,4)
+        QH=BMISCD(ICF,IDTYP,IPER,2)
+        QC=-BMISCD(ICF,IDTYP,IPER,3)
+        IF(TMIX.LE.TU.AND.TMIX.GE.TL)GOTO 81
+        IF(TMIX.GT.TU)GOTO 19   ! Is temperature too high?
+        IPLT=1                  ! Temperature too low: inject fixed heating.
+        QMX=QH
+        QMN=0.
+        Q=QH
+        IF(ISUR.GT.0)Q=Q/SNA(IICOMP,ISUR)
+        TFUT=(B3-B2*Q)/B1
+        T=TFUT
+        CALL MZBACK(Q)
+        B1=BB1
+        B2=BB2
+        B3=BB3
+        GOTO 18
       elseif (ITYPE.eq.10) then
-        GOTO 10
+
+C ON/OFF flux control - logic derived from BCL10 See BCL10 for
+C variable meanings.
+        TU=BMISCD(ICF,IDTYP,IPER,7)
+        TL=BMISCD(ICF,IDTYP,IPER,5)
+        QH=BMISCD(ICF,IDTYP,IPER,2)
+        QC=-BMISCD(ICF,IDTYP,IPER,3)
+
+        QHM = BMISCD(ICF,IDTYP,IPER,2)
+        QCM = -BMISCD(ICF,IDTYP,IPER,3)
+        HSPON = BMISCD(ICF,IDTYP,IPER,4)
+        HSPOFF = BMISCD(ICF,IDTYP,IPER,5)
+        CSPON = BMISCD(ICF,IDTYP,IPER,6)
+        CSPOFF = BMISCD(ICF,IDTYP,IPER,7)
+        HSET = (HSPON+HSPOFF)/2.        ! Set heating mode.
+        HBAND = (HSPOFF-HSPON)/2.
+        HERR = HSET - TMIX              ! Use mixed temperature to determin error.
+        IF (HERR.GE.HBAND)THEN
+          IPLT=1
+          LASTH(IICOMP)='ON '
+        ELSE IF (HERR.LE.-HBAND)THEN
+          LASTH(IICOMP)='OFF'
+        END IF
+        CSET = (CSPON+CSPOFF)/2.        ! Set cooling mode.
+        CBAND = (CSPOFF-CSPON)/2.
+        CERR = CSET - TMIX              ! Use mixed temperature to determin error.
+        IF (CERR.LE.CBAND)THEN
+          IPLT=2
+          LASTC(IICOMP)='ON '
+        ELSE IF (CERR.GE.-CBAND)THEN
+          LASTC(IICOMP)='OFF'
+        END IF
+        IF(LASTH(IICOMP).EQ.'ON ')THEN  ! Switch on heater.
+          QH=QHM
+        ELSE
+          QH=0.
+        ENDIF
+        IF(LASTC(IICOMP).EQ.'ON ')THEN  ! Switch on cooler.
+          QC=QCM
+        ELSE
+          QC=0.
+        ENDIF
+        QMX=QH+QC                       ! Total heating/cooling.
+        QMN=0.
+        Q=QH+QC
+
+        IF(ISUR.GT.0)Q=Q/SNA(IICOMP,ISUR)
+        TFUT=(B3-B2*Q)/B1
+        T=TFUT
+        CALL MZBACK(Q)
+        B1=BB1
+        B2=BB2
+        B3=BB3
+        GOTO 18
       elseif (ITYPE.eq.11) then
-        GOTO 30
+
+C Control type 11, set point from temporal. Notes on variables
+C are in BCL11 (near line 3892).
+        QHM=BMISCD(ICF,IDTYP,IPER,2)
+        QHN=BMISCD(ICF,IDTYP,IPER,3)
+        QCM=-BMISCD(ICF,IDTYP,IPER,4)
+        QCN=-BMISCD(ICF,IDTYP,IPER,5)
+        NSEN(ICF)=INT(BMISCD(ICF,IDTYP,IPER,6))
+        ISM=INT(BMISCD(ICF,IDTYP,IPER,7))
+        if(NSEN(ICF).eq.1)then
+          IBMSN(ICF,1,1)=INT(BMISCD(ICF,IDTYP,IPER,8))
+          IBMSN(ICF,1,2)=INT(BMISCD(ICF,IDTYP,IPER,9))
+          IBMSN(ICF,1,3)=INT(BMISCD(ICF,IDTYP,IPER,10))
+          IBMSN(ICF,1,4)=INT(BMISCD(ICF,IDTYP,IPER,11))
+        endif
+        CALL CFMVAR(ier)   ! Determine sensed temperatures.
+        if(ier.eq.2)then
+          return
+        endif
+        TL=TAUXSN(ICF,1)
+        TU=TAUXSN(ICF,1)
+        GOTO 31            ! Continue as for a basic control.
       else
         GOTO 99
       endif
-
-C Control type 11, set point from temporal.
-   30 QHM=BMISCD(ICF,IDTYP,IPER,2)
-      QHN=BMISCD(ICF,IDTYP,IPER,3)
-      QCM=-BMISCD(ICF,IDTYP,IPER,4)
-      QCN=-BMISCD(ICF,IDTYP,IPER,5)
-
-C NSEN(ICF) = number of auxiliary sensors for control function.
-      NSEN(ICF)=INT(BMISCD(ICF,IDTYP,IPER,6))
-
-C ISM = mode of operation flag:-
-C ISM = 1: TDIF = (ref sensor)-(greatest value of auxiliary sensors);
-C ISM = 2: TDIF = (ref sensor)-(least value of auxiliary sensors);
-C ISM = 3: TDIF = (ref sensor)-(mean value of auxiliary sensors).
-C ISM = 4: TDIF = (ref sensor)-(weighting of auxiliary sensors).
-      ISM=INT(BMISCD(ICF,IDTYP,IPER,7))
-
-C SNWGHT() is the sensor weighting when ISM=4.
-C If only one sensor read attributes and then get scaling and offset
-C based on whether there is weighting or not. This follows the same
-C logic used in econtrol.F subroutine EVCNTRLAW.
-      if(NSEN(ICF).eq.1)then
-        IBMSN(ICF,1,1)=INT(BMISCD(ICF,IDTYP,IPER,8))
-        IBMSN(ICF,1,2)=INT(BMISCD(ICF,IDTYP,IPER,9))
-        IBMSN(ICF,1,3)=INT(BMISCD(ICF,IDTYP,IPER,10))
-        IBMSN(ICF,1,4)=INT(BMISCD(ICF,IDTYP,IPER,11))
-      endif
-     
-C Determine sensed temperatures.
-      CALL CFMVAR(ier)
-      if(ier.eq.2)then
-        return
-      endif
-
-      TL=TAUXSN(ICF,1)
-      TU=TAUXSN(ICF,1)
-
-C Continue as for a basic control.
-      GOTO 31
 
 C Thermostatic control period: is temperature within
 C range?
@@ -1014,6 +1109,7 @@ C Control data is established from the BMISCD array.
       QHL=BMISCD(ICF,IDTYP,IPER,3)
       QC=-BMISCD(ICF,IDTYP,IPER,4)
       QCL=-BMISCD(ICF,IDTYP,IPER,5)
+
    31 IF(TMIX.LE.TU.AND.TMIX.GE.TL)THEN 
 C << This line added to prevent function inheriting
 C    value of T from previous invocation if this
@@ -1151,72 +1247,24 @@ C  Determine target temperature.
       call epagend
       STOP
 
-   18 TCONT=T
+   18 TCONT=T  ! Jump point destination for various control variants.
       QFUT=Q
       IF(IBAN(ICF,1).EQ.-2)CALL MZRCPL(IICOMP,BB1,BB2,BB3,TCONT,0.05,
      &IPLT,QMX,QMN,TFUT,QFUT)
+
+C Remember state for possible use by a slave controller.
+      QHM = BMISCD(ICF,IDTYP,IPER,2)       
+      QHN = BMISCD(ICF,IDTYP,IPER,3)
+      QCM = -BMISCD(ICF,IDTYP,IPER,4)
+      QCN = -BMISCD(ICF,IDTYP,IPER,5)
+      Qmst(ICF)=QFUT  ! Set QFUT for use by slave controller.
+      QHB(ICF)=QHM
+      QCB(ICF)=QCM
+
       GOTO 9993  ! jump back for trace
 
 C Floating temperature period.
     9 GOTO 6  ! jump back for trace
-
-C Pre-heating/cooling period: first determine if no-plant
-C temperature is within range of subsequent period control temperatures.
-   11 TU=BMISCD(ICF,IDTYP,IPER,7)
-      TL=BMISCD(ICF,IDTYP,IPER,6)
-      QH=BMISCD(ICF,IDTYP,IPER,2)
-      QHL=BMISCD(ICF,IDTYP,IPER,3)
-      QC=-BMISCD(ICF,IDTYP,IPER,4)
-      QCL=-BMISCD(ICF,IDTYP,IPER,5)
-      JJ=IPER+1
-      IF(IPER.EQ.NBCDP(ICF,IDTYP))JJ=1
-      IF(TMIX.LE.BMISCD(ICF,IDTYP,JJ,7).AND.TMIX.GE.
-     &BMISCD(ICF,IDTYP,JJ,6))GOTO 81
-
-C Determine target air temperature for current time step.
-      IF(TMIX.LT.BMISCD(ICF,IDTYP,JJ,6))THEN
-         TMIX=BMISCD(ICF,IDTYP,JJ,6)
-
-         IPLT=1
-         QMX=QH
-         QMN=QHL
-      ENDIF
-      IF(TMIX.GT.BMISCD(ICF,IDTYP,JJ,7))THEN
-         TMIX=BMISCD(ICF,IDTYP,JJ,7)
-
-         IPLT=2
-         QMX=QC
-         QMN=QCL
-      ENDIF
-      TARG=(TMIX-TMRT*(1.-CONV))/CONV
-      T=TFA(IICOMP)+(TARG-TFA(IICOMP))/(ABS(TFIN-BTIMEF)+1.)
-      GOTO 17
-
-C Fixed heat injection/extraction period: is temperature
-C within control range?
-   12 TU=BMISCD(ICF,IDTYP,IPER,5)
-      TL=BMISCD(ICF,IDTYP,IPER,4)
-      QH=BMISCD(ICF,IDTYP,IPER,2)
-      QC=-BMISCD(ICF,IDTYP,IPER,3)
-      IF(TMIX.LE.TU.AND.TMIX.GE.TL)GOTO 81
-
-C Is temperature too high?
-      IF(TMIX.GT.TU)GOTO 19
-
-C Temperature too low: inject fixed heating.
-      IPLT=1
-      QMX=QH
-      QMN=0.
-
-      Q=QH
-      IF(ISUR.GT.0)Q=Q/SNA(IICOMP,ISUR)
-      TFUT=(B3-B2*Q)/B1
-      T=TFUT
-      CALL MZBACK(Q)
-      B1=BB1
-      B2=BB2
-      B3=BB3
-      GOTO 18
 
 C Temperature too high: extract fixed cooling.
    19 IPLT=2
@@ -1233,122 +1281,11 @@ C Temperature too high: extract fixed cooling.
       B3=BB3
       GOTO 18
 
-C=======================================================================
-C ON/OFF flux control
-C=======================================================================
-
-C This is a generic implementation of a two-position controller
-C with hysteresis and dead-zone control.
-C This type of control is commonly used in thermostats in 
-C home central heating systems, water-supply systems, 
-C convective heaters, and many, many more.
-
-C The fundamental characteristic of the two-position controllers is that
-C the output exists at only one of two discrete levels at any one time.
-C However, it is possible that the set-point ranges can be configured
-C so that the heating and cooling ranges may overlap. In which case the
-C heating and cooling may be on at the same time.
-C The heat injected/subtracted to/from the zone will be the net effect 
-C of the heating and cooling heat transfer.
-
-c QHM = fixed heating capacity (W)
-c QCM = fixed cooling capacity (W)
-c HSPON = heating ON set point temp. (deg.C)
-c HSPOFF = heating OFF set point temp. (deg.C)
-c CSPON = cooling ON set point temp. (deg.C)
-c CSPOFF = cooling OFF set point temp. (deg.C)
-
-   10 TU=BMISCD(ICF,IDTYP,IPER,7)
-      TL=BMISCD(ICF,IDTYP,IPER,5)
-      QH=BMISCD(ICF,IDTYP,IPER,2)
-      QC=-BMISCD(ICF,IDTYP,IPER,3)
-
-      QHM = BMISCD(ICF,IDTYP,IPER,2)
-      QCM = -BMISCD(ICF,IDTYP,IPER,3)
-      HSPON = BMISCD(ICF,IDTYP,IPER,4)
-      HSPOFF = BMISCD(ICF,IDTYP,IPER,5)
-      CSPON = BMISCD(ICF,IDTYP,IPER,6)
-      CSPOFF = BMISCD(ICF,IDTYP,IPER,7)
-
-C----------------------------------
-C SET HEATING MODE
-C----------------------------------
-C The heating set-point is the arithmetic average of the heating on 
-C set-point and the heating off set-point.
-      HSET = (HSPON+HSPOFF)/2.
-C The heating hysteresis bandwidth is the difference between the
-C on and off set-points
-      HBAND = (HSPOFF-HSPON)/2.
-C The heating error is the difference between the set-point and the
-C temperature measurement from the zone sensor
-      HERR = HSET - TMIX
-C Set heating mode to ON when the error is greater than or equal to
-C the heating hysteresis bandwidth
-C Set the heating mode to OFF when the error is less than or equal to
-C the negative bandwidth
-      IF (HERR.GE.HBAND)THEN
-          IPLT=1
-          LASTH(IICOMP)='ON '
-      ELSE IF (HERR.LE.-HBAND)THEN
-          LASTH(IICOMP)='OFF'
-      END IF
-
-C----------------------------------
-C SET COOLING MODE
-C----------------------------------
-C The cooling set-point is the arithmetic average of the cooling on 
-C set-point and the cooling off set-point.
-      CSET = (CSPON+CSPOFF)/2.
-C The cooling hysteresis bandwidth is the difference between the
-C on and off set-points
-      CBAND = (CSPOFF-CSPON)/2.
-C The cooling error is the difference between the set-point and the
-C temperature measurement from the zone sensor
-      CERR = CSET - TMIX
-C Set cooling mode to ON when the error is less than or equal to
-C the cooling hysteresis bandwidth
-C Set the cooling mode to OFF when the error is greater than or equal to
-C the negative bandwidth
-      IF (CERR.LE.CBAND)THEN
-          IPLT=2
-          LASTC(IICOMP)='ON '
-      ELSE IF (CERR.GE.-CBAND)THEN
-          LASTC(IICOMP)='OFF'
-      END IF
-
-C Switch on heater.
-      IF(LASTH(IICOMP).EQ.'ON ')THEN
-          QH=QHM
-      ELSE
-          QH=0.
-      ENDIF
-
-C Switch on cooler.
-      IF(LASTC(IICOMP).EQ.'ON ')THEN
-          QC=QCM
-      ELSE
-          QC=0.
-      ENDIF
-
-C Total heating/cooling.
-      QMX=QH+QC
-      QMN=0.
-      Q=QH+QC
-
-      IF(ISUR.GT.0)Q=Q/SNA(IICOMP,ISUR)
-      TFUT=(B3-B2*Q)/B1
-      T=TFUT
-      CALL MZBACK(Q)
-      B1=BB1
-      B2=BB2
-      B3=BB3
-      GOTO 18
-
    99 write(outs,98)ITYPE
-   98 format(' BCL00: building control law',I3,' does not yet')
+   98 format('BCL00: building control law',I3,' can not yet be used')
       call edisp(iuout,outs)
       call edisp(iuout,
-     &  ' exist but has been referenced.  This is a fatal error.')
+     &'with mixed sensors but has been referenced...a fatal error.')
       close(ieout)
       CALL ERPFREE(ieout,ISTAT)
       call epwait
@@ -2026,6 +1963,8 @@ C Keep track if trace is not active.
               continue
             else
               UNMETHRS(IICOMP)=UNMETHRS(IICOMP)+hrfrac
+C              write(6,'(a,f8.2,a,i3)')' cooling capacity insufficient ',
+C     &          UNMETHRS(IICOMP),' hours in zone ',IICOMP
             endif
           elseif ( QFUT.le.QCM.and.TFUT.le.CSP)then  ! if within capacity and at/below setpoint
             continue
@@ -2060,7 +1999,7 @@ C Free-float controller.
       COMMON/PSTSOL/ICF,IDTYP,IPER,BB1,BB2,BB3,IICOMP,TNP,QFUT,TFUT
       COMMON/SLAVE1/QHB(MCF),QCB(MCF),Qmst(MCF),
      &      bMasterFreeCoolFlag(MCF)
-      
+      real QHB, QCB, Qmst    
       logical bMasterFreeCoolFlag
       
       character outs*124
@@ -2375,34 +2314,16 @@ C suitable for use with controller types 0,35,36,37,38,39.
       COMMON/PERS/ISD1,ISM1,ISD2,ISM2,ISDS,ISDF,NTSTEP
 
       COMMON/BLGPID/BPID(MCF,6),NSINCR
+      COMMON/SLAVE1/QHB(MCF),QCB(MCF),Qmst(MCF),
+     &              bMasterFreeCoolFlag(MCF)    
+      real QHB, QCB, Qmst
+      logical bMasterFreeCoolFlag
       
-      character outs*124
+      character outs*248,msg*24
 
 C Fatal error test:
       ICTYP=IBCTYP(ICF,IDTYP,IPER)
       IF(ICTYP.NE.0.AND.(ICTYP.LT.35.OR.ICTYP.GT.39))GOTO 97
-
-C Trace output
-      IF(ITC.GT.0.AND.NSINC.GE.ITC.AND.NSINC.LE.ITCF.AND.
-     &   ITRACE(41).NE.0) then
-        if (IBSN(ICF,1).GT.0.and.IBAN(ICF,1).eq.0) then
-          write(outs,'(a,i3)') 
-     &      'Entering subroutine BCL05 sensing in zone ',
-     &      IBSN(ICF,1)
-          call edisp(itu,' ')
-          call edisp(itu,outs)
-        elseif (IBSN(ICF,1).GT.0.and.IBAN(ICF,1).GT.0) then
-          write(outs,'(a,i3,a,i3)') 
-     &      'Entering subroutine BCL05 sensing in zone ',
-     &      IBSN(ICF,1),' and actuating in zone ',IBAN(ICF,1)
-          call edisp(itu,' ')
-          call edisp(itu,outs)
-        else
-          call edisp(itu,' ')
-          call edisp(itu,' Entering subroutine BCL05')
-        endif
-        CALL DAYCLK(IDYP,BTIMEF,ITU)
-      endif
 
       QFUT=0.0
       TFUT=TNP
@@ -2438,6 +2359,41 @@ c of the throttling ranges.
       IF(IMO.EQ.3)TD=real(INT(BMISCD(ICF,IDTYP,IPER,11)))
       IF(IMO.EQ.4)TI=real(INT(BMISCD(ICF,IDTYP,IPER,11)))
       IF(IMO.EQ.4)TD=real(INT(BMISCD(ICF,IDTYP,IPER,12)))
+
+C Trace output
+      IF(ITC.GT.0.AND.NSINC.GE.ITC.AND.NSINC.LE.ITCF.AND.
+     &   ITRACE(41).NE.0) then
+        if(IMO.eq.1) msg='proportional'
+        if(IMO.eq.2) write(msg,'(a,f5.0,a)') 'P+I mode',TI,'s'
+        if(IMO.eq.3) write(msg,'(a,f5.0,a)') 'P+D mode',TD,'s'
+        if(IMO.eq.4) write(msg,'(a,2f5.0,a)') 'P+I+D mode',TI,TD,'s'
+        if (IBSN(ICF,1).GT.0.and.IBAN(ICF,1).eq.0) then
+          write(outs,'(3a,i3,a,f6.0,a,f6.0,a,f5.1,a,f5.1,a,f6.0,
+     &      a,f6.0,a,f5.1,a,f5.1)') 
+     &      'Entering subroutine BCL05 ',msg(1:lnblnk(msg)),
+     &      ' sensing in zone ',
+     &      IBSN(ICF,1),' Ht max cap',QHMX,' Ht min cap',QHMN,
+     &      ' Ht sp',HSP,' Ht thrt range',HTR,' Cl max cap',QCMX,
+     &      ' Cl min cap',QCMN,' Cl sp',CSP,' Cl thrt range',CTR
+          call edisp(itu,' ')
+          call edisp(itu,outs)
+        elseif (IBSN(ICF,1).GT.0.and.IBAN(ICF,1).GT.0) then
+          write(outs,'(3a,i3,a,i3,a,f6.0,a,f6.0,a,f5.1,a,f5.1,a,f6.0,
+     &      a,f6.0,a,f5.1,a,f5.1)') 
+     &      'Entering subroutine BCL05 ',msg(1:lnblnk(msg)),
+     &      ' sensing zone ',
+     &      IBSN(ICF,1),' actuating zone ',IBAN(ICF,1),
+     &      ' Ht max cap',QHMX,' Ht min cap',QHMN,
+     &      ' Ht sp',HSP,' Ht thrt range',HTR,' Cl max cap',QCMX,
+     &      ' Cl min cap',QCMN,' Cl sp',CSP,' Cl thrt range',CTR
+          call edisp(itu,' ')
+          call edisp(itu,outs)
+        else
+          call edisp(itu,' ')
+          call edisp(itu,' Entering subroutine BCL05')
+        endif
+        CALL DAYCLK(IDYP,BTIMEF,ITU)
+      endif
   
 C Fatal error tests:      
       IF(INT(BMISCD(ICF,IDTYP,IPER,2)).LT.1.OR.
@@ -2626,18 +2582,23 @@ C Convert from (/m^2) if necessary.
       IF(IBAN(ICF,1).EQ.-2)CALL MZRCPL(IICOMP,BB1,BB2,BB3,TCONT,0.05,
      &IPLT,QMX,QMN,TFUT,QFUT)
 
+C Remember state for possible use by a slave controller.
+      QHB(ICF) = BMISCD(ICF,IDTYP,IPER,3)       
+      QCB(ICF) = -BMISCD(ICF,IDTYP,IPER,7)
+      Qmst(ICF)=QFUT  ! Set QFUT for use by slave controller.
+
 C Trace output.
       IF(ITC.GT.0.AND.NSINC.GE.ITC.AND.NSINC.LE.ITCF.AND.
      &   ITRACE(41).NE.0) THEN
-         write(outs,'(A,F10.3,A,F8.3,A,F8.3,A,F8.3,A,F10.3,A,F8.3)') 
+         write(outs,'(A,F10.2,A,F8.3,A,F8.3,A,F8.3,A,F10.2,A,F8.3)') 
      &    ' Qfuture=',QFUT,' Tfuture=',TFUT,' Tctl=',TCTL,
      &    ' TDelta=',TDELTA,' Q ht=',QH,' ht err=',BPID(ICF,1)
          call edisp(itu,outs)
-         write(outs,'(A,F8.3,A,F8.3,A,F8.3,A,F10.3,A,F9.3,A,F9.3)') 
+         write(outs,'(A,F8.2,A,F8.2,A,F8.2,A,F10.2,A,F9.2,A,F9.2)') 
      &     ' ht spt=',HSP,' ht stp U=',HTU,' ht sp L= ',HTL,
      &     ' ht gain=',RKPH,' ht intgrl=',RINTH,' deriv=',RDRVH
          call edisp(itu,outs)
-         write(outs,'(A,F10.3,3(A,F8.3),A,F10.3,A,F9.3,A,F9.3)') 
+         write(outs,'(A,F10.2,3(A,F8.2),A,F10.2,A,F10.2,A,F9.2)') 
      &    ' Q cl=',QC,' cl spt=',CSP,' cl stp U=',CTU,' cl sp L=',CTL,
      &    ' cl gain=',RKPC,' cl intgrl=',RINTC,' deriv=',RDRVC
          call edisp(itu,outs)
@@ -2886,7 +2847,7 @@ C Temperature, 1st and 2nd mass flow rate of plant injection node
          AMFR=CSVF(IN,2)
          VMFR=CSVF(IN,3)
 
-C Heat capcity of dry air & vapor:
+C Heat capacity of dry air & vapor:
 C FUNCTION SHTFLD(i,T): returns specific heat of 
 C (i=1) dry air, (i=2) vapor, (i=3) water for 
 C fluid @ temperature T.
@@ -3106,7 +3067,6 @@ C Trace output.
       END
 
 C ******************** BCL07 ********************
-
 C A multi-stage controller with hysteresis.
 
       SUBROUTINE BCL07
@@ -3134,26 +3094,21 @@ C        =-2; cooling mode, stage 2
 C        =-3; cooling mode, stage 3
       COMMON/BCL07M/ISTG07(MCOM)
       
-      character outs*124
+      character outs*200
+      character msg*72,msg1*72,msg2*72
+      logical close
 
       DIMENSION QH(4),QC(4)
 
 C Fatal error test.
       if(BMISCD(ICF,IDTYP,IPER,1).LT.12.)GOTO 99
 
-C Trace output
-      IF(ITC.GT.0.AND.NSINC.GE.ITC.AND.NSINC.LE.ITCF.AND.
-     &   ITRACE(41).NE.0)then
-        call edisp(itu,' ')
-        call edisp(itu,' Entering subroutine BCL07')
-        call DAYCLK(IDYP,BTIMEF,ITU)
-      endif 
-
 C Initialise ISTG07 at first increment
       IF(NSINC.EQ.1)ISTG07(ICF)=0
 
       QFUT=0.
       TFUT=TNP
+      msg=' '; msg1=' '; msg2=' '
 
 C Determine sensed temperature.
       CALL CFVAR(TCTL,IER)
@@ -3195,6 +3150,25 @@ C CDB = cooling dead band (K), (>or=to 0)
       CDB=BMISCD(ICF,IDTYP,IPER,13)
       IF(CDB.LT.0.)GOTO 96
 
+C Echo attributes for trace context.
+      IF(ITC.GT.0.AND.NSINC.GE.ITC.AND.NSINC.LE.ITCF.AND.
+     &   ITRACE(41).NE.0)then
+        call edisp(itu,' ')
+        write(outs,'(a,i3,a,i3,a,i3)') 
+     &    'Entering subroutine BCL07 loop ',ICF,' sensing zone ',
+     &    IBSN(ICF,1),' inherit prior stage',ISTG07(ICF)
+        call edisp(itu,outs)
+        write(outs,'(a,4f6.0,a,f5.1,a,f5.1)') 
+     &    ' heat stages',QH(1),QH(2),QH(3),QH(4),
+     &    ' ht stp',HSP,' ht dband',HDB
+        call edisp(itu,outs)
+        write(outs,'(a,4f7.0,a,f5.1,a,f5.1,a,f5.1)') 
+     &    ' cool stages',QC(1),QC(2),QC(3),QC(4),
+     &    ' cl stp',CSP,' cl dband',CDB,' T ctl=',TCTL
+        call edisp(itu,outs)
+        call DAYCLK(IDYP,BTIMEF,ITU)
+      endif 
+
 C Upper heating and lower cooling values.
       HUP=HSP+HDB
       CLOW=CSP-CDB
@@ -3202,14 +3176,26 @@ C Upper heating and lower cooling values.
 C Establish whether or not ISTG07 alters (ie hysteresis)
 C Let ISTG07 equal local variable ISTAGE.
       ISTAGE=ISTG07(ICF)
-      IF(ISTAGE.EQ.0.AND.(HSP.LE.TCTL.AND.TCTL.LE.CSP))RETURN
+      IF(ISTAGE.EQ.0.AND.(HSP.LE.TCTL.AND.TCTL.LE.CSP))then
+        IF(ITC.GT.0.AND.NSINC.GE.ITC.AND.NSINC.LE.ITCF.AND.
+     &    ITRACE(41).NE.0)then
+          call edisp(itu,' Leaving BCL07 stage 0 and within deadband.')
+        ENDIF
+        RETURN
+      ENDIF
 
 C Prepare to switch equipment on. Identify if heating
 C or cooling required.
       IF(ISTAGE.EQ.0)THEN
         T=TCTL
-        IF(T.LT.HSP)GOTO 1
-        IF(T.GT.CSP)GOTO 2
+        if(T.LT.HSP)then
+          msg='prepare to switch on heating '
+          GOTO 1
+        endif
+        if(T.GT.CSP)then
+          msg='prepare to switch on cooling '
+          GOTO 2
+        endif
       ENDIF
 
 C Equipment is already on!
@@ -3219,11 +3205,42 @@ C of energy supply were maintained throughout the time-increment.
 C This assumes that the energy suppied will maintain
 C the current temperature, within acceptable limits ie hysteresis.
 
+C Logic to correct if moving from heating to cooling or cooling to
+C heating or if within deadband when inheriting a prior istage.
+      if(istage.gt.0)then
+        if(TCTL.LT.HSP)then
+          continue        ! heating still needed.
+        elseif(HSP.LE.TCTL.AND.TCTL.LE.CSP)then
+          msg=' within deadband'
+          istage = 0
+          QQ=0.
+          goto 3          ! finish up heating.
+        elseif(TCTL.gt.CSP)then
+          msg=' switch to cooling'
+          istage = -1
+        endif
+      else
+        if(TCTL.GT.CSP)then
+          continue        ! cooling still needed.
+        elseif(HSP.LE.TCTL.AND.TCTL.LE.CSP)then
+          msg=' within deadband'
+          istage = 0
+          QQ=0.
+          goto 4          ! finish up cooling.
+        elseif(TCTL.lt.HSP)then
+          msg=' switch to heating'
+          istage = 1
+        endif
+      endif
+
       IF(ISTAGE.GT.0)THEN
+        write(msg,'(a,f6.0)') 'heating @',QH(ISTAGE+1)
         Q=QH(ISTAGE+1)
       ENDIF
       IF(ISTAGE.LT.0)THEN
-        Q=QC(ISTAGE+1)
+        icstage=iabs(istage)    ! Take absolute to get QC index.
+        write(msg,'(a,f6.0)') 'cooling @',QC(icstage+1)
+        Q=QC(icstage+1)
       ENDIF
       QQ=Q
       ISUR=0
@@ -3233,90 +3250,138 @@ C the current temperature, within acceptable limits ie hysteresis.
 C T = zone temperature with current energy supply.
       T=(BB3-BB2*QQ)/BB1
       IF(ISTAGE.GT.0)THEN
-        IF(HSP.LE.T.AND.T.LE.HUP)GOTO 3
+        if(HSP.LE.T.AND.T.LE.HUP)then
+          msg1= ' will be in deadband'
+          GOTO 3  ! In dead band finish up.
+        endif
       ENDIF
       IF(ISTAGE.LT.0)THEN
-        IF(CLOW.LE.T.AND.T.LE.CSP)GOTO 4
+        if(CLOW.LE.T.AND.T.LE.CSP)then
+          msg1= ' will be in deadband'
+          GOTO 4 ! In dead banc finish up.
+        endif
       ENDIF
 
-      IF(ISTAGE.LT.0)GOTO 2
+      IF(ISTAGE.LT.0) GOTO 2   ! Jump to cooling logic.
 
 C Check heating application for new ISTAGE.
 C Potentially increase energy supplied.
     1 IF(T.LT.HSP)THEN
     7   ISTAGE=ISTAGE+1
-        IF(ISTAGE.GT.3)GOTO 6
+        IF(ISTAGE.GT.3) GOTO 6  ! Can't increase any more.
         Q=QH(ISTAGE+1)
+        write(msg1,'(a,f6.0)') ' try @',QH(ISTAGE+1)
         QQ=Q
         ISUR=0
         IF(IBAN(ICF,1).EQ.IICOMP.AND.IBAN(ICF,2).GT.0)ISUR=IBAN(ICF,2)
         IF(ISUR.GT.0)QQ=Q*SNA(IICOMP,ISUR)
         T=(BB3-BB2*QQ)/BB1
-        IF(T.LT.HSP)GOTO 7
-    6   IF(ISTAGE.GT.3)ISTAGE=3
-        GOTO 3
+        if(T.LT.HSP)then         ! Try with more heating.
+          msg1= ' try more heat'
+          GOTO 7
+        endif
+    6   IF(ISTAGE.GT.3) ISTAGE=3 ! Can't increase any more.
+        GOTO 3                   ! Finish up.
       ENDIF
 
-C Potentially decrease energy supplied.
+C Potentially decrease heat energy supplied.
       IF(T.GT.HUP)THEN
     9   ISTAGE=ISTAGE-1
-        IF(ISTAGE.LT.0)GOTO 8
+        IF(ISTAGE.LT.0) GOTO 8
         Q=QH(ISTAGE+1)
+        write(msg1,'(a,f6.0)') ' try @',QH(ISTAGE+1)
         QQ=Q
         ISUR=0
         IF(IBAN(ICF,1).EQ.IICOMP.AND.IBAN(ICF,2).GT.0)ISUR=IBAN(ICF,2)
         IF(ISUR.GT.0)QQ=Q*SNA(IICOMP,ISUR)
         T=(BB3-BB2*QQ)/BB1
-        IF(T.GT.HUP)GOTO 9
-    8   IF(ISTAGE.LT.0)ISTAGE=0
-        GOTO 3
+        if(T.GT.HUP)then
+          msg1= ' try less heat'
+          GOTO 9        ! Try a lesser input.
+        endif
+    8   IF(ISTAGE.LT.0) ISTAGE=0   ! Lowest more than needed so mark OFF
+        GOTO 3                     ! Finish up.
       ENDIF
+      goto 3                       ! Done with heating tests.
 
 C Potentially increased cooling energy supplied.
     2 IF(T.GT.CSP)THEN
-   12   ISTAGE=ISTAGE+1
-        IF(ISTAGE.GT.3)GOTO 11
-        Q=QC(ISTAGE+1)
+   12   ISTAGE=ISTAGE-1          ! Shift istage away from zero.
+        icstage=iabs(istage)     ! Take absolute to get QC index.
+        IF(ISTAGE.LT.-3) GOTO 11
+        Q=QC(icstage+1)
+        write(msg1,'(a,f6.0)') ' try @',QC(icstage+1)
         QQ=Q
         ISUR=0
         IF(IBAN(ICF,1).EQ.IICOMP.AND.IBAN(ICF,2).GT.0)ISUR=IBAN(ICF,2)
         IF(ISUR.GT.0)QQ=Q*SNA(IICOMP,ISUR)
         T=(BB3-BB2*QQ)/BB1
-        IF(T.GT.CSP)GOTO 12
-   11   IF(ISTAGE.GT.3)ISTAGE=3
-        GOTO 4
+        if(T.GT.CSP)then
+          msg1= ' try more cooling'
+          GOTO 12                 ! 
+        endif
+   11   IF(ISTAGE.lt.-3) ISTAGE=-3
+        GOTO 4                    ! Finish up.
       ENDIF
 
-C Potentially decreased cooling energy supplied.
+C Potentially decreased cooling energy supplied. Note that ISTAGE
+C is negative for cooling.
       IF(T.GT.CLOW)THEN
-   14   ISTAGE=ISTAGE-1
-        IF(ISTAGE.LT.0)GOTO 13
-        Q=QC(ISTAGE+1)
+   14   ISTAGE=ISTAGE+1           ! Shift istage closer to zero.
+        icstage=iabs(istage)      ! Take absolute to get QC index.
+        IF(ISTAGE.GT.0) GOTO 13
+        Q=QC(icstage+1)
+        write(msg1,'(a,f6.0)') ' try @',QC(icstage+1)
         QQ=Q
         ISUR=0
         IF(IBAN(ICF,1).EQ.IICOMP.AND.IBAN(ICF,2).GT.0)ISUR=IBAN(ICF,2)
         IF(ISUR.GT.0)QQ=Q*SNA(IICOMP,ISUR)
         T=(BB3-BB2*QQ)/BB1
-        IF(T.LT.CLOW)GOTO 14
-   13   IF(ISTAGE.LT.0)ISTAGE=0
-        GOTO 4
+        if(T.LT.CLOW)then
+          msg1= ' try less cooling'
+          GOTO 14
+        endif
+   13   IF(ISTAGE.gt.0) ISTAGE=0
+        GOTO 4                    ! Finish up.
       ENDIF
+      goto 4                      ! Done with cooling tests.
 
-    3 IPLT=1
+    3 IPLT=1                      ! Finish up heating.
       TCONT=HSP
+      msg2=' finish up.'
       GOTO 5
-    4 IPLT=2
+
+    4 IPLT=2                      ! Finish up cooling.
       TCONT=CSP
+      msg2=' finish up.'
+
     5 TFUT=T
       QFUT=QQ
+      QMX=QQ                      ! Setup for mixed actuation
+      QMN=QQ                      ! with this fixed QQ value.
       IF(IBAN(ICF,1).EQ.-2)CALL MZRCPL(IICOMP,BB1,BB2,BB3,TCONT,0.05,
      &IPLT,QMX,QMN,TFUT,QFUT)
+
+C If QFUT is close to zero then ISTAGE should be reset to zero.
+      call eclose(QFUT,0.0,0.1,close)
+      if(close)then
+        if(istage.eq.0)then
+          continue
+        else
+          msg2=' signal off.'
+          istage=0
+        endif
+      endif
+      ISTG07(ICF)=ISTAGE    ! Remember stage for next timestep.
 
 C Trace output.
       IF(ITC.GT.0.AND.NSINC.GE.ITC.AND.NSINC.LE.ITCF.AND.
      &   ITRACE(41).NE.0) THEN
-         write(outs,'(A,F10.3,A,F10.3)') ' Qfuture = ',QFUT,
-     &                                   ' Tfuture = ',TFUT
+         write(outs,'(3a)') msg(1:lnblnk(msg)),msg1(1:lnblnk(msg1)),
+     &      msg2(1:lnblnk(msg2))
+         call edisp(itu,outs)
+         write(outs,'(A,F10.3,A,F10.3,A,i3)') ' Qfuture = ',QFUT,
+     &     ' Tfuture = ',TFUT,' Stage = ',ISTAGE
          call edisp(itu,outs)
          call edisp(itu,' Leaving subroutine BCL07')
       END IF
@@ -3338,9 +3403,14 @@ C Fatal errors.
       END
 
 C ******************** BCL08 ********************
-
-C 'BCL08' is a variable supply temperature system
-C with limit constraints.
+C A variable supply temperature system with limit 
+C constraints. The attributes taken from the control file are:
+C TSM = max supply air temperature (deg.C)
+C TSN = min supply air temperature (deg.C)
+C AFR = air volume flow rate (m3/s)
+C HSP = heating set point temp. (deg.C)
+C CSP = cooling set point temp. (deg.C)
+C IFC = cooling availability index (0; cooling, 1; no cooling)
 
       SUBROUTINE BCL08
 #include "building.h"
@@ -3356,18 +3426,10 @@ C with limit constraints.
       COMMON/MBINFO/ZMBI(MCOM,4)
       COMMON/CLIMHG/HEXTP,HEXTF,GEXTP,GEXTF
       
-      character outs*124
+      character outs*148
 
 C Fatal error test if there are less than 6 misecel items.
       IF(BMISCD(ICF,IDTYP,IPER,1).LT.6.)GOTO 99
-
-C Trace output
-      IF(ITC.GT.0.AND.NSINC.GE.ITC.AND.NSINC.LE.ITCF.AND.
-     &   ITRACE(41).NE.0) then
-        call edisp(itu,' ')
-        call edisp(itu,' Entering subroutine BCL08')
-        CALL DAYCLK(IDYP,BTIMEF,ITU)
-      endif
 
       QFUT=0.
       TFUT=TNP
@@ -3378,39 +3440,41 @@ C Trace output
   101 IF(IBSN(ICF,1).EQ.-3.AND.IBSN(ICF,2).EQ.0)TCTL=TF
       IF(IBSN(ICF,1).EQ.-3.AND.IBSN(ICF,2).EQ.1)TCTL=SOLAIR(TF,QFF,QDF)
 
-C TSM = max supply air temperature (deg.C)
-C TSN = min supply air temperature (deg.C)
-C AFR = air volume flow rate (m3/s)
-C HSP = heating set point temp. (deg.C)
-C CSP = cooling set point temp. (deg.C)
-C IFC = cooling availability index (0; cooling, 1; no cooling)
       TSM=BMISCD(ICF,IDTYP,IPER,2)
       TSN=BMISCD(ICF,IDTYP,IPER,3)
       AFR=BMISCD(ICF,IDTYP,IPER,4)
       HSP=BMISCD(ICF,IDTYP,IPER,5)
       CSP=BMISCD(ICF,IDTYP,IPER,6)
       IFC=NINT(BMISCD(ICF,IDTYP,IPER,7))
+
+C Trace output
+      IF(ITC.GT.0.AND.NSINC.GE.ITC.AND.NSINC.LE.ITCF.AND.
+     &   ITRACE(41).NE.0) then
+        call edisp(itu,' ')
+        write(outs,'(a,i3,a,i3,a,f5.1,a,f5.1,a,f7.3,a,f6.1,a,f6.1)') 
+     &      'Entering subroutine BCL08 loop ',ICF,' sensing zone ',
+     &      IBSN(ICF,1),' max sup T',TSM,' min sup T',TSN,
+     &      ' flow',AFR,'m3/s ht SP',HSP,' cl SP',CSP
+        call edisp(itu,outs)
+        CALL DAYCLK(IDYP,BTIMEF,ITU)
+      endif
+
       IF(TCTL.LE.CSP.AND.TCTL.GE.HSP)GOTO 3
       D=AFR*1.2*1006.0
 
-c Is temperature above the cooling setpoint?
-      IF(TCTL.GT.CSP)GOTO 1
+      IF(TCTL.GT.CSP) GOTO 1             ! Is temperature above the cooling setpoint?
 
-c Too low, establish Tsupply to heat air to heating set point (HSP).
-      TS=(BB3-(BB1-(BB2*D))*HSP)/(BB2*D)
+      TS=(BB3-(BB1-(BB2*D))*HSP)/(BB2*D) ! Too low, establish Tsupply to heat air to heating set point (HSP).
 
-c Is this supply temperature available ?
-      IF(TS.LT.TF)TS=TF
+      IF(TS.LT.TF)TS=TF                  ! Is this supply temperature available?
       IF(TS.LT.TSN)TS=TSN
-      IF(TS.LE.TSM)GOTO 2
+      IF(TS.LE.TSM) GOTO 2
       TS=TSM
       GOTO 2
 
-c Zone temp. too high, establish Ts to cool to CSP.
-    1 TS=(BB3-(BB1-(BB2*D))*CSP)/(BB2*D)
+    1 TS=(BB3-(BB1-(BB2*D))*CSP)/(BB2*D) ! Zone temp. too high, establish Ts to cool to CSP.
 
-c Is this supply temperature available ?
-      IF(IFC.EQ.0)THEN
+      IF(IFC.EQ.0)THEN                   ! Is this supply temperature available?
         IF(TF.LT.TS)TS=TF
       ENDIF
       IF(IFC.EQ.1)THEN
@@ -3435,8 +3499,7 @@ C Trace output.
       IF(ITC.GT.0.AND.NSINC.GE.ITC.AND.NSINC.LE.ITCF.AND.
      &   ITRACE(41).NE.0) THEN
          write(outs,'(A,F10.3,A,F8.3,A,F8.3,A,F10.3)') 
-     &     ' Qfuture = ',QFUT,
-     &     ' Tfuture = ',TFUT,
+     &     ' Qfuture = ',QFUT,' Tfuture = ',TFUT,
      &     ' Tsupply = ',TS,
      &     ' Flow loss from zone = ',ZMBI(IICOMP,4)
          call edisp(itu,outs)
@@ -3453,8 +3516,7 @@ C Trace output.
       END
 
 C ******************** BCL09 ********************
-
-C 'BCL09' is a heat pipe model (after Berthold Stanzel)
+C A heat pipe model (after Berthold Stanzel),
 C which operates by transfering heat from
 C some outermost construction node to some innermost construction
 C node.  The algorithm iterates until the two nodes are within
@@ -3474,7 +3536,7 @@ C represents the heat pipe physics.
       COMMON/PSTSOL/ICF,IDTYP,IPER,BB1,BB2,BB3,IICOMP,TNP,QFUT,TFUT
       COMMON/BCL9/IHPZON,IHPCON,IHPNDO,QNOPF,QHPSV
 
-      character outs*124
+      character outs*148
 
 c Fatal error test.
       IF(INT(BMISCD(ICF,IDTYP,IPER,1)).NE.9)GOTO 99
@@ -3616,8 +3678,7 @@ c Convergence device.
 
 
 C ******************** BCL10 ********************
-
-C BCL10 is a general two position controller with separate flux ON
+C A general two position controller with separate flux ON
 C and flux OFF set points to be specified for both heating and cooling.
 C During the ON periods the maximum specified flux is injected.  After
 C the OFF condition the flux input is not reactivated until
@@ -3640,18 +3701,10 @@ C ON condition is reached.
       COMMON/BCL10M/LASTH(MCOM),LASTC(MCOM)
       CHARACTER*3 LASTH,LASTC
       
-      character outs*124
+      character outs*200
 
 c Fatal error test.
       IF(BMISCD(ICF,IDTYP,IPER,1).LT.6.0)GOTO 99
-
-C Trace output
-      IF(ITC.GT.0.AND.NSINC.GE.ITC.AND.NSINC.LE.ITCF.AND.
-     &   ITRACE(41).NE.0) then
-        call edisp(itu,' ')
-        call edisp(itu,' Entering subroutine BCL10')
-        CALL DAYCLK(IDYP,BTIMEF,ITU)
-      endif
 
       QFUT=0.
       TFUT=TNP
@@ -3662,16 +3715,11 @@ C Determine sensed temperature.
         return
       endif
 
-c QHM = fixed heating capacity (W)
-c QCM = fixed cooling capacity (W)
-c HSPON = heating ON set point temp. (deg.C)
-c HSPOFF = heating OFF set point temp. (deg.C)
-c CSPON = cooling ON set point temp. (deg.C)
-c CSPOFF = cooling OFF set point temp. (deg.C)
-
 C If the zone associated with this control function is served by an HVAC system
 C simulated ideally, then use HVAC system capacity to update controller
 C heating/cooling capacity for time step. 
+c QHM = fixed heating capacity (W)
+c QCM = fixed cooling capacity (W)
       if(cont_fun_heat_cap(IICOMP).gt.0. ) then
         QHM=cont_fun_heat_cap(IICOMP)
       else
@@ -3684,10 +3732,28 @@ C heating/cooling capacity for time step.
         QCM=-BMISCD(ICF,IDTYP,IPER,3)
       endif
 
+c HSPON = heating ON set point temp. (C)
+c HSPOFF = heating OFF set point temp. (C)
+c CSPON = cooling ON set point temp. (C)
+c CSPOFF = cooling OFF set point temp. (C)
       HSPON=BMISCD(ICF,IDTYP,IPER,4)
       HSPOFF=BMISCD(ICF,IDTYP,IPER,5)
       CSPON=BMISCD(ICF,IDTYP,IPER,6)
       CSPOFF=BMISCD(ICF,IDTYP,IPER,7)
+
+C Trace output
+      IF(ITC.GT.0.AND.NSINC.GE.ITC.AND.NSINC.LE.ITCF.AND.
+     &   ITRACE(41).NE.0) then
+        call edisp(itu,' ')
+        write(outs,'(a,i3,a,i3,a,f6.0,a,f6.0,a,f5.1,a,f5.1,a,f5.1,
+     &    a,f5.1)') 
+     &    'Entering subroutine BCL10 loop ',ICF,' sensing zone ',
+     &    IBSN(ICF,1),' ht cap',QHM,' cl cap',QCM,
+     &    ' ht ON T',HSPON,' ht OFF T',HSPOFF,' cl ON',CSPON,
+     &    ' cl OFF',CSPOFF
+        call edisp(itu,outs)
+        CALL DAYCLK(IDYP,BTIMEF,ITU)
+      endif
 
 C This is a generic implementation of a two-position controller
 C with hysteresis and dead-zone control.
@@ -3725,9 +3791,8 @@ C the negative bandwidth
           LASTH(IICOMP)='OFF'
       END IF
 
-C----------------------------------
 C SET COOLING MODE
-C----------------------------------
+
 C The cooling set-point is the arithmetic average of the cooling on 
 C set-point and the cooling off set-point.
       CSET = (CSPON+CSPOFF)/2.
@@ -3797,8 +3862,7 @@ C Trace output.
       END
       
 C ******************** BCL11 ********************
-
-C BCL11 is a multi-sensor temperature controller.
+C A multi-sensor temperature controller.
 C This controller will bring the temperature of the
 C associated zone to the greatest/lowest/mean/weighted value
 C of the auxiliary sensor(s).
@@ -3843,14 +3907,6 @@ C Fatal error tests:
         STOP
       endif
 
-C Trace output
-      IF(ITC.GT.0.AND.NSINC.GE.ITC.AND.NSINC.LE.ITCF.AND.
-     &   ITRACE(41).NE.0)then
-         call edisp(itu,' ')
-         call edisp(itu,' Entering subroutine BCL11')
-         call DAYCLK(IDYP,BTIMEF,ITU)
-      endif
-
       QFUT=0.
       TFUT=TNP
       TEMPTO=0.0
@@ -3877,6 +3933,20 @@ C ISM = 2: TDIF = (ref sensor)-(least value of auxiliary sensors);
 C ISM = 3: TDIF = (ref sensor)-(mean value of auxiliary sensors).
 C ISM = 4: TDIF = (ref sensor)-(weighting of auxiliary sensors).
       ISM=INT(BMISCD(ICF,IDTYP,IPER,7))
+
+C Trace output
+      IF(ITC.GT.0.AND.NSINC.GE.ITC.AND.NSINC.LE.ITCF.AND.
+     &   ITRACE(41).NE.0) then
+        call edisp(itu,' ')
+        write(outs,'(a,i3,a,f6.0,a,f6.0,a,f6.0,a,f6.0,a,i2,
+     &    a,i2)') 
+     &    'Entering subroutine BCL11 loop ',ICF,
+     &    ' ht max cap',QHM,' ht min cap',QHN,
+     &    ' cl max cap',QCM,' cl min cap',QCN,' nb aux sen',NSEN(ICF),
+     &    ' mode',ISM
+        call edisp(itu,outs)
+        CALL DAYCLK(IDYP,BTIMEF,ITU)
+      endif
 
 C SNWGHT() is the sensor weighting when ISM=4.
 C If only one sensor read attributes and then get scaling and offset
@@ -4074,8 +4144,7 @@ C Trace output.
       END
 
 C ******************** BCL12 ********************
-
-C BCL12 is a multi-sensor on-off controller. It acts to bring the
+C A multi-sensor on-off controller. It acts to bring the
 C associated zone temperature to some function of the secondary
 C sensor(s). During the ON periods the maximum specified
 C flux is injected.  After the OFF condition the flux input
@@ -4099,7 +4168,7 @@ C It is suitable for use with a type 0 controller.
      &TAUXSN(MCF,MSEN)
       
       CHARACTER*3 LASTH,LASTC
-      character outs*124
+      character outs*148
       
       DIMENSION SNWGHT(MSEN)
 
@@ -4122,24 +4191,16 @@ C Fatal error tests:
         STOP
       endif
 
-C Trace output
-      IF(ITC.GT.0.AND.NSINC.GE.ITC.AND.NSINC.LE.ITCF.AND.
-     &   ITRACE(41).NE.0)then
-         call edisp(itu,' ')
-         call edisp(itu,' Entering subroutine BCL12')
-         call DAYCLK(IDYP,BTIMEF,ITU)
-      endif
-
       QFUT=0.
       TFUT=TNP
       TEMPTO=0.0
       TEMPWT=0.0
       SNWTOT=0.0
 
-C QHM = max heating flux capacity (W),
-C QCM = max cooling flux capacity (W),
-C HDIF = heating differential (deg.C),
-C CDIF = cooling differential (deg.C),
+C QHM = max heating flux capacity (W)
+C QCM = max cooling flux capacity (W)
+C HDIF = heating differential (C)
+C CDIF = cooling differential (C)
       QHM=BMISCD(ICF,IDTYP,IPER,2)
       QCM=-BMISCD(ICF,IDTYP,IPER,3)
       HDIF=BMISCD(ICF,IDTYP,IPER,4)
@@ -4155,7 +4216,21 @@ C ISM = 3: TDIF = (ref sensor)-(mean value of auxiliary sensors).
 C ISM = 4: TDIF = (ref sensor)-(weighting of auxiliary sensors).
       ISM=INT(BMISCD(ICF,IDTYP,IPER,7))
 
-C SNWGHT(?) is the sensor weighting when ISM=4     
+C Trace output.
+      IF(ITC.GT.0.AND.NSINC.GE.ITC.AND.NSINC.LE.ITCF.AND.
+     &   ITRACE(41).NE.0) then
+        call edisp(itu,' ')
+        write(outs,'(a,i3,a,f6.0,a,f6.0,a,f6.0,a,f6.0,a,i2,
+     &    a,i2)') 
+     &    'Entering subroutine BCL12 loop ',ICF,
+     &    ' ht max cap',QHM,' cl max cap',QCM,
+     &    ' heat diffrntl',HDIF,' cl diffrntl',CDIF,' nb aux sen',
+     &    NSEN(ICF),' mode',ISM
+        call edisp(itu,outs)
+        CALL DAYCLK(IDYP,BTIMEF,ITU)
+      endif
+
+C SNWGHT is the sensor weighting when ISM=4     
       DO 10 L=1,NSEN(ICF)           
         IBMSN(ICF,L,1)=INT(BMISCD(ICF,IDTYP,IPER,8+4*(L-1)))
         IBMSN(ICF,L,2)=INT(BMISCD(ICF,IDTYP,IPER,9+4*(L-1)))
@@ -4207,19 +4282,19 @@ C Determine the auxiliary sensed temperatures,
       endif
 
       DO 20 J=1,NSEN(ICF)
-C Determine the greatest sensed temperature value;
+C Determine the greatest sensed temperature value.
          IF(J.EQ.1)TEMPHI=TAUXSN(ICF,J)
          IF(TAUXSN(ICF,J).GT.TEMPHI)TEMPHI=TAUXSN(ICF,J)
-C Determine the lowest sensed temperature value;
+C Determine the lowest sensed temperature value.
          IF(J.EQ.1)TEMPLO=TAUXSN(ICF,J)
          IF(TAUXSN(ICF,J).LT.TEMPLO)TEMPLO=TAUXSN(ICF,J)
-C Determine the total of the sensed values - required for mean;
+C Determine the total of the sensed values - required for mean.
          TEMPTO=TEMPTO+TAUXSN(ICF,J)
-C Determine the weighted sensed temperature;
+C Determine the weighted sensed temperature.
          TEMPWT=TEMPWT+(SNWGHT(J)*TAUXSN(ICF,J))*0.01
 20    CONTINUE
 
-C Determine the mean of the sensed temperature values;
+C Determine the mean of the sensed temperature values.
       TEMPAV=TEMPTO/(real(NSEN(ICF)))
 
       IF(ISM.EQ.1)THEN
@@ -4232,7 +4307,7 @@ C Determine the mean of the sensed temperature values;
          TMSEN=TEMPWT
       ENDIF
 
-C Heating cycle:
+C Heating cycle.
         IF(TCTL.LT.(TMSEN-0.5*HDIF))THEN
           QH=QHM
           LASTH(IICOMP)='ON '
@@ -4245,7 +4320,7 @@ C Heating cycle:
           IF(LASTH(IICOMP).EQ.'OFF')QH=0.
         ENDIF
         
-C Cooling cycle:
+C Cooling cycle.
         IF(TCTL.GT.(TMSEN+0.5*CDIF))THEN
            QC=QCM
            LASTC(IICOMP)='ON '
@@ -4285,7 +4360,7 @@ C Trace output.
       END
 
 C ******************** BCL13 ********************
-C BCL13 is time-proportioning on/off controller. In several ways
+C A time-proportioning on/off controller. In several ways
 C it extends the functionality offered by BCL10.
 C It is suitable for use with controllers types 0,35,36,37,38,39. 
 C Heating and cooling restrictions are allowed.
@@ -4308,9 +4383,9 @@ C Special common for BCL13; icounh and icounc are
 C heating cycle and cooling cycle period time-step counters.      
       COMMON/TIMPCT/ICOUNH,ICOUNC
       
-      character outs*124
+      character outs*200
       
-C Fatal error test:
+C Fatal error test.
       ICTYP=IBCTYP(ICF,IDTYP,IPER)
       IF(ICTYP.NE.0.AND.(ICTYP.LT.35.OR.ICTYP.GT.39))then
         call edisp(iuout,' BCL13: controller type error.')
@@ -4321,18 +4396,10 @@ C Fatal error test:
         STOP
       endif
 
-C Trace output
-      IF(ITC.GT.0.AND.NSINC.GE.ITC.AND.NSINC.LE.ITCF.AND.
-     &   ITRACE(41).NE.0) then
-        call edisp(itu,' ')
-        call edisp(itu,' Entering subroutine BCL13')
-        call DAYCLK(IDYP,BTIMEF,ITU)
-      endif
-
       QFUT=0.0
       TFUT=TNP
 
-C Initialise heating and cooling cycle period time-step counters:    
+C Initialise heating and cooling cycle period time-step counters.   
       IF(NSINC.EQ.((ITCNST*24*NTSTEP)+1))THEN
          ICOUNH=0
          ICOUNC=0
@@ -4340,10 +4407,10 @@ C Initialise heating and cooling cycle period time-step counters:
 
 C QHM = max heating capacity (W)
 C QCM = max cooling capacity (W)
-C HSPON  = heating ON set point temp. (deg.C)
-C HSPOFF = heating OFF set point temp. (deg.C)
-C CSPON  = cooling ON set point temp. (deg.C)
-C CSPOFF = cooling OFF set point temp. (deg.C)
+C HSPON  = heating ON set point temp. (C)
+C HSPOFF = heating OFF set point temp. (C)
+C CSPON  = cooling ON set point temp. (C)
+C CSPOFF = cooling OFF set point temp. (C)
 
       QHM=BMISCD(ICF,IDTYP,IPER,2)
       QCM=-BMISCD(ICF,IDTYP,IPER,3)
@@ -4351,6 +4418,20 @@ C CSPOFF = cooling OFF set point temp. (deg.C)
       HSPOFF=BMISCD(ICF,IDTYP,IPER,5)
       CSPON=BMISCD(ICF,IDTYP,IPER,6)
       CSPOFF=BMISCD(ICF,IDTYP,IPER,7)
+
+C Trace output.
+      IF(ITC.GT.0.AND.NSINC.GE.ITC.AND.NSINC.LE.ITCF.AND.
+     &   ITRACE(41).NE.0) then
+        call edisp(itu,' ')
+        write(outs,'(a,i3,a,i3,a,f6.0,a,f6.0,a,f5.1,a,f5.1,a,f5.1,
+     &    a,f5.1)') 
+     &    'Entering subroutine BCL13 loop ',ICF,' sensing zone ',
+     &    IBSN(ICF,1),' ht cap',QHM,' cl cap',QCM,
+     &    ' ht ON T',HSPON,' ht OFF T',HSPOFF,' cl ON',CSPON,
+     &    ' cl OFF',CSPOFF
+        call edisp(itu,outs)
+        CALL DAYCLK(IDYP,BTIMEF,ITU)
+      endif
 
 C CYTH   = total heating cycle period (minutes).     
 C HONMIN = minimum heating ON cycle time (minutes).
@@ -4366,42 +4447,51 @@ C COFMIN = minimum cooling OFF cycle time (minutes).
       CONMIN=60.0*BMISCD(ICF,IDTYP,IPER,12)
       COFMIN=60.0*BMISCD(ICF,IDTYP,IPER,13)
 
+      IF(ITC.GT.0.AND.NSINC.GE.ITC.AND.NSINC.LE.ITCF.AND.
+     &   ITRACE(41).NE.0) then
+        write(outs,'(a,f4.0,a,f4.0,a,f4.0,a,f4.0,a,f4.0,a,f4.0)') 
+     &    ' ht cycle (min)',CYTH,' ht ON (min)',HONMIN,
+     &    ' ht OFF (min)',HOFMIN,' cl cycle (min)',CYTC,
+     &    ' cl ON (min)',CONMIN,' cl OFF (min)',COFMIN
+        call edisp(itu,outs)
+      endif
+
 C Fatal error tests.
       IF(INT(BMISCD(ICF,IDTYP,IPER,1)).NE.12)GOTO 99
       
 C Note that heating and cooling proportional bands may overlap. In
 C this case simultaneous heating and cooling may result.
              
-C Establish the total cycle period time in terms of time-steps:
+C Establish the total cycle period time in terms of time-steps
 C for heating;
       NTSCYH=NINT((CYTH*real(NTSTEP))/3600.)
-C for cooling;
+C for cooling.
       NTSCYC=NINT((CYTC*real(NTSTEP))/3600.)
   
-C Establish the minimum ON and OFF cycle times in terms of time-steps:
+C Establish the minimum ON and OFF cycle times in terms of time-steps
 C for heating;
       MTSHON=NINT((HONMIN*real(NTSTEP))/3600.)
       MTSHOF=NINT((HOFMIN*real(NTSTEP))/3600.)
-C for cooling;
+C for cooling.
       MTSCON=NINT((CONMIN*real(NTSTEP))/3600.)
       MTSCOF=NINT((COFMIN*real(NTSTEP))/3600.)
       
-C Proportionality ratio for heating,
+C Proportionality ratio for heating.
       RATIOH=real(NTSCYH-(MTSHON+MTSHOF))/(HSPOFF-HSPON)
-C Proportionality ratio for cooling,
+C Proportionality ratio for cooling.
       RATIOC=real(NTSCYC-(MTSCON+MTSCOF))/(CSPON-CSPOFF)
 
-C Determine the control point temperature,
+C Determine the control point temperature.
       CALL CFVAR(TCTL,IER)
       if(ier.eq.2)then
         return
       endif
       
-C Heating cycle:
+C Heating cycle.
 
       IF(ICOUNH.EQ.0.OR.ICOUNH.EQ.NTSCYH)THEN
-C End of heating cycle period;
-C Re-establish no. of ON time-steps for next cycle period, 
+C End of heating cycle period.
+C Re-establish no. of ON time-steps for next cycle period. 
         NTSHON=NINT(real(NTSCYH-MTSHOF)+RATIOH*(TCTL-HSPON))
         IF(NTSHON.LT.MTSHON)NTSHON=MTSHON
         IF(NTSHON.GT.(NTSCYH-MTSHOF))NTSHON=(NTSCYH-MTSHOF)        
@@ -4418,11 +4508,11 @@ C Re-establish no. of ON time-steps for next cycle period,
          QH=0.0   ! heating is OFF
       ENDIF
                   
-C Cooling cycle:
+C Cooling cycle.
 
       IF(ICOUNC.EQ.0.OR.ICOUNC.EQ.NTSCYC)THEN
-C End of cooling cycle period;
-C Re-establish no. of ON time-steps for next cycle period,
+C End of cooling cycle period.
+C Re-establish no. of ON time-steps for next cycle period.
         NTSCON=NINT(real(NTSCYC-MTSCOF)-(RATIOC*(CSPON-TCTL)))
         IF(NTSCON.LT.MTSCON)NTSCON=MTSCON 
         IF(NTSCON.GT.(NTSCYC-MTSCOF))NTSCON=NTSCYC-MTSCOF
@@ -4451,7 +4541,8 @@ C Convert from (/m^2) if necessary.
       QFUT=Q
       IPLT=1
       QMX=Q
-      QMN=0.
+C      QMN=0.
+      QMN=Q        ! as in line 3827
       TCONT=TFUT
       IF(IBAN(ICF,1).EQ.-2)CALL MZRCPL(IICOMP,BB1,BB2,BB3,TCONT,0.05,
      &IPLT,QMX,QMN,TFUT,QFUT)
@@ -4479,8 +4570,13 @@ C Trace output.
       END
 
 C ******************** BCL14 ********************
-C BCL14 is a floating action ('three-position') controller.
-C It is suitable for use with controller types 0,35,36,37,38,39. 
+C A floating action ('three-position') controller.
+C See CIBSE Guide H Section 2.2.1. Which describes a floating control:
+C Floating control is a form of two-position control which requires 
+C that the controlled device can have its output increased or decreased 
+C by a slow-moving actuator. It is also known as three-position or 
+C tristate control. ...It is not suitable for systems with a long dead time. 
+C Can be used with controller types 0,35,36,37,38,39. 
 C Heating and cooling restrictions are allowed.
 
       SUBROUTINE BCL14
@@ -4498,7 +4594,7 @@ C Heating and cooling restrictions are allowed.
       COMMON/FLTCLR/LASTH(MCOM),LASTC(MCOM)
       CHARACTER*3 LASTH,LASTC
       
-      character outs*124
+      character outs*148
 
 C Fatal error tests:
       ICTYP=IBCTYP(ICF,IDTYP,IPER)
@@ -4510,26 +4606,18 @@ C Fatal error tests:
         call epagend
         STOP
       endif
-
-C Trace output
-      IF(ITC.GT.0.AND.NSINC.GE.ITC.AND.NSINC.LE.ITCF.AND.
-     &   ITRACE(41).NE.0) then
-        call edisp(itu,' ')
-        call edisp(itu,' Entering subroutine BCL14')
-        call DAYCLK(IDYP,BTIMEF,ITU)
-      endif
       
       QFUT=0.0
       TFUT=TNP
 
-C HSP = heating set-point (deg.C),
-C HDB = heating deadband (deg.C),
-C HUPDIF = heating "shut switch" differential (deg.C),
-C HLODIF = heating "open switch" differential (deg.C),
-C CSP = cooling set-point (deg.C),
-C CDB = cooling deadband (deg.C),
-C CUPDIF = cooling "open switch" differential (deg.C),
-C CLODIF = cooling "shut switch" differential (deg.C),
+C HSP = heating set-point (C),
+C HDB = heating deadband (C),
+C HUPDIF = heating "shut switch" differential (C),
+C HLODIF = heating "open switch" differential (C),
+C CSP = cooling set-point (C),
+C CDB = cooling deadband (C),
+C CUPDIF = cooling "open switch" differential (C),
+C CLODIF = cooling "shut switch" differential (C),
 C QHM = maximum heating flux (W),
 C QHN = minimum heating flux (W),
 C HROC = rate of change of heater actuator (time-steps),
@@ -4552,8 +4640,22 @@ C CROC = rate of change of cooling actuator (time-steps),
       QCN=-BMISCD(ICF,IDTYP,IPER,14)
       CROC=BMISCD(ICF,IDTYP,IPER,15)
 
+C Trace output.
+      IF(ITC.GT.0.AND.NSINC.GE.ITC.AND.NSINC.LE.ITCF.AND.
+     &   ITRACE(41).NE.0) then
+        call edisp(itu,' ')
+        write(outs,'(a,f5.1,a,f5.1,a,f7.0,a,f5.0,a,f5.1,a,f5.1,a,f7.0,
+     &    a,f6.0)') 
+     &    ' Entering subroutine BCL14 with ht stpt',HSP,
+     &    ' ht db',HDB,' ht maxW',QHM,' ht minW',QHN,
+     &    ' cl stpt',CSP,' cl db',CDB,' cl maxW',QCM,
+     &    ' cl minW',QCN
+        call edisp(itu,outs)
+        call DAYCLK(IDYP,BTIMEF,ITU)
+      endif
+
 C Fatal error test.
-      IF(INT(BMISCD(ICF,IDTYP,IPER,1)).NE.14)GOTO 99           
+      IF(INT(BMISCD(ICF,IDTYP,IPER,1)).lt.14)GOTO 99           
      
       QFUT=0.0
       TFUT=TNP
@@ -4567,25 +4669,17 @@ C Fatal error test.
       DELTQH=(QHM-QHN)/HROC
       DELTQC=(QCM-QCN)/CROC
 
-C Heating cycle;
-      
-      IF(T.GT.HSP-HDB*0.5.AND.T.LT.HSP+HDB*0.5)THEN
-C T within deadband,
+C Heating cycle.
+      IF(T.GT.HSP-HDB*0.5.AND.T.LT.HSP+HDB*0.5)THEN  ! T within deadband,
          QH=QHLAST
          LASTH(IICOMP)='OFF'
-
-      ELSEIF(T.GE.HSP+HDB*0.5+HUPDIF)THEN
-C T above top limit,
+      ELSEIF(T.GE.HSP+HDB*0.5+HUPDIF)THEN            ! T above top limit,
          QH=QHLAST-DELTQH
          LASTH(IICOMP)='ON'
-
-      ELSEIF(T.LE.HSP-HDB*0.5-HLODIF)THEN
-C T below bottom limit,
+      ELSEIF(T.LE.HSP-HDB*0.5-HLODIF)THEN            ! T below bottom limit,
          QH=QHLAST+DELTQH
          LASTH(IICOMP)='ON'  
-
-      ELSEIF(T.GE.HSP+HDB*0.5)THEN
-C T in upper differential,
+      ELSEIF(T.GE.HSP+HDB*0.5)THEN                   ! T in upper differential,
          IF(LASTH(IICOMP).EQ.'ON')THEN
             QH=QHLAST-DELTQH
             LASTH(IICOMP)='ON'
@@ -4593,9 +4687,7 @@ C T in upper differential,
             QH=QHLAST
             LASTH(IICOMP)='OFF'
          ENDIF
-         
-      ELSEIF(T.LE.HSP-HDB*0.5)THEN
-C  T in lower differential,
+      ELSEIF(T.LE.HSP-HDB*0.5)THEN                    !  T in lower differential,
          IF(LASTH(IICOMP).EQ.'ON')THEN           
             QH=QHLAST+DELTQH
             LASTH(IICOMP)='ON'
@@ -4603,7 +4695,6 @@ C  T in lower differential,
             QH=QHLAST
             LASTH(IICOMP)='OFF'
          ENDIF       
-         
       ENDIF
       
       IF(QH.GT.QHM)QH=QHM
@@ -4611,24 +4702,16 @@ C  T in lower differential,
       QHLAST=QH
 
 C Cooling cycle;
-      
-      IF(T.GT.CSP-CDB*0.5.AND.T.LT.CSP+CDB*0.5)THEN
-C T within deadband,
+      IF(T.GT.CSP-CDB*0.5.AND.T.LT.CSP+CDB*0.5)THEN  ! T within deadband,
          QC=QCLAST
          LASTC(IICOMP)='OFF'
-
-      ELSEIF(T.GE.CSP+CDB*0.5+CUPDIF)THEN
-C T above top limit,
+      ELSEIF(T.GE.CSP+CDB*0.5+CUPDIF)THEN            ! T above top limit,
          QC=QCLAST+DELTQC
          LASTC(IICOMP)='ON'
-
-      ELSEIF(T.LE.CSP-CDB*0.5-CLODIF)THEN
-C T below bottom limit,
+      ELSEIF(T.LE.CSP-CDB*0.5-CLODIF)THEN            ! T below bottom limit,
          QC=QCLAST-DELTQC
          LASTC(IICOMP)='ON'
-
-      ELSEIF(T.GE.CSP+CDB*0.5)THEN
-C T in upper differential,
+      ELSEIF(T.GE.CSP+CDB*0.5)THEN                   ! T in upper differential,
          IF(LASTC(IICOMP).EQ.'ON')THEN
             QC=QCLAST-DELTQC 
             LASTC(IICOMP)='ON'
@@ -4636,9 +4719,7 @@ C T in upper differential,
             QC=QCLAST
             LASTC(IICOMP)='OFF'
          ENDIF
-         
-      ELSEIF(T.LE.CSP-CDB*0.5)THEN
-C T in lower differential,
+      ELSEIF(T.LE.CSP-CDB*0.5)THEN                    ! T in lower differential,
          IF(LASTC(IICOMP).EQ.'ON')THEN           
             QC=QCLAST-DELTQC
             LASTC(IICOMP)='ON'
@@ -4646,7 +4727,6 @@ C T in lower differential,
             QC=QCLAST
             LASTC(IICOMP)='OFF'
          ENDIF
-         
       ENDIF
       
       IF(QC.LT.QCM)QC=QCM
@@ -4690,7 +4770,6 @@ C Trace output.
       END
 
 C ******************** BCL15 ********************
-
 C Logic Optimum Start (rewind) Controller.
 C Suitable for use with controller types 0,35,36,37,38,39. 
 
@@ -4809,7 +4888,7 @@ C SAVE PRESENT VALUES,
          irwcsv=irwcnt
       endif
 
-C REWIND OR CONTINUE SIMULATION ?
+C REWIND OR CONTINUE SIMULATION?
 C IRWIND = +1 FOR REWIND AND FORWARD ADJUST TRIAL TIME;
 C IRWIND = -1 FOR REWIND AND BACKWARD ADJUST TRIAL TIME.
 C IRWIND = 99 FOR CONTINUE UNTIL DTAO;
@@ -4824,7 +4903,7 @@ C IRWIND =  0 FOR CONTINUE AFTER DTAO.
          endif
       if(irwfnl.eq.1)irwind=0
 
-C ESTABLISH FUTURE TRIAL START TIME,
+C ESTABLISH FUTURE TRIAL START TIME.
         if(irwind.eq.1)then
           if(irwlas.eq.-1)then
             stfut=stpres+0.5*(stpas1-stpres)
@@ -4862,7 +4941,7 @@ C ESTABLISH FUTURE TRIAL START TIME,
           endif
         else if(irwind.eq.0)then
 
-C ACCEPT CURRENT TRIAL TIME AS OPTIMUM START TIME,
+C ACCEPT CURRENT TRIAL TIME AS OPTIMUM START TIME.
           timopt=stpres
 
         endif
@@ -4871,7 +4950,7 @@ C ACCEPT CURRENT TRIAL TIME AS OPTIMUM START TIME,
       call eclose(btimef,dtoa,0.001,close)
       if(close)q=0.
 
-C POSSIBLY INJECT FLUX,      
+C POSSIBLY INJECT FLUX.    
       if(btimef.lt.dtoa)then
       irwind=99
         if(btimef.ge.stpres)then         
@@ -4881,26 +4960,26 @@ C POSSIBLY INJECT FLUX,
         endif
       endif
 
-C CONTINUE WITH SIMULATION IF < MINIMUM TEMPERATURE DIFFERENCE
+C CONTINUE WITH SIMULATION IF < MINIMUM TEMPERATURE DIFFERENCE.
       if((irwind.eq.1.or.irwind.eq.-1).and.abs(stfut-stpas1).lt.
      &    timdif.and.irwlas.ne.0)then
         timopt=stpres
         irwind=0
       endif
 
-C CONTINUE WITH SIMULATION IF `TIMOPT' < 0.0
+C CONTINUE WITH SIMULATION IF `TIMOPT' < 0.0.
       if(irwind.eq.-1 .and. stfut.lt.0.0 .and. stpres.le.0.0 )then
         irwind=0
         timopt=stpres
       endif
 
-C CONTINUE WITH SIMULATION IF `TIMOPT' > DTOA,
+C CONTINUE WITH SIMULATION IF `TIMOPT' > DTOA.
       if(irwind.eq.1.and.stfut.ge.dtoa)then
         irwind=0
         timopt=stpres
       endif
 
-C SET REWIND POSITIVE (IRWCHP), NEGATIVE (IRWCHN), & CHANGE (IRWCHG) FLAGS,
+C SET REWIND POSITIVE (IRWCHP), NEGATIVE (IRWCHN), & CHANGE (IRWCHG) FLAGS.
       if(irwind.eq.1)irwchp=1
       if(irwind.eq.-1)irwchn=1
       if(irwchp.eq.1.and.irwchn.eq.1)irwchg=1
@@ -4910,17 +4989,17 @@ C REMEMBER PRESENT REWIND FLAG,
         irwlas=irwind
       endif
 
-C SET REWND FLAG
+C SET REWND FLAG.
       if(btimef.ge.dtoa.and.(irwind.eq.1.or.irwind.eq.-1))then
         rewnd=.true.
-C REMEMBER CURRENT SENSED VALUE,
+C REMEMBER CURRENT SENSED VALUE.
         tctlsv=tctl
         irwcnt=irwcnt+1
       else
         rewnd=.false.
       endif
       
-C RESET VARIABLES,
+C RESET VARIABLES.
       if(irwind.eq.0)call mziboc
 
 C CONVERT FROM (/M^2) IF NECESSARY.
@@ -4937,7 +5016,7 @@ C CONVERT FROM (/M^2) IF NECESSARY.
       if(iban(icf,1).eq.-2)call mzrcpl(iicomp,bb1,bb2,bb3,tcont,0.05,
      &iplt,qmx,qmn,tfut,qfut)  
 
-C TRACE OUTPUT,
+C TRACE OUTPUT.
       if(itc.gt.0.and.nsinc.ge.itc.and.nsinc.le.itcf.and.
      &   itrace(41).ne.0) then
          write(outs,'(A,F10.3,A,F8.3,A,F10.3,A,F10.3,A,F10.3)')
@@ -4994,14 +5073,13 @@ C     ST???  = FUTURE/PRESENT/START TRIAL START TIMES,
       
       CHARACTER OUTS*124
 
-
 C MISC. DATA ITEMS:
 C QH     = HEATING CAPACITY (W);
 C QC     = COOLING CAPACITY (W);
-C HSP    = HEATING SET POINT TEMP (DEG.C);
-C CSP    = COOLING SET POINT TEMP (DEG.C);
-C DTMP   = DESIRED TEMPERATURE LEVEL (DEG.C);
-C TR     = ACCEPTABLE COMFORT TEMPERATURE BAND (DEG.C);
+C HSP    = HEATING SET POINT TEMP (C);
+C CSP    = COOLING SET POINT TEMP (C);
+C DTMP   = DESIRED TEMPERATURE LEVEL (C);
+C TR     = ACCEPTABLE COMFORT TEMPERATURE BAND (C);
 C OCDT   = OCCUPANCY DEPARTURE TIME;
 C TIMDIF = MINIMUM DIFFERENCE BETWEEN SUCCESSIVE TRIAL TIMES (HOURS);
 C STINIT = INITIAL TRIAL TEST TIME.
@@ -5016,10 +5094,10 @@ C STINIT = INITIAL TRIAL TEST TIME.
       timdif=bmiscd(icf,idtyp,iper,9)
       stinit=bmiscd(icf,idtyp,iper,10)
 
-C FATAL ERROR TEST,
+C FATAL ERROR TEST.
       if(int(bmiscd(icf,idtyp,iper,1)).ne.9)goto 99
 
-C Trace output
+C Trace output.
       if(ITC.GT.0.AND.NSINC.GE.ITC.AND.NSINC.LE.ITCF.AND.
      &   ITRACE(41).NE.0)then
          call edisp(itu,' ')
@@ -5027,27 +5105,27 @@ C Trace output
          call DAYCLK(IDYP,BTIMEF,ITU)
       endif
 
-C SET TIME INCREMENT,  
+C SET TIME INCREMENT. 
       deltat=1./float(ntstep)
 
-C SET COMFORT TEMPERATURE UPPER AND LOWER LIMITS;
+C SET COMFORT TEMPERATURE UPPER AND LOWER LIMITS.
       thi=dtmp+(0.5*tr)
       tlo=dtmp-(0.5*tr)
 
       qfut=0.
       tfut=tnp
 
-C DETERMINE SENSED TEMPERATURE;
+C DETERMINE SENSED TEMPERATURE.
       call cfvar(tctl,IER)
       if(ier.eq.2)then
         return
       endif
 
-C IF FIRST PASS, SET INITIAL TRIAL STOP TIME;
+C IF FIRST PASS, SET INITIAL TRIAL STOP TIME.
       initct=initct+1
       if(initct.eq.1.and.irwcnt.eq.0)stpres=stinit
 
-C SAVE PRESENT VALUES;
+C SAVE PRESENT VALUES.
        if(irwcnt.gt.irwcsv)then
          stpas2=stpas1
          stpas1=stpres
@@ -5055,10 +5133,10 @@ C SAVE PRESENT VALUES;
          irwcsv=irwcnt
       endif
 
-C ESTABLISH PERIOD START TIME,
+C ESTABLISH PERIOD START TIME.
       if(initct.eq.1)pertms=btimef
 
-C REWIND OR CONTINUE SIMULATION ?
+C REWIND OR CONTINUE SIMULATION.
 C IRWIND = +1 FOR REWIND AND FORWARD ADJUST TRIAL TIME;
 C IRWIND = -1 FOR REWIND AND BACKWARD ADJUST TRIAL TIME.
 C IRWIND = 99 FOR CONTINUE UNTIL OCDT;
@@ -5074,7 +5152,7 @@ C IRWIND =  0 FOR CONTINUE AFTER OCDT.
          endif
       if(irwfnl.eq.1)irwind=0
          
-C ESTABLISH FUTURE TRIAL STOP TIME;
+C ESTABLISH FUTURE TRIAL STOP TIME.
          if(irwind.eq.1)then
            if(irwlas.eq.-1)then
               stfut=stpres+0.5*(stpas1-stpres)
@@ -5110,45 +5188,45 @@ C ESTABLISH FUTURE TRIAL STOP TIME;
               endif
            endif
          else if(irwind.eq.0)then
-C ACCEPT CURRENT TRIAL TIME AS OPTIMUM STOP TIME,
+C ACCEPT CURRENT TRIAL TIME AS OPTIMUM STOP TIME.
            timopt=stpres
          endif
       endif
 
-C POSSIBLY INJECT FLUX;
+C POSSIBLY INJECT FLUX.
       call eclose(btimef,ocdt,0.001,close)
       if(close)q=0.
 
       if(btimef.lt.ocdt)then
         irwind=99
         if(btimef.ge.stpres)then
-C CEASE FLUX INJECTION
+C CEASE FLUX INJECTION.
           q=0.
         else
-C INJECT FLUX: (ALGORITHM IS BASED ON BCL04: `IDEAL FIXED FLUX INJECTION'.)
+C INJECT FLUX (ALGORITHM BASED ON BCL04, `IDEAL FIXED FLUX INJECTION').
            if(tctl.lt.csp)then
-C TEMP TOO LOW, HEAT;
+C TEMPERATURE TOO LOW, HEAT.
              q=qh
              iplt=1
              qmx=qh
              qmn=qh
              tcont=hsp
            else if(tctl.gt.hsp)then
-C TEMP TOO HIGH, COOL;
+C TEMPERATURE TOO HIGH, COOL.
              q=qc
              iplt=2
              qmx=qc
              qmn=qc
              tcont=csp
            else
-C TEMP WITHIN CONTROL RANGE;
+C TEMPERATURE WITHIN CONTROL RANGE.
              qfut=0.
              tfut=tnp
            endif
         endif
       endif
       
-C CONTINUE WITH SIMULATION IF < MINIMUM TEMPERATURE DIFFERENCE
+C CONTINUE WITH SIMULATION IF < MINIMUM TEMPERATURE DIFFERENCE.
       if((irwind.eq.1.or.irwind.eq.-1).and.abs(stfut-stpas1).lt.
      &timdif.and.irwlas.ne.0)then
         irwind=0
@@ -5160,14 +5238,14 @@ C CONTINUE WITH SIMULATION IF < MINIMUM TEMPERATURE DIFFERENCE
         endif        
       endif
 
-C CONTINUE WITH SIMULATION IF `TIMOPT' < 0.0
+C CONTINUE WITH SIMULATION IF `TIMOPT' < 0.0.
       if(irwind.eq.-1.and.stfut.lt.pertms.and.stpres.le.pertms)then
         irwind=0
         timopt=stpres
       endif
             
       if(irwind.eq.1.and.stfut.ge.ocdt)then
-C CONTINUE WITH SIMULATION IF `TIMOPT' > OCDT,
+C CONTINUE WITH SIMULATION IF `TIMOPT' > OCDT.
         irwind=0
         timopt=stpres
       endif
@@ -5185,17 +5263,17 @@ C CONTINUE WITH SIMULATION IF `TIMOPT' > OCDT,
         irwlas=irwind
       endif
 
-C SET `REWIND TIME' FLAG,
+C SET `REWIND TIME' FLAG.
       if(btimef.ge.ocdt.and.(irwind.eq.1.or.irwind.eq.-1))then
          rewnd=.true.
-C REMEMBER CURRENT SENSED VALUE,
+C REMEMBER CURRENT SENSED VALUE.
          tctlsv=tctl
          irwcnt=irwcnt+1
       else
          rewnd=.false.
       endif
       
-C RESET VARIABLES,
+C RESET VARIABLES.
       if(irwind.eq.0)call mziboc
 
 C CONVERT FROM (/M^2) IF NECESSARY.
@@ -5212,7 +5290,7 @@ C CONVERT FROM (/M^2) IF NECESSARY.
       if(iban(icf,1).eq.-2)call mzrcpl(iicomp,bb1,bb2,bb3,tcont,0.05,
      &iplt,qmx,qmn,tfut,qfut)    
 
-C TRACE OUTPUT,
+C TRACE OUTPUT.
       if(itc.gt.0.and.nsinc.ge.itc.and.nsinc.le.itcf.and.
      &   itrace(41).ne.0) then
          write(outs,'(A,F10.3,A,F10.3)')
@@ -5241,7 +5319,6 @@ C TRACE OUTPUT,
       end
 
 C ******************** BCL17 ********************
-
 C Fuzzy Logic PI/PD Controller.
 
       SUBROUTINE BCL17
@@ -5267,7 +5344,7 @@ C Fuzzy Logic PI/PD Controller.
 
       CHARACTER OUTS*124
 
-C Trace output
+C Trace output.
       IF(ITC.GT.0.AND.NSINC.GE.ITC.AND.NSINC.LE.ITCF.AND.
      &   ITRACE(41).NE.0)then
          call edisp(itu,' ')
@@ -5287,7 +5364,7 @@ C Fatal error tests.
       IF(INT(BMISCD(ICF,IDTYP,IPER,5)).NE.1.AND.
      &INT(BMISCD(ICF,IDTYP,IPER,5)).NE.2)GOTO 98
 
-C Control parameters are:
+C Control parameters:
 C     IFP:=    Fuzzy membership data set.
 C     IMO:=    Flag indicating control mode: 1 for PI; 2 for PD.
 C     SP:=     Set point (deg. C).
@@ -5305,7 +5382,7 @@ C Assign control parameters.
       SCALCE=BMISCD(ICF,IDTYP,IPER,7)
       SCALOP=BMISCD(ICF,IDTYP,IPER,8)
 
-C Establish max and min flux outputs.
+C Establish maximum and minimum flux outputs.
       QMIN=SCALOP*FZM(IFP,3,1,3)
       QMAX=SCALOP*FZM(IFP,3,NFZF(IFP,3),3)
 
@@ -5505,7 +5582,7 @@ C Now find overall centroid == Fuzzy Logic Controller Output.
           ENDIF
       ENDIF
 
-C Assign Control Data.
+C Assign control data.
       Q=FZCTL
       IF(IMO.EQ.1)Q=FZCTL+QSAV(IFP)
       Q=Q*SCALOP
@@ -5569,8 +5646,7 @@ C Trace output.
       END
 
 C ******************** BCL18 ********************
-
-C 'BCL18' is a null controller. The controller output
+C A null controller. The controller output
 C is identically the same as the sensor input.
 
       SUBROUTINE BCL18
@@ -5586,7 +5662,7 @@ C is identically the same as the sensor input.
       
       character outs*124
 
-C Trace output
+C Trace output.
       IF(ITC.GT.0.AND.NSINC.GE.ITC.AND.NSINC.LE.ITCF.AND.
      &   ITRACE(41).NE.0)then
          call edisp(itu,' ')
@@ -5633,8 +5709,7 @@ C Trace output.
       END
 
 C ******************** bcl19 ********************
-
-C This controller will activate heating/cooling to achieve
+C A controller to activate heating/cooling to achieve
 C a desired temperature in the associated zone but it will
 C only do so based on the output of multiple sensors;
 C i.e. if any of the auxilliary sensors demands heating for
@@ -5667,7 +5742,7 @@ C This control law is suitable for a type 0 controller.
 
       DIMENSION AUXHSP(MSEN),AUXCSP(MSEN)
       
-C Fatal error tests:
+C Fatal error tests.
       ICTYP=IBCTYP(ICF,IDTYP,IPER)
       IF(ICTYP.NE.0.AND.(ICTYP.LT.35.OR.ICTYP.GT.39))then
         call edisp(iuout,' BCL19: controller type error.')
@@ -5687,7 +5762,7 @@ C Fatal error tests:
         STOP
       endif
 
-C Trace output
+C Trace output.
       if(ITC.GT.0.AND.NSINC.GE.ITC.AND.NSINC.LE.ITCF.AND.
      &   ITRACE(41).NE.0)then
          call edisp(itu,' ')
@@ -5708,8 +5783,8 @@ C QHM = max heating capacity (W)
 C QHN = min heating capacity (W)
 C QCM = max cooling capacity (W)
 C QCN = min cooling capacity (W)
-C HSP = heating set point temp. (deg.C)
-C CSP = cooling set point temp. (deg.C)
+C HSP = heating set point temp. (C)
+C CSP = cooling set point temp. (C)
 
       QHM=BMISCD(ICF,IDTYP,IPER,2)
       QHN=BMISCD(ICF,IDTYP,IPER,3)
@@ -5721,7 +5796,7 @@ C CSP = cooling set point temp. (deg.C)
 C NSEN(ICF) = number of auxiliary sensors for control function.
       NSEN(ICF)=INT(BMISCD(ICF,IDTYP,IPER,8))
 
-C Fatal error test:      
+C Fatal error test.      
       IF(NSEN(ICF).GT.MSEN)then
         call edisp(iuout,' BCL19: too many auxiliary sensors.')
         close(ieout)
@@ -5750,8 +5825,8 @@ C Fatal error test:
  10   CONTINUE
       
 C Start with assuming that neither heating nor cooling
-C of the current zone is needed, and then
-C determine auxiliary sensor temperatures (or outdoor conditions).
+C of the current zone is needed, and then determine
+C auxiliary sensor temperatures (or outdoor conditions).
       IHEATING=0
       ICOOLING=0
       CALL CFMVAR(ier)
@@ -5774,7 +5849,8 @@ C Check whether neither heating nor cooling required.
         goto 1000
       endif
 
-C Check whether we need to inject/subtract heat from the source zone when heating/cooling required in aux zone.
+C Check whether we need to inject/subtract heat from the source zone
+C when heating/cooling required in auxiliary zone.
       IF(TCTL.GE.HSP.AND.IHEATING.EQ.1)then
         ctl_logic='Heating required in at least 1 auxiliary zone but'//
      &  ' source is hotter than setpoint -> do nothing.'
@@ -5820,7 +5896,7 @@ C Convert from (/m^2) if necessary.
         IF(IBAN(ICF,1).EQ.IICOMP.AND.IBAN(ICF,2).GT.0)ISUR=IBAN(ICF,2)
         IF(ISUR.GT.0)QQ=Q*SNA(IICOMP,ISUR)
 
-C Is this capacity available ?
+C Is this capacity available?
         IF(QQ.LE.QHM.AND.QQ.GE.QHN)GOTO 2
         IF(QQ.GT.QHM)GOTO 3
         Q=QHN
@@ -5848,7 +5924,7 @@ C Convert from (/m^2) if necessary.
         IF(IBAN(ICF,1).EQ.IICOMP.AND.IBAN(ICF,2).GT.0)ISUR=IBAN(ICF,2)
         IF(ISUR.GT.0)QQ=Q*SNA(IICOMP,ISUR)
 
-C Is this available ?
+C Is this available?
         IF(QQ.GE.QCM.AND.QQ.LE.QCN)GOTO 2
         IF(QQ.LT.QCM)GOTO 5
         Q=QCN
@@ -5892,10 +5968,10 @@ C and surface. It has two operational modes:
 C a) a wetted surface, no additional data required;
 C b) a swimming pool, 9 additional data items required.
 c
-C The driving equation for evaporation is:
-C Ev=alpha.Abasin.(x` - xi)/cp (kg/s).
+C The driving equation for evaporation is
+C    Ev=alpha.Abasin.(x` - xi)/cp (kg/s)
 C
-C  Where:
+C  where:
 C  alpha is the surface convective heat transfer coefficient
 C  Abasin is the surface area (m^2)
 C  Tbas is the surface temperature (C).
@@ -5948,7 +6024,7 @@ C Small real number
 C Fatal error test.
       IF((.not.close1).OR.(.not.close10))GOTO 99
 
-C Trace output
+C Trace output.
       IF(ITC.GT.0.AND.NSINC.GE.ITC.AND.NSINC.LE.ITCF.AND.
      &   ITRACE(41).NE.0)then
          call edisp(itu,' ')
@@ -5959,7 +6035,7 @@ C Trace output
       QFUT=0.
       TFUT=TNP
 
-C Setup variables
+C Setup variables.
       icomp=IBSN(ICF,1)
       isur= IBSN(ICF,2)
       vapsur(icomp)=0.0
@@ -5967,7 +6043,7 @@ C Setup variables
       GZ= GFA(icomp)
       ZRH=PCRH2(TD,GZ,PATMOS)
 
-C Currently assume that caual and solar gains to the pool are zero
+C Currently assume that caual and solar gains to the pool are zero.
       Qcasual=0.
       Qsolar=0.
 
@@ -5977,7 +6053,7 @@ C I mode = 0 then uses esp-r data if 1 then user specified.
         Abas = SNA(icomp,isur)
         Tbas = TFS(icomp,isur)
         alpha = hcif(icomp,isur)
-C Wet opaque surface calculation for vapour released into the space
+C Wet opaque surface calculation for vapour released into the space.
         wi=gfa(icomp)
         CP= SPHTC2(TD,wi)*1000.
         hundred=100.0
@@ -5986,12 +6062,11 @@ C Wet opaque surface calculation for vapour released into the space
         vapsur(icomp)=Ev
 
 C Calculate the information required for a swimming pool. 
-C Use the poolbal calculation to calculate the pool energy requirements
+C Use the poolbal calculation to calculate the pool energy requirements.
       elseif(mode.eq.1)then
         Abas = BMISCD(ICF,IDTYP,IPER,3)
 
-C Emissivity of the surface should have been set to zero for the model
-
+C Emissivity of the surface should have been set to zero for the model.
         alpha= BMISCD(ICF,IDTYP,IPER,4)
         alphar= BMISCD(ICF,IDTYP,IPER,5)    
         tbas=  BMISCD(ICF,IDTYP,IPER,6)
@@ -6025,7 +6100,7 @@ C Read in surface details and calculate the area weighted radiant temperature.
   20    continue
         tsurf=tsurf/atot
 
-C Pool basin energy balance:
+C Pool basin energy balance.
         Qconv=alpha*Abas*(Tbas-TD)
         Qrad=alphar*Abas*(Tbas-Tsurf)
         Fevap=Ev
@@ -6041,7 +6116,7 @@ C the pool to the rest of the building model.
  
       endif
 
-C Dump output
+C Output to terminal window.
       call isunix(unixok)
       if(mode.eq.1.and.unixok)then
         write(6,*) ' Pool balance '
@@ -6082,10 +6157,8 @@ C Trace output.
       END
 
 C ******************** BCL21 ********************
-C BCL21 - Slave Capacity Controller
-C BCL21 - control acts to sense in master zone and to deliver capacity
-C to slave zone (to be based on fraction of max capacity and to 
-C deliver proportionally). 
+C Slave Capacity Controller that senses a master zone and actuates
+C a slave zone (as a fraction of the maximum capacity). 
 
       SUBROUTINE BCL21
 
@@ -6102,8 +6175,8 @@ C deliver proportionally).
       COMMON/BTIME/BTIMEP,BTIMEF
       COMMON/PSTSOL/ICF,IDTYP,IPER,BB1,BB2,BB3,IICOMP,TNP,QFUT,TFUT
       COMMON/SLAVE1/QHB(MCF),QCB(MCF),Qmst(MCF),
-     &              bMasterFreeCoolFlag(MCF)
-      
+     &              bMasterFreeCoolFlag(MCF)    
+      real QHB, QCB, Qmst
       logical bMasterFreeCoolFlag
       
       COMMON/FVALA/TFA(MCOM),QFA(MCOM)
@@ -6141,44 +6214,22 @@ C Determine sensed temperatures.
         return
       endif
 
-C Trace output
-      IF(ITC.GT.0.AND.NSINC.GE.ITC.AND.NSINC.LE.ITCF.AND.
-     &   ITRACE(41).NE.0)then
-        if (IBSN(ICF,1).GT.0.and.IBAN(ICF,1).eq.0) then
-          write(outs,'(a,i3)') 
-     &      'Entering subroutine BCL21 with master zone ',
-     &      IBSN(ICF,1)
-          call edisp(itu,' ')
-          call edisp(itu,outs)
-        elseif (IBSN(ICF,1).GT.0.and.IBAN(ICF,1).GT.0) then
-          write(outs,'(a,i3,a,i3)') 
-     &      'Entering subroutine BCL21 with master zone ',
-     &      IBSN(ICF,1),' and slave zone ',IBAN(ICF,1)
-          call edisp(itu,' ')
-          call edisp(itu,outs)
-        else
-          call edisp(itu,' ')
-          call edisp(itu,' Entering subroutine BCL21')
-        endif
-        CALL DAYCLK(IDYP,BTIMEF,ITU)
-      endif
-
-C A model might have several sets of master/slave zones, 
-C Qmst() - delivered master capacity 
-C Qslv - delivered slave capacity (if current function is a slave)
-C QHB(),QCB() -master heating/cooling base capacities
+C A model might have several sets of master/slave zones. 
+C Qmst() - delivered master control loop capacity.
+C Qslv - delivered slave capacity (if current function is a slave).
+C QHB(),QCB() -master heating/cooling base capacities.
        
 C Current Q delivery to current master zone? What is this as % of max?
-C Send same % of max to slave zone
+C Send same % of max to slave zone.
             
-C Initialise Qmst
+C Initialise Qmst.
       if (IBSN(ICF,1).GT.0) then
 
-C sensor location = 'in another zone' i.e. Master Zone. Recover
-C which control law is the master control for that zone.
-        imasctlindex= int(BMISCD(ICF,IDTYP,IPER,2))
-        iMasterZone = IBSN(imasctlindex, 1)
-        QM=Qmst(imasctlindex)
+C Sensor location = 'in another zone' i.e. Master Zone. The MZ must sense
+C and actuate a specific zone number.
+        imasctlindex= int(BMISCD(ICF,IDTYP,IPER,2)) ! ctl loop used by the master zone.
+        iMasterZone = IBSN(imasctlindex, 1)         ! sensed zone for master zone sensor
+        QM=Qmst(imasctlindex)                       ! current W in the master zone loop.
       elseif (IBSN(ICF,1).EQ.0) then
         call edisp(itu, 
      &   ' BCL21: Sensor must be placed in master zone')
@@ -6189,30 +6240,55 @@ C which control law is the master control for that zone.
         STOP      
       endif
 
-C Collect heating flags and setpoints from master zone
-      bZoneHeated(iicomp)   = bZoneHeated(iMasterZone)
-      bZoneCooled(iicomp)   = bZoneCooled(iMasterZone)
-      fHeatSetpoint(iicomp) = fHeatSetpoint(iMasterZone)
+C Trace output.
+      IF(ITC.GT.0.AND.NSINC.GE.ITC.AND.NSINC.LE.ITCF.AND.
+     &   ITRACE(41).NE.0)then
+        if (IBSN(ICF,1).GT.0.and.IBAN(ICF,1).eq.0) then
+          write(outs,'(a,i3,a,i3,a,i3,a,f6.0,a)') 
+     &      'Entering subroutine BCL21 with master zone ',
+     &      IBSN(ICF,1),' master clt loop',imasctlindex,
+     &      ' sensing zone',iMasterZone,' @',QM,'W'
+          call edisp(itu,' ')
+          call edisp(itu,outs)
+        elseif (IBSN(ICF,1).GT.0.and.IBAN(ICF,1).GT.0) then
+          write(outs,'(a,i3,a,i3,a,i3,a,f6.0,a,i3)') 
+     &      'Entering subroutine BCL21 with master zone ',
+     &      IBSN(ICF,1),' master ctl loop',imasctlindex,
+     &      ' sensing zone',iMasterZone,' @',QM,
+     &      'W with slave zone ',IBAN(ICF,1)
+          call edisp(itu,' ')
+          call edisp(itu,outs)
+        else
+          call edisp(itu,' ')
+          call edisp(itu,' Entering subroutine BCL21')
+        endif
+        CALL DAYCLK(IDYP,BTIMEF,ITU)
+      endif
+
+C Collect heating flags and setpoints from master zone.
+      bZoneHeated(iicomp)   = bZoneHeated(iMasterZone)   ! Not used here.
+      bZoneCooled(iicomp)   = bZoneCooled(iMasterZone)   ! Not used here.
+      fHeatSetpoint(iicomp) = fHeatSetpoint(iMasterZone) ! Not used here.
       fCoolSetpoint(iicomp) = fCoolSetpoint(iMasterZone)
 
       if (QM.GT.0.0) then
 
-C PBH - Percentage of Base Capacity delivered to master zone, heating:
+C PBH - Percentage of Base Capacity delivered to master zone for heating.
         PBH=QM/QHB(imasctlindex)
       elseif (QM.LT.0.0) then
 
-C PBC - Percentage of Base Capacity delivered to master zone, cooling:
+C PBC - Percentage of Base Capacity delivered to master zone for cooling.
         PBC=QM/QCB(imasctlindex)
       else
         PBC=0.0
       endif
       
-C QHM = base (i.e max) heating capacity (W) for slave
-C QCM = base (i.e max) cooling capacity (W) for slave
+C QHM = base (i.e max) heating capacity (W) for slave.
+C QCM = base (i.e max) cooling capacity (W) for slave.
 
 C If the zone associated with this control function is served by an HVAC system
 C simulated ideally, then use HVAC system heating capacity to update controller
-C heating capacity for time step 
+C heating capacity for time step.
       if(cont_fun_heat_cap(IICOMP).gt.0.) then
         QHM=cont_fun_heat_cap(IICOMP)
       else        
@@ -6220,7 +6296,7 @@ C heating capacity for time step
       endif
       
 C If the zone associated with this control function is served by an HVAC system
-C simulated ideally, then use HVAC system capacity to update controller
+C simulated ideally, then use HVAC system cooling capacity to update controller
 C cooling capacity for time step.
       if(cont_fun_cool_cap(IICOMP).gt.0.) then
         QCM=-cont_fun_cool_cap(IICOMP)
@@ -6228,7 +6304,7 @@ C cooling capacity for time step.
         QCM=-BMISCD(ICF,IDTYP,IPER,4)
       endif
 
-C Using same % value, calculate delivered capacity to slave zone
+C Using same % value, calculate delivered capacity to slave zone.
       if (QM.GT.0.0) then
         Qslv=PBH*QHM
         IPLT=1 ! heating
@@ -6243,7 +6319,7 @@ C If close to zero then reset to zero.
         Qslv=0.0
       endif
 
-C Check Qslv not greater than specified base capacities
+C Check Qslv not greater than specified base capacities.
       if (Qslv.GT.QHM)then
         Qslv=QHM
       elseif (Qslv.LT.QCM)then
@@ -6259,7 +6335,7 @@ C critical to maintain the master/slave relationship.
       QMN=QFUT
       QMX=QFUT       
    
-C Check for free cooling in master zone (are windows open?) 
+C Check for free cooling in master zone (are windows open?).
       if ( bMasterFreeCoolFlag(imasctlindex) ) then  
 
         Tslv = fCoolSetpoint(iicomp) 
@@ -6270,11 +6346,11 @@ C Check for free cooling in master zone (are windows open?)
         if( fFreeCoolDelivered(IICOMP) < 0. )  
      &      fFreeCoolDelivered(IICOMP) = 0.  
 
-C.......Compute the 'conductivity' achieved by free cooling to 
-C.......append to zone mass-balance solution on next timestep. 
+C Compute the 'conductance' achieved by free cooling to 
+C append to zone mass-balance solution at next timestep. 
 C
 C                                   [ Free Cooling Load (W) ]
-C.......conductivity (W/K) =  ------------------------------------
+C        conductance (W/K) =  ------------------------------------
 C                             [ Zone temp (K) - Outdoor Temp (K) ]
 C
 c        fCondFreeCool(IICOMP) = (fFreeCoolDelivered(IICOMP)
@@ -6282,18 +6358,18 @@ c     &                         / ( TFA(IICOMP) - TF))
  
          QFUT = -1.0 * fFreeCoolDelivered(IICOMP)
 
-C.......Determine temperatures in slave zone
+C Determine temperatures in slave zone.
         Tslv=(BB3-BB2*fFreeCoolDelivered(IICOMP)*(-1.0))/BB1        
 
       else  
       
         fFreeCoolDelivered(IICOMP) = 0.
-C.......Determine temperatures in slave zone
+C Determine temperatures in slave zone.
         Tslv=(BB3-BB2*QFUT)/BB1     
         
       endif
       
-C If zero capacity to zone, use TNP
+C If zero capacity to zone, use TNP.
       call eclose(QM,0.00,0.1,close)
       if(close)then
         TFUT=TNP
@@ -6311,9 +6387,10 @@ C Call mixed radiant/convective actuator.
 C Trace output.
       IF(ITC.GT.0.AND.NSINC.GE.ITC.AND.NSINC.LE.ITCF.AND.
      &   ITRACE(41).NE.0) THEN
-        write(outs,'(a,f9.2,a,f5.3,a,f5.3,a,f9.2,a,f9.2)')' Q master:',
+        write(outs,'(a,f9.2,a,f5.3,a,f5.3,a,f9.2,a,f9.2,a,f5.1,a,i2)')
+     &   ' Q master:',
      &   QM,' %heat cap: ',PBH,' %cool cap ',PBC,' Q slave:',Qslv,
-     &   ' QFUT (slave): ',QFUT
+     &   ' QFUT (slave): ',QFUT,' Tslv:',Tslv,' HtCl:',IPLT
         call edisp(itu,outs)
         call edisp(itu,'  ')
       endif   
@@ -6321,10 +6398,9 @@ C Trace output.
       end
 
 C ******************** BCL22 ********************
-C 'BCL22' is a variable supply volume cooling control which
+C A variable supply volume cooling control that
 C reverts to a CAV system using reheat for heating mode.
 
-C << the energy balance reported in esrures is off a bit >>
       SUBROUTINE BCL22
 #include "building.h"
 #include "control.h"
@@ -6347,16 +6423,8 @@ C Mode indicates if in VAV or CAV or reheat.
       real prefafr          ! The inital preference for flow rate
       logical vavok         ! Set true if in VAV mode
 
-C Fatal error test if there are less than ?? misecel items.
+C Fatal error test.
       IF(BMISCD(ICF,IDTYP,IPER,1).LT.6.)GOTO 99
-
-C Trace output
-      IF(ITC.GT.0.AND.NSINC.GE.ITC.AND.NSINC.LE.ITCF.AND.
-     &   ITRACE(41).NE.0) then
-        call edisp(itu,' ')
-        call edisp(itu,' Entering subroutine BCL22')
-        call DAYCLK(IDYP,BTIMEF,ITU)
-      endif
 
       mode = ' '
       QFUT=0.
@@ -6372,26 +6440,39 @@ C Trace output
   101 IF(IBSN(ICF,1).EQ.-3.AND.IBSN(ICF,2).EQ.0)TCTL=TF
       IF(IBSN(ICF,1).EQ.-3.AND.IBSN(ICF,2).EQ.1)TCTL=SOLAIR(TF,QFF,QDF)
 
-C AFR is computed air volume flow rate (m3/s)
-C AIRCAP is air heat capacity fixed at J/kg K.
+C AFR is computed air volume flow rate (m3^/s)
+C AIRCAP is air heat capacity (J/kg.K).
       AIRCAP = 1006.0
 
-C QRHMAX is reheat maximum capacity (W)
+C QRHMAX is reheat maximum capacity (W).
       QRHMAX=BMISCD(ICF,IDTYP,IPER,2)
 
-C TSUPLY is air supply temperature (deg.C)
+C TSUPLY is air supply temperature (C).
       TSUPLY=BMISCD(ICF,IDTYP,IPER,3)
 
-C SP is desired set point temp. (deg.C)
+C SP is desired set point temperature (C).
       SP=BMISCD(ICF,IDTYP,IPER,4)
 
-C AFRMAX is maximum air volume flow rate (m3/s)
-C AFRMIN is minimum air volume flow rate (m3/s)
+C AFRMAX is maximum air volume flow rate (m^3/s).
+C AFRMIN is minimum air volume flow rate (m^3/s).
       AFRMAX=BMISCD(ICF,IDTYP,IPER,5)
       AFRMIN=BMISCD(ICF,IDTYP,IPER,6)
 
+C Trace output.
+      IF(ITC.GT.0.AND.NSINC.GE.ITC.AND.NSINC.LE.ITCF.AND.
+     &   ITRACE(41).NE.0) then
+        call edisp(itu,' ')
+        write(outs,'(a,i3,a,i3,a,f6.0,a,f5.1,a,f5.1,a,f6.3,a,f6.3)') 
+     &      'Entering subroutine BCL22 loop ',ICF,' sensing zone ',
+     &      IBSN(ICF,1),' reheat cap',QRHMAX,' Tsupply',TSUPLY,
+     &      ' SP',SP,' max flow',AFRMAX,' min flow',AFRMIN
+        call edisp(itu,' ')
+        call edisp(itu,outs)
+        call DAYCLK(IDYP,BTIMEF,ITU)
+      endif
+
 C Is temperature above the cooling setpoint? Remember what TCTL
-C is for reporting in the trace.
+C is for reporting in trace.
       tswitchvavcav=TCTL
       IF(TCTL.LE.SP)then
 
@@ -6409,7 +6490,7 @@ C Calculate QReheat and test against QRHMAX.
         if(QReheat.gt.QRHMAX)then
 
 C If QReheat is greater than QRHMAX then constrain and calculate
-C TS TFUT and QFUT.
+C TS, TFUT and QFUT.
           write(mode,'(a)') 'CAV reheat lim '
           QReheat = QRHMAX
           TS = (QReheat / (AFR*1.2*AIRCAP)) + TSUPLY
@@ -6417,7 +6498,7 @@ C TS TFUT and QFUT.
           QFUT= (D*(TS-TFUT))   ! as in bcl08
         else
 
-C QReheat was allowable so calculate TS TFUT and QFUT
+C QReheat was allowable so calculate TS, TFUT and QFUT.
           write(mode,'(a)') 'CAV reheat std '
           TS = (QReheat / (AFR*1.2*AIRCAP)) + TSUPLY
           TFUT=(BB3-BB2*D*TS)/(BB1-BB2*D)   ! as in bcl08
@@ -6426,7 +6507,7 @@ C QReheat was allowable so calculate TS TFUT and QFUT
       else
 
 C Guess that the future temperature will be high if nothing done
-C so establish air supply rate to cool air to set point (SP)
+C so establish air supply rate to cool air to set point (SP).
         vavok = .true.        ! set toggle so trace correct
         DT = TSUPLY - SP
         TS = TSUPLY       ! TS not used for VAV set to TSUPLY for trace.
@@ -6434,7 +6515,7 @@ C so establish air supply rate to cool air to set point (SP)
         AFR = D/(AIRCAP*1.2)    ! the volume flow rate needed m^3/s
         prefafr = AFR           ! remember this for trace
 
-C Is this supply flow rate within the limits.
+C Is this supply flow rate within the limits?
         write(mode,'(a)')   'VAV mode float '
         if(AFR.lt.AFRMIN)then
           AFR = AFRMIN
@@ -6448,9 +6529,9 @@ C Is this supply flow rate within the limits.
         QFUT=1.2*AFR*AIRCAP*(TSUPLY-TFUT)
       endif
 
-C Enter gain due to mechanical system here
-C mechanical system mass flow rate * moisture content.
-C GEXTF the future ambient humidity ratio for the
+C Determine gain due to mechanical system as
+C mass flow rate * moisture content.
+C GEXTF is the future ambient humidity ratio for the
 C assumed outside air part of the supply.
       ZMBI(IICOMP,3)=AFR*1.2*GEXTF
 
@@ -6499,11 +6580,12 @@ C Trace output format depending on whether VAV or CAV active.
       END
 
 C ******************** BCL23 ********************
-C This subroutine dynamically allocates heating and cooling setpoint
-C temperatures from a previously defined temporal file based on column
-C numbers specifed in the contol law. It is a simplified implementation
+C Dynamica allocation of heating and cooling setpoint
+C temperatures from a previously defined temporal definitions file based on
+C column numbers specifed in the contol law. It is a simplified implementation
 C of control law 1 (basic heating and cooling). It can use two items in tdf:
-C IACTIV (ACTIVITY of space) and IHTCLSETP (only heating and cooling setpoints)
+C IACTIV (ACTIVITY of space) and IHTCLSETP (only heating and cooling setpoints).
+
       SUBROUTINE BCL23
 #include "building.h"
 #include "net_flow.h"
@@ -6524,7 +6606,7 @@ C IACTIV (ACTIVITY of space) and IHTCLSETP (only heating and cooling setpoints)
 
 C These common TDFREL relate to setting cooling on if temperature exceeds
 C the heating set point by 1degC for the UKNCM notional model (and
-C associated DSM testing models)
+C associated DSM testing models).
 
       character outs*124,cmsg*12
       logical near,closer
@@ -6534,7 +6616,7 @@ C associated DSM testing models)
 C Fatal error test.
       IF(BMISCD(ICF,IDTYP,IPER,1).LT.2.)GOTO 99
 
-C Trace output
+C Trace output.
       IF(ITC.GT.0.AND.NSINC.GE.ITC.AND.NSINC.LE.ITCF.AND.
      &   ITRACE(41).NE.0) then
         call edisp(itu,' ')
@@ -6552,8 +6634,8 @@ C QHM = max heating capacity (W)
 C QHN = min heating capacity (W)
 C QCM = max cooling capacity (W)
 C QCN = min cooling capacity (W)
-C HSP = heating set point temp. (deg.C)
-C CSP = cooling set point temp. (deg.C)
+C HSP = heating set point temp. (C)
+C CSP = cooling set point temp. (C)
       cmsg=' '
       QHM=999999.0
       QHN=0.0
@@ -6562,19 +6644,16 @@ C CSP = cooling set point temp. (deg.C)
       QFUT=0.0
       TFUT=TNP
 
-C << consider how this control can be used outwith the UK NCM
-C << regime.
-
-C Turn cooling off if no UK NCM cooling generator is linked to this zone
+C Turn cooling off if no UK NCM cooling generator is linked to this zone.
 C If there is no system associated with the zone then set QCM to zero.
 C If this is the reference model then cooling will be present regardless
-C of the type of space conditioning system. This is done later on 
+C of the type of space conditioning system. This is done later on.
       IHLZP=IHLZ(IiCOMP)  ! set up pointer
       NEAR=.TRUE.
       if(ihlzp.ne.0) CALL ECLOSE(CGEF(IHLZP),0.0,0.001,NEAR)
       IF(NEAR)QCM=0.0
 
-C Read setpoints from tdf here (CSP and HSP)
+C Read CSP and HSP setpoints from tdf.
 C "COLUMNSETP" is an integer specifying the column within the
 C returned temporal item data array VAL. 
 
@@ -6619,16 +6698,16 @@ C Now get the column for cooling.
       endif
 
 C Call RCTCFB to find occupancy fraction and return in VALO (to be used
-C for filtering cooling in UKNCM reference building)
+C for filtering cooling in UKNCM reference building).
       CALL RCTDFB(itrc,btimef,VALO,ISDO,itdi,IER)       
 
 C If UK NCM reference building (or stripped with DSM testing flag equal to 2)
-C then cooling set point is always 27degC
+C then cooling set point is always 27C.
       if(INOTI.EQ.2.OR.(INOTI.eq.4.AND.iDsmTestingFlag.eq.2))then
         CSP=27.0
         cmsg=' via test'
 
-C Only allow cooling if there is occupancy
+C Only allow cooling if there is occupancy.
         call eclose(valo(isdo),0.0,0.001,closer)
         if(closer)then
           QCM=0.0
@@ -6652,10 +6731,10 @@ C only in iSbem.
           CSP=HSPTest+1.0   ! the official NCM logic
           cmsg=' stat hsp+1'
 
-C Set up maximum cooling to equivalent of 5 air changes
+C Set up maximum cooling to equivalent of 5 air changes per hour.
           QCM=-1.*0.333*5.*vol(iicomp)*(tfa(iicomp)-TFLWF)
 
-C If ambient is hotter than interior no cooling can be achieved
+C If ambient is hotter than interior no cooling can be achieved.
           if(QCM.gt.0.)QCM=0.
         endif
       endif
@@ -6674,22 +6753,22 @@ C If ambient is hotter than interior no cooling can be achieved
       endif
 
 C Since sensed temperature is not within range, attempt to control
-C THIS zone's temperature.
+C this zone's temperature.
 C      TCTL=TNP
 
-C Is temp. too high ?
+C Is temperature too high 
       IF(TCTL.GT.CSP)GOTO 1
 
-C May need these parameters in future
-*      IPLT=1
-*      QMX=QHM
-*      QMN=QHN
-*      TCONT=HSP
+C May need these parameters in future:
+C      IPLT=1
+C      QMX=QHM
+C      QMN=QHN
+C      TCONT=HSP
 
 C Too low, heat to HSP.
       Q=(BB3-BB1*HSP)/BB2
 
-C Is this capacity available ?
+C Is this capacity available?
       IF(Q.LE.QHM.AND.Q.GE.QHN)GOTO 2
       IF(Q.GT.QHM)GOTO 3
       Q=QHN
@@ -6697,14 +6776,14 @@ C Is this capacity available ?
     3 Q=QHM
       GOTO 2
 
-C Temp. too high, cool to CSP.
+C Temperature too high, cool to CSP.
     1 Q=(BB3-BB1*CSP)/BB2
 *      IPLT=2
 c      QMX=QCM
 c      QMN=QCN
 *      TCONT=CSP
 
-C Is this available ?
+C Is this available?
       IF(Q.GE.QCM.AND.Q.LE.QCN)GOTO 2
       IF(Q.LT.QCM)GOTO 5
       Q=QCN
@@ -6742,14 +6821,14 @@ C Trace output format depending on whether VAV or CAV active.
 C ******************** BCL24 ********************
 C Adaptive human comfort model works just like the basic controller
 C BCL01, but the comfort setpoints are continually changed based on a
-C running mean comfort temperature calculated from the climate database
-      SUBROUTINE BCL24(IER)
+C running mean comfort temperature calculated from the weather file.
 
+      SUBROUTINE BCL24(IER)
 #include "building.h"
 #include "control.h"
 #include "help.h"
 
-C climate file commons
+C Weather file commons.
       COMMON/FILEP/IFIL
       COMMON/CLIMIF/QFLWP,QFLWF,TFLWP,TFLWF,QDFLP,QDFLF,VFLP,VFLF,
      &             DFLP,DFLF,HFLP,HFLF
@@ -6772,7 +6851,7 @@ C climate file commons
 C Fatal error test.
       IF(BMISCD(ICF,IDTYP,IPER,1).LT.6.)GOTO 99
 
-C Trace output
+C Trace output.
       IF(ITC.GT.0.AND.NSINC.GE.ITC.AND.NSINC.LE.ITCF.AND.
      &   ITRACE(41).NE.0) then
         if (IBSN(ICF,1).GT.0.and.IBAN(ICF,1).eq.0) then
@@ -6800,7 +6879,7 @@ C Determine sensed temperature.
         return
       endif
 
-C calculate outside daily mean temperature TODM and
+C Calculate outside daily mean temperature TODM.
       IYDS=IDYP-MMD
       IYDF=IDYP-1
       DO 3157 II=1,MMD
@@ -6848,14 +6927,14 @@ C calculate outside daily mean temperature TODM and
         ENDIF
       ENDIF
 
-C Get ambient temperature TOUT
+C Get ambient temperature, TOUT.
       TOUT=TFLWF
 C QHM = max heating capacity (W)
 C QHN = min heating capacity (W)
 C QCM = max cooling capacity (W)
 C QCN = min cooling capacity (W)
-C HSP = heating set point temp. (deg.C)
-C CSP = cooling set point temp. (deg.C)
+C HSP = heating set point temp. (C)
+C CSP = cooling set point temp. (C)
 C ALPHA = running mean response parameter (-)
 C CB = Comfort band
       QHM=BMISCD(ICF,IDTYP,IPER,2)
@@ -6875,17 +6954,17 @@ C      TCTL=TNP
       pw=0.
 
 C Use setpoints as extreme limits at which controls become active
-**      IF(TCTL.LT.HSP)THEN
-**        IHEAT=1
-**        IHEATI=1
-**      ELSEIF(TCTL.GT.CSP)THEN
-**        ICOOL=1
-**        ICOOLI=1
-**      ENDIF
+C      IF(TCTL.LT.HSP)THEN
+C        IHEAT=1
+C        IHEATI=1
+C      ELSEIF(TCTL.GT.CSP)THEN
+C        ICOOL=1
+C        ICOOLI=1
+C      ENDIF
 
 C If temperature is within extreme limits then 
-C Calculate heating/cooling based on adaptive comfort algorithm
-C First calculate running mean temperature
+C calculate heating/cooling based on adaptive comfort algorithm.
+C First calculate running mean temperature.
         COEFF=1.
         TRM=0.
         DO 245 I=1,MMD
@@ -6895,44 +6974,45 @@ C First calculate running mean temperature
  245    CONTINUE
         TRM=(1.-ALPHA)*TRM
 
-C Calculate operative temperature of the zone (TOP). It is assumed that
-C the user has selected to sense mean radiant temperature in the sensor
+C Set operative temperature of the zone. It is assumed that the
+C user has selected to sense mean radiant temperature in the sensor
 C details.
         TOP=TCTL
 
-C Calculate comfort temperature TCOMF (based on the summer and winter behaviours)
+C Calculate comfort temperature, TCOMF (based on the summer and
+C winter behaviours).
         IF(TRM.GE.10.)TCOMF=0.33*TRM+18.8
         IF(TRM.LT.10.)TCOMF=0.09*TRM+22.6
 
-C Get random number
+C Get random number.
         RN=RNOR()
         RN=ABS(RN)
         RN=1000.*RN
         IRN=INT(RN)
         RN=RN-REAL(IRN)
 
-C Calculate probability that control will be activated.
+C Determine probability that control will be activated.
         FUNC=0.171*TOP+0.166*TOUT-6.43
         Pw=EXP(FUNC)/(1.+EXP(FUNC))
         IF((TOP-TCOMF).GT.CB)THEN
 
-C Hot, so set on cooling
+C Hot, so set cooling.
           IF(Pw.GT.RN)ICOOL=1
         ELSEIF((TOP-TCOMF).LT.(-1.*CB))THEN
 
-C Cold, so set on heating
+C Cold, so set heating.
           IF(Pw.LT.RN)IHEAT=1
         ELSE
 
-C Within 2degC comfort band so do nothing
+C Within 2 C comfort band so do nothing.
           IHEAT=0
           ICOOL=0
         ENDIF
 
-C Set on heating to within comfort band of comfort temperature
-C This is different from statically fixed setpoints!
+C Set heating to within comfort band of comfort temperature (this
+C is different from fixed setpoints).
       IF(IHEAT.EQ.1)THEN
-**        Q=(BB3-BB1*HSP)/BB2
+C        Q=(BB3-BB1*HSP)/BB2
         Q=(BB3-BB1*(TCOMF-CB))/BB2
         IF(Q.LE.QHM.AND.Q.GE.QHN)GOTO 23
         IF(Q.GT.QHM)GOTO 33
@@ -6944,7 +7024,7 @@ C This is different from statically fixed setpoints!
       ELSEIF(ICOOL.EQ.1)THEN
 
 C Set on cooling
-**        Q=(BB3-BB1*CSP)/BB2
+C        Q=(BB3-BB1*CSP)/BB2
         Q=(BB3-BB1*(TCOMF+CB))/BB2
         IF(Q.GE.QCM.AND.Q.LE.QCN)GOTO 22
         IF(Q.LT.QCM)GOTO 55
@@ -6955,7 +7035,7 @@ C Set on cooling
         QFUT=Q
       ENDIF
 
-C Debug
+C Debug.
 C      write(6,*)trm,TOP,TCOMF,iheat,icool,QFUT,pw,rn
 
       RETURN
@@ -6973,8 +7053,9 @@ C      write(6,*)trm,TOP,TCOMF,iheat,icool,QFUT,pw,rn
       RETURN
       END
 
+
 C ******************** BCL25_open_windows ********************
-C This is a fairly simple algorithm that sets a flag approximating
+C A simple algorithm that sets a flag approximating
 C window operation in residential houses. It's primary purpose is 
 C to approximate occupant-response to overheating in passive-solar 
 C designs, ensuring that they don't recieve undue credit for solar 
@@ -6984,10 +7065,7 @@ C detailed methods (e.g. FCL04-Nicol Control algorithm ).
 C
 C This control is primarely intended to switch between the AIM-2 model
 C and other methods of computing interzone air flow when windows are 
-C open/closed. 
-C 
-C At present, this code only works with the simple ideal controller. 
-C on-off and plant network cotnrollers will are not compatable with BLC25.
+C open/closed. It only works with a simple ideal controller. 
 
       subroutine BCL25_open_windows( iComp,
      &                               iCtlFuncIndex,
@@ -6999,32 +7077,26 @@ C on-off and plant network cotnrollers will are not compatable with BLC25.
       include "control.h"
       include "blc25_open_windows.h"
       
-C Passed variables 
-      
-      integer iComp          ! Index of current zone 
-      integer iCtlFuncIndex  ! Index of control function 
+C Passed variables.
+      integer iComp          ! Index of current zone .
+      integer iCtlFuncIndex  ! Index of control function .
       integer iER            ! Error flag. 
       logical bNested        ! Flag for nested status.  
       
-C ESP commons: 
-C - Zone characteristics 
-      real tpa(mcom)   ! Future time-row zone temperaturte (oC) 
-      real qpa(mcom)   ! Future time-row zone energy injection 
-                       ! /extraction (W, not used)
-      
-      
-      
-      ! Present and future fow temperatures 
+C Zone conditions.
+      real tpa(mcom)   ! Future time-row zone temperature (C) .
+      real qpa(mcom)   ! Future time-row zone energy injection/extraction
+                       ! (W, not used). 
       common/pvala/tpa,qpa
       
-C Future values (not used)      
+C Future values (not used).     
 C      common/fvala/tfa,qfa
 C      real tfa, qfa
       
-C - Environment characteristics 
+C Weather parameters. 
 C      COMMON/CLIMI/QFP,QFF,TP,TF,QDP,QDF,VP,VF,DP,DF,HP,HF
-C      real TP, TF          ! Present & Future time-row temperatures (not used)      
-C      REAL QFP,QFF,QDP,QDF,VP,VF,DP,DF,HP,HF   ! Not used
+C      real TP, TF     ! Present & future time-row temperatures (not used).      
+C      REAL QFP,QFF,QDP,QDF,VP,VF,DP,DF,HP,HF   ! Not used.
       
       
 C Control heat injection.      
@@ -7033,77 +7105,70 @@ C Control heat injection.
       integer ICF,IDTYP,IPER,IICOMP
       
 
-C Time characteristics       
+C Time characteristics.      
       common/btime/btimep,btimef     
       real BTimeP, BTimeF       
-      
-
-      
-C Running clock 
+       
+C Running clock.
       real fTimeLapsed(MCF) 
       save fTimeLapsed
       data fTimeLapsed / MCF * 0. /
       
 C Description of zone control action; these data are used
 C in H3Kreports to determine heating, cooling loads and 
-C to evaluate passive solar design performance. Also used 
-C by BCL25_open_windows, below. 
+C to evaluate passive solar design performance. 
       common/H3KReportsControl/bZoneHeated,   bZoneCooled,
      &                         fHeatSetpoint, fCoolSetpoint,
      &                         bSlaveActive
 
-C Flags indicating zone is heated, cooled.
+C Flags indicating zone is heated or cooled.
       logical bZoneHeated(MCOM), bZoneCooled(MCOM), bSlaveActive(MCOM) 
-C Heating and cooling setpoint (oC)
+C Heating and cooling setpoints (C).
       real fHeatSetpoint(MCOM), fCoolSetpoint(MCOM)      
       
 C Flags indicating how flow should be determined when windows are 
-C open, closed
+C open and closed.
       integer iClosedFlowMethod ! Method for determining air flow when 
-                                ! windows are closed
+                                ! windows are closed.
       integer iOpenFlowMethod   ! Method for determining air flow when 
-                                ! windows are open
+                                ! windows are open.
       
-C Window control setpoints (oC)
+C Window control setpoints (C).
       real fWindowLowerSetpoint  ! Temperature at which windows are 
-                                 ! closed       
+                                 ! closed.    
       
       real fWindowUpperSetpoint  ! Temperaturte at which windows are 
                                  ! opened.
       
       real fDelayBetweenAction   ! time that must lapse between successive
-                                 ! control action (hours)
+                                 ! control action (hours).
                                  
       logical bDelayLapsed       ! Flag indicating specified delay has 
-                                 ! passed
+                                 ! passed.
                     
-      logical bWindowPosAtStart  ! Window position at start of ts (-)                  
+      logical bWindowPosAtStart  ! Window position at start of ts (-) .                 
 
       real fOldTime, fNewTime
       
-C Temperature data 
-
+C Temperature data .
       real fZoneTemperature      ! Temperature in zone (oC)
      
-C-----------------------------------------------------------------------
-C Get data from control spec.
-C-----------------------------------------------------------------------     
-
+C Get data from control spec.     
       bWindowPosAtStart = bWindowsOpen(iComp) 
 
-C Get setpoints from input data 
-      fWindowLowerSetpoint = BMISCD(iCtlFuncIndex,IDTYP,IPER,2)  ! (oC)
-      fWindowUpperSetpoint = BMISCD(iCtlFuncIndex,IDTYP,IPER,3)  ! (oC) 
+C Get setpoints from input data.
+      fWindowLowerSetpoint = BMISCD(iCtlFuncIndex,IDTYP,IPER,2)  ! (C)
+      fWindowUpperSetpoint = BMISCD(iCtlFuncIndex,IDTYP,IPER,3)  ! (C) 
       
 C Determine how air flow should be determined when windows are open/
 C closed.
-      iClosedFlowMethod = int( BMISCD(iCtlFuncIndex,IDTYP,IPER,4) ) ! (oC)
-      iOpenFlowMethod   = int( BMISCD(iCtlFuncIndex,IDTYP,IPER,5) ) ! (oC)
+      iClosedFlowMethod = int( BMISCD(iCtlFuncIndex,IDTYP,IPER,4) ) ! (C)
+      iOpenFlowMethod   = int( BMISCD(iCtlFuncIndex,IDTYP,IPER,5) ) ! (C)
 
-C Read delay between action (hours)
+C Read delay between action (hours).
       fDelayBetweenAction = BMISCD(iCtlFuncIndex,IDTYP,IPER,6)
       
-C 1. Determine zone temperature (future time row). 
+C Determine zone temperature (future time row). 
         fZoneTemperature    = tpa(iComp) 
        
 C Determine if control can act: Consider present and future time.
@@ -7115,68 +7180,57 @@ C Determine if control can act: Consider present and future time.
       fTimeLapsed(iCtlFuncIndex) =   fTimeLapsed(iCtlFuncIndex) 
      &                             + (fNewTime - fOldTime)  
       
-           
       if ( fTimeLapsed(iCtlFuncIndex) >= fDelayBetweenAction ) then 
-      
         bDelayLapsed = .true. 
         
       else 
-        
         bDelayLapsed = .false. 
         
-      endif 
-      
+      endif    
      
-C Get environment data 
+C Get environment data.
      
       CheckDelayLapsed: if ( bDelayLapsed ) then   
       
-
-      
 C Determine if windows are open or closed. 
-C 1. Is AC system operational? If so, close windows if AC setpoint 
-C    is exceeded.
-       
+C Is AC system operational? If so, close windows if AC setpoint 
+C is exceeded.
         AreWindowsOpen: 
      &  if ( bZoneCooled(iComp) .and. 
      &       fZoneTemperature .ge. fCoolSetpoint(iComp) ) then 
      
           bWindowsOpen(iComp) = .false. 
         
-C 2. Is heating system operational? If so, close windows if heating 
-C    setpoint is exceeded.
-
+C Is heating system operational? If so, close windows if heating 
+C setpoint is exceeded.
         elseif ( bZoneHeated(iComp) .and. 
      &           fZoneTemperature .le. fHeatSetpoint(iComp) ) then
      
           bWindowsOpen(iComp) = .false. 
         
-C 3. Is zone temperatue above upper window control setpoint? If so, 
-C    open windows to try to use free cooling. (Note: we presently don't
-C    consider what should happen if the OA temp is above the zone temp...
-
+C Is zone temperatue above upper window control setpoint? If so, 
+C open windows to try to use free cooling. (Note: we presently don't
+C consider what should happen if the OA temp is above the zone temp.
         elseif ( fZoneTemperature .ge. fWindowUpperSetpoint ) then 
       
           bWindowsOpen(iComp) = .true.
         
-C 4. Is zone temperature below lower window control setpoint? If so, 
-C    close windows to retain the heat. 
-
+C Is zone temperature below lower window control setpoint? If so, 
+C close windows to retain the heat. 
         elseif ( fZoneTemperature .le. fWindowLowerSetpoint ) then 
       
           bWindowsOpen(iComp) = .false. 
         
         else 
       
-C 5. Leave the windows where they are. 
+C Leave the windows where they are. 
 
         endif AreWindowsOpen
       
       endif CheckDelayLapsed
 
 C Flag which method should be used to determine if windows are open, 
-C closed.    
-      
+C closed.         
       if ( bWindowsOpen(iComp) ) then 
         iAirFlowModel(iComp) = iOpenFlowMethod
       else 
@@ -7195,7 +7249,7 @@ C Check to see if windows have moved, and update running clock if so.
         TFUT = TNP 
       endif 
       
-C Set error flag 
+C Set error flag.
       ier = 0      
     
 !               call add_to_xml_reporting (
@@ -7219,6 +7273,7 @@ C Set error flag
       
       return 
       end subroutine BCL25_open_windows
+
 
 C ******************** BCL26 ********************
 C A heat exchanger model (after Chunying Li) used to determine the heat
@@ -7247,7 +7302,7 @@ C      COMMON/CLIMI/QFP,QFF,TP,TF,QDP,QDF,VP,VF,DP,DF,HP,HF
       logical close5
       real small
 
-C Small real number
+C Small real number.
       small = 1.0e-6
 
       call eclose(BMISCD(ICF,IDTYP,IPER,1),5.0,small,close5)
@@ -7262,7 +7317,7 @@ C Set heat exchanger parameters using data in system control file.
       WGALHEAT=BMISCD(ICF,IDTYP,IPER,5)! heat exchanger length
       WGFMOUTER=BMISCD(ICF,IDTYP,IPER,6)! open circuit flow rate
 
-C Trace output
+C Trace output.
       IF(ITC.GT.0.AND.NSINC.GE.ITC.AND.NSINC.LE.ITCF.AND.
      &   ITRACE(41).NE.0) then
         if (IBSN(ICF,1).GT.0.and.IBAN(ICF,1).eq.0) then
@@ -7299,7 +7354,7 @@ C temperature of the dummy zone representing measured values determined
 C from experiment. 
       WGT20=TFA(IICOMP+1)
 
-C Heat exchange area.! Li delete the laster letter C
+C Heat exchange area.
       WGAEXCHANGE=WGPI*(WGDIINERPIPE+0.0024)*WGALHEAT
 
 C Mass flow rate in inner pipe (heat exchanger closed circuit).
@@ -7547,7 +7602,7 @@ C Trace output.
       END
 
 C ******************** bcl27 ********************
-C storage heater model controlling zone flux injection, this controller
+C Storage heater model controlling zone flux injection. This controller
 C adds heat to a storage heater zone from tdf and loses heat from the same
 C zone based on a linear law. This linear law is a function of room set
 C point (room is the zone heated by the heater). The modes of operation
@@ -7595,7 +7650,7 @@ C losing heat to the room i.e. standing losses).
      &T_core,T_air_point,heatGain,gradient,constant
       logical charging,allowHeating
 
-C Trace output
+C Trace output.
       IF(ITC.GT.0.AND.NSINC.GE.ITC.AND.NSINC.LE.ITCF.AND.
      &   ITRACE(41).NE.0) then
         call edisp(itu,' ')
@@ -7603,10 +7658,10 @@ C Trace output
         CALL DAYCLK(IDYP,BTIMEF,ITU)
       endif
 
-c Fatal error test
+c Fatal error test.
       IF(NINT(BMISCD(ICF,IDTYP,IPER,1)).LT.23)GOTO 99
 
-C Init...
+C Initialisations.
       QFUT                       = 0.0
       T_heating_setpoint = BMISCD(ICF,IDTYP,IPER,2)
       T_max              = BMISCD(ICF,IDTYP,IPER,3)
@@ -7632,11 +7687,11 @@ C Init...
       gradNotChargePassive2 = BMISCD(ICF,IDTYP,IPER,23)
       interceptNotChargePassive2 = BMISCD(ICF,IDTYP,IPER,24)
 
-C Determine room air point temperature
+C Determine room air point temperature.
       CALL CFVAR(T_air_point,IER)
       if(ier.eq.2)return
 
-C To get heater zone core temperature change sensor information
+C To get heater zone core temperature, change sensor information.
       IZ=IBSN(ICF,1)
       IS=IBSN(ICF,2)
       IN=IBSN(ICF,3)
@@ -7646,12 +7701,12 @@ C To get heater zone core temperature change sensor information
       CALL CFVAR(T_core,IER)
       if(ier.eq.2)return
 
-C Reset sensor parameters
+C Reset sensor parameters.
       IBSN(ICF,1)=IZ
       IBSN(ICF,2)=IS
       IBSN(ICF,3)=IN
 
-C Determine heat gains from grid to heater
+C Determine heat gains from grid to heater.
       allowHeating=.TRUE.
       if(T_core.LT.T_min)then
         heatGain=heaterCapacity
@@ -7665,7 +7720,7 @@ C Determine heat gains from grid to heater
         charging=.FALSE.
       endif
 
-C Determine heat loss from heater to room
+C Determine heat loss from heater to room.
       if(T_air_point.LT.T_heating_setpoint.and.allowheating)then ! Active 
         if(charging)then                        ! Charging
           if(T_core.LT.T_changeover_charging)then
@@ -7706,17 +7761,17 @@ C Determine heat loss from heater to room
       heatLoss(IZ)=gradient*T_core+constant
 
 C If heater is at lower temperature than room, 
-C do not lose heat from heater
+C do not lose heat from heater.
       If(T_core.LT.T_air_point)then
         heatLoss(IZ)=0.0
         heatGain=0.0 ! Is positive but currently not implemented
       endif
 
-C Determine QFUT 
+C Determine QFUT.
       QFUT=heatGain-heatLoss(IZ) ! Actuates storage heater zone
       TFUT=(BB3-BB2*QFUT)/BB1
 
-C Debug ...
+C Debug.
 C      write(96,*)nsinc,btimef,T_core,heatGain,heatLoss(6),qfut
 
 C Trace output.
@@ -7739,8 +7794,9 @@ C Trace output.
       
 C ******************** bcl28 ********************
 C Room heater linked to the storage heater of BCL27. This controller
-C injects the heat lost from the storage heater to the room zone linked
-C to the heater
+C injects the heat lost from the storage heater to the zone containing
+C the heater.
+
       SUBROUTINE BCL28
       implicit none
 #include "building.h"
@@ -7771,7 +7827,7 @@ C to the heater
       character outs*124
       integer istat
 
-C Trace output
+C Trace output.
       IF(ITC.GT.0.AND.NSINC.GE.ITC.AND.NSINC.LE.ITCF.AND.
      &   ITRACE(41).NE.0) then
         call edisp(itu,' ')
@@ -7779,10 +7835,10 @@ C Trace output
         CALL DAYCLK(IDYP,BTIMEF,ITU)
       endif
 
-c Fatal error test
+c Fatal error test.
       IF(NINT(BMISCD(ICF,IDTYP,IPER,1)).GT.0)GOTO 99
 
-C Determine QFUT 
+C Determine QFUT.
       QFUT=heatLoss(IBAN(ICF,1))
       TFUT=(BB3-BB2*QFUT)/BB1
 
@@ -7803,7 +7859,8 @@ C Trace output.
       call epagend
       STOP
       END
-      
+
+     
 C ******************** bcl31 ********************
 C This controller injects heat from a given node of a number of zones to
 C the air point of the actuated zone
@@ -7840,7 +7897,7 @@ C the air point of the actuated zone
       COMMON/FVALC/TFC(MCOM,MS,MN),QFC(MCOM)
       real TFC,QFC
 
-C Heat lost from zone surface if zone represents quantum storage heater
+C Heat lost from zone surface if zone represents quantum storage heater.
       COMMON/QBCL31/QX31S(MCOM,MS,2),QX31V(MCOM,2),QX31Vcon(MCOM,2)
       real QX31S      ! Surface heat loss from storage heater
       real QX31V      ! "ventilation" (air flow) heat loss W
@@ -7849,7 +7906,7 @@ C Heat lost from zone surface if zone represents quantum storage heater
       real setPoint,TCTL,flowRateON,flowRateOFF,QFUTS,QFUTV !,dt,height
       integer ier
 
-C Trace output
+C Trace output.
       IF(ITC.GT.0.AND.NSINC.GE.ITC.AND.NSINC.LE.ITCF.AND.
      &   ITRACE(41).NE.0) then
         call edisp(itu,' ')
@@ -7857,10 +7914,10 @@ C Trace output
         CALL DAYCLK(IDYP,BTIMEF,ITU)
       endif
 
-c Fatal error test
+c Fatal error test.
 c      IF(NINT(BMISCD(ICF,IDTYP,IPER,1)).NE.12)GOTO 99
 
-C Determine zone, surface, heat transfer coefficient and area
+C Determine zone, surface, heat transfer coefficient and area.
       noZones=(NINT(BMISCD(ICF,IDTYP,IPER,1))-3)/4
       do 30 iz=1,noZones
         iZoneNo(iz) = nint(BMISCD(ICF,IDTYP,IPER,4*iz-2))
@@ -7868,9 +7925,9 @@ C Determine zone, surface, heat transfer coefficient and area
         htc(iz)     = BMISCD(ICF,IDTYP,IPER,4*iz)
         area(iz)    = BMISCD(ICF,IDTYP,IPER,4*iz+1)
 
-C Use Alamdari and Hammond convective coefficients model
+C Use Alamdari and Hammond convective coefficients model.
 c        DT=ABS(TFC(iZoneNo(iz),iSurfNo(iz),1)-TFA(iicomp))
-C Assume heater is at a temperature of ~40C
+C Assume heater is at a temperature of ~40C.
 c        DT=ABS(40.-TFA(iicomp))
 c        HEIGHT=1.0
 c        HTC(IZ)=2.5*((1.50*((DT/HEIGHT)**0.25))**6.0
@@ -7887,8 +7944,8 @@ C Determine sensed temperature.
         return
       endif
 
-C Determine surface heat losses from these zones = QX31S
-C these heats are gained by the zone where actuation takes place = QFUT
+C Determine surface heat losses from these zones = QX31S.
+C These losses are gained by the zone where actuation takes place = QFUT.
 C      T2 = TFC(iZoneNo(iz),iSurfNo(iz),1) 
 C      T1 = TFA(iicomp)
       QFUT=0.0
@@ -7896,12 +7953,12 @@ C      T1 = TFA(iicomp)
       QFUTV=0.0
       do 40 iz=1,noZones
 
-C Surface heat loss from Explicit Storage Heater
-C Set present time row values equal to future 
+C Surface heat loss from Explicit Storage Heater.
+C Set present time row values equal to future.
         QX31S(iZoneNo(iz),iSurfNo(iz),1)=
      &    QX31S(iZoneNo(iz),iSurfNo(iz),2)
 
-C Calculate future time row values
+C Calculate future time row values.
         QX31S(iZoneNo(iz),iSurfNo(iz),2)=htc(iz)*area(iz)*
      &  (TFC(iZoneNo(iz),iSurfNo(iz),1)-TFA(iicomp))
         if(QX31S(iZoneNo(iz),iSurfNo(iz),2).lt.0.)
@@ -7909,12 +7966,12 @@ C Calculate future time row values
         QFUTS=QFUTS+QX31S(iZoneNo(iz),iSurfNo(iz),2)
         QFUTS=0.0 ! for now add surface loss to air point
 
-C Ventilation heat loss from Explicit Storage Heater
-C Set present time row values equal to future 
+C Ventilation heat loss from Explicit Storage Heater.
+C Set present time row values equal to future. 
         QX31V(iZoneNo(iz),1)=QX31V(iZoneNo(iz),2)
         QX31Vcon(iZoneNo(iz),1)=QX31Vcon(iZoneNo(iz),2)
 
-C Lose ventilation heat from these zones
+C Lose ventilation heat from these zones.
         QX31Vcon(iZoneNo(iz),2)=flowRateOFF*1006.
         if(tctl.lt.setPoint)then
           QX31Vcon(iZoneNo(iz),2)=(flowRateOFF+flowRateON)*1006.
@@ -7923,16 +7980,16 @@ C Lose ventilation heat from these zones
      &    QX31Vcon(iZoneNo(iz),2)*(TFA(iZoneNo(iz))-TFA(iicomp))
      &    +QX31S(iZoneNo(iz),iSurfNo(iz),2) ! lose surface heat from
                                             ! the air point for now
-C Integrate over all zones representative of the storage heater
+C Integrate over all zones representative of the storage heater.
         QFUTV=QFUTV+QX31V(iZoneNo(iz),2)
         QX31V(iZoneNo(iz),2)=-1.*QX31V(iZoneNo(iz),2)
  40   continue
 
-C Determine QFUT 
+C Determine QFUT.
       QFUT=QFUTS+QFUTV
       TFUT=(BB3-BB2*QFUT)/BB1
 
-C Debug...
+C Debug.
 c      write(6,*)QFUT,setPoint,tctl
 
 C Trace output.
@@ -7947,12 +8004,14 @@ C Trace output.
       RETURN
       END
 
+
 C ******************** bcl32 ********************
-C Bespoke controller for CHP system developed for the project: 
-C TEDDI - Building Management Linking Energy Demand.
-C This controller acts based on the states of a number of sensors
-C (maximum being MNPS). The states of these sensors are read in from tdf
-C and from the state of a thermal store 
+C Bespoke controller for CHP system developed for TEDDI
+C project Building Management Linking Energy Demand.
+C This controller acts on the basis of a number of sensors
+C (maximum MNPS). The states of these sensors are read in from a tdf
+C and from the state of a thermal store.
+
       SUBROUTINE BCL32
       implicit none
 #include "building.h"
@@ -7972,7 +8031,7 @@ c      integer itrc
       common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
       integer IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS,idynow
       
-C TPA(MCOM),           ! - present zone air point temperature (oC)
+C TPA(MCOM),           ! - present zone air point temperature (C)
 C QPA(MCOM)            ! - zone air point heat injection (W)
       COMMON/PVALA/TPA(MCOM),QPA(MCOM)
       REAL TPA, QPA
@@ -7991,7 +8050,7 @@ C QPA(MCOM)            ! - zone air point heat injection (W)
       integer iStartZone,iEndZone
       logical bInStartup
       
-C Local variables
+C Local variables.
       real HmaxCHP,HminCHP,HTPR,maxStoreCap !,VAL,locval
       real H_CHPtoZones,H_fromStore,H_conventional,H_toStore,H_CHP
       real P_toGrid,P_fromGrid,P_CHP
@@ -8008,30 +8067,30 @@ C Local variables
       parameter (mnps=5) ! max number of pervasive sensors
       DIMENSION nCHPctl(mnps) !,VAL(MTABC+2),locval(mnps)
 
-C Hardwired variables
+C Hardwired variables.
 C Quadratic coefficients for various CHP performance curves 
-C as functions of power generated (y = ax^2 + bx + c)
-      Aa = -0.008 ! Equation A Fuel cost 
+C as functions of power generated (y = ax^2 + bx + c).
+      Aa = -0.008 ! Equation A Fuel cost.
       Ab = 443.4
       Ac = 80.61
-      Ba = 29.2   ! Equation B Total heat supplied  
+      Ba = 29.2   ! Equation B Total heat supplied. 
       Bb = 160.3
       Bc = 49.55
-      Ca = -8.737 ! Equation C Electric efficiency
+      Ca = -8.737 ! Equation C Electric efficiency.
       Cb = 21.24
       Cc = 18.02
-      Da = 0.825  ! Equation D Heat to power ratio
+      Da = 0.825  ! Equation D Heat-to-power ratio.
       Db = -1.675
       Dc = 2.343
-      HSRS = 0.666666 ! heat supply rate of store as fraction of CHP supply rate
-      FSAS = 0.5     ! Fraction store is available before CHP comes on
-                     ! after FSAS_OT
-      FSASN = 0.9    ! Fraction store is available outside of FSAS On
-                     ! and off times
-      FSAS_ONT = 7.0   ! FSAS On time e.g. 6.0 = 6a.m.
-      FSAS_OFT = 21.0  ! FSAS Off time e.g. 6.0 = 6a.m.
+      HSRS = 0.666666 ! Heat supply rate of store as fraction of CHP supply rate.
+      FSAS = 0.5      ! Fraction of store available before CHP comes on
+                      ! after FSAS_OT.
+      FSASN = 0.9     ! Fraction of store available outside of FSAS On
+                      ! and off times.
+      FSAS_ONT = 7.0  ! FSAS On time, e.g. 6.0 = 6a.m.
+      FSAS_OFT = 21.0 ! FSAS Off time
       
-C Initialise variables
+C Initialise variables.
       if(nsinc.le.2)then
         StoreCap=0.
       endif
@@ -8041,18 +8100,18 @@ C Initialise variables
       iStartZone  = nint(BMISCD(ICF,IDTYP,IPER,5)) ! start of zone number served from CHP
       iEndZone    = nint(BMISCD(ICF,IDTYP,IPER,6)) ! end of zone number served from CHP
 
-C Calculate minimum electrical power of CHP unit as fraction of maximum from HminCHP
+C Calculate minimum electrical power of CHP unit as fraction of maximum from HminCHP.
       Xmin = fFirstCubicRoot(0.,Ba,Bb,bc-HminCHP/1000., 0.01) ! power generated
       HTPRmin = Da*Xmin*Xmin + Db*Xmin + Dc
       PminCHP = HminCHP/HTPRmin
 
 !C Get data from tdf, financial incentive to turn on locval(4) and
-!C export to grid possible locval(5)
+!C export to grid possible locval(5).
 !      IFOC=IPERVSEN
 !      CALL RCTDFB(itrc,btimef,VAL,ISD,IFOC,IER)
 !      write(6,*)itrc,ifoc,btimef,(val(i),i=1,6)
 !
-!C First three controls are set further below so init to zero just now
+!C First three controls are set further below so initialise to zero for now.
 !      DO 1 I=1,mnps
 !        if(i.ge.4)then
 !          nCHPctl(i)=0
@@ -8062,59 +8121,59 @@ C Calculate minimum electrical power of CHP unit as fraction of maximum from Hmi
 !          nCHPctl(i)=0
 !      endif
 ! 1    CONTINUE
-!c      write(6,*)btimef,(locval(i),i=1,5)
-!
+!C      write(6,*)btimef,(locval(i),i=1,5)
+
       nCHPctl(1)=0 
       nCHPctl(2)=0 
       nCHPctl(3)=0 
       nCHPctl(4)=0 
       nCHPctl(5)=0
 
-C Get required heat and electrical power
+C Get required heat and electrical power.
       H_required=0.0
       P_required=0.0
       do 3 i=iStartZone,iEndZone
-c        H_required=H_required+QCHP(i)
+C        H_required=H_required+QCHP(i)
 C Hard code H_required (alternatively take it from blibsv but that
-C excludes startup 
+C excludes startup.
         H_required = H_required + (QPA(I)+QFA(I))*0.5
 
         P_required=P_required+znElecCasGain(i)
  3    continue
-      P_required = 0.1 * P_required ! CHP only supplies 10th of power
+      P_required = 0.1 * P_required ! CHP only supplies 10th of power.
         
-C Make CHP control
-C Setup 1st pervasive sensor state i.e. is zone heat demand > min CHP capacity? 
-C 1 for Yes, 0 for No
+C Make CHP control.
+C Set up 1st pervasive sensor state, i.e. if zone heat demand > min CHP capacity. 
+C 1 for Yes, 0 for No.
       if(H_required.GT.HminCHP)nCHPctl(1)=1
       
-C Setup 2nd pervasive sensor state i.e. is heat storage available?
-C 1 for Yes, 0 for No
+C Setup 2nd pervasive sensor state, i.e. if heat storage available?
+C 1 for Yes, 0 for No.
       if(btimef.gt.FSAS_ONT.and.btimef.le.FSAS_OFT)then
         if((maxStoreCap*FSAS-storeCap).gt.1.)nCHPctl(2)=1
       else
         if((maxStoreCap*FSASN-storeCap).gt.1.)nCHPctl(2)=1
       endif
 
-C Setup 3rd pervasive sensor state i.e. is zone power demand > min CHP capacity
+C Setup 3rd pervasive sensor state, i.e. if zone power demand > min CHP capacity.
 C Set power requirement determinant of CHP unit
 C 1 for Yes, 0 for No
       if(P_required.gt.(PminCHP))nCHPctl(3)=1
 
-C Setup 4th pervasive sensor state i.e. is it financially suitable to turn on CHP
-C i.e. is TotCostConvEnergy > TotCostCHPEnergy
-C 1 for Yes, 0 for No
+C Setup 4th pervasive sensor state, i.e. if it is financially suitable to turn 
+C on CHP (TotCostConvEnergy > TotCostCHPEnergy).
+C 1 for Yes, 0 for No.
 C First initialise electricity price
       if(btimef.gt.6..and.btimef.lt.23.)then
-        costGrid     = 10.581 ! pence/kWh
+        costGrid     = 10.581 ! Pence/kWh
       else
-        costGrid     = 5.911  ! pence/kWh
+        costGrid     = 5.911  ! Pence/kWh
       endif
-      costFeedin     = 4.5    ! pence/kWh
-      costNaturalGas = 11.3   ! pence/kWh
+      costFeedin     = 4.5    ! Pence/kWh
+      costNaturalGas = 11.3   ! Pence/kWh
       etaBoiler      = 0.875  ! Boiler efficiency
       
-C Now determine cost of heating and power using conventional sources
+C Now determine cost of heating and power using conventional sources.
       if(H_required.LT.HmaxCHP)then
         HFromCHP=H_required ! Heat required for zones excluding store
       else
@@ -8122,11 +8181,11 @@ C Now determine cost of heating and power using conventional sources
       endif      
       X = fFirstCubicRoot(0.,Ba,Bb,bc-HFromCHP/1000., 0.01) ! power generated
       HTPR    = Da*X*X + Db*X + Dc ! Heat to Power ratio
-c      etaElec = (Ca*X*X + Cb*X + Cc)/100. ! Electrical efficiency
+C      etaElec = (Ca*X*X + Cb*X + Cc)/100. ! Electrical efficiency
       etaHeat = (HFromCHP/1000.)/(Aa*X*X + Ab*X + Ac) ! Thermal efficiency
       PFromCHP = HFromCHP/HTPR
 
-C Debug...
+C Debug.
 c      write(6,*)btimef,H_required,HFromCHP,x,htpr,
 c     &etaelec,etaheat
 
@@ -8134,7 +8193,7 @@ c     &etaelec,etaheat
       costConvPower = P_required*costGrid
       totCostConvEnergy = costConvHeat + costConvPower
 
-C Determine cost of heating and power using CHP
+C Determine cost of heating and power using CHP.
       costCHPHeat = HFromCHP*costNaturalGas/etaHeat
       if(P_required.GT.PFromCHP)then ! no power is exported
         costCHPPower = (P_required - PFromCHP)*costGrid
@@ -8143,21 +8202,21 @@ C Determine cost of heating and power using CHP
       endif
       totCostCHPEnergy = costCHPHeat + costCHPPower
       
-C Apply 4th pervasive sensor control logic
+C Apply 4th pervasive sensor control logic.
       if(totCostCHPEnergy.LT.totCostConvEnergy)nCHPctl(4)=1
 
-C Setup 5th pervasive sensor state i.e. is power export available
-C 1 for Yes, 0 for No
+C Setup 5th pervasive sensor state, i.e. if power export is available.
+C 1 for Yes, 0 for No.
       nCHPctl(5)=1 ! export always available
 
 C Work out control index n which is the decimal representation of binary control 
-C sensors state (1 or 0)
+C sensors state (1 or 0).
       n=nCHPctl(1)+2*nCHPctl(2)+4*nCHPctl(3)+
      &             8*nCHPctl(4)+16*nCHPctl(5)
       setOn=.false.
 
-C Set CHP unit on/off based on control matrix 
-C Original control matrix ON Codes
+C Set CHP unit on/off based on control matrix.
+C Original control matrix ON Codes.
 c      if(n.eq.5.or.n.eq.6.or.n.eq.7.or.n.eq.13.or.n.eq.14
 c     &.or.n.eq.15.or.n.eq.17.or.n.eq.18.or.n.eq.19.or.n.eq.21
 c     &.or.n.eq.22.or.n.eq.23.or.n.eq.29
@@ -8165,19 +8224,19 @@ c     &.or.n.eq.30.or.n.eq.31)setOn=.true.
      
 C 1st modification to ON codes based on running solely on cost
 C differential basis (i.e. ON only when there is financial incentive to
-C turn ON
+C turn ON).
       if(n.eq.9.or.n.eq.10.or.n.eq.11.or.n.eq.13.or.n.eq.14
      &.or.n.eq.15.or.n.eq.25.or.n.eq.26.or.n.eq.27.or.n.eq.29
      &.or.n.eq.30.or.n.eq.31)setOn=.true.
      
-C Apply control logic
+C Apply control logic.
       H_CHPtoZones=0.
       H_fromStore=0.
       H_toStore=0.
       P_toGrid=0.
       P_fromGrid=0.
 
-C Supply H_CHPtoZones and H_toStore
+C Supply H_CHPtoZones and H_toStore.
       if(setOn)then
         if(H_required.gt.HmaxCHP)then
           H_CHPtoZones = HmaxCHP
@@ -8191,11 +8250,11 @@ C Supply H_CHPtoZones and H_toStore
         H_toStore = 0.
       endif
 
-C Set H_fromStore
+C Set H_fromStore.
 C Supply heat from store but only a fraction of how much the CHP system
 C can deliver this is an approximation to limit the rate at which heat 
-C can be supplied from the store
-C Heat may be supplied from store H_CHPtoZones is less than H_required
+C can be supplied from the store.
+C Heat may be supplied from store if H_CHPtoZones is less than H_required.
       if(H_required.gt.H_CHPtoZones)then
         H_fromStore = H_required - H_CHPtoZones
         if((H_fromStore*3600/NTSTEP).gt.storeCap)then
@@ -8204,21 +8263,21 @@ C Heat may be supplied from store H_CHPtoZones is less than H_required
         if(H_fromStore.gt.(HmaxCHP*HSRS)) H_fromStore = HmaxCHP*HSRS
       endif
 
-C Supply conventional heat
+C Supply conventional heat.
       H_conventional = H_required - H_fromStore - H_CHPtoZones
       if(H_conventional.lt.0)H_conventional = 0.
 
-C Supply heat from/to store
+C Supply heat from/to store.
       storeCap = storeCap + (- H_fromStore + H_toStore)*(3600/NTSTEP)
 
-C Get power generated assuming CHP unit is heat led
+C Get power generated assuming CHP unit is heat led.
       H_CHP = H_CHPtoZones + H_toStore ! total heat supplied from CHP
       X = fFirstCubicRoot(0.,Ba,Bb,bc, 0.01) ! power generated
       HTPR    = Da*X*X + Db*X + Dc ! Heat to Power ratio
       etaElec = Ca*X*X + Cb*X + Cc ! Electrical efficiency
       etaHeat = Aa*X*X + Ab*X + Ac ! Thermal efficiency
 
-C Get power generated as percentage from equation B above      
+C Get power generated as percentage from equation B above.    
       P_CHP = H_CHP/HTPR
       if(P_required.lt.P_CHP)then
         P_toGrid = P_CHP - P_required
@@ -8226,7 +8285,7 @@ C Get power generated as percentage from equation B above
         P_fromGrid = P_required - P_CHP
       endif
 
-C Debug...
+C Debug.
 c      if(btimef.lt.2.)write(6,*)NbOnStates,(iOnCodes(i),i=1,nbOnStates)
 c      write(6,*)BTIMEF,(locval(i),i=1,5)
 c      write(6,*)BTIMEF,NIZN,HmaxCHP,HminCHP,HTPR,StoreCap,
@@ -8251,11 +8310,12 @@ c     &storeCap/(3600/NTSTEP),',',
       RETURN
       END
 
-C ******************** BCL33
+
+C ******************** BCL33 ********************
 C Basic controller, but only active when zone is occupied. Judges
 C occupancy by type 1 casual gains taken from operations or temporal.
-      SUBROUTINE BCL33(IER)
 
+      SUBROUTINE BCL33(IER)
 #include "building.h"
 #include "control.h"
 #include "net_flow.h"
@@ -8281,7 +8341,7 @@ C occupancy by type 1 casual gains taken from operations or temporal.
 C Fatal error test.
       IF(BMISCD(ICF,IDTYP,IPER,1).LT.6.)GOTO 99
 
-C Trace output
+C Trace output.
       IF(ITC.GT.0.AND.NSINC.GE.ITC.AND.NSINC.LE.ITCF.AND.
      &   ITRACE(41).NE.0) then
         if (IBSN(ICF,1).GT.0.and.IBAN(ICF,1).eq.0) then
@@ -8307,8 +8367,8 @@ C QHM = max heating capacity (W)
 C QHN = min heating capacity (W)
 C QCM = max cooling capacity (W)
 C QCN = min cooling capacity (W)
-C HSP = heating set point temp. (deg.C)
-C CSP = cooling set point temp. (deg.C)
+C HSP = heating set point temp. (C)
+C CSP = cooling set point temp. (C)
       QHM=BMISCD(ICF,IDTYP,IPER,2)
       QHN=BMISCD(ICF,IDTYP,IPER,3)
       QCM=-BMISCD(ICF,IDTYP,IPER,4)
@@ -8429,15 +8489,16 @@ C Mixed actuation.
       STOP
       END
 
-C ******************** BCL34
+
+C ******************** BCL34 ********************
 C Smart predictive controller. Uses a regression equation (degree 2, 
 C coefficients supplied by user) to predict heat requirement for the day
 C based on external dry bulb temperature and total solar. Then examines
 C a per time step signal (e.g. price of energy, from temporal) to find
 C the optimum periods to inject the heat, subject to constraints of
 C minimum portions in certain periods of the day.
-      SUBROUTINE BCL34(IER)
 
+      SUBROUTINE BCL34(IER)
 #include "building.h"
 #include "control.h"
 #include "net_flow.h"
@@ -8467,7 +8528,7 @@ C Fatal error test.
         GOTO 666
       endif
 
-C Trace output
+C Trace output.
       IF(ITC.GT.0.AND.NSINC.GE.ITC.AND.NSINC.LE.ITCF.AND.
      &   ITRACE(41).NE.0) then
         if (IBSN(ICF,1).GT.0.and.IBAN(ICF,1).eq.0) then
@@ -8606,7 +8667,7 @@ C Assign period 2 heating.
      &        'BCL34 warning: period 2 too short for required heating.'
             call edisp(iuout,outs)
 
-C Heat for full period, and add excess to floating.
+C Heat for full period and add excess to floating.
             ists2 = nint(p2s*ntstep) ! start time step
             ifts2 = nint(p2f*ntstep) ! finish time step
             itsf = itsf+max(0,its2-(ifts2-ists2+1))
@@ -8772,15 +8833,15 @@ C Check if we should be heating now.
 
       END
 
+
 C ******************** BCL99 ********************
-C BCL99 modifies the thermo-physical properties of up to three 
+C Dynamiccally modifies the thermo-physical properties of up to three 
 C multi-layered construction(s).
 C ICALL = 0 signals call from nested zone control
 C ICALL = 1 signals call from solar with no change in props.
 C ICALL = 2 signals call from solar with request for alternative props.
 
       subroutine bcl99(ICALL)
-
 #include "building.h"
 #include "model.h"
 #include "geometry.h"
@@ -8827,7 +8888,7 @@ C << of 3 surface to change will have to be increased!        >>
       
       iunit=ifil+1
       
-C Debug...
+C Debug.
 C      write(6,*) 'BCL 99 ',btimef
       
 C If called from solar.F then use the data in common/BSCTL/ otherwise
@@ -8837,7 +8898,7 @@ C use data in normal ctl common blocks.
         ICMP=ICZN
       elseif (ICALL.eq.2) then
       
-C Set usealt to true and remember zone number
+C Set usealt to true and remember zone number.
         usealt=.true.
         ICMP=ICZN
       
@@ -9043,9 +9104,10 @@ C Modify if computational time-step is less than one hour.
       stop
       end
 
-c ******************** MZRCPL ********************
-c Called by BCL?? routines when plant has been specified as having
-c a radiant and convective component. Some iteration takes place.
+
+C ******************** MZRCPL ********************
+C Called by BCL?? routines when plant has been specified as having
+C a radiant and convective component. Some iteration takes place.
 
       SUBROUTINE MZRCPL(IC,AA,BB,CC,TCTL,TR,IPLT,QMX,QMN,TE,Q)
 #include "building.h"
@@ -9090,7 +9152,7 @@ c a radiant and convective component. Some iteration takes place.
       logical atrace
       character outs*200
 
-C If called from BCL06, any sensor will do
+C If called from BCL06, any sensor will do.
       IF(IBCLAW(ICF,IDTYP,IPER).EQ.6) GOTO 123
 
 c Check that a valid control law is calling this routine.
@@ -9256,6 +9318,7 @@ C TDIFF acceptable. Conduct backward substitution.
       endif
       RETURN
       END
+
 
 C ******************** SUBROUTINE FZINIT ********************
 C Zeroises common variables as used in fuzzy logic control functions.

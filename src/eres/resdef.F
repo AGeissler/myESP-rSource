@@ -244,6 +244,7 @@ C If the record widths still do not match then give up.
      &        'Unable to open library (record width',nreclx,
      &        'to large). Stopping!'
             call usrmsg(outs,LTMP,'W')
+            call to_session(outs)
             close(ieout)
             CALL ERPFREE(ieout,ISTAT)
             CALL EPAGEND
@@ -275,10 +276,11 @@ C Establish if this database contains result-sets.
       IREC=1
       READ(IUNIT,REC=IREC,IOSTAT=ios,ERR=7)NSIM,nzrl,izver,IMET
       IF(NSIM.EQ.0)then
-        call easkab('Library is incomplete or corrupt!',
-     &    'Options:','continue','cancel',IW,
-     &    nbhelp)
+        call easkmbox('Library is incomplete or corrupt!',
+     &    'Options:','continue','cancel',
+     &    ' ',' ',' ',' ',' ',' ',IW,nbhelp)
         if(IW.eq.2)then
+          call to_session('Library is incomplete or corrupt!')
           close(ieout)
           CALL ERPFREE(ieout,ISTAT)
           CALL EPAGEND
@@ -289,10 +291,11 @@ C Establish if this database contains result-sets.
       elseif(NSIM.gt.MNRS) then
         helptopic='reslib_nb_sets_dialog'
         call gethelptext(helpinsub,helptopic,nbhelp)
-        call easkab('Library has >30 result sets!',
+        call easkmbox('Library has >30 result sets!',
      &    'Options:','continue',
-     &    'cancel',IW,nbhelp)
+     &    'cancel',' ',' ',' ',' ',' ',' ',IW,nbhelp)
         if(IW.eq.2)then
+          call to_session('Library has >30 result sets!')
           close(ieout)
           CALL ERPFREE(ieout,ISTAT)
           CALL EPAGEND
@@ -587,18 +590,21 @@ C        write(6,*) 'B ',RSNAME
           if (IMET.eq.1) then
             write (outs,'(2a)')'The current result library holds data ',
      &        'from a differential uncertainty analysis'
-            call easkab(outs,'Do you wish to analyse:',
-     &        'the uncertainties','a particular set',IW,nbhelp)
+            call easkmbox(outs,'Do you wish to analyse:',
+     &        'the uncertainties','a particular set',
+     &        ' ',' ',' ',' ',' ',' ',IW,nbhelp)
           elseif (IMET.eq.2) then
             write (outs,'(2a)')'The current result library holds data ',
      &        'from a factorial uncertainty analysis'
-            call easkab(outs,'Do you wish to analyse:',
-     &        'the uncertainties','a particular set',IW,nbhelp)
+            call easkmbox(outs,'Do you wish to analyse:',
+     &        'the uncertainties','a particular set',
+     &        ' ',' ',' ',' ',' ',' ',IW,nbhelp)
           elseif (IMET.eq.3) then
             write (outs,'(2a)')'The current result library holds data ',
      &        'from a montecarlo uncertainty analysis'
-            call easkab(outs,'Do you wish to analyse:',
-     &        'the uncertainties','a particular set',IW,nbhelp)
+            call easkmbox(outs,'Do you wish to analyse:',
+     &        'the uncertainties','a particular set',
+     &        ' ',' ',' ',' ',' ',' ',IW,nbhelp)
           else
             IW=2
           endif
@@ -964,6 +970,10 @@ C ier is zero if no problems and -3 if user issued a cancel.
       integer igraphiclib  ! external definition
 
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
+      logical ieopened     ! Has session file been started.
+      integer iecount      ! Does it hold error messages.
+      character iefile*72  ! The name of the session file.
+      common/logs/ieopened,iecount,iefile
       COMMON/FILEP/IFIL
 
 
@@ -1009,7 +1019,7 @@ C Defaults.
 C longtmp is the model configuration file with full path.
       CHARACTER NAME*6,longtmp*144
       character outs*124,znpad*15,path*72,MODE*4
-      character mlcn*32,optn*32
+      character mlcn*32,optn*32,tfile*72,uname*24
       character louts*248
       integer ISTRW
       
@@ -1021,7 +1031,6 @@ C For weather file.
       character fs*1
       character llclmdb*144  ! to expand weather file
       integer lndbp          ! length of weather folder path
-
       helpinsub='resdef'  ! set for subroutine
 
 
@@ -1381,7 +1390,38 @@ C Open core databases (materials, constructions, optics).
 
 C Set the default export file name based on model root name.
           write(xfile,'(2a)') cfgroot(1:lnblnk(cfgroot)),'.csv'
-
+      
+C Open the session file.  << ?? >>
+          uname=' '; tfile=' '
+          call usrname(uname)
+          if(unixok)then
+            write(tfile,'(3a)') '/tmp/',cfgroot(1:lnblnk(cfgroot)),
+     &        '.log'
+            call st2file(tfile,iefile)
+          else
+            write(tfile,'(6a)') 'C:',fs,'TEMP',fs,
+     &        cfgroot(1:lnblnk(cfgroot)),'.log'
+            call st2file(tfile,iefile)  ! Keep track of iefile name.
+          endif
+          ieout=ifil+932              ! Set to unused index 932
+          iecount=0                   ! Clear count of errors.
+          if(.NOT.ieopened) goto 903  ! Set in scan of .esprc file (scesprc)
+          INQUIRE (FILE=iefile,EXIST=XST)
+          if(XST)then
+            close(ieout)
+            open(ieout,file=iefile,position='APPEND',
+     &        status='UNKNOWN',err=903)
+            call to_session('   ')   ! Blank line to separate new entries.
+          else
+            open(ieout,file=iefile,status='UNKNOWN',err=903)
+          endif
+          write(ieout,'(a)')'Session log for res'
+          call dstamp(dstmp) ! get curret time
+          write(ieout,'(2a)')'Date,',dstmp
+          write(ieout,'(2a)')'User,',uname(1:lnblnk(uname))
+          call to_session('   ')   ! Blank line to separate new entries.
+          ieopened = .true.
+  903     continue
         ENDIF
 
 C If there is a model dispersed demands file read it.

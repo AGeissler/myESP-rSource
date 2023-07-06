@@ -645,22 +645,22 @@ C Set up matrix to be solved to give least squares curve fit coefficients
  
 C Check for singularity 
       SINGUL = .FALSE.
-      DO 50 I = 1, IDEG
+      DO I = 1, IDEG
 
 C Locate pivot element
         ABSPIV = ABS(DLIN(I,I))
-        DO 10 K = I + 1, IDEG
+        DO K = I + 1, IDEG
           IF (ABS(DLIN(K,I)) .GT. ABSPIV) THEN
             ABSPIV = ABS(DLIN(K,I))
           END IF
- 10     CONTINUE
+        ENDDO
 
 C Check if matrix is (nearly) singular
         IF (ABSPIV .LT. EPSIL) THEN
           SINGUL = .TRUE.
           RETURN
         END IF
- 50   CONTINUE
+      ENDDO
 
 C Call solver if not singular
       IF(.NOT.SINGUL) CALL JSLVD2(DLIN,IDEG,IDEG,RIHAS,TRHS)
@@ -685,55 +685,56 @@ C backsubstitution of the known right hand side vector B (size N)
       DOUBLE PRECISION AB,AC,AD
 
 C Forward reduce matrix A.
-      DO 10 I=2,N
+      DO I=2,N
         A(1,I)=A(1,I)/A(1,1)
-   10 continue
-      DO 50 K=2,N
+      ENDDO
+      DO K=2,N
         K1=K-1
-        DO 20 IK=K,N
-        DO 20 J=1,K1
-          AB=A(IK,J)
-          AC=A(J,K)
-          AD=AB*AC
-          A(IK,K)=A(IK,K)-AD
-   20   continue
+        DO IK=K,N
+          DO J=1,K1
+            AB=A(IK,J)
+            AC=A(J,K)
+            AD=AB*AC
+            A(IK,K)=A(IK,K)-AD
+          ENDDO
+        ENDDO
         J1=K+1
-        DO 30 J=J1,N
-          DO 40 MJ=1,K1
+        DO J=J1,N
+          DO MJ=1,K1
             AB=A(K,MJ)
             AC=A(MJ,J)
             AD=AB*AC
             A(K,J)=A(K,J)-AD
-   40     continue
+          ENDDO
           A(K,J)=A(K,J)/A(K,K)
-   30   continue
-   50 CONTINUE
+        ENDDO
+      ENDDO
 
 C Conduct backward substitution to establish solution vextor X.
       B(1)=B(1)/A(1,1)
-      DO 70 I=2,N
+      DO I=2,N
         K1=I-1
-        DO 60 J=1,K1
+        DO J=1,K1
           AB=B(J)
           AC=A(I,J)
           AD=AB*AC
           B(I)=B(I)-AD
-   60   continue
+        ENDDO
         B(I)=B(I)/A(I,I)
-   70 continue
+      ENDDO
       X(N)=B(N)
       N1=N-1
-      DO 90 JJ=1,N1
+      DO  JJ=1,N1
         I=N-JJ
         IK=I+1
-        DO 80 J=IK,N
+        DO J=IK,N
           AB=A(I,J)
           AC=B(J)
           AD=AB*AC
           B(I)=B(I)-AD
-   80   continue
+        ENDDO
         X(I)=B(I)
-   90 continue
+      ENDDO
 
       RETURN
       END

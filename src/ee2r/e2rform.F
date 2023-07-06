@@ -145,8 +145,10 @@ C If daylight factors then check if sky is CIE overcast.
         if (isky.ne.1) then 
           helptopic='sky_not_CIE_menu'
           call gethelptext(helpinsub,helptopic,nbhelp)
-          CALL EASKAB(' The sky is not a CIE standard overcast sky.',
-     &      'Do you want to: ','proceed','change sky type',IW,nbhelp)
+          CALL EASKMBOX(
+     &      'The sky is not a CIE standard overcast sky.',
+     &      'Do you want to: ','proceed','change sky type',
+     &      ' ',' ',' ',' ',' ',' ',IW,nbhelp)
           if (IW.eq.2) goto 10
         endif
       endif
@@ -171,8 +173,9 @@ C which includes redirection of output to the sky definition file.
       elseif(INO.EQ.9)then
         helptopic='sky_description_browse'
         call gethelptext(helpinsub,helptopic,nbhelp)
-        CALL EASKABC(' Sky description:',' ',
-     &    'browse file','edit file','ignore',IW,nbhelp)
+        CALL EASKMBOX(' Sky description:',' ',
+     &    'browse file','edit file','ignore',
+     &    ' ',' ',' ',' ',' ',IW,nbhelp)
         if(IW.eq.1)then
           write (tfile,'(a,a)') runpath(1:lnrp),
      &                          rskyfil(1:lnblnk(rskyfil))
@@ -367,8 +370,9 @@ C the image.
         CALL redraw(IER)
         outdone=.true.
       elseif(INO.EQ.8)then
-        CALL EASKABC(' Glazing description:',' ',
-     &   'browse file','edit file','ignore',IW,nbhelp)
+        CALL EASKMBOX(' Glazing description:',' ',
+     &   'browse file','edit file','ignore',
+     &   ' ',' ',' ',' ',' ',IW,nbhelp)
         if(IW.eq.1)then
           write (tfile,'(a,a)') runpath(1:lnrp),
      &                          glzfil(1:lnblnk(glzfil))
@@ -379,8 +383,9 @@ C the image.
           call vifile(iglzfil,tfile,'e',ier)
         endif
       elseif(INO.EQ.9)then
-        CALL EASKABC(' Opaque materials:',' ',
-     &   'browse file','edit file',',ignore',IW,nbhelp)
+        CALL EASKMBOX(' Opaque materials:',' ',
+     &    'browse file','edit file',',ignore',
+     &    ' ',' ',' ',' ',' ',IW,nbhelp)
         if(IW.eq.1)then
           write (tfile,'(a,a)') runpath(1:lnrp),
      &                          matfil(1:lnblnk(matfil))
@@ -391,8 +396,9 @@ C the image.
           call vifile(imatfil,tfile,'e',ier)
         endif
       elseif(INO.EQ.10)then
-        CALL EASKABC(' Outside opaque description:',' ',
-     &   'browse file','edit file','ignore',IW,nbhelp)
+        CALL EASKMBOX(' Outside opaque description:',' ',
+     &    'browse file','edit file','ignore',
+     &    ' ',' ',' ',' ',' ',IW,nbhelp)
         if(IW.eq.1)then
           write (tfile,'(a,a)') runpath(1:lnblnk(runpath)),
      &                          rofil(1:lnblnk(rofil))
@@ -403,8 +409,9 @@ C the image.
           call vifile(irofil,tfile,'e',ier)
         endif
       elseif(INO.EQ.11)then
-        CALL EASKABC(' Inside opaque description:',' ',
-     &   'browse file','edit file','ignore',IW,nbhelp)
+        CALL EASKMBOX(' Inside opaque description:',' ',
+     &    'browse file','edit file','ignore',
+     &    ' ',' ',' ',' ',' ',IW,nbhelp)
         if(IW.eq.1)then
           write (tfile,'(a,a)') runpath(1:lnrp),
      &                          rzfil(1:lnblnk(rzfil))
@@ -415,8 +422,9 @@ C the image.
           call vifile(irzfil,tfile,'e',ier)
         endif
       elseif(INO.EQ.12)then
-        CALL EASKABC(' IES entity xforms:',' ',
-     &   'browse file','edit file','ignore',IW,nbhelp)
+        CALL EASKMBOX(' IES entity xforms:',' ',
+     &   'browse file','edit file','ignore',
+     &   ' ',' ',' ',' ',' ',IW,nbhelp)
         if(IW.eq.1)then
           write (tfile,'(a,a)') runpath(1:lnrp),
      &                          iesfil(1:lnblnk(iesfil))
@@ -1749,8 +1757,10 @@ C Highlight surface on image.
                   call gethelptext(helpinsub,helptopic,nbhelp)
                   write (outs,'(a,a,a)') 'Surface ',
      &                   zsn(isf)(1:lnblnk(zsn(isf))),' is transparent.'
-                 call EASKAB(outs,'Pre-calculate indirect illumination',
-     &             'no (default)','yes',IANS,nbhelp)
+                 call EASKMBOX(outs,
+     &             'Pre-calculate indirect illumination',
+     &             'no (default)','yes',
+     &             ' ',' ',' ',' ',' ',' ',IANS,nbhelp)
                   iglzty=2
                 else
                   IANS=1
@@ -1775,8 +1785,9 @@ C If IANS=2 then ask if surface should be subdivided.
               if (IANS.eq.2) then 
                 write(outs,'(a,a,a)')'Surface ',
      &            zsn(isf)(1:lnblnk(zsn(isf))),' can be subdivided.'
-                call EASKAB(outs,'Create ','one surface (default)',
-     &            'multiple surfaces',IDIV,nbhelp)
+                call EASKMBOX(outs,'Create ','one surface (default)',
+     &            'multiple surfaces',
+     &            ' ',' ',' ',' ',' ',' ',IDIV,nbhelp)
               endif
 
               if (IDIV.eq.2) then

@@ -38,6 +38,10 @@ C cfdv -file ?.dfd -actfile cfd3dascii_0??? -range T T
       integer lnblnk  ! function definition
 
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
+      logical ieopened     ! Has session file been started.
+      integer iecount      ! Does it hold error messages.
+      character iefile*72  ! The name of the session file.
+      common/logs/ieopened,iecount,iefile
       COMMON/FILEP/IFIL
       COMMON/MFTRA/IMFTU
       COMMON/SHOUT/ICOUT
@@ -56,10 +60,6 @@ C cfdv -file ?.dfd -actfile cfd3dascii_0??? -range T T
 
 C Path to problem.
       common/rpath/path
-
-C Session log file (for errors etc.)
-      character iefile*72
-      common/logs/iefile
 
 C Defaults.
       COMMON/DEFLT3/DFCFD,DECMPDBFL,DICONDBFL
@@ -454,6 +454,8 @@ C Open the session file.
       call dstamp(dstmp) ! get curret time
       write(ieout,'(2a)')'Date,',dstmp
       write(ieout,'(2a)')'User,',uname(1:lnblnk(uname))
+      ieopened=.true.
+      iecount=0
   903 continue
 
 C Help text for results sub-menu.
@@ -616,8 +618,8 @@ C Then in mocfd.F we go into local version of MAKS3DF.
             CALL MAKS3DFISLICE(IFRAME,ISLICE)
             call pauses(1)
             write(outs,'(a,i2,a)') 'Current I slice is ',ISLICE,'.'
-            call EASKABC(outs,'Option:','shift left','shift right',
-     &        'cancel',IBR,nbhelp)
+            call EASKMBOX(outs,'Option:','shift left','shift right',
+     &        'cancel',' ',' ',' ',' ',' ',IBR,nbhelp)
             if(IBR.eq.1)then
               ISLICE=ISLICE-1; XST=.true.
               goto 77
@@ -648,8 +650,9 @@ c      ifont=1
 c      call viewtext(etext,iside,isize,ifont)
 
 C From this point need to draw as in MOCFD->VISMAK->FTV-MAKS3D
-      call EASKABC('  ','Option:','exit application',
-     &  'read another timestep','view an I slice',IBR,nbhelp)
+      call EASKMBOX('  ','Option:','exit application',
+     &  'read another timestep','view an I slice',
+     &  ' ',' ',' ',' ',' ',IBR,nbhelp)
       if(IBR.eq.1)then
         close(ieout)
         CALL ERPFREE(ieout,ISTAT)
@@ -676,8 +679,9 @@ C        write(6,*) 'next ',cfd3dascinext(1:lncfd3d)
         INQUIRE (FILE=cfd3dascinext,EXIST=NXST)
         doslice=.false.
         if(PXST.AND.NXST)then
-          call easkabc(' ','Domain performance file:',
-     &      'previous timestep','next timestep','other',IW,nbhelp)
+          call easkmbox(' ','Domain performance file:',
+     &      'previous timestep','next timestep','other',
+     &      ' ',' ',' ',' ',' ',IW,nbhelp)
           if(iw.eq.1)then
             cfd3dasci=cfd3dasciprev
             IER=0; XST=PXST
@@ -696,8 +700,9 @@ C        write(6,*) 'next ',cfd3dascinext(1:lncfd3d)
             goto 77  ! redraw it
           endif
         elseif(.NOT.PXST.AND.NXST)then
-          call easkabc(' ','Domain performance file:',
-     &      'N/A','next timestep','other',IW,nbhelp)
+          call easkmbox(' ','Domain performance file:',
+     &      'N/A','next timestep','other',
+     &      ' ',' ',' ',' ',' ',IW,nbhelp)
           if(iw.eq.2)then
             cfd3dasci=cfd3dascinext
             IER=0; XST=NXST
@@ -712,8 +717,9 @@ C        write(6,*) 'next ',cfd3dascinext(1:lncfd3d)
             goto 77  ! redraw it
           endif
         elseif(PXST.AND.(.NOT.NXST))then
-          call easkabc(' ','Domain performance file:',
-     &      'previous timestep','N/A','other',IW,nbhelp)
+          call easkmbox(' ','Domain performance file:',
+     &      'previous timestep','N/A','other',
+     &      ' ',' ',' ',' ',' ',IW,nbhelp)
           if(iw.eq.1)then
             cfd3dasci=cfd3dasciprev
             IER=0; XST=PXST

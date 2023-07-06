@@ -153,8 +153,9 @@ C Additional rif file for furniture or fixtures).
 C Image quality: >> Low|Medium|High  [Low]
         helptopic='image_quality_options'
         call gethelptext(helpinsub,helptopic,nbhelp)
-        CALL EASKABC('Image quality: ',' ','Low (default)',
-     &    'Medium (report quality)','High (takes ages) ?',IW,nbhelp)
+        CALL EASKMBOX('Image quality: ',' ','Low (default)',
+     &    'Medium (report quality)','High (takes ages) ?',
+     &    ' ',' ',' ',' ',' ',IW,nbhelp)
         if(IW.eq.1)imgqua='Low'
         if(IW.eq.2)imgqua='Medium'
         if(IW.eq.3)imgqua='High'
@@ -163,8 +164,9 @@ C Image quality: >> Low|Medium|High  [Low]
 C Detail level: >> Low|Medium|High  [Low]
         helptopic='e2r_detail_level_options'
         call gethelptext(helpinsub,helptopic,nbhelp)
-        CALL EASKABC('Detail level: ',' ','Low (sparse geometry)',
-     &    'Medium (busy geometry)','High (with textures) ?',IW,nbhelp)
+        CALL EASKMBOX('Detail level: ',' ','Low (sparse geometry)',
+     &    'Medium (busy geometry)','High (with textures) ?',
+     &    ' ',' ',' ',' ',' ',IW,nbhelp)
         if(IW.eq.1)detlvl='Low'
         if(IW.eq.2)detlvl='Medium'
         if(IW.eq.3)detlvl='High'
@@ -173,17 +175,19 @@ C Detail level: >> Low|Medium|High  [Low]
 C Light level variability: >> Low|Medium|High  [High if daylit]
         helptopic='e2r_light_var_options'
         call gethelptext(helpinsub,helptopic,nbhelp)
-        CALL EASKABC('Variability of light level: ',' ',
+        CALL EASKMBOX('Variability of light level: ',' ',
      &    'Low (uniform artificial)',
-     &    'Medium (diffuse sun)','High (direct sunlight) ?',IW,nbhelp)
+     &    'Medium (diffuse sun)','High (direct sunlight) ?',
+     &    ' ',' ',' ',' ',' ',IW,nbhelp)
         if(IW.eq.1)llvar='Low'
         if(IW.eq.2)llvar='Medium'
         if(IW.eq.3)llvar='High'
       elseif(INO.EQ.11)then
         helptopic='e2r_light_system_options'
         call gethelptext(helpinsub,helptopic,nbhelp)
-        CALL EASKABC('Lighting system: ',' ','Direct (artificial)',
-     &    'Direct daylight','Diffuse daylight',IW,nbhelp)
+        CALL EASKMBOX('Lighting system: ',' ','Direct (artificial)',
+     &    'Direct daylight','Diffuse daylight',
+     &    ' ',' ',' ',' ',' ',IW,nbhelp)
         indrcb=IW-1
       elseif(INO.EQ.12)then
 
@@ -278,8 +282,9 @@ C        call LISTAS(ITA2,RIFNAME(ISCENE),IER)
       elseif(INO.EQ.21)then
         helptopic='e2r_manual_edit_rif'
         call gethelptext(helpinsub,helptopic,nbhelp)
-        CALL EASKABCD(' ','Options:','browse current rif file',
-     &    'manually edit file','re-read file','ignore',IW,nbhelp)
+        CALL EASKMBOX(' ','Options:','browse current rif file',
+     &    'manually edit file','re-read file','ignore',
+     &    ' ',' ',' ',' ',IW,nbhelp)
         if(IW.eq.1)then
 
 C Prepend local path.

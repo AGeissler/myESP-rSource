@@ -130,8 +130,8 @@ C MAXIMUM, MINIMUM AND MEAN VALUES.
         endif
         helptopic='dd_day_week_month'
         call gethelptext(helpinsub,helptopic,nbhelp)
-        CALL EASKABC(' ','Degree-day report:','daily','weekly',
-     &    'monthly',iddc,nbhelp)
+        CALL EASKMBOX(' ','Degree-day report:','daily','weekly',
+     &    'monthly',' ',' ',' ',' ',' ',iddc,nbhelp)
         if(iddc.eq.1)then
           CALL CLMMMM(IP,'d')
         elseif(iddc.eq.2)then
@@ -170,9 +170,9 @@ C Make sure that upper is above lower.
 C Degree days.
         helptopic='dd_day_week_month'
         call gethelptext(helpinsub,helptopic,nbhelp)
-        CALL EASKATOG(' ','Degree-day (hour) reporting options:',
+        CALL EASKMBOX(' ','Degree-day (hour) reporting options:',
      &    'daily D-D','weekly D-D','monthly D-D','seasonal D-D',
-     &    'daily D-H','monthly D-H','cancel',iddc,nbhelp)
+     &    'daily D-H','monthly D-H','cancel',' ',iddc,nbhelp)
         if(iddc.eq.1)then
           CALL CLMDEG('d')
         elseif(iddc.eq.2)then

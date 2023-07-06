@@ -152,8 +152,8 @@ C Produce help text for the menu and the import facilities.
       ELSEIF(INO.EQ.NITMS-2)THEN
 
 C List database.
-        CALL EASKABC(' ','Reporting to:',
-     &      'screen','file','cancel',irpt,nbhelp)
+        CALL EASKMBOX(' ','Reporting to:','screen',
+     &    'file','cancel',' ',' ',' ',' ',' ',irpt,nbhelp)
         if(irpt.eq.1)then
           itu = iuout
         elseif(irpt.eq.2)then
@@ -197,9 +197,9 @@ C Produce help text for both types of import.
         call gethelptext(helpinsub,helptopic,nbhelp)
         CALL PHELPD('optics db imp',nbhelp,'-',0,0,IER)
         IOW=1
-        CALL EASKATOG('Optical actions: ',' ',
+        CALL EASKMBOX('Optical actions: ',' ',
      &    'Import Window5/6/7','Import WIS',
-     &    'Add','Delete','Copy','Ignore',' ',IOW,nbhelp)
+     &    'Add','Delete','Copy','Ignore',' ',' ',IOW,nbhelp)
         if(IOW.eq.1)then
 
 C Import (from Window 5.1, 5.2, v6.x v7.x).
@@ -806,8 +806,8 @@ C List help text for the menu.
         call gethelptext(helpinsub,helptopic,nbhelp)
         CALL PHELPD('optics set',nbhelp,'-',0,0,IER)
       ELSEIF(INO.EQ.nitms-2)THEN
-        CALL EASKABCD('Layer actions: ',' ','Add (insert)',
-     &    ' Delete ','Copy','Ignore',IOW,nbhelp)
+        CALL EASKMBOX('Layer actions: ',' ','Add (insert)',
+     &    ' Delete ','Copy','Ignore',' ',' ',' ',' ',IOW,nbhelp)
         if(IOW.eq.1)then
           if(NTLED.lt.ME)then
             IX=1
@@ -1109,8 +1109,9 @@ C Locate the xbm files via the installed path.
 C Free unit specify file and check if import file exists.
   142 helptopic='optical_import_win6'
       call gethelptext(helpinsub,helptopic,nbhelp)
-      CALL EASKABC('LBNL Window file options:',' ','Edit file name',
-     &    'select in model dbs folder','Cancel',IOW,nbhelp)
+      CALL EASKMBOX('LBNL Window file options:',' ','Edit file name',
+     &    'select in model dbs folder','Cancel',
+     &    ' ',' ',' ',' ',' ',IOW,nbhelp)
       if(IOW.eq.1)then
         write(fname,'(2a)') '.',fs
       elseif(IOW.eq.2)then
@@ -1957,7 +1958,7 @@ C Return.
       elseif(ivert.eq.mvert-2)then
 
 C Save associations.
-        call EMKCFG('-',IER)
+        call EMKCFG('s',IER)
       elseif(ivert.eq.mvert-3)then
 
 C List current data.
@@ -1995,8 +1996,10 @@ C Open and scan the file.
         else
           call edisp(iuout,'There was a problem reading the bi-')
           call edisp(iuout,'directional data. Please specify again...')
-          call easkab(' File not found. Do you want to specify again?',
-     &      ' ','Yes','No/exit',iyesno,nbhelp)
+          call easkmbox(
+     &      'File not found. Do you want to specify again?',
+     &      ' ','Yes','No/exit',
+     &      ' ',' ',' ',' ',' ',' ',iyesno,nbhelp)
           if(iyesno.EQ.1)then
             goto 77
           else
@@ -2151,9 +2154,10 @@ C Create a menu showing what is already available.
 C << to be done... >>
 
 C Instruct users to place IES files in model rad folder
-      CALL EASKAB('If you have not already done so place the IES data',
+      CALL EASKMBOX(
+     &  'If you have not already done so place the IES data',
      &  'file in the model rad folder. Select ok when done.',
-     &  'ok','cancel',IW,0)
+     &  'ok','cancel',' ',' ',' ',' ',' ',' ',IW,0)
       if(IW.eq.2) return
 
 C Show list of files in rad folder.
@@ -2260,9 +2264,9 @@ C Ask about dimensions of the IES entry
 C Gow many output steps to create and for each give a percentage
 C (suggest 100 75 50 25 1)
       IWS=2
-      call EASKATOG(' ','Control options:',
+      call EASKMBOX(' ','Control options:',
      &  'always ON','ON-OFF','stepped 100:50:20:1',
-     &  'stepped 100:75:50:25:1','cancel',' ',' ',IWS,nbhelp)
+     &  'stepped 100:75:50:25:1','cancel',' ',' ',' ',IWS,nbhelp)
 
 C Update the common blocks:
       nbofies=nbofies+1
@@ -2308,7 +2312,7 @@ C Run ies2rad for each option:
         write(6,*) doitl
         call runit(doitl,'-')
        enddo  ! of loop
-       CALL EMKCFG('-',IER)  ! update model file
+       CALL EMKCFG('s',IER)  ! update model file
 
 C Re-display files in rad folder.
        call edisp(iuout,'Here is what is in the ../rad folder now.')
@@ -2320,8 +2324,8 @@ C Re-display files in rad folder.
         call edisp(iuout,outs)
 C       call usemodelradfile('ies',lltmp,istat)
        
-       CALL EASKAB('Do another IES entity?',
-     &  ' ','proceed','finish',IW,0)
+       CALL EASKMBOX('Do another IES entity?',
+     &  ' ','proceed','finish',' ',' ',' ',' ',' ',' ',IW,0)
        if(IW.eq.1) goto 42
        
        return
@@ -2448,9 +2452,9 @@ C Ask about dimensions of the IES entry
 C Gow many output steps to create and for each give a percentage
 C (suggest 100 75 50 25 1)
       IWS=2
-      call EASKATOG(' ','Control options:',
+      call EASKMBOX(' ','Control options:',
      &  'always ON','ON-OFF','stepped 100:50:20:1',
-     &  'stepped 100:75:50:25:1','cancel',' ',' ',IWS,nbhelp)
+     &  'stepped 100:75:50:25:1','cancel',' ',' ',' ',IWS,nbhelp)
 
 C Update the common blocks:
       nbofies=nbofies+1
@@ -2481,10 +2485,10 @@ C Update the common blocks:
         iiessteps(1)=100; iiessteps(2)=75
         iiessteps(3)=50; iiessteps(4)=25; iiessteps(5)=01
       endif
-      CALL EMKCFG('-',IER)  ! update model file
+      CALL EMKCFG('s',IER)  ! update model file
 
-      CALL EASKAB('Do another diffuse source entity?',
-     &  ' ','proceed','finish',IW,0)
+      CALL EASKMBOX('Do another diffuse source entity?',
+     &  ' ','proceed','finish',' ',' ',' ',' ',' ',' ',IW,0)
       if(IW.eq.1) goto 42
       return
        

@@ -27,14 +27,10 @@ extern addfolderlist_();
 
 char cfgroot[32];	/* f77 project root name    */
 char path[73];	/* f77 project path    */
-char upath[73];	/* f77 users path    */
-char imgpth[25];	/* f77 relative path to images    */
-char docpth[25];	/* f77 relative path to documents    */
 
 /* the wwc_ok and wwc_macro are treated as extern types in esru_x.c */
 int  wwc_ok = 0;   /* assume no echo of drawing commands to wwc */
 int  wwc_macro = 0;   /* assume not in a macro drawing command (etplot) */
-int browse;	/* if = 0 then user owns, if = 1 user browsing */
 FILE *wwc;
 
 /* ************** Confirm Fortran string length *************** */
@@ -84,6 +80,11 @@ int len;	/* string length from fortran */
 long int *lerr,*laccess;
 long int *folder;
 {
+#ifdef MINGW
+#endif
+#ifdef M1
+#include <unistd.h>
+#endif 
  int ilen,i,ok;
  int iaccessu,iaccessg,iaccesso,ifolder;
  int ist_uid,ist_gid,u_uid,u_euid,g_uid,g_euid;
@@ -591,46 +592,26 @@ void wwcsetend_()		/* indicate end of a set of drawing commands */
 }
 
 /* curproject_() - pass in info on the current project from fortran */
-void curproject_(fcfgroot,fpath,fupath,fimgpth,fdocpth,ibrowse,
-  iincomp,iincon,len_root,len_fpath,len_fupath,len_fimgpth,len_fdocpth)
+void curproject_(fcfgroot,fpath,iincomp,iincon,len_root,len_fpath)
   char *fcfgroot;	/* f77 project root name    */
   char *fpath;	/* fortran project path    */
-  char *fupath;	/* fortran users path    */
-  char *fimgpth;	/* fortran relative path to images    */
-  char *fdocpth;	/* fortran relative path to documents    */
-  long int *ibrowse;	/* if = 0 then user owns, if = 1 user browsing */
   long int *iincomp;	/* current number of zones in model */
   long int *iincon;	/* current number of connections in model */
-  int  len_root,len_fpath,len_fupath,len_fimgpth,len_fdocpth;	/* length of strings from fortran  */
+  int  len_root,len_fpath;	/* length of strings from fortran  */
 {
-  int  l_root,l_fpath,l_fupath,l_fimgpth,l_fdocpth;
+  int  l_root,l_fpath;
 
-  l_root = l_fpath = l_fupath = l_fimgpth = l_fdocpth =0;
-  browse = (int) *ibrowse;
+  l_root = l_fpath =0;
   strncpy(cfgroot,"                                ",32);
   f_to_c_l(fcfgroot,&len_root,&l_root); strncpy(cfgroot,fcfgroot,(unsigned int)l_root);	/* copy to static */
   cfgroot[l_root] = '\0';
-  strncpy(imgpth, "                        ",24);
-  f_to_c_l(fimgpth,&len_fimgpth,&l_fimgpth); strncpy(imgpth,fimgpth,(unsigned int)l_fimgpth);	/* copy to static */
-  imgpth[l_fimgpth] = '\0';
-  strncpy(docpth, "                        ",24);
-  f_to_c_l(fdocpth,&len_fdocpth,&l_fdocpth); strncpy(docpth,fdocpth,(unsigned int)l_fdocpth);	/* copy to static */
-  docpth[l_fdocpth] = '\0';
   strncpy(path, "                                                                         ",72);
   f_to_c_l(fpath,&len_fpath,&l_fpath); strncpy(path,fpath,(unsigned int)l_fpath);	/* copy to static */
   path[l_fpath] = '\0';
-  strncpy(upath,"                                                                         ",72);
-  f_to_c_l(fupath,&len_fupath,&l_fupath); strncpy(upath,fupath,(unsigned int)l_fupath);	/* copy to static */
-  upath[l_fupath] = '\0';
   cc1_.NCOMP = *iincomp;  // pass curent number of zones and connections to cc1_ structure
   cc1_.NCON = *iincon;    // needed to ensure 32 bit and 64 bit safe transfer between fortran and c
   // fprintf(stderr,"cfgroot %s\n",cfgroot);
-  // fprintf(stderr,"imgpth %s\n",imgpth);
-  // fprintf(stderr,"docpth %s\n",docpth); 
   // fprintf(stderr,"path %s\n",path);
-  // fprintf(stderr,"upath %s\n",upath);
-  // fprintf(stderr,"browse %d\n",browse);
-  // fprintf(stderr,"ibrowse %ld\n",*ibrowse);
   // fprintf(stderr,"iincompb %d\n",cc1_.NCOMP);
   // fprintf(stderr,"iincon %d\n",cc1_.NCON);
   return;

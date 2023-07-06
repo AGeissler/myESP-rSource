@@ -932,8 +932,8 @@ C sky portion.
 C Ask for a different time or exit.
       repeat=.false.
       iopt=0
-      call easkatog(' ','Display options:','-60m','-30m','+30m','+60m',
-     &              'another surface','cancel',' ',iopt,nbhelp)
+      call easkmbox(' ','Display options:','-60m','-30m','+30m','+60m',
+     &              'another surface','cancel',' ',' ',iopt,nbhelp)
       if(iopt.eq.1)then
         vtime=vtime-1.0
         repeat=.true.

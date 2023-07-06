@@ -402,9 +402,9 @@ C Toggle delimeter.
         helptopic='res_IPV_report_delimeter'
         call gethelptext(helpinsub,helptopic,nbhelp)
         IWM=1
-        CALL EASKATOG(' ','Column delimeter:',
+        CALL EASKMBOX(' ','Column delimeter:',
      &    'multi-space','single space','tab','comma','tagged',
-     &    'cancel',' ',IWM,nbhelp)
+     &    'cancel',' ',' ',IWM,nbhelp)
         if(iwm.eq.1)then
           delim = '-'
           tab=' '
@@ -456,8 +456,8 @@ C If IPV report format has not been set ask the user (i.e. zero value).
       if(ipvform.eq.0)then
         helptopic='IPV_report_text_comma'
         call gethelptext(helpinsub,helptopic,nbhelp)
-        CALL EASKAB('Format output for:',' ','Text','comma separated',
-     &    ipvform,nbhelp)
+        CALL EASKMBOX('Format output for:',' ','Text','comma separated',
+     &    ' ',' ',' ',' ',' ',' ',ipvform,nbhelp)
       endif
 
 C If text output the set tab to a space and delimeter to -.
@@ -1927,8 +1927,9 @@ C If IPV report format has not been set ask the user.
       if(ipvform.eq.0)then
         helptopic='res_IPV_annual_delim'
         call gethelptext(helpinsub,helptopic,nbhelp)
-        CALL EASKAB(' ','Format output options:','text',
-     &     'comma separated',ipvform,nbhelp)
+        CALL EASKMBOX(' ','Format output options:','text',
+     &    'comma separated',' ',' ',' ',' ',' ',' ',
+     &    ipvform,nbhelp)
       endif
 
 C Set tab based on format of report.
@@ -3472,9 +3473,9 @@ C Each call is a toggle.
             helptopic='res_IPV_export_folder'
             call gethelptext(helpinsub,helptopic,nbhelp)
             write(outs,'(A,A)') ' The model is in folder ',path
-            CALL EASKABC(outs,'Place export file:',
+            CALL EASKMBOX(outs,'Place export file:',
      &        'in model folder','user defined folder','cancel',
-     &        iw,nbhelp)
+     &        ' ',' ',' ',' ',' ',iw,nbhelp)
             if(iw.eq.3)then
               ixopen=0
               return    ! does ixopen need to be reset?

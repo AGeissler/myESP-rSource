@@ -45,12 +45,14 @@ C Site viewfactors from building surfaces to the site.
 
 C Monthly profiles of temperatures and humidities defined by the user
 C and standard profiles.
-      real UGRDTP    ! user defined monthly temperature profile
-      integer NGRDP  ! number of user defined monthly profiles
-      real UGRDHUM   ! user defined monthly humidity profile
-      integer NGRDPH ! numer of user defined monthly humidity profiles
-
-      COMMON/C14/UGRDTP(12,MGRDP),NGRDP,UGRDHUM(12,MGRDP),NGRDPH
+      real UGRDTP          ! user defined monthly temperature profile
+      integer NGRDP        ! number of user defined monthly profiles
+      real UGRDHUM         ! user defined monthly humidity profile
+      integer NGRDPH       ! numer of user defined monthly humidity profiles
+      real UGRDEPTH        ! depth (m) at each profile
+      character*32 UGRNAME  ! documentation
+      COMMON/C14/UGRDTP(12,MGRDP),NGRDP,UGRDHUM(12,MGRDP),NGRDPH,
+     &  UGRDEPTH(MGRDP),UGRNAME(MGRDP)
 
       real grdtmp ! standard (compiled in) monthly temperature profiles
                   ! as defined in esru_blk.F

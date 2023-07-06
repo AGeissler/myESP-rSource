@@ -255,8 +255,9 @@ C List one or more classifications.
      &    36,matcats,CLSSEL,'Material classes',IER,nbhelp)
         CALL EPMENRC
         IF(INPIC.EQ.0)GOTO 40
-        CALL EASKABC(' Reporting to:',' ',
-     &    'text feedback','summary file','cancel',irpt,nbhelp)
+        CALL EASKMBOX(' Reporting to:',' ',
+     &    'text feedback','summary file','cancel',
+     &    ' ',' ',' ',' ',' ',irpt,nbhelp)
         if(irpt.eq.1)then
           itu = iuout
         elseif(irpt.eq.2)then
@@ -325,9 +326,9 @@ C Call ctlexp a 2nd time to close the file.
 
 C Manage categories. Select and alter the category name or documentation
 C or add another category to the database << add not yet tested >>
-        CALL EASKABCD(' Options:',' ',
+        CALL EASKMBOX(' Options:',' ',
      &    'edit category name','edit category documentation',
-     &    'add another category','cancel',irpt,nbhelp)
+     &    'add another category','cancel',' ',' ',' ',' ',irpt,nbhelp)
         if(irpt.eq.1.or.irpt.eq.2)then
           CALL EPMENSV
           INPIC=1
@@ -683,10 +684,10 @@ C Reset flag to show db is current with local arrays.
         ELSEIF(INO.EQ.NITMS-3)THEN
 
 C Add delete or copy material from db.
-          CALL EASKATOG('Options: ',' ','delete existing',
+          CALL EASKMBOX('Options: ',' ','delete existing',
      &      'add new','derive non-homogeneous material',
-     &      'copy existing','cancel','  ','  ',IW,nbhelp)
-          IF(IW.EQ.1)THEN
+     &      'copy existing','cancel','  ','  ',' ',IW,nbhelp)
+           IF(IW.EQ.1)THEN
 
 C Ask the user which material to remove (use the managearray list of material
 C names created in the do 30 loop above) then loop through materials and
@@ -1259,8 +1260,9 @@ C List one or more classifications.
         CALL EPICKS(INPIC,ICLSSEL,' ',' Which classes to list:',
      &    36,cfccats,CLSSEL,'CFC layer classes',IER,nbhelp)
         IF(INPIC.EQ.0)GOTO 40
-        CALL EASKABC(' Reporting to:',' ',
-     &    'text feedback','summary file','cancel',irpt,nbhelp)
+        CALL EASKMBOX(' Reporting to:',' ',
+     &    'text feedback','summary file','cancel',
+     &    ' ',' ',' ',' ',' ',irpt,nbhelp)
         if(irpt.eq.1)then
           itu = iuout
         elseif(irpt.eq.2)then
@@ -1580,9 +1582,9 @@ C Reset flag to show db is current with local arrays.
         ELSEIF(INO.EQ.NITMS-3)THEN
 
 C Add, delete or copy CFC layer from db.
-          CALL EASKATOG('Options: ',' ','delete CFC layer',
+          CALL EASKMBOX('Options: ',' ','delete CFC layer',
      &      'add CFC layer',
-     &      'copy CFC layer','cancel',' ',' ','  ',IW,nbhelp)
+     &      'copy CFC layer','cancel',' ',' ','  ',' ',IW,nbhelp)
           IF(IW.EQ.1)THEN
 
 C Ask the user which one to remove then loop through CFC layers and
@@ -2145,10 +2147,10 @@ C Offer to toggle between different types.
           message='(currently gap data)'
         endif
         jsur=1
-        CALL EASKATOG('Material options:',message,
+        CALL EASKMBOX('Material options:',message,
      &    'legacy opaque','opaque','transparent',
      &    'gap layer ',' ', ' ', 
-     &    'leave un-changed',jsur,nbhelp)
+     &    'leave un-changed',' ',jsur,nbhelp)
         if(jsur.eq.1)then
           matopaq(index)='-'
           modify=.true.
@@ -2630,10 +2632,10 @@ C Offer to toggle between different types.
           message='(currently glazing)'
         endif
         jsur=1
-        CALL EASKATOG('CFC layer options:',message,
+        CALL EASKMBOX('CFC layer options:',message,
      &    'glazing','Ven. blind','plt. drape',
      &    'roll. blind ','bug screen', 'fill gas', 
-     &    'leave un-changed',jsur,nbhelp)
+     &    'leave un-changed',' ',jsur,nbhelp)
         if(jsur.eq.1)then
           CFCshdtp(index) = iGlazing
           modify=.true.
@@ -2767,8 +2769,8 @@ C.......Edit shade layer attributes depending on type
             modify=.true.
            elseif(IW.eq.18)then
 C...........Select slat orientation
-            CALL EASKATOG('CFC venetian blind: slat orientation:',' ',
-     &      'Horizontal','Vertical',' ',' ',' ', ' ', ' ',
+            CALL EASKMBOX('CFC venetian blind: slat orientation:',' ',
+     &      'Horizontal','Vertical',' ',' ',' ', ' ', ' ',' ',
      &      jsur,nbhelp)
             if(jsur.eq.1)then
               locCFCslatorient = 'HORZ'
@@ -3125,9 +3127,10 @@ C Help text for this menu.
 
 C Check for changes or respond to user request to save.
         if(moddb.or.INO.EQ.NITMS-2)then
-          CALL EASKABCD('Save recent changes to constructions?',' ',
+          CALL EASKMBOX('Save recent changes to constructions?',' ',
      &      'legacy MLC database','V1 MLC database',
-     &      'V1 MLC database w/ categories','cancel save',irpt,nbhelp)
+     &      'V1 MLC database w/ categories','cancel save',
+     &      ' ',' ',' ',' ',irpt,nbhelp)
           if(irpt.eq.1)then
             CALL EMKAMLD(iuout,IER)  ! write legacy version
             chgdb=.true.
@@ -3224,9 +3227,9 @@ C List help text for the menu.
       ELSEIF(INO.EQ.NITMS-3)THEN
 
 C List database.
-        CALL EASKABCD(' Reporting to:',' ',
+        CALL EASKMBOX(' Reporting to:',' ',
      &    'summary text feedback','detailed text feedback',
-     &    'summary file','detailed file',irpt,nbhelp)
+     &    'summary file','detailed file',' ',' ',' ',' ',irpt,nbhelp)
         if(irpt.eq.1.or.irpt.eq.2)then
           itu = iuout
         elseif(irpt.eq.3.or.irpt.eq.4)then
@@ -3277,9 +3280,9 @@ C Call ctlexp a 2nd time to close the file.
 
 C Manage the list of constructions.
         IW=1
-        call easkatog(' ','Construction options:',
+        call easkmbox(' ','Construction options:',
      &    'add','delete','copy','copy & invert',
-     &    'cancel',' ',' ',IW,nbhelp)
+     &    'cancel',' ',' ',' ',IW,nbhelp)
         if(IW.EQ.1)then
 
 C Add a construction. Update this to account for OPAQ/TRAN/CFC.
@@ -3955,8 +3958,9 @@ C List one or more classifications.
           call userfonts(IFS,ITFS,IMFS)
           GOTO 40
         endif
-        CALL EASKABC(' Reporting to:',' ',
-     &    'text feedback','summary file','cancel',irpt,nbhelp)
+        CALL EASKMBOX(' Reporting to:',' ',
+     &    'text feedback','summary file','cancel',
+     &    ' ',' ',' ',' ',' ',irpt,nbhelp)
         if(irpt.eq.1)then
           itu = iuout
         elseif(irpt.eq.2)then
@@ -4028,9 +4032,10 @@ C Call ctlexp a 2nd time to close the file.
 C Manage categories. Select and alter the category name or documentation
 C or add another category to the database << add not yet tested >>
         if(ACTION.eq.'M'.or.ACTION.eq.'m')then
-          CALL EASKABCD(' Options:',' ','edit category menu',
+          CALL EASKMBOX(' Options:',' ','edit category menu',
      &      'edit category documentation',
-     &      'add another category','cancel',irpt,nbhelp)
+     &      'add another category','cancel',' ',' ',' ',' ',irpt,
+     &      nbhelp)
           if(irpt.eq.1.or.irpt.eq.2)then
             CALL EPMENSV
             INPIC=1
@@ -4374,9 +4379,9 @@ C Reset flag to show db is current with local arrays.
         ELSEIF(INO.EQ.NITMS-3)THEN
 
 C List database.
-          CALL EASKABCD(' Reporting to:',' ',
+          CALL EASKMBOX(' Reporting to:',' ',
      &      'summary text feedback','detailed text feedback',
-     &      'summary file','detailed file',irpt,nbhelp)
+     &      'summary file','detailed file',' ',' ',' ',' ',irpt,nbhelp)
           if(irpt.eq.1.or.irpt.eq.2)then
             itu = iuout
           elseif(irpt.eq.3.or.irpt.eq.4)then
@@ -4429,9 +4434,9 @@ C Call ctlexp a 2nd time to close the file.
 
 C Manage the list of constructions.
           IW=1
-          call easkatog(' ','Constructions options:',
+          call easkmbox(' ','Constructions options:',
      &      'add','delete','copy','copy & invert',
-     &      'cancel',' ',' ',IW,nbhelp)
+     &      'cancel',' ',' ',' ',IW,nbhelp)
           if(IW.EQ.1)then
 
 C Add a construction. Update this to account for OPAQ/TRAN/CFC.
@@ -5730,9 +5735,9 @@ C               "Backflip"
         ELSE  ! we have a non CFC2 mlc
 
 C Adjust layer for desired U-value.
-          CALL EASKABCD(' ','Adjust options:',
+          CALL EASKMBOX(' ','Adjust options:',
      &      '(solid) thickness','gap resistance',
-     &      'alternative material','cancel',IW,nbhelp)
+     &      'alternative material','cancel',' ',' ',' ',' ',IW,nbhelp)
           IF(IW.EQ.1.or.IW.eq.2)THEN
 
 C Report the current U value.
@@ -5972,8 +5977,9 @@ C Process the request.
       ELSEIF(ILED.EQ.NLED-5)THEN
 
 C ! add or delete a Layer.
-        CALL EASKABCD(' ','Layer options:','delete',
-     &    'append @ inside surface','insert','cancel',IW,nbhelp)
+        CALL EASKMBOX(' ','Layer options:','delete',
+     &    'append @ inside surface','insert','cancel',
+     &    ' ',' ',' ',' ',IW,nbhelp)
         IF(IW.EQ.1)THEN
 
 C If number of layers is edited then ask the user which one to remove.
@@ -6108,9 +6114,9 @@ C the traditional gap so reset matarrayindex.
                 if(matopaq(matarrayindex)(1:1).eq.'g'.or.
      &             matopaq(matarrayindex)(1:1).eq.'h'.or.
      &             matarrayindex.eq.0)then
-                  CALL EASKABC('Your selection is a gap. Options:',
+                  CALL EASKMBOX('Your selection is a gap. Options:',
      &              ' ','accept','reselect material','abort',
-     &              iwair,nbhelp)
+     &              ' ',' ',' ',' ',' ',iwair,nbhelp)
                   if(iwair.eq.2)then
                     CALL EPMENSV
                     CALL ELISTMAT(iwhich,chdb,'-',matarrayindex,IER)
@@ -6429,9 +6435,10 @@ C Select Opaque or transparent or complex fenestration construction.
         helptopic='construction_opaque_trn'
         call gethelptext(helpinsub,helptopic,nbhelp)
 
-        CALL EASKABC(' ','Please choose one type :',
+        CALL EASKMBOX(' ','Please choose one type :',
      &    'Opaque construction','Transparent construction',
-     &    'Complex Fenestration Construction',IW,nbhelp)
+     &    'Complex Fenestration Construction',
+     &    ' ',' ',' ',' ',' ',IW,nbhelp)
 
         IF(IW.EQ.1)THEN
           mlctype(ifoc)='OPAQ' 
@@ -6441,10 +6448,10 @@ C Select Opaque or transparent or complex fenestration construction.
         ELSEIF(IW.EQ.3)THEN
           CALL PHELPD('CFC instructions',nbhelp,'-',0,0,IER)
           mlcoptical(ifoc)='N/A'
-          CALL EASKAB(' ','Please choose CFC input method :',
+          CALL EASKMBOX(' ','Please choose CFC input method:',
      &      'Use native CFC layers db',
      &      'Import CFC layer properties (legacy)',
-     &      IW,nbhelp)
+     &      ' ',' ',' ',' ',' ',' ',IW,nbhelp)
           if(IW.eq.1)then
             mlctype(ifoc)='CFC2'
           elseif(IW.eq.2)then
@@ -6707,8 +6714,9 @@ C the traditional gap so reset matarrayindex.
             if(matopaq(matarrayindex)(1:1).eq.'g'.or.
      &         matopaq(matarrayindex)(1:1).eq.'h'.or.
      &         matarrayindex.eq.0)then
-              CALL EASKABC('Your selection is a gap. Options:',
-     &        ' ','accept','reselect material','abort',iwair,nbhelp)
+              CALL EASKMBOX('Your selection is a gap. Options:',
+     &          ' ','accept','reselect material','abort',
+     &          ' ',' ',' ',' ',' ',iwair,nbhelp)
               if(iwair.eq.2)then
                 CALL EPMENSV
                 CALL ELISTMAT(iwhich,chdb,'-',matarrayindex,IER)

@@ -614,8 +614,9 @@ C Generate a heading for the view.
           endif
 
 C Ask user what they want to do next.
-          CALL EASKABCD(' View choices: ',' ','previous hour',
-     &      'next hour ','animation','cancel',IW,0)
+          CALL EASKMBOX(' View choices: ',' ','previous hour',
+     &      'next hour ','animation','cancel',
+     &      ' ',' ',' ',' ',IW,0)
           if(IW.eq.1)then
             STIME=STIME-((60.0/FLOAT(NTS))/60.0)
             goto 68
@@ -629,8 +630,9 @@ C Ask user what they want to do next.
             return
           endif
         else
-          CALL EASKAB(' View point below horizon:',' ',
-     &        'specify another time','exit',IW,0)
+          CALL EASKMBOX(' View point below horizon:',' ',
+     &        'specify another time','exit',
+     &        ' ',' ',' ',' ',' ',' ',IW,0)
           if(IW.eq.1)goto 67
           ITSNM=0
           return
@@ -876,10 +878,10 @@ C Local arrays.
       logical newgeo  ! to use for testing if new/old geometry file.
 #ifdef OSI
       integer iix,iiy,iixlast,iiylast
-      integer iicol        ! passed to textsizeatxy
+      integer iicol,ibsize        ! passed to textsizeatxy
 #else
       integer*8 iix,iiy,iixlast,iiylast
-      integer*8 iicol       ! passed to textsizeatxy
+      integer*8 iicol,ibsize       ! passed to textsizeatxy
 #endif     
 
 C If libraries and monitor support greyscale remember this.
@@ -889,10 +891,18 @@ C If libraries and monitor support greyscale remember this.
 
 C Set font for displaying block names.
 C      write(6,'(a,3i2)') 'DRAWOBS IFS,ITFS,IMFS',IFS,ITFS,IMFS
-      if(IFS.eq.0.or.IFS.eq.4)ibsize=0
-      if(IFS.eq.1.or.IFS.eq.5)ibsize=1
-      if(IFS.eq.2.or.IFS.eq.6)ibsize=2
-      if(IFS.eq.3.or.IFS.eq.7)ibsize=2
+      if(IFS.eq.0.or.IFS.eq.4)then
+        ibsize=0; isize=0
+      endif
+      if(IFS.eq.1.or.IFS.eq.5)then
+        ibsize=1; isize=1
+      endif
+      if(IFS.eq.2.or.IFS.eq.6)then
+        ibsize=2; isize=2
+      endif
+      if(IFS.eq.3.or.IFS.eq.7)then
+        ibsize=2; isize=2
+      endif
 C      write(6,'(a,i2)') 'DRAWOBS ibsize ',ibsize
 
 C If newer geometry file it may include obstructions. If the value
@@ -941,7 +951,7 @@ C Transform the location into eyepoint and then screen coords.
           write(btemp,'(a)') 
      &      BLOCKNAME(IFOC,IB)(1:lnblnk(BLOCKNAME(IFOC,IB)))
           if(mmod.eq.8)then
-            call winfnt(ibsize)
+            call winfnt(isize)
             call CLIPST(btemp,iix,iiy,COG2(3),iclp)
             if (iclp.eq.0) then
               call textatxy(iix,iiy,btemp,'-',iicol)
@@ -1114,9 +1124,9 @@ C Local arrays.
       logical greyok
 
 #ifdef OSI
-      integer iix,iiy,iixlast,iiylast,iicol
+      integer iix,iiy,iixlast,iiylast,iicol,ibsize
 #else
-      integer*8 iix,iiy,iixlast,iiylast,iicol
+      integer*8 iix,iiy,iixlast,iiylast,iicol,ibsize
 #endif     
 
 C If libraries and monitor support greyscale then reset forground
@@ -1129,10 +1139,18 @@ C to 50% grey when drawing visual entities.
       endif
 
 C Set font for displaying block names.
-      if(IFS.eq.0.or.IFS.eq.4)ibsize=0
-      if(IFS.eq.1.or.IFS.eq.5)ibsize=1
-      if(IFS.eq.2.or.IFS.eq.6)ibsize=2
-      if(IFS.eq.3.or.IFS.eq.7)ibsize=2
+      if(IFS.eq.0.or.IFS.eq.4)then
+        ibsize=0; isize=0
+      endif
+      if(IFS.eq.1.or.IFS.eq.5)then
+        ibsize=1; isize=1
+      endif
+      if(IFS.eq.2.or.IFS.eq.6)then
+        ibsize=2; isize=2
+      endif
+      if(IFS.eq.3.or.IFS.eq.7)then
+        ibsize=2; isize=2
+      endif
 
 C      write(6,*) 'drawvis ',ifoc,nbvis(ifoc),itvis,NBVOBJ(ifoc),itvobj
 
@@ -1205,7 +1223,7 @@ C Transform the location into eyepoint and then screen coords.
           write(btemp,'(a)') 
      &      VISNAME(IFOC,IB)(1:lnblnk(VISNAME(IFOC,IB)))
           if(mmod.eq.8)then
-            call winfnt(ibsize)
+            call winfnt(isize)
             call CLIPST(btemp,iix,iiy,COG2(3),iclp)
             if (iclp.eq.0) then
               call textatxy(iix,iiy,btemp,'-',iicol)
@@ -1374,10 +1392,10 @@ C Local arrays.
       logical greyok
 #ifdef OSI
       integer iix,iiy,iixlast,iiylast
-      integer iicol        ! passed to textsizeatxy
+      integer iicol,ibsize        ! passed to textsizeatxy
 #else
       integer*8 iix,iiy,iixlast,iiylast
-      integer*8 iicol      ! passed to textsizeatxy
+      integer*8 iicol,ibsize      ! passed to textsizeatxy
 #endif     
 
       CHARACTER temp*7
@@ -1393,10 +1411,18 @@ C If libraries and monitor support greyscale remember this.
 
 C Set font for displaying block names.
 C      write(6,'(a,3i2)') 'DRWSEN IFS,ITFS,IMFS',IFS,ITFS,IMFS
-      if(IFS.eq.0.or.IFS.eq.4)ibsize=0
-      if(IFS.eq.1.or.IFS.eq.5)ibsize=1
-      if(IFS.eq.2.or.IFS.eq.6)ibsize=2
-      if(IFS.eq.3.or.IFS.eq.7)ibsize=2
+      if(IFS.eq.0.or.IFS.eq.4)then
+        ibsize=0; isize=0
+      endif
+      if(IFS.eq.1.or.IFS.eq.5)then
+        ibsize=1; isize=1
+      endif
+      if(IFS.eq.2.or.IFS.eq.6)then
+        ibsize=2; isize=2
+      endif
+      if(IFS.eq.3.or.IFS.eq.7)then
+        ibsize=2; isize=2
+      endif
 C      write(6,'(a,i2)') 'DRWSEN ibsize ',ibsize
 
       if(NCUB(iz).eq.0)return
@@ -1413,7 +1439,7 @@ C Transform the location into eyepoint and then screen coords.
         call u2pixel(COG2(1),COG2(2),iix,iiy)
         write(temp,'(A)')CUBN(IB)
         if(mmod.eq.8)then
-          call winfnt(ibsize)
+          call winfnt(isize)
           call CLIPST(temp,iix,iiy,COG2(3),iclp)
           if (iclp.eq.0) then
             call textatxy(iix,iiy,temp,'-',iicol)
@@ -1565,10 +1591,10 @@ C Local arrays.
       DIMENSION  SBBOX(3,2),COG1(3),COG2(3)
 #ifdef OSI
       integer iix,iiy,iixlast,iiylast
-      integer iicol         ! passed to textsizeatxy
+      integer iicol,ibsize         ! passed to textsizeatxy
 #else
       integer*8 iix,iiy,iixlast,iiylast
-      integer*8 iicol       ! passed to textsizeatxy
+      integer*8 iicol,ibsize       ! passed to textsizeatxy
 #endif     
 
       CHARACTER temp*13
@@ -1583,10 +1609,18 @@ C If libraries and monitor support greyscale remember this.
 
 C Set font for displaying bb names.
 C      write(6,'(a,3i2)') 'DRWBB IFS,ITFS,IMFS',IFS,ITFS,IMFS
-      if(IFS.eq.0.or.IFS.eq.4)ibsize=0
-      if(IFS.eq.1.or.IFS.eq.5)ibsize=1
-      if(IFS.eq.2.or.IFS.eq.6)ibsize=2
-      if(IFS.eq.3.or.IFS.eq.7)ibsize=2
+      if(IFS.eq.0.or.IFS.eq.4)then
+        ibsize=0; isize=0
+      endif
+      if(IFS.eq.1.or.IFS.eq.5)then
+        ibsize=1; isize=1
+      endif
+      if(IFS.eq.2.or.IFS.eq.6)then
+        ibsize=2; isize=2
+      endif
+      if(IFS.eq.3.or.IFS.eq.7)then
+        ibsize=2; isize=2
+      endif
 C      write(6,'(a,i2)') 'DRWBB ibsize ',ibsize
 
 C Place sensor names near first vertex.
@@ -1598,7 +1632,7 @@ C Transform the location into eyepoint and then screen coords.
       call u2pixel(COG2(1),COG2(2),iix,iiy)
       write(temp,'(A)')bbname
       if(mmod.eq.8)then
-        call winfnt(ibsize)
+        call winfnt(isize)
         call CLIPST(temp,iix,iiy,COG2(3),iclp)
         if (iclp.eq.0) then
           call textatxy(iix,iiy,temp,'-',iicol)

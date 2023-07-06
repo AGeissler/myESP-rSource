@@ -367,6 +367,11 @@ C      write(6,*) opta
       return
       end
 
+      subroutine openmultibox(msg1,msg2,iok)
+      character*(*) msg1,msg2
+      return
+      end
+
       subroutine opengdisp(menu_char,idispl_l,idial_l,igdw,igdh)
       return
       end
@@ -628,9 +633,8 @@ C      end
       return
       end
 
-C      subroutine curproject(fcfgroot,fpath,fupath,fimgpth,fdocpth,
-C     &  ibrowse,iincomp,iincon)
-C      character*(*) fcfgroot,fpath,fupath,fimgpth,fdocpth
+C      subroutine curproject(fcfgroot,fpath,iincomp,iincon)
+C      character*(*) fcfgroot,fpath
 C      return
 C      end
 
@@ -660,6 +664,15 @@ C      end
       subroutine ask2altdialog(STRVAL,CMD,CMD2,idef,iquery)
       character*(*) STRVAL,CMD,CMD2
       integer idef, iquery
+      return
+      end
+
+
+      subroutine upd_box_choices(choices,itypes,nopt,iw)
+      dimension choices(10)
+      character choices*42
+      character itypes*40
+      integer nopt,iw
       return
       end
 
@@ -736,8 +749,6 @@ C A three says that this is the text only version.
       igraphiclib = 3
       return
       end
-
-
 
 C      function lnblnk(string)
 C      character*(*) string

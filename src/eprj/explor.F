@@ -405,9 +405,9 @@ C Define the beginning and ending dates for the TDF display.
         ELSEIF(INO.EQ.4)THEN
           helptopic='temporal_timestep_import'
           call gethelptext(helpinsub,helptopic,nbhelp)
-          CALL EASKABC('Import data options: ','(see help)',
+          CALL EASKMBOX('Import data options: ',' ',
      &      'start @ temporal timestep one','start @ other timestep',
-     &      'cancel',IWI,nbhelp)
+     &      'cancel',' ',' ',' ',' ',' ',IWI,nbhelp)
           if(IWI.eq.1)then
             IPS=1
             CALL EDIMPT(ITRC,IFOC,IPS,IER)
@@ -957,8 +957,9 @@ C Help text for this menu.
       ELSEIF(INODA.EQ.4)THEN
 
 C Define import file format.
-        CALL EASKABC(' ','Import options:',
-     &    'UNKNOWN','ASCII column data','cancel',IWM,nbhelp)
+        CALL EASKMBOX(' ','Import options:',
+     &    'UNKNOWN','ASCII column data','cancel',
+     &    ' ',' ',' ',' ',' ',IWM,nbhelp)
         if(IWM.ge.3)goto 13
         ITIMP=IWM-1
       ELSEIF(INODA.EQ.5)THEN

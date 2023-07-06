@@ -1886,6 +1886,9 @@ C included otherwise scan again.
               nitems=int(gmiscd(ii,jj,kk,1))
             endif
 
+C For global controls gmiscd(,,,1) number of items (7 is typical)
+C gmiscd(,,,2) global heating capacity, gmiscd(,,,3) global cooling capacity,
+C gmiscd(,,,4) ??
             IF(NITEMS.GT.0)THEN
               call egetwra(iunit,RVA,nitems,0.,0.,'-',
      &          'global misc items',ierv)
@@ -3731,8 +3734,8 @@ C          call edisp248(6,message,80)
           cm(4)=bmiscd(II,JJ,KK,4)
           write(lmsg,'(a,i2,a,f9.2,a,f9.2,a)') 
      &      ' master/slave control: index of master control loop',
-     &       nint(cm(2)),' slave maximum heating capacity ',cm(3),
-     &      ' slave maximum cooling capacity ',cm(4),'.'
+     &       nint(cm(2)),' slave max heating capacity ',cm(3),
+     &      ' slave max cooling capacity ',cm(4),'.'
           call SDELIM(lmsg,message,'S',IW)
 C          call edisp248(6,message,80)
         ELSEIF(IBCLAW(II,JJ,KK).EQ.22)then

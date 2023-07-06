@@ -1342,7 +1342,7 @@ C nsurfinso nb of insolation sources, isurfinso() list of insolation sources.
       dimension stmp(ms),iva(ms),ivals(ms)
       character stmp*33,act*1
 
-      integer ichoice ! temporary local variable for a call to easkab
+      integer ichoice ! temporary local variable for dialogs.
       integer iexcludediff_flag
       common/excludediff/iexcludediff_flag
       integer i
@@ -1362,9 +1362,10 @@ C nsurfinso nb of insolation sources, isurfinso() list of insolation sources.
       helptopic='diffuse_shading_request'
       call gethelptext(helpinsub,helptopic,nbhelp)
       iexcludediff_flag=0     
-      call easkab(' ','Diffuse shading options:',
+      call easkmbox(' ','Diffuse shading options:',
      &  'Exclude diffuse shading',
-     &  'Include diffuse shading (default)',ichoice,nbhelp)
+     &  'Include diffuse shading (default)',
+     &  ' ',' ',' ',' ',' ',' ',ichoice,nbhelp)
       if(ichoice.eq.1)then
 
 C Exclude diffuse shading.
@@ -1377,9 +1378,9 @@ C Generate help text for the sequence of dialogs.
  43   helptopic='surface_selection_notes'
       call gethelptext(helpinsub,helptopic,nbhelp)
       if(act.eq.'s'.or.act.eq.'S')then
-         call easkabc(' ','Shading options:',
+         call easkmbox(' ','Shading options:',
      &     'all applicable surfaces','select surface(s)',
-     &     'cancel',iic,nbhelp)
+     &     'cancel',' ',' ',' ',' ',' ',iic,nbhelp)
          if(iic.eq.1)iaplic(izone,1)=1
          if(iic.eq.2)iaplic(izone,1)=0
       elseif(act.eq.'i'.or.act.eq.'I')then
@@ -1390,9 +1391,9 @@ C Generate help text for the sequence of dialogs.
              iic=2   ! user nominated in the geometry file
            endif
          else
-           call easkabc(' ','Insolation options:',
+           call easkmbox(' ','Insolation options:',
      &       'all applicable sources','select source(s)',
-     &       'cancel',iic,nbhelp)
+     &       'cancel',' ',' ',' ',' ',' ',iic,nbhelp)
            if(iic.eq.1)iaplic(izone,2)=1
            if(iic.eq.2)iaplic(izone,2)=0
          endif

@@ -427,7 +427,7 @@ C with the sensor defined for the global control function.
       
       svcfgr=.false.
 
-C If function genrator referenced and required function
+C If function generator referenced and required function
 C is `sensed variable function`, then re-set IGSN(igf,?)
       IF(IGSN(igf,1).EQ.-6.AND.IGSN(igf,2).EQ.9)THEN
          IBSNV(ICF,1)=IGSN(igf,1)
@@ -721,8 +721,8 @@ C *******  GCL02 Global Capacity Management controller.
 
       logical global,glbrwd
 
-      qhgcap=gmiscd(igf,IDTYPG,IPERG,2)
-      qcgcap=-gmiscd(igf,IDTYPG,IPERG,3)
+      qhgcap=gmiscd(igf,IDTYPG,IPERG,2)      ! global heating capacity
+      qcgcap=-gmiscd(igf,IDTYPG,IPERG,3)     ! global cooling capacity
       nshed=int(gmiscd(igf,IDTYPG,IPERG,4))
 
       qtot2=0.
@@ -877,9 +877,9 @@ C controlling a component.
           IF(CLOSER)THEN
             ISTE=0
           ENDIF
-      if(idebug.eq.1)
-     &write(96,*)'this loop is currently on/off =',iste,', % =',
-     &CTLPOS(IFAN(ICFPD,2))
+          if(idebug.eq.1)
+     &      write(96,*)'this loop is currently on/off =',iste,', % =',
+     &      CTLPOS(IFAN(ICFPD,2))
           
         ELSEIF(IDOM.EQ.2)THEN ! plant domain
           ICFPD=ILPS

@@ -180,7 +180,7 @@ C Return after advising user.
       endif
       return
 
- 1000 if(ISIcalc.eq.1)goto1  ! embedded S/I mode, create an empty S/I file
+ 1000 if(ISIcalc.eq.1) goto 1  ! embedded S/I mode, create an empty S/I file
       call edisp(iuout,' ')
       call edisp(iuout,'SIFILE: zone S/I file read error!')
       ifstat=4

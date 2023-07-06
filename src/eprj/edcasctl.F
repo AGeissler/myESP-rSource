@@ -472,7 +472,6 @@ C rcf name OK and differs from prior name, update cfg file and start e2r.
             lradcf = ltmp
           endif
           if(modcfg)then
-            call tstamp('>','PRJ: save configuration (with rcf file)')
             CALL EMKCFG('-',IER)
           endif
         endif
@@ -481,9 +480,10 @@ C Now invoke e2r to do the work.
         if (lcouple) then
           call usrmsg('About to start Radiance in order to generate',
      &      'descriptive files for coupled casual gain control.','W')
-          call EASKAB(
-     &    ' ','Radiance is being used to assess light levels:',
-     &    'Create & edit Radiance model','Cancel',IW,nbhelp)
+          call EASKMBOX(
+     &      ' ','Radiance is being used to assess light levels:',
+     &      'Create & edit Radiance model','Cancel',
+     &      ' ',' ',' ',' ',' ',' ',IW,nbhelp)
           if (IW.eq.1) then
             write(doitl,'(3a,i3,a)')'e2r -file ',LCFGF(1:lnblnk(LCFGF)),
      &        ' -purpose Coupling -zone ',ICOMP,' -act Create'
@@ -492,9 +492,10 @@ C Now invoke e2r to do the work.
           endif
         endif
         if (ldcoef) then
- 8888     call EASKAB(
+ 8888     call EASKMBOX(
      &    ' ','If Radiance is being used for daylight coefficients:',
-     &    'Create Radiance model and calculate','Cancel',IW,nbhelp)
+     &    'Create Radiance model and calculate','Cancel',
+     &    ' ',' ',' ',' ',' ',' ',IW,nbhelp)
           if (IW.eq.1) then
             write(doitl,'(3a,i3,2a)')'e2r -file ',
      &        LCFGF(1:lnblnk(LCFGF)),' -purpose Day_coef -zone ',
@@ -533,7 +534,6 @@ C Write data.
         call usrmsg(
      &    ' Updating model for casual gain control...',' ','-')
         call CASCTMK(LCGCIN(ICOMP),ICOMP,'-',IER)
-        call tstamp('>','PRJ: save configuration')
         CALL EMKCFG('-',IER)
         call usrmsg(
      &    ' Updating model for casual gain control...done.',' ','-')
@@ -687,8 +687,9 @@ C <<  Perhaps this could be joined together? >>
       ELSEIF(INO.EQ.NITEMS-4)THEN
 
 C +- Lighting zone.
-        CALL EASKAB(' ','Modify nmber of lighting zones:',
-     &    'delete one','add one @ end',IW,nbhelp)
+        CALL EASKMBOX(' ','Modify nmber of lighting zones:',
+     &    'delete one','add one @ end',
+     &    ' ',' ',' ',' ',' ',' ',IW,nbhelp)
         IF(IW.EQ.2.AND.(NLITZ(ICOMP)+1.LE.4))THEN
           NLITZ(ICOMP)= NLITZ(ICOMP)+1
           N=NLITZ(ICOMP)
@@ -741,8 +742,9 @@ C Edit general description of the casual gains.
 C Control on which calendar day types and then ask about
 C associated casual gain type (multiple day tpes get the
 C same type).
-        CALL EASKAB(' ','Control casual gains for ',
-     &    'one specified day type','all day types',IY,nbhelp)
+        CALL EASKMBOX(' ','Control casual gains for ',
+     &    'one specified day type','all day types',
+     &    ' ',' ',' ',' ',' ',' ',IY,nbhelp)
         IF(IY.EQ.1)THEN
           do loop=1,nbdaytype
             NCGTC(ICOMP,IDTY)=0 ! clear other day types
@@ -756,8 +758,8 @@ C same type).
 
 C << Should scan the zone operation file and use the labels given
 C << in that....
-          CALL EASKABC(' ','Control casual gain type ','occupants',
-     &       'lighting','equipment',IZ,nbhelp)
+          CALL EASKMBOX(' ','Control casual gain type ','occupants',
+     &       'lighting','equipment',' ',' ',' ',' ',' ',IZ,nbhelp)
           NCGTC(ICOMP,IDTY)=IZ
           WRITE(HOLD,'(2I6)')ICGCS(ICOMP,IDTY),ICGCF(ICOMP,IDTY)
           CALL EASKS(HOLD,' Control is active from hour to hour:',
@@ -770,9 +772,9 @@ C << in that....
           do loop=1,nbdaytype
             write(msg,'(3a)') 'For daytype ',calentag(loop),
      &        ' associate cgc with '
-            CALL EASKABCD(msg,' ','occupants',
+            CALL EASKMBOX(msg,' ','occupants',
      &        'lighting','equipment','no control on this day type',
-     &        IZ,nbhelp)
+     &        ' ',' ',' ',' ',IZ,nbhelp)
             if(IZ.eq.4)then
               HOLD= '  0  1 '
               NCGTC(ICOMP,loop)=0
@@ -815,9 +817,9 @@ C Toggle and then reform the menu to match control/calc type.
 
 C Edit the cgc control type.
         IRT=1
-        call EASKATOG(' Control type:',' ',
+        call EASKMBOX(' Control type:',' ',
      &    'Always On','Always Off','On-Off','Step 100:50:0',
-     &    'Dimming - ideal','On-Off probability','cancel',
+     &    'Dimming - ideal','On-Off probability','cancel',' ',
      &    IRT,nbhelp)
         if(irt.eq.1)then
           ICGCFL(ICOMP,N)=-1
@@ -831,9 +833,9 @@ C Edit the cgc control type.
           helptopic='cas_ctl_dimming'
           call gethelptext(helpinsub,helptopic,nbhelp)
           IRT=1
-          call EASKATOG(' Dimming control type:',' ',
+          call EASKMBOX(' Dimming control type:',' ',
      &        'Ideal','Integral reset','Close loop',
-     &        'cancel',' ',' ',' ',IRT,nbhelp)
+     &        'cancel',' ',' ',' ',' ',IRT,nbhelp)
           if(irt.eq.1)then
             ICGCFL(ICOMP,N)=3
           elseif(irt.eq.2)then
@@ -873,10 +875,10 @@ C Select the calculation type.
         call gethelptext(helpinsub,helptopic,nbhelp)
         CALL PHELPD('cgs calct type',nbhelp,'photocell',0,0,IER)
         IRT=1
-        call EASKATOG(' Calculation type:',' ',
+        call EASKMBOX(' Calculation type:',' ',
      &    'Analytic DF','User defined DF','Sensor on external face',
      &    'Radiance coupling','DaylightCoeff',
-     &    'cancel',' ',IRT,nbhelp)
+     &    'cancel',' ',' ',IRT,nbhelp)
         if(irt.eq.1)then
           IDFST(ICOMP,N)=1
           ldcoef=.false.

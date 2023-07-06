@@ -540,6 +540,7 @@ C next day.
       COMMON/PERO/IOD1,IOM1,IOH1,IOD2,IOM2,IOH2,IODS,IODF,NOUT,IAV
       CHARACTER*8 DESCR
       DOUBLE PRECISION TIME
+      logical NEXTDAY
 
       NEXTDAY=.false.
 
@@ -1772,9 +1773,9 @@ C Each call is a toggle.
             IW=2
           else
             write(outs,'(A,A)') ' The model is in folder ',path
-            CALL EASKABC(outs,' place export file:',
+            CALL EASKMBOX(outs,' place export file:',
      &        'in the model folder','user defined folder','continue',
-     &        iw,nbhelp)
+     &        ' ',' ',' ',' ',' ',iw,nbhelp)
             if(iw.eq.3)then
               ixopen=0
               return    ! does ixopen need to be reset?

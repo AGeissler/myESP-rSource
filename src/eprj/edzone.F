@@ -106,7 +106,6 @@ C Clear local coordinate array.
 
 C Creation of a new zone, first ask its name, trapping out
 C illegal characters.
-      call tstamp('>','PRJ: new zone')
       ZN=' '
  42   helptopic='zone_name'
       call gethelptext(helpinsub,helptopic,nbhelp)
@@ -144,9 +143,9 @@ C Allow user choices of beginning as a simple shape (with image feedback).
       IER=0
       helptopic='zone_initial_shapes'
       call gethelptext(helpinsub,helptopic,nbhelp)
-      CALL EASKABCD(' ','Zone shape options:',
+      CALL EASKMBOX(' ','Zone shape options:',
      &  'rectangular plan','polygon plan','general 3D',
-     &  'bitmap',ishape,nbhelp)
+     &  'bitmap',' ',' ',' ',' ',ishape,nbhelp)
  144  IF(ishape.eq.1)THEN
         XO1=0.0; YO1=0.0; ZO1=0.0
         DX1=5.0; DY1=3.0; DZ1=2.7
@@ -423,7 +422,7 @@ C Read in control file if defined.
         call usrmsg(' ',' ','-')
       endif
 
-      CALL EMKCFG('-',IER)
+      CALL EMKCFG('s',IER)
 
       RETURN
       END
@@ -495,9 +494,9 @@ C Set folder separator (fs) to \ or / as required.
 
  293  helptopic='zone_source_files'
       call gethelptext(helpinsub,helptopic,nbhelp)
-      CALL EASKATOG(' ','New zone options:','input dimensions',
+      CALL EASKMBOX(' ','New zone options:','input dimensions',
      &  'load existing (ESP-r)','load existing (cflow3 zip)',
-     &  'pre-defined entity','cancel',' ',' ',INZOPT,nbhelp)
+     &  'pre-defined entity','cancel',' ',' ',' ',INZOPT,nbhelp)
 
 C Input dimensions.
       if(INZOPT.eq.1)then
@@ -703,7 +702,7 @@ C the geometry file.
 
 C Update the G7 common blocks and then write out configuration file.
         call zgupdate(0,NCOMP,ier)
-        CALL EMKCFG('-',IER)
+        CALL EMKCFG('s',IER)
         call usrmsg(
      &  'NOTE: ensure that the model topology is correct by using ',
      &  'the topology facility under [zones definition].','W')
@@ -1010,15 +1009,15 @@ C Peview the bounding box of the object via DRWBB.
         write(temp,'(A)')name
         call drwbb(temp,ier)
 
-        CALL EASKABC(' ','Options for predefined object: ',
+        CALL EASKMBOX(' ','Options for predefined object: ',
      &    'apply transform and merge','revise transform','cancel',
-     &    IW,nbhelp)
+     &    ' ',' ',' ',' ',' ',IW,nbhelp)
         if (IW.eq.1) then
 
 C Ask for single character to prepend to copied associated entities.
 C Then used predefembed to read in the predefined into the model.
-          CALL EASKABCD(' ','Character to pre-pend to copied entities:',
-     &      ' a ',' b ',' c ',' d ',IBOPT,nbhelp)
+          CALL EASKMBOX(' ','Character to pre-pend to copied entities:',
+     &      ' a ',' b ',' c ',' d ',' ',' ',' ',' ',IBOPT,nbhelp)
           if(ibopt.eq.1)prec='a'
           if(ibopt.eq.2)prec='b'
           if(ibopt.eq.3)prec='c'
@@ -1045,7 +1044,7 @@ C Signal that the wireframe image needs to be redrawn.
         MODIFYVIEW=.TRUE.; MODLEN=.TRUE.; MODBND=.TRUE.
 
 C As surfaces added save the model cfd and cnn files.
-        CALL EMKCFG('-',IER)
+        CALL EMKCFG('s',IER)
 
 C Present message about what to do next.
         helptopic='after_predef_warning'
@@ -1127,7 +1126,6 @@ C General warning.
 
 C Read in mass flow network if defined and see if there is a node which
 C is linked to the zone being deleted.
-      call tstamp('>','PRJ: deleting a zone')
       if(IAIRN.ge.1)then
 
 C Temporarily use same file unit as profiles db.
@@ -1969,9 +1967,9 @@ C file and then recover the zone commons.
           helptopic='options_for_copy_obs'
           call gethelptext(helpinsub,helptopic,nbhelp)
           helpinsub='edzone'  ! reset for subroutine
-          CALL EASKABC('The source zone had an obstructions file.',
+          CALL EASKMBOX('The source zone had an obstructions file.',
      &      'Options:','copy obstructions file','use source file',
-     &      'ignore it',IRT,nbhelp)
+     &      'ignore it',' ',' ',' ',' ',' ',IRT,nbhelp)
           if(IRT.eq.1)then
             CALL ESCZONE(NCOMP)
             call FINDFIL(ZOBS(IC),XST)
@@ -2047,9 +2045,10 @@ C If there are visual entities.
 
 C Rotation choices.
             rotateit(ncomp,1)=VAL
-            CALL EASKABCD(' ','Rotation choices:',
+            CALL EASKMBOX(' ','Rotation choices:',
      &        'vertex 1 of zone','site origin',
-     &        'specified X & Y','skip rotation',IRT,nbhelp)
+     &        'specified X & Y','skip rotation',
+     &        ' ',' ',' ',' ',IRT,nbhelp)
             call usrmsg(' ',' ','-')
             if(IRT.eq.1)then
               x1=X(1)
@@ -2278,12 +2277,12 @@ C Construction and zone TMC file.
           write(outs,'(2a)')'Found: ',LTHRM(IC)(1:lnblnk(LTHRM(IC)))
           call edisp(iuout,' ')
           call edisp(iuout,outs)
-          CALL EASKATOG(' ','Source zone has a constructions file:',
+          CALL EASKMBOX(' ','Source zone has a constructions file:',
      &      'copy source file','use source file',
-     &      'browse','cancel',' ',' ',' ',irop,nbhelp)
+     &      'browse','cancel',' ',' ',' ',' ',irop,nbhelp)
         else
-          CALL EASKATOG(' ','Source zone has no constructions file:',
-     &      '-','-','browse','cancel',' ',' ',' ',irop,nbhelp)
+          CALL EASKMBOX(' ','Source zone has no constructions file:',
+     &      '-','-','browse','cancel',' ',' ',' ',' ',irop,nbhelp)
           if(irop.eq.1.or.irop.eq.2) irop=4
         endif
 
@@ -2429,15 +2428,15 @@ C point to it, otherwise offer option to browse for an existing file.
           write(outs,'(2a)')'Found: ',LPROJ(IC)(1:lnblnk(LPROJ(IC)))
           call edisp(iuout,' ')
           call edisp(iuout,outs)
-          CALL EASKATOG(
+          CALL EASKMBOX(
      &      'Source zone has an operations file.',
      &      'Options:','copy file','point to file',
-     &      'browse file','cancel',' ',' ',' ',irop,nbhelp)
+     &      'browse file','cancel',' ',' ',' ',' ',irop,nbhelp)
         else
-          CALL EASKATOG(
+          CALL EASKMBOX(
      &      'Source zone has no operations file.',
      &      'Options:','-','-','browse','cancel',' ',' ',' ',
-     &      irop,nbhelp)
+     &      ' ',irop,nbhelp)
           if(irop.eq.1.or.irop.eq.2) irop=4
         endif
         if(zonepth(1:2).eq.'  '.or.zonepth(1:2).eq.'./')then
@@ -2543,10 +2542,10 @@ C associated zone geometry file.
           call gethelptext(helpinsub,helptopic,nbhelp)
           helpinsub='edzone'  ! reset for subroutine
           irop=1
-          CALL EASKATOG(
+          CALL EASKMBOX(
      &      'Source zone has a view factor file.',
      &      'Options:','copy file','point to file',
-     &      'browse file','cancel',' ',' ',' ',irop,nbhelp)
+     &      'browse file','cancel',' ',' ',' ',' ',irop,nbhelp)
           if(zonepth(1:2).eq.'  '.or.zonepth(1:2).eq.'./')then
             WRITE(DFILE,'(A,A4)')zname(NCOMP)(1:lnzname(NCOMP)),
      &        '.vwf'
@@ -2607,10 +2606,10 @@ C See if the source zone has a casual gain control file.
           write(outs,'(2a)')'Found: ',LCGCIN(IC)(1:lnblnk(LCGCIN(IC)))
           call edisp(iuout,' ')
           call edisp(iuout,outs)
-          CALL EASKATOG(
+          CALL EASKMBOX(
      &      'Source zone has a CG ctl file.',
      &      'Options:','copy file','point to file',
-     &      'browse file','cancel',' ',' ',' ',irop,nbhelp)
+     &      'browse file','cancel',' ',' ',' ',' ',irop,nbhelp)
           if(zonepth(1:2).eq.'  '.or.zonepth(1:2).eq.'./')then
             WRITE(DFILE,'(A,A4)')zname(NCOMP)(1:lnzname(NCOMP)),
      &        '.cgc'
@@ -2713,9 +2712,9 @@ C See if the source zone has a convection regime file.
           write(outs,'(2a)')'Found: ',LHCCO(IC)(1:lnblnk(LHCCO(IC)))
           call edisp(iuout,' ')
           call edisp(iuout,outs)
-          CALL EASKATOG('Source zone has a CC file.',
+          CALL EASKMBOX('Source zone has a CC file.',
      &      'Options:','copy file','point file',
-     &      'browse file','cancel',' ',' ',' ',irop,nbhelp)
+     &      'browse file','cancel',' ',' ',' ',' ',irop,nbhelp)
           if(zonepth(1:2).eq.'  '.or.zonepth(1:2).eq.'./')then
             WRITE(DFILE,'(A,A4)')zname(NCOMP)(1:lnzname(NCOMP)),
      &        '.htc'
@@ -2818,7 +2817,7 @@ C instantiated.
         endif
 
 C Update the configuration file.
-        CALL EMKCFG('-',IER)
+        CALL EMKCFG('s',IER)
         MODIFYVIEW=.TRUE.
         MODBND=.TRUE.
       enddo  ! of loop
@@ -3032,16 +3031,15 @@ C Check if Unix-based or DOS based.
         else
           helptopic='change_for_shading'
           call gethelptext(helpinsub,helptopic,nbhelp)
-          CALL EASKABC('Reflect zone change in shading?','Options:',
+          CALL EASKMBOX('Reflect zone change in shading?','Options:',
      &   'recalculate (silent)','recalculate (interactive)','cancel',
-     &    IRT,nbhelp)
+     &    ' ',' ',' ',' ',' ',IRT,nbhelp)
         endif
         if(IRT.eq.1.or.IRT.eq.2)then
           if(IRT.eq.1) call edisp(iuout,
      & 'When finished control will be returned to the project manager.')
 
 C If existing db out of date the perform recalculation.
-          call tstamp('>','PRJ: start shading recalculation')
           if(IRT.eq.1)then
             call comissionish(icomp,'sra',ier)
             if(ier.eq.0)ishold=.false.
@@ -3071,9 +3069,10 @@ C format with seaparte tmc file.
           if(izconstv(ICOMP).eq.21)then
             continue
           else
-            CALL EASKAB(' ','Save zone constructions:',
+            CALL EASKMBOX(' ','Save zone constructions:',
      &        'via legacy format with separate tmc file',
-     &        'current format with optical data',IWB,nbhelp)
+     &        'current format with optical data',
+     &        ' ',' ',' ',' ',' ',' ',IWB,nbhelp)
             if(IWB.eq.1)then
               izconstv(ICOMP)=0
               iztmcv(ICOMP)=0

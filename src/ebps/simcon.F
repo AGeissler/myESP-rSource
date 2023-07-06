@@ -598,41 +598,35 @@ C simulator parameter file.
 
 C Results database name.
       if(ino.eq.1)then
-        call tstamp('>','bps: change results library')
         CALL MZLIBF
 
 C Simulation period.
       elseif(ino.eq.2)then
-        call tstamp('>','bps: change simulation period')
         CALL MZSPER
 
 C Results save level.
       elseif(ino.eq.4)then
-         call tstamp('>','bps: change save level')
          ISAVE=ISAVE+1
          if(ISAVE.gt.6)ISAVE=0  ! Reset to 0 if toggle >6.
 
 C Graphic monitor setup.
       elseif(ino.eq.6)then
         if(indcfg.eq.1) then
-          call tstamp('>','SIM: setup graphic monitor')
           montrb=1
           call minptb
         elseif(indcfg.eq.2) then
-          call tstamp('>','SIM: setup graphic monitor')
           monitr=1
           call minput
         elseif(indcfg.eq.3) then
           montrb=0
           monitr=0
-          CALL EASKAB(' ','Progress monitor options:',
-     &                'temperature','heat flux',IDIM,nbhelp)
+          CALL EASKMBOX(' ','Progress monitor options:',
+     &      'temperature','heat flux',
+     &      ' ',' ',' ',' ',' ',' ',IDIM,nbhelp)
           if(idim.eq.1)then
-            call tstamp('>','SIM: setup graphic monitor')
             montrb=1
             call minptb
           elseif(idim.eq.2) then
-            call tstamp('>','SIM: setup graphic monitor')
             monitr=1
             call minput
           endif
@@ -661,7 +655,6 @@ C If CFD is active in any zone then force a save level 4.
         do 43 ICOMP=1,NCOMP
           if(NCONF.gt.0) ISAVE=4
    43   continue
-        call tstamp('>','bps: enter simulate')
         call SIMCON
         if(isave.eq.6)then
           call MZOUT6  ! Output from 6 save
@@ -673,11 +666,9 @@ C If CFD is active in any zone then force a save level 4.
             call edisp(iuout,'Get save level 0 output via option `o`.')
           endif
         endif
-        call tstamp('>','bps: exit simulate')
 
 C Timestep control.
       elseif(ino.eq.8)then
-        call tstamp('>','SIM: setup timestep controller')
         CALL TSCINP
 
 C Delete last result set.
@@ -687,14 +678,13 @@ C Delete last result set.
         IF(INDCFG.EQ.1)IB=1
         IF(INDCFG.EQ.2)IP=1
         if(INDCFG.EQ.3)then
-          CALL EASKAB(' ','Delete last result set for:',
-     &                'building','plant',IW,0)
+          CALL EASKMBOX(' ','Delete last result set for:',
+     &      'building','plant',' ',' ',' ',' ',' ',' ',IW,0)
           IBP=IW
           if(IBP.eq.1)IB=1
           if(IBP.eq.2)IP=1
         endif
 
-        call tstamp('>','bps: delete last result set')
         CALL MZDEL(IB,IP,ISIMLB,ISIMLP)
         IF(IP.EQ.1)then
           IF(ISIMLP.LT.0)GOTO 92
@@ -722,13 +712,10 @@ C        call gethelptext(helpinsub,helptopic,nbhelp)
 C        CALL EASKI(IANS,' ',' Password: ',
 C     &           0,'-',0,'-',0,'Password',IER,nbhelp)
 C        IF(IANS.NE.101)GOTO 92
-        call tstamp('>','bps: enter simulation toggles')
         call SIMTOG
-        call tstamp('>','bps: exit simulation toggles')
 
 C Simulation parameters.
       elseif(ino.eq.13)then
-        call tstamp('>','bps: list simulation parameters')
         CALL MZINFO(IUOUT)
  
 C Output from save level 0.
@@ -1009,7 +996,6 @@ C Averaging on/off.
   126   CALL EASKI(IDAVER,' ','Results averaging 0) On or 1) Off? ',
      &    0,'F',1,'F',0,'Results averaging iq 14',IER,nbhelp)
         IF(IER.NE.0)GOTO 126
-        call tstamp('>','BPS: edit timestep averaging')
       elseif(INO.eq.2)then
 
 C Zone side equations implicitness degree.
@@ -1019,7 +1005,6 @@ C Zone side equations implicitness degree.
      &         0.,'F',1.,'F',0.5,' implicitness degree',IER,nbhelp)
 
         bUserGAM = .true. 
-        call tstamp('>','SIM: edit implicitness degree')
       elseif(INO.eq.3)then
 
 C Plant components state-space equation types.
@@ -1034,7 +1019,6 @@ C Plant components state-space equation types.
         CALL EASKI(IMPEXP,' ','Plant equation type (1-4)?',
      &         1,'F',4,'F',3,'plant equation type iq 15',IER,nbhelp)
         IF(IER.NE.0)GOTO 131
-        call tstamp('>','SIM: edit plant equation type')
 
         IF(IMPEXP.EQ.2.OR.IMPEXP.EQ.3) THEN
           CALL EASKR(RATIMP,' ','Implicit portion of ratio?',
@@ -1051,7 +1035,6 @@ C Solar ON/OFF option.
   
         bUserSolar = .true.
         IF(IER.NE.0)GOTO 191
-        call tstamp('>','bps: edit solar radiation')
 
       elseif(INO.eq.5)then
 
@@ -1060,7 +1043,6 @@ C Set required sky model: Klucher (0) or Muneer (1) etc.
      &' -1)Isotropic, 0)Klucher, 1)Muneer, 2)Perez 1987, 3)Perez 1990',
      &    -1,'F',3,'F',3,'Sky model',IER,nbhelp)
         IF(IER.NE.0)goto 301
-        call tstamp('>','bps: edit sky model')
       elseif(INO.eq.6)then
 
 C Building initial temperature.
@@ -1075,7 +1057,6 @@ C parameters except for MAXITP / MAXITF.
           call edisp(iuout,
      &      'No fluid flow file active, menu selection invalid.')
         else
-          call tstamp('>','bps: edit network flow solver parameters')
           CALL MFMODE(1)
           PERREL=FERREL
           PERMFL=FERMFL
@@ -1087,7 +1068,6 @@ C Use different stack pressure assumptions.?
           call edisp(iuout,
      &      'No fluid flow file active, menu selection invalid.')
         else
-          call tstamp('>','bps: edit network stack assumptions')
           CALL MFMODE(2)
         endif
       elseif(INO.eq.10)then
@@ -1097,7 +1077,6 @@ C Use a different matrix solver?
           call edisp(iuout,
      &      'No fluid flow file active, menu selection invalid.')
         else
-          call tstamp('>','bps: edit network matrix solver')
           CALL MFMODE(3)
         endif
       elseif(INO.eq.11)then
@@ -1123,8 +1102,9 @@ C This is over-ruled in case of plant fluid simulation
      &     'simulation & zone time-step synchronisation')
           call edisp(iuout,'cannot be reset!')
         ELSE
-          CALL EASKAB(' ','Fluid flow simulation:',
-     &      'per hour','per zone time-step',IW,nbhelp)
+          CALL EASKMBOX(' ','Fluid flow simulation:',
+     &      'per hour','per zone time-step',
+     &      ' ',' ',' ',' ',' ',' ',IW,nbhelp)
           MFBSNC=IW-1
         ENDIF
       elseif(INO.eq.14)then
@@ -1134,10 +1114,10 @@ C This is over-ruled in case of plant fluid simulation
           call edisp(iuout,'No CFD domain defined for current model.')
         endif
       elseif(INO.eq.15)then
-        call tstamp('>','bps: edit climate interpolation')
         helptopic='toggle_clm_interpolation'
         call gethelptext(helpinsub,helptopic,nbhelp)
-        CALL EASKAB(' ','Weather interpolation:','on','off',IW,nbhelp)
+        CALL EASKMBOX(' ','Weather interpolation:','on','off',
+     &    ' ',' ',' ',' ',' ',' ',IW,nbhelp)
         ICLMFL=IW-1
       elseif(INO.eq.16)then
 
@@ -1193,11 +1173,10 @@ C except for MAXITP / MAXITF
       elseif(INO.eq.18) then
 
 C Special materials.
-        call tstamp('>','bps: edit special materials toggles')
         helptopic='toggle_special_materials'
         call gethelptext(helpinsub,helptopic,nbhelp)
-        call EASKAB(' ','Special facade materials:','off','on',
-     &    IW,nbhelp)
+        call EASKMBOX(' ','Special facade materials:','off','on',
+     &    ' ',' ',' ',' ',' ',' ',IW,nbhelp)
         ispmxist=IW-1
 
 C Identify special materials file & call routine to read it.
@@ -1210,7 +1189,6 @@ C Identify special materials file & call routine to read it.
 
 C Set power flow simulation parameters.
       elseif(INO.eq.19)then
-        call tstamp('>','bps: edit power flow parameters')
         IF(IENTXIST.GT.0) THEN
           CALL ENETPARAM
         ELSE
@@ -1244,7 +1222,6 @@ C alternatives and allow one (only) to be selected.
         CALL EPICKS(IX,IVALS,' ','Internal surface convection model:',
      &         51,7,SALT,'hc model',IER,nbhelp)
         IF(IX.EQ.0)goto 92
-        call tstamp('>','bps: edit surface convection model')
         ihct=IVALS(1)
       elseif(INO.eq.24)then
 
@@ -1283,10 +1260,9 @@ C  icorhc = 12 S.E .G.Jayamaha ( ).
         CALL EPICKS(IX,IHCVAL,' ','External surface convection model:',
      &         42,15,HCALT,'ext hc model',IER,nbhelp)
         IF(IX.EQ.0)goto 92
-        call tstamp('>','SIM: edit ext surface convection model')
         icorexhct=IHCVAL(1)
-C        CALL EASKABC(' ','External hc correlation:','default',
-C     &   'MoWiTT low rise','cancel',ichc,2)
+C        CALL EASKMBOX(' ','External hc correlation:','default',
+C     &   'MoWiTT low rise','cancel',' ',' ',' ',' ',' ',ichc,2)
 C        if(ichc.eq.1)then
 C          icorexhct = 1
 C        elseif(ichc.eq.2)then
@@ -1304,7 +1280,6 @@ C Select air (default) or non air filled zones.
      &    ' Select zones that are not air filled:',
      &    12,NCOMP,zname,' zone list',IER,nbhelp)
         if(inpic.eq.0)goto 92
-        call tstamp('>','bps: edit non air filled zones')
         do 142 ixx=1,inpic
           if(ival(ixx).ne.0)then
             znotair(IVAL(ixx))=.true.
@@ -1358,8 +1333,6 @@ C << consider a different approach
           vtsol=.false.
           goto 92
         endif
-        call tstamp('>','bps: edit vertical solar file')
-
 
       elseif(INO.eq.30)then
 
@@ -1395,7 +1368,6 @@ C Make indoor wet bulb temperature = outdoor wet bulb (for direct evaporative co
      &    ' Select evaporative cooling zones:',
      &    12,NCOMP,zname,' zone list',IER,nbhelp)
         if(inpic.eq.0)goto 92
-        call tstamp('>','SIM: edit flag for TWBin=TWBout')
         do 88 ixx=1,inpic
           if(ival(ixx).ne.0)then
             iflgevapC(IVAL(ixx))=1 
@@ -2516,7 +2488,6 @@ C Case for plant only.
       GOTO 9988
 
  9989 NITEMS=35
-      call tstamp('>','SIM: use selective trace')
 
 C Help text for this menu.
    4  helptopic='trace_setup_dialogs'
@@ -2703,8 +2674,8 @@ C in the pre-simulation period.
      &  ITC,'F',0,'-',5,'trace finish',IER,nbhelp)
       ITCF=IVAL
 
-      CALL EASKAB(' ','Write trace to:',
-     &    'terminal','file',IW,nbhelp)
+      CALL EASKMBOX(' ','Write trace to:',
+     &  'terminal','file',' ',' ',' ',' ',' ',' ',IW,nbhelp)
       if(IW.eq.1)then
         ITU=IUOUT
       else

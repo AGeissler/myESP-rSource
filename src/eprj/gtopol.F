@@ -30,8 +30,6 @@ C ****** GTOPOL
 #include "prj3dv.h"
 #include "help.h"
       
-      integer lnblnk  ! function definition
-
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/FILEP/IFIL
@@ -49,15 +47,9 @@ C ****** GTOPOL
       character*45 VERTS(MGRT)
       dimension ivals(MGRT)
       CHARACTER GMLCN*32,GSNAME*6,GTNAME*15,GTGEOM*72
-      CHARACTER outs*124,ltmp*72,t15*15,ETEXT*82
+      CHARACTER outs*124,ltmp*72,t15*15
       logical XST,grmod,ok,modmlc
       integer nitms,INO ! max items and current menu item
-
-#ifdef OSI
-      integer iside,isize,ifont     ! passed to viewtext
-#else
-      integer*8 iside,isize,ifont     ! passed to viewtext
-#endif
 
       helpinsub='gtopol'  ! set for subroutine
 
@@ -290,8 +282,9 @@ C swop back to previous.
       ELSEIF(INO.EQ.8)THEN
 
 C Rotate ground.
-        CALL EASKAB(' Adjust location of ground:',' ',
-     &    'rotate ground','transform X,Y or Z',IW,nbhelp)
+        CALL EASKMBOX(' Adjust location of ground:',' ',
+     &    'rotate ground','transform X,Y or Z',
+     &    ' ',' ',' ',' ',' ',' ',IW,nbhelp)
         if(IW.eq.1)then
           VAL=0.
           CALL EASKR(VAL,' ',' Rotation (deg + = anticlockwise) ? ',
@@ -299,8 +292,9 @@ C Rotate ground.
           if(VAL.LT.-.01.OR.VAL.GT..01)then
 
 C Rotation choices.
-            CALL EASKABC(' Rotation choices :',' ','Site origin',
-     &        'User specified X & Y','cancel  ?',IRT,nbhelp)
+            CALL EASKMBOX(' Rotation choices :',' ','Site origin',
+     &        'User specified X & Y','cancel  ?',' ',' ',' ',' ',
+     &        ' ',IRT,nbhelp)
             if(IRT.eq.1)then
               CALL EGTROT(VAL,0.,0.)
             elseif(IRT.EQ.2)THEN
@@ -550,8 +544,9 @@ C Show the new point on the current wireframe.
             endif
             if(NGTV.lt.MGTV)then
               write(outs,'(a,i3,a)') 'Make this (',NGTV+1,') a:'
-              CALL EASKABC(outs,' ','new vertex',
-     &          'new vertex after editing','cancel',INVT,nbhelp)
+              CALL EASKMBOX(outs,' ','new vertex',
+     &          'new vertex after editing','cancel',
+     &          ' ',' ',' ',' ',' ',INVT,nbhelp)
               if(INVT.eq.1)then
                 NGTV=NGTV+1
                 xgt(ngtv)=x3
@@ -725,8 +720,9 @@ C Show the new point on the current wireframe.
             endif
             if(NGTV.lt.MGTV)then
               write(outs,'(a,i3,a)') 'Make this (',NGTV+1,') a:'
-              CALL EASKABC(outs,' ','new vertex',
-     &          'new vertex after editing','cancel',INVT,nbhelp)
+              CALL EASKMBOX(outs,' ','new vertex',
+     &          'new vertex after editing','cancel',
+     &          ' ',' ',' ',' ',' ',INVT,nbhelp)
               if(INVT.eq.1)then
                 NGTV=NGTV+1
                 xgt(ngtv)=x3
@@ -952,8 +948,9 @@ C Surface (ivj) vertex list has been updated. Go on to next surface.
         elseif(ino.eq.8)then
         
 C Find close vertices.
-          CALL EASKABC('Options:',' ','find any close vertices',
-     &          'find closest to one vertex','cancel',INVT,nbhelp)
+          CALL EASKMBOX('Options:',' ','find any close vertices',
+     &      'find closest to one vertex','cancel',
+     &      ' ',' ',' ',' ',' ',INVT,nbhelp)
           if(INVT.eq.1)then
             do 102 iwhich1=1,NGTV
               write(headv,'(a,i3,a,3f10.4)') ' Vert',iwhich1,
@@ -1066,8 +1063,9 @@ C be a new vertex and update the wireframe.
         if(ino.eq.5)then
           if(NGTV.lt.MGTV)then
             write(outs,'(a,i3,a)') 'Make this (',NGTV+1,') a:'
-            CALL EASKABC(outs,' ','new vertex',
-     &        'new vertex after editing','cancel',INVT,nbhelp)
+            CALL EASKMBOX(outs,' ','new vertex',
+     &        'new vertex after editing','cancel',
+     &        ' ',' ',' ',' ',' ',INVT,nbhelp)
             if(INVT.eq.1)then
               NGTV=NGTV+1
               xgt(ngtv)=x3
@@ -1109,8 +1107,8 @@ C Alter vertex list by deleting/ copy / replicate / editing.
         helptopic='ground_form_vert_manage'
         call gethelptext(helpinsub,helptopic,nbhelp)
         IRT=1
-        CALL EASKATOG('Vertex operations:',' ','add','delete','copy',
-     &    'replicate','edit (several)','do nothing',' ',IRT,nbhelp)
+        CALL EASKMBOX('Vertex operations:',' ','add','delete','copy',
+     &    'replicate','edit (several)','do nothing',' ',' ',IRT,nbhelp)
         if(IRT.eq.1)then
           IADD=1
           CALL EASKI(IADD,' ',' How many vertices to add ? ',
@@ -1674,7 +1672,6 @@ C Copy vertex index and then increment NGTV and present vertex coords
 C then parse into new vertex.
         helptopic='ground_add_vertex'
         call gethelptext(helpinsub,helptopic,nbhelp)
-        call tstamp('>','PRJ: copy vertex')
         WRITE(HOLD,'(1x,3f8.3)')XGT(NUM),YGT(NUM),ZGT(NUM)
         write(outs,'(a,i3,a,i3,a)')'Copied Vertex (',NUM,
      &    ' old; current index ',NGTV+1,')'
@@ -2005,7 +2002,6 @@ C from another zone.
           CALL USRMSG('No more surfaces are allowed.',' ','W')
           RETURN
         ENDIF
-        call tstamp('>','PRJ: copy surface')
         CALL EDISP(iuout,'Please specify a surface to copy.')
         IS=1
 
@@ -2045,9 +2041,9 @@ C Up the surface count.
         call gethelptext(helpinsub,helptopic,nbhelp)
         if(.NOT.DOK)then
           IRT=1
-          CALL EASKATOG(' ','Surface action options:',
+          CALL EASKMBOX(' ','Surface action options:',
      &      'shift along normal','transform X Y Z','rotate','invert',
-     &      'combination','cancel',' ',IRT,nbhelp)
+     &      'combination','cancel',' ',' ',IRT,nbhelp)
         endif
         if(IRT.eq.1.or.IRT.eq.5)then
 
@@ -2219,8 +2215,9 @@ C Reverse the ordering.
             if(IRT.eq.4)then
               IOK=1
             else
-              CALL EASKAB('Reverse the edge ordering of',
-     &                  outs,'yes','no',IOK,nbhelp)
+              CALL EASKMBOX('Reverse the edge ordering of',
+     &          outs,'yes','no',' ',' ',' ',' ',' ',' ',
+     &          IOK,nbhelp)
             endif
           endif
           if(IOK.eq.1)then
@@ -2245,7 +2242,6 @@ C Create a new surface, set as many defaults as possible.
           CALL USRMSG('No more surfaces are allowed.',' ','W')
           RETURN
         ENDIF
-        call tstamp('>','PRJ: add surface')
         NGT=NGT+1
 
 C Allow user to type in the list of vertices as a string.  The
@@ -2479,12 +2475,12 @@ C Miscel. geometric transforms. Ask which surface and setup temp array.
 
         write(outs,'(a,a)') ' Actions to take on ',GSNAME(is)
         IRT=1
-        CALL EASKATOG(outs,' :','shift along normal','transform xyz',
-     &    'rotate','invert ','combination','continue ?',' ',IRT,nbhelp)
+        CALL EASKMBOX(outs,' :','shift along normal','transform xyz',
+     &    'rotate','invert ','combination','continue ?',' ',' ',IRT,
+     &    nbhelp)
         if(IRT.eq.1.or.IRT.eq.5)then
 
 C Shift along normal and copy transformed points back to XX,YY,ZZ array.
-          call tstamp('>','PRJ: do surface shift along normal')
           vdis=0.0
           CALL EASKR(vdis,' Distance along the normal (metres): ',
      &      '(0.0 = none) :',-9.999,'F',9.999,'W',0.0,'d along normal',
@@ -2499,7 +2495,6 @@ C Shift along normal and copy transformed points back to XX,YY,ZZ array.
         if(IRT.eq.2.or.IRT.eq.5)then
 
 C Transform all surface vertices.
-          call tstamp('>','PRJ: do surface vertex tranform')
           HOLDS= ' 0.  0.  0. '
  152      CALL EASKS(HOLDS,' X Y & Z offsets: ',' ',
      &      36,' 0. 0. 0.  ','offsets',IER,nbhelp)
@@ -2517,7 +2512,6 @@ C Transform all surface vertices.
         if(IRT.eq.3.or.IRT.eq.5)then
 
 C Rotate around a point in the surface.
-          call tstamp('>','PRJ: do surface rotation')
           CALL EASKI(IRV,'Rotate about which vertex index: ',
      &       '(ie. 1st, 2nd or 3rd in the surface) ',
      &       1,'F',N,'F',1,'rotation anchor',IERI,nbhelp)
@@ -2548,7 +2542,6 @@ C Rotate around a point in the surface.
         if(IRT.eq.4)then
 
 C Reverse the ordering, redraw image and return.
-          call tstamp('>','PRJ: do surface invert vertex order')
           do 146, iyy = 1,NGVER(IS)
             jvn1(iyy)=JGVN(IS,iyy)
   146     CONTINUE
@@ -2670,12 +2663,10 @@ C Add/insert a surface.
         IF(irt.eq.0.or.irt.eq.7)GOTO 92
         LASTS=NGT
         if(IRT.eq.1)then
-          call tstamp('>','PRJ: insert surface via vertex')
           CALL ADDGSUR(ITRC,0,'A',IER)
         elseif(IRT.eq.2)then
           call edisp(iuout,'Not an available selection.')
         elseif(IRT.eq.3)then
-          call tstamp('>','PRJ: copy ground surface')
           CALL ADDGSUR(ITRC,0,'C',IER)
         elseif(IRT.eq.4)then
           call edisp(iuout,'Not an available selection.')
@@ -2687,7 +2678,6 @@ C Get vertical rectangular surface orgin.
      &        ' it will make ground too complex!','W')
             RETURN
           ENDIF
-          call tstamp('>','PRJ: add vertical surface')
           HOLDS= ' 0.  0.  0. '
           CALL EASKS(HOLDS,' Surface origin X Y & Z: ',' ',
      &      36,' 0. 0. 0.  ','origin XYZ',IER,2)
@@ -2744,7 +2734,6 @@ C Get horizontal rectangular surface orgin.
      &        ' it will make the ground or surface too complex!','W')
             RETURN
           ENDIF
-          call tstamp('>','PRJ: add horizontal surface')
           HOLDS= ' 0.  0.  0. '
           CALL EASKS(HOLDS,' Surface origin X Y & Z: ',' ',
      &      36,' 0. 0. 0.  ','origin XYZ',IER,nbhelp)
@@ -2850,8 +2839,9 @@ C Complete rec.
           CALL EDISP(ITRU,OUTS)
 
 C Confirm opening.
-          CALL EASKABC('Options for this rectangle:',' ',
-     &       'accept position','revise position','abort',INVT,nbhelp)
+          CALL EASKMBOX('Options for this rectangle:',' ',
+     &      'accept position','revise position','abort',
+     &      ' ',' ',' ',' ',' ',INVT,nbhelp)
           if(INVT.eq.2)then
             ITVNO=0
             ITSNM=0

@@ -120,9 +120,9 @@ C Supports editing of network plant components.
 C Ask the user what they want to edit.
       helptopic='plant_comp_attributes'
       call gethelptext(helpinsub,helptopic,nbhelp)
-      CALL EASKABC(' ','Edit options:',
-     & 'name and component data','optional flow data','cancel',IOPT,
-     & nbhelp)
+      CALL EASKMBOX(' ','Edit options:',
+     &  'name and component data','optional flow data','cancel',
+     &  ' ',' ',' ',' ',' ',IOPT,nbhelp)
 
 C Wrong pick.
       IF(IOPT.EQ.3) RETURN
@@ -606,8 +606,8 @@ C Code to allow deletion commented out until support code in place.
           IOPT=-1
           helptopic='plant_cmp_list'
           call gethelptext(helpinsub,helptopic,nbhelp)
-          CALL EASKABC(' ','Options:','add',
-     &         'delete','cancel',IOPT,nbhelp)
+          CALL EASKMBOX(' ','Options:','add',
+     &         'delete','cancel',' ',' ',' ',' ',' ',IOPT,nbhelp)
           IF(IOPT.EQ.1) THEN
             if(NPCOMP+1.LE.MPCOM)then
 C Needs to be if checked
@@ -737,7 +737,7 @@ C current menu line index. Build up text strings for the menu.
           M=M+1
           CALL EMKEY(L,KEY,IER)
           ISVT=isv(IPC1(L),IPN1(L))
-          IF(IPCT(L).EQ.2) THEN
+          IF(IPCT(L).EQ.3) THEN
           WRITE(SENDSTR,'(A15)')PCNAME(IPC2(L))
             if(isvt.eq.0.or.isvt.eq.10.or.isvt.eq.20) then
               WRITE(SENDND,'(A,I2)')'water node',IPN2(L)
@@ -747,7 +747,7 @@ C current menu line index. Build up text strings for the menu.
               WRITE(SENDND,'(A,I2)')'solid node',IPN2(L)
             endif            
 
-          ELSEIF(IPCT(L).EQ.1) THEN 
+          ELSEIF(IPCT(L).EQ.2) THEN 
             if(isvt.eq.0.or.isvt.eq.10.or.isvt.eq.20) then
               WRITE(SENDND,'(A,I2)')'water node',IPN2(L)
               WRITE(SENDSTR,'(A)')  'fixed temp' 
@@ -758,7 +758,7 @@ C current menu line index. Build up text strings for the menu.
               WRITE(SENDND,'(A,I2)')'solid node',IPN2(L)
               WRITE(SENDSTR,'(A)')  'fixed temp' 
             endif            
-          ELSEIF(IPCT(L).EQ.3) THEN
+          ELSEIF(IPCT(L).EQ.4) THEN
             IF(PCONSD(L,1).GT.0.) THEN
               ICZ=NINT(PCONSD(L,1))
               WRITE(SENDSTR,'(A)')ZNAME(ICZ)(1:12)
@@ -851,8 +851,8 @@ C Code to allow deletion commented out until support code in place.
         IF(MOD.EQ.'M'.OR.MOD.EQ.'m')THEN
           helptopic='plant_conn_add'
           call gethelptext(helpinsub,helptopic,nbhelp)
-          CALL EASKABC(' ','Options:','add ','delete',
-     &         'cancel',IOPT,nbhelp)
+          CALL EASKMBOX(' ','Options:','add ','delete',
+     &         'cancel',' ',' ',' ',' ',' ',IOPT,nbhelp)
           IF(IOPT.EQ.1) THEN
             if(NPCON+1.LE.MPCON)then 
               CALL CONDEF('-',MPCON)
@@ -1057,8 +1057,8 @@ C Code to allow deletion commented out until support code in place.
         IF(MOD.EQ.'M'.OR.MOD.EQ.'m')THEN
           helptopic='plant_cont_add'
           call gethelptext(helpinsub,helptopic,nbhelp)
-          CALL EASKAB(' ','Containment options:','add ',
-     &      'cancel',IOPT,nbhelp)
+          CALL EASKMBOX(' ','Containment options:','add ',
+     &      'cancel',' ',' ',' ',' ',' ',' ',IOPT,nbhelp)
           IF(IOPT.EQ.1) THEN
             if(NCONT+1.LE.MPCOM)then
               CALL CNTDEF('-',MPCOM)

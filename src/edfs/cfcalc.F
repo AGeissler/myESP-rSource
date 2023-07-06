@@ -852,9 +852,10 @@ C Force continue if closer is false.
 
 C Mass residual is maximum residual.
           IF(CLOSER)THEN
-            call EASKABCD('Solution did not converge.',
+            call EASKMBOX('Solution did not converge.',
      &        'Options:','reduce vel. URF +100 iter','+10 mfs iter',
-     &        'mark converged','continue',IW,nbhelp)
+     &        'mark converged','continue',
+     &        ' ',' ',' ',' ',IW,nbhelp)
           ENDIF
 
 C Reduce velocity URFs and add 100 further iterations.
@@ -902,9 +903,10 @@ C Continue to following code.
           ENDIF
 
 C Momentum residual is the maximum residual. 
-          call EASKABCD('Solution did not converge.',
+          call EASKMBOX('Solution did not converge.',
      &      'Options:','reduce velocity URF +500 iter',
-     &      '+500 iter','mark converged','continue',IW,nbhelp)
+     &      '+500 iter','mark converged','continue',
+     &      ' ',' ',' ',' ',IW,nbhelp)
 
 C Reduce velocity under-relaxation factors and add 500 further iterations.
           if (IW.eq.1) then

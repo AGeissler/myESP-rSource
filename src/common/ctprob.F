@@ -391,8 +391,9 @@ C If specified file is a new (not created) file
       IF(.NOT.XST) THEN
         helptopic='ct_file_not_found'
         call gethelptext(helpinsub,helptopic,nbhelp)
-        CALL EASKABC(' File not found.','Options:',
-     &    'specify another','make new file','cancel',IW,nbhelp)
+        CALL EASKMBOX(' File not found.','Options:',
+     &    'specify another','make new file','cancel',
+     &    ' ',' ',' ',' ',' ',IW,nbhelp)
         IF(IW.EQ.1)THEN
           GOTO 2001
         ELSEIF(IW.EQ.2)THEN
@@ -490,8 +491,9 @@ C Setup Contaminant Model network
           GOTO 2002
         ELSEIF(INNO.EQ.(NCONTM+4))THEN
           IF(.NOT.BROWSE)THEN
-            CALL EASKABCD(' ','Options:','add',
-     &      'delete','copy','cancel',IADC,nbhelp)
+            CALL EASKMBOX(' ','Options:','add',
+     &        'delete','copy','cancel',
+     &        ' ',' ',' ',' ',IADC,nbhelp)
             IF(IADC.EQ.4)THEN
               GOTO 2002
             ELSE
@@ -551,8 +553,9 @@ C The first parameter is zero (it is not used).
 
 C User asked to add or delete or copy.
           IF(.NOT.BROWSE)THEN
-            CALL EASKABCD(' ','Options:','add',
-     &        'delete','copy','cancel',IADC,nbhelp)
+            CALL EASKMBOX(' ','Options:','add',
+     &        'delete','copy','cancel',
+     &        ' ',' ',' ',' ',IADC,nbhelp)
             IF(IADC.EQ.4)THEN
               GOTO 2006
             ELSE
@@ -620,8 +623,8 @@ C Determine number of rates if specified
           GOTO 2020
         ELSEIF(ISO.EQ.(NCHEMRR+3))THEN
           IF(.NOT.BROWSE)THEN
-            CALL EASKABC(' ','Options:','add',
-     &         'delete','cancel',IADC,nbhelp)
+            CALL EASKMBOX(' ','Options:','add','delete',
+     &        'cancel',' ',' ',' ',' ',' ',IADC,nbhelp)
             IF(IADC.EQ.3)THEN
               GOTO 2020
             ELSE
@@ -1609,8 +1612,9 @@ C Now get supplementary data items for personal CO2 emission.
         IF(ISSTYP.EQ.6)THEN
           helptopic='contam_co2_rate'
           call gethelptext(helpinsub,helptopic,nbhelp)
-          CALL EASKAB(' Take metabolic rates from occupancy casual ',
-     &      'gains (defined in operation files) ','yes','no',JC,nbhelp)
+          CALL EASKMBOX('Take metabolic rates from occupancy casual ',
+     &      'gains (defined in operation files) ','yes','no',
+     &      ' ',' ',' ',' ',' ',' ',JC,nbhelp)
           IF(JC.EQ.2)THEN
             IV=1
             if(EDIT) IV=NINT(SPMSUP(ISPMNU,1))
@@ -1939,9 +1943,9 @@ C increment NCONTM
         ENDIF
 
 C Ask for default concentration
-        CALL EASKAB('Which best describes the average hourly',
+        CALL EASKMBOX('Which best describes the average hourly',
      &    ' contaminant concentration','Variable','Constant',
-     &    IHORC,nbhelp)
+     &    ' ',' ',' ',' ',' ',' ',IHORC,nbhelp)
         IF(IHORC.EQ.1)GOTO 1
         IF(IHORC.EQ.2)GOTO 2
  1      ITIM=1
@@ -1986,8 +1990,8 @@ C << to be done - return data to previous value before exit >>
 
 C Ask for concentration of this contaminant at all internal airpoints
         IW=1
-        CALL EASKATOG('Is initial conc at each node equal to ambient?',
-     & ' ','yes','no','default (yes)',' ',' ',' ',' ',IW,nbhelp)
+        CALL EASKMBOX('Is initial conc at each node equal to ambient?',
+     & ' ','yes','no','default (yes)',' ',' ',' ',' ',' ',IW,nbhelp)
         IF(IW.EQ.1.OR.IW.EQ.3)THEN
           DO 20 INOD=1,NNOD
             IF(EDIT)THEN

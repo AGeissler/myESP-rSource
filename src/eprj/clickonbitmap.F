@@ -547,8 +547,9 @@ C Save any ground topology.
       elseif(INO.EQ.MITEM-3)then
 
 C Offer to start another object.
-        call easkab(' ','Options for adding objects:',
-     &    'clicking on points','cancel',iwclear,nbhelp)
+        call easkmbox(' ','Options for adding objects:',
+     &    'clicking on points','cancel',
+     &    ' ',' ',' ',' ',' ',' ',iwclear,nbhelp)
         if(iwclear.eq.2)then
           goto 142
         endif
@@ -623,7 +624,6 @@ C Mark for increment ICOMP counter if the user decides to save the
 C collected points as a zone.
           addinganother=.true.
           INCOMP=NCOMP+1
-          call tstamp('>','PRJ: new zone')
  42       ZN=' '
           CALL EASKS(ZN,'What do you want to call this new zone ',
      &      ' (<12 char, no blanks)?',12,'new_zone','zone name',
@@ -926,8 +926,8 @@ C Support bitmap panning - left, right, up, down.
      &    'Panning options: (current offset x',ixoffset,' y ',
      &    iyoffset,' pixels)'
         IWM=1
-        CALL EASKATOG(msg,' ','done','left','right','up','down',' ',
-     &    ' ',IWM,nbhelp)
+        CALL EASKMBOX(msg,' ','done','left','right','up','down',' ',
+     &    ' ',' ',IWM,nbhelp)
         if(iwm.eq.1.or.iwm.gt.5)then
           goto 142
         else
@@ -1123,9 +1123,9 @@ C Gridding options. Check if user wants a grid.
         endif
         if(.NOT.xbmgrid)then
           IWMG=1
-          CALL EASKATOG('Gridding options:',' ',
+          CALL EASKMBOX('Gridding options:',' ',
      &      'none','2.0m','1.0m','0.5m','0.25m','0.1m','other',
-     &      IWMG,nbhelp)
+     &      ' ',IWMG,nbhelp)
           if(iwmg.eq.1)then
             GRSPC(1)=0.0; GRSPC(2)=0.0; GRSPC(3)=0.0; xbmgrid=.false.
           elseif(iwmg.eq.2)then
@@ -1424,8 +1424,8 @@ C If user typed `p` or `P` then do panning until user says done and then continu
      &          'Panning options: (current offset x',ixoffset,' y ',
      &          iyoffset,' pixels)'
               IWM=1
-              CALL EASKATOG(msg,' ','done','left','right','up','down',
-     &          ' ',' ',IWM,nbhelp)
+              CALL EASKMBOX(msg,' ','done','left','right','up','down',
+     &          ' ',' ',' ',IWM,nbhelp)
               if(iwm.eq.1.or.iwm.gt.5)then
                 goto 146  ! check for more user input
               else
@@ -1666,8 +1666,9 @@ C dummy surface with the first three vertices.
  147      continue
           helptopic='user_typed_e'
           call gethelptext(helpinsub,helptopic,nbhelp)
-          call easkabc('Options:',' ','clear points & redefine zone',
-     &      'clear points & continue','save zone data',izclear,nbhelp)
+          call easkmbox('Options:',' ','clear points & redefine zone',
+     &      'clear points & continue','save zone data',
+     &      ' ',' ',' ',' ',' ',izclear,nbhelp)
           if(izclear.eq.1.or.izclear.eq.2)then
             if(inpmode.eq.1.or.inpmode.eq.2.or.inpmode.eq.4.or.
      &         inpmode.eq.5)then
@@ -1917,10 +1918,10 @@ C window though.
             endif
 
 C Offer user options after an [e] click.
-            call easkatog(
+            call easkmbox(
      &      'If adding both door & windows do doors first.',
      &        'Options:','door jambs','glazing jambs',
-     &        'furniture origin','obstructions','cancel',' ',' ',
+     &        'furniture origin','obstructions','cancel',' ',' ',' ',
      &        izdoor,nbhelp)
             if(izdoor.eq.1)then
               dodoor=.true.; nbofdoorpts=0
@@ -1955,8 +1956,9 @@ C Offer user options after an [e] click.
      &          other,lastwalllist,xbmsnap,GRSPC,ier)
 
 C Offer to start another object.
-              call easkab(' ','Options:',
-     &          'add obstructions','cancel',iopt,nbhelp)
+              call easkmbox(' ','Options:',
+     &          'add obstructions','cancel',
+     &          ' ',' ',' ',' ',' ',' ',iopt,nbhelp)
               if(iopt.eq.2)then
                 goto 247  ! process
               elseif(iopt.eq.1)then
@@ -2048,8 +2050,8 @@ C If user typed `p` or `P` then allow for panning and then continue.
      &          'Panning options: (current offset x',ixoffset,' y ',
      &          iyoffset,' pixels)'
               IWM=1
-  248          CALL EASKATOG(msg,' ','done','left','right','up','down',
-     &          ' ',' ',IWM,2)
+  248          CALL EASKMBOX(msg,' ','done','left','right','up','down',
+     &          ' ',' ',' ',IWM,2)
               if(iwm.gt.1.and.iwm.le.5)then
                 inpm=inpmode
                 call ctlbmpan(iwm,fname,ixoffset,iyoffset,ibmwidth,
@@ -2382,8 +2384,9 @@ C corner to first corner and return forground colour to black.
           call winscl('-',iicol)
           helptopic='user_typed_e'
           call gethelptext(helpinsub,helptopic,nbhelp)
-          call easkabc('Options:',' ','clear points & redefine zone',
-     &      'clear points & continue','save zone data',izclear,nbhelp)
+          call easkmbox('Options:',' ','clear points & redefine zone',
+     &      'clear points & continue','save zone data',
+     &      ' ',' ',' ',' ',' ',izclear,nbhelp)
           if(izclear.eq.1.or.izclear.eq.2)then
 
 C Clear history of extrusion points and number of walls. 
@@ -4394,8 +4397,8 @@ C If user typed `p` or `P` then do panning until user says done and then continu
      &      'Panning options: (current offset x',ixoffset,' y ',
      &      iyoffset,' pixels)'
           IWM=1
-          CALL EASKATOG(msg,' ','done','left','right','up','down',
-     &      ' ',' ',IWM,nbhelp)
+          CALL EASKMBOX(msg,' ','done','left','right','up','down',
+     &      ' ',' ',' ',IWM,nbhelp)
           if(iwm.eq.1.or.iwm.gt.5)then
             goto 346
           else
@@ -4822,8 +4825,8 @@ C If user typed `p` or `P` then do panning until user says done and then continu
      &      'Panning options: (current offset x',ixoffset,' y ',
      &      iyoffset,' pixels)'
           IWM=1
-          CALL EASKATOG(msg,' ','done','left','right','up','down',
-     &      ' ',' ',IWM,nbhelp)
+          CALL EASKMBOX(msg,' ','done','left','right','up','down',
+     &      ' ',' ',' ',IWM,nbhelp)
           if(iwm.eq.1.or.iwm.gt.5)then
             goto 346
           else

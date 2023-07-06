@@ -822,9 +822,10 @@ C Help text for the leakage distribution
       helptopic='AIM_leak_distr_menu'
       call gethelptext(helpinsub,helptopic,nbhelp)
 
-      CALL EASKAB(
+      CALL EASKMBOX(
      &    'Specify leakage fractions for ceiling, wall and floor?',
-     &    'Options:','No - use defaults','Yes',INO,nbhelp)
+     &    'Options:','No - use defaults','Yes',
+     &    ' ',' ',' ',' ',' ',' ',INO,nbhelp)
 
       userspec_leakage = INO-1
 

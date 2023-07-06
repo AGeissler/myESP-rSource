@@ -132,8 +132,9 @@ C Wire-frame view point.
         if(browse)goto 33
         helptopic='view_point'
         call gethelptext(helpinsub,helptopic,nbhelp)
-        CALL EASKABCD(' ','View parameters:',
-     &      'default','current','edit','cancel',IW,nbhelp)
+        CALL EASKMBOX(' ','View parameters:',
+     &      'default','current','edit','cancel',
+     &      ' ',' ',' ',' ',IW,nbhelp)
         if(IW.EQ.1)then
 
 C Set eye point at standard place and viewed point at COG.
@@ -362,8 +363,9 @@ C Toggle file format upgrade options.
         igupgrade=igupgrade+1
         IF(igupgrade.GT.1)ITRC=0
         if(igupgrade.eq.1)then
-          CALL EASKAB(' ','Upgrade options:',
-     &      'scan/update all zones','cancel',IUW,0)
+          CALL EASKMBOX(' ','Upgrade options:',
+     &      'scan/update all zones','cancel',
+     &      ' ',' ',' ',' ',' ',' ',IUW,0)
           if(iuw.eq.1)then
             call mupdate(ier)
             igupgrade=0

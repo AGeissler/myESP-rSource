@@ -38,6 +38,10 @@ C domain (air volume gridding not included).
       integer igraphiclib  ! external definition
 
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
+      logical ieopened     ! Has session file been started.
+      integer iecount      ! Does it hold error messages.
+      character iefile*72  ! The name of the session file.
+      common/logs/ieopened,iecount,iefile
       COMMON/FILEP/IFIL
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
       integer ifs,itfs,imfs
@@ -75,21 +79,19 @@ C Ask to overwrite flag.
       COMMON/OVRWT/AUTOVR
       logical AUTOVR
 
-C Session log file (for errors etc.)
-      character iefile*72
-      common/logs/iefile
-
       LOGICAL XST,GRDOK
 
       DIMENSION ITEM(11)
       CHARACTER LFILE*72
       CHARACTER OUTSTR*124,ITEM*24,path*72,inf*144,LCMDFL*144
       character outs248*248,L144*144
+      character fs*1
       character inz*16,inzone*16,outs*124,MODE*4
       character dstmp*24,uname*24,tfile*72
 
       character cVnum*38      ! returned from ESPrVersionNum
       character pagestitle*68 ! for banner title via epages call
+      logical unixok
 
       integer iglib   ! if 1 then X11, if 2 then GTK, if 3 then text only.
       integer ISTRW
@@ -127,6 +129,14 @@ C Initialize global common data.
       IDRW1=0
       call parsfz(MODL,iappw,iappx,iappy,inf,inz)
       AUTOVR=.false. ! by default, ask to overwrite files
+
+C Set folder separator (fs) to \ or / as required.
+      call isunix(unixok)
+      if(unixok)then
+        fs = char(47)
+      else
+        fs = char(92)
+      endif
 
 C Assume configuration file is from IFIL+5, any leakage description
 C is fom IFIL+6, revised config file on IFIL+3, updated geometry on
@@ -270,17 +280,19 @@ C      uname=' '; tfile=' '
       uname=' '; tfile='grd.log'
       call usrname(uname)
       call esppid(ipid)
-C        write(tfile,'(a,a1,a,a,i7,a)')upath(1:lnblnk(upath)),fs,'.',
-C     &    uname(1:lnblnk(uname)),ipid,'.log'
+        write(tfile,'(a,a1,a,a,i7,a)')upath(1:lnblnk(upath)),fs,'.',
+     &    uname(1:lnblnk(uname)),ipid,'.log'
       call st2file(tfile,iefile)
 
 C Open the session file.
-      ieout=ifil+931          ! set to unused index 942
+      ieout=ifil+931          ! set to unused index 931
       open(ieout,file=iefile,status='UNKNOWN',err=903)
       write(ieout,'(a)')'Session log for grd'
       call dstamp(dstmp) ! get curret time
       write(ieout,'(2a)')'Date,',dstmp
       write(ieout,'(2a)')'User,',uname(1:lnblnk(uname))
+      ieopened=.true.
+      iecount=0
   903 continue
 
 C Find the user's home folder then get users custom settings.

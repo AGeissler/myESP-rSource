@@ -148,7 +148,6 @@ C Ensure that G1 common blocks are correctly assigned.
 
 C Draw the zone and display the vertex numbers.
 C << changed to use CFD visualisation subroutines >>
-      call tstamp('>','PRJ: edit CFD domain') 
       nzg=1; nznog(1)=izone; izgfoc=izone
       itvno=0; itsnm=0
 
@@ -1071,8 +1070,8 @@ C if curvilinear.
       elseif(INO.EQ.10)then
 
 C Ask whether Z is Orthogonal or curvilinear.
-        CALL EASKABC('Options for Z gridding:',' ','orthogonal',
-     &               'curvilinear','cancel',IWO,nbhelp)
+        CALL EASKMBOX('Options for Z gridding:',' ','orthogonal',
+     &    'curvilinear','cancel',' ',' ',' ',' ',' ',IWO,nbhelp)
         if(iwo.ne.3)then
           ortho=.TRUE.
 
@@ -2046,13 +2045,13 @@ C View the gridding.
       elseif (INO.eq.(NITMS-3)) then
 
 C Add/delete a boundary definition.
-        call easkabc(' ','Boundary condition:','add',
-     &               'delete','cancel',IAD,nbhelp)
+        call easkmbox(' ','Boundary condition:','add',
+     &    'delete','cancel',' ',' ',' ',' ',' ',IAD,nbhelp)
         if (IAD.eq.1) then
           INB=1
-          call EASKATOG(' ','Type of boundary?',
+          call EASKMBOX(' ','Type of boundary?',
      &       'air flow opening','solid surface','source',
-     &       'blockage','cancel',' ',' ',INB,nbhelp)
+     &       'blockage','cancel',' ',' ',' ',INB,nbhelp)
 
 C Create boundary condition and call relevant editing routine.
           dum=(/0/)
@@ -2817,8 +2816,8 @@ C existing boundary conditions.
           iw=1
           helptopic='cfdbc_infer_delete_exist'
           call gethelptext(helpinsub,helptopic,nbhelp)
-          CALL EASKABC('Clear all boundary conditions?',' ','yes','no',
-     &      'cancel',iw,nbhelp)
+          CALL EASKMBOX('Clear all boundary conditions?',' ','yes',
+     &      'no','cancel',' ',' ',' ',' ',' ',iw,nbhelp)
           if (iw.eq.1) then
             do I=1,NVOL(ICFD)              
               call DELCFDBC(I)
@@ -2831,8 +2830,8 @@ C existing boundary conditions.
           iw=1
           helptopic='cfdbc_infer_delete_exist'
           call gethelptext(helpinsub,helptopic,nbhelp)
-          CALL EASKABC('Clear solid and opening boundary conditions?',
-     &      ' ','yes','no','cancel',iw,nbhelp)
+          CALL EASKMBOX('Clear solid and opening boundary conditions?',
+     &      ' ','yes','no','cancel',' ',' ',' ',' ',' ',iw,nbhelp)
           if (iw.eq.1) then
             do I=1,NVOL(ICFD)
               if (IVTYPE(I,ICFD).lt.20) call DELCFDBC(I)
@@ -2845,8 +2844,9 @@ C existing boundary conditions.
           iw=1
           helptopic='cfdbc_infer_delete_exist'
           call gethelptext(helpinsub,helptopic,nbhelp)
-          CALL EASKABC('Clear source and blockage boundary conditions?',
-     &      ' ','yes','no','cancel',iw,nbhelp)
+          CALL EASKMBOX(
+     &      'Clear source and blockage boundary conditions?',
+     &      ' ','yes','no','cancel',' ',' ',' ',' ',' ',iw,nbhelp)
           if (iw.eq.1) then
             do I=1,NVOL(ICFD)
               if (IVTYPE(I,ICFD).ge.20) call DELCFDBC(I)
@@ -3199,8 +3199,9 @@ C Check if clicked point is within the face.
           endif
 
 C Confirm direction.
-          call EASKAB('What direction does the occupant face?',' ',
-     &      'North or South (J)','East or West (I)',idir,nbhelp)
+          call EASKMBOX('What direction does the occupant face?',' ',
+     &      'North or South (J)','East or West (I)',
+     &      ' ',' ',' ',' ',' ',' ',idir,nbhelp)
 
 C Find cells to block considering approximate size.
           iis=i; iif=i; xis=XU(i)
@@ -3267,9 +3268,9 @@ C Ask user if this is correct.
           iopt=1
           helptopic='cfdbc_infer_occ_prevw'          
           call gethelptext(helpinsub,helptopic,nbhelp)
-          call EASKABCD('Preview of occupant.','Options:',
-     &      'confirm','click location','manual edit','cancel',iopt,
-     &      nbhelp)
+          call EASKMBOX('Preview of occupant.','Options:',
+     &      'confirm','click location','manual edit','cancel',
+     &      ' ',' ',' ',' ',iopt,nbhelp)
           if (iopt.eq.2) then ! pick on display again
             call DELCFDBC(NVOL(ICFD))
             goto 3
@@ -6451,9 +6452,9 @@ C been created in the invocation of GENEDGBC for that surface).
               IR=2
               helptopic='cfdbc_parentframing'
               call gethelptext(helpinsub,helptopic,nbhelp)
-   61         CALL EASKABC(' ',
+   61         CALL EASKMBOX(' ',
      &         'Represent parent surface with solid BCs?',
-     &         'yes','no','preview',IR,nbhelp)
+     &         'yes','no','preview',' ',' ',' ',' ',' ',IR,nbhelp)
               ok=.false.
               if (IR.eq.1) then
                 lumped=.false.
@@ -6594,9 +6595,10 @@ C second delay.
                     if (i.lt.icreated) call pausems(500)
                   enddo
                   IR=1
-                  call EASKAB(
+                  call EASKMBOX(
      &              'Preview of parent surface boundary conditions.',
-     &              ' ','ok','show again',IR,nbhelp)
+     &              ' ','ok','show again',
+     &              ' ',' ',' ',' ',' ',' ',IR,nbhelp)
                   if (IR.eq.2) goto 62
                 endif
 
@@ -6713,9 +6715,10 @@ C Preview child BC without parent BC(s).
      &            20.0,0.0,0.0,0.0,0.0,IER)
                 ISHSB=NSB(ICFD); ISHAO=0; ISHBLK=0; ISHGEO=-9999
                 call redraw(IER)
-                call EASKAB(
+                call EASKMBOX(
      &            'Preview of child surface BC without parent BC(s).',
-     &              ' ','ok','show again',IR,nbhelp)
+     &            ' ','ok','show again',
+     &            ' ',' ',' ',' ',' ',' ',IR,nbhelp)
 
 C Delete preview BC.
                 call DELCFDBC(NVOL(ICFD))
@@ -8836,11 +8839,8 @@ C Choose an opening type.
 
 C Zero gradient BCs do not work, disabled in the interface for the time
 C being.
-C        CALL EASKATOG(' ','Opening types:','pressure',
-C     &    'velocity','zero gradient','from flow network',
-C     &    'cancel',' ',' ',IWO,nbhelp)
-        CALL EASKATOG(' ','Opening types:','pressure','velocity',
-     &    'from flow network','cancel',' ',' ',' ',IWO,nbhelp)
+        CALL EASKMBOX(' ','Opening types:','pressure','velocity',
+     &    'from flow network','cancel',' ',' ',' ',' ',IWO,nbhelp)
         if (iwo.eq.3) then
           iwo=4
         elseif (iwo.eq.4) then
@@ -9198,8 +9198,8 @@ C Get boundary name.
 
 C Choose an opening type.
         IWO=1
-        CALL EASKATOG(' ','Boundary type:','temperature','heat flux',
-     &    'symmetrical','building surface','cancel','  ','  ',
+        CALL EASKMBOX(' ','Boundary type:','temperature','heat flux',
+     &    'symmetrical','building surface','cancel','  ','  ',' ',
      &    IWO,nbhelp)
 
 C Remember non-conflated option if building surface chosen.
@@ -9493,8 +9493,8 @@ C Set boundary name.
 
 C Set coupling with contaminants network on/off.
       elseif (INO.eq.2) then
-        CALL EASKABC('Contaminant network coupling','Options:','off',
-     &    'on','cancel',IHOWL,nbhelp)
+        CALL EASKMBOX('Contaminant network coupling','Options:','off',
+     &    'on','cancel',' ',' ',' ',' ',' ',IHOWL,nbhelp)
         IF(IHOWL.EQ.1)THEN
           if (ICTDFAF(ICFD).eq.1) then
             CALL EASKOK('All linkage data will be cleared!','continue?',
@@ -9620,9 +9620,9 @@ C Ask for information to calculate Schmidt number.
             else
               helptopic='cfd_contam_schmidt'
               call gethelptext(helpinsub,helptopic,nbhelp)
-              CALL EASKABCD('Specify turbulent Schmidt number for',
+              CALL EASKMBOX('Specify turbulent Schmidt number for',
      &          POLNAM(icctm,ICFD),'dynamic','fixed','CO2',
-     &          'water vapour',ISCHM,nbhelp)
+     &          'water vapour',' ',' ',' ',' ',ISCHM,nbhelp)
               IF(ISCHM.EQ.1)THEN
                 ISCHMT(icctm,ICFD)=1
                 HOLD=' 44.0 94.0 217.0 304.0 '
@@ -9808,8 +9808,8 @@ C Temporarily disabled until multi-segmented model is fixed.
           goto 7
         endif
         i=2
-        CALL EASKABCD('Occupant type?',' ','none','man','woman','child',
-     &    i,nbhelp) ! store occupant type in VCsurf for sources
+        CALL EASKMBOX('Occupant type?',' ','none','man','woman','child',
+     &    ' ',' ',' ',' ',i,nbhelp) ! store occupant type in VCsurf for sources
         if (i.eq.1) then
           VCsurf(ISB,ICFD) = 'none'
         elseif (i.eq.2) then
@@ -9824,8 +9824,8 @@ C Manage contaminants.
       elseif (INO.eq.NITMS-2) then
         helptopic='cfd_contam_sinks'
         call gethelptext(helpinsub,helptopic,nbhelp)
-        CALL EASKABC(' ','Contaminant source:','add',
-     &      'delete','cancel',IOWL,nbhelp)
+        CALL EASKMBOX(' ','Contaminant source:','add',
+     &      'delete','cancel',' ',' ',' ',' ',' ',IOWL,nbhelp)
         IF(IOWL.EQ.1)THEN
           helptopic='cfd_contam_sinks'
           call gethelptext(helpinsub,helptopic,nbhelp)
@@ -9851,9 +9851,9 @@ C Ask for information to calculate Schmidt number.
           else
             helptopic='cfd_contam_schmidt'
             call gethelptext(helpinsub,helptopic,nbhelp)
-            CALL EASKABCD('Specify turbulent Schmidt number for',
+            CALL EASKMBOX('Specify turbulent Schmidt number for',
      &        POLNAM(ICTM,ICFD),'dynamic','fixed','CO2',
-     &        'water vapour',ISCHM,nbhelp)
+     &        'water vapour',' ',' ',' ',' ',ISCHM,nbhelp)
             IF(ISCHM.EQ.1)THEN
               ISCHMT(ICTM,ICFD)=1
               HOLD=' 44.0 94.0 217.0 304.0 '
@@ -9971,8 +9971,9 @@ C Edit contaminants.
 C Ask for information to calculate Schmidt number.
           helptopic='cfd_contam_schmidt'
           call gethelptext(helpinsub,helptopic,nbhelp)
-          CALL EASKABC('How to specify turbulent Schmidt No.?'
-     &      ,' ','parameters','manual','default',ISCHM,nbhelp)
+          CALL EASKMBOX('How to specify turbulent Schmidt No.?',
+     &      ' ','parameters','manual','default',
+     &      ' ',' ',' ',' ',' ',ISCHM,nbhelp)
           IF(ISCHM.EQ.1)THEN
             ISCHMT(ICTM,ICFD)=1
             CALL EASKS(HOLD,'enter mol mass (g/mol) crit vol (cm^3/mol)'
@@ -10290,8 +10291,8 @@ C Set blockage type.
         call gethelptext(helpinsub,helptopic,nbhelp)
 
         if (IFCFD(ICFD).eq.0) then
-          CALL EASKABC(' ','Select blockage type','heat','temperature',
-     &      'cancel',IW,nbhelp)
+          CALL EASKMBOX(' ','Select blockage type','heat','temperature',
+     &      'cancel',' ',' ',' ',' ',' ',IW,nbhelp)
           if (IW.lt.3) IVTYPE(ISB,ICFD)=29+IW
         else
           
@@ -10302,8 +10303,8 @@ C Check if dynamic occupants are available.
             t20='-'
           endif
 
-  82      CALL EASKATOG(' ','Select blockage type','heat','temperature',
-     &      'surface','surfaces','casual gain',t20,'cancel',IW,
+  82      CALL EASKMBOX(' ','Select blockage type','heat','temperature',
+     &      'surface','surfaces','casual gain',t20,'cancel',' ',IW,
      &      nbhelp)
 
           if (IW.eq.6 .and. isdynamicocup(ICP).eq.0) goto 82
@@ -10386,8 +10387,8 @@ C Check for illegal volume (vol must be 1 cells thick in all directions).
           IDcasgn(ISB,ICFD)=ival
         elseif (IVTYPE(ISB,ICFD).eq.35) then
           i=2
-          CALL EASKABC(' ','Occupant type','man','woman','child',i,
-     &      nbhelp)
+          CALL EASKMBOX(' ','Occupant type','man','woman','child',
+     &      ' ',' ',' ',' ',' ',i,nbhelp)
           if (i.eq.1) then
             BLKSURF(ISB,ICFD,1) = 'man'
           elseif (i.eq.2) then
@@ -10415,9 +10416,9 @@ C Check for illegal volume (vol must be 1 cells thick in all directions).
         elseif (IVTYPE(ISB,ICFD).eq.35) then
           if (isdynamicocup(ICP).eq.4) then
             ival=7
-            call easkatog('What body part does this represent?',' ',
+            call easkmbox('What body part does this represent?',' ',
      &        'head','trunk','left arm','right_arm','left leg',
-     &        'right leg','whole body',ival,nbhelp)
+     &        'right leg','whole body',' ',ival,nbhelp)
             if (ival.eq.1) then
               BLKSURF(ISB,ICFD,2)='head'
             elseif (ival.eq.2) then
@@ -10589,8 +10590,8 @@ C Ask for face first if necessary.
       if (IFACE.lt.7) then
         write (t30,'(2a)') 'Current face: ',lface
         IFACE=1
-        CALL EASKATOG('Boundary face is on which side?',t30,'West',
-     &    'East','South','North','Low','High',' ',IFACE,nbhelp)
+        CALL EASKMBOX('Boundary face is on which side?',t30,'West',
+     &    'East','South','North','Low','High',' ',' ',IFACE,nbhelp)
       endif
       IONE=1
 
@@ -10815,8 +10816,8 @@ C Check for conflicts.
         call usrmsg ('Cannot resolve boundary face.',
      &               'Please choose from the following list.','W')
         IFACE=1
-        CALL EASKATOG('Boundary face is on which side?',' ','West',
-     &    'East','South','North','Low','High',' ',IFACE,nbhelp)
+        CALL EASKMBOX('Boundary face is on which side?',' ','West',
+     &    'East','South','North','Low','High',' ',' ',IFACE,nbhelp)
       endif
 
 C Check for incompatable face/ cell definition.
@@ -11271,8 +11272,8 @@ C Change page.
       elseif (INO.eq.(MVERT-2)) then
 
 C Add delete regions.
-        call EASKABC('Region operations:','  ','add region',
-     &    'delete region','cancel',IRO,nbhelp)
+        call EASKMBOX('Region operations:','  ','add region',
+     &    'delete region','cancel',' ',' ',' ',' ',' ',IRO,nbhelp)
         if (IRO.eq.1) then
           if (NRG(IAX,ICFD)+1.gt.MNREG) then
             call usrmsg ('Maximum number of regions exceeded',
@@ -11282,8 +11283,8 @@ C Add delete regions.
             IFOC=NRG(IAX,ICFD)
 
 C Ask for length of current region (supply TOTDIS-CTDIS as default)
-            CALL EASKABC('Specify region length:',' ','by vertices',
-     &                   'by size','cancel',IW,nbhelp)
+            CALL EASKMBOX('Specify region length:',' ','by vertices',
+     &        'by size','cancel',' ',' ',' ',' ',' ',IW,nbhelp)
             if(iw.eq.1)then
 
 C Locate regions by vertices.

@@ -340,9 +340,10 @@ C Depending on the value of hclngdescr jump to the correct subroutine.
           call EconvF (ITRU,IUF,ICOMP,iopt,iday,IER)
         elseif(hcfpdescr(iday,ifoc)(1:18).eq.
      &    'convec. via VAV VT')then
-          call easkab('There are two possible variants of HVAC',
+          call easkmbox('There are two possible variants of HVAC',
      &      'Options:','mech HVAC VAV with CV heating',
-     &      'mech HVAC VAV with VV heating',IW,nbhelp)
+     &      'mech HVAC VAV with VV heating',
+     &      ' ',' ',' ',' ',' ',' ',IW,nbhelp)
           if(IW.eq.1)iopt=1
           if(IW.eq.2)iopt=2
           call EconvC(ITRU,IUF,ICOMP,iopt,iday,IER)
@@ -351,9 +352,10 @@ C Depending on the value of hclngdescr jump to the correct subroutine.
           call EconvC(ITRU,IUF,ICOMP,iopt,iday,IER)
         elseif(hcfpdescr(iday,ifoc)(1:22).eq.
      &    'mixed conv. via VAV VT')then
-          call easkab('There are two possible variants of mixed HVAC',
+          call easkmbox('There are two possible variants of mixed HVAC',
      &      'Options:','Mixed flow VAV with CV heating',
-     &      'Mixed flow VAV with VV heating',IW,nbhelp)
+     &      'Mixed flow VAV with VV heating',
+     &      ' ',' ',' ',' ',' ',' ',IW,nbhelp)
           if(IW.eq.1)iopt=1
           if(IW.eq.2)iopt=2
           call EconvE(ITRU,IUF,ICOMP,iopt,iday,IER)
@@ -365,8 +367,9 @@ C Depending on the value of hclngdescr jump to the correct subroutine.
      &    'User supplied hc values'.or.
      &    hcfpdescr(iday,ifoc)(1:38).eq.
      &    'User specified convection coefficients')then
-          call easkab(' ','Options:','edit period details',
-     &      'manage one or more periods and set default',IW,nbhelp)
+          call easkmbox(' ','Options:','edit period details',
+     &      'manage one or more periods and set default',
+     &      ' ',' ',' ',' ',' ',' ',IW,nbhelp)
           if(IW.eq.1)then
             iopt=1
             call EPHCF(ICOMP,ifoc,NS,iopt,iday,IER)
@@ -379,8 +382,9 @@ C Depending on the value of hclngdescr jump to the correct subroutine.
      &    'CEN user edited hc coefficients')then
 
 C If existing offer user direct edit or general management.
-          call easkab(' ','Options:','edit period details',
-     &      'manage one or more periods and set default',IW,nbhelp)
+          call easkmbox(' ','Options:','edit period details',
+     &      'manage one or more periods and set default',
+     &      ' ',' ',' ',' ',' ',' ',IW,nbhelp)
           if(IW.eq.1)then
             iopt=5
             call EPHCF(ICOMP,ifoc,NS,iopt,iday,IER)
@@ -391,8 +395,9 @@ C If existing offer user direct edit or general management.
           endif
         elseif(hcfpdescr(iday,ifoc)(1:29).eq.
      &    'User supplied hc correlations')then
-          call easkab(' ','Options:','edit period details',
-     &      'manage one or more periods and set default',IW,nbhelp)
+          call easkmbox(' ','Options:','edit period details',
+     &      'manage one or more periods and set default',
+     &      ' ',' ',' ',' ',' ',' ',IW,nbhelp)
           if(IW.eq.1)then
             iopt=2
             call EPHCF(ICOMP,ifoc,NS,iopt,iday,IER)
@@ -403,8 +408,9 @@ C If existing offer user direct edit or general management.
           endif
         elseif(hcfpdescr(iday,ifoc)(1:38).eq.
      &    'User supplied adaptive hc correlations')then
-          call easkab(' ','Options:','edit period details',
-     &      'manage one or more periods and set default',IW,nbhelp)
+          call easkmbox(' ','Options:','edit period details',
+     &      'manage one or more periods and set default',
+     &      ' ',' ',' ',' ',' ',' ',IW,nbhelp)
           if(IW.eq.1)then
             iopt=3
             call EPHCF(ICOMP,ifoc,NS,iopt,iday,IER)
@@ -415,8 +421,9 @@ C If existing offer user direct edit or general management.
           endif
         elseif(hcfpdescr(iday,ifoc)(1:27).eq.
      &    'CEN default hc coefficients')then
-          call easkab(' ','Options:','edit period details',
-     &      'manage one or more periods and set default',IW,nbhelp)
+          call easkmbox(' ','Options:','edit period details',
+     &      'manage one or more periods and set default',
+     &      ' ',' ',' ',' ',' ',' ',IW,nbhelp)
           if(IW.eq.1)then
             iopt=4
             call EPHCF(ICOMP,ifoc,NS,iopt,iday,IER)
@@ -427,8 +434,9 @@ C If existing offer user direct edit or general management.
           endif
         elseif(hcfpdescr(iday,ifoc)(1:31).eq.
      &    'CEN user edited hc coefficients')then
-          call easkab(' ','Options:','edit period details',
-     &      'manage one or more periods and set default',IW,nbhelp)
+          call easkmbox(' ','Options:','edit period details',
+     &      'manage one or more periods and set default',
+     &      ' ',' ',' ',' ',' ',' ',IW,nbhelp)
           if(IW.eq.1)then
             iopt=5
             call EPHCF(ICOMP,ifoc,NS,iopt,iday,IER)
@@ -526,9 +534,10 @@ C Ask some high level questions prior to creating file.
 C Define number of day types, ask about which control regime.
       helptopic='zone_htc_overview'
       call gethelptext(helpinsub,helptopic,nbhelp)
-      call easkab('Daytypes for heat transfer coefficients',
+      call easkmbox('Daytypes for heat transfer coefficients',
      &  'Options:','All days treated the same',
-     &  'follow model day types',IW,nbhelp)
+     &  'follow model day types',
+     &  ' ',' ',' ',' ',' ',' ',IW,nbhelp)
       if(IW.eq.1)IHCDT=1
       if(IW.eq.2)IHCDT=NBDAYTYPE
       iday=1   ! focus on the first (or all) day type
@@ -579,8 +588,9 @@ C Define number of day types, ask about which control regime.
         call EconvE(ITRU,IUF,ICOMP,iopt,iday,IER)
       elseif(IVALS(1).eq.15)then
         iopt=1
-        call easkab(' ','Options:','set initial values',
-     &    'manage one or more periods',IW,nbhelp)
+        call easkmbox(' ','Options:','set initial values',
+     &    'manage one or more periods',
+     &    ' ',' ',' ',' ',' ',' ',IW,nbhelp)
         if(IW.eq.1)then
           call EHCMANINIT(ICOMP,iopt,iday,IER)
           call EHCMAN(ITRU,IUF,ICOMP,iopt,iday,IER)  ! User supplied hc values.
@@ -589,8 +599,9 @@ C Define number of day types, ask about which control regime.
         endif
       elseif(IVALS(1).eq.16)then
         iopt=2
-        call easkab(' ','Options:','set initial values',
-     &    'manage one or more periods',IW,nbhelp)
+        call easkmbox(' ','Options:','set initial values',
+     &    'manage one or more periods',
+     &    ' ',' ',' ',' ',' ',' ',IW,nbhelp)
         if(IW.eq.1)then
           call EHCMANINIT(ICOMP,iopt,iday,IER)
           call EHCMAN(ITRU,IUF,ICOMP,iopt,iday,IER)  ! User supplied hc correlations.
@@ -599,8 +610,9 @@ C Define number of day types, ask about which control regime.
         endif
       elseif(IVALS(1).eq.17)then
         iopt=3
-        call easkab(' ','Options:','set initial values',
-     &    'manage one or more periods',IW,nbhelp)
+        call easkmbox(' ','Options:','set initial values',
+     &    'manage one or more periods',
+     &    ' ',' ',' ',' ',' ',' ',IW,nbhelp)
         if(IW.eq.1)then
           call EHCMANINIT(ICOMP,iopt,iday,IER)
           call EHCMAN(ITRU,IUF,ICOMP,iopt,iday,IER)  ! User supplied adaptive hc correlations.
@@ -609,8 +621,9 @@ C Define number of day types, ask about which control regime.
         endif
       elseif(IVALS(1).eq.18)then
         iopt=4
-        call easkab(' ','Options:','set initial values',
-     &    'manage one or more periods',IW,nbhelp)
+        call easkmbox(' ','Options:','set initial values',
+     &    'manage one or more periods',
+     &    ' ',' ',' ',' ',' ',' ',IW,nbhelp)
         if(IW.eq.1)then
           call EHCMANINIT(ICOMP,iopt,iday,IER)
           call EHCMAN(ITRU,IUF,ICOMP,iopt,iday,IER)  ! CEN default hc coefficients.
@@ -619,8 +632,9 @@ C Define number of day types, ask about which control regime.
         endif
       elseif(IVALS(1).eq.19)then
         iopt=5
-        call easkab(' ','Options:','set initial values',
-     &    'manage one or more periods',IW,nbhelp)
+        call easkmbox(' ','Options:','set initial values',
+     &    'manage one or more periods',
+     &    ' ',' ',' ',' ',' ',' ',IW,nbhelp)
         if(IW.eq.1)then
           call EHCMANINIT(ICOMP,iopt,iday,IER)
           call EHCMAN(ITRU,IUF,ICOMP,iopt,iday,IER)  ! CEN user edited hc coefficients.
@@ -1854,10 +1868,10 @@ C Add control period. Ask about defaults or not.
         if(IHCFP(id).lt.MBP)then
 
 C Confirm use of default Alamdahri or an alternative for inside hc.
-          CALL EASKABCD('Initial HC assumptions for all hours.',
+          CALL EASKMBOX('Initial HC assumptions for all hours.',
      &    'Options:','default inside & outside',
      &    'user inside default outside','user inside and outside',
-     &    'cancel',INZOPT,nbhelp)
+     &    'cancel',' ',' ',' ',' ',INZOPT,nbhelp)
           if(INZOPT.eq.1)then
             valin= -1.0
             valout= -1.0
@@ -2072,9 +2086,9 @@ C specify inside or outside or both values, otherwise set to default.
         msg='suggest: CEN user edited hc coefficients'
       endif
         
-      CALL EASKATOG(msg,'Options:',
+      CALL EASKMBOX(msg,'Options:',
      &  'fixed coefficients','fixed correl.','adaptive correl.',
-     &  'CEN coefficients','cancel',' ',' ',IW,nbhelp)
+     &  'CEN coefficients','cancel',' ',' ',' ',IW,nbhelp)
       if(IW.eq.2.or.IW.eq.3.or.IW.eq.4)then
         valin= -1.0
         valout= -1.0
@@ -2083,10 +2097,10 @@ C specify inside or outside or both values, otherwise set to default.
       else
 
 C Confirm use of default Alamdahri or an alternative for inside hc.
-        CALL EASKABCD('Initial HC assumptions for all hours.',
+        CALL EASKMBOX('Initial HC assumptions for all hours.',
      &    'Options:','default inside & outside',
      &    'user inside default outside','user inside and outside',
-     &    'cancel',INZOPT,nbhelp)
+     &    'cancel',' ',' ',' ',' ',INZOPT,nbhelp)
         if(INZOPT.eq.1)then
           valin= -1.0
           valout= -1.0
@@ -2262,8 +2276,8 @@ C Choose where is the air comming into the channel.
       helptopic='zone_htc_vert_chan_data'
       call gethelptext(helpinsub,helptopic,nbhelp)
       IF((IOPT.EQ.1).OR.(IOPT.EQ.2)) THEN
-        CALL EASKAB(' ','Air enters channel from','Outdoor',
-     &    'Another zone',IW,nbhelp)
+        CALL EASKMBOX(' ','Air enters channel from','Outdoor',
+     &    'Another zone',' ',' ',' ',' ',' ',' ',IW,nbhelp)
         IF (IW.EQ.1) THEN
           IAORZ=0
           hcphrase(3) = 'from outdoor'
@@ -2504,9 +2518,9 @@ C Determine type of control over calculations.
         msg='suggest: CEN user edited hc coefficients'
       endif
         
-      CALL EASKATOG(msg,'Options: ',
+      CALL EASKMBOX(msg,'Options: ',
      &  'fixed coefficients ','fixed correl.','adaptive correl.',
-     &  'CEN coefficients ','cancel',' ',' ',IW,nbhelp)
+     &  'CEN coefficients ','cancel',' ',' ',' ',IW,nbhelp)
       IF(iw.eq.5) RETURN
       ICTL(id,IN) = iw
 
@@ -2517,10 +2531,10 @@ C Fixed coefficients control.
         hcfpdescr(id,IN) = 'User supplied hc values'
 
 C Confirm use of default Alamdahri or an alternative for inside hc.
-        CALL EASKABCD('Initial HC assumptions for THIS PERIOD.',
+        CALL EASKMBOX('Initial HC assumptions for THIS PERIOD.',
      &    'Options:','default inside & outside',
      &    'user inside default outside','user inside and outside',
-     &    'accept current',INZOPT,nbhelp)
+     &    'accept current',' ',' ',' ',' ',INZOPT,nbhelp)
         if(INZOPT.eq.1)then
           valin= -1.0
           valout= -1.0
@@ -2887,7 +2901,7 @@ C silently if base and top surfaces have been identified.
 
           V1=CENLOC(id,IN,5)
           CALL EASKR(V1,' ','Hc at outside (exterior) floors?',
-     &       0.1,'F',99.,'F',8.0,'floor hc exterior',IER,nbhelp)
+     &       -1.0,'F',99.,'F',8.0,'floor hc exterior',IER,nbhelp)
           CENLOC(id,IN,5)=V1
           hcfpdescr(id,IN) = 'CEN user edited hc coefficients'
 
@@ -2911,7 +2925,7 @@ C silently if base and top surfaces have been identified.
 
           V1=CENLOC(id,IN,8)
           CALL EASKR(V1,' ','Hc at outside (exterior) ceilings?',
-     &       0.1,'F',99.,'F',8.0,'ceil hc exterior',IER,nbhelp)
+     &       -1.0,'F',99.,'F',8.0,'ceil hc exterior',IER,nbhelp)
           CENLOC(id,IN,8)=V1
           hcfpdescr(id,IN) = 'CEN user edited hc coefficients'
 
@@ -2935,7 +2949,7 @@ C silently if base and top surfaces have been identified.
 
           V1=CENLOC(id,IN,11)
           CALL EASKR(V1,' ','Hc at outside (exterior) sloped?',
-     &       0.1,'F',99.,'F',8.0,'sloped hc exterior',IER,nbhelp)
+     &      -1.0,'F',99.,'F',8.0,'sloped hc exterior',IER,nbhelp)
           CENLOC(id,IN,11)=V1
           hcfpdescr(id,IN) = 'CEN user edited hc coefficients'
 
@@ -2959,7 +2973,7 @@ C silently if base and top surfaces have been identified.
 
           V1=CENLOC(id,IN,14)
           CALL EASKR(V1,' ','Hc at outside (exterior) walls?',
-     &       0.1,'F',99.,'F',8.0,'walls hc exterior',IER,nbhelp)
+     &      -1.0,'F',99.,'F',8.0,'walls hc exterior',IER,nbhelp)
           CENLOC(id,IN,14)=V1
           hcfpdescr(id,IN) = 'CEN user edited hc coefficients'
 
@@ -3428,9 +3442,9 @@ C CEN mode sets values for specific conditions.
               CALL STRIPC(IUF,OUTSTR,99,num,1,'htc cen floor',IER)
               if(OUTSTR(1:6).eq.'*floor')then
                 K=6
-                CALL EGETWR(OUTSTR,K,V1,0.,30.,'F','htc cen upward',IER)
-                CALL EGETWR(OUTSTR,K,V2,0.,30.,'F','htc cen down',IER)
-                CALL EGETWR(OUTSTR,K,V3,0.,30.,'F','htc cen ext',IER)
+                CALL EGETWR(OUTSTR,K,V1,-1.,30.,'F','htc cen upwd',IER)
+                CALL EGETWR(OUTSTR,K,V2,-1.,30.,'F','htc cen down',IER)
+                CALL EGETWR(OUTSTR,K,V3,-1.,30.,'F','htc cen ext',IER)
                 CENLOC(L,i,3)=V1
                 CENLOC(L,i,4)=V2
                 CENLOC(L,i,5)=V3
@@ -3440,7 +3454,7 @@ C CEN mode sets values for specific conditions.
                 K=8
                 CALL EGETWR(OUTSTR,K,V1,0.,30.,'F','htc cen upward',IER)
                 CALL EGETWR(OUTSTR,K,V2,0.,30.,'F','htc cen down',IER)
-                CALL EGETWR(OUTSTR,K,V3,0.,30.,'F','htc cen ext',IER)
+                CALL EGETWR(OUTSTR,K,V3,-1.,30.,'F','htc cen ext',IER)
                 CENLOC(L,i,6)=V1
                 CENLOC(L,i,7)=V2
                 CENLOC(L,i,8)=V3
@@ -3450,7 +3464,7 @@ C CEN mode sets values for specific conditions.
                 K=6
                 CALL EGETWR(OUTSTR,K,V1,0.,30.,'F','htc cen upward',IER)
                 CALL EGETWR(OUTSTR,K,V2,0.,30.,'F','htc cen down',IER)
-                CALL EGETWR(OUTSTR,K,V3,0.,30.,'F','htc cen ext',IER)
+                CALL EGETWR(OUTSTR,K,V3,-1.,30.,'F','htc cen ext',IER)
                 CENLOC(L,i,9)=V1
                 CENLOC(L,i,10)=V2
                 CENLOC(L,i,11)=V3
@@ -3460,7 +3474,7 @@ C CEN mode sets values for specific conditions.
                 K=5
                 CALL EGETWR(OUTSTR,K,V1,0.,30.,'F','htc cen inside',IER)
                 CALL EGETWR(OUTSTR,K,V2,0.,30.,'F','htc cen ptn',IER)
-                CALL EGETWR(OUTSTR,K,V3,0.,30.,'F','htc cen ext',IER)
+                CALL EGETWR(OUTSTR,K,V3,-1.,30.,'F','htc cen ext',IER)
                 CENLOC(L,i,12)=V1
                 CENLOC(L,i,13)=V2
                 CENLOC(L,i,14)=V3

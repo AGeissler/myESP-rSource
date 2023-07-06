@@ -43,30 +43,6 @@ C  iExtLongRadFlag  flag indicating whether a ground profile has been entered
 C                   or edited. .iExtLgRadFlag=1 indicates yes; 0 indicates no.
 C  eGrdTp           user input ground temperature profile (array).
 C
-C This subroutine uses the ESP-r subroutines EDISP, EASKAB, EASKS, iCountWords
-C and EGETWR. A description of what each of these subroutines does is 
-C provided below.
-C
-C  The subroutine EDISP is in the src/lib/ directory. EDISP sends text
-C  to scrolling display
-C
-C  The subroutine EASKAB is in the src/lib/ directory. EASKAB is a 
-C  generic choice facilty returning 1 or 2 according to which of the
-C  options has been chosen.
-C  EASKAB(MSG1, MSG2, AOPT,BOPT,IWHICH,NHELP)
-C  MSG1 and MSG2 are prompts, AOPT and BOPT are strings describing the
-C  options and IRT is the value returned (1 or 2). NHELP is the number
-C  of help lines.
-C
-C  EASKS is a facility for asking a text string.
-C  EASKS(STRVAL,PROMP1,PROMP2,ISTRW,DSTR,ERMSG,IER,NHELP)
-C  STRVAL is the string returned. PROMP1 and PROMP2 are the prompts.
-C  ISTRW is the length of the string returned. DSTR is a string to
-C  use as default. ERMSG is a string placed at the top of the selection
-C  menu. IER is error state (0 okay). NHELP is number of help lines.
-C  H() is the help array.
-C  EASKS subroutine is in the src/lib/ directory.
-C
 C  iCountWords checks a character string and returns the number of items
 C  separated by ' ', tab or ','.
 C  iCountWords is in the src/lib/ directory
@@ -120,8 +96,8 @@ C define global variables needed.
 
 C Two options available: user can list profile or edit/add profile.
 
-        CALL EASKAB(' Options:',' ','list profile','edit/add profile', 
-     &              IRT,8)
+        CALL EASKMBOX('Options:',' ','list profile','edit/add profile', 
+     &    ' ',' ',' ',' ',' ',' ',IRT,8)
 
 
         IF(IRT.EQ.1)THEN

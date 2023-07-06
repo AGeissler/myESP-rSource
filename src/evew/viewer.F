@@ -10,6 +10,10 @@ C VIEWER MAIN PROGRAM
 #include "help.h"
 
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
+      logical ieopened     ! Has session file been started.
+      integer iecount      ! Does it hold error messages.
+      character iefile*72  ! The name of the session file.
+      common/logs/ieopened,iecount,iefile
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
       integer menuchw,igl,igr,igt,igb,igw,igwh
       COMMON/VIEWPX/menuchw,igl,igr,igt,igb,igw,igwh
@@ -30,10 +34,6 @@ C Name of current application
 C Ask to overwrite flag.
       COMMON/OVRWT/AUTOVR
       logical AUTOVR
-
-C Session log file (for errors etc.)
-      character iefile*72
-      common/logs/iefile
 
       logical     unixok
 

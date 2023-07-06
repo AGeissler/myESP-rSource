@@ -282,8 +282,9 @@ C stripped model. Define the simulation parameters for the run.
       IYEAR=2008 ! match SBEM activities database version year
       helptopic='ncm_assessment_period'
       call gethelptext(helpinsub,helptopic,nbhelp)
-      CALL EASKABCD(' ','Initial assessment period:',
-     &  'January','April','July','annual',IW,nbhelp)
+      CALL EASKMBOX(' ','Initial assessment period:',
+     &  'January','April','July','annual',
+     &  ' ',' ',' ',' ',IW,nbhelp)
       if(isstup.le.0)then
         isstup=20; isstupex(1)=20
       endif
@@ -398,9 +399,10 @@ C Check if the model is sufficiently attributed for NCM purposes.
 C Offer choice to generate stripped model and running assessments.
   42  helptopic='ncm_context'
       call gethelptext(helpinsub,helptopic,nbhelp)
-      CALL EASKABCD('Options: ',' ',
+      CALL EASKMBOX('Options: ',' ',
      &  'generate models & make EPC','run assessments & make EPC',
-     &  'use existing runs & make EPC','exit NCM',iecmoption,nbhelp)
+     &  'use existing runs & make EPC','exit NCM',
+     &  ' ',' ',' ',' ',iecmoption,nbhelp)
       if(iecmoption.eq.1)then
 
 C Generate all the model variants and run assessments and generate EPC.
@@ -601,7 +603,7 @@ C For tdf to call arlist.
       dimension Opt_NCM_CTL(5) !string describing the selected control adjustment
       character Opt_NCM_CTL*40
       integer iSelFlag
-      integer IANSWER !Used for a call to EASKAB (1:yes, 2: no)
+      integer IANSWER !Used for dialog (1:yes, 2: no)
       integer iavailsyst !Temporary integer used for looping through the defined HVAC systems
       integer IPASS !to ask for a password
       integer ier,iw
@@ -842,8 +844,8 @@ C Define DHW systems
           CALL PHELPD('DHW help not defined (yet)',nbhelp,'-',0,0,IER)
         ELSEIF(IDO.EQ.NITEMH-2)THEN
           JC=0
-          CALL EASKABC('Choose option',' ',
-     &         'add','delete','cancel',JC,nbhelp)
+          CALL EASKMBOX('Choose option',' ',
+     &      'add','delete','cancel',' ',' ',' ',' ',' ',JC,nbhelp)
 
 C Add new DHW system
           IF(JC.EQ.1)THEN
@@ -857,8 +859,9 @@ C Add new DHW system
      &        25,MDW,DHWGEN,'system types',IER,nbhelp)
             IF(KSYS(1).EQ.0)GOTO 909
             IDHWS(NDHWSYS)=KSYS(1)
-            CALL EASKABC('Was the DHW generator built before 1998',
-     &        ' ','yes','no','Do not know',IW,nbhelp)
+            CALL EASKMBOX('Was the DHW generator built before 1998',
+     &        ' ','yes','no','Do not know',' ',' ',' ',' ',' ',
+     &        IW,nbhelp)
             IF(IW.EQ.1.or.iw.eq.3)THEN
               HWEF(NDHWSYS)=DHWEFF(MDW,1)
             ELSE
@@ -905,14 +908,15 @@ C Add storage and loop information (only if not instantaneous heater)
               DHWSPD(NDHWSYS,5)=0.0
             ELSE
               IDHWSS(NDHWSYS)=0
-              CALL EASKABC('Is there a water storage system',
-     &        ' ','yes','no','Do not know',IDL,nbhelp)
+              CALL EASKMBOX('Is there a water storage system',
+     &          ' ','yes','no','Do not know',' ',' ',' ',' ',' ',
+     &          IDL,nbhelp)
               IF(IDL.EQ.1)THEN
                 IDHWSS(NDHWSYS)=1
-                CALL EASKABC('Which of the following do you know',
+                CALL EASKMBOX('Which of the following do you know',
      &            '(Choose volume if you know both) ',
      &            'Storage volume (lit)','Storage losses (MJ/month)',
-     &            'Do not know either',IDM,nbhelp)
+     &            'Do not know either',' ',' ',' ',' ',' ',IDM,nbhelp)
                 DHWSPD(NDHWSYS,1)=0.0
                 DHWSPD(NDHWSYS,2)=0.0
                 DHWSPD(NDHWSYS,3)=0.0
@@ -927,26 +931,27 @@ C Add storage and loop information (only if not instantaneous heater)
      &              'Enter system losses (MJ/month)',' ',0.,
      &              'F',1000000.,'-',10000.,'DHW capacity ',IER,nbhelp)
                 ENDIF
-                CALL EASKABC('Is there a water circulation loop',
-     &            ' ','yes','no','Do not know',IDN,nbhelp)
+                CALL EASKMBOX('Is there a water circulation loop',
+     &            ' ','yes','no','Do not know',' ',' ',' ',' ',' ',
+     &            IDN,nbhelp)
                 IF(IDN.EQ.1)THEN
                   IDHWSS(NDHWSYS)=2
-                  CALL EASKAB('Do you know circulation losses (W/m)',
-     &              ' ','yes','no',IDO,nbhelp)
+                  CALL EASKMBOX('Do you know circulation losses (W/m)',
+     &              ' ','yes','no',' ',' ',' ',' ',' ',' ',IDO,nbhelp)
                   IF(IDO.EQ.1)THEN
                     CALL EASKR(DHWSPD(NDHWSYS,3),
      &                'Enter circulation losses (W/m)',' ',
      &                0.,'F',10.,'-',50.,'DHW circ loss',IER,nbhelp)
                   ENDIF
-                  CALL EASKAB('Do you know pump power (kW)',
-     &              ' ','yes','no',IDP,nbhelp)
+                  CALL EASKMBOX('Do you know pump power (kW)',
+     &              ' ','yes','no',' ',' ',' ',' ',' ',' ',IDP,nbhelp)
                   IF(IDP.EQ.1)THEN
                     CALL EASKR(DHWSPD(NDHWSYS,4),
      &                'Enter pump power (kW)',' ',
      &                0.,'F',10.,'-',10.,'DHW pump power ',IER,nbhelp)
                   ENDIF
-                  CALL EASKAB('Do you know loop length (m)',
-     &            ' ','yes','no',IDQ,nbhelp)
+                  CALL EASKMBOX('Do you know loop length (m)',
+     &            ' ','yes','no',' ',' ',' ',' ',' ',' ',IDQ,nbhelp)
                   IF(IDQ.EQ.1)THEN
                     CALL EASKR(DHWSPD(NDHWSYS,5),
      &              'Enter loop length (m)',' ',0.,
@@ -986,8 +991,9 @@ C Edit existing DHW system
      &      25,MDW,DHWGEN,'system types',IER,nbhelp)
           IF(KSYS(1).EQ.0)GOTO 912
           IDHWS(IDHWSYS)=KSYS(1)
-          CALL EASKABC('Was the DHW generator built before 1998',
-     &      ' ','yes','no','Do not know',IW,nbhelp)
+          CALL EASKMBOX('Was the DHW generator built before 1998',
+     &      ' ','yes','no','Do not know',' ',' ',' ',' ',' ',
+     &      IW,nbhelp)
           IF(IW.EQ.1)THEN
             HWEF(IDHWSYS)=DHWEFF(MDW,1)
           ELSE
@@ -1026,14 +1032,15 @@ C Hold same fuel type indices as found for heating/cooling HVAC systems
 
 C Add storage and loop information
           IDHWSS(IDHWSYS)=0
-          CALL EASKABC('Is there a water storage system',
-     &      ' ','yes','no','Do not know',IDL,nbhelp)
+          CALL EASKMBOX('Is there a water storage system',
+     &      ' ','yes','no','Do not know',' ',' ',' ',' ',' ',
+     &      IDL,nbhelp)
           IF(IDL.EQ.1)THEN
             IDHWSS(IDHWSYS)=1
-            CALL EASKABC('Which of the following do you know',
+            CALL EASKMBOX('Which of the following do you know',
      &        '(Choose volume if you know both) ',
      &        'Storage volume (lit)','Storage losses (MJ/month)',
-     &        'Do not know either',IDM,nbhelp)
+     &        'Do not know either',' ',' ',' ',' ',' ',IDM,nbhelp)
             DHWSPD(IDHWSYS,1)=0.0
             DHWSPD(IDHWSYS,2)=0.0
             DHWSPD(IDHWSYS,3)=0.0
@@ -1048,26 +1055,27 @@ C Add storage and loop information
      &          ' ','System losses (MJ/month)?',0.,
      &          'F',1000000.,'-',10000.,'DHW capacity ',IER,nbhelp)
             ENDIF
-            CALL EASKABC('Is there a water circulation loop',
-     &        ' ','yes','no','Do not know',IDN,nbhelp)
+            CALL EASKMBOX('Is there a water circulation loop',
+     &        ' ','yes','no','Do not know',' ',' ',' ',' ',' ',
+     &        IDN,nbhelp)
             IF(IDN.EQ.1)THEN
               IDHWSS(IDHWSYS)=2
-              CALL EASKAB('Do you know circulation losses (W/m)',
-     &          ' ','yes','no',IDO,nbhelp)
+              CALL EASKMBOX('Do you know circulation losses (W/m)',
+     &          ' ','yes','no',' ',' ',' ',' ',' ',' ',IDO,nbhelp)
               IF(IDO.EQ.1)THEN
                 CALL EASKR(DHWSPD(IDHWSYS,3),
      &            'Circulation losses (W/m)?',' ',0.,
      &            'F',10.,'-',50.,'DHW circ loss',IER,nbhelp)
               ENDIF
-              CALL EASKAB('Do you know pump power (kW)',
-     &          ' ','yes','no',IDP,nbhelp)
+              CALL EASKMBOX('Do you know pump power (kW)',
+     &          ' ','yes','no',' ',' ',' ',' ',' ',' ',IDP,nbhelp)
               IF(IDP.EQ.1)THEN
                 CALL EASKR(DHWSPD(IDHWSYS,4),
      &            ' ','Pump power (kW)?',0.,
      &            'F',10.,'-',10.,'DHW pump power ',IER,nbhelp)
               ENDIF
-              CALL EASKAB('Do you know loop length (m)',
-     &          ' ','yes','no',IDQ,nbhelp)
+              CALL EASKMBOX('Do you know loop length (m)',
+     &          ' ','yes','no',' ',' ',' ',' ',' ',' ',IDQ,nbhelp)
               IF(IDQ.EQ.1)THEN
                 CALL EASKR(DHWSPD(IDHWSYS,5),
      &            ' ','Loop length (m)?',0.,
@@ -1284,12 +1292,12 @@ C Link lighting systems with zones
           ILIGHTUSER(IZ)=0
 
 C << Something is wrong about passed parameter in this call. >>
-          CALL EASKABC(
+          CALL EASKMBOX(
      &      'Options for defining lighting heat gains for zone:',
      &      zname(IZ)(1:lnzname(IZ)),
      &      'user defined W/m2 per 100 lux','pick from list',
      &      'do not modify at this time',
-     &      Iwaylight,nbhelp)
+     &      ' ',' ',' ',' ',' ',Iwaylight,nbhelp)
           IF(Iwaylight.EQ.1)THEN
 
 C flag needed for the casual.F to account for lighting gains
@@ -1332,10 +1340,11 @@ C control types
               OUTS='Currently there is no control'
             ENDIF
             CALL EDISP(IUOUT,OUTS)
-            CALL EASKABCD('Choose lighting control type for',
+            CALL EASKMBOX('Choose lighting control type for',
      &      zname(IZ)(1:lnzname(IZ)),
      &      'Local manual switching ','Photoelectric control',
-     &      'Both','No control',Ilightcontrol(iz),nbehlp)
+     &      'Both','No control',' ',' ',' ',' ',Ilightcontrol(iz),
+     &      nbehlp)
 
 C If photoelectric control then ask whether switching or dimming
             if(Ilightcontrol(iz).eq.2.or.Ilightcontrol(iz).eq.3)then
@@ -1349,13 +1358,15 @@ C If photoelectric control then ask whether switching or dimming
               call edisp(iuout,outs)
 
               Ipe_control(iz)=0
-              CALL EASKAB('Type of photoelectric control in zone',
+              CALL EASKMBOX('Type of photoelectric control in zone',
      &          zname(IZ)(1:lnzname(IZ)),
-     &          'Switching','Dimming',Ipe_control(iz),nbhelp)
+     &          'Switching','Dimming',
+     &          ' ',' ',' ',' ',' ',' ',Ipe_control(iz),nbhelp)
               Ipe_sensor=0
-              CALL EASKAB('Type of photoelectric control sensor',
+              CALL EASKMBOX('Type of photoelectric control sensor',
      &          zname(IZ)(1:lnzname(IZ)),
-     &          'Standalone','Addresable',Ipe_sensor,nbhelp)
+     &          'Standalone','Addresable',
+     &          ' ',' ',' ',' ',' ',' ',Ipe_sensor,nbhelp)
 
 C Confirm front sensor or front and back sensor.
               IF(Idaylightzoning(iz).EQ.1)THEN
@@ -1368,10 +1379,10 @@ C Confirm front sensor or front and back sensor.
               CALL EDISP(IUOUT,OUTS)
               Idaylightzoning(iz)=0   ! reset prior to edit
               ivalue=0
-              CALL EASKABC('Choose lighting sensor location for',
+              CALL EASKMBOX('Choose lighting sensor location for',
      &          zname(IZ)(1:lnzname(IZ)),
      &          'Front of room','Front and back of room',
-     &          'cancel',ivalue,nbhelp)
+     &          'cancel',' ',' ',' ',' ',' ',ivalue,nbhelp)
               if(ivalue.eq.1.or.ivalue.eq.2)then
                 Idaylightzoning(iz)=ivalue
               endif
@@ -1420,11 +1431,11 @@ C Ask for occupancy sensing
               OUTS='Currently NONE'
             ENDIF
             CALL EDISP(IUOUT,OUTS)
-            CALL EASKATOG(
+            CALL EASKMBOX(
      &      'Is there occupancy sensing in zone',
      &      zname(iz)(1:lnzname(IZ)),'MAN-ON-OFF+EXT','AUTO-ON-DIMMED',
      &      'AUTO-ON-OFF','MAN-ON-DIMMED','MAN-ON-AUTO-OFF','NONE',
-     &      ' ',IOcc_sensing(iz),nbhelp)
+     &      ' ',' ',IOcc_sensing(iz),nbhelp)
 
 C Confirm occupancy sensor parasitic power W/m2
             if(IOcc_sensing(iz).ne.6)then
@@ -1531,8 +1542,8 @@ C Help has not yet been done for this topic.
         ELSEIF(INN.EQ.NREN+2)THEN
           CALL EDISP(IUOUT,'Information display not available yet')
         ELSEIF(INN.EQ.NREN+3)THEN
-          CALL EASKABC('Choose action',' ','add','delete','cancel',
-     &      IA,nbhelp)
+          CALL EASKMBOX('Choose action',' ','add','delete','cancel',
+     &      ' ',' ',' ',' ',' ',IA,nbhelp)
           IF(IA.EQ.1)THEN
             IADD=1
           ELSEIF(IA.EQ.2)THEN
@@ -1728,8 +1739,9 @@ C Loop for the different available HVAC systems
         do 352 iavailsyst=1,NCMSYS
           helptopic='ncm_hvac_ctl_options'
           call gethelptext(helpinsub,helptopic,nbhelp)
-          CALL EASKAB('Define controls for system: ',
-     &      HVACNAME(iavailsyst),'yes','no',IANSWER,nbhelp)
+          CALL EASKMBOX('Define controls for system: ',
+     &      HVACNAME(iavailsyst),'yes','no',
+     &      ' ',' ',' ',' ',' ',' ',IANSWER,nbhelp)
           if(IANSWER.eq.1)then
 
 C Ask for systems controls
@@ -1773,7 +1785,6 @@ C and for calculating Auxiliary energy as the assumptions for the notional build
         call easki(IPASS,' ','Password?',
      &    0,'-',0,'-',0,'password',ieri,nbhelp)
         if(IPASS.eq.101) then
-          call tstamp('>','PRJ: set advanced flag for DSM testing')
 
           call easki(iDsmTestingFlag,' ','DSM tests flag?',
      &      0,'-',0,'-',iDsmTestingFlag,'flag',ieri,nbhelp)
@@ -2191,7 +2202,7 @@ C Edits the system definition within the UK NCM file.
       dimension ITEMH(MCOM+4),KSYS(MHT),ITHND(MPT),PRSSN(MPT)
       character ITEMH*70,D64*64,PRSSN*60
       character outs*124
-      integer INatMech !flag for easkab to choose between natural or
+      integer INatMech !flag for dialog to choose between natural or
                        !mechanical extract/supply ventilation system
       integer nitEmH,IHO ! max items and current menu item
 
@@ -2219,8 +2230,8 @@ C Edit HVAC and system information after a display of current contents.
         CALL PHELPD('NCM HVAC help',nbhelp,'-',0,0,IER)
       ELSEIF(IHO.EQ.NCMSYS+2)THEN
         JC=0
-        CALL EASKABC('Choose option',' ','add','delete','cancel',
-     &    JC,nbhelp)
+        CALL EASKMBOX('Choose option',' ','add','delete','cancel',
+     &    ' ',' ',' ',' ',' ',JC,nbhelp)
         IF(JC.EQ.1)THEN
 
 C Add HVAC and system information
@@ -2287,16 +2298,17 @@ C Ask for system efficiency
 
 C Add corresponding cool generator if applicable
           IF(IBRUKLC(1,IHSYS).NE.-1111)THEN
- 456        CALL EASKATOG(' Choose cooling system',' ',SYSNAME(MPT-4),
+ 456        CALL EASKMBOX('Choose cooling system',' ',SYSNAME(MPT-4),
      &      SYSNAME(MPT-3),SYSNAME(MPT-2),SYSNAME(MPT-1),SYSNAME(MPT),
-     &      ' ',' ',ICGEF(NCMSYS),2)
+     &      ' ',' ',' ',ICGEF(NCMSYS),2)
             ICS=ICGEF(NCMSYS)
             IF(ICS.GE.6)GOTO 456
             IF(ICS.LE.3)THEN
-              CALL EASKABCD('Enter power rating of system (kW)',' ',
-     &          '0-100','101-500','501-750','751-3500',IADC,nbhelp)
-              CALL EASKAB('Is this system in the ECA list',
-     &          ' ','yes','no',IECA,nbhelp)
+              CALL EASKMBOX('Enter power rating of system (kW)',' ',
+     &          '0-100','101-500','501-750','751-3500',
+     &          ' ',' ',' ',' ',IADC,nbhelp)
+              CALL EASKMBOX('Is this system in the ECA list',
+     &          ' ','yes','no',' ',' ',' ',' ',' ',' ',IECA,nbhelp)
               ICNDX=8*(ICS-1)+2*(IADC-1)+IECA
             ELSE
 
@@ -2334,12 +2346,13 @@ C Define system adjustment inputs for ductwork and AHU
 C Ask if there is a supply/extract fun (for nat. ventil. cases only)
           helptopic='ncm_sys_extract'
           call gethelptext(helpinsub,helptopic,nbhelp)
-          CALL EASKABCD(' ','Zone ventilation type:',
+          CALL EASKMBOX(' ','Zone ventilation type:',
      &    'natural','centralised balanced',
-     &    'zone supply','zone extract',Ivent(ncmsys),nbhelp)
-          CALL EASKAB(' ',
+     &    'zone supply','zone extract',
+     &    ' ',' ',' ',' ',Ivent(ncmsys),nbhelp)
+          CALL EASKMBOX(' ',
      &     'Does system have local ventilation only units:',
-     &      'yes','no',IIN,nbhelp)
+     &      'yes','no',' ',' ',' ',' ',' ',' ',IIN,nbhelp)
           INatMech=IVENT(NCMSYS)+1
           IF(IIN.EQ.1)IVENT(NCMSYS)=10+IVENT(NCMSYS)
           if(INatMech.eq.1)then
@@ -2447,16 +2460,17 @@ C Edit corresponding cool generator if applicable.
         IF(IBRUKLC(1,IHSYS).NE.-1111)THEN
           helptopic='ncm_cooling_gen'
           call gethelptext(helpinsub,helptopic,nbhelp)
- 457      CALL EASKATOG(' Choose cooling system',' ',SYSNAME(MPT-4),
+ 457      CALL EASKMBOX(' Choose cooling system',' ',SYSNAME(MPT-4),
      &      SYSNAME(MPT-3),SYSNAME(MPT-2),SYSNAME(MPT-1),SYSNAME(MPT),
-     &      ' ',' ',ICGEF(IHO),nbhelp)
+     &      ' ',' ',' ',ICGEF(IHO),nbhelp)
           ICS=ICGEF(IHO)
           IF(ICS.GE.6)GOTO 457
           IF(ICS.LE.3)THEN
-            CALL EASKABCD('Enter power rating of system (kW)',' ',
-     &        '0-100','101-500','501-750','751-3500',IADC,1)
-            CALL EASKAB('Is this system in the ECA list',
-     &        ' ','yes','no',IECA,nbhelp)
+            CALL EASKMBOX('Enter power rating of system (kW)',' ',
+     &        '0-100','101-500','501-750','751-3500',
+     &        ' ',' ',' ',' ',IADC,1)
+            CALL EASKMBOX('Is this system in the ECA list',
+     &        ' ','yes','no',' ',' ',' ',' ',' ',' ',IECA,nbhelp)
             ICNDX=8*(ICS-1)+2*(IADC-1)+IECA
           ELSE
 
@@ -2492,8 +2506,9 @@ C Define system adjustment inputs for ductwork and AHU
 C Ask if there is a supply/extract fun (for nat. ventil. cases only)
           helptopic='ncm_vent_take_from'
           call gethelptext(helpinsub,helptopic,nbhelp)
-          CALL EASKAB('Zone ventilation type',
-     &    ' ','Natural','Machanical supply or extract',INatMech,nbhelp)
+          CALL EASKMBOX('Zone ventilation type',
+     &      ' ','Natural','Machanical supply or extract',
+     &      ' ',' ',' ',' ',' ',' ',INatMech,nbhelp)
           if(INatMech.eq.1)then
             SFPHS(IHO)=0.0
           elseif(INatMech.eq.2)then
@@ -2739,7 +2754,6 @@ C (it may be a mix of letters and numbers).
         D64='000000000000'
         CALL EASKS(UPRN,'Unique Property Reference Number (UPRN)?',
      &    '(<64 characters)',64,D64,'UPR Number',IER,nbhelp)
-        call tstamp('>','PRJ: edited UPRN')
         write(outs,'(2a)') 'Unique Property Reference Number (UPRN): ',
      &    UPRN(1:lnblnk(UPRN))
         call edisp(iuout,outs)
@@ -2754,7 +2768,6 @@ C Month and day of month of inspection.
 C Year for which the energy assessor inspected the building.
         CALL EASKI(Y_inspect,' ','Year of inspection?',
      &    1900,'W',2051,'W',2013,'year',IERI,nbhelp)
-        call tstamp('>','PRJ: edited date of inspection')
         write(outs,'(A,I2,A,I2,A,I4)') 'Inspection date: ',
      &    D_inspect,'  ',M_inspect,'  ',Y_inspect
         call edisp(iuout,outs)
@@ -2763,7 +2776,6 @@ C Year for which the energy assessor inspected the building.
 C Accreditation scheme
         CALL EASKS(Accr_Scheme,'Accreditation scheme ?',
      &    '(<64 characters)',64,D64,'accreditation scheme',IER,nbhelp)
-        call tstamp('>','PRJ: edited accreditation scheme')
         write(outs,'(2a)') 'Accreditation Scheme (E,W and NI only): ',
      &    Accr_Scheme(1:lnblnk(Accr_Scheme))
         call edisp(iuout,outs)
@@ -2774,7 +2786,6 @@ C Assessor registration number
         CALL EASKS(assessRegNumber,
      &    ' ','Assessor registration number?',
      &    64,D64,'assessor number',IER,nbhelp)
-        call tstamp('>','PRJ: edited assessor registration number')
         D64='<this item has not been described>'
         write(outs,'(2a)')
      &    'Assessor registration number (E,W and NI only):',
@@ -2786,7 +2797,6 @@ C Employer or trading name of energy assessor
         D64='Not a registered company.'
         CALL EASKS(empl_Trading_name,'Employer/trading name ?',
      &    '(<64 characters)',64,D64,'trading name',IER,nbhelp)
-        call tstamp('>','PRJ: edited employer/traing name')
         write(outs,'(2a)')
      &    'Employer/trading name of energy assessor: ',
      &    empl_Trading_name(1:lnblnk(empl_Trading_name))
@@ -2797,7 +2807,6 @@ C Employer/trading address of energy assessor
         D64='PO box in Basingstoke.'
         CALL EASKS(addr_empl_Trading,'Employer/trading address ?',
      &    '(<64 characters)',64,D64,'owner address',IER,nbhelp)
-        call tstamp('>','PRJ: edited employer/trading address')
         write(outs,'(2a)')
      &    'Employer/trading name of energy assessor: ',
      &    empl_Trading_name(1:lnblnk(empl_Trading_name))
@@ -2808,15 +2817,14 @@ C Related party disclosure
         D64='No related party.'
         CALL EASKS(party_disclosure,'Party disclosure ?',
      &    '(<64 characters)',64,D64,'owner city',IER,nbhelp)
-        call tstamp('>','PRJ: edited party disclosure')
         write(outs,'(2a)') 'Related party disclosure: ',
      &    party_disclosure(1:lnblnk(party_disclosure))
         call edisp(iuout,outs)
       ELSEIF(INO.EQ.15)THEN
 
 C Qualifications of the energy assessor (3 choices)
-        CALL EASKABC(' ','Energy assessor qualifications:',
-     &    'NOS3','NOS4','NOS5',IRT,nbhelp)
+        CALL EASKMBOX(' ','Energy assessor qualifications:',
+     &    'NOS3','NOS4','NOS5',' ',' ',' ',' ',' ',IRT,nbhelp)
         if(IRT.eq.1)then
           write(qualifications_assessor,'(A)') 'NOS3'
         elseif(IRT.eq.2)then
@@ -2824,7 +2832,6 @@ C Qualifications of the energy assessor (3 choices)
         elseif(IRT.eq.3)then
           write(qualifications_assessor,'(A)') 'NOS5'
         endif
-        call tstamp('>','PRJ: edited qualifications')
         write(outs,'(2a)') 'Qualifications of energy assessor:',
      &    qualifications_assessor(1:lnblnk(qualifications_assessor))
         call edisp(iuout,outs)
@@ -2834,7 +2841,6 @@ C Name of the energy assessor's insurance company
         D64='Not insured.'
         CALL EASKS(insurer_Company,'Name of insurance company ?',
      &    '(<64 characters)',64,D64,'insurance company',IER,nbhelp)
-        call tstamp('>','PRJ: edited insurer company name')
         write(outs,'(2a)') 'Insurance company: ',
      &    insurer_Company(1:lnblnk(insurer_Company))
         call edisp(iuout,outs)
@@ -2844,7 +2850,6 @@ C The energy assessor's insurance policy number
         D64='Not insured.'
         CALL EASKS(policyNumberInsurance,'Policy number ?',
      &    '(<64 characters)',64,D64,'policy number',IER,nbhelp)
-        call tstamp('>','PRJ: edited insurance policy number')
         write(outs,'(2a)') 'Insurance policy number: ',
      &    policyNumberInsurance(1:lnblnk(policyNumberInsurance))
         call edisp(iuout,outs)
@@ -2857,7 +2862,6 @@ C Insurance policy start date
      &    1,'W',12,'W',1,'month',IERI,nbhelp)
         CALL EASKI(S_Yinsur,' ','Insurance start (year)?',
      &    1900,'W',2051,'W',2013,'year',IERI,nbhelp)
-        call tstamp('>','PRJ: edited start date of insurance')
         write(outs,'(A,I2,A,I2,A,I4)') 'Insurance policy start date: ',
      &    S_Dinsur,'  ',S_Minsur,'  ',S_Yinsur
         call edisp(iuout,outs)
@@ -2870,7 +2874,6 @@ C Insurance policy expiry date - year
      &    1,'W',12,'W',1,'month',IERI,nbhelp)
         CALL EASKI(E_Yinsur,' ','Insurance expiry (year)?',
      &    1900,'W',2051,'W',2013,'year',IERI,nbhelp)
-        call tstamp('>','PRJ: edited expiry date of insurance')
         write(outs,'(A,I2,A,I2,A,I4)')'Insurance policy expiry date: ',
      &    E_Dinsur,'  ',E_Minsur,'  ',E_Yinsur
         call edisp(iuout,outs)
@@ -2879,15 +2882,15 @@ C Insurance policy expiry date - year
 C Insurance policy cover limit
         CALL EASKI(pi_limit,' ','Insurance cover limit?',
      &    1,'W',999999999,'W',500000,'cover limit',IERI,nbhelp)
-        call tstamp('>','PRJ: edited insurance cover limit')
         write(outs,'(A,I9)') 'Insurance policy cover limit: ',
      &    pi_limit
         call edisp(iuout,outs)
       ELSEIF(INO.EQ.27)THEN
 
 C Define the complexity level
-        CALL EASKABCD(' ','Complexity level ?',
-     &    'Undefined','Level 3','Level 4','Level 5',IW,nbhelp)
+        CALL EASKMBOX(' ','Complexity level ?',
+     &    'Undefined','Level 3','Level 4','Level 5',
+     &    ' ',' ',' ',' ',IW,nbhelp)
         if(IW.eq.1)then
           write(pjLevComplexity,'(A)') 'Undefined'
         elseif(IW.eq.2)then
@@ -2897,7 +2900,6 @@ C Define the complexity level
         elseif(IW.eq.4)then
           write(pjLevComplexity,'(A)') 'Level 5'
         endif
-        call tstamp('>','PRJ: edited complexity level')
         write(outs,'(2a)') 'Complexity level of the project: ',
      &    pjLevComplexity(1:lnblnk(pjLevComplexity))
         call edisp(iuout,outs)
@@ -2978,9 +2980,9 @@ C Enter Scottish building types if Scottish regs to be used
      &    40,MSBT,SBTYP,'Define building type',IER,nbhelp)
         IF(JSTR(1).EQ.0)GOTO 904
         IF(JSTR(1).LE.2.AND.JSTR(1).GE.1)ISBT=JSTR(1)
-        CALL EASKABC('Is the building built/designed following',
+        CALL EASKMBOX('Is the building built/designed following',
      &    'guidance in Accredited Construction Details (Scotland)',
-     &    'yes','no','Do not know',IW,nbhelp)
+     &    'yes','no','Do not know',' ',' ',' ',' ',' ',IW,nbhelp)
         IF(IW.EQ.1)THEN
           SBREF='YES'
         ELSE
@@ -2994,10 +2996,10 @@ C Enter building permeability
       CALL EASKR(BINF50,
      &  'Enter building permeability at 50Pa in m3/m2.hour',
      &  ' ',0.,'F',0.,'-',10.,'heat gen eff ',IER,nbhelp)
-      CALL EASKABC(
+      CALL EASKMBOX(
      &  'Is a compliance check to be performed on the building',
      &  'regarding air permeability value?',
-     &  'yes','no','Do not know',IW,nbhelp)
+     &  'yes','no','Do not know',' ',' ',' ',' ',' ',IW,nbhelp)
       IF(IW.EQ.2)THEN
         APCHK='NO '
       ELSE
@@ -3006,10 +3008,10 @@ C Enter building permeability
 
 C Use CIBSE data until SBEM approach to prediction of infiltration is
 C communicated by AECOM
-c      CALL EASKABC(
+c      CALL EASKMBOX(
 c     &  'Infer air changes per hour from permeability',
 c     &  'value using CIBSE data',
-c     &  'yes','no','Do not know',IW,nbhelp)
+c     &  'yes','no','Do not know',' ',' ',' ',' ',' ',IW,nbhelp)
       IW=1
       IF(IW.EQ.1)THEN
         ICIBSE1=1 ; ICIBSE2=1 ; ICIBSE3=1 ! initialise
@@ -7526,7 +7528,6 @@ C First run simulation
         LCFGF=LCFGF_T
       ENDIF
       aut=' silent'
-      call tstamp('>','PRJ: beginning simulation with param set.')
       doit = ' '
       call isunix(unixok)
       if(unixok)then
@@ -9628,8 +9629,8 @@ C It finally generate BRUKL input document and other SBEM reports.
      &       thbrpercent,uavtotal(MCOM)
       common/rpath/path
       character DOIT*248
-      character limgpth*24,ldocpth*24,lcfgroot*32,lpath*72
-      character path*72,lupath*72
+      character lcfgroot*32,lpath*72
+      character path*72
       character fs*1, col*1
       character BATCHFL*72
 
@@ -10632,16 +10633,11 @@ C If not UNIX, first determine the path of the current model folder
       else
         lcfgroot=cfgroot
         lpath=path
-        lupath=upath
-        limgpth=imgpth
-        ldocpth=docpth
-        ibrowse = 0
         iincomp=ncomp
         iincon=ncon
 
 C Pass info on the path of current model to c code.
-        call curproject(lcfgroot,lpath,lupath,limgpth,ldocpth,
-     &    ibrowse,iincomp,iincon)
+        call curproject(lcfgroot,lpath,iincomp,iincon)
 
         fs = char(92)
         col = char(58)
@@ -10700,10 +10696,9 @@ C Generates the UK Energy Performance input file.
       common/rpath/path
       character DOIT*248
       character limgpth*24,ldocpth*24,lcfgroot*32,lpath*72
-      character path*72,lupath*72
+      character path*72
       character fs*1, col*1, quote*1
       CHARACTER EPCBATFL*72,EPCINIFL*72
-      integer ibrowse
       LOGICAL UNIXOK
 
       CHARACTER EPCFL*72
@@ -15395,16 +15390,13 @@ C If not UNIX, first determine the path of the current model folder
       else
         lcfgroot=cfgroot
         lpath=path
-        lupath=upath
         limgpth=imgpth
         ldocpth=docpth
-        ibrowse = 0
         iincomp=ncomp
         iincon=ncon
 
 C Determine the path of current model
-        call curproject(lcfgroot,lpath,lupath,limgpth,ldocpth,
-     &    ibrowse,iincomp,iincon)
+        call curproject(lcfgroot,lpath,iincomp,iincon)
         fs = char(92)
         col = char(58)
         quote = char(34)
@@ -15530,10 +15522,10 @@ C Produce help text for the menu.
           call phelpd(head,nbhelp,'-',0,0,IER)
           menulogical=.false.
         elseif(INO.EQ.1)THEN
-          call easkabcd(' ',
+          call easkmbox(' ',
      &      'Has the ductwork been leakage tested ?',
      &      'No use default leakage','Class B','Class A',
-     &      'Class Worse than A',IansLeakage,nbhelp)
+     &      'Class Worse than A',' ',' ',' ',' ',IansLeakage,nbhelp)
           if(IansLeakage.eq.1)then
             write(ductwork(isystCurrent)(1:24),'(a)')
      &           'No, use default leakage'

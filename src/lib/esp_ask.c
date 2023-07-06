@@ -533,7 +533,10 @@ void askdialog248_(char *q1, char *reply,long int *ier, int lenq1, int lenrep)
      GTK_STOCK_CANCEL, GTK_RESPONSE_CANCEL,NULL);
 
    label = gtk_label_new (question_local);
+   gtk_label_set_line_wrap(GTK_LABEL (label), TRUE);
+
    entry = gtk_text_view_new ();  /* create a multi-line text editing area */
+   
    gtk_text_view_set_wrap_mode ( GTK_TEXT_VIEW (entry), GTK_WRAP_WORD );       /* warp the words */
    gtk_text_view_set_cursor_visible ( GTK_TEXT_VIEW (entry), TRUE );       /* show insertion point */
    buffer = gtk_text_view_get_buffer (GTK_TEXT_VIEW (entry));  /* create a text buffer */

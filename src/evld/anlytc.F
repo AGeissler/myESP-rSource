@@ -109,7 +109,8 @@ C External boundary.
         else
           MsgT='External boundary options:'
           MsgC='cancel'
-          CALL EASKABC(' ',MsgT,'convective','adiabatic',MsgC,IW,0)
+          CALL EASKMBOX(' ',MsgT,'convective','adiabatic',MsgC,
+     &      ' ',' ',' ',' ',' ',IW,0)
 
 C Convective boundary.
           IF(IW.EQ.1)THEN
@@ -133,7 +134,8 @@ C Internal boundary.
           MsgT='Internal boundary options:'
           MsgB='constant surface temp.'
           MsgC='cancel'
-          CALL EASKABC(' ',MsgT,'convective',MsgB,MsgC,IW,0)
+          CALL EASKMBOX(' ',MsgT,'convective',MsgB,MsgC,
+     &      ' ',' ',' ',' ',' ',IW,0)
 
 C Convective boundary.
           IF(IW.EQ.1)THEN
@@ -246,8 +248,8 @@ C Compare results.
       ELSEIF(INO.EQ.MITEM-3)THEN
         if(VldOK)then
           H(1)='Select the destination for the comparison.'
-          CALL EASKABC(' ','Output to:',
-     &                'screen','file',' ',IW,1)
+          CALL EASKMBOX(' ','Output to:',
+     &      'screen','file',' ',' ',' ',' ',' ',' ',IW,1)
           IOutS=IFIL+20
           FileS='Simulation.out'
           CALL EFOPSEQ(IOutS,FileS,1,IER)
@@ -373,8 +375,8 @@ C Monitoring location.
         WRITE(Msg,'(A)')'Monitoring location options:'
         H(1)='This defines an arbitrary location where the results will'
         H(2)='be monitored as the simulation proceeds.'
-        CALL EASKABC(' ',Msg,'external surface','internal surface',
-     &              'intra-construction',IW,2)
+        CALL EASKMBOX(' ',Msg,'external surface','internal surface',
+     &    'intra-construction',' ',' ',' ',' ',' ',IW,2)
         IF(IW.EQ.1)THEN
           MonNod=1
         ELSEIF(IW.EQ.2)THEN

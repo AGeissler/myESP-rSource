@@ -120,8 +120,9 @@ C List one or more classifications.
         CALL EPICKS(INPIC,ICLSSEL,' ','Which classes to list:',
      &        36,NCLASS,CLSSEL,'Primative classes',IER,nbhelp)
         IF(INPIC.EQ.0)GOTO 40
-        CALL EASKABC(' Reporting to:',' ',
-     &    'text feedback','summary file','cancel',irpt,nbhelp)
+        CALL EASKMBOX(' Reporting to:',' ',
+     &    'text feedback','summary file','cancel',
+     &    ' ',' ',' ',' ',' ',irpt,nbhelp)
         if(irpt.eq.1)then
           itu = iuout
         elseif(irpt.eq.2)then
@@ -445,8 +446,9 @@ C If there is room add a note about its origin.
         ELSEIF(INO.EQ.NITMS-4)THEN
 
 C Add or delete and material from db.
-          CALL EASKABC(' ','Options:','delete material',
-     &      'insert material','cancel',IW,nbhelp)
+          CALL EASKMBOX(' ','Options:','delete material',
+     &      'insert material','cancel',' ',' ',' ',' ',' ',
+     &      IW,nbhelp)
           IF(IW.EQ.1)THEN
 
 C Ask the user which one to remove then loop through materials and
@@ -1568,14 +1570,14 @@ C Whih LCA display ; elementary step or major step ?
 C Ask which step. Message slightly different in interactive mode and  when exporting 
 C the results to a file
       if (Ichanel.ne.iuout)then
-        CALL EASKABCD(' ', 'Do you want to add in output file :',
-     &                ' An elementary phase ',' A major phase ',
-     &                ' Whole life cycle ',' Cancel ',IWB,nbhelp)
+        CALL EASKMBOX(' ', 'Do you want to add in output file :',
+     &    'An elementary phase','A major phase',
+     &    'Whole life cycle','Cancel',' ',' ',' ',' ',IWB,nbhelp)
         IF(IWB.EQ.4) GOTO 666 
       else
-        CALL EASKABCD(' ', 'Do you want to analyse:',
-     &                ' An elementary phase ',' A major phase ',
-     &                ' Whole life cycle ',' Cancel ',IWB,nbhelp)
+        CALL EASKMBOX(' ','Do you want to analyse:',
+     &    'An elementary phase','A major phase',
+     &    'Whole life cycle','Cancel',' ',' ',' ',' ',IWB,nbhelp)
       endif
       CALL edisp(Ichanel,' ')
 
@@ -1611,9 +1613,9 @@ C If a Major stage was selected
 C ask which major stage to analyse
         helptopic='eco_LCA_calculations'
         call gethelptext(helpinsub,helptopic,nbhelp)
-        call EASKABCD('LCA impacts:',' Which major stage ? ',
-     &     ' Building construction ',' Building utilisation ',
-     &     ' Building elimination ', ' CANCEL ',IW,nbhelp)
+        call EASKMBOX('LCA impacts:','Which major stage ?',
+     &    'Building construction','Building utilisation',
+     &    'Building elimination', 'CANCEL',' ',' ',' ',' ',IW,nbhelp)
         if (IW.EQ.4) goto 666
 
 C Cancel LCA calculation if analyse type does not exist
@@ -2568,18 +2570,18 @@ C Whih LCA display ; elementary step or major step ?
 C ask which step only in the interactive mode and not when exporting 
 C the results to a file
       if (Ichanel.ne.iuout)then
-        CALL EASKABCD(' ', 'Do you want to add in output file :',
-     &                ' An elementary phase ',' A major phase ',
-     &                ' Whole life cycle ',' Cancel ',IWB,nbhelp)
+        CALL EASKMBOX(' ', 'Do you want to add in output file :',
+     &    'An elementary phase','A major phase',
+     &    'Whole life cycle','Cancel',' ',' ',' ',' ',IWB,nbhelp)
         IF(IWBB.EQ.4) then
           GOTO 666 
         ELSE
           IWB=IWBB
         ENDIF
       else
-        CALL EASKABCD(' ', 'Do you want to analyse:',
-     &                ' An elementary phase ',' A major phase ',
-     &                ' Whole life cycle ',' Cancel ',IWB,nbhelp)
+        CALL EASKMBOX(' ','Do you want to analyse:',
+     &    'An elementary phase','A major phase',
+     &    'Whole life cycle','Cancel',' ',' ',' ',' ',IWB,nbhelp)
       endif
       CALL edisp(Ichanel,' ')
 
@@ -2637,9 +2639,10 @@ C If Selection of a Major stage, then ask for which one
       ELSEIF (IWB .EQ.2) THEN
         helptopic='eco_LCA_results'
         call gethelptext(helpinsub,helptopic,nbhelp)
-        CALL EASKABCD('LCA impacts:',' Which major stage ? ',
-     &     ' Building construction ',' Building maintenance ',
-     &     ' Building deconstruction ', ' CANCEL ',IW,nbhelp)
+        CALL EASKMBOX('LCA impacts:','Which major stage ?',
+     &    'Building construction','Building maintenance',
+     &    'Building deconstruction','CANCEL',
+     &    ' ',' ',' ',' ',IW,nbhelp)
         IF (IW.EQ.4) GOTO 666
 
 C Cancel LCA calculation if analyse type does not exist

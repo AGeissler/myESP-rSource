@@ -240,7 +240,7 @@ C and no MRT sensors.
           LVIEW(ICOMP)='UNKNOWN'
           IVF(ICOMP)=0
           call usrmsg(' updating model to remove mrt...',' ','-')
-          CALL EMKCFG('-',IER)
+          CALL EMKCFG('s',IER)
           cfgmod=.false.
           call usrmsg(' updating model to remove mrt...done',' ','-')
           return
@@ -259,11 +259,11 @@ C Test the error return from ermrt call. If 3 then info in vwf
 C file is out of date.
         CALL ERMRT(ITRC,ITRU,IUF,LVIEW(ICOMP),ICOMP,IER)
         if(ier.eq.3)then
-          call easkabc(
+          call easkmbox(
      &      'Found difference in number of zone surfaces and MRT',
      &      'surfaces. Options:','Re-make area weighted',
      &      'Re-make via ray-tracing calcs','dereferemce',
-     &      IW,nbhelp)
+     &      ' ',' ',' ',' ',' ',IW,nbhelp)
           if(IW.eq.1.or.IW.eq.2)then
             CALL ZINFO(icomp,ZOA,ZVOL,'q')
             NS=NZSUR(icomp)
@@ -289,7 +289,7 @@ C file is out of date.
             LVIEW(ICOMP)='UNKNOWN'
             IVF(ICOMP)=0
             call usrmsg(' updating model to remove mrt...',' ','-')
-            CALL EMKCFG('-',IER)
+            CALL EMKCFG('s',IER)
             cfgmod=.false.
             call usrmsg(' updating model to remove mrt...done',' ','-')
           endif
@@ -351,7 +351,7 @@ C            NCUB(ICOMP)=0
       endif
       if(cfgmod)then
         call usrmsg(' updating model to include mrt...',' ','-')
-        CALL EMKCFG('-',IER)
+        CALL EMKCFG('s',IER)
         cfgmod=.false.
         call usrmsg(' updating model to include mrt...done',' ','-')
       endif
@@ -574,7 +574,8 @@ C offer the user a chance to re-edit if not close to one.
         IF(ABS(A).LT.0.9.OR.ABS(A).GT.1.002)then
           write(outs,'(A,F8.5,A)')'The total is ',A,
      &      ' and should be close to zero!'
-          call easkab(outs,'Options:','re-edit','cancel',IW,nbhelp)
+          call easkmbox(outs,'Options:','re-edit','cancel',
+     &      ' ',' ',' ',' ',' ',' ',IW,nbhelp)
           if(iw.eq.1)then
             A=0.0  ! clear the accumulator
             goto 31
@@ -586,9 +587,9 @@ C offer the user a chance to re-edit if not close to one.
 C View factor calculations - offer choice of default viewfactors or
 C call to MRT. Recover information on areas in the current zone for
 C use in area weighted computation.
-        call easkabc(' ','Viewfactor calculation options:',
+        call easkmbox(' ','Viewfactor calculation options:',
      &    'wrea-weighted','ray-tracing','cancel',
-     &    IW,nbhelp)
+     &    ' ',' ',' ',' ',' ',IW,nbhelp)
         if(IW.eq.1)then
 
 C << Rewrite logic to use G7 common blocks rather than call zinfo. >>
@@ -645,9 +646,9 @@ C an offset from prj start position.
           helptopic='pause_for_calcs'
           call gethelptext(helpinsub,helptopic,nbhelp)
           CALL PHELPD('espvwf running',nbhelp,'-',0,0,IER)
-          CALL EASKABC(' ','Post calculation options:',
+          CALL EASKMBOX(' ','Post calculation options:',
      &      'use new data','revert (no view factors)','cancel',
-     &      irt,nbhelp)
+     &      ' ',' ',' ',' ',' ',irt,nbhelp)
           if(irt.eq.1)then
 
 C Test the error return from ermrt call.
@@ -666,7 +667,7 @@ C Test the error return from ermrt call.
               call edisp(itru,outs)
               CALL EFDELET(IUF,ISTAT)
             endif
-            CALL EMKCFG('-',IER)
+            CALL EMKCFG('s',IER)
           endif
         endif
       ELSEIF(IVERT.GT.MHEAD.AND.IVERT.LT.(MVERT-MCTL+1))THEN
@@ -773,8 +774,8 @@ C Now display the menu.
         write(outs,'(a,3F8.3)')'Dimensions:',DXC(ICUB),DYC(ICUB),
      &    DZC(ICUB)
         call edisp(iuout,outs)
-        call easkabc('Origin choices:',' ','edit sensor origin',
-     &    'use zone vertex','abort',ibopt,nbhelp)
+        call easkmbox('Origin choices:',' ','edit sensor origin',
+     &    'use zone vertex','abort',' ',' ',' ',' ',' ',ibopt,nbhelp)
         if(ibopt.eq.1)then
           IF(IVERT.EQ.1)THEN
             WRITE(MSG,'(a,I3)')'For sensor ',ICUB

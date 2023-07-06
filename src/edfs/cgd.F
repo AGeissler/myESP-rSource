@@ -742,6 +742,7 @@ C Transform to pixel coords.
      &            (I.eq.2.and.J.eq.NJ).or.(I.eq.NI.and.J.eq.2)) then
                 call eline(iixs,iiys,1)  ! solid line
                 call eline(iix,iiy,0)
+                call forceflush()
               else
                 if(greyok)then
                   iicol=nifgrey-3
@@ -758,6 +759,7 @@ C Draw the dotted line after casting to local variable.
                   iicol=0
                   call winscl('-',iicol)
                 endif
+                call forceflush()
               endif
             endif
  20       continue

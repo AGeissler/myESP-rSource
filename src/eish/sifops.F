@@ -128,9 +128,9 @@ C import from ascii file to fill it.
       if(ims.eq.0)then
         helptopic='respond_to_empty_shd'
         call gethelptext(helpinsub,helptopic,nbhelp)
-        call easkabc('Zone shading & insolation file is empty!',
+        call easkmbox('Zone shading & insolation file is empty!',
      &    'Options:','import ascii','return & calculate','cancel',
-     &    iw,nbhelp)
+     &    ' ',' ',' ',' ',' ',iw,nbhelp)
         if(iw.eq.1)then
 
 C An empty shading file so setup some intial information. User is assumed
@@ -183,8 +183,8 @@ C Present options menu and generate help text for these dialogs.
       helptopic='ish_export_list_shading'
       call gethelptext(helpinsub,helptopic,nbhelp)
       ipick=1
-      call easkatog(' ','Options:','list','edit','export','import',
-     &              'cancel',' ',' ',ipick,nbhelp)
+      call easkmbox(' ','Options:','list','edit','export','import',
+     &              'cancel',' ',' ',' ',ipick,nbhelp)
 
 C Listing requested. If to file then write higher resolution.
   77  continue

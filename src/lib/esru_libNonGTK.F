@@ -32,7 +32,7 @@ C  EPICKS:  Allows several selections to be made from an array of strings.
 C  MENUATOL Single item menu pick with items passed via parameters.
 C  ASKOK:   Generic yes/no/default facility returning OK as a logical parameter.
 C  EASKOK:   Generic yes/no facility returning OK as a logical parameter.
-C  EASKATOG: Generic A/B/C... choice facility returning 1-7 according
+C  EASKMBOX: Generic A/B/C...H choice facility returning 1-8 according
 C           to which of the choices has been chosen.
 
 C  EMPAGE:  Low level screen control for paging based on terminal model.
@@ -429,7 +429,7 @@ C use prior/existing real value.
         ENDIF
       ENDIF
 
-C Decode the string into an real.
+C Decode the string into a real.
       read(WORD,*,ERR=89)rvalt
       CALL REL16STR(RVALT,STR1,IW1,IER)
       IF(IER.NE.0)THEN
@@ -714,7 +714,7 @@ C looping, creating infinite output. Stop the program.
 
 C ******************** EASKF ********************
 C Asks the user for a file name.
-C Parameters are as defined in EASKI.
+C Parameters are similar to those defined in EASKI.
 
       SUBROUTINE EASKF(FILEN,PROMP1,PROMP2,ISTRW,DSTR,ERMSG,IER,NHELP)
 
@@ -2151,7 +2151,7 @@ C Clear IVALS and INPICK.
 C Initial menu entry setup.
    92 IVERT=-3
 
-C Generate text for title (SEL).
+C Generate text for title.
     3 lne=max(1,LNBLNK(ERMSG))
       IF(lne.GT.ISTRW)WRITE(SEL,'(1X,A)')ERMSG(1:ISTRW)
       IF(lne.LE.ISTRW)WRITE(SEL,'(1X,A)')ERMSG(1:lne)
@@ -2357,8 +2357,8 @@ C Not one of the legal menu choices.
 
 C ******************** MENUATOL ********************
 C Presents a list of up to a dozen items to select via a
-C menu format but with the text for each selection passed (as in
-C easkatog). It is assumed that the user will make one selection
+C menu format but with the text for each selection passed
+C as a separate string. It is assumed that the user will make one selection
 C only and if nothing selected it returns an index of zero.
 C
 C It is passed a prompt, menu title, menu width (mw characters),
@@ -2639,15 +2639,15 @@ C Querry yes or no or default.
         IWI=1
         if (DEFLT) then
           if(DOK)then
-            call EASKATOG(MSG1,MSG2,'yes (d)','no',' ',' ',' ',
-     &      ' ',' ',IWI,newnbhelp)
+            call EASKMBOX(MSG1,MSG2,'yes (d)','no',' ',' ',' ',
+     &      ' ',' ',' ',IWI,newnbhelp)
           else
-            call EASKATOG(MSG1,MSG2,'yes','no (d)',' ',' ',' ',
-     &      ' ',' ',IWI,newnbhelp)
+            call EASKMBOX(MSG1,MSG2,'yes','no (d)',' ',' ',' ',
+     &      ' ',' ',' ',IWI,newnbhelp)
           endif
         else
-          call EASKATOG(MSG1,MSG2,'yes','no',' ',' ',' ',
-     &      ' ',' ',IWI,newnbhelp)
+          call EASKMBOX(MSG1,MSG2,'yes','no',' ',' ',' ',
+     &      ' ',' ',' ',IWI,newnbhelp)
         endif
         IF(IWI.eq.1)THEN
           OK=.TRUE.
@@ -2741,8 +2741,8 @@ C Save off current menu font and if mono-space set to proportional.
 
 C Querry yes or no.
         IWI=1
-        call EASKATOG(MSG1,MSG2,'yes','no',' ',' ',' ',
-     &    ' ',' ',IWI,newnbhelp)
+        call EASKMBOX(MSG1,MSG2,'yes','no',' ',' ',' ',
+     &    ' ',' ',' ',IWI,newnbhelp)
         IF(IWI.eq.1)THEN
           OK=.TRUE.
         ELSEIF(IWI.eq.2)THEN
@@ -2773,24 +2773,23 @@ C looping, creating infinite output. Stop the program.
 
       END  ! of EASKOK
 
-C ******************** EASKATOG ********************
-C EASKATOG Generic choice of 3 - 7 items returning 1 to 7 according to
+
+C ******************** EASKMBOX ********************
+C Generic multi choice of 3 - 8 items returning 1 to 8 according to
 C which of the choices has been chosen.
 C MSG1 and MSG2 are prompts (upto 124 char) to be printed.
-C AOPT, BOPT & COPT, DOPT, EOPT, FOPT, GOPT are the text strings describing
-C the options available, (these should not be too long).  If all optons
-C are filled with text then all presneted.  If and option (beginning
-C with FOPT and working backwards is a single blank space then fewer
-C options are presented.
-C In the case of a graphic menu the c function abcdefbox will be called
+C AOPT, BOPT etc are the text strings describing available
+C options, (these should not be too long). Logic works backwards
+C to find the teminal non-blank option.
+C In the case of a graphic menu the c function openmultibox will be called
 C and the messages will appear in a dialogue box at the bottom of the
 C graphic window.
 
-      SUBROUTINE EASKATOG(MSG1,MSG2,AOPT,BOPT,COPT,DOPT,EOPT,FOPT,GOPT,
-     &  IWHICH,NHELP)
+      SUBROUTINE EASKMBOX(MSG1,MSG2,AOPT,BOPT,COPT,DOPT,EOPT,FOPT,GOPT,
+     &  HOPT,IWHICH,NHELP)
 
 C Parameters passed.
-      CHARACTER*(*) MSG1,MSG2,AOPT,BOPT,COPT,DOPT,EOPT,FOPT,GOPT
+      CHARACTER*(*) MSG1,MSG2,AOPT,BOPT,COPT,DOPT,EOPT,FOPT,GOPT,HOPT
       integer IWHICH ! selection passed back
       integer NHELP  ! number of help lines to display
 
@@ -2799,10 +2798,13 @@ C Parameters passed.
       integer ifs,itfs,imfs
       COMMON/GFONT/IFS,ITFS,IMFS
       CHARACTER ANS*2,MSG3*248
-      integer lastfont,iuse
+      integer lastfont,iuse,imaxwid
+      dimension choices(10)
+      character choices*42
+      character itypes*10 
 
 C See how many items there are to present.
-      nopt=7
+      nopt=8
       la=max(1,LNBLNK(AOPT))
       lb=max(1,LNBLNK(BOPT))
       lc=max(1,LNBLNK(COPT))
@@ -2810,12 +2812,23 @@ C See how many items there are to present.
       le=max(1,LNBLNK(EOPT))
       lf=max(1,LNBLNK(FOPT))
       lg=max(1,LNBLNK(GOPT))
+      lh=max(1,LNBLNK(HOPT))
       LN2=max(1,LNBLNK(MSG2))
+      if(lh.le.1)nopt=7
       if(lg.le.1)nopt=6
       if(lf.le.1)nopt=5
       if(le.le.1)nopt=4
       if(ld.le.1)nopt=3
       if(lc.le.1)nopt=2
+      imaxwid=0
+      if(la.gt.imaxwid)imaxwid =la
+      if(lb.gt.imaxwid)imaxwid =lb
+      if(lc.gt.imaxwid)imaxwid =lc
+      if(ld.gt.imaxwid)imaxwid =ld
+      if(le.gt.imaxwid)imaxwid =le
+      if(lf.gt.imaxwid)imaxwid =lf
+      if(lg.gt.imaxwid)imaxwid =lg
+      if(lh.gt.imaxwid)imaxwid =lh
 
 C Print out message according to the combination of strings passed.
 C Setup a single line menu to pick from via EASKS.
@@ -2844,6 +2857,11 @@ C Setup a single line menu to pick from via EASKS.
      &    ' a) ',AOPT(1:la),' b) ',BOPT(1:lb),' c) ',COPT(1:lc),
      &    ' e) ',DOPT(1:ld),' f) ',EOPT(1:le),' g) ',FOPT(1:lf),
      &    ' i) ',GOPT(1:lg),' ? '
+        elseif(nopt.eq.8)then
+          WRITE(MSG3,'(19a)')' ',MSG2(1:LN2),
+     &    ' a) ',AOPT(1:la),' b) ',BOPT(1:lb),' c) ',COPT(1:lc),
+     &    ' e) ',DOPT(1:ld),' f) ',EOPT(1:le),' g) ',FOPT(1:lf),
+     &    ' i) ',GOPT(1:lg),' j) ',HOPT(1:lh),' ? '
         endif
 
 C Generate custom help text.
@@ -2866,6 +2884,8 @@ C Generate custom help text.
           IWHICH=6
         ELSEIF(ANS(1:1).EQ.'i'.OR.ANS(1:1).EQ.'I')THEN
           IWHICH=7
+        ELSEIF(ANS(1:1).EQ.'j'.OR.ANS(1:1).EQ.'J')THEN
+          IWHICH=8
         ELSEIF(ANS(1:1).EQ.'h'.OR.ANS(1:1).EQ.'H'.or.
      &         ANS(1:1).eq.'?')THEN
 
@@ -2891,9 +2911,32 @@ C Save off current menu font and if mono-space set to proportional.
           call userfonts(IUSE,ITFS,IMFS)
         endif
 
-C Querry which one.
-   19   CALL abcdefbox(MSG1,MSG2,AOPT,BOPT,COPT,DOPT,EOPT,FOPT,GOPT,IW)
-        IF(IW.EQ.8)THEN
+C Copy the choice strings into an array to pass to upd_box_choices.
+        do ic=1,10
+          choices(ic) = '  '
+        enddo
+
+        do ic=1,nopt
+          if(ic.eq.1) write(choices(ic),'(a)') AOPT(1:la) 
+          if(ic.eq.2) write(choices(ic),'(a)') BOPT(1:lb) 
+          if(ic.eq.3) write(choices(ic),'(a)') COPT(1:lc) 
+          if(ic.eq.4) write(choices(ic),'(a)') DOPT(1:ld) 
+          if(ic.eq.5) write(choices(ic),'(a)') EOPT(1:le) 
+          if(ic.eq.6) write(choices(ic),'(a)') FOPT(1:lf) 
+          if(ic.eq.7) write(choices(ic),'(a)') GOPT(1:lg) 
+          if(ic.eq.8) write(choices(ic),'(a)') HOPT(1:lh) 
+        enddo
+        iw=imaxwid
+        write(itypes,9)  ! For future options in upd_box_choices.
+   9    format(10('-'))
+
+C Pass choices array into C data structures.
+   19   call upd_box_choices(choices,itypes,nopt,iw)
+
+C Querry which one. Note: openmultibox returns a 9 if help selected.
+        call openmultibox(MSG1,MSG2,IW)
+
+        IF(IW.EQ.9)THEN
 
 C A probable request for help has been received. Print out the lines
 C of help supplied and then provide the prompt again.
@@ -2910,11 +2953,12 @@ C of help supplied and then provide the prompt again.
 
 C If an EOF is detected when reading from IUIN, we often get infinite
 C looping, creating infinite output. Stop the program.
-  666 write(IUOUT,*)'EASKATOG: EOF detected, error in input commands.'
+  666 write(IUOUT,*)'EASKMBOX: EOF detected, error in input commands.'
       call pauses(1)
       STOP
 
-      END  ! of EASKATOG
+      END  ! of EASKMBOX
+
 
 C ******************** EMPAGE ********************
 C Low level screen control for paging based on terminal MMOD.
@@ -2982,7 +3026,7 @@ C If scrolling text display then clear it.
         ELSE
           call winfin
         ENDIF
-      ENDIF      
+      ENDIF
       goto 999
       
 C If an EOF is detected when reading from IUIN, we often get infinite
@@ -3056,7 +3100,7 @@ C menuchw is the initial request for menu width (in characters)
       SUBROUTINE EPAGES(MODEL,IIN,IOUT,iappwi,iapphi,iappx,iappy,
      &  menuchw,TITLE,lntitle)
 
-C Parameters
+C Parameters.
       integer lntitle
       character (len=lntitle) :: TITLE
 
@@ -3207,7 +3251,7 @@ C to define std upper right position, IRPX,IRPY not used.
         CALL EWMENU(NAME,ITEMS,NITMS,impx,impy,irpx,irpy,INO)
         return
       else
-        IF(INO.GE.1)GO TO 20
+        IF(INO.GE.-1)GO TO 20
 
 C Print out the menu. If text is > 36 char or there are few items
 C then restrict to a single column. If less than 36 characters
@@ -3297,9 +3341,6 @@ C items in call to evwmenu.
       character itypes*40
 
 C To conform to Fortran -> C passing conventions on 32bit and 64bit
-C computers cast the parameters passed into ewmenu to local variables
-C of either integer or integer*8 to match the long int variables in
-C the C function evwmenu.  Do reverse cast after return from evwmenu.
 #ifdef OSI
       integer iw,irpxe,irpye,inoe,ipflg,iuresp  ! for use with evwmenu
       integer impx,impy
@@ -3462,7 +3503,6 @@ C the ipixwthll length.
       numul=(ipixwthll-ipix)/int(ivfwul)
       numulcount=numul
       lnul=LEN(ulstring)
-      write(6,*) ipix,numul
       do loop=1,lnul  ! loop through characters
         if(loop.eq.1.or.loop.eq.2)then
           write(ulstring(loop:loop),'(a)') ' '  ! 2 leading blanks
@@ -3817,11 +3857,11 @@ C Use logic similar to that in egdisp.
 C If trace channel etc then just write to file.
         WRITE(ITRU,'(A)',iostat=ios,err=1)MSG(1:lnm)
       ELSEIF(MMOD.EQ.8.AND.ITRU.EQ.IUOUT)THEN
-          LINE=LIMTTY-LIMIT
-          LIMIT=LIMIT-1
-          if (LIMIT.lt.1) LIMIT=1
-          call espad(limit,limtty,line)
-          CALL egdisp(WWMSG,LINE)
+        LINE=LIMTTY-LIMIT
+        LIMIT=LIMIT-1
+        if (LIMIT.lt.1) LIMIT=1
+        call espad(limit,limtty,line)
+        CALL egdisp(WWMSG,LINE)
       ELSEIF(MMOD.EQ.-6)THEN
 
 C Write this to error channel if user specified channel = ICOUT
@@ -3913,11 +3953,11 @@ C Use logic similar to that in egdisp.
 C If trace channel etc then just write to file with no trim.
         WRITE(ITRU,'(A)',iostat=ios,err=1)MSG
       ELSEIF(MMOD.EQ.8.AND.ITRU.EQ.IUOUT)THEN
-          LINE=LIMTTY-LIMIT
-          LIMIT=LIMIT-1
-          if (LIMIT.lt.1) LIMIT=1
-          call espad(limit,limtty,line)
-          CALL egdisp(WWMSG,LINE)
+        LINE=LIMTTY-LIMIT
+        LIMIT=LIMIT-1
+        if (LIMIT.lt.1) LIMIT=1
+        call espad(limit,limtty,line)
+        CALL egdisp(WWMSG,LINE)
       ELSEIF(MMOD.EQ.-6)THEN
 
 C Write this to error channel if user specified channel = ICOUT
@@ -4009,11 +4049,11 @@ C Use logic similar to that in egdisp but add 2 whitespace.
 C If trace channel etc then just write to file.
         WRITE(ITRU,'(A)',iostat=ios,err=1)MSG(1:lnm)
       ELSEIF(MMOD.EQ.8.AND.ITRU.EQ.IUOUT)THEN
-          LINE=LIMTTY-LIMIT
-          LIMIT=LIMIT-1
-          if (LIMIT.lt.1) LIMIT=1
-          call espad(limit,limtty,line)
-          CALL egdisp(WWMSG,LINE)
+        LINE=LIMTTY-LIMIT
+        LIMIT=LIMIT-1
+        if (LIMIT.lt.1) LIMIT=1
+        call espad(limit,limtty,line)
+        CALL egdisp(WWMSG,LINE)
       ELSEIF(MMOD.EQ.-6)THEN
 
 C Write this to error channel if user specified channel = ICOUT
@@ -4120,9 +4160,9 @@ C the users home folder (a place we know we can write to).
           call edisp(iuout,'  ')  ! echo a black line
           write(outs,'(A,A)') 'The current path is: ',path
           call edisp(iuout,outs)
-          CALL EASKABC('You are working in a remote  folder.',
-     &      'Options:','use remote  folder','use local folder',
-     &      'cancel',IW,nbhelp)
+          CALL EASKMBOX('You are working in a remote folder.',
+     &      'Options:','use remote folder','use local folder',
+     &      'cancel',' ',' ',' ',' ',' ',IW,nbhelp)
           if(iw.eq.1)then
             LN=max(1,lnblnk(cfgroot))
             write(sstr,'(4a)') path(1:lnblnk(path)),fs,
@@ -4258,9 +4298,9 @@ C account whether we are browsing the model or own it.
           call edisp(iuout,'  ')  ! echo a black line
           write(outs,'(A,A)') 'The current path is: ',path
           call edisp(iuout,outs)
-          CALL EASKABC('You are working in a remote model folder.',
+          CALL EASKMBOX('You are working in a remote model folder.',
      &      'Options:','use remote model folder','use local folder',
-     &      'cancel',IW,nbhelp)
+     &      'cancel',' ',' ',' ',' ',' ',IW,nbhelp)
           if(iw.eq.1)then
             LN=max(1,lnblnk(cfgroot))
             write(sstr,'(4a)') path(1:lnblnk(path)),fs,
@@ -4365,7 +4405,6 @@ C Set coordinates IBX and IBY to zero (so parameter not needed).
       lsmn=MIN0(lnblnk(msg),67)
       lsmn=max(1,LSMN)
       write(outs,'(a,a)',iostat=ios,err=1)'HELP: ',msg(1:lsmn)
-      call tstamp('>',outs)
       ILEN=NHELP
       call HPAGE('create',ILEN,MIFULL,MFULL,IST,IPM,MPM,IPFLG)
       IF(MMOD.EQ.8)THEN
@@ -4957,8 +4996,9 @@ C Select one of the current zones and then a surface.
         H(1)='In plan view you can change the viewing parameters;'
         H(2)='the elevations are primarily for model checking.'
         IW=1
-        CALL EASKABCD(' ','View options:','perspective',
-     &    'plan','south elevation','west elevation',IW,2)
+        CALL EASKMBOX(' ','View options:','perspective',
+     &    'plan','south elevation','west elevation',
+     &    ' ',' ',' ',' ',IW,2)
         if(IW-1.ne.ITPPSW)then
           do_redraw =.true.
           MODIFYVIEW=.TRUE.
@@ -4998,10 +5038,10 @@ C Allow this selection by text string.
 
 C Highlight control.
         h(1)='Display of surfaces can be limited to surfaces which'
-        h(1)='match the given filter. '
+        h(2)='match the given filter. '
         IW=1
-        CALL EASKATOG(' ','Highlight options:','normal','composition',
-     &    'opaque/transp.','partial attrib.','cancel',' ',' ',IW,2)
+        CALL EASKMBOX(' ','Highlight options:','normal','composition',
+     &    'opaque/transp.','partial attrib.','cancel',' ',' ',' ',IW,2)
         ITHLS=IW-1
         if(ITHLS.eq.0)then
           MODIFYVIEW=.true.
@@ -5016,8 +5056,9 @@ C Highlight control.
           ITHLZ=ISEL
           MODIFYVIEW=.TRUE.
         elseif(ITHLS.eq.2)then
-          CALL EASKABC(' ','Options:','highlight opaque',
-     &    'highlight transparent','cancel',IW,2)
+          CALL EASKMBOX(' ','Options:','highlight opaque',
+     &    'highlight transparent','cancel',
+     &    ' ',' ',' ',' ',' ',IW,2)
           ITHLZ=IW
           MODIFYVIEW=.TRUE.
         elseif(ITHLS.eq.3)then
@@ -5129,8 +5170,9 @@ C trap this condition.
         if(path.ne.'./'.and.path.ne.' ')then
           write(outs,'(A,A)') 'The current path is: ',path
           call edisp(iuout,outs)
-          CALL EASKAB('You are working in a remote folder.',
-     &    'Options:','use remote folder','use home folder',IW,0)
+          CALL EASKMBOX('You are working in a remote folder.',
+     &      'Options:','use remote folder','use home folder',
+     &      ' ',' ',' ',' ',' ',' ',IW,0)
         endif
 
 C Get file name.

@@ -95,9 +95,11 @@ C elsewhere.
 
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
 
-C Session log file (for errors etc.).
-      character isfile*72
-      common/logs/isfile
+C Attributes of the session log file.
+      logical ieopened     ! Has session file been started.
+      integer iecount      ! Does it hold error messages.
+      character iefile*72  ! The name of the session file.
+      common/logs/ieopened,iecount,iefile
 
       COMMON/CLMDT1/CLMLOC
       COMMON/CLMSET/ICYEAR,ICDNGH,CLAT,CLONG
@@ -439,10 +441,10 @@ C Close ASCIIfile.
       CALL ERPFREE(IUNIT,ISTAT)
       RETURN
 
- 1001 call edisp(ieout,outs)
+ 1001 call to_session(outs)
       WRITE(outs,775)ISTAT
   775 FORMAT(' Error ',I7,' writing weather database metadata')
-      call edisp(ieout,outs)
+      call to_session(outs)
       CALL ERPFREE(IUNIT,ISTAT)
       RETURN
 
@@ -880,10 +882,10 @@ C time difference and ask which algorithm to use.
 C Export weather data to ASCII file (with similar name).
             helptopic='korea_met_conversion'
             call gethelptext(helpinsub,helptopic,nbhelp)
-            call easkabc
-     &       (' ','Diffuse estimation model options:',
-     &       'Muneer','Maxwell','Erbs Klein & Duffie',
-     &       IDIFF,nbhelp)
+            call easkmbox(
+     &        ' ','Diffuse estimation model options:',
+     &        'Muneer','Maxwell','Erbs Klein & Duffie',
+     &        ' ',' ',' ',' ',' ',IDIFF,nbhelp)
 
             helptopic='clm_import_param'
 
@@ -1569,10 +1571,10 @@ C Set the radiation flag to Global horizontal
 C Export weather data to ASCII file (with similar name).
       helptopic='korea_met_conversion'
       call gethelptext(helpinsub,helptopic,nbhelp)
-      call easkabc
-     &  ('Available models to approximate diffuse:',
+      call easkmbox(
+     &  'Available models to approximate diffuse:',
      &  ' ','Muneer','Maxwell','Erbs Klein & Duffie',
-     &  IDIFF,nbhelp)
+     &  ' ',' ',' ',' ',' ',IDIFF,nbhelp)
 
 C Set the global variable iapprox_diff to tell underlying calculation
 C method which equation set to use.
@@ -1971,6 +1973,7 @@ C from a list so might as well exit the program.
           if(unixok)then  ! do not bother if DOS
             write(6,*)outs248(1:lnblnk(outs248))
           endif
+          call to_session('Exited because of input file.')
           close(ieout)
           CALL ERPFREE(ieout,ISTAT)
           CALL EPAGEND
@@ -2108,6 +2111,8 @@ C Take into account the location of the weather file.
 C If unable to open the weather database, wait 3 seconds then
 C abort.
       if (IER.ne.0) then
+        call to_session
+     &    ('Not enough parameters/columns in weather file.')
         close(ieout)
         CALL ERPFREE(ieout,ISTAT)
         call edisp(iuout,

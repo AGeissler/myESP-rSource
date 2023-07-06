@@ -1381,9 +1381,9 @@ C Internal mass assumed to be two subsequent surfaces in this zone back-to-back
 
 C Ask the user what to do.
              call edisp248(iuout,LOUTSTR,100)
-             CALL EASKABC('Options for the surface: ',' ',
+             CALL EASKMBOX('Options for the surface: ',' ',
      &         'set as back-to-back mass','set as boundary surface',
-     &         'ignore it',IW,nbhelp)
+     &         'ignore it',' ',' ',' ',' ',' ',IW,nbhelp)
              if (IW.eq.1) then
                nbmass=nbmass+1
                msurname(nbmass)=anysurname(NS)
@@ -2864,4 +2864,76 @@ C Clear predefined object variables.
       return
       end
 
+C ------------------- whichmulti
+C whichmulti returns zone index matching an associated name from the
+C mzmeta common block.
+      subroutine whichmulti(name,icomp_base,ioffset,icomp_match)
+#include "building.h"
+#include "predefined.h"
 
+      character name*12
+      integer icomp_base  ! starting zone index
+      integer ioffset     ! index within the mzcount list
+      integer icomp_match ! zone index within model list
+
+C Example, if the passed in name matches the 1st mzcount item ioffset
+C will be zero and if icomp_base is 12 then icomp_match is also 12.
+
+C Meta information for multi-zone predefined items.
+      logical iszone       ! set true if working with mzitem
+      integer mzcount      ! zones embedded in an item
+      character mzname*12  ! a multi-zone zone name
+      character mzfill*6   ! a multi-zone fill name
+      character mzdoc*32   ! a multi-zone menu-doc entry
+C Related to mass surfaces:
+      character mzmzname*12      ! the multi-zone name a mass is in
+      integer mzmznameindex      ! matching new model zone
+      character mzothmzname*12   ! the other multi-zone zone name
+      integer mzothmznameindex   ! matching newmodel zone
+      character mzothermsname*12 ! the other multi-zone surface name
+C Relatd to boundary surfaces:
+      character mzbsurzname*12   ! the multi-zone name for boundary surf
+      integer mzbsurznameindex   ! the matching new model zone
+      character mzbsurothzname*12! the other multi-zone zone name for BS
+      integer mzbsurothznameindex ! the matching new model other zone for BS
+      character mzbsurothsname*12! the other multi-zone surface name for BS
+C Related to visual entities.
+      character mzviszname*12    ! a multi-zone name for a visual
+      integer mzvisznameindex    ! the matching new model zone
+      common/mzmeta/iszone,mzcount,mzname(8),mzfill(8),mzdoc(8),
+     &   mzmzname(MOMS),mzmznameindex(MOMS),mzothmzname(MOMS),
+     &   mzothmznameindex(MOMS),mzothermsname(MOMS),
+     &   mzbsurzname(MOBS),mzbsurznameindex(MOBS),
+     &   mzbsurothzname(MOBS),mzbsurothznameindex(MOBS),
+     &   mzbsurothsname(MOBS),mzviszname(MOMB),mzvisznameindex(MOMB)
+
+      integer loop,lnname,lnmname
+
+      ioffset=-1      ! values if no match
+      icomp_match=-1
+
+C If no *zone in item return with -1 to signal no match
+      if(mzcount.eq.0)then
+        return
+      elseif(mzcount.eq.1)then
+        lnname=lnblnk(name)
+        lnmname=lnblnk(mzname(1))
+        if(name(1:lnname).eq.mzname(1)(1:lnmname))then
+          ioffset=0
+          icomp_match=icomp_base
+          return
+        endif
+      else
+        ioffset=0
+        icomp_match=0
+        do loop = 1,mzcount
+          lnname=lnblnk(name)
+          lnmname=lnblnk(mzname(loop))
+          if(name(1:lnname).eq.mzname(loop)(1:lnmname))then
+            ioffset=loop-1
+            icomp_match=icomp_base+ioffset
+            return
+          endif
+        enddo
+      endif
+      end

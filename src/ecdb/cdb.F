@@ -95,11 +95,11 @@ C Path to problem and command line file (if any).
       common/rcmd/LCMDFL
       common/appw/iappw,iappx,iappy
 
-C Session log file (for errors etc.)
-      character iefile*72
-      common/logs/iefile
-
       common/OUTIN/IUOUT,IUIN,IEOUT
+      logical ieopened     ! Has session file been started.
+      integer iecount      ! Does it hold error messages.
+      character iefile*72  ! The name of the session file.
+      common/logs/ieopened,iecount,iefile
       COMMON/GFONT/IFS,ITFS,IMFS
       common/FILEP/IFIL
       COMMON/ERRS/ISTAT,IREC

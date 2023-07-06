@@ -9,7 +9,7 @@
 
 *item common3dv azalt_limits
 'There are some limits that should not be exceeded. If you'
-'answer no, the module will terminate. '
+'answer no, the module will terminate.'
 *enditem
 
 *item bsimsel bsimtype_selection

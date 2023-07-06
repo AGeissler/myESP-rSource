@@ -151,7 +151,6 @@ C List contents of database.
           WRITE(outs,'(I7,I7,2X,A40)')I,NCG(I),PDBDESC(I)
           call edisp(iuout,outs)
   158   CONTINUE
-        call tstamp('>','PRO: list database contents')
       ELSEIF(INO.EQ.(MVERT-3))THEN
 
 C Insert a profile.
@@ -218,7 +217,6 @@ C Set the LPRFDB common block string via call to findwhichdbpath.
           endif
           CALL EPMENRC
           CALL USRMSG(' ',' ','-')
-          call tstamp('>','PRO: insert a new db item')
           GOTO 77
         endif
       ELSEIF(INO.EQ.(MVERT-4))THEN
@@ -231,7 +229,6 @@ C If there are enough items allow paging control via EKPAGE.
       ELSEIF(INO.GT.MHEAD.AND.INO.LT.(MVERT-MCTL+1))THEN
 
 C Edit profile identified by KEYIND.
-        call tstamp('>','PRO: edit database entry')
         CALL KEYIND(MVERT,INO,IFOC,IO)
         CALL EPMENSV
         asciupdate=.false.
@@ -604,9 +601,9 @@ C not exactly the same as another start time.
       if(ieri.eq.-3) return
 
       if(IFOC.lt.NCG(IPR).and.IEF.gt.ICGS1(IPR,IFOC+1))then
-        CALL EASKAB(' Finish time overlaps next event...',
-     &     ' ','respecify finish','shift next event start',
-     &     IW,nbhelp)
+        CALL EASKMBOX(' Finish time overlaps next event...',
+     &    ' ','respecify finish','shift next event start',
+     &    ' ',' ',' ',' ',' ',' ',IW,nbhelp)
         if(IW.eq.1)goto 12
         shiftnext=.true.
       endif

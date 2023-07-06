@@ -392,7 +392,6 @@ C Set folder separator (fs) to \ or / as required.
       endif
 
 C Creation of a new zone, begin with length of zone name.
-      call tstamp('>','PRJ: new zone')
       lnzname(ICOMP)=lnblnk(zname(ICOMP))
 
 C << Unix vs Windows needs to be updated >>
@@ -3426,10 +3425,10 @@ C If there are no zones and no *start_zone found return.
         icomp=0      ! reset because it will be incrmented later
 
 C Ask if user wants to specify globally or on a zone-by-zone basis.
-        call EASKATOG('Define zone use:',' ',
+        call EASKMBOX('Define zone use:',' ',
      &    'spec zone-by-zone','assume all empty',
      &    'assume cellular offices','assume open plan offices',
-     &    'assume coridors',' ',' ',IW,nbhelp)
+     &    'assume coridors',' ',' ',' ',IW,nbhelp)
         if(IW.eq.2)then
           IGU=1  ! assume all empty
         elseif(IW.eq.3)then

@@ -1736,9 +1736,10 @@ C of the corners of the surface.
 
 C Present options COG, upper edge, lower edge or manual edit.
 C In the future remember the COG/upper/lower/manual decision.
-          CALL EASKABCD('Position options:',' ',
+          CALL EASKMBOX('Position options:',' ',
      &      'surface COG','surface upper edge',
-     &      'surface lower edge','manual edit',IW,nbhelp)
+     &      'surface lower edge','manual edit',
+     &      ' ',' ',' ',' ',IW,nbhelp)
           if(iw.eq.1)then
             cx=SURCOG(iz,iso,1)
             cy=SURCOG(iz,iso,2)
@@ -1976,10 +1977,11 @@ C of the corners of the surface.
           cheight=ZMAX
 
 C Present options COG, upper edge, lower edge or manual edit.
-          CALL EASKABCD(
+          CALL EASKMBOX(
      &      'Position options (node will be 1m away from surface:',
      &      ' ','surface COG','surface upper edge',
-     &      'surface lower edge','manual edit',IW,nbhelp)
+     &      'surface lower edge','manual edit',
+     &      ' ',' ',' ',' ',IW,nbhelp)
           if(iw.eq.1)then
             cx=x3+SURCOG(iz,iso,1)
             cy=y3+SURCOG(iz,iso,2)
@@ -2352,8 +2354,8 @@ C Link nodes and zones.
      &      ' is currently linked to: ',NDNAM(ICAAS(IZ))
           helptopic='link_node_to_zone'
           call gethelptext(helpinsub,helptopic,nbhelp)
-          CALL EASKABC(outs,' ','accept',
-     &      'select another','free link',iacc,nbhelp)
+          CALL EASKMBOX(outs,' ','accept','select another',
+     &      'free link',' ',' ',' ',' ',' ',iacc,nbhelp)
           if(iacc.eq.1)then
             goto 33
           elseif(iacc.eq.2)then
@@ -2368,7 +2370,8 @@ C Link nodes and zones.
           call gethelptext(helpinsub,helptopic,nbhelp)
           write(outs,'(A,A)') zname(IZ)(1:lnzname(IZ)),
      &                        ' has no mass flow node.'
-          CALL EASKAB(outs,' ','accept','select a node',iacc,nbhelp)
+          CALL EASKMBOX(outs,' ','accept','select a node',
+     &      ' ',' ',' ',' ',' ',' ',iacc,nbhelp)
           if(iacc.eq.1)then
             ICAAS(IZ)=0
           elseif(iacc.eq.2)then
@@ -2384,7 +2387,7 @@ C Update the configuration file so that connections and mass flow
 C network are know.
       call edisp(iuout,' ')
       call edisp(iuout,' Updating configuration mass flow links...')
-      CALL EMKCFG('-',IER)
+      CALL EMKCFG('s',IER)
 
       return
       end   ! of scan_flow_use
@@ -2926,8 +2929,8 @@ C A grill inlet could be a volume flow rate component or a conduit.
           helptopic='grill_inlet_attributes'
           call gethelptext(helpinsub,helptopic,nbhelp)
           write(outs,'(2a)')'Grill inlet for ',zsn(1:lnzsn)
- 242      CALL EASKAB(outs,'Choices:','constant volume flow (30)',
-     &      'or conduit (210)',iacc,nbhelp)
+ 242      CALL EASKMBOX(outs,'Choices:','constant volume flow (30)',
+     &      'or conduit (210)',' ',' ',' ',' ',' ',' ',iacc,nbhelp)
           if(iacc.eq.1)then
 
 C     SUPCMP(ICMP,1) - fluid type (1=air, 2=water)
@@ -3046,10 +3049,11 @@ C Reality checks here...
 C Define connection with adjacent zone. As in INLET the other zone is
 C positive and this zone is negative. Check if linkatpartition is still
 C zero. If so mark this connection and update the other surface as well.
-            call easkab(
+            call easkmbox(
      &        'A mechanical inlet can be from the adjacent zone or',
      &        'another zone (i.e. a mixing box zone). Choose:',
-     &        'adjacent zone','nominate another zone node',iacc,nbhelp)
+     &        'adjacent zone','nominate another zone node',
+     &        ' ',' ',' ',' ',' ',' ',iacc,nbhelp)
             if(iacc.eq.1.and.linkatpartition(loop).eq.0)then
               NEG=ICAAS(IC1(loop))  ! the current zone node
               POS=ICAAS(IC2(loop))  ! the other zone is positive
@@ -3249,10 +3253,11 @@ C Reality checks here...
 C Define connection with adjacent zone. As this is an extract
 C the current zone is positive. Check if linkatpartition is still
 C zero. If so mark this connection and update the other surface as well.
-            call easkab(
+            call easkmbox(
      &        'A mechanical extract can be to the adjacent zone or',
      &        'another zone (i.e. a mixing box zone). Choose:',
-     &        'adjacent zone','nominate another zone node',iacc,nbhelp)
+     &        'adjacent zone','nominate another zone node',
+     &        ' ',' ',' ',' ',' ',' ',iacc,nbhelp)
             if(iacc.eq.1.and.linkatpartition(loop).eq.0)then
               POS=ICAAS(IC1(loop))  ! the current zone node is positive
               NEG=ICAAS(IC2(loop)) ! the other zone
@@ -3472,10 +3477,11 @@ C Reality checks here...
             call draw_flow_link(xc,yc,zc,
      &        HNOD(NEG,1),HNOD(NEG,2),HNOD(NEG,3),ccol)
           elseif(ICT(loop).eq.3)then
-            call easkab(
+            call easkmbox(
      &        'A duct can be to the adjacent zone or',
      &        'another zone (i.e. a mixing box zone). Choose:',
-     &        'adjacent zone','nominate another zone node',iacc,nbhelp)
+     &        'adjacent zone','nominate another zone node',
+     &        ' ',' ',' ',' ',' ',' ',iiacc,nbhelp)
             if(iacc.eq.1.and.linkatpartition(loop).eq.0)then
               POS=ICAAS(IC1(loop))  ! the current zone node is positive
               NEG=ICAAS(IC2(loop)) ! the other zone
@@ -5646,7 +5652,7 @@ C        call edisp(iuout,TMP(1:lnblnk(TMP)))
 C Save the control file. 
         ICTLF=IFIL+1
         CALL CTLWRT(ICTLF,IER)
-        CALL EMKCFG('-',IER)
+        CALL EMKCFG('s',IER)
       endif
       return
       end
@@ -5834,19 +5840,20 @@ C Debug.
       elseif(INO.EQ.nitems-3)then
         goto 3
       elseif(INO.EQ.1)then
-        CALL EASKABCD(
+        CALL EASKMBOX(
      &  'If surfaces have CRACK attribures the width can be set with',
      &  'default 2mm or adapted. Options:','use default',
-     &  'set a global preference','confirm each','cancel',IW,nbhelp)
+     &  'set a global preference','confirm each','cancel',
+     &  ' ',' ',' ',' ',IW,nbhelp)
         if(iw.eq.1)then
           igusercrack=0; usecrackinmm=2.0; usecrackexmm=2.0
         elseif(iw.eq.2)then
           igusercrack=1
-          CALL EASKABCD(
+          CALL EASKMBOX(
      &      'Crack component width can approximage a tight or',
      &      'poorly fitting INTERNAL connections. Options:',
      &      '0.5mm width','1mm width','2mm width','3mm width',
-     &      IW,nbhelp)
+     &      ' ',' ',' ',' ',IW,nbhelp)
           if(iw.eq.1)then
             usecrackinmm=0.5
           elseif(iw.eq.2)then
@@ -5856,11 +5863,11 @@ C Debug.
           elseif(iw.eq.4)then
             usecrackinmm=3.0
           endif
-          CALL EASKABCD(
+          CALL EASKMBOX(
      &      'Crack component width can approximage a tight or',
      &      'poorly fitting FACADE connections. Options:',
      &      '0.5mm width','1mm width','2mm width','3mm width',
-     &      IW,nbhelp)
+     &      ' ',' ',' ',' ',IW,nbhelp)
           if(iw.eq.1)then
             usecrackexmm=0.5
           elseif(iw.eq.2)then
@@ -5881,11 +5888,11 @@ C Debug.
      &    igusercrack,usecrackinmm,usecrackexmm
         call edisp(iuout,outs)
       elseif(INO.EQ.2)then
-        CALL EASKABCD(
+        CALL EASKMBOX(
      &    'Crack component width can approximage a tight or',
      &    'poorly fitting INTERNAL connections. Options:',
      &    '0.5mm width','1mm width','2mm width','3mm width',
-     &    IW,nbhelp)
+     &    ' ',' ',' ',' ',IW,nbhelp)
         if(iw.eq.1)then
           usecrackinmm=0.5
         elseif(iw.eq.2)then
@@ -5896,11 +5903,11 @@ C Debug.
           usecrackinmm=3.0
         endif
       elseif(INO.EQ.3)then
-        CALL EASKABCD(
+        CALL EASKMBOX(
      &    'Crack component width can approximage a tight or',
      &    'poorly fitting FACADE connections. Options:',
      &    '0.5mm width','1mm width','2mm width','3mm width',
-     &    IW,nbhelp)
+     &    ' ',' ',' ',' ',IW,nbhelp)
         if(iw.eq.1)then
           usecrackexmm=0.5
         elseif(iw.eq.2)then
@@ -5911,10 +5918,11 @@ C Debug.
           usecrackexmm=3.0
         endif
       elseif(INO.EQ.4)then
-        CALL EASKABCD(
+        CALL EASKMBOX(
      &    'Surfaces with door UNDERCUTS the heights can be assigned',
      &    'default 15mm or adapted. Options:','use default',
-     &    'set a global preference','confirm each','cancel',IW,nbhelp)
+     &    'set a global preference','confirm each','cancel',
+     &    ' ',' ',' ',' ',IW,nbhelp)
         if(iw.eq.1)then
           iguserdooruc=0; userdoorucinmm=0.015; userdoorucexmm=0.01
         elseif(iw.eq.2)then
@@ -5952,10 +5960,11 @@ C Debug.
      &    'Height of FACADE door undercuts (m)?',
      &    0.,'W',0.,'-',1.,'undercut (m) in comp',IER,nbhelp)
       elseif(INO.EQ.7)then
-        CALL EASKABCD(
+        CALL EASKMBOX(
      & 'Surfaces with SASH windows the opening heights can be assigned', 
      & 'default 12.5% or height or adapted. Options:','use default',
-     & 'set a global preference','confirm each','cancel',IW,nbhelp)
+     & 'set a global preference','confirm each','cancel',
+     & ' ',' ',' ',' ',IW,nbhelp)
         if(iw.eq.1)then
           igusersash=0; usersashmm=0.15
         elseif(iw.eq.2)then
@@ -5985,10 +5994,11 @@ C Debug.
      &  'and bottom the same amount. Initial height of opening (m)?',
      &  0.,'W',0.,'-',1.,'sash (m) in comp',IER,nbhelp)
       elseif(INO.EQ.9)then
-        CALL EASKABCD(
+        CALL EASKMBOX(
      &'Surface openings represented as orifices are usually a fraction',
      &'of the surface area. Options:','use default (25%)',
-     &'global preference','confirm each','cancel',IW,nbhelp)
+     &'global preference','confirm each','cancel',
+     &' ',' ',' ',' ',IW,nbhelp)
         if(iw.eq.1)then
           iguseropenpc=0; useropenwinpc=0.25
         elseif(iw.eq.2)then
@@ -6017,10 +6027,10 @@ C Debug.
      &    'a fraction of the surface area. Initial fraction?',
      &     0.,'W',0.,'-',1.,'orifice fraction',IER,nbhelp)
       elseif(INO.EQ.11)then
-        CALL EASKABCD(
+        CALL EASKMBOX(
      &  'Surfaces with trickle vents are usually standard widths',
      &  'Options:','use default','set a global preference',
-     &  'confirm each','cancel',IW,nbhelp)
+     &  'confirm each','cancel',' ',' ',' ',' ',IW,nbhelp)
         if(iw.eq.1)then
           igusertrickle=0
         elseif(iw.eq.2)then
@@ -6049,10 +6059,11 @@ C Debug.
      &    'Initial height assumption (m)?',
      &    0.,'W',0.,'-',1.,'trickle height',IER,nbhelp)
       elseif(INO.EQ.13)then
-        CALL EASKABCD(
+        CALL EASKMBOX(
      & 'Orifice components use discharge factors which can be assigned', 
      & 'defaults  or adapted/confirmed. Options:','use default',
-     & 'set global preferences','confirm each','cancel',IW,nbhelp)
+     & 'set global preferences','confirm each','cancel',
+     & ' ',' ',' ',' ',IW,nbhelp)
         if(iw.eq.1)then
           iguserdischfact=0;userdfdooruc=0.7; userdfdoor=0.6
           userdfwin=0.5; userdftrickle=0.34; userdfbi=0.5
@@ -6119,10 +6130,11 @@ C Debug.
      &    0.,'W',0.,'-',0.5,'bi-directional df',IER,nbhelp)
       endif
       if(INO.EQ.19)then
-        CALL EASKABCD(
+        CALL EASKMBOX(
      & 'Bidriection components which are ajar can be assigned', 
      & 'default widths  or adapted/confirmed. Options:','use default',
-     & 'set global preferences','confirm each','cancel',IW,nbhelp)
+     & 'set global preferences','confirm each','cancel',
+     & ' ',' ',' ',' ',IW,nbhelp)
         if(iw.eq.1)then
           iguserajar=0; userinajar=0.1; userexajar=0.1
         elseif(iw.eq.2)then

@@ -174,8 +174,9 @@ C IGET = 6  Resultant temperature.
         ITITLE = 'Mean Radiant temperature'
       elseif(INO.EQ.11)then
         jsur=1
-        CALL EASKATOG('Surface temperatures:',' ',
-     &    'T inside','T outside','T node',' ',' ',' ',' ',jsur,nbhelp)
+        CALL EASKMBOX('Surface temperatures:',' ',
+     &    'T inside','T outside','T node',' ',' ',' ',' ',' ',jsur,
+     &    nbhelp)
         zlist=.true.
         if(jsur.eq.1)then
           IGET=4
@@ -205,9 +206,9 @@ C IGET = 6  Resultant temperature.
         endif
       elseif(INO.EQ.12)then
         jsur=1
-        CALL EASKATOG('Surface fluxes:',' ',
+        CALL EASKMBOX('Surface fluxes:',' ',
      &    'Convection int','Convection ext','Total convec int',
-     &    'Solar abs ext','Solar abs int',' ',' ',jsur,nbhelp)
+     &    'Solar abs ext','Solar abs int',' ',' ',' ',jsur,nbhelp)
         zlist=.true.
         if(jsur.eq.1)then
           if(ISAVE.lt.4.and.izver.lt.2)then
@@ -291,15 +292,16 @@ C IGET = 12  Ventilation
 C IGET = 15  Casual gains  << ? expand, perhaps to total and perhaps by type >>
         zlist=.true.
         IGET=15
-        CALL EASKAB(' ','Casual gains:',
-     &    'Convective ','Radiant ',ICRCG,nbhelp)
+        CALL EASKMBOX(' ','Casual gains:',
+     &    'Convective ','Radiant ',
+     &    ' ',' ',' ',' ',' ',' ',ICRCG,nbhelp)
         if(ICRCG.eq.1)ITITLE = 'Casual gain convective(w)'
         if(ICRCG.eq.2)ITITLE = 'Casual gain radiant (w)'
       elseif(INO.EQ.22)then
         jclm=1
-        CALL EASKATOG('Weather parameter:',' ',
+        CALL EASKMBOX('Weather parameter:',' ',
      &    'solar direct','solar diffuse','wind speed','RH',' ',
-     &    ' ',' ',jclm,nbhelp)
+     &    ' ',' ',' ',jclm,nbhelp)
         zlist=.false.
         if(jclm.eq.1)then
           IGET=19
@@ -320,8 +322,8 @@ C IGET = 23  Comfort, ask which index and initialise.
         zlist=.true.
         IGET=23
         ICI=1
-        CALL EASKATOG('Comfort indices:',' ',
-     &    'PMV','PMV (set)','PPD',' ',' ',' ',' ',ICI,nbhelp)
+        CALL EASKMBOX('Comfort indices:',' ',
+     &    'PMV','PMV (set)','PPD',' ',' ',' ',' ',' ',ICI,nbhelp)
         if(ICI.eq.1)ITITLE = 'Comfort PMV'
         if(ICI.eq.2)ITITLE = 'Comfort PMV (set)'
         if(ICI.eq.3)ITITLE = 'Comfort PPD'

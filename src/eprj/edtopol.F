@@ -161,7 +161,6 @@ C the connections list.
      &  'Checking zone surfaces against master list ...',' ','-')
       call ckcurmatch(prob,iprob)
       if(prob)then
-        call tstamp('>','PRJ: found topology incinsistent')
         if(IPROB.gt.10)then
           write(outs,*) IPROB,' inconsistencies found!'
           call edisp(iuout,outs)
@@ -318,7 +317,6 @@ C Swop the pause length.
       ELSEIF(INO.EQ.MITEM-3)THEN
 
 C List connections.
-        call tstamp('>','CFG: list topology')
         WRITE(outs,'(A,I3)')' Number of connections = ',NCON
         CALL EDISP(iuout,' ')
         CALL EDISP(iuout,outs)
@@ -335,7 +333,6 @@ C CACC is the tolerance between two vertices. Can be user adjusted.
 C ANGCC angle tolerance between surface normals
 C IACC is the number of corners beyond tolerance which are allowed,
 C DACC is the line degree tolerance for setting of corners.
-        call tstamp('>','CFG: enter tolerances')
         helptopic='surface_corner_detect'
         call gethelptext(helpinsub,helptopic,nbhelp)
         CALL EASKR(CACC,' ',' Tolerance (metres) between vertices? ',
@@ -355,7 +352,6 @@ C DACC is the line degree tolerance for setting of corners.
       ELSEIF(INO.EQ.5)THEN
 
 C Flip logic for identical.
-        call tstamp('>','CFG: toggle identical')
         if(M1SKP)then
           M1SKP=.false.
         else
@@ -364,7 +360,6 @@ C Flip logic for identical.
       ELSEIF(INO.EQ.6)THEN
 
 C Flip logic for constant.
-        call tstamp('>','CFG: toggle constant')
         if(M2SKP)then
           M2SKP=.false.
         else
@@ -373,7 +368,6 @@ C Flip logic for constant.
       ELSEIF(INO.EQ.7)THEN
 
 C Flip logic for partitions.
-        call tstamp('>','CFG: toggle partitions')
         if(M3SKP)then
           M3SKP=.false.
         else
@@ -385,7 +379,6 @@ C Flip logic for partitions.
       ELSEIF(INO.EQ.8)THEN
 
 C Flip logic for ground.
-        call tstamp('>','CFG: toggle ground')
         if(M4SKP)then
           M4SKP=.false.
         else
@@ -395,7 +388,6 @@ C Flip logic for ground.
       ELSEIF(INO.EQ.9)THEN
 
 C Flip logic for adiabatic.
-        call tstamp('>','CFG: toggle adiabatic')
         if(M5SKP)then
           M5SKP=.false.
         else
@@ -404,7 +396,6 @@ C Flip logic for adiabatic.
       ELSEIF(INO.EQ.10)THEN
 
 C Flip logic for case of BASESIMP or no match found.
-        call tstamp('>','CFG: toggle no match found')
         if(M6SKP)then
           M6SKP=.false.
         else
@@ -413,7 +404,6 @@ C Flip logic for case of BASESIMP or no match found.
       ELSEIF(INO.EQ.11)THEN
 
 C Flip logic for case of CEN 13791 partition or no match found.
-        call tstamp('>','CFG: toggle no match found')
         if(M7SKP)then
           M7SKP=.false.
         else
@@ -422,7 +412,6 @@ C Flip logic for case of CEN 13791 partition or no match found.
       ELSEIF(INO.EQ.12)THEN
 
 C Flip logic for case of UNKNOWN or no match found.
-        call tstamp('>','CFG: toggle no match found')
         if(M0SKP)then
           M0SKP=.false.
         else
@@ -431,7 +420,6 @@ C Flip logic for case of UNKNOWN or no match found.
       ELSEIF(INO.EQ.13)THEN
       
 C Flip logic for back-to-back within zone.
-        call tstamp('>','CFG: toggle back-to-back')
         if(M8SKP)then
           M8SKP=.false.
         else
@@ -537,9 +525,7 @@ C If there are enough items allow paging control via EKPAGE.
         ELSEIF(IVERT.GT.MHEAD.AND.IVERT.LT.(MVERT-MCTL+1))THEN
 
 C Edit item identified by KEYIND after reporting on current values.
-          call tstamp('>','PRJ: enter topology edit')
           CALL KEYIND(MVERT,IVERT,IFOC,IO)
-
           CALL EDISP(iuout,' ')
           CALL EDISP(iuout,' Current connection description...')
           CALL CONXINF(1,0,CXSTR)
@@ -564,8 +550,8 @@ C Clear contiguity.
       ELSEIF(INO.EQ.16)THEN
         helptopic='boundary_clear_all'
         call gethelptext(helpinsub,helptopic,nbhelp)
-        CALL EASKABC(' ','Topology options:','clear all',
-     &   'clear subset.','cancel',IRT,nbhelp)
+        CALL EASKMBOX(' ','Topology options:','clear all',
+     &   'clear subset.','cancel',' ',' ',' ',' ',' ',IRT,nbhelp)
         if(IRT.eq.1)then
           call easkok(' ','Clear all contiguity data?',
      &           OK,nbhelp)
@@ -574,7 +560,6 @@ C Clear contiguity.
 C Clear the connections list by scanning each zone geometry
 C file in turn, re-establish nzsur. Once there is a new list
 C of connections re-establish the IZSTOCN array.
-          call tstamp('>','CFG: clearing contiguity')
           call edisp(iuout,'Clearing contiguity... ')
           ICC=0
           do 87 IZ=1,NCOMP
@@ -603,12 +588,10 @@ C attributes.
           call easkok(' ','Recover surface attribute data?',
      &      OK,9)
           if(OK)then
-            call tstamp('>','CFG: import surface attributes')
             call ESACON(M1SKP,M2SKP,M4SKP,M5SKP,M6SKP,M7SKP,IER)
             MODIFYVIEW=.TRUE.
           endif
         elseif(IRT.eq.2)then
-          call tstamp('>','CFG: clearing partial contiguity')
           call easkok(' ','Clear items marked SIMILAR?',M1OK,
      &      nbhelp)
           call easkok(' ','Clear items marked CONSTANT?',M2OK,
@@ -674,7 +657,6 @@ C attributes.
           call easkok(' ','Recover surface attribute data?',
      &             OK,nbhelp)
           if(OK)then
-            call tstamp('>','CFG: import surface attributes')
             call ESACON(M1SKP,M2SKP,M4SKP,M5SKP,M6SKP,M7SKP,IER)
             MODIFYVIEW=.TRUE.
           endif
@@ -704,7 +686,6 @@ C Check vertex matches and rebuild configuration file.
         IF(LCNN.EQ.' ')GOTO 285
 
 C Look for connections.
-        call tstamp('>','CFG: do graphic match of surfaces')
         CALL CONFIG(NZONES,CACC,IACC,DACC,M0SKP,M1SKP,M2SKP,M3SKP,
      &    M4SKP,M5SKP,M6SKP,M7SKP,M8SKP,OTHEROK,ANGCC)
 
@@ -714,7 +695,7 @@ C Re-build zone:surface to connection hash array.
  43     continue
 
 C Save data to configuration and connections file.
-        CALL EMKCFG('-',IER)
+        CALL EMKCFG('s',IER)
         MODIFYVIEW=.TRUE.
       ELSEIF(INO.EQ.19)THEN
 
@@ -1387,9 +1368,10 @@ C make it a partition without bothering to ask the user.
                 call edisp(iuout,outs)
                 goto 110  ! no need to check further
               else
-                CALL EASKABCD('Matched surface within room:',' ',
+                CALL EASKMBOX('Matched surface within room:',' ',
      &            'set to back-to-back','set to ADIABETIC',
-     &            'set to UNKNOWN','set to EXTERIOR',IRTA,nbhelp)
+     &            'set to UNKNOWN','set to EXTERIOR',
+     &            ' ',' ',' ',' ',IRTA,nbhelp)
                 if(IRTA.eq.1)then
                   write(TOTHER(JS,1),'(a)') 'ANOTHER'
                   write(tother(JS,2),'(i2.2)') IC2(ic)
@@ -1545,9 +1527,9 @@ C If reached this point then no surface selected.
             MODBND=.TRUE.
             MODIFYVIEW=.TRUE.
             MODLEN=.TRUE.
-            CALL EASKATOG('No suggestion taken.','Options:',
+            CALL EASKMBOX('No suggestion taken.','Options:',
      &        'loop again','set UNKNOWN','set EXTERIOR',
-     &        'set SIMILAR','set ADIABATIC','cancel',' ',
+     &        'set SIMILAR','set ADIABATIC','cancel',' ',' ',
      &        IRTA,nbhelp)
             if(irta.eq.1)then
               goto 840
@@ -2019,7 +2001,7 @@ C Not an easy match or mandated match so tell user.
 C Ask user if updated info should be saved to file.
       CALL EASKOK(' ','Save updated topology?',OK,nbhelp)
       if(OK)then
-        call EMKCFG('-',IER)
+        call EMKCFG('s',IER)
       endif
 
       RETURN
@@ -2164,7 +2146,7 @@ C Now display the menu.
       if(ivert.eq.mvert)then
 
 C Save and return. 
-        if(NALOC.gt.0)CALL EMKCFG('-',IER)
+        if(NALOC.gt.0)CALL EMKCFG('s',IER)
         return
       elseif(ivert.eq.mvert-1)then
         helptopic='anchor_options'
@@ -2174,10 +2156,9 @@ C Save and return.
 
 C Modify the list. Ask whether to locate via a construction or
 C via selection one at a time.
-        CALL EASKABC('Surfaces to include in anchor list',
-     &    'Select:',
-     &    'which match a construction','select manually',
-     &    'cancel',ins9,nbhelp)
+        CALL EASKMBOX('Surfaces to include in anchor list',
+     &    'Select:','which match a construction','select manually',
+     &    'cancel',' ',' ',' ',' ',' ',ins9,nbhelp)
         if(ins9.eq.1)then
 
 C Search for matching constructions (similar to logic in serchrpl).
@@ -2402,7 +2383,7 @@ C Force redraw of zones, highlighting anchor list.
             ALOCLBL(ifoc)=AL
             ALOCTYP(ifoc)='DFL3'
           endif
-          CALL EMKCFG('-',IER)
+          CALL EMKCFG('s',IER)
         endif
       elseif(IVERT.GT.MHEAD.AND.IVERT.LT.(MVERT-MCTL+1))then
 
@@ -2539,15 +2520,15 @@ C Now display the menu.
       if(ivert.eq.mvert)then
 
 C Save and return. 
-        if(NALOC.gt.0)CALL EMKCFG('-',IER)
+        if(NALOC.gt.0)CALL EMKCFG('s',IER)
         return
       elseif(ivert.eq.mvert-1)then
         helptopic='anchor_choices'
         call gethelptext(helpinsub,helptopic,nbhelp)
         CALL PHELPD('anchor points',nbhelp,'-',0,0,IER)
       elseif(ivert.eq.mvert-2)then
-        CALL EASKABC(' ','Anchor point options:',
-     &    'add','delete','cancel',II,nbhelp)
+        CALL EASKMBOX(' ','Anchor point options:',
+     &    'add','delete','cancel',' ',' ',' ',' ',' ',II,nbhelp)
         if(II.eq.1)then
           NALOC=NALOC+1
           ino=0
@@ -2637,7 +2618,7 @@ C Save and return.
           call usrmsg('You may now associate surfaces with this',
      &      'anchor... Begin by selecting from the list. ','W')
           iasel=NALOC
-          if(NALOC.gt.0)CALL EMKCFG('-',IER)
+          if(NALOC.gt.0)CALL EMKCFG('s',IER)
           call anchor(iasel,ier)
           goto 31
         elseif(II.eq.2)then
@@ -2791,7 +2772,7 @@ C Now display the menu.
       if(ivert.eq.mvert)then
 
 C Save and return. 
-        if(nzgroup.gt.0)CALL EMKCFG('-',IER)
+        if(nzgroup.gt.0)CALL EMKCFG('s',IER)
         return
       elseif(ivert.eq.mvert-1)then
         helptopic='group_options'
@@ -2862,7 +2843,7 @@ C Force redraw of zones, highlighting anchor list.
           CALL EASKS(AZG,' Label for group-of-zones: ',
      &      ' ',16,'none','group label',IER,nbhelp)
           zglbl(ifoc)=AZG
-          CALL EMKCFG('-',IER)
+          CALL EMKCFG('s',IER)
         endif
       elseif(IVERT.GT.MHEAD.AND.IVERT.LT.(MVERT-MCTL+1))then
 
@@ -3005,15 +2986,15 @@ C Now display the menu.
       if(ivert.eq.mvert)then
 
 C Save and return. 
-        if(NALOC.gt.0)CALL EMKCFG('-',IER)
+        if(NALOC.gt.0)CALL EMKCFG('s',IER)
         return
       elseif(ivert.eq.mvert-1)then
         helptopic='group_choices'
         call gethelptext(helpinsub,helptopic,nbhelp)
         CALL PHELPD('groups-of-zones',nbhelp,'-',0,0,IER)
       elseif(ivert.eq.mvert-2)then
-        CALL EASKABC(' ','Group options:',
-     &    'add','delete','cancel',II,nbhelp)
+        CALL EASKMBOX(' ','Group options:',
+     &    'add','delete','cancel',' ',' ',' ',' ',' ',II,nbhelp)
         if(II.eq.1)then
           nzgroup=nzgroup+1
           izgnumber(nzgroup)=0
@@ -3025,7 +3006,7 @@ C Save and return.
           call usrmsg('You may now associate zones with this',
      &      'group... Begin by selecting from the list. ','W')
           iasel=nzgroup
-          if(nzgroup.gt.0)CALL EMKCFG('-',IER)
+          if(nzgroup.gt.0)CALL EMKCFG('s',IER)
           call group(iasel,ier)
           goto 31
         elseif(II.eq.2)then
@@ -3281,9 +3262,9 @@ C     dimension PELV(MS)
         call gethelptext(helpinsub,helptopic,nbhelp)
         CALL PHELPD('global attributions',nbhelp,'-',0,0,IER)
         if(NALOC.gt.0)then
-          CALL EASKABC(' Surfaces to update:',' ',
+          CALL EASKMBOX(' Surfaces to update:',' ',
      &      'which match a construction','linked with an anchor',
-     &      'cancel',ins9,nbhelp)
+     &      'cancel',' ',' ',' ',' ',' ',ins9,nbhelp)
         else
           ins9=1
         endif
@@ -3311,7 +3292,6 @@ C Search and replace by finding matching constructions.
           CALL EPICKS(INPIC,IVALS,' ',' Search zones:',
      &      12,NCOMP,zname,' zone list',IER,nbhelp)
           IF(INPIC.EQ.0)return
-          call tstamp('>','PRJ: global search & replace')
 
 C For each of the selected zones (which might not include the other side
 C zone of all partitions in the zone we are dealing with), read the zone
@@ -3533,7 +3513,6 @@ C focus zone construction files.
               write(outs,'(3a)') ' Updating: ',zn(1:lnblnk(zn)),
      &           ' constructions...'
               CALL USRMSG(' ',outs,'P')
-              call tstamp('>','PRJ: auto update zone construction')
               CALL EDCON(0,ITRU,IVALS(IZ),QUIET,IER)
               QUIET=.FALSE.
               write(outs,'(3a)') ' Updating: ',zn(1:lnblnk(zn)),
@@ -3552,8 +3531,8 @@ C Anchor point substitution.
           AL4=ALOCLBL(4)
           AL5=ALOCLBL(5)
           ltype=1
-          CALL easkatog(' ','Which anchor point:',AL1,AL2,AL3,AL4,AL5,
-     &      'another','cancel',ltype,nbhelp)
+          CALL easkmbox(' ','Which anchor point:',AL1,AL2,AL3,AL4,AL5,
+     &      'another','cancel',' ',ltype,nbhelp)
           if(ltype.eq.7)then
             call usrmsg('No anchor selected.',' ','W')
             return
@@ -3563,8 +3542,8 @@ C Anchor point substitution.
             AL8=ALOCLBL(8)
             AL9=ALOCLBL(9)
             ltype=1
-            CALL easkatog(' ','Which anchor point:',AL6,AL7,AL8,AL9,
-     &        'cancel',' ',' ',ltype,nbhelp)
+            CALL easkmbox(' ','Which anchor point:',AL6,AL7,AL8,AL9,
+     &        'cancel',' ',' ',' ',ltype,nbhelp)
             if(ltype.gt.4)then
               call usrmsg('No anchor selected.',' ','W')
               return
@@ -3614,7 +3593,6 @@ C << this is a place to update smlcindex? >>
           CALL EASKOK(' ',
      &         'Update construction & related files?',QUIET,nbhelp)
           if(.NOT.QUIET)return
-          call tstamp('>','PRJ: auto update zone construction')
           DO 2492,IZ=1,NCOMP
             CALL EDCON(0,ITRU,IZ,QUIET,IER)
  2492     CONTINUE
@@ -3635,29 +3613,30 @@ C << this is a place to update smlcindex? >>
         endif
         if(ISEL.eq.0)return
 
-        CALL EASKABCD(' First filter--surface opacity:',' ',
-     &    'opaque','transparent','both','cancel',ins1,nbhelp)
+        CALL EASKMBOX(' First filter--surface opacity:',' ',
+     &    'opaque','transparent','both','cancel',
+     &    ' ',' ',' ',' ',ins1,nbhelp)
         if(ins1.eq.4)return
 
         ins2=1
-        call EASKATOG(' Second filter--surface contiguity:',' ',
+        call EASKMBOX(' Second filter--surface contiguity:',' ',
      &      'external','similar','constant','partitions','ground',
-     &      'adiabatic','cancel',ins2,nbhelp)
+     &      'adiabatic','cancel',' ',ins2,nbhelp)
         if(ins2.eq.7)then
           return
         endif
 
         ins3=1
-        call EASKATOG(' Third filter--surface orientation:',' ',
+        call EASKMBOX(' Third filter--surface orientation:',' ',
      &      'vertical','sloped','horizontal up','horizontal down',
-     &      'any horizontal','any orien.','cancel',ins3,nbhelp)
+     &      'any horizontal','any orien.','cancel',' ',ins3,nbhelp)
         if(ins3.eq.7)then
           return
         endif
 
-        CALL EASKABCD(' Surfaces to update:',' ',
+        CALL EASKMBOX(' Surfaces to update:',' ',
      &    'those already attributed','those marked UNKNOWN','both',
-     &    'cancel',ins4,nbhelp)
+     &    'cancel',' ',' ',' ',' ',ins4,nbhelp)
         if(ins4.eq.4)then
           return
         endif
@@ -3666,7 +3645,6 @@ C << this is a place to update smlcindex? >>
         CALL EPICKS(INPIC,IVALS,' ',' Which zones to update: ',
      &      12,NCOMP,zname,' zone list',IER,nbhelp)
         IF(INPIC.EQ.0)return
-        call tstamp('>','PRJ: global construction attribution')
         DO 95 IZ=1,INPIC
           IF(IVALS(IZ).GT.0)THEN
             write(zn,'(A)') zname(IVALS(IZ))
@@ -3774,7 +3752,6 @@ C << this is a place to update smlcindex? >>
             write(outs,'(3a)') ' Updating: ',zn(1:lnblnk(zn)),
      &         'constructions...'
             CALL USRMSG(' ',outs,'P')
-            call tstamp('>','PRJ: auto update zone construction')
             CALL EDCON(0,ITRU,IVALS(IZ),QUIET,IER)
             QUIET=.FALSE.
             write(outs,'(3a)') ' Updating: ',zn(1:lnblnk(zn)),

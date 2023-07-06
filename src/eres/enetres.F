@@ -658,8 +658,9 @@ C Clear all existing selections
       ELSEIF(INO.EQ.NITEMS-5)THEN
 
 C Change the mode
-        CALL EASKABCD(' ','Output type?','graphical',
-     &'tabular','statistical','cancel',IOPT,IER)
+        CALL EASKMBOX(' ','Output type?','graphical',
+     &  'tabular','statistical','cancel',
+     &  ' ',' ',' ',' ',IOPT,IER)
         IF(IOPT.EQ.1) THEN
           MODE='G'
         ELSEIF(IOPT.EQ.2)THEN
@@ -758,8 +759,9 @@ C Toggle time format and day separators.
             ENDIF
             helptopic='res_electrical_separator'
             call gethelptext(helpinsub,helptopic,nbhelp)
-            CALL EASKAB('Include mark between days when ',
-     &        'displaying or writing data :','no','yes',IDH,nbhelp)
+            CALL EASKMBOX('Include mark between days when ',
+     &        'displaying or writing data :','no','yes',
+     &        ' ',' ',' ',' ',' ',' ',IDH,nbhelp)
             IDHFLG=IDH-1
 
           ELSEIF(INO.EQ.NBITM+4)THEN
@@ -769,9 +771,9 @@ C Toggle delimeter.
             helptopic='res_electrical_delimiter'
             call gethelptext(helpinsub,helptopic,nbhelp)
             IWM=1
-            CALL EASKATOG('Column delimeter:',
+            CALL EASKMBOX('Column delimeter:',
      &        ' ','multi-space','single space','tab','comma','tagged',
-     &        'cancel',' ',IWM,nbhelp)
+     &        'cancel',' ',' ',IWM,nbhelp)
             if(iwm.eq.1)then
               delim = '-'
             elseif(iwm.eq.2)then

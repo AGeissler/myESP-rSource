@@ -14,8 +14,7 @@ C PURPOSE. See the GNU General Public License for more
 C details.
 
 
-C The file esru_cut_lib.f is a collection of text and bid-mapped terminal
-C control Fortran Functions and Subroutines:
+C This file contains the following subroutines.
 C  EASKI:   Ask user for an integer with prompt, error messages & range
 C           checking as passed parameters.
 C  EASKR:   Ask user for a real number with prompt, error messages & range
@@ -33,7 +32,7 @@ C  EPICKS:  Allows several selections to be made from an array of strings.
 C  MENUATOL Single item menu pick with items passed via parameters.
 C  ASKOK:   Generic yes/no/default facility returning OK as a logical parameter.
 C  EASKOK:   Generic yes/no facility returning OK as a logical parameter.
-C  EASKATOG: Generic A/B/C... choice facility returning 1-7 according
+C  EASKMBOX: Generic A/B/C...H choice facility returning 1-8 according
 C           to which of the choices has been chosen.
 
 C  EMPAGE:  Low level screen control for paging based on terminal model.
@@ -65,28 +64,20 @@ C       opengdisp opens a scrolling text display area.
 
 
 C ******************** EASKI ********************
-C EASKI is a facility for asking the user for an integer which
-C incorporates the prompt, error messages and range checking
-C as passed parameters as follows:
-
-C IVAL is the integer returned, PROMP1 & PROMP2 are the prompts to be
-C given to the user (similar to the syntax of USRMSG which allows
-C two lines or a leading blank line).
-C MIN is the minimum value, MAX is the maximum value.
-C MINACT and MAXACT are actions to take if the range is exceeded:
-C   'W' means warn user but accept, 'F' means refuse/fail to
-C   accept value and ask again, '-' means no range checking.
-C IDEFLT is the default value if 'D','d' typed.
-C If a space or carriage return is typed then IVAL is not changed.
-C ERMSG is a string appended to the range checking or read error
-C to identify the value.
-C IER is the error state, if 0 then OK, if -3 then cancel pressed.
-C NHELP is the number of help lines if '?','H','h' is typed
-C by the user.
-C Examples:
-C Ask user for zone number.
-C        ICOMP=1
-C        CALL EASKI(ICOMP,' ','Zone number?',
+C Asks the user for an integer number (GTK version).
+C   IVAL            - returned integer.
+C   PROMP1 & PROMP2 - prompts to be presented to the user.
+C   MINV & MAXV     - the minimum and maximum allowed values.
+C   MINACT & MAXACT - actions to take if the range is exceeded
+C                     (if W accept but warn user, if F refuse value
+C                     and ask again, if - no range checking).
+C   IDEFLT          - default value (if D or d entered).
+C   ERMSG           - string to ppended to a read error
+C   IER             - error state (if 0 OK, if -3 cancel).
+C   NHELP           - number of help lines (if ?, H or h entered).
+C Example:
+C        IZONE=1
+C        CALL EASKI(IZONE,' ','Zone number?',
 C     &             1,'F',MCOM,'W',1,'zone number',IER,2)
 
       SUBROUTINE EASKI(IVAL,PROMP1,PROMP2,MINV,MINACT,
@@ -103,15 +94,15 @@ C     &             1,'F',MCOM,'W',1,'zone number',IER,2)
 
       IER=0
 
-C If IVAL is outwith range for failure then set to default.
+C If IVAL outwith range, set to default.
       if(MINACT.EQ.'F'.and.IVAL.LT.MINV)IVAL=IDEFLT
       if(MAXACT.EQ.'F'.and.IVAL.GT.MAXV)IVAL=IDEFLT
 
-C Clear string buffers
+C Clear string buffers and instantiate 'ask'.
    20 WORD=' '
       WRITE(ask,'(I5)',iostat=ios,err=1)IVAL
 
-C Remember value passed in in case of a cancel.
+C Remember input value in case of a cancel.
       ivalold=ival
 
 C Generate help and default strings.
@@ -147,6 +138,8 @@ C If in graphic mode use graphic faciltiies to edit the number.
 C Debug.
 C        write(6,*) '< ask prompt ',PROMPT(1:lnblnk(PROMPT))
 C        write(6,*) '< ask string ',ask(1:lnblnk(ask))
+        call edisp(iuout,' ')      ! In case pop=up box label is missing.
+        call edisp(iuout,prompt)
         CALL askdialog(PROMPT,ask,IFLG)  ! pass it the int as a string
 
 C Debug.
@@ -210,20 +203,17 @@ C of help supplied and then provide the prompt again.
 C A blank, carriage return or line feed encountered, assume user
 C wishes to use prior/existing integer value.
           CALL INTSTR(IVAL,STR2,IW2,IER)
-          call isunix(unixok)
-          if(unixok)then
-            WRITE(IUOUT,55,iostat=ios,err=1)STR2(1:IW2)
-   55       FORMAT('The existing value (',a,') will be used.')
-          endif
+          WRITE(IUOUT,55,iostat=ios,err=1)STR2(1:IW2)
+   55     FORMAT('The existing value (',a,') will be used.')
           RETURN
         ENDIF
       ENDIF
 
-C Decode the string (WORD) into an integer.
+C Decode the string into an integer.
       read(WORD,*,ERR=999)IVALT
       CALL INTSTR(IVALT,STR1,IW1,IFLAG)
       IF(IFLAG.NE.0)THEN
-        CALL USRMSG(' ',' Did not understand, try again.','-')
+        CALL USRMSG(' ','Invalid input, try again.','-')
         IFLAG=0
         GOTO 20
       ENDIF
@@ -240,14 +230,14 @@ C Check IVALT against minimum and respond based on MINACT.
           CALL EASKOK(OUTSTR,'Is this OK?',OK,newnbhelp)
           IVAL=IVALT
           IF(.NOT.OK)GOTO 20
-          IF(MMOD.EQ.8)call usrmsg('  ','  ','-')
+          IF(MMOD.EQ.8)call usrmsg(' ',' ','-')
           RETURN
         ELSEIF(MINACT.EQ.'F')THEN
           CALL USRMSG(OUTSTR,'Please re-enter.','W')
           GOTO 20
         ELSEIF(MINACT.EQ.'-')THEN
           IVAL=IVALT
-          IF(MMOD.EQ.8)call usrmsg('  ','  ','-')
+          IF(MMOD.EQ.8)call usrmsg(' ',' ','-')
           RETURN
         ENDIF
       ELSEIF(IVALT.GT.MAXV)THEN
@@ -261,25 +251,25 @@ C Check IVALT against minimum and respond based on MINACT.
           CALL EASKOK(OUTSTR,'Is this ok?',OK,newnbhelp)
           IVAL=IVALT
           IF(.NOT.OK)GOTO 20
-          IF(MMOD.EQ.8)call usrmsg('  ','  ','-')
+          IF(MMOD.EQ.8)call usrmsg(' ',' ','-')
           RETURN
         ELSEIF(MAXACT.EQ.'F')THEN
           CALL USRMSG(OUTSTR,'Please re-enter.','W')
           GOTO 20
         ELSEIF(MAXACT.EQ.'-')THEN
           IVAL=IVALT
-          IF(MMOD.EQ.8)call usrmsg('  ','  ','-')
+          IF(MMOD.EQ.8)call usrmsg(' ',' ','-')
           RETURN
         ENDIF
       ELSE
         IVAL=IVALT
       ENDIF
 
-C Return to calling module
-      IF(MMOD.EQ.8)call usrmsg('  ','  ','-')
+C Return to calling module.
+      IF(MMOD.EQ.8)call usrmsg(' ',' ','-')
       RETURN
 
-999   CALL USRMSG(' ','Did not understand, try again.','-')
+999   CALL USRMSG(' ','Invalid input, retry.','-')
       GOTO 20
 
    1  if(IOS.eq.2)then
@@ -299,33 +289,9 @@ C looping, creating infinite output. Stop the program.
 
       END
 
-C ******************** EASKR
-C EASKR is a facility for asking the user for an real which
-C incorporates the prompt, error messages and range checking
-C as passed parameters as follows:
-C      CALL EASKR(RVAL,PROMP1,PROMP2,RMIN,MINACT,
-C     &           RMAX,MAXACT,DEFLT,ERMSG,IER,NHELP)
-
-C RVAL is the real returned, PROMP1 & PROMP2 are the prompts to be
-C given to the user (similar to the syntax of USRMSG which allows
-C two lines or a leading blank line).
-C RMIN is the minimum value, RMAX is the maximum value.
-C MINACT and MAXACT are actions to take if the range is exceeded:
-C   'W' means warn user but accept, 'F' means refuse/fail to
-C   accept value and ask again, '-' means no range checking.
-C DEFLT is the default value if 'D','d', or return typed.
-C ERMSG is a string appended to the range checking or read error
-C to identify the value.
-C IER is the error state, if 0 then OK, if -3 then cancel button pressed.
-C NHELP is the number of help lines if '?','H','h' is typed
-C by the user.
-C Example:
-C    ....
-C Read a site latitude.
-C        XLAT=50.0
-C        CALL EASKR(XLAT,' ',' What is the site latitude (deg) ? ',
-C     &             -89.9,'F',89.9,'F',35.0,'site latitude',IER,3)
-C    ...
+C ******************** EASKR ********************
+C Asks the user for a real number (GTK version).
+C Parameters are as defined in EASKI.
 
       SUBROUTINE EASKR(RVAL,PROMP1,PROMP2,RMIN,MINACT,
      &                 RMAX,MAXACT,DEFLT,ERMSG,IER,NHELP)
@@ -338,12 +304,11 @@ C    ...
       character ask*16,prompt*144
       LOGICAL OK,close,unixok
 
-C If RVAL is outwith range for failure then set to default.
+C If RVAL is outwith range, set to default.
       if(MINACT.EQ.'F'.and.RVAL.LT.RMIN)RVAL=DEFLT
       if(MAXACT.EQ.'F'.and.RVAL.GT.RMAX)RVAL=DEFLT
 
-C Check that value is not trivially close to zero (i.e. not
-C instantiated on the Fortran side before the call).
+C Check that value is not trivially close to zero.
    20 WORD=' '
       CALL ECLOSE(RVAL,0.00,0.000001,CLOSE)
       if(close)then
@@ -370,11 +335,6 @@ C Generate help and default strings.
       WRITE(DSTR,27,iostat=ios,err=1)STR2(1:IW2)
    27 FORMAT('The default value (',a,') will be used.')
 
-C Create help text line with current and default value.
-C      CALL REL16STR(DEFLT,STR1,IW1,IER)
-C      CALL REL16STR(RVAL,STR2,IW2,IER)
-C      call helpcurrentreal(deflt,rval,ermsg,nhelp,newnbhelp,ier)
-
 C Begin with prompts.
       IF(MMOD.EQ.8)THEN
 
@@ -398,6 +358,8 @@ C If in graphic mode use graphic facilities to edit the number.
 C Debug.
 C        write(6,*) '< askr prompt ',PROMPT(1:lnblnk(PROMPT))
 C        write(6,*) '< askr string ',ask(1:lnblnk(ask))
+        call edisp(iuout,' ')      ! In case pop=up box label is missing.
+        call edisp(iuout,prompt)
         CALL askdialog(PROMPT,ask,IFLG)
 
 C Debug.
@@ -473,7 +435,7 @@ C Decode the string into a real.
       read(WORD,*,ERR=89)rvalt
       CALL REL16STR(RVALT,STR1,IW1,IER)
       IF(IER.NE.0)THEN
-        CALL USRMSG(' ','Did not understand, try again..','-')
+        CALL USRMSG(' ','Did not understand, try again.','-')
         IER=0
         GOTO 20
       ENDIF
@@ -525,7 +487,6 @@ C Check RVALT against minimum and respond based on MINACT.
         RVAL=RVALT
       ENDIF
 
-C Return to calling module
       IF(MMOD.EQ.8)call usrmsg('  ','  ','-')
       RETURN
  89   CALL USRMSG(' ','Did not understand, try again.','-')
@@ -539,7 +500,6 @@ C Return to calling module
         call edisp(iuout,outs)
       endif
       return
-
  999  if(IOS.eq.2)then
         WRITE(outs,*) 'EASKR: write permission or invalid real: ',RVAL
         call edisp(iuout,outs)
@@ -554,29 +514,11 @@ C looping, creating infinite output. Stop the program.
   666 write(IUOUT,*)'EASKR: EOF detected, error in input commands.'
       call pauses(1)
       STOP
-
       END
 
-C ******************** EASKE
-C EASKE is a facility for asking the user for an real number
-C in exponential format which incorporates the prompt, error
-C messages and range checking as passed parameters as follows:
-C      CALL EASKE(RVAL,PROMP1,PROMP2,RMIN,MINACT,
-C     &           RMAX,MAXACT,DEFLT,ERMSG,IER,NHELP)
-
-C RVAL is the real returned, PROMP1 & PROMP2 are the prompts to be
-C given to the user (similar to the syntax of USRMSG which allows
-C two lines or a leading blank line).
-C RMIN is the minimum value, RMAX is the maximum value.
-C MINACT and MAXACT are actions to take if the range is exceeded:
-C   'W' means warn user but accept, 'F' means refuse/fail to
-C   accept value and ask again, '-' means no range checking.
-C DEFLT is the default value if 'D','d', or return typed.
-C ERMSG is a string appended to the range checking or read error
-C to identify the value.
-C IER is the error state, if 0 then OK, if -3 cancel button pressed.
-C NHELP is the number of help lines if '?','H','h' is typed
-C by the user.
+C ******************** EASKE ********************
+C Ask user for an real number in exponential format (GTK version).
+C Parameters are as defined in EASKI.
 
       SUBROUTINE EASKE(RVAL,PROMP1,PROMP2,RMIN,MINACT,
      &                 RMAX,MAXACT,DEFLT,ERMSG,IER,NHELP)
@@ -607,11 +549,6 @@ C Generate help and default strings.
       WRITE(DSTR,27,iostat=ios,err=1)STR2(1:IW2)
    27 FORMAT('The default value (',a,') will be used.')
 
-C Create a line of help text with current and default value.
-C      CALL EXPSTR(DEFLT,STR1,IW1,IER)
-C      CALL EXPSTR(RVAL,STR2,IW2,IER)
-C      call helpcurrentreal(deflt,rval,ermsg,nhelp,newnbhelp,ier)
-
 C Begin with prompts.
       IF(MMOD.EQ.8)THEN
 
@@ -635,6 +572,8 @@ C If in graphic mode use graphic facilities to edit the number.
 C Debug.
 C        write(6,*) '< aske prompt ',PROMPT(1:lnblnk(PROMPT))
 C        write(6,*) '< aske string ',ask(1:lnblnk(ask))
+        call edisp(iuout,' ')      ! In case pop=up box label is missing.
+        call edisp(iuout,prompt)
         CALL askdialog(PROMPT,ask,IFLG)
 
 C Debug.
@@ -649,6 +588,7 @@ C A cancel answer detected, set ier to -3 and return.
         ELSEIF(iflg.EQ.-2)THEN
 
 C A 'D' or 'd' detected, set to default value.
+          call edisp(iuout,' ')
           call edisp(iuout,DSTR)
           RVAL=DEFLT
           call usrmsg('  ','  ','-')
@@ -709,7 +649,7 @@ C Decode the string into an real.
       read(WORD,*,ERR=89)rvalt
       CALL EXPSTR(RVALT,STR1,IW1,IER)
       IF(IER.NE.0)THEN
-        CALL USRMSG(' ',' Did not understand, try again..','-')
+        CALL USRMSG(' ','Did not understand input, try again.','-')
         IER=0
         GOTO 20
       ENDIF
@@ -722,13 +662,13 @@ C Check RVALT against minimum and respond based on MINACT.
      &    STR1(1:IW1),STR2(1:IW2)
    28   FORMAT(' The value of ',a,' (',a,') is less than ',a,'!')
         IF(MINACT.EQ.'W')THEN
-          CALL EASKOK(OUTSTR,' Is this OK ? ',OK,nhelp)
+          CALL EASKOK(OUTSTR,'Is this OK?',OK,nhelp)
           RVAL=RVALT
           IF(.NOT.OK)GOTO 20
           IF(MMOD.EQ.8)call usrmsg('  ','  ','-')
           RETURN
         ELSEIF(MINACT.EQ.'F')THEN
-          CALL USRMSG(OUTSTR,'Please re-enter: ','W')
+          CALL USRMSG(OUTSTR,'Please re-enter.','W')
           GOTO 20
         ELSEIF(MINACT.EQ.'-')THEN
           RVAL=RVALT
@@ -742,13 +682,13 @@ C Check RVALT against minimum and respond based on MINACT.
      &    STR1(1:IW1),STR2(1:IW2)
    39   FORMAT(' The value of ',a,' (',a,')',' is greater than ',a,'!')
         IF(MAXACT.EQ.'W')THEN
-          CALL EASKOK(OUTSTR,' Is this ok? ',OK,nhelp)
+          CALL EASKOK(OUTSTR,'Is this ok?',OK,nhelp)
           RVAL=RVALT
           IF(.NOT.OK)GOTO 20
           IF(MMOD.EQ.8)call usrmsg('  ','  ','-')
           RETURN
         ELSEIF(MAXACT.EQ.'F')THEN
-          CALL USRMSG(OUTSTR,'Please re-enter: ','W')
+          CALL USRMSG(OUTSTR,'Please re-enter.','W')
           GOTO 20
         ELSEIF(MAXACT.EQ.'-')THEN
           RVAL=RVALT
@@ -782,20 +722,9 @@ C looping, creating infinite output. Stop the program.
 
       END
 
-C ************* EASKF
-C EASKF is a facility for asking the user for a file name which
-C incorporates the prompt, error messages and help facilities
-C as follows:
-
-C FILEN is the string returned, ISTRW is its length.
-C PROMP1 & PROMP2 are the prompts using the same syntax as USRMSG.
-C If a space is typed then FILEN is not changed.
-C ERMSG is a string placed at the top of the selection menu and to
-C any range checking or read errors to identify the value.
-C  IER is the error state, if 0 then OK if -3 then user requested CANCEL.
-C NHELP is the number of help lines if '?','H','h' is typed
-C by the user.
-C DSTR is a string to use as a default.
+C ******************** EASKF ********************
+C Asks the user for a file name (GTK version).
+C Parameters are similar to those defined in EASKI.
 
       SUBROUTINE EASKF(FILEN,PROMP1,PROMP2,ISTRW,DSTR,ERMSG,IER,NHELP)
 
@@ -815,7 +744,7 @@ C DSTR is a string to use as a default.
 
    20 IER=0
 
-C Remember the file name in case user wants to abort.
+C Remember the file name in case of a cancel.
       WORD144=' '
       last=max(1,lnblnk(FILEN))
       if(last.lt.144) then
@@ -896,8 +825,8 @@ C wishes to use prior/existing string.
             endif
             RETURN
           ELSE
-            CALL USRMSG(' The current file name is blank!',
-     &                  ' Please re-enter.','W')
+            CALL USRMSG('Current file name is blank!',
+     &                  'Please re-enter.','W')
             GOTO 20
           ENDIF
         ELSEIF(WORD144(1:6).EQ.'CANCEL')THEN
@@ -971,8 +900,8 @@ C wishes to use prior/existing file name.
             write(FILEN,'(a)',iostat=ios,err=3) LASTS(1:last)
             RETURN
           ELSE
-            CALL USRMSG(' The current file name is blank!',
-     &                  ' Please re-enter.','W')
+            CALL USRMSG('Current file name is blank!',
+     &                  'Please re-enter.','W')
             GOTO 20
           ENDIF
         ELSE
@@ -1020,7 +949,7 @@ C looping, creating infinite output. Stop the program.
 
       END
 
-C ************* EASKS
+C ******************** EASKS ********************
 C EASKS is a facility for asking the user for a text string which
 C incorporates the prompt, error messages and help facilities
 C as follows:
@@ -1091,7 +1020,8 @@ C If in terminal type 8 use dialogue box.
 C Debug.
 C        write(6,*) '< askdialog prompt ',PROMPT(1:lnblnk(PROMPT))
 C        write(6,*) '< askdialog string ',STRVAL(1:lnblnk(STRVAL))
-
+        call edisp(iuout,' ')      ! In case pop=up box label is missing.
+        call edisp(iuout,prompt)
         CALL askdialog(PROMPT,STRVAL,IFLG)
 
 C Debug.
@@ -1239,8 +1169,8 @@ C looping, creating infinite output. Stop the program.
 
       END
 
-C ************* EASKS248
-C EASKS248 edit a (248 char) string in a multi-line graphic box or via phrases.
+C ******************** EASKS248 ********************
+C EASKS248 edit a long (248 char) string in sections.
 
 C STRVAL is the string returned, ISTRW is its length.
 C PROMP1 & PROMP2 are the prompts using the same syntax as USRMSG.
@@ -1460,9 +1390,9 @@ C When writing out the combined text, put a space between each section.
       return
       end
 
-C ************* EASKS496
-C EASKS496 edit a (496 char) string in a multi-line graphic box or via phrases.
-C << TO BE ADAPTED with logic from NonGTK EASKS496 >>
+C ******************** EASKS496 ********************
+C Edit a long (496 char) string in sections.
+
 C STRVAL is the string returned, ISTRW is its length.
 C PROMP1 & PROMP2 are the prompts using the same syntax as USRMSG.
 C If a space is typed then STRVAL is not changed.
@@ -1473,6 +1403,7 @@ C NHELP is the number of help lines and H() is the array
 C of text strings to be printed out if '?','H','h' is typed
 C by the user.
 C DSTR is a string to use as a default.
+
       SUBROUTINE EASKS496(STRVAL,PROMP1,PROMP2,ISTRW,DSTR,ERMSG,IER,
      &   NHELP)
 
@@ -1731,10 +1662,9 @@ C When writing out the combined text, put a space between each section.
       return
       end
 
-C ************* EASKSCMD
-C EASKSCMD is a facility for asking the user for a text string which
-C incorporates the prompt, alternative command, error messages and
-C help facilities as follows:
+C ******************** EASKSCMD ********************
+C Asks the user for a text string which incorporates the prompt,
+C alternative command, error messages and help facilities as follows.
 
 C STRVAL is the string returned, ISTRW is its length.
 C PROMP1 & PROMP2 are the prompts using the same syntax as USRMSG.
@@ -1753,8 +1683,8 @@ C    ....
 C test getting a string.
 C        XNAME=' '
 C        DNAME=' '
-C        CALL EASKSCMD(XNAME,' ',' What is the site name ?','Use map',CACT,
-C     &   13,DNAME,'test sites',IER,1)
+C        CALL EASKSCMD(XNAME,' ','Site name?','Use map',CACT,
+C     &                13,DNAME,'test sites',IER,1)
 C        CALL USRMSG(' ',' selected string is:'//XNAME,'-')
 
       SUBROUTINE EASKSCMD(STRVAL,PROMP1,PROMP2,CMD,CMDACT,ISTRW,DSTR,
@@ -1870,6 +1800,8 @@ C Must have input a character string.
         CMDACT=.FALSE.
         RETURN
       ELSE
+
+C Text mode.
         CALL USRMSG(PROMP1,PROMP2,'?')
         READ(IUIN,'(A72)',END=666)WORD
         A=WORD(1:1)
@@ -1935,10 +1867,9 @@ C looping, creating infinite output. Stop the program.
 
       END
 
-C ************* EASKSCNCL
-C EASKSCNCL is a facility for asking the user for a text string which
-C incorporates the prompt, calling code defined cancel string, error
-C messages and help facilities as follows:
+C ******************** EASKSCNCL ********************
+C Ask the user for a text string which incorporates the prompt,
+C cancel, error messages and help facilities as follows.
 
 C STRVAL is the string returned, ISTRW is its length.
 C PROMP1 & PROMP2 are the prompts using the same syntax as USRMSG.
@@ -2048,6 +1979,8 @@ C Must have input a character string.
         CNCLACT=.FALSE.
         RETURN
       ELSE
+
+C Text mode.
         CALL USRMSG(PROMP1,PROMP2,'?')
         READ(IUIN,'(A72)',END=666)WORD
         A=WORD(1:1)
@@ -2114,10 +2047,9 @@ C looping, creating infinite output. Stop the program.
       return
       end
 
-C ************* EASKS2CMD
-C EASKS2CMD is a facility for asking the user for a text string which
-C incorporates the prompt, two alternative commands, error messages and
-C help facilities as follows:
+C ******************** EASKS2CMD ********************
+C Ask the user for a text string which incorporates the prompt, two
+C alternative commands, error messages and help facilities as follows.
 
 C STRVAL is the string returned, ISTRW is its length.
 C PROMP1 & PROMP2 are the prompts using the same syntax as USRMSG.
@@ -2130,9 +2062,7 @@ C IER is the error state, if 0 then OK, if -3 then cancel button pressed.
 C NHELP is the number of help lines if '?','H','h' is typed
 C by the user.
 C DSTR is a string to use as a default.
-C Assumption is that STRVAL will be up to 96 char wide. This
-C should be generalized.
-
+C Internal string buffer assumes that strval is less than 96 characters.
 C Example:
 C    ....
 C test getting a string.
@@ -2162,10 +2092,10 @@ C        CALL USRMSG(' ',' selected string is:'//XNAME,'-')
 C Generate custom help text.
       call helpwithblank(ermsg,nhelp,newnbhelp,ier)
 
-C At this point get user input via dialogue box or Fortran read in
+C Get user input via dialogue box or Fortran read in
 C the text window.
 C Note that the string read in is limited to ISTRW characters wide.
-C If in terminal type 8 use dialogue box.
+C If in terminal type 8, use dialogue box.
       IF(MMOD.EQ.8)THEN
         IFLG=0
         WORD=' '
@@ -2272,6 +2202,8 @@ C Must have input a character string.
         ICACT=0
         RETURN
       ELSE
+
+C Text mode.
         CALL USRMSG(PROMP1,PROMP2,'?')
         READ(IUIN,'(A72)',END=666)WORD
         A=WORD(1:1)
@@ -2338,7 +2270,7 @@ C looping, creating infinite output. Stop the program.
       END
 
 
-C ************* EPICKS
+C ******************** EPICKS ********************
 c EPICKS is a facility allowing a number of selections to be made
 C from an array of strings passed into the routine. EPICKS
 C incorporates the prompt, error messages and returns an array of
@@ -2357,8 +2289,7 @@ C   IVALS(INPICK) is the last index chosen.
 C NSTALT is the number of selection strings STALT passed.
 C ERMSG is a string appended to the range checking or read error
 C to identify the value. IER is the error state, if 0 then OK.
-C NHELP is the number of help lines and H() is the array
-C of text strings to be printed out if '?','H','h' is typed
+C NHELP is the number of help lines if '?','H','h' is typed
 C by the user.
 
 C Note that there is no particular limit on the number of alternate
@@ -2380,8 +2311,8 @@ C will be truncated at the width ISTRW.
       dimension lista(35),listb(35)
       character lista*74,listb*74,KEY*1,outs*124
       CHARACTER*(*) PROMP1,PROMP2,ERMSG,STALT(*)
-      CHARACTER SEL*40
-      integer MVERT,IVERT ! max items and current menu item
+      CHARACTER SEL*54     ! string for heading
+      integer MVERT,IVERT  ! max items and current menu item
 
 #ifdef OSI
       integer impx,impy,iw
@@ -2629,10 +2560,10 @@ C Not one of the legal menu choices.
 
       END
 
-C **************** MENUATOL
-C MENUATOL presents a list of up to a dozen items to select via a
-C menu format but with the text for each selection passed (as in
-C easkatog). It is assumed that the user will make one selection
+C ******************** MENUATOL ********************
+C Presents a list of up to a dozen items to select via a
+C menu format but with the text for each selection passed
+C as a separate string. It is assumed that the user will make one selection
 C only and if nothing selected it returns an index of zero.
 C
 C It is passed a prompt, menu title, string options (aopt ect.)
@@ -2642,10 +2573,11 @@ C index is returned as zero if index was passed in as zero and
 C is reset to index value if non-zero was passed.
 C Automatic key characters are suppressed and are assumed to be
 C passed within the parameter list text.
+
       SUBROUTINE MENUATOL(prompt,title,AOPT,BOPT,COPT,DOPT,EOPT,FOPT,
      &  GOPT,HOPT,IOPT,JOPT,KOPT,LOPT,index,idindex,nhelp)
 
-C Parameters passed.
+C Passed parameters.
       CHARACTER*(*) prompt,title,AOPT,BOPT,COPT,DOPT,EOPT,FOPT,GOPT
       CHARACTER*(*) HOPT,IOPT,JOPT,KOPT,LOPT
       integer index   ! current index
@@ -2658,7 +2590,7 @@ C Parameters passed.
 
       DIMENSION VERT(16)
       CHARACTER VERT*48,KEY*1,prompt2*36
-      integer MVERT,IVERT ! max items and current menu item
+      integer MVERT,IVERT  ! max items and current menu item
 
 #ifdef OSI
       integer impx,impy,iw
@@ -2773,8 +2705,8 @@ C Number of actual items displayed.
       if(ISTRW.lt.17)VERT(nopt+1)=  '  ______________'
       if(idindex.gt.0)then
         CALL EMKEY(idindex,KEY,IER)
-        write(VERT(nopt+2),'(a,a,a)') '* default is option `',KEY,'`'
-        if(ISTRW.lt.17)write(VERT(nopt+2),'(a,a,a)')
+        write(VERT(nopt+2),'(3a)') '* default is option `',KEY,'`'
+        if(ISTRW.lt.17)write(VERT(nopt+2),'(3a)')
      &                              '* default is option `',KEY,'`'
       else
         VERT(nopt+2)='                        '
@@ -2837,12 +2769,13 @@ C Not one of the legal menu choices.
 
       END
 
-C ******************** ASKOK
-C ASKOK Generic choice facility returning logical variable
+C ******************** ASKOK ********************
+C Generic choice facility returning logical variable
 C from a yes no (with default indicated) prompt (supports help).
 C In the case of a graphic menu the messages will appear in a
 C dialogue box at the bottom of the graphic window.
 C If NHELP=-1 there is no default option.
+
       SUBROUTINE ASKOK(MSG1,MSG2,OK,DOK,NHELP)
 
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
@@ -2856,8 +2789,7 @@ C If NHELP=-1 there is no default option.
       logical ok,dok,DEFLT
       integer lastmenufont,iuse
 
-C Check if a default defined (via overload of nhelp). Later can
-C make use of newnbhelp.
+C Check if a default defined and use local var for NHELP.
       DEFLT=.true.
       NHL=NHELP
       if (NHL.eq.-1) then
@@ -2902,7 +2834,6 @@ C Querry yes or no.
           GOTO 21
         ENDIF
       ELSEIF(MMOD.EQ.8)THEN
-
 
 C Save off current menu font and if mono-space set to proportional.
         lastmenufont=IMFS
@@ -2973,6 +2904,7 @@ C of help supplied and then provide the prompt again.
         IMFS=lastmenufont    ! re-establish font
         call userfonts(IFS,ITFS,IMFS)
       ENDIF
+     
       RETURN
 
    1  if(IOS.eq.2)then
@@ -2991,14 +2923,15 @@ C looping, creating infinite output. Stop the program.
       call pauses(1)
       STOP
 
-      END
+      END  ! of ASKOK
 
 
-C ******************** EASKOK
+C ******************** EASKOK ********************
 C EASKOK Generic choice facility returning logical variable
-C from a yes no.
+C from a yes no prompt.
 C In the case of a graphic menu the messages will appear in a
 C dialogue box at the bottom of the graphic window.
+
       SUBROUTINE EASKOK(MSG1,MSG2,OK,NHELP)
 
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
@@ -3038,7 +2971,6 @@ C Querry yes or no.
           GOTO 21
         ENDIF
       ELSEIF(MMOD.EQ.8)THEN
-
 
 C Save off current menu font and if mono-space set to proportional.
         lastmenufont=IMFS
@@ -3088,6 +3020,7 @@ C of help supplied and then provide the prompt again.
         IMFS=lastmenufont    ! re-establish font
         call userfonts(IFS,ITFS,IMFS)
       ENDIF
+     
       RETURN
 
    1  if(IOS.eq.2)then
@@ -3106,193 +3039,41 @@ C looping, creating infinite output. Stop the program.
       call pauses(1)
       STOP
 
-      END
+      END  ! of EASKOK
 
-C ******************** EASKATOG
-C EASKATOG choice of 3 - 7 items returning 1 to 7 according to
+
+C ******************** EASKMBOX ********************
+C Generic multi choice of 3 - 8 items returning 1 to 8 according to
 C which of the choices has been chosen.
 C MSG1 and MSG2 are prompts (upto 124 char) to be printed.
-C AOPT, BOPT & COPT, DOPT, EOPT, FOPT, GOPT are the text strings describing
-C the options available, (these should not be too long).  If all optons
-C are filled with text then all presneted.  If and option (beginning
-C with FOPT and working backwards is a single blank space then fewer
-C options are presented.
-C In the case of a graphic menu us gtk functions will be called
-C and the messages will appear in a pop-up dialogue box.
-      SUBROUTINE EASKATOG(MSG1,MSG2,AOPT,BOPT,COPT,DOPT,EOPT,FOPT,GOPT,
-     &  IWHICH,NHELP)
+C AOPT, BOPT etc are the text strings describing available
+C options, (these should not be too long). Logic works backwards
+C to find the teminal non-blank option.
+C In the case of a graphic menu the c function openmultibox will be called
+C and the messages will appear in a dialogue box at the bottom of the
+C graphic window.
+
+      SUBROUTINE EASKMBOX(MSG1,MSG2,AOPT,BOPT,COPT,DOPT,EOPT,FOPT,GOPT,
+     &  HOPT,IWHICH,NHELP)
 
 C Parameters passed.
-      CHARACTER*(*) MSG1,MSG2,AOPT,BOPT,COPT,DOPT,EOPT,FOPT,GOPT
-      integer iwhich  ! select passed back
-      integer nhelp   ! number of lines of help to display
+      CHARACTER*(*) MSG1,MSG2,AOPT,BOPT,COPT,DOPT,EOPT,FOPT,GOPT,HOPT
+      integer IWHICH ! selection passed back
+      integer NHELP  ! number of help lines to display
 
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
       integer ifs,itfs,imfs
       COMMON/GFONT/IFS,ITFS,IMFS
-      CHARACTER ANS*2,MSG3*124
+      CHARACTER ANS*2,MSG3*248
+      integer lastfont,iuse,imaxwid
+      dimension choices(10)
+      character choices*42
+      character itypes*10 
       character prompt*144
-      integer lastmenufont,iuse
 
 C See how many items there are to present.
-      nopt=7
-      la=max(1,LNBLNK(AOPT))
-      lb=max(1,LNBLNK(BOPT))
-      lc=max(1,LNBLNK(COPT))
-      ld=max(1,LNBLNK(DOPT))
-      le=max(1,LNBLNK(EOPT))
-      lf=max(1,LNBLNK(FOPT))
-      lg=max(1,LNBLNK(GOPT))
-      LN2=max(1,LNBLNK(MSG2))
-      if(lg.le.1)nopt=6
-      if(lf.le.1)nopt=5
-      if(le.le.1)nopt=4
-      if(ld.le.1)nopt=3
-      if(lc.le.1)nopt=2
-
-C Print out message according to the combination of strings passed.
-C Setup a single line menu to pick from via EASKS.
-      IF(MMOD.LT.8)THEN
-   21   if(nopt.eq.2)then
-          WRITE(MSG3,'(7a)')' ',MSG2(1:LN2),
-     &    '  a) ',AOPT(1:la),', b) ',BOPT(1:lb),' ? '
-        elseif(nopt.eq.3)then
-          WRITE(MSG3,'(9a)')' ',MSG2(1:LN2),
-     &    '  a) ',AOPT(1:la),', b) ',BOPT(1:lb),
-     &    ', c) ',COPT(1:lc),' ? '
-        elseif(nopt.eq.4)then
-          WRITE(MSG3,'(11a)')' ',MSG2(1:LN2),
-     &    '  a) ',AOPT(1:la),', b) ',BOPT(1:lb),
-     &    ', c) ',COPT(1:lc),', e) ',DOPT(1:ld),' ? '
-        elseif(nopt.eq.5)then
-          WRITE(MSG3,'(13a)')' ',MSG2(1:LN2),
-     &    '  a) ',AOPT(1:la),', b) ',BOPT(1:lb),', c) ',COPT(1:lc),
-     &    ', e) ',DOPT(1:ld),', f) ',EOPT(1:le),' ? '
-        elseif(nopt.eq.6)then
-          WRITE(MSG3,'(15a)')' ',MSG2(1:LN2),
-     &    ' a) ',AOPT(1:la),' b) ',BOPT(1:lb),' c) ',COPT(1:lc),
-     &    ' e) ',DOPT(1:ld),' f) ',EOPT(1:le),' g) ',FOPT(1:lf),' ? '
-        elseif(nopt.eq.7)then
-          WRITE(MSG3,'(17a)')' ',MSG2(1:LN2),
-     &    ' a) ',AOPT(1:la),' b) ',BOPT(1:lb),' c) ',COPT(1:lc),
-     &    ' e) ',DOPT(1:ld),' f) ',EOPT(1:le),' g) ',FOPT(1:lf),
-     &    ' i) ',GOPT(1:lg),' ? '
-        endif
-        ans = '  '
-        call usrmsg(msg1,msg3,'?')
-        read(iuin,'(A2)',END=666)ANS
-
-        IF(ANS(1:1).EQ.'a'.OR.ANS(1:1).EQ.'A')THEN
-          IWHICH=1
-        ELSEIF(ANS(1:1).EQ.'b'.OR.ANS(1:1).EQ.'B')THEN
-          IWHICH=2
-        ELSEIF(ANS(1:1).EQ.'c'.OR.ANS(1:1).EQ.'C')THEN
-          IWHICH=3
-        ELSEIF(ANS(1:1).EQ.'e'.OR.ANS(1:1).EQ.'E')THEN
-          IWHICH=4
-        ELSEIF(ANS(1:1).EQ.'f'.OR.ANS(1:1).EQ.'F')THEN
-          IWHICH=5
-        ELSEIF(ANS(1:1).EQ.'g'.OR.ANS(1:1).EQ.'G')THEN
-          IWHICH=6
-        ELSEIF(ANS(1:1).EQ.'i'.OR.ANS(1:1).EQ.'I')THEN
-          IWHICH=7
-        ELSEIF(ANS(1:1).EQ.'h'.OR.ANS(1:1).EQ.'H'.or.
-     &         ANS(1:1).eq.'?')THEN
-
-C A probable request for help has been received. Print out the lines
-C of help supplied and then provide the prompt again.
-           call helpwithblank('two choice dialog',nhelp,newnbhelp,ier)
-           CALL PHELPD('two choice dialog',newnbhelp,'-',0,0,IER)
-           GOTO 21
-        elseif(ANS(1:2).eq.'  ')then
-          call usrmsg('The current answer is blank!',
-     &                'Please re-enter.','W')
-          goto 21
-        ELSE
-          CALL USRMSG(' ','You must make a choice!','-')
-          GOTO 21
-        ENDIF
-      ELSEIF(MMOD.EQ.8)THEN
-
-C Save off current menu font and if mono-space set to proportional.
-        lastfont=IFS
-        if(IFS.ge.0.and.IFS.le.3)then
-          IUSE=IFS+4
-          call userfonts(IFS,ITFS,IUSE)
-        endif
-
-C Querry which one.
-  19    LN1=max(1,lnblnk(MSG1))
-        LN2=max(1,lnblnk(MSG2))
-        if((LN1+LN2+1).lt.144)then
-          if(LN1.eq.1)then
-            write(prompt,'(a)') MSG2(1:LN2)
-          else
-            write(prompt,'(3a)') MSG1(1:LN1),' ',MSG2(1:LN2)
-          endif
-        else
-          LN2=142-LN1
-          write(prompt,'(3a)') MSG1(1:LN1),' ',MSG2(1:LN2)
-        endif
-
-C Passin the initial selection from the calling code if it is
-C one of the buttons.
-        if(IWHICH.ge.0.and.IWHICH.le.nopt) IW=IWHICH
-        CALL espabcbox(prompt,AOPT,BOPT,COPT,DOPT,EOPT,FOPT,GOPT,IW)
-
-C Debug.
-C        write(6,*) 'call to espabcbox returned ',IW
-
-        IF(IW.EQ.-8)THEN
-
-C A probable request for help has been received. Print out the lines
-C of help supplied and then provide the prompt again.
-          call helpwithblank(prompt,nhelp,newnbhelp,ier)
-          CALL PHELPD('this multi-choice',newnbhelp,'-',0,0,IER)
-          GOTO 19
-        ENDIF
-        IWHICH=IW
-     
-        IFS=lastfont    ! re-establish font
-        call userfonts(IFS,ITFS,IMFS)
-      ENDIF
-      RETURN
-
-C If an EOF is detected when reading from IUIN, we often get infinite
-C looping, creating infinite output. Stop the program.
-  666 write(IUOUT,*)'EASKATOG: EOF detected, error in input commands.'
-      call pauses(1)
-      STOP
-
-      END
-
-C ******************** EASKDOZEN
-C EASKDOZEN Generic choice of a dozen items returning 1 to 12 according to
-C which of the choices has been chosen.
-C MSG1 and MSG2 are prompts (upto 124 char) to be printed.
-C AOPT, BOPT & COPT, DOPT, EOPT, FOPT, etc. are the text strings describing
-C the options available, (these should not be too long).  If all optons
-C are filled with text then all presneted.  If and option (beginning
-C with FOPT and working backwards is a single blank space then fewer
-C options are presented.
-C In the case of a graphic menu us gtk functions will be called
-C and the messages will appear in a pop-up dialogue box.
-      SUBROUTINE EASKDOZEN(MSG1,MSG2,AOPT,BOPT,COPT,DOPT,EOPT,FOPT,
-     &  GOPT,HOPT,IOPT,JOPT,KOPT,LOPT,IWHICH,NHELP)
-
-      COMMON/OUTIN/IUOUT,IUIN,IEOUT
-      COMMON/SPAD/MMOD,LIMIT,LIMTTY
-      integer ifs,itfs,imfs
-      COMMON/GFONT/IFS,ITFS,IMFS
-      CHARACTER*(*) MSG1,MSG2,AOPT,BOPT,COPT,DOPT,EOPT,FOPT,GOPT
-      CHARACTER*(*) HOPT,IOPT,JOPT,KOPT,LOPT
-      CHARACTER ANS*2,MSG3*124
-      character prompt*144
-      integer lastfont,iuse
-
-C See how many items there are to present.
-      nopt=12
+      nopt=8
       la=max(1,LNBLNK(AOPT))
       lb=max(1,LNBLNK(BOPT))
       lc=max(1,LNBLNK(COPT))
@@ -3301,21 +3082,23 @@ C See how many items there are to present.
       lf=max(1,LNBLNK(FOPT))
       lg=max(1,LNBLNK(GOPT))
       lh=max(1,LNBLNK(HOPT))
-      li=max(1,LNBLNK(IOPT))
-      lj=max(1,LNBLNK(JOPT))
-      lk=max(1,LNBLNK(KOPT))
-      ll=max(1,LNBLNK(LOPT))
       LN2=max(1,LNBLNK(MSG2))
-      if(ll.le.1)nopt=11
-      if(lk.le.1)nopt=10
-      if(lj.le.1)nopt=9
-      if(li.le.1)nopt=8
       if(lh.le.1)nopt=7
       if(lg.le.1)nopt=6
       if(lf.le.1)nopt=5
       if(le.le.1)nopt=4
       if(ld.le.1)nopt=3
       if(lc.le.1)nopt=2
+      imaxwid=0
+      if(la.gt.imaxwid)imaxwid =la
+      if(lb.gt.imaxwid)imaxwid =lb
+      if(lc.gt.imaxwid)imaxwid =lc
+      if(ld.gt.imaxwid)imaxwid =ld
+      if(le.gt.imaxwid)imaxwid =le
+      if(lf.gt.imaxwid)imaxwid =lf
+      if(lg.gt.imaxwid)imaxwid =lg
+      if(lh.gt.imaxwid)imaxwid =lh
+C      write(6,*) 'imaxwid ',imaxwid
 
 C Print out message according to the combination of strings passed.
 C Setup a single line menu to pick from via EASKS.
@@ -3349,27 +3132,12 @@ C Setup a single line menu to pick from via EASKS.
      &    ' a) ',AOPT(1:la),' b) ',BOPT(1:lb),' c) ',COPT(1:lc),
      &    ' e) ',DOPT(1:ld),' f) ',EOPT(1:le),' g) ',FOPT(1:lf),
      &    ' i) ',GOPT(1:lg),' j) ',HOPT(1:lh),' ? '
-        elseif(nopt.eq.9)then
-          WRITE(MSG3,'(21a)')' ',MSG2(1:LN2),
-     &    ' a) ',AOPT(1:la),' b) ',BOPT(1:lb),' c) ',COPT(1:lc),
-     &    ' e) ',DOPT(1:ld),' f) ',EOPT(1:le),' g) ',FOPT(1:lf),
-     &    ' i) ',GOPT(1:lg),' j) ',HOPT(1:lh),' k) ',IOPT(1:li),
-     &    ' ? '
-        elseif(nopt.eq.10)then
-          WRITE(MSG3,'(23a)')' ',MSG2(1:LN2),
-     &    ' a) ',AOPT(1:la),' b) ',BOPT(1:lb),' c) ',COPT(1:lc),
-     &    ' e) ',DOPT(1:ld),' f) ',EOPT(1:le),' g) ',FOPT(1:lf),
-     &    ' i) ',GOPT(1:lg),' j) ',HOPT(1:lh),' k) ',IOPT(1:li),
-     &    ' l) ',JOPT(1:lj),' ? '
-        elseif(nopt.eq.11)then
-          WRITE(MSG3,'(25a)')' ',MSG2(1:LN2),
-     &    ' a) ',AOPT(1:la),' b) ',BOPT(1:lb),' c) ',COPT(1:lc),
-     &    ' e) ',DOPT(1:ld),' f) ',EOPT(1:le),' g) ',FOPT(1:lf),
-     &    ' i) ',GOPT(1:lg),' j) ',HOPT(1:lh),' k) ',IOPT(1:li),
-     &    ' l) ',JOPT(1:lj),' m) ',KOPT(1:lk),' ? '
         endif
+
+C Generate custom help text.
+        call helpwithblank(msg3,nhelp,newnbhelp,ier)
         ans = '  '
-        call usrmsg(msg1,msg3,'?')
+        call lusrmsg(msg1,msg3,'?')
         read(iuin,'(A2)',END=666)ANS
 
         IF(ANS(1:1).EQ.'a'.OR.ANS(1:1).EQ.'A')THEN
@@ -3388,26 +3156,20 @@ C Setup a single line menu to pick from via EASKS.
           IWHICH=7
         ELSEIF(ANS(1:1).EQ.'j'.OR.ANS(1:1).EQ.'J')THEN
           IWHICH=8
-        ELSEIF(ANS(1:1).EQ.'k'.OR.ANS(1:1).EQ.'K')THEN
-          IWHICH=9
-        ELSEIF(ANS(1:1).EQ.'l'.OR.ANS(1:1).EQ.'L')THEN
-          IWHICH=10
-        ELSEIF(ANS(1:1).EQ.'m'.OR.ANS(1:1).EQ.'M')THEN
-          IWHICH=11
         ELSEIF(ANS(1:1).EQ.'h'.OR.ANS(1:1).EQ.'H'.or.
      &         ANS(1:1).eq.'?')THEN
 
 C A probable request for help has been received. Print out the lines
 C of help supplied and then provide the prompt again.
-           call helpwithblank(msg3,nhelp,newnbhelp,ier)
+           call helpwithblank('multi-choice dialog',nhelp,newnbhelp,ier)
            CALL PHELPD('multi-choice dialog',newnbhelp,'-',0,0,IER)
            GOTO 21
         elseif(ANS(1:2).eq.'  ')then
-          call usrmsg(' The current answer is blank!',
-     &                ' Please re-enter.','W')
+          call usrmsg('The current answer is blank!',
+     &                'Please re-enter.','W')
           goto 21
         ELSE
-          CALL USRMSG(' ',' You must make a choice!','-')
+          CALL USRMSG(' ','You must make a choice!','-')
           GOTO 21
         ENDIF
       ELSEIF(MMOD.EQ.8)THEN
@@ -3419,8 +3181,29 @@ C Save off current menu font and if mono-space set to proportional.
           call userfonts(IUSE,ITFS,IMFS)
         endif
 
-C Querry which one.
-  19    LN1=max(1,lnblnk(MSG1))
+C Copy the choice strings into an array to pass to upd_box_choices.
+        do ic=1,10
+          choices(ic) = '  '
+        enddo
+
+        do ic=1,nopt
+          if(ic.eq.1) write(choices(ic),'(a)') AOPT(1:la) 
+          if(ic.eq.2) write(choices(ic),'(a)') BOPT(1:lb) 
+          if(ic.eq.3) write(choices(ic),'(a)') COPT(1:lc) 
+          if(ic.eq.4) write(choices(ic),'(a)') DOPT(1:ld) 
+          if(ic.eq.5) write(choices(ic),'(a)') EOPT(1:le) 
+          if(ic.eq.6) write(choices(ic),'(a)') FOPT(1:lf) 
+          if(ic.eq.7) write(choices(ic),'(a)') GOPT(1:lg) 
+          if(ic.eq.8) write(choices(ic),'(a)') HOPT(1:lh) 
+        enddo
+        iw=imaxwid
+        write(itypes,9)  ! For future options in upd_box_choices.
+   9    format(10('-'))
+
+
+C Pass choices array into C data structures.
+  19    call upd_box_choices(choices,itypes,nopt,iw)
+        LN1=max(1,lnblnk(MSG1))
         LN2=max(1,lnblnk(MSG2))
         if((LN1+LN2+1).lt.144)then
           if(LN1.eq.1)then
@@ -3433,11 +3216,14 @@ C Querry which one.
           write(prompt,'(3a)') MSG1(1:LN1),' ',MSG2(1:LN2)
         endif
 
-        CALL espdozenbox(prompt,AOPT,BOPT,COPT,DOPT,EOPT,FOPT,GOPT,
-     &    HOPT,IOPT,JOPT,KOPT,LOPT,IW)
+C Passin the initial selection from the calling code if it is
+C one of the buttons.
+         IW=0   ! Reset
+         call espmbox(prompt,IW)
 
 C Debug.
-C        write(6,*) 'call to espdozenbox returned ',IW
+C        write(6,*) 'call to espmbox returned ',IW
+
         IF(IW.EQ.-8)THEN
 
 C A probable request for help has been received. Print out the lines
@@ -3455,11 +3241,11 @@ C of help supplied and then provide the prompt again.
 
 C If an EOF is detected when reading from IUIN, we often get infinite
 C looping, creating infinite output. Stop the program.
-  666 write(IUOUT,*)'EASKATOG: EOF detected, error in input commands.'
+  666 write(IUOUT,*)'EASKMBOX: EOF detected, error in input commands.'
       call pauses(1)
       STOP
 
-      END
+      END  ! of EASKMBOX
 
 
 C+++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -3538,11 +3324,12 @@ C looping, creating infinite output. Stop the program.
   999 CONTINUE
       END
 
-c ******************** ELINC
-C ELINC: Controls scratch pad output for text screens which returns:
+c ******************** ELINC ********************
+C Controls scratch pad output for text screens which returns:
 C For TTY & LPT ELINC tests if N lines fit on the page, if yes then the
 C line cout is updated to give lines left on page, if not the terminal is
 C paged and a new limit is set.
+
       SUBROUTINE ELINC(N)
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
 
@@ -3589,10 +3376,10 @@ C and is initially set at 24 lines (this can be changed by a call to
 C SETLINC. The parameter TITLE will appear in the window heading.
 C The method of page termination depends on the MMOD number.
 C The available terminal types are:
-C type -6 = batch/shell/function button mode.
-C type -2 = teletype with waiting.
-C type -1 = teletype.
-C type  8 = bitmapped with dialogue box.
+C type -6 = shell script mode.
+C type -2 = text mode with page control.
+C type -1 = text mode with no page control.
+C type  8 = graphic mode.
 C iappwi is the requested pixel width, iapphi is the requested pixel height
 C iappx & iappy are the upper-left position on the monitor <not yet implemented >
 C menuchw is the initial request for menu width (in characters)
@@ -3613,7 +3400,7 @@ c If MMOD set to valid index, assume it, dont ask.
       MM='     '
   10  IF(MM(1:5).EQ.'-6   '.OR.MODEL.EQ.-6)THEN
         MMOD=-6
-        LIMTTY=30
+        LIMTTY=30  ! allow a-z plus some headers and footers
         LIMIT=30
         RETURN
       ELSEIF(MM(1:5).EQ.'-2   '.OR.MODEL.EQ.-2)THEN
@@ -3628,10 +3415,9 @@ c If MMOD set to valid index, assume it, dont ask.
         RETURN
       ELSEIF(MM(1:5).eq.'8    '.OR.MODEL.EQ.8)THEN
         MMOD = 8
-        write(HEAD,'(a)') TITLE
+        write (HEAD,'(a)') TITLE(1:lnblnk(TITLE))
 
-C Take the pixel width and height passed.
-C << figure out how to work with the positon on the screen >>
+C Pass application size via sizehwxy.
         if(iappwi.ge.100)then
           ihight=iapphi
           iwidth=iappwi
@@ -3651,7 +3437,7 @@ C Open the dialogue box and begin message.
         RETURN
       ELSE
         WRITE(IOUT,200)
- 200    FORMAT(' Terminal mode (? gives options): ')
+ 200    FORMAT(' Terminal mode (type ? for options): ')
         READ(IIN,101,ERR=500,IOSTAT=IOS)MM
  101    FORMAT(A5)
         IF(MM(1:5).EQ.'-6   '.OR.MM(1:5).EQ.'-2   '.OR.
@@ -3660,13 +3446,12 @@ C Open the dialogue box and begin message.
         ELSEIF(MM(1:1).EQ.'?')THEN
           WRITE(IOUT,102)
  102      FORMAT(/
-     &  ' This program can be run in either a text mode or a',/,
-     &  ' mixed text and graphic mode on a workstation.',/,
-     &  ' The following choices are available: ',//,
-     &  ' -6 workstation shell mode (to redirect output)',/,
-     &  ' -2 text based display & user dialogue with page control',/,
-     &  ' -1 text based display & user dialogue',/,
-     &  '  8 graphic display & user dialogue',/)
+     &  ' This program can be be executed in different',/,
+     &  ' modes as follows.',//,
+     &  ' -6 shell script mode',/,
+     &  ' -2 text with page control',/,
+     &  ' -1 text mode',/,
+     &  '  8 graphic mode',/)
           GOTO 10
         ELSE
           WRITE(IOUT,'(a,a5,a)')'Did not understand your response: ',
@@ -3710,7 +3495,7 @@ C To conform to Fortran -> C passing conventions on 32bit and 64bit
       tmpa='                                                          '
 
 C First loop through items and find the longest string.
-      ITLENG=max(1,LNBLNK(NAME))
+      ITLENG=max(1,LNBLNK(NAME))  ! Title length
       ISLENG=0
       IMLENG=0
       DO IL=1,NITMS
@@ -3729,7 +3514,7 @@ C Generate menu depending on terminal.
 C Bitmapped screen :  do calls for raster menu, 0,0 are passed
 C to define std upper right position, IRPX,IRPY not used.
         irpx=0; irpy=0; impx=0; impy=0
-        CALL EWMENU(NAME,ITEMS,NITMS,impx,impy,IRPX,IRPY,INO)
+        CALL EWMENU(NAME,ITEMS,NITMS,impx,impy,irpx,irpy,INO)
         return
       else
         IF(INO.GE.-1)GO TO 20
@@ -3872,9 +3657,10 @@ C        write(6,*) 'EWMENU (fortran) ',iw,irpx,irpy,ino,ipflg,iuresp
       return
       end
 
-C *********************** EMKEY
-C EMKEY returns a key character for a menu item (a-z) based on the array
-C index of the item.  Uses ICHPK(26), 'a','b'... from esrulib...
+C ******************** EMKEY ********************
+C Returns a key character for a menu item (a-z) based on the array
+C index of the item.  Uses ICHPK(26), 'a','b'...
+
       SUBROUTINE EMKEY(IAI,KEY,IER)
       DIMENSION ICHPK(26)
       CHARACTER*1 ICHPK,KEY,mesg*36,bl*2
@@ -3893,15 +3679,12 @@ C index of the item.  Uses ICHPK(26), 'a','b'... from esrulib...
         IX=MOD(IAI,26)
         IF(IX.EQ.0)IX=26
         KEY=ICHPK(IX)
-C Debug...
-C        WRITE(iuout,27)IAI,IX,KEY
-C   27   FORMAT('EMKEY: IAI,IX,KEY',2I4,1X,A1)
       ENDIF
       RETURN
       END
 
 
-c ******************** USRMSG
+c ******************** USRMSG ********************
 c Generic error reporting facility.  MSG1
 C and MSG2 are text strings (upto 124 char) to be printed.  LEVEL is a
 C single character 'W' or 'w' for warning (in graphic mode followed by
@@ -3953,7 +3736,7 @@ C Single line prompt.
           WRITE(outs,'(A)',iostat=ios,err=1)MSG1(1:LN1)
           call edisp(iuout,outs)
         ELSE
-          call edisp(iuout,' Incorrect syntax in USRMSG ')
+          call edisp(iuout,' Incorrect syntax in USRMSG!')
         ENDIF
 
         IF(MSG2(1:LN2).NE.' ')THEN
@@ -3980,6 +3763,7 @@ C If fixed width font switch to proportional.
         if(IFS.eq.2) IFS=6
         if(IFS.eq.3) IFS=7
         call userfonts(IFS,ITFS,IMFS)
+
         IF(LEVEL.EQ.'-'.OR.LEVEL.EQ.'?')THEN
           CALL msgbox(MSG1,MSG2)
         ELSEIF(LEVEL.EQ.'W'.OR.LEVEL.EQ.'w')THEN
@@ -4015,8 +3799,6 @@ C Place in text window since about to exit from program.
         ENDIF
 
         IF(LEVEL.EQ.'F'.OR.LEVEL.EQ.'f')then
-
-C << Place to try pop-up version of msgbox. >>
           call pauses(2)
           STOP
         endif
@@ -4028,14 +3810,14 @@ C << Place to try pop-up version of msgbox. >>
       ENDIF
 
    1  if(IOS.eq.2)then
-        call edisp(IUOUT,'USRMSG: permission error composing prompt.')
+        call edisp(IUOUT,'USRMSG: permission error composing prompt!')
       else
-        call edisp(IUOUT,'USRMSG: error composing prompt.')
+        call edisp(IUOUT,'USRMSG: error composing prompt!')
       endif
       return
       END
 
-c ******************** LUSRMSG
+c ******************** LUSRMSG ********************
 c Generic error reporting facility.  MSG1
 C and MSG2 are text strings (upto 248 char) to be printed.  LEVEL is a
 C single character 'W' or 'w' for warning (in graphic mode followed by
@@ -4107,7 +3889,7 @@ C Single line prompt.
           endif
           call edisp(iuout,outs)
         ELSE
-          call edisp(iuout,' Incorrect syntax in USRMSG ')
+          call edisp(iuout,' Incorrect syntax in USRMSG!')
         ENDIF
 
         IF(MSG2(1:LN2).NE.' ')THEN
@@ -4138,6 +3920,7 @@ C If fixed width font switch to proportional.
         if(IFS.eq.2) IFS=6
         if(IFS.eq.3) IFS=7
         call userfonts(IFS,ITFS,IMFS)
+
         IF(LEVEL.EQ.'-'.OR.LEVEL.EQ.'?')THEN
           CALL msgbox(MSG1,MSG2)
         ELSEIF(LEVEL.EQ.'W'.OR.LEVEL.EQ.'w')THEN
@@ -4191,7 +3974,7 @@ C Place in text window since about to exit from program.
       return
       END
 
-C ********************* EDISP
+C ********************* EDISP ********************
 C EDISP is a generic routine which displays lines of text passed to it
 C in a format depending on the terminal type:
 C For types -1 -2 9 does a fortran write to channel IUOUT,
@@ -4209,7 +3992,7 @@ C treatment as a scrolling window.
 
 C Function determining if HOT3000 features enabled?
       logical bH3KExtentionsActive
-C Temporarily set ICOUT.
+
       ICOUT=0
 
 C Create matching string to pass to wwlib.c and hold in dispbuf.
@@ -4254,9 +4037,10 @@ C otherwise redirect to user display.
         ENDIF
       ELSE
 
-C Write this to standard text window.
+C Write to standard text window.
         WRITE(ITRU,'(A)',iostat=ios,err=1)MSG(1:lnm)
-c.......write console output (ITRU=6) to file       
+
+C Write console output (ITRU=6) to file.       
         if(ITRU.eq.6 .and. bH3KExtentionsActive() )then
             call redir_console_output_to_file(MSG(1:lnm)//CHAR(0))
         endif
@@ -4264,18 +4048,18 @@ c.......write console output (ITRU=6) to file
 
       RETURN
    1  call isunix(unixok)
-      if(.NOT.unixok) return  ! if DOS return because of lack of I/O channel
+      if(.NOT.unixok) return  ! If DOS, return because of lack of I/O channel
       if(IOS.eq.2)then
         if(lnm.le.1)then
-          write(6,*) 'edisp: permission error writing blank/null '
+          write(6,*) 'edisp: permission error writing blank/null!'
         else
-          write(6,*) 'edisp: permission error writing text: ',MSG
+          write(6,*) 'edisp: permission error writing text ',MSG,'!'
         endif
       else
         if(lnm.le.1)then
-          write(6,*) 'edisp: error writing blank/null '
+          write(6,*) 'edisp: error writing blank/null!'
         else
-          write(6,*) 'edisp: error writing text: ',MSG
+          write(6,*) 'edisp: error writing text ',MSG,'!'
         endif
       endif
       return
@@ -4289,8 +4073,8 @@ c.......write console output (ITRU=6) to file
       return
       END
 
-C ********************* EDISPxtr
-C EDISPxtr is a generic routine which displays lines of text passed to it
+C ********************* EDISPxtr *********************
+C A generic routine which displays lines of text passed to it
 C in a format depending on the terminal type (no trailing whitespace trim
 C useful for markdown documents):
 C For types -1 -2 9 does a fortran write to channel IUOUT,
@@ -4366,15 +4150,15 @@ c.......write console output (ITRU=6) to file
       if(.NOT.unixok) return  ! if DOS return because of lack of I/O channel
       if(IOS.eq.2)then
         if(lnm.le.1)then
-          write(6,*) 'edispxtr: permission error writing blank/null '
+          write(6,*) 'edispxtr: permission error writing blank/null!'
         else
-          write(6,*) 'edispxtr: permission error writing text: ',MSG
+          write(6,*) 'edispxtr: permission error writing text ',MSG,'!'
         endif
       else
         if(lnm.le.1)then
-          write(6,*) 'edispxtr: error writing blank/null '
+          write(6,*) 'edispxtr: error writing blank/null!'
         else
-          write(6,*) 'edispxtr: error writing text: ',MSG
+          write(6,*) 'edispxtr: error writing text ',MSG,'!'
         endif
       endif
       return
@@ -4389,8 +4173,8 @@ c.......write console output (ITRU=6) to file
       END
 
 
-C ********************* EDISP2tr
-C EDISP2tr is a generic routine which displays lines of text passed to it
+C ********************* EDISP2tr *********************
+C A generic routine which displays lines of text passed to it
 C in a format depending on the terminal type with 2 trailing spaces for
 C use in markdown documents to signal return:
 C For types -1 -2 9 does a fortran write to channel IUOUT,
@@ -4455,7 +4239,8 @@ C otherwise redirect to user display.
 
 C Write this to standard text window.
         WRITE(ITRU,'(A)',iostat=ios,err=1)MSG(1:lnm)
-c.......write console output (ITRU=6) to file       
+
+C Write console output (ITRU=6) to file.      
         if(ITRU.eq.6 .and. bH3KExtentionsActive() )then
             call redir_console_output_to_file(MSG(1:lnm)//CHAR(0))
         endif
@@ -4466,15 +4251,15 @@ c.......write console output (ITRU=6) to file
       if(.NOT.unixok) return  ! if DOS return because of lack of I/O channel
       if(IOS.eq.2)then
         if(lnm.le.1)then
-          write(6,*) 'edisp: permission error writing blank/null '
+          write(6,*) 'edisp: permission error writing blank/null!'
         else
-          write(6,*) 'edisp: permission error writing text: ',MSG
+          write(6,*) 'edisp: permission error writing text ',MSG,'!'
         endif
       else
         if(lnm.le.1)then
-          write(6,*) 'edisp: error writing blank/null '
+          write(6,*) 'edisp: error writing blank/null!'
         else
-          write(6,*) 'edisp: error writing text: ',MSG
+          write(6,*) 'edisp: error writing text ',MSG,'!'
         endif
       endif
       return
@@ -4488,7 +4273,9 @@ c.......write console output (ITRU=6) to file
       return
       END
 
-C ****** write current text buffer to an appropraite file
+C ******************** proftxdump ********************
+C Write current text buffer to an appropraite file.
+
       subroutine proftxdump()
 #include "building.h"
 #include "model.h"
@@ -4562,9 +4349,9 @@ C the users home folder (a place we know we can write to).
           call edisp(iuout,'  ')  ! echo a black line
           write(outs,'(A,A)') 'The current path is: ',path
           call edisp(iuout,outs)
-          CALL EASKABC('You are working in a remote model folder.',
-     &      'Options:','use remote model folder','use local folder',
-     &      'cancel',IW,nhelp)
+          CALL EASKMBOX('You are working in a remote folder.',
+     &      'Options:','use remote folder','use local folder',
+     &      'cancel',' ',' ',' ',' ',' ',IW,nhelp)
           if(iw.eq.1)then
             LN=max(1,lnblnk(cfgroot))
             write(sstr,'(4a)') path(1:lnblnk(path)),fs,
@@ -4625,17 +4412,19 @@ C Attempt to write out file.
       endif
       return
    2  if(IOS.eq.2)then
-        call usrmsg('Permissions for append to dump file...',lltmp,'W')
+        call usrmsg('Permissions for append to dump file ',lltmp,'W')
       else
-        call usrmsg('Could not append to dump file...',lltmp,'W')
+        call usrmsg('Could not append to dump file ',lltmp,'W')
       endif
       return
 
       end
 
-C ****** invoke graphics capture proforma
+C ********************* profgrdump *********************
+C Graphics capture proforma.
 
       subroutine profgrdump()
+
 #include "building.h"
 #include "model.h"
 #include "help.h"
@@ -4677,7 +4466,7 @@ C Set folder separator (fs) to \ or / as required.
 
 C There are several location options to present to the user
 C depending on whether we are working in the model folder or
-C remotely, including the users home folder. Also take into
+C remotely, including the user's home folder. Also take into
 C account whether we are browsing the model or own it.
   11  if(browse)then
 
@@ -4719,9 +4508,9 @@ C account whether we are browsing the model or own it.
           call edisp(iuout,'  ')  ! echo a black line
           write(outs,'(A,A)') 'The current path is: ',path
           call edisp(iuout,outs)
-          CALL EASKABC('You are working in a remote model folder.',
+          CALL EASKMBOX('You are working in a remote model folder.',
      &      'Options:','use remote model folder','use local folder',
-     &      'cancel',IW,nhelp)
+     &      'cancel',' ',' ',' ',' ',' ',IW,nhelp)
           if(iw.eq.1)then
             LN=max(1,lnblnk(cfgroot))
             write(sstr,'(4a)') path(1:lnblnk(path)),fs,
@@ -4746,7 +4535,7 @@ C lltmp is the file name returned by the user selection.
       CALL EASKXORGTKF(sstr,'Export image file name?',' ',
      &    'currentview.gif',lltmp,'image file',IER,nhelp)
 
-C If user request jump back and re-display the menu.
+C If user requested jump back, re-display the menu.
       if(ier.eq.-3)then
         return  ! cancel detected, return.
       endif
@@ -4768,13 +4557,13 @@ C << todo figure out how to determine if gprcmd is installed >>
 
       end
 
-
-C ************************ PHELPD
-C PHELPD displays the current contents of common pophelp in a form
+C ******************** PHELPD ********************
+C Displays the current contents of common pophelp in a form
 C appropriate to the current terminal type. MSG is a short descriptive
-C string for the subject. NHELP is the number of lines to be displayed.
-C IBX & IBY are the preferred coords of the lower left corner if in
-C terminal type 8.
+C string for the subject, NHELP is the number of lines to be displayed
+C and IBX & IBY are the preferred coordinates of the lower left corner
+C if for terminal type 8.
+
       SUBROUTINE PHELPD(MSG,NHELP,OTHER,IBX,IBY,IER)
 #include "help.h"
 
@@ -4825,7 +4614,6 @@ C dh is duplicate help list.
       lsmn=MIN0(lnblnk(msg),67)
       lsmn=max(1,LSMN)
       write(outs,'(a,a)',iostat=ios,err=1)'HELP: ',msg(1:lsmn)
-      call tstamp('>',outs)
       ILEN=NHELP
       call HPAGE('create',ILEN,MIFULL,MFULL,IST,IPM,MPM,IPFLG)
       IF(MMOD.EQ.8)THEN
@@ -4915,8 +4703,9 @@ C looping, creating infinite output. Stop the program.
 
       END
 
-C ******** HPAGE
-C Control paging of pop-up help.
+C ******************** HPAGE ********************
+C Controls paging of pop-up help.
+
       SUBROUTINE HPAGE(act,ILEN,MIFULL,MFULL,IST,IPM,MPM,IPFLG)
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
       character*(*) act
@@ -4966,11 +4755,10 @@ C Control paging of pop-up help.
       return
       end
 
+C ******************** dupphelp ********************
+C Copies current pop-up help common into a string array so
+C that C code does not destroy it.
 
-C ************************ dupphelp(nh)
-C dupphelp(nh) copies current pop-uphelp common into a string array so that
-C C code does not destroy it. Note: this uses the esp_text.c version
-C rather than the esru_x.c version.
       SUBROUTINE dupphelp(NH)
 #include "help.h"
 
@@ -4989,9 +4777,10 @@ C rather than the esru_x.c version.
       return
       END
 
-C ********************* PHELPW
-C PHELPW returns the width IWH of the longest text string in the common
+C ******************** PHELPW ********************
+C Returns the width (IWH) of the longest text string in the common
 C pophelp where IL is the number of lines of help under consideration.
+
       SUBROUTINE PHELPW(IL,IHW,IER)
 #include "help.h"
       integer ill   ! local loop

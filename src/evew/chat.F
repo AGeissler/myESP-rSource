@@ -353,11 +353,12 @@ C INPALL
 C << variable ?? >>
       helptopic='viewer_hidden_options'
       call gethelptext(helpinsub,helptopic,nbhelp)
-      CALL EASKABC('Hidden lines:',' ','omit','dash','draw',IW,nbhelp)
+      CALL EASKMBOX('Hidden lines:',' ','omit','dash','draw',
+     &  ' ',' ',' ',' ',' ',IW,nbhelp)
       ntrat=IW-1
 
-      CALL EASKABCD('Projection:',' ','orthogonal','perspective',
-     &   'pa.hor','pa.vert',NTRAT,nbhelp)
+      CALL EASKMBOX('Projection:',' ','orthogonal','perspective',
+     &   'pa.hor','pa.vert',' ',' ',' ',' ',NTRAT,nbhelp)
 
  476  CONTINUE
       helptopic='viewer_viewcone_options'
@@ -470,8 +471,9 @@ C CALL INPUT AND THEN REINITIALISE
 C ALLOW ADD OF MORE GEOMETRY DATA WITHOUT INITIALISE
  993  helptopic='vew_initialise_replace'
       call gethelptext(helpinsub,helptopic,nbhelp)
-      CALL EASKABC('options:',' ','Initialise/replace',
-     &  'Add new file to','Subtract from existing data',IW,nbhelp)
+      CALL EASKMBOX('options:',' ','Initialise/replace',
+     &  'Add new file to','Subtract from existing data',
+     &  ' ',' ',' ',' ',' ',IW,nbhelp)
       init=IW-1
       IF(INIT.EQ.0 .OR. INIT.EQ.1)THEN
            CALL INPUT(INIT)
@@ -495,8 +497,8 @@ C DEFAULT VIEW SETTING
       helptopic='viewer_available_views'
       call gethelptext(helpinsub,helptopic,nbhelp)
       IW=1
-      call easkatog('Default views:',' ','perspec','plan','isometric',
-     &              'elev.','cavalier','sun',' ',IW,nbhelp)
+      call easkmbox('Default views:',' ','perspec','plan','isometric',
+     &              'elev.','cavalier','sun',' ',' ',IW,nbhelp)
       call usrmsg(' ',' ','-')
       IDV=IW
 
@@ -545,8 +547,9 @@ C EYEPT ABOVE
 C WHICH QUADRANT
       helptopic='viewer_quadrant_views'
       call gethelptext(helpinsub,helptopic,nbhelp)
-      CALL EASKABCD('quadrant:',' ','+X+Y+Z',
-     &      '-X+Y+Z','-X-Y+Z','+X-Y+Z',IQUAD,nbhelp)
+      CALL EASKMBOX('quadrant:',' ','+X+Y+Z',
+     &      '-X+Y+Z','-X-Y+Z','+X-Y+Z',
+     &      ' ',' ',' ',' ',IQUAD,nbhelp)
       GOTO  (734,735,736,737),IQUAD
  734  GOTO  738
  
@@ -581,8 +584,8 @@ C FIND WHICH ELEVATION
       helptopic='viewer_standard_views'
       call gethelptext(helpinsub,helptopic,nbhelp)
       ielev=3
-      CALL EASKABCD('elevation:',' ','north',
-     &      'east','south','west',IELEV,nbhelp)
+      CALL EASKMBOX('elevation:',' ','north',
+     &  'east','south','west',' ',' ',' ',' ',IELEV,nbhelp)
 
       GOTO  (744,745,746,747),IELEV
 
@@ -618,8 +621,8 @@ C WHICH QUADRANT
       helptopic='viewer_quadrant_views'
       call gethelptext(helpinsub,helptopic,nbhelp)
       iquad=3
-      CALL EASKABCD('quadrant:',' ','+X+Y+Z',
-     &      '-X+Y+Z','-X-Y+Z','+X-Y+Z',IQUAD,nbhelp)
+      CALL EASKMBOX('quadrant:',' ','+X+Y+Z',
+     &  '-X+Y+Z','-X-Y+Z','+X-Y+Z',' ',' ',' ',' ',IQUAD,nbhelp)
 
       GOTO  (754,755,756,757),IQUAD
 

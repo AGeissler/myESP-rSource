@@ -123,6 +123,7 @@ C      cmp138s 3 node (ISV=20) Water 3-port diverter with flow balancing
 C      cmp139s 3 node (ISV=20) Flow Branch Water Diverter Junction - Relative Flow 
 C      cmp140s 3 node (ISV=20) Water 3-port Diverter Valve - Relative Flow
 C      cmp141s 2 node (ISV=20) Massless Diverter Valve
+C      cmp144s 1 node (ISV=21) AC cooling coil with flux determined by evaporator inlet conditions
 
 C ******************** MZSDAT ********************
 
@@ -436,7 +437,10 @@ C 2-node stratified storage tank model
          CALL stratified_tank_byp_static(IPCOMP)
       ELSE IF(ITYPE.EQ.143) THEN
          CALL CMP143S(IPCOMP)
-
+      ELSE IF(ITYPE.EQ.144) THEN
+         CALL CMP144S(IPCOMP)
+      ELSE IF(ITYPE.EQ.145) THEN
+         CALL CMP145S(IPCOMP)
       ELSE
         WRITE(IUOUT,*) ' No static template for component ',IPCOMP,ITYPE
         STOP ' MZSDAT: unresolvable error on component type'
@@ -6132,11 +6136,375 @@ C                     2nd connection to air
    10 CONTINUE
       RETURN
 
-C
 C Error handling
   990 WRITE(IUOUT,*) ' CMP99S: connection error for component ',IPCOMP
       WRITE(IUOUT,*) '         should be ',NCONS,' 1st to water 2nd to'
       WRITE(IUOUT,*) '         ambient.'
       STOP ' CMP99S: unresolvable error'
-C
+      END
+
+C ******************** CMP144S ********************
+C Establishes for a plant component with plant db code 144 ie.
+C 1 node (ISV=21) AC  cooling coil & ON OFF control
+C data derivable from the static manufacturers data already read from
+C the database and saves it in the static data common block, and also
+C whether the specified number of controlled variables is OK, and also
+C whether the number of connections to this component is correct
+C and whether the connected nodes are of a type as expected by the
+C corresponding coefficient generator routine
+
+      SUBROUTINE CMP144S(IPCOMP)
+#include "plant.h"
+#include "building.h"
+
+      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/TC/ITC,ICNT
+      COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
+      COMMON/C13PS/NPMCOE,NPNOD,NPMTYP
+
+      COMMON/C9/NPCOMP,NCI(MPCOM),CDATA(MPCOM,MMISCD)
+      COMMON/PDBDT/ADATA(MPCOM,MADATA),BDATA(MPCOM,MBDATA)
+      COMMON/PCOND/CONVAR(MPCON,MCONVR),ICONTP(MPCON),
+     &             ICONDX(MPCOM,MNODEC,MPCONC)
+
+      COMMON/ATPRES/PATMOS
+      COMMON/WBULBO/IOPT
+      
+      REAL :: fRatio
+
+C First check that plant simulation is TYPE 3 (Energy+2 phase).
+      IF(NPMTYP .NE. 3)THEN
+         WRITE(IUOUT,*) ' CMP144S: Plant simulation type ',NPMTYP,
+     &    ' is not supported for this component.'
+         WRITE(IUOUT,*) ' Must be Type 3 (Energy + 2 phase).'
+         STOP ' CMP144S: unresolvable error'
+      ENDIF
+
+C Establish static data derivable from the data read from database.
+      NITMS=23
+      DO 5 I=1,NITMS-3
+          BDATA(IPCOMP,I)=ADATA(IPCOMP,I+3)
+  5   CONTINUE
+
+C Validate the static data.
+      IF(BDATA(IPCOMP,1)<= 0.) THEN
+          WRITE(IUOUT,*) ' CMP144S: Capacity ',BDATA(IPCOMP,1),
+     &                '. Must be greater than zero.'
+          STOP ' CMP144S: unresolvable error'
+      ELSEIF(BDATA(IPCOMP,2)<= 0. .OR.BDATA(IPCOMP,2)> 1.)THEN
+          WRITE(IUOUT,*) ' CMP144S: SHR ',BDATA(IPCOMP,2),
+     &                ' is outside valid range of 0 to 1.'
+          STOP ' CMP144S: unresolvable error'
+      ELSEIF(BDATA(IPCOMP,3)<= 0.)THEN
+          WRITE(IUOUT,*) ' CMP144S: COP ',BDATA(IPCOMP,3),
+     &                ' cannot be less than or equal to zero.'
+          STOP ' CMP144S: unresolvable error'
+      ELSEIF(BDATA(IPCOMP,4)<= 0.)THEN
+          WRITE(IUOUT,*) ' CMP144S: Rated flow ',BDATA(IPCOMP,4),
+     &                ' cannot be less than or equal to zero.'
+          STOP ' CMP144S: unresolvable error'
+      ENDIF
+C Check the validity of the curves
+      CALL validateCMP144Sinput(IPCOMP)
+C Check the rated flow versus capacity ratio
+      fRatio=BDATA(IPCOMP,4)/BDATA(IPCOMP,1)
+      IF(fRatio<0.00004027 .OR. fRatio>0.00006041) ! From Coil:Cooling:DX:SingleSpeed documentation
+     &    WRITE(IUOUT,*) ' CMP144S warning: flow to capacity ',
+     &            'ratio outside typical range. ', fRatio
+
+C Determine the rated bypass factor and coil geometry parameter
+      CALL getBypassFactorCMP144(IPCOMP)
+
+C Trace output
+      IF(ITC.GT.0.AND.ITRACE(35).NE.0) THEN
+         WRITE(ITU,*) ' Component ',IPCOMP,' pre-simulation data for a:'
+         WRITE(ITU,*) ' 1 node (ISV=21) AC  cooling coil &',
+     &                ' empirical performance'
+         NITMS=3
+         WRITE(ITU,*) ' ADATA ',(ADATA(IPCOMP,J),J=1,NITMS)
+         NITMS=20
+         WRITE(ITU,*) ' BDATA ',(BDATA(IPCOMP,J),J=1,NITMS)
+         NITMS=1
+         WRITE(ITU,*) ' CDATA ',(CDATA(IPCOMP,J),J=1,NITMS)
+         IF(ITU.EQ.IUOUT) THEN
+            IX1=(IPCOMP/5)*5
+            IF(IX1.EQ.IPCOMP.OR.IPCOMP.EQ.NPCOMP) call epagew
+         END IF
+      END IF
+
+C Check user specified number of controlled variables
+      NCITM=1
+      IF(NCI(IPCOMP).NE.NCITM)
+     &   WRITE(ITU,*) ' CMP144S warning: user specified wrong number',
+     &                ' of controlled variables'
+
+C Check component has 1 connection only, to "moist air"
+      NCONS=1
+      DO 10 IPCONC=1,MPCONC
+      IPCON=ICONDX(IPCOMP,1,IPCONC)
+      IF(IPCONC.LE.NCONS) THEN
+         IF(IPCON.EQ.0) THEN
+            GOTO 990
+         ELSE IF(ICONTP(IPCON).NE.21) THEN
+            GOTO 990
+         END IF
+      ELSE IF(IPCON.NE.0) THEN
+         GOTO 990
+      END IF
+   10 CONTINUE
+
+      RETURN
+
+C Error handling
+  990 WRITE(IUOUT,*) ' CMP144S: connection error for component ',IPCOMP
+      WRITE(IUOUT,*) '         should be ',NCONS,' connection(s) to air'
+      STOP ' CMP144S: unresolvable error'
+
+      END
+      
+      SUBROUTINE validateCMP144Sinput(IPCOMP)
+#include "plant.h"
+#include "building.h"
+
+      COMMON/PDBDT/ADATA(MPCOM,MADATA),BDATA(MPCOM,MBDATA)
+      COMMON/OUTIN/IUOUT,IUIN
+
+      INTEGER, INTENT(IN) :: IPCOMP
+      REAL :: fFactor
+      LOGICAL :: CLOSEA
+      REAL, PARAMETER :: twb = 19.4, tdb = 35.0 ! AHRI test conditions
+
+C Check Total cooling capacity modifier curve
+      fFactor=BDATA(IPCOMP,5)+(BDATA(IPCOMP,6)*twb)+
+     &   (BDATA(IPCOMP,7)*(twb**2.0))+(BDATA(IPCOMP,8)*tdb)+
+     &   (BDATA(IPCOMP,9)*(tdb**2.0))+(BDATA(IPCOMP,10)*1.)+
+     &   (BDATA(IPCOMP,11)*1.)+(BDATA(IPCOMP,12)*twb*tdb)
+      CALL ECLOSE(fFactor,1.,0.05,CLOSEA)
+      IF(.NOT.CLOSEA)
+     &   WRITE(IUOUT,*) ' CMP144S warning: Total cooling capacity',
+     &       ' modifier does not equal 1 at test conditions. ',fFactor
+
+C Check Energy input ratio modifier curve
+      fFactor=BDATA(IPCOMP,13)+(BDATA(IPCOMP,14)*twb)+
+     &   (BDATA(IPCOMP,15)*(twb**2.0))+(BDATA(IPCOMP,16)*tdb)+
+     &   (BDATA(IPCOMP,17)*(tdb**2.0))+(BDATA(IPCOMP,18)*1.)+
+     &   (BDATA(IPCOMP,19)*1.)+(BDATA(IPCOMP,20)*twb*tdb)
+      CALL ECLOSE(fFactor,1.,0.05,CLOSEA)
+      IF(.NOT.CLOSEA)
+     &   WRITE(IUOUT,*) ' CMP144S warning: Energy input ratio',
+     &       ' modifier does not equal 1 at test conditions. ',fFactor
+      
+      END
+
+
+      SUBROUTINE getBypassFactorCMP144(IPCOMP)
+#include "plant.h"
+#include "building.h"
+
+      COMMON/PDBDT/ADATA(MPCOM,MADATA),BDATA(MPCOM,MBDATA)
+      COMMON/OUTIN/IUOUT,IUIN
+
+      INTEGER, INTENT(IN) :: IPCOMP
+      REAL :: fSlopeRated
+      REAL :: fSHRrated, fQtotRated, fQsensRated, fQlatRated
+      REAL :: fFlowRated, fCpIn, fCpOut, fEnthIn, fEnthOut
+      REAL :: fEnthADP
+      REAL :: fTdbOut   ! Coil outlet drybulb temperature [oC]
+      REAL :: fRHOut    ! Coil outlet relative humidity
+      REAL :: fWOut     ! humidity ratio of outlet air [kg_w/kg_a]
+      REAL :: fWadp     ! humidity ratio at apparatus dewpoint [kg_w/kg_a]
+      REAL :: fTadp     ! Drybulb temperature at apparatus dewpoint [oC]
+      REAL :: fBFrated     ! Bypass factor at rated conditions
+      REAL :: fAo   ! Coil geometry parameter
+      REAL :: fHTinWout   ! Coil geometry parameter
+C     FUNCTION DECLARATIONS
+      REAL :: HUMRT1, ENTHP2, PCRH2
+
+C     ITERATION VARIABLES
+      REAL :: fFuncOne, fFuncTwo, fTOne, fTTwo, fWOne, fWTwo, fErrApp
+      INTEGER :: iIter
+      
+      REAL, PARAMETER :: fTwbIn = 19.4, fTdbIn = 26.7, fWIn = 0.01112 ! AHRI/ASHRAE test conditions
+      REAL, PARAMETER :: fSpecVolIn = 0.849, fHeatVap = 2.47E6 ! AHRI/ASHRAE test conditions
+      REAL, PARAMETER :: fDelta=10E-6 ! Perturbation value for modified secant method
+      REAL, PARAMETER :: fErrStop=0.000005 ! Error stopping criteria
+      INTEGER, PARAMETER :: iItermax=100 ! Maximum number of iterations
+      
+      ! Load the rated data
+      fQtotRated = BDATA(IPCOMP,1) ! Pull in the rated total cooling capacity [W] from BDATA
+      fSHRrated = BDATA(IPCOMP,2) ! Pull in the SHR rated value from BDATA
+      fFlowRated = BDATA(IPCOMP,4) ! Pull in the rated flow rate value [m3/s] from BDATA
+      fQsensRated = fQtotRated * fSHRrated ! Sensible capacity at rated conditions [W]
+      fQlatRated = fQtotRated - fQsensRated ! Latent capacity at rated conditions [W]
+
+      ! Determine the humidity ratio at the outlet using latent cooling
+      ! See ASHRAE 37-2009
+      fWOut = fWIn-(fQlatRated*fSpecVolIn)/(fFlowRated*fHeatVap)
+
+      ! Determine outlet temperature
+      fCpIn = 1005.+(1805.*fWIn)  ! Inlet air specific heat [J/kg_da K]
+      fCpOut = 1005.+(1805.*fWOut)  ! Inlet air specific heat [J/kg_da K]
+      fTdbOut = ((fCpIn*fTdbIn)-((fSpecVolIn*fQsensRated)/fFlowRated))/
+     &              fCpOut
+      ! Determine the outlet relative humidity
+      fRHOut = PCRH2(fTdbOut,fWOut,1013.25)
+      If(fRHOut>100.) Then
+         WRITE(IUOUT,*) ' getBypassFactorCMP144: ',
+     &                'Calculated outlet relative humidity above 100.'
+         WRITE(IUOUT,*) ' Combination of rated flow rate, total ',
+     &                'cooling, and SHR yields exit conditions '
+         WRITE(IUOUT,*) ' above saturation curve. Possible fix is to ',
+     &                'reduce rated total, increase rated'
+         WRITE(IUOUT,*)'flow, or reduce SHR.'
+         fEnthOut = ENTHP2(fTdbIn,fWIn)*1000.
+     &         -((fSpecVolIn*fQtotRated)/fFlowRated)
+         fTsatOut = TSATH0((fEnthOut/1000.),1013.25)
+         If(fTdbOut<fTsatOut)Then
+            fTdbOut = fTsatOut+0.1
+            fWOut = ((fEnthOut/1000.)+0.026-
+     &               (fTdbOut*1.006))/(2501.+
+     &               (1.805*fTdbOut))
+            fHTinWout = ENTHP2(fTdbIn,fWOut)*1000.
+            WRITE(IUOUT,*) ' getBypassFactorCMP144: adjusting SHR: ', 
+     &                     fSHRrated
+            fSHRrated = (fHTinWout-fEnthOut)/((fSpecVolIn*fQtotRated)/
+     &                   fFlowRated)
+            WRITE(IUOUT,*) ' new rated SHR: ', fSHRrated
+            BDATA(IPCOMP,2) = fSHRrated
+         EndIf
+      EndIf
+      ! Compute the slope rated
+      fSlopeRated = (fWIn-fWOut)/(fTdbIn-fTdbOut)
+
+      ! Search along the saturation curve to find the ADP using the Modified
+      ! Secant Method
+      fTOne = fTdbOut ! Take the outlet drybulb as the initial guess
+      iIter = 1
+      fErrApp = fErrStop+1.
+      findADP: DO while (fErrApp>fErrStop .AND. iIter < iItermax)
+         ! Point one function value
+         fWOne = HUMRT1(fTOne,100.,1013.25,2) ! PATMOS not initialized, use standard pressure
+         fFuncOne = fSlopeRated-((fWIn-fWOne)/(fTdbIn-fTOne))
+         
+         ! Point two function value
+         fTTwo = fTOne+(fDelta*fTOne)
+         fWTwo = HUMRT1(fTTwo,100.,1013.25,2)
+         fFuncTwo = fSlopeRated-((fWIn-fWTwo)/(fTdbIn-fTTwo))
+         
+         ! Update guess for Tadp
+         fTadp = fTOne-((fDelta*fTOne*fFuncOne)/(fFuncTwo-fFuncOne))
+         ! Check to see if temperature is rational
+         IF(fTadp <= -273) THEN
+            WRITE(IUOUT,*) ' getBypassFactorCMP144: ',
+     &                'Bypass iterated to below absolute zero.'
+          STOP ' CMP135S: unresolvable error'
+         ELSEIF(fTadp>50.) THEN
+            WRITE(IUOUT,*) ' getBypassFactorCMP144: ',
+     &                'Bypass iterated to above 50 oC.'
+          STOP ' CMP135S: unresolvable error'
+         ENDIF
+         ! Get the approximate error
+         fErrApp = abs((fTadp-fTOne)/fTadp)
+         iIter = iIter+1
+         fTOne = fTadp
+         IF(iIter == iItermax) THEN
+            WRITE(IUOUT,*) ' getBypassFactorCMP144: ',
+     &                'Max iterations exceed.'
+            WRITE(IUOUT,*) ' The rated SHR:',fSHRrated, 
+     &                ' may be causing this. The line defined by the ',
+     &                'coil rated inlet air conditions and rated ',
+     &                'SHR must intersect the saturation curve.'
+            WRITE(IUOUT,*) ' If the rated SHR is too low then the ', 
+     &                'intersection may not occur and the bypass ',
+     &                'calc will not converge.'
+            STOP ' CMP135S: unresolvable error'
+         ENDIF
+      ENDDO findADP
+      
+      ! Retrieve Enthaplies at inlet, outlet, and ADP
+      fEnthIn = ENTHP2(fTdbIn,fWIn) ! [kJ/kg]
+      fEnthOut = ENTHP2(fTdbOut,fWOut)
+      fWadp = HUMRT1(fTadp,100.,1013.25,2)
+      fEnthADP = ENTHP2(fTadp,fWadp)
+      
+      ! Compute the bypass factor at rated conditions
+      fBFrated = (fEnthOut-fEnthADP)/(fEnthIn-fEnthADP)
+      IF(fBFrated<0) Then
+         WRITE(IUOUT,*) ' getBypassFactorCMP144: bypass factor ',
+     &         fBFrated, ' is less than zero.'
+         fBFrated=0. 
+         STOP ' CMP135S: unresolvable error'
+      ELSEIF(fBFrated>1.) Then
+         fBFrated = 1.
+      ENDIF
+      
+      ! Compute the coil geometry parameter
+      IF(fBFrated > 0.) THEN
+         fAo = -1*(fFlowRated/fSpecVolIn)*LOG(fBFrated)
+      ELSE
+         fAo = 0.
+      ENDIF
+      BDATA(IPCOMP,21) = fAo ! Store at end of BDATA for later retrieval
+
+      end subroutine getBypassFactorCMP144
+
+C ******************** CMP145S ********************
+C Establishes for a plant component with plant db code 1360 i.e.
+C 1 node (ISV>21)     moist air flow source
+C whether the specified number of controlled variables is OK, and also
+C whether the number of connections to this component is correct
+C and whether the connected nodes are of a type as expected by the
+C corresponding coefficient generator routine
+
+      SUBROUTINE CMP145S(IPCOMP)
+#include "plant.h"
+#include "building.h"
+      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/TC/ITC,ICNT
+      COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
+
+      COMMON/C9/NPCOMP,NCI(MPCOM),CDATA(MPCOM,MMISCD)
+      COMMON/PCOND/CONVAR(MPCON,MCONVR),ICONTP(MPCON),
+     &             ICONDX(MPCOM,MNODEC,MPCONC)
+
+C Trace output.
+      IF(ITC.GT.0.AND.ITRACE(35).NE.0) THEN
+         WRITE(ITU,*) ' Component ',IPCOMP,' pre-simulation data for a:'
+         WRITE(ITU,*) ' 1 node (ISV>21) moist air flow source'
+         IF(ITU.EQ.IUOUT) THEN
+            IX1=(IPCOMP/5)*5
+            IF(IX1.EQ.IPCOMP.OR.IPCOMP.EQ.NPCOMP) call epagew
+         END IF
+      END IF
+
+C Check user specified number of controlled variables.
+      NCITM=3
+      IF(NCI(IPCOMP).NE.NCITM)
+     &   WRITE(ITU,*) ' CMP145S warning: user specified wrong number',
+     &                ' of controlled variables'
+
+C Check component has 1 connection only, to 'moist air'.
+      NCONS=1
+      DO 10 IPCONC=1,MPCONC
+      IPCON=ICONDX(IPCOMP,1,IPCONC)
+      IF(IPCON.GT.0)THEN
+        IF(IPCONC.LE.NCONS) THEN
+            IF(IPCON.EQ.0) THEN
+                GOTO 990
+            ELSE IF(ICONTP(IPCON).NE.21) THEN
+                GOTO 990
+            END IF
+        ELSE IF(IPCON.NE.0) THEN
+            GOTO 990
+        END IF
+      ENDIF
+   10 CONTINUE
+
+      RETURN
+
+C Error handling
+  990 WRITE(IUOUT,*) ' CMP145S: connection error for component ',IPCOMP
+      WRITE(IUOUT,*) '         should be ',NCONS,' connection(s) to air'
+      STOP ' CMP145S: unresolvable error'
+
       END

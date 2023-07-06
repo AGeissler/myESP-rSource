@@ -444,9 +444,9 @@ C Initialiastion
 C Specify the reading mode.
       helptopic='aco_read_bcf_silent'
       call gethelptext(helpinsub,helptopic,nbhelp)
-      CALL EASKAB(' When reading in the BCF file, do you',
+      CALL EASKMBOX(' When reading in the BCF file, do you',
      &  ' want it:','done silently','with reporting of contents',
-     &  IW,nbhelp)
+     &  ' ',' ',' ',' ',' ',' ',IW,nbhelp)
       CALL EFOPSEQ(IUC,BCFfile,1,IER)
       IF (IER.LT.0) then
         WRITE (outs,'(a,a)')' Error while opening BCF file : ',

@@ -206,10 +206,6 @@ C If remote path then use EFOPRAN, otherwise FPRAND.
         endif
       endif
 
-C Log the building results file name.
-      call tstamp('>','bps: create zone results')
-      call tstamp('>',RFILE)
-
 c Does this file contain results? If a new file, reading nsim will fail.
       IREC=1
       READ(IUNIT,REC=IREC,IOSTAT=ISTAT,ERR=7)NSIM
@@ -320,8 +316,8 @@ C file path name use FPOPEN.
           endif
         endif
 
-        call tstamp('>','BPS: create flow results')
-        call tstamp('>',LAFRES)
+        write(outs,'(2A)')'Flow results file: ',LAFRES
+        call edisp(iuout,outs)
 
 C Write header information to flow results file.
         call MFOUTPH(IMFRES)
@@ -385,8 +381,6 @@ C If remote path then use EFOPRAN otherwise FPRAND.
 
         write(outs,'(2A)')'Plant results file: ',PFILE
         call edisp(iuout,outs)
-        call tstamp('>','BPS: create plant results')
-        call tstamp('>',PFILE)
       endif
 
 C Does this file contain results? If a new file, read of nsim will fail.
@@ -483,8 +477,6 @@ C file path name use FPOPEN.
 C Echo to display and log file the moisture library file name.
         write(outs,'(2A)')'Moisture results file: ',MSTRFILE
         call edisp(iuout,outs)
-        call tstamp('>','BPS: create moisture results')
-        call tstamp('>',MSTRFILE)
 
 C Write the moisture result file header.
         DO 58 ICOMP=1,NCOMP
@@ -552,8 +544,6 @@ C Write out the electrical results file header.
         CALL ENETLIBH
         write(outs,'(2A)')'Power results file: ',ERESLIB
         call edisp(iuout,outs)
-        call tstamp('>','bps: create power results')
-        call tstamp('>',ERESLIB)
       endif
 
 C CFD results file.
@@ -640,29 +630,47 @@ C           another location.
 #include "model.h"
 #include "help.h"
       
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       integer lnblnk  ! function definition
       character topic*2,LFILE*72
       character ltmp*72,ltpath*72,filen*72
       logical unixok,remote
+      character fs*1
+      character outs*124
 
       helpinsub='reslib'  ! set for cfiles
 
-      iw=1
+      iw=1                ! assume local
+      call isunix(unixok)
+      if(unixok)then
+        fs = char(47)
+      else
+        fs = char(92)
+      endif
       if(remote)then
         call fdroot(lfile,ltpath,filen)
 
 C Is the path (ltpath) to the results file absolute or relative.
 C If it is unix and starts with a / then absolute. If DOS and
-C the 2nd character is a : then absolute.
-        call isunix(unixok)
+C the 2nd character is a : then absolute. ASCII 47 is a slash.
         if(unixok)then
-          if (ICHAR(ltpath(1:1)).ne.47) then
+          if(ltpath(1:3).eq.'../')then
+            iw=1
+          elseif(ltpath(1:2).eq.'./')then
+            iw=1
+          elseif (ICHAR(ltpath(1:1)).ne.47) then
             write(LFILE,'(3a)') upath(1:lnblnk(upath)),'/',
      &        filen(1:lnblnk(filen))
             iw=2
+          elseif(ltpath(1:4).eq.'/tmp')then
+            iw=2
           endif
         else
-          if (ltpath(2:2).ne.':') then
+          if(ltpath(1:3).eq.'../')then
+            iw=1
+          elseif(ltpath(1:2).eq.'./')then
+            iw=1
+          elseif (ltpath(2:2).ne.':') then
             write(LFILE,'(3a)') upath(1:lnblnk(upath)),'/',
      &        filen(1:lnblnk(filen))
             iw=2
@@ -740,12 +748,32 @@ C Depending on the domain of the file, confirm its name.
      &      72,ltmp,'CFD results lib',IER,nbhelp)
         endif
       endif
-      
+
 C Pre-pend ../tmp/ to LFILE if in current path mode (i.e. prj was
-C was started in the model cfg directory.)
+C was started in the model cfg directory and does not already
+C include../tmp in the path or ./ to force local placement.)
       if(iw.eq.1) then
-        write(LTMP,'(2a)')'../tmp/',LFILE(1:lnblnk(LFILE))
-        LFILE=LTMP
+        if(unixok)then
+          if(LFILE(1:7).eq.'../tmp/')then
+            continue
+          elseif(LFILE(1:2).eq.'./')then
+            continue
+          else
+            write(LTMP,'(2a)')'../tmp/',LFILE(1:lnblnk(LFILE))
+            LFILE=LTMP
+          endif
+        else    ! Native W7 or W10.
+          if(LFILE(1:7).eq.'../tmp/')then
+            continue
+          elseif(LFILE(1:2).eq.'./')then
+            continue
+          elseif(LFILE(1:4).eq.'/tmp')then
+            continue
+          else
+            write(LTMP,'(2a)')'../tmp/',LFILE(1:lnblnk(LFILE))
+            LFILE=LTMP
+          endif
+        endif
       endif
 
       return

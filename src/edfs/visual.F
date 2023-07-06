@@ -190,8 +190,9 @@ C Image frequency (dynamic flow viualisation only).
       elseif (INO.EQ.(NITMS-5)) THEN
 
 C Add/ delete image definition.
-        call EASKABC(' ','View definitions:',
-     &    'add another','delete one','cancel',IW,nbhelp)
+        call EASKMBOX(' ','View definitions:',
+     &    'add another','delete one','cancel',
+     &    ' ',' ',' ',' ',' ',IW,nbhelp)
         if (IW.eq.1) then
 
 C Add new image definition.
@@ -204,8 +205,8 @@ C Add new image definition.
           if (t12(1:2).eq.'  ') goto 101
           LBITrt(ICOMP,NV)=t12
           IWM=1
-          CALL EASKATOG('View direction:',' ','South','East',
-     &                  'North','West','Top','Bottom','  ',IWM,nbhelp)
+          CALL EASKMBOX('View direction:',' ','South','East',
+     &      'North','West','Top','Bottom',' ',' ',IWM,nbhelp)
           ISURvw(ICOMP,NV)=IWM
  102      IER=0
           IF(IWM.EQ.1)THEN
@@ -268,8 +269,8 @@ C View from bottom.
 C Image resolution.
           helptopic='2D_slice_resolution'
           call gethelptext(helpinsub,helptopic,nbhelp)
-          call EASKABC(' ','Image resolution?','Low','Medium','High',
-     &      IWR,nbhelp)
+          call EASKMBOX(' ','Image resolution?','Low','Medium','High',
+     &      ' ',' ',' ',' ',' ',IWR,nbhelp)
           IRESvw(ICOMP,NV)=IWR
 
 C Set defaults for customisation and frequency variables.
@@ -306,8 +307,8 @@ C be deleted or copied, respectively.
 C Set up common help text for the following user actions.
         helptopic='2D_slice_multi_edit'
         call gethelptext(helpinsub,helptopic,nbhelp)
-        call EASKATOG(outs,' ','Name','View dir & layer','Resolution',
-     &    'Customise arrows','Frequency','cancel','  ',IWE,3)
+        call EASKMBOX(outs,' ','Name','View dir & layer','Resolution',
+     &    'Customise arrows','Frequency','cancel','  ','  ',IWE,3)
         if (IWE.eq.1) then
 
 C Image root name.
@@ -319,8 +320,8 @@ C Image root name.
 
 C View direction and layer.
           IWM=1
-          CALL EASKATOG(' ','View direction:','south','east',
-     &                  'north','west','top','bottom','  ',IWM,nbhelp)
+          CALL EASKMBOX(' ','View direction:','south','east',
+     &      'north','west','top','bottom','  ','  ',IWM,nbhelp)
           ISURvw(ICOMP,NV)=IWM
  202      IER=0
           IF(IWM.EQ.1)THEN
@@ -382,8 +383,8 @@ C View from bottom.
 
 C Image resolution.
         elseif (IWE.eq.3) then
-          call EASKABC(' ','Image resolution?','low','medium','high',
-     &      IWR,nbhelp)
+          call EASKMBOX(' ','Image resolution?','low','medium','high',
+     &      ' ',' ',' ',' ',' ',IWR,nbhelp)
           IRESvw(ICOMP,NV)=IWR
         elseif (IWE.eq.4) then
 
@@ -616,14 +617,14 @@ C Define help messages for the next few dialogs.
             write (outs,'(4a,i1,a)') 'Vector colour represents which ',
      &         'metric for view ',
      &         LBITrt(ICOMP,IM)(1:lnblnk(LBITrt(ICOMP,IM))),' (',IM,')?'
-            CALL EASKATOG(outs,' ','Air speed','Temperature',
+            CALL EASKMBOX(outs,' ','Air speed','Temperature',
      &        'Local mean age of air','Concentration',
-     &        ' ',' ',' ',ISCALAR,nbhelp)
+     &        ' ',' ',' ',' ',ISCALAR,nbhelp)
 
 C Write title for pixmap scale.
             ISCALAR=ISCALAR-1
-            call EASKAB('  ','Apply colour to:','Vector','Background',
-     &        IBR,nbhelp)
+            call EASKMBOX('  ','Apply colour to:','Vector','Background',
+     &        ' ',' ',' ',' ',' ',' ',IBR,nbhelp)
 
 C Ask which contaminant to plot
             IF(ISCALAR.eq.3) CALL ASKCFDCTM(INO)

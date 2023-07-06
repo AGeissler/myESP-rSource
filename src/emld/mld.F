@@ -21,6 +21,7 @@ C details.
 #include "mould.h"
 #include "esprdbfile.h"
 #include "espriou.h"
+#include "help.h"
 
       common/minfo/mno(MOULD),species(MOULD)
       common/meqn/a0(MOULD),a1(MOULD),a2(MOULD),a3(MOULD)
@@ -35,6 +36,10 @@ C details.
       character mdbnam*144
 
       common/OUTIN/IUOUT,IUIN,IEOUT
+      logical ieopened     ! Has session file been started.
+      integer iecount      ! Does it hold error messages.
+      character iefile*72  ! The name of the session file.
+      common/logs/ieopened,iecount,iefile
       common/SHOUT/ICOUT
       common/FILEP/IFIL
       common/SPAD/MMOD,LIMIT,LIMTTY
@@ -49,10 +54,6 @@ C details.
 C Path to problem and command line file (if any).
       common/rpath/path
       common/rcmd/LCMDFL
-
-C Session log file (for errors etc.)
-      character iefile*72
-      common/logs/iefile
 
 C Defaults.
       character*96 DFCFG,DFCTL,DEFRLB,DAPROB,DAFRES,DPNF
@@ -111,6 +112,7 @@ C Set folder separator (fs) to \ or / as required.
         fs = char(92)
       endif
       write(path,'(a1,a1)')'.',fs
+      write(upath,'(a1,a1)')'.',fs
 
 C Set unit numbers for configuration file and plant data
 C base files respectively.

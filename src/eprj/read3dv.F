@@ -95,14 +95,14 @@ C If site grid or ground is asked for draw now.
       if(ITGRD.EQ.0)then
         CALL DSGRID(0.0,GRDIS,5,IER2)
         if(ier2.ne.0)then
-          call edisp(ieout,'DRAWESP: Error in drawing grid.')
+          call to_session('DRAWESP: Error in drawing grid.')
           ier=-2
         endif
       endif
       if(ITDSP.EQ.5.or.ITDSP.EQ.6)then
         call EGRNDR(IER3)
         if(ier3.ne.0)then
-          call edisp(ieout,'DRAWESP: Error in drawing ground.')
+          call to_session('DRAWESP: Error in drawing ground.')
           ier=-3
         endif
       endif
@@ -146,28 +146,28 @@ C passed to Radiance).
       if(ITDSP.EQ.0.or.ITDSP.eq.5.or.ITDSP.eq.7)then
         CALL DRAWOBS(nznog(IZ),ier4)
         if(ier4.ne.0)then
-          call edisp(ieout,'DRAWESP: Error drawing obstructions.')
+          call to_session('DRAWESP: Error drawing obstructions.')
           ier=-4
         endif
       endif
       if(ITDSP.EQ.0.or.ITDSP.eq.8)then
         CALL DRAWVIS(nznog(IZ),ier4)
         if(ier4.ne.0)then
-          call edisp(ieout,'DRAWESP: Error drawing visual entities.')
+          call to_session('DRAWESP: Error drawing visual entities.')
           ier=-4
         endif
       endif
       if(nznog(IZ).NE.izgfoc)then
         call georead(IFIL+1,LGEOM(nznog(IZ)),nznog(IZ),1,IUOUT,IER5)
         if(ier5.ne.0)then
-          call edisp(ieout,'DRAWESP: Error recovering zone geometry.')
+          call to_session('DRAWESP: Error recovering zone geometry.')
           ier=-5
         endif
       ELSEIF(nznog(IZ).EQ.izgfoc)THEN
         if(nznog(IZ).gt.0)then
           CALL ERCZONE(nznog(IZ))
         else
-          call edisp(ieout,
+          call to_session(
      &    'DRAWESP: Error recovering zone geometry from memory.')
           ier=-5
         endif
@@ -184,7 +184,7 @@ C Note: temp character t13 is 1 char wider than zname().
         COG1(3)=ZCOG(nznog(IZ),3)
         CALL VECTRN(COG1,TSMAT,COG2,IER6)
         if(ier6.ne.0)then
-          call edisp(ieout,'DRAWESP: Error in name coord transforms.')
+          call to_session('DRAWESP: Error in name coord transforms.')
           ier=-6
         endif
         call u2pixel(COG2(1),COG2(2),iix,iiy)

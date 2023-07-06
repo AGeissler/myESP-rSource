@@ -152,8 +152,9 @@ C Roof type.
       elseif(ino.eq.6)then
         helptopic='cpc_roof_type'
         call gethelptext(helpinsub,helptopic,nbhelp)
-        CALL EASKABC(' ','Roof type options:','flat',
-     &  'single slope','double slope',IWHICH,nbhelp)
+        CALL EASKMBOX(' ','Roof type options:','flat',
+     &    'single slope','double slope',
+     &    ' ',' ',' ',' ',' ',IWHICH,nbhelp)
         if (IWHICH.EQ.1)then
           irt=0
           ra=0.0
@@ -440,8 +441,8 @@ C Reduce number of pressure coefficient sets.
       ELSEIF(IVERT.EQ.(MVERT-5))THEN
 
 C Add/generate coordinates. 
-        CALL EASKAB(' ','Options:','manual input',
-     &              'search for windows',iacc,nbhelp)
+        CALL EASKMBOX(' ','Options:','manual input',
+     &    'search for windows',' ',' ',' ',' ',' ',' ',iacc,nbhelp)
         IF(IACC.EQ.1) THEN
 
 C Manual input of cordinates. 
@@ -1122,9 +1123,9 @@ C Save data to file.
       call gethelptext(helpinsub,helptopic,nbhelp)
       CALL EASKOK(' ','Save pressure coefficients?',OK,nbhelp)
       if(OK)then
-        CALL EASKAB(' ','Save options:',
-     &    'new PC file',
-     &    'append to existing file',IWHICH,8)
+        CALL EASKMBOX(' ','Save options:',
+     &    'new PC file','append to existing file',
+     &    ' ',' ',' ',' ',' ',' ',IWHICH,8)
         IF (IWHICH.EQ.1) THEN
 
 C Read in pc from file c2e.cpdb rather than the standard pressure db.
@@ -1390,9 +1391,9 @@ C List pressure coefficients.
 
 C The next section is to add/delete/copy a set.
         iw=1
-        call easkatog(' ','Options:','add (manually)',
+        call easkmbox(' ','Options:','add (manually)',
      &    'add (via calculation)','delete','copy','cancel',' ',' ',
-     &    iw,nbhelp)
+     &    ' ',iw,nbhelp)
         if(IW.EQ.1)then
          
 C Add set. 

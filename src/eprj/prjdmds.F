@@ -117,9 +117,9 @@ C << be implemented. Try for an initial default of wk sat sun holiday.
       if(nbdaytype.eq.0)then
         helptopic='no_calender_defined'
         call gethelptext(helpinsub,helptopic,nbhelp)
-        CALL EASKABC('Calendar options','(see help) :',
+        CALL EASKMBOX('Calendar options','(see help) :',
      &    'accept basic calendar','setup custom calendar','abort',
-     &    IW,nbhelp)
+     &    ' ',' ',' ',' ',' ',IW,nbhelp)
         if(IW.eq.1)then
           call calenmanage('i',ier)
           call edisp(iuout,'A reminder of current day types...')
@@ -620,8 +620,8 @@ C Now display the menu.
 
 C << probably need to change to a menu selection >>
         IEBCGTS=1
-        CALL EASKATOG('Apply scaling factor to which dispersed type?',
-     &     ' : ',ll1,ll2,ll3,ll4,ll5,ll6,ll7,IEBCGTS,nbhelp)
+        CALL EASKMBOX('Apply scaling factor to which dispersed type?',
+     &     ' : ',ll1,ll2,ll3,ll4,ll5,ll6,ll7,' ',IEBCGTS,nbhelp)
         VAL=1.0
         CALL EASKR(VAL,' ',' Factor to be applied (0.1 to 5.0) ',
      &       0.1,'F',5.0,'F',1.0,'scaling factor',IER,3)
@@ -634,7 +634,8 @@ C << probably need to change to a menu selection >>
       ELSEIF(IVERT.EQ.(MVERT-4))THEN
 
 C +- period.
-        CALL EASKAB(' ','Modify list:','delete period','insert period',
+        CALL EASKMBOX(' ','Modify list:','delete period',
+     &    'insert period',' ',' ',' ',' ',' ',' ',
      &    IW,0)
         IF(IW.EQ.1)THEN
 
@@ -732,14 +733,14 @@ C Remind user of current values.
 C Establish the nature of the casual gain.
 C << remind user of the current type. convert choice to menu >>
         IWM=1
-        CALL EASKATOG('Which dispersed type?',
-     &     ' : ',ll1,ll2,ll3,ll4,ll5,ll6,ll7,IWM,nbhelp)
+        CALL EASKMBOX('Which dispersed type?',
+     &     ' : ',ll1,ll2,ll3,ll4,ll5,ll6,ll7,' ',IWM,nbhelp)
 
 C Depending on type set relevant included in the IPV idmdinc value.
         idmdinc(IWM)=1
 
-        call easkab('Dispersed demand units','Confirm:','absolute W',
-     &    'W per m^2',IW,8)
+        call easkmbox('Dispersed demand units','Confirm:',
+     &    'absolute W','W per m^2',' ',' ',' ',' ',' ',' ',IW,8)
         if(IW.eq.1)IEBCGT(I)=IWM
         if(IW.eq.2)IEBCGT(I)=-1*IWM
  100    WRITE(HOLD,'(2f9.1,2f8.2,a)')CEBMGS(I),CEBMGL(I),BERADC(I),
@@ -896,13 +897,14 @@ C Present a list of profiles to select from.
 
 C Identify nature of demands
       ICGTL=1
-      CALL EASKATOG(' ','Type of casual gain: ',ll1,ll2,ll3,ll4,ll5,
-     &  ll6,ll7,ICGTL,nbhelp)
+      CALL EASKMBOX(' ','Type of casual gain: ',ll1,ll2,ll3,ll4,ll5,
+     &  ll6,ll7,' ',ICGTL,nbhelp)
 
 C Depending on type set relevant idmdinc value.
       idmdinc(ICGTL)=1
 
-      call easkab('Are values',' ','absolute','per m^2',IW,5)
+      call easkmbox('Are values',' ','absolute','per m^2',
+     &  ' ',' ',' ',' ',' ',' ',IW,5)
       if(IW.eq.2)ICGTL=-1*ICGTL
 
  100  WRITE(HOLD,'(2f9.0,2f8.2,a)')PS,PL,RAD,CON,'  '

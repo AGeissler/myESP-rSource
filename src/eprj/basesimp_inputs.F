@@ -155,9 +155,9 @@ C Upon exiting the SURFACE ATTRIBUTES the user is prompted for inputs
 C BASESIMP is being used by one or more surfaces in the zone, the user
 C must decide whether to create/edit the .BSM file now or later.
       if(zonehasone)then
-        CALL EASKABCD('Edit existing *.bsm?',' ','yes','no ',
+        CALL EASKMBOX('Edit existing *.bsm?',' ','yes','no ',
      &    'browse for another bsm file','dereference basesimp',
-     &    IWHICH,nbhelp)
+     &    ' ',' ',' ',' ',IWHICH,nbhelp)
         if(iwhich.eq.4)then
           call usrmsg('Dereferencing the bsm file...',
      &      ' ','-')
@@ -166,8 +166,9 @@ C must decide whether to create/edit the .BSM file now or later.
           return
         endif
       else
-        CALL EASKABCD('Create new *.bsm?',' ','yes','no ',
-     &    'browse for another bsm file','cancel',IWHICH,nbhelp)
+        CALL EASKMBOX('Create new *.bsm?',' ','yes','no ',
+     &    'browse for another bsm file','cancel',' ',' ',' ',' ',
+     &    IWHICH,nbhelp)
         if(iwhich.eq.4)then
           call usrmsg('Continuing without creating bsm file...',
      &      ' ','-')
@@ -294,9 +295,9 @@ C Echo the current information to the user.
         endif
 
 C User edit choices.
-        CALL EASKABC('Use current .bsm values or edit? ',' ',
+        CALL EASKMBOX('Use current .bsm values or edit? ',' ',
      &    'use current data','edit','dereference basesimp definition',
-     &    IWHICH,nbhelp)
+     &    ' ',' ',' ',' ',' ',IWHICH,nbhelp)
         IF(IWHICH.EQ.1)THEN
           RETURN     ! nothing else to do
         ELSEIF(IWHICH.EQ.2)THEN
@@ -377,9 +378,9 @@ C calculated by another subroutine. Otherwise, they must enter these.
 C HELP for Moore.
       helptopic='basesimp_moore_method'
       call gethelptext(helpinsub,helptopic,nbhelp)
-      CALL EASKABC('Method for handling ground temp:',' ',
+      CALL EASKMBOX('Method for handling ground temp:',' ',
      &  'Use Moore method','Enter TGavg,TGamp,TGps','cancel',
-     &  IWHICH,nbhelp)
+     &  ' ',' ',' ',' ',' ',IWHICH,nbhelp)
 
 C FILE VERSIONING
 C Set the version number based on user's selection (1 or 0).

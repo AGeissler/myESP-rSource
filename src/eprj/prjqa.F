@@ -331,16 +331,17 @@ C in the current model. A -1 means not applicable
       character outs*124,outs2a*124,outs3*124
       integer llbm2,llbn2,mnu,llo
 
-      logical newgeo  ! to use for testing if new/old geometry file.
-      logical nameok  ! to use for testing if duplicate names in zone
-      logical foundit ! found a zone loop was referenced
-      logical odd     ! for double column reporting
-      integer NITMS   ! max items
+      logical newgeo    ! to use for testing if new/old geometry file.
+      logical nameok    ! to use for testing if duplicate names in zone
+      logical foundit   ! found a zone loop was referenced
+      logical odd       ! for double column reporting
+      logical haveframe ! are there any FRAME types in zone
+      integer NITMS     ! max items
       integer im,k,mnulen   ! multi column lines
-      integer lr      ! length of model root string
-      integer iglib   ! for detecting GTK or X11
-      integer iitrc   ! for passing verbosity
-      integer imlc    ! loop for MLC reporting
+      integer lr        ! length of model root string
+      integer iglib     ! for detecting GTK or X11
+      integer iitrc     ! for passing verbosity
+      integer imlc      ! loop for MLC reporting
       integer lnsmlcn,lnl,lnlist ! char lengths
       integer llpos,lrpos,ulpos,urpos     ! closest to BB corners for parent
       
@@ -813,7 +814,6 @@ C Execute graphing tool.
      &    'The data analysis tool has not been defined.',
      &    'Install and/or updating your esprc file.','W')
         else
-          call tstamp('>','PRJ: start graphing tool')
           write(doit,'(2a)')grfexe(1:lnblnk(grfexe)),' & '
           call usrmsg('Invoking graphing tool via',doit,'-')
           call runit(doit,'text')
@@ -826,7 +826,6 @@ C Execute figure tool.
      &    'The diagram tool has not been defined.',
      &    'Install and/or update your epsrc file.','W')
         else
-          call tstamp('>','PRJ: start xfig')
           write(doit,'(2a)')figexe(1:lnblnk(figexe)),' & '
           call usrmsg('Invoking figure tool via',doit,'-')
           call runit(doit,'text')
@@ -839,7 +838,6 @@ C Execute image viewer (get tool via prior scan of default file).
      &    'The image tool has not been defined.',
      &    'Install and/or update your esprc file.','W')
         else
-          call tstamp('>','PRJ: start xv')
           write(doit,'(2a)')fmtexe(1)(1:lnblnk(fmtexe(1))),' & '
           call usrmsg('Invoking image tool via',doit,'-')
           call runit(doit,'text')
@@ -911,30 +909,31 @@ C Generate report sorted by surface attributes.
         call gethelptext(helpinsub,helptopic,nbhelp)
         CALL PHELPD('global search by attribute',nbhelp,'-',0,0,IER)
 
-        CALL EASKABCD(' ','Filter for surface composition:',
+        CALL EASKMBOX(' ','Filter for surface composition:',
      &    'any construction','those marked UNKNOWN',
-     &    'specific construction','cancel',ins4,nbhelp)
+     &    'specific construction','cancel',
+     &    ' ',' ',' ',' ',ins4,nbhelp)
         if(ins4.eq.4)then
           return
         endif
 
         totalarea=0.0
-        CALL EASKABCD(' ','First filter--surface opacity:',
-     &    'opaque','transparent','both','cancel',ins1,nbhelp)
+        CALL EASKMBOX(' ','First filter--surface opacity:',
+     &    'opaque','transparent','both','cancel',
+     &    ' ',' ',' ',' ',ins1,nbhelp)
         if(ins1.eq.4)return
 
         ins2=1
-        call EASKATOG(' ','Second filter--surface contiguity:',
+        call EASKMBOX(' ','Second filter--surface contiguity:',
      &      'external','similar','constant','partitions','ground',
-     &      'adiabatic','any contiguity',ins2,nbhelp)
+     &      'adiabatic','any contiguity',' ',ins2,nbhelp)
 
         ins3=1
-        call EASKATOG(' ','Third filter--surface orientation:',
+        call EASKMBOX(' ','Third filter--surface orientation:',
      &      'vertical','sloped','horizontal up','horizontal down',
-     &      'any horizontal','any orientation',' ',ins3,nbhelp)
+     &      'any horizontal','any orientation',' ',' ',ins3,nbhelp)
 
 
-        call tstamp('>','PRJ: global reporting by attribution')
         call edisp(itu,' ')
         write(outs,'(A,A)') 'cfg: ',LCFGF(1:lnblnk(LCFGF))
         call edisp(itu,outs)
@@ -1155,7 +1154,7 @@ C Ask user whether file is in ../doc and if so use fdroot if GTK.
           endif
 
 C Save the model configuration file to register the report.
-          CALL EMKCFG('-',IER)
+          CALL EMKCFG('s',IER)
 
 C Copy lmodelqa to xfile so that ctlexp can deal with it.
           write(xfile,'(2a)')lmodelqa(1:lnblnk(lmodelqa))
@@ -1227,8 +1226,7 @@ C Not one of the standard choices.
       goto 3
 
 C Generate the model contents report.
-  55  call tstamp('>','PRJ: zone summary')
-      call dstamp(dstmp)
+  55  call dstamp(dstmp)
       if(markdown)then
         call edisp(itu,'# Synopsis')
       else
@@ -1464,8 +1462,8 @@ C weather data at 0.5m, 1m, 2m, 4m depth.
 
           do 19 II=1,NRGRDT
             ZD=ZDA(II)
-            CALL GTCALC(ZD,'-',IER)
-            itrunc=1
+            CALL GTCALC(ZD,'-',IER)  ! Use Kusada method to calculate ground.
+            itrunc=1                 ! Returned via LongRad common block.
             ipos=1
             do while (itrunc.ne.0)
               call arlist(ipos,12,eGrdTp,12,'S',outs2,loutln,itrunc)
@@ -1491,7 +1489,6 @@ C << to be done >>
 
 C List out the minimum and maximum thickness of constructions
 C marked as WALL.
-C << to be done >>
 
         if(NGRDP.gt.0.and.siteinfo.ge.1)then
           call edisp(itu,' ')  
@@ -1509,15 +1506,19 @@ C Jump back point if err=1000 called when reading climate.
  1001 if(siteinfo.eq.2)then
         if(NGRDP.gt.0)then
           if(markdown)then
-            call edispxtr(itu,'Ground temperatures Jan-Dec  ')
+            call edispxtr(itu,'Ground temperatures January-December')
           else
             if (NGRDPH.gt.0) then
-              call edisp(itu,'Ground temperatures/humidities Jan-Dec:')
+              call edisp(itu,
+     &          'Ground temperatures/humidities January-December:')
             else
-              call edisp(itu,'Ground temperatures Jan-Dec:')
+              call edisp(itu,'Ground temperatures January-December:')
             endif
           endif
           do 22 igrdp=1,NGRDP
+            write(outs,'(a,i2,3a,f6.1)') 'Monthly profile ',
+     &        igrdp,' ',UGRNAME(igrdp),' @ depth',UGRDEPTH(igrdp)
+            CALL edisp(itu,outs)
             WRITE(OUTS,'(12F7.1)')(UGRDTP(J,IGRDP),J=1,12)
             call edisp(itu,outs)
             if (NGRDPH.gt.0) then
@@ -2872,26 +2873,7 @@ C Note: surinfo not dependant on recent geometry scan.
         if(geominfo.ge.2)then
           context=.true.
           CALL SURINFO(IVALS(IZ),itu,context)
-
-C Bounding box for frames & doors here.
-          if(markdown)then
-            call edisp(itu,
-     &     'The width & height & height above the floor for surfaces ')
-            call edisp(itu,
-     &     'marked as frames or doors or glazing is shown below.')
-            call edisp(itu,'  ')
-            call edisp(itu,': A summary of frames')
-            call edisp(itu,'  ')
-            write(outs,'(a)')
-     &      'Surface      Width(m)   Height(m)  Above ff  USE    '
-            call edisp(itu,outs)
-            write(outs,'(a)')
-     &      '------------ ---------  ---------  --------- -------'
-            call edisp(itu,outs)
-          else
-            call edisp(itu,
-     &      'Surface      Width(m)   Height(m)  Above ffl...')
-          endif
+          haveframe=.false.
           do isz = 1,NZSUR(izz)
             if(SUSE(izz,isz,1)(1:7).eq.'F-FRAME'.or.
      &         SUSE(izz,isz,1)(1:5).eq.'FRAME'.or.
@@ -2901,14 +2883,48 @@ C Bounding box for frames & doors here.
      &         SUSE(izz,isz,1)(1:8).eq.'D-WINDOW'.or.
      &         SUSE(izz,isz,1)(1:8).eq.'S-WINDOW'.or.
      &         SUSE(izz,isz,1)(1:8).eq.'C-WINDOW')then
-              CALL ZSURLEHI(izz,isz,XYMAX,ZMAX,llpos,lrpos,
-     &          ulpos,urpos,dzllff)
-              write(outs,'(a,a,f6.2,a,f7.2,f10.2,2a)') 
-     &          SNAME(izz,isz),'  ',XYMAX,'    ',ZMAX,dzllff,
-     &          '    ',SUSE(izz,isz,1) 
-              call edisp(itu,outs)
+              haveframe=.true.
             endif
           enddo
+
+C Bounding box for frames & doors here.
+          if(haveframe)then
+            if(markdown)then
+              call edisp(itu,
+     &     'The width & height & height above the floor for surfaces ')
+              call edisp(itu,
+     &        'marked as frames or doors or glazing is shown below.')
+              call edisp(itu,'  ')
+              call edisp(itu,': A summary of frames')
+              call edisp(itu,'  ')
+              write(outs,'(a)')
+     &        'Surface      Width(m)   Height(m)  Above ff  USE    '
+              call edisp(itu,outs)
+              write(outs,'(a)')
+     &        '------------ ---------  ---------  --------- -------'
+              call edisp(itu,outs)
+            else
+              call edisp(itu,
+     &      'Surface      Width(m)   Height(m)  Above ffl...')
+            endif
+            do isz = 1,NZSUR(izz)
+              if(SUSE(izz,isz,1)(1:7).eq.'F-FRAME'.or.
+     &           SUSE(izz,isz,1)(1:5).eq.'FRAME'.or.
+     &           SUSE(izz,isz,1)(1:4).eq.'DOOR'.or.
+     &           SUSE(izz,isz,1)(1:6).eq.'P-DOOR'.or.
+     &           SUSE(izz,isz,1)(1:6).eq.'WINDOW'.or.
+     &           SUSE(izz,isz,1)(1:8).eq.'D-WINDOW'.or.
+     &           SUSE(izz,isz,1)(1:8).eq.'S-WINDOW'.or.
+     &           SUSE(izz,isz,1)(1:8).eq.'C-WINDOW')then
+                CALL ZSURLEHI(izz,isz,XYMAX,ZMAX,llpos,lrpos,
+     &            ulpos,urpos,dzllff)
+                write(outs,'(a,a,f6.2,a,f7.2,f10.2,2a)') 
+     &            SNAME(izz,isz),'  ',XYMAX,'    ',ZMAX,dzllff,
+     &            '    ',SUSE(izz,isz,1) 
+                call edisp(itu,outs)
+              endif
+            enddo
+          endif
 
           call eclose(gversion(IZZ),1.1,0.01,newgeo)
           if(newgeo)then
@@ -4343,9 +4359,10 @@ C similar to edcon.F near line 2170.
                   write(outs,'(a,i2,a)')
      &            'Number of optical control day types (currently',IV,
      &            ') :'
-                  CALL EASKABC(outs,'(see help)',
-     &            'Follow calendar day types','Just one day type',
-     &            'Dates of validity (legacy)',IV,nbhelp)
+                  CALL EASKMBOX(outs,'(see help)',
+     &              'Follow calendar day types','Just one day type',
+     &              'Dates of validity (legacy)',' ',' ',' ',' ',' ',
+     &              IV,nbhelp)
                   if(iv.eq.1)then
                     NOCDT(nof)=0
                   elseif(iv.eq.2)then
@@ -4508,7 +4525,7 @@ C If there are viewfactor files ask if they should be updated.
 
 
 C Save the model configuration file before continuing.
-      CALL EMKCFG('-',IER)
+      CALL EMKCFG('s',IER)
 
 C Check if climate file season data is available via the climatelist
 C file and then include seasonal tokens in the model.
@@ -4529,7 +4546,7 @@ C file and then include seasonal tokens in the model.
           call scancdblist(IUF,llclmdb,'p',ok,iercl)
           if(iercl.eq.0)then
             ihaveseason=1
-            CALL EMKCFG('-',IER)
+            CALL EMKCFG('s',IER)
           endif
         endif
       endif
@@ -4584,7 +4601,7 @@ C string for the image documentation.
           endif
 
 C Update the model configuration file.
-          CALL EMKCFG('-',IER)
+          CALL EMKCFG('s',IER)
 
         else
           return
@@ -4619,9 +4636,9 @@ C If there are no shading files, don't bother trying to update.
   44  if(anyish)then
         helptopic='shading_upgrade'
         call gethelptext(helpinsub,helptopic,nbhelp)
-        CALL EASKABC(' ','Shading update options:',
+        CALL EASKMBOX(' ','Shading update options:',
      &    'recalculate (silent)','recalculate (interactive)','cancel',
-     &     IRT,nbhelp)
+     &    ' ',' ',' ',' ',' ',IRT,nbhelp)
       else
         IRT=3
       endif

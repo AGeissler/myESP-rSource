@@ -31,10 +31,10 @@
 
 *item prj exemplar_or_other
 'Exemplar models are distributed with ESP-r and used for'
-'teaching & learning purposes or as a starting point for'
-'a new project.'
+'teaching & learning purposes or, perhaps, as a starting'
+'point for a new project.'
 ' '
-'The other option requires that you have access to a'
+'The `other` option requires that you have access to a'
 'previously constructed model and that you are able to'
 'specify the location of its configuration file.'
 *enditem
@@ -2145,16 +2145,30 @@ loop (i.e. this loop) '
 'in this menu with variations offered within each family. Some'
 'of the models are trivial and intended to demonstrate basis'
 'model features. Others are high resolution as developed to'
-'support rela projects.'
+'support real projects. Once loaded a model can be browsed,
+'edited and/r simulated.'
 *enditem
 
 *item cadio exemplar_set_browse
-'This exemplar model is a member of the group:'
+'This exemplar model group is described as:'
+*enditem
+
+*item cadio exemplar_review
+'Review the feedback and if this is the model you want proceed.'
+*enditem
+
+*item cadio exemplar_copy_to
+'Select a folder that you have full permissions to manage.'
+'Note that if this is on an external or network drive then'
+'it might be slow or faulty.'
+'On Windows one would typically have a Models folder such as'
+'C:/users/ralph/Models. An xcopy command is issued to copy'
+'the exemplar model files to the user defined folder.'
 *enditem
 
 *item clickonbitmap clickon_copy_close
 'Check carefully if a copied point is close to an existing'
-'vertex. You may need to increase tollerances.'
+'vertex. You may need to increase the tolerance.'
 *enditem
 
 *item clickonbitmap vertex_near_edge
@@ -2164,26 +2178,26 @@ loop (i.e. this loop) '
 *enditem
 
 *item clickonbitmap clickon_bitmap_menu
-'The click-on-bitmap facility is an alternative geometric input'
+'The click-on-bitmap facility is an alternative geometry input'
 'method that can speed up the process. Use only as much detail as'
-'required to simplify subsequent attribution and QA tasks. Plan'
-'carefully the zoning and critical points that you are going to'
-'capture. The following options are available for collecting points:'
-'  '
+'required to simplify subsequent attribution and model checking.'
+'Plan the zoning strategy and required resoluton before starting.'
+'The following options are available.'
+' '
 ' Zones, ground topology and obstructions can be defined via points'
-' from a scanned image of a site plan or floor plan or elevation'
-' or one of several predefined grids.'
-'  '
-' First scan the relevant source and convert it to an X11 xbm (X11'
-' monochrome bitmap) file and place this in the project images folder.'
+' from a scanned image of a site plan, floor plan, elevation or'
+' from one of several predefined grids.'
+' '
+' First scan the relevant source and convert it to an X11 monochrome'
+' bitmap (xbm) file and place this in the project images folder.'
 ' Ensure that the bitmap is large enough to allow for accurate'
 ' positioning of the mouse. The bitmap can be larger than the'
-' graphic display area e.g. >3000 pixels wide (you can pan left'
-' right up down within it).'
-'  '
+' graphic display area, e.g. >3000 pixels wide. You can then pan'
+' left, right, up and down within it.'
+' '
 ' The source image should indicate an origin (X=0.0 Y=0.0),'
-' the direction north (optional), and a line of known length'
-' (to get scaling pixels to metres from).'
+' the North direction (optional), and a line of known length'
+' for scaling.'
 '  '
 'Menu options:     '
 ' Pan: if bitmap larger then display then you can show a portion'

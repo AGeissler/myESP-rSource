@@ -108,9 +108,9 @@ C and change any / to \.
            helptopic='export_location'
            call gethelptext(helpinsub,helptopic,nbhelp)
            write(outs,'(A,A)') 'The model is in folder ',path
-           CALL EASKABC(outs,'Place export file in:',
+           CALL EASKMBOX(outs,'Place export file in:',
      &       'model folder','user-defined folder','cancel',
-     &       ixloc,nbhelp)
+     &       ' ',' ',' ',' ',' ',ixloc,nbhelp)
            if(ixloc.eq.3)then
              ixopen=0
              return    ! does ixopen need to be reset?
@@ -278,8 +278,9 @@ C Each call is a toggle.
           call edisp(iuout,outs)
           helptopic='export_location'
           call gethelptext(helpinsub,helptopic,nbhelp)
-          CALL EASKABC(outs,'Locate export file:',
-     &      'in model folder','another folder','cancel',iw,nbhelp)
+          CALL EASKMBOX(outs,'Locate export file:',
+     &      'in model folder','another folder','cancel',
+     &      ' ',' ',' ',' ',' ',iw,nbhelp)
           if(iw.eq.3)then
             ixopen=0
             return    ! does ixopen need to be reset?

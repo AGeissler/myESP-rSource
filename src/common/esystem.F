@@ -484,8 +484,8 @@ C  zSWA  - shortwave absorption (W).
       character hvacfile*72,LBSIMP*72,LFClds*72
       character gshpfile*72
       character gcepfile*72
-      character limgpth*24,ldocpth*24,lcfgroot*32,lpath*72
-      character path*72,lupath*72
+      character lcfgroot*32,lpath*72
+      character path*72
       character namez*12,namen*12
       character bidirfile*72,bidirname*12
       CHARACTER CONTMNAM*12,CNTMDESC*124,cntmfil*72
@@ -501,7 +501,7 @@ C  zSWA  - shortwave absorption (W).
       integer itru         ! unit for output
       integer iflag        ! for error traps
       integer loop         ! for looping     
-      INTEGER :: id1,id2,id3,id4,icon,icomp,icc,i,ia,ibrowse,ierv
+      INTEGER :: id1,id2,id3,id4,icon,icomp,icc,i,ia,ierv
       INTEGER :: im1,im2,im3,im4,iier,ipos,ios,inod,inisz,igrdp
       INTEGER :: irva,is,iset_start,k,kv,j,iv,iva,iunit,iunit1,lc
       INTEGER :: itrunc,isva,istat,n,m,items
@@ -793,6 +793,14 @@ C Point of return after tokens have been read and decoded.
 C IES data to pass to radiance. Currently 10 entities are supported.
         call scan_ies(IUC,ier)
         goto 34   ! read another tag
+
+C A plant only model with boundary conditions could have * Boundary
+C followed by a file name.
+      elseif(LOUTSTR(1:10).EQ.'* Boundary'.OR.
+     &       LOUTSTR(1:10).EQ.'* BOUNDARY') THEN
+        CALL LSTRIPC(IUC,LOUTSTR,0,ND,1,'* boundary',IER)
+        BPF=LOUTSTR(1:72)
+        goto 34   ! read another tag
       elseif(WORD(1:8).eq.'*latlong')then
         CALL EGETWR(LOUTSTR,K,sitelat,-90.,90.,'W','Latitude',IER)
         SLAT=sitelat
@@ -807,6 +815,19 @@ C IES data to pass to radiance. Currently 10 entities are supported.
      &    'Site exposure index',IER)
         CALL EGETWR(LOUTSTR,K,groundrefl,0.,1.,'W',
      &    'Ground reflect',IER)
+        if(siteexposureindex.eq.8)then  ! Read 3 values on next line.
+          CALL LSTRIPC(IUC,LOUTSTR,3,ND,1,'header tags',IER)
+          K=0
+          CALL EGETWR(LOUTSTR,K,skyview,0.,1.,'W','sky view',IER)
+          CALL EGETWR(LOUTSTR,K,groundview,0.,1.,'W','sky view',IER)
+          CALL EGETWR(LOUTSTR,K,buildingview,0.,1.,'W','sky view',IER)
+
+C Range checking.
+          IF(ABS(skyview+groundview+buildingview-1.).GT.0.01) 
+     &      CALL USRMSG(
+     &      ' Total exposure out of range in',LOUTSTR,'W')
+          goto 34   ! read another tag
+        endif
       elseif(WORD(1:12).eq.'*slr_half_hr')then ! Solar radiation (half-hour data) flag.
         call egetwi(loutstr,k,iSlr_half_hr_flg,0,1,'W',
      &    'solar half-hour flag',IER)
@@ -932,7 +953,7 @@ C Index of exposure and related data.
           IF(IER.NE.0) GOTO 1
 
 C Range checking.
-          IF(ABS(skyview+groundview+buildingview-1.).GT..001) 
+          IF(ABS(skyview+groundview+buildingview-1.).GT.0.01) 
      &      CALL USRMSG(
      &      ' Total exposure out of range in',LOUTSTR,'W')
         endif
@@ -2569,6 +2590,7 @@ C + plant model.
           CALL EGETW(LOUTSTR,K,WORD,'W','ground tags',IFLAG)
 
 C Ground monthly temperature profiles (2nd item is the number of profiles).
+C Assign 0.0 depth and initial documentation.
           IF(WORD(1:4).EQ.'*mgp')THEN
             CALL EGETWI(LOUTSTR,K,NGRDP,1,MGRDP,'F','grn prfls',IER)
             IF(NGRDP.eq.0) goto 3440
@@ -2581,7 +2603,8 @@ C Ground monthly temperature profiles (2nd item is the number of profiles).
 C Reporting.
               IF(ITRC.GE.1.AND.ITRC.LT.4)THEN
                 CALL EDISP(iuout,' ')
-                CALL EDISP(iuout,'Ground temperature profile Jan-Dec:')
+                CALL EDISP(iuout,
+     &            'Ground temperature profile January-December:')
                 WRITE(OUTS,'(12F7.2)')(UGRDTP(J,IGRDP),J=1,12)
                 CALL EDISP(iuout,OUTS)
               ENDIF
@@ -2801,20 +2824,9 @@ C Building and plant descriptions now complete.
 C Pass information about the current model to the C interface.
       lcfgroot=cfgroot
       lpath=path
-      lupath=upath
-      limgpth=imgpth
-      ldocpth=docpth
       iincomp=ncomp
       iincon=ncon
-      if(browse)then
-        ibrowse=1
-        call curproject(lcfgroot,lpath,lupath,limgpth,ldocpth,
-     &    ibrowse,iincomp,iincon)
-      else
-        ibrowse=0
-        call curproject(lcfgroot,lpath,lupath,limgpth,ldocpth,
-     &    ibrowse,iincomp,iincon)
-      endif
+      call curproject(lcfgroot,lpath,iincomp,iincon)
       RETURN
 
 C Error handling.
@@ -2921,7 +2933,7 @@ C Ground topology.
       character GTGEOM*72
       REAL :: gva
       DIMENSION GVA(12)      
-      character loutstr*248,WORD*20,OUTS*124
+      character loutstr*248,WORD*20,OUTS*124,descr*32
 
 C Calling code will have already noticed * Ground or *ground.
       ier=0
@@ -2972,15 +2984,40 @@ C Ground monthly temperature profiles. 2nd item is the number of profiles.
           DO J=1,12
             UGRDTP(J,IGRDP)=GVA(J)
           ENDDO
+          UGRDEPTH(IGRDP)=0.
+          UGRNAME(IGRDP)='no documentation yet'
 
 C Reporting.
           IF(ITRC.GE.1.AND.ITRC.LT.4)THEN
             CALL EDISP(iuout,' ')
-            CALL EDISP(iuout,' Ground temperature profile Jan-Dec:')
+            CALL EDISP(iuout,
+     &        ' Ground temperature profile January-December:')
             WRITE(OUTS,'(12F7.2)')(UGRDTP(J,IGRDP),J=1,12)
             CALL EDISP(iuout,OUTS)
           ENDIF
   28    CONTINUE
+
+C Attributed ground temperature profile.
+      elseif(WORD(1:8).eq.'*monthly')then
+        NGRDP=NGRDP+1
+        CALL EGETWR(LOUTSTR,K,UGRDEPTH(NGRDP),0.0,10.0,'-',
+     &    'ground profile depth',IER)
+        do ing=1,12
+          CALL EGETWR(LOUTSTR,K,UGRDTP(ing,NGRDP),-15.0,99.0,'-',
+     &      'ground profile temp',IER)
+        enddo
+        CALL EGETRM(LOUTSTR,K,descr,'W','profile name',IER)
+        UGRNAME(NGRDP)=descr
+
+C Reporting.
+        IF(ITRC.GE.1.AND.ITRC.LT.4)THEN
+          CALL EDISP(iuout,' ')
+          write(outs,'(2a,f4.1,a)') UGRNAME(ngrdp),'@ depth ',
+     &    UGRDEPTH(NGRDP),' profile for January-December:'
+          CALL EDISP(iuout,outs)
+          WRITE(OUTS,'(12F7.2)')(UGRDTP(J,IGRDP),J=1,12)
+          CALL EDISP(iuout,OUTS)
+        ENDIF
 
 C Ground monthly humidity profiles. 2nd item is the number of profiles.
       elseif(WORD(1:4).eq.'*mgh')then
@@ -3006,7 +3043,8 @@ C Ground monthly humidity profiles. 2nd item is the number of profiles.
 C Reporting.
           IF(ITRC.GE.1.AND.ITRC.LT.4)THEN
             CALL EDISP(iuout,' ')
-            CALL EDISP(iuout,' Ground humidity profile Jan-Dec:')
+            CALL EDISP(iuout,
+     &        ' Ground humidity profile January-December:')
             WRITE(OUTS,'(12F6.0)')(UGRDHUM(J,IGRDP),J=1,12)
             CALL EDISP(iuout,OUTS)
           ENDIF
@@ -3634,6 +3672,9 @@ C Instantiate typper common block variables iasums & iasumf.
         else
           CALL LSTRIPC(IUC,LOUTSTR,0,ND,0,'season end',IER)
           if(LOUTSTR(1:11).eq.'*season_end')then
+            return
+          elseif(LOUTSTR(1:10).eq.'* Boundary')then
+            backspace(IUC) ! reached next topic so baskspace.
             return
           else
             backspace(IUC) ! not associated so backspace twwo lines.

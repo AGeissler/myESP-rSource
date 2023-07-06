@@ -71,6 +71,11 @@ C Variables for weekdays, and weekends.
 C Assume: Mon=1, Tue=2, Wed=3, Thu=4, Fri=5, Sat=6, Sun=7
       common/wkdtyp/idwe1,idwe2,wkd1,wkd2
 
+
+      COMMON/LongRad/iExtLgRadFlag,eGrdTp(12)
+      INTEGER iExtLgRadFlag
+      REAL eGrdTp
+
       integer noimg  ! number of images
       integer iton   ! zero if images not yet shown, one if yes
       common/imagfi/noimg,iton
@@ -123,7 +128,6 @@ C ITEMS is menu for site/context items.
 C Set initial states to false.
       MODSIT=.false.
       modish=.false.
-      call tstamp('>','PRJ: model context')
 
 C Check if Unix-based or DOS based.
       call isunix(unixok)
@@ -250,7 +254,7 @@ C Help text for this menu.
 C Update configuration if context changed. If lat/long changes,
 C check to see if existing shading files need to be updated.
         if(MODSIT.and.(.NOT.browse))then
-          CALL EMKCFG('-',IER)
+          CALL EMKCFG('s',IER)
         endif
         if(modish.and.(.NOT.browse))then
 
@@ -276,11 +280,11 @@ C used so skip recalculation.
               endif
             endif
   42      continue
-          CALL EASKABC(
+          CALL EASKMBOX(
      &      'Site changes may require shading adjustments!',
-     &      'Options:',
-     &      'recalculate (silent)','recalculate (interactive)',
-     &      'cancel',IRT,nbhelp)
+     &      'Options:','recalculate (silent)',
+     &      'recalculate (interactive)',
+     &      'cancel',' ',' ',' ',' ',' ',IRT,nbhelp)
           if(IRT.eq.1.or.IRT.eq.2)then
             call edisp(iuout,'Processing zones.')
             if(IRT.eq.1)then
@@ -421,9 +425,9 @@ C Ground reflectance.
       ELSEIF(INO.EQ.6)THEN
         helptopic='context_ground_refl'
         call gethelptext(helpinsub,helptopic,nbhelp)
-        CALL EASKABCD(' ','Ground reflectance:',
+        CALL EASKMBOX(' ','Ground reflectance:',
      &    'constant','monthly (simple)','monthly (detailed)','cancel',
-     &    IW,nbhelp)
+     &    ' ',' ',' ',' ',IW,nbhelp)
 
 C Constant ground reflectance.
         if (IW.EQ.1) then
@@ -639,9 +643,9 @@ C Ground topology.
       ELSEIF(INO.EQ.13)THEN
         helptopic='context_ground_topology'
         call gethelptext(helpinsub,helptopic,nbhelp)
-        call easkabcd(' ','Ground topology options:',
+        call easkmbox(' ','Ground topology options:',
      &    'select current','create manually','create via bitmap',
-     &    'cancel',iwgt,nbhelp)
+     &    'cancel',' ',' ',' ',' ',iwgt,nbhelp)
         if(iwgt.eq.1)then
           call GTOPOL(itrc,ier)
           MODSIT=.true.
@@ -667,45 +671,130 @@ C Ground topology.
           endif
         endif
 
-C Ground temperature profiles.
+C User defined or local ground temperature profiles. Sort available weather
+C first, offer choices and then report on the temperatures.
       ELSEIF(INO.EQ.14)THEN
+        call CLMOPB(0,IER)
+        call CLMRDBMD(IER)
         helptopic='context_ground_temps'
         call gethelptext(helpinsub,helptopic,nbhelp)
-        CALL EASKABC(' ','Ground temperature profile options:',
-     &   'list','edit','add',IRT,nbhelp)
+        CALL EASKMBOX(
+     &   'User defined ground temperature profiles:','  ',
+     &   'list','edit temps','add manually','add one via weather',
+     &   'add set via weather',' ',' ',' ',IRT,nbhelp)
         if(IRT.eq.1)then
           if(NGRDP.gt.0)then
             do 22 igrdp=1,NGRDP
               call edisp(iuout,' ')
-              CALL EDISP(iuout,'Profile for Jan. thro` Dec.:')
+              CALL EDISP(iuout,'Profile for January-December:')
               WRITE(OUTS,'(12F6.1)')(UGRDTP(J,IGRDP),J=1,12)
               call edisp(iuout,outs)
  22         continue
           endif
           goto 3
-        elseif(IRT.eq.2)then
+        elseif(IRT.eq.2)then  ! Edit an existing set.
           if(NGRDP.gt.0)then
             CALL EASKI(IFOC,' ','Profile to edit?',
      &        1,'F',NGRDP,'F',1,'edit profile',IERI,nbhelp)
             if(ieri.eq.-3) goto 3
-            goto 93
+            WRITE(HOLD,'(a)') '  '
+            CALL EASKS(HOLD,'Profile description:',
+     &        'ground temp',32,'profile','profile',IIER,nbhelp)
+            UGRNAME(ifoc)=HOLD(1:32)
+            depth=UGRDEPTH(ifoc)
+            CALL EASKR(depth,' ','Associated depth (m):',
+     &       0.0,'W',5.0,'W',1.0,'depth to calculate',IER,nbhelp)
+            UGRDEPTH(ifoc)=depth
+            goto 93    ! jump to edit
           else
             call usrmsg('No profiles defined!','Choose add.','W')
             goto 3
           endif
-        elseif(IRT.eq.3)then
+        elseif(IRT.eq.3)then  ! Create a new set (initial values = 10C.)
           if(NGRDP.lt.MGRDP)then
             NGRDP=NGRDP+1
             ifoc=NGRDP
-            goto 93
+            do j=1,12
+              UGRDTP(J,ifoc)=10.0
+            enddo
+            WRITE(HOLD,'(a)') 'User supplied '
+            CALL EASKS(HOLD,'Profile description:',
+     &        'ground temp',32,'profile','profile',IIER,nbhelp)
+            UGRNAME(ifoc)=HOLD(1:32)
+            depth=1.0
+            CALL EASKR(depth,' ','Associated depth (m):',
+     &       0.0,'W',5.0,'W',1.0,'depth to calculate',IER,nbhelp)
+            UGRDEPTH(ifoc)=depth
+            goto 93    ! jump to edit
           else
             call usrmsg('Additional ground temperature profiles',
      &                  'not permitted in current model!','W')
             goto 3
           endif
+        elseif(IRT.eq.4)then
+          if(NGRDP.lt.MGRDP)then
+            NGRDP=NGRDP+1
+            ifoc=NGRDP
+            CALL EASKR(depth,' ','At depth (m):',
+     &       0.0,'W',5.0,'W',1.0,'depth to calculate',IER,nbhelp)
+            UGRDEPTH(ifoc)=depth
+            CALL GTCALC(depth,'-',IER)  ! Use Kusada method to calculate ground.
+            do J=1,12
+              UGRDTP(J,ifoc)=eGrdTp(J)
+            enddo
+            WRITE(HOLD,'(a,f5.1)') 'weather derived @',depth
+            CALL EASKS(HOLD,'Profile description:',
+     &        'ground temp',32,'profile','profile',IIER,nbhelp)
+            UGRNAME(ifoc)=HOLD(1:32)
+            call edisp(iuout,' ')
+            write(outs,'(2a,f4.1,a)') UGRNAME(ifoc),'@ depth ',depth,
+     &          ' profile for January-December:'
+            CALL EDISP(iuout,outs)
+            WRITE(OUTS,'(12F6.1)')(UGRDTP(J,ifoc),J=1,12)
+            call edisp(iuout,outs)
+            goto 3
+          else
+            call usrmsg('Additional ground temperature profiles',
+     &                  'not permitted in current model!','W')
+            goto 3
+          endif
+        elseif(IRT.eq.5)then
+          do jj=1,4
+            if(NGRDP.lt.MGRDP)then
+              NGRDP=NGRDP+1
+              ifoc=NGRDP
+              if(jj.eq.1)then 
+                depth=0.5; UGRNAME(ifoc)='weather derived @0.5m'
+              elseif(jj.eq.2)then
+                depth=1.0; UGRNAME(ifoc)='weather derived @1.0m'
+              elseif(jj.eq.3)then
+                depth=1.5; UGRNAME(ifoc)='weather derived @1.5m'
+              elseif(jj.eq.4)then
+                depth=2.0; UGRNAME(ifoc)='weather derived @2.0m'
+              endif
+              UGRDEPTH(ifoc)=depth
+              CALL GTCALC(depth,'-',IER)  ! Use Kusada method to calculate ground.
+              do J=1,12
+                UGRDTP(J,ifoc)=eGrdTp(J)
+              enddo
+              call edisp(iuout,' ')
+              write(outs,'(2a,f4.1,a)') UGRNAME(ifoc),'@ depth ',depth,
+     &          ' profile for January-December:'
+              CALL EDISP(iuout,outs)
+              WRITE(OUTS,'(12F6.1)')(UGRDTP(J,ifoc),J=1,12)
+              call edisp(iuout,outs)
+            else
+              call usrmsg('Additional ground temperature profiles',
+     &                    'not permitted in current model!','W')
+              goto 3
+            endif
+          enddo
+          goto 3
         endif
+
+C Manual edit of temperatures.
    93   WRITE(HOLD,'(1X,6F7.2)')(UGRDTP(J,IFOC),J=1,6)
-        CALL EASKS(HOLD,' ','Temperatures, January thro` June?',
+        CALL EASKS(HOLD,' ','Temperatures, January-June?',
      &      72,' ','gr prof jan-jun',IER,nbhelp)
         NV = iCountWords(HOLD)
         if(NV.ne.6)goto 93
@@ -717,7 +806,7 @@ C Ground temperature profiles.
    94   CONTINUE
    95   hold = ' '
         WRITE(HOLD,'(1X,6F7.2)')(UGRDTP(J,IFOC),J=7,12)
-        CALL EASKS(HOLD,' ','Temperatures, July thro` December?',
+        CALL EASKS(HOLD,' ','Temperatures, July-December?',
      &      72,' ','gr prof jan-jun',IER,1)
         NV = iCountWords(HOLD)
         if(NV.ne.6)goto 95
@@ -727,6 +816,10 @@ C Ground temperature profiles.
           IF(IER.NE.0)GOTO 95
           UGRDTP(J,IFOC)=GV
    96   CONTINUE
+        call edisp(iuout,' ')
+        CALL EDISP(iuout,'Edited profile for January-December:')
+        WRITE(OUTS,'(12F6.1)')(UGRDTP(J,ifoc),J=1,12)
+        call edisp(iuout,outs)
         MODSIT=.true.
 
 C 3-D Ground representation.
@@ -738,8 +831,9 @@ C Primary energy conversions.
       ELSEIF(INO.EQ.17)THEN
         helptopic='context_PEC'
         call gethelptext(helpinsub,helptopic,nbhelp)
-        CALL EASKABC(' ','Energy demand conversion options:',
-     &   'initialise and edit','edit','cancel',IR,nbhelp)
+        CALL EASKMBOX(' ','Energy demand conversion options:',
+     &   'initialise and edit','edit','cancel',
+     &   ' ',' ',' ',' ',' ',IR,nbhelp)
         if(IR.eq.1)then
           call peconv('i')
           call peconv('-')
@@ -770,14 +864,14 @@ C msc folder file and then edit.
               ipvact='ipv'
               call ripvdat(ifil+1,lipvdatf,ipvact,ier)
               call ipvdat('-')
-              CALL EMKCFG('-',IER) ! remember this
+              CALL EMKCFG('s',IER) ! remember this
               goto 3
             else
               ipvact='ipv'
               call ipvdat('i')
               call mkipvdat(ifil+1,lipvdatf,ipvact)
               call ipvdat('-')
-              CALL EMKCFG('-',IER) ! remember this
+              CALL EMKCFG('s',IER) ! remember this
               goto 3
             endif
           else
@@ -794,16 +888,16 @@ C nothing has been created yet so initialise and save in msc folder.
             ipvaction='ipv'
             lipvdatf=ltmp
             call mkipvdat(ifil+1,lipvdatf,ipvaction)
-            CALL EMKCFG('-',IER) ! remember this
+            CALL EMKCFG('s',IER) ! remember this
             call ipvdat('-')     ! edit data
-            CALL EMKCFG('-',IER) ! remember this
+            CALL EMKCFG('s',IER) ! remember this
             goto 3
           else
             ipvaction='ipv'
             lipvdatf=ltmp
             call mkipvdat(ifil+1,lipvdatf,ipvaction)
             call ipvdat('-')
-            CALL EMKCFG('-',IER)
+            CALL EMKCFG('s',IER)
             goto 3
           endif
         else     ! a known file
@@ -812,14 +906,14 @@ C nothing has been created yet so initialise and save in msc folder.
             ipvact='ipv'
             call ripvdat(ifil+1,lipvdatf,ipvact,ier)
             call ipvdat('-')
-            CALL EMKCFG('-',IER) ! remember this
+            CALL EMKCFG('s',IER) ! remember this
             goto 3
           else
             ipvact='ipv'
             call ipvdat('i')
             call mkipvdat(ifil+1,lipvdatf,ipvact)
             call ipvdat('-')
-            CALL EMKCFG('-',IER) ! remember this
+            CALL EMKCFG('s',IER) ! remember this
             goto 3
           endif
         endif
@@ -967,8 +1061,9 @@ C Help message.
         LROAM=DFLTNAME
         IROAM=1
         CALL PHELPD('Roaming Introduction',nbhelp,'-',0,0,IER)
-        CALL EASKAB(' ','Roaming file actions:',
-     &    'create template','cancel',IOK,nbhelp)
+        CALL EASKMBOX(' ','Roaming file actions:',
+     &    'create template','cancel',' ',' ',' ',' ',' ',' ',
+     &    IOK,nbhelp)
         IF(IOK.EQ.1)THEN
           CALL WROAM
           CALL RROAM
@@ -979,8 +1074,7 @@ C Help message.
      &    IER,nbhelp)
         IF(IACT.EQ.1)THEN
           IROAM=0
-          CALL EDISP(IUOUT,'Updating configuration file ...')
-          CALL EMKCFG('-',IER)
+          CALL EMKCFG('s',IER)
         ELSE
           CALL RROAM
         ENDIF
@@ -1101,7 +1195,7 @@ C Help text for menu.
 
 C Update configuration if images have changed.
         if(MODSIT.and.(.NOT.browse))then
-          CALL EMKCFG('-',IER)
+          CALL EMKCFG('s',IER)
         endif
         return
       elseif(INOI.EQ.nimgitms-1)then
@@ -1129,9 +1223,9 @@ C Display each of the current images by topic.
       elseif(INOI.EQ.nimgitms-3)then
 
 C Add images from images folder or other location.
-        CALL EASKABCD(' ','Project image options:',
+        CALL EASKmbox(' ','Project image options:',
      &    'add from ../images folder','add from another folder',
-     &    'delete','cancel',IOK,nbhelp)
+     &    'delete','cancel',' ',' ',' ',' ',IOK,nbhelp)
         if(iok.eq.1)then
           if(noimg.ge.MIMG)then
             call edisp(iuout,'No more images can be associated with')
@@ -1581,7 +1675,7 @@ C Scan the first record of this file.
             if(iabs(itdflg).gt.1)then
               call usrmsg('Including temporal file in model ...',
      &          ' ','-')
-              CALL EMKCFG('-',IER)
+              CALL EMKCFG('s',IER)
               call usrmsg('Including temporal file in model ...done.',
      &          ' ','-')
             endif
@@ -1610,7 +1704,7 @@ C Scan the first record of this file.
           if(iabs(itdflg).gt.1)then
             call usrmsg('Including temporal file in model ...',
      &        ' ','-')
-            CALL EMKCFG('-',IER)
+            CALL EMKCFG('s',IER)
             call usrmsg('Including temporal file in model ... done.',
      &        ' ','-')
           endif
@@ -1633,7 +1727,7 @@ C Dereference or ignore, depending on the file type.
           itdflg=0
           NITDF=0
           call usrmsg('Removing temporal references ...',' ','-')
-          CALL EMKCFG('-',IER)
+          CALL EMKCFG('s',IER)
           call usrmsg('Removing temporal references ... done.',' ','-')
           MODSIT=.false.
           return
@@ -1727,13 +1821,13 @@ C Befor management option list current db items and then associations.
 C Manage the list of DBTAG/DBTASK/DBZN/DBSN.
         itro=0
         if(ITEMSTD.eq.0)then
-          call easkabc(' ','Association options:',
-     &      'n/a','add','cancel',ITRO,nbhelp)
+          call easkMBOX(' ','Association options:',
+     &      'n/a','add','cancel',' ',' ',' ',' ',' ',ITRO,nbhelp)
           if(itro.eq.3) goto 42
         else
-          call easkabcd(' ','Association options:',
+          call easkmbox(' ','Association options:',
      &      'delete','add','edit',
-     &      'cancel',ITRO,nbhelp)
+     &      'cancel',' ',' ',' ',' ',ITRO,nbhelp)
           if(itro.eq.4) goto 42
         endif
         if(itro.eq.1)then
@@ -1759,7 +1853,7 @@ C Delete an association and move others up.
           ITEMSTD=ITEMSTD-1
           MODSIT=.true.
           call usrmsg('Compacting temporal references ...',' ','-')
-          CALL EMKCFG('-',IER)
+          CALL EMKCFG('s',IER)
           call usrmsg('Compacting temporal references ... done.',
      &                ' ','-')
           MODSIT=.false.
@@ -1888,9 +1982,9 @@ C copy data into cm variables for later editing.
               helptopic='temporal_ctl_linkage'
               call gethelptext(helpinsub,helptopic,nbhelp)
               irtc=0
-              CALL EASKABC(' ','Control linkage options:',
+              CALL EASKMBOX(' ','Control linkage options:',
      &          'use existing','new','cancel',
-     &          IRTC,nbhelp)
+     &          ' ',' ',' ',' ',' ',IRTC,nbhelp)
               if(irtc.eq.1)then
                 CALL EASKI(ispl,'Control loop to use set point data?',
      &            ' ',1,'F',ncf,'F',1,'cntrl loop for set point',
@@ -1911,8 +2005,9 @@ C setpoint so create another one, fill in as much information as
 C possible and link back to the temporal item. Increment ncf.
               call edisp(iuout,'No applicable controls found.')
               irtc=0
-              CALL EASKABC(' ','Control linkage options:',
-     &          'n/a','create new control','cancel',IRTC,nbhelp)
+              CALL EASKMBOX(' ','Control linkage options:',
+     &          'n/a','create new control','cancel',
+     &          ' ',' ',' ',' ',' ',IRTC,nbhelp)
               if(irtc.eq.1.or.irtc.eq.3)then
                 goto 42
               endif
@@ -1972,7 +2067,7 @@ C Update the control file and link the control loop to the correct zone.
             call usrmsg('Updating model control for temporal link ...',
      &        ' ','-')
             CALL CTLWRT(ICTLF,IER)
-            CALL EMKCFG('-',IER)
+            CALL EMKCFG('s',IER)
             call usrmsg(
      &        'Updating model control for temporal link ... done.',
      &        ' ','-')
@@ -2018,9 +2113,9 @@ C control law in the first period.
 C If there are possible control laws and if the user selects one of them
 C copy data into cm variables for later editing.
               irtc=0
-              CALL EASKABC(' ','Control linkage options:',
+              CALL EASKMBOX(' ','Control linkage options:',
      &          'use existing','new','cancel',
-     &          IRTC,nbhelp)
+     &          ' ',' ',' ',' ',' ',IRTC,nbhelp)
               if(irtc.eq.1)then
                 CALL EASKI(ispl,'Control loop to use set point data?',
      &            ' ',1,'F',ncf,'F',1,'cntrl loop for set point',
@@ -2051,8 +2146,9 @@ C setpoint so create another one, fill in as much information as
 C possible and link back to the temporal item. Increment ncf.
               call edisp(iuout,'No applicable controls found.')
               irtc=0
-              CALL EASKABC(' ','Control linkage options:',
-     &          'n/a','create new control','cancel',IRTC,nbhelp)
+              CALL EASKMBOX(' ','Control linkage options:',
+     &          'n/a','create new control','cancel',
+     &          ' ',' ',' ',' ',' ',IRTC,nbhelp)
               if(irtc.eq.1.or.irtc.eq.3)then
                 goto 42
               endif
@@ -2129,7 +2225,7 @@ C Update the control file and link the control loop to the correct zone.
             call usrmsg('Updating model control for temporal link ...',
      &        ' ','-')
             CALL CTLWRT(ICTLF,IER)
-            CALL EMKCFG('-',IER)
+            CALL EMKCFG('s',IER)
             call usrmsg(
      &        'Updating model control for temporal link ... done.',
      &        ' ','-')
@@ -2299,9 +2395,9 @@ C control law in the first period.
 C There are possible control loops. If the user selects one of them
 C copy data into cm variables for later editing.
               irtc=0
-              CALL EASKABC(' ','CFC control linkage options:',
+              CALL EASKMBOX(' ','CFC control linkage options:',
      &          'use existing',' new','cancel',
-     &          IRTC,nbhelp)
+     &          ' ',' ',' ',' ',' ',IRTC,nbhelp)
               if(irtc.eq.1)then
                 CALL EASKI(ispl,'Control loop to use tdf data?',
      &            ' ',1,'F',nCFCctlloops,'F',ijj,
@@ -2328,8 +2424,9 @@ C setpoint so create another one, fill in as much information as
 C possible and link back to the temporal item. Increment nCFCctlloops.
               call edisp(iuout,'No applicable controls found.')
               irtc=0
-              CALL EASKABC(' CFC control linkage options:',' ',
-     &          'n/a','create new control','cancel',IRTC,nbhelp)
+              CALL EASKMBOX(' CFC control linkage options:',' ',
+     &          'n/a','create new control','cancel',
+     &          ' ',' ',' ',' ',' ',IRTC,nbhelp)
               if(irtc.eq.1.or.irtc.eq.3)then
                 goto 42
               endif
@@ -2421,7 +2518,7 @@ C Update the control file.
           call usrmsg('Updating control file for CFC temporal link...',
      &        ' ','-')
             CALL CTLWRT(ICTLF,IER)
-            CALL EMKCFG('-',IER)
+            CALL EMKCFG('s',IER)
             call usrmsg(
      &        'Updating control file for CFC temporal link...done.',
      &        ' ','-')
@@ -2469,7 +2566,7 @@ cx ******************************************************************
             endif
           endif
           call usrmsg('Updating temporal references...',' ','P')
-          CALL EMKCFG('-',IER)
+          CALL EMKCFG('s',IER)
           call usrmsg('Updating temporal references...done.',' ','-')
         endif
         goto 128
@@ -2517,8 +2614,8 @@ C If act = 'i' then initialise variables.
         helptopic='primary_energy_conv'
         call gethelptext(helpinsub,helptopic,nbhelp)
         ipconv=1
-        call easkabc('Typical patterns',' ','UK','Europe','zeros',
-     &    IW,nbhelp)
+        call easkmbox('Typical patterns',' ','UK','Europe','zeros',
+     &    ' ',' ',' ',' ',' ',IW,nbhelp)
         if(IW.eq.1)then
           pcnvht=1.53; pcnvcl=1.44; pcnvlt=3.6; pcnvfn=3.6
           pcnvsp=3.6; pcnvhw=1.53
@@ -2547,7 +2644,7 @@ C If act = 'i' then initialise variables.
           pspco2=0.0; pspnox=0.0; pspsox=0.0; phwco2=0.0
           phwnox=0.0; phwsox=0.0
         endif
-        CALL EMKCFG('-',IER)
+        CALL EMKCFG('s',IER)
         return
       endif
 
@@ -2581,7 +2678,7 @@ C Help text for this menu.
       CALL EMENU('Conversions to primary',ITEMS,nitms,INO)
 
       if(INO.EQ.nitms)then
-        if(MODSIT)CALL EMKCFG('-',IER)
+        if(MODSIT)CALL EMKCFG('s',IER)
         RETURN
       elseif(INO.EQ.nitms-1)then
         CALL PHELPD('prim convers',nbhelp,'-',0,0,IER)
@@ -2988,9 +3085,9 @@ C Default season definitions.
 C Dialog based on whether or not seasons have been found.
 
           if(nbdaytype.ge.3.and.nbdaytype.le.MDTY)then
-            CALL EASKABCD(' ',' Options:','add day type',
+            CALL EASKMBOX(' ',' Options:','add day type',
      &        'add set of day types','n/a',
-     &        'cancel',IRT,nbhelp)
+     &        'cancel',' ',' ',' ',' ',IRT,nbhelp)
             if(irt.eq.1)then
 
 C If there is a control file, scan it and then loop through each of the
@@ -3397,7 +3494,7 @@ C Update calendar day types
  22       CONTINUE
 
 C Update the model.
-          CALL EMKCFG('-',IER)
+          CALL EMKCFG('s',IER)
         endif
         RETURN
       ELSEIF(IVERT.EQ.(MVERT-1))THEN
@@ -3459,8 +3556,9 @@ C user can select one or more.
 C << potential place to support seasonal day type allocations >>
 
           IHDT=0
-          CALL EASKABC(' ','Add day types:',
-     &    'one-by-one','by pattern','cancel',IHDT,nbhelp)
+          CALL EASKMBOX(' ','Add day types:',
+     &      'one-by-one','by pattern','cancel',
+     &      ' ',' ',' ',' ',' ',IHDT,nbhelp)
           IF(IHDT.EQ.1)THEN
             idt=idvals(1)
             do 78 ld=1,365
@@ -3618,9 +3716,10 @@ C that nbdaytpe is not incremented until after the addctld call.
           IDT=IUDT
         elseif(IUDT.eq.-1)then
           IHDTP=1             ! interactive session
-          CALL EASKABC('Control pattern for new day type (see help)?',
+          CALL EASKMBOX('Control pattern for new day type (see help)?',
      &      ' ','One period free floating',
-     &      'Use pattern of last day type','cancel',IHDTP,nbhelp)
+     &      'Use pattern of last day type','cancel',
+     &      ' ',' ',' ',' ',' ',IHDTP,nbhelp)
           if(IHDTP.eq.1)then
             dayact='SA'       ! assume silent addition
           elseif(IHDTP.eq.2)then
@@ -4152,16 +4251,17 @@ C Ground temperature profiles....
         do 22 igrdp=1,NGRDP
           WRITE(OUTS,'(A,I5)')'Profile number: ',IGRDP
           CALL EDISP(IUOUT,OUTS)
-          CALL EDISP(iuout,'Ground temperature profile Jan-Jun:')
+          CALL EDISP(iuout,'Ground temperature profile January-June:')
           WRITE(OUTS,'(12F6.1)')(UGRDTP(J,IGRDP),J=1,6)
           call edisp(iuout,outs)
-          CALL EDISP(iuout,'Ground temperature profile Jul-Dec:')
+          CALL EDISP(iuout,'Ground temperature profile July-December:')
           WRITE(OUTS,'(12F6.1)')(UGRDTP(J,IGRDP),J=7,12)
           call edisp(iuout,outs)
           CALL EDISP(IUOUT,' ')
  22     continue
-        CALL EASKABC(' ','Options:',
-     &             'edit profiles','add profile',' ',IRT,nbhelp)
+        CALL EASKMBOX(' ','Options:',
+     &    'edit profiles','add profile',' ',
+     &    ' ',' ',' ',' ',' ',IRT,nbhelp)
         if(IRT.eq.1)then
 
 C Setup which ground temperature profile to edit (ifoc).
@@ -4310,9 +4410,9 @@ C the site change.
         else
           helptopic='reflect_site_change'
           call gethelptext(helpinsub,helptopic,nbhelp)
-          CALL EASKABC(' ','Reflect site change in shading options:',
+          CALL EASKMBOX(' ','Reflect site change in shading options:',
      &      'recalculate (silent)','recalculate (interactive)','cancel',
-     &      IRT,nbhelp)
+     &      ' ',' ',' ',' ',' ',IRT,nbhelp)
         endif
         if(IRT.eq.1.or.IRT.eq.2)then
           do 43 iz=1,ncomp
@@ -4350,10 +4450,11 @@ C as the command line.
         else
           helptopic='reflect_site_change'
           call gethelptext(helpinsub,helptopic,nbhelp)
-          CALL EASKABCD(' ','Shading data options:',
+          CALL EASKMBOX(' ','Shading data options:',
      &     'import from ASCII if available',
      &     'recalculate missing (silent)',
-     &     'recalculate (interactive)','cancel',IRT,nbhelp)
+     &     'recalculate (interactive)','cancel',
+     &     ' ',' ',' ',' ',IRT,nbhelp)
           if(IRT.eq.1.or.IRT.eq.2.or.IRT.eq.3)then
             do iz=1,ncomp
               if(ISI(iz).gt.0)then

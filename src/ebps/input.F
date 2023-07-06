@@ -188,13 +188,6 @@ C Path to model and command line file name.
       INTEGER :: irtype
       COMMON/FOPENED/CFGOK,MLDBOK,MATDBOK,CTLOK,OPTKOK,CFCDBOK
 
-C Temporal definition commons.
-C For each timestep (assuming 10tsph frequency over a year) iknowrec
-C will be zero if not yet set and a positive number representing the record
-C to read from the temporal file if already known.
-      integer iknowrec,itdflastrec,itdfprevrec
-      common/tdfhash/iknowrec(87600,4),itdflastrec,itdfprevrec
-
       INTEGER :: ispmxist
 
 C Defaults.
@@ -746,16 +739,6 @@ C simulation and filling the TDFFLG2 commons.
           return
         endif
 
-C Set iknowrec array to signal temporal has not been scanned.
-C Documentation of values found in subroutine RCTDFB.
-        do 2 I=1,87600
-          iknowrec(I,1)=0
-          iknowrec(I,2)=0
-          iknowrec(I,3)=0
-          iknowrec(I,4)=0
-          itdflastrec=0
-          itdfprevrec=0
- 2      continue
       ENDIF
   
  35   if ( bSY_climate_defined ) then

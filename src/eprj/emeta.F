@@ -24,7 +24,7 @@ C  metawrite:  Creates an esp-r meta file. Data input is from
 C              the current zones common blocks.
 
 C ************* silentmodel
-C Creates a model from passed parameters.
+C Creates a model (registration level) from passed parameters.
 C The parameters are:
 C action (8 char) as follows:
 C    'new' creates model folders based on information
@@ -60,14 +60,10 @@ C Weather data.
       COMMON/CLMSET/ICYEAR,ICDNGH,CLAT,CLONG
 
       COMMON/SET1/IYEAR,IBDOY,IEDOY,IFDAY,IFTIME
+      INTEGER :: IYEAR,IBDOY,IEDOY,IFDAY,IFTIME
 
       common/XMLDATA/XMLMETRICS(200),inumXMLmetrics
       character XMLMETRICS*248
-
-C Calendar commons.
-      common/calena/calename,calentag(MDTY),calendayname(MDTY)
-      common/caleni/nbdaytype,nbcaldays(MDTY),icalender(365)
-      character calename*32,calentag*12,calendayname*32
 
 C Simulation parameter sets.
       common/spfldat/nsset,isset,isstup,isbnstep,ispnstep,issave,isavgh
@@ -122,28 +118,18 @@ C there is no weather file then set the default seasons.
       if(weather(1:4).eq.'none')then
 
 C Set default early winter, spring, summer, autumn, late winter periods.
-        CALL EDAY(9,1,ia1wins)
-        CALL EDAY(15,1,ia1winf)
-        CALL EDAY(6,3,ia1sprs)
-        CALL EDAY(12,3,ia1sprf)
-        CALL EDAY(11,7,iasums)
-        CALL EDAY(17,7,iasumf)
-        CALL EDAY(2,10,ia2sprs)
-        CALL EDAY(8,10,ia2sprf)
-        CALL EDAY(20,11,ia2wins)
-        CALL EDAY(26,11,ia2winf)
+        CALL EDAY(9,1,ia1wins);   CALL EDAY(15,1,ia1winf)
+        CALL EDAY(6,3,ia1sprs);   CALL EDAY(12,3,ia1sprf)
+        CALL EDAY(11,7,iasums);   CALL EDAY(17,7,iasumf)
+        CALL EDAY(2,10,ia2sprs);  CALL EDAY(8,10,ia2sprf)
+        CALL EDAY(20,11,ia2wins); CALL EDAY(26,11,ia2winf)
 
 C Default season definitions.
-        CALL EDAY(1,1,is1wins)
-        CALL EDAY(28,2,is1winf)
-        CALL EDAY(1,11,is2wins)
-        CALL EDAY(31,12,is2winf)
-        CALL EDAY(1,3,is1sprs)
-        CALL EDAY(30,4,is1sprf)
-        CALL EDAY(1,9,is2sprs)
-        CALL EDAY(31,10,is2sprf)
-        CALL EDAY(1,5,is1sums)
-        CALL EDAY(31,8,is1sumf)
+        CALL EDAY(1,1,is1wins);   CALL EDAY(28,2,is1winf)
+        CALL EDAY(1,11,is2wins);  CALL EDAY(31,12,is2winf)
+        CALL EDAY(1,3,is1sprs);   CALL EDAY(30,4,is1sprf)
+        CALL EDAY(1,9,is2sprs);   CALL EDAY(31,10,is2sprf)
+        CALL EDAY(1,5,is1sums);   CALL EDAY(31,8,is1sumf)
       else
 
 C Assume that weather is in the standard location, expand the file
@@ -153,12 +139,10 @@ C check if the climate file exists via findwhichdbpath.
           ICLIM=IFIL
         endif
         llt=lnblnk(weather)
-        write(LCLIM,'(a)') weather(1:llt) ! set LCLIM
+        write(LCLIM,'(a)') weather(1:llt) ! Set LCLIM
         call CLMOPB(0,ISTAT)
         if(ISTAT.ge.0)then
-
-C Read site and year.
-          call CLMRDBMD(IER)
+          call CLMRDBMD(IER)              ! Read site and year.
           CALL ERPFREE(ICLIM,ISTAT)
           ipathclim=2
         else
@@ -177,9 +161,7 @@ C Use findwhichdbpath and then expand weather file path for checking.
           call CLMOPB(0,ISTAT)
           write(currentfile,'(a)') llclmdb(1:lnblnk(llclmdb))
           if(ISTAT.ge.0)then
-
-C Read site and year.
-            call CLMRDBMD(IER)
+            call CLMRDBMD(IER)            ! Read site and year.
             CALL ERPFREE(ICLIM,ISTAT)
           else
 
@@ -197,11 +179,9 @@ C Not found, use the default weather file as a backstop.
           endif
         endif
 
-C Impose climate site data on the model.
-C << but we might want to use what was already in the META file >>
+C Take year (IYEAR) from the META file.
         sitelat=CLAT
         sitelongdif=CLONG
-        IYEAR=ICYEAR
         write(outs,'(A,F6.1,A,F5.1,a,i4,a,2F7.3,a)')
      &    'The weather lat is ',clat,' long diff is ',
      &    clong,' Year is ',IYEAR,
@@ -223,28 +203,18 @@ C list. If not, instantiate season and typical start and end dates.
             else
 
 C Set default early winter, spring, summer, autumn, late winter periods.
-              CALL EDAY(9,1,ia1wins)
-              CALL EDAY(15,1,ia1winf)
-              CALL EDAY(6,3,ia1sprs)
-              CALL EDAY(12,3,ia1sprf)
-              CALL EDAY(11,7,iasums)
-              CALL EDAY(17,7,iasumf)
-              CALL EDAY(2,10,ia2sprs)
-              CALL EDAY(8,10,ia2sprf)
-              CALL EDAY(20,11,ia2wins)
-              CALL EDAY(26,11,ia2winf)
+              CALL EDAY(9,1,ia1wins);   CALL EDAY(15,1,ia1winf)
+              CALL EDAY(6,3,ia1sprs);   CALL EDAY(12,3,ia1sprf)
+              CALL EDAY(11,7,iasums);   CALL EDAY(17,7,iasumf)
+              CALL EDAY(2,10,ia2sprs);  CALL EDAY(8,10,ia2sprf)
+              CALL EDAY(20,11,ia2wins); CALL EDAY(26,11,ia2winf)
 
 C Default season definitions.
-              CALL EDAY(1,1,is1wins)
-              CALL EDAY(28,2,is1winf)
-              CALL EDAY(1,11,is2wins)
-              CALL EDAY(31,12,is2winf)
-              CALL EDAY(1,3,is1sprs)
-              CALL EDAY(30,4,is1sprf)
-              CALL EDAY(1,9,is2sprs)
-              CALL EDAY(31,10,is2sprf)
-              CALL EDAY(1,5,is1sums)
-              CALL EDAY(31,8,is1sumf)
+              CALL EDAY(1,1,is1wins);   CALL EDAY(28,2,is1winf)
+              CALL EDAY(1,11,is2wins);  CALL EDAY(31,12,is2winf)
+              CALL EDAY(1,3,is1sprs);   CALL EDAY(30,4,is1sprf)
+              CALL EDAY(1,9,is2sprs);   CALL EDAY(31,10,is2sprf)
+              CALL EDAY(1,5,is1sums);   CALL EDAY(31,8,is1sumf)
             endif
           endif
         endif
@@ -263,51 +233,6 @@ C data into the simulation parameter set data structure.
           call ipv2simpar(simact)
         endif
       endif
-
-C Write calendar information (just the default one for the moment)
-      calename='standard weekday Sat Sun hol'
-      nbdaytype=4
-      nbcaldays(1)=0
-      calentag(1)='weekdays'
-      calendayname(1)='weekdays (all year)'
-      nbcaldays(2)=0
-      calentag(2)='saturday'
-      calendayname(2)='Saturdays (all year)'
-      nbcaldays(3)=0
-      calentag(3)='sunday'
-      calendayname(3)='Sundays (all year)'
-      calentag(4)='holiday'
-      calendayname(4)='holiday'; nbcaldays(4)=0
-      calentag(5)='-'; calendayname(5)='-'; nbcaldays(5)=0
-      calentag(6)='-'; calendayname(6)='-'; nbcaldays(6)=0
-      calentag(7)='-'; calendayname(7)='-'; nbcaldays(7)=0
-      calendayname(8)='-'; calentag(8)='-';nbcaldays(8)=0
-      calentag(9)='-'; calendayname(9)='-'; nbcaldays(9)=0
-      calentag(10)='-'; calendayname(10)='-'; nbcaldays(10)=0
-     
-      do 542 ijd=1,365
-
-C Assume 1 Jan is a holiday (users can change this later).
-        if(ijd.eq.1)then
-          icalender(ijd)=4
-          nbcaldays(4)=nbcaldays(4)+1
-        else
-
-C For julian day ijd find month and day of month and day of week.
-          call edayr(ijd,idayn,imthn)
-          call eweekd(idayn,imthn,iyear,idwk)
-          if(idwk.ge.1.and.idwk.le.5)then
-            icalender(ijd)=1
-            nbcaldays(1)=nbcaldays(1)+1
-          elseif(idwk.eq.6)then
-            icalender(ijd)=2
-            nbcaldays(2)=nbcaldays(2)+1
-          elseif(idwk.eq.7)then
-            icalender(ijd)=3
-            nbcaldays(3)=nbcaldays(3)+1
-          endif
-        endif
-  542 continue
   
       CALL EMKCFG('-',IER)
 
@@ -377,8 +302,8 @@ C hasoptic (string array) the name of the optics to use for each surface
 C use integer*3 directives for zone use pattern.,
 c usefile char*32 file name (w/o path) of pattern operation file.
 C IER=0 OK.
-      subroutine silentzone(ICOMP,metaver,hasconstr,hasoptic,use,
-     &  usefile,IER)
+      subroutine silentzone(ICOMP,metaver,hasconstr,hasoptic,hasparent,
+     &  hasuse,use,usefile,literalctl,IER)
 #include "building.h"
 #include "model.h"
 #include "geometry.h"
@@ -390,11 +315,15 @@ C IER=0 OK.
 
 C Parameters
       integer icomp    ! focus zone index
-      integer metaver  ! one for 1.1 and two for 1.2
+      integer metaver  ! one for 1.1 two for 1.2 three for 1.3
       character hasconstr*32
       dimension hasconstr(MS)  ! construction to use for each surface
       character hasoptic*32
       dimension hasoptic(MS)   ! optics to use for each surface
+      character hasparent*12
+      dimension hasparent(MS)
+      character hasuse*12
+      dimension hasuse(MS,2)
       character use*8,usefile*32  ! usage pattern directives
       dimension use(3)
 
@@ -436,10 +365,10 @@ C hasname (string array) the surface name for each surface (so filsur does not w
       logical closev       !  mass is close to vertical
       LOGICAL QUIET
       logical anunknownmlc ! if true then there was an unknown MLC
-      integer llpos,lrpos,ulpos,urpos     ! closest to BB corners for parent
+      logical literalctl
 
 C Strings for surface attributes to pass to insrec.
-      character rsname*12,rsotf*32,rsmlcn*32,rsuse1*12,rsuse2*12
+      character rsuse1*12,rsuse2*12
       character rsparent*12
       integer newsurf   ! index of surface when adding door/glazing
       real angr         ! for rotation
@@ -471,7 +400,6 @@ C Clear local coordinate array.
  345  continue
 
 C Creation of a new zone, begin with length of zone name.
-      call tstamp('>','PRJ: new zone')
       lnzname(ICOMP)=lnblnk(zname(ICOMP))
 
 C << Unix vs Windows needs to be updated >>
@@ -626,6 +554,9 @@ C Update the connection list.
 C Instantiate the surface constructions.
         write(sname(icomp,icc),'(a)') hasname(icc)
         write(smlcn(icomp,icc),'(a)') hasconstr(icc)
+        write(sparent(icomp,icc),'(a)') hasparent(icc)
+        write(suse(icomp,icc,1),'(a)') hasuse(icc,1)
+        write(suse(icomp,icc,2),'(a)') hasuse(icc,2)
 
 C Loop thru all of the known constructions to find the matching construction.
 C Also set smlcindex for this surface.
@@ -640,7 +571,7 @@ C Also set smlcindex for this surface.
           endif
   5     continue
 
-        if(metaver.eq.2)then
+        if(metaver.eq.2.or.metaver.eq.3)then
 
 C Take the optics from the META file. If there are unknown constructions
 C mark anunknownmlc so construction files are not created.
@@ -674,9 +605,6 @@ C the original model. In this case << ? >>
             endif
           endif
         endif
-        SPARENT(icomp,icc)='-'
-        SUSE(icomp,icc,1)='-'
-        SUSE(icomp,icc,2)='-'
 
 C Use zboundarytype to instantiate sother.
         IF(zboundarytype(icomp,icc,1).EQ.0)THEN
@@ -725,12 +653,32 @@ C Update the G7 common blocks and then if assign ZBASEA.
       elseif(ishape.eq.3)then
 
 C For poly shape loop to find the floor in order to set up the floor area
+        lastlist=0
         do 222 iSurface=1,NSUR
           if(SVFC(icomp,iSurface).eq.'FLOR')then
-            IBASES(ICOMP,1)=iSurface
-            ZBASEA(icomp)= SNA(icomp,IBASES(ICOMP,1))
+            if(SUSE(icomp,iSurface,1)(1:5).eq.'FURNI')then
+              continue  ! ignore horizontal surfaces marked as furniture.
+            elseif(SUSE(Icomp,iSurface,1)(1:6).eq.'REVEAL')then
+              continue  ! ignore horizontal surfaces marked as reveal.
+            else
+
+C If surface `flor` not included in the list add it.
+              lastlist=lastlist+1
+              if(lastlist.le.6)then
+                IBASES(ICOMP,lastlist)=iSurface
+                ZBASEA(ICOMP)=ZBASEA(ICOMP)+SNA(ICOMP,iSurface)
+              endif	
+            endif
           endif
  222    continue
+  43  continue
+      write(outs,'(a,f6.2,2a)') 'Base area estimated at ',
+     &    ZBASEA(ICOMP),'m^2 for ',zname(icomp)
+      call edisp(iuout,outs)
+      if(lastlist.gt.0)then
+        iuzbasea(icomp)=0           ! signal area from orientation scan
+         izbaselist(icomp)=lastlist  ! remember how many items in list.
+      endif
       endif
 
 C Save this to file before passing into the geometry editing facility.
@@ -748,9 +696,11 @@ C Use gversion 1.1.
 
 C Read in control file if defined. Note: the control file will not yet
 C know about this new zone so decrement NCOMP before read and re-establish
-C after reading control file.
+C after reading control file. If meta file included literal blocks of
+C control file then no need to adjust.
       OKC=.false.
       if(LCTLF(1:1).ne.' '.and.LCTLF(1:4).ne.'UNKN')OKC=.true.
+      if(literalctl) OKC=.false.
       if(OKC)then
         NCOMP=NCOMP-1  ! Temporarily decrement NCOMP.
         ICTLF=IFIL+1
@@ -772,9 +722,6 @@ C Update the G7 common blocks and then the configuration file.
 C Use the 's' parameter to emkcfg to avoid asking for cnn file name.
       call zgupdate(0,ICOMP,ier)
       CALL EMKCFG('s',IER)
-
-C Depreciated znbdoor and zhasdoor.
-C Depreciated zhasglaze and znbglz.
 
 C Next, if there are mass pairs to add make standard calls to insert them.
       if(znbmass(icomp).gt.0)then
@@ -806,7 +753,7 @@ C Predefined objects - task to decide how these might be represented
 C in meta file (if at all).
 C << work to be done >>
 
-      CALL EMKCFG('-',IER)
+      CALL EMKCFG('s',IER)
 
 C If no errors then proceed to create constructions files. The
 C file name is already known, assume that attribution is complete
@@ -910,7 +857,7 @@ C Just in case sort the data.
       endif
 
 C Update configuration file to know about the construction files.
-      CALL EMKCFG('-',IER)
+      CALL EMKCFG('s',IER)
 
       RETURN
 
@@ -970,6 +917,9 @@ C dayswithsnow - (12) Monthly values of number of days with snow on ground
 C SNFNAM - *72 Name of the file containing hourly snow depth information
       COMMON/PREC8/SLAT,SLON
 
+      COMMON/SET1/IYEAR,IBDOY,IEDOY,IFDAY,IFTIME
+      INTEGER :: IYEAR,IBDOY,IEDOY,IFDAY,IFTIME
+
 C Obstruction blocks via geometry.h.
 
 C Simulation parameter sets.
@@ -1003,10 +953,41 @@ C nsurfinso nb of insolation sources, isurfinso() list of insolation sources.
       COMMON/FOPENED/CFGOK,MLDBOK,MATDBOK,CTLOK,OPTKOK,CFCDBOK
       LOGICAL CFGOK,MLDBOK,MATDBOK,CTLOK,OPTKOK,CFCDBOK
 
+      common/CWEC_SOL/iSlr_half_hr_flg
+      integer iSlr_half_hr_flg      ! 0 hour-centered; 1 half-hour centered
+
+C Images.
+      character imgfmt*4  ! GIF XBMP TIF JPG
+      character imgfoc*4  ! FZON FNET FCTL FDFS FPLN
+      character limgfil*72  ! file name (extend to 144 char)
+      character imgdoc*248  ! text associated with image
+      common/imagf/imgfmt(MIMG),imgfoc(MIMG),limgfil(MIMG),imgdoc(MIMG)
+
+      integer noimg  ! number of images
+      integer iton   ! 0 if images not yet shown, 1 if yes
+      common/imagfi/noimg,iton
+      
+C Radiance processor cores.
+      integer radcores
+      common/radcor/radcores
+
+C  zfldK - conductivity; zfldD - density; zfldC - specific heat capacity;
+C  zflsA - total shortwave absorptivity; zSWA  - shortwave absorption (W).
+      COMMON/zfluid/znotair(mcom),zfldK,zfldD,zfldC,zfldA,
+     &              zSWAp(mcom),zSWAf(mcom)
+      real zfldK,zfldD,zfldC,zfldA,zSWAp,zSWAf
+      LOGICAL znotair
+
+C Initial view.
+      common/initv/initvt,EYEMI(3),VIEWMI(3),ANGI
+      REAL :: angi,EYEMI,VIEWMI
+      INTEGER :: initvt
+
       integer inumXMLmetrics !counts for the number of xml metrics defined
 
 C << update outstr etc to deal with complex surface edge jvn lists >>
-      CHARACTER OUTSTR*248,WORD*32,outs*124,outs2*124
+      CHARACTER OUTSTR*248,WORD*32,WORD2*20,outs*124,outs2*124
+      CHARACTER tmpvfc*4,tother*15,tother1*15,tother2*15
       character dstmp*24
       character word248*248
 
@@ -1020,12 +1001,14 @@ C used by scanning code to identify the contents of a silent file.
       character weather*32     ! file name for the location (no path)
       character*(*) lfile      ! name of the file
       character fs*1           ! file separator
+      character doit*124
 
 C For passing to silentmodel.
       character actions*8,root*32,mpath*72
 
 C Same as local variable actions which is passed back to calling code.
       character silentreturndirec*8
+      character text*72,literalfile*72,pth*148,literalpath*72
 
       logical unixok
       real valx,valy,valz      ! local variable for extrude co-ords.
@@ -1037,19 +1020,25 @@ C Paremeters passed to:silentzone
       character hasconstr*32,szhasconstr*32
       dimension hasconstr(MS),szhasconstr(MSZ,MS)  ! construction to use for each surface
       character hasoptic*32,szhasoptic*32
-      dimension hasoptic(MS),szhasoptic(MSZ,MS)  ! optics to use for each surface
+      dimension hasoptic(MS),szhasoptic(MSZ,MS)    ! optics to use for each surface
+      character hasparent*12,szhasparent*12
+      dimension hasparent(MS),szhasparent(MSZ,MS)  ! construction to use for each surface
+      character hasuse*12,szhasuse*12
+      dimension hasuse(MS,2),szhasuse(MSZ,MS,2)  ! construction to use for each surface
 
 C Site related local variables.
       logical havesite       ! true if tokens included
       character hourlysnowfile*72  ! same as SNFNAM
-      character lworking*144  ! for processing database file names
       logical havehourlysnowfile   ! true if set
+      logical literalctl
+
       real hoursGTM   ! hours before or after GTM
       real groundtemps(12,MGRDP)
       real GVA(12)  ! temporary array to hold a dozen values.
       integer groundtempsets
       logical havegroundtempsets
       logical havesimparameters
+      LOGICAL IGDCVS,IGDCNC,IGDNDC,IGDTAQ
       integer simstartup   ! use for isstup
       integer simzonetimestep ! use for isbnstep
       integer simplanttimestep ! use for ispnstep
@@ -1059,12 +1048,13 @@ C Site related local variables.
       dimension i_ctl_link(MCOM),ht_Setpoint(MCOM),cl_Setpoint(MCOM)
       integer isilentncf !silent decide how many control functions needed
       integer lsn  ! length of currentfile
+      integer itrc
       integer iva
       dimension iva(MS)  ! for use with writing arrays of numbers
 
-      integer metaver  ! one for 1.1 and two for 1.2
+      integer metaver  ! one for 1.1 two for 1.2 three for 1.3
 
-      IER=0
+      IER=0; itrc=0
 
 C Determine operating system
       call isunix(unixok)
@@ -1083,6 +1073,7 @@ C Get the current folder and display options to the user.
 C first list any files with .cfg in name.
       odir=' '
       call usrdir(odir)
+      literalfile=' '; literalctl=.false.
 
 C Clear the sz array structures. The logic is to scan all of the
 C zone details and then process the zones after *end is detected
@@ -1158,6 +1149,9 @@ C For each of the META specific arrays, clear values.
           do 52 isu=1,MS
             szhasconstr(iz,isu)=' '  ! clear MLC name and optics name
             szhasoptic(iz,isu)=' '
+            szhasparent(iz,isu)=' '
+            szhasuse(iz,isu,1)=' '
+            szhasuse(iz,isu,2)=' '
   52      continue
   42    continue
       endif
@@ -1166,7 +1160,7 @@ C For each of the META specific arrays, clear values.
       nsz=0
       weather='none'
       OUTSTR=' '
-      metaver =1  ! initial assumption
+      metaver =2  ! initial assumption
 
 C Initialise meta file. and set currentfile.
       CALL EFOPSEQ(IUNIT,LFILE,1,IER)
@@ -1182,11 +1176,14 @@ C Initialise meta file. and set currentfile.
 C Read header lines from file, the 1.1 version looks like:
 C *silent_input
 C The version 1.2 (which includes surface optical attributes looks like:
-C *meta_file
+C *meta_file and version 1.3 which has full set of surface attribures
+C looks like *meta_file_v3
       CALL LSTRIPC(IUNIT,OUTSTR,99,ND,1,'meta line 1',IER)
       IF(IER.NE.0)goto 1001
       if(OUTSTR(1:13).eq.'*silent_input')then
         metaver =1
+      elseif(OUTSTR(1:13).eq.'*meta_file_v3')then
+        metaver =3
       elseif(OUTSTR(1:10).eq.'*meta_file')then
         metaver =2
       else
@@ -1238,6 +1235,31 @@ C Debug.
           if(unixok)then
             write(6,*)  's action ',actions,' root ',root
             write(6,*)  's mpath ',mpath
+
+C If a new model create the main model folder, zones doc and ctl
+C folders in case there are literal file contents to extract 
+C from the META file.
+            if(actions(1:3).eq.'new')then
+              write(doit,'(2a)') 'mkdir -p ',mpath(1:lnblnk(mpath))
+              call runit(doit,'-')
+              write(doit,'(4a)') 'mkdir -p ',mpath(1:lnblnk(mpath)),fs,
+     &          'zones'
+              call runit(doit,'-')
+              write(doit,'(4a)') 'mkdir -p ',mpath(1:lnblnk(mpath)),fs,
+     &          'cfg'
+              call runit(doit,'-')
+              write(doit,'(4a)') 'mkdir -p ',mpath(1:lnblnk(mpath)),fs,
+     &          'ctl'
+              call runit(doit,'-')
+              write(doit,'(4a)') 'mkdir -p ',mpath(1:lnblnk(mpath)),fs,
+     &          'doc'
+              call runit(doit,'-')
+              write(doit,'(4a)') 'mkdir -p ',mpath(1:lnblnk(mpath)),fs,
+     &          'dbs'
+              call runit(doit,'-')
+	      write(literalpath,'(3a)') mpath(1:lnblnk(mpath)),fs,'cfg/'
+              write(6,*) literalpath(1:lnblnk(literalpath))
+            endif
           endif
         endif
         goto 43
@@ -1268,271 +1290,35 @@ C Debug.
       elseif(WORD(1:7).eq.'*dbspth')then
         CALL EGETRM(OUTSTR,K,dbspth,'W','path to loc databases',IER)
         goto 43
-      elseif(WORD(1:8).eq.'*hvacpth')then
-        goto 43      ! Depricated.
-      elseif(WORD(1:7).eq.'*bsmpth')then
-        goto 43      ! Depricated.
 
 C Databases. There may or may not be tags for specific databases. If
-C none is supplied assume the default names apply.
-      elseif(WORD(1:4).eq.'*prm')then
+C none is supplied assume the default names apply. If local database
+C then literal blocks may be included that will need to be copied into
+C the dbs folder.
+      elseif(WORD(1:4).eq.'*mat'.or.WORD(1:7).eq.'*stdmat')then
+C        call scan_database_names(IUNIT,foundmould,foundsbem,IRNCMD,ier)
+        iuf=ifil+2
+        call scan_embedded_database(IUNIT,iuf,literalpath,ier)
 
-        CALL EGETRM(OUTSTR,K,lworking,'W','material db',IER)
-
-C Process the file name following *prm and depending on its path
-C set the LFMAT common block string via call to findwhichdbpath.
-        call findwhichdbpath('mat',lworking,ier)
+        write(weather,'(a)') lclim(1:32)  ! Save weather file name.
         goto 43
-
-      elseif(WORD(1:4).eq.'*mat')then
-
-        CALL EGETRM(OUTSTR,K,lworking,'W','material db',IER)
-
-C Process the file name following *mat and depending on its path
-C set the LFMAT common block string via call to findwhichdbpath.
-        call findwhichdbpath('mat',lworking,ier)
+      elseif(OUTSTR(1:8).eq.'* Ground'.or.
+     &       OUTSTR(1:8).eq.'* GROUND'.or.
+     &       WORD(1:8).eq.'*ground ')then
+        call scan_ground(IUNIT,ITRC,IGDCVS,IGDCNC,IGDNDC,IGDTAQ,ier)
+        if(ier.eq.0) goto 43
+      elseif(WORD(1:9).eq.'*calename'.or.WORD(1:9).eq.'*calentag'.or.
+     &       WORD(1:7).eq.'*daytag')then
+        call scan_day_types(IUNIT,idty,ier)
+        if(ier.eq.0) goto 43
+      elseif(WORD(1:4).eq.'*sps' .or. WORD(1:6).eq. '*mysps')then
+        call scan_sps(IUNIT,ier)     ! Process simulation paramater sets.
         goto 43
-
-      elseif(WORD(1:7).eq.'*stdmat')then
-
-        CALL EGETRM(OUTSTR,K,LFMAT,'W','material db',IER)
-        ipathmat=2  ! standard folder for material database
+      elseif(WORD(1:5).eq.'*year')then
+        CALL EGETWI(OUTSTR,K,IYEAR,1900,2051,'W','year',IER)
         goto 43
-
-      elseif(WORD(1:4).eq.'*mlc')then
-
-        CALL EGETRM(OUTSTR,K,lworking,'W','multilayer db',IER)
-
-C Process the file name following *mlc and depending on its path
-C set the LFMUL common block string via call to findwhichdbpath.
-        call findwhichdbpath('mul',lworking,ier)
-        goto 43
-
-      elseif(WORD(1:7).eq.'*stdmlc')then
-
-        CALL EGETRM(OUTSTR,K,LFMUL,'W','multilayer db',IER)
-        ipathmul=2  ! standard folder for MLC database
-        goto 43
-
-      elseif(WORD(1:4).eq.'*opt')then
-
-        CALL EGETRM(OUTSTR,K,lworking,'W','optical db',IER)
-
-C Process the file name following *opt and depending on its path
-C set the LOPTDB common block string via call to findwhichdbpath.
-        call findwhichdbpath('opt',lworking,ier)
-        goto 43
-
-      elseif(WORD(1:7).eq.'*stdopt')then
-
-        ipathoptdb=2  ! standard folder for optical database
-        CALL EGETRM(OUTSTR,K,LOPTDB,'W','optical db',IER)
-        goto 43
-
-      elseif(WORD(1:4).eq.'*prs')then
-
-        CALL EGETRM(OUTSTR,K,lworking,'W','pressure db',IER)
-
-C Process the file name folloing *prs and depending on its path
-C set the lapres common block string via call to findwhichdbpath.
-        call findwhichdbpath('prs',lworking,ier)
-        goto 43
-
-      elseif(WORD(1:7).eq.'*stdprs')then
-
-        ipathapres=2  ! standard folder for pressure coef database
-        CALL EGETRM(OUTSTR,K,LAPRES,'W','pressure db',IER)
-        goto 43
-
-      elseif(WORD(1:4).eq.'*evn')then
-
-        CALL EGETRM(OUTSTR,K,lworking,'W','profiles db',IER)
-
-C Process the file name following *evn and depending on its path
-C set the LPRFDB common block string via call to findwhichdbpath.
-        call findwhichdbpath('evn',lworking,ier)
-        goto 43
-
-      elseif(WORD(1:7).eq.'*stdevn')then
-
-        CALL EGETRM(OUTSTR,K,LPRFDB,'W','profile db',IER)
-        ipathprodb=2  ! standard folder for profiles database
-        goto 43
-
-      elseif(WORD(1:7).eq.'*mscldb')then
-
-C special materials and misc component database
-        CALL EGETRM(OUTSTR,K,lworking,'W','misc comp db',IER)
-
-C Process the file name following *mscldb and depending on its path
-C set the MCMPDBFL common block string via call to findwhichdbpath.
-        call findwhichdbpath('msc',lworking,ier)
-        goto 43
-
-      elseif(WORD(1:10).eq.'*stdmscldb')then
-
-C special materials and misc component database
-        CALL EGETRM(OUTSTR,K,MCMPDBFL,'W','misc comp db',IER)
-        ipathmsc=2  ! standard folder for misc comp db
-        goto 43
-
-      elseif(WORD(1:4).eq.'*pdb')then
-
-        CALL EGETRM(OUTSTR,K,lworking,'W','plant comp db',IER)
-
-C Process the file name folloing *pdb and depending on its path
-C set the LPCDB common block string via call to findwhichdbpath.
-        call findwhichdbpath('pdb',lworking,ier)
-        goto 43
-
-      elseif(WORD(1:7).eq.'*stdpdb')then
-
-        ipathpcdb=2  ! standard folder for plant template database
-        CALL EGETRM(OUTSTR,K,LPCDB,'W','plant template db',IER)
-        goto 43
-
-      elseif(WORD(1:12).eq.'*assessments')then
-
-C Get tags related to assessments: after the tag *assessments the
-C following choices are possible:
-C   `annual` (no further tokens)
-C   `single` followed typically by `user` followed by pairs of julian dates
-C   `winter` followed by `typical_week` or `season` or 'fortnight'
-C   `spring` followed by `typical_week` or `season` or 'fortnight'
-C   `summer` followed by `typical_week` or `season` or 'fortnight'
-C   `autumn` followed by `typical_week` or `season` or 'fortnight'
-C   `three_season` followed by `typical_week` `forthnight` `user` or `season`
-C   `five_season` followed by `typical_week` `forthnight` `user` or `season`
-
-        CALL EGETW(OUTSTR,K,WORD,'W','*assessment tags',IER)
-        if(WORD(1:7).eq.'Default'.or.WORD(1:7).eq.'default')then
-          nipvassmt=1
-          nsset=1
-          simsavelevel=-1   ! signal to ipv2simpar to use defaults
-          simact='i1d   '
-        elseif(WORD(1:6).eq.'Annual'.or.WORD(1:6).eq.'annual')then
-          nipvassmt=1
-          nsset=1
-          simact='ias   '
-        elseif(WORD(1:6).eq.'Single'.or.WORD(1:6).eq.'single')then
-          CALL EGETW(OUTSTR,K,WORD,'W','Single tags',IER)
-          if(WORD(1:4).eq.'User'.or.
-     &       WORD(1:4).eq.'user')then
-            CALL EGETWI(OUTSTR,K,iday1,1,365,'W','start julian',IER)
-            CALL EGETWI(OUTSTR,K,iday2,1,365,'W','end julian',IER)
-          endif
-          nipvassmt=1
-          simact='i1d   '
-        elseif(WORD(1:6).eq.'Winter'.or.WORD(1:6).eq.'winter')then
-          CALL EGETW(OUTSTR,K,WORD,'W','Winter tags',IER)
-          if(WORD(1:12).eq.'Typical_week'.or.
-     &       WORD(1:12).eq.'typical_week')then
-            simact='icwint'
-          elseif(WORD(1:9).eq.'Fortnight'.or.
-     &           WORD(1:9).eq.'fortnight')then
-            simact='icwinf'
-          elseif(WORD(1:9).eq.'Season'.or.
-     &           WORD(1:9).eq.'season')then
-            simact='icwins'
-          endif
-          nipvassmt=1
-          nsset=1
-        elseif(WORD(1:6).eq.'Spring'.or.WORD(1:6).eq.'spring')then
-          CALL EGETW(OUTSTR,K,WORD,'W','Spring tags',IER)
-          if(WORD(1:12).eq.'Typical_week'.or.
-     &       WORD(1:12).eq.'typical_week')then
-            simact='icsprt'
-          elseif(WORD(1:9).eq.'Fortnight'.or.
-     &           WORD(1:9).eq.'fortnight')then
-            simact='icsprf'
-          elseif(WORD(1:9).eq.'Season'.or.
-     &           WORD(1:9).eq.'season')then
-            simact='icsprs'
-          endif
-          nipvassmt=1
-          nsset=1
-        elseif(WORD(1:6).eq.'Summer'.or.WORD(1:6).eq.'summer')then
-          CALL EGETW(OUTSTR,K,WORD,'W','Summer tags',IER)
-          if(WORD(1:12).eq.'Typical_week'.or.
-     &       WORD(1:12).eq.'typical_week')then
-            simact='icsumt'
-          elseif(WORD(1:9).eq.'Fortnight'.or.
-     &           WORD(1:9).eq.'fortnight')then
-            simact='icsumf'
-          elseif(WORD(1:9).eq.'Season'.or.
-     &           WORD(1:9).eq.'season')then
-            simact='icsums'
-          endif
-          nipvassmt=1
-          nsset=1
-        elseif(WORD(1:6).eq.'Autumn'.or.WORD(1:6).eq.'autumn')then
-          CALL EGETW(OUTSTR,K,WORD,'W','Autumn tags',IER)
-          if(WORD(1:12).eq.'Typical_week'.or.
-     &       WORD(1:12).eq.'typical_week')then
-            simact='icautt'
-          elseif(WORD(1:9).eq.'Fortnight'.or.
-     &           WORD(1:9).eq.'fortnight')then
-            simact='icautf'
-          elseif(WORD(1:9).eq.'Season'.or.
-     &           WORD(1:9).eq.'season')then
-            simact='icauts'
-          endif
-          nipvassmt=1
-          nsset=1
-        elseif(WORD(1:12).eq.'Three_season'.or.
-     &         WORD(1:12).eq.'three_season')then
-          CALL EGETW(OUTSTR,K,WORD,'W','three_season tags',IER)
-          if(WORD(1:12).eq.'Typical_week'.or.
-     &       WORD(1:12).eq.'typical_week')then
-            simact='i3t   '
-          elseif(WORD(1:4).eq.'User'.or.WORD(1:4).eq.'user')then
-            CALL EGETWI(OUTSTR,K,iday1,1,365,'W','start julian',IER)
-            CALL EGETWI(OUTSTR,K,iday2,1,365,'W','end julian',IER)
-            CALL EGETWI(OUTSTR,K,iday3,1,365,'W','start julian',IER)
-            CALL EGETWI(OUTSTR,K,iday4,1,365,'W','end julian',IER)
-            CALL EGETWI(OUTSTR,K,iday5,1,365,'W','start julian',IER)
-            CALL EGETWI(OUTSTR,K,iday6,1,365,'W','end julian',IER)
-            simact='i3u   '
-          elseif(WORD(1:9).eq.'season'.or.
-     &           WORD(1:9).eq.'season')then
-            simact='i3s   '
-          endif
-          nipvassmt=3
-          nsset=3
-        elseif(WORD(1:11).eq.'Five_season'.or.
-     &         WORD(1:11).eq.'five_season')then
-          CALL EGETW(OUTSTR,K,WORD,'W','five_season tags',IER)
-          if(WORD(1:12).eq.'Typical_week'.or.
-     &       WORD(1:12).eq.'typical_week')then
-            simact='i5t   '
-          elseif(WORD(1:4).eq.'User'.or.WORD(1:4).eq.'user')then
-            CALL EGETWI(OUTSTR,K,iday1,1,365,'W','start julian',IER)
-            CALL EGETWI(OUTSTR,K,iday2,1,365,'W','end julian',IER)
-            CALL EGETWI(OUTSTR,K,iday3,1,365,'W','start julian',IER)
-            CALL EGETWI(OUTSTR,K,iday4,1,365,'W','end julian',IER)
-            CALL EGETWI(OUTSTR,K,iday5,1,365,'W','start julian',IER)
-            CALL EGETWI(OUTSTR,K,iday6,1,365,'W','end julian',IER)
-            CALL EGETWI(OUTSTR,K,iday7,1,365,'W','start julian',IER)
-            CALL EGETWI(OUTSTR,K,iday8,1,365,'W','end julian',IER)
-            CALL EGETWI(OUTSTR,K,iday9,1,365,'W','start julian',IER)
-            CALL EGETWI(OUTSTR,K,iday10,1,365,'W','end julian',IER)
-            simact='i5u   '
-          elseif(WORD(1:9).eq.'season'.or.
-     &           WORD(1:9).eq.'season')then
-            simact='i5s   '
-          endif
-          nipvassmt=5
-          nsset=5
-        else
-          nipvassmt=0
-          simact='i1d   '
-          nsset=0
-        endif
-
-C Feedback. simact is passed to silentmodel.
-        write(outs,*) 'the value of simact is ',simact
-        call edisp(iuout,outs)
-
+      elseif(WORD(1:8).eq.'*seasons')then
+        call scan_season(IUNIT,ier)  ! Parse seasons attributes.
         goto 43
       elseif(WORD(1:8).eq.'*cooling')then
         CALL EGETWR(OUTSTR,K,cl_Setpoint(nsz),-102.,102.,'W',
@@ -1552,9 +1338,20 @@ C Feedback. simact is passed to silentmodel.
           szcoords(nsz,nbc,3)=0.0
         endif
         goto 43
+      elseif(WORD(1:5).eq.'*ctl ')then
+        CALL EGETRM(OUTSTR,K,text,'W','control file',IER)
+        LCTLF=text(1:72)
+        literalfile=text(1:72)
+        literalctl=.true.
+        goto 43
       elseif(WORD(1:5).eq.'*door')then
 
 C znbdoor & zhasdoor are depreciated. Just jump to 43.
+        goto 43
+      elseif(WORD(1:4).eq.'*opr')then
+        CALL EGETRM(OUTSTR,K,text,'W','operation file',IER)
+        LPROJ(nsz)=text(1:72)
+        literalfile=text(1:72)
         goto 43
       elseif(WORD(1:9).eq.'*end_zone')then
         goto 43
@@ -1597,6 +1394,68 @@ C If ground refl model is 3 then this file has hourly data.
         goto 43
       elseif(WORD(1:4).eq.'*ipv')then
         goto 43
+      elseif(WORD(1:5).eq.'*img ')then
+
+C An image file. If this is a version 4 file then there will be
+C a subsequent (long) line with documentation for the images.
+        noimg=noimg+1
+        CALL EGETW(OUTSTR,K,WORD2,'W','img format',IFLAG)
+        write(imgfmt(noimg),'(a4)') WORD2(1:4)
+        CALL EGETW(OUTSTR,K,WORD2,'W','focus',IFLAG)
+        write(imgfoc(noimg),'(a4)') WORD2(1:4)
+        CALL EGETRM(OUTSTR,K,limgfil(noimg),'W','image file',IER)
+        goto 43
+      elseif(WORD(1:6).eq.'*imdoc')then
+        if(noimg.gt.0)then
+          CALL EGETRM(OUTSTR,K,imgdoc(noimg),'W','image docum',IER)
+        endif
+        goto 43
+      elseif(WORD(1:4).eq.'*ihc')then
+        CALL EGETRM(OUTSTR,K,text,'W','htc file',IER)
+        ihc(nsz)=1
+        LHCCO(nsz)=text(1:72)
+        literalfile=text(1:72)
+        goto 43
+      elseif(WORD(1:4).eq.'*ivf')then
+        CALL EGETRM(OUTSTR,K,text,'W','viewfactor file',IER)
+        ivf(nsz)=1
+        LVIEW(nsz)=text(1:72)
+        literalfile=text(1:72)
+        goto 43
+      elseif(WORD(1:8).eq.'*latlong')then
+        CALL EGETWR(OUTSTR,K,sitelat,-90.,90.,'W','Latitude',IER)
+        SLAT=sitelat
+        CALL EGETWR(OUTSTR,K,sitelongdif,-15.,15.,'W',
+     &    'Longitude dif from time meridian',IER)
+        SLON=sitelongdif
+        goto 43   ! read another tag
+      elseif(WORD(1:8).eq.'*sitealt')then
+        call egetwr(outstr,k,sitealt,-100.,3000.,'W',
+     &    'site altitude',IER)
+        if(ier.eq.0) goto 43
+      elseif(WORD(1:6).eq.'*site ')then
+        CALL EGETWI(outstr,k,siteexposureindex,1,8,'W',
+     &    'Site exposure index',IER)
+        CALL EGETWR(OUTSTR,K,groundrefl,0.,1.,'W',
+     &    'Ground reflect',IER)
+        if(siteexposureindex.eq.8)then  ! Read 3 values on next line.
+          CALL LSTRIPC(IUC,OUTSTR,3,ND,1,'header tags',IER)
+          K=0
+          CALL EGETWR(OUTSTR,K,skyview,0.,1.,'W','sky view',IER)
+          CALL EGETWR(OUTSTR,K,groundview,0.,1.,'W','sky view',IER)
+          CALL EGETWR(OUTSTR,K,buildingview,0.,1.,'W','sky view',IER)
+
+C Range checking.
+          IF(ABS(skyview+groundview+buildingview-1.).GT.0.01) 
+     &      CALL USRMSG(
+     &      ' Total exposure out of range in',OUTSTR,'W')
+          goto 43   ! read another tag
+        endif
+        goto 43   ! read another tag
+      elseif(WORD(1:12).eq.'*slr_half_hr')then ! Solar radiation (half-hour data) flag.
+        call egetwi(outstr,k,iSlr_half_hr_flg,0,1,'W',
+     &    'solar half-hour flag',IER)
+        if(ier.eq.0) goto 43
       elseif(WORD(1:5).eq.'*list')then
 
 C The current value of NS should still point to the surface data
@@ -1610,7 +1469,6 @@ C Now proceed to read vertices on one or more lines.
         DO 12 KV=1,ival1
           CALL EGETWI(OUTSTR,K,ival2,0,MTV,'F','vertex',IERV)
           IF(IERV.NE.0) THEN
-            call edisp(ITRU,' reading continuation line...')
             CALL STRIPC(IUNIT,OUTSTR,0,ND,0,'vertex XYZ',IER)
             K=0
             CALL EGETWI(OUTSTR,K,ival2,0,MTV,'F','vertex',IERV)
@@ -1697,6 +1555,16 @@ C box shapes (typically used with poly type zones).
           nbwalls(nsz)=4
         endif
         goto 43
+      elseif(WORD(1:9).eq.'*contents')then
+        CALL EGETRM(OUTSTR,K,lmodelqa,'W','model contents',IER)
+        literalfile=lmodelqa(1:72)
+        goto 43
+      elseif(WORD(1:6).eq.'*notes')then
+
+C Project notes file, read and then go on to fabric/plant description.
+        CALL EGETRM(OUTSTR,K,lmodellog,'W','notes file',IER)
+        literalfile=lmodellog(1:72)
+        goto 43
       elseif(WORD(1:10).eq.'*shad_calc')then
 
 C Shading calculation instructions.
@@ -1745,12 +1613,34 @@ C Applicable surfaces are the current exterior facing surfaces.
  344      CONTINUE
         endif
         goto 43
+      elseif(WORD(1:8).eq.'*radcore')then
+        CALL EGETWI(OUTSTR,K,radcores,1,4,'W','radiance cores',IER)
+        goto 43
+      elseif(WORD(1:19).eq.'*surf_heat_transfer')then
+        call egetwi(outstr,k,ihct,1,8,'W','inside hc method',IER)
+        call egetwi(outstr,k,icorexhct,1,12,'W','ext hc method',IER)
+        if(ier.eq.0) goto 43
       elseif(WORD(1:11).eq.'*solar_grid')then
 
 C If there will be shading or insulation then the density of the
 C grid is found after the token *solar_grid.
         CALL EGETWI(OUTSTR,K,NOX(nsz),4,MOX,'F','opq grid X',IER)
         CALL EGETWI(OUTSTR,K,NOZ(nsz),4,MOZ,'F','opq grid Z',IER)
+        goto 43
+
+C Start of a literal block from a model file. If literalfile is
+C not blank then use metatoasci to create that file. The folders will
+C not yet exist so create.
+      elseif(WORD(1:14).eq.'*start_literal')then
+        lnl=lnblnk(literalfile)
+        if(lnl.gt.1)then
+          iuf=ifil+2
+          write(pth,'(2a)') literalpath(1:lnblnk(literalpath)),
+     &      literalfile(1:lnblnk(literalfile))
+          write(6,*) pth(1:lnblnk(pth))
+          call metatoasci(IUNIT,iuf,pth,IER)
+          literalfile=' '
+        endif
         goto 43
       elseif(WORD(1:5).eq.'*obs3')then
 
@@ -2052,28 +1942,169 @@ C Scan for zone name, convert any unallowed characters via st2name.
 C Expected order is the walls first then the top then the base and
 C then any windows and then any doors.
         NS=NS+1
+        if(metaver.eq.1.or.metaver.eq.2)then
 
 C Surface name, allow for future spaces in name.
-        CALL EGETP(OUTSTR,K,WORD,'W','surface name',IER)
-        write(sname(nsz,NS),'(a)') WORD(1:lnblnk(WORD))
+          CALL EGETP(OUTSTR,K,WORD,'W','surface name',IER)
+          write(sname(nsz,NS),'(a)') WORD(1:lnblnk(WORD))
 
 C Surface construction name, allow for spaces.
-        CALL EGETP(OUTSTR,K,WORD,'W','surface construction',IER)
-        write(szhasconstr(nsz,NS),'(a)') WORD(1:lnblnk(WORD))
+          CALL EGETP(OUTSTR,K,WORD,'W','surface construction',IER)
+          write(szhasconstr(nsz,NS),'(a)') WORD(1:lnblnk(WORD))
 
-C If metaver is two then also read surface optical property.
-        if(metaver.eq.2)then
-          CALL EGETP(OUTSTR,K,WORD,'W','surface optics',IER)
-          write(szhasoptic(nsz,NS),'(a)') WORD(1:lnblnk(WORD))
-        endif
+C If metaver is two or three then also read surface optical property.
+          if(metaver.eq.2)then
+            CALL EGETP(OUTSTR,K,WORD,'W','surface optics',IER)
+            write(szhasoptic(nsz,NS),'(a)') WORD(1:lnblnk(WORD))
+          endif
 
 C Read three indices representing boundary condition.
-        CALL EGETWI(OUTSTR,K,ival1,-1,7,'W','connection type',IER)
-        CALL EGETWI(OUTSTR,K,ival2,0,MCOM,'W','connection ic2',IER)
-        CALL EGETWI(OUTSTR,K,ival3,0,MS,'W','connection ie2',IER)
-        zboundarytype(nsz,NS,1)=ival1
-        zboundarytype(nsz,NS,2)=ival2
-        zboundarytype(nsz,NS,3)=ival3
+          CALL EGETWI(OUTSTR,K,ival1,-1,7,'W','connection type',IER)
+          CALL EGETWI(OUTSTR,K,ival2,0,MCOM,'W','connection ic2',IER)
+          CALL EGETWI(OUTSTR,K,ival3,0,MS,'W','connection ie2',IER)
+          zboundarytype(nsz,NS,1)=ival1
+          zboundarytype(nsz,NS,2)=ival2
+          zboundarytype(nsz,NS,3)=ival3
+          szhasparent(nsz,NS) = '-'
+          szhasuse(nsz,NS,1) = '-'
+          szhasuse(nsz,NS,2) = '-'
+        elseif(metaver.eq.3)then
+
+C Surface attributes in a typical line:
+C *surf,door,VERT,-,DOOR,UNDERCUT,door,OPAQUE,ANOTHER,3,6 # >|< door in coridor
+
+C (1) surf name (12 char, tbd - allow spaces)
+C (2) surf posn (tags VERT, CEIL (faces down), FLOR (faces up), SLOP (other)
+C (3) child of (name of surface, otherwise a -)
+C (4-5) useage: a pair of tags for code complience and to assist with air
+C  flow network creation. A full description is at the top of this source
+C  file.
+C (6) construction name (from MLC database)
+C (7) optical name (OPAQUE or the name of the optical set name, (tbd allow spaces))
+C (8-10) boundary condition (including indices from cnn file):
+C   ANOTHER, i index of zone, j index of surface in that zone
+C   EXTERIOR,i,j    where i is 0 and j is 0
+C   SIMILAR,i,j     where i is offset degC and j is offset Watts
+C   IDENT_CEN,i,j     where i is 0 and j is 0
+C   CONSTANT,i,j     where i is degC and j is Watts
+C   ADIABETIC,i,j     where i is 0 and j is 0
+C   BASESIMP,i,j     where i is configuration index and j is % to this surface
+C   GROUND_STD,i,j     where i is profile index and j is 0
+C   GROUND_USR,i,j     where i is 0 and j is profile index
+C   UNKNOWN,i,j     where i is 0 and j is 0
+          CALL EGETP(OUTSTR,K,WORD,'W','surface name',IER)
+          write(sname(nsz,NS),'(a)') WORD(1:lnblnk(WORD))
+          CALL EGETW(OUTSTR,K,tmpvfc,'W','surface position',IER)
+          IF(tmpvfc.EQ.'VERT'.OR.tmpvfc.EQ.'SLOP')then
+            write(SVFC(nsz,NS),'(a)') tmpvfc
+          ELSEIF(tmpvfc(1:4).EQ.'CEIL')then
+            write(SVFC(nsz,NS),'(a)') 'CEIL'
+            izsceil(nsz)=NS   ! identify as a ceiling
+          ELSEIF(tmpvfc(1:4).EQ.'FLOR')then
+            write(SVFC(nsz,NS),'(a)') 'FLOR'
+            izsfloor(nsz)=NS  ! identify as a floor
+          ENDIF
+          CALL EGETP(OUTSTR,K,WORD,'W','surface parent',IER)
+          write(szhasparent(nsz,NS),'(a)') WORD(1:lnblnk(WORD))
+          write(sparent(nsz,NS),'(a)') WORD(1:lnblnk(WORD))
+          CALL EGETP(OUTSTR,K,WORD,'W','surface use 1',IER)
+          if(lnblnk(WORD).gt.12)then
+            write(SUSE(nsz,NS,1),'(a)') '-'
+            write(SUSE(nsz,NS,2),'(a)') '-'
+            write(SMLCN(nsz,NS),'(a)') WORD(1:lnblnk(WORD))
+          else
+            write(SUSE(nsz,NS,1),'(a)') WORD(1:lnblnk(WORD))
+            CALL EGETW(OUTSTR,K,WORD,'W','surface use 2',IER)
+            write(SUSE(nsz,NS,2),'(a)') WORD(1:lnblnk(WORD))
+
+C Surface construction name, allow for spaces.
+            CALL EGETP(OUTSTR,K,WORD,'W','surface construction',IER)
+          endif
+          szhasuse(nsz,NS,1)=SUSE(nsz,NS,1)
+          szhasuse(nsz,NS,2)=SUSE(nsz,NS,2)
+          write(SMLCN(nsz,NS),'(a)') WORD(1:lnblnk(WORD))
+          write(szhasconstr(nsz,NS),'(a)') WORD(1:lnblnk(WORD))
+          CALL EGETP(OUTSTR,K,WORD,'W','surface optics',IER)
+          write(SOTF(nsz,NS),'(a)') WORD(1:lnblnk(WORD))
+          write(szhasoptic(nsz,NS),'(a)') WORD(1:lnblnk(WORD))
+
+          CALL EGETW(OUTSTR,K,tother,'W','surface other 1',IER)
+          CALL EGETW(OUTSTR,K,tother1,'W','surface other 2',IER)
+          CALL EGETW(OUTSTR,K,tother2,'W','surface other 3',IER)
+          if(tother(1:7).eq.'UNKNOWN')then
+            write(sother(nsz,ns,1),'(a)') 'UNKNOWN'
+            write(sother(nsz,ns,2),'(a)') '00'
+            write(sother(nsz,ns,3),'(a)') '000'
+            zboundarytype(nsz,NS,1)= -1
+            zboundarytype(nsz,NS,2)=0
+            zboundarytype(nsz,NS,3)=0
+          elseif(tother(1:8).eq.'EXTERIOR')then
+            write(sother(nsz,ns,1),'(a)') 'EXTERIOR'
+            write(sother(nsz,ns,2),'(a)') '00'
+            write(sother(nsz,ns,3),'(a)') '000'
+            zboundarytype(nsz,NS,1)=0
+            zboundarytype(nsz,NS,2)=0
+            zboundarytype(nsz,NS,3)=0
+          elseif(tother(1:9).eq.'ADIABATIC')then
+            write(sother(nsz,ns,1),'(a)') 'ADIABATIC'
+            write(sother(nsz,ns,2),'(a)') '00'
+            write(sother(nsz,ns,3),'(a)') '000'
+            zboundarytype(nsz,NS,1)=5
+            zboundarytype(nsz,NS,2)=0
+            zboundarytype(nsz,NS,3)=0
+          elseif(tother(1:7).eq.'SIMILAR')then
+            write(sother(nsz,ns,1),'(a)') 'SIMILAR'
+            write(sother(nsz,ns,2),'(a)') tother1
+            write(sother(nsz,ns,3),'(a)') tother2
+            zboundarytype(nsz,NS,1)=1
+            read(tother1,*) zboundarytype(nsz,NS,2)
+            read(tother2,*) zboundarytype(nsz,NS,3)
+          elseif(tother(1:8).eq.'CONSTANT')then
+            write(sother(nsz,ns,1),'(a)') 'CONSTANT'
+            write(sother(nsz,ns,2),'(a)') tother1
+            write(sother(nsz,ns,3),'(a)') tother2
+            zboundarytype(nsz,NS,1)=2
+            read(tother1,*) zboundarytype(nsz,NS,2)
+            read(tother2,*) zboundarytype(nsz,NS,3)
+          elseif(tother(1:8).eq.'BASESIMP')then
+            write(sother(nsz,ns,1),'(a)') 'BASESIMP'
+            write(sother(nsz,ns,2),'(a)') tother1
+            write(sother(nsz,ns,3),'(a)') tother2
+            zboundarytype(nsz,NS,1)=6
+            read(tother1,*) zboundarytype(nsz,NS,2)
+            read(tother2,*) zboundarytype(nsz,NS,3)
+          elseif(tother(1:6).eq.'GROUND')then
+            write(sother(nsz,ns,1),'(a)') 'GROUND'
+            write(sother(nsz,ns,2),'(a)') tother1
+            write(sother(nsz,ns,3),'(a)') tother2
+            zboundarytype(nsz,NS,1)=4
+            read(tother1,*) zboundarytype(nsz,NS,2)
+            read(tother2,*) zboundarytype(nsz,NS,3)
+          elseif(tother(1:9).eq.'IDENT_CEN')then
+            write(sother(nsz,ns,1),'(a)') 'IDENT_CEN'
+            write(sother(nsz,ns,2),'(a)') tother1
+            write(sother(nsz,ns,3),'(a)') tother2
+            zboundarytype(nsz,NS,1)=7
+            read(tother1,*) zboundarytype(nsz,NS,2)
+            read(tother2,*) zboundarytype(nsz,NS,3)
+          elseif(tother(1:7).eq.'ANOTHER')then
+            write(sother(nsz,ns,1),'(a)') 'ANOTHER'
+            write(sother(nsz,ns,2),'(a)') tother1
+            write(sother(nsz,ns,3),'(a)') tother2
+            zboundarytype(nsz,NS,1)=3
+            read(tother1,*) zboundarytype(nsz,NS,2)
+            read(tother2,*) zboundarytype(nsz,NS,3)
+          else
+
+C Assume partition so setup sother arrays with this in mind.
+            write(sother(nsz,ns,1),'(a)') 'ANOTHER'
+            write(sother(nsz,ns,2),'(a)') tother1
+            write(sother(nsz,ns,3),'(a)') tother2
+            zboundarytype(nsz,NS,1)=3
+            read(tother1,*) zboundarytype(nsz,NS,2)
+            read(tother2,*) zboundarytype(nsz,NS,3)
+          endif
+        endif
 
 C Note: if shape=poly for the each of the declaired walls the
 C following line should start with the token *list.
@@ -2111,6 +2142,23 @@ C to the training/pattern folder.
           call usrmsg('Usage 2nd parameter not recognised',' ','W')
         endif
         goto 43
+      elseif(WORD(1:4).eq.'*vew')then
+        CALL EGETWR(OUTSTR,K,EYEMI(1),0.,0.,'-','X cord',IER)
+        CALL EGETWR(OUTSTR,K,EYEMI(2),0.,0.,'-','Y cord',IER)
+        CALL EGETWR(OUTSTR,K,EYEMI(3),0.,0.,'-','Z cord',IER)
+        CALL EGETWR(OUTSTR,K,VIEWMI(1),0.,0.,'-','X cord',IER)
+        CALL EGETWR(OUTSTR,K,VIEWMI(2),0.,0.,'-','Y cord',IER)
+        CALL EGETWR(OUTSTR,K,VIEWMI(3),0.,0.,'-','Z cord',IER)
+        CALL EGETWR(OUTSTR,K,ANGI,0.,0.,'-','Z cord',IER)
+        initvt=1
+        goto 43
+      elseif(WORD(1:15).eq.'*water_in_zones')then
+        K=16
+        CALL EGETWR(OUTSTR,K,zfldK,0.,0.,'-','wtr cond',IER)
+        CALL EGETWR(OUTSTR,K,zfldD,0.,0.,'-','wtr dens',IER)
+        CALL EGETWR(OUTSTR,K,zfldC,0.,0.,'-','wtr spec ht',IER)
+        CALL EGETWR(OUTSTR,K,zfldA,0.,0.,'-','wtr sw abs',IER)
+        goto 43
       elseif(WORD(1:16).eq.'*weather_station')then
 
 C If there is a line with the root name of a climate file look
@@ -2138,7 +2186,7 @@ C Process the data if the end of the file reached or if the
 C *end mark was found.
  1000 CALL ERPFREE(IUNIT,ios)
 
-C Create new model. Note the onfiguration file will be in the
+C Create new model (registration). Note the onfiguration file will be in the
 C folder /tmp/box/cfg if mpath is /tmp/box.
       write(metaroot,'(a)') root(1:lnblnk(root))
       write(metampath,'(a)') mpath(1:lnblnk(mpath))
@@ -2187,6 +2235,9 @@ C        usefile(iz) = ' '
           do 49 isu=1,MS
             hasconstr(isu)=szhasconstr(isz,isu)
             hasoptic(isu)=szhasoptic(isz,isu)
+            hasparent(isu)=szhasparent(isz,isu)
+            hasuse(isu,1)=szhasuse(isz,isu,1)
+            hasuse(isu,2)=szhasuse(isz,isu,2)
   49      continue
           icomp=icomp+1
 
@@ -2200,37 +2251,43 @@ C be included in the version 1.1 geometry file.
             nbobs(icomp)=0
           endif
 
-          if(i_ctl_link(isz).gt.0)then
-            isilentncf=1+isilentncf
-            ncf=isilentncf
-            IBSN(isilentncf,1)=0; IBSN(isilentncf,2)=0
-            IBSN(isilentncf,3)=0; IBSN(isilentncf,4)=0
-            IBAN(isilentncf,1)=0; IBAN(isilentncf,2)=0
-            IBAN(isilentncf,3)=0
-            NBCDT(isilentncf)=1
-            IBCDV(isilentncf,1,1)=1; IBCDV(isilentncf,1,2)=365
-            NBCDP(isilentncf,1)=1
-            IBCTYP(isilentncf,1,1)=0
-            IBCLAW(isilentncf,1,1)=1
-            TBCPS(isilentncf,1,1)=0
-            BMISCD(isilentncf,1,1,1)=7
-            BMISCD(isilentncf,1,1,2)=999000
-            BMISCD(isilentncf,1,1,3)=0.0
-            BMISCD(isilentncf,1,1,4)=999000
-            BMISCD(isilentncf,1,1,5)=0.0
-            BMISCD(isilentncf,1,1,6)= ht_Setpoint(isz)
-            BMISCD(isilentncf,1,1,7)=cl_Setpoint(isz)
-            BMISCD(isilentncf,1,1,8)=0.0
-            znctldoc='basic ideal controls'
-            ICASCF(isz)=ncf
+C If a literal control file has been included do not bother with terse
+C control description.
+          if(literalctl)then
+            continue
+          else
+            if(i_ctl_link(isz).gt.0)then
+              isilentncf=1+isilentncf
+              ncf=isilentncf
+              IBSN(isilentncf,1)=0; IBSN(isilentncf,2)=0
+              IBSN(isilentncf,3)=0; IBSN(isilentncf,4)=0
+              IBAN(isilentncf,1)=0; IBAN(isilentncf,2)=0
+              IBAN(isilentncf,3)=0
+              NBCDT(isilentncf)=1
+              IBCDV(isilentncf,1,1)=1; IBCDV(isilentncf,1,2)=365
+              NBCDP(isilentncf,1)=1
+              IBCTYP(isilentncf,1,1)=0
+              IBCLAW(isilentncf,1,1)=1
+              TBCPS(isilentncf,1,1)=0
+              BMISCD(isilentncf,1,1,1)=7
+              BMISCD(isilentncf,1,1,2)=999000
+              BMISCD(isilentncf,1,1,3)=0.0
+              BMISCD(isilentncf,1,1,4)=999000
+              BMISCD(isilentncf,1,1,5)=0.0
+              BMISCD(isilentncf,1,1,6)= ht_Setpoint(isz)
+              BMISCD(isilentncf,1,1,7)=cl_Setpoint(isz)
+              BMISCD(isilentncf,1,1,8)=0.0
+              znctldoc='basic ideal controls'
+              ICASCF(isz)=ncf
+            endif
           endif
 
           write(outs,'(2a)') 'Processing ',zname(isz)
           call edisp(iuout,outs)
 
 C Create zone based on a set of parameters (created above).
-          call silentzone(ICOMP,metaver,hasconstr,hasoptic,use,
-     &      usefile(isz),IER)
+          call silentzone(ICOMP,metaver,hasconstr,hasoptic,hasparent,
+     &      hasuse,use,usefile(isz),literalctl,IER)
   63    continue
 
         if(unixok)then
@@ -2238,18 +2295,20 @@ C Create zone based on a set of parameters (created above).
         else
           fs = char(92)
         endif
-        LN=max(1,LNBLNK(cfgroot))
-        if(ctlpth(1:2).eq.'  '.or.ctlpth(1:2).eq.'./')then
-          WRITE(LCTLF,'(2a)')cfgroot(1:ln),'.ctl'
-        else
-          WRITE(LCTLF,'(4a)') ctlpth(1:lnblnk(ctlpth)),fs,
-     &       cfgroot(1:ln),'.ctl'
+        if(.NOT.literalctl)then  ! No control embedded in meta file.
+          LN=max(1,LNBLNK(cfgroot))
+          if(ctlpth(1:2).eq.'  '.or.ctlpth(1:2).eq.'./')then
+            WRITE(LCTLF,'(2a)')cfgroot(1:ln),'.ctl'
+          else
+            WRITE(LCTLF,'(4a)') ctlpth(1:lnblnk(ctlpth)),fs,
+     &         cfgroot(1:ln),'.ctl'
+          endif
+          ICTLF=IFIL+1
+          call CTLWRT(ICTLF,IER)
         endif
-        ICTLF=IFIL+1
-        call CTLWRT(ICTLF,IER)
 
 C Update cfg file to know about the control file
-        CALL EMKCFG('-',IER)
+        CALL EMKCFG('s',IER)
       endif
       RETURN
 
@@ -2281,13 +2340,18 @@ C the file with minimum interaction.
 #include "site.h"
 #include "geometry.h"
 #include "esprdbfile.h"
+#include "MultiYear_simulations.h"
 #include "espriou.h"
 #include "seasons.h"
 #include "ipvdata.h"
+#include "FMI.h"
+#include "agent.h"
+#include "gremlin.h"
 
       integer lnblnk  ! function definition
 
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
+      common/FILEP/IFIL
 
       integer ncomp,ncon
       COMMON/C1/NCOMP,NCON
@@ -2326,10 +2390,51 @@ C nsurfinso nb of insolation sources, isurfinso() list of insolation sources.
       common/ishdirec/iaplic(MCOM,2),nsurfcalc(MCOM),lstsfcalc(MCOM,MS),
      &       nsurfinso(MCOM),isurfinso(MCOM,MS)
 
+C Images.
+      character imgfmt*4  ! GIF XBMP TIF JPG
+      character imgfoc*4  ! FZON FNET FCTL FDFS FPLN
+      character limgfil*72  ! file name (extend to 144 char)
+      character imgdoc*248  ! text associated with image
+      common/imagf/imgfmt(MIMG),imgfoc(MIMG),limgfil(MIMG),imgdoc(MIMG)
+
+      integer noimg  ! number of images
+      integer iton   ! 0 if images not yet shown, 1 if yes
+      common/imagfi/noimg,iton
+
+      common/calena/calename,calentag(MDTY),calendayname(MDTY)
+      character calename*32,calentag*12,calendayname*32
+
+      integer radcores
+      common/radcor/radcores
+
+      COMMON/zfluid/znotair(mcom),zfldK,zfldD,zfldC,zfldA,
+     &              zSWAp(mcom),zSWAf(mcom)
+      real zfldK,zfldD,zfldC,zfldA,zSWAp,zSWAf
+      LOGICAL znotair              ! zone can be air or water filled
+      
+      integer IHCT,ICOREXHCT
+      COMMON/HCTHRY/IHCT,ICOREXHCT  ! Default for internal & external hc method.
+
+      common/CWEC_SOL/iSlr_half_hr_flg
+      integer iSlr_half_hr_flg      ! 0 hour-centered; 1 half-hour centered
+
+C Ground topology.
+      COMMON/GTFIL/GTGEOM
+      character GTGEOM*72
+      COMMON/GRND100/GRND3D
+      LOGICAL GRND3D
+
+C Initial view.
+      common/initv/initvt,EYEMI(3),VIEWMI(3),ANGI
+      REAL :: angi,EYEMI,VIEWMI
+      INTEGER :: initvt
+
+      logical dogrnd
+ 
       integer inumXMLmetrics !counts for the number of xml metrics defined
 
       CHARACTER outs*124,outsd*124,louts*496,loutsd*496
-      character dstmp*24
+      character dstmp*24,OTHSTR*30
 
       character act*1      ! action requested.
       character simact*6   ! action for creating assessments.
@@ -2362,6 +2467,7 @@ C Site related local variables.
       logical havegroundtempsets
       logical havesimparameters
       logical rotationknown  ! true if we need to remember a rotation
+      logical :: XST
       integer simstartup   ! use for isstup
       integer simzonetimestep ! use for isbnstep
       integer simplanttimestep ! use for ispnstep
@@ -2371,9 +2477,11 @@ C Site related local variables.
       dimension i_ctl_link(MCOM),ht_Setpoint(MCOM),cl_Setpoint(MCOM)
       integer isilentncf !silent decide how many control functions needed
       character tab*1
-      integer lnzp,lnnp,lnap,lncp,lndcp,lndbp ! lengths of paths to model folders
+      character tokens*156,comment*76,aligned_str*156
+      character left*62,leftd*62,right*42,rightd*42
       integer lnc  ! for length of climate file
-      integer metaver  ! one for 1.1 and two for 1.2
+      integer metaver  ! one for 1.1 two for 1.2 three for 1.3
+      integer ifc
 
 C  The following data statements carry the proportions of
 C  surrounding buildings, sky vault and ground assumed
@@ -2384,7 +2492,7 @@ C  defined by the Index of Exposure.
       DATA PROPS/0.36,0.41,0.45,0.33,0.15,0.5,0.0,0.0/
       DATA PROPG/0.36,0.41,0.45,0.33,0.33,0.5,0.0,0.0/
 
-      IER=0
+      IER=0; XST=.false.
 
 C Determine operating system
       call isunix(unixok)
@@ -2426,14 +2534,6 @@ C Instantiate the sz array structures. The logic is to scan all of the
 C zone details and then write into the file.
       write(actions,'(a)') 'new'
       write(root,'(a)') cfgroot
-
-C Assume distributed folders.
-      lnzp=lnblnk(zonepth)
-      lnnp=lnblnk(netpth)
-      lnap=lnblnk(mscpth)
-      lncp=lnblnk(ctlpth)
-      lndcp=lnblnk(docpth)
-      lndbp=lnblnk(dbspth)
       write(mpath,'(a)') cfgroot  ! model folder will take root name
 
 C Currently set the block of text to the model title.
@@ -2495,6 +2595,10 @@ C Snow depth file (if ground reflectivity model 3)
   128   continue
       endif
 
+      dogrnd = .false.
+      IF(NGRDP.gt.0.or.GRND3D)dogrnd=.true.
+      IF(GTGEOM(1:7).ne.'UNKNOWN'.and.GTGEOM(1:2).ne.'  ')dogrnd=.true.
+
 C Simulation parameter sets.
       if(nsset.gt.0)then
         havesimparameters=.true.
@@ -2546,73 +2650,27 @@ C *silent_input
 C      write(ifilg,'(a)',IOSTAT=ios,ERR=13) '*silent_input'
 
 C The version 1.2 (which includes surface optical attributes looks like:
-C *meta_file
-      metaver =2
-      write(ifilg,'(a)',IOSTAT=ios,ERR=13) '*meta_file'
+C *meta_file. version 1.3 which has full set of surface atrributes looks
+C like *meta_file_v3
+      metaver =3
+      write(ifilg,'(a)',IOSTAT=ios,ERR=13) '*meta_file_v3'
       write(ifilg,'(3a)',IOSTAT=ios,ERR=13)'*title',tab,
      &  modeltitle(1:lnblnk(modeltitle))
       write(ifilg,'(3a)',IOSTAT=ios,ERR=13)'*doc',tab,
      &  modeldocblock(1:lnblnk(modeldocblock))
       write(ifilg,'(4a)',IOSTAT=IOS,ERR=13)'*date',tab,dstmp,
      &  '  # latest file modification '
-      write(ifilg,'(7a)',IOSTAT=IOS,ERR=13)'*action',tab,
+      write(ifilg,'(9a)',IOSTAT=IOS,ERR=13)'*action',tab,
      &  actions(1:lnblnk(actions)),tab,
-     &  root(1:lnblnk(root)),tab,mpath(1:lnblnk(mpath))
+     &  root(1:lnblnk(root)),tab,'distributed',tab,
+     &  mpath(1:lnblnk(mpath))
 
 C Include the model folder tags as in the cfg file. This will be used when
 C extracting to a set of standard ESP-r files.
-      write(ifilg,'(3a)',IOSTAT=IOS,ERR=13) '*zonpth ',zonepth(1:lnzp),
-     &  '  # path to zones'
-      write(ifilg,'(3a)',IOSTAT=IOS,ERR=13) '*netpth ',netpth(1:lnnp),
-     &  '  # path to networks'
-      write(ifilg,'(3a)',IOSTAT=IOS,ERR=13) '*ctlpth ',ctlpth(1:lncp),
-     &  '  # path to controls'
-      write(ifilg,'(3a)',IOSTAT=IOS,ERR=13) '*mscpth ',mscpth(1:lnap),
-     &  '  # path to miscel. files'
-      write(ifilg,'(3a)',IOSTAT=IOS,ERR=13) '*radpth ',radpth,
-     &  '  # path to radiance files'
-      write(ifilg,'(3a)',IOSTAT=IOS,ERR=13) '*imgpth ',imgpth,
-     &  '  # path to project images'
-      write(ifilg,'(3a)',IOSTAT=IOS,ERR=13) '*docpth ',docpth(1:lndcp),
-     &  '  # path to project documents'
-      write(ifilg,'(3a)',IOSTAT=IOS,ERR=13) '*dbspth ',dbspth(1:lndbp),
-     &  '  # path to local databases'
-
-      write(ifilg,'(4a)',IOSTAT=IOS,ERR=13)'*weather_station',tab,
-     &  weather(1:lnblnk(weather)),'  # weather file'
-
-C Depending on site exposure write two lines.
-      if(siteexposureindex.eq.8)then
-        write(ifilg,'(2a,F6.3,a,F6.3,a,F5.2,a)',IOSTAT=IOS,ERR=13)
-     &    '*site_loc',tab,sitelat,tab,sitelongdif,tab,
-     &    hoursGTM,' # latitude deg long-diff deg time-zone GMT'
-        write(ifilg,'(2a,i2,a,F5.2,a,F5.2,a,F5.2,a)',IOSTAT=IOS,ERR=13)
-     &    '*site_exp',tab,siteexposureindex,tab,skyview,tab,
-     &    groundview,tab,buildingview,
-     &    ' # exposure-index (user) sky ground building views'
-      else
-        write(ifilg,'(2a,F6.3,a,F6.3,a,F5.2,a)',IOSTAT=IOS,ERR=13)
-     &    '*site_loc',tab,sitelat,tab,sitelongdif,tab,hoursGTM,
-     &    ' # latitude deg long-diff deg time-zone GMT'
-        write(ifilg,'(2a,i2,a,F5.2,a,F5.2,a,F5.2,a)',IOSTAT=IOS,ERR=13)
-     &    '*site_exp',tab,siteexposureindex,tab,skyview,tab,
-     &    groundview,tab,buildingview,
-     &    ' # exposure-index (std) sky ground building views'
-      endif
-
-C Write the static ground reflction value from the model.
-      write(ifilg,'(2a,F6.3,a)',IOSTAT=IOS,ERR=13)
-     &  '*ground_refl_annual',tab,groundrefl,
-     &  ' # ground reflection (avg for year)'
-
-C Ground reflectivity model, no-snow monthly albedos, snow albedo
-C (if ground reflectivity model 2 or 3)
-      if(groundreflmodel.gt.1)then
-        WRITE(ifilg,803,IOSTAT=IOS,ERR=14)
-     &    '*ground_refl_monthly',tab,groundreflmodel,
-     &    tab,(groundreflmonth(I),I=1,12),snowgroundrefl
-  803   FORMAT(2A,I1,A,13(1X,F5.3))
-      endif
+      ifc=ifilg
+      WRITE(IFC,'(A)',IOSTAT=IOS,ERR=13) '#'
+      WRITE(IFC,'(A)',IOSTAT=IOS,ERR=13) '# ---- model folders ----'
+      call write_folders(ifc)
 
 C Do something about monthly snow data etc.
       if(havesnowdays)then
@@ -2639,156 +2697,383 @@ C line of 12 values for each included profile.
   28    CONTINUE
       endif
 
-C Write common data files related to this model.
-C Common material data has the option of two different syntax to
-C reflect whether the standard database folder is being used.
+C Write common data files related to this model. Use logic
+C similar to subroutine write_databases but for local MLC
+C database include literally. 
+      ifc=ifilg
+C      call write_databases(ifc,ier)
+
+C Start of code block similar to emkcfg.F: write_databases
+      ier=0               ! Reset so write errors detected on return.
+      WRITE(IFC,'(A)',IOSTAT=IOS,ERR=2) '#'
+      WRITE(IFC,'(A)',IOSTAT=IOS,ERR=2) '# ---- databases ----'
       if(ipathmat.eq.0.or.ipathmat.eq.1)then
-        WRITE(ifilg,'(3A)',IOSTAT=IOS,ERR=13) '*mat  ',
-     &    LFMAT(1:lnblnk(LFMAT)),' # materials db'
+        WRITE(IFC,'(2A)',IOSTAT=IOS,ERR=2) '*mat ',
+     &      LFMAT(1:lnblnk(LFMAT))
+        ltf=max(1,LNBLNK(LFMAT))
+        INQUIRE (FILE=LFMAT(1:ltf),EXIST=XST)
+        if (XST) THEN
+          write(ifilg,'(a)') '*start_literal'
+          iuf=ifil+2
+          call ascitometa(iuf,LFMAT,ifilg,IER)
+          write(ifilg,'(a)') '*end_literal'
+        endif
       elseif(ipathmat.eq.2)then
-        WRITE(ifilg,'(3A)',IOSTAT=IOS,ERR=13) '*stdmat  ',
-     &    LFMAT(1:lnblnk(LFMAT)),' # materials db'
+        WRITE(IFC,'(2A)',IOSTAT=IOS,ERR=2) '*stdmat ',
+     &      LFMAT(1:lnblnk(LFMAT))
       endif
 
-C Common constructions data has the option of two different syntax.
+      if(ipathcfc.eq.0.or.ipathcfc.eq.1)then
+        WRITE(IFC,'(2A)',IOSTAT=IOS,ERR=2) '*cfcdb ',
+     &      LCFCDB(1:lnblnk(LCFCDB))
+      elseif(ipathcfc.eq.2)then
+        WRITE(IFC,'(2A)',IOSTAT=IOS,ERR=2) '*stdcfcdb ',
+     &      LCFCDB(1:lnblnk(LCFCDB))
+      endif
+
       if(ipathmul.eq.0.or.ipathmul.eq.1)then
-        WRITE(ifilg,'(3A)',IOSTAT=IOS,ERR=13) '*mlc  ',
-     &    LFMUL(1:lnblnk(LFMUL)),' # constructions db'
+        WRITE(IFC,'(2A)',IOSTAT=IOS,ERR=2) '*mlc ',
+     &      LFMUL(1:lnblnk(LFMUL))
+        ltf=max(1,LNBLNK(LFMUL))
+        INQUIRE (FILE=LFMUL(1:ltf),EXIST=XST)
+        if (XST) THEN
+          write(ifilg,'(a)') '*start_literal'
+          iuf=ifil+2
+          call ascitometa(iuf,LFMUL,ifilg,IER)
+          write(ifilg,'(a)') '*end_literal'
+        endif
       elseif(ipathmul.eq.2)then
-        WRITE(ifilg,'(3A)',IOSTAT=IOS,ERR=13) '*stdmlc  ',
-     &    LFMUL(1:lnblnk(LFMUL)),' # constructions db'
+        WRITE(IFC,'(2A)',IOSTAT=IOS,ERR=2) '*stdmlc ',
+     &      LFMUL(1:lnblnk(LFMUL))
       endif
 
-C Common optical data has the option of two different syntax to
-C reflect whether the standard database folder is being used.
       if(ipathoptdb.eq.0.or.ipathoptdb.eq.1)then
-        WRITE(ifilg,'(3A)',IOSTAT=IOS,ERR=13) '*opt  ',
-     &    LOPTDB(1:lnblnk(LOPTDB)),' # optical db'
+        WRITE(IFC,'(2A)',IOSTAT=IOS,ERR=2) '*opt ',
+     &      LOPTDB(1:lnblnk(LOPTDB))
+        ltf=max(1,LNBLNK(LOPTDB))
+        INQUIRE (FILE=LOPTDB(1:ltf),EXIST=XST)
+        if (XST) THEN
+          write(ifilg,'(a)') '*start_literal'
+          iuf=ifil+2
+          call ascitometa(iuf,LOPTDB,ifilg,IER)
+          write(ifilg,'(a)') '*end_literal'
+        endif
       elseif(ipathoptdb.eq.2)then
-        WRITE(ifilg,'(3A)',IOSTAT=IOS,ERR=13) '*stdopt  ',
-     &    LOPTDB(1:lnblnk(LOPTDB)),' # optical db'
+        WRITE(IFC,'(2A)',IOSTAT=IOS,ERR=2) '*stdopt ',
+     &      LOPTDB(1:lnblnk(LOPTDB))
       endif
 
-C Pressure coefficients have the option of two different syntax to
-C reflect whether the standard database folder is being used.
       if(ipathapres.eq.0.or.ipathapres.eq.1)then
-        WRITE(ifilg,'(3A)',IOSTAT=IOS,ERR=13) '*prs  ',
-     &    LAPRES(1:lnblnk(LAPRES)),' # pressure coef db'
+        WRITE(IFC,'(2A)',IOSTAT=IOS,ERR=2) '*prs ',
+     &      LAPRES(1:lnblnk(LAPRES))
       elseif(ipathapres.eq.2)then
-        WRITE(ifilg,'(3A)',IOSTAT=IOS,ERR=13) '*stdprs  ',
-     &    LAPRES(1:lnblnk(LAPRES)),' # pressure coef db'
+        WRITE(IFC,'(2A)',IOSTAT=IOS,ERR=2) '*stdprs ',
+     &      LAPRES(1:lnblnk(LAPRES))
       endif
 
-C Common event profiles (ditto).
       if(ipathprodb.eq.0.or.ipathprodb.eq.1)then
-        WRITE(ifilg,'(3A)',IOSTAT=IOS,ERR=13) '*evn  ',
-     &    LPRFDB(1:lnblnk(LPRFDB)),' # profiles db'
+        WRITE(IFC,'(2A)',IOSTAT=IOS,ERR=2) '*evn ',
+     &      LPRFDB(1:lnblnk(LPRFDB))
       elseif(ipathprodb.eq.2)then
-        WRITE(ifilg,'(3A)',IOSTAT=IOS,ERR=13) '*stdevn  ',
-     &    LPRFDB(1:lnblnk(LPRFDB)),' # profiles db'
+        WRITE(IFC,'(2A)',IOSTAT=IOS,ERR=2) '*stdevn ',
+     &      LPRFDB(1:lnblnk(LPRFDB))
       endif
 
-C Common active materials (ditto).
+      if(ipathclim.eq.0.or.ipathclim.eq.1)then
+        WRITE(IFC,'(2A)',IOSTAT=IOS,ERR=2) '*clm ',
+     &      LCLIM(1:lnblnk(LCLIM))
+      elseif(ipathclim.eq.2)then
+        WRITE(IFC,'(2A)',IOSTAT=IOS,ERR=2) '*stdclm ',
+     &      LCLIM(1:lnblnk(LCLIM))
+      endif
+
       if(ipathmsc.eq.0.or.ipathmsc.eq.1)then
-        WRITE(ifilg,'(3A)',IOSTAT=IOS,ERR=13) '*mscldb  ',
-     &    MCMPDBFL(1:lnblnk(MCMPDBFL)),' # miscel cmp db'
+        WRITE(IFC,'(2A)',IOSTAT=IOS,ERR=2) '*mscldb ',
+     &      MCMPDBFL(1:lnblnk(MCMPDBFL))
       elseif(ipathmsc.eq.2)then
-        WRITE(ifilg,'(3A)',IOSTAT=IOS,ERR=13) '*stdmscldb  ',
-     &    MCMPDBFL(1:lnblnk(MCMPDBFL)),' # miscel cmp db'
+        WRITE(IFC,'(2A)',IOSTAT=IOS,ERR=2) '*stdmscldb ',
+     &      MCMPDBFL(1:lnblnk(MCMPDBFL))
       endif
-
-C Common mould isopleths (ditto).
       if(ipathmould.eq.0.or.ipathmould.eq.1)then
-        WRITE(ifilg,'(3A)',IOSTAT=IOS,ERR=13) '*mould  ',
-     &    lfmould(1:lnblnk(lfmould)),' # mould isopleths'
+        WRITE(IFC,'(2A)',IOSTAT=IOS,ERR=2) '*mould ',
+     &    lfmould(1:lnblnk(lfmould))
       elseif(ipathmould.eq.2)then
-        WRITE(ifilg,'(3A)',IOSTAT=IOS,ERR=13) '*stdmould  ',
-     &    lfmould(1:lnblnk(lfmould)),' # mould isopleths'
+        WRITE(IFC,'(2A)',IOSTAT=IOS,ERR=2) '*stdmould  ',
+     &    lfmould(1:lnblnk(lfmould))
       endif
 
-C << plant template file needs to be written >>
+C Ground reflectivity model (no-snow monthly albedos & snow albedo
+C if ground reflectivity model 2 or 3).
+      IF(groundreflmodel.GT.1) WRITE(IFC,803) '*gref ',
+     &   groundreflmodel,(groundreflmonth(I),I=1,12),snowgroundrefl
+  803 FORMAT(A,I1,13(1X,F5.3))
+
+C Number of days with snow on the ground (if ground reflectivity model 2).
+      IF(groundreflmodel.EQ.2)  
+     &  WRITE(IFC,805) '*snow',(dayswithsnow(I),I=1,12)
+  805 FORMAT(A,12(1X,I2))
+
+C Snow depth file (if ground reflectivity model 3).
+      IF(groundreflmodel.EQ.3) WRITE(IFC,'(2A)',IOSTAT=IOS,ERR=2) 
+     &  '*sndf ',SNFNAM(1:lnblnk(SNFNAM))
+
+C Multi-year weather database.
+      if (bMY_climates_defined) then 
+        WRITE(IFC,'(2A)',IOSTAT=IOS,ERR=2) '*myclm ',
+     &    cMY_climate_db_name(1:lnblnk(cMY_climate_db_name))
+      endif
+
+C Plant components database.
+      if(ipathpcdb.eq.0.or.ipathpcdb.eq.1)then
+        WRITE(IFC,'(2A)',IOSTAT=IOS,ERR=2) '*pdb ',
+     &      LPCDB(1:lnblnk(LPCDB))
+      elseif(ipathpcdb.eq.2)then
+        WRITE(IFC,'(2A)',IOSTAT=IOS,ERR=2) '*stdpdb ',
+     &      LPCDB(1:lnblnk(LPCDB))
+      endif
+
+C UK SBEM database.
+      if(ipathsbem.eq.0.or.ipathsbem.eq.1)then
+        WRITE(IFC,'(2a)',IOSTAT=IOS,ERR=2) '*sbem ',
+     &    LSBEM(1:lnblnk(LSBEM))
+      elseif(ipathsbem.eq.2)then
+        WRITE(IFC,'(2a)',IOSTAT=IOS,ERR=2) '*stdsbem ',
+     &    LSBEM(1:lnblnk(LSBEM))
+      endif
+
+C Predefined objects database.
+      if(ipathpredef.eq.0.or.ipathpredef.eq.1)then
+        WRITE(IFC,'(2a)',IOSTAT=IOS,ERR=2) '*predef ',
+     &    LPREDEF(1:lnblnk(LPREDEF))
+        ltf=max(1,LNBLNK(LPREDEF))
+        INQUIRE (FILE=LPREDEF(1:ltf),EXIST=XST)
+        if (XST) THEN
+          write(ifilg,'(a)') '*start_literal'
+          iuf=ifil+2
+          call ascitometa(iuf,LPREDEF,ifilg,IER)
+          write(ifilg,'(a)') '*end_literal'
+        endif
+
+      elseif(ipathpredef.eq.2)then
+        WRITE(IFC,'(2a)',IOSTAT=IOS,ERR=2) '*stdpredef ',
+     &    LPREDEF(1:lnblnk(LPREDEF))
+      endif
+C End of code block similar to emkcfg.F: write_databases
+
+      
+      WRITE(ifilg,'(A)',IOSTAT=IOS,ERR=13) '#'
+      WRITE(ifilg,'(A)',IOSTAT=IOS,ERR=13) 
+     &    '# ---- documentation and images ----'
+      write(tokens,'(2a)') '*notes ',lmodellog(1:lnblnk(lmodellog))
+      write(comment,'(a)') 'associated notes about the project'
+      call align_comment(48,tokens,comment,aligned_str)
+      write(ifilg,'(a)') aligned_str(1:lnblnk(aligned_str))
+
+C If there is a notes file then literally copy it.
+      ltf=max(1,LNBLNK(lmodellog))
+      INQUIRE (FILE=lmodellog(1:ltf),EXIST=XST)
+      if (XST) THEN
+        write(ifilg,'(a)') '*start_literal'
+        iuf=ifil+2
+        call ascitometa(iuf,lmodellog,ifilg,IER)
+        write(ifilg,'(a)') '*end_literal'
+      endif
+      
+      if(lnblnk(lmodelqa).eq.0)then  ! Model contents.
+        continue
+      elseif(lmodelqa(1:7).eq.'UNKNOWN')then
+        continue
+      elseif(lmodelqa(1:2).eq.'  ')then
+        continue
+      else
+
+C Contents file name set, check if the file exists.
+        write(tokens,'(2a)') '*contents ',lmodelqa(1:lnblnk(lmodelqa))
+        write(comment,'(a)') 'contents report for the project'
+        call align_comment(48,tokens,comment,aligned_str)
+        write(ifilg,'(a)') aligned_str(1:lnblnk(aligned_str))
+        ltf=max(1,LNBLNK(lmodelqa))
+        INQUIRE (FILE=lmodelqa(1:ltf),EXIST=XST)
+        if (XST) THEN
+          write(ifilg,'(a)') '*start_literal'
+          iuf=ifil+2
+          call ascitometa(iuf,lmodelqa,ifilg,IER)
+          write(ifilg,'(a)') '*end_literal'
+        endif
+      endif
+
+      if(noimg.gt.0)then
+        do img=1,noimg
+          WRITE(ifilg,'(a,a4,2x,a4,2x,a)',IOSTAT=IOS,ERR=13)'*img ',
+     &      imgfmt(img),imgfoc(img),
+     &      limgfil(img)(1:lnblnk(limgfil(img)))
+          if(icfgv.gt.3)then
+            WRITE(ifilg,'(2a)',IOSTAT=IOS,ERR=13)'*imdoc ',
+     &        imgdoc(img)(1:lnblnk(imgdoc(img)))
+          endif
+        enddo
+      endif
+
+C Write the year and seasons.
+      ifc=ifilg
+      call write_seasons(ifc,ier)
+
+C Also write the project calendar and day types.
+      if(CALENAME(1:7).NE.'UNKNOWN')then
+        ifc=ifilg
+        call write_calendar(ifc,ier)
+      endif
+
+      WRITE(IFC,'(A)',IOSTAT=IOS,ERR=13) '#'
+      WRITE(IFC,'(A)',IOSTAT=IOS,ERR=13) '# ---- site ----'
+      write(tokens,'(a,f7.3,2x,f7.3)') '*latlong ',sitelat,sitelongdif
+      write(comment,'(a)') 
+     &  'latitude & longitude difference (from reference meridian)'
+      call align_comment(48,tokens,comment,aligned_str)
+      write(IFC,'(a)') aligned_str(1:lnblnk(aligned_str))
+
+      write(tokens,'(a,i7,2x,f6.3)') '*site ',siteexposureindex,
+     &  groundrefl
+      if(siteexposureindex.EQ.1)then
+        comment='exposure: typical city centre & ground reflectivity'
+      elseif(siteexposureindex.EQ.2)then
+        comment='exposure: typical urban & ground reflectivity'
+      elseif(siteexposureindex.EQ.3)then
+        comment='exposure: typical rural & ground reflectivity'
+      elseif(siteexposureindex.EQ.4)then
+        comment='city center, equal views to sky, ground & buildings'
+      elseif(siteexposureindex.EQ.5)then
+        comment='city center below mean height of other buildings'
+      elseif(siteexposureindex.EQ.6)then
+        comment='isolated rural & ground reflectivity'
+      elseif(siteexposureindex.EQ.7)then
+        comment='exposure: within a totally enclosed building'
+      elseif(siteexposureindex.EQ.8)then
+        comment='exposure: user defined & ground reflectivity '
+      endif
+      call align_comment(48,tokens,comment,aligned_str)
+      write(IFC,'(a)') aligned_str(1:lnblnk(aligned_str))
+
+      if(siteexposureindex.EQ.8)then
+        write(tokens,'(3F8.3)') skyview,groundview,buildingview
+        write(comment,'(a)') 
+     &    'views to sky, ground & surrounding obstructions'
+        call align_comment(48,tokens,comment,aligned_str)
+        write(IFC,'(a)') aligned_str(1:lnblnk(aligned_str))
+      endif
+      write(tokens,'(a,f6.1)') '*sitealt ',sitealt
+      write(comment,'(a)') 'site altitude (m)'
+      call align_comment(48,tokens,comment,aligned_str)
+      write(IFC,'(a)') aligned_str(1:lnblnk(aligned_str))
+
+C Include ground information if associated attributes found.
+      ifc=ifilg
+      call write_ground(dogrnd,ifc)
+      
+      if(IHCT.eq.0) IHCT=1            ! if not defined assume A&H
+      if(ICOREXHCT.eq.0) ICOREXHCT=2  ! if not defined assume MoWiTT
+      write(tokens,'(a,2i5)') '*surf_heat_transfer ',IHCT,ICOREXHCT
+      if(IHCT.eq.0.or.ICOREXHCT.eq.0)then
+        write(comment,'(a)')'no methods for inside & outside htc'
+      elseif(IHCT.eq.1.and.ICOREXHCT.eq.1)then
+        write(comment,'(a)')'default methods for inside & outside htc'
+      elseif(IHCT.eq.1.and.ICOREXHCT.eq.2)then
+        write(comment,'(a)')'A&H inside MoWiTT outside htc'
+      elseif(IHCT.eq.2.and.ICOREXHCT.eq.1)then
+        write(comment,'(a)')'Khalifa rad inside McAdams outside htc'
+      elseif(IHCT.eq.2.and.ICOREXHCT.eq.2)then
+        write(comment,'(a)')'Khalifa rad inside MoWiTT outside htc'
+      elseif(IHCT.eq.3.and.ICOREXHCT.eq.1)then
+        write(comment,'(a)')'Khalifa no rad inside McAdams outsd htc'
+      elseif(IHCT.eq.3.and.ICOREXHCT.eq.2)then
+        write(comment,'(a)')'Khalifa no rad inside MoWiTT outsd htc'
+      endif
+      call align_comment(48,tokens,comment,aligned_str)
+      write(IFC,'(a)') aligned_str(1:lnblnk(aligned_str))
+
+      WRITE(IFC,'(A)',IOSTAT=IOS,ERR=13) '#'
+      WRITE(IFC,'(A)',IOSTAT=IOS,ERR=13) 
+     &  '# ---- model controls ----'
+      write(tokens,'(2a)') '*ctl ',LCTLF(1:lnblnk(LCTLF))
+      write(comment,'(a)') 'model control file'
+      call align_comment(48,tokens,comment,aligned_str)
+      write(IFC,'(a)') aligned_str(1:lnblnk(aligned_str))
+
+C If there is a control file then literally copy it.
+      ltf=max(1,LNBLNK(LCTLF))
+      INQUIRE (FILE=LCTLF(1:ltf),EXIST=XST)
+      if (XST) THEN
+        write(IFC,'(a)') '*start_literal'
+        iuf=ifil+2
+        call ascitometa(iuf,LCTLF,ifilg,IER)
+        write(ifilg,'(a)') '*end_literal'
+      endif
 
 C Simulation parameters.
       if(havesimparameters)then
-        write(ifilg,'(2a,I2,a,I2,a,I2,a,I1,a)',IOSTAT=IOS,ERR=13)
-     &    '*sim_parameters',tab,simstartup,tab,simzonetimestep,tab,
-     &    simplanttimestep,tab,simsavelevel,'  # simulation parameters'
+        ifc=ifilg
+        WRITE(IFC,'(A)',IOSTAT=IOS,ERR=13) '#'
+        WRITE(IFC,'(A)',IOSTAT=IOS,ERR=13) 
+     &    '# ---- simulation directives ----'
+        write(tokens,'(a,i2)') '*radcore ',radcores
+        write(comment,'(a)') 'cores available to Radiance'
+        call align_comment(48,tokens,comment,aligned_str)
+        write(IFC,'(a)') aligned_str(1:lnblnk(aligned_str))
+        if(iSlr_half_hr_flg.eq.0)then
+          write(tokens,'(a,i2)') '*slr_half_hr ',iSlr_half_hr_flg
+          write(comment,'(a)') 'solar data hour centred'
+          call align_comment(48,tokens,comment,aligned_str)
+          write(IFC,'(a)') aligned_str(1:lnblnk(aligned_str))
+        else
+          write(tokens,'(a,i2)') '*slr_half_hr ',iSlr_half_hr_flg
+          write(comment,'(a)') 'solar data half-hour centred'
+          call align_comment(48,tokens,comment,aligned_str)
+          write(IFC,'(a)') aligned_str(1:lnblnk(aligned_str))
+        endif
 
-C *assessments if nsset is non-zero
+        write(tokens,'(a,f4.1,3f7.1)') '*water_in_zones ',
+     &    zfldK,zfldD,zfldC,zfldA
+        write(comment,'(a)') 
+     &    'water cond, density, spec heat, shortwave abs'
+        call align_comment(48,tokens,comment,aligned_str)
+        write(IFC,'(a)') aligned_str(1:lnblnk(aligned_str))
+      
+        if (is_FMU.and.FMISFL(1:7).ne.'UNKNOWN') then
+          write(comment,'(a)') 'FMI specifications'
+          write(tokens,'(2a)')'*FMI ',FMISFL(1:lnblnk(FMISFL))
+          call align_comment(48,tokens,comment,aligned_str)
+          write(IFC,'(a)') aligned_str(1:lnblnk(aligned_str))
+        endif
+        if (IS_AGT.and.AGTFIL(1:7).ne.'UNKNOWN') then  ! Agents.
+          write(comment,'(a)') 'agent definitions'
+          write(tokens,'(2a)') '*agent ',AGTFIL(1:lnblnk(AGTFIL))
+          call align_comment(48,tokens,comment,aligned_str)
+          write(IFC,'(a)') aligned_str(1:lnblnk(aligned_str))
+        endif
+        if (IS_GRM.and.GRMFIL(1:7).ne.'UNKNOWN') then  ! Gremlins.
+          write(comment,'(a)') 'gremlin definitions'
+          write(tokens,'(2a)') '*gremlin ',GRMFIL(1:lnblnk(GRMFIL))
+          call align_comment(48,tokens,comment,aligned_str)
+          write(IFC,'(a)') aligned_str(1:lnblnk(aligned_str))
+        endif
+
         if(nsset.gt.0)then
-          simact=ipvsimu
-          if(simact(1:6).eq.'------')then
-            WRITE(ifilg,'(2A)',IOSTAT=IOS,ERR=13) '*assessments ',
-     &        'default   # one default assessment '
-          elseif(simact(1:6).eq.'icwint')then
-            WRITE(ifilg,'(2A)',IOSTAT=IOS,ERR=13) '*assessments ',
-     &        'winter typical_week  # typical winter week assessment'
-          elseif(simact(1:6).eq.'icwinf')then
-            WRITE(ifilg,'(2A)',IOSTAT=IOS,ERR=13) '*assessments ',
-     &        'winter fortnight  # winter fortnight assessment'
-          elseif(simact(1:6).eq.'icwins')then
-            WRITE(ifilg,'(2A)',IOSTAT=IOS,ERR=13) '*assessments ',
-     &        'winter season  # winter season assessment'
-          elseif(simact(1:6).eq.'icsprt')then
-            WRITE(ifilg,'(2A)',IOSTAT=IOS,ERR=13) '*assessments ',
-     &        'spring typical_week  # typical spring week assessment'
-          elseif(simact(1:6).eq.'icsprf')then
-            WRITE(ifilg,'(2A)',IOSTAT=IOS,ERR=13) '*assessments ',
-     &        'spring fortnight  # spring fortnight assessment'
-          elseif(simact(1:6).eq.'icsprs')then
-            WRITE(ifilg,'(2A)',IOSTAT=IOS,ERR=13) '*assessments ',
-     &        'spring season  # spring season assessment'
-          elseif(simact(1:6).eq.'icsumt')then
-            WRITE(ifilg,'(2A)',IOSTAT=IOS,ERR=13) '*assessments ',
-     &        'summer typical_week  # summer typical assessment'
-          elseif(simact(1:6).eq.'icsumf')then
-            WRITE(ifilg,'(2A)',IOSTAT=IOS,ERR=13) '*assessments ',
-     &        'summer fortnight  # summer fortnight assessment'
-          elseif(simact(1:6).eq.'icsums')then
-            WRITE(ifilg,'(2A)',IOSTAT=IOS,ERR=13) '*assessments ',
-     &        'summer season  # summer season assessment'
-          elseif(simact(1:6).eq.'icautt')then
-            WRITE(ifilg,'(2A)',IOSTAT=IOS,ERR=13) '*assessments ',
-     &        'autumn typical_week  # autumn typical assessment'
-          elseif(simact(1:6).eq.'icautf')then
-            WRITE(ifilg,'(2A)',IOSTAT=IOS,ERR=13) '*assessments ',
-     &        'autumn fortnight  # autumn fortnight assessment'
-          elseif(simact(1:6).eq.'icauts')then
-            WRITE(ifilg,'(2A)',IOSTAT=IOS,ERR=13) '*assessments ',
-     &        'autumn season  # autumn season assessment'
-          elseif(simact(1:3).eq.'ias')then
-             WRITE(ifilg,'(2A)',IOSTAT=IOS,ERR=13) '*assessments ',
-     &         'annual   # one annual assessment '
-          elseif(simact(1:3).eq.'i3s')then
-            WRITE(ifilg,'(2A)',IOSTAT=IOS,ERR=13) '*assessments ',
-     &        'three_season season # three seasonal assessment'
-          elseif(simact(1:3).eq.'i3t')then
-            WRITE(ifilg,'(3A)',IOSTAT=IOS,ERR=13) '*assessments ',
-     &        'three_season typical_week ',
-     &        '# three seasonal typical assessment'
-          elseif(simact(1:3).eq.'i3u')then
-            WRITE(ifilg,'(3A)',IOSTAT=IOS,ERR=13) '*assessments ',
-     &        'three_season user ',
-     &        '# three seasonal user defined assessment'
-          elseif(simact(1:3).eq.'i5s')then
-            WRITE(ifilg,'(2A)',IOSTAT=IOS,ERR=13) '*assessments ',
-     &        'five_season season # five seasonal assessment'
-          elseif(simact(1:3).eq.'i5t')then
-            WRITE(ifilg,'(2A)',IOSTAT=IOS,ERR=13) '*assessments ',
-     &        'five_season typical_week # five typical assessment'
-          elseif(simact(1:3).eq.'i5u')then
-            WRITE(ifilg,'(2A)',IOSTAT=IOS,ERR=13) '*assessments ',
-     &        'five_season user # five user assessment'
-          elseif(simact(1:3).eq.'i1d')then
-             WRITE(ifilg,'(2A)',IOSTAT=IOS,ERR=13) '*assessments ',
-     &         'single   # one default single assessment '
-          endif
+          ifc=ifilg
+          call write_parameter_sets(ifc,ier)
         endif
       endif
 
 C Write out data for each zone in the model. The nsz loop
 C is per zone, the nsc loop is for each coordinate.
       if(ncomp.gt.0)then
+        WRITE(IFC,'(A)',IOSTAT=IOS,ERR=13) '#'
+        WRITE(IFC,'(A)',IOSTAT=IOS,ERR=13) 
+     &      '# ---- building attributes ----'
+        if(initvt.eq.1)then  ! user view preference
+          WRITE(IFC,'(a,6f8.1,f5.1)',IOSTAT=IOS,ERR=13)'*vew ',
+     &      EYEMI(1),EYEMI(2),EYEMI(3),
+     &      VIEWMI(1),VIEWMI(2),VIEWMI(3),ANGI
+        endif
         do 142 nsz=1,ncomp
           write(ifilg,'(4a)',IOSTAT=IOS,ERR=13)
      &      '*start_zone',tab,zname(nsz),'  # zone name'
@@ -2835,6 +3120,7 @@ C Number of surfaces.
 C << consider adding more attributes and putting each attribute
 C << on a separate line with a tag.
           do 144 isu=1,NZSUR(nsz)
+            call OTHERINFO(nsz,isu,OTHSTR)
             icc=IZSTOCN(nsz,isu)    ! get the connection
             lnsn=lnblnk(SNAME(nsz,isu))
             lnsc=lnblnk(SMLCN(nsz,isu))
@@ -2844,21 +3130,63 @@ C << on a separate line with a tag.
               write(outs,'(5a,3I4)',IOSTAT=IOS,ERR=13)
      &          '*surface ',SNAME(nsz,isu)(1:lnsn),' ',
      &          SMLCN(nsz,isu)(1:lnsc),' ',ICT(icc),IC2(icc),IE2(icc)
+              call SDELIM(outs,outsd,'C',IW)
+              write(ifilg,'(2a)',IOSTAT=IOS,ERR=13)
+     &          outsd(1:lnblnk(outsd)),'  # surface attributes '
             elseif(metaver.eq.2)then
               write(outs,'(7a,3I4)',IOSTAT=IOS,ERR=13)
      &          '*surface ',SNAME(nsz,isu)(1:lnsn),' ',
      &          SMLCN(nsz,isu)(1:lnsc),' ',SOTF(nsz,isu)(1:lnso),' ',
      &          ICT(icc),IC2(icc),IE2(icc)
+              call SDELIM(outs,outsd,'C',IW)
+              write(ifilg,'(2a)',IOSTAT=IOS,ERR=13)
+     &          outsd(1:lnblnk(outsd)),'  # surface attributes '
+            elseif(metaver.eq.3)then
+
+C Follow pattern in egeometry.F ~line 2727.
+              lso=lnblnk(SOTHER(nsz,isu,1))
+              lso2=lnblnk(SOTHER(nsz,isu,2))
+              if(lso2.eq.0)then
+                SOTHER(nsz,isu,2)='000'; lso2=3
+              endif
+              lso3=lnblnk(SOTHER(nsz,isu,3))
+              if(lso3.eq.0)then
+                SOTHER(nsz,isu,3)='000'; lso3=3
+              endif
+              lsml=lnblnk(SMLCN(nsz,isu))
+              if(lsml.eq.0)then
+                SMLCN(nsz,isu)='UNKNOWN'; lsml=7
+              endif
+              lspa=lnblnk(SPARENT(nsz,isu))
+              if(lspa.gt.12) lspa=12
+              lsna=lnblnk(SNAME(nsz,isu))
+              lnsname=lsna   ! update surface name length common
+              lsot=lnblnk(SOTF(nsz,isu))
+              loth=lnblnk(OTHSTR)
+              luse1=lnblnk(SUSE(nsz,isu,1))
+              luse2=lnblnk(SUSE(nsz,isu,2))
+              if(SVFC(nsz,isu)(1:4).eq.'    ') SVFC(nsz,isu)='UNKN'
+              if(SOTF(nsz,isu)(1:4).eq.'    ') SOTF(nsz,isu)='UNKN'
+              if(SPARENT(nsz,isu)(1:2).eq.'  ') SPARENT(nsz,isu)='-'
+              WRITE(left,'(10a)',IOSTAT=ios,ERR=13) '*surface ',
+     &          SNAME(nsz,isu)(1:lsna),' ',SVFC(nsz,isu),' ',
+     &          SPARENT(nsz,isu)(1:lspa),' ',SUSE(nsz,isu,1)(1:luse1),
+     &          ' ',SUSE(nsz,isu,2)(1:luse2)
+              call SDELIM(left,leftd,'C',IW)  ! pack tokens before SMLCN
+              WRITE(right,'(7a)',IOSTAT=ios,ERR=13)
+     &          SOTF(nsz,isu)(1:lsot),' ',SOTHER(nsz,isu,1)(1:lso),' ',
+     &          SOTHER(nsz,isu,2)(1:lso2),' ',SOTHER(nsz,isu,3)(1:lso3)
+              call SDELIM(right,rightd,'C',IW) ! pack tokens after SMLCN
+              write(ifilg,'(6a,i3,2a)',IOSTAT=IOS,ERR=13)
+     &          leftd(1:lnblnk(leftd)),',',SMLCN(nsz,isu)(1:lsml),',',
+     &          rightd(1:lnblnk(rightd)),'  # ',isu,' ',OTHSTR(1:loth)
             endif
-            call SDELIM(outs,outsd,'C',IW)
-            write(ifilg,'(2a)',IOSTAT=IOS,ERR=13)
-     &        outsd(1:lnblnk(outsd)),'  # surface attributes '
 
             write(louts,'(a,124I4)',IOSTAT=ios,ERR=13) '*list ',
      &        isznver(nsz,isu),(iszjvn(nsz,isu,J),J=1,isznver(nsz,isu))
             call SDELIM(louts,loutsd,'C',IW)
             write(ifilg,'(2a,i2)',IOSTAT=IOS,ERR=13)
-     &        loutsd(1:lnblnk(outsd)),'  # ',isu
+     &        loutsd(1:lnblnk(loutsd)),'  # ',isu
  144      continue
 
 C Shading calculation directives in the form of:
@@ -2965,14 +3293,13 @@ C format if type 'obs' and 'obs3'
   55        continue
           endif
 
-C << usage information goes here >>
-
 C Control definitions. Scan the current control data to determine if the
 C current zone has an ideal control - if so set i_ctl_link() to one.
 C Next need to determine the number of periods - if one period then
 C straightforware to get heating and cooling setpoints and periods. If
 C multiple periods then there might be a setback. If free floating then
 C this needs to be represented.
+
           if(icascf(nsz).gt.0) i_ctl_link(nsz)=1
 
 C Idea control information is work in progress.
@@ -2986,6 +3313,49 @@ C Idea control information is work in progress.
      &      '*ideal_control',tab,i_ctl_link(nsz),
      &      '  # ideal control linkage'
 
+C Zone operations. Include the name and then copy in line-by-line
+C between 'start_literal' and 'end_literal'.
+          write(tokens,'(2a)') '*opr ',LPROJ(nsz)(1:LNBLNK(LPROJ(nsz)))
+          write(comment,'(a)') 'schedules'
+          call align_comment(48,tokens,comment,aligned_str)
+          write(ifilg,'(a)') aligned_str(1:lnblnk(aligned_str))
+          write(ifilg,'(a)') '*start_literal'
+          iuf=ifil+2
+          call ascitometa(iuf,LPROJ(nsz),ifilg,IER)
+          write(ifilg,'(a)') '*end_literal'
+
+          if(IVF(nsz).EQ.1)then
+            write(tokens,'(2a)') '*ivf ',
+     &        LVIEW(nsz)(1:LNBLNK(LVIEW(nsz)))
+            write(comment,'(a)') 'view factors'
+            call align_comment(48,tokens,comment,aligned_str)
+            write(ifilg,'(a)') aligned_str(1:lnblnk(aligned_str))
+            ltf=max(1,LNBLNK(LVIEW(nsz)))
+            INQUIRE (FILE=LVIEW(nsz)(1:ltf),EXIST=XST)
+            if (XST) THEN
+              write(ifilg,'(a)') '*start_literal'
+              iuf=ifil+2
+              call ascitometa(iuf,LVIEW(nsz),ifilg,IER)
+              write(ifilg,'(a)') '*end_literal'
+            endif
+          endif
+          if(IHC(nsz).EQ.1)then
+            write(tokens,'(2a)') '*ihc ',
+     &        LHCCO(nsz)(1:lnblnk(LHCCO(nsz)))
+            write(comment,'(a)')
+     &        'convective heat transfer coefficient file'
+            call align_comment(48,tokens,comment,aligned_str)
+            write(ifilg,'(a)') aligned_str(1:lnblnk(aligned_str))
+            ltf=max(1,LNBLNK(LHCCO(nsz)))
+            INQUIRE (FILE=LHCCO(nsz)(1:ltf),EXIST=XST)
+            if (XST) THEN
+              write(ifilg,'(a)') '*start_literal'
+              iuf=ifil+2
+              call ascitometa(iuf,LHCCO(nsz),ifilg,IER)
+              write(ifilg,'(a)') '*end_literal'
+            endif
+          endif
+ 
 C Mark the end of zone information.
           write(ifilg,'(a)',IOSTAT=IOS,ERR=13) '*end_zone'
  142    continue
@@ -3013,6 +3383,317 @@ C Error messages.
       endif
       IER=1
       GOTO 99
+    2 CALL USRMSG(' ','Problem writing database names!','W')
+      ier=2             ! Return error code,
+      goto 99
 
       END
+
+C ******************** ascitometa ********************
+C Read of an ascii model file into current META file.
+
+      SUBROUTINE ascitometa(iunit,LFIL,ifilg,IER)
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
+      character*(*) LFIL
+      character outstr*360
+      logical :: XST
+      logical :: unixok
+      integer ltf   ! position of last character in the string.
+
+C Transcribe an ASCII file, if file name begins with "/" open
+C it directly.
+      call isunix(unixok)
+      if(LFIL(1:1).eq.'/')then
+        ltf=max(1,LNBLNK(LFIL))
+        INQUIRE (FILE=LFIL(1:ltf),EXIST=XST)
+        IF (XST) THEN
+          LN=max(1,lnblnk(LFIL))
+          CALL EFOPSEQ(IUNIT,LFIL,1,IER)
+        else
+          call usrmsg('ascitometa: problem opening file!',LFIL,'W')
+          return
+        endif
+      else
+        if(.NOT.unixok)then   ! For W10 use FPOPEN
+          CALL ERPFREE(IUNIT,ISTAT)
+          call FPOPEN(IUNIT,ISTAT,1,0,LFIL)
+          if(ISTAT.ge.0)XST=.true.
+          if(ISTAT.eq.-301)XST=.false.
+        else
+          CALL EFOPSEQ(IUNIT,LFIL,1,IER)
+        endif
+      endif
+      IF(IER.LT.0)THEN
+        call usrmsg(' Problem detected while trying to open',LFIL,'W')
+        return
+      ENDIF
+
+C Read ASCII file.
+    7 READ(IUNIT,'(a)',IOSTAT=IOS,END=102) OUTSTR
+      write(ifilg,'(a)') OUTSTR(1:lnblnk(outstr))
+      goto 7
+
+C End of file encountered, close the file and return to menu.
+  102 if(IOS.eq.2)then
+        CALL USRMSG(' ','ascitometa: end of file problem!','-')
+      else
+C        CALL USRMSG(' ','ascitometa: end of file reached!','-')
+      endif
+      CALL ERPFREE(IUNIT,ISTAT)
+      return
+      end
+
+
+C ******************** metatoasci ********************
+C Write an ascii model file from current META file literal.
+
+      SUBROUTINE metatoasci(ifilg,iunit,LFIL,IER)
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
+      character*(*) LFIL
+      character outstr*360
+      logical :: XST
+      logical :: unixok
+      integer ltf   ! position of last character in the string.
+
+C Transcribe literal section of META file into ASCII file.
+      call isunix(unixok)
+      if(LFIL(1:1).eq.'/')then
+        ltf=max(1,LNBLNK(LFIL))
+        INQUIRE (FILE=LFIL(1:ltf),EXIST=XST)
+        IF (XST) THEN
+          LN=max(1,lnblnk(LFIL))
+          CALL EFOPSEQ(IUNIT,LFIL,4,IER)
+        else
+          call usrmsg('metatoasci: problem opening file!',LFIL,'W')
+          return
+        endif
+      else
+        if(.NOT.unixok)then   ! For W10 use FPOPEN
+          CALL ERPFREE(IUNIT,ISTAT)
+          call FPOPEN(IUNIT,ISTAT,4,0,LFIL)
+          if(ISTAT.ge.0)XST=.true.
+          if(ISTAT.eq.-301)XST=.false.
+        else
+          CALL EFOPSEQ(IUNIT,LFIL,4,IER)
+        endif
+      endif
+      IF(IER.LT.0)THEN
+        call usrmsg(' Problem detected while trying to open',LFIL,'W')
+        return
+      ENDIF
+
+C Read line from META file until *end_literal.
+    7 READ(ifilg,'(a)') OUTSTR
+      lno=lnblnk(outstr)
+      if(OUTSTR(1:12).eq.'*end_literal')then
+        CALL ERPFREE(IUNIT,ISTAT)
+        return
+      else
+        write(iunit,'(a)') OUTSTR(1:lnblnk(outstr))
+        goto 7
+      endif
+
+      return
+      end
+
+C *************** scan_embedded_database ***********
+C Scan database file names and listerial blocks in META file.
+
+      subroutine scan_embedded_database(IUC,iuf,literalpath,ier)
+#include "building.h"
+#include "model.h"
+#include "esprdbfile.h"
+#include "MultiYear_simulations.h"
+#include "sbem.h"
+
+      character loutstr*248,WORD*20
+      character lworking*144
+      character text*72,literalfile*72,pth*148,literalpath*72
+      logical unixok
+
+C Since some file names could be long strings, LSTRIPC and LOUTSTR are used.
+C The trigger tag might be '* DATAB' or '*datab' or '*mat' or '*stdmat'
+      literalfile=' '
+      call isunix(unixok)
+      backspace(IUC)
+  44  CALL LSTRIPC(IUC,LOUTSTR,99,ND,1,'db names',IER)
+      K=0
+      CALL EGETW(LOUTSTR,K,WORD,'W','db names',IFLAG)
+      if(LOUTSTR(1:7).eq.'* DATAB'.or.LOUTSTR(1:6).eq.'*datab')then
+        CALL LSTRIPC(IUC,LOUTSTR,99,ND,1,'db names',IER)
+        K=0
+        CALL EGETW(LOUTSTR,K,WORD,'W','db names',IFLAG)
+      elseif(LOUTSTR(1:4).eq.'*mat'.or.LOUTSTR(1:7).eq.'*stdmat')then
+        continue
+      endif
+
+C Deal with each of the possible database names until a tag does not match.
+      if(WORD(1:14).eq.'*start_literal')then
+        lnl=lnblnk(literalfile)
+        if(lnl.gt.1)then
+          write(pth,'(2a)') literalpath(1:lnblnk(literalpath)),
+     &      literalfile(1:lnblnk(literalfile))
+          write(6,*) pth(1:lnblnk(pth))
+          call metatoasci(iuc,iuf,pth,IER)
+          literalfile=' '
+        endif
+      elseif(WORD(1:4).eq.'*prm')then
+        CALL EGETRM(LOUTSTR,K,lworking,'W','material db',IER)
+
+C Process the file name following *prm and depending on its path
+C set the LFMAT common block string via call to findwhichdbpath.
+        call findwhichdbpath('mat',lworking,ier)
+
+      elseif(WORD(1:4).eq.'*mat')then
+        CALL EGETRM(LOUTSTR,K,lworking,'W','material db',IER)
+
+C Process the file name following *mat and depending on its path
+C set the LFMAT common block string via call to findwhichdbpath.
+        call findwhichdbpath('mat',lworking,ier)
+        literalfile=lworking(1:72)
+
+      elseif(WORD(1:7).eq.'*stdmat')then
+        CALL EGETRM(LOUTSTR,K,LFMAT,'W','material db',IER)
+        ipathmat=2  ! standard folder for material database
+
+      elseif(WORD(1:4).eq.'*mlc')then
+        CALL EGETRM(LOUTSTR,K,lworking,'W','multilayer db',IER)
+
+C Process the file name following *mlc and depending on its path
+C set the LFMUL common block string via call to findwhichdbpath.
+        call findwhichdbpath('mul',lworking,ier)
+        literalfile=lworking(1:72)
+        goto 44
+
+      elseif(WORD(1:7).eq.'*stdmlc')then
+        CALL EGETRM(LOUTSTR,K,LFMUL,'W','multilayer db',IER)
+        ipathmul=2  ! standard folder for MLC database
+
+      elseif(WORD(1:4).eq.'*opt')then
+        CALL EGETRM(LOUTSTR,K,lworking,'W','optical db',IER)
+
+C Process the file name following *opt and depending on its path
+C set the LOPTDB common block string via call to findwhichdbpath.
+        call findwhichdbpath('opt',lworking,ier)
+        literalfile=lworking(1:72)
+        goto 44
+
+      elseif(WORD(1:7).eq.'*stdopt')then
+        ipathoptdb=2  ! standard folder for optical database
+        CALL EGETRM(LOUTSTR,K,LOPTDB,'W','optical db',IER)
+
+      elseif(WORD(1:4).eq.'*prs')then
+        CALL EGETRM(LOUTSTR,K,lworking,'W','pressure db',IER)
+
+C Process the file name following *prs and depending on its path
+C set the lapres common block string via call to findwhichdbpath.
+        call findwhichdbpath('prs',lworking,ier)
+      elseif(WORD(1:7).eq.'*stdprs')then
+        ipathapres=2  ! standard folder for pressure coef database
+        CALL EGETRM(LOUTSTR,K,LAPRES,'W','pressure db',IER)
+
+      elseif(WORD(1:6).eq.'*cfcdb')then
+        CALL EGETRM(LOUTSTR,K,lworking,'W','CFClayers db',IER)
+
+C Process the file name following *cfcdb and depending on its path
+C set the LCFCDB common block string via call to findwhichdbpath.
+        call findwhichdbpath('cfc',lworking,ier)
+      elseif(WORD(1:9).eq.'*stdcfcdb')then
+        CALL EGETRM(LOUTSTR,K,LCFCDB,'W','CFClayers db',IER)
+        ipathcfc=2  ! standard folder for material database
+
+      elseif(WORD(1:4).eq.'*evn')then
+        CALL EGETRM(LOUTSTR,K,lworking,'W','profiles db',IER)
+
+C Process the file name following *evn and depending on its path
+C set the LPRFDB common block string via call to findwhichdbpath.
+        call findwhichdbpath('evn',lworking,ier)
+      elseif(WORD(1:7).eq.'*stdevn')then
+        CALL EGETRM(LOUTSTR,K,LPRFDB,'W','profile db',IER)
+        ipathprodb=2  ! standard folder for profiles database
+
+      elseif(WORD(1:6).eq.'*mould')then
+        CALL EGETRM(LOUTSTR,K,lworking,'W','mould isopleths',IER)
+
+C Process the file name following *mld and depending on its path
+C set the lfmould common block string via call to findwhichdbpath.
+        call findwhichdbpath('mld',lworking,ier)
+      elseif(WORD(1:9).eq.'*stdmould')then
+        ipathmould=2  ! standard folder for mould isopleths
+        CALL EGETRM(LOUTSTR,K,lfmould,'W','mould isopleths',IER)
+      elseif(WORD(1:4).eq.'*clm')then
+        CALL EGETRM(LOUTSTR,K,lworking,'W','weather file',IER)
+
+C Read name of standard weather file and set a flag indicating
+C single-year weather.
+        call findwhichdbpath('clm',lworking,ier)
+        bSY_climate_defined = .true.        
+      elseif(WORD(1:7).eq.'*stdclm')then
+        ipathclim=2  ! standard folder for weather
+        CALL EGETRM(LOUTSTR,K,lclim,'W','weather file',IER)
+        bSY_climate_defined = .true.
+        
+      elseif(WORD(1:6).eq.'*myclm') then
+
+C Read multi-year weather file and set flag indicating muli-year
+C weather.     
+        CALL EGETRM(LOUTSTR,K,cTemp,
+     &    'W','Multi-year climate db',IER)
+        cMY_climate_db_name = cTemp(1:lnblnk(cTemp))
+        bMY_climates_defined = .true.
+
+C Special materials and miscellaneous component database.
+      elseif(WORD(1:7).eq.'*mscldb')then
+        CALL EGETRM(LOUTSTR,K,lworking,'W','misc comp db',IER)
+
+C Process the file name following *mscldb and depending on its path
+C set the MCMPDBFL common block string.
+        call findwhichdbpath('msc',lworking,ier)
+
+C Standard folder for miscellaneous component database.
+      elseif(WORD(1:10).eq.'*stdmscldb')then
+        CALL EGETRM(LOUTSTR,K,MCMPDBFL,'W','misc comp db',IER)
+        ipathmsc=2  
+
+C Process the file name following *pdb and depending on its path
+C set the LPCDB common block string.
+      elseif(WORD(1:4).eq.'*pdb')then
+        CALL EGETRM(LOUTSTR,K,lworking,'W','plant comp db',IER)
+        call findwhichdbpath('pdb',lworking,ier)
+
+      elseif(WORD(1:7).eq.'*stdpdb')then
+        ipathpcdb=2  ! standard folder for plant template database
+        CALL EGETRM(LOUTSTR,K,LPCDB,'W','plant template db',IER)
+      elseif(WORD(1:7).eq.'*predef')then
+        CALL EGETRM(LOUTSTR,K,lworking,'W','predefined obj db',IER)
+
+C Process the file name following *predef and depending on its path
+C set the LPREDEF common block string.
+        call findwhichdbpath('pre',lworking,ier)
+        literalfile=lworking(1:72)
+        goto 44
+      elseif(WORD(1:10).eq.'*stdpredef')then
+        ipathpredef=2  ! standard folder for predefined objects database
+        CALL EGETRM(LOUTSTR,K,LPREDEF,'W','predefined db',IER)
+      elseif(WORD(1:5).eq.'*sbem')then
+
+C Process the file name following *sbem and depending on its path
+C set the LSBEM common block string.
+        CALL EGETRM(LOUTSTR,K,lworking,'W','SBEM db',IER)
+        call findwhichdbpath('sbm',lworking,ier)
+
+      elseif(WORD(1:8).eq.'*stdsbem')then
+
+C SBEM database file in standard location.
+        ipathsbem=2
+        CALL EGETRM(LOUTSTR,K,LSBEM,'W','standard SBEM db',IER)
+
+      elseif(WORD(1:13).eq.'*database_end')then
+        return
+      else                                      ! not a known tag backspace and return.
+         backspace(IUC)
+         return
+      endif
+      goto 44                                    ! scan another line.
+      end
 

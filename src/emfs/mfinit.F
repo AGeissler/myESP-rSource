@@ -83,8 +83,9 @@ C exist, confirm with user that this is to hold a new description.
       CALL ERPFREE(IFPRB,ISTAT)
       call FINDFIL(LAPROB,XST)
       IF(.NOT.XST)THEN
-        CALL EASKAB('File does not exist!',' ',
-     &              'Create?','Re-specify?',IW,nbhelp)
+        CALL EASKMBOX('File does not exist!',' ',
+     &    'Create?','Re-specify?',
+     &    ' ',' ',' ',' ',' ',' ',IW,nbhelp)
         IF(IW.EQ.2)GOTO 289
       ENDIF
       CALL EFOPSEQ(IFPRB,LAPROB,3,IER)

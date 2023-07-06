@@ -665,8 +665,8 @@ C Volume flow rate: IMFGET = 4.
 
 C Ask m^3/s or l/s or m^3/h.
         ifunits=0
-        CALL EASKABC('Volume flow expresed as:',' ','m^3/s',
-     &      'litres/s','m^3/h',ifunits,nbhelp)
+        CALL EASKMBOX('Volume flow expresed as:',' ','m^3/s',
+     &      'litres/s','m^3/h',' ',' ',' ',' ',' ',ifunits,nbhelp)
         if(ifunits.eq.1)then
           IMFGETNO(NMFGET,8)=0
           SUFFIX=' m^3/s'
@@ -838,9 +838,9 @@ C          write(outs,'(a)')'(currently rate of change)'
 C        endif
 C        helptopic='res_mass_flow_menu'
 C        call gethelptext(helpinsub,helptopic,nbhelp)
-C        CALL EASKABC('Data display options:',outs,
+C        CALL EASKMBOX('Data display options:',outs,
 C     &    'variable (default)','rate of change of variable','contine',
-C     &    II,nbhelp)
+C     &    ' ',' ',' ',' ',' ',II,nbhelp)
 C        if(II.ne.3.and.(IROC.ne.(II-1)))then
 C          IROC=II-1
 C          call usrmsg ('Clearing current selections....','  ','W')
@@ -872,9 +872,9 @@ C << revise for additional casual gain types >>
             helptopic='res_casual_gain_type'
             call gethelptext(helpinsub,helptopic,nbhelp)
  937        IOT=1
-            CALL EASKATOG('Which casual gain represents occupancy:',
-     &         '  ','Always occupied',ll1,ll2,ll3,'time',' ',' ',IOT,
-     &         nbhelp)
+            CALL EASKMBOX('Which casual gain represents occupancy:',
+     &         '  ','Always occupied',ll1,ll2,ll3,'time',' ',' ',' ',
+     &         IOT,nbhelp)
             if (IOT.gt.1.and.IOT.lt.5) then
               call usrmsg('  ','  ','-')
               if (izver.lt.4) then
@@ -993,8 +993,9 @@ C Set axis limits for the current plot.
  555      continue
 
 C Ask user preference for horizontal axis.
-          CALL EASKABCD('Horizontal axis divisions:',' ','default',
-     &      'hours','days','weeks',horaxisdiv,nbhelp)
+          CALL EASKMBOX('Horizontal axis divisions:',' ','default',
+     &      'hours','days','weeks',
+     &      ' ',' ',' ',' ',horaxisdiv,nbhelp)
 
 C Redraw graph (if applicable).
           if (NMFGET.gt.0) then
@@ -1015,8 +1016,9 @@ C Toggle time format and day separators for all other display formats.
           endif
           helptopic='res_flow_hash_separator'
           call gethelptext(helpinsub,helptopic,nbhelp)
-          CALL EASKAB('Include mark between days when ',
-     &      'displaying or writing data :','no','yes',IDH,nbhelp)
+          CALL EASKMBOX('Include mark between days when ',
+     &      'displaying or writing data :','no','yes',
+     &      ' ',' ',' ',' ',' ',' ',IDH,nbhelp)
           IDHFLG=IDH-1
           goto 1
         endif
@@ -1032,9 +1034,9 @@ C Toggle delimeter.
           helptopic='res_flow_delimeter'
           call gethelptext(helpinsub,helptopic,nbhelp)
           IWM=1
-          CALL EASKATOG('Delimeter to use between columns of data:',' ',
+          CALL EASKMBOX('Delimeter to use between columns of data:',' ',
      &      'normal spaces','single space','tab','comma','tagged',
-     &      'continue',' ',IWM,nbhelp)
+     &      'continue',' ',' ',IWM,nbhelp)
           if(iwm.eq.1)then
             delim = '-'
           elseif(iwm.eq.2)then
@@ -1068,8 +1070,9 @@ C Add or clear labels within a graph.
           if(ngrlbl.eq.0)then
             helptopic='res_mass_graph_title'
             call gethelptext(helpinsub,helptopic,nbhelp)
-            CALL EASKAB('Labels within graph options:',' ',
-     &        'edit/add labels','contine',igopt,nbhelp)
+            CALL EASKMBOX('Labels within graph options:',' ',
+     &        'edit/add labels','contine',
+     &        ' ',' ',' ',' ',' ',' ',igopt,nbhelp)
             if(igopt.eq.1)then
               igrl=0
               grlbl(1)=' '; grlbl(2)=' '; grlbl(3)=' '; grlbl(4)=' '
@@ -1081,9 +1084,9 @@ C Add or clear labels within a graph.
           elseif(ngrlbl.gt.0)then
             helptopic='res_mass_graph_title'
             call gethelptext(helpinsub,helptopic,nbhelp)
-            CALL EASKABC('Labels within graph options:',' ',
+            CALL EASKMBOX('Labels within graph options:',' ',
      &        'clear existing labels','edit/add labels','contine',
-     &        igopt,nbhelp)
+     &        ' ',' ',' ',' ',' ',igopt,nbhelp)
             if(igopt.eq.1)then
               ngrlbl=0
               igrl=0
@@ -1155,9 +1158,10 @@ C Toggle tabular listing label format.
 
 C Set delay timer between timesteps.
           IWS=2
-          CALL EASKABCD('Plotting speed:',' ',
+          CALL EASKMBOX('Plotting speed:',' ',
      &      'slower (2s/step)','normal (1s/step)',
-     &      'fast (500ms/step)','250ms/step',IWS,nbhelp)
+     &      'fast (500ms/step)','250ms/step',
+     &      ' ',' ',' ',' ',IWS,nbhelp)
            net3ddelay=IWS
         else
           call edisp(iuout,'selected item 26?? ')
@@ -1457,8 +1461,8 @@ C Note: return INPKT and NNPKT for total entering.
           endif
 
 C Debug.
-C          write(6,*) 'after easkabcd itotal & nnpk ',itotal,nnpk,inpk
-C          write(6,*) 'after easkabcd itotal & nnpkt ',itotal,nnpkt,inpkt
+C          write(6,*) 'after easkmbox itotal & nnpk ',itotal,nnpk,inpk
+C          write(6,*) 'after easkmbox itotal & nnpkt ',itotal,nnpkt,inpkt
 
         else
           INODE=0
@@ -1680,8 +1684,9 @@ C flow and the extra entry would be the -ive flow).
      &                CMNAM(ITPCON(ICPK(I)))
                     helptopic='res_mass_bidirectional'
                     call gethelptext(helpinsub,helptopic,nbhelp)
-                    call EASKAB(msg,'reporting options:','net flow',
-     &                              'individual flows',II,nbhelp)
+                    call EASKMBOX(msg,'reporting options:','net flow',
+     &                'individual flows',' ',' ',' ',' ',' ',' ',
+     &                II,nbhelp)
 
 C If net flow do nothing (the existing definition is sufficient)
 C otherwise add the extra entry.
@@ -1803,8 +1808,9 @@ C flow and the extra entry would be the -ive flow).
      &                CMNAM(ITPCON(ICPK(I)))
                     helptopic='res_mass_bidirectional'
                     call gethelptext(helpinsub,helptopic,nbhelp)
-                    call EASKAB(msg,'reporting options:','net flow',
-     &                              'individual flows',II,nbhelp)
+                    call EASKMBOX(msg,'reporting options:','net flow',
+     &                'individual flows',' ',' ',' ',' ',' ',' ',
+     &                II,nbhelp)
 
 C If net flow do nothing (the existing definition is sufficient)
 C otherwise add the extra entry.

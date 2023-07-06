@@ -773,9 +773,10 @@ C Respond to user's choice.
 
 C Save changes?
             if ( .not. bSaveOk ) then
-               call eAskABC (cContext,
-     &            'Do you wish to save your changes?',
-     &            'yes','no','cancel', iAnswer, 0 )
+               call eAskmbox (cContext,
+     &           'Do you wish to save your changes?',
+     &           'yes','no','cancel',' ',' ',' ',' ',' ',
+     &           iAnswer, 0 )
 
                if ( iAnswer .eq. 1 ) then
 
@@ -858,8 +859,8 @@ C Get the record's index.
                
                write (cMsg, '(A)') 'Edit/delete this record?'
 
-               call eAskABC(cContext,cMsg,
-     &                      'edit','delete','cancel',iAnswer,0)
+               call eAskmbox(cContext,cMsg,'edit',
+     &           'delete','cancel',' ',' ',' ',' ',' ',iAnswer,0)
 
                if ( iAnswer .eq. 1 ) then
 
@@ -922,8 +923,9 @@ C try again.
                         call edisp(iUout,cContext)
                         call edisp(iUout,cMsg)
 
-                        call eAskABC(cContext,cMsg,
-     &                      'Try Agin','Use anyway','Cancel',iAnswer,0)
+                        call eAskmbox(cContext,cMsg,
+     &                      'Try Agin','Use anyway','Cancel',
+     &                      ' ',' ',' ',' ',' ',iAnswer,0)
                         
                         if ( iAnswer .eq. 1 )then
 
@@ -1062,8 +1064,9 @@ C File not found. Ask user if they want to try again.
                      call edisp(iUout,cContext)
                      call edisp(iUout,cMsg)
 
-                     call eAskABC(cContext,cMsg,
-     &                   'Try Agin','Use anyway','Cancel',iAnswer,0)
+                     call eAskmbox(cContext,cMsg,
+     &                   'Try Agin','Use anyway','Cancel',
+     &                   ' ',' ',' ',' ',' ',iAnswer,0)
 
                      if ( iAnswer .eq. 1 )then
 C Do nothing. Code will loop.
@@ -1155,10 +1158,10 @@ C Save the weather file.
 
 C Save changes?
             if ( .not. bSaveOk ) then
-               call eAskABC (
+               call eAskmbox (
      &            'Returning to previous menu.',
-     &            'Save changes?',
-     &            'yes','no','cancel', iAnswer, 0 )
+     &            'Save changes?','yes','no',
+     &            'cancel',' ',' ',' ',' ',' ', iAnswer, 0 )
                if ( iAnswer .eq. 1 ) then
 
                   call Save_MY_clm_db(iFil+1, bCriticalErr, bSaveOk)
@@ -1300,9 +1303,9 @@ C Warn user, and return to menu.
                elseif ( cAction(1:6) .eq. 'Create' ) then
 
 C Perhaps create a new file.
-                  CALL EASKABC(cContext,cMsg,
+                  CALL EASKMBOX(cContext,cMsg,
      &               'create file', 'try agian', 'cancel',
-     &               iAsk_AB_result,nbhelp)
+     &               ' ',' ',' ',' ',' ',iAsk_AB_result,nbhelp)
 
                   if ( iAsk_AB_result .eq. 1 ) then
 
@@ -1740,16 +1743,16 @@ C Does user want to overwrite existing file?
 C Keep asking this question until told
 C to overwrite a file or given a non-existant file!
                write(cMsg,'(A)') 'File already exists.'   
-               call eAskABC(cContext,cMsg,
-     &                      'Overwrite','Specify another file',
-     &                      'Cancel',iAnswer,0)
+               call eAskmbox(cContext,cMsg,
+     &           'Overwrite','Specify another file',
+     &           'Cancel',' ',' ',' ',' ',' ',iAnswer,0)
 
             elseif( .not. bNoPrompt ) then
 C Does user want to save the file? Ask question only once.
                write(cMsg,'(A)') 'Save file?'   
-               call eAskABC(cContext,cMsg,
-     &                      'Save','Specify another file',
-     &                      'Cancel',iAnswer,0)
+               call eAskmbox(cContext,cMsg,
+     &           'Save','Specify another file',
+     &           'Cancel',' ',' ',' ',' ',' ',iAnswer,0)
 
             endif
 

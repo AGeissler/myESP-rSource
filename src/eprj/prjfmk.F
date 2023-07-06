@@ -581,15 +581,16 @@ C Nothing selected treat this as a return state.
           endif
 
 C Only ask these questions if the source file exists.
-          CALL EASKABC('Scope of scheduled air flows being imported.',
-     &     'Options:','all flow schedules & ctl',
-     &     'infiltration only','cancel',ivopt,nbhelp)
+          CALL EASKMBOX('Scope of scheduled air flows being imported.',
+     &      'Options:','all flow schedules & ctl','infiltration only',
+     &      'cancel',' ',' ',' ',' ',' ',ivopt,nbhelp)
           if(ivopt.eq.1) afact='all  '
           if(ivopt.eq.2) afact='infil'
           if(ivopt.eq.3) goto 5
-          CALL EASKABC('Units for imported scheduled infiltration.',
+          CALL EASKMBOX('Units for imported scheduled infiltration.',
      &     'Options:','preserve ac/h',
-     &     'preserve volume flow rate','cancel',infv,nbhelp)
+     &     'preserve volume flow rate','cancel',
+     &     ' ',' ',' ',' ',' ',infv,nbhelp)
           if(infv.eq.1) iflow='ach-ach '
           if(infv.eq.2) iflow='vol-vol '
           if(infv.eq.3) goto 5
@@ -597,9 +598,10 @@ C Only ask these questions if the source file exists.
 C << probably dangerious to import ventilation data unless we ask what
 C << zone in the model is the source
           if(ivopt.eq.1)then
-            CALL EASKABC('United for imported scheduled ventilation.',
-     &       'Options:','preserve ac/h',
-     &       'preserve volume flow rate','cancel',ivntv,nbhelp)
+            CALL EASKMBOX('United for imported scheduled ventilation.',
+     &        'Options:','preserve ac/h',
+     &        'preserve volume flow rate','cancel',
+     &        ' ',' ',' ',' ',' ',ivntv,nbhelp)
             if(ivntv.eq.1) vflow='ach-ach '
             if(ivntv.eq.2) vflow='vol-vol '
             if(ivntv.eq.3) goto 5
@@ -708,9 +710,10 @@ C Nothing selected treat this as a return state.
             endif
           endif
 
-          CALL EASKABC('The magintude of casual gains which are',
+          CALL EASKMBOX('The magintude of casual gains which are',
      &       'imported can be changed. Options:','preserve Watts',
-     &       'convert by base area','cancel',ivntv,nbhelp)
+     &       'convert by base area','cancel',
+     &       ' ',' ',' ',' ',' ',ivntv,nbhelp)
           if(ivntv.eq.1) iwatt='W-W    '
           if(ivntv.eq.2) iwatt='W-m2-W '
           if(ivntv.eq.3) goto 5
@@ -930,9 +933,9 @@ C << must be revised for multiple day types and periods. >>
 C Flow control browse & editing.
       helptopic='zone_flow_menu_summary'
       call gethelptext(helpinsub,helptopic,nbhelp)
-      CALL EASKABC(' ','Control of scheduled air flows:',
-     &  'none','thermostatic control','wind speed control',iwhich,
-     &   nbhelp)
+      CALL EASKMBOX(' ','Control of scheduled air flows:',
+     &  'none','thermostatic control','wind speed control',
+     &  ' ',' ',' ',' ',' ',iwhich,nbhelp)
       if(iwhich.eq.1)then
         ITCTL(ICOMP)=0
         THI(ICOMP)=100.
@@ -943,9 +946,9 @@ C Flow control browse & editing.
         ctlstr(ICOMP,3)='no control of air flow  '
         return
       elseif(iwhich.eq.2)then
-        CALL EASKABCD(' ','Thermostatic control options:',
+        CALL EASKMBOX(' ','Thermostatic control options:',
      &    'zone air T','other zone air T','ambient air T',
-     &    'Cancel',iwhich2,nbhelp)
+     &    'Cancel',' ',' ',' ',' ',iwhich2,nbhelp)
         if(iwhich2.eq.1)then
            ITCTL(icomp)=1
         elseif(iwhich2.eq.2)then
@@ -1029,8 +1032,9 @@ C of infiltraiton.
 
 c Define ventilation air flow when the sensed variable is below
 c the lower range.
-      CALL EASKABC(' ','Low range ventilation options:',
-     &  'none','from another zone','at constant temperature',j,nbhelp)
+      CALL EASKMBOX(' ','Low range ventilation options:',
+     &  'none','from another zone','at constant temperature',
+     &  ' ',' ',' ',' ',' ',j,nbhelp)
       if(j.eq.1)then
         ACVL(ICOMP)=0.
         IVL(ICOMP)=0
@@ -1066,8 +1070,9 @@ c the lower range.
       call usrmsg(' ',' ','-')
 
 C Define air flow when the sensed variable is above the middle range.
-      CALL EASKABC(' ','Mid range ventilation options: ',
-     &  'none','from another zone','at constant temperature',j,nbhelp)
+      CALL EASKMBOX(' ','Mid range ventilation options: ',
+     &  'none','from another zone','at constant temperature',
+     &  ' ',' ',' ',' ',' ',j,nbhelp)
       if(j.eq.1)then
         ACVU(ICOMP)=0.
         IVU(ICOMP)=0
@@ -1102,8 +1107,9 @@ C Define air flow when the sensed variable is above the middle range.
       call usrmsg(' ',' ','-')
 
 C Define air flow when the sensed variable is above the high range.
-      CALL EASKABC(' ','High stage ventilation options:',
-     &  'none','from another zone','at constant temperature',j,nbhelp)
+      CALL EASKMBOX(' ','High stage ventilation options:',
+     &  'none','from another zone','at constant temperature',
+     &  ' ',' ',' ',' ',' ',j,nbhelp)
       if(j.eq.1)then
         ACVH(ICOMP)=0.
         IVH(ICOMP)=0
@@ -1292,15 +1298,15 @@ C Add delete copy period or import from another zone.
         helptopic='air_flow_period_copy'
         call gethelptext(helpinsub,helptopic,nbhelp)
         IW=1
-        CALL EASKATOG('Air flow period management.','Options:',
+        CALL EASKMBOX('Air flow period management.','Options:',
      &    'add period','delete period','copy period',
      &    'import from other zone','import pattern','cancel',' ',
-     &    IW,nbhelp)
+     &    ' ',IW,nbhelp)
 
 C Add period
         if (IW.EQ.1) then 
-          CALL EASKAB(' ','Add period to ','one day type',
-     &     'all day types',IY,nbhelp)
+          CALL EASKMBOX(' ','Add period to ','one day type',
+     &     'all day types',' ',' ',' ',' ',' ',' ',IY,nbhelp)
           IF(IY.EQ.1)THEN
             IX=1
             CALL EPICKS(IX,KSTR,' ','choose daytype to add period in'
@@ -1406,22 +1412,25 @@ C Nothing selected treat this as a return state.
           endif
 
 C Should only ask users these questions if the source file has been found.
-          CALL EASKABC('You can set the scope of scheduled air flows',
+          CALL EASKMBOX('You can set the scope of scheduled air flows',
      &     'to be imported. Options:','all flow schedules & ctl',
-     &     'infiltration only','cancel',ivopt,nbhelp)
+     &     'infiltration only','cancel',' ',' ',' ',' ',' ',ivopt,
+     &     nbhelp)
           if(ivopt.eq.1) afact='all  '
           if(ivopt.eq.2) afact='infil'
           if(ivopt.eq.3) goto 5
-          CALL EASKABC('The units of scheduled infiltration air flow',
+          CALL EASKMBOX('The units of scheduled infiltration air flow',
      &     'need to be set. Options:','preserve ac/h',
-     &     'convert to zone volume','cancel',infv,nbhelp)
+     &     'convert to zone volume','cancel',
+     &     ' ',' ',' ',' ',' ',infv,nbhelp)
           if(infv.eq.1) iflow='ach-ach '
           if(infv.eq.2) iflow='vol-vol '
           if(infv.eq.3) goto 5
           if(ivopt.eq.1)then
-            CALL EASKABC('The units for scheduled air flow from other',
+            CALL EASKMBOX('The units for scheduled air flow from other',
      &      'zones (Ventilation) can change. Options:','preserve ac/h',
-     &      'convert to zone vvolume','cancel',ivntv,nbhelp)
+     &      'convert to zone vvolume','cancel',
+     &      ' ',' ',' ',' ',' ',ivntv,nbhelp)
             if(ivntv.eq.1) vflow='ach-ach '
             if(ivntv.eq.2) vflow='vol-vol '
             if(ivntv.eq.3) goto 5
@@ -1662,15 +1671,15 @@ C file in the pattern folder.
         helptopic='air_flow_period_copy'
         call gethelptext(helpinsub,helptopic,nbhelp)
         IW=1
-        CALL EASKATOG('A flow period management.','Options:',
+        CALL EASKMBOX('A flow period management.','Options:',
      &    'add period','delete period','copy period',
      &    'import from other zone','import from pattern','cancel',' ',
-     &    IW,nbhelp)
+     &    ' ',IW,nbhelp)
 
 C Add period
         if (IW.EQ.1) then 
-          CALL EASKAB(' ','Add period to ','one day type',
-     &     'all day types',IY,nbhelp)
+          CALL EASKMBOX(' ','Add period to ','one day type',
+     &     'all day types',' ',' ',' ',' ',' ',' ',IY,nbhelp)
           IF(IY.EQ.1)THEN
             IX=1
             CALL EPICKS(IX,KSTR,' ','choose daytype to add period in'
@@ -1780,24 +1789,25 @@ C Nothing selected treat this as a return state.
           endif
 
 C Should only ask users these questions if the source file has been found.
-          CALL EASKABC('The scope of scheduled air flows you want to',
+          CALL EASKMBOX('The scope of scheduled air flows you want to',
      &     'import can be adjusted. Options:',
-     &     'all flow schedules & ctl',
-     &     'infiltration only','cancel',ivopt,nbhelp)
+     &     'all flow schedules & ctl','infiltration only',
+     &     'cancel',' ',' ',' ',' ',' ',ivopt,nbhelp)
           if(ivopt.eq.1) afact='all  '
           if(ivopt.eq.2) afact='infil'
           if(ivopt.eq.3) goto 5
-          CALL EASKABC('The units for scheduled infiltration to be',
+          CALL EASKMBOX('The units for scheduled infiltration to be',
      &     'imported can be adjusted. Options:','preserve ac/h',
-     &     'convert to zone volume','cancel',infv,nbhelp)
+     &     'convert to zone volume','cancel',' ',' ',' ',' ',' ',
+     &     infv,nbhelp)
           if(infv.eq.1) iflow='ach-ach '
           if(infv.eq.2) iflow='vol-vol '
           if(infv.eq.3) goto 5
           if(ivopt.eq.1)then
-            CALL EASKABC('The units for scheduled air flow from other',
+            CALL EASKMBOX('The units for scheduled air flow from other',
      &       'zones (Ventilation) can be adjusted. Options:',
-     &       'preserve ac/h',
-     &       'convert to zone vvolume','cancel',ivntv,nbhelp)
+     &       'preserve ac/h','convert to zone vvolume',
+     &       'cancel',' ',' ',' ',' ',' ',ivntv,nbhelp)
             if(ivntv.eq.1) vflow='ach-ach '
             if(ivntv.eq.2) vflow='vol-vol '
             if(ivntv.eq.3) goto 5
@@ -1944,8 +1954,8 @@ C Ask for infiltration and ventilation flow rates.
 C Can be specified as:ac/h or m^3/s.
       if(itype.eq.-1.or.itype.eq.2.or.itype.eq.0)then
         IGU=1
-        CALL EASKAB(' ','Air flow specified in:','AC/h',
-     &     'm^3/s',IGU,nbhelp)
+        CALL EASKMBOX(' ','Air flow specified in:','AC/h',
+     &     'm^3/s',' ',' ',' ',' ',' ',' ',IGU,nbhelp)
         if (IGU.eq.1) then
 
           if(itype.eq.-1.or.itype.eq.2)then
@@ -2011,9 +2021,9 @@ C checks are carried out.
         if (ACVX.gt.0.0) then
 
 C Ask for source zone/ temperature.
-          CALL EASKABC('The temperature of ventilation air can be',
+          CALL EASKMBOX('The temperature of ventilation air can be',
      &      'set. Options:','other modelled zone','constant',
-     &      'ambient dbT',IGU,nbhelp)
+     &      'ambient dbT',' ',' ',' ',' ',' ',IGU,nbhelp)
           if (IGU.eq.1) then
 
 C Present zone list.
@@ -3476,9 +3486,9 @@ C Import profile.
 
 C Include/ exclude electrical definitions.
         if(IELF(ICOMP).EQ.0.or.IELF(ICOMP).EQ.2) then
-          call easkabc('Do you wish to include electrical data', 
+          call easkmbox('Do you wish to include electrical data', 
      &      'in the operations description?','Yes','No','Cancel',
-     &      IW,nbhelp)
+     &      ' ',' ',' ',' ',' ',IW,nbhelp)
           if(IW.eq.1) then
 
 C Set flag and default values.
@@ -3496,8 +3506,9 @@ C Set flag and default values.
             ielf(ICOMP)=2
           endif
         elseif(IELF(ICOMP).EQ.1) then
-          call easkab('Do you wish to remove electrical data ', 
-     &    'from the operations file?','Yes','No',IW,nbhelp)
+          call easkmbox('Do you wish to remove electrical data ', 
+     &      'from the operations file?','Yes','No',
+     &      ' ',' ',' ',' ',' ',' ',IW,nbhelp)
           if(IW.eq.1) then
             ielf(ICOMP)=2
           endif
@@ -3551,17 +3562,18 @@ C Offer casual gains to scale. User can cancel request.
         if(lodslot(icomp,3).gt.0) write(ll3,'(a)') lodlabel(icomp,3)
         if(lodslot(icomp,4).gt.0) write(ll4,'(a)') lodlabel(icomp,4)
         ICGTS=1
-        CALL EASKATOG(' ','Apply scaling factor to which casual gain?',
+        CALL EASKMBOX(' ','Apply scaling factor to which casual gain?',
      &     ll1,ll2,ll3,ll4,
-     &     'All gains','Cancel ',' ',ICGTS,nbhelp)
+     &     'All gains','Cancel ',' ',' ',ICGTS,nbhelp)
         if (ICGTS.eq.6) goto 5  ! cancel requested
         if (ICGTS.ne.5)then
            write (outs,'(3a)') 'Scale ',lodlabel(icomp,ICGTS),
      &                         ' gain for day type: '
            call edisp(iuout,outs)
         endif
-        call EASKABC(' ','Import profile for one or all day types',
-     &    'One day type','All day types','Cancel',IOPT,nbhelp)
+        call EASKMBOX(' ','Import profile for one or all day types',
+     &    'One day type','All day types','Cancel',
+     &    ' ',' ',' ',' ',' ',IOPT,nbhelp)
         IF(IOPT.EQ.1)THEN
           IW=0
           IX=1
@@ -3596,10 +3608,10 @@ C Loop through each day type and gain and factor matching values.
 
 C Add delete copy period or import full set of casual gains.
         IW=1
-        CALL EASKATOG(' ','Casual gain period options:',
+        CALL EASKMBOX(' ','Casual gain period options:',
      &    'add period','delete period','copy period',
      &    'import from other zone','import from pattern ','cancel',
-     &    ' ',IW,nbhelp)
+     &    ' ',' ',IW,nbhelp)
         if (IW.EQ.1) then 
 
 C Add new casual gain period.
@@ -3612,8 +3624,9 @@ C Add new casual gain period.
           caskeyt=caskeytype(icomp,icgts)  ! remember key word
           IQ=0
           if(.NOT.browse)call checkcascount(icomp)
-          call EASKABC(' ','Add period for one or all day types',
-     &      'One day type','All day types','Cancel',IOPT,nbhelp)
+          call EASKMBOX(' ','Add period for one or all day types',
+     &      'One day type','All day types','Cancel',
+     &      ' ',' ',' ',' ',' ',IOPT,nbhelp)
           IF(IOPT.EQ.1)THEN
             write (outs,'(3a)') 'New ',lodlabel(icomp,ICGTS),
      &                          ' gain for day type: '
@@ -3643,10 +3656,10 @@ C For all day types.
 
 C Ask about units prior to calling EDCASGN and reset icgts & icgus if required.
               igu=1; icgus=0
-              CALL EASKATOG('For new gains the typical units will be',
+              CALL EASKMBOX('For new gains the typical units will be',
      &          'Options:','Watts','Watts/m2','objects/m2->Watts',
      &          'Square meters per object','Dynamic people',
-     &          ' ',' ',IGU,nbhelp)
+     &          ' ',' ',' ',IGU,nbhelp)
               if(IGU.eq.1)then
                 icgus=0
               elseif(IGU.eq.2)then
@@ -3682,10 +3695,10 @@ C If there are no loads using this slot make a default one for the whole
 C day and then a (suggested) 8-18 period within. Ask about units prior
 C to calling EDCASGN.
                 igu=1
-                CALL EASKATOG('For new gains the typical units will be',
+                CALL EASKMBOX('For new gains the typical units will be',
      &          'Options:','Watts','Watts/m2','objects/m2->Watts',
      &          'Square meters per object','Dynamic People',
-     &          ' ',' ',IGU,nbhelp)
+     &          ' ',' ',' ',IGU,nbhelp)
                 if(IGU.eq.1)then
                   icgus=0
                 elseif(IGU.eq.2)then
@@ -3792,10 +3805,10 @@ C Nothing selected treat this as a return state.
           endif
 
 C User should only get to this point if there is a source file to use.
-          CALL EASKABC('The units of casual gains being imported can',
+          CALL EASKMBOX('The units of casual gains being imported can',
      &      'be adjusted. Options:','preserve Watts or W/m2',
      &      'adjust Watts for different base area','cancel import',
-     &      ivntv,nbhelp)
+     &      ' ',' ',' ',' ',' ',ivntv,nbhelp)
           if(ivntv.eq.1) iwatt='W-W    '
           if(ivntv.eq.2) iwatt='W-m2-W '
           if(ivntv.eq.3) goto 5
@@ -3823,8 +3836,9 @@ C a slot has not been used yet.
         helptopic='operations_casual_labels'
         call gethelptext(helpinsub,helptopic,nbhelp)
         islot=1
-        CALL EASKATOG(' ','Edit user label and type for...',
-     &     ll1,ll2,ll3,ll4,'Add another','Cancel',' ',islot,nbhelp)
+        CALL EASKMBOX(' ','Edit user label and type for...',
+     &     ll1,ll2,ll3,ll4,'Add another','Cancel',' ',' ',islot,
+     &     nbhelp)
         if (islot.eq.6) goto 5  ! cancel requested
         if (islot.eq.5)then
 
@@ -3877,10 +3891,9 @@ C Type to go with this casual gain.
             iatr1=3
             helptopic='dynamicpeople_model'
             call gethelptext(helpinsub,helptopic,nbhelp)
-C            CALL EASKABCD('Which person model?',' ','CIBSE polynomial',
-C     &        'ASHRAE polynomial','two-node','segmented',iatr1,nbhelp)
-            CALL EASKABC('Which person model?',' ','CIBSE polynomial',
-     &        'ASHRAE polynomial','two-node',iatr1,nbhelp)
+            CALL EASKMBOX('Which person model?',' ','CIBSE polynomial',
+     &        'ASHRAE polynomial','two-node',' ',' ',' ',' ',' ',
+     &        iatr1,nbhelp)
             isdynamicocup(icomp)=iatr1
             helptopic='operations_casual_labels'
             call gethelptext(helpinsub,helptopic,nbhelp)
@@ -4024,8 +4037,8 @@ C Present a list of profiles to select from.
       INDEX=IPRVAL(1)
 
 C Identify which casual gain.
-      CALL EASKABCD(' ','Which casual gain: ',ll1,ll2,ll3,ll4,ICGTX,
-     &  nbhelp)
+      CALL EASKMBOX(' ','Which casual gain: ',ll1,ll2,ll3,ll4,
+     &  ' ',' ',' ',' ',ICGTX,nbhelp)
 
  100  WRITE(HOLD,'(2f9.0,2f8.2,a)')PS,PL,RAD,CON,'  '
 
@@ -4240,10 +4253,10 @@ C Can be specified as: W, W/obj, W/m^2, m^2/obj
       elseif(icguX.eq.3)then
         msg='Gain to be specified (currently nb of person)'
       endif
-      CALL EASKATOG(msg,'Options: ',
+      CALL EASKMBOX(msg,'Options: ',
      &  'Watts','Watts/m2','objects/m2->Watts',
      &  'Square meters per object','Dynamic People',
-     &  ' ',' ',IGU,nbhelp)
+     &  ' ',' ',' ',IGU,nbhelp)
 
 C Common portion of help message for detailed dialogs.
       if (IGU.eq.1) then
@@ -4453,8 +4466,8 @@ C Other questions to enable testing the equations. << TODO >>
     
         helptopic='operations_clo_model'
         call gethelptext(helpinsub,helptopic,nbhelp)
-        call EASKAB('Clothing value?',' ','dynamic (default)',
-     &    'prescribed',ix,nbhelp)
+        call EASKMBOX('Clothing value?',' ','dynamic (default)',
+     &    'prescribed',' ',' ',' ',' ',' ',' ',ix,nbhelp)
         if (ix.eq.1) then
           xclo=-1.0
         elseif (ix.eq.2) then
@@ -4471,9 +4484,9 @@ c     &   'Air velocity(m/s) value (with zero meaning none)?',
 c     &   '  ',0.0,'W',3.0,'W',1.0,'clo value',IERI,nbhelp)
 c        airvelx=xairvel
 C Ask about testing.
-        CALL EASKABC('Estimate gains?','Options:',
+        CALL EASKMBOX('Estimate gains?','Options:',
      &    'standard conditions','user defined conditions','cancel',
-     &    ivopt,nbhelp)
+     &    ' ',' ',' ',' ',' ',ivopt,nbhelp)
         helptopic='operations_casual_data'
         call gethelptext(helpinsub,helptopic,nbhelp)
         if(ivopt.eq.1)then
@@ -4563,14 +4576,20 @@ C Get the electrical details of the load from the user
             IPFT=0
           else
             if(ipfX.eq.-1)then
-              call EASKAB(' ','Is the load current leading or lagging?',
-     &          'Leading (*)','Lagging',IOPT,nbhelp)
+              call EASKMBOX(' ',
+     &          'Is the load current leading or lagging?',
+     &          'Leading (*)','Lagging',' ',' ',' ',' ',' ',' ',
+     &          IOPT,nbhelp)
             elseif(ipfX.eq.1)then
-              call EASKAB(' ','Is the load current leading or lagging?',
-     &          'Leading','Lagging (*)',IOPT,nbhelp)
+              call EASKMBOX(' ',
+     &          'Is the load current leading or lagging?',
+     &          'Leading','Lagging (*)',' ',' ',' ',' ',' ',' ',
+     &          IOPT,nbhelp)
             else
-              call EASKAB(' ','Is the load current leading or lagging?',
-     &          'Leading','Lagging',IOPT,nbhelp)
+              call EASKMBOX(' ',
+     &          'Is the load current leading or lagging?',
+     &          'Leading','Lagging',' ',' ',' ',' ',' ',' ',
+     &          IOPT,nbhelp)
             endif
             if (IOPT.EQ.1) then
               IPFT=-1
@@ -6289,31 +6308,34 @@ C Explific type to go with this casual gain.
       elseif(isw.eq.2)then
         caskeytype(icomp,islot)='people      '
         rf=0.6; cf=0.4  ! CIBSE Guide A 6.3
-        CALL EASKABCD(' ',
+        CALL EASKMBOX(' ',
      &    'For people gains the typical units will be:',
      &    'Watts','not applicable','not applicable',
-     &    'Square meters per object',IGU,nbhelp)
+     &    'Square meters per object',' ',' ',' ',' ',IGU,nbhelp)
       elseif(isw.eq.3)then
         caskeytype(icomp,islot)='lighting    '
         rf=0.3; cf=0.7  ! CIBSE Table A6.5
-        CALL EASKABCD(' ',
+        CALL EASKMBOX(' ',
      &    'For lighiting gains the typical unit will be:',
      &    'Watts','Watts per square meter',
-     &    'object/m2->Watts','not applicable',IGU,nbhelp)
+     &    'object/m2->Watts','not applicable',' ',' ',' ',' ',
+     &    IGU,nbhelp)
       elseif(isw.eq.4)then
         caskeytype(icomp,islot)='equipment   '
         rf=0.4 ; cf=0.6 
-        CALL EASKABCD(' ',
+        CALL EASKMBOX(' ',
      &    'For equipment gains the typical unit will be:',
      &    'Watts','Watts per square meter',
-     &    'objects/m2->Watts','not applicable',IGU,nbhelp)
+     &    'objects/m2->Watts','not applicable',
+     &    ' ',' ',' ',' ',IGU,nbhelp)
       elseif(isw.eq.5)then
         caskeytype(icomp,islot)='other       '  
         rf=0.5 ; cf=0.5 
-        CALL EASKABCD(' ',
+        CALL EASKMBOX(' ',
      &    'For other gains the typical unit will be:',
      &    'Watts','Watts per square meter',
-     &    'object/m2->Watts','not applicable',IGU,nbhelp)
+     &    'object/m2->Watts','not applicable',
+     &    ' ',' ',' ',' ',IGU,nbhelp)
       elseif(isw.eq.6)then
         caskeytype(icomp,islot)='dynamic_people'
         rf=0.6; cf=0.4  ! CIBSE Guide A 6.3
@@ -6322,10 +6344,9 @@ C Explific type to go with this casual gain.
         call gethelptext(helpinsub,helptopic,nbhelp)
 
 C Segmented model disabled until it can be made more robust.
-C        CALL EASKABCD('Which person model?',' ','CIBSE polynomial',
-C     &   'ASHRAE polynomial','two-node','segmented',xiatr1,nbhelp)
-        CALL EASKABC('Which person model?',' ','CIBSE polynomial',
-     &        'ASHRAE polynomial','two-node',iatr1,nbhelp)
+        CALL EASKMBOX('Which person model?',' ','CIBSE polynomial',
+     &    'ASHRAE polynomial','two-node',' ',' ',' ',' ',' ',
+     &    iatr1,nbhelp)
         isdynamicocup(icomp)=xiatr1
         iatr1=xiatr1
         helptopic='operations_initial'
@@ -6334,38 +6355,43 @@ C     &   'ASHRAE polynomial','two-node','segmented',xiatr1,nbhelp)
       elseif(isw.eq.7)then
         caskeytype(icomp,islot)='net_utilities'  
         rf=0.5 ; cf=0.5 
-        CALL EASKABCD(' ',
+        CALL EASKMBOX(' ',
      &    'For network utilities the typical unit will be:',
      &    'Watts','Watts per square meter',
-     &    'not applicable','not applicable',IGU,nbhelp)
+     &    'not applicable','not applicable',
+     &    ' ',' ',' ',' ',IGU,nbhelp)
        elseif(isw.eq.8)then
         caskeytype(icomp,islot)='ALOtherElectric'  
         rf=0.4 ; cf=0.6 
-        CALL EASKABCD(' ',
+        CALL EASKMBOX(' ',
      &    'For appliances other electric the typical unit will be:',
      &    'Watts','Watts per square meter',
-     &    'not applicable','not applicable',IGU,nbhelp)
+     &    'not applicable','not applicable',
+     &    ' ',' ',' ',' ',IGU,nbhelp)
       elseif(isw.eq.9)then
         caskeytype(icomp,islot)='ALStoveNG   '  
         rf=0.5 ; cf=0.5 
-        CALL EASKABCD(' ',
+        CALL EASKMBOX(' ',
      &    'For appliance stove natural gas the typical unit will be:',
      &    'Watts','Watts per square meter',
-     &    'not applicable','not applicable',IGU,nbhelp)
+     &    'not applicable','not applicable',
+     &    ' ',' ',' ',' ',IGU,nbhelp)
       elseif(isw.eq.10)then
         caskeytype(icomp,islot)='ALStoveElectric'  
         rf=0.4 ; cf=0.6 
-        CALL EASKABCD(' ',
+        CALL EASKMBOX(' ',
      &    'For appliance stove electric the typical unit will be:',
      &    'Watts','Watts per square meter',
-     &    'not applicable','not applicable',IGU,nbhelp)
+     &    'not applicable','not applicable',
+     &    ' ',' ',' ',' ',IGU,nbhelp)
       elseif(isw.eq.11)then
         caskeytype(icomp,islot)='ALDryer     '  
         rf=0.5 ; cf=0.5 
-        CALL EASKABCD(' ',
+        CALL EASKMBOX(' ',
      &    'For appliance dryer the typical unit will be:',
      &    'Watts','Watts per square meter',
-     &    'not applicable','not applicable',IGU,nbhelp)
+     &    'not applicable','not applicable',
+     &    ' ',' ',' ',' ',IGU,nbhelp)
       endif
       lodslot(icomp,islot)=islot; lodatr1(icomp,islot)=iatr1
       lodatr2(icomp,islot)=0

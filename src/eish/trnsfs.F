@@ -375,7 +375,7 @@ C Parameters
 
       dimension ivorder(6,4)
       character ZSDES*28,ZSDESC*20,ZSDESS*16
-      character outs*124,msg*15
+      character outs*148,msg*15
       integer lnzsn
       logical tok
 

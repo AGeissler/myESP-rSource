@@ -23,7 +23,7 @@
 #include <gtk/gtk.h>
 #include <gdk/gdk.h>
 #include <glib.h>
-#include <esp-r.h>
+#include "esp-r.h"
 #include <commons.h>
 #include <fc_commons.h>
 
@@ -39,6 +39,12 @@ extern chgzonpikarray_();
 extern FILE *wwc;
 extern int  wwc_ok;   /* from esru_util.c */
 extern int  wwc_macro;   /* from esru_util.c */
+
+GMainLoop *menu_loop;  /* to match extern defs in esp-r.h */
+// GtkWidget *window;
+// GtkWidget *graphic;
+// GtkWidget *text;
+// GtkWidget *dialog;
 
 GdkColor cscale[49], zscale[100], gscale[85];
 long int ncscale;   /* number of assigned colours in colour scale */
@@ -78,13 +84,9 @@ gint f_width;
 char cappl[5];	/* f77 application name */
 /* char cfgroot[32];	f77 project root name    */
 /* char path[73];	f77 project path    */
-/* char upath[73];	f77 users path    */
-/* char imgpth[25];	f77 relative path to images    */
-/* char docpth[25];	f77 relative path to documents    */
 char capt_wf_exe[73];	/* command to execute for capture wire frame */
 char capt_tf_file[73];	/* file for text feedback buffer dump */
 char capt_all_exe[73];	/* command for capture all of display */
-int browse;	/* if = 0 then user owns, if = 1 user browsing */
 gint xrt_width, xrt_height;  /* same as xsh.width and xsh.height */
 
 gint menu_pix_wd;	/* pixel width of initial menu (based on nb of characters *imenuchw) */

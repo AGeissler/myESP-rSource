@@ -156,7 +156,7 @@ C            windows.
 C 5. QLOSSF- the diffuse beam transmission through internal surface
 C            windows.
 
-C 6. QLOSSA- the total re-transmitted (onabsorbed energy through internal
+C 6. QLOSSA- the total re-transmitted (of absorbed energy through internal
 C            surface windows.
 
 C 7. QTMCA - the shortwave absorption at each node of a transparent
@@ -702,7 +702,7 @@ C set in the tmc file is used.
               write(6,*) 'octl wind dir exceeded',VF,icomp,loopo,vo
                 endif
               elseif(iosn(loopo,2).eq.4)then ! dif hor rad QFF
-	        if(OMISCD(loopo,IDTYPO,IPERO,2).gt.1.0)then  ! ignore zero setpoint
+                if(OMISCD(loopo,IDTYPO,IPERO,2).gt.1.0)then  ! ignore zero setpoint
                   if(QFF.GT.OMISCD(loopo,IDTYPO,IPERO,2))then
                     IBOFOT(ICOMP,I)=1
                     NBPONT(ICOMP,I)=1
@@ -711,7 +711,7 @@ C set in the tmc file is used.
                   endif
                 endif
               elseif(iosn(loopo,2).eq.5)then ! dir nor rad QDF
-	        if(OMISCD(loopo,IDTYPO,IPERO,2).gt.1.0)then  ! ignore zero setpoint
+                if(OMISCD(loopo,IDTYPO,IPERO,2).gt.1.0)then  ! ignore zero setpoint
                   if(QDF.GT.OMISCD(loopo,IDTYPO,IPERO,2))then
                     IBOFOT(ICOMP,I)=1
                     NBPONT(ICOMP,I)=1
@@ -720,7 +720,7 @@ C set in the tmc file is used.
                   endif
                 endif
               elseif(iosn(loopo,2).eq.6)then ! ext rel hum. HF
-	        if(OMISCD(loopo,IDTYPO,IPERO,2).gt.1.0)then  ! ignore zero setpoint
+                if(OMISCD(loopo,IDTYPO,IPERO,2).gt.1.0)then  ! ignore zero setpoint
                   if(HF.GT.OMISCD(loopo,IDTYPO,IPERO,2))then
                     IBOFOT(ICOMP,I)=1
                     NBPONT(ICOMP,I)=1
@@ -735,7 +735,7 @@ C IBCSUR()=0 then current surface.
 C POO/POO2 contains shading factor on corresponding opaque surface.
               ISUR=iosn(loopo,3)
               IF(ISUR.EQ.0)THEN
-                RAD=SRADDO(I)*(1.-POO)+SRADF(I)*(1-POFF)
+                RAD=SRADDO(I)*(1.-POO)+SKYDIF(I)*(1-POFF)+GRDDIF(I)
               ELSE
                 IF(ISHD(ICOMP).EQ.0.OR.ISHD(ICOMP).EQ.2)THEN
                   POO2=0.0
@@ -744,7 +744,8 @@ C POO/POO2 contains shading factor on corresponding opaque surface.
                   POO2=PO(ICOMP,ISUR,IHRF)
                   POFF2=POF(ICOMP,ISUR,IHRF)
                 ENDIF
-                RAD=SRADDO(ISUR)*(1.-POO2)+SRADF(ISUR)*(1.-POFF2)
+                RAD=SRADDO(ISUR)*(1.-POO2)+SKYDIF(ISUR)*(1.-POFF2)+
+     &              GRDDIF(ISUR)
               ENDIF
               IF(RAD.GT.OMISCD(loopo,IDTYPO,IPERO,2))THEN
                 IBOFOT(ICOMP,I)=1
@@ -1058,7 +1059,7 @@ C IBCSUR()=0 then current surface.
 C POO/POO2 contains shading factor on corresponding opaque surface.
                   ISUR=IBCSUR(ICOMP,ITMC)
                   IF(ISUR.EQ.0)THEN
-                    RAD=SRADDO(I)*(1.-POO)+SRADF(I)*(1-POFF)
+                    RAD=SRADDO(I)*(1.-POO)+SKYDIF(I)*(1-POFF)+GRDDIF(I)
                   ELSE
                     IF(ISHD(ICOMP).EQ.0.OR.ISHD(ICOMP).EQ.2)THEN
                       POO2=0.0
@@ -1067,7 +1068,8 @@ C POO/POO2 contains shading factor on corresponding opaque surface.
                       POO2=PO(ICOMP,ISUR,IHRF)
                       POFF2=POF(ICOMP,ISUR,IHRF)
                     ENDIF
-                    RAD=SRADDO(ISUR)*(1.-POO2)+SRADF(ISUR)*(1.-POFF2)
+                    RAD=SRADDO(ISUR)*(1.-POO2)+SKYDIF(ISUR)*(1.-POFF2)
+     &                  +GRDDIF(ISUR)
                   ENDIF
                   IF(RAD.GT.BACTPT(ICOMP,ITMC))THEN
                     IBOFOT(ICOMP,I)=1
@@ -1150,12 +1152,13 @@ C Not an external construction.
             QSOLE(I,2)=(SRADDO(I)+SRADF(I))*AE(ICOMP,I)
           ELSE
             QSOLE(I,2)=SRADDO(I)*AE(ICOMP,I)*(1.-PO(ICOMP,I,IHRF))+
-     &      SRADF(I)*AE(ICOMP,I)*(1.-POF(ICOMP,I,IHRF))
+     &      SKYDIF(I)*AE(ICOMP,I)*(1.-POF(ICOMP,I,IHRF))+
+     &      GRDDIF(I)*AE(ICOMP,I)
           ENDIF
           EXSHAD(I)=PO(ICOMP,I,IHRF)
           EXSHADF(I)=POF(ICOMP,I,IHRF)
           EXDIR(I)=SRADDO(I)*(1.-EXSHAD(I))
-          EXDIF(I)=SRADF(I)*(1.-EXSHADF(I))
+          EXDIF(I)=SKYDIF(I)*(1.-EXSHADF(I))+GRDDIF(I)
           EXRAD(I)=EXDIR(I)+EXDIF(I)
 
 C Ensure that EXDIR and EXDIF are zero if EXRAD is zero.
@@ -1577,7 +1580,7 @@ C For internal layer, assign the calculated absorptance on the inner layer.
                 POFF=POF(ICOMP,I,IHRF)
               ENDIF
               DAB=SRADDO(I)*(1.-POO)*ABD
-              FAB=SRADF(I)*(1.-POFF)*ABF
+              FAB=SKYDIF(I)*(1.-POFF)*ABF+GRDDIF(I)*ABF
               IF(IBIDATATYPE.EQ.2.OR.IBIDATATYPE.EQ.3)THEN
                 FAB=(SKYDIF(I)*ABFSKY+GRDDIF(I)*ABFGND)*(1.-POFF)
               ENDIF
@@ -1585,7 +1588,7 @@ C For internal layer, assign the calculated absorptance on the inner layer.
               EXSHAD(I)=PO(ICOMP,I,IHRF)
               EXSHADF(I)=POF(ICOMP,I,IHRF)
               EXDIR(I)=SRADDO(I)*(1.-EXSHAD(I))
-              EXDIF(I)=SRADF(I)*(1.-EXSHADF(I))
+              EXDIF(I)=SKYDIF(I)*(1.-EXSHADF(I))+GRDDIF(I)
               EXRAD(I)=EXDIR(I)+EXDIF(I)
 
 C Ensures that EXDIR and EXDIF are zero if EXRAD is zero.
@@ -1796,7 +1799,8 @@ C Use XF for diffuse radiation travelling from inside to outside.
             ENDIF
 
 C Calculate diffuse transmission.
-            TFF=SRADF(I)*SNA(ICOMP,I)*XF*(1.-POFF)
+            TFF=SKYDIF(I)*SNA(ICOMP,I)*XF*(1.-POFF)+
+     &          GRDDIF(I)*SNA(ICOMP,I)*XF
             IF(IBIDATATYPE.EQ.2.OR.IBIDATATYPE.EQ.3)THEN
             TFF=(SKYDIF(I)*XFSKY+GRDDIF(I)*XFGND)*SNA(ICOMP,I)*(1.-POFF)
             ENDIF
@@ -1855,9 +1859,9 @@ C Get shading data if it exists.
 
 C Apply shading factor to external incident radiation.
             EXDIR(I)    = SRADDO(I)*(1.-POO)
-            EXDIF(I)    = SRADF(I)*(1.-POFF)
+            EXDIF(I)    = SKYDIF(I)*(1.-POFF)+GRDDIF(I)
             EXDIFSKY(I) = SKYDIF(I)*(1.-POFF)
-            EXDIFGRD(I) = GRDDIF(I)*(1.-POFF)
+            EXDIFGRD(I) = GRDDIF(I)
 
 C Switch for zone name output.
 c            if (ReportBoolConfig("use_zonenames")) then
@@ -2534,12 +2538,10 @@ C TRACE OUTPUT.
 
 C Output solar intensity details.
       call edisp(itu,' ')
-      write(outs,9993)SAZI,SALT
- 9993 format( ' Azimuth = ',F6.1,', Altitude = ',F6.1)
-      call edisp(itu,outs)
-      write(outs,99931)QD,QF
-99931 format( ' Irradiance (W/m^2): direct normal = ',F6.1,';',
-     &        ' diffuse horizontal = ',F6.1)
+      write(outs,'(a,f6.1,a,f6.1,a,f6.1,a,f6.1)')
+     &  ' Azimuth = ',SAZI,', Altitude = ',SALT,
+     &  ' Irradiance (W/m^2): direct normal = ',QD,
+     &  ' diffuse horizontal = ',QF
       call edisp(itu,outs)
 
 C Output QSOLE and QSOLI for each construction if sun up.
@@ -2549,23 +2551,23 @@ C << does not reflect blind control alternative optics >>
       write(outs,'(a)') ' Solar nodal absorptions (W/m^2):'
       call edisp(itu,outs)
       call edisp(itu,' ')
-      call edisp(itu,' Surface        Dir.  Dif.  Ext.  Int.  TMC ')
-      call edisp(itu,' name           shad. shad. solar solar node')
-      call edisp(itu,'                            abs.  abs.  abs.')
+      call edisp(itu,' Surface        Dir.  Dif.  Ext.  Int.  TMC node')
+      call edisp(itu,' name           shad. shad. solar solar abs. or')
+      call edisp(itu,'                            abs.  abs.  grnd dif')
       DO 9991 I=1,NC
         ITMC=ITMCFL(ICOMP,I)
         if(ITMC.LE.0)then
-          write(outs,'(1X,a,5(1X,F5.1))')sname(icomp,I),EXSHAD(I),
-     &                     EXSHADF(I),QSOLE(I,2),QSOLI(I,2)
+          write(outs,'(1X,a,2x,5(1X,F5.1))')sname(icomp,I),EXSHAD(I),
+     &      EXSHADF(I),QSOLE(I,2),QSOLI(I,2),GRDDIF(I)
           call edisp(itu,outs)
         else
           NN=NNDC(ICOMP,I)
           if(NN.le.12)then
             write(outs,'(1X,a,16(1X,F5.1))')sname(icomp,I),EXSHAD(I),
-     &          EXSHADF(I),QSOLE(I,2),QSOLI(I,2),(QTMCA(I,J,2),J=1,NN)
+     &        EXSHADF(I),QSOLE(I,2),QSOLI(I,2),(QTMCA(I,J,2),J=1,NN)
             call edisp(itu,outs)
           elseif(NN.gt.12)then
-            write(outs,'(1X,a,16(1X,F5.1))')sname(icomp,I),EXSHAD(I),
+            write(outs,'(1X,a,2x,16(1X,F5.1))')sname(icomp,I),EXSHAD(I),
      &          EXSHADF(I),QSOLE(I,2),QSOLI(I,2),(QTMCA(I,J,2),J=1,12)
             call edisp(itu,outs)
             write(outs,'(31X,20(1X,F5.1))')(QTMCA(I,J,2),J=13,NN)
@@ -2573,7 +2575,7 @@ C << does not reflect blind control alternative optics >>
           endif
 
 C Output direct and diffuse solar passing glazing and then clear.
-          write(outs,'(2a,F6.1,a,F6.1,a)') '  Transmissions (W):',
+          write(outs,'(2a,F6.1,a,F6.1,a)') ' Transmissions (W):',
      &      ' direct = ',tdtrace(i),'; diffuse = ',tfftrace(i)
 
           call edisp(itu,outs)
@@ -2778,7 +2780,7 @@ C and hemisphere.
     1 ISUNUP=0
     2 CONTINUE
 
-C Trace output ?
+C Trace output.
       IF(ITC.LE.0.OR.NSINC.LT.ITC) return
       IF(ITRACE(19).EQ.0.OR.NSINC.GT.ITCF) return
       call edisp(itu,' ')
@@ -2788,16 +2790,18 @@ C Trace output ?
       call DAYCLK(int(DAY),HOUR,itu)
 
 C Output time and solar position.
-      write(outs,'(A,F4.0,A,F5.2,A,F5.2)')' Day ',DAY,' Mean time ',
-     &  HOUR,' Solar time ',TIME
-      call edisp(itu,outs)
-      IF(ISUNUP.EQ.0)goto 9993
-      write(outs,'(A,F6.1,A,F6.1)')' Altitude =',SALT,' Azimuth =',SAZI
-      call edisp(itu,outs)
- 9999 RETURN
+      if(ISUNUP.gt.0)then
+        write(outs,'(A,F4.0,A,F5.2,A,F5.2,A,F6.1,A,F6.1)')
+     &   ' Day ',DAY,' Mean time ',
+     &    HOUR,' Solar time ',TIME,' Altitude =',SALT,' Azimuth =',SAZI
+        call edisp(itu,outs)
+      else
+        write(outs,'(A,F4.0,A,F5.2,A)')
+     &   ' Day ',DAY,' Mean time ',HOUR,' Sun not up !'
+        call edisp(itu,outs)
+      endif
+      RETURN
 
- 9993 call edisp(itu,' Sun not up !')
-      goto 9999
       END
 
 C ******************** MZSINT ********************
@@ -3987,7 +3991,6 @@ C Output ground reflectivity and, if advanced model, snow depth.
   920 FORMAT('Ground reflectivity: ',F6.3,' Snow depth: ',F5.1,' cm')
 
  9000 CONTINUE
-      call tstamp('>','Error reading binary snow depth file!')
       close(ieout)
       CALL ERPFREE(ieout,ISTAT)
       call epagend
@@ -4044,7 +4047,6 @@ C error if cannot be found.
      &        ' ',72,' ','Snow depth file',IER,nbhelp)
             CALL FINDFIL(SNFNAM,FOUND)
           ELSEIF(.NOT.OK) THEN
-            call tstamp('>','PPGREF: snow depth file not found!')
             close(ieout)
             CALL ERPFREE(ieout,ISTAT)
             call epagend
@@ -4061,7 +4063,6 @@ C Open snow depth ASCII file.
       CALL ERPFREE(IFILSN,ISTAT)
       CALL EFOPSEQ(IFILSN,SNFNAM,1,IER)
       IF (IER.NE.0) THEN
-        call tstamp('>','PPGREF: snow depth file not found!')
         close(ieout)
         CALL ERPFREE(ieout,ISTAT)
         call epagend
@@ -4085,8 +4086,6 @@ C Loop on data from ascii file and read data and write into binary form.
       END DO
   900 CONTINUE
       IF (ICOUNT<8760) THEN
-        call tstamp('>',
-     &   'PPGREF: snow depth file has fewer than 8760 values!')
         close(ieout)
         CALL ERPFREE(ieout,ISTAT)
         call epagend
@@ -4099,7 +4098,6 @@ C Close ASCII file and return.
 
 C Error processing.
   950 CONTINUE
-      call tstamp('>','Error processing snow depth file!')
       close(ieout)
       CALL ERPFREE(ieout,ISTAT)
       call epagend
@@ -4399,7 +4397,8 @@ C Using the same calculation for POO and POFF as in MZSLGN
                      shd_pof_fctr_ctl=POF(ICOMP,ISURFNumber,IHRF)
                    endif
                    rad_on_surf=SRADDO*(1.-shd_po_fctr_ctl)
-     &                         +SRADF*(1.-shd_pof_fctr_ctl)
+     &                         +SKYDIF*(1.-shd_pof_fctr_ctl)
+     &                         +GRDDIF
 
 C Allow max 6 setpoints and datasets to be used for the moment.
                    if(rad_on_surf.GT.OMISCD(iol,IDTYP,IPER,2))then
@@ -4699,7 +4698,7 @@ C same control on all day types.
           elseif(N.eq.0)then ! Follow calendar days
             IDTYPO=ICALENDER(IDAY)
           endif
-	
+
 C Is a control active at the current time?
           np=nocdp(icfo,idtypo)
           inPeriod=.false.

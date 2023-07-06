@@ -46,9 +46,9 @@ C 'PCPUT' is called to add it to the datatbase.
 C Build menu items.
  100  helptopic='pdb_input_file_choices'
       call gethelptext(helpinsub,helptopic,nbhelp)
-      CALL EASKABCD(' ','Read component data:','from file',
-     &  'from user dialogue','from file to generic','cancel',irt,
-     &  nbhelp)
+      CALL EASKMBOX(' ','Read component data:','from file',
+     &  'from user dialogue','from file to generic','cancel',
+     &  ' ',' ',' ',' ',irt,nbhelp)
 
       if(irt.eq.1.or.irt.eq.3)then
 

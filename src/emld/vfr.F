@@ -54,8 +54,9 @@ C writes the recovered data to array GOTDAT.
       write(currentfile,'(a)') FILENM(1:lnblnk(FILENM))
       helptopic='option_to_plot_or_write'
       call gethelptext(helpinsub,helptopic,nbhelp)
-      call easkab('Do you want to '
-     &,' ','plot data','write to file',IW,nbhelp)
+      call easkmbox('Do you want to ',
+     &  ' ','plot data','write to file',
+     &  ' ',' ',' ',' ',' ',' ',IW,nbhelp)
       if(iw.eq.2) then
         CALL EASKS(FILENM,'output file name ?',
      &' ',72,'HUMID','output file name',IER,nbhelp)

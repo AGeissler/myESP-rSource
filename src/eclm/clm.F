@@ -45,12 +45,9 @@ C climatic data sets compatible with ESP-r.
       COMMON/OUTPCH/ICOUT
       integer iuout,iuin,ieout
       common/OUTIN/IUOUT,IUIN,IEOUT
-      integer iecount    ! count of warning messages
-      common/warncounter/iecount
-
-C Session log file (for errors etc.)
-      character iefile*72
-      common/logs/iefile
+      logical ieopened     ! Has session file been started.
+      integer iecount      ! Does it hold error messages.
+      character iefile*72  ! The name of the session file.
 
       character CLMLOC*42
       COMMON/CLMDT1/CLMLOC
@@ -71,9 +68,6 @@ C model located weather data. Clm might or might not know about
 C this.
       common/rpath/path
       common/rcmd/LCMDFL
-
-C Project journal on/off, unit number, cmd, file name.
-      common/journopt/journio,iuj,journcmd,jfile
 
 C Redirected text/graphics parameters.
       common/exporttg/xfile,tg,delim
@@ -101,7 +95,6 @@ C Ask to overwrite flag.
       character pact*16,aut*12,paction*16
       character path*72,xfile*144,tg*1,delim*1
       character tab*1,fs*1,OUTSTR*124
-      character journcmd*20,jfile*72,cjfile*72
       character blank*2   ! string for edisp of blank line
       character dstmp*24,uname*24,tfile*72
       character ltpath*72,filen*72
@@ -337,33 +330,6 @@ C Make temporary use of file unit IAF=IFIL+1.
         write(esprc,'(3a)') upath(1:lnblnk(upath)),fs,'esprc'
       endif
       call scesprc(esprc,IAF,0,IIER)
-
-C If there is a journal active set up to add to the journal. First
-C get the root journal file (setup by prj) from the users home folder.
-C All subsequent tstamp messages will be appended to root journal.
-      if(journio.eq.1)then
-        uname=' '
-        call usrname(uname)
-        cjfile=' '
-        write(cjfile,'(a,a1,3a)')upath(1:lnblnk(upath)),fs,'.',
-     &    uname(1:lnblnk(uname)),'cur_j'
-        there=.false.
-        INQUIRE(FILE=cjfile,EXIST=there)
-        if(there)then
-          close(iuj)
-          open(iuj,file=cjfile,status='UNKNOWN',err=901)
-          CALL STRIPC(iuj,OUTSTR,0,ND,1,'header',IER)
-          if(OUTSTR(1:15).eq.'Current_Journal')then
-            k=16
-            CALL EGETRM(OUTSTR,K,jfile,'W','root journ',IER)
-          endif
-          close(iuj)
-        endif
-
-        write(outs,'(a,a)')'Journal (weather analysis) for:',
-     &    uname(1:lnblnk(uname))
-        call tstamp('>',outs)
-      endif
   902 continue
 
 C Confirm if there an an xterm available.
@@ -422,8 +388,6 @@ C with this conversion.
         paction=pact
         write(outs,'(a,a)')' the action is: ',paction
         if(itrc.gt.1)call edisp(iuout,outs)
-        write(outs,'(a,a)')'clm: the input action is: ',paction
-        call tstamp('>',outs)
         if(paction(1:8).eq.'asci2bin'.or.
      &     paction(1:9).eq.'ascii2bin')then
           silent=.true.
@@ -434,7 +398,6 @@ C with this conversion.
      &      IFDAY,IFTIME,PERST1,PERST2,PERST3,IER)
           IUNIT=IFIL+1
           CALL MKBCLM(iuout,1,pascif,IUNIT,IDS,IDF,silent,IER)
-          call tstamp('>','Finished weather module conversion ASCI2BIN')
           write(outs248,'(5a)')'Climate_conversion',tab,
      &      pascif(1:lnblnk(pascif)),tab,LCMDFL(1:lnblnk(LCMDFL))
 
@@ -457,7 +420,6 @@ C Close the session log.
      &             IFDAY,IFTIME,PERST1,PERST2,PERST3,IER)
           IAF=IFIL+1
           CALL MKACLM('E',pascif,IAF,IDS,IDF,IER)
-          call tstamp('>','Finished weather module conversion BIN2ASCI')
           write(outs248,'(5a)')'Climate_conversion',tab,
      &      LCMDFL(1:lnblnk(LCMDFL)),tab,pascif(1:lnblnk(pascif))
 
@@ -477,7 +439,6 @@ C Close the session log.
           NTSPH=1              ! Import weather data from EPW file.
           IUNIT=IFIL+1
           CALL EPWTOBCLM(pascif,IUNIT,IER)
-          call tstamp('>','Finished weather module conversion EPW2BIN')
           write(outs248,'(5a)')'Climate_conversion',tab,
      &      pascif(1:lnblnk(pascif)),tab,LCMDFL(1:lnblnk(LCMDFL))
 
@@ -580,7 +541,6 @@ c Exit the weather analysis tool.
       IF(INO.EQ.NITEM)THEN
         write(outs248,'(3a)')'Climate_selected',tab,
      &    LCMDFL(1:lnblnk(LCMDFL))
-        call tstamp('>','Finished weather module')
 
 C Close the session log.
         close(ieout)
@@ -595,8 +555,9 @@ C Manage the weather file.
       ELSEIF(INO.EQ.1)THEN
         helptopic='select_db_opt'
         call gethelptext(helpinsub,helptopic,nbhelp)
-        CALL EASKABCD(' ','Weather file options:',
-     &   'new','use','reselect','cancel',ICT,nbhelp)
+        CALL EASKMBOX(' ','Weather file options:',
+     &   'new','use','reselect','cancel',
+     &   ' ',' ',' ',' ',ICT,nbhelp)
         if(ICT.eq.1)then
 
 C Confirm that this is a new file and clear memory if necessary.
@@ -607,17 +568,14 @@ C Confirm that this is a new file and clear memory if necessary.
           if(OK)then
             call clrclm
             LCMDFL='UNKNOWN'
-            call tstamp('>','CLM: cleared weather data')
           endif
           silent=.false.
           CALL CFILIN(silent)
         elseif(ICT.eq.2)then
-          call tstamp('>','CLM: use current weather data')
           write(LCMDFL,'(a)') LCLIM(1:lnblnk(lclim))
           silent=.false.
           CALL CFILIN(silent)
         elseif(ICT.eq.3)then
-          call tstamp('>','CLM: select weather data')
           LCMDFL='UNKNOWN'
           silent=.false.
           CALL CFILIN(silent)
@@ -641,9 +599,7 @@ C Synoptic analysis.
         call userfonts(IFS,ITFS,IMFS)
         IF(INIT.EQ.0)CALL selper(IER)
         INIT=1
-        call tstamp('>','CLM: enter synoptic analysis')
         CALL CLMSYN
-        call tstamp('>','CLM: exit synoptic analysis')
         IMFS=lastmenufont
         ITFS=lasttextfont    ! reset to proportional font in text feedback
         IFS=lastbuttonfont
@@ -685,9 +641,7 @@ C Setup and pass in parameters to win3d.
               continue
             endif
           ENDIF
-          call tstamp('>','CLM: enter graphic analysis.')
           CALL CLMGRF
-          call tstamp('>','CLM: exit graphic analysis.')
         else
           call edisp(iuout,' Not in graphic window!')
         endif
@@ -727,9 +681,7 @@ C Setup and pass in parameters to win3d.
               continue
             endif
           ENDIF
-          call tstamp('>','CLM: enter psychrometric analysis')
           CALL PSYCHART
-          call tstamp('>','CLM: exit psychrometric analysis')
         else
           call edisp(iuout,' Not in graphic window!')
         endif
@@ -746,9 +698,7 @@ C Tabular analysis. Switch to monospace small font in text feedback.
         call userfonts(IFS,ITFS,IMFS)
         IF(INIT.EQ.0)CALL selper(ier)
         INIT=1
-        call tstamp('>','CLM: enter tabular analysis')
         CALL CLMTOT
-        call tstamp('>','CLM: exit tabular analysis')
         IMFS=lastmenufont
         ITFS=lasttextfont    ! reset to proportional font in text feedback
         IFS=lastbuttonfont
@@ -769,8 +719,9 @@ C Change radiation type.
 
         helptopic='rad_type_toggle'
         call gethelptext(helpinsub,helptopic,nbhelp)
-        CALL EASKAB(' ','Solar radiation type:',
-     &    'direct normal','global horizontal',IRADT,nbhelp)
+        CALL EASKMBOX(' ','Solar radiation type:',
+     &    'direct normal','global horizontal',
+     &    ' ',' ',' ',' ',' ',' ',IRADT,nbhelp)
         if (CFVER.eq.1) then
           IRTYP=0
           IF(IRADT.EQ.2)IRTYP=123
@@ -791,7 +742,6 @@ C Change radiation type.
           WRITE(IFIL,REC=IREC,IOSTAT=ISTAT,ERR=1000)(CMCOL(i),i=1,CFMCM)
           CALL CLMMDN2O
         endif
-        call tstamp('>','CLM: change radiation type')
         goto 3
  1000   call edisp(iuout,' CLM: weather file read/write error!')
         goto 3
@@ -805,23 +755,19 @@ C Creation of weather file from manual editing.
         helptopic='clm_data_creation_opt'
         call gethelptext(helpinsub,helptopic,nbhelp)
         IC=1
-        CALL EASKATOG(' ','Specify data via:',
+        CALL EASKMBOX(' ','Specify data via:',
      &    'keyboard','prediction','transforms','curve fit',
-     &    'cancel',' ',' ',IC,nbhelp)
+     &    'cancel',' ',' ',' ',IC,nbhelp)
 
         if(ic.eq.1)then
-          call tstamp('>','CLM: manual editing')
           CALL RRITE
         elseif(ic.eq.2)then
-          call tstamp('>','CLM: predictive editing')
           ist=1
           CALL CLPRED(ist)
         elseif(ic.eq.3)then
-          call tstamp('>','CLM: transform editing')
           ist=2
           CALL CLPRED(ist)
         elseif(ic.eq.3)then
-          call tstamp('>','CLM: transform editing')
           ist=3
           CALL CLPRED(ist)
         elseif(ic.eq.4)then
@@ -832,12 +778,12 @@ C Export weather data to ASCII file (with similar name).
       ELSEIF(INO.EQ.13)THEN
         helptopic='clm_export_options'
         call gethelptext(helpinsub,helptopic,nbhelp)
-        call easkabc(' ','Otions:','ESP-r compatible',
-     &    'SQL compatible','cancel',IICT,nbhelp)
+        call easkmbox(' ','Otions:','ESP-r compatible',
+     &    'SQL compatible','cancel',' ',' ',' ',' ',' ',
+     &    IICT,nbhelp)
         if(IICT.eq.3) goto 3
 
 C Prepend a .a to the current binary name and allow for browsing.
-        call tstamp('>','CLM: export weather data')
         write(LLASCI,'(2a)') LCLIM(1:lnblnk(LCLIM)),'.a'
         helptopic='clm_file_browse_options'
         call gethelptext(helpinsub,helptopic,nbhelp)
@@ -896,9 +842,9 @@ C ESP-r or EPW weather file?
       ELSEIF(INO.EQ.14)THEN
         helptopic='clm_esp_or_epw'
         call gethelptext(helpinsub,helptopic,nbhelp)
-        CALL EASKATOG(' ','Import options:',
+        CALL EASKMBOX(' ','Import options:',
      &   'EPW file','ASCII ESP-r','Korean MET',
-     &   'ASCII column data','cancel',' ',' ',IICT,nbhelp)
+     &   'ASCII column data','cancel',' ',' ',' ',IICT,nbhelp)
         if(IICT.eq.1)then
           NTSPH=1
           LASCI=' '
@@ -1002,7 +948,6 @@ C Cast back to 96 char name and do the conversion.
           else
             CALL MKBCLM(iuout,0,LASCI,IUNIT,IDS,IDF,silent,IER)
           endif
-          call tstamp('>','CLM: import weather data')
           CALL EDISP(IUOUT,'Modified weather file saved')
           CALL EDISP(IUOUT,blank)
         elseif(IICT.eq.3)then
@@ -1071,8 +1016,8 @@ C Cast back to 96 char name and do the conversion.
 C Ask if older or newer file format.
           helptopic='korea_met_file_old_new'
           call gethelptext(helpinsub,helptopic,nbhelp)
-          CALL EASKABC(' ','Korean weather file format options:',
-     &     'old','new','cancel',ICT,nbhelp)
+          CALL EASKMBOX(' ','Korean weather file format options:',
+     &     'old','new','cancel',' ',' ',' ',' ',' ',ICT,nbhelp)
           if(ICT.eq.1)then
             call MKOREANCLM(LASCI,IUNIT,'old',IER)
           elseif(ICT.eq.2)then
@@ -1135,7 +1080,6 @@ C Cast back to 96 char name and do the conversion.
           WRITE(outs248,'(2A)')'Writing data to ',LCLIM(1:lnblnk(LCLIM))
           CALL EDISP248(IUOUT,outs248,100)
           CALL COLTOBCLM(iuout,LASCI,IUNIT,IDS,IDF,IER)
-          call tstamp('>','CLM: import column data')
           CALL EDISP(IUOUT,'Modified weather file saved')
           CALL EDISP(IUOUT,blank)
         endif
@@ -1234,9 +1178,9 @@ C Delimiter.
         helptopic='clm_delimiter_choice'
         call gethelptext(helpinsub,helptopic,nbhelp)
         IWM=1
-        CALL EASKATOG(' ','Column delimeter:',
+        CALL EASKMBOX(' ','Column delimeter:',
      &    'normal spaces','single space','tab','comma','cancel',' ',
-     &    ' ',IWM,nbhelp)
+     &    ' ',' ',IWM,nbhelp)
         if(iwm.eq.1)then
           delim = '-'
         elseif(iwm.eq.2)then

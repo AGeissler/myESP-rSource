@@ -438,8 +438,8 @@ C Define grid data.
       ELSEIF(INO.EQ.6)THEN
 
 C Edit mesh widths.
-        CALL EASKABC('Which dimension:',' ','Row','Column','Layer',
-     &    IW,nbhelp)
+        CALL EASKMBOX('Which dimension:',' ','Row','Column','Layer',
+     &    ' ',' ',' ',' ',' ',IW,nbhelp)
         IF(IW.EQ.1)THEN
           IF(NRow.GT.0)THEN
             CALL EDTMSH(NRow,LRow,'rows   ')
@@ -462,8 +462,8 @@ C Edit mesh widths.
       ELSEIF(INO.EQ.7)THEN
 
 C Divide mesh widths.
-        CALL EASKABC('Which dimension:',' ','Row','Column','Layer',
-     &    IW,nbhelp)
+        CALL EASKMBOX('Which dimension:',' ','Row','Column','Layer',
+     &    ' ',' ',' ',' ',' ',IW,nbhelp)
         IF(IW.EQ.1)THEN
           IF(NRow.GT.0)THEN
             CALL DVDMSH(NRow,LRow,IW)
@@ -486,8 +486,8 @@ C Divide mesh widths.
       ELSEIF(INO.EQ.8)THEN
 
 C Delete mesh widths.
-        CALL EASKABC('Which dimension:',' ','Row','Column','Layer',
-     &    IW,nbhelp)
+        CALL EASKMBOX('Which dimension:',' ','Row','Column','Layer',
+     &    ' ',' ',' ',' ',' ',IW,nbhelp)
         IF(IW.EQ.1)THEN
           IF(NRow.GT.0)THEN
             CALL DLTMSH(NRow,LRow,IW)
@@ -691,7 +691,8 @@ C DVDMSH allows dividing mesh widths.
    91   FORMAT(A,A11,A9,I3,A5,I3,A16,I6,A1)
         WRITE(Promp,91)DimName,' mesh width',' between ',IStart,
      &    ' and ',IEnd,' (current value:',LDim(ILvl),')'
-        CALL EASKABC(Promp,' ','next','divid','finish',IW,nbhelp)
+        CALL EASKMBOX(Promp,' ','next','divid','finish',
+     &    ' ',' ',' ',' ',' ',IW,nbhelp)
         IF(IW.EQ.2)THEN
           NDiv=2
           CALL EASKI(NDiv,' ','Enter the number of divitions:',1,'F',
@@ -806,7 +807,8 @@ C DLTMSH allows deleting mesh widths.
    91   FORMAT(A,A11,A9,I3,A5,I3,A16,I6,A1)
         WRITE(Promp,91)DimName,' mesh width',' between ',IStart,
      &    ' and ',IEnd,' (current value:',LDim(ILvl),')'
-        CALL EASKABC(Promp,' ','next','delete','finish',IW,nbhelp)
+        CALL EASKMBOX(Promp,' ','next','delete','finish',
+     &    ' ',' ',' ',' ',' ',IW,nbhelp)
         IF(IW.EQ.2)THEN
 
 C Check if this width is referenced in the material or boundary geometries.
@@ -1128,20 +1130,20 @@ C MTRINP allows editing and adding material geometries.
         CALL USRMSG(' ',' Box coordinates should be odd.','W')
         GOTO 10
       ENDIF
-      M1=IMRowS(I)+1
-      CALL EGETWI(StrVal,K,IMRowE(I),M1,NR,'W','end row',IER)
+      MM1=IMRowS(I)+1
+      CALL EGETWI(StrVal,K,IMRowE(I),MM1,NR,'W','end row',IER)
       IF(IsEven(IMRowE(I)))THEN
         CALL USRMSG(' ',' Box coordinates should be odd.','W')
         GOTO 10
       ENDIF
-      M1=IMColS(I)+1
-      CALL EGETWI(StrVal,K,IMColE(I),M1,NC,'W','end column',IER)
+      MM1=IMColS(I)+1
+      CALL EGETWI(StrVal,K,IMColE(I),MM1,NC,'W','end column',IER)
       IF(IsEven(IMColE(I)))THEN
         CALL USRMSG(' ',' Box coordinates should be odd.','W')
         GOTO 10
       ENDIF
-      M1=IMLayS(I)+1
-      CALL EGETWI(StrVal,K,IMLayE(I),M1,NL,'W','end layer',IER)
+      MM1=IMLayS(I)+1
+      CALL EGETWI(StrVal,K,IMLayE(I),MM1,NL,'W','end layer',IER)
       IF(IsEven(IMLayE(I)))THEN
         CALL USRMSG(' ',' Box coordinates should be odd.','W')
         GOTO 10
@@ -1380,20 +1382,20 @@ C BNDINP allows editing and adding boundary geometries.
         CALL USRMSG(' ',' Box coordinates should be odd.','W')
         GOTO 10
       ENDIF
-      M1=IBRowS(I)
-      CALL EGETWI(StrVal,K,IBRowE(I),M1,NR,'W','end row',IER)
+      MM1=IBRowS(I)
+      CALL EGETWI(StrVal,K,IBRowE(I),MM1,NR,'W','end row',IER)
       IF(IsEven(IBRowE(I)))THEN
         CALL USRMSG(' ',' Box coordinates should be odd.','W')
         GOTO 10
       ENDIF
-      M1=IBColS(I)
-      CALL EGETWI(StrVal,K,IBColE(I),M1,NC,'W','end column',IER)
+      MM1=IBColS(I)
+      CALL EGETWI(StrVal,K,IBColE(I),MM1,NC,'W','end column',IER)
       IF(IsEven(IBColE(I)))THEN
         CALL USRMSG(' ',' Box coordinates should be odd.','W')
         GOTO 10
       ENDIF
-      M1=IBLayS(I)
-      CALL EGETWI(StrVal,K,IBLayE(I),M1,NL,'W','end layer',IER)
+      MM1=IBLayS(I)
+      CALL EGETWI(StrVal,K,IBLayE(I),MM1,NL,'W','end layer',IER)
       IF(IsEven(IBLayE(I)))THEN
         CALL USRMSG(' ',' Box coordinates should be odd.','W')
         GOTO 10

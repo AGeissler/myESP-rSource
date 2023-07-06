@@ -380,8 +380,8 @@ C data into the simulation parameter set data structure.
 C Images associated with the IPV.
         write(outs,'(a,i2,a)') 'There are currently ',nipvimg,
      &    ' images associated with this IPV.'
-        CALL EASKABCD(outs,'Choices: ','list',
-     &      'edit','add','cancel',IW,nbhelp)
+        CALL EASKMBOX(outs,'Choices: ','list',
+     &      'edit','add','cancel',' ',' ',' ',' ',IW,nbhelp)
         if(IW.eq.1)then
           if(nipvimg.gt.0)then
             do 52 i=1,nipvimg
@@ -618,8 +618,8 @@ C assessment.
             MODSIT=.true.
   195     continue
         endif
-        CALL EASKAB(' ','Options:','add another day','cancel',
-     &    IW,nbhelp)
+        CALL EASKMBOX(' ','Options:','add another day','cancel',
+     &    ' ',' ',' ',' ',' ',' ',IW,nbhelp)
         if(IW.eq.1)then
           nipvdispjd=nipvdispjd+1
           ij=nipvdispjd
@@ -748,9 +748,10 @@ C Domestic hot water day ratio.
       elseif(INO.EQ.m+14)then
         helptopic='ipv_season_scan'
         call gethelptext(helpinsub,helptopic,nbhelp)
-        CALL EASKABC(' ','Options:',
+        CALL EASKMBOX(' ','Options:',
      &    'scan climatelist for seasons & periods',
-     &    'scan for day/DD ratios','cancel',IW,nbhelp)
+     &    'scan for day/DD ratios','cancel',
+     &    ' ',' ',' ',' ',' ',IW,nbhelp)
         if(IW.eq.1.or.IW.eq.2)then
 
 C Expand climate file name in case of standard location.
@@ -838,8 +839,8 @@ C Help text for this menu.
       elseif(INOM.EQ.nitmms-3)then
 
 C Add delete copy metric set.
-        CALL EASKABC('Metric set options:',' ','add','delete',
-     &    'do nothing',IRT,nbhelp)
+        CALL EASKMBOX('Metric set options:',' ','add','delete',
+     &    'do nothing',' ',' ',' ',' ',' ',IRT,nbhelp)
         if(IRT.eq.1)then
           if(nms.lt.MIPVM)then
             nms=nms+1
@@ -1094,8 +1095,8 @@ C Help text for this menu.
       elseif(INOE.EQ.nitmes-4)then
 
 C Add delete copy demand set.
-        CALL EASKABC('Demand set options:',' ','add','delete',
-     &    'do nothing',IRT,nbhelp)
+        CALL EASKMBOX('Demand set options:',' ','add','delete',
+     &    'do nothing',' ',' ',' ',' ',' ',IRT,nbhelp)
         if(IRT.eq.1)then
           if(neds.lt.MIPVM)then
             neds=neds+1
@@ -1687,7 +1688,7 @@ C probably not been a simulation parameter set defined, so set some
 C of the common variables.
       if(issave.eq.-1)then
         call edisp(iuout,'Scanning for startup days')
-        call scntcnst(TDM,istd,TCM,ISTC)
+        call scntcnst(TDM,istd,TCM,ISTC,ITCN)
         if(isstup.eq.0)isstup=ITCNST
         if(isstupex(1).eq.0)isstupex(1)=ITCNST
         isbnstep=4;ispnstep=10
@@ -2005,10 +2006,10 @@ C days and the best first winter assessment week degree days.
         endif
         write(outs,'(a,F5.2,a,F5.2,a,F5.2,a)')'is ',dayratio,' days & ',
      &    hddratio(1),' HDD & ',cddratio(1),' CDD.'
-        call easkab(
+        call easkmbox(
      &    'The ratio of the winter assessment to all winter seasons',
      &    outs,'accept','cancel',
-     &    iok,nbhelp)
+     &    ' ',' ',' ',' ',' ',' ',iok,nbhelp)
         if(iok.eq.1)then
           dmheat(1)=hddratio(1)
           dmcool(1)=cddratio(1)
@@ -2045,10 +2046,10 @@ C Do the transitional seasons.
         endif
         write(outs,'(a,F5.2,a,F5.2,a,F5.2,a)')'is ',dayratio,' days & ',
      &    hddratio(2),' HDD & ',cddratio(2),' CDD.'
-        call easkab(
+        call easkmbox(
      &    'The ratio of the trans assessment to all trans seasons',
      &    outs,'accept','cancel',
-     &    iok,nbhelp)
+     &    ' ',' ',' ',' ',' ',' ',iok,nbhelp)
         if(iok.eq.1)then
           dmheat(2)=hddratio(2)
           dmcool(2)=cddratio(2)

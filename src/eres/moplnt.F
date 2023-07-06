@@ -291,9 +291,9 @@ C Toggle delimeter.
         helptopic='res_plant_delimeter'
         call gethelptext(helpinsub,helptopic,nbhelp)
         IWM=1
-        CALL EASKATOG('Delimeter to use between columns of data:',' ',
+        CALL EASKMBOX('Delimeter to use between columns of data:',' ',
      &    'normal spaces','single space','tab','comma','tagged',
-     &    'continue',' ',IWM,nbhelp)
+     &    'continue',' ',' ',IWM,nbhelp)
         if(iwm.eq.1)then
           delim = '-'
         elseif(iwm.eq.2)then
@@ -2948,11 +2948,11 @@ C If there are optional user defined labels draw them.
 C Display stats.
         write (outs,'(a,a)') 
      &    '                            Maximum                 Minimum',
-     &    '             Mean   Standard'
+     &    '               Mean         Standard'
         call eddisp(itru,outs)
         write (outs,'(a,a)') 
      &    '                        value    occurrence     value    ',
-     &    'occurrence     value  deviation'
+     &    '  occurrence     value        deviation'
         call eddisp(itru,outs)
         do 210 I=1,NPGET
 
@@ -2971,7 +2971,10 @@ C Create string description for time of minimum occurrance.
           call EDTIME(TMINHR,DESCRH,DESCRD,DESCRJ,TIMER)
           write (NT,'(a,a,a)')DESCR(1:6),'@',DESCRH
           t20=GPLABEL(I)
-          write (outs,'(a,1x,2(f8.2,2x,a12,2x),2(f7.2,3x))') t20,
+C          write (outs,'(a,1x,2(f8.2,2x,a12,2x),2(f7.2,3x))') t20,
+C     &      FMAX(I),XT,FMIN(I),NT,FAVE(I),FSTD(I)
+C          call eddisp(itru,outs)
+          write (outs,'(a,1x,2(g10.4,2x,a12,2x),2(g10.4,3x))') t20,
      &      FMAX(I),XT,FMIN(I),NT,FAVE(I),FSTD(I)
           call eddisp(itru,outs)
  210    continue
@@ -2986,11 +2989,11 @@ C Display stats + hrs above.
         call edisp(itru,'  ')
         write (outs,'(a,a)') 
      &    '                           Maximum                Minimum',
-     &    '              Mean    Hours'
+     &    '                 Mean     Hours'
         call eddisp(itru,outs)
         write (outs,'(a,a)')
-     &    '                       value    occurrence    value    ',
-     &    'occurrence      value   above'
+     &    '                       value     occurrence     value    ',
+     &    '  occurrence     value    above'
         call eddisp(itru,outs)
         do 221 I=1,NPGET
 
@@ -3009,7 +3012,10 @@ C Create string description for time of minimum occurrance.
           write (NT,'(3a)')DESCR(1:6),'@',DESCRH
           AYAB=float(IQHRS(I))*float(NOUT)/float(NTS)
           t20=GPLABEL(I)
-          write (outs,'(a,1x,2(f8.2,2x,a12,1x),2f9.2)') t20,
+C          write (outs,'(a,1x,2(f8.2,2x,a12,1x),2f9.2)') t20,
+C     &      FMAX(I),XT,FMIN(I),NT,FAVE(I),AYAB
+C          call eddisp(itru,outs)
+          write (outs,'(a,1x,2(g10.4,2x,a12,1x),2g10.4)') t20,
      &      FMAX(I),XT,FMIN(I),NT,FAVE(I),AYAB
           call eddisp(itru,outs)
 
@@ -3028,11 +3034,11 @@ C Display stats + hrs below.
         call edisp(itru,'  ')
         write (outs,'(a,a)') 
      &    '                           Maximum                Minimum',
-     &    '              Mean    Hours'
+     &    '                 Mean     Hours'
         call eddisp(itru,outs)
         write (outs,'(a,a)') 
-     &    '                       value    occurrence    value    ',
-     &    'occurrence      value   below'
+     &    '                       value     occurrence     value    ',
+     &    '  occurrence     value    below'
         call eddisp(itru,outs)
         do 230 I=1,NPGET
 
@@ -3051,7 +3057,10 @@ C Create string description for time of minimum occurrance.
           write (NT,'(3a)')DESCR(1:6),'@',DESCRH
           AYAB=float(IQHRS(I))*float(NOUT)/float(NTS)
           t20=GPLABEL(I)
-          write (outs,'(a,1x,2(f8.2,2x,a12,1x),2f9.2)') t20,
+C          write (outs,'(a,1x,2(f8.2,2x,a12,1x),2f9.2)') t20,
+C     &      FMAX(I),XT,FMIN(I),NT,FAVE(I),AYAB
+C          call eddisp(itru,outs)
+          write (outs,'(a,1x,2(g10.4,2x,a12,1x),2g10.4)') t20,
      &      FMAX(I),XT,FMIN(I),NT,FAVE(I),AYAB
           call eddisp(itru,outs)
 

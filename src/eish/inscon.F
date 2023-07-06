@@ -153,9 +153,9 @@ C If in graphic mode ask about delay in graphic display of calcs.
           irpt=0  ! silent so do not bother with display
         else
           irpt=0
-          CALL EASKABCD(' ','Insolation display options:',
-     &      'none','quick',
-     &      'slower','slowest',irpt,nbhelp)
+          CALL EASKMBOX(' ','Insolation display options:',
+     &      'none','quick','slower','slowest',
+     &      ' ',' ',' ',' ',irpt,nbhelp)
           irpt=irpt-1
         endif
       else

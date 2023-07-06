@@ -47,16 +47,15 @@ C Path to problem and command line file (if any).
       common/appw/iappw,iappx,iappy
 
       common/OUTIN/IUOUT,IUIN,IEOUT
-      common/warncounter/iecount
+      logical ieopened     ! Has session file been started.
+      integer iecount      ! Does it hold error messages.
+      character iefile*72  ! The name of the session file.
+      common/logs/ieopened,iecount,iefile
       integer ifs,itfs,imfs
       COMMON/GFONT/IFS,ITFS,IMFS
       common/FILEP/IFIL
       COMMON/ERRS/ISTAT,IREC
       EQUIVALENCE (ERRFLG, ISTAT)
-
-C Session log file (for errors etc.)
-      character iefile*72
-      common/logs/iefile
 
 C Name of current application
       common/APPNAME/cAppName
@@ -236,13 +235,15 @@ C Create and open a session log file based on user name, PID etc.
       call st2file(tfile,iefile)
 
 C Open the session file.
-      ieout=ifil+931          ! set to unused index 942
-      iecount=0               ! clear count of errors
+      ieout=ifil+931              ! set to unused index 931
+      iecount=0                   ! clear count of errors
+      if(.NOT.ieopened) goto 903  ! Set in scan of .esprc file (scesprc)
       open(ieout,file=iefile,status='UNKNOWN',err=903)
       write(ieout,'(a)')'Session log for pdb'
       call dstamp(dstmp) ! get curret time
       write(ieout,'(2a)')'Date,',dstmp
       write(ieout,'(2a)')'User,',uname(1:lnblnk(uname))
+      ieopened=.true.
   903 continue
 
 C Scan the defaults file for default configuration.
@@ -271,8 +272,6 @@ C the binary file `inf` and exit.
           write(outs,'(a,a)')' the action is: ',paction
           call edisp(iuout,outs)
         endif
-        write(outs,'(a,a)')'pdb: the input action is: ',paction
-        call tstamp('>',outs)
         if(paction(1:8).eq.'asci2bin')then
 
 C Convert ascii file to binary (LCMDFL) and exit.
@@ -286,9 +285,8 @@ C Unable to open so advise, add to error log and stop.
             call usrmsg(
      &        'Plant component import file could not be opend',
      &        'so exiting without doing anything.','W')
-            call edisp(ieout,
+            call to_session(
      &        'Plant component import file could not be opend.')
-            iecount=iecount+1  ! retain the log file
             close(ieout)
             CALL ERPFREE(ieout,ISTAT)
             CALL EPAGEND
@@ -310,9 +308,8 @@ C add to error log and stop.
             call usrmsg(
      &        'Import file does not appear to be a plant templates',
      &        'ascii file so exiting without doing anything.','W')
-            call edisp(ieout,
+            call to_session(
      &        'Import file does not appear to be a plant template.')
-            iecount=iecount+1  ! retain the log file
             close(ieout)
             CALL ERPFREE(ieout,ISTAT)
             CALL EPAGEND
@@ -331,8 +328,6 @@ C add to error log and stop.
             CALL ERPFREE(IUFIL,ISTAT)
           END IF
 
-          call tstamp('>',
-     &      'Finished plant component conversion ASCI2BIN')
           write(outs248,'(5a)')'Plant_conversion',tab,
      &      pascif(1:lnblnk(pascif)),tab,LCMDFL(1:lnblnk(LCMDFL))
           call edisp248(iuout,outs248,90)
@@ -361,9 +356,8 @@ C Existing file, so check header. IRECLN is from plantdb.h file.
               call usrmsg(
      &          'Plant component templates file could not be opend',
      &          'so exiting without doing anything.','W')
-              call edisp(ieout,
+              call to_session(
      &          'Plant component templates file could not be opend.')
-              iecount=iecount+1  ! retain the log file
               close(ieout)
               CALL ERPFREE(ieout,ISTAT)
               CALL EPAGEND
@@ -376,9 +370,8 @@ C Existing file, so check header. IRECLN is from plantdb.h file.
               call usrmsg(
      &          'File is not a plant component templates file,',
      &          'so exiting without doing anything.','W')
-              call edisp(ieout,
+              call to_session(
      &          'File is not a plant component templates file.')
-              iecount=iecount+1  ! retain the log file
               close(ieout)
               CALL ERPFREE(ieout,ISTAT)
               CALL EPAGEND
@@ -391,9 +384,8 @@ C Check library is not empty.
             IF (NPC .EQ. 0) THEN
               call usrmsg('No components in file so ascii file cannot',
      &                    'be created. Exiting with no action.','W')
-              call edisp(ieout,
+              call to_session(
      &          'No components so ascii file cannot be created.')
-              iecount=iecount+1  ! retain the log file
               close(ieout)
               CALL ERPFREE(ieout,ISTAT)
               CALL EPAGEND
@@ -417,9 +409,8 @@ C Set file unit for export and open it for writing.
               call usrmsg(
      &          'Unable to open ASCII export file so exiting without',
      &          'doing anything.','W')
-              call edisp(ieout,
+              call to_session(
      &          'Unable to open ASCII export file so exiting.')
-              iecount=iecount+1  ! retain the log file
               close(ieout)
               CALL ERPFREE(ieout,ISTAT)
               CALL EPAGEND
@@ -651,6 +642,7 @@ C Error handling.
   1   helptopic='pdb_confusion_warning'
       call gethelptext(helpinsub,helptopic,nbhelp)
       write(outs,'(a)') 'Components database scan error!'
+      call to_session('Components database scan error!')
       iecount=iecount+1  ! retain the log file
       CALL EASKOK(outs,'Exit application?',OK,2)
       if(ok)then
@@ -711,6 +703,7 @@ C Now display the menu.
   1   helptopic='pdb_could_not_scan'
       call gethelptext(helpinsub,helptopic,nbhelp)
       write(outs,'(a)') 'Components database scan error!'
+      call to_session('Components database scan error!')
       CALL EASKOK(outs,'Exit application?',OK,2)
       if(OK)then
         close(ieout)    ! retain the error log file

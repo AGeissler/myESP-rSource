@@ -272,8 +272,9 @@ C If no files are present in the hvac folder, display a warning
           if(XST)then
             new_hvac=.false.
           else
-            call EASKAB(' File not found.','Options:',
-     &                  'specify another','make new file',IW,nbhelp)
+            call EASKMBOX('File not found.','Options:',
+     &        'specify another','make new file',
+     &        ' ',' ',' ',' ',' ',' ',IW,nbhelp)
             if(IW.eq.1)then
               hvacfile='  '        ! Clear hvac file path
               def_hvacfile='  '    ! Clear temporary hvac file path
@@ -382,8 +383,8 @@ C If user makes no selection, or selects exit, go back to Plants & Networks Menu
 C Display menu for furnace options
           elseif(hvac_typ.eq.1) then
             if(edit_unit_number .eq. 0 .and. num_hvac_sys .le. 4) then     
-              call EASKABC(' ','Furnace:','with A/C','without A/C',
-     &                   'cancel',ichoice,nbhelp)
+              call EASKMBOX(' ','Furnace:','with A/C','without A/C',
+     &          'cancel',' ',' ',' ',' ',' ',ichoice,nbhelp)
             else
               ichoice = 2
             endif
@@ -419,9 +420,9 @@ C Display menu for Air-Souce Heat Pumps Option.
             do while(ipck.ne.2)
               helptopic='zone_hvac_ashp'
               call gethelptext(helpinsub,helptopic,nbhelp)
-              call EASKABCD(' ','Function:','heating',
-     &                    'cooling','heating & cooling',
-     &                    'cancel',modechoice,nbhelp)      
+              call EASKMBOX(' ','Function:','heating',
+     &          'cooling','heating & cooling',
+     &          'cancel',' ',' ',' ',' ',modechoice,nbhelp)      
               if(modechoice.eq.4)then 
                 return
               end if
@@ -430,8 +431,8 @@ C Display menu for Air-Souce Heat Pumps Option.
                 return
               end if  
               if(edit_unit_number .eq. 0)then
-                call EASKABC(' ','Backup ','furnace',
-     &                   'none','cancel',ichoice,nbhelp)      
+                call EASKMBOX(' ','Backup ','furnace',
+     &            'none','cancel',' ',' ',' ',' ',' ',ichoice,nbhelp)      
                 if(ichoice.eq.3)then 
                   return
                 elseif(ichoice.eq.1) then
@@ -468,8 +469,8 @@ C Display menu for Air-Souce Heat Pumps Option.
                 if(edit_unit_number .ne. 0) then
                   helptopic='zone_hvac_ashp_no_heat'
                   call gethelptext(helpinsub,helptopic,nbhelp)
-                  CALL EASKAB(' ', 'Possible overwrite:','continue',
-     &              'cancel',ipck,nbhelp)
+                  CALL EASKMBOX(' ', 'Possible overwrite:','continue',
+     &              'cancel',' ',' ',' ',' ',' ',' ',ipck,nbhelp)
                   if(ipck.eq.1) then !continue)
                     continue
                   elseif(ipck.eq.2) then !go back to choices
@@ -497,9 +498,9 @@ C Display menu for ground source heat pumps options.
             do while(ipck.ne.2)
               helptopic='zone_hvac_gshp'
               call gethelptext(helpinsub,helptopic,nbhelp)
-              call EASKABCD(' ','Function:','heating',
-     &                    'cooling','heating & cooling','cancel',
-     &                    modechoice,nbhelp)
+              call EASKMBOX(' ','Function:','heating',
+     &          'cooling','heating & cooling','cancel',
+     &          ' ',' ',' ',' ',modechoice,nbhelp)
               if(modechoice.eq.4)then 
                 return
               end if
@@ -508,8 +509,8 @@ C Display menu for ground source heat pumps options.
                 return
               end if
               if(edit_unit_number .eq. 0)then 
-                call EASKABC(' ','Backup:','furnace',
-     &                   'none','cancel',ichoice,nbhelp)      
+                call EASKMBOX(' ','Backup:','furnace',
+     &            'none','cancel',' ',' ',' ',' ',' ',ichoice,nbhelp)      
                 if(ichoice.eq.3)then 
                   return
                 elseif(ichoice.eq.1) then
@@ -551,8 +552,8 @@ C Display menu for ground source heat pumps options.
                 if(edit_unit_number .ne. 0) then
                   helptopic='zone_hvac_ashp_no_heat'
                   call gethelptext(helpinsub,helptopic,nbhelp)
-                  CALL EASKAB(' ', 'Possible overwrite:','continue', 
-     &              'cancel',ipck,nbhelp)
+                  CALL EASKMBOX(' ', 'Possible overwrite:','continue', 
+     &              'cancel',' ',' ',' ',' ',' ',' ',ipck,nbhelp)
                   if(ipck.eq.1) then !continue)
                     continue
                   elseif(ipck.eq.2) then !go back to choices
@@ -865,9 +866,9 @@ C of loop - can be added later when fractions matter
         return
       endif
       
-      CALL EASKABCD(' ','Circulation fan mode:', 'no fan', 
-     &              'auto ', 'continuous ','cancel',
-     &              ifan_operation(i),nbhelp)
+      CALL EASKMBOX(' ','Circulation fan mode:', 'no fan', 
+     &  'auto ', 'continuous ','cancel',' ',' ',' ',' ',
+     &  ifan_operation(i),nbhelp)
       if(ifan_operation(i).eq.4) then !cancel selected
         ifan_operation(i) = 0
         exit=.true.
@@ -1071,9 +1072,9 @@ C of loop - can be added later when fractions matter
         return
       end if
       
-      CALL EASKABCD(' ','Circulation fan mode:', 'no fan', 
-     &              'auto','continuous','cancel',
-     &              ifan_operation(i),nbehlp)
+      CALL EASKMBOX(' ','Circulation fan mode:', 'no fan', 
+     &  'auto','continuous','cancel',' ',' ',' ',' ',
+     &  ifan_operation(i),nbehlp)
       if(ifan_operation(i).eq.4) then !cancel selected
         ifan_operation(i) = 0
         exit=.true.
@@ -1174,9 +1175,9 @@ C Select the priority of the system.
         helptopic='zone_hvac_hp_poor'
         call gethelptext(helpinsub,helptopic,nbhelp)
        
-        CALL EASKABC(' ','Heat pump unit type:', 
-     &     'ASHP typical','ASHP good','ASHP poor',isys_type(i),
-     &     nbhelp)
+        CALL EASKMBOX(' ','Heat pump unit type:', 
+     &    'ASHP typical','ASHP good','ASHP poor',
+     &    ' ',' ',' ',' ',' ',isys_type(i),nbhelp)
       end if
       
 C Select the number of zones the system is linked to
@@ -1296,9 +1297,9 @@ C Set flow rate at rating conditions.
       
       
 C set circulation fan mode
-      CALL EASKABCD(' ','Circulation fan mode:','no fan', 
-     &              'auto','continuous','cancel',
-     &              ifan_operation(i), nbhelp)
+      CALL EASKMBOX(' ','Circulation fan mode:','no fan', 
+     &  'auto','continuous','cancel',' ',' ',' ',' ',
+     &  ifan_operation(i), nbhelp)
       if(ifan_operation(i).eq.4) then !cancel selected
         ifan_operation(i) = 0
         exit=.true.
@@ -1503,8 +1504,9 @@ C Select the priority of the system.
         helptopic='zone_hvac_hp_poor'
         call gethelptext(helpinsub,helptopic,nbhelp)
        
-        CALL EASKABC(' ', 'Enter the heat pump unit type', 
-     &    'ASHP Typical','ASHP Good','ASHP Poor',isys_type(i),nbhelp)
+        CALL EASKMBOX(' ', 'Enter the heat pump unit type', 
+     &    'ASHP Typical','ASHP Good','ASHP Poor',
+     &    ' ',' ',' ',' ',' ',isys_type(i),nbhelp)
       end if
      
 C Select the number of zones the system is linked to.
@@ -1619,9 +1621,9 @@ C Set flow rate at rating conditions.
       end if
 
 C Set circulation fan mode.
-      CALL EASKABCD(' ','circulation fan mode', 'No Fan Associated', 
-     &              'Auto Mode', 'Continuous Mode','Cancel',
-     &              ifan_operation(i),nbhelp)
+      CALL EASKMBOX(' ','circulation fan mode', 'No Fan Associated', 
+     &  'Auto Mode', 'Continuous Mode','Cancel',' ',' ',' ',' ',
+     &  ifan_operation(i),nbhelp)
       if(ifan_operation(i).eq.4) then ! cancel selected
         ifan_operation(i) = 0
         exit=.true.
@@ -1867,10 +1869,10 @@ C Economizer control type.
       
       helptopic='zone_hvac_hp_z_ctl'
       call gethelptext(helpinsub,helptopic,nbhelp)
-      CALL EASKAB(' ', 
-     &           'Cooling system control:', 
-     &           'ideal', 'on/off with deadband',
-     &           icontrol_function(i),nbhelp)
+      CALL EASKMBOX(' ', 
+     &  'Cooling system control:', 
+     &  'ideal', 'on/off with deadband',
+     &  ' ',' ',' ',' ',' ',' ',icontrol_function(i),nbhelp)
 
       CALL USRMSG(' ',' ','-') ! Clear Screen
       return

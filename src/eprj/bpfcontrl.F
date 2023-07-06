@@ -196,7 +196,7 @@ C blank, call ezctli to clear commons and save the configuration file.
         if(cfgok)then
           call ezctli
           LCTLF='  '
-          CALL EMKCFG('-',IER)
+          CALL EMKCFG('s',IER)
           call usrmsg(' ',' ','-')
         else
           call usrmsg('Cannot save control data while in browse',
@@ -230,7 +230,7 @@ C de-referencing the file.
      &        'A blank control file name returned. Clearing data.') 
             call ezctli
             LCTLF='  '
-            CALL EMKCFG('-',IER)
+            CALL EMKCFG('s',IER)
             goto 44
           endif
         else
@@ -240,7 +240,7 @@ C de-referencing the file.
           call edisp(iuout,'No control file selected. Clearing data.') 
           call ezctli
           LCTLF='  '
-          CALL EMKCFG('-',IER)
+          CALL EMKCFG('s',IER)
           goto 44
         endif
       endif
@@ -251,15 +251,16 @@ C de-referencing the file.
       IF(XST)THEN
         CALL EZCTLR(ICTLF,ITRC,IUOUT,IER)
       else
-        CALL EASKAB(' File not found.','Options:',
-     &    'specify another','make new file',IW,0)
+        CALL EASKMBOX(' File not found.','Options:',
+     &    'specify another','make new file',
+     &    ' ',' ',' ',' ',' ',' ',IW,0)
         if(IW.eq.1)goto 44
 
 C Set scope and defaults and ask user which control to focus on first.
         hcffpattern(1)='HEATCOOL'; hcffpattern(2)='-'
-        CALL EASKABCD('Extent of ideal environmental controls: ',
+        CALL EASKMBOX('Extent of ideal environmental controls: ',
      &    ' ','heating only','cooling only','heating & cooling',
-     &    'unknown',IW,nbhelp)
+     &    'unknown',' ',' ',' ',' ',IW,nbhelp)
         if(iw.eq.1)then
           hcffpattern(1)='HEATONLY'; hcffpattern(2)='-'
         elseif(iw.eq.2)then
@@ -689,9 +690,9 @@ c Remember zero implies no control.
           else
 
 C Offer choice of looping through all zones or updating specific zones to a control loop.
-            CALL EASKABC(' ','Options:',
+            CALL EASKMBOX(' ','Options:',
      &        'loop through all zones','select subset of zones to link',
-     &        'abort',IW,nbhelp)
+     &        'abort',' ',' ',' ',' ',' ',IW,nbhelp)
             if(iw.eq.1)then
               do IJ=1,NZ
                 write(outs,'(3A,I2,A)')'for ',zname(IJ),'(',IJ,')?'
@@ -751,9 +752,9 @@ C Flag that links made.
       ELSEIF(IVERT.EQ.6)THEN
 
 C Set the scope.
-        CALL EASKABCD('Extent of ideal environmental controls: ',
+        CALL EASKMBOX('Extent of ideal environmental controls: ',
      &    ' ','heating only','cooling only','heating & cooling',
-     &    'unknown',IW,nbhelp)
+     &    'unknown',' ',' ',' ',' ',IW,nbhelp)
         if(iw.eq.1)then
           hcffpattern(1)='HEATONLY'; hcffpattern(2)='-'
         elseif(iw.eq.2)then
@@ -808,8 +809,7 @@ C Ask user if they want to save any changes to control file.
           IF(OK)THEN
             ICTLF=IFIL+1
             CALL CTLWRT(ICTLF,IER)
-C            call edisp(IUOUT,'Saving system configuration file.')
-            CALL EMKCFG('-',IER)
+            CALL EMKCFG('s',IER)
           ENDIF
         endif
         if(IRETURN.EQ.1)then
@@ -836,8 +836,7 @@ C and save the system configuration file.
         if(cfgok)then
           ICTLF=IFIL+1
           CALL CTLWRT(ICTLF,IER)
-C          call edisp(IUOUT,'Saving system configuration file.')
-          CALL EMKCFG('-',IER)
+          CALL EMKCFG('s',IER)
         else
           call usrmsg('Cannot save control data while in browse',
      &                'mode. You must first `own` the model.','W')
@@ -932,9 +931,9 @@ C List control data.
 C Add or delete a zone control function.
 C Warn user to update any connections to plant loops.
         IW=1
-        CALL EASKATOG(' ','Options:','delete control loop',
+        CALL EASKMBOX(' ','Options:','delete control loop',
      &     'add control loop','copy control loop',
-     &     'cancel',' ',' ',' ',IW,nbhelp)
+     &     'cancel',' ',' ',' ',' ',IW,nbhelp)
         if(IW.eq.1)then
           call ADDCNTL(icfoc,'D')
         elseif(IW.eq.2)then
@@ -1593,8 +1592,9 @@ C Explanation
       elseif(IVERT.EQ.mvert-2)then
 
 C Add or delete a period.
-        CALL EASKABC(' ','Options:',
-     &    'add period','delete period','cancel',iad,nbhelp)
+        CALL EASKMBOX(' ','Options:',
+     &    'add period','delete period','cancel',
+     &    ' ',' ',' ',' ',' ',iad,nbhelp)
         if(iad.eq.1)then
           call addctldp(0,II,JJ,'A')
         elseif(iad.eq.2)then
@@ -1855,11 +1855,12 @@ C (Q=m'Cp(Ts' + Ta'))
           if ( close1 ) then
             helptopic='sys_bctl_plant_link'
             call gethelptext(helpinsub,helptopic,nbhelp)
-            CALL EASKAB(
+            CALL EASKMBOX(
      &        'Zone heat injection calculation method.',
      &        'Options:',
      &        'sequential boundary conditions',
-     &        'concurrent boundary conditions',IW,nbhelp)
+     &        'concurrent boundary conditions',
+     &        ' ',' ',' ',' ',' ',' ',IW,nbhelp)
 
             if (IW .eq. 2) cm(4) = 5.0
 
@@ -2469,8 +2470,9 @@ C Latent/evaporative source, see bcl20 for details.
           ubasw= cm(11) 
 
 C Ask for data.
-          CALL EASKAB('Wetted surface options:',' ',
-     &    'Wet opaque surface','Swimming pool surface',IW,nbhelp)
+          CALL EASKMBOX('Wetted surface options:',' ',
+     &      'Wet opaque surface','Swimming pool surface',
+     &      ' ',' ',' ',' ',' ',' ',IW,nbhelp)
           mode = IW-1
           if(mode.eq.0)then
 C Surface area and HTC picked up from ESP-r
@@ -2733,8 +2735,9 @@ C Explanation
       elseif(IVERT.EQ.mvert-2)then
 
 C Add or delete a period.
-        CALL EASKABC(' ','Options:',
-     &    'add period','delete period','cancel',iad,nbhelp)
+        CALL EASKMBOX(' ','Options:',
+     &    'add period','delete period','cancel',
+     &    ' ',' ',' ',' ',' ',iad,nbhelp)
         if(iad.eq.1)then
           call addctldp(5,II,JJ,'A')
         elseif(iad.eq.2)then
@@ -2825,8 +2828,8 @@ C Ask for miscel. data. iolaw zero sticks with default optical properties.
      &    'ON or OFF and do not define sensor or actuator')
           call edisp(iuout,outs)
           cm(1)=1
-          CALL EASKAB('Is optical control active in this period?',' ',
-     &        'No','Yes',iad,nbhelp)
+          CALL EASKMBOX('Is optical control active in this period?',
+     &      ' ','No','Yes',' ',' ',' ',' ',' ',' ',iad,nbhelp)
           cm(2)=real(iad - 1)
           ioan(ii,1)=-98
           iosn(ii,1)=-98
@@ -3119,8 +3122,9 @@ C Explanation
       elseif(IVERT.EQ.mvert-2)then
 
 C Add or delete a period.
-        CALL EASKABC(' ','Options:',
-     &    'add period','delete period','cancel',iad,nbhelp)
+        CALL EASKMBOX(' ','Options:',
+     &    'add period','delete period','cancel',
+     &    ' ',' ',' ',' ',' ',iad,nbhelp)
         if(iad.eq.1)then
           call addctldp(icfoc,II,JJ,'A')
         elseif(iad.eq.2)then
@@ -3430,8 +3434,9 @@ C Explanation
       elseif(IVERT.EQ.mvert-2)then
 
 C Add or delete a period.
-        CALL EASKABC(' ','Options:',
-     &    'add period','delete period','cancel',iad,nbhelp)
+        CALL EASKMBOX(' ','Options:',
+     &    'add period','delete period','cancel',
+     &    ' ',' ',' ',' ',' ',iad,nbhelp)
         if(iad.eq.1)then
           call addctldp(1,II,JJ,'A')
         elseif(iad.eq.2)then
@@ -4077,8 +4082,8 @@ C Multi-sensor of control loops
      &      1,'-',mcF,'-',1,'ctl loop number',IER,nbhelp)
             CM(ICLP*2)=ICLN
             IF(ICLP.NE.NCLP)THEN
-              CALL EASKAB('Logical relationship with next loop',' ',
-     &        '.OR.','.AND.',iad,nbhelp)
+              CALL EASKMBOX('Logical relationship with next loop',
+     &        ' ','.OR.','.AND.',' ',' ',' ',' ',' ',' ',iad,nbhelp)
               CM(ICLP*2+1)=IAD
             ENDIF
  1454     CONTINUE
@@ -4408,8 +4413,9 @@ C Explanation
       elseif(IVERT.EQ.mvert-2)then
 
 C Add or delete a period.
-        CALL EASKABC(' ','Options:',
-     &    'add period','delete period','cancel',iad,nbhelp)
+        CALL EASKMBOX(' ','Options:',
+     &    'add period','delete period','cancel',
+     &    ' ',' ',' ',' ',' ',iad,nbhelp)
         if(iad.eq.1)then
           call addctldp(2,II,JJ,'A')
         elseif(iad.eq.2)then
@@ -4585,22 +4591,23 @@ C<< To include feed back to text feedback area using USRMSG
             GOTO 56
           ELSEIF(NSEN.EQ.1)THEN
             INOT=1
-            CALL EASKAB('Choose whether NOT or SLAVE',' ','NOT','SLAVE'
-     &      ,INOT,nbhelp)
+            CALL EASKMBOX('Choose whether NOT or SLAVE',' ','NOT',
+     &        'SLAVE',' ',' ',' ',' ',' ',' ',INOT,nbhelp)
           ENDIF
           IF(NSEN.EQ.1)GOTO 69
  
 C Default position: 1=open,0=closed
-          CALL EASKAB('Default position? ',' ','closed','open',
-     &      IW,nbhelp)
+          CALL EASKMBOX('Default position? ',' ','closed','open',
+     &      ' ',' ',' ',' ',' ',' ',IW,nbhelp)
           cm(2)=IW-1
 
 C Auxiliary sensor details,
           DO 358 ISEN=1,NSEN
             ndx=4+8*(ISEN-1)
             WRITE(OUTS,'(A,I3)')'What to sense for sensor number ',ISEN
-            CALL EASKAB(OUTS,' ','Climate variable','Node temperature'
-     &      ,IW,nbhelp)
+            CALL EASKMBOX(OUTS,' ',
+     &        'Climate variable','Node temperature',
+     &        ' ',' ',' ',' ',' ',' ',IW,nbhelp)
             IF(IW.EQ.1)THEN
               CM(NDX)=-3.
               idno=1
@@ -4639,8 +4646,8 @@ C Auxiliary sensor details,
             CALL EASKR(cm(ndx+4),' ',' Aux sensor set-point ? ',
      &        -100.,'F',0.,'-',0.,' Aux sensor set-point',IER,nbhelp)
             write(msg2,'(a,f5.2)') ' setpoint ',cm(ndx+4)
-            CALL EASKAB(' ','Action flag?','Direct','Inverse',
-     &                 IW,nbhelp)
+            CALL EASKMBOX(' ','Action flag?','Direct','Inverse',
+     &        ' ',' ',' ',' ',' ',' ',IW,nbhelp)
             IF(IW.EQ.1)THEN
               cm(ndx+5)=1.0
             ELSEIF(IW.EQ.2)THEN
@@ -4656,8 +4663,9 @@ C            CALL EASKR(cm(ndx+6),' ',' Aux sensor "fraction ON"? ',
 C     &        0.,'F',1.,'F',1.,' Aux sensor set-point',IER,nbhelp)
             cm(ndx+6)=0.
             IF(ISEN.LT.NSEN.OR.ISEN.EQ.1)
-     &      CALL EASKABC('Logical action variable',
-     &      'with next sensor','AND','OR','NOT',iad,nbhelp)
+     &      CALL EASKMBOX('Logical action variable',
+     &        'with next sensor','AND','OR','NOT',
+     &        ' ',' ',' ',' ',' ',iad,nbhelp)
             IF(IAD.EQ.1)THEN
               CM(NDX+7)=1.0
               msg4=' AND'
@@ -4777,13 +4785,15 @@ C PI controller
           CALL EGETWR(HOLD,K,cm(5),1.E-6,1.E6,'F','Prop band',IER)
           CALL EGETWR(HOLD,K,cm(6),1.E-6,1.E6,'F','Int reset time',IER)
           IAD=0
-          CALL EASKAB(' ','Action flag:','direct','inverse',iad,nbhelp)
+          CALL EASKMBOX(' ','Action flag:','direct','inverse',
+     &      ' ',' ',' ',' ',' ',' ',iad,nbhelp)
           IF(IAD.EQ.2)IAD=-1
           CM(7)=REAL(IAD)
           IAD=0
           CM(8)=0.
-          CALL EASKABC(' ','Sensor to use:',
-     &    'this loop`s sensor','multisensor loop','cancel',iad,nbhelp)
+          CALL EASKMBOX(' ','Sensor to use:',
+     &      'this loop`s sensor','multisensor loop','cancel',
+     &      ' ',' ',' ',' ',' ',iad,nbhelp)
           IF(IAD.EQ.2)THEN
             CALL EASKR(ocli,' ','Control loop index?',
      &      0.,'-',24.,'-',0.,'control loop index',IER,nbhelp)
@@ -4901,8 +4911,9 @@ C Explanation
 
 
 C Add or delete a period.
-        CALL EASKABC(' ','Options:',
-     &    'add period','delete period','cancel',iad,nbhelp)
+        CALL EASKMBOX(' ','Options:',
+     &    'add period','delete period','cancel',
+     &    ' ',' ',' ',' ',' ',iad,nbhelp)
         if(iad.eq.1)then
           call addctldp(3,II,JJ,'A')
         elseif(iad.eq.2)then
@@ -5108,9 +5119,9 @@ C upon whether the last output from the loop was on/off respectively.
                   IONE=1
                 ENDIF
                 IADR=1
-                CALL EASKATOG('Logical action variable',
+                CALL EASKMBOX('Logical action variable',
      &          'with next sensor','AND','OR','NOT','SLAVE',
-     &          'MAX','MIN',' ',IADR,nbhelp)
+     &          'MAX','MIN',' ',' ',IADR,nbhelp)
                 CM(ICLP*3+1)=REAL(IADR)
               ELSE
                 CM(ICLP*3+1)=CM((ICLP-1)*3+1)
@@ -5194,8 +5205,8 @@ C Usual proportional fonts set when prj started.
       CHARACTER*(*) prompt,title,errmsg
 
       DIMENSION SALT(3),IVALS(3),VERT(35),ICPK(MCONTM)
-      CHARACTER VERT*39,KEY*1,prompt2*36
-      character outs*124,SALT*40
+      CHARACTER VERT*42,KEY*1,prompt2*36
+      character outs*124,SALT*40,SSTR*96
       integer isn1T,isn2T,isn3T,isn4T,ilayt   ! temporary values for editing.
       integer MVERT,IVERT ! max items and current menu item
 
@@ -5345,6 +5356,24 @@ C If a long list include page facility text and info on portion seen.
       VERT(M+3)  ='- exit menu             '
       write(prompt2,'(a)')' '
 
+C Echo the current sensor information.
+      CALL EVCNTRL(icfoc,II,1,1,'S',SSTR)
+      LN=max(1,LNBLNK(SSTR))
+      if(icfoc.eq.0)then
+        if(IBSN(II,4).eq.0)then
+          WRITE(outs,'(a,i2,2a)') ' The sensor for function ',
+     &      II,' ',SSTR(1:LN)
+        else
+          WRITE(outs,'(a,i2,3a,i2)') ' The sensor for function ',
+     &      II,' ',SSTR(1:LN),' with nested loop ',IBSN(II,4)
+        endif
+      else
+        WRITE(outs,'(a,i2,2a)') ' The sensor for function ',
+     &    II,' ',SSTR(1:LN)
+      endif
+      call edisp(iuout,' ')
+      call edisp(iuout,outs)
+
 C Display the menu.
       call usrmsg(PROMPT,PROMPT2,'-')
       CALL EMENU(title,VERT,MVERT,IVERT)
@@ -5386,8 +5415,8 @@ C Ask for the specific zone.
         CALL EPMENRC
         SELECT=.TRUE.
         if(icfoc.ne.5)then
-          CALL EASKABC(' ','Location: ','air point',
-     &      'surface','cancel',IW,nbhelp)
+          CALL EASKMBOX(' ','Location: ','air point',
+     &      'surface','cancel',' ',' ',' ',' ',' ',IW,nbhelp)
         elseif(icfoc.eq.5)then
 
 C For optical controls, always assume zone air point
@@ -5402,8 +5431,9 @@ C For optical controls, always assume zone air point
           CALL EPMENSV
           call EASKSUR(isn1,isn2,'-','Available surfaces.',' ',IER)
           CALL EPMENRC
-          CALL EASKABC(' ','Location:',
-     &      'inside surface','internal node','cancel',IWN,nbhelp)
+          CALL EASKMBOX(' ','Location:',
+     &      'inside surface','internal node','cancel',
+     &      ' ',' ',' ',' ',' ',IWN,nbhelp)
           if(IWN.eq.1)then
             isn3=0
           elseif(IWN.eq.2)then
@@ -5464,9 +5494,9 @@ C Offer the user a cancel option.
 
 C Optionally allow user to detect the temperature between
 C two nodes. 
-        call EAskAB('Does sensor measure the temperature ',
-     &              'difference between two nodes?',
-     &              'yes', 'no', iWhich, nbhelp )
+        call easkmbox('Does sensor measure the temperature',
+     &    'difference between two nodes?',
+     &    'yes', 'no',' ',' ',' ',' ',' ',' ',iWhich,nbhelp)
 
 
 
@@ -5516,8 +5546,9 @@ C Power control sensor not yet implemented, return zeros.
 
 C Senses mix of zone db temp and MRT.
         isn1T=-2
-        call EASKAB(' ','Options:',
-     &    'current zone','a specific zone',IW,nbehlp)
+        call EASKMBOX(' ','Options:',
+     &    'current zone','a specific zone',
+     &    ' ',' ',' ',' ',' ',' ',IW,nbehlp)
         if(IW.eq.1)then
           isn2T=0   ! indicate the curren zone
         else
@@ -5595,8 +5626,9 @@ C blind control) or Lux level
         active_option=.true.
         do while(active_option)
         
-          call EASKAB(' ','Available lux level controls:',
-     &      'Light Switch (N/A)','Lux level',IW,nbehlp)
+          call EASKMBOX(' ','Available lux level controls:',
+     &      'Light Switch (N/A)','Lux level',
+     &      ' ',' ',' ',' ',' ',' ',IW,nbehlp)
           if(IW.eq.1)then
             active_option=.true.
 C Light Switch (manual blind control)
@@ -5684,8 +5716,9 @@ C  isn1= -4  always
 C  isn2  index node/connection
 C  isn3  2nd index node (for differences), or contaminant number
 C  isn4=  0 node, 1=connection (tie in with type later), 2 contaminant control
-        CALL EASKABC(' ','Sensor at:','network node',
-     &    'network connection','cancel',IW,nbhelp)
+        CALL EASKMBOX(' ','Sensor at:','network node',
+     &    'network connection','cancel',
+     &    ' ',' ',' ',' ',' ',IW,nbhelp)
         if(IW.eq.1)then
 
 C Flow controller. Note: there is only one `type` per flow function 
@@ -6079,17 +6112,17 @@ C Decode from the potentially long list to the zone number via KEYIND.
         CALL KEYIND(MVERT,IVERT,IFOC,IO)
         SELECT=.TRUE.
         ian1 = IFOC
-        CALL EASKABC(' ','Location: ','air point',
-     &    'surface','cancel',IW,nbhelp)
+        CALL EASKMBOX(' ','Location: ','air point',
+     &    'surface','cancel',' ',' ',' ',' ',' ',IW,nbhelp)
         if(IW.eq.1)then
           ian2=0; ian3=0
         elseif(IW.eq.2)then
           CALL EPMENSV
           call EASKSUR(ian1,ian2,'-','Available surfaces.',' ',IER)
           CALL EPMENRC
-          CALL EASKABC(' ','Location:',
+          CALL EASKMBOX(' ','Location:',
      &      'inside surface','internal node','cancel',
-     &      IWN,nbhelp)
+     &      ' ',' ',' ',' ',' ',IWN,nbhelp)
           if(IWN.eq.1)then
             ian3=0
             goto 33
@@ -6275,8 +6308,9 @@ C Check that selected CFC type contains a shading layer.
 
 C Actuates radiant convective mix.
         ian1T=-2
-        call EASKAB(' ','Options:',
-     &    'current zone','a specific zone',IW,nbehlp)
+        call EASKMBOX(' ','Options:',
+     &    'current zone','a specific zone',
+     &    ' ',' ',' ',' ',' ',' ',IW,nbehlp)
         if(IW.eq.1)then
           ian2T=0   ! indicate the current zone
         else

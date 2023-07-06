@@ -406,14 +406,15 @@ C Allow a scene to be added or deleted.
           helptopic='scene_manage_list'
           call gethelptext(helpinsub,helptopic,nbhelp)
           IW=1
-          CALL EASKATOG(' ','Action: ','add scene','delete scene',
-     &      'copy scene','cancel',' ',' ',' ',IW,nbhelp)
+          CALL EASKMBOX(' ','Action: ','add scene','delete scene',
+     &      'copy scene','cancel',' ',' ',' ',' ',IW,nbhelp)
           if(IW.EQ.1)then
 
 C Add a new scene (new rif file etc).
             delzone = .false.
-            CALL EASKABC(' ','Create scene:','silently',
-     &        'interactively','cancel',IWDV,nbhelp)
+            CALL EASKMBOX(' ','Create scene:','silently',
+     &        'interactively','cancel',' ',' ',' ',' ',' ',
+     &        IWDV,nbhelp)
             if (IWDV.eq.1) then
               call newscene('c')   ! silent creation
               cmdact='Create'
@@ -813,13 +814,12 @@ C ADDSCENE allows the creation of a default translation from ESP-r to radiance.
 C Ask if a default image should be created.
       helptopic='create_scene_interactive'
       call gethelptext(helpinsub,helptopic,nbhelp)
-      CALL EASKABC('This is a new visualisation.',
+      CALL EASKMBOX('This is a new visualisation.',
      &  'Create scene:','silently','interactively',
-     &  'cancel',IWDV,nbhelp)
+     &  'cancel',' ',' ',' ',' ',' ',IWDV,nbhelp)
       if(IWDV.eq.1)then
 
 C Check for command line information.
-        call tstamp('>','E2R: creating default scene')
         if (zone(1:4).ne.'NONE'.and.aim(1:4).ne.'NONE') then
           call checkrif('n')
         else
@@ -832,7 +832,6 @@ C Check for command line information.
       elseif(IWDV.eq.2)then
 
 C Create new scene file asking the user what the purpose is.
-        call tstamp('>','E2R: controlling default scene')
         write (pfile,'(a,a)') runpath(1:lnrp),LRADCF(1:lnblnk(LRADCF))
         call ERPFREE(IRCFG,ISTAT)
         call FPOPEN(IRCFG,ISTAT,1,3,pfile)
@@ -929,8 +928,8 @@ C Setup help for the next few dialogs.
       WPDIST=0.9
       CALL EASKR(WPDIST,' Distance of grid from surface ? ',' ',0.001,
      &  'F',2.5,'W',0.9,'grid transform',IER,nbhelp)
-      call EASKAB('Transform grid to: ',' ','Inside','Outside',
-     &  IW,nbhelp)
+      call EASKMBOX('Transform grid to: ',' ','Inside','Outside',
+     &  ' ',' ',' ',' ',' ',' ',IW,nbhelp)
       if (IW.eq.1) then
         dirf=-1.
       else

@@ -610,8 +610,9 @@ C after image and advise user.
           call viewtext(TLABEL,iside,isize,ifont)
           if(IG.eq.1.or.IG.eq.4)then
             order=0
-            call easkab(' ','Scale options:','distribution (hits)',
-     &        'distribution (hours)',ii,nbhelp)
+            call easkmbox(' ','Scale options:','distribution (hits)',
+     &        'distribution (hours)',' ',' ',' ',' ',' ',' ',
+     &        ii,nbhelp)
             if(ii.eq.1) hits=0
             if(ii.eq.2) hits=1
             CALL MODDRW(1,TLABEL,order,hits)
@@ -619,12 +620,13 @@ C after image and advise user.
           if(IG.eq.2.or.IG.eq.5)then
 
 C Ask if reverse order.
-            call easkab(' ','Graph options:','standard order',
-     &        'reversed',ii,nbhelp)
+            call easkmbox(' ','Graph options:','standard order',
+     &        'reversed',' ',' ',' ',' ',' ',' ',ii,nbhelp)
             if(ii.eq.1) order=0
             if(ii.eq.2) order=1
-            call easkab(' ','Scale options:','distribution (hits)',
-     &        'distribution (hours)',ii,nbhelp)
+            call easkmbox(' ','Scale options:','distribution (hits)',
+     &        'distribution (hours)',' ',' ',' ',' ',' ',' ',
+     &        ii,nbhelp)
             if(ii.eq.1) hits=0
             if(ii.eq.2) hits=1
             CALL MODDRW(2,TLABEL,order,hits)

@@ -1,5 +1,5 @@
 #include <gtk/gtk.h>
-#include <esp-r.h>
+#include "esp-r.h"
 
 void askf_(gchar *q1, gchar *file, int lenq1, int lenfile)
 {

@@ -30,7 +30,7 @@ GdkPixmap *entire_image;
 GdkPixmap *entire_image_old;
 
 /* Event loops and context */
-GMainLoop *menu_loop;
+extern GMainLoop *menu_loop;
 //GMainLoop *pmenu_loop;
 
 
@@ -79,13 +79,9 @@ extern int pm_lines;  /* current number of active popup menu lines */
 extern char cappl[5]; /* fortran application name */
 extern char cfgroot[32]; /* fortran project root name    */
 extern char path[73];    /* fortran project path    */
-extern char upath[73];   /* fortran users path    */
-extern char imgpth[25];  /* fortran relative path to images    */
-extern char docpth[25];  /* fortran relative path to documents    */
 extern char capt_wf_exe[73];  /* command to execute for capture wire frame */
 extern char capt_tf_file[73]; /* file for text feedback buffer dump */
 extern char capt_all_exe[73]; /* command for capture all of display */
-extern int browse;  /* if = 0 then user owns, if = 1 user browsing */
 extern gint xrt_width, xrt_height;  /* same as xsh.width and xsh.height */
 
 extern gint menu_pix_wd;  /* pixel width of initial menu (based on nb of characters *imenuchw) */
@@ -133,8 +129,7 @@ void  wwcsetend_();
 void  ckaccess_(long int* folder,long int* laccess,long int* lerr,char* fname,int len);
 void  getfilelist_(char* folder,char* act,char* flist,long int nwflist[],long int* nflist,int lenfolder,int lenact,int lenflist);
 void  getfileslist_(char* folder,char* act,long int* nflist,int lenfolder,int lenact);
-void  curproject_(char* fcfgroot,char* fpath,char* fupath,char* fimgpth,char* fdocpth,long int* ibrowse,
-        long int* iincomp,long int* iincon,int len_root,int len_fpath,int len_fupath,int len_fimgpth,int len_fdocpth);
+void  curproject_(char* fcfgroot,char* fpath,long int* iincomp,long int* iincon,int len_root,int len_fpath);
 void  curviews_(float* EVX,float* EVY,float* EVZ,float* VX,float* VY,float* VZ,float* EAN,long int* JITZNM,long int* JITSNM,
         long int* JITVNO,long int* JITOBS,long int* JITSNR,long int* JITGRD,long int* JITORG,float* DIS,long int* JITBND,
         long int* JITDSP,long int* JITHLS,long int* JITHLZ,long int* JITPPSW);
@@ -207,20 +202,14 @@ void  popupimage_(char *prom,char *docu,char *act,char *file,int lenprom,int len
 /* Shared functions in esp_menu.c */
 void  espmenuinit_ (char *title, int len);
 void  updmenu_(char* items,char* itypes,long int* nitmsptr,long int* iw,int len_items);
+void  upd_box_choices_(char* items,char* itypes,long int* nitmsptr,long int* iw,int len_items);
 void  espmenuitems_ (char *item,long int *ino, int len);
 void  espmenu_ (int *ino);
 void  espabcbox_ (char *msg1, char *aopt, char *bopt, char *copt,
           char *dopt, char *eopt, char *fopt, char *gopt,long int *ipick,
           int msg1_len, int aopt_len, int bopt_len, int copt_len,
           int dopt_len, int eopt_len, int fopt_len,int gopt_len);
-void  espdozenbox_ (char *msg1, char *aopt, char *bopt, char *copt,
-          char *dopt, char *eopt, char *fopt, char *gopt,
-          char *hopt, char *iopt, char *jopt, char *kopt,
-          char *lopt, long int *ipick,
-          int msg1_len, int aopt_len, int bopt_len, int copt_len,
-          int dopt_len, int eopt_len, int fopt_len, int gopt_len,
-          int hopt_len, int iopt_len, int jopt_len, int kopt_len,
-          int lopt_len);
+void  espmbox_ (char *msg1, long int *ipick, int msg1_len);
 
 /* Shared functions esp_text.c */
 void  inserttext_ ( char *message , int len);

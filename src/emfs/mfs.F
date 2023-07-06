@@ -47,7 +47,11 @@ C Global COMMON variables are described in emfnetw.F.
       integer lnblnk  ! function definition
 
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
-      COMMON/MFTRA/IMFTU
+      logical ieopened     ! Has session file been started.
+      integer iecount      ! Does it hold error messages.
+      character iefile*72  ! The name of the session file.
+      common/logs/ieopened,iecount,iefile
+       COMMON/MFTRA/IMFTU
       COMMON/SHOUT/ICOUT
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
       integer menuchw,igl,igr,igt,igb,igw,igwh
@@ -69,9 +73,6 @@ C ilflag = 0 tabular labels on multi-lines, ilflag = 1 on one line.
 C Path to problem
       common/rpath/path
 
-C Project journal on/off, unit number, cmd, file name.
-      common/journopt/journio,iuj,journcmd,jfile
-
 C Defaults.
       character*96 DFCFG,DFCTL,DEFRLB,DAPROB,DAFRES,DPNF
       COMMON/DEFLT2/DFCFG,DFCTL,DEFRLB,DAFRES,DAPROB,DPNF
@@ -88,10 +89,6 @@ C Once per hour storage of results, averaged over that hour.
       common/rdcmfs/irdcm,sFLWTIM,sDRYB,sWDIR,sWSPD,sITER,sIOK,
      &              sTNOD(MNOD)
 
-C Session log file (for errors etc.)
-      character iefile*72
-      common/logs/iefile
-
 C Name of current application
       common/APPNAME/cAppName
       character cAppName*12
@@ -105,7 +102,7 @@ C Ask to overwrite flag.
       CHARACTER OUTSTR*124,inf*144,outs*124
       character path*72
       character tg*1,delim*1,xfile*144
-      character journcmd*20,jfile*72,fs*1,cjfile*72
+      character fs*1
       character dstmp*24,uname*24,tfile*72
 
       character cVnum*38      ! returned from ESPrVersionNum
@@ -160,7 +157,6 @@ C Export (grtool) file information.
       ixopen = 0
       ixunit = 16
       ixpunit = 17
-      iuj = 20
       delim='-'
       call parpsf(MODL,iappw,iappx,iappy,inf)
 
@@ -323,34 +319,8 @@ C Find the user's home folder then get user's custom settings.
       endif
       call scesprc(esprc,IUA,0,IIER)
 
-C If there is a journal active set up to add to the journal. First
-C get the root journal file (setup by prj) from the users home folder.
-C All subsequent tstamp messages will be appended to root journal.
-      if(journio.eq.1)then
-        uname=' '
-        call usrname(uname)
-        cjfile=' '
-        write(cjfile,'(a,a1,3a)')upath(1:lnblnk(upath)),fs,'.',
-     &    uname(1:lnblnk(uname)),'cur_j'
-        there=.false.
-        INQUIRE(FILE=cjfile,EXIST=there)
-        if(there)then
-          close(iuj)
-          open(iuj,file=cjfile,status='UNKNOWN',err=901)
-          CALL STRIPC(iuj,OUTSTR,0,ND,1,'header',IER)
-          if(OUTSTR(1:15).eq.'Current_Journal')then
-            k=16
-            CALL EGETRM(OUTSTR,K,jfile,'W','root journ',IER)
-          endif
-          close(iuj)
-        endif
-
-        write(outs,'(a,a)')'Journal (network flow analysis) for:',
-     &    uname(1:lnblnk(uname))
-        call tstamp('>',outs)
-      endif
-
 C Create and open a session log file based on user name, PID etc.
+C Mfs does not know about the model cfg file.
       uname=' '; tfile=' '
       call usrname(uname)
       call esppid(ipid)
@@ -430,7 +400,6 @@ C Use askabout to instantiate the initial help messages (2nd parameter is one).
 C Exit module.
       IF(INO.EQ.NITMS)THEN
         CALL ERPFREE(IFPRB,ISTAT)
-        call tstamp('>','Finish network flow analysis')
         close(ieout)
         CALL ERPFREE(ieout,ISTAT)
         CALL EPAGEND
@@ -447,7 +416,6 @@ C Preferences.
 C Change problem description.
       elseif(INO.EQ.1)then
         CALL MFINIT(IFPRB,IFCLM,IFRES)
-        call tstamp('>','MFS: change network file')
 
 C Invoke simulation.
       elseif(INO.EQ.2)then
@@ -475,16 +443,12 @@ C Tabular output.
 
         helptopic='tabular_format_options'
         call gethelptext(helpinsub,helptopic,nbhelp)
-        CALL EASKAB(' ','Tabular output:',
-     &              'formatted','raw',IW,nbhelp)
+        CALL EASKMBOX(' ','Tabular output:','formatted',
+     &    'raw',' ',' ',' ',' ',' ',' ',IW,nbhelp)
         IF(IW.EQ.1) THEN
-          call tstamp('>','MFS: enter pretty print reporting')
           CALL MFTABL(itrc,IFRES,ier)
-          call tstamp('>','MFS: exit pretty print reporting')
         ELSEIF(IW.EQ.2) THEN
-          call tstamp('>','MFS: enter raw reporting')
           CALL MFRTBL(itrc,IFRES,ier)
-          call tstamp('>','MFS: exit raw reporting')
         END IF
 
 C Graphical output of results. Disabled on nongraphic terminals.
@@ -513,29 +477,23 @@ C missmatch in the problem file and resuults file go back to menu.
      &                'description and results file.','W')
           GOTO 10
         ENDIF
-        call tstamp('>','MFS: enter graphing')
         CALL MFPLOT(itrc,iuout,IFRES,ier)
-        call tstamp('>','MFS: exit graphing')
 
 C Alter iteration parameters.
       ELSEIF(INO.EQ.6)THEN
         CALL MFMODE(1)
-        call tstamp('>','MFS: change iteration parameters')
 
 C Alter stack model.
       ELSEIF(INO.EQ.7)THEN
         CALL MFMODE(2)
-        call tstamp('>','MFS: change pstack parameters')
 
 C Alter solver type.
       ELSEIF(INO.EQ.8)THEN
         CALL MFMODE(3)
-        call tstamp('>','MFS: change solver type')
 
 C Alter trace flag.
       ELSEIF(INO.EQ.9)THEN
         CALL MFMODE(4)
-        call tstamp('>','MFS: change trace level')
 
 C Enable/disable non-fatal warning message printing.
       ELSEIF(INO.EQ.10)THEN
@@ -570,8 +528,9 @@ C          call edisp(iuout,'3rd party graphing time = day fraction set')
 C        endif
         helptopic='mfs_include_day_marker'
         call gethelptext(helpinsub,helptopic,nbhelp)
-        CALL EASKAB('Include mark between days when',
-     &    'displaying or writing data?','no','yes',IDH,nbhelp)
+        CALL EASKMBOX('Include mark between days when',
+     &    'displaying or writing data?','no','yes',
+     &    ' ',' ',' ',' ',' ',' ',IDH,nbhelp)
         IDHFLG=IDH-1
 
 C Toggle delimeter.
@@ -579,9 +538,9 @@ C Toggle delimeter.
         helptopic='mfs_tabular_delimeters'
         call gethelptext(helpinsub,helptopic,nbhelp)
         IWM=1
-        CALL EASKATOG(' ','Columns delimeter options:',
+        CALL EASKMBOX(' ','Columns delimeter options:',
      &    'multiple spaces','single space','tab','comma','cancel',
-     &    ' ',' ',IWM,nbhelp)
+     &    ' ',' ',' ',IWM,nbhelp)
         if(iwm.eq.1)then
           delim = '-'
         elseif(iwm.eq.2)then
@@ -639,12 +598,10 @@ C   Show simulation progress
       IF(LAST) GOTO 10
 
 C Solve the fluid mass flow network
-      call tstamp('>','MFS: enter network solver')
       CALL MFSOLV
 
 C Transfer results to results file
       CALL MFOUTP(IFRES)
-      call tstamp('>','MFS: exit network solver')
       GOTO 40
 
  901  call edisp(iuout,'Error opening journal file, continuing.')

@@ -107,8 +107,9 @@ C allow decimal day representation if day format is DOY.
       ELSEIF(ISETUP.EQ.5)THEN
         continue
       ELSEIF(ISETUP.EQ.6)THEN
-        CALL EASKABC(' Choices for recording menu selections:',' ',
-     &    'OFF (default)','ON','continue',IRT,nbhelp)
+        CALL EASKMBOX(' Choices for recording menu selections:',
+     &    ' ','OFF (default)','ON','continue',
+     &    ' ',' ',' ',' ',' ',IRT,nbhelp)
         if(IRT.eq.1)then
           pifltog='OFF '
           lpifl='UNKNOWN'

@@ -110,15 +110,9 @@ C
 C  This bps main is here for convience. It
 C  allows the same version of this file to
 C  be used to compile the following forms
-C  of bps: a UNIX executable, a Windows
-C  EXE and a Windows DLL.
+C  of bps: a UNIX executable, a Windows EXE.
 C
 C==========================================
-      common/dllflg/dll
-      character dllsubr*12,dllmesg*124
-      logical dll
-
-      dll = .false.
       ! This ensures the command line is used and not a string passed in
       UsePassedCommandLine = .false.
       call SubBps
@@ -175,10 +169,6 @@ C a subroutine rather than as an application.
 
       integer lnblnk  ! function definition
 
-C For dll mode dllsubr is the subroutine name where an error occurs
-C and dllmesg tells the details of the error.
-      common/dllerr/dllsubr,dllmesg
-      common/dllflg/dll
       common/BPSDLL/iLogFile, cBpsVersion, cPrjPath, cPrjName,
      &            cCfgPath, cCfgFile, cLogFile, lBpsDebug
 
@@ -187,7 +177,10 @@ C and dllmesg tells the details of the error.
      &           cCfgFile, cLogFile
 
       common/outin/iuout,iuin,ieout
-      common/warncounter/iecount
+      logical ieopened     ! Has session file been started.
+      integer iecount      ! Does it hold error messages.
+      character iefile*72  ! The name of the session file.
+      common/logs/ieopened,iecount,iefile
       common/shout/icout
       common/filep/ifil
       common/tc/itc,icnt
@@ -271,9 +264,6 @@ C CFD grid refinement.
      &  NRFND,IRFND(MNZ,MRFNT,3)
       logical DOFLT,DORFN
 
-C Project journal on/off, unit number, cmd, file name.
-      common/journopt/journio,iuj,journcmd,jfile
-
       integer ncomp,ncon
       COMMON/C1/NCOMP,NCON
       COMMON/CHANNL/NOCHAN
@@ -311,10 +301,6 @@ C Name of current application
       common/APPNAME/cAppName
       character cAppName*12
 
-C Session log file (for errors etc.)
-      character iefile*72
-      common/logs/iefile
-
 C Flag for enabling h3k customizations 
 
       common/H3KCustom/bEnableH3kExtensions
@@ -335,21 +321,20 @@ C Logical flag for uncertainty header has been printed.
 
       LOGICAL OK,dok,OK3D
       LOGICAL INPOK,XST
-      logical unixok,there,photon,flwvis,dll,ACTCNN
+      logical unixok,there,photon,flwvis,ACTCNN
       logical concat
 
       character*29 item(15)
       character OUTS*124
       character inf*144,sps*30,aut*12,fs*1,actf*96
       character llclmdb*144
+      character ltcmdfl*144
       character browsing*4
       character bresfil*72
-      character journcmd*20,jfile*72,cjfile*72,OUTSTR*124
-      character dllsubr*12,dllmesg*124
       character t16*16,outs248*248
       character cVnum*38      ! returned from ESPrVersionNum
       character pagestitle*68 ! for banner title via epages call
-      character dstmp*24,uname*24,tfile*72
+      character dstmp*24,uname*24,tfile*72,troot*32
 
       character mca*12        ! to force Monte Carlo assessments
       integer nbsets          ! how many sets to run
@@ -380,8 +365,7 @@ C Flags for multi-year simulation menus.
       integer*8 iicapture   ! to pass to updcapt
 #endif
 
-C Active domain.  Assume not active, check if running in dll mode
-C and clear dll subroutine name and error details.
+C Active domain.  Assume not active.
       CFDOK=.false.
 
 C Co-simulation between ESP-r and TRNSYS is possible.  By default assume
@@ -400,18 +384,6 @@ C Prior to commencing simulation, delete "console_out.txt", if found.
 
 C Remove Modish lock file.
       call system("rm -f ../tmp/Z*.lock.tmp")
-
-C Mark in log file, start of simulation.
-      if( dll ) then
-        open(UNIT=iLogFile, FILE=cLogFile,position='APPEND' )
-        write( iLogFile, * ) "subroutine: bps() - dll run"
-        write( iLogFile, * ) "checking input"
-        close( iLogFile )
-        open(UNIT=iLogFile, FILE=cLogFile,position='APPEND' )
-      endif
-
-      dllsubr=' '
-      dllmesg=' '
       do 1 I=1,MCNN
         ACTCNN(I)=.TRUE.
  1    continue
@@ -487,30 +459,18 @@ C Some initial values, which may be changed later:
       helpinapp='bps'  ! set once for the application
       helpinsub='bps'  ! set for MAIN
 
-C Set parameters for DLL run.
-C all console write is rerouted to the log file
-      if( dll ) then
-        itu = iLogFile
-        iuout = iLogFile
-        icout = iLogFile
-        open(UNIT=iLogFile, FILE=cLogFile,position='APPEND' )
-        call SetDllParms(MODL,iappw,iappx,iappy,inf,sps,aut,actf)
-        browsing='no'
-      else
-
 C Get command line parameters from local subroutine parbps.
-        call parbps(iverb,MODL,iappw,iappx,iappy,inf,browsing,sps,aut,
-     &    actf,mca,nbsets)
-        itrc=iverb    ! set trace after call to parsim
-        if(mca(1:3).eq.'MCA')then
-          IUNCMET=3
-          IMET=3
-          if(nbsets.gt.0) NRSIM=nbsets
-        else
-          IUNCMET=0
-          IMET=0
-          NRSIM=0
-        endif
+      call parbps(iverb,MODL,iappw,iappx,iappy,inf,browsing,sps,aut,
+     &  actf,mca,nbsets)
+      itrc=iverb    ! set trace after call to parsim
+      if(mca(1:3).eq.'MCA')then
+        IUNCMET=3
+        IMET=3
+        if(nbsets.gt.0) NRSIM=nbsets
+      else
+        IUNCMET=0
+        IMET=0
+        NRSIM=0
       endif
 
 C Detect if the simulator was started up from the project manager
@@ -528,7 +488,6 @@ C Check for endless running mode.
         autook=.true.
         endless=.true.
         call edisp(iuout,'Reality-Emulator endless-running mode.')
-        call tstamp('>','bps: Endless-running mode')
       endif
 
 C Create new child thread to timeout simulation if required.
@@ -702,64 +661,52 @@ C Find the user's home folder then get users custom settings.
       endif
       call scesprc(esprc,IFIL+1,0,IIER)
 
-C If there is a journal active set up to add to the journal. First
-C get the root journal file (setup by prj) from the users home folder.
-C All subsequent tstamp messages will be appended to root journal.
-      iuj=IFIL+1
-      if(journio.eq.1)then
-        uname=' '
-        call usrname(uname)
-        cjfile=' '
-        write(cjfile,'(a,a1,a,a,a)')upath(1:lnblnk(upath)),fs,'.',
-     &    uname(1:lnblnk(uname)),'cur_j'
-        there=.false.
-        INQUIRE(FILE=cjfile,EXIST=there)
-        if(there)then
-          close(iuj)
-          open(iuj,file=cjfile,status='UNKNOWN',err=901)
-          CALL STRIPC(iuj,OUTSTR,0,ND,1,'header',IER)
-          if(OUTSTR(1:15).eq.'Current_Journal')then
-            k=16
-            CALL EGETRM(OUTSTR,K,jfile,'W','root journ',IER)
-          endif
-          close(iuj)
-        endif
-
-        write(outs,'(a,a)')'Journal (simulator) for:',
-     &    uname(1:lnblnk(uname))
-        call tstamp('>',outs)
-      endif
-
 C Scan the defaults file for default configuration.
 C Make temporary use of file unit IFIL+1.  Note: escdef must come
 C after scan of .esprc file. Do it silently.
  902  call escdef(IFIL+1,'s',IER)
 
-C Create and open a session log file based on user name, PID etc.
+C Create and open a session log file.
       uname=' '; tfile=' '
       call usrname(uname)
       call esppid(ipid)
-        write(tfile,'(a,a1,a,a,i7,a)')upath(1:lnblnk(upath)),fs,'.',
-     &    uname(1:lnblnk(uname)),ipid,'.log'
-      call st2file(tfile,iefile)
+      call isunix(unixok)
+      call cmdtoroot(inf,troot)          ! Return model root name.
+      if(unixok)then
+        write(tfile,'(3a)') '/tmp/',troot(1:lnblnk(troot)),'.log'
+        call st2file(tfile,iefile)
+      else
+        write(tfile,'(6a)') 'C:',fs,'TEMP',fs,
+     &    troot(1:lnblnk(troot)),'.log'
+        call st2file(tfile,iefile)  ! Keep track of iefile name.
+      endif
 
-C Open the session file.
-      ieout=ifil+932          ! set to unused index 942
-      iecount=0               ! clear count of errors
-      open(ieout,file=iefile,status='UNKNOWN',err=903)
+C Open the session file if .esprc preference ON.  If it alreay exists then APPEND.
+      ieout=ifil+932              ! set to unused index 932
+      iecount=0                   ! clear count of errors
+      if(.NOT.ieopened) goto 903  ! Set in scan of .esprc file (scesprc)
+      INQUIRE (FILE=iefile,EXIST=XST)
+      if(XST)then
+        close(ieout)
+        open(ieout,file=iefile,position='APPEND',
+     &    status='UNKNOWN',err=903)
+        write(ieout,'(a)')'   '
+      else
+        open(ieout,file=iefile,status='UNKNOWN',err=903)
+      endif
+      ieopened = .true.
       write(ieout,'(a)')'Session log for bps'
       call dstamp(dstmp) ! get curret time
-      write(ieout,'(2a)')'Date,',dstmp
-      write(ieout,'(2a)')'User,',uname(1:lnblnk(uname))
+      write(ieout,'(2a)')'Date ',dstmp
+      write(ieout,'(2a)')'User ',uname(1:lnblnk(uname))
+      write(ieout,'(2a)')'Model ',ltcmdfl(1:lnblnk(ltcmdfl))
   903 continue
 
 C Take command line file name as initial configuration file.
       if(inf(1:2).ne.'  '.and.inf(1:4).ne.'UNKN')then
         LCMDFL=inf
-C        call edisp(iuout,'  ')  ! echo blank line
-        write(outs248,'(a,a)') 'The input file is: ',LCMDFL
+C        write(outs248,'(a,a)') 'The input file is: ',LCMDFL
 C        call edisp248(iuout,outs248,90)
-        call tstamp('>',outs248)
       else
         LCMDFL='UNKNOWN'
       endif
@@ -828,31 +775,19 @@ C info in after reading the .cfg file.
             write(spsname,'(a30)')sps(1:30)
             if(aut(1:6).eq.'silent')then
               autook=.true.; issilient=.true.
-              call tstamp('>','bps: Silent-running mode')
             elseif(aut(1:7).eq.'endless')then
               autook=.true.
               endless=.true.
               call edisp(iuout,'Endless-running mode.')
-              call tstamp('>','bps: Endless-running mode')
             else
               autook=.false.
             endif
           else
             spsname='  '
           endif
-          call tstamp('>','bps: enter input checks')
 
 C Note: call to MZINPT corrupts IGR1D on some compilers.
           CALL MZINPT(IREP,ier)
-
-C If running dll note the failure mode.
-          if(ier.eq.2.and.dll)then
-            open(UNIT=iLogFile, FILE=cLogFile,position='APPEND' )
-            write(iLogFile,*) 'bps failed in ',dllsubr
-            write(iLogFile,*) 'details: ',dllmesg
-            return
-          endif
-          call tstamp('>','bps: exit input checks')
 
 C Increment input flag if no input data errors detected.
           IF(IER.EQ.0)THEN
@@ -861,57 +796,37 @@ C Increment input flag if no input data errors detected.
             if ( autook ) then
               call edisp(iuout,' ')
               call edisp(iuout,
-     &              'Fatal error: Model was not scanned correctly')
-              iecount=iecount+1  ! retain the log file
+     &          'Fatal error: Model was not scanned correctly')
+              call to_session(
+     &          'Fatal error: Model was not scanned correctly')
               call pauses(3)     ! pause for 2 seconds then abort program.
-              close(ieout)
               CALL ERPFREE(ieout,ISTAT)
               call epagend
               stop
             endif
-            if(dll)then
-              dllsubr='bps MAIN'
-              dllmesg='IER1 flag set while scanning the model.'
-              ier=2
-              return
-            endif
             helptopic='model_cfg_scan_warning'
             call gethelptext(helpinsub,helptopic,nbhelp)
-            call easkabc('Problem scanning model!',
-     &        'Options:','read again','use it','abort',IW,nbhelp)
+            call easkmbox('Problem scanning model!',
+     &        'Options:','read again','use it','abort',
+     &        ' ',' ',' ',' ',' ',IW,nbhelp)
             if(iw.eq.1)then
               INPOK=.FALSE.
             elseif(iw.eq.2)then
-              call tstamp('>','bps: use model with init scan warning')
               INPOK=.TRUE.
             elseif(iw.eq.3)then
-              call tstamp('>','bps: abort after error scan problem')
               call pauses(2)   ! pause for 2 seconds then abort program.
-              if( dll ) then
-                dllsubr='bps MAIN'
-                dllmesg='IER1 flag set while scanning the model.'
-                ier=2
-                return
-              else
-                call usrmsg('IER1 flag set while scanning the model.',
-     &            ' ','W')
-                iecount=iecount+1  ! retain the log file
-                close(ieout)
-                CALL ERPFREE(ieout,ISTAT)
-                call pauses(2)   ! pause for 2 seconds then abort program.
-                CALL EPAGEND
-                STOP
-              endif
+              call usrmsg('IER1 flag set while scanning the model.',
+     &          ' ','W')
+              call to_session(
+     &          'IER1 flag set while scanning the model.')
+              CALL ERPFREE(ieout,ISTAT)
+              call pauses(2)   ! pause for 2 seconds then abort program.
+              CALL EPAGEND
+              STOP
             endif
           endif
         else
-
-C No confiburation file passed, if in dll mode return otherwise continue.
-          if( dll ) then
-            return
-          else
-            continue
-          endif
+          continue
         endif
 
 C Initialize the thermal and gridding variables.
@@ -970,9 +885,9 @@ C Set up initial menu.
       ENDIF
       ITEM(10)   ='  _______________________    '
       if ( isReportingInstalled() ) then
-         ITEM(11)='s configure H3K Reports      '
+         ITEM(11)='s configure H3K reports      '
       else
-         ITEM(11)='s H3K Reports unavailable    '
+         ITEM(11)='s H3K reports unavailable    '
       endif
       ITEM(12)   ='  _________________________  '
       ITEM(13)   ='? help                       '
@@ -1000,15 +915,7 @@ C simulator parameter file.
 
 C Enter configuration file.
       IF(INO.EQ.1)THEN
-        call tstamp('>','bps: enter read model')
         CALL MZINPT(IREP,ier)
-        if(ier.eq.2.and.dll)then
-          open(UNIT=iLogFile, FILE=cLogFile,position='APPEND' )
-          write(iLogFile,*) 'bps failed in ',dllsubr
-          write(iLogFile,*) 'details: ',dllmesg
-          ier=2
-          return
-        endif
 
 C Now increment input flag - but only if no input data errors
 C have been detected.
@@ -1044,7 +951,7 @@ C Initialise the structured gridding variables.
           IF(IER.EQ.0)CALL INITST
           IF(IER.NE.0)INPOK=.FALSE.
         ENDIF
-        call tstamp('>','bps: exit read model')
+
       ELSEIF(INO.EQ.2 .and. .not. bMY_sim_enabled )THEN
 
 C Single-year climate file definition
@@ -1083,8 +990,6 @@ C a climate file by reading records 366 and 367.
 C Cast expanded weather file name back to LCLIM.
         llt=lnblnk(llclmdb)
         write(LCLIM,'(a)') llclmdb(1:llt)
-        call tstamp('>','bps: change weather')
-        call tstamp('>',LCLIM)
         ier=0
         call CLMOPB(0,IER)
         IF(ier.eq.0)THEN
@@ -1111,10 +1016,8 @@ C Cast expanded weather file name back to LCLIM.
           IF(OK)THEN
             goto 20
           ELSE
-            call tstamp('>','bps: abort after error scanning climate')
             call pauses(2)   ! pause for 2 seconds then abort program.
             CALL ERPFREE(ICLIM,ISTAT)
-            if( dll ) return
           ENDIF
         ENDIF
 
@@ -1162,19 +1065,11 @@ C Check that climate & building configurations files are ok
 
         ELSE
 
-          call tstamp('>','bps: enter initiate simulation')
           IF(BLDG3D)THEN
 
 C For the multi-D model, check that the 1-D grid distribution is default.
             CALL CHKGRD(OK3D)
             IF(OK3D)THEN
-              if( dll ) then
-                close( iLogFile )
-                open(UNIT=iLogFile,FILE=cLogFile,position='APPEND' )
-                write( iLogFile, * ) "Simulation started"
-                close( iLogFile )
-                open(UNIT=iLogFile,FILE=cLogFile,position='APPEND' )
-              endif
               CALL MZSIML
             ELSE
               CALL USRMSG(' FATAL ERROR:',
@@ -1183,7 +1078,6 @@ C For the multi-D model, check that the 1-D grid distribution is default.
           ELSE
             CALL MZSIML
           ENDIF
-          call tstamp('>','bps: exit initiate simulation')
         ENDIF
       elseif(ino.eq.6)then
 
@@ -1305,9 +1199,7 @@ C Delete 3D temporary files.
 
 C Close moisture result file.
         IF(MSTROK)CALL ERPFREE(IMSTR,ISTAT)
-        call tstamp('>','Finish simulator')
         CALL ERPFREE(ICLIM,ISTAT)
-        if( dll ) return
 
 C Clear allocatable arrays.
         close(ieout)
@@ -1347,10 +1239,8 @@ C Error.
         goto 20
       ELSE
         CALL ERPFREE(ICLIM,ISTAT)
-        iecount=iecount+1  ! retain the log file
-        close(ieout)
+        call to_session('Weather file issue in clm')
         CALL ERPFREE(ieout,ISTAT)
-        if( dll ) return
         call epagend
         STOP
       ENDIF

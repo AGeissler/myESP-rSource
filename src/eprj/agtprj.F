@@ -168,8 +168,9 @@ C If it doesn't, offer user choice to choose another or open a new file.
         endif
         CALL AGT_RD(IUF,IER)
       else
-        CALL EASKAB('File not found.','Options:',
-     &    'specify another','make new file',itmp,0)
+        CALL EASKMBOX('File not found.','Options:',
+     &    'specify another','make new file',
+     &    ' ',' ',' ',' ',' ',' ',itmp,0)
         if (itmp.eq.1) goto 3
         write(outs,'(3a)')'New file ',
      &    agtfil_tmp(1:lnblnk(agtfil_tmp)),' will be created.'
@@ -271,8 +272,9 @@ C Control options.
 C Exit, offering to save unsaved data.
       if (IPICK.eq.NITEMS) then
         if (.not.saved) then
-          CALL EASKABC('Modified data not saved!','Options:',
-     &      'save and exit','exit without saving','cancel',itmp,nbhelp)
+          CALL EASKMBOX('Modified data not saved!','Options:',
+     &      'save and exit','exit without saving','cancel',
+     &      ' ',' ',' ',' ',' ',itmp,nbhelp)
           if (itmp.eq.1) then
             CALL AGT_WT(IUF,IER)
             if (NAGT.gt.0) then
@@ -309,8 +311,8 @@ C Save.
 
 C Manage agents.
       elseif (IPICK.eq.NITEMS-3) then
-        CALL EASKABCD(' ','Options:','add','delete','copy','cancel',
-     &    itmp,nbhelp)
+        CALL EASKMBOX(' ','Options:','add','delete','copy','cancel',
+     &    ' ',' ',' ',' ',itmp,nbhelp)
 
 C Add an agent at end of list. First check that it doesn't exceed the
 C maximum.

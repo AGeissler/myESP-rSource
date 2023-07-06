@@ -35,6 +35,8 @@ intialisation and graphics, using ww. The routines are :-
 	viewtext_(msg,line,side,size,len)
                         :- displays a line of text within the viewing
                            box with size and location parameters
+        abcdboxs_(msg,msglen,asklen,b_bottom,b_left_act,)
+                        :- Open one of a b c d e f g box
 	openaskbox_(msg1,msg2,asklen,len1,len2)
                         :- creates a text input box within the dialogue
                            area positioned to match the msg's passed.
@@ -155,6 +157,8 @@ intialisation and graphics, using ww. The routines are :-
 #ifdef MINGW
 #include <windows.h>
 #define sleep(s) Sleep(s * 1000)
+#else
+#include <unistd.h>
 #endif  */
 
 #define XV_FDTYPE (fd_set *)
@@ -257,7 +261,7 @@ static box	azi,aziplus,aziminus;	/* buttons for view azimuth changes */
 static box	elev,elevplus,elevminus;	/* buttons for view elevation changes */
 static box     altb,altc,querb,defb,okb;	/* boxes for alts,query help, default, confirm */
 static box     updown_text;	                                        /* box for resizing text feedback */
-static box     a,b,c,d,e,f,g;	                                        /* boxes for multiple choices */
+static box     a,b,c,d,e,f,g,h;	                                        /* boxes for multiple choices */
 static box      cfgs,cfgnet,cfgc,cfgpln,cfgeln,cfgren;	/* boxes for model features */
 static box	cfgfab,cfgbeh,cfgsim;
 static box	mouse,mouse1,mouse2,mouse3;	                        /* box for mouse button help */
@@ -314,14 +318,15 @@ static char m_list[MENU_LIST_LEN][125];	/* character arrays for menu buffer */
 static char mtype_list[MENU_LIST_LEN];	/* character array representing m_list array use */
 static int m_width = 0;		/* current menu max line length */
 static int m_lines = 0;		/* current number of active menu lines */
+static char choice_list[10][42];        /* character arrays for abcdef boxes */
+static char choice_type_list[10]; 
+static int choice_list_w[10]; 
+static int choice_width = 0;    /* current max choice character width */
+static int choice_boxes = 0;    /* current number of abcdef boxes */
 
 static char cappl[5];	/* f77 application name */
 /* static char cfgroot[33];	f77 project root name    */
 /* static char path[73];	f77 project path    */
-/* static char upath[73];	f77 users path    */
-/* static char imgpth[25];	f77 relative path to images    */
-/* static char docpth[25];	f77 relative path to documents    */
-static int browse;	/* if = 0 then user owns, if = 1 user browsing */
 
 /* flag for network graphics routines*/
 static int network_gpc;
@@ -886,6 +891,11 @@ xsh.y = START_ULY;
     "                                                                                   ",82);
   }
   strncpy(mtype_list,"                                        ",40);
+/* initial clear of box choice lines list */
+  for ( i = 0; i < 10; i++ ) {
+    strncpy(choice_list[i],
+    "                                         ",41);
+  }
 
 /* initial clear of proforma editing and display lists */
   for ( i = 0; i < PROFMA_LEN-1; i++ ) {
@@ -2364,6 +2374,9 @@ void pauses_(is)
 {
 #ifdef MINGW
 #include <windows.h>
+#endif
+#ifdef M1
+#include <unistd.h>
 #endif 
   int i;
   i = (int) *is;
@@ -3425,7 +3438,7 @@ void alt2box(char* msg,int msglen,int asklen,int* b_bottom,int* b_left,char act)
   Standard opening of a b c d boxes for dialogs that needs one or more
   of these. Takes text to display character width of box, pixels for
   lower left corner and a char indicator for which box to be working with.
-  NOTE: expects boxes "a = b = c = d = e = f = g " to have been
+  NOTE: expects boxes "a = b = c = d = e = f = g - h" to have been
   done in the calling function.
 */
 void abcdboxs(char* msg,int msglen,int asklen,int* b_bottom,int* b_left,char act){
@@ -3507,6 +3520,13 @@ void abcdboxs(char* msg,int msglen,int asklen,int* b_bottom,int* b_left,char act
     g.b_right = g.b_left + vfw +1;
     xbox(g,fg,white,BMCLEAR |BMEDGES);   /* draw g box with edges  */
     XftDrawString8(draw, &xft_color,fst,g.b_left+3,g.b_bottom-3,(XftChar8 *) msg,lm1);
+  } else if ( act == 'h') {
+    h.b_top = bottom - (f_height + 6);
+    h.b_bottom = bottom -2;
+    h.b_left = left;
+    h.b_right = h.b_left + vfw +1;
+    xbox(h,fg,white,BMCLEAR |BMEDGES);   /* draw h box with edges  */
+    XftDrawString8(draw, &xft_color,fst,h.b_left+3,h.b_bottom-3,(XftChar8 *) msg,lm1);
   }
   XFlush(theDisp);  /* added to force draw */
   XftDrawDestroy(draw);
@@ -5850,6 +5870,382 @@ void abcdefbox_(msg1,msg2,opta,optb,optc,optd,opte,optf,optg,ok,len1,len2,len3,l
   return;
 } /* abcdefbox */
 
+
+/* **************  Open a multi choice box *************** */
+/*
+ Multichoice box setup using choice_list array. choicebx contains the prompts while
+ others are reserved for user input. If querry box is
+ selected then ok returned as 8 which should be trapped by calling code.
+ char choice_list[10][42]; character arrays for choices
+ char choice_type_list[10]; character array representing choice_list array use
+ int choice_width = 0; current menu max line length
+ int choice_boxes = 0; current number of active boxes
+*/
+void openmultibox_(msg1,msg2,ok,len1,len2)
+  char    *msg1,*msg2;		/* character strings for each line */
+  int len1,len2;	        /* lengths as supplied by fortran (ignored) */
+  long int *ok;                 /* returned 1=option a picked, 2=option b picked etc. */
+{
+  XEvent event;
+  XWindowAttributes wa;
+  KeySym     ks;
+  XftDraw *draw;
+  XGlyphInfo info;
+  static char buf[80],*bp;
+  char k_char,keypressed;
+  int len3,len4,len5,len6,len7,len8,len9,len10;	        /* lengths as supplied by fortran (ignored) */
+  int	no_valid_event = TRUE;
+  int x1,y1,lprompt,tprompt;	/* cursor position, prompt left side and with glyph info  */
+  int qbox_left,abox_left,bbox_left,cbox_left,dbox_left,ebox_left,fbox_left,gbox_left,hbox_left;	/* positions of small boxes */
+  int lm1,lm2,lm3,lm4,lm5,lm6,lm7,lm8,lm9,lm10,msg_bb;	/* local string lengths found by test      */
+  int nopts;	/* number of options (based on if option text blank) */
+  long int saved_font;
+  static int blen = 0;
+  unsigned int start_height,start_width;
+  int iaux;         /* unused return from aux_menu      */
+  int vfw,vfwa,vfwb,vfwc,vfwd,vfwe,vfwf,vfwg,vfwh,vfwm1,vfwm2;  /* pixel width of each option */
+
+/* Text within choice boxes use the butn_fnt so calling code should ensure that
+   this has been reset appropriately before calling. */
+   saved_font = current_font;
+   if (saved_font != butn_fnt) winfnt_(&butn_fnt);
+
+/* Use XftTextExtents8 logic for sizing each option box */
+   vfw=vfwa=vfwb=vfwc=vfwd=vfwe=vfwf=vfwg=vfwm1=vfwm2=0;
+
+/* Find ends of strings passed and terminate. Add 2 character widths
+   to each vfwm* to allow a bit of white space around the word. */
+   nopts = 0;
+   f_to_c_l(msg1,&len1,&lm1);
+   XftTextExtents8(theDisp,fst,msg1,lm1,&info);
+   if( info.xOff > vfwm1 ) vfwm1= info.xOff + 2*f_width;  /* allow for a bit of space on right */
+//   fprintf(stderr,"multibox msg1 %s lm1 %d vwfm1 %d f_width %d timesfw %d\n",msg1,lm1,vfwm1,f_width,(lm1 * f_width));
+
+   f_to_c_l(msg2,&len2,&lm2);
+   XftTextExtents8(theDisp,fst,msg2,lm2,&info);
+   if( info.xOff > vfwm2 ) vfwm2= info.xOff + 2*f_width;  /* allow for a bit of space on right */
+//   fprintf(stderr,"multibox msg2 %s lm2 %d vwfm2 %d f_width %d timesfw %d\n",msg2,lm2,vfwm2,f_width,(lm2 * f_width));
+
+   lm3=choice_list_w[0];
+   XftTextExtents8(theDisp,fst,choice_list[0],lm3,&info);
+   if( info.xOff > vfwa ) vfwa= info.xOff + 2*f_width;  /* impose requested additional space */
+//   fprintf(stderr,"multibox opta %s lm3 %d vwfa %d f_width %d timesfw %d\n",choice_list[0],lm3,vfwa,f_width,(lm3 * f_width));
+
+   if ( choice_list_w[1] > 1 ) nopts = 2;
+   lm4=choice_list_w[1];
+   XftTextExtents8(theDisp,fst,choice_list[1],lm4,&info);
+   if( info.xOff > vfwb ) vfwb= info.xOff + 2*f_width;  /* impose requested additional space */
+//   fprintf(stderr,"multibox optb %s lm4 %d vwfb %d f_width %d timesfw %d\n",choice_list[1],lm4,vfwb,f_width,(lm4 * f_width));
+
+   if ( choice_list_w[2] > 1 ) nopts = 3;
+   lm5=choice_list_w[2];
+   XftTextExtents8(theDisp,fst,choice_list[2],lm5,&info);
+   if( info.xOff > vfwc ) vfwc= info.xOff + 2*f_width;  /* impose requested additional space */
+//   fprintf(stderr,"multibox optc %s lm5 %d vwfc %d f_width %d timesfw %d\n",choice_list[2],lm5,vfwc,f_width,(lm5 * f_width));
+
+   if ( choice_list_w[3] > 1 ) nopts = 4;
+   lm6=choice_list_w[3];
+   XftTextExtents8(theDisp,fst,choice_list[3],lm6,&info);
+   if( info.xOff > vfwd ) vfwd= info.xOff + 2*f_width;  /* impose requested additional space */
+//   fprintf(stderr,"multibox optd %s lm6 %d vwfd %d f_width %d timesfw %d\n",choice_list[3],lm6,vfwd,f_width,(lm6 * f_width));
+
+   if ( choice_list_w[4] > 1 ) nopts = 5;
+   lm7=choice_list_w[4];
+   XftTextExtents8(theDisp,fst,choice_list[4],lm7,&info);
+   if( info.xOff > vfwe ) vfwe= info.xOff + 2*f_width;  /* impose requested additional space */
+//   fprintf(stderr,"multibox opte %s lm7 %d vwfe %d f_width %d timesfw %d\n",choice_list[4],lm7,vfwe,f_width,(lm7 * f_width));
+
+   if ( choice_list_w[5] > 1 ) nopts = 6;
+   lm8=choice_list_w[5];
+   XftTextExtents8(theDisp,fst,choice_list[5],lm8,&info);
+   if( info.xOff > vfwf ) vfwf= info.xOff + 2*f_width;  /* impose requested additional space */
+//   fprintf(stderr,"multibox optf %s lm8 %d vwff %d f_width %d timesfw %d\n",choice_list[5],lm8,vfwf,f_width,(lm8 * f_width));
+
+   if ( choice_list_w[6] > 1 ) nopts = 7;
+   lm9=choice_list_w[6];
+   XftTextExtents8(theDisp,fst,choice_list[6],lm9,&info);
+   if( info.xOff > vfwg ) vfwg= info.xOff + 2*f_width;  /* impose requested additional space */
+//   fprintf(stderr,"multibox optg %s lm9 %d vwfg %d f_width %d timesfw %d\n",choice_list[6],lm9,vfwg,f_width,(lm9 * f_width));
+
+   if ( choice_list_w[7] > 1 ) nopts = 8;
+   lm10=choice_list_w[7];
+   XftTextExtents8(theDisp,fst,choice_list[7],lm10,&info);
+   if( info.xOff > vfwh ) vfwh= info.xOff + 2*f_width;  /* impose requested additional space */
+//   fprintf(stderr,"multibox opth %s lm10 %d vwfh %d f_width %d timesfw %d\n",choice_list[7],lm10,vfwh,f_width,(lm10 * f_width));
+
+   if (nopts <2) return;	/* if less than 2 choices there is a problem. */
+
+/* remember position and size of the whole module (so as to detect changes) */
+  XGetWindowAttributes(theDisp,win,&wa);
+  start_height = (unsigned int)wa.height; start_width = (unsigned int)wa.width;
+
+/* query box is right box and 2 char total to the right */
+  qbox_left = msgbx.b_right - ((f_width * 2)+3 );
+/* a, b, c, d, e, f g and h boxs ... */
+  if (nopts == 2) {
+    bbox_left = qbox_left - (vfwb+6 );
+    abox_left = qbox_left - (vfwa+vfwb+12 );
+  } else if (nopts == 3) {
+    cbox_left = qbox_left - (vfwc+6 );
+    bbox_left = qbox_left - (vfwb+vfwc+12 );
+    abox_left = qbox_left - (vfwa+vfwb+vfwc+18 );
+  } else if (nopts == 4) {
+    dbox_left = qbox_left - (vfwd+6 );
+    cbox_left = qbox_left - (vfwc+vfwd+12 );
+    bbox_left = qbox_left - (vfwb+vfwc+vfwd+18 );
+    abox_left = qbox_left - (vfwa+vfwb+vfwc+vfwd+24 );
+  } else if (nopts == 5) {
+    ebox_left = qbox_left - (vfwe+6 );
+    dbox_left = qbox_left - (vfwd+vfwe+12 );
+    cbox_left = qbox_left - (vfwc+vfwd+vfwe+18 );
+    bbox_left = qbox_left - (vfwb+vfwc+vfwd+vfwe+24 );
+    abox_left = qbox_left - (vfwa+vfwb+vfwc+vfwd+vfwe+30 );
+  } else if (nopts == 6) {
+    fbox_left = qbox_left - (vfwf+6 );
+    ebox_left = qbox_left - (vfwe+vfwf+12 );
+    dbox_left = qbox_left - (vfwd+vfwe+vfwf+18 );
+    cbox_left = qbox_left - (vfwc+vfwd+vfwe+vfwf+24 );
+    bbox_left = qbox_left - (vfwb+vfwc+vfwd+vfwe+vfwf+30 );
+    abox_left = qbox_left - (vfwa+vfwb+vfwc+vfwd+vfwe+vfwf+36 );
+  } else if (nopts == 7) {
+    gbox_left = qbox_left - (vfwg+6 );
+    fbox_left = qbox_left - (vfwf+vfwg+12 );
+    ebox_left = qbox_left - (vfwe+vfwf+vfwg+18 );
+    dbox_left = qbox_left - (vfwd+vfwe+vfwf+vfwg+24 );
+    cbox_left = qbox_left - (vfwc+vfwd+vfwe+vfwf+vfwg+30 );
+    bbox_left = qbox_left - (vfwb+vfwc+vfwd+vfwe+vfwf+vfwg+36 );
+    abox_left = qbox_left - (vfwa+vfwb+vfwc+vfwd+vfwe+vfwf+vfwg+42 );
+  } else if (nopts == 8) {
+    hbox_left = qbox_left - (vfwh+6 );
+    gbox_left = qbox_left - (vfwg+vfwh+12 );
+    fbox_left = qbox_left - (vfwf+vfwg+vfwh+18 );
+    ebox_left = qbox_left - (vfwe+vfwf+vfwg+vfwh+24 );
+    dbox_left = qbox_left - (vfwd+vfwe+vfwf+vfwg+vfwh+30 );
+    cbox_left = qbox_left - (vfwc+vfwd+vfwe+vfwf+vfwg+vfwh+36 );
+    bbox_left = qbox_left - (vfwb+vfwc+vfwd+vfwe+vfwf+vfwg+vfwh+42 );
+    abox_left = qbox_left - (vfwa+vfwb+vfwc+vfwd+vfwe+vfwf+vfwg+vfwh+48 );
+  }
+
+/* determine left edge of prompt text also check via XftTextExtents8 */
+  lprompt = abox_left - vfwm2;       /* lower prompt left */
+  tprompt = abox_left - vfwm1;       /* top prompt left */
+  if (tprompt < 2 ) tprompt = 5;     /* keep from falling off the left */ 
+//  tprompt = msgbx.b_right - vfwm1;  top prompt left
+
+// Define local drawable for Xft font.
+  draw = XftDrawCreate(theDisp,win,theVisual,theCmap);
+
+  xbox(msgbx,fg,white,BMCLEAR |BMEDGES);   /* draw dialogue box with edges  */
+  XftDrawString8(draw, &xft_color,fst,tprompt,msgbx.b_bottom-(f_height+8),(XftChar8 *) msg1,lm1);
+  XftDrawString8(draw, &xft_color,fst,lprompt,msgbx.b_bottom-3,(XftChar8 *) msg2,lm2);
+  XFlush(theDisp);
+  msg_bb = msgbx.b_bottom;
+  abcdboxs(choice_list[0],lm3,lm3+2,&msg_bb,&abox_left,'a');       /* a box with edges  */
+  abcdboxs(choice_list[1],lm4,lm4+2,&msg_bb,&bbox_left,'b');       /* b box with edges  */
+  if(nopts >= 3) abcdboxs(choice_list[2],lm5,lm5+2,&msg_bb,&cbox_left,'c');       /* c box with edges  */
+  if(nopts >= 4) abcdboxs(choice_list[3],lm6,lm6+2,&msg_bb,&dbox_left,'d');       /* d box with edges  */
+  if(nopts >= 5) abcdboxs(choice_list[4],lm7,lm7+2,&msg_bb,&ebox_left,'e');       /* e box with edges  */
+  if(nopts >= 6) abcdboxs(choice_list[5],lm8,lm8+2,&msg_bb,&fbox_left,'f');       /* f box with edges  */
+  if(nopts >= 7) abcdboxs(choice_list[6],lm9,lm9+2,&msg_bb,&gbox_left,'g');       /* g box with edges  */
+  if(nopts >= 8) abcdboxs(choice_list[7],lm10,lm10+2,&msg_bb,&hbox_left,'h');     /* h box with edges  */
+  qbox_("?",1,2,&msg_bb,&qbox_left,'-');	/* draw querry box with edges  */
+  *ok = 0;                     /* assume no answer         */
+/*
+  Now check to see if mouse moves into the option a or option b box and
+  don't leave until one has been selected.
+*/
+  XUndefineCursor(theDisp,win);  XDefineCursor(theDisp,win,cross_cursor);
+  while ( no_valid_event) {
+    XNextEvent(theDisp, &event);
+    switch (event.type) {
+      case VisibilityNotify: /* user obscured window so refresh window and dialogue */
+/* debug fprintf(stderr,"abcdefbox: vis event %d\n",event.xvisibility.state); */
+        if(event.xvisibility.state == 0 ) {
+          refreshenv_();
+          xbox(msgbx,fg,white,BMCLEAR |BMEDGES);   /* draw dialogue box with edges  */
+          XftDrawString8(draw, &xft_color,fst,tprompt,msgbx.b_bottom-(f_height+8),(XftChar8 *) msg1,lm1);
+          XftDrawString8(draw, &xft_color,fst,lprompt,msgbx.b_bottom-3,(XftChar8 *) msg2,lm2);
+          XFlush(theDisp);
+          msg_bb = msgbx.b_bottom;
+          abcdboxs(choice_list[0],lm3,lm3+2,&msg_bb,&abox_left,'a');       /* a box with edges  */
+          abcdboxs(choice_list[1],lm4,lm4+2,&msg_bb,&bbox_left,'b');       /* b box with edges  */
+          if(nopts >= 3) abcdboxs(choice_list[2],lm5,lm5+2,&msg_bb,&cbox_left,'c');       /* c box with edges  */
+          if(nopts >= 4) abcdboxs(choice_list[3],lm6,lm6+2,&msg_bb,&dbox_left,'d');       /* d box with edges  */
+          if(nopts >= 5) abcdboxs(choice_list[4],lm7,lm7+2,&msg_bb,&ebox_left,'e');       /* e box with edges  */
+          if(nopts >= 6) abcdboxs(choice_list[5],lm8,lm8+2,&msg_bb,&fbox_left,'f');       /* f box with edges  */
+          if(nopts >= 7) abcdboxs(choice_list[6],lm9,lm9+2,&msg_bb,&gbox_left,'g');       /* g box with edges  */
+          if(nopts >= 8) abcdboxs(choice_list[7],lm10,lm10+2,&msg_bb,&hbox_left,'h');     /* h box with edges  */
+          qbox_("?",1,2,&msg_bb,&qbox_left,'-');	/* draw querry box with edges  */
+          *ok = 0;                     /* assume no answer         */
+        }
+        break;
+      case ConfigureNotify: /* user resized window so refresh window and dialogue */
+        XGetWindowAttributes(theDisp,win,&wa);
+        if(start_height == (unsigned int)wa.height && start_width == (unsigned int)wa.width) {	/* no need to update window */
+          no_valid_event = TRUE;
+        }
+        if(start_height != (unsigned int)wa.height || start_width != (unsigned int)wa.width) {	/* window resized so force update */
+/* debug  fprintf(stderr,"abcdefbox detected configure event\n"); */
+          refreshenv_();
+          xbox(msgbx,fg,white,BMCLEAR |BMEDGES);   /* draw dialogue box with edges  */
+          XftDrawString8(draw, &xft_color,fst,tprompt,msgbx.b_bottom-(f_height+8),(XftChar8 *) msg1,lm1);
+          XftDrawString8(draw, &xft_color,fst,lprompt,msgbx.b_bottom-3,(XftChar8 *) msg2,lm2);
+          XFlush(theDisp);
+          msg_bb = msgbx.b_bottom;
+          abcdboxs(choice_list[0],lm3,lm3+2,&msg_bb,&abox_left,'a');       /* a box with edges  */
+          abcdboxs(choice_list[1],lm4,lm4+2,&msg_bb,&bbox_left,'b');       /* b box with edges  */
+          if(nopts >= 3) abcdboxs(choice_list[2],lm5,lm5+2,&msg_bb,&cbox_left,'c');       /* c box with edges  */
+          if(nopts >= 4) abcdboxs(choice_list[3],lm6,lm6+2,&msg_bb,&dbox_left,'d');       /* d box with edges  */
+          if(nopts >= 5) abcdboxs(choice_list[4],lm7,lm7+2,&msg_bb,&ebox_left,'e');       /* e box with edges  */
+          if(nopts >= 6) abcdboxs(choice_list[5],lm8,lm8+2,&msg_bb,&fbox_left,'f');       /* f box with edges  */
+          if(nopts >= 7) abcdboxs(choice_list[6],lm9,lm9+2,&msg_bb,&gbox_left,'g');       /* g box with edges  */
+          if(nopts >= 8) abcdboxs(choice_list[7],lm10,lm10+2,&msg_bb,&hbox_left,'h');     /* h box with edges  */
+          qbox_("?",1,2,&msg_bb,&qbox_left,'-');	/* draw querry box with edges  */
+          *ok = 0;                     /* assume no answer         */
+        }
+        break;
+      case ButtonPress:
+        x1 = event.xbutton.x;  y1 = event.xbutton.y;
+        if (xboxinside(a,x1,y1)){
+          no_valid_event = FALSE;
+          xbox(a,fg,ginvert,BMEDGES|BMNOT|BMCLEAR); /* invert box */
+          Timer(50);
+          XSetForeground(theDisp,theGC, white); XSetBackground(theDisp,theGC, ginvert);
+          XftDrawString8(draw, &xft_color,fst,a.b_left+3,a.b_bottom-3,(XftChar8 *) choice_list[0],lm3);
+          XSetForeground(theDisp,theGC, fg); XSetBackground(theDisp,theGC, bg);
+          *ok = 1;
+   	  break;
+        } else if (xboxinside(b,x1,y1)){
+          no_valid_event = FALSE;
+          xbox(b,fg,ginvert,BMEDGES|BMNOT|BMCLEAR); /* invert box */
+          Timer(50);
+          XSetForeground(theDisp,theGC, white); XSetBackground(theDisp,theGC, ginvert);
+          XftDrawString8(draw, &xft_color,fst,b.b_left+3,b.b_bottom-3,(XftChar8 *) choice_list[1],lm4);
+          XSetForeground(theDisp,theGC, fg); XSetBackground(theDisp,theGC, bg);
+          *ok = 2;
+          break;
+        } else if (xboxinside(c,x1,y1) && nopts >= 3){
+          no_valid_event = FALSE;
+          xbox(c,fg,ginvert,BMEDGES|BMNOT|BMCLEAR); /* invert box */
+          Timer(50);
+          XSetForeground(theDisp,theGC, white); XSetBackground(theDisp,theGC, ginvert);
+          XftDrawString8(draw, &xft_color,fst,c.b_left+3,c.b_bottom-3,(XftChar8 *) choice_list[2],lm5);
+          XSetForeground(theDisp,theGC, fg); XSetBackground(theDisp,theGC, bg);
+          *ok = 3;
+          break;
+        } else if (xboxinside(d,x1,y1) && nopts >= 4){
+          no_valid_event = FALSE;
+          xbox(d,fg,ginvert,BMEDGES|BMNOT|BMCLEAR); /* invert box */
+          Timer(50);
+          XSetForeground(theDisp,theGC, white); XSetBackground(theDisp,theGC, ginvert);
+          XftDrawString8(draw, &xft_color,fst,d.b_left+3,d.b_bottom-3,(XftChar8 *) choice_list[3],lm6);
+          XSetForeground(theDisp,theGC, fg); XSetBackground(theDisp,theGC, bg);
+          *ok = 4;
+          break;
+        } else if (xboxinside(e,x1,y1) && nopts >= 5){
+          no_valid_event = FALSE;
+          xbox(e,fg,ginvert,BMEDGES|BMNOT|BMCLEAR); /* invert box */
+          Timer(50);
+          XSetForeground(theDisp,theGC, white); XSetBackground(theDisp,theGC, ginvert);
+          XftDrawString8(draw, &xft_color,fst,e.b_left+3,e.b_bottom-3,(XftChar8 *) choice_list[4],lm7);
+          XSetForeground(theDisp,theGC, fg); XSetBackground(theDisp,theGC, bg);
+          *ok = 5;
+          break;
+        } else if (xboxinside(f,x1,y1) && nopts >= 6){
+          no_valid_event = FALSE;
+          xbox(f,fg,ginvert,BMEDGES|BMNOT|BMCLEAR); /* invert box */
+          Timer(50);
+          XSetForeground(theDisp,theGC, white); XSetBackground(theDisp,theGC, ginvert);
+          XftDrawString8(draw, &xft_color,fst,f.b_left+3,f.b_bottom-3,(XftChar8 *) choice_list[5],lm8);
+          XSetForeground(theDisp,theGC, fg); XSetBackground(theDisp,theGC, bg);
+          *ok = 6;
+          break;
+        } else if (xboxinside(g,x1,y1) && nopts >= 7){
+          no_valid_event = FALSE;
+          xbox(g,fg,ginvert,BMEDGES|BMNOT|BMCLEAR); /* invert box */
+          Timer(50);
+          XSetForeground(theDisp,theGC, white); XSetBackground(theDisp,theGC, ginvert);
+          XftDrawString8(draw, &xft_color,fst,g.b_left+3,g.b_bottom-3,(XftChar8 *) choice_list[6],lm9);
+          XSetForeground(theDisp,theGC, fg); XSetBackground(theDisp,theGC, bg);
+          *ok = 7;
+          break;
+        } else if (xboxinside(h,x1,y1) && nopts >= 8){
+          no_valid_event = FALSE;
+          xbox(h,fg,ginvert,BMEDGES|BMNOT|BMCLEAR); /* invert box */
+          Timer(50);
+          XSetForeground(theDisp,theGC, white); XSetBackground(theDisp,theGC, ginvert);
+          XftDrawString8(draw, &xft_color,fst,h.b_left+3,h.b_bottom-3,(XftChar8 *) choice_list[7],lm10);
+          XSetForeground(theDisp,theGC, fg); XSetBackground(theDisp,theGC, bg);
+          *ok = 8;
+          break;
+        } else if (xboxinside(querb,x1,y1)){
+          no_valid_event = FALSE;
+          qbox_("?",1,2,&msgbx.b_bottom,&qbox_left,'!');	/* brief hilight  */
+          *ok = 9;
+          break;
+        } else {
+          no_valid_event = FALSE;
+          iaux = aux_menu((XEvent *) &event);	/* check and see if text scrolled etc. */
+          if ( iaux == 2 ) {	/* if resize then redraw the dialog */
+            xbox(msgbx,fg,white,BMCLEAR |BMEDGES);   /* draw dialogue box with edges  */
+            XftDrawString8(draw, &xft_color,fst,tprompt,msgbx.b_bottom-(f_height+8),(XftChar8 *) msg1,lm1);
+            XftDrawString8(draw, &xft_color,fst,lprompt,msgbx.b_bottom-3,(XftChar8 *) msg2,lm2);
+            XFlush(theDisp);
+            msg_bb = msgbx.b_bottom;
+            abcdboxs(choice_list[0],lm3,lm3+2,&msg_bb,&abox_left,'a');       /* a box with edges  */
+            abcdboxs(choice_list[1],lm4,lm4+2,&msg_bb,&bbox_left,'b');       /* b box with edges  */
+            if(nopts >= 3) abcdboxs(choice_list[2],lm5,lm5+2,&msg_bb,&cbox_left,'c');       /* c box with edges  */
+            if(nopts >= 4) abcdboxs(choice_list[3],lm6,lm6+2,&msg_bb,&dbox_left,'d');       /* d box with edges  */
+            if(nopts >= 5) abcdboxs(choice_list[4],lm7,lm7+2,&msg_bb,&ebox_left,'e');       /* e box with edges  */
+            if(nopts >= 6) abcdboxs(choice_list[5],lm8,lm8+2,&msg_bb,&fbox_left,'f');       /* f box with edges  */
+            if(nopts >= 7) abcdboxs(choice_list[6],lm9,lm9+2,&msg_bb,&gbox_left,'g');       /* g box with edges  */
+            if(nopts >= 8) abcdboxs(choice_list[7],lm10,lm10+2,&msg_bb,&hbox_left,'h');     /* g box with edges  */
+            qbox_("?",1,2,&msg_bb,&qbox_left,'-');	/* draw querry box with edges  */
+            *ok = 0;                     /* assume no answer         */
+          }
+          no_valid_event = TRUE;
+          break;
+        }
+
+      case KeyPress:	/* (XKeyEvent)&ev */
+        blen = XLookupString((XKeyEvent*)&event,buf,80,&ks,(XComposeStatus *) NULL);
+        if(blen > 0) {
+          blen--;
+          bp = buf;
+          k_char = *bp++;
+        }
+        keypressed = isupper (k_char) ? tolower (k_char) : k_char;
+        if ( keypressed == 'a' )*ok = 1;
+        if ( keypressed == 'b' )*ok = 2;
+        if ( keypressed == 'c' )*ok = 3;
+        if ( keypressed == 'd' )*ok = 4;
+        if ( keypressed == 'e' )*ok = 5;
+        if ( keypressed == 'f' )*ok = 6;
+        if ( keypressed == 'g' )*ok = 7;
+        if ( keypressed == 'h' )*ok = 8;
+        if ( *ok == 0 ) { no_valid_event = TRUE; } else { no_valid_event = FALSE; };
+        break;
+    }
+  }
+  if(XPending(theDisp) > 0) {
+    while ( XPending(theDisp) > 0) {
+      XNextEvent (theDisp,&event);	/* flush events */
+    }
+  }
+  XUndefineCursor(theDisp,win);  XDefineCursor(theDisp,win,arrow_cursor); /* turn on arrow cursor */
+
+/*
+  If one of the choices has been made pause and then clear the dialogue box.
+*/
+  if(*ok <= nopts) {
+    Timer(100);
+    xbox(msgbx,fg,white,BMCLEAR |BMEDGES);                    /* clear dialogue box  */
+  }
+  if (saved_font != butn_fnt) winfnt_(&saved_font);
+  XftDrawDestroy(draw);
+  return;
+} /* openmultibox */
+
 /* ****** drscrollbar : draw scroll bar beside text feedback ********** */
 void drscrollbar()
 {
@@ -8056,6 +8452,51 @@ void updmenu_(items,itypes,nitmsptr,iw,len_items)
   }
   return;
 }
+
+
+/* *************** ESRU choice box text update. *************** */
+/*
+ This function takes an array of strings from f77 and stores
+ it in the static array choice_list for subsequent use by other functions.
+*/
+/* char choice_list[10][42]; character arrays for choices */
+/* char choice_type_list[10]; character array representing choice_list array use */
+/* int choice_width = 0; current menu max line length */
+/* int choice_boxes = 0; current number of active boxes */
+void upd_box_choices_(items,itypes,nitmsptr,iw,len_items)
+  char      *items;         /* f77 array of box text strings    */
+  char      *itypes;        /* f77 character array (nitmsptr wide)    */
+  long int  *nitmsptr;      /* number of choice boxes   */
+  long int  *iw;            /* actual max char width in choices    */
+  int  len_items;           /* length of string from f77    */
+{
+  int	i, j, k;
+  int	m_line = *nitmsptr;
+  int l_m1;
+
+  choice_width = *iw;	/* remember width of choice text */
+  choice_boxes = m_line;	/* remember number of choices */
+  if(m_line == 0)return;	/* don't bother if no lines */
+  strncpy(choice_type_list,itypes,(unsigned int)m_line);	/* copy to static array */
+
+  for(i = 0; i < 10; i++) {	/* clear prior widths...  */
+    choice_list_w[i] = 0;
+  }
+  k = 0;
+  for(i = 0; i < choice_boxes; i++) {	/* for each choice...  */
+    for(j = 0; j < len_items; j++) {	/* for each character...  */
+      choice_list[i][j] = items[k];
+      k = k +1;   /* increment for next char in items (a fortran string array does not have
+                     nulls between strings in array, it just looks like one long string) */
+    }
+    choice_list[i][len_items] = '\0';	        /* write terminator          */
+    f_to_c_l(choice_list[i],&len_items,&l_m1);  /* find actual length l_m1)  */
+    choice_list_w[i] = l_m1;                /* save to choice_list_w */
+//    fprintf(stderr,"choice_list %s %d %d %d %d %d %d\n",choice_list[i],i,k,choice_list_w[i],choice_width,len_items,l_m1); 
+  }
+  return;
+}
+
 
 /* ******  Move mouse help button on screen ********** */
 /* Box covered by menu -> move to the left. */

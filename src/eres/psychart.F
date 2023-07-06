@@ -382,8 +382,9 @@ C Ignore nodes with an incompatible ISV number.
         endif
 
 C Ask whether user wants to step forwards, backwards or return.
-        call EASKABC(' ','Options:',
-     &    'previous ts','next ts','continue',IW,nbhelp)
+        call EASKMBOX(' ','Options:',
+     &    'previous ts','next ts','continue',
+     &    ' ',' ',' ',' ',' ',IW,nbhelp)
         if(iw.eq.1)then
           if(itstep.gt.2)then
             itstep=itstep-1

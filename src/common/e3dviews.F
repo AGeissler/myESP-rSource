@@ -979,10 +979,10 @@ C sz: screen space z coordinate
       logical colok
 #ifdef OSI
       integer iix,iiy,iix1,iiy1
-      integer iicol
+      integer iicol,ibsize
 #else
       integer*8 iix,iiy,iix1,iiy1
-      integer*8 iicol
+      integer*8 iicol,ibsize
 #endif
 
       IER=0
@@ -990,7 +990,7 @@ C sz: screen space z coordinate
 C Check if can draw in colour and if so set black.
       colok=.false.
       if(nzonec.ge.6)colok=.true.
-      isize=0
+      isize=0; ibsize=0
       if(colok)then
         iicol=0
         if(mmod.eq.8) call winscl('-',iicol)
@@ -1020,7 +1020,7 @@ C If vertices are to be labeled do it in the smallest font.
         iicol=0
         call winscl('-',iicol)
       else
-        call textsizeatxywwc(iix1,iiy1,VTEXT,isize,'-',iicol)
+        call textsizeatxywwc(iix1,iiy1,VTEXT,ibsize,'-',iicol)
       endif
 
       RETURN
@@ -1041,10 +1041,10 @@ C sz: screen space z coordinate
       logical colok
 #ifdef OSI
       integer iix,iiy,iix1,iiy1
-      integer iicol
+      integer iicol,ibsize
 #else
       integer*8 iix,iiy,iix1,iiy1
-      integer*8 iicol
+      integer*8 iicol,ibsize
 #endif
 
       IER=0
@@ -1052,7 +1052,7 @@ C sz: screen space z coordinate
 C Check if can draw in colour and if so set black.
       colok=.false.
       if(nzonec.ge.6)colok=.true.
-      isize=0
+      isize=0; ibsize=0
       if(colok)then
         iicol=0
         if(mmod.eq.8) call winscl('-',iicol)
@@ -1069,12 +1069,12 @@ C If vertices are to be labeled do it in the smallest font.
       VTEXT=VT
       iix1=iix+1; iiy1=iiy-1;
       if(mmod.eq.8)then
-        call textsizeatxy(iix1,iiy1,VTEXT,isize,'-',iicol)
+        call textsizeatxy(iix1,iiy1,VTEXT,ibsize,'-',iicol)
         call forceflush()
         iicol=0
         call winscl('-',iicol)
       else
-        call textsizeatxywwc(iix1,iiy1,VTEXT,isize,'-',iicol)
+        call textsizeatxywwc(iix1,iiy1,VTEXT,ibsize,'-',iicol)
       endif
 
       RETURN
@@ -1097,10 +1097,10 @@ C sz: screen space z coordinate
       logical colok
 #ifdef OSI
       integer iix,iiy,iix1,iiy1
-      integer iicol
+      integer iicol,ibsize
 #else
       integer*8 iix,iiy,iix1,iiy1
-      integer*8 iicol
+      integer*8 iicol,ibsize
 #endif
 
       IER=0
@@ -1108,7 +1108,7 @@ C sz: screen space z coordinate
 C Check if can draw in colour and if so set to red.
       colok=.false.
       if(nzonec.ge.6)colok=.true.
-      isize=0
+      ibsize=0; isize=0
       if(colok)then
         iicol=0
         if(mmod.eq.8) call winscl('z',iicol)
@@ -1138,7 +1138,7 @@ C If vertices are to be labeled do it in the smallest font.
         iicol=0
         call winscl('-',iicol)
       else
-        call textsizeatxywwc(iix1,iiy1,VTEXT,isize,'z',iicol)
+        call textsizeatxywwc(iix1,iiy1,VTEXT,ibsize,'z',iicol)
       endif
 
       RETURN

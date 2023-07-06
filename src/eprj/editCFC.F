@@ -96,8 +96,9 @@ C ********************************************************************
 C Ask user to update CFC file or continue
       write(outs,'(a,a)') 'CFC model file is ',
      &                      lcfcin(icomp)
-      CALL EASKAB(outs,'Options:',
-     &     'Update CFC file','cancel',IWA,nbhelp)
+      CALL EASKMBOX(outs,'Options:',
+     &  'Update CFC file','cancel',
+     &  ' ',' ',' ',' ',' ',' ',IWA,nbhelp)
 
 C Update CFC file selected
       IF(IWA.EQ.1)THEN
@@ -356,8 +357,9 @@ C import GSLedit data and store in cfc commons
           CALL EDISP(IUOUT,outs)
   
         else
-          CALL EASKAB('File not found! ','Options:',
-     &       'try again','cancel',IWA,nbhelp)
+          CALL EASKMBOX('File not found! ','Options:',
+     &      'try again','cancel',' ',' ',' ',' ',' ',' ',
+     &      IWA,nbhelp)
           if(IWA.eq.1)goto 12
           if(IWA.eq.2)GOTO 99
         endif
@@ -1257,8 +1259,9 @@ C angle for venetian blinds, or calculate fullness ratio for draperies.
            write(outs,'(a,i2)')
      &      'Specify blind slat orientation for cfc type: ',icfctp
           ln_outs=lnblnk(outs)
-          CALL EASKAB(outs(1:ln_outs),' ',
-     &            'Vertical','Horizontal',IWA,nbhelp)
+          CALL EASKMBOX(outs(1:ln_outs),' ',
+     &      'Vertical','Horizontal',' ',' ',' ',' ',' ',' ',
+     &      IWA,nbhelp)
           if(IWA.eq.1)cim_VorH(icomp,icfctp)='VERT'
           if(IWA.eq.2)cim_VorH(icomp,icfctp)='HORZ'
 

@@ -1612,6 +1612,13 @@ C 2-node bypass stratified storage tank model
 C 3 node (ISV=20) Flow Balancing Junction
         ELSE IF(ITYPE.EQ.143) THEN
             CALL CMP143C(IPCOMP,OUT,ISTATS)
+C 1-node cooling coil with flux control. Operating capacity is determined
+C using empirical data
+        ELSE IF (ITYPE .EQ. 144) THEN
+           CALL CMP144C(IPCOMP,OUT,ISTATS)
+C 1-node moist air flow source
+        ELSE IF (ITYPE .EQ. 145) THEN
+           CALL CMP145C(IPCOMP,OUT,ISTATS)
 
 C New component equation generators inserted here
 

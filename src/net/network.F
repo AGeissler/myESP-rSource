@@ -130,6 +130,10 @@ C This is the main network management routine.
 
 C Graphics and ESP-r default commons
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
+      logical ieopened     ! Has session file been started.
+      integer iecount      ! Does it hold error messages.
+      character iefile*72  ! The name of the session file.
+      common/logs/ieopened,iecount,iefile
       COMMON/SHOUT/ICOUT
       COMMON/FILEP/IFIL
       COMMON/MOD/MODEL
@@ -141,10 +145,6 @@ C Graphics and ESP-r default commons
       common/appw/iappw,iappx,iappy
       common/appcols/mdispl,nifgrey,ncset,ngset,nzonec
       COMMON/FUNIT/IUCFG,IUPDB
-
-C Session log file (for errors etc.)
-      character iefile*72
-      common/logs/iefile
 
 C To signal to MFWRIT that globals are available.
       logical haveglobal
@@ -374,6 +374,8 @@ C Open the session file.
       call dstamp(dstmp) ! get curret time
       write(ieout,'(2a)')'Date,',dstmp
       write(ieout,'(2a)')'User,',uname(1:lnblnk(uname))
+      ieopened=.true.
+      iecount=0
   903 continue
 
 C Open the text display box equal to LIMTTY if MMOD = 8.
@@ -1162,8 +1164,9 @@ C Read in a network, clear existing network definitions and refreshing
 C the screen.  << ?? do we need without fill common blocks ?? >>
         helptopic='convert_to_text_network'
         call gethelptext(helpinsub,helptopic,nbhelp)
-        call easkabc('Options:',' ','standard network file read',
-     &    'read & fill flow commons','continue',iwh,nbhelp)
+        call easkmbox('Options:',' ','standard network file read',
+     &    'read & fill flow commons','continue',' ',' ',' ',' ',' ',
+     &    iwh,nbhelp)
         if(iwh.eq.3)then
           goto 5
         endif
@@ -2489,8 +2492,9 @@ C Depending on if user wants to add/delete/copy/edit a component
 C Adding a connection, ask user preference for mouse input or menu input.
           helptopic='check_mouse_menu'
           call gethelptext(helpinsub,helptopic,nbhelp)
-          call easkabc('Options:',' ','select via mouse',
-     &      'select via menu','continue',iwh,nbhelp)
+          call easkmbox('Options:',' ','select via mouse',
+     &      'select via menu','continue',' ',' ',' ',' ',' ',
+     &      iwh,nbhelp)
           if(iwh.eq.1)then
             call USRMSG(
      &'Connect: button1-start icon; button3-end icon (later highlight',
@@ -4706,8 +4710,8 @@ C Z cog, Z max, zone name and surface name.
           write(outs,'(3a)') 'Use ',
      &      conname(ifoc)(1:lnblnk(conname(ifoc))),' attributes with'
           IRT=1
-          call easkatog(outs,'options:',tl,tc,tt,'other','continue',
-     &      ' ',' ',IRT,nbhelp)
+          call easkmbox(outs,'options:',tl,tc,tt,'other','continue',
+     &      ' ',' ',' ',IRT,nbhelp)
           IF(irt.eq.5)GOTO 72
           AVAL(1)=snacon(ifoc)
 

@@ -251,8 +251,8 @@ C name to report in header of graphs and scan its header.
             write(outs248,'(3a)') 'Problem encountered opening ',
      &        lltmpc(1:lnblnk(lltmpc)),'!'
             call edisp248(iuout,outs248,100)
-            call easkab(' ','Options:','respecify','cancel',
-     &        ii,nbhelp)
+            call easkmbox(' ','Options:','respecify','cancel',
+     &        ' ',' ',' ',' ',' ',' ',ii,nbhelp)
             if(ii.eq.1)goto 22
             return
           endif

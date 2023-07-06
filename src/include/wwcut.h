@@ -103,8 +103,7 @@ void	wwcsetend_();
 void	ckaccess_(long int* folder,long int* laccess,long int* lerr,char* fname,int len);
 void	getfilelist_(char* folder,char* act,char* flist,long int nwflist[],long int* nflist,int lenfolder,int lenact,int lenflist);
 void	getfileslist_(char* folder,char* act,long int* nflist,int lenfolder,int lenact);
-void	curproject_(char* fcfgroot,char* fpath,char* fupath,char* fimgpth,char* fdocpth,long int* ibrowse,
-        long int* iincomp,long int* iincon,int len_root,int len_fpath,int len_fupath,int len_fimgpth,int len_fdocpth);
+void	curproject_(char* fcfgroot,char* fpath,long int* iincomp,long int* iincon,int len_root,int len_fpath);
 void    curviews_(float* EVX,float* EVY,float* EVZ,float* VX,float* VY,float* VZ,float* EAN,long int* JITZNM,long int* JITSNM,
         long int* JITVNO,long int* JITOBS,long int* JITSNR,long int* JITGRD,long int* JITORG,float* DIS,long int* JITBND,
         long int* JITDSP,long int* JITHLS,long int* JITHLZ,long int* JITPPSW);
@@ -175,6 +174,7 @@ void	abbox_(char* msg1,char* msg2,char* opta,char* optb,long int* ok,
 void	abcdefbox_(char* msg1,char* msg2,char* opta,char* optb,char* optc,char* optd,
 	char* opte,char* optf,char* optg,long int* ok,int len1,int len2,int len3,
 	int len4,int len5,int len6,int len7,int len8,int len9);
+void	openmultibox_(char* msg1,char* msg2,long int* ok,int len1,int len2);
 void	opengdisp_(long int* menu_char,long int* displ_l,long int* dialogue_l,
 	long int* gdw,long int* gdh);
 void	egdisp_(char* msg,long int* line,int len);
@@ -226,6 +226,7 @@ void	horaxishdwdd_(float *xmn,float *xmx,long int *offl,long int *offr,long int 
 	float *xadd,float *sca,long int *mode,float *dddx, long int *nnx,long int *ind,
 	long int *idiv,long int *isjday,char* msg,int mlen);
 void	updmenu_(char* items,char* itypes,long int* nitmsptr,long int* iw,int len_items);
+void	upd_box_choices_(char* items,char* itypes,long int* nitmsptr,long int* iw,int len_items);
 void	evwmenu_(char* titleptr,long int* impx,long int* impy,long int* iwth,long int* irpx,
 	long int* irpy,long int* ino,long int* ipflg,long int* uresp,int len_title);
 void	extentsvwmenu_(char* titleptr,long int* iwth,long int* ipixwthma,

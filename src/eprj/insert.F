@@ -526,7 +526,6 @@ C from another zone. Initil transforms:
           RETURN
         ENDIF
         iposbcp=MS-NSUR
-        call tstamp('>','PRJ: copy surface')
         if(ISCOPT.eq.1)then  
 
 C Find out which other zone to copy from. Save the current state of the
@@ -698,9 +697,9 @@ C Generate combined name for dialog.
         call gethelptext(helpinsub,helptopic,nbhelp)
         if(.NOT.DDOK)then
           IRT=1
-          CALL EASKATOG(' ','Actions to take on the new surface:',
+          CALL EASKMBOX(' ','Actions to take on the new surface:',
      &      'shift along normal','transform xyz','rotate','invert',
-     &      'combination','continue ?',' ',IRT,nbhelp)
+     &      'combination','continue ?',' ',' ',IRT,nbhelp)
         endif
         if(IRT.eq.5)then
           if(.NOT.DDOK)then
@@ -946,8 +945,8 @@ C Reverse the ordering.
             if(IRT.eq.4)then
               IOK=1
             else
-              CALL EASKAB(' Reverse the edge ordering of',
-     &                  outs,'yes','no',IOK,nbhelp)
+              CALL EASKMBOX('Reverse the edge ordering of',
+     &          outs,'yes','no',' ',' ',' ',' ',' ',' ',IOK,nbhelp)
             endif
           endif
           if(IOK.eq.1)then
@@ -1164,7 +1163,6 @@ C surface in the zone`.
           CALL USRMSG(' No more surfaces are allowed. ',' ','W')
           RETURN
         ENDIF
-        call tstamp('>','PRJ: add surface')
         ICON=IZSTOCN(icomp,nsur)+1
         NSUR=NSUR+1
         NZSUR(ICOMP)=NSUR
@@ -1514,8 +1512,9 @@ C Complete rec.
 C Confirm opening.
         helptopic='addmass_overview'
         call gethelptext(helpinsub,helptopic,nbhelp)
-        CALL EASKABC('Options for this rectangle:',' ',
-     &     'accept position','revise position','abort',INVT,nbhelp)
+        CALL EASKMBOX('Options for this rectangle:',' ',
+     &     'accept position','revise position','abort',
+     &     ' ',' ',' ',' ',' ',INVT,nbhelp)
         if(INVT.eq.2)then
           ITVNO=0
           ITSNM=0
@@ -1865,7 +1864,6 @@ C Copy vertex index and then increment NTV and present vertex coords
 C then parse into new vertex.
         helptopic='vert_copy_overview'
         call gethelptext(helpinsub,helptopic,nbhelp)
-        call tstamp('>','PRJ: copy vertex')
         WRITE(HOLD,'(3f11.5,a)')X(NUM),Y(NUM),Z(NUM),'  '
         write(outs,'(a,i3,a,i3,a)')'Copied Vertex (',NUM,
      &    ' old; current index ',NTV+1,')'
@@ -2025,7 +2023,6 @@ C (the itv1 & itv2 need to be re-formed.
 C Take a line pair and then look and see if it is referenced in
 C reverse order just once. itv1 & itv2 are the vertices at the
 C start and end of each edge, its1 is the reference surface. 
-      if(ivb.ne.0)call tstamp('>','PRJ: checking vertex match')
       ipair=0; inve=0; iub=0
       DO IS=1,NSUR
         invesur(IS)=0
@@ -2475,9 +2472,9 @@ C or at bottom edge (as in a door) (IRT=2) as percentage (IRT=3) or a
 C fixed width frame (IRT=4).
       helptopic='add_rect_overview'
       call gethelptext(helpinsub,helptopic,nbhelp)
-      CALL EASKATOG('  ','Insert surface:',
+      CALL EASKMBOX('  ','Insert surface:',
      &  'within surface','at base (door)','% of surface area',
-     &  'within frame','continue ?',' ',' ',IRT,nbhelp)
+     &  'within frame','continue ?',' ',' ',' ',IRT,nbhelp)
       if(IRT.eq.5)return
 
       if(IRT.eq.1)then

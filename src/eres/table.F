@@ -239,9 +239,9 @@ C Toggle time format and day separators.
           call edisp(iuout,' ')
           call edisp(iuout,'setting time = yyyy-mm-dd hh:mm:ss')
         endif
-        CALL EASKAB('Include mark between days when ',
-     &              'displaying or writing data :','no','yes',
-     &              IDH,nbhelp)
+        CALL EASKMBOX('Include mark between days when ',
+     &    'displaying or writing data :','no','yes',
+     &    ' ',' ',' ',' ',' ',' ',IDH,nbhelp)
         IDHFLG=IDH-1
       elseif(INO.EQ.12.AND.ISAVE.GE.1)then
 
@@ -263,9 +263,9 @@ C Toggle tabular listing label format.
 
 C Toggle delimeter.
         IWM=1
-        CALL EASKATOG('Delimeter to use between columns of data:',' ',
+        CALL EASKMBOX('Delimeter to use between columns of data:',' ',
      &    'normal spaces','single space','tab','comma','tagged',
-     &    'continue',' ',IWM,nbhelp)
+     &    'continue',' ',' ',IWM,nbhelp)
         if(iwm.eq.1)then
           delim = '-'
         elseif(iwm.eq.2)then
@@ -347,6 +347,7 @@ C act='m' called from ipv metric with parameters already set.
       integer KE,KE4 ! current end points
       double precision atime
       logical nextday
+      integer xndts
 
 C If output to file alter the edisp unit number.
       itru = icout

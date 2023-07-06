@@ -246,9 +246,9 @@ C reference. Use elistmat to select via materials array.
         IF(OK)then
           CALL ELISTMAT(iwhich,chdb,'-',matarrayindex,IER)
           if(iwhich.eq.0)then
-            CALL EASKABC('Your selection is `0` i.e. air. Options:',
+            CALL EASKMBOX('Your selection is `0` i.e. air. Options:',
      &        ' ','accept','reselect material','abort',
-     &        iwair,nbhelp)
+     &        ' ',' ',' ',' ',' ',iwair,nbhelp)
             if(iwair.eq.2)then
               CALL ELISTMAT(iwhich,chdb,'-',matarrayindex,IER)
             elseif(iwair.eq.3)then

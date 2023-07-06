@@ -353,9 +353,10 @@ C If there are no controls, set high level commons and ask about day types.
 C Initial setup of day types. Offer the user a cancel option and
 C if that is selected decrement ncf and return.
           IV=NBCDT(ncf)
-          CALL EASKABC('Day types for ideal zone controls (see help)',
+          CALL EASKMBOX('Day types for ideal zone controls',
      &      'select:','Follow calendar day types','Just one day type',
-     &      'Dates of validity (legacy)',IV,nbhelp)
+     &      'Dates of validity (legacy)',' ',' ',' ',' ',' ',IV,
+     &      nbhelp)
           if(iv.eq.1)then
             NBCDT(ncf)=0
           elseif(iv.eq.2)then
@@ -375,9 +376,9 @@ C if that is selected decrement ncf and return.
           endif
 
 C Set the scope.
-          CALL EASKABCD('Extent of ideal environmental controls: ',
+          CALL EASKMBOX('Extent of ideal environmental controls: ',
      &      ' ','heating only','cooling only','heating & cooling',
-     &      'unknown',IW,nbhelp)
+     &      'unknown',' ',' ',' ',' ',IW,nbhelp)
           if(iw.eq.1)then
             hcffpattern(1)='HEATONLY'; hcffpattern(2)='-'
           elseif(iw.eq.2)then
@@ -453,9 +454,10 @@ C Initial setup of day types.
           IV=NPCDT(ncl)
           write(outs,'(a,i2,a)')
      &     ' Number of plant control day types (currently',IV,') :'
-          CALL EASKABC(outs,'(see help)',
+          CALL EASKMBOX(outs,'(see help)',
      &      'Follow calendar day types','Just one day type',
-     &      'Dates of validity (legacy)',IV,nbhelp)
+     &      'Dates of validity (legacy)',
+     &      ' ',' ',' ',' ',' ',IV,nbhelp)
           if(iv.eq.1)then
             NPCDT(ncl)=0
           elseif(iv.eq.2)then
@@ -541,9 +543,10 @@ C Initial setup of day types.
           IV=nfcdt(ncc)
           write(outs,'(a,i2,a)')
      &      ' No. vent/hydronic control day types (currently',IV,') :'
-          CALL EASKABC(outs,'(see help)',
+          CALL EASKMBOX(outs,'(see help)',
      &      'Follow calendar day types','Just one day type',
-     &      'Dates of validity (legacy)',IV,nbhelp)
+     &      'Dates of validity (legacy)',
+     &      ' ',' ',' ',' ',' ',IV,nbhelp)
           if(iv.eq.1)then
             NFCDT(ncc)=0
           elseif(iv.eq.2)then
@@ -630,9 +633,9 @@ C Initial setup of day types.
      &      ' Number of global control day types (currently',IV,') :'
           CALL EDISP(IUOUT,
      &    ' Dates of validity are not supported for global controls')
-          CALL EASKABC(outs,'(see help)',
+          CALL EASKMBOX(outs,'(see help)',
      &      'Follow calendar day types','Just one day type',' ',
-     &      IV,nbhelp)
+     &      ' ',' ',' ',' ',' ',IV,nbhelp)
           if(iv.eq.1)then
             NGCDT(ncc)=0
           elseif(iv.eq.2)then
@@ -661,9 +664,10 @@ C if that is selected decrement nof and return.
           IV=NOCDT(nof)
           write(outs,'(a,i2,a)')
      &      ' Number of optical control day types (currently',IV,') :'
-          CALL EASKABC(outs,'(see help)',
+          CALL EASKMBOX(outs,'(see help)',
      &      'Follow calendar day types','Just one day type',
-     &      'Dates of validity (legacy)',IV,nbhelp)
+     &      'Dates of validity (legacy)',
+     &      ' ',' ',' ',' ',' ',IV,nbhelp)
           if(iv.eq.1)then
             NOCDT(nof)=0
           elseif(iv.eq.2)then
@@ -745,8 +749,9 @@ C if that is selected decrement nCFCctlloops and return.
           IV=nCFCctldaytypes(nCFCctlloops)
           write(outs,'(a,i2,a)')
      &      'Day types for fenistration control (currently',IV,') :'
-          CALL EASKABC(outs,' ',
-     &      'weekday/Saturday/Sunday','one','other',IV,nbhelp)
+          CALL EASKMBOX(outs,' ',
+     &      'weekday/Saturday/Sunday','one','other',
+     &      ' ',' ',' ',' ',' ',IV,nbhelp)
           if(iv.eq.1)then
             nCFCctldaytypes(nCFCctlloops)=0
           elseif(iv.eq.2)then
@@ -1076,9 +1081,9 @@ C Acquire help messages.
 
 C If interactive ask what to do, otherwise take passed directives.
       if(ACT(1:2).eq.'--')then
-        CALL EASKABCD(' ','Options:','delete day type',
+        CALL EASKMBOX(' ','Options:','delete day type',
      &    'add day type','copy existing day type','cancel',
-     &    IW,nbhelp)
+     &    ' ',' ',' ',' ',IW,nbhelp)
       elseif(ACT(1:2).eq.'SD'.or.ACT(1:2).eq.'sd')then
         IW=1
       elseif(ACT(1:2).eq.'SA'.or.ACT(1:2).eq.'sa')then
@@ -1674,8 +1679,14 @@ C List linkages with zones if II = 0.
             call edisp(itru,' Zone to contol loop linkages:')
           endif
           DO 28 LC=1,NCOMP
-            WRITE(outs,'(a,i2,a,a,a,i2)')' zone (',LC,') ',zname(LC),
-     &        ' << control ',ICASCF(LC)
+            if(ICASCF(LC).gt.0)then
+              WRITE(outs,'(a,i2,3a,i2,2a)')' zone (',LC,') ',zname(LC),
+     &          ' << control ',ICASCF(LC),' ',
+     &          BCTLNAME(ICASCF(LC))(1:lnblnk(BCTLNAME(ICASCF(LC))))
+            else
+              WRITE(outs,'(a,i2,3a,i2,a)')' zone (',LC,') ',zname(LC),
+     &          ' << control ',ICASCF(LC),' no control imposed'
+            endif
             if(markdown)then
               call edisp2tr(itru,outs)
             else

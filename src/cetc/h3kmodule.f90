@@ -381,6 +381,10 @@ MODULE h3kmodule
          rvpltFCellFuelHHV,rvpltFCellElecEffBOP,rvpltFCellCogenEff,rvpltFCellFuelFlw
 
    Type(ReportVariable) :: rvBldInfAirInf,rvBldInfAirChg
+
+   !Used by CMP144 (Coiling coil in pcomp1.F)
+   Type(ReportVariable) :: rvpltCMPCoilToTCool,rvpltCMPCoilSnsCool,rvpltCMPCoilElec, &
+                           rvpltCMPCoilCOP, rvpltCMPCoilCond
    
    !Used by TCC.F
    Type(ReportVariable) :: rvpltCosimInvocations, rvpltCosimEsprIter,rvpltCosimTrnsysIter,rvpltHCCTempToTrnsys, &
@@ -4476,6 +4480,37 @@ CONTAINS
       rvBldInfAirChg%VariableType = '(ACH)'
       rvBldInfAirChg%Description = ''
       Call AddVariable(rvBldInfAirChg)
+      
+      !Used by CMP144
+      rvpltCMPCoilToTCool%VariableName = 'plant/*/Q_tot'
+      rvpltCMPCoilToTCool%MetaType = 'units'
+      rvpltCMPCoilToTCool%VariableType = '(W)'
+      rvpltCMPCoilToTCool%Description = 'Total cooling capacity'
+      Call AddVariable(rvpltCMPCoilToTCool)
+
+      rvpltCMPCoilSnsCool%VariableName = 'plant/*/Q_sns'
+      rvpltCMPCoilSnsCool%MetaType = 'units'
+      rvpltCMPCoilSnsCool%VariableType = '(W)'
+      rvpltCMPCoilSnsCool%Description = 'Sensible cooling capacity'
+      Call AddVariable(rvpltCMPCoilSnsCool)
+
+      rvpltCMPCoilElec%VariableName = 'plant/*/Q_Elec'
+      rvpltCMPCoilElec%MetaType = 'units'
+      rvpltCMPCoilElec%VariableType = '(W)'
+      rvpltCMPCoilElec%Description = 'Total electrical load'
+      Call AddVariable(rvpltCMPCoilElec)
+
+      rvpltCMPCoilCOP%VariableName = 'plant/*/COP'
+      rvpltCMPCoilCOP%MetaType = 'units'
+      rvpltCMPCoilCOP%VariableType = '(-)'
+      rvpltCMPCoilCOP%Description = 'Operating COP'
+      Call AddVariable(rvpltCMPCoilCOP)
+
+      rvpltCMPCoilCond%VariableName = 'plant/*/cond_flow'
+      rvpltCMPCoilCond%MetaType = 'units'
+      rvpltCMPCoilCond%VariableType = '(kg/s)'
+      rvpltCMPCoilCond%Description = 'Condensation flow rate'
+      Call AddVariable(rvpltCMPCoilCond)
 
       !Used by TCC.F
       rvpltCosimInvocations%VariableName = 'plant/co-sim/Invocations'

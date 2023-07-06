@@ -386,6 +386,8 @@ C Recover definitions for current day type and timeF.
         IF(IHRF.EQ.1)IDAY=IDYP+1
         IF(IDAY.GT.365)IDAY=IDAY-365
         IDTY=ICALENDER(IDAY)
+
+C use IDAY in place of IDTY to keep to nomenclature in this subroutine
         IDAY=IDTY
       ENDIF
  

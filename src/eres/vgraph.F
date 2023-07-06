@@ -332,8 +332,8 @@ C Load/intensity output can be WATTS or KILOWATTS.
         call edisp(iuout,' the CLEAR command).')
         goto 51
       endif
-      CALL EASKAB(' ','Load/intensity variable in:',
-     &            'Watts','Kilowatts',IANS,nbhelp)
+      CALL EASKMBOX(' ','Load/intensity variable in:',
+     &  'Watts','Kilowatts',' ',' ',' ',' ',' ',' ',IANS,nbhelp)
       CONVER=1.
       IF(IANS.EQ.2)CONVER=1000.
       goto 51
@@ -416,8 +416,9 @@ C Dew point temperature: what % saturation ?
 C Inside or outside ?
     7 helptopic='res_inside_face'
       call gethelptext(helpinsub,helptopic,nbhelp)
-      CALL EASKAB(' ','Which side :',
-     &  'external (other side)','internal',IANS,nbhelp)
+      CALL EASKMBOX(' ','Which side :',
+     &  'external (other side)','internal',
+     &  ' ',' ',' ',' ',' ',' ',IANS,nbhelp)
       IF(JPICK.EQ.23)IVELT(IZ)=IANS
       IF(JPICK.NE.23)IVCON(IZ)=IANS
       goto 1
@@ -425,8 +426,9 @@ C Inside or outside ?
 C Radiant or convective casual gain ?
     8 helptopic='res_gains_rad_conv'
       call gethelptext(helpinsub,helptopic,nbhelp)
-      CALL EASKAB(' ','Casual gains :',
-     &            'radiant','convective',IANS,nbhelp)
+      CALL EASKMBOX(' ','Casual gains :',
+     &  'radiant','convective',' ',' ',' ',' ',' ',' ',
+     &  IANS,nbhelp)
       IVCON(IZ)=IANS
       goto 1
 

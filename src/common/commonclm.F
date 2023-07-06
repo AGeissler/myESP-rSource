@@ -400,8 +400,8 @@ C calculated average data.
 C Loop through each seasonal period.
       helptopic='typical_week_scan'
       call gethelptext(helpinsub,helptopic,nbhelp)
-      call easkab(' ','Options:','search for typical weeks',
-     &  'cancel',iok,nbhelp)
+      call easkmbox(' ','Options:','search for typical weeks',
+     &  'cancel',' ',' ',' ',' ',' ',' ',iok,nbhelp)
       if(iok.eq.2)return
 
 C Allow user to define weightings.
@@ -773,8 +773,8 @@ C day ratio.
           if(k.eq.5)then  ! jump out on the final standard season
             iok=1
           else
-            call easkab('Options:',' ','next season','cancel',
-     &        iok,nbhelp)
+            call easkmbox('Options:',' ','next season','cancel',
+     &        ' ',' ',' ',' ',' ',' ',iok,nbhelp)
           endif
           if(iok.eq.2)return
         endif

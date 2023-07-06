@@ -57,6 +57,10 @@ C default file names for databases
 
 C Commons for I/O Channel, mode type and fonts.
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
+      logical ieopened     ! Has session file been started.
+      integer iecount      ! Does it hold error messages.
+      character iefile*72  ! The name of the session file.
+      common/logs/ieopened,iecount,iefile
       integer ifs,itfs,imfs
       COMMON/GFONT/IFS,ITFS,IMFS
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
@@ -138,10 +142,6 @@ C Name of current application
 C Ask to overwrite flag.
       COMMON/OVRWT/AUTOVR
       logical AUTOVR
-
-C Session log file (for errors etc.)
-      character iefile*72
-      common/logs/iefile
 
       integer legmat  ! local variable for legacy index.
       integer matarrayindex ! the indes within matdatarray
@@ -437,6 +437,8 @@ C Open the session file.
       call dstamp(dstmp) ! get curret time
       write(ieout,'(2a)')'Date,',dstmp
       write(ieout,'(2a)')'User,',uname(1:lnblnk(uname))
+      ieopened=.true.
+      iecount=0
   903 continue
 
 C Take `c' command line file name, convert to fortran string LCMDFL.
@@ -620,12 +622,13 @@ C Help via the askabout facility in esru_ask.F The zero requests display
 C Define Units
         helptopic='unit_for_results'
         call gethelptext(helpinsub,helptopic,nbhelp)
-        CALL easkabcd('Define the results unit.',
+        CALL easkmbox('Define the results unit.',
      &    'Do you want to modify unit for: ',' Energy ',' Mass ',
-     &    ' Impacts ',' CANCEL ',IUnit,nbhelp)
+     &    ' Impacts ',' CANCEL ',' ',' ',' ',' ',IUnit,nbhelp)
         IF (IUnit.EQ.1) THEN
-          CALL easkabc('Define the ENERGY unit.','Which unit : ',
-     &      ' [kWh] ',' [MJ] ',' CANCEL ',IEnergy,nbhelp)
+          CALL easkmbox('Define the ENERGY unit.','Which unit :',
+     &      ' [kWh] ',' [MJ] ',' CANCEL ',' ',' ',' ',' ',' ',
+     &      IEnergy,nbhelp)
           OldUnit=UnitEner
           IF (IEnergy.EQ.1) THEN
             UnitEner='[kWh]'
@@ -633,8 +636,9 @@ C Define Units
             UnitEner='[MJ]'
           ENDIF
         ELSEIF (IUnit.EQ.2) THEN
-          CALL easkabc('Define the MASS unit.',
-     &      'Which unit : ','[kg]','[g]','CANCEL',IMass,nbhelp)
+          CALL easkmbox('Define the MASS unit.',
+     &      'Which unit : ','[kg]','[g]','CANCEL',
+     &      ' ',' ',' ',' ',' ',IMass,nbhelp)
           OldUnit=UnitMass
           IF (IMass.EQ.1) THEN
             UnitMass='[kg]'
@@ -642,9 +646,9 @@ C Define Units
             UnitMass='[g]'
           ENDIF
         ELSEIF (IUnit.EQ.3) THEN
-          CALL easkabc('Define the results format',
+          CALL easkmbox('Define the results format',
      &      'Which unit : ','Absolue','Relative (/m2)','CANCEL',
-     &      IImp,nbhelp)
+     &      ' ',' ',' ',' ',' ',IImp,nbhelp)
           OldUnit=UnitImp
           IF (IImp.EQ.1) THEN
             UnitImp='[Imp]'
@@ -770,8 +774,9 @@ C Select/change BCF file.
         helptopic='eco_BCF_options'
         call gethelptext(helpinsub,helptopic,nbhelp)
   288   IF (BCFOK) THEN
-          call easkabc('A BCF of the current problem is loaded.',
-     &     'Options:','use it','load another','cancel',Iw,nbhelp)
+          call easkmbox('A BCF of the current problem is loaded.',
+     &     'Options:','use it','load another','cancel',
+     &     ' ',' ',' ',' ',' ',Iw,nbhelp)
           if(iw.eq.3)then
             goto 10
           elseif(iw.eq.2)then
@@ -815,9 +820,9 @@ C Attempt to read in the BCF file.
         helptopic='eco_assessing_impacts'
         call gethelptext(helpinsub,helptopic,nbhelp)
 
-        CALL EASKABC(' ','Scope of LCA calculation:',
+        CALL EASKMBOX(' ','Scope of LCA calculation:',
      &   'project-based','construction-based','material-based',
-     &   IcalType,nbhelp)
+     &   ' ',' ',' ',' ',' ',IcalType,nbhelp)
         GOTO 10
       ELSEIF (Ino.eq.6.and.IcalType.eq.1)then
 
@@ -835,9 +840,9 @@ C Selection of the surfaces to include
 C All the zones in the project have been selected
              helptopic='eco_select_manually'
              call gethelptext(helpinsub,helptopic,nbhelp)
-             CALL EASKAB(' ',
+             CALL EASKMBOX(' ',
      &        'Select surfaces to include manually?','no (include all)',
-     &        'yes',ixman,nbhelp)
+     &        'yes',' ',' ',' ',' ',' ',' ',ixman,nbhelp)
              IF (ixman.EQ.1) THEN
                do 41 ixd=1,NZG
                   CALL ZoneDisp(NZNOG(ixd),0)
@@ -945,8 +950,9 @@ C Select from the available materials.
         iwhich=0
         CALL ELISTCMOD(iwhich,chdb,'-',IER)
         if(iwhich.eq.0)then
-          CALL EASKABC('Your selection is `0` i.e. air. Options:',
-     &      ' ','accept','reselect material','cancel',iwair,nbhelp)
+          CALL EASKMBOX('Your selection is `0` i.e. air. Options:',
+     &      ' ','accept','reselect material','cancel',
+     &      ' ',' ',' ',' ',' ',iwair,nbhelp)
           if(iwair.eq.2)then
             CALL ELISTCMOD(iwhich,chdb,'-',IER)
           elseif(iwair.eq.3)then

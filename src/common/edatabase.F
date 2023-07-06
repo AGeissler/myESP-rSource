@@ -3594,7 +3594,6 @@ C Start calculation of U-value.
 C Loop through layers (inside to outside).
       cum_thick=0.0; ksum=0.0; kappamlc=0.0
       halfthick=overallthick*0.5
-      write(6,*) 'half= ',halfthick,'mm'
       doanother=.true.    ! loop until a truncation
       do 10 I=1,LAYERS(IFOC)
         if (cond(I).gt.0.0) then
@@ -3612,8 +3611,6 @@ C reset.
      &        cum_thick+thickmm.le.halfthick)then
                 ksum=ksum+(thickmm*rho(I)*Cp(I))
               cum_thick=cum_thick+thickmm
-              write(6,'(i3,a,4f8.1,2f12.1)') i,'a thick rho cp ksum=',
-     &          cum_thick,thickmm,rho(I),Cp(I),thickmm*rho(I)*Cp(I),ksum
             else
               if(cum_thick+thickmm.gt.100.0)then
                 to_prior=cum_thick
@@ -3621,17 +3618,11 @@ C reset.
                 ksum=ksum+(to_subtract*rho(I)*Cp(I))
                 cum_thick=cum_thick+to_subtract
                 doanother=.false.    ! a truncation
-                write(6,'(i3,a,6f8.1,2f12.1)') i,'b thick rho cp ksum=',
-     &            cum_thick,to_prior,to_subtract,thickmm,
-     &            rho(I),Cp(I),to_subtract*rho(I)*Cp(I),ksum
               elseif(cum_thick+thickmm.gt.halfthick)then
                 to_prior=cum_thick
                 to_subtract=halfthick-to_prior
                 ksum=ksum+(to_subtract*rho(I)*Cp(I))
                 cum_thick=cum_thick+to_subtract
-                write(6,'(i3,a,6f8.1,2f12.1)') i,'c thick rho cp ksum=',
-     &            cum_thick,to_prior,to_subtract,thickmm,
-     &            rho(I),Cp(I),to_subtract*rho(I)*Cp(I),ksum
               endif
             endif
           endif
@@ -3645,7 +3636,6 @@ C Air gap
  10   continue
 
       kappamlc=1.0E-6 *ksum
-      write(6,*) 'kappa (thermal mass value) ',kappamlc
       write(outs,'(a,f7.1)') 'Kappa (thermal mass value) ',kappamlc
 
 

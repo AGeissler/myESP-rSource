@@ -360,7 +360,9 @@ C << extended *sps logic needed >>
         WRITE(ioout,'(4a)',iostat=ios,err=2) indent,'1',sim,
      &    '   !- Minimum Number of Warmup Days (from MLC TCM)'
       else
-        call scntcnst(TDM,istd,TCM,ISTC)
+
+C TDM is thermal diffusivity. TCM is seconds. ISTC is MLC index.
+        call scntcnst(TDM,istd,TCM,ISTC,ITCN)
         WRITE(ioout,'(a,i2,2a)',iostat=ios,err=2) indent,ISTC,com,
      &    '   !- Maximum Number of Warmup Days (from MLC TCM)'
         if(ISTC.gt.4)then

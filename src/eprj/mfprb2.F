@@ -117,8 +117,8 @@ C Input fluid type.
         if(iswater) write(MSG,'(a)') '(currently water):'
         if(.NOT.iswater) write(MSG,'(a)') '(currently air):'
         write(prompt,'(3a)') 'Fluid through ',CMNAM(ICMP),MSG
-        CALL EASKAB(prompt,'(help for synopsis)','air','water',
-     &    IW,nbhelp)
+        CALL EASKMBOX(prompt,'(help for synopsis)','air','water',
+     &    ' ',' ',' ',' ',' ',' ',IW,nbhelp)
         SUPCMP(ICMP,1)=REAL(IW)
       endif
 
@@ -394,8 +394,8 @@ C Input fluid type.
         if(iswater) write(MSG,'(a)') '(currently water):'
         if(.NOT.iswater) write(MSG,'(a)') '(currently air):'
         write(prompt,'(3a)') 'Fluid through ',CMNAM(ICMP),MSG
-        CALL EASKAB(prompt,'(help for synopsis)','air','water',
-     &    IW,nbhelp)
+        CALL EASKMBOX(prompt,'(help for synopsis)','air','water',
+     &    ' ',' ',' ',' ',' ',' ',IW,nbhelp)
         SUPCMP(ICMP,1)=REAL(IW)
       endif
 
@@ -549,8 +549,8 @@ C Input fluid type.
         if(iswater) write(MSG,'(a)') '(currently water):'
         if(.NOT.iswater) write(MSG,'(a)') '(currently air):'
         write(prompt,'(3a)') 'Fluid through ',CMNAM(ICMP),MSG
-        CALL EASKAB(prompt,'(help for synopsis)','air','water',
-     &    IW,nbhelp)
+        CALL EASKMBOX(prompt,'(help for synopsis)','air','water',
+     &    ' ',' ',' ',' ',' ',' ',IW,nbhelp)
         SUPCMP(ICMP,1)=REAL(IW)
       endif
 
@@ -696,8 +696,8 @@ C Input fluid type.
         if(iswater) write(MSG,'(a)') '(currently water):'
         if(.NOT.iswater) write(MSG,'(a)') '(currently air):'
         write(prompt,'(3a)') 'Fluid through ',CMNAM(ICMP),MSG
-        CALL EASKAB(prompt,'(help for synopsis)','air','water',
-     &    IW,nbhelp)
+        CALL EASKMBOX(prompt,'(help for synopsis)','air','water',
+     &    ' ',' ',' ',' ',' ',' ',IW,nbhelp)
         SUPCMP(ICMP,1)=REAL(IW)
       endif
 
@@ -844,8 +844,8 @@ C Input fluid type.
         if(iswater) write(MSG,'(a)') '(currently water):'
         if(.NOT.iswater) write(MSG,'(a)') '(currently air):'
         write(prompt,'(3a)') 'Fluid through ',CMNAM(ICMP),MSG
-        CALL EASKAB(prompt,'(help for synopsis)','air','water',
-     &    IW,nbhelp)
+        CALL EASKMBOX(prompt,'(help for synopsis)','air','water',
+     &    ' ',' ',' ',' ',' ',' ',IW,nbhelp)
         SUPCMP(ICMP,1)=REAL(IW)
       endif
 
@@ -991,8 +991,8 @@ C Input fluid type.
         if(iswater) write(MSG,'(a)') '(currently water):'
         if(.NOT.iswater) write(MSG,'(a)') '(currently air):'
         write(prompt,'(3a)') 'Fluid through ',CMNAM(ICMP),MSG
-        CALL EASKAB(prompt,'(help for synopsis)','air','water',
-     &    IW,nbhelp)
+        CALL EASKMBOX(prompt,'(help for synopsis)','air','water',
+     &    ' ',' ',' ',' ',' ',' ',IW,nbhelp)
         SUPCMP(ICMP,1)=REAL(IW)
       endif
 
@@ -1138,8 +1138,8 @@ C Input fluid type.
         if(iswater) write(MSG,'(a)') '(currently water):'
         if(.NOT.iswater) write(MSG,'(a)') '(currently air):'
         write(prompt,'(3a)') 'Fluid through ',CMNAM(ICMP),MSG
-        CALL EASKAB(prompt,'(help for synopsis)','air','water',
-     &    IW,nbhelp)
+        CALL EASKMBOX(prompt,'(help for synopsis)','air','water',
+     &    ' ',' ',' ',' ',' ',' ',IW,nbhelp)
         SUPCMP(ICMP,1)=REAL(IW)
       endif
 
@@ -1220,12 +1220,13 @@ C Parameters passed:
      &  ' (m^3/s) is ',SUPCMP(ICMP,2),'. Derive via:'
       call edisp(iuout,prompt)
       if(ACT(1:1).eq.'4')then
-        CALL EASKABCD(prompt,' ','direct edit','l/s/person',
-     &    'm^3/hr','ach (use volume of node)',IW,nbhelp)
+        CALL EASKMBOX(prompt,' ','direct edit','l/s/person',
+     &    'm^3/hr','ach (use volume of node)',
+     &    ' ',' ',' ',' ',IW,nbhelp)
       elseif(ACT(1:1).eq.'5')then
-        CALL EASKATOG(prompt,' ','direct edit','l/s/person',
+        CALL EASKMBOX(prompt,' ','direct edit','l/s/person',
      &    'm^3/hr','ach (use volume of node)','accept current',
-     &    ' ',' ',IW,nbhelp)
+     &    ' ',' ',' ',IW,nbhelp)
       endif
       if(iw.eq.1)then
 
@@ -1395,8 +1396,8 @@ C Input fluid type.
         if(iswater) write(MSG,'(a)') '(currently water):'
         if(.NOT.iswater) write(MSG,'(a)') '(currently air):'
         write(prompt,'(3a)') 'Fluid through ',CMNAM(ICMP),MSG
-        CALL EASKAB(prompt,'(help for synopsis)','air','water',
-     &    IW,nbhelp)
+        CALL EASKMBOX(prompt,'(help for synopsis)','air','water',
+     &    ' ',' ',' ',' ',' ',' ',IW,nbhelp)
         SUPCMP(ICMP,1)=REAL(IW)
       endif
 
@@ -1538,8 +1539,8 @@ C Input fluid type.
         if(iswater) write(MSG,'(a)') '(currently water):'
         if(.NOT.iswater) write(MSG,'(a)') '(currently air):'
         write(prompt,'(3a)') 'Fluid through ',CMNAM(ICMP),MSG
-        CALL EASKAB(prompt,'(help for synopsis)','air','water',
-     &    IW,nbhelp)
+        CALL EASKMBOX(prompt,'(help for synopsis)','air','water',
+     &    ' ',' ',' ',' ',' ',' ',IW,nbhelp)
         SUPCMP(ICMP,1)=REAL(IW)
       endif
 
@@ -1685,8 +1686,8 @@ C Input fluid type.
         if(iswater) write(MSG,'(a)') '(currently water):'
         if(.NOT.iswater) write(MSG,'(a)') '(currently air):'
         write(prompt,'(3a)') 'Fluid through ',CMNAM(ICMP),MSG
-        CALL EASKAB(prompt,'(help for synopsis)','air','water',
-     &    IW,nbhelp)
+        CALL EASKMBOX(prompt,'(help for synopsis)','air','water',
+     &    ' ',' ',' ',' ',' ',' ',IW,nbhelp)
         SUPCMP(ICMP,1)=REAL(IW)
       endif
 
@@ -2251,8 +2252,8 @@ C Input fluid type.
         if(iswater) write(MSG,'(a)') '(currently water):'
         if(.NOT.iswater) write(MSG,'(a)') '(currently air):'
         write(prompt,'(3a)') 'Fluid through ',CMNAM(ICMP),MSG
-        CALL EASKAB(prompt,'(help for synopsis)','air','water',
-     &    IW,nbhelp)
+        CALL EASKMBOX(prompt,'(help for synopsis)','air','water',
+     &    ' ',' ',' ',' ',' ',' ',IW,nbhelp)
         SUPCMP(ICMP,1)=REAL(IW)
       endif
 
@@ -2876,8 +2877,8 @@ C Input fluid type.
         if(iswater) write(MSG,'(a)') '(currently water):'
         if(.NOT.iswater) write(MSG,'(a)') '(currently air):'
         write(prompt,'(3a)') 'Fluid through ',CMNAM(ICMP),MSG
-        CALL EASKAB(prompt,'(help for synopsis)','air','water',
-     &    IW,nbhelp)
+        CALL EASKMBOX(prompt,'(help for synopsis)','air','water',
+     &    ' ',' ',' ',' ',' ',' ',IW,nbhelp)
         SUPCMP(ICMP,1)=REAL(IW)
       endif
 
@@ -2900,7 +2901,8 @@ C Volume flow rate upper limit for dP(m) relation.
 
 C Coefficients or performance curve 
       WRITE(prompt,'(a)') 'Is input coefficients or performance curve?'
-      CALL EASKAB(' ',prompt,'coefficients','perf curve',IIW,nbhelp)
+      CALL EASKMBOX(' ',prompt,'coefficients','perf curve',
+     &  ' ',' ',' ',' ',' ',' ',IIW,nbhelp)
       IF(IIW.EQ.1) THEN
 
 C Flow coefficient a0.
@@ -3031,8 +3033,8 @@ C Input fluid type.
         if(iswater) write(MSG,'(a)') '(currently water):'
         if(.NOT.iswater) write(MSG,'(a)') '(currently air):'
         write(prompt,'(3a)') 'Fluid through ',CMNAM(ICMP),MSG
-        CALL EASKAB(prompt,'(help for synopsis)','air','water',
-     &    IW,nbhelp)
+        CALL EASKMBOX(prompt,'(help for synopsis)','air','water',
+     &    ' ',' ',' ',' ',' ',' ',IW,nbhelp)
         SUPCMP(ICMP,1)=REAL(IW)
       endif
 
@@ -3055,8 +3057,9 @@ C Standard pressure difference dP0 (Pa).
       SUPCMP(ICMP,3)=VAL
 
 C Characteristic index (1 = linear, 2 = logartihmic)
-      CALL EASKAB(' ',' Characteristic index: ',
-     &            'linear','logartihmic',IW,nbhelp)
+      CALL EASKMBOX(' ',' Characteristic index: ',
+     &  'linear','logartihmic',' ',' ',' ',' ',' ',' ',
+     &  IW,nbhelp)
       SUPCMP(ICMP,4)=REAL(IW)
 
 C Volume flow when fully open k,vs (m^3/s)
@@ -3124,8 +3127,8 @@ C Input fluid type.
         if(iswater) write(MSG,'(a)') '(currently water):'
         if(.NOT.iswater) write(MSG,'(a)') '(currently air):'
         write(prompt,'(3a)') 'Fluid through ',CMNAM(ICMP),MSG
-        CALL EASKAB(prompt,'(help for synopsis)','air','water',
-     &    IW,nbhelp)
+        CALL EASKMBOX(prompt,'(help for synopsis)','air','water',
+     &    ' ',' ',' ',' ',' ',' ',IW,nbhelp)
         SUPCMP(ICMP,1)=REAL(IW)
       endif
 
@@ -3195,8 +3198,8 @@ C Input fluid type.
         if(iswater) write(MSG,'(a)') '(currently water):'
         if(.NOT.iswater) write(MSG,'(a)') '(currently air):'
         write(prompt,'(3a)') 'Fluid through ',CMNAM(ICMP),MSG
-        CALL EASKAB(prompt,'(help for synopsis)','air','water',
-     &    IW,nbhelp)
+        CALL EASKMBOX(prompt,'(help for synopsis)','air','water',
+     &    ' ',' ',' ',' ',' ',' ',IW,nbhelp)
         SUPCMP(ICMP,1)=REAL(IW)
       endif
 
@@ -3252,8 +3255,8 @@ C Input fluid type.
         if(iswater) write(MSG,'(a)') '(currently water):'
         if(.NOT.iswater) write(MSG,'(a)') '(currently air):'
         write(prompt,'(3a)') 'Fluid through ',CMNAM(ICMP),MSG
-        CALL EASKAB(prompt,'(help for synopsis)','air','water',
-     &    IW,nbhelp)
+        CALL EASKMBOX(prompt,'(help for synopsis)','air','water',
+     &    ' ',' ',' ',' ',' ',' ',IW,nbhelp)
         SUPCMP(ICMP,1)=REAL(IW)
       endif
 

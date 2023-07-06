@@ -88,8 +88,9 @@ c Get number of each zone.
       endif
 
 c Get desired state variable.
-      CALL EASKABCD(' ','Parameters:','temperature',
-     &  'plant flux','both','cancel',mbstv,nbhelp)
+      CALL EASKMBOX(' ','Parameters:','temperature',
+     &  'plant flux','both','cancel',
+     &  ' ',' ',' ',' ',mbstv,nbhelp)
       if(mbstv.eq.4)then
         mbstv=0
         mnzn=0

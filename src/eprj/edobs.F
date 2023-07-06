@@ -119,7 +119,7 @@ C a name and or whether it should be ignored.
             modcfg=.true.
             call usrmsg('updating model to remove obstructions...',
      &        ' ','-')
-            CALL EMKCFG('-',IER)
+            CALL EMKCFG('s',IER)
             call usrmsg('updating model to remove obstructions...done.',
      &        ' ','-')
             return
@@ -138,11 +138,7 @@ C the model will not have been changed so just return.
           endif
         ENDIF
         if(modcfg)then
-          call usrmsg(' updating model to add obstructions...',
-     &      ' ','-')
-          CALL EMKCFG('-',IER)
-          call usrmsg(' updating model to add obstructions...done.',
-     &      ' ','-')
+          CALL EMKCFG('s',IER)
           MODIFYVIEW=.TRUE.
         endif
       endif
@@ -357,8 +353,8 @@ C << TODO mat and EREVEAL need to be updated to 32 char >>
       ELSEIF(IVERT.EQ.(MVERT-5))THEN
 
 C Rotate an obstruction.
-        CALL EASKABC(' ','Options:','rotate','transform',
-     &     'cancel',IBOPT,nbhelp)
+        CALL EASKMBOX(' ','Options:','rotate','transform',
+     &     'cancel',' ',' ',' ',' ',' ',IBOPT,nbhelp)
         if(IBOPT.eq.1)then
           CALL EPMENSV
           INPIC=nbobs(icomp)
@@ -370,8 +366,9 @@ C Rotate an obstruction.
           if(ANGR.LT.-.01.OR.ANGR.GT..01)then
 
 C Rotation choices.
-            CALL EASKAB(' ','Rotate about',
-     &        'site origin','specified point',IW,nbhelp)
+            CALL EASKMBOX(' ','Rotate about',
+     &        'site origin','specified point',
+     &        ' ',' ',' ',' ',' ',' ',IW,nbhelp)
             if(IW.eq.1)then
               X1 = 0.
               Y1 = 0.
@@ -450,9 +447,9 @@ C time for copy use zeros, otherwise re-present the previous values.
 
 C +- Obstruction.
         IW=1
-        CALL EASKATOG(' ','Modify obstruction list:',
+        CALL EASKMBOX(' ','Modify obstruction list:',
      &    'add','delete','copy','copy from another zone','cancel',
-     &    ' ',' ',IW,nbhelp)
+     &    ' ',' ',' ',IW,nbhelp)
         IF(IW.EQ.2)THEN
 
 C Build up text strings for the delete menu. 
@@ -477,13 +474,7 @@ C To delete the last obstruction, dereference the file and exit.
                 else
                   ZOBS(ICOMP)=' '
                   IOBS(ICOMP)=0
-                  call usrmsg(
-     &              ' updating model to remove final obs. ...',
-     &              ' ','-')
-                  CALL EMKCFG('-',IER)
-                  call usrmsg(
-     &            ' updating model to remove final obs. ...done.',
-     &            ' ','P')
+                  CALL EMKCFG('s',IER)
                   return
                 endif
               endif
@@ -970,7 +961,7 @@ C the dummy obstruction in the zone geometry file.
           CALL MKGOMST(IUF,ZOBS(ICOMP),ICOMP,IER)
           if(IER.eq.0)then
             IOBS(ICOMP)=1
-            CALL EMKCFG('-',IER)
+            CALL EMKCFG('s',IER)
             return
           else
             call usrmsg('Unable to create placeholder obstructions',
@@ -1373,8 +1364,9 @@ C One set of interface actions if type 'obs' or 'obs3'.
           ianother=0  ! signal no jump to previous or next
           RETURN
         elseif(IVERT.EQ.1)then
-  42      CALL EASKABCD(' ','Options:','edit origin','use zone vertex',
-     &      'angle & distance from vertex','cancel',IBOPT,nbhelp)
+  42      CALL EASKMBOX(' ','Options:','edit origin','use zone vertex',
+     &      'angle & distance from vertex','cancel',
+     &      ' ',' ',' ',' ',IBOPT,nbhelp)
           if(IBOPT.eq.1)then
             HOLD=' '
             WRITE(HOLD,'(1x,3f9.4)')XOB(ICOMP,IB),YOB(ICOMP,IB),
@@ -1586,7 +1578,7 @@ C Convert current obstruction block into general polygon obstruction.
           ZOB(ICOMP,IB)=0.0
           BANGOB(ICOMP,IB,1)=0.0; BANGOB(ICOMP,IB,2)=0.0
           BANGOB(ICOMP,IB,3)=0.0
-          OPOB(ICOMP,IB)=0.0
+          OPOB(ICOMP,IB)=1.0
           MODIFYVIEW=.TRUE.
           listcor=.true.
           call warnmod(ICOMP,'ob+')
@@ -1918,8 +1910,9 @@ C Cases for 4 sided surfaces and user defined corners.
       helptopic='window_reveal'
       call gethelptext(helpinsub,helptopic,nbhelp)
       if(NVER(IRS).ne.4)then
-        CALL EASKAB('The selected surface doesn`t have 4 sides.',
-     &    'Choices: ','specify 4 corners','cancel',IW,nbhelp)
+        CALL EASKMBOX('The selected surface doesn`t have 4 sides.',
+     &    'Choices: ','specify 4 corners','cancel',
+     &    ' ',' ',' ',' ',' ',' ',IW,nbhelp)
         if(IW.eq.1)then
           write(HOLDS,'(4I5)') JVN(IRS,1),JVN(IRS,2),JVN(IRS,3),
      &      JVN(IRS,4)
@@ -2055,6 +2048,7 @@ C Create the head obstruction.
       write(BLOCKMAT(icomp,nbo),'(a)') mat(1:lnblnk(mat))
       LNBLOCKMAT(icomp,nbo)=lnblnk(mat)
       BLOCKTYP(icomp,nbo)='obs '
+      OPOB(icomp,nbo)=1.0  ! initial assumption opaque
       if(newgeo)then
         call geowrite(IUF,LGEOM(ICOMP),ICOMP,iuout,3,IER)
       else
@@ -2076,6 +2070,7 @@ C Create the left side fin.
       write(BLOCKMAT(icomp,nbo),'(a)') mat(1:lnblnk(mat))
       LNBLOCKMAT(icomp,nbo)=lnblnk(mat)
       BLOCKTYP(icomp,nbo)='obs '
+      OPOB(icomp,nbo)=1.0
       if(newgeo)then
         call geowrite(IUF,LGEOM(ICOMP),ICOMP,iuout,3,IER)
       else
@@ -2097,6 +2092,7 @@ C Create the right side fin.
       write(BLOCKMAT(icomp,nbo),'(a)') mat(1:lnblnk(mat))
       LNBLOCKMAT(icomp,nbo)=lnblnk(mat)
       BLOCKTYP(icomp,nbo)='obs '
+      OPOB(icomp,nbo)=1.0
       if(newgeo)then
         call geowrite(IUF,LGEOM(ICOMP),ICOMP,iuout,3,IER)
       else
@@ -2405,8 +2401,8 @@ C Rotate an visual.
         if(focusobj)then
           continue
         else
-          CALL EASKABC(' ','Options:','rotate','transform',
-     &      'cancel',IBOPT,nbhelp)
+          CALL EASKMBOX(' ','Options:','rotate','transform',
+     &      'cancel',' ',' ',' ',' ',' ',IBOPT,nbhelp)
           if(IBOPT.eq.1)then
             CALL EPMENSV
             INPIC=nbvis(icomp)
@@ -2419,8 +2415,9 @@ C Rotate an visual.
             if(ANGR.LT.-.01.OR.ANGR.GT..01)then
 
 C Rotation choices.
-              CALL EASKAB(' Rotate about the:',' ',
-     &          'site origin','user specified point',IW,nbhelp)
+              CALL EASKMBOX(' Rotate about the:',' ',
+     &          'site origin','user specified point',
+     &          ' ',' ',' ',' ',' ',' ',IW,nbhelp)
               if(IW.eq.1)then
                 X1 = 0.
                 Y1 = 0.
@@ -2493,8 +2490,8 @@ C time for copy use zeros, otherwise re-present the previous values.
 C Manage the list.
         if(focusobj)then
           IW=1
-          CALL EASKATOG(' ','Modify compound objects list:',
-     &      'add','delete','copy','cancel',' ',' ',' ',IW,nbhelp)
+          CALL EASKMBOX(' ','Modify compound objects list:',
+     &      'add','delete','copy','cancel',' ',' ',' ',' ',IW,nbhelp)
           IF(IW.EQ.1)THEN
 
 C Add a compound object. Ask for a name, description. Check that
@@ -2659,8 +2656,9 @@ C Ask description of copied compound object.
             NBVOBJLIST(ICOMP,newobj)=NBVOBJLIST(ICOMP,ifoc)
 
 C Ask for single character to prepend to copied associated entities.
-            CALL EASKATOG(' Character to pre-pend to copied entities:',
-     &      ' ',' a ',' b ',' c ',' d ',' e ',' f ',' g ',IBOPT,nbhelp)
+            CALL EASKMBOX(' Character to pre-pend to copied entities:',
+     &       ' ',' a ',' b ',' c ',' d ',' e ',' f ',' g ',' ',IBOPT,
+     &       nbhelp)
             if(ibopt.eq.1)pre='a'
             if(ibopt.eq.2)pre='b'
             if(ibopt.eq.3)pre='c'
@@ -2731,9 +2729,9 @@ C Present editing facilitiy for this copied compound object.
 
 C +- Visual.
           IW=1
-          CALL EASKATOG(' ','Modify visuals list:',
+          CALL EASKMBOX(' ','Modify visuals list:',
      &      'add','delete','copy','copy from another zone','cancel',
-     &      ' ',' ',IW,nbhelp)
+     &      ' ',' ',' ',IW,nbhelp)
           IF(IW.EQ.2)THEN
 
 C Build up text strings for the delete menu. Constrain how many can be
@@ -3281,8 +3279,9 @@ C One set of interface actions if type 'vis' or 'vis3'.
           ianother=0  ! signal no jump to previous or next
           RETURN
         elseif(IVERT.EQ.1)then
-  42      CALL EASKABCD(' ','Options:','edit origin','use zone vertex',
-     &      'angle & distance from vertex','cancel',IBOPT,nbhelp)
+  42      CALL EASKMBOX(' ','Options:','edit origin','use zone vertex',
+     &      'angle & distance from vertex','cancel',
+     &      ' ',' ',' ',' ',IBOPT,nbhelp)
           if(IBOPT.eq.1)then
             HOLD=' '
             WRITE(HOLD,'(1x,3f9.4)')XOV(ICOMP,IB),YOV(ICOMP,IB),
@@ -3918,9 +3917,9 @@ C Rotation applied to all associated entities of the compound object.
         if(ANGR.LT.-.01.OR.ANGR.GT..01)then
 
 C Rotation choices.
-          CALL EASKABC(' Rotate about the:',' ',
+          CALL EASKMBOX(' Rotate about the:',' ',
      &      'lower left corner of object','centre of object',
-     &      'user specified point',IW,nbhelp)
+     &      'user specified point',' ',' ',' ',' ',' ',IW,nbhelp)
           if(IW.eq.1)then
             X1 = left
             Y1 = front

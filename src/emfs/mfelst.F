@@ -151,8 +151,8 @@ C Ability to delete node commented out until support code in place.
 C Allow a node to be added deleted or copied.
           helptopic='mfs_node_management'
           call gethelptext(helpinsub,helptopic,nbhelp)
-          CALL EASKABCD(' ','Options:','add','delete',
-     &      'copy','cancel',IOPT,nbhelp)
+          CALL EASKMBOX(' ','Options:','add','delete',
+     &      'copy','cancel',' ',' ',' ',' ',IOPT,nbhelp)
           IF(IOPT.EQ.1)THEN
             IF(NNOD+1.LE.MNOD)THEN
               CALL MFNDES('A',99)        ! Add node.
@@ -336,8 +336,8 @@ C Code to allow deletion commented out until support code in place.
 C Allow a component to be added deleted or copied.
            helptopic='mfs_component_management'
            call gethelptext(helpinsub,helptopic,nbhelp)
-           CALL EASKABCD(' ','Options:','add','delete',
-     &'copy','cancel',IOPT,nbhelp)
+           CALL EASKMBOX(' ','Options:','add','delete',
+     &     'copy','cancel',' ',' ',' ',' ',IOPT,nbhelp)
 
 C Add a component
            IF(IOPT.EQ.1)THEN
@@ -538,8 +538,8 @@ C If no selection has been made before exit then return with 0.
 C Allow a connection to be added deleted or copied.
           helptopic='connection_management'
           call gethelptext(helpinsub,helptopic,nbhelp)
-          CALL EASKABCD(' ','Options:','add','delete',
-     &      'copy','cancel',IOPT,nbhelp)
+          CALL EASKMBOX(' ','Options:','add','delete',
+     &      'copy','cancel',' ',' ',' ',' ',IOPT,nbhelp)
           IF(IOPT.EQ.1)THEN
             IF(NCNN+1.LE.MCNN)THEN
               CALL MFLDES('A',99)

@@ -17,6 +17,7 @@ C details.
 C This file includes the following subroutines.
 C  emkcfg     - rrites the model data to the system configuration file.
 C  conxinf    - returns inter-connection description in CXSTR.
+C  write_folders - write the folder names associated with the model.
 C  write_ground - write ground related information into cfg file.
 C  write_databases - write database  file namies into cfg file.
 C  write_calendar - write project calendar and day types into cfg file.
@@ -304,6 +305,7 @@ C Array of mass flow nodes for writing.
       INTEGER :: ier,i,ia,iav,icc
       INTEGER :: img,ios,iss,iuf,iw,j,l,lcfgl,lcfgr,loutlen
       INTEGER :: loutln,ncn,lnzglbl,lr
+      INTEGER :: ifc  ! cfg file unit to pass to write_* subroutines.
       logical cmtopr,cmtgeo,cmtcon,cmttmc,cmtivf,cmtisi  ! comment on file types
       
       IUF=IFIL+1
@@ -339,8 +341,9 @@ C a preference has already been given to stick with legacy version.
         elseif(usecurcfg.eq.-1)then
           IW=2   ! stick with V4
         else     ! ask user
-          CALL EASKABC('Configuration file uses an old format.',
-     &      'Save in:','latest','legacy','cancel',IW,nbhelp)
+          CALL EASKMBOX('Configuration file uses an old format.',
+     &      'Save in:','latest','legacy','cancel',
+     &      ' ',' ',' ',' ',' ',IW,nbhelp)
           if(IW.EQ.3)then
             call edisp(iuout,'System configuration file not updated.')
             return
@@ -355,8 +358,9 @@ C Set version number.
         endif
       elseif(icfgv.gt.4)then
         if(act(1:1).eq.'v')then
-          CALL EASKABC('Configuration file uses current format.',
-     &      'Save in:','current','legacy','cancel',IW,nbhelp)
+          CALL EASKMBOX('Configuration file uses current format.',
+     &      'Save in:','current','legacy','cancel',
+     &      ' ',' ',' ',' ',' ',IW,nbhelp)
           if(IW.EQ.3)then
             call edisp(iuout,'System configuration file not updated.')
             return
@@ -400,14 +404,16 @@ C If filename > 4 char it might have a .cfg attached.
 C Check connections file.
       if(ncon.gt.1)then
   290   write(LCNN,'(2a)')cfgroot(1:lnblnk(cfgroot)),'.cnn'
-        DCNN=LCNN
-        ltmp=LCNN
-        CALL EASKS(ltmp,' ','Connections file name?',
-     &    72,DCNN,'system connx file name',IER,nbhelp)
-        if(ltmp(1:2).ne.'  '.and.ltmp(1:4).ne.'UNKN')then
-          LCNN=ltmp
-        else
-          GOTO 290
+        if(act(1:1).eq.'-'.or.act(1:1).eq.'v')then
+          DCNN=LCNN
+          ltmp=LCNN
+          CALL EASKS(ltmp,' ','Connections file name?',
+     &      72,DCNN,'system connx file name',IER,nbhelp)
+          if(ltmp(1:2).ne.'  '.and.ltmp(1:4).ne.'UNKN')then
+            LCNN=ltmp
+          else
+            GOTO 290
+          endif
         endif
       elseif(ncon.eq.0.and.indcfg.gt.0)then
 
@@ -493,42 +499,8 @@ C Begin writing the file with version number in the header.
         WRITE(IFCFG,'(A)',IOSTAT=IOS,ERR=3) '# ---- model folders ----'
       endif
 
-      write(tokens,'(2a)') '*zonpth ',zonepth
-      write(comment,'(a)') 'path to zone files'
-      call align_comment(48,tokens,comment,aligned_str)
-      write(IFCFG,'(a)') aligned_str(1:lnblnk(aligned_str))
-      write(tokens,'(2a)') '*netpth ',netpth
-      write(comment,'(a)') 'path to network files'
-      call align_comment(48,tokens,comment,aligned_str)
-      write(IFCFG,'(a)') aligned_str(1:lnblnk(aligned_str))
-      write(tokens,'(2a)') '*ctlpth ',ctlpth
-      write(comment,'(a)') 'path to control files'
-      call align_comment(48,tokens,comment,aligned_str)
-      write(IFCFG,'(a)') aligned_str(1:lnblnk(aligned_str))
-      write(tokens,'(2a)') '*mscpth ',mscpth
-      write(comment,'(a)') 'path to miscel. files'
-      call align_comment(48,tokens,comment,aligned_str)
-      write(IFCFG,'(a)') aligned_str(1:lnblnk(aligned_str))
-      write(tokens,'(2a)') '*radpth ',radpth
-      write(comment,'(a)') 'path to radiance files'
-      call align_comment(48,tokens,comment,aligned_str)
-      write(IFCFG,'(a)') aligned_str(1:lnblnk(aligned_str))
-      write(tokens,'(2a)') '*imgpth ',imgpth
-      write(comment,'(a)') 'path to project images'
-      call align_comment(48,tokens,comment,aligned_str)
-      write(IFCFG,'(a)') aligned_str(1:lnblnk(aligned_str))
-      write(tokens,'(2a)') '*docpth ',docpth
-      write(comment,'(a)') 'path to project documents'
-      call align_comment(48,tokens,comment,aligned_str)
-      write(IFCFG,'(a)') aligned_str(1:lnblnk(aligned_str))
-      write(tokens,'(2a)') '*dbspth ',dbspth
-      write(comment,'(a)') 'path to local databases'
-      call align_comment(48,tokens,comment,aligned_str)
-      write(IFCFG,'(a)') aligned_str(1:lnblnk(aligned_str))
-      write(tokens,'(2a)') '*tmppth ',tmppth
-      write(comment,'(a)') 'path to temporary files'
-      call align_comment(48,tokens,comment,aligned_str)
-      write(IFCFG,'(a)') aligned_str(1:lnblnk(aligned_str))
+      ifc=IFCFG
+      call write_folders(ifc)
       if(icfgv.lt.5)then
         write(tokens,'(a,i2)') '*radcore ',radcores
         write(comment,'(a)') 'cores available to Radiance'
@@ -567,7 +539,8 @@ C If there are IES files and entities associated with the model:
         write(IFCFG,'(a)',IOSTAT=IOS,ERR=3) '*endies '
       endif
       if(icfgv.ge.5)then
-        call write_databases(ier)
+        ifc=IFCFG
+        call write_databases(ifc,ier)
       endif
 
 C V5 Write images and their documentation.
@@ -604,11 +577,13 @@ C V5 Write images and their documentation.
         endif
 
 C Write the year and seasons.
-        call write_seasons(ier)
+        ifc=IFCFG
+        call write_seasons(ifc,ier)
 
 C Also write the project calendar and day types.
         if(CALENAME(1:7).NE.'UNKNOWN')then
-          call write_calendar(ier)
+          ifc=IFCFG
+          call write_calendar(ifc,ier)
         endif
 
         if(icfgv.ge.5.and.ipconv.eq.1)then
@@ -764,7 +739,8 @@ C Site related information.
         write(IFCFG,'(a)') aligned_str(1:lnblnk(aligned_str))
 
 C Include ground information if associated attributes found.
-        call write_ground(dogrnd)
+        ifc=ifcfg
+        call write_ground(dogrnd,ifc)
 
 C If user has specified methods for default treatment of inside and
 C outside heat transfer methods.
@@ -793,7 +769,8 @@ C outside heat transfer methods.
 C Write databases related to this model. Databases are located
 C in the ESP-r standard location or the local model folder.
       if(icfgv.lt.5)then
-        call write_databases(ier)
+        ifc=IFCFG
+        call write_databases(ifc,ier)
       endif
 
 C AIM-2.
@@ -984,7 +961,8 @@ C Primary energy conversions.
       
       if(icfgv.lt.5)then
         if(CALENAME(1:7).NE.'UNKNOWN')then
-          call write_calendar(ier)
+          ifc=IFCFG
+          call write_calendar(ifc,ier)
         endif
       endif
 
@@ -1005,7 +983,8 @@ C Uncertainty analysis.
 
 C Seasonal definitions associated with the weather file.
       if(icfgv.lt.5)then
-        call write_seasons(ier)
+        ifc=IFCFG
+        call write_seasons(ifc,ier)
       endif
 
 C Water filled zone data.
@@ -1068,7 +1047,8 @@ C V4 images and their documentation.
 
 C Simulation parameter sets.
         if(nsset.gt.0)then
-          call write_parameter_sets(ier)
+          ifc=IFCFG
+          call write_parameter_sets(ifc,ier)
         endif
       endif
 
@@ -1209,7 +1189,8 @@ C Simulation parameter presets and other simulation directives.
         endif
 
         if(nsset.gt.0)then
-          call write_parameter_sets(ier)
+          ifc=IFCFG
+          call write_parameter_sets(ifc,ier)
         endif
       endif
 
@@ -1350,7 +1331,8 @@ C Model log and include ground information if associated attributes found.
         WRITE(IFCFG,'(A)',IOSTAT=IOS,ERR=2) '* PROJ LOG'
         WRITE(IFCFG,'(A)',IOSTAT=IOS,ERR=2)
      &    lmodellog(1:lnblnk(lmodellog))
-        call write_ground(dogrnd)
+        ifc=IFCFG
+        call write_ground(dogrnd,ifc)
       endif
 
 C Registration.
@@ -1890,6 +1872,9 @@ C Trap out of range IC1 and IE1 variables.
           WRITE(CXSTR,8981)ICON,SST1(1:lsn1),
      &                     ZST1(1:lzn1),IC2(ICON)
  8981     FORMAT(I4,1X,a,' in ',a,' >|< ground profile',I2)
+        ELSEIF(IC2(ICON).EQ.-3)THEN
+          WRITE(CXSTR,8998)ICON,SST1(1:lsn1),ZST1(1:lzn1)
+ 8998     FORMAT(I4,1X,a,' in ',a,' >|< 3D ground model')
         ELSE
           WRITE(CXSTR,8980)ICON,SST1(1:lsn1),
      &                     ZST1(1:lzn1),IE2(ICON)
@@ -1920,10 +1905,60 @@ C Trap out of range IC1 and IE1 variables.
       RETURN
       END
 
+C ******************** write_folders *****************
+C Write folder names associated with the model into cfg file.
+
+      subroutine write_folders(ifc)
+#include "building.h"
+#include "model.h"
+#include "site.h"
+
+      character tokens*156,comment*76,aligned_str*156
+      
+      write(tokens,'(2a)') '*zonpth ',zonepth
+      write(comment,'(a)') 'path to zone files'
+      call align_comment(48,tokens,comment,aligned_str)
+      write(IFC,'(a)') aligned_str(1:lnblnk(aligned_str))
+      write(tokens,'(2a)') '*netpth ',netpth
+      write(comment,'(a)') 'path to network files'
+      call align_comment(48,tokens,comment,aligned_str)
+      write(IFC,'(a)') aligned_str(1:lnblnk(aligned_str))
+      write(tokens,'(2a)') '*ctlpth ',ctlpth
+      write(comment,'(a)') 'path to control files'
+      call align_comment(48,tokens,comment,aligned_str)
+      write(IFC,'(a)') aligned_str(1:lnblnk(aligned_str))
+      write(tokens,'(2a)') '*mscpth ',mscpth
+      write(comment,'(a)') 'path to miscel. files'
+      call align_comment(48,tokens,comment,aligned_str)
+      write(IFC,'(a)') aligned_str(1:lnblnk(aligned_str))
+      write(tokens,'(2a)') '*radpth ',radpth
+      write(comment,'(a)') 'path to radiance files'
+      call align_comment(48,tokens,comment,aligned_str)
+      write(IFC,'(a)') aligned_str(1:lnblnk(aligned_str))
+      write(tokens,'(2a)') '*imgpth ',imgpth
+      write(comment,'(a)') 'path to project images'
+      call align_comment(48,tokens,comment,aligned_str)
+      write(IFC,'(a)') aligned_str(1:lnblnk(aligned_str))
+      write(tokens,'(2a)') '*docpth ',docpth
+      write(comment,'(a)') 'path to project documents'
+      call align_comment(48,tokens,comment,aligned_str)
+      write(IFC,'(a)') aligned_str(1:lnblnk(aligned_str))
+      write(tokens,'(2a)') '*dbspth ',dbspth
+      write(comment,'(a)') 'path to local databases'
+      call align_comment(48,tokens,comment,aligned_str)
+      write(IFC,'(a)') aligned_str(1:lnblnk(aligned_str))
+      write(tokens,'(2a)') '*tmppth ',tmppth
+      write(comment,'(a)') 'path to temporary files'
+      call align_comment(48,tokens,comment,aligned_str)
+      write(IFC,'(a)') aligned_str(1:lnblnk(aligned_str))
+
+      return
+      end
+
 C ******************** write_ground ******************
 C Write ground related information into cfg file.
 
-      subroutine write_ground(dogrnd)
+      subroutine write_ground(dogrnd,ifc)
 #include "building.h"
 #include "model.h"
 #include "site.h"
@@ -1944,6 +1979,7 @@ C Ground topology.
       COMMON/GTFIL/GTGEOM
       character GTGEOM*72
       logical dogrnd
+      character outs*124
 
       dogrnd = .false.
       IF(NGRDP.gt.0.or.GRND3D)dogrnd=.true.
@@ -1953,44 +1989,58 @@ C Ground temperature.
       IF (iExtLgRadFlag .EQ. 1) dogrnd = .true.
       if(dogrnd)then
         if(icfgv.lt.5)then
-          WRITE(IFCFG,'(A)',IOSTAT=IOS,ERR=2) '* Ground '
+          WRITE(IFC,'(A)',IOSTAT=IOS,ERR=2) '* Ground '
         else
-          WRITE(IFCFG,'(A)',IOSTAT=IOS,ERR=2) '*ground'
+          WRITE(IFC,'(A)',IOSTAT=IOS,ERR=2) '*ground'
         endif
         IF(iExtLgRadFlag.EQ.1) THEN
-          WRITE(IFCFG,'(A)',IOSTAT=IOS,ERR=2)'*gtmp '
-          WRITE(IFCFG,933,IOSTAT=IOS,ERR=2)(eGrdTp(jMon),jMon=1,12)
+          WRITE(IFC,'(A)',IOSTAT=IOS,ERR=2)'*gtmp '
+          WRITE(IFC,933,IOSTAT=IOS,ERR=2)(eGrdTp(jMon),jMon=1,12)
         ENDIF
 
 C 3D ground files.
         IF(GRND3D)THEN
-          WRITE(IFCFG,'(2A)')'*cvs  ',LGDCVS(1:lnblnk(LGDCVS))
-          WRITE(IFCFG,'(2A)')'*cnc  ',LGDCNC(1:lnblnk(LGDCNC))
-          WRITE(IFCFG,'(2A)')'*ndc  ',LGDNDC(1:lnblnk(LGDNDC))
-          WRITE(IFCFG,'(2A)')'*taq  ',LGDTAQ(1:lnblnk(LGDTAQ))
+          WRITE(IFC,'(2A)')'*cvs  ',LGDCVS(1:lnblnk(LGDCVS))
+          WRITE(IFC,'(2A)')'*cnc  ',LGDCNC(1:lnblnk(LGDCNC))
+          WRITE(IFC,'(2A)')'*ndc  ',LGDNDC(1:lnblnk(LGDNDC))
+          WRITE(IFC,'(2A)')'*taq  ',LGDTAQ(1:lnblnk(LGDTAQ))
         ENDIF
         if(GTGEOM(1:7).ne.'UNKNOWN'.and.GTGEOM(1:2).ne.'  ')then
-          WRITE(IFCFG,'(2A)',IOSTAT=IOS,ERR=2) '*gtp ',
+          WRITE(IFC,'(2A)',IOSTAT=IOS,ERR=2) '*gtp ',
      &      GTGEOM(1:lnblnk(GTGEOM))
         endif
-        if(ngrdp.gt.0)then
-          WRITE(IFCFG,'(A,i3)',IOSTAT=IOS,ERR=2)'*mgp ',NGRDP
-          DO 932 I=1,NGRDP
-            WRITE(IFCFG,933,IOSTAT=IOS,ERR=2)(UGRDTP(J,I),J=1,12)
-  933       FORMAT(12F7.2)
-  932     CONTINUE
+        if(ngrdp.gt.0)then   ! Attributed user defined or derived monthly.
+C          WRITE(IFC,'(A,i3)',IOSTAT=IOS,ERR=2)'*mgp ',NGRDP
+C          DO 932 I=1,NGRDP
+C            WRITE(IFC,933,IOSTAT=IOS,ERR=2)(UGRDTP(J,I),J=1,12)
+C  933       FORMAT(12F7.2)
+C  932     CONTINUE
+  933      FORMAT(12F7.2)
+          
+          WRITE(outs,'(a)',IOSTAT=IOS,ERR=2) ! Include annotations.
+     &      '# tag     depth monthly temperatures description'
+          WRITE(IFC,'(A)',IOSTAT=IOS,ERR=2) outs(1:lnblnk(outs))
+          DO I=1,NGRDP
+            if(UGRNAME(I)(1:2).eq.'  ')then
+              WRITE(UGRNAME(I),'(a,f5.1)') 'user contributed @',
+     &          UGRDEPTH(I)
+            endif
+            WRITE(outs,'(a,f6.1,12f6.1,2a)',IOSTAT=IOS,ERR=2) 
+     &        '*monthly',UGRDEPTH(I),(UGRDTP(J,I),J=1,12),' ',UGRNAME(I)
+            WRITE(IFC,'(A)',IOSTAT=IOS,ERR=2) outs(1:lnblnk(outs))
+          ENDDO
         endif
         if(ngrdph.gt.0)then
-          WRITE(IFCFG,'(A,i3)',IOSTAT=IOS,ERR=2)'*mgh ',NGRDPH
+          WRITE(IFC,'(A,i3)',IOSTAT=IOS,ERR=2)'*mgh ',NGRDPH
           DO 942 I=1,NGRDPH
-            WRITE(IFCFG,943,IOSTAT=IOS,ERR=2)(UGRDHUM(J,I),J=1,12)
+            WRITE(IFC,943,IOSTAT=IOS,ERR=2)(UGRDHUM(J,I),J=1,12)
   943       FORMAT(12F6.0)
   942     CONTINUE
         endif
         if(icfgv.lt.5)then
-          WRITE(IFCFG,'(A)',IOSTAT=IOS,ERR=2) '*end'
+          WRITE(IFC,'(A)',IOSTAT=IOS,ERR=2) '*end'
         else
-          WRITE(IFCFG,'(A)',IOSTAT=IOS,ERR=2) '*ground_end'
+          WRITE(IFC,'(A)',IOSTAT=IOS,ERR=2) '*ground_end'
         endif
       endif
       return
@@ -2001,7 +2051,7 @@ C 3D ground files.
 C ******************** write_databases ******************
 C Write database file namies into cfg file.
 
-      subroutine write_databases(ier)
+      subroutine write_databases(ifc,ier)
 #include "building.h"
 #include "model.h"
 #include "site.h"
@@ -2012,128 +2062,128 @@ C Write databases related to this model. Databases are located
 C in the ESP-r standard location or the local model folder.
       ier=0               ! Reset so write errors detected on return.
       if(icfgv.lt.5)then
-        WRITE(IFCFG,'(A)',IOSTAT=IOS,ERR=2) '* DATABASES'
+        WRITE(IFC,'(A)',IOSTAT=IOS,ERR=2) '* DATABASES'
       else
-        WRITE(IFCFG,'(A)',IOSTAT=IOS,ERR=2) '#'
-        WRITE(IFCFG,'(A)',IOSTAT=IOS,ERR=2) '# ---- databases ----'
-C        WRITE(IFCFG,'(A)',IOSTAT=IOS,ERR=2) '*databases'
+        WRITE(IFC,'(A)',IOSTAT=IOS,ERR=2) '#'
+        WRITE(IFC,'(A)',IOSTAT=IOS,ERR=2) '# ---- databases ----'
+C        WRITE(IFC,'(A)',IOSTAT=IOS,ERR=2) '*databases'
       endif
       if(ipathmat.eq.0.or.ipathmat.eq.1)then
-        WRITE(IFCFG,'(2A)',IOSTAT=IOS,ERR=2) '*mat ',
+        WRITE(IFC,'(2A)',IOSTAT=IOS,ERR=2) '*mat ',
      &      LFMAT(1:lnblnk(LFMAT))
       elseif(ipathmat.eq.2)then
-        WRITE(IFCFG,'(2A)',IOSTAT=IOS,ERR=2) '*stdmat ',
+        WRITE(IFC,'(2A)',IOSTAT=IOS,ERR=2) '*stdmat ',
      &      LFMAT(1:lnblnk(LFMAT))
       endif
 
       if(ipathcfc.eq.0.or.ipathcfc.eq.1)then
-        WRITE(IFCFG,'(2A)',IOSTAT=IOS,ERR=2) '*cfcdb ',
+        WRITE(IFC,'(2A)',IOSTAT=IOS,ERR=2) '*cfcdb ',
      &      LCFCDB(1:lnblnk(LCFCDB))
       elseif(ipathcfc.eq.2)then
-        WRITE(IFCFG,'(2A)',IOSTAT=IOS,ERR=2) '*stdcfcdb ',
+        WRITE(IFC,'(2A)',IOSTAT=IOS,ERR=2) '*stdcfcdb ',
      &      LCFCDB(1:lnblnk(LCFCDB))
       endif
 
       if(ipathmul.eq.0.or.ipathmul.eq.1)then
-        WRITE(IFCFG,'(2A)',IOSTAT=IOS,ERR=2) '*mlc ',
+        WRITE(IFC,'(2A)',IOSTAT=IOS,ERR=2) '*mlc ',
      &      LFMUL(1:lnblnk(LFMUL))
       elseif(ipathmul.eq.2)then
-        WRITE(IFCFG,'(2A)',IOSTAT=IOS,ERR=2) '*stdmlc ',
+        WRITE(IFC,'(2A)',IOSTAT=IOS,ERR=2) '*stdmlc ',
      &      LFMUL(1:lnblnk(LFMUL))
       endif
 
       if(ipathoptdb.eq.0.or.ipathoptdb.eq.1)then
-        WRITE(IFCFG,'(2A)',IOSTAT=IOS,ERR=2) '*opt ',
+        WRITE(IFC,'(2A)',IOSTAT=IOS,ERR=2) '*opt ',
      &      LOPTDB(1:lnblnk(LOPTDB))
       elseif(ipathoptdb.eq.2)then
-        WRITE(IFCFG,'(2A)',IOSTAT=IOS,ERR=2) '*stdopt ',
+        WRITE(IFC,'(2A)',IOSTAT=IOS,ERR=2) '*stdopt ',
      &      LOPTDB(1:lnblnk(LOPTDB))
       endif
 
       if(ipathapres.eq.0.or.ipathapres.eq.1)then
-        WRITE(IFCFG,'(2A)',IOSTAT=IOS,ERR=2) '*prs ',
+        WRITE(IFC,'(2A)',IOSTAT=IOS,ERR=2) '*prs ',
      &      LAPRES(1:lnblnk(LAPRES))
       elseif(ipathapres.eq.2)then
-        WRITE(IFCFG,'(2A)',IOSTAT=IOS,ERR=2) '*stdprs ',
+        WRITE(IFC,'(2A)',IOSTAT=IOS,ERR=2) '*stdprs ',
      &      LAPRES(1:lnblnk(LAPRES))
       endif
 
       if(ipathprodb.eq.0.or.ipathprodb.eq.1)then
-        WRITE(IFCFG,'(2A)',IOSTAT=IOS,ERR=2) '*evn ',
+        WRITE(IFC,'(2A)',IOSTAT=IOS,ERR=2) '*evn ',
      &      LPRFDB(1:lnblnk(LPRFDB))
       elseif(ipathprodb.eq.2)then
-        WRITE(IFCFG,'(2A)',IOSTAT=IOS,ERR=2) '*stdevn ',
+        WRITE(IFC,'(2A)',IOSTAT=IOS,ERR=2) '*stdevn ',
      &      LPRFDB(1:lnblnk(LPRFDB))
       endif
 
       if(ipathclim.eq.0.or.ipathclim.eq.1)then
-        WRITE(IFCFG,'(2A)',IOSTAT=IOS,ERR=2) '*clm ',
+        WRITE(IFC,'(2A)',IOSTAT=IOS,ERR=2) '*clm ',
      &      LCLIM(1:lnblnk(LCLIM))
       elseif(ipathclim.eq.2)then
-        WRITE(IFCFG,'(2A)',IOSTAT=IOS,ERR=2) '*stdclm ',
+        WRITE(IFC,'(2A)',IOSTAT=IOS,ERR=2) '*stdclm ',
      &      LCLIM(1:lnblnk(LCLIM))
       endif
 
       if(ipathmsc.eq.0.or.ipathmsc.eq.1)then
-        WRITE(IFCFG,'(2A)',IOSTAT=IOS,ERR=2) '*mscldb ',
+        WRITE(IFC,'(2A)',IOSTAT=IOS,ERR=2) '*mscldb ',
      &      MCMPDBFL(1:lnblnk(MCMPDBFL))
       elseif(ipathmsc.eq.2)then
-        WRITE(IFCFG,'(2A)',IOSTAT=IOS,ERR=2) '*stdmscldb ',
+        WRITE(IFC,'(2A)',IOSTAT=IOS,ERR=2) '*stdmscldb ',
      &      MCMPDBFL(1:lnblnk(MCMPDBFL))
       endif
       if(ipathmould.eq.0.or.ipathmould.eq.1)then
-        WRITE(IFCFG,'(2A)',IOSTAT=IOS,ERR=2) '*mould ',
+        WRITE(IFC,'(2A)',IOSTAT=IOS,ERR=2) '*mould ',
      &    lfmould(1:lnblnk(lfmould))
       elseif(ipathmould.eq.2)then
-        WRITE(IFCFG,'(2A)',IOSTAT=IOS,ERR=2) '*stdmould  ',
+        WRITE(IFC,'(2A)',IOSTAT=IOS,ERR=2) '*stdmould  ',
      &    lfmould(1:lnblnk(lfmould))
       endif
 
 C Ground reflectivity model (no-snow monthly albedos & snow albedo
 C if ground reflectivity model 2 or 3).
-      IF(groundreflmodel.GT.1) WRITE(IFCFG,803) '*gref ',
+      IF(groundreflmodel.GT.1) WRITE(IFC,803) '*gref ',
      &   groundreflmodel,(groundreflmonth(I),I=1,12),snowgroundrefl
   803 FORMAT(A,I1,13(1X,F5.3))
 
 C Number of days with snow on the ground (if ground reflectivity model 2).
       IF(groundreflmodel.EQ.2)  
-     &  WRITE(IFCFG,805) '*snow',(dayswithsnow(I),I=1,12)
+     &  WRITE(IFC,805) '*snow',(dayswithsnow(I),I=1,12)
   805 FORMAT(A,12(1X,I2))
 
 C Snow depth file (if ground reflectivity model 3).
-      IF(groundreflmodel.EQ.3) WRITE(IFCFG,'(2A)',IOSTAT=IOS,ERR=2) 
+      IF(groundreflmodel.EQ.3) WRITE(IFC,'(2A)',IOSTAT=IOS,ERR=2) 
      &  '*sndf ',SNFNAM(1:lnblnk(SNFNAM))
 
 C Multi-year weather database.
       if (bMY_climates_defined) then 
-        WRITE(IFCFG,'(2A)',IOSTAT=IOS,ERR=2) '*myclm ',
+        WRITE(IFC,'(2A)',IOSTAT=IOS,ERR=2) '*myclm ',
      &    cMY_climate_db_name(1:lnblnk(cMY_climate_db_name))
       endif
 
 C Plant components database.
       if(ipathpcdb.eq.0.or.ipathpcdb.eq.1)then
-        WRITE(IFCFG,'(2A)',IOSTAT=IOS,ERR=2) '*pdb ',
+        WRITE(IFC,'(2A)',IOSTAT=IOS,ERR=2) '*pdb ',
      &      LPCDB(1:lnblnk(LPCDB))
       elseif(ipathpcdb.eq.2)then
-        WRITE(IFCFG,'(2A)',IOSTAT=IOS,ERR=2) '*stdpdb ',
+        WRITE(IFC,'(2A)',IOSTAT=IOS,ERR=2) '*stdpdb ',
      &      LPCDB(1:lnblnk(LPCDB))
       endif
 
 C UK SBEM database.
       if(ipathsbem.eq.0.or.ipathsbem.eq.1)then
-        WRITE(IFCFG,'(2a)',IOSTAT=IOS,ERR=2) '*sbem ',
+        WRITE(IFC,'(2a)',IOSTAT=IOS,ERR=2) '*sbem ',
      &    LSBEM(1:lnblnk(LSBEM))
       elseif(ipathsbem.eq.2)then
-        WRITE(IFCFG,'(2a)',IOSTAT=IOS,ERR=2) '*stdsbem ',
+        WRITE(IFC,'(2a)',IOSTAT=IOS,ERR=2) '*stdsbem ',
      &    LSBEM(1:lnblnk(LSBEM))
       endif
 
 C Predefined objects database.
       if(ipathpredef.eq.0.or.ipathpredef.eq.1)then
-        WRITE(IFCFG,'(2a)',IOSTAT=IOS,ERR=2) '*predef ',
+        WRITE(IFC,'(2a)',IOSTAT=IOS,ERR=2) '*predef ',
      &    LPREDEF(1:lnblnk(LPREDEF))
       elseif(ipathpredef.eq.2)then
-        WRITE(IFCFG,'(2a)',IOSTAT=IOS,ERR=2) '*stdpredef ',
+        WRITE(IFC,'(2a)',IOSTAT=IOS,ERR=2) '*stdpredef ',
      &    LPREDEF(1:lnblnk(LPREDEF))
       endif
 
@@ -2146,7 +2196,7 @@ C Predefined objects database.
 C ******************** write_calendar ******************
 C Write project calendar and day types into cfg file.
 
-      subroutine write_calendar(ier)
+      subroutine write_calendar(ifc,ier)
 #include "building.h"
 #include "model.h"
 
@@ -2159,11 +2209,11 @@ C Calendar.
       character tokens*156,comment*76,aligned_str*156
 
       if(icfgv.lt.5)then
-        write(IFCFG,'(2a)',IOSTAT=IOS,ERR=2) '*calename ',
+        write(IFC,'(2a)',IOSTAT=IOS,ERR=2) '*calename ',
      &    calename(1:lnblnk(calename))
       else
-        WRITE(IFCFG,'(A)',IOSTAT=IOS,ERR=2) '# '
-        WRITE(IFCFG,'(A)',IOSTAT=IOS,ERR=2) 
+        WRITE(IFC,'(A)',IOSTAT=IOS,ERR=2) '# '
+        WRITE(IFC,'(A)',IOSTAT=IOS,ERR=2) 
      &     '# ---- project day types ----'
       endif
       do icd = 1,nbdaytype
@@ -2181,9 +2231,9 @@ C Calendar.
         write(comment,'(a)') 'day type name, menu entry, instances'
         call align_comment(48,tokens,comment,aligned_str)
         if(icd.eq.1)then
-          write(IFCFG,'(a)') aligned_str(1:lnblnk(aligned_str))  ! Comment on first day type
+          write(IFC,'(a)') aligned_str(1:lnblnk(aligned_str))  ! Comment on first day type
         else
-          write(IFCFG,'(a)') tokens(1:lnblnk(tokens))
+          write(IFC,'(a)') tokens(1:lnblnk(tokens))
         endif
       enddo
       if(icfgv.lt.5)then
@@ -2193,18 +2243,18 @@ C Calendar.
       endif
       write(comment,'(a)') 'day types & type for each day of year'
       call align_comment(48,tokens,comment,aligned_str)
-      write(IFCFG,'(a)') aligned_str(1:lnblnk(aligned_str))
+      write(IFC,'(a)') aligned_str(1:lnblnk(aligned_str))
       itrunc=1
       ipos=1
       do while (itrunc.ne.0)
         call ailist(ipos,365,icalender,365,'C',loutc,loutlen,itrunc)
-        write(IFCFG,'(1x,a)',IOSTAT=ios,ERR=2) loutc(1:loutlen)
+        write(IFC,'(1x,a)',IOSTAT=ios,ERR=2) loutc(1:loutlen)
         ipos=itrunc+1
       end do
       if(icfgv.lt.5)then
-        write(IFCFG,'(a)',IOSTAT=IOS,ERR=2) '*end_list'
+        write(IFC,'(a)',IOSTAT=IOS,ERR=2) '*end_list'
       else
-C        write(IFCFG,'(a)',IOSTAT=IOS,ERR=2) '*day_types_end'
+C        write(IFC,'(a)',IOSTAT=IOS,ERR=2) '*day_types_end'
       endif
       return
     2 CALL USRMSG(' ','Problem writing project calendar!','W')
@@ -2215,7 +2265,7 @@ C        write(IFCFG,'(a)',IOSTAT=IOS,ERR=2) '*day_types_end'
 C ******************** write_seasons ******************
 C Write project seasons into cfg file.
 
-      subroutine write_seasons(ier)
+      subroutine write_seasons(ifc,ier)
 #include "building.h"
 #include "model.h"
 #include "seasons.h"
@@ -2248,8 +2298,8 @@ C Variables for weekdays and weekends (Monday=1 through Sunday=7).
       if(icfgv.lt.5)then
         continue
       else
-        WRITE(IFCFG,'(A)',IOSTAT=IOS,ERR=2) '#'
-        WRITE(IFCFG,'(A)',IOSTAT=IOS,ERR=2) 
+        WRITE(IFC,'(A)',IOSTAT=IOS,ERR=2) '#'
+        WRITE(IFC,'(A)',IOSTAT=IOS,ERR=2) 
      &     '# ---- year and seasons ----'
       endif
 
@@ -2258,7 +2308,7 @@ C Year proceeds dependent attributes.
         write(tokens,'(a,i4)') '*year ',IYEAR
         write(comment,'(a)') 'assessment year'
         call align_comment(48,tokens,comment,aligned_str)
-        write(IFCFG,'(a)') aligned_str(1:lnblnk(aligned_str))
+        write(IFC,'(a)') aligned_str(1:lnblnk(aligned_str))
        endif
 
 C Alternative weekends definition.
@@ -2266,7 +2316,7 @@ C Alternative weekends definition.
         write(tokens,'(a,2I3)') '*weekend ',idwe1,idwe2
         write(comment,'(a)') 'alternative weekend definition'
         call align_comment(32,tokens,comment,aligned_str)
-        write(IFCFG,'(a)') aligned_str(1:lnblnk(aligned_str))
+        write(IFC,'(a)') aligned_str(1:lnblnk(aligned_str))
       endif
       if(ihaveseason.eq.0)then
 
@@ -2277,14 +2327,14 @@ C If no seasons have been defined write only the year in legacy files.
           write(tokens,'(a,i4)') '*year ',IYEAR
           write(comment,'(a)') 'assessment year'
           call align_comment(48,tokens,comment,aligned_str)
-          write(IFCFG,'(a)') aligned_str(1:lnblnk(aligned_str))
+          write(IFC,'(a)') aligned_str(1:lnblnk(aligned_str))
         endif
         return
       endif
-      write(IFCFG,'(a)')'*seasons '
+      write(IFC,'(a)')'*seasons '
       if(icfgv.lt.5)then
-        write(IFCFG,'(3a)')'*name ',tab,clmlnam(1:lnblnk(clmlnam))
-        write(IFCFG,'(3a)')'*aide ',tab,clmlaid(1:lnblnk(clmlaid))
+        write(IFC,'(3a)')'*name ',tab,clmlnam(1:lnblnk(clmlnam))
+        write(IFC,'(3a)')'*aide ',tab,clmlaid(1:lnblnk(clmlaid))
       endif
       call edayr(is1wins,id1,im1)
       call edayr(is1winf,id2,im2)
@@ -2306,7 +2356,7 @@ C If no seasons have been defined write only the year in legacy files.
      &    ' & ',descrst1,'--',descrfn1
       endif
       call align_comment(48,tokens,comment,aligned_str)
-      write(IFCFG,'(a)') aligned_str(1:lnblnk(aligned_str))
+      write(IFC,'(a)') aligned_str(1:lnblnk(aligned_str))
 
       call edayr(is1sprs,id1,im1)
       call edayr(is1sprf,id2,im2)
@@ -2328,7 +2378,7 @@ C If no seasons have been defined write only the year in legacy files.
      &    ' & ',descrst1,'--',descrfn1
       endif
       call align_comment(48,tokens,comment,aligned_str)
-      write(IFCFG,'(a)') aligned_str(1:lnblnk(aligned_str))
+      write(IFC,'(a)') aligned_str(1:lnblnk(aligned_str))
 
       call edayr(is1sums,id1,im1)
       call edayr(is1sumf,id2,im2)
@@ -2342,7 +2392,7 @@ C If no seasons have been defined write only the year in legacy files.
         write(comment,'(4a)') 'period ',descrst,'--',descrfn
       endif
       call align_comment(48,tokens,comment,aligned_str)
-      write(IFCFG,'(a)') aligned_str(1:lnblnk(aligned_str))
+      write(IFC,'(a)') aligned_str(1:lnblnk(aligned_str))
 
       call edayr(ia1wins,id1,im1)
       call edayr(ia1winf,id2,im2)
@@ -2365,7 +2415,7 @@ C If no seasons have been defined write only the year in legacy files.
      &    ' & ',descrst1,'--',descrfn1
       endif
       call align_comment(48,tokens,comment,aligned_str)
-      write(IFCFG,'(a)') aligned_str(1:lnblnk(aligned_str))
+      write(IFC,'(a)') aligned_str(1:lnblnk(aligned_str))
 
       call edayr(ia1sprs,id1,im1)
       call edayr(ia1sprf,id2,im2)
@@ -2388,7 +2438,7 @@ C If no seasons have been defined write only the year in legacy files.
      &    ' & ',descrst1,'--',descrfn1
       endif
       call align_comment(48,tokens,comment,aligned_str)
-      write(IFCFG,'(a)') aligned_str(1:lnblnk(aligned_str))
+      write(IFC,'(a)') aligned_str(1:lnblnk(aligned_str))
 
       call edayr(iasums,id1,im1)
       call edayr(iasumf,id2,im2)
@@ -2402,13 +2452,13 @@ C If no seasons have been defined write only the year in legacy files.
         write(comment,'(4a)') 'period ',descrst,'--',descrfn
       endif
       call align_comment(48,tokens,comment,aligned_str)
-      write(IFCFG,'(a)') aligned_str(1:lnblnk(aligned_str))
+      write(IFC,'(a)') aligned_str(1:lnblnk(aligned_str))
       if(icfgv.lt.5)then
         write(IFCFG,'(a)')'*season_end'
         write(tokens,'(a,i4)') '*year ',IYEAR
         write(comment,'(a)') 'assessment year'
         call align_comment(48,tokens,comment,aligned_str)
-        write(IFCFG,'(a)') aligned_str(1:lnblnk(aligned_str))
+        write(IFC,'(a)') aligned_str(1:lnblnk(aligned_str))
        endif
       return
 
@@ -2420,7 +2470,7 @@ C If no seasons have been defined write only the year in legacy files.
 C ******************** write_parameter_sets ******************
 C Write simulation parameter sets into cfg file.
 
-      subroutine write_parameter_sets(ier)
+      subroutine write_parameter_sets(ifc,ier)
 #include "building.h"
 #include "model.h"
 #include "MultiYear_simulations.h"
@@ -2430,6 +2480,8 @@ C Write simulation parameter sets into cfg file.
 
       COMMON/C6/INDCFG
       INTEGER :: INDCFG
+      integer ncomp,ncon
+      COMMON/C1/NCOMP,NCON
 
 C Simulation parameter presets.
       common/spfldes/spfdescr(MSPS)
@@ -2462,6 +2514,13 @@ C Moisture.
       common/MOIST01/MSTROK,MSTRZN(MCOM)
       LOGICAL MSTROK,MSTRZN
 
+C CFD.
+      common/cfdfil/LCFD(MCOM),IFCFD(MCOM)
+      INTEGER :: ifcfd
+      character LCFD*72
+      common/ACTDOM/CFDOK
+      logical CFDOK
+
       character tokens*156,comment*76,aligned_str*156
       logical bMY_set_open   ! Multi-weather simulations preset
 
@@ -2475,7 +2534,7 @@ C Moisture.
      &    'zone & plant ts, save level @ 1 ts/hr'
       endif
       call align_comment(48,tokens,comment,aligned_str)
-      write(IFCFG,'(a)') aligned_str(1:lnblnk(aligned_str))
+      write(IFC,'(a)') aligned_str(1:lnblnk(aligned_str))
 
 C Multi-year weather data (only works with save level 5).
       bMY_set_open = .false.
@@ -2483,7 +2542,7 @@ C Multi-year weather data (only works with save level 5).
 
 C Flag indicating start of multi-year climate record.
         if (bMY_period_support(iss) .and. .not. bMY_set_open) then
-          write(IFCFG,'(A)') '*start_my_sets'
+          write(IFC,'(A)') '*start_my_sets'
           bMY_set_open = .true.
         endif 
 
@@ -2499,9 +2558,9 @@ C Extended simulation parameter sets.
             write(comment,'(2a)') 'startup, zone & plant ts, ',
      &        'save level, @ ts, period start DM & end DM'
             call align_comment(48,tokens,comment,aligned_str)
-            write(IFCFG,'(a)') aligned_str(1:lnblnk(aligned_str))
+            write(IFC,'(a)') aligned_str(1:lnblnk(aligned_str))
           else
-            write(IFCFG,'(a)') tokens(1:lnblnk( tokens))
+            write(IFC,'(a)') tokens(1:lnblnk( tokens))
           endif
         else
           if(icfgv.eq.4)then
@@ -2521,48 +2580,51 @@ C Extended simulation parameter sets.
             write(comment,'(2a)') 'startup, zone & plant ts, ',
      &        'save level, @ ts, period start DM & end DM'
             call align_comment(48,tokens,comment,aligned_str)
-            write(IFCFG,'(a)') aligned_str(1:lnblnk(aligned_str))
+            write(IFC,'(a)') aligned_str(1:lnblnk(aligned_str))
           else
-            write(IFCFG,'(a)') tokens(1:lnblnk( tokens))
+            write(IFC,'(a)') tokens(1:lnblnk( tokens))
           endif
         endif 
-        if(INDCFG.ne.2)WRITE(IFCFG,'(2A)',IOSTAT=IOS,ERR=2)'*sblr ',
+        if(INDCFG.ne.2)WRITE(IFC,'(2A)',IOSTAT=IOS,ERR=2)'*sblr ',
      &    sblres(iss)(1:lnblnk(sblres(iss)))
-        if(IAIRN.ge.1)WRITE(IFCFG,'(2A)',IOSTAT=IOS,ERR=2)'*sflr ',
+        if(IAIRN.ge.1)WRITE(IFC,'(2A)',IOSTAT=IOS,ERR=2)'*sflr ',
      &    sflres(iss)(1:lnblnk(sflres(iss)))
         if(INDCFG.eq.2.or.INDCFG.eq.3)then
-          WRITE(IFCFG,'(2A)',IOSTAT=IOS,ERR=2)'*splr ',
+          WRITE(IFC,'(2A)',IOSTAT=IOS,ERR=2)'*splr ',
      &      splres(iss)(1:lnblnk(splres(iss)))
         endif
-        if(MSTROK)WRITE(IFCFG,'(2A)',IOSTAT=IOS,ERR=2)'*smstr ',
+        if(MSTROK)WRITE(IFC,'(2A)',IOSTAT=IOS,ERR=2)'*smstr ',
      &    smstres(iss)(1:lnblnk(smstres(iss)))
-        if(ientxist.gt.0)WRITE(IFCFG,'(2A)',IOSTAT=IOS,ERR=2)
+        if(ientxist.gt.0)WRITE(IFC,'(2A)',IOSTAT=IOS,ERR=2)
      &    '*selr ',selres(iss)(1:lnblnk(selres(iss)))
 
-C CFD.
-        if(iscfdactivate(iss).gt.-1)then
-          WRITE(IFCFG,'(A,3I4,2F7.3,2A)',IOSTAT=IOS,ERR=2)
+C CFD. Loop through zones to see if there is a cfd domain description.
+        do loop=1,NCOMP
+          IF(ABS(IFCFD(loop)).GT.0) CFDOK=.true.
+        enddo
+        if(iscfdactivate(iss).gt.-1.and.CFDOK)then
+          WRITE(IFC,'(A,3I4,2F7.3,2A)',IOSTAT=IOS,ERR=2)
      &      '*scfdr ',iscfdactivate(iss),isicfdys(iss),isicfdyf(iss),
      &      scftims(iss),scftimf(iss),' ',
      &      scfdres(iss)(1:lnblnk(scfdres(iss)))
         endif
         if(icfgv.lt.5)then
-          WRITE(IFCFG,'(A)',IOSTAT=IOS,ERR=2)'*end_set'
+          WRITE(IFC,'(A)',IOSTAT=IOS,ERR=2)'*end_set'
         endif
 
 C End of multi-simulation sets.
         if ( iss .eq. nsset ) then
           if ( bMY_period_support(iss) )
-     &      write(IFCFG, '(A)') '*end_my_sets'
+     &      write(IFC, '(A)') '*end_my_sets'
           bMY_set_open = .false.
         elseif ( bMY_set_open .and.
      &     .not. bMY_period_support (iss+1) ) then         
-          write(IFCFG, '(A)') '*end_my_sets'
+          write(IFC, '(A)') '*end_my_sets'
           bMY_set_open = .false.
         endif
  333  continue
       if(icfgv.lt.5)then
-        WRITE(IFCFG,'(A)',IOSTAT=IOS,ERR=2)'*end_sps'
+        WRITE(IFC,'(A)',IOSTAT=IOS,ERR=2)'*end_sps'
       endif
 
       return

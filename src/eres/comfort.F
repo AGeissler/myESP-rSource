@@ -144,8 +144,9 @@ C Confirm parameters and then exit.
 
         helptopic='res_review_activity_par'
         call gethelptext(helpinsub,helptopic,nbhelp)
-        CALL EASKAB(' ','Activity level units?',
-     &    'MET units','W/m^2 (body surface area)',IAU,nbhelp)
+        CALL EASKMBOX(' ','Activity level units?',
+     &    'MET units','W/m^2 (body surface area)',
+     &    ' ',' ',' ',' ',' ',' ',IAU,nbhelp)
         if(IAU.eq.1)then
 
 C When using MET units, convert back to W/M^2 for calculations.
@@ -173,8 +174,9 @@ C hash list of zone:time:occupancy.
         helptopic='res_comfort_occupied'
         call gethelptext(helpinsub,helptopic,nbhelp)
  936    IOT=1
-        CALL EASKATOG(' ','Which casual gain represents occupancy?',
-     &      'Always occupied',ll1,ll2,ll3,'time',' ',' ',IOT,nbhelp)
+        CALL EASKMBOX(' ','Which casual gain represents occupancy?',
+     &      'Always occupied',ll1,ll2,ll3,'time',' ',' ',' ',
+     &      IOT,nbhelp)
         if (IOT.gt.1.and.IOT.lt.5) then
           if (izver.lt.4) then
             write(outs,'(2a)')'Occupancy filtering not available for ',
@@ -333,8 +335,9 @@ C Clothing level.
 C Activity level, may be entered in MET units or in W/m^2.
         helptopic='res_MET_review'
         call gethelptext(helpinsub,helptopic,nbhelp)
-        CALL EASKAB(' ','Activity level units?',
-     &    'MET units','W/m^2 (body surface area)',IAU,nbhelp)
+        CALL EASKMBOX(' ','Activity level units?',
+     &    'MET units','W/m^2 (body surface area)',
+     &    ' ',' ',' ',' ',' ',' ',IAU,nbhelp)
         if(IAU.eq.1)then
           call easkr(ACTL,' ','Activity level?',
      &      0.859,'W',6.013,'W',50.0,'activity level MET',IER,nbhelp)
@@ -360,8 +363,9 @@ C Casual gain type.  Ask user which constitutes occupancy.
         helptopic='res_comfort_occupied'
         call gethelptext(helpinsub,helptopic,nbhelp)
  937    IOT=1
-        CALL EASKATOG(' ','Which casual gain represents occupancy?',
-     &      'Always occupied',ll1,ll2,ll3,'time',' ',' ',IOT,nbhelp)
+        CALL EASKMBOX(' ','Which casual gain represents occupancy?',
+     &      'Always occupied',ll1,ll2,ll3,'time',' ',' ',' ',
+     &      IOT,nbhelp)
         if (IOT.gt.1.and.IOT.lt.5) then
           if (izver.lt.4) then
             write(outs,'(2a)')'Occupancy filtering not available',
@@ -412,7 +416,6 @@ C Start espvwf session.
 C Get logical name of terminal type, expand problem name
 C to include the path and create a string to drive ish.
           write(zn,'(A)') zname(IZONE)
-          call tstamp('>','RES: start mft')
           doit = ' '
           call terminalmode(childterminal,tmode)
           if(unixok)then
@@ -620,8 +623,9 @@ C Verbal category only printed if activity level is sedentary.
       if(act.eq.'V')then
         helptopic='res_comfort_next_day'
         call gethelptext(helpinsub,helptopic,nbhelp)
-        CALL EASKAB(' ','Options:',
-     &    'continue with next day','return to menu',IWW,nbhelp)
+        CALL EASKMBOX(' ','Options:',
+     &    'continue with next day','return to menu',
+     &    ' ',' ',' ',' ',' ',' ',IWW,nbhelp)
         if(IWW.eq.1)then
 
 C Check to see of next day is acceptable, recover casual gains

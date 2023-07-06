@@ -1289,7 +1289,6 @@ C If original was binary origmatwasbin will be .true.
       modcon=.true.
       chgdb=.false.
 
-      call tstamp('>','PRJ: enter materials db')
       call eclose(matver,1.1,0.001,closemat1)
       call eclose(matver,1.2,0.001,closemat2)
       if(closemat1.or.closemat2)then
@@ -1806,7 +1805,6 @@ C Scan CFC layers file into commons.
       modcon=.true.
       chgdb=.false.
 
-      call tstamp('>','PRJ: enter CFC layers db')
       call eclose(cfcver,1.1,0.001,closecfc1)
       call eclose(cfcver,1.2,0.001,closecfc2)
       if(closecfc1.or.closecfc2)then
@@ -2285,7 +2283,6 @@ C otherwise edit the data. Pay attention to the implied path.
         CALL ERPFREE(ipcdb,ISTAT)
 
 C Get logical name of child process terminal type and create a string to drive pdb.
-        call tstamp('>','PRJ: start pdb')
         doit = ' '
         call terminalmode(childterminal,tmode)
         if(iappw.eq.690)then
@@ -2522,8 +2519,9 @@ C assume that only new geometry files are scanned.
             call GEO2OBJ(IUNIT,lltmp,ITRU,IER)
 
 C Ask to see details or write details.
-            call easkabc(' ','Options:','list & view contents',
-     &        'write to file','cancel',ibopt,nbhelp)
+            call easkmbox(' ','Options:','list & view contents',
+     &        'write to file','cancel',
+     &        ' ',' ',' ',' ',' ',ibopt,nbhelp)
             if(ibopt.eq.1)then
               call edisp(iuout,'Work in progress...')
               lltmp=' '
@@ -3332,7 +3330,6 @@ C otherwise edit the contents.
    44 continue
 
       ier=0
-      call tstamp('>','PRJ: enter MLC db')
       CALL ERMLDB(0,IUOUT,IER)
       IF(IER.eq.4)THEN
         CALL ERMLDB2(0,iuout,IER)
@@ -3385,7 +3382,6 @@ C Find the index of the MLC which matches each surface.
  30   continue
 
 C Enter database in management mode.
-      call tstamp('>','PRJ: enter construction db')
       if(mlcver.eq.0)then
         CALL EDMLDB(ITRC,modmlc,IER,ISEL)
       elseif(mlcver.gt.0)then
@@ -3702,7 +3698,6 @@ C otherwise edit the contents.
 
       SOPT='ALL'
       ier=0
-      call tstamp('>','PRJ: enter optical db')
       CALL EROPTDB(0,ITRU,SOPT,GDESCR,IER)
       if(ier.ne.0)then
         call usrmsg('Problem encountered with Optical Properties db!',
@@ -4217,7 +4212,6 @@ C name to include the path and create a string to drive clm.
 
 C << update to deal with dos paths >>
 
-        call tstamp('>','PRJ: start clm')
         doit = ' '
         call terminalmode(childterminal,tmode)
         if(ipathclim.eq.0.or.ipathclim.eq.1)then
@@ -4546,7 +4540,6 @@ C to asking clm to do the conversion.
         endif
         call addpath(LLASCI,longtafile,concat)
 
-        call tstamp('>','PRJ: start clm for conversion')
         doit = ' '
         write(doit,'(4a)') 'clm -mode text -file ',
      &    longtfile(1:lnblnk(longtfile)),' -act bin2asci silent ',
@@ -4598,7 +4591,6 @@ C to asking clm to do the conversion.
           longtfile=longtmp
         endif
         call addpath(LLASCI,longtafile,concat)
-        call tstamp('>','PRJ: start clm for conversion')
         doit = ' '
         write(doit,'(4a)') 'clm -mode text -file ',
      &    longtfile(1:lnblnk(longtfile)),' -act asci2bin silent ',
@@ -4661,7 +4653,6 @@ C to asking clm to do the conversion.
           longtfile=longtmp
         endif
         call addpath(LLASCI,longtafile,concat)
-        call tstamp('>','PRJ: start clm for conversion')
         doit = ' '
         write(doit,'(4a)') 'clm -mode text -file ',
      &      longtfile(1:lnblnk(longtfile)),' -act epw2bin silent ',
@@ -4789,7 +4780,6 @@ C weather file exists.
       IER=0
       call CLMOPB(0,IER)
       if(ier.eq.0)then
-        call tstamp('>','PRJ: start clm')
         doit = ' '
         call terminalmode(childterminal,tmode)
 

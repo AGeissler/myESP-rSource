@@ -163,8 +163,9 @@ C Ask for value of uncertainty.
      &    'The current default is +- ',DFLTRANGE(1,IVALP(1))
         call edisp(iuout,message)
       endif
-      call EASKAB('Define parameter bounds:','  ',
-     &  'from default definitions','by data entry',IANS,0)
+      call EASKMBOX('Define parameter bounds:','  ',
+     &  'from default definitions','by data entry',
+     &  ' ',' ',' ',' ',' ',' ',IANS,0)
       if (IANS.eq.1) then
         continue  ! work done in next block of code
       elseif (IANS.eq.2) then
@@ -284,8 +285,9 @@ C Check for errors - add to the total error counter if error has occured.
         return
       endif
       write (MATNAM(ICDEF,1),'(a)') mlcname(ISEL)
-      call EASKAB('Which composite construction parameter? ','  ',
-     &  'A materials thickness','Whole composite',IRT,nbhelp)
+      call EASKMBOX('Which composite construction parameter? ','  ',
+     &  'A materials thickness','Whole composite',
+     &  ' ',' ',' ',' ',' ',' ',IRT,nbhelp)
       if (IRT.eq.1) then
 
 C Pick a material in that MLC.
@@ -461,22 +463,24 @@ C << for period end.
 C Operations file data.
       call edisp(iuout,' Operations parameter selection. ')
       IRT=0
-      call EASKAB('  ','Which scheduled parameter? ',
-     &  'Casual gains','Air flow',IRT,nbhelp)
+      call EASKMBOX('  ','Which scheduled parameter? ',
+     &  'Casual gains','Air flow',' ',' ',' ',' ',' ',' ',
+     &  IRT,nbhelp)
       if (IRT.eq.1) then
-        call EASKABC('  ','Which casual gain?',
-     &               'occupants','lights','small power',IRT,nbhelp)
+        call EASKMBOX('  ','Which casual gain?',
+     &    'occupants','lights','small power',
+     &    ' ',' ',' ',' ',' ',IRT,nbhelp)
         IDATR(ICDEF,1)=IRT
-        call EASKATOG('Which property?',' ','Sensible','Latent',
+        call EASKMBOX('Which property?',' ','Sensible','Latent',
      &    'Radiant frac','Convective frac','Total Q','Period start',
-     &    'RC split  ',IRT,nbhelp)
+     &    'RC split',' ',IRT,nbhelp)
         if(IRT.eq.7)IRT=8  ! to enable different RC split
         IDATR(ICDEF,2)=IRT
       else
         IDATR(ICDEF,1)=0
-        call EASKATOG('Which property?',' ','Infiltration',
+        call EASKMBOX('Which property?',' ','Infiltration',
      &    'Ventilation','N/A','Source temp.','  ',
-     &    '  ','  ',IRT,nbhelp)
+     &    '  ','  ',' ',IRT,nbhelp)
         IDATR(ICDEF,2)=IRT
       endif
 
@@ -528,8 +532,9 @@ C Common blocks UA3 within uncertainty.h
 C Check for htc file - can use scaling on calculated coefficievts that way.
 
       call edisp(iuout,' Convection coefficient selection. ')
-      call EASKAB('Only Halcrow time invarient enabled ! ','  ',
-     &            'Continue and define distribution','Cancel',IRT,0)
+      call EASKMBOX('Only Halcrow time invarient enabled ! ','  ',
+     &  'Continue and define distribution','Cancel',
+     &  ' ',' ',' ',' ',' ',' ',IRT,0)
       if (IRT.eq.2) then
         IER=101
         return
@@ -624,8 +629,9 @@ C Surface area if IDATR(ICDEF,1)=2
       NITMS=2
 
       call edisp(iuout,'Zone geometry parameter distribution def.')
-      call EASKAB('Options ','  ',
-     &  'Zone air volume','Surface area',IRT,nbhelp)
+      call EASKMBOX('Options ','  ',
+     &  'Zone air volume','Surface area',
+     &  ' ',' ',' ',' ',' ',' ',IRT,nbhelp)
       if (IRT.eq.1) then
         IDATR(ICDEF,1)=1
         IDATR(ICDEF,2)=1
@@ -730,9 +736,9 @@ C Ask for the control function specific parameter ->IDATR(?,5)
 C 1=Period start time, 2=max heating, 3=min heating,
 C   4=max cooling, 5=min cooling, 6=heating SP, 7=cooling SP.
       IRT=0
-      call EASKATOG('Which control property?',' ','Period Start',
+      call EASKMBOX('Which control property?',' ','Period Start',
      &  'Max heat','Min heat','Max cool','Min cool','Heating SP',
-     &  'Cooling SP',IRT,nbhelp)
+     &  'Cooling SP',' ',IRT,nbhelp)
       IDATR(ICDEF,5)=IRT
 
       IALLOW=2     ! ask % or asb
@@ -776,9 +782,9 @@ C of IALLOW specifies whether % or abs or explicit.
         call gethelptext(helpinsub,helptopic,nbhelp)
         
 C Now ask for the numerical data.
-        call EASKABC('Define parameter bounds',' via:',
+        call EASKMBOX('Define parameter bounds',' via:',
      &   'percentage change','absolute change',
-     &   'explicit alternatives',ICNG,nbhelp)
+     &   'explicit alternatives',' ',' ',' ',' ',' ',ICNG,nbhelp)
         PERC=0.0; ABS=0.0; EXPU=0.0; EXPL=0.0
         if (ICNG.eq.1) then
           call EASKR(PERC,' ','Percentage change value?',
@@ -807,8 +813,9 @@ C bounds.
       elseif (IALLOW.eq.2) then
         helptopic='uncert_bounds_3'
         call gethelptext(helpinsub,helptopic,nbhelp)
-        call EASKAB(' Define parameter bounds',' via:',
-     &    'percentage change','absolute change',ICNG,nbhelp)
+        call EASKMBOX(' Define parameter bounds',' via:',
+     &    'percentage change','absolute change',
+     &    ' ',' ',' ',' ',' ',' ',ICNG,nbhelp)
         PERC=0.
         ABS=0.
         if (ICNG.eq.1) then

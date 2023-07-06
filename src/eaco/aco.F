@@ -52,6 +52,10 @@ C                           furniture
 
 C Commons for I/O Channel, mode type and fonts.
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
+      logical ieopened     ! Has session file been started.
+      integer iecount      ! Does it hold error messages.
+      character iefile*72  ! The name of the session file.
+      common/logs/ieopened,iecount,iefile
       COMMON/MOD/MODEL
       integer ifs,itfs,imfs
       COMMON/GFONT/IFS,ITFS,IMFS
@@ -115,10 +119,6 @@ C Name of current application
 C Ask to overwrite flag.
       COMMON/OVRWT/AUTOVR
       logical AUTOVR      
-
-C Session log file (for errors etc.)
-      character iefile*72
-      common/logs/iefile
 
       LOGICAL CFGOK,MLDBOK,MATDBOK,CTLOK,OPTKOK,ACOOK,CFCDBOK
       LOGICAL XST,BCFOK,unixok
@@ -387,12 +387,14 @@ C Create and open a session log file based on user name, PID etc.
       call st2file(tfile,iefile)
 
 C Open the session file.
-      ieout=ifil+932          ! set to unused index 942
+      ieout=ifil+932          ! set to unused index 932
       open(ieout,file=iefile,status='UNKNOWN',err=903)
       write(ieout,'(a)')'Session log for aco'
       call dstamp(dstmp) ! get curret time
       write(ieout,'(2a)')'Date,',dstmp
       write(ieout,'(2a)')'User,',uname(1:lnblnk(uname))
+      ieopened=.true.
+      iecount=0
   903 continue
 
 C Take `c' command line file name, convert to fortran string LCMDFL.
@@ -635,16 +637,16 @@ C Reporting output display selection
 C Air absorption
          helptopic='aco_air_absorption'
          call gethelptext(helpinsub,helptopic,nbhelp)
-         CALL EASKAB(' ','Air absorptions options:','included',
-     &               'not included',IairAb,nbhelp)
+         CALL EASKMBOX(' ','Air absorptions options:','included',
+     &     'not included',' ',' ',' ',' ',' ',' ',IairAb,nbhelp)
       elseif (INO.EQ.14) THEN
 
 C Air properties
          helptopic='aco_air_properties'
          call gethelptext(helpinsub,helptopic,nbhelp)
-         CALL EASKAB(' ','Air absorptionoptions:',
+         CALL EASKMBOX(' ','Air absorptionoptions:',
      &     'constant','extracted from file',
-     &     IAirProp,nbhelp)
+     &     ' ',' ',' ',' ',' ',' ',IAirProp,nbhelp)
          IF (IAirProp.EQ.1) THEN
            IairProp=0
            helptopic='air_temp_for_absorb'
@@ -737,9 +739,9 @@ C Find the maximum absorption factor.
 C Ask for which air condition the RT calculation should be perfromed.
              helptopic='air_calc_high_or_low'
              call gethelptext(helpinsub,helptopic,nbhelp)
-             CALL EASKAB(' Do you want to calculate the RT with :',' ',
+             CALL EASKMBOX('Calculate the RT with:',' ',
      &        'the HIGHEST air absoprtion','the LOWEST air absoprtion',
-     &         IairProp,nbhelp)
+     &        ' ',' ',' ',' ',' ',' ',IairProp,nbhelp)
              IF (IairProp.EQ.1) THEN
                RTair=TTMax
                RHR=RHMax
@@ -788,9 +790,9 @@ C Select/change BCF file.
         helptopic='model_bcf_file_name'
         call gethelptext(helpinsub,helptopic,nbhelp)
   288   IF (BCFOK) THEN
-          call easkabc('A buiding construction file is loaded.',
+          call easkmbox('A buiding construction file is loaded.',
      &      'Options:','use it','load another','cancel',
-     &      Iw,nbhelp)
+     &      ' ',' ',' ',' ',' ',Iw,nbhelp)
           if(iw.eq.3)then
             goto 10
           elseif(iw.eq.2)then
@@ -844,8 +846,9 @@ C Attempt to read Aco (occupants and furniture file).
         call gethelptext(helpinsub,helptopic,nbhelp)
 
   290   IF (ACOOK) THEN
-          call easkabc('ACO file is loaded.','Options:',
-     &      'use it','load another','cancel',Iw,nbhelp)
+          call easkmbox('ACO file is loaded.','Options:',
+     &      'use it','load another','cancel',
+     &      ' ',' ',' ',' ',' ',Iw,nbhelp)
           if(iw.eq.3)then
             goto 10
           elseif(iw.eq.2)then
@@ -912,8 +915,8 @@ C Display Zones list if project loaded and wait for INIPIC item selected.
      &            zname(NZNOG(ixd)),'?'
                 helptopic='display_details_dialog'
                 call gethelptext(helpinsub,helptopic,nbhelp)
-                CALL EASKABC(' ',outs,'Yes','No',
-     &            'No for all',Irep,nbhelp)
+                CALL EASKMBOX(' ',outs,'Yes','No',
+     &            'No for all',' ',' ',' ',' ',' ',Irep,nbhelp)
                 if(Irep.eq.1)CALL ZoneDisp(ic)
               endif
               write(outs,'(3a)')' Zone ',zname(NZNOG(ixd)),

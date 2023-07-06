@@ -659,8 +659,8 @@ C Toggle for available
 
         helptopic='climate_item_offline'
         call gethelptext(helpinsub,helptopic,nbhelp)
-        call easkabc(' ','Options:','online','offline','cancel',IW,
-     &    nbhelp)
+        call easkmbox(' ','Options:','online','offline','cancel',
+     &    ' ',' ',' ',' ',' ',IW,nbhelp)
         if(iw.eq.1) clmlavail = 'ONLINE'
         if(iw.eq.2) clmlavail = 'OFFLINE'
       elseif(INO.eq.6)then
@@ -1048,8 +1048,8 @@ C Scan weather data for best-fit weeks.
 C Documentations text option.
         helptopic='climate_list_doc'
         call gethelptext(helpinsub,helptopic,nbhelp)
-        call easkabcd(' ','Documentation options:','list','initialise',
-     &    'edit','cancel',idw,nbhelp)
+        call easkmbox(' ','Documentation options:','list','initialise',
+     &    'edit','cancel',' ',' ',' ',' ',idw,nbhelp)
         if(idw.eq.1)then
           if(nbclmlhelp.ge.0)then
             call edisp(iuout,' ')

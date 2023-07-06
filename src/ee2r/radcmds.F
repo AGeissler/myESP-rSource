@@ -70,7 +70,6 @@ C passed via -actf in the command line.
         call simscene(smode)
 
 C Having finished that process, quit.
-        call tstamp('>','Finish automatic visual analysis')
         close(ieout)
         CALL ERPFREE(ieout,ISTAT)
         CALL EPAGEND
@@ -823,8 +822,8 @@ C Falsecolor image.
 C Ask if an animation required.
         helptopic='single_time_or_sequence'
         call gethelptext(helpinsub,helptopic,nbhelp)
-        CALL EASKAB(' ',' Image(s):','single time instance',
-     &    'sequence',IWDA,nbhelp)
+        CALL EASKMBOX(' ',' Image(s):','single time instance',
+     &    'sequence',' ',' ',' ',' ',' ',' ',IWDA,nbhelp)
         if(iwda.eq.2)then
           anim = .true.
           IWDQ=2
@@ -832,8 +831,8 @@ C Ask if an animation required.
           if(mono.gt.0)then
             helptopic='render_to_screen_or_file'
             call gethelptext(helpinsub,helptopic,nbhelp)
-            CALL EASKAB(' ','Image rendering to:','screen','file',
-     &        IWDQ,nbhelp)
+            CALL EASKMBOX(' ','Image rendering to:','screen','file',
+     &        ' ',' ',' ',' ',' ',' ',IWDQ,nbhelp)
           else
             IWDQ=2
           endif
@@ -844,8 +843,6 @@ C If glare put it to file.
         IWDQ=2
       endif
 
-C Note the time.
-      call tstamp('m','Start processing of image.')
       if(IWDQ.eq.1)then
       
 C If in unix then use interactive rendering. If Native Windows do
@@ -973,9 +970,9 @@ C Ask for end time of the animation.
 
 C Figure out the increment.
           IWT=1
-          CALL EASKATOG('Interval between views:',' ','one min',
+          CALL EASKMBOX('Interval between views:',' ','one min',
      &      'five min','ten min','15 min','20 min','30 min','cancel',
-     &      IWT,nbhelp)
+     &      ' ',IWT,nbhelp)
           if(IWT.EQ.1)then
             DT=0.016666
           elseif(IWT.EQ.2)then
@@ -997,8 +994,8 @@ C Up the image quality if low.
 
 C Size of the images (set IFP to double so can filter).
           IWP=1
-          CALL EASKATOG('Image frame size (pixels):',' ','320',
-     &      '400','600','700','800','1000','cancel',IWP,nbhelp)
+          CALL EASKMBOX('Image frame size (pixels):',' ','320',
+     &      '400','600','700','800','1000','cancel',' ',IWP,nbhelp)
           if(IWP.EQ.1)then
             ipicx=320
           elseif(IWP.EQ.2)then
@@ -1016,8 +1013,8 @@ C Size of the images (set IFP to double so can filter).
           endif
 
 C Gif or other conversion.
-          CALL EASKABC('Output format',' : ','gif (default)',
-     &      'tiff','jpeg',IWF,nbhelp)
+          CALL EASKMBOX('Output format',' : ','gif (default)',
+     &      'tiff','jpeg',' ',' ',' ',' ',' ',IWF,nbhelp)
 
 C Loop from start and increment until at or past the finish time.
           idone=1
@@ -1196,8 +1193,9 @@ C See if there is an existing hdr file by this name.
             call gethelptext(helpinsub,helptopic,nbhelp)
             write(outs,'(a,a)') 'There is an existing picture file ',
      &        pf(1:lnblnk(pf))
-            CALL EASKABC(outs,'Do you want to: ','overwrite',
-     &        'choose another name','cancel',IWR,nbhelp)
+            CALL EASKMBOX(outs,'Do you want to: ','overwrite',
+     &        'choose another name','cancel',' ',' ',' ',' ',' ',
+     &        IWR,nbhelp)
             if(IWR.eq.3)then
               return
             elseif(IWR.eq.2)then
@@ -1267,9 +1265,7 @@ C Debug/trace.
         call edisp(iuout,'Look in the text window for progress.')
 
 C Note the time.
-        call tstamp('m','Invoking Radiance.')
         call runit(doit,'-')
-        call tstamp('m','Radiance completed.')
         if (ITP.eq.1)call dispimage(1)
       endif
 
@@ -1544,7 +1540,6 @@ C Debug/trace.
         write(icout,*) doit(1:lnblnk(doit))
       endif
       call runit(doit,'-')
-      call tstamp('m','findglare run.')
       
 C Now display glare sources on image.
       write(doit,'(7a)') 'cd ',runpath(1:lnrp),
@@ -1553,7 +1548,6 @@ C Now display glare sources on image.
       call usrmsg(
      &  'The glare sources are shown via circles & intensity values.',
      &  'Click when done. More glare info via view visu results','W')
-      call tstamp('m','xglaresrc run.')
 
       return
       end
@@ -1643,9 +1637,11 @@ C Ask if the parameters should be reset.
       if (XAB.gt.1.5) then
         helptopic='e2r_df_confusion'
         call gethelptext(helpinsub,helptopic,nbhelp)
-        CALL EASKAB('The rendering parameters would appear to be set',
+        CALL EASKMBOX(
+     &    'The rendering parameters would appear to be set',
      &    'from a previous simulation.  Do you want to: ','use them',
-     &    'start from beginning (recommended)',IWR,nbhelp)
+     &    'start from beginning (recommended)',
+     &    ' ',' ',' ',' ',' ',' ',IWR,nbhelp)
         if (IWR.eq.2) then
           write (outsl,'(2a)') crenrp(1:lnblnk(crenrp)),
      &                         ' -ab 1 -ad 1024 -as 512 -av 0 0 0'
@@ -1667,8 +1663,8 @@ C Daylight factors output file.
       call gethelptext(helpinsub,helptopic,nbhelp)
       if(XST)then
         write(outs,'(2a)')'There is an existing file ',df(1:lnblnk(df))
-        CALL EASKAB(outs,'Do you want to: ','overwrite',
-     &                            'choose another name',IWR,0)
+        CALL EASKMBOX(outs,'Do you want to: ','overwrite',
+     &    'choose another name',' ',' ',' ',' ',' ',' ',IWR,0)
         if (IWR.eq.2) then
           ltmp = df
  1221     CALL EASKS(ltmp,
@@ -2187,9 +2183,11 @@ C Ask if the parameters should be reset.
       if (XAB.gt.1.5) then
         helptopic='e2r_lux_confusion'
         call gethelptext(helpinsub,helptopic,nbhelp)
-        CALL EASKAB('The rendering parameters would appear to be set',
+        CALL EASKMBOX(
+     &    'The rendering parameters would appear to be set',
      &    'from a previous simulation.  Do you want to: ','use them',
-     &    'start from beginning (recommended)',IWR,nbhelp)
+     &    'start from beginning (recommended)',
+     &    ' ',' ',' ',' ',' ',' ',IWR,nbhelp)
         if (IWR.eq.2) then
           write (outsl,'(2a)') crenrp(1:lnblnk(crenrp)),
      &                         ' -ab 1 -ad 1024 -as 512 -av 0 0 0'
@@ -2212,8 +2210,8 @@ C Illuminance output file.
       call gethelptext(helpinsub,helptopic,nbhelp)
       if(XST)then
         write(outs,'(2a)')'There is an existing file ',df(1:lnblnk(df))
-        CALL EASKAB(outs,'Do you want to: ','overwrite',
-     &                   'choose another name',IWR,0)
+        CALL EASKMBOX(outs,'Do you want to: ','overwrite',
+     &    'choose another name',' ',' ',' ',' ',' ',' ',IWR,0)
         if (IWR.eq.2) then
           ltmp = df
  1221     CALL EASKS(ltmp,

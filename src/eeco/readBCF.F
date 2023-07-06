@@ -426,8 +426,9 @@ C Initialiastion
       IER=0
 
 C Specify the reading mode.
-      CALL EASKAB(' When reading in the BCF file, do you',
-     &  ' want it:','done silently','with reporting of contents',IW,0)
+      CALL EASKMBOX(' When reading in the BCF file, do you',
+     &  'want it:','done silently','with reporting of contents',
+     &  ' ',' ',' ',' ',' ',' ',IW,0)
       CALL EFOPSEQ(IUC,BCFfile,1,IER)
       IF (IER.LT.0) then
         WRITE (outs,'(a,a)')' Error while opening BCF file : ',

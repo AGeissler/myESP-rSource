@@ -35,6 +35,10 @@ C and top offsets. If these are 0 then use default values.
       integer lnblnk  ! function definition
 
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
+      logical ieopened     ! Has session file been started.
+      integer iecount      ! Does it hold error messages.
+      character iefile*72  ! The name of the session file.
+      common/logs/ieopened,iecount,iefile
       COMMON/FILEP/IFIL
       COMMON/MFTRA/IMFTU
       COMMON/SHOUT/ICOUT
@@ -92,10 +96,6 @@ C Significant figure reporting limit (NSIGFIG).
 C Name of current application
       common/APPNAME/cAppName
       character cAppName*12
-
-C Session log file (for errors etc.)
-      character iefile*72
-      common/logs/iefile
 
 C For number of openings NOPEN
       COMMON/NDMAP/NOPEN(MNZ),MFNODE(MCFND,MNZ),IOPENi(MCFND,MNZ),
@@ -419,6 +419,8 @@ C Open the session file.
       call dstamp(dstmp) ! get curret time
       write(ieout,'(2a)')'Date,',dstmp
       write(ieout,'(2a)')'User,',uname(1:lnblnk(uname))
+      ieopened=.true.
+      iecount=0
   903 continue
 
 C Take `c' command line file name, convert to fortran string LCFD
@@ -613,8 +615,8 @@ C option as it might only be of interest to experts.
         TIMAX=1.0E20
         TSTEP=1.0E20
 
-C        CALL EASKAB('  ','Simulation type?',
-C     &    'steady','transient',IW,nbhelp)
+C        CALL EASKMBOX('  ','Simulation type?',
+C     &    'steady','transient',' ',' ',' ',' ',' ',' ',IW,nbhelp)
 C        IF(IW.EQ.1)then
 C          TIMAX=1.0E20
 C          TSTEP=1.0E20
@@ -840,9 +842,10 @@ C Check that we have results to visualise.
           if (.not.SIMOK) then
             helptopic='dfs_flow_vectors'
             call gethelptext(helpinsub,helptopic,nbhelp)
-            call EASKABC('There are no results to visualise!',
+            call EASKMBOX('There are no results to visualise!',
      &        'Options:','Return to main menu',
-     &        'Provide vectors file','Provide library file',IW,nbhelp)
+     &        'Provide vectors file','Provide library file',
+     &        ' ',' ',' ',' ',' ',IW,nbhelp)
             if (IW.eq.1) then
               goto 10
             elseif (IW.eq.2) then

@@ -88,9 +88,9 @@ C Specify the reading mode.
       IF (IEask.EQ.1) THEN
         helptopic='aco_read_aco_silent'
         call gethelptext(helpinsub,helptopic,nbhelp)
-        CALL EASKAB(' When reading in the header of ACO file, do you',
-     &  ' want it:','done silently','with reporting of contents',
-     &  IW,nbhelp)
+        CALL EASKMBOX('When reading in the header of ACO file, do you',
+     &    ' want it:','done silently','with reporting of contents',
+     &    ' ',' ',' ',' ',' ',' ',IW,nbhelp)
       ELSE
         IW = 1        
       ENDIF
@@ -289,9 +289,10 @@ C Specify the reading mode.
       IF (IEask.EQ.1) THEN
         helptopic='aco_read_furn_silent'
         call gethelptext(helpinsub,helptopic,nbhelp)
-        CALL EASKAB(' When reading in the people/furnit. block, do you',
+        CALL EASKMBOX(
+     &    'When reading in the people/furnit. block, do you',
      &    ' want it:','done silently','with reporting of contents',
-     &    IW,nbhelp)
+     &    ' ',' ',' ',' ',' ',' ',IW,nbhelp)
       ELSE
         IW = 1        
       ENDIF

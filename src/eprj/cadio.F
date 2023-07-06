@@ -143,9 +143,9 @@ C << Later code might overwrite this and thus the user choice is lost. >>
           call edisp(iuout,' ')
           write(outs,'(A,A)') 'The current path is: ',path
           call edisp(iuout,outs)
-          CALL EASKAB('The model is in a remote folder.',
-     &    'Export to:','current folder','home folder',
-     &    IW,nbhelp)
+          CALL EASKMBOX('The model is in a remote folder.',
+     &      'Export to:','current folder','home folder',
+     &      ' ',' ',' ',' ',' ',' ',IW,nbhelp)
         endif
         if(iw.eq.1)then
           write(LFIL,'(a)') path(1:lnblnk(path))
@@ -165,7 +165,6 @@ C into account pwdinitial and pwdtocfg.
      &      pwdtocfg(1:lnblnk(pwdtocfg)),fs,
      &      cfgroot(1:lnblnk(cfgroot)),'.vew'
         endif
-        call tstamp('>','PRJ: export to viewer')
         dvfil='std.vew'  ! default file name
         doit = ' '
 
@@ -227,7 +226,6 @@ C DXF creation. Process similar to ecnv filter for VIEWER.
      &      pwdtocfg(1:lnblnk(pwdtocfg)),fs,
      &      cfgroot(1:lnblnk(cfgroot)),'.DXF'
         endif
-        call tstamp('>','PRJ: export to DXF')
         dvfil='std.DXF'  ! default file name
         doit = ' '
 
@@ -358,13 +356,11 @@ C Start e2r with current configuration file.
 
 C Save cfg file including ../rad folder and lradcf file name and start e2r.
           if(modcfg)then
-            call tstamp('>','PRJ: save configuration (with rcf file)')
             CALL EMKCFG('-',IER)
           endif
 
 C Set browsing to no.
           brw = ' -b no '
-          call tstamp('>','PRJ: export to RADIANCE')
           doit = ' '
           call terminalmode(childterminal,tmode)
           if(unixok)then
@@ -468,7 +464,6 @@ C Export to THINGS (MicroGDS THF) file. Treat obstructions as clusters.
      &      pwdtocfg(1:lnblnk(pwdtocfg)),fs,
      &      cfgroot(1:lnblnk(cfgroot)),'.THF'
         endif
-        call tstamp('>','PRJ: export to DXF')
         dvfil='std.THF'  ! default file name
         doit = ' '
 
@@ -486,7 +481,6 @@ C If user request jump back and re-display the menu.
         if(ier.ne.0.or.lltmp(1:2).eq.'  ')then
           goto 11
         endif
-        call tstamp('>','PRJ: export to THINGS')
         doit = ' '
 
 C << Why is the addpath not used? >>
@@ -525,7 +519,6 @@ C Export to EnergyPlus IDF file (work in progress).
      &      pwdtocfg(1:lnblnk(pwdtocfg)),fs,
      &      cfgroot(1:lnblnk(cfgroot)),'.idf'
         endif
-        call tstamp('>','PRJ: export to energyplus')
         dvfil='std.idf'  ! default file name
         doit = ' '
 
@@ -545,8 +538,8 @@ C If user request jump back and re-display the menu.
 
 C Gather information about IDF file version.
         ever=7.2
-        CALL EASKATOG('EnergyPlus IDF file version',' ',
-     &    '7.2','8.0','8.5','8.8','9.0','cancel','-',IW,nbhelp)
+        CALL EASKMBOX('EnergyPlus IDF file version',' ',
+     &    '7.2','8.0','8.5','8.8','9.0','cancel','-',' ',IW,nbhelp)
         if(IW.eq.1)then
           ever=7.2
         elseif(IW.eq.2)then
@@ -584,7 +577,6 @@ C Export to VRML (2.0) file.
      &      pwdtocfg(1:lnblnk(pwdtocfg)),fs,
      &      cfgroot(1:lnblnk(cfgroot)),'.vrml'
         endif
-        call tstamp('>','PRJ: export to VRML')
         dvfil='std.vrml'  ! default file name
         doit = ' '
 
@@ -643,7 +635,6 @@ C Export to ESP-r meta file.
      &      cfgroot(1:lnblnk(cfgroot)),'.mesp'
         endif
 
-        call tstamp('>','PRJ: export to ESP-r meta')
         dvfil='std.mesp'  ! default file name
         doit = ' '
 
@@ -677,7 +668,6 @@ C Export to acrobat VEF file.
      &      pwdtocfg(1:lnblnk(pwdtocfg)),fs,
      &      cfgroot(1:lnblnk(cfgroot)),'.vef'
         endif
-        call tstamp('>','PRJ: export to VEF')
         dvfil='std.vef'  ! default file name
         doit = ' '
 
@@ -696,14 +686,14 @@ C On user request, jump back and re-display the menu.
         endif
 
         ioout=2
-        CALL EASKABC('Specify GEN bodies or separate polygons with',
+        CALL EASKMBOX('Specify GEN bodies or separate polygons with',
      &    'glazing clear:','GEN bodies','with transparent windows',
-     &    'cancel',IRT,nbhelp)
+     &    'cancel',' ',' ',' ',' ',' ',IRT,nbhelp)
         if(IRT.eq.3)then
           continue
         else
-          CALL EASKABC(' ','Colour options:','grey zones',
-     &                          'coloured zones','cancel',IRT2,nbhelp)
+          CALL EASKMBOX(' ','Colour options:','grey zones',
+     &      'coloured zones','cancel',' ',' ',' ',' ',' ',IRT2,nbhelp)
           if (IRT2.eq.3) then
             continue
           else
@@ -783,8 +773,10 @@ C Logic exporting ESP-r data model to wavefront obj and mtl files.
 #include "geometry.h"
 #include "esprdbfile.h"
 #include "material.h"
+#include "prj3dv.h"
 #include "help.h"
 
+      common/SPAD/MMOD,LIMIT,LIMTTY
       common/OUTIN/IUOUT,IUIN,IEOUT
       common/FILEP/IFIL
       integer ncomp,ncon
@@ -862,7 +854,6 @@ C Assume geometry or obstructions on IFIL+8
      &    cfgroot(1:lnblnk(cfgroot)),'.mtl'
       endif
 
-      call tstamp('>','PRJ: export to Wavefront')
       dvfil='std.obj'  ! default file name
 
 C L144 is the suggested name and lltmp is the file name returned
@@ -983,6 +974,21 @@ C Depending on version of geometry file scan it.
           continue   ! obs within geo file
         endif
       endif
+      if(MMOD.eq.8)then
+
+C General image option flags for use with cadjview.
+        ITDSP=1; ITBND=1; ITEPT=0
+        ITZNM=0; ITSNM=0; ITVNO=1
+        ITORG=1; ITSNR=1; ITGRD=1
+        GRDIS=0.0
+        ITRC=0
+        nzg=1
+        nznog(1)=newfoc
+        izgfoc = newfoc
+        if(MMOD.eq.8)CALL redraw(IER)
+        MODIFYVIEW=.TRUE.
+        MODBND=.TRUE.
+      endif
 
 C Loop through each surface and if a single layer or the first layer 
 C call surftoobj. If subsequent multiple layers call polytoobj. MLC
@@ -998,6 +1004,19 @@ C layers are from outside to inside so determine offsets in that order.
 C Deal with MLC or layer thickness.
         isel=smlcindex(newfoc,is)
         if(isel.gt.0)then
+
+C Highlight the current surface.
+          if(MMOD.eq.8)then
+            CALL INLNST(1)
+            LINSTY(IC)=2
+          endif
+          nzg=1
+          nznog(1)=newfoc
+          izgfoc = newfoc
+          if(MMOD.eq.8)CALL CADJVIEW(IER)
+          MODIFYVIEW=.TRUE.  ! Reset so next surface is highlighted.
+          MODBND=.TRUE.
+          call pausems(400)
 
 C Fill array of offset distance from the inside face original polygon
 C to the start of each layer. As MLC layers are defined from outside
@@ -1074,20 +1093,25 @@ C Also Check orientation if treating walls differently from floors/ceilings.
             itrc=0
             if(objinclout)then   ! User wants to confirm each.
               if(SVFC(newfoc,is)(1:4).eq.'VERT')then
-                write(outs,'(2a)') 'Alignment options for partition',
-     &          zsn(1:lnblnk(zsn))
+                write(outs,'(4a)') 'Alignment options for partition ',
+     &          zsn(1:lnblnk(zsn)),' composed of ',
+     &          tmlcname(1:lnblnk(tmlcname))
               elseif(SVFC(newfoc,is)(1:4).eq.'CEIL')then
-                write(outs,'(2a)') 'Alignment options for ceiling',
-     &          zsn(1:lnblnk(zsn))
+                write(outs,'(4a)') 'Alignment options for ceiling ',
+     &          zsn(1:lnblnk(zsn)),' composed of ',
+     &          tmlcname(1:lnblnk(tmlcname))
               elseif(SVFC(newfoc,is)(1:4).EQ.'FLOR')THEN
-                write(outs,'(2a)') 'Alignment options for floor',
-     &          zsn(1:lnblnk(zsn))
+                write(outs,'(4a)') 'Alignment options for floor ',
+     &          zsn(1:lnblnk(zsn)),' composed of ',
+     &          tmlcname(1:lnblnk(tmlcname))
               else
-                write(outs,'(2a)') 'Alignment options for ',
-     &          zsn(1:lnblnk(zsn))
+                write(outs,'(4a)') 'Alignment options for ',
+     &          zsn(1:lnblnk(zsn)),' composed of ',
+     &          tmlcname(1:lnblnk(tmlcname))
               endif
-              CALL EASKABC(outs,':','inside face',
-     &          'centre line','outside face',ico,nbhelp)
+              CALL EASKMBOX(outs,':','inside face',
+     &          'centre line','outside face',
+     &          'do not include',' ',' ',' ',' ',ico,nbhelp)
             else
               write(outs,'(2a)') 'Alignment options for ',
      &          zsn(1:lnblnk(zsn))
@@ -1095,22 +1119,25 @@ C Also Check orientation if treating walls differently from floors/ceilings.
                 if(objuseclp)then
                  ico=0  ! its coplaner so do that
                 else
-                  CALL EASKABC(outs,':','inside face',
-     &              'centre line','outside face',ico,nbhelp)
+                  CALL EASKMBOX(outs,':','inside face',
+     &              'centre line','outside face',
+     &              ' ',' ',' ',' ',' ',ico,nbhelp)
                 endif
               elseif(SVFC(newfoc,is)(1:4).eq.'CEIL')then
                 if(objuseclc)then
                  ico=0  ! its coplaner so do that
                 else
-                  CALL EASKABC(outs,':','inside face',
-     &              'centre line','outside face',ico,nbhelp)
+                  CALL EASKMBOX(outs,':','inside face',
+     &              'centre line','outside face',
+     &              ' ',' ',' ',' ',' ',ico,nbhelp)
                 endif
               elseif(SVFC(newfoc,is)(1:4).EQ.'FLOR')THEN
                 if(objuseclf)then
                  ico=0  ! its coplaner so do that
                 else
-                  CALL EASKABC(outs,':','inside face',
-     &              'centre line','outside face',ico,nbhelp)
+                  CALL EASKMBOX(outs,':','inside face',
+     &              'centre line','outside face',
+     &              'do not include ',' ',' ',' ',' ',ico,nbhelp)
                 endif
               else
                ico=0  ! its coplaner so do that
@@ -1154,16 +1181,20 @@ C Also Check orientation if treating walls differently from floors/ceilings.
      &          ' b ico vdis',ico,vdis
               CALL TRANSUR(ITRC,ITRU,nboredge,XX,YY,ZZ,vdis,
      &          XOr,YOr,ZOr,zsn)
+            elseif(ico.eq.4)then
+              cycle   ! Continue to the next surface.
             endif
           else
             if(objinclout)then
               write(outs,'(2a)') 'Alignment options for ',
      &          zsn(1:lnblnk(zsn))
-              CALL EASKABC(outs,':','inside face',
-     &          'centre line','outside face',ico,nbhelp)
+              CALL EASKMBOX(outs,':','inside face',
+     &          'centre line','outside face',
+     &          'do not include',' ',' ',' ',' ',ico,nbhelp)
             else
               ico=0  ! no adjustment
             endif
+            if(ico.eq.4) cycle              ! skip this surface
             nboredge=isznver(newfoc,is)
             do k = 1,nboredge
               jj=iszjvn(newfoc,is,k)        ! cast back to the vertex index
@@ -1222,11 +1253,13 @@ C prepend an offset related to the MLC thickness.
           if(objinclout)then
             write(outs,'(2a)') 'Alignment options for ',
      &        zsn(1:lnblnk(zsn))
-            CALL EASKABC(outs,':','inside face',
-     &        'centre line','outside face',ico,nbhelp)
+            CALL EASKMBOX(outs,':','inside face',
+     &        'centre line','outside face',
+     &        'do not include',' ',' ',' ',' ',ico,nbhelp)
           else
             ico=0  ! no adjustment
           endif
+          if(ico.eq.4) cycle              ! skip this surface
           coplaner=.false.
           nboredge=isznver(newfoc,is)
           do k = 1,nboredge
@@ -1711,9 +1744,10 @@ C Convert a CAD tool output to an ESP-r model.
       INTEGER :: ifil
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
       INTEGER :: iuout,iuin,ieout
-      common/warncounter/iecount
-      character iefile*72
-      common/logs/iefile
+      logical ieopened     ! Has session file been started.
+      integer iecount      ! Does it hold error messages.
+      character iefile*72  ! The name of the session file.
+      common/logs/ieopened,iecount,iefile
       
       integer ncomp,ncon
       common/C1/NCOMP,NCON
@@ -1764,9 +1798,9 @@ C      CALL PHELPD('CAD warning',nbhelp,'-',0,0,IER)
 
 C Determine which format of CAD file will be scanned in.
       write(msg2,'(2a)') 'invoke ',cadexe(1:lnblnk(cadexe))
-      CALL EASKATOG(' ','Options:',
+      CALL EASKMBOX(' ','Options:',
      &  'parse DXF (V12-14)','parse gbXML',msg2,
-     &  'parse ESP-r META','cancel',' ',' ',IRT,nbhelp)
+     &  'parse ESP-r META','cancel',' ',' ',' ',IRT,nbhelp)
       if(irt.eq.1)then
         cadfmt='DXF '
       elseif(irt.eq.2)then
@@ -1803,21 +1837,17 @@ C Create one or more dummy zones for gtool to work with.
      &    'Please restart it when the CAD session is finished.','W')
         CALL EASKOK(' ',outs,OK,nbhelp)
         IF(OK)then
-          call pausems(1000)
+          call pauses(1)
           write(doit,'(2a)') cadexe(1:lnblnk(cadexe)),' & '
           call runit(doit,'-')
-          call pausems(1000)
+          call pauses(1)
           call usrmsg(
      &    'Shutting down Project Manager.','...','-')
-          call pausems(1000)
+          call pauses(1)
 
 C Clear arrays.
           CALL DeallocateAllArrays
           close(ieout)
-          if(iecount.eq.0)then     ! if there were no warnings delete
-            open(ieout,file=iefile,status='UNKNOWN')
-            call efdelet(ieout,istat)
-          endif
           CALL EPAGEND
           STOP
         endif
@@ -1885,7 +1915,6 @@ C Suggest to user to refocus prj on this specific cfg file.
 
 C If there is a currently loaded model then convert it.
       if(NCOMP.gt.0.and.cadfmt(1:3).eq.'DXF')then
-        call tstamp('>','prj: start CAD')
         doit = ' '
         CALL EASKS(LFIL,'Putting current model into DXF file named:',
      &    ' ',72,' ','dxf export file',IER,nbhelp)
@@ -1995,7 +2024,6 @@ C and change any / to \.
             longtfile=' '
             longtfile=longtfiledos
           endif
-          call tstamp('>','PRJ: import from CAD')
           if(itrc.le.1)then
             write(doit,'(4a)') 'ecnv -obs -mm -if dxf -in ',
      &        LFIL(1:lnblnk(LFIL)),' -of esp -u upgrade -out ',
@@ -2016,7 +2044,6 @@ C Re-read the upgraded configuration file. Reconstruct the path.
           LCMDFL=longtfile
           call NEWPRB(ITRC,confirm,ckpath,itisanexemplar,IER)
         elseif(cadfmt(1:5).eq.'gbXML')then
-          call tstamp('>','PRJ: parsing gbXML')
           if(itrc.le.1)then
             write(doit,'(4a)') 'ecnv -if gbxml -in ',
      &        LFIL(1:lnblnk(LFIL)),' -of esp -out ',
@@ -2028,9 +2055,9 @@ C Re-read the upgraded configuration file. Reconstruct the path.
           endif
           write(6,*) doit
 C          call usrmsg('doing conversion via',doit,'-')
-          call pausems(1000)
+          call pauses(1)
           call runit(doit,'-')
-          call pausems(1000)
+          call pauses(1)
 
 C Use call to refocus to start a new prj within the model cfg folder.
           call refocus(cfgpath,thecfgis,iret)
@@ -2058,11 +2085,10 @@ C Set up files and invoke gtool.
 
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
       INTEGER :: iuout,iuin,IEOUT
-      common/warncounter/iecount
-
-C Session log file (for errors etc.)
-      character iefile*72
-      common/logs/iefile
+      logical ieopened     ! Has session file been started.
+      integer iecount      ! Does it hold error messages.
+      character iefile*72  ! The name of the session file.
+      common/logs/ieopened,iecount,iefile
 
 C External CAD package.
       common/cad3rd/cadlbl,cadexe,cadfmt
@@ -2121,18 +2147,14 @@ C Create one or more dummy zones for gtool to work with.
      &    'W')
         CALL EASKOK(' ',outs,OK,nbhelp)
         IF(OK)then
-          call pausems(1000)
+          call pauses(1)
           write(doit,'(2a)') cadexe(1:lnblnk(cadexe)),' & '
           call runit(doit,'-')
-          call pausems(1000)
+          call pauses(1)
           call usrmsg(
      &    'Shutting down Project Manager','...','-')
-          call pausems(1000)
+          call pauses(1)
           close(ieout)
-          if(iecount.eq.0)then     ! If no warnings, delete.
-            open(ieout,file=iefile,status='UNKNOWN')
-            call efdelet(ieout,istat)
-          endif
 
 C Clear allocatable arrays.
           CALL DeallocateAllArrays
@@ -2342,7 +2364,9 @@ C User selected an exemplar category from the menu.
           goto 142
         endif
 
-C Re-open the exemplar file.
+C Re-open the exemplar file (the list of exemplar models).
+        write(outs,'(2a)') 'exemplar is ',exemfl(1:lnblnk(exemfl))
+        call edisp(iuout,outs)
         if(exemfl(1:1).eq.'/')then
           call FPOPEN(iexfil,ISTAT,1,0,exemfl)
         else
@@ -2459,9 +2483,26 @@ C Exit from detail level back to group level.
 C Open the related configuration file (if it exists), find its log file.
       CALL ERPFREE(iexfil+1,ISTAT)
       cfg=cfgitem(inl2in(ICO))
-      INQUIRE (FILE=cfg,EXIST=XST)
+      write(outs,'(2a)') 'item is ',cfg(1:lnblnk(cfg))
+      call edisp(iuout,outs)
+      call isunix(unixok)
+      if(.NOT.unixok)then   ! For W10 use FPOPEN
+        call FPOPEN(iexfil+1,ISTAT,1,0,cfg)
+        if(ISTAT.ge.0)XST=.true.
+        if(ISTAT.eq.-301)then
+          XST=.false.
+          write(outs,'(a,i5,2a)') 'fpopen stat ',ISTAT,
+     &    ' ',cfg(1:lnblnk(cfg))
+          call edisp(iuout,outs)
+        endif
+        CALL ERPFREE(iexfil+1,ISTAT)
+      else
+        INQUIRE (FILE=cfg,EXIST=XST)
+      endif
       if(XST)then
         call fdroot(cfg,cfg_path,cfg_root)
+        write(outs,'(2a)') 'path is ',cfg_path(1:lnblnk(cfg_path))
+        call edisp(iuout,outs)
         call FPOPEN(iexfil+1,ISTAT,1,0,cfg)
   242   CALL STRIPC(iexfil+1,OUTSTR,99,ND,0,'cfg scan',IER)
         if(ier.ne.0)goto 902
@@ -2471,7 +2512,6 @@ C Open the related configuration file (if it exists), find its log file.
           write(doc_file,'(a,a)')cfg_path(1:lnblnk(cfg_path)),
      &      doc(1:lnblnk(doc))
           CALL ERPFREE(iexfil+1,ISTAT)
-          call tstamp('>','PRJ: list exemplar documentation')
           call edisp(iuout,' ')
           CALL LISTAS(iexfil+1,doc_file,IER)
         elseif(OUTSTR(1:6).eq.'*notes')then  ! For configuration V4.2.
@@ -2480,7 +2520,6 @@ C Open the related configuration file (if it exists), find its log file.
           write(doc_file,'(a,a)')cfg_path(1:lnblnk(cfg_path)),
      &      doc(1:lnblnk(doc))
           CALL ERPFREE(iexfil+1,ISTAT)
-          call tstamp('>','PRJ: list exemplar documentation')
           call edisp(iuout,' ')
           CALL LISTAS(iexfil+1,doc_file,IER)
         else
@@ -2491,6 +2530,8 @@ C Attempt to access the exempler.
         continue
 
       else
+         write(outs,'(2a)') 'could not find ',cfg(1:lnblnk(cfg))
+         call edisp(iuout,outs)
          call usrmsg('This exemplar is currently off-line.',
      &     'Arrange access via your ESP-r administrator.','W')
          exemplar='UNKNOWN'
@@ -2546,28 +2587,30 @@ C of either DOS or Unix type is reached.
                 thecfgis=' '
                 ilexem = lnblnk(exemplar)  ! last character
                 ipos = ilexem
+                call edisp(iuout,'  ')
+                call edisp(iuout,'parsing:')  ! echo if gtk
+                call edisp(iuout,exemplar)
+                call pauses(1)
  344            continue
                 ipos=ipos-1
                 if(exemplar(ipos:ipos).eq.fs)then
                   write(thecfgis,'(a)') exemplar(ipos+1:ilexem)
                   write(cfgpath,'(a)') exemplar(1:ipos)
-                  if(itrc.ge.1)then
-                    call edisp(iuout,'  ')
-                    call edisp(iuout,'The model configuration file is:')
-                    call edisp(iuout,thecfgis)
-                    call edisp(iuout,'The model cfg folder is:')
-                    call edisp(iuout,cfgpath)
-                  endif
+                  call edisp(iuout,'  ')
+                  call edisp(iuout,'The model configuration file is:')
+                  call edisp(iuout,thecfgis)
+                  call edisp(iuout,'The model cfg folder is:')
+                  call edisp(iuout,cfgpath)
+                  call pauses(1)
                 elseif(exemplar(ipos:ipos).eq.'/')then
                   write(thecfgis,'(a)') exemplar(ipos+1:ilexem)
                   write(cfgpath,'(a)') exemplar(1:ipos)
-                  if(itrc.ge.1)then
-                    call edisp(iuout,'  ')
-                    call edisp(iuout,'The model configuration file is:')
-                    call edisp(iuout,thecfgis)
-                    call edisp(iuout,'The model cfg folder is:')
-                    call edisp(iuout,cfgpath)
-                  endif
+                  call edisp(iuout,'  ')
+                  call edisp(iuout,'The model configuration file is:')
+                  call edisp(iuout,thecfgis)
+                  call edisp(iuout,'The model cfg folder is:')
+                  call edisp(iuout,cfgpath)
+                  call pauses(1)
                 else
                   if(ipos.eq.1)then
                     call edisp(iuout,
@@ -2582,9 +2625,15 @@ C Check to see if the configuration file exists. If it does not then
 C warn the user that the model is off-line and return
 C to the list of exemplars.
               CALL ERPFREE(iexfil+1,ISTAT)
-              INQUIRE (FILE=exemplar,EXIST=XST)
+              call FPOPEN(iexfil+1,ISTAT,1,0,exemplar)
+              if(ISTAT.ge.0)XST=.true.
+              if(ISTAT.eq.-301)then
+                XST=.false.
+                write(outs,'(a,i5,2a)') 'fpopen stat b ',ISTAT,
+     &          ' ',exemplar(1:lnblnk(exemplar))
+                call edisp(iuout,outs)
+              endif
               if(.NOT.XST)then
-                call tstamp('>','prj: found off-line exemplar')
                 call usrmsg('The selected exemplar is off-line.',
      &             'Arrange access via your ESP-r administrator.','W')
                 exemplar='UNKNOWN'
@@ -2611,14 +2660,29 @@ C If a log file mentioned in exemplars file show it.
 
 C Reached the end of the item, check if it is to be chosen.
 C If there are zones existing, remove them from memory.
-              CALL EASKAB(exdescr,'Options:',
-     &          'proceed','cancel',IW,0)
+              helptopic='exemplar_review'
+              call gethelptext(helpinsub,helptopic,nbhelp)
+              CALL EASKMBOX(exdescr,'Options:',
+     &          'proceed','cancel',' ',' ',' ',' ',' ',' ',IW,0)
               if(IW.eq.1)then
+                if(itrc.gt.0)then
+                  call edisp(iuout,'upath is:')
+                  call edisp(iuout,upath)
+                endif
                 if(upath.ne.' ')then
 
 C Derive the local configuration name. cfg_root is the last
 C word in the path to the exemplar root folder.
                   call fdroot(rootp,cfg_path,cfg_root)
+                  if(itrc.gt.0)then
+                    call edisp(iuout,'rootp is:')
+                    call edisp(iuout,rootp)
+                    call edisp(iuout,'cfg folder is:')
+                    call edisp(iuout,cfg_path)
+                    call edisp(iuout,'cfg root is:')
+                    call edisp(iuout,cfg_root)
+                  endif
+                  call pauses(1)
                   lex=lnblnk(exemplar)
                   lcfgr=lnblnk(cfg_root)
 
@@ -2652,8 +2716,10 @@ C If prj was started in a model folder prepend to path.
                     endif
                     write(dguess,'(3a)') upath(1:lnblnk(upath)),fs,
      &                cfg_root(1:lcfgr)
+                    helptopic='exemplar_copy_to'
+                    call gethelptext(helpinsub,helptopic,nbhelp)
                     CALL EASKXORGTKF(lguess,' ','Copy model to:',               
-     &                dguess,lltmp,'models folder',IER,0)
+     &                dguess,lltmp,'models folder',IER,nbhelp)
 
                     write(doit,'(2a)') 'mkdir ',lltmp(1:lnblnk(lltmp))
                     call runit(doit,'-')
@@ -2688,18 +2754,35 @@ C this into the suggested path.
 C For an xcopy command we need the destination to also include the
 C model folder so use fdroot to extract this from rootp.
                     call fdroot(rootpdos,rootpath,modelroot)
-
+                    if(itrc.gt.0)then
+                      call edisp(iuout,'rootpdos is:')
+                      call edisp(iuout,rootpdos)
+                      call edisp(iuout,'rootpath is:')
+                      call edisp(iuout,rootpath)
+                      call edisp(iuout,'modelroot is:')
+                      call edisp(iuout,modelroot)
+                    endif
+                    call pauses(1)
+                    helptopic='exemplar_copy_to'
+                    call gethelptext(helpinsub,helptopic,nbhelp)
+                    CALL EASKMBOX('Destination','Options:',
+     &                'proceed','cancel',
+     &                ' ',' ',' ',' ',' ',' ',IW,nbhelp)
+ 
 C Offer user choice of home folder plus the exemplar root name. In GTK
 C there is a file browser returning folder name via lltmp.
+                    lcfgr=lnblnk(modelroot)
                     if(pwdinitial(lnpwdi-5:lnpwdi).eq.'Models')then
                       write(lguess,'(3a)') pwdinitial(1:lnpwdi),fs,
-     &                  cfg_root(1:lcfgr)
+     &                  modelroot(1:lcfgr)
                     else
                       write(lguess,'(3a)') upath(1:lnblnk(upath)),fs,
-     &                  cfg_root(1:lcfgr)
+     &                  modelroot(1:lcfgr)
                     endif
                     write(dguess,'(3a)') upath(1:lnblnk(upath)),fs,
-     &                cfg_root(1:lcfgr)
+     &                modelroot(1:lcfgr)
+                    helptopic='exemplar_copy_to'
+                    call gethelptext(helpinsub,helptopic,nbhelp)
                     CALL EASKXORGTKF(lguess,' ','Copy model to:',
      &                dguess,lltmp,'models folder',IER,0)
 
@@ -2717,6 +2800,12 @@ C There are blanks in destination strings.
 C There are no blanks in destination string.
                       write(doit,'(2a)') 'mkdir ',upathdos(1:lnup)
                     endif
+                    call edisp(iuout,doit)
+                    helptopic='exemplar_copy_to'
+                    call gethelptext(helpinsub,helptopic,nbhelp)
+                    CALL EASKMBOX('Destination folder creation',
+     &                'Options:','proceed','cancel',
+     &                ' ',' ',' ',' ',' ',' ',IW,0)
                     call runit(doit,'-')
 
                     if(lnblankrp.gt.1.and.lnblankup.gt.1)then
@@ -2747,16 +2836,25 @@ C There are no blanks in either source or destination strings.
                   endif  ! of non-unix
 
 C If trace is verbose echo the command.
-C                  if(itrc.ge.0)then
-C                    call edisp(iuout,
-C     &                'Copying exemplar to destination folder via:')
-C                    call edisp248(iuout,doit,100)
-C                    call pausems(5000)
-C                  endif
+                  if(itrc.gt.0)then
+                    call edisp(iuout,
+     &              'Copying exemplar to destination folder via:')
+                    call edisp248(iuout,doit,100)
+                  endif
+                  call pauses(4)
+                  helptopic='exemplar_copy_to'
+                  call gethelptext(helpinsub,helptopic,nbhelp)
+                  CALL EASKMBOX('Copy the model folders and files',
+     &              'Options:','proceed','edit path',
+     &              ' ',' ',' ',' ',' ',' ',IW,0)
+                  if(IW.eq.2)then
+                    CALL EASKS(doit,'Command',
+     &               '  ',130,' ','Xcopy cmd',IER,nbhelp)
+                  endif
                   call runit(doit,'-')
                   if(unixok)then
 
-C If Unix-like then append tail of exemplar string (cfgcfg) to the users selected
+C If Unix-like append tail of exemplar string (cfgcfg) to the users selected
 C path to get the new exemplar name.
                     write(exemplar,'(2a)') lltmp(1:lnblnk(lltmp)),
      &                cfgcfg(1:lnblnk(cfgcfg))
@@ -2768,10 +2866,13 @@ C up the exemplar name (this assumes a standard layout of model).
      &                fs,'cfg',fs,thecfgis(1:lnblnk(thecfgis))
                     write(cfgpath,'(3a)')upathdos(1:lnblnk(upathdos)),
      &                fs,'cfg'
+                    call edisp(iuout,'after copy is:')
+                    call edisp(iuout,exemplar)
+                    call edisp(iuout,'cfgpath is:')
+                    call edisp(iuout,cfgpath)
+                    call pauses(1)
                   endif
 
-                  call tstamp('>','prj: owning exemplar')
-                  call tstamp('>',exemplar)
                   useraction='ownit   '
                 endif
 

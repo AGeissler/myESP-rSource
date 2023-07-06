@@ -432,8 +432,9 @@ C Help text for this menu.
       IF(INO.EQ.1)THEN
         helptopic='mould_results_file_read'
         call gethelptext(helpinsub,helptopic,nbhelp)
-        call easkab('Read from results file or user input'
-     &,' ','Result file','User',IW,nbhelp)
+        call easkmbox('Read from results file or user input',
+     &    ' ','Result file','User',
+     &    ' ',' ',' ',' ',' ',' ',IW,nbhelp)
        if(IW.eq.1) then
          call vread
          if(imstat.gt.0) then

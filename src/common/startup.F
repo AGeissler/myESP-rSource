@@ -173,6 +173,7 @@ C into binary, and set default terminal type as necessary
             close(ieout)
             stop
           elseif(argument(1:8) .eq. '-version' ) then
+
 C Display version information and then quit
             CALL ESPrVersion("summary",cAppName,IUOUT)
             close(ieout)
@@ -182,6 +183,7 @@ C Display detailed build information and then quit
             CALL ESPrVersion("details",cAppName,IUOUT)
             close(ieout)
             stop
+
 C Enable h3k-specific customizations that may disrupt general esp-r functionality
 C (disabled by default!)            
           elseif(argument(1:4).eq.'-h3k') then 
@@ -1057,6 +1059,11 @@ C Use espriou.h for climatelist file name and defdbfl.
 
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
 
+      logical ieopened     ! Has session file been started/requested.
+      integer iecount      ! Does it hold error messages.
+      character iefile*72  ! The name of the session file.
+      common/logs/ieopened,iecount,iefile
+
 C External text editor.
       common/texted/tedlbl,teditor
 
@@ -1065,12 +1072,6 @@ C External document previewer.
 
 C External figure generator.
       common/figtool/figlbl,figexe
-
-C External graphing tool.
-      common/graphtool/grflbl,grfexe
-
-C External folder browser.
-      common/folderbr/foldlbl,foldexe
 
 C A set of possible image formats which can be accepted within
 C a model configuration file. These definitions are held in the
@@ -1090,8 +1091,8 @@ C Report generator: label and executable.
       common/rep3rd/replbl,repexe
 
 C Save journal. journoo = ON or OFF
-      common/journopt/journio,iuj,journcmd,jfile
-      character journcmd*20,jfile*72
+C      common/journopt/journio,iuj,journcmd,jfile
+C      character journcmd*20,jfile*72
 
 C Graphic capture, window dump & text print: label, command.
       common/gprint/gprlbl,gprcmd
@@ -1115,8 +1116,6 @@ C Where validation tests are kept.
       character tedlbl*20,teditor*20
       character tprevlbl*20,tpreview*48
       character figlbl*20,figexe*48
-      character grflbl*20,grfexe*48
-      character foldlbl*20,foldexe*48
 
 C Altdot is an alternative location for the esprc file in
 C the installation folder.
@@ -1131,18 +1130,12 @@ C temporary files in the users home folder.
       tprevlbl='document previewer'
       figlbl='diagram editor'
       figexe='xfig'
-      grflbl='graphing tool'
-      grfexe='xvgr'
-      foldlbl='folder browser'
-      foldexe='xfs '
       cadlbl='CAD package'
       cadexe='gtool'
       cadfmt='UNKN'
       replbl='No report generator'
       repexe='UNKNOWN'
       gprcmd='UNKNOWN'
-      journcmd=' '
-      jfile=' '
 
 C Assume two basic image types and that the application window dump
 C will use xwud.
@@ -1150,13 +1143,13 @@ C will use xwud.
       fmttag(1)='GIF'
       fmtexe(1)='display '
       gxwdlbl='Appl window dump'
+      ieopened=.false.  ! Session log preference OFF
 
 C Set defaults and exemplars depending on whether Unix or NT.
       call isunix(unixok)
       ln=lnblnk(instpath)
       if(unixok)then
-        write(gxwdcmd,'(3a)')'xwud -out ',upath(1:lnblnk(upath)),
-     &  '/gxwd.xwd'
+        write(gxwdcmd,'(a)')'import -window root '
         tprlbl='Text dump'
         write(tprcmd,'(a,a)') upath(1:lnblnk(upath)),'/tx_dump'
         exemlbl='Standard exemplars'
@@ -1275,13 +1268,15 @@ C Caputre text buffer to a file, capextf is in wwlib.c
         write(outs,'(a,a,2x,a,2x,a)')'Local CAD: ',cadlbl,cadexe,cadfmt
         if(itrc.gt.1)call edisp(iuout,outs)
       elseif(WORD(1:8).eq.'*journal')then
+        continue
+      elseif(WORD(1:8).eq.'*session'.or.WORD(1:8).eq.'*Session')then
 
-C Turn journaling on/off.
-        CALL EGETW(OUTSTR,K,journcmd,'W','on/off',IFLAG)
-        if(journcmd(1:2).eq.'ON'.or.journcmd(1:2).eq.'on')then
-          journio=1
+C Turn session log preference on/off.
+        CALL EGETW(OUTSTR,K,word,'W','session on/off',IFLAG)
+        if(word(1:2).eq.'ON'.or.word(1:2).eq.'on')then
+          ieopened=.true.
         else
-          journio=0
+          ieopened=.false.
         endif
       elseif(WORD(1:14).eq.'*image_display')then
 
@@ -1308,15 +1303,9 @@ C Add to the initial assumptions about display software.
         write(outs,'(4a)')'Preview: ',figlbl,' via ',figexe
         if(itrc.gt.1)call edisp(iuout,outs)
       elseif(WORD(1:9).eq.'*graphing')then
-        CALL EGETP(OUTSTR,K,grflbl,'W','graphing tool lbl',IER)
-        CALL EGETP(OUTSTR,K,grfexe,'W','graphing tool exe',IER)
-        write(outs,'(4a)')'Graphing: ',grflbl,' via ',grfexe
-        if(itrc.gt.1)call edisp(iuout,outs)
+        continue
       elseif(WORD(1:9).eq.'*folderbr')then
-        CALL EGETP(OUTSTR,K,foldlbl,'W','folder br tool lbl',IER)
-        CALL EGETRM(OUTSTR,K,foldexe,'W','folder tool exe',IER)
-        write(outs,'(4a)')'Folder browsing: ',foldlbl,' via ',foldexe
-        if(itrc.gt.1)call edisp(iuout,outs)
+        continue
       elseif(WORD(1:10).eq.'*exemplars')then
         CALL EGETP(OUTSTR,K,exemlbl,'W','exemplars list lbl',IER)
         CALL EGETRM(OUTSTR,K,exemfl,'W','exemplars file',IER)
@@ -1825,6 +1814,7 @@ C Help message for several command line parsers.
         call edisp(iuout,'  is high-level model creation directives')
         call edisp(iuout,'  file or gbXML file. Otherwise -file <name>')
         call edisp(iuout,'  is assumed to be a model configuration)')
+        call edisp(iuout,'  NOTE: silentread please use -mode script')
         call edisp(iuout,'       [-act transform < x y z values>] ')
         call edisp(iuout,' (where -act transform is followed by three')
         call edisp(iuout,'  values for the transform in X Y Z axis)')

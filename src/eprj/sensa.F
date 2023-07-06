@@ -88,9 +88,9 @@ C Ask for an uncertainty definition name and check to see if it exists.
       if(path.ne.'./'.and.path.ne.' ')then
         write(outs,'(A,A)') ' The current path is: ',path
         call edisp(iuout,outs)
-        CALL EASKAB(' You are working in a remote folder...',
-     &              ' place library:','using the path',
-     &              'in local folder',IW,nbhelp)
+        CALL EASKMBOX('You are working in a remote folder...',
+     &    'place library:','using the path','in local folder',
+     &    ' ',' ',' ',' ',' ',' ',IW,nbhelp)
       endif
 
 C Create a sensible default name.
@@ -702,9 +702,10 @@ C First discover if the location is spatial or temporal
 
       helptopic='uncert_location'
       call gethelptext(helpinsub,helptopic,nbhelp)
-      CALL EASKABC(' ',
+      CALL EASKMBOX(' ',
      &  'In which domain is the uncertainty location restricted: ',
-     &  'spatial','temporal (e.g. weather control)','both',IW,nbhelp)
+     &  'spatial','temporal (e.g. weather control)','both',
+     &  ' ',' ',' ',' ',' ',IW,nbhelp)
 
       if (IW.eq.1.or.IW.eq.3) then
 
@@ -713,10 +714,10 @@ C c) all surfaces facing outside d) a blind location e) other
 C Internal location => ask for zone, surface and layer.
 C If only one zone then set NZNO and NZ accordingly. 
 C Clear zone selected array first.
-        CALL EASKATOG('Spatial options:','I ',
+        CALL EASKMBOX('Spatial options:','I ',
      &    'surfaces using MLC','surfaces using material',
      &    'surfaces facing outside','blind to control','Other','  ',
-     &    '  ',IWA,nbhelp)
+     &    '  ',' ',IWA,nbhelp)
 
 C Echo if existing.
         if(NZGU(icurrent).gt.0)then
@@ -1651,10 +1652,10 @@ C        WRITE(ITEMSM(10),'(A)')'j use calibrated model'
 C        WRITE(ITEMSM(11),'(A)')'k tidy csh & csv files'
 C        WRITE(ITEMSM(12),'(A)')'l reload base case model'
 
-        CALL EASKATOG('Options',': ',     
+        CALL EASKMBOX('Options',': ',     
      &    're-generate model','do calibration',
      &    'read calibro json','rerun calibro','N/A','tidy csh&csv',
-     &    'cancel',ioption,nbhelp)
+     &    'cancel',' ',ioption,nbhelp)
         if(ioption.eq.1)then
           continue
         elseif(ioption.eq.2)then
@@ -1881,12 +1882,13 @@ C of the file calibro_done.
   43  call edisp(iuout,
      &  'calibrate the model choose one of the following optionsd...')
 
-      CALL EASKATOG(
+      CALL EASKMBOX(
      &  'After sending the csv files to calibro you will be given',
      &  'one or more json files:','preview suggestions',
      &  'scan & act on EACH suggestion',
      &  'scan & act on ALL suggestions','delay scanning',
-     &  'cancel & reload original model','  ','  ',isauto,nbhelp)
+     &  'cancel & reload original model','  ','  ',' ',isauto,
+     &  nbhelp)
   44  if(isauto.eq.1.or.isauto.eq.2.or.isauto.eq.3)then
         if(isauto.eq.2)then
           preview=.false. ! reset if left over
@@ -1914,8 +1916,9 @@ C new prj session.
 C If we previously did a local calibro then the following logic applies.
 C Clear tfcmdlistz. If islocal is zero then ask the user.
           if(islocal.eq.0)then
-            CALL EASKAB('Previously did you run Calibro:',
-     &      '  ','locally','on server',IW,nbhelp)
+            CALL EASKMBOX('Previously did you run Calibro:',
+     &        ' ','locally','on server',
+     &        ' ',' ',' ',' ',' ',' ',IW,nbhelp)
             if(IW.eq.1) islocal=1
             if(IW.eq.2) islocal=2
           endif
@@ -2005,9 +2008,9 @@ C Print what was found within ihowmanycalibroruns
         endif
         
 C Ask for file or browse file name. Parse the file and report directives.
-        CALL EASKABC(' ','Options:',
+        CALL EASKMBOX(' ','Options:',
      &    'scan a .json file','use average from many runs',
-     &    'cancel',iaplyoption,nbhelp)
+     &    'cancel',' ',' ',' ',' ',' ',iaplyoption,nbhelp)
         if(iaplyoption.eq.1)then
           LTEMP='  '; DTEMP='  '; nbhelp=1
           sfile=' '
@@ -3142,7 +3145,6 @@ C file sblres and prepend user home folder if remote is true.
 
 C Need to invoke res in a similar way to code block starting line 1203
       call pausems(1000)
-      call tstamp('>','PRJ: beginning res')
       doit = ' '
 
 C However we got to this point, if Windows based look for spaces
@@ -3236,7 +3238,6 @@ C Return position in the loop array
      &    'About to res-scan the results file...')
         call edisp248(iuout,longtfile,100)
         call edisp(iuout,' ')
-        call tstamp('>','PRJ: beginning res')
         call pausems(1000)
         doit = ' '
 
@@ -3774,10 +3775,10 @@ C Common tasks completed
      &  'are now available. If you have a local calibrino tool or')
       call edisp(iuout,
      &  'the calibrateme.bash script you can proceed.')
-      CALL EASKABC(
+      CALL EASKMBOX(
      &  'The csv files and tar.gz file are available. Options:',
      &  ' ','invoke local calibrino','invoke remote calibro',
-     &  'cancel',islocal,nbhelp)
+     &  'cancel',' ',' ',' ',' ',' ',islocal,nbhelp)
       if(islocal.eq.1)then
 
 C Create command line for invoking calibrino with the full
@@ -4103,9 +4104,9 @@ C Remember how many calibro runs were requested.
       if(islocal.eq.1)then
 
 C Local Calibro. ASK USER WHAT TO DO.
-        CALL EASKABC(' ','Calibrino Options:',
+        CALL EASKMBOX(' ','Calibrino Options:',
      &    'run all zones together','each zone a separate run',
-     &    'cancel',ioption,nbhelp)
+     &    'cancel',' ',' ',' ',' ',' ',ioption,nbhelp)
         if(ioption.eq.1)then
           call pausems(500)
           call edisp(iuout,
@@ -4175,9 +4176,9 @@ C Create command line for invoking calibrino with the full
 C tarlist and also setup a script file in case user wants
 C to run it again. calibro is a stocastic process so run 
 C it 5-9 times.
-        CALL EASKABC(' ','Server options:',
+        CALL EASKMBOX(' ','Server options:',
      &    'run zones together','run zones separately',
-     &    'cancel',ioption,nbhelp)
+     &    'cancel',' ',' ',' ',' ',' ',ioption,nbhelp)
         tmode='text'
         if(ioption.eq.1)then
           call edisp(iuout,
@@ -5048,8 +5049,9 @@ C if user scanniong a single .json file or if using averages.
       if(silent)then
         proceed=.true.
       else
-        CALL EASKAB('Proceed with next json directive?',
-     &    '  ','no','check for more directives',IW,nbhelp)
+        CALL EASKMBOX('Proceed with next json directive?',
+     &    ' ','no','check for more directives',
+     &    ' ',' ',' ',' ',' ',' ',IW,nbhelp)
         if(IW.eq.1)then
           proceed=.false.
         elseif(IW.eq.2)then

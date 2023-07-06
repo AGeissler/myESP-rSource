@@ -32,6 +32,10 @@ C ESP-r-to-Radiance model translator and driver.
       integer igraphiclib  ! external definition
 
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
+      logical ieopened     ! Has session file been started.
+      integer iecount      ! Does it hold error messages.
+      character iefile*72  ! The name of the session file.
+      common/logs/ieopened,iecount,iefile
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
       integer itc,icout  ! trace verbosity and output channel
       common/trace/itc,icout
@@ -48,10 +52,6 @@ C Defaults.
       character*96 DFCFG,DFCTL,DEFRLB,DAPROB,DAFRES,DPNF
       COMMON/DEFLT2/DFCFG,DFCTL,DEFRLB,DAFRES,DAPROB,DPNF
 
-C Session log file (for errors etc.)
-      character iefile*72
-      common/logs/iefile
-
 C Path to model cfg file.
       common/rpath/path
 
@@ -65,9 +65,6 @@ C Path to model cfg file.
 C Radiance based commons are explained in e2r_common.h.
       character simfile*72
       COMMON/fromsim/simfile
-
-C Project journal on/off, unit number, cmd, file name.
-      common/journopt/journio,iuj,journcmd,jfile
 
       COMMON/FOPENED/CFGOK,MLDBOK,MATDBOK,CTLOK,OPTKOK,CFCDBOK
       
@@ -93,9 +90,11 @@ C Ask to overwrite flag.
       CHARACTER outs*124,ITEM*30
       CHARACTER inf*144,actf*96
       character LCMDFL*144,L144*144
-      character tfile*96
+      character thecfgis*72   ! cfg file only
+      character ltcmdfl*144
+      character tfile*96,troot*32
       character path*72
-      character journcmd*20,jfile*72,fs*1,cjfile*72
+      character fs*1
       character OUTSTR*124
       character ltmp96*96,dtmp72*72,ltmp*72,dtmp96*96
       character pf*72,gf*72,df*72,VALT*28
@@ -418,33 +417,6 @@ C Find the user's home folder then get users custom settings.
       endif
       call scesprc(esprc,IFIL+1,0,IIER)
 
-C If there is a journal active set up to add to the journal. First
-C get the root journal file (setup by prj) from the users home folder.
-C All subsequent tstamp messages will be appended to root journal.
-      if(journio.eq.1)then
-        uname=' '
-        call usrname(uname)
-        cjfile=' '
-        write(cjfile,'(5a)')upath(1:lnblnk(upath)),fs,'.',
-     &    uname(1:lnblnk(uname)),'cur_j'
-        there=.false.
-        INQUIRE(FILE=cjfile,EXIST=there)
-        if(there)then
-          close(iuj)
-          open(iuj,file=cjfile,status='UNKNOWN',err=901)
-          CALL STRIPC(iuj,OUTSTR,0,ND,1,'header',IER)
-          if(OUTSTR(1:15).eq.'Current_Journal')then
-            k=16
-            CALL EGETRM(OUTSTR,K,jfile,'W','root journ',IER)
-          endif
-          close(iuj)
-        endif
-
-        write(outs,'(a,a)')'Journal (visual analysis) for:',
-     &    uname(1:lnblnk(uname))
-        call tstamp('>',outs)
-      endif
-
 C Confirm if there an an xterm available.
       call isunix(unixok)
       if(unixok)then
@@ -454,21 +426,43 @@ C Confirm if there an an xterm available.
         found_xterm=.false.  ! not (yet) in Windows
       endif
 
-C Create and open a session log file based on user name, PID etc.
+C Create and open a session log file.
       uname=' '; tfile2=' '
       call usrname(uname)
       call esppid(ipid)
-        write(tfile2,'(a,a1,a,a,i7,a)')upath(1:lnblnk(upath)),fs,'.',
-     &    uname(1:lnblnk(uname)),ipid,'.log'
-      call st2file(tfile2,iefile)
+      call isunix(unixok)
 
 C Open the session file.
-      ieout=ifil+932          ! set to unused index 942
-      open(ieout,file=iefile,status='UNKNOWN',err=903)
+      call cmdtoroot(inf,troot)          ! Return model root name.
+
+      if(unixok)then
+        write(tfile,'(3a)') '/tmp/',troot(1:lnblnk(troot)),'.log'
+        call st2file(tfile,iefile)
+      else
+        write(tfile,'(6a)') 'C:',fs,'TEMP',fs,
+     &    troot(1:lnblnk(troot)),'.log'
+        call st2file(tfile,iefile)  ! Keep track of iefile name.
+      endif
+
+C Open the session file.
+      ieout=ifil+932              ! Set to unused index 932
+      iecount=0                   ! clear count of errors
+      if(.NOT.ieopened) goto 903  ! Set in scan of .esprc file (scesprc)
+      INQUIRE (FILE=iefile,EXIST=XST)
+      if(XST)then
+        close(ieout)
+        open(ieout,file=iefile,position='APPEND',
+     &    status='UNKNOWN',err=903)
+        call to_session('  ')
+      else
+        open(ieout,file=iefile,status='UNKNOWN',err=903)
+      endif
+      ieopened = .true.
       write(ieout,'(a)')'Session log for e2r'
       call dstamp(dstmp) ! get curret time
-      write(ieout,'(2a)')'Date,',dstmp
-      write(ieout,'(2a)')'User,',uname(1:lnblnk(uname))
+      write(ieout,'(2a)')'Date ',dstmp
+      write(ieout,'(2a)')'User ',uname(1:lnblnk(uname))
+      write(ieout,'(2a)')'Model ',ltcmdfl(1:lnblnk(ltcmdfl))
   903 continue
 
 C Scan the defaults file for default configuration.
@@ -547,8 +541,9 @@ C line as 'Coupling' or 'Day_coef' or 'Day_fact'.
         else
           helptopic='confirm_monitor_type'
           call gethelptext(helpinsub,helptopic,nbhelp)
-          CALL EASKABC('Please confirm your monitor type:',' ',
-     &      'monochrome','greyscale','colour',imon,nbhelp)
+          CALL EASKMBOX('Please confirm your monitor type:',' ',
+     &      'monochrome','greyscale','colour',
+     &      ' ',' ',' ',' ',' ',imon,nbhelp)
           mono=imon-1
         endif
       endif
@@ -749,7 +744,6 @@ C Present the main menu.
 C Assume that the rcf file (LRADCF is in model cfg folder. Just
 C exit after which prj will attempt to re-scan rcf file for
 C changes.
-        call tstamp('>','Finish visual analysis')
         close(ieout)
         CALL ERPFREE(ieout,ISTAT)
         CALL EPAGEND
@@ -825,12 +819,10 @@ C or create a new one with reasonable defaults.
      &    '(confirm name) ',96,dtmp96,'scene file name',IER,nbhelp)
         if(ltmp96.eq.'  ')goto 319 
         write(LRADCF,'(a)') ltmp96(1:72)  ! to prevent truncation
-        call tstamp('>','E2R: change scene configuration')
         call RADCFGIN(ltmp96)
 
 C Select scene from all available, or edit scene list.
       elseif(INO.EQ.5)then
-        call tstamp('>','E2R: select scene configuration')
         call whichrif('m')
 
       elseif(INO.EQ.10)then
@@ -870,8 +862,9 @@ C Other descriptions.
         INQUIRE (FILE=ltmp,EXIST=XST)
         if(XST)rmfil = ltmp
 
-        CALL EASKABC(' Miscel (furniture & fittings description:',' ',
-     &     'browse file','edit file','ignore',IW,nbhelp)
+        CALL EASKMBOX(' Miscel (furniture & fittings description:',' ',
+     &     'browse file','edit file','ignore',
+     &     ' ',' ',' ',' ',' ',IW,nbhelp)
         if(IW.eq.1)then
           call vifile(ITA1,rmfil,'b',ier)
         elseif(IW.eq.2)then
@@ -976,9 +969,9 @@ C to remove it before proceeding.
         if(XST)then
           helptopic='octree_force_update'
           call gethelptext(helpinsub,helptopic,nbhelp)
-          CALL EASKABC(' The octree exists, do you want to',' ',
+          CALL EASKMBOX(' The octree exists, do you want to',' ',
      &      'force update','let Radiance decide (default)','cancel',
-     &      IOCTFL,nbhelp)
+     &      ' ',' ',' ',' ',' ',IOCTFL,nbhelp)
           if (IOCTFL.eq.3) then
             goto 10
           endif
@@ -1008,8 +1001,9 @@ C Pull up a list of views and ask user for which one.
 
 C Generate image if external or internal or night.
           IWDF=1
-          CALL EASKAB(' ',' Image(s):','standard color',
-     &      'falsecolor with lux contours',IWDF,nbhelp)
+          CALL EASKMBOX(' ',' Image(s):','standard color',
+     &      'falsecolor with lux contours',
+     &      ' ',' ',' ',' ',' ',' ',IWDF,nbhelp)
           if(IWDF.eq.1)then
             call genimage(1)
           else
@@ -1302,8 +1296,6 @@ C If there is a ground topology read it.
           iunit=IAIRP
           call egrnin(iunit,gtgeom,itrc,itru,ier)
         endif
-        call tstamp('>','E2R: scanning model')
-        call tstamp('>',LCFGF)
         nzg=NCOMP
         IF(MMOD.EQ.8)then
           numberofzones=ncomp

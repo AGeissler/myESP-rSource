@@ -195,8 +195,9 @@ C Ask if a summary or tabular listing is required.
  2    IFMT=0
       helptopic='res_summary_stats'
       call gethelptext(helpinsub,helptopic,nbhelp)
-      CALL EASKAB(' ','Output format:',
-     &    'Summary table','Tabular list',IFMT,nbhelp)
+      CALL EASKMBOX(' ','Output format:',
+     &  'Summary table','Tabular list',
+     &  ' ',' ',' ',' ',' ',' ',IFMT,nbhelp)
       if(IFMT.eq.0) goto 2
 
 C Copy current sub-set of sets into IGETNO array.
@@ -258,8 +259,8 @@ C IHRD - number of days since start of plotting period in hours.
 C TIME - time in hours since start of first day plotted.
 C ATIME - actual time in the day for timestep J.
             IHRD=(IDAY-IODS)*24
-            call DATIME(J,ATIME)
-            TIME=float(IHRD)+ATIME
+            call DDTIME(J,ATIME)
+            TIME=real(dble(IHRD)+ATIME)
 
 C Within requested output period.
             IF(TIME.LT.(TSTART-1.0).or.TIME.GT.TFINSH)goto 421
@@ -842,6 +843,7 @@ C if act = 's' or plots graphs if act = 'g'.
       character outs*124
       character prompt*124
       character t10*10  ! for graph line labels
+      double precision atime
 
       helpinsub='mosensa'  ! set for subroutine
 
@@ -888,8 +890,9 @@ C Ask if a summary or tabular listing is required.
       if(act.eq.'g')then
         IFMT=3
       else
-        CALL EASKAB('Output format:',' ','Summary table',
-     &    'Tabular list',IFMT,nbhelp)
+        CALL EASKMBOX('Output format:',' ','Summary table',
+     &    'Tabular list',' ',' ',' ',' ',' ',' ',
+     &    IFMT,nbhelp)
         if(IFMT.eq.0) goto 2
       endif
       if (NS.eq.0) goto 1
@@ -999,8 +1002,8 @@ C Compute current time.
 C IHRD - number of days since start of plotting period in hours.
 C TIME - time in hours since start of first day plotted.
           IHRD=(IDAY-IODS)*24
-          call DATIME(J,ATIME)
-          TIME=float(IHRD)+ATIME
+          call DDTIME(J,ATIME)
+          TIME=real(dble(IHRD)+ATIME)
 
 C Within requested output period.
           IF(TIME.LT.(TSTART-1.0).or.TIME.GT.TFINSH)goto 421
@@ -1128,8 +1131,8 @@ C Compute current time.
 C IHRD - number of days since start of plotting period in hours.
 C TIME - time in hours since start of first day plotted.
           IHRD=(IDAY-IODS)*24
-          call DATIME(J,ATIME)
-          TIME=float(IHRD)+ATIME
+          call DDTIME(J,ATIME)
+          TIME=real(dble(IHRD)+ATIME)
 
 C Within requested output period.
           IF(TIME.LT.(TSTART-1.0).or.TIME.GT.TFINSH)goto 4211
@@ -1459,6 +1462,7 @@ C SAPARSEN calculates individual parameter uncertainties.
       dimension IUNC(MNFA), IPT(MNRS,MNFA)
       
       character outs*124,RSNAME*40
+      double precision atime
 
       helpinsub='mosensa'  ! set for subroutine
       
@@ -1475,8 +1479,8 @@ C Set output unit number (assume default initially).
 C Ask if data should be integrated or averaged.
       helptopic='res_sensitivity_aver'
       call gethelptext(helpinsub,helptopic,nbhelp)
-      call EASKAB('Should data be:',' ','integrated','averaged',
-     &            INTAVE,nbhelp)
+      call EASKMBOX('Should data be:',' ','integrated','averaged',
+     &  ' ',' ',' ',' ',' ',' ',INTAVE,nbhelp)
 
 C Ask for set selection if DSA or MCA.
       if (IMET.eq.1.or.IMET.eq.3) then
@@ -1491,8 +1495,9 @@ C Ask for set selection if DSA or MCA.
  3      continue
         ISETON(1)=0
         NFA=nint(log10(real(NSIM-1))/log10(real(2)))
-        call EASKABCD('Effect:',' ','average','main',
-     &    '2-way interactions','3-way interactions',IEFF,nbhelp)
+        call EASKMBOX('Effect:',' ','average','main',
+     &    '2-way interactions','3-way interactions',
+     &    ' ',' ',' ',' ',IEFF,nbhelp)
         IEFF=IEFF-1
         NLOOP=FACTORIAL(NFA)/(FACTORIAL(IEFF)*FACTORIAL(NFA-IEFF))
         if (IEFF.gt.1) call INTERACT(NFA,IEFF,NLOOP,IPT)
@@ -1554,8 +1559,8 @@ C Compute current time.
 C IHRD - number of days since start of plotting period in hours.
 C TIME - time in hours since start of first day plotted.
             IHRD=(IDAY-IODS)*24
-            call DATIME(J,ATIME)
-            TIME=float(IHRD)+ATIME
+            call DDTIME(J,ATIME)
+            TIME=real(dble(IHRD)+ATIME)
 
 C Within requested output period.
             IF(TIME.LT.(TSTART-1.0).or.TIME.GT.TFINSH)goto 421

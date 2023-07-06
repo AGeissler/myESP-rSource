@@ -43,7 +43,7 @@ C IGETNO contains all the information needed for specifying which data to recove
 C IGETNO(*,1): The IGET number - metric identifier
 C IGETNO(*,2): The chosen zone
 C IGETNO(*,3): Variable - Surface number, casual gain type.
-C IGETNO(*,4): Generally node number
+C IGETNO(*,4): Node number or part of surface energy balance.
 C IGETNO(*,5): Result set number - default=1 ie the currently chosen set
 C IGETNO(*,6): Line type (see below).
 C IGETNO(*,7): Symbol index (see below).
@@ -625,8 +625,9 @@ C IGET = 62 and MENUTYPE 12: Surface energy balance flux paths.
 C IGET = 64 Monthly gains & losses. Use IGETNO(NGET,4) = 1 as 100Wh & 2 as kWh.
         helptopic='res_display_100wh'
         call gethelptext(helpinsub,helptopic,nbhelp)
-        CALL EASKAB(' ','When displaying monthly values round:',
-     &        'to nearest 100Wh','to nearest kWh',IR,nbhelp)
+        CALL EASKMBOX(' ','When displaying monthly values round:',
+     &    'to nearest 100Wh','to nearest kWh',
+     &    ' ',' ',' ',' ',' ',' ',IR,nbhelp)
         MTITLE='Monthly gains/losses'
         MNGET=MZS-1
         NGET=1
@@ -645,8 +646,9 @@ C IGETNO(NGET,4)=1 denote verbose and 0 to be summary.
         NGET=1
         helptopic='res_rh_for_condensation'
         call gethelptext(helpinsub,helptopic,nbhelp)
-        CALL EASKAB(' Evaluate condensation using:',
-     &    '  ','current zone RH','specified RH',IR,nbhelp)
+        CALL EASKMBOX(' Evaluate condensation using:',
+     &    '  ','current zone RH','specified RH',
+     &    ' ',' ',' ',' ',' ',' ',IR,nbhelp)
         if(IR.eq.1)then
           IGETNO(NGET,3)=0
         else
@@ -655,8 +657,9 @@ C IGETNO(NGET,4)=1 denote verbose and 0 to be summary.
      &      1,'-',100,'-',70,'Specified RH',IER,nbhelp)
           IGETNO(NGET,3)=iv
         endif
-        CALL EASKAB(' Condensation report options:',
-     &    '  ','summary','show each timestep',IR,nbhelp)
+        CALL EASKMBOX(' Condensation report options:',
+     &    '  ','summary','show each timestep',
+     &    ' ',' ',' ',' ',' ',' ',IR,nbhelp)
         if(IR.eq.1)then
           IGETNO(NGET,4)=0
         elseif(IR.eq.2)then
@@ -1519,8 +1522,8 @@ C IGET = 23  Comfort, ask which index and initialise.
           MRTLIST=.true.
           helptopic='comfort_sensor_direction'
           call gethelptext(helpinsub,helptopic,nbhelp)
-          CALL EASKABCD(' ','Sensor facing:','South',
-     &      'East','North','West',ICF,nbhelp)
+          CALL EASKMBOX(' ','Sensor facing:','South',
+     &      'East','North','West',' ',' ',' ',' ',ICF,nbhelp)
           IGETNO(NGET,4)=ICF
           if (ICF.eq.1) then
             SUFFIX=' PDwS'
@@ -3273,8 +3276,8 @@ C IGET = 27 Real power flow.
 C IGET = 28 Reactive power flow.
         helptopic='casual_electrical_select'
         call gethelptext(helpinsub,helptopic,nbhelp)
-        CALL EASKAB(' ','Power flow type:','real','reactive',jpwr,
-     &    nbhelp)
+        CALL EASKMBOX(' ','Power flow type:','real','reactive',
+     &    ' ',' ',' ',' ',' ',' ',jpwr,nbhelp)
 
 C Should set logicals to ask for cas gain type and phase - see surface 
 C and node logic below.
@@ -3318,8 +3321,9 @@ C IGET = 46 component main output.
 C IGET = 47 component secondary output.
         helptopic='embedded_renew_select'
         call gethelptext(helpinsub,helptopic,nbhelp)
-        CALL EASKAB(' ','Component performance metric:',
-     &    'heat/power output','misc. output',ispm,nbhelp)
+        CALL EASKMBOX(' ','Component performance metric:',
+     &    'heat/power output','misc. output',
+     &    ' ',' ',' ',' ',' ',' ',ispm,nbhelp)
 
 C Should set logicals to ask for cas gain type and phase - see surface 
 C and node logic below.
@@ -3401,9 +3405,9 @@ C (and surface if observed surface temp. selected).
   188   continue
         helptopic='res_measured_data_select'
         call gethelptext(helpinsub,helptopic,nbhelp)
-        CALL EASKATOG('Which observed data type',' :',
+        CALL EASKMBOX('Which observed data type',' :',
      &    'zone db T','surface T','zone RH','zone heat',
-     &    'zone cool','  ','  ',IR,nbhelp)
+     &    'zone cool','  ','  ','  ',IR,nbhelp)
         NGET=NGET+1
         if(ir.eq.1)then
           call ASKZON(IZONE,24)
@@ -3543,14 +3547,14 @@ C Data presentation format (actual or rate of change).
 
 C The following lines do not allow access to the 'integrate data'
 C functionality. Uncomment to activate this feature.
-C        CALL EASKABC(outs,'Data display options:',
+C        CALL EASKMBOX(outs,'Data display options:',
 C     &    'parameter','parameter rate of change','cancel',
-C     &    II,6)
+C     &    ' ',' ',' ',' ',' ',II,6)
 C        if(II.ne.3.and.(IROC.ne.(II-1)))then 
 C         IROC=II-1
-        CALL EASKABCD(outs,'Data display options:','integrated',
+        CALL EASKMBOX(outs,'Data display options:','integrated',
      &    'parameter','parameter rate of change','cancel',
-     &    II,nbhelp)
+     &    ' ',' ',' ',' ',II,nbhelp)
         if(II.ne.4.and.(IROC.ne.(II-2)))then 
           IROC=II-2
           call usrmsg (' ','Clearing current selections.','W')
@@ -3577,8 +3581,8 @@ C based, set iocut=-1. If always occupied, set iocut=0.
             helptopic='which_casual_gain_type'
             call gethelptext(helpinsub,helptopic,nbhelp)
  937        IOT=1
-            CALL EASKATOG(' ','Which casual gain represents occupancy:',
-     &         'always occupied',ll1,ll2,ll3,'time',' ',' ',
+            CALL EASKMBOX(' ','Which casual gain represents occupancy:',
+     &         'always occupied',ll1,ll2,ll3,'time',' ',' ',' ',
      &         IOT,nbhelp)
             if (IOT.gt.1.and.IOT.lt.5) then
               call usrmsg('  ','  ','-')
@@ -3669,8 +3673,8 @@ C Set axis limits.
  555      continue
 
 C Preference for horizontal axis.
-          CALL EASKABCD(' ','Horizontal axis division?','default',
-     &      'hours','days','weeks',horaxisdiv,nbhelp)
+          CALL EASKMBOX(' ','Horizontal axis division?','default',
+     &      'hours','days','weeks',' ',' ',' ',' ',horaxisdiv,nbhelp)
 
 C Redraw graph (if applicable).
           if (NGET.gt.0) then
@@ -3694,8 +3698,9 @@ C Toggle time format and day separators.
           endif
           helptopic='export_hash_separator'
           call gethelptext(helpinsub,helptopic,nbhelp)
-          CALL EASKAB('Include mark between days when',
-     &      'displaying or writing data?','no','yes',IDH,nbhelp)
+          CALL EASKMBOX('Include mark between days when',
+     &      'displaying or writing data?','no','yes',
+     &      ' ',' ',' ',' ',' ',' ',IDH,nbhelp)
           IDHFLG=IDH-1
         endif
 
@@ -3732,9 +3737,9 @@ C Toggle delimeter.
           helptopic='tabular_delimiter_choice'
           call gethelptext(helpinsub,helptopic,nbhelp)
           IWM=1
-          CALL EASKATOG(' ','Delimiter between data columns:',
+          CALL EASKMBOX(' ','Delimiter between data columns:',
      &      'normal spaces','single space','tab','comma','tagged',
-     &      'continue',' ',IWM,nbhelp)
+     &      'continue',' ',' ',IWM,nbhelp)
           if(iwm.eq.1)then
             delim = '-'
           elseif(iwm.eq.2)then
@@ -3758,9 +3763,9 @@ C << to modify the range in axis 2 (flux).
         call gethelptext(helpinsub,helptopic,nbhelp)
         IWM=0
         lastireportunit=ireportunit
-        CALL EASKATOG(' ','Units when reporting flux:',
+        CALL EASKMBOX(' ','Units when reporting flux:',
      &    'normal','W or Wh','kW or kWh','cancel',' ',
-     &    ' ',' ',IWM,nbhelp)
+     &    ' ',' ',' ',IWM,nbhelp)
         if(iwm.eq.1)then
           ireportunit = 0
         elseif(iwm.eq.2)then
@@ -3819,8 +3824,9 @@ C Add or clear labels within a graph.
         helptopic='res_graph_label_manage'
         call gethelptext(helpinsub,helptopic,nbhelp)
         if(ngrlbl.eq.0)then
-          CALL EASKAB(' ','Graph label options:',
-     &    'edit/add','cancel',igopt,nbhelp)
+          CALL EASKMBOX(' ','Graph label options:',
+     &      'edit/add','cancel',' ',' ',' ',' ',' ',' ',
+     &      igopt,nbhelp)
           if(igopt.eq.1)then
             igrl=0
             grlbl(1)=' '; grlbl(2)=' '; grlbl(3)=' '; grlbl(4)=' '
@@ -3830,8 +3836,9 @@ C Add or clear labels within a graph.
             goto 1
           endif
         elseif(ngrlbl.gt.0)then
-          CALL EASKABC(' ','Graph label options:',
-     &    'clear','edit/add','cancel',igopt,nbhelp)
+          CALL EASKMBOX(' ','Graph label options:',
+     &    'clear','edit/add','cancel',' ',' ',' ',' ',' ',
+     &    igopt,nbhelp)
           if(igopt.eq.1)then
             ngrlbl=0
             igrl=0
@@ -3942,8 +3949,9 @@ C Check if anchor points defined.
           if (NALOC.gt.0) then
             helptopic='options_for_surf_select'
             call gethelptext(helpinsub,helptopic,nbhelp)
-            CALL EASKAB(' ','Surface selection options:',
-     &        'one at a time','via anchor point list',IAC,nbhelp)
+            CALL EASKMBOX(' ','Surface selection options:',
+     &        'one at a time','via anchor point list',
+     &        ' ',' ',' ',' ',' ',' ',IAC,nbhelp)
           else
             IAC=1
           endif

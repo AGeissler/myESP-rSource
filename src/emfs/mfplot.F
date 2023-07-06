@@ -187,8 +187,8 @@ C Display format for date is Fri 10 Jan.
 C Get flow results output dimension and set the Y-axis label.
    40   helptopic='mfs_express_flow_results'
         call gethelptext(helpinsub,helptopic,nbhelp)
-        CALL EASKABC(' ','Flow results as:',
-     &   'kg/s','m^3/hr','AC/h',IDIM,nbhelp)
+        CALL EASKMBOX(' ','Flow results as:',
+     &   'kg/s','m^3/hr','AC/h',' ',' ',' ',' ',' ',IDIM,nbhelp)
         IF(IER.NE.0) GOTO 40
         IF(IDIM.EQ.1) LABEL1='kg/s'
         IF(IDIM.EQ.2) LABEL1='m^3/hr'
@@ -216,8 +216,9 @@ C Set number and name of node for output.
 C Set number and name of coupled node.
    25   helptopic='mfs_display_all_one'
         call gethelptext(helpinsub,helptopic,nbhelp)
-        CALL EASKAB(' ','Display flow via:',
-     &    'all associated nodes','between one node',IW,nbhelp)
+        CALL EASKMBOX(' ','Display flow via:',
+     &    'all associated nodes','between one node',
+     &    ' ',' ',' ',' ',' ',' ',IW,nbhelp)
         if(IW.eq.1)then
           NDCNUM=0
           GOTO 10

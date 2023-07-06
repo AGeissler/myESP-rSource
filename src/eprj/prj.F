@@ -52,7 +52,12 @@ C Main program for the ESP-r Project Manager.
       common/childt/childterminal
       integer iuout,iuin,ieout
       common/OUTIN/IUOUT,IUIN,IEOUT
-      common/warncounter/iecount
+
+C Attributes of the session log file.
+      logical ieopened     ! Has session file been started/requested.
+      integer iecount      ! Does it hold error messages.
+      character iefile*72  ! The name of the session file.
+      common/logs/ieopened,iecount,iefile
 
 C Markdown flag.
       logical markdown
@@ -75,15 +80,6 @@ C Markdown flag.
 
 C Significant figure reporting limit (NSIGFIG).
       common/SFIG/NSIGFIG
-
-C Journal on/off, unit number, cmd, file name.
-      integer journio,iuj       ! no-zero when file unit iuj opened
-      common/journopt/journio,iuj,journcmd,jfile
-      character journcmd*20,jfile*72
-
-C Session log file (for errors etc.).
-      character iefile*72
-      common/logs/iefile
 
 C Ground topology.
       common/GTFIL/GTGEOM
@@ -182,7 +178,7 @@ C      character outs248*248
       character ITEMS(28)*34
       character ltcmdfl*144
       character ctldoc*248,lctlf*72,ETEXT*82
-      character tfile*72,cjfile*72
+      character tfile*72
       character GTGEOM*72,lipvdatf*72,longtfile*144
       character*10 wkd1, wkd2
       character CMDCFG*72,CMDCLM*72,CMDCLMN*72,CMDNOTE*64,CMDRES*72
@@ -212,7 +208,7 @@ C Returned parameters from silentread or silentxmlread.
 
       character cVnum*38      ! returned from ESPrVersionNum
       character pagestitle*68 ! for banner title via epages call
-      character subpath*84
+      character subpath*84,troot*32
       character sfile*144
       character odir*84
       character cfgpath*144   ! full path to cfg folder for refocus
@@ -325,6 +321,7 @@ C Set folder separator (fs) to \ or / as required.
       IBDOY=1
       IEDOY=365
       cfgroot=' '
+      troot=' '
       LCTLF=' '
       LCNN=' '
       LAPROB='  '
@@ -529,55 +526,46 @@ C in the feedback area if the trace level is non-zero.
         call scesprc(esprc,IFIL+5,1,IIER)
       endif
 
-C If there is a journal active set this up (put journal file in the
-C users home folder as a 'dot' file in the form .user_name_pid_number.
-C Use st2file to remove any blanks and wild cards. Save the journal
-C file name in a scratch dot file (to be removed when prj exits).
-      if(journio.eq.1)then
-        uname=' '
-        call usrname(uname)
-        call esppid(ipid)
-        write(tfile,'(a,a1,a,a,i7)')upath(1:lnblnk(upath)),fs,'.',
-     &    uname(1:lnblnk(uname)),ipid
-        call st2file(tfile,jfile)
-
-C Open a file which holds info on the parent journal file, make
-C tmp use of iuj unit number.
-        write(cjfile,'(5a)')upath(1:lnblnk(upath)),fs,'.',
-     &    uname(1:lnblnk(uname)),'cur_j'
-        open(iuj,file=cjfile,status='UNKNOWN',err=900)
-        write(iuj,'(a,a)')'Current_Journal,',jfile(1:lnblnk(jfile))
-        call dstamp(dstmp)
-        write(iuj,'(2a)')'Date,',dstmp
-        write(iuj,'(2a)')'User,',uname(1:lnblnk(uname))
-        close(iuj)
-
-C Write header of the journal file and then close.
-        open(iuj,file=jfile,status='UNKNOWN',err=901)
-        write(iuj,'(a,a)')'Journal for:',uname(1:lnblnk(uname))
-        call dstamp(dstmp)
-        write(iuj,'(a,a)')'Date: ',dstmp
-        close(iuj)
-      endif
-      call tstamp('>','Started Project Manager')
   902 continue
 
 C Create and open a session log file based on user name, PID etc.
       uname=' '; tfile=' '
       call usrname(uname)
       call esppid(ipid)
-        write(tfile,'(a,a1,a,a,i7,a)')upath(1:lnblnk(upath)),fs,'.',
-     &    uname(1:lnblnk(uname)),ipid,'.log'
-      call st2file(tfile,iefile)
+      call isunix(unixok)
 
-C Open the session file.
-      ieout=ifil+931          ! set to unused index 942
-      iecount=0               ! clear count of errors
-      open(ieout,file=iefile,status='UNKNOWN',err=903)
+C Take command line file name as initial configuration file.
+      ltcmdfl=inf                        ! Take command line file
+      call cmdtoroot(inf,troot)          ! Return model root name.
+      if(unixok)then
+        write(tfile,'(3a)') '/tmp/',troot(1:lnblnk(troot)),'.log'
+        call st2file(tfile,iefile)
+      else
+        write(tfile,'(6a)') 'C:',fs,'TEMP',fs,
+     &    troot(1:lnblnk(troot)),'.log'
+        call st2file(tfile,iefile)  ! Keep track of iefile name.
+      endif
+
+C Open the session file if .esprc preference ON.  If it alreay exists then APPEND.
+      ieout=ifil+931              ! Set to unused index 931.
+      iecount=0                   ! Clear count of errors.
+      if(.NOT.ieopened) goto 904  ! Set in scan of .esprc file (scesprc)
+      INQUIRE (FILE=iefile,EXIST=XST)
+      if(XST)then
+        close(ieout)
+        open(ieout,file=iefile,position='APPEND',
+     &    status='UNKNOWN',err=903)
+        write(ieout,'(a)')'   '   ! Blank line to separate new entries.
+      else
+        open(ieout,file=iefile,status='UNKNOWN',err=903)
+      endif
+      ieopened = .true.
       write(ieout,'(a)')'Session log for prj'
       call dstamp(dstmp) ! get curret time
-      write(ieout,'(2a)')'Date,',dstmp
-      write(ieout,'(2a)')'User,',uname(1:lnblnk(uname))
+      write(ieout,'(2a)')'Date ',dstmp
+      write(ieout,'(2a)')'User ',uname(1:lnblnk(uname))
+      write(ieout,'(2a)')'Model ',ltcmdfl(1:lnblnk(ltcmdfl))
+      call to_session('   ')
   904 continue
 
 C Check if the utility 'curl' is available on this computer
@@ -590,7 +578,7 @@ C update document.
         if(found_curl)then
           write(doit,'(4a)') 'curl --connect-timeout 3 -f -s ',
      &      'https://www.esru.strath.ac.uk/',
-     &      'Downloads/ESP-r/update_notes.txt -o ',
+     &      'Downloads/esp-r/update_notes.txt -o ',
      &      '/tmp/update_notes.txt'
           call runit(doit,'-')
           call pausems(200)
@@ -635,6 +623,8 @@ C update document.
               close(iuj)
               CALL EFOPSEQ(iuj,theupdatefile,1,IER)
               CALL EFDELET(iuj,ISTAT)
+              outs='Upgrade prj message sent.'
+              call to_session(outs)
             endif
           endif
         else
@@ -951,8 +941,6 @@ C Assume that the file passed is not an exemplar.
             ier=0
             goto 3  ! cancel detected, redisplay menu
           endif
-          call tstamp('>','PRJ: loading supplied model')
-          call tstamp('>',LCFGF)
         else
 
 C The model file might not exist. Request the path is checked.
@@ -965,9 +953,6 @@ C Assume that the file name passed is not an exemplar.
             ier=0
             goto 3  ! cancel detected, redisplay menu
           endif
-
-          call tstamp('>','PRJ: loading supplied model')
-          call tstamp('>',LCFGF)
         endif
       else
 
@@ -1262,15 +1247,13 @@ C Present opening menu.
         if(changedit)then
           helptopic='exit_without_save'
           call gethelptext(helpinsub,helptopic,nbhelp)
-          CALL EASKABC('The active model has unsaved change.',
+          CALL EASKMBOX('The active model has unsaved change.',
      &      'Options:','exit with no save','save & exit','cancel',
-     &      IW,nbhelp)
+     &      ' ',' ',' ',' ',' ',IW,nbhelp)
           if(iw.eq.3)then
             goto 3
           elseif(iw.eq.2)then
-            call tstamp('>','prj: update configuration')
-            call tstamp('>',LCFGF)
-            CALL EMKCFG('-',IER)
+            CALL EMKCFG('s',IER)
             OK=.true.
           elseif(iw.eq.1)then
             OK=.true.
@@ -1280,14 +1263,6 @@ C Present opening menu.
           ok=.true.
         endif
         IF(.NOT.OK)GOTO 3
-        if(journio.eq.1)then
-          call tstamp('>','Finish Project Manager')
-          close(iuj)
-          write(cjfile,'(5a)')upath(1:lnblnk(upath)),fs,'.',
-     &      uname(1:lnblnk(uname)),'cur_j'
-          open(iuj,file=cjfile,status='UNKNOWN',err=899)
-          CLOSE(iuj,STATUS='DELETE')
-        endif
 
 C If there is a temporary optical file remove it.
         XST=.false.
@@ -1318,13 +1293,10 @@ C based on the current compiled-in limits.
         helptopic='prj_intro'
         call gethelptext(helpinsub,helptopic,nbhelp)
         CALL PHELPD('Introduction',nbhelp,'-',0,0,IER)
-        call tstamp('>','prj: intro help')
 
 C Manage databases.
       ELSEIF(INO.EQ.2)THEN
-        call tstamp('>','prj: db management enter')
         CALL EDDB(IER)
-        call tstamp('>','prj: db management exit')
 
 C Manage self testing - does not need to have an existing model
 C loaded.
@@ -1335,8 +1307,8 @@ C Open an exemplar or other existing model.
       ELSEIF(INO.EQ.5)THEN
         helptopic='exemplar_or_other'
         call gethelptext(helpinsub,helptopic,nbhelp)
-        CALL EASKABC(' ','Options:',
-     &    'exemplar','other','cancel',IW,nbhelp)
+        CALL EASKMBOX(' ','Options:',
+     &    'exemplar','other','cancel',' ',' ',' ',' ',' ',IW,nbhelp)
         if(iw.eq.3)then
           continue
         elseif(iw.eq.1)then
@@ -1349,7 +1321,6 @@ C rexmpl returns an ier=2 then the user asked to continue.
           if(exemfl(1:2).ne.'  '.and.exemfl(1:4).ne.'UNKN')then
             INQUIRE (FILE=exemfl,EXIST=XST)
             if(XST)then
-              call tstamp('>','prj: scanning exemplars enter')
 
 C << An idea - rexmpl could return in addition the path and the cfg file  >>
 C << name parts of exemplar (because it already knows this so it need not >>
@@ -1360,7 +1331,6 @@ C user didn't pick anything. If useraction is set to 'browse' then
 C ensure the toggle is set accordingly.
               useraction = ' '
               call rexmpl(ITRC,IUF,exemplar,useraction,ier)
-              call tstamp('>','prj: scanning exemplars return')
               if(ier.eq.2)then
                 ier=0
                 goto 3
@@ -1420,8 +1390,6 @@ C used and there is no need to check the path.
                   ier=0
                   goto 3  ! cancel detected, redisplay menu
                 endif
-
-                call tstamp('>','prj: continuing with exemplar')
               endif
             endif
           else
@@ -1449,8 +1417,9 @@ C Something was passed in via the command line so offer choice.
             call gethelptext(helpinsub,helptopic,nbhelp)
             write(outs,'(a,a)') ' The command line included: ',
      &      LCMDFL(1:lnblnk(LCMDFL))
-            CALL EASKABC(outs,' ','use it as the model',
-     &        'specify another','cancel',IW,nbhelp)
+            CALL EASKMBOX(outs,' ','use it as the model',
+     &        'specify another','cancel',' ',' ',' ',' ',' ',
+     &        IW,nbhelp)
 
 C User confirmed model so find the path and local file name. The
 C variable dirpath is where esp-r training models are located.
@@ -1499,7 +1468,6 @@ C the model should be updated.
       ELSEIF(INO.EQ.6)THEN
 
 C Start new project, begin with registration.
-        call tstamp('>','prj: beginning new model')
         root=' '
         mpath=' '
         menu=' '
@@ -1556,11 +1524,13 @@ C Import CAD file.
 C Export, if something other than registration or plant only.
       ELSEIF(INO.EQ.18)THEN
         if(INDCFG.NE.0.and.INDCFG.NE.2)then
-          call tstamp('>','prj: enter export controller')
           call exportcad(itrc,IER)
         else
           CALL USRMSG('Insufficient data to export.',' ','W')
         endif
+
+C Archive model facility.
+      ELSEIF(INO.EQ.19)THEN
 
 C Project folders and files.
       ELSEIF(INO.EQ.21)THEN
@@ -1621,8 +1591,6 @@ C Also check about connections file.
           endif
         endif
 
-        call tstamp('>','prj: update configuration')
-        call tstamp('>',LCFGF)
         if(INO.EQ.24)then
           CALL EMKCFG('v',IER)  ! Ask user about version as well.
         else
@@ -1647,9 +1615,7 @@ C and reporting/ trace level and version of the model files.
         MODSIT=.false.
         call setup(MODSIT,ITRC,IER)
         if(MODSIT)then
-C          call usrmsg('Saving new default view ...',' ','-')
-          CALL EMKCFG('-',IER)
-C          call usrmsg('Saving new default view ...done.',' ','-')
+          CALL EMKCFG('s',IER)
           MODSIT=.false.
         endif
 
@@ -1665,15 +1631,6 @@ C Menu level help.
       INO=-2
       GOTO 3
 
- 901  call edisp(iuout,' ')
-      call edisp(iuout,'Error opening Journal.')
-      goto 902
- 900  call edisp(iuout,' ')
-      call edisp(iuout,'Error opening Journal ... continuing.')
-      goto 902
- 899  call edisp(iuout,' ')
-      call edisp(iuout,'Error closing Journal ... continuing.')
-      goto 902
  903  call edisp(iuout,' ')
       call edisp(iuout,'Error opening session log ... continuing.')
       goto 904
@@ -1755,7 +1712,7 @@ C Extended simulation parameters for each set.
       character doit*248,tmode*8,ITEMS*42,key*1
       character spflnam*72,longtfile*144,longtfiledos*144
       CHARACTER*72 LAPROB,lipvdatf
-      character cr*32,spfdescr*30,ipvaction*3
+      character cr*48,spfdescr*30,ipvaction*3
 
 C dd is character array for selecting simulation parameter sets.
       character dd(MSPS+3)*55,de*30,aut*12
@@ -1779,7 +1736,7 @@ C dd is character array for selecting simulation parameter sets.
 C Set initial values of local variables.
       modparms=.false.
       lr=lnblnk(cfgroot)
-      cr=cfgroot
+      write(cr,'(a)') cfgroot(1:lnblnk(cfgroot))
       if(nsset.gt.0)isset=1
       t72='  '
       itrc=0   ! set initial value.
@@ -1937,9 +1894,7 @@ C Display the simulation period.
 
 C At each pass update for recent parameter changes.
       if(modparms)then
-        call tstamp('>','prj: update configuration for sim-setup')
-        call tstamp('>',LCFGF)
-        CALL EMKCFG('-',IER)
+        CALL EMKCFG('s',IER)
         modparms=.false.
       endif
 
@@ -1950,7 +1905,7 @@ C Help text for this menu and most of the dialogs.
       CALL EMENU('Simulation controller',ITEMS,MITEM,INO)
       if(INO.EQ.MITEM)then
         if(modparms)then
-          CALL EMKCFG('-',IER)
+          CALL EMKCFG('s',IER)
           modparms=.false.
         endif
         RETURN
@@ -1978,9 +1933,9 @@ C If uncertanties included in model, tell user to use silent mode.
         helptopic='prj_simulation_menu'
         call gethelptext(helpinsub,helptopic,nbhelp)
         if(nsset.gt.0)then
-          CALL EASKABC(' ','Options:',
+          CALL EASKMBOX(' ','Options:',
      &      'interactive','automated','cancel',
-     &      isauto,nbhelp)
+     &      ' ',' ',' ',' ',' ',isauto,nbhelp)
           if(isauto.eq.1)then
             aut=' interactive'
           elseif(isauto.eq.2)then
@@ -1990,7 +1945,6 @@ C If uncertanties included in model, tell user to use silent mode.
           endif
 
 C Setup child process for the terminal type.
-          call tstamp('>','prj: beginning simulation with param set.')
           doit = ' '
           call terminalmode(childterminal,tmode)
           call isunix(unixok)
@@ -2060,7 +2014,6 @@ C an offset from the prj start position.
 C Invoke simulator for the case without a simulation parameter set.
           if(NIACT.gt.0) call edisp(iuout,
      &      'Use run silent for uncertainty assessments.')
-          call tstamp('>','prj: beginning simulation')
           doit = ' '
           call terminalmode(childterminal,tmode)
           call isunix(unixok)
@@ -2124,12 +2077,11 @@ C Flow analysis.
       elseif(INO.EQ.MITEM-7)then
         helptopic='prj_simulation_menu'
         call gethelptext(helpinsub,helptopic,nbhelp)
-        CALL EASKABC(' ','Flow analysis via:','nodal network',
-     &    'CFD','cancel',IW,nbhelp)
+        CALL EASKMBOX(' ','Flow analysis via:','nodal network',
+     &    'CFD','cancel',' ',' ',' ',' ',' ',IW,nbhelp)
 
 C Execute mfs.
         IF(IW.EQ.1)THEN
-          call tstamp('>','prj: beginning mfs')
           doit = ' '
           call terminalmode(childterminal,tmode)
 
@@ -2155,7 +2107,6 @@ C an offset from the prj start position.
 C Execute dfs.
         ELSEIF(IW.EQ.2)THEN
           call CFDLIST(iuout,ier) ! List available domain files.
-          call tstamp('>','prj: beginning dfs')
           doit = ' '
           call terminalmode(childterminal,tmode)
 
@@ -2188,7 +2139,6 @@ C path for Unix or Windows.
           brw = ' -b no '
         endif
 
-        call tstamp('>','prj: beginning e2r')
         doit = ' '
         call terminalmode(childterminal,tmode)
         call isunix(unixok)
@@ -2300,10 +2250,21 @@ C Set up one parameter set or several sets to match IPV description.
             iscfdactivate(1)=0; isicfdys(1)=0; isicfdyf(1)=0
             scftims(1)=0.0; scftimf(1)=23.9
           else
-            call scntcnst(TDM,istd,TCM,ISTC)
+            call scntcnst(TDM,istd,TCM,ISTC,ITCN)
             nsset=1; isset=1
             if(isstup.eq.0)then
               isstup=ITCNST; isstupex(1)=ITCNST
+            elseif(isstup.ne.ITCN)then
+              write(outs,'(a,i2,a,i2,a)') 'Current warm-up days ',
+     &          isstup,' differs from the suggested value',ITCN,
+     &          ' based on thermal diffusivity.'
+              call edisp(iuout,outs)
+              CALL EASKMBOX('Set warm-up days to suggested value?',
+     &          'Options:','yes','no','cancel',
+     &          ' ',' ',' ',' ',' ',IW,nbhelp)
+              if(IW.eq.1)then
+                isstup=ITCN; isstupex(1)=ITCN
+              endif
             endif
             isbnstep=4; isbnstepex(1)=4
             ispnstep=10; ispnstepex(1)=10
@@ -2330,8 +2291,15 @@ C Initially use global values.
             isstupex(isset)=isstup; isbnstepex(isset)=isbnstep
             ispnstepex(isset)=ispnstep
             issaveex(isset)=issave; isavghex(isset)=isavgh
-            cr=cfgroot
-            lr=lnblnk(cfgroot)
+
+C Prepend ../tmp if Unix.
+            call isunix(unixok)
+            if(unixok)then
+              write(cr,'(2a)') '../tmp/',cfgroot(1:lnblnk(cfgroot))
+            else
+              write(cr,'(a)') cfgroot(1:lnblnk(cfgroot))
+            endif
+            lr=lnblnk(cr)
             if(INDCFG.ne.2)then
               WRITE(sblres(isset),'(A,A4)') cr(1:lr),'.res'
             else
@@ -2351,6 +2319,11 @@ C Initially use global values.
               WRITE(smstres(isset),'(A,A4)') cr(1:lr),'.msr'
             else
               smstres(isset)=' '
+            endif
+            if(ientxist.gt.0)then
+              WRITE(selres(isset),'(A,A4)') cr(1:lr),'.elr'
+            else
+              selres(isset)=' '
             endif
             if(CFDOK)then
               WRITE(scfdres(isset),'(A,A4)') cr(1:lr),'.dfr'
@@ -2425,6 +2398,14 @@ C If it is possible to add another set ask user & set file names.
           write(spfdescr(isset),'(a30)')de(1:30)
 
 C Use global values that the user can update later.
+C Prepend ../tmp if Unix.
+          call isunix(unixok)
+          if(unixok)then
+            write(cr,'(2a)') '../tmp/',cfgroot(1:lnblnk(cfgroot))
+          else
+            write(cr,'(a)') cfgroot(1:lnblnk(cfgroot))
+          endif
+          lr=lnblnk(cr)
           isstupex(isset)=isstup
           isbnstepex(isset)=isbnstep
           ispnstepex(isset)=ispnstep
@@ -2472,7 +2453,7 @@ C Use global values that the user can update later.
         elseif(IRT.ge.1.and.IRT.le.nsset)then
           isset=IRT  ! choose an existing set
         endif
-        call scntcnst(TDM,istd,TCM,ISTC)
+        call scntcnst(TDM,istd,TCM,ISTC,ITCN)
 
 C If there is an IPV descripton and this set is one,
 C do not allow this set name to be changed.
@@ -2490,7 +2471,7 @@ C << IPV can co-exist with lots of parameter sets.
         endif
 
       elseif(MITEM.eq.26.and.INO.EQ.3)then
-        call scntcnst(TDM,istd,TCM,ISTC)
+        call scntcnst(TDM,istd,TCM,ISTC,ITCN)
         isstupt=isstupex(isset)
         CALL EASKI(isstupt,' ',
      &     'Pre-simulation start-up period (days)?',
@@ -2502,7 +2483,7 @@ C << IPV can co-exist with lots of parameter sets.
           modparms=.true.
         endif 
 
-C The simulation timestep. Edit local variable and if not canceling
+C The simulation timestep. Edit local variable and if not cancelling
 C instantiate it and also ask about results integration if more than
 C one timestep in the hour.
       elseif(MITEM.eq.26.and.INO.EQ.4)then
@@ -2651,8 +2632,13 @@ C Ask for further attributes.
 C Set defaults, as the information will be ignored anyway.
             if(scfdres(isset)(1:2).eq.'  '.or.
      &        scfdres(isset)(1:7).eq.'UNKNOWN')then
-              cr=cfgroot
-              lr=lnblnk(cfgroot)
+              call isunix(unixok)
+              if(unixok)then
+                write(cr,'(2a)') '../tmp/',cfgroot(1:lnblnk(cfgroot))
+              else
+                write(cr,'(a)') cfgroot(1:lnblnk(cfgroot))
+              endif
+              lr=lnblnk(cr)
               WRITE(scfdres(isset),'(A,A4)') cr(1:lr),'.dfr'
             endif
             CALL EDAY(isstday(isset),isstmon(isset),isicfdys(isset))
@@ -2675,8 +2661,9 @@ C Set defaults, as the information will be ignored anyway.
           modparms=.true.
         endif
       elseif(MITEM.eq.26.and.INO.EQ.16)then
-        CALL EASKABC(' ','Options:',
-     &    'save current sets','clear sets','cancel',IDO,nbhelp)
+        CALL EASKMBOX(' ','Options:',
+     &    'save current sets','clear sets','cancel',
+     &    ' ',' ',' ',' ',' ',IDO,nbhelp)
         if(IDO.eq.3)then
           goto 3
         elseif(IDO.eq.1.or.IDO.eq.2)then
@@ -2685,9 +2672,7 @@ C Set defaults, as the information will be ignored anyway.
             modparms=.true.
           endif
           if(modparms)then
-            call tstamp('>','prj: update configuration for sim-setup')
-            call tstamp('>',LCFGF)
-            CALL EMKCFG('-',IER)
+            CALL EMKCFG('s',IER)
             modparms=.false.
           else
           endif
@@ -2720,12 +2705,13 @@ C << the longer string used when commissioning a simulation.
 C Get logical name of terminal type, expand model name
 C to include the path and create a string to drive the modules.
       common/OUTIN/IUOUT,IUIN,IEOUT
-      common/warncounter/iecount
-      common/FILEP/IFIL
 
-C Session log file (for errors etc.)
-      character iefile*72
-      common/logs/iefile
+C Attributes of the session log file.
+      logical ieopened     ! Has session file been started.
+      integer iecount      ! Does it hold error messages.
+      character iefile*72  ! The name of the session file.
+      common/logs/ieopened,iecount,iefile
+      common/FILEP/IFIL
 
       common/appw/iappw,iappx,iappy
       integer iappw,iappx,iappy
@@ -2872,17 +2858,16 @@ C IPV data could be internal to cfg file.
         endif
       endif
 
-  39  CALL EASKABCD(' ','IPV options:',
+  39  CALL EASKMBOX(' ','IPV options:',
      &  'simulate','extract reports',
-     &  'compare reports','cancel',irs,nbhelp)
+     &  'compare reports','cancel',' ',' ',' ',' ',irs,nbhelp)
 
       if(irs.eq.1)then
 
 C Run the simulations.
-        CALL EASKABC(' ','Simulation options:',
+        CALL EASKMBOX(' ','Simulation options:',
      &    'interactive','silent',
-     &    'cancel',isauto,nbhelp)
-        call tstamp('>','prj: beginning IPV simulations.')
+     &    'cancel',' ',' ',' ',' ',' ',isauto,nbhelp)
         doit = ' '
         call terminalmode(childterminal,tmode)
         if(isauto.eq.1)then
@@ -2972,10 +2957,9 @@ C an offset from prj start position.
       elseif(irs.eq.2)then
 
 C Extract performance report from the standard results files.
-        CALL EASKABC(' ','IPV extraction options:',
+        CALL EASKMBOX(' ','IPV extraction options:',
      &    'interactive','silent','cancel',
-     &    isauto,nbhelp)
-        call tstamp('>','prj: beginning IPV recovery.')
+     &    ' ',' ',' ',' ',' ',isauto,nbhelp)
         doit = ' '
         call terminalmode(childterminal,tmode)
         if(isauto.eq.1)then
@@ -2986,8 +2970,9 @@ C Extract performance report from the standard results files.
         elseif(isauto.eq.3)then
           return
         endif
-        call easkab(' ','IPV recovery options:',
-     &    'recover & append summary','cancel',IRT,nbhelp)
+        call easkmbox(' ','IPV recovery options:',
+     &    'recover & append summary','cancel',
+     &    ' ',' ',' ',' ',' ',' ',IRT,nbhelp)
         if(IRT.eq.2) goto 39  ! redisplay menu.
 
 C Extract only for the number of assessments required. Note: the strings
@@ -3118,9 +3103,9 @@ C Compare two IPV reports.  First ask for separator.
 
 C Toggle delimeter.
         IWM=1
-        CALL EASKATOG(' ','Column delimeter:',
+        CALL EASKMBOX(' ','Column delimeter:',
      &    'spaces','single space','tab','comma','tagged',
-     &    'cancel',' ',IWM,nbhelp)
+     &    'cancel',' ',' ',IWM,nbhelp)
         if(iwm.eq.1)then
           delim = '-'
         elseif(iwm.eq.2)then
@@ -3338,8 +3323,8 @@ C write out a single line summary.
             call eddisp(iuout,outs)
           endif
 
-          CALL EASKAB(' ','Comparison options:','return to menu',
-     &      'another report',IW,nbhelp)
+          CALL EASKMBOX(' ','Comparison options:','return to menu',
+     &      'another report',' ',' ',' ',' ',' ',' ',IW,nbhelp)
           if(iw.eq.1)then
             return
           else
@@ -3556,7 +3541,6 @@ C constructions known.
         endif
  40   continue
       if(.NOT.mlcok)then
-        call tstamp('>','prj: found unattributed surfaces')
         call easkok(
      &    'Some surfaces not construction attributed!',
      &    'View surfaces?',asked,nbhelp)
@@ -3581,7 +3565,6 @@ C constructions known.
         endif
  41   continue
       if(.NOT.bndryok)then
-        call tstamp('>','prj: found some surfaces unattributed')
         call easkok(
      &    'Some surfaces not boundary condition attributed!',
      &    'View surfaces?',asked,nbhelp)
@@ -3751,7 +3734,6 @@ C HOT3000: BASESIMP.
  42   continue
 
       if(.NOT.bndrysxc)then
-        call tstamp('>','prj: found surface attributions inconsistent')
         call easkok(
      &    'Some surface boundary conections may be incorrect!',
      &    'View connections?',asked,nbhelp)
@@ -3831,7 +3813,6 @@ C Check to see if this connection only pointed to once in the whole list.
         endif
   290 continue
       if(prob)then
-        call tstamp('>','prj: found topology inconsistent')
         call usrmsg('Topology found to be inconsistent!',
      &  'Resolved before starting a simulation.','W')
         CALL PHELPD('boundary checks',nbhelp,'-',0,0,IER)
@@ -4983,10 +4964,11 @@ C << an array so files did not need to be scanned.
         if(ishd.eq.-1)then
           helptopic='no_shd_instructions'
           call gethelptext(helpinsub,helptopic,nbhelp)
-          CALL EASKABC(
+          CALL EASKMBOX(
      &    'Model does not include shading/ insolation data.',
      &    'Options:','select zones for insolation',
-     &    'select zones for shading/ insolation','cancel',IW,nbhelp)
+     &    'select zones for shading/ insolation','cancel',
+     &    ' ',' ',' ',' ',' ',IW,nbhelp)
           if(iw.eq.1)then
             inpic=0
             call askmultizone(inpic,ivals,
@@ -5090,11 +5072,11 @@ C << formats e.g. to remove obstructions from within geometry file.
           call gethelptext(helpinsub,helptopic,nbhelp)
 
           IW=1
-          CALL EASKATOG(
+          CALL EASKMBOX(
      &      'Model includes detailed shading/ insolation data.',
      &      'Options:','dereference shading','dereference obstructions',
      &      'dereference obstr & shading','modify obstructions',
-     &      'cancel',' ',' ',IW,nbhelp)
+     &      'cancel',' ',' ',' ',IW,nbhelp)
           if(iw.eq.1)then
             inpic=0
             call askmultizone(inpic,ivals,
@@ -5236,8 +5218,9 @@ C View factors and radiant sensors.
           nbvalsv=0
           helptopic='viewfactor_options'
           call gethelptext(helpinsub,helptopic,nbhelp)
-          CALL EASKABC(' ','View factor options:',
-     &      'area weighted','ray traced','cancel',IW,nbhelp)
+          CALL EASKMBOX(' ','View factor options:',
+     &      'area weighted','ray traced','cancel',
+     &      ' ',' ',' ',' ',' ',IW,nbhelp)
 
 C Updating viewfactors can require configuration file to be updated
 C before calling mrt. NOTE: viewfactor block attributes will not be
@@ -5390,8 +5373,9 @@ C Pressure distribution
         helptopic='pressure_db_changes'
         call gethelptext(helpinsub,helptopic,nbhelp)
         msg1='updating model for pressure db changes ...'
-        CALL EASKABC(' ','Change to be made to:',
-     &  'building parameters','database','cancel',IW,nbhelp)
+        CALL EASKMBOX(' ','Change to be made to:',
+     &  'building parameters','database','cancel',
+     &  ' ',' ',' ',' ',' ',IW,nbhelp)
         IF(IW.EQ.3)THEN
           RETURN
         ELSEIF(IW.EQ.2)THEN
@@ -5774,7 +5758,7 @@ C moisture, electrical cfd and IPV
           EXT='.msr'
           CALL FNCNGR(SMSTRES(ISPS),APE,EXT,NNAME)
           write(SMSTRES(ISPS),'(a)') NNAME(1:lnblnk(NNAME))
-          EXT='.res'
+          EXT='.elr'
           CALL FNCNGR(SELRES(ISPS),APE,EXT,NNAME)
           write(SELRES(ISPS),'(a)') NNAME(1:lnblnk(NNAME))
           EXT='.dfr'
@@ -5805,8 +5789,6 @@ C If a variant connections file also required set this up.
         call usrmsg(msg1,' ','-')
         CALL EMKCFG('-',IER)
         call usrmsg(msg1,'done.','P')
-C        WRITE (OUTS,'(2A)')'* Writing new configuration file ',LCFGF
-C        CALL EDISP(IUOUT,OUTS)
       ENDIF
 
 C If shading needs updating do this now.

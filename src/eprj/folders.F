@@ -17,6 +17,7 @@ C details.
 C This file provides creation and editing facilities related to
 C maintaining model folders and files.
 C  pregist  - register a new project.
+C  refocus  - restart prj focused on a different cfg folder.
 C  pfolders - maintain model folders.
 C  edimage  - specification of an associated imagew.
 C  edbuild  - edit building information for system configuration file.
@@ -110,7 +111,7 @@ C Calendar.
       integer lnmp,lncr,lnod ! for width of mpath, cfgroot and odir strings
       integer itrcc          ! for silently rescanning new cfg file
       character tcname*248   ! for editing image notes
-      character WORDS(12)*32,testw*32,folderreadme*96
+      character WORDS(12)*32,testw*32
       character MODE*4
       integer ISTRW
 
@@ -252,8 +253,6 @@ C mpath and standard ESP-r model sub-folders.
         call runit(doit,'-')
         call pausems(100)
         write(doit,'(4a)') 'mkdir ',mpath(1:lnmp),fs,'cfg'
-        write(folderreadme,'(5a)') mpath(1:lnmp),fs,'cfg',fs,
-     &    'readme.txt'
         call runit(doit,'-')
         call pausems(100)
 
@@ -264,12 +263,8 @@ C Check the control folder path.
         if(testw(1:lnw).eq.'ctl'.or.testw(lnw:lnw).eq.'.')then
           write(doit,'(4a)') 'mkdir ',mpath(1:lnmp),fs,'ctl'
           write(ctlpth,'(3a)')'..',fs,'ctl'
-          write(folderreadme,'(5a)') mpath(1:lnmp),fs,'ctl',fs,
-     &    'readme.txt'
         else
           write(doit,'(4a)') 'mkdir ',mpath(1:lnmp),fs,testw(1:lnw)
-          write(folderreadme,'(5a)') mpath(1:lnmp),fs,testw(1:lnw),fs,
-     &    'readme.txt'
         endif
         call runit(doit,'-')
         call pausems(100)
@@ -294,20 +289,11 @@ C Check the zones folder path.
         if(testw(1:lnw).eq.'zones'.or.testw(lnw:lnw).eq.'.')then
           write(doit,'(4a)') 'mkdir ',mpath(1:lnmp),fs,'zones'
           write(zonepth,'(3a)')'..',fs,'zones'
-          write(folderreadme,'(5a)') mpath(1:lnmp),fs,'zones',fs,
-     &    'readme.txt'
         else
           write(doit,'(4a)') 'mkdir ',mpath(1:lnmp),fs,testw(1:lnw)
-          write(folderreadme,'(5a)') mpath(1:lnmp),fs,testw(1:lnw),fs,
-     &    'readme.txt'
-        endif
+       endif
         call runit(doit,'-')
         call pausems(100)
-        write(currentfile,'(a)') folderreadme(1:lnblnk(folderreadme))
-        IUNIT=IFIL+1
-        CALL EFOPSEQ(IUNIT,folderreadme,3,IER)
-        write(iunit,'(a)')'This folder holds the zone definition files.'
-        CALL ERPFREE(IUNIT,ISTAT)
 
 C Check the nets folder path.
         call GETTOKENS(netpth,IW,WORDS)
@@ -316,21 +302,11 @@ C Check the nets folder path.
         if(testw(1:lnw).eq.'nets'.or.testw(lnw:lnw).eq.'.')then
           write(doit,'(4a)') 'mkdir ',mpath(1:lnmp),fs,'nets'
           write(netpth,'(3a)')'..',fs,'nets'
-          write(folderreadme,'(5a)') mpath(1:lnmp),fs,'nets',fs,
-     &    'readme.txt'
         else
           write(doit,'(4a)') 'mkdir ',mpath(1:lnmp),fs,testw(1:lnw)
-          write(folderreadme,'(5a)') mpath(1:lnmp),fs,testw(1:lnw),fs,
-     &    'readme.txt'
         endif
         call runit(doit,'-')
         call pausems(100)
-        write(currentfile,'(a)') folderreadme(1:lnblnk(folderreadme))
-        IUNIT=IFIL+1
-        CALL EFOPSEQ(IUNIT,folderreadme,3,IER)
-        write(iunit,'(a)')'This folder holds network decription files'
-        write(iunit,'(a)')'for fluid and electrical power flow.'
-        CALL ERPFREE(IUNIT,ISTAT)
 
 C Check the images folder path.
         call GETTOKENS(imgpth,IW,WORDS)
@@ -339,22 +315,11 @@ C Check the images folder path.
         if(testw(1:lnw).eq.'images'.or.testw(lnw:lnw).eq.'.')then
           write(doit,'(4a)') 'mkdir ',mpath(1:lnmp),fs,'images'
           write(imgpth,'(3a)')'..',fs,'images'
-          write(folderreadme,'(5a)') mpath(1:lnmp),fs,'images',fs,
-     &    'readme.txt'
         else
           write(doit,'(4a)') 'mkdir ',mpath(1:lnmp),fs,testw(1:lnw)
-          write(folderreadme,'(5a)') mpath(1:lnmp),fs,testw(1:lnw),fs,
-     &    'readme.txt'
         endif
         call runit(doit,'-')
         call pausems(100)
-        write(currentfile,'(a)') folderreadme(1:lnblnk(folderreadme))
-        IUNIT=IFIL+1
-        CALL EFOPSEQ(IUNIT,folderreadme,3,IER)
-        write(iunit,'(a)')'This folder holds images associated with'
-        write(iunit,'(a)')'the model, e.g. site photos, key.'
-        write(iunit,'(a)')'simulation results etc.'
-        CALL ERPFREE(IUNIT,ISTAT)
 
 C Check the doc folder path.
         call GETTOKENS(docpth,IW,WORDS)
@@ -363,34 +328,15 @@ C Check the doc folder path.
         if(testw(1:lnw).eq.'doc'.or.testw(lnw:lnw).eq.'.')then
           write(doit,'(4a)') 'mkdir ',mpath(1:lnmp),fs,'doc'
           write(docpth,'(3a)')'..',fs,'doc'
-          write(folderreadme,'(5a)') mpath(1:lnmp),fs,'doc',fs,
-     &    'readme.txt'
         else
           write(doit,'(4a)') 'mkdir ',mpath(1:lnmp),fs,testw(1:lnw)
-          write(folderreadme,'(5a)') mpath(1:lnmp),fs,testw(1:lnw),fs,
-     &    'readme.txt'
         endif
         call runit(doit,'-')
         call pausems(100)
-        write(currentfile,'(a)') folderreadme(1:lnblnk(folderreadme))
-        IUNIT=IFIL+1
-        CALL EFOPSEQ(IUNIT,folderreadme,3,IER)
-        write(iunit,'(a)')'This folder holds documentation associated'
-        write(iunit,'(a)')'with the model.'
-        CALL ERPFREE(IUNIT,ISTAT)
 
         write(doit,'(4a)') 'mkdir ',mpath(1:lnmp),fs,'rad'
         call runit(doit,'-')
         call pausems(100)
-        write(folderreadme,'(5a)') mpath(1:lnmp),fs,'rad',fs,
-     &    'readme.txt'
-        write(currentfile,'(a)') folderreadme(1:lnblnk(folderreadme))
-        IUNIT=IFIL+1
-        CALL EFOPSEQ(IUNIT,folderreadme,3,IER)
-        write(iunit,'(a)')'This folder holds Radiance scene files'
-        write(iunit,'(a)')'created from the model, i.e. *.rif, *.mat,'
-        write(iunit,'(a)')'*.rad and view files.'
-        CALL ERPFREE(IUNIT,ISTAT)
 
         write(radpth,'(3a)')'..',fs,'rad'
 
@@ -414,12 +360,8 @@ C Check the dbs folder path.
         if(testw(1:lnw).eq.'dbs'.or.testw(lnw:lnw).eq.'.')then
           write(doit,'(4a)') 'mkdir ',mpath(1:lnmp),fs,'dbs'
           write(dbspth,'(3a)')'..',fs,'dbs'
-          write(folderreadme,'(5a)') mpath(1:lnmp),fs,'dbs',fs,
-     &    'readme.txt'
         else
           write(doit,'(4a)') 'mkdir ',mpath(1:lnmp),fs,testw(1:lnw)
-          write(folderreadme,'(5a)') mpath(1:lnmp),fs,testw(1:lnw),fs,
-     &    'readme.txt'
         endif
         call runit(doit,'-')
         call pausems(100)
@@ -530,16 +472,6 @@ C Instantiate standard sub-folders within model folder.
       call pausems(100)
       
       write(doit,'(4a)') 'mkdir ',cfgroot(1:lncr),fs,'rad'
-      write(folderreadme,'(5a)') cfgroot(1:lncr),fs,'rad',fs,
-     &  'readme.txt'
-      call runit(doit,'-')
-      write(currentfile,'(a)') folderreadme(1:lnblnk(folderreadme))
-      IUNIT=IFIL+1
-      CALL EFOPSEQ(IUNIT,folderreadme,3,IER)
-      write(iunit,'(a)')'This folder holds Radiance scene files'
-      write(iunit,'(a)')'created from the model, i.e. *.rif, *.mat,'
-      write(iunit,'(a)')'*.rad and view files.'
-      CALL ERPFREE(IUNIT,ISTAT)
       call pausems(100)
       
       write(doit,'(4a)') 'mkdir ',cfgroot(1:lncr),fs,'dbs'
@@ -772,9 +704,7 @@ C initial set of days.
 
 C Create a system configuration file based on the registration
 C information.
-   77 call tstamp('>','PRJ: create configuration')
-      call tstamp('>',LCFGF)
-      CALL EMKCFG('-',IER)
+   77 CALL EMKCFG('-',IER)
       if(ier.eq.0)then
         CFGOK=.TRUE.
 
@@ -807,7 +737,7 @@ C as is done in cadio.F.  If running in script mode do not refocus.
         if(MMOD.eq.-6)then
           continue
         else
-          call pausems(1000)
+          call pauses(1)
           call refocus(cfgpath,thecfgis,iret)
           if(iret.eq.0)then
             continue
@@ -840,15 +770,16 @@ C Parameters.
       common/childt/childterminal
       integer iappwpc ! application %
 
-      common/OUTIN/IUOUT,IUIN,IEOUT
-      common/warncounter/iecount
+      logical ieopened     ! Has session file been started.
+      integer iecount      ! Does it hold error messages.
+      character iefile*72  ! The name of the session file.
+      common/logs/ieopened,iecount,iefile
 
-C Session log file (for errors etc.).
-      character iefile*72
-      common/logs/iefile
+      common/OUTIN/IUOUT,IUIN,IEOUT
 
       integer lnblnk  ! function definition
       character doit*248
+      character dq*1,fs*1
       character tmode*8
       logical unixok
 
@@ -859,6 +790,33 @@ C Session log file (for errors etc.).
 C Set folder separator (fs) to \ or / as required.
       ier=0
       call isunix(unixok)
+      if(unixok)then
+        fs = char(47)
+        dq = char(34)
+      else
+        fs = char(92)
+        dq = char(34)
+
+C If the restart fails notify user of likely place to find the
+C new model files (if W10).
+        h(1)='WARNING: In W7 W10 W11 the task of refocusing the Project'
+        h(2)='Manager on a model cfg folder and loading a model does'
+        h(3)='not always work. You many need to use the OS file manager'
+        h(4)='to go to the model cfg folder and then right-click on'
+        h(5)='the cfg file.  You should find the files at:'
+        ln=lnblnk(cfgpath)
+        if(ln.lt.70)then
+          write(h(6),'(a)') cfgpath(1:lnblnk(cfgpath))
+          h(7)=' '
+        else
+          write(h(6),'(a)') cfgpath(1:70)
+          write(h(7),'(a)') cfgpath(71:lnblnk(cfgpath))
+        endif
+        h(8)='where you should find the model cfg file:'
+        write(h(9),'(a)') thecfgis(1:lnblnk(thecfgis))
+        nbhelp=9
+        CALL PHELPD('model focus change',nbhelp,'-',0,0,IER)
+      endif
 
 C If original application was started with -s X figure out what this was.
       call terminalmode(childterminal,tmode)
@@ -870,9 +828,9 @@ C If original application was started with -s X figure out what this was.
 
 C Test if we can start a new prj within the model cfg folder.
       if(unixok)then
-C        CALL EASKAB(
-C     &    'Project Manager needs to restart.',
-C     &    'Options:','restart','cancel',IRT,nbhelp)
+C        CALL EASKMBOX(
+C     &    'Project Manager needs to restart.','Options:',
+C     &    'restart','cancel',' ',' ',' ',' ',' ',' ',IRT,nbhelp)
 C        if(irt.eq.1)then
 C          call edisp(iuout,' ')
 C          call edisp(iuout,
@@ -888,9 +846,12 @@ C Invoke prj in same mode and size and initial start.
           write(doit,'(5a)') 'cd ',cfgpath(1:lnblnk(cfgpath)),
      &      '; prj -file ',thecfgis(1:lnblnk(thecfgis)),' & '
         endif
-C        call edisp248(iuout,doit,100)
+        call edisp248(iuout,doit,100)
+        call pauses(1)
         call runit(doit,'-')
-        call pausems(1000)
+        call pauses(1)
+        call edisp(iuout,'Restarting prj focused on new model.')
+        call pauses(1)
 
 C Clear allocatable arrays
         call DeallocateAllArrays
@@ -918,10 +879,10 @@ C text string tmode='bg' to partially mimic background mode.
         call edisp(iuout,'If restart does not cleanly open the model')
         call edisp(iuout,'type the command into a DOS cmd terminal or')
         call edisp(iuout,'click on the model cfg file in that folder.')
-        call pausems(1000)
-C        call EASKAB(
+        call pauses(1)
+C        call EASKMBOX(
 C     &    'To provide full functionality ESP-r needs to restart',
-C     &    'Options','restart','cancel',IRT,nbhelp)
+C     &    'Options','restart','cancel',' ',' ',' ',' ',' ',' ',IRT,nbhelp)
 C        if(irt.eq.1)then
 
 C Separate two dos cmds with & but do not include & at end to force background
@@ -940,12 +901,12 @@ C Invoke prj in same mode and size and initial start.
      &       ' & prj -file ',thecfgis(1:lnblnk(thecfgis))
          endif
 C         call edisp248(iuout,doit,100)
-         call pausems(2000)
+         call pauses(2)
 
 C << See if we can implement a bg for tmode in esru_lib.F. >>
          tmode='bg'
          call runit(doit,tmode)
-         call pausems(1000)
+         call pauses(1)
 
 C Clear allocatable arrays
          call DeallocateAllArrays
@@ -1434,8 +1395,8 @@ C      call edisp(iuout,outs)
       endif
 
       IRT=1
-      call EASKATOG(' ','Image format?',
-     &  'GIF','TIFF','XBM','PNG','other',' ',' ',IRT,nbhelp)
+      call EASKMBOX(' ','Image format?',
+     &  'GIF','TIFF','XBM','PNG','other',' ',' ',' ',IRT,nbhelp)
       if(IRT.eq.1)then
         write(iformat,'(a4)') 'GIF '
       elseif(IRT.eq.2)then
@@ -1474,9 +1435,6 @@ C      call edisp(iuout,outs)
       INPIC=1
       CALL EPICKS(INPIC,ilist,' ','Related topci:',
      &      24,15,focuslist,'image focus',IER,nbhelp)
-C      call EASKATOG(' ','Image focus?',
-C     &  'general','building','networks','control',
-C     &  'CFD','performance','other',IRF,nbhelp)
       IRF=ilist(1)
       if(IRF.eq.1)then
         write(ifocus,'(a4)') '****'
@@ -1585,7 +1543,7 @@ C Set folder separator (fs) to \ or / as required.
 
 C If anything affecting configuration file changed then update it.
       if(modcfg)then
-        CALL EMKCFG('-',IER)
+        CALL EMKCFG('s',IER)
         modcfg=.false.
       endif
 
@@ -1845,9 +1803,9 @@ C Edit zone name - read and then write the geometry file.
           WRITE(D,'(3A,A4)') zonepth(1:lnblnk(zonepth)),'/',
      &      ZN(1:lnblnk(ZN)),'.con'
         endif
-        CALL EASKABC(' ',
-     &      'Zone constructions file options:',
-     &      'edit name','browse','cancel',IW,nbhelp)
+        CALL EASKMBOX(' ',
+     &    'Zone constructions file options:',
+     &    'edit name','browse','cancel',' ',' ',' ',' ',' ',IW,nbhelp)
         if(IW.EQ.1)then
           L=LTHRM(IZ)
         elseif(IW.EQ.2)then
@@ -1891,9 +1849,9 @@ C Edit zone name - read and then write the geometry file.
           WRITE(D,'(3A,A4)') zonepth(1:lnblnk(zonepth)),'/',
      &      ZN(1:lnblnk(ZN)),'.opr'
         endif
-        CALL EASKABC(' ',
-     &      'Zone operation file options:',
-     &      'edit name','browse','cancel',IW,nbhelp)
+        CALL EASKMBOX(' ',
+     &    'Zone operation file options:',
+     &    'edit name','browse','cancel',' ',' ',' ',' ',' ',IW,nbhelp)
         if(IW.EQ.1)then
           L=LPROJ(IZ)
         elseif(IW.EQ.2)then
@@ -1940,9 +1898,9 @@ C is no need for obstruction file.
           helptopic='cfg_obs_file_name'
           call gethelptext(helpinsub,helptopic,nbhelp)
           if(IOBS(IZ).eq.1)then
-            CALL EASKABCD(' ','Zone obstructions file options:',
+            CALL EASKMBOX(' ','Zone obstructions file options:',
      &        'edit name','browse','dereference','cancel',
-     &        IW,nbhelp)
+     &        ' ',' ',' ',' ',IW,nbhelp)
             if(IW.EQ.1)then
               L=ZOBS(IZ)
             elseif(IW.EQ.2)then
@@ -1975,9 +1933,10 @@ C is no need for obstruction file.
           else
 
 C There is no zone obstructions file so offer restricted choice.
-            CALL EASKABC(' ',
+            CALL EASKMBOX(' ',
      &        'Zone obstructions file options:',
-     &        'edit name','browse','cancel',IW,nbhelp)
+     &        'edit name','browse','cancel',' ',' ',' ',' ',' ',
+     &        IW,nbhelp)
             if(IW.EQ.1)then
               L=' '
             elseif(IW.EQ.2)then
@@ -2025,9 +1984,9 @@ C There is no zone obstructions file so offer restricted choice.
         helptopic='cfg_tmc_file_name'
         call gethelptext(helpinsub,helptopic,nbhelp)
         if(ITW(IZ).eq.1)then
-          CALL EASKABCD(' ','Zone TMC file options:',
+          CALL EASKMBOX(' ','Zone TMC file options:',
      &      'change name','browse','dereference','cancel',
-     &      IW,nbhelp)
+     &      ' ',' ',' ',' ',IW,nbhelp)
           if(IW.EQ.1)then
             L=LTWIN(IZ)
           elseif(IW.EQ.2)then
@@ -2060,8 +2019,9 @@ C There is no zone obstructions file so offer restricted choice.
         else
 
 C There is no zone optic file so offer restricted choice.
-          CALL EASKABC(' ','Zone TMC file options:',
-     &      'edit name','browse','cancel',IW,nbhelp)
+          CALL EASKMBOX(' ','Zone TMC file options:',
+     &      'edit name','browse','cancel',' ',' ',' ',' ',' ',
+     &      IW,nbhelp)
           if(IW.EQ.1)then
             L=' '
           elseif(IW.EQ.2)then
@@ -2108,9 +2068,9 @@ C There is no zone optic file so offer restricted choice.
         helptopic='cfg_vwf_file_name'
         call gethelptext(helpinsub,helptopic,nbhelp)
         if(IVF(IZ).eq.1)then
-          CALL EASKABCD(' ','Zone view factor file options:',
+          CALL EASKMBOX(' ','Zone view factor file options:',
      &      'change name','browse','dereference','cancel',
-     &      IW,nbhelp)
+     &      ' ',' ',' ',' ',IW,nbhelp)
           if(IW.EQ.1)then
             L=LVIEW(IZ)
           elseif(IW.EQ.2)then
@@ -2143,8 +2103,9 @@ C There is no zone optic file so offer restricted choice.
         else
 
 C There is no zone viewfactor file so offer restricted choice.
-          CALL EASKABC(' ','Zone view factor file options:',
-     &      'edit name','browse','canel',IW,nbhelp)
+          CALL EASKMBOX(' ','Zone view factor file options:',
+     &      'edit name','browse','canel',' ',' ',' ',' ',' ',
+     &      IW,nbhelp)
           if(IW.EQ.1)then
             L=' '
           elseif(IW.EQ.2)then
@@ -2191,9 +2152,9 @@ C There is no zone viewfactor file so offer restricted choice.
         helptopic='cfg_cgc_file_name'
         call gethelptext(helpinsub,helptopic,nbhelp)
         if(ICGC(IZ).eq.1)then
-          CALL EASKABCD(' ','Zone casual gain control file options:',
+          CALL EASKMBOX(' ','Zone casual gain control file options:',
      &      'change name','browse','dereference','cancel',
-     &      IW,nbhelp)
+     &      ' ',' ',' ',' ',IW,nbhelp)
           if(IW.EQ.1)then
             L=LCGCIN(IZ)
           elseif(IW.EQ.2)then
@@ -2226,8 +2187,9 @@ C There is no zone viewfactor file so offer restricted choice.
         else
 
 C There is no zone casual gain control file so offer restricted choice.
-          CALL EASKABC(' ','Zone casual gain control file options:',
-     &      'edit name','browse','cancel',IW,nbhelp)
+          CALL EASKMBOX(' ','Zone casual gain control file options:',
+     &      'edit name','browse','cancel',' ',' ',' ',' ',' ',
+     &      IW,nbhelp)
           if(IW.EQ.1)then
             L=' '
           elseif(IW.EQ.2)then
@@ -2277,9 +2239,9 @@ C There is no zone casual gain control file so offer restricted choice.
         helptopic='cfg_shd_file_name'
         call gethelptext(helpinsub,helptopic,nbhelp)
         if(ISI(IZ).eq.1)then
-          CALL EASKABCD(' ','Zone shading/ insolation file options:',
+          CALL EASKMBOX(' ','Zone shading/ insolation file options:',
      &      'change name','browse','dereference','cancel',
-     &      IW,nbhelp)
+     &      ' ',' ',' ',' ',IW,nbhelp)
           if(IW.EQ.1)then
             L=LSHAD(IZ)
           elseif(IW.EQ.2)then
@@ -2312,8 +2274,9 @@ C There is no zone casual gain control file so offer restricted choice.
         else
 
 C There is no zone shading file so offer restricted choice.
-          CALL EASKABC(' ','Zone shading/ insolation file options:',
-     &      'edit name','browse','cancel',IW,nbhelp)
+          CALL EASKMBOX(' ','Zone shading/ insolation file options:',
+     &      'edit name','browse','cancel',' ',' ',' ',' ',' ',
+     &      IW,nbhelp)
           if(IW.EQ.1)then
             L=' '
           elseif(IW.EQ.2)then
@@ -2362,9 +2325,9 @@ C There is no zone shading file so offer restricted choice.
         helptopic='cfg_htc_file_name'
         call gethelptext(helpinsub,helptopic,nbhelp)
         if(IHC(IZ).eq.1)then
-          CALL EASKABCD(' ','Convection regime file options:',
+          CALL EASKMBOX(' ','Convection regime file options:',
      &      'change name','browse','dereference','cancel',
-     &      IW,nbhelp)
+     &      ' ',' ',' ',' ',IW,nbhelp)
           if(IW.EQ.1)then
             L=LHCCO(IZ)
           elseif(IW.EQ.2)then
@@ -2397,8 +2360,9 @@ C There is no zone shading file so offer restricted choice.
         else
 
 C There is no zone view factor file so offer restricted choice.
-          CALL EASKABC(' ','Zone convection regime file options:',
-     &      'edit name','browse','cancel',IW,nbhelp)
+          CALL EASKMBOX(' ','Zone convection regime file options:',
+     &      'edit name','browse','cancel',' ',' ',' ',' ',' ',
+     &      IW,nbhelp)
           if(IW.EQ.1)then
             L=' '
           elseif(IW.EQ.2)then
@@ -2451,8 +2415,9 @@ C There is no zone view factor file so offer restricted choice.
         elseif(LCFD(IZ)(1:7).eq.'UNKNOWN')then
           continue
         else
-          CALL EASKABC(' For the zone domain flow file',
-     &      ' :','change name','dereference it','cancel',IW,nbhelp)
+          CALL EASKMBOX(' For the zone domain flow file',
+     &      ' :','change name','dereference it','cancel',
+     &      ' ',' ',' ',' ',' ',IW,nbhelp)
           if(IW.EQ.2)then
             LCFD(IZ)='UNKNOWN'
             IFCFD(IZ)=0
@@ -2485,8 +2450,9 @@ C There is no zone view factor file so offer restricted choice.
         helptopic='cfg_grd_file_name'
         call gethelptext(helpinsub,helptopic,nbhelp)
         if(ZONE3D(IZ))then
-          CALL EASKABC(' Four addaptive gridding files',
-     &      ' :','change names','dereference ','cancel',IW,nbhelp)
+          CALL EASKMBOX(' Four addaptive gridding files',
+     &      ' :','change names','dereference ','cancel',
+     &      ' ',' ',' ',' ',' ',IW,nbhelp)
           if(IW.EQ.2)then
             L3DCVS(IZ)='UNKNOWN'
             L3DCNC(IZ)='UNKNOWN'
@@ -2534,8 +2500,9 @@ C There is no zone view factor file so offer restricted choice.
         helptopic='moist_transp_file_name'
         call gethelptext(helpinsub,helptopic,nbhelp)
         if(MSTRZN(IZ))then
-          CALL EASKABC(' For moisture transport file',
-     &      ' :','change name','dereference it','cancel',IW,nbhelp)
+          CALL EASKMBOX(' For moisture transport file',
+     &      ' :','change name','dereference it','cancel',
+     &      ' ',' ',' ',' ',' ',IW,nbhelp)
           if(IW.EQ.2)then
             LMOIST(IZ)=' '
             MSTRZN(IZ)=.false.
@@ -2562,8 +2529,9 @@ C There is no zone view factor file so offer restricted choice.
         helptopic='struc_mesh_file_name'
         call gethelptext(helpinsub,helptopic,nbhelp)
         if(IZ.eq.IndxSt)then
-          CALL EASKABC(' For structured mesh file',
-     &      ' :','change name','dereference it','cancel',IW,nbhelp)
+          CALL EASKMBOX(' For structured mesh file',
+     &      ' :','change name','dereference it','cancel',
+     &      ' ',' ',' ',' ',' ',IW,nbhelp)
           if(IW.EQ.2)then
             LGrdSt=' '
             IndxSt=0
@@ -2590,9 +2558,9 @@ C There is no zone view factor file so offer restricted choice.
         helptopic='cfg_cfc_file_name'
         call gethelptext(helpinsub,helptopic,nbhelp)
         if(icfc(IZ).eq.1)then
-          CALL EASKABCD(' ','Zone CFC file options:',
+          CALL EASKMBOX(' ','Zone CFC file options:',
      &      'change name','browse','dereference','cancel',
-     &      IW,nbhelp)
+     &      ' ',' ',' ',' ',IW,nbhelp)
           if(IW.EQ.1)then
             L=lcfcin(IZ)
           elseif(IW.EQ.2)then
@@ -2625,8 +2593,9 @@ C There is no zone view factor file so offer restricted choice.
         else
 
 C There is no zone cfc file so offer restricted choice.
-          CALL EASKABC(' ','Zone CFC file options:',
-     &      'edit name','browse','cancel',IW,nbhelp)
+          CALL EASKMBOX(' ','Zone CFC file options:',
+     &      'edit name','browse','cancel',
+     &      ' ',' ',' ',' ',' ',IW,nbhelp)
           if(IW.EQ.1)then
             L=' '
           elseif(IW.EQ.2)then

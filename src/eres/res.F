@@ -36,6 +36,10 @@ C results file, then displays the menu.
 
 C IUOUT & IUIN - user write and read unit numbers.
       common/OUTIN/IUOUT,IUIN,IEOUT
+      logical ieopened     ! Has session file been started.
+      integer iecount      ! Does it hold error messages.
+      character iefile*72  ! The name of the session file.
+      common/logs/ieopened,iecount,iefile
 
 C IFIL, the basic file unit number, is set to 10.
 C   +  0: building results library
@@ -97,13 +101,6 @@ C Path to model and command line file (if any).
 C Comfort parameters and hash table.
       common/cmftpar/WVEL,ACTL,CLO,iocut,iocuset
 
-C Project journal on/off, unit number, cmd, file name.
-      common/journopt/journio,iuj,journcmd,jfile
-
-C Session log file (for errors etc.)
-      character iefile*72
-      common/logs/iefile
-
       integer ireportunit ! 0 is default, 1 is W, 2 is kW, 3 is J.
       common/repunit/ireportunit
 
@@ -148,17 +145,17 @@ C Ask to overwrite flag.
       
       character cAppName*12      
       
-      logical     unixok,there
+      logical     unixok,there,XST
 
       character ITEM(19)*23
       character*96 actf
       character*72 Lflpar
       character inf*144,LCMDFL*144,outs248*248,xfile*144
-      character outs*124,MODE*4,tg*1,delim*1
+      character outs*124,MODE*4,tg*1,delim*1,troot*32
       character*72 LFCFG
       character path*72,spsname*30,paction*16
       character fs*1,act*16,aut*12
-      character journcmd*20,jfile*72,cjfile*72,OUTSTR*124
+      character cjfile*72,OUTSTR*124
       character bact*4,pifltog*4,lpifl*96
       character graftitle*64,grlbl*24
       character firstbit*72,secondbit*72
@@ -391,34 +388,6 @@ C Make temporary use of file unit ixunit.
       IUOUT=6  ! and make sure iuout is not zero
       call scesprc(esprc,ixunit,0,IIER)
 
-C If there is a journal active, prepare to add to the journal. First
-C get the root journal file name from the user's home folder.
-C All subsequent tstamp messages will be appended to this file.
-      iuj=IFIL+10
-      if(journio.eq.1)then
-        uname=' '
-        call usrname(uname)
-        cjfile=' '
-        write(cjfile,'(a,a1,a,a,a)')upath(1:lnblnk(upath)),fs,'.',
-     &    uname(1:lnblnk(uname)),'cur_j'
-        there=.false.
-        INQUIRE(FILE=cjfile,EXIST=there)
-        if(there)then
-          close(iuj)
-          open(iuj,file=cjfile,status='UNKNOWN',err=901)
-          CALL STRIPC(iuj,OUTSTR,0,ND,1,'header',IER)
-          if(OUTSTR(1:15).eq.'Current_Journal')then
-            k=16
-            CALL EGETRM(OUTSTR,K,jfile,'W','root journ',IER)
-          endif
-          close(iuj)
-        endif
-
-        write(outs,'(a,a)')'Journal (results analysis) for:',
-     &    uname(1:lnblnk(uname))
-        call tstamp('>',outs)
-      endif
-
 C Confirm if there an an xterm available.
       call isunix(unixok)
       if(unixok)then
@@ -428,14 +397,7 @@ C Confirm if there an an xterm available.
         found_xterm=.false.  ! not (yet) in Windows
       endif
 
-C Open the session file.
-  902 ieout=ifil+932          ! set to unused index 942
-      open(ieout,file=iefile,status='UNKNOWN',err=903)
-      write(ieout,'(a)')'Session log for res'
-      call dstamp(dstmp) ! get curret time
-      write(ieout,'(2a)')'Date,',dstmp
-      write(ieout,'(2a)')'User,',uname(1:lnblnk(uname))
-  904 continue
+  902 continue
 
 C Scan the defaults file for default configuration.
       call escdef(ixunit,'s',IER)
@@ -452,11 +414,8 @@ C Check for command line actions.
          paction=act
          write(outs,'(2a)') 'The action is: ',paction
          call edisp(iuout,outs)
-         write(outs,'(2a)') 'RES: the input action is: ',paction
-         call tstamp('>',outs)
          if(aut(1:6).eq.'silent')then
            autook=.true.
-           call tstamp('>','Silent-running mode')
          else
            autook=.false.
          endif
@@ -517,6 +476,37 @@ C export file name to reflect the model root name.
           MODE='ALL '
           call ERSYS(LFCFG,IFCFG,IAPROB,MODE,ITRC,IER)
           write(xfile,'(2a)') cfgroot(1:lnblnk(cfgroot)),'.csv'
+
+C Open the session file.
+          call cmdtoroot(inf,troot)          ! Return model root name.
+          if(unixok)then
+            write(tfile,'(3a)') '/tmp/',troot(1:lnblnk(troot)),
+     &        '.log'
+            call st2file(tfile,iefile)
+          else
+            write(tfile,'(6a)') 'C:',fs,'TEMP',fs,
+     &        troot(1:lnblnk(troot)),'.log'
+            call st2file(tfile,iefile)  ! Keep track of iefile name.
+          endif
+          ieout=ifil+932              ! set to unused index 932
+          iecount=0                   ! Clear count of errors.
+          if(.NOT.ieopened) goto 903  ! Set in scan of .esprc file (scesprc)
+          INQUIRE (FILE=iefile,EXIST=XST)
+          if(XST)then
+            close(ieout)
+            open(ieout,file=iefile,position='APPEND',
+     &        status='UNKNOWN',err=903)
+            call to_session('   ')   ! Blank line to separate new entries.
+          else
+            open(ieout,file=iefile,status='UNKNOWN',err=903)
+          endif
+          write(ieout,'(a)')'Session log for res'
+          call dstamp(dstmp) ! get curret time
+          write(ieout,'(2a)')'Date ',dstmp
+          write(ieout,'(2a)')'User ',uname(1:lnblnk(uname))
+          write(ieout,'(2a)')'Model ',LFCFG(1:lnblnk(LFCFG))
+          ieopened = .true.
+ 903      continue
         endif
 
 C If we have a plant-only file go straight to the plant results menu.
@@ -532,7 +522,6 @@ C Free all assigned files.
       endif
 
 C Define result-set required from this file.
-      call tstamp('>','RES: select result set')
       CALL MORESS
 
 C Specify the system configuration file.
@@ -551,7 +540,6 @@ C Get zones to be included.
       CALL MOZDFN
       
 C Specify output period.
-      call tstamp('>','RES: default output period set')
       CALL MOOPER
       IDEFLT=0
 
@@ -654,7 +642,6 @@ C Test for illegal menu pick.
       ENDIF
       IF(INO.EQ.1)THEN
         IDEFLT=1
-        call tstamp('>','RES: open new results file')
         CALL MORFIL(itype)
         if(iftype.eq.-2)then
           iftype=0
@@ -675,7 +662,6 @@ C Read mass flow file.
         call MFREADH(IFRES,ITRC)
 
 C Output period selection.
-        call tstamp('>','RES: default output period set')
         CALL MOOPER
 
 C If there are general results images to be shown (ie. with
@@ -683,50 +669,29 @@ C an image focus of FRES) then show them now.
         call imgdisp(0,'FRES',ier)
         IDEFLT=0
       ELSEIF(INO.EQ.2)THEN
-        call tstamp('>','RES: select result set')
         CALL MORESS
       ELSEIF(INO.EQ.3)THEN
-        call tstamp('>','RES: select period')
         CALL MOOPER
       ELSEIF(INO.EQ.4)THEN
-        call tstamp('>','RES: select zones')
         CALL MOZDFN
       ELSEIF(INO.EQ.6)THEN
-        call tstamp('>','RES: enter graphic reporting')
         CALL MOGRAF
-        call tstamp('>','RES: exit graphic reporting')
       ELSEIF(INO.EQ.7)THEN
-        call tstamp('>','RES: enter tabular reporting')
         CALL MOTABL
-        call tstamp('>','RES: exit tabular reporting')
       ELSEIF(INO.EQ.8)THEN
-        call tstamp('>','RES: enter statics reporting')
         CALL MOSTAT
-        call tstamp('>','RES: exit statics reporting')
       ELSEIF(INO.EQ.9)THEN
-        call tstamp('>','RES: enter plant reporting')
         call sysoutp('-',1)
-        call tstamp('>','RES: exit plant reporting')
       ELSEIF(INO.EQ.10)THEN
-        call tstamp('>','RES: enter IAQ reporting')
         call iaqmenu
-        call tstamp('>','RES: exit IAQ reporting')
       ELSEIF(INO.EQ.11)THEN
-        call tstamp('>','RES: enter electrical reporting')
         call ENETRES
-        call tstamp('>','RES: exit electrical reporting')
       ELSEIF(INO.EQ.12)THEN
-        call tstamp('>','RES: enter CFD reporting')
         call MOCFD('M')
-        call tstamp('>','RES: exit CFD reporting')
       ELSEIF(INO.EQ.13)THEN
-        call tstamp('>','RES: enter sensitivity reporting')
         call MOSA
-        call tstamp('>','RES: exit sensitivity reporting')
       ELSEIF(INO.EQ.14)THEN
-        call tstamp('>','RES: enter IPV reporting')
         call ipvrep(iier)
-        call tstamp('>','RES: exit IPV reporting')
       ELSEIF(INO.EQ.(NITMS-3))THEN
 
 C Toggle trace level.
@@ -760,7 +725,6 @@ C the model.
           endif
         endif
 
-        call tstamp('>','Finish results analysis')
         close(ieout)
         CALL ERPFREE(ieout,ISTAT)
         CALL EPAGEND
@@ -774,12 +738,6 @@ C Output menu error signal and allow re-selection from menu.
     2 INO=-1
       goto 5
 
- 901  call edisp(iuout,' ')
-      call edisp(iuout,'Error opening journal file!')
-      goto 902
- 903  call edisp(iuout,' ')
-      call edisp(iuout,'Error opening session log!')
-      goto 904
 
  999  END PROGRAM
 

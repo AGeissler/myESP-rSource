@@ -192,7 +192,6 @@ C GFILE is the default file name for any geom file to be created,
 
 C On entry to zone level determine its bounds for future comparison.
       write(outs,'(2a)')'PRJ: focus on ',zname(ICOMP)
-      call tstamp('>',outs)
 
 C Initialise logic to test for model contiguity changes.
       silent= .false.
@@ -670,10 +669,10 @@ C      write(6,*)nzg,nznog(1),nznog(2),nznog(3)
       nzg=1
       nznog(1)=ICOMP
       izgfoc=ICOMP
-      CALL redraw(IER)
 
 C Place any surface attribute mass flow symbol on the wireframe if in graphic mode.
       if(MMOD.eq.8)then
+        CALL redraw(IER)
         do loop=1,NZSUR(ICOMP)
           icon=IZSTOCN(icomp,loop)
           if(icon.gt.0)then
@@ -759,7 +758,6 @@ C Zone name, make sure it has no illegal characters.
             WRITE(GFILE,'(4a)') zonepth(1:lnblnk(zonepth)),'/',
      &        zname(ICOMP)(1:lnzname(ICOMP)),'.geo'
           endif
-          call tstamp('>','PRJ: edited zone name')
           if(.NOT.newgeo)then
             gversion(icomp) =1.1
             newgeo = .true.
@@ -791,7 +789,6 @@ C Zone description
         if(T64(1:2).eq.'  ')goto 64
         zdesc(icomp)=T64
         lnzdesc(icomp)=lnblnk(T64)  ! update the length of this string.
-        call tstamp('>','PRJ: edited zone description')
         LTMP=LGEOM(ICOMP)
         call eclose(gversion(icomp),1.1,0.01,newgeo)
         if(.NOT.newgeo)then
@@ -902,7 +899,6 @@ C if so update the geometry file. Also update the volume of
 C any flow network node associated with this zone.
         helptopic='geometry_main_menu'
         call gethelptext(helpinsub,helptopic,nbhelp)
-        call tstamp('>','PRJ: enter zone vertices')
         CALL EDVERT(iuout,ICOMP,MODGEO,IER)
         if(MODGEO)then
           CALL EASKOK(' ','Save vertex changes?',OK,nbhelp)
@@ -934,7 +930,6 @@ C positions.
       ELSEIF(INO.EQ.ITEMC+7)THEN
 
 C Vertex-surface association editing.
-        call tstamp('>','PRJ: enter zone-surface topology')
         CALL EDVLIST(ITRC,iuout,ICOMP,IER)
         MODGEO=.TRUE.
 
@@ -960,14 +955,13 @@ C << revise -> 'impose boundary condition' & 'discover boundary condition'
 C <<        helptopic='surface_global_attrib'
 C <<        call gethelptext(helpinsub,helptopic,nbhelp)
 
-          call tstamp('>','PRJ: enter global surface attribution')
           context=.true.
           if(ITRC.gt.1)CALL SURINFO(ICOMP,iuout,context)
           IRT=1
-          CALL EASKATOG(' ','Surface attribution options:',
+          CALL EASKMBOX(' ','Surface attribution options:',
      &      'name','composition','impose boundary condition',
      &      'discover boundary condition','usage',
-     &      'cancel',' ',IRT,nbhelp)
+     &      'cancel',' ',' ',IRT,nbhelp)
 
           if(IRT.eq.2)then
 
@@ -1038,9 +1032,11 @@ C profile has not been defined.
               if(NGRDP.gt.0)then
                 CALL EDISP(iuout,' ')
                 do 22 igrdp=1,NGRDP
-                CALL EDISP(iuout,'User defined monthly ground profile:')
-                 WRITE(OUTS,'(12F6.1)')(UGRDTP(J,IGRDP),J=1,12)
-                 call edisp(iuout,outs)
+                  write(outs,'(a,i2,3a,f6.1)') 'Monthly profile ',
+     &              igrdp,' ',UGRNAME(igrdp),' @ depth',UGRDEPTH(igrdp)
+                  CALL EDISP(iuout,outs)
+                  WRITE(OUTS,'(12F6.1)')(UGRDTP(J,IGRDP),J=1,12)
+                  call edisp(iuout,outs)
  22             continue
                 CALL EASKI(IIE2,' ',
      &            'User defined ground profile number?',
@@ -1126,7 +1122,7 @@ C LINSTY of selected surface to 2 (i.e. thick lines) and redraw.
               LINSTY(IC)=2
               nzg=1; nznog(1)=ICOMP; izgfoc=ICOMP
               MODIFYVIEW=.TRUE.; MODGEO=.TRUE.
-              CALL redraw(IER)
+              if(MMOD.eq.8)CALL redraw(IER)
 
 C Also check whether surface is associated with a boundary flow node.
               inode=0; icmp=0
@@ -1182,7 +1178,7 @@ C Reset all line widths to normal and redraw (if last surface in list).
               if (i.eq.inpick) then
                 CALL INLNST(1)
                 MODIFYVIEW=.TRUE.; MODGEO=.TRUE.
-                CALL redraw(IER)
+                if(MMOD.eq.8)CALL redraw(IER)
               endif
             elseif(IRT.eq.2.and.ISEL.EQ.0)then
 
@@ -1421,7 +1417,7 @@ C Update surface USE attributes for relevant zone surface and connection.
 
 C Finally update the system configuration file.
           if(cfgok)then
-            CALL EMKCFG('-',IER)
+            CALL EMKCFG('s',IER)
             call eclose(gversion(icomp),1.1,0.01,newgeo)
             if(.NOT.newgeo)then
               gversion(icomp) =1.1
@@ -1436,8 +1432,7 @@ C Finally update the system configuration file.
 
 C Attribute a single surface, set flag to redraw.
           ianother=0
-  443     call tstamp('>','PRJ: enter single surface attribution')
-          CALL EDSURA(ICOMP,IS,ITRC,MODGEO,ianother,IER)
+  443     CALL EDSURA(ICOMP,IS,ITRC,MODGEO,ianother,IER)
           MODIFYVIEW=.TRUE.
 
 C If user asked for next or prior surface reset IS and call again.
@@ -1456,7 +1451,6 @@ C If user asked for next or prior surface reset IS and call again.
       ELSEIF(INO.EQ.ITEMC+10)THEN
 
 C Edit zone insolation distribution and/or user specified insolation distribution.
-        call tstamp('>','PRJ: enter zone insolation distribution')
         CALL EDINSUL(ICOMP,IER)
         MODGEO=.TRUE.
 
@@ -1468,7 +1462,7 @@ C the geometry file before entering the obstruction editing facility.
         call gethelptext(helpinsub,helptopic,nbhelp)
         if(MODGEO)then
           if(cfgok)then
-            CALL EMKCFG('-',IER)
+            CALL EMKCFG('s',IER)
             call eclose(gversion(icomp),1.1,0.01,newgeo)
             if(.NOT.newgeo)then
               gversion(icomp) =1.1
@@ -1480,7 +1474,6 @@ C the geometry file before entering the obstruction editing facility.
           endif
           MODGEO=.false.
         endif
-        call tstamp('>','PRJ: enter zone obstructions')
         iglib = igraphiclib()  ! find out if X11 or GTK or text support only.
 
 C Re-establish proportional font in case it was reset elsewhere.
@@ -1492,12 +1485,14 @@ C Re-establish proportional font in case it was reset elsewhere.
           call userfonts(IFS,ITFS,IMFS)
         endif
         if(iglib.eq.2)then
-          call easkab(' ','Shading obstruction definition via:',
-     &      'dimensional input','bitmap',IW,nbhelp)
+          call easkmbox(' ','Shading obstruction definition via:',
+     &      'dimensional input','bitmap',
+     &      ' ',' ',' ',' ',' ',' ',IW,nbhelp)
           if(iw.eq.-3) goto 3   ! pay attention to cancel request.
         else
-          call easkabc(' ','Shading obstruction definition via:',
-     &      'dimensional input','bitmap','cancel',IW,nbhelp)
+          call easkmbox(' ','Shading obstruction definition via:',
+     &      'dimensional input','bitmap','cancel',
+     &      ' ',' ',' ',' ',' ',IW,nbhelp)
           if(iw.eq.-3) goto 3   ! pay attention to cancel request.
         endif
         if(iw.eq.1)then
@@ -1874,7 +1869,6 @@ C as transform general polygon obstructions.
           if(INOR.eq.7)then
 
 C Ask the user what the transform for each axis should be.
-            call tstamp('>','PRJ: do zone translation')
             hold = ' 0.000  0.000  0.000    '
   43        CALL EASKS(HOLD,'Transform (X Y Z metres) to apply:',' ',
      &        36,' 0. 0. 0.','transforms XYZ',IER,nbhelp)
@@ -1945,7 +1939,7 @@ C other zone.
             CALL INLNST(1)
             itsnm=0
             nzg=1; nznog(1)=IZ; izgfoc=ICOMP
-            CALL redraw(IER)
+            if(MMOD.eq.8)CALL redraw(IER)
             MODIFYVIEW=.TRUE.; MODBND=.TRUE.
 
 C Load and scan G1 for vertes in other zone and allow user to select one.
@@ -2130,7 +2124,6 @@ C each surface.
           if(INOR.eq.11.or.INOR.eq.12)then
 
 C Mirror along Y axis, either positive or negative.
-            call tstamp('>','PRJ: do zone mirror')
             CALL EASKR(VALM,' ','Mirror point on Y-axis?',
      &           -50.0,'W',50.0,'W',0.0,'y mirror',IER,nbhelp)
             call easkok(' ','Apply mirror transform?',ok,nbhelp)
@@ -2150,7 +2143,6 @@ C Mirror along Y axis, either positive or negative.
           elseif(INOR.eq.13.or.INOR.eq.14)then
 
 C Mirror along X axis, either positive or negative.
-            call tstamp('>','PRJ: do zone mirror')
             CALL EASKR(VALM,' ','Mirror point on X-axis?',
      &           -50.0,'W',50.0,'W',0.0,'y mirror',IER,nbhelp)
             call easkok(' ','Apply mirror transform?',ok,nbhelp)
@@ -2326,9 +2318,10 @@ C there are existing bridges then do not scan until within
           call gethelptext(helpinsub,helptopic,nbhelp)
           CALL PHELPD('bridge rescan',nbhelp,'-',0,0,IER)
           if(nbrdg(icomp).gt.0)then
-            call easkabc(' ',
+            call easkmbox(' ',
      &        'Zone has existing thermal bridge definitions',
-     &        'use them','rescan geometry','cancel',IW,nbhelp)
+     &        'use them','rescan geometry','cancel',
+     &        ' ',' ',' ',' ',' ',IW,nbhelp)
             if(IW.eq.1)then
               continue
             elseif(IW.eq.2)then
@@ -2411,8 +2404,8 @@ C to temporarily draw it.
      &    'around its lower left corner:',
      &    -359.0,'W',359.0,'W',0.0,'rotation',IER,nbhelp)
 
-        call easkabc(' ','Origin choices:','edit object origin',
-     &    'use zone vertex','abort',ibopt,nbhelp)
+        call easkmbox(' ','Origin choices:','edit object origin',
+     &    'use zone vertex','abort',' ',' ',' ',' ',' ',ibopt,nbhelp)
         if(ibopt.eq.1)then
           write(hold,'(3f8.4)') DX,DY,DZ
         elseif(ibopt.eq.2)then
@@ -2493,14 +2486,14 @@ C              call CNVOBJVISP(IB) ! cannot preview predefined visp type.
         endif
 
 C << place to include a nudge option >>
-        CALL EASKABCD(' ','Options for predefined objects:',
+        CALL EASKMBOX(' ','Options for predefined objects:',
      &    'apply transform and merge','revise transform','nudge X Y Z',
-     &    'cancel',IW,nbhelp)
+     &    'cancel',' ',' ',' ',' ',IW,nbhelp)
         if (IW.eq.1) then
 
 C Ask for single character to prepend to copied associated entities.
-          CALL EASKATOG(' ','Character to pre-pend to copied entities:',
-     &    ' a ',' b ',' c ',' d ',' e ',' f ','...',IBOPT,nbhelp)
+          CALL EASKMBOX(' ','Character to pre-pend to copied entities:',
+     &    ' a ',' b ',' c ',' d ',' e ',' f ','...',' ',IBOPT,nbhelp)
           if(ibopt.eq.1)prec='a'
           if(ibopt.eq.2)prec='b'
           if(ibopt.eq.3)prec='c'
@@ -2508,24 +2501,25 @@ C Ask for single character to prepend to copied associated entities.
           if(ibopt.eq.5)prec='e'
           if(ibopt.eq.6)prec='f'
           if(ibopt.eq.7)then
-            CALL EASKATOG(' ',
+            CALL EASKMBOX(' ',
      &      'Character to pre-pend to copied entities:',
-     &      ' g ',' h ',' i ',' j ',' k ',' l ',' m',IBOPT,nbhelp)
+     &      ' g ',' h ',' i ',' j ',' k ',' l ',' m',' ',IBOPT,nbhelp)
             if(ibopt.eq.1)prec='g'
             if(ibopt.eq.2)prec='h'
             if(ibopt.eq.3)prec='i'
             if(ibopt.eq.4)prec='j'
             if(ibopt.eq.5)prec='k'
             if(ibopt.eq.6)prec='l'
+            if(ibopt.eq.7)prec='m'
           endif
           call PREDEFEMBED(IFIL+2,predef,ICOMP,DX,DY,DZ,VALR,name,
      &      prec,IER)
         elseif (IW.eq.2) then
           goto 423   ! adapt location
         elseif (IW.eq.3) then
-          CALL EASKATOG(' ','Nudge origin:',
+          CALL EASKMBOX(' ','Nudge origin:',
      &    'x -0.1 ','x +0.1','y -0.1','y +0.1','z -0.1','z +0.1',
-     &    'rotate...',IBOPT,nbhelp)
+     &    'rotate...',' ',IBOPT,nbhelp)
           if(ibopt.eq.1) DX=DX-0.1
           if(ibopt.eq.2) DX=DX+0.1
           if(ibopt.eq.3) DY=DY-0.1
@@ -2533,9 +2527,9 @@ C Ask for single character to prepend to copied associated entities.
           if(ibopt.eq.5) DZ=DZ-0.1
           if(ibopt.eq.6) DZ=DZ+0.1
           if(ibopt.eq.7)then
-            CALL EASKATOG(' ','Nudge Z rotation:',
+            CALL EASKMBOX(' ','Nudge Z rotation:',
      &        '15deg anti','30deg anti','45deg anti','15deg clkw',
-     &        '30deg clkw','45deg clkw',' ',IBOPT,nbhelp)
+     &        '30deg clkw','45deg clkw',' ',' ',IBOPT,nbhelp)
             if(ibopt.eq.1) VALR=VALR+15.
             if(ibopt.eq.2) VALR=VALR+30.
             if(ibopt.eq.3) VALR=VALR+45.
@@ -2546,7 +2540,7 @@ C Ask for single character to prepend to copied associated entities.
           CALL CNVBLK(DX,DY,DZ,objbb(1),objbb(2),objbb(3),VALR)
           nzg=1; nznog(1)=ICOMP; izgfoc=ICOMP
           MODIFYVIEW=.TRUE.; MODGEO=.TRUE.
-          CALL redraw(IER)
+          if(MMOD.eq.8)CALL redraw(IER)
           goto 424   ! jump back and redisplay nudgee location or rotation.
         elseif (IW.eq.4) then
           continue
@@ -2557,7 +2551,7 @@ C Signal that the wireframe image needs to be redrawn.
 
 C As mass surfaces would be added save the model cfd and cnn files.
         if(cfgok)then
-          CALL EMKCFG('-',IER)
+          CALL EMKCFG('s',IER)
         endif
       ELSEIF(INO.EQ.ITEMC+17)THEN
 
@@ -2610,7 +2604,7 @@ C Fill with default for inside face.
               endif
             endif
             if(cfgok)then
-              CALL EMKCFG('-',IER)
+              CALL EMKCFG('s',IER)
             endif
           endif
         else
@@ -2692,7 +2686,7 @@ C Fill with high hc for inside face.
      &              'coefficients at inside face.','W')
             endif
             if(cfgok)then
-              CALL EMKCFG('-',IER)
+              CALL EMKCFG('s',IER)
             endif
           endif
         endif
@@ -2719,7 +2713,6 @@ C Switch to fixed width font for the report.
         uavgtran = 0.0; uavgsky = 0.0; uavwall = 0.0
         uavfltroof = 0.0; uavslproof = 0.0; wallper =0.0
 
-        call tstamp('>','PRJ: list zone surface summary')
         context=.true.
         CALL SURINFO(ICOMP,iuout,context)
 
@@ -2979,7 +2972,6 @@ C Check if user wishes to see construction details as well.
 C Ask for name of file to put updated information into.
         helptopic='geometry_main_menu'
         call gethelptext(helpinsub,helptopic,nbhelp)
-        call tstamp('>','PRJ: update zone geometry')
         LTMP=LGEOM(ICOMP)
         CALL EASKS(LTMP,' ','Zone geometry file?',
      &                  72,GFILE,'geom file',IER,nbhelp)
@@ -2995,7 +2987,7 @@ C Ask for name of file to put updated information into.
           GOTO 3
         ENDIF
         LGEOM(ICOMP)=LTMP
-        CALL EMKCFG('-',IER)
+        CALL EMKCFG('s',IER)
         MODGEO=.FALSE.
 
       ELSEIF(INO.EQ.ITEMC+21)THEN
@@ -3269,8 +3261,8 @@ C If any changes update and then save geometry file before invoking ish.
 C Allow user to start shading analysis. If user does not cancel suggest
 C a new file name, ask the user to confirm that name and update the model
 C cfg file and then if the user says do it now call comission ish.
-        CALL EASKAB(' ','Shading & insolation analysis options:',
-     &   'do now','cancel',IW,nbhelp)
+        CALL EASKMBOX(' ','Shading & insolation analysis options:',
+     &   'do now','cancel',' ',' ',' ',' ',' ',' ',IW,nbhelp)
 
 C If ISIcalc has not yet been set assign = 2 for monthly file.
         if(IW.eq.1)then
@@ -3288,8 +3280,7 @@ C If ISIcalc has not yet been set assign = 2 for monthly file.
             if(SFIL(1:2).ne.'  ')then
               LSHAD(ICOMP)=SFIL
               ISI(ICOMP)=1
-              call tstamp('>','PRJ: adding shading to configuration')
-              CALL EMKCFG('-',IER)
+              CALL EMKCFG('s',IER)
             endif
           endif
         else
@@ -3298,7 +3289,6 @@ C If ISIcalc has not yet been set assign = 2 for monthly file.
 
 C If existing db out of date the perform recalculation.
         if(IW.eq.1)then
-          call tstamp('>','PRJ: start shading')
           if(ishold)then
             call comissionish(icomp,'sra',ier)
           else
@@ -3448,13 +3438,13 @@ C Help messages.
       call gethelptext(helpinsub,helptopic,nbhelp)
 
  43   if(act.eq.'s'.or.act.eq.'S')then
-        CALL EASKABCD(' ','Shading calculation options:',
+        CALL EASKMBOX(' ','Shading calculation options:',
      &     'all applicable surfaces','selected surfaces',
-     &     'none','cancel',IIC,nbhelp)
+     &     'none','cancel',' ',' ',' ',' ',IIC,nbhelp)
       elseif(act.eq.'i'.or.act.eq.'I')then
-         CALL EASKABCD(' ','Insolation calculation options:',
+         CALL EASKMBOX(' ','Insolation calculation options:',
      &      'all applicable surfaces','selected surfaces',
-     &      'none','cancel',IIC,nbhelp)
+     &      'none','cancel',' ',' ',' ',' ',IIC,nbhelp)
       else
         IIC=2
       endif
@@ -3925,11 +3915,12 @@ C If connection NOT KNOWN then do not process flow!
      &            SUSE(icomp,iss,1),' & ',SUSE(icomp,iss,2)
                 call edisp(iuout,outs)
                 INVT=0
-                CALL EASKABC(
+                CALL EASKMBOX(
      &          'The surface USE attribute suggests an associated flow',
      &          'component. Options:','pick existing flow component',
      &          'create one to match',
-     &          'ignore (already defined elsewhere)',INVT,nbhelp)
+     &          'ignore (already defined elsewhere)',
+     &          ' ',' ',' ',' ',' ',INVT,nbhelp)
                 if(INVT.eq.1)then
                   call edisp(iuout,' ')
                   write(outs,'(a,i3.3,a,i3.3)') 
@@ -4088,7 +4079,7 @@ C Note IC is the connection at the other side of surface icom:is.
       CALL SURADJ(ICOMP,IS,IE,TMP,IZC,ISC,IC,DESCRC)
       LINSTY(IC)=2
       nzg=1; nznog(1)=ICOMP; izgfoc=ICOMP
-      CALL redraw(IER)
+      if(MMOD.eq.8)CALL redraw(IER)
 
 C If in graphic mode draw the points on top of standard drawing.
       if(MMOD.lt.8)then
@@ -4281,7 +4272,6 @@ C Add/insert a surface, return to higher level menu when done.
 C The 'ii' request an interactive insertion, the parameters
 C XO1,ZO1,XW,ZH are not used in an interactive insert.
         LASTS=NSUR
-        call tstamp('>','PRJ: insert surface into another')
         XO1=0.; ZO1=0.
         XW=0.; ZH=0.
         rsname=' '; rsotf=' '; rsmlcn=' '
@@ -4295,14 +4285,14 @@ C XO1,ZO1,XW,ZH are not used in an interactive insert.
             newgeo = .true.
           endif
           call geowrite(IFIL+2,LGEOM(ICOMP),ICOMP,ITRU,3,IER)
-          CALL EMKCFG('-',IER)
+          CALL EMKCFG('s',IER)
           call warnmod(ICOMP,'sf+')
         endif
         CALL INLNST(1)
         nzg=1
         nznog(1)=ICOMP
         izgfoc=ICOMP
-        CALL redraw(IER)
+        if(MMOD.eq.8)CALL redraw(IER)
 
 C Having updated the geometry for the new surface, ask user for USE.
         icon=IZSTOCN(icomp,nsur)
@@ -4721,12 +4711,13 @@ C and no entity in the flow network file points to this surface then
 C offer to add such a default entity to the flow network.
                 if(.NOT.found_association)then
                   INVT=0
-                  CALL EASKABC(
+                  CALL EASKMBOX(
      &              'The surface USE attribute suggests an associated',
      &              'flow component. Options:',
      &              'pick existing flow component',
      &              'create one to match',
-     &              'ignore (defined elsewhere)',INVT,nbhelp)
+     &              'ignore (defined elsewhere)',
+     &              ' ',' ',' ',' ',' ',INVT,nbhelp)
                   if(INVT.eq.1)then
                     call ASKRCMP('select component','-',ICOMPN,IER)
                     if(ICOMPN.gt.0)then
@@ -4803,6 +4794,7 @@ C Passed parameters:
       character act*1      ! 's' = specify 'd' = discover
       integer ier          ! non-zero is an error
 
+      COMMON/SPAD/MMOD,LIMIT,LIMTTY
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/FILEP/IFIL
 
@@ -5109,7 +5101,7 @@ C and display both zones.
           nznog(1)=ICOMP
           nznog(2)=IZ
           izgfoc=ICOMP
-          CALL redraw(IER)
+          if(MMOD.eq.8)CALL redraw(IER)
           MODIFYVIEW=.TRUE.; MODBND=.TRUE.
 
           ISO=1
@@ -5157,7 +5149,7 @@ C other surface.
      &           updoth,TOSMLCN,TOOPT,TOUSE1,TOUSE2,IISSMLCI)
   
               icoth=ICO  ! remember the connection for the other surface
-              CALL EMKCFG('-',IER)  ! update connections file.
+              CALL EMKCFG('s',IER)  ! update connections file.
 
 C Other zone surface attributes are now known. They will be
 C written with code at ~line 3817 in the if(updoth)then section.
@@ -5221,7 +5213,9 @@ C profile has not been defined.
         if(NGRDP.gt.0)then
           CALL EDISP(iuout,' ')
           do 22 igrdp=1,NGRDP
-            CALL EDISP(iuout,'User defined ground profile Jan-Dec:')
+            write(outs,'(a,i2,3a,f6.1)') 'Monthly profile ',
+     &        igrdp,' ',UGRNAME(igrdp),' @ depth',UGRDEPTH(igrdp)
+            CALL EDISP(iuout,outs)
             WRITE(OUTS,'(12F6.1)')(UGRDTP(J,IGRDP),J=1,12)
             call edisp(iuout,outs)
  22       continue
@@ -5237,6 +5231,7 @@ C the action make no changes and jump back to 13 (the menu creation code).
               SOTHER(ICOMP,IS,1)='GROUND'; SOTHER(ICOMP,IS,2)='0'
               write(SOTHER(ICOMP,IS,3),'(i3.3)')iie2
               ICT(IC)=4
+              showother=.false.
             elseif(ieri.eq.-3)then
               return
             else
@@ -5580,8 +5575,8 @@ C If horizontal relax the azimuth test.
           if(ifound.eq.1)then
             IIC3=ifoundc    ! if only one set index
           elseif(ifound.eq.2)then
-            CALL EASKABC('Select one:',':',choice1,
-     &        choice2,'cancel',INVT,nbhelp)
+            CALL EASKMBOX('Select one:',':',choice1,
+     &        choice2,'cancel',' ',' ',' ',' ',' ',INVT,nbhelp)
             if(INVT.eq.1)then
               IIC3=ifoundc
             elseif(INVT.eq.2)then
@@ -5626,7 +5621,7 @@ C will be dealt with in the logic following line 5615.
      &           updoth,TOSMLCN,TOOPT,TOUSE1,TOUSE2,IISSMLCI)
               showother=.true.
               updoth=.true.
-              CALL EMKCFG('-',IER)  ! update connections file.
+              CALL EMKCFG('s',IER)  ! update connections file.
             else
               updoth=.false.
               return       ! user canceled so jump back
@@ -5713,7 +5708,7 @@ C Read current zone back in and then update the configuration file.
             updoth=.false.
           endif
         endif
-        CALL EMKCFG('-',IER)
+        CALL EMKCFG('s',IER)
       endif
 
       return
@@ -6130,9 +6125,9 @@ C If a partition then update the other surface use attribute.
         helptopic='door_use_open_closed'
         call gethelptext(helpinsub,helptopic,nbhelp)
         IRT=1
-        CALL EASKATOG(' ','Surface DOOR USE attribute air leakage:',
+        CALL EASKMBOX(' ','Surface DOOR USE attribute air leakage:',
      &    'closed','undercut','open','bidirectional',
-     &    'bi-dir ajar','undefined','cancel',IRT,nbhelp)
+     &    'bi-dir ajar','undefined','cancel',' ',IRT,nbhelp)
         if(IRT.eq.1)then
           SUSE(iz,IS,2)='CLOSED'
           if(showother)then
@@ -6185,9 +6180,9 @@ C If a partition then update the other surface use attributes.
         helptopic='fict_use_open_closed'
         call gethelptext(helpinsub,helptopic,nbhelp)
         IRT=1
-        CALL EASKATOG(' ','Surface FICT USE air leakage choices:',
+        CALL EASKMBOX(' ','Surface FICT USE air leakage choices:',
      &    'closed','crack','open','bidirectional',
-     &    'bi-dir ajar','undefined','cancel',IRT,nbhelp)
+     &    'bi-dir ajar','undefined','cancel',' ',IRT,nbhelp)
         if(IRT.eq.1)then
           SUSE(iz,IS,2)='CLOSED'
           if(showother)then
@@ -6257,9 +6252,9 @@ C If a partition then update the other surface use attributes.
         helptopic='frame_use_open_closed'
         call gethelptext(helpinsub,helptopic,nbhelp)
         IRT=1
-        CALL EASKATOG(' ','Surface FRAME USE air leakage choices:',
+        CALL EASKMBOX(' ','Surface FRAME USE air leakage choices:',
      &    'undefined','crack','trickle vent','cancel',
-     &    ' ',' ',' ',IRT,nbhelp)
+     &    ' ',' ',' ',' ',IRT,nbhelp)
         if(IRT.eq.1)then
           SUSE(iz,IS,2)='-'
           if(showother)then
@@ -6298,9 +6293,9 @@ C If a partition then update the other surface use attributes.
         helptopic='grill_use'
         call gethelptext(helpinsub,helptopic,nbhelp)
         IRT=1
-        CALL EASKATOG(' ','Surface GRILL USE air leakage choices:',
+        CALL EASKMBOX(' ','Surface GRILL USE air leakage choices:',
      &    'undefined','crack','mech vent inlet','mech vent extract',
-     &    'natural air flow','duct','cancel',IRT,nbhelp)
+     &    'natural air flow','duct','cancel',' ',IRT,nbhelp)
         if(IRT.eq.1)then
           SUSE(iz,IS,2)='-'
           if(showother)then
@@ -6430,9 +6425,9 @@ C If a partition then update the other surface use attributes.
         helptopic='window_use_open_closed'
         call gethelptext(helpinsub,helptopic,nbhelp)
         IRT=1
-        CALL EASKATOG(' ','Surface WINDOW USE air leakage choices:',
+        CALL EASKMBOX(' ','Surface WINDOW USE air leakage choices:',
      &    'undefined','crack','open','sash ','bidirectional',
-     &    'bi-dir ajar','cancel',IRT,nbhelp)
+     &    'bi-dir ajar','cancel',' ',IRT,nbhelp)
         if(IRT.eq.1)then
           SUSE(iz,IS,2)='-'
           if(showother)then
@@ -6547,7 +6542,7 @@ C Update the current zone attributes.
             newgeo = .true.
           endif
           call geowrite(IFIL+2,LTMP,IZ,iuout,3,IER)
-          CALL EMKCFG('-',IER)
+          CALL EMKCFG('s',IER)
         endif
       endif
 
@@ -6744,9 +6739,9 @@ C Add USE2 'PERIM-CR'
         helptopic='door_use_open_closed'
         call gethelptext(helpinsub,helptopic,nbhelp)
         IRT=1
-        CALL EASKATOG(' ','Surface DOOR USE air leakage choices:',
+        CALL EASKMBOX(' ','Surface DOOR USE air leakage choices:',
      &    'closed','undercut','open','bidirectional',
-     &    'bi-dir ajar','undefined','cancel',IRT,nbhelp)
+     &    'bi-dir ajar','undefined','cancel',' ',IRT,nbhelp)
         if(IRT.eq.1)then
           USE2='CLOSED'
         elseif(IRT.eq.2)then
@@ -6769,9 +6764,9 @@ C Add USE2 'PERIM-CR'
         helptopic='fict_use_open_closed'
         call gethelptext(helpinsub,helptopic,nbhelp)
         IRT=1
-        CALL EASKATOG(' ','Surface FICT USE air leakage choices:',
+        CALL EASKMBOX(' ','Surface FICT USE air leakage choices:',
      &    'closed','crack','open','bidirectional',
-     &    'bi-dir ajar','undefined','cancel',IRT,nbhelp)
+     &    'bi-dir ajar','undefined','cancel',' ',IRT,nbhelp)
         if(IRT.eq.1)then
           USE2='CLOSED'
         elseif(IRT.eq.2)then
@@ -6805,9 +6800,9 @@ C Add USE2 'PERIM-CR'
         helptopic='frame_use_open_closed'
         call gethelptext(helpinsub,helptopic,nbhelp)
         IRT=1
-        CALL EASKATOG(' ','Surface FRAME USE air leakage choices:',
+        CALL EASKMBOX(' ','Surface FRAME USE air leakage choices:',
      &    'undefined','crack','trickle vent','cancel',
-     &    ' ',' ',' ',IRT,nbhelp)
+     &    ' ',' ',' ',' ',IRT,nbhelp)
         if(IRT.eq.1)then
           USE2='-'
         elseif(IRT.eq.2)then
@@ -6827,9 +6822,9 @@ C Add USE2 'PERIM-CR'
         helptopic='grill_use'
         call gethelptext(helpinsub,helptopic,nbhelp)
         IRT=1
-        CALL EASKATOG('  ','Surface GRILL USE air leakage choices:',
+        CALL EASKMBOX('  ','Surface GRILL USE air leakage choices:',
      &    'undefined','crack','mech vent inlet','mech vent extract',
-     &    'natural air flow','duct','cancel',IRT,nbhelp)
+     &    'natural air flow','duct','cancel',' ',IRT,nbhelp)
         if(IRT.eq.1)then
           USE1='GRILL'; USE2='-'
         elseif(IRT.eq.2)then
@@ -6881,9 +6876,9 @@ C Do not need second tag if generating notional model
         helptopic='window_use_open_closed'
         call gethelptext(helpinsub,helptopic,nbhelp)
         IRT=1
-        CALL EASKATOG(' ','Surface WINDOW USE air leakage choices:',
+        CALL EASKMBOX(' ','Surface WINDOW USE air leakage choices:',
      &    'undefined','crack','open','sash ','bidirectional',
-     &    'bi-dir ajar','cancel',IRT,nbhelp)
+     &    'bi-dir ajar','cancel',' ',IRT,nbhelp)
         if(IRT.eq.1)then
           USE2='-'
         elseif(IRT.eq.2)then
@@ -7317,7 +7312,7 @@ C Do a bound check on the current zone and update display.
       nzg=1
       nznog(1)=ICOMP
       izgfoc=ICOMP
-      CALL redraw(IER)
+      if(MMOD.eq.8)CALL redraw(IER)
 
 C Help text for this menu.
       helptopic='surface_vertex_menu'
@@ -7435,7 +7430,7 @@ C Distance between two vertices (based on current G1 common block).
             nzg=1
             nznog(1)=ICOMP
             izgfoc=ICOMP
-            CALL redraw(IER)
+            if(MMOD.eq.8)CALL redraw(IER)
           endif
 
         elseif(ino.eq.3)then
@@ -7511,7 +7506,7 @@ C Angle between two lines (based on current G1 common block).
           nzg=1
           nznog(1)=ICOMP
           izgfoc=ICOMP
-          CALL redraw(IER)
+          if(MMOD.eq.8)CALL redraw(IER)
 
         elseif(ino.eq.5)then
 
@@ -7556,10 +7551,10 @@ C inserted in another surface is done in code near line 6386.
 C Intersection LINES and a surface or plane. As for insersection surface.
           nbstart=NZTV(icomp)+1  ! Remember 1st new vertex position.
           invt=0
-          CALL EASKATOG(' ','Intersection with:',
+          CALL EASKMBOX(' ','Intersection with:',
      &    'existing surface','horizontal plane','vertical (along X)',
      &    'vertical (along Y)','origin azimuth elevation','cancel ',
-     &    ' ',INVT,nbhelp)
+     &    ' ',' ',INVT,nbhelp)
           if(invt.eq.1)then
             CALL EPMENSV
             IS=1
@@ -7646,8 +7641,9 @@ C Ask if it should be added.
                 if(NTV.lt.MTV)then
                   write(outs,'(a,i3,a)')'Make vertex ',NTV+1,' Options:'
                   invt=0
-                  CALL EASKABC(' ',outs,'new vertex',
-     &              'new vertex after editing','cancel',INVT,nbhelp)
+                  CALL EASKMBOX(' ',outs,'new vertex',
+     &              'new vertex after editing','cancel',
+     &              ' ',' ',' ',' ',' ',INVT,nbhelp)
                   if(INVT.eq.1)then
                     NTV=NTV+1; NZTV(icomp)=NTV
                     x(ntv)=x3; y(ntv)=y3; z(ntv)=z3
@@ -7776,7 +7772,7 @@ C And re-draw the zone to clean up the circles.
           call usrmsg(' ',' ','-')
           CALL INLNST(1)
           nzg=1; nznog(1)=ICOMP; izgfoc=ICOMP
-          CALL redraw(IER)
+          if(MMOD.eq.8)CALL redraw(IER)
 
         elseif(ino.eq.7)then
 
@@ -7809,7 +7805,7 @@ C Report length of line. Use method of Ward/Radiance in fvect.c
           call usrmsg(' ',' ','-')
           CALL INLNST(1)
           nzg=1; nznog(1)=ICOMP; izgfoc=ICOMP
-          CALL redraw(IER)
+          if(MMOD.eq.8)CALL redraw(IER)
 
         elseif(ino.eq.8)then
 
@@ -7878,9 +7874,9 @@ C Update the coordinates in common blocks and return.
         elseif(ino.eq.9)then
 
 C Find close vertices.
-          CALL EASKATOG(' ','Search options:',
+          CALL EASKMBOX(' ','Search options:',
      &    'close vertices','close to a vertex','to an X','to a Y',
-     &    'to a Z','cancel ',' ',INVT,nbhelp)
+     &    'to a Z','cancel ',' ',' ',INVT,nbhelp)
           if(INVT.eq.1)then
             call usrmsg('Scanning for vertices within 50mm...',' ','P')
             do 102 iwhich1=1,NTV
@@ -8031,7 +8027,7 @@ C Show the new point on the current wireframe.
             nzg=1
             nznog(1)=ICOMP
             izgfoc=ICOMP
-            CALL redraw(IER)  ! this call will clear the X Y Z
+            if(MMOD.eq.8)CALL redraw(IER)  ! this call will clear the X Y Z
           else
             goto 3
           endif
@@ -8105,7 +8101,7 @@ C Show this point on the current wireframe.
           nzg=1
           nznog(1)=ICOMP
           izgfoc=ICOMP
-          CALL redraw(IER)  ! this call will clear the X Y Z
+          if(MMOD.eq.8)CALL redraw(IER)  ! this call will clear the X Y Z
         elseif(ino.eq.12)then
 
 C Intersection of line at angle from a point with a surface.
@@ -8179,8 +8175,9 @@ C applied to the 'a' 'c' 'f' 'l' options.
         if(ino.eq.1.or.ino.eq.3.or.ino.eq.5.or.ino.eq.12)then
           if(NTV.lt.MTV)then
             write(outs,'(a,i3,a)') 'Make vertex ',NTV+1,' Options:'
-            CALL EASKABC(' ',outs,'new vertex',
-     &        'new vertex after editing','cancel',INVT,nbhelp)
+            CALL EASKMBOX(' ',outs,'new vertex',
+     &        'new vertex after editing','cancel',
+     &        ' ',' ',' ',' ',' ',INVT,nbhelp)
             if(INVT.eq.1)then
               NTV=NTV+1; NZTV(icomp)=NTV
               x(ntv)=x3; y(ntv)=y3; z(ntv)=z3
@@ -8219,7 +8216,7 @@ C Update the geometry file.
             call usrmsg(' ',' ','-')
             CALL INLNST(1)
             nzg=1; nznog(1)=ICOMP; izgfoc=ICOMP
-            CALL redraw(IER)
+            if(MMOD.eq.8)CALL redraw(IER)
 
 C Check to see if this new vertex should be included in any existing edges.
             writeagain=.false.
@@ -8324,7 +8321,7 @@ C Tidy up the wireframe image.
               MODIFYVIEW=.true.
               CALL INLNST(1)
               nzg=1; nznog(1)=ICOMP; izgfoc=ICOMP
-              CALL redraw(IER)
+              if(MMOD.eq.8)CALL redraw(IER)
               goto 92
             endif
           endif  ! of NTV less than MTV
@@ -8351,8 +8348,9 @@ C Alter vertex list by deleting/ copy / replicate / editing.
 C Ask if fine tolerance to be used.
           write(outs,'(a,f7.4,a)')
      &      'Current tolerance for vertex matching is:',CACC,'m.'
-          CALL EASKABC(outs,'Options:','accept tolerance',
-     &      'use fine tolerances','cancel',INVT,nbhelp)
+          CALL EASKMBOX(outs,'Options:','accept tolerance',
+     &      'use fine tolerances','cancel',
+     &      ' ',' ',' ',' ',' ',INVT,nbhelp)
           if(INVT.eq.1)then
             continue
           elseif(INVT.eq.2)then
@@ -8915,7 +8913,7 @@ C Do a bound check on the current zone and update display.
       nzg=1
       nznog(1)=ICOMP
       izgfoc=ICOMP
-      CALL redraw(IER)
+      if(MMOD.eq.8)CALL redraw(IER)
 
 C Help text for this menu.
       helptopic='surface_edge_list'
@@ -8944,13 +8942,12 @@ C List help text for the vertex menu.
       ELSEIF(IVERT.EQ.(MVERT-2))THEN
 
 C Check vertex topology.
-        call tstamp('>','PRJ: check zone vertex topology')
-
 C Echo the current tolerances and ask if small features.
         write(outs,'(2a,f7.4,a)') 'If import has small features...',
      &    ' Current tolerance for vertex matching is:',CACC,'m.'
-        CALL EASKABC(outs,'Options:','accept tolerance',
-     &    'use fine tolerances','cancel',INVT,nbhelp)
+        CALL EASKMBOX(outs,'Options:','accept tolerance',
+     &    'use fine tolerances','cancel',
+     &    ' ',' ',' ',' ',' ',INVT,nbhelp)
         if(INVT.eq.1)then
           continue
         elseif(INVT.eq.2)then
@@ -9028,7 +9025,7 @@ C used for a partition (if db does not have a linked MLC, inform the user).
           MODIFYVIEW=.TRUE.
           CALL INLNST(1)
           nzg=1; nznog(1)=ICOMP; izgfoc=ICOMP
-          CALL redraw(IER)
+          if(MMOD.eq.8)CALL redraw(IER)
           goto 92
         endif
 
@@ -9098,13 +9095,12 @@ C          call zgupdate(1,icomp,ier)
           MODIFYVIEW=.TRUE.
           CALL INLNST(1)
           nzg=1; nznog(1)=ICOMP; izgfoc=ICOMP
-          CALL redraw(IER)
+          if(MMOD.eq.8)CALL redraw(IER)
           goto 92
 
         elseif(IRT.eq.1.or.IRT.eq.5)then
 
 C Shift along normal and copy transformed points back to XX,YY,ZZ array.
-          call tstamp('>','PRJ: do surface shift along normal')
           vdis=0.0
           CALL EASKR(vdis,' ','Distance along normal?',
      &         -99.999,'F',99.999,'W',0.0,'d along normal',IER,nbhelp)
@@ -9145,7 +9141,6 @@ C Normal shift of any associated flow node will need a similar transform.
         if(IRT.eq.2.or.IRT.eq.5)then
 
 C Transform all surface vertices.
-          call tstamp('>','PRJ: do surface vertex tranform')
           HOLDS= ' 0.000  0.000  0.000    '
  152      CALL EASKS(HOLDS,' X Y & Z offsets: ',' ',
      &      36,' 0.00  0.00  0.00  ','offsets',IER,nbehlp)
@@ -9185,7 +9180,6 @@ C If there is an associated flow component or node also translate.
         if(IRT.eq.3.or.IRT.eq.5)then
 
 C Rotate around a point in the surface (offer user cancel option).
-          call tstamp('>','PRJ: do surface rotation')
           CALL EASKI(IRV,'Rotate about which vertex index: ',
      &       '(ie. 1st, 2nd or 3rd in the surface) ',
      &       1,'F',N,'F',1,'rotation anchor',IERI,nbhelp)
@@ -9243,7 +9237,6 @@ C If there is an associated flow component or node also rotate.
         if(IRT.eq.4)then
 
 C Reverse the ordering, redraw image and return.
-          call tstamp('>','PRJ: do surface invert vertex order')
           do iyy = 1,NVER(IS)
             jvn1(iyy)=JVN(IS,iyy)
           enddo
@@ -9256,7 +9249,7 @@ C Reverse the ordering, redraw image and return.
           MODIFYVIEW=.TRUE.
           CALL INLNST(1)
           nzg=1; nznog(1)=ICOMP; izgfoc=ICOMP
-          CALL redraw(IER)
+          if(MMOD.eq.8)CALL redraw(IER)
           goto 92
         endif
         if(IRT.eq.6)then
@@ -9373,7 +9366,7 @@ C Ask user if they want to update the vertex with the new values.
                   MODIFYVIEW=.TRUE.
                   CALL INLNST(1)
                   nzg=1; nznog(1)=ICOMP; izgfoc=ICOMP
-                  CALL redraw(IER)
+                  if(MMOD.eq.8)CALL redraw(IER)
                   goto 92
                 endif
               endif
@@ -9399,7 +9392,7 @@ C Update the image.
         MODIFYVIEW=.TRUE.
         CALL INLNST(1)
         nzg=1; nznog(1)=ICOMP; izgfoc=ICOMP
-        CALL redraw(IER)
+        if(MMOD.eq.8)CALL redraw(IER)
 
 C Show these points as small circles...
         call edisp(iuout,' proposed points are shown as dots....')
@@ -9459,7 +9452,7 @@ C Multisurface selection.
             CALL ADDSUR(itrcl,ICOMP,IS,'D','V',iopt,IER)  ! Delete surface
             call zinfo(icomp,zoa,zvol,'q')                ! Re-derive values
             call zgupdate(0,icomp,ier)
-            CALL EMKCFG('-',IER)
+            CALL EMKCFG('s',IER)
             call eclose(gversion(icomp),1.1,0.01,newgeo)
             if(.NOT.newgeo)then
               gversion(icomp) =1.1
@@ -9479,7 +9472,7 @@ C Update the image.
         MODIFYVIEW=.TRUE.
         CALL INLNST(1)
         nzg=1; nznog(1)=ICOMP; izgfoc=ICOMP
-        CALL redraw(IER)
+        if(MMOD.eq.8)CALL redraw(IER)
       ELSEIF(IVERT.EQ.(MVERT-7))THEN
 
 C Add/insert a surface.
@@ -9524,14 +9517,12 @@ C the mouse click option.
         IF(irt.eq.0.or.irt.eq.11)GOTO 92
         LASTS=NSUR
         if(IRT.eq.1)then
-          call tstamp('>','PRJ: insert surface via vertex')
           iopt=0     ! offer editing box and mouse click option.
           iadds=0; itrcl=0
           CALL ADDSUR(ITRCL,ICOMP,iadds,'A','V',iopt,IER)
           call zinfo(icomp,zoa,zvol,'q')                  ! Re-derive values
           call zgupdate(0,icomp,ier)
         elseif(IRT.eq.2)then
-          call tstamp('>','PRJ: insert surface via vertex')
           iopt=1     ! offer mouse click directly
           iadds=0; itrcl=0
           CALL ADDSUR(ITRCL,ICOMP,iadds,'A','V',iopt,IER) ! Add surface
@@ -9539,7 +9530,6 @@ C the mouse click option.
           call zgupdate(0,icomp,ier)
         elseif(IRT.eq.3)then
           CALL EPMENSV
-          call tstamp('>','PRJ: insert surface into another')
           CALL EASKSUR(ICOMP,IS,'-','Select surface to insert into.',
      &        ' ',IER)
           CALL EPMENRC
@@ -9561,7 +9551,6 @@ C Establish USE for the new surface.
           call edituse(icomp,nsur,icon,guesstype)
      
         elseif(IRT.eq.4)then
-          call tstamp('>','PRJ: copy local surfaces')
           iopt=2      ! offer copy of local surfaces
           iadds=0; itrcl=0
           CALL ADDSUR(ITRCL,ICOMP,iadds,'C','V',iopt,IER) ! Copy surface
@@ -9572,8 +9561,9 @@ C Establish USE for the new surface.
 C Copy surface(s) from another zone. Confirm tolerances.
           write(outs,'(2a,f7.4,a)') 'If import has small features...',
      &      ' Current tolerance for vertex matching is:',CACC,'m.'
-          CALL EASKABC(outs,'Options:','accept tolerance',
-     &      'use fine tolerances','cancel',INVT,nbhelp)
+          CALL EASKMBOX(outs,'Options:','accept tolerance',
+     &      'use fine tolerances','cancel',
+     &      ' ',' ',' ',' ',' ',INVT,nbhelp)
           if(INVT.eq.1)then
             continue
           elseif(INVT.eq.2)then
@@ -9581,7 +9571,6 @@ C Copy surface(s) from another zone. Confirm tolerances.
           elseif(INVT.eq.3)then
             GOTO 92  ! do not copy any surfaces
           endif
-          call tstamp('>','PRJ: copy another zone surfaces')
           iopt=1      ! offer mouse click directly ??
           iadds=0; itrcl=0
           CALL ADDSUR(ITRCL,ICOMP,iadds,'C','V',iopt,IER) ! Copy surface
@@ -9595,12 +9584,11 @@ C Get vertical rectangular surface orgin.
      &        ' it will make the zone too complex!','W')
             RETURN
           ENDIF
-          call tstamp('>','PRJ: add vertical surface')
 
 C Offer similar choices to setting up obstructions (see edobs.F)
-          call easkabcd(' ','Origin choices:','edit',
+          call easkmbox(' ','Origin choices:','edit',
      &      'use zone vertex','angle & distance from vertex','cancel',
-     &      ibopt,nbhelp)
+     &      ' ',' ',' ',' ',ibopt,nbhelp)
           if(ibopt.eq.1)then
             HOLDS= ' 0.000  0.000  0.000   '
           elseif(ibopt.eq.2)then
@@ -9688,12 +9676,11 @@ C Get horizontal rectangular surface orgin.
      &        ' it will make the zone or surface too complex!','W')
             RETURN
           ENDIF
-          call tstamp('>','PRJ: add horizontal surface')
 
 C Offer similar choices to setting up obstructions (see edobs.F)
-          call easkabcd(' ','Origin choices:','edit',
+          call easkmbox(' ','Origin choices:','edit',
      &      'use zone vertex','angle & distance from vertex','cancel',
-     &      ibopt,nbhelp)
+     &      ' ',' ',' ',' ',ibopt,nbhelp)
           if(ibopt.eq.1)then
             HOLDS= ' 0.000  0.000  0.000   '
           elseif(ibopt.eq.2)then
@@ -9781,7 +9768,6 @@ C without having to do it all again.
 C Identify the source surface, find out how many edges it has and
 C whether the zone can hold enough new surfaces.
           CALL EPMENSV
-          call tstamp('>','PRJ: extrude from initial surface')
           CALL EASKSUR(ICOMP,IS,'-','Select surface .',
      &        ' ',IER)
           CALL EPMENRC
@@ -10003,7 +9989,7 @@ C Track users confirmation of new surface.
             MODIFYVIEW=.TRUE.
             CALL INLNST(1)
             nzg=1; nznog(1)=ICOMP; izgfoc=ICOMP
-            CALL redraw(IER)
+            if(MMOD.eq.8)CALL redraw(IER)
             GOTO 30
           elseif(INVT.eq.-3)then
             return
@@ -10012,7 +9998,7 @@ C Track users confirmation of new surface.
 
 C Record the recent changes and re-display
  77     if(LASTS.ne.NSUR)then
-          CALL EMKCFG('-',IER)
+          CALL EMKCFG('s',IER)
           call eclose(gversion(icomp),1.1,0.01,newgeo)
           if(.NOT.newgeo)then
             gversion(icomp) =1.1
@@ -10033,7 +10019,7 @@ C Update the image.
         call usrmsg(' ',' ','-')
         CALL INLNST(1)
         nzg=1; nznog(1)=ICOMP; izgfoc=ICOMP
-        CALL redraw(IER)
+        if(MMOD.eq.8)CALL redraw(IER)
       ELSEIF(IVERT.EQ.(MVERT-8))THEN
 
 C If there are enough items allow paging control via EKPAGE.
@@ -10132,7 +10118,7 @@ C a thick line.
       CALL SURADJ(ICOMP,IFOC,IE,TMP,IZC,ISC,IC,DESCRC)
       if(IC.gt.0)LINSTY(IC)=2
       nzg=1; nznog(1)=ICOMP; izgfoc=ICOMP
-      CALL redraw(IER)
+      if(MMOD.eq.8)CALL redraw(IER)
 
    93 helptopic='surface_edge_order'
       call gethelptext(helpinsub,helptopic,nbhelp)
@@ -11317,7 +11303,7 @@ C to 97 to read in further details.
 
 C Close zip data file as the end of the file has been reached
       CALL ERPFREE(IUNIT,ios)
-      CALL EMKCFG('-',IER)
+      CALL EMKCFG('s',IER)
 
       RETURN
 
@@ -11609,7 +11595,7 @@ C in a different colour for each type (to match colours listed above).
         CALL INLNST(1)
         itsnm=0
         nzg=1; nznog(1)=ICOMP; izgfoc=ICOMP
-        CALL redraw(IER)
+        if(MMOD.eq.8)CALL redraw(IER)
         do 778 I=1,NZSUR(icomp)
           ioc=IZSTOCN(icomp,i)
           if(ioc.eq.0)then
@@ -11778,9 +11764,9 @@ C used in UK building regulations. Default values are VERY conservative.
 C Initial questions about initial psi values.
       helptopic='psi-value-groups'
       call gethelptext(helpinsub,helptopic,nbhelp)
-      CALL EASKATOG('Initial thermal bridge (psi) values:','  ',
+      CALL EASKMBOX('Initial thermal bridge (psi) values:','  ',
      &  'k1 default','general accredited','2021 PartL masonry',
-     &  '2021 PartL timber','exit',' ',' ',INVT,nbhelp)
+     &  '2021 PartL timber','exit',' ',' ',' ',INVT,nbhelp)
       helptopic='linear_thermal_bridge'
       call gethelptext(helpinsub,helptopic,nbhelp)
  
@@ -11820,8 +11806,9 @@ C There were existing thermal bridge values. As user if menu display should
 C reflect the recently scanned values.
         helptopic='psi-length-update'
         call gethelptext(helpinsub,helptopic,nbhelp)
-        CALL EASKABC('Zone has existing psi values & lengths.',' ',
-     &    'update lengths','update lengths & psi','continue',IV,nbhelp)
+        CALL EASKMBOX('Zone has existing psi values & lengths.',' ',
+     &    'update lengths','update lengths & psi','continue',
+     &    ' ',' ',' ',' ',' ',IV,nbhelp)
         if(IV.eq.1)then
           act = '-'
           call edisp(iuout,' ')
@@ -12948,7 +12935,7 @@ C in a different colour for each type (to match colours listed above).
         CALL INLNST(1)
         itsnm=0
         nzg=1; nznog(1)=izon; izgfoc=izon
-        CALL redraw(IER)
+        if(MMOD.eq.8)CALL redraw(IER)
       endif
 
       do 43 isurf=1,NZSUR(izon)
@@ -13056,9 +13043,9 @@ C be roughly vertical and the other flat (up) or sloped.
                     call ZSID(izon,isurf,zsn,ZSDESC,ZSDESS)
                     call ZSID(izon,iosurf,zsno,ZSDESCO,ZSDESSO)
                     write(outs,'(3a)') zsn,' edge with ',zsno
-                    CALL EASKATOG(outs,'  ','wall-eave','wall-gable',
+                    CALL EASKMBOX(outs,'  ','wall-eave','wall-gable',
      &                'wall-parapet or wall-flat roof','lintel',
-     &                'balcony','not a bridge',' ',IV,nbhelp)
+     &                'balcony','not a bridge',' ',' ',IV,nbhelp)
                     if(iv.eq.1)then
                       ibridgeshr(icc,i)=1
                       bridgelen(izon,1)= bridgelen(izon,1)+edgelen
@@ -13155,10 +13142,10 @@ C Check if either surface is a REVEAL.
                             call ZSID(izon,isurf,zsn,ZSDESC,ZSDESS)
                             call ZSID(izon,iosurf,zsno,ZSDESCO,ZSDESSO)
                             write(outs,'(3a)') zsn,' edge with ',zsno
-                              CALL EASKAB(outs,
+                              CALL EASKMBOX(outs,
      &                          'One surface is a reveal:',
      &                          'corner thermal bridge','not a bridge',
-     &                          IV,nbhelp)
+     &                          ' ',' ',' ',' ',' ',' ',IV,nbhelp)
                               if(IV.eq.2)then
                                if(MMOD.eq.8)then  ! Redraw as black line.
                                  call edge_redblack(xx,xy,iix,iiy,
@@ -13377,9 +13364,9 @@ C Check if REVEAL << and FRAME >>
                         call ZSID(izon,isurf,zsn,ZSDESC,ZSDESS)
                         call ZSID(izon,iosurf,zsno,ZSDESCO,ZSDESSO)
                         write(outs,'(3a)') zsn,' edge with ',zsno
-                        CALL EASKABC(outs,'One surface is a reveal',
+                        CALL EASKMBOX(outs,'One surface is a reveal',
      &                    'corner thermal bridge','jamb',
-     &                    'not a bridge',IV,nbhelp)
+     &                    'not a bridge',' ',' ',' ',' ',' ',IV,nbhelp)
                         if(IV.eq.3)then
                           if(MMOD.eq.8)then  ! Redraw as black line.
                             call edge_redblack(xx,xy,iix,iiy,
@@ -13449,9 +13436,9 @@ C Check if either surface is a REVEAL.
                       call ZSID(izon,isurf,zsn,ZSDESC,ZSDESS)
                       call ZSID(izon,iosurf,zsno,ZSDESCO,ZSDESSO)
                       write(outs,'(3a)') zsn,' edge with ',zsno
-                      CALL EASKABC(outs,'One surface is a reveal',
+                      CALL EASKMBOX(outs,'One surface is a reveal',
      &                  'wall-floor exposed','sill','not a bridge',
-     &                  IV,nbhelp)
+     &                  ' ',' ',' ',' ',' ',IV,nbhelp)
                       if(IV.eq.3)then
                         if(MMOD.eq.8)then  ! Redraw as black line.
                           call edge_redblack(xx,xy,iix,iiy,
@@ -13538,10 +13525,10 @@ C                      write(6,*) 'add ',edgelen,' to intermed floor'
                     call ZSID(izon,isurf,zsn,ZSDESC,ZSDESS)
                     call ZSID(izon,iosurf,zsno,ZSDESCO,ZSDESSO)
                     write(outs,'(3a)') zsn,' edge with ',zsno
-                    CALL EASKATOG(outs,'  ','wall-eave','wall-gable',
+                    CALL EASKMBOX(outs,'  ','wall-eave','wall-gable',
      &                'wall-parapet or wall-flat roof',
      &                'intermediate floor','balcony','lintel',
-     &                'not a bridge',IV,nbhelp)
+     &                'not a bridge',' ',IV,nbhelp)
                     if(iv.eq.1)then
                       ibridgeshr(icc,i)=1
                       bridgelen(izon,1)= bridgelen(izon,1)+edgelen

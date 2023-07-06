@@ -224,8 +224,9 @@ C List help text for the vertex menu.
       ELSEIF(IVERT.EQ.(MVERT-3).AND.MODE(1:1).NE.'L')THEN
 
 C Alter list by deleting/ editing.
-        CALL EASKABCD(' ','Options:','delete component',
-     &    'new component','edit component','cancel',IRT,nbhelp)
+        CALL EASKMBOX(' ','Options:','delete component',
+     &    'new component','edit component','cancel',
+     &    ' ',' ',' ',' ',IRT,nbhelp)
         if(IRT.eq.1)then
           
 C Delete the chosen special component.

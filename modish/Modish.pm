@@ -2,7 +2,7 @@
 #NOTE: TO USE THE PROGRAM AS A SCRIPT, THE LINE ABOVE SHOULD BE ERASED OR TURNED INTO A COMMENT.
 #!/usr/bin/perl
 # Modish
-$VERSION = '0.4';
+$VERSION = '0.4.1';
 # Author: Gian Luca Brunetti, Politecnico di Milano - gianluca.brunetti@polimi.it.
 # An intermediate version of the subroutine createconstrdbfile has been modified by ESRU (2038),
 # University of Strathclyde, Glasgow.
@@ -18,6 +18,7 @@ $VERSION = '0.4';
 # In versions 0.321 to 0.325 (17.10.2020): bug fixes.
 # In versions 0.4 (20.12.2021): adapted code to changes in the e2r interaction;
 # reintroduced the possibility of non-embedded use; added the possibility of choosing which zones and surfaces to operate on.
+# In versions 0.4.1 (28.09.2022): bug fix.
 
 use v5.14;
 use Exporter;
@@ -6940,7 +6941,7 @@ sub modish
         `mv -f ./modish_defaults.pl ./_modish_defaults.pl`;
       }
     }
-    elsif ( $news[0] eq "3" )
+    #elsif ( $news[0] eq "3" )
     #{ # shading factor correction
     #  open(FIL, "./modish_defaults.pl" ) or die;
     #  my @lins = <FIL>;

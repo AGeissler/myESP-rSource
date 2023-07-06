@@ -544,9 +544,9 @@ C Setup limits for weather parameters
       call gethelptext(helpinsub,helptopic,nbhelp)
       COEFFS=' '
       ILC=1
-      CALL EASKATOG(' ','Weather parameter:',
+      CALL EASKMBOX(' ','Weather parameter:',
      &    'set to constant','change by constant','fraction of original',
-     &    'polynomial transform','cancel',' ',' ',ILC,nbhelp)
+     &    'polynomial transform','cancel',' ',' ',' ',ILC,nbhelp)
       IF(ILC.EQ.5)RETURN
       K=0
       IF(ILC.EQ.1)THEN

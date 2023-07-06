@@ -183,8 +183,9 @@ C Clear default uncertainties. 0.01% and %.
 
 C Deal with weather ambient T.
         VALUE=DFLTRANGE(3,1); DVALUE=DFLTRANGE(3,1)
-        call EASKAB('Define ambient T bounds',' via:',
-     &    'percentage change','absolute change',ICNG,nbhelp)
+        call EASKMBOX('Define ambient T bounds',' via:',
+     &    'percentage change','absolute change',
+     &    ' ',' ',' ',' ',' ',' ',ICNG,nbhelp)
         IDFLTR(3,1)=ICNG
         if(ICNG.eq.1)then
           call EASKR(VALUE,' ','Percentage change value?',
@@ -198,8 +199,9 @@ C Deal with weather ambient T.
 
 C Deal with weather direct normal solar.
         VALUE=DFLTRANGE(3,2); DVALUE=DFLTRANGE(3,2)
-        call EASKAB('Define direct normal solar bounds',' via:',
-     &    'percentage change','absolute change',ICNG,nbhelp)
+        call EASKMBOX('Define direct normal solar bounds',' via:',
+     &    'percentage change','absolute change',
+     &    ' ',' ',' ',' ',' ',' ',ICNG,nbhelp)
         IDFLTR(3,2)=ICNG
         if(ICNG.eq.1)then
           call EASKR(VALUE,' ','Percentage change value?',
@@ -213,8 +215,9 @@ C Deal with weather direct normal solar.
 
 C Deal with weather diffuse horiz solar.
         VALUE=DFLTRANGE(3,3); DVALUE=DFLTRANGE(3,3)
-        call EASKAB('Define diffuse horiz solar bounds',' via:',
-     &    'percentage change','absolute change',ICNG,nbhelp)
+        call EASKMBOX('Define diffuse horiz solar bounds',' via:',
+     &    'percentage change','absolute change',
+     &    ' ',' ',' ',' ',' ',' ',ICNG,nbhelp)
         IDFLTR(3,3)=ICNG
         if(ICNG.eq.1)then
           call EASKR(VALUE,' ','Percentage change value?',
@@ -228,8 +231,9 @@ C Deal with weather diffuse horiz solar.
 
 C Deal with weather wind speed.
         VALUE=DFLTRANGE(3,4); DVALUE=DFLTRANGE(3,4)
-        call EASKAB('Define wind speed bounds',' via:',
-     &    'percentage change','absolute change',ICNG,nbhelp)
+        call EASKMBOX('Define wind speed bounds',' via:',
+     &    'percentage change','absolute change',
+     &    ' ',' ',' ',' ',' ',' ',ICNG,nbhelp)
         IDFLTR(3,4)=ICNG
         if(ICNG.eq.1)then
           call EASKR(VALUE,' ','Percentage change value?',
@@ -243,8 +247,9 @@ C Deal with weather wind speed.
 
 C Deal with weather wind direction.
         VALUE=DFLTRANGE(3,5); DVALUE=DFLTRANGE(3,5)
-        call EASKAB('Define wind direction bounds',' via:',
-     &    'percentage change','absolute change',ICNG,nbhelp)
+        call EASKMBOX('Define wind direction bounds',' via:',
+     &    'percentage change','absolute change',
+     &    ' ',' ',' ',' ',' ',' ',ICNG,nbhelp)
         IDFLTR(3,5)=ICNG
         if(ICNG.eq.1)then
           call EASKR(VALUE,' ','Percentage change value?',
@@ -258,8 +263,9 @@ C Deal with weather wind direction.
 
 C Deal with weather relative humidity.
         VALUE=DFLTRANGE(3,6); DVALUE=DFLTRANGE(3,6)
-        call EASKAB('Define relative humidity bounds',' via:',
-     &    'percentage change','absolute change',ICNG,nbhelp)
+        call EASKMBOX('Define relative humidity bounds',' via:',
+     &    'percentage change','absolute change',
+     &    ' ',' ',' ',' ',' ',' ',ICNG,nbhelp)
         IDFLTR(3,6)=ICNG
         if(ICNG.eq.1)then
           call EASKR(VALUE,' ','Percentage change value?',
@@ -273,8 +279,9 @@ C Deal with weather relative humidity.
 
 C Deal with conductivity.
         VALUE=DFLTRANGE(1,1); DVALUE=DFLTRANGE(1,1)
-        call EASKAB('Define conductivity bounds',' via:',
-     &    'percentage change','absolute change',ICNG,nbhelp)
+        call EASKMBOX('Define conductivity bounds',' via:',
+     &    'percentage change','absolute change',
+     &     ' ',' ',' ',' ',' ',' ',ICNG,nbhelp)
         IDFLTR(1,1)=ICNG
         if(ICNG.eq.1)then
           call EASKR(VALUE,' ','Percentage change value?',
@@ -288,8 +295,9 @@ C Deal with conductivity.
 
 C Deal with density.
         VALUE=DFLTRANGE(1,2); DVALUE=DFLTRANGE(1,2)
-        call EASKAB('Define density bounds',' via:',
-     &    'percentage change','absolute change',ICNG,nbhelp)
+        call EASKMBOX('Define density bounds',' via:',
+     &    'percentage change','absolute change',
+     &    ' ',' ',' ',' ',' ',' ',ICNG,nbhelp)
         IDFLTR(1,2)=ICNG
         if(ICNG.eq.1)then
           call EASKR(VALUE,' ','Percentage change value?',
@@ -303,8 +311,9 @@ C Deal with density.
 
 C Deal with specific Heat.
         VALUE=DFLTRANGE(1,3); DVALUE=DFLTRANGE(1,3)
-        call EASKAB('Define specific heat bounds',' via:',
-     &    'percentage change','absolute change',ICNG,nbhelp)
+        call EASKMBOX('Define specific heat bounds',' via:',
+     &    'percentage change','absolute change',
+     &    ' ',' ',' ',' ',' ',' ',ICNG,nbhelp)
         IDFLTR(1,3)=ICNG
         if(ICNG.eq.1)then
           call EASKR(VALUE,' ','Percentage change value?',
@@ -318,8 +327,9 @@ C Deal with specific Heat.
 
 C Deal with long wave emissivity.
         VALUE=DFLTRANGE(1,4); DVALUE=DFLTRANGE(1,4)
-        call EASKAB('Define long wave emissivity bounds',' via:',
-     &    'percentage change','absolute change',ICNG,nbhelp)
+        call EASKMBOX('Define long wave emissivity bounds',' via:',
+     &    'percentage change','absolute change',
+     &    ' ',' ',' ',' ',' ',' ',ICNG,nbhelp)
         IDFLTR(1,4)=ICNG
         if(ICNG.eq.1)then
           call EASKR(VALUE,' ','Percentage change value?',
@@ -333,8 +343,9 @@ C Deal with long wave emissivity.
 
 C Deal with short wave absorptivity.
         VALUE=DFLTRANGE(1,5); DVALUE=DFLTRANGE(1,5)
-        call EASKAB('Define short wave absorptivity bounds',' via:',
-     &    'percentage change','absolute change',ICNG,nbhelp)
+        call EASKMBOX('Define short wave absorptivity bounds',' via:',
+     &    'percentage change','absolute change',
+     &    ' ',' ',' ',' ',' ',' ',ICNG,nbhelp)
         IDFLTR(1,5)=ICNG
         if(ICNG.eq.1)then
           call EASKR(VALUE,' ','Percentage change value?',
@@ -348,8 +359,9 @@ C Deal with short wave absorptivity.
 
 C Deal with layer thickness in a MLC.
         VALUE=DFLTRANGE(2,1); DVALUE=DFLTRANGE(2,1)
-        call EASKAB('Define MLC layer thickness bounds',' via:',
-     &    'percentage change','absolute change',ICNG,nbhelp)
+        call EASKMBOX('Define MLC layer thickness bounds',' via:',
+     &    'percentage change','absolute change',
+     &    ' ',' ',' ',' ',' ',' ',ICNG,nbhelp)
         IDFLTR(2,1)=ICNG
         if(ICNG.eq.1)then
           call EASKR(VALUE,' ','Percentage change value?',
@@ -363,8 +375,9 @@ C Deal with layer thickness in a MLC.
 
 C Deal with ideal control period start time.
         VALUE=DFLTRANGE(5,1); DVALUE=DFLTRANGE(5,1)
-        call EASKAB('Ideal control period start time bounds',' via:',
-     &    'percentage change','absolute change',ICNG,nbhelp)
+        call EASKMBOX('Ideal control period start time bounds',' via:',
+     &    'percentage change','absolute change',
+     &    ' ',' ',' ',' ',' ',' ',ICNG,nbhelp)
         IDFLTR(5,1)=ICNG
         if(ICNG.eq.1)then
           call EASKR(VALUE,' ','Percentage change value?',
@@ -378,8 +391,9 @@ C Deal with ideal control period start time.
 
 C Deal with ideal control heat & Cool capacity.
         VALUE=DFLTRANGE(5,2); DVALUE=DFLTRANGE(5,2)
-        call EASKAB('Ideal control heat & cool capacity',' via:',
-     &    'percentage change','absolute change',ICNG,nbhelp)
+        call EASKMBOX('Ideal control heat & cool capacity',' via:',
+     &    'percentage change','absolute change',
+     &    ' ',' ',' ',' ',' ',' ',ICNG,nbhelp)
         IDFLTR(5,2)=ICNG
         IDFLTR(5,3)=ICNG
         if(ICNG.eq.1)then
@@ -395,8 +409,9 @@ C Deal with ideal control heat & Cool capacity.
 
 C Deal with ideal control heat & cool set points.
         VALUE=DFLTRANGE(5,4); DVALUE=DFLTRANGE(5,4)
-        call EASKAB('Ideal control heat & cool set points',' via:',
-     &    'percentage change','absolute change',ICNG,nbhelp)
+        call EASKMBOX('Ideal control heat & cool set points',' via:',
+     &    'percentage change','absolute change',
+     &    ' ',' ',' ',' ',' ',' ',ICNG,nbhelp)
         IDFLTR(5,4)=ICNG
         IDFLTR(5,5)=ICNG
         if(ICNG.eq.1)then
@@ -412,8 +427,9 @@ C Deal with ideal control heat & cool set points.
 
 C Deal with zone air volume.
         VALUE=DFLTRANGE(6,1); DVALUE=DFLTRANGE(6,1)
-        call EASKAB('Define zone air volume bounds',' via:',
-     &    'percentage change','absolute change',ICNG,nbhelp)
+        call EASKMBOX('Define zone air volume bounds',' via:',
+     &    'percentage change','absolute change',
+     &    ' ',' ',' ',' ',' ',' ',ICNG,nbhelp)
         IDFLTR(6,1)=ICNG
         if(ICNG.eq.1)then
           call EASKR(VALUE,' ','Percentage change value?',
@@ -427,8 +443,9 @@ C Deal with zone air volume.
 
 C Deal with surface area.
         VALUE=DFLTRANGE(6,2); DVALUE=DFLTRANGE(6,2)
-        call EASKAB('Define surface area bounds',' via:',
-     &    'percentage change','absolute change',ICNG,nbhelp)
+        call EASKMBOX('Define surface area bounds',' via:',
+     &    'percentage change','absolute change',
+     &    ' ',' ',' ',' ',' ',' ',ICNG,nbhelp)
         IDFLTR(6,2)=ICNG
         if(ICNG.eq.1)then
           call EASKR(VALUE,' ','Percentage change value?',
@@ -442,8 +459,9 @@ C Deal with surface area.
 
 C Deal with zone operations period start time.
         VALUE=DFLTRANGE(4,1); DVALUE=DFLTRANGE(4,1)
-        call EASKAB('zone operations period start time bounds',' via:',
-     &    'percentage change','absolute change',ICNG,nbhelp)
+        call EASKMBOX('zone operations period start time bounds',
+     &    ' via:','percentage change','absolute change',
+     &    ' ',' ',' ',' ',' ',' ',ICNG,nbhelp)
         IDFLTR(4,1)=ICNG
         if(ICNG.eq.1)then
           call EASKR(VALUE,' ','Percentage change value?',
@@ -457,8 +475,9 @@ C Deal with zone operations period start time.
 
 C Deal with casual gain sensible & latent W.
         VALUE=DFLTRANGE(4,2); DVALUE=DFLTRANGE(4,2)
-        call EASKAB('Casual gain sensible & latent W bounds',' via:',
-     &    'percentage change','absolute change',ICNG,nbhelp)
+        call EASKMBOX('Casual gain sensible & latent W bounds',
+     &    ' via:','percentage change','absolute change',
+     &    ' ',' ',' ',' ',' ',' ',ICNG,nbhelp)
         IDFLTR(4,2)=ICNG
         IDFLTR(4,3)=ICNG
         if(ICNG.eq.1)then
@@ -474,8 +493,9 @@ C Deal with casual gain sensible & latent W.
 
 C Deal with zone casual radiant convective split.
         VALUE=DFLTRANGE(4,4); DVALUE=DFLTRANGE(4,4)
-        call EASKAB('zone casual rad/convective split bounds',' via:',
-     &    'percentage change','absolute change',ICNG,nbhelp)
+        call EASKmBOX('zone casual rad/convective split bounds','via:',
+     &    'percentage change','absolute change',
+     &    ' ',' ',' ',' ',' ',' ',ICNG,nbhelp)
         IDFLTR(4,4)=ICNG
         if(ICNG.eq.1)then
           call EASKR(VALUE,' ','Percentage change value?',

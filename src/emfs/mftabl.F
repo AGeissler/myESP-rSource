@@ -138,8 +138,9 @@ C Display format for date is Fri 10 Jan.
 C Change flow results output units
    40   helptopic='mfs_express_flow_results'
         call gethelptext(helpinsub,helptopic,nbhelp)
-        CALL EASKABC(' Express flow results as: ',' ',
-     &   'kg/s','volume as m^3/hr','volume as ac/h',IDIM,nbhelp)
+        CALL EASKMBOX(' Express flow results as: ',' ',
+     &   'kg/s','volume as m^3/hr','volume as ac/h',
+     &   ' ',' ',' ',' ',' ',IDIM,nbhelp)
         IF(IER.NE.0) GOTO 40
       ELSEIF(INO.EQ.4)THEN
 
@@ -464,8 +465,8 @@ C Display format for date is Fri 10 Jan.
 C Change flow results output units
    70   helptopic='mfs_table_express_flow'
         call gethelptext(helpinsub,helptopic,nbhelp)
-        CALL EASKABC(' ','Flow results units:',
-     &   'kg/s','m^3/h','AC/h',IDIM,nbhelp)
+        CALL EASKMBOX(' ','Flow results units:',
+     &   'kg/s','m^3/h','AC/h',' ',' ',' ',' ',' ',IDIM,nbhelp)
         IF(IER.NE.0) GOTO 70
       ELSEIF(INO.EQ.4)THEN
 
@@ -520,8 +521,9 @@ C Add one or more connections to the table
           NIE=NDNAM(IE)
           helptopic='mfs_table_vol_rate'
           call gethelptext(helpinsub,helptopic,nbhelp)
-          CALL EASKAB(' For volume/hr flow use the',
-     &    ' volume of which node: ',NIS,NIE,IW,nbhelp)
+          CALL EASKMBOX(' For volume/hr flow use the',
+     &    ' volume of which node: ',NIS,NIE,
+     &    ' ',' ',' ',' ',' ',' ',IW,nbhelp)
           if(IW.eq.1)then
             VOL(NCOL)=SUPNOD(IS,2)
           elseif(IW.eq.2)then

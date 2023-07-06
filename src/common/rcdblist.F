@@ -50,7 +50,10 @@ C Parameters
       integer ier
 
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
-      common/warncounter/iecount
+      logical ieopened     ! Has session file been started.
+      integer iecount      ! Does it hold error messages.
+      character iefile*72  ! The name of the session file.
+      common/logs/ieopened,iecount,iefile
       COMMON/FILEP/IFIL
       common/clmltext/clmlnam,clmlaid,clmldbfile,clmlavail,clmlhelp(60)
       character clmlnam*42,clmlaid*72,clmldbfile*144,clmlavail*10
@@ -268,14 +271,12 @@ C actreturn 'u' to start clm module.
             elseif(actreturn.eq.'f')then
               if(parent.eq.'p')then
                 CALL ERPFREE(idblfil,ISTAT)
-                write(ieout,'(a)') 'Climate list scan failed!'
+                call to_session('Climate list scan failed!')
               elseif(parent.eq.'c')then
                 CALL ERPFREE(idblfil,ISTAT)
-                write(ieout,'(a)') 'Climate list scan failed!'
+                call to_session('Climate list scan failed!')
               endif
               call pauses(3)   ! pause for 3 seconds then abort program.
-              iecount=iecount+1
-              close(ieout)
               CALL EPAGEND
               STOP
             endif
@@ -778,8 +779,9 @@ C for the line used in EASKOK.
           if(clmlavail(1:7).eq.'OFFLINE')then
             if(parent(1:1).eq.'c')then
               call usrmsg('Weather file is offline!',' ','W')
-              CALL EASKAB(' ','Options:','Exit clm',
-     &          'Select another from list',IW,nbhelp)
+              CALL EASKMBOX(' ','Options:','Exit clm',
+     &          'Select another from list',
+     &          ' ',' ',' ',' ',' ',' ',IW,nbhelp)
               if(IW.eq.2)then
                 clmdb='UNKNOWN'
                 actreturn='m'
@@ -791,8 +793,9 @@ C for the line used in EASKOK.
               endif
             elseif(parent(1:1).eq.'p')then
               call usrmsg('Weather file offline!',' ','W')
-              CALL EASKAB(' ','Options:','continue',
-     &          'select another',IW,nbhelp)
+              CALL EASKMBOX(' ','Options:','continue',
+     &          'select another',
+     &          ' ',' ',' ',' ',' ',' ',IW,nbhelp)
               if(IW.eq.2)then
                 clmdb='UNKNOWN'
                 actreturn='m'
@@ -805,7 +808,8 @@ C for the line used in EASKOK.
             endif
           elseif(clmlavail(1:6).eq.'ONLINE')then
             if(parent(1:1).eq.'c')then
-              CALL EASKAB(' ','Options:','use it','reselect',IW,nbhelp)
+              CALL EASKMBOX(' ','Options:','use it','reselect',
+     &          ' ',' ',' ',' ',' ',' ',IW,nbhelp)
               if(IW.eq.2)then
                 clmdb='UNKNOWN'
                 actreturn='m'

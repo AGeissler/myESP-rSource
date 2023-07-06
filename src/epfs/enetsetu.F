@@ -1409,10 +1409,10 @@ C Alter the solver type
         H(2)='simulation, however it is recommended that you use the '
         H(3)='faster Newton-Raphson solver. The Gauss-Siedel solver is '
         H(4)='mainly used for testing purposes.'
-        CALL EASKABCD('Select the solver you want to use.',
+        CALL EASKMBOX('Select the solver you want to use.',
      &'The Newton-Raphson (w. pivoting) solver is recommended.',
      &'Newton-Raph.(w. pivoting)','Newton-Raphson','Gauss-Siedel',
-     &'Continue',IW,4)
+     &'Continue',' ',' ',' ',' ',IW,4)
         IF(IW.EQ.1) THEN
           ENETSLVT=3
         ELSEIF(IW.EQ.2) THEN

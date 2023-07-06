@@ -185,8 +185,8 @@ C Display help messages.
 C Automatically run all of the available models.
         h(1)=' Results can be displayed or saved to file.'
         irpt=1
-        CALL EASKATOG(' ','Reporting to:','file',
-     &     'screen','cancel',' ',' ',' ',' ',irpt,1)
+        CALL EASKMBOX(' ','Reporting to:','file',
+     &     'screen','cancel',' ',' ',' ',' ',' ',irpt,1)
         if(irpt.ne.3)then
           do 200 IGRP=1,NGR
             TGROUP=group(IGRP)
@@ -223,6 +223,8 @@ C        =0 allow user selection
 C IRPT - report to file (=1) or screen (=2) or unknown (=0, will ask)
       SUBROUTINE RUNSTD(LVFILE,LGROUP,IFLG,IRPT)
 #include "building.h"
+#include "model.h"
+#include "esprdbfile.h"
 #include "help.h"
 
       common/OUTIN/IUOUT,IUIN,IEOUT
@@ -251,6 +253,8 @@ C irecdata - zone and surface number for results recovery (=0 if all)
       character actitem(MNVCASE,MNVOPT)*72
       character recitem(MNVCASE,MNVOPT)*72
       character pathitem(MNVCASE,MNVOPT)*72
+      character lcf*72      
+      character MODE*4
       
       dimension itemval(MNVCASE)
 
@@ -259,11 +263,16 @@ C irecdata - zone and surface number for results recovery (=0 if all)
       character outs*256,doit*300
       character xfile*144,tg*1,delim*1,t12*12
       character chkresult*8
+      character odir*84
       
       logical XST,ok,CLOSE,unixok
+      logical mlcok,bndryok,bndrysxc,confok,geofok,oprfok,prob
+      logical tmcok,shdok
       integer irpt  ! for radio button
 
-      call isunix(unixok)
+      call isunix(unixok)  ! Detect if linux and find user folder.
+      odir=' '
+      call usrdir(odir)
 
 C Initialise variables.
       IVFILE=IFIL+1
@@ -433,8 +442,8 @@ C Process selected models.
         h(2)=' a text file.'
         h(3)=' Cancel to quit analysis.'
         irpt=1
-        CALL EASKATOG(' Reporting to:',' ','file',
-     &     'screen','cancel',' ',' ',' ',' ',irpt,3)
+        CALL EASKMBOX(' Reporting to:',' ','file',
+     &     'screen','cancel',' ',' ',' ',' ',' ',irpt,3)
       endif
       if (irpt.eq.1) then
  9      itu=ixunit
@@ -472,7 +481,25 @@ C This will write out the titles for the results.
      &    ' - ',name(imod)
         call edisp(itu,outs)
         do 210 iopt=1,ncfgitem(imod)
-          call tstamp('>','PRJ: beginning simulation')
+C         Change to the directory of the model
+          call chdir(rootitem(imod,iopt)(1:lnblnk(rootitem(imod,iopt))))
+
+C Scan the cfg file and then loop through the zones to see if shading
+C files exist via checkmodel. Following code to be tested.                                                                                               
+C          itrcc=0
+C          MODE='ALL '
+C          IUF=IPRODB   ! assign second file unit to the events db unit
+C          LCF=cfgitem(imod,iopt)(1:lnblnk(cfgitem(imod,iopt)))
+C          CALL ERSYS(LCF,IFCFG,IUF,MODE,itrcc,IER)
+
+C Call checkmodel to ensure that shading files exist.
+C          if(INDCFG.eq.2)then
+C            continue
+C          else
+C            call checkmodel(mlcok,bndryok,bndrysxc,confok,geofok,
+C     &        oprfok,prob,tmcok,shdok)
+C          endif
+
           write (outs,'(a,1x,a)') 
      &      cfgitem(imod,iopt)(1:lnblnk(cfgitem(imod,iopt))),
      &      actitem(imod,iopt)(1:lnblnk(actitem(imod,iopt)))
@@ -480,7 +507,6 @@ C This will write out the titles for the results.
           call usrmsg(doit,' ','-')
           call runit(doit,'-')
           write (outs,'(2a)') doit(1:lnblnk(doit)),'...done.'
-          call tstamp('>','PRJ: beginning results analysis')
 
 C After the bps (simulation), the results recovery starts.
 C It reads the models recovery file name from the text file.  
@@ -499,6 +525,7 @@ C command (it's the first word in the string recitem).
           write(doit,'(4a)') 'rm -f ',t72(1:lnblnk(t72)),' ',
      &       pathitem(imod,iopt)(1:lnblnk(pathitem(imod,iopt)))
           call runit(doit,'-')
+          call chdir(odir)
  210    continue
  
 C Compare model variants (if any) and print results.

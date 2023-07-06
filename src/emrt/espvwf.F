@@ -32,6 +32,10 @@ C Calculation of zone view factors.
       integer igraphiclib  ! external definition
 
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
+      logical ieopened     ! Has session file been started.
+      integer iecount      ! Does it hold error messages.
+      character iefile*72  ! The name of the session file.
+      common/logs/ieopened,iecount,iefile
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
       integer ifs,itfs,imfs
       COMMON/GFONT/IFS,ITFS,IMFS
@@ -62,10 +66,6 @@ C Path to model.
       character runpath*72  ! path for working files
       common/expath/runpath
 
-C Session log file (for errors etc.)
-      character iefile*72
-      common/logs/iefile
-
       integer lnrp  ! length of runpath
       common/expathl/lnrp
 
@@ -74,9 +74,6 @@ C Indicator of possible focus zone.
       
       integer ncomp,ncon
       COMMON/C1/NCOMP,NCON
-
-C Project journal on/off, unit number, cmd, file name.
-      common/journopt/journio,iuj,journcmd,jfile
 
 C Defaults.
       character*96 DFCFG,DFCTL,DEFRLB,DAPROB,DAFRES,DPNF
@@ -111,13 +108,12 @@ C Ask to overwrite flag.
       CHARACTER DFILE*72,inf*144,LCMDFL*144
       CHARACTER VFILE*72,ZN*12,LTMP*72,L144*144,LTMPFL*72
       character path*72
-      character journcmd*20,jfile*72
-      character inz*16,inzone*16,fs*1,cjfile*72
+      character inz*16,inzone*16,fs*1
 
       character cVnum*38      ! returned from ESPrVersionNum
       character pagestitle*68 ! for banner title via epages call
       character ppath*72,filen*72
-      character dstmp*24,uname*24,tfile*72
+      character dstmp*24,uname*24,tfile*72,troot*32
 
       integer iglib   ! if 1 then X11, if 2 then GTK, if 3 then text only.
       integer ISTRW
@@ -367,48 +363,37 @@ C Find the user's home folder then get user's custom settings.
       endif
       call scesprc(esprc,IUF,0,IIER)
 
-C If there is a journal active set up to add to the journal. First
-C get the root journal file (setup by prj) from the users home folder.
-C All subsequent tstamp messages will be appended to root journal.
-      if(journio.eq.1)then
-        uname=' '
-        call usrname(uname)
-        cjfile=' '
-        write(cjfile,'(5a)')upath(1:lnblnk(upath)),fs,'.',
-     &    uname(1:lnblnk(uname)),'cur_j'
-        there=.false.
-        INQUIRE(FILE=cjfile,EXIST=there)
-        if(there)then
-          close(iuj)
-          open(iuj,file=cjfile,status='UNKNOWN',err=901)
-          CALL STRIPC(iuj,OUTSTR,0,ND,1,'header',IER)
-          if(OUTSTR(1:15).eq.'Current_Journal')then
-            k=16
-            CALL EGETRM(OUTSTR,K,jfile,'W','root journ',IER)
-          endif
-          close(iuj)
-        endif
-
-        write(outs,'(a,a)')'Journal (viewfactor analysis) for:',
-     &    uname(1:lnblnk(uname))
-        call tstamp('>',outs)
+C Create and open a session log file based on user name, PID etc.
+      call cmdtoroot(inf,troot)          ! Return model root name.
+      write(6,*) 'mrt root ',troot(1:lnblnk(troot))
+      if(unixok)then
+        write(tfile,'(3a)') '/tmp/',troot(1:lnblnk(troot)),
+     &    '.log'
+        call st2file(tfile,iefile)
+      else
+        write(tfile,'(6a)') 'C:',fs,'TEMP',fs,
+     &  troot(1:lnblnk(troot)),'.log'
+        call st2file(tfile,iefile)  ! Keep track of iefile name.
       endif
 
-C Create and open a session log file based on user name, PID etc.
-      uname=' '; tfile=' '
-      call usrname(uname)
-      call esppid(ipid)
-        write(tfile,'(a,a1,a,a,i7,a)')upath(1:lnblnk(upath)),fs,'.',
-     &    uname(1:lnblnk(uname)),ipid,'.log'
-      call st2file(tfile,iefile)
-
 C Open the session file.
-      ieout=ifil+932          ! set to unused index 942
-      open(ieout,file=iefile,status='UNKNOWN',err=903)
+      ieout=ifil+932              ! Set to unused index 932
+      iecount=0                   ! Clear count of errors.
+      if(.NOT.ieopened) goto 903  ! Set in scan of .esprc file (scesprc)
+      INQUIRE (FILE=iefile,EXIST=XST)
+      if(XST)then
+        close(ieout)
+        open(ieout,file=iefile,position='APPEND',
+     &     status='UNKNOWN',err=903)
+        call to_session('   ')   ! Blank line to separate new entries.
+      else
+        open(ieout,file=iefile,status='UNKNOWN',err=903)
+      endif
       write(ieout,'(a)')'Session log for mrt'
       call dstamp(dstmp) ! get curret time
       write(ieout,'(2a)')'Date,',dstmp
       write(ieout,'(2a)')'User,',uname(1:lnblnk(uname))
+      ieopened = .true.
   903 continue
 
 C Scan the defaults file silently for default configuration.
@@ -430,7 +415,6 @@ C be to a single zone or ALL zones (e.g. not yet specified).
         call edisp(iuout,'  ') ! echo a blank line
         write(outs,'(a,a)')'The input zone is: ',inzone
         call edisp(iuout,outs)
-        call tstamp('>',outs)
       else
         inzone='ALL'
       endif
@@ -539,6 +523,7 @@ C     &            cfgroot(1:lnblnk(cfgroot)),'.mrt'
               call FPRAND(IFPOL,ISTAT,80,3,LTMPFL)
               if(ISTAT.lt.0)then
                 call edisp(iuout,' Error opening mrt.trace file;')
+                call to_session('Error opening mrt.trace file;')
                 close(ieout)
                 CALL ERPFREE(ieout,ISTAT)
                 CALL EPAGEND
@@ -654,8 +639,6 @@ C            write(6,*) 'lnrp ',lnrp,pwdtocfg
           numberofzones=ncomp
           IF(MMOD.EQ.8) call updwire(numberofzones)
           CALL ZDATA (ITRC,IER,int(numberofzones),ISFSUM)
-          call tstamp('>','VWF: scanning new model')
-          call tstamp('>',LCFGF)
 
 C Open scratch file now that path is known.
           if(unixok)then
@@ -673,6 +656,7 @@ C     &        cfgroot(1:lnblnk(cfgroot)),'.mrt'
             call FPRAND(IFPOL,ISTAT,80,3,LTMPFL)
             if(ISTAT.lt.0)then
               call edisp(iuout,' Error opening mrt.trace file;')
+              call to_session('Error opening mrt.trace file;')
               close(ieout)
               CALL ERPFREE(ieout,ISTAT)
               CALL EPAGEND
@@ -695,6 +679,7 @@ C     &        cfgroot(1:lnblnk(cfgroot)),'.mrt'
             call FPRAND(IFPOL,ISTAT,80,3,LTMPFL)
             if(ISTAT.lt.0)then
               call edisp(iuout,' Error opening mrt.trace file;')
+              call to_session('Error opening mrt.trace file;')
               close(ieout)
               CALL ERPFREE(ieout,ISTAT)
               CALL EPAGEND
@@ -718,9 +703,7 @@ C Read geometry file for either calculation purpose
         CALL EASKGEOF('Select a zone to assess:',CFGOK,IC,'-',32,IER)
         IF(IC.EQ.0.OR.IC.EQ.-1)GOTO 10
         IER=0
-        write(outs,'(a,a)')'VWF: shift zone focus to: ',zname(IC)
         ZN=zname(IC)
-        call tstamp('>',outs)
         goto 42
       ELSEIF(INO.EQ.6)THEN
 
@@ -738,7 +721,6 @@ c Change parameter igfact.
         call gethelptext(helpinsub,helptopic,nbhelp)
         CALL EASKI(IGFACT,' ',' New value ? ',
      &    2,'W',igx,'W',6,'grid factor',IER,nbhelp)
-        call tstamp('>','VWF: updated grid factor')
       ELSEIF(INO.EQ.7)THEN
 
 c Change npatch.
@@ -752,7 +734,6 @@ c Change npatch.
         CALL EASKI(NP,' ',' New value ? ',
      &    1,'F',MPATCH/4,'F',10,'patch subdivision',IER,nbhelp)
         NPATCH=4*NP
-        call tstamp('>','VWF: updated patch subdivision')
       ELSEIF(INO.EQ.9)THEN
 
 c Calculate viewfactors for input geometry.
@@ -770,9 +751,7 @@ c Calculate viewfactors for input geometry.
         lstsur = nsur
         tmrt=.false.
         GEOLOAD=.TRUE.
-        call tstamp('>','VWF: enter viewfactor calcs')
         CALL CALVF(ICOMP)
-        call tstamp('>','VWF: exit viewfactor calcs')
       ELSEIF(INO.EQ.10)THEN
 
 C Proceed with TMRT calculations after asking for the
@@ -797,9 +776,7 @@ C of rectangular body.
         IER=0
         IGFACTold=IGFACT
         NPATCHold=NPATCH
-        call tstamp('>','VWF: enter mrt calcs')
         call EDMRTC(ITRC,IUOUT,ICOMP,IER)
-        call tstamp('>','VWF: exit mrt calcs')
 
 C Reset grid and patch after return from MRT sensor calculations.
         IGFACT=IGFACTold
@@ -812,7 +789,6 @@ C Toggle trace level.
       ELSEIF(INO.EQ.13)THEN
 
 c Printout of surfaces.
-        call tstamp('>','VWF: list surface info')
         context=.false.
         CALL SURINFO(ICOMP,iuout,context)
       ELSEIF(INO.EQ.14)THEN
@@ -833,7 +809,6 @@ C Save view factor file.
         LVIEW(icomp)=LTMP
         CALL EMKMRT(LVIEW(icomp),LGEOM(ICOMP),NZSUR(icomp),IUF,
      &    ICOMP,'v',IER)
-        call tstamp('>','VWF: update viewfactor file')
       ELSEIF(INO.EQ.16)THEN
 
 C Help via the askabout facility in esru_ask.F The zero requests display
@@ -841,7 +816,6 @@ C Help via the askabout facility in esru_ask.F The zero requests display
       ELSEIF(INO.EQ.17)THEN
 
 c End program, free and delete the scratch file.
-        call tstamp('>','Finish viewfactor module')
         INQUIRE (FILE=LTMPFL(1:lnblnk(LTMPFL)),EXIST=XST)
         if(XST)then
           CALL ERPFREE(IFPOL,ISTST)
@@ -883,8 +857,9 @@ C default (area weighted) viewfactors and no MRT sensors.
         if(ier.ne.0)then
           helptopic='problem_reading_existing'
           call gethelptext(helpinsub,helptopic,nbhelp)
-          CALL EASKABC('Problem reading viewfactor file!',
-     &      'Options:','reread','create new file','cancel',irt,nbhelp)
+          CALL EASKMBOX('Problem reading viewfactor file!',
+     &      'Options:','reread','create new file','cancel',
+     &      ' ',' ',' ',' ',' ',irt,nbhelp)
           if(irt.eq.1)then
             goto 43
           elseif(irt.eq.2)then
@@ -936,7 +911,6 @@ C        NCUB(ICOMP)=0
         CALL FILEIN(ITRC,IUOUT,IER)
         MRTLOAD=.TRUE.
         GEOLOAD=.TRUE.
-        call tstamp('>','VWF: created file full of zeros')
       endif
 
 C Determine geometry bounds and force it to be drawn.

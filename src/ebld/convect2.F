@@ -1,6 +1,6 @@
 C This file is part of the ESP-r system.
 C Copyright Energy Systems Research Unit, University of
-C Strathclyde, Glasgow Scotland, 2001.
+C Strathclyde, Glasgow Scotland, 2001-.
 
 C ESP-r is free software.  You can redistribute it and/or
 C modify it under the terms of the GNU General Public
@@ -13,13 +13,7 @@ C warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
 C PURPOSE. See the GNU General Public License for more
 C details.
 
-C You should have received a copy of the GNU General Public
-C License along with ESP-r. If not, write to the Free
-C Software Foundation, Inc., 59 Temple Place, Suite 330,
-C Boston, MA 02111-1307 USA.
-
-C This file contains the routines for calculating surface convection.
-
+C This file contains subroutines for calculating surface convection.
 C     HTBUOY  Calculates HTCs using buoyancy-driven flow correlations.
 C     HTCEXT  Calculates HTCs for forced flow on exterior surfaces.
 C     SELCOR1 Selects convection approach based on simulation toggle.
@@ -72,11 +66,11 @@ C Room Surfaces', Energy and Buildings, 30 233-244.
 C The ISO 15099:2003 correlations.
 
       SUBROUTINE HTBUOY(HC,ICOR,ICOMP,ISUR,DT,HEIGHT,APRAT)
-
 #include "building.h"
 #include "model.h"
 #include "geometry.h"
 #include "net_flow.h"
+
       COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
       COMMON/TC/ITC,ICNT
       common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
@@ -91,7 +85,7 @@ C Commons to support vertical channel hc regime.
       COMMON/CLIMI/QFP,QFF,TP,TF,QDP,QDF,VP,VF,DP,DF,HP,HF
       COMMON/VERTC/IAORZ,CWIDTH,CHEIGHT
 
-C Commons added for ISO 15099 algorithm
+C Common for ISO 15099 algorithm.
       COMMON/AFN/IAIRN,LAPROB,ICAAS(MCOM)
 
       CHARACTER LAPROB*72
@@ -105,8 +99,8 @@ C Commons added for ISO 15099 algorithm
       DOUBLE PRECISION NUSS,RAS,CNUS
       DOUBLE PRECISION FLIN,FLUT
 
-C Trace output. If there is a zone htc file note that data may
-C be superceeded by user specifications.
+C Trace output. If there is a zone htc file data may be
+C superceeded by user specifications.
       dotrace=.false.
       IF(ITC.LE.0.OR.NSINC.LT.ITC)goto 9999
       IF(ITRACE(6).EQ.0.OR.NSINC.GT.ITCF)goto  9999
@@ -136,10 +130,9 @@ C be superceeded by user specifications.
       dotrace=.true.
  9999 continue
 
-      IF(ICOR.EQ.1)THEN
-
-C######   VERTICAL SURFACES   ##################################################
+C VERTICAL SURFACES
 C Alamdari and Hammond.
+      IF(ICOR.EQ.1)THEN
         call eclose(HEIGHT,0.0,0.01,close)
         if(close) HEIGHT = 1.0  ! reset hight if close to zero
         HC=((1.50*((DT/HEIGHT)**0.25))**6.0
@@ -148,41 +141,43 @@ C Alamdari and Hammond.
           write(outs,'(A,2F9.3)')' Alamdari: HC & DT',HC,DT
           call edisp(itu,outs)
         endif
-      ELSEIF(ICOR.EQ.2)THEN
+
 C Halcrow, time invariant low.
+      ELSEIF(ICOR.EQ.2)THEN
         HC=1.0
         if(dotrace)then
           write(outs,'(A,F9.3)')' Halcrow low (vert): HC',HC
           call edisp(itu,outs)
         endif
-      ELSEIF(ICOR.EQ.3)THEN
+
 C Halcrow, time invariant high.
+      ELSEIF(ICOR.EQ.3)THEN
         HC=6.0
         if(dotrace)then
           write(outs,'(A,F9.3)')' Halcrow high (vert): HC',HC
           call edisp(itu,outs)
         endif
-      ELSEIF(ICOR.EQ.4)THEN
+
 C CIBSE
+      ELSEIF(ICOR.EQ.4)THEN
         HC=3.0
         if(dotrace)then
           write(outs,'(A,F9.3)')' CIBSE (vert): HC',HC
           call edisp(itu,outs)
         endif
-      ELSEIF(ICOR.EQ.5)then
 
 C Khalifa & Marshall correlation for walls for the following
 C room configurations (Table 2, eq.6 of K&M paper):
 C 1) radiator located under window;
 C 2) room heated by heated vertical wall, but NOT applicable for
 C    the heated surface.
+      ELSEIF(ICOR.EQ.5)then
         HC=2.30*(DT**0.24)
         if(dotrace)then
           write(outs,'(A,2F9.3)')
      &      ' Khalifa & Marshall Tbl 2 eq 6 (vert): HC & DT',HC,DT
           call edisp(itu,outs)
         endif
-      ELSEIF(ICOR.EQ.6)THEN
 
 C Khalifa & Marshall correlation for the following
 C room configurations (Table 2, eq.3 of K&M paper):
@@ -190,18 +185,19 @@ C 1) fan heater in room, surfaces not opposite fan;
 C 2) room with floor heating;
 C 3) radiator in room, but radiator NOT located under a window,
 C    surface under consideration NOT next to radiator.
+      ELSEIF(ICOR.EQ.6)THEN
         HC = 2.07*(DT**0.23)
         if(dotrace)then
           write(outs,'(A,2F9.3)')
      &      ' Khalifa & Marshall Tbl 2 eq 3 (vert): HC & DT',HC,DT
           call edisp(itu,outs)
         endif
-      ELSEIF(ICOR.EQ.7)THEN
 
 C Khalifa & Marshall correlation for the following
 C room configuration (Table 2, eq.5 of K&M paper):
 C 1) radiator in room, but radiator NOT located under a window,
 C    surface under consideration located next to radiator.
+      ELSEIF(ICOR.EQ.7)THEN
         HC = 1.98*(DT**0.32)
         if(dotrace)then
           write(outs,'(2A,2F9.3)')
@@ -209,11 +205,11 @@ C    surface under consideration located next to radiator.
      &       rad NOT under window: HC & DT',HC,DT
           call edisp(itu,outs)
         endif
-      ELSEIF(ICOR.EQ.8)THEN
 
 C Khalifa & Marshall correlation for the following
 C room configuration (Table 2, eq.8 of K&M paper):
 C 1) fan heater in room, surfaces opposite fan.
+      ELSEIF(ICOR.EQ.8)THEN
         HC = 2.92*(DT**0.25)
         if(dotrace)then
           write(outs,'(2A,2F9.3)')
@@ -221,17 +217,17 @@ C 1) fan heater in room, surfaces opposite fan.
      &      ' surface opposite fan: HC & DT',HC,DT
           call edisp(itu,outs)
         endif
-      ELSEIF(ICOR.EQ.9)THEN
 
-C CEN
+C CEN.
+      ELSEIF(ICOR.EQ.9)THEN
         HC=2.5
         if(dotrace)then
           write(outs,'(A,F9.3)')' CEN (vert): HC ',HC
           call edisp(itu,outs)
         endif
-      ELSEIF(ICOR.EQ.10)THEN
 
 C Fisher & Pedersen `ASHRAE' correlation for radial ceiling diffusers.
+      ELSEIF(ICOR.EQ.10)THEN
         ACH = Vdot(ICOMP)*3600./VOL(ICOMP)
         HCFish = 0.19*ACH**0.8
         HC = HCFish*ADJREF(ICOMP,ISUR)
@@ -240,9 +236,9 @@ C Fisher & Pedersen `ASHRAE' correlation for radial ceiling diffusers.
      &    ' Fisher ASHRAE radial ceil: HC & HCFish & ACH',HC,HCFish,ACH
           call edisp(itu,outs)
         endif
-      ELSEIF(ICOR.EQ.11)THEN
 
 C Fisher `thesis' correlation for radial ceiling diffusers.
+      ELSEIF(ICOR.EQ.11)THEN
         ACH = Vdot(ICOMP)*3600./VOL(ICOMP)
         HCFish = -0.199 + 0.190*ACH**0.8
         HC = HCFish*ADJREF(ICOMP,ISUR)
@@ -251,9 +247,9 @@ C Fisher `thesis' correlation for radial ceiling diffusers.
      &    ' Fisher thesis radial ceil: HC & HCFish & ACH',HC,HCFish,ACH
           call edisp(itu,outs)
         endif
-      ELSEIF(ICOR.EQ.12)THEN
 
 C Fisher `thesis' correlation for free horizontal jet.
+      ELSEIF(ICOR.EQ.12)THEN
         ACH = Vdot(ICOMP)*3600./VOL(ICOMP)
         HCFish = -0.110 + 0.132*ACH**0.8
         HC = HCFish*ADJREF(ICOMP,ISUR)
@@ -262,12 +258,12 @@ C Fisher `thesis' correlation for free horizontal jet.
      &    ' Fisher thesis free hor jet: HC & HCFish & ACH',HC,HCFish,ACH
           call edisp(itu,outs)
         endif
-      ELSEIF(ICOR.EQ.13)THEN
 
 C Mixed convection model using Fisher `thesis' correlation
 C for radial ceiling diffusers and Alamdari & Hammond's correlation.
 C Combination of HC depends on whether buoyant and mechanical forces
 C assist (iassist=1) or oppose (iassist=-1).
+      ELSEIF(ICOR.EQ.13)THEN
         call eclose(HEIGHT,0.0,0.01,close)
         if(close) HEIGHT = 1.0  ! reset hight if close to zero
         ACH = Vdot(ICOMP)*3600./VOL(ICOMP)
@@ -292,25 +288,25 @@ C Opposing forces. HCmixed <= max(HCforc,HCfree):
      &    HC,HCFish,HCforc,HCfree,ACH
           call edisp(itu,outs)
         endif
-      ELSEIF(ICOR.EQ.14)THEN
 
 C Awbi and Hatton.
 C Note that this need to be changed. Rather than operating on the hydraulic
 C diameter of the model surface, this needs to operate on the hydraulic
 C diameter of the entire surface.
+      ELSEIF(ICOR.EQ.14)THEN
         HC = (1.823*DT**0.293) / (APRAT**0.121)
         if(dotrace)then
           write(outs,'(A,2F9.3)')
      &      ' Awbi & Hatton (vert): HC & DT',HC,DT
           call edisp(itu,outs)
         endif
-      ELSEIF(ICOR.EQ.15)THEN
 
 C Correlations for the naturally ventilated channels.
 C Molina & Maestre correlation for SOLVENT ventilated channel
-C according to the source publication the temperature difference
+C - according to the source publication the temperature difference
 C is not between the surface and air (inlet) but between air inlet
 C and outlet temperatures of the channel!
+      ELSEIF(ICOR.EQ.15)THEN
         if (IAORZ.gt.0) then
           HC=3.00*(ABS(TFS(ICOMP,ISUR)-TFA(IAORZ)))**0.333
 
@@ -341,14 +337,13 @@ C Error message IAORZ out of range.
             call edisp(itru,outs)
           endif
         endif
-      ELSEIF((ICOR.EQ.16).AND.(IAORZ.EQ.0))THEN
 
-C Bar-Cohen and Rohsenow general correlation for buoyancy driven flow in vertical channels.
-C Air entering from outdoors.
+C Bar-Cohen and Rohsenow general correlation for buoyancy driven flow in vertical
+C channels. Air entering from outdoors.
 C CWIDTH is the Channel width and CHEIGHT the channel height
 C RAS is the Rayleigh rumber and CNUSS the Nusselt number
 C Air properties fixed at 300 K values.
-
+      ELSEIF((ICOR.EQ.16).AND.(IAORZ.EQ.0))THEN
         RAS=9.8*1/TFA(IAORZ)*ABS(TFS(ICOMP,ISUR)-TF)*
      &      CWIDTH**3*0.707/(1.59E-5)**2
          
@@ -363,8 +358,8 @@ C Air properties fixed at 300 K values.
         endif
       ELSEIF((ICOR.EQ.16).AND.(IAORZ.GT.0))THEN
 
-C Bar-Cohen and Rohsenow general correlation for buoyancy driven flow in vertical channels.
-C Air entering from another building zone.
+C Bar-Cohen and Rohsenow general correlation for buoyancy driven flow in vertical
+C channels. Air entering from another building zone.
         RAS=9.81/TFA(IAORZ)*ABS(TFS(ICOMP,ISUR)-TFA(IAORZ))*
      &      CWIDTH**3.0*0.707/(1.59E-5)**2.0
          
@@ -380,19 +375,18 @@ C Air entering from another building zone.
           call edisp(itu,outs)
         endif
 
-      ELSEIF((ICOR.EQ.17).AND.(IAORZ.EQ.0))THEN
-
 C ISO 15099 correlation for buoyancy driven flow in ventilated vertical 
 C channels. Eqns. taken from version 2003, sec. 5.3 and eqn. 111.
 C CWIDTH is the Channel width and CHEIGHT the channel height. Hereby,
 C it is generally assumed the the ventilated vertical channel is split into 
 C more than one zone to better model stack effects in an afn.
 C PR is the Prandtl number, RAS is the Rayleigh number based on channel 
-C width and NUSS the corresponding Nusselt number
+C width and NUSS the corresponding Nusselt number.
 C Air properties are fixed to dry air values at 300 K and 101325 Pa.
 C
 C Air entering from outdoors, i.e. the "lowermost" zone of the vertical
 C channel - "forced" velocity is assumed to be zero.
+      ELSEIF((ICOR.EQ.17).AND.(IAORZ.EQ.0))THEN
         LAMBAIR=2.63D-02  ! W/(m K)
         RHOAIR=1.174D0     ! kg/m3
         CPAIR=1.007D0       ! kJ/(kg K)
@@ -418,7 +412,6 @@ C flow into account, which seems plausible for the "first" or "lowermost" zone
 C of a multi-zone stacked channel.
 
         NUSS=MAX(real(NUSS),(0.242*(real(RAS)*CWIDTH/CHEIGHT)**0.272))
-
         HC=2.0*real(NUSS*LAMBAIR)/CWIDTH
 
         if(dotrace) then
@@ -427,10 +420,10 @@ C of a multi-zone stacked channel.
      &     TFS(ICOMP,ISUR),TF,CWIDTH,CHEIGHT,real(RAS),real(NUSS),HC
           call edisp(itu,outs)
         endif
-      ELSEIF((ICOR.EQ.17).AND.(IAORZ.GT.0))THEN
 
-C ISO 15099 correlation for buoyancy driven flow in vertical channels w/
+C ISO 15099 correlation for buoyancy driven flow in vertical channels with
 C air entering from another (lower) building zone.
+      ELSEIF((ICOR.EQ.17).AND.(IAORZ.GT.0))THEN
         LAMBAIR=2.63D-02  ! W/(m K)
         RHOAIR=1.174D0     ! kg/m3
         CPAIR=1.007D0       ! kJ/(kg K)
@@ -477,7 +470,6 @@ C eqn. 111 from ISO 15099:2003
      &     real(RAS),real(NUSS),HC
           call edisp(itu,outs)
         endif
-      ELSEIF((ICOR.EQ.18).AND.(IAORZ.GT.0))THEN
 
 C Model for forced convection inside "smooth ducts" using the hydraulic
 C diameter as characteristic length.
@@ -490,7 +482,7 @@ C                 Re > 3000.
 C
 C If there is no air flow network or the flow velocity is small (Re < 3000) the
 C standard Alamdari/Hammond correlation (ICOR.eq.1) is used.
-C
+      ELSEIF((ICOR.EQ.18).AND.(IAORZ.GT.0))THEN
         LAMBAIR=2.63D-02  ! W/(m K)
         NUAIR=15.72D-6    ! m2/s
         Prandtl=0.69      ! air
@@ -552,10 +544,9 @@ C       correlation and issue warning.
           call edisp(itu,outs)
         endif
 
-      ELSEIF((ICOR.EQ.18).AND.(IAORZ.EQ.0))THEN
-
 C Gnielinski model expects air supply from adjacent zone, *not* the
 C ambient! Issue warning and use basic Alamdari and Hammond correlation.
+      ELSEIF((ICOR.EQ.18).AND.(IAORZ.EQ.0))THEN
         write(outs,'(A,A)')' WARNING: Gnielinski: expects air from ',
      &    " adj. zone! Standard Alamdari and Hammond corr. used."
         call edisp(itu,outs)
@@ -565,8 +556,6 @@ C ambient! Issue warning and use basic Alamdari and Hammond correlation.
           HC=((1.50*((DT/HEIGHT)**0.25))**6.0
      &        +(1.23*((DT)**(1.0/3.0)))**6.0)**(1.0/6.0)
 
-      ELSEIF(ICOR.EQ.20)THEN
-
 C Alamdari and Hammond TEST VERSION that returns 2.6X standard hc value
 C to explore situations where the one face of the surface area is larger
 C that the other face (e.g. in facade mullion extrusions and
@@ -574,6 +563,7 @@ C where one face is profiled such as metal forming under a slab).
 C Such a facility should be made generic so that the multiplier could 
 C be passed as a parameter and also consider whether other correlations
 C might take a multiplier parameter.
+      ELSEIF(ICOR.EQ.20)THEN
         call eclose(HEIGHT,0.0,0.01,close)
         if(close) HEIGHT = 1.0  ! reset hight if close to zero
         HC=((1.50*((DT/HEIGHT)**0.25))**6.0
@@ -584,12 +574,11 @@ C might take a multiplier parameter.
           call edisp(itu,outs)
         endif
 
-      ELSEIF(ICOR.EQ.21)THEN
-
 C Alamdari and Hammond TEST VERSION that returns 3X standard hc value
 C to explore situations where the one face of the surface area is larger
 C that the other face (e.g. in facade mullion extrusions and
 C where one face is profiled such as metal forming under a slab).
+      ELSEIF(ICOR.EQ.21)THEN
         call eclose(HEIGHT,0.0,0.01,close)
         if(close) HEIGHT = 1.0  ! reset hight if close to zero
         HC=((1.50*((DT/HEIGHT)**0.25))**6.0
@@ -600,12 +589,11 @@ C where one face is profiled such as metal forming under a slab).
           call edisp(itu,outs)
         endif
 
-      ELSEIF(ICOR.EQ.22)THEN
-
 C Alamdari and Hammond TEST VERSION that returns 4.69X standard hc value
 C to explore situations where the one face of the surface area is larger
 C that the other face (e.g. in facade mullion extrusions and
 C where one face is profiled such as metal forming under a slab).
+      ELSEIF(ICOR.EQ.22)THEN
         call eclose(HEIGHT,0.0,0.01,close)
         if(close) HEIGHT = 1.0  ! reset hight if close to zero
         HC=((1.50*((DT/HEIGHT)**0.25))**6.0
@@ -616,12 +604,11 @@ C where one face is profiled such as metal forming under a slab).
           call edisp(itu,outs)
         endif
 
-      ELSEIF(ICOR.EQ.23)THEN
-
 C Alamdari and Hammond TEST VERSION that returns 1.76X standard hc value
 C to explore situations where the one face of the surface area is larger
 C that the other face (e.g. in facade mullion extrusions and
 C where one face is profiled such as metal forming under a slab).
+      ELSEIF(ICOR.EQ.23)THEN
         call eclose(HEIGHT,0.0,0.01,close)
         if(close) HEIGHT = 1.0  ! reset hight if close to zero
         HC=((1.50*((DT/HEIGHT)**0.25))**6.0
@@ -632,31 +619,30 @@ C where one face is profiled such as metal forming under a slab).
           call edisp(itu,outs)
         endif
 
-      ELSEIF(ICOR.EQ.30)THEN
-
-C######   WINDOWS   ############################################################
+C WINDOWS
 C Khalifa & Marshall correlation for windows when a radiator is located
 C under the window (Table 2, eq.9 of K&M paper).
+      ELSEIF(ICOR.EQ.30)THEN
         HC = 8.07*(DT**0.11)
         if(dotrace) then
           write(outs,'(A,2F9.3)')
      &    ' Khalifa for windows (radiator under): HC & DT',HC,DT
           call edisp(itu,outs)
         endif
-      ELSEIF(ICOR.EQ.31)THEN
 
 C Khalifa & Marshall correlation for windows when there is NOT a radiator
 C located under the window (Table 2, eq.10 of K&M paper).
+      ELSEIF(ICOR.EQ.31)THEN
         HC = 7.61*(DT**0.06)
         if(dotrace)then
           write(outs,'(A,2F10.3)')
      &    ' Khalifa for windows (no radiator under): HC & DT',HC,DT
           call edisp(itu,outs)
         endif
-      ELSEIF(ICOR.EQ.50)then
 
-C######   BUOYANT FLOW ABOVE OR BELOW HORIZONTAL SURFACES  #####################
+C BUOYANT FLOW ABOVE OR BELOW HORIZONTAL SURFACES
 C Alamdari and Hammond.
+      ELSEIF(ICOR.EQ.50)then
         HC=((1.4*((DT/APRAT)**0.25))**6.0
      &     +(1.63*(DT**(1.0/3.0)))**6.0)**(1.0/6.0)
         if(dotrace) then
@@ -664,57 +650,57 @@ C Alamdari and Hammond.
      &    ' Alamdari (icor 50 horiz): HC & DT',HC,DT
           call edisp(itu,outs)
         endif
-      ELSEIF(ICOR.EQ.51)then
 
 C Halcrow, time invariant low.
+      ELSEIF(ICOR.EQ.51)then
         HC=1.0
         if(dotrace) then
           write(outs,'(A,F9.3)')' Halcrow low (horiz): HC',HC
           call edisp(itu,outs)
         endif
-      ELSEIF(ICOR.EQ.52)then
 
 C Halcrow, time invariant high.
+      ELSEIF(ICOR.EQ.52)then
         HC=6.0
         if(dotrace) then
           write(outs,'(A,F9.3)')' Halcrow high (horiz): HC',HC
           call edisp(itu,outs)
         endif
-      ELSEIF(ICOR.EQ.53)then
 
-C CIBSE
+C CIBSE.
+      ELSEIF(ICOR.EQ.53)then
         HC=4.3
         if(dotrace) then
           write(outs,'(A,F9.3)')' CIBSE (horiz): HC',HC
           call edisp(itu,outs)
         endif
-      ELSEIF(ICOR.EQ.54)then
 
-C CEN
+C CEN.
+      ELSEIF(ICOR.EQ.54)then
         HC=5.0
         if(dotrace) then
           write(outs,'(A,F9.3)')' CEN (horiz): HC ',HC
           call edisp(itu,outs)
         endif
-      ELSEIF(ICOR.EQ.55)then
 
 C Awbi and Hatton.
 C Note that this need to be changed. Rather than operating on the hydraulic
 C diameter of the model surface, this needs to operate on the hydraulic
 C diameter of the entire surface.
+      ELSEIF(ICOR.EQ.55)then
         HC = (2.175*DT**0.308) / (APRAT**0.076)
         if(dotrace) then
           write(outs,'(A,2F9.3)')
      &      ' Awbi & Hatton (horiz): HC & DT',HC,DT
           call edisp(itu,outs)
         endif
-      ELSEIF(ICOR.EQ.60)then
 
-C######   BUOYANT FLOW UNDER CEILINGS ##########################################
+C BUOYANT FLOW UNDER CEILINGS
 C Khalifa & Marshall correlation for ceilings for the following
 C room configurations (Table 2, eq.7 of K&M paper):
 C 1) radiator located under window;
 C 2) room heated by heated vertical wall.
+      ELSEIF(ICOR.EQ.60)then
         HC=3.10*(DT**0.17)
         if(dotrace) then
           write(outs,'(2A,2F9.3)')
@@ -722,13 +708,13 @@ C 2) room heated by heated vertical wall.
      &      ' rad under window or heated wall: HC & DT',HC,DT
           call edisp(itu,outs)
         endif
-      ELSEIF(ICOR.EQ.61)THEN
 
 C Khalifa & Marshall correlation for ceilings for the following
 C room configurations (Table 2, eq.4 of K&M paper):
 C 1) fan heater in room;
 C 2) room with floor heating;
 C 3) radiator in room, but radiator not located under a window.
+      ELSEIF(ICOR.EQ.61)THEN
         HC = 2.72*(DT**0.13)
         if(dotrace) then
           write(outs,'(2A,2F9.3)')
@@ -736,51 +722,51 @@ C 3) radiator in room, but radiator not located under a window.
      &     ' fan or floor heating or rad no under window: HC & DT',HC,DT
           call edisp(itu,outs)
         endif
-      ELSEIF(ICOR.EQ.70)then
 
-C######   STABLY STRATIFIED CONVECTION ABOVE OR BELOW HORIZONTAL SURFACES ######
+C STABLY STRATIFIED CONVECTION ABOVE OR BELOW HORIZONTAL SURFACES
 C Alamdari and Hammond.
+      ELSEIF(ICOR.EQ.70)then
         HC=0.60*((DT/(APRAT**2.0))**0.2)
         if(dotrace) then
           write(outs,'(A,2F9.3)')' Alamdari (stratified): HC & DT',HC,DT
           call edisp(itu,outs)
         endif
-      ELSEIF(ICOR.EQ.71)THEN
 
 C Halcrow, time invariant low.
+      ELSEIF(ICOR.EQ.71)THEN
         HC=0.1
         if(dotrace) then
           write(outs,'(A,F9.3)')' Halcrow low (stratified): HC',HC
           call edisp(itu,outs)
         endif
-      ELSEIF(ICOR.EQ.72)THEN
 
 C Halcrow, time invariant high.
+      ELSEIF(ICOR.EQ.72)THEN
         HC=1.2
         if(dotrace) then
           write(outs,'(A,F9.3)')' Halcrow high (stratified): HC',HC
           call edisp(itu,outs)
         endif
-      ELSEIF(ICOR.EQ.73)THEN
 
-C CIBSE
+C CIBSE.
+      ELSEIF(ICOR.EQ.73)THEN
         HC=1.5
         if(dotrace) then
           write(outs,'(A,F9.3)')' CIBSE (stratified): HC',HC
           call edisp(itu,outs)
         endif
-      ELSEIF(ICOR.EQ.74)THEN
 
-C CEN
+C CEN.
+      ELSEIF(ICOR.EQ.74)THEN
         HC=0.7
         if(dotrace) then
           write(outs,'(A,F9.3)')' CEN (stratified): HC ',HC
           call edisp(itu,outs)
         endif
-      ELSEIF(ICOR.EQ.80)THEN
 
-C######   FORCED FLOW AND MIXED FLOW OVER FLOORS ######
+C FORCED FLOW AND MIXED FLOW OVER FLOORS
 C Fisher & Pedersen `ASHRAE' correlation for radial ceiling diffusers.
+      ELSEIF(ICOR.EQ.80)THEN
         ACH = Vdot(ICOMP)*3600./VOL(ICOMP)
         HCFish = 0.13*ACH**0.8
         HC = HCFish*ADJREF(ICOMP,ISUR)
@@ -790,9 +776,9 @@ C Fisher & Pedersen `ASHRAE' correlation for radial ceiling diffusers.
      &    HCFish,ACH
           call edisp(itu,outs)
         endif
-      ELSEIF(ICOR.EQ.81)THEN
 
 C Fisher `thesis' correlation for radial ceiling diffusers.
+      ELSEIF(ICOR.EQ.81)THEN
         ACH = Vdot(ICOMP)*3600./VOL(ICOMP)
         HCFish = 0.159 + 0.116*ACH**0.8
         HC = HCFish*ADJREF(ICOMP,ISUR)
@@ -802,9 +788,9 @@ C Fisher `thesis' correlation for radial ceiling diffusers.
      &    HCFish,ACH
           call edisp(itu,outs)
         endif
-      ELSEIF(ICOR.EQ.82)THEN
 
 C Fisher `thesis' correlation for free horizontal jet.
+      ELSEIF(ICOR.EQ.82)THEN
         ACH = Vdot(ICOMP)*3600./VOL(ICOMP)
         HCFish = 0.704 + 0.168*ACH**0.8
         HC = HCFish*ADJREF(ICOMP,ISUR)
@@ -814,11 +800,11 @@ C Fisher `thesis' correlation for free horizontal jet.
      &    HCFish,ACH
           call edisp(itu,outs)
         endif
-      ELSEIF(ICOR.EQ.83)THEN
 
 C Mixed forced-free model using Fisher `thesis' correlation
 C for radial ceiling diffusers and Alamdari & Hammond's correlation.
 C A&H equation depends on direction of heat flow (iAandH).
+      ELSEIF(ICOR.EQ.83)THEN
         ACH = Vdot(ICOMP)*3600./VOL(ICOMP)
         HCFish = 0.159 + 0.116*ACH**0.8
         HCforc = HCFish*ADJREF(ICOMP,ISUR)
@@ -832,10 +818,10 @@ C A&H equation depends on direction of heat flow (iAandH).
      &    HC,HCFish,HCforc,ACH
           call edisp(itu,outs)
         endif
-      ELSEIF(ICOR.EQ.90)THEN
 
-C######   FORCED FLOW AND MIXED FLOW UNDER CEILINGS ######
+C FORCED FLOW AND MIXED FLOW UNDER CEILINGS ######
 C Fisher & Pedersen `ASHRAE' correlation for radial ceiling diffusers.
+      ELSEIF(ICOR.EQ.90)THEN
         ACH = Vdot(ICOMP)*3600./VOL(ICOMP)
         HCFish = 0.49*ACH**0.8
         HC = HCFish*ADJREF(ICOMP,ISUR)
@@ -845,9 +831,9 @@ C Fisher & Pedersen `ASHRAE' correlation for radial ceiling diffusers.
      &    HC,HCFish,ACH
           call edisp(itu,outs)
         endif
-      ELSEIF(ICOR.EQ.91)THEN
 
 C Fisher `thesis' correlation for radial ceiling diffusers.
+      ELSEIF(ICOR.EQ.91)THEN
         ACH = Vdot(ICOMP)*3600./VOL(ICOMP)
         HCFish = -0.166 + 0.484*ACH**0.8
         HC = HCFish*ADJREF(ICOMP,ISUR)
@@ -857,9 +843,9 @@ C Fisher `thesis' correlation for radial ceiling diffusers.
      &    HC,HCFish,ACH
           call edisp(itu,outs)
         endif
-      ELSEIF(ICOR.EQ.92)THEN
 
 C Fisher `thesis' correlation for free horizontal jet.
+      ELSEIF(ICOR.EQ.92)THEN
         ACH = Vdot(ICOMP)*3600./VOL(ICOMP)
         HCFish = 0.064 + 0.00444*(ACH**2.8)/DELTAR(ICOMP)
         HC = HCFish*ADJREF(ICOMP,ISUR)
@@ -869,11 +855,11 @@ C Fisher `thesis' correlation for free horizontal jet.
      &    HC,HCFish,ACH
           call edisp(itu,outs)
         endif
-      ELSEIF(ICOR.EQ.93)THEN
 
 C Mixed convection model using Fisher `thesis' correlation
 C for radial ceiling diffusers and Alamdari & Hammond's correlation.
 C A&H equation depends on direction of heat flow (iAandH).
+      ELSEIF(ICOR.EQ.93)THEN
         ACH = Vdot(ICOMP)*3600./VOL(ICOMP)
         HCFish = -0.166 + 0.484*ACH**0.8
         HCforc = HCFish*ADJREF(ICOMP,ISUR)
@@ -887,19 +873,20 @@ C A&H equation depends on direction of heat flow (iAandH).
      &    HC,HCFish,HCforc,ACH
           call edisp(itu,outs)
         endif
-      ELSEIF(ICOR.EQ.99)THEN
 
 C ADAPTIVE CONTROL USING FIXED COEFFICIENTS.
+      ELSEIF(ICOR.EQ.99)THEN
         HC = HCctl5
+
       ENDIF
 
       RETURN
       END
 
 
-C ******************** HTCEXT ********************
-C HTCEXT calculates convection coefficients for exterior surfaces.
-C ICOR is index of heat transfer correlation:
+C ******************** HTCEXT
+C Calculates convection coefficients for exterior surfaces.
+C ICOR indicates the heat transfer correlation:
 C  icor = 1 default equations from McAdams wind tunnel test(Energy Simulation 
 C         in Building Design by Clarke J A)
 C  icor = 2 MoWiTT model from M.Yazdanian(Measurement of the Exterior Convective 
@@ -930,7 +917,6 @@ C mention horizontal surfaces. So, except for Hagishima, horizontal surfaces use
 C the same correlation as vertical surfaces.
 
       SUBROUTINE HTCEXT(ICOR,HC,ICOMP,ISUR)
-
 #include "building.h"
 #include "geometry.h"
 
@@ -945,7 +931,7 @@ C the same correlation as vertical surfaces.
       character outs*124
       logical dotrace
 
-C Trace output ?
+C Trace output?
       dotrace=.false.
       IF(ITC.LE.0.OR.NSINC.LT.ITC)goto 9999
       IF(ITRACE(6).EQ.0.OR.NSINC.GT.ITCF)goto  9999
@@ -968,10 +954,9 @@ C VS is wall wind speed.
       PI = 4.0 * ATAN(1.0)
       R=PI/180.
 
-C Depending on the correlation, use different equations.
+C Dfault correlation.
       if(ICOR.eq.1)then
       
-C If default correlation do the following...
 C The orientation of the surface and the wind direction relative to
 C the surface determine which correlation to use.
 
@@ -1011,13 +996,15 @@ C Surface 'facing' wind direction, but not directly impinging.
      &    ' default equations from McAdams: VF V HC',VF,V,HC
           call edisp(itu,outs)
         endif
+
+C M. Yazdanan's MoWiTT model which was derived from a van in USA in 1994.
+
       elseif (ICOR.eq.2) then
-      
-C Use M.Yazdanan's MoWiTT model which was derived from a van in USA in 1994.
-C DT is temperature difference between outside surface and ambient temperature.
+
+C Temperature difference between outside surface and ambient temperature.
         DT = TFC(icomp,isur,1) - TF
 
-C Determine wind direction relative to surface. 
+C Wind direction relative to surface. 
         WSA=ABS(SPAZI(ICOMP,ISUR)-DF)
         IF(WSA.GT.180.0)WSA=360.0-WSA
         if(WSA.le.90.0)then
@@ -1037,10 +1024,10 @@ C Assume leeward side.
      &    ' MoWiTT model equations: VF DT HC',VF,DT,HC
           call edisp(itu,outs)
         endif
-      elseif (ICOR.eq.3) then
 
-C Use Aya Hagishima's correlations which were derived from a 4-storey building attached to
+C Aya Hagishima's correlations derived from a 4-storey building attached to
 C a 2-storey building in Japan in 2000.
+      elseif (ICOR.eq.3) then
         IF(SPELV(ICOMP,ISUR).LT.-45. .OR.SPELV(ICOMP,ISUR).GT.45.) THEN
 
 C Predominantly horizontal surface.
@@ -1058,9 +1045,10 @@ C Predominantly vertical surface.
      &    ' Aya Hagishima equations: VF VR VS HC',VF,VR,VS,HC
           call edisp(itu,outs)
         endif
+
+C Ya Liu correlations derived from roof wind speed for low-rised buildings surrounded by trees.
       elseif (ICOR.eq.4) then
 
-C Use Ya Liu correlations derived from roof wind speed for low-rised buildings surrounded by shelterbelt trees
 C Determine wind direction relative to surface. 
         WSA=ABS(SPAZI(ICOMP,ISUR)-DF)
         IF(WSA.GT.180.0)WSA=360.0-WSA
@@ -1080,9 +1068,10 @@ C Assume leeward side.
      &    ' Ya Liu roof wind speed equations: VF VR HC',VF,VR,HC
           call edisp(itu,outs)
         endif
+
+C Ya Liu correlations derived from wall wind speed for low-rised buildings surrounded by trees.
       elseif (ICOR.eq.5) then
 
-C Use Ya Liu correlations derived from wall wind speed for low-rised buildings surrounded by shelterbelt trees
 C Determine wind direction relative to surface. 
         WSA=ABS(SPAZI(ICOMP,ISUR)-DF)
         IF(WSA.GT.180.0)WSA=360.0-WSA
@@ -1102,10 +1091,11 @@ C Assume leeward side.
      &    ' Ya Liu wall wind speed equations: VF VS HC',VF,VS,HC
           call edisp(itu,outs)
         endif
-      elseif (ICOR.eq.6) then
 
-C Use Ya Liu correlations derived from local weather station wind speed for low-rised buildings
-C surrounded by shelterbelt trees
+C Ya Liu correlations derived from local weather station wind speed for low-rised buildings
+C surrounded by trees.
+      elseif (ICOR.eq.6) then
+      
 C Determine wind direction relative to surface. 
         WSA=ABS(SPAZI(ICOMP,ISUR)-DF)
         IF(WSA.GT.180.0)WSA=360.0-WSA
@@ -1123,10 +1113,11 @@ C Assume leeward side.
      &    ' Ya Liu weather station wind speed equations: VF HC',VF,HC
           call edisp(itu,outs)
         endif
-      elseif (ICOR.eq.7) then
 
 C Use Loveday correlations derived from roof wind speed for high-rised buildings
 C in urban environmental conditions.
+      elseif (ICOR.eq.7) then
+
 C Determine wind direction relative to surface.
         WSA=ABS(SPAZI(ICOMP,ISUR)-DF)
         IF(WSA.GT.180.0)WSA=360.0-WSA
@@ -1146,10 +1137,11 @@ C Assume leeward side.
      &    ' Loveday roof wind speed equations: VF VR HC',VF,VR,HC
           call edisp(itu,outs)
         endif
-      elseif (ICOR.eq.8) then
 
 C Use Loveday correlations derived from wall wind speed for high-rised buildings
 C in urban environmental conditions.
+      elseif (ICOR.eq.8) then
+
 C Determine wind direction relative to surface. 
         WSA=ABS(SPAZI(ICOMP,ISUR)-DF)
         IF(WSA.GT.180.0)WSA=360.0-WSA
@@ -1185,9 +1177,9 @@ C Note: 0.001 is added to VS to ensure it is non-zero.
      &    ' Loveday wind wind speed equations: VF VR VS HC',VF,VR,VS,HC
           call edisp(itu,outs)
         endif
-      elseif (ICOR.eq.9) then
 
-C Use CIBSE Guide equation
+C CIBSE Guide equation.
+      elseif (ICOR.eq.9) then
         VS=2.0/3.0*VR
         VR=VF
         HC=4.1*VS+5.8
@@ -1196,9 +1188,9 @@ C Use CIBSE Guide equation
      &    ' CIBSE guide equations: VF VR VS HC',VF,VR,VS,HC
           call edisp(itu,outs)
         endif
-      elseif (ICOR.eq.10) then
 
-C Use Loveday mixed correlation from four equations quoted by Guide Guide C3.
+C Loveday mixed correlation from four equations quoted by Guide Guide C3.
+      elseif (ICOR.eq.10) then
         VS=2.0/3.0*VR
         VR=VF
         HC=16.7*VS**0.5
@@ -1207,10 +1199,9 @@ C Use Loveday mixed correlation from four equations quoted by Guide Guide C3.
      &    ' Loveday mixed equations: VF VR VS HC',VF,VR,VS,HC
           call edisp(itu,outs)
         endif
-      elseif (ICOR.eq.11) then
 
-C Use British Standard equation.
-C V is wind speed.    
+C British Standard.
+      elseif (ICOR.eq.11) then
         V=VF
         HC=4.0*V+4.0
         if(dotrace) then
@@ -1218,9 +1209,10 @@ C V is wind speed.
      &    ' British standard equations: VF V HC',VF,V,HC
           call edisp(itu,outs)
         endif
+
+C ASHRAE Task Group.
       elseif (ICOR.eq.12) then
 
-C Use ASHRAE Task Group equations
 C Determine wind direction relative to surface 
         WSA=ABS(SPAZI(ICOMP,ISUR)-DF)
         IF(WSA.GT.180.)WSA=360.0-WSA
@@ -1245,9 +1237,9 @@ C Assume leeward side.
      &    ' ASHRAE Task Group equations: VF VS HC',VF,VS,HC
           call edisp(itu,outs)
         endif
-      elseif (ICOR.eq.13) then
 
-C Use Sturrock equation for normal exposure conditions and high-rised buildings
+C Sturrock equation for normal exposure conditions and high-rised buildings.
+      elseif (ICOR.eq.13) then
         VR=VF
         HC=6.00*VR+5.70
         if(dotrace) then
@@ -1255,9 +1247,9 @@ C Use Sturrock equation for normal exposure conditions and high-rised buildings
      &    ' Sturrock equations: VF VR HC',VF,VR,HC
           call edisp(itu,outs)
         endif
-      elseif (ICOR.eq.14) then
 
-C Use Keith Nicol equation 
+C Keith Nicol model. 
+      elseif (ICOR.eq.14) then
         VR=VF
         HC=7.55*VR+4.35
         if(dotrace) then
@@ -1265,9 +1257,9 @@ C Use Keith Nicol equation
      &    ' Keith Nicol equations: VF VR HC',VF,VR,HC
           call edisp(itu,outs)
         endif
-      elseif (ICOR.eq.15) then
 
-C Use S.E.G.Jayamaha equation (experiment was made on a mast)
+C S.E.G.Jayamaha model (experiment made on a mast).
+      elseif (ICOR.eq.15) then
         VR=VF
         HC=1.444*VR+4.955
         if(dotrace) then
@@ -1284,12 +1276,11 @@ C Use S.E.G.Jayamaha equation (experiment was made on a mast)
       END
 
 
-C ******************** SELCOR1 ********************
-C SELCOR1 selects the convection-calculation approach to use for a given
+C ******************** SELCOR1
+C Selects the convection-calculation approach to use for a given
 C surface based on the surface orientation, the direction of heat flow,
 C and the user-specified simulation toggle.
       SUBROUTINE SELCOR1(ICOMP,ISUR,inRout,TA,TS,ICOR)
-
 #include "building.h"
 #include "geometry.h"
 

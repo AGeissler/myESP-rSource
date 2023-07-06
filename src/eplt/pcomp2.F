@@ -11777,3 +11777,159 @@ C------------------------------------------------------------------------
 
       return
       END
+
+C ******************** CMP145C ********************
+C Generates for plant component IPCOMP with plant db code 146 ie.
+C 1 node (ISV=21) AC moist air flow source
+C matrix equation coefficients COUT (in order: self-coupling, cross-
+C coupling, and present-time coefficients) for energy balance (ISTATS=1),
+C 1st phase mass balance (ISTATS=2), or 2nd phase mass (ISTATS=3)
+C     ADATA: none
+C     BDATA: none
+C     CDATA: 1 Drybulb temperature (C)
+C            2 Dry air mass flow rate (kg/s)
+C            3 Water vapour mass flow rate (kg/s)
+
+      SUBROUTINE CMP145C(IPCOMP,COUT,ISTATS)
+#include "plant.h"
+#include "building.h"
+
+      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/TC/ITC,ICNT
+      COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
+
+      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+      COMMON/PTIME/PTIMEP,PTIMEF
+
+      COMMON/C9/NPCOMP,NCI(MPCOM),CDATA(MPCOM,MMISCD)
+      COMMON/C12PS/NPCDAT(MPCOM,9),IPOFS1(MCOEFG),IPOFS2(MCOEFG,MPVAR)
+      COMMON/PCOND/CONVAR(MPCON,MCONVR),ICONTP(MPCON),
+     &             ICONDX(MPCOM,MNODEC,MPCONC)
+      COMMON/C10/NPCON,IPC1(MPCON),IPN1(MPCON),IPCT(MPCON),
+     &           IPC2(MPCON),IPN2(MPCON),PCONDR(MPCON),PCONSD(MPCON,2)
+
+      COMMON/ATPRES/PATMOS
+      COMMON/WBULBO/IOPT
+      
+      LOGICAL bConnected       ! Flag indicating incomming connection exists
+
+      PARAMETER (SMALL=1.0E-15)
+      REAL      COUT(MPCOE)
+      character outs*124
+      REAL GS ! Humidity ratio (kg_v/kg_da)
+      REAL fVapFlow ! Water vapour flow rate (kg_v/s)
+      REAL PCRH2,HUMR
+
+C Trace output
+      IF(ITC.GT.0.AND.NSINC.GE.ITC.AND.NSINC.LE.ITCF.AND.
+     &   ITRACE(37).NE.0) WRITE(ITU,*) ' Entering subroutine CMP145C'
+
+C Check control data
+      IF(ISTATS.eq.2 .and. CDATA(IPCOMP,2).LT.0.) THEN
+         CALL DAYCLK(IDYP,PTIMEF,IUOUT)
+         WRITE(outs,*) ' CMP145C: dry air mass flow less than zero',
+     &             ' for component ',
+     &                  IPCOMP,' : ',CDATA(IPCOMP,1)
+         call edisp(iuout,outs)
+         call edisp(iuout,' CMP145C: unresolvable error.')
+         call epwait
+         call epagend
+         STOP
+      ELSEIF(ISTATS.eq.3 .and. CDATA(IPCOMP,3).LT.0.) THEN
+         CALL DAYCLK(IDYP,PTIMEF,IUOUT)
+         WRITE(outs,*)' CMP145C: water vapour mass flow less than zero',
+     &             ' for component ',
+     &                  IPCOMP,' : ',CDATA(IPCOMP,1)
+         call edisp(iuout,outs)
+         call edisp(iuout,' CMP145C: unresolvable error.')
+         call epwait
+         call epagend
+         STOP
+      END IF    
+
+C Initialize pointers to inter-connection(s) ICON, and node(s) INOD
+      ICON1=ICONDX(IPCOMP,1,1)
+      INOD1=NPCDAT(IPCOMP,9)
+
+C Sort out the connections
+      if ( ICON1 > 0 ) then
+C........Connection exists!
+         bConnected = .true.         
+      else
+C........Connection doesn't exist!
+         bConnected = .false.
+      endif 
+
+C Generate coefficients for energy balance equation
+      IF(ISTATS.EQ.1) THEN
+C Establish matrix equation self- and cross-coupling coefficients
+         COUT(1)=1.
+         IF(bConnected) THEN
+            COUT(2)=0.
+            COUT(3)=CDATA(IPCOMP,1)
+         ELSE
+            COUT(2)=CDATA(IPCOMP,1)
+         ENDIF
+
+C 1st phase mass (ie. dry air) balance coefficients
+      ELSE IF(ISTATS.EQ.2) THEN
+         COUT(1)=1.
+         IF(bConnected) THEN
+            COUT(2)=0.
+            COUT(3)=CDATA(IPCOMP,2)
+         ELSE
+            COUT(2)=CDATA(IPCOMP,2)
+         ENDIF
+
+C 2nd phase mass (ie. vapour) balance coefficients
+      ELSE IF(ISTATS.EQ.3) THEN
+         COUT(1) = 1.
+         fVapFlow=0.
+         ! Check relative humidity if there is flow
+         IF(CDATA(IPCOMP,3)>0. .AND. CDATA(IPCOMP,2)>0.)THEN
+            fVapFlow=CDATA(IPCOMP,3)
+            GS=CDATA(IPCOMP,3)/CDATA(IPCOMP,2)
+            IF(PCRH2(CDATA(IPCOMP,1),GS,PATMOS).GT.100.)THEN
+                WRITE(IUOUT,*) ' CMP145C warning: Relative humidity', 
+     &         ' exceeds 100 percent. Resetting vapour flow.'
+                GS=HUMR(CDATA(IPCOMP,1),100.,PATMOS)
+                fVapFlow=GS*CDATA(IPCOMP,2)
+            ENDIF
+         ENDIF
+         
+         IF(bConnected)THEN
+            COUT(2)=0.
+            COUT(3)=fVapFlow
+         ELSE
+            COUT(2)=fVapFlow
+         ENDIF
+      END IF
+
+C Trace output
+      IF(ITC.GT.0.AND.NSINC.GE.ITC.AND.NSINC.LE.ITCF.AND.
+     &   ITRACE(37).NE.0) THEN
+         WRITE(ITU,*) ' Component      ',IPCOMP,':'
+         WRITE(ITU,*) ' 1 node (ISV=21) moist air source'
+         WRITE(ITU,*) ' Matrix node(s) ',INOD1
+         WRITE(ITU,*) ' Connection(s)  ',ICON1
+         IF(ISTATS.EQ.1) THEN
+            WRITE(ITU,*) ' Temp  = ',CDATA(IPCOMP,1), '(C)'
+         ELSE IF(ISTATS.EQ.2) THEN
+            WRITE(ITU,*) ' Dry air flow  = ',CDATA(IPCOMP,2), '(kg/s)'
+         ELSE IF(ISTATS.EQ.3) THEN
+            WRITE(ITU,*)' Water vap. flow  = ',CDATA(IPCOMP,3), '(kg/s)'
+         END IF
+         WRITE(ITU,*) ' Matrix coefficients for ISTATS = ',ISTATS
+         NITMS=3
+         WRITE(ITU,*) (COUT(I),I=1,NITMS)
+         IF(ITU.EQ.IUOUT) THEN
+            IX1=(IPCOMP/4)*4
+            IF(IX1.EQ.IPCOMP.OR.IPCOMP.EQ.NPCOMP) call epagew
+         END IF
+      END IF
+
+      IF(ITC.GT.0.AND.NSINC.GE.ITC.AND.NSINC.LE.ITCF.AND.
+     &   ITRACE(37).NE.0) WRITE(ITU,*) ' Leaving subroutine CMP145C'
+
+      RETURN
+      END

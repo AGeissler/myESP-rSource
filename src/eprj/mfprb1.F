@@ -208,7 +208,7 @@ C If simulation parameters, clear flow results names.
               sflres(i)='  '
   89        continue
           endif
-          CALL EMKCFG('-',IER)
+          CALL EMKCFG('s',IER)
           call usrmsg(' ',' ','- ')
           return
         endif
@@ -304,9 +304,10 @@ C List contents of file if required.
 C File was not found.
         helptopic='flow_network_file_name'
         call gethelptext(helpinsub,helptopic,nbhelp)
-        CALL EASKABCD('Flow network file not found.','Options:',
+        CALL EASKMBOX('Flow network file not found.','Options:',
      &    'specify another file','make new file',
-     &    'make network from zone schedules','cancel',IW,nbhelp)
+     &    'make network from zone schedules','cancel',
+     &    ' ',' ',' ',' ',IW,nbhelp)
         if(IW.eq.1)then
           goto 179
         elseif(iw.eq.2)then
@@ -336,8 +337,9 @@ C reduction factor.
           call gethelptext(helpinsub,helptopic,nbhelp)
           CALL PHELPD('create net',nbhelp,'-',0,0,IER)
 
-          CALL EASKABC('Is the new network:',' ',
-     &      'all air','all water','mixed',IMIX,nbhelp)
+          CALL EASKMBOX('Is the new network:',' ',
+     &      'all air','all water','mixed',' ',' ',' ',' ',' ',
+     &      IMIX,nbhelp)
         elseif(iw.eq.3)then
 
 C Place in memory the names of the various flow components and reset
@@ -539,8 +541,9 @@ C Link nodes and zones.
      &         ' is currently linked to: ',NDNAM(ICAAS(IZ))
             helptopic='link_node_to_zone'
             call gethelptext(helpinsub,helptopic,nbhelp)
-            CALL EASKABC(outs,' ','accept',
-     &        'select another','free link',iacc,nbhelp)
+            CALL EASKMBOX(outs,' ','accept',
+     &        'select another','free link',' ',' ',' ',' ',' ',
+     &        iacc,nbhelp)
             if(iacc.eq.1)then
               goto 33
             elseif(iacc.eq.2)then
@@ -555,7 +558,8 @@ C Link nodes and zones.
             call gethelptext(helpinsub,helptopic,nbhelp)
             write(outs,'(A,A)') zname(IZ)(1:lnzname(IZ)),
      &                          ' has no mass flow node.'
-            CALL EASKAB(outs,' ','accept','select a node',iacc,nbhelp)
+            CALL EASKMBOX(outs,' ','accept','select a node',
+     &        ' ',' ',' ',' ',' ',' ',iacc,nbhelp)
             if(iacc.eq.1)then
               ICAAS(IZ)=0
             elseif(iacc.eq.2)then
@@ -737,7 +741,7 @@ C Update cfg file.
             write(LAPROB,'(a)') NWKNAM(1:lnblnk(NWKNAM))  ! update LAPROB
             call edisp(iuout,
      &        'Updating configuration flow links...')
-            CALL EMKCFG('-',IER)
+            CALL EMKCFG('s',IER)
             call edisp(iuout,
      &        'Updating configuration flow links...done.')
      
@@ -782,10 +786,10 @@ C Save both 3D and legacy flow network files.
             endif
   42      continue
           if(.not.found)then
-            CALL EASKAB(
+            CALL EASKMBOX(
      &        'No linkages set between the mass flow nodes and the',
      &        'thermal zones. Link now?','Yes','No',
-     &        IW,nbhelp)
+     &        ' ',' ',' ',' ',' ',' ',IW,nbhelp)
             if(IW.eq.1)goto 10
           endif
         endif
@@ -794,7 +798,7 @@ C Update the configuration file so that connections and mass flow
 C network are know.
         call edisp(iuout,' ')
         call edisp(iuout,' Updating configuration mass flow links...')
-        CALL EMKCFG('-',IER)
+        CALL EMKCFG('s',IER)
         RETURN
       else
         ino=-1
@@ -920,14 +924,14 @@ C Input node characteristics; start with node fluid
           NDFLD(IFNOD)=2
         else
           if(NDFLD(IFNOD).eq.1)then
-            CALL EASKAB(outs,'(currently air)','air','water',
-     &        IW,nbhelp)
+            CALL EASKMBOX(outs,'(currently air)','air','water',
+     &        ' ',' ',' ',' ',' ',' ',IW,nbhelp)
           elseif(NDFLD(IFNOD).eq.2)then
-            CALL EASKAB(outs,'(currently water)','air','water',
-     &        IW,nbhelp)
+            CALL EASKMBOX(outs,'(currently water)','air','water',
+     &        ' ',' ',' ',' ',' ',' ',IW,nbhelp)
           else
-            CALL EASKAB(outs,'(currently undefined)','air','water',
-     &        IW,nbhelp)
+            CALL EASKMBOX(outs,'(currently undefined)','air','water',
+     &        ' ',' ',' ',' ',' ',' ',IW,nbhelp)
           endif
           NDFLD(IFNOD)=IW
           changed=.true.
@@ -947,9 +951,9 @@ C Node type
         helptopic='node_type_summary'
         call gethelptext(helpinsub,helptopic,nbhelp)
         IVV=1
-        CALL EASKATOG(' ',prt,
+        CALL EASKMBOX(' ',prt,
      &  'internal, unknown','internal, known','boundary, known',
-     &  'boundary, wind induced','cancel',' ',' ',IVV,nbhelp)
+     &  'boundary, wind induced','cancel',' ',' ',' ',IVV,nbhelp)
         IF(IVV.EQ.5) RETURN
         NDTYP(IFNOD)=IVV-1
         IF(NDTYP(IFNOD).EQ.3.AND.NDFLD(IFNOD).NE.1)THEN
@@ -1405,14 +1409,14 @@ C Node fluid.
           NDFLD(IFNOD)=2
         else
           if(NDFLD(IFNOD).eq.1)then
-            CALL EASKAB(outs,'(currently air)','air','water',
-     &        IW,nbhelp)
+            CALL EASKMBOX(outs,'(currently air)','air','water',
+     &        ' ',' ',' ',' ',' ',' ',IW,nbhelp)
           elseif(NDFLD(IFNOD).eq.2)then
-            CALL EASKAB(outs,'(currently water)','air','water',
-     &        IW,nbhelp)
+            CALL EASKMBOX(outs,'(currently water)','air','water',
+     &        ' ',' ',' ',' ',' ',' ',IW,nbhelp)
           else
-            CALL EASKAB(outs,'(currently undefined)','air','water',
-     &        IW,nbhelp)
+            CALL EASKMBOX(outs,'(currently undefined)','air','water',
+     &        ' ',' ',' ',' ',' ',' ',IW,nbhelp)
           endif
           NDFLD(IFNOD)=IW
         endif
@@ -1425,9 +1429,9 @@ C Node type.
         call gethelptext(helpinsub,helptopic,nbhelp)
         IVV=1
         last=NDTYP(IFNOD)
-        CALL EASKATOG(' ',prt,
+        CALL EASKMBOX(' ',prt,
      &  'internal, unknown','internal, known','boundary, known',
-     &  'boundary, wind induced','cancel',' ',' ',IVV,nbhelp)
+     &  'boundary, wind induced','cancel',' ',' ',' ',IVV,nbhelp)
         IF(IVV.EQ.5) RETURN
         NDTYP(IFNOD)=IVV-1
         IF(NDTYP(IFNOD).EQ.3.AND.NDFLD(IFNOD).NE.1)THEN
@@ -1659,9 +1663,10 @@ C If the volume of the internal node is not zero ask for temperature.
         ELSEIF(NDTYP(IFNOD).EQ.2)THEN
           helptopic='initail_node_temp'
           call gethelptext(helpinsub,helptopic,nbhelp)
-          CALL EASKAB(' ','temperature flag indicating: ',
+          CALL EASKMBOX(' ','temperature flag indicating: ',
      &    'temperature is a constant',
-     &    'use outside air temperature',IW,nbhelp)
+     &    'use outside air temperature',' ',' ',' ',' ',' ',' ',
+     &    IW,nbhelp)
           SUPNOD(IFNOD,2)=FLOAT(IW-1)
           if(IW.eq.1)then
             CALL EASKR(VAL,' ','Node temperature (C)?',
@@ -1673,9 +1678,10 @@ C If the volume of the internal node is not zero ask for temperature.
      &    (NDTYP(IFNOD).NE.2.AND.SUPNOD(IFNOD,2).gt.0.001)) THEN
           helptopic='initail_node_temp'
           call gethelptext(helpinsub,helptopic,nbhelp)
-          CALL EASKAB('Node temperature: ','(see help)',
-     &    'Set initial or constant value',
-     &    'Set to temperature of another flow node',IW,nbhelp)
+          CALL EASKMBOX('Node temperature: ',' ',
+     &      'Set initial or constant value',
+     &      'Set to temperature of another flow node',
+     &      ' ',' ',' ',' ',' ',' ',IW,nbhelp)
           IT=IW-1
           IF(IT.EQ.0) THEN
              ITND(IFNOD)=0
@@ -1928,8 +1934,8 @@ C Highlight component.
         call gethelptext(helpinsub,helptopic,nbhelp)
 
   422    write(msg,'(2a)') 'Edit component ',CMPID(1:lnblnk(CMPID))
-        CALL EASKABC(' ','Options:',
-     &    'Review details',msg,'Continue',ICLC,nbhelp)
+        CALL EASKMBOX(' ','Options:','Review details',
+     &    msg,'Continue',' ',' ',' ',' ',' ',ICLC,nbhelp)
         
 C Echo summary of this component and confirm user wishes to proceed.
         if(ICLC.eq.1.or.ICLC.eq.2)then
@@ -2260,9 +2266,9 @@ C matching fluid types and return data.
      &      ' via ',CMNAM(ITPCON(IFCN)),': '
 
 C Offer choice of reversing connection or editing connection.
-          CALL EASKABCD(msg,' ','reverse connection',
+          CALL EASKMBOX(msg,' ','reverse connection',
      &      'accept current nodes & pick cmp','edit all',
-     &      'continue',ICLC,nbhelp)
+     &      'continue',' ',' ',' ',' ',ICLC,nbhelp)
           if(ICLC.eq.1)then
             IS=NODNE(IFCN)
             IE=NODPS(IFCN)
@@ -2687,9 +2693,9 @@ C Warn if current wind reduction factor is zero
 C Calculation model ?
    11 helptopic='wind_reduction_opts'
       call gethelptext(helpinsub,helptopic,nbhelp)
-      CALL EASKABCD('Which calculation model: ','(see help)',
+      CALL EASKMBOX('Which calculation model: ','(see help)',
      &  'Input a value','Powerlaw','Logarithmic','LBL model',
-     &  ICLC,nbhelp)
+     &  ' ',' ',' ',' ',ICLC,nbhelp)
       ICALC=ICLC-1
 
 C Direct input of wind speed reduction factor.
@@ -3012,8 +3018,9 @@ C Ask if the user wants a connection between these two zones.
               WRITE(OUTS,'(4a)') 'Found connection between ',
      &          NDNAM(ICAAS(IC1(ICN))),' and ',
      &          NDNAM(ICAAS(IC2(ICN)))
-              CALL EASKABC(OUTS,'Make this a fluid flow link?',
-     &          'Yes','No','Exit auto-connect',IOPT,nbhelp)
+              CALL EASKMBOX(OUTS,'Make this a fluid flow link?',
+     &          'Yes','No','Exit auto-connect',
+     &          ' ',' ',' ',' ',' ',IOPT,nbhelp)
               IF(IOPT.EQ.1)THEN
                 IFCN=NCNN+1
                 NODPS(IFCN)=ICAAS(IC1(ICN))
@@ -3632,7 +3639,7 @@ C both of the network flow files.
         write(LAPROB,'(a)') NWKNAM(1:lnblnk(NWKNAM))  ! update LAPROB
         call edisp(iuout,
      &    'Updating configuration flow links...')
-        CALL EMKCFG('-',IER)
+        CALL EMKCFG('s',IER)
         call edisp(iuout,
      &    'Updating configuration flow links...done.')
 

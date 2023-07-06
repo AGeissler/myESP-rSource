@@ -21,16 +21,12 @@ C libGTK, libX11 and libNONGtk files.
 
 C  st2name: Given `string' swap blanks & wildcards to _ return as `name'.
 C  st2file: Given `string' strip blanks & wildcards and return as `name'.
+C  hasblanks: Given a string returns true if it contains blanks or wildcards.
 C  backslashit: Given `string' swap / to \ : return as `name'.
 C  iprevblnk: Given a string, return position of blank just before ipos.
 C  inextblnk: Given a string, return position of blank just after ipos.
 C  icutstr: Given a string, cuts icut characters from position ipos.
-C  EASKAB:  Generic A/B choice facility returning 1 or 2 according to which
-C           of the choices has been chosen.
-C  EASKABC: Generic A/B/C choice facility returning 1, 2 or 3 according
-C           to which of the choices has been chosen.
-C  EASKABCD: Generic A/B/C/D choice facility returning 1-4 according
-C           to which of the choices has been chosen.
+
 C  EASKXORGTKF: Generic file edit/browse for X11 or GTK using easkf calls.
 C  iCountWords: Counts the number of space/tab/comma-separated
 C           words in a string.
@@ -52,6 +48,7 @@ C  iEGetArrW_2500: Same as iEGetArrW but for strings 2500 ch long.
 
 C  DAYCLK:  Print day, month, day no. and time based on the julian day & time.
 C  FDROOT:  Given a file name see if it contains a path.
+C  CMDTOROOT Parse command line file name and return model root name.
 C  EFOPSEQ: Open a sequential file with existance flag & path check.
 C  EFOPRAN: Open a random access file with existance flag & path check.
 C  ADDPATH: Return file name appended onto the path and logical concat.
@@ -382,6 +379,68 @@ C Stop copying if end of name reached.
 
       return
       end
+
+
+C ********** hasblanks
+C Given `string' returns true if it includes blanks & wildcards.
+      SUBROUTINE hasblanks(string,blanks)
+      CHARACTER*(*) string
+      logical blanks
+
+C Clear variables and get string lengths.
+      illstr = max(1,lnblnk(string))
+      blanks=.false.
+
+C Strip off any leading blanks from string, compact spaces and tabs
+C between words and substitute _ for any ` & * ( ) ^ # < > ' ` " ' or commas.
+C Stop copying if end of name reached.
+      K=0
+      DO 99 I=1,illstr
+        if(ichar(string(I:I)).eq.0)goto 99
+        if(ichar(string(I:I)).eq.9)goto 99
+        if(ichar(string(I:I)).eq.32)goto 99
+        if(ichar(string(I:I)).lt.32)goto 100
+
+        K=K+1
+        if(string(I:I).eq.char(34))then
+          blanks=.true.
+        elseif(string(I:I).eq.char(39))then
+          blanks=.true.
+        elseif(string(I:I).eq.char(44))then
+          blanks=.true.
+        elseif(string(I:I).eq.char(91))then
+          blanks=.true.
+        elseif(string(I:I).eq.char(93))then
+          blanks=.true.
+        elseif(string(I:I).eq.char(96))then
+          blanks=.true.
+        elseif(string(I:I).eq.'*')then
+          blanks=.true.
+        elseif(string(I:I).eq.'~')then
+          blanks=.true.
+        elseif(string(I:I).eq.'&')then
+          blanks=.true.
+        elseif(string(I:I).eq.'(')then
+          blanks=.true.
+        elseif(string(I:I).eq.')')then
+          blanks=.true.
+        elseif(string(I:I).eq.'>')then
+          blanks=.true.
+        elseif(string(I:I).eq.'<')then
+          blanks=.true.
+        elseif(string(I:I).eq.'^')then
+          blanks=.true.
+        elseif(string(I:I).eq.'#')then
+          blanks=.true.
+        else
+          continue
+        endif
+ 99   CONTINUE
+100   continue
+
+      return
+      end
+
 
 C ******************** backslashit ********************
 C Given `string' swap / to \ : return as `name'.
@@ -822,71 +881,6 @@ C ISTAT (integer) is its status 0=OK, 1=if IUN was zero.
       RETURN
       END
 
-C ******************** EASKAB ********************
-C Generic choice facility returning 1 or 2 according to which
-C of the choices has been chosen.
-C MSG1 and MSG2 are prompts (upto 124 char) to be printed.
-C AOPT & BOPT are the text strings describing the
-C options available, (these should not be too long).
-
-      SUBROUTINE EASKAB(MSG1,MSG2,AOPT,BOPT,IWHICH,NHELP)
-
-      CHARACTER*(*) MSG1,MSG2,AOPT,BOPT
-      integer IWHICH ! the returned value
-      integer NHELP  ! number of help lines to display
-      character COPT*2,DOPT*2,EOPT*2,FOPT*2,GOPT*2
-
-      COPT=' '
-      DOPT=' '
-      EOPT=' '
-      FOPT=' '
-      GOPT=' '
-      call EASKATOG(MSG1,MSG2,AOPT,BOPT,COPT,DOPT,EOPT,FOPT,GOPT,
-     &  IWHICH,NHELP)
-      RETURN
-      END
-
-C ******************** EASKABC ********************
-C Generic choice facility returning 1, 2 or 3 according to which
-C option is selected. See EASKATOG for parameter documentation.
-
-      SUBROUTINE EASKABC(MSG1,MSG2,AOPT,BOPT,COPT,IWHICH,NHELP)
-      COMMON/SPAD/MMOD,LIMIT,LIMTTY
-
-      CHARACTER*(*) MSG1,MSG2,AOPT,BOPT,COPT
-      integer IWHICH ! the returned value
-      integer NHELP  ! number of help lines to display
-      character DOPT*2,EOPT*2,FOPT*2,GOPT*2
-
-      DOPT=' '
-      EOPT=' '
-      FOPT=' '
-      GOPT=' '
-      call EASKATOG(MSG1,MSG2,AOPT,BOPT,COPT,DOPT,EOPT,FOPT,GOPT,
-     &  IWHICH,NHELP)
-      RETURN
-      END
-
-C ******************** EASKABCD ********************
-C Generic choice facility returning 1, 2, 3 or 4 according to which
-C option is selected. See EASKATOG for parameter documentation.
-
-      SUBROUTINE EASKABCD(MSG1,MSG2,AOPT,BOPT,COPT,DOPT,IWHICH,NHELP)
-      COMMON/SPAD/MMOD,LIMIT,LIMTTY
-
-      CHARACTER*(*) MSG1,MSG2,AOPT,BOPT,COPT,DOPT
-      integer IWHICH ! the returned value
-      integer NHELP  ! number of help lines to display
-      character EOPT*2,FOPT*2,GOPT*2
-
-      EOPT=' '
-      FOPT=' '
-      GOPT=' '
-      call EASKATOG(MSG1,MSG2,AOPT,BOPT,COPT,DOPT,EOPT,FOPT,GOPT,
-     &  IWHICH,NHELP)
-      RETURN
-      END
-
 C ******************** EASKXORGTKF ********************
 C Generic file edit/browse for X11 or GTK using easkf calls.
 
@@ -1293,7 +1287,62 @@ C the equivalent of where-i-am-now.
       endif
       return
       end
-      
+
+C ******************** CMDTOROOT  *****************
+C Parse command line file name and return root name.
+
+      SUBROUTINE cmdtoroot(inf,root)
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
+      CHARACTER*(*) inf
+
+      character root*32
+      character ltcmdfl*144
+      character thecfgis*72
+      character fs*1
+      character uname*24
+      character path*72
+      logical unixok
+
+C Get underlying indicators.
+      uname=' '
+      call usrname(uname)
+      call esppid(ipid)
+      call isunix(unixok)
+
+C Take command line file name as initial configuration file.
+      if(inf(1:2).eq.'  '.or.inf(1:4).eq.'UNKN')then
+        thecfgis='UNKNOWN'
+        write(root,'(a)') uname(1:lnblnk(uname))  ! No cfg file so user name must suffice.
+      else
+        ltcmdfl=inf                        ! Take command line file
+        call fdroot(ltcmdfl,path,thecfgis) ! Find the filename (no path)
+        lcfgr=lnblnk(thecfgis)
+        lcfgl=lcfgr-3
+        if(lcfgr.gt.4)then
+          if(thecfgis(lcfgl:lcfgr).eq.'.cfg')then  ! Take away the .cfg.
+            if(lcfgl-1.le.32)then
+              write(root,'(a)') thecfgis(1:lcfgl-1)
+            else
+              write(root,'(a)') thecfgis(1:32)
+            endif
+          else
+            if(lcfgr.le.32)then
+              write(root,'(a)')  thecfgis(1:lcfgr)
+            else
+              write(root,'(a)') thecfgis(1:32)
+            endif
+          endif
+        else
+          if(lcfgr.le.32)then
+            write(root,'(a)') thecfgis(1:lcfgr)
+          else
+            write(root,'(a)') thecfgis(1:32)
+          endif
+        endif
+      endif
+
+      return
+      end
 
 C ******************** EFOPSEQ ********************
 C Open a sequential ASCII file (SFILE) and return appropriate
@@ -1620,6 +1669,7 @@ C Declare local variables
       CHARACTER(12) :: tp, tp1
       CHARACTER(124):: outs
       INTEGER :: LN,LNS,I,LT,ios,iuin,iuout,ieout,pos
+
 C Common blocks
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
       common/rpath/path
@@ -1684,14 +1734,16 @@ C been defined - do not add path.
           concat = .false.
         elseif (a1.eq.'/') then
 C make sure all \ (bs) are replaced with / (fs)
-         do
-           pos=SCAN(sfile,bs)
-           if (pos.ne.0) then
-             sfile(pos:pos)=fs
-           else 
-             EXIT
-           end if
-         end do      
+          do
+            pos=SCAN(sfile,bs)
+            if (pos.ne.0) then
+              sfile(pos:pos)=fs
+            else 
+              EXIT
+            end if
+          end do      
+C Debug.
+C          write(*,*)'b sfile ',sfile(1:lnblnk(sfile))
 
 C Special case: unix absolute path being used on windows - substitute c: for initial /
 C Limit feedback text length to fit within outs text buffer.
@@ -1913,8 +1965,8 @@ C and if in middle ask user what to do.
           else
             H(1)='In order to manage long lists of selections or data'
             H(2)='a number of viewports may be necessary.'
-            CALL EASKABC(' ',' Menu-page options:','previous','next',
-     &                 'goto page',IW,2)
+            CALL EASKMBOX(' ',' Menu-page options:','previous','next',
+     &        'goto page',' ',' ',' ',' ',' ',IW,2)
             IF(IW.EQ.3)then
               H(1)='If page greater than length then last page assumed.'
               CALL EASKI(IGTP,' ',' Which page ? ',1,'F',1,'-',1,
@@ -1937,8 +1989,8 @@ C If lots of pages track the 1st and last page otherwise ask user.
           else
             H(1)='To manage long selection lists, several pages'
             H(2)='may be offered here.'
-            CALL EASKATOG(' ','Options:','first page',
-     &        'previous','next','go to','last page',' ',' ',IW,2)
+            CALL EASKMBOX(' ','Options:','first page',
+     &        'previous','next','go to','last page',' ',' ',' ',IW,2)
             if(IW.eq.5)then
               IGTP=MPM   ! set it to last page
               IX=3
@@ -3031,11 +3083,11 @@ C   IF IND=4 SUM=-AB-X = -(AB+X)
       IF(I.GT.IJ.OR.K.GT.KL)GO TO 10
       IF(N.GT.0)THEN
         M=J-I
-        M1=L-K
+        MM1=L-K
         DO 20 IK=1,N
           I1=I+(IK-1)*M
           P=DBLE(A(I1))
-          I1=K+(IK-1)*M1
+          I1=K+(IK-1)*MM1
           Q=DBLE(B(I1))
           R=R+P*Q
    20   CONTINUE
@@ -7696,6 +7748,64 @@ C the passed value of ictime.
       return
       end
 
+C ******************** to_session ********************
+C Opens and appends a timestamped message into the session log.
+C It closes the session file before exiting.
+
+      subroutine to_session(msg)
+      common/OUTIN/IUOUT,IUIN,IEOUT
+
+C Attributes of the session log file.
+      logical ieopened     ! Has session file been started.
+      integer iecount      ! Does it hold error messages.
+      character iefile*72  ! The name of the session file.
+      common/logs/ieopened,iecount,iefile
+
+      character*(*) msg
+      character dstmp*24,act*1,outs*124
+      character outs248*248  ! to handle longer messages
+      logical there
+
+      call dstamp(dstmp)
+
+C Append the current message to session log and close.
+      LN=max(1,lnblnk(msg))
+      write(outs248,'(3A)')msg(1:LN),' @ ',dstmp
+      ltf=max(1,LNBLNK(iefile))
+      if(ieopened.and.
+     &  (iefile(1:2).ne.'  '.and.iefile(1:4).ne.'UNKN'))then
+        there=.false.
+        INQUIRE(FILE=iefile(1:ltf),EXIST=there)
+        if(there)then
+          close(IEOUT)
+          open(IEOUT,file=iefile(1:ltf),position='APPEND',
+     &      status='UNKNOWN',err=1)
+          LN=max(1,lnblnk(outs248))
+          write(IEOUT,'(a)',iostat=ios,err=2)outs248(1:LN)
+          iecount=iecount+1
+          close(IEOUT)
+        endif
+      endif
+
+      return
+
+   1  if(IOS.eq.2)then
+        call edisp(iuout,
+     &  'Permission issue while opening session file, continuing.')
+      else
+        call edisp(iuout,'Error opening session file, continuing.')
+      endif
+      return
+   2  if(IOS.eq.2)then
+        call edisp(iuout,
+     &  'Permission issue while updating session file, continuing.')
+      else
+        call edisp(iuout,'Error updating session file, continuing.')
+      endif
+      close(iuj)
+      return
+      end
+
 C ******************** dstamp ********************
 C Get date stamp in the form: Fri Jan 23 09:34:31 1998.
 C Used to isolate code from system details.
@@ -8570,12 +8680,13 @@ C General read of an ascii file.
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
       character*(*) LFIL
       character outstr*124
-      logical XST
+      logical :: XST
+      logical :: unixok
       integer ltf   ! position of last character in the string.
 
 C List out an ASCII file, if file name begins with "/" open
 C it directly.
-
+      call isunix(unixok)
       if(LFIL(1:1).eq.'/')then
         ltf=max(1,LNBLNK(LFIL))
         INQUIRE (FILE=LFIL(1:ltf),EXIST=XST)
@@ -8588,7 +8699,14 @@ C it directly.
           return
         endif
       else
-        CALL EFOPSEQ(IUNIT,LFIL,1,IER)
+        if(.NOT.unixok)then   ! For W10 use FPOPEN
+          CALL ERPFREE(IUNIT,ISTAT)
+          call FPOPEN(IUNIT,ISTAT,1,0,LFIL)
+          if(ISTAT.ge.0)XST=.true.
+          if(ISTAT.eq.-301)XST=.false.
+        else
+          CALL EFOPSEQ(IUNIT,LFIL,1,IER)
+        endif
       endif
       IF(IER.LT.0)THEN
         call usrmsg(' Problem detected while trying to open',LFIL,'W')

@@ -246,8 +246,9 @@ C << take account of length of rvewsh to allow more of vewcmds to display >>
   334 CALL EPICKS(IX,IVALV,' Select a view: ',' ',
      &  28,indxvew+3,VALT,'View options',IER,nbhelp)
       if(IX.eq.0)then
-        CALL EASKAB(' One of the options must be selected:',' ',
-     &    'select an option','exit view point facility',IW,nbhelp)
+        CALL EASKMBOX(' One of the options must be selected:',' ',
+     &    'select an option','exit view point facility',
+     &    ' ',' ',' ',' ',' ',' ',IW,nbhelp)
         if(iw.eq.1)goto 334
         if(iw.eq.2)return
       endif
@@ -739,8 +740,9 @@ C Present list of views.
         endif
 
       elseif(INO.EQ.3)then
-        CALL EASKABCD(' View choices: ',' ','plan',
-     &    'south elevation','east elevation','perspective?',IW,nbhelp)
+        CALL EASKMBOX(' View choices: ',' ','plan',
+     &    'south elevation','east elevation','perspective?',
+     &    ' ',' ',' ',' ',IW,nbhelp)
         if(IW-1.ne.ITPPSW)do_redraw =.true.
         ITPPSW=IW-1
 
@@ -751,8 +753,8 @@ C Picking on plan is faulty - comment out and just support
 C a direct edit.
         if(ITPPSW.eq.0)then
           IEE=1
-C          CALL EASKABC(' Specify via: ',' ','editing',
-C     &     'pick on plan','ignore ?',IEE,nbhelp)
+C          CALL EASKMBOX(' Specify via: ',' ','editing',
+C     &     'pick on plan','ignore ?',' ',' ',' ',' ',' ',IEE,nbhelp)
 C          if(IEE.eq.3)then
 C            goto 10
 
@@ -806,8 +808,9 @@ C              rvpz=VIEWM(3)
 C            endif
 C          endif
         elseif(ITPPSW.eq.3)then
-          CALL EASKABC(' Specify via: ',' ','editing',
-     &     'accept current eyepoint','ignore ?',IEE,nbhelp)
+          CALL EASKMBOX(' Specify via: ',' ','editing',
+     &      'accept current eyepoint','ignore ?',
+     &      ' ',' ',' ',' ',' ',IEE,nbhelp)
           if(IEE.eq.3)then
             goto 10
           elseif(IEE.eq.2)then
@@ -872,8 +875,9 @@ C convert into normal or take the direction from the perspective.
         if(ITPPSW.eq.3)then
           helptopic='edit_or_accept_current'
           call gethelptext(helpinsub,helptopic,nbhelp)
-          CALL EASKABC(' Specify via: ',' ','editing',
-     &      'accept current direction','ignore ?',IEE,nbhelp)
+          CALL EASKMBOX(' Specify via: ',' ','editing',
+     &      'accept current direction','ignore ?',
+     &      ' ',' ',' ',' ',' ',IEE,nbhelp)
           if(IEE.eq.3)then
             goto 10
           elseif(IEE.eq.2)then

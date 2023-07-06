@@ -303,8 +303,9 @@ C Link plant and flow networks.
       elseif(ino.eq.10) then
         helptopic='plant_net_to_floe'
         call gethelptext(helpinsub,helptopic,nbhelp)
-        call easkabc(' ','Link plant/ fluid networks via:',
-     &       'manual','automatic','cancel',ipflnk,nbhelp)
+        call easkmbox(' ','Link plant/ fluid networks via:',
+     &    'manual','automatic','cancel',' ',' ',' ',' ',' ',
+     &    ipflnk,nbhelp)
         if(ipflnk.eq.3) then 
           ipflnk=0
           iflwn=0
@@ -710,7 +711,7 @@ C User selected connection type.
   107 itm=1
       nctype=5
       helptopic='plant_conn_type'
-      call gethelptext(helpinsub,helptopic,nbhelp)                                      '
+      call gethelptext(helpinsub,helptopic,nbhelp)   
       IF(IPCT(IPCON).NE.0)THEN
         write(str,'(3A)') '(currently ',CONTYP(IPCT(IPCON)),')'
       ELSE
@@ -1056,8 +1057,9 @@ C and construction node cntdt3 counted from outside.
            cntdt1=float(IZ)
            helptopic='plant_cont_loc'
            call gethelptext(helpinsub,helptopic,nbhelp) 
-           CALL EASKABCD(' ','Location in zone:',
-     &       'air','surface','construction','cancel',ICLOC,nbhelp)
+           CALL EASKMBOX(' ','Location in zone:',
+     &       'air','surface','construction','cancel',
+     &       ' ',' ',' ',' ',ICLOC,nbhelp)
             IF(ICLOC.EQ.1)THEN
               cntdt2=0.0
               cntdt3=0.0
@@ -1434,7 +1436,8 @@ C Fill the subarrays with relevant component descriptions.
       noth=0
       nhn=0
       do 10 i=1,NPCDB
-        if(icode(i).gt.0.and.icode(i).lt.200) then
+        if(icode(i).gt.0.and.icode(i).lt.200 .or. 
+     &             (icode(i)==1440 .or. icode(i)==1450)) then
            nahu=nahu+1
            ndbahu(nahu)=i
            ahudesc(nahu)=pcdesc(i)(1:70)
@@ -1708,8 +1711,8 @@ C Script directed input if not in graphic mode.
 C Allow a component to be added, checked for uniqueness and returned.
       ELSEIF(IVERT.EQ.(MVERT-4))THEN
         IF(MOD.EQ.'M'.OR.MOD.EQ.'m')THEN
-          CALL EASKABCD(' ','Options:','add ','delete',
-     &                  'copy','cancel',IOPT,0)
+          CALL EASKMBOX(' ','Options:','add ','delete',
+     &      'copy','cancel',' ',' ',' ',' ',IOPT,0)
           IF(IOPT.EQ.1) THEN
 
 C Display a list of plant components and allow user
@@ -1906,8 +1909,10 @@ C Reset electrical flag for component to 'off'.
          IF(CLOSE)THEN
            IPFP(ipcomp)=0
          ELSE
-           CALL EASKAB(' ','Is the load current leading or lagging?',
-     &       'leading','lagging',IOPT,nbhelp)
+           CALL EASKMBOX(' ',
+     &       'Is the load current leading or lagging?',
+     &       'leading','lagging',
+     &       ' ',' ',' ',' ',' ',' ',IOPT,nbhelp)
            IF(IOPT.EQ.1)THEN
              IPFP(ipcomp)=-1
            ELSE
@@ -2284,8 +2289,8 @@ C Script directed input if not in graphic mode.
 C Allow a component to be added, checked for uniqueness and returned.
         IF(MOD.EQ.'M'.OR.MOD.EQ.'m')THEN
             IOPT=-1
-            CALL EASKABCD(' ','Options:','add','delete',
-     &                'copy','cancel',IOPT,nbhelp)
+            CALL EASKMBOX(' ','Options:','add','delete',
+     &        'copy','cancel',' ',' ',' ',' ',IOPT,nbhelp)
             IF(IOPT.EQ.1) THEN
               if(NBPLINK+1.LE.MCF)then
                  CALL EDBPLINK('A',99)
@@ -2500,8 +2505,9 @@ C Set the number of misca data items.
         BMISCD(ICF,1,1,1)=7.0
 
 C Determine the linkage type.
-        CALL EASKABCD(' ','Linkage between the zone and the plant?',
-     &     'convective','mixed','embedded','cancel',IOPT,nbhelp)
+        CALL EASKMBOX(' ','Linkage between the zone and the plant?',
+     &     'convective','mixed','embedded','cancel',
+     &     ' ',' ',' ',' ',IOPT,nbhelp)
         IF(IOPT.EQ.1) THEN
           BMISCD(ICF,1,1,4)=IOPT
           IPCLINKT(IBPLINK)=IOPT
@@ -2588,8 +2594,8 @@ C linkage type.
         ENDIF
         CALL ECLOSE(BMISCD(ICF,1,1,4),1.0,0.01,CLOSE)
         IF(CLOSE) 
-     &  CALL EASKAB('Is there a coupled extract component?',' ',
-     &    'yes','no',IOPT,nbhep)
+     &  CALL EASKMBOX('Is there a coupled extract component?',' ',
+     &    'yes','no',' ',' ',' ',' ',' ',' ',IOPT,nbhep)
         IF(IOPT.EQ.1) THEN
           CALL USRMSG('Coupled extract component?',' ','-')
           CALL ASKPCMP('Component','-',ICP,IER)

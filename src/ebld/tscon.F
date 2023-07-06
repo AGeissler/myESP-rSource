@@ -785,9 +785,9 @@ C TRACE OUTPUT ?
       END
 
 C ************************* COEFF1 *************************
-C COEFF1 modifies the coefficients of arrays C and QC by the ratio of N1/M1
+C COEFF1 modifies the coefficients of arrays C and QC by the ratio of N1/MM1
 
-      SUBROUTINE COEFF1(N1,M1)
+      SUBROUTINE COEFF1(N1,MM1)
 #include "building.h"
 
       COMMON/TC/ITC,ICNT
@@ -806,7 +806,7 @@ C COEFF1 modifies the coefficients of arrays C and QC by the ratio of N1/M1
 
       character outs*124
 
-      TSTEP = FLOAT(N1) / FLOAT(M1)
+      TSTEP = FLOAT(N1) / FLOAT(MM1)
       DO 10 I=1,NCOMP
         NC=NCONST(I)
         DO 20 J=1,NC
@@ -828,7 +828,7 @@ C Trace output ?
       call edisp(itu,' ')
       ICNT=ICNT+1
 
-      write(outs,500) N1,M1,TSTEP
+      write(outs,500) N1,MM1,TSTEP
   500 format(' N1 = ',I5,' M1 = ',I5,' TSTEP = ',F10.5)
       call edisp(itu,outs)
 

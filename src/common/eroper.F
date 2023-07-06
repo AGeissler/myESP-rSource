@@ -142,11 +142,12 @@ C Maximum number of casual gain periods (MC) set in building.h
       common/calena/calename,calentag(MDTY),calendayname(MDTY)
       CHARACTER CALENAME*32,CALENTAG*12,CALENDAYNAME*32
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
-      common/warncounter/iecount
 
-C Session log file (for errors etc.)
-      character iefile*72
-      common/logs/iefile
+C Attributes of the session log file.
+      logical ieopened     ! Has session file been started.
+      integer iecount      ! Does it hold error messages.
+      character iefile*72  ! The name of the session file.
+      common/logs/ieopened,iecount,iefile
       
       integer ncomp,ncon
       COMMON/C1/NCOMP,NCON
@@ -3598,8 +3599,8 @@ C Returns IWHICH=0 if cancel is selected or if there are no gain types.
       endif
       if (ok) then
         itmp=IWHICH
-        CALL EASKATOG('Casual gain type?',' ',ll1,ll2,ll3,ll4,'cancel',
-     &    ' ',' ',itmp,nbhelp)
+        CALL EASKMBOX('Casual gain type?',' ',ll1,ll2,ll3,ll4,'cancel',
+     &    ' ',' ',' ',itmp,nbhelp)
         if (itmp.eq.5) then
           IWHICH=0
         else

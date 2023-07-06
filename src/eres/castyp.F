@@ -23,7 +23,7 @@ C are used for temporary storage.
 C    VAL3(15,?) holds uncontrolled casual slot 1.
 C    VAL3(16,?) holds uncontrolled casual slot 2.
 C    VAL3(17,?) holds uncontrolled casual slot 3.
-C    VAL3(18,?) holds controlled casual slot 4.
+C    VAL3(18,?) holds uncontrolled casual slot 4.
 C    VAL3(19,?) holds controlled casual type 1.
 C    VAL3(20,?) holds controlled casual type 2.
 C    VAL3(21,?) holds controlled casual type 3.
@@ -66,7 +66,7 @@ C For izver >= 4 the read the casual gain data directly.
      &      theonectld)
 
 C For gains from casual there is no option for control and theonectld
-C should be zero.
+C should be zero. If lumped ICASUAL then use the equipment slot is used.
             VAL3(15,I)=perocupc
             VAL3(16,I)=perlightc
             VAL3(17,I)=perequipc

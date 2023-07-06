@@ -1494,7 +1494,7 @@ C If door is closed the derivative is set equal to zero.
 
 C ***************** MF210C 
 C Fluid mass flow calculation routine for flow component type:
-C general flow conduit (ie. duct or pipe).
+C general flow conduit (e.g. a duct or pipe).
 C     IFLD = SUPCMP(ICMP,1) - fluid type (1=air, 2=water)
 C     DIAH = SUPCMP(ICMP,2) - conduit hydraulic diameter (m)
 C     AREA = SUPCMP(ICMP,3) - cross-sectional area (m^2)
@@ -1558,8 +1558,8 @@ C to avoid divergence problems: REY,min = 1.
         REY=VEL*DIAH/FNU
         IF(REY.LT.1.) REY=1.
 
-C Friction factor is a function of Reynolds dependent on type of flow;
-C according to ISSO-17 1986, 'Air duct calculation', Rotterdam:
+C Calculate the Friction Factor (-) as a function of Reynolds Number
+C (from ISSO-17 1986, 'Air duct calculation').
         IF(REY.LE.2300.0) THEN
 
 C Laminar flow.
@@ -1576,7 +1576,7 @@ CTurbulent flow; explicit approximation of Colebrook-White formula.
           FRIC=(1./(2.*ALOG10(RROU/3.72+5.74/REY**0.901)))**2.
         END IF
 
-C Mass flow rate based on this friction factor.
+C Mass flow rate based on this Friction Factor.
         FLW1(ICNN)=AREA*DSQRT(2.*RHO*DABS(DELP)/(FRIC*CLEN/DIAH+SLDL))*
      &           ctlpos(icnn)
 
@@ -2176,7 +2176,7 @@ C     FMIN                  - lower polynomial validity limit (kg/s)
 C     GM,DG                 - g(m), g'(m)
 C     LNIT                  - local iteration counter
 C     MFL                   - most recent calculated mass flow (kg/s)
-C     M1,GM1                - lower bound search interval m1 and g(m1)
+C     MM1,GM1               - lower bound search interval m1 and g(m1)
 C     M2,GM2                - upper bound search interval m2 and g(m2)
 C     RHO                   - fluid density (kg/m^3)
 
@@ -2194,7 +2194,7 @@ C     RHO                   - fluid density (kg/m^3)
 
       DOUBLE PRECISION FLW1,FLW2,PRES,RESID,SAFLW
       DOUBLE PRECISION DELP,DERIV
-      DOUBLE PRECISION MFL,M1,M2,XL,XH,DX,DXOLD,GM1,GM2,GM,DG
+      DOUBLE PRECISION MFL,MM1,M2,XL,XH,DX,DXOLD,GM1,GM2,GM,DG
       character outs*124
       logical close
 
@@ -2234,25 +2234,25 @@ C See also: Press, W.H. et al. 1986. 'Numerical Recipes', pp. 258.
 C First initialise the brackets such that g(m1)*g(m2)<0.
       MFL=FLW1(ICNN)
       IF(MFL.LT.FMIN) THEN
-         M1=MFL
+         MM1=MFL
          M2=FMAX
       ELSE IF(MFL.GT.FMAX) THEN
-         M1=FMIN
+         MM1=FMIN
          M2=MFL
       ELSE
-         M1=FMIN
+         MM1=FMIN
          M2=FMAX
       END IF
 
 C Double the search interval if there is no root in current one.
       DO 10 IEXPAND=1,MAXITF
-      GM1=C0+M1*(C1+M1*(C2+M1*C3))
+      GM1=C0+MM1*(C1+MM1*(C2+MM1*C3))
       GM2=C0+M2*(C1+M2*(C2+M2*C3))
       IF(GM1*GM2.LE.0) GOTO 15
       IF(MOD(IEXPAND,2).EQ.1) THEN
          M2=M2+(FMAX-FMIN)
       ELSE
-         M1=M1-(FMAX-FMIN)
+         MM1=MM1-(FMAX-FMIN)
       END IF
    10 CONTINUE
 
@@ -2284,16 +2284,16 @@ C Give warning and then continue as if mass flow rate was found.
 
 C OK, root is bracketed, orient the search so that g(ml) < 0.
    15 IF(GM1.LT.0.) THEN
-         XL=M1
+         XL=MM1
          XH=M2
       ELSE
          XL=M2
-         XH=M1
+         XH=MM1
       END IF
 
 C First guess for root already done (i.e. MFL = FLW1(ICNN)) so just
 C initialise 'step-size before last' and the last step.
-      DXOLD=DABS(M2-M1)
+      DXOLD=DABS(M2-MM1)
       DX=DXOLD
       GM=C0+MFL*(C1+MFL*(C2+C3*MFL))
       DG=C1+MFL*(2*C2+3*C3*MFL)

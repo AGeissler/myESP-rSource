@@ -186,8 +186,15 @@ C gains/loss or user defined.
           call edisp(itru,outs)
         else
           call edisp(itru,' ')
-          write(outs,'(35X,A)')'   Gain         Loss'
-          call edisp(itru,outs)
+          if(delim.eq.'C')then
+            write(outs,'(A)')'Topic      Gain         Loss'
+            call SDELIM(outs,outsd,delim,IW)
+            write(outs,'(1x,a)') outsd(1:lnblnk(outsd))
+            call edisp(itru,outs)
+          else
+            write(outs,'(35X,A)')'   Gain         Loss'
+            call edisp(itru,outs)
+          endif
         endif
       ENDIF
 

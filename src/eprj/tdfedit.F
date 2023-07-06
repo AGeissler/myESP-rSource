@@ -152,8 +152,6 @@ C << we might be passing it an ascii temporal file though and >>
 C << so a conversion might be required first >>
       if(act(1:1).ne.' ')then
         action=act
-        write(outs,'(a,a)')'TDF: the input action is: ',action
-        call tstamp('>',outs)
         write(outs,'(a,a)')' the action is: ',action
         if(action(1:7).eq.'extract')then
           call edisp(iuout,outs)
@@ -410,8 +408,9 @@ C Write out an equivalent ascii file.
           endif
         endif
         if(NITDF.eq.0)then
-          CALL EASKAB('Empty file!','Options:',
-     &     'setup initial data','cancel',IRT,nbhelp)
+          CALL EASKMBOX('Empty file!','Options:',
+     &     'setup initial data','cancel',
+     &     ' ',' ',' ',' ',' ',' ',IRT,nbhelp)
           if(IRT.eq.1)then
            call glbset('init')
           endif
@@ -497,9 +496,9 @@ C Save TDF data. May have to move to the last record before exiting.
         helptopic='tdf_save_data'
         call gethelptext(helpinsub,helptopic,nbhelp)
         IRE=1
-        CALL EASKATOG(' ','File options:','save ascii file',
+        CALL EASKMBOX(' ','File options:','save ascii file',
      &   'ascii > binary','binary > ascii',
-     &   'extract data','cancel',' ',' ',IRE,nbhelp)
+     &   'extract data','cancel',' ',' ',' ',IRE,nbhelp)
         if(ire.eq.1)then
           CALL EWTDF(IER)
     
@@ -598,9 +597,9 @@ C Manage list. Begin by creating selection list.
 
         helptopic='tdf_add_an_item'
         call gethelptext(helpinsub,helptopic,nbhelp)
-        CALL EASKABCD('Entry options:',' ',
+        CALL EASKMBOX('Entry options:',' ',
      &   'add entry','delete entry','copy entry','scale entry',
-     &   IRT,nbhelp)
+     &   ' ',' ',' ',' ',IRT,nbhelp)
         if(IRT.eq.1)then
           IFOC=NITDF+1
           CALL EPMENSV
@@ -1059,8 +1058,8 @@ C Menu control.
       IF(ISETUP.EQ.1)THEN
 
 C Define a standard import file name & format for use by other parts of TDF.
-        CALL EASKABC(' ','Import options:',
-     &    'UNKNOWN','ASCII column text','cancel',IWM,nbhelp)
+        CALL EASKMBOX(' ','Import options:','UNKNWN',
+     &    'ASCII column text','cancel',' ',' ',' ',' ',' ',IWM,nbhelp)
         if(IWM.ge.3)goto 2
         ITIMP=IWM-1
 
