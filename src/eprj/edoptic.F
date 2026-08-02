@@ -1089,7 +1089,7 @@ C IMPOPT reads in an optical report from Window 5.1 or 5.2 or 6.x
 
 C wlname is LBL Window name for layer, wlthk is mm thickness.
       dimension wlname(ME),wlthk(ME)
-      character DFILE*72,outstr*124,word*20,wdum*20
+      character outstr*124,word*20,wdum*20
       character outs*124,wlname*12,fs*1
       logical LOK,close,unixok
       integer iwversion    ! the version of the import file
@@ -1378,7 +1378,6 @@ C Passed parameters
       COMMON/GOPTED/DGED(5),HGED(5),UVALED,VTRNED,NTLED,ABED(ME,5),
      &  RFED(ME),SRFED,SABED
 
-      CHARACTER GTYPE*12
       character lwin4*72,DFILE*72,outstr*124
       character outs*124
       logical standalone
@@ -2127,6 +2126,9 @@ C Variant for non-unix
           lnrp=lnblnk(runpath)  ! remember this
         endif
       endif
+      write(outs,'(2a)') 'The place where rad will be invoked is ',
+     &   runpath(1:lnrp)
+      call edisp(iuout,outs)
 
 C Remind user what is currently known.
   42  if(nbofies.eq.0)then
@@ -2319,7 +2321,6 @@ C Re-display files in rad folder.
         subpath='../rad'
         action='fil'
         call getfileslist(subpath,action,nnlistf)
-        nlistf=int(nnlistf)
         call printfileslist(outs,'p')
         call edisp(iuout,outs)
 C       call usemodelradfile('ies',lltmp,istat)
@@ -2345,20 +2346,12 @@ C espriou.h provides current file.
 #include "espriou.h"
 #include "help.h"
       
-      integer lnblnk  ! function definition
-
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
       common/FILEP/IFIL
       
-      logical unixok,ok
-      character outs*124,fs*1
-      character lltmp*144,loutstr*248
+      logical unixok
       character t12*12,t32*32,t2*2,hold*32,doitl*256
-      character WORD*48
-      character subpath*72,action*3
-      integer loop,loop2,iiessteps(5)
-      real RVC(13)
-      logical isfeet
+      integer iiessteps(5)
       character ITEMS*24
       dimension ITEMS(8),IVALS(8)
 
@@ -2366,11 +2359,6 @@ C espriou.h provides current file.
 
 C Locate the IES files via the installed path.
       call isunix(unixok)
-      if(unixok)then
-        fs = char(47)
-      else
-        fs = char(92)
-      endif
       helptopic='lampcolor'
       call gethelptext(helpinsub,helptopic,nbhelp)
 

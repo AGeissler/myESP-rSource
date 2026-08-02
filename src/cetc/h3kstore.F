@@ -15,11 +15,6 @@ C warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
 C PURPOSE. See the GNU General Public License for more
 C details.
 
-C You should have received a copy of the GNU General Public
-C License along with ESP-r. If not, write to the Free
-C Software Foundation, Inc., 59 Temple Place, Suite 330,
-C Boston, MA 02111-1307 USA.
-
 C*****************************************************************
 c     This file contain all of the storage functions that set up the variables
 c     used for output to the h3k interface via flat file. These store values
@@ -47,6 +42,7 @@ c     COMMENTS:
 c     This routine zeros all variables used in the h3koutput.h routines.
 c     This routine is currently only called at the begining of MZNUMA.
 c**********************************************************************
+
       SUBROUTINE H3KSTORE_ZERO_DATA
       IMPLICIT NONE
 #include "building.h"
@@ -1765,7 +1761,7 @@ c     FC efficiency running average.
       ENDIF
 
 c     Electric Water Heater
-c     Electric element energy (KW-h)
+c     Electric element energy (KWh)
       fH3KSTORE_EL_q_element(IMTHN) =
      &     fH3KSTORE_EL_q_element(IMTHN)
      &     + fPreviousTS_q_EL_element
@@ -1799,6 +1795,7 @@ c     HVAC Energy demand on FC
 
       RETURN
       END
+      
 c*****************************************************************
 c     H3KSTORE_timerow_transport
 C
@@ -1813,7 +1810,6 @@ c********************************************************************
       SUBROUTINE H3Kstore_timerow_transport()
 
       IMPLICIT NONE
-
 #include "building.h"
 #include "hvac_parameters.h"
 #include "h3kstore_parameters.h"

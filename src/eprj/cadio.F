@@ -415,7 +415,7 @@ C If user canceled the wireframe export loop back.
         endif
         call usrmsg('Sending wireframe ...',' ','-')
         MODIFYVIEW=.TRUE.
-        CALL redraw(IER)
+        call redraw(IER)
 
 C Toggle the wirefram export file closed.
         call usrmsg('Sending wireframe ... done.',' ','-')
@@ -601,7 +601,8 @@ C On user request, jump back and re-display the menu.
         else
 
 C If running on a non-unix machine see if there are spaces in the name
-C and change any / to \.
+C and change any / to \. Note: rename the *.vrml file to *.wrl if you
+C want to import into Blender.
           call addpath(LCFGF,longtfile,concat)
           call cmdfiledos(longtfile,longtfiledos,ier)
           longtfile=' '
@@ -716,7 +717,9 @@ C Export to wavefront object file which can be imported into blender or
 C as well as other CAD tools. Surfaces are converted into faces derived
 C from both the geometry and MLC attributions.
       ELSEIF(INO1.EQ.10)THEN
-
+        call edisp(iuout,' ')
+        call edisp(iuout,'If for use with Radiance suggest NOT')
+        call edisp(iuout,'including transparent surfaces.')
         call exportwavefront(itrc,IER)
 
 C Zones selection.
@@ -816,7 +819,7 @@ C Logic exporting ESP-r data model to wavefront obj and mtl files.
       character louts*400
       character face*24,faced*24
       character mlc_name*32,tmlcname*32
-
+      character sbound_ty*12,sbound_c2*6,sbound_e2*6
       logical objglazing,objhash  ! Toggles for inclusion in obj files.
       logical objmm,objuseclp     ! Scale to mm and use CL if co-planer walls.
       logical objuseclf,objuseclc ! if co-planer floors & ceilings.
@@ -824,6 +827,8 @@ C Logic exporting ESP-r data model to wavefront obj and mtl files.
       logical coplaner            ! True if within a few mm between GOC.
       logical objinclout          ! User confirm each surface inside/cent line/outside
       integer objcomplex
+      logical vnclose1,vnclose2,vnclose3  ! test for zero vector.
+      logical warped,zvector,focussname
 
       helpinsub='cadio'  ! set for subroutine
 
@@ -839,7 +844,7 @@ C Set folder separator (fs) to \ or / as required.
 
 C Assume geometry or obstructions on IFIL+8 
       ITA1 = IFIL+8
-
+      warped=.false.; zvector=.false.  ! Assume not warped.
       if(pwdtocfg(1:1).eq.'!')then
         write(L144,'(4a)')path(1:lnblnk(path)),fs,
      &    cfgroot(1:lnblnk(cfgroot)),'.obj'
@@ -915,8 +920,8 @@ C Estimate complexity of the data structures required.
       nbobjs=0; nbobjface=0; nbobjver=0; nbobjnver=0
       call howcomplexobj(itrc,objlayer,nbobjs,nbobjface,nbobjver,
      &  nbobjnver,objcomplex,IER)
-      write(6,*) 'Estimate: nbobjs,nbobjface,nbobjver is ',
-     &  nbobjs,nbobjface,nbobjver,nbobjnver,objcomplex
+C      write(6,*) 'Estimate: nbobjs,nbobjface,nbobjver is ',
+C     &  nbobjs,nbobjface,nbobjver,nbobjnver,objcomplex
 
 C Assign estimated complexity to parameters in Cadio_Module and
 C allocate the arrays.
@@ -964,6 +969,9 @@ C Depending on version of geometry file scan it.
           CALL EGOMST(ITA1,newfoc,ZOBS(newfoc),0,ITRC,ITRU,IER)
         endif
       elseif(gversion(newfoc).ge.1.1) then
+
+C For newer geometry & obstr attributes are in memory but some
+C subsequent calls save/restore zone info incorrectly if scan not done.
         call georead(ITA1,LGEOM(newfoc),newfoc,1,iuout,ier)
         if(iobs(newfoc).eq.0)then
           continue   ! no obstructions
@@ -985,7 +993,7 @@ C General image option flags for use with cadjview.
         nzg=1
         nznog(1)=newfoc
         izgfoc = newfoc
-        if(MMOD.eq.8)CALL redraw(IER)
+        call redraw(IER)
         MODIFYVIEW=.TRUE.
         MODBND=.TRUE.
       endif
@@ -1000,6 +1008,7 @@ C layers are from outside to inside so determine offsets in that order.
         lsn=lnblnk(sname(newfoc,is))
         write(zsn,'(3a)') zname(newfoc)(1:lnzname(newfoc)),
      &    ':',sname(newfoc,is)(1:lsn)
+        call decode_zsbound(newfoc,is,sbound_ty,sbound_c2,sbound_e2)
 
 C Deal with MLC or layer thickness.
         isel=smlcindex(newfoc,is)
@@ -1013,7 +1022,8 @@ C Highlight the current surface.
           nzg=1
           nznog(1)=newfoc
           izgfoc = newfoc
-          if(MMOD.eq.8)CALL CADJVIEW(IER)
+          focussname=.true.
+          if(MMOD.eq.8)CALL CADJVIEW(focussname,IER)
           MODIFYVIEW=.TRUE.  ! Reset so next surface is highlighted.
           MODBND=.TRUE.
           call pausems(400)
@@ -1093,28 +1103,29 @@ C Also Check orientation if treating walls differently from floors/ceilings.
             itrc=0
             if(objinclout)then   ! User wants to confirm each.
               if(SVFC(newfoc,is)(1:4).eq.'VERT')then
-                write(outs,'(4a)') 'Alignment options for partition ',
+                write(outs,'(6a)') 'Alignment options for partition ',
      &          zsn(1:lnblnk(zsn)),' composed of ',
-     &          tmlcname(1:lnblnk(tmlcname))
+     &          tmlcname(1:lnblnk(tmlcname)),' <- ',sbound_ty(1:12)
               elseif(SVFC(newfoc,is)(1:4).eq.'CEIL')then
-                write(outs,'(4a)') 'Alignment options for ceiling ',
+                write(outs,'(6a)') 'Alignment options for ceiling ',
      &          zsn(1:lnblnk(zsn)),' composed of ',
-     &          tmlcname(1:lnblnk(tmlcname))
+     &          tmlcname(1:lnblnk(tmlcname)),' <- ',sbound_ty(1:12)
               elseif(SVFC(newfoc,is)(1:4).EQ.'FLOR')THEN
-                write(outs,'(4a)') 'Alignment options for floor ',
+                write(outs,'(6a)') 'Alignment options for floor ',
      &          zsn(1:lnblnk(zsn)),' composed of ',
-     &          tmlcname(1:lnblnk(tmlcname))
+     &          tmlcname(1:lnblnk(tmlcname)),' <- ',sbound_ty(1:12)
               else
-                write(outs,'(4a)') 'Alignment options for ',
+                write(outs,'(6a)') 'Alignment options for ',
      &          zsn(1:lnblnk(zsn)),' composed of ',
-     &          tmlcname(1:lnblnk(tmlcname))
+     &          tmlcname(1:lnblnk(tmlcname)),' <- ',sbound_ty(1:12)
               endif
               CALL EASKMBOX(outs,':','inside face',
      &          'centre line','outside face',
      &          'do not include',' ',' ',' ',' ',ico,nbhelp)
             else
-              write(outs,'(2a)') 'Alignment options for ',
-     &          zsn(1:lnblnk(zsn))
+              write(outs,'(6a)') 'Alignment options for ',
+     &          zsn(1:lnblnk(zsn)),' composed of ',
+     &          tmlcname(1:lnblnk(tmlcname)),' <- ',sbound_ty(1:12)
               if(SVFC(newfoc,is)(1:4).eq.'VERT')then
                 if(objuseclp)then
                  ico=0  ! its coplaner so do that
@@ -1157,8 +1168,8 @@ C Also Check orientation if treating walls differently from floors/ceilings.
                   vdis=-1.*(0.1*0.5)
                 endif
               endif
-              write(6,'(2a,i2,f5.2)') zsn(1:lnblnk(zsn)),
-     &          ' a ico vdis',ico,vdis
+C              write(6,'(2a,i2,f5.2)') zsn(1:lnblnk(zsn)),
+C     &          ' a ico vdis',ico,vdis
               CALL TRANSUR(ITRC,ITRU,nboredge,XX,YY,ZZ,vdis,
      &          XOr,YOr,ZOr,zsn)
             elseif(ico.eq.1)then
@@ -1177,8 +1188,8 @@ C Also Check orientation if treating walls differently from floors/ceilings.
                   vdis=-1.*0.1
                 endif
               endif
-              write(6,'(2a,i2,f5.2)') zsn(1:lnblnk(zsn)),
-     &          ' b ico vdis',ico,vdis
+C              write(6,'(2a,i2,f5.2)') zsn(1:lnblnk(zsn)),
+C     &          ' b ico vdis',ico,vdis
               CALL TRANSUR(ITRC,ITRU,nboredge,XX,YY,ZZ,vdis,
      &          XOr,YOr,ZOr,zsn)
             elseif(ico.eq.4)then
@@ -1186,8 +1197,9 @@ C Also Check orientation if treating walls differently from floors/ceilings.
             endif
           else
             if(objinclout)then
-              write(outs,'(2a)') 'Alignment options for ',
-     &          zsn(1:lnblnk(zsn))
+              write(outs,'(6a)') 'Alignment options for ',
+     &          zsn(1:lnblnk(zsn)),' composed of ',
+     &          tmlcname(1:lnblnk(tmlcname)),' <- ',sbound_ty(1:12)
               CALL EASKMBOX(outs,':','inside face',
      &          'centre line','outside face',
      &          'do not include',' ',' ',' ',' ',ico,nbhelp)
@@ -1251,8 +1263,9 @@ C These will then be used if user toggle for a layer-by-layer representation.
 C If user is confirming inside-face/centre line/outside face then
 C prepend an offset related to the MLC thickness.
           if(objinclout)then
-            write(outs,'(2a)') 'Alignment options for ',
-     &        zsn(1:lnblnk(zsn))
+            write(outs,'(6a)') 'Alignment options for ',
+     &        zsn(1:lnblnk(zsn)),' composed of ',
+     &        tmlcname(1:lnblnk(tmlcname)),' <- ',sbound_ty(1:12)
             CALL EASKMBOX(outs,':','inside face',
      &        'centre line','outside face',
      &        'do not include',' ',' ',' ',' ',ico,nbhelp)
@@ -1338,7 +1351,7 @@ C a Wavefront body(s) if user allows annotation.
           WRITE(ioout,8954)'# ',is,SIGSTR(1:7),SPAZI(newfoc,is),
      &      SPELV(newfoc,is),zsn(1:21),
      &      SUSE(newfoc,is,1)(1:8),SMLCN(newfoc,is)(1:lnsmlcn),
-     &      SOTHER(newfoc,is,1)(1:15)
+     &      sbound_ty(1:12)
  8954     FORMAT(A,I3,2X,A,F5.0,F5.0,1X,A,1X,A,1X,A,2X,A)
         endif
         if(isel.gt.0)then
@@ -1449,7 +1462,7 @@ C are different user directives for walls, ceilings, floors.
                   call surftoobj(newfoc,is,vdis,ioout,objmm)
                 endif
               endif
-            else
+            else    ! Deal with transparent surfaces.
               if(objglazing)then
                 if(objmm)then
                   vdis=THKMLC(isel)*1000.
@@ -1479,6 +1492,24 @@ C are different user directives for walls, ceilings, floors.
                     else
                       call surftoobj(newfoc,is,vdis,ioout,objmm)
                     endif
+                  endif
+                else        ! Dealing with non-coplaner
+                  if(objinclout)then
+                    if(ico.eq.0)then
+                      call surftoobj(newfoc,is,vdis,ioout,objmm)
+                    elseif(ico.eq.1)then
+                      call surftoobj(newfoc,is,vdis,ioout,objmm)
+                    elseif(ico.eq.2)then
+                      offs=0.0
+                      call polytoobj(nboredge,XOr,YOr,Zor,offs,vdis,
+     &                  ioout,name,tmlcname,objmm)
+                    elseif(ico.eq.3)then
+                      offs=0.0
+                      call polytoobj(nboredge,XOr,YOr,Zor,offs,vdis,
+     &                  ioout,name,tmlcname,objmm)
+                    endif
+                  else
+                    call surftoobj(newfoc,is,vdis,ioout,objmm)
                   endif
                 endif
               else
@@ -1511,7 +1542,7 @@ C Ignore air layers as well as glazing if the user has excluded.
                 call st2name(matname(matarrayindex),tmlcname)    ! filter for spaces
 
 C Debug.
-                write(6,*) nboredge,offs,vdis,name,tmlcname
+C                write(6,*) nboredge,offs,vdis,name,tmlcname
                 if(SOTF(newfoc,is)(1:4).eq.'OPAQ')then
                   call polytoobj(nboredge,XOr,YOr,Zor,offs,vdis,
      &              ioout,name,tmlcname,objmm)
@@ -1552,7 +1583,7 @@ C e2rform.F
             lnbm=7
             ObsMatName='unknown'
           else
-            lnbm=LNBLOCKMAT(newfoc,ib)
+            lnbm=lnblnk(BLOCKMAT(newfoc,ib))
             ObsMatName=BLOCKMAT(newfoc,ib)
           endif
           write(ioout,'(a)') ' '
@@ -1601,29 +1632,40 @@ C e2rform.F
             n=4
             call PLEQN(XX,YY,ZZ,N,CG,EQN,IERR)
             vn(1)=EQN(1); vn(2)=EQN(2); vn(3)=EQN(3)
-    
-            write(ioout,'(4a,i2.2)') 'g ',
-     &        zname(newfoc)(1:lnzname(newfoc)),':',
-     &        BLOCKNAME(newfoc,IB)(1:lmname),isf
-            write(ioout,'(2a)') 'usemtl ',ObsMatName(1:lnbm)
-            write(ioout,'(a,3f8.4)') 'vn ',vn(1),vn(2),vn(3)
+
+C TEST for vn(1/2/3) all zero and if so warn and skip this face.
+            call eclose(vn(1),0.0,0.001,vnclose1)
+            call eclose(vn(2),0.0,0.001,vnclose2)
+            call eclose(vn(3),0.0,0.001,vnclose3)
+            if(vnclose1.and.vnclose2.and.vnclose3)then
+              write(outs,'(4a)') 'WARNING warped face ',
+     &          zname(newfoc)(1:lnzname(newfoc)),
+     &          ':',BLOCKNAME(newfoc,IB)(1:lmname)
+              call edisp(iuout,outs)
+            else
+              write(ioout,'(4a,i2.2)') 'g ',
+     &          zname(newfoc)(1:lnzname(newfoc)),':',
+     &          BLOCKNAME(newfoc,IB)(1:lmname),isf
+              write(ioout,'(2a)') 'usemtl ',ObsMatName(1:lnbm)
+              write(ioout,'(a,3f8.4)') 'vn ',vn(1),vn(2),vn(3)
 
 C Build up face entry including syntax for normals.
-            write(louts,'(a)') 'f '
-            k=3
-            do J=1,iwfacenver(iwnbface)
-              write(face,'(i6,a,i6)') iwfacejvn(iwnbface,J),'//',
-     &          iwnbface
-              call SDELIM(face,faced,'N',IW)
-              lnfd=lnblnk(faced)
-              ke=k+lnfd
-              if(ke.le.400)then
-                write(louts(k:ke),'(a)') faced(1:lnfd)
-                k=k+lnfd+1
-              endif
-            enddo
-C            write(6,*) louts(1:lnblnk(louts))
-            write(ioout,'(a)') louts(1:lnblnk(louts))
+              write(louts,'(a)') 'f '
+              k=3
+              do J=1,iwfacenver(iwnbface)
+                write(face,'(i6,a,i6)') iwfacejvn(iwnbface,J),'//',
+     &            iwnbface
+                call SDELIM(face,faced,'N',IW)
+                lnfd=lnblnk(faced)
+                ke=k+lnfd
+                if(ke.le.400)then
+                  write(louts(k:ke),'(a)') faced(1:lnfd)
+                  k=k+lnfd+1
+                endif
+              enddo
+C              write(6,*) louts(1:lnblnk(louts))
+              write(ioout,'(a)') louts(1:lnblnk(louts))
+            endif
           enddo
    43   continue
       endif              
@@ -1635,7 +1677,7 @@ C Include visual entities. Use similar e2rform.F ~line 1230.
             lnbm=7
             ObsMatName='unknown'
           else
-            lnbm=LNVISMAT(newfoc,ib)
+            lnbm=lnblnk(VISMAT(newfoc,ib))
             ObsMatName=VISMAT(newfoc,ib)
           endif
           if (VISTYP(newfoc,ib).eq.'vis ') then
@@ -1684,28 +1726,39 @@ C Include visual entities. Use similar e2rform.F ~line 1230.
             call PLEQN(XX,YY,ZZ,N,CG,EQN,IERR)
             vn(1)=EQN(1); vn(2)=EQN(2); vn(3)=EQN(3)
 
-            write(ioout,'(4a,i2.2)') 'g ',
-     &        zname(newfoc)(1:lnzname(newfoc)),':',
-     &        VISNAME(newfoc,IB)(1:lmname),isf
-            write(ioout,'(2a)') 'usemtl ',ObsMatName(1:lnbm)
-            write(ioout,'(a,3f8.4)') 'vn ',vn(1),vn(2),vn(3)
+C TEST for all vn being zero and if so skip this entity.
+            call eclose(vn(1),0.0,0.001,vnclose1)
+            call eclose(vn(2),0.0,0.001,vnclose2)
+            call eclose(vn(3),0.0,0.001,vnclose3)
+            if(vnclose1.and.vnclose2.and.vnclose3)then
+              write(outs,'(4a)') 'WARNING warped face ',
+     &          zname(newfoc)(1:lnzname(newfoc)),
+     &          ':',VISNAME(newfoc,IB)(1:lmname)
+              call edisp(iuout,outs)
+            else
+              write(ioout,'(4a,i2.2)') 'g ',
+     &          zname(newfoc)(1:lnzname(newfoc)),':',
+     &          VISNAME(newfoc,IB)(1:lmname),isf
+              write(ioout,'(2a)') 'usemtl ',ObsMatName(1:lnbm)
+              write(ioout,'(a,3f8.4)') 'vn ',vn(1),vn(2),vn(3)
 
 C Build up face entry including syntax for normals.
-            write(louts,'(a)') 'f '
-            k=3
-            do J=1,iwfacenver(iwnbface)
-              write(face,'(i6,a,i6)') iwfacejvn(iwnbface,J),'//',
-     &          iwnbface
-              call SDELIM(face,faced,'N',IW)
-              lnfd=lnblnk(faced)
-              ke=k+lnfd
-              if(ke.le.400)then
-                write(louts(k:ke),'(a)') faced(1:lnfd)
-                k=k+lnfd+1
-              endif
-            enddo
-C            write(6,*) louts(1:lnblnk(louts))
-            write(ioout,'(a)') louts(1:lnblnk(louts))
+              write(louts,'(a)') 'f '
+              k=3
+              do J=1,iwfacenver(iwnbface)
+                write(face,'(i6,a,i6)') iwfacejvn(iwnbface,J),'//',
+     &            iwnbface
+                call SDELIM(face,faced,'N',IW)
+                lnfd=lnblnk(faced)
+                ke=k+lnfd
+                if(ke.le.400)then
+                  write(louts(k:ke),'(a)') faced(1:lnfd)
+                  k=k+lnfd+1
+                endif
+              enddo
+C              write(6,*) louts(1:lnblnk(louts))
+              write(ioout,'(a)') louts(1:lnblnk(louts))
+            endif
           enddo
  143    continue ! if nbvis
       endif              
@@ -1763,6 +1816,13 @@ C The model root and mpath passed to silentmodel call.
 
       LOGICAL OK,concat,browse,confirm,ckpath,unixok
       logical itisanexemplar  ! passed to newprb to ensure correct browse mode
+
+C Attributes of session keystroke file.
+      logical ikopened     ! Has keystoke file been started/requested.
+      integer ikcount      ! Number of entries.
+      integer ikout        ! File unit for keystrokes.
+      character ikfile*72  ! The name of the keystroke file.
+      common/logk/ikopened,ikcount,ikout,ikfile
 
       character LFIL*72,LCMDFL*144
       character outs*124,OUTSTR*124,doit*248
@@ -1845,6 +1905,15 @@ C Create one or more dummy zones for gtool to work with.
      &    'Shutting down Project Manager.','...','-')
           call pauses(1)
 
+          if(ikcount.gt.0)then  ! If entries in key file write closing line.
+            write(ikout,'(a)') 'XXX'
+            close(ikout)
+            CALL ERPFREE(ikout,ISTAT)
+          else
+            close(ikout)
+            CALL ERPFREE(ikout,ISTAT)
+          endif
+
 C Clear arrays.
           CALL DeallocateAllArrays
           close(ieout)
@@ -1885,8 +1954,8 @@ C If iverb passed as non-zero then change directive.
 
 C Figure out where the new model cfg is going to be placed.
 C          call usrdir(pwdinitial)
-          write(6,*) 'the pwd command is ',
-     &      pwdinitial(1:lnblnk(pwdinitial))
+C          write(6,*) 'the pwd command is ',
+C     &      pwdinitial(1:lnblnk(pwdinitial))
           thecfgis='  '
           write(thecfgis,'(2a)') metaroot(1:lnblnk(metaroot)),'.cfg'
           cfgpath='  '
@@ -2053,7 +2122,7 @@ C Re-read the upgraded configuration file. Reconstruct the path.
      &        LFIL(1:lnblnk(LFIL)),' -of esp -out ',
      &        placemodelin(1:lnblnk(placemodelin))
           endif
-          write(6,*) doit
+C          write(6,*) doit
 C          call usrmsg('doing conversion via',doit,'-')
           call pauses(1)
           call runit(doit,'-')
@@ -2365,8 +2434,10 @@ C User selected an exemplar category from the menu.
         endif
 
 C Re-open the exemplar file (the list of exemplar models).
-        write(outs,'(2a)') 'exemplar is ',exemfl(1:lnblnk(exemfl))
-        call edisp(iuout,outs)
+        if(itrc.gt.0)then
+          write(outs,'(2a)') 'exemplar is ',exemfl(1:lnblnk(exemfl))
+          call edisp(iuout,outs)
+        endif
         if(exemfl(1:1).eq.'/')then
           call FPOPEN(iexfil,ISTAT,1,0,exemfl)
         else
@@ -2483,8 +2554,10 @@ C Exit from detail level back to group level.
 C Open the related configuration file (if it exists), find its log file.
       CALL ERPFREE(iexfil+1,ISTAT)
       cfg=cfgitem(inl2in(ICO))
-      write(outs,'(2a)') 'item is ',cfg(1:lnblnk(cfg))
-      call edisp(iuout,outs)
+      if(itrc.gt.0)then
+        write(outs,'(2a)') 'item is ',cfg(1:lnblnk(cfg))
+        call edisp(iuout,outs)
+      endif
       call isunix(unixok)
       if(.NOT.unixok)then   ! For W10 use FPOPEN
         call FPOPEN(iexfil+1,ISTAT,1,0,cfg)
@@ -2501,8 +2574,10 @@ C Open the related configuration file (if it exists), find its log file.
       endif
       if(XST)then
         call fdroot(cfg,cfg_path,cfg_root)
-        write(outs,'(2a)') 'path is ',cfg_path(1:lnblnk(cfg_path))
-        call edisp(iuout,outs)
+        if(itrc.gt.0)then
+          write(outs,'(2a)') 'path is ',cfg_path(1:lnblnk(cfg_path))
+          call edisp(iuout,outs)
+        endif
         call FPOPEN(iexfil+1,ISTAT,1,0,cfg)
   242   CALL STRIPC(iexfil+1,OUTSTR,99,ND,0,'cfg scan',IER)
         if(ier.ne.0)goto 902
@@ -3127,7 +3202,7 @@ C << and then what... look in e2rform.F near line 1120
 C << there are 8 vertices and 6 surfaces
             lnz=lnblnk(zname(mz))
             WRITE(ioout,'(4a)') 'GEN OBS:',zname(mz)(1:lnz),':',
-     &        BLOCKNAME(mz,IB)(1:LNBLOCKNAME(mz,IB))
+     &        BLOCKNAME(mz,IB)(1:lnblnk(BLOCKNAME(mz,IB)))
             WRITE(ioout,'(a)')' 8  6  0'
             DO 41 J=1,8
               if (BLOCKTYP(mz,ib).eq.'obs ') then
@@ -3253,16 +3328,18 @@ C Update the connection list and hash.
           IC1(ICCC)=ICOMP; IE1(ICCC)=ICC; ICT(ICCC)=-1   ! mark as unknown at this time.
           IC2(ICCC)=0; IE2(ICCC)=0
           IZSTOCN(icomp,icc)=iccc
+          zboundarytype(icomp,icc,1)=ICT(iccc)
+          zboundarytype(icomp,icc,2)=IC2(iccc)
+          zboundarytype(icomp,icc,3)=IE2(iccc)
         ENDDO
         NCON=ICCC
 
         write(zdesc(ICOMP),'(2a)') zname(ICOMP)(1:lnzname(ICOMP)),
      &    ' describes a '
-        lnzdesc(ICOMP)=lnblnk(zdesc(ICOMP))  ! update the length of this string.
         CTYPE(icomp)='GEN '
         NDP(ICOMP)=3
         IDPN(ICOMP,1)=0; IDPN(ICOMP,2)=0; IDPN(ICOMP,3)=0
-        NZSUR(ICOMP)=NSUR  ! update nzsur() it is needed by zgupdate.
+        NZSUR(ICOMP)=NSUR
         NZTV(ICOMP)=NTV
 
 C Update the G7 common blocks and then assign ZBASEA.
@@ -3274,25 +3351,25 @@ C Update the global coordinates for this zones surfaces so that
 C the subsequent wireframe image can be drawn and the bounds of
 C the zone can be calculated. Also instantiate isznver and iszjvn
 C for the new zone (as is done in subroutine zdata).
-        DO 40 J=1,NZTV(ICOMP)
+        DO J=1,NZTV(ICOMP)
           szcoords(ICOMP,J,1)=X(J)
           szcoords(ICOMP,J,2)=Y(J)
           szcoords(ICOMP,J,3)=Z(J)
-   40   CONTINUE
-        DO 50 J=1,nzsur(ICOMP)
+        ENDDO
+        do J=1,nzsur(ICOMP)
           icc=IZSTOCN(icomp,j)
           if(icc.ne.0)then
             isznver(icomp,j)=NVER(J)
             N = isznver(icomp,j)
-            DO 60 K=1,N
+            do K=1,N
               iszjvn(icomp,j,K)=JVN(J,K)
-   60       CONTINUE
+            enddo
           endif
-   50   continue
+        enddo
 
 C Save this to file before passing into the geometry editing facility.
         gversion(icomp) =1.1
-        call geowrite(IFIL+2,LGEOM(ICOMP),ICOMP,iuout,3,IER)
+        call geowrite2(IFIL+2,LGEOM(ICOMP),ICOMP,iuout,3,IER)
         NCOMP=NCOMP+1
         NCCODE(ICOMP)=NCOMP                                                                                                                
         CALL EMKCFG('-',IER)                                                       
@@ -3324,7 +3401,7 @@ C Assumes that the export file is already opened.
       character louts*400
 C      character loutsd*400           ! Uncomment if debug needed.
       character face*24,faced*24
-      character msg*72
+      character msg*72,outs*124
       dimension XX(MV),YY(MV),ZZ(MV)  ! Original polygon.
       dimension XT(MV),YT(MV),ZT(MV)  ! Transformed polygon.
       dimension XO(MV),YO(MV),ZO(MV)  ! Unified for the body.
@@ -3335,6 +3412,7 @@ C      character loutsd*400           ! Uncomment if debug needed.
       real wfx,wfy,wfz                ! Current wavefront vertex.
       real vn(3),vnb(3),vnf(3)        ! Vector normals for back front and ?.
       logical ok
+      logical vnclose1,vnclose2,vnclose3  ! test for zero vector.
 
 C Work on base & top and then again for each new edge.
       icount=0  ! icount keeps track of which surface is being composed
@@ -3401,6 +3479,7 @@ C Generate a vertex line.
 
 C Use XT YT ZT for the front face.
       iwfacenver(itopsurf)=ibaseedge
+      N = ibaseedge
       DO J = 1,N
         if(ibodyv+1.le.MV)then
           iwnbvert=iwnbvert+1       ! increment master list
@@ -3421,12 +3500,25 @@ C Generate a vertex line.
       ENDDO
 
 C Vector normal for the transformed front face.
-      N = iwfacenver(iotopsurf)
+      N = ibaseedge
       call PLEQN(XX,YY,ZZ,N,CG,EQN,IERR)
       vnf(1)=EQN(1); vnf(2)=EQN(2); vnf(3)=EQN(3)
 
+C Test that vnf are not all zero, if so skip this entity.
+      call eclose(vnf(1),0.0,0.001,vnclose1)
+      call eclose(vnf(2),0.0,0.001,vnclose2)
+      call eclose(vnf(3),0.0,0.001,vnclose3)
+      if(vnclose1.and.vnclose2.and.vnclose3)then
+        write(outs,'(2a)') 'WARNING warped/broken front face ',
+     &    zsn(1:lnblnk(zsn))
+          call edisp(iuout,outs)
+        write(6,*) 'warp ',ierr,iotopsurf,N,(zz(kb),kb=1,N)
+      else
+C        write(6,*) 'flat ',ierr,iotopsurf,N,(zz(kb),kb=1,N)
+      endif
+
 C Reverse order the ESP-r polygon as the back face of the wavefront object.
-      do iyy = 1,iwfacenver(ibasesurf)
+      do iyy = 1,N
         jvn1(iyy)=jvnorig(iyy)
         jvn2(iyy)=jvnbody(iobasesurf,iyy)
       enddo
@@ -3434,7 +3526,7 @@ C Reverse order the ESP-r polygon as the back face of the wavefront object.
       iwfacejvn(ibasesurf,2)=jvn1(1)
       jvnbody(iobasesurf,1)=jvn2(2)
       jvnbody(iobasesurf,2)=jvn2(1)
-      do iyy = 3,iwfacenver(ibasesurf)
+      do iyy = 3,N
         izz=iwfacenver(ibasesurf)+3-iyy
         iwfacejvn(ibasesurf,iyy)=jvn1(izz)
         jvnbody(iobasesurf,iyy)=jvn2(izz)
@@ -3442,16 +3534,29 @@ C Reverse order the ESP-r polygon as the back face of the wavefront object.
 
 C Write the body array the coordinates to XX for transform
 C of the back face.
-      do iyy = 1,iwfacenver(ibasesurf)
+      N = ibaseedge
+      do iyy = 1,N
         XX(iyy)=XO(jvnbody(iobasesurf,iyy))
         YY(iyy)=YO(jvnbody(iobasesurf,iyy))
         ZZ(iyy)=ZO(jvnbody(iobasesurf,iyy))
       enddo
-      N = iwfacenver(ibasesurf)
       call PLEQN(XX,YY,ZZ,N,CG,EQN,IERR)
       vnb(1)=EQN(1); vnb(2)=EQN(2); vnb(3)=EQN(3)
-      
-C Write the base face.
+
+C TEST for vnb(1/2/3) all zero and if so warn and skip this face.
+      call eclose(vnb(1),0.0,0.001,vnclose1)
+      call eclose(vnb(2),0.0,0.001,vnclose2)
+      call eclose(vnb(3),0.0,0.001,vnclose3)
+      if(vnclose1.and.vnclose2.and.vnclose3)then
+        write(outs,'(2a)') 'WARNING warped/broken back face ',
+     &    zsn(1:lnblnk(zsn))
+          call edisp(iuout,outs)
+        write(6,*) 'warp ',ierr,ibasesurf,N,(zz(kb),kb=1,N)
+      else
+C        write(6,*) 'flat ',ierr,ibasesurf,N,(zz(kb),kb=1,N)
+      endif
+
+C Write the back face.
       lnz=MIN0(lnblnk(zsn),26)
       write(SNAMED,'(2a)') 'b_',zsn(1:lnz)
       write(SNAME1,'(2a)') 'f_',zsn(1:lnz)
@@ -3468,15 +3573,11 @@ C Write the base face.
       iwnbface=iwnbface+1
       write(ioout,'(a,3f8.4)') 'vn ',vnb(1),vnb(2),vnb(3)
 
-C      write(louts,'(a,36i6)') 'f',
-C     &  (iwfacejvn(ibasesurf,J),J=1,iwfacenver(ibasesurf))
-C      call SDELIM(louts,loutsd,'S',IW)
-C      write(ioout,'(a)') loutsd(1:lnblnk(loutsd))
-
 C Build up face entry including syntax for normals.
       write(louts,'(a)') 'f '
       k=3
-      do J=1,iwfacenver(ibasesurf)
+      N = ibaseedge
+      do J=1,N
         write(face,'(i6,a,i6)') iwfacejvn(ibasesurf,J),'//',
      &    ibasesurf
         call SDELIM(face,faced,'N',IW)
@@ -3502,14 +3603,10 @@ C references to the vector normal.
 
       write(ioout,'(a,3f8.4)') 'vn ',vnf(1),vnf(2),vnf(3)
 
-C      write(louts,'(a,36i6)') 'f',
-C     &  (iwfacejvn(itopsurf,J),J=1,iwfacenver(itopsurf))
-C      call SDELIM(louts,loutsd,'S',IW)
-C      write(ioout,'(a)') loutsd(1:lnblnk(loutsd))
-
       write(louts,'(a)') 'f '
       k=3
-      do J=1,iwfacenver(itopsurf)
+      N = ibaseedge
+      do J=1,N
         write(face,'(i6,a,i6)') iwfacejvn(itopsurf,J),'//',
      &    itopsurf
         call SDELIM(face,faced,'N',IW)
@@ -3567,30 +3664,37 @@ C arrays to pleqn to get vector normals.
         write(SNAME1,'(a,i2,a)')'edg_',icount,zsn(1:lnz)
       endif
 
-C Write the front face.
-      write(ioout,'(2a)') 'g ',SNAME1(1:lnblnk(SNAME1))
-      write(ioout,'(a,3f8.4)') 'vn ',vn(1),vn(2),vn(3)
+C TEST for vn(1/2/3) all zero and if so warn and skip this face.
+      call eclose(vn(1),0.0,0.001,vnclose1)
+      call eclose(vn(2),0.0,0.001,vnclose2)
+      call eclose(vn(3),0.0,0.001,vnclose3)
+      if(vnclose1.and.vnclose2.and.vnclose3)then
+        write(outs,'(4a)') 'WARNING warped edge face ',
+     &    zname(iz)(1:lnzname(iz)),
+     &   ':',SNAME1(1:lnblnk(SNAME1))
+        call edisp(iuout,outs)
+      else
 
-C      write(louts,'(a,36i6)') 'f',
-C     &   (iwfacejvn(iwnbface,J),J=1,iwfacenver(iwnbface))
-C      call SDELIM(louts,loutsd,'S',IW)
-C      write(ioout,'(a)') loutsd(1:lnblnk(loutsd))
+C Write the edge face.
+        write(ioout,'(2a)') 'g ',SNAME1(1:lnblnk(SNAME1))
+        write(ioout,'(a,3f8.4)') 'vn ',vn(1),vn(2),vn(3)
 
-      write(louts,'(a)') 'f '
-      k=3
-      do J=1,iwfacenver(iwnbface)
-        write(face,'(i6,a,i6)') iwfacejvn(iwnbface,J),'//',
-     &    iwnbface
-        call SDELIM(face,faced,'N',IW)
-        lnfd=lnblnk(faced)
-        ke=k+lnfd
-        if(ke.le.400)then
-          write(louts(k:ke),'(a)') faced(1:lnfd)
-          k=k+lnfd+1
-        endif
-      enddo
-C      write(6,*) louts(1:lnblnk(louts))
-      write(ioout,'(a)') louts(1:lnblnk(louts))
+        write(louts,'(a)') 'f '
+        k=3
+        do J=1,4
+          write(face,'(i6,a,i6)') iwfacejvn(iwnbface,J),'//',
+     &      iwnbface
+          call SDELIM(face,faced,'N',IW)
+          lnfd=lnblnk(faced)
+          ke=k+lnfd
+          if(ke.le.400)then
+            write(louts(k:ke),'(a)') faced(1:lnfd)
+            k=k+lnfd+1
+          endif
+        enddo
+C        write(6,*) louts(1:lnblnk(louts))
+        write(ioout,'(a)') louts(1:lnblnk(louts))
+      endif
 
 C Update the counters (ibasecount decrements, itopcount increments).
       ibasecount=ibasecount+1
@@ -3625,7 +3729,7 @@ C Assumes that the export file is already opened.
       common/OUTIN/IUOUT,IUIN,IEOUT
 
       CHARACTER SNAME1*28,SNAMED*28
-      character louts*400
+      character louts*400,outs*124
 C      character loutsd*400           ! Uncomment if debug needed.
       character face*24,faced*24
       dimension  XOr(MV),YOr(MV),ZOr(MV)
@@ -3638,6 +3742,7 @@ C      character loutsd*400           ! Uncomment if debug needed.
 
       real wfx,wfy,wfz                ! Current wavefront vertex
       real vn(3),vnb(3),vnf(3)        ! Vector normals for back front and ?.
+      logical vnclose1,vnclose2,vnclose3  ! test for zero vector.
 
 C Work on base & top and then again for each new edge.
       icount=0  ! icount keeps track of which surface is being composed
@@ -3701,12 +3806,25 @@ C Generate a vertex line.
       ENDDO
 
 C Vector normal for the transformed front face.
-      N = iwfacenver(iotopsurf)
+      N = ibaseedge
       call PLEQN(XX,YY,ZZ,N,CG,EQN,IERR)
       vnf(1)=EQN(1); vnf(2)=EQN(2); vnf(3)=EQN(3)
 
+C TEST for vn(1/2/3) all zero and if so warn and skip this face.
+      call eclose(vnf(1),0.0,0.001,vnclose1)
+      call eclose(vnf(2),0.0,0.001,vnclose2)
+      call eclose(vnf(3),0.0,0.001,vnclose3)
+      if(vnclose1.and.vnclose2.and.vnclose3)then
+        write(outs,'(2a)') 'WARNING warped F face ',
+     &   NAME(1:lnblnk(NAME))
+        call edisp(iuout,outs)
+        write(6,*) 'warp ',ierr,iotopsurf,N,(zz(kb),kb=1,N)
+      else
+C        write(6,*) 'flat ',ierr,iotopsurf,N,(zz(kb),kb=1,N)
+      endif
+
 C Reverse order the original polygon as the back face of the wavefront object.
-      do iyy = 1,iwfacenver(ibasesurf)
+      do iyy = 1,N
         jvn1(iyy)=jvnorig(iyy)
         jvn2(iyy)=jvnbody(iobasesurf,iyy)
       enddo
@@ -3714,7 +3832,7 @@ C Reverse order the original polygon as the back face of the wavefront object.
       iwfacejvn(ibasesurf,2)=jvn1(1)
       jvnbody(iobasesurf,1)=jvn2(2)
       jvnbody(iobasesurf,2)=jvn2(1)
-      do iyy = 3,iwfacenver(ibasesurf)
+      do iyy = 3,N
         izz=iwfacenver(ibasesurf)+3-iyy
         iwfacejvn(ibasesurf,iyy)=jvn1(izz)
         jvnbody(iobasesurf,iyy)=jvn2(izz)
@@ -3722,14 +3840,27 @@ C Reverse order the original polygon as the back face of the wavefront object.
 
 C Write the body array the coordinates to XX for transform
 C of the back face.
-      do iyy = 1,iwfacenver(ibasesurf)
+      N = ibaseedge
+      do iyy = 1,N
         XX(iyy)=XO(jvnbody(iobasesurf,iyy))
         YY(iyy)=YO(jvnbody(iobasesurf,iyy))
         ZZ(iyy)=ZO(jvnbody(iobasesurf,iyy))
       enddo
-      N = iwfacenver(ibasesurf)
       call PLEQN(XX,YY,ZZ,N,CG,EQN,IERR)
       vnb(1)=EQN(1); vnb(2)=EQN(2); vnb(3)=EQN(3)
+
+C TEST for vn(1/2/3) all zero and if so warn and skip this face.
+      call eclose(vnb(1),0.0,0.001,vnclose1)
+      call eclose(vnb(2),0.0,0.001,vnclose2)
+      call eclose(vnb(3),0.0,0.001,vnclose3)
+      if(vnclose1.and.vnclose2.and.vnclose3)then
+        write(outs,'(2a)') 'WARNING warped B face ',
+     &   NAME(1:lnblnk(NAME))
+        call edisp(iuout,outs)
+        write(6,*) 'warp ',ierr,ibasesurf,N,(zz(kb),kb=1,N)
+      else
+C        write(6,*) 'flat ',ierr,ibasesurf,N,(zz(kb),kb=1,N)
+      endif
 
 C Write the base face.
       lnz=MIN0(lnblnk(NAME),26)
@@ -3745,15 +3876,11 @@ C Write the base face.
       iwnbface=iwnbface+1
       write(ioout,'(a,3f8.4)') 'vn ',vnb(1),vnb(2),vnb(3)
 
-C      write(louts,'(a,36i6)') 'f',
-C     &  (iwfacejvn(ibasesurf,J),J=1,iwfacenver(ibasesurf))
-C      call SDELIM(louts,loutsd,'S',IW)
-C      write(ioout,'(a)') loutsd(1:lnblnk(loutsd))
-
 C Build up face entry including syntax for normals.
       write(louts,'(a)') 'f '
       k=3
-      do J=1,iwfacenver(ibasesurf)
+      N = ibaseedge
+      do J=1,N
         write(face,'(i6,a,i6)') iwfacejvn(ibasesurf,J),'//',
      &    ibasesurf
         call SDELIM(face,faced,'N',IW)
@@ -3775,14 +3902,10 @@ C references to the vector normal.
 
       write(ioout,'(a,3f8.4)') 'vn ',vnf(1),vnf(2),vnf(3)
 
-C      write(louts,'(a,36i6)') 'f',
-C     &  (iwfacejvn(itopsurf,J),J=1,iwfacenver(itopsurf))
-C      call SDELIM(louts,loutsd,'S',IW)
-C      write(ioout,'(a)') loutsd(1:lnblnk(loutsd))
-
       write(louts,'(a)') 'f '
       k=3
-      do J=1,iwfacenver(itopsurf)
+      N = ibaseedge
+      do J=1,N
         write(face,'(i6,a,i6)') iwfacejvn(itopsurf,J),'//',
      &    itopsurf
         call SDELIM(face,faced,'N',IW)
@@ -3840,30 +3963,36 @@ C arrays to pleqn to get vector normals.
         write(SNAME1,'(a,i2,a)')'edg_',icount,NAME(1:lnz)
       endif
 
+C TEST for vn(1/2/3) all zero and if so warn and skip this face.
+      call eclose(vn(1),0.0,0.001,vnclose1)
+      call eclose(vn(2),0.0,0.001,vnclose2)
+      call eclose(vn(3),0.0,0.001,vnclose3)
+      if(vnclose1.and.vnclose2.and.vnclose3)then
+        write(outs,'(2a)') 'WARNING warped edge face ',
+     &    SNAME1(1:lnblnk(SNAME1))
+        call edisp(iuout,outs)
+      else
+
 C Write the front face.
-      write(ioout,'(2a)') 'g ',SNAME1(1:lnblnk(SNAME1))
-      write(ioout,'(a,3f8.4)') 'vn ',vn(1),vn(2),vn(3)
+        write(ioout,'(2a)') 'g ',SNAME1(1:lnblnk(SNAME1))
+        write(ioout,'(a,3f8.4)') 'vn ',vn(1),vn(2),vn(3)
 
-C      write(louts,'(a,36i6)') 'f',
-C     &   (iwfacejvn(iwnbface,J),J=1,iwfacenver(iwnbface))
-C      call SDELIM(louts,loutsd,'S',IW)
-C      write(ioout,'(a)') loutsd(1:lnblnk(loutsd))
-
-      write(louts,'(a)') 'f '
-      k=3
-      do J=1,iwfacenver(iwnbface)
-        write(face,'(i6,a,i6)') iwfacejvn(iwnbface,J),'//',
-     &    iwnbface
-        call SDELIM(face,faced,'N',IW)
-        lnfd=lnblnk(faced)
-        ke=k+lnfd
-        if(ke.le.400)then
-          write(louts(k:ke),'(a)') faced(1:lnfd)
-          k=k+lnfd+1
-        endif
-      enddo
-C      write(6,*) louts(1:lnblnk(louts))
-      write(ioout,'(a)') louts(1:lnblnk(louts))
+        write(louts,'(a)') 'f '
+        k=3
+        do J=1,4
+          write(face,'(i6,a,i6)') iwfacejvn(iwnbface,J),'//',
+     &      iwnbface
+          call SDELIM(face,faced,'N',IW)
+          lnfd=lnblnk(faced)
+          ke=k+lnfd
+          if(ke.le.400)then
+            write(louts(k:ke),'(a)') faced(1:lnfd)
+            k=k+lnfd+1
+          endif
+        enddo
+C        write(6,*) louts(1:lnblnk(louts))
+        write(ioout,'(a)') louts(1:lnblnk(louts))
+      endif
 
 C Update the counters (ibasecount decrements, itopcount increments).
       ibasecount=ibasecount+1
@@ -3891,11 +4020,14 @@ C mkriofil: Write inside/outside materials and composition files.
     
       integer lnblnk  ! function definition
 
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
+      logical usedmlc
+      logical usedmat
+      common/refmlcmat/usedmlc(MMLC),usedmat(MGIT)
+
       integer matarrayindex ! the indes within matdatarray
       logical closemat1,closemat2,found
-      character mlc_name*32,tmlcname*32
-      dimension areamlc(MCOM),areamlcamb(MCOM),areamlcoth(MCOM)
-      dimension areamlcb2b(MCOM),areamlcgrnd(MCOM),areamlcsimil(MCOM)
+      character tmlcname*32,outs*124
 
       IER=0
 
@@ -3938,25 +4070,26 @@ C Always include a colour for internal and external UNKNOWN mlc.
       WRITE(ioout,'(a)') 'illum 1'
       WRITE(ioout,'(a)') '  '
 
+C Scan MLC and materials to find which ones have been referenced in the model.
+      call usedmlcmat(iusedmlc,iusedmat)
+C      write(6,*) 'nb of MLC used ',iusedmlc
+C      write(6,*) 'nb of Mat used ',iusedmat
+
 C List database and if used in the model include in the .mtl file.
       do IM=1,NMLC
         found=.false.
-        write(mlc_name,'(a)') mlcname(im)(1:lnmlcname(im))
         call st2name(mlcname(im),tmlcname)  ! Filtered MLC name
-        call mlcrefs(mlc_name,areamlc,areamlcamb,areamlcoth,
-     &    areamlcb2b,areamlcgrnd,areamlcsimil,tareamlc,found)
+        if(usedmlc(im)) found=.true.
         if(.NOT.found) CYCLE
-
-C << TODO keep track of the materials actually used in the referenced MLC.
-C << This can allow for the later materials entries to be concise.
 
 C For the inside and outside layer get surface properties.
         matarrayindex=IPRMAT(IM,1)   ! which materials array index
         if(matarrayindex.gt.0)then
           AE=matdbina(matarrayindex)
         else
-          write(6,'(3a)') 'unknown material in ',
+          write(outs,'(3a)') 'unknown material in ',
      &      mlcname(IM)(1:lnmlcname(IM)),' outer layer'
+          call edisp(iuout,outs)
           AE=0.5
         endif
         if(LAYERS(IM).gt.0)then
@@ -3967,8 +4100,9 @@ C For the inside and outside layer get surface properties.
             AI=0.5
           endif
         else
-          write(6,'(2a)') 'no layers in ',
+          write(outs,'(2a)') 'no layers in ',
      &      mlcname(IM)(1:lnmlcname(IM))
+          call edisp(iuout,outs)
           AI=0.5
         endif
         if(mlctype(IM)(1:4).EQ.'OPAQ')then
@@ -4003,13 +4137,15 @@ C For the inside and outside layer get surface properties.
 
 C Now create materials based entries.
       do L=1,matdbitems
-        lnm=lnblnk(matname(L))
-        srefl=1.0-matdbouta(L)
-        WRITE(ioout,'(a)') '  '
-        WRITE(ioout,'(2a)') 'newmtl ',matname(L)(1:lnm)
-        WRITE(ioout,'(a)') 'Ka 1.0000 1.0000 1.0000'
-        WRITE(ioout,'(a,3F5.2)') 'Kd ',srefl,srefl,srefl
-        WRITE(ioout,'(a)') 'illum 1'
+        if(usedmat(L))then   ! If has been referenced.
+          lnm=lnblnk(matname(L))
+          srefl=1.0-matdbouta(L)
+          WRITE(ioout,'(a)') '  '
+          WRITE(ioout,'(2a)') 'newmtl ',matname(L)(1:lnm)
+          WRITE(ioout,'(a)') 'Ka 1.0000 1.0000 1.0000'
+          WRITE(ioout,'(a,3F5.2)') 'Kd ',srefl,srefl,srefl
+          WRITE(ioout,'(a)') 'illum 1'
+        endif
       enddo
       WRITE(ioout,'(a)') '  '
 
@@ -4075,15 +4211,7 @@ C increment the counts.
             CALL EGOMST(ITA1,newfoc,ZOBS(newfoc),0,ITRC,IUOUT,IER)
           endif
         elseif(gversion(mz).ge.1.1) then
-          call georead(ITA1,LGEOM(newfoc),newfoc,1,iuout,ier)
-          if(iobs(mz).eq.0)then
-            continue   ! no obstructions
-          elseif(iobs(mz).eq.1)then
-            CALL ERPFREE(ITA1,ISTAT)
-            CALL EGOMST(ITA1,newfoc,ZOBS(newfoc),0,ITRC,IUOUT,IER)
-          elseif(iobs(mz).eq.2)then
-            continue   ! obs within geo file
-          endif
+         continue  ! For newer geometry & obstr attributes are in memory.
         endif
 
         do is=1,NZSUR(newfoc)
@@ -4132,9 +4260,9 @@ C          objcomplex=0                         ! At start of object clear compl
             if(icomplex.gt.objcomplex) objcomplex=icomplex
           endif
         enddo
-        write(6,'(a,6i6)') 
-     &    'z nbobjs nbobjface nbobjver nbobjnver,objcomplex',
-     &    newfoc,nbobjs,nbobjface,nbobjver,nbobjnver,objcomplex
+C        write(6,'(a,6i6)') 
+C     &    'z nbobjs nbobjface nbobjver nbobjnver,objcomplex',
+C     &    newfoc,nbobjs,nbobjface,nbobjver,nbobjnver,objcomplex
         if(nbobs(newfoc).ge.1)then
           do 43 ib=1,nbobs(newfoc)
             nbobjs=nbobjs+1                  ! An obstruction is a wavefront object.
@@ -4146,8 +4274,8 @@ C          objcomplex=0                         ! At start of object clear compl
             enddo
             if(icomplex.gt.objcomplex) objcomplex=icomplex
    43     continue
-          write(6,'(a,6i6)') 'obstr nbobjs nbobjface nbobjver',
-     &      newfoc,nbobjs,nbobjface,nbobjver,nbobjnver,objcomplex
+C          write(6,'(a,6i6)') 'obstr nbobjs nbobjface nbobjver',
+C     &      newfoc,nbobjs,nbobjface,nbobjver,nbobjnver,objcomplex
         endif
         if(nbvis(newfoc).ge.1)then
           do 143 ib=1,nbvis(newfoc)
@@ -4157,8 +4285,8 @@ C          objcomplex=0                         ! At start of object clear compl
               nbobjver=nbobjver+4
             enddo
   143     continue
-          write(6,'(a,4i6)') 'visual nbobjs nbobjface nbobjver',
-     &      newfoc,nbobjs,nbobjface,nbobjver
+C          write(6,'(a,4i6)') 'visual nbobjs nbobjface nbobjver',
+C     &      newfoc,nbobjs,nbobjface,nbobjver
         endif
    4  continue
       return

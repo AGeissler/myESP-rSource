@@ -465,6 +465,11 @@ C CALLS: GFIXED
       COMMON/GET2/XDUM(MTS),XDUM1(MTS),GVAL(MTS)
 
       IF(ISAVE.GE.1.AND.ISAVE.LE.4)THEN
+        if(iday.eq.0.or.IZONE.eq.0)then
+          call edisp(iuout,
+     &    ' GZQM: Day or zone index is zero. Skipping.')
+          return
+        endif
         IRJUMP = 0
         IF(ISAVE.EQ.1)ICJUMP=3
         IF(ISAVE.GE.2.AND.ISAVE.LE.4)ICJUMP=2
@@ -1734,6 +1739,11 @@ C ISET is the results set number to be scanned.
 
 C Get data only if save is level 1 - 4.
       IF(ISAVE.GE.1.AND.ISAVE.LE.4)THEN
+        if(iday.eq.0.or.IZONE.eq.0)then
+          call edisp(iuout,
+     &    ' GFIXED: Day or zone index is zero. Skipping.')
+          return
+        endif
         if(iset.gt.0)then
           N=24*NTS
           DO 20 I=1,N

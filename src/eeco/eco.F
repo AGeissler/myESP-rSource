@@ -41,18 +41,12 @@ C  IRep (Integer) = Flag to define the reporting level (1: Summary , 2: Detailed
 #include "geometry.h"
 #include "LCA.h"
 #include "esprdbfile.h"
-C esprdbfile.h supplies the following:
-C LAPRES,IAPRES (for window pressure database)
-C LOPTDB,IOPTDB (for optical database)
-C LFMAT,IFMAT,LFMUL,IFMUL (for materials and constructions database)
-C default file names for databases
 #include "material.h"
 #include "espriou.h"
 #include "prj3dv.h"
 #include "help.h"
       
       integer lnblnk  ! function definition
-
       integer igraphiclib  ! external definition
 
 C Commons for I/O Channel, mode type and fonts.
@@ -61,6 +55,7 @@ C Commons for I/O Channel, mode type and fonts.
       integer iecount      ! Does it hold error messages.
       character iefile*72  ! The name of the session file.
       common/logs/ieopened,iecount,iefile
+      COMMON/MOD/MODEL
       integer ifs,itfs,imfs
       COMMON/GFONT/IFS,ITFS,IMFS
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
@@ -101,6 +96,8 @@ C For exporting to file
 
 C ECO specific commons 
       COMMON/ProjTxt/TxtCompo,TxtMat
+      CHARACTER TxtCompo*22,TxtMat*32
+
       COMMON/EVGENS/BCFName,System,BCFVer
       COMMON/EVGENN/IBCF
       COMMON/EVGENL/BCFOK
@@ -118,9 +115,12 @@ C ECO specific commons
      &                AsProjPa(MMLC,MNbAss),LayerCat(MMLC,ME),
      &                MainPart(MMLC,MNbM),LayerNam(MMLC,ME),
      &                LayerTyp(MMLC,ME)
+      CHARACTER*32 LayerNam
 
       COMMON/DesMLC/MatNameco(MMAT),MatDesc(MMAT),MatCat(MMAT),
      &              CompoNam(MMLC), LayerDes(MMLC,ME)
+      CHARACTER*32 MatNameco,CompoNam
+      CHARACTER*72 MatDesc,MatCat,LayerDes
 
       COMMON/SPECMASS/SMPLayer(MMLC,ME),SMSLayer(MMLC,ME),IWhich,
      &                SupFab(MMLC,ME),CompSMP(MMLC),CompSMS(MMLC),
@@ -160,7 +160,7 @@ C Ask to overwrite flag.
       CHARACTER NAM*72
 C      CHARACTER tab*1
       character fs*1, TxtReport*24
-      CHARACTER TxtZone*31,TxtCompo*22,TxtMat*22, TxtLCA*28
+      CHARACTER TxtZone*31, TxtLCA*28
       CHARACTER UnitEner*5, UnitMass*4, UnitImp*8, Oldunit*8
       CHARACTER xfile*144,tg*1,delim*1,MODE*4
       character dstmp*24,uname*24,tfile*72
@@ -173,9 +173,6 @@ C      CHARACTER tab*1
       CHARACTER*12 ComAsPt,CoTrPt,MaintPt,AsProjPt
       CHARACTER*1 ComAsPa,MaintTyp,LayerCat,MainPart,AsProjPa,LayerTyp
 
-      CHARACTER*12 CompoNam,LayerNam,MatNameco
-      CHARACTER*72 MatDesc,MatCat,LayerDes
-
       character cVnum*38      ! returned from ESPrVersionNum
       character pagestitle*62 ! for banner title via epages call
 
@@ -183,16 +180,16 @@ C      CHARACTER tab*1
       integer ISTRW
 #ifdef OSI
       integer numberofzones ! to pass to updwire rather than ncomp
+      integer iicapture,iiazi    ! to pass to updcapt updazi
       integer iigl,iigr,iigt,iigb,iigw,iigwh
       integer iiw1,iiw2,iiw3,iiw4,iimenu
-      integer iicapture,iiazi    ! to pass to updcapt updazi
 #else
       integer*8 numberofzones
       integer*8 iigl,iigr,iigt,iigb,iigw,iigwh
       integer*8 iiw1,iiw2,iiw3,iiw4,iimenu
-      integer*8 iicapture,iiazi    ! to pass to updcapt updazi
+      integer*8 iicapture,iiazi   ! to pass to updcapt updazi
 #endif
-      integer NITEMS,INO ! max items and current menu item
+      integer NITEMS,INO  ! max items and current menu item
 
 C Initial assumptions (summary reporting).
       call ezero
@@ -201,7 +198,6 @@ C Initial assumptions (summary reporting).
       helpinapp='eco'  ! set once for the application
       helpinsub='eco'  ! set for MAIN
 C      tab = CHAR(9)
-      ITRC=1
       IUIN = 5
       IUOUT = 6
       ixunit = 7
@@ -212,9 +208,9 @@ C      tab = CHAR(9)
       ITFS=1
       NSIGFIG=3
       matver=0.0     ! initial assumption of binary materials database
-      itrc=2
+      itrc=2         ! signals the topic to report (very confusing)
       ILoss = 0
-      IRep= 1
+      IRep= 1        ! initial summary level reporting
       AUTOVR=.false. ! by default, ask to overwrite files
 
 C Configuration file on IFIL+5.
@@ -248,7 +244,7 @@ C Set folder separator (fs) to \ or / as required.
       else
         fs = char(92)
       endif
-      write(path,'(a1,a1)')'.',fs
+      write(path,'(2a)')'.',fs
 
 C Set defaults.
       OK=.FALSE.
@@ -276,7 +272,7 @@ C Set defaults.
       Perimeter = 0.0
       WidthCo = 0.0
       HeightCo = 0.0
-      IcalType=1
+      IcalType=1       ! initial assumption project based
       nzg=0
 
 C Name and category of the selected primitive
@@ -287,12 +283,8 @@ C Assume no focous zone.
 C      ifocz = -1
 
 C Initialise coordinates for eye point, view point and angle of view.
-      EYEM(1)=-100.
-      EYEM(2)=-100.
-      EYEM(3)=100.
-      VIEWM(1)=10.
-      VIEWM(2)=10.
-      VIEWM(3)=10.
+      EYEM(1)=-100.; EYEM(2)=-100.; EYEM(3)=100.
+      VIEWM(1)=10.; VIEWM(2)=10.; VIEWM(3)=10.
       ANG=40.
       IVISMOD=1
 
@@ -316,7 +308,7 @@ C ier is standard error check variable. 0=OK
 C Interface setup, initialise output device, assume minimal trace.
       MMOD=MODL
       if(iappw.eq.0.and.iappx.eq.0.and.iappy.eq.0)then
-        iappw=670
+        iappw=660
         iappx=30
         iappy=30
       else
@@ -347,19 +339,19 @@ C Set pixels high to iappw and pixels wide to factor in monitor size.
 
 C Set initial font sizes (IMFS is for menus, IFS is for dialog & ITFS text feedback).
 C Fonts 4-7 are proportional and 0-3 are fixed width. Use proportional for menus
-C and dialog.
+C and dialog. So reports line up use fixed width in text feedback.
         IMFS=5
         IFS=5
 #ifdef OSX
         IFS=4  ! use a smaller dialog font
 #endif
-        ITFS=4
+        ITFS=1
         call userfonts(IFS,ITFS,IMFS)
         call defaultfonts(IFS,ITFS,IMFS)  ! and remember these as defaults
       ELSE
         IMFS=5
         IFS=5
-        ITFS=4
+        ITFS=1
         LIMTTY=30
         LIMIT =30
       ENDIF
@@ -431,7 +423,7 @@ C Create and open a session log file based on user name, PID etc.
       call st2file(tfile,iefile)
 
 C Open the session file.
-      ieout=ifil+932          ! set to unused index 942
+      ieout=ifil+932          ! set to unused index 932
       open(ieout,file=iefile,status='UNKNOWN',err=903)
       write(ieout,'(a)')'Session log for eco'
       call dstamp(dstmp) ! get curret time
@@ -459,7 +451,7 @@ C properties, display it and then present the main menu.
         call ERSYS(LCFGF,IFCFG,IUF,MODE,itrc,IER)
         if(IER.eq.0)then
           NZONES=NCOMP
-          CALL ZDATA (ITRC,IER,NZONES,ISFSUM)
+          CALL ZDATA (ITRC,IER,NZONES)
           CFGOK=.TRUE.
           MODIFYVIEW=.TRUE.
           MODBND=.TRUE.
@@ -474,18 +466,20 @@ C properties, display it and then present the main menu.
  444      CONTINUE
 
 C (Re)Set all surfaces to std line width.
-          CALL INLNST(1)
-          izgfoc=0
-          if(initvt.eq.1)then
-            EYEM(1)=EYEMI(1)
-            EYEM(2)=EYEMI(2)
-            EYEM(3)=EYEMI(3)
-            VIEWM(1)=VIEWMI(1)
-            VIEWM(2)=VIEWMI(2)
-            VIEWM(3)=VIEWMI(3)
-            ANG=ANGI
+          if(MMOD.EQ.8)then
+            CALL INLNST(1)
+            izgfoc=0
+            if(initvt.eq.1)then
+              EYEM(1)=EYEMI(1)
+              EYEM(2)=EYEMI(2)
+              EYEM(3)=EYEMI(3)
+              VIEWM(1)=VIEWMI(1)
+              VIEWM(2)=VIEWMI(2)
+              VIEWM(3)=VIEWMI(3)
+              ANG=ANGI
+            endif
+            CALL redraw(IER)
           endif
-          CALL redraw(IER)
 
 C Open core of databases.
           call module_opendb(ier)
@@ -503,10 +497,10 @@ C No loaded project
         TxtZone = 'N/A'
       endif
 
-
-      IF (BCFName.ne.'UNKNOWN') THEN
-        write(outs,'(a,a,a)') 'Loading ',BCFName(1:lnblnk(BCFName)),
-     &      '...'
+C If BCF and ACO file supply, just read them
+      IF (BCFName(1:7).ne.'UNKNOWN') THEN
+        write(outs,'(3a)') 'Loading ',BCFName(1:lnblnk(BCFName)),
+     &    '...'
         call usrmsg(outs,' ','-')
         CALL SCNBCF(IBCF,BCFName,IER)
         IF (IER .GT. 0) THEN 
@@ -514,29 +508,28 @@ C No loaded project
           BCFOK=.FALSE.
           BCFNAME='UNKNOWN'
         ELSE
-          write(outs,'(a,a,a)') 'Loading ',BCFName(1:lnblnk(BCFName)),
-     &        '...done.'
-            call usrmsg(outs,' ','P')
+          write(outs,'(3a)') 'Loading ',BCFName(1:lnblnk(BCFName)),
+     &      '...done.'
+          call usrmsg(outs,' ','P')
         ENDIF
       ENDIF
-      
 
 C Main Menu
 10    INO = -4
 
 C Analyse the selected item to allow an LCA calculation
       IF (CFGOK) THEN
-        IF (IcalType.eq.1) THEN
+        IF (IcalType.eq.1) THEN         ! project based
           IF (TxtZone(1:7).EQ.'UNKNOWN') THEN
             TxtLCA = 'N/A'
             TxtMat='UNKNOWN'
           ENDIF
-        ELSEIF (IcalType.eq.2) THEN
+        ELSEIF (IcalType.eq.2) THEN     ! construction based
           IF (TxtCompo(1:7).EQ.'UNKNOWN') THEN
             TxtLCA = 'N/A'
             TxtMat='UNKNOWN'
           ENDIF      
-        ELSEIF (IcalType.eq.3) THEN
+        ELSEIF (IcalType.eq.3) THEN     ! material based
           IF (TxtMat(1:7).EQ.'UNKNOWN') TxtLCA = 'N/A'
           call eclose(WeigtMat,0.0,0.0001,close)
           IF (close) TxtMat='UNKNOWN'
@@ -603,9 +596,7 @@ c End program.
         CALL EPAGEND
         STOP
 
-      elseif(INO.EQ.10)THEN
-
-C Define the reporting level
+      elseif(INO.EQ.10)THEN  ! Define the reporting level
         if(IRep.eq.1)then
           IRep = 2
         else
@@ -683,15 +674,13 @@ C First open the file, then write in and finally close the file
 
       elseif(INO.EQ.9)THEN
 
-C Reporting level.
+C Reporting topic is set here (a different use of this variable than normal).
         itrc=itrc+1
-
-        if (IcalType.eq.1) then
+        if (IcalType.eq.1) then    ! Project based.
           if(itrc.eq.5)then
             itrc=1
           endif
-C MLC analysis.
-          if (itrc.eq.1) then
+          if (itrc.eq.1) then      ! MLC analysis.
             TxtReport =             'Zone'
           elseif (itrc.eq.2) then
             TxtReport =             'Surface'
@@ -700,7 +689,7 @@ C MLC analysis.
           elseif(itrc.eq.4)then
             TxtReport =             'Life cycle'
           endif
-        elseif (IcalType.eq.2) then
+        elseif (IcalType.eq.2) then ! Construction based.
           if(itrc.ge.4)then
             itrc=1
           endif
@@ -713,7 +702,7 @@ C            itrc=2
             TxtReport =             'Layer'
             itrc=3
           endif
-        elseif(IcalType.eq.3)then
+        elseif(IcalType.eq.3)then   ! Material based.
 
 C Material analysis.
           if(itrc.eq.3)then
@@ -728,9 +717,7 @@ C Material analysis.
 
         goto 10
 
-      elseif(INO .EQ. 11)THEN
-
-C Include break and loss in results.
+      elseif(INO .EQ. 11)THEN      ! Include break and loss in results.
         ILoss = ILoss+1
         if(ILoss .eq. 2)then
           ILoss = 0
@@ -768,9 +755,7 @@ C name with the full path.
         LCMDFL=L144
         goto 42
 
-      elseif (INO.eq.3) then 
-
-C Select/change BCF file.
+      elseif (INO.eq.3) then    ! Select/change BCF file.
         helptopic='eco_BCF_options'
         call gethelptext(helpinsub,helptopic,nbhelp)
   288   IF (BCFOK) THEN
@@ -899,7 +884,7 @@ C << needs to be converted to material.h >>
           TxtCompo=' All'
           GOTO 10
         ELSE
-          TxtCompo= mlcname(LstComp(1))(1:12)
+          TxtCompo= mlcname(LstComp(1))(1:20)
           TxtMat= 'All'
         ENDIF
 
@@ -1014,7 +999,7 @@ C ask for mass of material
         CALL USRMSG(' ',' ','-')
 
 C Assign labels for main menu
-        TxtMat = MatNameco(IMatDbID(IWHICH))
+        write(TxtMat,'(a)') MatNameco(IMatDbID(IWHICH))
         TxtCompo = 'UNKNOWN'
         WRITE(TxtLCA,'(a,a)')' of ',MatNameco(IMatDbID(IWHICH))
         GOTO 10
@@ -1056,9 +1041,9 @@ C LCA calculation.
           endif
           CALL PreCalc
           if (IRep.eq.1) then
-            CALL LCACalc(itrc,iuout)
+            CALL LCACalc(itrc,iuout)   ! Basic reporting
           else
-            CALL LCADet(itrc,iuout)
+            CALL LCADet(itrc,iuout)    ! Detailed reporting
           endif
         ELSE
           call edisp(iuout,' Not available. Select:')
@@ -1075,7 +1060,6 @@ C Return to main menu.
       GOTO 10
       END
 
-
 C ************* imgdisp *************
 C Dummy routine (needed for call back from c).
       subroutine imgdisp(iforce,focus,ier)
@@ -1087,7 +1071,6 @@ C Dummy routine (needed for call back from c).
 C Dummy subroutine needed to compile (called from library code).
       SUBROUTINE PLELEV(direc)
       CHARACTER direc*1
-
       return
       end
 
@@ -1100,7 +1083,7 @@ C Dummy subroutine needed to compile (called from library code).
       IER=0
       return
       end
-      
+
       SUBROUTINE GRAAPH(IDRW1,IDRW2)
       return
       end

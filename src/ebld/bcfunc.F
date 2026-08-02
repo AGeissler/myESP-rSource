@@ -6266,10 +6266,14 @@ C Trace output.
       endif
 
 C Collect heating flags and setpoints from master zone.
-      bZoneHeated(iicomp)   = bZoneHeated(iMasterZone)   ! Not used here.
-      bZoneCooled(iicomp)   = bZoneCooled(iMasterZone)   ! Not used here.
-      fHeatSetpoint(iicomp) = fHeatSetpoint(iMasterZone) ! Not used here.
-      fCoolSetpoint(iicomp) = fCoolSetpoint(iMasterZone)
+      if(iMasterZone.gt.0)then
+        bZoneHeated(iicomp)   = bZoneHeated(iMasterZone)   ! Not used here.
+        bZoneCooled(iicomp)   = bZoneCooled(iMasterZone)   ! Not used here.
+        fHeatSetpoint(iicomp) = fHeatSetpoint(iMasterZone) ! Not used here.
+        fCoolSetpoint(iicomp) = fCoolSetpoint(iMasterZone)
+      else
+        fCoolSetpoint(iicomp) = 24.0
+      endif
 
       if (QM.GT.0.0) then
 
@@ -6651,8 +6655,7 @@ C of the type of space conditioning system. This is done later on.
       IHLZP=IHLZ(IiCOMP)  ! set up pointer
       NEAR=.TRUE.
       if(ihlzp.ne.0) CALL ECLOSE(CGEF(IHLZP),0.0,0.001,NEAR)
-cx << ?? this should somehow not be the default >>
-cx      IF(NEAR)QCM=0.0
+      IF(NEAR)QCM=0.0
 
 C Read CSP and HSP setpoints from tdf.
 C "COLUMNSETP" is an integer specifying the column within the

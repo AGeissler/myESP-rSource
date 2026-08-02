@@ -40,22 +40,24 @@ C MLCIndex (Integer) : MLC index in the BCF file corresponding to XMLC
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/EIAhigh/NbComp,NbMat,IMatID(MMLC,ME),ImatDbID(0:MMAT-1),
      &               LCIATag
-      COMMON/DesMLC/MatName(MMAT),MatDesc(MMAT),MatCat(MMAT),
+      COMMON/DesMLC/MatNameco(MMAT),MatDesc(MMAT),MatCat(MMAT),
      &              CompoNam(MMLC), LayerDes(MMLC,ME)
-      CHARACTER*12 XMLC
+      CHARACTER*32 MatNameco,CompoNam
+      CHARACTER*32 XMLC
       CHARACTER*72 outs
       CHARACTER*72 LayerDes, MatDesc, MatCat
-      CHARACTER*12 MatName, CompoNam
  
       MLCIndex = 0
+      lnxmlc=lnblnk(XMLC)
       DO 10 IC=1,NbComp
-        IF (CompoNam(IC) .EQ. XMLC) THEN
+        lnmlc=lnblnk(CompoNam(IC))
+        IF (CompoNam(IC)(1:lnmlc).EQ.XMLC(1:lnxmlc)) THEN
           MLCIndex = IC
           GOTO 363
         ENDIF
  10   CONTINUE
 363   IF (MLCIndex .EQ. 0) THEN
-        WRITE(outs,'(a,a)') XMLC,' not found in BCF file.'
+        WRITE(outs,'(a,a)') XMLC(1:lnxmlc),' not found in BCF file.'
         CALL edisp(iuout,outs)
         GOTO 666
       ENDIF
@@ -158,8 +160,7 @@ C CovSurf   : Name of a surface behind a furniture (Extracted from ACA file)
       CHARACTER PubType*12, FurType*12, FurCat*4, CovSurf*12
       CHARACTER LabFreq*4,ACOName*72
 
-
-C Initialisation
+C Initialisation.
       SurfTot = 0.0
       DO 10 I=1,MNbAbs
         SNAeff(I)= 0.0
@@ -187,23 +188,18 @@ C Surface area (SNA) - Furniture area (XnbFur)
       DO 50 IFur = 1,MaxFur
         IF (CovSurf(IFur).NE.'none') THEN          
           DO 51 ISurf = 1, NSUR
-            icon=IZSTOCN(izone,isurf)
             IF (CovSurf(IFur).EQ.SNAME(izone,isurf)) THEN
               SNAeff(ISurf) =  SNAeff(ISurf) - XNbFur(IFur)
               GOTO 50
             ENDIF
-C Next Surface
- 51       CONTINUE
+ 51       CONTINUE   ! Next Surface
         ENDIF
-C Next Furniture
- 50   CONTINUE
+ 50   CONTINUE       ! Next Furniture
 
 C For each surface in the zone, find the MLC number in BCF file according 
 C to its surface name and calcule the equivalente area of the MATERIAL
       DO 100 ICurSurf = 1,NSUR
-        icon=IZSTOCN(izone,ICurSurf)
         IF ((SNAeff(ICurSurf) .GT. 0.) .OR. (ICurSurf .EQ. MS)) THEN
-
           if (SNAeff(ICurSurf) .GT. 0.) then
             SurfTot = SurfTot + SNAeff(ICurSurf)
             ICurComp = MLCIndex(SMLCN(izone,ICurSurf))
@@ -214,33 +210,25 @@ C total equivalente surface at frequency ICurFreq ...
           DO 200 ICurFreq=1,MNbAbs
 
 C ...depending on the following calculation method:
-
-            IF (Method .EQ. 1) THEN
-C Sabine
+            IF (Method .EQ. 1) THEN      ! Sabin
               SurfEquM(ICurSurf,ICurFreq) = 
      &                  SNAeff(ICurSurf) * SysAbsCo(ICurComp,ICurFreq)
               SurfEquT(ICurFreq) = SurfEquT(ICurFreq) + 
      &                             SurfEquM(ICurSurf,ICurFreq)
-
-            ELSEIF (Method .EQ. 2) THEN
-C Eyring
+            ELSEIF (Method .EQ. 2) THEN  ! Eyring
               SurfEquM(ICurSurf,ICurFreq) = 
      &                   SNAeff(ICurSurf) * SysAbsCo(ICurComp,ICurFreq)
               SurfEquT(ICurFreq) = SurfEquT(ICurFreq) + 
      &                             SurfEquM(ICurSurf,ICurFreq)
-
-            ELSEIF (Method .EQ. 3) THEN
-C Millington
+            ELSEIF (Method .EQ. 3) THEN  ! Millington
               SurfEquM(ICurSurf,ICurFreq) = -1. * SNAeff(ICurSurf) *
      &                           LOG(1. - SysAbsCo(ICurComp,ICurFreq))
               SurfEquT(ICurFreq) = SurfEquT(ICurFreq) + 
      &                             SurfEquM(ICurSurf,ICurFreq)
             ENDIF
-C Next frequency
-  200     CONTINUE
+  200     CONTINUE    ! Next frequency
         ENDIF
-C Next Surface
-  100 CONTINUE
+  100 CONTINUE        ! Next Surface
 
 
 C Calcule the equivalente area of the PUBLIC
@@ -249,34 +237,27 @@ C Calcule the equivalente area of the PUBLIC
 
 C For each frenquency
           DO 210 ICurFreq=1,MNbAbs
-            IF (Method .EQ. 1) THEN
-C Sabine
+            IF (Method .EQ. 1) THEN     ! Sabine
               SurfEquP(ICurPub,ICurFreq) = NbPub(ICurPub) *
      &                             PubAbsCo(IndexPub(ICurPub),ICurFreq)
               SurfEquT(ICurFreq) = SurfEquT(ICurFreq) + 
      &                             SurfEquP(ICurPub,ICurFreq)
-
-            ELSEIF (Method .EQ. 2) THEN
-C Eyring
+            ELSEIF (Method .EQ. 2) THEN ! Eyring
               SurfEquP(ICurPub,ICurFreq) = NbPub(ICurPub) *
      &                      PubAbsCo(IndexPub(ICurPub),ICurFreq)
 C              SurfEquP(ICurPub,ICurFreq) = NbPub(ICurPub) * 
 C     &               (1.- EXP(- PubAbsCo(IndexPub(ICurPub),ICurFreq)))
               SurfEquT(ICurFreq) = SurfEquT(ICurFreq) + 
      &                             SurfEquP(ICurPub,ICurFreq)
-
-            ELSEIF (Method .EQ. 3) THEN
-C Millington
+            ELSEIF (Method .EQ. 3) THEN  ! Millington
               SurfEquP(ICurPub,ICurFreq) = -1. * NbPub(ICurPub) *
      &                  LOG(1. - PubAbsCo(IndexPub(ICurPub),ICurFreq))
               SurfEquT(ICurFreq) = SurfEquT(ICurFreq) + 
      &                           SurfEquP(ICurPub,ICurFreq)
             ENDIF
-C Next frequency
-  210     CONTINUE
+  210     CONTINUE    ! Next frequency
         ENDIF
-C Next Occupant
-  110 CONTINUE
+  110 CONTINUE        ! Next Occupant
 
 
 C Calcule the equivalente area of the FURNITURE
@@ -290,34 +271,25 @@ C If furniture infront of a zone surface add it to the total area
             ENDIF
           ENDIF
           DO 220 ICurFreq=1,MNbAbs
-
-            IF (Method .EQ. 1) THEN
-C Sabine
+            IF (Method .EQ. 1) THEN      ! Sabine
               SurfEquF(ICurFur,ICurFreq) = XNbFur(ICurFur) *
      &                      FurAbsCo(IndexFur(ICurFur),ICurFreq)
               SurfEquT(ICurFreq) = SurfEquT(ICurFreq) + 
      &                             SurfEquF(ICurFur,ICurFreq)
-
-            ELSEIF (Method .EQ. 2) THEN
-C Eyring
+            ELSEIF (Method .EQ. 2) THEN  ! Eyring
               SurfEquF(ICurFur,ICurFreq) = XNbFur(ICurFur) *
      &                      FurAbsCo(IndexFur(ICurFur),ICurFreq)
               SurfEquT(ICurFreq) = SurfEquT(ICurFreq) + 
      &                             SurfEquF(ICurFur,ICurFreq)
-
-            ELSEIF (Method .EQ. 3) THEN
-C Millington
+            ELSEIF (Method .EQ. 3) THEN  ! Millington
               SurfEquF(ICurFur,ICurFreq) = -1. * XNbFur(ICurFur) *
      &                  LOG(1. - FurAbsCo(IndexFur(ICurFur),ICurFreq))
               SurfEquT(ICurFreq) = SurfEquT(ICurFreq) + 
      &                           SurfEquF(ICurFur,ICurFreq)
             ENDIF
-
-C Next frequency
-  220     CONTINUE
+  220     CONTINUE     ! Next frequency
         ENDIF
-C Next Furniture
-  120 CONTINUE
+  120 CONTINUE         ! Next Furniture
 
 C Calcul air absorption
       DO 300 ICurFreq=1,MNbAbs
@@ -331,7 +303,7 @@ CS          Ifreq = INT(100* EXP((ICurFreq-1)/3.*LOG(2.)))
   300 CONTINUE
 
 
-C Calcul divisor for the reverberation time formula (Total absorption)
+C Calculate divisor for the reverberation time formula (Total absorption).
       DO 500 ICurFreq = 1,MNbAbs
         IF (Method .LT. 4) THEN
           if (Method .EQ. 2) then
@@ -383,12 +355,12 @@ C Speed sound
         c = 343.23*sqrt((RTair + 273.15)/293.15)
 
 
-      DO 600 k = 1,NZG
-C For each selected zones
+      DO 600 k = 1,NZG   ! For each selected zones
         TotVol = TotVol + Vol(nznog(k))
   600 CONTINUE
 
-C Reverberation time calculation according to selected method
+C Reverberation time calculation according to selected method.
+C << Trap possible zero for Divis. >>
       DO 501 ICurFreq = 1,MNbAbs
 C        TReverb(ICurFreq) = 0.161 * TotVol / Divis(ICurFreq)
         TReverb(ICurFreq) = (55.3/c) * SQRT((RTair+273.15)/293.15) 

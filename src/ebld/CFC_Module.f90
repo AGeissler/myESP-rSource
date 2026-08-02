@@ -22,7 +22,7 @@
       ! CFC layers category commons
         character cfcdbdate*24 ! date stamp for the database
         character cfcdbdoc*248 ! documentation for the CFC layers database
-        character(len=124),allocatable :: cfccatname(:) ! identity/name of category (MGCL_CFC)
+        character(len=48),allocatable :: cfccatname(:) ! identity/name of category (MGCL_CFC)
         character(len=248),allocatable :: cfccatdoc(:) ! documentation for the category (MGCL_CFC)
         
       ! Strings associated with a CFC layer

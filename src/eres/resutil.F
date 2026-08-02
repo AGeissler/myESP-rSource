@@ -102,15 +102,12 @@ C Instantiate help strings for the menu.
 
  1    CALL EMENU('Output styles',ITEM,NITMS,INO)
 
-C Set MENUTYPE depending on choice made.
-      if (INO.eq.2) then
+      if (INO.eq.2) then        ! Set MENUTYPE depending on choice made.
         MENUTYPE=3
       elseif (INO.eq.3) then
         MENUTYPE=9
       elseif (INO.eq.4) then
-
-C Switch to 3D view. Might need to refresh scaling.
-        if(iairn.eq.3)then
+        if(iairn.eq.3)then      ! Switch to 3D view and refresh scaling.
           MENUTYPE=15
 
 C Initialise coordinates for eye point, view point and angle of view.
@@ -129,7 +126,7 @@ C Clear current viewing box and re-establish image bounds.
           CALL startbuffer
 
 C Setup and pass in parameters to win3d.
-          iiw1=4; iiw2=4; iiw3=3; iiw4=3; iimenu=menuchw
+          iiw1=4; iiw2=4; iiw3=4; iiw4=3; iimenu=menuchw
           iigl=igl; iigr=igr; iigt=igt; iigb=igb; iigw=igw; iigwh=igwh
           CALL win3d(iimenu,iiw1,iiw2,iiw3,iiw4,
      &      iigl,iigr,iigt,iigb,iigw,iigwh)

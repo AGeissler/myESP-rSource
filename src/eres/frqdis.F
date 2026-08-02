@@ -68,6 +68,8 @@ C Simulator parameters.
      &  startupok
       LOGICAL     spfileok,perok,cfdperok,tstepok,saveok,autook,exitok,
      &  startupok
+      common/recov03/recovery_active
+      logical recovery_active
 
 C Selection menu for graphs and/or tables.
       dimension item(8)
@@ -95,6 +97,10 @@ C Selection menu for graphs and/or tables.
       helpinsub='frqdis'  ! set for subroutine
       XDIFF=0.0           ! set initial value
       isone=.false.; ishalf=.false.; isother=.false.
+
+C For the case of IPV distributions the parameter MF (typically 100)
+C is not appropriate. A better limit would be 26-28 bins.
+      MFIPV=26
 
 C If output to file alter the edisp unit number.
       itru = icout
@@ -157,7 +163,11 @@ C          write(6,*) 'get MMACAL ',DMAX,DMIN,DAVE,DTOT,TXMAX,TXMIN
       write(outs,'(3a,f11.2,a,f11.2)')'The ',
      &  SLABEL(NGET)(1:LNSLABEL(NGET)),' data range is',
      &  XMIN,' to',XMAX
-      call edisp(iuout,outs)
+      if(recovery_active)then
+        continue
+      else
+        call edisp(iuout,outs)
+      endif
 
 C Reset number of bins and size of typcial bin.
       DXBIN=0.0
@@ -187,7 +197,7 @@ C          write(6,*) 'zone db bin ',xbin1,xbinn,nb
             call edisp(itru,'Range of db to small to binn.')
             return
           endif
-          if(NB.ge.MF)then
+          if(NB.ge.MFIPV)then
             DXBIN=2.0
             XBIN1=ANINT(XMIN/DXBIN)*DXBIN
             XBINN=ANINT(XMAX/DXBIN)*DXBIN
@@ -197,7 +207,7 @@ C          write(6,*) 'zone db bin ',xbin1,xbinn,nb
             write(outsn,'(4a,i3,3a,F7.1,3a,F7.1)') '*format',tab,
      &        'frequency',tab,NBINS+2,tab,'5',tab,XBIN1,tab,'2.0',
      &        tab,XBINN
-            if(NB.ge.MF)then
+            if(NB.ge.MFIPV)then
               DXBIN=5.0
               XBIN1=ANINT(XMIN/DXBIN)*DXBIN
               XBINN=ANINT(XMAX/DXBIN)*DXBIN
@@ -217,7 +227,7 @@ C          write(6,*) 'zone db bin ',xbin1,xbinn,nb
           endif
           call SDELIM(outsn,outsd,'C',IW)
           call edisp(itru,outsd)
-        elseif(index.eq.6)then
+        elseif(index.eq.6)then  ! Resultant temperature
           XMAX=30.
           XMIN=12.
           DXBIN=2.0
@@ -232,12 +242,12 @@ C          write(6,*) 'zone db bin ',xbin1,xbinn,nb
 
 C Don't know the range for the *format line so figure it out.
 C Try 100W initial bin, if that does not fit, try 200W and
-C then 500W and finally 1000W.
+C then 500W and finally 1000W. Allow a few more bins than MFIPV.
           DXBIN=100.0
           XBIN1=ANINT(XMIN/DXBIN)*DXBIN
           XBINN=ANINT(XMAX/DXBIN)*DXBIN
           NB=INT((XBINN-XBIN1)/DXBIN)
-          if(NB.ge.MF)then
+          if(NB.ge.(MFIPV+1))then
             DXBIN=200.0
             XBIN1=ANINT(XMIN/DXBIN)*DXBIN
             XBINN=ANINT(XMAX/DXBIN)*DXBIN
@@ -247,7 +257,7 @@ C then 500W and finally 1000W.
             write(outsn,'(4a,i3,3a,F8.1,3a,F8.1)') '*format',tab,
      &        'frequency',tab,NBINS+2,tab,'5',tab,XBIN1,tab,'200.0',
      &        tab,XBINN
-            if(NB.ge.MF)then
+            if(NB.ge.(MFIPV+1))then
               DXBIN=500.0
               XBIN1=ANINT(XMIN/DXBIN)*DXBIN
               XBINN=ANINT(XMAX/DXBIN)*DXBIN
@@ -257,7 +267,7 @@ C then 500W and finally 1000W.
               write(outsn,'(4a,i3,3a,F8.1,3a,F8.1)') '*format',tab,
      &          'frequency',tab,NBINS+2,tab,'5',tab,XBIN1,tab,'500.0',
      &          tab,XBINN
-              if(NB.ge.MF)then
+              if(NB.ge.(MFIPV+1))then
                 DXBIN=1000.0
                 XBIN1=ANINT(XMIN/DXBIN)*DXBIN
                 XBINN=ANINT(XMAX/DXBIN)*DXBIN
@@ -267,7 +277,7 @@ C then 500W and finally 1000W.
                 write(outsn,'(4a,i3,3a,F9.1,3a,F9.1)') '*format',tab,
      &            'frequency',tab,NBINS+2,tab,'5',tab,XBIN1,tab,
      &            '1000.0',tab,XBINN
-                if(NB.ge.MF)then
+                if(NB.ge.(MFIPV+1))then
                   DXBIN=2000.0
                   XBIN1=ANINT(XMIN/DXBIN)*DXBIN
                   XBINN=ANINT(XMAX/DXBIN)*DXBIN
@@ -277,7 +287,7 @@ C then 500W and finally 1000W.
                   write(outsn,'(4a,i3,3a,F9.1,3a,F9.1)') '*format',tab,
      &              'frequency',tab,NBINS+2,tab,'5',tab,XBIN1,tab,
      &              '2000.0',tab,XBINN
-                  if(NB.ge.MF)then
+                  if(NB.ge.(MFIPV+1))then
                     DXBIN=5000.0
                     XBIN1=ANINT(XMIN/DXBIN)*DXBIN
                     XBINN=ANINT(XMAX/DXBIN)*DXBIN
@@ -287,7 +297,7 @@ C then 500W and finally 1000W.
                     write(outsn,'(4a,i3,3a,F9.0,3a,F9.0)') '*format',
      &                tab,'frequency',tab,NBINS+2,tab,'5',tab,XBIN1,
      &                tab,'5000.0',tab,XBINN
-                    if(NB.ge.MF)then
+                    if(NB.ge.(MFIPV+1))then
                       DXBIN=10000.0
                       XBIN1=ANINT(XMIN/DXBIN)*DXBIN
                       XBINN=ANINT(XMAX/DXBIN)*DXBIN
@@ -311,15 +321,15 @@ C then 500W and finally 1000W.
           endif
           call SDELIM(outsn,outsd,'C',IW)
           call edisp(itru,outsd)
-        elseif(index.eq.13)then
+        elseif(index.eq.13)then  ! Zone RH
           DXBIN=5.0
-          XMAX=100.
-          XMIN=0.
+          XMAX=95.
+          XMIN=5.
           XBIN1=ANINT(XMIN/DXBIN)*DXBIN
           XBINN=ANINT(XMAX/DXBIN)*DXBIN
           NB=INT((XBINN-XBIN1)/DXBIN)
-          write(outs,'(13a)') '*format',tab,'frequency',tab,'21',tab,
-     &      '5',tab,'0.0',tab,'5.0',tab,'100.0'
+          write(outs,'(13a)') '*format',tab,'frequency',tab,'19',tab,
+     &      '5',tab,'5.0',tab,'5.0',tab,'95.0'
           call edisp(itru,outs)
         endif
         DELTA=XMAX-XMIN
@@ -537,7 +547,11 @@ C Assume fully occupied.
  421      CONTINUE
  400    CONTINUE
  10   continue
-      call usrmsg(prompte,'  ','P')
+      if(recovery_active)then
+         continue
+      else
+        call usrmsg(prompte,'  ','P')
+      endif
       if(MMOD.eq.8)call usrmsg('  ','  ','-')
       call edisp(iuout,' ')
 
@@ -619,7 +633,7 @@ C after image and advise user.
           endif
           if(IG.eq.2.or.IG.eq.5)then
 
-C Ask if reverse order.
+C Cumulative graph ask if reverse order.
             call easkmbox(' ','Graph options:','standard order',
      &        'reversed',' ',' ',' ',' ',' ',' ',ii,nbhelp)
             if(ii.eq.1) order=0
@@ -1032,7 +1046,7 @@ C ******************** MODDRW ********************
 C MODDRW draws a histogram of the frequency distribution.
 C If order=0 then cumulative in standard order order=1 
 C cumulative in reverse order. Hits=0 distribution in
-C number of hits =1 in hours.
+C number of hits =1 in hours.  IG=2 cumulative, IG=1 freq.
       SUBROUTINE MODDRW(IG,alabel,order,hits)
 #include "building.h"
 
@@ -1151,13 +1165,14 @@ C      PMAX=(YMAX/FLOAT(ITOTAL))*100.0
       call vrtaxisdd(PMIN,PMAX,iigr,iigb,iigt,Padd,psc,0,
      &  ddy1,ny,1,'  ')
       call textsizeatxy(iid1,iid2,ALABEL,ibsize,'-',iicol)
+      call forceflush()
 
 C Plot histogram, draw grey box if YBIN > 0.
       XBIN = XMIN
       igr=13
       DO 200 I = 1, NBINS
         if(order.eq.0)then
-          if(IG.EQ.2)then
+          if(IG.EQ.2)then    ! If cumulative
             if(hits.eq.0)then
               YBIN=FLOAT(ICBIN(I))
             else
@@ -1174,7 +1189,7 @@ C Plot histogram, draw grey box if YBIN > 0.
           endif
           XBIN = XBIN + DXBIN
         else
-          if(IG.EQ.2)then
+          if(IG.EQ.2)then    ! If cumulative
             if(hits.eq.0)then
               YBIN=FLOAT(IRCBIN(I))
             else
@@ -1191,6 +1206,7 @@ C Plot histogram, draw grey box if YBIN > 0.
           endif
           XBIN = XBIN + DXBIN
         endif
+        call forceflush()
   200 CONTINUE
       call forceflush()
 

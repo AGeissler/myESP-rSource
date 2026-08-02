@@ -27,7 +27,7 @@ MODULE_OBJECTS = h3kmodule.o startup.o aim2_module.o CFC_Module.o
 
 OBJECTS = aco.o acocalc.o acoesp.o arrow.o ascii_mat.o \
  	c2fdum.o common3dv.o CDBPlugins.o CDBCommon.o CDBExplore.o \
-	cread3dv.o ctlexp.o ctread.o dossupport.o e3dviews.o econstr.o edatabase.o \
+	ctlexp.o ctread.o dossupport.o e3dviews.o econstr.o edatabase.o \
 	edcondb.o egeometry.o emfnetw.o enetmisc.o eroper.o esru_misc.o \
 	esystem.o filelist.o item.o mfcdat.o nwkrewr.o pltcfg.o readaco.o \
 	readBCF.o readTrnsys.o rwipv.o rwsbem.o sort.o  tdfile.o \
@@ -66,9 +66,6 @@ CFC_Module.f90:
 common3dv.F:
 	rm -f common3dv.F
 	ln -s $(COMdir)/common3dv.F .
-cread3dv.F:
-	rm -f cread3dv.F
-	ln -s $(COMdir)/cread3dv.F .
 ctlexp.F:
 	rm -f ctlexp.F
 	ln -s $(COMdir)/ctlexp.F .
@@ -166,7 +163,7 @@ install:
 clean:
 	rm -f core $(PROG) $(PROG).exe $(OBJECTS) $(MODULE_OBJECTS) $(MODULES) \
 	aim2_module.F arrow.F ascii_mat.F blcond.F c2fdum.F \
-	CDBPlugins.F CDBCommon.F CDBExplore.F common3dv.F cread3dv.F ctlexp.F ctread.F dossupport.F \
+	CDBPlugins.F CDBCommon.F CDBExplore.F common3dv.F ctlexp.F ctread.F dossupport.F \
 	e3dviews.F ecasctl.F econstr.F edcon.F edcondb.F edatabase.F egeometry.F egtgeom.F \
 	emfnetw.F enetmisc.F enetrewr.F emkcfg.F eroper.F esru_misc.F esystem.F filelist.F \
 	inside.F item.F mfcdat.F nwkrewr.F pltcfg.F readTrnsys.F rwipv.F rwsbem.F \

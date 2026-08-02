@@ -90,7 +90,7 @@ C Real numbers
                     ! coefficient of performance
       REAL BLDIF    ! building improvement factor
       REAL BLDLZC   ! building low and zero carbon benchmark
-      REAL PDRL     ! power density (W/m2)/100lux for lighting types PDRL(?,1)
+      REAL PDRL     ! power density (W/m^2)/100lux for lighting types PDRL(?,1)
                     ! for commercial & PDRL(?,2) for industrial use
       REAL VERSBEM  ! SBEM db version no.
       REAL SFPDEF   ! default specific fan power (units?)
@@ -215,7 +215,7 @@ C Strings
 C Real numbers
       REAL ROOFFR   ! roof glazing fraction required
       REAL WALLFR   ! wall glazing fraction required
-      REAL BINF50   ! building's permeability at 50Pa in m3/m2.hour
+      REAL BINF50   ! building's permeability at 50Pa in m3/m^2.hour
       REAL ROOFFRFR ! roof window frame fraction required
       REAL WALLFRFR ! wall window frame fraction required
       REAL HGEF     ! heat generator efficiency/COP
@@ -427,7 +427,7 @@ C (stripped) building
       REAL AHU_tDLd   ! constant for AHU leakage: needed to calculate Auxiliary energy
       REAL totLeakage ! this is the sum of: duct_tDLd + AHU_tDLd , used in EPCCAL for recommendation C3
       REAL tAEnergy   ! Reference Auxiliary energy needed for systems that are in
-                      ! operation 3255 hours per year (kWh/m2 per annum). Linear interpolation
+                      ! operation 3255 hours per year (kWh/m^2 per annum). Linear interpolation
                       ! is used to adjust this to the different activities of spaces
       REAL tASFPb     ! constant for SFP: needed to calculate Auxiliary energy
       REAL tASFPa     ! constant for SFP: needed to calculate Auxiliary energy
@@ -465,7 +465,7 @@ C U Value maximums - calculated in BRUKL and it is also used in EPCGen
 C Activities global list
       INTEGER bld_order_index ! building order indices from the *bldg_type_start section of the file
       INTEGER loc_man_sw      ! local manual switching flag (if 1 then local manual switching not allowed)
-      INTEGER metabolic_rate  ! metabolic rate W/person/m2
+      INTEGER metabolic_rate  ! metabolic rate W/person/m^2
       INTEGER lighting_lux    ! lighting lux
       INTEGER latent_ocup_percent  ! occupant latent percentage (of the whole gain)
       INTEGER latent_equip_percent ! equipment latent percentage (of the whole gain)
@@ -473,11 +473,11 @@ C Activities global list
      &  metabolic_rate(MACL),lighting_lux(MACL),
      &  latent_ocup_percent(MACL),latent_equip_percent(MACL)
 
-      REAL occupant_dens      ! occupant density people/m2
+      REAL occupant_dens      ! occupant density people/m^2
       REAL fresh_air          ! outside air per person litres/sec/person
-      REAL equip_gain         ! equipment W/m2 
-      REAL dhw_litres         ! domestic hot water litres/day/m2
-      REAL display_lighting        ! lighting display W/m2
+      REAL equip_gain         ! equipment W/m^2 
+      REAL dhw_litres         ! domestic hot water litres/day/m^2
+      REAL display_lighting        ! lighting display W/m^2
       REAL Hmainsetpoint,Cmainsetpoint  
       REAL fNotionalLighting
       REAL fTypicalLighting
@@ -516,8 +516,8 @@ C      REAL RERE     ! total annual energy for reference building
       common/dsmtests/iDsmTestingFlag,iNatVentilatedFlag
 
 C Common blocks for lighting control
-      real PE_sensor_PP       ! Photoelectric sensor parasitic power W/m2
-      real Occ_sensor_PP      ! Occupancy sensor parasitic power W/m2
+      real PE_sensor_PP       ! Photoelectric sensor parasitic power W/m^2
+      real Occ_sensor_PP      ! Occupancy sensor parasitic power W/m^2
       real DFFront            ! Front daylight factor
       real DFRear             ! Rear daylight factor
       common/sbem15/PE_sensor_PP(MNS),Occ_sensor_PP(MNS),

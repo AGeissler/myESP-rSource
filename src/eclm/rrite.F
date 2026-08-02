@@ -324,7 +324,7 @@ C SITEDIT edits site related data in a weather file.
       COMMON/CLMDT1/CLMLOC
       COMMON/CLMSET/ICYEAR,ICDNGH,CLAT,CLONG
       COMMON/SET1/IYEAR,IBDOY,IEDOY,IFDAY,IFTIME
-      CHARACTER CLMLOC*42,T30*42,outs*124
+      CHARACTER CLMLOC*42,T42*42,outs*124
 
       helpinsub='rrite'  ! set for MAIN
 
@@ -338,12 +338,12 @@ C Ask for the year (2007 convenintly has monday on 1 Jan).
       CFYEAR=IYEAR
 
 C Determine the weather data location.
-      T30=CFLOC
+      T42=CFLOC
       helptopic='what_is_descr'
       call gethelptext(helpinsub,helptopic,nbhelp)
-      CALL EASKS(T30,' ','Weather station name',
+      CALL EASKS(T42,' ','Weather station name',
      &  42,'North_Pole','weather site. ',IER,nbhelp)
-      if(T30(1:2).ne.'  ') CFLOC=T30
+      if(T42(1:2).ne.'  ') CFLOC=T42
 
       helpinsub='common' ! get from common.help
       helptopic='clm_latitude_match'

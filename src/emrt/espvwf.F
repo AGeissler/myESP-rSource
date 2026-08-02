@@ -346,12 +346,9 @@ C cfg folder then set pwdtocfg to !
       pwdtocfg='  '    ! and from pwd into cfg folder
       call usrdir(pwdinitial)
       lnpwdi=lnblnk(pwdinitial)
-      write(6,*) 'vwf the pwd command is ',pwdinitial(1:lnpwdi)
-C      write(6,*) lnpwdi,lnpwdi-2,' ',pwdinitial(lnpwdi-2:lnpwdi)
       if(pwdinitial(lnpwdi-2:lnpwdi).eq.'cfg')then
         pwdtocfg='!'             ! signal no need to append this
         lnpwdc=lnblnk(pwdtocfg)  ! remember its length
-        write(6,*) 'vwf working in model cfg folder'
       endif
 
 C Find the user's home folder then get user's custom settings.
@@ -365,7 +362,6 @@ C Find the user's home folder then get user's custom settings.
 
 C Create and open a session log file based on user name, PID etc.
       call cmdtoroot(inf,troot)          ! Return model root name.
-      write(6,*) 'mrt root ',troot(1:lnblnk(troot))
       if(unixok)then
         write(tfile,'(3a)') '/tmp/',troot(1:lnblnk(troot)),
      &    '.log'
@@ -454,7 +450,7 @@ C successful then scan all the zones via ZDATA.
 C See if there is a pwdtocfg which can be recovered from within
 C the command line file.
           call fdpwdtocfg(LCMDFL,ppath,filen)
-          write(6,*) 'pwdtocfg ',pwdtocfg(1:lnblnk(pwdtocfg))
+C          write(6,*) 'pwdtocfg ',pwdtocfg(1:lnblnk(pwdtocfg))
 C          write(6,*) 'pp ',ppath(1:lnblnk(ppath))
 C          write(6,*) 'fi ',filen(1:lnblnk(filen))
 
@@ -477,13 +473,13 @@ C Where is zones folder in relation to where vwf was started?
      &          zonepth(1:lnblnk(zonepth)),fs
               lnrp=lnblnk(runpath)  ! remember this
 C              write(6,*) 'lnrp ',lnrp,pwdtocfg
-              write(6,*) 'runpath ',runpath
+C              write(6,*) 'runpath ',runpath
             endif
 
             CFGOK=.TRUE.
             numberofzones=ncomp
             IF(MMOD.EQ.8)call updwire(numberofzones)
-            CALL ZDATA (ITRC,IER,int(numberofzones),ISFSUM)
+            CALL ZDATA (ITRC,IER,int(numberofzones))
 
 C Open scratch file now that path is known. Extend the name of the
 C vwf file. If this file exists then remove it before opening a
@@ -611,7 +607,7 @@ C name with the full path.
 C See if there is a pwdtocfg which can be recovered from within
 C the command line file.
         call fdpwdtocfg(LCMDFL,ppath,filen)
-        write(6,*) 'pwdtocfg ',pwdtocfg(1:lnblnk(pwdtocfg))
+C        write(6,*) 'pwdtocfg ',pwdtocfg(1:lnblnk(pwdtocfg))
 C        write(6,*) 'pp ',ppath(1:lnblnk(ppath))
 C        write(6,*) 'fi ',filen(1:lnblnk(filen))
 
@@ -632,13 +628,13 @@ C Where is zones folder in relation to where vwf was started?
      &        zonepth(1:lnblnk(zonepth)),fs
             lnrp=lnblnk(runpath)  ! remember this
 C            write(6,*) 'lnrp ',lnrp,pwdtocfg
-            write(6,*) 'runpath ',runpath
+C            write(6,*) 'runpath ',runpath
           endif
 
           CFGOK=.TRUE.
           numberofzones=ncomp
           IF(MMOD.EQ.8) call updwire(numberofzones)
-          CALL ZDATA (ITRC,IER,int(numberofzones),ISFSUM)
+          CALL ZDATA (ITRC,IER,int(numberofzones))
 
 C Open scratch file now that path is known.
           if(unixok)then

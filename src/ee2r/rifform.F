@@ -18,6 +18,9 @@ C License along with ESP-r. If not, write to the Free
 C Software Foundation, Inc., 59 Temple Place, Suite 330,
 C Boston, MA 02111-1307 USA.
 
+C RIFFORM - Setup image quality and calculation options.
+C RIFSET  - Set initial common blocks for RIF file given a root name.
+
 C ******* Setup of image quality and calculation options.
       SUBROUTINE RIFFORM(IER)
 #include "building.h"
@@ -35,6 +38,10 @@ C ******* Setup of image quality and calculation options.
 C Radiance processor cores.
       integer radcores
       common/radcor/radcores
+      logical both_esp_wave      ! If true manage pair of scenes.
+      logical focus_espg         ! If true editing in context of ESP-r geometry
+      integer ipairedscene       ! Index of paired scene.
+      COMMON/ESPWAVE/both_esp_wave,focus_espg,ipairedscene(16)
 
       CHARACTER doit*124,VALT*32
       character item*30,HOLD*24
@@ -48,7 +55,7 @@ C Radiance processor cores.
 
       DIMENSION ITEM(24),IVALV(20),VALT(20)
 
-      logical OK
+      logical OK,dowave
 
       helpinsub='rifform'  ! set for subroutine
       
@@ -64,9 +71,21 @@ C Set folder separator (fs) to \ or / as required.
       ITA3 = IFIL+10
       ier=0
 
+C If Wavefront variant needed setup rifwave file name.
+      dowave=.false.
+      if(focus_espg.and.both_esp_wave)then
+        dowave=.true.
+      elseif(.NOT.focus_espg.and.both_esp_wave)then
+        dowave=.true.
+      elseif(focus_espg.and.(.NOT.both_esp_wave))then
+        dowave=.false.
+      elseif(.NOT.focus_espg.and.(.NOT.both_esp_wave))then
+        dowave=.false.
+      endif
+
 10    INO = -4
       write(ITEM(1),'(A,A)')    '  RIF     : ',RIFNAME(ISCENE)(1:18)
-      write(ITEM(2),'(A,A12)')  '  root    : ',SCENERT(ISCENE)(1:18)
+      write(ITEM(2),'(2A)')     '  root    : ',SCENERT(ISCENE)(1:18)
       write(ITEM(3),'(A,A)')    '  folder  : ',radpth(1:18)
       write(ITEM(4),'(A,A)')    'a sky file: ',rskyfil(1:18)
       ITEM(5) =                 'b scene descriptions          '
@@ -110,34 +129,34 @@ c Explains octree menu.
         CALL PHELPD('octree menu',nbhelp,'-',0,0,IER)
       elseif(INO.EQ.4)THEN
         ltmp = rskyfil
-        CALL EASKS(ltmp,'Sky file name ?',' ',
+        CALL EASKS(ltmp,'Sky file name?',' ',
      &    72,rskyfil,'sky file name',IER,nbhelp)
         if(ltmp.ne.' ')rskyfil = ltmp
       elseif(INO.EQ.5)then
         ltmp = glzfil
-        CALL EASKS(ltmp,'Glazing compositon file name ?',' ',
+        CALL EASKS(ltmp,'Glazing compositon file name?',' ',
      &    72,glzfil,'glaz file name',IER,nbhelp)
         if(ltmp.ne.' ')glzfil = ltmp
 
         ltmp = matfil
-        CALL EASKS(ltmp,'Opaque materials file name ?',' ',
+        CALL EASKS(ltmp,'Opaque materials file name?',' ',
      &    72,matfil,'outside mat file name',IER,nbhelp)
         if(ltmp.ne.' ')matfil = ltmp
 
 C Additional material file.
         ltmp = rmmfil
-        CALL EASKS(ltmp,'Additional materials file name ?',
+        CALL EASKS(ltmp,'Additional materials file name?',
      &    '(If not used give NONE)? ',
      &    72,rmmfil,'additional mat file name',IER,nbhelp)
         if(ltmp(1:2).ne.'  '.or.ltmp(1:4).eq.'NONE')rmmfil = ltmp
 
         ltmp = rofil
-        CALL EASKS(ltmp,'Outside opaque compositon file name ?',' ',
+        CALL EASKS(ltmp,'Outside opaque compositon file name?',' ',
      &    72,rofil,'outside file name',IER,nbhep)
         if(ltmp.ne.' ')rofil = ltmp
 
         ltmp = rzfil
-        CALL EASKS(ltmp,'Inside opaque composition file name ? ','  ',
+        CALL EASKS(ltmp,'Inside opaque composition file name?','  ',
      &    72,rzfil,'zone opaq def file name',IER,nbhelp)
         if(ltmp.ne.' ')rzfil = ltmp
 
@@ -185,9 +204,8 @@ C Light level variability: >> Low|Medium|High  [High if daylit]
       elseif(INO.EQ.11)then
         helptopic='e2r_light_system_options'
         call gethelptext(helpinsub,helptopic,nbhelp)
-        CALL EASKMBOX('Lighting system: ',' ','Direct (artificial)',
-     &    'Direct daylight','Diffuse daylight',
-     &    ' ',' ',' ',' ',' ',IW,nbhelp)
+        CALL EASKMBOX('Number of bounces: ',' ','None',
+     &    'One','Two','Three',' ',' ',' ',' ',IW,nbhelp)
         indrcb=IW-1
       elseif(INO.EQ.12)then
 
@@ -195,10 +213,10 @@ C Image X pixel size.
         helptopic='e2r_pixel_size_options'
         call gethelptext(helpinsub,helptopic,nbhelp)
   45    WRITE(HOLD,'(1x,i5)')ipicx
-        CALL EASKS(HOLD,' Image width in pixels: ',
+        CALL EASKS(HOLD,'Image width in pixels: ',
      &    '  ',24,' 512','image width',IER,nbhelp)
         K=0
-        CALL EGETWI(HOLD,K,ipicx,100,1024,'W','width',IER)
+        CALL EGETWI(HOLD,K,ipicx,100,1400,'W','width',IER)
         if(ier.ne.0)goto 45
       elseif(INO.EQ.13)then
         helptopic='e2r_penumbras_options'
@@ -217,8 +235,8 @@ C Image X pixel size.
      &    0,'F',10,'W',1,'reporting increment',IER,nbhelp)
       elseif(INO.EQ.15)then
 
-C << for each axis if inside then use zone bounds, if outside use
-C    the diameter of the disk...>>
+C For each axis if inside then use zone bounds, if outside use
+C the diameter of the disk.
         helptopic='e2r_viewpoint_options'
         call gethelptext(helpinsub,helptopic,nbhelp)
         if(intext.eq.0)then
@@ -262,20 +280,33 @@ C Specify PIC root file name.
         helptopic='e2r_pic_root_name'
         call gethelptext(helpinsub,helptopic,nbhelp)
         ltmp = picfil
-        CALL EASKS(ltmp,' Picture root file name ?',' ',
+        CALL EASKS(ltmp,'Picture root file name?',' ',
      &    72,'xx','picture root file name',IER,nbhelp)
         if(ltmp.ne.' ') picfil = ltmp
       elseif(INO.EQ.20)then
  642    helptopic='e2r_RIF_file_name'
         call gethelptext(helpinsub,helptopic,nbhelp)
         ltmp = RIFNAME(ISCENE)
-        CALL EASKS(ltmp,' Radiance RIF file ?',
+        CALL EASKS(ltmp,'Radiance RIF file?',
      &    '  ',72,'xxx.rif','rif file name',IER,nbhelp)
         if(ltmp.eq.' ')goto 642
         RIFNAME(ISCENE) = ltmp
         call mkrif(ita2,RIFNAME(ISCENE),4,0,'-',ier)
-        rifwave='obj.rif'
-        call mkrif(ITA2,rifwave,IFC,0,'w',IER)
+
+        if(dowave)then
+          if (SCENEPURP(ISCENE)(1:8).eq.'External')then
+            rifwave='obj_ex.rif'
+          elseif(SCENEPURP(ISCENE)(1:8).eq.'Internal')then
+            rifwave='obj_in.rif'
+          elseif(SCENEPURP(ISCENE)(1:5).eq.'Glare')then
+            rifwave='obj_gl.rif'
+          elseif (SCENEPURP(ISCENE)(1:8).eq.'Day_fact') then
+            rifwave='obj_df.rif'
+          else
+            rifwave='obj.rif'
+          endif
+          call mkrif(ITA2,rifwave,IFC,0,'w',IER)
+        endif
 C        call edisp(iuout,' ') 
 C        call edisp(iuout,'The current contents of the rif file: ') 
 C        call LISTAS(ITA2,RIFNAME(ISCENE),IER)
@@ -384,7 +415,12 @@ C If use = 'f' then force files to account for change in root/dir name.
       logical founddiffuse,foundembedded,foundxform
 
 C Make the initial part of new file names to follow scene root name.
-      write(pre,'(a)') SCENERT(ISCENE)(1:lnblnk(SCENERT(ISCENE)))
+      if(SCENEGSRC(iscene)(1:5).eq.'ESP-r'.or.
+     &   SCENEGSRC(iscene)(1:7).eq.'UNKNOWN')then
+        write(pre,'(a)') SCENERT(ISCENE)(1:lnblnk(SCENERT(ISCENE)))
+      else
+        write(pre,'(2a)') SCENERT(ISCENE)(1:lnblnk(SCENERT(ISCENE))),'W'
+      endif
 
 C Have information on ground disk ready. << ? case of external view with ifocz -1 >>
       if(ifocz.gt.0)then
@@ -467,6 +503,9 @@ C Additional material file.
       if(rmmfil(1:7).eq.'UNKNOWN'.or.use.eq.'f')then
         write(rmmfil,'(2a)') pre(1:lnblnk(pre)),'-misc.mat'
       endif
+
+C Glazing file. I also doing Wavefront that scene should also
+C use this file if no glazing included in the Wavefront file.
       if(glzfil(1:7).eq.'UNKNOWN'.or.use.eq.'f')then
         write(glzfil,'(2a)') pre(1:lnblnk(pre)),'-glz.rad'
       endif

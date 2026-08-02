@@ -360,7 +360,7 @@ C of the menu.
             if(listct.GE.IST.AND.(listct.LE.(IST+MIFULL)))then
               m=m+1
               mptback(m)=II ! set pointer from position in display list to the control loop
-              CALL EMKEY(M-MHEAD+4,KEY,IER)
+              CALL EMKEY(M-MHEAD+5,KEY,IER)
               if(nbcdt(ii).eq.0.and.IJ.eq.1)then
                 iperptbk(m)=1
                 WRITE(VERT(M),'(A1,I4,1x,a,1x,a12,3I4)') KEY,II,
@@ -1164,9 +1164,12 @@ C Edit sensor location.
             IFSN(II,1)=isn1; IFSN(II,2)=isn2
             IFSN(II,3)=isn3; IFSN(II,4)=isn4
 
-C Note isense is sensed flow condition used tp determine the flow controller type.    
-            IFCTYP(II,1,1)=isense
-            nfsup(ii)=nsupl
+C Isense is sensed flow condition used tp determine the flow controller type.
+C Isense would not be set if user 'accepted current' so test this case.
+            if(isense.gt.0)then    
+              IFCTYP(II,1,1)=isense
+              nfsup(ii)=nsupl
+            endif
 
 C Because changes in flow sensor usually require changes to actuation
 C call the flow actuation interactions now.
@@ -1486,6 +1489,7 @@ C High level control scope key words.
 
       CHARACTER outs*124,SSTR*96,TMP*96,SALT*40,hold*40,KEY*1
       character outsa*84,outsb*84,outsc*84,ltmp*248,SSTRB*48,daytype*28
+      character menuc*1
       logical close1,close2,useold
 
       integer iclawt   ! control law index passed back from editctlperiod
@@ -1989,13 +1993,11 @@ C string to remind the user.
               call edisp(iuout,' Auxliary Sensor Details')              
               write(outs,'(4F9.2)')cm(ndx),cm(ndx+1),cm(ndx+2),cm(ndx+3)
               call edisp(iuout,outs)
-              icsn(1)=nint(cm(ndx))
-              icsn(2)=nint(cm(ndx+1))
-              icsn(3)=nint(cm(ndx+2))
-              icsn(4)=nint(cm(ndx+3))
+              icsn(1)=nint(cm(ndx)); icsn(2)=nint(cm(ndx+1))
+              icsn(3)=nint(cm(ndx+2)); icsn(4)=nint(cm(ndx+3))
               icsn(5)=0
               SSTR=' '
-              call decodesensor(0,icsn,SSTR,SSTRB,ier)
+              call decodesensor(0,icsn,SSTR,SSTRB,MENUC,ier)
               call edisp(iuout,SSTR)
               if(INT(cm(7)).eq.4)then
                 ndx=12+(L-1)+4*(I6-1)         
@@ -2039,13 +2041,11 @@ C Auxiliary sensor details,
 
 C Collect up the current information and generate a descriptive
 C string to remind the user.
-            icsn(1)=nint(cm(ndx))
-            icsn(2)=nint(cm(ndx+1))
-            icsn(3)=nint(cm(ndx+2))
-            icsn(4)=nint(cm(ndx+3))
+            icsn(1)=nint(cm(ndx)); icsn(2)=nint(cm(ndx+1))
+            icsn(3)=nint(cm(ndx+2)); icsn(4)=nint(cm(ndx+3))
             icsn(5)=0
             SSTR=' '
-            call decodesensor(0,icsn,SSTR,SSTRB,ier)
+            call decodesensor(0,icsn,SSTR,SSTRB,MENUC,ier)
             call edisp(iuout,SSTR)
             CALL EASKR(cm(ndx),' ',
      &        'Aux. sensor detail 1st item?',
@@ -2108,13 +2108,11 @@ C Match temp to a function of multi-sensor values (on-off mode).
 
 C Collect up the current information and generate a descriptive
 C string to remind the user.
-              icsn(1)=nint(cm(ndx))
-              icsn(2)=nint(cm(ndx+1))
-              icsn(3)=nint(cm(ndx+2))
-              icsn(4)=nint(cm(ndx+3))
+              icsn(1)=nint(cm(ndx)); icsn(2)=nint(cm(ndx+1))
+              icsn(3)=nint(cm(ndx+2)); icsn(4)=nint(cm(ndx+3))
               icsn(5)=0
               SSTR=' '
-              call decodesensor(0,icsn,SSTR,SSTRB,ier)
+              call decodesensor(0,icsn,SSTR,SSTRB,MENUC,ier)
               call edisp(iuout,SSTR)
               if(INT(cm(7)).eq.4)then
                 ndx=12+(L-1)+4*(I6-1)         
@@ -2154,13 +2152,11 @@ C Auxiliary sensor details,
 
 C Collect up the current information and generate a descriptive
 C string to remind the user.
-            icsn(1)=nint(cm(ndx))
-            icsn(2)=nint(cm(ndx+1))
-            icsn(3)=nint(cm(ndx+2))
-            icsn(4)=nint(cm(ndx+3))
+            icsn(1)=nint(cm(ndx)); icsn(2)=nint(cm(ndx+1))
+            icsn(3)=nint(cm(ndx+2)); icsn(4)=nint(cm(ndx+3))
             icsn(5)=0
             SSTR=' '
-            call decodesensor(0,icsn,SSTR,SSTRB,ier)
+            call decodesensor(0,icsn,SSTR,SSTRB,MENUC,ier)
             call edisp(iuout,SSTR)
             CALL EASKR(cm(ndx),' ','Aux. sen detail 1st item ?',
      &        -3.,'F',0.,'-',0.,'Aux. sen detail 1st item',IER,nbhelp)
@@ -2389,13 +2385,11 @@ C Aux sensor can be dbT or mixed i.e. -2 zone nb convec%.
 
 C Collect up the current information and generate a descriptive
 C string to remind the user.
-              icsn(1)=nint(cm(ndx))
-              icsn(2)=nint(cm(ndx+1))
-              icsn(3)=nint(cm(ndx+2))
-              icsn(4)=nint(cm(ndx+3))
+              icsn(1)=nint(cm(ndx)); icsn(2)=nint(cm(ndx+1))
+              icsn(3)=nint(cm(ndx+2)); icsn(4)=nint(cm(ndx+3))
               icsn(5)=0
               SSTR=' '
-              call decodesensor(0,icsn,SSTR,SSTRB,ier)
+              call decodesensor(0,icsn,SSTR,SSTRB,MENUC,ier)
               call edisp(iuout,SSTR)
 140         continue   
           endif
@@ -2416,13 +2410,11 @@ C string to remind the user.
 
 C << again check if we really could use anything other than another
 C << air node to sense.
-            icsn(1)=nint(cm(ndx))
-            icsn(2)=nint(cm(ndx+1))
-            icsn(3)=nint(cm(ndx+2))
-            icsn(4)=nint(cm(ndx+3))
+            icsn(1)=nint(cm(ndx)); icsn(2)=nint(cm(ndx+1))
+            icsn(3)=nint(cm(ndx+2)); icsn(4)=nint(cm(ndx+3))
             icsn(5)=0
             SSTR=' '
-            call decodesensor(0,icsn,SSTR,SSTRB,ier)
+            call decodesensor(0,icsn,SSTR,SSTRB,MENUC,ier)
             call edisp(iuout,SSTR)
             call edisp(iuout,' ')
             WRITE(outs,'(a,i2,a)')' For aux sensor ',L,' define....'
@@ -5172,7 +5164,7 @@ C Extract from working array to gmiscd() common structure
       END
 
 C **************** senloc 
-C senloc presents  a list of applicable sensor locations depending
+C Presents  a list of applicable sensor locations depending
 C on the control domain and includes explicit zones list.
 C It is passed a prompt, menu title and returns 4 sensor indicators
 C (isn1,isn2,isn3,isn4). isense is the condition sensed in the case of 
@@ -5187,6 +5179,7 @@ C flow connections.It is assumed that the user will make one selection only.
 #include "epara.h"
 #include "control.h"
 #include "help.h"
+      COMMON/SPAD/MMOD,LIMIT,LIMTTY
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
       integer ifs,itfs,imfs
       COMMON/GFONT/IFS,ITFS,IMFS
@@ -5203,10 +5196,12 @@ C Usual proportional fonts set when prj started.
       LOGICAL SELECT,OK
       LOGICAL active_option
       CHARACTER*(*) prompt,title,errmsg
+      dimension icsn(5)   ! for passing sensor location to decodesensor
+      integer icsn
 
       DIMENSION SALT(3),IVALS(3),VERT(35),ICPK(MCONTM)
-      CHARACTER VERT*42,KEY*1,prompt2*36
-      character outs*124,SALT*40,SSTR*96
+      CHARACTER VERT*42,KEY*1,prompt2*36,MENUC*1
+      character outs*124,SALT*40,SSTR*96,SSTRB*48
       integer isn1T,isn2T,isn3T,isn4T,ilayt   ! temporary values for editing.
       integer MVERT,IVERT ! max items and current menu item
 
@@ -5220,22 +5215,24 @@ C Save current fonts and switch to the standard prj fonts.
 C Initialise zone menu variables based on window size. 
 C IVERT is the menu position, MVERT the current number of menu lines.
    3  SELECT=.FALSE.
+      MCTL=3
       if(icfoc.eq.0)then
         MHEAD=14
+        MCTL=4     ! Allow accept current
       elseif(icfoc.eq.1)then
         MHEAD=13
       elseif(icfoc.eq.2)then
         MHEAD=13
+        MCTL=4     ! Allow accept current
       elseif(icfoc.eq.3)then
         MHEAD=2
       elseif(icfoc.eq.4)then
         MHEAD=2
       elseif(icfoc.eq.5)then
-        MHEAD=6
+        MHEAD=12
       elseif(icfoc.eq.6)then
         MHEAD=13
       endif
-      MCTL=3
       ILEN=NCOMP
       IPACT=CREATE
       CALL EKPAGE(IPACT)
@@ -5248,21 +5245,74 @@ C Build up text strings for the menu. And scan for the relevant
 C help text blocks for the current control domain.
    33 M=MHEAD
       if(icfoc.eq.0)then    ! zones focus
+        icsn(1)=IBSN(II,1)  ! find which menu item it matches
+        icsn(2)=IBSN(II,2); icsn(3)=IBSN(II,3);  icsn(4)=IBSN(II,4)
+        call decodesensor(icfoc,icsn,SSTR,SSTRB,MENUC,ier)
+C Debug.
+C        write(6,*) 'decode icfoc icsn',icfoc,icsn,menuc
         helptopic='senslocation_bld'
         call gethelptext(helpinsub,helptopic,nbhelp)
-        WRITE(VERT(1),'(a)') 'a senses current zone db temp         '
-        WRITE(VERT(2),'(a)') 'b senses mix of zone db temp and MRT  '
+        if(MENUC.eq.'a')then
+          WRITE(VERT(1),'(a)') 'a senses current zone db temp        *'
+        else
+          WRITE(VERT(1),'(a)') 'a senses current zone db temp         '
+        endif
+        if(MENUC.eq.'b')then
+          WRITE(VERT(2),'(a)') 'b senses mix of zone db temp and MRT *'
+        else
+          WRITE(VERT(2),'(a)') 'b senses mix of zone db temp and MRT  '
+        endif
         WRITE(VERT(3),'(a)') '  senses an ambient condition...      '
-        WRITE(VERT(4),'(a)') 'c   dry bulb temperature              '
-        WRITE(VERT(5),'(a)') 'd   sol-air temperature               '
-        WRITE(VERT(6),'(a)') 'e   wind speed                        '
-        WRITE(VERT(7),'(a)') 'f   wind direction                    '
-        WRITE(VERT(8),'(a)') 'g   diffuse horizontal solar radiation'
-        WRITE(VERT(9),'(a)') 'h   direct normal solar radiation     '
-        WRITE(VERT(10),'(a)')'i   external relative humidity        '
-        WRITE(VERT(11),'(a)')'j references temporal file item       '
-        WRITE(VERT(12),'(a)')'k uses value from function generator  '
-        WRITE(VERT(13),'(a)')'l changes thermophysical properties   '
+        if(MENUC.eq.'c')then
+          WRITE(VERT(4),'(a)') 'c   dry bulb temperature             *'
+        else
+          WRITE(VERT(4),'(a)') 'c   dry bulb temperature              '
+        endif
+        if(MENUC.eq.'d')then
+          WRITE(VERT(5),'(a)') 'd   sol-air temperature              *'
+        else
+          WRITE(VERT(5),'(a)') 'd   sol-air temperature               '
+        endif
+        if(MENUC.eq.'e')then
+          WRITE(VERT(6),'(a)') 'e   wind speed                       *'
+        else
+          WRITE(VERT(6),'(a)') 'e   wind speed                        '
+        endif
+        if(MENUC.eq.'f')then
+          WRITE(VERT(7),'(a)') 'f   wind direction                   *'
+        else
+          WRITE(VERT(7),'(a)') 'f   wind direction                    '
+        endif
+        if(MENUC.eq.'g')then
+          WRITE(VERT(8),'(a)') 'g   diffuse horizontal solar rad     *'
+        else
+          WRITE(VERT(8),'(a)') 'g   diffuse horizontal solar rad      '
+        endif
+        if(MENUC.eq.'h')then
+          WRITE(VERT(9),'(a)') 'h   direct normal solar radiation    *'
+        else
+          WRITE(VERT(9),'(a)') 'h   direct normal solar radiation     '
+        endif
+        if(MENUC.eq.'i')then
+          WRITE(VERT(10),'(a)')'i   external relative humidity       *'
+        else
+          WRITE(VERT(10),'(a)')'i   external relative humidity        '
+        endif
+        if(MENUC.eq.'j')then
+          WRITE(VERT(11),'(a)')'j references temporal file item      *'
+        else
+          WRITE(VERT(11),'(a)')'j references temporal file item       '
+        endif
+        if(MENUC.eq.'k')then
+          WRITE(VERT(12),'(a)')'k uses value from function generator *'
+        else
+          WRITE(VERT(12),'(a)')'k uses value from function generator  '
+        endif
+        if(MENUC.eq.'l')then
+          WRITE(VERT(13),'(a)')'l changes thermophysical properties  *'
+        else
+          WRITE(VERT(13),'(a)')'l changes thermophysical properties   '
+        endif
         WRITE(VERT(14),'(a)')'  ------------------------------------'
       elseif(icfoc.eq.1)then
         helptopic='senslocation_plant'
@@ -5274,27 +5324,71 @@ C help text blocks for the current control domain.
         WRITE(VERT(5),'(a)') 'd   sol-air temperature               '
         WRITE(VERT(6),'(a)') 'e   wind speed                        '
         WRITE(VERT(7),'(a)') 'f   wind direction                    '
-        WRITE(VERT(8),'(a)') 'g   diffuse horizontal solar radiation'
+        WRITE(VERT(8),'(a)') 'g   diffuse horizontal solar rad      '
         WRITE(VERT(9),'(a)') 'h   direct normal solar radiation     '
         WRITE(VERT(10),'(a)')'i   external relative humidity        '
         WRITE(VERT(11),'(a)')'j references temporal file item       '
         WRITE(VERT(12),'(a)')'k uses value from function generator  '
         WRITE(VERT(13),'(a)')'  ------------------------------------'
-      elseif(icfoc.eq.2)then
+      elseif(icfoc.eq.2)then   ! Flow domain
+        icsn(1)=IFSN(II,1)     ! Find which menu item it matches.
+        icsn(2)=IFSN(II,2); icsn(3)=IFSN(II,3);  icsn(4)=IFSN(II,4)
+        call decodesensor(icfoc,icsn,SSTR,SSTRB,MENUC,ier)
+C        write(6,*) 'decode flow icfoc icsn',icfoc,icsn,menuc
         helptopic='senslocation_flow'
         call gethelptext(helpinsub,helptopic,nbhelp)
-        WRITE(VERT(1),'(a)') 'a senses plant component node T       '
-        WRITE(VERT(2),'(a)') 'b senses mix of zone db temp and MRT  '
+        if(MENUC.eq.'a')then
+          WRITE(VERT(1),'(a)') 'a senses plant component node T      *'
+        else
+          WRITE(VERT(1),'(a)') 'a senses plant component node T       '
+        endif
+        if(MENUC.eq.'b')then
+          WRITE(VERT(2),'(a)') 'b senses mix of zone db temp and MRT *'
+        else
+          WRITE(VERT(2),'(a)') 'b senses mix of zone db temp and MRT  '
+        endif
         WRITE(VERT(3),'(a)') '  senses an ambient condition...      '
-        WRITE(VERT(4),'(a)') 'c   dry bulb temperature              '
+        if(MENUC.eq.'c')then
+          WRITE(VERT(4),'(a)') 'c   dry bulb temperature             *'
+        else
+          WRITE(VERT(4),'(a)') 'c   dry bulb temperature              '
+        endif
         WRITE(VERT(5),'(a)') '    not applicable'
-        WRITE(VERT(6),'(a)') 'e   wind speed                        '
-        WRITE(VERT(7),'(a)') 'f   wind direction                    '
-        WRITE(VERT(8),'(a)') 'g   diffuse horizontal solar radiation'
-        WRITE(VERT(9),'(a)') 'h   direct normal solar radiation     '
-        WRITE(VERT(10),'(a)')'i   external relative humidity        '
-        WRITE(VERT(11),'(a)')'j senses flow node or connection      '
-        WRITE(VERT(12),'(a)')'k senses casual gain                  '
+        if(MENUC.eq.'e')then
+          WRITE(VERT(6),'(a)') 'e   wind speed                       *'
+        else
+          WRITE(VERT(6),'(a)') 'e   wind speed                        '
+        endif
+        if(MENUC.eq.'f')then
+          WRITE(VERT(7),'(a)') 'f   wind direction                   *'
+        else
+          WRITE(VERT(7),'(a)') 'f   wind direction                    '
+        endif
+        if(MENUC.eq.'g')then
+          WRITE(VERT(8),'(a)') 'g   diffuse horizontal solar rad     *'
+        else
+          WRITE(VERT(8),'(a)') 'g   diffuse horizontal solar rad      '
+        endif
+        if(MENUC.eq.'h')then
+          WRITE(VERT(9),'(a)') 'h   direct normal solar radiation    *'
+        else
+          WRITE(VERT(9),'(a)') 'h   direct normal solar radiation     '
+        endif
+        if(MENUC.eq.'i')then
+          WRITE(VERT(10),'(a)')'i   external relative humidity       *'
+        else
+          WRITE(VERT(10),'(a)')'i   external relative humidity        '
+        endif
+        if(MENUC.eq.'j')then
+          WRITE(VERT(11),'(a)')'j senses flow node or connection     *'
+        else
+          WRITE(VERT(11),'(a)')'j senses flow node or connection      '
+        endif
+        if(MENUC.eq.'k')then
+          WRITE(VERT(12),'(a)')'k senses casual gain                 *'
+        else
+          WRITE(VERT(12),'(a)')'k senses casual gain                  '
+        endif
         WRITE(VERT(13),'(a)')'  ------------------------------------'
       elseif(icfoc.eq.3)then
         helptopic='senslocation_nothing'
@@ -5307,19 +5401,52 @@ C help text blocks for the current control domain.
         WRITE(VERT(1),'(a)') 'a power control not yet implemented   '
         WRITE(VERT(2),'(a)') '  ------------------------------------'
       elseif(icfoc.eq.5)then
+        icsn(1)=IOSN(II,1)     ! Find which menu item it matches.
+        icsn(2)=IOSN(II,2); icsn(3)=IOSN(II,3);  icsn(4)=IOSN(II,4)
+        call decodesensor(icfoc,icsn,SSTR,SSTRB,MENUC,ier)
+C        write(6,*) 'decode optic icfoc icsn',icfoc,icsn,sstr(1:40),
+C     &    ' ',menuc
         helptopic='senslocation_optical'
         call gethelptext(helpinsub,helptopic,nbhelp)
-        WRITE(VERT(1),'(a)') 'a senses zone db temp                 '
-        WRITE(VERT(2),'(a)') 'b not applicable  '
+        WRITE(VERT(1),'(a)') 'a not applicable                      '
+        WRITE(VERT(2),'(a)') 'b not applicable                      '
         WRITE(VERT(3),'(a)') '  senses an ambient condition...      '
-        WRITE(VERT(4),'(a)') 'c   dry bulb temperature              '
+        if(MENUC.eq.'c')then
+          WRITE(VERT(4),'(a)') 'c   dry bulb temperature             *'
+        else
+          WRITE(VERT(4),'(a)') 'c   dry bulb temperature              '
+        endif
         WRITE(VERT(5),'(a)') 'd   not applicable                    '
-        WRITE(VERT(6),'(a)') 'e   wind speed                        '
-        WRITE(VERT(7),'(a)') 'f   wind direction                    '
-        WRITE(VERT(8),'(a)') 'g   diffuse horizontal solar radiation'
-        WRITE(VERT(9),'(a)') 'h   direct normal solar radiation     '
-        WRITE(VERT(10),'(a)')'i   incident radiation at ext. surface'
-        WRITE(VERT(11),'(a)')'j senses lux levels                   '
+        if(MENUC.eq.'e')then
+          WRITE(VERT(6),'(a)') 'e   wind speed                       *'
+        else
+          WRITE(VERT(6),'(a)') 'e   wind speed                        '
+        endif
+        if(MENUC.eq.'f')then
+          WRITE(VERT(7),'(a)') 'f   wind direction                   *'
+        else
+          WRITE(VERT(7),'(a)') 'f   wind direction                    '
+        endif
+        if(MENUC.eq.'g')then
+          WRITE(VERT(8),'(a)') 'g   diffuse horizontal solar rad     *'
+        else
+          WRITE(VERT(8),'(a)') 'g   diffuse horizontal solar rad      '
+        endif
+        if(MENUC.eq.'h')then
+          WRITE(VERT(9),'(a)') 'h   direct normal solar radiation    *'
+        else
+          WRITE(VERT(9),'(a)') 'h   direct normal solar radiation     '
+        endif
+        if(MENUC.eq.'i')then
+          WRITE(VERT(10),'(a)')'i incident radiation at ext. surface *'
+        else
+          WRITE(VERT(10),'(a)')'i incident radiation at ext. surface  '
+        endif
+        if(MENUC.eq.'j')then
+          WRITE(VERT(11),'(a)')'j senses lux levels                  *'
+        else
+          WRITE(VERT(11),'(a)')'j senses lux levels                   '
+        endif
         WRITE(VERT(12),'(a)')'  ------------------------------------'
       elseif(icfoc.eq.6)then    ! complex fenestration
         helptopic='senslocation_CFC'
@@ -5331,7 +5458,7 @@ C help text blocks for the current control domain.
         WRITE(VERT(5),'(a)') 'd   sol-air temperature               '
         WRITE(VERT(6),'(a)') 'e   wind speed                        '
         WRITE(VERT(7),'(a)') 'f   wind direction                    '
-        WRITE(VERT(8),'(a)') 'g   diffuse horizontal solar radiation'
+        WRITE(VERT(8),'(a)') 'g   diffuse horizontal solar rad      '
         WRITE(VERT(9),'(a)') 'h   direct normal solar radiation     '
         WRITE(VERT(10),'(a)')'i   direct solar radiation on surface '
         WRITE(VERT(11),'(a)')'j senses lux levels (not working)     '
@@ -5340,7 +5467,11 @@ C help text blocks for the current control domain.
       endif
       M=M+1
       CALL EMKEY(M,KEY,IER)
-      WRITE(VERT(M),'(2a)')KEY,' senses temp in a specific zone'
+      if(MENUC.eq.'o'.or.MENUC.eq.KEY)then
+        WRITE(VERT(M),'(2a)')KEY,' senses temp in a specific zone *'
+      else
+        WRITE(VERT(M),'(2a)')KEY,' senses temp in a specific zone'
+      endif
 
 C Number of actual items displayed.
       MVERT=M+MCTL
@@ -5352,8 +5483,16 @@ C If a long list include page facility text and info on portion seen.
         WRITE(VERT(M+1),15)IPM,MPM 
    15   FORMAT ('0 page part: ',I1,' -- of:',I1)
       ENDIF
-      VERT(M+2)  ='? help                  '
-      VERT(M+3)  ='- exit menu             '
+      if(icfoc.eq.0.or.icfoc.eq.2)then
+        write(outs,'(2a)') 'Current sensor is: ',SSTR(1:lnblnk(SSTR))
+        call edisp(iuout,outs)
+        VERT(M+2)  ='* accept current (*)    '
+        VERT(M+3)  ='? help                  '
+        VERT(M+4)  ='- exit menu             '
+      else
+        VERT(M+2)  ='? help                  '
+        VERT(M+3)  ='- exit menu             '
+      endif
       write(prompt2,'(a)')' '
 
 C Echo the current sensor information.
@@ -5390,14 +5529,33 @@ C If no selection has been made before exit then display error message.
         RETURN
       ELSEIF(IVERT.EQ.(MVERT-1))THEN
 
-C Produce help text based on blocks of text related to the specific
-C control domain.
+C Produce help text related to the specific control domain.
         CALL PHELPD('control top section',nbhelp,'-',0,0,IER)
         goto 92
-      ELSEIF(IVERT.EQ.(MVERT-2))THEN
-
-C If there are enough items allow paging control via EKPAGE.
-        IF(IPFLG.EQ.1)THEN
+      ELSEIF(IVERT.EQ.MVERT-2)then
+        if(icfoc.eq.0.or.icfoc.eq.2)then ! Accept current via the
+          if(icfoc.eq.0)then             ! current common block values.
+            isn1=IBSN(II,1); isn2=IBSN(II,2); isn3=IBSN(II,3)
+            isn4=IBSN(II,4)
+          elseif(icfoc.eq.2)then
+            isn1=IFSN(II,1); isn2=IFSN(II,2); isn3=IFSN(II,3)
+            isn4=IFSN(II,4)
+          endif
+          IMFS=irecimfs; ITFS=irecitfs; IFS=irecifs ! reset to calling routine fonts
+          call userfonts(IFS,ITFS,IMFS)
+          RETURN
+        ELSE
+          IF(IPFLG.EQ.1)THEN            ! Allow paging control for non-zone domains.
+            IPACT=EDIT
+            CALL EKPAGE(IPACT)
+            IVERT=-2
+            goto 33
+          ELSE
+            goto 92
+          ENDIF
+        ENDIF
+      ELSEIF(IVERT.EQ.(MVERT-3).and.(icfoc.eq.0.or.icfoc.eq.2))THEN
+        IF(IPFLG.EQ.1)THEN               ! Allow paging control for zone domain.
           IPACT=EDIT
           CALL EKPAGE(IPACT)
           IVERT=-2
@@ -5405,9 +5563,7 @@ C If there are enough items allow paging control via EKPAGE.
         ELSE
           goto 92
         ENDIF
-      ELSEIF(IVERT.EQ.(MVERT-3))THEN
-
-C Ask for the specific zone.
+      ELSEIF(IVERT.EQ.(MVERT-4).and.icfoc.eq.0)THEN ! Ask for specific zone.
         CALL EPMENSV
         idef=0
         call askzone(isn1,idef,'Select associated zone','-',
@@ -5459,19 +5615,17 @@ C Work with local variables and only instantiate if ier is zero.
 C In the case of mass flow this choice implies no supplemental
 C items, but return isense as the control law.
         if(icfoc.eq.2)isense=1
-      elseif(ivert.eq.1.and.(icfoc.eq.0.or.icfoc.eq.5))then
+      elseif(ivert.eq.1.and.(icfoc.eq.0))then
 
 C Senses current zone db temp if ideal.
         isn1=0; isn2=0; isn3=0; nsup=0
       elseif(ivert.eq.1.and.icfoc.eq.5)then
 
-C Senses specific zone db temp.
-        CALL EPMENSV
-        idef=0
-        call askzone(isn2,idef,'Select associated zone','-',
-     &    'Specific zone',34,ier)
-        CALL EPMENRC
-        isn1=1; isn3=0; nsup=0
+C Senses specific zone db temp warn user to use a different item.
+        call edisp(iuout,' ')
+        call edisp(iuout,'Optical control need a specific zone. Choose')
+        call edisp(iuout,'option m.')
+        goto 3
       elseif(ivert.eq.1.and.(icfoc.eq.1.or.icfoc.eq.2))then
 
 C Senses output (plant control) or temperature (flow control) of a plant component.
@@ -5587,7 +5741,7 @@ C Senses outside db.
 
 C Senses sol-air temperature.
         nsup=0; isn1=-3; isn2=1; isn3=0
-        if(icfoc.eq.2)isense=0
+        if(icfoc.eq.2.or.icfoc.eq.5)isense=0
       elseif(ivert.eq.10.and.icfoc.eq.5)then
 
 C Senses incident solar radiation on a surface. Ask for the specific zone.
@@ -5855,6 +6009,13 @@ C Changes thermophysical properties.
      &    0,'-',0,'-',0,'lower air',IERI,nbhelp)
         if(ieri.eq.-3) goto 3
         isn1=isn1T; isn2=isn2T; isn3=isn3T
+
+      elseif(ivert.eq.14.and.(icfoc.eq.0))then
+
+C Acept current sensor and exit.
+        IMFS=irecimfs; ITFS=irecitfs; IFS=irecifs  ! reset to calling routine fonts
+        call userfonts(IFS,ITFS,IMFS)
+        RETURN
       else
 
 C Not one of the legal menu choices.
@@ -5906,6 +6067,7 @@ C flow connections.It is assumed that the user will make one selection only.
 #include "CFC_common.h"
 #include "help.h"
 
+      COMMON/SPAD/MMOD,LIMIT,LIMTTY
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
       integer ifs,itfs,imfs
       COMMON/GFONT/IFS,ITFS,IMFS
@@ -5922,8 +6084,8 @@ C Usual proportional fonts used for non-control facilities.
 
 C Pointer from surface to associated optical control.
       COMMON/TMCO1/IOTMCFL(MCOM,MS)
+      CHARACTER TOPTIC*24
       common/PRECT4/TOPTIC(MCOM,MTMC)
-      CHARACTER TOPTIC*12
       
       integer ncomp,ncon
       COMMON/C1/NCOMP,NCON
@@ -5932,10 +6094,12 @@ C Pointer from surface to associated optical control.
      &               ndcon(mpcom,mnodec)
       LOGICAL SELECT
       CHARACTER*(*) prompt,title,errmsg
-      CHARACTER optic*12
+      CHARACTER optic*24,menuc*1
+      dimension ican(6)   ! for passing sensor location to decodesensor
+      integer ican
 
       DIMENSION VERT(35)
-      CHARACTER VERT*40,KEY*1,prompt2*36
+      CHARACTER VERT*40,KEY*1,prompt2*36,SSTR*96,SSTRB*48
       character outs*124
       integer ian1T,ian2T,ian3T,ilayt  ! local variable for editing.
       logical vb_xst ! local variable to check if slat type blind exists in CFC
@@ -5955,12 +6119,15 @@ C Save current fonts and switch to the standard prj fonts.
 C Initialise zone menu variables based on window size. 
 C IVERT is the menu position, MVERT the current number of menu lines.
    3  SELECT=.FALSE.
+      MCTL=3
       if(icfoc.eq.0)then      ! Zone actuator
-        MHEAD=3
+        MHEAD=3               ! Allow accept current
+        MCTL=4
       elseif(icfoc.eq.1)then  ! Plant actuator
         MHEAD=2
       elseif(icfoc.eq.2)then  ! Mass flow actuator
         MHEAD=3
+        MCTL=4
       elseif(icfoc.eq.3)then  ! Global actuator
         MHEAD=2
       elseif(icfoc.eq.4)then  ! Power flow actuator
@@ -5970,7 +6137,6 @@ C IVERT is the menu position, MVERT the current number of menu lines.
       elseif(icfoc.eq.6)then  ! CFC actuator
         MHEAD=10
       endif
-      MCTL=3
       ILEN=NCOMP
       IPACT=CREATE
       CALL EKPAGE(IPACT)
@@ -6009,10 +6175,24 @@ C Initial menu entry setup.
 C Build up text strings for the menu. 
    33 M=MHEAD
       if(icfoc.eq.0)then
+        ican(1)=IBAN(II,1); ican(2)=IBAN(II,2)
+        ican(3)=IBAN(II,3); ican(6)=IBSN(II,1)
+        call decodeactuator(icfoc,ican,SSTR,SSTRB,MENUC,ier)
+C        write(6,*) 'decodeact ican sstr menuc ',ican,' ',
+C     &    sstr(1:lnblnk(sstr)),' ',menuc
+
         helptopic='actlocation_bld'
         call gethelptext(helpinsub,helptopic,nbhelp)
-        WRITE(VERT(1),'(a)')'a at current zone air point           '
-        WRITE(VERT(2),'(a)')'b mix of convection and radiation     '
+        if(MENUC.eq.'a')then
+          WRITE(VERT(1),'(a)')'a at current zone air point          *'
+        else
+          WRITE(VERT(1),'(a)')'a at current zone air point           '
+        endif
+        if(MENUC.eq.'b')then
+          WRITE(VERT(2),'(a)')'b mix of convection and radiation    *'
+        else
+          WRITE(VERT(2),'(a)')'b mix of convection and radiation     '
+        endif
         WRITE(VERT(3),'(a)')'  ------------------------------------'
       elseif(icfoc.eq.1)then
         helptopic='actlocation_plant'
@@ -6020,10 +6200,24 @@ C Build up text strings for the menu.
         WRITE(VERT(1),'(a)')'a node within a plant component       '
         WRITE(VERT(2),'(a)')'  ------------------------------------'
       elseif(icfoc.eq.2)then
+        ican(1)=IFAN(II,1); ican(2)=IFAN(II,2)
+        ican(3)=IFAN(II,3)
+        call decodeactuator(icfoc,ican,SSTR,SSTRB,MENUC,ier)
+C        write(6,*) 'decodeact flow ican sstr menuc ',ican,' ',
+C     &    sstr(1:lnblnk(sstr)),' ',menuc
         helptopic='actlocation_flow'
         call gethelptext(helpinsub,helptopic,nbhelp)
-        WRITE(VERT(1),'(a)')'a single flow connection              '
-        WRITE(VERT(2),'(a)')'b flow component (& assoc connections)'
+
+        if(MENUC.eq.'a')then
+          WRITE(VERT(1),'(a)')'a single flow connection             *'
+        else
+          WRITE(VERT(1),'(a)')'a single flow connection              '
+        endif
+        if(MENUC.eq.'b')then
+          WRITE(VERT(2),'(a)')'b flow component (& assoc connects) *'
+        else
+          WRITE(VERT(2),'(a)')'b flow component (& assoc connects)  '
+        endif
         if(IFCTYP(II,1,1).eq.41)vert(2)='b contaminant source      '
         WRITE(VERT(3),'(a)')'  ------------------------------------'
       elseif(icfoc.eq.3)then
@@ -6037,6 +6231,12 @@ C Build up text strings for the menu.
         WRITE(VERT(1),'(a)')'a power actuator not yet implemented  '
         WRITE(VERT(2),'(a)')'  ------------------------------------'
       elseif(icfoc.eq.5)then
+        ican(1)=IOAN(II,1); ican(2)=IOAN(II,2)
+        ican(3)=IOAN(II,3)
+        call decodeactuator(icfoc,ican,SSTR,SSTRB,MENUC,ier)
+C        write(6,*) 'decodeact optic ican sstr menuc ',ican,' ',
+C     &    sstr(1:lnblnk(sstr)),' ',menuc
+     
         helptopic='actlocation_optical'
         call gethelptext(helpinsub,helptopic,nbhelp)
         WRITE(VERT(1),'(a)')'a optical properties (tmc type)       '
@@ -6055,15 +6255,22 @@ C Build up text strings for the menu.
         WRITE(VERT(9),'(a)')'i shade ON/OFF & slat angle via tdf    '
         WRITE(VERT(10),'(a)')'  -------------------------------------'
       endif
-      DO 10 L=1,ILEN
-        IF(L.GE.IST.AND.(L.LE.(IST+MIFULL)))THEN
-          if(icfoc.eq.0)then
+
+C If building domain the include a list of actuation zones. 
+      if(icfoc.eq.0)then
+        do L=1,ILEN
+          IF(L.GE.IST.AND.(L.LE.(IST+MIFULL)))THEN
             M=M+1
             CALL EMKEY(M,KEY,IER)
-            WRITE(VERT(M),'(3a)')KEY,' air point or surf in ',zname(L)
+            if(MENUC.eq.'d'.or.MENUC.eq.KEY)then
+              WRITE(VERT(M),'(4a)')KEY,' air point or surf in ',
+     &          zname(L),' *'
+            else
+              WRITE(VERT(M),'(3a)')KEY,' air point or surf in ',zname(L)
+            endif
           endif
-        ENDIF
-   10 CONTINUE
+        enddo
+      endif
 
 C Number of actual items displayed.
       MVERT=M+MCTL
@@ -6075,8 +6282,16 @@ C If a long list include page facility text and info on portion seen.
         WRITE(VERT(M+1),15)IPM,MPM 
    15   FORMAT ('0 page part: ',I1,' -- of:',I1)
       ENDIF
-      VERT(M+2)  ='? help                  '
-      VERT(M+3)  ='- exit menu             '
+      if(icfoc.eq.0.or.icfoc.eq.2)then      ! Zone or flow actuator
+        write(outs,'(2a)') 'Current actuator is: ',SSTR(1:lnblnk(SSTR))
+        call edisp(iuout,outs)
+        VERT(M+2)  ='* accept current (*)    '
+        VERT(M+3)  ='? help                  '
+        VERT(M+4)  ='- exit menu             '
+      else
+        VERT(M+2)  ='? help                  '
+        VERT(M+3)  ='- exit menu             '
+      endif
       write(prompt2,'(a)')' '
 
 C Display the menu.
@@ -6097,14 +6312,36 @@ C If no selection has been made before exit then display error message.
 
 C Produce help text for the relevant domain.
         CALL PHELPD('control actuation point',nbhelp,'-',0,0,IER)
-      ELSEIF(IVERT.EQ.(MVERT-2))THEN
+      ELSEIF(IVERT.EQ.MVERT-2)then
+        if(icfoc.eq.0.or.icfoc.eq.2)then ! Accept current item.
+          if(icfoc.eq.0)then
+            ian1=IBAN(II,1); ian2=IBAN(II,2);ian3=IBAN(II,3)
+          elseif(icfoc.eq.2)then
+            ian1=IFAN(II,1); ian2=IFAN(II,2);ian3=IFAN(II,3)
+          endif
+          IMFS=irecimfs; ITFS=irecitfs; IFS=irecifs  ! reset to calling routine fonts
+          call userfonts(IFS,ITFS,IMFS)
+          RETURN
+        ELSE
 
 C If there are enough items allow paging control via EKPAGE.
-        IF(IPFLG.EQ.1)THEN
-          IPACT=EDIT
-          CALL EKPAGE(IPACT)
-          IVERT=-2
-          goto 33
+          IF(IPFLG.EQ.1)THEN
+            IPACT=EDIT
+            CALL EKPAGE(IPACT)
+            IVERT=-2
+            goto 33
+          ENDIF
+        ENDIF
+      ELSEIF(IVERT.EQ.MVERT-3)then
+        IF(icfoc.eq.0.or.icfoc.eq.2)THEN
+          IF(IPFLG.EQ.1)THEN                     ! Allow paging control.
+            IPACT=EDIT
+            CALL EKPAGE(IPACT)
+            IVERT=-2
+            goto 33
+          ELSE
+            goto 92
+          ENDIF
         ENDIF
       ELSEIF(IVERT.GT.MHEAD.AND.IVERT.LT.(MVERT-MCTL+1))THEN
 
@@ -6238,7 +6475,8 @@ C << what if multiple controllable tmcs in zone? >>
 C << ?? also check 
             if(IBCMT(isn1,ITMC).ne.0)then  ! detect legacy or pointer to loop
               optic=TOPTIC(isn1,ITMCFL(isn1,ij))
-              write(outs,'(a,i2,3a)') 'Optical set ',itmc,' ',optic,
+              write(outs,'(a,i2,3a)') 'Optical set ',itmc,' ',
+     &          optic(1:lnblnk(optic)),
      &          ' has an alternative set of properties.'
               call edisp(iuout,outs)
               IOTMCFL(isn1,ij)=ii  ! point surface to control ii

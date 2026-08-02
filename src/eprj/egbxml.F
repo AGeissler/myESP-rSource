@@ -322,6 +322,7 @@ C (so fillsur does not wipe)
       character DFILE*72,CFILE*72,OFILE*72,TFILE*72
       character sn*12,opt*12,outs*124,louts*496
       character act*1  ! q is quiet  - includes warnings
+      character sbound_ty*12,sbound_c2*6,sbound_e2*6
       LOGICAL browse,OKC,XST,unixok
       logical willneedtmc  !  if a tmc file will be required.
       logical bound        ! to test if polygons are bounded
@@ -416,7 +417,6 @@ C << Unix vs Windows needs to be updated >>
      &  zname(ICOMP)(1:lnzname(ICOMP)),' auto-generated for shape ',
      &  shape(ICOMP)(1:lnblnk(shape(ICOMP))),' & attributes.'
       zdesc(ICOMP)=zd
-      lnzdesc(ICOMP)=lnblnk(zd)  ! update the length of this string.
 
 C Assume we are working with a poly shaped room.
       IER=0
@@ -432,8 +432,6 @@ C Instantiates nsur and ntv for use in escrot and filsur.
         Z(I)=szcoords(ICOMP,I,3)
    62 CONTINUE
 
-C Remember first zone point as rotation point.
-      rotateit(ICOMP,2)=X(1); rotateit(ICOMP,3)=Y(1)
       DO 10 I=1,NZSUR(ICOMP)
         NVER(I)=isznver(ICOMP,I)
         DO 12 KV=1,NVER(I)
@@ -576,30 +574,8 @@ C mark an unknownmlc so construction files are not created.
         endif
         SPARENT(icomp,icc)='-'
 
-C Use zboundarytype to instantiate sother.
-        IF(zboundarytype(icomp,icc,1).EQ.0)THEN
-          SOTHER(icomp,icc,1)='EXTERIOR'
-        ELSEIF(zboundarytype(icomp,icc,1).EQ.1)THEN
-          SOTHER(icomp,icc,1)='SIMILAR'
-        ELSEIF(zboundarytype(icomp,icc,1).EQ.2)THEN
-          SOTHER(icomp,icc,1)='CONSTANT'
-        ELSEIF(zboundarytype(icomp,icc,1).EQ.3)THEN
-          SOTHER(icomp,icc,1)='ANOTHER'
-        ELSEIF(zboundarytype(icomp,icc,1).EQ.4)THEN
-          SOTHER(icomp,icc,1)='GROUND'
-        ELSEIF(zboundarytype(icomp,icc,1).EQ.5)THEN
-          SOTHER(icomp,icc,1)='ADIABATIC'
-        ELSEIF(zboundarytype(icomp,icc,1).EQ.6)THEN
-          SOTHER(icomp,icc,1)='BASESIMP'
-        ELSEIF(zboundarytype(icomp,icc,1).EQ.7)THEN
-          SOTHER(icomp,icc,1)='IDENT_CEN'
-        ELSE
-
-C Reset to represent UNKNOWN
-          SOTHER(icomp,icc,1)='UNKNOWN'
-        ENDIF
-        write(SOTHER(icomp,icc,2),'(i2.2)') zboundarytype(icomp,icc,2)
-        write(SOTHER(icomp,icc,3),'(i3.3)') zboundarytype(icomp,icc,3)
+C Use zboundarytype to instantiate boundaries.
+        call decode_zsbound(icomp,icc,sbound_ty,sbound_c2,sbound_e2)
 
 C Set connection based variables.
         IZSTOCN(icomp,icc)=iccc
@@ -1079,13 +1055,14 @@ C Same as local variable actions which is passed back to calling code.
 
       character szhasconstr*32
       dimension szhasconstr(MSZ,MS)  ! construction to use for each surface
-      character szhasoptic*32
+      character szhasoptic*24
       dimension szhasoptic(MSZ,MS)  ! optics to use for each surface
       character defmlc*32  ! names of default MLC for Office or 
       dimension defmlc(13)
       character loutstr*248,PHRASE*360,WORD*48,STUFF*96,TAG*48,RSTR*124
       character MODE*4,errmsg*24
       character suggest*12
+      character sbound_ty*12,sbound_c2*6,sbound_e2*6
       
 C Site related local variables.
       logical havesite       ! true if tokens included
@@ -1196,8 +1173,6 @@ C For each of the possible ESP-r zones, clear values.
         zname(iz) = ' '; shape(iz) = ' '
         zn(loop)=' '; spname(loop)=' '
         nbwalls(iz) = 0
-        rotateit(iz,1) = 0.0; rotateit(iz,2) = 0.0
-        rotateit(iz,3) = 0.0
         zorigin(iz,1) = 0.0; zorigin(iz,2) = 0.0
         zorigin(iz,3) = 0.0
         zsize(iz,1) = 0.0; zsize(iz,2) = 0.0
@@ -1216,8 +1191,6 @@ C For each of the possible ESP-r zones, clear values.
           do 54 ivu=1,MV
             iszjvn(iz,isu,ivu)=0
   54      continue
-          sother(iz,isu,1)=' '; sother(iz,isu,2)=' ';
-          sother(iz,isu,3)=' '
   39    continue
   41  continue
 
@@ -1234,9 +1207,7 @@ C For each of the gbxml specific arrays, clear values.
           BANGOB(iz,ibu,3) = 0.0
           OPOB(iz,ibu) = 1.0
           BLOCKNAME(iz,ibu) = ' '
-          LNBLOCKNAME(iz,ibu) = 0
           BLOCKMAT(iz,ibu) = ' '
-          LNBLOCKMAT(iz,ibu) = 0
           BLOCKTYP(iz,ibu) = 'obs '
           do 56 ibe=1,8
             XBP(iz,ibu,ibe)=0.0
@@ -1549,6 +1520,8 @@ C          enddo
             call hashname(lenin,lendesire,iszlname(loop,loop3),SN2,ier)
             suggest=' '
             call testuniquesn(SN2,loop,isunique,suggest)
+            call decode_zsbound(loop,loop3,sbound_ty,sbound_c2,
+     &        sbound_e2)
             if(isunique)then
               write(sname(loop,loop3),'(a)') SN2(1:12) ! truncate at 12 char
             else
@@ -1565,9 +1538,8 @@ C          enddo
      &        sname(loop,loop3),' ',
      &        isztype(loop,loop3),' ',sotf(loop,loop3)(1:12),' ',
      &        smlcn(loop,loop3)(1:12),' ',suse(loop,loop3,1),' ',
-     &        suse(loop,loop3,2),' ',sother(loop,loop3,1)(1:12),' ',
-     &        sother(loop,loop3,2)(1:4),' ',
-     &        sother(loop,loop3,3)(1:4)
+     &        suse(loop,loop3,2),' ',sbound_ty(1:12),' ',
+     &        sbound_c2(1:4),' ',sbound_e2(1:4)
           enddo
         enddo
         goto 1000  ! process what has been collected
@@ -1683,7 +1655,7 @@ C Debug.
             endif
           enddo
 
-C Inherit the parent surface sother and increment to account for opening.
+C Inherit the parent surface attributes and increment to account for opening.
           if(havepartition)then
             lnsn=lnblnk(nextsurfname)
             do loop2=1,nzsur(iothzone)
@@ -2655,12 +2627,11 @@ C Need to take on the parent surface boundary attributes.
      &      defmlc(5)(1:lnblnk(defmlc(5)))
           write(suse(icurzone,iopensurf,1),'(a)') 'WINDOW'
           write(suse(icurzone,iopensurf,2),'(a)') 'CRACK'
-          write(sother(icurzone,iopensurf,1),'(a)') 'EXTERIOR'
-          write(sother(icurzone,iopensurf,2),'(a)') '000'
-          write(sother(icurzone,iopensurf,3),'(a)') '000'
           zboundarytype(icurzone,iopensurf,1)=0
           zboundarytype(icurzone,iopensurf,2)=0
           zboundarytype(icurzone,iopensurf,3)=0
+          call decode_zsbound(icurzone,iopensurf,sbound_ty,sbound_c2,
+     &      sbound_e2)
         elseif(nextsurftype(1:14).eq.'NonSlidingDoor'.or.
      &         nextsurftype(1:11).eq.'SlidingDoor'.or.
      &         nextsurftype(1:3).eq.'Air')then     
@@ -2674,12 +2645,11 @@ C Need to take on the parent surface boundary attributes.
      &      defmlc(4)(1:lnblnk(defmlc(4)))
           write(suse(icurzone,iopensurf,1),'(a)') 'DOOR'
           write(suse(icurzone,iopensurf,2),'(a)') 'CRACK'
-          write(sother(icurzone,iopensurf,1),'(a)') 'EXTERIOR'
-          write(sother(icurzone,iopensurf,2),'(a)') '000'
-          write(sother(icurzone,iopensurf,3),'(a)') '000'
           zboundarytype(icurzone,iopensurf,1)=0
           zboundarytype(icurzone,iopensurf,2)=0
           zboundarytype(icurzone,iopensurf,3)=0
+          call decode_zsbound(icurzone,iopensurf,sbound_ty,sbound_c2,
+     &      sbound_e2)
         else
           write(outs,'(3a)') 'The nextsurftype type ',
      &      nextsurftype,' NOT RECOGNIZED.'
@@ -2726,12 +2696,11 @@ C Bookkeepping for opening in other zone.
 
 C Since in a partition, overwrite the earlier assumption for icurzone,iopensurf
 C (same logic applies for any opening type).
-          write(sother(icurzone,iopensurf,1),'(a)')zn(iothzone)
-          write(sother(icurzone,iopensurf,2),'(i3.3)')iothzone
-          write(sother(icurzone,iopensurf,3),'(i3.3)')iothopensurf
           zboundarytype(icurzone,iopensurf,1)=3
           zboundarytype(icurzone,iopensurf,2)=iothzone
           zboundarytype(icurzone,iopensurf,3)=iothopensurf
+          call decode_zsbound(icurzone,iopensurf,sbound_ty,sbound_c2,
+     &      sbound_e2)
           if(idebg.ge.1)then
             write(6,'(5a,i3,a,i3,a,2i4)') 'Reset ptn opening ',
      &        nextsurfname,' in ',zn(icurzone),' z ',icurzone,
@@ -2761,12 +2730,11 @@ C Take on the parent surface boundary attributes
      &        defmlc(5)(1:lnblnk(defmlc(5)))
             write(suse(iothzone,iothopensurf,1),'(a)') 'WINDOW'
             write(suse(iothzone,iothopensurf,2),'(a)') 'CRACK'
-            write(sother(iothzone,iothopensurf,1),'(a)')zn(icurzone)
-            write(sother(iothzone,iothopensurf,2),'(i3.3)')icurzone
-            write(sother(iothzone,iothopensurf,3),'(i3.3)')iopensurf
             zboundarytype(iothzone,iothopensurf,1)=3
             zboundarytype(iothzone,iothopensurf,2)=icurzone
             zboundarytype(iothzone,iothopensurf,3)=iopensurf
+            call decode_zsbound(iothzone,iothopensurf,sbound_ty,
+     &        sbound_c2,sbound_e2)
           elseif(nextsurftype(1:14).eq.'NonSlidingDoor'.or.
      &           nextsurftype(1:11).eq.'SlidingDoor'.or.
      &           nextsurftype(1:3).eq.'Air')then     
@@ -2781,12 +2749,11 @@ C Take on the parent surface boundary attributes
      &        defmlc(4)(1:lnblnk(defmlc(4)))
             write(suse(iothzone,iothopensurf,1),'(a)') 'DOOR'
             write(suse(iothzone,iothopensurf,2),'(a)') 'CRACK'
-            write(sother(iothzone,iothopensurf,1),'(a)')zn(icurzone)
-            write(sother(iothzone,iothopensurf,2),'(i3.3)')icurzone
-            write(sother(iothzone,iothopensurf,3),'(i3.3)')iopensurf
             zboundarytype(iothzone,iothopensurf,1)=3
             zboundarytype(iothzone,iothopensurf,2)=icurzone
             zboundarytype(iothzone,iothopensurf,3)=iopensurf
+            call decode_zsbound(iothzone,iothopensurf,sbound_ty,
+     &        sbound_c2,sbound_e2)
           endif
         endif
       elseif(PHRASE(1:8).eq.'/Opening')then
@@ -2932,12 +2899,16 @@ C And assign the surface type and set zboundarytype indicies.
               zboundarytype(icurzone,icursurf,1)=1
               zboundarytype(icurzone,icursurf,2)=0
               zboundarytype(icurzone,icursurf,3)=0
+              call decode_zsbound(icurzone,icursurf,sbound_ty,
+     &         sbound_c2,sbound_e2)
               write(isztype(icurzone,icursurf),'(a)')
      &          curstype(1:lnblnk(curstype))
               if(curstype(1:11).eq.'SlabOnGrade')then
                 zboundarytype(icurzone,icursurf,1)=4
                 zboundarytype(icurzone,icursurf,2)=1
                 zboundarytype(icurzone,icursurf,3)=0
+                call decode_zsbound(icurzone,icursurf,sbound_ty,
+     &           sbound_c2,sbound_e2)
               endif
 
 C A similar-on-other-side case. Add the parent surface.
@@ -2971,10 +2942,7 @@ C << why are we setting air to similar? It might be a partition >>
      &            defmlc(11)(1:lnblnk(defmlc(11)))
                 write(suse(icurzone,icursurf,1),'(a)') 'FICT'
                 write(suse(icurzone,icursurf,2),'(a)') 'OPEN'
-                write(sother(icurzone,icursurf,1),'(a)')  'SIMILAR'
               endif
-              write(sother(icurzone,icursurf,2),'(a)')'000'
-              write(sother(icurzone,icursurf,3),'(a)')'000'
               havesimilar=.true.   ! similar-on-other-side.
                ! clear a name here??
               goto 442 ! read another line
@@ -3036,15 +3004,11 @@ C Now that we know which zone we can assign cursurfname and attributes.
      &            defmlc(2)(1:lnblnk(defmlc(2)))
                 write(suse(icurzone,icursurf,1),'(a)') 'PARTN'
                 write(suse(icurzone,icursurf,2),'(a)') '- '
-                write(sother(icurzone,icursurf,1),'(a)')
-     &            othzonename
-                write(sother(icurzone,icursurf,2),'(i3.3)')
-     &            iothzone
-                write(sother(icurzone,icursurf,3),'(i3.3)')
-     &            iothsurf
                 zboundarytype(icurzone,icursurf,1)=3
                 zboundarytype(icurzone,icursurf,2)=iothzone
                 zboundarytype(icurzone,icursurf,3)=iothsurf
+                call decode_zsbound(icurzone,icursurf,sbound_ty,
+     &            sbound_c2,sbound_e2)
               elseif(curstype(1:7).eq.'Ceiling')then
                 if(idebg.ge.1)then
                   write(6,'(5a,i3,a,i3)') 'Found ceil partition match ',
@@ -3056,15 +3020,11 @@ C Now that we know which zone we can assign cursurfname and attributes.
      &            defmlc(8)(1:lnblnk(defmlc(8)))
                 write(suse(icurzone,icursurf,1),'(a)') 'PARTN'
                 write(suse(icurzone,icursurf,2),'(a)') '- '
-                write(sother(icurzone,icursurf,1),'(a)')
-     &            othzonename
-                write(sother(icurzone,icursurf,2),'(i3.3)')
-     &            iothzone
-                write(sother(icurzone,icursurf,3),'(i3.3)')
-     &            iothsurf
                 zboundarytype(icurzone,icursurf,1)=3
                 zboundarytype(icurzone,icursurf,2)=iothzone
                 zboundarytype(icurzone,icursurf,3)=iothsurf
+                call decode_zsbound(icurzone,icursurf,sbound_ty,
+     &            sbound_c2,sbound_e2)
               elseif(curstype(1:13).eq.'InteriorFloor')then
 
 C For InteriorFloor.
@@ -3078,15 +3038,11 @@ C For InteriorFloor.
      &            defmlc(12)(1:lnblnk(defmlc(12)))
                 write(suse(icurzone,icursurf,1),'(a)') 'PARTN'
                 write(suse(icurzone,icursurf,2),'(a)') '- '
-                write(sother(icurzone,icursurf,1),'(a)')
-     &            othzonename
-                write(sother(icurzone,icursurf,2),'(i3.3)')
-     &            iothzone
-                write(sother(icurzone,icursurf,3),'(i3.3)')
-     &            iothsurf
                 zboundarytype(icurzone,icursurf,1)=3
                 zboundarytype(icurzone,icursurf,2)=iothzone
                 zboundarytype(icurzone,icursurf,3)=iothsurf
+                call decode_zsbound(icurzone,icursurf,sbound_ty,
+     &            sbound_c2,sbound_e2)
 
               elseif(curstype(1:3).eq.'Air')then
                 if(idebg.ge.1)then
@@ -3099,15 +3055,11 @@ C For InteriorFloor.
      &            defmlc(12)(1:lnblnk(defmlc(12)))
                 write(suse(icurzone,icursurf,1),'(a)') 'PARTN'
                 write(suse(icurzone,icursurf,2),'(a)') '- '
-                write(sother(icurzone,icursurf,1),'(a)')
-     &            othzonename
-                write(sother(icurzone,icursurf,2),'(i3.3)')
-     &            iothzone
-                write(sother(icurzone,icursurf,3),'(i3.3)')
-     &            iothsurf
                 zboundarytype(icurzone,icursurf,1)=3
                 zboundarytype(icurzone,icursurf,2)=iothzone
                 zboundarytype(icurzone,icursurf,3)=iothsurf
+                call decode_zsbound(icurzone,icursurf,sbound_ty,
+     &            sbound_c2,sbound_e2)
               endif
 
 C And for the other zone InteriorWall.
@@ -3131,15 +3083,11 @@ C << Perhaps this will need to be undone if complexity limits exceeded. >>
      &            defmlc(2)(1:lnblnk(defmlc(2)))
                 write(suse(iothzone,iothsurf,1),'(a)') 'PARTN'
                 write(suse(iothzone,iothsurf,2),'(a)') '- '
-                write(sother(iothzone,iothsurf,1),'(a)')
-     &            curzonename
-                write(sother(iothzone,iothsurf,2),'(i3.3)')
-     &            icurzone
-                write(sother(iothzone,iothsurf,3),'(i3.3)')
-     &            icursurf
                 zboundarytype(iothzone,iothsurf,1)=3
                 zboundarytype(iothzone,iothsurf,2)=icurzone
                 zboundarytype(iothzone,iothsurf,3)=icursurf
+                call decode_zsbound(iothzone,iothsurf,sbound_ty,
+     &            sbound_c2,sbound_e2)
               elseif(curstype(1:7).eq.'Ceiling')then
                 if(idebg.ge.1)then
                   write(6,'(5a,i3,a,i3)') 'Found ceil partition match ',
@@ -3151,15 +3099,11 @@ C << Perhaps this will need to be undone if complexity limits exceeded. >>
      &            defmlc(8)(1:lnblnk(defmlc(8)))
                 write(suse(iothzone,iothsurf,1),'(a)') 'PARTN'
                 write(suse(iothzone,iothsurf,2),'(a)') '- '
-                write(sother(iothzone,iothsurf,1),'(a)')
-     &            curzonename
-                write(sother(iothzone,iothsurf,2),'(i3.3)')
-     &            icurzone
-                write(sother(iothzone,iothsurf,3),'(i3.3)')
-     &            icursurf
                 zboundarytype(iothzone,iothsurf,1)=3
                 zboundarytype(iothzone,iothsurf,2)=icurzone
                 zboundarytype(iothzone,iothsurf,3)=icursurf
+                call decode_zsbound(iothzone,iothsurf,sbound_ty,
+     &            sbound_c2,sbound_e2)
               elseif(curstype(1:13).eq.'InteriorFloor')then
 
 C For InteriorFloor.
@@ -3173,15 +3117,11 @@ C For InteriorFloor.
      &            defmlc(12)(1:lnblnk(defmlc(12)))
                 write(suse(iothzone,iothsurf,1),'(a)') 'PARTN'
                 write(suse(iothzone,iothsurf,2),'(a)') '- '
-                write(sother(iothzone,iothsurf,1),'(a)')
-     &            curzonename
-                write(sother(iothzone,iothsurf,2),'(i3.3)')
-     &            icurzone
-                write(sother(iothzone,iothsurf,3),'(i3.3)')
-     &            icursurf
                 zboundarytype(iothzone,iothsurf,1)=3
                 zboundarytype(iothzone,iothsurf,2)=icurzone
                 zboundarytype(iothzone,iothsurf,3)=icursurf
+                call decode_zsbound(iothzone,iothsurf,sbound_ty,
+     &            sbound_c2,sbound_e2)
               endif
             endif
           else
@@ -3221,97 +3161,87 @@ C be zero at this point).
 
 C Initial assumption. Orientations will be double checked
 C later after the polygons have been scanned.
-            write(sother(icurzone,icursurf,2),'(a)')'000'
-            write(sother(icurzone,icursurf,3),'(a)')'000'
             zboundarytype(icurzone,icursurf,1)=0
             zboundarytype(icurzone,icursurf,2)=0
             zboundarytype(icurzone,icursurf,3)=0
+            call decode_zsbound(icurzone,icursurf,sbound_ty,
+     &        sbound_c2,sbound_e2)
             write(sotf(icurzone,icursurf),'(a)') 'OPAQUE'
             if(curstype(1:4).eq.'Roof')then
               write(smlcn(icurzone,icursurf),'(a)')
      &          defmlc(7)(1:lnblnk(defmlc(7)))
               write(suse(icurzone,icursurf,1),'(a)') 'ROOF'
               write(suse(icurzone,icursurf,2),'(a)') '- '
-              write(sother(icurzone,icursurf,1),'(a)') 'EXTERIOR'
             endif
             if(curstype(1:7).eq.'Ceiling')then
               write(smlcn(icurzone,icursurf),'(a)')
      &          defmlc(8)(1:lnblnk(defmlc(8)))
               write(suse(icurzone,icursurf,1),'(a)') 'PARTN'
               write(suse(icurzone,icursurf,2),'(a)') '- '
-              write(sother(icurzone,icursurf,1),'(a)') 'ANOTHER'
             endif
             if(curstype(1:12).eq.'ExteriorWall')then
               write(smlcn(icurzone,icursurf),'(a)')
      &          defmlc(1)(1:lnblnk(defmlc(1)))
               write(suse(icurzone,icursurf,1),'(a)') 'WALL'
               write(suse(icurzone,icursurf,2),'(a)') '- '
-              write(sother(icurzone,icursurf,1),'(a)') 'EXTERIOR'
             endif
             if(curstype(1:15).eq.'UndergroundWall')then
               write(smlcn(icurzone,icursurf),'(a)')
      &          defmlc(13)(1:lnblnk(defmlc(13)))
               write(suse(icurzone,icursurf,1),'(a)') 'WALL'
               write(suse(icurzone,icursurf,2),'(a)') '- '
-              write(sother(icurzone,icursurf,1),'(a)') 'GROUND'
-              write(sother(icurzone,icursurf,2),'(a)') '001'
-              write(sother(icurzone,icursurf,3),'(a)') '000'
               zboundarytype(icurzone,icursurf,1)=4
               zboundarytype(icurzone,icursurf,2)=1
               zboundarytype(icurzone,icursurf,3)=0
+              call decode_zsbound(icurzone,icursurf,sbound_ty,
+     &          sbound_c2,sbound_e2)
             endif
             if(curstype(1:15).eq.'UndergroundSlab')then
               write(smlcn(icurzone,icursurf),'(a)')
      &          defmlc(13)(1:lnblnk(defmlc(13)))
               write(suse(icurzone,icursurf,1),'(a)') 'FLOOR'
               write(suse(icurzone,icursurf,2),'(a)') 'EXTGRND'
-              write(sother(icurzone,icursurf,1),'(a)') 'GROUND'
-              write(sother(icurzone,icursurf,2),'(a)') '001'
-              write(sother(icurzone,icursurf,3),'(a)') '000'
               zboundarytype(icurzone,icursurf,1)=4
               zboundarytype(icurzone,icursurf,2)=1
               zboundarytype(icurzone,icursurf,3)=0
+              call decode_zsbound(icurzone,icursurf,sbound_ty,
+     &          sbound_c2,sbound_e2)
             endif
             if(curstype(1:18).eq.'UndergroundCeiling')then
               write(smlcn(icurzone,icursurf),'(a)')
      &          defmlc(13)(1:lnblnk(defmlc(13)))
-              write(sother(icurzone,icursurf,1),'(a)')'GROUND'
-              write(sother(icurzone,icursurf,2),'(a)')'001'
-              write(sother(icurzone,icursurf,3),'(a)')'000'
               zboundarytype(icurzone,icursurf,1)=4
               zboundarytype(icurzone,icursurf,2)=1
               zboundarytype(icurzone,icursurf,3)=0
+              call decode_zsbound(icurzone,icursurf,sbound_ty,
+     &          sbound_c2,sbound_e2)
             endif
             if(curstype(1:12).eq.'ExposedFloor')then
               write(smlcn(icurzone,icursurf),'(a)')
      &          defmlc(1)(1:lnblnk(defmlc(1)))
               write(suse(icurzone,icursurf,1),'(a)') 'FLOOR'
               write(suse(icurzone,icursurf,2),'(a)') 'EXTGRND'
-              write(sother(icurzone,icursurf,1),'(a)') 'EXTERIOR'
             endif
             if(curstype(1:12).eq.'RaisedFloor')then
               write(smlcn(icurzone,icursurf),'(a)')
      &          defmlc(1)(1:lnblnk(defmlc(1)))
               write(suse(icurzone,icursurf,1),'(a)') 'FLOOR'
               write(suse(icurzone,icursurf,2),'(a)') 'EXTGRND'
-              write(sother(icurzone,icursurf,1),'(a)') 'EXTERIOR'
             endif
             if(curstype(1:11).eq.'SlabOnGrade')then
               write(smlcn(icurzone,icursurf),'(a)')
      &          defmlc(9)(1:lnblnk(defmlc(9)))
               write(suse(icurzone,icursurf,1),'(a)') 'FLOOR'
               write(suse(icurzone,icursurf,2),'(a)') 'EXTGRND'
-              write(sother(icurzone,icursurf,1),'(a)') 'GROUND'
-              write(sother(icurzone,icursurf,2),'(a)') '001'
-              write(sother(icurzone,icursurf,3),'(a)') '000'
               zboundarytype(icurzone,icursurf,1)=4
               zboundarytype(icurzone,icursurf,2)=1
               zboundarytype(icurzone,icursurf,3)=0
+              call decode_zsbound(icurzone,icursurf,sbound_ty,
+     &          sbound_c2,sbound_e2)
             endif
             if(curstype(1:3).eq.'Air')then
               write(smlcn(icurzone,icursurf),'(a)')
      &          defmlc(11)(1:lnblnk(defmlc(11)))
-              write(sother(icurzone,icursurf,1),'(a)') 'SIMILAR'
             endif
           endif
         endif

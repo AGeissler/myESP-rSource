@@ -29,6 +29,7 @@ C  ERTWIN:  reads all transparent wall properties and optical
 C           control details from an annotated ascii file.
 C  ERBIWIN: reads bi-directional optical data from measurements
 C           file.
+C  usedmlcmat: loop through model marking which MLC and materials are used.
 
 
 C ******************** ECONST 
@@ -81,6 +82,7 @@ C ABSE    - solar absorptivity of external surfaces.
      &              TVTR2(MCOM,MTMC)
 
       COMMON/PRECT3/NTMC,NGLAZ(MTMC)
+      CHARACTER TOPTIC*24
       common/PRECT4/TOPTIC(MCOM,MTMC)
 
       COMMON/TMCB1/IBCMT(MCOM,MTMC)
@@ -100,8 +102,7 @@ C Version of construction file. If not specified set at 21 (2.1)
       DIMENSION RVC(MS)
 
       CHARACTER OUTSTR*124,LCONS*72,outs248*248,WORD*20
-      CHARACTER LUA*72,TOPTIC*12
-      character outs*124,outs2*124
+      character outs*148,outs2*124
       character dstmp*24
       LOGICAL CLOSE,ILTHPS,ILTHPZ
       logical TFOUND,readtmc
@@ -123,10 +124,14 @@ C Open existing ASCII construction data file as unit IUNIT.
       endif
       write(currentfile,'(a)') LCONS(1:lnblnk(LCONS))
 
-C Attempt to read the first line and Isee if it is '*Constructions 2.1'
+C Attempt to read the first line and Isee if it is '*Constructions 2.1'.
+C Until the zone construction file is actually scanned izconstv is
+C not know which can result in the user being asked to confirm save
+C to the 2.1 file format.
       CALL STRIPC(IUNIT,OUTSTR,99,ND,1,'*Constructions',IER)
       if(OUTSTR(1:18).eq.'*Constructions 2.1')then
         izconstv(ICOMP)=21
+
 C Read the *date stamp.
         CALL STRIPC(IUNIT,OUTSTR,99,ND,1,'*date',IER)
         K=0
@@ -365,8 +370,9 @@ C code derived from ERTWIN.
             if(icn1.ne.0)then
               IF(ITMCFL(ICOMP,I).NE.0.AND.
      &          (SOTF(icomp,i)(1:4).EQ.'OPAQ'))THEN
-                WRITE(OUTS,'(5a)')'The TMC file ',LUA(1:lnblnk(LUA)),
-     &          ' not sure if ',SNAME(icomp,i),' is transparent.'
+                lns=lnblnk(SNAME(icomp,i))
+                WRITE(OUTS,'(3a)') 'Not sure if ',
+     &            SNAME(icomp,i)(1:lns),' is transparent.'
                 call edisp(itru,outs)
                 call edisp(itru,' Check your zone files.')
               ENDIF
@@ -393,7 +399,7 @@ C the list points to an existing set of properties.
             CALL EGETWI(OUTSTR,K,NTGLAZ,1,ME,'W','glazing elem',IER)
             if(ND.eq.2)then
               CALL EGETW(OUTSTR,K,WORD,'W','matching optics',IFLAG)
-              TOPTIC(ICOMP,I)=WORD(1:12)
+              write(TOPTIC(ICOMP,I),'(a)') WORD(1:lnblnk(WORD))
             endif
             IERR=0
             do J=1,NZSUR(icomp)
@@ -637,6 +643,7 @@ C Parameters
      &              TVTR2(MCOM,MTMC)
 
       COMMON/PRECT3/NTMC,NGLAZ(MTMC)
+      CHARACTER TOPTIC*24
       common/PRECT4/TOPTIC(MCOM,MTMC)
 
       COMMON/TMCB1/IBCMT(MCOM,MTMC)
@@ -653,7 +660,6 @@ C Version of construction file. If not specified set at 21 (2.1)
       character tokens*156,comment*76,aligned_str*156
       logical TFOUND
 
-      CHARACTER TOPTIC*12
 
       IER=0
 
@@ -1312,6 +1318,7 @@ c         (not used in the current implementation),
       COMMON/PRECT2/TMCT2(MCOM,MTMC,5),TMCA2(MCOM,MTMC,ME,5),
      &              TVTR2(MCOM,MTMC)
       COMMON/PRECT3/NTMC,NGLAZ(MTMC)
+      character TOPTIC*24
       common/PRECT4/TOPTIC(MCOM,MTMC)
 
       COMMON/TMCB1/IBCMT(MCOM,MTMC)
@@ -1323,7 +1330,7 @@ c         (not used in the current implementation),
       
       DIMENSION IVA(MS),RVC(MS)
 
-      CHARACTER OUTSTR*124,OUTS*124,LUA*72,TOPTIC*12,WORD*20
+      CHARACTER OUTSTR*124,OUTS*148,LUA*72,WORD*24
       character msg*28
       LOGICAL MODGEO
 
@@ -1356,8 +1363,8 @@ C if the surface attribute should be updated.
           ITMCFL(ICOMP,I)=IVA(I)
           IF(ITMCFL(ICOMP,I).NE.0.AND.
      &      (SOTF(icomp,i)(1:4).EQ.'OPAQ'))THEN
-            WRITE(OUTS,'(5a)')'The TMC file ',LUA(1:lnblnk(LUA)),
-     &        ' not sure if ',SNAME(icomp,i),' is transparent.'
+            WRITE(OUTS,'(5a)')'In TMC file ',LUA(1:lnblnk(LUA)),
+     &        ' not sure if ',SNAME(icomp,i),' transparent.'
             call edisp(itru,outs)
             call edisp(itru,' Check your zone files.')
           ENDIF
@@ -1402,7 +1409,7 @@ C the list points to an existing set of properties.
         CALL EGETWI(OUTSTR,K,NTGLAZ,1,ME,'W','glazing elem',IER)
         if(ND.eq.2)then
           CALL EGETW(OUTSTR,K,WORD,'W','matching optics',IFLAG)
-          TOPTIC(ICOMP,I)=WORD(1:12)
+          write(TOPTIC(ICOMP,I),'(a)') WORD(1:lnblnk(WORD))
         endif
         IERR=0
         do J=1,NS
@@ -2404,3 +2411,116 @@ c Free file.
   
       end
 
+
+C ******* usedmlcmat ****************
+C Loop through model marking which MLC and materials are actually
+C used. Hold information as array of logicals.
+      subroutine usedmlcmat(iusedmlc,iusedmat)
+#include "building.h"
+#include "model.h"
+#include "geometry.h"
+#include "esprdbfile.h"
+#include "material.h"
+
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
+
+      integer ncomp,ncon
+      COMMON/C1/NCOMP,NCON
+      COMMON/C3/IC1(MCON),IE1(MCON),ICT(MCON),IC2(MCON),IE2(MCON)
+
+      logical usedmlc
+      logical usedmat
+      common/refmlcmat/usedmlc(MMLC),usedmat(MGIT)
+
+      integer matarrayindex ! the indes within matdatarray
+
+      logical found,closemat1,closemat2
+
+C Establish if material data arrays have been filled. If not return
+C with ier=1.
+      call eclose(matver,1.1,0.01,closemat1)
+      call eclose(matver,1.2,0.01,closemat2)
+      if(closemat1.or.closemat2)then
+        continue
+      else
+        call usrmsg('The materials arrays are incomplete so unable',
+     &    'to determine which MLC and materials are referenced.','W')
+        return
+      endif
+
+C Set usedmlc to false.
+      iusedmlc=0; iusedmat=0
+      do ij=1,MMLC
+        usedmlc(ij)=.false.
+      enddo
+      do ij=1,MGIT
+        usedmat(ij)=.false.
+      enddo
+
+C Loop mlc db, if some surface references it, read properties for
+C each layer and keep track of time constant.
+      do 40 ic=1,nmlc
+
+C Check if the MLC database item is referenced by a surface.
+        lm=lnblnk(mlcname(ic))
+        found=.false.
+        do icn=1,ncon
+          if(smlcindex(ic1(icn),ie1(icn)).eq.ic) then
+            if(mlctype(ic)(1:4).eq.'CFC2'.or.
+     &         mlctype(ic)(1:3).eq.'CFC')then  ! Skip for CFC.
+              continue
+            else
+              found=.true.
+              goto 43
+            endif
+          endif
+        enddo
+
+C Loop through zones and also check for references by visual or solar obstructions.
+        do 42 iz=1,ncomp
+          if(iobs(iz).eq.2)then   ! Also check obstructions.
+            if(nbobs(iz).gt.0)then
+              do nbo=1,nbobs(iz)
+                lnsmlcn=lnblnk(BLOCKMAT(iz,nbo))
+                if(mlcname(ic)(1:lm).eq.BLOCKMAT(iz,nbo)(1:lnsmlcn))then
+                  found=.true.
+                  goto 43
+                endif
+              enddo
+            endif
+          endif
+          if(nbvis(iz).gt.0)then  ! And visual entities.
+            do nbv = 1,nbvis(iz)
+              lnsmlcn=lnblnk(VISMAT(iz,nbv))
+              if(mlcname(ic)(1:lm).eq.VISMAT(iz,nbv)(1:lnsmlcn))then
+                found=.true.
+                goto 43
+              endif
+            enddo
+          endif
+  42    continue
+
+  43    if(found)then
+C          write(6,*) 'Found reference to MLC ',mlcname(ic)
+          DO 45 il=1,LAYERS(ic)
+            usedmlc(ic)=.true.
+            iusedmlc=iusedmlc+1
+            matarrayindex=IPRMAT(IC,IL)   ! which materials array index
+
+C And if matarrayindex is zero or matopaq g or h then resetn dbcon dbden dbsht.
+            if(matarrayindex.gt.0)then
+              if(usedmat(matarrayindex))then
+                continue
+              else
+                usedmat(matarrayindex)=.true.
+                iusedmat=iusedmat+1
+C                write(6,*) 'Found reference to Mat ',
+C     &            matname(matarrayindex),matarrayindex
+              endif
+            endif
+ 45       continue
+        endif
+  40  continue
+
+      return
+      end

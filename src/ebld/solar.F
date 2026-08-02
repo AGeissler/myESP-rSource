@@ -106,7 +106,7 @@ C any flux  absorptions within the contiguous TMC.
           IF(ITMC2.EQ.0)THEN
             write(outs,'(a,i3,a,i4,5a)')' Zone',ICPLE,' surface',
      &        ISCPLE,'(',zname(ICPLE),':',
-     &        sname(ICPLE,ISCPLE)(1:lnsname(ICPLE,ISCPLE)),
+     &        sname(ICPLE,ISCPLE)(1:lnblnk(sname(ICPLE,ISCPLE))),
      &        ') should be a TMC'
             call edisp(iuout,outs)
             call edisp(iuout,
@@ -1188,7 +1188,7 @@ C Switch for zone name output.
 C Switch for surface name output.
           if (ReportBoolConfig ("use_surfacenames")) then
             write (cSurf_Chars,'(A)')
-     &         sname(icomp,I)(1:lnsname(icomp,I))
+     &         sname(icomp,I)(1:lnblnk(sname(icomp,I)))
           else
             if ( I .gt. 9 ) then  ! pad surface index to 'XX'
               write (cSurf_Chars,'(A,I2)') 'surface_',I
@@ -1881,7 +1881,7 @@ C    georead() (egeometry.F line 1750 ff.)/ egomin() (egeometry.F line 594)? >>
 C Switch for surface name output here.
 c            if (ReportBoolConfig ("use_surfacenames")) then
 c              write (cSurf_Chars,'(A)')
-c      &          sname(iZone,iSurface)(1:lnsname(icomp,isurf))
+c      &          sname(iZone,iSurface)(1:lnblnk(sname(icomp,isurf)))
 c            else
 c              if ( iSurface .gt. 9 ) then   ! pad surface index to 'XX'
 c                write (cSurf_Chars,'(A,I2)') 'surface_',isurf
@@ -3720,6 +3720,7 @@ C     &      ZN(1:lnz),' >/dev/null'
      &        'modish',fs,'Modish.pm ish -mode text -file ', 
      &        LCFGF(1:lnblnk(LCFGF)),' -day',ID,IM,' -zone ',
      &        ZN(1:lnz),' >/dev/null'
+C            write(6,*) doit(1:lnblnk(doit))
             call runit(doit,'-')
           else
             continue

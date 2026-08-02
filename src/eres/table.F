@@ -631,7 +631,7 @@ C the generation of the heading of text file.
               endif
 
 C For writing to file also fill the 800 char buffer.
-              if(KE4.le.800)then
+              if(KE4.lt.800)then
                 if (ixopen.eq.1) then
                   call SDELIM(TABLABEL(IL),t28,'N',IW)
                   if(delim.eq.'-'.or.delim.eq.'S')then
@@ -951,8 +951,10 @@ C Markdown flag.
       real overallm2,zonem2frac(MCOM)  ! total of all the selected zones base areas
 
 C User preferences for Monthly table.
-      integer imshtr,imtcas,imtaiv,imtctl,imtsol       ! monthly topic inclusion
-      common/monthlyoptions/imshtr,imtcas,imtaiv,imtctl,imtsol
+      integer imshtr,imtcas,imtaiv,imtctl,imtsol,imunit       ! monthly topic inclusion
+      common/monthlyoptions/imshtr,imtcas,imtaiv,imtctl,imtsol,imunit
+      common/recov03/recovery_active
+      logical recovery_active
       
       integer imshtrl,imtcasl,imtaivl,imtctll,imtsoll,imdmdsl  ! topic column text lengths
       character ZPER*19,SHTR*45,TCAS*37,TAIV*26,TCTL*18,TSOL*18
@@ -1000,7 +1002,11 @@ C Call the menu of choices (this also sets some default options).
         else
           write(prompt,'(a)')' Output being directed to file. ' 
         endif
-        call usrmsg(prompt,'Scanning for range of values...','-')
+        if(recovery_active)then
+          continue
+        else
+          call usrmsg(prompt,'Scanning for range of values...','-')
+        endif
       else
         write(prompt,'(3a)') 'Scanning for ',
      &    SLABEL(1)(1:LNSLABEL(1)),'...'
@@ -1009,6 +1015,9 @@ C Call the menu of choices (this also sets some default options).
       endif
 
       IR=IGETNO(1,4)   ! Recover 100Wh vs kWh from IGETNO().
+      if(recovery_active)then
+        if(IR.eq.0) IR=imunit  ! If still zero use from PIF file.
+      endif
       if(markdown)then ! Initial columns.
         imzperl=19
         ZPER(1)='------------- -----'
@@ -2459,7 +2468,7 @@ C          write(6,'(a)') outsl(1:lnblnk(outsl))
       endif
       call edisp(itru,' ')
       if(ixopen.eq.1)then
-        call usrmsg(prompt,'Scanning for range of values...done.','-')
+        call usrmsg(prompt,' ','-')
       else
         call usrmsg('  ','  ','-')
       endif

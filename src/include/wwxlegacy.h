@@ -78,7 +78,7 @@ typedef struct _box{
 void	winlod_(char* name,long int* itime,long int* lix,long int* liy,int len);
 void	winlodpart_(char* name,long int* lreqx,long int* lreqy,long int* lreqwidth,
 	long int* lreqheight,long int* lix,long int* liy,long int* boxulx,
-	long int* boxuly,long int* boxlrx,long int* boxlry,int len);
+	long int* boxuly,long int* boxlrx,long int* boxlry,long int* lc,int len);
 void	winfnt_(long int* n);
 void	charsusingfnt_(long int* n, long int* cw, long int* nlines);
 int	xboxinside(box b,int x,int y);

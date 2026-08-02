@@ -119,6 +119,7 @@ C ITEMS is menu for site/context items.
       integer icreport  ! to signal that calendar has been updated.
       integer IDOL,IDAYNUM,IMTHNUM,IDWKNUM,IDTYY  ! for correcting calendar
       integer nitms,INO ! max items and current menu item
+      logical MY        ! signal not-multi-year weather
 
       helpinsub='context'  ! set for subroutine
 
@@ -150,33 +151,27 @@ C      WRITE(SALT(8),53)skyview,groundview,buildingview
       SEXP=SALT(siteexposureindex)
 
 C MODISH: initial assignments for reflections from obstructions.
-      modishindex=1
       SALTM(1)= '1) compute reflections from obs'
       SALTM(2)= '1) do not compute refl.from obs'
-      SALTM(3)= '                               '
-      SALTM(4)= '2) shd.f.corr. + diffuse piping'
-      SALTM(5)= '2) shd.f.cor+dif.pip.+grnd refl'
-      SALTM(6)= '2) completely recalculate s.f. '
-      SALTM(7)= '2) compl.recalc. + diff. piping'
-      SALTM(8)= '2) put dir. refl. in diff. s.f.'
-      SALTM(9)= '                               '
-      SALTM(10)='                               '
-      SALTM(11)='3) use Perez sky, from weather '
-      SALTM(12)='3) use CIE sky, generic        '
-      SALTM(13)='3) use Perez sky, generic      '
-      SALTM(14)='4) suppose 1 diffuse bounce    '
-      SALTM(15)='4) suppose 2 diffuse bounces   '
-      SALTM(16)='4) suppose 3 diffuse bounces   '
-      SALTM(17)='5) use 1 direction vector      '
-      SALTM(18)='5) use 5 direction vectors     '
-      SALTM(19)='5) use 17 direction vectors    '
-      SALTM(20)='6) resolution:2x2 diffuse & dir'
-      SALTM(21)='6) resolution:2x2 dif,20x20 dir'
-      SALTM(22)='6) resolution:1x1 dif,10x10 dir'
-      SALTM(23)='                               '
-      SALTM(24)='7) specify zons&surfs(optional)'
-      SALTM(25)='7) include all zones &all surfs'
-      SALTM(26)='8) if monthly: process now.    ' 
+      SALTM(3)= '2) shd.f.corr. + diffuse piping'
+      SALTM(4)= '2) shd.f.cor+dif.pip.+grnd refl'
+      SALTM(5)= '2) completely recalculate s.f. '
+      SALTM(6)= '2) compl.recalc. + diff. piping'
+      SALTM(7)= '2) put dir. refl. in diff. s.f.'
+      SALTM(8)= '3) use Perez sky, from weather '
+      SALTM(9)= '3) use CIE sky, generic        '
+      SALTM(10)='3) use Perez sky, generic      '
+      SALTM(11)='4) suppose 1 diffuse bounce    '
+      SALTM(12)='4) suppose 2 diffuse bounces   '
+      SALTM(13)='4) suppose 3 diffuse bounces   '
+      SALTM(14)='5) use 5 direction vectors     '
+      SALTM(15)='5) use 17 direction vectors    '
+      SALTM(16)='6) resolution:2x2 diffuse & dir'
+      SALTM(17)='6) resolution:2x2 dif,20x20 dir'
+      SALTM(18)='6) resolution:1x1 dif,10x10 dir'
+      SALTM(19)='7) specify zons&surfs(optional)'
+      SALTM(20)='7) include all zones &all surfs'
+      SALTM(21)='8) if monthly: process now.    '
       if(modishindex.ne.0)then
         SEXPM=SALTM(modishindex)
       else
@@ -675,7 +670,8 @@ C Ground topology.
 C User defined or local ground temperature profiles. Sort available weather
 C first, offer choices and then report on the temperatures.
       ELSEIF(INO.EQ.14)THEN
-        call CLMOPB(0,IER)
+        MY=.false.
+        call CLMOPB(MY,0,IER)
         call CLMRDBMD(IER)
         helptopic='context_ground_temps'
         call gethelptext(helpinsub,helptopic,nbhelp)
@@ -854,7 +850,37 @@ C msc folder file and then edit.
      &    cfgroot(1:lr),'.ipv'
         if(lipvdatf(1:7).eq.'UNKNOWN'.or.
      &     lipvdatf(1:2).eq.'  ')then
-          call ipvdat('i')     ! fill with defaults
+
+C Offer choice of a classic IPV or user define scheme.
+          CALL EASKMBOX(
+     &      'Performance assessment and data mining directives.',
+     &      'Options:','setup a classic IPV','bespoke user directives',
+     &      'cancel',' ',' ',' ',' ',' ',IW,nbhelp)
+          if(iw.eq.3)then
+            goto 3
+          elseif(iw.eq.2)then 
+            call ipvinitialq('d',iresponse)
+            if(iresponse.gt.2)then
+              CALL EASKOK('Several performance issues will require',
+     &          'preparation do you want to continue? ',OK,nbhelp)
+              if(ok)then
+                call ipvdat('i')             ! fill with defaults
+              else
+                goto 3
+              endif
+            else
+              call ipvdat('i')               ! fill with defaults
+            endif
+          elseif(iw.eq.1)then
+            call ipvinitialq('-',iresponse)  ! check and ask initial questions.
+            if(iresponse.eq.-1)then
+              goto 3                         ! user declined to create
+            elseif(iresponse.eq.0)then
+              call usrmsg('Please confirm the initial setup details.',
+     &          'and invoke seasonal scaling option.','P')
+              call ipvdat('-')               ! enter the menu
+            endif
+          endif
           ipvaction='ipv'
  142      CALL EASKS(ltmp,' ','IPV description file?',
      &      72,'xxx.ipv','IPV file',IER,nbhelp)
@@ -869,7 +895,8 @@ C msc folder file and then edit.
               goto 3
             else
               ipvact='ipv'
-              call ipvdat('i')
+C              call ipvdat('i')   ! ??
+              call ipvdat('i')   ! ??
               call mkipvdat(ifil+1,lipvdatf,ipvact)
               call ipvdat('-')
               CALL EMKCFG('s',IER) ! remember this
@@ -989,6 +1016,7 @@ C External hc correlations:
         call edisp(iuout,msg)
         helptopic='toggle_ext_hc_methods'
         call gethelptext(helpinsub,helptopic,nbhelp)
+
         HCALT(1)='the default ESP-r method'
         HCALT(2)='MoWiTT low rise hc '
         HCALT(3)='Aya Hagishima hc '
@@ -2914,6 +2942,11 @@ C If user requested initial calendar. Setup initial 4 day types (wk sat sun holi
           nbcaldays(8)=0; calentag(8)='-'; calendayname(8)='-'
           nbcaldays(9)=0; calentag(9)='-'; calendayname(9)='-'
           nbcaldays(10)=0; calentag(10)='-'; calendayname(10)='-'
+          nbcaldays(11)=0; calentag(11)='-'; calendayname(11)='-'
+          nbcaldays(12)=0; calentag(12)='-'; calendayname(12)='-'
+          nbcaldays(13)=0; calentag(13)='-'; calendayname(13)='-'
+          nbcaldays(14)=0; calentag(14)='-'; calendayname(14)='-'
+          nbcaldays(15)=0; calentag(15)='-'; calendayname(15)='-'
           do 42 ijd=1,365
 
 C Assume 1 Jan is a holiday (users can change this later).

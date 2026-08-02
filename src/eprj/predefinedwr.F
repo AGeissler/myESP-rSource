@@ -314,9 +314,7 @@ C Read date stamp << not yet used >>.
         CALL EGETW(LOUTSTR,K,WORD,'W','assoc category',IER)
         write(itemcat(numitems),'(a)') WORD(1:lnblnk(WORD))
         continue  ! look for more key words
-      elseif(WORD(1:9).EQ.'*includes')then
-
-C Work-in-progress.
+      elseif(WORD(1:9).EQ.'*includes')then   ! Work-in-progress.
         continue  ! look for more key words
       elseif(WORD(1:8).EQ.'*sourced')then
        continue  ! look for more key words
@@ -346,18 +344,14 @@ C Work-in-progress.
 C visp has two additional lines of data.
         CALL LSTRIPC(IFA,LOUTSTR,99,ND,0,'visp lines',IER)
         CALL LSTRIPC(IFA,LOUTSTR,99,ND,0,'visp lines',IER)
+        continue  ! look for more key words.
+      elseif(WORD(1:5).EQ.'*vis3')then    !  Work-in-progress.
         continue  ! look for more key words
-      elseif(WORD(1:5).EQ.'*vis3')then
-
-C Work-in-progress.
+      elseif(WORD(1:4).EQ.'*vis')then     !  Work-in-progress.
         continue  ! look for more key words
-      elseif(WORD(1:4).EQ.'*vis')then
-
-C Work-in-progress.
+      elseif(WORD(1:8).EQ.'*vobject')then !  Work-in-progress.
         continue  ! look for more key words
-      elseif(WORD(1:8).EQ.'*vobject')then
-
-C Work-in-progress.
+      elseif(WORD(1:4).EQ.'*obs')then     !  Work-in-progress.
         continue  ! look for more key words
       else
         write(outs,'(3a)') 'Unknown tag ',WORD,' continuing...'
@@ -380,7 +374,7 @@ C If there were no errors in reading header line then read another.
 C ******************** PREDEFEMBED ********************
 C Read tag-data version of predefined objects file and merge
 C these data structures into the zone (ICOMP).
-C Currently entity is found in predefined.h.
+C Currently entity data structures are limited by predefined.h.
 
       SUBROUTINE PREDEFEMBED(IFA,LASCI,ICOMP,DX,DY,DZ,DA,name,prec,IER)
       IMPLICIT NONE
@@ -408,12 +402,17 @@ C Currently entity is found in predefined.h.
       COMMON/C24/IZSTOCN(MCOM,MS)
       integer ncomp,ncon
       COMMON/C1/NCOMP,NCON
+      integer ic1,ie1,ict,ic2,ie2
+      COMMON/C3/IC1(MCON),IE1(MCON),ICT(MCON),IC2(MCON),IE2(MCON)
 
       character OUTS*124,loutstr*248,outstr*144
       character WORD*24,phrase*32
+      character sbound_ty*12,sbound_c2*6,sbound_e2*6
       logical CONT,foundit
       logical iszone    ! set true if working with mzitem
       logical close
+      logical haveuse   ! true if bounding surfaces have USE attributes.
+      logical haveoth   ! true if bounding surfaces bound NOT UNKNOWN.
       integer loop,i,j,ibe,ix,ixx,nbv   ! for looping
       real verpre     ! version of file
 
@@ -422,22 +421,17 @@ C Currently entity is found in predefined.h.
       real A,CA,PI,SA,VAL,VAL1,VX,VY,VZ,YR
       real X1,XR,Y1,XX1,YY1,XXX,YYY
       integer icon,iflag,istat,iv,k,nd
-      integer ibvo,nbvo
+      integer ibvo,nbvo,nbo
 
 C Additional data structures to consider:
 C character predef_notes*72  ! up to 6 lines of documentation (for popup?)
 C dimension predef_notes(6)
-C variables signalling shading oiaplic and insolation of interest
-      integer oiaplic(2)
 
       integer icomp_base,ioffset,icomp_match
 
 C Local variables for visible entities.
-      real VOP,XOVT,YOVT,ZOVT,DXOVT,DYOVT,DZOVT  ! for origin and delta
-      real BANGOVT(3)
-      real xvpt,yvpt,zvpt
-      dimension xvpt(8),yvpt(8),zvpt(8)
-      character vname*12,vmat*12,vtype*4
+      real VOP  ! for origin and delta
+      character tother*12
 
 C variables signalling linear thermal bridges are of interest
 C variables signalling viewfactors are of interest?
@@ -460,8 +454,10 @@ C Open the file.
 
 C Clear variables.
       call clearobjcommons()
-      CONT=.TRUE.  ! assume reads are ok
-      iszone=.false.  ! assume not a multi-zone item
+      CONT=.TRUE.      ! assume reads are ok
+      iszone=.false.   ! assume not a multi-zone item
+      haveuse=.false.  ! assume no USE attributes
+      haveoth=.false.  ! assume only UNKNOWN boundary
 
 C Remember how many visual entities already exist
 C in the zone (so we known which added ones to rotate.
@@ -559,9 +555,22 @@ C Located the object requested.
         continue  ! look for more key words
       elseif(WORD(1:9).EQ.'*includes')then
 
-C Check topics included. << work to be done >>
+C Check topics included.
         if(foundit)then
-
+          CALL EGETW(LOUTSTR,K,WORD,'W','USE included',IER)
+          if(WORD(1:3).eq.'USE')then
+            haveuse=.true.
+          elseif(WORD(1:5).eq.'OTHER')then
+            haveoth=.true.
+          endif
+          if(ND.gt.2)then
+            CALL EGETW(LOUTSTR,K,WORD,'W','USE included',IER)
+            if(WORD(1:3).eq.'USE')then
+              haveuse=.true.
+            elseif(WORD(1:5).eq.'OTHER')then
+              haveoth=.true.
+            endif
+          endif
         endif
         continue  ! look for more key words
       elseif(WORD(1:8).EQ.'*sourced')then
@@ -570,12 +579,23 @@ C Check topics included. << work to be done >>
 
 C Read origin and add transforms (will need this to later
 C apply rotation about lower left corner.
-        CALL EGETWR(LOUTSTR,K,VAL,0.0,999.,'W','org X',IER)
+        CALL EGETWR(LOUTSTR,K,VAL,-99.0,999.,'W','org X',IER)
         if(foundit)objorg(1)=VAL+DX
-        CALL EGETWR(LOUTSTR,K,VAL,0.0,999.,'W','org Y',IER)
+        CALL EGETWR(LOUTSTR,K,VAL,-99.0,999.,'W','org Y',IER)
         if(foundit)objorg(2)=VAL+DY
-        CALL EGETWR(LOUTSTR,K,VAL,0.0,999.,'W','org Z',IER)
+        CALL EGETWR(LOUTSTR,K,VAL,-99.0,999.,'W','org Z',IER)
         if(foundit)objorg(3)=VAL+DZ
+        IF(IER.NE.0) CONT=.FALSE.
+        continue  ! look for more key words
+      elseif(WORD(1:7).EQ.'*offset')then
+
+C Read offset (optional).
+        CALL EGETWR(LOUTSTR,K,VAL,-99.0,999.,'W','offset X',IER)
+        if(foundit)objoffset(1)=VAL
+        CALL EGETWR(LOUTSTR,K,VAL,-99.0,999.,'W','offset Y',IER)
+        if(foundit)objoffset(2)=VAL
+        CALL EGETWR(LOUTSTR,K,VAL,-99.0,999.,'W','offset Z',IER)
+        if(foundit)objoffset(3)=VAL
         IF(IER.NE.0) CONT=.FALSE.
         continue  ! look for more key words
       elseif(WORD(1:13).EQ.'*bounding_box')then
@@ -584,14 +604,14 @@ C Bounding box of the object.
         continue  ! look for more key words
       elseif(WORD(1:7).EQ.'*vertex')then
 
-C Remember vertices associated with mass and add transform.
+C Remember associated vertices and add transform.
         if(foundit)then
           nbvertmass=nbvertmass+1
-          CALL EGETWR(LOUTSTR,K,VAL,0.0,999.,'W','mass X',IER)
+          CALL EGETWR(LOUTSTR,K,VAL,-99.0,999.,'W','mass X',IER)
           vertmass(nbvertmass,1)=VAL+DX
-          CALL EGETWR(LOUTSTR,K,VAL,0.0,999.,'W','mass Y',IER)
+          CALL EGETWR(LOUTSTR,K,VAL,-99.0,999.,'W','mass Y',IER)
           vertmass(nbvertmass,2)=VAL+DY
-          CALL EGETWR(LOUTSTR,K,VAL,0.0,999.,'W','mass Z',IER)
+          CALL EGETWR(LOUTSTR,K,VAL,-99.0,999.,'W','mass Z',IER)
           vertmass(nbvertmass,3)=VAL+DZ
           IF(IER.NE.0) CONT=.FALSE.
         endif
@@ -643,6 +663,12 @@ C Remember boundary surface definitions. Apply prec to surface names.
           WORD='            ' 
           CALL EGETW(LOUTSTR,K,WORD,'W','surf name',IER)
           write(bsurname(nbbound),'(2a)') prec,WORD(1:11)
+          if(haveuse)then
+            CALL EGETW(LOUTSTR,K,WORD,'W','surf USE 1',IER)
+            write(bsuruse(nbbound,1),'(a)') WORD(1:lnblnk(WORD))
+            CALL EGETW(LOUTSTR,K,WORD,'W','surf USE 2',IER)
+            write(bsuruse(nbbound,2),'(a)') WORD(1:lnblnk(WORD))
+          endif
           CALL EGETP(LOUTSTR,K,phrase,'W','surf mat',IER)
           write(bsurmat(nbbound),'(a)') phrase(1:lnblnk(phrase))
           CALL EGETW(LOUTSTR,K,WORD,'W','surf optics',IER)
@@ -650,6 +676,14 @@ C Remember boundary surface definitions. Apply prec to surface names.
           if(iszone)then
             CALL EGETW(LOUTSTR,K,WORD,'W','other zone name',IER)
             CALL EGETW(LOUTSTR,K,WORD,'W','other surf name',IER)
+          endif
+          if(haveoth)then
+            CALL EGETW(LOUTSTR,K,WORD,'W','surf other',IER)
+            write(bsuroth(nbbound),'(a)') WORD(1:lnblnk(WORD))
+            CALL EGETWI(LOUTSTR,K,iv,-9,99,'W','ioth 1',IER)
+            boundoth(nbbound,1)=iv
+            CALL EGETWI(LOUTSTR,K,iv,-9,99,'W','ioth 2',IER)
+            boundoth(nbbound,2)=iv
           endif
           CALL EGETWI(LOUTSTR,K,iv,3,MV,'F','nb assoc v',IER)
           nbboundv(nbbound)=iv
@@ -681,10 +715,8 @@ C << data structure >>
 
 C Prepend prec to name and update the compound object reference.
           write(VISNAME(icomp,nbv),'(2a)') prec,WORD(1:11)
-          LNVISNAME(icomp,nbv)=lnblnk(VISNAME(icomp,nbv))
           CALL EGETP(LOUTSTR,K,phrase,'W','vis mat name',IFLAG)
           write(VISMAT(icomp,nbv),'(a)') phrase(1:lnblnk(phrase))
-          LNVISMAT(icomp,nbv)=lnblnk(VISMAT(icomp,nbv))
           VISTYP(icomp,nbv)='visp'
           IF(IER.NE.0) CONT=.FALSE.
 
@@ -787,12 +819,10 @@ C << data structure >>
 
 C Prepend prec to the name.
           write(VISNAME(icomp,nbv),'(2a)') prec,WORD(1:11)
-          LNVISNAME(icomp,nbv)=lnblnk(VISNAME(icomp,nbv))
 
 C The name of the construction might contain spaces so use EGETP.
           CALL EGETP(LOUTSTR,K,phrase,'W','vis mat name',IFLAG)
           write(VISMAT(icomp,nbv),'(a)') phrase(1:lnblnk(phrase))
-          LNVISMAT(icomp,nbv)=lnblnk(VISMAT(icomp,nbv))
           VISTYP(icomp,nbv)='vis3'
           IF(IER.NE.0) CONT=.FALSE.
         endif
@@ -832,13 +862,55 @@ C << data structure >>
 
 C Prepend prec to the name.
           write(VISNAME(icomp,nbv),'(2a)') prec,WORD(1:11)
-          LNVISNAME(icomp,nbv)=lnblnk(VISNAME(icomp,nbv))
 
 C The name of the visual material might contain spaces so use EGETP.
           CALL EGETP(LOUTSTR,K,phrase,'W','vis mat name',IFLAG)
           write(VISMAT(icomp,nbv),'(a)') phrase(1:lnblnk(phrase))
-          LNVISMAT(icomp,nbv)=lnblnk(VISMAT(icomp,nbv))
           VISTYP(icomp,nbv)='vis '
+          IF(IER.NE.0) CONT=.FALSE.
+        endif
+        continue  ! look for more key words
+
+C Simple obstruction entity with only one rotation.
+      elseif(WORD(1:4).EQ.'*obs')then
+        if(foundit)then
+          NOX(icomp)=20   ! Instanciate usual grid density.
+          NOZ(icomp)=20
+          if(iobs(icomp).eq.0) iobs(icomp)=2
+          nbobs(icomp)=nbobs(icomp)+1
+          nbo=nbobs(icomp)
+          CALL EGETWR(LOUTSTR,K,VX,-999.,998.,'W','obs X org',IER)
+          CALL EGETWR(LOUTSTR,K,VY,-999.,998.,'W','obs Y org',IER)
+          CALL EGETWR(LOUTSTR,K,VZ, -99., 99.,'W','obs Z org',IER)
+          xob(icomp,nbo)=VX
+          yob(icomp,nbo)=VY
+          zob(icomp,nbo)=VZ
+
+          CALL EGETWR(LOUTSTR,K,VX,0.,150.,'W','obj X dis',IER)
+          CALL EGETWR(LOUTSTR,K,VY,0.,150.,'W','obj Y dis',IER)
+          CALL EGETWR(LOUTSTR,K,VZ,0.,150.,'W','obj Z dis',IER)
+          DXOB(icomp,nbo)=VX
+          DYOB(icomp,nbo)=VY
+          DZOB(icomp,nbo)=VZ
+
+          CALL EGETWR(LOUTSTR,K,VX,-359.,359.,'W','obj rot ang a',IER)
+          bangob(icomp,nbo,1)=VX
+          bangob(icomp,nbo,2)=0.0
+          bangob(icomp,nbo,3)=0.0
+          CALL EGETWR(LOUTSTR,K,VX,0.,1.,'W','obj opacity',IER)
+          OPOB(icomp,nbo)=VX
+          if(iszone)then
+            CALL EGETW(LOUTSTR,K,WORD,'W','obs blk zone name',IFLAG)
+          endif
+          WORD='            ' 
+          CALL EGETW(LOUTSTR,K,WORD,'W','obs blk name',IFLAG)
+
+C Remember the name.
+          write(BLOCKNAME(icomp,nbo),'(a)') WORD(1:lnblnk(WORD))
+
+C The name of the material might contain spaces so use EGETP.
+          CALL EGETP(LOUTSTR,K,phrase,'W','obj mat name',IFLAG)
+          write(BLOCKMAT(icomp,nbo),'(a)') phrase(1:lnblnk(phrase))
           IF(IER.NE.0) CONT=.FALSE.
         endif
         continue  ! look for more key words
@@ -860,10 +932,8 @@ C limit if geometry.h changes.
           CALL EGETW(LOUTSTR,K,WORD,'W','vis obj name',IFLAG)
 
           write(VOBJNAME(icomp,nbvo),'(2a)') prec,WORD(1:11) ! adjust name
-          LNVOBJNAME(icomp,nbvo)=lnblnk(VOBJNAME(icomp,nbvo))
           CALL EGETP(LOUTSTR,K,phrase,'W','vis obj desc',IFLAG)
           write(VOBJDESC(icomp,nbvo),'(a)') phrase(1:lnblnk(phrase))
-          LNVOBJDESC(icomp,nbvo)=lnblnk(VOBJDESC(icomp,nbvo))
           CALL EGETWI(LOUTSTR,K,iv,1,MOMVB,'F','nb vis entities',
      &      IER)
           NBVOBJLIST(icomp,nbvo)=iv
@@ -873,15 +943,11 @@ C limit if geometry.h changes.
 
 C Prepend prec to the name.
             write(VOBJLIST(icomp,nbvo,ibvo),'(2a)') prec,WORD(1:11)
-            LNVOBJLIST(icomp,nbvo,ibvo)=
-     &        lnblnk(VOBJLIST(icomp,nbvo,ibvo))
           enddo  ! ibvo
 C Debug.
 c          write(6,*) 'vis obj ',icomp,nbvo,iv,VOBJNAME(icomp,nbvo),
-c     &      LNVOBJNAME(icomp,nbvo),VOBJDESC(icomp,nbvo),
-c     &      LNVOBJDESC(icomp,nbvo),
-c     &      VOBJLIST(icomp,nbvo,1),LNVOBJLIST(icomp,nbvo,1),
-c     &      VOBJLIST(icomp,nbvo,2),LNVOBJLIST(icomp,nbvo,2)
+c     &      VOBJDESC(icomp,nbvo),
+c     &      VOBJLIST(icomp,nbvo,1),VOBJLIST(icomp,nbvo,2)
         endif
         continue  ! look for more key words
       else
@@ -1009,26 +1075,79 @@ C nsur is still zero set icon without looking at izstocn.
           NSUR=NSUR+1
           NZSUR(ICOMP)=NSUR
           NVER(NSUR)=nbboundv(ix)
+          isznver(ICOMP,nsur)=nbboundv(ix)
           do J=1,nbboundv(ix)
             JVN(NSUR,J)=boundjvn(ix,J)
+            iszjvn(icomp,nsur,j)=boundjvn(ix,J)
           enddo
           SNAME(ICOMP,NSUR)=bsurname(ix)
           SOTF(ICOMP,NSUR)=bsuropt(ix)
           SMLCN(ICOMP,NSUR)=bsurmat(ix)
           SVFC(ICOMP,NSUR)='UNKN'
           SPARENT(ICOMP,NSUR)='-'
-          SUSE(ICOMP,nsur,1)='WALL'
-          SUSE(ICOMP,nsur,2)='- '
-          SOTHER(ICOMP,NSUR,1)='UNKNOWN'
-          SOTHER(ICOMP,NSUR,2)='0'
-          SOTHER(ICOMP,NSUR,3)='0'
+          if(haveuse)then
+            SUSE(ICOMP,nsur,1)=bsuruse(ix,1)
+            SUSE(ICOMP,nsur,2)=bsuruse(ix,2)
+          else
+            SUSE(ICOMP,nsur,1)='-'
+            SUSE(ICOMP,nsur,2)='- '
+          endif
 
-C Update the connection list. Move all others up and then insert with
-C moderate moderate trace (3rd parameter in addedsurf).
+C Depending on bsuroth() fill in zboundarytype so can later set
+C ict ic2 ie2.
+          write(tother,'(a)') bsuroth(ix)(1:lnblnk(bsuroth(ix)))
+          if(tother(1:7).eq.'UNKNOWN')then
+            zboundarytype(icomp,nsur,1)=-1
+            zboundarytype(icomp,nsur,2)=0
+            zboundarytype(icomp,nsur,3)=0
+          elseif(tother(1:8).eq.'EXTERIOR')then
+            zboundarytype(icomp,nsur,1)=0
+            zboundarytype(icomp,nsur,2)=0
+            zboundarytype(icomp,nsur,3)=0
+          elseif(tother(1:9).eq.'ADIABATIC')then
+            zboundarytype(icomp,nsur,1)=5
+            zboundarytype(icomp,nsur,2)=0
+            zboundarytype(icomp,nsur,3)=0
+          elseif(tother(1:7).eq.'SIMILAR')then
+            zboundarytype(icomp,nsur,1)=1
+            zboundarytype(icomp,nsur,2)=boundoth(ix,1)
+            zboundarytype(icomp,nsur,3)=boundoth(ix,2)
+          elseif(tother(1:8).eq.'CONSTANT')then
+            zboundarytype(icomp,nsur,1)=2
+            zboundarytype(icomp,nsur,2)=boundoth(ix,1)
+            zboundarytype(icomp,nsur,3)=boundoth(ix,2)
+          elseif(tother(1:8).eq.'BASESIMP')then
+            zboundarytype(icomp,nsur,1)=6
+            zboundarytype(icomp,nsur,2)=boundoth(ix,1)
+            zboundarytype(icomp,nsur,3)=boundoth(ix,2)
+          elseif(tother(1:6).eq.'GROUND')then
+            zboundarytype(icomp,nsur,1)=4
+            zboundarytype(icomp,nsur,2)=boundoth(ix,1)
+            zboundarytype(icomp,nsur,3)=boundoth(ix,2)
+          elseif(tother(1:9).eq.'IDENT_CEN')then
+            zboundarytype(icomp,nsur,1)=7
+            zboundarytype(icomp,nsur,2)=boundoth(ix,1)
+            zboundarytype(icomp,nsur,3)=boundoth(ix,2)
+          elseif(tother(1:7).eq.'ANOTHER')then   ! Reset existing partitions to UNKNOWN.
+            zboundarytype(icomp,nsur,1)=-1
+            zboundarytype(icomp,nsur,2)=0
+            zboundarytype(icomp,nsur,3)=0
+          else                                   ! Fall through to UNKNOWN.
+            zboundarytype(icomp,nsur,1)=-1
+            zboundarytype(icomp,nsur,2)=0
+            zboundarytype(icomp,nsur,3)=0
+          endif
+
+C Update the connection list. Move all others up and then qpply the
+C boundary attributes.
           call addedsurf(icomp,icon,1,ier)
+          ICT(ICON)=zboundarytype(icomp,nsur,1)
+          IC2(ICON)=zboundarytype(icomp,nsur,2)
+          IE2(ICON)=zboundarytype(icomp,nsur,3)
+          call decode_zsbound(icomp,nsur,sbound_ty,sbound_c2,sbound_e2)
 
 C Save geometry file.
-          call geowrite(IFA,LGEOM(ICOMP),ICOMP,iuout,3,IER)
+          call geowrite2(IFA,LGEOM(ICOMP),ICOMP,iuout,3,IER)
         enddo  ! of ix
 
 C Add the mass surfaces to the zone. Use code similar to
@@ -1038,8 +1157,10 @@ C line 1044 of insert.F of the subroutine ADDSUR.
           NSUR=NSUR+1
           NZSUR(ICOMP)=NSUR
           NVER(NSUR)=nbmassv(ix)
+          isznver(ICOMP,nsur)=nbmassv(ix)
           do J=1,nbmassv(ix)
             JVN(NSUR,J)=masjvn(ix,J)
+            iszjvn(icomp,nsur,j)=masjvn(ix,J)
           enddo
           SNAME(ICOMP,NSUR)=msurname(ix)
           SOTF(ICOMP,NSUR)=msuropt(ix)
@@ -1050,21 +1171,22 @@ C line 1044 of insert.F of the subroutine ADDSUR.
           SUSE(ICOMP,nsur,2)='- '
 
 C Set each pair to be back-to-back.
-          SOTHER(ICOMP,NSUR,1)='ANOTHER'
+          zboundarytype(icomp,nsur,1)=3
           if (MOD(ix,2).eq.1) then
-            write(SOTHER(ICOMP,NSUR,2),'(i2.2)')INT(icomp)
-            write(SOTHER(ICOMP,NSUR,3),'(i3.3)')INT(NSUR+1)
+            zboundarytype(icomp,nsur,2)=icomp
+            zboundarytype(icomp,nsur,3)=nsur+1
           else
-            write(SOTHER(ICOMP,NSUR,2),'(i2.2)')INT(icomp)
-            write(SOTHER(ICOMP,NSUR,3),'(i3.3)')INT(NSUR-1)
+            zboundarytype(icomp,nsur,2)=icomp
+            zboundarytype(icomp,nsur,3)=nsur-1
           endif
+          call decode_zsbound(icomp,nsur,sbound_ty,sbound_c2,sbound_e2)
 
 C Update the connection list. Move all others up and then insert with
 C moderate moderate trace (3rd parameter in addedsurf).
           call addedsurf(icomp,icon,1,ier)
 
 C Save geometry file.
-          call geowrite(IFA,LGEOM(ICOMP),ICOMP,iuout,3,IER)
+          call geowrite2(IFA,LGEOM(ICOMP),ICOMP,iuout,3,IER)
         enddo  ! of ix
       endif
 
@@ -1097,20 +1219,22 @@ C common blocks.
       common/OUTIN/IUOUT,IUIN,IEOUT
 
       CHARACTER WORD*32
-      CHARACTER tmpvfc*4,tother*15,tother1*15
+      CHARACTER tmpvfc*4,tother*12
       character ZN*12,phrase*64,outs*124,outs2*124
       character loutstr*248
       character dstmp*24
-      character OPT*32 ! for use with optical attribute
-      integer lsn   ! length of currentfile
-      integer lno,lnow     ! length of optics name
-      integer lstrs,lstrd  ! length of mlc names
-      real VX,VY,VZ ! local values for XOB YOB ZOB
-      integer iflag ! for read error state
+      character OPT*24   ! for use with optical attribute
+      integer lsn        ! length of currentfile
+      integer lno,lnow   ! length of optics name
+      integer lstrs      ! length of mlc names
+      real VX,VY,VZ      ! local values for XOB YOB ZOB
+      integer iflag      ! for read error state
 
 C Size this to acommodate normal geometry file complexity.
-      character anysurname*12,anysurmat*32,anysuropt*32
+      character anysurname*12,anysurmat*32,anysuropt*24
       dimension anysurname(MS),anysurmat(MS),anysuropt(MS)
+      character anysuruse*12
+      dimension anysuruse(MS,2)
       integer nbanyv(MS)     ! for initial scan of edges
       integer anyjvn(MS,MV)  ! for the initial scan of edges
       real VAL1
@@ -1120,7 +1244,7 @@ C Size this to acommodate normal geometry file complexity.
       character OCTYPE*3
 
 C Set initial values.
-      IER=0; iflag=0; itrct=0
+      IER=0; iflag=0
       ZN=' '; phrase=' '
       NEDGE=0  ! counter for surfaces in the edge list, assume no surfaces
       NS=0     ! temporary array for counting surfaces.
@@ -1144,6 +1268,8 @@ C Clear predefined object variables.
         anysurname(loop)=' '
         anysurmat(loop)=' '
         anysuropt(loop)=' '
+        anysuruse(loop,1)='-'
+        anysuruse(loop,2)='-'
         nbanyv(loop)=0
       enddo
 
@@ -1289,9 +1415,12 @@ C Surface position can be ignored.
 C Parent name can be ignored.
           CALL EGETP(LOUTSTR,K,WORD,'W','surface parent',IER)
 
-C Surface usage - two tokens.  ?? any use in predefined ??
+C Surface usage - two tokens. Test later to see if any other than '-'.
           CALL EGETW(LOUTSTR,K,WORD,'W','surface use 1',IER)
+          write(anysuruse(NS,1),'(a)') WORD(1:lnblnk(WORD))
+
           CALL EGETW(LOUTSTR,K,WORD,'W','surface use 2',IER)
+          write(anysuruse(NS,2),'(a)') WORD(1:lnblnk(WORD))
 
 C Surface construction name, allow for spaces.
           CALL EGETP(LOUTSTR,K,WORD,'W','surface construction',IER)
@@ -1332,7 +1461,8 @@ C the name of the optical property. Otherwise leave SOFT as TRAN
 
 C Find the optical name within the common constructions file.
               if(ICF.gt.0)then
-                write(OPT,'(a)') mlcoptical(ICF)
+                write(OPT,'(a)') 
+     &            mlcoptical(ICF)(1:lnblnk(mlcoptical(ICF)))
               else
                 OPT='OPAQUE'
               endif
@@ -1357,7 +1487,7 @@ C with the construction (TRAN is an ok mis-match).
 
 C The matched optical property is saved to memory. The geometry file
 C would need to be written to record the matched property.
-              write(anysuropt(NS),'(a)') OPT
+              write(anysuropt(NS),'(a)') OPT(1:lnblnk(OPT))
             else
 
 C During initial scan of configuration file the databases will
@@ -1370,81 +1500,22 @@ C optical set.
 
 C Surface other side - three tokens. The last is index of surface within  
 C the zone. Depending on what we find, instantiate the edge list arrays.
-C Internal mass assumed to be two subsequent surfaces in this zone back-to-back
-          CALL EGETW(LOUTSTR,K,tother,'W','surface other 1',IER)
-          CALL EGETW(LOUTSTR,K,tother1,'W','surface other 2',IER)
-          CALL EGETWI(LOUTSTR,K,IEE,0,0,'-','conn other surf',IER)
+          CALL EGETW(LOUTSTR,K,tother,'W','surface other',IER)
+          CALL EGETWI(LOUTSTR,K,IEEZ,0,0,'-','surface other z',IER)
+          CALL EGETWI(LOUTSTR,K,IEES,0,0,'-','conn other surf',IER)
           if(tother(1:7).eq.'UNKNOWN'.or.
      &       tother(1:9).eq.'ADIABATIC'.or.
      &       tother(1:7).eq.'SIMILAR'.or.
+     &       tother(1:9).eq.'IDENT_CEN'.or.
+     &       tother(1:8).eq.'BASESIMP'.or.
      &       tother(1:8).eq.'CONSTANT')then
 
 C Ask the user what to do.
-             call edisp248(iuout,LOUTSTR,100)
-             CALL EASKMBOX('Options for the surface: ',' ',
-     &         'set as back-to-back mass','set as boundary surface',
-     &         'ignore it',' ',' ',' ',' ',' ',IW,nbhelp)
-             if (IW.eq.1) then
-               nbmass=nbmass+1
-               msurname(nbmass)=anysurname(NS)
-               msurmat(nbmass)=anysurmat(ns)
-               msuropt(nbmass)=anysuropt(ns)
-               nbmassv(nbmass)=nbanyv(ns)
-               do loop = 1,nbmassv(nbmass)
-                 masjvn(nbmass,loop)=anyjvn(ns,loop)
-               enddo
-             elseif (IW.eq.2) then
-               nbbound=nbbound+1
-               bsurname(nbbound)=anysurname(NS)
-               bsurmat(nbbound)=anysurmat(ns)
-               bsuropt(nbbound)=anysuropt(ns)
-               nbboundv(nbbound)=nbanyv(ns)
-               do loop = 1,nbboundv(nbbound)
-                 boundjvn(nbbound,loop)=anyjvn(ns,loop)
-               enddo
-             endif
-
-           elseif(tother(1:8).eq.'EXTERIOR')then
-             nbbound=nbbound+1
-             bsurname(nbbound)=anysurname(NS)
-             bsurmat(nbbound)=anysurmat(ns)
-             bsuropt(nbbound)=anysuropt(ns)
-             nbboundv(nbbound)=nbanyv(ns)
-             do loop = 1,nbboundv(nbbound)
-               boundjvn(nbbound,loop)=anyjvn(ns,loop)
-             enddo
-           elseif(tother(1:8).eq.'BASESIMP')then
-             continue  ! probably no meaning
-           elseif(tother(1:6).eq.'GROUND')then
-
-C Consider GROUND as boundary.
-             nbbound=nbbound+1
-             bsurname(nbbound)=anysurname(NS)
-             bsurmat(nbbound)=anysurmat(ns)
-             bsuropt(nbbound)=anysuropt(ns)
-             nbboundv(nbbound)=nbanyv(ns)
-             do loop = 1,nbboundv(nbbound)
-               boundjvn(nbbound,loop)=anyjvn(ns,loop)
-             enddo
-           elseif(tother(1:9).eq.'IDENT_CEN')then
-             continue  ! probably no meaning
-           elseif(tother(1:7).eq.'ANOTHER')then
-
-C Consider a back-to-back.
-             if(IEE.eq.NS+1.or.IEE.eq.NS-1)then
-               nbmass=nbmass+1
-               msurname(nbmass)=anysurname(NS)
-               msurmat(nbmass)=anysurmat(ns)
-               msuropt(nbmass)=anysuropt(ns)
-               nbmassv(nbmass)=nbanyv(ns)
-               do loop = 1,nbmassv(nbmass)
-                 masjvn(nbmass,loop)=anyjvn(ns,loop)
-               enddo
-             endif
-           else
-
-C Assume partition so setup sother arrays with this in mind.
-            if(IEE.eq.NS+1.or.IEE.eq.NS-1)then
+            call edisp248(iuout,LOUTSTR,130)
+            CALL EASKMBOX('Options for the surface: ',' ',
+     &        'set as back-to-back mass','set as boundary surface',
+     &        'ignore it',' ',' ',' ',' ',' ',IW,nbhelp)
+            if (IW.eq.1) then
               nbmass=nbmass+1
               msurname(nbmass)=anysurname(NS)
               msurmat(nbmass)=anysurmat(ns)
@@ -1452,6 +1523,99 @@ C Assume partition so setup sother arrays with this in mind.
               nbmassv(nbmass)=nbanyv(ns)
               do loop = 1,nbmassv(nbmass)
                 masjvn(nbmass,loop)=anyjvn(ns,loop)
+              enddo
+            elseif (IW.eq.2) then
+              nbbound=nbbound+1
+              bsurname(nbbound)=anysurname(NS)
+              bsurmat(nbbound)=anysurmat(ns)
+              bsuropt(nbbound)=anysuropt(ns)
+              nbboundv(nbbound)=nbanyv(ns)
+              bsuruse(nbbound,1)=anysuruse(NS,1)
+              bsuruse(nbbound,2)=anysuruse(NS,2)
+              bsuroth(nbbound)=tother
+              boundoth(nbbound,1)=IEEZ
+              boundoth(nbbound,2)=IEES
+              write(bsuroth(nbbound),'(a)') tother(1:lnblnk(tother))
+              do loop = 1,nbboundv(nbbound)
+                boundjvn(nbbound,loop)=anyjvn(ns,loop)
+              enddo
+            endif
+
+          elseif(tother(1:8).eq.'EXTERIOR')then
+            nbbound=nbbound+1
+            bsurname(nbbound)=anysurname(NS)
+            bsurmat(nbbound)=anysurmat(ns)
+            bsuropt(nbbound)=anysuropt(ns)
+            nbboundv(nbbound)=nbanyv(ns)
+            bsuruse(nbbound,1)=anysuruse(NS,1)
+            bsuruse(nbbound,2)=anysuruse(NS,2)
+            bsuroth(nbbound)=tother
+            boundoth(nbbound,1)=IEEZ
+            boundoth(nbbound,2)=IEES
+            write(bsuroth(nbbound),'(a)') tother(1:lnblnk(tother))
+            do loop = 1,nbboundv(nbbound)
+              boundjvn(nbbound,loop)=anyjvn(ns,loop)
+            enddo
+          elseif(tother(1:7).eq.'ANOTHER')then
+
+C Consider partitions or what might be back-to-back surfaces.
+            call edisp248(iuout,LOUTSTR,100)
+            CALL EASKMBOX('Options for the surface: ',' ',
+     &        'set as back-to-back mass','set as boundary surface',
+     &        'ignore it',' ',' ',' ',' ',' ',IW,nbhelp)
+            if (IW.eq.1) then
+              nbmass=nbmass+1
+              msurname(nbmass)=anysurname(NS)
+              msurmat(nbmass)=anysurmat(ns)
+              msuropt(nbmass)=anysuropt(ns)
+              nbmassv(nbmass)=nbanyv(ns)
+              do loop = 1,nbmassv(nbmass)
+                masjvn(nbmass,loop)=anyjvn(ns,loop)
+              enddo
+            elseif (IW.eq.2) then
+              nbbound=nbbound+1
+              bsurname(nbbound)=anysurname(NS)
+              bsurmat(nbbound)=anysurmat(ns)
+              bsuropt(nbbound)=anysuropt(ns)
+              nbboundv(nbbound)=nbanyv(ns)
+              bsuruse(nbbound,1)=anysuruse(NS,1)
+              bsuruse(nbbound,2)=anysuruse(NS,2)
+              bsuroth(nbbound)=tother
+              boundoth(nbbound,1)=IEEZ
+              boundoth(nbbound,2)=IEES
+              do loop = 1,nbboundv(nbbound)
+                boundjvn(nbbound,loop)=anyjvn(ns,loop)
+              enddo
+            endif
+          else
+
+C Unknown, ask the user.
+            call edisp248(iuout,LOUTSTR,100)
+            CALL EASKMBOX('Options for this surface: ',' ',
+     &        'set as back-to-back mass','set as boundary surface',
+     &        'ignore it',' ',' ',' ',' ',' ',IW,nbhelp)
+            if (IW.eq.1) then
+              nbmass=nbmass+1
+              msurname(nbmass)=anysurname(NS)
+              msurmat(nbmass)=anysurmat(ns)
+              msuropt(nbmass)=anysuropt(ns)
+              nbmassv(nbmass)=nbanyv(ns)
+              do loop = 1,nbmassv(nbmass)
+                masjvn(nbmass,loop)=anyjvn(ns,loop)
+              enddo
+            elseif (IW.eq.2) then
+              nbbound=nbbound+1
+              bsurname(nbbound)=anysurname(NS)
+              bsurmat(nbbound)=anysurmat(ns)
+              bsuropt(nbbound)=anysuropt(ns)
+              nbboundv(nbbound)=nbanyv(ns)
+              bsuruse(nbbound,1)=anysuruse(NS,1)
+              bsuruse(nbbound,2)=anysuruse(NS,2)
+              bsuroth(nbbound)=tother
+              boundoth(nbbound,1)=IEEZ
+              boundoth(nbbound,2)=IEES
+              do loop = 1,nbboundv(nbbound)
+                boundjvn(nbbound,loop)=anyjvn(ns,loop)
               enddo
             endif
           endif
@@ -1471,407 +1635,382 @@ C object bounds.
         goto 62
       elseif(WORD(1:10).eq.'*shad_calc')then
 
-C Shading calculation instructions.
-C << would this be of any interest in an object ?? >>
+C Shading and insolation calculation instructions.
         CALL EGETW(LOUTSTR,K,WORD,'W','shad directive',IFLAG)
         if(WORD(1:4).eq.'none')then
-C          objiaplic(1)=0
-          else
-            if(WORD(1:14).eq.'all_applicable')then
-C              objiaplic(1)=1
-            endif
-          endif
           goto 62
-        elseif(WORD(1:11).eq.'*insol_calc')then
-
-C Insolation calculation instructions.
-C << would this be of any interest for predefined objects ?? >>
-          CALL EGETW(LOUTSTR,K,WORD,'W','insolation directive',IFLAG)
-          if(WORD(1:4).eq.'none')then
-C            objiaplic(2)=0
-          else
-            if(WORD(1:14).eq.'all_applicable')then
-C              objiaplic(2)=1
-            endif
-          endif
+        elseif(WORD(1:14).eq.'all_applicable')then
+          CALL LSTRIPC(IUNIT,LOUTSTR,99,ND,0,'shd surf list',IER)
           goto 62
-        elseif(WORD(1:7).eq.'*insol ')then
+        endif
+      elseif(WORD(1:11).eq.'*insol_calc')then
+        CALL EGETW(LOUTSTR,K,WORD,'W','ish directive',IFLAG)
+        if(WORD(1:4).eq.'none')then
           goto 62
-        elseif(WORD(1:13).eq.'*bridge_start')then
-
-C << would this be of any interest in a predefined object ?? >>
+        elseif(WORD(1:14).eq.'all_applicable')then
+          CALL LSTRIPC(IUNIT,LOUTSTR,99,ND,0,'ish surf list',IER)
           goto 62
-        elseif(WORD(1:11).eq.'*ukt_bridge')then
-
-C << would this be of any interest in a predefined object ?? >>
-          goto 62
-        elseif(WORD(1:11).eq.'*end_bridge')then
-          goto 62
-        elseif(WORD(1:12).eq.'*block_start')then
+        endif
+      elseif(WORD(1:7).eq.'*insol ')then
+        goto 62
+      elseif(WORD(1:13).eq.'*bridge_start')then
+        goto 62
+      elseif(WORD(1:11).eq.'*ukt_bridge')then
+        goto 62
+      elseif(WORD(1:11).eq.'*end_bridge')then
+        goto 62
+      elseif(WORD(1:12).eq.'*block_start')then
 
 C A number of block shapes can be associated with a model as follows:
 C *obs - solar obstruction blocks and
 
-C << What about obstructions as part of a facade element ?? >>
-C << do this later. Sort visual stuff first.
-
 C Read another line to get the actual blocks. There are slightly different
 C formats depending on whether the key is '*obs' or '*obs3'.
-   72     CALL LSTRIPC(IUNIT,LOUTSTR,99,ND,0,'*obs tags',IER)
-          k=0
-          CALL EGETP(LOUTSTR,K,phrase,'W','block tag',IER)
-          if(phrase(1:5).eq.'*obs3')then
-            objnbobs=objnbobs+1
-            CALL EGETWR(LOUTSTR,K,VX,-999.,998.,'W','obs X org',IER)
-            CALL EGETWR(LOUTSTR,K,VY,-999.,998.,'W','obs Y org',IER)
-            CALL EGETWR(LOUTSTR,K,VZ, -99., 99.,'W','obs Z org',IER)
-            OBJXOB(objnbobs)=VX
-            OBJYOB(objnbobs)=VY
-            OBJZOB(objnbobs)=VZ
-            CALL EGETWR(LOUTSTR,K,VX,0.,150.,'W','obs X dis',IER)
-            CALL EGETWR(LOUTSTR,K,VY,0.,150.,'W','obs Y dis',IER)
-            CALL EGETWR(LOUTSTR,K,VZ,0.,150.,'W','obs Z dis',IER)
-            OBJDXOB(objnbobs)=VX
-            OBJDYOB(objnbobs)=VY
-            OBJDZOB(objnbobs)=VZ
-            CALL EGETWR(LOUTSTR,K,VX,-359.,359.,'W','obs rot ang a',IER)
-            OBJBANGOB(objnbobs,1)=VX
-            CALL EGETWR(LOUTSTR,K,VX,-359.,359.,'W','obs rot ang b',IER)
-            OBJBANGOB(objnbobs,2)=VX
-            CALL EGETWR(LOUTSTR,K,VX,-359.,359.,'W','obs rot ang c',IER)
-            OBJBANGOB(objnbobs,3)=VX
-            CALL EGETWR(LOUTSTR,K,VX,0.,1.,'W','obs opacity',IER)
-            OBJOPOB(objnbobs)=VX
-            CALL EGETW(LOUTSTR,K,WORD,'W','obs blk name',IFLAG)
-            OBJBLOCKNAME(objnbobs)=WORD(1:12)
-
+   72   CALL LSTRIPC(IUNIT,LOUTSTR,99,ND,0,'*obs tags',IER)
+        k=0
+        CALL EGETP(LOUTSTR,K,phrase,'W','block tag',IER)
+        if(phrase(1:5).eq.'*obs3')then
+          if(objnbobs+1.gt.MOMB) goto 72
+          objnbobs=objnbobs+1
+          CALL EGETWR(LOUTSTR,K,VX,-999.,998.,'W','obs X org',IER)
+          CALL EGETWR(LOUTSTR,K,VY,-999.,998.,'W','obs Y org',IER)
+          CALL EGETWR(LOUTSTR,K,VZ, -99., 99.,'W','obs Z org',IER)
+          OBJXOB(objnbobs)=VX
+          OBJYOB(objnbobs)=VY
+          OBJZOB(objnbobs)=VZ
+          CALL EGETWR(LOUTSTR,K,VX,0.,150.,'W','obs X dis',IER)
+          CALL EGETWR(LOUTSTR,K,VY,0.,150.,'W','obs Y dis',IER)
+          CALL EGETWR(LOUTSTR,K,VZ,0.,150.,'W','obs Z dis',IER)
+          OBJDXOB(objnbobs)=VX
+          OBJDYOB(objnbobs)=VY
+          OBJDZOB(objnbobs)=VZ
+          CALL EGETWR(LOUTSTR,K,VX,-359.,359.,'W','obs rot ang a',IER)
+          OBJBANGOB(objnbobs,1)=VX
+          CALL EGETWR(LOUTSTR,K,VX,-359.,359.,'W','obs rot ang b',IER)
+          OBJBANGOB(objnbobs,2)=VX
+          CALL EGETWR(LOUTSTR,K,VX,-359.,359.,'W','obs rot ang c',IER)
+          OBJBANGOB(objnbobs,3)=VX
+          CALL EGETWR(LOUTSTR,K,VX,0.,1.,'W','obs opacity',IER)
+          OBJOPOB(objnbobs)=VX
+          CALL EGETW(LOUTSTR,K,WORD,'W','obs blk name',IFLAG)
+          OBJBLOCKNAME(objnbobs)=WORD(1:12)
+ 
 C The name of the construction might contain spaces so use EGETP.
-            CALL EGETP(LOUTSTR,K,phrase,'W','obs mat name',IFLAG)
-            write(OBJBLOCKMAT(objnbobs),'(a)') phrase(1:lnblnk(phrase))
-            OBJBLOCKTYP(objnbobs)='obs3'
-            goto 72
+          CALL EGETP(LOUTSTR,K,phrase,'W','obs mat name',IFLAG)
+          write(OBJBLOCKMAT(objnbobs),'(a)') phrase(1:lnblnk(phrase))
+          OBJBLOCKTYP(objnbobs)='obs3'
+          goto 72
 
-          elseif(phrase(1:5).eq.'*obsp')then
+        elseif(phrase(1:5).eq.'*obsp')then
 
 C A general polygon obstruction to be associated with the current zone.
-            objnbobs=objnbobs+1
-            CALL EGETWI(LOUTSTR,K,ival,8,8,'F','obs nb vertices',IER)
-            CALL EGETWI(LOUTSTR,K,ival,6,6,'F','obs nb faces',IER)
-            if(ND.ge.6)then  ! if enough items for opacity
-              CALL EGETWR(LOUTSTR,K,VX,0.,1.,'W','obs opacity',IER)
-              OBJOPOB(objnbobs)=VX
-            else
-              OBJOPOB(objnbobs)=1.0  ! set to opaque if not specified
-            endif
-            CALL EGETW(LOUTSTR,K,WORD,'W','obs blk name',IFLAG)
-            write(OBJBLOCKNAME(objnbobs),'(a)') WORD(1:lnblnk(WORD))
-            CALL EGETP(LOUTSTR,K,phrase,'W','obs mat name',IFLAG)
-            write(OBJBLOCKMAT(objnbobs),'(a)') phrase(1:lnblnk(phrase))
-            OBJBLOCKTYP(objnbobs)='obsp'
-
-            CALL LSTRIPC(IUNIT,LOUTSTR,99,ND,1,'first 4 coord',IER)
-            IF(IER.NE.0)goto 1002
-            K=0
-            CALL EGETWR(LOUTSTR,K,val1,-999.,998.,'W','XBP 1',IER)
-            OBJXBP(objnbobs,1)=val1
-            CALL EGETWR(LOUTSTR,K,val1,-999.,998.,'W','YBP 1',IER)
-            OBJYBP(objnbobs,1)=val1
-            CALL EGETWR(LOUTSTR,K,val1,-999.,998.,'W','ZBP 1',IER)
-            OBJZBP(objnbobs,1)=val1
-            CALL EGETWR(LOUTSTR,K,val1,-999.,998.,'W','XBP 2',IER)
-            OBJXBP(objnbobs,2)=val1
-            CALL EGETWR(LOUTSTR,K,val1,-999.,998.,'W','YBP 2',IER)
-            OBJYBP(objnbobs,2)=val1
-            CALL EGETWR(LOUTSTR,K,val1,-999.,998.,'W','ZBP 2',IER)
-            OBJZBP(objnbobs,2)=val1
-            CALL EGETWR(LOUTSTR,K,val1,-999.,998.,'W','XBP 3',IER)
-            OBJXBP(objnbobs,3)=val1
-            CALL EGETWR(LOUTSTR,K,val1,-999.,998.,'W','YBP 3',IER)
-            OBJYBP(objnbobs,3)=val1
-            CALL EGETWR(LOUTSTR,K,val1,-999.,998.,'W','ZBP 3',IER)
-            OBJZBP(objnbobs,3)=val1
-            CALL EGETWR(LOUTSTR,K,val1,-999.,998.,'W','XBP 4',IER)
-            OBJXBP(objnbobs,4)=val1
-            CALL EGETWR(LOUTSTR,K,val1,-999.,998.,'W','YBP 4',IER)
-            OBJYBP(objnbobs,4)=val1
-            CALL EGETWR(LOUTSTR,K,val1,-999.,998.,'W','ZBP 4',IER)
-            OBJZBP(objnbobs,4)=val1
-
-            CALL LSTRIPC(IUNIT,LOUTSTR,99,ND,1,'2nd 4 coord',IER)
-            IF(IER.NE.0)goto 1002
-            K=0
-            CALL EGETWR(LOUTSTR,K,val1,-999.,998.,'W','XBP 5',IER)
-            OBJXBP(objnbobs,5)=val1
-            CALL EGETWR(LOUTSTR,K,val1,-999.,998.,'W','YBP 5',IER)
-            OBJYBP(objnbobs,5)=val1
-            CALL EGETWR(LOUTSTR,K,val1,-999.,998.,'W','ZBP 5',IER)
-            OBJZBP(objnbobs,5)=val1
-            CALL EGETWR(LOUTSTR,K,val1,-999.,998.,'W','XBP 6',IER)
-            OBJXBP(objnbobs,6)=val1
-            CALL EGETWR(LOUTSTR,K,val1,-999.,998.,'W','YBP 6',IER)
-            OBJYBP(objnbobs,6)=val1
-            CALL EGETWR(LOUTSTR,K,val1,-999.,998.,'W','ZBP 6',IER)
-            OBJZBP(objnbobs,6)=val1
-            CALL EGETWR(LOUTSTR,K,val1,-999.,998.,'W','XBP 7',IER)
-            OBJXBP(objnbobs,7)=val1
-            CALL EGETWR(LOUTSTR,K,val1,-999.,998.,'W','YBP 7',IER)
-            OBJYBP(objnbobs,7)=val1
-            CALL EGETWR(LOUTSTR,K,val1,-999.,998.,'W','ZBP 7',IER)
-            OBJZBP(objnbobs,7)=val1
-            CALL EGETWR(LOUTSTR,K,val1,-999.,998.,'W','XBP 8',IER)
-            OBJXBP(objnbobs,8)=val1
-            CALL EGETWR(LOUTSTR,K,val1,-999.,998.,'W','YBP 8',IER)
-            OBJYBP(objnbobs,8)=val1
-            CALL EGETWR(LOUTSTR,K,val1,-999.,998.,'W','ZBP 8',IER)
-            OBJZBP(objnbobs,8)=val1
-            goto 72
-
-          elseif(phrase(1:4).eq.'*obs')then
-
-            objnbobs=objnbobs+1
-            CALL EGETWR(LOUTSTR,K,VX,-999.,998.,'W','obs X org',IER)
-            CALL EGETWR(LOUTSTR,K,VY,-999.,998.,'W','obs Y org',IER)
-            CALL EGETWR(LOUTSTR,K,VZ, -99., 99.,'W','obs Z org',IER)
-            OBJXOB(objnbobs)=VX
-            OBJYOB(objnbobs)=VY
-            OBJZOB(objnbobs)=VZ
-            CALL EGETWR(LOUTSTR,K,VX,0.,150.,'W','obs X dis',IER)
-            CALL EGETWR(LOUTSTR,K,VY,0.,150.,'W','obs Y dis',IER)
-            CALL EGETWR(LOUTSTR,K,VZ,0.,150.,'W','obs Z dis',IER)
-            OBJDXOB(objnbobs)=VX
-            OBJDYOB(objnbobs)=VY
-            OBJDZOB(objnbobs)=VZ
-            CALL EGETWR(LOUTSTR,K,VX,-359.,359.,'W','obs rot ang',IER)
-            OBJBANGOB(objnbobs,1)=VX
-            OBJBANGOB(objnbobs,2)=0.0   ! there is no 2nd rotation
-            OBJBANGOB(objnbobs,3)=0.0   ! there is no 3rd rotation
+          if(objnbobs+1.gt.MOMB) goto 72
+          objnbobs=objnbobs+1
+          CALL EGETWI(LOUTSTR,K,ival,8,8,'F','obs nb vertices',IER)
+          CALL EGETWI(LOUTSTR,K,ival,6,6,'F','obs nb faces',IER)
+          if(ND.ge.6)then  ! if enough items for opacity
             CALL EGETWR(LOUTSTR,K,VX,0.,1.,'W','obs opacity',IER)
             OBJOPOB(objnbobs)=VX
-            CALL EGETW(LOUTSTR,K,WORD,'W','obs blk name',IFLAG)
-            OBJBLOCKNAME(objnbobs)=WORD(1:12)
+          else
+            OBJOPOB(objnbobs)=1.0  ! set to opaque if not specified
+          endif
+          CALL EGETW(LOUTSTR,K,WORD,'W','obs blk name',IFLAG)
+          write(OBJBLOCKNAME(objnbobs),'(a)') WORD(1:lnblnk(WORD))
+          CALL EGETP(LOUTSTR,K,phrase,'W','obs mat name',IFLAG)
+          write(OBJBLOCKMAT(objnbobs),'(a)') phrase(1:lnblnk(phrase))
+          OBJBLOCKTYP(objnbobs)='obsp'
+
+          CALL LSTRIPC(IUNIT,LOUTSTR,99,ND,1,'first 4 coord',IER)
+          IF(IER.NE.0)goto 1002
+          K=0
+          CALL EGETWR(LOUTSTR,K,val1,-999.,998.,'W','XBP 1',IER)
+          OBJXBP(objnbobs,1)=val1
+          CALL EGETWR(LOUTSTR,K,val1,-999.,998.,'W','YBP 1',IER)
+          OBJYBP(objnbobs,1)=val1
+          CALL EGETWR(LOUTSTR,K,val1,-999.,998.,'W','ZBP 1',IER)
+          OBJZBP(objnbobs,1)=val1
+          CALL EGETWR(LOUTSTR,K,val1,-999.,998.,'W','XBP 2',IER)
+          OBJXBP(objnbobs,2)=val1
+          CALL EGETWR(LOUTSTR,K,val1,-999.,998.,'W','YBP 2',IER)
+          OBJYBP(objnbobs,2)=val1
+          CALL EGETWR(LOUTSTR,K,val1,-999.,998.,'W','ZBP 2',IER)
+          OBJZBP(objnbobs,2)=val1
+          CALL EGETWR(LOUTSTR,K,val1,-999.,998.,'W','XBP 3',IER)
+          OBJXBP(objnbobs,3)=val1
+          CALL EGETWR(LOUTSTR,K,val1,-999.,998.,'W','YBP 3',IER)
+          OBJYBP(objnbobs,3)=val1
+          CALL EGETWR(LOUTSTR,K,val1,-999.,998.,'W','ZBP 3',IER)
+          OBJZBP(objnbobs,3)=val1
+          CALL EGETWR(LOUTSTR,K,val1,-999.,998.,'W','XBP 4',IER)
+          OBJXBP(objnbobs,4)=val1
+          CALL EGETWR(LOUTSTR,K,val1,-999.,998.,'W','YBP 4',IER)
+          OBJYBP(objnbobs,4)=val1
+          CALL EGETWR(LOUTSTR,K,val1,-999.,998.,'W','ZBP 4',IER)
+          OBJZBP(objnbobs,4)=val1
+
+          CALL LSTRIPC(IUNIT,LOUTSTR,99,ND,1,'2nd 4 coord',IER)
+          IF(IER.NE.0)goto 1002
+          K=0
+          CALL EGETWR(LOUTSTR,K,val1,-999.,998.,'W','XBP 5',IER)
+          OBJXBP(objnbobs,5)=val1
+          CALL EGETWR(LOUTSTR,K,val1,-999.,998.,'W','YBP 5',IER)
+          OBJYBP(objnbobs,5)=val1
+          CALL EGETWR(LOUTSTR,K,val1,-999.,998.,'W','ZBP 5',IER)
+          OBJZBP(objnbobs,5)=val1
+          CALL EGETWR(LOUTSTR,K,val1,-999.,998.,'W','XBP 6',IER)
+          OBJXBP(objnbobs,6)=val1
+          CALL EGETWR(LOUTSTR,K,val1,-999.,998.,'W','YBP 6',IER)
+          OBJYBP(objnbobs,6)=val1
+          CALL EGETWR(LOUTSTR,K,val1,-999.,998.,'W','ZBP 6',IER)
+          OBJZBP(objnbobs,6)=val1
+          CALL EGETWR(LOUTSTR,K,val1,-999.,998.,'W','XBP 7',IER)
+          OBJXBP(objnbobs,7)=val1
+          CALL EGETWR(LOUTSTR,K,val1,-999.,998.,'W','YBP 7',IER)
+          OBJYBP(objnbobs,7)=val1
+          CALL EGETWR(LOUTSTR,K,val1,-999.,998.,'W','ZBP 7',IER)
+          OBJZBP(objnbobs,7)=val1
+          CALL EGETWR(LOUTSTR,K,val1,-999.,998.,'W','XBP 8',IER)
+          OBJXBP(objnbobs,8)=val1
+          CALL EGETWR(LOUTSTR,K,val1,-999.,998.,'W','YBP 8',IER)
+          OBJYBP(objnbobs,8)=val1
+          CALL EGETWR(LOUTSTR,K,val1,-999.,998.,'W','ZBP 8',IER)
+          OBJZBP(objnbobs,8)=val1
+          goto 72
+
+        elseif(phrase(1:4).eq.'*obs')then
+
+          if(objnbobs+1.gt.MOMB) goto 72
+          objnbobs=objnbobs+1
+          CALL EGETWR(LOUTSTR,K,VX,-999.,998.,'W','obs X org',IER)
+          CALL EGETWR(LOUTSTR,K,VY,-999.,998.,'W','obs Y org',IER)
+          CALL EGETWR(LOUTSTR,K,VZ, -99., 99.,'W','obs Z org',IER)
+          OBJXOB(objnbobs)=VX
+          OBJYOB(objnbobs)=VY
+          OBJZOB(objnbobs)=VZ
+          CALL EGETWR(LOUTSTR,K,VX,0.,150.,'W','obs X dis',IER)
+          CALL EGETWR(LOUTSTR,K,VY,0.,150.,'W','obs Y dis',IER)
+          CALL EGETWR(LOUTSTR,K,VZ,0.,150.,'W','obs Z dis',IER)
+          OBJDXOB(objnbobs)=VX
+          OBJDYOB(objnbobs)=VY
+          OBJDZOB(objnbobs)=VZ
+          CALL EGETWR(LOUTSTR,K,VX,-359.,359.,'W','obs rot ang',IER)
+          OBJBANGOB(objnbobs,1)=VX
+          OBJBANGOB(objnbobs,2)=0.0   ! there is no 2nd rotation
+          OBJBANGOB(objnbobs,3)=0.0   ! there is no 3rd rotation
+          CALL EGETWR(LOUTSTR,K,VX,0.,1.,'W','obs opacity',IER)
+          OBJOPOB(objnbobs)=VX
+          CALL EGETW(LOUTSTR,K,WORD,'W','obs blk name',IFLAG)
+          OBJBLOCKNAME(objnbobs)=WORD(1:12)
 
 C The name of the construction might contain spaces so use EGETP.
-            CALL EGETP(LOUTSTR,K,phrase,'W','obs mat name',IFLAG)
-            write(OBJBLOCKMAT(objnbobs),'(a)') phrase(1:lnblnk(phrase))
-            OBJBLOCKTYP(objnbobs)='obs '
-            goto 72
-          elseif(phrase(1:4).eq.'*mrt')then
-
-C << not yet implemented >>
-            goto 72
-          elseif(phrase(1:6).eq.'*photo')then
-
-C << not yet implemented >>
-            goto 72
-          elseif(phrase(1:10).eq.'*end_block')then
-            goto 62
-          endif
-        elseif(WORD(1:13).eq.'*visual_start')then
+          CALL EGETP(LOUTSTR,K,phrase,'W','obs mat name',IFLAG)
+          write(OBJBLOCKMAT(objnbobs),'(a)') phrase(1:lnblnk(phrase))
+          OBJBLOCKTYP(objnbobs)='obs '
+          goto 72
+        elseif(phrase(1:4).eq.'*mrt')then
+          goto 72
+        elseif(phrase(1:10).eq.'*end_block')then
+          goto 62
+        endif
+      elseif(WORD(1:13).eq.'*visual_start')then
 
 C Read another line to get the visual entities. There are slightly different
 C formats depending on whether the key is '*vis', '*vis3', 'visp'.
-   73     CALL LSTRIPC(IUNIT,LOUTSTR,99,ND,0,'*vis tags',IER)
-          k=0
-          CALL EGETP(LOUTSTR,K,phrase,'W','visual tag',IER)
-          if(phrase(1:5).eq.'*vis3')then
-            nbobjvis=nbobjvis+1
-            CALL EGETWR(LOUTSTR,K,VX,-999.,998.,'W','vis X org',IER)
-            CALL EGETWR(LOUTSTR,K,VY,-999.,998.,'W','vis Y org',IER)
-            CALL EGETWR(LOUTSTR,K,VZ, -99., 99.,'W','vis Z org',IER)
-            OBJXOV(nbobjvis)=VX
-            OBJYOV(nbobjvis)=VY
-            OBJZOV(nbobjvis)=VZ
-            CALL EGETWR(LOUTSTR,K,VX,0.,150.,'W','vis X dis',IER)
-            CALL EGETWR(LOUTSTR,K,VY,0.,150.,'W','vis Y dis',IER)
-            CALL EGETWR(LOUTSTR,K,VZ,0.,150.,'W','vis Z dis',IER)
-            OBJDXOV(nbobjvis)=VX
-            OBJDYOV(nbobjvis)=VY
-            OBJDZOV(nbobjvis)=VZ
-            CALL EGETWR(LOUTSTR,K,VX,-359.,359.,'W','vis rot ang a',IER)
-            OBJBANGOV(nbobjvis,1)=VX
-            CALL EGETWR(LOUTSTR,K,VX,-359.,359.,'W','vis rot ang b',IER)
-            OBJBANGOV(nbobjvis,2)=VX
-            CALL EGETWR(LOUTSTR,K,VX,-359.,359.,'W','vis rot ang c',IER)
-            OBJBANGOV(nbobjvis,3)=VX
-            CALL EGETWR(LOUTSTR,K,VX,0.,1.,'W','vis opacity',IER)
-            objvisopaq(nbobjvis)=VX
-            CALL EGETW(LOUTSTR,K,WORD,'W','vis blk name',IFLAG)
-            objvisname(nbobjvis)=WORD(1:12)
+   73   CALL LSTRIPC(IUNIT,LOUTSTR,99,ND,0,'*vis tags',IER)
+        k=0
+        CALL EGETP(LOUTSTR,K,phrase,'W','visual tag',IER)
+        if(phrase(1:5).eq.'*vis3')then
+          if(nbobjvis+1.gt.MOMB) goto 73
+          nbobjvis=nbobjvis+1
+          CALL EGETWR(LOUTSTR,K,VX,-999.,998.,'W','vis X org',IER)
+          CALL EGETWR(LOUTSTR,K,VY,-999.,998.,'W','vis Y org',IER)
+          CALL EGETWR(LOUTSTR,K,VZ, -99., 99.,'W','vis Z org',IER)
+          OBJXOV(nbobjvis)=VX
+          OBJYOV(nbobjvis)=VY
+          OBJZOV(nbobjvis)=VZ
+          CALL EGETWR(LOUTSTR,K,VX,0.,150.,'W','vis X dis',IER)
+          CALL EGETWR(LOUTSTR,K,VY,0.,150.,'W','vis Y dis',IER)
+          CALL EGETWR(LOUTSTR,K,VZ,0.,150.,'W','vis Z dis',IER)
+          OBJDXOV(nbobjvis)=VX
+          OBJDYOV(nbobjvis)=VY
+          OBJDZOV(nbobjvis)=VZ
+          CALL EGETWR(LOUTSTR,K,VX,-359.,359.,'W','vis rot ang a',IER)
+          OBJBANGOV(nbobjvis,1)=VX
+          CALL EGETWR(LOUTSTR,K,VX,-359.,359.,'W','vis rot ang b',IER)
+          OBJBANGOV(nbobjvis,2)=VX
+          CALL EGETWR(LOUTSTR,K,VX,-359.,359.,'W','vis rot ang c',IER)
+          OBJBANGOV(nbobjvis,3)=VX
+          CALL EGETWR(LOUTSTR,K,VX,0.,1.,'W','vis opacity',IER)
+          objvisopaq(nbobjvis)=VX
+          CALL EGETW(LOUTSTR,K,WORD,'W','vis blk name',IFLAG)
+          objvisname(nbobjvis)=WORD(1:12)
 
 C The name of the construction might contain spaces so use EGETP.
-            CALL EGETP(LOUTSTR,K,phrase,'W','vis mat name',IFLAG)
-            write(objvismat(nbobjvis),'(a)') phrase(1:lnblnk(phrase))
-            objvistyp(nbobjvis)='vis3'
+          CALL EGETP(LOUTSTR,K,phrase,'W','vis mat name',IFLAG)
+          write(objvismat(nbobjvis),'(a)') phrase(1:lnblnk(phrase))
+          objvistyp(nbobjvis)='vis3'
 C Debug.
-C            write(6,*) 'vis3',nbobjvis,objvisname(nbobjvis),
-C     &        objvismat(nbobjvis),objvisopaq(nbobjvis),
-C     &        OBJBANGOV(nbobjvis,1),OBJBANGOV(nbobjvis,2),
-C     &        OBJBANGOV(nbobjvis,3),OBJDXOV(nbobjvis),
-C     &        OBJDYOV(nbobjvis),OBJDZOV(nbobjvis),OBJXOV(nbobjvis),
-C     &        OBJYOV(nbobjvis),OBJZOV(nbobjvis)
-            goto 73    ! check if there is another
+            write(6,*) 'vis3',nbobjvis,objvisname(nbobjvis),
+     &        objvismat(nbobjvis),objvisopaq(nbobjvis),
+     &        OBJBANGOV(nbobjvis,1),OBJBANGOV(nbobjvis,2),
+     &        OBJBANGOV(nbobjvis,3),OBJDXOV(nbobjvis),
+     &        OBJDYOV(nbobjvis),OBJDZOV(nbobjvis),OBJXOV(nbobjvis),
+     &        OBJYOV(nbobjvis),OBJZOV(nbobjvis)
+          goto 73    ! check if there is another
 
-          elseif(phrase(1:5).eq.'*visp')then
+        elseif(phrase(1:5).eq.'*visp')then
 
 C A general polygon visual to be associated with the current zone.
 C The first line includes (current fixed) integer number of vertices
 C followed by number of faces and the name and material.
 C The 2nd line has the first 4 coordinates and the 3rd line has the 
 C next 4 coordinates. The surface and edge ordering is as obsp. 
-            nbobjvis=nbobjvis+1
-            CALL EGETWI(LOUTSTR,K,ival,8,8,'F','vis nb vertices',IER)
-            CALL EGETWI(LOUTSTR,K,ival,6,6,'F','vis nb faces',IER)
-            if(ND.ge.6)then  ! if enough items for opacity
-              CALL EGETWR(LOUTSTR,K,VX,0.,1.,'W','vis opacity',IER)
-              objvisopaq(nbobjvis)=VX
-            else
-              objvisopaq(nbobjvis)=1.0  ! set to opaque if not specified
-            endif
-            CALL EGETW(LOUTSTR,K,WORD,'W','vis blk name',IFLAG)
-            objvisname(nbobjvis)=WORD(1:12)
-            CALL EGETP(LOUTSTR,K,phrase,'W','vis mat name',IFLAG)
-            write(objvismat(nbobjvis),'(a)') phrase(1:lnblnk(phrase))
-            objvistyp(nbobjvis)='visp'
-
-            CALL LSTRIPC(IUNIT,LOUTSTR,99,ND,1,'first 4 coord',IER)
-            IF(IER.NE.0)goto 1002
-            K=0
-            CALL EGETWR(LOUTSTR,K,val1,-999.,998.,'W','XVP 1',IER)
-            OBJXVP(nbobjvis,1)=val1
-            CALL EGETWR(LOUTSTR,K,val1,-999.,998.,'W','YVP 1',IER)
-            OBJYVP(nbobjvis,1)=val1
-            CALL EGETWR(LOUTSTR,K,val1,-999.,998.,'W','ZVP 1',IER)
-            OBJZVP(nbobjvis,1)=val1
-            CALL EGETWR(LOUTSTR,K,val1,-999.,998.,'W','XVP 2',IER)
-            OBJXVP(nbobjvis,2)=val1
-            CALL EGETWR(LOUTSTR,K,val1,-999.,998.,'W','YVP 2',IER)
-            OBJYVP(nbobjvis,2)=val1
-            CALL EGETWR(LOUTSTR,K,val1,-999.,998.,'W','ZVP 2',IER)
-            OBJZVP(nbobjvis,2)=val1
-            CALL EGETWR(LOUTSTR,K,val1,-999.,998.,'W','XVP 3',IER)
-            OBJXVP(nbobjvis,3)=val1
-            CALL EGETWR(LOUTSTR,K,val1,-999.,998.,'W','YVP 3',IER)
-            OBJYVP(nbobjvis,3)=val1
-            CALL EGETWR(LOUTSTR,K,val1,-999.,998.,'W','ZVP 3',IER)
-            OBJZVP(nbobjvis,3)=val1
-            CALL EGETWR(LOUTSTR,K,val1,-999.,998.,'W','XVP 4',IER)
-            OBJXVP(nbobjvis,4)=val1
-            CALL EGETWR(LOUTSTR,K,val1,-999.,998.,'W','YVP 4',IER)
-            OBJYVP(nbobjvis,4)=val1
-            CALL EGETWR(LOUTSTR,K,val1,-999.,998.,'W','ZVP 4',IER)
-            OBJZVP(nbobjvis,4)=val1
-
-            CALL LSTRIPC(IUNIT,LOUTSTR,99,ND,1,'2nd 4 coord',IER)
-            IF(IER.NE.0)goto 1002
-            K=0
-            CALL EGETWR(LOUTSTR,K,val1,-999.,998.,'W','XVP 5',IER)
-            OBJXVP(nbobjvis,5)=val1
-            CALL EGETWR(LOUTSTR,K,val1,-999.,998.,'W','YVP 5',IER)
-            OBJYVP(nbobjvis,5)=val1
-            CALL EGETWR(LOUTSTR,K,val1,-999.,998.,'W','ZVP 5',IER)
-            OBJZVP(nbobjvis,5)=val1
-            CALL EGETWR(LOUTSTR,K,val1,-999.,998.,'W','XVP 6',IER)
-            OBJXVP(nbobjvis,6)=val1
-            CALL EGETWR(LOUTSTR,K,val1,-999.,998.,'W','YVP 6',IER)
-            OBJYVP(nbobjvis,6)=val1
-            CALL EGETWR(LOUTSTR,K,val1,-999.,998.,'W','ZVP 6',IER)
-            OBJZVP(nbobjvis,6)=val1
-            CALL EGETWR(LOUTSTR,K,val1,-999.,998.,'W','XVP 7',IER)
-            OBJXVP(nbobjvis,7)=val1
-            CALL EGETWR(LOUTSTR,K,val1,-999.,998.,'W','YVP 7',IER)
-            OBJYVP(nbobjvis,7)=val1
-            CALL EGETWR(LOUTSTR,K,val1,-999.,998.,'W','ZVP 7',IER)
-            OBJZVP(nbobjvis,7)=val1
-            CALL EGETWR(LOUTSTR,K,val1,-999.,998.,'W','XVP 8',IER)
-            OBJXVP(nbobjvis,8)=val1
-            CALL EGETWR(LOUTSTR,K,val1,-999.,998.,'W','YVP 8',IER)
-            OBJYVP(nbobjvis,8)=val1
-            CALL EGETWR(LOUTSTR,K,val1,-999.,998.,'W','ZVP 8',IER)
-            OBJZVP(nbobjvis,8)=val1
-            goto 73
-
-          elseif(phrase(1:4).eq.'*vis')then
-            nbobjvis=nbobjvis+1
-            CALL EGETWR(LOUTSTR,K,VX,-999.,998.,'W','vis X org',IER)
-            CALL EGETWR(LOUTSTR,K,VY,-999.,998.,'W','vis Y org',IER)
-            CALL EGETWR(LOUTSTR,K,VZ, -99., 99.,'W','vis Z org',IER)
-            OBJXOV(nbobjvis)=VX
-            OBJYOV(nbobjvis)=VY
-            OBJZOV(nbobjvis)=VZ
-            CALL EGETWR(LOUTSTR,K,VX,0.,150.,'W','vis X dis',IER)
-            CALL EGETWR(LOUTSTR,K,VY,0.,150.,'W','vis Y dis',IER)
-            CALL EGETWR(LOUTSTR,K,VZ,0.,150.,'W','vis Z dis',IER)
-            OBJDXOV(nbobjvis)=VX
-            OBJDYOV(nbobjvis)=VY
-            OBJDZOV(nbobjvis)=VZ
-            CALL EGETWR(LOUTSTR,K,VX,-359.,359.,'W','vis rot ang',IER)
-            OBJBANGOV(nbobjvis,1)=VX
-            OBJBANGOV(nbobjvis,2)=0.0   ! there is no 2nd rotation
-            OBJBANGOV(nbobjvis,3)=0.0   ! there is no 3rd rotation
+          if(nbobjvis+1.gt.MOMB) goto 73
+          nbobjvis=nbobjvis+1
+          CALL EGETWI(LOUTSTR,K,ival,8,8,'F','vis nb vertices',IER)
+          CALL EGETWI(LOUTSTR,K,ival,6,6,'F','vis nb faces',IER)
+          if(ND.ge.6)then  ! if enough items for opacity
             CALL EGETWR(LOUTSTR,K,VX,0.,1.,'W','vis opacity',IER)
             objvisopaq(nbobjvis)=VX
-            CALL EGETW(LOUTSTR,K,WORD,'W','vis blk name',IFLAG)
-            objvisname(nbobjvis)=WORD(1:12)
+          else
+            objvisopaq(nbobjvis)=1.0  ! set to opaque if not specified
+          endif
+          CALL EGETW(LOUTSTR,K,WORD,'W','vis blk name',IFLAG)
+          objvisname(nbobjvis)=WORD(1:12)
+          CALL EGETP(LOUTSTR,K,phrase,'W','vis mat name',IFLAG)
+          write(objvismat(nbobjvis),'(a)') phrase(1:lnblnk(phrase))
+          objvistyp(nbobjvis)='visp'
 
+          CALL LSTRIPC(IUNIT,LOUTSTR,99,ND,1,'first 4 coord',IER)
+          IF(IER.NE.0)goto 1002
+          K=0
+          CALL EGETWR(LOUTSTR,K,val1,-999.,998.,'W','XVP 1',IER)
+          OBJXVP(nbobjvis,1)=val1
+          CALL EGETWR(LOUTSTR,K,val1,-999.,998.,'W','YVP 1',IER)
+          OBJYVP(nbobjvis,1)=val1
+          CALL EGETWR(LOUTSTR,K,val1,-999.,998.,'W','ZVP 1',IER)
+          OBJZVP(nbobjvis,1)=val1
+          CALL EGETWR(LOUTSTR,K,val1,-999.,998.,'W','XVP 2',IER)
+          OBJXVP(nbobjvis,2)=val1
+          CALL EGETWR(LOUTSTR,K,val1,-999.,998.,'W','YVP 2',IER)
+          OBJYVP(nbobjvis,2)=val1
+          CALL EGETWR(LOUTSTR,K,val1,-999.,998.,'W','ZVP 2',IER)
+          OBJZVP(nbobjvis,2)=val1
+          CALL EGETWR(LOUTSTR,K,val1,-999.,998.,'W','XVP 3',IER)
+          OBJXVP(nbobjvis,3)=val1
+          CALL EGETWR(LOUTSTR,K,val1,-999.,998.,'W','YVP 3',IER)
+          OBJYVP(nbobjvis,3)=val1
+          CALL EGETWR(LOUTSTR,K,val1,-999.,998.,'W','ZVP 3',IER)
+          OBJZVP(nbobjvis,3)=val1
+          CALL EGETWR(LOUTSTR,K,val1,-999.,998.,'W','XVP 4',IER)
+          OBJXVP(nbobjvis,4)=val1
+          CALL EGETWR(LOUTSTR,K,val1,-999.,998.,'W','YVP 4',IER)
+          OBJYVP(nbobjvis,4)=val1
+          CALL EGETWR(LOUTSTR,K,val1,-999.,998.,'W','ZVP 4',IER)
+          OBJZVP(nbobjvis,4)=val1
+
+          CALL LSTRIPC(IUNIT,LOUTSTR,99,ND,1,'2nd 4 coord',IER)
+          IF(IER.NE.0)goto 1002
+          K=0
+          CALL EGETWR(LOUTSTR,K,val1,-999.,998.,'W','XVP 5',IER)
+          OBJXVP(nbobjvis,5)=val1
+          CALL EGETWR(LOUTSTR,K,val1,-999.,998.,'W','YVP 5',IER)
+          OBJYVP(nbobjvis,5)=val1
+          CALL EGETWR(LOUTSTR,K,val1,-999.,998.,'W','ZVP 5',IER)
+          OBJZVP(nbobjvis,5)=val1
+          CALL EGETWR(LOUTSTR,K,val1,-999.,998.,'W','XVP 6',IER)
+          OBJXVP(nbobjvis,6)=val1
+          CALL EGETWR(LOUTSTR,K,val1,-999.,998.,'W','YVP 6',IER)
+          OBJYVP(nbobjvis,6)=val1
+          CALL EGETWR(LOUTSTR,K,val1,-999.,998.,'W','ZVP 6',IER)
+          OBJZVP(nbobjvis,6)=val1
+          CALL EGETWR(LOUTSTR,K,val1,-999.,998.,'W','XVP 7',IER)
+          OBJXVP(nbobjvis,7)=val1
+          CALL EGETWR(LOUTSTR,K,val1,-999.,998.,'W','YVP 7',IER)
+          OBJYVP(nbobjvis,7)=val1
+          CALL EGETWR(LOUTSTR,K,val1,-999.,998.,'W','ZVP 7',IER)
+          OBJZVP(nbobjvis,7)=val1
+          CALL EGETWR(LOUTSTR,K,val1,-999.,998.,'W','XVP 8',IER)
+          OBJXVP(nbobjvis,8)=val1
+          CALL EGETWR(LOUTSTR,K,val1,-999.,998.,'W','YVP 8',IER)
+          OBJYVP(nbobjvis,8)=val1
+          CALL EGETWR(LOUTSTR,K,val1,-999.,998.,'W','ZVP 8',IER)
+          OBJZVP(nbobjvis,8)=val1
+          goto 73
+
+        elseif(phrase(1:4).eq.'*vis')then
+          if(nbobjvis+1.gt.MOMB) goto 73
+          nbobjvis=nbobjvis+1
+          CALL EGETWR(LOUTSTR,K,VX,-999.,998.,'W','vis X org',IER)
+          CALL EGETWR(LOUTSTR,K,VY,-999.,998.,'W','vis Y org',IER)
+          CALL EGETWR(LOUTSTR,K,VZ, -99., 99.,'W','vis Z org',IER)
+          OBJXOV(nbobjvis)=VX
+          OBJYOV(nbobjvis)=VY
+          OBJZOV(nbobjvis)=VZ
+          CALL EGETWR(LOUTSTR,K,VX,0.,150.,'W','vis X dis',IER)
+          CALL EGETWR(LOUTSTR,K,VY,0.,150.,'W','vis Y dis',IER)
+          CALL EGETWR(LOUTSTR,K,VZ,0.,150.,'W','vis Z dis',IER)
+          OBJDXOV(nbobjvis)=VX
+          OBJDYOV(nbobjvis)=VY
+          OBJDZOV(nbobjvis)=VZ
+          CALL EGETWR(LOUTSTR,K,VX,-359.,359.,'W','vis rot ang',IER)
+          OBJBANGOV(nbobjvis,1)=VX
+          OBJBANGOV(nbobjvis,2)=0.0   ! there is no 2nd rotation
+          OBJBANGOV(nbobjvis,3)=0.0   ! there is no 3rd rotation
+          CALL EGETWR(LOUTSTR,K,VX,0.,1.,'W','vis opacity',IER)
+          objvisopaq(nbobjvis)=VX
+          CALL EGETW(LOUTSTR,K,WORD,'W','vis blk name',IFLAG)
+          objvisname(nbobjvis)=WORD(1:12)
+  
 C The name of the visual material might contain spaces so use EGETP.
-            CALL EGETP(LOUTSTR,K,phrase,'W','vis mat name',IFLAG)
-            write(objvismat(nbobjvis),'(a)') phrase(1:lnblnk(phrase))
-            objvistyp(nbobjvis)='vis '
+          CALL EGETP(LOUTSTR,K,phrase,'W','vis mat name',IFLAG)
+          write(objvismat(nbobjvis),'(a)') phrase(1:lnblnk(phrase))
+          objvistyp(nbobjvis)='vis '
 C Debug.
-C            write(6,*) 'vis ',nbobjvis,objvisname(nbobjvis),
-C     &        objvismat(nbobjvis),objvisopaq(nbobjvis),
-C     &        OBJBANGOV(nbobjvis,1),OBJBANGOV(nbobjvis,2),
-C     &        OBJBANGOV(nbobjvis,3),OBJDXOV(nbobjvis),
-C     &        OBJDYOV(nbobjvis),OBJDZOV(nbobjvis),OBJXOV(nbobjvis),
-C     &        OBJYOV(nbobjvis),OBJZOV(nbobjvis)
-            goto 73
+          lnvm=lnblnk(objvismat(nbobjvis))
+            write(6,*) 'vis ',nbobjvis,objvisname(nbobjvis),
+     &        objvismat(nbobjvis)(1:lnvm),' ',objvisopaq(nbobjvis),
+     &        OBJBANGOV(nbobjvis,1),OBJBANGOV(nbobjvis,2),
+     &        OBJBANGOV(nbobjvis,3),OBJDXOV(nbobjvis),
+     &        OBJDYOV(nbobjvis),OBJDZOV(nbobjvis),OBJXOV(nbobjvis),
+     &        OBJYOV(nbobjvis),OBJZOV(nbobjvis)
+          goto 73
 
-          elseif(phrase(1:8).eq.'*vobject')then
+        elseif(phrase(1:8).eq.'*vobject')then
 
 C Collection of entities making up an object.
 C *vobject,rubish-bskt,square wood rubish bin,4,basket_bk,basket_fr,basket_lf,basket_rt
-            nbobjvisobj=nbobjvisobj+1
-            CALL EGETW(LOUTSTR,K,WORD,'W','vis obj name',IFLAG)
-            objvobjname(nbobjvisobj)=WORD(1:12)
-            CALL EGETP(LOUTSTR,K,phrase,'W','vis obj desc',IFLAG)
-            write(objvobjdesc(nbobjvisobj),'(a)') 
-     &        phrase(1:lnblnk(phrase))
-            CALL EGETWI(LOUTSTR,K,ival,1,12,'F','nb vis entities',IER)
-            objnbvobjlist(nbobjvisobj)=ival
-            do ibvo = 1,ival 
-             CALL EGETW(LOUTSTR,K,WORD,'W','entity name',IFLAG)
-             write(objvobjlist(nbobjvisobj,ibvo),'(a)')
-     &         WORD(1:lnblnk(WORD))
-            enddo  ! ibvo
+          if(nbobjvisobj+1.gt.MOMVB) goto 73
+          nbobjvisobj=nbobjvisobj+1
+          CALL EGETW(LOUTSTR,K,WORD,'W','vis obj name',IFLAG)
+          objvobjname(nbobjvisobj)=WORD(1:12)
+          CALL EGETP(LOUTSTR,K,phrase,'W','vis obj desc',IFLAG)
+          write(objvobjdesc(nbobjvisobj),'(a)') 
+     &      phrase(1:lnblnk(phrase))
+          CALL EGETWI(LOUTSTR,K,ival,1,14,'F','nb vis entities',IER)
+          objnbvobjlist(nbobjvisobj)=ival
+          do ibvo = 1,ival 
+           CALL EGETW(LOUTSTR,K,WORD,'W','entity name',IFLAG)
+           write(objvobjlist(nbobjvisobj,ibvo),'(a)')
+     &       WORD(1:lnblnk(WORD))
+          enddo  ! ibvo
 C Debug.
 C            write(6,*) 'vis obj ',nbobjvisobj,ival,
 C     &        objvobjname(nbobjvisobj),objvobjdesc(nbobjvisobj),
 C     &        objvobjlist(nbobjvisobj,1),objvobjlist(nbobjvisobj,2)
-            goto 73
-          elseif(phrase(1:11).eq.'*end_visual')then
-            goto 62
-          endif
-
-          goto 62   ! not recognised so jump
-
-        elseif(WORD(1:22).eq.'*zone_viewfactor_start')then
-
-C << to be done >> 
-          goto 62
-        elseif(WORD(1:24).eq.'*sensor_viewfactor_start')then
-
-C  << to be done >>
-          goto 62
-        elseif(WORD(1:24).eq.'*sensor_viewfactor_start')then
-
-C  << to be done >>
-        else
-
-C Fall through position. Warn and loop back to see if more.
-          write(outs,'(2a)') ' Unknown tag in geometry file ',word
-          call edisp(iuout,outs)
+          goto 73
+        elseif(phrase(1:11).eq.'*end_visual')then
           goto 62
         endif
+
+        goto 62   ! not recognised so jump
+      else
+
+C Fall through position. Warn and loop back to see if more.
+        write(outs,'(2a)') ' Unknown tag in geometry file ',word
+        call edisp(iuout,outs)
+        goto 62
+      endif
 
 C << to this point in the logic... >>
 
@@ -1919,7 +2058,7 @@ C << data structure needed for *mzitem QA >>
       character outs2*144,outsd*144
       integer lno     ! length of optics name
 
-      logical hasmass,hasbound,hasvis,odd
+      logical hasmass,hasbound,hasvis,odd,haveuse,haveoth
 
       tab=','    ! make the separator a comma.
 
@@ -1977,7 +2116,7 @@ C If act is QA then generate report.
              WRITE(outs,'(a,3F11.4)',IOSTAT=ios,ERR=13)'*vertex ',
      &         vertmass(I,1),vertmass(I,2),vertmass(I,3)
              call edisp(iuout,outs)
-            ENDDO
+           ENDDO
         else
           MNULEN=(nbvertmass/2)
           DO K=1,MNULEN
@@ -2041,7 +2180,6 @@ C If act is QA then generate report.
           enddo  ! of ib
         endif
 
-C << adapt to support more complex edge lists? >>
         if(nbbedge.gt.0)then
           WRITE(outs,'(a,12I3)',IOSTAT=ios,ERR=13)'Bounding edges:',
      &      (edgejvn(J),J=1,nbbedge)
@@ -2081,7 +2219,6 @@ C << adapt to support more complex edge lists? >>
       elseif(ACT(1:2).eq.'EX')then
 
 C If act is EX then export a block of text.
-C << make variant for *mzitem >>
         CALL EFOPSEQ(IFILG,ASCIIF,4,IER)
         write(ifilg,'(a)',IOSTAT=IOS,ERR=13) '# '
         write(ifilg,'(5a)') '*item,',objname(1:lnblnk(objname)),',',
@@ -2114,6 +2251,24 @@ C << make variant for *mzitem >>
         write(ifilg,'(a)') objnotes(1)
         write(ifilg,'(a)') '*End_text'
 
+C If bounding surface had use other than '-' add token and if
+C boundary is not UNKNOWN add token.
+        haveuse=.false.
+        haveoth=.false.
+        if(nbbound.gt.0)then
+          do ib=1,nbbound
+            if(bsuruse(ib,1)(1:1).ne.'-') haveuse=.true.
+            if(bsuroth(ib)(1:7).ne.'UNKNOWN') haveoth=.true.
+          enddo
+          if(haveuse.and.haveoth)then
+            write(ifilg,'(a)') '*includes USE OTHER'
+          elseif(.NOT.haveoth.and.haveuse)then
+            write(ifilg,'(a)') '*includes USE'
+          elseif(.NOT.haveuse.and.haveoth)then
+            write(ifilg,'(a)') '*includes OTHER'
+          endif
+        endif
+
 C Write vertices with minimal white space comma separated.
         write(ifilg,'(a)',IOSTAT=IOS,ERR=13) '# '
         DO I = 1,nbvertmass
@@ -2125,7 +2280,6 @@ C Write vertices with minimal white space comma separated.
         ENDDO
 
 C If there are mass surfaces write.
-C << adapt to support more complex mass surface edge lists? >>
         if(nbmass.gt.0)then
           write(ifilg,'(a)',IOSTAT=IOS,ERR=13) '# '
           do ib=1,nbmass
@@ -2141,19 +2295,57 @@ C << adapt to support more complex mass surface edge lists? >>
           enddo
         endif
 
-C If there are boundary surface write. << limit to number of edges! >>
+C If there are boundary surface write. First check if any have USE atributes.
         if(nbbound.gt.0)then
           write(ifilg,'(a)',IOSTAT=IOS,ERR=13) '# '
           do ib=1,nbbound
             lnsm=lnblnk(bsurmat(ib))
             lnsn=lnblnk(bsurname(ib))
             lnopt=lnblnk(bsuropt(ib))
-            WRITE(outs,'(8a,i2,a,32i3)',IOSTAT=ios,ERR=13)
-     &        '*surf',tab,bsurname(ib)(1:lnsn),tab,
-     &        bsurmat(ib)(1:lnsm),tab,bsuropt(ib)(1:lnopt),
-     &        tab,nbboundv(ib),tab,(boundjvn(ib,J),J=1,nbboundv(ib))
-            write(ifilg,'(2a,i3)',IOSTAT=IOS,ERR=13) 
-     &        outs(1:lnblnk(outs)),'  # ',ib
+            lnoth=lnblnk(bsuroth(ib))
+            if(haveuse)then
+              lnuse1=lnblnk(bsuruse(ib,1))
+              lnuse2=lnblnk(bsuruse(ib,2))
+              if(haveoth)then
+                WRITE(outs,'(14a,i3,a,i3,a,i2,a,32i3)',IOSTAT=ios,
+     &            ERR=13)
+     &           '*surf',tab,bsurname(ib)(1:lnsn),tab,
+     &           bsuruse(ib,1)(1:lnuse1),tab,bsuruse(ib,2)(1:lnuse2),
+     &           tab,bsurmat(ib)(1:lnsm),tab,bsuropt(ib)(1:lnopt),
+     &           tab,bsuroth(ib)(1:lnoth),tab,boundoth(ib,1),tab,
+     &           boundoth(ib,2),tab,nbboundv(ib),tab,
+     &           (boundjvn(ib,J),J=1,nbboundv(ib))
+                write(ifilg,'(2a,i3)',IOSTAT=IOS,ERR=13) 
+     &           outs(1:lnblnk(outs)),'  # ',ib
+              else
+                WRITE(outs,'(12a,i2,a,32i3)',IOSTAT=ios,ERR=13)
+     &           '*surf',tab,bsurname(ib)(1:lnsn),tab,
+     &           bsuruse(ib,1)(1:lnuse1),tab,bsuruse(ib,2)(1:lnuse2),
+     &           tab,bsurmat(ib)(1:lnsm),tab,bsuropt(ib)(1:lnopt),
+     &           tab,nbboundv(ib),tab,(boundjvn(ib,J),J=1,nbboundv(ib))
+                write(ifilg,'(2a,i3)',IOSTAT=IOS,ERR=13) 
+     &           outs(1:lnblnk(outs)),'  # ',ib
+              endif
+            else
+              if(haveoth)then
+                WRITE(outs,'(10a,i3,a,i3,a,i2,a,32i3)',IOSTAT=ios,
+     &            ERR=13)
+     &           '*surf',tab,bsurname(ib)(1:lnsn),tab,
+     &           bsurmat(ib)(1:lnsm),tab,bsuropt(ib)(1:lnopt),
+     &           tab,bsuroth(ib)(1:lnoth),tab,boundoth(ib,1),tab,
+     7           boundoth(ib,2),tab,nbboundv(ib),tab,
+     &           (boundjvn(ib,J),J=1,nbboundv(ib))
+                write(ifilg,'(2a,i3)',IOSTAT=IOS,ERR=13) 
+     &           outs(1:lnblnk(outs)),'  # ',ib
+              else
+                WRITE(outs,'(8a,i2,a,32i3)',IOSTAT=ios,ERR=13)
+     &           '*surf',tab,bsurname(ib)(1:lnsn),tab,
+     &           bsurmat(ib)(1:lnsm),tab,bsuropt(ib)(1:lnopt),
+     &           tab,nbboundv(ib),tab,(boundjvn(ib,J),J=1,nbboundv(ib))
+                write(ifilg,'(2a,i3)',IOSTAT=IOS,ERR=13) 
+     &           outs(1:lnblnk(outs)),'  # ',ib
+              endif
+            endif
           enddo  ! of ib
         endif
 
@@ -2354,6 +2546,8 @@ C Read tag-data version of predefined objects file item into commons.
       character WORD*24,phrase*32
       logical CONT,foundit
       logical iszone    ! set true if working with mzitem
+      logical haveuse,haveoth          
+
       integer loop  ! for looping
       real verpre     ! version of file
       real VAL,VAL1,VX,VY,VZ
@@ -2366,7 +2560,7 @@ C Open the file.
         call edisp(IUOUT,'Warning: filename was blank')
         CALL ERPFREE(IFA,ISTAT)
         return
-      ELSEIF(IER.NE.0.AND.IER.NE.-301) THEN
+      elseif(IER.NE.0.AND.IER.NE.-301) then
         WRITE(OUTS,'(3A)')
      &    ' Problem opening ',LASCI(1:LNBLNK(LASCI)),'.'
         call edisp(IUOUT,outs)
@@ -2375,7 +2569,9 @@ C Open the file.
       endif
       write(currentfile,'(a)') LASCI(1:lnblnk(LASCI))
       foundit=.false.
-      iszone=.false.  ! assume not a multi-zone item
+      iszone=.false.  ! Assume not a multi-zone item.
+      haveuse=.false. ! Assume zone bounding surface USE not included.
+      haveoth=.false.
 
 C Clear common blocks prior to reading new object.
       call clearobjcommons()
@@ -2478,9 +2674,22 @@ C Located the object requested.
         continue  ! look for more key words
       elseif(WORD(1:9).EQ.'*includes')then
 
-C Check topics included. << work to be done >>
+C Check topics included.
         if(foundit)then
-
+          CALL EGETW(LOUTSTR,K,WORD,'W','USE included',IER)
+          if(WORD(1:3).eq.'USE')then
+            haveuse=.true.
+          elseif(WORD(1:5).eq.'OTHER')then
+            haveoth=.true.
+          endif
+          if(ND.gt.2)then
+            CALL EGETW(LOUTSTR,K,WORD,'W','USE included',IER)
+            if(WORD(1:3).eq.'USE')then
+              haveuse=.true.
+            elseif(WORD(1:5).eq.'OTHER')then
+              haveoth=.true.
+            endif
+          endif
         endif
         continue  ! look for more key words
       elseif(WORD(1:8).EQ.'*sourced')then
@@ -2492,12 +2701,23 @@ C Check topics included. << work to be done >>
       elseif(WORD(1:7).EQ.'*origin')then
 
 C Read origin.
-        CALL EGETWR(LOUTSTR,K,VAL,0.0,999.,'W','org X',IER)
+        CALL EGETWR(LOUTSTR,K,VAL,-99.0,999.,'W','org X',IER)
         if(foundit)objorg(1)=VAL
-        CALL EGETWR(LOUTSTR,K,VAL,0.0,999.,'W','org Y',IER)
+        CALL EGETWR(LOUTSTR,K,VAL,-99.0,999.,'W','org Y',IER)
         if(foundit)objorg(2)=VAL
-        CALL EGETWR(LOUTSTR,K,VAL,0.0,999.,'W','org Z',IER)
+        CALL EGETWR(LOUTSTR,K,VAL,-99.0,999.,'W','org Z',IER)
         if(foundit)objorg(3)=VAL
+        IF(IER.NE.0) CONT=.FALSE.
+        continue  ! look for more key words
+      elseif(WORD(1:7).EQ.'*offset')then
+
+C Read offset (optional).
+        CALL EGETWR(LOUTSTR,K,VAL,-99.0,999.,'W','offset X',IER)
+        if(foundit)objoffset(1)=VAL
+        CALL EGETWR(LOUTSTR,K,VAL,-99.0,999.,'W','offset Y',IER)
+        if(foundit)objoffset(2)=VAL
+        CALL EGETWR(LOUTSTR,K,VAL,-99.0,999.,'W','offset Z',IER)
+        if(foundit)objoffset(3)=VAL
         IF(IER.NE.0) CONT=.FALSE.
         continue  ! look for more key words
       elseif(WORD(1:13).EQ.'*bounding_box')then
@@ -2513,14 +2733,14 @@ C Bounding box of the object.
         continue  ! look for more key words
       elseif(WORD(1:7).EQ.'*vertex')then
 
-C Remember vertices associated with mass and add transform.
+C Remember asociated vertices and add transform.
         if(foundit)then
           nbvertmass=nbvertmass+1
-          CALL EGETWR(LOUTSTR,K,VAL,0.0,999.,'W','mass X',IER)
+          CALL EGETWR(LOUTSTR,K,VAL,-99.0,999.,'W','mass X',IER)
           vertmass(nbvertmass,1)=VAL
-          CALL EGETWR(LOUTSTR,K,VAL,0.0,999.,'W','mass Y',IER)
+          CALL EGETWR(LOUTSTR,K,VAL,-99.0,999.,'W','mass Y',IER)
           vertmass(nbvertmass,2)=VAL
-          CALL EGETWR(LOUTSTR,K,VAL,0.0,999.,'W','mass Z',IER)
+          CALL EGETWR(LOUTSTR,K,VAL,-99.0,999.,'W','mass Z',IER)
           vertmass(nbvertmass,3)=VAL
           IF(IER.NE.0) CONT=.FALSE.
         endif
@@ -2560,11 +2780,11 @@ C Keep track of zones so can be appended to the existing model zones.
           CALL EGETW(LOUTSTR,K,WORD,'W','zone name',IER)
           CALL EGETW(LOUTSTR,K,WORD,'W','air or water',IER)
           CALL EGETP(LOUTSTR,K,phrase,'W','description',IER)
-C << TODO data structures >>
         endif
       elseif(WORD(1:5).EQ.'*surf')then
 
-C Remember boundary surface definitions.
+C Remember boundary surface definitions. If any have a USE defined then
+C read two additional attributes need to be scanned.
         if(foundit)then
           nbbound=nbbound+1
           if(iszone)then
@@ -2573,6 +2793,12 @@ C Remember boundary surface definitions.
           WORD='            ' 
           CALL EGETW(LOUTSTR,K,WORD,'W','surf name',IER)
           write(bsurname(nbbound),'(a)') WORD(1:lnblnk(WORD))
+          if(haveuse)then
+            CALL EGETW(LOUTSTR,K,WORD,'W','surf USE 1',IER)
+            write(bsuruse(nbbound,1),'(a)') WORD(1:lnblnk(WORD))
+            CALL EGETW(LOUTSTR,K,WORD,'W','surf USE 2',IER)
+            write(bsuruse(nbbound,2),'(a)') WORD(1:lnblnk(WORD))
+          endif
           CALL EGETP(LOUTSTR,K,phrase,'W','surf mat',IER)
           write(bsurmat(nbbound),'(a)') phrase(1:lnblnk(phrase))
           CALL EGETW(LOUTSTR,K,WORD,'W','surf optics',IER)
@@ -2580,6 +2806,14 @@ C Remember boundary surface definitions.
           if(iszone)then
             CALL EGETW(LOUTSTR,K,WORD,'W','other zone name',IER)
             CALL EGETW(LOUTSTR,K,WORD,'W','other surf name',IER)
+          endif
+          if(haveoth)then
+            CALL EGETW(LOUTSTR,K,WORD,'W','surf other',IER)
+            write(bsuroth(nbbound),'(a)') WORD(1:lnblnk(WORD))
+            CALL EGETWI(LOUTSTR,K,iv,-9,99,'W','ioth 1',IER)
+            boundoth(nbbound,1)=iv
+            CALL EGETWI(LOUTSTR,K,iv,-9,99,'W','ioth 2',IER)
+            boundoth(nbbound,2)=iv
           endif
           CALL EGETWI(LOUTSTR,K,iv,3,MV,'F','nb assoc v',IER)
           nbboundv(nbbound)=iv
@@ -2601,6 +2835,47 @@ C Facade objects might have edges for use with parent surface.
           edgejvn(loop)=iv
         enddo
         continue  ! look for more key words
+      elseif(WORD(1:4).EQ.'*obs')then
+
+C Simple obstruction entity with only one rotation.
+        if(foundit)then
+          objnbobs=objnbobs+1
+          CALL EGETWR(LOUTSTR,K,VX,-999.,998.,'W','obs X org',IER)
+          CALL EGETWR(LOUTSTR,K,VY,-999.,998.,'W','obs Y org',IER)
+          CALL EGETWR(LOUTSTR,K,VZ, -99., 99.,'W','obs Z org',IER)
+          objxob(objnbobs)=VX
+          objyob(objnbobs)=VY
+          objzob(objnbobs)=VZ
+
+          CALL EGETWR(LOUTSTR,K,VX,0.,150.,'W','obj X dis',IER)
+          CALL EGETWR(LOUTSTR,K,VY,0.,150.,'W','obj Y dis',IER)
+          CALL EGETWR(LOUTSTR,K,VZ,0.,150.,'W','obj Z dis',IER)
+          OBJDXOB(objnbobs)=VX
+          OBJDYOB(objnbobs)=VY
+          OBJDZOB(objnbobs)=VZ
+
+          CALL EGETWR(LOUTSTR,K,VX,-359.,359.,'W','obj rot ang a',IER)
+          objbangob(objnbobs,1)=VX
+          objbangob(objnbobs,2)=0.0
+          objbangob(objnbobs,3)=0.0
+          CALL EGETWR(LOUTSTR,K,VX,0.,1.,'W','vis opacity',IER)
+          objvisopaq(objnbobs)=VX
+          if(iszone)then
+            CALL EGETW(LOUTSTR,K,WORD,'W','obs blk zone name',IFLAG)
+          endif
+          WORD='            ' 
+          CALL EGETW(LOUTSTR,K,WORD,'W','vis blk name',IFLAG)
+
+C Remember the name.
+          write(OBJBLOCKNAME(objnbobs),'(a)') WORD(1:lnblnk(WORD))
+
+C The name of the material might contain spaces so use EGETP.
+          CALL EGETP(LOUTSTR,K,phrase,'W','vis mat name',IFLAG)
+          write(OBJBLOCKMAT(objnbobs),'(a)') phrase(1:lnblnk(phrase))
+          objblocktyp(objnbobs)='obj '
+          IF(IER.NE.0) CONT=.FALSE.
+        endif
+        continue  ! look for more key words
       elseif(WORD(1:5).EQ.'*visp')then
 
 C Scan visp definition and instantiate model entity.
@@ -2612,7 +2887,6 @@ C Scan visp definition and instantiate model entity.
           objvisopaq(nbobjvis)=VX
           if(iszone)then
             CALL EGETW(LOUTSTR,K,WORD,'W','vis blk zone name',IFLAG)
-C << data structure >>
           endif
           WORD='            ' 
           CALL EGETW(LOUTSTR,K,WORD,'W','vis blk name',IFLAG)
@@ -2715,7 +2989,6 @@ C Even if we are not focused on it need to jump 2 lines.
           objvisopaq(nbobjvis)=VX
           if(iszone)then
             CALL EGETW(LOUTSTR,K,WORD,'W','vis blk zone name',IFLAG)
-C << data structure >>
           endif
           WORD='            ' 
           CALL EGETW(LOUTSTR,K,WORD,'W','vis blk name',IFLAG)
@@ -2756,7 +3029,6 @@ C Visual entity with only one rotation.
           objvisopaq(nbobjvis)=VX
           if(iszone)then
             CALL EGETW(LOUTSTR,K,WORD,'W','vis blk zone name',IFLAG)
-C << data structure >>
           endif
           WORD='            ' 
           CALL EGETW(LOUTSTR,K,WORD,'W','vis blk name',IFLAG)
@@ -2833,6 +3105,7 @@ C Clear predefined object variables.
       enddo
       objorg(1)=0.0; objorg(2)=0.0; objorg(3)=0.0
       objbnds(1)=0.0; objbnds(2)=0.0; objbnds(3)=0.0
+      objoffset(1)=0.0; objoffset(2)=0.0; objoffset(3)=0.0
       nbvertmass=0; nbmass=0; nbmassv=0; nbbound=0
       nbobjvis=0; nbobjvisobj=0; objnbobs=0
       nbbedge=0
@@ -2848,6 +3121,9 @@ C Clear predefined object variables.
       do loop=1,MOBS
         bsurname(loop)=' '; bsurmat(loop)=' '
         bsuropt(loop)=' '; nbboundv(loop)=0
+        bsuruse(loop,1)='-'; bsuruse(loop,2)='-' 
+        bsuroth(loop)='UNKNOWN'; boundoth(loop,1)=0
+        boundoth(loop,1)=0
       enddo
       do loop=1,MOMB
         objvisname(loop)=' '; objvismat(loop)=' '

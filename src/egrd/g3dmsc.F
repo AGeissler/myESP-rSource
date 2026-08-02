@@ -100,6 +100,8 @@ C *********************************************************************
       COMMON/gzonpik/izgfoc,nzg,nznog(mcom)
       COMMON/grdgrph/IIDRW1,IIDRW2
 
+      logical focussname
+
       if (IDRW1.eq.-1 .and. IDRW2.eq.-1) then
         IDRW1=IIDRW1; IDRW2=IIDRW2
       else
@@ -118,7 +120,9 @@ C *********************************************************************
   10    CONTINUE
         CALL INLNST(1)
         izgfoc=0
-        CALL ADJVIEW(IER)
+C        CALL ADJVIEW(IER)
+        focussname=.false.
+        CALL CADJVIEW(focussname,IER)
       ELSEIF(IDRW1.EQ.2)THEN
         CALL startbuffer()
         MODIFYVIEW=.TRUE.
@@ -128,7 +132,9 @@ C *********************************************************************
         nznog(1)=IDRW2
         izgfoc=IDRW2
         CALL INLNST(1)
-        CALL ADJVIEW(IER)
+C        CALL ADJVIEW(IER)
+        focussname=.false.
+        CALL CADJVIEW(focussname,IER)
       ELSEIF(IDRW1.EQ.3)THEN
         CALL DRWSRF(IDRW2)
       ELSEIF(IDRW1.EQ.4)THEN
@@ -184,13 +190,13 @@ C SUPORT displays the multi-D gridding support facilities menu.
         BFLNDC=L3DNDC(IZ)
       ENDIF
       FLTMP=BFLCVS(1:65)
-      WRITE(AFLCVS,'(A,A6)')FLTMP(1:lnblnk(FLTMP)),'_ASCII'
+      WRITE(AFLCVS,'(A,A)')FLTMP(1:lnblnk(FLTMP)),'_ASCII'
       FLTMP=BFLCNC(1:65)
-      WRITE(AFLCNC,'(A,A6)')FLTMP(1:lnblnk(FLTMP)),'_ASCII'
+      WRITE(AFLCNC,'(A,A)')FLTMP(1:lnblnk(FLTMP)),'_ASCII'
       FLTMP=BFLTAQ(1:65)
-      WRITE(AFLTAQ,'(A,A6)')FLTMP(1:lnblnk(FLTMP)),'_ASCII'
+      WRITE(AFLTAQ,'(A,A)')FLTMP(1:lnblnk(FLTMP)),'_ASCII'
       FLTMP=BFLNDC(1:65)
-      WRITE(AFLNDC,'(A,A6)')FLTMP(1:lnblnk(FLTMP)),'_ASCII'
+      WRITE(AFLNDC,'(A,A)')FLTMP(1:lnblnk(FLTMP)),'_ASCII'
    10 INO=-3
       ITEM(1)='1 Binary --> ASCII  ( control volumes )  '
       ITEM(2)='2 ASCII  --> Binary ( control volumes )  '
@@ -243,8 +249,8 @@ C Binary --> ASCII  ( control volumes ).
           WRITE(IU2,'(2I8,2G11.3)')NCV,ND,VOLM,DNHC
           GOTO 20
         ELSE
-          WRITE(IU2,'(A35,A12)')'      ICV    IND   VOLUME    DENS*',
-     &                'HC  IP1 IP2'
+          WRITE(IU2,'(A,A)')'      ICV    IND   VOLUME    DENS*',
+     &      'HC  IP1 IP2'
           NCV=0
    30     NCV=NCV+1
           READ(IU1,REC=NCV,IOSTAT=ISTAT,ERR=1)ND,VOLM,DNHC,ISF,IL
@@ -334,7 +340,7 @@ C Binary --> ASCII  ( connection file ).
         CALL EFOPSEQ(IU2,AFLCNC,4,IER)
         IF(IER.NE.0)GOTO 10
         WRITE(IU2,'(2A)')'     ICNC    ND1    DIST       AR',
-     &              'EA     COND    ITYP ISP1 ISP2'
+     &    'EA     COND    ITYP ISP1 ISP2'
         IC=0
    60   IC=IC+1
         READ(IU1,REC=IC,IOSTAT=ISTAT,ERR=1)
@@ -555,14 +561,14 @@ C For all surfaces.
         NVRTB(IS)=0
         NVRTD(IS)=0
         NVRTA(IS)=0
-        DO 20 IV=1,MVS
+        DO IV=1,MVS
           XVRT(IS,IV)=0.
           ZVRT(IS,IV)=0.
-   20   CONTINUE
-        DO 30 IL=1,MLS
+        ENDDO
+        DO IL=1,MLS
           ILINE(IS,IL,1)=0
           ILINE(IS,IL,2)=0
-   30   CONTINUE
+        ENDDO
    10 CONTINUE
 
 C For all edges.
@@ -573,13 +579,15 @@ C For all edges.
         ISFEDG(IEG,1)=0
         ISFEDG(IEG,2)=0
         NDZE(IEG)=1
-        DO 50 IDZ=1,MZE
+        DO IDZ=1,MZE
           DZE(IEG,IDZ)=0.
-   50   CONTINUE
+        ENDDO
         DO 60 IEZ=1,MZE
-        DO 60 IEX=1,ME
-        DO 60 IEY=1,ME
-          ITPEDG(IEG,IEX,IEY,IEZ)=23
+          DO IEX=1,ME
+            DO IEY=1,ME
+              ITPEDG(IEG,IEX,IEY,IEZ)=23
+            ENDDO
+          ENDDO
    60   CONTINUE
    40 CONTINUE
 
@@ -591,9 +599,11 @@ C For all corners.
         ISFCRN(ICR,2)=0
         ISFCRN(ICR,3)=0
         DO 90 IEZ=1,ME
-        DO 90 IEX=1,ME
-        DO 90 IEY=1,ME
-          ITPCRN(ICR,IEX,IEY,IEZ)=23
+          DO IEX=1,ME
+            DO IEY=1,ME
+              ITPCRN(ICR,IEX,IEY,IEZ)=23
+            ENDDO
+          ENDDO
    90   CONTINUE
    80 CONTINUE
 
@@ -601,37 +611,37 @@ C For all surface-surface connections.
       NUMSS=0
       DO 100 ISS=1,MSSZ
         INDXSS(ISS)=0
-        DO 110 I=1,4
+        DO I=1,2
           IBDYSS(ISS,I)=0
-  110   CONTINUE
+        ENDDO
         ILNBSS(ISS,1)=0
         ILNBSS(ISS,2)=0
         NDZSS(ISS)=0
-        DO 120 I=1,MZSS
+        DO I=1,MZSS
           DZSS(ISS,I)=0.
-  120   CONTINUE
+        ENDDO
         NDYSS(ISS)=0
-        DO 130 I=1,MYSS
+        DO I=1,MYSS
           DYSS(ISS,I)=0.
-  130   CONTINUE
+        ENDDO
   100 CONTINUE
 
 C For all surface-edge connections.
       NUMSE=0
       DO 150 ISE=1,MSEZ
         INDXSE(ISE)=0
-        DO 160 I=1,3
+        DO I=1,2
           IBDYSE(ISE,I)=0
-  160   CONTINUE
+        ENDDO
         ILNBSE(ISE)=0
         NDZSE(ISE)=0
-        DO 170 I=1,MZSE
+        DO I=1,MZSE
           DZSE(ISE,I)=0.
-  170   CONTINUE
+        ENDDO
         NDYSE(ISE)=0
-        DO 180 I=1,MYSE
+        DO I=1,MYSE
           DYSE(ISE,I)=0.
-  180   CONTINUE
+        ENDDO
   150 CONTINUE
 
 C For all edge-edge connections.
@@ -642,13 +652,13 @@ C For all edge-edge connections.
         IBDYEE(IEE,1)=0
         IBDYEE(IEE,2)=0
         NDXEE(IEE)=0
-        DO 210 I=1,MXEE
+        DO I=1,MXEE
           DXEE(IEE,I)=0.
-  210   CONTINUE
+        ENDDO
         NDYEE(IEE)=0
-        DO 220 I=1,MYEE
+        DO I=1,MYEE
           DYEE(IEE,I)=0.
-  220   CONTINUE
+        ENDDO
   200 CONTINUE
 
 C For all edge-corner connections.
@@ -659,13 +669,13 @@ C For all edge-corner connections.
         IBDYEC(IEC,1)=0
         IBDYEC(IEC,2)=0
         NDXEC(IEC)=0
-        DO 260 I=1,MXEC
+        DO I=1,MXEC
           DXEC(IEC,I)=0.
-  260   CONTINUE
+        ENDDO
         NDYEC(IEC)=0
-        DO 270 I=1,MYEC
+        DO I=1,MYEC
           DYEC(IEC,I)=0.
-  270   CONTINUE
+        ENDDO
   250 CONTINUE
 
       RETURN
@@ -703,9 +713,9 @@ C *********************************************************************
 C Define the surface-surface connections.
         DO 20 IS2=IS1+1,NSUR
           DELTA=0.
-          DO 30 I123=1,3
-            DELTA=DELTA+ABS(DCOSS(IS2,2,I123)-DCOSS(IS1,2,I123))
-   30     CONTINUE
+          DO IJ=1,3
+            DELTA=DELTA+ABS(DCOSS(IS2,2,IJ)-DCOSS(IS1,2,IJ))
+          ENDDO
 
 C The two surfaces are not in the same plane (bypass).
           IF(DELTA.GT.0.01)GOTO 20
@@ -727,16 +737,16 @@ C The two surfaces are in the same plane. Check if they are adjacent.
                 ILNBSS(NUMSS,2)=-IL2
                 IVRTSS(NUMSS,1)=IV11
                 IVRTSS(NUMSS,2)=IV12
-                DO 60 I123=1,3
-                  YNORM(I123)=DCOSS(IS1,2,I123)
+                DO 60 IJ=1,3
+                  YNORM(IJ)=DCOSS(IS1,2,IJ)
    60           CONTINUE
                 CALL LINORM(IV11,IV12,ZNORM)
                 CALL CROSS(YNORM,ZNORM,XNORM)
                 DIST=SQRT(XNORM(1)**2+XNORM(2)**2+XNORM(3)**2)
-                DO 55 I123=1,3
-                  DCOSSS(NUMSS,1,I123)=XNORM(I123)/DIST
-                  DCOSSS(NUMSS,2,I123)=YNORM(I123)
-                  DCOSSS(NUMSS,3,I123)=ZNORM(I123)
+                DO 55 IJ=1,3
+                  DCOSSS(NUMSS,1,IJ)=XNORM(IJ)/DIST
+                  DCOSSS(NUMSS,2,IJ)=YNORM(IJ)
+                  DCOSSS(NUMSS,3,IJ)=ZNORM(IJ)
    55           CONTINUE
                 GOTO 40
               ENDIF
@@ -755,16 +765,16 @@ C Define the surface-edge connections.
                IBDYSE(NUMSE,1)=IS1
                IBDYSE(NUMSE,2)=IEG
                ILNBSE(NUMSE)=IL
-               DO 65 I123=1,3
-                 YNORM(I123)=DCOSS(IS1,2,I123)
-                 ZNORM(I123)=DCOSE(IEG,3,I123)
+               DO 65 IJ=1,3
+                 YNORM(IJ)=DCOSS(IS1,2,IJ)
+                 ZNORM(IJ)=DCOSE(IEG,3,IJ)
    65          CONTINUE
                CALL CROSS(YNORM,ZNORM,XNORM)
                DIST=SQRT(XNORM(1)**2+XNORM(2)**2+XNORM(3)**2)
-               DO 75 I123=1,3
-                 DCOSSE(NUMSE,1,I123)=XNORM(I123)/DIST
-                 DCOSSE(NUMSE,2,I123)=YNORM(I123)
-                 DCOSSE(NUMSE,3,I123)=ZNORM(I123)
+               DO 75 IJ=1,3
+                 DCOSSE(NUMSE,1,IJ)=XNORM(IJ)/DIST
+                 DCOSSE(NUMSE,2,IJ)=YNORM(IJ)
+                 DCOSSE(NUMSE,3,IJ)=ZNORM(IJ)
    75          CONTINUE
                GOTO 70
             ELSEIF(ILINB(IS1,IL,1).EQ.IVXEDG(IEG,2).AND.
@@ -775,16 +785,16 @@ C Define the surface-edge connections.
                IBDYSE(NUMSE,1)=IS1
                IBDYSE(NUMSE,2)=IEG
                ILNBSE(NUMSE)=-IL
-               DO 66 I123=1,3
-                 YNORM(I123)=DCOSS(IS1,2,I123)
-                 ZNORM(I123)=DCOSE(IEG,3,I123)
+               DO 66 IJ=1,3
+                 YNORM(IJ)=DCOSS(IS1,2,IJ)
+                 ZNORM(IJ)=DCOSE(IEG,3,IJ)
    66          CONTINUE
                CALL CROSS(YNORM,ZNORM,XNORM)
                DIST=SQRT(XNORM(1)**2+XNORM(2)**2+XNORM(3)**2)
-               DO 77 I123=1,3
-                 DCOSSE(NUMSE,1,I123)=XNORM(I123)/DIST
-                 DCOSSE(NUMSE,2,I123)=YNORM(I123)
-                 DCOSSE(NUMSE,3,I123)=ZNORM(I123)
+               DO 77 IJ=1,3
+                 DCOSSE(NUMSE,1,IJ)=XNORM(IJ)/DIST
+                 DCOSSE(NUMSE,2,IJ)=YNORM(IJ)
+                 DCOSSE(NUMSE,3,IJ)=ZNORM(IJ)
    77          CONTINUE
                GOTO 70
             ENDIF
@@ -796,22 +806,27 @@ C Define the edge-edge connections.
       DO 90 IEG1=1,NUMEDG-1
         IV11=IVXEDG(IEG1,1)
         IV12=IVXEDG(IEG1,2)
-      DO 90 IEG2=IEG1+1,NUMEDG
-        IV21=IVXEDG(IEG2,1)
-        IV22=IVXEDG(IEG2,2)
-        IF(IV11.EQ.IV21)THEN
-          CALL NEDEDG(-1,IEG1,IEG2,IV12,IV11,IV22,NUM)
-        ELSEIF(IV11.EQ.IV22)THEN
-          CALL NEDEDG(1,IEG1,IEG2,IV21,IV22,IV12,NUM)
-        ELSEIF(IV12.EQ.IV21)THEN
-          CALL NEDEDG(1,IEG1,IEG2,IV11,IV12,IV22,NUM)
-        ELSEIF(IV12.EQ.IV22)THEN
-          CALL NEDEDG(-1,IEG1,IEG2,IV11,IV12,IV21,NUM)
-        ENDIF
-        DO 95 IXYZ=1,3
-        DO 95 I123=1,3
-          DCOSEE(NUM,IXYZ,I123)=DCOSE(IEG1,IXYZ,I123)
-   95   CONTINUE
+        DO IEG2=IEG1+1,NUMEDG
+C          NUMEE=NUMEE+1   ! ?? is this necessary ??
+          IV21=IVXEDG(IEG2,1)
+          IV22=IVXEDG(IEG2,2)
+          IF(IV11.EQ.IV21)THEN
+            CALL NEDEDG(-1,IEG1,IEG2,IV12,IV11,IV22,NUM)
+          ELSEIF(IV11.EQ.IV22)THEN
+            CALL NEDEDG(1,IEG1,IEG2,IV21,IV22,IV12,NUM)
+          ELSEIF(IV12.EQ.IV21)THEN
+            CALL NEDEDG(1,IEG1,IEG2,IV11,IV12,IV22,NUM)
+          ELSEIF(IV12.EQ.IV22)THEN
+            CALL NEDEDG(-1,IEG1,IEG2,IV11,IV12,IV21,NUM)
+          ENDIF
+          if(NUM.gt.0)then    ! Trap NUM returned as zero.
+            DO IXYZ=1,3
+              DO J=1,3
+                DCOSEE(NUM,IXYZ,J)=DCOSE(IEG1,IXYZ,J)
+              ENDDO
+            ENDDO
+          endif
+        ENDDO
    90 CONTINUE
 
 C Define the edge-corner connections.
@@ -828,10 +843,11 @@ C Define the three edges connected to this corner.
      &  STOP "error (504): maximum number of edge-crn exceeded."
         IVRTEC(NUMEC)=IV1
         IBDYEC(NUMEC,1)=IEG
-        DO 105 IXYZ=1,3
-        DO 105 I123=1,3
-          DCOSEC(NUMEC,IXYZ,I123)=DCOSE(IEG,IXYZ,I123)
-  105   CONTINUE
+        DO IXYZ=1,3
+          DO IJ=1,3
+            DCOSEC(NUMEC,IXYZ,IJ)=DCOSE(IEG,IXYZ,IJ)
+          ENDDO
+        ENDDO
         IF(IS3.EQ.ISFEDG(IEG,1))THEN
           IBDYEC(NUMEC,2)=-ICR
         ELSEIF(IS2.EQ.ISFEDG(IEG,1))THEN
@@ -845,10 +861,11 @@ C Define the three edges connected to this corner.
      &  STOP "error (506): maximum number of edge-crn exceeded."
         IVRTEC(NUMEC)=IV1
         IBDYEC(NUMEC,1)=IEG
-        DO 106 IXYZ=1,3
-        DO 106 I123=1,3
-          DCOSEC(NUMEC,IXYZ,I123)=DCOSE(IEG,IXYZ,I123)
-  106   CONTINUE
+        DO IXYZ=1,3
+          DO IJ=1,3
+            DCOSEC(NUMEC,IXYZ,IJ)=DCOSE(IEG,IXYZ,IJ)
+          ENDDO
+        ENDDO
         IF(IS1.EQ.ISFEDG(IEG,1))THEN
           IBDYEC(NUMEC,2)=-ICR
         ELSEIF(IS3.EQ.ISFEDG(IEG,1))THEN
@@ -862,10 +879,11 @@ C Define the three edges connected to this corner.
      &  STOP "error (508): maximum number of edge-crn exceeded."
         IVRTEC(NUMEC)=IV1
         IBDYEC(NUMEC,1)=IEG
-        DO 107 IXYZ=1,3
-        DO 107 I123=1,3
-          DCOSEC(NUMEC,IXYZ,I123)=DCOSE(IEG,IXYZ,I123)
-  107   CONTINUE
+        DO IXYZ=1,3
+          DO IJ=1,3
+            DCOSEC(NUMEC,IXYZ,IJ)=DCOSE(IEG,IXYZ,IJ)
+          ENDDO
+        ENDDO
         IF(IS2.EQ.ISFEDG(IEG,1))THEN
           IBDYEC(NUMEC,2)=-ICR
         ELSEIF(IS1.EQ.ISFEDG(IEG,1))THEN
@@ -911,8 +929,8 @@ C Define the srf-edg connections internal and external indentations.
         DO 40 IS2=1,NSUR
           IF(IS1.NE.IS2)THEN
             DELTA=0.
-            DO 50 I123=1,3
-              DELTA=DELTA+ABS(DCOSS(IS2,2,I123)-DCOSS(IS1,2,I123))
+            DO 50 IJ=1,3
+              DELTA=DELTA+ABS(DCOSS(IS2,2,IJ)-DCOSS(IS1,2,IJ))
    50       CONTINUE
 
 C The two surfaces are in the same plane.
@@ -932,6 +950,7 @@ C *********************************************************************
       SUBROUTINE CHCK3D(IWRNG,IERRR)
 #include "building.h"
 
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/GR3D01/INDXS(MS),THKS(MS),DCOSS(MS,3,3)
       COMMON/GR3D06/INDXSS(MSSZ),INDXSE(MSEZ),INDXEE(MEEZ),INDXEC(MECZ)
       COMMON/GR3D07/Y0S(MS),Y0SS(MSSZ),Y0SE(MSEZ)

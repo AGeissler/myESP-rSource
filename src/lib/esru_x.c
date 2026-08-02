@@ -1327,22 +1327,23 @@ int len;
    the pixel coordinates of the upper left and lower right corners. */
 
 /* note that this call does not restore the image under the bitmap. */
-void winlodpart_(name,lreqx,lreqy,lreqwidth,lreqheight,lix,liy,boxulx,boxuly,boxlrx,boxlry,len)
+void winlodpart_(name,lreqx,lreqy,lreqwidth,lreqheight,lix,liy,boxulx,boxuly,boxlrx,boxlry,lc,len)
 char *name;
 long int *lreqx, *lreqy, *lreqwidth, *lreqheight, *lix, *liy;
 long int *boxulx, *boxuly, *boxlrx, *boxlry;
+long int *lc;  /* interface grey level */
 int len;
 {
  Pixmap exbit,logobit,underit; /* bitmap from data, pixmap of logo, area under */
  long int ilreqx,ilreqy,ilreqwidth,ilreqheight;
- long int iupx,iupy;
+ long int iupx,iupy,ic;
  box gmenubx;
  int ilen,x_hot,y_hot,result;
  unsigned int iwidth,iheight;
  char name2[80];
  FILE *bf;
  ilreqx=*lreqx; ilreqy=*lreqy; ilreqwidth=*lreqwidth; ilreqheight=*lreqheight;
- iupx = *lix; iupy = *liy;
+ iupx = *lix; iupy = *liy; ic=*lc;
 /*
  * Terminate at fortran length, find actual string length and then reterminate.
  */
@@ -1358,6 +1359,10 @@ int len;
  // fprintf(stderr,"result of XReadBitmapFile %d %u %u %ld %ld\n",result,iwidth,iheight,iupx,iupy);
 
  XSetForeground(theDisp,theGC,black);
+ if (ic == 5) XSetForeground(theDisp,theGC,grey50);
+ if (ic == 6) XSetForeground(theDisp,theGC,grey43);
+ if (ic == 7) XSetForeground(theDisp,theGC,black);
+ if (ic == 8) XSetForeground(theDisp,theGC,white);
  XSetBackground(theDisp,theGC,white);
 
 /* there are several permutations of sizes of bitmap and copy origin and
@@ -6991,6 +6996,8 @@ void etplot_(ux,uy,updown,sym)
       edline_(&lx1,&ly1,&lx2,&ly2,&ipdis);          /* dotted line      */
   } else if ((iupd < -301 && iupd > -400)) {
       edwline_(&lx1,&ly1,&lx2,&ly2);                /* thick line       */
+  } else if ((iupd < -401 && iupd > -500)) {
+      etwline_(&lx1,&ly1,&lx2,&ly2);                /* tripple line     */
   }
 
 /* Symbol plotting */
@@ -7119,6 +7126,47 @@ void drawdwl(xa,ya,xb,yb)
   XDrawLine(theDisp,win,theGC,xa,ya,xb,yb);
   return;
 }
+
+
+/* *************** ESRU tripple width line to file. *************** */
+/*
+ Writes etwline attributes to file.
+*/
+void etwlinewwc_(x1,y1,x2,y2)
+  long int *x1, *y1, *x2, *y2;
+{
+
+/* If echo send parameters to wwc file */
+  if ( wwc_ok == 1 && wwc_macro != 1) {
+    fprintf(wwc,"*etwline\n");
+    fprintf(wwc,"%ld %ld %ld %ld\n",*x1,*y1,*x2,*y2);
+  }
+  return;
+}
+
+/* *************** ESRU tripple width line drawing routine. *************** */
+/*
+ Draws a three pixel wide line between two pixel coordinates.
+*/
+void etwline_(x1,y1,x2,y2)
+  long int *x1, *y1, *x2, *y2;
+{
+  int ix,iy,jx,jy;
+  int width = 3;
+
+/* If echo send parameters to wwc file */
+  if ( wwc_ok == 1 && wwc_macro != 1) {
+    fprintf(wwc,"*etwline\n");
+    fprintf(wwc,"%ld %ld %ld %ld\n",*x1,*y1,*x2,*y2);
+  }
+
+  ix = (int) *x1;  iy = (int) *y1;     /* convert to local variables */
+  jx = (int) *x2;  jy = (int) *y2;
+  XSetLineAttributes(theDisp,theGC,(unsigned int)width,LineSolid,CapNotLast,JoinMiter);
+  XDrawLine(theDisp,win,theGC,ix,iy,jx,jy);
+  return;
+}
+
 
 /* *************** ESRU double width line to file. *************** */
 /*
@@ -7831,9 +7879,13 @@ void axiscale_(long int* gw,long int* gh,float* xmn,float* xmx,float* ymn,
 /*
  Choose single scale so will have correct aspect ratio for site plans etc.
 */
-    *sca = axxsc;
-    if (axysc < axxsc) {
-	*sca = axysc;
+    if (axxsc > 0.0 && axysc > 0.0 ) {
+        *sca = axxsc;
+        if (axysc < axxsc) *sca = axysc;
+    } else if (axxsc == 0.0 && axysc > 0.0 ) {
+       *sca = axysc;
+    } else if (axxsc > 0.0 && axysc == 0.0 ) {
+       *sca = axxsc;
     }
 
 /* If echo send parameters to wwc file */
@@ -7967,8 +8019,8 @@ void vrtaxisdd_(float* ymn,float* ymx,long int* offl,long int* offb,long int* of
  char sstr[10], buf[2];
  int l, n, ix, vertadj, iy, ilen, nintvl;
  int iy1, ix1;
- int last_label_pixel, label_width, mid;
- long int ny,wticc,mde,saved_font;
+ int last_label_pixel, label_width, mid, mde;
+ long int ny,wticc,saved_font;
  float yticv,ddy,rintvl,resid;
  char msg2[80];
 
@@ -8147,8 +8199,9 @@ void horaxisdd_(float *xmn,float *xmx,long int *offl,long int *offr,long int *of
  char sstr[10];
  int l, n, ix, iy, ix1, iy1, nintvl, ilen;
  int last_label_right_pixel, label_width, mid;
- long int nx,wticc,mde,saved_font;
- float ddx,xticv,rintvl,resid;
+ int mde;
+ long int nx,wticc,saved_font;
+ float ddx,xticv,rintvl,resid,xxticv;
  char msg2[80];
 
  f_to_c_l(msg,&mlen,&ilen); strncpy(msg2,msg,(unsigned int)ilen); msg2[ilen] = '\0';
@@ -8162,7 +8215,8 @@ void horaxisdd_(float *xmn,float *xmx,long int *offl,long int *offr,long int *of
    fprintf(wwc,"%s\n",msg2);
  }
 
- ofl = (int) *offl; ofr = (int) *offr; ofb = (int) *offb; mde = *mode;
+ ofl = (int) *offl; ofr = (int) *offr; ofb = (int) *offb;
+ mde = (int) *mode;
  nx = *nnx; ddx = *dddx;
 
 /* Find the maximum label text width.  */
@@ -8186,21 +8240,26 @@ void horaxisdd_(float *xmn,float *xmx,long int *offl,long int *offr,long int *of
  the first tic needs to be adjusted.
 */
  xticv = *xmn;
+ xxticv = *xmn;
  rintvl = (*xmx - *xmn) / ddx + 1.0;
- nintvl = (int)rintvl;
+ nintvl = (int) rintvl;
  if (mde == 1) {
    resid = *xmn - (int) *xmn;
    if(*xmn < 0. && fabs(resid) > 0.0001) {  /* ?? fabs((double)resid) */
+       xxticv = *xmn;
        xticv = *xmn;
        ix = ofl + (int) (((float) xticv + *xadd) * *sca);
        iy = ofb;
        XDrawLine(theDisp,win,theGC,ofl,ofb,ix,iy);
+       XFlush(theDisp);
    } else if(*xmn > 0. && fabs(resid) > 0.0001) {  /* ?? fabs((double)resid) */
-       xticv = (*xmn + ddx);
-       ix = ofl + (int) (((float) xticv + *xadd) * *sca);
+       xxticv = (*xmn + ddx);
+       xticv = (*xmn + ( 0.5 * ddx));  /* start at half width */
+       ix = ofl + (int) (((float) xticv + *xadd) * *sca); 
        iy = ofb;
        XDrawLine(theDisp,win,theGC,ofl,ofb,ix,iy);
        nintvl--;     /* adjust to account for shift */
+       XFlush(theDisp);
    }
    iy1 = iy; ix1 = ix;	/* remember position */
  }
@@ -8212,12 +8271,13 @@ void horaxisdd_(float *xmn,float *xmx,long int *offl,long int *offr,long int *of
  for (l = 1; l <= s_1; ++l) {
 
 /* Based on the DINTT info generate the appropriate tic label "sstr". */
-   labelstr(&nx, &xticv, &wticc, sstr);
-   ix = ofl + (int) ((xticv + *xadd) * *sca);
+   labelstr(&nx, &xxticv, &wticc, sstr);
+   ix = ofl + (int) (((float) xticv + *xadd) * *sca); 
    iy = ofb;
    XDrawLine(theDisp,win,theGC,ix1,iy1,ix,iy);
    s_4 = iy + 5;                    /* tic descender position  */
    XDrawLine(theDisp,win,theGC,ix,iy,ix,s_4);
+   XFlush(theDisp);
    s_2 = ix - wticc;                /* current label position  */
    s_5 = ix - ((label_width * f_width)/2); /* position if all label characters */
    s_3 = iy +f_height + 5; /* bottom of font  */
@@ -8226,14 +8286,18 @@ void horaxisdd_(float *xmn,float *xmx,long int *offl,long int *offr,long int *of
      XftDrawString8(draw, &xft_color,fst,s_2,s_3,(XftChar8 *) sstr,n);
      last_label_right_pixel = s_5 + (label_width * f_width);
      XDrawLine(theDisp,win,theGC,ix,iy,ix,s_4+2);  /* extra tic length at label */
+     XFlush(theDisp);
    }
    ix = ix1 = ofl; iy1 = iy;	/* remember position */
    xticv += ddx;
+   xxticv += ddx;
  }
 /* Finish off the rest of the axis if less than the full width  */
- ix = ofl + (int) ((*xmx + *xadd) * *sca);
+   ix = ofl + (int) (((float) *xmx + *xadd) * *sca); 
+/* ix = ofl + (int) ((*xmx + *xadd) * *sca); */
  iy = ofb;
  XDrawLine(theDisp,win,theGC,ix1,iy1,ix,iy);
+ XFlush(theDisp);
 
 /* Print out the axis label. */
  iy = dbx1.b_bottom-10;
@@ -8281,8 +8345,8 @@ void horaxishdwdd_(float *xmn,float *xmx,long int *offl,long int *offr,long int 
  int ofl,ofb,ofr;
  char sstr[10];
  int l, n, ix, iy, ix1, iy1, nintvl, ilen,iind,iidiv,iisjday;
- int last_label_right_pixel, label_width, mid;
- long int nx,wticc,mde,saved_font;
+ int last_label_right_pixel, label_width, mid, mde;
+ long int nx,wticc,saved_font;
 /* xticv is actual timestep value, xxticv is for converted tic */
  float xticv,xxticv,ddx,rintvl,resid;
  char msg2[80];
@@ -8298,7 +8362,8 @@ void horaxishdwdd_(float *xmn,float *xmx,long int *offl,long int *offr,long int 
    fprintf(wwc,"%s\n",msg2);
  }
 
- ofl = (int) *offl; ofr = (int) *offr; ofb = (int) *offb; mde = *mode;
+ ofl = (int) *offl; ofr = (int) *offr; ofb = (int) *offb;
+ mde = (int) *mode;
  nx = (int) *nnx; ddx = *dddx;
  iind = (int) *ind; iidiv = (int) *idiv; iisjday = (int) *isjday;
 
@@ -9877,7 +9942,7 @@ void opencfg_(cfg_type,icfgz,icfgs,icfgnet,icfgc,icfgpln,icfgeln,icfgren,
  int oocfgs = (int) *icfgs;	/* toggle for Context button */
  int oocfgnet = (int) *icfgnet;	/* toggle for Fluid flown and/or CFD button */
  int oocfgc = (int) *icfgc;	/* toggle for Control button */
- int oocfgpln = (int) *icfgpln;	/* toggle for HVAC button */
+ int oocfgpln = (int) *icfgpln;	/* toggle for HVAC/Plant button */
  int oocfgeln = (int) *icfgeln;	/* toggle for Electrical network button */
  int oocfgren = (int) *icfgren; /* toggle for Renewables button */
  int oocfgfab = (int) *icfgfab;	/* toggle for Enhaanced fabric button */
@@ -9909,10 +9974,10 @@ void opencfg_(cfg_type,icfgz,icfgs,icfgnet,icfgc,icfgpln,icfgeln,icfgren,
   cfgpln.b_top   = viewbx.b_top + (2 * bh) +5;   cfgpln.b_bottom = cfgpln.b_top + bh;
   cfgpln.b_right = viewbx.b_right - 2; cfgpln.b_left = cfgpln.b_right - (f_width * 16);
   xbox(cfgpln,fg,white, BMCLEAR | BMEDGES);
-  if (oocfgpln >= 1) {	/* HVAC */
-    XftDrawString8(draw, &xft_color,fst,cfgpln.b_left+3,cfgpln.b_bottom-2, "HVAC        ",12);
+  if (oocfgpln >= 1) {	/* HVAC or Plant */
+    XftDrawString8(draw, &xft_color,fst,cfgpln.b_left+3,cfgpln.b_bottom-2, "Plant       ",12);
   } else {
-    XftDrawString8(draw, &xft_grey50,fst,cfgpln.b_left+3,cfgpln.b_bottom-2,"HVAC        ",12);
+    XftDrawString8(draw, &xft_grey50,fst,cfgpln.b_left+3,cfgpln.b_bottom-2,"Plant       ",12);
   }
   cfgeln.b_top   = viewbx.b_top + (3 * bh) +8;   cfgeln.b_bottom = cfgeln.b_top + bh;
   cfgeln.b_right = viewbx.b_right - 2; cfgeln.b_left = cfgeln.b_right - (f_width * 16);

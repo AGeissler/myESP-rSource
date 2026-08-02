@@ -1741,6 +1741,8 @@ C-----------------------------------------------------------------------
 C---- Set implicit to none to force declaration of all variables
 
       IMPLICIT NONE
+      REAL SMALL
+      PARAMETER(SMALL=1.0E-10)
 
 C---- Parameters
 
@@ -2086,9 +2088,16 @@ C         in very rare circumstances
           endif
 C----     For NTU, see Incropera & DeWitt (1990), ch. 11
 C         eps is limited to 99.5% to avoid rare numerical problems, i.e. THXout = Ts
-C         which then leads to Nu_n = 0 and U_ext = 0 at the next iteration
-          NTU = U*DinHX*PI*L/MdotHX/Cp_avg
-          eps = min(1.-exp(-NTU), 0.995)
+C         which then leads to Nu_n = 0 and U_ext = 0 at the next iteration.
+C         In some cases NTU can be several hundred so limit what is passed to -exp.
+C          write(6,*)'NTU stuff',U,DinHX,MdotHX,Cp_avg,L
+          NTU = U*DinHX*PI*AMAX1(SMALL,L)/MdotHX/Cp_avg
+C Debug   write(6,*) 'NTU is ',NTU,AMAX1(SMALL,NTU)
+          if(NTU.gt.SMALL.and.NTU.lt.100.)then
+            eps = min(1.-exp(-NTU), 0.995)
+          else
+            eps = 0.995
+          endif
           THXout = THXin - eps*(THXin-Ts)
 
 C----     Calculate LMTD, new THX
@@ -2096,7 +2105,9 @@ C         Note that LMTD = (DeltaTHXin-DeltaTHXout)/log(DeltaTHXin/DeltaTHXout)
 C         with DeltaTHXin = (THXin - Ts)
 C         and  DeltaTHXout = (THXout - Ts)
 C         which is simplified using the expression for THXout above
-          LMTD = -eps/log(1-eps)*(THXin-Ts)
+C Debug   write(6,*)'str Ts THX eps',Ts,THXin,eps,log(1-eps)
+     
+          LMTD = -eps/log(1-eps)*(THXin-Ts)  ! LMTD can occassionally be huge.
           THX = Ts + LMTD             ! this is the average HX fluid temperature
 
 C----     Update inside and outside wall temperatures, for next iteration

@@ -150,7 +150,7 @@ C Show the layers menu for un-lumped constructions.
               helptopic='nodes_per_layer'
               call gethelptext(helpinsub,helptopic,nbhelp)
               WRITE(TEXT,'(A,I2,A,I2,A,I2,A)')'for layer (',ICOMP,
-     &                                      ',',ISRFC,',',IL,') :'
+     &          ',',ISRFC,',',IL,') :'
 
 C Enter the required number of nodes for the selected layer.
               CALL EASKI(NND,'Enter the required number of nodes',TEXT,
@@ -198,14 +198,14 @@ C Creating lumped construction is required.
 C Read a node distribution file.
         helptopic='1D_node_def_menu'
         call gethelptext(helpinsub,helptopic,nbhelp)
-        CALL EASKS(LGRD1D,' 1D gridding configuration file name ?',' ',
-     &    72,' ',' gridding confg. file ',IER,nbhelp)
+        CALL EASKS(LGRD1D,'1D gridding configuration file name?',' ',
+     &    72,' ','gridding confg. file',IER,nbhelp)
         CALL READ1D(LGRD1D,IUNIT,IUOUT,ITRC,IER)
       ELSEIF(INO.EQ.9)THEN
 
 C Save the current node distrbution in a file.
-        CALL EASKS(LGRD1D,' 1D gridding configuration file name ?',' ',
-     &    72,' ',' gridding confg. file ',IER,nbhelp)
+        CALL EASKS(LGRD1D,'1D gridding configuration file name?',' ',
+     &    72,' ','gridding confg. file',IER,nbhelp)
         CALL SAVE1D(LGRD1D,IUNIT,IUOUT,ITRC,IER)
         IF(IER.EQ.0)THEN
           SAVEOK=.TRUE.
@@ -224,7 +224,7 @@ C Delete an existing 1D gridding file.
           IGR1D=.FALSE.
           SAVEOK=.TRUE.
         ELSE
-          CALL USRMSG(' ',' 1D gridding file does not exist.','W')
+          CALL USRMSG(' ','1D gridding file does not exist.','W')
         ENDIF
       ELSEIF(INO.EQ.MITEM-2)THEN
 
@@ -293,9 +293,9 @@ C AUTG1D generates the variable node distribution menu.
 
 C The required time step in seconds.
       TMR=3600./FLOAT(NSTP)
-      WRITE(ITEM(1),'(A,I5)')'  TOTAL NODES      :',NNDS
+      WRITE(ITEM(1),'(A,I5)')'  Total nodes      :',NNDS
       IF(IVAR.EQ.1)THEN
-        WRITE(ITEM(2),'(A,A)')'1 DYNAMIC GRIDDING :  ',ONFF
+        WRITE(ITEM(2),'(A,A)')'1 Dynamic gridding :  ',ONFF
       ELSE
         ITEM(2)='  DYNAMIC GRIDDING :'
       ENDIF
@@ -350,22 +350,23 @@ C will be given.
         ENDIF
         CALL EASKR(FMAX,' ',
      &   'Enter the maximum allowable Fourier No. :',FREF,
-     &   'W',1.,'-',FMAXD,' Maximum (Fo) ',IER,nbhelp)
+     &   'W',1.,'-',FMAXD,'Maximum (Fo)',IER,nbhelp)
       ELSEIF(INO.EQ.7)THEN
 
 C Assign the building side number of time steps per hour
         CALL EASKI(NSTP,'Enter the building side  ',
      &    'number of time steps per hour:',1,'F',60,
-     &    'F',1,' No. of time step/hr ',IER,nbhelp)
+     &    'F',1,'No. of time step/hr',IER,nbhelp)
       ELSEIF(INO.EQ.9)THEN
 
 C Invoke the automatic node distribution.
         IVAR=1
-        DO 30 ICOMP=1,NCOMP
-        DO 30 I=1,NCONST(ICOMP)
-          ILUMP(ICOMP,I)=0
-          CALL NDCONS(ICOMP,I)
-   30   CONTINUE
+        DO ICOMP=1,NCOMP
+          DO I=1,NCONST(ICOMP)
+            ILUMP(ICOMP,I)=0
+            CALL NDCONS(ICOMP,I)
+          ENDDO
+        ENDDO
       ELSEIF(INO.EQ.11)THEN
 
 C Display the Fourier number for all the layers in the building.
@@ -397,8 +398,6 @@ C Display the Fourier number for all the layers in the building.
               FRN(I,J)=FLOAT(NNDL(ICOMP,I,J))**2./
      &                    (THRMLI(ICOMP,I,J,4)**2.*TERM)
    80       CONTINUE
-C Non-standard fortran
-C           WRITE(TEXT2,'(I3,2X,<NE>F10.2)')I,(FRN(I,J),J=1,NE)
             WRITE(TEXT2,'(I3,2X,8F10.2)')I,(FRN(I,J),J=1,NE)
             CALL EDISP(IUOUT,TEXT2)
    70     CONTINUE
@@ -464,14 +463,15 @@ C LUMPMN generates the lumped construction menu.
 
 C Initialise the external and internal convective heat transfer 
 C coefficient.
-      DO 10 ICOMP=1,NCOMP
-      DO 10 I=1,NCONST(ICOMP)
-        HCSRF(ICOMP,I,1)=5.
-        HCSRF(ICOMP,I,2)=5.
-   10 CONTINUE
+      DO ICOMP=1,NCOMP
+        DO I=1,NCONST(ICOMP)
+          HCSRF(ICOMP,I,1)=5.
+          HCSRF(ICOMP,I,2)=5.
+        ENDDO
+      ENDDO
       IBIOT=0
    30 INO=-3
-      WRITE(ITEM(1),'(A,I5)')  '  TOTAL NODES: ',NNDS
+      WRITE(ITEM(1),'(A,I5)')  '  Total nodes: ',NNDS
       ITEM(2)='  -----------------------------'
       ITEM(3)='a Assign (hc) for a surface'
       ITEM(4)='b Assign (hc) for the building'
@@ -499,9 +499,9 @@ C Help text for this menu.
 C Assign the (hc) value for a surface.
 C Display the available zones menu.
    40   INPICK=1
-        DO 50 IZ=1,NCOMP
+        DO IZ=1,NCOMP
           ITEMZ(IZ)=zname(IZ)
-   50   CONTINUE
+        ENDDO
         CALL EPICKS(INPICK,IVALSZ,' ',' ',20,NCOMP,ITEMZ,'  ',
      &    IER,nbhelp)
         MNU1=IVALSZ(1)
@@ -523,7 +523,7 @@ C Display the available constructions menu.
           DO 70 IS=1,NC
             icn1=izstocn(icomp,is)
             WRITE(ITEMC(IS+2),'(A,A,F7.1)')SNAME(icomp,is),':',
-     &              HCSRF(ICOMP,IS,IEXT)
+     &        HCSRF(ICOMP,IS,IEXT)
    70     CONTINUE
           CALL EPICKS(INPICK,IVALSC,' ',' ',28,NC+2,ITEMC,' ',
      &      IER,nbhelp)
@@ -537,7 +537,7 @@ C Display the available constructions menu.
           ELSEIF(MNU2.GT.2.AND.MNU2.LE.NC+2)THEN
             ISRFC=MNU2-2
             CALL EASKR(HCSRF(ICOMP,ISRFC,IEXT),MSG1,
-     &        'convective heat transfer coefficient :',0.,'F',
+     &        'convective heat transfer coefficient:',0.,'F',
      &        10.,'W',5.,' conv. heat coeff. ',IER,nbhelp)
             GOTO 60
           ELSEIF(MNU2.EQ.0)THEN
@@ -554,13 +554,14 @@ C Display the available constructions menu.
 
 C Assign (hc) for the complete building.
         CALL EASKR(BCNV,'Enter the value of external and internal',
-     &    'convective heat transfer coefficient :',0.,'F',
+     &    'convective heat transfer coefficient:',0.,'F',
      &    10.,'W',5.,' Internal conv. coeff. ',IER,nbhelp)
-        DO 80 ICOMP=1,NCOMP
-        DO 80 I=1,NCONST(ICOMP)
-          HCSRF(ICOMP,I,1)=BCNV
-          HCSRF(ICOMP,I,2)=BCNV
-   80   CONTINUE
+        DO ICOMP=1,NCOMP
+          DO I=1,NCONST(ICOMP)
+            HCSRF(ICOMP,I,1)=BCNV
+            HCSRF(ICOMP,I,2)=BCNV
+          ENDDO
+        ENDDO
       ELSEIF(INO.EQ.6)THEN
 
 C Read the (hc) values from a file.
@@ -601,7 +602,7 @@ C Read the (hc) values from a file.
       ELSEIF(INO.EQ.7)THEN
 
 C Save the current (hc) values in a file.
-  150   CALL EASKS(HCFILE,' Grid configuration file name ?',' ',
+  150   CALL EASKS(HCFILE,'Grid configuration file name?',' ',
      &    72,' ',' grid confg. file ',IER,nbhelp)
         IUNIT=IFIL+1
         CALL EFOPSEQ(IUNIT,HCFILE,4,IER)
@@ -619,9 +620,10 @@ C Save the current (hc) values in a file.
         ENDIF 
         DO 160 ICOMP=1,NCOMP
           NC=NCONST(ICOMP)
-        DO 160 I=1,NC
-          WRITE(IUNIT,'(2F10.3)',IOSTAT=ISTAT,ERR=1100)
-     &            HCSRF(ICOMP,I,1),HCSRF(ICOMP,I,2)
+          DO I=1,NC
+            WRITE(IUNIT,'(2F10.3)',IOSTAT=ISTAT,ERR=1100)
+     &        HCSRF(ICOMP,I,1),HCSRF(ICOMP,I,2)
+          ENDDO
   160   CONTINUE
         CALL EDISP(IUOUT,' (hc) distribution saved succesfuly !')
         GOTO 1101
@@ -647,21 +649,22 @@ C First, check the legality of the (hc) values assigned.
   300   CONTINUE
 
 C Initialise the node distribution variables.
-        DO 310 IZ1=1,NCOMP
-        DO 310 IS1=1,NCONST(IZ1)
-          IF(ILUMP(IZ1,IS1).GE.1)THEN
-            NNDS=NNDS+ILUMP(IZ1,IS1)-2
-            NNDZ(IZ1)=NNDZ(IZ1)+ILUMP(IZ1,IS1)-2
-            NNDC(IZ1,IS1)=ILUMP(IZ1,IS1)
-            ILUMP(IZ1,IS1)=0
-          ENDIF
-  310   CONTINUE
+        DO IZ1=1,NCOMP
+          DO IS1=1,NCONST(IZ1)
+            IF(ILUMP(IZ1,IS1).GE.1)THEN
+              NNDS=NNDS+ILUMP(IZ1,IS1)-2
+              NNDZ(IZ1)=NNDZ(IZ1)+ILUMP(IZ1,IS1)-2
+              NNDC(IZ1,IS1)=ILUMP(IZ1,IS1)
+              ILUMP(IZ1,IS1)=0
+            ENDIF
+          ENDDO
+        ENDDO
         IBIOT=1
         ICON=0
 
 C Calculate the Biot number for all constructions in the building.
         DO 180 ICOMP=1,NCOMP
-        DO 180 I=1,NCONST(ICOMP)
+         DO 181 I=1,NCONST(ICOMP)
           ICON=ICON+1
           CNDTVTY=1000.
           CLENGTH=0.
@@ -721,7 +724,8 @@ C If the Biot number is <= 0.1  and the construction is not transparent.
           ELSE
             ILUMP(ICOMP,I)=0
           ENDIF
-  180   CONTINUE
+  181   CONTINUE
+  180  CONTINUE
       ELSEIF(INO.EQ.11)THEN
 
 C Display the (hc) values in the text feedback window.
@@ -735,11 +739,11 @@ C        CALL EPAGE
           CALL EDISP(IUOUT,TEXT2)
           I=1
           WRITE(TEXT2,'(I3,7X,I3,14X,F8.2,12X,F8.2)')ICOMP,I,
-     &                                     (HCSRF(ICOMP,I,J),J=1,2)
+     &      (HCSRF(ICOMP,I,J),J=1,2)
           CALL EDISP(IUOUT,TEXT2)
           DO 220 I=2,NCONST(ICOMP)
             WRITE(TEXT2,'(10X,I3,14X,F8.2,12X,F8.2)')I,
-     &                                    (HCSRF(ICOMP,I,J),J=1,2)
+     &        (HCSRF(ICOMP,I,J),J=1,2)
             CALL EDISP(IUOUT,TEXT2)
   220     CONTINUE
           CALL EPAGEW
@@ -812,17 +816,17 @@ C      CALL EPAGE
         CALL EDISP(IUOUT,TEXT2)
         IF(ILUMP(ICOMP,I).GE.1)THEN
           WRITE(TEXT2,'(3X,I2,7X,I2,7X,A)')ICOMP,I,
-     &               '        *******  Lumped Construction  *******'
+     &      '        *******  Lumped Construction  *******'
         ELSE
           NE=NELTS(ICOMP,I)
           WRITE(TEXT2,'(3X,I2,7X,I2,7X,8I6)')ICOMP,I,
-     &                          (NNDL(ICOMP,I,J),J=1,NE)
+     &      (NNDL(ICOMP,I,J),J=1,NE)
         ENDIF
         CALL EDISP(IUOUT,TEXT2)
         DO 20 I=2,NCONST(ICOMP)
           IF(ILUMP(ICOMP,I).GE.1)THEN
             WRITE(TEXT2,'(12X,I2,7X,A)')I,
-     &            '        *******  Lumped Construction  *******'
+     &        '        *******  Lumped Construction  *******'
           ELSE
             NE=NELTS(ICOMP,I)
             WRITE(TEXT2,'(12X,I2,7X,8I6)')I,(NNDL(ICOMP,I,J),J=1,NE)

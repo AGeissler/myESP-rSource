@@ -1,0 +1,24 @@
+To modify the 30x30x30 default grid applied to the CFD domain
+proceed as follows. 
+
+In file src/include/cfd.h set parameters NTCELX, NTCELY 
+and NTCELZ to the number + 2. Due to user interface issues,
+it is best not to exceed 99 in any direction. Then set
+parameter MCEL1D to the largest assigned to the three
+preceding parameters.
+
+Note that the required RAM will grow linearly with the
+number of control volumes (i.e. NTCELX*NTCELY*NTCEZ).
+
+Reinstall bps, dfs and dfs by issuing the following
+command from the ESP-r src directory.
+
+         ./Install incl dfs bps prj 
+
+Then do a 'make clean' in directories src/ebps, src/edfs
+and src/eprj.
+
+Where the number of control volumes is large, it is
+useful to make dfs with compiler optimisation activated.
+This is done by adding an option to the FFLAGS directive
+in file src/edfs/Makefile: e.g $(MFC) $(FFLAGS) -c -O $<

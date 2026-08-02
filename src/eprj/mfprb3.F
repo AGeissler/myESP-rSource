@@ -20,9 +20,10 @@ C isuseflowrelated - tests whether surface attributes are flow related.
 
 C ************************* MFWFDRAW
 C MFWFDRAW Fluid flow file: draw common block contents.
-C colour is either 'r' red, 'b' blue or 'g' grey50 for components.
+C colour (col) is either 'r' red, 'b' blue or 'g' grey50 for components.
+C verbosity (verb) is either 'n' none, 's' short, 'l' long
 
-      SUBROUTINE MFWFDRAW(col)
+      SUBROUTINE MFWFDRAW(col,verb)
 
 #include "building.h"
 #include "net_flow.h"
@@ -30,7 +31,7 @@ C colour is either 'r' red, 'b' blue or 'g' grey50 for components.
 
 C      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
-      character col*1
+      character col*1,verb*1
       CHARACTER name*12,twochar*2
       integer POS,NEG,CMPIS
       real xc,yc,zc,xw,yw,zw
@@ -46,7 +47,13 @@ C Node data.
           if(NNOD.gt.50)then
             write(name,'(a,i3.3)') 'n:',inod
           else
-            name=NDNAM(INOD)
+            if(verb(1:1).eq.'n')then
+              write(name,'(a)') 'N'
+            elseif(verb(1:1).eq.'s')then
+              write(name,'(a,i3.3)') 'n:',inod
+            else
+              name=NDNAM(INOD)
+            endif
           endif
           xw=HNOD(INOD,1);yw=HNOD(INOD,2); zw=HNOD(INOD,3)
 
@@ -84,7 +91,13 @@ C Component data.
           if(NCMP.gt.50)then
             write(name,'(a,i3.3)') 'c:',icmp
           else
-            name=CMNAM(ICMP)
+            if(verb(1:1).eq.'n')then
+              write(name,'(a)') 'C'
+            elseif(verb(1:1).eq.'s')then
+              write(name,'(a,i3.3)') 'c:',icmp
+            else
+              name=CMNAM(ICMP)
+            endif
           endif
           call get_component_code(ICMP,twochar)
           
@@ -707,7 +720,8 @@ C There may or may not be an associated crack so do not draw it (yet).
           endif
           call pausems(30)
         elseif(SUSE(iz,is,2)(1:5).eq.'BIDIR'.or.
-     &         SUSE(iz,is,2)(1:10).eq.'AJAR-BIDIR')then
+     &         SUSE(iz,is,2)(1:10).eq.'AJAR-BIDIR'.or.
+     &         SUSE(iz,is,2)(1:8).eq.'AJAR-BID')then
 
 C Bidirectional door - door component,  IVALCM(14)=130 MF130I
 C There may or may not be an associated crack.
@@ -716,7 +730,7 @@ C There may or may not be an associated crack.
           else
             if(SUSE(iz,is,2)(1:5).eq.'BIDIR')then
               write(name,'(a)') 'DoBi'
-            elseif(SUSE(iz,is,2)(1:10).eq.'AJAR-BIDIR')then
+            elseif(SUSE(iz,is,2)(1:8).eq.'AJAR-BID')then
               write(name,'(a)') 'DABi'
             endif
             xc=SURCOG(iz,is,1); yc=SURCOG(iz,is,2) ! remember
@@ -993,7 +1007,8 @@ C Now create the upper orifice.
           endif
           call pausems(30)
         elseif(SUSE(iz,is,2)(1:5).eq.'BIDIR'.or.
-     &         SUSE(iz,is,2)(1:10).eq.'AJAR-BIDIR')then
+     &         SUSE(iz,is,2)(1:10).eq.'AJAR-BIDIR'.or.
+     &         SUSE(iz,is,2)(1:8).eq.'AJAR-BID')then
 
 C Window bidirectional - specific door component width & height
           if(inthenetwork)then
@@ -1001,7 +1016,7 @@ C Window bidirectional - specific door component width & height
           else
             if(SUSE(iz,is,2)(1:5).eq.'BIDIR')then
               write(name,'(a)') 'WiBi'
-            elseif(SUSE(iz,is,2)(1:10).eq.'AJAR-BIDIR')then
+            elseif(SUSE(iz,is,2)(1:8).eq.'AJAR-BID')then
               write(name,'(a)') 'WABi'
             endif
             xc=SURCOG(iz,is,1); yc=SURCOG(iz,is,2) ! remember
@@ -1014,7 +1029,7 @@ C Window bidirectional - specific door component width & height
      &      ' bidir width ',XYMAX,' height',ZMAX,
      &      ' coef 0.6 @XYZ',xc,yc,zc,
      &      ' delta base to zone COG',VAL3
-          elseif(SUSE(iz,is,2)(1:10).eq.'AJAR-BIDIR')then
+          elseif(SUSE(iz,is,2)(1:8).eq.'AJAR-BID')then
             write(outs,'(4a,f6.1,a,3f7.3,a,f6.3)') 
      &      zsn(1:lnzsn),' ',name,
      &      ' bidir width 100mm height',ZMAX,
@@ -1092,7 +1107,8 @@ C Fict opening - common orifice component, (type 40) IVALCM(10) MF040I
           endif
           call pausems(30)
         elseif(SUSE(iz,is,2)(1:5).eq.'BIDIR'.or.
-     &         SUSE(iz,is,2)(1:10).eq.'AJAR-BIDIR')then
+     &         SUSE(iz,is,2)(1:10).eq.'AJAR-BIDIR'.or.
+     &         SUSE(iz,is,2)(1:8).eq.'AJAR-BID')then
 
 C Fict bi-directional - door component IVALCM(14)=130 MF130I
           if(inthenetwork)then
@@ -1100,7 +1116,7 @@ C Fict bi-directional - door component IVALCM(14)=130 MF130I
           else
             if(SUSE(iz,is,2)(1:5).eq.'BIDIR')then
               write(name,'(a)') 'FiBI'
-            elseif(SUSE(iz,is,2)(1:10).eq.'AJAR-BIDIR')then
+            elseif(SUSE(iz,is,2)(1:8).eq.'AJAR-BID')then
               write(name,'(a)') 'FABI'
             endif
             xc=SURCOG(iz,is,1); yc=SURCOG(iz,is,2) ! remember
@@ -1412,7 +1428,7 @@ C Check within viewing angle and draw node symbol.
           endif
           call pausems(30)
         elseif(NDTYP(iposn).eq.2)then
-          call sym bol_flow_nd(name,'bk',col,xw,yw,zw)
+          call symbol_flow_nd(name,'bk',col,xw,yw,zw)
           call pausems(30)
         elseif(NDTYP(iposn).eq.3)then
           call symbol_flow_nd(name,'bw',col,xw,yw,zw)
@@ -2043,8 +2059,8 @@ C Extract XYZ values from the string.
       END    ! of mfnodeposition
 
 C ************** scan_flow_use
-C scan_flow_use scanns surface USE attributes related to mass flows,
-C extracts position information, fills flow common blocks and creates
+C Scans surface USE attributes related to mass flows, extracts
+C position information, fills flow common blocks and creates
 C both legacy and a 3D flow file while drawing over wireframe.
 
       subroutine scan_flow_use()
@@ -2089,10 +2105,20 @@ C Documentation shared with graphic flow network.
       INTEGER inwktyp
       REAL vergnf   ! 1.0 is 3D variant of ASCII network
 
-      DIMENSION IVALS(MCOM)
-      CHARACTER outs*144,name*12
-      CHARACTER prompt*72,fs*1
-      CHARACTER LTMP*72
+      common/spfldat/nsset,isset,isstup,isbnstep,ispnstep,issave,isavgh
+      INTEGER :: nsset,isset,isstup,isbnstep,ispnstep,issave,isavgh
+      common/spflres/sblres(MSPS),sflres(MSPS),splres(MSPS),
+     &  smstres(MSPS),selres(MSPS),scfdres(MSPS),sipvres
+      character sblres*72,sflres*72,splres*72,smstres*72,
+     &  selres*72,scfdres*72,sipvres*72
+      common/spfldes/spfdescr(MSPS)
+      character spfdescr*30
+
+      dimension IVALS(MCOM)
+      character outs*144,name*12
+      character prompt*72,fs*1
+      character LTMP*72
+      character cr*60
       logical unixok
       integer loop
       integer ulpos,urpos     ! closest to BB corners for parent
@@ -2382,6 +2408,28 @@ C Link nodes and zones.
         endif
   33  CONTINUE
       IAIRN=3  ! so it shows up in cfg file.
+
+C If there are simulation parameter sets add flow network results
+C file names prior to saving cfg file.
+      if(nsset.gt.0)then
+        lr=lnblnk(cfgroot)
+
+        do ij=1,nsset
+          lde=lnblnk(spfdescr(ij))
+          call isunix(unixok)  ! Prepend ../tmp if Unix.
+          if(unixok)then
+            write(cr,'(3a)') '../tmp/',cfgroot(1:lr),
+     &        spfdescr(ij)(1:lde)
+          else
+            write(cr,'(2a)') cfgroot(1:lr),spfdescr(ij)(1:lde)
+          endif
+          if(IAIRN.ge.1)then
+            WRITE(sflres(ij),'(2A)') cr(1:lnblnk(cr)),'.mfr'
+          else
+            sflres(ij)=' '
+          endif
+        enddo
+      endif
 
 C Update the configuration file so that connections and mass flow
 C network are know.
@@ -2720,17 +2768,18 @@ C Open door - common orifice component, (type 40) IVALCM(10) MF040I
      &      bndname,crmm,cd)
 
         elseif(SUSE(iz,is,2)(1:5).eq.'BIDIR'.or.
-     &         SUSE(iz,is,2)(1:10).eq.'AJAR-BIDIR')then
+     &         SUSE(iz,is,2)(1:10).eq.'AJAR-BIDIR'.or.
+     &         SUSE(iz,is,2)(1:8).eq.'AJAR-BID')then
 
 C Bidirectional flow - door component,  IVALCM(14)=130 MF130I
 C Assume: width = surface width except if it is wide adjust to limit excessive flows.
-C If AJAR-BIDIR limit width to 100mm.
+C If AJAR-BIDIR or AJAR-BID limit width to 100mm.
 C height = door height, discharge factor = 0.5.
 C Need to draw component at surf COG but the real base is at bottom
 C edge.
           if(SUSE(iz,is,2)(1:5).eq.'BIDIR')then
             pname='DoBiz'; uname='door'; bndname='BDoBi'; ajar='B'
-          elseif(SUSE(iz,is,2)(1:10).eq.'AJAR-BIDIR')then
+          elseif(SUSE(iz,is,2)(1:8).eq.'AJAR-BID')then
             pname='DABiz'; uname='ajdoor'; bndname='BDABi'; ajar='A'
           endif
           zpos='C'
@@ -3083,6 +3132,8 @@ C Reality checks here...
      &          HCMP(NCMP,1,3),ccol)
             elseif(iacc.eq.2)then   ! user is selecting another source node
               IC=0
+              call edisp(iuout,' ')
+              call edisp(iuout,'For inlet specify the source node...')
               call ASKRNOD(' available nodes','-',IC,IER)
               found=.false.; issoz=0
               do loop2=1,NCOMP      ! find matching zone index
@@ -3330,28 +3381,68 @@ C Reality checks here...
 
             endif
           else     ! Similar or adiabatic connection ask for other node.
-            IC=0
-            call ASKRNOD(' available nodes','-',IC,IER)
-            found=.false.; issoz=0
-            do loop2=1,NCOMP      ! find matching zone index
-              if(ICAAS(loop2).gt.0)then
-                i=ICAAS(loop2)
-                if(NDNAM(i)(1:12).eq.NDNAM(IC)(1:12))then
-                  issoz=loop2; found=.true.
-                endif
-              endif 
-            enddo
-            POS=ICAAS(IC1(loop))  ! the current zone node is positive
-            NEG=IC                ! the other zone
-            if(NDFLD(POS).eq.1.and.NDFLD(NEG).eq.1)then
-              ccol='r'
+            write(outs,'(4a)') zsn(1:lnzsn),'  ',name,
+     &      ' grill extract in surface with SIMILAR or adiab boundary'
+            call edisp(iuout,' ')
+            CALL EASKMBOX(outs,'Choices:','ambient-boundary node',
+     &        'another zone node',' ',' ',' ',' ',' ',' ',iaccs,nbhelp)
+            if(iaccs.eq.2)then
+              IC=0
+              call ASKRNOD(' available nodes','-',IC,IER)
+              found=.false.; issoz=0
+              do loop2=1,NCOMP      ! find matching zone index
+                if(ICAAS(loop2).gt.0)then
+                  i=ICAAS(loop2)
+                  if(NDNAM(i)(1:12).eq.NDNAM(IC)(1:12))then
+                    issoz=loop2; found=.true.
+                  endif
+                endif 
+              enddo
+              POS=ICAAS(IC1(loop))  ! the current zone node is positive
+              NEG=IC                ! the other zone
+              if(NDFLD(POS).eq.1.and.NDFLD(NEG).eq.1)then
+                ccol='r'
+              else
+                ccol='b'
+              endif
+              CMPIS=NCMP; NCNN=NCNN+1
+              linkatpartition(loop)=1
+              icoth=IZSTOCN(IC2(loop),IE2(loop))
+              linkatpartition(icoth)=1
             else
-              ccol='b'
+              found=.false.
+              write(name,'(a,i2.2,a,i3.3)') 'BW-EX',iz,':',is
+              xw=x3+SURCOG(iz,is,1);yw=y3+SURCOG(iz,is,2)
+              zw=z3+SURCOG(iz,is,3)
+              write(outs,'(4a,f6.1,a,3f7.3)') zsn(1:lnzsn),'  ',name,
+     &          ' Wind boundary extract azim',spazi(iz,is),
+     &          ' @XYZ',xw,yw,zw
+              call edisp(iuout,outs)
+              NNOD=NNOD+1; NDTYP(NNOD)=3; NDFLD(NNOD)=1
+              HNOD(NNOD,1)=xw; HNOD(NNOD,2)=yw; HNOD(NNOD,3)=zw
+              SUPNOD(NNOD,2)=spazi(iz,is)
+              SUPNOD(NNOD,1)=1.0
+              TNOD(NNOD)=0.0
+              if(znotair(iz))then
+                SUPNOD(NNOD,1)=2  ! mark flow node as water
+                NDFLD(NNOD)=2
+              else
+                SUPNOD(NNOD,1)=1  ! mark flow node as air
+                NDFLD(NNOD)=1
+              endif
+              write(NDNAM(NNOD),'(a)') name
+              NODASSOC(NNOD,1)=ZNAME(IZ); NODASSOC(NNOD,2)=SN
+              call symbol_flow_nd(name,'bw','r',xw,yw,zw)
+              call pausems(30)
+              POS=ICAAS(IC1(loop))  ! the current zone node is positive
+              NEG=NNOD              ! the new boundary node is negative
+              if(NDFLD(POS).eq.1.and.NDFLD(NEG).eq.1)then
+                ccol='r'
+              else
+                ccol='b'
+              endif
+              CMPIS=NCMP; NCNN=NCNN+1
             endif
-            CMPIS=NCMP; NCNN=NCNN+1
-            linkatpartition(loop)=1
-            icoth=IZSTOCN(IC2(loop),IE2(loop))
-            linkatpartition(icoth)=1
 
 C Reality checks.
             NODPS(NCNN)=POS; NODNE(NCNN)=NEG
@@ -3368,9 +3459,11 @@ C Reality checks.
             call edisp(iuout,outs)
             call draw_flow_link(ZCOG(IZ,1),ZCOG(IZ,2),ZCOG(IZ,3),
      &        HCMP(NCMP,1,1),HCMP(NCMP,1,2),HCMP(NCMP,1,3),ccol)
-            call draw_flow_link(ZCOG(IC2(loop),1),ZCOG(IC2(loop),2),
-     &        ZCOG(IC2(loop),3),HCMP(NCMP,1,1),HCMP(NCMP,1,2),
-     &        HCMP(NCMP,1,3),ccol)
+            if(IC2(loop).gt.0)then
+              call draw_flow_link(ZCOG(IC2(loop),1),ZCOG(IC2(loop),2),
+     &          ZCOG(IC2(loop),3),HCMP(NCMP,1,1),HCMP(NCMP,1,2),
+     &          HCMP(NCMP,1,3),ccol)
+            endif
           endif
 
         elseif(SUSE(iz,is,2)(1:4).eq.'OPEN')then
@@ -3923,14 +4016,15 @@ C point to the relevant boundary node.
      &      bndname,crmm)
 
         elseif(SUSE(iz,is,2)(1:5).eq.'BIDIR'.or.
-     &         SUSE(iz,is,2)(1:10).eq.'AJAR-BIDIR')then
+     &         SUSE(iz,is,2)(1:10).eq.'AJAR-BIDIR'.or.
+     &         SUSE(iz,is,2)(1:8).eq.'AJAR-BID')then
 
 C Window bidirectional - specific door component width & height
 C based on the surface width & height. discharge factor = 0.6,
 C Draw on the centre line. The VAL4 is Surf COG to Zone COG.
           if(SUSE(iz,is,2)(1:5).eq.'BIDIR')then
             pname='WiBiz'; uname='window'; bndname='BW-Bi'; ajar='B'
-          elseif(SUSE(iz,is,2)(1:10).eq.'AJAR-BIDIR')then
+          elseif(SUSE(iz,is,2)(1:8).eq.'AJAR-BID')then
             pname='WABiz'; uname='aj-win'; bndname='BWABi'; ajar='A'
           endif
           zpos='C'
@@ -3986,14 +4080,15 @@ C opening to moderate flows. As user the % of surface area.
      &      bndname,crmm,cd)
 
         elseif(SUSE(iz,is,2)(1:5).eq.'BIDIR'.or.
-     &         SUSE(iz,is,2)(1:10).eq.'AJAR-BIDIR')then
+     &         SUSE(iz,is,2)(1:10).eq.'AJAR-BIDIR'.or.
+     &         SUSE(iz,is,2)(1:8).eq.'AJAR-BID')then
 
 C Fict bi-directional - door component IVALCM(14)=130 MF130I
 C Treat this the same as other bidirectional components.
 C But no control to be applied when uname is 'fict' or 'ajfict'.
           if(SUSE(iz,is,2)(1:5).eq.'BIDIR')then
             pname='FiBiz'; uname='fict'; bndname='BFiBi'; ajar='B'
-          elseif(SUSE(iz,is,2)(1:10).eq.'AJAR-BIDIR')then
+          elseif(SUSE(iz,is,2)(1:8).eq.'AJAR-BID')then
             pname='FABiz'; uname='ajfict'; bndname='BFABi'; ajar='A'
           endif
           zpos='C'
@@ -4273,7 +4368,7 @@ C Global flow component options.
       integer POSCR                    ! index of boundary node if zero then make one
       character outs*144,name*12,sn*12
       character ccol*1,zsn*28,prompt*72
-      logical dupedges
+      logical dupedges,ok
 
       helpinsub='mfprb3'  ! set for subroutine
        
@@ -4493,6 +4588,12 @@ C also create a crack assume width = 2mm, length = perimeter, near base.
       if(uname(1:5).eq.'fict'.or.uname(1:6).eq.'ajfict')then
         return    ! no control for fictious bidirectional
       endif
+      nbhelp=0
+      CALL EASKOK(
+     &  'Include a crack if the bi-directional might be controlled?',
+     &  '  ',OK,nbhelp)
+      if(.NOT.OK) return
+
       zpos='L'; pname='BiCrz'; uname='crack'
       POS=POSCR; bndname='----'
       crmm=2.0
@@ -5062,7 +5163,8 @@ C Open door - common orifice component, (type 40) IVALCM(10) MF040I
           HCMP(ICMP,1,1)=xc; HCMP(ICMP,1,2)=yc; HCMP(ICMP,1,3)=zc
 
         elseif(SUSE(iz,is,2)(1:5).eq.'BIDIR'.or.
-     &         SUSE(iz,is,2)(1:10).eq.'AJAR-BIDIR')then
+     &         SUSE(iz,is,2)(1:10).eq.'AJAR-BIDIR'.or.
+     &         SUSE(iz,is,2)(1:8).eq.'AJAR-BID')then
 
 C Bidirectional door - door component,  IVALCM(14)=130 MF130I
 C assume width = door width, height = door height, discharge factor = 0.5.
@@ -5078,7 +5180,7 @@ C edge.
      &      ' ',name,' door bidir width ',XYMAX,
      &      ' height',ZMAX,' coef 0.5 base @XYZ',xc,yc,zc,
      &      ' delta base to zone COG',VAL3
-          elseif(SUSE(iz,is,2)(1:10).eq.'AJAR-BIDIR')then
+          elseif(SUSE(iz,is,2)(1:8).eq.'AJAR-BID')then
             write(name,'(a,i2.2,a,i3.3)') 'DABiz',iz,':',is
             VAL3=ABS(ZCOG(iz,3)-edgelower)  ! base to zone COG
             VAL4=SURCOG(iz,is,3)-ZCOG(IZ,3)        ! surf COG to zone COG
@@ -5293,7 +5395,8 @@ C Now the upper orifice.
           call pausems(30)
 
         elseif(SUSE(iz,is,2)(1:5).eq.'BIDIR'.or.
-     &         SUSE(iz,is,2)(1:10).eq.'AJAR-BIDIR')then
+     &         SUSE(iz,is,2)(1:10).eq.'AJAR-BIDIR'.or.
+     &         SUSE(iz,is,2)(1:8).eq.'AJAR-BID')then
 
 C Window bidirectional - specific door component width & height
 C based on the surface width & height. discharge factor = 0.6,
@@ -5308,7 +5411,7 @@ C Draw on the centre line. The VAL4 is Surf COG to Zone COG.
      &      zsn(1:lnzsn),' ',name,' bidir width ',XYMAX,' height',ZMAX,
      &      ' coef 0.6 @XYZ',xc,yc,zc,
      &      ' delta base to zone COG',VAL3
-          elseif(SUSE(iz,is,2)(1:10).eq.'AJAR-BIDIR')then
+          elseif(SUSE(iz,is,2)(1:8).eq.'AJAR-BID')then
             write(name,'(a,i2.2,a,i3.3)') 'WABiz',iz,':',is
             VAL3=ABS(ZCOG(iz,3)-edgelower)  ! base to zone COG
             VAL4=SURCOG(iz,is,3)-ZCOG(IZ,3)        ! surf COG to zone COG
@@ -5357,7 +5460,8 @@ C Fict opening - common orifice component, (type 40) IVALCM(10) MF040I
           call pausems(30)
 
         elseif(SUSE(iz,is,2)(1:5).eq.'BIDIR'.or.
-     &         SUSE(iz,is,2)(1:10).eq.'AJAR-BIDIR')then
+     &         SUSE(iz,is,2)(1:10).eq.'AJAR-BIDIR'.or.
+     &         SUSE(iz,is,2)(1:8).eq.'AJAR-BID')then
 
 C Fict bi-directional - door component IVALCM(14)=130 MF130I
 C Draw component at surf COG but the real base is at bottom edge.
@@ -5372,7 +5476,7 @@ C Draw component at surf COG but the real base is at bottom edge.
      &      ' fict bidir with surface with width ',XYMAX,' height',ZMAX,
      &      ' coef 0.6 base @XYZ',xc,yc,zc,
      &      ' delta base to zone COG',VAL3
-          elseif(SUSE(iz,is,2)(1:10).eq.'AJAR-BIDIR')then
+          elseif(SUSE(iz,is,2)(1:8).eq.'AJAR-BID')then
             VAL3=ABS(ZCOG(iz,3)-edgelower)  ! base to zone COG
             VAL4=SURCOG(iz,is,3)-ZCOG(IZ,3)        ! surf COG to zone COG
             write(name,'(a,i2.2,a,i3.3)') 'FABIz',iz,':',is
@@ -5460,7 +5564,8 @@ C For DOOR variants.
         elseif(SUSE(izone,isurf,2)(1:4).eq.'OPEN')then
           isrelated=.true.
         elseif(SUSE(izone,isurf,2)(1:5).eq.'BIDIR'.or.
-     &         SUSE(izone,isurf,2)(1:10).eq.'AJAR-BIDIR')then
+     &         SUSE(izone,isurf,2)(1:10).eq.'AJAR-BIDIR'.or.
+     &         SUSE(izone,isurf,2)(1:8).eq.'AJAR-BID')then
           isrelated=.true.
         endif
       elseif(SUSE(izone,isurf,1)(1:5).eq.'FRAME'.or.
@@ -5503,7 +5608,8 @@ C For GRILLs.
         elseif(SUSE(izone,isurf,2)(1:4).eq.'SASH')then
           isrelated=.true.
         elseif(SUSE(izone,isurf,2)(1:5).eq.'BIDIR'.or.
-     &         SUSE(izone,isurf,2)(1:10).eq.'AJAR-BIDIR')then
+     &         SUSE(izone,isurf,2)(1:10).eq.'AJAR-BIDIR'.or.
+     &         SUSE(izone,isurf,2)(1:8).eq.'AJAR-BID')then
           isrelated=.true.
         endif
       elseif(SUSE(izone,isurf,1)(1:4).eq.'FICT')then
@@ -5514,7 +5620,8 @@ C For GRILLs.
         elseif(SUSE(izone,isurf,2)(1:4).eq.'OPEN')then
           isrelated=.true.
         elseif(SUSE(izone,isurf,2)(1:5).eq.'BIDIR'.or.
-     &         SUSE(izone,isurf,2)(1:10).eq.'AJAR-BIDIR')then
+     &         SUSE(izone,isurf,2)(1:10).eq.'AJAR-BIDIR'.or.
+     &         SUSE(izone,isurf,2)(1:8).eq.'AJAR-BID')then
           isrelated=.true.
         endif
       endif

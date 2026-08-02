@@ -1671,6 +1671,43 @@ void eswline_(x1,y1,x2,y2)
   return;
 }
 
+/* *************** etwlinewwc_() tripple width line drawing routine to file. *************** */
+void etwlinewwc_(x1,y1,x2,y2)
+  long int *x1, *y1, *x2, *y2;
+{
+/* If echo send parameters to wwc file */
+  if ( wwc_ok == 1 && wwc_macro != 1) {
+    fprintf(wwc,"*etwline\n");
+    fprintf(wwc,"%ld %ld %ld %ld\n",*x1,*y1,*x2,*y2);
+  }
+  return;
+}
+
+
+/* *************** etwline_() tripple width line drawing routine. *************** */
+/*
+ Draws a two pixel wide line between two pixel coordinates.
+*/
+void etwline_(x1,y1,x2,y2)
+  long int *x1, *y1, *x2, *y2;
+{
+  gint ix1,iy1,ix2,iy2,width;
+  ix1 = (gint) *x1;         /* first point */
+  iy1 = (gint) *y1;
+  ix2 = (gint) *x2;         /* end point  */
+  iy2 = (gint) *y2;
+  width = 3;
+  gdk_gc_set_line_attributes(gc,width,GDK_LINE_SOLID,GDK_CAP_NOT_LAST,GDK_JOIN_MITER); /* gives same as default */
+  gdk_draw_line(gr_image,gc,ix1,iy1,ix2,iy2);
+
+/* If echo send parameters to wwc file */
+  if ( wwc_ok == 1 && wwc_macro != 1) {
+    fprintf(wwc,"*etwline\n");
+    fprintf(wwc,"%ld %ld %ld %ld\n",*x1,*y1,*x2,*y2);
+  }
+  return;
+}
+
 
 /* *************** edwlinewwc_() double width line drawing routine to file. *************** */
 void edwlinewwc_(x1,y1,x2,y2)

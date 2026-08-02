@@ -155,6 +155,29 @@ C instantiate LAFRESABS and set PFILEABS to ltmpc.
         endif
         IER=0
       else
+        ltmpc=LCMDFL   ! the file name that was passed in the command line
+        llt=lnblnk(ltmpc)
+        if(ltmpc(1:2).ne.'  '.and.ltmpc(1:4).ne.'UNKN')then
+
+C Assume that any other results files will be found in the same location and
+C make up full length strings that guess what those file names will be.
+C If file ends with .plr then assume it is a plant results file and
+C instantiate LAFRESABS and set PFILEABS to ltmpc.
+          lrf=lnblnk(ltmpc)
+          lrf3=lrf-3
+          lrf4=lrf-4
+          if(ltmpc(lrf3:lrf).eq.'.res')then
+            write(LAFRESABS,'(2a)') ltmpc(1:lrf4),'.mfr'
+            write(PFILEABS,'(2a)') ltmpc(1:lrf4),'.plr'
+            write(EFILEABS,'(2a)') ltmpc(1:lrf4),'.elr'
+          elseif(ltmpc(lrf3:lrf).eq.'.plr')then
+            write(LAFRESABS,'(2a)') ltmpc(1:lrf4),'.mfr'
+            write(EFILEABS,'(2a)') ltmpc(1:lrf4),'.elr'
+            write(PFILEABS,'(a)') ltmpc(1:lrf)
+          else
+            continue
+          endif
+        endif
         LTMP=' '
         IER=0
         call usrmsg(' ',' ','-')
@@ -227,8 +250,6 @@ C The simulator created record width is less so close and reopen.
           close(iunit)
           call EFOPRAN(iunit,LTMP,nzrl,1,IER)
           IBLIB=1
-C          write(outs,'(A,I3)')' Opening file with record length',nzrl
-C          call edisp(iuout,outs)
         elseif (nreclx.gt.nzrl) then
 
 C The simulator created record width is larger so close and reopen.
@@ -250,8 +271,6 @@ C If the record widths still do not match then give up.
             CALL EPAGEND
             STOP
           endif
-C          write(outs,'(A,I3)')' Opening file with record length',nzrl
-C          call edisp(iuout,outs)
           IBLIB=1
         else
           if(LTMP.eq.DEFRLB) then
@@ -768,6 +787,8 @@ C               the output interval if NOUT > 1 (IAV=1 yes; IAV=0 no)
       logical libheading ! have we printed report heading (library name etc).
       logical headingcontext ! has set or period changed so heading needs reprint
       common/libhead/libheading,headingcontext
+      common/recov03/recovery_active
+      logical recovery_active
 
       character outs*124,PDESCR*64
       logical ok
@@ -790,9 +811,13 @@ C timestep as simulation, assume no filtering.
         iocut=0
         CALL HDDATE(PDESCR)
         write(outs,'(1x,a)') PDESCR
-        call edisp(iuout,' ')
-        call edisp(iuout,outs)
-        call edisp(iuout,'Output time-step interval = 1')
+        if(recovery_active)then
+          continue  ! If driven by PIF file stay silent.
+        else
+          call edisp(iuout,' ')
+          call edisp(iuout,outs)
+          call edisp(iuout,'Output time-step interval = 1')
+        endif
         return
 
 C Reset so heading printed at next available opportunity.
@@ -1021,10 +1046,12 @@ C longtmp is the model configuration file with full path.
       character outs*124,znpad*15,path*72,MODE*4
       character mlcn*32,optn*32,tfile*72,uname*24
       character louts*248
+      character dstmp*24
       integer ISTRW
       
       logical XST,CFGOK,MLDBOK,MATDBOK,CTLOK,OPTKOK,CFCDBOK
       logical dmdsok  ! for dispersed demands
+      logical MY      ! to communicate multi-year to clmopb.
 
 C For weather file.
       logical unixok,concat
@@ -1490,7 +1517,10 @@ C Take into account weather file location.
      &    LCLIM(1:lnblnk(LCLIM))
       endif
 
-   44 CALL CLMOPB(0,IER)
+C Although a multi-year simulation may use multiple weather files
+C let's assume the one associated with the cfg file here.
+   44 MY=.false.
+      CALL CLMOPB(MY,0,IER)
       IF(IER.LT.0)then
 
 C Climate file not found - ask user for name.

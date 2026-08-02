@@ -13,11 +13,12 @@
 # $distgrid is the distance of the grid in meters outside the surfaces which are taken into account.
 # TO TAKE INTO ACCOUNT WELL THE REFLECTIONS FROM GROUND, ONE NEEDS MORE THAN ONE DIRECTION VECTORS. AT LEAST 5.
 
-
+@calcprocedures = ( "diluted", "gensky", "plain", "aldiff", "report" ) ;
+#@calcprocedures = ( "diluted", "gensky", "composite", "groundreflections", "aldiff", "report" ) ;
 #@calcprocedures = ( "diluted", "gensky", "alldiff", "radical" );
 #@calcprocedures = ( "diluted", "gendaylit", "composite", "alldiff" );
 # If @calcprocedure is unspedified, the program defaults to:
-@calcprocedures = ( "diluted", "gensky", "composite", "groundreflections", "alldiff" ) ;
+#@calcprocedures = ( "diluted", "gensky", "alldiff", "composite", "groundreflections" ) ;
 # The advice is to let @calcprocedures unspecified and get those default settings, or to go with this other setting:
 # @calcprocedures = ( "diluted", "gensky", "radical", "alldiff" ), which is for calculating the shading factors from scratch.
 # Quick description of the available calculation options:
@@ -48,7 +49,7 @@
 # if "complete" is specified, the two models from which the shading ratios 
 # are derived are going to be the following:
 # a) a model in which everything is black, and
-# b) a model in which all the surfaces are black, excepted the obstructions,
+# b) a model in which all the surfaces are black, except the obstructions,
 # which are reflective. The settings "diluted" and "complete" are alternatives.
 # With "aldiff" the program "directs" the consequences of all the variations from the expected direct shading factors due to direct unreflected radiation into the difffuse shading factors. The lack of "alldiff" let them be sent into the direct shading factors.
 # The settings "plain" with "alldiff" activates the simplest and most robust calculation method, with which the diffuse irradiance ratios are calculated on the basis of the total irradiances. This method is very cautious and systematically slightly overestimates shading factors and, by consequence, underestimates solar gains. Its main utility is as a benchmark for the other methods. It the shading factors produced by another method are lower than the shading factors produced by this method, there might be something wrong with the method or in the scene model.

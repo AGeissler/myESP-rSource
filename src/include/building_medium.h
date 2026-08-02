@@ -17,9 +17,9 @@
       integer NTCELX,NTCELY,NTCELZ,MCEL1D,MNREG
 
 ! Geometry.
-      PARAMETER (MCOM=82)      ! Zones.
+      PARAMETER (MCOM=88)      ! Zones.
       PARAMETER (MS=120)       ! Surfaces/zone (set MNSBZ in cfd.h to at least 2*MS).
-      PARAMETER (MCON=3300)    ! Surfaces in model.
+      PARAMETER (MCON=3500)    ! Surfaces in model.
       PARAMETER (MTV=360)      ! Vertices/zone.
       PARAMETER (MV=92)        ! Vertices/surface.
       PARAMETER (MST=MS)       ! Used with view factors.
@@ -59,7 +59,7 @@
       PARAMETER (MDATA=12)     ! Defining data items.
 
 ! Special materials.
-      PARAMETER (MSPMNOD=300)  ! Special materials.
+      PARAMETER (MSPMNOD=200)  ! Special materials.
       PARAMETER (MSPMDAT=21)   ! Defining data items.
       PARAMETER (MSPMRES=12)   ! Output data items
       PARAMETER (MSPMSPLM=150) ! Spline data items
@@ -140,7 +140,7 @@
       PARAMETER (MSEZ=70)      ! Surface-edge connections.
       PARAMETER (MZSE=20)      ! z-intervals in surface-edge connections.
       PARAMETER (MYSE=6*ME)    ! y-intervals in surface-edge connections.
-      PARAMETER (MEEZ=30)      ! Co-linear edge-edge connection.
+      PARAMETER (MEEZ=90)      ! Co-linear edge-edge connection.
       PARAMETER (MXEE=6*ME)    ! x-intervals in co-linear edge-edge connection.
       PARAMETER (MYEE=6*ME)    ! y-intervals in co-linear edge-edge connection.
       PARAMETER (MXEC=6*ME)    ! x-intervals in edge-corner connection.
@@ -161,9 +161,9 @@
       PARAMETER (MNREG=21)     ! Maximum number of gridding regions per axis
 
 ! Structured-gridding.
-      PARAMETER (MROW=12)      ! Rows.
-      PARAMETER (MCOL=12)      ! Columns.
-      PARAMETER (MLAY=12)      ! Layers.
+      PARAMETER (MROW=27)      ! Rows.
+      PARAMETER (MCOL=27)      ! Columns.
+      PARAMETER (MLAY=27)      ! Layers.
       PARAMETER (MGRID=10*MROW*MCOL*MLAY)! Control volumes (should be < MNOD3).
       PARAMETER (MLEV=12)
       PARAMETER (MMTR=30)      ! Material geometries.

@@ -400,7 +400,7 @@ C Arrays for sorting domains from (see code for comments).
       LOGICAL CALLU,CALLV,CALLW,CALLT,CALLC,KEMDL,BUOY,BOUSSI
       logical close,griderr
       logical origin,xgrid,ygrid,zgrid,zegrid,ortho
-      LOGICAL ZEROT,ZandKE,MITzero,vclose
+      LOGICAL ZEROT,ZandKE,MITzero,vclose,focussname
 
       character ITEM(16)*36
       character outs*124,outs248*248
@@ -447,7 +447,7 @@ C Check if we have vertex at ends of axis data.
 C Display zone geometry with vertex numbers to aid in selection
 C Restore standard graphics window variables.
         IVISMOD=1
-        if(MMOD.EQ.8) call redraw(IER)
+        call redraw(IER)
 
         write(outs,*) 'Coordinates in the zone...'
         call edisp(iuout,outs)
@@ -502,7 +502,7 @@ C No cancels so instantiate variables.
         IVISMOD=2
         HAS_GEOM=.TRUE.
         ISHSB=-1; ISHAO=-1; IFACES=1; ISHBLK=-1; ISHSRC=-1; ISHGEO=1
-        if (MMOD.eq.8) call redraw(IER)        
+        call redraw(IER)        
       endif
 
 C Make sure axes are orthogonal, as dfs only supports Cartesian coordinates.
@@ -667,7 +667,8 @@ C to be refreshed.
           MODIFYVIEW=.TRUE.; MODLEN=.TRUE.; MODBND=.TRUE.
           itvno=0; itsnm=0
           CALL INLNST(1)
-          CALL ADJVIEW(IER)
+          focussname=.false.
+          CALL CADJVIEW(focussname,IER)
         endif
 
 C Specify origin and axes of CFD domain.
@@ -5600,9 +5601,10 @@ C Update current instantiated i entity extents.
             CYCLE
           endif
 
-C If we get to here, something has gone wrong.
-          ive=VOBJILIST(ICP,ivo,i)
-          jve=VOBJILIST(ICP,ivo,j)
+C If we get to here, something has gone wrong. IVO is not
+C defined and ive jve set in next section.
+C          ive=VOBJILIST(ICP,ivo,i)
+C          jve=VOBJILIST(ICP,ivo,j)
           t12=VISNAME(ICP,i)
           tt12=VISNAME(IVP,j)
           write(outs,'(a,i3.3,1x,2a,i3.3,1x,2a)')
@@ -10259,7 +10261,7 @@ C Create a menu showing definitions for different conflation schemes.
             ISHGEO_TMP=ISHGEO
             ISHBLK=I
             ISHGEO=0
-            CALL redraw(IER)
+            call redraw(IER)
             ISHBLK=ISHBLK_TMP
             ISHGEO=ISHGEO_TMP
           endif
@@ -10862,7 +10864,7 @@ C in grid generation.
 C Curvilinear boundary vertex numbers.
       common/CLVTXNO/ivxhigh(MV),ivxlow(MV),ihigh,ilow
 
-      logical clkok,found
+      logical clkok,found,focussname
 
       DIMENSION COG1(3),COG2(3),JJVN(MV)
       integer ISTRW
@@ -10891,7 +10893,8 @@ C Redraw the zone with vertices.
       nzg=1
       nznog(1)=ICOMP
       izgfoc=ICOMP
-      CALL ADJVIEW(IER)
+      focussname=.false.
+      CALL CADJVIEW(focussname,IER)
 
 C Ask for and display the top defining vertices (west to east).
 C Allow user to type in the list of vertices as a string.  The

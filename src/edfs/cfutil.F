@@ -83,8 +83,9 @@ C     & C31 C32 C33 C34 C35')
       WRITE(ifl,110)(XU(I),I=3,NI)
       WRITE(ifl,110)(YV(I),I=3,NJ)
       WRITE(ifl,110)(ZW(I),I=3,NK)
-      DO 10 I=1,NKM2
-10      QMARK(I)=0.0 
+      DO I=1,NKM2
+        QMARK(I)=0.0 
+      ENDDO
       WRITE(ifl,110)(QMARK(I),I=1,NKM2)
       FLAG2=' FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF'
       flag2(2:2)='T'
@@ -283,13 +284,15 @@ C extended write format command
 Cag@241106 increased loop start to "2" and reduced loop runs by "-1". 
 C          This is not checked extensively, however aleviates the 
 C          problem with the output of "zero" cells to tecplot files.    
-      do 100 k=2,nk-1
-        do 100 j=2,nj-1
-          do 100 i=2,ni-1
+      do k=2,nk-1
+        do j=2,nj-1
+          do i=2,ni-1
             write(IUNIT,200)XP(I),YP(J),ZP(K),
      &        Uf(I,J,K),Vf(I,J,K),Wf(I,J,K),Tf(I,J,K),AGEf(I,J,K),
      &        POLCONCf(1,I,J,K),POLCONCf(2,I,J,K)
- 100  continue                      
+          enddo
+        enddo
+      enddo
       
  200  format(10E14.6)
 Cag@241106
@@ -421,25 +424,30 @@ C Begin with temperature
       write(IUNIT,'(a)') 'SCALARS temperature float'
       write(IUNIT,'(a)') 'LOOKUP_TABLE default'
 
-      do 103 k=2,nk-1
-        do 103 j=2,nj-1
-          do 103 i=2,ni-1
+      do k=2,nk-1
+        do j=2,nj-1
+          do i=2,ni-1
             write(IUNIT,200)Tf(I,J,K)
- 103  continue
+          enddo
+        enddo
+      enddo
 
 C Continue with velocity
       write(IUNIT,'(a)') 'VECTORS velocity float'
 
-      do 104 k=2,nk-1
-        do 104 j=2,nj-1
-          do 104 i=2,ni-1
+      do k=2,nk-1
+        do j=2,nj-1
+          do i=2,ni-1
+  
 C Velocity grid is offset from scalar grid (see GRIDGEO in cfgrid.F).
 C Interpolate velocity vector components to take account of this.
             Uftmp=0.5*(Uf(i,j,k)+Uf(i+1,j,k))
             Vftmp=0.5*(Vf(i,j,k)+Vf(i,j+1,k))
             Wftmp=0.5*(Wf(i,j,k)+Wf(i,j,k+1))
             write(IUNIT,201)Uftmp,Vftmp,Wftmp
- 104  continue
+          enddo
+        enddo
+      enddo
 
 C Continue with contaminant concentration.
       if (NCTM(ICFD).gt.0) then
@@ -448,11 +456,13 @@ C Continue with contaminant concentration.
      &      POLNAM(ictm,ICFD)(1:lnblnk(POLNAM(ictm,ICFD))),'_conc float'
           write(IUNIT,'(a)') 'LOOKUP_TABLE default'
 
-          do 105 k=2,nk-1
-            do 105 j=2,nj-1
-              do 105 i=2,ni-1
+          do k=2,nk-1
+            do j=2,nj-1
+              do i=2,ni-1
                 write(IUNIT,201)POLCONCf(ictm,i,j,k)
-  105     continue
+              enddo
+            enddo
+          enddo
         enddo
       endif
 

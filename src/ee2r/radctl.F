@@ -20,7 +20,7 @@ C SCENEPURP. Contains:
 C  RADPAR - check and update render options.
 
 C ********************* RADPAR *********************
-C RADPAR - check and update render options.
+C Check and update render options.
 C If VAL is < 0 then return current setting otherwise set par=VAL.
       SUBROUTINE RADPAR(PAR,VAL)
 #include "building.h"

@@ -25,7 +25,7 @@ C of parameters are made here.
 C Variables used are:
 C NOCNTM: = 0 if contaminant network not defined otherwise = 1
 C NCONTM: number of contaminants
-C CNCAA : Ambient concentration kg/kg of air
+C CNCAA : Ambient concentration kg/kg of air over 24 hours.
 C GERATA: Generation rate within each INOD kg/s
 C RECCOA: Recovery coefficient within each INOD kg/s
 C FILEFA: Filter efficiency
@@ -284,71 +284,71 @@ C Skip source/sink number and get source/sink type
 
 C Read Supplementary data items depending upon type
         IF(N.EQ.1) THEN
-          CALL EGETWR(OUTSTR,K,READOFF,0.0,1.0,'W',' ',IER)
+          CALL EGETWR(OUTSTR,K,READOFF,0.0,1.0,'W','const coef',IER)
           SPMSUP(ISPMNO,1)=READOFF
         ELSEIF(N.EQ.2) THEN
-          CALL EGETWR(OUTSTR,K,READOFF,0.0,1.0,'W',' ',IER)
+          CALL EGETWR(OUTSTR,K,READOFF,0.0,1.0,'W','init gen rate',IER)
           SPMSUP(ISPMNO,1)=READOFF
-          CALL EGETWR(OUTSTR,K,READOFF,0.0,1.0,'W',' ',IER)
+          CALL EGETWR(OUTSTR,K,READOFF,0.0,1.0,'W','cutoff concen',IER)
           SPMSUP(ISPMNO,2)=READOFF
         ELSEIF(N.EQ.3) THEN
-          CALL EGETWR(OUTSTR,K,READOFF,0.0,1.0,'W',' ',IER)
+          CALL EGETWR(OUTSTR,K,READOFF,0.0,1.0,'W','init gen rate',IER)
           SPMSUP(ISPMNO,1)=READOFF
-          CALL EGETWR(OUTSTR,K,READOFF,0.0,10.0,'W',' ',IER)
+          CALL EGETWR(OUTSTR,K,READOFF,0.0,10.0,'W','time constant',IER)
           SPMSUP(ISPMNO,2)=READOFF
-          CALL EGETWR(OUTSTR,K,READOFF,1.,31.,'W',' ',IER)
+          CALL EGETWR(OUTSTR,K,READOFF,1.,31.,'W','gen start DOM',IER)
           SPMSUP(ISPMNO,3)=READOFF
-          CALL EGETWR(OUTSTR,K,READOFF,1.,12.,'W',' ',IER)
+          CALL EGETWR(OUTSTR,K,READOFF,1.,12.,'W','gen start Month',IER)
           SPMSUP(ISPMNO,4)=READOFF
-          CALL EGETWR(OUTSTR,K,READOFF,0.,24.,'W',' ',IER)
+          CALL EGETWR(OUTSTR,K,READOFF,0.,24.,'W','gen start HOD',IER)
           SPMSUP(ISPMNO,5)=READOFF
         ELSEIF(N.EQ.4) THEN
-          CALL EGETWR(OUTSTR,K,READOFF,0.0,1.0,'W',' ',IER)
+          CALL EGETWR(OUTSTR,K,READOFF,0.0,1.0,'W','film trns coef',IER)
           SPMSUP(ISPMNO,1)=READOFF
-          CALL EGETWR(OUTSTR,K,READOFF,1.0,2.0,'W',' ',IER)
+          CALL EGETWR(OUTSTR,K,READOFF,1.0,2.0,'W','film density',IER)
           SPMSUP(ISPMNO,2)=READOFF
-          CALL EGETWR(OUTSTR,K,READOFF,0.0,100.0,'W',' ',IER)
+          CALL EGETWR(OUTSTR,K,READOFF,0.0,100.0,'W','emittng area',IER)
           SPMSUP(ISPMNO,3)=READOFF
-          CALL EGETWR(OUTSTR,K,READOFF,0.0,20.0,'W',' ',IER)
+          CALL EGETWR(OUTSTR,K,READOFF,0.0,20.0,'W','mass/unt area',IER)
           SPMSUP(ISPMNO,4)=READOFF
-          CALL EGETWR(OUTSTR,K,READOFF,0.0,10.0,'W',' ',IER)
+          CALL EGETWR(OUTSTR,K,READOFF,0.0,10.0,'W','Henry ads coe',IER)
           SPMSUP(ISPMNO,5)=READOFF
-          CALL EGETWR(OUTSTR,K,READOFF,0.0,1.0,'W',' ',IER)
+          CALL EGETWR(OUTSTR,K,READOFF,0.0,1.0,'W','init concentr',IER)
           SPMSUP(ISPMNO,6)=READOFF
         ELSEIF(N.EQ.5) THEN
-          CALL EGETWR(OUTSTR,K,READOFF,0.0,1.0,'W',' ',IER)
+          CALL EGETWR(OUTSTR,K,READOFF,0.0,1.0,'W','gen rate',IER)
           SPMSUP(ISPMNO,1)=READOFF
-          CALL EGETWR(OUTSTR,K,READOFF,1.,31.,'F',' ',IER)
+          CALL EGETWR(OUTSTR,K,READOFF,1.,31.,'F','gen start DOM',IER)
           SPMSUP(ISPMNO,2)=READOFF
-          CALL EGETWR(OUTSTR,K,READOFF,1.,12.,'F',' ',IER)
+          CALL EGETWR(OUTSTR,K,READOFF,1.,12.,'F','gen start Month',IER)
           SPMSUP(ISPMNO,3)=READOFF
-          CALL EGETWR(OUTSTR,K,READOFF,0.,24.,'F',' ',IER)
+          CALL EGETWR(OUTSTR,K,READOFF,0.,24.,'F','gen start HOD',IER)
           SPMSUP(ISPMNO,4)=READOFF
-          CALL EGETWR(OUTSTR,K,READOFF,1.,31.,'F',' ',IER)
+          CALL EGETWR(OUTSTR,K,READOFF,1.,31.,'F','gen stop DOM',IER)
           SPMSUP(ISPMNO,5)=READOFF
-          CALL EGETWR(OUTSTR,K,READOFF,1.,12.,'F',' ',IER)
+          CALL EGETWR(OUTSTR,K,READOFF,1.,12.,'F','gen stop Month',IER)
           SPMSUP(ISPMNO,6)=READOFF
-          CALL EGETWR(OUTSTR,K,READOFF,0.,24.,'F',' ',IER)
+          CALL EGETWR(OUTSTR,K,READOFF,0.,24.,'F','gen stop HOD',IER)
           SPMSUP(ISPMNO,7)=READOFF
         ELSEIF(N.EQ.6) THEN
-          CALL EGETWR(OUTSTR,K,READOFF,-2.,6.,'F',' ',IER)
+          CALL EGETWR(OUTSTR,K,READOFF,-2.,6.,'F','activ level',IER)
           SPMSUP(ISPMNO,1)=READOFF
           IF(READOFF.LT.0.)GOTO 23
-          CALL EGETWR(OUTSTR,K,READOFF,1.,31.,'F',' ',IER)
+          CALL EGETWR(OUTSTR,K,READOFF,1.,31.,'F','occup start DOM',IER)
           SPMSUP(ISPMNO,2)=READOFF
-          CALL EGETWR(OUTSTR,K,READOFF,1.,12.,'F',' ',IER)
+          CALL EGETWR(OUTSTR,K,READOFF,1.,12.,'F','occup st Month',IER)
           SPMSUP(ISPMNO,3)=READOFF
-          CALL EGETWR(OUTSTR,K,READOFF,0.,24.,'F',' ',IER)
+          CALL EGETWR(OUTSTR,K,READOFF,0.,24.,'F','occup st HOD ',IER)
           SPMSUP(ISPMNO,4)=READOFF
-          CALL EGETWR(OUTSTR,K,READOFF,1.,31.,'F',' ',IER)
+          CALL EGETWR(OUTSTR,K,READOFF,1.,31.,'F','occup fin DOM',IER)
           SPMSUP(ISPMNO,5)=READOFF
-          CALL EGETWR(OUTSTR,K,READOFF,1.,12.,'F',' ',IER)
+          CALL EGETWR(OUTSTR,K,READOFF,1.,12.,'F','occup fin Month',IER)
           SPMSUP(ISPMNO,6)=READOFF
-          CALL EGETWR(OUTSTR,K,READOFF,0.,24.,'F',' ',IER)
+          CALL EGETWR(OUTSTR,K,READOFF,0.,24.,'F','ocup fin HOD',IER)
           SPMSUP(ISPMNO,7)=READOFF
-          CALL EGETWR(OUTSTR,K,READOFF,1.,20.,'W',' ',IER)
+          CALL EGETWR(OUTSTR,K,READOFF,1.,20.,'W','Number people',IER)
           SPMSUP(ISPMNO,8)=READOFF
-          CALL EGETWR(OUTSTR,K,READOFF,50.,1000.,'W',' ',IER)
+          CALL EGETWR(OUTSTR,K,READOFF,50.,1000.,'W','Met rate',IER)
           SPMSUP(ISPMNO,9)=READOFF
  23     ENDIF
         IF(IER.NE.0) GOTO 1017

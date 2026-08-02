@@ -19,6 +19,7 @@ C  MFOUTP   - main controlling routine for mass flow line graphs, stats etc.
 C  ASKMFNOD - asks for one or more mass flow nodes.
 C  ASKMFCON - asks for one or more mass flow connections. 
 C  MOMFGHED - outputs header information for flow network graphical display.
+C  confirm_flow_results - ask user to confirm flow results name.
 
 C ******************** MFOUTP ********************
 C Main controlling routine for mass flow line graph
@@ -38,10 +39,11 @@ C subroutine into it's component parts, perhaps allowing homogenisation
 C with the graphing code for the building domain?
 C act='c' we are looking at CFD instead of mass flow.
 
+C Passing act='i' for an IPV mode allows skipping call to MFMENU.
+
       SUBROUTINE MFOUTP(act)
 #include "building.h"
 #include "model.h"
-#include "geometry.h"
 #include "prj3dv.h"
 #include "net_flow.h"
 #include "net_flow_data.h"
@@ -51,7 +53,6 @@ C act='c' we are looking at CFD instead of mass flow.
 
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/OUTPCH/ICOUT
-      COMMON/FILEP/IFIL
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
 
       common/appcols/mdispl,nifgrey,ncset,ngset,nzonec
@@ -63,21 +64,15 @@ C act='c' we are looking at CFD instead of mass flow.
 
       COMMON/SIMPIK/ISIM,ISTADD,ID1,IM1,ID2,IM2,ISDS,ISDF,NTS,ISAVE
       COMMON/PERO/IOD1,IOM1,IOH1,IOD2,IOM2,IOH2,IODS,IODF,NOUT,IAV
-      COMMON/gzonpik/izgfoc,nzg,nznog(mcom)
-      integer ncomp,ncon
-      common/C1/NCOMP,NCON
 
       common/getmenu/menutype,igetind(65),igetflux(65)
       common/exporttg/xfile,tg,delim
       COMMON/SET1/IYEAR,IBDOY,IEDOY,IFDAY,IFTIME
+      character LAPROB*72
       COMMON/AFN/IAIRN,LAPROB,ICAAS(MCOM)
       COMMON/SETNAM/RSNAME(MNRS)
+      character rfile*72,PFILE*72,MSTRFILE*72,LAFRES*72
       COMMON/RESLIB/RFILE,PFILE,MSTRFILE,LAFRES
-      COMMON/ABSRESLIB/RFILEABS,PFILEABS,MSTRFILEABS,LAFRESABS
-
-C Defaults.
-      character*96 DFCFG,DFCTL,DEFRLB,DAPROB,DAFRES,DPNF
-      COMMON/DEFLT2/DFCFG,DFCTL,DEFRLB,DAFRES,DAPROB,DPNF
 
 C ihflag = 0 write 13h30, ihflag = 1 write 0.5625
 C idhflg = 0 no day demarcations, idhflg = 1 write demarcation
@@ -111,6 +106,9 @@ C Occupancy filter info.
       common/lists3d/iuchoice,nlistnode,listnode(MNOD),
      &  nlistconn,listconn(MCNN),nlistcmp,listcmp(MCMP),
      &  fxmin,fxmax,fymin,fymax,fzmin,fzmax
+      integer net3ddelay  ! delay between timesteps in 3D network
+      integer iflblo      ! verboxity of 3D flow graph labels
+      common/delay3d/net3ddelay,iflblo
 
 C Simulator parameters.
       COMMON/SPFL/spfileok,perok,cfdperok,tstepok,saveok,autook,exitok,
@@ -120,8 +118,16 @@ C Simulator parameters.
       COMMON/FREQS/NBINS,XBIN1,XBINN,DXBIN,IFREQ,IHITS,IMISS,INBIN(MF)
       integer ICBIN,IRCBIN
       COMMON/FREQS1/ICBIN(MF),IRCBIN(MF),ITOTAL
-      integer net3ddelay  ! delay between timesteps in 3D network
-      common/delay3d/net3ddelay
+
+C To support contaminate recovery.
+      integer ipvictmindex    ! which contaminate source
+      character ipvctmname*12 ! name of contaminate
+      character ipvndname*12  ! associated flow node name
+      common/contm10/ipvictmindex,ipvctmname,ipvndname
+
+      COMMON/CONTM0/NCONTM,NOCNTM,CONTMNAM(MCONTM)
+      CHARACTER CONTMNAM*12
+      
       real Yold,TIMEold     ! type for passing to C
       dimension Yold(MZS), TIMEold(MZS)
       character TLABEL*60,trange*20,tranged*20,dg*1
@@ -130,27 +136,23 @@ C Simulator parameters.
       character outs800*800,outs800d*800  ! really long string buffers
       character ALABEL(6)*12,act*1
       CHARACTER PDESCR*64,SDESCR*44,DESCR*7,DESCR1*10,DESCR2*8
-      character lltmpc*144
       CHARACTER DESCRH*5,DESCRD*5,DESCRJ*5,NT*14,XT*14
       character graftitle*64,grlbl*24,LTIME*5
-      character LAPROB*72,RSNAME*40
-      character rfile*72,PFILE*72,MSTRFILE*72,LAFRES*72
-      character RFILEABS*144,PFILEABS*144,MSTRFILEABS*144,LAFRESABS*144
+      character RSNAME*40
       character xfile*144,tg*1,delim*1,tab*1
       character msg*32
+      character SUFFIX*6
       dimension FMAX(MFRS), FMIN(MFRS), FTOTSD(MFRS)
       dimension FAVE(MFRS), FSTD(MFRS), NF(MFRS)
       dimension TMAX(MFRS), TMIN(MFRS), IQHRS(MFRS)
 
       integer YAXSET,ADDLIN,horaxisdiv
-      integer iglib
       integer lnb,lsn1
       integer k,k4,ke,ke4  ! used for string positions
       integer lke,lket32   ! length of label and packed label
       integer POS,NEG,CMPIS
       real xc,yc,zc
       character word*12    ! for 3D value plotting.
-      integer ISTRW
 
       logical colok,ok,CFDOK,CLOSE
 #ifdef OSI
@@ -169,7 +171,6 @@ C Simulator parameters.
       integer*8 iside,isize,ifont     ! passed to viewtext
 #endif
 
-      COMMON/cfdsmper/ICDYS,ICDYF,CFTS,CFTF
       COMMON/cfdotper/ICDYOS,ICDYOF,CFTOS,CFTOF
       common/CFDFL/LCFDFL
       character LCFDFL*72
@@ -179,6 +180,7 @@ C Simulator parameters.
 
 C Cast values for linescale.
       iigl=igl;iigb=igb
+      tab=','
 
 C Are we looking at CFD?
       if (act.eq.'c') then
@@ -195,69 +197,8 @@ C If the network flow file has not yet been opened request information.
       if(iflib.eq.1)then
         continue
       else
-        if(iairn.ge.1)then
-
-C If there was a flow network defined ask for the flow results file.
-C Assume standard naming convention (*.mfr for flow results), if the
-C user specified a different flow results file then he will have to
-C specify it here as well.
-        lltmpc=LAFRESABS   ! based on the file name passed in the command line
-        llt=lnblnk(lltmpc)
-        if(llt.le.2) lltmpc='  '
-
-C Use ifdefs because the X11 version will be returning only the
-C name of the file, while the GTK version will be returning the
-C name with the full path.
-   22   helptopic='res_flow_res_default'
-        call gethelptext(helpinsub,helptopic,nbhelp)
-        iglib = igraphiclib()  ! find out if X11 or GTK or text support only.
-        if(iglib.eq.1.or.iglib.eq.3)then
-          if(llt.lt.72)then
-            ISTRW=72
-          elseif(llt.ge.72.and.llt.lt.96)then
-            ISTRW=96
-          elseif(llt.ge.96.and.llt.lt.124)then
-            ISTRW=124
-          elseif(llt.ge.124.and.llt.le.144)then
-            ISTRW=144
-          endif
-        elseif(iglib.eq.2)then
-          ISTRW=144
-        else
-          ISTRW=96
-        endif
-        CALL EASKF(lltmpc,'Flow Library name? ',' ',ISTRW,DAFRES,
-     &    'flow library file',IER,nbhelp)
-
-C If user cancel.
-        if(ier.eq.-3)then
-          return
-        endif
-
-        if(lltmpc(1:2).ne.'  '.and.lltmpc(1:4).ne.'UNKN')then
-
-          IFRES=IFIL+4
-          call EFOPRAN(IFRES,LLTMPC,NMRL,1,IER)
-
-C If there were no errors opening the file then remember its
-C name to report in header of graphs and scan its header.
-          if(ier.eq.0)then
-            IFLIB=1
-            LAFRES=LLTMPC(1:72)   ! remember some of the file name
-            call MFREADH(IFRES,ITRC)
-          else
-            helptopic='res_flow_res_problem'
-            call gethelptext(helpinsub,helptopic,nbhelp)
-            write(outs248,'(3a)') 'Problem encountered opening ',
-     &        lltmpc(1:lnblnk(lltmpc)),'!'
-            call edisp248(iuout,outs248,100)
-            call easkmbox(' ','Options:','respecify','cancel',
-     &        ' ',' ',' ',' ',' ',' ',ii,nbhelp)
-            if(ii.eq.1)goto 22
-            return
-          endif
-        endif
-        endif
+        call confirm_flow_results(ier)
+        if(ier.eq.-3) return
       endif
 
 C Define prompt and set an initial value for xquery.
@@ -280,14 +221,29 @@ C If output to file alter the edisp unit number.
         endif
         call edisp(iuout,outs)
       elseif(ixopen.eq.0)then
-        if(act.ne.'c')then
+
+C If interactive and graphic display the flow network.
+        if(act.eq.'c'.or.act.eq.'i')then
+          continue
+        else
           if(MMOD.eq.8)then
             if(iairn.eq.3)then
               call startbuffer
               if(NNOD.gt.50.or.NCMP.gt.50)then
                 call MFWFDRAW('r',0,0)  ! Draw 3D flow network without labels
               else
-                call MFWFDRAW('r',1,1)  ! Draw 3D flow network with labels
+                CALL EASKMBOX('Flow network labeling options:',' ',
+     &            'minimal','short e.g. c:003 n:005',
+     &            'use full node & component name',' ',' ',' ',' ',
+     &            ' ',IW,nbhelp)
+                if(iw.eq.1)then
+                  call MFWFDRAWNC('g',0,0)  ! Draw flow nodes & components in grey minimal.
+                elseif(iw.eq.2)then
+                  call MFWFDRAWNC('g',1,1)  ! Draw flow nodes & components in grey short.
+                elseif(iw.eq.3)then
+                  call MFWFDRAWNC('g',2,2)  ! Draw flow nodes & components in grey full.
+                endif
+                iflblo=iw
               endif
             endif
           endif
@@ -308,7 +264,70 @@ C allow combined reporting.
     1 if (CFDOK) then
         call MCFDV(idone)
       else
-        call MFMENU(idone)
+
+C Choose the specific flow topics to be reported as well as the
+C form of reporting unless in IPV mode where contaminates topic
+C can be setup without user intervention.
+        if(act.eq.'-')then
+          call MFMENU(idone)
+        else
+          NMFGET=NMFGET+1
+          IMFGETNO(NMFGET,1)=14
+          IMFGETNO(NMFGET,5)=1
+          IMFGETNO(NMFGET,6)=6
+          IMFGETNO(NMFGET,7)=5
+          IMFGETNO(NMFGET,8)=0
+          SUFFIX=' g/kg'
+          if(IROC.eq.0)then
+            SMFLABEL(NMFGET)='Node contaminant conc (g/kg)'
+            LNSMFLABEL(NMFGET)=28
+          elseif(IROC.eq.1)then
+            SMFLABEL(NMFGET)='Node contam conc (g/kg/hr)'
+            LNSMFLABEL(NMFGET)=26
+          endif
+          iocupf=0
+          iocpzone=0
+
+C Find index of the associate flow node.
+          lnipvnn=lnblnk(ipvndname)
+          j=0
+          do I=1,NNOD
+            lnnd=lnblnk(NDNAM(I))
+            if(ipvndname(1:lnipvnn).eq.NDNAM(I)(1:lnnd))then
+              j=I
+              cycle
+            endif
+          enddo
+          if(j.gt.0)then
+            xw=HNOD(j,1); yw=HNOD(j,2); zw=HNOD(j,3)
+            if(fxmin.gt.xw) fxmin=xw
+            if(fxmax.le.xw) fxmax=xw
+            if(fymin.gt.yw) fymin=yw
+            if(fymax.le.yw) fymax=yw
+            if(fzmin.gt.zw) fzmin=zw
+            if(fzmax.le.zw) fzmax=zw
+          else
+            call edisp(iuout,'Contaminate not found')
+            return
+          endif
+          nlistnode=1         ! add the 2nd node
+          listnode(1)=j
+          lnnd=lnblnk(NDNAM(j))
+          IMFGETNO(NMFGET,2)=j
+
+C Find index of the contaminate.
+          if(NCONTM.eq.1)then
+            lncn=lnblnk(CONTMNAM(1))
+            if(CONTMNAM(1)(1:lncn).eq.
+     &         ipvctmname(1:lnblnk(ipvctmname)))then
+              IMFGETNO(NMFGET,3)=1
+              WRITE(GLMFLABEL(NMFGET),'(4a)')
+     &          CONTMNAM(1)(1:lncn),' at ',
+     &          NDNAM(listnode(1))(1:lnnd),SUFFIX(1:lnblnk(SUFFIX))
+              LNGLMFLABEL(NMFGET)=lnblnk(GLMFLABEL(NMFGET))
+            endif
+          endif
+        endif
       endif
 
 C User exited without selecting anything to display.
@@ -419,6 +438,11 @@ C For timestep listings generate initial lines.
           endif
         endif
       elseif (MENUTYPE.eq.15) then
+        call edisp(iuout,'  ')
+        call edisp(iuout,
+     &    '3D graph of performance is not reliable for repeat plots')
+        call edisp(iuout,
+     &    'unless you exit flow network facility and re-enter.')
         continue
       endif
 C      call usrmsg('Scanning data for range of values...','  ','-')
@@ -518,7 +542,9 @@ C Inform user of the histo range and reset nb of bins and typcial bin size.
         write(outs,'(a,a,a,f9.2,a,f10.2)')'The ',
      &    GLMFLABEL(1)(1:LNGLMFLABEL(1)),' data range is',
      &    XMIN,' to',XMAX
-        call edisp(itru,outs)
+        if(act.eq.'-')then
+          call edisp(itru,outs)
+        endif
         if(iocupf.eq.1.and.iocpzone.ne.0)then
           call edisp(iuout,'The data will be filtered by occupancy.')
         endif
@@ -527,6 +553,8 @@ C Inform user of the histo range and reset nb of bins and typcial bin size.
 
 C If in pif mode use default bin setup.
         if (act(1:1).eq.'p'.and.autook)then
+          ok=.TRUE.
+        elseif(act.eq.'i')then
           ok=.TRUE.
         else
           helptopic='res_flow_freq_custom'
@@ -542,6 +570,8 @@ C MF bins for any given range.
             DXBIN=0.05
           elseif (DELTA.lt.2.) then
             DXBIN=0.1
+          elseif (DELTA.lt.3.) then
+            DXBIN=0.2
           elseif (DELTA.lt.5.) then
             DXBIN=0.25
           elseif (DELTA.lt.15.) then
@@ -629,7 +659,7 @@ C Cast values for linescale.
       elseif (MENUTYPE.eq.15) then
 
 C 3D overlay draw just the nodes and components (omitt names if complex)
-C and setup bounds. Setup viewing parameters as done in subroutine adjview.
+C and setup viewing parameters as done in subroutine cadjview.
         if(iairn.eq.3)then
           EYEM(1)=-100.; EYEM(2)=-100.; EYEM(3)=100.
           call eclose(XMN,0.0,0.001,CLOSE)
@@ -678,11 +708,24 @@ C and setup bounds. Setup viewing parameters as done in subroutine adjview.
           call axiscale(igwid,igheight,sxmn,sxmx,symn,symx,
      &      xxsc,yysc,xsca,XXadd,YYadd)
           call linescale(iigl,XXadd,xsca,iigb,YYadd,xsca)
+
+C Ask user for verbosity in names.
           call INICLP(ier)
           if(NNOD.gt.50.or.NCMP.gt.50)then
             call MFWFDRAWNC('g',0,0)  ! Draw flow nodes & components in grey.
           else
-            call MFWFDRAWNC('g',1,1)  ! Draw flow nodes & components in grey.
+            CALL EASKMBOX('Flow network labeling options:',' ',
+     &        'minimal','short e.g. c:003 n:005',
+     &        'use full node & component name',' ',' ',' ',' ',' ',
+     &        IW,nbhelp)
+            if(iw.eq.1)then
+              call MFWFDRAWNC('g',0,0)  ! Draw flow nodes & components in grey minimal.
+            elseif(iw.eq.2)then
+              call MFWFDRAWNC('g',1,1)  ! Draw flow nodes & components in grey short.
+            elseif(iw.eq.3)then
+              call MFWFDRAWNC('g',2,2)  ! Draw flow nodes & components in grey full.
+            endif
+            iflblo=iw
           endif
         endif
       endif
@@ -966,8 +1009,8 @@ C Loop through each timstep in the day and generate output depending
 C on the menu type. JJ is a counter for the timestep in the day which
 C is equivalent to the J counter in table.F
         JJ=0
-        do 10 IHR=1,24
-          do 10 ITS=1,NTS
+        do 11 IHR=1,24
+          do 12 ITS=1,NTS
             JJ=JJ+1
             IDAYR=IDAY-ISDS+1
             if (CFDOK) then
@@ -1335,11 +1378,13 @@ C Pause just before continuing. Redraw the background nodes & components.
                     call pauses(1) ! pause 1 sec
                   elseif(net3ddelay.eq.3)then
                     call pausems(500) ! pause half sec
-                  else
+                  elseif(net3ddelay.eq.4)then
                     call pausems(250) ! pause quarter sec
+                  else
+                    call pausems(100) ! pause tenth sec
                   endif
 
-C Setup viewing parameters as done in subroutine adjview
+C Setup viewing parameters as done in subroutine cadjview
 C and bounds as in BNDOBJ.
                   EYEM(1)=-100.; EYEM(2)=-100.; EYEM(3)=100.
                   call eclose(XMN,0.0,0.001,CLOSE)
@@ -1393,7 +1438,13 @@ C If there are few active nodes and components consider including names.
                   if(NNOD.gt.50.or.NCMP.gt.50)then
                     call MFWFDRAWNC('g',0,0)  ! Draw flow nodes & components in grey.
                   else
-                    call MFWFDRAWNC('g',1,1)  ! Draw flow nodes & components in grey.
+                    if(iflblo.eq.1)then
+                      call MFWFDRAWNC('g',0,0)  ! Draw flow nodes & components in grey minimal.
+                    elseif(iflblo.eq.2)then
+                      call MFWFDRAWNC('g',1,1)  ! Draw flow nodes & components in grey short.
+                    elseif(iflblo.eq.3)then
+                      call MFWFDRAWNC('g',2,2)  ! Draw flow nodes & components in grey full.
+                    endif
                   endif
                 endif
               endif
@@ -1401,6 +1452,8 @@ C If there are few active nodes and components consider including names.
 
 C Reset add profile.
             ADDLIN=0
+ 12       continue
+ 11     continue
  10   continue
 
 C Calculate standard deviation and averages.
@@ -1431,16 +1484,21 @@ C Calculate cumulative frequency.
   710   CONTINUE
 
 C Ask user how data should be presented.
-        helptopic='res_mass_freq_choices'
-        call gethelptext(helpinsub,helptopic,nbhelp)
-        IDG=1
-        IG=1
-        CALL MENUATOL('Frequency choices','Frequency reports:',
-     &    'a frequency distribution','b cumulative freq. dist.',
-     &    'c summary table ','d frequency dist. + table',
-     &    'e cumulative dist. + table','f none of the above',
-     &    ' ',' ',' ',' ',' ',' ',IG,IDG,nbhelp)
-        if(IG.eq.6) goto 1
+        if(act.eq.'i')then
+          IDG=3
+          IG=3
+        else
+          helptopic='res_mass_freq_choices'
+          call gethelptext(helpinsub,helptopic,nbhelp)
+          IDG=1
+          IG=1
+          CALL MENUATOL('Frequency choices','Frequency reports:',
+     &      'a frequency distribution','b cumulative freq. dist.',
+     &      'c summary table ','d frequency dist. + table',
+     &      'e cumulative dist. + table','f none of the above',
+     &      ' ',' ',' ',' ',' ',' ',IG,IDG,nbhelp)
+          if(IG.eq.6) goto 1
+        endif
         IF(IG.EQ.1.OR.IG.EQ.2.OR.IG.EQ.4.OR.IG.EQ.5)then
 
 C Invoke drawing routines.  If echoing graphics to file, close it
@@ -1487,12 +1545,34 @@ C a tabular report.
             call edisp(icout,' Output being directed to file... ')
           endif
 
-          call edisp(itru,' ')
-          call edisp(itru,GLMFLABEL(1))
-          call edisp(itru,
+          if(act.eq.'-')then
+            call edisp(itru,' ')
+            call edisp(itru,GLMFLABEL(1))
+            call edisp(itru,
      &' Bin   data range       Distri-  freq.   cumulative  cumulative')
-          call edisp(itru,
+            call edisp(itru,
      &'                        bution    (%)   distribution  freq (%)')
+          elseif(act.eq.'i')then
+
+C In IPV mode contaminates will range from ~400-3000 PPM, Set ranges
+C to reflect this. If other metrics are added this will need to be
+C adapted.
+            XMAX=3.
+            XMIN=0.3
+            DXBIN=0.2
+            XBIN1=ANINT(XMIN/DXBIN)*DXBIN
+            XBINN=ANINT(XMAX/DXBIN)*DXBIN
+            NB=INT((XBINN-XBIN1)/DXBIN)
+            write(outs,'(13a)') '*format',tab,'frequency',tab,'13',tab,
+     &        '5',tab,'0.3',tab,'0.2',tab,'3.0'
+            call edisp(itru,outs)
+            write(outs,'(2a)') 
+     &        '*fields range distribution percent cumulative_distrib ',
+     &        'cumulative_percent'
+            call eddisp(itru,outs)
+            call edisp(itru,'*data ')
+            call eddisp(itru,'0,<0.4,0,0.0,0,0.0')
+          endif
 
 C Provide initial range and then loop through each.
           XBINS=XBIN1
@@ -1504,18 +1584,26 @@ C Provide initial range and then loop through each.
             XBIN=XBIN+DXBIN
             CFREQ=(FLOAT(ICBIN(I))/FLOAT(ITOTAL))*100.0
             FREQ=(FLOAT(INBIN(I))/FLOAT(ITOTAL))*100.0
-            if(I.eq.1)then
-              WRITE(outs,'(i3,2x,a,i5,2x,f6.2,i9,f12.2,a,i6,a)') I,
-     &        tranged,INBIN(I),FREQ,ICBIN(I),CFREQ,'  ',iunder,' below'
-            elseif(I.eq.NBINS)then
-              WRITE(outs,'(i3,2x,a,i5,2x,f6.2,i9,f12.2,a,i6,a)') I,
-     &        tranged,INBIN(I),FREQ,ICBIN(I),CFREQ,'  ',iover,' above'
+            if(act.eq.'-')then
+              if(I.eq.1)then
+               WRITE(outs,'(i3,2x,a,i5,2x,f6.2,i9,f12.2,a,i6,a)') I,
+     &         tranged,INBIN(I),FREQ,ICBIN(I),CFREQ,'  ',iunder,' below'
+              elseif(I.eq.NBINS)then
+               WRITE(outs,'(i3,2x,a,i5,2x,f6.2,i9,f12.2,a,i6,a)') I,
+     &         tranged,INBIN(I),FREQ,ICBIN(I),CFREQ,'  ',iover,' above'
+              else
+               WRITE(outs,'(i3,2x,a,i5,2x,f6.2,i9,f12.2)')I,tranged,
+     &         INBIN(I),FREQ,ICBIN(I),CFREQ
+              endif
             else
               WRITE(outs,'(i3,2x,a,i5,2x,f6.2,i9,f12.2)')I,tranged,
      &        INBIN(I),FREQ,ICBIN(I),CFREQ
             endif
             call eddisp(itru,outs)
   101     CONTINUE
+          if(NBINS.lt.12)then
+            call eddisp(itru,'12,2.60-2.80,0,0.0,0,0.0')
+          endif
         endif
 
 C Reset the number of requested items (NMFGET) so that if another
@@ -1568,15 +1656,17 @@ C If there are optional user defined labels draw them.
 
       elseif (MENUTYPE.eq.5) then
 
-C Display stats.
-        write (outs,'(a,a)') 
+C Display stats Adapt if part of IPV report.
+        if(act.eq.'-')then
+          write (outs,'(a,a)') 
      &'                                       Maximum                ',
      &'Minimum              Mean   Standard'
-        call eddisp(itru,outs)
+          call eddisp(itru,outs)
         write (outs,'(a,a)') 
      &'                                   value    occurrence    value',
      &'    occurrence     value  deviation'
-        call eddisp(itru,outs)
+          call eddisp(itru,outs)
+        endif
         do 210 I=1,NMFGET
 
 C Create string description for time of maximum occurrance.
@@ -1593,9 +1683,13 @@ C Flow data in m^3/s or kg/s deserves 3 decimal places.
           call STDATE(IYEAR,MINDOY,DESCR,DESCR1,DESCR2)
           call EDTIME(TMINHR,DESCRH,DESCRD,DESCRJ,TIMER)
           write (NT,'(a,a,a)')DESCR(1:6),'@',DESCRH
-          t32=GLMFLABEL(I)
-          write (outs,'(a,1x,2(f7.3,2x,a12,2x),1x,2(f7.3,3x))') t32,
-     &      FMAX(I),XT,FMIN(I),NT,FAVE(I),FSTD(I)
+          if(act.eq.'-')then
+            t32=GLMFLABEL(I)
+            write (outs,'(a,1x,2(f7.3,2x,a12,2x),1x,2(f7.3,3x))') t32,
+     &        FMAX(I),XT,FMIN(I),NT,FAVE(I),FSTD(I)
+          elseif(act.eq.'i')then
+            write(outs,'(a,3F8.3)') '*data ',FMAX(I),FMIN(I),FAVE(I)
+          endif
           call eddisp(itru,outs)
  210    continue
         if(iocupf.eq.1.and.iocpzone.ne.0)then
@@ -1692,8 +1786,11 @@ C          write(6,*) FMAX(I),FMIN(I),FAVE(I),FSTD(I),IQHRS(I)
 C << 3D network here >>
 
       endif
-
-      goto 1
+      if(act.eq.'-')then
+        goto 1
+      elseif(act.eq.'i')then
+        return   ! If in IPV mode return.
+      endif
 
       END
 
@@ -1885,7 +1982,7 @@ C pixel references for calls to viewtext.
       IF(MMOD.EQ.8)THEN
 
 C Setup and pass in parameters to win3d.
-        iiw1=9; iiw2=42; iiw3=4; iiw4=3; iimenu=menuchw
+        iiw1=9; iiw2=42; iiw3=5; iiw4=3; iimenu=menuchw
         iigl=igl; iigr=igr; iigt=igt; iigb=igb; iigw=igw; iigwh=igwh
         ilf=2; ild=LIMTTY
         iglib = igraphiclib()  ! find out if X11 or GTK or text support only.
@@ -1932,4 +2029,111 @@ C Setup and pass in parameters to win3d.
 
       RETURN
       END
+
+C ******************** confirm_flow_results ****************
+C If flow results not open ask user to confirm name, test existance
+C and read the header.
+
+      subroutine confirm_flow_results(ier)
+#include "building.h"
+#include "model.h"
+#include "net_flow.h"
+#include "net_flow_data.h"
+#include "help.h"
+
+      integer lnblnk  ! function definition
+
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
+      COMMON/FILEP/IFIL
+
+      COMMON/LIBOK/IBLIB,IFLIB,ICLIB,IELIB,IPLIB
+      character LAPROB*72
+      COMMON/AFN/IAIRN,LAPROB,ICAAS(MCOM)
+      character rfile*72,PFILE*72,MSTRFILE*72,LAFRES*72
+      COMMON/RESLIB/RFILE,PFILE,MSTRFILE,LAFRES
+      character RFILEABS*144,PFILEABS*144,MSTRFILEABS*144,LAFRESABS*144
+      COMMON/ABSRESLIB/RFILEABS,PFILEABS,MSTRFILEABS,LAFRESABS
+
+C Defaults.
+      character*96 DFCFG,DFCTL,DEFRLB,DAPROB,DAFRES,DPNF
+      COMMON/DEFLT2/DFCFG,DFCTL,DEFRLB,DAFRES,DAPROB,DPNF
+
+      character lltmpc*144
+      character outs*124,outs248*248
+
+      helpinsub='mfoutp'  ! set for cfiles
+      
+C If the network flow file has not yet been opened request information
+C otherwise return and continue with parent logic.
+      if(iflib.eq.1)then
+        ier=0
+        return
+      else
+        if(iairn.ge.1)then
+
+C If there was a flow network defined ask for the flow results file.
+C Assume standard naming convention (*.mfr for flow results), if the
+C user specified a different flow results file then he will have to
+C specify it here as well.
+        lltmpc=LAFRESABS   ! based on the file name passed in the command line
+        llt=lnblnk(lltmpc)
+        if(llt.le.2) lltmpc='  '
+
+C Use ifdefs because the X11 version will be returning only the
+C name of the file, while the GTK version will be returning the
+C name with the full path.
+   22   helptopic='res_flow_res_default'
+        call gethelptext(helpinsub,helptopic,nbhelp)
+        iglib = igraphiclib()  ! find out if X11 or GTK or text support only.
+        if(iglib.eq.1.or.iglib.eq.3)then
+          if(llt.lt.72)then
+            ISTRW=72
+          elseif(llt.ge.72.and.llt.lt.96)then
+            ISTRW=96
+          elseif(llt.ge.96.and.llt.lt.124)then
+            ISTRW=124
+          elseif(llt.ge.124.and.llt.le.144)then
+            ISTRW=144
+          endif
+        elseif(iglib.eq.2)then
+          ISTRW=144
+        else
+          ISTRW=96
+        endif
+        CALL EASKF(lltmpc,'Flow Library name?',' ',ISTRW,DAFRES,
+     &    'flow library file',IER,nbhelp)
+
+C If user cancel.
+        if(ier.eq.-3)then
+          ier=-3
+          return
+        endif
+
+        if(lltmpc(1:2).ne.'  '.and.lltmpc(1:4).ne.'UNKN')then
+
+          IFRES=IFIL+4
+          call EFOPRAN(IFRES,LLTMPC,NMRL,1,IER)
+
+C If there were no errors opening the file then remember its
+C name to report in header of graphs and scan its header.
+          if(ier.eq.0)then
+            IFLIB=1
+            LAFRES=LLTMPC(1:72)   ! remember some of the file name
+            call MFREADH(IFRES,ITRC)
+          else
+            helptopic='res_flow_res_problem'
+            call gethelptext(helpinsub,helptopic,nbhelp)
+            write(outs248,'(3a)') 'Problem encountered opening ',
+     &        lltmpc(1:lnblnk(lltmpc)),'!'
+            call edisp248(iuout,outs248,100)
+            call easkmbox(' ','Options:','respecify','cancel',
+     &        ' ',' ',' ',' ',' ',' ',ii,nbhelp)
+            if(ii.eq.1)goto 22
+            ier=-3
+            return
+          endif
+        endif
+        endif
+      endif
+      end
 

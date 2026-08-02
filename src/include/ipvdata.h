@@ -4,7 +4,7 @@ C seasons.h should be placed after building.h.
 
 
 C Format and version of IPV.
-      integer ipvform     ! 1 human readable text, 2 tab separated, 3 java
+      integer ipvform     ! 1 text, 2 tab separated
       integer ipvversion  ! 3 is older format, 4 is current format
       common/IPVFORMAT/ipvform,ipvversion
 
@@ -14,16 +14,19 @@ C Format and version of IPV.
       common/IPVA/ipvtitl,ipvsynop,ipvsimu
 
 C IPV metric sets:
-      integer nms     ! number of sets,
+      integer nms     ! number of metric sets,
       integer imetget ! eres iget index for the metric selected,
       integer imetmsc ! two miscelaneous indices for use by the metric,
       integer nzmg    ! number of associated zones,
       real emgflr     ! total floor area in each set,
-      real emgsca     ! scaling factor (e.g. to scale these zones towards a whole building),
-      real emgwtg     ! weighting factor for the metric,
       integer izmg    ! list of associated zones.
       common/IPVMS/nms,imetget(MIPVM),imetmsc(MIPVM,2),nzmg(MIPVM),
-     &  emgflr(MIPVM),emgsca(MIPVM),emgwtg(MIPVM),izmg(MIPVM,MCOM)
+     &  emgflr(MIPVM),izmg(MIPVM,MCOM)
+
+C IPV focus zone (for daylighting, glare ...)
+      integer ipvfoczone       ! focus zone index for daylighting metrics
+      character ivpfocname*12  !focus zone name
+      common/ipvfoc/ipvfoczone,ivpfocname
 
 C Performance metric text variables.
       character msdoc*12    ! label for each metric set.
@@ -32,15 +35,15 @@ C Performance metric text variables.
       common/IPVMDS/metrglbl(MIPVM),msdoc(MIPVM),metgroup(MIPVM)
 
 C List of energy demand sets:
-      integer neds     ! number of sets,
-      integer idgmsc   ! miscel data describing set,
+      integer neds     ! number of energy demand sets,
       integer iaggr    ! 0 = no 1 = yes timestep aggregate reporting
+      integer ifbhits  ! 0 = freq bins as percent 1 = freq bins as hits
       integer nzedg    ! number of associated zones, 
       real edgflr      ! associated floor area in
       real edgsca      ! scaling factor 
       integer izedg    ! list of associated zones.
-      common/IPVEDS/neds,idgmsc(MIPVM,2),iaggr,nzedg(MIPVM),
-     &  edgflr(MIPVM),edgsca(MIPVM),izedg(MIPVM,MCOM)
+      common/IPVEDS/neds,iaggr,ifbhits,
+     &  nzedg(MIPVM),edgflr(MIPVM),edgsca(MIPVM),izedg(MIPVM,MCOM)
 
 C zedsdoc is 12 char identifier for each demand set.
       character zedsdoc*12
@@ -64,12 +67,8 @@ C typical periods and the whole season. For nipvassmt=1 these
 C are initially set to 1.0.
       real dmheat  ! degree day multiplier for heating demands
       real dmcool  ! degree day multiplier for cooling demands
-      real dmlight ! degree day multiplier for lighting demands
-      real dmsmlpw ! degree day multiplier for small power demands
-      real dmfan   ! degree day multiplier for fan demands
-      real dmdhw   ! degree day multiplier for domestic hot water.
-      common/CLMDM/dmheat(MSPS),dmcool(MSPS),dmlight(MSPS),
-     &              dmsmlpw(MSPS),dmfan(MSPS),dmdhw(MSPS)
+      real dmtime  ! Time multiplier for lighting small power fan DHW.
+      common/CLMDM/dmheat(MSPS),dmcool(MSPS),dmtime(MSPS)
 
 C ddm* are the degree-day multipliers (or user defined multipliers) between
 C the ACTUAL periods simulated and the whole season for heating, cooling, lights,
@@ -77,12 +76,19 @@ C small power, fans, domestic hot water. For nipvassmt=1 these are
 C initially set to 1.0.
       real ddmheat  ! degree day multiplier for heating demands
       real ddmcool  ! degree day multiplier for cooling demands
-      real ddmlight ! degree day multiplier for lighting demands
-      real ddmsmlpw ! degree day multiplier for small power demands
-      real ddmfan   ! degree day multiplier for fan demands
-      real ddmdhw   ! degree day multiplier for domestic hot water.
-      common/IPVDDM/ddmheat(MIPVA),ddmcool(MIPVA),ddmlight(MIPVA),
-     &              ddmsmlpw(MIPVA),ddmfan(MIPVA),ddmdhw(MIPVA)
+      real ddmtime  ! Time multiplier for lighting small power fan DHW.
+      common/IPVDDM/ddmheat(MIPVA),ddmcool(MIPVA),ddmtime(MIPVA)
+
+C IPV assessments may focus on fortnights.
+      integer ifortbest   ! best fortnight week
+      integer ifortbstrt  ! start of best fortnight
+      real fortheatdd     ! best heat DD for fortnight
+      real fortcooldd     ! best cool DD for fortnight
+      real forthddratio   ! ratio for fortnight
+      real fortcddratio   ! ratio for fortnight
+      common/IPVFTN/ifortbest(MIPVA),ifortbstrt(MIPVA),
+     &  fortheatdd(MIPVA),fortcooldd(MIPVA),forthddratio(MIPVA),
+     &  fortcddratio(MIPVA)
 
 C Dispersed demands (lifts/pumps/etc.) can be included from a project
 C demands file (which defines weekday/saturday/sunday profiles).  These
@@ -93,7 +99,8 @@ C to the fully scaled project.
       integer  idmdinc !  0 (exclude) or 1 (include) toggle for each type
       common/IPVDMD/idmdinc(MGTY)
 
-C Image files associate with IPV.
+C Image files associate with IPV. First is assumed to be of the model.
+C 2nd is assumed to be associated with visual comfort e.g. glare.
       integer nipvimg       ! number of image files associate with IPV
       character lipvimg*72  ! image files associate with IPV    
       common/IPVI/nipvimg,lipvimg(4)

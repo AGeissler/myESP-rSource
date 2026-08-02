@@ -63,24 +63,17 @@ C Definitions of most variables given in ctread.F.
       ISTAT=0
 
 C Write airflow network file, number of contaminants
-      WRITE(IFCTM,1000,IOSTAT=ISTAT,ERR=99)
- 1000 FORMAT('#ESP-r contaminant file')
+      WRITE(IFCTM,'(a)',IOSTAT=ISTAT,ERR=99) '#ESP-r contaminant file'
       WRITE(IFCTM,1001,IOSTAT=ISTAT,ERR=99)LAPROB(1:LNBLNK(LAPROB))
  1001 FORMAT(A,1X,'#fluid flow file for which this file is defined')
-      WRITE(IFCTM,1002,IOSTAT=ISTAT,ERR=99)
- 1002 FORMAT('SECTION_1')
-      WRITE(IFCTM,1003,IOSTAT=ISTAT,ERR=99)
- 1003 FORMAT('#no. of contaminants,timesteps/hour')
+      WRITE(IFCTM,'(a)',IOSTAT=ISTAT,ERR=99) 'SECTION_1'
+      WRITE(IFCTM,'(a)',IOSTAT=ISTAT,ERR=99)
+     &  '#no. of contaminants,timesteps/hour'
       WRITE(IFCTM,1004,IOSTAT=ISTAT,ERR=99)NCONTM,NTSTEPC
  1004 FORMAT(I5,4X,I3)
-      WRITE(IFCTM,1005,IOSTAT=ISTAT,ERR=99)
- 1005 FORMAT('SECTION_2')
-      WRITE(IFCTM,1006,IOSTAT=ISTAT,ERR=99)
- 1006 FORMAT('#name and ambient concentrations (kg/kg) of contaminants')
-      WRITE(IFCTM,1056,IOSTAT=ISTAT,ERR=99)
- 1056 FORMAT('#(max conc, min conc, hour at which max conc occurs)')
-      WRITE(IFCTM,1007,IOSTAT=ISTAT,ERR=99)
- 1007 FORMAT('#followed by no. of source/sink models and model no.s')
+      WRITE(IFCTM,'(a)',IOSTAT=ISTAT,ERR=99) 'SECTION_2'
+      WRITE(IFCTM,'(a)',IOSTAT=ISTAT,ERR=99)
+     &  '#name and ambient concentrations (kg/kg) of contaminants'
 
 C Write name, ambient concentrations, source/sink models
       DO 500 ICONTM=1,NCONTM
@@ -107,17 +100,18 @@ C string variables.
         WRITE(IFCTM,1008,IOSTAT=ISTAT,ERR=99)CONTMNAM(ICONTM)
         WRITE(IFCTM,1108,IOSTAT=ISTAT,ERR=99)(CNCAA(ICONTM,I),I=1,12)
         WRITE(IFCTM,1108,IOSTAT=ISTAT,ERR=99)(CNCAA(ICONTM,I),I=13,MT)
+        WRITE(IFCTM,'(a)',IOSTAT=ISTAT,ERR=99)
+     &    '#Number of source/sink models and model numbers'
         WRITE(IFCTM,1208,IOSTAT=ISTAT,ERR=99)NSSLINC,LOUTS
- 1008 FORMAT(A12)
+ 1008 FORMAT(A)
  1108 FORMAT(24(F8.6,1X))
  1208 FORMAT(I3,1X,A)
  500  CONTINUE
 
 C Write out first order chemical rate constants
-      WRITE(IFCTM,1009,IOSTAT=ISTAT,ERR=99)
- 1009 FORMAT('SECTION_3')
-      WRITE(IFCTM,1010,IOSTAT=ISTAT,ERR=99)
- 1010 FORMAT('#first order rate constants (if defined)')
+      WRITE(IFCTM,'(a)',IOSTAT=ISTAT,ERR=99) 'SECTION_3'
+      WRITE(IFCTM,'(a)',IOSTAT=ISTAT,ERR=99)
+     &  '#first order rate constants (if defined)'
 
 C Determine how many rates are defined and write contaminants and rates
       NCHEMRR=0
@@ -128,37 +122,34 @@ C Determine how many rates are defined and write contaminants and rates
             NCHEMRR=NCHEMRR+1
             WRITE(IFCTM,1011,IOSTAT=ISTAT,ERR=99)
      &      CONTMNAM(ICONTM1),CONTMNAM(ICONTM2),FORCAB(ICONTM1,ICONTM2)
- 1011       FORMAT(A12,1X,A12,1X,E16.3E3)
+ 1011       FORMAT(A,1X,A,1X,E16.3E3)
           ENDIF
  504    CONTINUE
  503  CONTINUE
 
 C Write out node based information
-      WRITE(IFCTM,1012,IOSTAT=ISTAT,ERR=99)
- 1012 FORMAT('SECTION_4')
-      WRITE(IFCTM,1013,IOSTAT=ISTAT,ERR=99)
- 1013 FORMAT('#node based information for contaminant')
+      WRITE(IFCTM,'(a)',IOSTAT=ISTAT,ERR=99) 'SECTION_4'
+      WRITE(IFCTM,'(a)',IOSTAT=ISTAT,ERR=99)
+     &  '#node based information for contaminant'
 
       DO 505 ICONTM=1,NCONTM
-        WRITE(IFCTM,1014,IOSTAT=ISTAT,ERR=99)CONTMNAM(ICONTM)
- 1014   FORMAT(A)
-        WRITE(IFCTM,1015,IOSTAT=ISTAT,ERR=99)
- 1015   FORMAT('#node,node no.,initial conc.')
+        WRITE(IFCTM,'(a)',IOSTAT=ISTAT,ERR=99) CONTMNAM(ICONTM)
+        WRITE(IFCTM,'(a)',IOSTAT=ISTAT,ERR=99)
+     &   '#node,node no.,initial conc.'
         DO 506 INOD=1,NNOD
           IF(NDTYP(INOD).GT.1)GOTO 506
           WRITE(IFCTM,1016,IOSTAT=ISTAT,ERR=99)
      &      NDNAM(INOD),INOD,CNCNI(ICONTM,INOD)
- 1016     FORMAT(A12,1X,I3,1X,F10.6,1X)
+ 1016     FORMAT(A,1X,I3,1X,F10.6,1X)
  506    CONTINUE
  505  CONTINUE
 
 C Write component based information
-      WRITE(IFCTM,1017,IOSTAT=ISTAT,ERR=99)
- 1017 FORMAT('SECTION_5')
-      WRITE(IFCTM,1018,IOSTAT=ISTAT,ERR=99)
- 1018 FORMAT('#component based information')
-      WRITE(IFCTM,1019,IOSTAT=ISTAT,ERR=99)
- 1019 FORMAT('#all filter efficiencies other than nought are listed')
+      WRITE(IFCTM,'(a)',IOSTAT=ISTAT,ERR=99) 'SECTION_5'
+      WRITE(IFCTM,'(a)',IOSTAT=ISTAT,ERR=99)
+     &  '#component based information'
+      WRITE(IFCTM,'(a)',IOSTAT=ISTAT,ERR=99)
+     &  '#all filter efficiencies other than nought are listed'
 
 C Find number of components having efficiencies other than nought
       NFILEFA=0
@@ -182,38 +173,36 @@ C Write component name and filter efficiency
             WRITE(IFCTM,1022,IOSTAT=ISTAT,ERR=99)
      &        CONTMNAM(ICONTM),ICONTM,CMNAM(ITPCON(ICNN))
      &        ,FILEFA(ICONTM,ICNN)
- 1022       FORMAT(A12,1X,I2,1X,A12,1X,F3.2)
+ 1022       FORMAT(A,1X,I2,1X,A,1X,F3.2)
           ENDIF
  511    CONTINUE
  510  CONTINUE
 
 C Write source/sink models data
-      WRITE(IFCTM,1023,IOSTAT=ISTAT,ERR=99)
- 1023 FORMAT('SECTION_6')
-      WRITE(IFCTM,1024,IOSTAT=ISTAT,ERR=99)
- 1024 FORMAT('#source and sink models')
-      WRITE(IFCTM,1025,IOSTAT=ISTAT,ERR=99)
- 1025 FORMAT('#number of sources and sinks')
-      WRITE(IFCTM,1026,IOSTAT=ISTAT,ERR=99)NSPMNO
- 1026 FORMAT(I3)
+      WRITE(IFCTM,'(a)',IOSTAT=ISTAT,ERR=99) 'SECTION_6'
+      WRITE(IFCTM,'(a)',IOSTAT=ISTAT,ERR=99)
+     &  '#source and sink models'
+      WRITE(IFCTM,'(a)',IOSTAT=ISTAT,ERR=99)
+     &  '#number of sources and sinks'
+      WRITE(IFCTM,'(i3)',IOSTAT=ISTAT,ERR=99)NSPMNO
       WRITE(IFCTM,'(A)',IOSTAT=ISTAT,ERR=99)
      &'# Source/sink name, number, type, supplementary data items'
-      DO 512 ISPMNO=1,NSPMNO
+      DO 512 ISPMNO=1,NSPMNO            ! For each source or sink.
         LOUTS=' '
-        IF(SPMTYP(ISPMNO).EQ.1)THEN
+        IF(SPMTYP(ISPMNO).EQ.1)THEN     ! Constant coef.
           NCSD=1
-        ELSEIF(SPMTYP(ISPMNO).EQ.2)THEN
+        ELSEIF(SPMTYP(ISPMNO).EQ.2)THEN ! Cut-off concentration.
           NCSD=2
-        ELSEIF(SPMTYP(ISPMNO).EQ.3)THEN
+        ELSEIF(SPMTYP(ISPMNO).EQ.3)THEN ! Exponential decay/increase.
           NCSD=5
-        ELSEIF(SPMTYP(ISPMNO).EQ.4)THEN
+        ELSEIF(SPMTYP(ISPMNO).EQ.4)THEN ! Boundary layer diffusion.
           NCSD=6
-        ELSEIF(SPMTYP(ISPMNO).EQ.5)THEN
+        ELSEIF(SPMTYP(ISPMNO).EQ.5)THEN ! Time dependent constant mass.
           NCSD=7
-        ELSEIF(SPMTYP(ISPMNO).EQ.6)THEN
+        ELSEIF(SPMTYP(ISPMNO).EQ.6)THEN ! CO2 emission from person.
           NCSD=9
         ENDIF
-        DO 513 ICSD=1,NCSD
+        DO 513 ICSD=1,NCSD   ! For each supplemental data.
           CALL RELSTR(SPMSUP(ISPMNO,ICSD),MOUTS,ISSMODL,I)
           IF(ICSD.EQ.1)THEN
             write(LOUTS,'(a)') MOUTS(1:lnblnk(MOUTS))
@@ -228,17 +217,16 @@ C string variables.
           ENDIF
  513    CONTINUE
       WRITE(IFCTM,1027,IOSTAT=ISTAT,ERR=99)
-     &SSNAME(ISPMNO),ISPMNO,SPMTYP(ISPMNO),LOUTS
- 1027 FORMAT(A12,1X,I3,1X,I2,1X,A)
+     &  SSNAME(ISPMNO),ISPMNO,SPMTYP(ISPMNO),LOUTS(1:lnblnk(LOUTS))
+ 1027 FORMAT(A,1X,I3,1X,I2,1X,A)
  512  CONTINUE
 
 C Write source/sink models linkage with nodes
-      WRITE(IFCTM,1028,IOSTAT=ISTAT,ERR=99)
- 1028 FORMAT('SECTION_7')
-      WRITE(IFCTM,1029,IOSTAT=ISTAT,ERR=99)
- 1029 FORMAT('#source/sink linkage with nodes')
-      WRITE(IFCTM,1030,IOSTAT=ISTAT,ERR=99)
- 1030 FORMAT('#node,node no.,no. of source/sink models linked,model no')
+      WRITE(IFCTM,'(a)',IOSTAT=ISTAT,ERR=99) 'SECTION_7'
+      WRITE(IFCTM,'(a)',IOSTAT=ISTAT,ERR=99)
+     &  '#source/sink linkage with nodes'
+      WRITE(IFCTM,'(a)',IOSTAT=ISTAT,ERR=99)
+     &  '#node,node no.,no. of source/sink models linked,model no.'
       DO 514 INOD=1,NNOD
         IF(NDTYP(INOD).GT.1)GOTO 514
         NSSLINC=0
@@ -262,8 +250,8 @@ C string variables.
           IF(SSLINK2(ISPMNO,INOD).NE.0)GOTO 515
         ENDIF
         WRITE(IFCTM,1031,IOSTAT=ISTAT,ERR=99)
-     &  NDNAM(INOD),INOD,NSSLINC,LOUTS
- 1031   FORMAT(A12,1X,I3,1X,I3,1X,A)
+     &    NDNAM(INOD),INOD,NSSLINC,LOUTS(1:lnblnk(LOUTS))
+ 1031   FORMAT(A,1X,I3,1X,I3,1X,A)
  514  CONTINUE
 
  100  RETURN
@@ -276,7 +264,7 @@ C Error trap on write error
       END
 
 C ******************** CTPROB ********************
-C Is the main file where contaminant descriptions are defined.
+C Is the main facility where contaminant descriptions are defined.
 C This subroutine fills most I/O common blocks related to contam-
 C -inant definition
 C Definitions of most variables is given in ctread.F
@@ -290,7 +278,6 @@ C Definitions of most variables is given in ctread.F
 
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/FOPENED/CFGOK,MLDBOK,MATDBOK,CTLOK,OPTKOK,CFCDBOK
-      COMMON/USER/BROWSE
       COMMON/FILEP/IFIL
 
       COMMON/CONTM/CNTMFIL,CNTMDESC,NTSTEPC
@@ -304,13 +291,16 @@ C Definitions of most variables is given in ctread.F
       CHARACTER*124 CNTMDESC
       CHARACTER*72 CNTMFIL,CTMF
       CHARACTER CONTMNAM*12,SSNAME*12
-      CHARACTER FS*1,outs*124
+      CHARACTER FS*1,outs*124,styp*12
       CHARACTER*33 ITEMS(MCNN+20)
       CHARACTER*55 ITEML(MCNN+20)
       INTEGER SPMTYP,SSLINK1,SSLINK2
       REAL SPMSUP
       LOGICAL OK,CLKOK,XST,CLOSER,UNIXOK
-      LOGICAL CFGOK,MLDBOK,MATDBOK,CTLOK,OPTKOK,BROWSE,CFCDBOK
+      LOGICAL CFGOK,MLDBOK,MATDBOK,CTLOK,OPTKOK,CFCDBOK
+      CHARACTER zdescr*124
+      integer IVALS(MCOM)  ! the array of occupied zones
+
 
       integer NTSTEPCT   ! for local editing.
       integer NITEMS,NITEML,INO,INNO,ISO ! max items and current menu item
@@ -324,11 +314,35 @@ C set contaminant file
 
 C Display a help message to user explaining they should have defined a
 C flow network prior to defining a contaminant model
+
+C Check if there is a flow network.
+      if(NNOD.eq.0)then
+        call usrmsg('The contaminant facility only works if there',
+     &    'is a flow network. No nodes found...returining.','W')
+        return
+      endif
+
+C Check for occupants.      
+      call zones_with_occupants(icount,ivals,zdescr,ierr)
+      if(icount.eq.0)then
+        CALL PHELPD('contamn model def',nbhelp,'-',0,0,IER)
+        CALL EASKMBOX('CO2 tracking requires occupants in zones.',
+     &    'None found. Options:','manual setup','cancel',
+     &    ' ',' ',' ',' ',' ',' ',IW,nbhelp)
+        if(IW.eq.2)return
+      endif
       IF(NOCNTM.LE.0) THEN
-        CALL PHELPD('contamn model def',10,'-',0,0,IER)
-        CALL EASKOK(' ',
-     &    'Proceed with contaminant model definition?',OK,nbhelp)
-        IF(.NOT.OK) RETURN
+        CALL PHELPD('contamn model def',nbhelp,'-',0,0,IER)
+        CALL EASKMBOX(' ','Contaminant options:',
+     &    'auto-setup regime','manual setup','cancel',
+     &    ' ',' ',' ',' ',' ',IW,nbhelp)
+        IF(IW.EQ.1)THEN
+          call CTPROB_INIT
+        ELSEIF(IW.EQ.2)THEN
+          continue
+        ELSEIF(IW.EQ.3)THEN
+          return
+        ENDIF
       ENDIF
 
 C Set folder separator (fs) to \ or / as required.
@@ -376,7 +390,7 @@ C (differienciate between unix and non-unix machine types).
 C If user wishes to deselect the current file name to
 C blank and update the configuration file.
       IF(CLKOK)THEN
-        IF(CFGOK.AND.(.NOT.BROWSE))THEN
+        IF(CFGOK)THEN
           CNTMFIL='  '
           NCONTM=0
           NOCNTM=0
@@ -427,30 +441,72 @@ C Setup Contaminant Model network
       call gethelptext(helpinsub,helptopic,nbhelp)
 
       INO=-3
-      WRITE(ITEMS(1),'(A8,A25)') 'a file: ',CTMF(1:25)
-      ITEMS(2) = 'b simulation timestep'
-      ITEMS(3) = ' --------------------'
-      WRITE(ITEMS(4),'(A,I3,A)')'no. of contaminants: (',NCONTM,')'
-      ITEMS(5) = 'c contaminants       '
-      ITEMS(6) = 'd source/sink models '
-      ITEMS(7) = ' --------------------'
-      ITEMS(8) = 'e chemical reactions '
-      ITEMS(9) = ' --------------------'
-      ITEMS(10)= 'f filters            '
-      ITEMS(11)= ' --------------------'
-      ITEMS(12)= '@ display information'
-      ITEMS(13)= '? help               '
-      ITEMS(14)= '- exit               '
-      NITEMS=14
+      WRITE(ITEMS(1),'(2A)')   'a file: ',CTMF(1:25)
+      WRITE(ITEMS(2),'(A,i3)') 'b simulation timestep:',NTSTEPC
+      ITEMS(3) = ' ------------------------'
+      WRITE(ITEMS(4),'(A,I2,A)')'c contaminants: (',NCONTM,')'
+      WRITE(ITEMS(5),'(A,i2,A)') 'd source/sink models: (',NSPMNO,')'
+      ITEMS(6) = 'e link a source to contaminant(s)'
+      ITEMS(7) = 'f link a source to flow node(s)  '
+      ITEMS(8) = 'g chemical reactions             '
+      ITEMS(9) = 'h filters (node->node efficiency)'
+      ITEMS(10)= ' ------------------------'
+      ITEMS(11)= '@ display information'
+      ITEMS(12)= '? help               '
+      ITEMS(13)= '- exit               '
+      NITEMS=13
       CALL EMENU('Contaminant Description',ITEMS,NITEMS,INO)
 
-      IF(INO.EQ.14)GOTO 5000
-      IF(INO.EQ.13)THEN
+      IF(INO.EQ.13)then  ! Ask if changes need to be saved
+        helptopic='ct_save'
+        call gethelptext(helpinsub,helptopic,nbhelp)
+        CALL EASKOK(' ','Save changes?',OK,nbhelp)
+        IF(OK)THEN
+          if(NTSTEPC.LE.0)then
+            call usrmsg('The contaminant time set is zero.',
+     &      'Please reset before existing.','W')
+            goto 2000
+          endif
+   81     CALL EASKS(CTMF,'Contaminant model file?',
+     &      ' ',72,' ','contaminant model file',IER,nbhelp)
+          IF(CTMF(1:2).NE.'  '.AND.CTMF(1:4).NE.'UNKN')THEN
+            CNTMFIL=CTMF
+          ELSE
+            GOTO 81
+          ENDIF
+          CALL EFOPSEQ(IUNIT,CNTMFIL,4,IER)
+          IF(IER.NE.0)GOTO 81
+          CALL CTWRIT(IUNIT)
+          CALL ERPFREE(IUNIT,ISTAT)
+          write(outs,'(2a)') ' Saved contaminant model in ',
+     &      CNTMFIL(1:LNBLNK(CNTMFIL))
+          CALL EDISP(IUOUT,outs)
+        ENDIF
+
+C Update the configuration file so that contmainant information is known
+        helptopic='ct_flow_changes'
+        call gethelptext(helpinsub,helptopic,nbhelp)
+        CALL EASKOK('Update model to reflect changes in',
+     &              'the contaminant model?',OK,nbhelp)
+        IF(OK)THEN
+          CALL EDISP(IUOUT,' ')
+          CALL EDISP(IUOUT,'Updating configuration contaminant data...')
+          NOCNTM=1   ! Signal there is a contaminate regime.
+          CALL EMKCFG('-',IER)
+          RETURN
+        ELSE
+          RETURN     ! Return with no update to the model cfg.
+        ENDIF
+      ENDIF
+
+      IF(INO.EQ.12)THEN
+        helptopic='contam_overview'
+        call gethelptext(helpinsub,helptopic,nbhelp)
         CALL PHELPD('contamn model def',nbhelp,'-',0,0,IER)
         GOTO 2000
-      ELSEIF(INO.EQ.12)THEN
+      ELSEIF(INO.EQ.11)THEN
         INDEX=0
-        CALL CTLIST(INDEX)
+        CALL CTLIST(INDEX)   ! Display all information.
         GOTO 2000
       ELSEIF(INO.EQ.1) THEN
         CALL EASKOK('This will overwrite existing data!',
@@ -460,20 +516,20 @@ C Setup Contaminant Model network
         ELSE
           GOTO 2001
         ENDIF
-      ELSEIF(INO.EQ.5)THEN
+      ELSEIF(INO.EQ.4)THEN   ! Present contaminate sub-menu.
  2002   INNO=-2
         ITEMS(1) =' name:   ambient (max) conc:'
         ITEMS(2) ='              (kg/kg)    '
-        DO 20 ICONTM=1,NCONTM
+        DO ICONTM=1,NCONTM
           AMBCONC=0.0
           AMBMAX=0.0
-          DO 258 IT=2,MT
+          DO IT=2,MT
             AMBCONC=MAX(CNCAA(ICONTM,IT),CNCAA(ICONTM,IT-1))
             AMBMAX=MAX(AMBMAX,AMBCONC)
- 258      CONTINUE
+          ENDDO
           WRITE(ITEMS(2+ICONTM),'(2A,A12,A,F8.6)')
      &      CHAR(96+ICONTM),' ',CONTMNAM(ICONTM),' ',AMBMAX
- 20     CONTINUE
+        ENDDO
         ITEMS(NCONTM+3) =' ------------------------'
         ITEMS(NCONTM+4) ='+ add/delete/copy        '
         ITEMS(NCONTM+5) ='@ display information    '
@@ -483,6 +539,8 @@ C Setup Contaminant Model network
         CALL EMENU('Contaminants',ITEMS,NITEMS,INNO)
         IF(INNO.EQ.(NCONTM+7))GOTO 2000
         IF(INNO.EQ.(NCONTM+6))THEN
+          helptopic='contam_CTIADC'
+          call gethelptext(helpinsub,helptopic,nbhelp)
           CALL PHELPD('contaminants',nbhelp,'-',0,0,IER)
           GOTO 2002
         ELSEIF(INNO.EQ.(NCONTM+5))THEN
@@ -490,52 +548,58 @@ C Setup Contaminant Model network
           CALL CTLIST(INDEX)
           GOTO 2002
         ELSEIF(INNO.EQ.(NCONTM+4))THEN
-          IF(.NOT.BROWSE)THEN
-            CALL EASKMBOX(' ','Options:','add',
-     &        'delete','copy','cancel',
-     &        ' ',' ',' ',' ',IADC,nbhelp)
-            IF(IADC.EQ.4)THEN
-              GOTO 2002
-            ELSE
-              CALL CTIADC(IADC,0)
-              GOTO 2002
-            ENDIF
-          ELSE
-            CALL PHELPD('contaminants',nbhelp,'-',0,0,IER)
-          ENDIF
-        ELSEIF(INNO.GT.2.AND.INNO.LT.(NCONTM+3))THEN
-          IF(.NOT.BROWSE)THEN
-            CALL CTIADC(0,INNO-2)
+          CALL EASKMBOX(' ','Options:','add',
+     &      'delete','copy','cancel',
+     &      ' ',' ',' ',' ',IADC,nbhelp)
+          IF(IADC.EQ.4)THEN
             GOTO 2002
           ELSE
-            CALL PHELPD('contaminants ',nbhelp,'-',0,0,IER)
+            CALL CTIADC(IADC,0)
+            GOTO 2002
           ENDIF
+        ELSEIF(INNO.GT.2.AND.INNO.LT.(NCONTM+3))THEN
+          CALL CTIADC(0,INNO-2)
+          GOTO 2002
         ELSE
           GOTO 2002
         ENDIF
-      ELSEIF(INO.EQ.6) THEN
+      ELSEIF(INO.EQ.5) THEN   ! Present source/sink sub-menu.
+
  2006   helptopic='ct_sources_sinks'
         call gethelptext(helpinsub,helptopic,nbhelp)
         INNO=-2
-        ITEMS(1) =' Source/sink Name:     Type:'
-        DO 100 ISPMNO=1,NSPMNO
-          WRITE(ITEMS(ISPMNO+1),'(2A,A12,I12)')CHAR(96+ISPMNO),' ',
-     &               SSNAME(ISPMNO),SPMTYP(ISPMNO)
+        ITEMS(1) =' Name        type '
+        DO 100 ISPMNO=1,NSPMNO   ! Loop through list of sources/sinks.
+          if(SPMTYP(ISPMNO).eq.1)then
+            styp='cnst coef  '
+          elseif(SPMTYP(ISPMNO).eq.2)then
+            styp='cutoff conc'
+          elseif(SPMTYP(ISPMNO).eq.3)then
+            styp='exoi decay '
+          elseif(SPMTYP(ISPMNO).eq.4)then
+            styp='bndry layr '
+          elseif(SPMTYP(ISPMNO).eq.5)then
+            styp='cnst mass  '
+          elseif(SPMTYP(ISPMNO).eq.6)then
+            styp='occup CO2  '
+          else
+            styp='undefined  '
+          endif
+          WRITE(ITEMS(ISPMNO+1),'(5A)')CHAR(96+ISPMNO),' ',
+     &      SSNAME(ISPMNO),' ',styp(1:lnblnk(styp))
  100    CONTINUE
         ITEMS(NSPMNO+2)=' ------------------------------- '
         ITEMS(NSPMNO+3)='+ add/delete/copy        '
-        ITEMS(NSPMNO+4)='# link to contaminants   '
-        ITEMS(NSPMNO+5)='! link to nodes          '
-        ITEMS(NSPMNO+6)='@ display information    '
-        ITEMS(NSPMNO+7)='? help                   '
-        ITEMS(NSPMNO+8)='- exit                   '
-        NITEMS=NSPMNO+8
+        ITEMS(NSPMNO+4)='@ display information    '
+        ITEMS(NSPMNO+5)='? help                   '
+        ITEMS(NSPMNO+6)='- exit                   '
+        NITEMS=NSPMNO+6
         CALL EMENU('Source/Sink models',ITEMS,NITEMS,INNO)
-        IF(INNO.EQ.(NSPMNO+8))GOTO 2000
-        IF(INNO.EQ.(NSPMNO+7))THEN
+        IF(INNO.EQ.(NSPMNO+6))GOTO 2000  ! Return to main menu.
+        IF(INNO.EQ.(NSPMNO+5))THEN
           CALL PHELPD('source/sink models',nbhelp,'-',0,0,IER)
           GOTO 2006
-        ELSEIF(INNO.EQ.(NSPMNO+6)) THEN
+        ELSEIF(INNO.EQ.(NSPMNO+4)) THEN
           INDEX=2
           CALL CTLIST(INDEX)
           GOTO 2006
@@ -543,59 +607,41 @@ C Setup Contaminant Model network
 
 C Use CSIADC to edit a specific source or sink (inno-1)
 C The first parameter is zero (it is not used).
-          IF(.NOT.BROWSE)THEN
-            CALL CSIADC(0,INNO-1)
-            GOTO 2006
-          ELSE
-            CALL PHELPD('sources-sinks',nbhelp,'-',0,0,IER)
-          ENDIF
+          CALL CSIADC(0,INNO-1)
+          GOTO 2006
         ELSEIF(INNO.EQ.(NSPMNO+3))THEN
 
 C User asked to add or delete or copy.
-          IF(.NOT.BROWSE)THEN
-            CALL EASKMBOX(' ','Options:','add',
-     &        'delete','copy','cancel',
-     &        ' ',' ',' ',' ',IADC,nbhelp)
-            IF(IADC.EQ.4)THEN
-              GOTO 2006
-            ELSE
+          CALL EASKMBOX(' ','Options:','add','delete','copy','cancel',
+     &      ' ',' ',' ',' ',IADC,nbhelp)
+          IF(IADC.EQ.4)THEN
+            GOTO 2006
+          ELSE
 
 C Use CSIADC for add/delete/copy only. 2nd parameter is zero to
 C disallow editing.
-              CALL CSIADC(IADC,0)
-              GOTO 2006
-            ENDIF
-          ELSE
-            CALL PHELPD('sources-sinks',nbhelp,'-',0,0,IER)
-          ENDIF
-        ELSEIF(INNO.EQ.(NSPMNO+4))THEN
-          IF(.NOT.BROWSE)THEN
-            CALL SCNLNK(1)
+            CALL CSIADC(IADC,0)
             GOTO 2006
-          ELSE
-            CALL PHELPD('sources-sinks',nbhelp,'-',0,0,IER)
-          ENDIF
-        ELSEIF(INNO.EQ.(NSPMNO+5))THEN
-          IF(.NOT.BROWSE)THEN
-            CALL SCNLNK(2)
-            GOTO 2006
-          ELSE
-            CALL PHELPD('sources-sinks',nbhelp,'-',0,0,IER)
           ENDIF
         ELSE
-          GOTO 2006
+          GOTO 2006         ! Return to source/sink sub-menu.
         ENDIF
-
-C Now put in chemical reaction constants if any
-      ELSEIF(INO.EQ.8)THEN
+      ELSEIF(INO.EQ.6)THEN  ! Focus on source to contaminate links.
+        CALL SCNLNK(1)
+        GOTO 2000
+      ELSEIF(INO.EQ.7)THEN  ! Focus on source to flow node links.
+        CALL SCNLNK(2)
+        GOTO 2000
+      ELSEIF(INO.EQ.8)THEN  ! Focus on chemical reaction constants.
  2020   helptopic='ct_constraints'
         call gethelptext(helpinsub,helptopic,nbhelp)
         ISO=-2
         ITEML(1) ='    cntm1:      cntm2:     rate constant'
         NCHEMRR=0
+
 C Determine number of rates if specified
-        DO 501 ICONTM1=1,NCONTM
-          DO 502 ICONTM2=1,NCONTM
+        DO ICONTM1=1,NCONTM
+          DO ICONTM2=1,NCONTM
             CALL ECLOSE(FORCAB(ICONTM1,ICONTM2),0.0,1E-14,CLOSER)
             IF(.NOT.CLOSER)THEN
               NCHEMRR=NCHEMRR+1
@@ -604,8 +650,8 @@ C Determine number of rates if specified
      &          CONTMNAM(ICONTM1),CONTMNAM(ICONTM2),
      &          FORCAB(ICONTM1,ICONTM2)
             ENDIF
- 502      CONTINUE
- 501    CONTINUE
+          ENDDO
+        ENDDO
         ITEML(NCHEMRR+2) =' ---------------------'
         ITEML(NCHEMRR+3) ='+ add/delete          '
         ITEML(NCHEMRR+4) ='@ display information '
@@ -622,47 +668,37 @@ C Determine number of rates if specified
           CALL CTLIST(INDEX)
           GOTO 2020
         ELSEIF(ISO.EQ.(NCHEMRR+3))THEN
-          IF(.NOT.BROWSE)THEN
-            CALL EASKMBOX(' ','Options:','add','delete',
-     &        'cancel',' ',' ',' ',' ',' ',IADC,nbhelp)
-            IF(IADC.EQ.3)THEN
-              GOTO 2020
-            ELSE
-              CALL CSIACR(IADC,0)
-              GOTO 2020
-            ENDIF
-          ELSE
-            CALL PHELPD(' ',nbhelp,'-',0,0,IER)
-          ENDIF
-        ELSEIF(ISO.LT.(NCHEMRR+2).AND.ISO.GT.1)THEN
-          IF(.NOT.BROWSE)THEN
-            CALL CSIACR(0,ISO)
+          CALL EASKMBOX(' ','Options:','add','delete',
+     &      'cancel',' ',' ',' ',' ',' ',IADC,nbhelp)
+          IF(IADC.EQ.3)THEN
             GOTO 2020
           ELSE
-            CALL PHELPD(' ',nbhelp,'-',0,0,IER)
+            CALL CSIACR(IADC,0)
+            GOTO 2020
           ENDIF
-        ELSE
+        ELSEIF(ISO.LT.(NCHEMRR+2).AND.ISO.GT.1)THEN
+          CALL CSIACR(0,ISO)
           GOTO 2020
+        ELSE
+          GOTO 2020  ! Return to chemical reaction sub-menu.
         ENDIF
 
-
-C Put in filter efficiencies if any.
-      ELSEIF(INO.EQ.10)THEN
+      ELSEIF(INO.EQ.9)THEN   ! Focus on filter efficiencies.
  2017   helptopic='ct_filter'
         call gethelptext(helpinsub,helptopic,nbhelp)
         INNO=-2
         ITEMS(1) =' name:   ambient (max) conc:'
         ITEMS(2) ='              (kg/kg)    '
-        DO 722 ICONTM=1,NCONTM
+        DO ICONTM=1,NCONTM
           AMBCONC=0.0
           AMBMAX=0.0
-          DO 256 IT=2,MT
+          DO IT=2,MT
             AMBCONC=MAX(CNCAA(ICONTM,IT),CNCAA(ICONTM,IT-1))
             AMBMAX=MAX(AMBMAX,AMBCONC)
- 256      CONTINUE
+          ENDDO
           WRITE(ITEMS(2+ICONTM),'(2A,A12,A,F8.6)')
      &      CHAR(96+ICONTM),' ',CONTMNAM(ICONTM),' ',AMBMAX
- 722    CONTINUE
+        ENDDO
         ITEMS(NCONTM+3) =' ------------------------'
         ITEMS(NCONTM+4) ='@ display information    '
         ITEMS(NCONTM+5) ='? help                   '
@@ -685,11 +721,11 @@ C Put in filter efficiencies if any.
 
  2018   INNO=-2
         ITEML(1)='  from        to          via        efficiency'
-        DO 723 ICNN=1,NCNN
+        DO ICNN=1,NCNN
           WRITE(ITEML(ICNN+1),'(2A1,3A12,1X,F3.2)')CHAR(96+ICNN),' ',
      &      NDNAM(NODPS(ICNN)),NDNAM(NODNE(ICNN)),CMNAM(ITPCON(ICNN)),
      &      FILEFA(ICONTM,ICNN)
- 723    CONTINUE
+        ENDDO
         ITEML(NCNN+2) =' ------------------------'
         ITEML(NCNN+3) ='@ display information    '
         ITEML(NCNN+4) ='? help                   '
@@ -705,27 +741,23 @@ C Put in filter efficiencies if any.
           CALL CTLIST(INDEX)
           GOTO 2018
         ELSEIF(INNO.GT.1.AND.INNO.LT.(NCNN+2))THEN
-          IF(.NOT.BROWSE)THEN
-            ICNN=INNO-1
-            VAL=FILEFA(ICONTM,ICNN)
-            CALL EASKR(VAL,' ','Enter filter efficiency (0 to 1)
-     &        ',0.0,'F',1.0,'F',0.01,'filter eff',IER,nbhelp)
-            FILEFA(ICONTM,ICNN)=VAL
-            CALL EASKOK(' ',
-     &        'Edit more filter efficiencies for this contaminant?',
-     &        OK,nbhelp)
-            IF(OK)THEN
-              GOTO 2018
-            ELSE
-              GOTO 2017
-            ENDIF
+          ICNN=INNO-1
+          VAL=FILEFA(ICONTM,ICNN)
+          CALL EASKR(VAL,' ','Enter filter efficiency (0 to 1)
+     &      ',0.0,'F',1.0,'F',0.01,'filter eff',IER,nbhelp)
+          FILEFA(ICONTM,ICNN)=VAL
+          CALL EASKOK(' ',
+     &      'Edit more filter efficiencies for this contaminant?',
+     &      OK,nbhelp)
+          IF(OK)THEN
+            GOTO 2018
           ELSE
-            CALL PHELPD(' ',nbhelp,'-',0,0,IER)
+            GOTO 2017
           ENDIF
         ELSE
           GOTO 2018
         ENDIF
-      ELSEIF(INO.EQ.2)THEN
+      ELSEIF(INO.EQ.2)THEN    ! Set contaminate time steps per hour.
         helptopic='ct_timestep'
         call gethelptext(helpinsub,helptopic,nbhelp)
         NTSTEPCT=NTSTEPC
@@ -734,48 +766,9 @@ C Put in filter efficiencies if any.
      &    1,'W',120,'W',12,'contaminant simul tstep ',IERI,nbhelp)
         if(ieri.eq.-3) goto 2000
         NTSTEPC=NTSTEPCT
-        GOTO 2000
+        GOTO 2000  ! Return to main menu.
       ELSE
-        GOTO 2000
-      ENDIF
-      GOTO 5000
- 7000 CALL PHELPD(' ',nbhelp,'-',0,0,IER)
-      GOTO 2000
-
-C Ask if changes need to be saved
- 5000 helptopic='ct_save'
-      call gethelptext(helpinsub,helptopic,nbhelp)
-      CALL EASKOK(' ','Save changes?',OK,nbhelp)
-      IF(OK)THEN
-        IF(NTSTEPC.LE.0)GOTO 7000
-   81   CALL EASKS(CTMF,' Contaminant model file ? ',
-     &    ' ',72,' ','contaminant model file',IER,nbhelp)
-        IF(CTMF(1:2).NE.'  '.AND.CTMF(1:4).NE.'UNKN')THEN
-          CNTMFIL=CTMF
-        ELSE
-          GOTO 81
-        ENDIF
-        CALL EFOPSEQ(IUNIT,CNTMFIL,4,IER)
-        IF(IER.NE.0)GOTO 81
-        CALL CTWRIT(IUNIT)
-        CALL ERPFREE(IUNIT,ISTAT)
-        write(outs,'(2a)') ' Saved contaminant model in ',
-     &    CNTMFIL(1:LNBLNK(CNTMFIL))
-        CALL EDISP(IUOUT,outs)
-      ENDIF
-
-C Update the configuration file so that contmainant information is known
-      helptopic='ct_flow_changes'
-      call gethelptext(helpinsub,helptopic,nbhelp)
-      CALL EASKOK('Update mass flow links to capture',
-     &            'changes in the contaminant model?',OK,nbhelp)
-      IF(OK)THEN
-        CALL EDISP(IUOUT,' ')
-        CALL EDISP(IUOUT,' Updating configuration contaminant data...')
-        NOCNTM=1
-        CALL EMKCFG('-',IER)
-      ELSE
-        RETURN
+        GOTO 2000  ! Return to main menu.
       ENDIF
 
       RETURN
@@ -802,6 +795,9 @@ C Definitions of most variables is given in ctread.F
       helptopic='contam_editing'
       call gethelptext(helpinsub,helptopic,nbhelp)
 
+      EDIT=.false.  ! Clear indicies.
+      ICONTM1=0; ICONTM2=0; ICTCR1=0; ICTCR2=0 
+      ICONTME1=0; ICONTME2=0 
       IF(MEDIT.NE.0)THEN
         CALL EASKOK(' ','Edit this chemical reaction',OK,nbhelp)
         IF(.NOT.OK)RETURN
@@ -810,8 +806,6 @@ C Definitions of most variables is given in ctread.F
 
 C Get contaminant 1 and 2 for the chemical reaction
         NCHEMRR=0
-        ICONTM1=0
-        ICONTM2=0
         FOUND=.FALSE.
         DO WHILE(.NOT.FOUND)
           ICONTM1=ICONTM1+1
@@ -829,7 +823,6 @@ C Get contaminant 1 and 2 for the chemical reaction
             IF(ICONTM2.GT.NCONTM)FOUND=.TRUE.
           END DO
         END DO
-
       ELSE
         IADC=NADC
       ENDIF
@@ -838,16 +831,16 @@ C Get contaminant 1 and 2 for the chemical reaction
  2015   INNO=-2
         ITEML(1) =' name:   ambient (max) conc:'
         ITEML(2) ='              (kg/kg)    '
-        DO 720 ICONTM=1,NCONTM
+        DO ICONTM=1,NCONTM
           AMBCONC=0.0
           AMBMAX=0.0
-          DO 255 IT=2,MT
+          DO IT=2,MT
             AMBCONC=MAX(CNCAA(ICONTM,IT),CNCAA(ICONTM,IT-1))
             AMBMAX=MAX(AMBMAX,AMBCONC)
- 255      CONTINUE
+          ENDDO
           WRITE(ITEML(2+ICONTM),'(2A,A12,A,F8.6)')
      &      CHAR(96+ICONTM),' ',CONTMNAM(ICONTM),' ',AMBMAX
- 720    CONTINUE
+        ENDDO
         ITEML(NCONTM+3) =' ------------------------'
         ITEML(NCONTM+4) ='@ display information    '
         ITEML(NCONTM+5) ='? help                   '
@@ -913,8 +906,8 @@ C Get contaminant 1 and 2 for the chemical reaction
         NCHEMRR=0
 
 C Determine number of rates if specified
-        DO 510 ICONTM1=1,NCONTM
-          DO 520 ICONTM2=1,NCONTM
+        DO ICONTM1=1,NCONTM
+          DO ICONTM2=1,NCONTM
             CALL ECLOSE(FORCAB(ICONTM1,ICONTM2),0.0,1E-14,CLOSER)
             IF(.NOT.CLOSER)THEN
               NCHEMRR=NCHEMRR+1
@@ -922,8 +915,8 @@ C Determine number of rates if specified
      &          CHAR(96+NCHEMRR),' ',CONTMNAM(ICONTM1),CONTMNAM(ICONTM2)
      &          ,FORCAB(ICONTM1,ICONTM2)
             ENDIF
- 520      CONTINUE
- 510    CONTINUE
+          ENDDO
+        ENDDO
         ITEML(NCHEMRR+2) =' ---------------------'
         ITEML(NCHEMRR+3) ='? help'
         ITEML(NCHEMRR+4) ='- exit'
@@ -937,8 +930,8 @@ C Determine number of rates if specified
 
 C Get contaminant for the chemioal reaction
           NCHEMRR=0
-          DO 505 ICONTM1=1,NCONTM
-            DO 506 ICONTM2=1,NCONTM
+          DO ICONTM1=1,NCONTM
+            DO ICONTM2=1,NCONTM
               CALL ECLOSE(FORCAB(ICONTM1,ICONTM2),0.0,1E-14,CLOSER)
               IF(.NOT.CLOSER)THEN
                 NCHEMRR=NCHEMRR+1
@@ -947,8 +940,8 @@ C Get contaminant for the chemioal reaction
                   ICONTMD2=ICONTM2
                 ENDIF
               ENDIF
- 506        CONTINUE
- 505      CONTINUE
+            ENDDO
+          ENDDO
           FORCAB(ICONTMD1,ICONTMD2)=0.0
         ELSE
           GOTO 2021
@@ -963,6 +956,8 @@ C Subroutine to link source/sink models with nodes and contaminants
 C It is called with either NLP=1 (link source/sink to contaminant)
 C or NLP=2 (link source/sink to node)
 C Definitions of most variables is given in ctread.F
+C NOTE: if there are existing links the current logic addes
+C to those links rather than replacing them.
 
       SUBROUTINE SCNLNK(NLP)
 #include "building.h"
@@ -971,6 +966,7 @@ C Definitions of most variables is given in ctread.F
 #include "epara.h"
 #include "help.h"
 
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/CONTM0/NCONTM,NOCNTM,CONTMNAM(MCONTM)
       COMMON/CONTM3/CNCAA(MCONTM,MT),FILEFA(MCONTM,MCNN)
      &,FORCAB(MCONTM,MCONTM)
@@ -978,14 +974,16 @@ C Definitions of most variables is given in ctread.F
      &      NSSNO(MNOD),SPMTYP(MSPMNO),SSNAME(MSPMNO),NSPMNO,
      &      SSLINK1(MSPMNO,MCONTM)
 
-      CHARACTER CONTMNAM*12,SSNAME*12,KEY*1
+      CHARACTER CONTMNAM*12,SSNAME*12,KEY*1,outs*124
       CHARACTER*33 ITEMS(MCNN+20)
       INTEGER SPMTYP,SSLINK1,SSLINK2
       REAL SPMSUP
       LOGICAL SS1,SS2
+      logical already,ok
 
       SS1=.TRUE.
       SS2=.TRUE.
+      already=.false.
       helpinsub='ctprob'  ! set for subroutine
       helptopic='sink_links'
       call gethelptext(helpinsub,helptopic,nbhelp)
@@ -993,9 +991,25 @@ C Definitions of most variables is given in ctread.F
       MHEAD=1
       MCTL=3
 
-C Linking contaminants.
+C Linking contaminants by first selecting the source and then
+C selecting the contaminate.  First note existing links.
       IF(NLP.EQ.1)THEN
-
+        CALL EDISP(IUOUT,'  ')
+        DO ISPMNO=1,MSPMNO
+          DO ICONTM=1,NCONTM
+            IF(SSLINK1(ISPMNO,ICONTM).NE.0)then
+              lnss=lnblnk(SSNAME(ISPMNO))
+              WRITE(OUTS,'(4A)') 'Currently ',SSNAME(ISPMNO)(1:lnss),
+     &          ' is already linked to ',CONTMNAM(ICONTM)
+              CALL EDISP(IUOUT,OUTS)
+              already=.true.
+            ENDIF
+          ENDDO
+        ENDDO
+        if(already)then
+          CALL EASKOK(' ','Add additional contaminate links?',OK,nbhelp)
+          IF(.NOT.OK) RETURN
+        endif
  703    ILEN=NSPMNO
         IPACT=CREATE
         CALL EKPAGE(IPACT)
@@ -1004,13 +1018,13 @@ C Linking contaminants.
 C Get source/sink to be linked
         INNO=-2
         ITEMS(1) =' Source Name:          type:'
-        DO 100 I=1,ILEN
+        DO I=1,ILEN
           if (I.GE.IST.AND.(I.LE.(IST+MIFULL))) then
             M=M+1
             call EMKEY(I,KEY,IER)
             WRITE(ITEMS(M),'(2A,A12,I12)')KEY,' ',SSNAME(I),SPMTYP(I)
           endif
- 100    CONTINUE
+        ENDDO
 
 C Number of actual items displayed.
         NITEMS=M+MCTL
@@ -1057,20 +1071,20 @@ C If there are enough items allow paging control via EKPAGE.
 C Get contaminant to be linked.
         INNO=-2
         ITEMS(1) =' name:   ambient (max) conc:'
-        DO 200 I=1,ILEN
+        DO I=1,ILEN
           if (I.GE.IST.AND.(I.LE.(IST+MIFULL))) then
             M=M+1
             call EMKEY(I,KEY,IER)
             AMBCONC=0.0
             AMBMAX=0.0
-            DO 254 IT=2,MT
+            DO IT=2,MT
               AMBCONC=MAX(CNCAA(I,IT),CNCAA(I,IT-1))
               AMBMAX=MAX(AMBMAX,AMBCONC)
- 254        CONTINUE
+            ENDDO
             WRITE(ITEMS(M),'(2A,A12,A,F8.6)')KEY,' ',CONTMNAM(I),' ',
      &        AMBMAX
           endif
- 200    CONTINUE
+        ENDDO
 
 C Number of actual items displayed.
         NITEMS=M+MCTL
@@ -1120,7 +1134,26 @@ C If there are enough items allow paging control via EKPAGE.
         ENDIF
       ELSE
 
- 701    ILEN=NSPMNO
+C Link a source to flow nodes by first choosing from list of sources
+C and then selecing the flow nodes.  First note existing node links.
+ 701    already=.false.
+        DO 14 INOD=1,NNOD
+          IF(NDTYP(INOD).GT.1)GOTO 14
+          ISPMNO=1
+          IF(SSLINK2(ISPMNO,INOD).NE.0)THEN
+            WRITE(OUTS,'(4A)') 'Currently node ',
+     &        NDNAM(INOD),' is linked to ',SSNAME
+     &        (SSLINK2(ISPMNO,INOD))
+            CALL EDISP(IUOUT,OUTS)
+            already=.true.
+          ENDIF
+ 14     CONTINUE
+        if(already)then
+          CALL EASKOK(' ','Add additional node links?',OK,nbhelp)
+          IF(.NOT.OK) RETURN
+        endif
+ 
+        ILEN=NSPMNO
         IPACT=CREATE
         CALL EKPAGE(IPACT)
         M=MHEAD
@@ -1128,13 +1161,13 @@ C If there are enough items allow paging control via EKPAGE.
 C Get source/sink to be linked.
         INNO=-2
         ITEMS(1) =' Source Name:          type:'
-        DO 101 I=1,ILEN
+        DO I=1,ILEN   ! Loop through each of the sources.
           if (I.GE.IST.AND.(I.LE.(IST+MIFULL))) then
             M=M+1
             call EMKEY(I,KEY,IER)
             WRITE(ITEMS(M),'(2A,A12,I12)')KEY,' ',SSNAME(I),SPMTYP(I)
           endif
- 101    CONTINUE
+        ENDDO
 
 C Number of actual items displayed.
         NITEMS=M+MCTL
@@ -1178,19 +1211,18 @@ C If there are enough items allow paging control via EKPAGE.
         CALL EKPAGE(IPACT)
         M=MHEAD
 
-c Get node to be linked.
+c Get flow node to be linked.
         INNO=-2
         ITEMS(1) =' Node name:'
-        DO 201 I=1,ILEN
+        DO I=1,ILEN
           if (I.GE.IST.AND.(I.LE.(IST+MIFULL))) then
             IF(NDTYP(I).LT.2)THEN
               M=M+1
               call EMKEY(I,KEY,IER)
               WRITE(ITEMS(M),'(2A1,A12)')KEY,' ',NDNAM(I)
             ENDIF
-
           endif
- 201    CONTINUE
+        ENDDO
 
 C Number of actual items displayed.
         NITEMS=M+MCTL
@@ -1277,6 +1309,8 @@ C ISPMNU is ??
       helptopic='manage_sinks_sources'
       call gethelptext(helpinsub,helptopic,nbhelp)
 
+      ISSTYP=0  ! Clear indicies.
+
 C If the ispmnu parameter is non-zero then give the user the option
 C to edit the contaminant details. If ispmnu is zero details should
 C not be edited (just allow add copy delete).
@@ -1302,7 +1336,7 @@ C editing then also use this facility.
  141    CALL EASKS(T12,' ',' source/sink name (<= 12 characters): ',12,
      &' source ','source/sink',IER,nbhelp)
         CALL ST2NAME(T12,SSID)
-        DO 10 ISPMNO=1,NSPMNO
+        DO 10 ISPMNO=1,NSPMNO   ! Loop through list of sources/sinks.
          IF((.NOT.EDIT.AND.(SSID(1:12).EQ.SSNAME(ISPMNO)(1:12))).OR.
      &     (EDIT.AND.(SSID(1:12).EQ.SSNAME(ISPMNO)(1:12)
      &     .AND.ISPMNO.NE.ISPMNU)))THEN
@@ -1625,7 +1659,7 @@ C Now get supplementary data items for personal CO2 emission.
             helptopic='contam_co2_levels'
             call gethelptext(helpinsub,helptopic,nbhelp)
             IV=1
-            CALL EASKI(IV,' ','Choose activity level?',
+            CALL EASKI(IV,' ','Choose activity level (between 1 & 6)?',
      &        1,'F',6,'F',1,'source/sink suppl data',IERI,nbhelp)
             if(ieri.eq.-3) goto 2007
             IF(.NOT.EDIT) THEN
@@ -1705,7 +1739,7 @@ C Now get supplementary data items for personal CO2 emission.
             ELSE
               SPMSUP(ISPMNU,7)=REAL(IV)
             ENDIF
-          ELSEIF(JC.EQ.1)THEN
+          ELSEIF(JC.EQ.1)THEN  ! Take from zone operations file.
             IF(.NOT.EDIT) THEN
               SPMSUP(NSPMNO,1)=-1.0
             ELSE
@@ -1723,10 +1757,10 @@ C To delete a source/sink model.
         helptopic='contam_source_delete'
         call gethelptext(helpinsub,helptopic,nbhelp)
         ITEMS(1) =' Source Name:          type:'
-        DO 110 ISPMNO=1,NSPMNO
+        DO ISPMNO=1,NSPMNO   ! Loop through list of sources/sinks
           WRITE(ITEMS(ISPMNO+1),'(2A,A12,I12)')CHAR(96+ISPMNO),' ',
      &               SSNAME(ISPMNO),SPMTYP(ISPMNO)
- 110    CONTINUE
+        ENDDO
         ITEMS(NSPMNO+2) =' ------------------------'
         ITEMS(NSPMNO+3) ='? help                   '
         ITEMS(NSPMNO+4) ='- exit                   '
@@ -1744,21 +1778,21 @@ C To delete a source/sink model.
 C Remove this source/sink from common block elements and
 C Move remaining source/sink models 'up' in relevant arrays
           IF(ISSDEL.NE.MSPMNO)THEN
-            DO 36 I=ISSDEL,NSPMNO
-              DO 37 ICSD=1,MCSD
+            DO I=ISSDEL,NSPMNO
+              DO ICSD=1,MCSD
                 SPMSUP(I,ICSD)=SPMSUP(I+1,ICSD)
- 37           CONTINUE
+              ENDDO
               SPMTYP(I)=SPMTYP(I+1)
               SSNAME(I)=SSNAME(I+1)
- 36         CONTINUE
+            ENDDO
             DO 39 ISPMNO=1,MSPMNO
               DO 38 ICONTM=1,NCONTM
                 IF(SSLINK1(ISPMNO,ICONTM).EQ.0)GOTO 38
                 IF(SSLINK1(ISPMNO,ICONTM).EQ.ISSDEL)THEN
                   JSPMNO=ISPMNO
-                  DO 40 I=JSPMNO,MSPMNO-1
+                  DO I=JSPMNO,MSPMNO-1
                     SSLINK1(I,ICONTM)=SSLINK1(I+1,ICONTM)
- 40               CONTINUE
+                  ENDDO
                 ENDIF
                   IF(SSLINK1(ISPMNO,ICONTM).GT.ISSDEL)THEN
                     SSLINK1(ISPMNO,ICONTM)=SSLINK1(ISPMNO,ICONTM)-1
@@ -1768,9 +1802,9 @@ C Move remaining source/sink models 'up' in relevant arrays
                 IF(SSLINK2(ISPMNO,INOD).EQ.0)GOTO 41
                 IF(SSLINK2(ISPMNO,INOD).EQ.ISSDEL)THEN
                   JSPMNO=ISPMNO
-                  DO 42 I=JSPMNO,MSPMNO-1
+                  DO I=JSPMNO,MSPMNO-1
                     SSLINK2(I,INOD)=SSLINK2(I+1,INOD)
- 42               CONTINUE
+                  ENDDO
                 ENDIF
                   IF(SSLINK2(ISPMNO,INOD).GT.ISSDEL)THEN
                     SSLINK2(ISPMNO,INOD)=SSLINK2(ISPMNO,INOD)-1
@@ -1778,17 +1812,17 @@ C Move remaining source/sink models 'up' in relevant arrays
  41           CONTINUE
  39         CONTINUE
           ELSE
-            DO 33 I=1,MCSD
+            DO I=1,MCSD
               SPMSUP(ISSDEL,ICSD)=0.0
- 33         CONTINUE
+            ENDDO
             SPMTYP(ISSDEL)=0
             SSNAME(ISSDEL)=' '
-            DO 34 INOD=1,NNOD
+            DO INOD=1,NNOD
               SSLINK2(ISSDEL,INOD)=0
- 34         CONTINUE
-            DO 35 ICONTM=1,NCONTM
+            ENDDO
+            DO ICONTM=1,NCONTM
               SSLINK1(ISSDEL,ICONTM)=0
- 35         CONTINUE
+            ENDDO
           ENDIF
           NSPMNO=NSPMNO-1
         ELSE
@@ -1802,7 +1836,7 @@ C Copy a source/sink.
         helptopic='contam_source_copy'
         call gethelptext(helpinsub,helptopic,nbhelp)
         ITEMS(1) =' Source Name:          type:'
-        DO 100 ISPMNO=1,NSPMNO
+        DO 100 ISPMNO=1,NSPMNO  ! Loop through list of soures/sinks
           WRITE(ITEMS(ISPMNO+1),'(2A,A12,I12)')CHAR(96+ISPMNO),' ',
      &               SSNAME(ISPMNO),SPMTYP(ISPMNO)
  100    CONTINUE
@@ -1840,16 +1874,16 @@ C increment NSPMNO
           SSNAME(NSPMNO)=SSID(1:12)
 
 C Copy common block information
-          DO 61 ICSD=1,MCSD
+          DO ICSD=1,MCSD
             SPMSUP(NSPMNO,ICSD)=SPMSUP(ISSCPY,ICSD)
- 61       CONTINUE
+          ENDDO
           SPMTYP(NSPMNO)=SPMTYP(ISSCPY)
-          DO 62 INOD=1,NNOD
+          DO INOD=1,NNOD
             SSLINK2(NSPMNO,INOD)=SSLINK2(ISSCPY,INOD)
- 62       CONTINUE
-          DO 63 ICONTM=1,NCONTM
+          ENDDO
+          DO ICONTM=1,NCONTM
             SSLINK1(NSPMNO,ICONTM)=SSLINK1(ISSCPY,ICONTM)
- 63       CONTINUE
+          ENDDO
         ELSE
           GOTO 2012
         ENDIF
@@ -1919,15 +1953,17 @@ C Get Contaminant name and check to be unique
         CALL ST2NAME(T12,CNTMN)
         K=0
         CALL EGETRM(CNTMN,K,CNTMID,'W','contaminant name',IER)
-        DO 10 ICONTM=1,NCONTM
-          IF(CNTMID(1:12).EQ.CONTMNAM(ICONTM)(1:12).AND.ICONTM.NE.
-     &    MEDIT)THEN
-            CALL EASKOK('Duplicate containment name!',
-     &        'Retry?',OK,nbhelp)
-            IF(.NOT.OK)RETURN
-            GOTO 11
-          ENDIF
- 10     CONTINUE
+        if(ncontm.gt.1)then
+          DO 10 I=1,NCONTM
+            IF(CNTMID(1:12).EQ.CONTMNAM(I)(1:12).AND.I.NE.
+     &         MEDIT)THEN
+              CALL EASKOK('Duplicate containment name!',
+     &          'Retry?',OK,nbhelp)
+              IF(.NOT.OK)RETURN
+              GOTO 11
+            ENDIF
+ 10       CONTINUE
+        endif
 
 C OK contaminant name is unique,add it to the list of names and
 C increment NCONTM
@@ -1938,62 +1974,69 @@ C increment NCONTM
             CALL EDISP(IUOUT,'No more contaminants allowed')
             RETURN
           ENDIF
-          NCONTM=NCONTM+1
+          NCONTM=NCONTM+1  ! Increment and if ICONTAM is zero reset to 1.
           CONTMNAM(NCONTM)=CNTMID(1:12)
+          if(ICONTAM.eq.0) ICONTAM=1
         ENDIF
 
-C Ask for default concentration
+C Ask for default concentration. Logic supports 1-24 or in
+C several stages.
         CALL EASKMBOX('Which best describes the average hourly',
-     &    ' contaminant concentration','Variable','Constant',
-     &    ' ',' ',' ',' ',' ',' ',IHORC,nbhelp)
-        IF(IHORC.EQ.1)GOTO 1
-        IF(IHORC.EQ.2)GOTO 2
- 1      ITIM=1
- 4      WRITE(STR,'(A25,I3,A8)')'Concentration (kg/kg) at ',ITIM,
-     &     ' hours?'
-        CALL EASKR(CONC,' ',STR,0.,'F',0.,'-',1.,'conc',IER,nbhelp)
-        IF(ITIM.LT.MT)THEN
-          CALL EASKI(NTIM,' ','Til when (1-24 hours) is this valid ?',
-     &     ITIM,'F',MT,'F',ITIM+1,'ambieNt concentration',IERI,nbhelp)
-          if(ieri.eq.-3) then
-
-C << to be done - return data to previous value before exit >>
-            return
-          endif
-        ELSE
-          NTIM=MT
-        ENDIF
-        DO 1754 IT=ITIM,NTIM
-          WCONCA(IT)=CONC
- 1754   CONTINUE
-        ITIM=NTIM+1
-        IF(NTIM.LT.24)GOTO 4
-        GOTO 3
- 2      VAL=CNCAA(ICONTAM,1)
-        CALL EASKR(VAL,' ','Ambient concentration kg/kg ? ',
-     &    0.0,'F',1.0,'F',0.01,'amb conc of contaminant',IER,nbhelp)
- 3      DO 256 IT=1,MT
-          IF(IHORC.EQ.2)THEN
-            IF(EDIT)THEN
-              CNCAA(ICONTAM,IT)=VAL
-            ELSE
-              CNCAA(NCONTM,IT)=VAL
-            ENDIF
-          ELSEIF(IHORC.EQ.1)THEN
-            IF(EDIT)THEN
-              CNCAA(ICONTAM,IT)=WCONCA(IT)
-            ELSE
-              CNCAA(NCONTM,IT)=WCONCA(IT)
-            ENDIF
+     &    'ambient contaminant concentration','Variable','Constant',
+     &    'ambient CO2 (423 PPM)',' ',' ',' ',' ',' ',IHORC,nbhelp)
+        IF(IHORC.EQ.1)then
+          ITIM=1
+ 4        WRITE(STR,'(A,I3,A)')'Concentration (kg/kg) at ',ITIM,
+     &      ' hours?'
+          CALL EASKR(CONC,' ',STR,0.,'F',0.,'-',1.,'conc',IER,nbhelp)
+          IF(ITIM.LT.MT)THEN
+            CALL EASKI(NTIM,' ','Til when (1-24 hours) is this valid?',
+     &        ITIM,'F',MT,'F',ITIM+1,'ambient concentration',IERI,
+     &        nbhelp)
+            if(ieri.eq.-3) then
+              return
+            endif
+          ELSE
+            NTIM=MT
           ENDIF
- 256    CONTINUE
+          DO IT=ITIM,NTIM
+            WCONCA(IT)=CONC
+          ENDDO
+          ITIM=NTIM+1
+          IF(NTIM.LT.24)GOTO 4
+
+        ELSEIF(IHORC.EQ.2.or.IHORC.eq.3)then
+          if(IHORC.EQ.2)then
+            VAL=CNCAA(ICONTAM,1)
+            CALL EASKR(VAL,' ','Ambient concentration kg/kg?',
+     &        0.0,'F',1.0,'F',0.01,'amb conc of contaminant',IER,
+     &        nbhelp)
+          elseif(IHORC.eq.3)then
+            VAL=0.000423 ! 423 PPM (www.co2.earth)
+          endif
+ 3        DO IT=1,MT
+            IF(IHORC.EQ.2)THEN
+              IF(EDIT)THEN
+                CNCAA(ICONTAM,IT)=VAL
+              ELSE
+                CNCAA(NCONTM,IT)=VAL
+              ENDIF
+            ELSEIF(IHORC.EQ.1)THEN
+              IF(EDIT)THEN
+                CNCAA(ICONTAM,IT)=WCONCA(IT)
+              ELSE
+                CNCAA(NCONTM,IT)=WCONCA(IT)
+              ENDIF
+            ENDIF
+          ENDDO
+        ENDIF
 
 C Ask for concentration of this contaminant at all internal airpoints
         IW=1
         CALL EASKMBOX('Is initial conc at each node equal to ambient?',
      & ' ','yes','no','default (yes)',' ',' ',' ',' ',' ',IW,nbhelp)
         IF(IW.EQ.1.OR.IW.EQ.3)THEN
-          DO 20 INOD=1,NNOD
+          DO INOD=1,NNOD
             IF(EDIT)THEN
               IF(IHORC.EQ.2)THEN
                 CNCNI(ICONTAM,INOD)=VAL
@@ -2007,9 +2050,9 @@ C Ask for concentration of this contaminant at all internal airpoints
                 CNCNI(NCONTM,INOD)=-1.0
               ENDIF
             ENDIF
- 20       CONTINUE
+          ENDDO
         ELSE
-          DO 30 INOD=1,NNOD
+          DO INOD=1,NNOD
             IF(NDTYP(INOD).LT.2)THEN
               WRITE(OUTS,'(A12)')NDNAM(INOD)
               IF(EDIT)VAL=CNCNI(ICONTAM,INOD)
@@ -2022,7 +2065,7 @@ C Ask for concentration of this contaminant at all internal airpoints
                 CNCNI(NCONTM,INOD)=VAL
               ENDIF
             ENDIF
- 30       CONTINUE
+          ENDDO
         ENDIF
       ELSEIF(IADC.EQ.2) THEN
 
@@ -2030,16 +2073,16 @@ C To delete a contaminant
  2013   IIO=-2
         ITEMS(1) =' name:  ambient (max) conc:'
         ITEMS(2) ='              (kg/kg)    '
-        DO 21 ICONTM=1,NCONTM
+        DO I=1,NCONTM
           AMBCONC=0.0
           AMBMAX=0.0
-          DO 257 IT=2,MT
-            AMBCONC=MAX(CNCAA(ICONTM,IT),CNCAA(ICONTM,IT-1))
+          DO IT=2,MT
+            AMBCONC=MAX(CNCAA(I,IT),CNCAA(I,IT-1))
             AMBMAX=MAX(AMBMAX,AMBCONC)
- 257      CONTINUE
-          WRITE(ITEMS(2+ICONTM),'(2A,A12,A,F8.6)')
-     &      CHAR(96+ICONTM),' ',CONTMNAM(ICONTM),' ',AMBMAX
- 21     CONTINUE
+          ENDDO
+          WRITE(ITEMS(2+I),'(2A,A12,A,F8.6)')
+     &      CHAR(96+I),' ',CONTMNAM(I),' ',AMBMAX
+        ENDDO
         ITEMS(NCONTM+3) =' ------------------------'
         ITEMS(NCONTM+4) ='? help                   '
         ITEMS(NCONTM+5) ='- exit                   '
@@ -2054,41 +2097,41 @@ C To delete a contaminant
           IF(.NOT.OK)RETURN
           ICTDEL=IIO-2
           CONTMNAM(ICTDEL)=' '
-          DO 70 IT=1,MT
+          DO IT=1,MT
             CNCAA(ICTDEL,IT)=0.0
- 70       CONTINUE
-          DO 31 ICNN=1,NCNN
+          ENDDO
+          DO ICNN=1,NCNN
             FILEFA(ICTDEL,ICNN)=1.0
- 31       CONTINUE
-          DO 40 ICONTM=1,NCONTM
+          ENDDO
+          DO ICONTM=1,NCONTM
             FORCAB(ICTDEL,ICONTM)=0.0
- 40       CONTINUE
-          DO 50 INOD=1,NNOD
+          ENDDo
+          DO INOD=1,NNOD
             CNCNI(ICTDEL,INOD)=0.0
- 50       CONTINUE
-          DO 60 ISPMNO=1,NSPMNO
+          ENDDO
+          DO ISPMNO=1,NSPMNO
             SSLINK1(ISPMNO,ICTDEL)=0
- 60       CONTINUE
+          ENDDO
 
 C Shift remaining contaminants 'up' if deleted contaminant is not last
           IF(ICTDEL.NE.MCONTM)THEN
             DO 22 I=ICTDEL,NCONTM
               CONTMNAM(I)=CONTMNAM(I+1)
-              DO 27 IT=1,MT
+              DO IT=1,MT
                 CNCAA(I,IT)=CNCAA(I+1,IT)
- 27           CONTINUE
-              DO 23 ICNN=1,NCNN
+              ENDDO
+              DO ICNN=1,NCNN
                 FILEFA(I,ICNN)=FILEFA(I+1,ICNN)
- 23           CONTINUE
-              DO 24 ICONTM=1,NCONTM
+              ENDDO
+              DO ICONTM=1,NCONTM
                 FORCAB(I,ICONTM)=FORCAB(I+1,ICONTM)
- 24           CONTINUE
-              DO 25 INOD=1,NNOD
+              ENDDO
+              DO INOD=1,NNOD
                 CNCNI(I,INOD)=CNCNI(I+1,INOD)
-                DO 26 ISPMNO=1,NSPMNO
+                DO ISPMNO=1,NSPMNO
                   SSLINK1(ISPMNO,I)=SSLINK1(ISPMNO,I+1)
- 26             CONTINUE
- 25           CONTINUE
+                ENDDO
+              ENDDO
  22         CONTINUE
           ENDIF
           NCONTM=NCONTM-1
@@ -2104,10 +2147,10 @@ C Copy a contaminant
         DO 41 ICONTM=1,NCONTM
           AMBCONC=0.0
           AMBMAX=0.0
-          DO 259 IT=2,MT
+          DO IT=2,MT
             AMBCONC=MAX(CNCAA(ICONTM,IT),CNCAA(ICONTM,IT-1))
             AMBMAX=MAX(AMBMAX,AMBCONC)
- 259      CONTINUE
+          ENDDO
           WRITE(ITEMS(2+ICONTM),'(2A,A12,A,F8.6)')
      &      CHAR(96+ICONTM),' ',CONTMNAM(ICONTM),' ',AMBMAX
  41     CONTINUE
@@ -2143,12 +2186,12 @@ C OK contaminant name is unique,add it to the list of names and
 C increment NCONTM
           NCONTM=NCONTM+1
           CONTMNAM(NCONTM)=CNTMID(1:12)
-          DO 315 IT=1,MT
+          DO IT=1,MT
             CNCAA(NCONTM,IT)=CNCAA(ICTCPY,IT)
- 315      CONTINUE
-          DO 42 INOD=1,NNOD
+          ENDDO
+          DO INOD=1,NNOD
             CNCNI(NCONTM,INOD)=CNCNI(ICTCPY,INOD)
- 42       CONTINUE
+          ENDDO
         ELSE
           GOTO 2014
         ENDIF
@@ -2197,6 +2240,7 @@ C Definitions of most variables is given in ctread.F
       IF(INDEX.EQ.3)GOTO 1003
       IF(INDEX.EQ.4)GOTO 1004
 
+C List heading (INDEX is zero).
       CALL EDISP(IUOUT,' ')
       CALL EDISP(IUOUT,' Contaminant Model ')
       CALL EDISP(IUOUT,' ')
@@ -2214,20 +2258,21 @@ C Contaminant names and ambient concentrations
  1001 IF(NCONTM.GT.0)THEN
         CALL EDISP(IUOUT,' Contaminant information:')
         DO 8 ICONTM=1,NCONTM
-          CALL EDISP(IUOUT,' Name:   amb conc(max):   amb conc(min):')
+          CALL EDISP(IUOUT,
+     &      ' Name:   ambient concentration (max & min) kg/kg:')
           AMBMAX=CNCAA(ICONTM,1)
           AMBMIN=CNCAA(ICONTM,1)
-          DO 258 IT=2,MT
+          DO IT=2,MT
             AMBCONC=CNCAA(ICONTM,IT)
             AMBMAX=MAX(AMBMAX,AMBCONC)
             AMBMIN=MIN(AMBMIN,AMBCONC)
- 258      CONTINUE
+          ENDDO
           WRITE(OUTS,'(1X,A12,F8.6,A,F8.6)')CONTMNAM(ICONTM),
-     &      AMBMAX,' ',AMBMIN
+     &      AMBMAX,'   ',AMBMIN
           CALL EDISP(IUOUT,OUTS)
 
 C Display initial concentrations in each node
-          WRITE(OUTS,'(A)')' Node name:   init. conc.:'
+          WRITE(OUTS,'(A)')' Node name:   initial concentration:'
           CALL EDISP(IUOUT,OUTS)
           DO 9 INOD=1,NNOD
             IF(NDTYP(INOD).LT.2)THEN
@@ -2304,7 +2349,7 @@ C Component based information
 C Source/sink information
  1002 CALL EDISP(IUOUT,' Source/sink information:')
       ONCE=.TRUE.
-      DO 20 ISPMNO=1,NSPMNO
+      DO 20 ISPMNO=1,NSPMNO  ! Loop though list of sources/sinks.
         IF(SPMTYP(ISPMNO).NE.0)THEN
           IF(ONCE)THEN
             CALL EDISP(IUOUT,' no: name:        type:')
@@ -2326,10 +2371,10 @@ C Source/sink information
             CALL EDISP(IUOUT,OUTS)
             SOUT(1)='Initial contaminant generation rate kg/s : '
             SOUT(2)='Cutoff concentration kg/kg               : '
-            DO 1302 IJ=1,2
+            DO IJ=1,2
               WRITE(LOUT,'(5X,A,1X,F14.10)')SOUT(IJ),SPMSUP(ISPMNO,IJ)
               CALL EDISP(IUOUT,LOUT)
- 1302       CONTINUE
+            ENDDO
           ELSEIF(SPMTYP(ISPMNO).EQ.3)THEN
             SSTYPE='exponential model'
             WRITE(OUTS,'(1X,I3,1X,A12,1X,A21)')
@@ -2340,10 +2385,10 @@ C Source/sink information
             SOUT(3)='Generation start time (day of month)     : '
             SOUT(4)='Generation start time (month)            : '
             SOUT(5)='Generation start time (hour of day)      : '
-            DO 1303 IJ=1,5
+            DO IJ=1,5
               WRITE(LOUT,'(5X,A,1X,F14.10)')SOUT(IJ),SPMSUP(ISPMNO,IJ)
               CALL EDISP(IUOUT,LOUT)
- 1303       CONTINUE
+            ENDDO
           ELSEIF(SPMTYP(ISPMNO).EQ.4)THEN
             SSTYPE='bndry layer diffusion'
             WRITE(OUTS,'(1X,I3,1X,A12,1X,A21)')
@@ -2355,10 +2400,10 @@ C Source/sink information
             SOUT(4)='Total mass of adsorbant/unit area kg/m^2 : '
             SOUT(5)='Henry adsorption/partition coefficient   : '
             SOUT(6)='Initial concentration in adsorbant kg/kg : '
-            DO 1304 IJ=1,6
+            DO IJ=1,6
               WRITE(LOUT,'(5X,A,1X,F14.10)')SOUT(IJ),SPMSUP(ISPMNO,IJ)
               CALL EDISP(IUOUT,LOUT)
- 1304       CONTINUE
+            ENDDO
           ELSEIF(SPMTYP(ISPMNO).EQ.5)THEN
             SSTYPE='time dependant'
             WRITE(OUTS,'(1X,I3,1X,A12,1X,A21)')
@@ -2371,10 +2416,10 @@ C Source/sink information
             SOUT(5)='Generation stop time (day of month)      : '
             SOUT(6)='Generation stop time (month)             : '
             SOUT(7)='Generation stop time (hour of day)       : '
-            DO 1305 IJ=1,7
+            DO IJ=1,7
               WRITE(LOUT,'(5X,A,1X,F14.10)')SOUT(IJ),SPMSUP(ISPMNO,IJ)
               CALL EDISP(IUOUT,LOUT)
- 1305       CONTINUE
+            ENDDO
           ELSEIF(SPMTYP(ISPMNO).EQ.6)THEN
             SSTYPE='personal CO2 emission'
             WRITE(OUTS,'(1X,I3,1X,A12,1X,A21)')
@@ -2396,10 +2441,10 @@ C Source/sink information
               SOUT(9)='Metabolic rate/person W                : '
               NSUP=8
               IF(ABS(SPMSUP(ISPMNO,1)-6.0).LT..01)NSUP=9
-              DO 1306 IJ=1,NSUP
+              DO IJ=1,NSUP
                 WRITE(LOUT,'(5X,A,1X,F14.10)')SOUT(IJ),SPMSUP(ISPMNO,IJ)
                 CALL EDISP(IUOUT,LOUT)
- 1306         CONTINUE
+              ENDDO
             ENDIF
           ENDIF
           CALL EDISP(IUOUT,' ')
@@ -2419,11 +2464,12 @@ C Source/sink models linked with each contaminant
           ISPMNO=1
  17       IF(SSLINK1(ISPMNO,ICONTM).NE.0)THEN
             IF(ONCE)THEN
-              CALL EDISP(IUOUT,' contmnt name: source/sink # & model:')
+              CALL EDISP(IUOUT,
+     &          ' contmnt name: source/sink # & model name:')
               ONCE=.FALSE.
               SSLCDEF=.TRUE.
             ENDIF
-            WRITE(OUTS,'(1X,A12,1X,I3,1X,A12)')
+            WRITE(OUTS,'(1X,A,I5,2X,A)')
      &        CONTMNAM(ICONTM),SSLINK1(ISPMNO,ICONTM),SSNAME
      &        (SSLINK1(ISPMNO,ICONTM))
             CALL EDISP(IUOUT,OUTS)
@@ -2445,11 +2491,12 @@ C Source/sink models linked with each node
           ISPMNO=1
  15       IF(SSLINK2(ISPMNO,INOD).NE.0)THEN
             IF(ONCE)THEN
-              CALL EDISP(IUOUT,' node name:   source/sink # & model:')
+              CALL EDISP(IUOUT,
+     &          ' node name:   source/sink # & model name:')
               ONCE=.FALSE.
               SSLNDEF=.TRUE.
             ENDIF
-            WRITE(OUTS,'(1X,A12,1X,I3,1X,A12)')
+            WRITE(OUTS,'(1X,A,I5,2X,A)')
      &        NDNAM(INOD),SSLINK2(ISPMNO,INOD),SSNAME
      &        (SSLINK2(ISPMNO,INOD))
             CALL EDISP(IUOUT,OUTS)
@@ -2461,7 +2508,6 @@ C Source/sink models linked with each node
           OUTS=' No source/sink linkages to nodes present'
           CALL EDISP(IUOUT,OUTS)
         ENDIF
-        CALL EDISP(IUOUT,' ')
       ENDIF
       IF(INDEX.NE.0)GOTO 1099
 
@@ -2471,3 +2517,187 @@ C Source/sink models linked with each node
 
  1099 RETURN
       END
+
+C ******************** CTPROB_INIT ********************
+C Sets up a typical contaminant regime with ambient CO2 levels
+C and occupant sources applied to all flow nodes which have
+C occupants defined.
+      SUBROUTINE CTPROB_INIT
+#include "building.h"
+#include "model.h"
+#include "net_flow.h"
+#include "net_flow_data.h"
+#include "ipvdata.h"
+#include "help.h"
+
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
+      COMMON/FILEP/IFIL
+
+      COMMON/CONTM/CNTMFIL,CNTMDESC,NTSTEPC
+      COMMON/CONTM0/NCONTM,NOCNTM,CONTMNAM(MCONTM)
+      COMMON/CONTM3/CNCAA(MCONTM,MT),FILEFA(MCONTM,MCNN)
+     &,FORCAB(MCONTM,MCONTM)
+      COMMON/CONTM5/SPMSUP(MSPMNO,MCSD),SSLINK2(MSPMNO,MNOD),
+     &      NSSNO(MNOD),SPMTYP(MSPMNO),SSNAME(MSPMNO),NSPMNO,
+     &      SSLINK1(MSPMNO,MCONTM)
+      COMMON/CONTM6/CNCNI(MCONTM,MNOD)
+      common/spfldat/nsset,isset,isstup,isbnstep,ispnstep,issave,isavgh
+      INTEGER :: nsset,isset,isstup,isbnstep,ispnstep,issave,isavgh
+
+C Extended simulation parameters for each set.
+      common/spfldats/isstupex(MSPS),isbnstepex(MSPS),ispnstepex(MSPS),
+     &  issaveex(MSPS),isavghex(MSPS),iscfdactivate(MSPS),
+     &  isicfdys(MSPS),isicfdyf(MSPS),
+     &  scftims(MSPS),scftimf(MSPS)
+      INTEGER :: isstupex,isbnstepex,ispnstepex,issaveex,isavghex
+      INTEGER :: iscfdactivate      ! zero ignore domains
+      INTEGER :: isicfdys,isicfdyf  ! CFD simulation start & finish days
+      REAL :: scftims,scftimf       ! CFD simulation start & finish time
+
+      CHARACTER*124 CNTMDESC
+      CHARACTER*72 CNTMFIL,CTMF
+      CHARACTER CONTMNAM*12,SSNAME*12
+      CHARACTER FS*1,outs*124
+      INTEGER SPMTYP,SSLINK1,SSLINK2
+      REAL SPMSUP
+      LOGICAL OK,UNIXOK
+
+      integer NTSTEPCT   ! for local editing.
+
+C Set contaminant file.
+      IUNIT=IFIL+72
+      helpinsub='ctprob'  ! set for subroutine
+      helptopic='contam_typical'
+      call gethelptext(helpinsub,helptopic,nbhelp)
+
+C Check if there is a flow network.
+      if(NNOD.eq.0)then
+        call usrmsg('There are no flow network nodes. The contaminant',
+     &    'facility requires a flow network. Returining.','W')
+        return
+      endif
+      IF(NOCNTM.LE.0) THEN
+        CALL PHELPD('contamn model def',nbhelp,'-',0,0,IER)
+        CALL EASKOK(' ','Enable contaminants in the model?',OK,nbhelp)
+        IF(.NOT.OK) RETURN
+      ENDIF
+
+C Set folder separator (fs) to \ or / as required.
+      CALL ISUNIX(UNIXOK)
+      IF(UNIXOK)THEN
+        FS = CHAR(47)
+      ELSE
+        FS = CHAR(92)
+      ENDIF
+
+C Check if a file has been defined previously
+      IF(NOCNTM.GT.0) THEN
+        call usrmsg('Contaminates already defined. Exiting this',
+     &    'setup facility.','W')
+        return
+      ELSE
+        CTMF='  '
+      ENDIF
+
+C Base name on cfgroot and place it in the netpth folder
+C (differienciate between unix and non-unix machine types).
+      IF(CTMF(1:2).EQ.'  '.OR.CTMF(1:4).EQ.'UNKN')THEN
+        IF(UNIXOK)THEN
+          IF(NETPTH(1:2).EQ.'  '.OR.NETPTH(1:2).EQ.'./')THEN
+            WRITE(CTMF,'(A,A4)')CFGROOT(1:LNBLNK(CFGROOT)),'.ctm'
+          ELSE
+            WRITE(CTMF,'(A,A,A,A4)') NETPTH(1:LNBLNK(NETPTH)),FS,
+     &      CFGROOT(1:LNBLNK(CFGROOT)),'.ctm'
+          ENDIF
+        ELSE
+          IF(NETPTH(1:2).EQ.'  '.OR.(ICHAR(NETPTH(1:1)).EQ.46.AND.
+     &       ICHAR(NETPTH(2:2)).EQ.92))THEN
+            WRITE(CTMF,'(A,A4)')CFGROOT(1:LNBLNK(CFGROOT)),'.ctm'
+          ELSE
+            WRITE(CTMF,'(A,A,A,A4)') NETPTH(1:LNBLNK(NETPTH)),FS,
+     &      CFGROOT(1:LNBLNK(CFGROOT)),'.ctm'
+          ENDIF
+        ENDIF
+      ENDIF
+      
+   81 CALL EASKS(CTMF,'Contaminant model file?',
+     &  ' ',72,' ','contaminant model file',IER,nbhelp)
+      IF(CTMF(1:2).NE.'  '.AND.CTMF(1:4).NE.'UNKN')THEN
+        CNTMFIL=CTMF
+      ELSE
+        GOTO 81
+      ENDIF
+
+C Confirm timestep (default to half of the 1st SPS set value).
+      if(nsset.gt.1)then
+        NTSTEPC=isbnstepex(1)
+      else
+        call usrmsg('No simulation parameter sets so building timestep',
+     &    'not known. Initial value assued to be 8.','W')
+        NTSTEPC=8
+      endif
+      helptopic='ct_timestep'
+      call gethelptext(helpinsub,helptopic,nbhelp)
+      if(NTSTEPC.eq.0) NTSTEPC=8
+      NTSTEPCT=NTSTEPC
+      CALL EASKI(NTSTEPCT,' ',
+     &  'Number of contaminant simulation timesteps / hour?',
+     &   1,'W',120,'W',12,'contaminant simul tstep',IERI,nbhelp)
+      if(ieri.eq.-3) return
+      NTSTEPC=NTSTEPCT
+
+C Create one contaminant, name = occupants and set ambient CO2.
+      ncontm=1
+      write(CONTMNAM(1),'(a)') 'occupants'
+      ICONTAM=1
+      VAL=0.000423 ! 423 PPM (www.co2.earth)
+      DO IT=1,MT
+        CNCAA(ICONTAM,IT)=VAL
+      ENDDO
+
+C Assign this ambient as the initial value for each flow node.
+      DO INOD=1,NNOD
+        CNCNI(ICONTAM,INOD)=VAL
+      ENDDO
+
+C Source/sink models linked with each contaminant
+      ISPMNO=1           ! Index of current source/sink
+      NSPMNO=1           ! Number of sources/sinks
+      SPMTYP(ISPMNO)=6
+      write(SSNAME(ISPMNO),'(a)') 'source'
+      SPMSUP(NSPMNO,1)=-1.0
+      SPMSUP(NSPMNO,2)= 0.0
+      SPMSUP(NSPMNO,3)= 0.0
+      SPMSUP(NSPMNO,4)= 0.0
+      SPMSUP(NSPMNO,5)= 0.0
+      SPMSUP(NSPMNO,6)= 0.0
+      SPMSUP(NSPMNO,7)= 0.0
+      SPMSUP(NSPMNO,8)= 0.0
+      SPMSUP(NSPMNO,9)= 0.0
+      SSLINK1(NSPMNO,NCONTM)=1 ! SSLINK1 related to contaminate list
+      icount=0
+      DO 514 INOD=1,NNOD
+        IF(NDTYP(INOD).GT.1)GOTO 514  ! Only work with internal nodes.
+        icount=icount+1
+        ISPMNO=1
+        SSLINK2(ISPMNO,inod)=1  ! SSLINK2 links node index to source
+        SSLINK1(1,1)=1          ! SSLINK1 related to contaminate list
+        NSSNO(icount)=1         ! There is one link for this flow node.
+  514 continue
+
+C Generate the initial contaminate directives file and update cfg file.
+      CALL EFOPSEQ(IUNIT,CNTMFIL,4,IER)
+      IF(IER.NE.0)return
+      CALL CTWRIT(IUNIT)
+      CALL ERPFREE(IUNIT,ISTAT)
+      write(outs,'(2a)') 'Saved contaminant model in ',
+     &  CNTMFIL(1:LNBLNK(CNTMFIL))
+      CALL EDISP(IUOUT,outs)
+      NOCNTM=1
+      CALL EMKCFG('-',IER)
+      INDEX=0
+      CALL CTLIST(INDEX)
+
+      return
+      end
+      

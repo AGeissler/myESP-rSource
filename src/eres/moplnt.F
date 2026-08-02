@@ -95,7 +95,8 @@ C this clash.
       character outs*124,xfile*144,tg*1,delim*1,MTITLE*22
       character pcname*15,pcnam1(mpcom)*15,adopdsc*30
       character aoutstr(15)*30
-      character SPLABEL*32,GPLABEL*20,SUFFIX*6,PREFIX*14
+      character SPLABEL*32,GPLABEL*20,SUFFIX*6,SUFFIX10*10
+      character PREFIX*14
       integer IWM  ! for radio button
       integer NITMS,INO ! max items and current menu item
 
@@ -571,6 +572,248 @@ C component.
      &    nitems,aoutstr,'additional output',IER,0)
         if(ix.eq.0) goto 61
         nsnd=ivals(1)
+        SUFFIX=' other'
+        SUFFIX10=' Other (-)'
+        if(aoutstr(nsnd)(1:11).eq.'Heat output')then
+          SUFFIX=' HoutW'
+          SUFFIX10=' Ht outp W'
+        elseif(aoutstr(nsnd)(1:4).eq.'Coef')then
+          SUFFIX=' COP'
+          SUFFIX10=' COP (-)'
+         elseif(aoutstr(nsnd)(1:14).eq.'Cooling output')then
+          SUFFIX=' CoolW'
+          SUFFIX10=' CoolingW'
+         elseif(aoutstr(nsnd)(1:14).eq.'Cooling energy')then
+          SUFFIX=' CoolW'
+          SUFFIX10=' CoolingW'
+         elseif(aoutstr(nsnd)(1:15).eq.'Total cooling e')then
+          SUFFIX=' CoolW'
+          SUFFIX10=' CoolingW'
+         elseif(aoutstr(nsnd)(1:15).eq.'Sensible coolin')then
+          SUFFIX=' CoolW'
+          SUFFIX10=' CoolingLd'
+         elseif(aoutstr(nsnd)(1:15).eq.'Condensate flow')then
+          SUFFIX=' CndsF'
+          SUFFIX10=' Cnds flrt'
+         elseif(aoutstr(nsnd)(1:14).eq.'Condensation (')then
+          SUFFIX=' StoCn'
+          SUFFIX10=' Sto conds'
+       elseif(aoutstr(nsnd)(1:4).eq.'Ambi')then
+          SUFFIX=' Amb T'
+          SUFFIX10=' Ambnt T'
+        elseif(aoutstr(nsnd)(1:4).eq.'Devi')then
+          SUFFIX=' ON:OF'
+          SUFFIX10=' ON:OFF'
+        elseif(aoutstr(nsnd)(1:5).eq.'Retur')then
+          SUFFIX=' Rtn T'
+          SUFFIX10=' Return T'
+        elseif(aoutstr(nsnd)(1:10).eq.'Real power')then
+          SUFFIX=' RlPwr'
+          SUFFIX10=' Real Pwr'
+        elseif(aoutstr(nsnd)(1:10).eq.'Reactive po')then
+          SUFFIX=' ReaPw'
+          SUFFIX10=' React Pwr'
+        elseif(aoutstr(nsnd)(1:12).eq.'Reac power c')then
+          SUFFIX=' ReaPw'
+          SUFFIX10=' React Pwr'
+        elseif(aoutstr(nsnd)(1:4).eq.'Appa')then
+          SUFFIX=' AppPw'
+          SUFFIX10=' Aprnt Pwr'
+        elseif(aoutstr(nsnd)(1:5).eq.'Defro')then
+          SUFFIX=' Dfrst'
+          SUFFIX10=' Defrost'
+        elseif(aoutstr(nsnd)(1:8).eq.'Valve po')then
+          SUFFIX=' VlvPs'
+          SUFFIX10=' Valv Pos'
+        elseif(aoutstr(nsnd)(1:11).eq.'Average tan')then
+          SUFFIX=' Avg T'
+          SUFFIX10=' Averg T'
+        elseif(aoutstr(nsnd)(1:9).eq.'Heat loss')then
+          SUFFIX=' HtLsW'
+          SUFFIX10=' Ht Loss W'
+        elseif(aoutstr(nsnd)(1:9).eq.'Heat gain')then
+          SUFFIX=' HtGnW'
+          SUFFIX10=' Heat Gn W'
+        elseif(aoutstr(nsnd)(1:15).eq.'Heat emission b')then
+          SUFFIX=' Ht1:2'
+          SUFFIX10=' Heat 1:2'
+        elseif(aoutstr(nsnd)(1:12).eq.'Number of in')then
+          SUFFIX=' IntTS'
+          SUFFIX10=' Int TmStp'
+        elseif(aoutstr(nsnd)(1:9).eq.'Times mix')then
+          SUFFIX=' Mixng'
+          SUFFIX10=' Nb.Mixing'
+        elseif(aoutstr(nsnd)(1:8).eq.'Avg numb')then
+          SUFFIX=' Mixsx'
+          SUFFIX10=' Mix sx'
+        elseif(aoutstr(nsnd)(1:8).eq.'Heat tra')then
+          SUFFIX=' Ht HX'
+          SUFFIX10=' Ht frm HX'
+        elseif(aoutstr(nsnd)(1:16).eq.'Flow rate type 1')then
+          SUFFIX=' FlwT1'
+          SUFFIX10=' Flow Ty 1'
+        elseif(aoutstr(nsnd)(1:16).eq.'Flow rate type 2')then
+          SUFFIX=' FlwT2'
+          SUFFIX10=' Flow Ty 2'
+        elseif(aoutstr(nsnd)(1:16).eq.'Flow rate type 3')then
+          SUFFIX=' FlwT3'
+          SUFFIX10=' Flow Ty 3'
+        elseif(aoutstr(nsnd)(1:16).eq.'Flow rate type 4')then
+          SUFFIX=' FlwT4'
+          SUFFIX10=' Flow Ty 4'
+        elseif(aoutstr(nsnd)(1:16).eq.'Flow rate type 5')then
+          SUFFIX=' FlwT5'
+          SUFFIX10=' Flow Ty 5'
+        elseif(aoutstr(nsnd)(1:16).eq.'Flow rate type 6')then
+          SUFFIX=' FlwT6'
+          SUFFIX10=' Flow Ty 6'
+        elseif(aoutstr(nsnd)(1:16).eq.'Heat emission fr')then
+          SUFFIX=' Rad W'
+          SUFFIX10=' Radiatr W'
+        elseif(aoutstr(nsnd)(1:16).eq.'Heat emission be')then
+          SUFFIX=' Rad W'
+          SUFFIX10=' Rad htbtw'
+        elseif(aoutstr(nsnd)(1:16).eq.'Mean radiator te')then
+          SUFFIX=' Rad T'
+          SUFFIX10=' Radiatr T'
+        elseif(aoutstr(nsnd)(1:16).eq.'Environment temp')then
+          SUFFIX=' RadEn'
+          SUFFIX10=' Rad Env T'
+        elseif(aoutstr(nsnd)(1:13).eq.'Log mean temp')then
+          SUFFIX=' DeltT'
+          SUFFIX10=' log m dT'
+        elseif(aoutstr(nsnd)(1:12).eq.'Solar rad.on')then
+          SUFFIX=' SolCo'
+          SUFFIX10=' Sol rd.on'
+        elseif(aoutstr(nsnd)(1:12).eq.'Cos of incid')then
+          SUFFIX=' InAng'
+          SUFFIX10=' Incid Ang'
+        elseif(aoutstr(nsnd)(1:13).eq.'Environment t')then
+          SUFFIX=' EnviT'
+          SUFFIX10=' Envir T'
+        elseif(aoutstr(nsnd)(1:13).eq.'ON/OFF signal')then
+          SUFFIX=' ONOFF'
+          SUFFIX10=' ON/OFF sg'
+        elseif(aoutstr(nsnd)(1:15).eq.'Gas consumption')then
+          SUFFIX=' gas'
+          SUFFIX10=' gas cons'
+        elseif(aoutstr(nsnd)(1:15).eq.'Water sided eff')then
+          SUFFIX=' H2eff'
+          SUFFIX10=' H2O eff'
+        elseif(aoutstr(nsnd)(1:15).eq.'Water heat inpu')then
+          SUFFIX=' H2inp'
+          SUFFIX10=' H2O input'
+        elseif(aoutstr(nsnd)(1:15).eq.'Water exit temp')then
+          SUFFIX=' H2OeT'
+          SUFFIX10=' H2O exitT'
+        elseif(aoutstr(nsnd)(1:15).eq.'Water mass flow')then
+          SUFFIX=' H2Omf'
+          SUFFIX10=' H2O msflr'
+        elseif(aoutstr(nsnd)(1:15).eq.'Mean useful pow')then
+          SUFFIX=' MnPwr'
+          SUFFIX10=' Mn UsePwr'
+        elseif(aoutstr(nsnd)(1:15).eq.'Mean consumed p')then
+          SUFFIX=' MnPwr'
+          SUFFIX10=' Mn conPwr'
+        elseif(aoutstr(nsnd)(1:14).eq.'Mean fuel mass')then
+          SUFFIX=' Mnful'
+          SUFFIX10=' Mn fuelms'
+        elseif(aoutstr(nsnd)(1:14).eq.'Rate of burner')then
+          SUFFIX=' BurRt'
+          SUFFIX10=' Burner Rt'
+        elseif(aoutstr(nsnd)(1:14).eq.'Ditto in stand')then
+          SUFFIX=' BurSb'
+          SUFFIX10=' Burner Sb'
+        elseif(aoutstr(nsnd)(1:15).eq.'Global boiler e')then
+          SUFFIX=' BurGE'
+          SUFFIX10=' Burner GE'
+        elseif(aoutstr(nsnd)(1:15).eq.'Operation effic')then
+          SUFFIX=' BurOE'
+          SUFFIX10=' Burner OE'
+        elseif(aoutstr(nsnd)(1:15).eq.'Stand-by heat l')then
+          SUFFIX=' HLstb'
+          SUFFIX10=' HL stndby'
+        elseif(aoutstr(nsnd)(1:13).eq.'Heat exch eff')then
+          SUFFIX=' HXeff'
+          SUFFIX10=' HX eff'
+        elseif(aoutstr(nsnd)(1:13).eq.'Heat exch hea')then
+          SUFFIX=' HXhtc'
+          SUFFIX10=' HX htc'
+        elseif(aoutstr(nsnd)(1:13).eq.'Net water hea')then
+          SUFFIX=' H2OHi'
+          SUFFIX10=' H2O htin'
+        elseif(aoutstr(nsnd)(1:13).eq.'Radiator temp')then
+          SUFFIX=' RadT'
+          SUFFIX10=' Rad T'
+        elseif(aoutstr(nsnd)(1:12).eq.'Inlet air db')then
+          SUFFIX=' inAT'
+          SUFFIX10=' in air T'
+        elseif(aoutstr(nsnd)(1:12).eq.'Inlet air 2b')then
+          SUFFIX=' inWB'
+          SUFFIX10=' in air WB'
+        elseif(aoutstr(nsnd)(1:12).eq.'CHP unit loa')then
+          SUFFIX=' CHP%'
+          SUFFIX10=' CHP unit%'
+        elseif(aoutstr(nsnd)(1:12).eq.'CHP unit gen')then
+          SUFFIX=' CHPW'
+          SUFFIX10=' CHP untkW'
+        elseif(aoutstr(nsnd)(1:12).eq.'CHP fuel con')then
+          SUFFIX=' CHPfc'
+          SUFFIX10=' CHP fuel'
+        elseif(aoutstr(nsnd)(1:13).eq.'Heat input to')then
+          SUFFIX=' CalHi'
+          SUFFIX10=' Caloif Hi'
+        elseif(aoutstr(nsnd)(1:13).eq.'Fuel consumpt')then
+          SUFFIX=' CHPfl'
+          SUFFIX10=' CHP fuel'
+        elseif(aoutstr(nsnd)(1:13).eq.'Total heat tr')then
+          SUFFIX=' Acum'
+          SUFFIX10=' Acum HT'
+        elseif(aoutstr(nsnd)(1:14).eq.'Heat release o')then
+          SUFFIX=' CHPfW'
+          SUFFIX10=' CHP flW'
+        elseif(aoutstr(nsnd)(1:14).eq.'Generator outp')then
+          SUFFIX=' CHP G'
+          SUFFIX10=' CHP GkW'
+        elseif(aoutstr(nsnd)(1:14).eq.'Overall effici')then
+          SUFFIX=' CHPEf'
+          SUFFIX10=' CHP eff'
+        elseif(aoutstr(nsnd)(1:15).eq.'Heat transfer b')then
+          SUFFIX=' HxW-W'
+          SUFFIX10=' HxW-Wht'
+        elseif(aoutstr(nsnd)(1:15).eq.'Number of trans')then
+          SUFFIX=' HxNTU'
+          SUFFIX10=' Hx NTU'
+        elseif(aoutstr(nsnd)(1:16).eq.'Heat exchanger e')then
+          SUFFIX=' Hxeff'
+          SUFFIX10=' Hx eff'
+        elseif(aoutstr(nsnd)(1:12).eq.'Effectiness (')then
+          SUFFIX=' Cteff'
+          SUFFIX10=' CTwr eff'
+        elseif(aoutstr(nsnd)(1:16).eq.'Cooling Power (W')then
+          SUFFIX=' CT W'
+          SUFFIX10=' CoolTwr W'
+        elseif(aoutstr(nsnd)(1:6).eq.'NTUr (')then
+          SUFFIX=' CTNTU'
+          SUFFIX10=' ClTwr NTU'
+        elseif(aoutstr(nsnd)(1:15).eq.'Minimum floor t')then
+          SUFFIX=' RadnT'
+          SUFFIX10=' Radn mnT'
+        elseif(aoutstr(nsnd)(1:15).eq.'Maximum floor t')then
+          SUFFIX=' RadnT'
+          SUFFIX10=' Radn mxT'
+        elseif(aoutstr(nsnd)(1:15).eq.'Supply power (W')then
+          SUFFIX=' RadnW'
+          SUFFIX10=' Radn supW'
+        elseif(aoutstr(nsnd)(1:15).eq.'Average fluid t')then
+          SUFFIX=' RadnT'
+          SUFFIX10=' Radn fldT'
+        elseif(aoutstr(nsnd)(1:15).eq.'Average circuit')then
+          SUFFIX=' RadnL'
+          SUFFIX10=' Radn crtL'
+
+C Extend as required.
+        endif
 
 C Save selected component and additional output number.
         if((NPGET+1).GT.MNGET)then
@@ -578,6 +821,8 @@ C Save selected component and additional output number.
           goto 7
         endif
         NPGET=NPGET+1
+        lname=MIN0(lnblnk(pcname(indx)),11)
+        write(PREFIX,'(a)') pcname(indx)(1:lname)
 
 C Additional output.
         IPGETNO(NPGET,1)=10
@@ -586,7 +831,8 @@ C Additional output.
         IPGETNO(NPGET,6)=-102
         IPGETNO(NPGET,7)=5
         IPGETNO(NPGET,8)=5
-        SUFFIX=' other'
+
+C        SUFFIX=' other'
         if(nsnd.le.9)then
           write(GPLABEL(NPGET),'(2a,i1,a)') PREFIX(1:lname),' n',
      &      nsnd,SUFFIX
@@ -597,6 +843,13 @@ C Additional output.
         write(outs,'(2a)') 'Selected ',GPLABEL(NPGET)
         call edisp(iuout,outs)
         SPLABEL(NPGET)='Other (-)'
+        if(nsnd.le.9)then
+          write(SPLABEL(NPGET),'(2a,i1,a)') PREFIX(1:lname),' n',
+     &      nsnd,SUFFIX10(1:lnblnk(SUFFIX10))
+        else
+          write(SPLABEL(NPGET),'(2a,i2,a)') PREFIX(1:lname),'n',
+     &      nsnd,SUFFIX10(1:lnblnk(SUFFIX10))
+        endif
         goto 5
       endif
 
@@ -1719,35 +1972,43 @@ C Node second phase mass flow rate (kg/s)
             endif
 
 C Node relative humidity %
-            if(IPGETNO(jstat,1).eq.4.and.csv2m(nsnd).gt.0.0) 
-     &        val(jstat)=pcrh2(csv1m(nsnd),
-     &                         csv3m(nsnd)/csv2m(nsnd),patmos)
+            if(nsnd.gt.0)then
+              if(IPGETNO(jstat,1).eq.4.and.csv2m(nsnd).gt.0.0) 
+     &          val(jstat)=pcrh2(csv1m(nsnd),
+     &          csv3m(nsnd)/csv2m(nsnd),patmos)
+            endif
 
 C Node specific humidity (kg(v)/kg(a))
-            if(IPGETNO(jstat,1).eq.5.and.csv2m(nsnd).gt.0.0) 
-     &        val(jstat)=csv3m(nsnd)/csv2m(nsnd)
+            if(nsnd.gt.0)then
+              if(IPGETNO(jstat,1).eq.5.and.csv2m(nsnd).gt.0.0) 
+     &          val(jstat)=csv3m(nsnd)/csv2m(nsnd)
+            endif
 
 C Node enthalpy (J/kg K)
-            if(IPGETNO(jstat,1).eq.6.and.csv2m(nsnd).gt.0.0) then
+            if(nsnd.gt.0)then
+              if(IPGETNO(jstat,1).eq.6.and.csv2m(nsnd).gt.0.0) then
 
 C  ..water..
-              if(isv(ipc,nsnd).eq.10.or.isv(ipc,nsnd).eq.20) 
-     &           val(jstat)=csv1m(nsnd)*shth2o(csv1m(nsnd))
+                if(isv(ipc,nsnd).eq.10.or.isv(ipc,nsnd).eq.20) 
+     &             val(jstat)=csv1m(nsnd)*shth2o(csv1m(nsnd))
 
 C  ..dry air..
-              if(isv(ipc,nsnd).eq.1.or.isv(ipc,nsnd).eq.11) 
-     &           val(jstat)=enthp2(csv1m(nsnd),0.0)
+                if(isv(ipc,nsnd).eq.1.or.isv(ipc,nsnd).eq.11) 
+     &             val(jstat)=enthp2(csv1m(nsnd),0.0)
 
 C  ..moist air..
-              if(isv(ipc,nsnd).eq.21) 
-     &           val(jstat)=enthp2(csv1m(nsnd),
+                if(isv(ipc,nsnd).eq.21) 
+     &             val(jstat)=enthp2(csv1m(nsnd),
      &                      csv3m(nsnd)/csv2m(nsnd))
+              endif
             endif
 
 C Node Dew Point temperature (C)
-            if(IPGETNO(jstat,1).eq.7.and.csv2m(nsnd).gt.0.0.and.
-     &         isv(ipc,nsnd).eq.21) 
-     &        val(jstat)=dewpt(csv3m(nsnd)/csv2m(nsnd),patmos)
+            if(nsnd.gt.0)then
+              if(IPGETNO(jstat,1).eq.7.and.csv2m(nsnd).gt.0.0.and.
+     &           isv(ipc,nsnd).eq.21) 
+     &            val(jstat)=dewpt(csv3m(nsnd)/csv2m(nsnd),patmos)
+            endif
 
 C Additional output. Note that 'nsnd' is NOT a node, 
 C it is the additional output number for the component considered.
@@ -2181,10 +2442,10 @@ C write out labels for each column at the start.
         endif
         K=6
         do 20 IL=1,NPGET
-          KE=K+11
+          KE=K+14
           if(KE.le.124)then
-           write (outs(K:KE),'(a,a)') '|',GPLABEL(IL)(1:10)
-           K=K+11
+           write (outs(K:KE),'(a,a)') '|',GPLABEL(IL)(1:13)
+           K=K+14
           endif
  20     continue
 
@@ -2202,10 +2463,10 @@ C Print titles on first day.
         endif
         K=6
         do 225 IL=1,NPGET
-          KE=K+11
+          KE=K+14
           if(KE.le.124)then
-           write (outs(K:KE),'(a,a)') '|',GPLABEL(IL)(11:20)
-           K=K+11
+           write (outs(K:KE),'(a,a)') '|',GPLABEL(IL)(14:20)
+           K=K+14
           endif
  225    continue
         call edisp(itru,outs)
@@ -2372,10 +2633,10 @@ C Split flow time into hours and minutes, repeating every 24 hours.
               K=11
             endif
             do 410 IXY=1,NPGET
-              KE=K+20
+              KE=K+14
               if(KE.le.124)then
-                write (outs(K:KE),'(f20.4)') VAL(IXY)
-                K=K+20
+                write (outs(K:KE),'(f14.4)') VAL(IXY)
+                K=K+14
               endif
  410        continue
             call eddisp(itru,outs)
@@ -2476,11 +2737,13 @@ C Tidy up in preparation for the next loop.
 C           ctime=ctime+enterval*float(nout)
           ii=ii+nout
           if(idaver.eq.0) then
-            ctime=float(iih-1)/24.0+ENTERVAL/2.+float(iid)
-            gtime=TSTART
+C            ctime=float(iih-1)/24.0+ENTERVAL/2.+float(iid)
+             ctime = ctime+enterval*float(nout)
+C            gtime=TSTART
           else
-            ctime=float(iih-1)/24.0+enterval+float(iid)
-            gtime=TSTART
+C            ctime=float(iih-1)/24.0+ENTERVAL/2.+float(iid)
+            ctime = ctime+enterval*float(nout)
+C            gtime=TSTART
           endif
           gtime=gtime+float(nout)
 

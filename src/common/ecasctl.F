@@ -180,7 +180,7 @@ C assume there will be a pair for each calendar day type.
 
 C Read number of lighting zones in this thermal zone NLITZ(MLCOM).
 C Maximum 4 lighting zones allowed (MLCOM=4):
-      CALL STRIPC(IUNIT,OUTSTR,1,ND,1,'cgc line 2',IER)
+      CALL STRIPC(IUNIT,OUTSTR,1,ND,1,'cgc lighting zns',IER)
       K=0
       CALL EGETWI(OUTSTR,K,NL,1,MLCOM,'F','Number light zones',IER)
       NLITZ(ICOMP)=NL

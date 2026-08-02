@@ -13,22 +13,16 @@ C warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
 C PURPOSE. See the GNU General Public License for more
 C details.
 
-C You should have received a copy of the GNU General Public
-C License along with ESP-r. If not, write to the Free
-C Software Foundation, Inc., 59 Temple Place, Suite 330,
-C Boston, MA 02111-1307 USA.
+C e2vrml: Generate VRLM 2.0 world of esp-r model which can
+C be imported into Blender (rename file to *.wrl).
+C Consider a variant that writes to SVG.
 
-C ESRU vrml translator - .
-C Current version October 2011.
+C ******* e2vrml
+C Translate esp data to vrlm world. Takes zones/obstructions
+C and any ground topology and creates a grey-scale VRML 2.0 world.
+C An associated .html file is created. The *.vrml file created
+C can be imported into Blender if renamed to *.wrl.
 
-C e2vrml: Generate VRLM 2.0 world of esp-r model.
-
-C << consider a variant that writes to SVG or other more
-C << modern file format.
-
-C ******* Translate esp data to vrlm world.
-C e2vrml takes zones/obstructions and any ground topology and
-C creates a grey-scale VRML 2.0 world.
       SUBROUTINE e2vrml(itrc,IER)
 #include "building.h"
 #include "model.h"
@@ -60,6 +54,7 @@ C creates a grey-scale VRML 2.0 world.
       logical closemat1,closemat2
 
       CHARACTER*72 GTGEOM
+      character sbound_ty*12,sbound_c2*6,sbound_e2*6
       character GDESCR*36
       character OPT*12  ! to pass optical properties
       character ZSN*28,q*1
@@ -79,6 +74,11 @@ C Assume configuration file is from IFIL+5, any leakage description
 C is fom IFIL+6, revised config file on IFIL+3, geometry on
 C IFILE+2 and ASCII viewing and geometry file reading on IFILE+1. 
       ITA1 = IFIL+8
+
+C If CFC database unit is zero reset.
+      if(icfcdb.eq.0)then
+        icfcdb = ifil + 10
+      endif
 
 C Set character variable q to be a double quote and hc to the # character.
       q=CHAR(34)
@@ -185,11 +185,12 @@ C Read in the zone geometry.
         zonetotsurfacearea(newfoc)=zoa
         WRITE(ioout,'(a)')' '
         WRITE(ioout,'(3a)')'# zone ',zname(newfoc),' starts here....'
-        do 5 j=1,nsur
+        do 5 j=1,nzsur(newfoc)
 
 C Work out the colours for each of the surfaces in this zone by 
 C finding MLC match.
           call matchmlcdesc(SMLCN(newfoc,j),im)
+          call decode_zsbound(newfoc,j,sbound_ty,sbound_c2,sbound_e2)
 
 C For the inside and outside layer get surface properties.
           matarrayindex=IPRMAT(IM,1)   ! which array index
@@ -223,7 +224,7 @@ C Write entry for this surface in the HTML file.
  894      FORMAT(I3,F9.3,F5.0,F5.0,1X,A12,1X,A4,1X,A4,1X,A12,2X,A13)
           WRITE(ioblk,894)J,SNA(newfoc,j),SPAZI(newfoc,j),
      &      SPELV(newfoc,j),SNAME(newfoc,j),SOTF(newfoc,j),
-     &      SVFC(newfoc,j),SMLCN(newfoc,j),SOTHER(newfoc,j,1)
+     &      SVFC(newfoc,j),SMLCN(newfoc,j),sbound_ty
           write(ioblk,'(a)')  '</PRE>'
           write(ioblk,'(a)')  ' '
 
@@ -264,8 +265,8 @@ C Ensure first character is not a number.
 C Note on coordinates:
 C In esp-r the +Z is up, in VRML +Y is up.  In esp-r and VRML +X is same.
 C In esp-r +Y goes into the screen, in VRML -Z goes into screen.
-            DO 40 JJ=1,NTV
-              if(jj.lt.NTV)then
+            DO 40 JJ=1,NZTV(newfoc)
+              if(jj.lt.NZTV(newfoc))then
                 WRITE(ioout,'(3F10.5,a)')X(JJ),Z(JJ),Y(JJ)*(-1.0),','
               else
                 WRITE(ioout,'(3F10.5,a)')X(JJ),Z(JJ),Y(JJ)*(-1.0),'  ]'
@@ -379,7 +380,7 @@ C For the inside and outside layer get surface properties.
           gvt=0.00
 
 C Remeber characters in block name
-          lsn=LNBLOCKNAME(newfoc,IB)
+          lsn=lnblnk(BLOCKNAME(newfoc,IB))
 
 C If the first face write initial anchor for this obstruction
 C (which holds its coordinates of along with the first surface.
@@ -392,7 +393,7 @@ C (which holds its coordinates of along with the first surface.
             WRITE(ioout,'(a)') '  children ['
             WRITE(ioout,'(a)') '    Shape {'
             if(kbs.eq.1)then   ! include the block material
-              llbm=LNBLOCKMAT(newfoc,IB)
+              llbm=lnblnk(BLOCKMAT(newfoc,IB))
               WRITE(ioout,'(2a)')
      &         '     appearance USE Solid_',BLOCKMAT(newfoc,IB)(1:llbm)
               call ifnumber(BLOCKNAME(newfoc,IB)(1:1),numb)
@@ -406,7 +407,7 @@ C (which holds its coordinates of along with the first surface.
               WRITE(ioout,'(a)') '        ccw TRUE'
               WRITE(ioout,'(a)') '        solid FALSE'
               WRITE(ioout,'(3a)')'        coord DEF COORD_',
-     &          BLOCKNAME(newfoc,IB)(1:LNBLOCKNAME(newfoc,IB)),
+     &          BLOCKNAME(newfoc,IB)(1:lnblnk(BLOCKNAME(newfoc,IB))),
      &          ' Coordinate { point ['
 
 C Note on coordinates:
@@ -435,7 +436,7 @@ C Write a comma separated list of vertices with a trailing -1.
               WRITE(ioout,'(a)') '} '
               WRITE(ioout,'(a)') '  '
             else
-              llbm=LNBLOCKMAT(newfoc,IB)
+              llbm=lnblnk(BLOCKMAT(newfoc,IB))
               WRITE(ioout,'(2a)')
      &         '     appearance USE Solid_',BLOCKMAT(newfoc,IB)(1:llbm)
               call ifnumber(BLOCKNAME(newfoc,IB)(1:1),numb)
@@ -449,7 +450,7 @@ C Write a comma separated list of vertices with a trailing -1.
               WRITE(ioout,'(a)') '        ccw TRUE'
               WRITE(ioout,'(a)')'        solid TRUE'
               WRITE(ioout,'(2a)')'        coord USE COORD_',
-     &          BLOCKNAME(newfoc,IB)(1:LNBLOCKNAME(newfoc,IB))
+     &          BLOCKNAME(newfoc,IB)(1:lnblnk(BLOCKNAME(newfoc,IB)))
               write(outs,'(4I4)') (JVNB(kbs,K)-1,K=1,4)
               call sdelim(outs,outsd,'S',IW)
               WRITE(ioout,'(3a)') '        coordIndex [ ',

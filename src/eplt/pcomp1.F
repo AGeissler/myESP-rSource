@@ -4679,11 +4679,11 @@ C            5 Condensate flow rate (kg/s)
 C External functions------------------------------------------------
       integer lnblnk
 C ------------------------------------------------------------------
-      COMMON/OUTIN/IUOUT,IUIN
+      common/outin/iuout,iuin,ieout
       COMMON/TC/ITC,ICNT
       COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
 
-      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS,idynow
       COMMON/Pctime/TIMSEC
       COMMON/PTIME/PTIMEP,PTIMEF
       COMMON/PCTC/TC(MPCOM)

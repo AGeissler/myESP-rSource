@@ -11,12 +11,12 @@ C existing zone geometry files allow surfaces to be modarately complex
 C e.g. MV vertices/surface but limit the total number of surfaces and
 C vertices in an object.
       integer MOMS,MOBS,MOTV,MOMB,MOMVB,MITM,MCATS
-      PARAMETER (MOMS=20)       !- Mass surfaces/obj (10 pairs).
-      PARAMETER (MOBS=36)       !- Boundary surfaces/obj.
+      PARAMETER (MOMS=42)       !- Mass surfaces/obj (21 pairs).
+      PARAMETER (MOBS=48)       !- Boundary surfaces/obj.
       PARAMETER (MOTV=96)       !- Vertices/obj. -> 96
-      PARAMETER (MOMB=32)       !- Simple visual shapes
+      PARAMETER (MOMB=80)       !- Simple visual shapes or obstructions
       PARAMETER (MOMVB=14)      !- Compound visual shapes
-      PARAMETER (MITM=63)       !- Items in the database
+      PARAMETER (MITM=96)       !- Items in the database
       PARAMETER (MCATS=10)      !- Categories
 
 C Commons for simple visual objects within a predefined object:
@@ -25,12 +25,20 @@ C Commons for simple visual objects within a predefined object:
       character objsource*72             ! source or provinance of the object
       character msurname*12,bsurname*12  ! names for mass and boundary surfaces
       character msurmat*32,bsurmat*32    ! materials for mass and boundary surfaces
-      character msuropt*32,bsuropt*32    ! optics for mass and boundary surfaces
+      character msuropt*24,bsuropt*24    ! optics for mass and boundary surfaces
+      character bsuruse*12               ! pair of USE attributes for bounding surfaces
+                                         ! (mass surfaces assumed to be FURN).
+      character bsuroth*12               ! bounding type e.g. SIMILAR
       common/predefstr/objname,objdesc,objectcat,objnotes(6),
      &  objsource,msurname(MOMS),msurmat(MOMS),msuropt(MOMS),
-     &  bsurname(MOBS),bsurmat(MOBS),bsuropt(MOBS)
+     &  bsurname(MOBS),bsurmat(MOBS),bsuropt(MOBS),bsuruse(MOBS,2),
+     &  bsuroth(MOBS)
+
       real objorg         ! origin of selected (derive).
       real objbnds        ! width, depth, height for object (derive)
+      real objoffset      ! XYZ offset origin to normal position e.g. if origin
+                          ! is zero but would normally be offset in a multi-zone context
+                          ! or non-zero orgin to bring it to site origin. 
       integer nbobjnotes  ! how many lines of notes  
       integer nbvertmass  ! how many vertices
       integer nbmass      ! how many mass surfaces
@@ -40,9 +48,11 @@ C Commons for simple visual objects within a predefined object:
       integer nbboundv    ! how many vertices per bounding
       integer masjvn      ! list of associated vertices
       integer boundjvn    ! list of associated vertices
-      common/predefnum/objorg(3),objbnds(3),nbobjnotes,nbvertmass,
-     &  nbmass,nbbound,vertmass(MOTV,3),nbmassv(MOMS),nbboundv(MOBS),
-     &  masjvn(MOMS,MV),boundjvn(MOBS,MV)
+      integer boundoth    ! integer values of boundary
+      common/predefnum/objorg(3),objbnds(3),objoffset(3),nbobjnotes,
+     &  nbvertmass,nbmass,nbbound,vertmass(MOTV,3),nbmassv(MOMS),
+     &  nbboundv(MOBS),masjvn(MOMS,MV),boundjvn(MOBS,MV),
+     &  boundoth(MOBS,2)
 
 C Facade entities can have bounding edges (anti-clockwise) to assist in
 C merging into parent surfaces.

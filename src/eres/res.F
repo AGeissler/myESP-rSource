@@ -92,6 +92,9 @@ C Simulator parameters and performance information requested data.
       common/SPFLN/spsname
       common/ract/paction
       common/recov01/pifltog,lpifl
+      character pifltog*4,lpifl*96
+      common/recov03/recovery_active
+      logical recovery_active
 
 C Path to model and command line file (if any).
       common/rpath/path
@@ -124,10 +127,20 @@ C Significant figure reporting limit (NSIGFIG).
 C Name of current application.
       common/APPNAME/cAppName
 
+C Attributes of session keystroke file.
+      logical ikopened     ! Has keystoke file been started/requested.
+      integer ikcount      ! Number of entries.
+      integer ikout        ! File unit for keystrokes.
+      character ikfile*72  ! The name of the keystroke file.
+      common/logk/ikopened,ikcount,ikout,ikfile
+
       logical libheading     ! have we printed report heading (library name etc.).
       logical headingcontext ! has set or period changed so heading needs reprinted.
       common/libhead/libheading,headingcontext
       integer ISTRW
+
+      character hcffpattern*12    ! heat, cool, or heat+cool plus detail
+      common/hlcontrol/hcffpattern(2)     
 
 C Ask to overwrite flag.
       common/OVRWT/AUTOVR
@@ -156,12 +169,13 @@ C Ask to overwrite flag.
       character path*72,spsname*30,paction*16
       character fs*1,act*16,aut*12
       character cjfile*72,OUTSTR*124
-      character bact*4,pifltog*4,lpifl*96
+      character bact*4
       character graftitle*64,grlbl*24
       character firstbit*72,secondbit*72
       character longtmp*144
       character dstmp*24,uname*24,tfile*72
       character hold32*32     ! for helper applications
+      character tmode*8,doit*124
 
       character cVnum*38      ! returned from ESPrVersionNum
       character pagestitle*68 ! for banner title via epages call
@@ -192,10 +206,12 @@ C Initialise global common data.
       IUTDF=IFIL+7
       IUTDFA=IFIL+8
       iunitp=IFIL+10
-      matver=0.0     ! initial assumption of binary materials database
-      ireportunit=0  ! assume normal units for tabular listings
+      matver=0.0                 ! initial assumption of binary materials database
+      ireportunit=0              ! assume normal units for tabular listings
       libheading=.false.; headingcontext=.false. ! no heading yet printed
-      AUTOVR=.false. ! by default, ask to overwrite files
+      AUTOVR=.false.             ! by default, ask to overwrite files
+      recovery_active = .false.  ! assume not invoked in recovery mode.
+      hcffpattern(1) = 'UNKNOWN' ! In case no control associated with model.
 
 C Set folder separator (fs) to \ or / as required.
       call isunix(unixok)
@@ -206,7 +222,14 @@ C Set folder separator (fs) to \ or / as required.
       endif
       write(path,'(a1,a1)')'.',fs
       write(upath,'(a1,a1)')'.',fs
-      call parres(MODL,iappw,iappx,iappy,inf,act,aut,actf)
+
+C Parse the command line.
+      call parres(MODL,iappw,iappx,iappy,inf,act,aut,actf,ikey)
+C      write(6,*) 'inf ',inf(1:lnblnk(inf))
+C      write(6,*) 'act ',act(1:lnblnk(act))
+C      write(6,*) 'aut ',act(1:lnblnk(aut))
+C      write(6,*) 'actf ',act(1:lnblnk(actf))
+C      write(6,*) 'key ',ikey
 
 C Flags identifying if results files are available. Initialise all to 0.
       IBLIB=0
@@ -421,6 +444,46 @@ C Check for command line actions.
          endif
       endif
 
+C Open keystroke file if ikey returned as 1 in call to parres.
+C Same name as the building results file with .key added.
+      if(ikey.eq.1)then
+        if(unixok)then
+          write(tfile,'(2a)') inf(1:lnblnk(inf)),'.key'
+          call st2file(tfile,ikfile)
+        else
+          write(tfile,'(6a)') 'C:',fs,'TEMP',fs,
+     &      inf(1:lnblnk(inf)),'_res.key'
+          call st2file(tfile,ikfile)  ! Keep track of ikfile name.
+        endif
+        ikout=ifil+932             ! Set to unused index 932.
+        ikcount=0                  ! Clear count of entries.
+        INQUIRE (FILE=ikfile,EXIST=XST)
+        if(XST)then
+          close(ikout)
+          open(ikout,file=ikfile,position='APPEND',
+     &      status='UNKNOWN',err=905)
+        else
+          open(ikout,file=ikfile,status='UNKNOWN',err=905)
+        endif
+        call dstamp(dstmp) ! get curret time
+        write(ikout,'(a)') '#!/bin/sh'
+        write(ikout,'(2a)') '# running res @ ',dstmp
+        if(act(1:2).ne.'  '.and.act(1:4).ne.'UNKN')then
+          write(ikout,'(5a)') 'res -mode text -file ',
+     &      inf(1:lnblnk(inf)),' -act ',aut(1:lnblnk(aut)),
+     &      '<<XXX'
+        else
+          write(ikout,'(3a)') 'res -mode text -file ',
+     &      inf(1:lnblnk(inf)),'<<XXX'
+        endif
+        ikcount=3
+        ikopened = .true.
+        tmode='text'
+        write(doit,'(2a)')'chmod a+x ./',ikfile(1:lnblnk(ikfile))
+        call runit(doit,tmode)
+      endif
+  906 continue
+
 C Export (grtool) file information. Temporarily use 
 C unit ifil+6 for output file.
       xfile = 'data.csv'
@@ -512,10 +575,20 @@ C Open the session file.
 C If we have a plant-only file go straight to the plant results menu.
         call sysoutp('-',0)
 
-C Free all assigned files.
+C Free all assigned files and keystroke file.
         close(ieout)
         CALL ERPFREE(ieout,ISTAT)
         call erpfree(iunitp,istat)
+
+        if(ikcount.gt.0)then  ! If entries in key file write closing line.
+          write(ikout,'(a)') 'XXX'
+          close(ikout)
+          CALL ERPFREE(ikout,ISTAT)
+        else
+          close(ikout)
+          CALL ERPFREE(ikout,ISTAT)
+        endif
+
         CALL MOFREE
         CALL EPAGEND
         STOP         
@@ -557,6 +630,14 @@ C presenting the main menu. If running silent then exit.
           CALL MOFREE
           close(ieout)
           CALL ERPFREE(ieout,ISTAT)
+          if(ikcount.gt.0)then        ! If entries in key file write closing line. 
+            write(ikout,'(a)') 'XXX'
+            close(ikout)
+            CALL ERPFREE(ikout,ISTAT)
+          else
+            close(ikout)
+            CALL ERPFREE(ikout,ISTAT)
+          endif
           CALL EPAGEND
           STOP
         endif
@@ -572,6 +653,14 @@ C If running in BEMS mode, use the commands in actf to guide extraction.
           CALL MOFREE
           close(ieout)
           CALL ERPFREE(ieout,ISTAT)
+          if(ikcount.gt.0)then
+            write(ikout,'(a)') 'XXX'
+            close(ikout)
+            CALL ERPFREE(ikout,ISTAT)
+          else
+            close(ikout)
+            CALL ERPFREE(ikout,ISTAT)
+          endif
           CALL EPAGEND
           STOP
         endif
@@ -584,12 +673,22 @@ C that current user selections do not overwrite these contents.
         call edisp(iuout,'Generating specified output(s) ...')
         lpifl=actf
         pifltog='OFF '
+        recovery_active = .true.  ! set so some user interactions surpressed.
         call READPIF(ierr)
         call edisp(iuout,'Generating specified output(s) ... done.')
         if(autook)then
           CALL MOFREE
           close(ieout)
           CALL ERPFREE(ieout,ISTAT)
+
+          if(ikcount.gt.0)then
+            write(ikout,'(a)') 'XXX'
+            close(ikout)
+            CALL ERPFREE(ikout,ISTAT)
+          else
+            close(ikout)
+            CALL ERPFREE(ikout,ISTAT)
+          endif
           CALL EPAGEND
           STOP
         endif
@@ -727,6 +826,15 @@ C the model.
 
         close(ieout)
         CALL ERPFREE(ieout,ISTAT)
+C        write(6,*) 'ikout ',ikcount,ikout,ikfile
+        if(ikcount.gt.0)then  ! If entries in key file write closing line.
+          write(ikout,'(a)') 'XXX'
+          close(ikout)
+          CALL ERPFREE(ikout,ISTAT)
+        else
+          close(ikout)
+          CALL ERPFREE(ikout,ISTAT)
+        endif
         CALL EPAGEND
         goto 999        
       ELSE
@@ -737,6 +845,10 @@ C the model.
 C Output menu error signal and allow re-selection from menu.
     2 INO=-1
       goto 5
+ 
+ 905  call edisp(iuout,' ')
+      call edisp(iuout,'Error opening keystroke file ... continuing.')
+      goto 906
 
 
  999  END PROGRAM
@@ -932,12 +1044,6 @@ C function in lib/esp_draw.c
 
 
 C ********** Dummy subroutines (from common3dv.F)
-
-      SUBROUTINE ADJVIEW(IER)
-      ier=0
-      return
-      end
-
       subroutine redraw(IER)
       ier=0
       return

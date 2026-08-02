@@ -13,11 +13,6 @@ C warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
 C PURPOSE. See the GNU General Public License for more
 C details.
 
-C You should have received a copy of the GNU General Public
-C License along with ESP-r. If not, write to the Free
-C Software Foundation, Inc., 59 Temple Place, Suite 330,
-C Boston, MA 02111-1307 USA.
-
 C e2dxf: takes an esp-r problem definition and creates either
 C        an AutoCad DXF file or viewer file.
 C e2thf: takes an esp-r problem definition and creates a
@@ -28,8 +23,6 @@ C lindir: finds the angles associate with a line in space.
 #include "building.h"
 #include "model.h"
 #include "CFC_common.h"
-
-C geometry.h provides commons G0/G1/G2/G5/precz/GS5.
 #include "geometry.h"
       
       integer lnblnk  ! function definition
@@ -71,32 +64,60 @@ C If viewer output required.
 
 C Clear properties.
           NTMC=0
-          nbobs(newfoc)=0
 
-C Read in the zone geometry.
+C Makes temporary use of G1 commons to reverse ordering
+C of polygon edges so the zone geometry needs to be scanned.
           WRITE(outs,'(a,a)')' Scanning : ',LGEOM(newfoc)
           CALL edisp(iuout,outs)
-          call georead(ITA1,LGEOM(newfoc),newfoc,1,IUOUT,IER)
+
+C Depending on version of geometry file scan it in.
+          if(gversion(newfoc).lt.1.1) then
+            CALL EGOMIN(ITA1,LGEOM(newfoc),newfoc,1,ITRC,IUOUT,IER)
+            if(iobs(newfoc).eq.0)then
+              continue   ! no obstructions
+            elseif(iobs(newfoc).eq.1)then
+              CALL ERPFREE(iafil,ISTAT)
+              CALL EGOMST(ITA1I,newfoc,ZOBS(newfoc),0,ITRC,ITRU,IER)
+            endif
+          elseif(gversion(newfoc).ge.1.1) then
+            call georead(ITA1,LGEOM(newfoc),newfoc,1,iuout,ier)
+            if(iobs(newfoc).eq.0)then
+              continue   ! no obstructions
+            elseif(iobs(newfoc).eq.1)then
+              CALL ERPFREE(iafil,ISTAT)
+              CALL EGOMST(ITA1I,newfoc,ZOBS(newfoc),0,ITRC,ITRU,IER)
+            elseif(iobs(mz).eq.2)then
+              continue   ! obs within geo file
+            endif
+          endif
+
           call strup(zname(newfoc),ZN)  ! make upper case name
 
 C Write surface information to the viewer file. First invert edges.
-          DO 120 J=1,NSUR
-            K=NVER(J)
+          DO 120 J=1,NZSUR(newfoc)
+            K=isznver(newfoc,J)
             DO 130 L=1,K/2
               ITEMP=JVN(J,L)
               JVN(J,L)=JVN(J,K+1-L)
               JVN(J,K+1-L)=ITEMP
   130       continue
+
+C Copy inverted list into iszjvn array.
+            do ij=1,isznver(newfoc,J)
+              iszjvn(newfoc,J,ij)=JVN(J,ij)
+            enddo
   120     continue
 
 C Write to output file.
           WRITE(ioout,'(2a)')'GEN ',ZN
-          WRITE(ioout,'(2I7)')NTV,NSUR
-          DO 40 J=1,NTV
-            WRITE(ioout,'(3F9.4)')X(J),Y(J),Z(J)
+          WRITE(ioout,'(2I7)')NZTV(newfoc),NZSUR(newfoc)
+          DO 40 J=1,NZTV(newfoc)
+            WRITE(ioout,'(3F9.4)')szcoords(newfoc,J,1),
+     &       szcoords(newfoc,J,2),szcoords(newfoc,J,3)
    40     continue
-          DO 50 J=1,NSUR
-            WRITE(ioout,'(I4,1X,124I4)')NVER(J),(JVN(J,K),K=1,NVER(J))
+          DO 50 J=1,NZSUR(newfoc)
+            WRITE(ioout,'(I4,1X,124I4)')isznver(newfoc,J),
+     &        (iszjvn(newfoc,J,K),K=1,isznver(newfoc,J))
    50     continue
 
 C Deal with solar obstructions.
@@ -139,11 +160,9 @@ C Write obstructions to output file.
   250         continue
   301       continue
           ENDIF
-
-C Free the viewer file and reread the geometry file.
-          call georead(ITA1,LGEOM(newfoc),newfoc,1,IUOUT,IER)
    4    continue
 
+C Free the viewer file.
         CALL ERPFREE(ioout,ISTAT)
         close(ieout)
         CALL ERPFREE(ieout,ISTAT)
@@ -270,10 +289,7 @@ C If there are transparent surfaces put them in another layer << .. >>
 
 C Write a standard obstruction block in the block section if
 C there are any *.obs files or embedded blocks in geometry files.
-
-C << what about six sided non-cube blocks? >>
-C << could solids or 3DPOLY be used instead? >>
-
+C Logic does not deal with 2 rotation and 6 sided obstructions yet.
       write(ioout,'(a)')'  0'
       write(ioout,'(a)')'SECTION'
       write(ioout,'(a)')'  2'
@@ -408,12 +424,32 @@ C For each zone in the list...
 
 C Clear properties.
         NTMC=0
-        nbobs(mz)=0
 
 C Read in the zone geometry.
         WRITE(outs,'(a,a)')' Scanning : ',LGEOM(mz)
         CALL edisp(iuout,outs)
-        call georead(ITA1,LGEOM(mz),mz,1,IUOUT,IER)
+
+C Depending on version of geometry file scan it.
+        if(gversion(mz).lt.1.1) then
+          CALL EGOMIN(ITA1,LGEOM(mz),mz,1,ITRC,IUOUT,IER)
+          if(iobs(mz).eq.0)then
+            continue   ! no obstructions
+          elseif(iobs(mz).eq.1)then
+            CALL ERPFREE(iafil,ISTAT)
+            CALL EGOMST(ITA1I,mz,ZOBS(mz),0,ITRC,ITRU,IER)
+          endif
+        elseif(gversion(mz).ge.1.1) then
+          call georead(ITA1,LGEOM(mz),mz,1,iuout,ier)
+          if(iobs(mz).eq.0)then
+            continue   ! no obstructions
+          elseif(iobs(mz).eq.1)then
+            CALL ERPFREE(iafil,ISTAT)
+            CALL EGOMST(ITA1I,mz,ZOBS(mz),0,ITRC,ITRU,IER)
+          elseif(iobs(mz).eq.2)then
+            continue   ! obs within geo file
+          endif
+        endif
+
         call strup(zname(mz),ZN)
 
 C Inclusion of obstructions.
@@ -423,11 +459,7 @@ C Inclusion of obstructions.
 
 C Convert block into an insertion and scaling for the block named
 C obstruction (in the above BLOCK section).
-
-C << what about 2 rotation obstruction? >>
-
-C << what about 6 sided obstruction? >>
-
+C Logic does not deal with 2 rotation and 6 sided obstructions yet.
             write(ioout,'(a)')'INSERT'
             write(ioout,'(a)')'  8'
             write(ioout,'(a,a)') 'OBS_',ZN(:lnblnk(ZN))
@@ -449,9 +481,6 @@ C << what about 6 sided obstruction? >>
             write(ioout,'(f9.1)')BANGOB(mz,IB,1)
             write(ioout,'(a)')'  0'
   43      continue
-
-C Reread in the geometry file.
-          call georead(ITA1,LGEOM(mz),mz,1,IUOUT,IER)
         endif
   61    continue
 
@@ -460,43 +489,29 @@ C them in layer 'TRN_??' and put opaque in standard zone layer'
 
 C To avoid mix of wire-frame lines and what looks like solid
 C blocks use 3DPOLY for all surfaces in the model.
-        do 75 isf=1,nsur
-          iv=NVER(isf)
-C          if(iv.eq.3.or.iv.eq.4)then
-C            WRITE(ioout,'(A)')'3DFACE'
-C            WRITE(ioout,'(A)')'  8'
-C            if(SOTF(mz,isf).eq.'TRAN')then
-C              WRITE(ioout,'(A4,a)') 'TRN_',ZN(:lnblnk(ZN))
-C            else
-C              WRITE(ioout,'(A)') ZN(:lnblnk(ZN))
-C            endif
-C            inc = 0
-C            DO 314 ibsv=1,iv
-C              ii=JVN(isf,ibsv)
-C              WRITE(ioout,'(I3)')10+inc
-C              WRITE(ioout,'(f9.1)')X(II)*1000.0
-C              WRITE(ioout,'(I3)')20+inc
-C              WRITE(ioout,'(f9.1)')Y(II)*1000.0
-C              WRITE(ioout,'(I3)')30+inc
-C              WRITE(ioout,'(f9.1)')Z(II)*1000.0
-C              inc = inc+1
-C314         continue
-
-C If a triangular surface duplicate the 4th corner.
-C            if(iv.eq.3)then
-C              ii=JVN(isf,3)
-C              WRITE(ioout,'(a)') ' 13'
-C              WRITE(ioout,'(f9.1)')X(ii)*1000.0
-C              WRITE(ioout,'(a)') ' 23'
-C              WRITE(ioout,'(f9.1)')Y(ii)*1000.0
-C              WRITE(ioout,'(a)') ' 33'
-C              WRITE(ioout,'(f9.1)')Z(ii)*1000.0
-C            endif
-C            write(ioout,'(a1)')'0'
-C          else
+        do 75 isf=1,nzsur(mz)
+          iv=isznver(mz,isf)
 
 C Write as a 3DPOLY with VERTEX.
-            WRITE(ioout,'(A)')'POLYLINE'
+          WRITE(ioout,'(A)')'POLYLINE'
+          WRITE(ioout,'(A)')'  8'
+          if((SOTF(mz,isf).eq.'TRAN').or.
+     &       (SOTF(mz,isf).eq.'CFC ').or.
+     &       (SOTF(mz,isf).eq.'CFC2'))then
+            WRITE(ioout,'(A4,a)') 'TRN_',ZN(1:lnblnk(ZN))
+          else
+            WRITE(ioout,'(A)') ZN(1:lnblnk(ZN))
+          endif
+          WRITE(ioout,'(A)')' 66'
+          WRITE(ioout,'(A)')'     1'
+          write(ioout,'(a,/,a)')' 10','0.0'
+          write(ioout,'(a,/,a)')' 20','0.0'
+          write(ioout,'(a,/,a)')' 30','0.0'
+          WRITE(ioout,'(A)')' 70'
+          WRITE(ioout,'(A)')'     9'
+          WRITE(ioout,'(A)')'  0'
+          DO 311 ibsv=1,iv
+            WRITE(ioout,'(A)')'VERTEX'
             WRITE(ioout,'(A)')'  8'
             if((SOTF(mz,isf).eq.'TRAN').or.
      &         (SOTF(mz,isf).eq.'CFC ').or.
@@ -505,34 +520,21 @@ C Write as a 3DPOLY with VERTEX.
             else
               WRITE(ioout,'(A)') ZN(1:lnblnk(ZN))
             endif
-            WRITE(ioout,'(A)')' 66'
-            WRITE(ioout,'(A)')'     1'
-            write(ioout,'(a,/,a)')' 10','0.0'
-            write(ioout,'(a,/,a)')' 20','0.0'
-            write(ioout,'(a,/,a)')' 30','0.0'
+            ii=iszjvn(mz,isf,ibsv)
+            WRITE(ioout,'(a)') ' 10'
+            WRITE(ioout,'(f10.1)') szcoords(mz,ii,1)*1000.0
+            WRITE(ioout,'(a)') ' 20'
+            WRITE(ioout,'(f10.1)') szcoords(mz,ii,2)*1000.0
+            WRITE(ioout,'(a)') ' 30'
+            WRITE(ioout,'(f10.1)') szcoords(mz,ii,3)*1000.0
             WRITE(ioout,'(A)')' 70'
-            WRITE(ioout,'(A)')'     9'
+            WRITE(ioout,'(A)')'    32'
             WRITE(ioout,'(A)')'  0'
-            DO 311 ibsv=1,iv
-              WRITE(ioout,'(A)')'VERTEX'
-              WRITE(ioout,'(A)')'  8'
-              WRITE(ioout,'(A)') ZN(1:lnblnk(ZN))
-              ii=JVN(isf,ibsv)
-              WRITE(ioout,'(a)') ' 10'
-              WRITE(ioout,'(f10.1)')X(ii)*1000.0
-              WRITE(ioout,'(a)') ' 20'
-              WRITE(ioout,'(f10.1)')Y(ii)*1000.0
-              WRITE(ioout,'(a)') ' 30'
-              WRITE(ioout,'(f10.1)')Z(ii)*1000.0
-              WRITE(ioout,'(A)')' 70'
-              WRITE(ioout,'(A)')'    32'
-              WRITE(ioout,'(A)')'  0'
- 311        continue
-            WRITE(ioout,'(A6)')'SEQEND'
-            WRITE(ioout,'(A)')'  8'
-            WRITE(ioout,'(A)')'0'
-            WRITE(ioout,'(A)')'  0'
-C          endif
+ 311      continue
+          WRITE(ioout,'(A6)')'SEQEND'
+          WRITE(ioout,'(A)')'  8'
+          WRITE(ioout,'(A)')'0'
+          WRITE(ioout,'(A)')'  0'
  75     continue
   54  continue
 
@@ -550,7 +552,7 @@ C Close the dxf file.
 
       END
 
-C *************e2thf
+C ************* e2thf
 C e2thf takes an esp-r problem definition and creates a
 C THF (THINGS) file for use in MicroGDS.
 
@@ -594,24 +596,46 @@ C If viewer output required.
 
 C Clear properties.
           NTMC=0
-          nbobs(newfoc)=0
 
 C Read in the zone geometry.
           WRITE(outs,'(a,a)')' Scanning : ',LGEOM(newfoc)
           CALL edisp(iuout,outs)
-          call georead(ITA1,LGEOM(newfoc),newfoc,1,IUOUT,IER)
+
+C Depending on version of geometry file scan it in.
+          if(gversion(newfoc).lt.1.1) then
+            CALL EGOMIN(ITA1,LGEOM(newfoc),newfoc,1,ITRC,IUOUT,IER)
+            if(iobs(newfoc).eq.0)then
+              continue   ! no obstructions
+            elseif(iobs(newfoc).eq.1)then
+              CALL ERPFREE(iafil,ISTAT)
+              CALL EGOMST(ITA1I,newfoc,ZOBS(newfoc),0,ITRC,ITRU,IER)
+            endif
+          elseif(gversion(newfoc).ge.1.1) then
+            call georead(ITA1,LGEOM(newfoc),newfoc,1,iuout,ier)
+            if(iobs(newfoc).eq.0)then
+              continue   ! no obstructions
+            elseif(iobs(newfoc).eq.1)then
+              CALL ERPFREE(iafil,ISTAT)
+              CALL EGOMST(ITA1I,newfoc,ZOBS(newfoc),0,ITRC,ITRU,IER)
+            elseif(iobs(mz).eq.2)then
+              continue   ! obs within geo file
+            endif
+          endif
+
           call strup(zname(newfoc),ZN)
 
 C Write surface information to the THF file.
-          WRITE(ioout,'(a,i2)')'YIN ',NTV
-          DO 40 J=1,NTV
-            WRITE(ioout,'(3F9.4)')X(J),Y(J),Z(J)
+          WRITE(ioout,'(a,i2)')'YIN ',NZTV(newfoc)
+          DO 40 J=1,NZTV(newfoc)
+            WRITE(ioout,'(3F9.4)')szcoords(newfoc,J,1),
+     &       szcoords(newfoc,J,2),szcoords(newfoc,J,3)
    40     continue
           WRITE(ioout,'(a)')'0 '
-          WRITE(ioout,'(I2)')NSUR
-          DO 50 J=1,NSUR
+          WRITE(ioout,'(I2)')NZSUR(newfoc)
+          DO 50 J=1,NZSUR(newfoc)
             WRITE(ioout,'(a,a8)')'1 ',SMLCN(newfoc,J)(1:8)
-            WRITE(ioout,'(I3,1X,124I4)')NVER(J),(JVN(J,K),K=1,NVER(J))
+            WRITE(ioout,'(I3,1X,124I4)')isznver(newfoc,J),
+     &        (iszjvn(newfoc,J,K),K=1,isznver(newfoc,J))
    50     continue
 
           if(nbobs(newfoc).ge.1)then
@@ -640,19 +664,15 @@ C Write obstruction information as a clump of surfaces.
               WRITE(ioout,'(a)')'0 '
               WRITE(ioout,'(a)')'6 '
               DO 250 J=1,6
-                llbm=LNBLOCKMAT(newfoc,J)
+                llbm=lnblnk(BLOCKMAT(newfoc,J))
                 WRITE(ioout,'(2a)')'1 ',BLOCKMAT(newfoc,J)(1:llbm)
                 WRITE(ioout,'(a,21I3)') '  4 ',(JVNB(J,K),K=1,4)
   250         continue
   301       continue
           ENDIF
-
-C << Still to do - read and convert any ground topology. >>
-
-C Free the THF file and reread in the geometry file.
-          call georead(ITA1,LGEOM(newfoc),newfoc,1,IUOUT,IER)
    4    continue
 
+C Free the THF file.
         CALL ERPFREE(ioout,ISTAT)
         call edisp(iuout,' End of conversion.')
         CALL EPAGEND

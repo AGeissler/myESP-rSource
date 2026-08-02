@@ -137,7 +137,6 @@ C << Unix vs NT needs to be updated >>
      &     64,'no description entered','zone descr',IER,nbhelp)
       IF(zd.eq.' '.or.ier.ne.0)goto 43
       zdesc(ICOMP)=zd
-      lnzdesc(ICOMP)=lnblnk(zd)  ! update the length of this string.
 
 C Allow user choices of beginning as a simple shape (with image feedback). 
       IER=0
@@ -190,6 +189,15 @@ C Pass in critical dimensions and expect the data back via common G1.
         IBASES(ICOMP,1)=6
         MODBND=.TRUE.; MODIFYVIEW=.TRUE.; MODLEN=.TRUE.
         iZBFLG(ICOMP)=0
+        NZSUR(ICOMP)=NSUR  ! update global geometry variables.
+        NZTV(ICOMP)=NTV
+        DO J=1, nzsur(ICOMP)
+          isznver(icomp,J)=NVER(J)
+          N = isznver(icomp,J)
+          DO K=1,N
+            iszjvn(icomp,j,K)=JVN(J,K)
+          ENDDO
+        ENDDO
       ELSEIF(ishape.eq.2)THEN
 
 C User begins with an extruded shape.
@@ -238,12 +246,26 @@ C and expect the data back via common G1. And ESCROT also acts on G1.
           x1=XX(1)
           y1=YY(1)
           CALL ESCROT(AR,x1,y1)
+          do iv=1,NTV
+            szcoords(icomp,iv,1)=x(iv)
+            szcoords(icomp,iv,2)=y(iv)
+            szcoords(icomp,iv,3)=z(iv)
+          enddo
         endif
         NSUR=NW+2
         IUZBASEA(icomp)=0
         IBASES(ICOMP,1)=NSUR
         MODBND=.TRUE.; MODIFYVIEW=.TRUE.; MODLEN=.TRUE.
         iZBFLG(ICOMP)=0
+        NZSUR(ICOMP)=NSUR  ! update global geometry variables.
+        NZTV(ICOMP)=NTV
+        DO J=1, nzsur(ICOMP)
+          isznver(icomp,J)=NVER(J)
+          N = isznver(icomp,J)
+          DO K=1,N
+            iszjvn(icomp,j,K)=JVN(J,K)
+          ENDDO
+        ENDDO
       ENDIF
 
 C Begin with default assumptions for each surface then overwrite
@@ -260,6 +282,9 @@ C Update the connection list and hash.
           IC1(ICCC)=ICOMP; IE1(ICCC)=ICC; ICT(ICCC)=-1   ! mark as unknown at this time.
           IC2(ICCC)=0; IE2(ICCC)=0
           IZSTOCN(icomp,icc)=iccc
+          zboundarytype(icomp,icc,1)=-1
+          zboundarytype(icomp,icc,2)=0
+          zboundarytype(icomp,icc,3)=0
    32   CONTINUE
         NCON=ICCC
       endif
@@ -285,13 +310,14 @@ C User will begin with a minimal GEN body.
         X(3)=X0; Y(3)=Y0+2.0; Z(3)=Z0
         X(4)=X0+2.0; Y(4)=Y0+2.0; Z(4)=Z0
         NVER(1)=4
+        isznver(ICOMP,1)=4
         JVN(1,1)=1; JVN(1,2)=2; JVN(1,3)=3; JVN(1,4)=4
+        iszjvn(1,1,1)=1; iszjvn(1,1,2)=2;
+        iszjvn(1,1,3)=3; iszjvn(1,1,4)=4;
         NZTV(icomp)=NTV
         SNAME(ICOMP,1)='first'
         SOTF(ICOMP,1)='OPAQUE'; SMLCN(ICOMP,1)='UNKN' 
         SVFC(ICOMP,1)='FLOR'
-        SOTHER(ICOMP,1,1)='UNKNOWN'; SOTHER(ICOMP,1,2)='0'
-        SOTHER(ICOMP,1,3)='0'
         SUSE(ICOMP,1,1)='-'; SUSE(ICOMP,1,2)='-' 
         SPARENT(ICOMP,1)='-'
         IUZBASEA(icomp)=0; IBASES(ICOMP,1)=1
@@ -302,6 +328,9 @@ C Update the connection list and hash for initial surface.
         IC1(ICCC)=ICOMP; IE1(ICCC)=1; ICT(ICCC)=-1  ! mark as unknown
         IC2(ICCC)=0; IE2(ICCC)=0
         IZSTOCN(icomp,1)=iccc
+        zboundarytype(icomp,1,1)=-1
+        zboundarytype(icomp,1,2)=0
+        zboundarytype(icomp,1,3)=0
         NCON=ICCC
         MODBND=.TRUE.; MODIFYVIEW=.TRUE.; MODLEN=.TRUE.
         iZBFLG(icomp)=0
@@ -343,7 +372,6 @@ C High level info for all cases except clickonbitmap.
       if(zdesc(ICOMP)(1:2).EQ.'  ')then
         write(zdesc(ICOMP),'(2a)') zname(ICOMP)(1:lnzname(ICOMP)),
      &    ' describes a '
-        lnzdesc(ICOMP)=lnblnk(zdesc(ICOMP))  ! update the length of this string.
       endif
       CTYPE(icomp)='GEN '
       NDP(ICOMP)=3
@@ -390,7 +418,7 @@ C Save this to file before passing into the geometry editing facility.
         newgeo = .true.
       endif
       if(newgeo)then
-        call geowrite(IFIL+2,LGEOM(ICOMP),ICOMP,iuout,3,IER)
+        call geowrite2(IFIL+2,LGEOM(ICOMP),ICOMP,iuout,3,IER)
       else
         call emkgeo(IFIL+2,LGEOM(ICOMP),ICOMP,3,IER)
       endif
@@ -622,43 +650,54 @@ C the connections list, then remind user to double check topology.
           ICCC=ICCC+1
           IC1(ICCC)=IC
           IE1(ICCC)=ICC
-          if(SOTHER(NCOMP,icc,1)(1:8).eq.'EXTERIOR')then
+          if(zboundarytype(NCOMP,icc,1).eq.0)then
             write(outs,'(3a)') 'Note: ',SNAME(NCOMP,icc),
      &        ' is an EXTERIOR connection which will be used.'
             call edisp(iuout,outs)
             ICT(ICCC)=0; IC2(ICCC)=0; IE2(ICCC)=0
-          elseif(SOTHER(NCOMP,icc,1)(1:7).eq.'SIMILAR')then
+          elseif(zboundarytype(NCOMP,icc,1).eq.1)then
             write(outs,'(3a)') 'Note: ',SNAME(NCOMP,icc),
      &        ' is a SIMILAR connection which will be used.'
             call edisp(iuout,outs)
-            ICT(ICCC)=1; IC2(ICCC)=0; IE2(ICCC)=0
-          elseif(SOTHER(NCOMP,icc,1)(1:9).eq.'ADIABATIC')then
-            ICT(ICCC)=5; IC2(ICCC)=0; IE2(ICCC)=0
-          elseif(SOTHER(NCOMP,icc,1)(1:8).eq.'CONSTANT')then
+            ICT(iccc)=zboundarytype(ncomp,icc,1)
+            IC2(iccc)=zboundarytype(ncomp,icc,2)
+            IE2(iccc)=zboundarytype(ncomp,icc,3)
+          elseif(zboundarytype(NCOMP,icc,1).eq.5)then
+            ICT(iccc)=zboundarytype(ncomp,icc,1)
+            IC2(iccc)=zboundarytype(ncomp,icc,2)
+            IE2(iccc)=zboundarytype(ncomp,icc,3)
+          elseif(zboundarytype(NCOMP,icc,1).eq.2)then
             write(outs,'(3a)') 'Note: ',SNAME(NCOMP,icc),
      &    ' was a CONSTANT connection. Confirm its surface attributes.'
             call edisp(iuout,outs)
-            SOTHER(NCOMP,icc,1)='UNKNOWN'
-            ICT(ICCC)=-1; IC2(ICCC)=0; IE2(ICCC)=0
-          elseif(SOTHER(NCOMP,icc,1)(1:6).eq.'GROUND')then
+            ICT(iccc)=zboundarytype(ncomp,icc,1)
+            IC2(iccc)=zboundarytype(ncomp,icc,2)
+            IE2(iccc)=zboundarytype(ncomp,icc,3)
+            altered = .true.   ! will need to write out geometry
+          elseif(zboundarytype(NCOMP,icc,1).eq.1)then
             write(outs,'(3a)') 'Note: ',SNAME(NCOMP,icc),
      &      ' was a GROUND connection. Confirm its surface attributes.'
             call edisp(iuout,outs)
-            SOTHER(NCOMP,icc,1)='UNKNOWN'
-            ICT(ICCC)=-1; IC2(ICCC)=0; IE2(ICCC)=0
-          elseif(SOTHER(NCOMP,icc,1)(1:7).eq.'UNKNOWN')then
+            ICT(iccc)=zboundarytype(ncomp,icc,1)
+            IC2(iccc)=zboundarytype(ncomp,icc,2)
+            IE2(iccc)=zboundarytype(ncomp,icc,3)
+          elseif(zboundarytype(NCOMP,icc,1).eq.-1)then
             write(outs,'(3a)') 'Note: ',SNAME(NCOMP,icc),
      &    ' has an undefined boundary. Confirm its surface attributes.'
             call edisp(iuout,outs)
-            ICT(ICCC)=-1; IC2(ICCC)=0; IE2(ICCC)=0
-          elseif(SOTHER(NCOMP,icc,1)(1:7).eq.'ANOTHER')then
+            ICT(iccc)=zboundarytype(ncomp,icc,1)
+            IC2(iccc)=zboundarytype(ncomp,icc,2)
+            IE2(iccc)=zboundarytype(ncomp,icc,3)
+          elseif(zboundarytype(NCOMP,icc,1).eq.3)then
 
 C Existing partitions in an imported zone are reset to UNKNOWN.
             write(outs,'(3a)') 'Note: ',SNAME(NCOMP,icc),
      &        ' was a partition. Confirm its surface attributes.'
             call edisp(iuout,outs)
-            SOTHER(NCOMP,icc,1)='UNKNOWN'
             ICT(ICCC)=-1; IC2(ICCC)=0; IE2(ICCC)=0
+            zboundarytype(ncomp,icc,1)=ICT(iccc)
+            zboundarytype(ncomp,icc,2)=IC2(iccc)
+            zboundarytype(ncomp,icc,3)=IE2(iccc)
             altered = .true.   ! will need to write out geometry
           else
 
@@ -666,10 +705,10 @@ C Existing partitions in an imported zone are reset to UNKNOWN.
             write(outs,'(3a)') 'Note: ',SNAME(NCOMP,icc),
      &        ' might be a partition. Confirm its surface attributes.'
             call edisp(iuout,outs)
-            SOTHER(NCOMP,icc,1)='UNKNOWN'
-            ICT(ICCC)=-1
-            IC2(ICCC)=0
-            IE2(ICCC)=0
+            ICT(ICCC)=-1; IC2(ICCC)=0; IE2(ICCC)=0
+            zboundarytype(ncomp,icc,1)=ICT(iccc)
+            zboundarytype(ncomp,icc,2)=IC2(iccc)
+            zboundarytype(ncomp,icc,3)=IE2(iccc)
             altered = .true.   ! will need to write out geometry
           endif
   
@@ -694,7 +733,7 @@ C If any of the boundary conditions were altered then write out
 C the geometry file.
         if(altered)then
           if(newgeo)then
-            call geowrite(IFIL+1,LGEOM(ic),ic,iuout,3,IER)
+            call geowrite2(IFIL+1,LGEOM(ic),ic,iuout,3,IER)
           else
             call emkgeo(IFIL+1,LGEOM(ic),ic,3,IER)
           endif
@@ -932,7 +971,6 @@ C Establish name of the zone. Base this on the predefined entity.
      &       64,'no description entered','zone descr',IER,nbhelp)
         IF(zd.eq.' '.or.ier.ne.0)goto 43
         zdesc(IC)=zd
-        lnzdesc(IC)=lnblnk(zd)  ! update the length of this string.
 
 C Initial guesses for related zone files.
         if(zonepth(1:2).eq.'  '.or.zonepth(1:2).eq.'./')then
@@ -1044,6 +1082,9 @@ C Signal that the wireframe image needs to be redrawn.
         MODIFYVIEW=.TRUE.; MODLEN=.TRUE.; MODBND=.TRUE.
 
 C As surfaces added save the model cfd and cnn files.
+C      write(6,*) 'NEWZONE icfgv usecurcfg',icfgv,usecurcfg,cnndisagree,
+C     &  ' ',LCNN(1:lnblnk(LCNN))
+
         CALL EMKCFG('s',IER)
 
 C Present message about what to do next.
@@ -1105,6 +1146,7 @@ C DELZONE systematicly removes a thermal zone.
       CHARACTER ctldoc*248,LCTLF*72,outs*124
       character ltmp*72
       character OUTSTR*124
+      character sbound_ty*12,sbound_c2*6,sbound_e2*6
 
       helpinsub='edzone'  ! set for subroutine
 
@@ -1380,15 +1422,15 @@ C the values of ICT, IE2 and IC2.
             ioc=IZSTOCN(ix,isx)
 
 C If the surface connection type is 3 and it (ic2) points back to IW2
-C then reset sother and ict and ie2 and ic2.
+C then reset zboundarytype and ict and ie2 and ic2.
             if(ICT(ioc).EQ.3)then
               if(IC2(ioc).eq.IW2)then
-                SOTHER(IX,ISX,1)='UNKNOWN'
-                SOTHER(IX,ISX,2)='0'
-                SOTHER(IX,ISX,3)='0'
-                ICT(ioc)=-1
-                IE2(ioc)=0
-                IC2(ioc)=0
+                ICT(ioc)=-1; IE2(ioc)=0; IC2(ioc)=0
+                zboundarytype(IX,ISX,1)=ICT(ioc)
+                zboundarytype(IX,ISX,2)=IC2(ioc)
+                zboundarytype(IX,ISX,3)=IE2(ioc)
+                call decode_zsbound(IX,ISX,sbound_ty,sbound_c2,
+     &            sbound_e2)
                 changed = .true.
               endif
             endif
@@ -1402,7 +1444,7 @@ C then reset sother and ict and ie2 and ic2.
               newgeo = .true.
             endif
             if(newgeo)then
-              call geowrite(IFIL+2,LGEOM(IX),IX,iuout,3,IER)
+              call geowrite2(IFIL+2,LGEOM(IX),IX,iuout,3,IER)
             else
               call emkgeo(IFIL+2,LGEOM(IX),IX,3,IER)
             endif
@@ -1505,6 +1547,9 @@ C Decrement any anchors to subsequent surfaces.
 
 C Perform connection shift (zone reference) for later zones.
 C Also update the other side IC2.
+
+C << zboundarytype needs to be updated as well >>
+
       write(outs,'(A)') ' shifting model topology... '
       call usrmsg('  ',outs,'-')
       do 38 IX=1,NCON
@@ -1593,7 +1638,6 @@ C and zone based data.
         zname(IX)=zname(IX+1)
         lnzname(IX)=lnzname(IX+1)
         zdesc(IX)=zdesc(IX+1)
-        lnzdesc(IX)=lnzdesc(IX+1)
         LPROJ(IX)=LPROJ(IX+1)
         LGEOM(IX)=LGEOM(IX+1)
         LTHRM(IX)=LTHRM(IX+1)
@@ -1720,6 +1764,8 @@ C Write out control file to update control/zone list.
       else
         goto 49
       endif
+C      write(6,*) 'DELZONE icfgv usecurcfg',icfgv,usecurcfg,cnndisagree,
+C     &  ' ',LCNN(1:lnblnk(LCNN))
       CALL EMKCFG('-',IER)
       return
 
@@ -1777,7 +1823,7 @@ C Parameters passed:
       COMMON/PRECT2/TMCT2(MCOM,MTMC,5),TMCA2(MCOM,MTMC,ME,5),
      &              TVTR2(MCOM,MTMC)
       COMMON/PRECT3/NTMC,NGLAZ(MTMC)
-      character TOPTIC*12
+      character TOPTIC*24
       common/PRECT4/TOPTIC(MCOM,MTMC)
       COMMON/TMCB1/IBCMT(MCOM,MTMC)
       COMMON/TMCB2/NBCTMC(MCOM,MTMC),IBCST(MCOM,MTMC),
@@ -1811,9 +1857,9 @@ C Zone casual gain control data.
       logical okzt,okzr,closer,okob,quiet
       integer loop
       dimension jict(MS),jic2(MS),jie2(MS),jmlcindex(MS)
-      dimension jsotf(MS),jsmlcn(MS),jsvfc(ms),jsother(ms,3)
+      dimension jsotf(MS),jsmlcn(MS),jsvfc(ms)
       dimension jsname(MS),jsparent(MS),jsuse(ms,3)
-      character jsmlcn*32,jsvfc*4,jsotf*32,jsother*24,jsname*12
+      character jsmlcn*32,jsvfc*4,jsotf*24,jsname*12
       character jsparent*12,jsuse*12
 
       CHARACTER LAPROB*72
@@ -1856,9 +1902,6 @@ C Recover connections associated with that zone.
             jsmlcn(jixu)=SMLCN(icz,ics)
             jmlcindex(jixu)=smlcindex(icz,ics)
             jsvfc(jixu)=SVFC(icz,ics)
-            jsother(jixu,1)=SOTHER(icz,ics,1)
-            jsother(jixu,2)=SOTHER(icz,ics,2)
-            jsother(jixu,3)=SOTHER(icz,ics,3)
             jsuse(jixu,1)=SUSE(icz,ics,1)
             jsuse(jixu,2)=SUSE(icz,ics,2)
             jsname(jixu)=SNAME(icz,ics)
@@ -1956,7 +1999,6 @@ C zone index so that the related commons are filled.
      &       64,'no description entered','zone descr',IER,nbhelp)
         IF(zd.eq.' '.or.ier.ne.0)goto 40
         zdesc(NCOMP)=zd
-        lnzdesc(NCOMP)=lnblnk(zd)  ! update the length of this string.
 
 C If an obstruction file exists check if this should be copied as well.
 C Save zone geometry, read in obstructions, write out to another
@@ -2044,7 +2086,6 @@ C If there are visual entities.
           if(VAL.LT.-.01.OR.VAL.GT..01)then
 
 C Rotation choices.
-            rotateit(ncomp,1)=VAL
             CALL EASKMBOX(' ','Rotation choices:',
      &        'vertex 1 of zone','site origin',
      &        'specified X & Y','skip rotation',
@@ -2053,21 +2094,21 @@ C Rotation choices.
             if(IRT.eq.1)then
               x1=X(1)
               y1=Y(1)
-              rotateit(ncomp,2)=x1
-              rotateit(ncomp,3)=y1
               CALL ESCROT(VAL,x1,y1)
-              rotateit(ncomp,1)=0.0
-              rotateit(ncomp,2)=0.0
-              rotateit(ncomp,3)=0.0
+              do iv=1,NTV
+                szcoords(ncomp,iv,1)=x(iv)
+                szcoords(ncomp,iv,2)=y(iv)
+                szcoords(ncomp,iv,3)=z(iv)
+              enddo
             elseif(IRT.EQ.2)THEN
               x1=0.
               y1=0.
-              rotateit(ncomp,2)=x1
-              rotateit(ncomp,3)=y1
               CALL ESCROT(VAL,x1,y1)
-              rotateit(ncomp,1)=0.0
-              rotateit(ncomp,2)=0.0
-              rotateit(ncomp,3)=0.0
+              do iv=1,NTV
+                szcoords(ncomp,iv,1)=x(iv)
+                szcoords(ncomp,iv,2)=y(iv)
+                szcoords(ncomp,iv,3)=z(iv)
+              enddo
             elseif(IRT.EQ.3)THEN
               x1=0.
               CALL EASKR(x1,' ',' X point (metres) ? ',
@@ -2075,17 +2116,15 @@ C Rotation choices.
               y1=0.
               CALL EASKR(y1,' ',' Y point (metres) ? ',
      &          0.0,'-',0.0,'-',0.0,'y point',IER,nbhelp)
-              rotateit(ncomp,2)=x1
-              rotateit(ncomp,3)=y1
               CALL ESCROT(VAL,x1,y1)
-              rotateit(ncomp,1)=0.0
-              rotateit(ncomp,2)=0.0
-              rotateit(ncomp,3)=0.0
+              do iv=1,NTV
+                szcoords(ncomp,iv,1)=x(iv)
+                szcoords(ncomp,iv,2)=y(iv)
+                szcoords(ncomp,iv,3)=z(iv)
+              enddo
               call usrmsg(' ',' ','-')
             elseif(IRT.EQ.4)THEN
-              rotateit(ncomp,1)=0.0
-              rotateit(ncomp,2)=0.0
-              rotateit(ncomp,3)=0.0
+              continue
             endif
             iZBFLG(NCOMP)=0
           endif
@@ -2144,9 +2183,6 @@ C tag imply flow components.
           SMLCN(ncomp,icc)=jsmlcn(icc)
           smlcindex(ncomp,icc)=jmlcindex(icc)
           SVFC(ncomp,icc)=jsvfc(icc)
-          SOTHER(ncomp,icc,1)=jsother(icc,1)
-          SOTHER(ncomp,icc,2)=jsother(icc,2)
-          SOTHER(ncomp,icc,3)=jsother(icc,3)
           SUSE(ncomp,icc,1)=jsuse(icc,1)
           SUSE(ncomp,icc,2)=jsuse(icc,2)
           SPARENT(ncomp,icc)=jsparent(icc)
@@ -2157,15 +2193,18 @@ C tag imply flow components.
             IC2(ICCC)=jic2(ICC)
             IE2(ICCC)=jie2(ICC)
           elseif(jict(ICC).eq.3)then
-            SOTHER(ncomp,icc,1)='UNKNOWN'
-            SOTHER(ncomp,icc,2)='0'
-            SOTHER(ncomp,icc,3)='0'
+            ICT(ICCC)=-1
+            IC2(ICCC)= 0
+            IE2(ICCC)= 0
             ICT(ICCC)=0; IC2(ICCC)=0; IE2(ICCC)=0
           elseif(jict(ICC).eq.4.or.jict(ICC).eq.5)then
             ICT(ICCC)=jict(ICC)
             IC2(ICCC)=jic2(ICC)
             IE2(ICCC)=jie2(ICC)
           endif
+          zboundarytype(ncomp,icc,1)=ICT(iccc)
+          zboundarytype(ncomp,icc,2)=IC2(iccc)
+          zboundarytype(ncomp,icc,3)=IE2(iccc)
   132   CONTINUE
         NCON=ICCC
         call zgupdate(0,ncomp,ier)
@@ -2191,7 +2230,7 @@ C Now it is ok to write out the copied zone.
         endif
         if(newgeo)then
           iuf=ifil+2
-          call geowrite(iuf,LGEOM(NCOMP),NCOMP,ITRU,3,IER)
+          call geowrite2(iuf,LGEOM(NCOMP),NCOMP,ITRU,3,IER)
         else
           iuf=ifil+2
           call emkgeo(iuf,LGEOM(NCOMP),NCOMP,3,IER)
@@ -2249,7 +2288,7 @@ C otherwise write out zone obstruction file.
           call eclose(gversion(ncomp),1.1,0.01,newgeo)
           if(newgeo)then
             iuf=ifil+2
-            call geowrite(iuf,LGEOM(NCOMP),NCOMP,ITRU,3,IER)
+            call geowrite2(iuf,LGEOM(NCOMP),NCOMP,ITRU,3,IER)
             IOBS(NCOMP)=2    ! reset to signal obs in geo file
             ZOBS(NCOMP)='  '
           else
@@ -2764,11 +2803,12 @@ C Find out if there are casual gain control files in the model ../zones folder.
         endif
 
 C If there is a flow network, update the configuration file before
-C writing out. This requires that we rebuild some zone data structures
-C to include the newly copied zone.
+C writing out. This requires that we rescan all zone geometry files
+C and rebuild zone data structures to include the newly copied zone
+C which will have index nvomp).
+C << Why scan all zones, most data is alread in memory)? >>
         NZONES=NCOMP
-        ISFSUM=0
-        CALL ZDATA (ITRC,IER,NZONES,ISFSUM)
+        CALL ZDATA (ITRC,IER,NZONES)
         nzg=1
         nznog(1)=NCOMP
         izgfoc=NCOMP
@@ -2783,7 +2823,7 @@ C to include the newly copied zone.
      &      'node and connections for new/copied zone.','-') 
           call pauses(1)
           call create_zone_node(ncomp)  ! create new node
-          DO isur=1,NSUR
+          DO isur=1,NZSUR(ncomp)
 
 C Act on surface attributes if there are any.
             icc=IZSTOCN(ncomp,isur)
@@ -2817,6 +2857,8 @@ C instantiated.
         endif
 
 C Update the configuration file.
+C      write(6,*) 'COPYZONE icfgv usecurcfg',icfgv,usecurcfg,cnndisagree,
+C     &  ' ',LCNN(1:lnblnk(LCNN))
         CALL EMKCFG('s',IER)
         MODIFYVIEW=.TRUE.
         MODBND=.TRUE.
@@ -2952,6 +2994,7 @@ C Passed parameters
       common/znconstrv/izconstv(MCOM),iztmcv(MCOM)
 
       logical ok,QUIET,unixok
+      character prompt*48
 
       helpinsub='edzone'  ! set for subroutine
 
@@ -3063,13 +3106,16 @@ C If existing db out of date the perform recalculation.
 
 C If current version of construction file continue with the
 C rebuild otherwise confirm with user whether to use legacy
-C format with seaparte tmc file.
+C format with seaparte tmc file. Until the construction file
+C is scanned the value of izconstv is not known.
           QUIET=.true.
           itru=iuout
           if(izconstv(ICOMP).eq.21)then
             continue
           else
-            CALL EASKMBOX(' ','Save zone constructions:',
+            write(prompt,'(3a)') 'Save constructions for ',
+     &        zname(icomp)(1:lnzname(icomp)),':'
+            CALL EASKMBOX(' ',prompt,
      &        'via legacy format with separate tmc file',
      &        'current format with optical data',
      &        ' ',' ',' ',' ',' ',' ',IWB,nbhelp)

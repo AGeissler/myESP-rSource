@@ -1192,40 +1192,75 @@
 'Suggest a title for the 3rd party graph.'
 *enditem
 
-*item ctprob contam_overivew
-'A contaminant model is usually defined after an air flow'
-'network has been set up so that contaminant information'
-'may be linked to the flow network nodes.'
+*item ctprob contam_overview
+'Indoor air quality is an important performance metric and'
+'if your model already has an air flow network you can enable'
+'tracking of various contaminants e.g. CO2 or VOC as air'
+'flows between nodes in the flow network.'
 ' '
-'If you have modified an existing flow network for which'
-'a contaminant model had been defined then that'
-'contaminant model will need to be modified accordingly.'
+'A contaminant description includes:'
+' - One or more contaminates e.g. CO2, VOC, each of which'
+'   include an hourly background concentration.'
+' - One or more source/sink definitions, for example CO2'
+'   generated from occupants'
+' - links between a source/sink and a contaminate'
+' - links between a source/sink and air flow nodes'
+' ' 
+'Some options are relevant to experts. There be dragons if'
+'wander into boundary layer diffusion topics.'
+' '
+'There is an option to automatically setup a contaminant'
+'regime based on a background ambient CO2 level with an'
+'occupant CO2 source derived from occupancy patterns in'
+'the zone operation files. Once setup you can then use it'
+'or modify as reqired.'
 *enditem
 
 *item ctprob ct_file_not_found
-'The Project Manager could not find this file. Please'
-'ensure that the filename and path are entered correctly.'
+'The Project Manager could not find the contaminate file.'
+'Please ensure that the filename and path are entered correctly.'
 *enditem
 
 *item ctprob ct_list_file
-'Lists the contaminant model.'
+'Lists the contaminant model attributes.'
+*enditem
+
+*item ctprob contam_typical
+'Indoor air quality is an important performance metric and'
+'if your model already has an air flow network you can enable'
+'a basic contaminant regime with ambient CO2 concentrations'
+'at 423 PPM (typical for 2024 check www.co2.earth for current'
+'value) and an occupant CO2 source type with links this to all'
+'internal flow nodes.'
+' '
+'You are asked about contaminate timesteps (typically double'
+'that of the building simulation timestep). Check the listing'
+'of the contaminate regime. After running assessments the'
+'level of CO2 should be available in the results.'
 *enditem
 
 *item ctprob ct_file_setup
-'Begin the contaminant description by describing the'
-'number, names and ambient concentrations. Then define'
-'the initial concentrations of these contaminants at'
-'the airflow nodes. Contaminant source and sink models'
-'may be associated with nodes. After this, filter'
-'efficiencies may be defined for each component. First'
-'order chemical reactions can be modelled by describing'
-'rate constants between different contaminants'
+'Begin the contaminant description by giving it a name'
+'and ambient concentrations. Then define the initial'
+'concentrations of each contaminant at the flow nodes.'
+'  '
+'Contaminant source and sink models may be associated'
+'with flow nodes. After this, filter efficiencies'
+'may be defined for each component. First order chemical'
+'reactions can be modelled by describing rate constants'
+'between different contaminants'
 *enditem
 
 *item ctprob ct_sources_sinks
 'Sources and sinks are defined and then may be '
 'linked to contaminants and nodes to account'
 'for contaminant generation or removal.'
+' '
+'If, for example you want to track CO2 in rooms based on'
+'a personal CO2 emissions model a single source type can'
+'be linked to air flow nodes associated with occupied'
+'spaces in the model. It is not necessary to create a '
+'separate source for each space.'
 ' '
 'Source/Sink models include:'
 '(1) Constant coefficient: A fixed amount G (kg/s) of '
@@ -1246,7 +1281,7 @@
 '    and k = Henry adsorption coefficient.'
 '(5) Time dependent: A fixed mass (kg/s) of contaminant'
 '    is added within a user-specified interval.'
-'(6) Personal CO2 emission: FrBased on information about'
+'(6) Personal CO2 emission: Based on information about'
 '    the number of people and their metabolic activity,'
 '    CO2 emissions to a node are determined.'
 *enditem
@@ -1268,7 +1303,8 @@
 *item ctprob ct_timestep
 'The contaminant modelling time step is usually considerably'
 'shorter than the building-side time step. The former is an'
-'integer multiple of the latter.'
+'integer multiple of the latter e.g. 12 TSPH on the building'
+'might have 24 TSPH for contaminants.'
 *enditem
 
 *item ctprob ct_save
@@ -1296,7 +1332,7 @@
 'and/or nodes in the airflow network. Therefore, a source/
 'sink model may be used to represent more than one contaminant'
 'and can be placed at more than one node. This menu supports'
-'the linkage of source/sink models already attrobuted with'
+'the linkage of source/sink models already attributed with'
 'contaminants. Linking is best done after all contaminants'
 'have been defined and the airflow network established.'
 ' '
@@ -1306,7 +1342,7 @@
 
 *item ctprob manage_sinks_sources
 'Sources and sinks may be defined for each contaminant.'
-'These can then be linked to each node to account for'
+'These can then be linked to flow nodes to account for'
 'the removal or generation of the contaminant.'
 ' '
 'Source/Sink models include:'
@@ -1328,9 +1364,9 @@
 '    and k = Henry adsorption coefficient.'
 '(5) Time dependent: A fixed mass (kg/s) of contaminant'
 '    is added within a user-specified interval.'
-'(6) Personal CO2 emission: FrBased on information about'
-'    the number of people and their metabolic activity,'
-'    CO2 emissions to a node are determined.'
+'(6) Personal CO2 emission: Based on information about the'
+'    number of people and their metabolic activity in the'
+'    zone operations file CO2 emissions to a node are determined.'
 *enditem
 
 *item ctprob contam_co2_rate
@@ -1363,23 +1399,20 @@
 *item ctprob contam_CTIADC
 'Contaminant ambient concentration (kg/kg of air)'
 'values to be between 0 and 1'
+' '
 'Constant concentration assumes one value over 24'
 'hours, choose variable concentration to specify'
 'a different concentration for each hour of day'
 ' '
-'Contaminant ambient concentration (kg/kg of air)'
-'values to be between 0 and 1'
-' '
-'A cancel request (integers) leaves the model unchanged'
-'for the item currently being edited. Not all items in '
+'A cancel request leaves the model unchanged for'
+'the current item being edited. Not all items in '
 'a sequence of edits may have been restored so please'
 'check your model description. '
 ' '
 'Contaminant names should be <= 12 characters and have '
 'no blanks. Use logical names for clarity.'
 ' '
-'Contaminant descriptions should not include '
-'duplicate names for containments. '
+'Avoid duplicate contaminant names. '
 *enditem
 
 *item ecdbscb electrical_cmps_db
@@ -1452,13 +1485,22 @@
 *item emkcfg cfg_version_reminder
 'The version 3 format merges the contents of the zone'
 'utility files into the configuration file. Models'
-'created or updated after 1996 should use this format.'
+'created circa 1996 used this format.'
 ' '
 'The version 4 format includes within the cfg file'
 'some data previously held in separate files and also'
 'user an updated version of the zone geometry file.'
 ' '
-'The zone topology is held in a similarly named connections file.'
+'The zone topology is traditioanlly held in a similarly named'
+'connections file. However, if the surface attributes are'
+'up to date then it is possible to derive connection information'
+'from the surface attributes and dispense with the connection file.'
+'This reduces risk of the zone files and the connection file'
+'getting out of sync.'
+' '
+'If you have multiple cfg files as variants in a project be'
+'careful if you reference the same geometry file in different'
+'variants.'
 *enditem
 
 *item enetmisc elect_node_select
@@ -1559,6 +1601,46 @@
 'There are no zones, networks or control defined yet.'
 *enditem
 
+*item esru_misc cfg_register
+'The current model has only been registered and there'
+'are no zone, controls or systems defined. You will need to'
+'populate the model.'
+*enditem
+
+*item esru_misc cfg_context
+'The current model includes solar obstructions and/or ground'
+'topology.'
+*enditem
+
+*item esru_misc cfg_context_flow
+'The current model includes and air or water flow network.'
+'Details are found in the network interface or in the model'
+'contents report. No CFD domain is included.'
+*enditem
+
+*item esru_misc cfg_context_cfd
+'The current model does not include and air or water flow network.'
+'It does include one or more CFD domains.Details are found in the'
+'CFD interface or in the model contents report.'
+*enditem
+
+*item esru_misc cfg_context_flow_cfd
+'The current model includes and air or water flow network.'
+'Details are found in the network interface or in the model'
+'contents report. It also includes one or more CFD domains'
+'and information about them can be found in the contents report.'
+*enditem
+
+*item esru_misc cfg_context_control
+'In ESP-r control can be applied within one or more domains.'
+'see the text feedback for which domains have control applied.'
+*enditem
+
+*item esru_misc cfg_context_power
+'The model includes an electrical power network and has the potential'
+'to simulate power flows between the grid, generating componsnts and'
+'electrical demands associated with lighitng and small power devices.'
+*enditem
 *item esru_misc ask_for_geometry
 'The zone number is required only for reporting'
 'purposes but should match the numbering expected'

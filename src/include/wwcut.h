@@ -80,7 +80,7 @@ void	sizehwxy_(long int* sizeh,long int* sizew,long int* ulx,long int* uly);
 void	winlod_(char* name,long int* itime,long int* lix,long int* liy,int len);
 void	winlodpart_(char* name,long int* lreqx,long int* lreqy,long int* lreqwidth,
 	long int* lreqheight,long int* lix,long int* liy,long int* boxulx,
-	long int* boxuly,long int* boxlrx,long int* boxlry,int len);
+	long int* boxuly,long int* boxlrx,long int* boxlry,long int* lc,int len);
 void	jwinit_(long int* term,int msglen,char* msg);
 void	setcscale_();
 void	clrcscale_();
@@ -189,6 +189,8 @@ void 	etplot_(float* ux,float* uy,long int* updown,long int* sym);
 void	edlinewwc_(long int* x1,long int* y1,long int* x2,long int* y2,long int* ipdis);
 void	edline_(long int* x1,long int* y1,long int* x2,long int* y2,long int* ipdis);
 void	drawdwl(int xa,int ya,int xb,int yb);
+void	etwlinewwc_(long int* x1,long int* y1,long int* x2,long int* y2);
+void	etwline_(long int* x1,long int* y1,long int* x2,long int* y2);
 void	edwlinewwc_(long int* x1,long int* y1,long int* x2,long int* y2);
 void	edwline_(long int* x1,long int* y1,long int* x2,long int* y2);
 void 	eswlinewwc_(long int* x1,long int* y1,long int* x2,long int* y2);

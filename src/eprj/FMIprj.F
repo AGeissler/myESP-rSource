@@ -563,12 +563,12 @@ C Paginated part.
             else
               write(ctmp1_56,'(2A,1X)')ctmp2_56(1:22),ctmp_30(1:15)
             endif
-            ctmp_30=FMUIVNM(IFMU,i)
-            itmp=lnblnk(ctmp_30)
+            ctmp_32=FMUIVNM(IFMU,i)
+            itmp=lnblnk(ctmp_32)
             if (itmp.gt.15) then
-              write(ctmp2_56,'(3A)')ctmp1_56(1:38),ctmp_30(1:12),'...'
+              write(ctmp2_56,'(3A)')ctmp1_56(1:38),ctmp_32(1:12),'...'
             else
-              write(ctmp2_56,'(2A)')ctmp1_56(1:38),ctmp_30(1:15)
+              write(ctmp2_56,'(2A)')ctmp1_56(1:38),ctmp_32(1:15)
             endif
             ITEMS(M)=ctmp2_56
           endif
@@ -994,12 +994,12 @@ C Paginated part.
             else
               write(ctmp1_56,'(2A,1X)')ctmp2_56(1:22),ctmp_30(1:15)
             endif
-            ctmp_30=FMUOVNM(IFMU,i)
-            itmp=lnblnk(ctmp_30)
+            ctmp_32=FMUOVNM(IFMU,i)
+            itmp=lnblnk(ctmp_32)
             if (itmp.gt.15) then
-              write(ctmp2_56,'(3A)')ctmp1_56(1:38),ctmp_30(1:12),'...'
+              write(ctmp2_56,'(3A)')ctmp1_56(1:38),ctmp_32(1:12),'...'
             else
-              write(ctmp2_56,'(2A)')ctmp1_56(1:38),ctmp_30(1:15)
+              write(ctmp2_56,'(2A)')ctmp1_56(1:38),ctmp_32(1:15)
             endif
             ITEMS(M)=ctmp2_56
           endif

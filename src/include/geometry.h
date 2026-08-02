@@ -7,11 +7,6 @@ C shape (8 char) - META file zone shape (extrude, poly, box)
       character CTYPE*4,shape*8
       common/g0/CTYPE(MCOM),shape(MCOM)
 
-C rotateit (zone,1) pending angle of rotation using std conventions for REC zones or any shape
-C rotateit (zone,2) pending X coordinate to rotate around
-C rotateit (zone,3) pending Y coordinate to rotate around
-      real rotateit
-      common/metadat/rotateit(mcom,3)
 
 C gversion (real) version of the geometry file (1.0 legacy, 1.1 current).
 C igupgrade (integer) 0 = do nothing, 1 = leave at 1.0, 2 = upgrade to 1.1
@@ -25,29 +20,17 @@ C Default solar distribution and shading directives.
 
 C Surface attributes for the current zone.
       character SNAME*12   ! surface name
-      character SOTF*32    ! OPAQUE or optical property name
+      character SOTF*24    ! OPAQUE or optical property name
       character SVFC*4     ! indicates whether the surface is to be counted
                            ! as a FLOR (face up), VERT (wall), CEIL (face down),
                            ! SLOP (not vertical) or UNKN (not yet defined) 
-      character SMLCN*32   ! surface construction name (in MLC database)
-      character SOTHER*24  ! three surface attributes for `other` side:
-        ! SOTHER(,,1) = UNKNOWN indicates that no attribute has been set
-        !               and for this case SOTHER(,,2) and SOTHER(,,3) are '0'
-        ! SOTHER(,,1) = EXTERIOR means SOTHER(,,2) & SOTHER(,,3) are '0'
-        ! SOTHER(,,1) = ADIABATIC means SOTHER(,,2) & SOTHER(,,3) are '0'
-        ! SOTHER(,,1) = SIMILAR means that SOTHER(,,2) & SOTHER(,,3) are as IC2 & IE2
-        ! SOTHER(,,1) = BASESIMP means that SOTHER(,,2) & SOTHER(,,3) are as IC2 & IE2
-        ! SOTHER(,,1) = GROUND means that SOTHER(,,2) & SOTHER(,,3) are as IC2 & IE2
-        ! SOTHER(,,1) = ANOTHER then SOTHER(,,2) is zone index & SOTHER(,,3) is
-        !               the surface index in that zone (e.g. as IC2 and IE2).
+      character SMLCN*32   ! surface construction name (in MLC database) mostly
+                           ! only 24 char used in practice.
       character SUSE*12    ! two attributes of the usage of the surface
       character SPARENT*12 ! the name of the parent surface or '-'
       COMMON/G5/SNAME(MCOM,MS),SOTF(MCOM,MS),SMLCN(MCOM,MS),
-     &          SVFC(MCOM,MS),SOTHER(MCOM,MS,3),SUSE(MCOM,MS,2),
-     &          SPARENT(MCOM,MS)
+     &          SVFC(MCOM,MS),SUSE(MCOM,MS,2),SPARENT(MCOM,MS)
 
-      integer lnsname,lnsotf ! length of sname and sotf strings
-      common/G5LN/lnsname(MCOM,MS),lnsotf(MCOM,MS)
 
 C Althought smlcn(mcom,ms) holds the name of the construction, also knowing the
 C matching index in the database can save search time.
@@ -90,8 +73,14 @@ C for use with META files.
       common/metahas/znbmass(MCOM),zdatamass(MCOM,4,7)
 
 C Stings associated with internal mass. 1=surface name, 2=construction, 3=optics
-      character ztextmass*32
+      character ztextmass*24
       common/metathas/ztextmass(MCOM,4,3)
+
+C rotateit (zone,1) pending angle of rotation for REC shapes in META file.
+C rotateit (zone,2) pending X coordinate to rotate around
+C rotateit (zone,3) pending Y coordinate to rotate around
+      real rotateit
+      common/metadat/rotateit(mcom,3)
 
       real zbasea        ! the floor area of the zone
       integer ibases     ! list of surfaces which make up the floor
@@ -155,8 +144,8 @@ C areas which are of general interest to many subroutines.
       character zdesc*64  ! zone notes
       COMMON/precz/zname(MCOM),zdesc(MCOM)
 
-      integer lnzname,lnzdesc ! length of zname and zdesc strings
-      common/preczln/lnzname(MCOM),lnzdesc(MCOM)
+      integer lnzname ! length of zname string
+      common/preczln/lnzname(MCOM)
       
 c Long zone name for H3K reports
       common/H3KSTORE_ZONE/zoneLabel(MCOM)
@@ -189,11 +178,8 @@ C BLOCKTYP (4 char) type of block:
 C   'obs ' - standard block (origin, three dimensions, one rotation)
 C   'obs3' - general block (origin, three dimensions, three rotations)
 C   'obsp' - general polygon (six sides formed from 8 vertices)
-C LNBLOCKNAME,LNBLOCKMAT - length of strings.
       character BLOCKNAME*12,BLOCKMAT*32,BLOCKTYP*4
       common/GS8/BLOCKNAME(MCOM,MB),BLOCKMAT(MCOM,MB),BLOCKTYP(MCOM,MB)
-      integer LNBLOCKNAME,LNBLOCKMAT
-      common/GS8LN/LNBLOCKNAME(MCOM,MB),LNBLOCKMAT(MCOM,MB)
 
 C Visual entities to pass to Radiance and for model decoration.
       integer nbvis        ! number of visual entities in a zone
@@ -219,11 +205,8 @@ C VISTYP (4 char) type of block:
 C   'vis ' - standard block (origin, three dimensions, one rotation)
 C   'vis3' - general block (origin, three dimensions, three rotations)
 C   'visp' - general polygon (six sides formed from 8 vertices)
-C LNVISNAME,LNVISMAT - length of strings.
       character VISNAME*12,VISMAT*32,VISTYP*4
       common/GSVN/VISNAME(MCOM,MB),VISMAT(MCOM,MB),VISTYP(MCOM,MB)
-      integer LNVISNAME,LNVISMAT
-      common/GSVLN/LNVISNAME(MCOM,MB),LNVISMAT(MCOM,MB)
 
 C Group visual items to create a visual objects (up to MVOBJ) from
 C up to MVOBJE visual primitives.
@@ -231,16 +214,13 @@ C VOBJNAME (12 char) name of visual object
 C VOBJDESC (32 char) description of visual object
 C VOBJLIST (12 char) associated (up to MVOBJE) visual blocks
 C VOBJILIST (integer) indices of associated visual blocks
-C LNVOBJNAME,LNVOBJDESC,LNVOBJLIST - length of strings.
 C NBVOBJ - number of visual objects in each zone
 C NBVOJBLIST - number of primitives in ojbect
       character VOBJNAME*12,VOBJDESC*32,VOBJLIST*12
       common/GSVOBJN/VOBJNAME(MCOM,MVOBJ),VOBJDESC(MCOM,MVOBJ),
      &  VOBJLIST(MCOM,MVOBJ,MVOBJE)
-      integer NBVOBJ,LNVOBJNAME,LNVOBJDESC,LNVOBJLIST,NBVOBJLIST,
-     &        VOBJILIST
-      common/GSVOBJI/NBVOBJ(MCOM),LNVOBJNAME(MCOM,MVOBJ),
-     &  LNVOBJDESC(MCOM,MVOBJ),LNVOBJLIST(MCOM,MVOBJ,MVOBJE),
+      integer NBVOBJ,NBVOBJLIST,VOBJILIST
+      common/GSVOBJI/NBVOBJ(MCOM),
      &  NBVOBJLIST(MCOM,MVOBJ),VOBJILIST(MCOM,MVOBJ,MVOBJE)
 
 C MRT sensors for the model.

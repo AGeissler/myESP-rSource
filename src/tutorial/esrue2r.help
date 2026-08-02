@@ -1,71 +1,81 @@
 *help_text e2r
 
-*item e2r e2r_cfg_file_not_found
-'The model configuration file holds the definition '
-'of the building/ plant to be simulated, including the'
-'names of all of the files required.'
+*item e2r e2r_cfg_file
+'The ESP-r model configuration file holds the definition '
+'of the building/ plant to be simulated, including the name'
+'of a [rcf] file which holds sets of information about the'
+'Radiance files required to .'
+'  cfg file  -> xx.rcf'
+'               -> scene xx -> xx.rif'
+'                           -> xx.mat  xx.sky  xx.rad'
+'               -> scene yy -> yy.rif'
+'                           -> yy.mat  yy.sky  yy.rad'
 *enditem
 
 *item e2r confirm_monitor_type
-'Radiance was initially written when monchrome, greyscale and colour'
-'monitors were common and it was necessary to confirm the users'
-'monitor so that the correct display utility is used. Currently it'
+'Radiance was initially written when greyscale monitors were'
+'common and it was necessary to confirm the users monitor'
+'so that the correct display utility is used. Currently it'
 'is used to force ximage to produce a dithered monochrome image if'
 'there is insufficient colour depth.'
 *enditem
 
 *item e2r scene_config_file_name
-'A scene configuration file is required by ESP-r to aid'
-'maintenance of the visualisation process. This file contains'
-'details on where individual RIF (Radiance Input Format) files'
-'are kept and what their intended use is. It can hold multiple'
-'scene descriptions and is typically located in the model cfg'
-'folder.'
+'A scene configuration file (rcf) records high level attributes of each'
+'of the scenes you create e.g. their intended use, associated'
+'thermal zones, surfaces and edges associated with grids and the like.'
+'  '
+'  model.rcf  -> scene xx -> Glare, office'
+'                         -> xx.rif xx,mat xx.sky xx.rad xx.grd'
+'  '
+'             -> scene yy -> Internal, passage'
+'                         -> yy.rif yy.mat yy.sky yy.rad'
 *enditem
 
 *item e2r e2r_additional_overview
-'The e2r module is designed to reduce direct user interactions'
-'with the command line syntax of Radiance. Experts will, of'
-'course augment the facilities of e2r. And for many common tasks'
-'you will not need to manually edit the Radiance descriptive files.'
+'The e2r module is designed to manage the creation of Radiance'
+'visual models and replace the typical command line syntax of'
+'the many applications in the Radiance suite. For many common tasks'
+'you will not need to manually edit the Radiance descriptive files'
+'or directly invoke Radiance commands.'
 '  '
-'ESp-r models can be exported to Radiance and ESP-r does not know '
-'about changes you manually make to the Radiance description (your'
-'edits can be overwritten. Either make backups or create additional'
-'scenes with unique [root] names to prevent overwriting.'
+'Note that ESP-r does not know about changes you make to the'
+'Radiance files created by e2r (your edits might be overwritten).'
+'Make backups. One technique is to creat variants of scenes to'
+'explore different visual aspects.'
 '  '
-'When you create a new scene you are asked for its purpose. This helps'
-'in setting a number of parameters used in the calculation process as'
-'well as informing the interface e.g. an interior rendering view will'
-'request information on which ESP-r zone the view point is in, while'
-'a night scene will turn off the sun, set the ambient light levels'
-'to match.'
+'When you create a new scene or import an existing Radiance rif'
+'file you are asked for its purpose. This sets parameters used'
+'in the calculation process and controls user interactions e.g.'
+'an interior rendering view asks which ESP-r zone the view point'
+'is in, while a night scene will turn off the sun, set the ambient'
+'light levels to match.'
 '  '
-'Radiance materials are derived from grey-scale equivalents of ESP-r'
-'constructions (one material for the inside face and one for the'
-'other face). You can include an additional Radiance material file'
+'Radiance materials are grey-scale equivalents of ESP-r constructions'
+'(one material for the inside face and one for the other face). These'
+'will be generated as the ESP-r entities are created.'
+'  '
+'You can include an additional Radiance material file'
 'in you scene and edit the polygon defintions to reference these.'
-'You have the option to set the general level of roughness - the'
-'so-called [adobe] and [dirt] functions. With minimal editing you'
-'can adapt individual surfaces properties.'
 '  '
+'As e2r exports geometric bodies it also creates a parallel set of'
+'files for use if there is a Blender 3D representation of the ESP-r'
+'model available.  If the source Wavefront file includes explicit'
+'material layers then material properties will also be included.'
+' '
 'Lastly, those who are familiar with Radiance will have an advantage'
 'and there are many resources on the web which can give you clues'
 'about leveraging the facilities of e2r.'
 *enditem
 
-*item e2r model_config_file_name
-'The model configuration file holds the definition '
-'of the building/ plant to be simulated, including the'
-'names of all of the files required.'
-*enditem
-
 *item e2r furniture_file_name
 'In order not to disturb files generated from a thermal'
 'description it is sometimes useful to place miscel '
-'furniture and fixtures in a separate file. '
+'furniture and fixtures in a separate file. If your ESP-r'
+'model includes [predefined entities] or [visual entities]'
+'these will already be included in the Radiance model.'
 '  '
-'You are given the option to browse the miscel (furniture and'
+'You are given the option to browse the furniture and'
 'fittings file or to open it up in a text editor.'
 *enditem
 
@@ -74,59 +84,49 @@
 *enditem
 
 *item e2r octree_force_update
-'The octree is a intermediate step between the '
-'Radiance input files and the rendered image. '
-'Radiance should be able to decide if the octree '
-'needs recreated or not, although if you have a '
-'new sky file then you must force Radiance to  '
-'recreate the octree (ie choose option 1).'
-'  '
-'Depending on the purpose of the scene you may be asked'
-'question about whether gridding should be altered or which'
-'user defined view to use.'
+'The octree is a intermediate step between the Radiance input'
+'files and the rendered image. Radiance should detect if the octree'
+'needs recreated or not, although if you have a new sky file then'
+'you must force Radiance to recreate the octree.'
 *enditem
 
 *item e2rform sky_def_local_file
-' Supply a local file name (i.e. without a path).'
-' This file holds the sky definition.'
+'Supply a local file name (i.e. without a path) for the'
+'sky definition.'
 *enditem
 
 *item e2rform sky_distribution_menu
-'This menu defines the sky distribution function for a'
-'Radiance scene.'
+'The attributes of the sky are managed by this facility:'
 ' '
-'* Site Latitude: (imported from ESP-r configuration).'
-'  The site latitude should be in degrees. '
+'* Site Latitude: (imported from ESP-r) is in degrees.'
 ' '
-'* Site Longitude: (imported from ESP-r configuration).'
-'  Site longitude difference is degrees from some local'
-'  reference meridian, east +ve, e.g. -4.1 for Glasgow'
-'  relative to the Greenwich meridian.'
+'* Site Longitude: (imported from ESP-r) is degrees from'
+'  a local reference meridian, east +ve, e.g. -4.1 for'
+'  Glasgow relative to the Greenwich meridian.'
 ' '
 '  Note this definition is different from that used by'
 '  radiance.  Also, if a meridian other than the prime '
 '  is defined in a sky file this will be reset to 0 and'
 '  the longtitude difference calculated accordingly. '
 ' '
-'* Year: this should be defined automatically.'
-'  The year is requred to sort out days of the week. '
+'* Year: this should be defined automatically and is used'
+'  to sort out days of the week.'
 ' '
-'* Date: change this to the date and time of the'
-'  simulation, or leave it as the default.'
+'* Date: change this to the date and time of the simulation,'
+'  or leave it as the default.'
 ' '
 '* Ground refl: this should be defined automatically.'
 '  The average ground reflectance should be a fraction'
 '  between 0.0 and 0.99.'
 '  '
-'* Sky: Toggle the type of sky conditions for the'
-'  simulation. The CIE std overcast sky is the'
-'  standard lighting design sky condition.'
+'* Sky: Toggle the type of sky conditions for the simulation. The'
+'  CIE std overcast sky is the standard lighting design sky condition.'
 ' '
-'* Generate sky description: Create the Radiance sky'
+'* Generate sky description: Invokes Radiance to create the sky'
 '  description file.'
 ' '
-'* Display sky info: display the contents of the'
-'  sky description file in the text window.'
+'* Display sky info: display the contents of the sky description'
+'  file.'
 *enditem
 
 *item e2rform sky_not_CIE_menu
@@ -141,27 +141,23 @@
 *enditem
 
 *item e2rform sky_file_not_generated
-'Recent work has not yet been used to generated a sky'
-'file for use by radiance. If you exit without creating'
-'the sky file the model will be incomplete. '
+'Radiance seems not to have been able to generate a sky'
+'file. If you exit not the model will be incomplete.'
 *enditem
 
 *item e2rform e2r_outside_comp
-'This menu defines the composition of the Radiance'
-'scene in terms of materials and geometry (inside and'
-'outside. '
+'This menu defines the composition of the Radiance scene'
+'in terms of materials and geometry. '
 ' '
-'There are 3 files created - materials (surface '
-'properties for surfaces and geometric composition'
-'of the inside and outside.  These are based on the '
-'current ESP-r materials and geometry specifications'
-'(taking into account the number of zones etc.). '
+'There are at least 3 files created - materials (surface '
+'properties for entities from the ESP-r model), geometry'
+'(of ESP-r entities as well as possible Wavefront file'
+'sources), glazing (typically from ESP-r entities).'
 ' '
 'After [generating] the files you may then manually'
 'edit them as required to add in textures or colours.'
-'Note that if you change one of the named material '
-'colours, then any geometric entity referencing it '
-'will be changed. '
+'Note: editing a named material will impact any geometric'
+'entity referencing it. '
 ' '
 'The [outer] face of internal partitions are EXCLUDED'
 'because they are duplicates of the inner face of the '
@@ -180,7 +176,7 @@
 '  '
 'Options:'
 ' * Filter surfaces - ESP-r surfaces are passed to Radiance'
-'   or surfaces and obstructions are passed to Radiance.'
+'   or all geometric entities are passed to Radiance.'
 '  '
 ' * Fictitious surf - this value allows e2r to distinguish'
 '   between normal glass and fictitious surfaces. You can'
@@ -198,123 +194,108 @@
 *enditem
 
 *item e2rform e2r_outside_not_created
-'The Radiance outside surfaces description file'
-'has not yet been generated. You might lose information'
-'if you exit before the file is generated. '
+'The Radiance outside surfaces description file has not yet'
+'been generated. You might lose information if you exit now.'
 *enditem
 
 *item e2rform writing_transpar_stuff
-'Based on the attributes of ESP-r surfaces and the optical properties'
-'gathered from the databases information is streamed into a file'
-'for use by Radiance.'
+'Radiance typically holds optical properties in a separate'
+'file and e2r bases what goes into this file from the optical'
+'properties of ESP-r entities are.'
+'  '
+'Note: if you are also using Blender Wavefront files as a source'
+'it is recommended that the Wavefront file excludes the transparent'
+'bodies and uses the ESP-r glass surfaces and optical properties'
+'instead.'
 '  '
 'Supply a local file name for the glazing file (i.e. without a path).'
-'This file holds glazed surface details. '
 '  '
-'If your  model includes controls to optical properties '
-'and you have the option to create a Radiance model'
-'which includes the alternative optical state. If so you'
-'will be asked to supply a local file name (i.e. without a path)'
-'for the alternative glazed surface details,'
+'If your  model includes controls to optical properties you have the'
+'option to create a Radiance model with an alternative set of optical'
+'properties. If so you will be asked to supply a local file name'
+'(i.e. without a path).'
 '  '
 'After streaming the optical properties for transparent surfaces'
-'information about the surface properties of opaque surfaces and'
-'obstruction and any ground definitions are written.
+'information about the surface properties of opaque bodiess'
+'are written.
 '  '
 'And lastly the surface properties of internal (inward facing)'
 'surfaces of the zones is streamed. You will be asked to supply'
 'a local file name (i.e. without a path) for the inside composition.'
-'  '
-'You will have the option to confirm inclusion of solar obstructions'
-'if they are included in your model.'
 *enditem
 
 *item e2rform precalculate_indirect_i
-'Large sources of indirect illumination should have their'
-'distributions pre-calculated as this optimises the rendering process.'
-'(Note: the pre-calculation is achieved  '
-'  via the Radiance utility mkillum.). You may be asked whether'
-'large surfaces should be subdivided within mkillum.'
+'Large sources of indirect illumination should have distributions'
+'pre-calculated as this optimises the rendering process.'
+' '
+'The pre-calculation is achieved via the Radiance '
+'utility mkillum.). You may be asked whether large surfaces'
+'should be subdivided within mkillum.'
 *enditem
 
 *item e2rform writing_ies_xforms
 'Light distributions fron fixtures can be imported from'
-so-called IES data files.  Please specify the file name.'
+so-called IES data files.  Please specify a file name.'
 *enditem
 
 *item e2rvp view_form_creation
-'You must either select one of the known views or create'
-'a new view point. If no view selected the first one will be'
-'created.'
+'Radiance renderings require a view point. Often several will be'
+'needed for various tasks e.g. glare at different points in a'
+'room and can be named to clarify their purpose and for inclusion'
+'in the Radiance rif file.'
 '  '
-'If you ask for a new view point you will first be shown'
-'a plan view of the model from which view point will be'
-'located. First you must pick one, several or all
-'zones for inclusion in the plan view.'
+'For interior views you will be shown a plan view of the model'
+'from which view point will be located. For outside views it'
+'is possible to inherit the direction from the wire-frame view.'
 '  '
-'If you create a new view then you will be asked for a short'
-'name for the view (this is the identifier help in the RIF'
-'file.'
+'Other aspects are the direction and horizontal and vertical angle'
+'of the view. These can be fine tuned in the Radiance interface and'
+'saved to a view file which can then be imported. If you save a'
+'number of view files these can be imported into different scenes'
+'to save time.'
 *enditem
 
 *item e2rvp ext_MRTview
-'The purpose of the currently selected scene is to create'
-'external views. MRT sensors exist inside a model, so it is'
-'not recommended to create view points at MRT sensors within'
-'the current scene. You should create a new scene for your'
-'specific purpose.'
+'Warning: The purpose of the currently selected scene is to create'
+'external views. MRT sensors exist inside a model are inconsistent'
+'with an external scene. Create a new scene for a MRT sensor position.'
+*enditem
 
 *item e2rvp view_definition_menu
-'This menu selects the viewpoint and direction, from'
-'where the Radiance image will be viewed.'
+'This menu selects the location and direction from which'
+'the Radiance rendering or visual assement is taken.'
 ' '
-'For external views the perspective feedback may be '
-'preferable to set views.  You may need to interact  '
-'with the [wireframe control[ to fine-tune the view '
-'as Radiance uses an eyepoint & view vector approach'
-'while e2r is built on an eyepoint & viewed point '
-'approach. '
+'For external views the perspective feedback may be preferable'
+'to the default view. Fine tune the wireframe view and then ask'
+'to inherit this view. Otherwise fine tune the view in via'
+'the Radiance interface and save the view to a file and then'
+'import that. For example:'
 ' '
-'To get an idea what the Radiance plan view attributes'
-'are manually issue the command:'
+'To get an idea what the Radiance plan view attributes are'
+'manually issue the command:'
 ' rad -V -vZl -n -s the_rif_file_name > plan.view'
 'then in e2r ask to scan plan.view and preview to the'
 'screen and use view commands to set the view position'
 'as well as the -vo (near trim) and -va (aft trim) distances.'
 ' '
-'For internal views the perspecitve feedback is not '
-'appropriate--use the plan & elevation views. '
+'For internal views the wireframe viewp is not appropriate.'
+'Use the plan & elevation views. '
 ' '
-'The viewpoint can be changed in three ways:'
-'* Eye Point: The (x,y,z) position of the eye point are'
-'  entered directly into the computer.'
-'* Pick EP on plan view: (easier!) select the eye point'
-'  by placing the cursor on the desired point and press'
-'  the left-hand button.'
-'* Accept perspective viewing eyepoint (easiest)  '
+'The eye point (x,y,z) can be edited and the display will update'
+'to show the new position.'
 '  '
-'The View Direction can be changed by: '
-'* Dir az elv: The direction and elevation are entered'
-'  directly into the computer. North is 0 deg and East'
-'  is 90 deg. The elevation is positive for up and '
-'  negative for down.'
-'* Accept perspective viewing direction.'
+'The View Direction can be changed by direct editing or using'
+'the wireframe orientation.
 ' '
-'* View angle by editing, or accepting perspective.'
-'  NOTE that the angle in () is that required to see '
-'  the whole ground disk.'
+'The horizontal and vertical view angles can be changed by'
+'direct editing.'
 '  '
 'The zones to include option controls the extent of the'
 'view bounding box.'
 '  '
-'Option k allows you to toggle between fisheye and perspective'
-'views. With a perspective view, view angles defined here will'
-'be passed to radiance. For a fisheye view, view angles are'
-'always 180 degrees. For glare assessments, fisheye views are'
-'highly recommended.'
-'  '
-'In plan view you can change the viewing parameters,'
-'the elevations are primarily for checking. '
+'You can toggle between fisheye and perspective views. For a'
+'fisheye view, view angles are always 180 degrees. For glare'
+'assessments, fisheye views are highly recommended.'
 *enditem
 
 *item e2rvp eyepoint_editing
@@ -330,9 +311,8 @@ so-called IES data files.  Please specify the file name.'
 *enditem
 
 *item e2rvp reflect_rad_view_in_per
-'The wireframe view can be updated to approximate'
-'the radiance view (does not work well for internal'
-'views). '
+'The wireframe view can be updated to approximate the Radiance'
+'view (does not work well for internal views).'
 *enditem
 
 *item e2rvp edit_or_accept_current
@@ -348,7 +328,7 @@ so-called IES data files.  Please specify the file name.'
 
 *item e2rvp view_angle_edit
 'The view angle is normally 60 deg.  The range'
-'is 20. < x < 179.'
+'is 3. < x < 180.'
 *enditem
 
 *item e2rvp e2r_east_axis
@@ -365,104 +345,105 @@ so-called IES data files.  Please specify the file name.'
 *enditem
 
 *item radcfg scene_selection_list
-'A scene will be selected from those available'
-'The scene list can be modified by selecting *'
+'A project may involve a range of visual assessment tasks'
+'each of which can be held in a separate [scene] definition.'
 '  '
-'The < command selects by index rather than a-z.'
-*enditem
-
-*item radcfg scene_manage_list
-'As with other entities a standard set of add/delete'
-'and copy functions is provided. '
+'You can select or manage (delete or add scenes as well as'
+'making a variant of an existing scene) via this facility.'
 '  '
-'Radiance desktop creates allows the creation of separate'
-'scenes each with a specific purpose. A modest scene can be'
-'created silently with assumed defaults. '
-' '
-'Once you have created a scene you can return to the'
-'definition section to update or add detail to the model.'
+'For example, if you have a scene supporting daylight factor'
+'calculations in one space and want to carry out DF calculations'
+'in another space make a variant which has the same attributes '
+'but focused on a different space and with a grid specific to'
+'space (i.e. the purpose of the variant is the same).'
 '  '
 *enditem
 
 *item radcfg purpose_of_rif_scene
-'The purpose of the scene is used when creating the '
-'scene description files. It is also used to control'
-'the application of Radiance.'
+'The purpose of the scene guides the creation of the'
+'Radiance files and computations as well as focusing the'
+'interface.'
 '  '
 ' External image - assumes you are looking at the model from'
 '   the outside at a given date and time (or range of times).'
+'  '
 ' Night external image - sets ambient light sources consistent'
 '   with clear night sky, otherwise as external image.'
+'  '
 ' Internal image - assumes a viewpoint within one of the zones'
-'   in the model.'
+'   in the model. You can add additional viewpoints in other'
+'   zones as required (no need for a separate scene for each).'
+'  '
 ' Glare - assumes a viewpoint within a zone and sets parameters'
 '   and uses Radiance facilities for glare. Remember to set'
 '   viewing parameters consisitent with this task (wide angle'
-'   and horizontal).'
+'   and horizontal). Again, you can define other viewpoints and'
+'   do glare assessments based on that without creating additional'
+'   scenes.'
+'  '
 ' Daylight factors - focused on a zone of the model and a grid'
 '   of points in the room and calculates daylight factors based'
-'   on a standard overcast sky.'
+'   on a standard overcast sky. If you want more than one grid'
+'   i.e. for different spaces you will need multiple scenes.'
+'  '
+'  '
 ' Daylight lux - similar to daylight factors but determines the'
 '   illuminance (lux) at each grid point based on a standard'
-'   overcast sky.'
+'   overcast sky. '
+'  '
 ' Illuminance - focused on a zone of the model and a grid of'
 '   points in the room and calculates illuminance at the points'
 '   based on the current time and sky conditions.'
+'  '
 ' Coupling - assumes a Radiance representation of one or more'
 '   casual gain control sensors in a room and during simulation'
 '   controls access to Radiance at each timestep to request the'
 '   state of these sensors.'
+'  '
 ' Daylight coefficient - Radiance supports a concept of pre-'
 '   calculated coefficients from surfaces in the model to patches'
 '   in the sky.'
 *enditem
 
-item radcfg pick_zone_for_int_view
-'Pick a zone as the focus zone for the Radiance internal'
-'image calculations. This is needed whether regardless of'
-'how many zones are in the model. Picking a specific zone'
-'does not prevent you from viewing the contents of other'
-'zones in the model.'
-*enditem
-
 *item radcfg e2r_new_scene_name
-'Many Radiance models may be created for a given ESP-r '
-'thermal model. Each of these Radiance models is called'
-'a scene, e.g. one scene may be of the buildings '
-'exterior and another could be an internal image of a'
-'zone. Each scene can have multiple viewpoints.'
+'Many Radiance scenes may be created for a given ESP-r thermal'
+'model. For example, one scene may be of the building exterior'
+'and others could be for internal images of a zone or for a glare'
+'assessment. Each scene can have multiple viewpoints.'
 '  '
 'The scene prefix (one word) is used in the creation of'
 'the rif file name and as a root name for the description,'
-'view, octree and image files. '
+'view, octree and image files. It is also used in selection'
+'lists (i.e. clear names speeds up selection).  '
 '  '
-'There is also an opportunity to provide a descriptive phrase'
-'to identify the scenes contents.'
+'There is also a descriptive phrase to identify the scene.'
+*enditem
+
+*item radcfg df_stay_focused
+'As calculations proceed the daylight factors shown on the'
+'grid will be refreshed. The wireframe view can be of the'
+'focus zone or all zones.'
 *enditem
 
 *item radcfg create_scene_interactive
-'Radiance desktop creates allows the creation of separate'
-'scenes each with a specific purpose. A modest scene can be'
-'created silently with assumed defaults. '
+'Radiance desktop supports the creation of scenes with minimal'
+'input i.e. given a purpose it sets a number of attributes.'
 ' '
-'Once you have created a scene you can return to the'
-'definition section to update or add detail to the model.'
+'You can later adapt the attributes of the scene and the'
+'computational parameters as needed.'
 *enditem
 
-*item radcfg select_zone_for_df
-'Pick a zone as the focus zone for the Radiance'
-'daylight factor calculations.'
+*item radcfg pick_focus_zone
+'Pick a zone as the focus for the assessment. For an [internal]'
+'or [glare] scene this helps in setting up the viewpoint. For'
+'daylight factor calculations it is used when setting up'
+'the grid of points where calculations will be made. '
+' '
 *enditem
 
 *item radcfg distance_to_df_grid
-'The grid points on the chosen surface can be '
-'transformed along the surface normal to give points in'
-'a parallel plane.  This is useful for calculating'
-'daylight factors on the working plane.'
-'  '
-'The grid can be transformed to the inside or outside'
-'of the surface, and must be at least 1mm from the'
-'surface. The default is inside.'
+'The grid points are offset from the chosen surface (either'
+'inward or outward along the surface normal.'
 '  '
 'You will be asked to select an edge (via two vertex'
 'indicies. The grid will be formed in rows parallel '
@@ -487,18 +468,37 @@ item radcfg pick_zone_for_int_view
 'name of a file which will hold the grid points created.'
 'Give the name of this file without a path.'
 *enditem
- 
-*item radcmds e2r_proceed_with_sim
-'You can start the visual simulation at this point by'
-'answering yes. If you say no you can start the simulation'
-'later. Note the simulation can take several minutes, if '
-'hours to complete. '
+
+*item radcfg e2r_RIF_file_name
+'A RIF (Raidance Input File) specifies the composition'
+'of the problem for Radiance as well as parameters for'
+'images quality and calculation parameters. '
+' '
+'Existing files will be scanned, otherwise you are guided'
+'in the creation of new scenes. '
+*enditem
+
+*item radcfg e2r_WF_file_name
+'Radiance entities can be created from a Wavefront obj file.'
+'e2r will do the conversion to a Radiance mesh if you give'
+'it the name of the Wavefront file.'
 '  '
-'If the scene purpose is a glare study the literature suggests that'
-'the view directives should be close to a wide-angle view - say 120'
-'to 170 degrees vertically and horizontally and that the elevation'
-'of the view is horizontal. There are several steps to the glare'
-'process so watch the process in the command window.'
+'Note: the obj2mesh Radiance application is used for this.'
+'e2r will do the conversion AND it is a good idea to check'
+'the feedback to see if there were any errors.'
+*enditem
+
+*item radcmds e2r_proceed_with_sim
+'You can postpone the visual simulation if you need to adjust'
+'calculation parameteres or add a viewpoint.'
+' '
+'Visual simulations can take several minutes, if not hours to'
+'complete - look in the command window behind the e2r tool to'
+'track progress.'
+'  '
+'If the scene purpose is a glare study there are several'
+'steps to the glare process so watch the process in the'
+'command window.'
 *enditem
 
 *item radcmds standard_times_of_day
@@ -508,8 +508,8 @@ item radcfg pick_zone_for_int_view
 *enditem
 
 *item radcmds single_time_or_sequence
-'Rendering can be for one instant in time or at intervals'
-'e.g. every 10 or 15 or 20 minutes during a period of a day.'
+'Rendering can be for one moment or at intervals e.g. every'
+'1, 10 or 15 or 20 minutes during a period of a day.'
 'You can adjust the parameters needed to create a set of images'
 '(gif or tif or jpg) which can be combined to form an amimation.'
 ' '
@@ -538,10 +538,10 @@ item radcfg pick_zone_for_int_view
 *enditem
 
 *item radcmds render_to_screen_or_file
-'Rendering can only be directed to screen on colour'
-'monitors.  You can adjust the visualisation '
-'parameters interactively and a summary of commands'
-'which Radiance understands is provided. '
+'Rendering can only be directed to screen (where you can adjust'
+'the visualisation parameters interactively). Once you are happy'
+'with the rendering you can get a higher resolution rendering'
+'via the file which is created.'
 '  '
 'If running on Windows you should choose file option.'
 *enditem
@@ -589,10 +589,12 @@ item radcfg pick_zone_for_int_view
 'as well as the number of contours to plot.'
 ' '
 'You may need to experiment to find appropriate parameters.'
+'Note: false colour images tend to work better if there are'
+'internal light sources in the scene.'
 *enditem
 
 *item radcmds e2r_df_convergence
-'The calculations will strart with one ambient bounce and'
+'The calculations will start with one ambient bounce and'
 'gradually increase the number of bounces until the change'
 'is less than a value (convergence criteria). The smaller'
 'the value the longer the calculations will take. '
@@ -602,15 +604,16 @@ item radcfg pick_zone_for_int_view
 'process. '
 *enditem
 
-*item radcmds e2r_df_confusion
+*item radcmds e2r_confusion
 'Sometimes Radiance gets confused. This is one place'
-'where starting again can correct this. '
+'where starting again can correct this. Also check the'
+'feedback in the command window.'
 *enditem
 
-*item radcmds e2r_df_file_overwrite
-'Daylight factors can be written to a file. If this file already'
-'exists you have a chance to save the past by giving a'
-'slightly different file name for the calculatons.'
+*item radcmds e2r_file_overwrite
+'Daylight factors or lux values are written to a file. If'
+'this file already exists you have a chance to save the past'
+'by giving a different file name.'
 *enditem
 
 *item radcmds e2r_lux_convergence
@@ -624,59 +627,29 @@ item radcfg pick_zone_for_int_view
 'process. '
 *enditem
 
-*item radcmds e2r_lux_confusion
-'Sometimes Radiance gets confused. This is one place'
-'where starting again can correct this. '
-*enditem
-
-*item radcmds e2r_lux_file_overwrite
-'Illuminance can be written to a file. If this file already'
-'exists you have a chance to save the past by giving a'
-'slightly different file name for the calculatons.'
-*enditem
-
 *item rifform e2r_scene_files_menu
-'This menu selects the scene description files to'
-'be used in the octree.'
+'This menu selects the scene description files to be used'
+'in the assessment as well as setting a number of calculation'
+'parameters.'
 ' '
-'The octree will be created by using the displayed'
-'files. If another octree using other files is to'
-'be created then change the relevant file name.'
+'Radiance will use these parameters. If other details of'
+'the rif file need to be manually adjusted you can look at'
+'the contents of the rif file or edit those contents and'
+'then re-scan the edited file.'
 '  '
+'You can test the rif file creation without proceeding with'
+'a full calculation.'
 '  '
-'Remember to update the [RIF] file after you have'
-'made changes to any settings.'
-'  '
-'NOTE: If any of the file names are UNKNOWN then they'
-'      will not be used in creating the octree.'
-'  '
-'The sky file contains information about the state of'
-'the sky.'
-'  '
-'The glazing composition file holds all of transparent'
-'surfaces in the model.'
-'  '
-'The opaque materials file holds all of surface properties'
-'for opaque surfaces obstructions and ground in the model.'
-'  '
-'Each ESP-r surface is represented by two offset polygons - one'
-'which faces outwards and one which faces inwards.'
-'  '
-'The definition of polygons which face the outside is held'
-'in the outside opaque composition file.'
-'  '
-'There is a similar file for polygon which face inwards or'
-'are partitions within the model.'
-'  '
-'Another file holds miscel items (furniture, fittings, objects)'
-'not included in a thermal simulation.'
+'Remember to save the RIF file to record any changes you'
+'have made.'
 *enditem
 
 *item rifform image_quality_options
-'Image quality sets a number of command parameters'
-'and influences the processing time.  Most of the time'
-'a low quality image will suffice (and there are opts '
-'which can get close to medium quality). '
+'Image quality sets a number of command parameters and can'
+'influences processing time.  Most of the time a medium'
+'quality image will suffice (and there are opts '
+'which can get close to higher quality image without the
+'waiting-for-the-paint-to-dry implied by high quality).'
 *enditem
 
 *item rifform e2r_detail_level_options
@@ -688,17 +661,17 @@ item radcfg pick_zone_for_int_view
 *item rifform e2r_light_var_options
 'Light level variability: Use Low for zones which are '
 'uniformally lit by lighting fixtures, Medium if there'
-'is diffuse skylight and High if direct sunlight. '
+'is diffuse skylight and High for direct sunlight.'
 *enditem
 
 *item rifform e2r_light_system_options
-'A direct (artificial) lighting system is one where '
-'reflections from surfaces are unimportant.'
-'If the space is naturally lit then reflections are '
-'important.  The geometry of the space defines whether'
-'the daylight is direct or diffuse.  As a basic guide'
-'assume direct daylight unless your model contains'
-'lightshelfs, an atrium or similar devices.'
+'Artificial) lighting is less sensitive to the number of'
+'bounces while natural lighting is best with one or two'
+'or even bounces. More bounces increases compute time'
+'greatly!'
+'  '
+'As a basic guide when previewing use one bounce and then'
+'increase for final rendering.'
 *enditem
 
 *item rifform e2r_pixel_size_options
@@ -710,7 +683,7 @@ item radcfg pick_zone_for_int_view
 
 *item rifform e2r_penumbras_options
 'Penumbras (soft shadows) in image is processor intensive'
-'and some users prefer this. '
+'and some users prefer this.'
 *enditem
 
 *item rifform track_progress_options
@@ -721,8 +694,8 @@ item radcfg pick_zone_for_int_view
 *item rifform e2r_viewpoint_options
 'Initial/simple view points are built up based on a  '
 'bounding box defined by minimimum & maximum X Y Z  '
-'coordinates.  If view has been set to inside or  '
-'outside this is also indicated in the string.  '
+'coordinates of the focus zone or of the whole buildig.'
+'Usually this will be correctly set automatically.'
 *enditem
 
 *item rifform e2r_ambient_file_name
@@ -733,7 +706,7 @@ item radcfg pick_zone_for_int_view
 
 *item rifform e2r_options_file_name
 'This holds additional calculation option commands'
-'in a file. '
+'in a file. This is for experts.'
 *enditem
 
 *item rifform e2r_pic_root_name

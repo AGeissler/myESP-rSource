@@ -562,7 +562,7 @@ C Open geometry file for surface property check.
 C  Check whether zone has external transparent surface(s)
             do 42 IZW=1,NZSUR(izu)
               if(SOTF(izu,izw)(1:4).eq.'TRAN'.and.
-     &           SOTHER(izu,izw,1)(1:8).eq.'EXTERIOR') then
+     &           zboundarytype(izu,izw,1).eq.0) then
 
 C  If so then display zone and centre point of the 
 C  transparent surface of the zone 

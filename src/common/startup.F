@@ -69,7 +69,7 @@ C is used to parse the "command line" string.
 C *******************************************************************************
       SUBROUTINE GetCommandLineArguments(module,termtype,iappw,iappx,
      &             iappy,inf,inf2,zone,act,actf,aut,ascif,aim,browse,
-     &             iverb,sps,data1,data2,data3)
+     &             iverb,sps,data1,data2,data3,ikey)
       IMPLICIT NONE
 C Common blocks
       integer :: IUOUT,IUIN,IEOUT
@@ -81,7 +81,7 @@ C Flag for H3K customizations
       common/H3KCustom/bEnableH3kExtensions
       logical bEnableH3kExtensions
 C Declare  calling parameter types
-      integer, intent(out)  ::  termtype,iappw,iappx,iappy,iverb
+      integer, intent(out)  ::  termtype,iappw,iappx,iappy,iverb,ikey
       integer, intent(in)  ::  module
       real, intent(out)     ::  data1,data2,data3
       character(144), intent(out)  :: inf, inf2
@@ -114,6 +114,7 @@ C Variable initialisation
       data2=0.0
       data3=0.0
       iverb =0
+      ikey=0
       pos = 0
       i = 0
       iappw = 0
@@ -193,6 +194,8 @@ C (disabled by default!)
           elseif(argument(1:2).eq.'-v')then
             iverb = 1   ! tell application to run with debug moderate
                         ! Note: this option MUST follow -version for both to be supported
+          elseif(argument(1:2).eq.'-k')then
+            ikey = 1    ! tell application to record keystrokes when in text mode.
           elseif(argument(1:5).eq.'-mode')then
 
             i=i+1
@@ -626,33 +629,28 @@ C  SCESPRC: scans the ESP-r dot file (environment)
 C  ESCDEF : scans the ESP-r defaults definition file
 
 C parsepar variants: Parse command lines.
-C  parpsf: allowa terminal, size and config file arguments
-C         to be passed to the program from the invocation line.
-C  parpsff: supports terminal, size and two file arguments
-C         to be passed to the program from the invocation line.
+C  parpsf: parses terminal, size and config file arguments
+C         to the program from the invocation line.
+C  parpsff: parses terminal, size and two file arguments
+C         to the program from the invocation line.
 C  parpsfh: Help message for parpsf.
-C  parsim: allows terminal, size, config file, simulation parameter
-C         file arguments to be passed
-C  parres: allows terminal, size, results file, action and silent arguments
-C         to be passed to res
-C  parclm: allows terminal, size, input file, action and silent arguments
-C         and output (converted) file to be passed to clm
-C  parsish: allows the module ish to be passed a terminal, size, config file,
-C         zone focus and actions arguments from the invocation line.
-C parsfza: allows a terminal, size, config file, zone focus and actions arguments
-C         to be passed to the program
-C parsprj: allows terminal, size, config file, zone focus and actions arguments
-C         (including 3 real data) to be passed to the prj
-C parsfz: allows terminal, size, config file, zone focus arguments
-C         to be passed to the program
-C partf: allows terminal and config file arguments
-C         to be passed to the program
-C partfa: allows terminal, file and action arguments
-C         to be passed to the program
-C parse2r: allows terminal, size, config file, scene purpose and actions arguments
-C         to be passed to e2r
-C parsfact: allows terminal, size, file and actions arguments
-C         to be passed to the program
+C  parsim: parses terminal, size, config file, simulation parameter
+C         file arguments.
+C  parres: parses terminal, size, results file, action and silent arguments
+C         to res.
+C  parclm: parses terminal, size, input file, action and silent arguments
+C         and output (converted) file for clm
+C  parsish: parses command line parameter for module ish: terminal, size, config file,
+C         zone focus and actions arguments.
+C parsfza: parses terminal, size, config file, zone focus and actions arguments.
+C parsprj: parses terminal, size, config file, zone focus and actions arguments
+C         (including 3 real data) passed to prj
+C parsfz: parses terminal, size, config file, zone focus arguments.
+C partf: parses terminal and config file arguments.
+C partfa: parses terminal, file and action arguments.
+C parse2r: parses terminal, size, config file, scene purpose and actions arguments
+C         for e2r.
+C parsfact: parses terminal, size, file and actions arguments.
 C parcnv parse command line paramters for ecnv.
 C FINDAPP: given a file name (string) see if it contains one of the
 C          esp-r modules
@@ -663,18 +661,19 @@ c*******************************************************************************
       USE PARSE_COMMAND_LINE
 C Add Proceedures
       CONTAINS
-C***********************************************************************************************************************
-C ********* parpsf (equivalent to startpsf.c)
-C parpsf allowa terminal, size and config file arguments
-C to be passed to the program from the invocation line.  
-C***********************************************************************************************************************
+
+C ********* parpsf *********
+C Equivalent to startpsf.c to parse terminal, size and config file arguments
+C to be passed to modules aco, b2e, cdb, dfs, eco, mfs, mld and pdb from the
+C invocation line.  
+
       subroutine parpsf(termtype,iappw,iappx,iappy,inf)
       IMPLICIT NONE
 C Declare  calling parameter types
       integer, intent(inout)  ::  termtype,iappw,iappx,iappy
       character(144), intent(inout)  :: inf
       
-      integer :: module, iverb
+      integer :: module, iverb, ikey
       real ::  data1,data2,data3
       character(144) :: inf2
       character(16) :: zone,act
@@ -686,23 +685,22 @@ C Declare  calling parameter types
       module = CONST_PARPSF
       call GetCommandLineArguments(module,termtype,iappw,iappx,
      &    iappy,inf,inf2,zone,act,actf,aut,ascif,aim,browse,
-     &    iverb,sps,data1,data2,data3)
+     &    iverb,sps,data1,data2,data3,ikey)
       
       end subroutine parpsf
 
 
-C***********************************************************************************************************************
-C ********* parpsff
-C parpsff supports terminal, size and two file arguments
-C to be passed to the program from the invocation line.  
-C***********************************************************************************************************************
+C ********* parpsff ******************
+C Parses terminal, size and two file arguments to be passed
+C from the invocation line.  
+
       subroutine parpsff(termtype,iappw,iappx,iappy,infa,infb)
       IMPLICIT NONE
 C Declare  calling parameter types
       integer, intent(inout)  ::  termtype,iappw,iappx,iappy
       character(144), intent(inout)  :: infa, infb
       
-      integer :: module, iverb
+      integer :: module, iverb, ikey
       real ::  data1,data2,data3
       character(16) :: zone,act
       character(96) :: actf,ascif
@@ -713,19 +711,20 @@ C Declare  calling parameter types
       module = CONST_PARPSFF
       call GetCommandLineArguments(module,termtype,iappw,iappx,
      &   iappy,infa,infb,zone,act,actf,aut,ascif,aim,browse,
-     &   iverb,sps,data1,data2,data3)
+     &   iverb,sps,data1,data2,data3,ikey)
       
       end subroutine parpsff
 
 
-C*********************************************************************************
-C parres allows terminal, size, results file, action and silent arguments
-C  to be passed to res from the invocation line.  
-C*********************************************************************************
-      subroutine parres(termtype,iappw,iappx,iappy,inf,act,aut,actf)
+C************ parres ***************
+C Parses terminal, size, results file, action, silent and keystroke
+C capture arguments to be passed to res from the invocation line.  
+
+      subroutine parres(termtype,iappw,iappx,iappy,inf,act,aut,actf,
+     &  ikey)
       IMPLICIT NONE
 C Declare  calling parameter types
-      integer, intent(inout)  ::  termtype,iappw,iappx,iappy
+      integer, intent(inout)  ::  termtype,iappw,iappx,iappy,ikey
       character(144), intent(inout)  :: inf
       character(96), intent(inout) :: actf
       character(12), intent(inout) :: aut
@@ -744,15 +743,14 @@ C Local variables for GetCommandLineArguments.
       module = CONST_PARRES
       call GetCommandLineArguments(module,termtype,iappw,iappx,
      &   iappy,inf,inf2,zone,act,actf,aut,ascif,aim,browse,
-     &   iverb,sps,data1,data2,data3)
+     &   iverb,sps,data1,data2,data3,ikey)
       end subroutine parres
 
 
-C***********************************************************************************************************************
-C ********* parclm
-C parclm allows terminal, size, input file, action and silent arguments
+C ********* parclm  *************
+C Parses terminal, size, input file, action and silent arguments
 C and output (converted) file to be passed to clm from the invocation line.  
-C***********************************************************************************************************************
+
       subroutine parclm(termtype,iappw,iappx,iappy,inf,act,aut,ascif)
       IMPLICIT NONE
 C Declare  calling parameter types
@@ -763,7 +761,7 @@ C Declare  calling parameter types
       character(96), intent(inout) :: ascif
 
 C Local variables for GetCommandLineArguments.
-      integer :: module, iverb
+      integer :: module, iverb, ikey
       real ::  data1,data2,data3
       character(144) :: inf2
       character(16) :: zone
@@ -775,24 +773,23 @@ C Local variables for GetCommandLineArguments.
       module = CONST_PARCLM
       call GetCommandLineArguments(module,termtype,iappw,iappx,
      &    iappy,inf,inf2,zone,act,actf,aut,ascif,aim,browse,
-     &    iverb,sps,data1,data2,data3)
+     &    iverb,sps,data1,data2,data3,ikey)
       
       end subroutine parclm
 
 
+C ********* parsprj **********
+C Parses terminal, size, config file, zone focus, actions arguments
+C (including 3 real data) and keystroke logging to be passed to prj
+C from the invocation line. 
 
-C*****************************************************************************
-C ********* parsprj 
-C parsprj allows terminal, size, config file, zone focus and actions arguments
-C (including 3 real data) to be passed to the prj from the invocation line.  
-C*****************************************************************************
       subroutine parsprj(termtype,iappw,iappx,iappy,inf,zone,act,
-     &        data1,data2,data3,iverb)
+     &        data1,data2,data3,iverb,ikey)
 
       IMPLICIT NONE
-C Declare  calling parameter types
+C Declare  calling parameter types.
       real, intent(inout)     ::  data1,data2,data3
-      integer, intent(inout)  ::  termtype,iappw,iappx,iappy,iverb
+      integer, intent(inout)  ::  termtype,iappw,iappx,iappy,iverb,ikey
       character(144), intent(inout)  :: inf
       character(16), intent(inout) :: act, zone
 
@@ -807,13 +804,13 @@ C Local variables for GetCommandLineArguments.
       module = CONST_PARSPRJ
       call GetCommandLineArguments(module,termtype,iappw,iappx,
      &             iappy,inf,inf2,zone,act,actf,aut,ascif,aim,browse,
-     &             iverb,sps,data1,data2,data3)
+     &             iverb,sps,data1,data2,data3,ikey)
       end subroutine parsprj
 
 
-C ********* parsfz (equivalent to startsfz.c)
-C parsfz allows terminal, size, config file, zone focus arguments
-C to be passed to the program from the invocation line.  
+C ********* parsfz *********
+C Equivalent to startsfz.c parsing terminal, size, config file, zone
+C focus arguments to be passed to grd and mrt from the invocation line.  
 
       subroutine parsfz(termtype,iappw,iappx,iappy,inf,zone)
       
@@ -824,7 +821,7 @@ C Declare  calling parameter types
       character(16), intent(inout)  :: zone
 
 C Local variables for GetCommandLineArguments.
-      integer :: module, iverb
+      integer :: module, iverb, ikey
       real ::  data1,data2,data3
       character(144) :: inf2
       character(16) :: act
@@ -836,15 +833,13 @@ C Local variables for GetCommandLineArguments.
       module = CONST_PARSFZ
       call GetCommandLineArguments(module,termtype,iappw,iappx,
      &             iappy,inf,inf2,zone,act,actf,aut,ascif,aim,browse,
-     &             iverb,sps,data1,data2,data3)
+     &             iverb,sps,data1,data2,data3,ikey)
       end subroutine parsfz
 
 
-C***********************************************************************************************************************
 C ********* partf (equivalent to startup.c)
-C partf allows terminal and config file arguments
-C to be passed to the program from the invocation line.  
-C***********************************************************************************************************************
+C Parses terminal and config file arguments from the invocation line.  
+
       subroutine partf(termtype,inf)
       
       IMPLICIT NONE
@@ -853,7 +848,7 @@ C Declare  calling parameter types
       character(144), intent(inout)  :: inf
 
 C Local variables for GetCommandLineArguments.
-      integer :: module, iverb,iappw,iappx,iappy
+      integer :: module, iverb,iappw,iappx,iappy,ikey
       real ::  data1,data2,data3
       character(144) :: inf2
       character(16) :: zone,act
@@ -865,13 +860,13 @@ C Local variables for GetCommandLineArguments.
       module = CONST_PARTF
       call GetCommandLineArguments(module,termtype,iappw,iappx,
      &   iappy,inf,inf2,zone,act,actf,aut,ascif,aim,browse,
-     &   iverb,sps,data1,data2,data3)
+     &   iverb,sps,data1,data2,data3,ikey)
       end subroutine partf
 
-C ********* partfa (equivalent to partf with an action parameter)
-C partfa allows terminal, file and action arguments
-C  to be passed to the program from the invocation line.  
-C  Logic allows for the -file token to be optional.
+C ********* partfa ********
+C Equivalent to partf with an action parameter also parsing
+C terminal, file and action arguments from the invocation line.  
+C Logic allows for the -file token to be optional.
 
       subroutine partfa(termtype,inf,act)
       
@@ -882,7 +877,7 @@ C Declare  calling parameter types
       character(16), intent(inout)  :: act
 
 C Local variables for GetCommandLineArguments.
-      integer :: module, iverb,iappw,iappx,iappy
+      integer :: module, iverb,iappw,iappx,iappy,ikey
       real ::  data1,data2,data3
       character(144) :: inf2
       character(16) :: zone
@@ -894,13 +889,13 @@ C Local variables for GetCommandLineArguments.
       module = CONST_PARTFA
       call GetCommandLineArguments(module,termtype,iappw,iappx,
      &   iappy,inf,inf2,zone,act,actf,aut,ascif,aim,browse,
-     &   iverb,sps,data1,data2,data3)
+     &   iverb,sps,data1,data2,data3,ikey)
       end subroutine partfa
 
 
-C ********* parse2r 
-C parse2r allows terminal, size, config file, scene purpose and actions arguments
-C  to be passed to e2r from the invocation line.  
+C ********* parse2r *******
+C Parses terminal, size, config file, scene purpose and actions arguments
+C to be passed to e2r from the invocation line for the e2r module.  
 
       subroutine parse2r(termtype,iappw,iappx,iappy,inf,zone,aim,act,
      &  actf,browse)
@@ -915,7 +910,7 @@ C Declare  calling parameter types
       character(4), intent(inout) :: browse
 
 C Local variables for GetCommandLineArguments.
-      integer :: module, iverb
+      integer :: module, iverb, ikey
       real ::  data1,data2,data3
       character(144) :: inf2
       character(96) :: ascif
@@ -925,13 +920,13 @@ C Local variables for GetCommandLineArguments.
       module = CONST_PARSE2R
       call GetCommandLineArguments(module,termtype,iappw,iappx,
      &  iappy,inf,inf2,zone,act,actf,aut,ascif,aim,browse,
-     &  iverb,sps,data1,data2,data3)
+     &  iverb,sps,data1,data2,data3,ikey)
       end subroutine parse2r
 
 
-C ********* parsim
-C parsim: allows terminal, size, config file, simulation parameter file arguments
-C  to be passed to the program from the invocation line.  
+C ********* parsim ***********
+C Parses terminal, size, config file, simulation parameter file arguments
+C to be passed to the simulator from the invocation line.  
 
       subroutine parsim(iverb,termtype,iappw,iappx,iappy,inf,browse,
      &  sps,aut,actf)
@@ -945,7 +940,7 @@ C Declare  calling parameter types
       character(30), intent(inout) :: sps
 
 C Local variables for GetCommandLineArguments.
-      integer :: module
+      integer :: module, ikey
       real ::  data1,data2,data3
       character(144) :: inf2
       character(16) :: zone,act
@@ -955,14 +950,14 @@ C Local variables for GetCommandLineArguments.
       module = CONST_PARSIM
       call GetCommandLineArguments(module,termtype,iappw,iappx,
      &   iappy,inf,inf2,zone,act,actf,aut,ascif,aim,browse,
-     &   iverb,sps,data1,data2,data3)
+     &   iverb,sps,data1,data2,data3,ikey)
       
       end subroutine parsim
 
 
-C ********* parsfact
-C parsfact allows terminal, size, file and actions arguments
-C  to be passed to the program from the invocation line.  
+C ********* parsfact  **********
+C Parses terminal, size, file and actions arguments to be passed
+C to module pdb from the invocation line.  
 
       subroutine parsfact(termtype,iappw,iappx,iappy,inf,act,actf)
       
@@ -974,7 +969,7 @@ C Declare  calling parameter types
       character(96), intent(inout) :: actf
 
 C Local variables for GetCommandLineArguments.
-      integer :: module, iverb
+      integer :: module, iverb, ikey
       real ::  data1,data2,data3
       character(144) :: inf2
       character(16) :: zone
@@ -986,18 +981,18 @@ C Local variables for GetCommandLineArguments.
       module = CONST_PARSFACT
       call GetCommandLineArguments(module,termtype,iappw,iappx,
      &   iappy,inf,inf2,zone,act,actf,aut,ascif,aim,browse,
-     &   iverb,sps,data1,data2,data3)
+     &   iverb,sps,data1,data2,data3,ikey)
       end subroutine parsfact
 
 
-C*******************************************************************************************
 
       END MODULE START_UP
-C*******************************************************************************************
+C*****************************************************************
 
 
-C ******* FINDAPP
-C FINDAPP given a file name (string) see if it contains one of the esp-r module names.
+C ******* FINDAPP ******
+C Given a file name (string) see if it contains one of the esp-r module names.
+
       SUBROUTINE findapp(string,appn)
       
       integer lnblnk  ! function definition
@@ -1041,15 +1036,14 @@ C If islash > 0 then root and file name
       RETURN
       END
 
-C ******************** scesprc 
-C scesprc scans the ESP-r dot file which should be located in the
+C *************** scesprc ********
+C Scans the ESP-r dot file which should be located in the
 C users home folder or in the esp-r distribution.  If not found
 C then some defaults are set.
 C Note: take this opportunity to instantiate common block stddbpath
 C while we have information on where esp-r was installed.
 
       SUBROUTINE scesprc(LFDEF,IFDEF,ITRC,IER)
-C Use espriou.h for climatelist file name and defdbfl.
 #include "building.h"
 #include "model.h"
 #include "espriou.h"
@@ -1357,7 +1351,7 @@ C Close file before exiting.
       RETURN
       END
 
-C ******************** ESCDEF
+C ************** ESCDEF ***********
 C Scans the ESP-r defaults definition file and returns
 C the default file and database names via common block.
 C It uses espinstalldir.h which was created by the Install
@@ -1437,7 +1431,7 @@ C UNIX file system (dinstpath = '/opt/esp-r').
         write(DPNF,'(2a)') di(1:min(ln,31)),
      &    '/training/plant/vent_simple/cfg/vent.cfg'
         write(DFCFD,'(2a)') di(1:min(ln,45)),
-     &    '/training/cfd/template.dfd'
+     &    '/training/CFD_room/zones/room1.dfd'
         write(DEFRLB,'(2a)') di(1:min(ln,51)),'/databases/test.res'
         write(DAFRES,'(2a)') di(1:min(ln,51)),'/databases/test.mfr'
         write(DCLIM,'(2a)') di(1:min(ln,51)),'/climate/clm67'
@@ -1680,7 +1674,7 @@ C Close defaults file before exiting.
       END SUBROUTINE
 
 
-C ******************** parpsfh ********************
+C ************ parpsfh ********************
 C Help message for several command line parsers.
 
       subroutine parpsfh(appn)
@@ -1806,6 +1800,7 @@ C Help message for several command line parsers.
         call edisp(iuout,'The project manager.')
         call edisp(iuout,'  Use: [-mode {text|graphic}]')
         call edisp(iuout,'       [-v|-vv] verbose or very verbose')
+        call edisp(iuout,'       [-k|-key] record keystrokes')
         call edisp(iuout,
      &     '       [-file <configuration>|<silent command>]')
         call edisp(iuout,'       [-zone <name|index>]')
@@ -1830,6 +1825,7 @@ C Help message for several command line parsers.
         call edisp(iuout,'This is the ESP-r analysis module.')
         call edisp(iuout,'  Use: [-mode {text|graphic}]')
         call edisp(iuout,'       [-file <results file>]')
+        call edisp(iuout,'       [-k|-key] record keystrokes')
         call edisp(iuout,'   [-act <action, {interactive|silent}>]')
         call edisp(iuout,'  (where action {ipv_win1|ipv_spr|ipv_sum|)')
         call edisp(iuout,'                 ipv_aut|ipv_win2|ipv_trn|)')
@@ -1849,7 +1845,7 @@ C Help message for several command line parsers.
       call edisp(iuout,'  where -mode options are:')
       call edisp(iuout,'    text    = text mode ')
       call edisp(iuout,'    graphic = graphic mode')
-      call edisp(iuout,'    script = script mode')
+      call edisp(iuout,'    script  = script mode')
       call edisp(iuout,' ')
       call edisp(iuout,' -help: display this help message. ')
       call edisp(iuout,' -version: display version number and quit.')
@@ -1857,7 +1853,7 @@ C Help message for several command line parsers.
       return
       end
 
-C ******************** bH3KExtentionsActive ********************
+C **************** bH3KExtentionsActive ***************
 C Returns value of h3k_extentions flag.
 
       logical function bH3KExtentionsActive()

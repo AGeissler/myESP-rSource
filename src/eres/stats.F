@@ -69,14 +69,16 @@ C Markdown flag.
       logical libheading ! have we printed report heading (library name etc).
       logical headingcontext ! has set or period changed so heading needs reprint
       common/libhead/libheading,headingcontext
+      common/recov03/recovery_active
+      logical recovery_active
 
 C High level control scope key words.
       character hcffpattern*12    ! heat, cool, or heat+cool plus detail
       common/hlcontrol/hcffpattern(2)     
 
 C User preferences for Monthly table.
-      integer imshtr,imtcas,imtaiv,imtctl,imtsol       ! monthly topic inclusion
-      common/monthlyoptions/imshtr,imtcas,imtaiv,imtctl,imtsol
+      integer imshtr,imtcas,imtaiv,imtctl,imtsol,imunit      ! monthly topic inclusion
+      common/monthlyoptions/imshtr,imtcas,imtaiv,imtctl,imtsol,imunit
 
 C SNAPSH is a logical flag to request variation in header.
       COMMON/SNAP/SNAPSH
@@ -283,7 +285,12 @@ C Call the menu of choices (this also sets some default options).
           else
             write(prompt,'(a)')' Output being directed to file. ' 
           endif
-          call usrmsg(prompt,'Scanning for range of values...','-')
+
+          if(recovery_active)then
+            continue
+          else
+            call usrmsg(prompt,'Scanning for range of values...','-')
+          endif
         else
           write(prompt,'(3a)') 'Scanning for ',
      &      SLABEL(1)(1:LNSLABEL(1)),'...'
@@ -337,7 +344,7 @@ C For each selected zone generate energy balance report.
           IODS=JIODS; IODF=JIODF
         endif
         if(ixopen.eq.1)then
-          call usrmsg(prompt,'Scanning for range of values...done.','-')
+          continue
         else
           call usrmsg('  ','  ','-')
         endif
@@ -397,7 +404,12 @@ C Call the menu of choices (this also sets some default options).
           else
             write(prompt,'(a)')' Output being directed to file. ' 
           endif
-          call usrmsg(prompt,'Scanning for range of values...','-')
+
+          if(recovery_active)then
+            continue
+          else
+            call usrmsg(prompt,'Scanning for range of values...','-')
+          endif
         else
           write(prompt,'(3a)') 'Scanning for ',
      &      SLABEL(1)(1:LNSLABEL(1)),'...'
@@ -442,7 +454,7 @@ C For each selected zone and surface generate energy balance report.
           IODS=JIODS; IODF=JIODF
         endif
         if(ixopen.eq.1)then
-          call usrmsg(prompt,'Scanning for range of values...done.','-')
+          continue
         else
           call usrmsg('  ','  ','-')
         endif
@@ -466,7 +478,6 @@ C scanning data. Call MOSURC for each selected zone in turn.
           else
             write(prompt,'(a)')' Output being directed to file. ' 
           endif
-          call usrmsg(prompt,'Scanning for range of values...','-')
         else
           write(prompt,'(3a)') 'Scanning for ',
      &      SLABEL(1)(1:LNSLABEL(1)),'...'
@@ -506,7 +517,7 @@ C For each selected zone and surface condensation report.
           CALL MOSURC(izone,izrh,iverb)
  166    continue
         if(ixopen.eq.1)then
-          call usrmsg(prompt,'Scanning for range of values...done.','-')
+          continue
         else
           call usrmsg('  ','  ','-')
         endif
@@ -527,7 +538,7 @@ C Interstitial condensation.
 
 C Monthly zone gains and losses report. Default columns take into
 C account hcffpattern:
-        imshtr=1; imtcas=1; imtaiv=1; imtctl=1; imtsol=1
+        imshtr=1; imtcas=1; imtaiv=1; imtctl=1; imtsol=1; imunit=1
         if(hcffpattern(1)(1:8).eq.'HEATONLY')then
           imtctl=2
         elseif(hcffpattern(1)(1:8).eq.'COOLONLY')then
@@ -987,6 +998,8 @@ C act='p' iget parameters already set.
 C Markdown flag.
       logical markdown
       common/markdownflag/markdown
+      common/recov03/recovery_active
+      logical recovery_active
 
       logical libheading ! have we printed report heading (library name etc).
       logical headingcontext ! has set or period changed so heading needs reprint
@@ -1087,7 +1100,12 @@ C starting Y are zone based.
         YTOTSD(I)=0.0; YSTD(I)=0.0; NY(I)=0; YTOT(I)=0.0
  5    continue
       XMAX=-1.E+10; XMIN=1.E+10; XTOT=0.0; XAVE=0.0; NX=0
-      call usrmsg(prompt,' ','-')
+
+      if(recovery_active)then
+        continue
+      else
+        call usrmsg(prompt,' ','-')
+      endif
 
 C First recover bounds of selected data and calculate distributed max, min.
 C If we can recover it efficiently use GETSTATS otherwise use MMACAL.
@@ -1180,7 +1198,7 @@ C Sum all NGET values for current timestep.
 C Find largest value for current timestep and zone.
               XMAX=MAX(XMAX,VAL2(IX,J))
               XMIN=MIN(XMIN,VAL2(IX,J))
-              XTOT=XTOT+VAL2(IX,J)
+              XTOT=XTOT+VAL2(IX,J)  ! Increment total.
               NX=NX+1
             endif
  421      CONTINUE
@@ -1197,10 +1215,15 @@ C Calculate standard deviation and averages.
  25   continue
       if (NX.ne.0) XAVE=XTOT/float(NX)
 
-      call usrmsg(prompte,'  ','P')
+      if(recovery_active)then
+        continue
+      else
+        call usrmsg(prompte,'  ','P')
+      endif
       if(MMOD.eq.8)call usrmsg('  ','  ','-')
 
-C Set IPV data and return.
+C Set IPV data and return (note calling code will need to divide
+C by NTS to shift to kWhr.
       if(act(1:1).eq.'i') then
         VMX=XMAX; VMN=XMIN; VAVE=XAVE; VTOT=XTOT
         return
@@ -1961,6 +1984,8 @@ C Get common precz from geometry.h
       logical libheading ! have we printed report heading (library name etc).
       logical headingcontext ! has set or period changed so heading needs reprint
       common/libhead/libheading,headingcontext
+      common/recov03/recovery_active
+      logical recovery_active
 
       dimension YMAX(MZS), YMIN(MZS), YTOT(MZS), YTOTSD(MZS)
       dimension YAVE(MZS), NY(MZS)
@@ -2011,7 +2036,12 @@ C starting Y are zone based.
  5    continue
       XMAX=-1.E+10; XMIN=1.E+10; XTOT=0.0
       XTOTSD=0.0; XAVE=0.0; NX=0
-      call usrmsg(prompt,'Scanning for range of values...','-')
+
+      if(recovery_active)then
+        continue
+      else
+        call usrmsg(prompt,'Scanning for range of values...','-')
+      endif
 
 C TSTART and TFINISH - start and finish times in hours from 0000 on the 
 C first day of output.
@@ -2083,8 +2113,12 @@ C Calculate averages and rescan the data to calculate std deviations.
         display=.TRUE.
         goto 99
       endif
-      call usrmsg(prompt,'Scanning for range of values...done.','P')
-      call usrmsg('  ','  ','-')
+
+      if(recovery_active)then
+        continue
+      else
+        call usrmsg('  ','  ','-')
+      endif
 
 C Now display the calculated data.
       call edisp(itru,'  ')
@@ -2160,6 +2194,8 @@ C act='p' iget parameters already set.
 C Markdown flag.
       logical markdown
       common/markdownflag/markdown
+      common/recov03/recovery_active
+      logical recovery_active
 
       logical libheading ! have we printed report heading (library name etc).
       logical headingcontext ! has set or period changed so heading needs reprint
@@ -2265,8 +2301,12 @@ C starting Y are zone based.
       else
         isp=20; lf=1
       endif
-      
-      call usrmsg(prompt,'Scanning for range of values...','-')
+
+      if(recovery_active)then
+        continue
+      else
+        call usrmsg(prompt,'Scanning for range of values...','-')
+      endif
 
 C Switch to fixed font for text feedback.
       lastmenufont=IMFS
@@ -2477,8 +2517,11 @@ C Calculate averages.
         endif
  20   continue
 
-      call usrmsg(prompt,'Scanning for range of values...done.','P')
-      call usrmsg('  ','  ','-')
+      if(recovery_active)then
+        continue
+      else
+        call usrmsg('  ','  ','-')
+      endif
 
 C -- Now display the recovered data. --
 C At each step here need to check if default space delimiter has been 
@@ -2973,6 +3016,8 @@ C Markdown flag.
 C High level control scope key words.
       character hcffpattern*12    ! heat, cool, or heat+cool plus detail
       common/hlcontrol/hcffpattern(2)     
+      common/recov03/recovery_active
+      logical recovery_active
 
       character prompt*124,outs*148,outsd*148,prompte*124
       CHARACTER RSNAME*40
@@ -3449,15 +3494,21 @@ C Clear the day array.
         ENDDO
 
       ENDDO    ! of I loop of days.
-      write(outs,'(f8.1,a)') AGRHTSTEPS*TFACT,
+      if(act(1:1).ne.'i') then
+        write(outs,'(f8.1,a)') AGRHTSTEPS*TFACT,
      &  ' hours when heating required in at least one zone.'
-      call edisp(itru,outs)
-      write(outs,'(f8.1,a)') AGRCLSTEPS*TFACT,
+        call edisp(itru,outs)
+        write(outs,'(f8.1,a)') AGRCLSTEPS*TFACT,
      &  ' hours when cooling required in at least one zone.'
-      call edisp(itru,outs)
-      if(markdown) call edisp(itru,'  ')
+        call edisp(itru,outs)
+        if(markdown) call edisp(itru,'  ')
+      endif
 
-      call usrmsg(prompte,'  ','P')
+      if(recovery_active)then
+        continue
+      else
+        call usrmsg(prompte,'  ','P')
+      endif
       if(MMOD.eq.8)call usrmsg('  ','  ','-')
 
       IMFS=lastmenufont
@@ -3514,6 +3565,8 @@ C << file does not need to be scanned to get the surface emissivity.
       logical libheading ! have we printed report heading (library name etc).
       logical headingcontext ! has set or period changed so heading needs reprint
       common/libhead/libheading,headingcontext
+      common/recov03/recovery_active
+      logical recovery_active
 
       CHARACTER PDESCR*64,SDESCR*44,CSTR*25
       CHARACTER*18 LABELS(13)
@@ -3569,7 +3622,11 @@ C Switch to fixed font for text feedback.
       call userfonts(IFS,ITFS,IMFS)
  
 C Energy requirements.
-      call usrmsg(prompt,'Scanning for range of values...','-')
+      if(recovery_active)then
+        continue
+      else
+        call usrmsg(prompt,'Scanning for range of values...','-')
+      endif
       ISET=ISIM
       CALL HDDATE(PDESCR)
       CALL HDSTEP(SDESCR)
@@ -3600,12 +3657,10 @@ C Initialiase variables for totals over all selected zones.
  67     continue
  66   continue
 
-C Read geometry and construction files and setup labels.
+C Read construction files and set up labels.
       DO 65 JZ=1,NZ
         izone=NZNO(JZ)
         iunit=ifil+1
-        call georead(iunit,LGEOM(izone),izone,0,iuout,ier)
-
         CALL ECONST(LTHRM(IZONE),IUNIT,izone,0,IUOUT,IER)
 
 C Update labels to match the current zone.
@@ -3911,7 +3966,6 @@ C Print the data and labels for uncontrolled casual gains.
       call edisp(itru,' ')
       call edisp(itru,
      &' (@opq & @trn = associated with opaque or transparent surfaces)')
-      call usrmsg(prompt,'Scanning for range of values...done.','P')
 
       IMFS=lastmenufont
       ITFS=lasttextfont    ! reset to proportional font in text feedback

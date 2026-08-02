@@ -67,9 +67,6 @@ C Markdown flag.
       CHARACTER*31 LABELS(18)
       CHARACTER*15 TITLE1(18)
 
-C Read in the geometry file to refresh surface attributes.
-      iunit=ifil+1
-      call georead(iunit,LGEOM(IZONE),IZONE,0,iuout,ier)
       idwins=0
 
 C Generate the labels for the interface and report.
@@ -147,15 +144,15 @@ C If snapshot IOH1 is timesteps rather than integer hours.
       else
         if(markdown)then
           call edisp(itru,' ')
-          write(outs,'(a)') '## Causal energy breakdown (kWhrs)'
+          write(outs,'(a)') '## Causal energy breakdown (kWh)'
           call edisp(itru,outs)
-          write(outs,'(2a,i3,2a)') ': Causal energy breakdown (kWhrs) ',
+          write(outs,'(2a,i3,2a)') ': Causal energy breakdown (kWh) ',
      &      'at air point for zone',IZONE,': ',zname(IZONE)
           call edisp(itru,outs)
         else
           call edisp(itru,' ')
           write(outs,'(a,i2,2a)')
-     &    ' Causal energy breakdown (kWhrs) at air point for zone',
+     &    ' Causal energy breakdown (kWh) at air point for zone',
      &    IZONE,': ',zname(IZONE)
           call edisp(itru,outs)
         endif
@@ -218,7 +215,7 @@ C Print out the results for each path.
 
 C Decode the current environmental control actuation point into
 C appropriate text. 
-C << recode without the GOTO >>
+C If II=1 goto 812, II=2 goto 811 , if II=3 goto 82, if II=4 goto 814 else fall to 811.
         II=NIT+2
         GOTO(812,811,82,814),II
 

@@ -127,7 +127,7 @@ C Find minimum x and y coordinates.
 
 C Find maximum x and y coordinates.
         aixmx=MAXLOC(X); aiymx=MAXLOC(Y)
-        ixmx=aixmx(1); iymx=aiymx(1)
+        ixmx=int(aixmx(1)); iymx=int(aiymx(1))
 
 C Calculate z values to use.
         if (ixmn.eq.iymn) then
@@ -1311,7 +1311,7 @@ C find angle between extremes and eye point.
       END
 
 C ***************** BNDOBJ 
-C BNDOBJ: Does range checking on objects to be displayed.
+C BNDOBJ: Does range checking on objects (in common) to be displayed.
       SUBROUTINE BNDOBJ(ITRC,IER)
 #include "building.h"
 

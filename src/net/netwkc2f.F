@@ -324,13 +324,17 @@ C Adjust the grid size positive IGRIDU increases.
 C Adjust the zoom status. Ensure it is not beyond limits.
       ELSEIF(IZOOM.EQ.1)THEN
         IF(SCALF.LT.VIEWMZ)THEN
-          SCALF=SCALF+0.2  ! increase the zoom by 0.2
+          if(SCALF+0.2.LT.VIEWMZ)then
+            SCALF=SCALF+0.2  ! increase the zoom by 0.2
+          endif
         ELSE
           SCALF=VIEWMZ
         ENDIF
       ELSEIF(IZOOM.EQ.-1)THEN
         IF(SCALF.GT.VIEWMN)THEN
-          SCALF=SCALF-0.2  ! decrease the zoom by 0.2
+          if(SCALF-0.2.gt.VIEWMN)then
+            SCALF=SCALF-0.2  ! decrease the zoom by 0.2
+          endif
         ELSE
           SCALF=VIEWMN
         ENDIF

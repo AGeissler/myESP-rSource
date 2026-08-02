@@ -110,19 +110,19 @@ C superceeded by user specifications.
           write(outs,'(A,I5,2a,i4,2a,i3,a)')
      &    ' Subroutine HTBUOY  Trace output',ICNT,
      &    ' for ',zname(icomp)(1:lnzname(icomp)),icomp,' & surface ',
-     &    sname(icomp,isur)(1:lnsname(icomp,isur)),isur,
+     &    sname(icomp,isur)(1:lnblnk(sname(icomp,isur))),isur,
      &    ' (data may be superceeded by the zone convective regime).'
         else
           write(outs,'(A,I5,2a,i3,2a,i3,a)')
      &    ' Subroutine HTBUOY  Trace output',ICNT,
      &    ' for ',zname(icomp)(1:lnzname(icomp)),icomp,' & surface ',
-     &    sname(icomp,isur)(1:lnsname(icomp,isur)),isur,'.'
+     &    sname(icomp,isur)(1:lnblnk(sname(icomp,isur))),isur,'.'
         endif
       else
         write(outs,'(A,I5,2a,i3,2a,i3,a)')
      &    ' Subroutine HTBUOY  Trace output',ICNT,
      &    ' for ',zname(icomp)(1:lnzname(icomp)),icomp,' & surface ',
-     &    sname(icomp,isur)(1:lnsname(icomp,isur)),isur,
+     &    sname(icomp,isur)(1:lnblnk(sname(icomp,isur))),isur,
      &    ' (default treatment).'
       endif
       call edisp(itu,outs)
@@ -938,7 +938,7 @@ C Trace output?
       write(outs,'(A,I5,2a,i4,2a,i3)')
      &  ' Subroutine HTCEXT  Trace output',ICNT,
      &    ' for ',zname(icomp)(1:lnzname(icomp)),icomp,' & surface ',
-     &    sname(icomp,isur)(1:lnsname(icomp,isur)),isur
+     &    sname(icomp,isur)(1:lnblnk(sname(icomp,isur))),isur
       call edisp(itu,outs)
       CALL DAYCLK(idynow,BTIMEF,ITU)
       dotrace=.true.

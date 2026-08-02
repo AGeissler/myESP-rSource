@@ -28,7 +28,7 @@ OBJECTS = dfs.o arrow.o ascii_mat.o bndarybl.o bndaryl.o bndaryt.o \
 	chkconvg.o common3dv.o conc.o  dossupport.o e3dviews.o edatabase.o \
 	egeometry.o eroper.o esru_misc.o filelist.o \
 	lisolv.o locmage.o mitzero.o plot.o psychro.o \
-	read3dv.o sort.o visgrd.o visual.o visvec.o wvapour.o 
+	sort.o visgrd.o visual.o visvec.o wvapour.o 
 
 MODULES = aim2.mod aim2_calcdata.mod aim2_h2k_dummy.mod aim2_inputdata.mod start_up.mod \
      parse_command_line.mod h3kmodule.mod CFC_Module.mod
@@ -85,9 +85,6 @@ filelist.F:
 psychro.F:
 	rm -f psychro.F
 	ln -s $(COMdir)/psychro.F .
-read3dv.F:
-	rm -f read3dv.F
-	ln -s $(PRJdir)/read3dv.F .
 sort.F:
 	rm -f sort.F
 	ln -s $(COMdir)/sort.F .
@@ -106,9 +103,9 @@ install:
 
 clean:
 	rm -f core $(PROG) $(PROG).exe $(MODULE_OBJECTS) $(OBJECTS) $(MODULES) \
-	aim2_module.F arrow.F ascii_mat.F c2fdum.F \
-	cfdrw.F cfgrid.F common3dv.F dossupport.F e3dviews.F edatabase.F egeometry.F \
-	eroper.F esru_misc.F filelist.F psychro.F read3dv.F sort.F startup.F \
+	aim2_module.F arrow.F ascii_mat.F c2fdum.F cfdrw.F \
+	cfgrid.F common3dv.F dossupport.F e3dviews.F edatabase.F egeometry.F \
+	eroper.F esru_misc.F filelist.F psychro.F sort.F startup.F \
 	h3kmodule.f90 CFC_Module.f90 cfc_module.mod
 
 distclean: clean

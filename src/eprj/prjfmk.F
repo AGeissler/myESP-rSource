@@ -437,8 +437,6 @@ C spaces.
 
 C Set the default labels, slot, type labels for this zone. Only set
 C the lodslot to non-zero for the initial 3 casual gain slots.
-
-C << it might not be necessary to set lodslot??? >>
           lodlabel(icomp,1)='Occupants'
           caskeytype(icomp,1)='people      '
           lodslot(icomp,1)=1; lodatr1(icomp,1)=0;  lodatr2(icomp,1)=0
@@ -489,7 +487,7 @@ C doing anything.
           return
         elseif(igu.eq.13)then
 
-C Explain
+C Explain.
           helptopic='operations_creation'
           call gethelptext(helpinsub,helptopic,nbhelp)
           CALL PHELPD('operation choices',nbhelp,'-',0,0,IER)
@@ -581,6 +579,8 @@ C Nothing selected treat this as a return state.
           endif
 
 C Only ask these questions if the source file exists.
+          helptopic='operations_flow_import'
+          call gethelptext(helpinsub,helptopic,nbhelp)
           CALL EASKMBOX('Scope of scheduled air flows being imported.',
      &      'Options:','all flow schedules & ctl','infiltration only',
      &      'cancel',' ',' ',' ',' ',' ',ivopt,nbhelp)
@@ -710,6 +710,8 @@ C Nothing selected treat this as a return state.
             endif
           endif
 
+          helptopic='operations_gains_import'
+          call gethelptext(helpinsub,helptopic,nbhelp)
           CALL EASKMBOX('The magintude of casual gains which are',
      &       'imported can be changed. Options:','preserve Watts',
      &       'convert by base area','cancel',
@@ -808,6 +810,8 @@ C So save the changes to the file and then exit.
         if(ip3ver(icomp).lt.21)then
 
 C Edit combined operation description or scheduled air description.
+          helptopic='operations_notes'
+          call gethelptext(helpinsub,helptopic,nbhelp)
           tcname=oprdesc(icomp)
           ISTRW=72
           CALL EASKS248(tcname,' ','Zone operation notes:',
@@ -815,6 +819,8 @@ C Edit combined operation description or scheduled air description.
           if(tcname(1:2).ne.'  ')oprdesc(icomp)=tcname
           MODOPR=.true.
         else
+          helptopic='operations_notes'
+          call gethelptext(helpinsub,helptopic,nbhelp)
           tcname=ventdesc(icomp)
           ISTRW=72
           CALL EASKS248(tcname,' ','Zone scheduled air notes:',
@@ -827,6 +833,8 @@ C Edit combined operation description or scheduled air description.
 
 C Edit the casual documentation
         if(ip3ver(icomp).ge.21)then
+          helptopic='operations_notes'
+          call gethelptext(helpinsub,helptopic,nbhelp)
           tcname=oprdesc(icomp)
           ISTRW=72
           CALL EASKS248(tcname,' ','Zone casual gains notes:',
@@ -3301,7 +3309,6 @@ C and decide if the periods need to be updated.
 C Display initial gain profiles and then sort and remove overlaps and
 C ensure that periods start at zero and end with 24. Sorted files can
 C be saved as version 2.1
-C          call edisp(iuout,'Before sorting')
           call CASINF(ICOMP,iuout)
           if(ip3ver(ICOMP).le.1)then
             itrc=0
@@ -4157,6 +4164,8 @@ C Passed parameters
 
 C Electrical data flag and elctrical data.
       common/elecflg/ielf(mcom)
+      common/dynamico/isdynamicocup(MCOM)
+      integer isdynamicocup
 
       logical OK,CLOSE,silent
 
@@ -4179,7 +4188,8 @@ C get data from common.
         CMGLX=0.
         if(caskeyt(1:6).eq.'people')then
           RADCX=0.6; CONCX=0.4
-        elseif(caskeyt(1:14).eq.'dynamic_people')then
+        elseif(caskeyt(1:14).eq.'dynamic_people'.or.
+     &    caskeyt(1:13).eq.'dynamicpeople')then
           RADCX=0.6; CONCX=0.4
         elseif(caskeyt(1:8).eq.'lighting')then
           RADCX=0.3; CONCX=0.7
@@ -4253,6 +4263,8 @@ C Can be specified as: W, W/obj, W/m^2, m^2/obj
       elseif(icguX.eq.3)then
         msg='Gain to be specified (currently nb of person)'
       endif
+      helptopic='operations_casual_units'
+      call gethelptext(helpinsub,helptopic,nbhelp)
       CALL EASKMBOX(msg,'Options: ',
      &  'Watts','Watts/m2','objects/m2->Watts',
      &  'Square meters per object','Dynamic People',
@@ -4269,6 +4281,8 @@ C up to get W and revise icgtx to be positive and set icgux.
         else
           write (HOLD,'(2f8.1,a)') CMGSX,CMGLX,'  '
         endif
+        helptopic='operations_sensible_lat'
+        call gethelptext(helpinsub,helptopic,nbhelp)
         call EASKS(HOLD,'Sensible and latent gain (W):',
      &    ' ',24,'0.   0. ','casual gn info',IER,nbhelp)
         if(ier.eq.-3) goto 10  ! user canceled
@@ -4290,6 +4304,8 @@ C W divide by base area to reset value.
         else
           write (HOLD,'(2f8.1,a)') CMGSX,CMGLX,'  '
         endif
+        helptopic='operations_sensible_lat'
+        call gethelptext(helpinsub,helptopic,nbhelp)
  30     call EASKS(HOLD,'Sensible and latent gain (W/m^2):',
      &          ' ',24,'0.   0. ','casual gn info',IER,nbhelp)
         if(ier.eq.-3) goto 10  ! user canceled
@@ -4320,6 +4336,8 @@ C user cancels go back to initial question otherwise user input is converted
 C into equivalent Watts.
 C << an actual cancel option not yet implemented >>
         NOBJ=1
+        helptopic='operations_per_object'
+        call gethelptext(helpinsub,helptopic,nbhelp)
  40     CALL EASKI(NOBJ,' ','Number of objects (e.g. lamps)?',
      &    0,'W',100,'W',1,'number of objects',IERI,nbhelp)
         if(ieri.eq.0)then
@@ -4361,6 +4379,8 @@ C If occupants and a zero entered this is interpreted as no people
 C for this timestep.  For gains other than people convert the users
 C data back into W/m2.
         NOBJ=1
+        helptopic='operations_per_m2'
+        call gethelptext(helpinsub,helptopic,nbhelp)
  50     if(caskeyt(1:6).eq.'people')then
           FLA=CMGSX  ! assumes occupants already in m2/p
         else
@@ -4421,7 +4441,8 @@ C Describe dynamic people:
 C number of men number of women, number
 C of children, avg metabolic rate, avg clothing level.
 
- 51     if(caskeyt(1:14).eq.'dynamic_people')then
+ 51     if(caskeyt(1:14).eq.'dynamic_people'.or.
+     &     caskeyt(1:13).eq.'dynamicpeople')then
           xtnbmen=tnbmenx
           xtnbwomen=tnbwomenx
           xtnbchild=tnbchildx
@@ -4437,10 +4458,29 @@ C of children, avg metabolic rate, avg clothing level.
           xairvel=0.1
         endif
 
+C Remind user what current status of dynamic person.
+        if(isdynamicocup(icomp).eq.1)then
+          call edisp(iuout,'Using dynamic person CIBSE model.')
+        elseif(isdynamicocup(icomp).eq.2)then 
+          call edisp(iuout,'Using dynamic person ASHRAE model.')
+        elseif(isdynamicocup(icomp).eq.3)then 
+          call edisp(iuout,'Using dynamic person two node model.')
+        elseif(isdynamicocup(icomp).eq.4)then 
+          call edisp(iuout,'Using dynamic person CFD model.')
+        endif
+        write(outs,'(a,f5.1,a,f5.1,a,f5.1,a,f5.1,a,f5.1,a,f5.1)') 
+     &    'Current status: men',xtnbmen,' women',xtnbwomen,
+     &    ' children',xtnbchild,' metabloic',xmetabolic,
+     &    ' clothing',xclo,' velocity',xairvel
+        call edisp(iuout,' ')
+        call edisp(iuout,outs)
+
+        helptopic='operations_dynamic_mwc'
+        call gethelptext(helpinsub,helptopic,nbhelp)
         write (HOLD,'(3f6.1)') xtnbmen,xtnbwomen,xtnbchild
-        call EASKS(HOLD,
-     &    'Total nb men nb women nb children:',
-     &    ' ',36,'0.   0. ','occupant info',IER,nbhelp)
+        call EASKS(HOLD,'  ',
+     &    'Total number of men women and children:',
+     &    36,'0.   0. ','occupant numbers',IER,nbhelp)
         K=0
         call EGETWR(HOLD,K,xtnbmen,0.,50.0,'W','Number of men',IER)
         call EGETWR(HOLD,K,xtnbwomen,0.,50.0,'W','Number of women',IER)
@@ -4459,11 +4499,17 @@ C of children, avg metabolic rate, avg clothing level.
         endif
 
 C Other questions to enable testing the equations. << TODO >>
+        helptopic='operations_met_rate'
+        call gethelptext(helpinsub,helptopic,nbhelp)
         call EASKR(xmetabolic,
      &   'Average metabolic rate (met)?',
      &   '  ',0.0,'W',10.0,'W',1.0,'metabolic rate',IERI,nbhelp)
         metabolicx=xmetabolic
-    
+        if(xclo.eq.-1)then
+          call edisp(iuout,'Current clo model is dynamic.')
+        else
+          call edisp(iuout,'Current clo model is user prescribed.')
+        endif
         helptopic='operations_clo_model'
         call gethelptext(helpinsub,helptopic,nbhelp)
         call EASKMBOX('Clothing value?',' ','dynamic (default)',
@@ -4483,23 +4529,25 @@ c        call EASKR(xairvel,
 c     &   'Air velocity(m/s) value (with zero meaning none)?',
 c     &   '  ',0.0,'W',3.0,'W',1.0,'clo value',IERI,nbhelp)
 c        airvelx=xairvel
+
 C Ask about testing.
+        helptopic='operations_test_dynamic'
+        call gethelptext(helpinsub,helptopic,nbhelp)
         CALL EASKMBOX('Estimate gains?','Options:',
      &    'standard conditions','user defined conditions','cancel',
      &    ' ',' ',' ',' ',' ',ivopt,nbhelp)
-        helptopic='operations_casual_data'
+        helptopic='operations_test_dynamic'
         call gethelptext(helpinsub,helptopic,nbhelp)
-        if(ivopt.eq.1)then
-C Tmix = CONV*Tair + RAD*Tmrt
+        if(ivopt.eq.1)then                           ! Tmix = CONV*Tair + RAD*Tmrt
           TOP=(20.0+22.0)/2.0
           if (metabolicx.GT.1.6)then  
-            SGAIN=(-0.0471*TOP**2-3.3346*TOP+155.86)      ! When metabolic rate> 1.6 met
+            SGAIN=(-0.0471*TOP**2-3.3346*TOP+155.86) ! When metabolic rate> 1.6 met
             LGAIN=(0.0729*TOP**2+1.7747*TOP+32.646)
           else if (metabolicx.LT.1.2) then
-            SGAIN=(-0.0558*TOP**2-2.99*TOP+174.3)      ! When metabolic rate< 1.2 
+            SGAIN=(-0.0558*TOP**2-2.99*TOP+174.3)    ! When metabolic rate< 1.2 
             LGAIN=(0.1544*TOP**2-4.6528*TOP+57.37)
           else
-            SGAIN=(-0.0577*TOP**2-2.8642*TOP+172.16)  ! When metabolic rate> 1.2 and <1.6 met
+            SGAIN=(-0.0577*TOP**2-2.8642*TOP+172.16) ! When metabolic rate> 1.2 and <1.6 met
             LGAIN=(0.1231*TOP**2-1.8358*TOP+25.452)
           end if
           write(outs,'(a,f5.1,a,f5.1,a,f5.1,a)')
@@ -4518,10 +4566,10 @@ C Tmix = CONV*Tair + RAD*Tmrt
      &   '  ',0.0,'W',1.0,'W',0.05,'test mrt',IERI,nbhelp)
           TOP=(v2+(v1*sqrt(10*v3)))/(1+sqrt(10*v3))
           if (metabolicx.GT.1.6)then  
-            SGAIN=(-0.0471*TOP**2-3.3346*TOP+155.86)      ! When metabolic rate> 1.6 met
+            SGAIN=(-0.0471*TOP**2-3.3346*TOP+155.86)  ! When metabolic rate> 1.6 met
             LGAIN=(0.0729*TOP**2+1.7747*TOP+32.646)
           else if (metabolicx.LT.1.2) then
-            SGAIN=(-0.0558*TOP**2-2.99*TOP+174.3)      ! When metabolic rate< 1.2 
+            SGAIN=(-0.0558*TOP**2-2.99*TOP+174.3)     ! When metabolic rate< 1.2 
             LGAIN=(0.1544*TOP**2-4.6528*TOP+57.37)
           else
             SGAIN=(-0.0577*TOP**2-2.8642*TOP+172.16)  ! When metabolic rate> 1.2 and <1.6 met
@@ -6288,6 +6336,8 @@ C Explific type to go with this casual gain.
       isw=0
       igu=1  ! assume watts as unit
       isdynamicocup(icomp)=0
+      helptopic='operations_types'
+      call gethelptext(helpinsub,helptopic,nbhelp)
       call MENUATOL('  ','Available types',
      &  'a -        not yet defined W & W/m2',
      &  'b people   basic occupant W & m2/p',
@@ -6301,6 +6351,8 @@ C Explific type to go with this casual gain.
      &  'j ALStoveElectric H3K electrical stoves',
      &  'k ALDryer H3K clothes dryers',
      &  ' ',isw,idno,nbhelp)
+      helptopic='operations_casual_units'
+      call gethelptext(helpinsub,helptopic,nbhelp)
       if(isw.eq.1)then
         igu=1
         rf=0.5 ; cf=0.5 
@@ -6346,7 +6398,7 @@ C Explific type to go with this casual gain.
 C Segmented model disabled until it can be made more robust.
         CALL EASKMBOX('Which person model?',' ','CIBSE polynomial',
      &    'ASHRAE polynomial','two-node',' ',' ',' ',' ',' ',
-     &    iatr1,nbhelp)
+     &    xiatr1,nbhelp)
         isdynamicocup(icomp)=xiatr1
         iatr1=xiatr1
         helptopic='operations_initial'
@@ -6398,8 +6450,10 @@ C Segmented model disabled until it can be made more robust.
 
 C If adding to existing zone operation file ask user if they want to
 C create periods for each day type.
+      helptopic='operations_synopsis'
+      call gethelptext(helpinsub,helptopic,nbhelp)
       if(.NOT.firsttime)then
-        CALL EASKOK(' ','Define periods in each day type?',
+        CALL EASKOK(' ','Define periods for each current day type?',
      &    OK,nbhelp)
         if(.NOT.ok) return
       endif
@@ -6545,9 +6599,9 @@ C Extract the start timings and then sort out the finishes.
       end
 
 C ******* initcaspattern
-C initcaspattern populates the casual gain common blocks for
-C a number of room use patterns with some diversity across
-C day types and during days. Called from PRJFMK
+C Populates the casual gain common blocks for a number of
+C room use patterns with some diversity across day types
+C and during days. Called from PRJFMK
       subroutine initcaspattern(icomp,igu,ier)
 
 #include "building.h"

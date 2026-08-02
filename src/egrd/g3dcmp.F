@@ -13,7 +13,7 @@ C warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
 C PURPOSE. See the GNU General Public License for more
 C details.
 
-C *********************************************************************
+
 C This file contains the following routines:
 
 C GRDSRF is the main controller for surfaces discretization. It 
@@ -36,34 +36,35 @@ C CONEDG displays the edge construction menu.
 C FHCEDG draws the free hand sketch for the cross section of a given 
 C        edge with it's gridding lines.
 C TOTEDG determines the total number of edges in the zone.
-C INDEDG Initializes the edges gridding.
+C INDEDG Initialises the edges gridding.
 C EDGNUM defines the number of the edge in a zone from it's associated
 C        two surfaces.
 C EDGCRT creates new edges or appends new edge to existing one.
 
-C GRDCRN is the main controller for corners discretization. It 
+C GRDCRN is the main controller for corners discretisation. It 
 C        displays the main menu for corners.
 C DRWCRN draws the selected corner after checking it's existance. It 
-C        also draws the gridding in the local z direction.
+C        also draws the gridding in the local z-direction.
 C CONCRN displays the corner construction menu.
 C FHCCRN draws the free hand sketch for the cross section of a given 
 C        corner with it's gridding lines.
-C INDCRN initializes the corners dimensions.
+C INDCRN initialises the corners dimensions.
 C CRNNUM defines the number of the corner in a zone from it's associated
 C        two surfaces. If the corner does not exist a new one will be 
 C        created.
 C TOTCRN determines the total number of corners in the zone.
-C *********************************************************************
 
-C *********************************************************************
-C GRDSRF is the main controller for surfaces discretization. It 
-C displays the main menu for surfaces.
+
+C ****************************** GRDSRF ***************************************
+C The main controller for surfaces discretisation. It displays the main menu
+C for surfaces.
 
       SUBROUTINE GRDSRF(IZ,IDRW1,IDRW2)
 #include "building.h"
 #include "geometry.h"
 #include "prj3dv.h"
 #include "help.h"
+
       integer iCountWords
 
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
@@ -81,7 +82,7 @@ C displays the main menu for surfaces.
 
       DIMENSION ITEM(12),IVALS(MS)
       CHARACTER SSRF*12,ITEMS(MS)*17,CORDNT*24
-      CHARACTER ITEM*28,SZN*12,STTS*5
+      CHARACTER ITEM*30,SZN*12,STTS*5
       integer MITEM,INO ! max items and current menu item
 
       helpinsub='g3dcmp'  ! set for subroutine
@@ -95,6 +96,10 @@ C displays the main menu for surfaces.
    10 INO=-3
       WRITE(ITEM(1),'(A,A)')'  zone    : ',SZN
       WRITE(ITEM(2),'(A,A)')'  surface : ',SSRF
+
+C If return from editing was non-selection of a surface reset
+C IS from 0 to 1.
+      if(IS.eq.0) IS = 1
       IF(SRFOK.AND.INDXS(IS).EQ.1)THEN
         ITEM(3)='  status  : lumped'
       ELSEIF(SRFOK.AND.INDXS(IS).EQ.3)THEN
@@ -118,7 +123,7 @@ C Help text for this menu.
       call gethelptext(helpinsub,helptopic,nbhelp)
 
 C If user has defined problem and perhaps resized the display then
-C redraw the problem image.
+C redraw the problem image based on parameters passed into subroutine.
       IF(MODIFYVIEW)CALL GRAAPH(IDRW1,IDRW2)
       CALL USRMSG(' ',' ','-')
       CALL EMENU('     Surface Gridding',ITEM,MITEM,INO)
@@ -131,8 +136,7 @@ C redraw the problem image.
 
 C Select the surface.
         IF(IDRW1.NE.2.OR.IDRW2.NE.IZ.OR.MODIFYVIEW)THEN
-          IDRW1=2
-          IDRW2=IZ
+          IDRW1=2; IDRW2=IZ  ! Focus on th zone.
           CALL GRAAPH(IDRW1,IDRW2)
         ENDIF
 
@@ -144,7 +148,7 @@ C Show the surface selection menu.
             STTS='( D )'
           ENDIF
           icon=IZSTOCN(iz,iss)
-          WRITE(ITEMS(ISS),'(A12,A5)')SNAME(iz,iss),STTS
+          WRITE(ITEMS(ISS),'(A,A5)')SNAME(iz,iss),STTS
    50   CONTINUE
         INPICK=1
    60   CALL EPICKS(INPICK,IVALS,' ',' ',17,
@@ -166,8 +170,7 @@ C Show the surface selection menu.
           ZVALU=(ZMIN+ZMAX)/2.
 
 C Draw the elevation view for the selected surface.
-          IDRW1=3
-          IDRW2=IS
+          IDRW1=3; IDRW2=IS
           CALL GRAAPH(IDRW1,IDRW2)
         ELSE
           GOTO 60
@@ -218,8 +221,7 @@ C Clear last gridding line
             CALL DELINE(IS)
 
 C Draw the elevation view for the selected surface.
-            IDRW1=3
-            IDRW2=IS
+            IDRW1=3; IDRW2=IS
             CALL GRAAPH(IDRW1,IDRW2)
           ELSE
             CALL USRMSG(' ',
@@ -238,8 +240,7 @@ C Change the surface status.
           ENDIF
 
 C Draw the elevation view for the selected surface.
-          IDRW1=3
-          IDRW2=IS
+          IDRW1=3; IDRW2=IS
           CALL GRAAPH(IDRW1,IDRW2)
       ELSEIF(INO.EQ.MITEM-1)THEN
 
@@ -1005,8 +1006,7 @@ C trap un-acceptable selections.
 
 C Define the zone.
         IF(IDRW1.NE.2.OR.IDRW2.NE.IZ.OR.MODIFYVIEW)THEN
-          IDRW1=2
-          IDRW2=IZ
+          IDRW1=2; IDRW2=IZ  ! Focus on the zone.
           CALL GRAAPH(IDRW1,IDRW2)
         ENDIF
 
@@ -1019,7 +1019,7 @@ C Show the edge selection menu.
           ELSE
             STTS='--- ( N )'
           ENDIF
-          WRITE(ITEMS(IG),'(2(A,I2),A2,A9)')'edge at (',IVXEDG(IG,1),
+          WRITE(ITEMS(IG),'(2(A,I2),A,A)')'edge at (',IVXEDG(IG,1),
      &                                ' - ',IVXEDG(IG,2),') ',STTS
    20   CONTINUE
    30   INPICK=1
@@ -1030,8 +1030,7 @@ C Show the edge selection menu.
 
 C Draw the selected edge.
           IF(IDRW1.NE.4.OR.IDRW2.NE.IEG.OR.MODIFYVIEW)THEN
-            IDRW1=4
-            IDRW2=IEG
+            IDRW1=4; IDRW2=IEG
             CALL GRAAPH(IDRW1,IDRW2)
           ENDIF
           icon1=IZSTOCN(iz,ISFEDG(IEG,1))
@@ -1084,16 +1083,14 @@ C Define edge gridding in the local z-direction.
         ENDIF
         NDZE(IEG)=NDZ
 
-C Draw the intervals.
-        IDRW1=4
-        IDRW2=IEG
+C Draw the edge with intervals.
+        IDRW1=4; IDRW2=IEG
         CALL GRAAPH(IDRW1,IDRW2)
       ELSEIF(INO.EQ.8)THEN
 
-C Display the construction details menu.
+C Display the construction details menu & edge with intervals.
         CALL CONEDG(IZ,IEG)
-        IDRW1=4
-        IDRW2=IEG
+        IDRW1=4; IDRW2=IEG 
         CALL GRAAPH(IDRW1,IDRW2)
       ELSEIF(INO.EQ.9)THEN
 
@@ -1142,7 +1139,7 @@ C List edge informations.
           ISF2=ISFEDG(IG,2)
           icon1=IZSTOCN(iz,isf1)
           icon2=IZSTOCN(iz,isf2)
-          WRITE(MSG,'(3(I3,3X),3(A12,3X))')IG,IVXEDG(IG,1),
+          WRITE(MSG,'(3(I3,3X),3(A,3X))')IG,IVXEDG(IG,1),
      &      IVXEDG(IG,2),SNAME(iz,isf1),SNAME(iz,isf2),STATS
           CALL EDISP(IUOUT,MSG)
    90   CONTINUE
@@ -1395,7 +1392,7 @@ C Help for this menu.
       helptopic='grd_display_edges'
       call gethelptext(helpinsub,helptopic,nbhelp)
 
-C Draw the appropriate graph.
+C Draw the appropriate graph (IDRW2 not defined).
       IF(MODIFYVIEW)CALL GRAAPH(IDRW1,IDRW2)
       CALL USRMSG(' ',' ','-')
       CALL EMENU('    Edge  Construction',ITEM,MITEM,INO)
@@ -1559,23 +1556,23 @@ C List construction details.
       ELSEIF(INO.EQ.(MITEM-2))THEN
         BAR='I'
         icon=IZSTOCN(iz,is2)
-        WRITE(TEXT,'(A12,4X,A1,10A)')SNAME(iz,is2),
+        WRITE(TEXT,'(A,4X,A1,10A)')SNAME(iz,is2),
      &        '-',('--------',IX=1,NDXE(IEG))
         CALL EDISP(IUOUT,TEXT)
-        WRITE(TEXT,'(14X,2X,A1,8(2X,I3,2X,A1))')
+        WRITE(TEXT,'(14X,2X,A,8(2X,I3,2X,A))')
      &        BAR,(ITPEDG(IEG,IX,NDYE(IEG),IL),BAR,IX=1,NDXE(IEG))
         CALL EDISP(IUOUT,TEXT)
-        WRITE(TEXT,'(16X,A1,8A8)')'-',('--------',IX=1,NDXE(IEG))
+        WRITE(TEXT,'(16X,A,8A)')'-',('--------',IX=1,NDXE(IEG))
         CALL EDISP(IUOUT,TEXT)
         DO 100 IY=NDYE(IEG)-1,1,-1
-          WRITE(TEXT,'(16X,A1,8(2X,I3,2X,A1))')
+          WRITE(TEXT,'(16X,A,8(2X,I3,2X,A))')
      &          BAR,(ITPEDG(IEG,IX,IY,IL),BAR,IX=1,NDXE(IEG))
           CALL EDISP(IUOUT,TEXT)
-          WRITE(TEXT,'(16X,A1,8A8)')'-',('--------',IX=1,NDXE(IEG))
+          WRITE(TEXT,'(16X,A,8A8)')'-',('--------',IX=1,NDXE(IEG))
           CALL EDISP(IUOUT,TEXT)
   100   CONTINUE
         icon=IZSTOCN(iz,is1)
-        WRITE(TEXT,'(18X,A12)')SNAME(iz,is1)
+        WRITE(TEXT,'(18X,A)')SNAME(iz,is1)
         CALL EDISP(IUOUT,TEXT)
 
 C Display help statements.
@@ -1725,14 +1722,14 @@ C Setup and pass in parameters to win3d.
       isize=itfs
       CALL ETLABEL(LABELN,XLAB,YLAB,ipos,isize)
       icon=IZSTOCN(iz,is1)
-      WRITE(LABELS,'(A12)') SNAME(iz,is1)
+      WRITE(LABELS,'(A)') SNAME(iz,is1)
       XLAB=XMX2/2.
       YLAB=YMN2-XYMX/10.
       ipos=2
       isize=itfs+2
       CALL ETLABEL(LABELS,XLAB,YLAB,ipos,isize)
       icon=IZSTOCN(iz,is2)
-      WRITE(LABELS,'(A12)') SNAME(iz,is2)
+      WRITE(LABELS,'(A)') SNAME(iz,is2)
       XLAB=XMN2-XMX2/10.
       YLAB=YMX2/2.
       ipos=1
@@ -1890,6 +1887,8 @@ C *******************************************************************
            ENDIF
          ENDIF
    10 CONTINUE
+C      write(6,*)'EDGNUM IS1 IS2 IV1 IV2 NUM',IS1,IS2,IV1,IV2,NUM,NUMEDG
+C      write(6,*)'Zone topology is suspect!'
       STOP "error (301): no edge defined at expected edge location."
       END
 
@@ -2042,10 +2041,9 @@ C Trap the un-acceptable selections.
         CALL USRMSG(' ','The corner should be defined first.','W')
       ELSEIF(INO.EQ.7)THEN
 
-C Define the corner.
+C Define the corner and draw the zone.
         IF(IDRW1.NE.2.OR.IDRW2.NE.IZ.OR.MODIFYVIEW)THEN
-          IDRW1=2
-          IDRW2=IZ
+          IDRW1=2; IDRW2=IZ
           CALL GRAAPH(IDRW1,IDRW2)
         ENDIF
 
@@ -2069,8 +2067,7 @@ C Show the surface selection menu.
 
 C Draw the selected corner.
           IF(IDRW1.NE.5.OR.IDRW2.NE.ICR.OR.MODIFYVIEW)THEN
-            IDRW1=5
-            IDRW2=ICR
+            IDRW1=5; IDRW2=ICR
             CALL GRAAPH(IDRW1,IDRW2)
           ENDIF
           icon1=IZSTOCN(iz,ISFCRN(ICR,1))
@@ -2133,10 +2130,9 @@ C Define edge gridding in the local z-direction.
         ENDIF
       ELSEIF(INO.EQ.9)THEN
 
-C Display the corner construction details menu.
+C Display the corner construction details menu & corner.
         CALL CONCRN(IZ,ICR)
-         IDRW1=5
-         IDRW2=ICR
+         IDRW1=5; IDRW2=ICR
          CALL GRAAPH(IDRW1,IDRW2)
       ELSEIF(INO.EQ.10)THEN
 
@@ -2190,7 +2186,7 @@ C List the corners informations.
           icon2=IZSTOCN(iz,isf2)
           icon3=IZSTOCN(iz,isf3)
 
-          WRITE(MSG,'(2(I3,3X),4(A12,3X))')ICC,IVXCRN(ICC),
+          WRITE(MSG,'(2(I3,3X),4(A,3X))')ICC,IVXCRN(ICC),
      &      SNAME(iz,isf1),SNAME(iz,isf2),SNAME(iz,isf3),STATS
           CALL EDISP(IUOUT,MSG)
    70   CONTINUE
@@ -2441,7 +2437,7 @@ C Help text for this menu.  << to here >>
       helptopic='grd_corner_constr'
       call gethelptext(helpinsub,helptopic,nbhelp)
 
-C Draw the appropriate graph.
+C Draw the appropriate graph (IDRW1,IDRW2 not defined).
       IF(MODIFYVIEW)CALL GRAAPH(IDRW1,IDRW2)
       CALL USRMSG(' ',' ','-')
       CALL EMENU('    Corner  Construction',ITEM,MITEM,INO)
@@ -2604,23 +2600,23 @@ C Copy the construction data of existing corner level.
 C List construction details.
         BAR='I'
         icon=IZSTOCN(iz,is2)
-        WRITE(TEXT,'(A12,4X,A1,10A)') SNAME(iz,is2),
+        WRITE(TEXT,'(A,4X,A,10A)') SNAME(iz,is2),
      &                    '-',('--------',IX=1,NDXC(ICR))
         CALL EDISP(IUOUT,TEXT)
-        WRITE(TEXT,'(14X,2X,A1,8(2X,I3,2X,A1))')
+        WRITE(TEXT,'(14X,2X,A,8(2X,I3,2X,A))')
      &        BAR,(ITPCRN(ICR,IX,NDYC(ICR),IL),BAR,IX=1,NDXC(ICR))
         CALL EDISP(IUOUT,TEXT)
-        WRITE(TEXT,'(16X,A1,8A8)')'-',('--------',IX=1,NDXC(ICR))
+        WRITE(TEXT,'(16X,A,8A8)')'-',('--------',IX=1,NDXC(ICR))
         CALL EDISP(IUOUT,TEXT)
         DO 100 IY=NDYC(ICR)-1,1,-1
-          WRITE(TEXT,'(16X,A1,8(2X,I3,2X,A1))')
+          WRITE(TEXT,'(16X,A,8(2X,I3,2X,A))')
      &          BAR,(ITPCRN(ICR,IX,IY,IL),BAR,IX=1,NDXC(ICR))
           CALL EDISP(IUOUT,TEXT)
-          WRITE(TEXT,'(16X,A1,8A8)')'-',('--------',IX=1,NDXC(ICR))
+          WRITE(TEXT,'(16X,A,8A8)')'-',('--------',IX=1,NDXC(ICR))
           CALL EDISP(IUOUT,TEXT)
   100   CONTINUE
         icon=IZSTOCN(iz,is1)
-        WRITE(TEXT,'(18X,A12)') SNAME(iz,is1)
+        WRITE(TEXT,'(18X,A)') SNAME(iz,is1)
         CALL EDISP(IUOUT,TEXT)
       ELSEIF(INO.EQ.(MITEM-1))THEN
 
@@ -2771,14 +2767,14 @@ C Setup and pass in parameters to win3d.
       isize=itfs
       CALL ETLABEL(LABELN,XLAB,YLAB,ipos,isize)
       icon=IZSTOCN(iz,is1)
-      WRITE(LABELS,'(A12)') SNAME(iz,is1)
+      WRITE(LABELS,'(A)') SNAME(iz,is1)
       XLAB=XMX2/2.
       YLAB=YMN2-XYMX/10.
       ipos=2
       isize=itfs+2
       CALL ETLABEL(LABELS,XLAB,YLAB,ipos,isize)
       icon=IZSTOCN(iz,is2)
-      WRITE(LABELS,'(A12)') SNAME(iz,is2)
+      WRITE(LABELS,'(A)') SNAME(iz,is2)
       XLAB=XMN2-XMX2/10.
       YLAB=YMX2/2.
       ipos=1
@@ -2822,6 +2818,7 @@ C *********************************************************************
         OK3=.FALSE.
 
 C First edge.
+C        write(6,*) 'first edge',IS1,IS2,IV1,IV1,IEG1
         CALL EDGNUM(IS1,IS2,IV1,IV1,IEG1)
         IF(ISFEDG(IEG1,1).EQ.IS1)THEN
           OK1=.TRUE.
@@ -2982,7 +2979,7 @@ C For each vertex in the current zone.
 
 C For each surface in the current zone.
         DO 20 IS1=1,NSUR
-          CALL CMVRTS(IV,IS1,YES)
+          CALL CMVRTS(IV,IS1,YES)  ! Is vertex associated?
           IF(YES)THEN
             DO 30 J=1,ICNT
               IS2=ISFCRN(NCRN+1,J)

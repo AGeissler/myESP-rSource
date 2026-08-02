@@ -402,12 +402,7 @@ C ***** dummy routine for c code active descriptions buttons.
       return
       end
 
-C Dummy routines from common3dv.F
-      SUBROUTINE ADJVIEW(IER)
-      ier=0
-      return
-      end
-
+C Dummy routines.
       subroutine redraw(ier)
       ier=0
       return

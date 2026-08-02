@@ -58,6 +58,7 @@ C output, IER=0 OK.
       COMMON/PRECTC/ITMCFL(MCOM,MS),TMCT(MCOM,MTMC,5),
      &       TMCA(MCOM,MTMC,ME,5),TMCREF(MCOM,MTMC),TVTR(MCOM,MTMC)
       COMMON/PRECT3/NTMC,NGLAZ(MTMC)
+      CHARACTER TOPTIC*24
       common/PRECT4/TOPTIC(MCOM,MTMC)
       COMMON/TMCB1/IBCMT(MCOM,MTMC)
       COMMON/gzonpik/izgfoc,nzg,nznog(mcom)
@@ -77,8 +78,8 @@ C Version of construction file. If not specified set at 21 (2.1)
       CHARACTER*72 CFILE
       CHARACTER*72 DFILE
       CHARACTER SFILE*72,LTMP*72
-      CHARACTER outs*124,VERT*48,KEY*1,head*31,ETEXT*82
-      character TOPTIC*12,OPTIC*12
+      CHARACTER outs*124,VERT*48,KEY*1,head*31,ETEXT*82,prompt*48
+      character OPTIC*24
       LOGICAL MODGEO,MODCON,TFOUND,XST,again
       logical newgeo   ! To use for testing if new/old geometry file.
       logical warn_ctl ! Advise user to convert legacy tmc control.
@@ -136,13 +137,6 @@ C Set existance of a zone construction file to false.
   248 FORMAT(' Scanning : ',A)
       if(itrc.gt.1) CALL USRMSG(' ',outs,'-')
 
-C Read in the related geometry file into common.
-      call georead(IFIL+1,LGEOM(ICOMP),ICOMP,1,IUOUT,IER)
-      IF(IER.NE.0)THEN
-        CALL USRMSG(' ',' Problem detected in geometry... ','W')
-        RETURN
-      ENDIF
-
 C Refresh the index of the MLC which matches each surface.
       do I=1,NZSUR(icomp)
         icn1=izstocn(icomp,i)
@@ -193,9 +187,7 @@ C On entry display the current zone. Reset all surface lines to std.
       MODBND=.TRUE.
       again=.false.
       if(.NOT.QUIET)then  ! If auto-update do not display zone.
-        CALL ESCZONE(ICOMP)
         CALL BNDOBJ(0,IER)
-        CALL ERCZONE(ICOMP)
         CALL INLNST(1)
         nzg=1
         nznog(1)=ICOMP
@@ -496,7 +488,8 @@ C current menu line index. Build up text strings for the menu.
           M=M+1
           CALL EMKEY(L,KEY,IER)
           if(ITMCFL(ICOMP,L).GT.0)then
-            optic=TOPTIC(ICOMP,ITMCFL(ICOMP,L))
+            lnopt=lnblnk(TOPTIC(ICOMP,ITMCFL(ICOMP,L)))
+            write(optic,'(a)') TOPTIC(ICOMP,ITMCFL(ICOMP,L))(1:lnopt)
           else
             optic=' - '
           endif
@@ -678,11 +671,14 @@ C and update the system configuration file.
         IUF=IFIL+2
 
 C If a legacy zone construction file set izconstv so that
-C a header is included when new file is written.
+C a header is included when new file is written.  Until 
+C the construction file is scanned izconstv is not known.
         if(izconstv(ICOMP).eq.21)then
           continue
         else
-          CALL EASKMBOX(' ','Save zone constructions:',
+          write(prompt,'(3a)') 'Save constructions for ',
+     &      zname(icomp)(1:lnzname(icomp)),':'
+          CALL EASKMBOX(' ',prompt,
      &      'via legacy format with separate tmc file',
      &      'current format with optical data',
      &      ' ',' ',' ',' ',' ',' ',IWB,nbhelp)
@@ -817,7 +813,7 @@ C If geometry info has changed then save it as well.
             newgeo = .true.
           endif
           if(newgeo)then
-            call geowrite(IUF,LGEOM(ICOMP),ICOMP,ITRU,3,IER)
+            call geowrite2(IUF,LGEOM(ICOMP),ICOMP,ITRU,3,IER)
           else
             CALL EMKGEO(IUF,LGEOM(ICOMP),ICOMP,3,IER)
           endif
@@ -863,6 +859,7 @@ C Parameters
       COMMON/GFONT/IFS,ITFS,IMFS
 
 C Optical and geometric properties.
+      CHARACTER TOPTIC*24
       common/PRECT4/TOPTIC(MCOM,MTMC)
 
       COMMON/PRECTC/ITMCFL(MCOM,MS),TMCT(MCOM,MTMC,5),
@@ -886,7 +883,7 @@ C CFClayers db properties
 
       DIMENSION ISD(25)
       CHARACTER ISD*56
-      CHARACTER KEY*1,HOLD*48,TOPTIC*12,optic*12
+      CHARACTER KEY*1,HOLD*48,optic*24
       integer ISDN,INODA ! max items and current menu item
 
 C Thermal property checking values follow.
@@ -948,7 +945,8 @@ C Setup text for menu.
       write(ISD(3),'(A,A)') 'b construction    : ',
      &  SMLCN(icomp,isur)(1:16)
       if(ITMCFL(ICOMP,ISUR).GT.0)then
-        optic=TOPTIC(ICOMP,ITMCFL(ICOMP,ISUR))
+        lnopt=lnblnk(TOPTIC(ICOMP,ITMCFL(ICOMP,ISUR)))
+        write(optic,'(a)') TOPTIC(ICOMP,ITMCFL(ICOMP,ISUR))(1:lnopt)
         write(ISD(4),'(2A)')'  optical property: ',optic
       else
         optic=' - '
@@ -1006,7 +1004,7 @@ C Multilayer construction has not been defined.
             else
               WRITE(ISD(M),44)KEY,IE,cfcitmindex(ITMCFCDB(ICF,IE)),
      &          THK(ISUR,IE),CON(ISUR,IE),DEN(ISUR,IE),SHT(ISUR,IE)
-  44          FORMAT(A1,I3,I4,F6.3,3F8.2)
+  44          FORMAT(A1,I3,I5,F6.3,3F8.2)
             endif
 
           ELSE ! check_CFC2_or_MLC
@@ -1133,7 +1131,8 @@ C the OPAQUE/TRANSPARENT flag as well.
           RETURN
         ENDIF
         IF(IC.GT.0)THEN
-          WRITE(SMLCN(icomp,isur),'(A)') mlcname(IC)
+          WRITE(SMLCN(icomp,isur),'(A)') 
+     &      mlcname(IC)(1:lnblnk(mlcname(IC)))
           smlcindex(icomp,isur)=IC   ! update array
           if(mlctype(IC)(1:4).EQ.'TRAN')then
             SOTF(icomp,isur)='TRAN'
@@ -1443,7 +1442,8 @@ C << The logic for dealing with TRAN/OPAQ needs to be updated! >>
             CALL EDMLDB2(modmlc,'-',ISEL,IER)
           endif
           IF(ISEL.GT.0)THEN
-            WRITE(SMLCN(ICOMP,is),'(A)') mlcname(ISEL)
+            WRITE(SMLCN(ICOMP,is),'(A)') 
+     &        mlcname(ISEL)(1:lnblnk(mlcname(ISEL)))
             smlcindex(icomp,is)=ISEL  ! update other surf index
             if(mlctype(ISEL)(1:4).EQ.'TRAN')then
               SOTF(ICOMP,is)='TRAN'
@@ -1609,6 +1609,7 @@ C Parameter
      &              TVTR2(MCOM,MTMC)
 
       COMMON/PRECT3/NTMC,NGLAZ(MTMC)
+      CHARACTER TOPTIC*24
       common/PRECT4/TOPTIC(MCOM,MTMC)
 
       COMMON/TMCB1/IBCMT(MCOM,MTMC)
@@ -1623,7 +1624,7 @@ C Version of construction file. If not specified set at 21 (2.1)
       logical XST
 
       dimension ival(MS)
-      CHARACTER TOPTIC*12,louts*248,lkouts*1000
+      CHARACTER louts*248,lkouts*1000
       character dstmp*24
       character tokens*156,comment*76,aligned_str*156
 
@@ -1846,6 +1847,7 @@ C through each of the existing surfaces and finds unique optical types.
       COMMON/TMCO1/IOTMCFL(MCOM,MS)
 
       COMMON/PRECT3/NTMC,NGLAZ(MTMC)
+      CHARACTER TOPTIC*24
       common/PRECT4/TOPTIC(MCOM,MTMC)
 
       COMMON/TMCB1/IBCMT(MCOM,MTMC)
@@ -1865,7 +1867,7 @@ C Configuration control.
       logical modmlc     ! for selecting MLC
       integer IRT        ! for radio button
 
-      CHARACTER OPT*12,lastopt*12,TOPTIC*12,GDESCR*36
+      CHARACTER OPT*24,lastopt*24,GDESCR*36
       CHARACTER outs*124
       CHARACTER msg*28
 
@@ -1904,7 +1906,8 @@ C Use smlcindex to get matching MLC index
             CALL EDMLDB2(modmlc,'-',ISEL,IER)
           endif
           IF(ISEL.GT.0)THEN
-            WRITE(SMLCN(icomp,is),'(A)') mlcname(ISEL)
+            WRITE(SMLCN(icomp,is),'(A)') 
+     &        mlcname(ISEL)(1:lnblnk(mlcname(ISEL)))
             smlcindex(icomp,is)=ISEL   ! update array
             ICF=ISEL
           ELSE
@@ -1933,7 +1936,8 @@ C Switch back to opaque construction.
               CALL EDMLDB2(modmlc,'-',ISEL,IER)
             endif
             if(ISEL.GT.0)then
-              WRITE(SMLCN(icomp,is),'(A)') mlcname(ISEL)
+              WRITE(SMLCN(icomp,is),'(A)') 
+     &          mlcname(ISEL)(1:lnblnk(mlcname(ISEL)))
               smlcindex(icomp,is)=ISEL   ! update array
               ICF=ISEL
               ITMCFL(ICOMP,IS)=0
@@ -1953,7 +1957,8 @@ C Switch back to opaque construction.
               CALL EDMLDB2(modmlc,'-',ISEL,IER)
             endif
             if(ISEL.GT.0)then
-              WRITE(SMLCN(icomp,is),'(A)') mlcname(ISEL)
+              WRITE(SMLCN(icomp,is),'(A)') 
+     &          mlcname(ISEL)(1:lnblnk(mlcname(ISEL)))
               smlcindex(icomp,is)=ISEL   ! update array
               ICF=ISEL
             else
@@ -1963,7 +1968,7 @@ C Switch back to opaque construction.
         ENDIF
 
 C Check to see if this new construction has a known set of opticals.
-        WRITE(OPT,'(A)') mlcoptical(ICF)(1:12)
+        WRITE(OPT,'(A)') mlcoptical(ICF)(1:lnblnk(mlcoptical(ICF)))
         IF(OPT(1:2).EQ.'  '.OR.OPT(1:7).EQ.'UNKNOWN'.OR.
      &     OPT(1:6).EQ.'OPAQUE')THEN
           WRITE(outs,'(1X,A,A)')SMLCN(icomp,is),
@@ -2002,7 +2007,7 @@ C Save ITMCFL.
         found=.FALSE.
         IF(NTMC.GT.0)THEN
           DO 16 IJJ=1,NTMC
-            if(TOPTIC(ICOMP,IJJ).EQ.OPT)then
+           if(TOPTIC(ICOMP,IJJ)(1:12).EQ.OPT(1:12))then
               found=.TRUE.
               ITMCFL(ICOMP,IS)=IJJ
             endif
@@ -2011,7 +2016,7 @@ C Save ITMCFL.
         IF(.NOT.found)THEN
           NTMC=NTMC+1
           IF(NTMC.GT.MTMC.OR.NTMC.EQ.0)GOTO 94
-          TOPTIC(ICOMP,NTMC)=OPT
+          write(TOPTIC(ICOMP,NTMC),'(a)') OPT(1:lnblnk(OPT))
           ITMCFL(ICOMP,IS)=NTMC
           DO 12 ID=1,5
             TMCT(ICOMP,NTMC,ID)=DG(ID)
@@ -2133,8 +2138,9 @@ C been set during the prior edit.
         if(IBCMT(ICOMP,IT).eq.1)then
           helptopic='detect_existing_opt_ctl'
           call gethelptext(helpinsub,helptopic,nbhelp)
-          WRITE(OUTS,'(2A,I2,A)') 'TMC type ',TOPTIC(ICOMP,IT),IT,
-     &      ' uses a legacy control. Options:'
+          lnopt=lnblnk(TOPTIC(ICOMP,IT))
+          WRITE(OUTS,'(2A,I2,A)') 'TMC type ',TOPTIC(ICOMP,IT)(1:lnopt),
+     &      IT,' uses a legacy control. Options:'
           CALL EASKMBOX(outs,' ','delete','edit',
      &     'accept as-is','define alternative optical property',
      &     'convert to optical control file logic',' ',' ',' ',IWA,
@@ -2318,10 +2324,11 @@ C Save changes to tmc file.
         else
 
 C There is no existing tmc control.
+          lnopt=lnblnk(TOPTIC(ICOMP,IT))
           helptopic='detect_existing_opt_ctl'
           call gethelptext(helpinsub,helptopic,nbhelp)
-          WRITE(OUTS,'(2A,I2,A)') 'For TMC type ',TOPTIC(ICOMP,IT),IT,
-     &      '. Options:'
+          WRITE(OUTS,'(2A,I2,A)') 'For TMC type ',
+     &      TOPTIC(ICOMP,IT)(1:lnopt),IT,'. Options:'
           CALL EASKMBOX(outs,' ','setup legacy tmc control',
      &      'define alternative optical property','continue',
      &      ' ',' ',' ',' ',' ',iwa,nbhelp)
@@ -2654,8 +2661,13 @@ c homogeneous layer. Locate if the MLC database item is used.
         found=.false.
         do icn=1,ncon
           if(smlcindex(ic1(icn),ie1(icn)).eq.ic) then
-            found=.true.
-            goto 43
+            if(mlctype(ic)(1:4).eq.'CFC2'.or.
+     &         mlctype(ic)(1:3).eq.'CFC')then  ! Skip for CFC.
+              continue
+            else
+              found=.true.
+              goto 43
+            endif
           endif
         enddo
   43    if(found)then

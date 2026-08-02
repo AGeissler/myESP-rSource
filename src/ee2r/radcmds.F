@@ -41,17 +41,31 @@ C  coefficients (can take a very long time).
 #include "model.h"
 #include "site.h"
 #include "e2r_common.h"
+#include "geometry.h"
+#include "esprdbfile.h"
+#include "material.h"
 #include "help.h"
       
       integer lnblnk  ! function definition
 
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/FILEP/IFIL
+      integer ncomp,ncon
+      COMMON/C1/NCOMP,NCON
+      integer IZSTOCN
+      COMMON/C24/IZSTOCN(MCOM,MS)
 
-      character outs*124,tfile*72,smode*1
-      character rifwave*72
+      logical both_esp_wave      ! If true manage pair of scenes.
+      logical focus_espg         ! If true editing in context of ESP-r geometry
+      integer ipairedscene       ! Index of paired scene.
+      COMMON/ESPWAVE/both_esp_wave,focus_espg,ipairedscene(16)
 
-      LOGICAL fict,XST,OK
+      character outs*124,tfile*72,smode*1,twave*72
+      character rifwave*72,ltmpsw*72
+      character doitl*256
+
+      logical fict,XST,OK,unixok,WFOK
+      logical dowave
 
       helpinsub='radcmds'  ! set for subroutine
 
@@ -154,15 +168,35 @@ C Now call Radiance with command stored in variable 'outs'.
         endif
       endif
 
-C Create inside and outside files, first open databases.
-
+C Create inside and outside Radiance 'rad' files.
       call module_opendb(ier)
+
+C Scan for matching MLC for surfaces.
+      do 30 ICOMP=1,NCOMP
+        call georead(IFIL+1,LGEOM(ICOMP),ICOMP,1,iuout,ier)
+
+C Find the index of the MLC which matches each surface.
+        DO 9994 ijj=1,NZSUR(icomp)
+          icn1=izstocn(icomp,ijj)
+          if(icn1.gt.0)then
+            smlcindex(icomp,ijj)=0  ! assume no matching MLC          
+            lnssmlc=lnblnk(SMLCN(icomp,ijj))
+            do 5 ii=1,nmlc
+              if(SMLCN(icomp,ijj)(1:lnssmlc).eq.
+     &           mlcname(ii)(1:lnmlcname(ii)))then
+                smlcindex(icomp,ijj)=ii   ! remember MLC index  
+              endif
+  5         continue
+          endif
+ 9994   continue
+ 30   continue
       ftr=0.92
       fict=.false.
 
 C Ask how to treat adobe surface treatment rough (1) medium (2) fine (3)
       if(iadobe.eq.0)then
         iadobe=1
+        SCENEMOTL(ISCENE)='rough'
         call edisp(iuout,'Currently assumes rough adobe treatment.')
       elseif(iadobe.eq.1)then
         call edisp(iuout,'Currently assumes rough adobe treatment.')
@@ -174,7 +208,55 @@ C Ask how to treat adobe surface treatment rough (1) medium (2) fine (3)
       CALL EASKI(iadobe,' ',
      &  'Texture on surfaces 1=rough 2=medium 3=fine',
      &   1,'F',3,'W',2,'adobe level',IER,nbhelp)
+      if(iadobe.eq.1)then
+        SCENEMOTL(ISCENE)='rough'
+      elseif(iadobe.eq.2)then
+        SCENEMOTL(ISCENE)='medium'
+      elseif(iadobe.eq.3)then
+        SCENEMOTL(ISCENE)='fine'
+      endif
 
+C If also producing a Wavefront variant ask for the Wavefront
+C file. If currently focused on ESP-r then use ISCENE+1.
+      if(both_esp_wave.and.focus_espg)then
+        if(SCENEWAVE(ISCENE+1)(1:7).eq.'UNKNOWN')then
+          CALL EASKOK(' ','Supply name of Wavefront object file?',
+     &      WFOK,nbhelp)
+          if(WFOK)then
+            call edisp(iuout,' ')
+            call edisp(iuout,
+     &'Place the Wavefront obj and mtl files in the model rad folder.')
+ 642        helptopic='e2r_RIF_file_name'
+            call gethelptext(helpinsub,helptopic,nbhelp)
+            write(ltmpsw,'(a)') 'xx.obj'
+            CALL EASKS(ltmpsw,'Wavefront object file?',
+     &        '  ',72,'xxx.obj','wavefront file',IER,nbhelp)
+            if(ltmpsw.eq.' ')goto 642
+            write(SCENEWAVE(ISCENE+1),'(a)') ltmpsw(1:lnblnk(ltmpsw))
+          endif
+        endif
+      elseif(.NOT.focus_espg)then  ! Wavefront focus for scene.
+        if(SCENEWAVE(ISCENE)(1:7).eq.'UNKNOWN')then
+          CALL EASKOK(' ','Supply name of Wavefront object file?',
+     &      WFOK,nbhelp)
+          if(WFOK)then
+            call edisp(iuout,' ')
+            call edisp(iuout,
+     &'Place the Wavefront obj and mtl files in the model rad folder.')
+ 643        helptopic='e2r_RIF_file_name'
+            call gethelptext(helpinsub,helptopic,nbhelp)
+            write(ltmpsw,'(a)') 'xx.obj'
+            CALL EASKS(ltmpsw,'Wavefront object file?',
+     &        '  ',72,'xxx.obj','wavefront file',IER,nbhelp)
+            if(ltmpsw.eq.' ')goto 643
+            write(SCENEWAVE(ISCENE),'(a)') ltmpsw(1:lnblnk(ltmpsw))
+          endif
+        endif
+      endif
+
+C Create the associated Radiance files for form and composition.
+C Note this will include most of the files needed for Wavefront
+C use whether or not the user has requested this.
       call mkriofil(ftr,fict,'s',IER)
  
 C Check for surfaces with SUSE=FIXTURE. If so create a separate
@@ -186,13 +268,139 @@ C << to be done >>
 
       IFC=3
       call mkrif(ita2,RIFNAME(ISCENE),IFC,0,'-',ier)
-      rifwave='obj.rif'
-      call mkrif(ITA2,rifwave,IFC,0,'w',IER)
+
+C If Wavefront variant needed setup rifwave and sky file names.
+      dowave=.false.
+      if(focus_espg.and.both_esp_wave)then
+        dowave=.true.
+      elseif(.NOT.focus_espg.and.both_esp_wave)then
+        dowave=.true.
+      elseif(focus_espg.and.(.NOT.both_esp_wave))then
+        dowave=.false.
+      elseif(.NOT.focus_espg.and.(.NOT.both_esp_wave))then
+        dowave=.false.
+      endif
+      if(dowave)then
+        if (SCENEPURP(ISCENE)(1:8).eq.'External')then
+          rifwave='obj_ex.rif' 
+          rskyfil='obj_ex.sky'
+        elseif(SCENEPURP(ISCENE)(1:8).eq.'Internal')then
+          rifwave='obj_in.rif'
+          rskyfil='obj_in.sky'
+        elseif(SCENEPURP(ISCENE)(1:5).eq.'Glare')then
+          rifwave='obj_gl.rif'
+          rskyfil='obj_gl.sky'
+        elseif (SCENEPURP(ISCENE)(1:8).eq.'Day_fact') then
+          rifwave='obj_df.rif'
+          rskyfil='obj_df.sky'
+        else
+          rifwave='obj.rif'
+          rskyfil='obj.sky'
+        endif
+        call mkrif(ITA2,rifwave,IFC,0,'w',IER)
+      endif
       if (NBSRIF(ISCENE).eq.1) then
         call mkrif(ita2,LBSRIF(ISCENE),IFC,1,'-',ier)
       endif
 
-C Update rcf file and configuration file.
+C If current focus uses Wavefront geometry and obj file known 
+c ask user about generating the rtm file.
+      iother=ipairedscene(ISCENE)
+      if(SCENEGSRC(ISCENE)(1:9).eq.'Wavefront')then
+        if(SCENEWAVE(ISCENE)(1:7).eq.'UNKNOWN')then
+          continue
+        else
+          lnobj=lnblnk(SCENEWAVE(ISCENE))
+          call edisp(iuout,' ')
+          call edisp(iuout,'The manual command is:')
+          if (SCENEPURP(ISCENE)(1:8).eq.'External')then
+            write(outs,'(3a)') 'obj2mesh -a obj_ex.mat ',
+     &        SCENEWAVE(ISCENE)(1:lnobj),' obj_ex.rtm'
+          elseif(SCENEPURP(ISCENE)(1:8).eq.'Internal')then
+            write(outs,'(3a)') 'obj2mesh -a obj_in.mat ',
+     &        SCENEWAVE(ISCENE)(1:lnobj),' obj_in.rtm'
+          elseif(SCENEPURP(ISCENE)(1:5).eq.'Glare')then
+            write(outs,'(3a)') 'obj2mesh -a obj_gl.mat ',
+     &        SCENEWAVE(ISCENE)(1:lnobj),' obj_gl.rtm'
+          elseif (SCENEPURP(ISCENE)(1:8).eq.'Day_fact') then
+            write(outs,'(3a)') 'obj2mesh -a obj_df.mat ',
+     &        SCENEWAVE(ISCENE)(1:lnobj),' obj_df.rtm'
+          endif
+          call edisp(iuout,outs)
+          call EASKOK('Convert the Wavefront obj file into a rtm',
+     &    'file via obj2mesh?',OK,nbhelp)
+          if(OK)then
+            call isunix(unixok)
+            if(unixok)then
+              write(doitl,'(4a)') 'cd ',runpath(1:lnrp),
+     &          '; ',outs(1:lnblnk(outs))
+C              write(6,*) doitl(1:lnblnk(doitl))
+              call runit(doitl,'-')
+            else
+              call usrmsg('e2r cannot yet invoke obj2mesh',
+     &          'on non-linux computers.','W')
+            endif
+          endif
+        endif
+      endif
+
+C Or if paired with a Wavefront variant complete the mesh file.
+      if(iother.gt.0)then
+        if(SCENEGSRC(iother)(1:9).eq.'Wavefront')then
+          if(SCENEWAVE(iother)(1:7).eq.'UNKNOWN')then
+            continue
+          else
+
+C If the user included the runpath in the name of the object file
+C this needs to be removed (if the command is invoked in the rad folder.
+            call isunix(unixok)
+            if(unixok)then
+              lnrp=lnblnk(runpath)
+              if(SCENEWAVE(iother)(1:lnrp).eq.runpath(1:lnrp))then
+                write(twave,'(a)')  
+     &          SCENEWAVE(iother)(lnrp+1:lnblnk(SCENEWAVE(iother)))
+              else
+                write(twave,'(a)')  
+     &          SCENEWAVE(iother)(1:lnblnk(SCENEWAVE(iother)))
+              endif
+            endif
+            lnobj=lnblnk(twave)
+            call edisp(iuout,' ')
+            call edisp(iuout,
+     &        'The manual command (within the rad folder) is:')
+            if (SCENEPURP(iother)(1:8).eq.'External')then
+              write(outs,'(3a)') 'obj2mesh -a obj_ex.mat ',
+     &          twave(1:lnobj),' obj_ex.rtm'
+            elseif(SCENEPURP(iother)(1:8).eq.'Internal')then
+              write(outs,'(3a)') 'obj2mesh -a obj_in.mat ',
+     &          twave(1:lnobj),' obj_in.rtm'
+            elseif(SCENEPURP(iother)(1:5).eq.'Glare')then
+              write(outs,'(3a)') 'obj2mesh -a obj_gl.mat ',
+     &          twave(1:lnobj),' obj_gl.rtm'
+            elseif(SCENEPURP(iother)(1:8).eq.'Day_fact') then
+              write(outs,'(3a)') 'obj2mesh -a obj_df.mat ',
+     &          twave(1:lnobj),' obj_df.rtm'
+            endif
+            call edisp(iuout,outs)
+            call EASKOK('Convert the Wavefront obj file into a rtm',
+     &        'file via obj2mesh?',OK,nbhelp)
+            if(OK)then
+              call isunix(unixok)
+              if(unixok)then
+                write(doitl,'(4a)') 'cd ',runpath(1:lnrp),
+     &            '; ',outs(1:lnblnk(outs))
+C                write(6,*) doitl(1:lnblnk(doitl))
+                call runit(doitl,'-')
+              else
+                call usrmsg('e2r cannot yet invoke obj2mesh',
+     &            'on non-linux computers.','W')
+               endif
+            endif
+          endif
+        endif
+      endif
+
+C Update rcf file and Radiance configuration file.
       ICHK=3
       call RADCFGOUT(ICHK)
 
@@ -219,6 +427,16 @@ C Continue and run radiance simulation?
      &  'redefine the eye point directives before simulating.','W')
         ok=.false.
       else
+        if (SCENEPURP(ISCENE)(1:8).eq.'Day_fact') then
+          continue
+        else
+          if(indxvew.eq.0)then
+            call usrmsg('The scene is complete except for view points.',
+     &        'Please define one or more and then try rendering.','W')
+            return
+          endif
+        endif
+
         call EASKOK('Scene description complete.',
      &           'Proceed with simulation?',OK,nbhelp)
       endif
@@ -255,7 +473,7 @@ C Calculate the illuminance at grid points and then diplay via dfgridlbl.
       end
 
 C ********************** simscene **********************
-C simscene simulates daylight coefficients and coupling (called 
+C Simulates daylight coefficients and coupling (called 
 C from bps with mode '-' or interactively with mode 'i').
 
 C << adapt data in file from bps to include directives for adjusting
@@ -563,7 +781,7 @@ C Do other blind states.
 
 
 C ********************** settime **********************
-C settime - user choice of standard times for sky generation
+C User choices for standard times for sky generation.
 
       SUBROUTINE settime(IRM,IRD,XRT)
 #include "building.h"
@@ -619,8 +837,8 @@ C Ask winter am/pm spring am/pm summer am/pm
       end
 
 C ********************** touchrif **********************
-C touchrif generates an options file based on information 
-C generated by rad -t after removing current octree.
+C Generates an options file based on information generated
+C by a 'rad -t' call after removing current octree.
 
       SUBROUTINE touchrif(RIFFILE)
 #include "building.h"
@@ -661,7 +879,7 @@ C Debug/trace.
       end
 
 C ********************** defview **********************
-C defview generates a new default view.
+C Generate a new default view.
 
       SUBROUTINE defview
 #include "building.h"
@@ -673,6 +891,10 @@ C defview generates a new default view.
       COMMON/RAY5OB/OXMN,OYMN,OZMN,OXMX,OYMX,OZMX
 
       common/initv/initvt,EYEMI(3),VIEWMI(3),ANGI
+      logical both_esp_wave      ! If true manage pair of scenes.
+      logical focus_espg         ! If true editing in context of ESP-r geometry
+      integer ipairedscene       ! Index of paired scene.
+      COMMON/ESPWAVE/both_esp_wave,focus_espg,ipairedscene(16)
 
       real dvazim  ! default calculated viewing angle azimuth
       real dvelev  ! default calculated viewing angle elevation
@@ -681,6 +903,7 @@ C defview generates a new default view.
       integer ita2 ! file unit for use with mkrif
       logical short ! briefer format
       logical okfore,okaft ! for near zero cuts
+      logical dowave
       character rifwave*72
 
       ITA2=IFIL+7
@@ -757,12 +980,36 @@ C Default internal view at max X average Y and Z, looking in -x dir.
         ipckvew=-1
       endif
 
+C If Wavefront variant needed setup rifwave file name.
+      dowave=.false.
+      if(focus_espg.and.both_esp_wave)then
+        dowave=.true.
+      elseif(.NOT.focus_espg.and.both_esp_wave)then
+        dowave=.true.
+      elseif(focus_espg.and.(.NOT.both_esp_wave))then
+        dowave=.false.
+      elseif(.NOT.focus_espg.and.(.NOT.both_esp_wave))then
+        dowave=.false.
+      endif
+
 C Update rif file. No use yet made of ier.
       IFC=3
       IER=0
       call MKRIF(ITA2,RIFNAME(ISCENE),IFC,0,'-',IER)
-      rifwave='obj.rif'
-      call mkrif(ITA2,rifwave,IFC,0,'w',IER)
+      if(dowave)then
+        if (SCENEPURP(ISCENE)(1:8).eq.'External')then
+          rifwave='obj_ex.rif'
+        elseif(SCENEPURP(ISCENE)(1:8).eq.'Internal')then
+          rifwave='obj_in.rif'
+        elseif(SCENEPURP(ISCENE)(1:5).eq.'Glare')then
+          rifwave='obj_gl.rif'
+        elseif (SCENEPURP(ISCENE)(1:8).eq.'Day_fact') then
+          rifwave='obj_df.rif'
+        else
+          rifwave='obj.rif'
+        endif
+        call mkrif(ITA2,rifwave,IFC,0,'w',IER)
+      endif
       if (NBSRIF(ISCENE).eq.1) then
         call mkrif(ita2,LBSRIF(ISCENE),IFC,1,'-',ier)
       endif
@@ -772,7 +1019,7 @@ C Update rif file. No use yet made of ier.
 
 
 C ********************** genimage **********************
-C genimage generates an image to screen or file.
+C Manage generation of a rendering to screen or file.
 C ITP =1 - image only; =2 - glare info to display on image,
 C ITP =3 falsecolor
 
@@ -795,6 +1042,11 @@ C Radiance processor cores.
       integer radcores
       common/radcor/radcores
 
+      logical both_esp_wave      ! If true manage pair of scenes.
+      logical focus_espg         ! If true editing in context of ESP-r geometry
+      integer ipairedscene       ! Index of paired scene.
+      COMMON/ESPWAVE/both_esp_wave,focus_espg,ipairedscene(16)
+
       character tpic*72,tpicd*72,tgif*72,tgifd*72
       character ttif*72,ttifd*72,tjpg*72,tjpgd*72
       character pf*72,outs*124,ltmp*72
@@ -802,7 +1054,7 @@ C Radiance processor cores.
       character rifwave*72
       integer IWT,IWP   ! for radio buttons
 
-      logical XST,anim,unixok
+      logical XST,anim,unixok,dowave
       CHARACTER*3 NMTHNM(12)
 
       DATA NMTHNM/'Jan','Feb','Mar','Apr','May','Jun','Jul',
@@ -965,11 +1217,13 @@ C Ask for end time of the animation.
           helptopic='end_time_of_animation'
           call gethelptext(helpinsub,helptopic,nbhelp)
           ATIMEFN = ATIMEST + 1.0
-          CALL EASKR(ATIMEFN,' ',' End time of the animation? ',
+          CALL EASKR(ATIMEFN,' ','End time of the animation?',
      &      ATIMEST,'W',24.0,'W',0.2,'end time of anim',IER,nbhelp)
 
 C Figure out the increment.
           IWT=1
+          helptopic='single_time_or_sequence'
+          call gethelptext(helpinsub,helptopic,nbhelp)
           CALL EASKMBOX('Interval between views:',' ','one min',
      &      'five min','ten min','15 min','20 min','30 min','cancel',
      &      ' ',IWT,nbhelp)
@@ -1074,11 +1328,35 @@ C file should be removed.
               call EFDELET(ITA2,ISTAT)
             endif
 
+C If Wavefront variant needed setup rifwave file name.
+            dowave=.false.
+            if(focus_espg.and.both_esp_wave)then
+              dowave=.true.
+            elseif(.NOT.focus_espg.and.both_esp_wave)then
+              dowave=.true.
+            elseif(focus_espg.and.(.NOT.both_esp_wave))then
+              dowave=.false.
+            elseif(.NOT.focus_espg.and.(.NOT.both_esp_wave))then
+              dowave=.false.
+            endif
+
 C Save changes to RIF file
             IFC=3
             call MKRIF(ITA2,RIFNAME(ISCENE),IFC,0,'-',IER)
-            rifwave='obj.rif'
-            call mkrif(ITA2,rifwave,IFC,0,'w',IER)
+            if(dowave)then
+              if (SCENEPURP(ISCENE)(1:8).eq.'External')then
+                rifwave='obj_ex.rif'
+              elseif(SCENEPURP(ISCENE)(1:8).eq.'Internal')then
+                rifwave='obj_in.rif'
+              elseif(SCENEPURP(ISCENE)(1:5).eq.'Glare')then
+                rifwave='obj_gl.rif'
+              elseif (SCENEPURP(ISCENE)(1:8).eq.'Day_fact') then
+                rifwave='obj_df.rif'
+              else
+                rifwave='obj.rif'
+              endif
+              call mkrif(ITA2,rifwave,IFC,0,'w',IER)
+            endif
             if (NBSRIF(ISCENE).eq.1) then
               call mkrif(ita2,LBSRIF(ISCENE),IFC,1,'-',ier)
             endif
@@ -1201,17 +1479,39 @@ C See if there is an existing hdr file by this name.
             elseif(IWR.eq.2)then
  1111         ltmp = picfil
               CALL EASKS(ltmp,
-     &          ' Picture root name (modify slightly) ?',
+     &          'Picture root name (modify slightly)?',
      &          ' ',72,'xx','picture root file name',IER,nbhelp)
               if(ltmp(1:2).ne.'  ') then
                 picfil = ltmp
               else
                 goto 1111
               endif
+              dowave=.false.
+              if(focus_espg.and.both_esp_wave)then
+                dowave=.true.
+              elseif(.NOT.focus_espg.and.both_esp_wave)then
+                dowave=.true.
+              elseif(focus_espg.and.(.NOT.both_esp_wave))then
+                dowave=.false.
+              elseif(.NOT.focus_espg.and.(.NOT.both_esp_wave))then
+                dowave=.false.
+              endif
               IFC=3
               call MKRIF(ITA2,RIFNAME(ISCENE),IFC,0,'-',IER)
-              rifwave='obj.rif'
-              call mkrif(ITA2,rifwave,IFC,0,'w',IER)
+              if(dowave)then
+                if (SCENEPURP(ISCENE)(1:8).eq.'External')then
+                  rifwave='obj_ex.rif'
+                elseif(SCENEPURP(ISCENE)(1:8).eq.'Internal')then
+                  rifwave='obj_in.rif'
+                elseif(SCENEPURP(ISCENE)(1:5).eq.'Glare')then
+                  rifwave='obj_gl.rif'
+                elseif (SCENEPURP(ISCENE)(1:8).eq.'Day_fact') then
+                  rifwave='obj_df.rif'
+                else
+                  rifwave='obj.rif'
+                endif
+                call mkrif(ITA2,rifwave,IFC,0,'w',IER)
+              endif
               if (NBSRIF(ISCENE).eq.1) then
                 call mkrif(ita2,LBSRIF(ISCENE),IFC,1,'-',ier)
               endif
@@ -1273,7 +1573,7 @@ C Note the time.
       end
 
 C ********************** dispimage **********************
-C dispimage displays an image file to screen.
+C Display an image file to screen.
 C ITP =1 - image only; =2 - glare info to display on image.
 C Assumes that the path to the image is given.
 
@@ -1293,17 +1593,6 @@ C Assumes that the path to the image is given.
       character outs*124,outstr*124
       
       real UGRV
-#ifdef OSI
-      integer igwid,igheight  ! for use with axiscale
-      integer iix1,iiy1,iix2,iiy2
-      integer iigl,iigr,iigt,iigb,iigw,iigwh
-      integer iiw1,iiw2,iiw3,iiw4,iimenu
-#else
-      integer*8 igwid,igheight  ! for use with axiscale
-      integer*8 iix1,iiy1,iix2,iiy2
-      integer*8 iigl,iigr,iigt,iigb,iigw,iigwh
-      integer*8 iiw1,iiw2,iiw3,iiw4,iimenu
-#endif
       
       logical XST,unixok
 
@@ -1353,7 +1642,6 @@ C Calculate UGR from glare file and display to screen.
         call runit(doit,'-')
         
 C Read file then write to text feedback.
-C Check for daylight factor results.
         write (ugrf,'(2a)') gf(1:lnblnk(gf)),'.ugr'
         write (ltmp,'(2a)') 
      &             runpath(1:lnrp),ugrf(1:lnblnk(ugrf))
@@ -1383,7 +1671,7 @@ C Check for daylight factor results.
       end
 
 C ********************** getglr **********************
-C getglr recovers view information and runs glare calculation.
+C Recover view information and run a glare calculation.
 C Suggested values for rendering options are shown on the web:
 C radsite.lbl.gov/radiance/refer/Notes/rpict_options.html
 
@@ -1504,6 +1792,7 @@ C Read opt file so as rendering parameters can be set for rtrace.
       write (rendopt,'(a)') ltmp
       xval=-1.
       call RADPAR('av',xval)
+      if(xval.lt.0.1) xval = 0.1
       write (ltmp,'(2a,3(1x,f4.1),1x)') 
      &  rendopt(1:lnblnk(rendopt)),' -av',xval,xval,xval
       write (rendopt,'(a)') ltmp
@@ -1529,7 +1818,7 @@ C Run findglare to identify glare sources.
         write(gf,'(2a)') picfil(1:lnblnk(picfil)),'_X.glr'
       endif
       write(doit,'(12a)') 'cd ',runpath(1:lnblnk(runpath)),
-     &  '; findglare -v -p ',
+     &  '; findglare -v -ga 10-60:10 -p ',
      &   pf(1:lnblnk(pf)),' ',rendopt(1:lnblnk(rendopt)),' ',
      &   octfil(1:lnblnk(octfil)),' > ',gf(1:lnblnk(gf))
 
@@ -1549,15 +1838,29 @@ C Now display glare sources on image.
      &  'The glare sources are shown via circles & intensity values.',
      &  'Click when done. More glare info via view visu results','W')
 
+C Use glarendx to generate Guth VCP data.
+      write(doit,'(5a)') 'cd ',runpath(1:lnrp),
+     &  '; glarendx -t guth_vcp ',gf(1:lnblnk(gf)),' &'
+      call runit(doit,'-')
+      call sleep(1)
+
+C And re-run it dumping values to a file.
+      write (doit,'(7a)') 'cd ',runpath(1:lnrp),
+     &  '; glarendx -t guth_vcp ',gf(1:lnblnk(gf)),' > ',
+     &  gf(1:lnblnk(gf)),'.vcp'
+      call runit(doit,'-')
+      call sleep(1)
+
       return
       end
 
 C ********************** getdf **********************
-C getdf runs daylight factor calculation and then displays them.
+C Invoke daylight factor calculation and then displays them.
 
       SUBROUTINE getdf
 #include "building.h"
 #include "e2r_common.h"
+#include "espriou.h"
 #include "help.h"
       
       integer lnblnk  ! function definition
@@ -1567,12 +1870,17 @@ C getdf runs daylight factor calculation and then displays them.
       integer itc,icout  ! trace verbosity and output channel
       common/trace/itc,icout
 
+      logical both_esp_wave      ! If true manage pair of scenes.
+      logical focus_espg         ! If true editing in context of ESP-r geometry
+      integer ipairedscene       ! Index of paired scene.
+      COMMON/ESPWAVE/both_esp_wave,focus_espg,ipairedscene(16)
+
       CHARACTER df*72,outs*124,ltmp*72,doit*256
       character QT*1,OUTSTR*124
       character tfile*72,outsl*160
       character rifwave*72
 
-      logical XST,RECALC
+      logical XST,RECALC,dowave
 
       helpinsub='radcmds'  ! set for subroutine
 
@@ -1585,6 +1893,7 @@ C Check for daylight factor points - if none then try and read grid file.
         call ERPFREE(ITA1,ISTAT)
         write(tfile,'(a,a)')runpath(1:lnrp),
      &    LDFGRID(ISCENE)(1:lnblnk(LDFGRID(ISCENE)))
+        write(currentfile,'(a)') tfile(1:lnblnk(tfile))
         call FPOPEN(ITA1,ISTAT,1,1,tfile)
         if(ISTAT.eq.0)then
   42      CALL STRIPC(ITA1,OUTSTR,0,ND,0,'grid points',IFER)
@@ -1613,10 +1922,10 @@ C Check for daylight factor points - if none then try and read grid file.
       endif
 
 C Ask for convergence limit.
-      CONV=0.25
+      if(CONV(ISCENE).lt.0.001) CONV(ISCENE)=0.25
       helptopic='e2r_df_convergence'
       call gethelptext(helpinsub,helptopic,nbhelp)
-      CALL EASKR(CONV,'Daylight factor convergence criteria',
+      CALL EASKR(CONV(ISCENE),'Daylight factor convergence criteria',
      &  'Max total diff between iterations) ',0.00,
      &  'F',5.0,'W',0.25,'df convergence criteria',IER,nbhelp)
 
@@ -1628,6 +1937,18 @@ C Reset DFVALS to 0.0
 
 C Check octree up to date.
       call touchrif(RIFNAME(ISCENE))
+
+C If Wavefront variant needed setup rifwave file name.
+      dowave=.false.
+      if(focus_espg.and.both_esp_wave)then
+        dowave=.true.
+      elseif(.NOT.focus_espg.and.both_esp_wave)then
+        dowave=.true.
+      elseif(focus_espg.and.(.NOT.both_esp_wave))then
+        dowave=.false.
+      elseif(.NOT.focus_espg.and.(.NOT.both_esp_wave))then
+        dowave=.false.
+      endif
       
 C Check rendering parameters.  If the number of ambient bounces is 
 C greater than 1 then the simulation has probably been run before. 
@@ -1635,7 +1956,7 @@ C Ask if the parameters should be reset.
       XAB=-1.
       call RADPAR('ab',XAB)
       if (XAB.gt.1.5) then
-        helptopic='e2r_df_confusion'
+        helptopic='e2r_confusion'
         call gethelptext(helpinsub,helptopic,nbhelp)
         CALL EASKMBOX(
      &    'The rendering parameters would appear to be set',
@@ -1648,8 +1969,20 @@ C Ask if the parameters should be reset.
           write (crenrp,'(a)') outsl
           IFC=3
           call MKRIF(ITA2,RIFNAME(ISCENE),IFC,0,'-',IER)
-          rifwave='obj.rif'
-          call mkrif(ITA2,rifwave,IFC,0,'w',IER)
+          if(dowave)then
+            if (SCENEPURP(ISCENE)(1:8).eq.'External')then
+              rifwave='obj_ex.rif'
+            elseif(SCENEPURP(ISCENE)(1:8).eq.'Internal')then
+              rifwave='obj_in.rif'
+            elseif(SCENEPURP(ISCENE)(1:5).eq.'Glare')then
+              rifwave='obj_gl.rif'
+            elseif (SCENEPURP(ISCENE)(1:8).eq.'Day_fact') then
+              rifwave='obj_df.rif'
+            else
+              rifwave='obj.rif'
+            endif
+            call mkrif(ITA2,rifwave,IFC,0,'w',IER)
+          endif
           call touchrif(RIFNAME(ISCENE))
         endif
       endif
@@ -1659,7 +1992,7 @@ C Daylight factors output file.
       call ERPFREE(ITA1,ISTAT)
  1111 write (ltmp,'(2a)') runpath(1:lnrp),df(1:lnblnk(df))
       call FINDFIL(ltmp,XST)
-      helptopic='e2r_df_file_overwrite'
+      helptopic='e2r_file_overwrite'
       call gethelptext(helpinsub,helptopic,nbhelp)
       if(XST)then
         write(outs,'(2a)')'There is an existing file ',df(1:lnblnk(df))
@@ -1668,7 +2001,7 @@ C Daylight factors output file.
         if (IWR.eq.2) then
           ltmp = df
  1221     CALL EASKS(ltmp,
-     &      'Daylight factors results file name (modify slightly) ?',
+     &      'Daylight factors results file name (modify slightly)?',
      &      ' ',72,'xx.df','df resfile name',IER,nbhelp)
           if(ltmp.ne.'  '.and.ltmp.ne.df) then
             df = ltmp
@@ -1707,6 +2040,7 @@ C Debug/trace.
 C Now need to read in daylight factors and store in memory.
       DFmaxdiff=0.
       write (ltmp,'(2a)') runpath(1:lnrp),df(1:lnblnk(df))
+      write(currentfile,'(a)') tfile(1:lnblnk(tfile))
       call FPOPEN(ITA1,ISTAT,1,1,ltmp)
       do 10 I=1,NDFP
         call STRIPC(ITA1,OUTSTR,4,ND,0,'DF results',IER)
@@ -1751,7 +2085,7 @@ C Check value of ad.
       if (ICONV.eq.0) then
         YAD=-1.0
         call RADPAR('ad',YAD)
-        if (DFmaxdiff.gt.CONV) then
+        if (DFmaxdiff.gt.CONV(ISCENE)) then
 
 C Increase value and recalculate.
           if (YAD.lt.4000.0) then
@@ -1778,7 +2112,7 @@ C Check value of as.
       if (ICONV.eq.1) then
         YAS=-1.0
         call RADPAR('as',YAS)
-        if (DFmaxdiff.gt.CONV) then
+        if (DFmaxdiff.gt.CONV(ISCENE)) then
 
 C Increase value and recalculate.
           if (YAS.lt.((YAD/2.0)-1.0)) then
@@ -1805,7 +2139,7 @@ C Check value of ab.
       if (ICONV.eq.2) then
         YAB=-1.0
         call RADPAR('ab',YAB)
-        if (DFmaxdiff.gt.CONV) then
+        if (DFmaxdiff.gt.CONV(ISCENE)) then
 
 C Increase value and recalculate.
           if (YAB.lt.5.0) then
@@ -1833,8 +2167,20 @@ C Save RIF file and update options file.
         call edisp(iuout,'Recalculating with different resolution...')
         IFC=3
         call MKRIF(ITA2,RIFNAME(ISCENE),IFC,0,'-',IER)
-        rifwave='obj.rif'
-        call mkrif(ITA2,rifwave,IFC,0,'w',IER)
+        if(dowave)then
+          if (SCENEPURP(ISCENE)(1:8).eq.'External')then
+            rifwave='obj_ex.rif'
+          elseif(SCENEPURP(ISCENE)(1:8).eq.'Internal')then
+            rifwave='obj_in.rif'
+          elseif(SCENEPURP(ISCENE)(1:5).eq.'Glare')then
+            rifwave='obj_gl.rif'
+          elseif (SCENEPURP(ISCENE)(1:8).eq.'Day_fact') then
+            rifwave='obj_df.rif'
+          else
+            rifwave='obj.rif'
+          endif
+          call mkrif(ITA2,rifwave,IFC,0,'w',IER)
+        endif
         call touchrif(RIFNAME(ISCENE))
         if (NBSRIF(ISCENE).eq.1) then
           call mkrif(ita2,LBSRIF(ISCENE),IFC,1,'-',ier)
@@ -1855,7 +2201,7 @@ C a catch-22 for viewing the DF later on.
       end
 
 C ********************** getfalse **********************
-C getfalse creates a standard image via rpict, an illuminance
+C Create a standard image via rpict, an illuminance
 C image via rpict -i calculation and then a falsecolor command
 C with Lux legend.
 
@@ -1902,13 +2248,6 @@ C Setup help.
      &  rvewsh(ipckvew)(1:lnblnk(rvewsh(ipckvew))),'_i.hdr'
       write(luxfile,'(4a)') picfil(1:lnblnk(picfil)),'_',
      &  rvewsh(ipckvew)(1:lnblnk(rvewsh(ipckvew))),'_lux.hdr'
-
-C Debug.
-C      write(6,*) 'uhf ',uhfile(1:lnblnk(uhfile))
-C      write(6,*) 'ihf ',ihfile(1:lnblnk(ihfile))
-C      write(6,*) 'ulf ',ulfile(1:lnblnk(ulfile))
-C      write(6,*) 'ilf ',ilfile(1:lnblnk(ilfile))
-C      write(6,*) 'lux ',luxfile(1:lnblnk(luxfile))
 
 C Ask max lux and how many steps e.g. 30 and 15 results in
 C 2 lux intervals.
@@ -2097,8 +2436,8 @@ C      CALL EFDELET(ITA1,ISTAT)
       end
 
 C ********************** getlux **********************
-C getlux runs illuminance calculation and then displays them
-C using logic similar to getdf.
+C Invoke illuminance calculation and then display using
+C logic similar to getdf.
 
       SUBROUTINE getlux
 #include "building.h"
@@ -2112,18 +2451,35 @@ C using logic similar to getdf.
       integer itc,icout  ! trace verbosity and output channel
       common/trace/itc,icout
 
+      logical both_esp_wave      ! If true manage pair of scenes.
+      logical focus_espg         ! If true editing in context of ESP-r geometry
+      integer ipairedscene       ! Index of paired scene.
+      COMMON/ESPWAVE/both_esp_wave,focus_espg,ipairedscene(16)
+
       CHARACTER df*72,outs*124,ltmp*72,doit*256
       character QT*1,OUTSTR*124
       character tfile*72,outsl*160
       character rifwave*72
 
-      logical XST,RECALC
+      logical XST,RECALC,dowave
 
       helpinsub='radcmds'  ! set for subroutine
 
       ITA1 = IFIL+6
       ITA2 = IFIL+7
       QT=CHAR(39)
+
+C If Wavefront variant needed setup rifwave file name.
+      dowave=.false.
+      if(focus_espg.and.both_esp_wave)then
+        dowave=.true.
+      elseif(.NOT.focus_espg.and.both_esp_wave)then
+        dowave=.true.
+      elseif(focus_espg.and.(.NOT.both_esp_wave))then
+        dowave=.false.
+      elseif(.NOT.focus_espg.and.(.NOT.both_esp_wave))then
+        dowave=.false.
+      endif
 
 C Check for illuminance points - if none then try and read grid file.
       if (NDFP.eq.0) then
@@ -2158,10 +2514,10 @@ C Check for illuminance points - if none then try and read grid file.
       endif
 
 C Ask for convergence limit.
-      CONV=0.25
+      if(CONV(ISCENE).lt.0.01) CONV(ISCENE)=0.25
       helptopic='e2r_lux_convergence'
       call gethelptext(helpinsub,helptopic,nbhelp)
-      CALL EASKR(CONV,'illuminance convergence criteria',
+      CALL EASKR(CONV(ISCENE),'illuminance convergence criteria',
      &  'Max total diff between iterations) ',1.00,
      &  'F',100.0,'W',10.0,'lux convergence criteria',IER,nbhelp)
 
@@ -2181,7 +2537,7 @@ C Ask if the parameters should be reset.
       XAB=-1.
       call RADPAR('ab',XAB)
       if (XAB.gt.1.5) then
-        helptopic='e2r_lux_confusion'
+        helptopic='e2r_confusion'
         call gethelptext(helpinsub,helptopic,nbhelp)
         CALL EASKMBOX(
      &    'The rendering parameters would appear to be set',
@@ -2194,8 +2550,20 @@ C Ask if the parameters should be reset.
           write (crenrp,'(a)') outsl
           IFC=3
           call MKRIF(ITA2,RIFNAME(ISCENE),IFC,0,'-',IER)
-          rifwave='obj.rif'
-          call mkrif(ITA2,rifwave,IFC,0,'w',IER)
+          if(dowave)then
+            if (SCENEPURP(ISCENE)(1:8).eq.'External')then
+              rifwave='obj_ex.rif'
+            elseif(SCENEPURP(ISCENE)(1:8).eq.'Internal')then
+              rifwave='obj_in.rif'
+            elseif(SCENEPURP(ISCENE)(1:5).eq.'Glare')then
+              rifwave='obj_gl.rif'
+            elseif (SCENEPURP(ISCENE)(1:8).eq.'Day_fact') then
+              rifwave='obj_df.rif'
+            else
+              rifwave='obj.rif'
+            endif
+            call mkrif(ITA2,rifwave,IFC,0,'w',IER)
+          endif
           call touchrif(RIFNAME(ISCENE))
         endif
       endif
@@ -2206,7 +2574,7 @@ C Illuminance output file.
       call ERPFREE(ITA1,ISTAT)
  1111 write (ltmp,'(2a)') runpath(1:lnrp),df(1:lnblnk(df))
       call FINDFIL(ltmp,XST)
-      helptopic='e2r_lux_file_overwrite'
+      helptopic='e2r_file_overwrite'
       call gethelptext(helpinsub,helptopic,nbhelp)
       if(XST)then
         write(outs,'(2a)')'There is an existing file ',df(1:lnblnk(df))
@@ -2215,7 +2583,7 @@ C Illuminance output file.
         if (IWR.eq.2) then
           ltmp = df
  1221     CALL EASKS(ltmp,
-     &      'Illuminance results file name (modify slightly) ?',
+     &      'Illuminance results file name (modify slightly)?',
      &      ' ',72,'xx.lux','lux resfile name',IER,nbhelp)
           if(ltmp.ne.'  '.and.ltmp.ne.df) then
             df = ltmp
@@ -2279,7 +2647,7 @@ C Found the DF for the current sensor.
  10   continue
 
 C Debug.
-C      write(6,*) DFmaxdiff
+      write(6,*) 'DF maximum difference is ',DFmaxdiff
 
 C Display current results and ambient rendering parameters.
       call DFGRIDLBL('l')
@@ -2298,7 +2666,7 @@ C Check value of ad.
       if (ICONV.eq.0) then
         YAD=-1.0
         call RADPAR('ad',YAD)
-        if (DFmaxdiff.gt.CONV) then
+        if (DFmaxdiff.gt.CONV(ISCENE)) then
 
 C Increase value and recalculate.
           if (YAD.lt.4000.0) then
@@ -2325,7 +2693,7 @@ C Check value of as.
       if (ICONV.eq.1) then
         YAS=-1.0
         call RADPAR('as',YAS)
-        if (DFmaxdiff.gt.CONV) then
+        if (DFmaxdiff.gt.CONV(ISCENE)) then
 
 C Increase value and recalculate.
           if (YAS.lt.((YAD/2.0)-1.0)) then
@@ -2352,7 +2720,7 @@ C Check value of ab.
       if (ICONV.eq.2) then
         YAB=-1.0
         call RADPAR('ab',YAB)
-        if (DFmaxdiff.gt.CONV) then
+        if (DFmaxdiff.gt.CONV(ISCENE)) then
 
 C Increase value and recalculate.
           if (YAB.lt.5.0) then
@@ -2381,8 +2749,20 @@ C Save RIF file and update options file.
         call edisp(iuout,'feedback is displayed in xterm.')
         IFC=3
         call MKRIF(ITA2,RIFNAME(ISCENE),IFC,0,'-',IER)
-        rifwave='obj.rif'
-        call mkrif(ITA2,rifwave,IFC,0,'w',IER)
+        if(dowave)then
+          if (SCENEPURP(ISCENE)(1:8).eq.'External')then
+            rifwave='obj_ex.rif'
+          elseif(SCENEPURP(ISCENE)(1:8).eq.'Internal')then
+            rifwave='obj_in.rif'
+          elseif(SCENEPURP(ISCENE)(1:5).eq.'Glare')then
+            rifwave='obj_gl.rif'
+          elseif (SCENEPURP(ISCENE)(1:8).eq.'Day_fact') then
+            rifwave='obj_df.rif'
+          else
+            rifwave='obj.rif'
+          endif
+          call mkrif(ITA2,rifwave,IFC,0,'w',IER)
+        endif
         call touchrif(RIFNAME(ISCENE))
         if (NBSRIF(ISCENE).eq.1) then
           call mkrif(ita2,LBSRIF(ISCENE),IFC,1,'-',ier)

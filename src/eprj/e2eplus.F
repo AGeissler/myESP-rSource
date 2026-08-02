@@ -163,6 +163,7 @@ C << need to revise OPT to be 32 char >>
       logical treatasmass    ! if true treat surface as internal mass
       logical processasfen   ! if true treat surface as fenistration
       logical usectf,nooccupinday
+      logical MY             ! signal not-multi-year weather
 
 C Viewfactor to ground.
       dimension PROPG(8)
@@ -561,7 +562,8 @@ C the configuration file data for lat and long.
       WRITE(ioout,'(a)',iostat=ios,err=2) ' '
       WRITE(ioout,'(2a)',iostat=ios,err=2) '  Site:Location',com
       ier=0
-      CALL CLMOPB(0,IER)
+      MY=.false.
+      CALL CLMOPB(MY,0,IER)
       if(ier.eq.0)then
         CALL CLMRDBMD(IER)
         CALL ERPFREE(ICLIM,ISTAT)
@@ -1752,7 +1754,7 @@ C IFILE+2 and ASCII viewing and geometry file reading on IFILE+1.
 C Loop through the zones, read in each zone geometry.
         WRITE(ioout,'(a)',iostat=ios,err=5) ' '
         WRITE(ioout,'(2a)',iostat=ios,err=5) '! ',
-     &    zdesc(mz)(1:lnzdesc(mz))
+     &    zdesc(mz)(1:lnblnk(zdesc(mz)))
         WRITE(ioout,'(a)',iostat=ios,err=5) ' '
         WRITE(ioout,'(2a)',iostat=ios,err=5) '  Zone',com
         WRITE(ioout,'(4a)',iostat=ios,err=5) '    ',
@@ -2557,7 +2559,7 @@ C To avoid possible duplicate names pre-pend the zone name to block.
      &          'Shading:Building:Detailed',com
               WRITE(ioout,'(4a,i1,2a)',iostat=ios,err=6) indent,
      &          zname(mz)(1:lnzname(mz)),':',
-     &          BLOCKNAME(mz,ib)(1:LNBLOCKNAME(mz,ib)),ibs,com,
+     &          BLOCKNAME(mz,ib)(1:lnblnk(BLOCKNAME(mz,ib))),ibs,com,
      &          '   !- User Supplied Surface Name'
               WRITE(ioout,'(5a)',iostat=ios,err=6) indent,com,
      &          '   !- TransSchedShadowSurf'

@@ -1229,6 +1229,13 @@ C we have to recover this from ntbits().
       ENDIF
       K=0
       CALL EGETWI(OUTSTR,K,NWPR,0,0,'-','NWPR',IER)
+      if(NWPR.gt.MIT)then
+        write(msgl2,'(a,i3,a,i3,2a)') 'Error NWPR ',NWPR,' >',MIT,
+     &    ' in ',AFIL(1:lnblnk(AFIL))
+        CALL USRMSG(' ',msgl2,'W')
+        IER=1
+        RETURN
+      endif
       CALL EGETWI(OUTSTR,K,NITDF,0,0,'-','NITDF',IER)
       CALL EGETWI(OUTSTR,K,NTSPH,0,0,'-','NTSPH',IER)
       CALL EGETWI(OUTSTR,K,itdyear,0,0,'-','itdyear',IER)

@@ -1069,8 +1069,8 @@ C     OUTPUT HEADERS
      &     'Parasitics (kWhr)',
      &     ' Pump Elec (kWhr)',
      &     '  Fan Elec (kWhr)', 
-     &     'non-hvac el(KWhr)',
-     &     'hvac elec  (KWhr)'
+     &     'non-hvac el(kWhr)',
+     &     'hvac elec  (kWhr)'
       CALL EDISP(IWU,OUTS) 
 C     LOOP THROUGH MONTH IN TIME PERIOD
       DO 20 IMONTH=ISM1,ISM2
@@ -1105,102 +1105,104 @@ C     YearTotals
      &        fYEARH3KSTORE_FC_q_total + 
      &        fH3KSTORE_FC_q_total(IMONTH)/1000.
  
-c     Must divide by 1000 to convert from w-h to kW-h 
-c     net electrical output (KW-h)
+c     Net electrical output (kWh).
       fYEARH3KSTORE_FC_q_net_elec = 
      &     fYEARH3KSTORE_FC_q_net_elec
      &     + fH3KSTORE_FC_q_net_elec(IMONTH)/1000.
-
-c     divide by 1000 to convert from litres to m^3
-c     fuel consumption(m^3)
+    
+c     Fuel consumption, convert from litres to m^3.
           fYEARH3KSTORE_FC_Vdot_fuel_STP = 
      &     fYEARH3KSTORE_FC_Vdot_fuel_STP
      &     + fH3KSTORE_FC_Vdot_fuel_STP(IMONTH)/1000. 
-c     electrical efficiency(%)
+
+c     Electrical efficiency (%).
          fYEARavg_elec_eff  =
      &   fYEARavg_elec_eff +  avg_elec_eff
 
-c     element power (kW-h)
+c     Element power (kWh).
       fYEARH3KSTORE_EL_q_element =  
      &        fYEARH3KSTORE_EL_q_element 
      &        + fH3KSTORE_EL_q_element(IMONTH)/1000.
 
-c     average elec tank temperature(oC)
+c     Average tank temperature (C).
       fYEARavg_tankE_temp = 
      &        fYEARavg_tankE_temp +   avg_tankE_temp
 
-c     fossil fuel consumption(m^3)
+c     Fossil fuel consumption (m^3).
         fYEARH3KSTORE_FF_Vdot_fuel_STP =  
      &        fYEARH3KSTORE_FF_Vdot_fuel_STP 
      &        + fH3KSTORE_FF_Vdot_fuel_STP(IMONTH)/1000. 
 
-c     average fossil fuel tank temperature(oC)
+c     Average fossil fuel tank temperature (C).
       fYEARavg_tankF_temp  = 
      &        fYEARavg_tankF_temp   + avg_tankF_temp
 
-c     Parasitic elec losses.(kW-h)
+c     Parasitic electrical losses (kWh).
       fYEARH3KSTORE_FC_q_par_elec 
      &        = fYEARH3KSTORE_FC_q_par_elec 
      &        +   fH3KSTORE_FC_q_par_elec(iMonth)/1000.
 
-c Explicit Plant Pump and Fan Electrical Outputs
-c Pump Electrical Energy (kW-h)
+c Pump electrical energy (kWh).
       fYEAR Plant_Pump_Elec  =  
      &        fYEARPlant_Pump_Elec   
      &     +  fPlant_Pump_Elec(iMonth)/1000.
-c Fan Electrical Energy.(kW-h)
+
+c Fan electrical energy (kWh).
            fYEARPlant_Fan_Elec   =  fYEARPlant_Fan_Elec   
      &     +  fPlant_Fan_Elec(iMonth)/1000.
-c     non hvac elec  energy (KW-H)
+
+c     Non hvac electrical energy (kWh).
       fYEARH3KSTORE_FC_q_nonHVAC_el   =  
      &     fYEARH3KSTORE_FC_q_nonHVAC_el   
      &     +   fH3KSTORE_FC_q_nonHVAC_el(iMonth)/1000.
-c     HVAC elec energy
+
+c     HVAC electrical energy (kWh).
           fYEARH3KSTORE_FC_q_HVAC_elec   =  
      &     fYEARH3KSTORE_FC_q_HVAC_elec   
      &     +   fH3KSTORE_FC_q_HVAC_elec(iMonth)/1000. 
 
-
-
-           
-
-C     OUTPUT ENERGIES  
+C     Output energies.  
          WRITE(OUTS,'(A15,13(1X,f17.4))')
      &        MTHNAM(IMONTH),
-c     total elec demand on FC controller(kW-h)
+
+c     Total electrical demand on FC controller (kWh).
      &        fH3KSTORE_FC_q_total(IMONTH)/1000.,
  
-c     Must divide by 1000 to convert from w-h to kW-h 
-c     net electrical output (KW-h)
+c     Net electrical output (kWh).
      &        fH3KSTORE_FC_q_net_elec(IMONTH)/1000., 
-
-c     divide by 1000 to convert from litres to m^3
-c     fuel consumption(m^3)
+ 
+c     Fuel consumption, convert from litres to m^3.
      &        fH3KSTORE_FC_Vdot_fuel_STP(IMONTH)/1000., 
-c     electrical efficiency(%)
+
+c     Electrical efficiency (%).
      &        avg_elec_eff,
-c     element power (kW-h)
+
+c     Element consumption (kWh).
      &        fH3KSTORE_EL_q_element(IMONTH)/1000., 
-c     average elec tank temperature(oC)
+
+c     Average electrical tank temperature (C).
      &        avg_tankE_temp,
-c     fossil fuel consumption(m^3)
+
+c     Fossil fuel consumption (m^3).
      &        fH3KSTORE_FF_Vdot_fuel_STP(IMONTH)/1000., 
-c     average fossil fuel tank temperature(oC)
+
+c     Average fossil fuel tank temperature (C).
      &        avg_tankF_temp,
-c     Parasitic elec losses.(kW-h)
+
+c     Parasitic electrical losses (kWh).
      &       fH3KSTORE_FC_q_par_elec(iMonth)/1000.,
 
-c Explicit Plant Pump and Fan Electrical Outputs
-c Pump Electrical Energy (kW-h)
+c Pump electrical energy (kWh).
      &       fPlant_Pump_Elec(iMonth)/1000.,
-c Fan Electrical Energy.(kW-h)
+
+c Fan electrical energy (kWh).
      &       fPlant_Fan_Elec(iMonth)/1000.,
-c non hvac elec  energy (KW-H)
+
+c Non hvac electrical energy (kWh).
      &        fH3KSTORE_FC_q_nonHVAC_el(iMonth)/1000.,
-c HVAC elec energy
+
+c HVAC electrical energy (kWh).
      &        fH3KSTORE_FC_q_HVAC_elec(iMonth)/1000.
-
-
 
          CALL EDISP(IWU,OUTS)
  20   CONTINUE
@@ -1208,53 +1210,44 @@ c HVAC elec energy
       WRITE(OUTS,'(A15,13(1X,f17.4))')
      &     'Total',
          
-C     YearTotals
+C     Year totals.
      &     fYEARH3KSTORE_FC_q_total,
 
-         
-c     Must divide by 1000 to convert from w-h to kW-h 
-c     net electrical output (KW-h)
+c     Net electrical output (kWh).
      &     fYEARH3KSTORE_FC_q_net_elec, 
          
-c     divide by 1000 to convert from litres to m^3
-c     fuel consumption(m^3)
+c     divide by 1000 to 
+c     Fuel consumption convert from litres to m^3.
      &     fYEARH3KSTORE_FC_Vdot_fuel_STP, 
          
-         
-c     electrical efficiency(%)
+c     Electrical efficiency (%).
      &     fYEARavg_elec_eff/REAL(ISM2-ISM1+1),
 
-
-c     element power (kW-h)
+c     Element consumption (kWh).
      & fYEARH3KSTORE_EL_q_element,  
 
-
-c     average elec tank temperature(oC)
+c     Average electrical tank temperature (C).
      & fYEARavg_tankE_temp/REAL(ISM2-ISM1+1),
 
-
-c     fossil fuel consumption(m^3)
+c     Fossil fuel consumption (m^3).
      &   fYEARH3KSTORE_FF_Vdot_fuel_STP, 
- 
 
-c     average fossil fuel tank temperature(oC)
+c     Average fossil fuel tank temperature (C).
      & fYEARavg_tankF_temp/REAL(ISM2-ISM1+1),
 
-
-c     Parasitic elec losses.(kW-h)
+c     Parasitic electrical losses (kWh).
      &     fYEARH3KSTORE_FC_q_par_elec,
          
-c Explicit Plant Pump and Fan Electrical Outputs
-c     Pump Electrical Energy (kW-h)
+c     Pump electrical energy (kWh).
      &     fYEAR Plant_Pump_Elec,  
          
-c     Fan Electrical Energy.(kW-h)
+c     Fan electrical energy (kWh).
      &     fYEARPlant_Fan_Elec,   
          
-c     non hvac elec  energy (KW-H)
+c     Non hvac electrical energy (kWh).
      &     fYEARH3KSTORE_FC_q_nonHVAC_el,  
 
-c     HVAC elec energy
+c     HVAC electrical energy (kWh).
      &     fYEARH3KSTORE_FC_q_HVAC_elec 
 
       CALL EDISP(IWU,OUTS)
@@ -1264,13 +1257,13 @@ c     HVAC elec energy
 
 C     *********************************************************************
 C     SUBROUTINE FC_Timestep_Out
-C     Outputs the timstep data to a file. The output format is detailed in the write statement below. 
-C     
+
 C     CREATED BY: PHYLROY A. LOPEZ
 C     INITIAL CREATION DATE:  MARCH 23TH 2001
 C     COPYRIGHT 2000: NRCAN BUILDINGS GROUP
-C     OUTPUTS:
-C     OUTPUT MONTHLY ENERGY VALUES of FC TO FILE (iFC_TimeStep_File_Number) 
+
+C     Outputs timstep data to a file. 
+C     Outputs monthly energy values of fuel cell to file (iFC_TimeStep_File_Number).
       SUBROUTINE FC_Timestep_Out()
 
       IMPLICIT NONE
@@ -1278,6 +1271,7 @@ C     OUTPUT MONTHLY ENERGY VALUES of FC TO FILE (iFC_TimeStep_File_Number)
 #include "hvac_parameters.h"
 #include "h3kstore_parameters.h"
 #include "h3kstore_common.h"
+
       common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
       COMMON/rcmd/LCMDFL
       INTEGER   ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
@@ -1346,7 +1340,7 @@ C the open file is then used as teh output for that month set.
      &     iPreviousTimeStepDay,   !Day of Month
      &     fPreviousTimeStepHour,  !Hour of Day
 
-C data for the previous timstep..
+C Data for the previous timstep.
 C Note some data for the previous timestep is availabale only after the plant converges and thus present in the currnt timestep. so 
 C that is the reason why some of the current values are used below.
 
@@ -1360,33 +1354,33 @@ C Data pertaining to fuel cell component.
      &     fPreviousTS_stoichs,            ! FC air supply (Stoichs)
      &     fPreviousTS_Vdot_liqwater,      ! FC water supply (L/min) 
      &     fPreviousTS_Vdot_exh_STP,       ! FC exhaust flow rate (slpm)
-     &     fCurrentTS_T_exh,              ! Temp of exhaust gases into HX (oC)
-     &     fCurrentTS_T_exit,             ! Temp of exhaust gases at outlet of HX (oC)
-     &     fCurrentTS_Twater_enter,       ! Temperature of water entering HX (oC)
+     &     fCurrentTS_T_exh,               ! Temp of exhaust gases into HX (oC)
+     &     fCurrentTS_T_exit,              ! Temp of exhaust gases at outlet of HX (oC)
+     &     fCurrentTS_Twater_enter,        ! Temperature of water entering HX (oC)
      &     fPreviousTS_UA_exh,             ! UA of HX (W/oC)
      &     fPreviousTS_fHeatToWater,       ! Heat transferred from exhaust gases to water at HX (W)(note uses current T of exh, water_enter)
 
 C Data pertaining to electrically heated water storage tank (may not exist in user's .pln).
      &     fPreviousTS_q_EL_element,       ! Electric power dissipated in heater element (W)    
      &     fPreviousTS_q_EL_capture_fut,   ! Energy transferred from elec element to water (W)
-     &     fCurrentTS_T_EL_Node1_fut,     ! Tank temperature (oC)
-     &     fCurrentTS_T_EL_1a_present,    ! Temperature of water at first connection (oC)
-     &     fCurrentTS_f_EL_First_Conn,    ! Flow rate of water at first connection (kg/s)
-     &     fCurrentTS_T_EL_1b_present,    ! Temperature of water at second connection (oC)
-     &     fCurrentTS_f_EL_Second_Conn,   ! Flow rate of water at second connection (kg/s)
+     &     fCurrentTS_T_EL_Node1_fut,      ! Tank temperature (oC)
+     &     fCurrentTS_T_EL_1a_present,     ! Temperature of water at first connection (oC)
+     &     fCurrentTS_f_EL_First_Conn,     ! Flow rate of water at first connection (kg/s)
+     &     fCurrentTS_T_EL_1b_present,     ! Temperature of water at second connection (oC)
+     &     fCurrentTS_f_EL_Second_Conn,    ! Flow rate of water at second connection (kg/s)
      &     fPreviousTS_T_EL_makeup_fut,    ! Temperature of make-up water from mains (oC)
      &     fPreviousTS_f_EL_DHW_draw_fut,  ! DHW water draw (m3/s) at the future time-row
-     &     fPreviousTS_f_EL_Jacketlosses, ! Jacket loss from tank to room (W)
+     &     fPreviousTS_f_EL_Jacketlosses,  ! Jacket loss from tank to room (W)
      &     fPreviousTS_f_EL_heatdump,      ! Rate at which energy is dumped from tank to maintain temp (W) 
 
 C Data pertaining to gas-fired water storage tank (may not exist in user's .pln).
      &     fPreviousTS_f_FF_Vdot_fuel_STP, ! Fuel consumption rate (slpm)
      &     fPreviousTS_q_FF_capture_fut,   ! Energy transferred from burner to water (W)
-     &     fCurrentTS_T_FF_node1_fut,     ! Tank temperature (oC)
-     &     fCurrentTS_f_FF_T_1a_present,  ! Temperature of water at first connection (oC)
-     &     fCurrentTS_f_FF_First_Conn,    ! Flow rate of water at first connection (kg/s)
-     &     fCurrentTS_f_FF_T_1b_present,  ! Temperature of water at second connection (oC)
-     &     fCurrentTS_f_FF_Second_Conn,   ! Flow rate of water at second connection (kg/s)
+     &     fCurrentTS_T_FF_node1_fut,      ! Tank temperature (oC)
+     &     fCurrentTS_f_FF_T_1a_present,   ! Temperature of water at first connection (oC)
+     &     fCurrentTS_f_FF_First_Conn,     ! Flow rate of water at first connection (kg/s)
+     &     fCurrentTS_f_FF_T_1b_present,   ! Temperature of water at second connection (oC)
+     &     fCurrentTS_f_FF_Second_Conn,    ! Flow rate of water at second connection (kg/s)
      &     fPreviousTS_T_FF_makeup_fut,    ! Temperature of make-up water from mains (oC)
      &     fPreviousTS_f_FF_DHW_draw_fut,  ! DHW water draw (m3/s) at the future time-row
      &     fPreviousTS_f_FF_JacketLosses,  ! Jacket loss from tank to room (W)
@@ -1403,6 +1397,7 @@ C Data pertaining to gas-fired water storage tank (may not exist in user's .pln)
 #include "hvac_parameters.h"
 #include "h3kstore_parameters.h"
 #include "h3kstore_common.h"
+
       common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
       INTEGER   ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
       INTEGER   iZONE,IDAYN,iMonth,ISTAT, I
@@ -1416,7 +1411,8 @@ C Data pertaining to gas-fired water storage tank (may not exist in user's .pln)
       IF( .not.bInStartUp() )then
          CALL EDAYR(idyp,IDAYN,iMonth)
          IF (iCurrentMonth == 0) then
-C     erase old runs if present. 
+
+C     Erase old runs if present. 
             DO 41 I=1,12          
                OPEN (UNIT=iMonthStatusUnitNumber,
      &              FILE=MTHNAM(I),
@@ -1430,14 +1426,10 @@ C     erase old runs if present.
          endif
          iCurrentMonth = iMonth
  
-
          CALL EFDELET(iMonthStatusUnitNumber,ISTAT)
          OPEN (UNIT = iMonthStatusUnitNumber,
      &        FILE = MTHNAM(iMonth),
      &        STATUS = "UNKNOWN")
-        
-
-
        
       ENDIF
       RETURN
@@ -1452,19 +1444,17 @@ C     Copyright 2000: NRCan Buildings Group
 C
 C     This subroutine outputs the monthly and yearly consumptions for the
 C     following variables for solar DHW systems:
-C       circulation pumps electricity consumptions (kWhr)
-C       electric storage tank electricity consumption (kWhr)
-C       fuel-fired storage tank fuel consumption (kWhr)
-C       solar gain to the collector (kWhr)
+C       circulation pumps electricity consumptions (kWh)
+C       electric storage tank electricity consumption (kWh)
+C       fuel-fired storage tank fuel consumption (kWh)
+C       solar gain to the collector (kWh)
 
 C     Updated October 30th, 2007 JMP - addition of code to write out the monthly summary 
 C                                      data to the XML output structure.
 
-
       SUBROUTINE H3KOUTPUT_SDHW(IWU)
 
       IMPLICIT NONE
-
 #include "building.h"
 #include "hvac_parameters.h"
 #include "h3kstore_parameters.h"
@@ -1486,10 +1476,10 @@ C                                      data to the XML output structure.
                                          ! storage tank for whole year
       REAL fYEARH3KSTORE_dhwtank_fuel    ! fuel consumption for storage
                                          ! tank for full year
-      REAL fYEARH3KSTORE_coll_solar_gain    ! solar gain to the solar 
-                                            ! collector for the year
-      REAL fYEARH3KSTORE_coll_pump_elec    ! electricity consumption of the
-                                           ! collector pump for the year
+      REAL fYEARH3KSTORE_coll_solar_gain ! solar gain to the solar 
+                                         ! collector for the year
+      REAL fYEARH3KSTORE_coll_pump_elec  ! electricity consumption of the
+                                         ! collector pump for the year
       REAL fMONTH_SDHW_pump_elec_KWHR    ! electricity consumption of the
                                          ! collector pump for the month in kWhr
       REAL fMONTH_SDHW_Tank_elec_KWHR    ! electricity consumption of storage tank in kWhr
@@ -1503,10 +1493,10 @@ C     Output headers for solar DHW
       CALL EDISP(IWU,OUTS)
       WRITE(OUTS,'(A15,5(1X,A17))')
      &     'Month',
-     &     'Tank Elec (kWhr)',
-     &     'Tank Fuel (kWhr)',
-     &     'Solar Gain (kWhr)',
-     &     'Pump Elec (kWhr)'     
+     &     'Tank Elec (kWh)',
+     &     'Tank Fuel (kWh)',
+     &     'Solar Gain (kWh)',
+     &     'Pump Elec (kWh)'     
       CALL EDISP(IWU,OUTS)
 
 C Initialize yearly sums
@@ -1518,22 +1508,22 @@ C Initialize yearly sums
 C     Loop through each of the months of the simulation
       DO 10 IMONTH = ISM1,ISM2
 
-C     sum of electricity consumption of DHW tank (kWhr)
+C     sum of electricity consumption of DHW tank (kWh)
         fYEARH3KSTORE_dhwtank_elec = 
      &  fYEARH3KSTORE_dhwtank_elec +
      &  fH3KSTORE_SDHW_dhwtank_elec(IMONTH) / 1000.
 
-C     sum of fuel consumption of DHW tank (kWhr)
+C     sum of fuel consumption of DHW tank (kWh)
         fYEARH3KSTORE_dhwtank_fuel = 
      &  fYEARH3KSTORE_dhwtank_fuel +
      &  fH3KSTORE_SDHW_dhwtank_fuel(IMONTH) / 1000.
 
-C     sum of collector solar gain (kWhr)
+C     sum of collector solar gain (kWh)
         fYEARH3KSTORE_coll_solar_gain = 
      &  fYEARH3KSTORE_coll_solar_gain +
      &  fH3KSTORE_SDHW_coll_solar_gain(IMONTH) / 1000.
 
-C     sum of collector pump electricity (kWhr)
+C     sum of collector pump electricity (kWh)
         fYEARH3KSTORE_coll_pump_elec = 
      &  fYEARH3KSTORE_coll_pump_elec +
      &  fH3KSTORE_SDHW_Pump_Elec(IMONTH) / 1000.
@@ -1563,16 +1553,16 @@ C     Output monthly values
 C     Month
      &  MTHNAM(IMONTH),
 
-C     Electricity consumption of the DHW tank (kWhr)     
+C     Electricity consumption of the DHW tank (kWh)     
      &  fMONTH_SDHW_Tank_elec_KWHR,
 
-C     Fuel consumption of the DHW tank (kWhr)     
+C     Fuel consumption of the DHW tank (kWh)     
      &  fMONTH_SDHW_Tank_fuel_KWHR,
  
-C     Collector solar gain (kWhr) 
+C     Collector solar gain (kWh) 
      &  fMONTH_SDHW_coll_netgain_KWHR,
 
-C     Collector pump electricity consumption (kWhr)
+C     Collector pump electricity consumption (kWh)
      &  fMONTH_SDHW_pump_elec_KWHR 
 
         CALL EDISP(IWU,OUTS)
@@ -1584,16 +1574,16 @@ C     Output overall totals
       WRITE(OUTS,'(A15,5(1X,f17.4))')
      &     'Total',
 
-C     sum of electricity consumption of DHW tank (kWhr)
+C     sum of electricity consumption of DHW tank (kWh)
      &fYEARH3KSTORE_dhwtank_elec,
 
-C     sum of fuel consumption of DHW tank (kWhr)
+C     sum of fuel consumption of DHW tank (kWh)
      &fYEARH3KSTORE_dhwtank_fuel,
 
-C     sum of collector solar gain (kWhr)
+C     sum of collector solar gain (kWh)
      &fYEARH3KSTORE_coll_solar_gain,
 
-C     sum of collector pump electricity (kWhr)
+C     sum of collector pump electricity (kWh)
      &fYEARH3KSTORE_coll_pump_elec
 
       CALL EDISP(IWU,OUTS)

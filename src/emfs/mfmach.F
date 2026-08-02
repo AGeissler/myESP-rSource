@@ -325,12 +325,12 @@ C Make sure that SMALL < | RESID / SAFLW | < RLARG
           RESR=RESID(INOD)/SAFLW(INOD)
         END IF
 
-C << TEMPORARY >>
-C Instantiate and correct absolute residual for non-air fluids.
+C Set RESID_temp to the current node residual and apply
+C a density correction for a non-air node.
         DO ICOMP=1,NCOMP
           IF(ICAAS(ICOMP).eq.INOD)THEN
             IF (znotair(ICOMP)) THEN
-              RESID_temp=RESID(INOD)*1.177/zfldD
+              RESID_temp=RESID(INOD)*1.177/zfldD  ! Not air.
             ELSE
               RESID_temp=RESID(INOD)
             ENDIF
@@ -1572,7 +1572,7 @@ C ie. FRIC={FRIC@2300(3500-REY)+FRIC@3500(REY-2300)}/(3500-2300)
      &        (1./(2.*ALOG10(RROU/3.72+3.679E-3)))**2.
         ELSE
 
-CTurbulent flow; explicit approximation of Colebrook-White formula.
+C Turbulent flow; explicit approximation of Colebrook-White formula.
           FRIC=(1./(2.*ALOG10(RROU/3.72+5.74/REY**0.901)))**2.
         END IF
 
@@ -2700,7 +2700,7 @@ C NMAX should be the same as MNOD in net_flow.h
         call edisp(iuout,msg)
         call epwait
         call epagend
-        STOP ' LUDCMP: local array VV too small !'
+        STOP ' LUDCMP: local array VV too small!'
       ENDIF
 
       D=1.0

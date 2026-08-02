@@ -110,6 +110,7 @@ C PBYFIL is the logical variable for existence check.
      &              TVTR2(MCOM,MTMC)
       COMMON/PRECT3/NTMC,NGLAZ(MTMC)
       INTEGER :: NTMC,NGLAZ
+      character TOPTIC*24
       common/PRECT4/TOPTIC(MCOM,MTMC)
       COMMON/TMCB1/IBCMT(MCOM,MTMC)
       COMMON/TMCB2/NBCTMC(MCOM,MTMC),IBCST(MCOM,MTMC),
@@ -227,8 +228,11 @@ C For reporting day types.
       integer idty  ! foer loop
 
 C bridgelen was calculated in subroutine suredgeadj
-      real bridgelen ! Length of potential thermal bridges in each zone.
-      common/gbridge/bridgelen(MCOM,16)
+      real bridgelen       ! Length (m) of potential thermal bridges in each zone.
+      integer nbridgevt    ! Number of verticies associted with this bridge.
+      integer bridgevlst   ! List of vertices associated with bridge.
+      common/gbridge/bridgelen(MCOM,16),nbridgevt(MCOM,16),
+     &  bridgevlst(MCOM,16,MV*2)
 
 C High level control scope key words.
       character hcffpattern*12    ! heat, cool, or heat+cool plus detail
@@ -236,6 +240,12 @@ C High level control scope key words.
 
       integer IHCT,ICOREXHCT
       common/hcthry/ihct,icorexhct  ! surface heat transfer methods inside & outside
+
+C Contaminant flow.
+      COMMON/CONTM0/NCONTM,NOCNTM,CONTMNAM(MCONTM)
+      COMMON/CONTM/CNTMFIL,CNTMDESC,NTSTEPC
+      INTEGER :: NCONTM,NOCNTM,NTSTEPC
+      CHARACTER CNTMFIL*72,CONTMNAM*12,CNTMDESC*124
 
       real plen  ! combined length of standard and metal facade perimeter
 
@@ -263,7 +273,7 @@ C Remember if each zone is fully attributed.
       character outs248*496,outs2*148
       character dstmp*24,mlc_name*32
       CHARACTER LAPROB*72,LPNF*72
-      CHARACTER TOPTIC*12,doit*248
+      CHARACTER doit*248
       character t16a*16,t16b*16,t16c*16,t16d*16
       character DBTAG*12,DBTASK*12,DBZN*15,DBSN*15
       character figlbl*20,figexe*48
@@ -326,16 +336,18 @@ C in the current model. A -1 means not applicable
       character llclmdb*144,miscinf*72,msg*42
       character boundmsg*72
       character outscal*248  ! for calendar day types report
+      character sbound_ty*12,sbound_c2*6,sbound_e2*6
       integer llt,lndbp,jj,lnsn
       integer NRGRDT  ! actual number of ground temps calculated
       character outs*124,outs2a*124,outs3*124
       integer llbm2,llbn2,mnu,llo
 
-      logical newgeo    ! to use for testing if new/old geometry file.
-      logical nameok    ! to use for testing if duplicate names in zone
+      logical newgeo    ! To use for testing if new/old geometry file.
+      logical nameok    ! To use for testing if duplicate names in zone.
       logical foundit   ! found a zone loop was referenced
       logical odd       ! for double column reporting
       logical haveframe ! are there any FRAME types in zone
+      logical MY        ! To signal not a multi-year when opening weather file.
       integer NITMS     ! max items
       integer im,k,mnulen   ! multi column lines
       integer lr        ! length of model root string
@@ -505,7 +517,7 @@ C Setup the selection menu.
     3 INO=-4
       IER=0
       write(items(1),'(a)')  '1 browse folders '
-      write(items(2),'(2a)') '2 edit log: ',lmodellog(1:20)
+      write(items(2),'(2a)') '2 log: ',lmodellog(1:24)
       items(3) ='3 graphing tool               '
       items(4) ='4 diagram editing tool        '
       items(5) ='5 image viewer                '
@@ -1003,13 +1015,11 @@ C Generate report sorted by surface attributes.
      &         '...'
             CALL USRMSG(' ',outs,'-')
 
-C << it might not be necesary to scan geometry file >>
-            LTMP=LGEOM(IVALS(IZ))
-            call georead(IUF,LTMP,IVALS(IZ),1,iuout,IER)
-
 C For each surface in current zone check for match to attributes.
             do 11 i=1,nzsur(ivals(iz))
               icc=izstocn(ivals(iz),i)
+              call decode_zsbound(ivals(iz),i,sbound_ty,sbound_c2,
+     &          sbound_e2)
               apply=.true.
               if(ins1.eq.1.and.SOTF(ivals(iz),i)(1:4).ne.'OPAQ')
      &          apply=.false.
@@ -1074,7 +1084,7 @@ C                lzn10=MIN0(lnblnk(zn),10)
      &            1X,A,1X,A,1X,A)') sn,SNA(IVALS(IZ),I),
      &            SPAZI(IVALS(IZ),I),SPELV(IVALS(IZ),I),
      &            SOTF(IVALS(IZ),I),SVFC(IVALS(IZ),I),
-     &            SMLCN(IVALS(IZ),I),SOTHER(IVALS(IZ),I,1)
+     &            SMLCN(IVALS(IZ),I),sbound_ty
                 call edisp(itu,outs)
                 totalarea = totalarea + SNA(IVALS(IZ),I)
               endif
@@ -1394,7 +1404,9 @@ C Re-read sbem db and then the descriptive file.
           endif          
         endif
 
-        call CLMOPB(0,IER)
+C Assume not a multi-year assessment.
+        MY=.false.
+        call CLMOPB(MY,0,IER)
         call CLMRDBMD(IER)
 
 C Tell about climate taking note of timing of solar data.
@@ -2248,6 +2260,14 @@ C If there is a flow network, rescan and list its contents.
         endif
       endif
 
+C If there are contaminates defined list attributes.
+      if(NOCNTM.GT.0)then
+        WRITE(outs,'(2A)')
+     &    'Contaminate attributes in ',CNTMFIL(1:lnblnk(CNTMFIL))
+        call edisp(itu,outs)
+        call edisp(itu,' ')
+      endif
+
 C If there is a plant network, scan it and report.
       if(plantinfo.gt.0)then
         if(LPNF(1:4).eq.'UNKN'.or.LPNF(1:2).eq.'  ')then
@@ -2437,14 +2457,12 @@ C Jump if no zones.
       NASURF=0
       do 97 IZ=1,INPIC
         if(IVALS(IZ).GT.0)then
-          LTMP=LGEOM(IVALS(IZ))
-          call georead(IUF,LTMP,IVALS(IZ),1,iuout,IER)
           OPQ=0.
           TRN=0.
           attribok(IVALS(IZ))=.true.
           DO 41 I=1,NZSUR(ivals(iz))
             icc=izstocn(ivals(iz),i)
-            if(SOTHER(ivals(iz),i,1)(1:4).eq.'UNKN')
+            if(zboundarytype(ivals(iz),i,1).eq.-1)
      &         attribok(IVALS(IZ))=.false.
 
 C At this point CFC and CFC2 are not counted
@@ -2465,7 +2483,7 @@ C At this point CFC and CFC2 are not counted
      &            IVALS(IZ),
      &            zname(IVALS(IZ)),VOL(IVALS(IZ)),NZSUR(ivals(iz)),
      &            OPQ,TRN,ZBASEA(IVALS(IZ)),
-     &            zdesc(IVALS(IZ))(1:lnzdesc(IVALS(IZ)))
+     &            zdesc(IVALS(IZ))(1:lnblnk(zdesc(IVALS(IZ))))
                 call edisp(itu,outs248)
 C              call edisp248(itu,outs248,140)
               elseif(zonecolumns.eq.2)then
@@ -2473,20 +2491,20 @@ C              call edisp248(itu,outs248,140)
      &            '(i2,2x,a,f8.1,i13,11x,f8.1,12x,f8.1,3x,a)') 
      &            IVALS(IZ),
      &            zname(IVALS(IZ)),VOL(IVALS(IZ)),NZSUR(ivals(iz)),
-     &            OPQ,TRN,zdesc(IVALS(IZ))(1:lnzdesc(IVALS(IZ)))
+     &            OPQ,TRN,zdesc(IVALS(IZ))(1:lnblnk(zdesc(IVALS(IZ))))
                 call edisp(itu,outs248)
               elseif(zonecolumns.eq.1)then
                 write(outs248,
      &            '(i2,2x,a,i10,8x,f8.1,12x,f8.1,6x,f9.1,2x,a)') 
      &            IVALS(IZ),zname(IVALS(IZ)),NZSUR(ivals(iz)),
      &            OPQ,TRN,ZBASEA(IVALS(IZ)),
-     &            zdesc(IVALS(IZ))(1:lnzdesc(IVALS(IZ)))
+     &            zdesc(IVALS(IZ))(1:lnblnk(zdesc(IVALS(IZ))))
                 call edisp(itu,outs248)
               elseif(zonecolumns.eq.0)then
                 write(outs248,
      &            '(i2,2x,a,f8.1,8x,f9.1,6x,a)') IVALS(IZ),
      &            zname(IVALS(IZ)),VOL(IVALS(IZ)),ZBASEA(IVALS(IZ)),
-     &            zdesc(IVALS(IZ))(1:lnzdesc(IVALS(IZ)))
+     &            zdesc(IVALS(IZ))(1:lnblnk(zdesc(IVALS(IZ))))
                 call edisp(itu,outs248)
               endif
             else
@@ -2494,23 +2512,23 @@ C              call edisp248(itu,outs248,140)
                 write(outs,'(i2,1x,a,f7.1,i4,3f8.1,2x,a)') IVALS(IZ),
      &            zname(IVALS(IZ)),VOL(IVALS(IZ)),NZSUR(ivals(iz)),
      &            OPQ,TRN,ZBASEA(IVALS(IZ)),
-     &            zdesc(IVALS(IZ))(1:lnzdesc(IVALS(IZ)))
+     &            zdesc(IVALS(IZ))(1:lnblnk(zdesc(IVALS(IZ))))
                 call edisp(itu,outs)
               elseif(zonecolumns.eq.2)then
                 write(outs,'(i2,1x,a,f7.1,i4,2f8.1,2x,a)') IVALS(IZ),
      &            zname(IVALS(IZ)),VOL(IVALS(IZ)),NZSUR(ivals(iz)),
-     &            OPQ,TRN,zdesc(IVALS(IZ))(1:lnzdesc(IVALS(IZ)))
+     &            OPQ,TRN,zdesc(IVALS(IZ))(1:lnblnk(zdesc(IVALS(IZ))))
                 call edisp(itu,outs)
               elseif(zonecolumns.eq.1)then
                 write(outs,'(i2,1x,a,i4,2f8.1,6x,f9.1,2x,a)')IVALS(IZ),
      &            zname(IVALS(IZ)),NZSUR(ivals(iz)),
      &            OPQ,TRN,ZBASEA(IVALS(IZ)),
-     &            zdesc(IVALS(IZ))(1:lnzdesc(IVALS(IZ)))
+     &            zdesc(IVALS(IZ))(1:lnblnk(zdesc(IVALS(IZ))))
                 call edisp(itu,outs)
               elseif(zonecolumns.eq.0)then
                 write(outs,'(i2,1x,a,f7.1,f8.1,2x,a)') IVALS(IZ),
      &            zname(IVALS(IZ)),VOL(IVALS(IZ)),ZBASEA(IVALS(IZ)),
-     &            zdesc(IVALS(IZ))(1:lnzdesc(IVALS(IZ)))
+     &            zdesc(IVALS(IZ))(1:lnblnk(zdesc(IVALS(IZ))))
                 call edisp(itu,outs)
               endif
             endif
@@ -2592,8 +2610,6 @@ C Jump if no zones or no zone info requested.
       do 98 IZ=1,INPIC
         IZZ=IVALS(IZ)
         if(IZZ.eq.0)goto 98
-        LTMP=LGEOM(IZZ)
-        call georead(IUF,LTMP,IZZ,1,itu,IER)
 
         if(markdown)then
           call edisp(itu,'  ')
@@ -2607,11 +2623,11 @@ C Jump if no zones or no zone info requested.
         endif
  240    format(1x,60('_'))
 
-        call ZINFOREP(itu,IZZ)  ! not dependant on georead.
+        call ZINFOREP(itu,IZZ)
 
         do 111 ij=1,nzsur(izz)
           icc=izstocn(izz,ij)
-          CALL SURADJ(IZZ,IJ,IE,TMP,IZC,ISC,IC,DESCRC) ! not dependant on georead
+          CALL SURADJ(IZZ,IJ,IE,TMP,IZC,ISC,IC,DESCRC)
 
 C Check for duplicate surface names in this zone. Report is
 C duplicates are found.
@@ -2647,8 +2663,8 @@ C          write(itu,*) 'uavwall = ',uavwall(IZZ)
 C          write(itu,*) 'uavslproof = ',uavslproof(IZZ)
 C          write(itu,*) 'uavfltroof = ',uavfltroof(IZZ)
 C          write(itu,*) 'uavgsky = ',uavgsky(IZZ)
-C          uavtotal(IZZ) = uavgtran(IZZ) + uavwall(IZZ) + 
-C     &         uavslproof(IZZ) + uavfltroof(IZZ) + uavgsky(IZZ)
+          uavtotal(IZZ) = uavgtran(IZZ) + uavwall(IZZ) + 
+     &         uavslproof(IZZ) + uavfltroof(IZZ) + uavgsky(IZZ)
 C          write(itu,*) 'UA total = ',uavtotal(IZZ)
 C          write(itu,*) 'TB heat loss = ',totheatloss(IZZ)
 
@@ -3176,9 +3192,9 @@ C and then report instances for current zone.
           else
             write(itu,'(a)') '  '
             write(itu,'(3a)') 'In ',zname(izz)(1:12),
-     &      '    m^2     m^2 to   m^2 to  m^2 back  m^2 to  m^2 to'
+     &      '        m^2     m^2 to   m^2 to  m^2 back  m^2 to  m^2 to'
             write(itu,'(2a)') 'MLC name       ',
-     &      '    total  ambient  other z -to-back   ground  similar'
+     &      '        total  ambient  other z  -to-back  ground  similar'
           endif
           do imlc=1,nmlc
             found=.false.
@@ -3219,6 +3235,7 @@ C then parse TMC file and if there are optical controls then list.
             CALL ERTWIN(0,IUOUT,IUF,LTWIN(IVALS(IZ)),IVALS(IZ),IER)
             call edisp(itu,' ')
             DO 2020 I=1,NTMC
+              lto=lnblnk(TOPTIC(IVALS(IZ),I))
               if(IBCMT(IVALS(IZ),I).eq.0)then
                 continue
               elseif(IBCMT(IVALS(IZ),I).lt.0)then
@@ -3228,7 +3245,6 @@ C then parse TMC file and if there are optical controls then list.
      &            (-1*IBCMT(IVALS(IZ),I)),'.'
                 call edisp(itu,outs)
               else
-                lto=lnblnk(TOPTIC(IVALS(IZ),I))
                 if(IBCSUR(IVALS(IZ),I).eq.0)then
                   write(outs,'(4a,i2,a)')' Surfaces with optic ',
      &              TOPTIC(IVALS(IZ),I)(1:lto),' individually sensed ',
@@ -3305,8 +3321,8 @@ C then rescan that zone file with verbose setting.
               call edisp(itu,outs)
             endif
             DO I=1,nbobs(ivz)
-              llbm=LNBLOCKMAT(ivz,I)
-              llbn=LNBLOCKNAME(ivz,I)
+              llbm=lnblnk(BLOCKMAT(ivz,I))
+              llbn=lnblnk(BLOCKNAME(ivz,I))
               if(BLOCKTYP(ivz,I)(1:4).eq.'obs '.or.
      &           BLOCKTYP(ivz,I)(1:4).eq.'obs3')then
                 if(markdown)then
@@ -3349,9 +3365,9 @@ C Pad the reporting as required.
                 call edisp(itu,'visual type name    composition')
               endif
               do i=1,nbvis(ivz)
-                llbm=LNVISMAT(ivz,i)
+                llbm=lnblnk(VISMAT(ivz,i))
                 if(llbm.lt.10) llbm=10
-                llbn=LNVISNAME(ivz,i)
+                llbn=lnblnk(VISNAME(ivz,i))
                 if(llbn.lt.10) llbm=10
                 if(markdown)then
                   if(VISTYP(ivz,i)(1:4).eq.'vis ')then
@@ -3399,12 +3415,12 @@ C Pad the reporting as required.
               endif
               MNU=(nbvis(ivz)/2)
               DO 193 J=1,MNU
-                llbm=LNVISMAT(ivz,J)
+                llbm=lnblnk(VISMAT(ivz,J))
                 if(llbm.lt.10) llbm=10
-                llbn=LNVISNAME(ivz,J)
+                llbn=lnblnk(VISNAME(ivz,J))
                 if(llbn.lt.10) llbn=10
-                llbm2=LNVISMAT(ivz,J+MNU)
-                llbn2=LNVISNAME(ivz,J+MNU)
+                llbm2=lnblnk(VISMAT(ivz,J+MNU))
+                llbn2=lnblnk(VISNAME(ivz,J+MNU))
                 if(markdown)then
                   if(VISTYP(ivz,J)(1:4).eq.'vis ')then
                    WRITE(outs,'(4A)')' vis   1rot ',
@@ -3453,9 +3469,9 @@ C Pad the reporting as required.
 C Put odd vertex in left column.
               if(odd)then
                 J=nbvis(ivz)
-                llbm=LNVISMAT(ivz,J)
+                llbm=lnblnk(VISMAT(ivz,J))
                 if(llbm.lt.10) llbm=10
-                llbn=LNVISNAME(ivz,J)
+                llbn=lnblnk(VISNAME(ivz,J))
                 if(llbn.lt.10) llbn=10
                 if(VISTYP(ivz,J)(1:4).eq.'vis ')then
                   WRITE(outs,'(4A)')
@@ -3522,60 +3538,51 @@ C Check for mismatch in surface attributes and boundary conditions.
           icc=IZSTOCN(IVALS(IZ),is)
           write(SN,'(a12)')SNAME(IVALS(IZ),is)
           lnsn=lnblnk(SN)
-          if(ICT(icc).eq.0.and.SOTHER(IVALS(IZ),is,1)(1:5).ne.
-     &      'EXTER')then
+          if(ICT(icc).eq.0.and.zboundarytype(IVALS(IZ),is,1).ne.0)then
             bndrysxc=.false.
             write(boundmsg,'(2a)') 'Expecting EXTER for ',SN(1:lnsn)
             call edisp(itu,boundmsg)
           endif
-          if(ICT(icc).eq.1.and.SOTHER(IVALS(IZ),is,1)(1:5).ne.
-     &      'SIMIL')then
+          if(ICT(icc).eq.1.and.zboundarytype(IVALS(IZ),is,1).ne.1)then
             bndrysxc=.false.
             write(boundmsg,'(2a)') 'Expecting SIMILAR for ',SN(1:lnsn)
             call edisp(itu,boundmsg)
           endif
-          if(ICT(icc).eq.2.and.SOTHER(IVALS(IZ),is,1)(1:5).ne.
-     &      'CONST')then
+          if(ICT(icc).eq.2.and.zboundarytype(IVALS(IZ),is,1).ne.2)then
             bndrysxc=.false.
             write(boundmsg,'(2a)') 'Expecting CONST for ',SN(1:lnsn)
             call edisp(itu,boundmsg)
           endif
-          if(ICT(icc).eq.3.and.SOTHER(IVALS(IZ),is,1)(1:5).eq.
-     &      'CONST')then
+          if(ICT(icc).eq.3.and.zboundarytype(IVALS(IZ),is,1).eq.2)then
             bndrysxc=.false.
             write(boundmsg,'(2a)') 'Expecting OTHER for ',SN(1:lnsn)
             call edisp(itu,boundmsg)
           endif
-          if(ICT(icc).eq.3.and.SOTHER(IVALS(IZ),is,1)(1:5).eq.
-     &      'SIMIL')then
+          if(ICT(icc).eq.3.and.zboundarytype(IVALS(IZ),is,1).eq.1)then
             bndrysxc=.false.
             write(boundmsg,'(3a)') 'Expecting OTHER for ',SN(1:lnsn),
      &        ' got SIMIL.'
             call edisp(itu,boundmsg)
           endif
-          if(ICT(icc).eq.3.and.SOTHER(IVALS(IZ),is,1)(1:5).eq.
-     &      'EXTER')then
+          if(ICT(icc).eq.3.and.zboundarytype(IVALS(IZ),is,1).eq.0)then
             bndrysxc=.false.
             write(boundmsg,'(3a)') 'Expecting OTHER for ',SN(1:lnsn),
      &        ' got EXTER.'
             call edisp(itu,boundmsg)
           endif
-          if(ICT(icc).eq.3.and.SOTHER(IVALS(IZ),is,1)(1:5).eq.
-     &      'GROUN')then
+          if(ICT(icc).eq.3.and.zboundarytype(IVALS(IZ),is,1).eq.4)then
             bndrysxc=.false.
             write(boundmsg,'(3a)') 'Expecting OTHER for ',SN(1:lnsn),
      &        ' got GROUND.'
             call edisp(itu,boundmsg)
           endif
-          if(ICT(icc).eq.4.and.SOTHER(IVALS(IZ),is,1)(1:5).ne.
-     &      'GROUN')then
+          if(ICT(icc).eq.4.and.zboundarytype(IVALS(IZ),is,1).ne.4)then
             bndrysxc=.false.
             write(boundmsg,'(3a)') 'Expecting GROUND for ',SN(1:lnsn),
      &        ' got something else.'
             call edisp(itu,boundmsg)
           endif
-          if(ICT(icc).eq.5.and.SOTHER(IVALS(IZ),is,1)(1:5).ne.
-     &      'ADIAB')then
+          if(ICT(icc).eq.5.and.zboundarytype(IVALS(IZ),is,1).ne.5)then
             bndrysxc=.false.
             write(boundmsg,'(3a)') 'Expecting ADIAB for ',SN(1:lnsn),
      &        ' got something else.'
@@ -3853,12 +3860,13 @@ C        write(6,*) 'nmlc is ',nmlc,databaseinfo
             endif
             if(markdown)then
               call edisp(itu,' ')
-              write(outs,'(3a,F9.2,a)') 'Total area of ',
-     &        mlc_name(1:lnblnk(mlc_name)),' is ',tareamlc,'  '
+              write(outs,'(3a,i3,a,F9.2,a)') 'Total area of ',
+     &         mlc_name(1:lnblnk(mlc_name)),' (',imlc,') is ',tareamlc,
+     &         '  '
               call edisp2tr(itu,outs)
             else
-              write(outs,'(3a,F9.2)') ' Total area of ',
-     &        mlc_name(1:lnblnk(mlc_name)),' is ',tareamlc
+              write(outs,'(3a,i3,a,F9.2)') ' Total area of ',
+     &         mlc_name(1:lnblnk(mlc_name)),' (',imlc,') is ',tareamlc
               call edisp(itu,outs)
             endif
           else
@@ -3866,12 +3874,14 @@ C        write(6,*) 'nmlc is ',nmlc,databaseinfo
               iitrc=2
               call etmldb(iitrc,itu,imlc,imerr)
               if(markdown)then
-                write(outs,'(3a)') 'Total area of ',
-     &          mlc_name(1:lnblnk(mlc_name)),' is zero (not referenced)'
+                write(outs,'(3a,i3,a)') 'Total area of ',
+     &            mlc_name(1:lnblnk(mlc_name)),' (',imlc,
+     &            ') is zero (not referenced)'
                 call edisp2tr(itu,outs)
               else
-                write(outs,'(3a)') ' Total area of ',
-     &          mlc_name(1:lnblnk(mlc_name)),' is zero (not referenced)'
+                write(outs,'(3a,i3,a)') ' Total area of ',
+     &            mlc_name(1:lnblnk(mlc_name)),' (',imlc,
+     &            ') is zero (not referenced)'
                 call edisp(itu,outs)
               endif
             endif
@@ -4109,7 +4119,7 @@ C igupgrade was set to 2 in preferences also force an upgrade.
 
 C If all of the shading directives are zero then double check to
 C see if there are shading and obstruction files.
-              call georead(IFIL+2,LGEOM(iz),iz,0,iuout,IER)
+C              call georead(IFIL+2,LGEOM(iz),iz,0,iuout,IER)
               if(nsurfcalc(iz).eq.0.and.nsurfinso(iz).eq.0)then
                 if(ISI(iz).eq.0.and.IOBS(iz).eq.0)then
                   continue
@@ -4123,7 +4133,7 @@ C see if there are shading and obstruction files.
 
 C At this point CFC and CFC2 surfaces are not included as
 C insolation sources (?).
-                    if(SOTHER(iz,i,1)(1:5).eq.'EXTER'.and.
+                    if(zboundarytype(iz,i,1).eq.0.and.
      &                 SOTF(iz,i)(1:4).ne.'OPAQ'.and.
      &                 SOTF(iz,i)(1:4).ne.'CFC '.and.
      &                 SOTF(iz,i)(1:4).ne.'CFC2')then
@@ -4131,7 +4141,7 @@ C insolation sources (?).
                       isurfinso(iz,nsurfinso(iz))=I
                     endif
   678             continue
-                  call geowrite(IFIL+2,LGEOM(iz),iz,iuout,3,IER)
+                  call geowrite2(IFIL+2,LGEOM(iz),iz,iuout,3,IER)
                 elseif(ISI(iz).gt.0.and.IOBS(iz).gt.0)then
                   iaplic(iz,1)=1   ! reset for insolation only
                   iaplic(iz,2)=1
@@ -4142,20 +4152,20 @@ C insolation sources (?).
 
 C At this point CFC and CFC2 surfaces are not included as
 C insolation sources (?).
-                    if(SOTHER(iz,i,1)(1:5).eq.'EXTER'.and.
+                    if(zboundarytype(iz,i,1).eq.0.and.
      &                 SOTF(iz,i)(1:4).ne.'OPAQ'.and.
      &                 SOTF(iz,i)(1:4).ne.'CFC '.and.
      &                 SOTF(iz,i)(1:4).ne.'CFC2')then
                       nsurfinso(iz)=nsurfinso(iz)+1
                       isurfinso(iz,nsurfinso(iz))=I
                     endif
-                    if(SOTHER(iz,i,1)(1:5).eq.'EXTER')then
+                    if(zboundarytype(iz,i,1).eq.0)then
                       nsurfcalc(iz)=nsurfcalc(iz)+1
                       lstsfcalc(iz,nsurfcalc(iz))=I
                     endif
   679             continue
 
-                  call geowrite(IFIL+2,LGEOM(iz),iz,iuout,3,IER)
+                  call geowrite2(IFIL+2,LGEOM(iz),iz,iuout,3,IER)
                 endif
               endif
 
@@ -4167,7 +4177,7 @@ C zobs() cleared for this zone and iobs set.
               elseif(iobs(iz).eq.1)then
                 iobs(iz)=2
                 zobs(iz)=' '
-                call geowrite(IFIL+2,LGEOM(iz),iz,iuout,3,IER)
+                call geowrite2(IFIL+2,LGEOM(iz),iz,iuout,3,IER)
               elseif(iobs(iz).eq.2)then
                 continue
               endif
@@ -4195,7 +4205,7 @@ C Otherwise assume all applicable for shading and insolation.
 
 C At this point CFC and CFC2 surfaces are not included as
 C insolation sources (?).
-                  if(SOTHER(iz,i,1)(1:5).eq.'EXTER'.and.
+                  if(zboundarytype(iz,i,1).eq.0.and.
      &               SOTF(iz,i)(1:4).ne.'OPAQ'.and.
      &               SOTF(iz,i)(1:4).ne.'CFC '.and.
      &               SOTF(iz,i)(1:4).ne.'CFC2')then
@@ -4213,14 +4223,14 @@ C insolation sources (?).
 
 C At this point CFC and CFC2 surfaces are not included as
 C insolation sources (?).
-                  if(SOTHER(iz,i,1)(1:5).eq.'EXTER'.and.
+                  if(zboundarytype(iz,i,1).eq.0.and.
      &               SOTF(iz,i)(1:4).ne.'OPAQ'.and.
      &               SOTF(iz,i)(1:4).ne.'CFC '.and.
      &               SOTF(iz,i)(1:4).ne.'CFC2')then
                     nsurfinso(iz)=nsurfinso(iz)+1
                     isurfinso(iz,nsurfinso(iz))=I
                   endif
-                  if(SOTHER(iz,i,1)(1:5).eq.'EXTER')then
+                  if(zboundarytype(iz,i,1).eq.0)then
                     nsurfcalc(iz)=nsurfcalc(iz)+1
                     lstsfcalc(iz,nsurfcalc(iz))=I
                   endif
@@ -4228,7 +4238,7 @@ C insolation sources (?).
               endif
               gversion(iz) =1.1
               newgeo = .true.
-              call geowrite(IFIL+2,LGEOM(iz),iz,iuout,3,IER)
+              call geowrite2(IFIL+2,LGEOM(iz),iz,iuout,3,IER)
 
 C If iobs() is 1 then the obstructions need to be moved into the
 C geometry file and zobs() cleared for this zone and iobs set.
@@ -4237,7 +4247,7 @@ C geometry file and zobs() cleared for this zone and iobs set.
               elseif(iobs(iz).eq.1)then
                 iobs(iz)=2
                 zobs(iz)=' '
-                call geowrite(IFIL+2,LGEOM(iz),iz,iuout,3,IER)
+                call geowrite2(IFIL+2,LGEOM(iz),iz,iuout,3,IER)
               elseif(iobs(iz).eq.2)then
                 continue
               endif
@@ -4701,8 +4711,11 @@ C Parameters passed in
       COMMON/C24/IZSTOCN(MCOM,MS)
 
 C bridgelen was calculated in subroutine suredgeadj
-      real bridgelen ! Length of potential thermal bridges in each zone.
-      common/gbridge/bridgelen(MCOM,16)
+      real bridgelen       ! Length (m) of potential thermal bridges in each zone.
+      integer nbridgevt    ! Number of verticies associted with this bridge.
+      integer bridgevlst   ! List of vertices associated with bridge.
+      common/gbridge/bridgelen(MCOM,16),nbridgevt(MCOM,16),
+     &  bridgevlst(MCOM,16,MV*2)
 
       real mlcthick
 
@@ -4739,8 +4752,6 @@ C Loop through the selected zones.
       do 98 IZ=1,NZ
         IZZ=IVALS(IZ)
         if(IZZ.eq.0)goto 98
-        LTMP=LGEOM(IZZ)
-        call georead(IUF,LTMP,IZZ,1,itu,IER)
 
 C If there are external opaque and transparent surfaces report.
 C Zero zone code complence data. xfloor is project floor area,
@@ -4775,7 +4786,7 @@ C floor area for each.
           if(icc.eq.0)then
             continue  ! not a known surface connection
           else
-            CALL SURADJ(IZZ,IJ,IE,TMP,IZC,ISC,IC,DESCRC) ! not dependant on georead
+            CALL SURADJ(IZZ,IJ,IE,TMP,IZC,ISC,IC,DESCRC)
 
 C Check the U value for each surface.
             UVH = 0.0

@@ -2345,18 +2345,18 @@ C Default ESP-r distribution path.
       character sfile*72,snpfile*72
 
 C Predefined entity variables.
-      character name*12   ! the object names to pass
+      character name*12    ! the object names to pass
       character objmenu*32
       real objbb(3)
 
 C Local strings for user selections dependent on graphic library.
-      integer lndbp   ! for length of standard path
+      integer lndbp        ! for length of standard path
       integer ier
-      logical unixok  ! to check for path file separators
-      logical allowbrowse ! to be done
+      logical unixok,ok    ! to check for path file separators
+      logical allowbrowse  ! to be done
       logical requestpreview
 
-      helpinsub='eddb'  ! set for subroutine
+      helpinsub='eddb'     ! set for subroutine
 
 C Clear string buffers.
       lltmp=' '
@@ -2528,6 +2528,17 @@ C Ask to see details or write details.
               CALL OBJQA(iunit,lltmp,'QA',IER) 
               CALL PADJVIEW(IER)
 
+C Confirm if this should be written to file.
+              CALL EASKOK(' ','Save this to a file?',OK,nbhelp)
+              if(OK)then
+                write(lltmp,'(3a)')dbspth(1:lnblnk(dbspth)),fs,
+     &            'exported_object.txt'
+                CALL ERPFREE(IUNIT,ISTAT)
+                CALL OBJQA(iunit,lltmp,'EX',IER) 
+                CALL ERPFREE(IUNIT,ISTAT)
+                call edisp(iuout,
+     &          'Object written to ../dbs/exported_object.txt')
+              endif
             elseif(ibopt.eq.2)then
               write(lltmp,'(3a)')dbspth(1:lnblnk(dbspth)),fs,
      &          'exported_object.txt'
@@ -3011,13 +3022,14 @@ C Call casfmk for the editing/browsing interface.
       end
 
 C ********** EDDBMLCON
-C EChanges the constructions current cfg file references.
+C Changes the constructions db in current cfg file references.
 C moddb is from version manager.
 
-C If we are pointing to a file in the common folder then we should
-C warn the user when attempting to update that file.
+C If pointing to a file in the common folder then warn
+C the user when attempting to update that file.
 
       SUBROUTINE EDDBMLCON(moddb,modcon)
+      use CFC_Module, Only: ITMCFCDB
 #include "building.h"
 #include "model.h"
 #include "esprdbfile.h"
@@ -3036,6 +3048,23 @@ C Default esp-r distribution path.
       integer ifil
       COMMON/FILEP/IFIL
 
+      integer mlcnamegt24         ! number of instances of long MLC names.
+      integer mlcindex32          ! indices of long MLCs
+      integer mlcindex24          ! indies of paired shorter MLCs
+      integer mlcindexo32         ! indices of MLCs paired to long MLCs
+      integer mlcindexo24         ! indies of short naed paired MLCs
+      integer mlcx32refs          ! references to long MLCs
+      common/mlclong/mlcnamegt24,mlcindex32(6),mlcindex24(6),
+     &               mlcindexo32(6),mlcindexo24(6),mlcx32refs
+
+      logical usedmlc
+      logical usedmat
+      common/refmlcmat/usedmlc(MMLC),usedmat(MGIT)
+
+C Variables in common from eddb.F specifying the index of search
+C and replace MLC indices.
+      common/srmlc/imlcsearch,imlcreplace,imlcosearh,imlcoreplace
+
       common/FOPENED/CFGOK,MLDBOK,MATDBOK,CTLOK,OPTKOK,CFCDBOK
       logical CFGOK,MLDBOK,MATDBOK,CTLOK,OPTKOK,CFCDBOK
       logical concat
@@ -3044,16 +3073,19 @@ C Default esp-r distribution path.
       CHARACTER LTMP*72,lltmp*144,lprev*144
       character longtfile*144
       CHARACTER fs*1
-      CHARACTER outs248*248
-      LOGICAL OK,XST
+      CHARACTER outs248*248,outs*124
+      LOGICAL OK,XST,chgdb
       character dinstpath*60,dirpath*72
+      character shortername*32,shorterdoc*32,T32*32
+      character lworking*144  ! for processing file names
 
 C Local strings for user selections dependent on graphic library.
-      character optf*28
-      integer lndbp   ! for length of standard path
-      logical unixok  ! to check for path file separators
+      character optf*28,opth*28,thecat*32
+      integer lndbp       ! for length of standard path
+      logical unixok      ! to check for path file separators
       logical allowbrowse ! future option
-      integer iglib  ! for detecting GTK or X11
+      logical equal       ! if the copied MLC equivalent
+      integer iglib       ! for detecting GTK or X11
       integer icomp,ii,i  ! for use in updataing smlcindex
 
       helpinsub='eddb'  ! set for subroutine
@@ -3068,6 +3100,7 @@ C Set folder separator (fs) to \ or / as required.
 
       moddb=.false.
       modcon=.false.
+      shortername='                               '
 
 C Setup string buffer with distribution database folder name.
       write(dirpath,'(4a)') dinstpath(1:lnblnk(dinstpath)),
@@ -3120,6 +3153,12 @@ C esp-r distribution.
         optf='f make copy of another file'
       endif
 
+C Optional choice to deal with long MLC names.
+      if(mlcnamegt24.eq.0)then
+        opth='  '
+      else
+        opth='h shorten long MLC names'
+      endif
       IF(.NOT.XST)THEN
 
 C If db does not exist locally offer limited choices.
@@ -3130,7 +3169,7 @@ C If db does not exist locally offer limited choices.
      &    'c select from model ../dbs',
      &    'd copy default file to model',
      &    'e copy file from common to model',optf,
-     &    'g create new constructions',' ',' ',' ',' ',' ',
+     &    'g create new constructions',opth,' ',' ',' ',' ',
      &    isw,idno,nbhelp)
         if(isw.eq.4)copydef=.true.
         if(isw.eq.5.or.isw.eq.6)copydef=.false.
@@ -3144,7 +3183,7 @@ C If standard file then offer the following choices (incl /):
      &    'c select from model ../dbs',
      &    'd copy default file to model',
      &    'e copy file from common to model',optf,
-     &    'g create new constructions',' ',' ',' ',' ',' ',
+     &    'g create new constructions',opth,' ',' ',' ',' ',
      &    isw,idno,nbhelp)
         if(isw.eq.4)copydef=.true.
         if(isw.eq.5.or.isw.eq.6)copydef=.false.
@@ -3158,7 +3197,7 @@ C If standard file then offer the following choices (without /):
      &    'c select from model ../dbs',
      &    'd copy default file to model',
      &    'e copy file from common to model',optf,
-     &    'g create new constructions',' ',' ',' ',' ',' ',
+     &    'g create new constructions',opth,' ',' ',' ',' ',
      &    isw,idno,nbhelp)
         if(isw.eq.4)copydef=.true.
         if(isw.eq.5.or.isw.eq.6)copydef=.false.
@@ -3173,7 +3212,7 @@ C default file or the current file.
      &    'c select from model ../dbs',
      &    'd copy default file to model',
      &    'e copy file from common to model',optf,
-     &    'g create new constructions',' ',' ',' ',' ',' ',
+     &    'g create new constructions',opth,' ',' ',' ',' ',
      &    isw,idno,nbhelp)
         if(isw.eq.4)copydef=.true.
         if(isw.eq.5.or.isw.eq.6)copydef=.false.
@@ -3255,7 +3294,7 @@ C << alternative to IPR needed >>
         DRAIR(1,1,1)=0.0; DRAIR(1,1,2)=0.0; DRAIR(1,1,3)=0.0
         MLDBOK=.TRUE.
         moddb=.true.
-        CALL EMKAMLD(iuout,IER)
+        CALL EMKAMLD2(iuout,IER)
         IF(IER.NE.0)THEN
           CALL USRMSG(' ',' Unable to create file!','W')
           RETURN
@@ -3323,6 +3362,397 @@ C and copy that file into the model.
         elseif(istat.eq.0)then
           goto 44  ! process the file
         endif
+
+      elseif(isw.eq.8)then
+
+C Deal with MLC names longer than 24 char. Loop through each
+C long MLC name, check if there is a paired shorter name and
+c if not ask user to suggest a shorter name.
+        if(mlcnamegt24.eq.0)then
+          goto 60  ! none to act on.
+        else
+
+C Scan the model to find which MLC are actually referenced.
+          call usedmlcmat(iusedmlc,iusedmat)
+          iup=min0(mlcnamegt24,6)
+
+C Loop through the list of long MLC names. C Check if there is 
+C already a shortened version via mlcequal.
+          do ij=1,iup
+
+C Debug.
+C            write(6,*)'ij mlcindex32 ',ij,mlcindex32(ij),mlcindex24(ij)
+C            write(6,*)'ij mlcindexo32 ',ij,mlcindexo32(ij),
+C     &        mlcindexo24(ij)
+            if(mlcindex32(ij).gt.0)then
+
+              indx_a= mlcindex32(ij)
+              lnlmlc=lnblnk(mlcname(indx_a))
+
+C If the MLC is paired also check to see if the pair has a 
+C shortened version.
+              if(matsymindex(indx_a).gt.0)then
+                lno=lnblnk(mlcname(matsymindex(indx_a)))
+                write(outs,'(4a)') 'MLC ',mlcname(indx_a)(1:lnlmlc),
+     &            ' is paired with ',mlcname(matsymindex(indx_a))(1:lno)
+                call edisp(iuout,outs)
+              endif
+              indx_b= mlcindex32(ij)+1
+              call mlcequal(indx_a,indx_b,equal)
+              if(equal)then
+                lnsmlc=lnblnk(mlcname(indx_b))
+                write(outs,'(4a)') 'MLC ',mlcname(indx_a)(1:lnlmlc),
+     &          ' can use ',mlcname(indx_b)(1:lnsmlc)
+                call edisp(iuout,outs)
+                if(usedmlc(indx_a))then
+                  write(outs,'(2a)') mlcname(indx_a)(1:lnlmlc),
+     &              ' is referenced in the model.'
+                  call edisp(iuout,outs)
+                  call edisp(iuout,'Looking for other long names.')
+                  cycle
+                else
+                  write(outs,'(2a)') mlcname(indx_a)(1:lnlmlc),
+     &            ' is NOT referenced in the model.'
+                  call edisp(iuout,outs)
+                  call edisp(iuout,'Looking for other long names.')
+                  cycle
+                endif
+              endif
+            endif
+
+C No equivalent shorter named MLC found. Copy the long named MLC and 
+C provide a short named version.
+            if(mlcindex32(ij).gt.0.and.nmlc.lt.(MMLC-1))then
+              lnlmlc=lnblnk(mlcname(indx_a))
+              write(outs,'(3a)') 'MLC ',mlcname(indx_a)(1:lnlmlc),
+     &          ' needs to be shortened.'
+              call edisp(iuout,'  ')
+              call edisp(iuout,outs)
+              if(usedmlc(indx_a))then
+                 write(outs,'(a)') 'It is referenced in the model.'
+                 call edisp(iuout,outs)
+              else
+                write(outs,'(a)') 'It is NOT referenced in the model.'
+                call edisp(iuout,outs)
+              endif
+              CALL EASKOK('  ','Provide a shorter name?',OK,nbhelp)
+              if(OK)then
+                write(outs,'(2a)') 'For orig MLC ',mlcname(indx_a)
+                call edisp(iuout,outs)
+                modcon=.true.
+                shortername='                               '
+                write(shortername,'(a)') mlcname(mlcindex32(ij))(1:24)
+                call EASKS(shortername,
+     &          'Name of construction (<24 char and UNIQUE)?',
+     &          'Confirm:',32,' ','Construction name',IER,nbhelp)
+
+C Shift all MLC beyond mlcindex24 by one.
+                NMLC=NMLC+1           ! increment number of MLC
+                low=mlcindex32(ij)+1  ! mark location of shortened copy
+                do ik= NMLC,low,-1    ! loop down to low
+                  mlcname(ik)=mlcname(ik-1)
+                  lnmlcname(ik)=lnmlcname(ik-1)
+                  mlcmenu(ik)=mlcmenu(ik-1)
+                  mlcincat(ik)=mlcincat(ik-1)
+                  mlcdoc(ik)=mlcdoc(ik-1)
+                  mlctype(ik)=mlctype(ik-1)
+                  mlcoptical(ik)=mlcoptical(ik-1)
+                  mlcsymetric(ik)=mlcsymetric(ik-1)
+                  matsymindex(ik)=matsymindex(ik-1)
+                  mlccatindex(ik)=mlccatindex(ik-1)
+                  THKMLC(ik)=THKMLC(ik-1)
+                  LAYERS(ik)=LAYERS(ik-1)
+
+                  DO ILL=1,LAYERS(ik)      ! copy layer attributes
+                    DTHK(ik,ILL)=DTHK(ik-1,ILL)
+                    IPR(ik,ILL)=IPR(ik-1,ILL)
+                    IPRMAT(ik,ILL)=IPRMAT(ik-1,ILL)
+                    ITMCFCDB(ik,ILL)=ITMCFCDB(ik-1,ILL)
+                    DRAIR(ik,ILL,1)=DRAIR(ik-1,ILL,1)
+                    DRAIR(ik,ILL,2)=DRAIR(ik-1,ILL,2)
+                    DRAIR(ik,ILL,3)=DRAIR(ik-1,ILL,3)
+                    LAYDESC(ik,ILL)=LAYDESC(ik-1,ILL)
+                  ENDDO  ! of ILL
+                enddo
+
+C Record this inserted MLC as the shortened version. Instanciate
+C the common block for serchrpl to use.
+                indx_a= mlcindex32(ij)
+                indx_b= mlcindex32(ij)+1
+                call mlcequal(indx_a,indx_b,equal)
+                if(equal)then
+                  mlcindex24(ij)=mlcindex32(ij)+1
+                endif
+
+C Use shorter name for copied MLC index 'low'.
+                mlcname(indx_b)='                                '
+                write(mlcname(indx_b),'(a)') shortername
+                lnmlcname(indx_b)=lnblnk(shortername)
+                matsymindex(indx_b)=0   ! clear (will be reset later)
+                shorterdoc=mlcmenu(indx_a)
+                call EASKS(shorterdoc,'Menu entry (<32 char)?',
+     &          'Confirm:',32,' ','Construction doc',IER,nbhelp)
+                mlcmenu(indx_b)=shorterdoc
+
+C And inrement number of items in that category.
+                thecat=mlcincat(low)
+                lncatn=lnblnk(thecat)
+                do loop=1,mlccats
+                  if(thecat(1:lncatn).eq.
+     &               mlccatname(loop)(1:lnblnk(mlccatname(loop))))then
+                    mlccatitems(loop)=mlccatitems(loop)+1
+                  endif
+                enddo
+
+C Debug.
+C                write(6,*) 'indx_a ',mlcname(indx_a),' ',
+C     &            mlcmenu(indx_a),' ',
+C     &            mlcsymetric(indx_a),matsymindex(indx_a)
+C                write(6,*) 'indx_b ',mlcname(indx_b),' ',
+C     &            mlcmenu(indx_b),' ',
+C     &            mlcsymetric(indx_b),matsymindex(indx_b)
+
+C If the long named MLC is linked to another MLC that also needs
+C to be copied (whether or not it has a long name).
+                if(matsymindex(indx_a).gt.0)then
+                  indx_c=matsymindex(indx_a)
+                  indx_d=indx_c+1
+                  write(6,*) 'indx_a indx_b indx_c indx_d ',
+     &              indx_a,indx_b,indx_c,indx_d
+                  call mlcequal(indx_c,indx_d,equal)
+                  if(equal)then
+                    mlcindexo32(ij)=indx_c
+                    mlcindexo24(ij)=indx_d
+                    imlcosearch=indx_c
+                    imlcoreplace=indx_d
+                  else
+                    write(outs,'(4a)') 'For orig MLC ',mlcname(indx_a),
+     &                ' paired with ',mlcname(indx_c)
+                    call edisp(iuout,outs)
+                    shortername='                               '
+                    write(shortername,'(a)') mlcname(indx_c)(1:24)
+                    call EASKS(shortername,
+     &          'Name of (shorter) linked construction (<24 char)?',
+     &          'Confirm:',32,' ','Construction name',IER,nbhelp)
+                    write(6,*) 'shorter linked name is ',shortername
+
+C Shift all MLC beyond indx_c by one.
+                    NMLC=NMLC+1           ! increment number of MLC
+                    low=indx_c+1  ! mark location of shortened copy
+                    do ik= NMLC,low,-1    ! loop down to low
+                      mlcname(ik)=mlcname(ik-1)
+                      lnmlcname(ik)=lnmlcname(ik-1)
+                      mlcmenu(ik)=mlcmenu(ik-1)
+                      mlcincat(ik)=mlcincat(ik-1)
+                      mlcdoc(ik)=mlcdoc(ik-1)
+                      mlctype(ik)=mlctype(ik-1)
+                      mlcoptical(ik)=mlcoptical(ik-1)
+                      mlcsymetric(ik)=mlcsymetric(ik-1)
+                      matsymindex(ik)=matsymindex(ik-1)
+                      mlccatindex(ik)=mlccatindex(ik-1)
+                      THKMLC(ik)=THKMLC(ik-1)
+                      LAYERS(ik)=LAYERS(ik-1)
+
+                      DO ILL=1,LAYERS(ik)      ! copy layer attributes
+                        DTHK(ik,ILL)=DTHK(ik-1,ILL)
+                        IPR(ik,ILL)=IPR(ik-1,ILL)
+                        IPRMAT(ik,ILL)=IPRMAT(ik-1,ILL)
+                        ITMCFCDB(ik,ILL)=ITMCFCDB(ik-1,ILL)
+                        DRAIR(ik,ILL,1)=DRAIR(ik-1,ILL,1)
+                        DRAIR(ik,ILL,2)=DRAIR(ik-1,ILL,2)
+                        DRAIR(ik,ILL,3)=DRAIR(ik-1,ILL,3)
+                        LAYDESC(ik,ILL)=LAYDESC(ik-1,ILL)
+                      ENDDO  ! of ILL
+                    enddo
+                    T32=shortername
+                    call CPYAMLC(indx_c,indx_d,T32,IER)
+                  endif
+                  shorterdoc=mlcmenu(indx_c)
+                  call EASKS(shorterdoc,'Menu entry (<32 char)?',
+     &             'Confirm:',32,' ','Construction doc',IER,nbhelp)
+                  mlcmenu(indx_d)=shorterdoc
+
+C Update linked MLC including the name of the original MLC.
+C The shortened copy of long MLC is indx_b, the shortened linked MLC is indx_d. 
+                  write(mlcsymetric(indx_d),'(a)') mlcname(indx_b)  ! point back
+                  matsymindex(indx_d)=indx_b
+
+C Update the original to point to the inverted item.
+                  write(mlcsymetric(indx_b),'(a)') mlcname(indx_d)  ! point to inverted
+                  matsymindex(indx_b)=indx_d
+                  write(6,*) 'indx_a ',mlcname(indx_a),' ',
+     &              mlcmenu(indx_a),' ',
+     &              mlcsymetric(indx_a),matsymindex(indx_a)
+                  write(6,*) 'indx_b ',mlcname(indx_b),' ',
+     &              mlcmenu(indx_b),' ',
+     &              mlcsymetric(indx_b),matsymindex(indx_b)
+                  write(6,*) 'indx_c ',mlcname(indx_c),' ',
+     &              mlcmenu(indx_c),' ',
+     &              mlcsymetric(indx_c),matsymindex(indx_c)
+                  write(6,*) 'indx_d ',mlcname(indx_d),' ',
+     &              mlcmenu(indx_d),' ',
+     &              mlcsymetric(indx_d),matsymindex(indx_d)
+                endif
+
+C Update the MLC database.
+                mlcdbitems=NMLC
+                CALL EMKAMLD2(iuout,IER) ! write it out
+
+C The inserted item(s) might shift subsequent mlcindex32. Rescan.
+                mlcnamegt24=0; mlcx32refs=0 ! Reset count of long MLC names & references
+                mlcindex32(1)=0; mlcindex32(2)=0; mlcindex32(3)=0     ! clear long name slots
+                mlcindex32(4)=0; mlcindex32(5)=0; mlcindex32(6)=0 
+                mlcindexo32(1)=0; mlcindexo32(2)=0; mlcindexo32(3)=0  ! clear linked long name slots
+                mlcindexo32(4)=0; mlcindexo32(5)=0; mlcindexo32(6)=0 
+                do il=1,nmlc
+                  if(lnblnk(mlcname(il)).gt.24)then
+                    mlcnamegt24=mlcnamegt24+1
+                    if(mlcnamegt24.le.6)then
+                      mlcindex32(mlcnamegt24)=il
+                      if(matsymindex(il).gt.0)then
+                        indx_c=matsymindex(il)
+                        indx_d=indx_c+1
+                        call mlcequal(indx_c,indx_d,equal)
+                        if(equal)then
+                          mlcindexo32(mlcnamegt24)=indx_c
+                          mlcindexo24(mlcnamegt24)=indx_d
+                          imlcosearch=indx_c
+                          imlcoreplace=indx_d
+                        else
+                          continue
+                        endif
+                      endif
+                    endif
+
+C Debug.
+C                    write(6,'(i2,a,i3,2a)') mlcnamegt24,
+C     &                ' long MLC is now indx ',il,' ',mlcname(il)
+C                    if(indx_c.gt.0)then
+C                      write(6,'(i2,a,i3,2a)') mlcnamegt24,
+C     &                  ' paired MLC is now ',indx_c,' ',mlcname(indx_c)
+C                    endif
+                  endif
+                enddo
+
+C Update the MLC file.
+                mlcdbitems=NMLC
+                CALL ERPFREE(IFMUL,ISTAT)  ! in case other unit is still open
+                CALL EMKAMLD2(iuout,IER) ! write it out
+
+C Refresh the list of which materials and MLC are referenced.
+                call usedmlcmat(iusedmlc,iusedmat)
+              endif
+            endif
+          enddo
+
+C Having created the relevant shortened MLC items, loop through
+C the model and offer to do search and replace.
+          do ij=1,iup
+
+C Debug.
+C            write(6,*)'ij mlcindex32 ',ij,mlcindex32(ij),mlcindex24(ij)
+C            write(6,*)'ij mlcindexo32 ',ij,mlcindexo32(ij),
+C     &        mlcindexo24(ij)
+            if(mlcindex32(ij).gt.0)then
+
+              indx_a= mlcindex32(ij)
+              lnlmlc=lnblnk(mlcname(indx_a))
+
+C If the MLC is paired also check to see if the pair has a 
+C shortened version.
+              if(matsymindex(indx_a).gt.0)then
+                lno=lnblnk(mlcname(matsymindex(indx_a)))
+                write(outs,'(4a)') 'MLC ',mlcname(indx_a)(1:lnlmlc),
+     &            ' is paired with ',mlcname(matsymindex(indx_a))(1:lno)
+                call edisp(iuout,outs)
+              endif
+              indx_b= mlcindex32(ij)+1
+              call mlcequal(indx_a,indx_b,equal)
+              if(equal)then
+                lnsmlc=lnblnk(mlcname(indx_b))
+                write(outs,'(4a)') 'MLC ',mlcname(indx_a)(1:lnlmlc),
+     &          ' can use ',mlcname(indx_b)(1:lnsmlc)
+                call edisp(iuout,outs)
+                if(usedmlc(indx_a))then
+                  write(outs,'(2a)') mlcname(indx_a)(1:lnlmlc),
+     &              ' is still referenced in the model.'
+                  call edisp(iuout,outs)
+                  CALL EASKOK('  ',
+     &              'Switch to the short name?',OK,nbhelp)
+                  if(OK)then
+                    imlcsearch=indx_a
+                    imlcreplace=indx_b
+                    call serchrpl('p',itrc,ier)    
+                    call usedmlcmat(iusedmlc,iusedmat)
+                    cycle
+                  else
+                    call edisp(iuout,'Looking for other long names.')
+                    cycle
+                  endif
+                else
+                  write(outs,'(2a)') mlcname(indx_a)(1:lnlmlc),
+     &            ' is NOT referenced in the model. No action required.'
+                  call edisp(iuout,outs)
+                  cycle
+                endif
+              endif
+            endif
+
+C If the long named MLC is linked to another MLC that also needs
+C to be copied (whether or not it has a long name).
+            if(matsymindex(indx_a).gt.0)then
+              indx_c=matsymindex(indx_a)
+              indx_d=indx_c+1
+              write(6,*) 'indx_a indx_b indx_c indx_d ',
+     &          indx_a,indx_b,indx_c,indx_d
+              call mlcequal(indx_c,indx_d,equal)
+              if(equal)then
+                  mlcindexo32(ij)=indx_c
+                  mlcindexo24(ij)=indx_d
+                  imlcosearch=indx_c
+                  imlcoreplace=indx_d
+                  write(6,*) 'indx_a ',mlcname(indx_a),' ',
+     &              mlcmenu(indx_a),' ',
+     &              mlcsymetric(indx_a),matsymindex(indx_a)
+                  write(6,*) 'indx_b ',mlcname(indx_b),' ',
+     &              mlcmenu(indx_b),' ',
+     &              mlcsymetric(indx_b),matsymindex(indx_b)
+                  write(6,*) 'indx_c ',mlcname(indx_c),' ',
+     &              mlcmenu(indx_c),' ',
+     &              mlcsymetric(indx_c),matsymindex(indx_c)
+                  write(6,*) 'indx_d ',mlcname(indx_d),' ',
+     &              mlcmenu(indx_d),' ',
+     &              mlcsymetric(indx_d),matsymindex(indx_d)
+                  if(usedmlc(indx_c))then
+                    lnsmlc=lnblnk(mlcname(indx_c))
+                    write(outs,'(2a)') mlcname(indx_c)(1:lnlmlc),
+     &              ' is referenced in the model.'
+                    call edisp(iuout,outs)
+                    CALL EASKOK('  ',
+     &                'Switch to the short name?',OK,nbhelp)
+                    if(OK)then
+                    imlcsearch=indx_c
+                    imlcreplace=indx_d
+                    call serchrpl('p',itrc,ier)    
+                    call usedmlcmat(iusedmlc,iusedmat)
+                    cycle
+                  else
+                    call edisp(iuout,'Looking for other long names.')
+                    cycle
+                  endif
+                else
+                  lnsmlc=lnblnk(mlcname(indx_c))
+                  write(outs,'(2a)') mlcname(indx_c)(1:lnsmlc),
+     &            ' is NOT referenced in the model. No action required.'
+                  call edisp(iuout,outs)
+                  cycle
+                endif
+                call usedmlcmat(iusedmlc,iusedmat)  ! Refresh.
+              endif
+            endif
+          enddo
+        endif
+        goto 60
       endif
 
 C Test the selected or copied file. If a problem loop back
@@ -4105,10 +4535,11 @@ C Calendar.
       integer icreport  ! to signal that calendar has been updated.
       integer IDOL,IDAYNUM,IMTHNUM,IDWKNUM,IDTYY  ! for correcting calendar
       logical closelat,closelong,clkok,usercreatednew
-      integer iappwpc ! application %
+      integer iappwpc  ! application %
       integer ISTRW
+      logical MY       ! to signal not-multi-year weather file.
 
-      helpinsub='eddb'  ! set for subroutine
+      helpinsub='eddb' ! set for subroutine
 
 C Set folder separator (fs) to \ or / as required.
       call isunix(unixok)
@@ -4192,7 +4623,8 @@ C Act on the users choice. If no choice return to main menu.
 C If file exists read it and enter editing facility.
         if(XST)then
           IER=0
-          CALL CLMOPB(0,IER)
+          MY=.false.
+          CALL CLMOPB(MY,0,IER)
           if(ier.eq.0)then
             moddb=.true.
           else
@@ -4679,7 +5111,8 @@ C otherwise create with 0 length.
       call EFOPRAN(ICLIM,llclmdb,144,0,ISTAT) ! record width doesn't matter here
       if(ISTAT.ge.0)then
         CALL ERPFREE(ICLIM,ISTAT)
-        CALL CLMOPB(1,IER)
+        MY=.false.
+        CALL CLMOPB(MY,1,IER)
         CALL CLMRDBMD(IER)
         CALL ERPFREE(ICLIM,ISTAT)
       else
@@ -4778,7 +5211,8 @@ C Invoke the climate module with llclmdb, it is assumed that the
 C weather file exists.
   44  continue
       IER=0
-      call CLMOPB(0,IER)
+      MY=.false.
+      call CLMOPB(MY,0,IER)
       if(ier.eq.0)then
         doit = ' '
         call terminalmode(childterminal,tmode)

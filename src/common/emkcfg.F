@@ -335,16 +335,37 @@ C Set folder separator (fs) to \ or / as required.
 
 C Remind user that a newer version of the file can be written unless
 C a preference has already been given to stick with legacy version.
+C      write(6,*) 'emkcfg icfgv usecurcfg',icfgv,usecurcfg,cnndisagree,
+C     &  ' ',LCNN(1:lnblnk(LCNN)),' ',act
       if(icfgv.le.4)then
         if(usecurcfg.eq.1)then
-          IW=1   ! upgrade to V5
+          if(cnndisagree)then
+            call edisp(iuout,' ')
+            call edisp(iuout,
+     &        'There are differences between zone surface attributes')
+            call edisp(iuout,
+     &        'and connections list. Retaining separate cnn file.')
+            IW=2   ! upgrade to V5 separate cnn.
+          else
+            IW=1   ! upgrade to V5 embedded.
+          endif
+        elseif(usecurcfg.eq.2)then
+          IW=2   ! upgrade to V5
         elseif(usecurcfg.eq.-1)then
-          IW=2   ! stick with V4
+          IW=3   ! stick with V4
         else     ! ask user
+          if(LCNN(1:8).eq.'internal')then
+            call edisp(iuout,' ')
+            call edisp(iuout,'Currently uses embedded connections.')
+          else
+            call edisp(iuout,' ')
+            call edisp(iuout,
+     &        'Currently uses separate connections file.')
+          endif
           CALL EASKMBOX('Configuration file uses an old format.',
-     &      'Save in:','latest','legacy','cancel',
-     &      ' ',' ',' ',' ',' ',IW,nbhelp)
-          if(IW.EQ.3)then
+     &      'Save in:','latest (embedded cnn)','latest (separate cnn)',
+     &      'legacy','cancel',' ',' ',' ',' ',IW,nbhelp)
+          if(IW.EQ.4)then
             call edisp(iuout,'System configuration file not updated.')
             return
           endif
@@ -354,26 +375,98 @@ C Set version number.
         if(IW.eq.1)then
           icfgv=5; usecurcfg=1     ! use version 5 format
         elseif(IW.eq.2)then
+          icfgv=5; usecurcfg=2     ! use version 5 format (separate cnn)
+        elseif(IW.eq.3)then
           icfgv=4; usecurcfg= (-1) ! use version 4 format
         endif
       elseif(icfgv.gt.4)then
+
+C If current offer choices. Embedded is ok if user is sure that the
+C surface attributes are correct, otherwise stick to separate cnn file.
         if(act(1:1).eq.'v')then
-          CALL EASKMBOX('Configuration file uses current format.',
-     &      'Save in:','current','legacy','cancel',
-     &      ' ',' ',' ',' ',' ',IW,nbhelp)
-          if(IW.EQ.3)then
-            call edisp(iuout,'System configuration file not updated.')
-            return
+          if(cnndisagree)then
+            call edisp(iuout,' ')
+            call edisp(iuout,
+     &        'There are differences between zone surface attributes')
+            call edisp(iuout,
+     &        'and connections list. Choose separate cnn file.')
+            CALL EASKMBOX('Configuration file uses current format.',
+     &        'Save in:','N/A','curent (separate cnn)',
+     &        'legacy','cancel',' ',' ',' ',' ',IW,nbhelp)
+            if(IW.EQ.4)then
+              call edisp(iuout,'System configuration file not updated.')
+              return
+            endif
+          else
+            if(LCNN(1:8).eq.'internal')then
+              call edisp(iuout,' ')
+              call edisp(iuout,'Currently uses embedded connections.')
+            else
+              call edisp(iuout,' ')
+              call edisp(iuout,
+     &          'Currently uses separate connections file.')
+            endif
+            CALL EASKMBOX('Configuration file uses current format.',
+     &      'Save in:','current (embedded cnn)','curent (separate cnn)',
+     &      'legacy','cancel',' ',' ',' ',' ',IW,nbhelp)
+            if(IW.EQ.4)then
+              call edisp(iuout,'System configuration file not updated.')
+              return
+            endif
+          endif
+        else
+          if(usecurcfg.eq.0)then
+            if(cnndisagree)then
+              call edisp(iuout,' ')
+              call edisp(iuout,
+     &        'There are differences between zone surface attributes')
+              call edisp(iuout,
+     &        'and connections list. Choose separate cnn file.')
+              CALL EASKMBOX('Configuration file uses current format.',
+     &          'Save in:','N/A','curent (separate cnn)',
+     &          'legacy','cancel',' ',' ',' ',' ',IW,nbhelp)
+              if(IW.EQ.4)then
+                call edisp(iuout,'System configuration not updated.')
+                return 
+              endif
+            else
+              if(LCNN(1:8).eq.'internal')then
+                call edisp(iuout,' ')
+                call edisp(iuout,'Currently uses embedded connections.')
+              else
+                call edisp(iuout,' ')
+                call edisp(iuout,
+     &            'Currently uses separate connections file.')
+              endif
+              CALL EASKMBOX('Configuration file uses current format.',
+     &      'Save in:','current (embedded cnn)','curent (separate cnn)',
+     &      'NA','cancel',' ',' ',' ',' ',IW,nbhelp)
+              if(IW.EQ.4)then
+                call edisp(iuout,'System configuration not updated.')
+                return
+              endif
+            endif
+          else
+            if(usecurcfg.eq.1)then
+              icfgv=5; IW=1
+            elseif(usecurcfg.eq.2)then
+              icfgv=5; IW=2
+            elseif(usecurcfg.eq.(-1))then
+              icfgv=4; IW=3
+            endif
           endif
         endif
 
 C Set version number.
         if(IW.eq.1)then
-          icfgv=5; usecurcfg=1     ! use version 5 format
+          icfgv=5; usecurcfg=1     ! use version 5 format embedded cnn
         elseif(IW.eq.2)then
+          icfgv=5; usecurcfg=2     ! use version 5 format separate cnn
+        elseif(IW.eq.3)then
           icfgv=4; usecurcfg= (-1) ! use version 4 format
         endif
       endif
+C      write(6,*) 'icfgv usecurcfg after',icfgv,usecurcfg,cnndisagree
 
 C If no model root name has been set, make from configuration file.
 C If filename > 4 char it might have a .cfg attached.
@@ -401,18 +494,24 @@ C If filename > 4 char it might have a .cfg attached.
         endif
       endif
 
-C Check connections file.
+C Check connections file. If icfgv is 5 and usecurcfg is 1
+C then LCNN can be set to 'internal' and the attributes
+C written into the cfg file.
       if(ncon.gt.1)then
-  290   write(LCNN,'(2a)')cfgroot(1:lnblnk(cfgroot)),'.cnn'
-        if(act(1:1).eq.'-'.or.act(1:1).eq.'v')then
-          DCNN=LCNN
-          ltmp=LCNN
-          CALL EASKS(ltmp,' ','Connections file name?',
-     &      72,DCNN,'system connx file name',IER,nbhelp)
-          if(ltmp(1:2).ne.'  '.and.ltmp(1:4).ne.'UNKN')then
-            LCNN=ltmp
-          else
-            GOTO 290
+        if(icfgv.gt.4.and.usecurcfg.eq.1)then
+          write(LCNN,'(a)') 'internal'
+        else
+  290     write(LCNN,'(2a)')cfgroot(1:lnblnk(cfgroot)),'.cnn'
+          if(act(1:1).eq.'-'.or.act(1:1).eq.'v')then
+            DCNN=LCNN
+            ltmp=LCNN
+            CALL EASKS(ltmp,' ','Connections file name?',
+     &        72,DCNN,'system connx file name',IER,nbhelp)
+            if(ltmp(1:2).ne.'  '.and.ltmp(1:4).ne.'UNKN')then
+              LCNN=ltmp
+            else
+              GOTO 290
+            endif
           endif
         endif
       elseif(ncon.eq.0.and.indcfg.gt.0)then
@@ -420,7 +519,11 @@ C Check connections file.
 C If emkcfg was called from ecnv with an initial registration model
 C that had no zones but where indcfg had already been reset to 1
 C then get the name of the connections file.
-        write(LCNN,'(2a)') cfgroot(1:lnblnk(cfgroot)),'.cnn'
+        if(icfgv.gt.4.and.usecurcfg.eq.1)then
+          write(LCNN,'(a)') 'internal'
+        else
+          write(LCNN,'(2a)') cfgroot(1:lnblnk(cfgroot)),'.cnn'
+        endif
       endif
 
 C Test to see if model needs to be updated from registration
@@ -429,16 +532,20 @@ C take the default name for the connections file.
       if(INDCFG.EQ.0)then
         if(NCOMP.eq.1.and.LGEOM(1)(1:4).ne.'dumm')then
           INDCFG=1
-          write(LCNN,'(2a)') cfgroot(1:lnblnk(cfgroot)),'.cnn'
-          if(act(1:1).eq.'-'.or.act(1:1).eq.'v')then
-  289       DCNN='model.cnn'
-            ltmp=LCNN
-            CALL EASKS(ltmp,' ','Connections file name?',72,
-     &        DCNN,'system connx file name',IER,nbhelp)
-            if(ltmp(1:2).ne.'  '.and.ltmp(1:4).ne.'UNKN')then
-              LCNN=ltmp
-            else
-              GOTO 289
+          if(icfgv.gt.4.and.usecurcfg.eq.1)then
+            write(LCNN,'(a)') 'internal'
+          else
+            write(LCNN,'(2a)') cfgroot(1:lnblnk(cfgroot)),'.cnn'
+            if(act(1:1).eq.'-'.or.act(1:1).eq.'v')then
+  289         DCNN='model.cnn'
+              ltmp=LCNN
+              CALL EASKS(ltmp,' ','Connections file name?',72,
+     &          DCNN,'system connx file name',IER,nbhelp)
+              if(ltmp(1:2).ne.'  '.and.ltmp(1:4).ne.'UNKN')then
+                LCNN=ltmp
+              else
+                GOTO 289
+              endif
             endif
           endif
           if(LPNF(1:4).ne.'UNKN'.and.LPNF(1:2).ne.'  ')then
@@ -738,6 +845,21 @@ C Site related information.
         call align_comment(48,tokens,comment,aligned_str)
         write(IFCFG,'(a)') aligned_str(1:lnblnk(aligned_str))
 
+C Ground reflectivity model (no-snow monthly albedos & snow albedo
+C if ground reflectivity model 2 or 3).
+        IF(groundreflmodel.GT.1) WRITE(IFC,803) '*gref ',
+     &     groundreflmodel,(groundreflmonth(I),I=1,12),snowgroundrefl
+  803   FORMAT(A,I1,13(1X,F5.3))
+
+C Number of days with snow on the ground (if ground reflectivity model 2).
+        IF(groundreflmodel.EQ.2)  
+     &    WRITE(IFC,805) '*snow',(dayswithsnow(I),I=1,12)
+  805   FORMAT(A,12(1X,I2))
+
+C Snow depth file (if ground reflectivity model 3).
+        IF(groundreflmodel.EQ.3) WRITE(IFC,'(2A)',IOSTAT=IOS,ERR=2) 
+     &    '*sndf ',SNFNAM(1:lnblnk(SNFNAM))
+
 C Include ground information if associated attributes found.
         ifc=ifcfg
         call write_ground(dogrnd,ifc)
@@ -785,7 +907,7 @@ C Wind-generated electricity.
      &    LWndSupp(1:lnblnk(LWndSupp))
       endif
 
-C Solar radiation handling.
+C Solar radiation handling and ground reflection models.
       if(icfgv.lt.5)then
         if(iSlr_half_hr_flg.eq.0)then
           write(tokens,'(a,i2)') '*slr_half_hr ',iSlr_half_hr_flg
@@ -800,6 +922,19 @@ C Solar radiation handling.
         endif
         WRITE(IFCFG,'(A,F6.1)',IOSTAT=IOS,ERR=2)  ! Site altitude.
      &    '*sitealt ',sitealt
+
+C Ground reflectivity model (no-snow monthly albedos & snow albedo
+C if ground reflectivity model 2 or 3).
+        IF(groundreflmodel.GT.1) WRITE(IFC,803) '*gref ',
+     &     groundreflmodel,(groundreflmonth(I),I=1,12),snowgroundrefl
+
+C Number of days with snow on the ground (if ground reflectivity model 2).
+        IF(groundreflmodel.EQ.2)  
+     &    WRITE(IFC,805) '*snow',(dayswithsnow(I),I=1,12)
+
+C Snow depth file (if ground reflectivity model 3).
+        IF(groundreflmodel.EQ.3) WRITE(IFC,'(2A)',IOSTAT=IOS,ERR=2) 
+     &    '*sndf ',SNFNAM(1:lnblnk(SNFNAM))
       endif
 
 C Direct evaporative cooling.
@@ -1266,7 +1401,7 @@ C of the folder as it is used in creating the hvac file name
         WRITE(TempString,'(4a)')'..',fs,'msc',fs
         INQUIRE(FILE=TempString,EXIST=lexist)
         if (.not.lexist) then
-          write(doit,'(4a)') 'mkdir ','..',fs,'msc'
+          write(doit,'(4a)') 'mkdir -p ','..',fs,'msc'
           call usrmsg('Creating folder:',doit,'-')
           call runit(doit,'-')
           call pausems(400)
@@ -1573,16 +1708,33 @@ C Zone files end marker.
      &    '# ---- building topology ----'
       endif
 
-C Zone surface connections file.
-      write(tokens,'(2a)') '*cnn ',LCNN(1:lnblnk(LCNN))
-      write(comment,'(a)') 'surface connections file'
-      call align_comment(48,tokens,comment,aligned_str)
-      write(IFCFG,'(a)') aligned_str(1:lnblnk(aligned_str))
+C Zone surface connections are either derived from data held
+C in the zone geometry files or held in a connections file.
+      if(icfgv.gt.4.and.usecurcfg.eq.1)then
+        write(tokens,'(a)') '*cnn internal'
+        write(comment,'(a)') 'surface connections follow'
+        call align_comment(48,tokens,comment,aligned_str)
+        write(IFCFG,'(a)') aligned_str(1:lnblnk(aligned_str))
+      else
+        write(tokens,'(2a)') '*cnn ',LCNN(1:lnblnk(LCNN))
+        write(comment,'(a)') 'surface connections file'
+        call align_comment(48,tokens,comment,aligned_str)
+        write(IFCFG,'(a)') aligned_str(1:lnblnk(aligned_str))
+      endif
 
 C Re-build zone surface-to-connection hash array.
       do 43 icc = 1, NCON
         IZSTOCN(IC1(icc),IE1(icc))=icc
  43   continue
+
+      if(icfgv.gt.4.and.usecurcfg.eq.1)then
+
+C Write the number of zone connections to cfg file if V5.
+        if(ncon.gt.0)then
+          WRITE(IFCFG,'(I7,A)',IOSTAT=IOS,ERR=2)
+     &    NCON,'  # number of connections'
+        endif
+      endif
 
 C Zone anchor points.
       if(NALOC.gt.0)then
@@ -1745,7 +1897,11 @@ C Above there will have been a # ---- comment
 C Close the system configration file.
  9028 CALL ERPFREE(IFCFG,IOS)
 
-C Write the zone connections file.
+C Write the zone connections file (unless internal in which case only
+C the total number of connections is written).
+      if(LCNN(1:8).eq.'internal')then
+        return
+      endif
       if(ncon.gt.0)then
         CALL EFOPSEQ(IUF,LCNN,3,IER)
         WRITE(IUF,'(2A)',IOSTAT=IOS,ERR=2) '*connections for ',
@@ -1839,17 +1995,17 @@ C Trap out of range IC1 and IE1 variables.
       ELSEIF(ICT(ICON).EQ.1.AND.ICF.GT.0)THEN
         if(IC2(ICON).eq.0.and.IE2(ICON).eq.0)then
           WRITE(CXSTR,8984)ICON,SST1(1:lsn1),ZST1(1:lzn1)
- 8984     FORMAT(I4,1X,a,' in ',a,' >|< Identical environment ')
+ 8984     FORMAT(I4,1X,a,' in ',a,' to Identical environment ')
         else
           WRITE(CXSTR,8987)ICON,SST1(1:lsn1),
      &      ZST1(1:lzn1),IC2(ICON),IE2(ICON)
- 8987     FORMAT(I4,1X,a,' in ',a,' >|< Similar +-',i3,'dC & ',
+ 8987     FORMAT(I4,1X,a,' in ',a,' to Similar +-',i3,'C & ',
      &      I4,' W rad')
         endif
       ELSEIF(ICT(ICON).EQ.2.AND.ICF.GT.0)THEN
         WRITE(CXSTR,8983)ICON,SST1(1:lsn1),ZST1(1:lzn1),
      &                   IC2(ICON),IE2(ICON)
- 8983   FORMAT(I4,1X,a,' in ',a,' >|< Constant @',I3,' dC & ',
+ 8983   FORMAT(I4,1X,a,' in ',a,' is Constant @',I3,' C & ',
      &         I4,' W rad')
       ELSEIF(ICT(ICON).EQ.3.AND.ICF.GT.0)THEN
         ICM=IZSTOCN(IC2(ICON),IE2(ICON))
@@ -1866,20 +2022,20 @@ C Trap out of range IC1 and IE1 variables.
         endif
         WRITE(CXSTR,8982)ICON,SST1(1:lsn1),ZST1(1:lzn1),
      &                        SST2(1:lsn2),ZST2(1:lzn2)
- 8982   FORMAT(I4,1X,a,' in ',a,' >|< ',a,' in ',a)
+ 8982   FORMAT(I4,1X,a,' in ',a,' to ',a,' in ',a)
       ELSEIF(ICT(ICON).EQ.4.AND.ICF.GT.0)THEN
         IF(IC2(ICON).GT.0)THEN
           WRITE(CXSTR,8981)ICON,SST1(1:lsn1),
      &                     ZST1(1:lzn1),IC2(ICON)
- 8981     FORMAT(I4,1X,a,' in ',a,' >|< ground profile',I2)
+ 8981     FORMAT(I4,1X,a,' in ',a,' to ground profile',I2)
         ELSEIF(IC2(ICON).EQ.-3)THEN
           WRITE(CXSTR,8998)ICON,SST1(1:lsn1),ZST1(1:lzn1)
- 8998     FORMAT(I4,1X,a,' in ',a,' >|< 3D ground model')
+ 8998     FORMAT(I4,1X,a,' in ',a,' to 3D ground model')
         ELSE
           WRITE(CXSTR,8980)ICON,SST1(1:lsn1),
      &                     ZST1(1:lzn1),IE2(ICON)
  8980     FORMAT(I4,1X,a,' in ',a,
-     &         ' >|< user def ground profile',I2)
+     &         ' to user def ground profile',I2)
         ENDIF
       ELSEIF(ICT(ICON).EQ.5.AND.ICF.GT.0)THEN
         WRITE(CXSTR,7984)ICON,SST1(1:lsn1),ZST1(1:lzn1)
@@ -1893,11 +2049,11 @@ C Trap out of range IC1 and IE1 variables.
 
         if(IC2(ICON).eq.0.and.IE2(ICON).eq.0)then
           WRITE(CXSTR,9984)ICON,SST1(1:lsn1),ZST1(1:lzn1)
- 9984     FORMAT(I4,1X,a,' in ',a,' >|< Identical CEN 13791   ')
+ 9984     FORMAT(I4,1X,a,' in ',a,' is Identical CEN 13791   ')
         else
           WRITE(CXSTR,9987)ICON,SST1(1:lsn1),
      &      ZST1(1:lzn1),IC2(ICON),IE2(ICON)
- 9987     FORMAT(I4,1X,a,' in ',a,' >|< CEN13791+-',i3,'dC & ',
+ 9987     FORMAT(I4,1X,a,' in ',a,' is CEN13791+-',i3,'dC & ',
      &      I4,' W rad')
         endif
       ENDIF
@@ -1985,7 +2141,7 @@ C Ground topology.
       IF(NGRDP.gt.0.or.GRND3D)dogrnd=.true.
       IF(GTGEOM(1:7).ne.'UNKNOWN'.and.GTGEOM(1:2).ne.'  ')dogrnd=.true.
 
-C Ground temperature.
+C Ground temperature and/or reflectivity.
       IF (iExtLgRadFlag .EQ. 1) dogrnd = .true.
       if(dogrnd)then
         if(icfgv.lt.5)then
@@ -1993,9 +2149,11 @@ C Ground temperature.
         else
           WRITE(IFC,'(A)',IOSTAT=IOS,ERR=2) '*ground'
         endif
+
         IF(iExtLgRadFlag.EQ.1) THEN
           WRITE(IFC,'(A)',IOSTAT=IOS,ERR=2)'*gtmp '
           WRITE(IFC,933,IOSTAT=IOS,ERR=2)(eGrdTp(jMon),jMon=1,12)
+  933     FORMAT(12F7.2)
         ENDIF
 
 C 3D ground files.
@@ -2010,15 +2168,9 @@ C 3D ground files.
      &      GTGEOM(1:lnblnk(GTGEOM))
         endif
         if(ngrdp.gt.0)then   ! Attributed user defined or derived monthly.
-C          WRITE(IFC,'(A,i3)',IOSTAT=IOS,ERR=2)'*mgp ',NGRDP
-C          DO 932 I=1,NGRDP
-C            WRITE(IFC,933,IOSTAT=IOS,ERR=2)(UGRDTP(J,I),J=1,12)
-C  933       FORMAT(12F7.2)
-C  932     CONTINUE
-  933      FORMAT(12F7.2)
           
           WRITE(outs,'(a)',IOSTAT=IOS,ERR=2) ! Include annotations.
-     &      '# tag     depth monthly temperatures description'
+     &      '# tag     depth monthly temperatures          description'
           WRITE(IFC,'(A)',IOSTAT=IOS,ERR=2) outs(1:lnblnk(outs))
           DO I=1,NGRDP
             if(UGRNAME(I)(1:2).eq.'  ')then
@@ -2138,21 +2290,6 @@ C        WRITE(IFC,'(A)',IOSTAT=IOS,ERR=2) '*databases'
         WRITE(IFC,'(2A)',IOSTAT=IOS,ERR=2) '*stdmould  ',
      &    lfmould(1:lnblnk(lfmould))
       endif
-
-C Ground reflectivity model (no-snow monthly albedos & snow albedo
-C if ground reflectivity model 2 or 3).
-      IF(groundreflmodel.GT.1) WRITE(IFC,803) '*gref ',
-     &   groundreflmodel,(groundreflmonth(I),I=1,12),snowgroundrefl
-  803 FORMAT(A,I1,13(1X,F5.3))
-
-C Number of days with snow on the ground (if ground reflectivity model 2).
-      IF(groundreflmodel.EQ.2)  
-     &  WRITE(IFC,805) '*snow',(dayswithsnow(I),I=1,12)
-  805 FORMAT(A,12(1X,I2))
-
-C Snow depth file (if ground reflectivity model 3).
-      IF(groundreflmodel.EQ.3) WRITE(IFC,'(2A)',IOSTAT=IOS,ERR=2) 
-     &  '*sndf ',SNFNAM(1:lnblnk(SNFNAM))
 
 C Multi-year weather database.
       if (bMY_climates_defined) then 
@@ -2542,13 +2679,13 @@ C Multi-year weather data (only works with save level 5).
 
 C Flag indicating start of multi-year climate record.
         if (bMY_period_support(iss) .and. .not. bMY_set_open) then
-          write(IFC,'(A)') '*start_my_sets'
+C          write(IFC,'(A)') '*start_my_sets'
           bMY_set_open = .true.
         endif 
 
 C Extended simulation parameter sets.
         if ( bMY_period_support(iss) ) then
-          write(tokens,'(5I4,2I3,I5,2I3,I5,2x,A)') 
+          write(tokens,'(A,7I4,I5,2I3,I5,2x,A)') '*myset ',
      &     isstupex(iss),isbnstepex(iss),ispnstepex(iss),
      &     issaveex(iss),isavghex(iss),isstday(iss),isstmon(iss),
      &     iMY_period_start_years(iss),isfnday(iss),isfnmon(iss),
@@ -2614,12 +2751,12 @@ C CFD. Loop through zones to see if there is a cfd domain description.
 
 C End of multi-simulation sets.
         if ( iss .eq. nsset ) then
-          if ( bMY_period_support(iss) )
-     &      write(IFC, '(A)') '*end_my_sets'
+C          if ( bMY_period_support(iss) )
+C     &      write(IFC, '(A)') '*end_my_sets'
           bMY_set_open = .false.
         elseif ( bMY_set_open .and.
      &     .not. bMY_period_support (iss+1) ) then         
-          write(IFC, '(A)') '*end_my_sets'
+C          write(IFC, '(A)') '*end_my_sets'
           bMY_set_open = .false.
         endif
  333  continue
@@ -2725,7 +2862,7 @@ C exists and what it points to.
                   CALL EDISP(iuout,CXSTR)
                   first=.true.
                 endif
-                call edisp(iuout,'Contiguous zone link >|< incorrect!')
+                call edisp(iuout,'Contiguous zone link is incorrect!')
                 prob=.true.
                 IPROB=IPROB+1
                 CALL CONXINF(1,i,CXSTR)
@@ -2739,7 +2876,7 @@ C exists and what it points to.
                   first=.true.
                 endif
                call edisp(iuout,
-     &            'Contiguous surface link >|< incorrect!')
+     &            'Contiguous surface link is incorrect!')
                 prob=.true.
                 IPROB=IPROB+1
                 CALL CONXINF(1,i,CXSTR)

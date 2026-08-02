@@ -450,6 +450,14 @@ C      write(6,*) opta
       return
       end
 
+      subroutine etwlinewwc(ixy,iy1,ix2,iy2)
+      return
+      end
+
+      subroutine etwline(ixy,iy1,ix2,iy2)
+      return
+      end
+
       subroutine eswlinewwc(ixy,iy1,ix2,iy2)
       return
       end
@@ -782,3 +790,10 @@ C        endif
 C      endif
 C      end
 
+C File selection dialog box.
+
+      subroutine xdialogfilebox(file_return,argc,argv)
+      character*(*) file_return
+	    write(*,*) 'file_return-fc=', file_return
+      return
+      end

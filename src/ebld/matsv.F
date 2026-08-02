@@ -1183,7 +1183,7 @@ C Show first 24 surface.
 C ******************** mzcms2 ********************
 C Reduces the coefficients of the surface and air
 C point node equations to the end of the forward reduction
-C stage.   The appropriate control surface and plant
+C stage. The appropriate control surface and plant
 C (carried through) coefficients are then solved in
 C mzpst1 depending on the simulation information
 C defined previously. Mzcms2 continues and solves for
@@ -1569,7 +1569,7 @@ C Show first 24 surface.
       
 C ******************** mzcms4 ********************
 C Reduces the coefficients of the surface and air point
-C node equations to the end of the forward reduction stage.   The
+C node equations to the end of the forward reduction stage. The
 C air and plant (carried through) coefficients are then passed
 C to 'mzpst1' where the air/plant equation is solved to give the
 C present time-row values of surface temperatures and then
@@ -2062,8 +2062,8 @@ C Mixed injection.
 
 C ******************** mzback ********************
 C Implements back substitution in a zone matrix
-C in the case of "mixed" temperature control. If the
-C zone also has a mixed actuator then the e array must
+C in the case of 'mixed' temperature control. If the
+C zone also has a mixed actuator then the E array must
 C be re-established to include the radiant and convective
 C input.
 

@@ -41,7 +41,16 @@ C MENUGM displays the ground modelling menu.
 
       COMMON/FILEP/IFIL
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
+
+C Ground common blocks:
+C NDXG,NDYG,NDZG - number of intervals in the X Y Z faces of ground
+C   domain (up to 15).
+C DXG() DYG() DZG() - width(m) of each X Y Z interval.
       COMMON/GRND05/NDXG,NDYG,NDZG,DXG(MGXYZ),DYG(MGXYZ),DZG(MGXYZ)
+
+C Material db index which applies to each subregion of ground domain
+C i.e. itpgnd(1,4,3) is 1st interval in X 4th interval in Y and 3rd
+C interval in Z.
       COMMON/GRND06/ITPGND(MGXYZ,MGXYZ,MGXYZ)
       COMMON/GRND100/GRND3D
       LOGICAL GRND3D
@@ -62,8 +71,7 @@ C MENUGM displays the ground modelling menu.
       SAVEOK=.FALSE.
       IUNIT=IFIL+1
       IL=1
-      IDRW1=10
-      IDRW2=0
+      IDRW1=10; IDRW2=0  ! Draw the ground.
       CALL GRAAPH(IDRW1,IDRW2)
 
 C Display the menu.
@@ -90,7 +98,7 @@ C Help text for the menu.
       helptopic='grd_3d_ground_menu'
       call gethelptext(helpinsub,helptopic,nbhelp)
  
-C Draw the appropriate graph.
+C Refesh image if needed.
       IF(MODIFYVIEW)CALL GRAAPH(IDRW1,IDRW2)
       CALL USRMSG(' ',' ','-')
       CALL EMENU('   Ground Modelling',ITEM,MITEM,INO)
@@ -101,8 +109,7 @@ C Show next mesh level.
         IL=IL+1
         IF(IL.GT.NDZG)IL=1
         IF(IL.NE.ILP)THEN
-          IDRW1=11
-          IDRW2=IL
+          IDRW1=11; IDRW2=IL  ! il-th ground cross section
           CALL GRAAPH(IDRW1,IDRW2)
         ENDIF
       ELSEIF(INO.EQ.3)THEN
@@ -133,7 +140,7 @@ C Define X - gridding.
         K=0
         DO 20 I=IFRST,NDXT
           CALL EGETWR(VALUES,K,DX,1.,1.E8,'F',
-     &               'gridding intervals',IER)
+     &       'gridding intervals',IER)
           IF(IER.NE.0)GOTO 10
           DXG(I)=DX
    20   CONTINUE
@@ -142,8 +149,7 @@ C Define X - gridding.
           ILAST=NDXT
           GOTO 15
         ENDIF
-        IDRW1=11
-        IDRW2=IL
+        IDRW1=11; IDRW2=IL  ! il-th ground cross section
         CALL GRAAPH(IDRW1,IDRW2)
       ELSEIF(INO.EQ.4)THEN
 
@@ -182,8 +188,7 @@ C Define Y - gridding.
           ILAST=NDYT
           GOTO 25
         ENDIF
-        IDRW1=11
-        IDRW2=IL
+        IDRW1=11; IDRW2=IL  ! il-th ground cross section
         CALL GRAAPH(IDRW1,IDRW2)
       ELSEIF(INO.EQ.5)THEN
 
@@ -222,8 +227,7 @@ C Define Z - gridding.
           ILAST=NDZT
           GOTO 35
         ENDIF
-        IDRW1=11
-        IDRW2=IL
+        IDRW1=11; IDRW2=IL
         CALL GRAAPH(IDRW1,IDRW2)
       ELSEIF(INO.EQ.6)THEN
 
@@ -233,8 +237,7 @@ C Define surface boundary.
 
 C Create a material rectangle.
         IF(IDRW1.NE.11)THEN
-          IDRW1=10
-          IDRW2=0
+          IDRW1=10; IDRW2=0  ! Draw ground.
           CALL GRAAPH(IDRW1,IDRW2)
         ENDIF
 
@@ -282,8 +285,7 @@ C reference. Use elistmat to select via materials array.
             ITPGND(IX,IY,IL)=LDRU(1)
    70     CONTINUE
    60   CONTINUE
-        IDRW1=11
-        IDRW2=IL
+        IDRW1=11; IDRW2=IL  ! IL layer of ground.
         CALL GRAAPH(IDRW1,IDRW2)
       ELSEIF(INO.EQ.9)THEN
 
@@ -384,8 +386,7 @@ C GNDBND displays the ground boundary menu.
       helpinsub='grnd3d'  ! set for subroutine
 
       IF(MODIFYVIEW.OR.IDRW1.NE.10)THEN
-        IDRW1=10
-        IDRW2=0
+        IDRW1=10; IDRW2=0   ! Draw ground.
         CALL GRAAPH(IDRW1,IDRW2)
       ENDIF
 
@@ -556,8 +557,7 @@ C Define a boundary surface.
           GOTO 10
         ENDIF
         IF(IDRW1.NE.10)THEN
-          IDRW1=10
-          IDRW2=0
+          IDRW1=10; IDRW2=0   ! Draw ground.
           CALL GRAAPH(IDRW1,IDRW2)
         ENDIF
         ITEMS(1)='surface (1 2 6 5)'
@@ -575,8 +575,7 @@ C Define a boundary surface.
      &    IER,nbhelp)
         ISRF=IVALS(1)
         IF(ISRF.GT.0.AND.ISRF.LE.6)THEN
-          IDRW1=12
-          IDRW2=ISRF
+          IDRW1=12; IDRW2=ISRF  ! Ground boundary surface.
           CALL GRAAPH(IDRW1,IDRW2)
           WRITE(MSG,'(2A)')'enter the boundary type and borders',
      &                     ' (left, down, right, and up)'
@@ -638,8 +637,7 @@ C Define a boundary surface.
               IBSRF(6,I,J)=LDRU(1)
   210       CONTINUE
           ENDIF
-          IDRW1=12
-          IDRW2=ISRF
+          IDRW1=12; IDRW2=ISRF  ! Ground boundary surface.
           CALL GRAAPH(IDRW1,IDRW2)
         ELSEIF(ISRF.EQ.0)THEN
           GOTO 10
@@ -730,7 +728,8 @@ C numbers of the control volumes represented by each node).
       CALL EFOPRAN(ITAQ,LGDTAQ,2,4,IER)
       IF(IER.NE.0)RETURN
 
-C Estimate the start up period for the ground.
+C Estimate the start up period for the ground. Loop
+C through all cells in the X, Y and Z axis.
       DNHCVL=0.
       RESISTM=1.E18
       DO 10 IX=1,NDXG
@@ -840,7 +839,7 @@ C *********************************************************************
       VYY(4)=0.
       VYY(5)=0.
       IYY(3)=0
-      DO 10 IY=1,NDYG
+      DO 10 IY=1,NDYG  ! For each interval in Y axis.
         Y1=Y2
         Y2=Y2+DYG(IY)/4.
         IYY(2)=IY
@@ -888,7 +887,7 @@ C *********************************************************************
       VXX(4)=0.
       VXX(5)=0.
       IXX(3)=0
-      DO 10 IX=1,NDXG
+      DO 10 IX=1,NDXG  ! For each interval in X axis.
         X1=X2
         X2=X2+DXG(IX)/4.
         IXX(2)=IX
@@ -1546,9 +1545,10 @@ C *********************************************************************
 
       COMMON/GRND05/NDXG,NDYG,NDZG,DXG(MGXYZ),DYG(MGXYZ),DZG(MGXYZ)
       COMMON/GRND07/VERTX(6,4)
+      CHARACTER VERTX*2
       COMMON/GRND10/NBOUND,IBOUND(MBTYP,3),IBSRF(6,MGXYZ,MGXYZ)
 
-      CHARACTER LABELS*4,VERTX*2
+      CHARACTER LABELS*4
 #ifdef OSI
       integer igwid,igheight  ! for use with axiscale
       integer iside,isize,ifont,ipos     ! passed to viewtext etlabel
@@ -1760,6 +1760,7 @@ C *********************************************************************
 #endif
 
 C If viewpoint or bounds different then initialise viewing parameters.
+      SMALL=0.01
       IF(MODLEN)THEN
         HANG=ANG/2.0
         DIS = (VIEWM(1)-EYEM(1))**2 + (VIEWM(2)-EYEM(2))**2 +
@@ -1777,17 +1778,17 @@ C If viewpoint or bounds different then initialise viewing parameters.
       ENDIF
 
       THKX=0.
-      DO 10 IX=1,NDXG
+      DO IX=1,NDXG
         THKX=THKX+DXG(IX)
-   10 CONTINUE
+      ENDDO
       THKY=0.
-      DO 20 IY=1,NDYG
+      DO IY=1,NDYG
         THKY=THKY+DYG(IY)
-   20 CONTINUE
+      ENDDO
       THKZ=0.
-      DO 30 IL=1,NDZG
+      DO IL=1,NDZG
         THKZ=THKZ+DZG(IL)
-   30 CONTINUE
+      ENDDO
       XGND(1)=0.
       YGND(1)=0.
       ZGND(1)=0.
@@ -1814,10 +1815,10 @@ C If viewpoint or bounds different then initialise viewing parameters.
       ZGND(8)=THKZ
 
 C Find 2D extremes coordinates.
-      DO 40 I=1,8
+      DO I=1,8
         CALL ORTTRN(XGND(I),YGND(I),ZGND(I),TSMAT,XS(I),YS(I),ZS(I),
      &    IERR)
-   40 CONTINUE
+      ENDDO
       XMN2=AMIN1(XS(1),XS(2),XS(3),XS(4),XS(5),XS(6),XS(7),XS(8))
       YMN2=AMIN1(YS(1),YS(2),YS(3),YS(4),YS(5),YS(6),YS(7),YS(8))
       XMX2=AMAX1(XS(1),XS(2),XS(3),XS(4),XS(5),XS(6),XS(7),XS(8))
@@ -1866,18 +1867,17 @@ C Locate and label the vertices.
       CALL VERTLBLNOCLP(iix,iiy,8,IER)
 
 C Draw the ground.
-      iupdown=0
-      isym=0
+      iupdown=0; isym=0
       CALL ETPLOT(XS(1),YS(1),iupdown,isym)
       iupdown=1
-      DO 120 I=2,4
+      DO I=2,4
         CALL ETPLOT(XS(I),YS(I),iupdown,isym)
-  120 CONTINUE
+      ENDDO
       iupdown=1
       CALL ETPLOT(XS(1),YS(1),iupdown,isym)
-      DO 130 I=5,8
+      DO I=5,8
         CALL ETPLOT(XS(I),YS(I),iupdown,isym)
-  130 CONTINUE
+      ENDDO
       iupdown=1
       CALL ETPLOT(XS(5),YS(5),iupdown,isym)
       iupdown=0

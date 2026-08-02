@@ -14,9 +14,9 @@ C PURPOSE. See the GNU General Public License for more
 C details.
 
 C ****************************   READST    ****************************
-C READST read ASCII structured mesh data file.
-C *********************************************************************
+C Read ASCII structured mesh data file.
       SUBROUTINE READST(IComp,ITRC,IER)
+
 #include "building.h"
 
       COMMON/FILEP/IFIL
@@ -27,20 +27,55 @@ C *********************************************************************
       integer ncomp,ncon
       COMMON/C1/NCOMP,NCON
 
+C INDLCL - indices for each surface in zone.
+C RefWidth - reference mesh width.
+C NRow,NCol,NLay - numbers of rows, columns and layers in the grid. These
+C will be odd numbers. The data on mesh widths linesto expects (NRow-1)/2
+C entitie on the mesh widths lines. LRow() - how many RefWidth's along the row,
+C LCol() and LLay() - how many RefWidth's along the (NCol-1)/2 columns 
+C and along the (NLay-1)/2 layers.
+C Example of an un-structured mesh file:
+C # The indices for each construction (1: defined)
+C  1  1  1  1  1  1  0  0
+C   0.0010               # reference mesh width
+C    17    27    27      # number of rows, columns, layers
+C # Row mesh widths
+C   100   250   450   800   800   450   250   100
+  
       COMMON/GRSD31/INDLCL(MS)
       COMMON/GRSD41/RefWidth,NRow,NCol,NLay
       COMMON/GRSD42/LRow(MROW),LCol(MCOL),LLay(MLAY)
+
+C NMtr - number of material geometries, and for each the IMtrS() zone surface
+C it is associated with and the IMtrE() layer of the MLC it is associated with.
+C IMRowS() the starting row, IMColS() the starting column, IMLayS() the starting
+C layer. And then IMRowE() IMColE() IMLayE() the end row/column/layer. E example:
+C     3                  # Number of material geometries
+C # Material geometries details
+C     7     1     3     3     3    15    25    25
       COMMON/GRSD51/NMtr,IMtrS(MMTR),IMtrE(MMTR)
       COMMON/GRSD52/IMRowS(MMTR),IMRowE(MMTR)
       COMMON/GRSD53/IMColS(MMTR),IMColE(MMTR)
       COMMON/GRSD54/IMLayS(MMTR),IMLayE(MMTR)
+
+C NBnd - number of boundary surface boxes/geometries.
+C IBndZ() - index of associated thermal zone, IBndS() index of the
+C associated zone surface (if negative then ambient conditions, if
+C positive zone side). IBRowS() IBColS() IBLayS() are the starting
+C row/column/layer and IBRowE() IBColE() IBLayE() are the end
+C row/column/layer. Example:
+C     4                  # Number of boundary surface boxes
+C # Boundary surface boxes details
+C     1    -7     3     3     3    15    25     3
+
       COMMON/GRSD61/NBnd,IBndZ(MBND),IBndS(MBND)
       COMMON/GRSD62/IBRowS(MBND),IBRowE(MBND)
       COMMON/GRSD63/IBColS(MBND),IBColE(MBND)
       COMMON/GRSD64/IBLayS(MBND),IBLayE(MBND)
       COMMON/GRSD101/LGrdSt
 
-      CHARACTER LGrdSt*72,OUTSTR*124
+      CHARACTER LGrdSt*72 ! ASCII structured mesh data file
+      CHARACTER OUTSTR*124
       LOGICAL IsEven
 
       IER=0
@@ -51,7 +86,7 @@ C Open existing ASCII structured mesh data file as unit IIN.
       CALL EFOPSEQ(IIN,LGrdSt,1,IER)
       IF(IER.LT.0)RETURN
 
-C The indices for each construction within the zone (1: defined, 0: not)
+C The indices for each surface within the zone (1: defined, 0: not)
       NC=NCONST(IComp)
       CALL STRIPC(IIN,OUTSTR,NC,ND,1,'construction index',IER)
       IF(IER.NE.0)GOTO 777
@@ -98,8 +133,9 @@ C The number of rows, columns, layers.
       ENDIF
       NumL=(NLay-1)/2
 
-C Row mesh widths.
-      
+C Row mesh widths.Take the NumR=(NRow-1)/2 and assuming that there
+C are a maximum of 10 entries on the line convert to the number
+C of lines to be scanned.
       Numb=INT((NumR-1)/10)+1
       J2=0
       DO 20 I=1,Numb
@@ -119,8 +155,7 @@ C Row mesh widths.
         IF(IER.NE.0)GOTO 777
    20 CONTINUE
 
-C Column mesh widths.
-      
+C Column mesh widths. Compute Numb of lines to scan.
       Numb=INT((NumC-1)/10)+1
       J2=0
       DO 30 I=1,Numb
@@ -140,8 +175,7 @@ C Column mesh widths.
         IF(IER.NE.0)GOTO 777
    30 CONTINUE
 
-C Layer mesh widths.
-      
+C Layer mesh widths. Compute number of lines to read and then get LLay()
       Numb=INT((NumL-1)/10)+1
       J2=0
       DO 40 I=1,Numb
@@ -175,8 +209,12 @@ C Material geometries details.
         K=0
         CALL EGETWI(OUTSTR,K,IMtrS(I),0,NC,'F','Surface',IER)
         IF(IER.NE.0)GOTO 777
-        NL=NELTS(IComp,IMtrS(I))
-        CALL EGETWI(OUTSTR,K,IMtrE(I),0,NL,'F','Element',IER)
+        if(IMtrS(I).gt.0)then
+          NL=NELTS(IComp,IMtrS(I))
+          CALL EGETWI(OUTSTR,K,IMtrE(I),0,NL,'F','Element',IER)
+        else
+          CALL EGETWI(OUTSTR,K,IMtrE(I),0,0,'-','Element',IER)
+        endif 
         IF(IER.NE.0)GOTO 777
         CALL EGETWI(OUTSTR,K,IMRowS(I),1,MAXR-1,'F','1st row',IER)
         IF(IER.NE.0)GOTO 777
@@ -219,14 +257,14 @@ C Material geometries details.
         ENDIF
    50 CONTINUE
 
-C Number of boundary surface boxes.
+C Number of boundary surface boxes/geometries.
       CALL STRIPC(IIN,OUTSTR,1,ND,1,'No. of boundary boxes',IER)
       IF(IER.NE.0)GOTO 777
       K=0
       CALL EGETWI(OUTSTR,K,NBnd,1,MBND,'F','No. of boundary',IER)
       IF(IER.NE.0)GOTO 777
 
-C boundary surface boxes details.
+C Boundary surface boxes details.
       DO 60 I=1,NBnd
         CALL STRIPC(IIN,OUTSTR,8,ND,1,'boundary details',IER)
         IF(IER.NE.0)GOTO 777
@@ -286,8 +324,8 @@ C boundary surface boxes details.
       END
 
 C ****************************   SAVEST    ****************************
-C SAVEST 
-C *********************************************************************
+C Write structured grid information to file. 
+
       SUBROUTINE SAVEST(IComp,ITRC,IER)
 #include "building.h"
 #include "help.h"
@@ -332,8 +370,8 @@ C Open existing ASCII construction data file as unit IIN.
 
 C The indices for each construction within the zone (1: defined, 0: not).
       NC=NCONST(IComp)
-      WRITE(IIN,'(a)')'# The indices for each construction (1: defined)'
-      WRITE(IIN,'(20I3)')(INDLCL(IC),IC=1,NC)
+      WRITE(IIN,'(a)')'# Indices for each surface (1: defined 0: not)'
+      WRITE(IIN,'(48I3)')(INDLCL(IC),IC=1,NC)
 
 C The reference mesh width.
       WRITE(IIN,'(F9.4,15X,A)')RefWidth,'# reference mesh width'

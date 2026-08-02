@@ -13,15 +13,10 @@ C warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
 C PURPOSE. See the GNU General Public License for more
 C details.
 
-C e2dxf takes an esp-r problem definition and creates a zip
+C e2zip takes an esp-r problem definition and creates a zip
 C file in file unit ioout (assumed to already be opened).
-C << TOBE DONE:
-C << a) switch to new include files for geometry
-C << b) include obstructions as gen bodies
-C << c) include MRT blocks as gen bodies
-C << d) figure out about marking transparent polygons
-C <<    the key word is VIS=0 translucent, 1 wire-frame, 2 solid, -3 invis
-C << figure out how to use ZON key word
+C Note: nothing calls this subroutine and .zip is not an
+C export option in prj.
 
       subroutine e2zip(itrc,ioout)
 #include "building.h"
@@ -79,18 +74,18 @@ C Depending on version of geometry file scan it in.
 
 C Write surface information to the zip file. (Rotation set to 0 deg).
         WRITE(ioout,'(a,a12)')'GEN ',zname(newfoc)
-        WRITE(ioout,'(2I4,a)')NTV,NSUR,' 0'
-        DO 40 J=1,NTV
+        WRITE(ioout,'(2I4,a)')NZTV(newfoc),NZSUR(newfoc),' 0'
+        DO 40 J=1,NZTV(newfoc)
           WRITE(ioout,'(3F10.5)')X(J),Y(J),Z(J)
    40   continue
 
-        DO 50 J=1,NSUR
+        DO 50 J=1,NZSUR(newfoc)
           WRITE(ioout,'(I4,1X,124I4)')NVER(J),(JVN(J,K),K=1,NVER(J))
           ndum(J)=0
    50   continue
 
-        write(ioout,5611)(ndum(I),I=1,NSUR)
-        write(ioout,5611)(ndum(I),I=1,NSUR)
+        write(ioout,5611)(ndum(I),I=1,NZSUR(newfoc))
+        write(ioout,5611)(ndum(I),I=1,NZSUR(newfoc))
 5611    FORMAT(1X,32(I2))
         write(ioout,'(a)')' 3 0 0 0 '
 
@@ -116,7 +111,7 @@ C << and then what... look in e2rform.F near line 1120
 C << there are 8 vertices and 6 surfaces
             lnz=lnblnk(zname(mz))
             WRITE(ioout,'(4a)') 'GEN OBS:',zname(mz)(1:lnz),':',
-     &        BLOCKNAME(mz,IB)(1:LNBLOCKNAME(mz,IB))
+     &        BLOCKNAME(mz,IB)(1:lnblnk(BLOCKNAME(mz,IB)))
             WRITE(ioout,'(a)')' 8  6  0'
             DO 41 J=1,8
               if (BLOCKTYP(mz,ib).eq.'obs ') then

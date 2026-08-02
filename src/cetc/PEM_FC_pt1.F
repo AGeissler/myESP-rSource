@@ -15,11 +15,6 @@ C warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
 C PURPOSE. See the GNU General Public License for more
 C details.
 
-C You should have received a copy of the GNU General Public
-C License along with ESP-r. If not, write to the Free
-C Software Foundation, Inc., 59 Temple Place, Suite 330,
-C Boston, MA 02111-1307 USA.
-
 C****************** PEM_static_template *******************************
 C
 C     CMP95S establishes for a plant component with plant db code 950 ie.
@@ -27,6 +22,7 @@ C     1 node (ISV>19) CHP PEM fuel cell model whether the correct number
 C     of control variables have been specified, whethe the number of W
 C     connections is correct and whether the connections are to the
 C     correct fluid type.
+
       SUBROUTINE PEM_static_template(IPCOMP)
 #include "plant.h"
 #include "building.h"
@@ -1727,7 +1723,7 @@ C---- PASSED VARIABLES
                                 !              corresponds to a given net power
                                 !  mode = 2 -> characterize fuel cell at a
                                 !              given net power
-      REAL P_gross              ! gross power (kw, output if mode=1, input if
+      REAL P_gross              ! gross power (kW, output if mode=1, input if
                                 !     mode = 2)
       REAL W_Parasitic          ! parasitic losses, excluding cooling system
                                 !     electrical requirement (kW, output)

@@ -543,7 +543,6 @@ C Flow reporting if requested.
 C Read high level attributes of the casual gains used in the zone
 C such as user label, keyword, index that the period lines can use
 C and two integer attributes to be used in post-processing.
-C << update for dynamic people >>
           islot=islot+1   ! increment the casual gain slot
           CALL EGETW(OUTSTR,K,lodlabel(ICOMP,ISLOT),'W',
      &      'user casual gain label',IER) 
@@ -578,9 +577,6 @@ C For ip3ver = 21 read section about casual types.
 C Read high level attributes of the casual gains used in the zone
 C such as user label, keyword, index that the period lines can use
 C and two integer attributes to be used in post-processing.
-
-C << do we need to track how many slots have been filled so we can
-C << later check that the period data points to a known slot?
         islot=0
   42    CALL STRIPC(IUO,OUTSTR,0,ND,1,'*type or *end_type',IER)
         if(outstr(1:5).eq.'*type')then
@@ -590,6 +586,8 @@ C << later check that the period data points to a known slot?
      &      'user casual gain label',IER) 
           CALL EGETW(OUTSTR,K,caskeytype(ICOMP,ISLOT),'W',
      &      'casual gain keyword',IER) 
+          if(caskeytype(ICOMP,ISLOT)(1:13).eq.'dynamicpeople') ! old file version
+     &      caskeytype(ICOMP,ISLOT)='dynamic_people'
           CALL EGETWI(OUTSTR,K,lodslot(icomp,ISLOT),0,99,'W',
      &      'casual gain slot position',IER)
           CALL EGETWI(OUTSTR,K,lodatr1(icomp,ISLOT),0,99,'W',
@@ -683,29 +681,29 @@ C value will be the same as iabs(ICGT).
                 ICGUnit(IDTY,I)=1
               endif
             elseif(ip3ver(icomp).eq.21)then
-              if(ireader.gt.0)then
-                if(caskeytype(icomp,ipslot)(1:14).eq.
-     &             'dynamic_people')then
+             if(ireader.gt.0)then
+              if(caskeytype(icomp,ipslot)(1:14).eq.'dynamic_people'.or.
+     &           caskeytype(icomp,ipslot)(1:13).eq.'dynamicpeople')then
                   ICGUnit(IDTY,I)=3  ! number of people
                   isdynamic=.true.
                   isdynamicocup(icomp)=lodatr1(icomp,ipslot)
-                else
+              else
                   ICGUnit(IDTY,I)=0
                   isdynamic=.false.
-                endif
-              elseif(ireader.lt.0)then
-                if(caskeytype(icomp,ipslot)(1:14).eq.
-     &             'dynamic_people')then
+              endif
+             elseif(ireader.lt.0)then
+              if(caskeytype(icomp,ipslot)(1:14).eq.'dynamic_people'.or.
+     &           caskeytype(icomp,ipslot)(1:13).eq.'dynamicpeople')then
                   ICGUnit(IDTY,I)=3  ! number of people
                   isdynamic=.true.
                   isdynamicocup(icomp)=lodatr1(icomp,ipslot)
-                elseif(caskeytype(icomp,ipslot)(1:6).eq.'people')then
+              elseif(caskeytype(icomp,ipslot)(1:6).eq.'people')then
                   ICGUnit(IDTY,I)=2
                   isdynamic=.false.
-                else
+              else
                   ICGUnit(IDTY,I)=1
-                endif
               endif
+             endif
             else
 C << still to be done for ip3ver >21 >>
             endif
@@ -720,9 +718,9 @@ C     &      ICGUnit(IDTY,I)
 
 C If dynamic_people then read into a different common block
           if(isdynamic)then
-            CALL EGETWI(OUTSTR,K,IREADER,0,24,'W','gain st',IER)
+            CALL EGETWI(OUTSTR,K,IREADER,0,24,'W','gain st hr',IER)
             ICGS(IDTY,I)=IREADER
-            CALL EGETWI(OUTSTR,K,IREADER,0,24,'W','gain fn',IER)
+            CALL EGETWI(OUTSTR,K,IREADER,0,24,'W','gain fn hr',IER)
             ICGF(IDTY,I)=IREADER
             CMGS(IDTY,I)=0.0
             CMGL(IDTY,I)=0.0
@@ -734,7 +732,7 @@ C If dynamic_people then read into a different common block
             tnbchild(IDTY,I)=READER
             CALL EGETWR(OUTSTR,K,READER,0.,0.,'-','metabolic',IER)
             metabolic(IDTY,I)=READER
-            CALL EGETWR(OUTSTR,K,READER,0.,0.,'-','clo',IER)
+            CALL EGETWR(OUTSTR,K,READER,0.,0.,'-','clo value',IER)
             clov(IDTY,I)=READER
             CALL EGETWR(OUTSTR,K,READER,0.,0.,'-','air velocity',IER)
             airvel(IDTY,I)=READER
@@ -743,9 +741,9 @@ C If dynamic_people then read into a different common block
             CALL EGETWR(OUTSTR,K,READER,0.,1.,'W','gain conv fr',IER)
             CONC(IDTY,I)=READER
           else
-            CALL EGETWI(OUTSTR,K,IREADER,0,24,'W','gain st',IER)
+            CALL EGETWI(OUTSTR,K,IREADER,0,24,'W','gain st hr',IER)
             ICGS(IDTY,I)=IREADER
-            CALL EGETWI(OUTSTR,K,IREADER,0,24,'W','gain fn',IER)
+            CALL EGETWI(OUTSTR,K,IREADER,0,24,'W','gain fn hr',IER)
             ICGF(IDTY,I)=IREADER
             CALL EGETWR(OUTSTR,K,READER,0.,0.,'-','gain sens',IER)
             CMGS(IDTY,I)=READER
@@ -842,7 +840,9 @@ C and the two attributes are zero.
      &         'gain label',IER) 
             lodslot(icomp,ISLOT)=ISLOT; lodatr1(icomp,ISLOT)=0
             lodatr2(icomp,ISLOT)=0
-            if(lodlabel(ICOMP,ISLOT)(1:6).eq.'Occupt')then
+            if(lodlabel(ICOMP,ISLOT)(1:8).eq.'Occupant')then
+
+C Older files with dynamic occupants might still be labeled as Occupant.
               caskeytype(icomp,ISLOT)='people       '
             elseif(lodlabel(ICOMP,ISLOT)(1:6).eq.'Lights')then
               caskeytype(icomp,ISLOT)='lighting     '
@@ -850,6 +850,10 @@ C and the two attributes are zero.
               caskeytype(icomp,ISLOT)='equipment'
             elseif(lodlabel(ICOMP,ISLOT)(1:5).eq.'Small')then
               caskeytype(icomp,ISLOT)='equipment'
+            elseif(lodlabel(ICOMP,ISLOT)(1:5).eq.'Other')then
+              caskeytype(icomp,ISLOT)='-'
+            elseif(lodlabel(ICOMP,ISLOT)(1:9).eq.'Metabolic')then
+              caskeytype(icomp,ISLOT)='dynamic_people'
             else
               caskeytype(icomp,ISLOT)='-            '
             endif
@@ -1047,12 +1051,11 @@ C Electrical data flag and elctrical data.
       character dstmp*24
       character louts*248
       character actflatfile*1  ! action requested.
-      logical havehi,ok,dok
+      logical havehi,ok
       logical needtoaddone     ! in case short on calendar day types
       INTEGER IDTY,IR,ndty
       REAL R
 
-      dok=.false.
       needtoaddone=.false.
       helpinsub='eroper'  ! set for subroutine
       helptopic='read_opr_schedules'
@@ -1214,8 +1217,6 @@ C Generate a brief descrition and proceed acording to control type.
 C Air change information. Expect 1 item defining nb period. If six
 C items then there was at least one extra day type. Could try to
 C re-scan with different assumption.
-
-C << logic needed to reconcile the difference in day types >>
  22     DO 400 IDTY=1,ndty
           CALL STRIPC(IUO,OUTSTR,99,ND,1,'flow periods',IER)
           if(ND.ne.1)then
@@ -1234,9 +1235,6 @@ C << logic needed to reconcile the difference in day types >>
 
 C Expect 6 items on each period line. If only one item then we got to
 C the next days data a bit soon. Could try to rescan file.
-C << more logic needed to add an additional day type data prior
-C << to exiting the facility and transferring scratch commons
-C << into the model.
             CALL STRIPC(IUO,OUTSTR,99,ND,1,'Period flow details',IER)
             if(ND.ne.6)then
               write(outs,'(2a,i2)') 'The source operation file may',
@@ -1350,15 +1348,15 @@ C            ipslot=iabs(ir)  ! get equivalent of lodslot
               endif
             elseif(ip3verc.eq.21)then
               if(ir.gt.0)then
-                if(caskeytypec(jicgt)(1:14).eq.
-     &             'dynamic_people')then
+                if(caskeytypec(jicgt)(1:14).eq.'dynamic_people'.or.
+     &             caskeytypec(jicgt)(1:13).eq.'dynamicpeople')then
                   ICGUnit(IDTY,I)=3  ! number of people
                 else
                   ICGUnitC(IDTY,I)=0
                 endif
               elseif(ir.lt.0)then
-                if(caskeytypec(jicgt)(1:14).eq.
-     &             'dynamic_people')then
+                if(caskeytypec(jicgt)(1:14).eq.'dynamic_people'.or.
+     &             caskeytypec(jicgt)(1:13).eq.'dynamicpeople')then
                   ICGUnit(IDTY,I)=3  ! number of people
                 elseif(caskeytypec(jicgt)(1:6).eq.'people')then
                   ICGUnit(IDTY,I)=2
@@ -1382,7 +1380,8 @@ C     &      ICGUnitC(IDTY,I)
           ICGSC(IDTY,I)=IR
           CALL EGETWI(OUTSTR,K,IR,0,24,'W',' gain fn',IER)
           ICGFC(IDTY,I)=IR
-          if(caskeytypec(jicgt)(1:14).eq.'dynamic_people')then
+          if(caskeytypec(jicgt)(1:14).eq.'dynamic_people'.or.
+     &       caskeytypec(jicgt)(1:13).eq.'dynamicpeople')then
             CMGSC(IDTY,I)=0.0
             CMGLC(IDTY,I)=0.0
             CALL EGETWR(OUTSTR,K,R,0.,0.,'-',' tot men',IER)
@@ -1441,9 +1440,11 @@ C Fill defaults prior to scanning the labels.
           K=0
           DO 1234 islot=1,ND  ! for each token found
             CALL EGETW(OUTSTR,K,lodlabelc(islot),'W','gain label',IER) 
-            lodslotc(ISLOT)=ISLOT; lodatr1c(ISLOT)=0
+            lodslotc(ISLOT)=ISLOT; lodatr1c(ISLOT)=0   ! Clear backup variables.
             lodatr2c(ISLOT)=0
-            if(lodlabelc(ISLOT)(1:6).eq.'Occupt')then
+            if(lodlabelc(ISLOT)(1:6).eq.'Occupa')then
+
+C Older files << >>
               caskeytypec(ISLOT)='people       '
             elseif(lodlabelc(ISLOT)(1:6).eq.'Lights')then
               caskeytypec(ISLOT)='lighting     '
@@ -1538,11 +1539,10 @@ C Local variables (to protect info in common blovks)
       CHARACTER outs*124
       CHARACTER*(*) FILE
       character louts*248
-      logical ok,dok
+      logical ok
       integer ndty
       character longtfile*144
 
-      dok=.true.
       helpinsub='eroper'  ! set for subroutine
       helptopic='list_schedules'
       call gethelptext(helpinsub,helptopic,nbhelp)
@@ -1612,6 +1612,8 @@ C Parameters
       common/calena/calename,calentag(MDTY),calendayname(MDTY)
       CHARACTER CALENAME*32,CALENTAG*12,CALENDAYNAME*32
 C      COMMON/OUTIN/IUOUT,IUIN,IEOUT
+      common/dynamico/isdynamicocup(MCOM)
+      integer isdynamicocup
 
 C Electrical data flag and elctrical data.
       common/elecflg/ielf(mcom)
@@ -1759,8 +1761,8 @@ C For all versions, write each calendar day ventilation instructions.
           do I = 1,NAC(IDTY)
             acim = (VOL(ICOMP)*ACI(IDTY,I))/3600.0
             acvm = (VOL(ICOMP)*ACV(IDTY,I))/3600.0
-            write(tokens,'(i4,a,i3,a,2F9.3,i5,f9.2)') IACS(IDTY,I),',',
-     &       IACF(IDTY,I),',',ACI(IDTY,I),ACV(IDTY,I),IPT(IDTY,I),
+            write(tokens,'(i4,i4,2F9.3,i5,f9.2)') IACS(IDTY,I),
+     &       IACF(IDTY,I),ACI(IDTY,I),ACV(IDTY,I),IPT(IDTY,I),
      &       TA(IDTY,I)
             if(IPT(idty,i).eq.0)then
               call eclose(ACV(IDTY,I),0.0,0.01,close_a)
@@ -1770,9 +1772,9 @@ C For all versions, write each calendar day ventilation instructions.
      &          'start, stop, infil ach (',acim,'m^3/s)'
               else
                 write(comment,'(a,f7.4,a,f7.4,a)') 
-     &          'start, stop, infil ach (',acim,
-     &          'm^3/s), vent ach (',acvm,
-     &          'm^3/s), source, @C'
+     &          'start stop infil ach (',acim,
+     &          'm^3/s) vent ach (',acvm,
+     &          'm^3/s) source, @C'
               endif
             else
               write(comment,'(a,f7.4,a,f7.4,2a)') 
@@ -1810,17 +1812,39 @@ C Write tag *casual and then documentation for casual gains.
 
 C For ip3ver >= 21 write casual gain attributes. Loop
 C through all the possible casual gain slots for this zone
-C and if lodslot is non-zero then write a *type line.
+C and if lodslot is non-zero then write a *type line. If
+C dynamic and still Occupant update to Matabolic and if
+C older dynamicpeople reset to dynamic_people.
         WRITE(IUO,'(A)',IOSTAT=IOS,ERR=1) 
      &    '# casual label     type-key-word   slot index & attributes'
         isdynamic=.false.       ! Assume no dynamic people.
         do ir= 1,MGTY
           if(lodslot(icomp,ir).ne.0)then
-            WRITE(IUO,'(4A,3i4)',IOSTAT=IOS,ERR=1) '*type ',
-     &        lodlabel(icomp,ir),' ',caskeytype(icomp,ir),
-     &        lodslot(icomp,ir),lodatr1(icomp,ir),lodatr2(icomp,ir)
-            if(caskeytype(icomp,ir)(1:14).eq.'dynamic_people')then
-               isdynamic=.true.  ! Signal different comments.
+            if(caskeytype(icomp,ir)(1:14).eq.'dynamic_people'.or.
+     &         caskeytype(icomp,ir)(1:13).eq.'dynamicpeople')then
+              isdynamic=.true.  ! Signal different comments.
+              if(lodlabel(icomp,ir)(1:8).eq.'Occupant')then
+                lodlabel(icomp,ir)='Metabolic '
+                caskeytype(icomp,ir)='dynamic_people'
+              endif
+              if(isdynamicocup(icomp).eq.0)then
+                comment = 'dynamic occupant no method set'
+              elseif(isdynamicocup(icomp).eq.1)then
+                comment = 'dynamic occupant via CIBSE polynomial'
+              elseif(isdynamicocup(icomp).eq.2)then
+                comment = 'dynamic occupant via ASHRAE polynomial'
+              elseif(isdynamicocup(icomp).eq.3)then
+                comment = 'dynamic occupant via core & skin model'
+              endif
+              WRITE(tokens,'(4A,3i4)',IOSTAT=IOS,ERR=1) '*type ',
+     &          lodlabel(icomp,ir),' ',caskeytype(icomp,ir),
+     &          lodslot(icomp,ir),lodatr1(icomp,ir),lodatr2(icomp,ir)
+              call align_comment(48,tokens,comment,aligned_str)
+              write(IUO,'(a)') aligned_str(1:lnblnk(aligned_str))
+            else
+              WRITE(IUO,'(4A,3i4)',IOSTAT=IOS,ERR=1) '*type ',
+     &          lodlabel(icomp,ir),' ',caskeytype(icomp,ir),
+     &          lodslot(icomp,ir),lodatr1(icomp,ir),lodatr2(icomp,ir)
             endif
           endif         
         enddo
@@ -1835,8 +1859,8 @@ C and if lodslot is non-zero then write a *type line.
           IF(IELF(ICOMP).EQ.1) THEN  ! Electrical included.
             if(ip3ver(icomp).lt.21)then
               WRITE(IUO,'(a,a)',IOSTAT=IOS,ERR=1)
-     &        '# slot, period, sensible, latent, rad_frac, ',
-     &        'conv_frac, pf, +/-, power, volt, phase'  
+     &        '# slot period sensible latent rad_frac ',
+     &        'conv_frac pf, +/- power volt phase'  
               DO I = 1,NCAS(IDTY)
                 WRITE(IUO,5470,IOSTAT=IOS,ERR=1)ICGT(IDTY,I),
      &          ICGS(IDTY,I),ICGF(IDTY,I),CMGS(IDTY,I),CMGL(IDTY,I),
@@ -1845,8 +1869,8 @@ C and if lodslot is non-zero then write a *type line.
               ENDDO
             else  ! Newer file format assume no dynamic_people if electrical.
               WRITE(IUO,'(a,a)',IOSTAT=IOS,ERR=1)
-     &        '# slot, period, sensible, latent, rad_frac, ',
-     &        'conv_frac, pf, +/-, power, volt, phase'  
+     &        '# slot period sensible latent rad_frac ',
+     &        'conv_frac pf +/- power volt phase'  
               DO I = 1,NCAS(IDTY)
                 WRITE(IUO,5470,IOSTAT=IOS,ERR=1)ICGT(IDTY,I),
      &          ICGS(IDTY,I),ICGF(IDTY,I),CMGS(IDTY,I),CMGL(IDTY,I),
@@ -1857,7 +1881,7 @@ C and if lodslot is non-zero then write a *type line.
           ELSE   ! Electrical data not included in file.
             if(ip3ver(icomp).lt.21)then
               WRITE(IUO,'(A)',IOSTAT=IOS,ERR=1)
-     &         '# slot, period, sensible, latent, rad_frac, conv_frac'
+     &         '# slot period  sensible latent rad_frac conv_frac'
               DO I = 1,NCAS(IDTY)
                WRITE(IUO,'(3(I4,a),2(F9.1,a),F7.2,a,F7.2)',
      &           IOSTAT=IOS,ERR=1) ICGT(IDTY,I),',',ICGS(IDTY,I),',',
@@ -1867,30 +1891,30 @@ C and if lodslot is non-zero then write a *type line.
             else
               if(isdynamic)then
                 WRITE(IUO,'(2A)',IOSTAT=IOS,ERR=1)
-     &            '# slot, period, nb men, nb women, nb child,',
-     &            ' metabolic clo, air vel, rad_frac, conv_frac'
+     &            '# slot period nb_men nb_women nb_child',
+     &            ' metabolic clo_val air_vel rad_frac conv_frac'
+                WRITE(IUO,'(A)',IOSTAT=IOS,ERR=1)
+     &          '#              sensible latent rad_frac conv_frac'
               else
                 WRITE(IUO,'(A)',IOSTAT=IOS,ERR=1)
-     &          '# slot, period, sensible, latent, rad_frac, conv_frac'
+     &          '# slot period  sensible  latent rad_frac conv_frac'
               endif
 
 C Key logic is to check caskeytype for each period for dynamic_people.
               DO I = 1,NCAS(IDTY)
                 jicgt=iabs(ICGT(IDTY,I))
-                if(caskeytype(icomp,jicgt)(1:14).eq.
-     &             'dynamic_people')then
-                  WRITE(IUO,'(3(I4,a),6(F6.2,a),F7.2,a,F7.2)',
-     &              IOSTAT=IOS,ERR=1) ICGT(IDTY,I),',',
-     &              ICGS(IDTY,I),',',ICGF(IDTY,I),
-     &              ',',tnbmen(IDTY,I),',',tnbwomen(IDTY,I),',',
-     &              tnbchild(IDTY,I),',',metabolic(IDTY,I),',',
-     &              clov(IDTY,I),',',airvel(IDTY,I),',',RADC(IDTY,I),
-     &              ',',CONC(IDTY,I)
+                if(caskeytype(icomp,jicgt)(1:14).eq.'dynamic_people'.or.
+     &             caskeytype(icomp,jicgt)(1:13).eq.'dynamicpeople')then
+                  WRITE(IUO,'(3I4,6F8.1,F7.2,F9.2)',
+     &              IOSTAT=IOS,ERR=1) ICGT(IDTY,I),ICGS(IDTY,I),
+     &              ICGF(IDTY,I),tnbmen(IDTY,I),tnbwomen(IDTY,I),
+     &              tnbchild(IDTY,I),metabolic(IDTY,I),clov(IDTY,I),
+     &              airvel(IDTY,I),RADC(IDTY,I),CONC(IDTY,I)
                 else
-                  WRITE(IUO,'(3(I4,a),2(F9.1,a),F7.2,a,F7.2)',
-     &              IOSTAT=IOS,ERR=1) ICGT(IDTY,I),',',
-     &              ICGS(IDTY,I),',',ICGF(IDTY,I),',',CMGS(IDTY,I),
-     &              ',',CMGL(IDTY,I),',',RADC(IDTY,I),',',CONC(IDTY,I)
+                  WRITE(IUO,'(3I4,2F10.1,2F7.2)',
+     &              IOSTAT=IOS,ERR=1) ICGT(IDTY,I),
+     &              ICGS(IDTY,I),ICGF(IDTY,I),CMGS(IDTY,I),
+     &              CMGL(IDTY,I),RADC(IDTY,I),CONC(IDTY,I)
                 endif           
               ENDDO  ! of I
             endif
@@ -2174,14 +2198,14 @@ C Generate string for the lower, middle and high controls.
 C ITCTL(ICOMP) values -11 to -14 relate to infiltration only controls.
         if(IY.eq.-14.or.IY.eq.-13.or.IY.eq.-12.or.IY.eq.-11)then
           if(act.eq.'L')then
-            WRITE(vcomment,'(a,f7.2,a,F7.4,a)')
-     &        'lower  setpoint',TLO(ICOMP),' infil (',acilm,'m^3/s)'
+            WRITE(vcomment,'(a,f6.1,a,F7.4,a)')
+     &        'lower  setpt',TLO(ICOMP),' infil (',acilm,'m^3/s)'
           elseif(act.eq.'M')then
-            WRITE(vcomment,'(a,f7.2,a,f7.4,a)')
-     &        'middle setpoint',TUP(ICOMP),' infil (',acium,'m^3/s)'
+            WRITE(vcomment,'(a,f6.1,a,f7.4,a)')
+     &        'middle setpt',TUP(ICOMP),' infil (',acium,'m^3/s)'
           elseif(act.eq.'H')then
-            WRITE(vcomment,'(a,f7.2,a,f7.4,a)')
-     &        'high  setpoint',THI(ICOMP),' infil (',acihm,'m^3/s)'
+            WRITE(vcomment,'(a,f6.1,a,f7.4,a)')
+     &        'high  setpt',THI(ICOMP),' infil (',acihm,'m^3/s)'
           elseif(act.eq.'S')then
             write(vcomment,'(3a)') 'control index (',
      &        vctlstr(1:lnblnk(vctlstr)),
@@ -2192,34 +2216,34 @@ C ITCTL(ICOMP) values -1 to -4 relate to ventilation only controls.
         elseif(IY.eq.-4.or.IY.eq.-3.or.IY.eq.-2.or.IY.eq.-1)then
           if(act.eq.'L')then
             if(IVL(ICOMP).eq.0)then
-              WRITE(vcomment,'(A,F7.2,a,F7.4,a,I3,a,F7.2)')
-     &        'lower setpoint',TLO(ICOMP),' ventil (',
+              WRITE(vcomment,'(A,F6.1,a,F7.4,a,I3,a,F6.1)')
+     &        'lower setpt',TLO(ICOMP),' ventil (',
      &        acvlm,'m^3/s) ',IVL(ICOMP),' @',TAL(ICOMP)
             else
-              WRITE(vcomment,'(A,F7.2,a,F7.4,3a,F7.2)')
-     &        'lower setpoint',TLO(ICOMP),' ventil (',
+              WRITE(vcomment,'(A,F6.1,a,F7.4,3a,F6.1)')
+     &        'lower setpt',TLO(ICOMP),' ventil (',
      &        acvlm,'m^3/s) from ',zname(IVL(ICOMP))(1:10),
      &        ' @',TAL(ICOMP)
             endif
           elseif(act.eq.'M')then
             if(IVU(ICOMP).eq.0)then
-              WRITE(vcomment,'(A,F7.2,a,F7.4,a,I3,a,F7.2)')
-     &        'middle setpoint',TUP(ICOMP),' ventil (',
+              WRITE(vcomment,'(A,F6.1,a,F7.4,a,I3,a,F6.1)')
+     &        'middle setpt',TUP(ICOMP),' ventil (',
      &        acvum,'m^3/s) ',IVU(ICOMP),' @',TAU(ICOMP)
             else
-              WRITE(vcomment,'(A,F7.2,a,F7.4,3a,F7.2)')
-     &        'middle setpoint',TUP(ICOMP),' ventil (',
+              WRITE(vcomment,'(A,F6.1,a,F7.4,3a,F6.1)')
+     &        'middle setpt',TUP(ICOMP),' ventil (',
      &        acvum,'m^3/s) from ',zname(IVU(ICOMP))(1:10),
      &        ' @',TAU(ICOMP)
             endif
           elseif(act.eq.'H')then
             if(IVH(ICOMP).eq.0)then
-              WRITE(vcomment,'(A,F7.2,a,F7.4,a,I3,a,F7.2)')
-     &        'high setpoint',THI(ICOMP),' ventil (',
+              WRITE(vcomment,'(A,F6.1,a,F7.4,a,I3,a,F6.1)')
+     &        'high setpt',THI(ICOMP),' ventil (',
      &        acvhm,'m^3/s) ',IVH(ICOMP),' @',TAH(ICOMP)
             else
-              WRITE(vcomment,'(A,F7.2,a,F7.4,3a,F7.2)')
-     &        'high setpoint',THI(ICOMP),' ventil (',
+              WRITE(vcomment,'(A,F6.1,a,F7.4,3a,F6.1)')
+     &        'high setpt',THI(ICOMP),' ventil (',
      &        acvhm,'m^3/s) from ',zname(IVH(ICOMP))(1:10),
      &        ' @',TAH(ICOMP)
             endif
@@ -2233,38 +2257,38 @@ C ITCTL(ICOMP) values 1 to 4 relate to infiltration and ventilation controls.
         elseif(IY.eq.4.or.IY.eq.3.or.IY.eq.2.or.IY.eq.1)then
           if(act.eq.'L')then
             if(IVL(ICOMP).eq.0)then
-              WRITE(vcomment,'(a,f7.2,a,F8.4,a,F8.4,a,I3,a,F7.2)')
-     &        'lower setpoint',TLO(ICOMP),' infil (',acilm,
-     &        'm^3/s) vent (',acvlm,'m^3/s) ',IVL(ICOMP),' @',
+              WRITE(vcomment,'(a,f6.1,a,F7.3,a,F8.4,a,I3,a,F6.1)')
+     &        'lower SP',TLO(ICOMP),' inf (',acilm,
+     &        'm^3/s) vnt (',acvlm,'m^3/s) ',IVL(ICOMP),' @',
      &        TAL(ICOMP)
             else
-              WRITE(vcomment,'(a,f7.2,a,F8.4,a,F8.4,3a,F7.2)')
-     &        'lower setpoint',TLO(ICOMP),' infil (',acilm,
-     &        'm^3/s) vent (',acvlm,'m^3/s) from ',
+              WRITE(vcomment,'(a,f6.1,a,F7.3,a,F8.4,3a,F6.1)')
+     &        'lower SP',TLO(ICOMP),' inf (',acilm,
+     &        'm^3/s) vnt (',acvlm,'m^3/s) <- ',
      &        zname(IVL(ICOMP))(1:10),' @',TAL(ICOMP)
             endif
           elseif(act.eq.'M')then
             if(IVU(ICOMP).eq.0)then
-              WRITE(vcomment,'(a,f7.2,a,F8.4,a,F8.4,a,I3,a,F7.2)')
-     &        'middle setpoint',TUP(ICOMP),' infil (',acium,
-     &        'm^3/s) vent (',acvum,'m^3/s) ',IVU(ICOMP),' @',
+              WRITE(vcomment,'(a,f6.1,a,F7.3,a,F8.4,a,I3,a,F6.1)')
+     &        'middle SP',TUP(ICOMP),' inf (',acium,
+     &        'm^3/s) vnt (',acvum,'m^3/s) ',IVU(ICOMP),' @',
      &        TAU(ICOMP)
             else
-              WRITE(vcomment,'(a,f7.2,a,F8.4,a,F8.4,3a,F7.2)')
-     &        'middle setpoint',TUP(ICOMP),' infil (',acium,
-     &        'm^3/s) vent (',acvum,'m^3/s) from ',
+              WRITE(vcomment,'(a,f6.1,a,F7.3,a,F8.4,3a,F6.1)')
+     &        'middle SP',TUP(ICOMP),' inf (',acium,
+     &        'm^3/s) vnt (',acvum,'m^3/s) <- ',
      &        zname(IVU(ICOMP))(1:10),' @',TAU(ICOMP)
             endif
           elseif(act.eq.'H')then
             if(IVH(ICOMP).eq.0)then
-              WRITE(vcomment,'(a,f7.2,a,F8.4,a,F8.4,a,I3,a,F7.2)')
-     &        'high setpoint',THI(ICOMP),' infil (',acihm,
-     &        'm^3/s) vent (',acvhm,'m^3/s) ',IVH(ICOMP),' @',
+              WRITE(vcomment,'(a,f6.1,a,F7.3,a,F8.4,a,I3,a,F6.1)')
+     &        'high SP',THI(ICOMP),' inf (',acihm,
+     &        'm^3/s) vnt (',acvhm,'m^3/s) ',IVH(ICOMP),' @',
      &        TAH(ICOMP)
             else
-              WRITE(vcomment,'(a,f7.2,a,F8.4,a,F8.4,3a,F7.2)')
-     &        'high setpoint',THI(ICOMP),' infil (',acihm,
-     &        'm^3/s) vent (',acvhm,'m^3/s) from ',
+              WRITE(vcomment,'(a,f6.1,a,F7.3,a,F8.4,3a,F6.1)')
+     &        'high SP',THI(ICOMP),' inf (',acihm,
+     &        'm^3/s) vnt (',acvhm,'m^3/s) <- ',
      &         zname(IVH(ICOMP))(1:10),' @',TAH(ICOMP)
             endif
           elseif(act.eq.'S')then
@@ -2348,6 +2372,8 @@ C Electrical data flag and elctrical data.
      &BVOLT(MDTY,MC),IPHAS(MDTY,MC)
       INTEGER NEL,IPF,IPHAS,jicgt
       REAL PF,PWR,BVOLT
+      common/dynamico/isdynamicocup(MCOM)
+      integer isdynamicocup
 
       CHARACTER outs*124
       CHARACTER llbl*24,llbl2*25
@@ -2382,12 +2408,31 @@ C        call edisp248(itru,oprdesc(icomp),100)
      &    '  --------   ---------   ---------'
           call edisp(itru,outs)
         else
-          write(outs,'(2a)')'Daytype   Gain Label     Type    Unit',
-     &    ' Period Sensible  Latent     Radiant    Convec'
-          call edisp(itru,outs)
-          write(outs,'(2a)')'          No.                        ',
-     &    '  Hours Magn.(W)  Magn.(W)   Fraction   Fraction'
-          call edisp(itru,outs)
+          if(isdynamicocup(icomp).ne.0)then  ! Also include dynamic titles
+            write(outs,'(2a)')               ! and below that std casuals.
+     &      'Daytype   Gain Label     Type    Unit Period     Number',
+     &      ' of      Metabo-  Clo   Air   Radiant    Convec'
+            call edisp(itru,outs)
+            write(outs,'(2a)')
+     &      '          No.                         Hours  Men   Women',
+     &      ' Child  lic Rate Value Velo.  Fraction   Fraction'
+            call edisp(itru,outs)
+            write(outs,'(2a)')
+     &      '                                           Sensible  ',
+     &      'Latent     Radiant    Convec'
+            call edisp(itru,outs)
+            write(outs,'(2a)')
+     &      '          No.                              Magn.(W)  ',
+     &      'Magn.(W)   Fraction   Fraction'
+            call edisp(itru,outs)
+          else
+            write(outs,'(2a)')'Daytype   Gain Label     Type    Unit',
+     &      ' Period Sensible  Latent      Radiant    Convec'
+            call edisp(itru,outs)
+            write(outs,'(2a)')'          No.                        ',
+     &      '  Hours Magn.(W)  Magn.(W)    Fraction   Fraction'
+            call edisp(itru,outs)
+          endif
         endif
       endif
       DO 600 IDTY=1,NBDAYTYPE
@@ -2397,13 +2442,14 @@ C        call edisp248(itru,oprdesc(icomp),100)
           IF(IELF(ICOMP).EQ.1) THEN
             DO 1269 I=1,NCAS(IDTY)
               jicgt=iabs(ICGT(IDTY,I))
-              if(caskeytype(icomp,jicgt)(1:14).eq.'dynamic_people')then
+              if(caskeytype(icomp,jicgt)(1:14).eq.'dynamic_people'.or.
+     &           caskeytype(icomp,jicgt)(1:13).eq.'dynamicpeople' )then
                 if(markdown)then
                   write(llbl2,'(4a)')lodlabel(ICOMP,jicgt)(1:10),
      &            ' ',caskeytype(icomp,jicgt)(1:10),' ocu'
                 else
                   write(llbl,'(4a)')lodlabel(ICOMP,jicgt)(1:10),
-     &            ' ',caskeytype(icomp,jicgt)(1:10),'ocu'
+     &            ' ',caskeytype(icomp,jicgt)(1:9),' ocu'
                 endif
               else
                 if(ICGT(IDTY,I).gt.0)then
@@ -2432,7 +2478,8 @@ C        call edisp248(itru,oprdesc(icomp),100)
                   endif
                 endif
               endif
-              if(caskeytype(icomp,jicgt)(1:14).eq.'dynamic_people')then
+              if(caskeytype(icomp,jicgt)(1:14).eq.'dynamic_people'.or.
+     &           caskeytype(icomp,jicgt)(1:13).eq.'dynamicpeople')then
                 if(markdown)then
                   WRITE(outs,'(a,I3,1x,A,I3,a,I2,6F6.2,F8.2,F8.2,1x,
      &              F7.2,I3,F7.1,F7.1,I3)')
@@ -2479,13 +2526,14 @@ C No electrical data.
      &            idty,' gain ',I,' in zone ',ICOMP
                 goto 1270
               endif
-              if(caskeytype(icomp,jicgt)(1:14).eq.'dynamic_people')then
+              if(caskeytype(icomp,jicgt)(1:14).eq.'dynamic_people'.or.
+     &           caskeytype(icomp,jicgt)(1:13).eq.'dynamicpeople')then
                 if(markdown)then
                   write(llbl2,'(4a)')lodlabel(ICOMP,jicgt)(1:10),
      &            ' ',caskeytype(icomp,jicgt)(1:10),' ocu'
                 else
                   write(llbl,'(4a)')lodlabel(ICOMP,jicgt)(1:10),
-     &            ' ',caskeytype(icomp,jicgt)(1:10),'ocu'
+     &            ' ',caskeytype(icomp,jicgt)(1:9),' ocu'
                 endif
               else
                 if(ICGT(IDTY,I).gt.0)then
@@ -2514,7 +2562,8 @@ C No electrical data.
                   endif
                 endif
               endif
-              if(caskeytype(icomp,jicgt)(1:14).eq.'dynamic_people')then
+              if(caskeytype(icomp,jicgt)(1:14).eq.'dynamic_people'.or.
+     &           caskeytype(icomp,jicgt)(1:13).eq.'dynamicpeople')then
                 if(markdown)then
                   WRITE(outs,'(a,I4,2x,A,I4,a,I2,6F6.2,F11.2,F11.2)')
      &              calentag(idty)(1:10),I,llbl2,
@@ -3493,7 +3542,7 @@ C values as typical.
               TA(NBDAYTYPE,I)=TA(iudayt,I)
             ENDDO
           endif
-          if(iudayt.le.0)then          ! set placeholder casual gains
+          if(iudayt.le.0)then          ! set placeholder std casual gains
             NCAS(NBDAYTYPE)=3
             DO I=NCAS(NBDAYTYPE-1),MC
               ICGT(NBDAYTYPE,I)=0
@@ -3511,22 +3560,44 @@ C values as typical.
               IPHAS(NBDAYTYPE,I)=0
             ENDDO
           else
+
+C Check the type and copy relevant data types for dynamic occupants or
+C standard casual gain types.
             NCAS(NBDAYTYPE)=NCAS(iudayt) ! copy pattern from iudayt
-            DO I=1,NCAS(iudayt)
-              ICGT(NBDAYTYPE,I)=ICGT(iudayt,I)
-              ICGS(NBDAYTYPE,I)=ICGS(iudayt,I)
-              ICGF(NBDAYTYPE,I)=ICGF(iudayt,I)
-              ICGUnit(NBDAYTYPE,I)=ICGUnit(iudayt,I)
-              CMGS(NBDAYTYPE,I)=CMGS(iudayt,I)
-              CMGL(NBDAYTYPE,I)=CMGL(iudayt,I)
-              RADC(NBDAYTYPE,I)=RADC(iudayt,I)
-              CONC(NBDAYTYPE,I)=CONC(iudayt,I)
-              PF(NBDAYTYPE,I)=PF(iudayt,I)
-              IPF(NBDAYTYPE,I)=IPF(iudayt,I)
-              PWR(NBDAYTYPE,I)=PWR(iudayt,I)
-              BVOLT(NBDAYTYPE,I)=BVOLT(iudayt,I)
-              IPHAS(NBDAYTYPE,I)=IPHAS(iudayt,I)
-            ENDDO
+            do i=1,NCAS(iudayt)
+              islot=iabs(ICGT(iudayt,I))  ! Which slot does this period reference.
+              if(caskeytype(ICOMP,islot)(1:14).eq.'dynamic_people'.or.
+     &           caskeytype(ICOMP,islot)(1:13).eq.'dynamicpeople')then
+                ICGT(NBDAYTYPE,I)=ICGT(iudayt,I)
+                ICGS(NBDAYTYPE,I)=ICGS(iudayt,I)
+                ICGF(NBDAYTYPE,I)=ICGF(iudayt,I)
+                ICGUnit(NBDAYTYPE,I)=ICGUnit(iudayt,I)
+                CMGS(NBDAYTYPE,I)=CMGS(iudayt,I)
+                CMGL(NBDAYTYPE,I)=CMGL(iudayt,I)
+                tnbmen(NBDAYTYPE,I)=tnbmen(iudayt,I)
+                tnbwomen(NBDAYTYPE,I)=tnbwomen(iudayt,I)
+                tnbchild(NBDAYTYPE,I)=tnbchild(iudayt,I)
+                metabolic(NBDAYTYPE,I)=metabolic(iudayt,I)
+                clov(NBDAYTYPE,I)=clov(iudayt,I)
+                airvel(NBDAYTYPE,I)=airvel(iudayt,I)
+                RADC(NBDAYTYPE,I)=RADC(iudayt,I)
+                CONC(NBDAYTYPE,I)=CONC(iudayt,I)
+              else
+                ICGT(NBDAYTYPE,I)=ICGT(iudayt,I)
+                ICGS(NBDAYTYPE,I)=ICGS(iudayt,I)
+                ICGF(NBDAYTYPE,I)=ICGF(iudayt,I)
+                ICGUnit(NBDAYTYPE,I)=ICGUnit(iudayt,I)
+                CMGS(NBDAYTYPE,I)=CMGS(iudayt,I)
+                CMGL(NBDAYTYPE,I)=CMGL(iudayt,I)
+                RADC(NBDAYTYPE,I)=RADC(iudayt,I)
+                CONC(NBDAYTYPE,I)=CONC(iudayt,I)
+                PF(NBDAYTYPE,I)=PF(iudayt,I)
+                IPF(NBDAYTYPE,I)=IPF(iudayt,I)
+                PWR(NBDAYTYPE,I)=PWR(iudayt,I)
+                BVOLT(NBDAYTYPE,I)=BVOLT(iudayt,I)
+                IPHAS(NBDAYTYPE,I)=IPHAS(iudayt,I)
+              endif
+            enddo
           endif
 
 C For placeholder variant, make initial three gain periods (0-24) for occupancy,

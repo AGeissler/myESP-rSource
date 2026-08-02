@@ -106,22 +106,23 @@ C **************************************************************
 C Read the complete building thermal and geometical data.
       IUNIT=IFIL+1
       SAVEOK=.FALSE.
-      DO 5 ICOMP=1,NCOMP
+      DO ICOMP=1,NCOMP
         call georead(IUNIT,LGEOM(ICOMP),ICOMP,1,IUOUT,IER)
         IF(IER.NE.0)RETURN
         CALL ECONST(LTHRM(ICOMP),IUNIT,ICOMP,0,IUOUT,IER)
         IF(IER.NE.0)RETURN
         NCONST(ICOMP)=NSUR
-      DO 5 I=1,NSUR
-        NELTS(ICOMP,I)=NE(I)
-        NGAPS(ICOMP,I)=NAIRG(I)
-        NG=NAIRG(I)
-        IF(NG.GT.0)THEN
-          DO 6 J=1,NG
-            NPGAP(ICOMP,I,J)=IPAIRG(I,J)
-    6     CONTINUE
-        ENDIF
-    5 CONTINUE
+        DO I=1,NSUR
+          NELTS(ICOMP,I)=NE(I)
+          NGAPS(ICOMP,I)=NAIRG(I)
+          NG=NAIRG(I)
+          IF(NG.GT.0)THEN
+            DO J=1,NG
+              NPGAP(ICOMP,I,J)=IPAIRG(I,J)
+            ENDDO
+          ENDIF
+        ENDDO
+      ENDDO
       IF(INTHPS)CALL THERMR(LNLTHP,IUNIT,ITRC,IER)
       ITHF=1
    10 CALL USRMSG(' ',' Select from the menu!','-')
@@ -190,9 +191,9 @@ C actuator location : complete building
 C actuator location : other than complete building 
         ELSE
   300     INPICK=1
-          DO 20 I=1,NCOMP
+          DO I=1,NCOMP
             WRITE(ITEM3(I),'(A)')zname(I)
-   20     CONTINUE
+          ENDDO
           CALL EPICKS(INPICK,IVAL3,' ',' ', 20,NCOMP,ITEM3,
      &      '   Zones',IER,nbhelp)
           I2=IVAL3(1)
@@ -206,9 +207,9 @@ C actuator location : selected zone
           ELSE
   400       INPICK=1
             NC=NCONST(I2)
-            DO 30 I=1,NC
+            DO I=1,NC
               WRITE(ITEM4(I),'(A)')SNAME(I2,I)
-   30       CONTINUE
+            ENDDO
             CALL EPICKS(INPICK,IVAL4,' ',' ',20,NC,ITEM4,
      &        '   Surfaces',IER,nbhelp)
             I3=IVAL4(1)
@@ -241,13 +242,13 @@ C actuator location : selected layer
               IBTHAL(ITHF,3)=I4
               IF(I4.EQ.0)GOTO 400
 C Check if the selected layer is an air gap 
-              DO 55 IGL=1,NGP
+              DO IGL=1,NGP
                 IF(NPGAP(I2,I3,IGL).EQ.IBTHAL(ITHF,3))THEN
                   CALL USRMSG(
      &          ' The selected actuator location is an air gap .',
      &          ' IF not changed; This function will be NEGLECTED','W') 
                 ENDIF
-   55         CONTINUE
+              ENDDO
             ENDIF
           ENDIF
         ENDIF
@@ -268,23 +269,26 @@ C prevent creating thermal functions more than the maximum allowed (12)
 C Delete the displayed thermal function and update the associated data
       ELSEIF(INO.EQ.8)THEN
         IF(ITHF.LT.NTHF)THEN
-          DO 60 I=ITHF,NTHF-1
+          DO I=ITHF,NTHF-1
             IBTHAL(I,1)=IBTHAL(I+1,1)
             IBTHAL(I,2)=IBTHAL(I+1,2)
             IBTHAL(I,3)=IBTHAL(I+1,3)
             NTHEQ(I)=NTHEQ(I+1)
-          DO 60 J=1,NTHEQ(I)
-          DO 60 K=1,MDATA
-             BTHDT(I,J,K)=BTHDT(I+1,J,K)
-   60     CONTINUE
+            DO J=1,NTHEQ(I)
+              DO K=1,MDATA
+                BTHDT(I,J,K)=BTHDT(I+1,J,K)
+              ENDDO
+            ENDDO
+          ENDDO
         ENDIF
         IBTHAL(NTHF,1)=0
         IBTHAL(NTHF,2)=0
         IBTHAL(NTHF,3)=0
-        DO 70 J=1,NTHEQ(NTHF)
-        DO 70 K=1,MDATA
-          BTHDT(NTHF,J,K)=0
-   70   CONTINUE
+        DO J=1,NTHEQ(NTHF)
+          DO K=1,MDATA
+            BTHDT(NTHF,J,K)=0
+          ENDDO
+        ENDDO
         NTHEQ(NTHF)=0
         NTHF=NTHF-1
         ITHF=ITHF-1
@@ -475,15 +479,15 @@ C Add a new equation manually
         NCFF = iCountWords(EQNTXT)
         IF(NCFF.NE.9)THEN
           CALL USRMSG(' ',' Please enter 9 values!','W')
-          DO 110 I12=1,12
+          DO I12=1,12
             BTHDT(ITHF,N,I12)=0.0
-  110     CONTINUE
+          ENDDO
           GOTO 10
         ENDIF
         K=0
-        DO 120 I9=4,12
+        DO I9=4,12
           CALL EGETWR(EQNTXT,K,BTHDT(ITHF,N,I9),0.,0.,'-',' ',IER)
-  120   CONTINUE
+        ENDDO
 
 C Delete existing equation. Menu allows selection of 
 C the thermal equation to be deleted.
@@ -496,15 +500,15 @@ C the thermal equation to be deleted.
 C Update the data after deleting a thermal equation.
         IF(INO1.GT.3.AND.INO1.LT.(M+4))THEN
           IF(INO1.LT.(M+3))THEN
-            DO 30 I2=(INO1-3),(M-1)
-              DO 40 I3=1,MDATA
+            DO I2=(INO1-3),(M-1)
+              DO I3=1,MDATA
                 BTHDT(ITHF,I2,I3)=BTHDT(ITHF,I2+1,I3)
-   40         CONTINUE
-   30       CONTINUE
+              ENDDO
+            ENDDO
           ENDIF
-          DO 50 K=1,MDATA
+          DO K=1,MDATA
             BTHDT(ITHF,M,K)=0.
-   50     CONTINUE
+          ENDDO
           NTHEQ(ITHF)=NTHEQ(ITHF)-1
 
 C Display the deletion menu as long as the user did not selected
@@ -582,23 +586,23 @@ C thermal data file.
           endif
           ILIN=INUM*2
           REWIND(IUNIT,ERR=999)
-          DO 60 I4=1,ILIN-1
+          DO I4=1,ILIN-1
             READ(IUNIT,'(A95)',IOSTAT=IOS,END=991)OUTSTR
-   60    CONTINUE
-         CALL STRIPC(IUNIT,OUTSTR,13,ND,1,'coefficients',IER)
-         IF(IER.NE.0)GOTO 10
-         K=0
-         CALL EGETWI(OUTSTR,K,NUM,1,MNUM,'F','code no',IER)
-         CALL EGETWI(OUTSTR,K,MDUM,1,3,'F','thermal type',IER)
-         BTHDT(ITHF,M+1,1)=FLOAT(MDUM)
-         DO 70 I5=2,MDATA
+          ENDDO
+          CALL STRIPC(IUNIT,OUTSTR,13,ND,1,'coefficients',IER)
+          IF(IER.NE.0)GOTO 10
+          K=0
+          CALL EGETWI(OUTSTR,K,NUM,1,MNUM,'F','code no',IER)
+          CALL EGETWI(OUTSTR,K,MDUM,1,3,'F','thermal type',IER)
+          BTHDT(ITHF,M+1,1)=FLOAT(MDUM)
+          DO I5=2,MDATA
            CALL EGETWR(OUTSTR,K,BTHDT(ITHF,M+1,I5),1.,500.,
      &                      '-','thermal coefficient',IER)
-   70    CONTINUE
-         NTHEQ(ITHF)=NTHEQ(ITHF)+1
-       ELSE
-         CALL USRMSG(' ',' No thermal file yet loaded!','W')
-       ENDIF
+          ENDDO
+          NTHEQ(ITHF)=NTHEQ(ITHF)+1
+        ELSE
+          CALL USRMSG(' ',' No thermal file yet loaded!','W')
+        ENDIF
 
 C The user wants to save an existing thermal equation ( defined 
 C manually by the user or copyed from another thermal data file )in  
@@ -691,12 +695,15 @@ C *****************************  THERMC  ******************************
 
 C Initialize all checking variables .
 
-      DO 200 I=1,NCOMP
-      DO 200 J=1,NCONST(I)
-      DO 200 K=1,NELTS(I,J)
-      DO 200 L=1,NTHF
-        LYRCHK(I,J,K,L)=0
-  200 CONTINUE
+      DO I=1,NCOMP
+        DO J=1,NCONST(I)
+          DO K=1,NELTS(I,J)
+            DO L=1,NTHF
+              LYRCHK(I,J,K,L)=0
+            ENDDO
+          ENDDO
+        ENDDO
+      ENDDO
       IER=0
 
 C Clear the text feedback window
@@ -795,10 +802,10 @@ C Case 3: complete surface.
                 LYRCHK(ICOMP,ICONST,ILYR,IFT)=I
                 GOTO 110
               ELSE
-                DO 130 IEQ=1,NTHEQ(I)
+                DO IEQ=1,NTHEQ(I)
                   CALL THCHKS(I,IEQ,ICHK,ICOMP,ICONST,ILYR,IER)
                   IF(IER.NE.0)ICHCK=1
-  130           CONTINUE
+                ENDDO
               ENDIF
   120       CONTINUE
   110     CONTINUE
@@ -831,14 +838,14 @@ C in temperature range of similar type thermal equations.
 
 C Check if the temperature range, for all thermal equations, 
 C is acceptable.
-        DO 350 IEQ=1,NTHEQ(I)
+        DO IEQ=1,NTHEQ(I)
           IF(BTHDT(I,IEQ,2).GT.BTHDT(I,IEQ,3))THEN
             WRITE(TEXT,'(A,A,I2,A,I2,A)')' WARNING: un-acceptable ',
      &       'temperature range at function (',I,') equation (',IEQ,')'
             CALL EDISP(IUOUT,TEXT)
             ICHCK=1
           ENDIF
-  350   CONTINUE
+        ENDDO
    10 CONTINUE
 
 C Check if the layers in partitions are defined similarly

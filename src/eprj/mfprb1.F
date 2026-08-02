@@ -105,9 +105,10 @@ C Set folder separator (fs) to \ or / as required.
 
 C Connection based surface attributes and geometry might be used so
 C call X to ensure these common blocks are up to date.
+C << likely everything is already in memory. There is probably no need
+C << to call zdata.
       NZONES=NCOMP
-      ISFSUM=0
-      CALL ZDATA (0,IER,NZONES,ISFSUM)
+      CALL ZDATA (0,IER,NZONES)
 
 C Temporarily use same file unit as profiles db.
       NDNAM(0)='    '
@@ -254,7 +255,17 @@ C network in the graphic area.
             MODIFYVIEW=.TRUE.; MODBND=.TRUE.; MODLEN=.TRUE.
             ITSNM=1; ITVNO=1; izgfoc=0
             CALL redraw(IER)
-            call MFWFDRAW('r')  ! Draw flow network.
+            CALL EASKMBOX('Flow network preview labeling options:',' ',
+     &        'minimal','short e.g. c:003 n:005',
+     &        'use full node & component name',' ',' ',' ',' ',' ',
+     &        IW,nbhelp)
+            if(iw.eq.1)then
+              call MFWFDRAW('r','n')  ! Draw flow network with minimal labels.
+            elseif(iw.eq.2)then
+              call MFWFDRAW('r','s')  ! Draw flow network with short labels.
+            elseif(iw.eq.3)then
+              call MFWFDRAW('r','l')  ! Draw flow network lwith standard labels.
+            endif
           endif
         else
 
@@ -577,8 +588,18 @@ C Link nodes and zones.
           MODIFYVIEW=.TRUE.; MODBND=.TRUE.; MODLEN=.TRUE.
           ITSNM=1; ITVNO=1; izgfoc=0
           CALL redraw(IER)
-          call MFWFDRAW('r')  ! Draw flow network overlay.
-        endif
+          CALL EASKMBOX('Flow network preview labeling options:',' ',
+     &      'minimal','short e.g. c:003 n:005',
+     &      'use full node & component name',' ',' ',' ',' ',' ',
+     &      IW,nbhelp)
+          if(iw.eq.1)then
+            call MFWFDRAW('r','n')  ! Draw flow network with minimal labels.
+          elseif(iw.eq.2)then
+            call MFWFDRAW('r','s')  ! Draw flow network with short labels.
+          elseif(iw.eq.3)then
+            call MFWFDRAW('r','l')  ! Draw flow network lwith standard labels.
+          endif
+         endif
       ELSEIF(INO.EQ.22)THEN
 
 C Transfer data to network flow file and return to main menu.
@@ -733,7 +754,17 @@ C Draw the wireframe and then overlay the flow network.
                 izgfoc=0
                 CALL redraw(IER)
               endif
-              call MFWFDRAW('r')  ! Draw flow network.
+              CALL EASKMBOX('Flow network preview labeling options:',
+     &          ' ','minimal','short e.g. c:003 n:005',
+     &          'use full node & component name',' ',' ',' ',' ',' ',
+     &          IW,nbhelp)
+              if(iw.eq.1)then
+                call MFWFDRAW('r','n')  ! Draw flow network with minimal labels.
+              elseif(iw.eq.2)then
+                call MFWFDRAW('r','s')  ! Draw flow network with short labels.
+              elseif(iw.eq.3)then
+                call MFWFDRAW('r','l')  ! Draw flow network lwith standard labels.
+              endif
             endif
 
 C Save the newly converted 3D file and use it as LAPROB.
@@ -894,7 +925,17 @@ C set of dialogs to attribute a new flow node.
             ITSNM=1; ITVNO=1; izgfoc=0
             ITORG=1; ITGRD=1; ITBND=1 ! do not show origin or grid
             CALL redraw(IER)
-            call MFWFDRAW('r')
+            CALL EASKMBOX('Flow network preview labeling options:',' ',
+     &        'minimal','short e.g. c:003 n:005',
+     &        'use full node & component name',' ',' ',' ',' ',' ',
+     &        IW,nbhelp)
+            if(iw.eq.1)then
+              call MFWFDRAW('r','n')  ! Draw flow network with minimal labels.
+            elseif(iw.eq.2)then
+              call MFWFDRAW('r','s')  ! Draw flow network with short labels.
+            elseif(iw.eq.3)then
+              call MFWFDRAW('r','l')  ! Draw flow network lwith standard labels.
+            endif
           endif
           return
         ENDIF
@@ -1131,7 +1172,17 @@ C Refresh the network overly now that NNOD has been updated.
           MODIFYVIEW=.TRUE.; MODBND=.TRUE.; MODLEN=.TRUE.
           ITSNM=1; ITVNO=1; izgfoc=0
           CALL redraw(IER)
-          call MFWFDRAW('r')
+          CALL EASKMBOX('Flow network preview labeling options:',' ',
+     &      'minimal','short e.g. c:003 n:005',
+     &      'use full node & component name',' ',' ',' ',' ',' ',
+     &      IW,nbhelp)
+          if(iw.eq.1)then
+            call MFWFDRAW('r','n')  ! Draw flow network with minimal labels.
+          elseif(iw.eq.2)then
+            call MFWFDRAW('r','s')  ! Draw flow network with short labels.
+          elseif(iw.eq.3)then
+            call MFWFDRAW('r','l')  ! Draw flow network lwith standard labels.
+          endif
         endif
  
       ELSEIF(MOD.EQ.'D')THEN
@@ -1191,7 +1242,17 @@ C Refresh the network overly.
           MODIFYVIEW=.TRUE.; MODBND=.TRUE.; MODLEN=.TRUE.
           ITSNM=1; ITVNO=1; izgfoc=0
           CALL redraw(IER)
-          call MFWFDRAW('r')
+          CALL EASKMBOX('Flow network preview labeling options:',' ',
+     &      'minimal','short e.g. c:003 n:005',
+     &      'use full node & component name',' ',' ',' ',' ',' ',
+     &      IW,nbhelp)
+          if(iw.eq.1)then
+            call MFWFDRAW('r','n')  ! Draw flow network with minimal labels.
+          elseif(iw.eq.2)then
+            call MFWFDRAW('r','s')  ! Draw flow network with short labels.
+          elseif(iw.eq.3)then
+            call MFWFDRAW('r','l')  ! Draw flow network lwith standard labels.
+          endif
         endif
 
 C Copy a node in the network
@@ -2136,7 +2197,17 @@ C Now delete the component.
           MODIFYVIEW=.TRUE.; MODBND=.TRUE.; MODLEN=.TRUE.
           ITSNM=1; ITVNO=1
           CALL redraw(IER)
-          call MFWFDRAW('r')  ! refresh the network display
+          CALL EASKMBOX('Flow network preview labeling options:',' ',
+     &      'minimal','short e.g. c:003 n:005',
+     &      'use full node & component name',' ',' ',' ',' ',' ',
+     &      IW,nbhelp)
+          if(iw.eq.1)then
+            call MFWFDRAW('r','n')  ! Draw flow network with minimal labels.
+          elseif(iw.eq.2)then
+            call MFWFDRAW('r','s')  ! Draw flow network with short labels.
+          elseif(iw.eq.3)then
+            call MFWFDRAW('r','l')  ! Draw flow network lwith standard labels.
+          endif
         endif
 
       ELSEIF(MOD.EQ.'C')THEN
@@ -2180,7 +2251,17 @@ C Now delete the component.
           MODIFYVIEW=.TRUE.; MODBND=.TRUE.; MODLEN=.TRUE.
           ITSNM=1; ITVNO=1
           CALL redraw(IER)
-          call MFWFDRAW('r')  ! refresh the network display
+          CALL EASKMBOX('Flow network preview labeling options:',' ',
+     &      'minimal','short e.g. c:003 n:005',
+     &      'use full node & component name',' ',' ',' ',' ',' ',
+     &      IW,nbhelp)
+          if(iw.eq.1)then
+            call MFWFDRAW('r','n')  ! Draw flow network with minimal labels.
+          elseif(iw.eq.2)then
+            call MFWFDRAW('r','s')  ! Draw flow network with short labels.
+          elseif(iw.eq.3)then
+            call MFWFDRAW('r','l')  ! Draw flow network lwith standard labels.
+          endif
         endif
       ENDIF
 
@@ -2558,7 +2639,17 @@ C Refresh the network overly now that NCNN has been updated.
           MODIFYVIEW=.TRUE.; MODBND=.TRUE.; MODLEN=.TRUE.
           ITSNM=1; ITVNO=1
           CALL redraw(IER)
-          call MFWFDRAW('r')
+          CALL EASKMBOX('Flow network preview labeling options:',' ',
+     &      'minimal','short e.g. c:003 n:005',
+     &      'use full node & component name',' ',' ',' ',' ',' ',
+     &      IW,nbhelp)
+          if(iw.eq.1)then
+            call MFWFDRAW('r','n')  ! Draw flow network with minimal labels.
+          elseif(iw.eq.2)then
+            call MFWFDRAW('r','s')  ! Draw flow network with short labels.
+          elseif(iw.eq.3)then
+            call MFWFDRAW('r','l')  ! Draw flow network lwith standard labels.
+          endif
         endif
         
       ELSEIF(MOD.EQ.'D')THEN     ! -------- delete connection
@@ -2566,12 +2657,16 @@ C Refresh the network overly now that NCNN has been updated.
         if(MMOD.eq.8.and.IAIRN.eq.3)then
           call draw_connect_assoc(IFCN)
         endif
+        WRITE(outs,'(A12,F6.1,A5,A12,F6.1,2X,A12)')
+     &    NDNAM(NODPS(IFCN)),HGTPS(IFCN),' --> ',NDNAM(NODNE(IFCN)),
+     &    HGTNE(IFCN),CMNAM(ITPCON(IFCN))
+        call edisp(iuout,'  ')
+        call edisp(iuout,outs)
         call easkok(' ','Delete this connection? ',OK,nbhelp)
         if(.NOT.OK)return
 
-C Delete a connection. First check if there is a flow control which
-C is associated with any subsequent connection and decrement IFAN(?,2).
-        IFCN=ICON
+C Delete a connection. If there is a flow control which is
+C associated with any subsequent connection and decrement IFAN(?,2).
         IF(IFCN.LT.NCNN) THEN
           DO 76 I=IFCN,NCNN-1
             NODPS(I)=NODPS(I+1)
@@ -2615,7 +2710,17 @@ C Refresh the network overly.
           MODIFYVIEW=.TRUE.; MODBND=.TRUE.; MODLEN=.TRUE.
           ITSNM=1; ITVNO=1
           CALL redraw(IER)
-          call MFWFDRAW('r')
+          CALL EASKMBOX('Flow network preview labeling options:',' ',
+     &      'minimal','short e.g. c:003 n:005',
+     &      'use full node & component name',' ',' ',' ',' ',' ',
+     &      IW,nbhelp)
+          if(iw.eq.1)then
+            call MFWFDRAW('r','n')  ! Draw flow network with minimal labels.
+          elseif(iw.eq.2)then
+            call MFWFDRAW('r','s')  ! Draw flow network with short labels.
+          elseif(iw.eq.3)then
+            call MFWFDRAW('r','l')  ! Draw flow network lwith standard labels.
+          endif
         endif
  
       ELSEIF(MOD.EQ.'C')THEN     ! -------- copy connection

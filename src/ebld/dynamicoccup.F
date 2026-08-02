@@ -66,6 +66,7 @@ C **********************************************
       real  QTOT,COMF,MET,Qcomf
 
       ! If there is CFD, determine which domain this zone is linked with.
+      ! If no CFD in subsequent code jump around variables using (icfd).
       icfd=0
       if (NCONF.gt.0) then
         do iconf=1,NCONF            
@@ -139,8 +140,10 @@ C heat transfer coeficients
         Qbld=mblsk*Cp_blood*(Tcr(1)-Tsk(1))
         Mresp=1.43e-6*META                       !kg or kg/s??
         HRexp=0.2*HR_amb+0.0277+6.5e-5*Tamb
-        H2Oexp(icfd)=Mresp*(HRexp-HR_amb)              !!kg/s?
-        H2Oswt(icfd)=mswT(Tcr(1),Tsk(1),Ask,SWEAT)*ASK  !Kg/s
+        if(icfd.gt.0) then
+          H2Oexp(icfd)=Mresp*(HRexp-HR_amb)              !!kg/s?
+          H2Oswt(icfd)=mswT(Tcr(1),Tsk(1),Ask,SWEAT)*ASK  !Kg/s
+        endif
 
 C Calculate the future skin and core temp
         QTOT=(Qcrsk-(Ask/expo)*((Tsk(1)-(Tamb-273))/
@@ -158,7 +161,9 @@ C Calculate the future skin and core temp
      &             (Ask/expo)+ress
         skrad(ICOMP)=((Tsk(1)-(Tamb-273))/(Rcl+1/(fcl*(hc+hr))))*
      &             (Ask/expo)*0.6
-        COnflux(icfd)=skcon(ICOMP)/Ask
+        if(icfd.gt.0) then
+          COnflux(icfd)=skcon(ICOMP)/Ask
+        endif
         Qcomf=(META+shiv-resl-ress-(Ask/expo)*((Tsk(1)-(Tamb-273))/
      &       (Rcl+1/(fcl*(hc+hr)))+((Pskin-Pv_amb)/(Rcle+1/(fcl*he)))))
 

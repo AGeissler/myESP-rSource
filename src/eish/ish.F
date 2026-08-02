@@ -179,7 +179,6 @@ C (embedded calculation mode).
       integer lnshd   ! length of current shading file string.
       integer ier
       integer nitems,inos ! max items and current menu item
-      integer ISFSUM  ! number of surfaces found
       integer ISTRW
 
 #ifdef OSI
@@ -212,7 +211,6 @@ C Initialise global common data.
       limit =30
       nsigfig=3
       matver=0.0       ! initial assumption for materials database
-      ISFSUM=0
       AUTOVR=.false.   ! by default, ask to overwrite files
 
 C iunit  - zone transitional shading file
@@ -604,7 +602,7 @@ C Open model databases if not already done.
             if(ier.eq.0)then
                cfgok=.true.
                numberofzones=ncomp
-               call zdata (itrc,ier,int(numberofzones),isfsum)
+               call zdata (itrc,ier,int(numberofzones))
                if(mmod.EQ.8)then
                  call updwire(numberofzones)
                endif
@@ -1063,7 +1061,7 @@ C GTK version will return the name and full path.
             if(ier.eq.0)then
                cfgok=.true.
                numberofzones=ncomp
-               call zdata (itrc,ier,int(numberofzones),isfsum)
+               call zdata (itrc,ier,int(numberofzones))
             endif
          endif
 
@@ -1702,9 +1700,8 @@ C Not a legitimate menu choice.
       end
 
 C ********** SHDPRB **********
-C Scans the system configuration file for the files that define
-C the problem or allows user input. Depending on what happened
-C with the file, pass back an indicator:
+C Scans zonen geometry and other files that define computational
+C tasks. Pass back an indicator of status:
 C  ifstat = 0  no errors and existing file was opened correctly
 C  ifstat = 1  new file was opened correctly
 C  ifstat = 2  no shading file name so exited
@@ -1885,8 +1882,6 @@ C then scan new ascii format and if that does not work try the
 C older ascii materials file to fill the materials data arrays.
 C If sucessful the material common blocks will be filled and
 C closemat1 or closemat2 will be set.
-
-C << update this to match changes in lfmat >>
 
       subroutine opendb(ier)
 #include "building.h"

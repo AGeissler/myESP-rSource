@@ -77,6 +77,11 @@ C 3D visualisation mode.
 C Radiance processor cores.
       integer radcores
       common/radcor/radcores
+
+      logical both_esp_wave      ! If true manage pair of scenes.
+      logical focus_espg         ! If true editing in context of ESP-r geometry
+      integer ipairedscene       ! Index of paired scene.
+      COMMON/ESPWAVE/both_esp_wave,focus_espg,ipairedscene(16)
       
 C Name of current application
       common/APPNAME/cAppName
@@ -84,10 +89,13 @@ C Name of current application
 C Ask to overwrite flag.
       COMMON/OVRWT/AUTOVR
       logical AUTOVR
+  
+      character priorpurpose*12   ! use when copying a scene.
+      common/prior/priorpurpose
       
       character cAppName*12      
 
-      CHARACTER outs*124,ITEM*30
+      CHARACTER outs*124
       CHARACTER inf*144,actf*96
       character LCMDFL*144,L144*144
       character thecfgis*72   ! cfg file only
@@ -96,22 +104,24 @@ C Ask to overwrite flag.
       character path*72
       character fs*1
       character OUTSTR*124
-      character ltmp96*96,dtmp72*72,ltmp*72,dtmp96*96
+      character ltmp96*96,dtmp72*72,ltmp*72,dtmp96*96,ltmpsw*72
       character pf*72,gf*72,df*72,VALT*28
       character brw*4   ! to signal whether browsing model
       character smode*1 ! simscene mode 'i' interactive '-' silent
       character dstmp*24,uname*24,tfile2*72
       character hold32*32     ! for helper applications
       character rifwave*72
+      character doitl*254
+      character thertm*72     ! tmp name for likely rtm file.
 
       character cVnum*38      ! returned from ESPrVersionNum
       character pagestitle*68 ! for banner title via epages call
-
+      character ITEM*33
       DIMENSION ITEM(24)
       DIMENSION IVALV(20),VALT(20),IPVALV(20)  ! for selecting view from list
 
       LOGICAL CFGOK,MLDBOK,MATDBOK,CTLOK,OPTKOK,CFCDBOK
-      LOGICAL XST,unixok,there
+      LOGICAL XST,unixok,there,WFOK,dowave
       LOGICAL ok
       logical browse  ! is true if parameter passed as yes
 
@@ -161,6 +171,7 @@ C Scene configuration file IRCFG = IFIL+17.
       IRCFG = IFIL+17
       iiesfil = IFIL+18
       iwmatfil = IFIL+19
+      iwglzfil = IFIL+20
 
 C Primitives on IFIL+13, mlc on IFIL+14, optics on IFIL+15,
 C check for root journal file on iuj.
@@ -179,8 +190,21 @@ C CFClayers on channel IFIL+12.
       icfcdb = ifil + 12
       write(LCFCDB,'(a)') DCFCDB(1:lnblnk(DCFCDB))
 
-C << consider a verbosity parameter >>
+C Command line invocation of e2r from prj visual simulation menu or
+C the visualz subroutine or the export model menu does not include
+C the 'zone' or 'aim' parameters.
+C If e2r is being used for casual gain control then prj invokes e2r with
+C 'e2r -file [ESP-r cfg] -purpose Coupling -zone [index] -act Create'
+
+C If e2r is being invoked for daylight coefficients then the pattern is:
+C 'e2r -file [ESP-r cfg] -purpose Day_coef -zone [index] -act Create'
+
+C If e2r is invoked from the simulator the pattern is:
+C 'e2r -file  [ESP-r cfg] -purpose Coupling -zone [index] -act Calculate
+C      -actf [transfer file] -mode text'
+
       call parse2r(MODL,iappw,iappx,iappy,inf,zone,aim,cmdact,actf,brw)
+C      write(6,*) 'parse2r zone cmd aim ',zone,' ',cmdact,' ',aim
 
 C Set folder separator (fs) to \ or / as required.
       call isunix(unixok)
@@ -197,24 +221,37 @@ C Make case insensitive.
       if (aim(1:8).eq.'coupling') aim='Coupling'
       if (aim(1:8).eq.'day_coef') aim='Day_coef'
       if (cmdact(1:6).eq.'create') cmdact='Create'
+      priorpurpose='UNKNOWN'
 
       IFS=1
       ITFS=1
       IMFS=1
       ISCENE=1
-      do 9 I=1,MCOM+1
+      do 9 I=1,16             ! Clear the dozen possible scenes.
         RIFNAME(I)='UNKNOWN'
         SCENERT(I)='UNKNOWN'
         SCENEDESC(I)='UNKNOWN'
         SCENEPURP(I)='UNKNOWN'
         LBSRIF(I)='NONE'
         LDFGRID(I)='NONE'
+        SCENEGSRC(I)='UNKNOWN'
+        SCENEWAVE(I)='UNKNOWN'
+        SCENEWGLZ(I)='UNKNOWN'
+        SCENEFZNM(I)='UNKNOWN'
+        SCENEMOTL(I)='medium'
         NBSRIF(I)=-1
+        DFSURFNAME(I)='UNKNOWN'
+        WPDIST(i)=0.9
+        DFEDGE(i,1)=-99; DFEDGE(i,1)=-99
+        igmajor(i)=0
+        igminor(i)=0
+        CONV(i)=0.25
+        ipairedscene(i)=0        ! Zero offset signals no paring.
  9    continue
 
 C Set defaults.
       CFGOK=.false.; MLDBOK=.false.; MATDBOK=.false.
-      CTLOK=.false.; OPTKOK=.false.
+      CTLOK=.false.; OPTKOK=.false.; CFCDBOK=.false.
       MODIFYVIEW=.TRUE.; MODLEN=.TRUE.; MODBND=.TRUE.
       XST=.false.
       LRADCF='UNKNOWN'
@@ -238,12 +275,14 @@ C Set defaults.
       radpth='../rad'
       rambfil='NONE'
       optnfil='UNKNOWN'
+      both_esp_wave=.false.   ! Assume only ESP-r geo built.
+      focus_espg=.true.       ! Initially ESP-r geo is focus of editing.
 
 C Assume no focous zone.
       ifocz = -1
 
 C Default values for rif file variables.
-      intext = 0
+      intext = 0  ! external view
       iadobe = 2  ! medium adobe texture
       imgqua = 'Low'
       detlvl = 'Medium'
@@ -254,7 +293,7 @@ C Default values for rif file variables.
       crenrp='  '
       coconv='  '
 
-      indxscn=0
+      indxscn=0   ! Clear the 'scene=' tokens.
       do 4 i=1,10
         rscedes(i)=' '
   4   continue
@@ -399,13 +438,9 @@ C cfg folder then set pwdtocfg to !
       pwdtocfg='  '    ! and from pwd into cfg folder
       call usrdir(pwdinitial)
       lnpwdi=lnblnk(pwdinitial)
-C Debug.
-C      write(6,*) 'e2r the pwd command is ',pwdinitial(1:lnpwdi)
-C      write(6,*) lnpwdi,lnpwdi-2,' ',pwdinitial(lnpwdi-2:lnpwdi)
       if(pwdinitial(lnpwdi-2:lnpwdi).eq.'cfg')then
         pwdtocfg='!'             ! signal no need to append this
         lnpwdc=lnblnk(pwdtocfg)  ! remember its length
-C        write(6,*) 'e2r working in model cfg folder'
       endif
 
 C Find the user's home folder then get users custom settings.
@@ -492,7 +527,7 @@ C and then present the main menu.
 C No command line configuration file supplied or cannot be found, 
 C therfore get one.
       if(.NOT.XST)then
-        helptopic='e2r_cfg_file_not_found'
+        helptopic='e2r_cfg_file'
         call gethelptext(helpinsub,helptopic,nbhelp)
         l144=LCMDFL
         dtmp96=DFCFG
@@ -548,9 +583,9 @@ C line as 'Coupling' or 'Day_coef' or 'Day_fact'.
         endif
       endif
 
-C Read RADIANCE configuration if it exists. If we are returning to a
-C model that was previously worked on then the scene file (rcf) might be
-C in the cfg folder or the ../rad folder.
+C Read RADIANCE (rcf) configuration if it exists. If we are
+C returning to a model that was previously worked on then 
+C it might be in the cfg folder or the ../rad folder.
       XST=.FALSE.
       if(pwdtocfg(1:1).eq.'!')then
         write(tfile,'(3a)')path(1:lnblnk(path)),fs,
@@ -559,23 +594,19 @@ C in the cfg folder or the ../rad folder.
         write(tfile,'(4a)') pwdinitial(1:lnpwdi),fs,
      &    pwdtocfg(1:lnblnk(pwdtocfg)),LRADCF(1:lnblnk(LRADCF))
       endif
+      write(currentfile,'(a)') tfile(1:lnblnk(tfile))
       INQUIRE (FILE=tfile,EXIST=XST)
       if(XST)then
-
-C Debug.
-C        write(6,*) 'in path ',tfile(1:lnblnk(tfile))
         continue
       else
         write(tfile,'(a,a)')runpath(1:lnrp),LRADCF(1:lnblnk(LRADCF))
         INQUIRE (FILE=tfile,EXIST=XST)
         if(XST)then
-
-C Debug.
-C          write(6,*) 'in runpath ',tfile(1:lnblnk(tfile))
           continue
         else
 
 C Ask user about the scene file. Begin by checking for command line information.
+C If called from the simulator a zone will have been passed to e2r.
           if (zone(1:4).ne.'NONE'.and.aim(1:4).ne.'NONE') then
             call checkrif('n')
             if (cmdact(1:4).ne.'NONE') call autorad
@@ -592,7 +623,7 @@ C File does not exist, ask for another/ new file.
             write(ltmp96,'(a)') LRADCF(1:lnblnk(LRADCF))
             dtmp96='scene.rcf'
             CALL EASKS(ltmp96,
-     &        'Scene configuration file? (suggested name)',
+     &        'Scene configuration file? (rcf)',
      &        ' ',96,dtmp96,'scene file name',IER,nbhelp)
             IF(ltmp96(1:2).EQ.'  '.or.ltmp96(1:4).eq.'UNKN')GOTO 2289
             write(LRADCF,'(a)') ltmp96(1:lnblnk(ltmp96))
@@ -610,7 +641,8 @@ C File does not exist, ask for another/ new file.
 C Scan the scene file.
       call RADCFGIN(tfile)
 
-C Check for command line information.
+C Check for command line information to determine if called
+C from the simulator.
       if (zone(1:4).ne.'NONE'.and.aim(1:4).ne.'NONE') then
 
 C We have a specific zone and purpose in mind. Checkrif will
@@ -618,7 +650,6 @@ C scan an existing rif file and see if a matching scene exists
 C and if not sets up the relevant parameters and descriptive
 C files.
         call checkrif('o')
-        write(6,*) 'after checkrif o cmdact aim',cmdact,aim
 
 C Note for 'Coupling' autorad is used to invoke the assessment.
         if (cmdact(1:4).ne.'NONE') call autorad
@@ -628,31 +659,46 @@ C Note for 'Coupling' autorad is used to invoke the assessment.
           call edisp(iuout,'can now exit.')
         endif
       else
+
+C Invoked from prj. If rcf scene attributes can be decoded
+C then establish focus zone if applicable.
         if (NSCENE.gt.1) then
-          call edisp(iuout,
-     &      'There are existing scenes to select from...')
           call whichrif('m')
+
+C Debug.
+C          write(6,*) 'after whichrif iscene',iscene,
+C     &      SCENEPURP(iscene),' ',SCENEFZNM(iscene),' ',
+C     &      SCENEWAVE(iscene)
         elseif (NSCENE.eq.1) then
           ISCENE=1
           call RRIF(ita2,ita3,RIFNAME(ISCENE),'r',ier)
+
+C Debug.
+C          write(6,*) 'after whichrif iscene',iscene,
+C     &      SCENEPURP(iscene),' ',SCENEFZNM(iscene),' ',
+C     &      SCENEWAVE(iscene)
         else
           call edisp(iuout,
      &      'There are no existing scenes. Pleases create one.')
           call ADDSCENE(IRCFG)
+
+C Debug.
+C          write(6,*) 'after whichrif iscene',iscene,
+C     &      SCENEPURP(iscene),' ',SCENEFZNM(iscene),' ',
+C     &      SCENEWAVE(iscene)
         endif
       endif
 
 C Users can manage list of scenes from option c.
-10    INO = -4
-      write(ITEM(1),'(2A)')   'a model: ',LCFGF(1:21)
-C << should this be runpath? >>
-      write(ITEM(2),'(2A)')   '   path: ',path(1:21)
+ 10   INO = -4
+      write(ITEM(1),'(2A)')   'a model: ',LCFGF(1:24)
+      write(ITEM(2),'(2A)')   '   path: ',path(1:24)
       ITEM(3)=                '  ____________________________'
-      write(ITEM(4),'(2A)')   'b scenes in:',LRADCF(1:18)
-      write(ITEM(5),'(2A)')   'c current : ',SCENERT(ISCENE)(1:18)
-      write(ITEM(6),'(2A)')   '   RIF    : ',RIFNAME(ISCENE)(1:18)
+      write(ITEM(4),'(2A)')   'b scenes in:',LRADCF(1:21)
+      write(ITEM(5),'(2A)')   'c current : ',SCENERT(ISCENE)(1:21)
+      write(ITEM(6),'(2A)')   '   RIF    : ',RIFNAME(ISCENE)(1:21)
       write(ITEM(7),'(2A)')   '   purpose: ',SCENEPURP(ISCENE)
-      write(ITEM(8),'(A)')    '                              '
+      write(ITEM(8),'(2A)')   '   geo sourc: ',SCENEGSRC(ISCENE)
       ITEM(9)=                '   ___________________________'
       ITEM(10)=               'd  sky type, location & time  '
       ITEM(11)=               'e  zone & outside composition '
@@ -779,7 +825,7 @@ C to the console.
       elseif(INO.EQ.1)then
 
 C ESP-r configuration file.
-  289   helptopic='model_config_file_name'
+  289   helptopic='e2r_cfg_file'
         call gethelptext(helpinsub,helptopic,nbhelp)
         l144=LCMDFL
         dtmp96=DFCFG
@@ -831,24 +877,130 @@ C Sky type.
         call SKYFORM(IER)
         call edisp(iuout,' updating RIF file to account for zones.')
         IFC=3
-        call MKRIF(ITA2,RIFNAME(ISCENE),IFC,0,'-',IER)
-        rifwave='obj.rif'
-        call mkrif(ITA2,rifwave,IFC,0,'w',IER)
+        call mkrif(ITA2,RIFNAME(ISCENE),IFC,0,'-',IER)
+
+C If Wavefront variant needed setup rifwave file name.
+        dowave=.false.
+        if(focus_espg.and.both_esp_wave)then
+          dowave=.true.
+        elseif(.NOT.focus_espg.and.both_esp_wave)then
+          dowave=.true.
+        elseif(focus_espg.and.(.NOT.both_esp_wave))then
+          dowave=.false.
+        elseif(.NOT.focus_espg.and.(.NOT.both_esp_wave))then
+          dowave=.false.
+        endif
+        if(dowave)then
+          if (SCENEPURP(ISCENE)(1:8).eq.'External')then
+            rifwave='obj_ex.rif'
+          elseif(SCENEPURP(ISCENE)(1:8).eq.'Internal')then
+            rifwave='obj_in.rif'
+          elseif(SCENEPURP(ISCENE)(1:5).eq.'Glare')then
+            rifwave='obj_gl.rif'
+          elseif (SCENEPURP(ISCENE)(1:8).eq.'Day_fact') then
+            rifwave='obj_df.rif'
+          else
+            rifwave='obj.rif'
+          endif
+          call mkrif(ITA2,rifwave,IFC,0,'w',IER)
+        endif
         if (NBSRIF(ISCENE).eq.1) then
           call mkrif(ita2,LBSRIF(ISCENE),IFC,1,'-',ier)
         endif
 
       elseif(INO.EQ.11)then
 
-C Zone and outside composition, updating rif file upon return.
-        call E2RFORM('i',IER)
-        call edisp(iuout,' updating RIF file to account for zones.')
-        IFC=3
-        call MKRIF(ITA2,RIFNAME(ISCENE),IFC,0,'-',IER)
-        rifwave='obj.rif'
-        call mkrif(ITA2,rifwave,IFC,0,'w',IER)
-        if (NBSRIF(ISCENE).eq.1) then
-          call mkrif(ita2,LBSRIF(ISCENE),IFC,1,'-',ier)
+C Zone and outside composition if based on ESP-r geometry,
+C updating rif file upon return.
+        if(SCENEGSRC(ISCENE)(1:5).eq.'ESP-r'.or.
+     &     SCENEGSRC(ISCENE)(1:7).eq.'UNKNOWN')then
+          call E2RFORM('i',IER)
+          call edisp(iuout,' updating RIF file to account for zones.')
+          IFC=3
+          call mkrif(ITA2,RIFNAME(ISCENE),IFC,0,'-',IER)
+          if (NBSRIF(ISCENE).eq.1) then
+            call mkrif(ita2,LBSRIF(ISCENE),IFC,1,'-',ier)
+          endif
+        else
+
+C If wavefront source the primary task is to ensure that the Wavefront
+C obj file has been transformed into a radiance mesh.
+ 643      if(SCENEGSRC(ISCENE)(1:9).eq.'Wavefront')then
+
+Check if the likely rtm file exists in the rad folder.
+            if(SCENEPURP(ISCENE)(1:8).eq.'External')then
+              write(thertm,'(a)') 'obj_ex.rtm'
+            elseif(SCENEPURP(ISCENE)(1:8).eq.'Internal')then
+              write(thertm,'(a)') 'obj_in.rtm'
+            elseif(SCENEPURP(ISCENE)(1:5).eq.'Glare')then
+              write(thertm,'(a)') 'obj_gl.rtm'
+            elseif (SCENEPURP(ISCENE)(1:8).eq.'Day_fact') then
+              write(thertm,'(a)') 'obj_df.rtm'
+            endif
+            INQUIRE (FILE=thertm,EXIST=XST)
+            if(XST)then
+              call edisp(iuout,' ')
+              call edisp(iuout,
+     &          'A Radiance rtm (mesh file) found so good to go.')
+              goto 10
+            endif
+
+C Did not find rtm file. Try and create.
+            if(SCENEWAVE(ISCENE)(1:7).eq.'UNKNOWN')then
+              helptopic='e2r_WF_file_name'
+              CALL EASKOK(' ','Supply name of Wavefront object file?',
+     &          WFOK,nbhelp)
+              if(WFOK)then
+                call edisp(iuout,' ')
+                call edisp(iuout,
+     &'Place the Wavefront obj and mtl files in the model rad folder.')
+ 642            call gethelptext(helpinsub,helptopic,nbhelp)
+C                lnrp=lnblnk(runpath)  ! remember this 
+C                write(ltmpsw,'(2a)') runpath(1:lnrp),'xx.obj'
+                write(ltmpsw,'(a)') 'xx.obj'
+                CALL EASKS(ltmpsw,
+     &          'Wavefront object file (assumed to be in rad folder)?',
+     &            ' ',72,'xxx.obj','wavefront file',IER,nbhelp)
+                if(ltmpsw.eq.' ')goto 642
+                write(SCENEWAVE(ISCENE),'(a)') ltmpsw(1:lnblnk(ltmpsw))
+              endif
+              ICHK=4
+              call radcfgout(ICHK)
+              goto 643
+            else
+              lnobj=lnblnk(SCENEWAVE(ISCENE))
+              call edisp(iuout,' ')
+              call edisp(iuout,'The manual command is:')
+              if (SCENEPURP(ISCENE)(1:8).eq.'External')then
+                write(outs,'(3a)') 'obj2mesh -a obj_ex.mat ',
+     &            SCENEWAVE(ISCENE)(1:lnobj),' obj_ex.rtm'
+              elseif(SCENEPURP(ISCENE)(1:8).eq.'Internal')then
+                write(outs,'(3a)') 'obj2mesh -a obj_in.mat ',
+     &            SCENEWAVE(ISCENE)(1:lnobj),' obj_in.rtm'
+              elseif(SCENEPURP(ISCENE)(1:5).eq.'Glare')then
+                write(outs,'(3a)') 'obj2mesh -a obj_gl.mat ',
+     &            SCENEWAVE(ISCENE)(1:lnobj),' obj_gl.rtm'
+              elseif (SCENEPURP(ISCENE)(1:8).eq.'Day_fact') then
+                write(outs,'(3a)') 'obj2mesh -a obj_df.mat ',
+     &            SCENEWAVE(ISCENE)(1:lnobj),' obj_df.rtm'
+              endif
+              call edisp(iuout,outs)
+              call EASKOK('Convert the Wavefront obj file into a rtm',
+     &          'file via obj2mesh?',OK,nbhelp)
+              if(OK)then
+                call isunix(unixok)
+                if(unixok)then
+                  write(doitl,'(4a)') 'cd ',runpath(1:lnrp),
+     &              '; ',outs(1:lnblnk(outs))
+C                  write(6,*) doitl(1:lnblnk(doitl))
+                  call runit(doitl,'-')
+                else
+                  call usrmsg('e2r cannot yet invoke obj2mesh',
+     &              'on non-linux computers.','W')
+                endif
+              endif
+            endif
+          endif
         endif
 
       elseif(INO.EQ.12)then
@@ -873,7 +1025,7 @@ C Other descriptions.
 
       elseif(INO.EQ.13)then
 
-C Depending on value of SCENEPURP.
+C Depending on value of SCENEPURP deal with xyz grid points.
         if (SCENEPURP(ISCENE)(1:8).eq.'Day_fact'.or.
      &      SCENEPURP(ISCENE)(1:7).eq.'Day_lux'.or.
      &      SCENEPURP(ISCENE)(1:5).eq.'Illum') then
@@ -905,7 +1057,7 @@ C Depending on value of SCENEPURP.
           call gethelptext(helpinsub,helptopic,nbhelp)
           CALL EASKOK(' ','Edit grid points?',OK,nbhelp)
           izone=0
-          if(OK)call setdfgrid('-',izone,ier)
+          if(OK)call setdfgrid(izone,ier)
         elseif (SCENEPURP(ISCENE)(1:8).eq.'Coupling') then
           continue
         elseif (SCENEPURP(ISCENE)(1:8).eq.'Day_coef') then
@@ -926,8 +1078,31 @@ C Edit view points.  Save off current views.
           call edisp(iuout,' updating RIF file to account for views.')
           IFC=3
           call MKRIF(ITA2,RIFNAME(ISCENE),IFC,0,'-',IER)
-          rifwave='obj.rif'
-          call mkrif(ITA2,rifwave,IFC,0,'w',IER)
+
+          dowave=.false.
+          if(focus_espg.and.both_esp_wave)then
+            dowave=.true.
+          elseif(.NOT.focus_espg.and.both_esp_wave)then
+            dowave=.true.
+          elseif(focus_espg.and.(.NOT.both_esp_wave))then
+            dowave=.false.
+          elseif(.NOT.focus_espg.and.(.NOT.both_esp_wave))then
+            dowave=.false.
+          endif
+          if(dowave)then
+            if (SCENEPURP(ISCENE)(1:8).eq.'External')then
+              rifwave='obj_ex.rif'
+            elseif(SCENEPURP(ISCENE)(1:8).eq.'Internal')then
+              rifwave='obj_in.rif'
+            elseif(SCENEPURP(ISCENE)(1:5).eq.'Glare')then
+              rifwave='obj_gl.rif'
+            elseif (SCENEPURP(ISCENE)(1:8).eq.'Day_fact') then
+              rifwave='obj_df.rif'
+              else
+            rifwave='obj.rif'
+            endif
+            call mkrif(ITA2,rifwave,IFC,0,'w',IER)
+          endif
           if (NBSRIF(ISCENE).eq.1) then
             call mkrif(ita2,LBSRIF(ISCENE),IFC,1,'-',ier)
           endif
@@ -992,6 +1167,10 @@ C Pull up a list of views and ask user for which one.
             if(IX.ne.0)then
               ipckvew=IVALV(1)
             endif
+          else
+            call usrmsg('Cannot generate image because no views',
+     &        'have been defined.','W')
+            goto 10
           endif
         endif
 
@@ -1147,7 +1326,7 @@ C Check for existing file names based on available view and picture info.
 C Now have list of possible images, ask which one to display.
 C If there are no images then re-display the menu.
         if (npics.gt.1) then
-          CALL EPICKS(IX,IVALV,' ',' Select a view point: ',
+          CALL EPICKS(IX,IVALV,' ','Select a view point: ',
      &      28,npics,VALT,'View options',IER,nbhelp)
           if(IX.eq.0) goto 10
         else
@@ -1193,14 +1372,39 @@ C Get glare info file name (if necessary) and display image.
 
       elseif(INO.eq.18)then
 
-C Save scene information.
+C Save scenes rcf file and current rif file.
         IFC=3
         call MKRIF(ITA2,RIFNAME(ISCENE),IFC,0,'-',IER)
-        rifwave='obj.rif'
-        call mkrif(ITA2,rifwave,IFC,0,'w',IER)
+
+        dowave=.false.
+        if(focus_espg.and.both_esp_wave)then
+          dowave=.true.
+        elseif(.NOT.focus_espg.and.both_esp_wave)then
+          dowave=.true.
+        elseif(focus_espg.and.(.NOT.both_esp_wave))then
+          dowave=.false.
+        elseif(.NOT.focus_espg.and.(.NOT.both_esp_wave))then
+          dowave=.false.
+        endif
+        if(dowave)then
+          if (SCENEPURP(ISCENE)(1:8).eq.'External')then
+            rifwave='obj_ex.rif'
+          elseif(SCENEPURP(ISCENE)(1:8).eq.'Internal')then
+            rifwave='obj_in.rif'
+          elseif(SCENEPURP(ISCENE)(1:5).eq.'Glare')then
+            rifwave='obj_gl.rif'
+          elseif (SCENEPURP(ISCENE)(1:8).eq.'Day_fact') then
+            rifwave='obj_df.rif'
+          else
+            rifwave='obj.rif'
+          endif
+          call mkrif(ITA2,rifwave,IFC,0,'w',IER)
+        endif
         if (NBSRIF(ISCENE).eq.1) then
           call mkrif(ita2,LBSRIF(ISCENE),IFC,1,'-',ier)
         endif
+        ICHK=3
+        call radcfgout(ICHK)
 
       ELSE
         INO=-2
@@ -1215,7 +1419,7 @@ C Save scene information.
 
 
 C *************** MODLSU ***************
-C MODLSU read in supplied configuration file and set up paths.
+C Reads supplied ESP-r configuration file and set up paths.
       subroutine MODLSU
 #include "building.h"
 #include "model.h"
@@ -1282,11 +1486,11 @@ C Configuration file and path are held in common/rcmd/LCMDFL
       if(IER.eq.0)then
         call inqu_tmc
         CFGOK=.TRUE.
+        call module_opendb(ier)  ! Open databases.
         rgrfl=groundrefl
         NZONES=NCOMP
         ITRC=0
-        ISFSUM=0
-        CALL ZDATA (ITRC,IER,NZONES,ISFSUM)
+        CALL ZDATA (ITRC,IER,NZONES)
         MODIFYVIEW=.TRUE.; MODBND=.TRUE.; MODLEN=.TRUE.
 
 C If there is a ground topology read it.

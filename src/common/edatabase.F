@@ -204,7 +204,6 @@ C Fill the MLC commons.
       mlcdocs=1      ! only 1 line in mlcver=0 constructions
       mlccats=1      ! put everything in one category
       write(mlccatname(1),'(a)') 'general constructions'
-      lnmlccatname(1)=21
       write(mlccatmenu(1),'(a)') 'general constructions'
       write(mlccatdoc(1),'(2a)')
      &  'Category general constructions includes all of the ',
@@ -251,7 +250,6 @@ C Note: this version of db only works with initial 12 char for mlcname.
         WRITE(mlcname(I),'(A)')DES(1:12)
         lnmlcname(i)=lnblnk(mlcname(i))
         WRITE(mlcmenu(I),'(A)')DES(1:12)
-        lnmlcmenu(i)=lnblnk(mlcmenu(i))
         WRITE(mlcdoc(I),'(2A)')DES(1:12),' is a ...'
         WRITE(mlcincat(I),'(A)') 'general constructions'
         WRITE(mlctype(I),'(A)') DES(15:18)
@@ -690,6 +688,15 @@ C DRAIR is the air gap layer resistance for 3 orientations.
       LOGICAL        CFGOK,MLDBOK,MATDBOK,CTLOK,OPTKOK,layermatch
       LOGICAL        CFCDBOK
 
+      integer mlcnamegt24         ! number of instances of long MLC names.
+      integer mlcindex32          ! indices of long MLCs
+      integer mlcindex24          ! indies of paired shorter MLCs
+      integer mlcindexo32         ! indices of MLCs paired to long MLCs
+      integer mlcindexo24         ! indies of short naed paired MLCs
+      integer mlcx32refs          ! references to long MLCs
+      common/mlclong/mlcnamegt24,mlcindex32(6),mlcindex24(6),
+     &               mlcindexo32(6),mlcindexo24(6),mlcx32refs
+      
       logical closemat1,closemat2,close4,closecfc1,closecfc2
       logical unixok
 
@@ -727,6 +734,7 @@ C Keep track of how many times materials db read fails.
       closemat2=.false.
       mlcver = 0         ! assume older constructions version
       mlcloop = 0
+      mlcnamegt24 = 0    ! reset count of long MLC names.
       
 C Flag for CFC layers db version
       closecfc1=.false.
@@ -872,7 +880,6 @@ C          write(6,*) LOUTSTR(1:lnblnk(LOUTSTR))
 C Parse category line...mlccatname, mlccatmenu, mlccatdoc >>
         mlccats=mlccats+1      ! increment category
         CALL EGETP(LOUTSTR,K,mlccatname(mlccats),'-','cat name',IER)
-        lnmlccatname(mlccats)=lnblnk(mlccatname(mlccats))
         CALL EGETP(LOUTSTR,K,mlccatmenu(mlccats),'-','cat menu',IER)
         CALL EGETRM(LOUTSTR,K,mlccatdoc(mlccats),'W','cat doc',IER)
         goto 41  ! read another line
@@ -890,7 +897,7 @@ C Parse current item category and increment matching cat counter.
         lncatn=lnblnk(mlcincat(mlcloop))
         do loop=1,mlccats
           if(mlcincat(mlcloop)(1:lncatn).eq.
-     &       mlccatname(loop)(1:lnmlccatname(loop)))then
+     &       mlccatname(loop)(1:lnblnk(mlccatname(loop))))then
             mlccatitems(loop)=mlccatitems(loop)+1
 C            write(6,*) 'Another for ',mlccatname(loop),' ',
 C     &        mlcloop,loop,mlccatitems(loop)
@@ -901,9 +908,9 @@ C     &        mlcloop,loop,mlccatitems(loop)
       elseif(WORD(1:6).eq.'*type')then
 
 C Parse current item type...mlctype mlcoptical mlcsymetric >>
-        CALL EGETW(LOUTSTR,K,mlctype(mlcloop),'-','*type',IER)
-        CALL EGETW(LOUTSTR,K,mlcoptical(mlcloop),'-','item optical',IER)
-        CALL EGETW(LOUTSTR,K,mlcsymetric(mlcloop),'-','item symetric',
+        CALL EGETP(LOUTSTR,K,mlctype(mlcloop),'-','*type',IER)
+        CALL EGETP(LOUTSTR,K,mlcoptical(mlcloop),'-','item optical',IER)
+        CALL EGETRM(LOUTSTR,K,mlcsymetric(mlcloop),'-','item symetric',
      &    IER)
         goto 41  ! read another line
 
@@ -1169,12 +1176,20 @@ C Clear item common, Parse item block, increment counter NMLC...mlcname mlcmenu
         mlccatindex(mlcloop)= 0; lnmlcname(mlcloop)=0
         THKMLC(mlcloop) =0.0; LAYERS(mlcloop)=0
 
-C EGETP for the mlcname & mlcmenu so spaces can be handled.
-        CALL EGETP(LOUTSTR,K,mlcname(mlcloop),'-','MLC name',IER)
-        MLCN=mlcname(mlcloop)
+C EGETP for the mlcname & mlcmenu so spaces can be handled. Keep track
+C of instances where mlcname >24 characters.
+        CALL EGETP(LOUTSTR,K,mlcn,'-','MLC name',IER)
+        mlcname(mlcloop)=MLCN
+        if(lnblnk(MLCN).gt.24)then
+          mlcnamegt24=mlcnamegt24+1
+          if(mlcnamegt24.le.6)then
+            mlcindex32(mlcnamegt24)=mlcloop
+          endif
+          write(6,'(i2,a,i3,2a)') mlcnamegt24,' long MLC is indx ',
+     &      mlcloop,' ',MLCN
+        endif
         lnmlcname(mlcloop)=lnblnk(mlcname(mlcloop))
         CALL EGETP(LOUTSTR,K,mlcmenu(mlcloop),'-','MLC menu',IER)
-        lnmlcmenu(mlcloop)=lnblnk(mlcmenu(mlcloop))
         goto 41  ! read another line
 
       elseif(WORD(1:9).eq.'*end_item')then
@@ -1669,6 +1684,10 @@ C Pick up general description of the composite.
       CALL EDISP(ITRU,' ')  ! always print this
       IF(mlctype(IFOC)(1:4).NE.'OPAQ'.AND. ! conventional TMC
      &   mlctype(IFOC)(1:3).NE.'CFC')THEN
+        if(lnmlco.gt.24)then
+          write(6,'(a,i3,2a)') 'optical name length',lnmlco,' ',
+     &      mlcoptical(ifoc)(1:lnmlco)
+        endif
         if(markdown)then
           call edisp(ITRU,' ')
           write(outstr,'(2a)')'### ',mlcname(ifoc)(1:lnmlcname(ifoc))
@@ -1688,6 +1707,10 @@ C Pick up general description of the composite.
           CALL EDISP(ITRU,OUTSTR)
         endif
       ELSEIF(mlctype(IFOC)(1:3).EQ.'CFC')THEN  ! one of the CFC
+        if(lnmlcname(ifoc).gt.24)then
+          write(6,'(a,i3,2a)') 'MLC name length',lnmlcname(ifoc),' ',
+     &      mlcname(ifoc)(1:lnmlcname(ifoc))
+        endif
         if(markdown)then
           call edisp(ITRU,' ')
           write(outstr,'(2a)')'### ',mlcname(ifoc)(1:lnmlcname(ifoc))
@@ -1703,6 +1726,10 @@ C Pick up general description of the composite.
           CALL EDISP(ITRU,OUTSTR)
         endif
       ELSE                                  ! an OPAQUE MLC
+        if(lnmlcname(ifoc).gt.24)then
+          write(6,'(a,i3,2a)') 'MLC name length',lnmlcname(ifoc),' ',
+     &      mlcname(ifoc)(1:lnmlcname(ifoc))
+        endif
         if(isymindex.eq.0)then
           if(markdown)then
             call edisp(ITRU,' ')
@@ -1749,14 +1776,14 @@ C If newer MLC also display documentation of the MLC.
             WRITE(OUTSTR,'(4a)')
      &        'In category ',mlcincat(ifoc)(1:lnblnk(mlcincat(ifoc))),
      &        ' also shown in menus as: ',
-     &        mlcmenu(ifoc)(1:lnmlcmenu(ifoc))
+     &        mlcmenu(ifoc)(1:lnblnk(mlcmenu(ifoc)))
             call edisp2tr(ITRU,OUTSTR)
             call edisp248(ITRU,mlcdoc(ifoc),100)
           else
             WRITE(OUTSTR,'(4a)')
      &        ' In category ',mlcincat(ifoc)(1:lnblnk(mlcincat(ifoc))),
      &        ' also shown in menus as: ',
-     &        mlcmenu(ifoc)(1:lnmlcmenu(ifoc))
+     &        mlcmenu(ifoc)(1:lnblnk(mlcmenu(ifoc)))
             CALL EDISP(ITRU,OUTSTR)
             call edisp248(ITRU,mlcdoc(ifoc),100)
           endif
@@ -2264,7 +2291,7 @@ C << NOTE this code needs further debugging.
 
 C Also list optical properties for this construction (if it is
 C transparent and the optical property is something other than
-C QPAQ.
+C QPAQ. Note: only first 12 char of mlcoptical used.
       if(mlctype(IFOC)(1:4).NE.'OPAQ'.AND.
      &   mlctype(IFOC)(1:3).NE.'CFC')then
         if(mlcoptical(ifoc)(1:4).ne.'OPAQ'.and.
@@ -2437,7 +2464,7 @@ C conposite construction database.
 
 C Create a menu showing the available database items.  Allow user to
 C select one and then list details of this construction based on info
-C in the materials database.
+C in the MLC database.
 
 C Present list based on the name and type of the MLC.
       WRITE(COMPS(1),'(A)')'UNKNOWN (at this time) '
@@ -2641,8 +2668,9 @@ C a gap layer.
           check_CFC2_or_MLC_2:
      &    IF(mlctype(I)(1:4).EQ.'CFC2') THEN
             cfcarrayindex=ITMCFCDB(I,IL)
-C           Only write out flipped switch if using CFClayers.db v. 1.2
-C           or later ... (see comments above, line 298 ff.)
+
+C Only write out flipped switch if using CFClayers.db v. 1.2
+C or later ... (see comments above, line 298 ff.)
             if (closecfc2) then
               if (CFC_layer_flipped(I,IL)) then
                 flipped='T'
@@ -2799,7 +2827,7 @@ C Write out a file header.
 
 C Loop through categories.
       do loop=1,mlccats
-        lnda=lnmlccatname(loop)
+        lnda=lnblnk(mlccatname(loop))
         lndb=lnblnk(mlccatmenu(loop))
         lndc=lnblnk(mlccatdoc(loop))
         write(IFMUL,'(7A)') '*Category',tab,mlccatname(loop)(1:lnda),
@@ -2810,7 +2838,7 @@ C Loop through categories.
 C Loop through items.
       do loop=1,mlcdbitems
         lnda=lnmlcname(loop)
-        lndb=lnmlcmenu(loop)
+        lndb=lnblnk(mlcmenu(loop))
         lndc=lnblnk(mlcdoc(loop))
         lndd=lnblnk(mlcincat(loop))
         lnde=lnblnk(mlctype(loop))
@@ -3049,8 +3077,8 @@ C documentation purposes).
             CALL EDISP(ITOPT,' ')
             CALL EDISP(ITOPT,': Absorption @deg')
             CALL EDISP(ITOPT,' ')
-            CALL EDISP(ITOPT,' Layer 0     40    55    70    80')
-            CALL EDISP(ITOPT,' ----- ----- ----- ----- ----- ----- ')
+            CALL EDISP(ITOPT,' Layer 0      40     55     70     80')
+            CALL EDISP(ITOPT,' ----- ------ ------ ------ ------ -----')
           else
             CALL EDISP(ITOPT,
      &      ' Direct transmission @ 0, 40, 55, 70, 80 deg')
@@ -3096,7 +3124,7 @@ C Reporting.
           IF(FOUND.OR.SOPT(1:3).EQ.'ALL')THEN
             if(markdown)then
               WRITE(OUTSTR,261)IL,(AB(IL,J),J=1,5)
-  261         FORMAT(I5,2X,5F7.3)
+  261         FORMAT(I5,5F7.3)
             else
               WRITE(OUTSTR,26)IL,(AB(IL,J),J=1,5)
    26         FORMAT(I5,1X,5F6.3)

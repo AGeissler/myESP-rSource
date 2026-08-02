@@ -16,7 +16,7 @@ C details.
 C *********************************************************************
 C This file contains the following subroutines:
 
-C MENUSG displays the strucrured gridding menu.
+C MENUSG displays the structured gridding menu.
 C LCLCMP displays the local components indices menu.
 C IMPCMP displays the menu for defining imported component.
 C DFNGRD displays the grid data menu.
@@ -30,12 +30,11 @@ C MTRINP allows editing and adding material geometries.
 C DFNBND displays the surface boundary menu.
 C BNDINP allows editing and adding boundary geometries.
 C SLCTZN displays the zone selection menu.
-C *********************************************************************
 
 C ***************************  MENUSG  ********************************
-C MENUSG displays the strucrured gridding menu.
-
+C Display the strucrured gridding menu.
       SUBROUTINE MENUSG(ITRC)
+
 #include "building.h"
 #include "prj3dv.h"
 #include "help.h"
@@ -61,21 +60,13 @@ C MENUSG displays the strucrured gridding menu.
       SAVEOK=.FALSE.
 
 C General image option flags.
-      ITDSP=1
-      ITBND=1
-      ITEPT=0
-      ITZNM=0
-      ITSNM=1
-      ITVNO=1
-      ITORG=1
-      ITSNR=1
-      ITGRD=1
+      ITDSP=1; ITBND=1; ITEPT=0
+      ITZNM=0; ITSNM=1; ITVNO=1
+      ITORG=1; ITSNR=1; ITGRD=1
       GRDIS=0.0
       ITPPSW=0
 
-C Draw the complete building.
-      IDRW1=1
-      IDRW2=0
+      IDRW1=1; IDRW2=0  ! Draw the complete building.
 
 C Display the menu.
    10 INO=-3
@@ -112,14 +103,12 @@ C Trap un-accepted options.
 
 C Select the zone.
         IF(IDRW1.NE.1.OR.MODIFYVIEW)THEN
-          IDRW1=1
-          IDRW2=0
+          IDRW1=1; IDRW2=0  ! Draw the complete building.
           CALL GRAAPH(IDRW1,IDRW2)
         ENDIF
         CALL SLCTZN(ITRC,SZN,IZ,ZONOK)
         IF(ZONOK)THEN
-          IDRW1=2
-          IDRW2=IZ
+          IDRW1=2; IDRW2=IZ   ! Focus on the zone.
           CALL GRAAPH(IDRW1,IDRW2)
         ENDIF
       ELSEIF(INO.EQ.3)THEN
@@ -141,7 +130,7 @@ C Save gridding information into a file.
       ELSEIF(INO.EQ.7)THEN
 
 C Read gridding from a file
-        CALL EASKS(LGrdSt,'Structured mesh file name ?',' ',
+        CALL EASKS(LGrdSt,'Structured mesh file name?',' ',
      &    72,' ',' Structured mesh file ',IER,nbhelp)
         CALL READST(IZ,ITRC,IER)
         IF(IER.EQ.0)THEN
@@ -232,7 +221,7 @@ C current menu line index. Build up text strings for the menu.
             STTS='| Not Defined'
           ENDIF
           icon=IZSTOCN(iz,L)
-          WRITE(ITEM(M),'(A1,1X,A12,2X,A14)')KEY,SNAME(iz,L),STTS
+          WRITE(ITEM(M),'(A,1X,A,2X,A)')KEY,SNAME(iz,L),STTS
         ENDIF
    20 CONTINUE
 
@@ -524,7 +513,7 @@ C List mesh widths
         NumLay=(NLay-1)/2
         IEnd=0
         NLoop=INT((NumRow-1)/10)+1
-        DO 20 ILoop=1,NLoop
+        DO ILoop=1,NLoop
           IStart=IEnd+1
           IF(ILoop.EQ.NLoop)THEN
             IEnd=NumRow
@@ -533,11 +522,11 @@ C List mesh widths
           ENDIF
           WRITE(LstMsh,'(10(1X,I6))')(LRow(J),J=IStart,IEnd)
           CALL EDISP(IUOUT,LstMsh)
-   20   CONTINUE
+        enddo
         LngTot=0
-        DO 21 J=2,NumRow-1
+        do J=2,NumRow-1
           LngTot=LngTot+LRow(J)
-   21   CONTINUE
+        enddo
         TotLng=LngTot*RefWidth
    25   FORMAT(A33,F8.3,1X,A1)
         WRITE(LstMsh,25)'Total length (without borders): ',TotLng,'m'
@@ -546,7 +535,7 @@ C List mesh widths
         CALL EDISP(IUOUT,'Column mesh widths:')
         IEnd=0
         NLoop=INT((NumCol-1)/10)+1
-        DO 30 ILoop=1,NLoop
+        do ILoop=1,NLoop
           IStart=IEnd+1
           IF(ILoop.EQ.NLoop)THEN
             IEnd=NumCol
@@ -555,11 +544,11 @@ C List mesh widths
           ENDIF
           WRITE(LstMsh,'(10(1X,I6))')(LCol(J),J=IStart,IEnd)
           CALL EDISP(IUOUT,LstMsh)
-   30   CONTINUE
+        enddo
         LngTot=0
-        DO 31 J=2,NumCol-1
+        do J=2,NumCol-1
           LngTot=LngTot+LCol(J)
-   31   CONTINUE
+        enddo
         TotLng=LngTot*RefWidth
         WRITE(LstMsh,25)'Total length (without borders): ',TotLng,'m'
         CALL EDISP(IUOUT,LstMsh)
@@ -625,7 +614,7 @@ C EDTMSH allows editing mesh widths.
         ELSE
           IEnd=IEnd+10
         ENDIF
-        WRITE(Promp,'(A27,A7,A8,I3,A,I3)')'Enter the mesh widths for ',
+        WRITE(Promp,'(A,A,A,I3,A,I3)')'Enter the mesh widths for ',
      &    DimName,' from ',IStart*2-1,' to ',IEnd*2+1
         WRITE(StrVal,'(10(1X,I6))')(LDim(J),J=IStart,IEnd)
   20    CALL EASKS(StrVal,Promp,' ',72,' ','mesh widths',IER,nbhelp)
@@ -688,7 +677,7 @@ C DVDMSH allows dividing mesh widths.
       DO 10 ILvl=1,NumDim
         IEnd=ILvl*2+1
         IStart=IEnd-2
-   91   FORMAT(A,A11,A9,I3,A5,I3,A16,I6,A1)
+   91   FORMAT(A,A,A,I3,A,I3,A,I6,A)
         WRITE(Promp,91)DimName,' mesh width',' between ',IStart,
      &    ' and ',IEnd,' (current value:',LDim(ILvl),')'
         CALL EASKMBOX(Promp,' ','next','divid','finish',
@@ -709,7 +698,7 @@ C DVDMSH allows dividing mesh widths.
               LDim(I)=LDim(J)
    20       CONTINUE
             NewL=INT(LDim(ILvl)/NDiv)
-            WRITE(Promp,'(A27)')'Enter the mesh widths for '
+            WRITE(Promp,'(A)')'Enter the mesh widths for '
             WRITE(StrVal,'(10(1X,I6))')(NewL,J=1,NDiv)
    70       CALL EASKS(StrVal,Promp,' ',72,' ','mesh widths',
      &        IER,nbhelp)
@@ -804,7 +793,7 @@ C DLTMSH allows deleting mesh widths.
       DO 10 ILvl=1,NumDim
         IEnd=ILvl*2+1
         IStart=IEnd-2
-   91   FORMAT(A,A11,A9,I3,A5,I3,A16,I6,A1)
+   91   FORMAT(A,A,A,I3,A,I3,A,I6,A)
         WRITE(Promp,91)DimName,' mesh width',' between ',IStart,
      &    ' and ',IEnd,' (current value:',LDim(ILvl),')'
         CALL EASKMBOX(Promp,' ','next','delete','finish',
@@ -941,11 +930,11 @@ C current menu line index. Build up text strings for the menu.
           CALL EMKEY(L,KEY,IER)
           ITEM(M)=' '
           IF(IMtrS(L).EQ.0.OR.IMtrE(L).EQ.0)THEN
-            WRITE(ITEM(M),'(A1,3X,I2,7X,A12)')KEY,L,'no material'
+            WRITE(ITEM(M),'(A,3X,I2,7X,A)')KEY,L,'no material'
           ELSE
             icon=IZSTOCN(IComp,IMtrS(L))
             SrfNm=SNAME(IComp,IMtrS(L))
-            WRITE(ITEM(M),'(A1,3X,I2,7X,A12,6X,I3)')KEY,L,SrfNm,IMtrE(L)
+            WRITE(ITEM(M),'(A,3X,I2,7X,A,6X,I3)')KEY,L,SrfNm,IMtrE(L)
           ENDIF
         ENDIF
    20 CONTINUE
@@ -1534,7 +1523,7 @@ C Draw the cross section based on the required view dimension and level.
       call gethelptext(helpinsub,helptopic,nbhelp)
       
       WRITE(Promp,'(A)')'Enter the view axeis and level indices:'
-      WRITE(StrVal,'(A4)')'3  4'
+      WRITE(StrVal,'(A)')'3  4'
   10  CALL EASKS(StrVal,Promp,' ',14,' ','View Indices',IER,nbhelp)
       CALL USRMSG(' ',' ','-')
       NInp = iCountWords(StrVal)
@@ -1738,7 +1727,7 @@ C Define the active scale.
       CALL LINESCALE(iigl,Xadd,SCA,iigb,Yadd,SCA)
 
 C Display header information.
-      WRITE(Title,'(A14,I2)')'Row Number: ',IRow
+      WRITE(Title,'(A,I2)')'Row Number: ',IRow
       iside=1
       isize=1
       ifont=2
@@ -1982,7 +1971,7 @@ C Define the active scale.
       CALL LINESCALE(iigl,Xadd,SCA,iigb,Yadd,SCA)
 
 C Display header information.
-      WRITE(Title,'(A14,I2)')'Column Number: ',ICol
+      WRITE(Title,'(A,I2)')'Column Number: ',ICol
       iside=1
       isize=1
       ifont=2
@@ -2228,7 +2217,7 @@ C Define the active scale.
       CALL LINESCALE(iigl,Xadd,SCA,iigb,Yadd,SCA)
 
 C Display header information.
-      WRITE(Title,'(A14,I2)')'Layer Number: ',ILay
+      WRITE(Title,'(A,I2)')'Layer Number: ',ILay
       iside=1
       isize=1
       ifont=2

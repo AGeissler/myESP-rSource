@@ -347,7 +347,7 @@ C Ask to overwrite flag.
 
 C Flags for multi-year simulation menus.
       logical bOptOut, bDone, bMY_clm_err, bExists, bCreate
-      logical bautook
+      logical bautook,MY
 
       integer iglib   ! if 1 then X11, if 2 then GTK, if 3 then text only.
       integer ier
@@ -991,7 +991,8 @@ C Cast expanded weather file name back to LCLIM.
         llt=lnblnk(llclmdb)
         write(LCLIM,'(a)') llclmdb(1:llt)
         ier=0
-        call CLMOPB(0,IER)
+        MY=.false.
+        call CLMOPB(MY,0,IER)
         IF(ier.eq.0)THEN
           CALL CLMRDBMD(IER)
           WRITE(OUTS,1000)CLMLOC(1:lnblnk(CLMLOC)),ICYEAR
@@ -1400,13 +1401,7 @@ C Dummy routines (needed for call back from c).
       return
       end
 
-C Dummy routines from common3dv.F needed to match implied
-C calls in esru_lib.F
-      SUBROUTINE ADJVIEW(IER)
-      ier=0
-      return
-      end
-
+C Dummy routines.
       subroutine redraw(IER)
       ier=0
       return

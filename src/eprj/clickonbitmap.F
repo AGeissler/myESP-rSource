@@ -5,7 +5,7 @@ C Strathclyde, Glasgow Scotland, 2001.
 C ESP-r is free software.  You can redistribute it and/or
 C modify it under the terms of the GNU General Public
 C License as published by the Free Software Foundation 
-C (version 2 orlater).
+C (version 2 or later).
 
 C ESP-r is distributed in the hope that it will be useful
 C but WITHOUT ANY WARRANTY; without even the implied
@@ -19,18 +19,16 @@ C  clickonbitmap: Control interface to define vertices or floor plan
 C      extrusion via clicking on a bitmap.
 C  dogrid:       draw grid on bitmap using current parameters.
 C  shifoverlays: update the position parameters and pixel arrays for
-C      lines and vertices over a bitmap.
+C                lines and vertices over a bitmap.
 C  refrshcur:    Refresh current bitmap and current overlayed information.
 C  ctlbmpan:     control panning of the bitmap within the graphics feedback
-C      area of a esp-r module.
+C                area of a esp-r module.
+C CKADDVERTINSURF: confirm if a potential vertex (XQ,YQ,ZQ) is unique.
+C MERGEVERTINSURF: merge a vertex (QX,QY,QZ) into a zone. 
+C pointmergewithinclick: Find point close to a base edge.
+C clickobstructions: Instanciate points related to obstructions.
+C clickfurn: Instanciate points related to furniture.
 
-C *************
-C Window jamb points SHOULD not be at existing wall corners.
-C there should be a separate structure to hold these points.
-C << TODO >>
-C Door jamb points SHOULD not be at existing wall corners.
-C there should be a separate structure to hold these points.
-C << TODO >>
 
 C ************* clickonbitmap
 C Control interface for defining vertices or a floor plan extrusion
@@ -49,6 +47,7 @@ C via clicking on a bitmap.
       COMMON/FILEP/IFIL
       integer menuchw,igl,igr,igt,igb,igw,igwh
       COMMON/VIEWPX/menuchw,igl,igr,igt,igb,igw,igwh
+      common/appcols/mdispl,nifgrey,ncset,ngset,nzonec
 
       integer ncomp,ncon
       COMMON/C1/NCOMP,NCON
@@ -76,7 +75,7 @@ C XYZ for up to 40 furniture points.
       common/furncord/nboffurnpts,furx(40),fury(40),furz(40),
      & ifurx(40),ifury(40)
 
-      DIMENSION ITEMS(23)
+      DIMENSION ITEMS(24)
       DIMENSION XX(MS),YY(MS)  ! get ready to depreciate
 
       integer INVERT  ! number of coordinates in list
@@ -119,8 +118,11 @@ C Pixel (upper left and lower right corners) of where the bitmap is draw.
       logical xbmgrid,xbmscale    ! logical toggles for gridding and scale set
       logical trimmed ! if only part of bitmap is displayed
       common/disptoggle/xbmnorth,xbmorigin,xbmgrid,xbmscale,trimmed
-      
-C << what about another array marking the type of the coordinate >>
+
+C Colour and width of trace lines over the bitmap, what colour for bitmap itself
+C and whether to use the same colour for prior zone trace lines.
+      integer xbmtcolour,xbmtwidth,xbmgrey,xbmhcolour
+      common/disptlines/xbmtcolour,xbmtwidth,xbmgrey,xbmhcolour
 
       dimension VIEWLIM(6),GRSPC(3)
 
@@ -132,6 +134,7 @@ C << what about another array marking the type of the coordinate >>
       character longtfile*144,fname*96
       integer nfile  ! nb of files in image folder
       character sfile*72,snpfile*72
+      character sbound_ty*12,sbound_c2*6,sbound_e2*6
       logical xbmload,xbmsnap,modgeo
       logical completed,unique,CLOSEX,CLOSEY,addinganother
       logical unixok
@@ -161,7 +164,7 @@ C an object has been saved the set justentered to false.
       integer iid1,iid2,iid3,iid4
       integer iix,iiy
       integer iixx,iiyy,iizz,iik
-      integer iicol
+      integer iicol,iixbmgrey
       integer iigl,iigr,iigt,iigb,iigw,iigwh
       integer iiw1,iiw2,iiw3,iiw4,iimenu,iixo,iiyo
       integer iixoffset,iiyoffset,iiwidth,iihight
@@ -171,7 +174,7 @@ C an object has been saved the set justentered to false.
       integer*8 iid1,iid2,iid3,iid4
       integer*8 iix,iiy
       integer*8 iixx,iiyy,iizz,iik
-      integer*8 iicol
+      integer*8 iicol,iixbmgrey
       integer*8 iigl,iigr,iigt,iigb,iigw,iigwh
       integer*8 iiw1,iiw2,iiw3,iiw4,iimenu,iixo,iiyo
       integer*8 iixoffset,iiyoffset,iiwidth,iihight
@@ -198,6 +201,10 @@ C Set true to signal that user wants to add another zone.
 C fname (nname of the bitmap file, assumed to be in the current folder or
 C specified by absolute address.
       fname=' '
+
+C Assume double width trace line, black colour for trace and historical
+C trace lines and a black bitmap.
+      xbmtcolour=1; xbmtwidth=2; xbmgrey=7; xbmhcolour=1
 
 C Input mode 
 C   inpmode: 1 = new vertices with common Z,
@@ -226,7 +233,6 @@ C Reset index when last extrusion point entered.
         ifurx(loop)=0; ifury(loop)=0
         pxwin(loop)=0.0; pywin(loop)=0.0
         ipxwin(loop)=0; ipywin(loop)=0
-
       enddo
 
 C nbobs() is the number of obstruction blocks. NBL is number of
@@ -486,9 +492,12 @@ C postprocessing.
       else
         ITEMS(18+m+n)='  . . .                         '
       endif
-      ITEMS(19+m+n)=  '? help                          '
-      ITEMS(20+m+n)=  '- exit                          '
-      MITEM=20+m+n
+
+C Graphic preferences here.
+      ITEMS(19+m+n)=  '* graphic preferences           '
+      ITEMS(20+m+n)=  '? help                          '
+      ITEMS(21+m+n)=  '- exit                          '
+      MITEM=21+m+n
 
 C Help text for this menu.
       helptopic='clickon_bitmap_menu'
@@ -516,14 +525,40 @@ C Save any ground topology.
           return
         endif
 
-      ELSEIF(INO.EQ.MITEM-1)THEN
+      elseif(INO.EQ.MITEM-1)then
 
 C Help.
         helptopic='clickon_bitmap_menu'
         call gethelptext(helpinsub,helptopic,nbhelp)
         CALL PHELPD('bitmap opening',nbhelp,'-',0,0,IER)
 
-      elseif(INO.EQ.MITEM-2)then
+      elseif(INO.EQ.MITEM-2)then  ! Graphic preferences.
+
+C for winscl('z',iicol) calls iicol 0 is red, 3 is forrest green.
+C for winscl('g',iicol) e.g. iicol=61 for grey.
+C for winscl('-',iicol) e.g. iicol=0 is black.
+
+        CALL EASKMBOX('Trace line between points colour:',' ',
+     &    'black','grey','red','green',' ',' ',' ',' ',xbmtcolour,
+     &    nbhelp)
+        CALL EASKMBOX('Trace line between points width:',' ',
+     &    'single width','double width','tripple width',' ',' ',' ',
+     &    ' ',' ',xbmtwidth,nbhelp)
+        ixbm=xbmgrey
+        CALL EASKMBOX('Bitmap file rendered as:',' ',
+     &    'black','dark grey','light grey',' ',' ',' ',
+     &    ' ',' ',ixbm,nbhelp)
+        if(ixbm.eq.1) xbmgrey=7
+        if(ixbm.eq.2) xbmgrey=6
+        if(ixbm.eq.3) xbmgrey=5
+        call easkok('Render prior zone trace lines with same colour?',
+     &    '(no uses a slightly lighter colour)',ok,nbhelp)
+        if(ok)then
+          xbmhcolour=1
+        else
+          xbmhcolour=0
+        endif
+      elseif(INO.EQ.MITEM-3)then
 
 C Write data to file depending on the input mode.
         if(inpmode.eq.6)then
@@ -540,11 +575,10 @@ C Save any ground topology.
             call edisp(iuout,outs)
           endif
         else
-
           continue
         endif
 
-      elseif(INO.EQ.MITEM-3)then
+      elseif(INO.EQ.MITEM-4)then
 
 C Offer to start another object.
         call easkmbox(' ','Options for adding objects:',
@@ -654,7 +688,7 @@ C << Unix vs NT needs to be updated >>
         INO=14+m+n
         goto 29
 
-      elseif(INO.EQ.MITEM-4)then
+      elseif(INO.EQ.MITEM-5)then
 
 C List the current vertices and corners.
         if(INVERT.gt.0)then
@@ -853,9 +887,10 @@ C Cast data types for C code.
                 iixoffset=ixoffset; iiyoffset=iyoffset
                 iiwidth=iwidth; iihight=ihight
                 iixbul=ixbul; iiybul=iybul; iixblr=ixblr; iiyblr=iyblr
-                iilix=15; iiliy=15
+                iilix=15; iiliy=15; iixbmgrey=xbmgrey
                 call winlodpart(fname,iixoffset,iiyoffset,iiwidth,
-     &            iihight,iilix,iiliy,iixbul,iiybul,iixblr,iiyblr)
+     &            iihight,iilix,iiliy,iixbul,iiybul,iixblr,iiyblr,
+     &            iixbmgrey)
                 ixbul=int(iixbul); iybul=int(iiybul)
                 ixblr=int(iixblr); iyblr=int(iiyblr)
               else
@@ -867,9 +902,10 @@ C Cast data types for C code.
                 iixoffset=ixoffset; iiyoffset=iyoffset
                 iiwidth=iwidth; iihight=ihight
                 iixbul=ixbul; iiybul=iybul; iixblr=ixblr; iiyblr=iyblr
-                iilix=10; iiliy=10
+                iilix=10; iiliy=10; iixbmgrey=xbmgrey
                 call winlodpart(fname,iixoffset,iiyoffset,iiwidth,
-     &            iihight,iilix,iiliy,iixbul,iiybul,iixblr,iiyblr)
+     &            iihight,iilix,iiliy,iixbul,iiybul,iixblr,iiyblr,
+     &            iixbmgrey)
                 ixbul=int(iixbul); iybul=int(iiybul)
                 ixblr=int(iixblr); iyblr=int(iiyblr)
               endif
@@ -1008,7 +1044,13 @@ C North.
           iid1=int(iixtn2); iid2=int(iiytn2)
           call esymbol(iid1,iid2,18,1)
           iid1=ixtn1; iid2=iytn1; iid3=ixtn2; iid4=iytn2;
-          call edwline(iid1,iid2,iid3,iid4)
+          if(xbmtwidth.eq.1)then
+            call eswline(iid1,iid2,iid3,iid4)
+          elseif(xbmtwidth.eq.2)then
+            call edwline(iid1,iid2,iid3,iid4)
+          elseif(xbmtwidth.eq.3)then
+            call etwline(iid1,iid2,iid3,iid4)
+          endif
           write(temp6,'(A)')'North'
           iid1=ixtn2+5; iid2=iytn2-5;
           call textatxy(iid1,iid2,temp6,'z',iicol)
@@ -1340,10 +1382,10 @@ C Door head height.
 C Window sill & head height.
           Z4=0.9
           CALL EASKR(Z4,' ','Elevation (m) at window sill?',
-     &      0.000,'W',99.9,'W',2.7,'door head',IER,nbhelp)
+     &      0.000,'W',99.9,'W',2.7,'window sill',IER,nbhelp)
           Z5=2.1
           CALL EASKR(Z5,' ','Elevation (m) at window head?',
-     &      0.000,'W',99.9,'W',2.7,'door head',IER,nbhelp)
+     &      0.000,'W',99.9,'W',2.7,'window head',IER,nbhelp)
         endif
         goto 142
 
@@ -1535,24 +1577,34 @@ C vertices might be used.
           endif
 
 C Increment number of vertices, add to clicklist arrays, change colour
-C to green draw the symbol and index of vertex and do Z editing if requested.
+C draw the symbol and index of vertex and do Z editing if requested.
           INVERT=INVERT+1
+          if(xbmtcolour.eq.1)then     ! Black
+            iicol=0
+            call winscl('-',iicol)
+          elseif(xbmtcolour.eq.2)then ! Grey
+            iicol=nifgrey-4
+            call winscl('i',iicol)
+          elseif(xbmtcolour.eq.3)then  ! Red
+            iicol=0
+            call winscl('z',iicol)
+          elseif(xbmtcolour.eq.4)then  ! Green
+            iicol=3
+            call winscl('z',iicol)
+          endif
           if(inpmode.eq.1.or.inpmode.eq.2.or.inpmode.eq.6)then
             ipxx(INVERT)=ixx; ipyy(INVERT)=iyy
-            px(INVERT)=tpx; py(INVERT)=tpy; iicol=3
-            call winscl('z',iicol)
+            px(INVERT)=tpx; py(INVERT)=tpy
             iid1=ipxx(INVERT); iid2=ipyy(INVERT);
             call esymbol(iid1,iid2,24,1)
           elseif(inpmode.eq.4)then
             ipxx(INVERT)=ixx; ipzz(INVERT)=izz
-            px(INVERT)=tpx; pz(INVERT)=tpy; iicol=3
-            call winscl('z',iicol)
+            px(INVERT)=tpx; pz(INVERT)=tpy
             iid1=ipxx(INVERT); iid2=ipzz(INVERT);
             call esymbol(iid1,iid2,24,1)
           elseif(inpmode.eq.5)then
             ipyy(INVERT)=iyy; ipzz(INVERT)=izz
-            py(INVERT)=tpx; pz(INVERT)=tpy; iicol=3
-            call winscl('z',iicol)
+            py(INVERT)=tpx; pz(INVERT)=tpy
             iid1=ipyy(INVERT); iid2=ipzz(INVERT);
             call esymbol(iid1,iid2,24,1)
           endif
@@ -1561,8 +1613,16 @@ C to green draw the symbol and index of vertex and do Z editing if requested.
           if(INVERT.gt.9.and.INVERT.le.99)write(temp3,'(i2)') INVERT
           if(INVERT.gt.99)write(temp3,'(i3)') INVERT
           if(inpmode.eq.1.or.inpmode.eq.2)then
-            iid1=ipxx(INVERT)+4; iid2=ipyy(INVERT)-1; iid3=3
-            call textatxy(iid1,iid2,temp3,'z',iid3)
+            iid1=ipxx(INVERT)+4; iid2=ipyy(INVERT)-1; iid3=iicol
+            if(xbmtcolour.eq.1)then     ! Black
+              call textatxy(iid1,iid2,temp3,'-',iid3)
+            elseif(xbmtcolour.eq.2)then ! Grey
+              call textatxy(iid1,iid2,temp3,'i',iid3)
+            elseif(xbmtcolour.eq.3)then  ! Red
+              call textatxy(iid1,iid2,temp3,'z',iid3)
+            elseif(xbmtcolour.eq.4)then  ! Green
+              call textatxy(iid1,iid2,temp3,'z',iid3)
+            endif
             iicol=0
             call winscl('-',iicol)
             X(INVERT)=px(INVERT); Y(INVERT)=py(INVERT)
@@ -1592,8 +1652,16 @@ C to green draw the symbol and index of vertex and do Z editing if requested.
             endif
             call edisp(iuout,outs)
           elseif(inpmode.eq.4)then
-            iid1=ipxx(INVERT)+4; iid2=ipzz(INVERT)-1; iid3=3
-            call textatxy(iid1,iid2,temp3,'z',iid3)
+            iid1=ipxx(INVERT)+4; iid2=ipzz(INVERT)-1; iid3=iicol
+            if(xbmtcolour.eq.1)then     ! Black
+              call textatxy(iid1,iid2,temp3,'-',iid3)
+            elseif(xbmtcolour.eq.2)then ! Grey
+              call textatxy(iid1,iid2,temp3,'i',iid3)
+            elseif(xbmtcolour.eq.3)then  ! Red
+              call textatxy(iid1,iid2,temp3,'z',iid3)
+            elseif(xbmtcolour.eq.4)then  ! Green
+              call textatxy(iid1,iid2,temp3,'z',iid3)
+            endif
             iicol=0
             call winscl('-',iicol)
             X(INVERT)=px(INVERT); Z(INVERT)=pz(INVERT)
@@ -1610,8 +1678,16 @@ C to green draw the symbol and index of vertex and do Z editing if requested.
             endif
             call edisp(iuout,outs)
           elseif(inpmode.eq.5)then
-            iid1=ipyy(INVERT)+4; iid2=ipzz(INVERT)-1; iid3=3
-            call textatxy(iid1,iid2,temp3,'z',iid3)
+            iid1=ipyy(INVERT)+4; iid2=ipzz(INVERT)-1; iid3=iicol
+            if(xbmtcolour.eq.1)then     ! Black
+              call textatxy(iid1,iid2,temp3,'-',iid3)
+            elseif(xbmtcolour.eq.2)then ! Grey
+              call textatxy(iid1,iid2,temp3,'i',iid3)
+            elseif(xbmtcolour.eq.3)then  ! Red
+              call textatxy(iid1,iid2,temp3,'z',iid3)
+            elseif(xbmtcolour.eq.4)then  ! Green
+              call textatxy(iid1,iid2,temp3,'z',iid3)
+            endif
             iicol=0
             call winscl('-',iicol)
             Y(INVERT)=py(INVERT); Z(INVERT)=pz(INVERT)
@@ -1630,8 +1706,16 @@ C to green draw the symbol and index of vertex and do Z editing if requested.
           elseif(inpmode.eq.6)then
 
 C Add to ground topology and confirm Z.
-            iid1=ipxx(INVERT)+4; iid2=ipyy(INVERT)-1; iid3=3
-            call textatxy(iid1,iid2,temp3,'z',iid3)
+            iid1=ipxx(INVERT)+4; iid2=ipyy(INVERT)-1; iid3=iicol
+            if(xbmtcolour.eq.1)then     ! Black
+              call textatxy(iid1,iid2,temp3,'-',iid3)
+            elseif(xbmtcolour.eq.2)then ! Grey
+              call textatxy(iid1,iid2,temp3,'i',iid3)
+            elseif(xbmtcolour.eq.3)then  ! Red
+              call textatxy(iid1,iid2,temp3,'z',iid3)
+            elseif(xbmtcolour.eq.4)then  ! Green
+              call textatxy(iid1,iid2,temp3,'z',iid3)
+            endif
             iicol=0
             call winscl('-',iicol)
             XGT(INVERT)=px(INVERT); YGT(INVERT)=py(INVERT)
@@ -1699,7 +1783,6 @@ C instantiate the common blocks.
               call st2name(ZN,zname(ICOMP))
               lnzname(ICOMP)=lnblnk(zname(ICOMP))  ! update the length of this string.
               zdesc(ICOMP)=zd
-              lnzdesc(ICOMP)=lnblnk(zd)  ! update the length of this string.
               LGEOM(ICOMP)=DFILE
               LTHRM(ICOMP)=CFILE
               LPROJ(ICOMP)=OFILE
@@ -1720,12 +1803,14 @@ C Create a single surface out of first 3 vertices so that a
 C zone geometry file can be created. 
               NTV=INVERT; NSUR=1; NZSUR(ICOMP)=NSUR
               NVER(1)=3
+              ISZNVER(icomp,1)=3
               JVN(1,1)=1; JVN(1,2)=2; JVN(1,3)=3
+              ISZJVN(icomp,1,1)=1; ISZJVN(icomp,1,2)=2
+              ISZJVN(icomp,1,3)=3
               NZTV(icomp)=NTV
               SNAME(ICOMP,1)='first'
               SOTF(ICOMP,1)='OPAQUE'; SMLCN(ICOMP,1)='UNKN'
-              SVFC(ICOMP,1)='FLOR'; SOTHER(ICOMP,1,1)='UNKNOWN'
-              SOTHER(ICOMP,1,2)='0'; SOTHER(ICOMP,1,3)='0'
+              SVFC(ICOMP,1)='FLOR'
               SUSE(ICOMP,1,1)='-'; SUSE(ICOMP,1,2)='-'
               SPARENT(ICOMP,1)='-'
 
@@ -1735,6 +1820,9 @@ C Update the connection list for an initial surface.
               IC1(ICCC)=ICOMP; IE1(ICCC)=1; ICT(ICCC)=0
               IC2(ICCC)=0; IE2(ICCC)=0
               IZSTOCN(icomp,1)=iccc
+              zboundarytype(icomp,1,1)=ICT(iccc)
+              zboundarytype(icomp,1,2)=IC2(iccc)
+              zboundarytype(icomp,1,3)=IE2(iccc)
               NCON=ICCC
 
 C Complete zone data before exiting use a similar pattern to that
@@ -1748,7 +1836,6 @@ C of the floor plan extrusion block of code below.
               if(zdesc(ICOMP)(1:2).EQ.'  ')then
                write(zdesc(ICOMP),'(2a)') 
      &           zname(ICOMP)(1:lnzname(ICOMP)),' describes a...'
-               lnzdesc(ICOMP)=lnblnk(zdesc(ICOMP))  ! update the length of this string.
               endif
 
 C Set type type and version based on current value of igupgrade.
@@ -1776,16 +1863,16 @@ C the zone can be calculated.
  
 C Save this to file before passing into the geometry editing facility.
               write(outs,'(3a)') 'Updating ',
-     &          zdesc(ICOMP)(1:lnzdesc(ICOMP)),'...'
+     &          zdesc(ICOMP)(1:lnblnk(zdesc(ICOMP))),'...'
               call edisp(iuout,outs)
               gversion(icomp) =1.1
-              call geowrite(IFIL+2,LGEOM(ICOMP),ICOMP,iuout,3,IER)
+              call geowrite2(IFIL+2,LGEOM(ICOMP),ICOMP,iuout,3,IER)
               IF(IER.EQ.1)THEN
                CALL usrmsg(' ','Problem creating geometry file...','W')
               ENDIF
 
               write(outs,'(3a)') 'Updating ',
-     &          zdesc(ICOMP)(1:lnzdesc(ICOMP)),'...done.'
+     &          zdesc(ICOMP)(1:lnblnk(zdesc(ICOMP))),'...done.'
               call edisp(iuout,outs)
 
 C Read in control file if defined, setup additional file names and then
@@ -1918,10 +2005,13 @@ C window though.
             endif
 
 C Offer user options after an [e] click.
+            call edisp(iuout,' ')
+            call edisp(iuout,
+     &        'HINT: Do doors then glazing and then furniture.')
             call easkmbox(
      &      'If adding both door & windows do doors first.',
      &        'Options:','door jambs','glazing jambs',
-     &        'furniture origin','obstructions','cancel',' ',' ',' ',
+     &        'furniture origin','obstructions','continue',' ',' ',' ',
      &        izdoor,nbhelp)
             if(izdoor.eq.1)then
               dodoor=.true.; nbofdoorpts=0
@@ -1935,7 +2025,7 @@ C Offer user options after an [e] click.
             elseif(izdoor.eq.2)then
               dowindow=.true.; nbofwindowpts=0
               if(dodoor)then
-                continue  ! previously did doors so already know lastwalllist
+                continue         ! previously did doors so already know lastwalllist
               else
                 lastwalllist=NW  ! remember last extrusion corner
               endif
@@ -2205,8 +2295,16 @@ C Draw it and index.
      &            write(temp3,'(a,i2)') 'd',nbofdoorpts
 
                 iid1=ipxdoor(nbofdoorpts)+4; iid2=ipydoor(nbofdoorpts)-1
-                iid3=3
-                call textatxy(iid1,iid2,temp3,'z',iid3)
+                iid3=iicol
+                if(xbmtcolour.eq.1)then     ! Black
+                  call textatxy(iid1,iid2,temp3,'-',iid3)
+                elseif(xbmtcolour.eq.2)then ! Grey
+                  call textatxy(iid1,iid2,temp3,'i',iid3)
+                elseif(xbmtcolour.eq.3)then  ! Red
+                  call textatxy(iid1,iid2,temp3,'z',iid3)
+                elseif(xbmtcolour.eq.4)then  ! Green
+                  call textatxy(iid1,iid2,temp3,'z',iid3)
+                endif
                 if(odd)then
                   write(outs,'(a,i3,a,f8.3,a,f8.3)') 'L Door ',
      &              nbofdoorpts,' @ X',
@@ -2284,8 +2382,16 @@ C Draw it and index.
      &            write(temp3,'(a,i2)') 'w',nbofwindowpts
                 iid1=ipxwin(nbofwindowpts)+4
                 iid2=ipywin(nbofwindowpts)-1
-                iid3=3
-                call textatxy(iid1,iid2,temp3,'z',iid3)
+                iid3=iicol
+                if(xbmtcolour.eq.1)then     ! Black
+                  call textatxy(iid1,iid2,temp3,'-',iid3)
+                elseif(xbmtcolour.eq.2)then ! Grey
+                  call textatxy(iid1,iid2,temp3,'i',iid3)
+                elseif(xbmtcolour.eq.3)then  ! Red
+                  call textatxy(iid1,iid2,temp3,'z',iid3)
+                elseif(xbmtcolour.eq.4)then  ! Green
+                  call textatxy(iid1,iid2,temp3,'z',iid3)
+                endif
                 write(outs,'(a,i3,a,f8.3,a,f8.3)') 'Window ',
      &            nbofwindowpts,' @ X',
      &            pxwin(nbofwindowpts),' Y',pywin(nbofwindowpts)
@@ -2332,24 +2438,63 @@ C might not match a previous zone corner.
           endif
 
 C Corner added draw it and index and a line from the previous to current.
+          if(xbmtcolour.eq.1)then     ! Black
+            iicol=0
+            call winscl('-',iicol)
+          elseif(xbmtcolour.eq.2)then ! Grey
+            iicol=nifgrey-4
+            call winscl('i',iicol)
+          elseif(xbmtcolour.eq.3)then  ! Red
+            iicol=0
+            call winscl('z',iicol)
+          elseif(xbmtcolour.eq.4)then  ! Green
+            iicol=3
+            call winscl('z',iicol)
+          endif
           NW=NW+1
           ipxbase(NW)=ixx; ipybase(NW)=iyy
-          pxbase(NW)=tpxw; pybase(NW)=tpyw; iicol=3
-          call winscl('z',iicol)
+          pxbase(NW)=tpxw; pybase(NW)=tpyw
+C          iicol=3
+C          call winscl('z',iicol)
           iid1=ipxbase(NW); iid2=ipybase(NW);
           call esymbol(iid1,iid2,24,1)
           if(NW.gt.0.and.NW.le.9)write(temp3,'(i1)') NW
           if(NW.gt.9.and.NW.le.99)write(temp3,'(i2)') NW
           if(NW.gt.99)write(temp3,'(i3)') NW
           iid1=ipxbase(NW)+4; iid2=ipybase(NW)-1
-          iid3=3
-          call textatxy(iid1,iid2,temp3,'z',iid3)
+          iid3=iicol
+          if(xbmtcolour.eq.1)then     ! Black
+            call textatxy(iid1,iid2,temp3,'-',iid3)
+          elseif(xbmtcolour.eq.2)then ! Grey
+            call textatxy(iid1,iid2,temp3,'i',iid3)
+          elseif(xbmtcolour.eq.3)then  ! Red
+            call textatxy(iid1,iid2,temp3,'z',iid3)
+          elseif(xbmtcolour.eq.4)then  ! Green
+            call textatxy(iid1,iid2,temp3,'z',iid3)
+          endif
           if(NW.gt.1)then
-            iicol=3
-            call winscl('z',iicol)
+            if(xbmtcolour.eq.1)then     ! Black
+              iicol=0
+              call winscl('-',iicol)
+            elseif(xbmtcolour.eq.2)then ! Grey
+              iicol=nifgrey-4
+              call winscl('i',iicol)
+            elseif(xbmtcolour.eq.3)then  ! Red
+              iicol=0
+              call winscl('z',iicol)
+            elseif(xbmtcolour.eq.4)then  ! Green
+              iicol=3
+              call winscl('z',iicol)
+            endif
             iid1=ipxbase(NW-1); iid2=ipybase(NW-1)
             iid3=ipxbase(NW); iid4=ipybase(NW)
-            call edwline(iid1,iid2,iid3,iid4)
+            if(xbmtwidth.eq.1)then
+              call eswline(iid1,iid2,iid3,iid4)
+            elseif(xbmtwidth.eq.2)then
+              call edwline(iid1,iid2,iid3,iid4)
+            elseif(xbmtwidth.eq.3)then
+              call etwline(iid1,iid2,iid3,iid4)
+            endif
           endif
           if(NW.eq.1)then
             write(outs,'(a,i3,a,f8.3,a,f8.3)') 'Point ',NW,
@@ -2371,15 +2516,32 @@ C Selection terminated with `e`, ask user if they want to save the
 C information. If so fill zone common blocks. Draw line from last 
 C corner to first corner and return forground colour to black.
  247      continue
-          iicol=3
-          call winscl('z',iicol)
+          if(xbmtcolour.eq.1)then     ! Black
+            iicol=0
+            call winscl('-',iicol)
+          elseif(xbmtcolour.eq.2)then ! Grey
+            iicol=nifgrey-4
+            call winscl('i',iicol)
+          elseif(xbmtcolour.eq.3)then  ! Red
+            iicol=0
+            call winscl('z',iicol)
+          elseif(xbmtcolour.eq.4)then  ! Green
+            iicol=3
+            call winscl('z',iicol)
+          endif
           if(dodoor.or.dowindow.or.dofurn)then
             iid1=ipxbase(lastwalllist); iid2=ipybase(lastwalllist)  ! use lastwalllist
           else
             iid1=ipxbase(NW); iid2=ipybase(NW)  ! std close of boundary lines
           endif
           iid3=ipxbase(1); iid4=ipybase(1)
-          call edwline(iid1,iid2,iid3,iid4)
+          if(xbmtwidth.eq.1)then
+            call eswline(iid1,iid2,iid3,iid4)
+          elseif(xbmtwidth.eq.2)then
+            call edwline(iid1,iid2,iid3,iid4)
+          elseif(xbmtwidth.eq.2)then
+            call etwline(iid1,iid2,iid3,iid4)
+          endif
           iicol=0
           call winscl('-',iicol)
           helptopic='user_typed_e'
@@ -2425,7 +2587,6 @@ C instantiate the common blocks.
               call st2name(ZN,zname(ICOMP))
               lnzname(ICOMP)=lnblnk(zname(ICOMP))  ! update the length of this string.
               zdesc(ICOMP)=zd
-              lnzdesc(ICOMP)=lnblnk(zd)  ! update the length of this string.
               LGEOM(ICOMP)=DFILE
               LTHRM(ICOMP)=CFILE
               LPROJ(ICOMP)=OFILE
@@ -2433,7 +2594,10 @@ C instantiate the common blocks.
 
 C Convert corners into a gen body and update nzsur and nztv
             CALL EREGC(lastwalllist,Z1,Z2,pxbase,pybase)
+
+C Update global geometric variables.
             NSUR=lastwalllist+2
+            NZSUR(ICOMP)=lastwalllist+2
 
 C Debug.
 C            write(6,'(a,6i4)') 'i nw is ',NW,lastwalllist,NSUR,NTV,
@@ -2680,6 +2844,11 @@ C Update the connection list.
               ICCC=ICCC+1; IC1(ICCC)=ICOMP; IE1(ICCC)=ICC
               ICT(ICCC)=0; IC2(ICCC)=0; IE2(ICCC)=0
               IZSTOCN(icomp,icc)=iccc
+              zboundarytype(icomp,icc,1)=ICT(iccc)
+              zboundarytype(icomp,icc,2)=IC2(iccc)
+              zboundarytype(icomp,icc,3)=IE2(iccc)
+              call decode_zsbound(icomp,icc,sbound_ty,sbound_c2,
+     &          sbound_e2)
   432       CONTINUE
             NCON=ICCC
 
@@ -2693,7 +2862,6 @@ C Complete zone data before exiting.
             if(zdesc(ICOMP)(1:2).EQ.'  ')then
               write(zdesc(ICOMP),'(2a)') 
      &          zname(ICOMP)(1:lnzname(ICOMP)),' describes a...'
-              lnzdesc(ICOMP)=lnblnk(zdesc(ICOMP))  ! update the length of this string.
             endif
 
 C Set geometry type.
@@ -2704,6 +2872,13 @@ C Set geometry type.
 
             NZSUR(ICOMP)=NSUR  ! update nzsur() it is needed by zgupdate.
             NZTV(ICOMP)=NTV
+            DO 50 J=1, nzsur(ICOMP)
+              isznver(icomp,J)=NVER(J)
+              N = isznver(icomp,J)
+              DO 60 K=1,N
+                iszjvn(icomp,j,K)=JVN(J,K)
+   60         CONTINUE
+   50       CONTINUE
 
 C Update the G7 common blocks and then assign ZBASEA.
             call zgupdate(1,ICOMP,ier)
@@ -2723,16 +2898,16 @@ C the zone can be calculated.
  
 C Save this to file before passing into the geometry editing facility.
             write(outs,'(3a)') 'Updating ',
-     &        zdesc(ICOMP)(1:lnzdesc(ICOMP)),'...'
+     &        zdesc(ICOMP)(1:lnblnk(zdesc(ICOMP))),'...'
             call edisp(iuout,outs)
             gversion(icomp) =1.1
-            call geowrite(IFIL+2,LGEOM(ICOMP),ICOMP,iuout,3,IER)
+            call geowrite2(IFIL+2,LGEOM(ICOMP),ICOMP,iuout,3,IER)
             IF(IER.EQ.1)THEN
               CALL usrmsg(' ',' Problem creating geometry file...','W')
             ENDIF
 
             write(outs,'(3a)') 'Updating ',
-     &        zdesc(ICOMP)(1:lnzdesc(ICOMP)),'...done.'
+     &        zdesc(ICOMP)(1:lnblnk(zdesc(ICOMP))),'...done.'
             call edisp(iuout,outs)
 
 C Add doors as surfaces (for up to 20).
@@ -2786,7 +2961,12 @@ C Add doors as surfaces (for up to 20).
                 NZTV(ICOMP)=NTV
                 JVN(NSUR,1)=idjvn(idoor,1); JVN(NSUR,2)=idjvn(idoor,2)
                 JVN(NSUR,3)=idjvn(idoor,3); JVN(NSUR,4)=idjvn(idoor,4)
+                iszjvn(icomp,nsur,1)=idjvn(idoor,1)
+                iszjvn(icomp,nsur,2)=idjvn(idoor,2)
+                iszjvn(icomp,nsur,3)=idjvn(idoor,3)
+                iszjvn(icomp,nsur,4)=idjvn(idoor,4)
                 NVER(NSUR)=4
+                isznver(icomp,nsur)=4
                 CALL FILSUR(ICOMP,NSUR)
                 write(SNAME(ICOMP,NSUR),'(a)') dn(1:lnblnk(dn))
                 ltrace=1
@@ -2808,10 +2988,10 @@ C of ibedgeofdoor to account for this.
               end do
 
               write(outs,'(3a)') 'Updating ',
-     &          zdesc(ICOMP)(1:lnzdesc(ICOMP)),'...for doors'
+     &          zdesc(ICOMP)(1:lnblnk(zdesc(ICOMP))),'...for doors'
               call edisp(iuout,outs)
               gversion(icomp) =1.1
-              call geowrite(IFIL+2,LGEOM(ICOMP),ICOMP,iuout,3,IER)
+              call geowrite2(IFIL+2,LGEOM(ICOMP),ICOMP,iuout,3,IER)
               IF(IER.EQ.1)THEN
                 CALL usrmsg(' ','Problem creating geometry file...','W')
               ENDIF
@@ -2867,13 +3047,25 @@ C Now do update for windows. Logic for up to 20 windows.
                 NZSUR(ICOMP)=NSUR; NZTV(ICOMP)=NTV
                 JVN(NSUR,1)=iwjvn(iwin,1); JVN(NSUR,2)=iwjvn(iwin,2)
                 JVN(NSUR,3)=iwjvn(iwin,3); JVN(NSUR,4)=iwjvn(iwin,4)
+                iszjvn(icomp,nsur,1)=iwjvn(iwin,1)
+                iszjvn(icomp,nsur,2)=iwjvn(iwin,2)
+                iszjvn(icomp,nsur,3)=iwjvn(iwin,3)
+                iszjvn(icomp,nsur,4)=iwjvn(iwin,4)
                 NVER(NSUR)=4
+                isznver(icomp,nsur)=4
                 CALL FILSUR(ICOMP,NSUR)
                 write(SNAME(ICOMP,NSUR),'(a)') dn(1:lnblnk(dn))
                 ltrace=1
 
 C Insert default surface information into the connections-based data structures.
                 call addedsurf(icomp,icon,ltrace,ier)
+                ict(icon)=-1; ic2(icon)=0; ie2(icon)=0
+                zboundarytype(icomp,nsur,1)=ICT(icon)
+                zboundarytype(icomp,nsur,2)=IC2(icon)
+                zboundarytype(icomp,nsur,3)=IE2(icon)
+                call decode_zsbound(icomp,nsur,sbound_ty,sbound_c2,
+     &            sbound_e2)
+
                 IPS=ibedgeofwin(iloc)  ! edge at child click (iloc)
                 ICS=NSUR    ! point to new surface
                 IRT=1       ! as a simple rectangular child within
@@ -2881,12 +3073,12 @@ C Insert default surface information into the connections-based data structures.
                 iloc=iloc+2
               end do
               write(outs,'(3a)') 'Updating ',
-     &          zdesc(ICOMP)(1:lnzdesc(ICOMP)),'... for glazing'
+     &          zdesc(ICOMP)(1:lnblnk(zdesc(ICOMP))),'... for glazing'
               call edisp(iuout,outs)
               call updatesvfc(icomp,modgeo)  ! update SVFC orientation string.
 
               gversion(icomp) =1.1
-              call geowrite(IFIL+2,LGEOM(ICOMP),ICOMP,iuout,3,IER)
+              call geowrite2(IFIL+2,LGEOM(ICOMP),ICOMP,iuout,3,IER)
               IF(IER.EQ.1)THEN
                 CALL usrmsg(' ','Problem creating geometry file...','W')
               ENDIF
@@ -3460,6 +3652,7 @@ C Other is the grid distance if user supplied (iwmg=7).
      &  ixo,iyo,completed,other,lastwalllist)
 #include "building.h"
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
+      common/appcols/mdispl,nifgrey,ncset,ngset,nzonec
 
       integer INVERT  ! number of coordinates in list
       real px,py,pz   ! user coordinates from clicks
@@ -3511,16 +3704,19 @@ C Pixel (upper left and lower right corners) of where the bitmap is draw.
 
       logical completed,within
 
+      integer xbmtcolour,xbmtwidth,xbmgrey,xbmhcolour
+      common/disptlines/xbmtcolour,xbmtwidth,xbmgrey,xbmhcolour
+
       dimension viewlim(6)
       character fname*72,temp6*6,temp3*3
 #ifdef OSI
       integer iixtn1,iiytn1,iixtn2,iiytn2,iid1,iid2,iid3,iid4
-      integer iicol
+      integer iicol,iixbmgrey
       integer iixoffset,iiyoffset,iiwidth,iihight
       integer iixbul,iiybul,iixblr,iiyblr,iilix,iiliy
 #else
       integer*8 iixtn1,iiytn1,iixtn2,iiytn2,iid1,iid2,iid3,iid4
-      integer*8 iicol
+      integer*8 iicol,iixbmgrey
       integer*8 iixoffset,iiyoffset,iiwidth,iihight
       integer*8 iixbul,iiybul,iixblr,iiyblr,iilix,iiliy
 #endif
@@ -3532,9 +3728,9 @@ C      write(6,*) 'refresh bitmap'
       iixoffset=ixoffset; iiyoffset=iyoffset
       iiwidth=iwidth; iihight=ihight
       iixbul=ixbul; iiybul=iybul; iixblr=ixblr; iiyblr=iyblr
-      iilix=15; iiliy=15
+      iilix=15; iiliy=15; iixbmgrey=xbmgrey
       call winlodpart(fname,iixoffset,iiyoffset,iiwidth,iihight,
-     &  iilix,iiliy,iixbul,iiybul,iixblr,iiyblr)
+     &  iilix,iiliy,iixbul,iiybul,iixblr,iiyblr,iixbmgrey)
       ixbul=int(iixbul); iybul=int(iiybul)
       ixblr=int(iixblr); iyblr=int(iiyblr)
       call edisp(iuout,'Refreshing bitmap...')
@@ -3607,48 +3803,85 @@ C windows doors furniture origins that might have been included
 C in a floor plan extrusion.
       if(INVERT.gt.0)then
         do 122 j=1,INVERT
+          if(xbmtcolour.eq.1)then     ! Black
+            iicol=0
+            call winscl('-',iicol)
+          elseif(xbmtcolour.eq.2)then ! Grey
+            iicol=nifgrey-4
+            call winscl('i',iicol)
+          elseif(xbmtcolour.eq.3)then  ! Red
+            iicol=0
+            call winscl('z',iicol)
+          elseif(xbmtcolour.eq.4)then  ! Green
+            iicol=3
+            call winscl('z',iicol)
+          endif
           if(inpm.eq.1.or.inpm.eq.2.or.inpm.eq.3.or.inpm.eq.6)then
             if(((ipxx(j).ge.ixbul).and.(ipxx(j).le.ixblr)).and.
      &         ((ipyy(j).ge.iybul).and.(ipyy(j).le.iyblr)))then
-              iicol=3
-              call winscl('z',iicol)
+C              iicol=3
+C              call winscl('z',iicol)
               iid1=ipxx(j); iid2=ipyy(j);
               call esymbol(iid1,iid2,24,1)
               if(j.gt.0.and.j.le.9)write(temp3,'(i1)') j
               if(j.gt.9.and.j.le.99)write(temp3,'(i2)') j
               if(j.gt.99)write(temp3,'(i3)') j
-              iid1=ipxx(j)+4; iid2=ipyy(j)-1; iid3=3
-              call textatxy(iid1,iid2,temp3,'z',iid3)
+              iid1=ipxx(j)+4; iid2=ipyy(j)-1; iid3=iicol
+              if(xbmtcolour.eq.1)then     ! Black
+                call textatxy(iid1,iid2,temp3,'-',iid3)
+              elseif(xbmtcolour.eq.2)then ! Grey
+                call textatxy(iid1,iid2,temp3,'i',iid3)
+              elseif(xbmtcolour.eq.3)then  ! Red
+                call textatxy(iid1,iid2,temp3,'z',iid3)
+              elseif(xbmtcolour.eq.4)then  ! Green
+                call textatxy(iid1,iid2,temp3,'z',iid3)
+              endif
               iicol=0
               call winscl('-',iicol)
             endif
           elseif(inpm.eq.4)then
             if(((ipxx(j).ge.ixbul).and.(ipxx(j).le.ixblr)).and.
      &         ((ipzz(j).ge.iybul).and.(ipzz(j).le.iyblr)))then
-              iicol=3
-              call winscl('z',iicol)
+C              iicol=3
+C              call winscl('z',iicol)
               iid1=ipxx(j); iid2=ipzz(j);
               call esymbol(iid1,iid2,24,1)
               if(j.gt.0.and.j.le.9)write(temp3,'(i1)') j
               if(j.gt.9.and.j.le.99)write(temp3,'(i2)') j
               if(j.gt.99)write(temp3,'(i3)') j
-              iid1=ipxx(j)+4; iid2=ipzz(j)-1; iid3=3
-              call textatxy(iid1,iid2,temp3,'z',iid3)
+              iid1=ipxx(j)+4; iid2=ipzz(j)-1; iid3=iicol
+              if(xbmtcolour.eq.1)then     ! Black
+                call textatxy(iid1,iid2,temp3,'-',iid3)
+              elseif(xbmtcolour.eq.2)then ! Grey
+                call textatxy(iid1,iid2,temp3,'i',iid3)
+              elseif(xbmtcolour.eq.3)then  ! Red
+                call textatxy(iid1,iid2,temp3,'z',iid3)
+              elseif(xbmtcolour.eq.4)then  ! Green
+                call textatxy(iid1,iid2,temp3,'z',iid3)
+              endif
               iicol=0
               call winscl('-',iicol)
             endif
           elseif(inpm.eq.5)then
             if(((ipyy(j).ge.ixbul).and.(ipyy(j).le.ixblr)).and.
      &         ((ipzz(j).ge.iybul).and.(ipzz(j).le.iyblr)))then
-              iicol=3
-              call winscl('z',iicol)
+C              iicol=3
+C              call winscl('z',iicol)
               iid1=ipyy(j); iid2=ipzz(j);
               call esymbol(iid1,iid2,24,1)
               if(j.gt.0.and.j.le.9)write(temp3,'(i1)') j
               if(j.gt.9.and.j.le.99)write(temp3,'(i2)') j
               if(j.gt.99)write(temp3,'(i3)') j
-              iid1=ipyy(j)+4; iid2=ipzz(j)-1; iid3=3
-              call textatxy(iid1,iid2,temp3,'z',iid3)
+              iid1=ipyy(j)+4; iid2=ipzz(j)-1; iid3=iicol
+              if(xbmtcolour.eq.1)then     ! Black
+                call textatxy(iid1,iid2,temp3,'-',iid3)
+              elseif(xbmtcolour.eq.2)then ! Grey
+                call textatxy(iid1,iid2,temp3,'i',iid3)
+              elseif(xbmtcolour.eq.3)then  ! Red
+                call textatxy(iid1,iid2,temp3,'z',iid3)
+              elseif(xbmtcolour.eq.4)then  ! Green
+                call textatxy(iid1,iid2,temp3,'z',iid3)
+              endif
               iicol=0
               call winscl('-',iicol)
             endif
@@ -3665,16 +3898,92 @@ C or the line of the wall.
      &       ((ipywhis(j).ge.iybul).and.(ipywhis(j).le.iyblr)))then
             iicol=2
             call winscl('z',iicol)
+            if(xbmtcolour.eq.1)then     ! Black
+              if(xbmhcolour.eq.1)then
+                iicol=0
+                call winscl('-',iicol)
+              else                       ! Use grey for historical
+                iicol=nifgrey-4
+                call winscl('i',iicol)
+              endif
+            elseif(xbmtcolour.eq.2)then ! Grey
+              if(xbmhcolour.eq.1)then
+                iicol=nifgrey-4
+                call winscl('i',iicol)
+              else
+                iicol=nifgrey-3
+                call winscl('i',iicol)
+              endif
+            elseif(xbmtcolour.eq.3)then  ! Red
+              if(xbmhcolour.eq.1)then
+                iicol=0
+                call winscl('z',iicol)
+              else                       ! Use firebrick for historical
+                iicol=9
+                call winscl('z',iicol)
+              endif
+            elseif(xbmtcolour.eq.4)then  ! Green
+              if(xbmhcolour.eq.1)then
+                iicol=3
+                call winscl('z',iicol)
+              else                       ! Use OliveDrab for historical.
+                iicol=16
+                call winscl('z',iicol)
+              endif
+            endif
             iid1=ipxwhis(j); iid2=ipywhis(j);
             call esymbol(iid1,iid2,24,1)
             if(j.gt.0.and.j.le.9)write(temp3,'(i1)') j
             if(j.gt.9.and.j.le.99)write(temp3,'(i2)') j
             if(j.gt.99)write(temp3,'(i3)') j
-            iid1=ipxwhis(j)+4; iid2=ipywhis(j)-1; iid3=2
-            call textatxy(iid1,iid2,temp3,'z',iid3)
+            iid1=ipxwhis(j)+4; iid2=ipywhis(j)-1; iid3=iicol
+            if(xbmtcolour.eq.1)then     ! Black
+              if(xbmhcolour.eq.1)then
+                call textatxy(iid1,iid2,temp3,'-',iid3)
+              else 
+                call textatxy(iid1,iid2,temp3,'i',iid3)
+              endif
+            elseif(xbmtcolour.eq.2)then ! Grey
+              call textatxy(iid1,iid2,temp3,'i',iid3)
+            elseif(xbmtcolour.eq.3)then  ! Red
+              call textatxy(iid1,iid2,temp3,'z',iid3)
+            elseif(xbmtcolour.eq.4)then  ! Green
+              call textatxy(iid1,iid2,temp3,'z',iid3)
+            endif
             if(j.gt.1)then
-              iicol=2
-              call winscl('z',iicol)
+              if(xbmtcolour.eq.1)then     ! Black
+                if(xbmhcolour.eq.1)then
+                  iicol=0
+                  call winscl('-',iicol)
+                else                       ! Use grey for historical
+                  iicol=nifgrey-4
+                  call winscl('i',iicol)
+                endif
+              elseif(xbmtcolour.eq.2)then ! Grey
+                if(xbmhcolour.eq.1)then
+                  iicol=nifgrey-4
+                  call winscl('i',iicol)
+                else
+                  iicol=nifgrey-3
+                  call winscl('i',iicol)
+                endif
+              elseif(xbmtcolour.eq.3)then  ! Red
+                if(xbmhcolour.eq.1)then
+                  iicol=0
+                  call winscl('z',iicol)
+                else                       ! Use firebrick for historical
+                  iicol=9
+                  call winscl('z',iicol)
+                endif
+              elseif(xbmtcolour.eq.4)then  ! Green
+                if(xbmhcolour.eq.1)then
+                  iicol=3
+                  call winscl('z',iicol)
+                else                       ! Use OliveDrab for historical.
+                  iicol=16
+                  call winscl('z',iicol)
+                endif
+              endif
 
 C See which zone this point is in. If past the first point in
 C the zone draw back to the starting point.
@@ -3688,11 +3997,17 @@ C the zone draw back to the starting point.
               if(within)then
                 iid1=ipxwhis(j-1); iid2=ipywhis(j-1)
                 iid3=ipxwhis(j); iid4=ipywhis(j)
-                call edwline(iid1,iid2,iid3,iid4)
+                if(xbmtwidth.eq.1)then
+                  call eswline(iid1,iid2,iid3,iid4)
+                elseif(xbmtwidth.eq.2)then
+                  call edwline(iid1,iid2,iid3,iid4)
+                elseif(xbmtwidth.eq.3)then
+                  call etwline(iid1,iid2,iid3,iid4)
+                endif
               endif
             endif
           endif
-  124   continue
+  124   continue   ! End of the historical loop.
       endif
 
 C If there is an extruded floor plan draw them. If of outside
@@ -3701,24 +4016,60 @@ C Debug.
 C      write(6,*) 'refrshcur nw lw nd nw nf ',NW,lastwalllist,
 C     &  nbofdoorpts,nbofwindowpts,nboffurnpts
       if(NW.gt.0.and.inpm.eq.3)then
+        if(xbmtcolour.eq.1)then     ! Black
+          iicol=0
+          call winscl('-',iicol)
+        elseif(xbmtcolour.eq.2)then ! Grey
+          iicol=nifgrey-4
+          call winscl('i',iicol)
+        elseif(xbmtcolour.eq.3)then  ! Red
+          iicol=0
+          call winscl('z',iicol)
+        elseif(xbmtcolour.eq.4)then  ! Green
+          iicol=3
+          call winscl('z',iicol)
+        endif
         do 123 j=1,NW
           if(((ipxbase(j).ge.ixbul).and.(ipxbase(j).le.ixblr)).and.
      &       ((ipybase(j).ge.iybul).and.(ipybase(j).le.iyblr)))then
-            iicol=3
-            call winscl('z',iicol)
             iid1=ipxbase(j); iid2=ipybase(j);
             call esymbol(iid1,iid2,24,1)
             if(j.gt.0.and.j.le.9)write(temp3,'(i1)') j
             if(j.gt.9.and.j.le.99)write(temp3,'(i2)') j
             if(j.gt.99)write(temp3,'(i3)') j
-            iid1=ipxbase(j)+4; iid2=ipybase(j)-1; iid3=3
-            call textatxy(iid1,iid2,temp3,'z',iid3)
+            iid1=ipxbase(j)+4; iid2=ipybase(j)-1; iid3=iicol
+            if(xbmtcolour.eq.1)then     ! Black
+              call textatxy(iid1,iid2,temp3,'-',iid3)
+            elseif(xbmtcolour.eq.2)then ! Grey
+              call textatxy(iid1,iid2,temp3,'i',iid3)
+            elseif(xbmtcolour.eq.3)then  ! Red
+              call textatxy(iid1,iid2,temp3,'z',iid3)
+            elseif(xbmtcolour.eq.4)then  ! Green
+              call textatxy(iid1,iid2,temp3,'z',iid3)
+            endif
             if(j.gt.1)then
-              iicol=3
-              call winscl('z',iicol)
+              if(xbmtcolour.eq.1)then     ! Black
+                iicol=0
+                call winscl('-',iicol)
+              elseif(xbmtcolour.eq.2)then ! Grey
+                iicol=nifgrey-4
+                call winscl('i',iicol)
+              elseif(xbmtcolour.eq.3)then  ! Red
+                iicol=0
+                call winscl('z',iicol)
+              elseif(xbmtcolour.eq.4)then  ! Green
+                iicol=3
+                call winscl('z',iicol)
+              endif
               iid1=ipxbase(j-1); iid2=ipybase(j-1)
               iid3=ipxbase(j); iid4=ipybase(j)
-              call edwline(iid1,iid2,iid3,iid4)
+              if(xbmtwidth.eq.1)then
+                call eswline(iid1,iid2,iid3,iid4)
+              elseif(xbmtwidth.eq.2)then
+                call edwline(iid1,iid2,iid3,iid4)
+              elseif(xbmtwidth.eq.3)then
+                call etwline(iid1,iid2,iid3,iid4)
+              endif
             endif
           endif
   123   continue
@@ -3727,15 +4078,34 @@ C If user has completed selection, draw the closing line if it is
 C within the extents of the displayed bitmap. Use lastwalllist
 C to match logic elsewhere.
         if(completed)then
+          if(xbmtcolour.eq.1)then     ! Black
+            iicol=0
+            call winscl('-',iicol)
+          elseif(xbmtcolour.eq.2)then ! Grey
+            iicol=nifgrey-4
+            call winscl('i',iicol)
+          elseif(xbmtcolour.eq.3)then  ! Red
+            iicol=0
+            call winscl('z',iicol)
+          elseif(xbmtcolour.eq.4)then  ! Green
+            iicol=3
+            call winscl('z',iicol)
+          endif
           if(((ipxbase(1).ge.ixbul).and.(ipxbase(1).le.ixblr)).and.
      &       ((ipybase(1).ge.iybul).and.(ipybase(1).le.iyblr)).and.
      &       ((ipxbase(NW).ge.ixbul).and.(ipxbase(NW).le.ixblr)).and.
      &       ((ipybase(NW).ge.iybul).and.(ipybase(NW).le.iyblr)))then
-            iicol=3
-            call winscl('z',iicol)
+C            iicol=3
+C            call winscl('z',iicol)
             iid1=ipxbase(lastwalllist); iid2=ipybase(lastwalllist)
             iid3=ipxbase(1); iid4=ipybase(1)
-            call edwline(iid1,iid2,iid3,iid4)
+            if(xbmtwidth.eq.1)then
+              call eswline(iid1,iid2,iid3,iid4)
+            elseif(xbmtwidth.eq.2)then
+              call edwline(iid1,iid2,iid3,iid4)
+            elseif(xbmtwidth.eq.3)then
+              call etwline(iid1,iid2,iid3,iid4)
+            endif
           endif
         endif
         iicol=0
@@ -3746,14 +4116,33 @@ C If there are door jambs draw them.
           do j=1,nbofdoorpts
             if(((ipxdoor(j).ge.ixbul).and.(ipxdoor(j).le.ixblr)).and.
      &        ((ipydoor(j).ge.iybul).and.(ipydoor(j).le.iyblr)))then
-              iicol=3
-              call winscl('z',iicol)
+              if(xbmtcolour.eq.1)then     ! Black
+                iicol=0
+                call winscl('-',iicol)
+              elseif(xbmtcolour.eq.2)then ! Grey
+                iicol=nifgrey-4
+                call winscl('i',iicol)
+              elseif(xbmtcolour.eq.3)then  ! Red
+                iicol=0
+                call winscl('z',iicol)
+              elseif(xbmtcolour.eq.4)then  ! Green
+                iicol=3
+                call winscl('z',iicol)
+              endif
               iid1=ipxdoor(j); iid2=ipydoor(j);
               call esymbol(iid1,iid2,24,1)
               if(j.gt.0.and.j.le.9)write(temp3,'(a,i1)') 'd',j
               if(j.gt.9.and.j.le.99)write(temp3,'(i2)') 'd',j
-              iid1=ipxdoor(j)+4; iid2=ipydoor(j)-1; iid3=4
-              call textatxy(iid1,iid2,temp3,'z',iid3)
+              iid1=ipxdoor(j)+4; iid2=ipydoor(j)-1; iid3=iicol
+              if(xbmtcolour.eq.1)then     ! Black
+                call textatxy(iid1,iid2,temp3,'-',iid3)
+              elseif(xbmtcolour.eq.2)then ! Grey
+                call textatxy(iid1,iid2,temp3,'i',iid3)
+              elseif(xbmtcolour.eq.3)then  ! Red
+                call textatxy(iid1,iid2,temp3,'z',iid3)
+              elseif(xbmtcolour.eq.4)then  ! Green
+                call textatxy(iid1,iid2,temp3,'z',iid3)
+              endif
               iicol=0
               call winscl('-',iicol)
             endif
@@ -3765,14 +4154,33 @@ C If there are window jambs draw them.
           do j=1,nbofwindowpts
             if(((ipxwin(j).ge.ixbul).and.(ipxwin(j).le.ixblr)).and.
      &        ((ipywin(j).ge.iybul).and.(ipywin(j).le.iyblr)))then
-              iicol=3
-              call winscl('z',iicol)
+              if(xbmtcolour.eq.1)then     ! Black
+                iicol=0
+                call winscl('-',iicol)
+              elseif(xbmtcolour.eq.2)then ! Grey
+                iicol=nifgrey-4
+                call winscl('i',iicol)
+              elseif(xbmtcolour.eq.3)then  ! Red
+                iicol=0
+                call winscl('z',iicol)
+              elseif(xbmtcolour.eq.4)then  ! Green
+                iicol=3
+                call winscl('z',iicol)
+              endif
               iid1=ipxwin(j); iid2=ipywin(j);
               call esymbol(iid1,iid2,24,1)
               if(j.gt.0.and.j.le.9)write(temp3,'(a,i1)') 'w',j
               if(j.gt.9.and.j.le.99)write(temp3,'(a,i2)') 'w',j
-              iid1=ipxwin(j)+4; iid2=ipywin(j)-1; iid3=5
-              call textatxy(iid1,iid2,temp3,'z',iid3)
+              iid1=ipxwin(j)+4; iid2=ipywin(j)-1; iid3=iicol
+              if(xbmtcolour.eq.1)then     ! Black
+                call textatxy(iid1,iid2,temp3,'-',iid3)
+              elseif(xbmtcolour.eq.2)then ! Grey
+                call textatxy(iid1,iid2,temp3,'i',iid3)
+              elseif(xbmtcolour.eq.3)then  ! Red
+                call textatxy(iid1,iid2,temp3,'z',iid3)
+              elseif(xbmtcolour.eq.4)then  ! Green
+                call textatxy(iid1,iid2,temp3,'z',iid3)
+              endif
               iicol=0
               call winscl('-',iicol)
             endif
@@ -3784,14 +4192,33 @@ C If furniture origins.
           do j=1,nboffurnpts
             if(((ifurx(j).ge.ixbul).and.(ifurx(j).le.ixblr)).and.
      &        ((ifury(j).ge.iybul).and.(ifury(j).le.iyblr)))then
-              iicol=3
-              call winscl('z',iicol)
+              if(xbmtcolour.eq.1)then     ! Black
+                iicol=0
+                call winscl('-',iicol)
+              elseif(xbmtcolour.eq.2)then ! Grey
+                iicol=nifgrey-4
+                call winscl('i',iicol)
+              elseif(xbmtcolour.eq.3)then  ! Red
+                iicol=0
+                call winscl('z',iicol)
+              elseif(xbmtcolour.eq.4)then  ! Green
+                iicol=3
+                call winscl('z',iicol)
+              endif
               iid1=ifurx(j); iid2=ifury(j);
               call esymbol(iid1,iid2,24,1)
               if(j.gt.0.and.j.le.9)write(temp3,'(a,i1)') 'f',j
               if(j.gt.9.and.j.le.99)write(temp3,'(a,i2)') 'f',j
-              iid1=ifurx(j)+4; iid2=ifury(j)-1; iid3=6
-              call textatxy(iid1,iid2,temp3,'z',iid3)
+              iid1=ifurx(j)+4; iid2=ifury(j)-1; iid3=iicol
+              if(xbmtcolour.eq.1)then     ! Black
+                call textatxy(iid1,iid2,temp3,'-',iid3)
+              elseif(xbmtcolour.eq.2)then ! Grey
+                call textatxy(iid1,iid2,temp3,'i',iid3)
+              elseif(xbmtcolour.eq.3)then  ! Red
+                call textatxy(iid1,iid2,temp3,'z',iid3)
+              elseif(xbmtcolour.eq.4)then  ! Green
+                call textatxy(iid1,iid2,temp3,'z',iid3)
+              endif
               iicol=0
               call winscl('-',iicol)
             endif
@@ -4041,7 +4468,7 @@ C add a new vertex to the end of the zone list and update szcoords.
           ZMX=AMAX1(ZMX,Z(NTV))
 
 C Update the geometry file to remember the new vertex.
-          call geowrite(IFIL+2,LGEOM(ICOMP),ICOMP,itru,3,IER)
+          call geowrite2(IFIL+2,LGEOM(ICOMP),ICOMP,itru,3,IER)
 
 C For a unique vertex also test to see if it is close (+-CACC) to
 C one of the existing lines. Also check the last edge in the surface.
@@ -4092,15 +4519,20 @@ C inserting the new vertex index.
                 else
                   ok=.false.
                 endif
+
+C Update global geometric variables and write geometry to file.
                 if(ok)then
                   NVER(ivj)=NVER(ivj)+1
+                  ISZNVER(icomp,ivj)=NVER(ivj)
                   IXV=NVER(ivj)+1
  1148             continue
                   IXV=IXV-1
                   JVN(ivj,IXV)=JVN(ivj,IXV-1)
+                  ISZJVN(icomp,ivj,IXV)=JVN(ivj,IXV)
                   IF(IXV.GT.ivjj+1)GOTO 1148
                   JVN(ivj,ivjj+1)=iwhich3
-                  call geowrite(IFIL+2,LGEOM(ICOMP),ICOMP,itru,3,IER)
+                  ISZJVN(icomp,ivj,ivjj+1)=iwhich3
+                  call geowrite2(IFIL+2,LGEOM(ICOMP),ICOMP,itru,3,IER)
 
 C Debug.
 C                   write(6,'(a,124i4)') 'now jvn is ',
@@ -4172,7 +4604,7 @@ C anything in the zone. This code does the merge and save.
       ZMX=AMAX1(ZMX,Z(NTV))
 
 C Update the geometry file to remember the new vertex.
-      call geowrite(IFIL+2,LGEOM(ICOMP),ICOMP,iuout,3,IER)
+      call geowrite2(IFIL+2,LGEOM(ICOMP),ICOMP,iuout,3,IER)
 
 C For a unique vertex also test to see if it is close (+-CACC) to
 C one of the existing lines. nsur-1 because the new surface does
@@ -4219,12 +4651,15 @@ C inserting the new vertex index.
             endif
             if(ok)then
               NVER(ivj)=NVER(ivj)+1
+              ISZNVER(icomp,ivj)=NVER(ivj)
               IXV=NVER(ivj)+1
   148         continue
               IXV=IXV-1
               JVN(ivj,IXV)=JVN(ivj,IXV-1)
+              ISZJVN(icomp,ivj,IXV)=JVN(ivj,IXV)
               IF(IXV.GT.ivjj+1)GOTO 148
               JVN(ivj,ivjj+1)=iwhich3
+              ISZJVN(icomp,ivj,ivjj+1)=iwhich3
 
 C Debug.
 C                write(6,'(a,124i4)') 'now jvn is ',
@@ -4337,6 +4772,10 @@ C clickobstructions *******************
 C Pixel (upper left and lower right corners) of where the bitmap is draw.
       integer ixbul,iybul,ixblr,iyblr ! x-up-left y-up-left x-lower-right y-lower-right
       common/bmlimits/ixbul,iybul,ixblr,iyblr
+
+C Colour and width of trace lines over the bitmap.
+      integer xbmtcolour,xbmtwidth,xbmgrey,xbmhcolour
+      common/disptlines/xbmtcolour,xbmtwidth,xbmgrey,xbmhcolour
 
       logical xbmsnap,completed
       dimension viewlim(6)
@@ -4584,9 +5023,16 @@ C Check if tollerably close to an axis.
       tdepth=crowxyz(tpx2,tpy2,Z1,tpx3,tpy3,Z1)
       iixx1=ixx1; iiyy1=iyy1; iixx2=ixx2; iiyy2=iyy2;
       iixx3=ixx3; iiyy3=iyy3;
-
-      call edwline(iixx1,iiyy1,iixx2,iiyy2)
-      call edwline(iixx2,iiyy2,iixx3,iiyy3)
+      if(xbmtwidth.eq.1)then
+        call eswline(iixx1,iiyy1,iixx2,iiyy2)
+        call eswline(iixx2,iiyy2,iixx3,iiyy3)
+      elseif(xbmtwidth.eq.2)then
+        call edwline(iixx1,iiyy1,iixx2,iiyy2)
+        call edwline(iixx2,iiyy2,iixx3,iiyy3)
+      elseif(xbmtwidth.eq.3)then
+        call etwline(iixx1,iiyy1,iixx2,iiyy2)
+        call etwline(iixx2,iiyy2,iixx3,iiyy3)
+      endif
 
 C Try and complete the obstruction block by making a similar point
 C offset from the origin. Depending on the direction of the vector
@@ -4677,7 +5123,6 @@ C Ask for name based on the initial name given by the user.
      &  12,'obstruction','Block name',IER,nbhelp)
       IF(S12(1:2).NE.'  ')then
         BLOCKNAME(icomp,nbo)=S12
-        LNBLOCKNAME(icomp,nbo)=lnblnk(S12)
       endif
       Z6=2.4; Z7=0.2; blkopaq=1.0 ! initial guesses
       CALL EASKR(Z6,' ','Elevation of the base of obstruction?',
@@ -4697,10 +5142,8 @@ C Ask for name based on the initial name given by the user.
       endif
       IF(ISEL.GT.0)then
         WRITE(BLOCKMAT(icomp,nbo),'(A)') mlcname(ISEL)
-        LNBLOCKMAT(icomp,nbo)=lnblnk(BLOCKMAT(icomp,nbo))
       else
         WRITE(BLOCKMAT(icomp,nbo),'(A)') 'UNKNOWN'
-        LNBLOCKMAT(icomp,nbo)=7
       endif
       XOB(icomp,nbo)=tpx1; YOB(icomp,nbo)=tpy1; ZOB(icomp,nbo)=Z6
       DXOB(icomp,nbo)=twid; DYOB(icomp,nbo)=tdepth; DZOB(icomp,nbo)=Z7

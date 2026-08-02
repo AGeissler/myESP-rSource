@@ -1446,10 +1446,10 @@ C Error trap on read error
 
 
 C ********************* IDSURF *********************
-C IDSURF - Identify ESP-r building surface number (used for thermal conflation).
-C   This function identify bld surface associated with cfd surface.
-C   surf (12 char) is passed parameter. The current zone is taken
-C   from common block variable icp.
+C Identify building surface number (used for thermal conflation)
+C associated with cfd surface. surf (12 char) is passed parameter.
+C The current zone is taken from common block variable icp.
+
       FUNCTION IDSURF(SURF)
 #include "building.h"
 #include "geometry.h"
@@ -1478,7 +1478,8 @@ C        icon=IZSTOCN(icp,is)
 
 
 C ********************* INICNT *********************
-C INICNT - Initialize some constant parameters.
+C Initialise some constant parameters.
+
       SUBROUTINE INICNT
 #include "building.h"
 #include "cfd.h"
@@ -1512,7 +1513,7 @@ C Prandtl number.
 C Turbulent prandtl number.
       PRANDT=0.9
 
-C Specific heat of the air.
+C Specific heat of air.
       SH=1006.0
 
 C Turbulence constants.
@@ -1528,7 +1529,7 @@ C Turbulence constants.
       PRED=CAPPA*CAPPA/(C2-C1)/(CMU**.5)
       PRTE=1.0
 
-C The "pee function".
+C The 'pee' function.
       PFUN=PRANDL/PRANDT
       PFUN=9.24*(PFUN**0.75-1.0)*(1.0+0.28*EXP(-0.007*PFUN))
 
@@ -1537,13 +1538,12 @@ C The "pee function".
 
 
 C ******************** CFDSBREAD ********************
-C CFDSBREAD reads in the data and sets the variables describing the CFD
+C Reads data and sets the variables describing CFD
 C solid boundaries.
 
       SUBROUTINE CFDSBREAD(IFL,IER)
 #include "building.h"
 #include "cfd.h"
-
 
       COMMON/Sbdary/NSB(MNZ),ISBi(MNSBZ,MNZ),ISBf(MNSBZ,MNZ),
      &              JSBi(MNSBZ,MNZ),JSBf(MNSBZ,MNZ),
@@ -1558,7 +1558,7 @@ C solid boundaries.
      &             CALLC(MNZ),KEMDL(MNZ),BUOY(MNZ),BOUSSI(MNZ),
      &             ZEROT(MNZ),ZandKE(MNZ),MITzero(MNZ)
 
-C Boundary condition commons.
+C Boundary conditions.
       common/KEYVOLS/NVOL(MNZ),IVOLF(MNVLS,MNZ),IVCELLS(MNVLS,MNZ,2),
      &               JVCELLS(MNVLS,MNZ,2),KVCELLS(MNVLS,MNZ,2)
       common/KEYVOLN/VOLNAME(MNVLS,MNZ),VCsurf(MNVLS,MNZ),
@@ -1584,7 +1584,7 @@ C Read number of solid boundaries. Return to calling routine if none.
       NSB(ICFD) = IVAL
       if(NSB(ICFD).EQ.0) goto 100
 
-C Initialize array holding BC values; initialize BC counter (for CFD-only).
+C Initialise array holding BC values; initialise BC counter (for CFD-only).
       do 10 J=1,NSB(ICFD)
         SSB(J,ICFD)=0.
    10 continue

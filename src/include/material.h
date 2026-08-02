@@ -119,20 +119,19 @@ C Constructions categories
      &  mlccatmenu(MGCL),mlccatdoc(MGCL)
 
 C Data structures for verbose names and documentation associated with MLC
-      character mlcname*32     ! name of MLC legacy items only use first 12 char
+      character mlcname*32     ! name of MLC (legacy items only use first 12 char)
       character mlcmenu*32     ! MLC menu entry
       character mlcdoc*248     ! documentation
       character mlcincat*32    ! name of associated category
-      character mlctype*4      ! type (OPAQ | TRAN | CFC)
-      character mlcoptical*32  ! associated optical properties name
+      character mlctype*4      ! type (OPAQ | TRAN | CFC | CFC2)
+      character mlcoptical*24  ! associated optical properties name
       character mlcsymetric*32 ! associated name of reversed MLC or key words
                                ! SYMMETRIC or NONSYMMERTIC
       common/mlcnamearray/mlcname(MMLC),mlcmenu(MMLC),mlcdoc(MMLC),
      &  mlcincat(MMLC),mlctype(MMLC),mlcoptical(MMLC),mlcsymetric(MMLC)
 
-      integer lnmlcname,lnmlcmenu,lnmlccatname  ! string lengths
-      common/mlcnameln/lnmlcname(MMLC),lnmlcmenu(MMLC),
-     &  lnmlccatname(MGCL)
+      integer lnmlcname    ! string length
+      common/mlcnameln/lnmlcname(MMLC)
 
       integer mlccatindex  ! is pointer to index of the MLC category
       integer matsymindex  ! pointer to index of reversed MLC

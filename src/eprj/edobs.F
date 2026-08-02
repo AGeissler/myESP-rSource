@@ -22,10 +22,6 @@ C EDOBSB: Edit details of an obstruction block.
 C EREVEAL: Composes a window reveal out of obstruction blocks.
 C EDVIS: Edit visual entities for Radiance.
 
-C << NOTE: transition state in terms of obstruction blocks within v1.1
-C << zone geometry files - several routines are using readgeo calls
-C << to keep the data refreshed so geowrite calls can be made.
-
 C ************* EDOBS 
 C EDOBS: Edit obstruction blocks if there is an obstruction file
 C associated with this zone or if there are obstructions held
@@ -166,9 +162,9 @@ C current menu line index. Build up text strings for the menu as well
 C as a list for copy and delete use. 
       M=MHEAD
       DO 10 L=1,ILEN
-        llbm=LNBLOCKMAT(ICOMP,L)
+        llbm=lnblnk(BLOCKMAT(ICOMP,L))
         if(llbm.gt.14) llbm=14
-        llbn=LNBLOCKNAME(ICOMP,L)
+        llbn=lnblnk(BLOCKNAME(ICOMP,L))
         WRITE(PICK(L),304)L,BLOCKNAME(ICOMP,L)(1:llbn),
      &    BLOCKMAT(ICOMP,L)(1:llbm)
   304   FORMAT(I3,2X,A,1x,A)
@@ -214,7 +210,7 @@ C file and/or the zone geometry file so that changes can be drawn.
 C This is necessary because obstructions are not true zones.
       if(MODIFYVIEW)then
         if(newgeo)then
-          call geowrite(IUF,LGEOM(ICOMP),ICOMP,iuout,3,IER)
+          call geowrite2(IUF,LGEOM(ICOMP),ICOMP,iuout,3,IER)
         else
           CALL MKGOMST(IUF,ZOBS(ICOMP),ICOMP,IER)
         endif
@@ -228,7 +224,7 @@ C read of file).
       nzg=1
       nznog(1)=ICOMP
       izgfoc=ICOMP
-      CALL redraw(IER)
+      call redraw(IER)
 
 C Having updated the view (which uses MODIFYVIEW), if havesaved is true
 C then we can unset MODIFYVIEW.
@@ -265,8 +261,8 @@ C List details of obstructions.
      &      'Name Material'
           call edisp(iuout,outs)
           DO 9995 I=1,nbobs(icomp)
-            lnbn=LNBLOCKNAME(icomp,I)
-            lnbm=LNBLOCKMAT(icomp,I)
+            lnbn=lnblnk(BLOCKNAME(icomp,I))
+            lnbm=lnblnk(BLOCKMAT(icomp,I))
             if(BLOCKTYP(icomp,I)(1:4).eq.'obs ')then
               WRITE(outs,9994)I,XOB(icomp,I),YOB(icomp,I),
      &          ZOB(icomp,I),DXOB(icomp,I),DYOB(icomp,I),
@@ -347,7 +343,7 @@ C << TODO mat and EREVEAL need to be updated to 32 char >>
           call EREVEAL(ICOMP,IRS,AZI,ELV,RTK,OWID,blkroot,mat,IER)
           MODIFYVIEW=.TRUE.
           call warnmod(ICOMP,'ob+')
-          CALL redraw(IER)
+          call redraw(IER)
         endif
 
       ELSEIF(IVERT.EQ.(MVERT-5))THEN
@@ -491,9 +487,7 @@ C To delete the last obstruction, dereference the file and exit.
                 BANGOB(icomp,IDV,3)=BANGOB(icomp,IDV+1,3)
                 OPOB(icomp,IDV)=OPOB(icomp,IDV+1)
                 BLOCKNAME(icomp,IDV)=BLOCKNAME(icomp,IDV+1)
-                LNBLOCKNAME(icomp,IDV)=LNBLOCKNAME(icomp,IDV+1)
                 BLOCKMAT(icomp,IDV)=BLOCKMAT(icomp,IDV+1)
-                LNBLOCKMAT(icomp,IDV)=LNBLOCKMAT(icomp,IDV+1)
                 BLOCKTYP(icomp,IDV)=BLOCKTYP(icomp,IDV+1)
                 do 792 ibe=1,8
                   XBP(icomp,IDV,ibe)=XBP(icomp,IDV+1,ibe)
@@ -517,18 +511,16 @@ C To delete the last obstruction, dereference the file and exit.
             BANGOB(icomp,nbo,3)=0.0
             OPOB(icomp,nbo)=1.0
             BLOCKNAME(icomp,nbo)='new_blk'
-            LNBLOCKNAME(icomp,nbo)=7
             BLOCKMAT(icomp,nbo)='NONE'
-            LNBLOCKMAT(icomp,nbo)=4
             BLOCKTYP(icomp,nbo)='obs '
             MODIFYVIEW=.TRUE.
             call warnmod(ICOMP,'ob+')
             if(newgeo)then
-              call geowrite(IUF,LGEOM(ICOMP),ICOMP,iuout,3,IER)
+              call geowrite2(IUF,LGEOM(ICOMP),ICOMP,iuout,3,IER)
             else
               CALL MKGOMST(IUF,ZOBS(ICOMP),ICOMP,IER)
             endif
-            CALL redraw(IER)
+            call redraw(IER)
           ELSE
             CALL USRMSG(' ',' Too many obstructions defined!','W')
             GOTO 92
@@ -537,8 +529,8 @@ C To delete the last obstruction, dereference the file and exit.
 C Edit the new block, first hilight the obstruction.
           nbo=nbobs(icomp)
           ITOBS = nbo
-          CALL EPMENSV      ! save state of the calling menue
-   77     CALL redraw(IER) ! redraw the model
+          CALL EPMENSV                   ! save state of the calling menu
+   77     call redraw(IER) ! redraw the model
           CALL EDOBSB(ITRU,IUF,ICOMP,nbo,ianother,IER)
           MODIFYVIEW=.TRUE.
           call warnmod(ICOMP,'ob+')
@@ -572,7 +564,6 @@ C If user asked for next or prior obstruction reset nbo and call again.
      &        12,'block','obs block name',IER,nbhelp)
             if(tbn(1:12).ne.BLOCKNAME(ICOMP,IFOC)(1:12))then
               write(BLOCKNAME(ICOMP,nbo),'(a)') tbn
-              LNBLOCKNAME(ICOMP,nbo)=lnblnk(tbn)
             else
               call usrmsg('The block name must be unique',
      &                    'please supply a different name','W')
@@ -605,7 +596,6 @@ C time for copy use zeros, otherwise re-present the previous values.
             BANGOB(icomp,nbo,3)=BANGOB(icomp,IFOC,3)
             OPOB(icomp,nbo)=OPOB(icomp,IFOC)
             BLOCKMAT(icomp,nbo)=BLOCKMAT(icomp,IFOC)
-            LNBLOCKMAT(icomp,nbo)=LNBLOCKMAT(icomp,IFOC)
             BLOCKTYP(icomp,nbo)=BLOCKTYP(icomp,IFOC)
             do ibe=1,8
               XBP(icomp,nbo,ibe)=XBP(icomp,IFOC,ibe)+VALX
@@ -617,15 +607,17 @@ C time for copy use zeros, otherwise re-present the previous values.
             if(.NOT.anothercopy) anothercopy=.true.  ! something copied
 
             if(newgeo)then
-              call geowrite(IUF,LGEOM(ICOMP),ICOMP,iuout,3,IER)
+              call geowrite2(IUF,LGEOM(ICOMP),ICOMP,iuout,3,IER)
             else
               CALL MKGOMST(IUF,ZOBS(ICOMP),ICOMP,IER)
             endif
             nbo=nbobs(icomp)
             ITOBS = nbo
-            CALL EPMENSV       ! save the calling menu layout
-  78        CALL redraw(IER)  ! redraw wireframe
-            if(MMOD.EQ.8) call redrawbuttons()
+            CALL EPMENSV         ! save the calling menu layout
+  78        if(MMOD.EQ.8)then
+              call redraw(IER)   ! redraw wireframe
+              call redrawbuttons()
+            endif
 
 C Edit the copied block.
             CALL EDOBSB(ITRU,IUF,ICOMP,nbo,ianother,IER)
@@ -655,9 +647,9 @@ C If user asked for next or prior obstruction reset nbo and call again.
           if(IZ.EQ.0)goto 92
           nbo=nbobs(iz)
           do LO=1,nbo
-            llbm=LNBLOCKMAT(IZ,LO)
+            llbm=lnblnk(BLOCKMAT(IZ,LO))
             if(llbm.gt.14) llbm=14
-            llbn=LNBLOCKNAME(IZ,LO)
+            llbn=lnblnk(BLOCKNAME(IZ,LO))
             WRITE(PICKO(LO),304)L,BLOCKNAME(IZ,LO)(1:llbn),
      &        BLOCKMAT(IZ,LO)(1:llbm)
           enddo
@@ -674,7 +666,6 @@ C If user asked for next or prior obstruction reset nbo and call again.
             CALL EASKS(tbn,' Re-name the copied obstruction:',
      &        ' ',12,'block','obs block name',IER,nbhelp)
             write(BLOCKNAME(ICOMP,nbo),'(a)') tbn
-            LNBLOCKNAME(ICOMP,nbo)=lnblnk(tbn)
 
 C Ask for transform distance for obstruction and then apply. If first
 C time for copy use zeros, otherwise re-present the previous values.
@@ -702,7 +693,6 @@ C time for copy use zeros, otherwise re-present the previous values.
             BANGOB(icomp,nbo,3)=BANGOB(iz,IFOC,3)
             OPOB(icomp,nbo)=OPOB(iz,IFOC)
             BLOCKMAT(icomp,nbo)=BLOCKMAT(iz,IFOC)
-            LNBLOCKMAT(icomp,nbo)=LNBLOCKMAT(iz,IFOC)
             BLOCKTYP(icomp,nbo)=BLOCKTYP(iz,IFOC)
             do ibe=1,8
               XBP(icomp,nbo,ibe)=XBP(iz,IFOC,ibe)+VALX
@@ -714,15 +704,17 @@ C time for copy use zeros, otherwise re-present the previous values.
             if(.NOT.anothercopy) anothercopy=.true.  ! something copied
 
             if(newgeo)then
-              call geowrite(IUF,LGEOM(ICOMP),ICOMP,iuout,3,IER)
+              call geowrite2(IUF,LGEOM(ICOMP),ICOMP,iuout,3,IER)
             else
               CALL MKGOMST(IUF,ZOBS(ICOMP),ICOMP,IER)
             endif
             nbo=nbobs(icomp)
             ITOBS = nbo
-            CALL EPMENSV       ! save the calling menu layout
-  76        CALL redraw(IER)  ! redraw wireframe
-            if(MMOD.EQ.8) call redrawbuttons()
+            CALL EPMENSV        ! save the calling menu layout
+  76        if(MMOD.EQ.8)then
+              call redraw(IER)  ! redraw wireframe
+              call redrawbuttons()
+            endif
 
 C Edit the copied block.
             CALL EDOBSB(ITRU,IUF,ICOMP,nbo,ianother,IER)
@@ -777,7 +769,7 @@ C Edit block identified by KEYIND.
           CALL EPMENSV     ! record calling menu status
           ITOBS = ib       ! mark which obs to highlight
           MODIFYVIEW=.TRUE.    ! tell it to pay attention to the highlight
-  79      CALL redraw(IER)  ! redraw wireframe
+  79      call redraw(IER)  ! redraw wireframe
           CALL EDOBSB(ITRU,IUF,ICOMP,IB,ianother,IER)
 
 C If user asked for next or prior obstruction reset nbo and call again.
@@ -861,7 +853,7 @@ C New format geometry with old obstructions. Scan and write with geometry.
             if(IER.eq.0)then
               ZOBS(ICOMP)=' '
               IOBS(ICOMP)=2
-              call geowrite(IUF,LGEOM(ICOMP),ICOMP,iuout,3,IER)
+              call geowrite2(IUF,LGEOM(ICOMP),ICOMP,iuout,3,IER)
 
 C Save the model configuration file before returning.
               CALL EMKCFG('-',IER)
@@ -940,14 +932,12 @@ C the dummy obstruction in the zone geometry file.
         BANGOB(icomp,1,3)=0.0
         OPOB(icomp,1)=1.0
         BLOCKNAME(ICOMP,1)='First'
-        LNBLOCKNAME(ICOMP,1)=5
         BLOCKMAT(ICOMP,1)='NONE'
-        LNBLOCKMAT(ICOMP,1)=4
         BLOCKTYP(ICOMP,1)='obs '
         NOX(icomp)=20
         NOZ(icomp)=20
         if(newgeo)then
-          call geowrite(IUF,LGEOM(ICOMP),ICOMP,iuout,3,IER)
+          call geowrite2(IUF,LGEOM(ICOMP),ICOMP,iuout,3,IER)
           if(IER.eq.0)then
             CALL EMKCFG('-',IER)
             return
@@ -1094,16 +1084,14 @@ C Provide default values for the new obstructions file.
         BANGOB(icomp,1,3)=0.0
         OPOB(icomp,1)=1.0
         BLOCKNAME(ICOMP,1)='First'
-        LNBLOCKNAME(ICOMP,1)=5
         BLOCKMAT(ICOMP,1)='NONE'
-        LNBLOCKMAT(ICOMP,1)=4
         BLOCKTYP(ICOMP,1)='obs '
         NOX(icomp)=20
         NOZ(icomp)=20
 
 C Write to geometry file or the obstructions file.
         if(newgeo)then
-          call geowrite(IUF,LGEOM(ICOMP),ICOMP,iuout,3,IER)
+          call geowrite2(IUF,LGEOM(ICOMP),ICOMP,iuout,3,IER)
           IF(IER.NE.0)RETURN
           IOBS(ICOMP)=2 
           MODIFYVIEW=.TRUE.
@@ -1176,7 +1164,7 @@ C If a modification has been done then update the obstruction
 C file or geometry file.
       if(MODIFYVIEW)then
         if(newgeo)then
-          call geowrite(IUF,LGEOM(ICOMP),ICOMP,iuout,3,IER)
+          call geowrite2(IUF,LGEOM(ICOMP),ICOMP,iuout,3,IER)
         else
           CALL MKGOMST(IUF,ZOBS(ICOMP),ICOMP,IER)
         endif
@@ -1234,7 +1222,7 @@ C for these types and which includes an option to convert to general.
         endif
         WRITE(VERT(6),'(A,A)')      'f name        : ',
      &    BLOCKNAME(ICOMP,IB)
-        llbm=LNBLOCKMAT(ICOMP,IB)
+        llbm=lnblnk(BLOCKMAT(ICOMP,IB))
         if(llbm.gt.16) llbm=16
         WRITE(VERT(7),'(A,A)')      'g construction: ',
      &    BLOCKMAT(ICOMP,IB)(1:llbm)
@@ -1293,7 +1281,7 @@ C General polygon based obstruction.
         VERT(10)                  = '  ____________________________ '
         WRITE(VERT(11),'(A,A)')     'i name        : ',
      &    BLOCKNAME(ICOMP,IB)
-        llbm=LNBLOCKMAT(ICOMP,IB)
+        llbm=lnblnk(BLOCKMAT(ICOMP,IB))
         if(llbm.gt.16) llbm=16
         WRITE(VERT(12),'(A,A)')     'j construction: ',
      &    BLOCKMAT(ICOMP,IB)(1:llbm)
@@ -1324,7 +1312,7 @@ C Display the zone.
       nzg=1
       nznog(1)=ICOMP
       izgfoc=ICOMP
-      CALL redraw(IER)
+      call redraw(IER)
 
 C Having updated the view (which uses MODIFYVIEW), if havesaved is true
 C then we can unset MODIFYVIEW.
@@ -1360,7 +1348,7 @@ C One set of interface actions if type 'obs' or 'obs3'.
      &   BLOCKTYP(ICOMP,IB)(1:4).eq.'obs3')then
         if(IVERT.EQ.25)then
           ITOBS = 0
-          CALL redraw(IER)
+          call redraw(IER)
           ianother=0  ! signal no jump to previous or next
           RETURN
         elseif(IVERT.EQ.1)then
@@ -1375,11 +1363,10 @@ C One set of interface actions if type 'obs' or 'obs3'.
             listcor=.true.
           elseif(IBOPT.eq.2)then
 
-C Use current zone G1 common blocks to present list of points
-C via epkvert.
+C Present list of points via epkvert.
             inpick=1
             CALL EPMENSV
-            call EPKVERT(INPICK,IVLST,'Vertices for origin',
+            call EPKVERT(ICOMP,INPICK,IVLST,'Vertices for origin',
      &        'Select a vertex to define the origin...',' ',nbhelp,ier)
             CALL EPMENRC
             if(inpick.eq.1)then
@@ -1393,11 +1380,10 @@ C via epkvert.
             endif
           elseif(IBOPT.eq.3)then
 
-C Use current zone G1 common blocks to present list of points
-C via epkvert.
+C Present list of points via epkvert.
             inpick=1
             CALL EPMENSV
-            call EPKVERT(INPICK,IVLST,'Vertice in zone',
+            call EPKVERT(ICOMP,INPICK,IVLST,'Vertice in zone',
      &        'Select a vertex to begin from...',' ',nbhelp,ier)
             CALL EPMENRC
             if(inpick.eq.1)then
@@ -1506,7 +1492,6 @@ C If newer geometry file offer a 2nd axis of rotation.
      &      12,'obstruction','Block name',IER,nbhelp)
           IF(S12(1:2).NE.'  ')then
             BLOCKNAME(ICOMP,IB)=S12
-            LNBLOCKNAME(ICOMP,IB)=lnblnk(S12)
           endif
           MODIFYVIEW=.TRUE.
         ELSEIF(IVERT.EQ.7)THEN
@@ -1525,11 +1510,9 @@ C Note: this logic only picks up the first 12 char of construction.
           CALL EPMENRC
           IF(ISEL.GT.0)then
             WRITE(BLOCKMAT(icomp,IB),'(A)') mlcname(ISEL)
-            LNBLOCKMAT(icomp,IB)=lnblnk(BLOCKMAT(icomp,IB))
             MODIFYVIEW=.TRUE.
           else
             WRITE(BLOCKMAT(icomp,ib),'(A)') 'UNKNOWN'
-            LNBLOCKMAT(icomp,ib)=7
           endif
           IF(IER.EQ.1)THEN
             CALL USRMSG(' ',
@@ -1597,7 +1580,7 @@ C Convert current obstruction block into general polygon obstruction.
 C Interface options if a general polygon obstruction.
         if(IVERT.EQ.23)then
           ITOBS = 0
-          CALL redraw(IER)
+          call redraw(IER)
           ianother=0  ! signal no jump to previous or next
           RETURN
         elseif(IVERT.EQ.2)then
@@ -1727,7 +1710,6 @@ C Interface options if a general polygon obstruction.
      &      12,'obstruction','Block name',IER,nbhelp)
           IF(S12(1:2).NE.'  ')then
             BLOCKNAME(ICOMP,IB)=S12
-            LNBLOCKNAME(ICOMP,IB)=lnblnk(S12)
           endif
           MODIFYVIEW=.TRUE.
         ELSEIF(IVERT.EQ.12)THEN
@@ -1746,11 +1728,9 @@ C Note: this logic only picks up the first 12 char of construction.
           CALL EPMENRC
           IF(ISEL.GT.0)then
             WRITE(BLOCKMAT(icomp,IB),'(A)') mlcname(ISEL)
-            LNBLOCKMAT(icomp,IB)=lnblnk(BLOCKMAT(icomp,IB))
             MODIFYVIEW=.TRUE.
           else
             WRITE(BLOCKMAT(icomp,ib),'(A)') 'UNKNOWN'
-            LNBLOCKMAT(icomp,ib)=7
           endif
           IF(IER.EQ.1)THEN
             CALL USRMSG(' ',
@@ -1824,7 +1804,7 @@ C so now apply the transform to the obstructions (only).
                   ZBP(icomp,ib,ibe)=ZBP(icomp,ib,ibe)+VALZ
                 enddo
               endif
-              call geowrite(IUF,LGEOM(ICOMP),ICOMP,iuout,3,IER)
+              call geowrite2(IUF,LGEOM(ICOMP),ICOMP,iuout,3,IER)
               MODIFYVIEW=.TRUE.
               listcor=.true.
               call warnmod(ICOMP,'ob+')
@@ -2020,15 +2000,13 @@ C Create the sill obstruction.
       BANGOB(icomp,nbo,2)=0.0; BANGOB(icomp,nbo,3)=0.0
       write(BLOCKNAME(icomp,nbo),'(a,a1)')
      &  blkroot(1:lnblnk(blkroot)),'s'
-      LNBLOCKNAME(icomp,nbo)=lnblnk(BLOCKNAME(icomp,nbo))
       write(BLOCKMAT(icomp,nbo),'(a)') mat(1:lnblnk(mat))
-      LNBLOCKMAT(icomp,nbo)=lnblnk(mat)
       BLOCKTYP(icomp,nbo)='obs '
       OPOB(icomp,nbo)=1.0  ! initial assumption opaque
 
 C If newer geometry file it may include obstructions.
       if(newgeo)then
-        call geowrite(IUF,LGEOM(ICOMP),ICOMP,iuout,3,IER)
+        call geowrite2(IUF,LGEOM(ICOMP),ICOMP,iuout,3,IER)
       else
         CALL MKGOMST(IUF,ZOBS(ICOMP),ICOMP,IER)
       endif
@@ -2044,13 +2022,11 @@ C Create the head obstruction.
       BANGOB(icomp,nbo,2)=0.0; BANGOB(icomp,nbo,3)=0.0
       write(BLOCKNAME(icomp,nbo),'(a,a1)')
      &  blkroot(1:lnblnk(blkroot)),'h'
-      LNBLOCKNAME(icomp,nbo)=lnblnk(BLOCKNAME(icomp,nbo))
       write(BLOCKMAT(icomp,nbo),'(a)') mat(1:lnblnk(mat))
-      LNBLOCKMAT(icomp,nbo)=lnblnk(mat)
       BLOCKTYP(icomp,nbo)='obs '
       OPOB(icomp,nbo)=1.0  ! initial assumption opaque
       if(newgeo)then
-        call geowrite(IUF,LGEOM(ICOMP),ICOMP,iuout,3,IER)
+        call geowrite2(IUF,LGEOM(ICOMP),ICOMP,iuout,3,IER)
       else
         CALL MKGOMST(IUF,ZOBS(ICOMP),ICOMP,IER)
       endif
@@ -2066,13 +2042,11 @@ C Create the left side fin.
       BANGOB(icomp,nbo,2)=0.0; BANGOB(icomp,nbo,3)=0.0
       write(BLOCKNAME(icomp,nbo),'(a,a1)')
      &  blkroot(1:lnblnk(blkroot)),'l'
-      LNBLOCKNAME(icomp,nbo)=lnblnk(BLOCKNAME(icomp,nbo))
       write(BLOCKMAT(icomp,nbo),'(a)') mat(1:lnblnk(mat))
-      LNBLOCKMAT(icomp,nbo)=lnblnk(mat)
       BLOCKTYP(icomp,nbo)='obs '
       OPOB(icomp,nbo)=1.0
       if(newgeo)then
-        call geowrite(IUF,LGEOM(ICOMP),ICOMP,iuout,3,IER)
+        call geowrite2(IUF,LGEOM(ICOMP),ICOMP,iuout,3,IER)
       else
         CALL MKGOMST(IUF,ZOBS(ICOMP),ICOMP,IER)
       endif
@@ -2088,13 +2062,11 @@ C Create the right side fin.
       BANGOB(icomp,nbo,2)=0.0; BANGOB(icomp,nbo,3)=0.0
       write(BLOCKNAME(icomp,nbo),'(a,a1)')
      &  blkroot(1:lnblnk(blkroot)),'r'
-      LNBLOCKNAME(icomp,nbo)=lnblnk(BLOCKNAME(icomp,nbo))
       write(BLOCKMAT(icomp,nbo),'(a)') mat(1:lnblnk(mat))
-      LNBLOCKMAT(icomp,nbo)=lnblnk(mat)
       BLOCKTYP(icomp,nbo)='obs '
       OPOB(icomp,nbo)=1.0
       if(newgeo)then
-        call geowrite(IUF,LGEOM(ICOMP),ICOMP,iuout,3,IER)
+        call geowrite2(IUF,LGEOM(ICOMP),ICOMP,iuout,3,IER)
       else
         CALL MKGOMST(IUF,ZOBS(ICOMP),ICOMP,IER)
       endif
@@ -2210,8 +2182,8 @@ C focus of entities or compound objects.
       else
         DO 10 L=1,ILEN
           if(focusobj)then
-            llbm=MIN0(15,LNVOBJDESC(ICOMP,L))
-            llbn=LNVOBJNAME(ICOMP,L)
+            llbm=MIN0(15,lnblnk(VOBJDESC(ICOMP,L)))
+            llbn=lnblnk(VOBJNAME(ICOMP,L))
             WRITE(PICKO(L),'(I3,1X,A,1x,A)')L,VOBJNAME(ICOMP,L)(1:llbn),
      &        VOBJDESC(ICOMP,L)(1:llbm)
             IF(L.GE.IST.AND.(L.LE.(IST+MIFULL)))THEN
@@ -2222,9 +2194,9 @@ C focus of entities or compound objects.
      &          VOBJDESC(ICOMP,L)(1:llbm)
             ENDIF
           else
-            llbm=LNVISMAT(ICOMP,L)
+            llbm=lnblnk(VISMAT(ICOMP,L))
             if(llbm.gt.14) llbm=14
-            llbn=LNVISNAME(ICOMP,L)
+            llbn=lnblnk(VISNAME(ICOMP,L))
             WRITE(PICKV(L),'(I3,2X,A,1x,A)')L,VISNAME(ICOMP,L)(1:llbn),
      &        VISMAT(ICOMP,L)(1:llbm)
             IF(L.GE.IST.AND.(L.LE.(IST+MIFULL)))THEN
@@ -2241,9 +2213,9 @@ C Also fill up a list of entities so can select entities to add
 C to compound objects.
         if(focusobj)then
           do iv=1,nbvis(icomp)
-            llbm=LNVISMAT(ICOMP,iv)
+            llbm=lnblnk(VISMAT(ICOMP,iv))
             if(llbm.gt.14) llbm=14
-            llbn=LNVISNAME(ICOMP,iv)
+            llbn=lnblnk(VISNAME(ICOMP,iv))
             WRITE(PICKV(iv),'(I3,2X,A,1x,A)')iv,
      &        VISNAME(ICOMP,iv)(1:llbn),
      &        VISMAT(ICOMP,iv)(1:llbm)
@@ -2287,7 +2259,7 @@ C If a long list include page facility text.
 C If a modification has been done then update the zone geometry file
 C so that changes can be drawn.
       if(MODIFYVIEW)then
-        call geowrite(IUF,LGEOM(ICOMP),ICOMP,iuout,3,IER)
+        call geowrite2(IUF,LGEOM(ICOMP),ICOMP,iuout,3,IER)
         havesaved=.true.
       endif
 
@@ -2298,7 +2270,7 @@ C read of file).
       nzg=1
       nznog(1)=ICOMP
       izgfoc=ICOMP
-      CALL redraw(IER)
+      call redraw(IER)
 
 C Having updated the view (which uses MODIFYVIEW), if havesaved is true
 C then we can unset MODIFYVIEW.
@@ -2339,21 +2311,21 @@ C List details of visuals (compound objects or entities).
           call edisp(iuout,' Object | description         ')
           DO I=1,NBVOBJ(icomp)
             WRITE(outs,'(I3,4a)') I,' ',
-     &        VOBJNAME(ICOMP,I)(1:LNVOBJNAME(ICOMP,I)),'  ',
-     &        VOBJDESC(ICOMP,I)(1:LNVOBJDESC(ICOMP,I))
+     &        VOBJNAME(ICOMP,I)(1:lnblnk(VOBJNAME(ICOMP,I))),'  ',
+     &        VOBJDESC(ICOMP,I)(1:lnblnk(VOBJDESC(ICOMP,I)))
             call edisp(iuout,outs)
             do J=1,NBVOBJLIST(ICOMP,I)
               message=' with unknown attributes'
               do K=1,nbvis(icomp)
                 if(VOBJLIST(ICOMP,I,J)(1:12).eq.
      &             VISNAME(icomp,K)(1:12))then
-                  lnbm=LNVISMAT(icomp,K)
+                  lnbm=lnblnk(VISMAT(icomp,K))
                   write(message,'(4a)') ' made of ',
      &              VISMAT(icomp,K)(1:lnbm),' & type ',VISTYP(icomp,K)
                 endif
               enddo  ! of K
               WRITE(outs,'(3a)') 'uses entity: ',
-     &          VOBJLIST(ICOMP,I,J)(1:LNVOBJLIST(ICOMP,I,J)),
+     &          VOBJLIST(ICOMP,I,J)(1:lnblnk(VOBJLIST(ICOMP,I,J))),
      &          message(1:lnblnk(message))
               call edisp(iuout,outs)
             enddo  ! of J
@@ -2367,8 +2339,8 @@ C List details of visuals (compound objects or entities).
      &      'Name Material'
             call edisp(iuout,outs)
             DO I=1,nbvis(icomp)
-              lnbn=LNVISNAME(icomp,I)
-              lnbm=LNVISMAT(icomp,I)
+              lnbn=lnblnk(VISNAME(icomp,I))
+              lnbm=lnblnk(VISMAT(icomp,I))
               if(VISTYP(icomp,I)(1:4).eq.'vis ')then
                 WRITE(outs,9994)I,XOV(icomp,I),YOV(icomp,I),
      &            ZOV(icomp,I),DXOV(icomp,I),DYOV(icomp,I),
@@ -2508,14 +2480,12 @@ C Logic dependent on geometry.h array size for GSVOBJN common.
      &        12,'cabinet','visual name',IER,nbhelp)
             if(S12(1:2).NE.'  ')then
               VOBJNAME(ICOMP,newobj)=S12
-              LNVOBJNAME(ICOMP,newobj)=lnblnk(S12)
             endif
             S32='  '
             CALL EASKS(S32,' ',' Descriptive phrase? ',
      &        32,'4 drawer cabinet','visual description',IER,nbhelp)
             if(S12(1:2).NE.'  ')then
               VOBJDESC(ICOMP,newobj)=S32
-              LNVOBJDESC(ICOMP,newobj)=lnblnk(S32)
             endif
 
 C Present a list of available compound visuals to select from.
@@ -2530,12 +2500,11 @@ C Present a list of available compound visuals to select from.
                  id=IVALB(ijb)
                  write(VOBJLIST(ICOMP,newobj,ijb),'(a)')
      &             VISNAME(ICOMP,id)
-                 LNVOBJLIST(ICOMP,newobj,ijb)=lnblnk(VISNAME(ICOMP,id))    ! remember length
               enddo  ! of ijb
               NBVOBJ(icomp)=NBVOBJ(icomp)+1
               MODIFYVIEW=.TRUE.
-              call geowrite(IUF,LGEOM(ICOMP),ICOMP,iuout,3,IER)
-              CALL redraw(IER)
+              call geowrite2(IUF,LGEOM(ICOMP),ICOMP,iuout,3,IER)
+              call redraw(IER)
 
               call usrmsg('Object details are now presented. You can',
      &          'use the editing transform & rotation facilities.','W')
@@ -2583,9 +2552,7 @@ C the arrays from the point of the visual.
                     BANGOV(icomp,IDV,3)=BANGOV(icomp,IDV+1,3)
                     OPOV(icomp,IDV)=OPOV(icomp,IDV+1)
                     VISNAME(icomp,IDV)=VISNAME(icomp,IDV+1)
-                    LNVISNAME(icomp,IDV)=LNVISNAME(icomp,IDV+1)
                     VISMAT(icomp,IDV)=VISMAT(icomp,IDV+1)
-                    LNVISMAT(icomp,IDV)=LNVISMAT(icomp,IDV+1)
                     VISTYP(icomp,IDV)=VISTYP(icomp,IDV+1)
                     do ibe=1,8
                       XVP(icomp,IDV,ibe)=XVP(icomp,IDV+1,ibe)
@@ -2603,11 +2570,8 @@ C Now compact the list of compound objects.
             DO IDV=ID,NBVOBJ(icomp)-1
               VOBJNAME(icomp,idv)=VOBJNAME(icomp,idv+1)
               VOBJDESC(icomp,idv)=VOBJDESC(icomp,idv+1)
-              LNVOBJNAME(icomp,idv)=LNVOBJNAME(icomp,idv+1)
-              LNVOBJDESC(icomp,idv)=LNVOBJDESC(icomp,idv+1)
               do ibe=1,NBVOBJLIST(icomp,idv)
                 VOBJLIST(icomp,idv,ibe)=VOBJLIST(icomp,idv+1,ibe)
-                LNVOBJLIST(icomp,idv,ibe)=LNVOBJLIST(icomp,idv+1,ibe)
               enddo
               NBVOBJLIST(icomp,idv)=NBVOBJLIST(icomp,idv+1)
             ENDDO
@@ -2642,7 +2606,6 @@ C Ask name for copied compound object.
      &        12,'cabinet','visual name',IER,nbhelp)
             if(S12(1:2).NE.'  ')then
               VOBJNAME(ICOMP,newobj)=S12
-              LNVOBJNAME(ICOMP,newobj)=lnblnk(S12)
             endif
 
 C Ask description of copied compound object.
@@ -2651,7 +2614,6 @@ C Ask description of copied compound object.
      &        32,'4 drawer cabinet','visual description',IER,nbhelp)
             if(S12(1:2).NE.'  ')then
               VOBJDESC(ICOMP,newobj)=S32
-              LNVOBJDESC(ICOMP,newobj)=lnblnk(S32)
             endif
             NBVOBJLIST(ICOMP,newobj)=NBVOBJLIST(ICOMP,ifoc)
 
@@ -2674,14 +2636,12 @@ C new compound object.
               newname=' '
               write(newname,'(2a)') pre,VOBJLIST(ICOMP,ifoc,JJ)(1:11) ! make up new name
               write(VOBJLIST(ICOMP,newobj,JJ),'(a)') newname  ! assign it
-              LNVOBJLIST(ICOMP,newobj,JJ)= lnblnk(newname)    ! remember length
               do K=1,nbvis(icomp)
                 if(VOBJLIST(ICOMP,IFOC,JJ)(1:12).eq.
      &             VISNAME(icomp,K)(1:12))then
                   nbvis(icomp)=nbvis(icomp)+1  ! increment count nbvis and set nbo
                   nbo=nbvis(icomp)
                   VISNAME(ICOMP,nbo)=newname
-                  LNVISNAME(ICOMP,nbo)=lnblnk(newname)
                   XOV(icomp,nbo)=XOV(icomp,K)
                   YOV(icomp,nbo)=YOV(icomp,K)
                   ZOV(icomp,nbo)=ZOV(icomp,K)
@@ -2693,7 +2653,6 @@ C new compound object.
                   BANGOV(icomp,nbo,3)=BANGOV(icomp,K,3)
                   OPOV(icomp,nbo)=OPOV(icomp,K)
                   VISMAT(icomp,nbo)=VISMAT(icomp,K)
-                  LNVISMAT(icomp,nbo)=LNVISMAT(icomp,K)
                   VISTYP(icomp,nbo)=VISTYP(icomp,K)
                   do ibe=1,8
                     XVP(icomp,nbo,ibe)=XVP(icomp,K,ibe)
@@ -2707,7 +2666,7 @@ C new compound object.
 
 C Save the new compound and visuals to geometry file and
 C present the editing menu.
-            call geowrite(IUF,LGEOM(ICOMP),ICOMP,iuout,3,IER)
+            call geowrite2(IUF,LGEOM(ICOMP),ICOMP,iuout,3,IER)
 
             call usrmsg('Object copied on top of original. You should',
      &        'use the transform to place it in your mnodel.','W')
@@ -2759,9 +2718,7 @@ C deleted at one time.
                   BANGOV(icomp,IDV,3)=BANGOV(icomp,IDV+1,3)
                   OPOV(icomp,IDV)=OPOV(icomp,IDV+1)
                   VISNAME(icomp,IDV)=VISNAME(icomp,IDV+1)
-                  LNVISNAME(icomp,IDV)=LNVISNAME(icomp,IDV+1)
                   VISMAT(icomp,IDV)=VISMAT(icomp,IDV+1)
-                  LNVISMAT(icomp,IDV)=LNVISMAT(icomp,IDV+1)
                   VISTYP(icomp,IDV)=VISTYP(icomp,IDV+1)
                   do ibe=1,8
                     XVP(icomp,IDV,ibe)=XVP(icomp,IDV+1,ibe)
@@ -2784,12 +2741,10 @@ C deleted at one time.
               BANGOV(icomp,nbo,3)=0.0
               OPOV(icomp,nbo)=1.0
               VISNAME(icomp,nbo)='new_vis'
-              LNVISNAME(icomp,nbo)=7
               VISMAT(icomp,nbo)='NONE'
-              LNVISMAT(icomp,nbo)=4
               VISTYP(icomp,nbo)='vis '
               MODIFYVIEW=.TRUE.
-              call geowrite(IUF,LGEOM(ICOMP),ICOMP,iuout,3,IER)
+              call geowrite2(IUF,LGEOM(ICOMP),ICOMP,iuout,3,IER)
               CALL redraw(IER)
             ELSE
               CALL USRMSG(' ',' Too many visuals defined!','W')
@@ -2834,7 +2789,6 @@ C If user asked for next or prior visual reset nbo and call again.
      &          12,'block','visual block name',IER,nbhelp)
               if(tbn(1:12).ne.VISNAME(ICOMP,IFOC)(1:12))then
                 write(VISNAME(ICOMP,nbo),'(a)') tbn
-                LNVISNAME(ICOMP,nbo)=lnblnk(tbn)
               else
                 call usrmsg('The name must be unique',
      &                      'please supply a different name','W')
@@ -2867,7 +2821,6 @@ C time for copy use zeros, otherwise re-present the previous values.
               BANGOV(icomp,nbo,3)=BANGOV(icomp,IFOC,3)
               OPOV(icomp,nbo)=OPOV(icomp,IFOC)
               VISMAT(icomp,nbo)=VISMAT(icomp,IFOC)
-              LNVISMAT(icomp,nbo)=LNVISMAT(icomp,IFOC)
               VISTYP(icomp,nbo)=VISTYP(icomp,IFOC)
               do ibe=1,8
                 XVP(icomp,nbo,ibe)=XVP(icomp,IFOC,ibe)+VALX
@@ -2877,12 +2830,12 @@ C time for copy use zeros, otherwise re-present the previous values.
               MODIFYVIEW=.TRUE.
               if(.NOT.anothercopy) anothercopy=.true.  ! something copied
 
-              call geowrite(IUF,LGEOM(ICOMP),ICOMP,iuout,3,IER)
+              call geowrite2(IUF,LGEOM(ICOMP),ICOMP,iuout,3,IER)
               nbo=nbvis(icomp)
               ITOBS = nbo
               CALL EPMENSV       ! save the calling menu layout
   78          CALL redraw(IER)  ! redraw wireframe
-              if(MMOD.EQ.8) call redrawbuttons()
+              call redrawbuttons()
 
 C Edit the copied visual entity.
               CALL EDVISB(ITRU,IUF,ICOMP,nbo,ianother,IER)
@@ -2912,9 +2865,9 @@ C If user asked for next or prior visual reset nbo and call again.
             if(IZ.EQ.0)goto 91
             nbo=nbvis(iz)
             do LO=1,nbo
-              llbm=LNVISMAT(IZ,LO)
+              llbm=lnblnk(VISMAT(IZ,LO))
               if(llbm.gt.14) llbm=14
-              llbn=LNVISNAME(IZ,LO)
+              llbn=lnblnk(VISNAME(IZ,LO))
               WRITE(PICKVO(LO),'(I3,2X,A,1x,A)')LO,
      &          VISNAME(IZ,LO)(1:llbn),VISMAT(IZ,LO)(1:llbm)
             enddo
@@ -2932,7 +2885,6 @@ C If user asked for next or prior visual reset nbo and call again.
      &          ' ',12,'block','visual block name',IER,nbhelp)
               nbo=nbvis(icomp)   ! Reset counter to recipient zone.
               VISNAME(ICOMP,nbo) = tbn
-              LNVISNAME(ICOMP,nbo)=lnblnk(tbn)
               write(6,*) ICOMP,nbo,VISNAME(ICOMP,nbo)
 
 C Ask for transform distance for visual and then apply. If first
@@ -2961,7 +2913,6 @@ C time for copy use zeros, otherwise re-present the previous values.
               BANGOV(icomp,nbo,3)=BANGOV(iz,IFOC,3)
               OPOV(icomp,nbo)=OPOV(iz,IFOC)
               VISMAT(icomp,nbo)=VISMAT(iz,IFOC)
-              LNVISMAT(icomp,nbo)=LNVISMAT(iz,IFOC)
               VISTYP(icomp,nbo)=VISTYP(iz,IFOC)
               do ibe=1,8
                 XVP(icomp,nbo,ibe)=XVP(iz,IFOC,ibe)+VALX
@@ -2971,7 +2922,7 @@ C time for copy use zeros, otherwise re-present the previous values.
               MODIFYVIEW=.TRUE.
               if(.NOT.anothercopy) anothercopy=.true.  ! something copied
 
-              call geowrite(IUF,LGEOM(ICOMP),ICOMP,iuout,3,IER)
+              call geowrite2(IUF,LGEOM(ICOMP),ICOMP,iuout,3,IER)
               nbo=nbvis(icomp)
               ITOBS = nbo
               CALL EPMENSV       ! save the calling menu layout
@@ -3111,7 +3062,7 @@ C Initial menu entry setup.
 
 C If a modification has been done then update the geometry file.
       if(MODIFYVIEW)then
-        call geowrite(IUF,LGEOM(ICOMP),ICOMP,iuout,3,IER)
+        call geowrite2(IUF,LGEOM(ICOMP),ICOMP,iuout,3,IER)
         havesaved=.true.
       endif
 
@@ -3155,7 +3106,7 @@ C Set menu header text.
      &    BANGOV(ICOMP,IB,3)
         WRITE(VERT(6),'(A,A)')      'f name        : ',
      &    VISNAME(ICOMP,IB)
-        llbm=LNVISMAT(ICOMP,IB)
+        llbm=lnblnk(VISMAT(ICOMP,IB))
         if(llbm.gt.16) llbm=16   ! truncate longer MLC names
         WRITE(VERT(7),'(A,A)')      'g construction: ',
      &    VISMAT(ICOMP,IB)(1:llbm)
@@ -3208,7 +3159,7 @@ C Set menu header text.
         VERT(10)                  = '  ____________________________ '
         WRITE(VERT(11),'(A,A)')     'i name        : ',
      &    VISNAME(ICOMP,IB)
-        llbm=LNVISMAT(ICOMP,IB)
+        llbm=lnblnk(VISMAT(ICOMP,IB))
         if(llbm.gt.16) llbm=16   ! truncate longer MLC names
         WRITE(VERT(12),'(A,A)')     'j construction: ',
      &    VISMAT(ICOMP,IB)(1:llbm)
@@ -3290,11 +3241,10 @@ C One set of interface actions if type 'vis' or 'vis3'.
             listcor = .true.
           elseif(IBOPT.eq.2)then
 
-C Use current zone G1 common blocks to present list of points
-C via epkvert.
+C Present list of points via epkvert.
             inpick=1
             CALL EPMENSV
-            call EPKVERT(INPICK,IVLST,'Vertices for origin',
+            call EPKVERT(ICOMP,INPICK,IVLST,'Vertices for origin',
      &        'Select a vertex to define the origin...',' ',nbhelp,ier)
             CALL EPMENRC
             if(inpick.eq.1)then
@@ -3308,11 +3258,10 @@ C via epkvert.
             endif
           elseif(IBOPT.eq.3)then
 
-C Use current zone G1 common blocks to present list of points
-C via epkvert.
+C Present list of points via epkvert.
             inpick=1
             CALL EPMENSV
-            call EPKVERT(INPICK,IVLST,'Vertice in zone',
+            call EPKVERT(ICOMP,INPICK,IVLST,'Vertice in zone',
      &        'Select a vertex to begin from...',' ',nbhelp,ier)
             CALL EPMENRC
             if(inpick.eq.1)then
@@ -3409,7 +3358,6 @@ C via epkvert.
      &      12,'cabinet','visual name',IER,nbhelp)
           IF(S12(1:2).NE.'  ')then
             VISNAME(ICOMP,IB)=S12
-            LNVISNAME(ICOMP,IB)=lnblnk(S12)
           endif
           MODIFYVIEW=.TRUE.
         ELSEIF(IVERT.EQ.7)THEN
@@ -3428,11 +3376,9 @@ C Note: this logic only picks up the first 12 char of construction.
           CALL EPMENRC
           IF(ISEL.GT.0)then
             WRITE(VISMAT(icomp,IB),'(A)') mlcname(ISEL)
-            LNVISMAT(icomp,IB)=lnblnk(VISMAT(icomp,IB))
             MODIFYVIEW=.TRUE.
           else
             WRITE(VISMAT(icomp,ib),'(A)') 'UNKNOWN'
-            LNVISMAT(icomp,ib)=7
           endif
           IF(IER.EQ.1)THEN
             CALL USRMSG(' ',
@@ -3619,7 +3565,6 @@ C Interface options if a general polygon visual.
      &      12,'cabinet','visual name',IER,nbhelp)
           IF(S12(1:2).NE.'  ')then
             VISNAME(ICOMP,IB)=S12
-            LNVISNAME(ICOMP,IB)=lnblnk(S12)
           endif
           MODIFYVIEW=.TRUE.
         ELSEIF(IVERT.EQ.12)THEN
@@ -3638,11 +3583,9 @@ C Note: this logic only picks up the first 12 char of construction.
           CALL EPMENRC
           IF(ISEL.GT.0)then
             WRITE(VISMAT(icomp,IB),'(A)') mlcname(ISEL)
-            LNVISMAT(icomp,IB)=lnblnk(VISMAT(icomp,IB))
             MODIFYVIEW=.TRUE.
           else
             WRITE(VISMAT(icomp,ib),'(A)') 'UNKNOWN'
-            LNVISMAT(icomp,ib)=7
           endif
           IF(IER.EQ.1)THEN
             CALL USRMSG(' ',
@@ -3732,8 +3675,8 @@ C Initial values for bounding box and clear local arrays.
 
 C Makeup list of available entities.
       do iv=1,nbvis(icomp)
-        llbm=LNVISMAT(ICOMP,iv)
-        llbn=LNVISNAME(ICOMP,iv)
+        llbm=lnblnk(VISMAT(ICOMP,iv))
+        llbn=lnblnk(VISNAME(ICOMP,iv))
         WRITE(PICKV(iv),'(I3,2X,A,1x,A)')iv,
      &    VISNAME(ICOMP,iv)(1:llbn),
      &    VISMAT(ICOMP,iv)(1:llbm)
@@ -3751,7 +3694,7 @@ C Initial menu entry setup.
 
 C If a modification has been done then update the geometry file.
       if(MODIFYVIEW)then
-        call geowrite(IUF,LGEOM(ICOMP),ICOMP,iuout,3,IER)
+        call geowrite2(IUF,LGEOM(ICOMP),ICOMP,iuout,3,IER)
         havesaved=.true.
       endif
 
@@ -3865,7 +3808,6 @@ C One set of interface actions if type 'obs' or 'obs3'.
      &    12,'cabinet','visual name',IER,nbhelp)
         IF(S12(1:2).NE.'  ')then
           VOBJNAME(ICOMP,IOBJ)=S12
-          LNVOBJNAME(ICOMP,IOBJ)=lnblnk(S12)
         endif
         MODIFYVIEW=.TRUE.
 
@@ -3876,7 +3818,6 @@ C One set of interface actions if type 'obs' or 'obs3'.
      &    32,'4 drawer cabinet','visual description',IER,nbhelp)
         IF(S12(1:2).NE.'  ')then
           VOBJDESC(ICOMP,IOBJ)=S32
-          LNVOBJDESC(ICOMP,IOBJ)=lnblnk(S32)
         endif
         MODIFYVIEW=.TRUE.
 
@@ -3889,7 +3830,6 @@ C selections.
         do ijb=1,NBVOBJLIST(ICOMP,iobj)
           call edisp(iuout,nhash(ijb))
           VOBJLIST(ICOMP,iobj,ijb)='  '
-          LNVOBJLIST(ICOMP,iobj,ijb)=0
         enddo
         CALL EPMENSV
         INPIC=12
@@ -3902,7 +3842,6 @@ C selections.
             id=IVALB(ijb)
             write(VOBJLIST(ICOMP,iobj,ijb),'(a)')
      &        VISNAME(ICOMP,id)
-            LNVOBJLIST(ICOMP,iobj,ijb)=lnblnk(VISNAME(ICOMP,id))    ! remember length
           enddo  ! of ijb
           MODIFYVIEW=.TRUE.
         endif

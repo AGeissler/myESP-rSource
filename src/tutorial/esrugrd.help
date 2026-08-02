@@ -1,5 +1,37 @@
 *help_text grd
 
+*item grd grd_opening_menu
+'The grd module of ESP-r supports the definition of several different'
+'gridding regimes for conduction in facades, ground and moisture.'
+' '
+'- problem definition: (re)specify the ESP-r model cfg file. '
+' '
+'- 1D gridding e.g., lumped constructions, user defined nodes,'
+'  automated node distributions & file management of 1D gridding files.'
+' '
+'- multi-gridding e.g., defining components (surfaces/edges/corners),'
+'  defining connections (surface-to-surface, surface-to-edge, edge-'
+'  to corner) as well as setting up a default 1D or 3D model & file'
+'  management of 3D gridding and configuration files.'
+' '
+'- ground modelling e.g., define X Y & Z gridding of the ground domain,'
+'  boundary conditions and ground composition plus file management.'
+' '
+'- moisture modelling e.g., setup nodes, hygric properties and file'
+'  management.'
+' '
+'Files managed by grd are: '
+'  *.g1d - 1D gridding definitions'
+'  *.csm - structured mesh definitions'
+'  *.cvs - control volumes'
+'  *.cnc - control connections'
+'  *.ndc - node coordinates'
+'  *.taq - node initial temperatures'
+'  *.mst - moisture node distribution'
+'  *.c3d'
+' '
+*enditem
+
 *item bgrd1d 1D_node_def_menu
 'The node distribution menu allows the user to '
 'select the required discretisation scheme, and to '

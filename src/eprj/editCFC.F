@@ -109,7 +109,7 @@ C 1. scan G6 common and check that CFCs are VERT and EXTERIOR
         imlc = smlcindex(icomp,is)
         IF(SOTF(icomp,is)(1:3).eq.'CFC')then
             if(SVFC(icomp,is)(1:4).eq.'VERT'.and.
-     &         SOTHER(icomp,is,1)(1:5).eq.'EXTER')then
+     &         zboundarytype(icomp,is,1).eq.0)then
               ncfccount=ncfccount+1   !count CFCs in zone
               con_name(is)=SMLCN(icomp,is)
 

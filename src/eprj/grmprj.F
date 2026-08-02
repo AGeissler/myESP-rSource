@@ -507,7 +507,7 @@ C Help.
 C Pick a gremlin type.
       elseif (ipick.eq.1) then
         itmp=GRMTYP(IGRM)
-        CALL GRM_PIKTYP(GRMZON(IGT),itmp,IER)
+        CALL GRM_PIKTYP(GRMZON(IGRM),itmp,IER)
         if (itmp.gt.0.and.ier.eq.0) then
           GRMTYP(IGRM)=itmp
         else

@@ -219,7 +219,6 @@ C Clear 'conflated only' commons.
         zname(I)=' '
         lnzname(I)=0
         zdesc(I)=' '
-        lnzdesc(I)=0
  2    continue
 
 C Set defaults.
@@ -1054,6 +1053,12 @@ C Dummy subroutines needed by common3dv.F
       character*(*) PROMPT
       character MOD*1
       LOGICAL CFGOK
+      return
+      end
+
+      SUBROUTINE SURADJ(IZONE,ISFN,IE,TMP,IZC,ISC,IC,DESCR)
+      CHARACTER*25 DESCR
+      integer IZONE,ISFN,IE,TMP,IZC,ISC,IC
       return
       end
 

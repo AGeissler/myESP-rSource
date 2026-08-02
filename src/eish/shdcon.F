@@ -276,7 +276,7 @@ C Clear return array and select all applicable surfaces.
             np=0
             do 13 i=1,nzsur(icomp)
                icn=izstocn(icomp,i)
-               if(sother(icomp,i,1)(1:5).eq.'EXTER')then
+               if(zboundarytype(icomp,i,1).eq.0)then
                   np=np+1
                   iva(np)=i
                endif
@@ -290,7 +290,7 @@ C Clear return array and select all applicable surfaces.
             call edisp(iuout,' ')
             call edisp(iuout,'Select external surfaces to include in')
             call edisp(iuout,'the direct/duffuse shading calculation.')
-            call pickssur(icomp,np,'s',iva,ier)
+            call pickshsur(icomp,np,'s',iva,ier)
             if(ier.ne.0)return
          endif
 
@@ -898,7 +898,7 @@ C Trace output.
         write(outs,'(3a,i3,3a,i3,a,i1,a)')
      &    '*** DECOMP: Target surface ',zsdes(1:lnzsn),' (',itsur,
      &    ') obstruction ',
-     &    blockname(izone,ibn)(1:lnblockname(izone,ibn)),' (',ibn,
+     &    blockname(izone,ibn)(1:lnblnk(blockname(izone,ibn))),' (',ibn,
      &    ') face ',ibs,'.'
         call edisp(icout,outs)
         call edisp(icout,case)

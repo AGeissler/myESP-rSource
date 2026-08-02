@@ -23,7 +23,7 @@ C surface names).
 
 C PADJVIEW: Adjusts the viewing transforms & boundaries if necessary
 C           for a predefined object preview.
-C CDRAWESP: Loads the geometric description(s) from an ESP file,
+C CDRAWOBJ loads predefined object description(s) from common blocks,
 C          converts into viewing coords, clips the image and draws it.
 
 C There is a lot of commonality here when drawing graphic entities
@@ -39,7 +39,6 @@ C that predefined commons have been filled prior to calling this.
 C IER=0 OK, IER=1 problem. 
 C izgfoc greater than zero represents the zone which is currently being edited.
 
-C << TODO call padjview from the wire-frame control menu.
       SUBROUTINE PADJVIEW(IER)
 #include "building.h"
 #include "predefined.h"
@@ -77,6 +76,12 @@ C      write(6,'(a)') 'BNDOBJ XMN YMN ZMN XMX YMX ZMX'
 
 C Find the centroid of object and bounding box of the object. objbnds(3)
       XMX=objbnds(1)+0.1; YMX=objbnds(2)+0.1; ZMX=objbnds(3)+0.1
+      if(objbnds(1).lt.0.4) XMX=objbnds(1)+0.05
+      if(objbnds(2).lt.0.4) YMX=objbnds(2)+0.05
+      if(objbnds(3).lt.0.4) ZMX=objbnds(3)+0.05
+      if(objbnds(1).lt.0.2) XMX=objbnds(1)+0.0
+      if(objbnds(2).lt.0.2) YMX=objbnds(2)+0.0
+      if(objbnds(3).lt.0.2) ZMX=objbnds(3)+0.0
 
 C Set a bit of buffer on the left and bottom. If small object set at zero.
       XMN=(-0.1); YMN=(-0.1); ZMN=(-0.1)
@@ -611,7 +616,7 @@ C Repeat until....
 
       endif
 
-C Now draw any predefined solar obstructions. << NOT YET TESTED >>
+C Now draw any predefined solar obstructions.
       if(objnbobs.gt.0)then
         DO 302 IB=1,objnbobs
           if(objblocktyp(IB)(1:4).eq.'vis ')then

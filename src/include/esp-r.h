@@ -166,6 +166,8 @@ void  eswlinewwc_(long int* x1,long int* y1,long int* x2,long int* y2);
 void  eswline_(long int* x1,long int* y1,long int* x2,long int* y2);
 void  edwlinewwc_(long int* x1,long int* y1,long int* x2,long int* y2);
 void  edwline_(long int* x1,long int* y1,long int* x2,long int* y2);
+void  etwlinewwc_(long int* x1,long int* y1,long int* x2,long int* y2);
+void  etwline_(long int* x1,long int* y1,long int* x2,long int* y2);
 void  echainwwc_(long int* x1,long int* y1,long int* x2,long int* y2,long int* ipdis);
 void  echain_(long int* x1,long int* y1,long int* x2,long int* y2,long int* ipdis);
 void  drawdwl(int xa,int ya,int xb,int yb);

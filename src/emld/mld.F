@@ -310,13 +310,7 @@ C ***** Dummy display of images.
       return
       end
 
-C Dummy routines from common3dv.F needed to match implied
-C calls in esru_lib.F
-      SUBROUTINE ADJVIEW(IER)
-      ier=0
-      return
-      end
-
+C Dummy routines. 
       subroutine redraw(IER)
       ier=0
       return

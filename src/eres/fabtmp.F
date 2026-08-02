@@ -48,14 +48,7 @@ C #include "geometry.h"
 
       CHARACTER outs*124
 
-C Read (silently) in the zone geometry data.
       IUNITF=IFIL+1
-      call georead(IUNITF,LGEOM(ICOMP),ICOMP,0,IUOUT,IER)
-      IF(IER.NE.0)THEN
-        write(outs,'(A,A72)')' Could not find ',LGEOM(ICOMP)
-        CALL USRMSG(' ',outs,'W')
-        RETURN
-      ENDIF
 
 C If there is a mlc db scan it for properties of the surface.
       CALL GZPDBE(ICOMP,IER)
@@ -404,7 +397,7 @@ C If act = i then initial display, if act = s then single step display.
 
       CHARACTER ETEXT*94,GTEXT*94,PDESCR*64,SDESCR*44,CSTR*25
       character rfile*72,PFILE*72,MSTRFILE*72,LAFRES*72
-      character TSTR*6,ZN*12,RSNAME*40,SN*12
+      character TSTR*6,ZN*12,RSNAME*40,SN*12,ZNC*12,SNC*12
       character act*1
       integer lml   ! string length for construction name.
 #ifdef OSI
@@ -427,7 +420,7 @@ C and the simulation and output timesteps.
           call startbuffer
 
 C Setup and pass in parameters to win3d.
-          iiw1=9; iiw2=24; iiw3=8; iiw4=3; iimenu=menuchw
+          iiw1=9; iiw2=24; iiw3=9; iiw4=3; iimenu=menuchw
           iigl=igl; iigr=igr; iigt=igt; iigb=igb; iigw=igw; iigwh=igwh
           CALL win3d(iimenu,iiw1,iiw2,iiw3,iiw4,
      &      iigl,iigr,iigt,iigb,iigw,iigwh)
@@ -473,9 +466,11 @@ C Setup and pass in parameters to win3d.
       CALL SURADJ(ICOMP,ISUR,IE,T,IZC,ISC,ICN,CSTR)
       SN=SNAME(ICOMP,ISUR)
       ZN=zname(ICOMP)
-      WRITE(ETEXT,'(6A)')' Temperature profiles within ',
+      SNC=SNAME(IZC,ISC)
+      ZNC=zname(IZC)
+      WRITE(ETEXT,'(8A)')' Temperature profiles within ',
      &   SN(1:lnblnk(SN)),' of ',ZN(1:lnblnk(ZN)),' facing ',
-     &   CSTR(1:lnblnk(CSTR))
+     &   SNC(1:lnblnk(SNC)),' of ',ZNC(1:lnblnk(ZNC))
       if(MMOD.EQ.8)then
         iside=3; isize=0; ifont=1
         call viewtext(etext,iside,isize,ifont)
@@ -498,8 +493,8 @@ C CFC and CFC2 are still classed with opaque.
 
 C Print info on surface.
       lml=lnblnk(SMLCN(ICOMP,ISUR))
-      WRITE(ETEXT,'(5a,f6.2,a)')' It is ',TSTR,', composed of ',
-     &  SMLCN(ICOMP,ISUR)(1:lml),', with area ',SNA(ICOMP,ISUR),' m2.'
+      WRITE(ETEXT,'(4a,f6.2,a)') SMLCN(ICOMP,ISUR)(1:lml),' is ',TSTR,
+     &  ', with area ',SNA(ICOMP,ISUR),' m2.'
       GTEXT=ETEXT
       if(MMOD.EQ.8)then
         iside=4; isize=0; ifont=1
@@ -514,7 +509,7 @@ C Print info on surface.
 C ******************** MOFDRW
 C MOFDRW displays the construction temperature profiles.
 
-      SUBROUTINE MOFDRW(ICOMP,ISUR,act,ispeed)
+      SUBROUTINE MOFDRW(ICOMP,ISUR,act,ispeed,ilw)
 #include "building.h"
 #include "geometry.h"
 
@@ -522,6 +517,7 @@ C Passed parameters
       integer icomp  ! zone index
       integer isur   ! surface index
       integer ispeed ! 1 is 200ms 2 is 100ms 3 is 50ms 4 is 25ms
+      integer ilw    ! line width 1=single, 2=double, 3=tripple
 
       COMMON/SET1/IYEAR,IBDOY,IEDOY,IFDAY,IFTIME
       COMMON/RECV3/NCONST(MCOM),NELTS(MCOM,MS),NGAPS(MCOM,MS),
@@ -541,7 +537,7 @@ C IPRZ is materials array index for each layer.
       DIMENSION XVAL1(MZS)
       character act*1,ETEXT*94,TDESCR*5,DS*7,DS1*10,DS2*8
       character CSTR*25,TCSTR*25
-      character ZN*12
+      character ZN*12,SNC*12,ZNC*12
 #ifdef OSI
       integer iside,isize,ifont     ! passed to viewtext
       integer iupdown,isym,iid1,iid2    ! passed to etplot
@@ -562,8 +558,11 @@ C Re-establish available colours.
 
 C Determine the 'other' zone and connection information.
       CALL SURADJ(ICOMP,ISUR,IE,T,IZC,ISC,ICN,CSTR)
-      TCSTR=CSTR
+C      TCSTR=CSTR
       ZN=zname(ICOMP)
+      SNC=SNAME(IZC,ISC)
+      ZNC=zname(IZC)
+      write(TCSTR,'(3a)') SNC(1:lnblnk(SNC)),':',ZNC(1:lnblnk(ZNC))
 
 C Get and display results.
       icnt=0
@@ -574,17 +573,19 @@ C Draw construction section.
       call textsizeatxy(iid1,iid2,TCSTR,ibsize,'-',iicol)
       iid1=igr; iid2=igt-10;
       call textsizeatxy(iid1,iid2,ZN,ibsize,'-',iicol)
-      igr=13
+      igray=13
       XX=0.
       YD=TMAX-TMIN
       NE=NELTS(ICOMP,ISUR)
+
+C TODO: label each layer? Adjust grey level depending on density?
 
 C Draw a grey box for each layer that is not a gap.
       DO 101 L=1,NE
         XL=XX
         XD=ETHK(L)
         XX=XX+ETHK(L)
-        if(IPRZ(ISUR,L).ne.0)call egrbox(XL,TMIN,XD,YD,igr)
+        if(IPRZ(ISUR,L).ne.0)call egrbox(XL,TMIN,XD,YD,igray)
   101 CONTINUE
 
       DO 10 I=IODS,IODF
@@ -610,24 +611,45 @@ C Commence drawing. Remember that everything shifted over 1
 C to allow for outside temp to be in VAL2(1,?)
           icnt=icnt+1
           XX=THKMIN
-          iupdown=0
+          iupdown=0       ! Move to & no symbol
           isym=0
           call etplot(XX,VAL2(1,J),iupdown,isym)
           XX=0.
-          iupdown=1
-          DO 90 L=1,NNT
+          if(act.eq.'a')then ! If subsequent animation set width.
+            if(ilw.eq.1)then
+              iupdown=1      ! single width line
+            elseif(ilw.eq.2)then
+              iupdown=-303   ! double width line
+            elseif(ilw.eq.3)then
+              iupdown=-403   ! double width line
+            endif
+          else
+            iupdown=1        ! Non-animation single width line
+          endif
+          DO 90 L=1,NNT   ! Draw line across each MLC layer.
             call etplot(XX,VAL2(L+1,J),iupdown,isym)
             M=((L-1)/2)+1
             XX=XX+ETHK(M)/2.
    90     CONTINUE
-          iupdown=1
+          if(act.eq.'a')then ! If subsequent animation set width.
+            if(ilw.eq.1)then
+              iupdown=1      ! single width line
+            elseif(ilw.eq.2)then
+              iupdown=-303   ! double width line
+            elseif(ilw.eq.3)then
+              iupdown=-403   ! double width line
+            endif
+          else
+            iupdown=1        ! Non-animation single width line
+          endif
           call etplot(THKMAX,VAL2(NNT+2,J),iupdown,isym)
           call forceflush
+
           if(act.eq.'a')then
 
-C If single-stepping pause, every 20 timesteps refresh the axis.
+C User requested animation. Pause, every 10 timesteps refresh the axis.
 C If there are limited interface colours then revert to refreshing at
-C each timestep. Pause 200msec at each timestep.
+C each timestep. Pause as per user preference at each timestep.
             if(ispeed.eq.1)then
               call pausems(200)
             elseif(ispeed.eq.2)then
@@ -636,6 +658,8 @@ C each timestep. Pause 200msec at each timestep.
               call pausems(50)
             elseif(ispeed.eq.4)then
               call pausems(25)
+            elseif(ispeed.eq.5)then
+              call pausems(15)
             endif
             if(nifgrey.lt.4)then
               call MOFHED(ICOMP,ISUR,'s')
@@ -658,17 +682,29 @@ C If possible reset the foreground colour to white and redraw the line.
               iicol=nifgrey-1
               call winscl('i',iicol)
               XX=THKMIN
-              iupdown=0
+              iupdown=0    ! move to & no symbol
               isym=0
               call etplot(XX,VAL2(1,J),iupdown,isym)
               XX=0.
-              iupdown=1
+              if(ilw.eq.1)then
+                iupdown=1    ! single width line
+              elseif(ilw.eq.2)then
+                iupdown=-303 ! double width line
+              elseif(ilw.eq.3)then
+                iupdown=-403 ! double width line
+              endif
               DO 91 L=1,NNT
                 call etplot(XX,VAL2(L+1,J),iupdown,isym)
                 M=((L-1)/2)+1
                 XX=XX+ETHK(M)/2.
    91         CONTINUE
-              iupdown=1
+              if(ilw.eq.1)then
+                iupdown=1    ! single width line
+              elseif(ilw.eq.2)then
+                iupdown=-303 ! double width line
+              elseif(ilw.eq.3)then
+                iupdown=-403 ! double width line
+              endif
               call etplot(THKMAX,VAL2(NNT+2,J),iupdown,isym)
               call forceflush()
               iicol=0
@@ -681,7 +717,7 @@ C Re-Draw construction section.
             call textsizeatxy(iid1,iid2,TCSTR,ibsize,'-',iicol)
             iid1=igr; iid2=igt-10;
             call textsizeatxy(iid1,iid2,ZN,ibsize,'-',iicol)
-            igr=13
+            igray=13
             XX=0.
             YD=TMAX-TMIN
             NE=NELTS(ICOMP,ISUR)
@@ -689,7 +725,7 @@ C Re-Draw construction section.
               XL=XX
               XD=ETHK(L)
               XX=XX+ETHK(L)
-              if(IPRZ(ISUR,L).ne.0)call egrbox(XL,TMIN,XD,YD,igr)
+              if(IPRZ(ISUR,L).ne.0)call egrbox(XL,TMIN,XD,YD,igray)
   102       CONTINUE
             call forceflush
           else
@@ -707,6 +743,8 @@ C Re-Draw construction section.
               call pausems(40)
             elseif(ispeed.eq.4)then
               call pausems(35)
+            elseif(ispeed.eq.5)then
+              call pausems(25)
             endif
           endif
    20   CONTINUE

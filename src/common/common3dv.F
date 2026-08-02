@@ -1,6 +1,6 @@
 C This file is part of the ESP-r system.
 C Copyright Energy Systems Research Unit, University of
-C Strathclyde, Glasgow Scotland, 2001.
+C Strathclyde, Glasgow Scotland, 2001-.
 
 C ESP-r is free software.  You can redistribute it and/or
 C modify it under the terms of the GNU General Public
@@ -15,7 +15,10 @@ C details.
 
 
 C cmmon3dv.F contains the following Fortran subroutines:
-C  ADJVIEW: Adjusts the viewing transforms & boundaries if necessary.
+C  CADJVIEW: Adjusts the viewing transforms & boundaries if necessary
+C            using global data structures.
+C  CDRAWESP: Loads the geometric description(s), converts into viewing 
+c            coords, clips the image and draws it.
 C  CHGAZI:  Called from C code with an increment or decrement of azimuth.
 C  CHGELEV: Called from C code with an increment or decrement of elevation.
 C  CHGEYE:  Called from C code with current contents of the ray2_ and
@@ -31,22 +34,26 @@ C  wiresymbol: draws a user defined symbol in wireframe
 C  REDRAW : Entry point for redrawing model display.
 C  TMPMENU: A temporary menu that allows users to reposition the view.
 
-C ************* ADJVIEW 
-C ADJVIEW takes the current status of view and boundary mods
-C and adjusts the viewing transforms & object boundaries if 
-C necessary before displaying the zone.
-C IER=0 OK, IER=1 problem. If izgfoc is not 0
-C then it represents the zone which is currently being edited.
-      SUBROUTINE adjview(IER)
+C ************* CADJVIEW 
+C Takes the current status of view and boundary mods and adjusts
+C the viewing transforms & object boundaries if necessary before
+C displaying the zone.
+C IER=0 OK, IER=1 problem. 
+C izgfoc > zero represents the zone which is currently being edited.
+C If focussname is true than only labels highlighted surfaces.
+
+      SUBROUTINE CADJVIEW(focussname,IER)
 #include "building.h"
 #include "model.h"
 #include "prj3dv.h"
       
       integer lnblnk  ! function definition
 
-C Passed parameters.
+C Passed parameter.
+      logical focussname ! if true only label highlighted surfaces.
       integer ier
-      
+
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
       COMMON/gzonpik/izgfoc,nzg,nznog(mcom)
       common/initv/initvt,EYEMI(3),VIEWMI(3),ANGI
@@ -127,7 +134,7 @@ C Tell wireframe how many zones to include in the image.
 C If altered then do a bound check on the current zone and update display.
 C If static views ITBND=0 then do not update VIEWM when calling BNDOBJ.
       IF(MODIFYVIEW)THEN
-        if(izgfoc.NE.0)CALL ESCZONE(izgfoc)
+        if(izgfoc.NE.0) CALL ESCZONE(izgfoc)
         IF(MODBND)THEN
           CALL BNDOBJ(0,IER)
           MODLEN=.TRUE.
@@ -142,12 +149,12 @@ C If viewpoint or bounds changed then recalculate viewing parameters.
           ELSE
             ier=1
             CALL USRMSG(' ',
-     &       'The eye position and viewed position are too close!','W')
+     &       ' The eye and viewed position are too close!','W')
             RETURN
           ENDIF
           CALL LENS(IER)
         ENDIF
-        
+
 C Clear current viewing box.
         if(mmod.eq.8)CALL startbuffer()
 
@@ -184,8 +191,8 @@ C something else that changed it.
 C If view or scaling has changed, reset clipping planes.
         if (MODLEN .or. ITBND.EQ.1) call INICLP(ier)
 
-C Draw the selected bodies.
-        CALL DRAWESP(IER)
+C Draw the selected bodies based on the passed focussname.
+        CALL CDRAWESP(focussname,IER)
         if (ier.ne.0) return
 
 C Show feature buttons.
@@ -201,7 +208,7 @@ C          call viewtextwwc(etext,iside,isize,ifont)
         endif
 
 C Recover information begin edited and reset modifyview flag.
-        if(izgfoc.NE.0)CALL ERCZONE(izgfoc)
+        if(izgfoc.NE.0) CALL ERCZONE(izgfoc)
         MODIFYVIEW=.FALSE.
         MODLEN=.FALSE.
         MODBND=.FALSE.
@@ -210,9 +217,845 @@ C Recover information begin edited and reset modifyview flag.
       RETURN
       END
 
+
+C ******************** CDRAWESP 
+C Loads the geometric description(s) from common blocks,
+C converts into viewing coords, clips the image and draws it.
+C ier is returned as non-zero if there has been a problem.
+
+      SUBROUTINE CDRAWESP(focussname,ier)
+#include "building.h"
+#include "model.h"
+#include "geometry.h"
+#include "prj3dv.h"
+#include "esprdbfile.h"
+#include "material.h"
+      
+      integer lnblnk  ! function definition
+
+C Passed parameters.
+      logical focussname ! if true only label highlighted surfaces.
+      integer ier
+
+      COMMON/gzonpik/izgfoc,nzg,nznog(mcom)
+      COMMON/SPAD/MMOD,LIMIT,LIMTTY
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
+C      COMMON/FILEP/IFIL
+      integer ifs,itfs,imfs
+      COMMON/GFONT/IFS,ITFS,IMFS
+      integer menuchw,igl,igr,igt,igb,igw,igwh
+      COMMON/VIEWPX/menuchw,igl,igr,igt,igb,igw,igwh
+
+      integer IZSTOCN
+      COMMON/C24/IZSTOCN(MCOM,MS)
+      common/appcols/mdispl,nifgrey,ncset,ngset,nzonec
+
+      COMMON/FOPENED/CFGOK,MLDBOK,MATDBOK,CTLOK,OPTKOK,CFCDBOK
+      LOGICAL  ISTOK,CFGOK,MLDBOK,MATDBOK,CTLOK,OPTKOK,CFCDBOK
+      logical greyok,found
+      integer ier2,ier3,ier4,ier6  ! traps
+
+      DIMENSION  AX(MPL),AY(MPL),AZ(MPL),IANXT(MPL)
+      DIMENSION  BX(MPL),BY(MPL),BZ(MPL),IBNXT(MPL)
+      DIMENSION  SBBOX(3,2),COG1(3),COG2(3)
+      DIMENSION  CG(3),VN(3),ipoints(6,2)
+
+      CHARACTER ETEXT*82
+      CHARACTER temp*16,DESCRC*25,stemp*13,temp20*21
+      CHARACTER MLCN*32,t13*13
+      integer izsize,issize
+
+C Local variables to pass to edline and axiscale.
+#ifdef OSI
+      integer iside,isize,ifont       ! passed to viewtext
+      integer iix,iiy,iixlast,iiylast,iixc,iiyc,iid1,iid2,iid3,iid4
+      integer iicol,ipixw,ipixh       ! passed to textsizeatxy
+#else
+      integer*8 iside,isize,ifont     ! passed to viewtext
+      integer*8 iix,iiy,iixlast,iiylast,iixc,iiyc,iid1,iid2,iid3,iid4
+      integer*8 iicol,ipixw,ipixh     ! passed to textsizeatxy
+#endif
+
+C If libraries and monitor support greyscale remember this.
+      greyok=.false.
+      if(nifgrey.gt.4)then
+        greyok=.true.
+      endif
+
+C Set font for displaying zone & surface names etc.
+      issize=4; izsize=5  ! for surfaces and zone name
+
+      IER=0; ier2=0; ier3=0; ier4=0; ier6=0
+
+C Refresh the dialogue box if terminal type 8.
+      IF(MMOD.EQ.8)CALL USRMSG(' ',' ','-')
+
+C If site grid or ground is asked for draw now.
+      if(ITGRD.EQ.0)then
+        CALL DSGRID(0.0,GRDIS,5,IER2)
+        if(ier2.ne.0)then
+          call to_session('CDRAWESP: Error in drawing grid.')
+          ier=-2
+        endif
+      endif
+      if(ITDSP.EQ.5.or.ITDSP.EQ.6)then
+        call EGRNDR(IER3)
+        if(ier3.ne.0)then
+          call to_session('CDRAWESP: Error in drawing ground.')
+          ier=-3
+        endif
+      endif
+      IF(ITDSP.EQ.6)return
+
+C Remind user of which project.
+      WRITE(etext,'(2A)')'Model: ',modeltitle(1:lnblnk(modeltitle))
+      iside=1; isize=1; ifont=1
+      if(mmod.eq.8)then
+        call viewtext(etext,iside,isize,ifont)
+      else
+C        call viewtextwwc(etext,iside,isize,ifont)
+      endif
+
+C The first task is to set iz to zero and istok to true to force the
+C code to draw the site origin symbol.
+      IZ=0
+      ISTOK=.TRUE.
+
+  100 CONTINUE
+
+C If the origin of the site is to be shown include this in the image
+C and then go on to the normal objects. After this point ISTOK is .FALSE.
+      if(ITORG.EQ.0.and.ISTOK)then
+        if(mmod.eq.8)CALL ORIGESP
+        ISTOK=.FALSE.
+      elseif(ITORG.EQ.1.and.ISTOK)then
+        ISTOK=.FALSE.
+      endif
+
+      IZ=IZ+1
+      IF(IZ.GT.nzg)RETURN
+
+C If obstructions are to be drawn transform attributes into a
+C gen body plotted before going on to the surfaces in the zone itself. 
+C Also draw any visual entities included in the model (e.g. to preview 
+C what will be passed to Radiance).
+      if(ITDSP.EQ.0.or.ITDSP.eq.5.or.ITDSP.eq.7)then
+        CALL DRAWOBS(nznog(IZ),ier4)
+        if(ier4.ne.0)then
+          call to_session('CDRAWESP: Error drawing obstructions.')
+          ier=-4
+        endif
+      endif
+      if(ITDSP.EQ.0.or.ITDSP.eq.8)then
+        CALL DRAWVIS(nznog(IZ),ier4)
+        if(ier4.ne.0)then
+          call to_session('CDRAWESP: Error drawing visual entities.')
+          ier=-4
+        endif
+      endif
+
+
+C If zone names are to be displayed place near the centre of zone.
+C For clarity use larger font and then restore font to normal size.
+C Transform the site COG coords into eyepoint and then screen coords.
+C Find the pixels required for the name and centre text.
+C Note: temp character t13 is 1 char wider than zname().
+      IF(ITZNM.EQ.0)THEN
+        COG1(1)=ZCOG(nznog(IZ),1)
+        COG1(2)=ZCOG(nznog(IZ),2)
+        COG1(3)=ZCOG(nznog(IZ),3)
+        CALL VECTRN(COG1,TSMAT,COG2,IER6)
+        if(ier6.ne.0)then
+          call to_session('CDRAWESP: Error in name coord transforms.')
+          ier=-6
+        endif
+        call u2pixel(COG2(1),COG2(2),iix,iiy)
+
+C Note call to textpixwidth corrupts t13 so need to
+C re-create t13 after textpixwidth call.
+        t13=' '; iicol=0
+        lnzn=lnblnk(zname(nznog(IZ)))
+        write(t13,'(A)') zname(nznog(IZ))(1:lnzn)
+        if(mmod.eq.8)then
+          call winfnt(izsize)
+          call textpixwidth(t13,ipixw,ipixh)
+        else
+          ipixw=lnblnk(t13)*7  ! assume 7 pixels wide
+          ipixh=7              ! assume 7 pixels high
+        endif
+
+        write(t13,'(A)')zname(nznog(IZ))(1:lnzn)
+        iid4 = iix - (ipixw/2)
+
+C Check for clipping.
+        call pixel2u(iid4,iiy,xx,xy)
+        call CLIPPT(xx,xy,COG2(3),iclp1)
+        call pixel2u(iix+(ipixw/2),iiy-ipixh,xx,xy)
+        call CLIPPT(xx,xy,COG2(3),iclp2)
+        if (iclp1.eq.0 .and. iclp2.eq.0) then
+          iicol=0
+          if(mmod.eq.8)then
+            call textatxy(iid4,iiy,t13,'-',iicol)
+          else
+            call textatxywwc(iid4,iiy,t13,'-',iicol)
+          endif
+        endif
+        if (mmod.eq.8) CALL winfnt(IMFS)
+      ENDIF
+
+      if(mmod.eq.8) call forceflush()
+
+C If there are no surfaces yet defined then draw the vertices with 
+C label and loop back to the next body.
+      IF(NZSUR(nznog(IZ)).EQ.0.AND.NZTV(nznog(IZ)).GT.1)THEN
+        DO 202 IV=1,NZTV(nznog(IZ))
+          COG1(1)=szcoords(nznog(IZ),IV,1)
+          COG1(2)=szcoords(nznog(IZ),IV,2)
+          COG1(3)=szcoords(nznog(IZ),IV,3)
+          CALL VECTRN(COG1,TSMAT,COG2,IER)
+          call CLIPPT(COG2(1),COG2(2),COG2(3),iclp) ! check clipping
+          if (iclp.eq.0) then
+            call u2pixel(COG2(1),COG2(2),iix,iiy)
+            if(mmod.eq.8) call ecirc(iix,iiy,3,1)
+            if(mmod.eq.8) CALL VERTLBL(iix,iiy,COG2(3),IV,ier)
+          endif
+  202   CONTINUE
+        if(mmod.eq.8) call forceflush()
+        GOTO 100
+      ELSEIF(NZSUR(nznog(IZ)).GE.1.AND.NZTV(nznog(IZ)).GT.1)THEN
+
+C Check for unlinked vertices, if so then draw them before proceeding
+C to draw the surfaces. For each vertex, loop through each surface
+C and its vertex list and see how many hits.
+        found=.false.
+        DO 204 IZV=1,NZTV(nznog(IZ))
+          IHIT=0
+          DO 8792 IS=1,NZSUR(nznog(IZ))
+            DO 8794 IV=1,isznver(nznog(IZ),IS)
+              IF(IZV.EQ.iszjvn(nznog(IZ),IS,IV))IHIT=IHIT+1
+ 8794       CONTINUE
+ 8792     CONTINUE
+
+C If less than 2 hits draw the vertex as an open circle, if no hits
+C draw it as a solid circle.
+          IF(IHIT.LT.2)THEN
+            COG1(1)=szcoords(nznog(IZ),IZV,1)
+            COG1(2)=szcoords(nznog(IZ),IZV,2)
+            COG1(3)=szcoords(nznog(IZ),IZV,3)
+            CALL VECTRN(COG1,TSMAT,COG2,IER)
+            call CLIPPT(COG2(1),COG2(2),COG2(3),iclp) ! check clipping
+            if (iclp.eq.0) then
+              found=.true.
+              call u2pixel(COG2(1),COG2(2),iix,iiy)
+              IF(IHIT.EQ.0)THEN
+                if(mmod.eq.8) CALL ecirc(iix,iiy,3,1)
+              ELSEIF(IHIT.GT.0.AND.IHIT.LT.2)THEN
+                if(mmod.eq.8) CALL ecirc(iix,iiy,3,0)
+              ENDIF
+              if(mmod.eq.8) CALL VERTLBL(iix,iiy,COG2(3),IZV,ier)
+            endif
+          ENDIF
+  204   CONTINUE
+
+C If any were found then draw a legend for the meaning of the vertex
+C symbols if in graphic mode.
+        if(found .and. mmod.eq.8)then
+          CALL winfnt(issize)
+          iid1=igl+10; iid2=igb+5;
+          CALL ecirc(iid1,iid2,3,1)
+          write(temp,'(A)')'Unlinked vertex'
+          iid1=igl+20; iid2=igb+10;
+          iicol=0
+          call textatxy(iid1,iid2,temp,'-',iicol)
+          iid1=igl+130; iid2=igb+5;
+          if(mmod.eq.8) CALL ecirc(iid1,iid2,3,0)
+          write(temp20,'(A)')'Single-linked vertex'
+          iid1=igl+140; iid2=igb+10;
+          call textatxy(iid1,iid2,temp20,'-',iicol)
+          CALL winfnt(IMFS)
+        endif
+        if(mmod.eq.8) call forceflush()
+      ENDIF
+
+C Continue on with any surfaces in the zone. If zone is zero then
+C we are drawing grid.
+      DO 1000 I=1,NZSUR(nznog(IZ))
+        isur=I
+        if(nznog(IZ).ne.0)then
+          icc=IZSTOCN(nznog(IZ),isur)
+        else
+          icc=0
+        endif
+
+C If the configuration file has been read and there is a filter for
+C which surfaces should be displayed test this here. Locate the
+C connection (IC) which relates to this surface if a real zone.
+        IF(CFGOK)THEN
+          if(iz.ne.0)then
+            CALL SURADJ(nznog(IZ),isur,IE,TMP,IZC,ISC,IC,DESCRC)
+            IF(ITDSP.EQ.2.AND.IE.NE.0)GOTO 1000
+            IF(ITDSP.EQ.3.AND.IE.NE.3)GOTO 1000
+            IF(ITDSP.EQ.4.AND.(IE.EQ.0.OR.IE.EQ.3))GOTO 1000
+          endif
+        ENDIF
+
+C Copy polygon for Surface I into structure A for compatibility with
+C viewer format 'holes' in surfaces.
+C NAP   = Number of vertex points on surface
+C IANXT = Index of 'next' point
+C IAPNT = Pointer to first vertex of polygon
+        IAPNT = 1
+        NAP = isznver(nznog(IZ),I)
+        DO 1100 J = 1,isznver(nznog(IZ),I)
+          K = iszjvn(nznog(IZ),I,J)
+          if(k.gt.0)then
+            AX(J) = szcoords(nznog(IZ),K,1)
+            AY(J) = szcoords(nznog(IZ),K,2)
+            AZ(J) = szcoords(nznog(IZ),K,3)
+            IANXT(J) = J + 1
+          else
+            AX(J) = 0.0; AY(J) = 0.0; AZ(J) = 0.0 ! if JVN malformed
+          endif
+ 1100   CONTINUE
+
+        IANXT(isznver(nznog(IZ),I)) = IAPNT
+
+C Transform surface polygon to screen co-ordinates
+C Take structure A multiply by TSMAT return structure B
+C TSMAT = Model to Screen Matrix
+        CALL MATPOL(NAP,IAPNT,AX,AY,AZ,IANXT,TSMAT,
+     &              SBBOX,NBP,IBPNT,BX,BY,BZ,IBNXT,IERR)
+
+C Generate clipping flags and clip geometry in eye coords.
+C If ISTAT =  0 : totally inside frustrum
+C If ISTAT =  1 : totally outside frustrum
+C If ISTAT = -1 : straddles frustrum
+        CALL CLIPFL(NBP,BX,BY,BZ,ISTAT)
+        IF (ISTAT .EQ. 1) THEN
+          GOTO  1000
+        ELSEIF (ISTAT .EQ. -1) THEN
+          CALL CUTPOL(NB,NBP,IBPNT,BX,BY,BZ,IBNXT,ISTAT)
+        else
+          NB=1
+        ENDIF
+
+        iixc=0
+        iiyc=0
+
+C Set line style for this surface. linsty=2 is double width line. 
+        if(ICC.ne.0)then
+          if(LINSTY(ICC).eq.2)then
+            IPEN= -305
+          else
+            IPEN= 1
+          endif
+        else
+          IPEN= 1
+        endif
+
+C Check for hilights. ITHLS=1 is composition, ITHLS=2 trn:opq,
+C ITHLS = 3 partial attributes.
+        if(ITHLS.eq.1.and.ITHLZ.gt.0)then
+          WRITE(MLCN,'(A)') mlcname(ITHLZ)
+          if(ICC.gt.0)then
+            lnssmlc=lnblnk(SMLCN(nznog(IZ),isur))
+            if(MLCN(1:lnssmlc).eq.SMLCN(nznog(IZ),isur)(1:lnssmlc))then
+              IPEN= -305
+            else
+              IPEN= 1
+            endif
+          else
+            IPEN= 1
+          endif
+        elseif(ITHLS.eq.2)then
+          if(ICC.gt.0)then
+            if(ITHLZ.eq.1.and.SOTF(nznog(IZ),isur)(1:4).eq.'OPAQ')then
+              IPEN= -305
+            else
+              IPEN= 1
+            endif
+            if(ITHLZ.eq.2.and.SOTF(nznog(IZ),isur)(1:4).eq.'TRAN')then
+              IPEN= -305
+            else
+              IPEN= 1
+            endif
+          else
+            IPEN= 1
+          endif
+          if(ITHLZ.eq.2.and.SOTF(nznog(IZ),I)(1:4).ne.'OPAQ')then
+            IPEN= -305
+          else
+            IPEN= 1
+          endif
+        elseif(ITHLS.eq.3)then
+          if(ICC.gt.0)then
+            if(SMLCN(nznog(IZ),isur)(1:3).eq.'UNK'.or.
+     &         zboundarytype(nznog(IZ),isur,1).eq.-1)then
+              IPEN= -305
+            else
+              IPEN= 1
+            endif
+          else
+            IPEN=1
+          endif
+        endif
+
+C Debug.
+C        write(6,*)'icc linsty ipen ithls ithlz',icc,linsty(icc),ipen,
+C     &    ithls,ithlz,ISTOK
+
+C Count the edges in case enhanced edge drawing required.
+        iedge=0
+        DO 300 J = 1,NB
+
+C Move to the beginning and transform screen to pixel coords.
+          IP = IABS(IBPNT)
+          call u2pixel(BX(IP),BY(IP),iix,iiy)
+
+C If vertex are to be labeled do it in the smallest font, also place
+C a 2pixel square dot at the vertex so if it is embedded in a line
+C it can be seen. Then move cursor to vertex and remember position.
+          IF(ITVNO.EQ.0.AND.NAP.EQ.NBP)THEN
+            IV=iszjvn(nznog(IZ),I,IP)
+            if(mmod.eq.8)then
+              call esymbol(iix,iiy,8,1)
+            else
+              call esymbolwwc(iix,iiy,8,1)
+            endif
+            CALL VERTLBL(iix,iiy,BZ(IP),IV,ier)
+          ENDIF
+          iixlast=iix   ! cast for edline call
+          iiylast=iiy
+
+          IP1 = IBNXT(IP)
+
+ 351      CONTINUE
+          iedge=iedge+1
+
+C Ensure edge is less than MV.
+          if(iedge.gt.MV) goto 300
+
+          call u2pixel(BX(IP1),BY(IP1),iix,iiy)
+          if(IPEN.eq.1)then
+
+C Normal (not highlighted) edge being drawn, if NAP = NBP then check
+C common/G8 for hints as to alternate greys or dots.
+
+C Debug.
+C            write(6,*) 'nap nbp nbedgdup iedge j',nap,nbp,nbedgdup(icc),
+C     &        iedge,j
+
+            if(NAP.ne.NBP)then
+              if(mmod.eq.8)then
+                call eswline(iixlast,iiylast,iix,iiy)
+              else
+                call eswlinewwc(iixlast,iiylast,iix,iiy)
+              endif
+            elseif(icc.eq.0)then
+              if(mmod.eq.8)then
+                call eswline(iixlast,iiylast,iix,iiy)
+              else
+                call eswlinewwc(iixlast,iiylast,iix,iiy)
+              endif
+            else
+
+C If there will be diagonal lines drawn (duplicate edges) check if the
+C current edge is marked. If dotted line is drawn then don't bother
+C with the co-planer.
+              found=.false.
+              if(nbedgdup(icc).ne.0)then
+                if(iedgdup(icc,iedge).eq.0)then
+                  found=.false.
+                else
+                  LD=4
+                  if(mmod.eq.8)then
+                    call edline(iixlast,iiylast,iix,iiy,LD)
+                  else
+                    call edlinewwc(iixlast,iiylast,iix,iiy,LD)
+                  endif
+                  found=.true.
+                endif
+              endif
+
+C If this edge is shared with a co-planer surface with the same construction
+C and greys can be done reset forground to 50% grey otherwise draw black,
+C unless duplicate line has already been drawn.
+              if(imatshr(icc,iedge).eq.0)then
+                if(.NOT.found)then
+                  if(mmod.eq.8)then
+                    call eswline(iixlast,iiylast,iix,iiy)
+                  else
+                    call eswlinewwc(iixlast,iiylast,iix,iiy)
+                  endif
+                endif
+              else
+                if(greyok)then
+                  iicol=nifgrey-3
+                  if(mmod.eq.8) call winscl('i',iicol)
+                endif
+                if(mmod.eq.8)then
+                  call eswline(iixlast,iiylast,iix,iiy)
+                else
+                  call eswlinewwc(iixlast,iiylast,iix,iiy)
+                endif
+                if(greyok)then
+                  iicol=0
+                  if(mmod.eq.8) call winscl('-',iicol)
+                endif
+              endif
+            endif
+          elseif(IPEN.eq.-305)then
+            if(mmod.eq.8)then
+              call edwline(iixlast,iiylast,iix,iiy)
+            else
+              call edwlinewwc(iixlast,iiylast,iix,iiy)
+            endif
+          else
+            if(mmod.eq.8)then
+              call eswline(iixlast,iiylast,iix,iiy)
+            else
+              call eswlinewwc(iixlast,iiylast,iix,iiy)
+            endif
+          endif
+          iixc=iixc+iix
+          iiyc=iiyc+iiy
+          if(mmod.eq.8) call forceflush()
+
+C If vertex are to be labeled do it in the smallest font and
+C move cursor back to vertex and remember position.
+          IF(ITVNO.EQ.0.AND.NAP.EQ.NBP)THEN
+            IV=iszjvn(nznog(IZ),I,IP1)
+            if(mmod.eq.8)then
+              call esymbol(iix,iiy,8,1)
+            else
+              call esymbolwwc(iix,iiy,8,1)
+            endif
+            CALL VERTLBL(iix,iiy,BZ(IP1),IV,ier)
+            iixlast=iix   ! cast for edline call
+            iiylast=iiy
+          ENDIF
+
+C Repeat until next point is the first, remember position.
+          IP1 = IBNXT(IP1)
+          iixlast=iix   ! cast for edline call
+          iiylast=iiy
+          IF(IP1 .NE. IP) GOTO 351
+
+C Complete the polygon.
+          iedge=iedge+1
+          call u2pixel(BX(IP),BY(IP),iix,iiy)
+          if(IPEN.eq.1)then
+
+C Normal (not highlighted) edge being drawn, if NAP = NBP then check
+C common/G8 for hints as to alternate greys or dots.
+            if(NAP.ne.NBP)then
+              if(mmod.eq.8)then
+                call eswline(iixlast,iiylast,iix,iiy)
+              else
+                call eswlinewwc(iixlast,iiylast,iix,iiy)
+              endif
+            elseif(icc.eq.0)then
+              if(mmod.eq.8)then
+                call eswline(iixlast,iiylast,iix,iiy)
+              else
+                call eswlinewwc(iixlast,iiylast,iix,iiy)
+              endif
+            else
+
+C If there will be diagonal lines drawn (duplicate edges) check if the
+C current edge is marked. If dotted line is drawn then don't bother
+C with the co-planer.
+              found=.false.
+              if(nbedgdup(icc).ne.0)then
+                if(iedgdup(icc,iedge).eq.0)then
+                  found=.false.
+                else
+                  LD=4
+                  if(mmod.eq.8)then
+                    call edline(iixlast,iiylast,iix,iiy,LD)
+                  else
+                    call edlinewwc(iixlast,iiylast,iix,iiy,LD)
+                  endif
+                  found=.true.
+                endif
+              endif
+
+C If this edge is shared with a co-planer surface with the same construction
+C and greys can be done reset forground to 50% grey otherwise draw black,
+C unless duplicate line has already been drawn.
+              if(imatshr(icc,iedge).eq.0)then
+                if(.NOT.found)then
+                  if(mmod.eq.8)then
+                    call eswline(iixlast,iiylast,iix,iiy)
+                  else
+                    call eswlinewwc(iixlast,iiylast,iix,iiy)
+                  endif
+                endif
+              else
+                if(greyok)then
+                  iicol=nifgrey-3
+                  if(mmod.eq.8) call winscl('i',iicol)
+                endif
+                if(mmod.eq.8)then
+                  call eswline(iixlast,iiylast,iix,iiy)
+                else
+                  call eswlinewwc(iixlast,iiylast,iix,iiy)
+                endif
+                if(greyok)then
+                  iicol=0
+                  if(mmod.eq.8) call winscl('-',iicol)
+                endif
+              endif
+            endif
+          elseif(IPEN.eq.-305)then
+            if(mmod.eq.8)then
+              call edwline(iixlast,iiylast,iix,iiy)
+            else
+              call edwlinewwc(iixlast,iiylast,iix,iiy)
+            endif
+          else
+            if(mmod.eq.8)then
+              call eswline(iixlast,iiylast,iix,iiy)
+            else
+              call eswlinewwc(iixlast,iiylast,iix,iiy)
+            endif
+          endif
+          iixc=iixc+iix
+          iiyc=iiyc+iiy
+          if(mmod.eq.8) call forceflush()
+  300   CONTINUE
+
+C If surface names are to be displayed place near the centre of polygon.
+C If the surface is not drawn (iixc=0 & iiyc=0) do not label it. If the
+C surface has been clipped then do not label it. For clarity drop to
+C the next smaller font for the surface name and then restore font
+C to normal size.
+C Patch for cfg is to only label highlighted surfaces.
+        IF(ITSNM.EQ.0)THEN
+C          write(6,*) 'cdrawesp_iixc iiyc nap nbp ',iixc,iiyc,nap,nbp
+          IF(iixc.GT.0.AND.iiyc.GT.0.AND.(NAP.EQ.NBP))THEN
+            if(icc.ne.0)then
+              if(mmod.eq.8)CALL winfnt(issize)
+              write(stemp,'(A)')SNAME(nznog(IZ),isur)
+              call textpixwidth(stemp,ipixw,ipixh)    ! corrupts stemp
+              write(stemp,'(A)')SNAME(nznog(IZ),isur)
+
+C Logic that follows is to only label surfaces that are highlighted. 
+              if(focussname)then
+                if(LINSTY(icc).eq.2)then
+                  CG(1)=SURCOG(nznog(IZ),I,1)
+                  CG(2)=SURCOG(nznog(IZ),I,2)
+                  CG(3)=SURCOG(nznog(IZ),I,3)
+                  VN(1)=SURVN(nznog(IZ),I,1)
+                  VN(2)=SURVN(nznog(IZ),I,2)
+                  VN(3)=SURVN(nznog(IZ),I,3)
+                  CALL VECTRN(VN,TSMAT,COG2,IER)
+                  call arrow(CG,VN,0.3,0.1,ipoints,'a',2)
+                  call u2pixel(COG2(1),COG2(2),iixc,iiyc)
+                  write(stemp,'(A)')SNAME(nznog(IZ),I)
+                  CALL winfnt(issize)
+                  iixc=iixc+5
+
+C Check clipping.
+                  call CLIPST(stemp,iixc,iiyc,COG2(3),iclp)
+                  if (iclp.eq.0) then
+                    iicol=0
+                    call textatxy(iixc,iiyc,stemp,'-',iicol)
+                  endif
+                  CALL winfnt(IMFS)
+                endif
+              else
+
+C Normal display of surface names as in cdrawesp.
+C If surface normals to be displayed draw an arrow and
+C offset the surface name depending on orientation.
+                if(itsnr.eq.0)then
+                  CG(1)=SURCOG(nznog(IZ),isur,1)
+                  CG(2)=SURCOG(nznog(IZ),isur,2)
+                  CG(3)=SURCOG(nznog(IZ),isur,3)
+                  VN(1)=SURVN(nznog(IZ),isur,1)
+                  VN(2)=SURVN(nznog(IZ),isur,2)
+                  VN(3)=SURVN(nznog(IZ),isur,3)
+                  CALL VECTRN(VN,TSMAT,COG2,IER)
+                  call u2pixel(COG2(1),COG2(2),iixc,iiyc)
+
+C Check for clipping.
+                  call CLIPPT(COG2(1),COG2(2),COG2(3),iclp1)
+                  call pixel2u(iixc+ipixw+5,iiyc-ipixh,xx,xy)
+                  call CLIPPT(xx,xy,COG2(3),iclp2)
+
+                  if (iclp1.eq.0 .and. iclp2.eq.0) then
+                    call arrow(CG,VN,0.3,0.1,ipoints,'a',2)
+                    IF(SVFC(nznog(IZ),isur).EQ.'VERT'.or.
+     &                SVFC(nznog(IZ),isur).EQ.'CEIL'.or.
+     &                SVFC(nznog(IZ),isur).EQ.'FLOR')THEN
+                      iixc=iixc+5
+                    ELSE
+                      iixc=iixc+5
+                    ENDIF
+                    iicol=0
+                    if(mmod.eq.8)then
+                      call textatxy(iixc,iiyc,stemp,'-',iicol)
+                    else
+                      call textatxywwc(iixc,iiyc,stemp,'-',iicol)
+                    endif
+                  endif
+                else
+                  CG(1)=SURCOG(nznog(IZ),isur,1)
+                  CG(2)=SURCOG(nznog(IZ),isur,2)
+                  CG(3)=SURCOG(nznog(IZ),isur,3)
+                  CALL VECTRN(CG,TSMAT,COG2,IER)
+                  call u2pixel(COG2(1),COG2(2),iixc,iiyc)                
+                  IF(SVFC(nznog(IZ),isur).EQ.'VERT')THEN
+
+C Check for clipping.
+                    call pixel2u(iixc,iiyc+3,xx,xy)
+                    call CLIPPT(xx,xy,COG2(3),iclp1)
+                    call pixel2u(iixc+ipixw+7,iiyc+3-ipixh,xx,xy)
+                    call CLIPPT(xx,xy,COG2(3),iclp2)
+
+C Draw arrow and horizontal line.
+                    if (iclp1.eq.0 .and. iclp2.eq.0) then
+                      iid1=iixc+3; iid2=iiyc-3
+                      if(mmod.eq.8)then
+                        call eswline(iixc,iiyc,iid1,iid2)
+                      else
+                        call eswlinewwc(iixc,iiyc,iid1,iid2)
+                      endif
+                      iid1=iixc+3; iid2=iiyc+3
+                      if(mmod.eq.8)then
+                        call eswline(iixc,iiyc,iid1,iid2)
+                      else
+                        call eswlinewwc(iixc,iiyc,iid1,iid2)
+                      endif
+                      iid1=iixc+7
+                      if(mmod.eq.8)then
+                        call eswline(iixc,iiyc,iid1,iiyc)
+                      else
+                        call eswlinewwc(iixc,iiyc,iid1,iiyc)
+                      endif
+                      iixc=iixc+7; iiyc=iiyc+3
+                      found=.true.
+                    else
+                      found=.false.
+                    endif
+                  ELSEIF(SVFC(nznog(IZ),isur).EQ.'CEIL')THEN
+                  
+C Check for clipping.
+                    call pixel2u(iixc-3,iiyc,xx,xy)
+                    call CLIPPT(xx,xy,COG2(3),iclp1)
+                    call pixel2u(iixc+ipixw+7,iiyc-ipixh,xx,xy)
+                    call CLIPPT(xx,xy,COG2(3),iclp2)
+
+C Draw arrow to surface then up and horizontal to the text.
+                    if (iclp1.eq.0 .and. iclp2.eq.0) then
+                      iid1=iixc+3; iid2=iiyc-3
+                      if(mmod.eq.8)then
+                        call eswline(iixc,iiyc,iid1,iid2)
+                      else
+                        call eswlinewwc(iixc,iiyc,iid1,iid2)
+                      endif
+                      iid1=iixc-3; iid2=iiyc-3
+                      if(mmod.eq.8)then
+                        call eswline(iixc,iiyc,iid1,iid2)
+                      else
+                        call eswlinewwc(iixc,iiyc,iid1,iid2)
+                      endif
+                      iid1=iiyc-5
+                      if(mmod.eq.8)then
+                        call eswline(iixc,iiyc,iixc,iid1)
+                      else
+                        call eswlinewwc(iixc,iiyc,iixc,iid1)
+                      endif
+                      iid1=iiyc-5; iid2=iixc+7; iid3=iiyc-5
+                      if(mmod.eq.8)then
+                        call eswline(iixc,iid1,iid2,iid3)
+                      else
+                        call eswlinewwc(iixc,iid1,iid2,iid3)
+                      endif
+                      iixc=iixc+7
+                      found=.true.
+                    else
+                      found=.false.
+                    endif
+                  ELSEIF(SVFC(nznog(IZ),isur).EQ.'FLOR')THEN
+
+C Check for clipping.
+                    call pixel2u(iixc-3,iiyc+8,xx,xy)
+                    call CLIPPT(xx,xy,COG2(3),iclp1)
+                    call pixel2u(iixc+ipixw+7,iiyc+8-ipixh,xx,xy)
+                    call CLIPPT(xx,xy,COG2(3),iclp2)
+
+C Draw arrow to surface then down and horizontal to the text.
+                    if (iclp1.eq.0 .and. iclp2.eq.0) then
+                      iid1=iixc+3; iid2=iiyc+3
+                      if(mmod.eq.8)then
+                        call eswline(iixc,iiyc,iid1,iid2)
+                      else
+                        call eswlinewwc(iixc,iiyc,iid1,iid2)
+                      endif
+                      iid1=iixc-3; iid2=iiyc+3
+                      if(mmod.eq.8)then
+                        call eswline(iixc,iiyc,iid1,iid2)
+                      else
+                        call eswlinewwc(iixc,iiyc,iid1,iid2)
+                      endif
+                      iid1=iiyc+5
+                      if(mmod.eq.8)then
+                        call eswline(iixc,iiyc,iixc,iid1)
+                      else
+                        call eswlinewwc(iixc,iiyc,iixc,iid1)
+                      endif
+                      iid1=iiyc+5; iid2=iixc+7; iid3=iiyc+5
+                      if(mmod.eq.8)then
+                        call eswline(iixc,iid1,iid2,iid3)
+                      else
+                        call eswlinewwc(iixc,iid1,iid2,iid3)
+                      endif
+                      iixc=iixc+7; iiyc=iiyc+8
+                      found=.true.
+                    else
+                      found=.false.
+                    endif
+                  ELSE
+
+C Check for clipping.
+                    call CLIPPT(COG2(1),COG2(2),COG2(3),iclp1)
+                    call pixel2u(iixc+ipixw,iiyc-ipixh,xx,xy)
+                    call CLIPPT(xx,xy,COG2(3),iclp2)
+                    if (iclp1.eq.0 .and. iclp2.eq.0) then
+                      found=.true.
+                    else
+                      found=.false.
+                    endif
+                  ENDIF
+                  if (found) then
+                    iicol=0
+                    if(mmod.eq.8)then
+                      call textatxy(iixc,iiyc,stemp,'-',iicol)
+                    else
+                      call textatxywwc(iixc,iiyc,stemp,'-',iicol)
+                    endif
+                  endif
+                  if (mmod.eq.8) CALL winfnt(IMFS)
+                endif
+              endif
+            endif
+          ENDIF
+        ENDIF
+        if(mmod.eq.8) call forceflush()
+ 1000 CONTINUE
+
+C Loop back again to see if there is more.
+      GOTO 100
+
+      END
+
+
 C ********* chgazi
-C CHGAZI is called from C code in esp-r.c or esru_x.c with an increment or 
-C decrement to the viewing azimuth (icazi). If not needed then provide a dummy. 
+C Called from C code in esp-r.c or esru_x.c with an increment or decrement
+C to the viewing azimuth (icazi). If not needed then provide a dummy. 
+
       subroutine chgazi(icazi,ifrlk)
 #include "building.h"
 #include "prj3dv.h"
@@ -272,8 +1115,9 @@ C If we are in a freelook, do minimal rendering to save lag.
       end
 
 C ********* chgelev
-C CHGELEV is called from C code in esp-r.c or esru_x.c with an increment or 
-C decrement to the viewing elevation (icelev). If not needed then provide a dummy. 
+C Called from C code in esp-r.c or esru_x.c with an increment or decrement
+C the viewing elevation (icelev). If not needed then provide a dummy. 
+
       subroutine chgelev(icelev,ifrlk)
 #include "building.h"
 #include "prj3dv.h"
@@ -333,9 +1177,10 @@ C If we are in a freelook, do minimal rendering to save lag.
       end
 
 C ********* chgpan
-C CHGPAN is called from C code in esp-r.c or esru_x.c with x and y
+C Called from C code in esp-r.c or esru_x.c with x and y
 C increments to the viewed point. This effectivley implements mouse
 C panning. If not needed then provide a dummy. 
+
       subroutine chgpan(ix,iy,ifrlk)
 #include "building.h"
 #include "prj3dv.h"
@@ -392,8 +1237,9 @@ C If we are in a freelook, do minimal rendering to save lag.
       end
 
 C ********* chgzoom
-C CHGZOOM is called from C code in esp-r.c or esru_x.c with 1 or 2.
+C Called from C code in esp-r.c or esru_x.c with 1 or 2.
 C 1 means zoom out, 2 means zoom in. Do this by adjusting view angle.
+
       subroutine chgzoom(imode)
 #include "building.h"
 #include "prj3dv.h"
@@ -419,8 +1265,9 @@ C Make sure view bounds are static.
       end
 
 C ********* optview
-C OPTVIEW is called from C code in esp-r.c or esru_x.c. It sets optimum
+C Called from C code in esp-r.c or esru_x.c. It sets optimum
 C view bounds.
+
       subroutine optview
 #include "building.h"
 #include "prj3dv.h"
@@ -439,8 +1286,9 @@ C Activate optimum view bounds, as well as origin and grid.
       end
 
 C ********* chgeye
-C CHGEYE is called from C code in esru_x.c with current contents of the ray2_ and
+C Called from C code in esru_x.c with current contents of the ray2_ and
 C image_ c structures.  Integers are specially treated based on ifdef.
+
       subroutine chgeye(EVX,EVY,EVZ,VX,VY,VZ,EAN,JITZNM,JITSNM,JITVNO,
      &   JITOBS,JITVIS,JITVOBJ,JITSNR,JITGRD,JITORG,GDIS,JITBND,JITDSP,
      &   JITHLS,JITHLZ,JITPPSW)
@@ -534,10 +1382,11 @@ C          MODIFYVIEW=.TRUE.
       end
 
 C ********* chgsun
-C CHGSUN is called from C code in esru_x.ca and esp-r.c requesting solar view. 
+C Called from C code in esru_x.ca and esp-r.c requesting solar view. 
 C If isunhour zero then do initial setup of date and time and ask user what
 C else they want to do (previous next animation close). If isunhour one
 C step to next hour. If isunhour two then present an animation. 
+
       subroutine chgsun(isunhour)
 #include "building.h"
 #include "prj3dv.h"
@@ -725,9 +1574,10 @@ C Generate a heading for the view.
       end
 
 C ********* chgzonpik
-C chgzonpik is called from C code in esp-r.c with parameters representing the
+C Called from C code in esp-r.c with parameters representing the
 C current state of izgfoc and nzg in the gzonpik_ c structure. Sparate
 C calls are made to chgzonpikarray is used to fill the nznog array
+
       subroutine chgzonpik(jizgfoc,jnzg)
 #include "building.h"
 
@@ -755,10 +1605,11 @@ C     &    nznog(3),nznog(4),nznog(5)
       end
 
 C ********* chgzonpikarray
-C chgzonpikarray is called from C code in esp-r.c with parameters representing
+C Called from C code in esp-r.c with parameters representing
 C one element of nznog array (index and value) in the gzonpik_ c structure.
 C This is tedious, but does ensure that array elements are properly passed
 C from C to Fortran.
+
       subroutine chgzonpikarray(jnznog,jnznogv)
 #include "building.h"
 
@@ -782,7 +1633,8 @@ C one and C starts from zero.
       end
 
 C ******************** SVDSOPT ********************
-C SVDSOPT - save graphics display options into common block RAY2SV.
+C Save graphics display options into common block RAY2SV.
+
       subroutine SVDSOPT
 #include "building.h"
 #include "prj3dv.h"
@@ -812,7 +1664,8 @@ C SVDSOPT - save graphics display options into common block RAY2SV.
       end
 
 C ******************** RCDSOPT ********************
-C RCDSOPT - recover graphics display options from common block RAY2SV.
+C Recover graphics display options from common block RAY2SV.
+
       subroutine RCDSOPT
 #include "building.h"
 #include "prj3dv.h"
@@ -842,11 +1695,12 @@ C RCDSOPT - recover graphics display options from common block RAY2SV.
       end
 
 C **************DRAWOBS 
-C DRAWOBS checks to see it obstructions are associated with zone (IFOC).
-C If so it loads the geometric description within an obstruction file
-C into common block BG1 and then converts into viewing coords, 
+C Checks to see if obstructions are associated with zone (IFOC).
+C If so takes common block BG1 and then converts into viewing coords, 
 C clips the image and draws it.
 C IER is returned as non-zero if there is a problem.
+C Obstructions are in global commons so re-scan of files probably not needed.
+
       SUBROUTINE DRAWOBS(IFOC,ier)
 #include "building.h"
 #include "model.h"
@@ -859,7 +1713,7 @@ C Passed parameters.
       integer ifoc,ier
       
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
-      COMMON/FILEP/IFIL
+C      COMMON/FILEP/IFIL
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
       integer ifs,itfs,imfs
       COMMON/GFONT/IFS,ITFS,IMFS
@@ -875,7 +1729,7 @@ C Local arrays.
       DIMENSION  SBBOX(3,2),COG1(3),COG2(3)
 
       CHARACTER btemp*12
-      logical newgeo  ! to use for testing if new/old geometry file.
+
 #ifdef OSI
       integer iix,iiy,iixlast,iiylast
       integer iicol,ibsize        ! passed to textsizeatxy
@@ -890,7 +1744,6 @@ C If libraries and monitor support greyscale remember this.
       endif
 
 C Set font for displaying block names.
-C      write(6,'(a,3i2)') 'DRAWOBS IFS,ITFS,IMFS',IFS,ITFS,IMFS
       if(IFS.eq.0.or.IFS.eq.4)then
         ibsize=0; isize=0
       endif
@@ -903,27 +1756,16 @@ C      write(6,'(a,3i2)') 'DRAWOBS IFS,ITFS,IMFS',IFS,ITFS,IMFS
       if(IFS.eq.3.or.IFS.eq.7)then
         ibsize=2; isize=2
       endif
-C      write(6,'(a,i2)') 'DRAWOBS ibsize ',ibsize
-
-C If newer geometry file it may include obstructions. If the value
-C of iobs for this zone is 2 then obstructions were included.
-      newgeo=.false.  ! assume older format geometry.
-      call eclose(gversion(ifoc),1.1,0.01,newgeo)
 
 C If no obstruction for this zone don't bother reading file.
 C If iobs() is 1 then scan zone obstructions file. If iob()
 C is 2 then re-read the version 1.1 zone geometry file.
-      IUF=IFIL+1
       IF(IOBS(ifoc).EQ.0)THEN
         RETURN
       ELSEIF(IOBS(ifoc).EQ.1)THEN
-        CALL EGOMST(IUF,ifoc,ZOBS(ifoc),0,0,iuout,IER)
-        IF(IER.NE.0)RETURN
+        continue
       ELSEIF(IOBS(ifoc).EQ.2)THEN
-        if(newgeo)then
-          call georead(IUF,LGEOM(ifoc),ifoc,1,iuout,ier)
-          IF(IER.NE.0)RETURN
-        endif
+        continue
       ENDIF
 
       DO 301 IB=1,nbobs(ifoc)
@@ -1082,14 +1924,15 @@ C Complete the polygon.
       RETURN
       END
 
-C **************DRAWVIS
-C DRAWVIS draws any visual entities within zone (IFOC) as slightly grey lines.
+C ************** DRAWVIS
+C Draws any visual entities within zone (IFOC) as slightly grey lines.
 C It converts visual entities from V1.1 Geometry file into common block BG1 
 C and then converts into viewing coords, clips the image and draws it.
 C If ITVIS (from prj3dv.h) is non-zero that entity is highlighted.
 C If ITVIS is zero but ITVOBJ is non-zero then we need to highlight
 C each of the entities associated with the compound object.
 C IER is returned as non-zero if there is a problem.
+
       SUBROUTINE DRAWVIS(IFOC,ier)
 #include "building.h"
 #include "model.h"
@@ -1102,7 +1945,7 @@ C Passed parameters.
       integer ifoc,ier
       
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
-      COMMON/FILEP/IFIL
+C      COMMON/FILEP/IFIL
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
       integer ifs,itfs,imfs
       COMMON/GFONT/IFS,ITFS,IMFS
@@ -1119,8 +1962,6 @@ C Local arrays.
       integer ihighlight(MB)
 
       CHARACTER btemp*12
-
-      logical newgeo  ! to use for testing if new/old geometry file.
       logical greyok
 
 #ifdef OSI
@@ -1159,21 +2000,9 @@ C Clear local list of possibly associated visual entities for compound.
         ihighlight(loop)=0
       enddo
 
-C If newer geometry file it may include visual entities. If the value
-C of nbvis(ifoc) is non-zero draw.
-      newgeo=.false.  ! assume older format geometry.
-      call eclose(gversion(ifoc),1.1,0.01,newgeo)
-
-C << if geometry file was previously read then we will already
-C << have these common blocks instantiated and no need to read
-C << them again...
-
-C If no visaul entities for this zone don't bother reading file.
-      IUF=IFIL+1
-      if(newgeo)then
-        call georead(IUF,LGEOM(ifoc),ifoc,1,iuout,ier)
-        IF(IER.NE.0)RETURN
-      endif
+C Visual entities attributes will be in memory (done during intial
+C scan of the model.
+C If no visaul entities for this zone don't bother.
       if(nbvis(ifoc).eq.0.and.NBVOBJ(ifoc).eq.0) RETURN
 
 C If there are any compound objects and ITVOBJ is non-zero.
@@ -1181,8 +2010,8 @@ C If there are any compound objects and ITVOBJ is non-zero.
         DO I=1,NBVOBJ(ifoc)
           if(I.eq.ITVOBJ)then  ! matching focus compound
 C Debug      WRITE(6,'(I3,4a)') I,' ',
-C     &        VOBJNAME(ifoc,I)(1:LNVOBJNAME(ifoc,I)),'  ',
-C     &        VOBJDESC(ifoc,I)(1:LNVOBJDESC(ifoc,I))
+C     &        VOBJNAME(ifoc,I)(1:lnblnk(VOBJNAME(ifoc,I))),'  ',
+C     &        VOBJDESC(ifoc,I)(1:lnblnk(VOBJDESC(ifoc,I)))
             do J=1,NBVOBJLIST(ifoc,I)
               do K=1,nbvis(ifoc)
                 if(VOBJLIST(ifoc,I,J)(1:12).eq.
@@ -1364,10 +2193,11 @@ C Reset color before returning.
       END
 
 C **************** DRWSEN
-C DRWSEN loads the geometric description within an MRT sensor file
+C Loads the geometric description within an MRT sensor file
 C into common block BG1 and then converts into viewing coords,
 C clips the image and draws it.
 C IER is returned as non-zero if there is a problem.
+
       SUBROUTINE DRWSEN(iz,ier)
 #include "building.h"
 #include "prj3dv.h"
@@ -1410,7 +2240,6 @@ C If libraries and monitor support greyscale remember this.
       endif
 
 C Set font for displaying block names.
-C      write(6,'(a,3i2)') 'DRWSEN IFS,ITFS,IMFS',IFS,ITFS,IMFS
       if(IFS.eq.0.or.IFS.eq.4)then
         ibsize=0; isize=0
       endif
@@ -1423,7 +2252,6 @@ C      write(6,'(a,3i2)') 'DRWSEN IFS,ITFS,IMFS',IFS,ITFS,IMFS
       if(IFS.eq.3.or.IFS.eq.7)then
         ibsize=2; isize=2
       endif
-C      write(6,'(a,i2)') 'DRWSEN ibsize ',ibsize
 
       if(NCUB(iz).eq.0)return
       DO 301 IB=1,NCUB(iz)
@@ -1564,10 +2392,11 @@ C Complete the polygon.
 
 
 C **************** DRWBB
-C DRWBB previews a bounding box as described by current contents of
+C Previews a bounding box as described by current contents of
 C common block GB1. Also shows labels passed. Similar to code in the
 C subroutine DRWSEN.
 C IER is returned as non-zero if there is a problem.
+
       SUBROUTINE DRWBB(bbname,ier)
 #include "building.h"
 #include "prj3dv.h"
@@ -1608,7 +2437,6 @@ C If libraries and monitor support greyscale remember this.
       endif
 
 C Set font for displaying bb names.
-C      write(6,'(a,3i2)') 'DRWBB IFS,ITFS,IMFS',IFS,ITFS,IMFS
       if(IFS.eq.0.or.IFS.eq.4)then
         ibsize=0; isize=0
       endif
@@ -1621,7 +2449,6 @@ C      write(6,'(a,3i2)') 'DRWBB IFS,ITFS,IMFS',IFS,ITFS,IMFS
       if(IFS.eq.3.or.IFS.eq.7)then
         ibsize=2; isize=2
       endif
-C      write(6,'(a,i2)') 'DRWBB ibsize ',ibsize
 
 C Place sensor names near first vertex.
 C Transform the location into eyepoint and then screen coords.
@@ -1730,9 +2557,10 @@ C Complete the polygon.
       END
 
 C **************** withinview
-C withinview checks if a dummy surface at xyz is within viewing cone.
+C Checks if a dummy surface at xyz is within viewing cone.
 C Derived from  DRWSEN.
 C IER is returned as non-zero if there is a problem.
+
       SUBROUTINE withinview(tx,ty,tz,cansee,ier)
 #include "building.h"
 #include "prj3dv.h"
@@ -1795,9 +2623,10 @@ C If ISTAT = -1 : straddles frustrum
       RETURN
       END  ! of withinview
 
-C ****** Routine to draw ground topology.
-C EGRNDR  Draws ground topology held in GT5 and grndpl commons.
+C ****** EGRNDR
+C Draws ground topology held in GT5 and grndpl commons.
 C IER is returned as non-zero if there has been a problem.
+
       SUBROUTINE EGRNDR(IER)
 #include "building.h"
 #include "prj3dv.h"
@@ -1989,11 +2818,12 @@ C to normal size.
       return
       end
 
-C-----DSGRID -----------------------------------------------------------
-C DSGRID draws a dotted grid at a given reference height (RH), grid
+C ******** DSGRID
+C Draws a dotted grid at a given reference height (RH), grid
 C density (GD), and dot density (LD) within the viewport
 C with the current scaling factors etc.
 C IER is returned as non-zero if there is a problem.
+
       SUBROUTINE DSGRID(RH,GD,LD,IER)
 #include "building.h"
 #include "prj3dv.h"
@@ -2165,9 +2995,10 @@ C Move to next grid position.
       END
 
 C ******************* EMKVIEW 
-C EMKVIEW constructs a 'viewer' format file. IUO is the file unit number.
+C Constructs a 'viewer' format file. IUO is the file unit number.
 C CFGOK is passed in as .TRUE. if the user can select zones.
 C IER is returned as non-zero if there is a problem.
+
       SUBROUTINE EMKVIEW(IUO,CFGOK,IER)
 #include "building.h"
 #include "model.h"
@@ -2225,10 +3056,7 @@ C Pass ICOMP in as a positive so that 'ALL' is included in list.
    79   CONTINUE
       ENDIF
 
-C In the future it may not be necessary to re-scan the geometry
-C files if we switch to the global coordinate data structures.
-C << task to be done >>
-
+C << shift to global variables >>
       IF(INPIC.EQ.0)GOTO 105
       DO 83 IZ=1,INPIC
         IF(IVALS(IZ).GT.0)THEN
@@ -2272,13 +3100,10 @@ C Write to output file.
    50     CONTINUE
         ENDIF
 
-C If there is an obstructions file for this zone check and see if this
-C should be included in image.
+C Check if obstructions should be included in image.
         if(IOBS(IZ).EQ.1)then
           write(outs,'(a,a)') ' Using: ',ZOBS(IZ)
           CALL USRMSG(' ',outs,'-')
-          CALL EGOMST(IUF,iz,ZOBS(IZ),0,0,iuout,IER)
-          IF(IER.NE.0)RETURN
         elseif(IOBS(IZ).EQ.2)THEN
           continue  ! any obstructions are in the geometry file.
         endif
@@ -2366,10 +3191,11 @@ C Free the viewer file.
       END ! of EMKVIEW 
 
 C ******* wiresymbol ******
-C Wiresymbol is passed a 3D coordinate and draws a symbol at that
+C Passed a 3D coordinate and draws a symbol at that
 C location in a wireframe view with choice of colour.
 C Notice passing of isymbol=32 or 33 and instead
 C use symbol 8 with size 0 or 2.
+
       subroutine wiresymbol(xcord,ycord,zcord,icolour,isymbol)
 #include "building.h"
 #include "prj3dv.h"
@@ -2433,7 +3259,7 @@ C Parameters
       end
 
 C ************* REDRAW
-C REDRAW refreshes the 3D model display. Any view mode that takes notice
+C Refreshes the 3D model display. Any view mode that takes notice
 C of the change azimuth and elevation buttons should be implemented
 C here.
 C IVISMOD is the visualisation mode:
@@ -2444,11 +3270,13 @@ C 3 = 3-D gridding (grd module)
 
       subroutine redraw(IER)
 
+      common/SPAD/MMOD,LIMIT,LIMTTY
       COMMON/C6/INDCFG
       COMMON/MODVIS/IVISMOD
+      logical focussname ! if true only label highlighted surfaces.
 
 C Check we're in graphic mode, just in case.
-C      if (MMOD.ne.8) goto 999
+      if (MMOD.ne.8) return
 
 C Check we have a model to display.
       if ((IVISMOD.eq.1.or.IVISMOD.eq.3).and.
@@ -2457,7 +3285,8 @@ C Check we have a model to display.
       if (IVISMOD.eq.-1) then
         call startbuffer()
       elseif (IVISMOD.eq.1) then
-        CALL adjview(IER)
+        focussname=.false.
+        CALL cadjview(focussname,IER)
       elseif (IVISMOD.eq.2) then
         CALL CFDVIEW(IER)
       elseif (IVISMOD.eq.3) then

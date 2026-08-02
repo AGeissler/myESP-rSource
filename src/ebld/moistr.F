@@ -1792,7 +1792,7 @@ C Pad zone index to 'XX'.
 C Switch for surface name output.
           if (ReportBoolConfig ("use_surfacenames")) then
             write (cSurf_Chars,'(A)')
-     &          sname(ICOMP,isurf)(1:lnsname(ICOMP,iSurf))
+     &          sname(ICOMP,isurf)(1:lnblnk(sname(ICOMP,iSurf)))
           else
 
 C Pad surface index to 'XX'.

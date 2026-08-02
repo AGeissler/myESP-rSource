@@ -82,6 +82,7 @@ C Passed in parameters.
       character inpxmlfl*144 !to write out the input.xml file
       character llclmdb*144
       integer llt,lndbp
+      logical MY         ! to pass non-muilti-year to clmopb.
 
       IER=0
 
@@ -140,7 +141,8 @@ C check if the climate file exists via findwhichdbpath.
         endif
         llt=lnblnk(weather)
         write(LCLIM,'(a)') weather(1:llt) ! Set LCLIM
-        call CLMOPB(0,ISTAT)
+        MY=.false.
+        call CLMOPB(MY,0,ISTAT)
         if(ISTAT.ge.0)then
           call CLMRDBMD(IER)              ! Read site and year.
           CALL ERPFREE(ICLIM,ISTAT)
@@ -158,7 +160,8 @@ C Use findwhichdbpath and then expand weather file path for checking.
      &        LCLIM(1:lnblnk(LCLIM))
           endif
           CALL ERPFREE(ICLIM,ISTAT)
-          call CLMOPB(0,ISTAT)
+          MY=.false.
+          call CLMOPB(MY,0,ISTAT)
           write(currentfile,'(a)') llclmdb(1:lnblnk(llclmdb))
           if(ISTAT.ge.0)then
             call CLMRDBMD(IER)            ! Read site and year.
@@ -169,7 +172,8 @@ C Not found, use the default weather file as a backstop.
             write(currentfile,'(a)') DCLIM(1:lnblnk(DCLIM))
             LCLIM=DCLIM
             CALL ERPFREE(ICLIM,ISTAT)
-            call CLMOPB(0,ISTAT)
+            MY=.false.
+            call CLMOPB(MY,0,ISTAT)
             if(ISTAT.ge.0)then
               call CLMRDBMD(IER)
               CALL ERPFREE(ICLIM,ISTAT)
@@ -180,13 +184,13 @@ C Not found, use the default weather file as a backstop.
         endif
 
 C Take year (IYEAR) from the META file.
-        sitelat=CLAT
-        sitelongdif=CLONG
-        write(outs,'(A,F6.1,A,F5.1,a,i4,a,2F7.3,a)')
-     &    'The weather lat is ',clat,' long diff is ',
-     &    clong,' Year is ',IYEAR,
-     &    '. Previously used ',sitelat,sitelongdif,'.'
-        call edisp(iuout,outs)
+C        sitelat=CLAT
+C        sitelongdif=CLONG
+C        write(outs,'(A,F6.1,A,F5.1,a,i4,a,2F7.3,a)')
+C     &    'The weather lat is ',clat,' long diff is ',
+C     &    clong,' Year is ',IYEAR,
+C     &    '. Previously used ',sitelat,sitelongdif,'.'
+C        call edisp(iuout,outs)
 
 C If there is not a model specific season definition rescan
 C the `climatelist` file. Check if this climate is in the
@@ -304,6 +308,8 @@ c usefile char*32 file name (w/o path) of pattern operation file.
 C IER=0 OK.
       subroutine silentzone(ICOMP,metaver,hasconstr,hasoptic,hasparent,
      &  hasuse,use,usefile,literalctl,IER)
+      integer MSZ
+      PARAMETER (MSZ=97)
 #include "building.h"
 #include "model.h"
 #include "geometry.h"
@@ -317,9 +323,9 @@ C Parameters
       integer icomp    ! focus zone index
       integer metaver  ! one for 1.1 two for 1.2 three for 1.3
       character hasconstr*32
-      dimension hasconstr(MS)  ! construction to use for each surface
-      character hasoptic*32
-      dimension hasoptic(MS)   ! optics to use for each surface
+      dimension hasconstr(MS)     ! construction to use for each surface
+      character hasoptic*24
+      dimension hasoptic(MS)      ! optics to use for each surface
       character hasparent*12
       dimension hasparent(MS)
       character hasuse*12
@@ -348,6 +354,8 @@ C Parameters
       common/SLNTFULL/ifullysilent
       integer ifullysilent !flag to drive the silent model creation without
                            !questions about the operation files data
+      common/metazmlc/literalzmlc(MSZ)
+      logical literalzmlc   ! Is zone construction file literal.
 
 C hasname (string array) the surface name for each surface (so filsur does not wipe)
       character hasname*12
@@ -359,7 +367,8 @@ C hasname (string array) the surface name for each surface (so filsur does not w
       character act*2
       character subpath*84,sfile*144
       character icact*8,iwatt*8,afact*8,iflow*8,vflow*8
-      character sn*12,constr*32,opt*12,outs*124
+      character sn*12,constr*32,opt*24,outs*124
+      character sbound_ty*12,sbound_c2*6,sbound_e2*6
       LOGICAL browse,OKC,XST,unixok
       logical willneedtmc  !  if a tmc file will be required.
       logical closev       !  mass is close to vertical
@@ -424,7 +433,6 @@ C << Unix vs Windows needs to be updated >>
      &  zname(ICOMP)(1:lnzname(ICOMP)),' auto-generated for shape ',
      &  shape(ICOMP)(1:lnblnk(shape(ICOMP))),' & attributes.'
       zdesc(ICOMP)=zd
-      lnzdesc(ICOMP)=lnblnk(zd)  ! update the length of this string.
 
 C Choices based on the value of shape.
       IER=0
@@ -446,7 +454,7 @@ C Choices based on the value of shape.
         DYCB=zsize(icomp,2)
         DZCB=zsize(icomp,3)
 
-C Pending rotation angle and set point to origin of the zone.
+C Pending META item rotation angle and set point to origin of the zone.
         ANGR=rotateit(ICOMP,1)
         rotateit(ICOMP,2)=XOCB
         rotateit(ICOMP,3)=YOCB
@@ -490,6 +498,11 @@ C via common G1. ESCROT also works via G1.
           rotateit(ICOMP,1)=0.0
           rotateit(ICOMP,2)=0.0
           rotateit(ICOMP,3)=0.0
+          do iv=1,NTV
+            szcoords(icomp,iv,1)=x(iv)
+            szcoords(icomp,iv,2)=y(iv)
+            szcoords(icomp,iv,3)=z(iv)
+          enddo
         endif
         NSUR=NW+2
         NZSUR(ICOMP)=NSUR
@@ -529,6 +542,11 @@ C and expect the data back via common G1.
           x1=X(1)
           y1=Y(1)
           CALL ESCROT(AR,x1,y1)
+          do iv=1,NTV
+            szcoords(icomp,iv,1)=x(iv)
+            szcoords(icomp,iv,2)=y(iv)
+            szcoords(icomp,iv,3)=z(iv)
+          enddo
         endif
 
       ENDIF
@@ -607,29 +625,7 @@ C the original model. In this case << ? >>
         endif
 
 C Use zboundarytype to instantiate sother.
-        IF(zboundarytype(icomp,icc,1).EQ.0)THEN
-          SOTHER(icomp,icc,1)='EXTERIOR'
-        ELSEIF(zboundarytype(icomp,icc,1).EQ.1)THEN
-          SOTHER(icomp,icc,1)='SIMILAR'
-        ELSEIF(zboundarytype(icomp,icc,1).EQ.2)THEN
-          SOTHER(icomp,icc,1)='CONSTANT'
-        ELSEIF(zboundarytype(icomp,icc,1).EQ.3)THEN
-          SOTHER(icomp,icc,1)='ANOTHER'
-        ELSEIF(zboundarytype(icomp,icc,1).EQ.4)THEN
-          SOTHER(icomp,icc,1)='GROUND'
-        ELSEIF(zboundarytype(icomp,icc,1).EQ.5)THEN
-          SOTHER(icomp,icc,1)='ADIABATIC'
-        ELSEIF(zboundarytype(icomp,icc,1).EQ.6)THEN
-          SOTHER(icomp,icc,1)='BASESIMP'
-        ELSEIF(zboundarytype(icomp,icc,1).EQ.7)THEN
-          SOTHER(icomp,icc,1)='IDENT_CEN'
-        ELSE
-
-C Reset to represent UNKNOWN
-          SOTHER(icomp,icc,1)='UNKNOWN'
-        ENDIF
-        write(SOTHER(icomp,icc,2),'(i2.2)') zboundarytype(icomp,icc,2)
-        write(SOTHER(icomp,icc,3),'(i3.3)') zboundarytype(icomp,icc,3)
+        call decode_zsbound(icomp,icc,sbound_ty,sbound_c2,sbound_e2)
 
 C Set connection based variables.
         IZSTOCN(icomp,icc)=iccc
@@ -667,7 +663,7 @@ C If surface `flor` not included in the list add it.
               if(lastlist.le.6)then
                 IBASES(ICOMP,lastlist)=iSurface
                 ZBASEA(ICOMP)=ZBASEA(ICOMP)+SNA(ICOMP,iSurface)
-              endif	
+              endif
             endif
           endif
  222    continue
@@ -688,7 +684,7 @@ C Use gversion 1.1.
         igupgrade=2
         gversion(icomp) =1.1
       endif
-      call geowrite(IFIL+2,LGEOM(ICOMP),ICOMP,iuout,3,IER)
+      call geowrite2(IFIL+2,LGEOM(ICOMP),ICOMP,iuout,3,IER)
       IF(IER.EQ.1)THEN
         call usrmsg('Problem creating geometry file.','giving up','W')
         return
@@ -745,7 +741,7 @@ C Next, if there are mass pairs to add make standard calls to insert them.
      &        zdatamass(icomp,imu,6),SN,constr,OPT,INVT)
           endif
 
-          call geowrite(IFIL+2,LGEOM(ICOMP),ICOMP,iuout,3,IER)
+          call geowrite2(IFIL+2,LGEOM(ICOMP),ICOMP,iuout,3,IER)
   79    continue
       endif
 
@@ -763,30 +759,42 @@ C it should be overwritten.
       if(anunknownmlc)then   ! if a MLC is unknown do not bother with edcon
         continue
       else
-        IUF=IFIL+2
-        LTHRM(ICOMP)=CFILE
-        CALL EFOPSEQ(IUF,LTHRM(ICOMP),3,IER)
-        WRITE(IUF,31,IOSTAT=IOS,ERR=146)
+        if(literalzmlc(icomp))then
+          continue
+        else
+          IUF=IFIL+2
+          LTHRM(ICOMP)=CFILE
+          CALL EFOPSEQ(IUF,LTHRM(ICOMP),3,IER)
+          WRITE(IUF,31,IOSTAT=IOS,ERR=146)
      &    zname(ICOMP)(1:lnzname(ICOMP)),CFILE(1:lnblnk(CFILE))
   31    FORMAT('# thermophysical properties of ',a,' defined in ',a,/,
      &  '# no of |air |surface(from geo)| multilayer construction',/,
      &  '# layers|gaps|  no.  name      | database name ')
-        CALL ERPFREE(IUF,ISTAT)
+          CALL ERPFREE(IUF,ISTAT)
+        endif
       endif
 
       if(willneedtmc)then
-        ITW(icomp)=1
-        LTWIN(ICOMP)=TFILE
+        if(icfgv.le.4)then
+          ITW(icomp)=1
+          LTWIN(ICOMP)=TFILE
+        else
+          continue   ! Newer cfg files assume newer constructions.
+        endif
       endif
       if(anunknownmlc)then   ! if a MLC is unknown do not bother with edcon
         call usrmsg('Problem autogenerating zone construction',
      &    'files. A surface construction was unknown.','W')
       else
-        QUIET=.true.
-        CALL EDCON(0,iuout,ICOMP,QUIET,IER)  ! should auto create files.
-        if(ier.ne.0)then
-          call usrmsg('Problem autogenerating zone construction',
+        if(literalzmlc(icomp))then
+          continue
+        else
+          QUIET=.true.
+          CALL EDCON(0,iuout,ICOMP,QUIET,IER)  ! should auto create files.
+          if(ier.ne.0)then
+            call usrmsg('Problem autogenerating zone construction',
      &      'files. Please check','W')
+          endif
         endif
       endif
 
@@ -885,7 +893,7 @@ C and act on the information within the file.
        SUBROUTINE SILENTREAD(IUNIT,LFILE,act,silentreturndirec,IER)
        integer MSZ   ! number of META zones array sizes, edit to
                      ! match MCOM in building.h
-       PARAMETER (MSZ=82)
+       PARAMETER (MSZ=97)
 
 #include "building.h"
 #include "model.h"
@@ -925,6 +933,10 @@ C Obstruction blocks via geometry.h.
 C Simulation parameter sets.
       common/spfldat/nsset,isset,isstup,isbnstep,ispnstep,issave,isavgh
       INTEGER :: nsset,isset,isstup,isbnstep,ispnstep,issave,isavgh
+      common/spflres/sblres(MSPS),sflres(MSPS),splres(MSPS),
+     &  smstres(MSPS),selres(MSPS),scfdres(MSPS),sipvres
+      character sblres*72,sflres*72,splres*72,smstres*72,
+     &  selres*72,scfdres*72,sipvres*72
 
 C IPV description via ipvdata.h.
       common/cctlnm/ctldoc,lctlf
@@ -983,6 +995,11 @@ C Initial view.
       REAL :: angi,EYEMI,VIEWMI
       INTEGER :: initvt
 
+      common/metazmlc/literalzmlc(MSZ)
+      logical literalzmlc   ! Is zone construction file literal.
+      common/IPVF/lipvdatf
+      CHARACTER lipvdatf*72
+
       integer inumXMLmetrics !counts for the number of xml metrics defined
 
 C << update outstr etc to deal with complex surface edge jvn lists >>
@@ -1019,7 +1036,7 @@ C Paremeters passed to:silentzone
 
       character hasconstr*32,szhasconstr*32
       dimension hasconstr(MS),szhasconstr(MSZ,MS)  ! construction to use for each surface
-      character hasoptic*32,szhasoptic*32
+      character hasoptic*24,szhasoptic*24
       dimension hasoptic(MS),szhasoptic(MSZ,MS)    ! optics to use for each surface
       character hasparent*12,szhasparent*12
       dimension hasparent(MS),szhasparent(MSZ,MS)  ! construction to use for each surface
@@ -1102,6 +1119,7 @@ C For each of the possible ESP-r zones, clear values.
           zorigin(iz,3) = 0.0
           zsize(iz,1) = 0.0; zsize(iz,2) = 0.0; zsize(iz,3) = 0.0
           znbmass(iz) = 0
+          literalzmlc(iz) = .false.  ! Assume no literal zone construction file
           do 39 isu=1,MS
             zboundarytype(iz,isu,1)=0; zboundarytype(iz,isu,2)=0
             zboundarytype(iz,isu,3)=0
@@ -1125,7 +1143,8 @@ C For each of the META specific arrays, clear values.
         do 42 iz=1,MSZ
           szuse(iz,1) = ' '; szuse(iz,2) = ' '; szuse(iz,3) = ' '
           usefile(iz) = ' '
-          nbobs(iz) = 0
+          nbobs(iz) = 0; nbvis(iz)=0
+
           ht_Setpoint(iz)= 0.0; cl_Setpoint(iz)= 0.0
           i_ctl_link(iz)=0
           do 55 ibu=1,MB
@@ -1134,8 +1153,7 @@ C For each of the META specific arrays, clear values.
             BANGOB(iz,ibu,1) = 0.0; BANGOB(iz,ibu,2) = 0.0
             BANGOB(iz,ibu,3) = 0.0
             OPOB(iz,ibu) = 1.0
-            BLOCKNAME(iz,ibu) = ' '; LNBLOCKNAME(iz,ibu) = 0
-            BLOCKMAT(iz,ibu) = ' '; LNBLOCKMAT(iz,ibu) = 0
+            BLOCKNAME(iz,ibu) = ' '; BLOCKMAT(iz,ibu) = ' '
             BLOCKTYP(iz,ibu) = 'obs '
             do 56 ibe=1,8
               XBP(iz,ibu,ibe)=0.0; YBP(iz,ibu,ibe)=0.0
@@ -1236,8 +1254,8 @@ C Debug.
             write(6,*)  's action ',actions,' root ',root
             write(6,*)  's mpath ',mpath
 
-C If a new model create the main model folder, zones doc and ctl
-C folders in case there are literal file contents to extract 
+C If a new model create the main model folder, zones doc ctl msc
+C and rad folders in case there are literal file contents to extract 
 C from the META file.
             if(actions(1:3).eq.'new')then
               write(doit,'(2a)') 'mkdir -p ',mpath(1:lnblnk(mpath))
@@ -1257,7 +1275,16 @@ C from the META file.
               write(doit,'(4a)') 'mkdir -p ',mpath(1:lnblnk(mpath)),fs,
      &          'dbs'
               call runit(doit,'-')
-	      write(literalpath,'(3a)') mpath(1:lnblnk(mpath)),fs,'cfg/'
+              write(doit,'(4a)') 'mkdir -p ',mpath(1:lnblnk(mpath)),fs,
+     &          'tmp'
+              call runit(doit,'-')
+              write(doit,'(4a)') 'mkdir -p ',mpath(1:lnblnk(mpath)),fs,
+     &          'msc'
+              call runit(doit,'-')
+              write(doit,'(4a)') 'mkdir -p ',mpath(1:lnblnk(mpath)),fs,
+     &          'rad'
+              call runit(doit,'-')
+              write(literalpath,'(3a)') mpath(1:lnblnk(mpath)),fs,'cfg/'
               write(6,*) literalpath(1:lnblnk(literalpath))
             endif
           endif
@@ -1319,6 +1346,12 @@ C        call scan_database_names(IUNIT,foundmould,foundsbem,IRNCMD,ier)
         goto 43
       elseif(WORD(1:8).eq.'*seasons')then
         call scan_season(IUNIT,ier)  ! Parse seasons attributes.
+        goto 43
+      elseif(WORD(1:5).eq.'*con ')then
+        CALL EGETRM(OUTSTR,K,text,'W','zone con file',IER)
+        LTHRM(nsz)=text(1:72)
+        literalzmlc(nsz) = .true.
+        literalfile=text(1:72)
         goto 43
       elseif(WORD(1:8).eq.'*cooling')then
         CALL EGETWR(OUTSTR,K,cl_Setpoint(nsz),-102.,102.,'W',
@@ -1393,6 +1426,14 @@ C If ground refl model is 3 then this file has hourly data.
         i_ctl_link(nsz)=1
         goto 43
       elseif(WORD(1:4).eq.'*ipv')then
+        CALL EGETRM(OUTSTR,K,text,'W','IPV file',IER)
+        lipvdatf=text(1:72)
+        literalfile=text(1:72)
+        nms = 1        ! emkcfg needs non-zero so assume at least one.
+        goto 43
+      elseif(WORD(1:7).eq.'*intipv')then
+        CALL EGETRM(OUTSTR,K,text,'W','ipv report',IER)
+        sipvres=text(1:72)
         goto 43
       elseif(WORD(1:5).eq.'*img ')then
 
@@ -1428,6 +1469,11 @@ C a subsequent (long) line with documentation for the images.
         CALL EGETWR(OUTSTR,K,sitelongdif,-15.,15.,'W',
      &    'Longitude dif from time meridian',IER)
         SLON=sitelongdif
+        goto 43   ! read another tag
+      elseif(WORD(1:5).eq.'*rif ')then
+        CALL EGETRM(OUTSTR,K,text,'W','radiance scene file',IER)
+        lradcf=text(1:72)
+        literalfile=text(1:72)
         goto 43   ! read another tag
       elseif(WORD(1:8).eq.'*sitealt')then
         call egetwr(outstr,k,sitealt,-100.,3000.,'W',
@@ -1645,7 +1691,6 @@ C not yet exist so create.
       elseif(WORD(1:5).eq.'*obs3')then
 
 C A 3 rotation obstruction block to be associated with the current zone.
-C << how do we detect OPOB? >>
         nbobs(nsz)=nbobs(nsz)+1
         nob=nbobs(nsz)
         CALL EGETWR(OUTSTR,K,val1,-999.,998.,'W','X org',IER)
@@ -1668,10 +1713,8 @@ C << how do we detect OPOB? >>
         BANGOB(nsz,nob,3)=val1
         CALL EGETW(OUTSTR,K,WORD,'W','obs blk name',IFLAG)
         write(BLOCKNAME(nsz,nob),'(a)') WORD(1:lnblnk(WORD))
-        LNBLOCKNAME(nsz,nob)=lnblnk(BLOCKNAME(nsz,nob))
         CALL EGETW(OUTSTR,K,WORD,'W','obs mat name',IFLAG)
         write(BLOCKMAT(nsz,nob),'(a)') WORD(1:lnblnk(WORD))
-        LNBLOCKMAT(nsz,nob)=lnblnk(BLOCKMAT(nsz,nob))
         BLOCKTYP(nsz,nob)='obs3'
         if(iobs(nsz).eq.0) iobs(nsz)=2  ! mark where obstructions held
         goto 43
@@ -1690,10 +1733,8 @@ C << how do we detect OPOB? >>
         CALL EGETWI(OUTSTR,K,ival,6,6,'F','pbs nb faces',IER)
         CALL EGETW(OUTSTR,K,WORD,'W','obs blk name',IFLAG)
         write(BLOCKNAME(nsz,nob),'(a)') WORD(1:lnblnk(WORD))
-        LNBLOCKNAME(nsz,nob)=lnblnk(BLOCKNAME(nsz,nob))
         CALL EGETW(OUTSTR,K,WORD,'W','obs mat name',IFLAG)
         write(BLOCKMAT(nsz,nob),'(a)') WORD(1:lnblnk(WORD))
-        LNBLOCKMAT(nsz,nob)=lnblnk(BLOCKMAT(nsz,nob))
         BLOCKTYP(nsz,nob)='obsp'
         if(iobs(nsz).eq.0) iobs(nsz)=2  ! mark where obstructions held
 
@@ -1776,13 +1817,154 @@ C << how do we detect OPOB? >>
         BANGOB(nsz,nob,1)=val1
         CALL EGETW(OUTSTR,K,WORD,'W','obs blk name',IFLAG)
         write(BLOCKNAME(nsz,nob),'(a)') WORD(1:lnblnk(WORD))
-        LNBLOCKNAME(nsz,nob)=lnblnk(BLOCKNAME(nsz,nob))
         CALL EGETW(OUTSTR,K,WORD,'W','obs mat name',IFLAG)
         write(BLOCKMAT(nsz,nob),'(a)') WORD(1:lnblnk(WORD))
-        LNBLOCKMAT(nsz,nob)=lnblnk(BLOCKMAT(nsz,nob))
         BLOCKTYP(nsz,nob)='obs '
         if(iobs(nsz).eq.0) iobs(nsz)=2  ! mark where obstructions held
         goto 43
+      elseif(word(1:5).eq.'*vis3')then
+        nbvis(nsz)=nbvis(nsz)+1
+        nbv=nbvis(nsz)
+        CALL EGETWR(OUTSTR,K,VX,-999.,998.,'W','vis X org',IER)
+        CALL EGETWR(OUTSTR,K,VY,-999.,998.,'W','vis Y org',IER)
+        CALL EGETWR(OUTSTR,K,VZ, -99., 99.,'W','vis Z org',IER)
+        XOV(nsz,nbv)=VX
+        YOV(nsz,nbv)=VY
+        ZOV(nsz,nbv)=VZ
+        CALL EGETWR(OUTSTR,K,VX,0.,150.,'W','vis X dis',IER)
+        CALL EGETWR(OUTSTR,K,VY,0.,150.,'W','vis Y dis',IER)
+        CALL EGETWR(OUTSTR,K,VZ,0.,150.,'W','vis Z dis',IER)
+        DXOV(nsz,nbv)=VX
+        DYOV(nsz,nbv)=VY
+        DZOV(nsz,nbv)=VZ
+        CALL EGETWR(OUTSTR,K,VX,-359.,359.,'W','vis rot ang a',IER)
+        BANGOV(nsz,nbv,1)=VX
+        CALL EGETWR(OUTSTR,K,VX,-359.,359.,'W','vis rot ang b',IER)
+        BANGOV(nsz,nbv,2)=VX
+        CALL EGETWR(OUTSTR,K,VX,-359.,359.,'W','vis rot ang c',IER)
+        BANGOV(nsz,nbv,3)=VX
+        if(ND.ge.13)then  ! if enough items for opacity
+          CALL EGETWR(OUTSTR,K,VX,0.,1.,'W','vis opacity',IER)
+          OPOV(nsz,nbv)=VX
+        else
+          OPOV(nsz,nbv)=1.0  ! set to opaque if not specified
+        endif
+        CALL EGETW(OUTSTR,K,WORD,'W','vis blk name',IFLAG)
+        VISNAME(nsz,nbv)=WORD(1:12)
+
+C The name of the construction might contain spaces so use EGETP.
+        CALL EGETP(OUTSTR,K,WORD,'W','vis mat name',IFLAG)
+        write(VISMAT(nsz,nbv),'(a)') WORD(1:lnblnk(WORD))
+        VISTYP(nsz,nbv)='vis3'
+        goto 43    ! check if there is another
+
+      elseif(WORD(1:5).eq.'*visp')then  !  A general polygon visual. 
+        nbvis(nsz)=nbvis(nsz)+1
+        nbv=nbvis(nsz)
+        CALL EGETWI(OUTSTR,K,ival,8,8,'F','vis nb vertices',IER)
+        CALL EGETWI(OUTSTR,K,ival,6,6,'F','vis nb faces',IER)
+        if(ND.ge.6)then  ! if enough items for opacity
+          CALL EGETWR(OUTSTR,K,VX,0.,1.,'W','vis opacity',IER)
+          OPOV(nsz,nbv)=VX
+        else
+          OPOV(nsz,nbv)=1.0  ! set to opaque if not specified
+        endif
+        CALL EGETW(OUTSTR,K,WORD,'W','vis blk name',IFLAG)
+        write(VISNAME(nsz,nbv),'(a)') WORD(1:lnblnk(WORD))
+        CALL EGETP(OUTSTR,K,WORD,'W','vis mat name',IFLAG)
+        write(VISMAT(nsz,nbv),'(a)') WORD(1:lnblnk(WORD))
+
+        VISTYP(nsz,nbv)='visp'
+
+        CALL LSTRIPC(IUNIT,OUTSTR,99,ND,1,'1st 4 coordinates',IER)
+        IF(IER.NE.0)goto 1000
+        K=0
+        CALL EGETWR(OUTSTR,K,val1,-999.,998.,'W','XVP 1',IER)
+        XVP(nsz,nbv,1)=val1
+        CALL EGETWR(OUTSTR,K,val1,-999.,998.,'W','YVP 1',IER)
+        YVP(nsz,nbv,1)=val1
+        CALL EGETWR(OUTSTR,K,val1,-999.,998.,'W','ZVP 1',IER)
+        ZVP(nsz,nbv,1)=val1
+        CALL EGETWR(OUTSTR,K,val1,-999.,998.,'W','XVP 2',IER)
+        XVP(nsz,nbv,2)=val1
+        CALL EGETWR(OUTSTR,K,val1,-999.,998.,'W','YVP 2',IER)
+        YVP(nsz,nbv,2)=val1
+        CALL EGETWR(OUTSTR,K,val1,-999.,998.,'W','ZVP 2',IER)
+        ZVP(nsz,nbv,2)=val1
+        CALL EGETWR(OUTSTR,K,val1,-999.,998.,'W','XVP 3',IER)
+        XVP(nsz,nbv,3)=val1
+        CALL EGETWR(OUTSTR,K,val1,-999.,998.,'W','YVP 3',IER)
+        YVP(nsz,nbv,3)=val1
+        CALL EGETWR(OUTSTR,K,val1,-999.,998.,'W','ZVP 3',IER)
+        ZVP(nsz,nbv,3)=val1
+        CALL EGETWR(OUTSTR,K,val1,-999.,998.,'W','XVP 4',IER)
+        XVP(nsz,nbv,4)=val1
+        CALL EGETWR(OUTSTR,K,val1,-999.,998.,'W','YVP 4',IER)
+        YVP(nsz,nbv,4)=val1
+        CALL EGETWR(OUTSTR,K,val1,-999.,998.,'W','ZVP 4',IER)
+        ZVP(nsz,nbv,4)=val1
+        CALL LSTRIPC(IUNIT,OUTSTR,99,ND,1,'2nd 4 coordinates',IER)
+        IF(IER.NE.0)goto 1000
+        K=0
+        CALL EGETWR(OUTSTR,K,val1,-999.,998.,'W','XVP 5',IER)
+        XVP(nsz,nbv,5)=val1
+        CALL EGETWR(OUTSTR,K,val1,-999.,998.,'W','YVP 5',IER)
+        YVP(nsz,nbv,5)=val1
+        CALL EGETWR(OUTSTR,K,val1,-999.,998.,'W','ZVP 5',IER)
+        ZVP(nsz,nbv,5)=val1
+        CALL EGETWR(OUTSTR,K,val1,-999.,998.,'W','XVP 6',IER)
+        XVP(nsz,nbv,6)=val1
+        CALL EGETWR(OUTSTR,K,val1,-999.,998.,'W','YVP 6',IER)
+        YVP(nsz,nbv,6)=val1
+        CALL EGETWR(OUTSTR,K,val1,-999.,998.,'W','ZVP 6',IER)
+        ZVP(nsz,nbv,6)=val1
+        CALL EGETWR(OUTSTR,K,val1,-999.,998.,'W','XVP 7',IER)
+        XVP(nsz,nbv,7)=val1
+        CALL EGETWR(OUTSTR,K,val1,-999.,998.,'W','YVP 7',IER)
+        YVP(nsz,nbv,7)=val1
+        CALL EGETWR(OUTSTR,K,val1,-999.,998.,'W','ZVP 7',IER)
+        ZVP(nsz,nbv,7)=val1
+        CALL EGETWR(OUTSTR,K,val1,-999.,998.,'W','XVP 8',IER)
+        XVP(nsz,nbv,8)=val1
+        CALL EGETWR(OUTSTR,K,val1,-999.,998.,'W','YVP 8',IER)
+        YVP(nsz,nbv,8)=val1
+        CALL EGETWR(OUTSTR,K,val1,-999.,998.,'W','ZVP 8',IER)
+        ZVP(nsz,nbv,8)=val1
+        goto 43
+
+      elseif(WORD(1:4).eq.'*vis')then
+
+        nbvis(nsz)=nbvis(nsz)+1
+        nbv=nbvis(nsz)
+        CALL EGETWR(OUTSTR,K,VX,-999.,998.,'W','vis X org',IER)
+        CALL EGETWR(OUTSTR,K,VY,-999.,998.,'W','vis Y org',IER)
+        CALL EGETWR(OUTSTR,K,VZ, -99., 99.,'W','vis Z org',IER)
+        XOV(nsz,nbv)=VX
+        YOV(nsz,nbv)=VY
+        ZOV(nsz,nbv)=VZ
+        CALL EGETWR(OUTSTR,K,VX,0.,150.,'W','vis X dis',IER)
+        CALL EGETWR(OUTSTR,K,VY,0.,150.,'W','vis Y dis',IER)
+        CALL EGETWR(OUTSTR,K,VZ,0.,150.,'W','vis Z dis',IER)
+        DXOV(nsz,nbv)=VX
+        DYOV(nsz,nbv)=VY
+        DZOV(nsz,nbv)=VZ
+        CALL EGETWR(OUTSTR,K,VX,-359.,359.,'W','vis rot ang',IER)
+        BANGOV(nsz,nbv,1)=VX
+        BANGOV(nsz,nbv,2)=0.0   ! there is no 2nd rotation
+        BANGOV(nsz,nbv,3)=0.0   ! there is no 3rd rotation
+        if(ND.ge.11)then  ! if enough items for opacity
+          CALL EGETWR(OUTSTR,K,VX,0.,1.,'W','vis opacity',IER)
+          OPOV(nsz,nbv)=VX
+        else
+          OPOV(nsz,nbv)=1.0  ! set to opaque if not specified
+        endif
+        CALL EGETW(OUTSTR,K,WORD,'W','vis blk name',IFLAG)
+        VISNAME(nsz,nbv)=WORD(1:12)
+        CALL EGETP(OUTSTR,K,WORD,'W','vis mat name',IFLAG)
+        write(VISMAT(nsz,nbv),'(a)') WORD(1:lnblnk(WORD))
+        VISTYP(nsz,nbv)='vis '
+        goto 43
+
       elseif(WORD(1:7).eq.'*origin')then
         if(shape(nsz)(1:3).eq.'box')then
           CALL EGETWR(OUTSTR,K,val1,0.,0.,'-','box X origin',IER)
@@ -2028,81 +2210,54 @@ C Surface construction name, allow for spaces.
           write(SOTF(nsz,NS),'(a)') WORD(1:lnblnk(WORD))
           write(szhasoptic(nsz,NS),'(a)') WORD(1:lnblnk(WORD))
 
+C << TODO 2nd & 3rd could be scanned as integers >>
           CALL EGETW(OUTSTR,K,tother,'W','surface other 1',IER)
-          CALL EGETW(OUTSTR,K,tother1,'W','surface other 2',IER)
-          CALL EGETW(OUTSTR,K,tother2,'W','surface other 3',IER)
+C          CALL EGETW(OUTSTR,K,tother1,'W','surface other 2',IER)
+C          CALL EGETW(OUTSTR,K,tother2,'W','surface other 3',IER)
+          CALL EGETWI(OUTSTR,K,io1,0,MCOM,'W','surface other 2',IER)
+          CALL EGETWI(OUTSTR,K,io2,0,MS,'W','surface other 3',IER)
           if(tother(1:7).eq.'UNKNOWN')then
-            write(sother(nsz,ns,1),'(a)') 'UNKNOWN'
-            write(sother(nsz,ns,2),'(a)') '00'
-            write(sother(nsz,ns,3),'(a)') '000'
             zboundarytype(nsz,NS,1)= -1
-            zboundarytype(nsz,NS,2)=0
-            zboundarytype(nsz,NS,3)=0
+            zboundarytype(nsz,NS,2)= io1
+            zboundarytype(nsz,NS,3)= io2
           elseif(tother(1:8).eq.'EXTERIOR')then
-            write(sother(nsz,ns,1),'(a)') 'EXTERIOR'
-            write(sother(nsz,ns,2),'(a)') '00'
-            write(sother(nsz,ns,3),'(a)') '000'
             zboundarytype(nsz,NS,1)=0
             zboundarytype(nsz,NS,2)=0
             zboundarytype(nsz,NS,3)=0
           elseif(tother(1:9).eq.'ADIABATIC')then
-            write(sother(nsz,ns,1),'(a)') 'ADIABATIC'
-            write(sother(nsz,ns,2),'(a)') '00'
-            write(sother(nsz,ns,3),'(a)') '000'
             zboundarytype(nsz,NS,1)=5
             zboundarytype(nsz,NS,2)=0
             zboundarytype(nsz,NS,3)=0
           elseif(tother(1:7).eq.'SIMILAR')then
-            write(sother(nsz,ns,1),'(a)') 'SIMILAR'
-            write(sother(nsz,ns,2),'(a)') tother1
-            write(sother(nsz,ns,3),'(a)') tother2
-            zboundarytype(nsz,NS,1)=1
-            read(tother1,*) zboundarytype(nsz,NS,2)
-            read(tother2,*) zboundarytype(nsz,NS,3)
+            zboundarytype(nsz,NS,1)= 1
+            zboundarytype(nsz,NS,2)= io1
+            zboundarytype(nsz,NS,3)= io2
           elseif(tother(1:8).eq.'CONSTANT')then
-            write(sother(nsz,ns,1),'(a)') 'CONSTANT'
-            write(sother(nsz,ns,2),'(a)') tother1
-            write(sother(nsz,ns,3),'(a)') tother2
-            zboundarytype(nsz,NS,1)=2
-            read(tother1,*) zboundarytype(nsz,NS,2)
-            read(tother2,*) zboundarytype(nsz,NS,3)
+            zboundarytype(nsz,NS,1)= 2
+            zboundarytype(nsz,NS,2)= io1
+            zboundarytype(nsz,NS,3)= io2
           elseif(tother(1:8).eq.'BASESIMP')then
-            write(sother(nsz,ns,1),'(a)') 'BASESIMP'
-            write(sother(nsz,ns,2),'(a)') tother1
-            write(sother(nsz,ns,3),'(a)') tother2
-            zboundarytype(nsz,NS,1)=6
-            read(tother1,*) zboundarytype(nsz,NS,2)
-            read(tother2,*) zboundarytype(nsz,NS,3)
+            zboundarytype(nsz,NS,1)= 6
+            zboundarytype(nsz,NS,2)= io1
+            zboundarytype(nsz,NS,3)= io2
           elseif(tother(1:6).eq.'GROUND')then
-            write(sother(nsz,ns,1),'(a)') 'GROUND'
-            write(sother(nsz,ns,2),'(a)') tother1
-            write(sother(nsz,ns,3),'(a)') tother2
-            zboundarytype(nsz,NS,1)=4
-            read(tother1,*) zboundarytype(nsz,NS,2)
-            read(tother2,*) zboundarytype(nsz,NS,3)
+            zboundarytype(nsz,NS,1)= 4
+            zboundarytype(nsz,NS,2)= io1
+            zboundarytype(nsz,NS,3)= io2
           elseif(tother(1:9).eq.'IDENT_CEN')then
-            write(sother(nsz,ns,1),'(a)') 'IDENT_CEN'
-            write(sother(nsz,ns,2),'(a)') tother1
-            write(sother(nsz,ns,3),'(a)') tother2
-            zboundarytype(nsz,NS,1)=7
-            read(tother1,*) zboundarytype(nsz,NS,2)
-            read(tother2,*) zboundarytype(nsz,NS,3)
+            zboundarytype(nsz,NS,1)= 7
+            zboundarytype(nsz,NS,2)= io1
+            zboundarytype(nsz,NS,3)= io2
           elseif(tother(1:7).eq.'ANOTHER')then
-            write(sother(nsz,ns,1),'(a)') 'ANOTHER'
-            write(sother(nsz,ns,2),'(a)') tother1
-            write(sother(nsz,ns,3),'(a)') tother2
-            zboundarytype(nsz,NS,1)=3
-            read(tother1,*) zboundarytype(nsz,NS,2)
-            read(tother2,*) zboundarytype(nsz,NS,3)
+            zboundarytype(nsz,NS,1)= 3
+            zboundarytype(nsz,NS,2)= io1
+            zboundarytype(nsz,NS,3)= io2
           else
 
 C Assume partition so setup sother arrays with this in mind.
-            write(sother(nsz,ns,1),'(a)') 'ANOTHER'
-            write(sother(nsz,ns,2),'(a)') tother1
-            write(sother(nsz,ns,3),'(a)') tother2
-            zboundarytype(nsz,NS,1)=3
-            read(tother1,*) zboundarytype(nsz,NS,2)
-            read(tother2,*) zboundarytype(nsz,NS,3)
+            zboundarytype(nsz,NS,1)= 3
+            zboundarytype(nsz,NS,2)= io1
+            zboundarytype(nsz,NS,3)= io2
           endif
         endif
 
@@ -2428,13 +2583,19 @@ C Initial view.
       common/initv/initvt,EYEMI(3),VIEWMI(3),ANGI
       REAL :: angi,EYEMI,VIEWMI
       INTEGER :: initvt
+      common/IPVF/lipvdatf
+      CHARACTER lipvdatf*72
+      common/spflres/sblres(MSPS),sflres(MSPS),splres(MSPS),
+     &  smstres(MSPS),selres(MSPS),scfdres(MSPS),sipvres
+      character sblres*72,sflres*72,splres*72,smstres*72,
+     &  selres*72,scfdres*72,sipvres*72
 
       logical dogrnd
  
       integer inumXMLmetrics !counts for the number of xml metrics defined
 
       CHARACTER outs*124,outsd*124,louts*496,loutsd*496
-      character dstmp*24,OTHSTR*30
+      character dstmp*24
 
       character act*1      ! action requested.
       character simact*6   ! action for creating assessments.
@@ -2452,6 +2613,7 @@ C For passing to silentmodel.
       character actions*8,root*32,mpath*72
 
       logical unixok
+      logical postp_header  ! true if have written post-processing heading
 
 C Paremeters passed to:silentzone
       character szuse*8,usefile*32  ! usage pattern directives
@@ -2467,7 +2629,7 @@ C Site related local variables.
       logical havegroundtempsets
       logical havesimparameters
       logical rotationknown  ! true if we need to remember a rotation
-      logical :: XST
+      logical :: XST,duplicate
       integer simstartup   ! use for isstup
       integer simzonetimestep ! use for isbnstep
       integer simplanttimestep ! use for ispnstep
@@ -2479,9 +2641,12 @@ C Site related local variables.
       character tab*1
       character tokens*156,comment*76,aligned_str*156
       character left*62,leftd*62,right*42,rightd*42
-      integer lnc  ! for length of climate file
+      character lco*72,lcot*72
+      character sbound_ty*12,sbound_c2*6,sbound_e2*6
+       integer lnc  ! for length of climate file
       integer metaver  ! one for 1.1 two for 1.2 three for 1.3
       integer ifc
+      CHARACTER OTHSTR*30,SST2*12,ZST2*12
 
 C  The following data statements carry the proportions of
 C  surrounding buildings, sky vault and ground assumed
@@ -2560,6 +2725,7 @@ C only (the first 32 char) into weather.
         endif
       endif
       hoursGTM=0.0
+      postp_header=.false.
 
 C The hourlysnowfile is SNFNAM.
       write(hourlysnowfile,'(a)') SNFNAM
@@ -2616,7 +2782,7 @@ C << todo - add in zone description >>
         szuse(iz,1) = ' '     ! szuse (skip for now)
         szuse(iz,2) = ' '
         szuse(iz,3) = ' '
-        usefile(iz) = ' '       ! usefile (skip for now)
+        usefile(iz) = ' '     ! usefile (skip for now)
 
 C Until we store all META component history the creation of a META
 C file treats everything as polygons so that nbwalls is the same as
@@ -3063,6 +3229,66 @@ C Simulation parameters.
         endif
       endif
 
+      if(lnblnk(lradcf).eq.0)then  ! Radiance.
+        continue
+      elseif(lradcf(1:7).eq.'UNKNOWN')then
+        continue
+      else
+        WRITE(IFC,'(2a)',IOSTAT=IOS,ERR=2) '*rif ',
+     &    lradcf(1:lnblnk(lradcf))
+        INQUIRE (FILE=lradcf(1:lnblnk(lradcf)),EXIST=XST)
+        if (XST) THEN
+          write(ifilg,'(a)') '*start_literal'
+          iuf=ifil+2
+          call ascitometa(iuf,lradcf,ifilg,IER)
+          write(ifilg,'(a)') '*end_literal'
+        endif
+      endif
+
+C IPV. If directives exist then include names.
+      if(lipvdatf(1:7).eq.'UNKNOWN')then       ! create default name and write
+        continue
+      elseif(lipvdatf(1:8).eq.'internal')then  ! convert from internal to external file
+        continue
+      else
+        if(.NOT.postp_header.and.icfgv.ge.5)then
+          WRITE(IFC,'(A)',IOSTAT=IOS,ERR=13) '#'
+          WRITE(IFC,'(A)',IOSTAT=IOS,ERR=13) 
+     &      '# ---- post-processing ----'
+          postp_header=.true.
+        endif
+        lnipv=lnblnk(lipvdatf)
+        WRITE(IFC,'(2a)',IOSTAT=IOS,ERR=13) '*ipv ', ! save the current ipv file name
+     &    lipvdatf(1:lnipv)
+        INQUIRE (FILE=lipvdatf(1:lnipv),EXIST=XST)
+        if (XST) THEN
+          write(ifilg,'(a)') '*start_literal'
+          iuf=ifil+2
+          call ascitometa(iuf,lipvdatf,ifilg,IER)
+          write(ifilg,'(a)') '*end_literal'
+        endif
+      endif
+
+      if(icfgv.lt.4)then
+        if(lnipv.eq.0)then
+          continue
+        elseif(lipvdatf(1:7).eq.'UNKNOWN')then
+          continue
+        else
+          if(sipvres(1:2).ne.'  '.and.sipvres(1:7).ne.'UNKNOWN')then
+            WRITE(IFC,'(2A)',IOSTAT=IOS,ERR=13)'*intipv ',
+     &        sipvres(1:lnblnk(sipvres))
+          endif
+        endif
+      else
+        if(nipvassmt.gt.0)then
+          if(sipvres(1:2).ne.'  '.and.sipvres(1:7).ne.'UNKNOWN')then
+            WRITE(IFC,'(2A)',IOSTAT=IOS,ERR=13)'*intipv ',
+     &        sipvres(1:lnblnk(sipvres))
+          endif
+        endif
+      endif
+
 C Write out data for each zone in the model. The nsz loop
 C is per zone, the nsc loop is for each coordinate.
       if(ncomp.gt.0)then
@@ -3121,6 +3347,15 @@ C << consider adding more attributes and putting each attribute
 C << on a separate line with a tag.
           do 144 isu=1,NZSUR(nsz)
             call OTHERINFO(nsz,isu,OTHSTR)
+            call decode_zsbound(nsz,isu,sbound_ty,sbound_c2,sbound_e2)
+            if(OTHSTR(1:19).eq.'not_known:not_known')then
+              ioz=zboundarytype(nsz,isu,2)
+              ios=zboundarytype(nsz,isu,3)
+              SST2=SNAME(ioz,ios)
+              ZST2=zname(ioz)
+              WRITE(OTHSTR,'(4a)')'||< ',SST2(1:LNBLNK(SST2)),':',
+     &          ZST2(1:LNBLNK(ZST2))
+            endif
             icc=IZSTOCN(nsz,isu)    ! get the connection
             lnsn=lnblnk(SNAME(nsz,isu))
             lnsc=lnblnk(SMLCN(nsz,isu))
@@ -3144,15 +3379,9 @@ C << on a separate line with a tag.
             elseif(metaver.eq.3)then
 
 C Follow pattern in egeometry.F ~line 2727.
-              lso=lnblnk(SOTHER(nsz,isu,1))
-              lso2=lnblnk(SOTHER(nsz,isu,2))
-              if(lso2.eq.0)then
-                SOTHER(nsz,isu,2)='000'; lso2=3
-              endif
-              lso3=lnblnk(SOTHER(nsz,isu,3))
-              if(lso3.eq.0)then
-                SOTHER(nsz,isu,3)='000'; lso3=3
-              endif
+              lso=lnblnk(sbound_ty)
+              lso2=lnblnk(sbound_c2)
+              lso3=lnblnk(sbound_e2)
               lsml=lnblnk(SMLCN(nsz,isu))
               if(lsml.eq.0)then
                 SMLCN(nsz,isu)='UNKNOWN'; lsml=7
@@ -3160,7 +3389,6 @@ C Follow pattern in egeometry.F ~line 2727.
               lspa=lnblnk(SPARENT(nsz,isu))
               if(lspa.gt.12) lspa=12
               lsna=lnblnk(SNAME(nsz,isu))
-              lnsname=lsna   ! update surface name length common
               lsot=lnblnk(SOTF(nsz,isu))
               loth=lnblnk(OTHSTR)
               luse1=lnblnk(SUSE(nsz,isu,1))
@@ -3174,8 +3402,8 @@ C Follow pattern in egeometry.F ~line 2727.
      &          ' ',SUSE(nsz,isu,2)(1:luse2)
               call SDELIM(left,leftd,'C',IW)  ! pack tokens before SMLCN
               WRITE(right,'(7a)',IOSTAT=ios,ERR=13)
-     &          SOTF(nsz,isu)(1:lsot),' ',SOTHER(nsz,isu,1)(1:lso),' ',
-     &          SOTHER(nsz,isu,2)(1:lso2),' ',SOTHER(nsz,isu,3)(1:lso3)
+     &          SOTF(nsz,isu)(1:lsot),' ',sbound_ty(1:lso),' ',
+     &          sbound_c2(1:lso2),' ',sbound_e2(1:lso3)
               call SDELIM(right,rightd,'C',IW) ! pack tokens after SMLCN
               write(ifilg,'(6a,i3,2a)',IOSTAT=IOS,ERR=13)
      &          leftd(1:lnblnk(leftd)),',',SMLCN(nsz,isu)(1:lsml),',',
@@ -3293,6 +3521,64 @@ C format if type 'obs' and 'obs3'
   55        continue
           endif
 
+          if(nbvis(nsz).gt.0)then  ! Visual entities
+            write(ifilg,'(a)',IOSTAT=IOS,ERR=13) '# '
+            write(ifilg,'(a)',IOSTAT=IOS,ERR=13) '# visual entities:'
+            do ib=1,nbvis(nsz)
+              if(VISTYP(nsz,ib)(1:4).eq.'vis3')then
+                WRITE(outs,'(2a,6F10.4,3F8.2,F6.2,1X,A)',
+     &            IOSTAT=ios,ERR=13)
+     &            '*vis3',tab,XOV(nsz,ib),YOV(nsz,ib),ZOV(nsz,ib),
+     &            DXOV(nsz,ib),DYOV(nsz,ib),DZOV(nsz,ib),
+     &            BANGOV(nsz,ib,1),BANGOV(nsz,ib,2),BANGOV(nsz,ib,3),
+     &            OPOV(nsz,ib),VISNAME(nsz,ib)
+                call SDELIM(outs,outsd,'C',IW)
+                lnvm=lnblnk(VISMAT(nsz,ib))
+                write(ifilg,'(4a,i3)',IOSTAT=IOS,ERR=13)
+     &            outsd(1:lnblnk(outsd)),' ',VISMAT(nsz,ib)(1:lnvm),
+     &            '  # visual block ',ib
+              elseif(VISTYP(nsz,ib)(1:4).eq.'visp')then
+                WRITE(outs,'(2a,F7.2,1X,A)',IOSTAT=ios,ERR=13)
+     &            '*visp',' 8 6 ',OPOV(nsz,ib),VISNAME(nsz,ib)
+                lnvm=lnblnk(VISMAT(nsz,ib))
+                call SDELIM(outs,outsd,'C',IW)
+                write(ifilg,'(4a,i3,a)',IOSTAT=IOS,ERR=13)
+     &            outsd(1:lnblnk(outsd)),' ',VISMAT(nsz,ib)(1:lnvm),
+     &            '  # visual ',ib,' coords follow:'
+
+                WRITE(outs,'(12F9.4)',IOSTAT=ios,ERR=13)
+     &            XVP(nsz,ib,1),YVP(nsz,ib,1),ZVP(nsz,ib,1),
+     &            XVP(nsz,ib,2),YVP(nsz,ib,2),ZVP(nsz,ib,2),
+     &            XVP(nsz,ib,3),YVP(nsz,ib,3),ZVP(nsz,ib,3),
+     &            XVP(nsz,ib,4),YVP(nsz,ib,4),ZVP(nsz,ib,4)
+                call SDELIM(outs,outsd,'C',IW)
+                write(ifilg,'(2A)',IOSTAT=IOS,ERR=13)
+     &            outsd(1:lnblnk(outsd)),'  # 1-4 '
+
+                WRITE(outs,'(12F9.4)',IOSTAT=ios,ERR=13)
+     &            XVP(nsz,ib,5),YVP(nsz,ib,5),ZVP(nsz,ib,5),
+     &            XVP(nsz,ib,6),YVP(nsz,ib,6),ZVP(nsz,ib,6),
+     &            XVP(nsz,ib,7),YVP(nsz,ib,7),ZVP(nsz,ib,7),
+     &            XVP(nsz,ib,8),YVP(nsz,ib,8),ZVP(nsz,ib,8)
+                call SDELIM(outs,outsd,'C',IW)
+                write(ifilg,'(2A)',IOSTAT=IOS,ERR=13)
+     &            outsd(1:lnblnk(outsd)),'  # 5-8 '
+
+              elseif(VISTYP(nsz,ib)(1:4).eq.'vis ')then
+                WRITE(outs,'(2a,6F10.4,F8.2,F6.2,1X,A)',
+     &            IOSTAT=ios,ERR=13)
+     &            '*vis',tab,XOV(nsz,ib),YOV(nsz,ib),ZOV(nsz,ib),
+     &            DXOV(nsz,ib),DYOV(nsz,ib),DZOV(nsz,ib),
+     &            BANGOV(nsz,ib,1),OPOV(nsz,ib),VISNAME(nsz,ib)
+                lnvm=lnblnk(VISMAT(nsz,ib))
+                call SDELIM(outs,outsd,'C',IW)
+                write(ifilg,'(4a,i3)',IOSTAT=IOS,ERR=13)
+     &            outsd(1:lnblnk(outsd)),' ',VISMAT(nsz,ib)(1:lnvm),
+     &            '  # visual ',ib
+              endif
+            enddo   ! ib
+          endif
+
 C Control definitions. Scan the current control data to determine if the
 C current zone has an ideal control - if so set i_ctl_link() to one.
 C Next need to determine the number of periods - if one period then
@@ -3313,16 +3599,89 @@ C Idea control information is work in progress.
      &      '*ideal_control',tab,i_ctl_link(nsz),
      &      '  # ideal control linkage'
 
+C Check if zone operations file exists and that it is not already
+C used by another zone.
+          ltf=max(1,LNBLNK(LPROJ(nsz)))
+          INQUIRE (FILE=LPROJ(nsz)(1:ltf),EXIST=XST)
+          if (XST) THEN
+            lco=LPROJ(nsz)
+            call FINDFIL(lco,XST)
+            if(XST)then
+              ilcot=0
+              duplicate=.false.
+              if(nsz.gt.1)then
+                do IZO=1,nsz
+                  lcot=LPROJ(IZO)
+                  if(lco(1:lnblnk(lco)).eq.lcot(1:lnblnk(lcot)))then
+                    if(IZO.ne.nsz)then
+                      duplicate=.true.
+                      ilcot=IZO
+                      goto 101
+                    endif
+                  endif
+                enddo  ! of izo
+              endif
+ 101          if(duplicate.and.ilcot.ne.0)then
+                write(outs,'(2a)') ' Uses same operations as zone ',
+     &            zname(ilcot)(1:lnzname(ilcot))
+                call edisp(itu,outs)
+              else
+
 C Zone operations. Include the name and then copy in line-by-line
 C between 'start_literal' and 'end_literal'.
-          write(tokens,'(2a)') '*opr ',LPROJ(nsz)(1:LNBLNK(LPROJ(nsz)))
-          write(comment,'(a)') 'schedules'
-          call align_comment(48,tokens,comment,aligned_str)
-          write(ifilg,'(a)') aligned_str(1:lnblnk(aligned_str))
-          write(ifilg,'(a)') '*start_literal'
-          iuf=ifil+2
-          call ascitometa(iuf,LPROJ(nsz),ifilg,IER)
-          write(ifilg,'(a)') '*end_literal'
+                write(tokens,'(2a)') '*opr ',LPROJ(nsz)(1:ltf)
+                write(comment,'(a)') 'schedules'
+                call align_comment(48,tokens,comment,aligned_str)
+                write(ifilg,'(a)') aligned_str(1:lnblnk(aligned_str))
+                write(ifilg,'(a)') '*start_literal'
+                iuf=ifil+2
+                call ascitometa(iuf,LPROJ(nsz),ifilg,IER)
+                write(ifilg,'(a)') '*end_literal'
+              endif
+            endif
+          endif
+
+C Check if zone construction file exists and that it is not already
+C used by another zone.
+          ltf=max(1,LNBLNK(LTHRM(nsz)))
+          INQUIRE (FILE=LTHRM(nsz)(1:ltf),EXIST=XST)
+          if (XST) THEN
+            lco=LTHRM(nsz)
+            call FINDFIL(lco,XST)
+            if(XST)then
+              ilcot=0
+              duplicate=.false.
+              if(nsz.gt.1)then
+                do IZO=1,nsz
+                  lcot=LTHRM(IZO)
+                  if(lco(1:lnblnk(lco)).eq.lcot(1:lnblnk(lcot)))then
+                    if(IZO.ne.nsz)then
+                      duplicate=.true.
+                      ilcot=IZO
+                      goto 102
+                    endif
+                  endif
+                enddo  ! of izo
+              endif
+ 102          if(duplicate.and.ilcot.ne.0)then
+                write(outs,'(2a)') ' Uses same constructions as zone ',
+     &            zname(ilcot)(1:lnzname(ilcot))
+                call edisp(itu,outs)
+              else
+
+C Zone constructions. Include the name and then copy in line-by-line
+C between 'start_literal' and 'end_literal'.
+                write(tokens,'(2a)') '*con ',LTHRM(nsz)(1:ltf)
+                write(comment,'(a)') 'constructions'
+                call align_comment(48,tokens,comment,aligned_str)
+                write(ifilg,'(a)') aligned_str(1:lnblnk(aligned_str))
+                write(ifilg,'(a)') '*start_literal'
+                iuf=ifil+2
+                call ascitometa(iuf,LTHRM(nsz),ifilg,IER)
+                write(ifilg,'(a)') '*end_literal'
+              endif
+            endif
+          endif
 
           if(IVF(nsz).EQ.1)then
             write(tokens,'(2a)') '*ivf ',

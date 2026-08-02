@@ -12,7 +12,7 @@ C  draw_flow_value - places dotted line between a flow node and shows flow value
 C ************************* MFWFDRAW 
 C MFWFDRAW: draw 3D flow entities from common block contents.
 C colour is either 'r' red or 'g' grey50 for components.
-C Omitt node names indnm=0 or component names icmpnm for clarity
+C Minimal node names indnm=0, short =1 or component names =2 icmpnm for clarity
       SUBROUTINE MFWFDRAW(col,indnm,icmpnm)
 
 #include "building.h"
@@ -22,7 +22,8 @@ C Omitt node names indnm=0 or component names icmpnm for clarity
 C      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
       integer net3ddelay  ! delay between timesteps in 3D network
-      common/delay3d/net3ddelay
+      integer iflblo      ! verboxity of 3D flow graph labels
+      common/delay3d/net3ddelay,iflblo
       character col*1
       CHARACTER name*12
       integer POS,NEG,CMPIS
@@ -33,17 +34,20 @@ C      COMMON/OUTIN/IUOUT,IUIN,IEOUT
 
       altcol='b'  ! blue alternative colour
 
-      if(MMOD.lt.8) return  ! in text mode do not draw
-      if(net3ddelay.eq.1)idms=40
-      if(net3ddelay.eq.2)idms=20
-      if(net3ddelay.eq.3)idms=10
-      if(net3ddelay.eq.4)idms=5
+      if(MMOD.lt.8) return        ! In text mode do not draw.
+      if(net3ddelay.eq.1)idms=20  ! Introduce a slight delay when drawing entities.
+      if(net3ddelay.eq.2)idms=10
+      if(net3ddelay.eq.3)idms=5
+      if(net3ddelay.eq.4)idms=2
+      if(net3ddelay.eq.5)idms=2
 
 C Node data.
       IF(NNOD.gt.0)then
         DO INOD=1,NNOD
-          if(indnm.gt.0) name=NDNAM(INOD)
-          if(indnm.eq.0) name='- '
+          if(indnm.eq.2) write(name,'(a)')  NDNAM(INOD)
+          if(indnm.eq.1) write(name,'(a,i3.3)') 'n:',inod
+          if(indnm.eq.0) write(name,'(a)') 'N'
+
           xw=HNOD(INOD,1);yw=HNOD(INOD,2); zw=HNOD(INOD,3)
           if(NDTYP(INOD).eq.0)then
             if(NDFLD(INOD).eq.1)then
@@ -75,8 +79,9 @@ C << CONSIDER NWPCMP()  >>
 
       IF(NCMP.gt.0)then
         DO ICMP=1,NCMP
-          if(icmpnm.gt.0) name=CMNAM(ICMP)
-          if(icmpnm.eq.0) name='- '
+          if(icmpnm.gt.2) name=CMNAM(ICMP)
+          if(icmpnm.eq.1) write(name,'(a,i3.3)') 'c:',icmp
+          if(icmpnm.eq.0) write(name,'(a)') 'C'
           xc=HCMP(ICMP,1,1);yc=HCMP(ICMP,1,2); zc=HCMP(ICMP,1,3)
           call ECLOSE(SUPCMP(ICMP,1),2.0,0.0001,iswater)
 
@@ -532,7 +537,8 @@ C Omit node names indnm=0 or component names icmpnm for clarity.
 C      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
       integer net3ddelay  ! delay between timesteps in 3D network
-      common/delay3d/net3ddelay
+      integer iflblo      ! verboxity of 3D flow graph labels
+      common/delay3d/net3ddelay,iflblo
 
       integer iuchoice  ! user selection from menuatol
       integer nlistnode ! how many nodes were selected
@@ -560,6 +566,8 @@ C      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       if(net3ddelay.eq.2)idms=10
       if(net3ddelay.eq.3)idms=5
       if(net3ddelay.eq.4)idms=3
+      if(net3ddelay.eq.4)idms=3
+      if(net3ddelay.eq.5)idms=3
       
 C Node data.
       IF(NNOD.gt.0)then
@@ -569,8 +577,9 @@ C Node data.
             if(inod.eq.listnode(j))found=.true.
           enddo
           if(found)then
-            if(indnm.gt.0) name=NDNAM(INOD)
-            if(indnm.eq.0) name='- '
+            if(indnm.eq.2) write(name,'(a)')  NDNAM(INOD)
+            if(indnm.eq.1) write(name,'(a,i3.3)') 'n:',inod
+            if(indnm.eq.0) write(name,'(a)') 'N'
             xw=HNOD(INOD,1); yw=HNOD(INOD,2); zw=HNOD(INOD,3)
             if(NDTYP(INOD).eq.0)then
               if(NDFLD(INOD).eq.1)then
@@ -578,28 +587,28 @@ C Node data.
               else
                 call symbol_flow_nd(name,'iu',altcol,xw,yw,zw)
               endif
-              call pausems(idms)
+              if(net3ddelay.le.3) call pausems(idms)
             elseif(NDTYP(INOD).eq.1)then
               if(NDFLD(INOD).eq.1)then
                 call symbol_flow_nd(name,'ik',col,xw,yw,zw)
               else
                 call symbol_flow_nd(name,'ik',altcol,xw,yw,zw)
               endif
-              call pausems(idms)
+              if(net3ddelay.le.3) call pausems(idms)
             elseif(NDTYP(INOD).eq.2)then
               if(NDFLD(INOD).eq.1)then
                 call symbol_flow_nd(name,'bk',col,xw,yw,zw)
               else
                 call symbol_flow_nd(name,'bk',altcol,xw,yw,zw)
               endif
-              call pausems(idms)
+              if(net3ddelay.le.3) call pausems(idms)
             elseif(NDTYP(INOD).eq.3)then
               if(NDFLD(INOD).eq.1)then
                 call symbol_flow_nd(name,'bw',col,xw,yw,zw)
               else
                 call symbol_flow_nd(name,'bw',altcol,xw,yw,zw)
               endif
-              call pausems(idms)
+              if(net3ddelay.le.3) call pausems(idms)
             endif
           endif
         enddo
@@ -616,8 +625,9 @@ C << CONSIDER NWPCMP()  >>
             if(icmp.eq.listcmp(j))found=.true.
           enddo
           if(found)then
-            if(icmpnm.gt.0) name=CMNAM(ICMP)
-            if(icmpnm.eq.0) name='- '
+            if(icmpnm.gt.2) name=CMNAM(ICMP)
+            if(icmpnm.eq.1) write(name,'(a,i3.3)') 'c:',icmp
+            if(icmpnm.eq.0) write(name,'(a)') 'C'
             xc=HCMP(ICMP,1,1);yc=HCMP(ICMP,1,2); zc=HCMP(ICMP,1,3)
             call ECLOSE(SUPCMP(ICMP,1),2.0,0.0001,iswater)
 

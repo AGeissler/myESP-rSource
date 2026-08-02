@@ -287,12 +287,7 @@ C Run the simulation template and analyse results
       RETURN
       END
 
-C Dummy routines from common3dv.F
-      SUBROUTINE ADJVIEW(IER)
-      ier=0
-      return
-      end
-
+C Dummy routines.
       SUBROUTINE redraw(IER)
       IER=0
       return

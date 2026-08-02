@@ -456,7 +456,7 @@ C Trace output. Include context for the calculation.
         endif
         write(outs,'(3a,i3,a,i3,3a,i2,a,i2,a,i3)')
      &    '*** TRNSF3: projection of obstruction ',
-     &    blockname(izone,ibn)(1:lnblockname(izone,ibn)),' (',ibn,
+     &    blockname(izone,ibn)(1:lnblnk(blockname(izone,ibn))),' (',ibn,
      &    ') face (',ibs,') on surface ',ZSDES(1:lnzsn),' (',iztsur,
      &    ') at hour ',ihr,msg,iskypatch
         call edisp(icout,outs)

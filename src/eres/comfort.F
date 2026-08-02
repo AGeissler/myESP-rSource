@@ -407,7 +407,7 @@ C Casual gain type.  Ask user which constitutes occupancy.
         goto 78
       elseif(ino.eq.11)then
 
-C Start espvwf session.
+C Start mrt session.
         helptopic='res_comfort_local_vwf'
         call gethelptext(helpinsub,helptopic,nbhelp)
         CALL EASKOK(' ','Proceed with view factor analysis?',OK,nbhelp)
@@ -430,10 +430,10 @@ C and change any / to \.
             longtfile=longtfiledos
           endif
 
-          write(doit,'(7a)') 'espvwf -mode ',tmode,
+          write(doit,'(7a)') 'mrt -mode ',tmode,
      &       ' -s 0 0 0 -file ',longtfile(1:lnblnk(longtfile)),
      &       ' -zone ',ZN(1:lnblnk(ZN)),' &'
-          call usrmsg(doit,'starting vwf analysis.','-')
+          call usrmsg(doit,'starting mrt analysis.','-')
           call runit(doit,tmode)
         endif
       else

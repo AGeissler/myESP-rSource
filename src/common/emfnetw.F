@@ -2521,7 +2521,12 @@ C Passed parameters:
       character outs*124
 
       inode=0; icmp=0
-      ioc=IZSTOCN(izone,isurf)
+      if(izone.gt.0.and.isurf.gt.0)then
+        ioc=IZSTOCN(izone,isurf)
+        if(ioc.eq.0) return
+      else
+        return
+      endif
       if(IAIRN.ge.1.and.ICAAS(izone).ne.0)then ! Is there a flow network?
         if(IAIRN.eq.3)then                     ! Is it 3D?
           do loop=1,NNOD

@@ -161,9 +161,9 @@
       PARAMETER (MNREG=76)      ! Maximum number of gridding regions per axis
 
 ! Structured-gridding.
-      PARAMETER (MROW=12)       ! Rows.
-      PARAMETER (MCOL=12)       ! Columns.
-      PARAMETER (MLAY=12)       ! Layers.
+      PARAMETER (MROW=28)       ! Rows.
+      PARAMETER (MCOL=28)       ! Columns.
+      PARAMETER (MLAY=28)       ! Layers.
       PARAMETER (MGRID=10*MROW*MCOL*MLAY)! Control volumes (should be < MNOD3).
       PARAMETER (MLEV=12)
       PARAMETER (MMTR=30)       ! Material geometries.

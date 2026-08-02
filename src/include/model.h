@@ -14,8 +14,9 @@ C Configuration file information.
                             ! the format and contents of the file:
                             ! version 3 circa 1996, version 4 from May 2008
                             ! version 5 current version from May 2022
-      integer usecurcfg     ! preference for current (1) or legacy (-1) version
-      common/CFGV/icfgv,usecurcfg
+      integer usecurcfg     ! preference (1 embedded cnn) (2 separate cnn) or legacy (-1)
+      logical cnndisagree   ! surface attributes agree or disagree with cnn list.
+      common/CFGV/icfgv,usecurcfg,cnndisagree
 
       integer ifcfg         ! file unit for model configuration file
       character cfgroot*32  ! root name of the model used to generate file names

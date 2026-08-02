@@ -26,6 +26,7 @@ C           complex fenestration control.
 C  Ezctlc:  Checks all building control functions, plant loops, and
 C           mass flow control functions for validity.
 C  decodesensor: takes the 4 indices that define a sensor & decodes
+C  decodeactuator: takes the 4 indices that define a actuator & decodes
 C  tscdta:  Sets TSC6 variables in the case of TSC6 called from a
 C           control function (as opposed to set from menu).
 C  FZDATA:  reads fuzzy logic data from configuration control file.
@@ -106,7 +107,8 @@ C           ifsn(?,1)=-5; not applicable.
 C           ibsn(?,1)=-6; sensed valued is produced by a function generator.
 C           ipsn(?,1)=-6; sensed valued is produced by a function generator.
 C           ifsn(?,1)=-6; not applicable.
-C           iosn(?,1)=-7; sensing incident solar radiation on a surface.
+C           iosn(?,1)=-7; sensing incident solar radiation on a surface where
+C                         iosn(?,2) is zone index iosn(?,3) is surface index.
 C           iosn(?,1)=-8; sensing daylight coefficient.
 C           ibsn(?,1)=-99; construction substitution.
 C                         ibsn(?,2)= upper zone air temperature limit 
@@ -432,9 +434,9 @@ C in the data.
         CALL LSTRIPC(IUNIT,LOUTSTR,0,ND,1,'control notes',IER)
       endif
       if(LOUTSTR(1:6).eq.'*cdoc ')then
-        ctldoc=LOUTSTR(7:lnblnk(LOUTSTR))
+        write(ctldoc,'(a)') LOUTSTR(7:lnblnk(LOUTSTR))
       else
-        ctldoc=LOUTSTR
+        write(ctldoc,'(a)') LOUTSTR(1:lnblnk(LOUTSTR))
       endif
       IF(ctldoc(1:4).EQ.'NONE'.OR.ctldoc(1:4).EQ.'none')THEN
         CALL EDISP(ITRU,' ')
@@ -508,9 +510,9 @@ C  Establish zone control regime notes (znctldoc) and number of
 C  control functions (NCF).
       CALL LSTRIPC(IUNIT,LOUTSTR,0,ND,1,'zn control notes',IER)
       if(LOUTSTR(1:6).eq.'*zdoc ')then
-        znctldoc=LOUTSTR(7:lnblnk(LOUTSTR))
+        write(znctldoc,'(a)') LOUTSTR(7:lnblnk(LOUTSTR))
       else
-        znctldoc=LOUTSTR
+        write(znctldoc,'(a)') LOUTSTR(1:lnblnk(LOUTSTR))
       endif
 
 C The scope of zone controls keyword *scope might be included.
@@ -859,9 +861,9 @@ C Plant control loops. Establish plant control regime name and number of
 C control loops.
    11 CALL LSTRIPC(IUNIT,LOUTSTR,0,ND,1,'plant ctl notes',IER)
       if(LOUTSTR(1:6).eq.'*pdoc ')then
-        plctldoc=LOUTSTR(7:lnblnk(LOUTSTR))
+        write(plctldoc,'(a)') LOUTSTR(7:lnblnk(LOUTSTR))
       else
-        plctldoc=LOUTSTR
+        write(plctldoc,'(a)') LOUTSTR(1:lnblnk(LOUTSTR))
       endif
 
       CALL STRIPC(IUNIT,OUTSTR,0,ND,1,'no control loops',IER)
@@ -1175,9 +1177,9 @@ C Mass flow control function. Establish regime name and number of
 C mass flow control functions.
    12 CALL LSTRIPC(IUNIT,LOUTSTR,0,ND,1,'mass flow ctl name',IER)
       if(LOUTSTR(1:6).eq.'*fdoc ')then
-        flctldoc=LOUTSTR(7:lnblnk(LOUTSTR))
+        write(flctldoc,'(a)') LOUTSTR(7:lnblnk(LOUTSTR))
       else
-        flctldoc=LOUTSTR
+        write(flctldoc,'(a)') LOUTSTR(1:lnblnk(LOUTSTR))
       endif
 
       CALL STRIPC(IUNIT,OUTSTR,1,ND,1,'no control function.',IER)
@@ -1721,9 +1723,9 @@ C Establish global control regime name and number of
 C global control functions.
   113 CALL LSTRIPC(IUNIT,LOUTSTR,0,ND,1,'global ctl name',IER)
       if(LOUTSTR(1:6).eq.'*gdoc ')then
-        glctldoc=LOUTSTR(7:lnblnk(LOUTSTR))
+        write(glctldoc,'(a)') LOUTSTR(7:lnblnk(LOUTSTR))
       else
-        glctldoc=LOUTSTR
+        write(glctldoc,'(a)') LOUTSTR(1:lnblnk(LOUTSTR))
       endif
 
       CALL STRIPC(IUNIT,OUTSTR,1,ND,1,'no control function.',IER)
@@ -1784,7 +1786,7 @@ C Read global control functions information and perform checks.
         igsn(ii,3)=IVAL
         IF(IER.NE.0)GOTO 99
 
-C Range checking.
+C Range checking. -7 above -4 next line - which is correct?
         if(igsn(ii,1).lt.-4) goto 1004
         if(igsn(ii,2).lt.0.or.igsn(ii,3).lt.0)goto 1062
 
@@ -1906,9 +1908,9 @@ C  Establish optical control regime name (opticdoc) and number of
 C  control functions (NOF).
  19   CALL LSTRIPC(IUNIT,LOUTSTR,0,ND,1,'optical control docs',IER)
       if(LOUTSTR(1:6).eq.'*odoc ')then
-        opticdoc=LOUTSTR(7:lnblnk(LOUTSTR))
+        write(opticdoc,'(a)') LOUTSTR(7:lnblnk(LOUTSTR))
       else
-        opticdoc=LOUTSTR
+        write(opticdoc,'(a)') LOUTSTR(1:lnblnk(LOUTSTR))
       endif
 
       CALL STRIPC(IUNIT,OUTSTR,1,ND,1,'no cntrl loops',IER)
@@ -2131,9 +2133,9 @@ C and number of control functions (nCFCctlloops).
    21 CALL LSTRIPC(IUNIT,LOUTSTR,0,ND,1,
      &      'complex fen. control notes',IER)
       if(LOUTSTR(1:8).eq.'*cfcdoc ')then
-        CFCctldoc=LOUTSTR(9:lnblnk(LOUTSTR))
+        write(CFCctldoc,'(a)') LOUTSTR(9:lnblnk(LOUTSTR))
       else
-        CFCctldoc=LOUTSTR
+        write(CFCctldoc,'(a)') LOUTSTR(1:lnblnk(LOUTSTR))
       endif
 
       CALL STRIPC(IUNIT,OUTSTR,1,ND,1,'no cntrl loops',IER)
@@ -2443,6 +2445,7 @@ C to instanciate links between zone surfaces and the optical control.
         do ii=1,nof
           if(force_econst(ii))then
             isn1=iztoread(ii)
+            if(isn1.eq.0) cycle
             XST=.false.
             call FINDFIL(LTHRM(isn1),XST)
             if(XST)then
@@ -2672,16 +2675,18 @@ C control file sensors, actuator, control types, control laws.
 
       common/pcnam/pcname(mpcom)
 
-      CHARACTER SSTR*96,SSTRB*48
+      CHARACTER SSTR*96,SSTRB*48,MENUC*1
       CHARACTER WHICH*1,ZN*12
       CHARACTER pcname*15,SN*12
       character disp_constr*32
 
       dimension icsn(5)   ! for passing sensor location to decodesensor
-      integer icsn
+      dimension ican(6)   ! for passing actuator location to decodeactuator
+      integer icsn,ican
 
       SSTR=' '
       SSTRB=' '
+      MENUC='-'
 
       if(icfoc.eq.0)goto 42     ! zone ideal control
       if(icfoc.eq.1)goto 43     ! plant control
@@ -2693,51 +2698,55 @@ C control file sensors, actuator, control types, control laws.
   42  IF(WHICH.EQ.'S'.OR.WHICH.EQ.'s')THEN
 
 C Ideal Sensor.
-        icsn(1)=IBSN(II,1)
-        icsn(2)=IBSN(II,2)
-        icsn(3)=IBSN(II,3)
-        icsn(4)=IBSN(II,4)
-        call decodesensor(icfoc,icsn,SSTR,SSTRB,ier)
+        icsn(1)=IBSN(II,1); icsn(2)=IBSN(II,2)
+        icsn(3)=IBSN(II,3); icsn(4)=IBSN(II,4)
+        call decodesensor(icfoc,icsn,SSTR,SSTRB,MENUC,ier)
 
       ELSEIF(WHICH.EQ.'A'.OR.WHICH.EQ.'a')THEN
 
 C Actuator.
-        IF(IBAN(II,1).GT.0)THEN
-          write(zn,'(a)') zname(IBAN(II,1))
-          if(IBAN(II,2).gt.0)then
-            write(sn,'(a)') SNAME(IBAN(II,1),IBAN(II,2))
-          else
-            sn='-'
-          endif
-          IF(IBAN(II,2).EQ.0)THEN
-            WRITE(SSTR,'(3a)')'the air point in ',zn(1:lnblnk(zn)),'.'
-          ELSEIF(IBAN(II,2).GT.0.AND.IBAN(II,3).EQ.0)THEN
-            WRITE(SSTR,'(5a)')  'at inside face of ',sn(1:lnblnk(sn)),
-     &        ' in ',zn(1:lnblnk(zn)),'.'
-          ELSEIF(IBAN(II,2).GT.0.AND.IBAN(II,3).GT.0)THEN
-            WRITE(SSTR,'(5a)')  'within ',sn(1:lnblnk(sn)),
-     &        ' in ',zn(1:lnblnk(zn)),'.'
-          ENDIF
-        ELSEIF(IBAN(II,1).EQ.0)THEN
-          SSTR='air point of the current zone'
-        ELSEIF(IBAN(II,1).EQ.-1)THEN
-          write(zn,'(a)') zname(IBAN(II,1))
-          WRITE(SSTR,'(a,i2,3a)')'plant component ',IBAN(II,2),' in ',
-     &      zn(1:lnblnk(zn)),'.'
-        ELSEIF(IBAN(II,1).EQ.-2)THEN
-          if(IBAN(II,2).gt.0)then
-            write(zn,'(a)') zname(IBAN(II,2))
-            WRITE(SSTR,'(a,i3,3a)')'mixed convective',IBAN(II,3),
-     &        '% /radiant flux in ',zn(1:lnblnk(zn)),'.'
-          else
-            WRITE(SSTR,'(a,i3,a)')'mixed convective',IBAN(II,3),
-     &        '% /radiant flux in the current zone.'
-          endif
-        ENDIF
-        IF(IBSN(II,1).EQ.-99)THEN
-          WRITE(SSTR,75)IBAN(II,1),IBAN(II,2),IBAN(II,3)
-  75      FORMAT('construction substitution to surfaces: ',3(I2,','))
-        ENDIF
+        ican(1)=IBAN(II,1); ican(2)=IBAN(II,2)
+        ican(3)=IBAN(II,3); ican(6)=IBSN(II,1)
+        call decodeactuator(icfoc,ican,SSTR,SSTRB,MENUC,ier)
+C        write(6,*) 'decodeact ican sstr menuc ',ican,' ',
+C     &    sstr(1:lnblnk(sstr)),' ',menuc
+
+C        IF(IBAN(II,1).GT.0)THEN
+C          write(zn,'(a)') zname(IBAN(II,1))
+C          if(IBAN(II,2).gt.0)then
+C            write(sn,'(a)') SNAME(IBAN(II,1),IBAN(II,2))
+C          else
+C            sn='-'
+C          endif
+C          IF(IBAN(II,2).EQ.0)THEN
+C            WRITE(SSTR,'(3a)')'the air point in ',zn(1:lnblnk(zn)),'.'
+C          ELSEIF(IBAN(II,2).GT.0.AND.IBAN(II,3).EQ.0)THEN
+C            WRITE(SSTR,'(5a)')  'at inside face of ',sn(1:lnblnk(sn)),
+C     &        ' in ',zn(1:lnblnk(zn)),'.'
+C          ELSEIF(IBAN(II,2).GT.0.AND.IBAN(II,3).GT.0)THEN
+C            WRITE(SSTR,'(5a)')  'within ',sn(1:lnblnk(sn)),
+C     &        ' in ',zn(1:lnblnk(zn)),'.'
+C          ENDIF
+C        ELSEIF(IBAN(II,1).EQ.0)THEN
+C          SSTR='air point of the current zone'
+C        ELSEIF(IBAN(II,1).EQ.-1)THEN
+C          write(zn,'(a)') zname(iabs(IBAN(II,1)))
+C          WRITE(SSTR,'(a,i2,3a)')'plant component ',IBAN(II,2),' in ',
+C     &      zn(1:lnblnk(zn)),'.'
+C        ELSEIF(IBAN(II,1).EQ.-2)THEN
+C          if(IBAN(II,2).gt.0)then
+C            write(zn,'(a)') zname(IBAN(II,2))
+C            WRITE(SSTR,'(a,i3,3a)')'mixed convective',IBAN(II,3),
+C     &        '% /radiant flux in ',zn(1:lnblnk(zn)),'.'
+C          else
+C            WRITE(SSTR,'(a,i3,a)')'mixed convective',IBAN(II,3),
+C     &        '% /radiant flux in the current zone.'
+C          endif
+C        ENDIF
+C        IF(IBSN(II,1).EQ.-99)THEN
+C          WRITE(SSTR,75)IBAN(II,1),IBAN(II,2),IBAN(II,3)
+C  75      FORMAT('construction substitution to surfaces: ',3(I2,','))
+C        ENDIF
       ELSEIF(WHICH.EQ.'T'.OR.WHICH.EQ.'t')THEN
 
 C Control type.
@@ -2758,12 +2767,10 @@ C Ideal Control law.
 
 C Plant Sensor.
         SSTR='undefined condition'
-        icsn(1)=IPSN(II,1)
-        icsn(2)=IPSN(II,2)
-        icsn(3)=IPSN(II,3)
-        icsn(4)=IPSN(II,4)
+        icsn(1)=IPSN(II,1); icsn(2)=IPSN(II,2)
+        icsn(3)=IPSN(II,3); icsn(4)=IPSN(II,4)
         icsn(5)=IPSN(II,5)
-        call decodesensor(icfoc,icsn,SSTR,SSTRB,ier)
+        call decodesensor(icfoc,icsn,SSTR,SSTRB,MENUC,ier)
 
       ELSEIF(WHICH.EQ.'A'.OR.WHICH.EQ.'a')THEN
 
@@ -2830,36 +2837,40 @@ C Plant Control law.
 
 C Flow Sensor.
         SSTR='undefined condition'
-        icsn(1)=IFSN(II,1)
-        icsn(2)=IFSN(II,2)
-        icsn(3)=IFSN(II,3)
-        icsn(4)=IFSN(II,4)
-        call decodesensor(icfoc,icsn,SSTR,SSTRB,ier)
+        icsn(1)=IFSN(II,1); icsn(2)=IFSN(II,2)
+        icsn(3)=IFSN(II,3); icsn(4)=IFSN(II,4)
+        call decodesensor(icfoc,icsn,SSTR,SSTRB,MENUC,ier)
 
       ELSEIF(WHICH.EQ.'A'.OR.WHICH.EQ.'a')THEN
 
 C Flow actuator.
-        SSTR='undefined actuation'
-        IF(IFAN(II,1).EQ.-3)THEN
-          L=IFAN(II,2)
-          if(ITPCON(L).ne.0)then
-            WRITE(SSTR,'(A,i3,1x,5A)')'flow connection: ',
-     &        L,NDNAM(NODPS(L))(1:lnblnk(NDNAM(NODPS(L)))),' - ',
-     &        NDNAM(NODNE(L))(1:lnblnk(NDNAM(NODNE(L)))),' via ',
-     &        CMNAM(ITPCON(L))(1:lnblnk(CMNAM(ITPCON(L))))
-          else
-            WRITE(SSTR,'(A,i3,1x,4A)')'flow connection: ',
-     &        L,NDNAM(NODPS(L))(1:lnblnk(NDNAM(NODPS(L)))),' - ',
-     &        NDNAM(NODNE(L))(1:lnblnk(NDNAM(NODNE(L)))),
-     &        ' via unknown component.'
-          endif
-        ELSEIF(IFAN(II,1).EQ.-4)THEN
-          L=IFAN(II,2)
-          if(L.ne.0)then
-            WRITE(SSTR,'(a,i3,1x,a)') 'flow component: ',L,
-     &        CMNAM(L)(1:lnblnk(CMNAM(L)))
-          endif
-        ENDIF
+        ican(1)=IFAN(II,1); ican(2)=IFAN(II,2)
+        ican(3)=IFAN(II,3)
+        call decodeactuator(icfoc,ican,SSTR,SSTRB,MENUC,ier)
+C        write(6,*) 'decodeact flow ican sstr menuc ',ican,' ',
+C     &    sstr(1:lnblnk(sstr)),' ',menuc
+
+C        SSTR='undefined actuation'
+C        IF(IFAN(II,1).EQ.-3)THEN
+C          L=IFAN(II,2)
+C          if(ITPCON(L).ne.0)then
+C            WRITE(SSTR,'(A,i3,1x,5A)')'flow connection: ',
+C     &        L,NDNAM(NODPS(L))(1:lnblnk(NDNAM(NODPS(L)))),' - ',
+C     &        NDNAM(NODNE(L))(1:lnblnk(NDNAM(NODNE(L)))),' via ',
+C     &        CMNAM(ITPCON(L))(1:lnblnk(CMNAM(ITPCON(L))))
+C          else
+C            WRITE(SSTR,'(A,i3,1x,4A)')'flow connection: ',
+C     &        L,NDNAM(NODPS(L))(1:lnblnk(NDNAM(NODPS(L)))),' - ',
+C     &        NDNAM(NODNE(L))(1:lnblnk(NDNAM(NODNE(L)))),
+C     &        ' via unknown component.'
+C          endif
+C        ELSEIF(IFAN(II,1).EQ.-4)THEN
+C          L=IFAN(II,2)
+C          if(L.ne.0)then
+C            WRITE(SSTR,'(a,i3,1x,a)') 'flow component: ',L,
+C     &        CMNAM(L)(1:lnblnk(CMNAM(L)))
+C          endif
+C        ENDIF
       ELSEIF(WHICH.EQ.'T'.OR.WHICH.EQ.'t')THEN
 
 C Flow control type.
@@ -2921,6 +2932,7 @@ C Return actuator type. << check to see if any other values allowed >>
         IF(igctyp(II,JJ,KK).eq.1)SSTR= 'Global on-off controller'
         IF(igctyp(II,JJ,KK).eq.2)SSTR= 'Global capacity controller'
         IF(igctyp(II,JJ,KK).eq.3)SSTR= 'Global schedule on controller'
+        IF(igctyp(II,JJ,KK).eq.4)SSTR= 'Global free float controller'
         IF(igctyp(II,JJ,KK).eq.5)SSTR= 'Global multisensor'
       ENDIF
       RETURN
@@ -2928,42 +2940,46 @@ C Return actuator type. << check to see if any other values allowed >>
   47  IF(WHICH.EQ.'S'.OR.WHICH.EQ.'s')THEN
 
 C Optical Sensor.
-        icsn(1)=IOSN(II,1)
-        icsn(2)=IOSN(II,2)
-        icsn(3)=IOSN(II,3)
-        icsn(4)=IOSN(II,4)
+        icsn(1)=IOSN(II,1); icsn(2)=IOSN(II,2)
+        icsn(3)=IOSN(II,3); icsn(4)=IOSN(II,4)
         if(icsn(1).eq.-98)then
           write(sstr,'(2a)')
      &    'is not required as loop only sets time when ',
      &    'optical property substitution is active'
         else
-          call decodesensor(icfoc,icsn,SSTR,SSTRB,ier)
+          call decodesensor(icfoc,icsn,SSTR,SSTRB,MENUC,ier)
         endif
       ELSEIF(WHICH.EQ.'A'.OR.WHICH.EQ.'a')THEN
 
 C Actuator.
-        SSTR='undefined actuator    '
-        if(ioan(ii,1).eq.-98)then
-          write(sstr,'(a)')
-     &    'not required because control loop only sets time '
-        elseif(ioan(ii,1).ge.0)then
-          if(ioan(ii,2).gt.0.and.ioan(ii,3).gt.0)then
-            write(zn,'(a)') zname(ioan(ii,2))
-            WRITE(SSTR,'(3a,i2)')  'optical properties in ',
-     &        zn(1:lnblnk(zn)),' for tmc type',IOAN(II,3)
-          endif
-        endif
-        IF(IOAN(II,1).eq.-5)THEN
-          if(IOAN(II,2).gt.0)then
-            icons=IOAN(II,2)
-            write(disp_constr,'(a)') mlcname(icons)
-            WRITE(SSTR,'(3a)')  'optical properties at ',
-     &        'construction ', disp_constr(1:lnblnk(disp_constr))
-          else
-            WRITE(SSTR,'(2a)')  'Optics actuator has not been assigned',
-     &        ' to a construction.' 
-          endif
-        ENDIF
+        ican(1)=IOAN(II,1); ican(2)=IOAN(II,2)
+        ican(3)=IOAN(II,3)
+        call decodeactuator(icfoc,ican,SSTR,SSTRB,MENUC,ier)
+C        write(6,*) 'decodeact optic ican sstr menuc ',ican,' ',
+C     &    sstr(1:lnblnk(sstr)),' ',menuc
+
+C        SSTR='undefined actuator    '
+C        if(ioan(ii,1).eq.-98)then
+C          write(sstr,'(a)')
+C     &    'not required because control loop only sets time '
+C       elseif(ioan(ii,1).ge.0)then
+C          if(ioan(ii,2).gt.0.and.ioan(ii,3).gt.0)then
+C            write(zn,'(a)') zname(ioan(ii,2))
+C            WRITE(SSTR,'(3a,i2)')  'optical properties in ',
+C     &        zn(1:lnblnk(zn)),' for tmc type',IOAN(II,3)
+C          endif
+C        endif
+C        IF(IOAN(II,1).eq.-5)THEN
+C          if(IOAN(II,2).gt.0)then
+C            icons=IOAN(II,2)
+C            write(disp_constr,'(a)') mlcname(icons)
+C            WRITE(SSTR,'(3a)')  'optical properties at ',
+C     &        'construction ', disp_constr(1:lnblnk(disp_constr))
+C          else
+C            WRITE(SSTR,'(2a)')  'Optics actuator has not been assigned',
+C     &        ' to a construction.' 
+C          endif
+C        ENDIF
       ELSEIF(WHICH.EQ.'T'.OR.WHICH.EQ.'t')THEN
 
 C Control type.
@@ -2987,7 +3003,7 @@ C Complex fenestration sensor.
         icsn(2)=iCFCsensor(II,2)
         icsn(3)=iCFCsensor(II,3)
         icsn(4)=iCFCsensor(II,4)
-        call decodesensor(icfoc,icsn,SSTR,SSTRB,ier)
+        call decodesensor(icfoc,icsn,SSTR,SSTRB,MENUC,ier)
 
       ELSEIF(WHICH.EQ.'A'.OR.WHICH.EQ.'a')THEN
 
@@ -3071,7 +3087,7 @@ C High level control scope key words.
       character hcffpattern*12    ! heat, cool, or heat+cool plus detail
       common/hlcontrol/hcffpattern(2)     
 
-      CHARACTER SSTR*96,SSTRB*48,SSTR1*96,SSTRB1*48
+      CHARACTER SSTR*96,SSTRB*48,SSTR1*96,SSTRB1*48,MENUC*1
 
       dimension cm(misc)  ! for passing miscel control data
       real cm
@@ -3241,10 +3257,10 @@ C Newer control files have an extra item related to humidity control.
                 if(zeroht.and.zerocl)then
                   write(lmsg,'(2a,f9.1,a,f9.1,a,f7.2,
      &              a,f7.2,a,f5.1,a,f5.1,a,f6.2,a,f6.2,a)') 
-     &              msg1(1:lnblnk(msg1)),' heat cap',cm(2),
-     &              'W cool cap',cm(4),
-     &              'W heat sp',cm(6),
-     &              'C cool sp',cm(7),
+     &              msg1(1:lnblnk(msg1)),' heating',cm(2),
+     &              'W cooling',cm(4),
+     &              'W heat setpt',cm(6),
+     &              'C cool setpt',cm(7),
      &              'C & moist inj RH ctl hi sp',
      &              cm(8),'(%) low sp',cm(9),
      &              '(%) max humid ',cm(10),
@@ -3252,10 +3268,10 @@ C Newer control files have an extra item related to humidity control.
                 else
                   write(lmsg,'(2a,f9.1,a,f9.1,a,f9.1,a,f9.1,a,f7.2,
      &              a,f7.2,a,f5.1,a,f5.1,a,f6.2,a,f6.2,a)') 
-     &              msg1(1:lnblnk(msg1)),' mx heat cap',cm(2),
-     &              'W mn heat cap',cm(3),'W mx cool cap',cm(4),
-     &              'W mn cool cap',cm(5),'W. Heat sp',cm(6),
-     &              'C cool sp',cm(7),
+     &              msg1(1:lnblnk(msg1)),' mx heat',cm(2),
+     &              'W mn heat',cm(3),'W mx cool',cm(4),
+     &              'W mn cool',cm(5),'W. Heat setpt',cm(6),
+     &              'C cool setpt',cm(7),
      &              'C & moist inj RH ctl hi sp',
      &              cm(8),'(%) low sp',cm(9),
      &              '(%) max humid ',cm(10),
@@ -3267,21 +3283,21 @@ C Newer control files have an extra item related to humidity control.
                 if(zeroht.and.zerocl)then
                   write(lmsg,'(2a,f9.1,a,f9.1,a,f7.2,
      &              a,f7.2,a,f5.1,a,f5.1,a)') 
-     &              msg1(1:lnblnk(msg1)),' Heating cap ',cm(2),
-     &              'W cooling cap ',cm(4),
-     &              'W heating sp ',cm(6),
-     &              'C cooling sp ',cm(7),
+     &              msg1(1:lnblnk(msg1)),' Heating ',cm(2),
+     &              'W cooling ',cm(4),
+     &              'W heating setpt ',cm(6),
+     &              'C cooling setpt ',cm(7),
      &              'C and T based RH ctl upper sp ',
      &              cm(8),'(%) lower sp ',cm(9),'(%).'
                 else
                   write(lmsg,'(2a,f9.1,a,f9.1,a,f9.1,a,f9.1,a,f7.2,
      &              a,f7.2,a,f5.1,a,f5.1,a)') 
-     &              msg1(1:lnblnk(msg1)),' max heating cap ',cm(2),
-     &              'W min heating cap ',cm(3),
-     &              'W max cooling cap ',cm(4),
-     &              'W min heaing cap ',cm(5),
-     &              'W heating sp ',cm(6),
-     &              'C cooling sp ',cm(7),
+     &              msg1(1:lnblnk(msg1)),' max heating ',cm(2),
+     &              'W min heating ',cm(3),
+     &              'W max cooling ',cm(4),
+     &              'W min heaing ',cm(5),
+     &              'W heating setpt ',cm(6),
+     &              'C cooling setpt ',cm(7),
      &              'C and T based RH ctl upper sp ',
      &              cm(8),'(%) lower sp ',cm(9),'(%).'
                 endif
@@ -3353,18 +3369,18 @@ C          call edisp248(6,message,80)
             write(lmsg,'(a,f9.1,a,f9.1,a,f7.2,a,f5.2,a,f9.1,a,f9.1,
      &        a,f7.2,a,f5.2,a,f6.1,a)') 
      &      ' proportional+D: max heat ',cm(3),
-     &      'W min heat ',cm(4),'W heat spt ',cm(5),
+     &      'W min heat ',cm(4),'W heat setpt ',cm(5),
      &      'C throttling range ',cm(6),'C. Max cool ',cm(7),
-     &      'W min cool ',cm(8),' W cool spt ',cm(9),
+     &      'W min cool ',cm(8),' W cool setpt ',cm(9),
      &      'C throttling range ',cm(10),'C derivative action time',
      &      cm(11),'s.' 
           elseif(nint(cm(2)).eq.4)then
             write(lmsg,'(a,f9.1,a,f9.1,a,f7.2,a,f5.2,a,f9.1,a,f9.1,
      &        a,f7.2,a,f5.2,a,f6.1,a,f6.1,a)') 
      &      ' proportional+I+D: max heat ',cm(3),
-     &      'W min heat ',cm(4),'W heat spt ',cm(5),
+     &      'W min heat ',cm(4),'W heat setpt ',cm(5),
      &      'C throttling range ',cm(6),'C. Max cool ',cm(7),
-     &      'W min cool ',cm(8),'W cool spt ',cm(9),
+     &      'W min cool ',cm(8),'W cool setpt ',cm(9),
      &      'C throttling range ',cm(10),'C integral action time',
      &      cm(11),'s derivative action time ',cm(12),'s.' 
           endif
@@ -3520,14 +3536,14 @@ C into SSTRB and optionally SSTRB1.
               cm(13)=bmiscd(II,JJ,KK,13)   ! offset 
             endif
             SSTR=' '
-            call decodesensor(0,icsn,SSTR,SSTRB,ier)
+            call decodesensor(0,icsn,SSTR,SSTRB,MENUC,ier)
           elseif(nint(cm(6)).eq.2)then
             icsn(1)=nint(bmiscd(II,JJ,KK,8))
             icsn(2)=nint(bmiscd(II,JJ,KK,9))
             icsn(3)=nint(bmiscd(II,JJ,KK,10))
             icsn(4)=nint(bmiscd(II,JJ,KK,11))
             SSTR=' '
-            call decodesensor(0,icsn,SSTR,SSTRB,ier)
+            call decodesensor(0,icsn,SSTR,SSTRB,MENUC,ier)
             icsn(1)=nint(bmiscd(II,JJ,KK,12))
             icsn(2)=nint(bmiscd(II,JJ,KK,13))
             icsn(3)=nint(bmiscd(II,JJ,KK,14))
@@ -3542,7 +3558,7 @@ C into SSTRB and optionally SSTRB1.
               cm(17)=bmiscd(II,JJ,KK,17)   ! offset 
             endif
             SSTR1=' '
-            call decodesensor(0,icsn,SSTR1,SSTRB1,ier)
+            call decodesensor(0,icsn,SSTR1,SSTRB1,MENUC,ier)
           endif
 
 C Generate the description from the bits taking into account how
@@ -3550,17 +3566,17 @@ C many aux sensors and whether there is a weighting factor.
           if(nint(cm(6)).eq.1)then
             if(nint(cm(7)).eq.4)then
               write(lmsg,'(4(a,f8.0),a,f3.0,2a,3(a,f5.2))')
-     &          ' match temperature (ideal): max heat cp ',cm(2),
-     &          'W min heat cp ',cm(3),'W max cool cp ',cm(4),
-     &          'W min heat cp ',cm(5),'W Aux sensors ',cm(6),
+     &          ' match temperature (ideal): max heat ',cm(2),
+     &          'W min heat ',cm(3),'W max cool ',cm(4),
+     &          'W min heat ',cm(5),'W Aux sensors ',cm(6),
      &          msg1(1:lnblnk(msg1)),SSTRB(1:lnblnk(SSTRB)),
      &          ' weighting ',cm(12),' scale ',cm(13),
      &          ' offset ',cm(14)
             else
               write(lmsg,'(4(a,f8.0),a,f3.0,2a,2(a,f5.2))')
-     &          ' match temperature (ideal): max heat cp ',cm(2),
-     &          'W min heat cp ',cm(3),'W max cool cp ',cm(4),
-     &          'W min heat cp ',cm(5),'W Aux sensors ',cm(6),
+     &          ' match temperature (ideal): max heat ',cm(2),
+     &          'W min heat ',cm(3),'W max cool ',cm(4),
+     &          'W min heat ',cm(5),'W Aux sensors ',cm(6),
      &          msg1(1:lnblnk(msg1)),SSTRB(1:lnblnk(SSTRB)),
      &          ' scale ',cm(12),' offset ',cm(13)
             endif
@@ -3568,9 +3584,9 @@ C many aux sensors and whether there is a weighting factor.
 C            call edisp248(6,message,90)
           elseif(nint(cm(6)).eq.2)then
             write(lmsg,'(4(a,f8.0),a,f3.0,4a)')
-     &        ' match temperature (ideal): max heat cp ',cm(2),
-     &        'W min heat cp ',cm(3),'W max cool cp ',cm(4),
-     &        'W min heat cp ',cm(5),'W Aux sensors ',cm(6),
+     &        ' match temperature (ideal): max heat ',cm(2),
+     &        'W min heat ',cm(3),'W max cool ',cm(4),
+     &        'W min heat ',cm(5),'W Aux sensors ',cm(6),
      &        msg1(1:lnblnk(msg1)),SSTRB(1:lnblnk(SSTRB)),
      &        ' & ',SSTRB1(1:lnblnk(SSTRB1))
             call SDELIM(lmsg,message,'S',IW)
@@ -3610,14 +3626,14 @@ C          call edisp248(6,message,80)
           write(lmsg,'(a,f7.2,a,f5.2,a,f5.2,a,f5.2,a,f7.2,a,f5.2,
      &      a,f5.2,a,f5.2,a,f9.1,a,f7.1,a,f3.0,a,f9.1,a,f7.1,
      &      a,f3.0,a)') 
-     &    ' floating 3-pos: heat sp',cm(2),
+     &    ' floating 3-pos: heat',cm(2),
      &    'C ht dbd',cm(3),'C ht shut df',cm(4),
      &    'C ht open df',cm(5),
-     &    'C cool sp',cm(6),'C cl dbd',cm(7),
+     &    'C cool',cm(6),'C cl dbd',cm(7),
      &    'C cl open df',cm(8),'C cl shut df',cm(9),
-     &    'C max ht cap',cm(10),'W min ht cap',cm(11),
-     &    'W ROC ht',cm(12),'ts max cl cap',cm(13),
-     &    'W min cl cap',cm(14),'W ROC cl',cm(15),'ts.'
+     &    'C max ht',cm(10),'W min ht',cm(11),
+     &    'W ROC ht',cm(12),'ts max cl',cm(13),
+     &    'W min cl',cm(14),'W ROC cl',cm(15),'ts.'
           call SDELIM(lmsg,message,'S',IW)
 C          call edisp248(6,message,80)
         ELSEIF(IBCLAW(II,JJ,KK).EQ.15)then
@@ -3671,10 +3687,10 @@ C          call edisp248(6,message,80)
           cm(5)=bmiscd(II,JJ,KK,5); cm(6)=bmiscd(II,JJ,KK,6)
           cm(7)=bmiscd(II,JJ,KK,7); cm(8)=bmiscd(II,JJ,KK,8)
           write(lmsg,'(a,f8.0,a,f6.0,a,f8.0,a,f6.0,a,f6.1,a,f6.1,a)')     
-     &      ' Ideal multi-sensor: max heat cp ',cm(2),
-     &      'W min heat cp ',cm(3),'W max cool cp ',cm(4),
-     &      'W min heat cp ',cm(5),'W Heat stpt ',cm(6),
-     &      'C cool stpt ',cm(7),'C Aux:'
+     &      ' Ideal multi-sensor: max heat ',cm(2),
+     &      'W min heat ',cm(3),'W max cool ',cm(4),
+     &      'W min heat ',cm(5),'W Heat setpoint ',cm(6),
+     &      'C cool setpoint ',cm(7),'C Aux:'
           llongmsg=lnblnk(lmsg)
           lx=llongmsg+1
           nitems=nint(cm(8))
@@ -3685,7 +3701,7 @@ C          call edisp248(6,message,80)
             icsn(3)=nint(bmiscd(II,JJ,KK,ndx+3))
             icsn(4)=nint(bmiscd(II,JJ,KK,ndx+4))
             SSTR=' '
-            call decodesensor(0,icsn,SSTR,SSTRB,ier)
+            call decodesensor(0,icsn,SSTR,SSTRB,MENUC,ier)
 
 C Append the sensor msg to the end of lmsg and increment lx position.
             llmsg=lnblnk(SSTRB)+17
@@ -4083,18 +4099,17 @@ C PI controller
 
       if(icfoc.eq.3)then
 
-C Global control. Return sensor type << check required if values other
-C than -3 allowed for sensor >>.
+C Global control. Return type and law.
         SSTR='undefined law '
         IF(igctyp(II,JJ,KK).eq.1)SSTR= 'Global on-off controller'
         IF(igctyp(II,JJ,KK).eq.2)SSTR= 'Global capacity controller'
         IF(igctyp(II,JJ,KK).eq.3)SSTR= 'Global schedule on controller'
+        IF(igctyp(II,JJ,KK).eq.4)SSTR= 'Global free float controller'
+        IF(igctyp(II,JJ,KK).eq.5)SSTR= 'Global multisensor controller'
         lmsg='not yet coded for global controls.'
 
-C Multisensing controller
-
+C Multisensing controller for flow loop or plant loop.
         IF(igctyp(II,JJ,KK).eq.5)THEN
-          SSTR= 'Global multisensor controller'
           DO 90 I=1,MISC
             cm(I)=gmiscd(II,JJ,KK,I)
  90       CONTINUE
@@ -4128,13 +4143,13 @@ C Multisensing controller
             LN2=LNBLNK(MSG2)
             LN=LNBLNK(LMSG)
             WRITE(LMSG,'(3A,i4,2a)')LMSG(1:LN),MSG2(1:LN2),' ',
-     &      nlps,' ',MSG1(1:LN1)
+     &        nlps,' ',MSG1(1:LN1)
  5050     CONTINUE
-      IF(NINT(CM(NCLP*3+1)).EQ.1)THEN
-        MSG2='Actuates massflow loop #'
-      ELSEIF(NINT(CM(NCLP*3+1)).EQ.2)THEN
-        MSG2='Actuates plant loop #'
-      ENDIF
+          IF(NINT(CM(NCLP*3+1)).EQ.1)THEN
+            MSG2='Actuates massflow loop #'
+          ELSEIF(NINT(CM(NCLP*3+1)).EQ.2)THEN
+            MSG2='Actuates plant loop #'
+          ENDIF
           IALP=NINT(CM(NCLP*3+2))
           LN=LNBLNK(LMSG)
           LN2=LNBLNK(MSG2)
@@ -4496,13 +4511,14 @@ C              call edisp248(itru,outs400,140)
       end
 
 C ******************** decodesensor
-C Decodesensor takes the 4 indices that define a sensor
-C and returns a descriptive string.
+C Takes the 4 indices that define a sensor and returns a
+C descriptive string as well as prj sensor menu character.
 C icfoc is the index of the control domain
 C icsn(5) is the array of indices
 C SSTR is the string (96 char) returned
 C SSTRB is brief string (48 char) returned
-      subroutine decodesensor(icfoc,icsn,SSTR,SSTRB,ier)
+C MENUC is bpfcontrl.F associated menu pick.
+      subroutine decodesensor(icfoc,icsn,SSTR,SSTRB,MENUC,ier)
 
 C << adapt report for case of thermophysical property substitution >>
 
@@ -4519,22 +4535,25 @@ C << adapt report for case of thermophysical property substitution >>
 
       integer icfoc
 
+C For building domain:
 C icsn(1) > 0 is focused on a specific zone, 0 is any zone, -2 mixed
 C icsn(2) for mixed the zone index
 C icsn(3) convective fraction
 C icsn(4) usually zero
       dimension icsn(5)
-      character sstr*96,sstrb*48
+      character sstr*96,sstrb*48,menuc*1
       CHARACTER ZN*12,NNAM*14,DESC*20
       CHARACTER pcname*15,contmnam*12
       CHARACTER sn*12
 
       sstr=' '
       sstrb=' '
+      menuc='-'
       if(icfoc.eq.0)then
 
 C Ideal Sensor.
         IF(icsn(1).GT.0)THEN
+          menuc='o'
           write(zn,'(a)') zname(icsn(1))
           if(icsn(2).gt.0)then
             write(sn,'(a)') SNAME(icsn(1),icsn(2))
@@ -4558,9 +4577,11 @@ C Ideal Sensor.
      &        ' in ',zn(1:lnblnk(zn)),'.'
           ENDIF
         ELSEIF(icsn(1).EQ.0)THEN
+          menuc='a'
           SSTR='senses the temperature of the current zone.'
           SSTRB='senses db T of the current zone.'
         ELSEIF(icsn(1).EQ.-2)THEN
+          menuc='b'
           if(icsn(2).gt.0)then
             write(zn,'(a)') zname(icsn(2))
             WRITE(SSTR,'(a,i3,3a)')'senses mix of dry bulb',icsn(3),
@@ -4575,39 +4596,50 @@ C Ideal Sensor.
           endif
         ELSEIF(icsn(1).EQ.-3)THEN
           IF(icsn(2).EQ.0)THEN
+            menuc='c'
             SSTR='senses ambient dry bulb temperature.'
             SSTRB='senses ambient db T.'
           ELSEIF(icsn(2).EQ.1)THEN
+            menuc='d'
             SSTR='senses the sol-air temperature.'
             SSTRB='senses the sol-air T.'
           ELSEIF(icsn(2).EQ.2)THEN
+            menuc='e'
             SSTR='senses wind speed.'
             SSTRB='senses wind speed.'
           ELSEIF(icsn(2).EQ.3)THEN
+            menuc='f'
             SSTR='senses wind direction.'
             SSTRB='senses wind direction.'
           ELSEIF(icsn(2).EQ.4)THEN
+            menuc='g'
             SSTR='senses dif hor rad.'
             SSTRB='senses dif hor rad.'
           ELSEIF(icsn(2).EQ.5)THEN
+            menuc='h'
             SSTR='senses dir nor rad.'
             SSTRB='senses dir nor rad.'
           ELSEIF(icsn(2).EQ.6)THEN
+            menuc='i'
             SSTR='senses ext rel hum.'
             SSTRB='senses ext RH.'
           ENDIF
         ELSEIF(icsn(1).EQ.-5)THEN
+          menuc='j'
           WRITE(SSTR,65)icsn(2)
   65      FORMAT('reads from temporal file item.',I2)
           WRITE(SSTRB,66)icsn(2)
   66      FORMAT('reads temporal item.',I2)
         ELSEIF(icsn(1).EQ.-6)THEN
+          menuc='k'
           SSTR='sensed value from function generator.'
           SSTRB='sensed value from func gen.'
         ELSEIF(icsn(1).EQ.-99)THEN
+          menuc='l'
           SSTR=' construction substitution.'
           SSTRB=' MLC substitution.'
         ELSE
+          menuc='-'
           SSTR='senses UNKNOWN condition.'
           SSTRB='senses UNKNOWN condition.'
         ENDIF
@@ -4648,9 +4680,9 @@ C Plant Sensor.
  114      FORMAT('senses var in compt. ',I2,':',a)
         ELSEIF((icsn(1).EQ.-1).AND.(icsn(4).GT.0))THEN
           WRITE(SSTR,1132)
-     &icsn(2),pcname(icsn(2))(1:LNBLNK(pcname(icsn(2)))),
-     &icsn(3),icsn(4),
-     &pcname(icsn(4))(1:LNBLNK(pcname(icsn(4)))),icsn(5)
+     &    icsn(2),pcname(icsn(2))(1:LNBLNK(pcname(icsn(2)))),
+     &    icsn(3),icsn(4),
+     &    pcname(icsn(4))(1:LNBLNK(pcname(icsn(4)))),icsn(5)
  1132     FORMAT('sen var diff bet compt. ',I2,':',a,
      &    ' @ node ',I2,'and compt ', I2,':',a,
      &    ' @ node ', I2)     
@@ -4701,6 +4733,7 @@ C Plant Sensor.
 C Flow Sensor.
         SSTR='undefined condition'
         IF(icsn(1).GT.0)THEN
+          menuc='n'
           write(zn,'(a)') zname(icsn(1))
           if(icsn(2).gt.0)then
             write(sn,'(a)') SNAME(icsn(1),icsn(2))
@@ -4724,11 +4757,13 @@ C Flow Sensor.
      &        ' in ',zn(1:lnblnk(zn)),'.'
           ENDIF
         ELSEIF(icsn(1).EQ.-1)THEN
+          menuc='a'
           WRITE(SSTR,163)icsn(2),icsn(1)
  163      FORMAT('senses temp of plant component',I2,' in zone.',I2)
           WRITE(SSTRB,164)icsn(2),icsn(1)
  164      FORMAT('senses T of plant comp',I2,' in zone.',I2)
         ELSEIF(icsn(1).EQ.-2)THEN
+          menuc='b'
           write(zn,'(a)') zname(icsn(2))
           WRITE(SSTR,'(2a)')'senses a mix of db T and MRT in ',
      &      zn(1:lnblnk(zn))
@@ -4736,24 +4771,31 @@ C Flow Sensor.
      &      zn(1:lnblnk(zn)),'.'
         ELSEIF(icsn(1).EQ.-3)THEN
           IF(icsn(2).EQ.0)THEN
+            menuc='c'
             SSTR='senses ambient dry bulb temperature.'
             SSTRB='senses ambient db T.'
           ELSEIF(icsn(2).EQ.1)THEN
+            menuc='-'
             SSTR='senses the sol-air temperature.'
             SSTRB='senses the sol-air T.'
           ELSEIF(icsn(2).EQ.2)THEN
+            menuc='e'
             SSTR='senses wind speed.'
             SSTRB='senses wind speed.'
           ELSEIF(icsn(2).EQ.3)THEN
+            menuc='f'
             SSTR='senses wind direction.'
             SSTRB='senses wind direction.'
           ELSEIF(icsn(2).EQ.4)THEN
+            menuc='g'
             SSTR='senses dif hor rad.'
             SSTRB='senses dif hor rad.'
           ELSEIF(icsn(2).EQ.5)THEN
+            menuc='h'
             SSTR='senses dir nor rad.'
             SSTRB='senses dir nor rad.'
           ELSEIF(icsn(2).EQ.6)THEN
+            menuc='i'
             SSTR='senses ext rel hum.'
             SSTRB='senses ext RH.'
           ELSEIF(ICSN(2).EQ.7)THEN
@@ -4764,6 +4806,7 @@ C Flow Sensor.
 
 C Decode which connection or node is sensed. NNAM is the string
 C representing the index of the node.
+          menuc='j'
           L=icsn(2)
           NNAM=' '
           CALL INTSTR(L,NNAM,LEN,IER)
@@ -4800,16 +4843,17 @@ C representing the index of the node.
      &      ,DESC(1:lnblnk(desc)),', contm: ',contmnam(icsn(3))
           ENDIF
         ELSEIF(icsn(1).eq.-7)THEN
+          menuc='k'
           write(zn,'(a)') zname(icsn(2))
             WRITE(SSTR,'(a,i1,3a)')'senses casual gain index ',icsn(3),
      &        ' in ',zn(1:lnblnk(zn)),'.'
             WRITE(SSTR,'(a,i1,3a)')'senses casual gain index ',icsn(3),
      &        ' in ',zn(1:lnblnk(zn)),'.'
         ENDIF
-      elseif(icfoc.eq.5)then
+      elseif(icfoc.eq.5)then   ! Optical Sensor.
 
-C Optical Sensor.
-        IF(icsn(1).GT.0)THEN   ! sense room dbT.
+        IF(icsn(1).GT.0)THEN   ! Sense specific room dbT.
+          menuc='m'
           write(zn,'(a)') zname(icsn(2))
           if(icsn(3).gt.0)then
             write(sn,'(a)') SNAME(icsn(1),icsn(2))
@@ -4828,44 +4872,51 @@ C Optical Sensor.
      &        ' in ',zn(1:lnblnk(zn)),'.'
           ENDIF
 
+        ELSEIF(icsn(1).EQ.0)THEN
+          SSTR='Current zone not applicable'
         ELSEIF(icsn(1).EQ.-2)THEN
-          if(icsn(2).gt.0)then
-            write(zn,'(a)') zname(icsn(2))
-            WRITE(SSTR,'(a,i3,3a)')'mixed convective',icsn(3),
-     &        '% /radiant flux in ',zn(1:lnblnk(zn)),'.'
-          else
-            WRITE(SSTR,'(a,i3,a)')'mixed convective',icsn(3),
-     &        '% /radiant flux in the current zone.'
-          endif
+          SSTR='Mixed not applicable'
         ELSEIF(icsn(1).EQ.-3)THEN
           IF(icsn(2).EQ.0)THEN
+            menuc='c'
             SSTR='senses ambient dry bulb temperature.'
             SSTRB='senses ambient db T.'
           ELSEIF(icsn(2).EQ.1)THEN
-            SSTR='senses the sol-air temperature.'
-            SSTRB='senses the sol-air T.'
+            SSTR='Not applic sol-air temperature.'
+            SSTRB='NA senses the sol-air T.'
           ELSEIF(icsn(2).EQ.2)THEN
+            menuc='e'
             SSTR='senses wind speed.'
             SSTRB='senses wind speed.'
           ELSEIF(icsn(2).EQ.3)THEN
+            menuc='f'
             SSTR='senses wind direction.'
             SSTRB='senses wind direction.'
           ELSEIF(icsn(2).EQ.4)THEN
+            menuc='g'
             SSTR='senses dif hor rad.'
             SSTRB='senses dif hor rad.'
           ELSEIF(icsn(2).EQ.5)THEN
+            menuc='h'
             SSTR='senses dir nor rad.'
             SSTRB='senses dir nor rad.'
-          ELSEIF(icsn(2).EQ.6)THEN
-            SSTR='senses ext rel hum.'
-            SSTRB='senses ext RH.'
           ENDIF
         ELSEIF(icsn(1).EQ.-7)THEN
+          if(icsn(2).gt.0)then
+            write(zn,'(a)') zname(icsn(2))
+            if(icsn(3).gt.0)then
+              write(sn,'(a)') SNAME(icsn(2),icsn(3))
+            else
+              sn='-'
+            endif
+          endif
+          menuc='i'
           WRITE(SSTR,'(5a)')  'senses radiation at ',sn(1:lnblnk(sn)),
      &      ' in ',zn(1:lnblnk(zn)),'.'
           WRITE(SSTRB,'(5a)')  'senses rad at ',sn(1:lnblnk(sn)),
      &      ' in ',zn(1:lnblnk(zn)),'.'
         ELSEIF(icsn(1).EQ.-8)THEN
+          menuc='j'
           WRITE(SSTR,'(a,i3,a)') 'senses daylight coefficient at loc',
      &      icsn(3),'.'
           WRITE(SSTRB,'(a,i3,a)')'senses day coef @ ',
@@ -4961,6 +5012,199 @@ C          SSTRB=' MLC substitution.'
           SSTRB='senses UNKNOWN condition.'
         ENDIF
               
+      endif
+
+      return
+      end
+
+C ******************** decodeactuator
+C Takes 4 indices that define an ideal control actuator
+C and returns a descriptive string and relevant prj menu
+C character token for the actuator.
+      subroutine decodeactuator(icfoc,ican,SSTR,SSTRB,MENUC,ier)
+
+#include "building.h"
+#include "geometry.h"
+#include "plant.h"
+#include "net_flow.h"
+#include "net_flow_data.h"
+#include "esprdbfile.h"
+#include "material.h"
+      
+      integer lnblnk  ! function definition
+
+      CHARACTER pcname*15
+      common/pcnam/pcname(mpcom)
+      COMMON/CONTM0/NCONTM,NOCNTM,CONTMNAM(MCONTM)
+
+      integer icfoc
+
+C Building domain:
+C ican(1) if zero air point, >0 specific zone, -1 plant cmp, -2 mixed 
+C ican(2) if >0 a specific surface
+C ican(3) if ican(2)>0 and ican(3)=0 inside face
+C         if ican(2)>0 and ican(3)>0 within surface
+C ican(4) not used.
+C ican(5) not used.
+C ican(6) is first index of IBSN used if -99.
+
+C Flow domain:
+C ican(1) if -3 flow connection ican(2) connection index
+C ican(1) if -4 flow component ican(2) component index. 
+
+      dimension ican(6)
+      character sstr*96,sstrb*48,menuc*1,contmnam*12
+      character zn*12,sn*12,KEY*1
+      character disp_constr*32
+ 
+      sstr=' '
+      sstrb=' '
+      menuc='-'
+      if(icfoc.eq.0)then  ! Determine zone and surface name.
+        if(ican(1).gt.0)then
+          write(zn,'(a)') zname(ican(1))
+          if(ican(2).gt.0)then
+            write(sn,'(a)') SNAME(ican(1),ican(2))
+          else
+            sn='-'
+          endif
+          CALL EMKEY(ican(1)+3,KEY,IER) ! prj menu char is zone +3
+          if(ican(2).EQ.0)then
+            menuc=KEY
+            write(SSTR,'(3a)')'the air point in ',zn(1:lnblnk(zn)),'.'
+          elseif(ican(2).GT.0.AND.ican(3).EQ.0)then
+            menuc=KEY
+            write(SSTR,'(5a)')  'at inside face of ',sn(1:lnblnk(sn)),
+     &        ' in ',zn(1:lnblnk(zn)),'.'
+          elseif(ican(2).GT.0.AND.ican(3).GT.0)then
+            menuc=KEY
+            write(SSTR,'(5a)')  'within ',sn(1:lnblnk(sn)),
+     &        ' in ',zn(1:lnblnk(zn)),'.'
+          endif
+        elseif(ican(1).EQ.0)then
+          menuc='a'
+          SSTR='air point of the current zone'
+        elseif(ican(1).EQ.-1)then
+          menuc='-'
+          write(zn,'(a)') zname(iabs(ican(1)))
+          write(SSTR,'(a,i2,3a)')'plant component ',ican(2),' in ',
+     &      zn(1:lnblnk(zn)),'.'
+        elseif(ican(1).EQ.-2)then
+          if(ican(2).gt.0)then
+            menuc='b'
+            write(zn,'(a)') zname(ican(2))
+            write(SSTR,'(a,i3,3a)')'mixed convective',ican(3),
+     &        '% /radiant flux in ',zn(1:lnblnk(zn)),'.'
+          else
+            menuc='b'
+            write(SSTR,'(a,i3,a)')'mixed convective',ican(3),
+     &        '% /radiant flux in the current zone.'
+          endif
+        endif
+        if(ican(6).EQ.-99)then
+          menuc='-'
+          WRITE(SSTR,75)ican(1),ican(2),ican(3)
+  75      FORMAT('construction substitution to surfaces: ',3(I2,','))
+        endif
+      elseif(icfoc.eq.1)then  ! Plant actuator.
+        menuc='-'
+        SSTR='undefined actuation'
+        IF(ican(1).EQ.-1)THEN
+          WRITE(SSTR,120)ican(2),
+     &      pcname(ican(2))(1:LNBLNK(pcname(ican(2)))),ican(3)
+ 120      FORMAT('plant component ',I3,':',a,' @ node no. ',I2)
+        ENDIF
+      elseif(icfoc.eq.2)then  ! Flow actuator.
+        SSTR='undefined actuation'
+        if(ican(1).EQ.-3)then
+          menuc='a'
+          L=ican(2)
+          if(ITPCON(L).ne.0)then
+            write(SSTR,'(A,i3,1x,5A)')'flow connection: ',
+     &        L,NDNAM(NODPS(L))(1:lnblnk(NDNAM(NODPS(L)))),' - ',
+     &        NDNAM(NODNE(L))(1:lnblnk(NDNAM(NODNE(L)))),' via ',
+     &        CMNAM(ITPCON(L))(1:lnblnk(CMNAM(ITPCON(L))))
+          else
+            write(SSTR,'(A,i3,1x,4A)')'flow connection: ',
+     &        L,NDNAM(NODPS(L))(1:lnblnk(NDNAM(NODPS(L)))),' - ',
+     &        NDNAM(NODNE(L))(1:lnblnk(NDNAM(NODNE(L)))),
+     &        ' via unknown component.'
+          endif
+        elseif(ican(1).EQ.-4)then
+          menuc='b'
+          L=ican(2)
+          if(L.ne.0)then
+            WRITE(SSTR,'(a,i3,1x,a)') 'flow component: ',L,
+     &        CMNAM(L)(1:lnblnk(CMNAM(L)))
+          endif
+        endif
+      elseif(icfoc.eq.3)then  ! Global actuator.
+        menuc='-'
+        SSTR='actuation not used in global controls'
+      elseif(icfoc.eq.4)then  ! Electrical actuator.
+        menuc='-'
+        WRITE(SSTR,'(a,i3)') 'is active at bus ',ican(2)
+      elseif(icfoc.eq.5)then  ! Optical actuator.
+        SSTR='undefined actuator    '
+        if(ican(1).eq.-98)then
+          menuc='-'
+          write(sstr,'(a)')
+     &    'not required because control loop only sets time '
+        elseif(ican(1).ge.0)then
+          if(ican(2).gt.0.and.ican(3).gt.0)then
+            menuc='-'
+            write(zn,'(a)') zname(ican(2))
+            WRITE(SSTR,'(3a,i2)')  'optical properties in ',
+     &        zn(1:lnblnk(zn)),' for tmc type',ican(3)
+          endif
+        endif
+        IF(ican(1).eq.-5)THEN
+          if(ican(2).gt.0)then
+            menuc='-'
+            icons=ican(2)
+            write(disp_constr,'(a)') mlcname(icons)
+            WRITE(SSTR,'(3a)')  'optical properties at ',
+     &        'construction ', disp_constr(1:lnblnk(disp_constr))
+          else
+            menuc='-'
+            WRITE(SSTR,'(2a)')  'Optics actuator has not been assigned',
+     &        ' to a construction.' 
+          endif
+        ENDIF
+      elseif(icfoc.eq.6)then  ! Complex fenestration actuator.
+        IF(ican(2).GT.0)THEN
+          write(zn,'(a)') zname(ican(2))
+          if(ican(3).gt.0)then
+            write(sn,'(i3)')ican(3)
+          else
+            sn='-'
+          endif
+          IF(ican(1).EQ.0)THEN
+            menuc='-'
+            WRITE(SSTR,'(5a)')'Shading ON/OFF in CFC type',
+     &       sn(1:lnblnk(sn)),' in ',zn(1:lnblnk(zn)),'.'
+          ELSEIF(ican(1).EQ.1)THEN
+            menuc='-'
+            WRITE(SSTR,'(5a)')'Slat angle in CFC type',
+     &       sn(1:lnblnk(sn)),' in ',zn(1:lnblnk(zn)),'.'
+          ELSEIF(ican(1).EQ.2)THEN
+            menuc='-'
+            WRITE(SSTR,'(5a)')'Shade ON/OFF and slat angle(schedule)',
+     &       sn(1:lnblnk(sn)),' in ',zn(1:lnblnk(zn)),'.'     
+          ELSEIF(ican(1).EQ.3)THEN
+            menuc='-'
+            WRITE(SSTR,'(5a)')'Shade ON/OFF and three slat angles ',
+     &       sn(1:lnblnk(sn)),' in ',zn(1:lnblnk(zn)),'.'     
+          ELSEIF(ican(1).EQ.4)THEN
+            menuc='-'
+            WRITE(SSTR,'(5a)')'Cutoff shade control ',
+     &       sn(1:lnblnk(sn)),' in ',zn(1:lnblnk(zn)),'.'     
+          ELSEIF(ican(1).EQ.9)THEN
+            menuc='-'
+            WRITE(SSTR,'(5a)')'Shade ON/OFF and slat angle via tdf ',
+     &       sn(1:lnblnk(sn)),' in ',zn(1:lnblnk(zn)),'.'     
+          endif
+        endif
       endif
 
       return

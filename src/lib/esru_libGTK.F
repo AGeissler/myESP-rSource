@@ -2705,9 +2705,9 @@ C Number of actual items displayed.
       if(ISTRW.lt.17)VERT(nopt+1)=  '  ______________'
       if(idindex.gt.0)then
         CALL EMKEY(idindex,KEY,IER)
-        write(VERT(nopt+2),'(3a)') '* default is option `',KEY,'`'
+        write(VERT(nopt+2),'(3a)') '* default (option `',KEY,'`)'
         if(ISTRW.lt.17)write(VERT(nopt+2),'(3a)')
-     &                              '* default is option `',KEY,'`'
+     &                              '* default (option `',KEY,'`)'
       else
         VERT(nopt+2)='                        '
       endif
@@ -2917,8 +2917,8 @@ C of help supplied and then provide the prompt again.
       endif
       RETURN
       
-C If an EOF is detected when reading from IUIN, we often get infinite
-C looping, creating infinite output. Stop the program.
+C If an EOF is detected when reading from IUIN, stop the program
+C to prevent an infinite loop.
   666 write(IUOUT,*)'ASKOK: EOF detected, error in input commands.'
       call pauses(1)
       STOP
@@ -2927,10 +2927,9 @@ C looping, creating infinite output. Stop the program.
 
 
 C ******************** EASKOK ********************
-C EASKOK Generic choice facility returning logical variable
-C from a yes no prompt.
-C In the case of a graphic menu the messages will appear in a
-C dialogue box at the bottom of the graphic window.
+C Generic choice facility returning logical variable from
+C a yes/no prompt. In the case of a graphic menu, messages
+C will appear in the dialogue box.
 
       SUBROUTINE EASKOK(MSG1,MSG2,OK,NHELP)
 
@@ -2967,7 +2966,7 @@ C Querry yes or no.
         ELSEIF(ANS(1:1).EQ.'N'.OR.ANS(1:1).EQ.'n')THEN
           OK=.FALSE.
         ELSE
-          CALL USRMSG(' ','You must make a choice!','-')
+          CALL USRMSG(' ','You must make a selection!','-')
           GOTO 21
         ENDIF
       ELSEIF(MMOD.EQ.8)THEN

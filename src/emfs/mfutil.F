@@ -215,10 +215,10 @@ C VDI Warmeatlas, 1984, pp. Db1).
 C Warn user, but suppress redundant messages
           bWarn = .false.
 
-          if (TEMP.LT.fMinWaterTemp - 0.01) then
+          if (TEMP.LT.fMinWaterTemp - 1.01) then
             bWarn = .true.
             fMinWaterTemp = TEMP
-          elseif (TEMP.GT.fMaxWaterTemp + 0.01) then
+          elseif (TEMP.GT.fMaxWaterTemp + 1.01) then
             bWarn = .true.
             fMaxWaterTemp = TEMP
           endif
@@ -258,7 +258,7 @@ C Air.
 
 C Water.
       ELSEIF(IFLD.EQ.2) THEN
-        IF(TEMP.LT.0..OR.TEMP.GT.100.) THEN
+        IF(TEMP.LT.-1..OR.TEMP.GT.101.) THEN
           IF(TEMP.LT.0.0) THEN
             VTEMP=0.0
           ELSE
@@ -269,7 +269,7 @@ C Water.
           call edisp(iuout,outs)
           WRITE(outs,*) 'DYVISC: water dynamic viscosity',
      &                 ' evaluated for ',VTEMP,'C.'
-          call edisp(iuout,outs)
+C          call edisp(iuout,outs)
         ENDIF
 
 C Following expression is approximate for 0 < TEMP < 100 (from

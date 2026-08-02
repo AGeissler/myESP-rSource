@@ -13,18 +13,14 @@ C warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
 C PURPOSE. See the GNU General Public License for more
 C details.
 
-C You should have received a copy of the GNU General Public
-C License along with ESP-r. If not, write to the Free
-C Software Foundation, Inc., 59 Temple Place, Suite 330,
-C Boston, MA 02111-1307 USA.
-
-C recover.F contains the following routines concerned with reading the 
-C performance information file and acting on its contents.
+C recover.F contains the following routines concerned with creating
+C performance information files (PIF) which record user selections
+C within the res model to support subsequent '-act recover' sessions.
 C READPIF: read performance information file and gather data.
 C WRITEPIF: write (append) performance information file.
 
 C ************************ READPIF ************************
-C READPIF - read performance information file and gather data.
+C Read performance information file and gather data.
 
       SUBROUTINE READPIF(iier)
 #include "building.h"
@@ -34,13 +30,17 @@ C READPIF - read performance information file and gather data.
 
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/FILEP/IFIL
+      COMMON/OUTPCH/ICOUT
 
       COMMON/DEFLT/IDEFLT
       common/recov01/pifltog,lpifl
+      character pifltog*4,lpifl*96
       common/recov02/lname,ldisc
 
       COMMON/SIMPIK/ISIM,ISTADD,ID1,IM1,ID2,IM2,ISDS,ISDF,NTS,ISAVE
       COMMON/PERO/IOD1,IOM1,IOH1,IOD2,IOM2,IOH2,IODS,IODF,NOUT,IAV
+      COMMON/SIMPKA/NSIM
+      common/recver/izver,ipver,iever
 
       COMMON/ZONPIK/NZ,NZNO(MCOM)
       COMMON/IGETFLG/IOCUPF,ialstused,IROC
@@ -52,6 +52,15 @@ C READPIF - read performance information file and gather data.
       COMMON/LNGETLABEL/LNSLABEL(MZS),LNGLABEL(MZS),LNTABLABEL(MZS)
 
       common/cmftpar/WVEL,ACTL,CLO,iocut,iocuset
+
+      COMMON/RESLIB/RFILE,PFILE,MSTRFILE,LAFRES
+      character rfile*72,PFILE*72,MSTRFILE*72,LAFRES*72
+      COMMON/SETNAM/RSNAME(MNRS)
+      character RSNAME*40
+
+      logical libheading ! have we printed report heading (library name etc).
+      logical headingcontext ! has set or period changed so heading needs reprint
+      common/libhead/libheading,headingcontext
       
 
 C ihflag = 0 write 13h30, ihflag = 1 write 0.5625
@@ -69,10 +78,26 @@ C       by calling eddisp (as opposed to edisp).
       common/exporttg/xfile,tg,delim
       COMMON/EXPORTI/ixopen,ixunit,ixpunit
 
+C User preferences for Monthly table.
+      integer imshtr,imtcas,imtaiv,imtctl,imtsol,imunit       ! monthly topic inclusion
+      common/monthlyoptions/imshtr,imtcas,imtaiv,imtctl,imtsol,imunit
+      COMMON/SNAP/SNAPSH
+      logical SNAPSH
+      common/getmenu/menutype,igetind(65),igetflux(65)
+
+      integer ireportunit ! 0 is default, 1 is W, 2 is kW, 3 is J
+      common/repunit/ireportunit
+      logical markdown
+      common/markdownflag/markdown
+      character hcffpattern*12    ! heat, cool, or heat+cool plus detail
+      common/hlcontrol/hcffpattern(2)     
+
       character xfile*144,tg*1,delim*1,outs*124
       character outfile*72
       character TSLABEL*32,TLLABEL*64,TGLABEL*24
-      character pifltog*4,lpifl*96,OUTSTR*124,lname*24,ldisc*64,key*8
+      character OUTSTR*124,lname*24,ldisc*64,key*8
+      character prompt*124,mark*12
+      character PDESCR*64,SDESCR*44
 
       logical recal,newzn
       integer iflen  ! length of file
@@ -101,12 +126,23 @@ C Read header line.
         return
       endif
 
-C Read output format specification.
+C Read output format specification. The first tokens specify the
+C output file name and if 'markdown' also found then remember.
       CALL STRIPC(IUNIT,OUTSTR,99,ND,1,'output fmt',IER)
+      K=0
       call EGETWI(OUTSTR,K,IOFMT,0,99,'W','output format',IER)
       outfile='UNKNOWN'
       if (ND.eq.2) then
         call EGETW(OUTSTR,K,outfile,'W','output file name',IER)
+        markdown=.false.
+      elseif (ND.eq.3) then
+        call EGETW(OUTSTR,K,outfile,'W','output file name',IER)
+        call EGETW(OUTSTR,K,mark,'W','markdown',IER)
+        if(mark(1:8).eq.'markdown')then
+          markdown=.true.
+        else
+          markdown=.false.
+        endif
       endif
 
 C Open output redirect (if saving all outputs together).
@@ -142,7 +178,7 @@ C If changes detected then db is re-scanned.
 
 C Read group data.  Return from routine when end of file reached (goto 10).
       IER=0
-      CALL STRIPC(IUNIT,OUTSTR,99,ND,0,'text data',IER)
+      CALL STRIPC(IUNIT,OUTSTR,99,ND,0,'group data',IER)
       if (IER.ne.0) goto 10
       K=0
       call EGETW(OUTSTR,K,lname,'W','group name',IER)
@@ -151,7 +187,7 @@ C Read group data.  Return from routine when end of file reached (goto 10).
 C Read group output type.
       CALL STRIPC(IUNIT,OUTSTR,99,ND,1,'output style',IER)
       K=0
-      call EGETWI(OUTSTR,K,IOTYPE,0,8,'F','output type',IER)
+      call EGETWI(OUTSTR,K,IOTYPE,0,13,'F','output type',IER)
 
 C Get additional data required for output choice.
       if (IOTYPE.eq.7.or.IOTYPE.eq.8) then
@@ -159,27 +195,45 @@ C Get additional data required for output choice.
       endif
 
 C Check for keywords.
- 200  CALL STRIPC(IUNIT,OUTSTR,99,ND,1,'text data 2',IER)
+ 200  CALL STRIPC(IUNIT,OUTSTR,99,ND,1,'key words',IER)
       K=0
       call EGETW(OUTSTR,K,key,'W','key name',IER)
       if (key(1:7).eq.'*period') then
 
-C Read period information.
-C Get start day/ month.
-        CALL STRIPC(IUNIT,OUTSTR,99,ND,1,'start date',IER)
-        K=0
-        call EGETWI(OUTSTR,K,ITSD,1,31,'F','start day',IER)
-        call EGETWI(OUTSTR,K,ITSM,1,12,'F','start month',IER)
-        call EGETWI(OUTSTR,K,ITSH,0,24,'F','start hour',IER)
+C If more items on the line then recover the period information.
+        if(ND.gt.7)then
+          call EGETWI(OUTSTR,K,ITSD,1,31,'F','start day',IER)
+          call EGETWI(OUTSTR,K,ITSM,1,12,'F','start month',IER)
+          call EGETWI(OUTSTR,K,ITSH,0,24,'F','start hour',IER)
+          call EGETWI(OUTSTR,K,ITFD,1,31,'F','finish day',IER)
+          call EGETWI(OUTSTR,K,ITFM,1,12,'F','finish month',IER)
+          call EGETWI(OUTSTR,K,ITFH,0,24,'F','finish hour',IER)
+          call EGETWI(OUTSTR,K,IOTSA,1,1440,'W','output TS',IER)
+          call EGETWI(OUTSTR,K,IAFLG,0,1,'W','output aver',IER)
+        else
 
-C Get start day/ month.
-        CALL STRIPC(IUNIT,OUTSTR,99,ND,1,'finish date',IER)
-        K=0
-        call EGETWI(OUTSTR,K,ITFD,1,31,'F','finish day',IER)
-        call EGETWI(OUTSTR,K,ITFM,1,12,'F','finish month',IER)
-        call EGETWI(OUTSTR,K,ITFH,0,24,'F','finish hour',IER)
+C Read period information over several lines.
+          CALL STRIPC(IUNIT,OUTSTR,99,ND,1,'start date',IER)
+          K=0
+          call EGETWI(OUTSTR,K,ITSD,1,31,'F','start day',IER)
+          call EGETWI(OUTSTR,K,ITSM,1,12,'F','start month',IER)
+          call EGETWI(OUTSTR,K,ITSH,0,24,'F','start hour',IER)
 
-C Range check.
+          CALL STRIPC(IUNIT,OUTSTR,99,ND,1,'finish date',IER)
+          K=0
+          call EGETWI(OUTSTR,K,ITFD,1,31,'F','finish day',IER)
+          call EGETWI(OUTSTR,K,ITFM,1,12,'F','finish month',IER)
+          call EGETWI(OUTSTR,K,ITFH,0,24,'F','finish hour',IER)
+
+C Get averaging data.
+          CALL STRIPC(IUNIT,OUTSTR,99,ND,1,'averaging data',IER)
+          K=0
+          call EGETWI(OUTSTR,K,IOTSA,1,1440,'W','output TS',IER)
+          call EGETWI(OUTSTR,K,IAFLG,0,1,'W','output aver',IER)
+        endif
+
+C Range check on start and finish days.
+        recal=.FALSE.
         if (ITFM.lt.ITSM) then
           call edisp(iuout,'Start/ finish months out of order!')
         elseif (ITFM.eq.ITSM) then
@@ -191,13 +245,6 @@ C Range check.
             endif
           endif
         endif
-
-C Get averaging data.
-        CALL STRIPC(IUNIT,OUTSTR,99,ND,1,'averaging data',IER)
-        K=0
-        call EGETWI(OUTSTR,K,IOTSA,1,1440,'W','output TS',IER)
-        call EGETWI(OUTSTR,K,IAFLG,0,1,'W','output aver',IER)
-        recal=.FALSE.
 
 C Check output period validity.
         if (ITSM.lt.IM1.or.ITFM.gt.IM2) then
@@ -213,9 +260,7 @@ C Check output period validity.
           call MOOPER
           IDEFLT=0
         else
-
-C Start of output period.
-          if (ITSM.ne.IOM1) then
+          if (ITSM.ne.IOM1) then  ! Start of output period.
             IOM1=ITSM
             recal=.TRUE.
           endif
@@ -227,9 +272,7 @@ C Start of output period.
             IOH1=ITSH
             recal=.TRUE.
           endif
-
-C End of output period.
-          if (ITFM.ne.IOM2) then
+          if (ITFM.ne.IOM2) then  ! End of output period.
             IOM2=ITFM
             recal=.TRUE.
           endif
@@ -241,9 +284,7 @@ C End of output period.
             IOH2=ITFH
             recal=.TRUE.
           endif
-
-C Averaging.
-          if (IOTSA.ne.NOUT) then
+          if (IOTSA.ne.NOUT) then  ! Averaging.
             NOUT=IOTSA
             recal=.TRUE.
           endif
@@ -252,30 +293,42 @@ C Averaging.
             recal=.TRUE.
           endif
         endif
-
-C If output period has changed.
-        if (recal) then
+        if (recal) then    ! If output period has changed.
           CALL EDAY(IOD1,IOM1,IODS)
           CALL EDAY(IOD2,IOM2,IODF)
         endif
 
-C Filtering data.
+C Filtering directives.  If data follows *filters then parse, otherwise
+C read the next line.
       elseif(key(1:8).eq.'*filters') then
-        CALL STRIPC(IUNIT,OUTSTR,99,ND,1,'filtering data',IER)
-        K=0
-        call EGETWI(OUTSTR,K,IOCUPF,0,1,'F','occup filter',IER)
+        if(ND.gt.6)then
+          call EGETWI(OUTSTR,K,IOCUPF,0,1,'F','occup filter',IER)
+          call EGETWI(OUTSTR,K,IROC,-1,1,'W','ROC filter',IER)
+          call EGETWI(OUTSTR,K,ialstused,0,1,'F','anch filt',IER)
+          call EGETW(OUTSTR,K,delim,'W','delimeter',IER)
+          call EGETW(OUTSTR,K,hcffpattern(1),'W','hcfpattern',IER)
+          call EGETWI(OUTSTR,K,ireportunit,0,3,'W','units',IER)
+          call EGETWI(OUTSTR,K,IHFLAG,0,1,'W','hour flag',IER)
+          call EGETWI(OUTSTR,K,IDHFLG,0,1,'W','day flag',IER)
+          call EGETWI(OUTSTR,K,ILFLAG,0,2,'W','tabular flag',IER)
+        else
+          CALL STRIPC(IUNIT,OUTSTR,99,ND,1,'filtering data',IER)
+          K=0
+          call EGETWI(OUTSTR,K,IOCUPF,0,1,'F','occup filter',IER)
+          call EGETWI(OUTSTR,K,IROC,-1,1,'W','ROC filter',IER)
+          if(ND.gt.2)then
+            call EGETWI(OUTSTR,K,ialstused,0,1,'F','anch filt',IER)
+            if(ND.gt.3)then
+              call EGETW(OUTSTR,K,delim,'W','delimeter',IER)
+            endif
+          endif
+        endif
+
+C Based on what was read set additional attributes.
         if (IOCUPF.eq.1) then
           iocut=1
           IFILT=1
           call usrmsg('Assuming casual gain type 1=occupancy','  ','-')
-        endif
-          
-        call EGETWI(OUTSTR,K,IROC,-1,1,'W','ROC filter',IER)
-        if(ND.gt.2)then
-          call EGETWI(OUTSTR,K,ialstused,0,1,'F','anch filt',IER)
-          if(ND.gt.3)then
-            call EGETW(OUTSTR,K,delim,'W','delimeter',IER)
-          endif
         endif
 
 C Read IGETNO data.
@@ -286,29 +339,43 @@ C Labels read into temp variables then copy below.
         TSLABEL='  '
         TLLABEL='  '
         TGLABEL='  '
+
+C Set inital assumptions for monthly column data.
+        imshtr=1; imtcas=1; imtaiv=1; imtctl=1; imtsol=1; imunit=1
  100    CALL STRIPC(IUNIT,OUTSTR,99,ND,1,'text list data',IER)
         K=0
         call EGETW(OUTSTR,K,key,'W','key name',IER)
         if(key(1:5).eq.'*data') then
           NGET=NGET+1
           call EGETWI(OUTSTR,K,IGETNO(NGET,1),0,76,'F',
-     &                     'iget number',IER)
+     &      'iget number',IER)
           call EGETWI(OUTSTR,K,IGETNO(NGET,2),0,MCOM,'F',
-     &                     'zone number',IER)
+     &      'zone number',IER)
           call EGETWI(OUTSTR,K,IGETNO(NGET,3),0,MZS,'W',
-     &                     'misc data 1',IER)
+     &      'misc data 1',IER)
           call EGETWI(OUTSTR,K,IGETNO(NGET,4),-MZS,MZS,'W',
-     &                     'misc data 2',IER)
+     &      'misc data 2',IER)
           call EGETWI(OUTSTR,K,IGETNO(NGET,5),0,MNRS,'F',
-     &                     'set number',IER)
+     &      'set number',IER)
           call EGETWI(OUTSTR,K,IGETNO(NGET,6),0,0,'-',
-     &                     'line style',IER)
-          call EGETWI(OUTSTR,K,IGETNO(NGET,7),1,11,'W',
-     &                     'symbol type',IER)
+     &      'line style',IER)
+          call EGETWI(OUTSTR,K,IGETNO(NGET,7),1,15,'W',
+     &      'symbol type',IER)
           call EGETWI(OUTSTR,K,IGETNO(NGET,8),1,4,'F',
-     &                     'axis number',IER)
-          if (ND.eq.10) call EGETWI(OUTSTR,K,IGETNO(NGET,9),0,0,'-',
-     &                     'label width',IER)
+     &      'axis number',IER)
+          if (IOTYPE.eq.5.and.ND.gt.8) then        ! For stats read label width.
+            call EGETWI(OUTSTR,K,IGETNO(NGET,9),0,0,'-',
+     &      'label width',IER)
+          elseif (IOTYPE.eq.13.and.ND.gt.10) then   ! For monthly get column choices.
+            call EGETWI(OUTSTR,K,imshtr,0,0,'-','surf ht tr col',IER)
+            call EGETWI(OUTSTR,K,imtcas,0,0,'-','cas gains col',IER)
+            call EGETWI(OUTSTR,K,imtaiv,0,0,'-','imtaiv columns',IER)
+            call EGETWI(OUTSTR,K,imtctl,0,0,'-','imtctl columns',IER)
+            call EGETWI(OUTSTR,K,imtsol,0,0,'-','solar columns',IER)
+            if(ND.gt.14)then
+              call EGETWI(OUTSTR,K,imunit,0,0,'-','monthly units',IER)
+            endif
+          endif
         elseif(key(1:5).eq.'*glab') then
           call EGETRM(OUTSTR,K,TGLABEL,'W','graph label',IER)
         elseif(key(1:5).eq.'*slab') then
@@ -324,6 +391,8 @@ C Copy label names to common area.
         LNSLABEL(NGET)=lnblnk(TSLABEL)
         GLABEL(NGET)=TGLABEL
         LNGLABEL(NGET)=lnblnk(TGLABEL)
+        TABLABEL(NGET)=TGLABEL
+        LNTABLABEL(NGET)=lnblnk(TGLABEL)
         goto 100
       else
         goto 200
@@ -389,11 +458,11 @@ C Heading string.
         call edisp(ixunit,outs)
       endif
       if(ldisc(1:4).ne.'desc')then
-        write(outs,'(2a)') 'Recovering ',ldisc(1:lnblnk(ldisc))
-        call edisp(iuout,outs)
+C        write(outs,'(2a)') 'Recovering ',ldisc(1:lnblnk(ldisc))
+C        call edisp(iuout,outs)
         call edisp(ixunit,ldisc)
       else
-        call edisp(iuout,'Recovering data...')
+        continue
       endif
 
 C Now recover data for this group.
@@ -414,7 +483,7 @@ C MOWLIN Needs: GLABEL and SLABEL and graphics mode.
 C Set format flags for tabular listing to file (then reset to default).
 C ZONTAB Needs: GLABEL and SLABEL.
         IHFLAG=1
-        IDHFLG=1
+        IDHFLG=0
         call ZONTAB('p')
         IHFLAG=0
         IDHFLG=0
@@ -434,7 +503,68 @@ C MOSQHR Needs: GLABEL (SLABEL used in prompts).
         call MOSQHR('p',-1,tval)
       elseif (IOTYPE.eq.9) then
 
-C Zone energy balance. << to be included >>
+C Zone energy balance. Similar code as in stats.F
+        SNAPSH=.FALSE.  ! over period of assessment
+        IWHICH=2        ! gains and losses
+        itru = icout
+        prompt = ' '
+        if(ixopen.eq.1)then
+          itru = ixunit
+        endif
+        MENUTYPE=9
+        call GOMSETUP
+        call GOMENU
+        if(ixopen.eq.1)then
+          itru = ixunit
+          if(NGET.ge.1)then
+            write(prompt,'(a,a)') SLABEL(1)(1:LNSLABEL(1)),' >> file.'
+          else
+            write(prompt,'(a)')' Output being directed to file. ' 
+          endif
+          call usrmsg(prompt,'Scanning for range of values...','-')
+        else
+          write(prompt,'(3a)') 'Scanning for ',
+     &      SLABEL(1)(1:LNSLABEL(1)),'...'
+          itru = icout
+          call usrmsg(prompt,'  ','-')
+        endif
+
+        ISET=ISIM
+        CALL HDDATE(PDESCR)
+        CALL HDSTEP(SDESCR)
+        lsn1=MIN0(lnblnk(RFILE),42)
+        if((.NOT.libheading).and.(.NOT.headingcontext))then
+          libheading=.true.; headingcontext=.true.
+          if(NSIM.gt.1)then
+          write(outs,'(3A,I4,3A)')'Results library: ',
+     &      RFILE(1:lsn1),'; results set:',ISIM,
+     &      ' (',RSNAME(ISIM)(1:lnblnk(RSNAME(ISIM))),')'
+          else
+            write(outs,'(5A)')'Results library: ',RFILE(1:lsn1),
+     &      '; (',RSNAME(ISIM)(1:lnblnk(RSNAME(ISIM))),')'
+          endif
+          call edisp(itru,outs)
+          write(outs,'(3A)')PDESCR(1:lnblnk(PDESCR)),' ',
+     &     SDESCR(12:lnblnk(SDESCR))
+          call edisp(itru,outs)
+        endif
+
+C For each selected zone generate energy balance report.
+        DO 65 JZ=1,NZ
+          izone=NZNO(JZ)
+          if(ISAVE.EQ.4)then
+            CALL MOZCAS(IZONE,IWHICH,NIT)
+          elseif(ISAVE.eq.2.or.ISAVE.eq.3)then
+            if(izver.ge.2)then
+              CALL MOZCAS(izone,IWHICH,NIT)
+            else
+              call usrmsg(
+     &          'The results library is an older format and a full',
+     &          'zone energy balance cannot be recovered.','W')
+              CALL MOZCAS(izone,IWHICH,NIT)
+            endif
+          endif
+ 65     continue
         continue
       elseif (IOTYPE.eq.10) then
 
@@ -497,12 +627,14 @@ C current menu (moget) selections.
 
       SUBROUTINE WRITEPIF(IOTYPE)
 #include "building.h"
+#include "model.h"
       
       integer lnblnk  ! function definition
 
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/FILEP/IFIL
       common/recov01/pifltog,lpifl
+      character pifltog*4,lpifl*96
       common/recov02/lname,ldisc
 
       COMMON/PERO/IOD1,IOM1,IOH1,IOD2,IOM2,IOH2,IODS,IODF,NOUT,IAV
@@ -515,49 +647,114 @@ C current menu (moget) selections.
       integer LNSLABEL,LNGLABEL,LNTABLABEL  ! lengths for label strings
       COMMON/LNGETLABEL/LNSLABEL(MZS),LNGLABEL(MZS),LNTABLABEL(MZS)
 
+      COMMON/GRTOOL/IHFLAG,IDHFLG,ILFLAG
+      integer imshtr,imtcas,imtaiv,imtctl,imtsol,imunit       ! monthly topic inclusion
+      common/monthlyoptions/imshtr,imtcas,imtaiv,imtctl,imtsol,imunit
+
+      integer ireportunit ! 0 is default, 1 is W, 2 is kW, 3 is J
+      common/repunit/ireportunit
+      logical markdown
+      common/markdownflag/markdown
+      character hcffpattern*12    ! heat, cool, or heat+cool plus detail
+      common/hlcontrol/hcffpattern(2)     
+
       common/exporttg/xfile,tg,delim
 
       character xfile*144,tg*1,delim*1
-      character lpifl*96,pifltog*4,lname*24,ldisc*64
+      character lname*24,ldisc*64
+      character pifexport*96
 
       logical XST
 
 C Use temp file unit.
       IUNIT=IFIL+1
       XST=.false.
+
       INQUIRE(FILE=lpifl,EXIST=XST)
 
 C New file write first few lines else open in append mode.
-      if (.NOT.xst) then
+C The name of the file res will export to when the PIF
+C PIF file is used in a subsequent run is assumed to
+C be the model root name + .dat.
+      if (.NOT.XST) then
         call ERPFREE(IUNIT,ISTAT)
-        call FPOPEN(IUNIT,ISTAT,1,2,lpifl)
+        lpf=lnblnk(lpifl)
+        open(IUNIT,file=lpifl(1:lpf),status='UNKNOWN',err=2)
         write(IUNIT,'(a)') '*Performance information file'
-        write(IUNIT,'(3a)') '1 ',xfile,' # All output in same file.'
+        write(pifexport,'(2a)') cfgroot(1:lnblnk(cfgroot)),'.dat'
+        if(markdown)then
+          write(IUNIT,'(4a)') '1 ',pifexport(1:lnblnk(pifexport)),
+     &    ' markdown  # Output file in markdown format'
+        else
+          write(IUNIT,'(3a)') '1 ',pifexport(1:lnblnk(pifexport)),
+     &    ' # Output file'
+        endif
       else
+        close(IUNIT)
         lpf=lnblnk(lpifl)
         open(IUNIT,file=lpifl(1:lpf),position='APPEND',status='UNKNOWN',
      &        err=1)
       endif
 
-C Open file for appending.
+C Write current user topic selection to the PIF file.
       write(IUNIT,'(a)') '# Group name and description.'
       write(IUNIT,'(a)') 'name_here description_here'
-      if(IOTYPE.ge.7)then
-        write(IUNIT,'(i3,a)') IOTYPE,
-     &  ' # style MUST ADD query point if 7 or 8.'
+      if(IOTYPE.eq.2)then
+        write(IUNIT,'(i3,a)') IOTYPE,' # histogram'
+      elseif(IOTYPE.eq.3)then
+        write(IUNIT,'(i3,a)') IOTYPE,' # line graph'
+      elseif(IOTYPE.eq.4)then
+        write(IUNIT,'(i3,a)') IOTYPE,' # tabular listing'
+      elseif(IOTYPE.eq.5)then
+        write(IUNIT,'(i3,a)') IOTYPE,' # statistics'
+      elseif(IOTYPE.eq.7)then
+        write(IUNIT,'(i3,a)') IOTYPE,' # hours greater'
+      elseif(IOTYPE.eq.8)then
+        write(IUNIT,'(i3,a)') IOTYPE,' # hours less than'
+      elseif(IOTYPE.eq.9)then
+        write(IUNIT,'(i3,a)') IOTYPE,' # zone energy balance'
+      elseif(IOTYPE.eq.10)then
+        write(IUNIT,'(i3,a)') IOTYPE,' # energy demands'
+      elseif(IOTYPE.eq.11)then
+        write(IUNIT,'(i3,a)') IOTYPE,' # casual gains'
+      elseif(IOTYPE.eq.12)then
+        write(IUNIT,'(i3,a)') IOTYPE,' # surface energy balance'
+      elseif(IOTYPE.eq.13)then
+        write(IUNIT,'(i3,a)') IOTYPE,' # monthly reporting'
       else
         write(IUNIT,'(i3,a)') IOTYPE,' # style'
       endif
-      write(IUNIT,'(a)') '*period'
-      write(IUNIT,'(3i5,a)')IOD1,IOM1,IOH1,' # Start day, month, hour'
-      write(IUNIT,'(3i5,a)')IOD2,IOM2,IOH2,' # Finish day, month, hour'
-      write(IUNIT,'(2i5,a)') NOUT,IAV,' # Output timesteps, averaging'
-      write(IUNIT,'(a)') '*filters'
-      write(IUNIT,'(3i4,1x,2a)') IOCUPF,IROC,ialstused,delim,
-     &  ' # Occupancy, ROC, anchors, delimeter'
+      write(IUNIT,'(2a)') '# Start  day month  hour finish day',
+     &  ' month hour output-ts averaging'
+      write(IUNIT,'(a,8i6)') '*period',IOD1,IOM1,IOH1,IOD2,IOM2,
+     &  IOH2,NOUT,IAV
+      
+      write(IUNIT,'(3a)') '# directives: occupancy',
+     &  ' rate-of-change anchors delimeter ctl-patterns units hours',
+     &  ' day-demarcation tabular-labels'
+      write(IUNIT,'(a,3i6,1x,3a,4i6)') '*filters',IOCUPF,IROC,
+     &   ialstused,delim,' ',hcffpattern(1)(1:lnblnk(hcffpattern(1))),
+     &   ireportunit,IHFLAG,IDHFLG,ILFLAG
       write(IUNIT,'(a)') '*metlist'
+      if(IOTYPE.eq.5)then
+        write (IUNIT,'(2a)') '# metric zone surf/type node/layer',
+     &    ' res-set line-type symbol axis label-width'
+      elseif(IOTYPE.eq.13)then
+        write (IUNIT,'(2a)') '# metric zone surf/type node/layer',
+     &    ' res-set line-type symbol axis monthly-column-choices'
+      else
+        write (IUNIT,'(2a)') '# metric zone surf/type node/layer',
+     &    ' res-set line-type symbol axis'
+      endif
       do 10 I=1,NGET
-        write (IUNIT,'(a,8i5)') '*data ',(IGETNO(I,J),J=1,9)
+        if(IOTYPE.eq.5)then
+          write (IUNIT,'(a,9i6)') '*data ',(IGETNO(I,J),J=1,9)
+        elseif(IOTYPE.eq.13)then
+          write (IUNIT,'(a,8i6,6i6)') '*data ',(IGETNO(I,J),J=1,8),
+     &      imshtr,imtcas,imtaiv,imtctl,imtsol,imunit
+        else
+          write (IUNIT,'(a,8i6)') '*data ',(IGETNO(I,J),J=1,8)
+        endif
         write (IUNIT,'(2a)') '*slab ',SLABEL(I)(1:LNSLABEL(I))
         write (IUNIT,'(2a)') '*glab ',GLABEL(I)(1:LNGLABEL(I))
  10   continue
@@ -565,6 +762,8 @@ C Open file for appending.
       write (IUNIT,'(a)') '# --------------------------------- '
 
       return
-   1  call edisp(iuout,'Error opening recovery file, continuing.')
+   1  call edisp(iuout,'Error re-opening recovery file, continuing.')
+      return
+   2  call edisp(iuout,'Error opening recovery file, continuing.')
       return
       end

@@ -22,7 +22,6 @@ C precobs: pre-computes obstruction polygons for the current zone
 C incaiobs: for obstructions calculate eqivalent of caii and caie.
 C SUR3DLEHI: 3D method to return overall length and height of a surface.
 C ETRANSGRID: 3D method to create source grid point.
-C PICKSSUR: selects surfaces for shading & insolation analysis.
 C ASKDAY: returns 'imo' (month), 'ido' (day of month) and 'ijday' (day of year).
 C POINT1   determine if a point is within the target surface
 C POINT2   determine if a point is within a shadow polygon.
@@ -723,10 +722,10 @@ C        itothits=0  ! reset counter for nb of grid hits for surface
             goto 112  ! cannot be seen by solar vector
           elseif(fbc(its,icc).eq.'B')then
             goto 112  ! other surface is behind
-          elseif(sother(izone,loop,1)(1:7).eq.'SIMILAR')then
+          elseif(zboundarytype(izone,loop,1).eq.1)then
             goto 112  ! do not face outside
           endif
-          if(sother(izone,loop,1)(1:8).eq.'EXTERIOR')then
+          if(zboundarytype(izone,loop,1).eq.0)then
              
             EQN(1)=sureqn(izone,loop,1)
             EQN(2)=sureqn(izone,loop,2)
@@ -1312,197 +1311,6 @@ C Apply transformation first shifting the Z point by OFFSET.
       RETURN
       END
 
-C ******************** PICKSSUR ********************
-C Selects surfaces for shading & insolation analysis.
-C 'izone' is the target zone, 'np' the number of surfaces selected,
-C 'act' = 's or S' for shading, 'act' = 'i or I' for insolation,
-C 'act' = 'l or L' for view shading surfaces and 'act' = '-' for
-C no selection.  'iva' is the array of selections.
-
-      subroutine pickssur(izone,np,act,iva,ier)
-#include "building.h"
-#include "geometry.h"
-#include "help.h"
-      
-      integer ncomp,ncon
-      common/c1/ncomp,ncon
-      integer izstocn
-      common/c24/izstocn(mcom,ms)
-      integer mon,isc,iyd
-      common/contr/mon,isc(ms),iyd
-
-C iaplic(1) toggle for shading; iaplic(2) toggle for insolation:
-C                      1 is 'all_applicable' and
-C                      0 is manual selection of surfaces.
-C nsurfcalc nb of shaded surfaces, lstsfcalc() list of applicable surfaces.
-C nsurfinso nb of insolation sources, isurfinso() list of insolation sources.
-      common/ishdirec/iaplic(mcom,2),nsurfcalc(mcom),lstsfcalc(mcom,ms),
-     &       nsurfinso(mcom),isurfinso(mcom,ms)
-
-      dimension stmp(ms),iva(ms),ivals(ms)
-      character stmp*33,act*1
-
-      integer ichoice ! temporary local variable for dialogs.
-      integer iexcludediff_flag
-      common/excludediff/iexcludediff_flag
-      integer i
-      logical newgeo  ! Used to test for new/old geometry file.
-
-      helpinsub='miscel'  ! set for subroutine
-
-      ier=0
-      if(izone.gt.ncomp.or.izone.eq.0)then
-         call usrmsg(' ',' Zone number out of range! ','W')
-         ier=1
-         return
-      endif
-      newgeo=.false.  ! Assume older format geometry.
-      call eclose(gversion(izone),1.1,0.01,newgeo)
-      
-      helptopic='diffuse_shading_request'
-      call gethelptext(helpinsub,helptopic,nbhelp)
-      iexcludediff_flag=0     
-      call easkmbox(' ','Diffuse shading options:',
-     &  'Exclude diffuse shading',
-     &  'Include diffuse shading (default)',
-     &  ' ',' ',' ',' ',' ',' ',ichoice,nbhelp)
-      if(ichoice.eq.1)then
-
-C Exclude diffuse shading.
-         iexcludediff_flag=1
-      else
-         iexcludediff_flag=0      
-      endif
-
-C Generate help text for the sequence of dialogs.
- 43   helptopic='surface_selection_notes'
-      call gethelptext(helpinsub,helptopic,nbhelp)
-      if(act.eq.'s'.or.act.eq.'S')then
-         call easkmbox(' ','Shading options:',
-     &     'all applicable surfaces','select surface(s)',
-     &     'cancel',' ',' ',' ',' ',' ',iic,nbhelp)
-         if(iic.eq.1)iaplic(izone,1)=1
-         if(iic.eq.2)iaplic(izone,1)=0
-      elseif(act.eq.'i'.or.act.eq.'I')then
-         if(newgeo)then
-           if(iaplic(izone,2).eq.1)then
-             iic=1   ! user nominated in the geometry file
-           elseif(iaplic(izone,2).eq.0)then
-             iic=2   ! user nominated in the geometry file
-           endif
-         else
-           call easkmbox(' ','Insolation options:',
-     &       'all applicable sources','select source(s)',
-     &       'cancel',' ',' ',' ',' ',' ',iic,nbhelp)
-           if(iic.eq.1)iaplic(izone,2)=1
-           if(iic.eq.2)iaplic(izone,2)=0
-         endif
-      elseif(act.eq.'l'.or.act.eq.'L')then
-         iic=4
-      else
-         iic=2
-      endif
-
-C Clear return array.
-      do i=1,nzsur(izone)
-         iva(i)=0
-      enddo  ! of i
-
-C Process initial selection.
-      if(iic.eq.3)then
-         return
-      elseif(iic.eq.1)then
-         if(act.eq.'s'.or.act.eq.'S')then
-            np=0
-            do i=1,nzsur(izone)
-               icn=izstocn(izone,i)
-               if(sother(izone,i,1)(1:5).eq.'EXTER')then
-                  np=np+1
-                 iva(np)=i
-               endif
-            enddo  ! if i
-            if(np.eq.0)then
-               call usrmsg('No applicable surfaces found!',' ','W')
-               goto 43
-            endif
-            return
-         elseif(act.eq.'i'.or.act.eq.'I')then
-            np=0
-            do i=1,nzsur(izone)
-               icn=izstocn(izone,i)
-               if(sother(izone,i,1)(1:5).eq.'EXTER'.and.
-     &            sotf(izone,i)(1:4).ne.'OPAQ')then
-                  np=np+1
-                  iva(np)=i
-               endif
-            enddo  ! of i
-            if(np.eq.0)then
-               call usrmsg('No applicable surfaces found!',' ','W')
-               goto 43
-            endif
-            return
-         endif
-      elseif(iic.eq.2)then
-         inpic=nzsur(izone)
-         do i=1,inpic
-            icn=izstocn(izone,i)
-            if(act.eq.'s'.or.act.eq.'S')then
-               if(sother(izone,i,1)(1:5).eq.'EXTER')then
-                  write(stmp(I),'(5a)')sname(izone,i),'|',
-     &              sotf(izone,i)(1:4),'|',sother(izone,i,1)(1:15)
-               else
-                  write(stmp(I),'(2a)')sname(izone,i),' not applicable'
-               endif
-            elseif(act.eq.'-')then
-               write(stmp(i),'(5a)')sname(izone,i),'|',
-     &           sotf(izone,i)(1:4),'|',sother(izone,i,1)(1:15)
-            elseif(act.eq.'i'.or.act.eq.'I')then
-               if(sother(izone,i,1)(1:5).eq.'EXTER'.and.
-     &            sotf(izone,i)(1:4).ne.'OPAQ')then
-                  write(stmp(i),'(5a)')sname(izone,i),'|',
-     &              sotf(izone,i)(1:4),'|',sother(izone,i,1)(1:15)
-               else
-                  write(stmp(i),'(2a)')sname(izone,i),' not applicable'
-               endif
-            endif
-            iva(i)=0
-         enddo  ! of i
-
-         call epicks(inpic,ivals,' ','Surface(s) to include',
-     &     33,nzsur(izone),stmp,'Surface(s) to include?',ier,nbhelp)
-         if(inpic.eq.0)then
-            return
-         else
-            np=inpic
-            do i=1,np
-               iva(i)=ivals(i)
-            enddo  ! of i
-         endif
-
-      elseif(iic.eq.4)then
-         inpic=nzsur(izone)
-         do i=1,inpic
-            icn=izstocn(izone,i)
-            if(isc(i).eq.1)then
-               write(stmp(i),'(5a)')sname(izone,i),'|',
-     &           sotf(izone,i)(1:4),'|',sother(izone,i,1)(1:15)
-            else
-               write(stmp(i),'(2a)')sname(izone,i),' not assessed'
-            endif
-            iva(i)=0
-         enddo  ! of i
-         inpic=1
-         call epicks(inpic,ivals,' ','Surface to View',
-     &     33,nzsur(izone),stmp,'Surface(s) to view?',ier,nbhelp)
-         if(inpic.eq.0)then
-            return
-         else
-            np=inpic
-            iva(1)=ivals(1)
-         endif
-      endif
-      return
-      end
 
 C ******************** ASKDAY ********************
 C Returns 'imo' (month), 'ido' (day of month) and 'ijday' (day of year).

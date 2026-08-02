@@ -507,7 +507,7 @@ C Axis 4 only active or not.
 C Could be KW for next units depends on scaling.
         ALABEL(2)='Load'
         BLABEL(2)='(W)'
-        if (kwatts) BLABEL(2)='(KW)'
+        if (kwatts) BLABEL(2)='(kW)'
         ALABEL(3)='Intensity'
         BLABEL(3)='(W/m^2)'
         ALABEL(4)='Misc.'
@@ -519,7 +519,7 @@ C IROC, if rate of change of variable alter the axis label.
         BLABEL(1)='(C/hr)'
         ALABEL(2)='Load'
         BLABEL(2)='(W/hr)'
-        if (kwatts) BLABEL(2)='(KW/hr)'
+        if (kwatts) BLABEL(2)='(kW/hr)'
         ALABEL(3)='Intensity'
         BLABEL(3)='(W/m^2/h)'
         ALABEL(4)='Misc.'

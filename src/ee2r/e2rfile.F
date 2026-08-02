@@ -38,13 +38,24 @@ C Default views formation.
       character OUTSTR*148,WORD*20,rviewf*72,outs*148
       character LOUTSTR*248
       character tfile*72
+      logical XST
 
       IER=0
 
 C Attempt to read in rview file, note it is assumed to be one line.
-C View values read into the radv common block.
-      write (tfile,'(2a)') runpath(1:lnrp),rviewf(1:lnblnk(rviewf))
+C View values read into the radv common block. Check if user
+C included the runpath in the name they submitted.
+      if(rviewf(1:6).eq.runpath(1:6))then
+        write (tfile,'(a)') rviewf(1:lnblnk(rviewf))
+      else
+        write (tfile,'(2a)') runpath(1:lnrp),rviewf(1:lnblnk(rviewf))
+      endif
       CALL ERPFREE(ITA2,ISTAT)
+      INQUIRE(FILE=tfile,EXIST=XST)
+      if (.not.XST) then
+        call usrmsg('Radiance view file not found.',tfile,'W')
+        ier=1
+      endif
       call FPOPEN(ITA2,ISTAT,1,0,tfile)
       if (ISTAT.LT.0) then
         call usrmsg(' Problem detected while opening...',rviewf,'W')
@@ -56,7 +67,11 @@ C View values read into the radv common block.
       IF(IER.eq.2)ier=0
       K=0
       CALL EGETW(LOUTSTR,K,WORD,'W','rview',IFLAG)
-      IF(IFLAG.ne.0)goto 43
+C      if(IFLAG.ne.0)then
+C        call usrmsg(' Problem detected in view file opening line.',
+C     &    tfile,'W')
+C        goto 43
+C      endif
 
 C Older external view files start with rview and newer files start
 C with rvu.
@@ -273,10 +288,10 @@ C Confirm.
 
 C ********************* RRIF *********************
 C Read Radiance RIF file.
-C rscedes(xx) = Scene descriptor - order important.
+C rscedes()  = Scene descriptor - order important.
 C rscedes(1) = Scene descriptor for sky.
 C rscedes(2) = Scene descriptor for glazings.
-C rscedes(xx) = Scene descriptor for everything else.
+C rscedes(xx)= Scene descriptor for everything else.
 C rzoncmd = ZONE command string e.g.  ZONE= Interior 4 10 1 7 0 2.3
 C rupaxis  = Up axis: single character 'Z'   Default is Z
 
@@ -354,6 +369,7 @@ C Attempt to read in rif file.
 
 C Test if e2r information structure can be recovered.
       if (RVB.ne.'s') then
+        call edisp(iuout,' ')
         write (outs,'(a,a)') 'Scanning rif file: ',file(1:lnblnk(file))
         call edisp(iuout,outs)
       endif
@@ -397,9 +413,9 @@ C `rad` related contents.
       elseif(word(1:8).eq.'QUALITY=')then
         CALL EGETW(OUTSTR,K,imgqua,'-','imgqua',IFLAG)
       elseif(word(1:11).eq.'RESOLUTION=')then
-        CALL EGETWI(OUTSTR,K,ipicx,50,1024,'W','X res',IER)
+        CALL EGETWI(OUTSTR,K,ipicx,50,1400,'W','X res',IER)
       elseif(word(1:9).eq.'INDIRECT=')then
-        CALL EGETWI(OUTSTR,K,indrcb,0,2,'W','INDIRECT bnc',IER)
+        CALL EGETWI(OUTSTR,K,indrcb,0,3,'W','INDIRECT bnc',IER)
       elseif(word(1:7).eq.'DETAIL=')then
         CALL EGETW(OUTSTR,K,detlvl,'-','DETAIL level',IFLAG)
       elseif(word(1:10).eq.'PENUMBRAS=')then
@@ -445,6 +461,9 @@ C the ending characters of the file.
               endif
             endif
           else
+
+C Read the initial line of the file and match with a known
+C pattern for each type of Radiance file/topic.
             call figscen(ITA3,tsc,ier)
             if (ier.gt.1) IERR=1
           endif
@@ -483,11 +502,20 @@ C IGL>0 blind control. act='-' standard ='w' wavefront variant.
       SUBROUTINE MKRIF(ITA2,file,IFC,IGL,act,IER)
 #include "building.h"
 #include "e2r_common.h"
+#include "help.h"
 
       integer lnblnk  ! function definition
       character file*72,tfile*72
       character act*1
-      logical XST
+
+      logical both_esp_wave      ! If true manage pair of scenes.
+      logical focus_espg         ! If true editing in context of ESP-r geometry
+      integer ipairedscene       ! Index of paired scene.
+      COMMON/ESPWAVE/both_esp_wave,focus_espg,ipairedscene(16)
+
+      logical XST,useflg
+
+      helpinsub='e2rfile'  ! set for subroutine
 
 C Open rif file.
       IER=0
@@ -506,7 +534,9 @@ C This root and folder are scanned when read in.
       WRITE(ITA2,'(a,3i3)')'#e2r_gen_view ',intext,ifocz
       WRITE(ITA2,'(a,i3)') '#e2r_glaz_type ',iglzty
       if(act(1:1).eq.'w'.or.act(1:1).eq.'W')then
-        WRITE(ITA2,'(a)')'# configured to use wavefront files'
+        WRITE(ITA2,'(a)')'# geometry source wavefront'
+      else
+        WRITE(ITA2,'(a)')'# geometry source esp-r'
       endif
 
 C Update the view descriptors.
@@ -534,46 +564,124 @@ C Sky file.
         write(ITA2,'(a,a)')'scene= ',rskyfil(1:lnblnk(rskyfil))
       endif
 
-C Glazing file.
+C Glazing file. Check if glazing were excluded from wavefront file.
+C Generally glazing properties are defined in the material file in
+C the case of Wavefront files.
+      useflg = .true.   ! Default is to include -glz.rad file.
+      if(act(1:1).eq.'w'.or.act(1:1).eq.'W')then
+        if(SCENEWGLZ(ISCENE)(1:7).eq.'UNKNOWN')then
+          helptopic='image_quality_options'
+          call gethelptext(helpinsub,helptopic,nbhelp)
+          CALL EASKMBOX('Glazing in wavefront: ',' ','omitted',
+     &      'included',' ',' ',' ',' ',' ',' ',IW,nbhelp)
+          if(IW.eq.1)then
+            useflg = .true.  ! So make use of ESP-r geo glazing.
+            SCENEWGLZ(ISCENE)='omitted'
+          elseif(IW.eq.2)then
+            useflg = .false.
+            SCENEWGLZ(ISCENE)='included'
+          endif
+          if(both_esp_wave.and.focus_espg)then
+            SCENEWGLZ(ipairedscene(ISCENE))=SCENEWGLZ(ISCENE)
+          endif
+          ICHK=3             ! Update the rcf file.
+          call RADCFGOUT(ICHK)
+        else
+          if(SCENEWGLZ(ISCENE)(1:7).eq.'omitted')then
+            useflg = .true.  ! Make use of ESP-r geo glazing.
+          else
+            useflg = .false. ! Make use of wavefront glazing.
+          endif
+          if(both_esp_wave.and.focus_espg)then
+            SCENEWGLZ(ipairedscene(ISCENE))=SCENEWGLZ(ISCENE)
+          endif
+          ICHK=3             ! Update the rcf file.
+          call RADCFGOUT(ICHK)
+        endif
+      endif
+      if(useflg)then
+
 C First check if alternative glazing specified (in case of blind
 C shutter control).
-      if (IGL.gt.0) then
-        write (tfile,'(2a)') runpath(1:lnrp),aglzfil(1:lnblnk(aglzfil))
-        INQUIRE(FILE=tfile,EXIST=XST)
-        if (.not.XST) then
-          rscedes(2)='  '
-          write(ITA2,'(a)')'scene= '
-        else
-          if (iglzty.eq.1) then
-            write(rscedes(2),'(a)') aglzfil(1:lnblnk(aglzfil))
-            write(ITA2,'(a,a)')'scene= ',aglzfil(1:lnblnk(aglzfil))
+        if (IGL.gt.0) then
+          write (tfile,'(2a)') runpath(1:lnrp),
+     &      aglzfil(1:lnblnk(aglzfil))
+          INQUIRE(FILE=tfile,EXIST=XST)
+          if (.not.XST) then
+            rscedes(2)='  '
+            write(ITA2,'(a)')'scene= '
           else
-            write(rscedes(2),'(a)') aglzfil(1:lnblnk(aglzfil))
-            write(ITA2,'(a,a)')'illum= ',aglzfil(1:lnblnk(aglzfil))
+            if (iglzty.eq.1) then
+              write(rscedes(2),'(a)') aglzfil(1:lnblnk(aglzfil))
+              write(ITA2,'(a,a)')'scene= ',aglzfil(1:lnblnk(aglzfil))
+            else
+              write(rscedes(2),'(a)') aglzfil(1:lnblnk(aglzfil))
+              write(ITA2,'(a,a)')'illum= ',aglzfil(1:lnblnk(aglzfil))
+            endif
           endif
-        endif
-      else
-        write (tfile,'(2a)') runpath(1:lnrp),glzfil(1:lnblnk(glzfil))
-        INQUIRE(FILE=tfile,EXIST=XST)
-        if (.not.XST) then
-          rscedes(2)='  '
-          write(ITA2,'(a)')'scene= '
         else
-          if (iglzty.eq.1) then
-            write(rscedes(2),'(a)') glzfil(1:lnblnk(glzfil))
-            write(ITA2,'(a,a)')'scene= ',glzfil(1:lnblnk(glzfil))
+
+C Wavefront file omitted glass polygons use the polygons from ESP-r.
+          if(act(1:1).eq.'w'.or.act(1:1).eq.'W')then
+            if (SCENEPURP(ISCENE)(1:8).eq.'External')then
+              write(rscedes(2),'(a)') 'obj_ex-glz.rad'
+              write(ITA2,'(a,a)')'scene= ','obj_ex-glz.rad'
+            elseif(SCENEPURP(ISCENE)(1:8).eq.'Internal')then
+              write(rscedes(2),'(a)') 'obj_in-glz.rad'
+              write(ITA2,'(a,a)')'scene= ','obj_in-glz.rad'
+            elseif(SCENEPURP(ISCENE)(1:5).eq.'Glare')then
+              write(rscedes(2),'(a)') 'obj_gl-glz.rad'
+              write(ITA2,'(a,a)')'scene= ','obj_gl-glz.rad'
+            elseif (SCENEPURP(ISCENE)(1:8).eq.'Day_fact') then
+              write(rscedes(2),'(a)') 'obj_df-glz.rad'
+              write(ITA2,'(a,a)')'scene= ','obj_df-glz.rad'
+            else
+              write(rscedes(2),'(a)') 'obj-glz.rad'
+              write(ITA2,'(a,a)')'scene= ','obj-glz.rad'
+            endif
+            indxscn = indxscn + 1
           else
-            write(rscedes(2),'(a)') glzfil(1:lnblnk(glzfil))
-            write(ITA2,'(a,a)')'illum= ',glzfil(1:lnblnk(glzfil))
+
+            write (tfile,'(2a)') runpath(1:lnrp),
+     &        glzfil(1:lnblnk(glzfil))
+            INQUIRE(FILE=tfile,EXIST=XST)
+            if (.not.XST) then
+              rscedes(2)='  '
+              write(ITA2,'(a)')'scene= '
+            else
+              if (iglzty.eq.1) then
+                write(rscedes(2),'(a)') glzfil(1:lnblnk(glzfil))
+                write(ITA2,'(a,a)')'scene= ',glzfil(1:lnblnk(glzfil))
+              else
+                write(rscedes(2),'(a)') glzfil(1:lnblnk(glzfil))
+                write(ITA2,'(a,a)')'illum= ',glzfil(1:lnblnk(glzfil))
+              endif
+            endif
           endif
         endif
       endif
 
 C Remaining scene files - only if found is anything written to the rif file(s).
-C Materials file. If wavefront vairant scene is obj.mat.
+C Materials files for ESP-r and possibly Wavefront variants.
       if(act(1:1).eq.'w'.or.act(1:1).eq.'W')then
-        write(ITA2,'(a,a)')'scene= ','obj.mat'
-        indxscn = indxscn + 1
+        write(6,*) 'e2rril 649 wmatfil is ',wmatfil(1:lnblnk(wmatfil))
+        if (SCENEPURP(ISCENE)(1:8).eq.'External')then
+          write(ITA2,'(a,a)')'scene= ','obj_ex.mat'
+        elseif(SCENEPURP(ISCENE)(1:8).eq.'Internal')then
+          write(ITA2,'(a,a)')'scene= ','obj_in.mat'
+        elseif(SCENEPURP(ISCENE)(1:5).eq.'Glare')then
+          write(ITA2,'(a,a)')'scene= ','obj_gl.mat'
+        elseif (SCENEPURP(ISCENE)(1:8).eq.'Day_fact') then
+          write(ITA2,'(a,a)')'scene= ','obj_df.mat'
+        else
+          write(ITA2,'(a,a)')'scene= ','obj.mat'
+        endif
+        write (tfile,'(2a)') runpath(1:lnrp),wmatfil(1:lnblnk(wmatfil))
+        INQUIRE(FILE=tfile,EXIST=XST)
+        if (XST) then
+          indxscn = indxscn + 1
+          write(rscedes(indxscn),'(a)') wmatfil(1:lnblnk(wmatfil))
+        endif
       else
         write (tfile,'(2a)') runpath(1:lnrp),matfil(1:lnblnk(matfil))
         INQUIRE(FILE=tfile,EXIST=XST)
@@ -587,13 +695,23 @@ C Materials file. If wavefront vairant scene is obj.mat.
 C Shell command for modish.pl.
       call system("perl /opt/esp-r/bin/modish/perlfix.pl")
 
-C If creating wavefront variant the scene is obj.rad
+C If creating wavefront variant the scene is obj??.rad
       if(act(1:1).eq.'w'.or.act(1:1).eq.'W')then
-        write(ITA2,'(a,a)')'scene= ','obj.rad'
+        if (SCENEPURP(ISCENE)(1:8).eq.'External')then
+          write(ITA2,'(a,a)')'scene= ','obj_ex.rad'
+        elseif(SCENEPURP(ISCENE)(1:8).eq.'Internal')then
+          write(ITA2,'(a,a)')'scene= ','obj_in.rad'
+        elseif(SCENEPURP(ISCENE)(1:5).eq.'Glare')then
+          write(ITA2,'(a,a)')'scene= ','obj_gl.rad'
+        elseif (SCENEPURP(ISCENE)(1:8).eq.'Day_fact') then
+          write(ITA2,'(a,a)')'scene= ','obj_df.rad'
+        else
+          write(ITA2,'(a,a)')'scene= ','obj.rad'
+        endif
         indxscn = indxscn + 1
       else
 
-C Outside description file.
+C Outside ESP-r or Wavefront description file.
         write (tfile,'(2a)') runpath(1:lnrp),rofil(1:lnblnk(rofil))
         INQUIRE(FILE=tfile,EXIST=XST)
         if (XST) then
@@ -602,7 +720,7 @@ C Outside description file.
           write(ITA2,'(a,a)')'scene= ',rofil(1:lnblnk(rofil))
         endif
 
-C Inside description file.
+C Inside ESP-r description file.
         write (tfile,'(2a)') runpath(1:lnrp),rzfil(1:lnblnk(rzfil))
         INQUIRE(FILE=tfile,EXIST=XST)
         if (XST) then
@@ -671,7 +789,17 @@ C Ambient file.
 C Rendering options file.
       if(optnfil(1:7).ne.'UNKNOWN')then
         if(act(1:1).eq.'w'.or.act(1:1).eq.'W')then
-          write(ITA2,'(a,a)')'OPTFILE= ','obj.opt'
+          if (SCENEPURP(ISCENE)(1:8).eq.'External')then
+            write(ITA2,'(a,a)')'OPTFILE= ','obj_ex.opt'
+          elseif(SCENEPURP(ISCENE)(1:8).eq.'Internal')then
+            write(ITA2,'(a,a)')'OPTFILE= ','obj_in.opt'
+          elseif(SCENEPURP(ISCENE)(1:5).eq.'Glare')then
+            write(ITA2,'(a,a)')'OPTFILE= ','obj_gl.opt'
+          elseif(SCENEPURP(ISCENE)(1:8).eq.'Day_fact')then
+            write(ITA2,'(a,a)')'OPTFILE= ','obj_df.opt'
+          else
+            write(ITA2,'(a,a)')'OPTFILE= ','obj.opt'
+          endif
         else
           write(ITA2,'(a,a)')'OPTFILE= ',optnfil(1:lnblnk(optnfil))
         endif
@@ -683,7 +811,17 @@ C Octree.
           write(ITA2,'(a,a,a)')'OCTREE= ',octfil(1:lnblnk(octfil)),'_a'
         else
           if(act(1:1).eq.'w'.or.act(1:1).eq.'W')then
-            write(ITA2,'(a,a)')'OCTREE= ','obj.oct'
+            if (SCENEPURP(ISCENE)(1:8).eq.'External')then
+              write(ITA2,'(a,a)')'OCTREE= ','obj_ex.oct'
+            elseif(SCENEPURP(ISCENE)(1:8).eq.'Internal')then
+              write(ITA2,'(a,a)')'OCTREE= ','obj_in.oct'
+            elseif(SCENEPURP(ISCENE)(1:5).eq.'Glare')then
+              write(ITA2,'(a,a)')'OCTREE= ','obj_gl.oct'
+            elseif(SCENEPURP(ISCENE)(1:8).eq.'Day_fact')then
+              write(ITA2,'(a,a)')'OCTREE= ','obj_df.oct'
+            else
+              write(ITA2,'(a,a)')'OCTREE= ','obj.oct'
+            endif
           else
             write(ITA2,'(a,a)')'OCTREE= ',octfil(1:lnblnk(octfil))
           endif

@@ -10,14 +10,14 @@ C Maximum number of network connections and connection intermediate points
 C Maximum number of attribute sets and data files of an icon.
       INTEGER, PARAMETER :: MIATRC=10,MIATRB=40
 
-C Maximum and minimum zoom factor
-      REAL, PARAMETER :: VIEWMZ=8.0,VIEWMN=0.4
+C Maximum and minimum zoom factor.
+      REAL, PARAMETER :: VIEWMZ=8.0,VIEWMN=0.1
 
 C Maximum number of layers
       INTEGER, PARAMETER :: MLYRS=10
 
 C Grid maximum domain X-length, Y-length, Z-length (m)
-      INTEGER, PARAMETER :: MGRXL=30,MGRYL=30,MGRZL=30
+      INTEGER, PARAMETER :: MGRXL=50,MGRYL=50,MGRZL=50
 
 C Grid initial (scale 1.0) display X-view, Y-view, Z-view extents (m)
       INTEGER, PARAMETER :: MGRXE=10,MGRYE=10,MGRZE=10

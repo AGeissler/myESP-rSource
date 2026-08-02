@@ -109,12 +109,22 @@ C plotted over the whole period or one timestep at a time.
           if(IW.eq.2)act='a'
           if(IW.eq.3) goto 3
 
+C Ask about line thickness if animation.
+          if(IW.eq.2)then
+            CALL EASKMBOX('Line width during animation:',' ',
+     &        'single','double','tripple',
+     &        'continue',' ',' ',' ',' ',ILW,nbhelp)
+            if(ILW.eq.4) goto 3
+          else
+            ILW=1
+          endif
+
 C Ask about speed
           IWS=2
           CALL EASKMBOX('Plotting speed:',' ',
      &      'slower (200ms/step)','normal (100ms/step)',
      &      'fast (50ms/step)','25ms/step',
-     &      ' ',' ',' ',' ',IWS,nbhelp)
+     &      '15ms/step ',' ',' ',' ',IWS,nbhelp)
 
 C Get element thicknesses for this construction.
           CALL MOTHKE(ICOMP,ISUR)
@@ -126,7 +136,7 @@ C Compute scale and draw axes.
           CALL MOFAXS(ICOMP,ISUR)
 
 C Draw profiles.
-          CALL MOFDRW(ICOMP,ISUR,act,IWS)
+          CALL MOFDRW(ICOMP,ISUR,act,IWS,ILW)
         else
           goto 5
         endif
@@ -910,14 +920,7 @@ C If output to file alter the edisp unit number.
       N=24*NTS
       ZN=zname(ICOMP)
 
-C Read (silently) in the zone geometry data.
       IUNITF=IFIL+1
-      call georead(IUNITF,LGEOM(ICOMP),ICOMP,0,IUOUT,IER)
-      IF(IER.NE.0)THEN
-        write(outs,'(A,A72)')' Could not find ',LGEOM(ICOMP)
-        CALL USRMSG(' ',outs,'W')
-        RETURN
-      ENDIF
 
 C If there is a mlc db scan it for properties of the surface.
       CALL GZPDBE(ICOMP,IER)

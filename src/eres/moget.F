@@ -432,6 +432,9 @@ C above.
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
       common/recov01/pifltog,lpifl
+      character pifltog*4,lpifl*96
+      common/recov03/recovery_active
+      logical recovery_active
       COMMON/DNORGH/IRTYPE
 
       common/recver/izver,ipver,iever
@@ -484,6 +487,8 @@ C Comfort parameters and hash table.
 C Remember if we are dealing with surface information (longer names in reporting).
       logical SLISTR
       common/focussurf/SLISTR
+      integer imshtr,imtcas,imtaiv,imtctl,imtsol,imunit       ! monthly topic inclusion
+      common/monthlyoptions/imshtr,imtcas,imtaiv,imtctl,imtsol,imunit
 
       CHARACTER ITEM(36)*24, MTITLE*22, values*20
       CHARACTER ITEMS(19)*23
@@ -493,7 +498,7 @@ C Remember if we are dealing with surface information (longer names in reporting
       character xfile*144,tg*1,delim*1
       character SUFFIX*8
       character ll1*12,ll2*12,ll3*12
-      CHARACTER outs*124,pifltog*4,lpifl*96,hold*24
+      CHARACTER outs*124,hold*24
       CHARACTER ZSDES*28,ZSDESC*20,ZSDESS*16
       character graftitle*64,grlbl*24,t64*64,t24*24
 
@@ -623,16 +628,24 @@ C IGET = 62 and MENUTYPE 12: Surface energy balance flux paths.
       elseif (MENUTYPE.eq.13) then
 
 C IGET = 64 Monthly gains & losses. Use IGETNO(NGET,4) = 1 as 100Wh & 2 as kWh.
-        helptopic='res_display_100wh'
-        call gethelptext(helpinsub,helptopic,nbhelp)
-        CALL EASKMBOX(' ','When displaying monthly values round:',
-     &    'to nearest 100Wh','to nearest kWh',
-     &    ' ',' ',' ',' ',' ',' ',IR,nbhelp)
+        if(recovery_active)then
+          continue
+        else
+          helptopic='res_display_100wh'
+          call gethelptext(helpinsub,helptopic,nbhelp)
+          CALL EASKMBOX(' ','When displaying monthly values round:',
+     &      'to nearest 100Wh','to nearest kWh',
+     &      ' ',' ',' ',' ',' ',' ',IR,nbhelp)
+        endif
         MTITLE='Monthly gains/losses'
         MNGET=MZS-1
         NGET=1
         IGETNO(NGET,1)=64
-        IGETNO(NGET,4)=IR
+        if(recovery_active)then
+          IGETNO(NGET,4)=imunit  ! Take from PIF file.
+        else
+          IGETNO(NGET,4)=IR      ! User user response
+        endif
         IGETNO(NGET,6)=-3; IGETNO(NGET,7)=6
         IGETNO(NGET,8)=4;  IGETNO(NGET,9)=12
         SLABEL(NGET)='Monthly zonal gains/losses'; LNSLABEL(NGET)=26
@@ -677,10 +690,9 @@ C IGETNO(NGET,4)=1 denote verbose and 0 to be summary.
         MTITLE='  '
       endif
 
-C If energy demand or energy balance etc, save commands if recording and
-C skip past menu to code that copies data into IGETNO array for each zone.
+C If energy demand or energy balance etc, skip past menu to code that
+C copies data into IGETNO array for each zone.
       if (MENUTYPE.ge.9.and.MENUTYPE.le.14) then
-        if(pifltog(1:3).eq.'ON ')call WRITEPIF(MENUTYPE)
         goto 99
       endif
 
@@ -3172,7 +3184,7 @@ C Aggregate lighting (r+c) for all currently selected zones.
             SUFFIX=' RadCasG'
             if(IROC.eq.0)then
               SLABEL(NGET)='Total casual gain radiant (W)'
-              LNSLABEL(NGET)=28
+              LNSLABEL(NGET)=29
             elseif(IROC.eq.1)then
               SLABEL(NGET)='Tot casual gn radiant chg (W/h)'
               LNSLABEL(NGET)=31
@@ -4331,8 +4343,11 @@ C Check for duplicate information.
  900    continue
       endif
 
-C If energy demand or energy balance, return.
-      if (MENUTYPE.ge.9.and.MENUTYPE.le.14) return
+C If energy demand or energy balance, write PIF and return.
+      if (MENUTYPE.ge.9.and.MENUTYPE.le.14)then
+        if(pifltog(1:3).eq.'ON ')call WRITEPIF(MENUTYPE)
+        return
+      endif
 
 C Check that there are still picks left.
       if (NGET.lt.MNGET.and.ADDLIN.eq.0) goto 1
@@ -4343,7 +4358,7 @@ C Check that there are still picks left.
          call edisp(iuout,outs)
       endif
 
-C Write GOGET info to tmp file.
+C Write GOGET info to pif file.
       if(pifltog(1:3).eq.'ON ')call WRITEPIF(MENUTYPE)
 
       RETURN
@@ -4439,6 +4454,8 @@ C array IGETNO and KGET.
       COMMON/T4/EMISI(MS),EMISE(MS),ABSI(MS),ABSE(MS)
       integer icascf
       COMMON/CCTL/ICASCF(MCOM)
+      integer ncomp,ncon
+      COMMON/C1/NCOMP,NCON
       COMMON/ZONPIK/NZ,NZNO(MCOM)
       COMMON/GETPIK/NGET,IGETNO(MZS,9)
       common/getmenu/menutype,igetind(65),igetflux(65)
@@ -4521,13 +4538,23 @@ C following logic.
         else
 
 C For each of the currently selected zones call GZQMH and add to
-C the aggregate figure.
+C the aggregate figure. To work with PIF file where IGETNO(KGET,2)
+C is zero and NZ is typicaly 1 reset NZZ to be equal to NCOMP.
           N=24*NTS
           do i=1,N
             AGR(i)=0.0  ! clear the AGR array
           end do
-          do 60 izz=1,NZ
-            CALL GZQMH(IDAY,NZNO(izz),IGETNO(KGET,5))
+          if(NZ.eq.1.and.NZ.lt.NCOMP)then
+            NZZ=NCOMP
+          else
+            NZZ=NZ
+          endif
+          do 60 izz=1,NZZ
+             if(IGETNO(KGET,4).eq.2.and.IGETNO(KGET,2).eq.0)then
+               CALL GZQMH(IDAY,izz,IGETNO(KGET,5))
+             else
+               CALL GZQMH(IDAY,IGETNO(KGET,2),IGETNO(KGET,5))
+             endif
             if(ireportunit.eq.0.or.ireportunit.eq.2)then
               do I=1,N
                 AGR(I)=AGR(I)+(GVAL(I)/1000.0) ! selective conversion and sum
@@ -4563,8 +4590,17 @@ C the aggregate figure.
           do i=1,N
             AGR(i)=0.0  ! clear the AGR array
           end do
-          do 65 izz=1,NZ
-            CALL GZQMC(IDAY,NZNO(izz),IGETNO(KGET,5))
+          if(NZ.eq.1.and.NZ.lt.NCOMP)then
+            NZZ=NCOMP
+          else
+            NZZ=NZ
+          endif
+          do 65 izz=1,NZZ
+             if(IGETNO(KGET,4).eq.2.and.IGETNO(KGET,2).eq.0)then
+               CALL GZQMC(IDAY,izz,IGETNO(KGET,5))
+             else
+               CALL GZQMC(IDAY,IGETNO(KGET,2),IGETNO(KGET,5))
+             endif
             if(ireportunit.eq.0.or.ireportunit.eq.2)then
               do I=1,N
                 AGR(I)=AGR(I)+(GVAL(I)/1000.0) ! selective conversion and sum
@@ -4716,18 +4752,32 @@ C If izver >= 4 the read the data directly for individual items.
 
 C For each of the currently selected zones call getallcas and add to
 C aggregate figure for occupant, lights, small power or lights+smallpower.
+C Test directives from PIF file i.e. N is one and IGETNO(KGET,2) = 0.
             N=24*NTS
             do i=1,N
               AGR(i)=0.0  ! clear the AGR array
             end do
+            if(NZ.eq.1.and.NZ.lt.NCOMP)then
+              NZZ=NCOMP
+            else
+              NZZ=NZ
+            endif
             if(IICRCG.ge.25.and.IICRCG.le.28)then
-              do izz=1,NZ
+              do izz=1,NZZ
                 DO J2=ISTART,IEND
-                  call getallcas(IDAY,NZNO(izz),ISET,J2,QCASR,QCASC,
-     &              QCASL,FRAC,
-     &              perocupc,perlightc,perequipc,otherc,perocupr,
-     &              perlightr,perequipr,otherr,perocupl,perlightl,
-     &              perequipl,otherl,theonectld)
+                  if(IGETNO(KGET,2).eq.0)then ! Use izz
+                    call getallcas(IDAY,izz,ISET,J2,QCASR,QCASC,
+     &                QCASL,FRAC,
+     &                perocupc,perlightc,perequipc,otherc,perocupr,
+     &                perlightr,perequipr,otherr,perocupl,perlightl,
+     &                perequipl,otherl,theonectld)
+                  else
+                    call getallcas(IDAY,NZNO(izz),ISET,J2,QCASR,QCASC,
+     &                QCASL,FRAC,
+     &                perocupc,perlightc,perequipc,otherc,perocupr,
+     &                perlightr,perequipr,otherr,perocupl,perlightl,
+     &                perequipl,otherl,theonectld)
+                  endif
                   if(IICRCG.eq.25)then
                     AGR(J2)=AGR(J2)+perocupc+perocupr ! occupant convec+r gain (W)
                   elseif(IICRCG.eq.26)then
@@ -4885,11 +4935,8 @@ C area to 1.
           SAREA=1.
         endif
           
-C Read in the zone geometry, construction data.
-C << Work towards not reading zone files >>
+C Read in the zone construction data.
         IUNIT=IFIL+1
-        call georead(IUNIT,LGEOM(IZ),IZ,0,IUOUT,IER)
-
         CALL ECONST(LTHRM(IZ),IUNIT,IZ,0,IUOUT,IER)
 
 C Set default surface absorptivity.

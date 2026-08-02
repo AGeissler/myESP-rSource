@@ -59,6 +59,13 @@ C Attributes of the session log file.
       character iefile*72  ! The name of the session file.
       common/logs/ieopened,iecount,iefile
 
+C Attributes of session keystroke file.
+      logical ikopened     ! Has keystoke file been started/requested.
+      integer ikcount      ! Number of entries.
+      integer ikout        ! File unit for keystrokes.
+      character ikfile*72  ! The name of the keystroke file.
+      common/logk/ikopened,ikcount,ikout,ikfile
+
 C Markdown flag.
       logical markdown
       common/markdownflag/markdown
@@ -162,6 +169,15 @@ C for most topics.
      &  netinfo,plantinfo,geominfo,schedinfo,zoneextrainfo,fileinfo,
      &  spminfo,enetinfo,zonecolumns,surfcolumns
 
+      integer mlcnamegt24         ! number of instances of long MLC names.
+      integer mlcindex32          ! indices of long MLCs
+      integer mlcindex24          ! indies of paired shorter MLCs
+      integer mlcindexo32         ! indices of MLCs paired to long MLCs
+      integer mlcindexo24         ! indies of short naed paired MLCs
+      integer mlcx32refs          ! references to long MLCs
+      common/mlclong/mlcnamegt24,mlcindex32(6),mlcindex24(6),
+     &               mlcindexo32(6),mlcindexo24(6),mlcx32refs
+
       integer iverb     ! verbosity passed on command line
       logical OK,CFGOK,MLDBOK,MATDBOK,CTLOK,OPTKOK,MODSIT,CFCDBOK
       logical browse,confirm,XST,ckpath
@@ -188,7 +204,7 @@ C      character outs248*248
       character bidirfile*72,bidirname*12
       CHARACTER dinstpath*60,dirpath*72
       character useraction*8  ! returned from exemplar access call.
-      character menu*72       ! blank model title for pregist call
+      character menu*72       ! model title for pregist call
       character fs*1
 
 C Passed parameters for pregist.
@@ -216,7 +232,9 @@ C Returned parameters from silentread or silentxmlread.
       character hold32*32     ! test whether curl is installed
       character doit*248      ! to invoke curl command
       character theupdatefile*72,msg*96
+      character modt*12,actt*34,actv*4
       character update_ver*38,updatecomment*124
+      character tmode*8
       integer nbupdatecomments
       dimension updatecomment(20)
 
@@ -253,12 +271,18 @@ C Other file units used in esruprj:
 C  ifil+1 (lots of uses), ifil+2 (lots of uses), ifil+3 (in mksbem and mlc db)
 C  ifile+4 (in mksbem and mat db), ifil+5 (in anlyt tdf editing scanning cfg files)
 C  ifil+6 (databases and mass flow), ifil+7 (temporal )
-C  ifil+8 (  ), ifil+9 file export, ifil+10 (AIM and DHW and journal)
-C  ifil+11 (external help text), ifil+19 ifil+20 ifil+21 anlyt.
+C  ifil+8 (?), ifil+9 file export, ifil+10 (AIM, DHW and journal),
+C  ifil+11 (external help text), ifil+19 ifil+20 ifil+21 analytics.
 
 C Recover command line parameters (terminal, size (iappx) position (iappx iappy),
 C config file, zone focus and actions arguments).
-      call parsprj(MODL,iappw,iappx,iappy,inf,inz,act,d1,d2,d3,iverb)
+      call parsprj(MODL,iappw,iappx,iappy,inf,inz,act,d1,d2,d3,iverb,
+     &  ikey)
+C      write(6,*) 'inf ',inf(1:lnblnk(inf))
+C      write(6,*) 'act ',act(1:lnblnk(act))
+C      write(6,*) 'inz ',act(1:lnblnk(inz))
+C      write(6,*) 'd1 d2 d3 ',d1,d2,d3
+C      write(6,*) 'MODL iverb key ',MODL,iverb,ikey
       itrc=iverb    ! set trace level after call to parsprj
       IFDAY=2
       IFTIME=0
@@ -272,8 +296,17 @@ C config file, zone focus and actions arguments).
       iscfdactivate(1)=0; isicfdys(1)=0; isicfdyf(1)=0
       scftims(1)=0.0; scftimf(1)=23.9
       NSIGFIG=3
-      childterminal=MODL  ! remember so that child processes can run the same
-      markdown=.false.    ! reporting in plain text rather than markdown
+      childterminal=MODL          ! remember so that child processes can run the same
+      markdown=.false.            ! reporting in plain text rather than markdown
+      mlcnamegt24=0; mlcx32refs=0 ! Reset count of long MLC names & references
+      mlcindex32(1)=0; mlcindex32(2)=0; mlcindex32(3)=0     ! clear long name slots
+      mlcindex32(4)=0; mlcindex32(5)=0; mlcindex32(6)=0 
+      mlcindex24(1)=0; mlcindex24(2)=0; mlcindex24(3)=0     ! clear linked shortened slots
+      mlcindex24(4)=0; mlcindex24(5)=0; mlcindex24(6)=0 
+      mlcindexo32(1)=0; mlcindexo32(2)=0; mlcindexo32(3)=0  ! clear paired long name slots
+      mlcindexo32(4)=0; mlcindexo32(5)=0; mlcindexo32(6)=0 
+      mlcindexo24(1)=0; mlcindexo24(2)=0; mlcindexo24(3)=0  ! clear paired linked shortened slots
+      mlcindexo24(4)=0; mlcindexo24(5)=0; mlcindexo24(6)=0 
 
 C Initial assumptions about common data files (prior to configuration file scan
 C that the default common data files will be defined explicitly).
@@ -281,6 +314,7 @@ C that the default common data files will be defined explicitly).
       ipathapres=0; ipathoptdb=0; ipathpcdb=0; ipathprodb=0
       ipathmat=0; ipathmul=0; ipathclim=0; ipathsbem=0; ipathmsc=0
       ipathmould=0
+      usecurcfg=0     ! Mark user has not offered opion on cfg version.
 
 C Initial assumptions about QA reporting.
       siteinfo=1      ! constrained site information
@@ -526,7 +560,7 @@ C in the feedback area if the trace level is non-zero.
         call scesprc(esprc,IFIL+5,1,IIER)
       endif
 
-  902 continue
+C  902 continue
 
 C Create and open a session log file based on user name, PID etc.
       uname=' '; tfile=' '
@@ -545,6 +579,82 @@ C Take command line file name as initial configuration file.
      &    troot(1:lnblnk(troot)),'.log'
         call st2file(tfile,iefile)  ! Keep track of iefile name.
       endif
+
+C Open keystroke file if ikey returned as 1 in call to parsprj.
+      if(ikey.eq.1)then
+        if(unixok)then
+          if(inf(1:7).eq.'UNKNOWN')then
+            write(tfile,'(a)') 'new_project_prj.key'
+          else
+            write(tfile,'(2a)') troot(1:lnblnk(troot)),'_prj.key'
+          endif
+          call st2file(tfile,ikfile)
+        else
+          write(tfile,'(6a)') 'C:',fs,'TEMP',fs,
+     &      troot(1:lnblnk(troot)),'_prj.key'
+          call st2file(tfile,ikfile)  ! Keep track of ikfile name.
+        endif
+        ikout=ifil+932                ! Set to unused index 932.
+        ikcount=0                     ! Clear count of entries.
+        INQUIRE (FILE=ikfile,EXIST=XST)
+        if(XST)then
+          close(ikout)
+          open(ikout,file=ikfile,position='APPEND',
+     &      status='UNKNOWN',err=905)
+        else
+          open(ikout,file=ikfile,status='UNKNOWN',err=905)
+        endif
+        call dstamp(dstmp) ! get curret time
+        write(ikout,'(a)') '#!/bin/sh'
+        write(ikout,'(2a)') '# running prj @ ',dstmp
+
+C Reflect parameters passed to prj.
+        if(MODL.eq.-1)then
+          modt = '-mode text  '
+        elseif(MODL.eq.-6)then
+          modt = '-mode script'
+        else
+          modt = '-mode text  '
+        endif
+        if(act(1:2).ne.'  '.and.act(1:4).ne.'NONE')then
+          if(act(1:8).eq.'transform')then
+            write(actt,'(a,3f6.2)') ' -act transform',d1,d2,d3
+          elseif(act(1:8).eq.'rotate')then
+            write(actt,'(a,3f6.2)') ' -act rotate',d1,d2,d3
+          elseif(act(1:10).eq.'silentread'.or.
+     &           act(1:13).eq.'silentxmlread'.or.
+     &           act(1:2).eq.'QA'.or.
+     &           act(1:15).eq.'update_zone_con')then
+            write(actt,'(2a)') ' -act ',act(1:lnblnk(act))
+          endif
+        else
+          write(actt,'(a)') '  '
+        endif
+        if(iverb.eq.0)then
+          actv='  '
+        elseif(iverb.eq.2)then
+          actv=' -vv'
+        elseif(iverb.eq.1)then
+          actv=' -v '
+        endif
+        if(inf(1:2).ne.'  '.and.inf(1:4).ne.'UNKN')then
+          write(ikout,'(7a)') 'prj ',modt(1:lnblnk(modt)),
+     &      ' -file ',inf(1:lnblnk(inf)),actt(1:lnblnk(actt)),
+     &      actv(1:lnblnk(actv)),' <<XXX'
+        else
+          write(ikout,'(5a)') 'prj ',modt(1:lnblnk(modt)),
+     &      actt(1:lnblnk(actt)),actv(1:lnblnk(actv)),' <<XXX'
+        endif
+        ikcount=3
+        ikopened = .true.
+        tmode='text'
+        write(doit,'(2a)')'chmod a+x ./',ikfile(1:lnblnk(ikfile))
+        call runit(doit,tmode)
+      else
+        ikout=ifil+932             ! Set to unused index 932.
+        ikcount=0                  ! Clear count of entries.
+      endif
+  906 continue
 
 C Open the session file if .esprc preference ON.  If it alreay exists then APPEND.
       ieout=ifil+931              ! Set to unused index 931.
@@ -591,7 +701,11 @@ C update document.
   942       CALL STRIPC(iuj,OUTSTR,99,ND,1,'upgrade notes',IER)
             IF(IER.NE.0) goto 943
             if (OUTSTR(1:3).eq.'V13')then
-              write(update_ver,'(a)') OUTSTR(1:lnblnk(OUTSTR))
+              if(lnblnk(outstr).le.38)then
+                write(update_ver,'(a)') OUTSTR(1:lnblnk(OUTSTR))
+              else
+                write(update_ver,'(a)') OUTSTR(1:38)
+              endif
               nbupdatecomments=0
               goto 942
             else
@@ -629,7 +743,7 @@ C update document.
           endif
         else
 
-C << Curl not installed suggest this to the user? >>
+C << Curl not installed, suggest this to the user? >>
         endif
       else
         found_curl=.false.  ! not (yet) in Windows
@@ -670,8 +784,8 @@ C then set inact.
         inact='NONE'
       endif
 
-C Weather file is on channel IFIL (N.B. when not in use, other
-C files may make use of this unit temporarily).
+C Weather file is on read channel IFIL (N.B. when not in use, other
+C files may make use of this channel temporarily).
       ICLIM=IFIL; ipathclim=0
       LCLIM=DCLIM
 
@@ -759,6 +873,14 @@ C If open, close the session log.
                 open(ieout,file=iefile,status='UNKNOWN')
                 call efdelet(ieout,istat)
               endif
+              if(ikcount.gt.0)then  ! If entries in key file write closing line.
+                write(ikout,'(a)') 'XXX'
+                close(ikout)
+                CALL ERPFREE(ikout,ISTAT)
+              else
+                close(ikout)
+                CALL ERPFREE(ikout,ISTAT)
+              endif
 
 C Clear allocatable arrays.
               CALL DeallocateAllArrays
@@ -802,6 +924,14 @@ C If open, close the session log.
                 open(ieout,file=iefile,status='UNKNOWN')
                 call efdelet(ieout,istat)
               endif
+              if(ikcount.gt.0)then  ! If entries in key file write closing line.
+                write(ikout,'(a)') 'XXX'
+                close(ikout)
+                CALL ERPFREE(ikout,ISTAT)
+              else
+                close(ikout)
+                CALL ERPFREE(ikout,ISTAT)
+              endif
 
 C Clear allocatable arrays.
               CALL DeallocateAllArrays
@@ -839,6 +969,14 @@ C Close the session log.
               iecount=iecount+1  ! retain the log file
               close(ieout)
               CALL ERPFREE(ieout,ISTAT)
+              if(ikcount.gt.0)then  ! If entries in key file write closing line.
+                write(ikout,'(a)') 'XXX'
+                close(ikout)
+                CALL ERPFREE(ikout,ISTAT)
+              else
+                close(ikout)
+                CALL ERPFREE(ikout,ISTAT)
+              endif
 
 C Clear allocatable arrays.
               CALL DeallocateAllArrays
@@ -855,6 +993,14 @@ C Open core databases.
 C Close the session log.
               close(ieout)
               CALL ERPFREE(ieout,ISTAT)
+              if(ikcount.gt.0)then  ! If entries in key file write closing line.
+                write(ikout,'(a)') 'XXX'
+                close(ikout)
+                CALL ERPFREE(ikout,ISTAT)
+              else
+                close(ikout)
+                CALL ERPFREE(ikout,ISTAT)
+              endif
 
 C Clear allocatable arrays.
               CALL DeallocateAllArrays
@@ -911,6 +1057,16 @@ C Close the session log.
               if(iecount.eq.0)then     ! if there were no warnings delete
                 open(ieout,file=iefile,status='UNKNOWN')
                 call efdelet(ieout,istat)
+              endif
+
+C Close the keystroke file.
+              if(ikcount.gt.0)then  ! If entries in key file write closing line.
+                write(ikout,'(a)') 'XXX'
+                close(ikout)
+                CALL ERPFREE(ikout,ISTAT)
+              else
+                close(ikout)
+                CALL ERPFREE(ikout,ISTAT)
               endif
 
 C Clear allocatable arrays.
@@ -1061,9 +1217,6 @@ C Open core of databases if not already done.
 
 C Scan for matching MLC for surfaces.
           do 30 ICOMP=1,NCOMP
-            call georead(IFIL+1,LGEOM(ICOMP),ICOMP,1,iuout,ier)
-
-C Find the index of the MLC which matches each surface.
             DO 9994 I=1,NZSUR(icomp)
               icn1=izstocn(icomp,i)
               if(icn1.gt.0)then
@@ -1248,7 +1401,7 @@ C Present opening menu.
           helptopic='exit_without_save'
           call gethelptext(helpinsub,helptopic,nbhelp)
           CALL EASKMBOX('The active model has unsaved change.',
-     &      'Options:','exit with no save','save & exit','cancel',
+     &      'Options:','exit (no save)','save & exit','cancel',
      &      ' ',' ',' ',' ',' ',IW,nbhelp)
           if(iw.eq.3)then
             goto 3
@@ -1280,6 +1433,14 @@ C Close the session log.
         if(iecount.eq.0)then     ! if there were no warnings delete
           open(ieout,file=iefile,status='UNKNOWN')
           call efdelet(ieout,istat)
+        endif
+        if(ikcount.gt.0)then  ! If entries in key file write closing line.
+          write(ikout,'(a)') 'XXX'
+          close(ikout)
+          CALL ERPFREE(ikout,ISTAT)
+        else
+          close(ikout)
+          CALL ERPFREE(ikout,ISTAT)
         endif
 
 C Clear allocatable arrays
@@ -1470,7 +1631,7 @@ C the model should be updated.
 C Start new project, begin with registration.
         root=' '
         mpath=' '
-        menu=' '
+        menu='This model...'
         call pregist('i ',root,mpath,menu,ier)
       ELSEIF(INO.EQ.10)THEN
 
@@ -1635,6 +1796,10 @@ C Menu level help.
       call edisp(iuout,'Error opening session log ... continuing.')
       goto 904
 
+ 905  call edisp(iuout,' ')
+      call edisp(iuout,'Error opening keystroke file ... continuing.')
+      goto 906
+
       END
      
 C ******************** simula ********************
@@ -1718,7 +1883,7 @@ C dd is character array for selecting simulation parameter sets.
       character dd(MSPS+3)*55,de*30,aut*12
       character t72*72
 
-      character brw*11,outs*124
+      character brw*11,outs*124,fs*1
       character descra*7,descrb*7,descrst*10,descrfn*10
       character descr2st*8,descr2fn*8
 
@@ -1742,6 +1907,11 @@ C Set initial values of local variables.
       itrc=0   ! set initial value.
       aut=' interactive'
       call isunix(unixok)
+      if(unixok)then
+        fs = char(47)
+      else
+        fs = char(92)
+      endif
 
 C Do an initial check to see if the model is attributed and
 C constructions are known.
@@ -2181,8 +2351,9 @@ C Generate UK NCM specific models, run simulations and generate results.
         call MMGFUN
         if(nsset.gt.0)isset=1
 
-C Case of no initial sets, offer default or user defined sets. If the
-C data is internal to the file then it will already have been scanned.
+C Case of no initial simulation parameter sets, offer default or user 
+C defined sets. If the data is internal to the file then it will already
+C have been scanned.
       elseif(MITEM.eq.11.and.INO.EQ.1)then
         helptopic='prj_sim_set_menu'
         call gethelptext(helpinsub,helptopic,nbhelp)
@@ -2190,8 +2361,9 @@ C data is internal to the file then it will already have been scanned.
 
 C IPV description held in a separate file.
           if(lnblnk(lipvdatf).eq.0.or.lipvdatf(1:7).eq.'UNKNOWN')then
-            CALL EASKOK(' ','Proceed with parameter definitions?',
-     &      OK,nbhelp)
+            CALL EASKOK(' ',
+     &        'Proceed with simulation parameter definitions?',
+     &        OK,nbhelp)
             if(.NOT.OK)then
               INO=-4
               GOTO 3
@@ -2239,9 +2411,9 @@ C There may be IPV data held in the configuration file.
           endif
         endif
 
-C Set up one parameter set or several sets to match IPV description.
+C Set up one or more parameter sets to match IPV description.
         if(ID.eq.1.or.ID.eq.3)then
-          if(INDCFG.eq.2)then
+          if(INDCFG.eq.2)then  ! If plant only.
             nsset=1; isset=1; isstup=0; isstupex(1)=0
             isbnstep=4; isbnstepex(1)=4
             ispnstep=10; ispnstepex(1)=10
@@ -2457,8 +2629,6 @@ C Prepend ../tmp if Unix.
 
 C If there is an IPV descripton and this set is one,
 C do not allow this set name to be changed.
-C << see if this logic can be relaxed or altered so that
-C << IPV can co-exist with lots of parameter sets.
       elseif(MITEM.eq.26.and.INO.EQ.2)then
         if(nipvassmt.eq.nsset)then
           call usrmsg('IPV set name is pre-defined.',' ','W')
@@ -2902,18 +3072,33 @@ C and change any / to \.
 C Run only the number of assessments required. Currently there is
 C an assumption that the IPV will use fixed names for the 3 and 5
 C season assessments.
- 
-C << todo rather than fixing the name ann for a single assessment
-C << see about allowing a user defined name.
-C <<  Later consider if there can be more parameter sets than IPV 
-C << assessments so that a model could have both seasonal and annual
-C << parameter sets. Or simply that the user can add their own
-C << simulation parameter set as long as it does not clash and the
-C << IPV will still run as required.
-
-        if(nipvassmt.eq.1)then
+        if(ipvsimu(1:6).eq.'icwint'.or.ipvsimu(1:6).eq.'icwinf'.or.
+     &     ipvsimu(1:6).eq.'icwins')then
+          assmttag(1)=' -p win'
+        elseif(ipvsimu(1:6).eq.'icsprt'.or.ipvsimu(1:6).eq.'icsprf'.or.
+     &         ipvsimu(1:6).eq.'icsprs')then    
+          assmttag(1)=' -p trn'
+        elseif(ipvsimu(1:6).eq.'icsumt'.or.ipvsimu(1:6).eq.'icsumf'.or.
+     &       ipvsimu(1:6).eq.'icsums')then
+          assmttag(1)=' -p sum'
+        elseif(ipvsimu(1:6).eq.'icautt'.or. ipvsimu(1:6).eq.'icautf'.or.
+     &         ipvsimu(1:6).eq.'icauts')then
+          assmttag(1)=' -p aut'
+        elseif(ipvsimu(1:3).eq.'ias')then   ! Annual simulation
           assmttag(1)=' -p ann'
-        elseif(nipvassmt.eq.3)then
+        elseif(ipvsimu(1:3).eq.'i5s'.or.ipvsimu(1:3).eq.'i5t')then  ! Five season variant
+          assmttag(1)=' -p win1'
+          assmttag(2)=' -p spr'
+          assmttag(3)=' -p sum'
+          assmttag(4)=' -p aut'
+          assmttag(5)=' -p win2'
+        elseif(ipvsimu(1:3).eq.'i3s'.or.ipvsimu(1:3).eq.'i3t')then  ! Three season variant
+          assmttag(1)=' -p win'
+          assmttag(2)=' -p trn'
+          assmttag(3)=' -p sum'
+        endif
+
+        if(nipvassmt.eq.3)then
           assmttag(1)=' -p win'
           assmttag(2)=' -p trn'
           assmttag(3)=' -p sum'
@@ -2978,10 +3163,32 @@ C Extract performance report from the standard results files.
 C Extract only for the number of assessments required. Note: the strings
 C ipv_win ipv_win1 ipv_aut etc are set in the IPV descriptive process and
 C should not be altered in the simulation parameter sets.
-C << add code to disable editing if an IPV has been defined >>
-        if(nipvassmt.eq.1)then
-          runtag(1)=' -act ipv_ann '
-        elseif(nipvassmt.eq.3)then
+        if(ipvsimu(1:6).eq.'icwint'.or.ipvsimu(1:6).eq.'icwinf'.or.
+     &     ipvsimu(1:6).eq.'icwins')then
+          runtag(1)=' -act ipv_win '
+        elseif(ipvsimu(1:6).eq.'icsprt'.or.ipvsimu(1:6).eq.'icsprf'.or.
+     &         ipvsimu(1:6).eq.'icsprs')then    
+          runtag(1)=' -act ipv_spr '
+        elseif(ipvsimu(1:6).eq.'icsumt'.or.ipvsimu(1:6).eq.'icsumf'.or.
+     &       ipvsimu(1:6).eq.'icsums')then
+          runtag(1)=' -act ipv_sum'
+        elseif(ipvsimu(1:6).eq.'icautt'.or. ipvsimu(1:6).eq.'icautf'.or.
+     &         ipvsimu(1:6).eq.'icauts')then
+          runtag(1)=' -act ipv_aut'
+        elseif(ipvsimu(1:3).eq.'ias')then   ! Annual simulation
+          runtag(1)=' -act ipv_ann'
+        elseif(ipvsimu(1:3).eq.'i5s'.or.ipvsimu(1:3).eq.'i5t')then  ! Five season variant
+          runtag(1)=' -act ipv_win1 '
+          runtag(2)=' -act ipv_spr '
+          runtag(3)=' -act ipv_sum '
+          runtag(4)=' -act ipv_aut '
+          runtag(5)=' -act ipv_win2 '
+        elseif(ipvsimu(1:3).eq.'i3s'.or.ipvsimu(1:3).eq.'i3t')then  ! Three season variant
+          runtag(1)=' -act ipv_win '
+          runtag(2)=' -act ipv_trn '
+          runtag(3)=' -act ipv_sum '
+        endif
+        if(nipvassmt.eq.3)then
           runtag(1)=' -act ipv_win '
           runtag(2)=' -act ipv_trn '
           runtag(3)=' -act ipv_sum '
@@ -3055,7 +3262,26 @@ C Logic to react when browsing a model.
  668      continue
 
 C Having done the assessments re-open and append summary.
-          tfile=sblres(nipvassmt)
+          if(ipvsimu(1:6).eq.'icwint'.or.ipvsimu(1:6).eq.'icwinf'.or.
+     &       ipvsimu(1:6).eq.'icwins')then
+            tfile=sblres(1)
+          elseif(ipvsimu(1:6).eq.'icsprt'.or.
+     &           ipvsimu(1:6).eq.'icsprf'.or.
+     &           ipvsimu(1:6).eq.'icsprs')then    
+            tfile=sblres(1)
+          elseif(ipvsimu(1:6).eq.'icsumt'.or.
+     &           ipvsimu(1:6).eq.'icsumf'.or.
+     &           ipvsimu(1:6).eq.'icsums')then
+            tfile=sblres(1)
+          elseif(ipvsimu(1:6).eq.'icautt'.or.
+     &           ipvsimu(1:6).eq.'icautf'.or.
+     &           ipvsimu(1:6).eq.'icauts')then
+            tfile=sblres(1)
+          elseif(ipvsimu(1:3).eq.'ias')then   ! Annual simulation
+            tfile=sblres(1)
+          else
+            tfile=sblres(nipvassmt)
+          endif
           if(remote)then
             call fdroot(tfile,ltpath,filen)
             call isunix(unixok)
@@ -3494,35 +3720,162 @@ C            S/I calculation method is file based
       common/C24/IZSTOCN(MCOM,MS)
       common/shad0/ISIcalc,icalcD,icalcM
       common/spfldat/nsset,isset,isstup,isbnstep,ispnstep,issave,isavgh
+      common/spflres/sblres(MSPS),sflres(MSPS),splres(MSPS),
+     &  smstres(MSPS),selres(MSPS),scfdres(MSPS),sipvres
+      character sblres*72,sflres*72,splres*72,smstres*72,
+     &  selres*72,scfdres*72,sipvres*72
       common/PRECTC/ITMCFL(MCOM,MS),TMCT(MCOM,MTMC,5),
      &       TMCA(MCOM,MTMC,ME,5),TMCREF(MCOM,MTMC),TVTR(MCOM,MTMC)
 
       character CXSTR*78
-      character shdafile*72
+      character shdafile*96
       character*72 LS
       character ZSDES*28,ZSDESC*20,ZSDESS*16
       character ZN*12,longtfile*144,longtfiledos*144
+      character sbound_ty*12,sbound_c2*6,sbound_e2*6
       character DOIT*248,outs*248
+      character TempString*96   ! For creating tmp folder.
+      character fs*1            ! separator
 
       logical XST,XSTA,asked,problem
       logical mlcok,bndryok,bndrysxc,confok,geofok,oprfok,prob,dup
       logical tmcok,shdok
-      logical concat,unixok
+      logical concat,unixok,lexist,ok
+      logical changed
 
       integer lnblnk        ! function definition
       integer icple,iscple  ! coupled zone and surface for tmc check.
       integer itmc1,itmc2   ! non-zero if surface a tmc
       integer icz,ics       ! associated surface
+      dimension isadd(12),ishd(12),idum(ms)
 
       helpinsub='prj'  ! set for subroutine
 
-      asked=.false.
+      asked=.false.; changed=.false.
 
       IUO=IFIL+1
       if(nsset.gt.0)isset=1
 
 C Check if Unix-based or DOS based.
       call isunix(unixok)
+      if(unixok)then
+        fs = char(47)
+      else
+        fs = char(92)
+      endif
+
+C Ensure model has tmp & msc folders.
+      WRITE(TempString,'(4a)')'..',fs,'tmp',fs
+      INQUIRE(FILE=TempString,EXIST=lexist)
+      if (.not.lexist) then
+        write(doit,'(4a)') 'mkdir -p ','..',fs,'tmp'
+        call usrmsg('Creating folder:',doit,'-')
+        call runit(doit,'-')
+        call pausems(200)
+        write(tmppth,'(3a)')'..',fs,'tmp'
+      endif
+      WRITE(TempString,'(4a)')'..',fs,'msc',fs
+      INQUIRE(FILE=TempString,EXIST=lexist)
+      if (.not.lexist) then
+        write(doit,'(4a)') 'mkdir -p ','..',fs,'msc'
+        call usrmsg('Creating folder:',doit,'-')
+        call runit(doit,'-')
+        call pausems(400)
+        write(mscpth,'(3a)')'..',fs,'msc'
+      endif
+
+C If the model is using simulation parameter sets check whether
+C the results files are using the tmp folder.
+      if(nsset.gt.0)then
+        do ij=1,nsset
+          if(unixok)then
+            if(sblres(ij)(1:4).ne.'UNKN'.and.
+     &         sblres(ij)(1:2).ne.'  ')then
+              if(sblres(ij)(1:7).eq.'../tmp/')then
+                continue
+              elseif(sblres(ij)(1:2).eq.'./')then
+                continue
+              else
+                write(outs,'(3a)') sblres(ij)(1:lnblnk(sblres(ij))),
+     &            ' is not in ../tmp/'
+                helptopic='has_unknown_file'
+                call gethelptext(helpinsub,helptopic,nbhelp)
+                CALL EASKOK(outs,'Correct',OK,nbhelp)
+                if(OK)then
+                 write(TempString,'(a)')sblres(ij)(1:lnblnk(sblres(ij)))
+                 write(sblres(ij),'(2a)') '../tmp/',
+     &             TempString(1:lnblnk(TempString))
+                 changed=.true.
+                endif
+              endif
+            endif
+            if(sflres(ij)(1:4).ne.'UNKN'.and.
+     &         sflres(ij)(1:2).ne.'  ')then
+              if(sflres(ij)(1:7).eq.'../tmp/')then
+                continue
+              elseif(sflres(ij)(1:2).eq.'./')then
+                continue
+              else
+                write(outs,'(3a)') sflres(ij)(1:lnblnk(sflres(ij))),
+     &            ' is not in ../tmp/'
+                helptopic='has_unknown_file'
+                call gethelptext(helpinsub,helptopic,nbhelp)
+                CALL EASKOK(outs,'Correct',OK,nbhelp)
+                if(OK)then
+                 write(TempString,'(a)')sflres(ij)(1:lnblnk(sflres(ij)))
+                 write(sflres(ij),'(2a)') '../tmp/',
+     &             TempString(1:lnblnk(TempString))
+                 changed=.true.
+                endif
+              endif
+            endif
+            if(splres(ij)(1:4).ne.'UNKN'.and.
+     &         splres(ij)(1:2).ne.'  ')then
+              if(splres(ij)(1:7).eq.'../tmp/')then
+                continue
+              elseif(splres(ij)(1:2).eq.'./')then
+                continue
+              else
+                write(outs,'(3a)') splres(ij)(1:lnblnk(splres(ij))),
+     &            ' is not in ../tmp/'
+                helptopic='has_unknown_file'
+                call gethelptext(helpinsub,helptopic,nbhelp)
+                CALL EASKOK(outs,'Correct',OK,nbhelp)
+                if(OK)then
+                 write(TempString,'(a)')splres(ij)(1:lnblnk(splres(ij)))
+                 write(splres(ij),'(2a)') '../tmp/',
+     &             TempString(1:lnblnk(TempString))
+                 changed=.true.
+                endif
+              endif
+            endif
+            if(smstres(ij)(1:4).ne.'UNKN'.and.
+     &         smstres(ij)(1:2).ne.'  ')then
+              if(smstres(ij)(1:7).eq.'../tmp/')then
+                continue
+              elseif(smstres(ij)(1:2).eq.'./')then
+                continue
+              else
+                write(outs,'(3a)') smstres(ij)(1:lnblnk(smstres(ij))),
+     &            ' is not in ../tmp/'
+                helptopic='has_unknown_file'
+                call gethelptext(helpinsub,helptopic,nbhelp)
+                CALL EASKOK(outs,'Correct',OK,nbhelp)
+                if(OK)then
+                 write(TempString,'(a)')
+     &             smstres(ij)(1:lnblnk(smstres(ij)))
+                 write(smstres(ij),'(2a)') '../tmp/',
+     &             TempString(1:lnblnk(TempString))
+                 changed=.true.
+                endif
+              endif
+            endif
+            if(changed)then
+              CALL EMKCFG('s',IER)
+            endif    
+          endif
+        enddo
+      endif
 
 C Initial check to see if the model is attributed and
 C constructions known.
@@ -3554,7 +3907,7 @@ C constructions known.
       bndryok=.true.
       do 41 i=1,ncon
         icz=IC1(I); ics=IE1(I)
-        if(SOTHER(icz,ics,1)(1:7).eq.'UNKNOWN')then
+        if(zboundarytype(icz,ics,1).eq.-1)then
           CALL ZSID(icz,ics,ZSDES,ZSDESC,ZSDESS)
           bndryok=.false.
           if(nbhelp.lt.60)then
@@ -3581,7 +3934,8 @@ C constructions known.
         icz=IC1(I); ics=IE1(I)
         CALL ZSID(icz,ics,ZSDES,ZSDESC,ZSDESS)
         CALL CONXINFO(1,i,CXSTR)
-        if(ICT(i).eq.0.and.SOTHER(icz,ics,1)(1:5).ne.'EXTER')then
+        call decode_zsbound(icz,ics,sbound_ty,sbound_c2,sbound_e2)
+        if(ICT(i).eq.0.and.zboundarytype(icz,ics,1).ne.0)then
           bndrysxc=.false.
           if(nbhelp.lt.58)then
             nbhelp=nbhelp+1
@@ -3591,10 +3945,10 @@ C constructions known.
             write(h(nbhelp),'(2a)') 'connection is ',CXSTR(1:50)
             nbhelp=nbhelp+1
             write(h(nbhelp),'(2a)') 'found surface attribute.',
-     &        SOTHER(icz,ics,1)
+     &        sbound_ty
           endif
         endif
-        if(ICT(i).eq.1.and.SOTHER(icz,ics,1)(1:5).ne.'SIMIL')then
+        if(ICT(i).eq.1.and.zboundarytype(icz,ics,1).ne.1)then
           bndrysxc=.false.
           if(nbhelp.lt.58)then
             nbhelp=nbhelp+1
@@ -3604,10 +3958,10 @@ C constructions known.
             write(h(nbhelp),'(2a)') 'connection is ',CXSTR(1:50)
             nbhelp=nbhelp+1
             write(h(nbhelp),'(2a)') 'found surface attribute.',
-     &        SOTHER(icz,ics,1)
+     &        sbound_ty
           endif
         endif
-        if(ICT(i).eq.2.and.SOTHER(icz,ics,1)(1:5).ne.'CONST')then
+        if(ICT(i).eq.2.and.zboundarytype(icz,ics,1).ne.2)then
           bndrysxc=.false.
           if(nbhelp.lt.58)then
             nbhelp=nbhelp+1
@@ -3617,10 +3971,10 @@ C constructions known.
             write(h(nbhelp),'(2a)') 'connection is ',CXSTR(1:50)
             nbhelp=nbhelp+1
             write(h(nbhelp),'(2a)') 'found surface attribute.',
-     &        SOTHER(icz,ics,1)
+     &        sbound_ty
           endif
         endif
-        if(ICT(i).eq.3.and.SOTHER(icz,ics,1)(1:5).eq.'CONST')then
+        if(ICT(i).eq.3.and.zboundarytype(icz,ics,1).eq.2)then
           bndrysxc=.false.
           if(nbhelp.lt.58)then
             nbhelp=nbhelp+1
@@ -3630,10 +3984,10 @@ C constructions known.
             write(h(nbhelp),'(2a)') 'connection is ',CXSTR(1:50)
             nbhelp=nbhelp+1
             write(h(nbhelp),'(2a)') 'found surface attribute.',
-     &        SOTHER(icz,ics,1)
+     &        sbound_ty
           endif
         endif
-        if(ICT(i).eq.3.and.SOTHER(icz,ics,1)(1:5).eq.'SIMIL')then
+        if(ICT(i).eq.3.and.zboundarytype(icz,ics,1).eq.1)then
           bndrysxc=.false.
           if(nbhelp.lt.58)then
             nbhelp=nbhelp+1
@@ -3643,10 +3997,10 @@ C constructions known.
             write(h(nbhelp),'(2a)') 'connection ',CXSTR(1:50)
             nbhelp=nbhelp+1
             write(h(nbhelp),'(2a)') 'found surface attribute.',
-     &        SOTHER(icz,ics,1)
+     &        sbound_ty
           endif
         endif
-        if(ICT(i).eq.3.and.SOTHER(icz,ics,1)(1:5).eq.'EXTER')then
+        if(ICT(i).eq.3.and.zboundarytype(icz,ics,1).eq.0)then
           bndrysxc=.false.
           if(nbhelp.lt.59)then
             nbhelp=nbhelp+1
@@ -3656,7 +4010,7 @@ C constructions known.
             write(h(nbhelp),'(2a)') 'connection ',CXSTR(1:50)
           endif
         endif
-        if(ICT(i).eq.3.and.SOTHER(icz,ics,1)(1:5).eq.'GROUN')then
+        if(ICT(i).eq.3.and.zboundarytype(icz,ics,1).eq.4)then
           bndrysxc=.false.
           if(nbhelp.lt.59)then
             nbhelp=nbhelp+1
@@ -3690,7 +4044,7 @@ C Do same check as in solar.F.
           endif
         endif
 
-        if(ICT(i).eq.4.and.SOTHER(icz,ics,1)(1:5).ne.'GROUN')then
+        if(ICT(i).eq.4.and.zboundarytype(icz,ics,1).ne.4)then
           bndrysxc=.false.
           if(nbhelp.lt.58)then
             nbhelp=nbhelp+1
@@ -3700,10 +4054,10 @@ C Do same check as in solar.F.
             write(h(nbhelp),'(2a)') 'connection ',CXSTR(1:50)
             nbhelp=nbhelp+1
             write(h(nbhelp),'(2a)') 'found surface attribute. ',
-     &        SOTHER(icz,ics,1)
+     &        sbound_ty
           endif
         endif
-        if(ICT(i).eq.5.and.SOTHER(icz,ics,1)(1:5).ne.'ADIAB')then
+        if(ICT(i).eq.5.and.zboundarytype(icz,ics,1).ne.5)then
           bndrysxc=.false.
           if(nbhelp.lt.58)then
             nbhelp=nbhelp+1
@@ -3713,10 +4067,10 @@ C Do same check as in solar.F.
             write(h(nbhelp),'(2a)') 'connection ',CXSTR(1:50)
             nbhelp=nbhelp+1
             write(h(nbhelp),'(2a)') 'found surface attribute.',
-     &        SOTHER(icz,ics,1)
+     &        sbound_ty
           endif
         endif
-        if(ICT(i).eq.6.and.SOTHER(icz,ics,1)(1:5).ne.'BASES')then
+        if(ICT(i).eq.6.and.zboundarytype(icz,ics,1).ne.6)then
 
 C HOT3000: BASESIMP.
           bndrysxc=.false.
@@ -3728,7 +4082,7 @@ C HOT3000: BASESIMP.
             write(h(nbhelp),'(2a)') 'connection ',CXSTR(1:50)
             nbhelp=nbhelp+1
             write(h(nbhelp),'(2a)') 'found surface attribute',
-     &        SOTHER(icz,ics,1)
+     &        sbound_ty
           endif
         endif
  42   continue
@@ -3748,7 +4102,6 @@ C Check contiguity.
       ICC=0
       prob=.false.
       do 287 IZ=1,NCOMP
-        call georead(IFIL+1,LGEOM(IZ),IZ,0,iuout,IER)
         do 289 IS=1,NSUR
           ICC=ICC+1
           CALL ZSID(IZ,IS,ZSDES,ZSDESC,ZSDESS)
@@ -3917,7 +4270,6 @@ C Do cursory check to see if the file is sorted.
           else
 
 C Zone construction file exists so attempt to scan it.
-            call georead(IFIL+1,LGEOM(I),I,0,iuout,IER)
             CALL ECONST(LTHRM(I),IFIL+1,I,0,IUOUT,IER)
             if(ier.ne.0)then
               confok=.false.
@@ -3999,15 +4351,52 @@ C and change any / to \.
             endif
             write(ZN,'(A)') zname(i)
             doit = ' '
+
+C If there is no binary file but there is an ASCII version then
+C use method in ish to create a blank binary file and fill it
+C from ASCII.
             if(.NOT.XST)then
               if(XSTA)then
-                call edisp(iuout,'Importing missing shading ...')
-                write(doit,'(6a)') 'ish -mode text -file ',
-     &            longtfile(1:lnblnk(longtfile)),' -zone ',
-     &            ZN(1:lnblnk(ZN)),' -act asci2bin ',
-     &            shdafile(1:lnblnk(shdafile))
-C               call usrmsg('starting shading conversion via',doit,'-')
-                call runit(doit,'-')
+C                call edisp(iuout,'Importing missing shading ...')
+C                write(doit,'(6a)') 'ish -mode text -file ',
+C     &            longtfile(1:lnblnk(longtfile)),' -zone ',
+C     &            ZN(1:lnblnk(ZN)),' -act asci2bin ',
+C     &            shdafile(1:lnblnk(shdafile))
+C                call usrmsg('starting shading conversion via',doit,'-')
+C                call runit(doit,'-')
+
+C Close any binary file already open then assign a new file via logic as
+C in sifle.F ~143 (applicable bit of sifile).
+                ifilsi=ifil+3
+                call erpfree(ifilsi,istat)
+                LS=LSHAD(I)
+                write(shdafile,'(2a)') ls(1:lnblnk(ls)),'a'
+                maxrec=24
+                if(nzsur(i).gt.24)maxrec=nzsur(i)
+                call efopran(ifilsi,LS,maxrec,3,ier)
+                do ij=1,maxrec
+                  if(ij.gt.12)then
+                    idum(ij)=0
+                  else
+                    idum(ij)=0
+                    ishd(ij)=0
+                    isadd(ij)=0
+                  endif
+                enddo
+                irec=1
+                write(ifilsi,rec=irec,iostat=istat,err=1001)
+     &            (ishd(ij),ij=1,12),(isadd(ij),ij=1,12)
+                irec=4
+                write(ifilsi,rec=irec,iostat=istat,err=1001)
+     &            (idum(ij),ij=1,nzsur(i))
+                ifstat=1  ! signal new file
+
+                write(outs,'(3a)') 
+     &            'Importing missing shading data from ',
+     &            shdafile(1:lnblnk(shdafile)),'.'
+                call edisp(iuout,outs)
+                call sifimport(i,shdafile,ier)
+
                 write(outs,'(3a)') 'Shading for ',ZN(1:lnblnk(ZN)),
      &            ' has been imported from ASCII.'
                 call edisp(iuout,outs)
@@ -4427,39 +4816,35 @@ C Set up menu for different variants
       LRCR=0
  201  KNO=-3
       ITEMS2(1) = ' ___ Site and location ___'
-      ITEMS2(2) = 'a global tasks and site exposure'
-      ITEMS2(3) = 'b site exposure & ground reflectance'
-      ITEMS2(4) = 'c weather, latitude and longitude'
-      ITEMS2(5) = 'd pressure distribution'
-      ITEMS2(6) = 'e ground temperature profiles'
-      ITEMS2(7) = ' ___ Form and fabric ___'
-      ITEMS2(8) = 'f geometry and attribution'
-      ITEMS2(9) = 'g shading and insolation'
-      ITEMS2(10)= 'h view factors and radiant sensors'
-      ITEMS2(11)= 'i - future option -'
-      ITEMS2(12)= 'j zone constructions'
-      ITEMS2(13)= 'k materials or MLC properties'
-      ITEMS2(14)= 'l computational fluid dynamics'
-      ITEMS2(15)= 'm convection regimes'
-      ITEMS2(16)= 'n active materials & advanced optics'
-      ITEMS2(17)= 'o adaptive gridding & moisture'
-      ITEMS2(18)= 'p integrated renewables'
-      ITEMS2(19)= 'q integrated performance view'
-      ITEMS2(20)= '___ Networks ___'
-      ITEMS2(21)= 'r fluid flow'
-      ITEMS2(22)= 's electrical'
-      ITEMS2(23)= 't plant'
-      ITEMS2(24)= 'u contaminants'
-      ITEMS2(25)= '___ Usage ___'
-      ITEMS2(26)= 'v zone operations'
-      ITEMS2(27)= 'w controls'
-      ITEMS2(28)= 'x casual gains control'
-      ITEMS2(29)= 'y event profiles'
-      ITEMS2(30)= 'z mould and mycotoxins'
-      ITEMS2(31)=' --------------------------------'
-      ITEMS2(32)='? help'
-      ITEMS2(33)='- exit menu'
-      MITEMS2=33
+      ITEMS2(2) = 'a site exposure & ground reflectance'
+      ITEMS2(3) = 'b weather, latitude and longitude'
+      ITEMS2(4) = 'c pressure distribution'
+      ITEMS2(5) = 'd ground temperature profiles'
+      ITEMS2(6) = ' ___ Form and fabric ___'
+      ITEMS2(7) = 'e zone form and composition'
+      ITEMS2(8) = 'f shading and insolation'
+      ITEMS2(9) = 'g view factors and radiant sensors'
+      ITEMS2(10)= 'h - future option -'
+      ITEMS2(11)= 'i materials or MLC properties db'
+      ITEMS2(12)= 'j computational fluid dynamics'
+      ITEMS2(13)= 'k convection regimes'
+      ITEMS2(14)= 'l - future option -'
+      ITEMS2(15)= 'm integrated performance view'
+      ITEMS2(16)= '___ Networks ___'
+      ITEMS2(17)= 'o fluid flow'
+      ITEMS2(18)= 'p electrical'
+      ITEMS2(19)= 'q plant'
+      ITEMS2(20)= 'r contaminants'
+      ITEMS2(21)= '___ Usage ___'
+      ITEMS2(22)= 's zone operations'
+      ITEMS2(23)= 't controls'
+      ITEMS2(24)= 'u casual gains control'
+      ITEMS2(25)= 'v - future option -'
+      ITEMS2(26)= 'w mould and mycotoxins'
+      ITEMS2(27)=' --------------------------------'
+      ITEMS2(28)='? help'
+      ITEMS2(29)='- exit menu'
+      MITEMS2=29
 
 C Help.
       helptopic='variant_options'
@@ -4467,110 +4852,50 @@ C Help.
       CALL EMENU('Model variants',ITEMS2,MITEMS2,KNO)
 
       IF(KNO.EQ.2)THEN
-
-C Global tasks and site exposure.
-        CALL VERMAN(APP,1,LRCR)
+        CALL VERMAN(APP,3,LRCR)  ! Site exposure and ground reflectance.
       ELSEIF(KNO.EQ.3)THEN
-
-C Site exposure and ground reflectance.
-        CALL VERMAN(APP,3,LRCR)
+        CALL VERMAN(APP,6,LRCR)  ! Weather, latitiude and longitude difference.
       ELSEIF(KNO.EQ.4)THEN
-
-C Weather, latitiude and longitude difference.
-        CALL VERMAN(APP,6,LRCR)
+        CALL VERMAN(APP,7,LRCR)  ! Pressure distributions.
       ELSEIF(KNO.EQ.5)THEN
-
-C Pressure distributions.
-        CALL VERMAN(APP,7,LRCR)
-      ELSEIF(KNO.EQ.6)THEN
-
-C Ground temperature profiles.
-        CALL VERMAN(APP,12,LRCR)
+        CALL VERMAN(APP,12,LRCR) ! Ground temperature profiles.
+      ELSEIF(KNO.EQ.7)THEN
+        CALL VERMAN(APP,2,LRCR)  ! Zone form and composition.
       ELSEIF(KNO.EQ.8)THEN
-
-C Geometry and attribution.
-        CALL VERMAN(APP,2,LRCR)
+        CALL VERMAN(APP,4,LRCR)  ! Shading and insolation.
       ELSEIF(KNO.EQ.9)THEN
-
-C Shading and insolation.
-        CALL VERMAN(APP,4,LRCR)
+        CALL VERMAN(APP,5,LRCR)  ! View factors and radiant sensors.
       ELSEIF(KNO.EQ.10)THEN
-
-C View factors and radiant sensors.
-        CALL VERMAN(APP,5,LRCR)
+        GOTO 201                 ! Future option (CALL VERMAN(APP,8,LRCR)).
       ELSEIF(KNO.EQ.11)THEN
-
-C Future option (CALL VERMAN(APP,8,LRCR)).
-        GOTO 201
+        CALL VERMAN(APP,10,LRCR) ! Variant materials database.
       ELSEIF(KNO.EQ.12)THEN
-
-C Variant zone constructions.
-        CALL VERMAN(APP,9,LRCR)
+        CALL VERMAN(APP,11,LRCR) ! CFD domain.
       ELSEIF(KNO.EQ.13)THEN
-
-C Variant materials database.
-        CALL VERMAN(APP,10,LRCR)
+        CALL VERMAN(APP,13,LRCR) ! Convection calculations.
       ELSEIF(KNO.EQ.14)THEN
-
-C CFD domain.
-        CALL VERMAN(APP,11,LRCR)
+        GOTO 201                 ! Future option (CALL VERMAN(APP,14,LRCR)).
       ELSEIF(KNO.EQ.15)THEN
-
-C Convection calculations.
-        CALL VERMAN(APP,13,LRCR)
-      ELSEIF(KNO.EQ.16)THEN
-
-C Active materials and advanced optics.
-        CALL VERMAN(APP,14,LRCR)
+        CALL VERMAN(APP,17,LRCR) ! Integrated performance view.
       ELSEIF(KNO.EQ.17)THEN
-
-C Adaptive gridding and moisture.
-        CALL VERMAN(APP,15,LRCR)
+        CALL VERMAN(APP,18,LRCR) ! Fluid flow network.
       ELSEIF(KNO.EQ.18)THEN
-
-C Integrated renewables.
-        CALL VERMAN(APP,16,LRCR)
+        CALL VERMAN(APP,19,LRCR) ! Electrical network.
       ELSEIF(KNO.EQ.19)THEN
-
-C Integrated performance view.
-        CALL VERMAN(APP,17,LRCR)
-      ELSEIF(KNO.EQ.21)THEN
-         
-C fluid flow network.
-        CALL VERMAN(APP,18,LRCR)
+        CALL VERMAN(APP,20,LRCR) ! Plant network.
+      ELSEIF(KNO.EQ.20)THEN
+        CALL VERMAN(APP,21,LRCR) ! Contaminants network.
       ELSEIF(KNO.EQ.22)THEN
-
-C Electrical network.
-        CALL VERMAN(APP,19,LRCR)
+        CALL VERMAN(APP,22,LRCR) ! Zone operations.
       ELSEIF(KNO.EQ.23)THEN
-
-C Plant network.
-        CALL VERMAN(APP,20,LRCR)
+        CALL VERMAN(APP,23,LRCR) ! Zone and other controls.
       ELSEIF(KNO.EQ.24)THEN
-
-C Contaminants network.
-        CALL VERMAN(APP,21,LRCR)
+        CALL VERMAN(APP,24,LRCR) ! Casual gains control.
+      ELSEIF(KNO.EQ.25)THEN
+        GOTO 201                 ! Future option (CALL VERMAN(APP,25,LRCR)).
       ELSEIF(KNO.EQ.26)THEN
-
-C Zone operations.
-        CALL VERMAN(APP,22,LRCR)
-      ELSEIF(KNO.EQ.27)THEN
-
-C Zone controls.
-        CALL VERMAN(APP,23,LRCR)
+        CALL VERMAN(APP,26,LRCR) ! Mould and mycotoxins.
       ELSEIF(KNO.EQ.28)THEN
-
-C Casual gains control
-        CALL VERMAN(APP,24,LRCR)
-      ELSEIF(KNO.EQ.29)THEN
-
-C Event profiles.
-        CALL VERMAN(APP,25,LRCR)
-      ELSEIF(KNO.EQ.30)THEN
-
-C Mould and mycotoxins.
-        CALL VERMAN(APP,26,LRCR)
-      ELSEIF(KNO.EQ.32)THEN
         CALL PHELPD('version tasks',nbhelp,'-',0,0,IER)
         GOTO 201
       ENDIF
@@ -4592,22 +4917,22 @@ C<< writing out to new files in the future and this has been implemented
 C<< for some of the options included in this subroutine.
 C For the following values of ILM the respective file will be copied and
 C renamed with APE character string appendage
-C ILM = 1 means global tasks and site exposure
-C ILM = 2 means geometry and attribution
+C ILM = 1 means global tasks and site exposure ( not yet )
+C ILM = 2 means zone form and compositiong *
 C ILM = 3 means site exposure & ground reflectance
-C ILM = 4 means shading and insolation and obstructions
-C ILM = 5 means view factors and radiant sensors
+C ILM = 4 means shading and insolation and obstructions (why?)
+C ILM = 5 means view factors and radiant sensors (shift to the viewfactor menu).
 C ILM = 6 means weather, latitude and longitude
 C ILM = 7 means pressure distribution
-C ILM = 8 means glazed area
-C ILM = 9 means variant zone constructions
+C ILM = 8 future option
+C ILM = 9 means variant zone constructions (* remove after testing)
 C ILM = 10 means variant material database
 C ILM = 11 means computational fluid dynamics
 C ILM = 12 means ground temperature profiles
 C ILM = 13 means convection calculations
-C ILM = 14 means active materials and advanced optics
-C ILM = 15 means adaptive gridding and moisture
-C ILM = 16 means integrated renewables
+C ILM = 14 means active materials (not implemented)
+C ILM = 15 means adaptive gridding and moisture (not implemented)
+C ILM = 16 means integrated renewables (not implemented)
 C ILM = 17 means integrated performance view
 C ILM = 18 means fluid flow network
 C ILM = 19 means electrical network
@@ -4692,6 +5017,7 @@ C ivalsg keeps track of whether a geometry file has alread been copied.
       logical unixok
       logical newgeo            ! to use for testing if new/old geometry file.
       logical updatetitle ! if true the edit IPV titles.
+      logical quiet             ! for zone construction file I/O
       integer IW                ! for radio button
       integer ISTRW
 
@@ -4712,19 +5038,17 @@ C Change name of configuration file.
       ENDIF
 
       IF(M.EQ.1)THEN
+
+C This slot is not currently called.
         helptopic='global_tasks'
         call gethelptext(helpinsub,helptopic,nbhelp)
-
-C Site and location:
-C global tasks (work in progress APE needs sorting).
-C        ITRC=1
-C        ITRU=6
-C        CALL EDZCOMP(ITRC,ITRU,APE,IER)
         CALL PHELPD('global tasks not supported',nbhelp,'-',0,0,IER)
-        msg1='updating model for global tasks ...'
+        msg1='no changes for global tasks ...'
       ELSEIF(M.EQ.2)THEN
 
-C geometry and attribution
+C Zone form and composition - reads and writes each geometry file to
+C ensure it is up-to-date. Replicates shading, viewfactor, heat transfer,
+C casual gain controls, construction and tmc files as well as obstruction files.
         inpic=0
         call askmultizone(inpic,ivals,
      &    ' Select zones for geometric variant?',
@@ -4733,6 +5057,9 @@ C geometry and attribution
           DO 17 IC=1,inpic
             IUF=IFIL+2
             ICOMP=ivals(IC)
+
+C The pattern is to scan the zone file, derive alternative name and
+C then write its attributes to the alternative file name.
             EXT='.geo'
             call eclose(gversion(icomp),1.1,0.01,newgeo)
             call georead(IUF,LGEOM(ICOMP),ICOMP,1,iuout,IER)
@@ -4743,7 +5070,7 @@ C geometry and attribution
               newgeo = .true.
             endif
             if(newgeo)then
-              call geowrite(IUF,LGEOM(ICOMP),IComp,IUOUT,3,IER)
+              call geowrite2(IUF,LGEOM(ICOMP),IComp,IUOUT,3,IER)
             else
               call emkgeo(IUF,LGEOM(ICOMP),ICOMP,3,IER)
             endif
@@ -4751,6 +5078,25 @@ C geometry and attribution
 C Remember this geometry file has been done so that a later selection
 C of constructions does not re-do it.
             ivalsg(ic)=ivals(IC)
+
+C Also process zone construction files and write to alt nameed file.
+            call FINDFIL(LTHRM(ICOMP),XST)
+            if(XST)then
+              QUIET=.FALSE.
+              CALL ECONST(LTHRM(ICOMP),IUF,ICOMP,ITRC,ITRU,IER)
+              EXT='.con'
+              CALL FNCNGR(LTHRM(ICOMP),APE,EXT,NNAME)
+              write(LTHRM(ICOMP),'(a)') NNAME(1:lnblnk(NNAME))
+              CALL EMKCON(LTHRM(ICOMP),IUF,ICOMP,QUIET,IER)
+            endif
+            call FINDFIL(LTWIN(ICOMP),XST)
+            if(XST)then
+              CALL ERTWIN(ITRC,ITRU,IFU,LTWIN(ICOMP),ICOMP,IER)
+              EXT='.tmc'
+              CALL FNCNGR(LTWIN(ICOMP),APE,EXT,NNAME)
+              write(LTWIN(ICOMP),'(a)') NNAME(1:lnblnk(NNAME))
+              CALL MKTWIN(IFU,ICOMP,QUIET,IER)
+            endif
 
 C If there is an existing shading file copy it to new name
 C so that subsequent changes are applied to the new file.
@@ -4885,7 +5231,6 @@ C              CALL USRMSG('Copying obstruction file via:',doit,'-')
         endif
 
 C Find existing shading and viewfactor files. 
-C << If embedded shading calcs ignore ???. >>
         ishdq=-1
         ivfwq=-1
         do 43 iz=1,ncomp
@@ -4909,7 +5254,8 @@ C << If embedded shading calcs ignore ???. >>
         endif
       ELSEIF(M.EQ.3)THEN
 
-C site exposure and ground reflectance
+C Site exposure and ground reflectance creates variant cfg file with
+C these attributes altered - other model features remain the same.
 C Selection strings for site exposure.
         SALT(1)='typical city centre            '
         SALT(2)='typical urban site             '
@@ -4948,268 +5294,18 @@ C Selection strings for site exposure.
 
       ELSEIF(M.EQ.4)THEN
 
-C Shading and insolation choices. First find out if any of the
-C zones curently include shading or obstruction files. If none do then
-C allow the user to select one or more zones.
-
-C << it would be convenient if the number of obstructions was in
-C << an array so files did not need to be scanned.
-
-        ishd=-1
-        do 142 iz=1,ncomp
-          if(ISI(iz).eq.1)ishd=1
-          if(IOBS(iz).eq.1)ishd=1
-          if(IOBS(iz).eq.2)ishd=1
- 142    continue
-        if(ishd.eq.-1)then
-          helptopic='no_shd_instructions'
-          call gethelptext(helpinsub,helptopic,nbhelp)
-          CALL EASKMBOX(
-     &    'Model does not include shading/ insolation data.',
-     &    'Options:','select zones for insolation',
-     &    'select zones for shading/ insolation','cancel',
-     &    ' ',' ',' ',' ',' ',IW,nbhelp)
-          if(iw.eq.1)then
-            inpic=0
-            call askmultizone(inpic,ivals,
-     &        'Select zones for insolation?',
-     &        'Zone insolation variant','s',ier)
-          elseif(iw.eq.2)then
-            inpic=0
-            call askmultizone(inpic,ivals,
-     &        'Select zones for shading/ insolation?',
-     &        'Zone shading/insolation variant','s',ier)
-          elseif(iw.eq.3)then
-            inpic=0
-            continue
-          endif
-          if(iw.eq.1.or.iw.eq.2)then
-            if(inpic.gt.0)then
-
-C << need to deal with file separator more generically >>
-              DO 151 IC=1,inpic
-                ICOMP=ivals(IC)
-                ISI(ICOMP)=1
-                if(zonepth(1:2).eq.'  '.or.zonepth(1:2).eq.'./')then
-                  WRITE(LSHAD(icomp),'(A,A4)')
-     &              zname(icomp)(1:lnzname(icomp)),'.shd'
-                else
-                  WRITE(LSHAD(icomp),'(3A,A4)') 
-     &              zonepth(1:lnblnk(zonepth)),'/',
-     &              zname(icomp)(1:lnzname(icomp)),'.shd'
-                endif
-                EXT='.shd'
-                CALL FNCNGR(LSHAD(ICOMP),APE,EXT,NNAME)
-                write(LSHAD(ICOMP),'(a)') NNAME(1:lnblnk(NNAME))
-
-C Create a small place-holder file that subsequent calculation
-C procedure can overwrite. Mark for performing shading calculatons.
-                IUF=IFIL+2
-                CALL EFOPSEQ(IUF,LSHAD(ICOMP),3,IER)
-                WRITE(IUF,'(2a)') 'Placeholder shading file for ',
-     &            zname(icomp)(1:lnzname(icomp))
-                CALL ERPFREE(IUF,ios)
-                ishad=1
-                ishd=1
- 151          continue
-            endif
-          endif
-          if(iw.eq.2)then
-
-C Create an obstructions file for each of the selected zones if
-C it is an older format geometry file.
-C First create initial name, then mangle it and write block.
-            IUF=12
-            if(inpic.gt.0)then
-              DO 152 IC=1,inpic
-                ICOMP=ivals(IC)
-                call eclose(gversion(icomp),1.1,0.01,newgeo)
-                if(newgeo)then
-
-C If v1.1 geometry file, set iobs=2 and add an initial block via ecrobs.
-                  IOBS(icomp)=2
-                  silent=.true.
-                  CALL ECROBS(ITRC,ITRU,IUF,ICOMP,silent,IER)
-                  call geowrite(IUF,LGEOM(ICOMP),IComp,IUOUT,3,IER)
-                else
-
-C Older format geometry file so use separate zone obstructions file.
-                  if(zonepth(1:2).eq.'  '.or.zonepth(1:2).eq.'./')then
-                    WRITE(ZOBS(icomp),'(A,A4)')
-     &                zname(icomp)(1:lnzname(icomp)),'.obs'
-                  else
-                    WRITE(ZOBS(icomp),'(3A,A4)') 
-     &                zonepth(1:lnblnk(zonepth)),'/',
-     &                zname(icomp)(1:lnzname(icomp)),'.obs'
-                  endif
-                  EXT='.obs'
-                  CALL FNCNGR(ZOBS(ICOMP),APE,EXT,NNAME)
-                  write(ZOBS(ICOMP),'(a)') NNAME(1:lnblnk(NNAME))
-                  silent=.true.
-                  CALL ECROBS(ITRC,ITRU,IUF,ICOMP,silent,IER)
-                  IF(IOBS(ICOMP).eq.0)then
-                    ZOBS(ICOMP)=' '
-                  endif
-                  docnn=.true.
-                endif
- 152          continue
-            endif
-          endif
-          if(iw.ne.3)then
-            call edisp(iuout,
-     &        '* Shading files being copied. If site details')
-            call edisp(iuout,
-     &        'change shading/insolation will be recalculated.')
-            docnn=.true.
-          endif
-        elseif(ishd.eq.1)then
-
-C There is shading and/or insulation check if user wants to dereference.
-
-C << the logic below does not check to see if model uses newer file
-C << formats e.g. to remove obstructions from within geometry file.
-          helptopic='shading_evaluations'
-          call gethelptext(helpinsub,helptopic,nbhelp)
-
-          IW=1
-          CALL EASKMBOX(
-     &      'Model includes detailed shading/ insolation data.',
-     &      'Options:','dereference shading','dereference obstructions',
-     &      'dereference obstr & shading','modify obstructions',
-     &      'cancel',' ',' ',' ',IW,nbhelp)
-          if(iw.eq.1)then
-            inpic=0
-            call askmultizone(inpic,ivals,
-     &        'Select zones to dereference insolation?',
-     &        'Zone insolation dereference','s',ier)
-            if(inpic.gt.0)then
-              DO 153 IC=1,inpic
-                ICOMP=ivals(IC)
-                ISI(ICOMP)=0
- 153          continue
-              msg1='updating model for shading changes ...'
-              docnn=.true.
-            endif
-          elseif(iw.eq.2)then
-
-C Note: only dereference zones that have separate zone obstruction
-C files (iobs=1). Ignore zones with obstructions within geometry file.
-            inpic=0
-            call askmultizone(inpic,ivals,
-     &        'Select zones to dereference obstructions?',
-     &        'Zone obstructions dereference','b',ier)
-            if(inpic.gt.0)then
-              DO 154 IC=1,inpic
-                ICOMP=ivals(IC)
-                if(iobs(icomp).eq.1) IOBS(ICOMP)=0
- 154          continue
-              msg1='updating model for shading changes ...'
-              docnn=.true.
-            endif
-          elseif(iw.eq.3)then
-            inpic=0
-            call askmultizone(inpic,ivals,
-     &        'Select obs & shading/ insolation dereference variant',
-     &        'obs & shading/insolation variant','s',ier)
-            if(inpic.gt.0)then
-              DO 155 IC=1,inpic
-                ICOMP=ivals(IC)
-                IOBS(ICOMP)=0
-                ISI(ICOMP)=0
- 155          continue
-            endif
-            msg1='updating model for shading changes ...'
-            docnn=.true.
-          elseif(iw.eq.4)then
-
-C Create an obstructions file for each of the selected zones
-C which does not already have one. If there is an obstructions
-C file (iobs(icomp) is non-zero) then read current obstructions
-C update the file name and write back out to NNAME file.
-
-C << if newer format geometry then alternative logic needed >>
-
-            IUF=12
-            inpic=0
-            call askmultizone(inpic,ivals,
-     &        'Obstruction files to modify/ add for this variant',
-     &        'List of zones/ obstructions','b',ier)
-            if(inpic.gt.0)then
-              DO 156 IC=1,inpic
-                ICOMP=ivals(IC)
-                if(IOBS(ICOMP).eq.1)then
-                  silent=.true.
-                  EXT='.obs'
-                  CALL EGOMST(IUF,icomp,ZOBS(ICOMP),0,ITRC,ITRU,IER)
-                  CALL FNCNGR(ZOBS(ICOMP),APE,EXT,NNAME)
-                  write(ZOBS(ICOMP),'(a)') NNAME(1:lnblnk(NNAME))
-                  CALL MKGOMST(IUF,ZOBS(ICOMP),ICOMP,IER)
-                elseif(IOBS(ICOMP).eq.2)then
-                  continue
-                elseif(IOBS(ICOMP).eq.0)then
-
-C Create an obstruction file name, mangle the name and write
-C out default block.
-
-C << and check if newer geometry file and see about alternative
-C << logic that does not bother with obs file copying.
-
-                  IOBS(ICOMP)=1
-                  if(zonepth(1:2).eq.'  '.or.zonepth(1:2).eq.'./')then
-                    WRITE(ZOBS(icomp),'(A,A4)')
-     &                zname(icomp)(1:lnzname(icomp)),'.obs'
-                  else
-                    WRITE(ZOBS(icomp),'(3A,A4)') 
-     &                zonepth(1:lnblnk(zonepth)),'/',
-     &                zname(icomp)(1:lnzname(icomp)),'.obs'
-                  endif
-                  EXT='.obs'
-                  CALL FNCNGR(ZOBS(ICOMP),APE,EXT,NNAME)
-                  write(ZOBS(ICOMP),'(a)') NNAME(1:lnblnk(NNAME))
-                  silent=.true.
-                  CALL ECROBS(ITRC,ITRU,IUF,ICOMP,silent,IER)
-                endif
-
-C There will need to be a shading file for this modified obstruction
-C fileis so create a base name for shading file and then tweak the name via fncngr.
-                ISI(ICOMP)=1
-                if(zonepth(1:2).eq.'  '.or.zonepth(1:2).eq.'./')then
-                  WRITE(LSHAD(icomp),'(A,A4)')
-     &              zname(icomp)(1:lnzname(icomp)),'.shd'
-                else
-                  WRITE(LSHAD(icomp),'(3A,A4)') 
-     &              zonepth(1:lnblnk(zonepth)),'/',
-     &              zname(icomp)(1:lnzname(icomp)),'.shd'
-                endif
-                EXT='.shd'
-                CALL FNCNGR(LSHAD(ICOMP),APE,EXT,NNAME)
-                write(LSHAD(ICOMP),'(a)') NNAME(1:lnblnk(NNAME))
-
-C Create a small place-holder file that subsequent calculation
-C procedure can overwrite. Mark to update shading files.
-                IUF=IFIL+2
-                CALL EFOPSEQ(IUF,LSHAD(ICOMP),3,IER)
-                WRITE(IUF,'(2a)') 'Placeholder shading file for ',
-     &            zname(icomp)(1:lnzname(icomp))
-                CALL ERPFREE(IUF,ios)
-                ishad=1
-                ishd=1
-
-C << what the logic does not yet do is loot to see if there is an ascii
-C << version of the zone shading file and copy it to the new name.
-
- 156          continue
-              msg1='updating model for obstruction changes ...'
-              docnn=.true.
-            endif
-          elseif(iw.eq.5)then
-            msg1='shading changes not selected'
-          endif
-        endif
+C If the zone form & composition option above already invoked then
+C advise the user to simply go to the model context menu and adjust
+c the site data and allow the variant zone files to be updated.
+        helptopic='shading_tasks'
+        call gethelptext(helpinsub,helptopic,nbhelp)
+        CALL PHELPD('shading updates elsewhere',nbhelp,'-',0,0,IER)
+        msg1='no shading changes ...'
 
       ELSEIF(M.EQ.5)THEN
 
-C View factors and radiant sensors.
+C Add calculated view factors to a model. Would be
+C better placed in the menu for view factors.
         inpic=0
         call askmultizone(inpic,ivals,
      &    ' Select zones for viewfactor variant?',
@@ -5240,7 +5336,7 @@ C known in the associated zone geometry file so update if required.
      &            NZSUR(ICOMP),IUF,ICOMP,'v',IER)
                 call eclose(gversion(icomp),1.1,0.01,newgeo)
                 if(newgeo)then
-                  call geowrite(IUF,LGEOM(ICOMP),IComp,IUOUT,3,IER)
+                  call geowrite2(IUF,LGEOM(ICOMP),IComp,IUOUT,3,IER)
                 endif
               elseif(IVF(icomp).eq.0)then
                 if(zonepth(1:2).eq.'  '.or.zonepth(1:2).eq.'./')then
@@ -5279,7 +5375,8 @@ C configuration file has been updated.
       ELSEIF(M.EQ.6)THEN
 
 C Climate, latitiude and longitude. First check if the model
-C includes shading files.
+C includes shading files. Also updates model title and IPV.
+C << why does it not copy zone shading files? 
         ishd=-1
         if(ISIcalc.eq.1)then
           continue
@@ -5369,7 +5466,8 @@ C Update the titles.
 
       ELSEIF(M.EQ.7)THEN
 
-C Pressure distribution
+C Pressure distribution. Offers to update the database and
+C create a model cfg file which points to alternative db.
         helptopic='pressure_db_changes'
         call gethelptext(helpinsub,helptopic,nbhelp)
         msg1='updating model for pressure db changes ...'
@@ -5401,17 +5499,13 @@ C Slot for future option.
       ELSEIF(M.EQ.9)THEN
 
 C Variant zone constructions (this includes geometry, construction
-C and tmc file variants for each zone selected.
-        nbitem=0
-        call askmultizone(nbitem,items,
-     &    'Select zones for construction variant?',
-     &    'Zone construction variant','c',ier)
-        if(nbitem.gt.0)then
-
-C Call VER_GEO_CON_TMC passing nbitem, items and APE
-C Also ivalsg array of possibly already done zone geometry files.
-          call VER_GEO_CON_TMC(nbitem,items,ivalsg,APE,docnn)
-        endif
+C and tmc file variants for each zone selected. Uses logic in sensa.F
+C for safety better to just copy the zone construction files in
+C the geometry logic above.
+        helptopic='construction_tasks'
+        call gethelptext(helpinsub,helptopic,nbhelp)
+        CALL PHELPD('construction updates elsewhere',nbhelp,'-',0,0,IER)
+        msg1='choose zone form & composition instead ...'
 
       ELSEIF(M.EQ.10)THEN
 
@@ -5783,8 +5877,12 @@ C some characters from the middle of the string buffer.
 C If a variant connections file also required set this up.
         if(docnn)then
           EXT='.cnn'
-          CALL FNCNGR(LCNN,APE,EXT,NNAME)
-          write(LCNN,'(a)') NNAME(1:lnblnk(NNAME))
+          if(icfgv.gt.4)then
+            if(usecurcfg.eq.1)then
+              CALL FNCNGR(LCNN,APE,EXT,NNAME)
+              write(LCNN,'(a)') NNAME(1:lnblnk(NNAME))
+            endif
+          endif
         endif
         call usrmsg(msg1,' ','-')
         CALL EMKCFG('-',IER)
@@ -5856,6 +5954,9 @@ C Re-draw the configuration buttons.
      &   icfgpln,icfgeln,icfgfab,icfgbeh,icfgsim,
      &   iicfgz,iicfgs,iicfgnet,iicfgc,iicfgpln,
      &   iicfgeln,iicfgfab,iicfgbeh,iicfgsim)
+     
+C Set renewables value (as it does not come out of cfgtogg)
+C         icfgren=1
  
         call opencfg(icfg_type,icfgz,icfgs,icfgnet,icfgc,
      &   icfgpln,icfgeln,icfgren,icfgfab,icfgbeh,icfgsim)
@@ -6109,7 +6210,7 @@ C Check if geometry file has already been updated.
             newgeo = .true.
           endif
           if(newgeo)then
-            call geowrite(IUNIT,LGEOM(ICOMP),ICOMP,ITRU,3,IER)
+            call geowrite2(IUNIT,LGEOM(ICOMP),ICOMP,ITRU,3,IER)
           else
             call emkgeo(IUNIT,LGEOM(ICOMP),ICOMP,3,IER)
           endif

@@ -8,10 +8,10 @@ C must have included net_flow.h prior to include tdf2.h.
 C Allowed number of tabular entries in the TDF file. For large
 C models there may be one item per zone so this should reflect
 C the number of zones in building.h
-      PARAMETER (MIT=140)
+      PARAMETER (MIT=300)
 
 C Allowed columns of tabular data in TAB file.
-      PARAMETER (MTABC=140)
+      PARAMETER (MTABC=300)
 
 C Maximum number of help lines associated with a generic item.
       PARAMETER (MHEL=5)

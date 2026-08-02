@@ -167,8 +167,10 @@ C some common blocks which should not be cleared.)
       endif
 
 C User did not cancel so instantiate data for new model. Current default
-C version is v5.
-      icfgv=5
+C version is v5 and for new models use embedded (surface based boundary
+C attributes to hold connections).
+      icfgv = 5
+      usecurcfg = 1
       INDCFG=0
       if(act(1:2).eq.'sn'.or.act(1:2).eq.'sw')then
         continue      ! META or gbXML file will already have set sitelat etc.
@@ -211,6 +213,7 @@ C If string > 4 char it might have a .cfg attached, otherwise add.
           write(LCFGF,'(a,a)') LCFGF(1:lcfgr),'.cfg'
           write(thecfgis,'(a,a)') LCFGF(1:lcfgr),'.cfg'
         endif
+        write(LCNN,'(a)') 'internal'  ! New registrations presume embedded.
       else
         if(lcfgr.le.32)then
           write(cfgroot,'(a)') LCFGF(1:lcfgr)
@@ -423,6 +426,7 @@ C Create folders.
       endif
 
 C Instantiate standard sub-folders within model folder.
+C [ ? testpth ]
       write(zonepth,'(3a)')'..',fs,'zones'
       write(netpth,'(3a)')'..',fs,'nets'
       write(ctlpth,'(3a)')'..',fs,'ctl'
@@ -501,7 +505,7 @@ C Re-establish pwd and then project folders.
 C General description of the model.
   52  helptopic='cfg_model_descriptor'
       call gethelptext(helpinsub,helptopic,nbhelp)
-      modeltitle='  '
+      modeltitle='This model...'
       ltmp=modeltitle
       CALL EASKS(ltmp,' ','Model synopsis?',
      &  72,'Base case model','model description',IER,nbehlp)
@@ -729,6 +733,10 @@ C recognised as *std items and then written out in *std format.
           IUF=IPRODB   ! assign second file unit to the events db unit
           CALL ERSYS(LCFGF,IFCFG,IUF,MODE,itrcc,IER)
           call pausems(100)
+
+C      write(6,*) 'prereg 736 icfgv usecurcfg',icfgv,usecurcfg,
+C     &  cnndisagree,' ',LCNN(1:lnblnk(LCNN))
+
           CALL EMKCFG('-',IER)
         endif
 
@@ -780,7 +788,7 @@ C Parameters.
       integer lnblnk  ! function definition
       character doit*248
       character dq*1,fs*1
-      character tmode*8
+      character tmode*8,msg*96
       logical unixok
 
       helpinsub='folders'     ! set for subroutine
@@ -799,22 +807,20 @@ C Set folder separator (fs) to \ or / as required.
 
 C If the restart fails notify user of likely place to find the
 C new model files (if W10).
-        h(1)='WARNING: In W7 W10 W11 the task of refocusing the Project'
-        h(2)='Manager on a model cfg folder and loading a model does'
-        h(3)='not always work. You many need to use the OS file manager'
-        h(4)='to go to the model cfg folder and then right-click on'
-        h(5)='the cfg file.  You should find the files at:'
+        helptopic='warn_restart_W7'
+        call gethelptext(helpinsub,helptopic,nbhelp)
+        call edisp(iuout,' ')
+        call edisp(iuout,'You should find the model in folder:')
         ln=lnblnk(cfgpath)
-        if(ln.lt.70)then
-          write(h(6),'(a)') cfgpath(1:lnblnk(cfgpath))
-          h(7)=' '
+        if(ln.lt.72)then
+          write(msg,'(a)') cfgpath(1:lnblnk(cfgpath))
+          call edisp(iuout,msg)
         else
-          write(h(6),'(a)') cfgpath(1:70)
-          write(h(7),'(a)') cfgpath(71:lnblnk(cfgpath))
+          write(msg,'(a)') cfgpath(1:72)
+          call edisp(iuout,msg)
+          write(msg,'(a)') cfgpath(73:lnblnk(cfgpath))
+          call edisp(iuout,msg)
         endif
-        h(8)='where you should find the model cfg file:'
-        write(h(9),'(a)') thecfgis(1:lnblnk(thecfgis))
-        nbhelp=9
         CALL PHELPD('model focus change',nbhelp,'-',0,0,IER)
       endif
 
@@ -1763,7 +1769,7 @@ C Edit zone name - read and then write the geometry file.
             newgeo = .true.
           endif
           if(newgeo)then
-            call geowrite(IUF,LGEOM(IZ),IZ,iuout,3,IER)
+            call geowrite2(IUF,LGEOM(IZ),IZ,iuout,3,IER)
           else
             call emkgeo(IUF,LGEOM(IZ),IZ,3,IER)
           endif

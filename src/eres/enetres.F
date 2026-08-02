@@ -24,12 +24,11 @@ C ENETHASH    - low level routine which locates entries in the electrical result
 C ENETGET     - low level routine which reads specific entries from the results file.
 C ENETPROC    - processes the data recovered at each time step, sending the
 C               data to the appropriate processing routine.
-C ************************************************************************************
-C Subroutine ENETRES is the main controlling routine for the recovery and
-C analysis of electrical network output.
-C ************************************************************************************
-      SUBROUTINE ENETRES
 
+C ********* ENETRES **********
+C Main controlling routine for the recovery and analysis of electrical network output.
+
+      SUBROUTINE ENETRES
 #include "building.h"
 #include "plant.h"
 #include "power.h"
@@ -72,14 +71,14 @@ C << to be done >>
         LTMP=EFILEABS(1:LNBLNK(EFILEABS))
       ENDIF
       ELRFLNAM=' '
-      DFILE='libe'
+      DFILE='elr'
       LLEN=LNBLNK(ltmp)
       IF(LLEN.LT.72)LLEN=72
       helptopic='res_electrical_res_lib'
       call gethelptext(helpinsub,helptopic,nbhelp)
       ISTRW=LLEN
-      CALL EASKF(ltmp,'Electrical library name ? ',' ',ISTRW,DFILE,
-     &        'electrical library file',IER,nbhelp)
+      CALL EASKF(ltmp,'Electrical library name?',' ',ISTRW,DFILE,
+     &  'electrical library file',IER,nbhelp)
       ELRFLNAM=LTMP(1:LNBLNK(LTMP))
       CALL USRMSG(' ',' ','-')
       IER=0 
@@ -95,9 +94,9 @@ C Set the record length and file number
 C Open the electrical simulation results file
          CALL EFOPRAN(IELFIL,ELRFLNAM,IELIBW,1,IER)
          IF(IER.LT.0) then
-          helptopic='res_electrical_res_lib'
-          call gethelptext(helpinsub,helptopic,nbhelp)
-        CALL EASKOK('Error opening electrical results library!',
+           helptopic='res_electrical_res_lib'
+           call gethelptext(helpinsub,helptopic,nbhelp)
+           CALL EASKOK('Error opening electrical results library!',
      &        'Retry?',OK,nbhelp)
           IF(OK)THEN
             GOTO 1
@@ -106,8 +105,7 @@ C Open the electrical simulation results file
           ENDIF
         ENDIF
       ELSE
-        CALL EASKOK('Cannot locate file!',
-     &    'Retry?',OK,nbhelp)
+        CALL EASKOK('Cannot locate file!','Retry?',OK,nbhelp)
         IF(.NOT.OK)RETURN
         GOTO 1
       ENDIF

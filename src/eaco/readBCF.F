@@ -14,8 +14,8 @@ C PURPOSE. See the GNU General Public License for more
 C details.
 
 C************ MatIndex*************
-C Using an Material name (XMat), returns its material block index in the 
-C BCF file. Scan the list of Mat name (CompoNam) and compare to XMat.
+C Using an Material name (XMat), returns its material block index in the BCF file.
+C Scan the list of Mat name (MatNameco) and compare to XMat.
 
 C XMat (Char) : Material name to find
 C CompoNam(MMLC) (Char) : List of MLC name in BCF.
@@ -28,31 +28,30 @@ C MatIndex (Integer) : Material index in the BCF file corresponding to XMat
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/EIAhigh/NbComp,NbMat,IMatID(MMLC,ME),ImatDbID(0:MMAT-1),
      &               LCIATag
-      COMMON/DesMLC/MatNamed(MMAT),MatDescd(MMAT),MatCatd(MMAT),
+      COMMON/DesMLC/MatNameco(MMAT),MatDesc(MMAT),MatCat(MMAT),
      &              CompoNam(MMLC), LayerDes(MMLC,ME)
+      CHARACTER*32 MatNameco,CompoNam
+      CHARACTER*72 MatDesc,MatCat,LayerDes
 
-      CHARACTER*12 XMat
+      CHARACTER*32 XMat
       CHARACTER*72 outs
-      CHARACTER*72 LayerDes, MatDescd, MatCatd
-      CHARACTER*12 MatNamed, CompoNam
  
       MatIndex = 0
+      lnxmat=lnblnk(XMat)
       DO 10 IC=1,NbMat
-        IF (MatNamed(IC) .EQ. XMat) THEN
+        lnmatn=lnblnk(MatNameco(IC))
+        IF (MatNameco(IC)(1:lnmatn).EQ.XMat(1:lnxmat)) THEN
           MatIndex = IC
           GOTO 363
         ENDIF
  10   CONTINUE
 363   IF (MatIndex .EQ. 0) THEN
-        WRITE(outs,'(a,a)') XMat,' not found in BCF file.'
+        WRITE(outs,'(a,a)') XMat(1:lnxmat),' not found in BCF file.'
         CALL edisp(iuout,outs)
         GOTO 666
       ENDIF
 666   RETURN
       END
-
-
-
 
 
 c ******************** STRIPCB
@@ -70,12 +69,13 @@ C   IEXP >0  means a specific number of items expected (error if not)
 C   IEXP = 99 check number of items and return in ITEMS
  
       SUBROUTINE STRIPCB(INPCH,OUTSTR,IEXP,ITEMS,IR,MSG,IER)
-      CHARACTER*124 tmp,STRING,OUTSTR,MSG1
-      CHARACTER*(*) MSG
-      logical unixok
       
       integer lnblnk  ! function definition
       integer iCountWords
+
+      CHARACTER*124 tmp,STRING,OUTSTR,MSG1
+      CHARACTER*(*) MSG
+      logical unixok
 
 C Read a line of the file, strip off any trailing blanks, if the first
 C character is a # then read the next line from the file.
@@ -136,8 +136,11 @@ C Trap for I/O error.
 
 
 C ******************** SCNBCF ******************************
-C  SCNBCF scans the building constructions file (BCF) and recorde all 
-C Ecobalance values from all th constructions 
+C SCNBCF scans the building constructions file (BCF) and record all 
+C ACOUSTIC values from all the constructions (a subset of the LCA
+C data). Note: this SCNBCF is almost identical to the subroutine
+C in the eeco source folder. Minor tweaks. It may be posible to
+C have a single version at some point in the future.
 
 C CONSTANTS
 C----------
@@ -341,9 +344,9 @@ C ic Inetger: dummy variable use to skip "None" in list (transports, etc.)
 #include "esprdbfile.h"
 #include "material.h"
 #include "help.h"
-      
+#include "espriou.h"
+     
       integer lnblnk  ! function definition
-
 
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
 
@@ -360,6 +363,7 @@ C ic Inetger: dummy variable use to skip "None" in list (transports, etc.)
      &                AsProjPa(MMLC,MNbAss),LayerCat(MMLC,ME),
      &                MainPart(MMLC,MNbM),LayerNam(MMLC,ME),
      &                LayerTyp(MMLC,ME)
+      CHARACTER*32 LayerNam
 
       COMMON/EIAImp/FabImp(MMAT,MIMP),TrImp(MMAT,MNbTrans,MIMP),
      &          RecyImp(MMAT,MIMP),ReTrImp(MMAT,MNbTrans,MIMP),
@@ -382,28 +386,29 @@ C ic Inetger: dummy variable use to skip "None" in list (transports, etc.)
       COMMON/EIAhigh/NbComp,NbMat,IMatID(MMLC,ME),ImatDbID(0:MMAT-1),
      &               LCIATag
 
-      COMMON/DesMLC/MatNamed(MMAT),MatDescd(MMAT),MatCatd(MMAT),
+      COMMON/DesMLC/MatNameco(MMAT),MatDesc(MMAT),MatCat(MMAT),
      &              CompoNam(MMLC), LayerDes(MMLC,ME)
+      CHARACTER*32 MatNameco,CompoNam
+      CHARACTER*72 MatDesc,MatCat,LayerDes
 
       COMMON/AbsoCoef/SysAbsCo(MMLC,MNbAbs),PubAbsCo(MaxPub,MNbAbs),
      &                FurAbsCo(MaxPub,MNbAbs),AirAbs(MNbAbs)
 
       COMMON/SysTre/SyTrevPt(MMLC),SyTrevDe(MMLC),AbsUnit(MMLC)
+      CHARACTER SyTrevPt*12, SyTrevDe*40, AbsUnit*5
       COMMON/ABREVImp/AbrevIMP(MIMP)
 
       LOGICAL BCFOK, ACOOK
 
-      CHARACTER BCFfile*72,WORD*30,OUTSTR*124,RmStr*124,outs*174
+      CHARACTER BCFfile*72,WORD*30,OUTSTR*148,RmStr*124,outs*174
       CHARACTER CompDes*74,EOFT*4
-      CHARACTER BCFName*72, System*72,BCFVer*72
+      CHARACTER BCFName*72, System*72,BCFVer*5
       character Tmpstr*24
-      CHARACTER SyTrevPt*12, SyTrevDe*40, AbsUnit*5, AbsFreq(MNbAbs)*9
+      CHARACTER AbsFreq(MNbAbs)*9
       CHARACTER*12 FabPt,TrPt,RecyPt,ReTrPt,BurnPt,BuTrPt,DumpPt,DuTrPt
       CHARACTER*12 ComAsPt,CoTrPt,MaintPt,AsProjPt
       CHARACTER*1 ComAsPa,MaintTyp,LayerCat,MainPart,AsProjPa,LayerTyp
-      CHARACTER*72 LayerDes, MatDescd, MatCatd
-      CHARACTER*12 MatNamed, CompoNam
-      CHARACTER*12 LayerNam
+
       CHARACTER*1 LayerThm(MMLC,MMAT)
 C Temporary values
       INTEGER TmpInt
@@ -417,6 +422,7 @@ C Temporary values
 C Declare constant arrays
       REAL MaxImpTr(MIMP),MinImpTr(MIMP),MaxImp(MIMP),MinImp(MIMP)
       CHARACTER*4 AbrevImp
+      character ch12*12,ch32*32,ch72*72,ch40*40
 
 C Initialiastion
       DATA MaxImpTr /100.,100.,100.,100./
@@ -425,16 +431,16 @@ C Initialiastion
       DATA MinImp /0.,0.,0.,0./
 
       helpinsub='readBCF'  ! set for subroutine
-
-      do 144 I=1,ME
+      ch12=' '; ch32=' '; ch72=' '
+      do I=1,ME
         NbEIALay(I)=0
- 144  continue
+      enddo
 
-      do 146 J=1,ME
-        do 145 I=1,MMLC
+      do J=1,ME
+        do I=1,MMLC
           IMatID(I,J)=0
- 145    continue
- 146  continue
+        enddo
+      enddo
 
       BCFOK=.FALSE.
       ACOOK=.FALSE.
@@ -445,18 +451,19 @@ C Specify the reading mode.
       helptopic='aco_read_bcf_silent'
       call gethelptext(helpinsub,helptopic,nbhelp)
       CALL EASKMBOX(' When reading in the BCF file, do you',
-     &  ' want it:','done silently','with reporting of contents',
+     &  'want it:','done silently','with reporting of contents',
      &  ' ',' ',' ',' ',' ',' ',IW,nbhelp)
       CALL EFOPSEQ(IUC,BCFfile,1,IER)
       IF (IER.LT.0) then
         WRITE (outs,'(a,a)')' Error while opening BCF file : ',
-     &                             BCFfile(1:lnblnk(BCFfile))
+     &    BCFfile(1:lnblnk(BCFfile))
         CALL EDISP(Iuout,Outs)
         IER=1
         RETURN
       else
         BCFOK = .TRUE.
       endif
+      write(currentfile,'(a)')BCFfile(1:lnblnk(BCFfile))
       
       IF (BCFOK) then
 
@@ -494,14 +501,14 @@ C Define absorption frequencies
         AbsFreq(17)='4000 [Hz]'
 
 C Initialise the layer related data, for each mlc and each layer in.
-        DO 4 I=1,MMLC
-          DO 3 J=1,ME
+        DO I=1,MMLC
+          DO J=1,ME
             LayerNam(I,J)='none'
             LayerCat(I,J)=' '
             QuaLayer(I,J)=0.0
             FixLayer(I,J)=0.0
- 3        continue 
- 4      continue
+          enddo 
+        enddo
 
 C Initialise the construction transport related data
         DO 12 I=1,MMLC
@@ -509,38 +516,37 @@ C Initialise the construction transport related data
             CoTrPt(I,K)='none'
             CoTrDist(I,K)=0
             CoTrBrk(I,K)=0.0
-            DO 14 L=1,MIMP
-              CoTrImp(I,J,L)=0.0
- 14         continue
+            DO L=1,MIMP
+              CoTrImp(I,K,L)=0.0
+            enddo
  13       continue
 
 C Initialise the construction maintenance + Assembly on building related data
-          DO 15 K=1,MNbM
+          DO K=1,MNbM
             MaintPt(I,K)='none'
             AsProjPt(I,K)='none'
             MaintTyp(I,K)='N'
             PerMaint(I,K)=0.0
-            DO 16 L=1,MIMP
+            DO L=1,MIMP
               RMainImp(I,K,L)=0.0
- 16         continue
- 15       continue
+            enddo
+          enddo
  12     continue 
 
 C Initialise the material related data and hygrothermal properties
 
         DO 17 J=1,MMAT
-          MatNamed(J)='UNKNOWN'
-          MatDescd(J)='UNKNOWN'
-          MatCatd(J)='UNKNOWN'
+          MatNameco(J)='UNKNOWN'
+          MatDesc(J)='UNKNOWN'
+          MatCat(J)='UNKNOWN'
 C          RLayeDen(J)=0.0
           DenLay(J)=0.0
           RMatLife(J)=0.0
           FabPt(J)='none'
           AssLoss(J)=0.0
-          MatNamed(J)='UNKNOWN'
-          DO 177 M=1,2
+          do M=1,2
             SpecData(J,M)=0.0
-177       CONTINUE
+          enddo
           RecyPt(J)='none'
           RecyRate(J)=0
           BurnPt(J)='none'
@@ -557,43 +563,43 @@ C          RLayeDen(J)=0.0
             BuTrDist(J,K)=0.0
             DuTrPt(J,K)='none'
             DuTrDist(J,K)=0.0
-            DO 19 L=1,MIMP
+            do L=1,MIMP
               TrImp(J,K,L)=0.0
               ReTrImp(J,K,L)=0.0
               BuTrImp(J,K,L)=0.0
               DuTrImp(J,K,L)=0.0
- 19         continue
+            enddo
  18       continue
  17     continue
 
 C Initialise the material impacts related data
-        DO 20 J=1,MMAT
-          DO 21 L=1,MIMP
+        do J=1,MMAT
+          do L=1,MIMP
             FabImp(J,L)=0.0
             BurnImp(J,L)=0.0
             DumpImp(J,L)=0.0
- 21       continue
- 20     continue
+          enddo
+        enddo
 
 
 C Initialise the material impacts related data
-        DO 25 I=1,MMLC
-          DO 26 K=1,MNbAss
+        do I=1,MMLC
+          do K=1,MNbAss
             ComAsPt(I,K)='none'
- 26       continue
-          DO 27 K=1,MNbTrans
-            CoTrPt(J,K)='none'
-            CoTrDist(J,K)=0.0
- 27       continue
- 25     continue
+          enddo
+          do K=1,MNbTrans
+            CoTrPt(I,K)='none'
+            CoTrDist(I,K)=0.0
+          enddo
+        enddo
 
 C Initialise the reverberation time related data
-        DO 22 I=1,MMLC
+        do I=1,MMLC
             SyTrevPt(I)='none'
-            DO 24 L=1,MNbAbs
+            do L=1,MNbAbs
               SysAbsCo(I,L)=0.0
- 24         continue
- 22     continue
+            enddo
+         enddo
 C        CALL EDISP(Iuout,' Variables initialisation completed.')
 C End initialisation
       endif
@@ -630,9 +636,8 @@ C          CALL ErrArg(0,0,'System name',1,ND-1,OUTSTR(1:7),OutStr)
         K=7
         CALL EGETW(OUTSTR,K,System,'W','loaded system',IER)
         IF (IER .GE. 1) goto 666 
-C if bcf file does not correspond to loaded project
         IF (System(1:lnblnk(System)) .NE.
-     &                                LCFGF(1:lnblnk(LCFGF))) then
+     &      LCFGF(1:lnblnk(LCFGF))) then  ! If bcf file does not correspond to loaded project.
           call edisp(iuout,' ')
           write(outs,'(a,a)')'BCF file does not correspond to ',
      &       LCFGF(:lnblnk(LCFGF))
@@ -643,27 +648,26 @@ C if bcf file does not correspond to loaded project
         else     
           goto 42 
         endif
-      elseif (OUTSTR(1:5).eq.'*Date') then
-C << Do something with balance of date line. >>
+      elseif (OUTSTR(1:5).eq.'*Date') then  ! Do something with balance of date line.
         goto 42 
       elseif (OUTSTR(1:6).eq.'*Scope') then
-C << Do something with balance of scope line. >>
-        goto 42 
+        goto 42   ! Used only with ecobalance.
       elseif (OUTSTR(1:9).eq.'*Lifetime') then
         IF ((IER .GE. 1) .OR. (ND.NE.2)) THEN
-C         CALL ErrArg(0,0,'Lifetime period ',1,ND-1,OUTSTR(1:9),OutStr)
+          CALL ErrArg(0,0,'Lifetime period         ',
+     &       1,ND-1,OUTSTR(1:9),OutStr)
           GOTO 666         
         ENDIF
         K=10
         CALL EGETWR(OUTSTR,K,ProjLife,1.0,1000.0,'W',
-     &                                    'Building life time',IER)
+     &    'Building life time',IER)
         IF (IER .GE. 1) goto 666 
         goto 42 
       elseif (OUTSTR(1:7).eq.'*Nb_mat') then
 C Read number of materials and constructions.
         IF ((IER .GE. 1) .OR. (ND.NE.2)) THEN
-C          CALL ErrArg(0,0,'Number of material(s) ',1,ND-1,OUTSTR(1:7),
-C     &                OutStr)
+           CALL ErrArg(0,0,'Number of material(s)   ',
+     &        1,ND-1,OUTSTR(1:7),OutStr)
           GOTO 666         
         ENDIF
         K=8
@@ -672,26 +676,25 @@ C     &                OutStr)
         goto 42 
       elseif (OUTSTR(1:8).eq.'*Nb_comp') then
         IF ((IER .GE. 1) .OR. (ND.NE.2)) THEN
-C          CALL ErrArg(0,0,'Number of construction(s) ',1,ND-1,
-C     &                OUTSTR(1:8),OutStr)
+          CALL ErrArg(0,0,'Number of construction(s) ',1,ND-1,
+     &      OUTSTR(1:8),OutStr)
           GOTO 666         
         ENDIF
         K=9
         CALL EGETWI(OUTSTR,K,NbComp,1,MMLC,'W',
-     &              'Nb of constructions',IER)
+     &    'Nb of constructions',IER)
         IF (IER .GE. 1) goto 666
 C        call edisp(iuout,'Read Material(s) block') 
         goto 2          
 C End BCF header
       endif
 
-C Main data reading loop trough material block
+C Main data reading loop through material block
 C      IF (IRdmat.EQ.1) THEN
 C        call edisp(iuout,'Read Material(s) block')
 C      ENDIF
 
-  2   CALL STRIPC(IUC,OUTSTR,99,ND,1,
-     &                 'materials data loop',IER)
+  2   CALL STRIPC(IUC,OUTSTR,99,ND,1,'materials data loop',IER)
       IF (IW.EQ.2) call edisp(iuout,OUTSTR) 
       IF(IER.NE.0) goto 1
       K=0
@@ -701,100 +704,105 @@ C      ENDIF
         IRdMat = IRdMat + 1
         IF (IRdMat .EQ. NbMat + 1) goto 44
         K=9
-        CALL EGETP(OUTSTR,K,MatCatd(IRdMat),'W',
-     &                                'material category',IER)
+        CALL EGETP(OUTSTR,K,ch72,'W','material category',IER)
+        MatCat(IRdMat)=ch72
         IF (IER .GE. 1) goto 666 
-        CALL EGETW(OUTSTR,K,MatNamed(IRdMat),'W','material name',
-     &                                             IER)
+        CALL EGETW(OUTSTR,K,ch32,'W','material name',IER)
+        MatNameco(IRdMat)=ch32
         IF (IER .GE. 1) goto 666 
-        CALL EGETP(OUTSTR,K,MatDescd(IRdMat),'W',
-     &                                'material description',IER)
+        CALL EGETP(OUTSTR,K,ch72,'W','material description',IER)
+        MatDesc(IRdMat)=ch72
         IF (IER .GE. 1) goto 666 
         goto 2
 
 C Test if end of material information and jump to constructions code.
-      ELSEIF (WORD(1:13) .EQ. '*End_Material') then
+      elseif (WORD(1:13) .EQ. '*End_Material') then
         goto 44
       elseif (WORD(1:8).eq.'*Domains') then
-        goto 2
+        goto 2  ! Found in some old files, ignored.
       elseif (WORD(1:8).eq.'*Thermal') then
-        IF ((IER .GE. 1) .OR. (ND .NE. 12)) THEN
-C          CALL ErrArg(0,IRdMat,MatNamed(IRdMat),1,ND-1,WORD(1:8),OutStr)
+        IF ((IER .GE. 1) .OR. (ND .LT. 12)) THEN
+          CALL ErrArg(0,IRdMat,MatNameco(IRdMat),1,ND-1,WORD(1:8),
+     &      OutStr)
           GOTO 666         
         ENDIF
-C Thermophysical data. <<Jon >> real variable names
         if(ND.gt.9)then
           K=8
           CALL EGETW(OutStr,K,Tmpstr,'W','Mat. name',IER)
           IF (IER.GE.1) goto 666 
-          CALL EGETWR(OUTSTR,K,TmpReal,0.0,200.0,
-     &                'W','layer conductibility',IER)
+          CALL EGETWR(OUTSTR,K,TmpReal,0.0,200.0,'W','layer cond',IER)
           IF (IER .GE. 1) goto 666 
           CALL EGETWR(OUTSTR,K,DenLay(IRdMat),0.0,10000.,
-     &                'W','layer density',IER)
+     &      'W','layer density',IER)
           IF (IER .GE. 1) goto 666 
-          CALL EGETWR(OUTSTR,K,TmpReal,0.0,10000.0,
-     &                'W','layer Cp',IER)
+          CALL EGETWR(OUTSTR,K,TmpReal,0.0,10000.0,'W','layer Cp',IER)
           IF (IER .GE. 1) goto 666 
-          CALL EGETWR(OUTSTR,K,TmpReal,0.0,1.0,
-     &                'W','emissivity',IER)
+          CALL EGETWR(OUTSTR,K,TmpReal,0.0,1.0,'W','emissivity',IER)
           IF (IER .GE. 1) goto 666 
           CALL EGETWR(OUTSTR,K,TmpReal,0.0,1.0,
-     &                'W','layer solar absoption',IER)
+     &      'W','layer solar absoption',IER)
           IF (IER .GE. 1) GOTO 666 
           CALL EGETWR(OUTSTR,K,TmpReal,0.0,20000.0,
-     &                'W','diffuse resistance',IER)
+     &      'W','diffuse resistance',IER)
           IF (IER .GE. 1) GOTO 666 
-          CALL EGETWR(OUTSTR,K,TmpReal,0.0,1.0,
-     &                'W','roughness',IER)
+          CALL EGETWR(OUTSTR,K,TmpReal,0.0,1.0,'W','roughness',IER)
           IF (IER .GE. 1) GOTO 666 
-          CALL EGETWR(OUTSTR,K,TmpReal,0.0,1.0,
-     &                'W','specularity',IER)
+          CALL EGETWR(OUTSTR,K,TmpReal,0.0,1.0,'W','specularity',IER)
           IF (IER .GE. 1) GOTO 666 
-          CALL EGETWR(OUTSTR,K,TmpReal,0.0,1.0,
-     &                'W','data1',IER)
+          CALL EGETWR(OUTSTR,K,TmpReal,0.0,1.0,'W','data1',IER)
           IF (IER .GE. 1) GOTO 666 
-          CALL EGETWR(OUTSTR,K,TmpReal,0.0,1.0,
-     &                'W','data2',IER)
+          CALL EGETWR(OUTSTR,K,TmpReal,0.0,1.0,'W','data2',IER)
           IF (IER .GE. 1) GOTO 666 
           goto 2
         endif
       elseif (OUTSTR(1:9).eq.'*Acou_Mat') then
-C << Not necessary >>
+
+C Example with 17 values following. Ecobalance application does not use this so
+C read the subsequent line and then jump back for another bcf token.
+C *Acou_Mat,RoughCon,M,unit,
+C 0.010,0.010,0.010,0.010,0.010,0.010,0.010,0.010,0.010,0.020,0.020,0.020,0.030,0.030,0.030,0.030,0.030,
         CALL STRIPC(IUC,OUTSTR,99,ND,1,'BCF:Acou_MAT',IER)
         goto 2 
+      elseif (OUTSTR(1:14).eq.'*Colour_inside') then ! Not used, read another token.
+        goto 2
+      elseif (OUTSTR(1:13).eq.'*Colour_other') then  ! Not used, read another token.
+        goto 2
+      elseif (OUTSTR(1:7).eq.'*Colour') then         ! Not used, read another token.
+        goto 2
+      elseif (WORD(1:12).eq.'*Mat_effects') then     ! Material Fabrication tag
 
-      elseif (WORD(1:12).eq.'*Mat_effects') then
-C Material Fabrication tag
+C Example: involves scanning a subsequent line.
+C *Mat_effects,ReinConS,1,80.00,0.010,0.0000,0.0000,
+C 1.570E-01,5.780E-04,3.765E-04,1.391E+00,
         K=12
         NbTr=0
         CALL EGETW(OutStr,K,FabPt(IRdMat),'W','Mat pointer',IER)
         IF (IER.GE.1) goto 666 
         IF (FabPt(IRdMat)(1:4).NE.'none') THEN 
-          IF ((IER .GE. 1) .OR. (ND.NE.7)) THEN
-C          CALL ErrArg(1,IRdMat,MatNamed(IRdMat),MIMP+7,ND,WORD(1:12),
-C     &                OutStr)
+          IF ((IER .GE. 1) .OR. (ND.LT.7)) THEN
+           CALL ErrArg(1,IRdMat,MatNameco(IRdMat),MIMP+7,ND,WORD(1:12),
+     &       OutStr)
            GOTO 666         
           ENDIF
           CALL EGETWI(OUTSTR,K,NbTr,0,MNbTrans,'W',
-     &         'Nb of transportation to construction site',IER)
+     &      'Nb of transportation to construction site',IER)
           IF (IER .GE. 1) goto 666 
           CALL EGETWR(OutStr,K,Rtmp,0.,1000.,'W','lifetime',IER)
           RMatLife(IRdMat)=Rtmp
           IF (IER.GE.1) goto 666 
           CALL EGETWR(OutStr,K,Rtmp,0.0,1.0,'W',
-     &                  'mat loss during assembly stage',IER)
+     &      'mat loss during assembly stage',IER)
           AssLoss(IRdMat)=Rtmp
           IF (IER.GE.1) goto 666 
           CALL EGETWR(OutStr,K,Rtmp,0.0,1000.0,'W',
-     &                  'mat special data 1',IER)
+     &      'mat special data 1',IER)
           SpecData(IRdMat,1)=Rtmp
           IF (IER.GE.1) goto 666 
           CALL EGETWR(OutStr,K,Rtmp,0.0,1000.0,'W',
-     &                  'mat special data 2',IER)
+     &      'mat special data 2',IER)
           SpecData(IRdMat,2)=Rtmp
           IF (IER.GE.1) goto 666 
-          CALL STRIPC(IUC,OUTSTR,99,ND,1,'BCF',IER)
+          CALL STRIPC(IUC,OUTSTR,99,ND,1,'BCF',IER)  ! read subsequent line.
           IF ((IER .GE. 1) .OR. (ND.NE.MIMP)) THEN
             CALL EDISP(Iuout,' Error in material impacts.')
             goto 666
@@ -802,7 +810,7 @@ C     &                OutStr)
             K=0
             DO 421 L=1,MIMP
               CALL EGETWR(OutStr,K,Rtmp,MinImp(L),MaxImp(L),'W'
-     &                      ,outs,IER)
+     &           ,outs,IER)
               FabImp(IRdMat,L)=Rtmp
               IF (IER.GE.1) goto 666 
 421         continue
@@ -810,7 +818,8 @@ C     &                OutStr)
         ELSE
         ENDIF
 
-C read transport(s) to construction site
+C After *Mat_effects read transport(s) to construction site. Example:
+C *Tran_assembly_site,Lorry16t,400.00,0.000,3.713E-01,3.205E-03,3.307E-03,5.829E+00,
         IF (NbTr.GT.0) THEN           
           Ic = 0
           DO 422 IT=1,NbTr
@@ -821,14 +830,14 @@ C read transport(s) to construction site
             ENDIF
             if ((IER .GE. 1) .OR. (ND.NE.4+MIMP)) then
               CALL EDISP(Iuout,
-     &           'Error in *Tran_assembly_site impacts nb.')
+     &          'Error in *Tran_assembly_site impacts nb.')
               goto 666
             else
               K = 19
               IF (OutStr(1:4).NE.'none') THEN 
                 Ic = Ic+1
                 CALL EGETW(OutStr,K,TrPt(IRdMat,Ic),'W',
-     &               'Transport category to assembly site',IER)
+     &            'Transport category to assembly site',IER)
                 IF (IER.GE.1) goto 666 
                 CALL EGETWR(OutStr,K,TrDist(IRdMat,Ic),DistMin,
      &           DistMax,'W','transport distance to assembly site',IER)
@@ -838,9 +847,9 @@ C read transport(s) to construction site
                 IF (IER.GE.1) goto 666 
                 DO 522 L=1,MIMP
                   WRITE(outs,'(a,a)')AbrevIMP(L),
-     &                    'impacts of transport to assembly site'
+     &              'impacts of transport to assembly site'
                   CALL EGETWR(OutStr,K,TrImp(IRdMat,Ic,L),
-     &                         MinImpTr(L), MaxImpTr(L),'W',outs,IER)
+     &              MinImpTr(L), MaxImpTr(L),'W',outs,IER)
                   IF (IER.GE.1) goto 666 
 522             continue
               ENDIF
@@ -849,28 +858,27 @@ C read transport(s) to construction site
         ENDIF
         goto 2
 
-      elseif (WORD(1:10).eq.'*Dec_Recyc') then
-C Recycling stage
+      elseif (WORD(1:10).eq.'*Dec_Recyc') then    ! Recycling stage
         K=10
         NbTr = 0
         CALL EGETW(OutStr,K,RecyPt(IRdMat),'W','Recy pointer',IER)
         IF (IER.GE.1) goto 666 
         IF (RecyPt(IRdMat)(1:4).NE.'none') THEN
           IF ((IER .GE. 1) .OR. (ND.NE.4+MIMP)) THEN
-C           CALL ErrArg(1,IRdMat,MatNamed(IRdMat),4+MIMP,ND,WORD(1:14),
-C     &                OutStr)
+            CALL ErrArg(1,IRdMat,MatNameco(IRdMat),4+MIMP,ND,WORD(1:14),
+     &        OutStr)
             GOTO 666         
           ENDIF
           CALL EGETWI(OUTSTR,K,NbTr,0,MNbTrans,'W',
-     &         'Nb of transportation to recycling site',IER)
+     &      'Nb of transportation to recycling site',IER)
           IF (IER .GE. 1) goto 666 
           CALL EGETWR(OutStr,K,RecyRate(IRdMat),0.,1.,'W',
-     &               'Recycling rate',IER)
+     &      'Recycling rate',IER)
           IF (IER.GE.1) goto 666 
           DO 423 L=1,MIMP
             WRITE(outs,'(a,a)')AbrevIMP(L),' for material fabrication'
             CALL EGETWR(OutStr,K, RecyImp(IRdMat,L),
-     &                         MinImpTr(L), MaxImpTr(L),'W',outs,IER)
+     &        MinImpTr(L), MaxImpTr(L),'W',outs,IER)
             IF (IER.GE.1) goto 666
 423       continue
         ENDIF
@@ -880,7 +888,7 @@ C Read transport to recycling site
           Ic = 0
           DO 424 IT=1,NbTr
             CALL STRIPC(IUC,OutStr,99,ND,1,'BCF',IER)
-            IF (OutStr(1:11).NE.'*Tran_Recyc') THEN 
+            IF (OutStr(1:11).NE.'*Tran_recyc') THEN 
               CALL EDISP(Iuout,'Error at *Tran_recyc tag.')
               goto 666
             ENDIF
@@ -892,7 +900,7 @@ C Read transport to recycling site
               IF (OutStr(1:4).NE.'none') THEN 
                 Ic = Ic+1
                 CALL EGETW(OutStr,K,ReTrPt(IRdMat,Ic),'W',
-     &               'pointer transport to recycling site',IER)
+     &            'pointer transport to recycling site',IER)
                 IF (IER.GE.1) goto 666
                 CALL EGETWR(OutStr,K,ReTrDist(IRdMat,Ic),DistMin,
      &           DistMax,'W','transport distance to recyc. site',IER)
@@ -900,7 +908,7 @@ C Read transport to recycling site
                 DO 524 L=1,MIMP
                   WRITE(outs,'(a,a)')AbrevIMP(L),' for recycling stage'
                   CALL EGETWR(OutStr,K,ReTrImp(IRdMat,Ic,L),
-     &                         MinImpTr(L), MaxImpTr(L),'W',outs,IER)
+     &              MinImpTr(L), MaxImpTr(L),'W',outs,IER)
                   IF (IER.GE.1) goto 666 
 524             continue
               ENDIF
@@ -909,29 +917,28 @@ C Read transport to recycling site
         ENDIF
         goto 2
 
-      elseif (WORD(1:10).eq.'*Dec_Incin') then
-C Incineration process.
+      elseif (WORD(1:10).eq.'*Dec_Incin') then   ! Incineration process.
         K=10  
         NbTr = 0
         CALL EGETW(OutStr,K,BurnPt(IRdMat),'W',
-     &                    'incineration pointer',IER)
+     &    'incineration pointer',IER)
         IF (IER.GE.1) goto 666 
         IF (BurnPt(IRdMat)(1:4).NE.'none') THEN
           IF ((IER .GE. 1) .OR. (ND .NE. 4+MIMP)) THEN
-C          CALL ErrArg(1,IRdMat,MatNamed(IRdMat),4+MIMP,ND,WORD(1:11),
-C     &                 OutStr)
+C          CALL ErrArg(1,IRdMat,MatNameco(IRdMat),4+MIMP,ND,WORD(1:11),
+C     &      OutStr)
           GOTO 666         
           ENDIF
           CALL EGETWI(OUTSTR,K,NbTr,0,MNbTrans,'W',
      &         'Nb of transportation to incineration site',IER)
           IF (IER .GE. 1) goto 666 
           CALL EGETWR(OutStr,K,BurnRate(IRdMat),0.,1.,'W',
-     &                              'Incineration rate',IER)
+     &       'Incineration rate',IER)
           IF (IER.GE.1) goto 666 
           DO 425 L=1,MIMP
            WRITE(outs,'(a,a)')AbrevIMP(L),' for material fabrication'
             CALL EGETWR(OutStr,K,BurnImp(IRdMat,L),
-     &                         MinImpTr(L), MaxImpTr(L),'W',outs,IER)
+     &        MinImpTr(L), MaxImpTr(L),'W',outs,IER)
             IF (IER.GE.1) goto 666
 425       CONTINUE
         ENDIF
@@ -953,7 +960,7 @@ C Read transport to incineration site
               IF (OutStr(1:4).NE.'none') THEN 
                 Ic = Ic+1
                 CALL EGETW(OutStr,K,BuTrPt(IRdMat,Ic),'W',
-     &               'transport category to incineration site',IER)
+     &            'transport category to incineration site',IER)
                 IF (IER.GE.1) goto 666 
                 CALL EGETWR(OutStr,K,BuTrDist(IRdMat,Ic),DistMin,
      &           DistMax,'W','transport distance to incineration site',
@@ -962,7 +969,7 @@ C Read transport to incineration site
                 DO 526 L=1,MIMP
                   WRITE(outs,'(a,a)')AbrevIMP(L),' for recycling stage'
                   CALL EGETWR(OutStr,K,BuTrImp(IRdMat,Ic,L),
-     &                         MinImpTr(L), MaxImpTr(L),'W',outs,IER)
+     &              MinImpTr(L), MaxImpTr(L),'W',outs,IER)
                   IF (IER.GE.1) goto 666 
 526             continue
               ENDIF
@@ -971,8 +978,7 @@ C Read transport to incineration site
         ENDIF
         goto 2
 
-      elseif (WORD(1:9).eq.'*Dec_Dump') then
-C Dump process
+      elseif (WORD(1:9).eq.'*Dec_Dump') then   ! Dump process
         K=9 
         NbTr = 0
         CALL EGETW(OutStr,K,DumpPt(IRdMat),'W','dump pointer',IER)
@@ -980,28 +986,29 @@ C Dump process
         IF (DumpPt(IRdMat)(1:4).NE.'none') THEN 
           IF ((IER .GE. 1) .OR. (ND.NE.4+MIMP)) THEN
 C Check consistancy
-C          CALL ErrArg(1,IRdMat,MatNamed(IRdMat),MIMP+2,ND,WORD(1:11),
-C     &                OutStr)
+C          CALL ErrArg(1,IRdMat,MatNameco(IRdMat),MIMP+2,ND,WORD(1:11),
+C     &      OutStr)
             GOTO 666         
           ENDIF
           CALL EGETWI(OutStr,K,NbTr,0,MNbTrans,'W',
-     &       'Nb of transportation categories to dump site',IER)
+     &      'Nb of transportation categories to dump site',IER)
           IF (IER.GE.1) goto 666 
           CALL EGETWR(OutStr,K,DumpRate(IRdMat),0.,1.,'W',
-     &                    'dump rate',IER)
+     &      'dump rate',IER)
           IF (IER.GE.1) goto 666 
           DO 427 L=1,MIMP
             WRITE(outs,'(a,a)')AbrevIMP(L),' for material fabrication'
             CALL EGETWR(OutStr,K,DumpImp(IRdMat,L),
-     &                         MinImp(L), MaxImp(L),'W',outs,IER)
+     &        MinImp(L), MaxImp(L),'W',outs,IER)
             IF (IER.GE.1) goto 666
 427       CONTINUE
         ENDIF
 
 C Check consitency for disposal rate
        TotRate = RecyRate(IRdMat)+BurnRate(IRdMat)+DumpRate(IRdMat)
-       IF (NINT(TotRate) .NE. 1) THEN 
-         WRITE(outs,'(a,a)')'For material : ', MatNamed(IRdMat)
+       IF (NINT(TotRate) .NE. 1) THEN
+         lnmatn=lnblnk(MatNameco(IRdMat))
+         WRITE(outs,'(a,a)')'For material:', MatNameco(IRdMat)(1:lnmatn)
          CALL edisp(iuout,outs)
          CALL EDISP(iuout,' The sum of dispoal rates is not = 1 !')
          WRITE(outs,'(a,F6.2)')' Recycling rate    = ', RecyRate(IRdMat)
@@ -1016,8 +1023,7 @@ C Check consitency for disposal rate
          goto 666 
        ENDIF
 
-C Read transport to dump site
-        IF (NbTr.GT.0) THEN 
+       IF (NbTr.GT.0) THEN    ! Read transport to dump site.
           Ic = 0
           DO 428 IT=1,NbTr
             CALL STRIPC(IUC,OutStr,99,ND,1,'BCF',IER)
@@ -1034,7 +1040,7 @@ C Read transport to dump site
               IF (OutStr(1:4).NE.'none') THEN 
                 Ic = Ic+1
                 CALL EGETW(OutStr,K,DuTrPt(IRdMat,Ic),'W',
-     &               'transport category to dump site',IER)
+     &            'transport category to dump site',IER)
                 IF (IER.GE.1) goto 666 
                 CALL EGETWR(OutStr,K,DuTrDist(IRdMat,Ic),DistMin,
      &            DistMax,'W','transport distance to dump site',IER)
@@ -1042,7 +1048,7 @@ C Read transport to dump site
                 DO 528 L=1,MIMP
                   WRITE(outs,'(a,a)')AbrevIMP(L),' for trans.dump stage'
                   CALL EGETWR(OutStr,K,DuTrImp(IRdMat,Ic,L),
-     &                         MinImpTr(L), MaxImpTr(L),'W',outs,IER)
+     &              MinImpTr(L), MaxImpTr(L),'W',outs,IER)
                   IF (IER.GE.1) goto 666 
 528             continue
               ENDIF
@@ -1055,8 +1061,7 @@ C Read transport to dump site
 C CONSTRUCTIONS INFORMATION
 C ----------------------
   44  continue
-      CALL STRIPCB(IUC,OUTSTR,99,ND,1,'constructions data loop',
-     &                                                             IER)
+      CALL STRIPCB(IUC,OUTSTR,99,ND,1,'constructions data loop',IER)
       IF (IW.EQ.2) call edisp(iuout,OUTSTR) 
       IF(IER.NE.0) goto 1
       K=0
@@ -1073,26 +1078,24 @@ C          GOTO 666
         ENDIF
         GOTO 777
       ENDIF
-      
+
+C Scan a line into RmStr and process. It will look like:
+C *Gen_constr,  1,dbl_glz_int,double glazing - closed,TRAN
       if (WORD(1:11).eq.'*Gen_constr') then
-        IRdComp = IRdComp + 1
+        IRdComp = IRdComp + 1   ! Increment counter.
         if (IRdComp .EQ. NbComp + 1) then
-C Read is finished
-          goto 777
-        else
-C Go to read another construction.
-C          goto 44
+          goto 777  ! Read is finished
         endif
 
-        IF ((IER .GE. 1) .OR. (ND.NE.5)) THEN
-C         CALL ErrArg(2,IRdComp,CompoNam(IRdComp),1,ND-1,WORD(1:23),
-C     &                 OutStr)
+        IF ((IER .GE. 1) .OR. (ND.LT.6)) THEN  ! If not enough items on line.
+         CALL ErrArg(2,IRdComp,CompoNam(IRdComp),1,ND-1,WORD(1:23),
+     &                 OutStr)
           GOTO 666 
         ENDIF        
-        CALL EGETRM(OUTSTR,K,RmStr,'W','General info.',IER)     
+        CALL EGETRM(OUTSTR,K,RmStr,'W','Construction tokens.',IER)     
         IF (IER .GE. 1) goto 666 
         K=0
-C << JON>> define variable names
+
         CALL EGETWI(RmStr,K,TmpInt,1,MMLC,'W','comp. ID',IER)
         IF (IER .GE. 1) goto 666 
         IF (TmpInt .NE. IRdComp) then
@@ -1108,11 +1111,12 @@ C << JON>> define variable names
           goto 666
         endif
 
-        CALL EGETW(RmStr,K,CompoNam(IRdComp),'W',
-     &             'construction name',IER)
-        
+        CALL EGETP(RmStr,K,ch32,'W','bcf construction name',IER)  ! BCF MLC names can have spaces.
+        CompoNam(IRdComp)=ch32
         CALL EGETP(RmStr,K,CompDes,'W','construction descr.',IER)
         CALL EGETW(RmStr,K,EOFT,'W','construction type',IER)
+        CALL EGETWI(RmStr,K,NLayers,1,ME,'W','total thermo',IER)  ! Now added to acoustic version.
+        NbEIALay(IRdComp)=NLayers
         goto 44
 
       elseif (WORD(1:6).eq.'*Solar') then
@@ -1120,89 +1124,103 @@ C << JON>> define variable names
       elseif (WORD(1:7).eq.'*Optics') then
         CALL EGETW(RmStr,K,Tmpstr,'W','construction type',IER)
         goto 44
-      elseif (WORD(1:14).eq.'*Colour_inside') then
-        CALL STRIPCB(IUC,OUTSTR,99,ND,1,'Colour inside',IER)
+      elseif (WORD(1:14).eq.'*Colour_inside') then  ! Not used jump to scan another token.
+C        CALL STRIPCB(IUC,OUTSTR,99,ND,1,'Colour inside',IER)
         goto 44
-      elseif (WORD(1:13).eq.'*Colour_other') then
-        CALL STRIPCB(IUC,OUTSTR,99,ND,1,'Colour other',IER)
+      elseif (WORD(1:13).eq.'*Colour_other') then   ! Not used jump to scan another token.
+C        CALL STRIPCB(IUC,OUTSTR,99,ND,1,'Colour other',IER)
         goto 44
-      elseif (WORD(1:11).eq.'*Acou_other') then
+      elseif (WORD(1:7).eq.'*Colour') then          ! Not used jump to scan another token.
+C        CALL STRIPCB(IUC,OUTSTR,99,ND,1,'Colour inside',IER)
+        goto 44
+      elseif (WORD(1:11).eq.'*Acou_other') then  ! Details on other side not needed. Scan line and jump.
         CALL STRIPCB(IUC,OutStr,99,ND,1,'BCF',IER)
         goto 44
       elseif (WORD(1:12).eq.'*Acou_inside') then
-        IF ((IER .GE. 1) .OR. (ND.NE.4)) THEN
+        IF ((IER .GE. 1) .OR. (ND.LT.4)) THEN
 C          CALL ErrArg(2,IRdComp,CompoNam(IRdComp),1,ND,WORD(1:12),
 C     &                OutStr)
           GOTO 666         
         ENDIF
         K=13
         CALL EGETW(OutStr,K,SyTrevPt(IRdComp),
-     &                   'W','Absorption coefficients pointer',IER)
+     &    'W','Absorption coefficients pointer',IER)
         IF (IER.GE.1) goto 666 
         IF (SyTrevPt(IRdComp)(1:4).NE.'none') THEN 
-          CALL EGETP(OutStr,K,SyTrevDe(IRdComp),  
-     &                        'W',' Acoustic system description',IER)
+          CALL EGETP(OutStr,K,ch40,'W','Acoustic description',IER)
+          SyTrevDe(IRdComp)=ch40
           IF (IER.GE.1) goto 666
           CALL EGETW(OutStr,K,AbsUnit(IRdComp),  
-     &                        'W','Absorb coeff unit',IER)
+     &      'W','Absorb coeff unit',IER)
           IF (IER.GE.1) goto 666
           CALL STRIPCB(IUC,OutStr,99,ND,1,'BCF',IER)
           IF ((IER .GE. 1) .OR. (ND .NE. MNbAbs)) THEN
 C            CALL ErrArg(1,IRdComp,CompoNam(IRdComp),MNbAbs,ND,
-C     &                  'Absorption coefficients',OutStr)
+C     &        'Absorption coefficients',OutStr)
             GOTO 666         
           ENDIF
           K=0
           DO 441 L=1,MNbAbs
             WRITE(outs,'(a,a)')AbsFreq(L),' for material'
             CALL EGETWR(OutStr,K,SysAbsCo(IRdComp,L), 0., 
-     &                        2.,'W',outs,IER)
+     &        2.,'W',outs,IER)
             IF (IER.GE.1) goto 666
 441       continue
         ENDIF
         goto 44
 
 C Construction assembly block
-      elseif (WORD(1:16).eq.'*Constr_assembly') then
+      elseif (WORD(1:16).eq.'*Constr_assembly'.or.
+     &        WORD(1:16).eq.'*Constr_Assembly') then
         IF ((IER .GE. 1) .OR. (ND .NE. 2)) THEN
-C          CALL ErrArg(2,IRdComp,CompoNam(IRdComp),1,ND-1,WORD(1:14),
-C     &                OutStr)
+          CALL ErrArg(2,IRdComp,CompoNam(IRdComp),1,ND-1,WORD(1:14),
+     &                OutStr)
           GOTO 666         
         ENDIF
-C Read information
-       if (Outstr(18:21).eq.'none') goto 44
+
+C Read information. Note there is no specific variable stating the number
+C of *Tran_constr so assume one per NbAss.
+        if (Outstr(18:21).eq.'none') goto 44
         CALL EGETWI(OutStr,K,NbAss,0,MNbAss,'W',
-     &       'Nb of processes for construction assembly',IER)
+     &    'Nb of processes for construction assembly',IER)
         IF (IER.GE.1) goto 666  
         IF (NbAss.GT.0) THEN 
           Ic = 0
           do 429 IT=1,NbAss
             CALL STRIPC(IUC,OutStr,99,ND,1,'BCF',IER)
-            IF ((IER .GE. 1) .OR. (ND .NE. 7)) THEN
-C              CALL ErrArg(2,IRdComp,CompoNam(IRdComp),7,ND,
-C     &                    'Assembly',OutStr)
+            IF (IW.EQ.2) call edisp(iuout,OUTSTR) 
+            IF ((IER .GE. 1) .OR. (ND .LT. 7)) THEN
+              CALL ErrArg(2,IRdComp,CompoNam(IRdComp),7,ND,
+     &          'Assembly    ',OutStr)
               GOTO 666         
             ENDIF
             K=0
             IF (OutStr(3:7).NE.'none') THEN 
               Ic = Ic+1
               CALL EGETW(OutStr,K,ComAsPa(IRdComp,IT),'W',
-     &               'part of MLC ',IER)
+     &          'part of MLC ',IER)
               IF (IER.GE.1) goto 666 
               CALL EGETW(OutStr,K,ComAsPt(IRdComp,IT),'W',
-     &             'assembly pointer',IER)
+     &          'assembly pointer',IER)
               IF (IER.GE.1) goto 666 
               CALL EGETWR(OutStr,K,TmpReal,0., 1.,'W',outs,IER)
               IF (IER.GE.1) goto 666 
-              do 529 L=1,MIMP
+              do L=1,MIMP
                 WRITE(outs,'(a,a)')AbrevIMP(L),' for compos. assembly'
                 CALL EGETWR(OutStr,K,ComAsImp(IRdComp,Ic,L),
-     &                         MinImp(L), MaxImp(L),'W',outs,IER)
+     &            MinImp(L), MaxImp(L),'W',outs,IER)
                 IF (IER.GE.1) goto 666 
-529           continue
+              enddo
             ENDIF
-429       continue
+ 429      continue
         ENDIF
+
+        IF (NbAss.GT.0) THEN   ! Skip past one transport for each assembly.
+          Ic = 0
+          do IT=1,NbAss
+            CALL STRIPC(IUC,OutStr,99,ND,1,'assembly transport',IER)
+          enddo
+        endif
         goto 44
 
 
@@ -1224,7 +1242,8 @@ C          IF (IW.EQ.2) call edisp(iuout,OUTSTR)
 C          IF(IER.NE.0) goto 1
 C          K=0
 C          CALL EGETW(OUTSTR,K,WORD,'W','tag',IFLAG)
-      elseif (WORD(1:12) .EQ. '*Tran_Constr') then
+      elseif (WORD(1:12).EQ.'*Tran_Constr'.or.
+     &        WORD(1:12).EQ.'*Tran_constr') then  ! Assume one transport per NbAss
         IF ((IER .GE. 1) .OR. (ND.NE.2)) THEN
 C         CALL ErrArg(2,IRdComp,CompoNam(IRdComp),1,ND-1,WORD(1:23),
 C     &                 OutStr)
@@ -1232,7 +1251,7 @@ C     &                 OutStr)
         ENDIF
         IF (Outstr(14:17).eq.'none') GOTO 44         
         CALL EGETWI(OutStr,K,NbTr,0,MNbTrans,'W',
-     &       'Nb of transportation categories for construction',IER)
+     &    'Nb of transportation categories for construction',IER)
         IF (IER.GE.1) goto 666 
         IF (NbTr.GT.0) THEN 
 
@@ -1249,7 +1268,7 @@ C     &                   'Construction transport',OutStr)
             IF (OutStr(1:4).NE.'none') THEN
               Ic = Ic+1
               CALL EGETW(OutStr,K,CoTrPt(IRdComp,Ic),
-     &              'W','construction transport category ',IER)
+     &          'W','construction transport category ',IER)
               IF (IER.GE.1) goto 666 
               CALL EGETWR(OutStr,K,CoTrDist(IRdComp,Ic),DistMin,
      &          DistMax,'W','transport distance for construction',IER)
@@ -1257,13 +1276,13 @@ C     &                   'Construction transport',OutStr)
               CALL EGETWR(OutStr,K,CoTrBrk(IRdComp,Ic),0.,100.,
      &         'W','breake & loss during construction transport',IER)
               IF (IER.GE.1) goto 666 
-              do 530 L=1,MIMP
+              do L=1,MIMP
                 WRITE(outs,'(a,a)')AbrevIMP(L),
      &            'impacts of construction transport to project site'
                 CALL EGETWR(OutStr,K,CoTrImp(IRdComp,Ic,L),
-     &                         MinImpTr(L), MaxImpTr(L),'W',outs,IER)
+     &            MinImpTr(L), MaxImpTr(L),'W',outs,IER)
                 IF (IER.GE.1) goto 666
-530           continue
+              enddo
             ENDIF
 430       CONTINUE
         ENDIF
@@ -1273,7 +1292,7 @@ C     &                   'Construction transport',OutStr)
         IF (Outstr(19:22).eq.'none') GOTO 44 
         IF ((IER .GE. 1) .OR. (ND.NE.2)) THEN
 C          CALL ErrArg(2,IRdComp,CompoNam(IRdComp),1,ND-1,
-C     &                     WORD(1:21),OutStr)
+C     &      WORD(1:21),OutStr)
 C          GOTO 666         
         ENDIF
         CALL EGETWI(OutStr,K,NbAss,0,MNbAss,'W',
@@ -1285,28 +1304,28 @@ C          GOTO 666
             CALL STRIPC(IUC,OutStr,99,ND,1,'BCF',IER)
             IF ((IER .GE. 1) .OR. (ND .NE. (MIMP+3))) THEN
 C              CALL ErrArg(2,IRdComp,CompoNam(IRdComp),MIMP+3,ND,
-C     &                        'Assembly on projetc process',OutStr)
+C     &                        'Assembly on project process',OutStr)
                GOTO 666         
             ENDIF
             K=0
             IF (OutStr(1:4).NE.'none') THEN 
               Ic = Ic+1
               CALL EGETW(OutStr,K,AsProjPt(IRdComp,Ic),
-     &                'W','assembly on project pointer',IER)
+     &          'W','assembly on project pointer',IER)
               IF (IER.GE.1) goto 666 
               CALL EGETW(OutStr,K,AsProjPa(IRdComp,Ic),
-     &                'W','dump pointer',IER)
+     &          'W','dump pointer',IER)
               IF (IER.GE.1) goto 666 
               CALL EGETWR(OUTSTR,K,AsProBrk(IRdComp,Ic),
-     &                 0.0,1.0,'W',
+     &          0.0,1.0,'W',
      &         'Prefab. construction break during assembly on project',
-     &                  IER)
+     &          IER)
               IF (IER .GE. 1) goto 666 
               do 531 L=1,MIMP
                 WRITE(outs,'(a,a)')AbrevIMP(L),
-     &                  'impacts of assembly on project'
+     &            'impacts of assembly on project'
                 CALL EGETWR(OutStr,K,AsProImp(IRdComp,Ic,L),
-     &                         MinImp(L),MaxImp(L),'W',outs,IER)
+     &            MinImp(L),MaxImp(L),'W',outs,IER)
                 IF (IER.GE.1) goto 666
 531           continue
             ENDIF
@@ -1323,7 +1342,7 @@ C Construction Maintenance
          IF (Outstr(15:18).eq.'none') GOTO 44 
          IF ((IER .GE. 1) .OR. (ND.NE.2)) THEN
 C          CALL ErrArg(2,IRdComp,CompoNam(IRdComp),1,ND-1,WORD(1:12),
-C     &                OutStr)
+C     &      OutStr)
           GOTO 666         
         ENDIF
         CALL EGETWI(OutStr,K,NbMain,0,MNbM,'W',
@@ -1342,18 +1361,18 @@ C     &                    'Maintenance process',OutStr)
             IF (OutStr(1:4).NE.'none') THEN 
               Ic = Ic+1
               CALL EGETW(OutStr,K,MaintTyp(IRdComp,IT),
-     &              'W','maintenance part',IER)
+     &          'W','maintenance part',IER)
               IF (IER.GE.1) goto 666 
               CALL EGETW(OutStr,K,MaintPt(IRdComp,Ic),
-     &                'W','Construction maintenance ptr',IER)
+     &          'W','Construction maintenance ptr',IER)
               IF (IER .GE. 1) goto 666 
               CALL EGETWR(OutStr,K,PerMaint(IRdComp,Ic),0.,
-     &                100.,'W','Construction maintenance period',IER)
+     &          100.,'W','Construction maintenance period',IER)
               IF (IER .GE. 1) goto 666 
               DO 433 L=1,MIMP
                 WRITE(outs,'(a,a)')AbrevIMP(L),'impacts for maintening'
                 CALL EGETWR(OutStr,K,RMainImp(IRdComp,Ic,L),
-     &                  MinImp(L),MaxImp(L),'W',outs,IER)
+     &            MinImp(L),MaxImp(L),'W',outs,IER)
                 IF (IER.GE.1) goto 666
 433           continue
             ENDIF
@@ -1361,32 +1380,26 @@ C     &                    'Maintenance process',OutStr)
         ENDIF
         goto 44
 
-      elseif (WORD(1:7).eq.'*Layers') then
-        IF ((IER .GE. 1) .OR. (ND.NE.3)) THEN
-C          CALL ErrArg(2,IRdComp,CompoNam(IRdComp),0,ND-1,WORD(1:6),
-C     &               OutStr)
-          GOTO 666
-        ELSE
-          K=8
-          CALL EGETWI(OutStr,K,NTLayers,1,ME,'W','total thermo',IER)
-          CALL EGETWI(OutStr,K,NLayers,1,ME,'W','total eia lay',IER)
-          NbEIALay(IRdComp)= NLayers
-        ENDIF
-C Layer header
-        do 66 IRdLay=1,NbEIALay(IRdComp)
-          IF (IW.EQ.2) call edisp(iuout,OUTSTR) 
+      elseif (WORD(1:6).eq.'*Layer') then ! LCA and acoustic BCF versions use *Layer
+
+C For each layer in the MLC scan lines in the general form:
+C t,s,Glass,CF4mm,111,109,  0.00600,4mm clear float
+        do 67 IRdLay=1,NbEIALay(IRdComp)
           CALL STRIPCB(IUC,OutStr,99,ND,1,'Layer block',IER)
-          IF ((IER .GE. 1) .OR. (ND .NE. 8)) THEN
-C            CALL ErrArg(2,IRdComp,CompoNam(IRdComp),10,ND,
-C     &                  'Layer header',OutStr)
+          IF (IW.EQ.2) call edisp(iuout,OUTSTR) 
+          IF ((IER .GE. 1) .OR. (ND .LT. 8)) THEN
+            call edisp(iuout,OUTSTR)
+            call edisp(iuout,'The nb of arguments should be 8 or more.')
+            call edisp(iuout,'Possible cause: material was not found.')
+            call edisp(iuout,'Please check...')
             GOTO 666         
           ENDIF
           K=0
           CALL EGETW(OutStr,K,LayerThm(IRdComp,IRdLay),
-     &        'W','Layer type  t: thermal or n: non-thermal',IER)
+     &      'W','Layer type  t: thermal or n: non-thermal',IER)
           IF (IER .GE. 1) goto 666 
           CALL EGETW(OutStr,K,LayerTyp(IRdComp,IRdLay),
-     &        'W','Layer type (S or G for thermal) else GVNPFS',IER)
+     &      'W','Layer type (S or G for thermal) else GVNPFS',IER)
           IF (IER .GE. 1) goto 666 
 C Group LayerTyp by Surface category (S) or by Perimeter category (P)
           if (LayerThm(IRdComp,IRdLay) .EQ. 't') then
@@ -1409,50 +1422,59 @@ C Group LayerTyp by Surface category (S) or by Perimeter category (P)
             ELSEIF (LayerTyp(IRdComp,IRdLay) .EQ. 'c') THEN
               LayerCat(IRdComp,IRdLay) = 'P'
             ELSE
-              WRITE(outs,'(a,a)')'For construction: ',CompoNam(IRdComp)
+              lncompo=lnblnk(CompoNam(IRdComp))
+              WRITE(outs,'(a,a)')'For construction: ',
+     &          CompoNam(IRdComp)(1:lncompo)
               call edisp(iuout,outs)
               WRITE(outs,'(a,a)')'Layer number:     ',IRdLay
               call edisp(iuout,outs)
               WRITE(outs,'(3a)')'Layertype ',LayerTyp(IRdComp,IRdLay),
-     &                          ' is unknown'
+     &          ' is unknown'
               call edisp(iuout,outs)
               CALL EDISP(iuout,' Check the BCF file.')
               GOTO 666         
             ENDIF
-C Layer header
           endif         
+
+C Layer header
           CALL EGETP(OutStr,K,Tmpstr,'W','Layer category ',IER)
           IF (IER .GE. 1) goto 666 
-          CALL EGETP(OutStr,K,LayerNam(IRdComp,IRdLay),
-     &                'W','Layer pointer',IER)
+          CALL EGETP(OutStr,K,ch32,'W','Layer pointer',IER)
+          LayerNam(IRdComp,IRdLay)=ch32
           IMatID(IRdComp,IRdLay)=MatIndex(LayerNam(IRdComp,IRdLay))
-          IF (IER .GE. 1) goto 666 
+          IF (LayerNam(IRdComp,IRdLay)(1:1) .eq. '0') then
+            WRITE(outs,'(a)')'WARNING: LCIA could not be perfromed'
+              call edisp(iuout,outs)
+            WRITE(outs,'(a)')'The material was not found in database.'
+              call edisp(iuout,outs)
+            WRITE(outs,'(a)') OutStr
+            goto 666 
+          endif
           CALL EGETWI(OutStr,K,ITmp,0,1000,
-     &                'W','Material db reference',IER)
+     &      'W','Material db reference',IER)
 
           IF (IER .GE. 1) goto 666 
-          CALL EGETWI(OutStr,K,ITmp,0,1000,'W',
-     &                    'not relevant',IER)
+          CALL EGETWI(OutStr,K,ITmp,0,1000,'W','not relevant',IER)
           IF (IER .GE. 1) goto 666 
 
           CALL EGETWR(OutStr,K,DTHK(IRdComp,IRdLay),0.,
-     &                10.,'W','Layer thickness',IER)
+     &       10.,'W','Layer thickness',IER)
           IF (IER .GE. 1) goto 666 
-          CALL EGETP(OutStr,K,LayerDes(IRdComp,IRdLay),
-     &                'W','Layer description',IER)
-          IF (IER .GE. 1) goto 666 
-
-  66    continue
+          CALL EGETP(OutStr,K,ch72,'W','Layer description',IERR)
+          LayerDes(IRdComp,IRdLay)=ch72
+C          IF (IERR .GE. 1) goto 666 
+C Next layer
+  67    continue
         goto 44
       ELSE
-       call edisp(iuout,outstr)
-       call edisp(iuout,'unrecognised tag:')
+        call edisp(iuout,' ')
+        call edisp(iuout,'unrecognised tag:')
         call edisp(iuout,outstr)
         goto 666
       endif
 
 777   WRITE (outs,'(3a)')' BCF file: ', BCFfile(1:lnblnk(BCFfile)),
-     &                          ' successfully read.'
+     &  ' successfully read.'
       call EDISP(iuout,outs)
       IF(ACOOK) THEN
         call EDISP(iuout,'Please select zone(s) to include.')

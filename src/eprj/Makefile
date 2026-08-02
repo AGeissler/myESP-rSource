@@ -30,7 +30,7 @@ MODULE_OBJECTS = h3kmodule.o startup.o aim2_module.o aim2_inputs.o CFC_Module.o 
 
 OBJECTS = prj.o agtprj.o agtcom.o anlytc.o arrow.o ascii_mat.o basesimp.o \
 	  basesimp_inputs.o blcond.o bnlthp.o bpfcom.o bpfcontrl.o bscoeff.o bscoeff_extended.o \
-	  bsimsel.o c2fdum.o cadio.o cfdat.o cfdrw.o cfg3dv.o cfgmsc.o cfgrid.o cgd.o \
+	  bsimsel.o c2fdum.o cadio.o cfdat.o cfdrw.o cfgmsc.o cfgrid.o cgd.o \
 	  clickonbitmap.o common3dv.o commonclm.o context.o ctlexp.o ctlwrt.o ctprob.o \
 	  CDBPlugins.o CDBCommon.o CDBExplore.o\
 	  ctread.o DG_controller_menu.o dossupport.o e2eplus.o \
@@ -43,7 +43,7 @@ OBJECTS = prj.o agtprj.o agtcom.o anlytc.o arrow.o ascii_mat.o basesimp.o \
 	  maintn.o mcdbscn.o mfcdat.o mfelst.o mfnmsc.o mfprb1.o mfprb2.o mfprb3.o mfrlst.o \
 	  mksbem.o MultiYear_climate.o mvalid.o \
 	  net2pdf.o newnet.o nwkrewr.o plelevvc.o pltcfg.o pltnet.o predefinedwr.o prescoef.o \
-	  predef3dv.o prjdmds.o prjfmk.o prjqa.o psychro.o rcdblist.o read3dv.o readTrnsys.o \
+	  predef3dv.o prjdmds.o prjfmk.o prjqa.o psychro.o rcdblist.o readTrnsys.o \
 	  rwipv.o rwroam.o rwsbem.o sendd.o sendflt.o senrwl.o sensa.o \
 	  setup.o sort.o spmisc.o stndrds.o tdfedit.o tdfile.o tdgraph.o \
 	  hvacinput.o matpol.o inside.o \

@@ -1,19 +1,17 @@
+Only in .: .DS_Store
 Only in .: .git
 Only in .: .gitignore
 Only in .: .gitmodules
 Only in .: .project
-Files ./Install and /Users/achim/Downloads/ESP-r_V13.3.16_Src/./Install differ
-Only in .: Readme.md
-Files ./Version and /Users/achim/Downloads/ESP-r_V13.3.16_Src/./Version differ
-Common subdirectories: ./data and /Users/achim/Downloads/ESP-r_V13.3.16_Src/./data
-Only in .: diff_data.txt
-Only in .: diff_doc.txt
-Only in .: diff_models.txt
-Only in .: diff_modish.txt
-Only in .: diff_src.txt
-Common subdirectories: ./doc and /Users/achim/Downloads/ESP-r_V13.3.16_Src/./doc
-Common subdirectories: ./models and /Users/achim/Downloads/ESP-r_V13.3.16_Src/./models
-Common subdirectories: ./modish and /Users/achim/Downloads/ESP-r_V13.3.16_Src/./modish
+Files ./Install and /Users/achim/Downloads/ESP-r_V13.3.18_Src/./Install differ
+Only in .: Readme
+Files ./Version and /Users/achim/Downloads/ESP-r_V13.3.18_Src/./Version differ
+Common subdirectories: ./data and /Users/achim/Downloads/ESP-r_V13.3.18_Src/./data
+Common subdirectories: ./doc and /Users/achim/Downloads/ESP-r_V13.3.18_Src/./doc
+Common subdirectories: ./models and /Users/achim/Downloads/ESP-r_V13.3.18_Src/./models
+Common subdirectories: ./modish and /Users/achim/Downloads/ESP-r_V13.3.18_Src/./modish
+Only in /Users/achim/Downloads/ESP-r_V13.3.18_Src/.: readme
 Only in .: release_copyfiles.sh
-Common subdirectories: ./src and /Users/achim/Downloads/ESP-r_V13.3.16_Src/./src
-Common subdirectories: ./tester and /Users/achim/Downloads/ESP-r_V13.3.16_Src/./tester
+Common subdirectories: ./src and /Users/achim/Downloads/ESP-r_V13.3.18_Src/./src
+Common subdirectories: ./tester and /Users/achim/Downloads/ESP-r_V13.3.18_Src/./tester
+Only in /Users/achim/Downloads/ESP-r_V13.3.18_Src/.: update_notes.txt

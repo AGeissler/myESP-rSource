@@ -315,8 +315,9 @@ C via removing - _ or spaces if required.
       end      ! of hashname
 
 C ********** st2file
-C st2file: Given `string' strip blanks & wildcards and return as `name'.
+C Given `string' strip blanks & wildcards and return as `name'.
 C Useful to check file names.
+
       SUBROUTINE st2file(string,name)
       CHARACTER*(*) string,name
       character phrase*124
@@ -383,6 +384,7 @@ C Stop copying if end of name reached.
 
 C ********** hasblanks
 C Given `string' returns true if it includes blanks & wildcards.
+
       SUBROUTINE hasblanks(string,blanks)
       CHARACTER*(*) string
       logical blanks
@@ -481,7 +483,7 @@ C between words and dtop copying if end of name reached.
       end
 
 C ******************** iprevblnk ********************
-C Given a string, return position of blank just before ipos.
+C Given 'string', return position of blank just before ipos.
 
       function iprevblnk(string,ipos)
       character*(*) string
@@ -548,7 +550,7 @@ C If the current position is 1 do not bother with position zero.
       end
 
 C ******************** inextblnk ********************
-C Given a string, return position of blank just after ipos
+C Given 'string', return position of blank just after ipos.
 C (or the end of the string if that happens first).
 
       function inextblnk(string,ipos)
@@ -605,7 +607,7 @@ C left is also a blank carry on stepping leftwards, otherwise return.
       end
 
 C ******************** icutstr ********************
-C Given a string, cuts icut characters from position ipos
+C Given 'string', cuts icut characters from position ipos
 C and shifts latter portion of the string down icut chars. Returns
 C zero if no error.
 
@@ -883,13 +885,15 @@ C ISTAT (integer) is its status 0=OK, 1=if IUN was zero.
 
 C ******************** EASKXORGTKF ********************
 C Generic file edit/browse for X11 or GTK using easkf calls.
+C The current implementation only opens .cfg files for existing models.
+C If in GTK or text mode, it redirects to the previous implementation.
 
       SUBROUTINE EASKXORGTKF(FILEN,PROMP1,PROMP2,DFILE,RETFILE,ERMSG,
      &  IER,NHELP)
 
       integer lnblnk  ! function definition
 
-C Parameters
+C Parameters.
       CHARACTER*(*) FILEN   ! initial file name (never changed)
       CHARACTER*(*) PROMP1,PROMP2  ! prompts for dialogs
       CHARACTER*(*) DFILE   ! default file name
@@ -982,13 +986,77 @@ C If ier is zero then set RFILE to llitem.
       END
 
 
+C ******************** EASKXFWIN ********************
+C Generic file edit/browse for X11 only using a separate window for file selection.
+
+      SUBROUTINE EASKXFWIN(FILEN,PROMP1,PROMP2,DFILE,RETFILE,ERMSG,
+     &  IER,NHELP)
+
+      integer lnblnk  ! function definition
+
+C Parameters
+      CHARACTER*(*) FILEN   ! initial file name (never changed)
+      CHARACTER*(*) PROMP1,PROMP2  ! prompts for dialogs
+      CHARACTER*(*) DFILE   ! default file name
+      CHARACTER*(*) RETFILE ! returned file name
+      CHARACTER*(*) ERMSG   ! message in case of error
+      integer ier           ! zero is ok, -3 is cancel
+      integer NHELP         ! number of help lines
+
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
+      common/SPAD/MMOD,LIMIT,LIMTTY  
+      CHARACTER outs248*248
+      character llitem*144     ! local string buffer
+      character LTMP72*72      ! local string buffer
+      character LTMP96*96      ! local string buffer
+      character LTMP124*144    ! local string buffer
+      integer iglib      ! for detecting GTK or X11
+      INTEGER llt,lfn    ! length of the local string buffer
+      integer ISTRW
+      character file_return*144 ! temporary file name and path from dialog box
+  
+C Depending on whether it is X11 or GTK or text setup dialogs. The
+C X11 and text will work with 96 or 124 char string.
+      iglib = igraphiclib()  ! find out if X11 or GTK or text support only.
+      lfn=lnblnk(FILEN)
+
+C If in text or GTK mode echo FILEN.
+      llt=lnblnk(llitem)
+      if(iglib.ne.1.or.MMOD.ne.8)then
+        CALL EASKXORGTKF(FILEN,PROMP1,PROMP2,DFILE,RETFILE,ERMSG,
+     &  IER,NHELP)
+        RETURN
+      else !if in graphic mode and x11: open dialog in separate window
+
+C Call popup file browser to select model cfg file. Note: prompts are
+C filed in xdialogfilebox.
+        call xdialogfilebox(file_return,argc,argv,ier)
+        LTMP124=file_return
+        write(llitem,'(a)') file_return(1:lnblnk(file_return))
+      endif
+
+C If user request cancel set RFILE ot FILEN.
+      if(ier.eq.-3)then
+        write(RETFILE,'(a)') FILEN(1:lnblnk(FILEN))
+        return
+      endif
+
+C If ier is zero then set RFILE to llitem.
+      if(ier.eq.0)then
+        write(RETFILE,'(a)') llitem(1:lnblnk(llitem))
+        return
+      endif
+      
+      RETURN
+      END
+
 C ******************** bSPEqual ********************
 C Determines if two SP numbers are within machine round-off error.
 C The floating point computations in this function are
 C based on the following paper:
-C
-C Goldberg, David (1991). "What Every Computer Scientest Should Know
-C About Floating Point Arithmetic", Computing Surveys, March.
+
+C    Goldberg, David (1991). 'What every computer scientest should know
+C    about floating point arithmetic", Computing Surveys, March.
 
       logical function bSPEqual(fFloat1, fFloat2)
       implicit none
@@ -1199,6 +1267,44 @@ C output channel ITU (integer).
       RETURN
       END
 
+C ******************** DAYCLKSTR ********************
+C Return string (36 char) of the day, month, day no. and time based on
+C the day of the year IYD (integer) and clock time in hours TIME (real).
+
+      SUBROUTINE DAYCLKSTR(IYD,TIME,clickstr)
+
+      CHARACTER*5 DAY(4)
+      CHARACTER*5 RMONTH(12)
+C      character outs*124
+      character clickstr*36
+
+      DATA DAY/'st of','nd of','rd of','th of'/
+      DATA RMONTH/' Jan.',' Feb.',' Mar.',' Apr.',' May.',' June',
+     &' July',' Aug.',' Sept',' Oct.',' Nov.',' Dec.'/
+
+      CALL EDAYR(IYD,ID,IM)
+      IF(TIME.LE.24.0)goto  1
+      TIME=TIME-24.0
+      IYD=IYD+1
+    1 IS=4
+      IF(ID.EQ.1.OR.ID.EQ.21.OR.ID.EQ.31)IS=1
+      IF(ID.EQ.2.OR.ID.EQ.22)IS=2
+      IF(ID.EQ.3.OR.ID.EQ.23)IS=3
+      IHR=IFAX(TIME)
+      REM=(TIME-IHR)*60.0
+      IMIN=INT(REM)
+      IF(IMIN.LT.10.0)THEN
+        WRITE(clickstr,4)IYD,ID,DAY(IS),RMONTH(IM),IHR,IMIN
+    4   FORMAT('Day ',I3,' (',I2,A5,A5,'), Time ',
+     &         I2,':0',I1,' ')
+      ELSE
+        WRITE(clickstr,3)IYD,ID,DAY(IS),RMONTH(IM),IHR,IMIN
+    3   FORMAT('Day ',I3,' (',I2,A5,A5,'), Time ',
+     &         I2,':',I2,' ')
+      ENDIF
+      RETURN
+      END
+
 C ******************** FDROOT ********************
 C Given a file name (fstring) see if it contains a (path) and a (filen).
 C Note: mingw compilers require fstring to be declaired length (not *(*).
@@ -1360,7 +1466,6 @@ C concatenate path with sfile.
 
       SUBROUTINE EFOPSEQ(IUN,SFILE,IEXIST,IER)
 #include "help.h"
-C      COMMON/OUTIN/IUOUT,IUIN,IEOUT
 
       LOGICAL XST,OK,concat
       CHARACTER*(*) SFILE
@@ -1742,8 +1847,6 @@ C make sure all \ (bs) are replaced with / (fs)
               EXIT
             end if
           end do      
-C Debug.
-C          write(*,*)'b sfile ',sfile(1:lnblnk(sfile))
 
 C Special case: unix absolute path being used on windows - substitute c: for initial /
 C Limit feedback text length to fit within outs text buffer.
@@ -1866,9 +1969,7 @@ C assign WORDS.
      &   A(1:lnblnk(A))
       call edisp248(iuout,outs,100)
       return
-
-
-      END
+      end
 
 C ******************** c2fstr ********************
 C Converts c function returned string to fortran format.
@@ -2993,8 +3094,8 @@ C Machine dependent rounding error, such that 1.0+EPS > 1.0
         IF(X.LT.(8.0*EPS))THEN
           IER=-1
           call edisp(iuout,' ')
-          call edisp(iuout,'CROUT: matrix is singular')
-          call edisp(iuout,'       and cannot be inverted.')
+          call edisp(iuout,
+     &      'CROUT: matrix is singular and cannot be inverted')
           RETURN
         ENDIF
 
@@ -3194,6 +3295,7 @@ C Provides the transform eyepoint -> viewpoint.
 C ******************** INTSTR ********************
 C Converts an integer into a string (10 char long) with no
 C leading blanks. ISWD is the length of the resulting string.
+
       SUBROUTINE INTSTR(INTIN,FSTR,ISWD,IFLAG)
 
       CHARACTER*10 CSTR, FSTR
@@ -3229,6 +3331,7 @@ C ******************** RELSTR ********************
 C Converts a real into a string (12 char) with no leading
 C blanks. ISWD is the actual length of the resulting string. Takes
 C the magnitude of the number into account.
+
       SUBROUTINE RELSTR(RELIN,FSTR,ISWD,IFLAG)
 
       CHARACTER*12 CSTR, FSTR
@@ -3490,6 +3593,7 @@ C ******************** RELESTR ********************
 C Converts a real into a string (16 char) with no leading
 C blanks. ISWD is the actual length of the resulting string. Takes
 C the magnitude of the number into account.
+
       SUBROUTINE RELESTR(RELIN,FSTR,ISWD,IFLAG)
 
       CHARACTER*16 CSTR, FSTR
@@ -4737,7 +4841,18 @@ C  -1 otherwise.
       PARAMETER ( IUIN=5 )
       CHARACTER IA*3
 
+C Attributes of session keystroke file.
+      logical ikopened     ! Has keystoke file been started/requested.
+      integer ikcount      ! Number of entries.
+      integer ikout        ! File unit for keystrokes.
+      character ikfile*72  ! The name of the keystroke file.
+      common/logk/ikopened,ikcount,ikout,ikfile
+
       READ(IUIN,100)IA
+      if(ikopened)then    ! Capture keystroke.
+        ikcount=ikcount+1
+        write(ikout,'(a)') ia(1:lnblnk(ia))
+      endif
  100  FORMAT(A3)
       IF(IA.EQ.'1'.OR.IA.EQ.'Y'.OR.IA.EQ.'y'
      &            .OR.IA.EQ.'yes'.OR.IA.EQ.'YES')THEN
@@ -6690,6 +6805,7 @@ C in RSTR where RSTR has no leading blanks.
 
       SUBROUTINE EGETRM(TSTR,K,RSTR,ACT,MSG,IER)
 #include "espriou.h"
+
       common/OUTIN/IUOUT,IUIN,IEOUT
 
       CHARACTER*(*) TSTR,RSTR,MSG
@@ -6777,6 +6893,7 @@ C no message if ACT='-'.
 
       SUBROUTINE EGETXMLTAG(STRING,K,PHRASE,ACT,MSG,ier)
 #include "espriou.h"
+
       common/OUTIN/IUOUT,IUIN,IEOUT
 
       CHARACTER*(*) PHRASE, STRING, MSG
@@ -6890,7 +7007,7 @@ C     LW     - maximum length of WORD
 
       SUBROUTINE EGETWXML(STRING,K,WORD,ACT,MSG,IER)
 #include "espriou.h"
-C espriou.h provides currentfile.
+
       common/OUTIN/IUOUT,IUIN,IEOUT
 
       CHARACTER*(*) WORD, STRING, MSG
@@ -8007,6 +8124,7 @@ C                   maximum 8 characters
       subroutine runit(cmd,tg)
 #include "building.h"
 #include "model.h"
+
       common/OUTIN/IUOUT,IUIN,IEOUT
       character*(*) cmd,tg
       character tmp*1200,ltmp*1200,tmode*8,message*248
@@ -8030,17 +8148,21 @@ C Find if Unix or NT.
           else                        ! use fallback
             call execute_command_line (cmd, exitstat=i)
           endif
+C          i = system(tmp)
          call execute_command_line (tmp, exitstat=i)
         elseif(tmode(1:6).eq.'silent')then  ! diverts chatter to /dev/null
           LN=max(1,lnblnk(cmd))
           write(tmp,'(a,a)') cmd(1:LN),' > /dev/null'
+C          i = system(tmp)
          call execute_command_line (tmp, exitstat=i)
         elseif(tmode(1:1).eq.'-')then  ! just make the system call
+C          i = system(cmd)
           call execute_command_line (cmd, exitstat=i)
         else          
           LN2=max(1,lnblnk(cmd))       ! record command to a file
           write(tmp,'(6a)') cmd(1:LN2),' >',tmode(1:LN),'.out 2>',
      &      tmode(1:LN),'.err'
+C          i = system(tmp)
          call execute_command_line (tmp, exitstat=i)
         endif
         if(i.gt.0.and.i.le.126)then
@@ -8062,19 +8184,23 @@ C attempts to mimic starting a background task.
         LN=lnblnk(cmd)
         if (cmd(LN:LN).eq."&") then
           write (tmp,'(4a)') dq,'start ',cmd(1:LN-1),dq
+C          write (cmd,'(a)') tmp(1:lnblnk(tmp))
           call edisp248(iuout,tmp,90)
         else
           if(tmode.eq.'bg')then  ! background
             write (tmp,'(7a)') dq,'start /B ',dq,dq,' ',
      &        cmd(1:LN),dq
+C            write (cmd,'(a)') tmp(1:lnblnk(tmp))
           else
             write (tmp,'(3a)') dq,cmd(1:LN),dq
+C            write (cmd,'(a)') tmp(1:lnblnk(tmp))
           endif
           call edisp248(iuout,tmp,90)
           call edisp(iuout,' ')
           call forceflush()
         endif
 
+C        i = system(cmd)
         call execute_command_line (tmp, exitstat=i)
         if(i.gt.0.and.i.le.126)then
 C         call edisp(iuout,' task terminated with an error condition')
@@ -8092,8 +8218,7 @@ C An older method of asking OS to do some work.
 C        call cissue(cmd,ifail)
         return
       endif
-      end  ! of runit
-
+      end
 
 C ******************** runitv ********************
 C Execute a command string, in text (runs in a new xterm) or graphics
@@ -9210,8 +9335,8 @@ C the number of words (IW) for a string A.
       end
       
 C ********************* bStringsMatch *********************
-C A simple function that checks if the non-blank 
-C portions of two strings of arbitrary length match. 
+C Function that checks if the non-blank portion of two
+C two strings of arbitrary length match. 
 
       logical function bStringsMatch(cStringA, cStringB)
       implicit none 

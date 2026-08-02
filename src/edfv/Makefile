@@ -54,9 +54,6 @@ common3dv.F:
 e3dviews.F:
 	rm -f e3dviews.F
 	ln -s $(COMdir)/e3dviews.F .
-egeometry.F:
-	rm -f egeometry.F
-	ln -s $(COMdir)/egeometry.F .
 plot.F:
 	rm -f plot.F
 	ln -s $(DFSdir)/plot.F .

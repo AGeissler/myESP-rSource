@@ -174,6 +174,7 @@ C NM (Integer): dummy variable : Material ID related to Ist Composite and the Jt
      &                AsProjPa(MMLC,MNbAss),LayerCat(MMLC,ME),
      &                MainPart(MMLC,MNbM),LayerNam(MMLC,ME),
      &                LayerTyp(MMLC,ME)
+      CHARACTER*32 LayerNam
 
 
       COMMON/EIAImp/FabImp(MMAT,MIMP),TrImp(MMAT,MNbTrans,MIMP),
@@ -239,7 +240,6 @@ C NM (Integer): dummy variable : Material ID related to Ist Composite and the Jt
       CHARACTER*12 FabPt,TrPt,RecyPt,ReTrPt,BurnPt,BuTrPt,DumpPt,DuTrPt
       CHARACTER*12 ComAsPt,CoTrPt,MaintPt,AsProjPt
       CHARACTER*1 ComAsPa,MaintTyp,LayerCat,MainPart,AsProjPa,LayerTyp
-      CHARACTER*12 LayerNam
       CHARACTER UnitEner*5, UnitMass*4, UnitImp*8
       Dimension ConstrImp(MMLC,ME,MIMP)
 
@@ -485,7 +485,8 @@ C STEP 7: Layer replacement impacts
            NM=IMatID(I,J)
 C Check if layer is air if so, it will not be accounted in the 
 C composite mean service life NRj
-           if (LayerNam(I,J).eq.'Air'.or.(LayerNam(I,J).eq.'air')) then
+           if (LayerNam(I,J)(1:3).eq.'Air'.or.
+     &        (LayerNam(I,J)(1:3).eq.'air')) then
              Iair=Iair+1
            endif
            RR = RR + RMatLife(NM)
@@ -494,7 +495,11 @@ C composite mean service life NRj
          DO 91 J=1,NbEIALay(I)
            NM=IMatID(I,J)
            K = 1
-           RRi = ProjLife/RMatLife(NM)
+           if(RMatLife(NM).gt.0.1)then
+             RRi = ProjLife/RMatLife(NM)
+           else
+             RRi = ProjLife
+           endif
            IF ((RRi-INT(RRi)).LT.0.5) THEN
              NRi(I,J) = INT(RRi)-1
            ELSE

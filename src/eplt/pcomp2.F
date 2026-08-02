@@ -731,7 +731,7 @@ C change of inlet conditions (RCC). ALPHA set to fully implicit if
 C RCC changes by a factor of two from previous timestep and a small
 C timestep is used to avoid discretisation errors.
          TC(IPCOMP)=CM/AMAX1(SMALL,(C1+UA))
-         RCC = (C1+UA) / (PCRP(ICON1)+PUAP(INOD1))
+         RCC = (C1+UA) / AMAX1(SMALL,(PCRP(ICON1)+PUAP(INOD1)))
 
 C Set up implicit/explicit weighting factor ALPHA (1 = fully implicit)
          IF(IMPEXP.EQ.1) THEN
@@ -902,7 +902,8 @@ C change of inlet conditions (RCC). ALPHA set to fully implicit if
 C RCC changes by a factor of two from previous timestep and a small
 C timestep is used to avoid discretisation errors.
         TC(IPCOMP)=CM/AMAX1(SMALL,(C1+C2+UA))
-        RCC = (C1+C2+UA) / (PCRP(ICON1)+PCRP(ICON2)+PUAP(INOD1))
+        RCC = AMAX1(SMALL,(C1+C2+UA)) / 
+     &        AMAX1(SMALL,(PCRP(ICON1)+PCRP(ICON2)+PUAP(INOD1)))
 
 C Set up implicit/explicit weighting factor ALPHA (1 = fully implicit)
         IF(IMPEXP.EQ.1) THEN
@@ -1436,8 +1437,8 @@ C timestep is used to avoid discretisation errors.
          TC(IPCOMP)=AMAX1(
      &        CM/AMAX1(SMALL,(C1)),
      &        CM/AMAX1(SMALL,(PCDATF(IPCOMP,2)
-     &                        +PHISB/(CSVF(INOD1,1)-PCNTMF(IPCOMP)))))
-         RCC = C1 / PCRP(ICON1)
+     &        +PHISB/(CSVF(INOD1,1)-PCNTMF(IPCOMP)))))
+         RCC = AMAX1(SMALL,(C1)) / AMAX1(SMALL,(PCRP(ICON1)))
 
 C Set up implicit/explicit weighting factor ALPHA (1 = fully implicit)
          IF(IMPEXP.EQ.1) THEN
@@ -1462,13 +1463,10 @@ C Set up implicit/explicit weighting factor ALPHA (1 = fully implicit)
          END IF
 
 C Establish matrix equation self-coupling coefficients,
-C  node 1
-         COUT(1)=ALPHA*(-C1)-CM/TIMSEC
-C  node 2
-         COUT(2)=ALPHA*PCDATF(IPCOMP,2)
+         COUT(1)=ALPHA*(-C1)-CM/TIMSEC  ! node 1
+         COUT(2)=ALPHA*PCDATF(IPCOMP,2) ! node 2
          COUT(3)=ALPHA*(-PCDATF(IPCOMP,2))-CM/TIMSEC
-C then matrix equation cross-coupling coefficient,
-         COUT(4)=ALPHA*C1
+         COUT(4)=ALPHA*C1     ! then matrix equation cross-coupling coefficient,
 C and then present-time coefficients (ie. right hand sides)
          COUT(5)=((1.-ALPHA)*PCRP(ICON1)-CM/TIMSEC)*CSVP(INOD1,1)
      &           +(1.-ALPHA)*(-PCRP(ICON1))*PCTP(ICON1)
@@ -1988,7 +1986,7 @@ C Inter-node fluid heat capacity rate (W/K)
 
 C Calculate current component time-constant TC, based on node 1 only
          TC(IPCOMP)=CM/AMAX1(SMALL,C1)
-         RCC = C1 / PCRP(ICON1)
+         RCC = AMAX1(SMALL,C1) / PCRP(ICON1)
 
 C Set up implicit/explicit weighting factor ALPHA (1 = fully implicit)
          IF(IMPEXP.EQ.1) THEN
@@ -5540,7 +5538,7 @@ C Just consider two maximum of two walls currently
             IF(NW.GE.1.) THEN
                DO 10 IW=1,NW
                   W=BDATA(IPCOMP,5+IW*2)
-                  SUMW=SUMW+W
+                  SUMW=SUMW+W  ! next line needs check for zero array.
                   SUMT=SUMT+W*TFS(IZ,NINT(BDATA(IPCOMP,4+IW*2)))
    10          CONTINUE
             END IF
@@ -5746,7 +5744,8 @@ C water outlet temperature and ambient temperature compensation can be applied [
       COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
 
       COMMON/ITERINDEX/ITERNU !plant iteration number
-
+      real BTIMEP,BTIMEF
+      COMMON/BTIME/BTIMEP,BTIMEF
       COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS,idynow
       COMMON/Pctime/TIMSEC
       COMMON/PCTC/TC(MPCOM)
@@ -5827,8 +5826,10 @@ C Electrical details for specified plant components
       LOGICAL CLOSE,CLOSEA
 
       CHARACTER OUTS*248,PCNAME*15
+      character clkstr*36  ! timestamp string
 
-      INTEGER IPCOMP_LEN !lenght of ipcomp
+      INTEGER IPCOMP_LEN   ! lenght of ipcomp
+      integer lnclk        ! length of timestapm
 
 C Trace output
       IF(ITC.GT.0.AND.NSINC.GE.ITC.AND.NSINC.LE.ITCF.AND.
@@ -5843,15 +5844,10 @@ C Initialize pointers to inter-connection(s) ICON, and node(s) INOD
       call eclose(PCNTMF(IPCOMP),-99.00,0.001,closea)
       IF(closea) UAMod=0.
 
-C Read ambient temperature
-      Tamb=TFP
-
-C Set initial operation mode based on CDATA.
-      IF(CDATA(IPCOMP,1).GT.0.0) THEN
+      Tamb=TFP                        ! Read ambient temperature.
+      IF(CDATA(IPCOMP,1).GT.0.0) THEN ! Set initial operation mode based on CDATA.
         CallForHeat=.true.
-
-C Pump circulates while there is a call for heat.
-        PumpPower=PumpRating
+        PumpPower=PumpRating          ! Pump circulates while there is a call for heat.
         DeviceFlow=RatedFlow
       ELSE
         CallforHeat=.false.
@@ -5979,35 +5975,54 @@ C Update state for next ts
         ENDIF !end of defrost code.
 C --------------------------
 
-C Calculate the TOTAL device power draw (W)
+C Calculate the TOTAL device power draw (W). Debug lines below
+C write for fort.45 in support of performance curve visualisation.
         IF(CompModel.eq.1)THEN
           CompPower=1000.*(Compa0) !fixed power consumption
         ELSEIF(CompModel.eq.2)THEN
           Td=ReturnT
           Ta=Tamb
           CompPower=1000.*(Compa0+(Compa1*Ta)+(Compa2*Td))
+C          write(45,'(3a,8F11.4)') 'CMP45C ',clkstr(1:lnclk),
+C     &      ' comp',CompPower,
+C     &      Compa0,Compa1,Compa2,TD,TA,(Compa1*Ta),Compa2*Td
         ELSEIF(CompModel.eq.3)THEN
           Td=ReturnT
           Ta=Tamb
           CompPower=1000.*Compa0*EXP(Compa1*(Td-Ta)) !exponential power consumption.
+C          write(45,'(3a,7F11.4)') 'CMP45C ',clkstr(1:lnclk),
+C     &      ' expo comp',CompPower,
+C     &      Compa0,Compa1,TD,TA,(Td-Ta),Compa1*(Td-Ta)
         ENDIF
         if(CompPower.LT.0.0)CompPower=0.0
 
         FanPower=FanRating
 
-C Calculate the COP based on the user-specified method.
+C Calculate the COP based on the user-specified method. 
+        CALL DAYCLKSTR(IDYP,BTIMEF,clkstr)
+        lnclk=lnblnk(clkstr)
         IF(COPModel.EQ.1)THEN
           COP=COPa0 !fixed COP
         ELSEIF(COPModel.EQ.2)THEN
+          CarEffMod = COPa0   ! Other code blocks suggest this is the modifier slot.
           TL=Tamb+273.15
           TH=ReturnT+273.15
           COP=CarEffMod*((1-(TL/TH))**(-1)) !modified carnot COP
+C          write(45,'(3a,5F10.4,F10.2)') 'CMP45C ',clkstr(1:lnclk),
+C     &     ' carnot COP amb retrn',
+C     &      COP,CarEffMod,TL,TH,CompPower,COP*CompPower
         ELSEIF(COPModel.EQ.3)THEN !quadratic based on Td-Ta
           TL=Tamb
           TH=ReturnT
           COP=COPa0+(COPa1*(TH-TL))+(COPa2*(TH-TL)**2.)
+C          write(45,'(3a,7F10.4,F10.2)') 'CMP45C ',clkstr(1:lnclk),
+C     &     ' quad COP',COP,COPa0,
+C     &      COPa1,COPa2,TL,TH,CompPower,COP*CompPower
         ELSEIF(COPModel.EQ.4)THEN
           COP=COPa0+COPa1*Tamb+COPa2*Tamb**2.+COPa3*Tamb**3. !cubic polymonial COP based on ambient T
+C          write(45,'(3a,7F10.4,F10.2)') 'CMP45C ',clkstr(1:lnclk),
+C     &      ' cubic COP',COP,COPa0,
+C     &      COPa1,COPa2,COPa3,Tamb,CompPower,COP*CompPower
         ELSE
           WRITE(OUTS,'(a)')'Error in ASHP, COP model #'
           CALL EDISP(IUOUT,OUTS)
@@ -6030,15 +6045,12 @@ C Set limits on calculated values of COP
       ELSE
 
 C Device is 'off' set parameters accordingly (assume controller is still operating).
-
         CompPower=0.
         HeatOutput=0.
         FanPower=0.
         COP=0.
         InDefrost=.false.
         DefrostLock=.false.
-
-
       ENDIF
 
 C Generate coefficients for energy balance equation
@@ -11794,11 +11806,11 @@ C            3 Water vapour mass flow rate (kg/s)
 #include "plant.h"
 #include "building.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/TC/ITC,ICNT
       COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
 
-      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS,idynow
       COMMON/PTIME/PTIMEP,PTIMEF
 
       COMMON/C9/NPCOMP,NCI(MPCOM),CDATA(MPCOM,MMISCD)

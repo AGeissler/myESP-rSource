@@ -2488,7 +2488,7 @@ C    georead() (egeometry.F line 1750 ff.)/ egomin() (egeometry.F line 594)? >>
 C.....Switch for surface name output here
 cx      if (ReportBoolConfig ("use_surfacenames")) then
 cx        write (cSurf_Chars,'(A)')
-cx     &          sname(iZone,isurf)(1:lnsname(icomp,isurf))
+cx     &    sname(iZone,isurf)(1:lnblnk(sname(icomp,isurf)))
 cx      else
 C.......Pad surface index to 'XXX'
           write (cSurf_Chars,'(A,I3.3)') 'surface_',isurf
@@ -3893,7 +3893,7 @@ C.........Pad surface / construction index to 'XX'
 C.........Switch for surface name output here
 c          if (ReportBoolConfig ("use_surfacenames")) then
 c            write (cSurf_Chars,'(A)')
-c        &          sname(iZone,iSurface)(1:lnsname(iZone,iSurface))
+c        &     sname(iZone,iSurface)(1:lnblnk(sname(iZone,iSurface)))
 c          else
 C...........Pad surface index to 'XX'
 c            if ( iSurface .gt. 9 ) then

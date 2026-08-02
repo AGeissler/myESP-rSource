@@ -1282,7 +1282,7 @@ C Link lighting systems with zones
         DO 160 IZ=1,NCOMP
           CALL EDISP(IUOUT,' ')
           IF(ILIGHTUSER(IZ).EQ.1)THEN
-            CALL EDISP(IUOUT,'Currently user defined W/m2 per 100 lux')
+            CALL EDISP(IUOUT,'Current user defined W/m^2 per 100 lux')
             WRITE(OUTS,'(A,F7.3)')' with a value of ',LIGHTWATTAGE(IZ)
             CALL EDISP(IUOUT,OUTS)
           ELSEIF(ILITYP(IZ).GT.0)THEN
@@ -1295,7 +1295,7 @@ C << Something is wrong about passed parameter in this call. >>
           CALL EASKMBOX(
      &      'Options for defining lighting heat gains for zone:',
      &      zname(IZ)(1:lnzname(IZ)),
-     &      'user defined W/m2 per 100 lux','pick from list',
+     &      'user defined W/m^2 per 100 lux','pick from list',
      &      'do not modify at this time',
      &      ' ',' ',' ',' ',' ',Iwaylight,nbhelp)
           IF(Iwaylight.EQ.1)THEN
@@ -1387,9 +1387,9 @@ C Confirm front sensor or front and back sensor.
                 Idaylightzoning(iz)=ivalue
               endif
 
-C Confirm photoelectric sensor parasitic power W/m2
+C Confirm photoelectric sensor parasitic power W/m^2
               write(outs,'(A,F5.3,A)')'Current parasitic power is ',
-     &        PE_sensor_PP(iz),'W/m2.'
+     &        PE_sensor_PP(iz),'W/m^2.'
               call edisp(iuout,outs)
               IF(Ipe_sensor.EQ.0)THEN
                 PE_sensor_PP(iz)=0.0
@@ -1437,7 +1437,7 @@ C Ask for occupancy sensing
      &      'AUTO-ON-OFF','MAN-ON-DIMMED','MAN-ON-AUTO-OFF','NONE',
      &      ' ',' ',IOcc_sensing(iz),nbhelp)
 
-C Confirm occupancy sensor parasitic power W/m2
+C Confirm occupancy sensor parasitic power W/m^2.
             if(IOcc_sensing(iz).ne.6)then
               write(outs,'(A,F5.3)')'Current parasitic power is ',
      &        Occ_sensor_PP(iz)
@@ -2141,8 +2141,8 @@ C in M3/hr for the zone.
      &        roomactname(ireadactivityindex)(1:lnact),' : ',
      &        nbpeople,' occupants & makeup air ',freshairhr,' m3/h ',
      &        freshairchanges,' ach & occupant sen ',ocupsens,'W ',
-     &        ocupsens/ZBASEA(IZ),'W/m2 lat ',ocuplat,'W ',
-     &        ocuplat/ZBASEA(IZ),'W/m2.'
+     &        ocupsens/ZBASEA(IZ),'W/m^2 lat ',ocuplat,'W ',
+     &        ocuplat/ZBASEA(IZ),'W/m^2.'
             call edisp248(itu,outs248,100)
           else
             write(outs,'(6A)') 'Zone ',zname(iz)(1:lnb),
@@ -2163,7 +2163,7 @@ C Check if there is a user defined entry for lighting heat gains
           if(ILIGHTUSER(IZ).eq.1)then
             write(outs,'(4A,F7.2)') 'User_defined ',
      &        'Zone ',zname(iz)(1:lnb),
-     &        ' uses heat gains from lights of (W/m2 per 100 lux):',
+     &        ' uses heat gains from lights of (W/m^2 per 100 lux):',
      &        LIGHTWATTAGE(IZ)
             call edisp(itu,outs)
 
@@ -2994,7 +2994,7 @@ C Enter Scottish building types if Scottish regs to be used
 
 C Enter building permeability
       CALL EASKR(BINF50,
-     &  'Enter building permeability at 50Pa in m3/m2.hour',
+     &  'Enter building permeability at 50Pa in m3/m^2.h',
      &  ' ',0.,'F',0.,'-',10.,'heat gen eff ',IER,nbhelp)
       CALL EASKMBOX(
      &  'Is a compliance check to be performed on the building',
@@ -3321,15 +3321,14 @@ C For each surface in this zone
 
 C If surface is ground then specify ground temperature profile as
 C calculated in GTCALC
-          IF(SOTHER(ICOMP,ISUR,1)(1:8).EQ.'GROUND')THEN
-            SOTHER(ICOMP,ISUR,2)='00'
-            SOTHER(ICOMP,ISUR,3)='01'
-            IC2(ICN)=0
-            IE2(ICN)=1
+          IF(zboundarytype(ICOMP,ISUR,1).EQ.4)THEN
+            zboundarytype(icomp,isur,2)=0
+            zboundarytype(icomp,isur,3)=1
+            IC2(ICN)=0; IE2(ICN)=1
           ENDIF
 
 C If surface is exterior then check if use is specified if not then ask
-          IF(SOTHER(ICOMP,ISUR,1)(1:8).EQ.'EXTERIOR')THEN
+          IF(zboundarytype(ICOMP,ISUR,1).EQ.0)THEN
             write(ADF,'(a)') SUSE(ICOMP,ISUR,1)
             IF(ADF(1:1).EQ.'-')THEN
               IZGFOC=ICOMP
@@ -3357,7 +3356,8 @@ C Write new geometry file for the stripped model zonename_str.geo
         EXT='.geo'
         CALL FNCNGR(LGEOM(ICOMP),APE,EXT,NNAME)
         LGEOM(ICOMP)=NNAME
-        CALL GEOWRITE(IUF,LGEOM(ICOMP),ICOMP,ITRU,3,IER)
+C        CALL GEOWRITE(IUF,LGEOM(ICOMP),ICOMP,ITRU,3,IER)
+        CALL GEOWRITE2(IUF,LGEOM(ICOMP),ICOMP,ITRU,3,IER)
  551  CONTINUE
 
 C Save information to NCM project specific (*.ncm) file
@@ -3655,7 +3655,7 @@ C NTBITS and NTSTAT are hardwired here to 5 and 11 respectively
           WRITE(iafil,'(2a)',IOSTAT=ios,ERR=101) '*fields,16'
           WRITE(iafil,'(a,F4.3,2a)',IOSTAT=ios,ERR=101)
      &      'REAL  1  0  ',occupant_dens(iforuseintdfentry(i)),
-     &      ' 0.000    100.000  ','Occupant density (pers/m2):'
+     &      ' 0.000    100.000  ','Occupant density (pers/m^2):'
           WRITE(iafil,'(a,I3,2a)',IOSTAT=ios,ERR=101)
      &      'INTG  2  0  ',metabolic_rate(iforuseintdfentry(i)),
      &      ' 0       999  ','Metabolic rate (W/pers):'
@@ -3664,7 +3664,7 @@ C NTBITS and NTSTAT are hardwired here to 5 and 11 respectively
      &      ' 0       100  ','Occup. Latent gain % (0-100):'
           WRITE(iafil,'(a,F6.3,2a)',IOSTAT=ios,ERR=101)
      &      'REAL  4  0   ',equip_gain(iforuseintdfentry(i)),
-     &      ' 0.000    400.000  ','Equipment (W/m2):'
+     &      ' 0.000    400.000  ','Equipment (W/m^2):'
           WRITE(iafil,'(1a,I3,2a)',IOSTAT=ios,ERR=101)
      &      'INTG  5  0   ',latent_equip_percent(iforuseintdfentry(i)),
      &      ' 0       100  ','Equip. Latent gain % (0-100):'
@@ -3673,10 +3673,10 @@ C NTBITS and NTSTAT are hardwired here to 5 and 11 respectively
      &      ' 0       999  ','Number of luxes (lux):'
           WRITE(iafil,'(a,F6.3,2a)',IOSTAT=ios,ERR=101)
      &      'REAL  7  0    ',display_lighting(iforuseintdfentry(i)),
-     &      ' 0.000    400.000  ','Display Lighting (W/m2):'
+     &      ' 0.000    400.000  ','Display Lighting (W/m^2):'
           WRITE(iafil,'(a,F7.2,2a)',IOSTAT=ios,ERR=101)
      &      'REAL  8  0   ',dhw_litres(iforuseintdfentry(i)),
-     &      ' 0.000    400.000  ','Dom. Hot Water (l/d/m2):'
+     &      ' 0.000    400.000  ','Dom. Hot Water (l/d/m^2):'
           WRITE(iafil,'(a,F6.3,2a)',IOSTAT=ios,ERR=101)
      &      'REAL  9  0    ',fresh_air(iforuseintdfentry(i)),
      &      ' 0.000    400.000  ','Outdoor air (l/s/pers.):'
@@ -4261,7 +4261,7 @@ C NTBITS and NTSTAT are hardwired here to 5 and 11 respectively
         WRITE(iafil,'(2a)',IOSTAT=ios,ERR=101) '*fields,16'
         WRITE(iafil,'(a,F4.3,2a)',IOSTAT=ios,ERR=101)
      &    'REAL  1  0  ',occupant_dens(iforuseintdfentry(i)),
-     &    ' 0.000    100.000  ','Occupant density (pers/m2):'
+     &    ' 0.000    100.000  ','Occupant density (pers/m^2):'
         WRITE(iafil,'(a,I3,2a)',IOSTAT=ios,ERR=101)
      &    'INTG  2  0  ',metabolic_rate(iforuseintdfentry(i)),
      &    ' 0       999  ','Metabolic rate (W/pers):'
@@ -4270,7 +4270,7 @@ C NTBITS and NTSTAT are hardwired here to 5 and 11 respectively
      &    ' 0       100  ','Occup. Latent gain % (0-100):'
         WRITE(iafil,'(a,F6.3,2a)',IOSTAT=ios,ERR=101)
      &    'REAL  4  0   ',equip_gain(iforuseintdfentry(i)),
-     &    ' 0.000    400.000  ','Equipment (W/m2):'
+     &    ' 0.000    400.000  ','Equipment (W/m^2):'
         WRITE(iafil,'(1a,I3,2a)',IOSTAT=ios,ERR=101)
      &    'INTG  5  0   ',latent_equip_percent(iforuseintdfentry(i)),
      &    ' 0       100  ','Equip. Latent gain % (0-100):'
@@ -4279,10 +4279,10 @@ C NTBITS and NTSTAT are hardwired here to 5 and 11 respectively
      &    ' 0       999  ','Number of luxes (lux):'
         WRITE(iafil,'(a,F6.3,2a)',IOSTAT=ios,ERR=101)
      &    'REAL  7  0    ',display_lighting(iforuseintdfentry(i)),
-     &    ' 0.000    400.000  ','Display Lighting (W/m2):'
+     &    ' 0.000    400.000  ','Display Lighting (W/m^2):'
         WRITE(iafil,'(a,F7.2,2a)',IOSTAT=ios,ERR=101)
      &    'REAL  8  0   ',dhw_litres(iforuseintdfentry(i)),
-     &    ' 0.000    400.000  ','Dom. Hot Water (l/d/m2):'
+     &    ' 0.000    400.000  ','Dom. Hot Water (l/d/m^2):'
         WRITE(iafil,'(a,F6.3,2a)',IOSTAT=ios,ERR=101)
      &    'REAL  9  0    ',fresh_air(iforuseintdfentry(i)),
      &    ' 0.000    400.000  ','Outdoor air (l/s/pers.):'
@@ -4553,6 +4553,7 @@ C facade.
       character APE*6    ! up to 6 characters in variant name
       CHARACTER NNAME*72
       CHARACTER OUTS*124,ADF*12,SNM*12,USE*12,USE2*12
+      character sbound_ty*12,sbound_c2*6,sbound_e2*6
       character SN*12,msg*42
       CHARACTER*12 XJCCU,XKCCU
       character DOIT*248
@@ -4774,7 +4775,8 @@ C        write(6,*) icomp,NZSUR(icomp),nmlc
         ACT='s'
 C        CALL SURREL(ACT,ICOMP,IER)
         CALL SURREL2(ACT,ICOMP,IER)
-        call geowrite(IUF,LGEOM(ICOMP),ICOMP,ITRU,3,IER)
+C        call geowrite(IUF,LGEOM(ICOMP),ICOMP,ITRU,3,IER)
+        call geowrite2(IUF,LGEOM(ICOMP),ICOMP,ITRU,3,IER)
 
 C Make a copy of constructions file and tmc file if applicable.
         IUNIT=12
@@ -4924,7 +4926,7 @@ C type surface with use roof or wall.
                             ! do not put any glazing in this surface
 
 C For all exterior surfaces that are marked wall or roof.
-            if(sother(icomp,isur,1)(1:8).eq.'EXTERIOR')then
+            if(zboundarytype(icomp,isur,1).eq.0)then
               if(SNM(1:4).EQ.'WALL'.or.SNM(1:4).EQ.'ROOF')then
 
 C For each grand child.
@@ -5113,7 +5115,8 @@ C     &              ' ',SOTF(icomp,isur)
 C If we have altered the use of a parent glazing or frame save this
 C to the geometry file prior to deleting surfaces.
           if(changeuse)then
-            call geowrite(IUF,LGEOM(ICOMP),ICOMP,ITRU,3,IER)
+C            call geowrite(IUF,LGEOM(ICOMP),ICOMP,ITRU,3,IER)
+            call geowrite2(IUF,LGEOM(ICOMP),ICOMP,ITRU,3,IER)
           endif
  
         ENDIF
@@ -5188,7 +5191,8 @@ C          write(6,*) 'before addsur d ',NZSUR(icomp)
 C          write(6,*) 'after addsur d ',NZSUR(icomp)
           CALL EMKCFG('-',IER)
 C          write(6,*) 'after emkcfg d ',NZSUR(icomp)
-          call geowrite(IFIL+2,LGEOM(ICOMP),ICOMP,ITRU,3,IER)
+C          call geowrite(IFIL+2,LGEOM(ICOMP),ICOMP,ITRU,3,IER)
+          call geowrite2(IFIL+2,LGEOM(ICOMP),ICOMP,ITRU,3,IER)
 C          write(6,*) 'after geowrite d ',NZSUR(icomp)
 
 C Update the image if working in graphics mode.
@@ -5217,7 +5221,7 @@ C in the current zone check its attributes.
 
 C For all exterior surfaces that are wall or roof define the
 C glazing and frame percentage.
-          if(sother(icomp,isur,1)(1:8).eq.'EXTERIOR'.AND.
+          if(zboundarytype(icomp,isur,1).eq.0.AND.
      &      (SNM(1:4).EQ.'WALL'.or.SNM(1:4).EQ.'ROOF'))then
             IF(SNM(1:4).EQ.'WALL')THEN
               GLZFR=WALLFR
@@ -5273,7 +5277,7 @@ C << need to trap error state in georead >>
 
 C For all exterior surfaces that are wall or roof set the glazing
 C and frame areas.
-          if(sother(icomp,isur,1)(1:8).eq.'EXTERIOR'.AND.
+          if(zboundarytype(icomp,isur,1).eq.0.AND.
      &      (SNM(1:4).EQ.'WALL'.or.SNM(1:4).EQ.'ROOF'))then
             IF(SNM(1:4).EQ.'WALL')THEN
               GLZFR=WALLFR
@@ -5319,27 +5323,35 @@ C If likely new surface complexity is within limits add door.
                 Y(NTV+NV)=TRANS(2)
                 Z(NTV+NV)=TRANS(3)
                 JVN(ISUR2,NV)=NTV+NV
+                iszjvn(icomp,isur2,nv)=NTV+NV
                 JVN(IS,2*NVER(IS)-NV+2)=NTV+NV
+                iszjvn(icomp,is,2*NVER(IS)-NV+2)=NTV+NV
  7212         CONTINUE
               JVN(IS,NVER(IS)+1)=JVN(IS,1)
-              JVN(IS,2*NVER(IS)+2)=JVN(IS,NVER(IS)+2)
+              iszjvn(icomp,is,nver(is)+1)=JVN(IS,1)
+              ivv=JVN(IS,NVER(IS)+2)
+              JVN(IS,2*NVER(IS)+2)=ivv
+              iszjvn(icomp,IS,2*NVER(IS)+2)=ivv
               NTV=NTV+NVER(IS) ! increment nb verts
               NZTV(ICOMP)=NTV  ! update the zone array
               NZSUR(ICOMP)=NSUR
               NVER(ISUR2)=NVER(IS)
-              NVER(IS)=2*NVER(IS)+2
+              isznver(ICOMP,isur2)=NVER(IS)
+              ivv=2*NVER(IS)+2
+              NVER(IS)=ivv
+              isznver(ICOMP,is)=ivv
 
 C Update the connection list. Move all others up and then insert with
 C default values.
               call addedsurf(icomp,icon,itrc,ier)
+              ICT(ICON)=0; IC2(ICON)=0; IE2(ICON)=0
+              zboundarytype(icomp,is,1)=ICT(ICON)
+              zboundarytype(icomp,is,2)=IC2(ICON)
+              zboundarytype(icomp,is,3)=IE2(ICON)
+              call decode_zsbound(icomp,is,sbound_ty,sbound_c2,
+     &          sbound_e2)
 
 C Add surfaces attribution parameters
-              ICT(ICON)=0
-              IC2(ICON)=0
-              IE2(ICON)=0
-              SOTHER(ICOMP,IS,1)='EXTERIOR'
-              SOTHER(ICOMP,IS,2)='0'
-              SOTHER(ICOMP,IS,3)='0'
               SMLCN(ICOMP,IS)='opDoorWind_n' ! MLC type
               if(haveopDoor) smlcindex(ICOMP,IS)=mlciopDoor
               SPARENT(ICOMP,IS)=SNAME(icomp,isur)
@@ -5352,7 +5364,8 @@ C Update connections list before displaying notional model zone
               MODIFYVIEW=.TRUE.
               NZSUR(ICOMP)=NSUR
               call zgupdate(itrc,icomp,ier)
-              call geowrite(IUF,LGEOM(ICOMP),ICOMP,ITRU,3,IER)
+C              call geowrite(IUF,LGEOM(ICOMP),ICOMP,ITRU,3,IER)
+              call geowrite2(IUF,LGEOM(ICOMP),ICOMP,ITRU,3,IER)
               call emkcfg('-',IER)
 
 C Precondition variables IS and TOTAREA to set them up for other child
@@ -5396,29 +5409,36 @@ C     &        XDWAREA(ICC)
                 Y(NTV+NV)=TRANS(2)
                 Z(NTV+NV)=TRANS(3)
                 JVN(ISUR2,NV)=NTV+NV
+                iszjvn(icomp,isur2,nv)=NTV+NV
                 JVN(IS,2*NVER(IS)-NV+2)=NTV+NV
+                iszjvn(icomp,is,2*NVER(IS)-NV+2)=NTV+NV
  7412         CONTINUE
               JVN(IS,NVER(IS)+1)=JVN(IS,1)
-              JVN(IS,2*NVER(IS)+2)=JVN(IS,NVER(IS)+2)
+              iszjvn(icomp,is,nver(is)+1)=JVN(IS,1)
+              ivv=JVN(IS,NVER(IS)+2)
+              JVN(IS,2*NVER(IS)+2)=ivv
+              iszjvn(icomp,IS,2*NVER(IS)+2)=ivv
               NTV=NTV+NVER(IS)  ! increment nb of verts
               NZTV(ICOMP)=NTV   ! update zone array
               NZSUR(ICOMP)=NSUR
               NVER(ISUR2)=NVER(IS)
-              NVER(IS)=2*NVER(IS)+2
+              isznver(ICOMP,isur2)=NVER(IS)
+              ivv=2*NVER(IS)+2
+              NVER(IS)=2*ivv
+              isznver(ICOMP,is)=ivv
 
 C Update the connection list. Move all others up and then insert with
 C default values.
 C              write(6,*) 'before adddedsurf c ',icon,NZSUR(icomp)
               call addedsurf(icomp,icon,itrc,ier)
-C              write(6,*) 'after adddedsurf c ',icon,NZSUR(icomp),ier
+              ICT(ICON)=0; IC2(ICON)=0; IE2(ICON)=0
+              zboundarytype(icomp,is,1)=ICT(ICON)
+              zboundarytype(icomp,is,2)=IC2(ICON)
+              zboundarytype(icomp,is,3)=IE2(ICON)
+              call decode_zsbound(icomp,is,sbound_ty,sbound_c2,
+     &          sbound_e2)
 
 C Add surfaces attribution parameters
-              ICT(ICON)=0
-              IC2(ICON)=0
-              IE2(ICON)=0
-              SOTHER(ICOMP,IS,1)='EXTERIOR'
-              SOTHER(ICOMP,IS,2)='0'
-              SOTHER(ICOMP,IS,3)='0'
               SMLCN(ICOMP,IS)='Not_DisplayG'  ! MLC type
               if(haveNot_D) smlcindex(ICOMP,IS)=mlciNot_D
               SPARENT(ICOMP,IS)=SNAME(icomp,isur)
@@ -5431,7 +5451,8 @@ C Update connections list before displaying notional model zone
               MODIFYVIEW=.TRUE.
               NZSUR(ICOMP)=NSUR
               call zgupdate(itrc,icomp,ier)
-              call geowrite(IUF,LGEOM(ICOMP),ICOMP,ITRU,3,IER)
+C              call geowrite(IUF,LGEOM(ICOMP),ICOMP,ITRU,3,IER)
+              call geowrite2(IUF,LGEOM(ICOMP),ICOMP,ITRU,3,IER)
               call emkcfg('-',IER)
 
 C Precondition variables IS and TOTAREA to set them up for other child
@@ -5478,29 +5499,36 @@ C already gotten enough glazing area add another window and frame.
                 Y(NTV+NV)=TRANS(2)
                 Z(NTV+NV)=TRANS(3)
                 JVN(ISUR2,NV)=NTV+NV
+                iszjvn(icomp,isur2,nv)=NTV+NV
                 JVN(IS,2*NVER(IS)-NV+2)=NTV+NV
+                iszjvn(icomp,is,2*NVER(IS)-NV+2)=NTV+NV
  7512         CONTINUE
               JVN(IS,NVER(IS)+1)=JVN(IS,1)
-              JVN(IS,2*NVER(IS)+2)=JVN(IS,NVER(IS)+2)
+              iszjvn(icomp,is,nver(is)+1)=JVN(IS,1)
+              ivv=JVN(IS,NVER(IS)+2)
+              JVN(IS,2*NVER(IS)+2)=ivv
+              iszjvn(icomp,IS,2*NVER(IS)+2)=ivv
               NTV=NTV+NVER(IS)  ! increment nb of verts
               NZTV(ICOMP)=NTV   ! update zone array
               NZSUR(ICOMP)=NSUR
               NVER(ISUR2)=NVER(IS)
-              NVER(IS)=2*NVER(IS)+2
+              isznver(ICOMP,isur2)=NVER(IS)
+              ivv=2*NVER(IS)+2
+              NVER(IS)=2*ivv
+              isznver(ICOMP,is)=ivv
 
 C Update the connection list. Move all others up and then insert with
 C default values.
 C              write(6,*) 'before adddedsurf d ',icon,NZSUR(icomp)
               call addedsurf(icomp,icon,itrc,ier)
-C              write(6,*) 'after adddedsurf d ',icon,NZSUR(icomp),ier
+              ICT(ICON)=0; IC2(ICON)=0; IE2(ICON)=0
+              zboundarytype(icomp,is,1)=ICT(ICON)
+              zboundarytype(icomp,is,2)=IC2(ICON)
+              zboundarytype(icomp,is,3)=IE2(ICON)
+              call decode_zsbound(icomp,is,sbound_ty,sbound_c2,
+     &          sbound_e2)
 
 C Add surfaces attribution parameters
-              ICT(ICON)=0
-              IC2(ICON)=0
-              IE2(ICON)=0
-              SOTHER(ICOMP,IS,1)='EXTERIOR'
-              SOTHER(ICOMP,IS,2)='0'
-              SOTHER(ICOMP,IS,3)='0'
               SMLCN(ICOMP,IS)='window_Not_G'  ! MLC type
               if(haveNot_G) smlcindex(ICOMP,IS)=mlciNot_G
               SPARENT(ICOMP,IS)=SNAME(icomp,isur)
@@ -5514,7 +5542,8 @@ C Update connections list before displaying notional model zone
               MODIFYVIEW=.TRUE.
               NZSUR(ICOMP)=NSUR
               call zgupdate(itrc,icomp,ier)
-              call geowrite(IUF,LGEOM(ICOMP),ICOMP,ITRU,3,IER)
+C              call geowrite(IUF,LGEOM(ICOMP),ICOMP,ITRU,3,IER)
+              call geowrite2(IUF,LGEOM(ICOMP),ICOMP,ITRU,3,IER)
               call emkcfg('-',IER)
               is=nsur
 
@@ -5540,29 +5569,36 @@ C been a frame in the original model).
                 Y(NTV+NV)=TRANS(2)
                 Z(NTV+NV)=TRANS(3)
                 JVN(ISUR2,NV)=NTV+NV
+                iszjvn(icomp,isur2,nv)=NTV+NV
                 JVN(IS,2*NVER(IS)-NV+2)=NTV+NV
+                iszjvn(icomp,is,2*NVER(IS)-NV+2)=NTV+NV
  7612         CONTINUE
               JVN(IS,NVER(IS)+1)=JVN(IS,1)
-              JVN(IS,2*NVER(IS)+2)=JVN(IS,NVER(IS)+2)
+              iszjvn(icomp,is,nver(is)+1)=JVN(IS,1)
+              ivv=JVN(IS,NVER(IS)+2)
+              JVN(IS,2*NVER(IS)+2)=ivv
+              iszjvn(icomp,IS,2*NVER(IS)+2)=ivv
               NTV=NTV+NVER(IS)  ! increment nb verts
               NZTV(ICOMP)=NTV   ! update zone array
               NZSUR(ICOMP)=NSUR
               NVER(ISUR2)=NVER(IS)
-              NVER(IS)=2*NVER(IS)+2
+              isznver(ICOMP,isur2)=NVER(IS)
+              ivv=2*NVER(IS)+2
+              NVER(IS)=ivv
+              isznver(ICOMP,is)=ivv
 
 C Update the connection list. Move all others up and then insert with
 C default values.
 C              write(6,*) 'before adddedsurf e ',icon,NZSUR(icomp)
               call addedsurf(icomp,icon,itrc,ier)
-C              write(6,*) 'after adddedsurf e ',icon,NZSUR(icomp),ier
+              ICT(ICON)=0; IC2(ICON)=0; IE2(ICON)=0
+              zboundarytype(icomp,is,1)=ICT(ICON)
+              zboundarytype(icomp,is,2)=IC2(ICON)
+              zboundarytype(icomp,is,3)=IE2(ICON)
+              call decode_zsbound(icomp,is,sbound_ty,sbound_c2,
+     &          sbound_e2)
 
 C Add surfaces attribution parameters
-              ICT(ICON)=0
-              IC2(ICON)=0
-              IE2(ICON)=0
-              SOTHER(ICOMP,IS,1)='EXTERIOR'
-              SOTHER(ICOMP,IS,2)='0'
-              SOTHER(ICOMP,IS,3)='0'
               SMLCN(ICOMP,IS)='frame_notion'  ! MLC type
               if(haveframe) smlcindex(ICOMP,IS)=mlciframe
               SPARENT(ICOMP,IS)=SNAME(icomp,isur)
@@ -5575,7 +5611,10 @@ C Update connections list before displaying notional model zone
               MODIFYVIEW=.TRUE.
               NZSUR(ICOMP)=NSUR
               call zgupdate(itrc,icomp,ier)
-              call geowrite(IUF,LGEOM(ICOMP),ICOMP,ITRU,3,IER)
+              gversion(icomp) =1.1
+              newgeo = .true.
+C              call geowrite(IUF,LGEOM(ICOMP),ICOMP,ITRU,3,IER)
+              call geowrite2(IUF,LGEOM(ICOMP),ICOMP,ITRU,3,IER)
               call emkcfg('-',IER)
 
             ENDIF
@@ -5612,7 +5651,7 @@ C for all zones whether they are occupied and conditioned or not.
           USE=SUSE(icomp,i,1)
           USE2=SUSE(icomp,i,2)
           write(ADF,'(a)') SVFC(icomp,i)
-          IF(sother(icomp,i,1)(1:8).eq.'EXTERIOR')THEN
+          IF(zboundarytype(icomp,i,1).eq.0)THEN
 
 C For surfaces facing the outside.
             IF(USE(1:4).EQ.'WALL')THEN
@@ -5693,7 +5732,7 @@ C For surfaces facing the outside.
                 if(haveWall_EW) smlcindex(icomp,i)=mlciWall_EW
               ENDIF
             ENDIF
-          ELSEIF(sother(icomp,i,1)(1:6).eq.'GROUND')THEN
+          ELSEIF(zboundarytype(icomp,i,1).eq.4)THEN
 
 C Surfaces facing the ground.
             SMLCN(icomp,i)='Sol_grnd_not'
@@ -5780,14 +5819,16 @@ C  party_wall_n if transparent use internal_glz.
 
 C Write geometry file to save off changes in constructions prior to
 C applying the thermal bridge information.
-        call geowrite(IUF,LGEOM(ICOMP),ICOMP,ITRU,3,IER)
+C        call geowrite(IUF,LGEOM(ICOMP),ICOMP,ITRU,3,IER)
+        call geowrite2(IUF,LGEOM(ICOMP),ICOMP,ITRU,3,IER)
 
 C Add 10% thermal bridge by silently calling appropriate subroutine.
 C This will overwrite thermal bridge information in the original model.
         CALL LINTHBRDG(ICOMP,'s',0.1)
 
 C Write geometry file to ensure thermal bridge data saved.
-        call geowrite(IUF,LGEOM(ICOMP),ICOMP,ITRU,3,IER)
+C        call geowrite(IUF,LGEOM(ICOMP),ICOMP,ITRU,3,IER)
+        call geowrite2(IUF,LGEOM(ICOMP),ICOMP,ITRU,3,IER)
         QUIET=.TRUE.
 
 C Update constructions and tmc files if applicable.
@@ -6051,7 +6092,8 @@ C Use edge checking logic of surrel2 to establish children.
           ACT='s'
 C          CALL SURREL(ACT,IZ,IER)
           CALL SURREL2(ACT,IZ,IER)
-          call geowrite(IUF,LGEOM(IZ),IZ,ITRU,3,IER)
+C          call geowrite(IUF,LGEOM(IZ),IZ,ITRU,3,IER)
+          call geowrite2(IUF,LGEOM(IZ),IZ,ITRU,3,IER)
 
 C Make a copy of constructions file and tmc file if applicable.
           IUNIT=12
@@ -6149,6 +6191,7 @@ C it also assumes that the cfg and cnn have already been setup.
       CHARACTER NNAME*72
       CHARACTER OUTS*124,ADF*12,SNM*12,USE*12,USE2*12
       character SN*12,SPN*12,msg*42
+      character sbound_ty*12,sbound_c2*6,sbound_e2*6
       CHARACTER*12 XJCCU,XKCCU
       character DOIT*248
 
@@ -6273,7 +6316,8 @@ C Use edge checking logic of surrel2 to find child surfaces.
       ACT='s'
 C      CALL SURREL(ACT,ICOMP,IER)
       CALL SURREL2(ACT,ICOMP,IER)
-      call geowrite(IUF,LGEOM(ICOMP),ICOMP,ITRU,3,IER)
+C      call geowrite(IUF,LGEOM(ICOMP),ICOMP,ITRU,3,IER)
+      call geowrite2(IUF,LGEOM(ICOMP),ICOMP,ITRU,3,IER)
 
 C Make a copy of constructions file and tmc file if applicable.
       IUNIT=12
@@ -6407,7 +6451,7 @@ C type surface with use roof or wall.
           TARSURF(ICC)=SNA(icomp,isur)
 
 C For all exterior surfaces that are marked wall or roof.
-          if(sother(icomp,isur,1)(1:8).eq.'EXTERIOR')then
+          if(zboundarytype(icomp,isur,1).eq.0)then
             if(SNM(1:4).EQ.'WALL'.or.SNM(1:4).EQ.'ROOF')then
 
 C For each grand child.
@@ -6615,7 +6659,8 @@ C     &            SMLCN(icomp,isur),' ',SOTF(icomp,isur)
 C If we have altered the use of a parent glazing or frame save this
 C to the geometry file prior to deleting surfaces.
         if(changeuse)then
-          call geowrite(IUF,LGEOM(ICOMP),ICOMP,ITRU,3,IER)
+C          call geowrite(IUF,LGEOM(ICOMP),ICOMP,ITRU,3,IER)
+          call geowrite2(IUF,LGEOM(ICOMP),ICOMP,ITRU,3,IER)
         endif
  
       ENDIF
@@ -6681,7 +6726,8 @@ C update the model cfg file and then re-write the geometry file.
         call georead(IUF,LGEOM(ICOMP),ICOMP,1,iuout,IER)
         CALL ADDSUR(ITRC,ICOMP,IS,'D','A',iopt,IER)
         CALL EMKCFG('-',IER)
-        call geowrite(IFIL+2,LGEOM(ICOMP),ICOMP,ITRU,3,IER)
+C        call geowrite(IFIL+2,LGEOM(ICOMP),ICOMP,ITRU,3,IER)
+        call geowrite2(IFIL+2,LGEOM(ICOMP),ICOMP,ITRU,3,IER)
  6001 CONTINUE
 
 C Update the image if working in graphics mode.
@@ -6709,7 +6755,7 @@ C in the current zone check its attributes.
 
 C For all exterior surfaces that are wall or roof define the
 C glazing and frame percentage.
-        if(sother(icomp,isur,1)(1:8).eq.'EXTERIOR'.AND.
+        if(zboundarytype(icomp,isur,1).eq.0.AND.
      &    (SNM(1:4).EQ.'WALL'.or.SNM(1:4).EQ.'ROOF'))then
           IF(SNM(1:4).EQ.'WALL')THEN
             GLZFR=WALLFR
@@ -6763,7 +6809,7 @@ C << need to trap error state in georead >>
 
 C For all exterior surfaces that are wall or roof set the glazing
 C and frame areas.
-        if(sother(icomp,isur,1)(1:8).eq.'EXTERIOR'.AND.
+        if(zboundarytype(icomp,isur,1).eq.0.AND.
      &    (SNM(1:4).EQ.'WALL'.or.SNM(1:4).EQ.'ROOF'))then
           IF(SNM(1:4).EQ.'WALL')THEN
             GLZFR=WALLFR
@@ -6810,27 +6856,34 @@ C If likely new surface complexity is within limits add door.
               Y(NTV+NV)=TRANS(2)
               Z(NTV+NV)=TRANS(3)
               JVN(ISUR2,NV)=NTV+NV
+              iszjvn(icomp,isur2,nv)=NTV+NV
               JVN(IS,2*NVER(IS)-NV+2)=NTV+NV
+              iszjvn(icomp,is,2*NVER(IS)-NV+2)=NTV+NV
  7212       CONTINUE
             JVN(IS,NVER(IS)+1)=JVN(IS,1)
-            JVN(IS,2*NVER(IS)+2)=JVN(IS,NVER(IS)+2)
+            iszjvn(icomp,is,nver(is)+1)=JVN(IS,1)
+            ivv=JVN(IS,NVER(IS)+2)
+            JVN(IS,2*NVER(IS)+2)=ivv
+            iszjvn(icomp,IS,2*NVER(IS)+2)=ivv
             NTV=NTV+NVER(IS) ! increment nb verts
             NZTV(ICOMP)=NTV  ! update the zone array
             NZSUR(ICOMP)=NSUR
             NVER(ISUR2)=NVER(IS)
-            NVER(IS)=2*NVER(IS)+2
+            isznver(ICOMP,isur2)=NVER(IS)
+            ivv=2*NVER(IS)+2
+            NVER(IS)=2*ivv
+            isznver(ICOMP,is)=ivv
 
 C Update the connection list. Move all others up and then insert with
 C default values.
             call addedsurf(icomp,icon,itrc,ier)
+            ICT(ICON)=0; IC2(ICON)=0; IE2(ICON)=0
+            zboundarytype(icomp,is,1)=ICT(ICON)
+            zboundarytype(icomp,is,2)=IC2(ICON)
+            zboundarytype(icomp,is,3)=IE2(ICON)
+            call decode_zsbound(icomp,is,sbound_ty,sbound_c2,
+     &        sbound_e2)
 
-C Add surfaces attribution parameters
-            ICT(ICON)=0
-            IC2(ICON)=0
-            IE2(ICON)=0
-            SOTHER(ICOMP,IS,1)='EXTERIOR'
-            SOTHER(ICOMP,IS,2)='0'
-            SOTHER(ICOMP,IS,3)='0'
             SMLCN(ICOMP,IS)='opDoorWind_n' ! MLC type
             if(haveopDoor) smlcindex(icomp,is)=mlciopDoor
             SPARENT(ICOMP,IS)=SNAME(icomp,isur)
@@ -6843,7 +6896,8 @@ C Update connections list before displaying notional model zone
             MODIFYVIEW=.TRUE.
             NZSUR(ICOMP)=NSUR
             call zgupdate(itrc,icomp,ier)
-            call geowrite(IUF,LGEOM(ICOMP),ICOMP,ITRU,3,IER)
+C            call geowrite(IUF,LGEOM(ICOMP),ICOMP,ITRU,3,IER)
+            call geowrite2(IUF,LGEOM(ICOMP),ICOMP,ITRU,3,IER)
             call emkcfg('-',IER)
 
 C Precondition variables IS and TOTAREA to set them up for other child
@@ -6888,29 +6942,36 @@ C     &      XDWAREA(ICC)
               Y(NTV+NV)=TRANS(2)
               Z(NTV+NV)=TRANS(3)
               JVN(ISUR2,NV)=NTV+NV
+              iszjvn(icomp,isur2,nv)=NTV+NV
               JVN(IS,2*NVER(IS)-NV+2)=NTV+NV
+              iszjvn(icomp,is,2*NVER(IS)-NV+2)=NTV+NV
  7412       CONTINUE
             JVN(IS,NVER(IS)+1)=JVN(IS,1)
-            JVN(IS,2*NVER(IS)+2)=JVN(IS,NVER(IS)+2)
+            iszjvn(icomp,is,nver(is)+1)=JVN(IS,1)
+            ivv=JVN(IS,NVER(IS)+2)
+            JVN(IS,2*NVER(IS)+2)=ivv
+            iszjvn(icomp,IS,2*NVER(IS)+2)=ivv
             NTV=NTV+NVER(IS)  ! increment nb of verts
             NZTV(ICOMP)=NTV   ! update zone array
             NZSUR(ICOMP)=NSUR
             NVER(ISUR2)=NVER(IS)
-            NVER(IS)=2*NVER(IS)+2
+            isznver(ICOMP,isur2)=NVER(IS)
+            ivv=2*NVER(IS)+2
+            NVER(IS)=ivv
+            isznver(ICOMP,is)=ivv
 
 C Update the connection list. Move all others up and then insert with
 C default values.
 C            write(6,*) 'before adddedsurf c ',icon,NZSUR(icomp)
             call addedsurf(icomp,icon,itrc,ier)
-C            write(6,*) 'after adddedsurf c ',icon,NZSUR(icomp),ier
+            ICT(ICON)=0; IC2(ICON)=0; IE2(ICON)=0
+            zboundarytype(icomp,is,1)=ICT(ICON)
+            zboundarytype(icomp,is,2)=IC2(ICON)
+            zboundarytype(icomp,is,3)=IE2(ICON)
+            call decode_zsbound(icomp,is,sbound_ty,sbound_c2,
+     &        sbound_e2)
 
 C Add surfaces attribution parameters
-            ICT(ICON)=0
-            IC2(ICON)=0
-            IE2(ICON)=0
-            SOTHER(ICOMP,IS,1)='EXTERIOR'
-            SOTHER(ICOMP,IS,2)='0'
-            SOTHER(ICOMP,IS,3)='0'
             SMLCN(ICOMP,IS)='Not_DisplayG'  ! MLC type
             if(haveNot_D) smlcindex(icomp,is)=mlciNot_D
             SPARENT(ICOMP,IS)=SNAME(icomp,isur)
@@ -6923,7 +6984,8 @@ C Update connections list before displaying notional model zone
             MODIFYVIEW=.TRUE.
             NZSUR(ICOMP)=NSUR
             call zgupdate(itrc,icomp,ier)
-            call geowrite(IUF,LGEOM(ICOMP),ICOMP,ITRU,3,IER)
+C            call geowrite(IUF,LGEOM(ICOMP),ICOMP,ITRU,3,IER)
+            call geowrite2(IUF,LGEOM(ICOMP),ICOMP,ITRU,3,IER)
             call emkcfg('-',IER)
 
 C Precondition variables IS and TOTAREA to set them up for other child
@@ -6972,29 +7034,36 @@ C            write(6,*) icomp,nsur,is,nver(is)
               Y(NTV+NV)=TRANS(2)
               Z(NTV+NV)=TRANS(3)
               JVN(ISUR2,NV)=NTV+NV
+              iszjvn(icomp,isur2,nv)=NTV+NV
               JVN(IS,2*NVER(IS)-NV+2)=NTV+NV
+              iszjvn(icomp,is,2*NVER(IS)-NV+2)=NTV+NV
  7512       CONTINUE
             JVN(IS,NVER(IS)+1)=JVN(IS,1)
-            JVN(IS,2*NVER(IS)+2)=JVN(IS,NVER(IS)+2)
+            iszjvn(icomp,is,nver(is)+1)=JVN(IS,1)
+            ivv=JVN(IS,NVER(IS)+2)
+            JVN(IS,2*NVER(IS)+2)=ivv
+            iszjvn(icomp,IS,2*NVER(IS)+2)=ivv
             NTV=NTV+NVER(IS)  ! increment nb of verts
             NZTV(ICOMP)=NTV   ! update zone array
             NZSUR(ICOMP)=NSUR
             NVER(ISUR2)=NVER(IS)
-            NVER(IS)=2*NVER(IS)+2
+            isznver(ICOMP,isur2)=NVER(IS)
+            ivv=2*NVER(IS)+2
+            NVER(IS)=ivv
+            isznver(ICOMP,is)=ivv
 
 C Update the connection list. Move all others up and then insert with
 C default values.
 C            write(6,*) 'before adddedsurf d ',icon,NZSUR(icomp)
             call addedsurf(icomp,icon,itrc,ier)
-C            write(6,*) 'after adddedsurf d ',icon,NZSUR(icomp),ier
+            ICT(ICON)=0; IC2(ICON)=0; IE2(ICON)=0
+            zboundarytype(icomp,is,1)=ICT(ICON)
+            zboundarytype(icomp,is,2)=IC2(ICON)
+            zboundarytype(icomp,is,3)=IE2(ICON)
+            call decode_zsbound(icomp,is,sbound_ty,sbound_c2,
+     &        sbound_e2)
 
 C Add surfaces attribution parameters
-            ICT(ICON)=0
-            IC2(ICON)=0
-            IE2(ICON)=0
-            SOTHER(ICOMP,IS,1)='EXTERIOR'
-            SOTHER(ICOMP,IS,2)='0'
-            SOTHER(ICOMP,IS,3)='0'
             SMLCN(ICOMP,IS)='window_Not_G'  ! MLC type
             if(haveNot_G) smlcindex(icomp,is)=mlciNot_G
             SPARENT(ICOMP,IS)=SNAME(icomp,isur)
@@ -7008,7 +7077,8 @@ C Update connections list before displaying notional model zone
             MODIFYVIEW=.TRUE.
             NZSUR(ICOMP)=NSUR
             call zgupdate(itrc,icomp,ier)
-            call geowrite(IUF,LGEOM(ICOMP),ICOMP,ITRU,3,IER)
+C            call geowrite(IUF,LGEOM(ICOMP),ICOMP,ITRU,3,IER)
+            call geowrite2(IUF,LGEOM(ICOMP),ICOMP,ITRU,3,IER)
             call emkcfg('-',IER)
             is=nsur
 
@@ -7035,29 +7105,36 @@ C been a frame in the original model).
               Y(NTV+NV)=TRANS(2)
               Z(NTV+NV)=TRANS(3)
               JVN(ISUR2,NV)=NTV+NV
+              iszjvn(icomp,isur2,nv)=NTV+NV
               JVN(IS,2*NVER(IS)-NV+2)=NTV+NV
+              iszjvn(icomp,is,2*NVER(IS)-NV+2)=NTV+NV
  7612       CONTINUE
             JVN(IS,NVER(IS)+1)=JVN(IS,1)
-            JVN(IS,2*NVER(IS)+2)=JVN(IS,NVER(IS)+2)
+            iszjvn(icomp,is,nver(is)+1)=JVN(IS,1)
+            ivv=JVN(IS,NVER(IS)+2)
+            JVN(IS,2*NVER(IS)+2)=ivv
+            iszjvn(icomp,IS,2*NVER(IS)+2)=ivv
             NTV=NTV+NVER(IS)  ! increment nb verts
             NZTV(ICOMP)=NTV   ! update zone array
             NZSUR(ICOMP)=NSUR
             NVER(ISUR2)=NVER(IS)
-            NVER(IS)=2*NVER(IS)+2
+            isznver(ICOMP,isur2)=NVER(IS)
+            ivv=2*NVER(IS)+2
+            NVER(IS)=ivv
+            isznver(ICOMP,is)=ivv
 
 C Update the connection list. Move all others up and then insert with
 C default values.
 C            write(6,*) 'before adddedsurf e ',icon,NZSUR(icomp)
             call addedsurf(icomp,icon,itrc,ier)
-C            write(6,*) 'after adddedsurf e ',icon,NZSUR(icomp),ier
+            ICT(ICON)=0; IC2(ICON)=0; IE2(ICON)=0
+            zboundarytype(icomp,is,1)=ICT(ICON)
+            zboundarytype(icomp,is,2)=IC2(ICON)
+            zboundarytype(icomp,is,3)=IE2(ICON)
+            call decode_zsbound(icomp,is,sbound_ty,sbound_c2,
+     &        sbound_e2)
 
 C Add surfaces attribution parameters
-            ICT(ICON)=0
-            IC2(ICON)=0
-            IE2(ICON)=0
-            SOTHER(ICOMP,IS,1)='EXTERIOR'
-            SOTHER(ICOMP,IS,2)='0'
-            SOTHER(ICOMP,IS,3)='0'
             SMLCN(ICOMP,IS)='frame_notion'  ! MLC type
             if(haveframe) smlcindex(icomp,is)=mlciframe
             SPARENT(ICOMP,IS)=SNAME(icomp,isur)
@@ -7070,7 +7147,8 @@ C Update connections list before displaying notional model zone
             MODIFYVIEW=.TRUE.
             NZSUR(ICOMP)=NSUR
             call zgupdate(itrc,icomp,ier)
-            call geowrite(IUF,LGEOM(ICOMP),ICOMP,ITRU,3,IER)
+C            call geowrite(IUF,LGEOM(ICOMP),ICOMP,ITRU,3,IER)
+            call geowrite2(IUF,LGEOM(ICOMP),ICOMP,ITRU,3,IER)
             call emkcfg('-',IER)
 
           ENDIF
@@ -7102,7 +7180,7 @@ C for all zones whether they are occupied and conditioned or not.
           USE=SUSE(icomp,i,1)
           USE2=SUSE(icomp,i,2)
           write(ADF,'(a)') SVFC(icomp,i)
-          IF(sother(icomp,i,1)(1:8).eq.'EXTERIOR')THEN
+          IF(zboundarytype(icomp,i,1).eq.0)THEN
 
 C For surfaces facing the outside.
             IF(USE(1:4).EQ.'WALL')THEN
@@ -7183,7 +7261,7 @@ C For surfaces facing the outside.
                 if(haveWall_EW) smlcindex(icomp,i)=mlciWall_EW
               ENDIF
             ENDIF
-          ELSEIF(sother(icomp,i,1)(1:6).eq.'GROUND')THEN
+          ELSEIF(zboundarytype(icomp,i,1).eq.4)THEN
 
 C Surfaces facing the ground.
             SMLCN(icomp,i)='Sol_grnd_not'
@@ -7270,14 +7348,16 @@ C  party_wall_n if transparent use internal_glz.
 
 C Write geometry file to save off changes in constructions prior to
 C applying the thermal bridge information.
-      call geowrite(IUF,LGEOM(ICOMP),ICOMP,ITRU,3,IER)
+C      call geowrite(IUF,LGEOM(ICOMP),ICOMP,ITRU,3,IER)
+      call geowrite2(IUF,LGEOM(ICOMP),ICOMP,ITRU,3,IER)
 
 C Add 10% thermal bridge by silently calling appropriate subroutine.
 C This will overwrite thermal bridge information in the original model.
       CALL LINTHBRDG(ICOMP,'s',0.1)
 
 C Write geometry file to ensure thermal bridge data saved.
-      call geowrite(IUF,LGEOM(ICOMP),ICOMP,ITRU,3,IER)
+C      call geowrite(IUF,LGEOM(ICOMP),ICOMP,ITRU,3,IER)
+      call geowrite2(IUF,LGEOM(ICOMP),ICOMP,ITRU,3,IER)
       QUIET=.TRUE.
 
 C Update constructions and tmc files if applicable.
@@ -7435,7 +7515,7 @@ C Read zone geometry file and copy this as well
 C Now change constructions.
         DO 601 I=1,NZSUR(icomp)
           write(USE,'(a)') SUSE(icomp,i,1)
-          IF(sother(icomp,i,1)(1:8).eq.'EXTERIOR')THEN
+          IF(zboundarytype(icomp,i,1).eq.0)THEN
             IF(USE(1:4).EQ.'WALL')THEN
               SMLCN(icomp,i)='exWall_typic'
               SOTF(icomp,i)='OPAQUE'  ! OTF type
@@ -7476,7 +7556,7 @@ C Now change constructions.
               SOTF(icomp,i)='OPAQUE'  ! OTF type
               if(haveexWall_ty) smlcindex(icomp,i)=mlciWall_ty
             ENDIF
-          ELSEIF(sother(icomp,i,1)(1:6).eq.'GROUND')THEN
+          ELSEIF(zboundarytype(icomp,i,1).eq.4)THEN
             SMLCN(icomp,i)='Sol_grnd_typ'
             SOTF(icomp,i)='OPAQUE'  ! OTF type
             if(haveSol_gr_typ) smlcindex(icomp,i)=mlciSol_gr_typ
@@ -7485,7 +7565,8 @@ C Now change constructions.
 
 C Write construction and transparent constructions files
 C Write geometry file version 1.1 (1.0 does not support UK NCM)
-        call geowrite(IUF,LGEOM(ICOMP),ICOMP,ITRU,3,IER)
+C        call geowrite(IUF,LGEOM(ICOMP),ICOMP,ITRU,3,IER)
+        call geowrite2(IUF,LGEOM(ICOMP),ICOMP,ITRU,3,IER)
 
 C Update constructions and tmc file if applicable
         QUIET=.TRUE.
@@ -8882,7 +8963,7 @@ C If solar system then calculate insolation
             ANG_O=RENDATA(IREN,3)
             ANG_I=RENDATA(IREN,4)
 
-C calculate insolation at collector surface (kWh/m2)
+C calculate insolation at collector surface (kWh/m^2)
             C_ORIENTATION=ANG_O/45.    ! Values held at 45deg intervals
             IORIENT=INT(C_ORIENTATION)
             C_INCLINATION=ANG_I/15.    ! Values held at 15deg intervals
@@ -9789,7 +9870,7 @@ C then OVERHEAT-RISK will be switched to yes
 
 C CHECK1 detail...
       WRITE(IUF,'(a)',iostat=ios) '"CHECK1" = CHECK1'
-      WRITE(IUF,'(a,F7.1)',iostat=ios)  '  KG-CO2-NOT/M2      = ',AER
+      WRITE(IUF,'(a,F7.1)',iostat=ios)  '  KG-CO2-NOT/M^2     = ',AER
       WRITE(IUF,'(a,F7.1)',iostat=ios)  '  BER                = ',BER
       WRITE(IUF,'(a,F7.1)',iostat=ios)  '  TER                = ',TER
       WRITE(IUF,'(a,F4.2)',iostat=ios)  '  IF                 = ',FXIF
@@ -9810,8 +9891,8 @@ C CHECK2 detail...
 c      EXP_COND=0.   ! External envelope conductance W/K
       DO 114 ICOMP=1,NCOMP
         DO 214 IS=1,NZSUR(ICOMP)
-          TMPSTR=SOTHER(ICOMP,IS,1)
-          if(TMPSTR(1:8).eq.'EXTERIOR'.OR.TMPSTR(1:6).EQ.'GROUND')then
+          if(zboundarytype(ICOMP,IS,1).eq.0.OR.
+     &       zboundarytype(ICOMP,IS,1).EQ.4)then
 
 C Recover the ISO 6946 U values as in prjqa.F.
            lnssmlc=lnblnk(SMLCN(ICOMP,IS))
@@ -10157,10 +10238,10 @@ C coefficient through all external/exposed envelopes"
       call eclose(EXP_AREA,0.0,0.0001,ISNEAR)
       if(.not.ISNEAR)then
         WRITE(IUF,'(a,f6.2)',iostat=ios)
-     &    '  BUILDING-W/M2K            = ',build_UA/EXP_AREA
+     &    '  BUILDING-W/M^2K           = ',build_UA/EXP_AREA
       else
         WRITE(IUF,'(a)',iostat=ios)
-     &    '  BUILDING-W/M2K            =  0.0'
+     &    '  BUILDING-W/M^2K           =  0.0'
       endif
 
 C Using info from common of thermal bridges to find the percentage of heat loss
@@ -10178,57 +10259,57 @@ C psi and lengths.
 
 C Calculate loads for heating, cooling, DHW etc.
       WRITE(IUF,'(a,f9.2)',iostat=ios)
-     &  '  KWH/M2-HEAT               = ',ABS(BER_HEAT)
+     &  '  KWH/M^2-HEAT              = ',ABS(BER_HEAT)
       WRITE(IUF,'(a,F9.2)',iostat=ios)
-     &  '  KWH/M2-COOL               = ',ABS(BER_COOL)
+     &  '  KWH/M^2-COOL              = ',ABS(BER_COOL)
       WRITE(IUF,'(a,F9.2)',iostat=ios)
-     &  '  KWH/M2-AUX                = ',BER_AUX
+     &  '  KWH/M^2-AUX               = ',BER_AUX
       WRITE(IUF,'(a,F9.2)',iostat=ios)
-     &  '  KWH/M2-LIGHT              = ',BER_LIGHT
+     &  '  KWH/M^2-LIGHT             = ',BER_LIGHT
       WRITE(IUF,'(a,F9.2)',iostat=ios)
-     &  '  KWH/M2-DHW                = ',BER_DHW
+     &  '  KWH/M^2-DHW               = ',BER_DHW
 
-C?? To enter total casual gains/m2 here
+C?? To enter total casual gains/m^2 here.
       WRITE(IUF,'(a,F9.2)',iostat=ios)
-     &  '  KWH/M2-EQUP               = ',0.0
+     &  '  KWH/M^2-EQUP              = ',0.0
       WRITE(IUF,'(a,F9.2)',iostat=ios)
-     &  '  KWH/M2-NATGAS             = ',BERF(1)
+     &  '  KWH/M^2-NATGAS            = ',BERF(1)
       WRITE(IUF,'(a,F9.2)',iostat=ios)
-     &  '  KWH/M2-LPG                = ',BERF(2)
+     &  '  KWH/M^2-LPG               = ',BERF(2)
       WRITE(IUF,'(a,F9.2)',iostat=ios)
-     &  '  KWH/M2-BIOGAS             = ',BERF(3)
+     &  '  KWH/M^2-BIOGAS            = ',BERF(3)
       WRITE(IUF,'(a,F9.2)',iostat=ios)
-     &  '  KWH/M2-OIL                = ',BERF(4)
+     &  '  KWH/M^2-OIL               = ',BERF(4)
       WRITE(IUF,'(a,F9.2)',iostat=ios)
-     &  '  KWH/M2-COAL               = ',BERF(5)
+     &  '  KWH/M^2-COAL              = ',BERF(5)
       WRITE(IUF,'(a,F9.2)',iostat=ios)
-     &  '  KWH/M2-ANTHRACITE         = ',BERF(6)
+     &  '  KWH/M^2-ANTHRACITE        = ',BERF(6)
       WRITE(IUF,'(a,F9.2)',iostat=ios)
-     &  '  KWH/M2-SMOKELESS          = ',BERF(7)
+     &  '  KWH/M^2-SMOKELESS         = ',BERF(7)
       WRITE(IUF,'(a,F9.2)',iostat=ios)
-     &  '  KWH/M2-DUELFUEL           = ',BERF(8)
+     &  '  KWH/M^2-DUELFUEL          = ',BERF(8)
       WRITE(IUF,'(a,F9.2)',iostat=ios)
-     &  '  KWH/M2-BIOMASS            = ',BERF(9)
+     &  '  KWH/M^2-BIOMASS           = ',BERF(9)
       WRITE(IUF,'(a,F9.2)',iostat=ios)
-     &  '  KWH/M2-SUPELEC            = ',ABS(BERF(10))
+     &  '  KWH/M^2-SUPELEC           = ',ABS(BERF(10))
       WRITE(IUF,'(a,F9.2)',iostat=ios)
-     &  '  KWH/M2-WASTEHEAT          = ',BERF(12)
+     &  '  KWH/M^2-WASTEHEAT         = ',BERF(12)
 
 C?? To enter the following bits of information
-      WRITE(IUF,'(a,F9.2)',iostat=ios)'  KWH/M2-DISTRICT-HEATING   = ',
+      WRITE(IUF,'(a,F9.2)',iostat=ios)'  KWH/M^2-DISTRICT-HEATING  = ',
      &  0.0
-      WRITE(IUF,'(a,F9.2)',iostat=ios)'  KWH/M2-DISP               = ',
+      WRITE(IUF,'(a,F9.2)',iostat=ios)'  KWH/M^2-DISP              = ',
      &  0.0
-      WRITE(IUF,'(a,F9.2)',iostat=ios)'  KWH/M2-PVS                = ',
+      WRITE(IUF,'(a,F9.2)',iostat=ios)'  KWH/M^2-PVS               = ',
      &  0.0
-      WRITE(IUF,'(a,F9.2)',iostat=ios)'  KWH/M2-WIND               = ',
+      WRITE(IUF,'(a,F9.2)',iostat=ios)'  KWH/M^2-WIND              = ',
      &  0.0
-      WRITE(IUF,'(a,F9.2)',iostat=ios)'  KWH/M2-CHP                = ',
+      WRITE(IUF,'(a,F9.2)',iostat=ios)'  KWH/M^2-CHP               = ',
      &  0.0
-      WRITE(IUF,'(a,F9.2)',iostat=ios)'  KWH/M2-SES                = ',
+      WRITE(IUF,'(a,F9.2)',iostat=ios)'  KWH/M^2-SES               = ',
      &  0.0
 
-C Activity number and area per zone
+C Activity number and area per zone.
 C iactFlarea is a counter to prepare the act_area for the arlist call
 C This act_area has to have maximum size 2 times the zone number, using
 C ITWOMNS here because it is defined in sbem.h as two times the maximum
@@ -10319,18 +10400,18 @@ C Next line is required even if there is no cooling in the system.
      &      '  FUEL-TYPE-COOL            = Grid Supplied Electricity'
           BERSH_DEMAND(ICMSYS)=BERSH(ICMSYS)*HGEF(ICMSYS)
           WRITE(IUF,'(a,F9.2)',iostat=ios)
-     &      '  MJ/M2-HEAT-DEM            = ',ABS(BERSH_DEMAND(ICMSYS)*
+     &      '  MJ/M^2-HEAT-DEM           = ',ABS(BERSH_DEMAND(ICMSYS)*
      &      3.6)
           BERSC_DEMAND(ICMSYS)=BERSC(ICMSYS)*CGEF(ICMSYS)
           WRITE(IUF,'(a,F9.2)',iostat=ios)
-     &      '  MJ/M2-COOL-DEM            = ',
+     &      '  MJ/M^2-COOL-DEM           = ',
      &      ABS(BERSC_DEMAND(ICMSYS)*3.6)
           WRITE(IUF,'(a,F9.2)',iostat=ios)
-     &      '  KWH/M2-HEAT               = ',ABS(BERSH(ICMSYS))
+     &      '  KWH/M^2-HEAT              = ',ABS(BERSH(ICMSYS))
           WRITE(IUF,'(a,F9.2)',iostat=ios)
-     &      '  KWH/M2-COOL               = ',ABS(BERSC(ICMSYS))
+     &      '  KWH/M^2-COOL              = ',ABS(BERSC(ICMSYS))
           WRITE(IUF,'(a,F9.2)',iostat=ios)
-     &      '  KWH/M2-AUX                = ',BERSA(ICMSYS)
+     &      '  KWH/M^2-AUX               = ',BERSA(ICMSYS)
 
 C?? To add system efficienies for heating and cooling which depend upon
 C heat/cool generator efficiencies and system adjustments (SFP, M&T,
@@ -10403,7 +10484,7 @@ C This will have to be based on the location of the study
       WRITE(IUF,'(a)',iostat=ios)
      &  '  WEATHER                    =  LON'
 
-C Notional building has infiltration of 10m3/m2h at 50Pa (Paragraph 30
+C Notional building has infiltration of 10m3/m^2h at 50Pa (Paragraph 30
 C NCM Modelling Guide v4d of March 2008).
       WRITE(IUF,'(a)',iostat=ios)
      &  '  Q50-INF                    = 10'
@@ -10415,10 +10496,10 @@ C BRUKL manual
       call eclose(EXP_AREA,0.0,0.0001,ISNEAR)
       if(.not.ISNEAR)then
         WRITE(IUF,'(a,f10.2)',iostat=ios)
-     &    '  BUILDING-W/M2K             = ',build_UAN/EXP_AREA
+     &    '  BUILDING-W/M^2K            = ',build_UAN/EXP_AREA
       else
         WRITE(IUF,'(a)',iostat=ios)
-     &    '  BUILDING-W/M2K             =  0.0'
+     &    '  BUILDING-W/M^2K            =  0.0'
       endif
 
 C Using info from common of thermal bridges to find the percentage of heat loss
@@ -10431,57 +10512,57 @@ C always 10%.
 
 C Calculate loads for heating, cooling, DHW etc.
       WRITE(IUF,'(a,f9.2)',iostat=ios)
-     &  '  KWH/M2-HEAT                = ',ABS(AER_HEAT)
+     &  '  KWH/M^2-HEAT               = ',ABS(AER_HEAT)
       WRITE(IUF,'(a,F9.2)',iostat=ios)
-     &  '  KWH/M2-COOL                = ',ABS(AER_COOL)
+     &  '  KWH/M^2-COOL               = ',ABS(AER_COOL)
       WRITE(IUF,'(a,F9.2)',iostat=ios)
-     &  '  KWH/M2-AUX                 = ',AER_AUX
+     &  '  KWH/M^2-AUX                = ',AER_AUX
       WRITE(IUF,'(a,F9.2)',iostat=ios)
-     &  '  KWH/M2-LIGHT               = ',AER_LIGHT
+     &  '  KWH/M^2-LIGHT              = ',AER_LIGHT
       WRITE(IUF,'(a,F9.2)',iostat=ios)
-     &  '  KWH/M2-DHW                 = ',AER_DHW
+     &  '  KWH/M^2-DHW                = ',AER_DHW
 
-C?? To enter total casual gains/m2 here
+C?? To enter total casual gains/m^2 here.
       TMPVAL=0.0  ! until there is something to write
       WRITE(IUF,'(a,F9.2)',iostat=ios)
-     &  '  KWH/M2-EQUP                = ',TMPVAL
+     &  '  KWH/M^2-EQUP               = ',TMPVAL
       WRITE(IUF,'(a,F9.2)',iostat=ios)
-     &  '  KWH/M2-NATGAS              = ',AERF(1)
+     &  '  KWH/M^2-NATGAS             = ',AERF(1)
       WRITE(IUF,'(a,F9.2)',iostat=ios)
-     &  '  KWH/M2-LPG                 = ',AERF(2)
+     &  '  KWH/M^2-LPG                = ',AERF(2)
       WRITE(IUF,'(a,F9.2)',iostat=ios)
-     &  '  KWH/M2-BIOGAS              = ',AERF(3)
+     &  '  KWH/M^2-BIOGAS             = ',AERF(3)
       WRITE(IUF,'(a,F9.2)',iostat=ios)
-     &  '  KWH/M2-OIL                 = ',AERF(4)
+     &  '  KWH/M^2-OIL                = ',AERF(4)
       WRITE(IUF,'(a,F9.2)',iostat=ios)
-     &  '  KWH/M2-COAL                = ',AERF(5)
+     &  '  KWH/M^2-COAL               = ',AERF(5)
       WRITE(IUF,'(a,F9.2)',iostat=ios)
-     &  '  KWH/M2-ANTHRACITE          = ',AERF(6)
+     &  '  KWH/M^2-ANTHRACITE         = ',AERF(6)
       WRITE(IUF,'(a,F9.2)',iostat=ios)
-     &  '  KWH/M2-SMOKELESS           = ',AERF(7)
+     &  '  KWH/M^2-SMOKELESS          = ',AERF(7)
       WRITE(IUF,'(a,F9.2)',iostat=ios)
-     &  '  KWH/M2-DUELFUEL            = ',AERF(8)
+     &  '  KWH/M^2-DUELFUEL           = ',AERF(8)
       WRITE(IUF,'(a,F9.2)',iostat=ios)
-     &  '  KWH/M2-BIOMASS             = ',AERF(9)
+     &  '  KWH/M^2-BIOMASS            = ',AERF(9)
       WRITE(IUF,'(a,F9.2)',iostat=ios)
-     &  '  KWH/M2-SUPELEC             = ',ABS(AERF(10))
+     &  '  KWH/M^2-SUPELEC            = ',ABS(AERF(10))
       WRITE(IUF,'(a,F9.2)',iostat=ios)
-     &  '  KWH/M2-WASTEHEAT           = ',AERF(12)
+     &  '  KWH/M^2-WASTEHEAT          = ',AERF(12)
 
 C?? To enter the following bits of information
       TMPVAL=0.0  ! until there is something to write
       WRITE(IUF,'(a,F9.2)',iostat=ios)
-     &  '  KWH/M2-DISTRICT-HEATING    = ',TMPVAL
+     &  '  KWH/M^2-DISTRICT-HEATING   = ',TMPVAL
       WRITE(IUF,'(a,F9.2)',iostat=ios)
-     &  '  KWH/M2-DISP                = ',TMPVAL
+     &  '  KWH/M^2-DISP               = ',TMPVAL
       WRITE(IUF,'(a,F9.2)',iostat=ios)
-     &  '  KWH/M2-PVS                 = ',TMPVAL
+     &  '  KWH/M^2-PVS                = ',TMPVAL
       WRITE(IUF,'(a,F9.2)',iostat=ios)
-     &  '  KWH/M2-WIND                = ',TMPVAL
+     &  '  KWH/M^2-WIND               = ',TMPVAL
       WRITE(IUF,'(a,F9.2)',iostat=ios)
-     &  '  KWH/M2-CHP                 = ',TMPVAL
+     &  '  KWH/M^2-CHP                = ',TMPVAL
       WRITE(IUF,'(a,F9.2)',iostat=ios)
-     &  '  KWH/M2-SES                 = ',TMPVAL
+     &  '  KWH/M^2-SES                = ',TMPVAL
 
 C Activity number and area per zone
 C iactFlarea is a counter to prepare the act_area for the arlist call
@@ -10557,18 +10638,18 @@ C holds index number as NHF
      &      '  FUEL-TYPE-COOL            = Grid Supplied Electricity'
           AERSH_DEMAND(ICMSYS)=AERSH(ICMSYS)*HeatSCoP_N(ICMSYS)
           WRITE(IUF,'(a,F9.2)',iostat=ios)
-     &      '  MJ/M2-HEAT-DEM            = ',ABS(AERSH_DEMAND(ICMSYS)*
+     &      '  MJ/M^2-HEAT-DEM           = ',ABS(AERSH_DEMAND(ICMSYS)*
      &      3.6)
           AERSC_DEMAND(ICMSYS)=AERSC(ICMSYS)*CoolSSEER_N(ICMSYS)
           WRITE(IUF,'(a,F9.2)',iostat=ios)
-     &      '  MJ/M2-COOL-DEM            = ',
+     &      '  MJ/M^2-COOL-DEM           = ',
      &      ABS(AERSC_DEMAND(ICMSYS)*3.6)
           WRITE(IUF,'(a,F9.2)',iostat=ios)
-     &      '  KWH/M2-HEAT               = ',ABS(AERSH(ICMSYS))
+     &      '  KWH/M^2-HEAT              = ',ABS(AERSH(ICMSYS))
           WRITE(IUF,'(a,F9.2)',iostat=ios)
-     &      '  KWH/M2-COOL               = ',ABS(AERSC(ICMSYS))
+     &      '  KWH/M^2-COOL              = ',ABS(AERSC(ICMSYS))
           WRITE(IUF,'(a,F9.2)',iostat=ios)
-     &      '  KWH/M2-AUX                = ',AERSA(ICMSYS)
+     &      '  KWH/M^2-AUX               = ',AERSA(ICMSYS)
 
 C This is based on what SBEM is using. Additional details
 C can be found at NCM modelling guide vers. 2e Table6)
@@ -10975,13 +11056,13 @@ C There is an option for "NO" here but there is no point incuding it
      &    'Northern Ireland'
       endif
 
-C SER is defined as the Standard CO2 emission rate in kg/m2year.
+C SER is defined as the Standard CO2 emission rate in kg/m^2.y.
 C This is calculated according to the NCM modelling guide
 C paragraph 52 vers. 4d: "The Standard Emission Rate is determined by
 C applying a fixed improvement factor to the emissions from a reference building"
       WRITE(IUF,'(a,f7.1)',iostat=ios) ' SER            = ',SER
 
-C CO2 emission rate in kg/m2year for the "typical" building
+C CO2 emission rate in kg/m^2year for the "typical" building
       WRITE(IUF,'(a,f7.1)',iostat=ios) ' TYR            = ',TyER
 
 C << Need interface to give the option here between English and Welsh >>
@@ -13415,7 +13496,7 @@ C Recalculate carbon emissions
           LIGHTORIGINAL(ICOMP)=BERLIGHT(ICOMP)
 
 C << This is hardwired here and it is taken from the SBEM database for
-C T8 high frequency: 3.4 W/m2 per 100 lux divided by T12: 5.0 W/m2 per 100 lux
+C T8 high frequency: 3.4 W/m^2 per 100 lux divided by T12: 5.0 W/m^2 per 100 lux
           BERLIGHT(ICOMP)=(3.4/5.0)*BERLIGHT(ICOMP)
         endif
  609  continue
@@ -13489,8 +13570,8 @@ C Recalculate carbon emissions
           LIGHTORIGINAL(ICOMP)=BERLIGHT(ICOMP)
 
 C << This is hardwired here and it is taken from the SBEM database for
-C Compact fluorescent: 4.6 W/m2 per 100 lux divided by
-C Tungsten lamp (GLS): 28.0 W/m2 per 100 lux
+C Compact fluorescent: 4.6 W/m^2 per 100 lux divided by
+C Tungsten lamp (GLS): 28.0 W/m^2 per 100 lux
           BERLIGHT(ICOMP)=(4.6/28.0)*BERLIGHT(ICOMP)
         endif
  710  continue
@@ -13565,8 +13646,8 @@ C EPC-L6 is the same but the payback period is supposed to differ
           LIGHTORIGINAL(ICOMP)=BERLIGHT(ICOMP)
 
 C << This is hardwired here and it is taken from the SBEM database for
-C high-pressure sodium: 4.5 W/m2 per 100 lux divided by
-C high-pressure mercury discharge lamps: 7.6 W/m2 per 100 lux
+C high-pressure sodium: 4.5 W/m^2 per 100 lux divided by
+C high-pressure mercury discharge lamps: 7.6 W/m^2 per 100 lux
           BERLIGHT(ICOMP)=(4.5/7.6)*BERLIGHT(ICOMP)
         endif
  712  continue
@@ -13684,8 +13765,8 @@ C too. Recalculate carbon emissions
           LIGHTORIGINAL(ICOMP)=BERLIGHT(ICOMP)
 
 C This is hardwired here and it is taken from the SBEM database for
-C Metal halide: 5.5 W/m2 per 100 lux divided by
-c Tungsten lamp: 28.0 W/m2 per 100 lux
+C Metal halide: 5.5 W/m^2 per 100 lux divided by
+c Tungsten lamp: 28.0 W/m^2 per 100 lux
           BERLIGHT(ICOMP)=(5.5/28.0)*BERLIGHT(ICOMP)
         endif
  714  continue
@@ -13756,7 +13837,7 @@ C Check if T8 lamps are used
 C for type 4 there will be no improvement according to SBEM.db1 database
 C Type 4: "T8 (25mm dia) triphosphor coated fluorescent tube high freq ballast"
 C Type 4 will be ignored here as it is the same in SBEM.db1 with T5 in terms of
-C Watts/m2 per 100 lux
+C Watts/m^2 per 100 lux
         if(ILITYP(ICOMP).eq.2.or.ILITYP(ICOMP).eq.3.or.
      &     ILITYP(ICOMP).eq.4)then
           ExistLightType=.true.
@@ -13766,14 +13847,14 @@ C REC-EPC-L5: Replace T8 lamps with retrofit T5 conversion kit
           if(ILITYP(ICOMP).eq.2)then
 
 C << This is hardwired here and it is taken from the SBEM database for
-C T5: 3.4 W/m2 per 100 lux divided by
-C T8 standard ballast: 4.4 W/m2 per 100 lux
+C T5: 3.4 W/m^2 per 100 lux divided by
+C T8 standard ballast: 4.4 W/m^2 per 100 lux
             BERLIGHT(ICOMP)=(3.4/4.4)*BERLIGHT(ICOMP)
           elseif(ILITYP(ICOMP).eq.3)then
 
 C << This is hardwired here and it is taken from the SBEM database for
-C T5: 3.4 W/m2 per 100 lux divided by
-C T8 halophosphate coated fluorescent tube high freq ballast: 3.8 W/m2 per 100 lux
+C T5: 3.4 W/m^2 per 100 lux divided by
+C T8 halophosphate coated fluorescent tube high freq ballast: 3.8 W/m^2 per 100 lux
             BERLIGHT(ICOMP)=(3.4/3.8)*BERLIGHT(ICOMP)
           endif
         endif
@@ -13851,8 +13932,8 @@ C Reduce number of fittings required
 
 C << This is hardwired here and it is taken from the SBEM database for
 C T8 (25mm dia) triphosphor coated fluorescent tube high
-C freq ballast: 3.4 W/m2 per 100 lux divided by T8 standard
-C ballast: 4.4 W/m2 per 100 lux
+C freq ballast: 3.4 W/m^2 per 100 lux divided by T8 standard
+C ballast: 4.4 W/m^2 per 100 lux
           BERLIGHT(ICOMP)=(3.4/4.4)*BERLIGHT(ICOMP)
         endif
  718  continue
@@ -14467,10 +14548,10 @@ C coefficient through all external/exposed envelopes"
       call eclose(EXP_AREA,0.0,0.0001,ISNEAR)
       if(.not.ISNEAR)then
         WRITE(IUF,'(a,f9.2)',iostat=ios)
-     &    '  BUILDING-W/M2K            = ',build_UA/EXP_AREA
+     &    '  BUILDING-W/M^2K           = ',build_UA/EXP_AREA
       else
         WRITE(IUF,'(a)',iostat=ios)
-     &    '  BUILDING-W/M2K            =  0.0'
+     &    '  BUILDING-W/M^2K           =  0.0'
       endif
 
 C Using info from common of thermal bridges to find the percentage of heat loss
@@ -14486,60 +14567,60 @@ C due to thermal bridges out of the overall heat loss from the envelope.
 
 C Calculate loads for heating, cooling, DHW etc.
       WRITE(IUF,'(a,f9.2)',iostat=ios)
-     &  '  KWH/M2-HEAT               = ',ABS(BER_HEAT)
+     &  '  KWH/M^2-HEAT              = ',ABS(BER_HEAT)
       WRITE(IUF,'(a,F9.2)',iostat=ios)
-     &  '  KWH/M2-COOL               = ',ABS(BER_COOL)
+     &  '  KWH/M^2-COOL              = ',ABS(BER_COOL)
       WRITE(IUF,'(a,F9.2)',iostat=ios)
-     &  '  KWH/M2-AUX                = ',BER_AUX
+     &  '  KWH/M^2-AUX               = ',BER_AUX
       WRITE(IUF,'(a,F9.2)',iostat=ios)
-     &  '  KWH/M2-LIGHT              = ',BER_LIGHT
+     &  '  KWH/M^2-LIGHT             = ',BER_LIGHT
       WRITE(IUF,'(a,F9.2)',iostat=ios)
-     &  '  KWH/M2-DHW                = ',BER_DHW
+     &  '  KWH/M^2-DHW               = ',BER_DHW
 
-C?? To enter total casual gains/m2 here
+C?? To enter total casual gains/m^2 here.
       WRITE(IUF,'(a,F10.2)',iostat=ios)
-     &  ' KWH/M2-EQUP             = ',0.0
+     &  ' KWH/M^2-EQUP               = ',0.0
 
       WRITE(IUF,'(a,F9.2)',iostat=ios)
-     &  ' KWH/M2-NATGAS           = ',BERF(1)
+     &  ' KWH/M^2-NATGAS             = ',BERF(1)
       WRITE(IUF,'(a,F9.2)',iostat=ios)
-     &  ' KWH/M2-LPG              = ',BERF(2)
+     &  ' KWH/M^2-LPG                = ',BERF(2)
       WRITE(IUF,'(a,F9.2)',iostat=ios)
-     &  ' KWH/M2-BIOGAS           = ',BERF(3)
+     &  ' KWH/M^2-BIOGAS             = ',BERF(3)
       WRITE(IUF,'(a,F9.2)',iostat=ios)
-     &  ' KWH/M2-OIL              = ',BERF(4)
+     &  ' KWH/M^2-OIL                = ',BERF(4)
       WRITE(IUF,'(a,F9.2)',iostat=ios)
-     &  ' KWH/M2-COAL             = ',BERF(5)
+     &  ' KWH/M^2-COAL               = ',BERF(5)
       WRITE(IUF,'(a,F9.2)',iostat=ios)
-     &  ' KWH/M2-ANTHRACITE       = ',BERF(6)
+     &  ' KWH/M^2-ANTHRACITE         = ',BERF(6)
       WRITE(IUF,'(a,F9.2)',iostat=ios)
-     &  ' KWH/M2-SMOKELESS        = ',BERF(7)
+     &  ' KWH/M^2-SMOKELESS          = ',BERF(7)
       WRITE(IUF,'(a,F9.2)',iostat=ios)
-     &  ' KWH/M2-DUELFUEL         = ',BERF(8)
+     &  ' KWH/M^2-DUELFUEL           = ',BERF(8)
       WRITE(IUF,'(a,F9.2)',iostat=ios)
-     &  ' KWH/M2-BIOMASS          = ',BERF(9)
+     &  ' KWH/M^2-BIOMASS            = ',BERF(9)
       WRITE(IUF,'(a,F9.2)',iostat=ios)
-     &  ' KWH/M2-SUPELEC          = ',ABS(BERF(10))
+     &  ' KWH/M^2-SUPELEC            = ',ABS(BERF(10))
       WRITE(IUF,'(a,F9.2)',iostat=ios)
-     &  ' KWH/M2-WASTEHEAT        = ',BERF(12)
-
-C Hardwiring values here as they have not yet been calculated
-      WRITE(IUF,'(2a)',iostat=ios) ' KWH/M2-DISTRICT-HEATING = ',' 0.0'
+     &  ' KWH/M^2-WASTEHEAT          = ',BERF(12)
 
 C Hardwiring values here as they have not yet been calculated
-      WRITE(IUF,'(2a)',iostat=ios) ' KWH/M2-DISP             = ',' 0.0'
+      WRITE(IUF,'(2a)',iostat=ios) ' KWH/M^2-DISTRICT-HEATING = ',' 0.0'
 
 C Hardwiring values here as they have not yet been calculated
-      WRITE(IUF,'(2a)',iostat=ios) ' KWH/M2-PVS              = ',' 0.0'
+      WRITE(IUF,'(2a)',iostat=ios) ' KWH/M^2-DISP            = ',' 0.0'
 
 C Hardwiring values here as they have not yet been calculated
-      WRITE(IUF,'(2a)',iostat=ios) ' KWH/M2-WIND             = ',' 0.0'
+      WRITE(IUF,'(2a)',iostat=ios) ' KWH/M^2-PVS             = ',' 0.0'
 
 C Hardwiring values here as they have not yet been calculated
-      WRITE(IUF,'(2a)',iostat=ios) ' KWH/M2-CHP              = ',' 0.0'
+      WRITE(IUF,'(2a)',iostat=ios) ' KWH/M^2-WIND            = ',' 0.0'
 
 C Hardwiring values here as they have not yet been calculated
-      WRITE(IUF,'(2a)',iostat=ios) ' KWH/M2-SES              = ',' 0.0'
+      WRITE(IUF,'(2a)',iostat=ios) ' KWH/M^2-CHP             = ',' 0.0'
+
+C Hardwiring values here as they have not yet been calculated
+      WRITE(IUF,'(2a)',iostat=ios) ' KWH/M^2-SES             = ',' 0.0'
 
 C Activity number and area per zone
 C iactFlarea is a counter to prepare the act_area for the arlist call
@@ -14608,18 +14689,18 @@ C Next line is required even if there is no cooling in the system.
      &      '  FUEL-TYPE-COOL            = Grid Supplied Electricity'
           BERSH_DEMAND(ICMSYS)=BERSH(ICMSYS)*HGEF(ICMSYS)
           WRITE(IUF,'(a,F10.2)',iostat=ios)
-     &      '  MJ/M2-HEAT-DEM            = ',ABS(BERSH_DEMAND(ICMSYS)*
+     &      '  MJ/M^2-HEAT-DEM           = ',ABS(BERSH_DEMAND(ICMSYS)*
      &      3.6)
           BERSC_DEMAND(ICMSYS)=BERSC(ICMSYS)*CGEF(ICMSYS)
           WRITE(IUF,'(a,F10.2)',iostat=ios)
-     &      '  MJ/M2-COOL-DEM            = ',
+     &      '  MJ/M^2-COOL-DEM           = ',
      &      ABS(BERSC_DEMAND(ICMSYS)*3.6)
           WRITE(IUF,'(a,F10.2)',iostat=ios)
-     &      '  KWH/M2-HEAT               = ',ABS(BERSH(ICMSYS))
+     &      '  KWH/M^2-HEAT              = ',ABS(BERSH(ICMSYS))
           WRITE(IUF,'(a,F10.2)',iostat=ios)
-     &      '  KWH/M2-COOL               = ',ABS(BERSC(ICMSYS))
+     &      '  KWH/M^2-COOL              = ',ABS(BERSC(ICMSYS))
           WRITE(IUF,'(a,F10.2)',iostat=ios)
-     &      '  KWH/M2-AUX                = ',BERSA(ICMSYS)
+     &      '  KWH/M^2-AUX               = ',BERSA(ICMSYS)
 
 C?? To add system efficienies for heating and cooling which depend upon
 C heat/cool generator efficiencies and system adjustments (SFP, M&T,
@@ -14703,10 +14784,10 @@ C BRUKL manual
       call eclose(EXP_AREA,0.0,0.0001,ISNEAR)
       if(.not.ISNEAR)then
         WRITE(IUF,'(a,f10.2)',iostat=ios)
-     &    '  BUILDING-W/M2K             = ',build_UAN/EXP_AREA
+     &    '  BUILDING-W/M^2K            = ',build_UAN/EXP_AREA
       else
         WRITE(IUF,'(a)',iostat=ios)
-     &    '  BUILDING-W/M2K             =  0.0'
+     &    '  BUILDING-W/M^2K            =  0.0'
       endif
 
 
@@ -14719,57 +14800,57 @@ C Thermal bridges are always 10% for notional building
 
 C Calculate loads for heating, cooling, DHW etc.
       WRITE(IUF,'(a,f10.2)',iostat=ios)
-     &  '  KWH/M2-HEAT                = ',ABS(AER_HEAT)
+     &  '  KWH/M^2-HEAT               = ',ABS(AER_HEAT)
       WRITE(IUF,'(a,F10.2)',iostat=ios)
-     &  '  KWH/M2-COOL                = ',ABS(AER_COOL)
+     &  '  KWH/M^2-COOL               = ',ABS(AER_COOL)
       WRITE(IUF,'(a,F10.2)',iostat=ios)
-     &  '  KWH/M2-AUX                 = ',AER_AUX
+     &  '  KWH/M^2-AUX                = ',AER_AUX
       WRITE(IUF,'(a,F10.2)',iostat=ios)
-     &  '  KWH/M2-LIGHT               = ',AER_LIGHT
+     &  '  KWH/M^2-LIGHT              = ',AER_LIGHT
       WRITE(IUF,'(a,F10.2)',iostat=ios)
-     &  '  KWH/M2-DHW                 = ',AER_DHW
+     &  '  KWH/M^2-DHW                = ',AER_DHW
 
-C?? To enter total casual gains/m2 here
+C?? To enter total casual gains/m^2 here
       WRITE(IUF,'(a,F10.2)',iostat=ios)
-     &  '  KWH/M2-EQUP                = ',0.0
+     &  '  KWH/M^2-EQUP               = ',0.0
 
       WRITE(IUF,'(a,F10.2)',iostat=ios)
-     &  '  KWH/M2-NATGAS              = ',AERF(1)
+     &  '  KWH/M^2-NATGAS             = ',AERF(1)
       WRITE(IUF,'(a,F10.2)',iostat=ios)
-     &  '  KWH/M2-LPG                 = ',AERF(2)
+     &  '  KWH/M^2-LPG                = ',AERF(2)
       WRITE(IUF,'(a,F10.2)',iostat=ios)
-     &  '  KWH/M2-BIOGAS              = ',AERF(3)
+     &  '  KWH/M^2-BIOGAS             = ',AERF(3)
       WRITE(IUF,'(a,F10.2)',iostat=ios)
-     &  '  KWH/M2-OIL                 = ',AERF(4)
+     &  '  KWH/M^2-OIL                = ',AERF(4)
       WRITE(IUF,'(a,F10.2)',iostat=ios)
-     &  '  KWH/M2-COAL                = ',AERF(5)
+     &  '  KWH/M^2-COAL               = ',AERF(5)
       WRITE(IUF,'(a,F10.2)',iostat=ios)
-     &  '  KWH/M2-ANTHRACITE          = ',AERF(6)
+     &  '  KWH/M^2-ANTHRACITE         = ',AERF(6)
       WRITE(IUF,'(a,F10.2)',iostat=ios)
-     &  '  KWH/M2-SMOKELESS           = ',AERF(7)
+     &  '  KWH/M^2-SMOKELESS          = ',AERF(7)
       WRITE(IUF,'(a,F10.2)',iostat=ios)
-     &  '  KWH/M2-DUELFUEL            = ',AERF(8)
+     &  '  KWH/M^2-DUELFUEL           = ',AERF(8)
       WRITE(IUF,'(a,F10.2)',iostat=ios)
-     &  '  KWH/M2-BIOMASS             = ',AERF(9)
+     &  '  KWH/M^2-BIOMASS            = ',AERF(9)
       WRITE(IUF,'(a,F10.2)',iostat=ios)
-     &  '  KWH/M2-SUPELEC             = ',ABS(AERF(10))
+     &  '  KWH/M^2-SUPELEC            = ',ABS(AERF(10))
       WRITE(IUF,'(a,F10.2)',iostat=ios)
-     &  '  KWH/M2-WASTEHEAT           = ',AERF(12)
+     &  '  KWH/M^2-WASTEHEAT          = ',AERF(12)
 
 C Hardwiring values here as they have not yet been calculated
       TMPVAL=0.0  ! until there is something to write
       WRITE(IUF,'(a,F9.2)',iostat=ios)
-     &  '  KWH/M2-DISTRICT-HEATING    = ',TMPVAL
+     &  '  KWH/M^2-DISTRICT-HEATING   = ',TMPVAL
       WRITE(IUF,'(a,F9.2)',iostat=ios)
-     &  '  KWH/M2-DISP                = ',TMPVAL
+     &  '  KWH/M^2-DISP               = ',TMPVAL
       WRITE(IUF,'(a,F9.2)',iostat=ios)
-     &  '  KWH/M2-PVS                 = ',TMPVAL
+     &  '  KWH/M^2-PVS                = ',TMPVAL
       WRITE(IUF,'(a,F9.2)',iostat=ios)
-     &  '  KWH/M2-WIND                = ',TMPVAL
+     &  '  KWH/M^2-WIND               = ',TMPVAL
       WRITE(IUF,'(a,F9.2)',iostat=ios)
-     &  '  KWH/M2-CHP                 = ',TMPVAL
+     &  '  KWH/M^2-CHP                = ',TMPVAL
       WRITE(IUF,'(a,F9.2)',iostat=ios)
-     &  '  KWH/M2-SES                 = ',TMPVAL
+     &  '  KWH/M^2-SES                = ',TMPVAL
 
 C Activity number and area per zone
 C iactFlarea is a counter to prepare the act_area for the arlist call
@@ -14845,18 +14926,18 @@ C holds index number as NHF
      &      '  FUEL-TYPE-COOL            = Grid Supplied Electricity'
           AERSH_DEMAND(ICMSYS)=AERSH(ICMSYS)*HGEF(ICMSYS)
           WRITE(IUF,'(a,F10.2)',iostat=ios)
-     &      '  MJ/M2-HEAT-DEM            = ',ABS(AERSH_DEMAND(ICMSYS)*
+     &      '  MJ/M^2-HEAT-DEM           = ',ABS(AERSH_DEMAND(ICMSYS)*
      &      3.6)
           AERSC_DEMAND(ICMSYS)=AERSC(ICMSYS)*CGEF(ICMSYS)
           WRITE(IUF,'(a,F10.2)',iostat=ios)
-     &      '  MJ/M2-COOL-DEM            = ',
+     &      '  MJ/M^2-COOL-DEM           = ',
      &      ABS(AERSC_DEMAND(ICMSYS)*3.6)
           WRITE(IUF,'(a,F10.2)',iostat=ios)
-     &      '  KWH/M2-HEAT               = ',ABS(AERSH(ICMSYS))
+     &      '  KWH/M^2-HEAT              = ',ABS(AERSH(ICMSYS))
           WRITE(IUF,'(a,F10.2)',iostat=ios)
-     &      '  KWH/M2-COOL               = ',ABS(AERSC(ICMSYS))
+     &      '  KWH/M^2-COOL              = ',ABS(AERSC(ICMSYS))
           WRITE(IUF,'(a,F10.2)',iostat=ios)
-     &      '  KWH/M2-AUX                = ',AERSA(ICMSYS)
+     &      '  KWH/M^2-AUX               = ',AERSA(ICMSYS)
 
 C This is based on what SBEM is using. Additional details
 C can be found at NCM modelling guide vers. 2e Table6)
@@ -14930,10 +15011,10 @@ C Confirm that BINF50 instead of some sort of "translated" air changes
       call eclose(EXP_AREA,0.0,0.0001,ISNEAR)
       if(.not.ISNEAR)then
         WRITE(IUF,'(a,f9.2)',iostat=ios)
-     &    '  BUILDING-W/M2K            = ',build_UAN/EXP_AREA
+     &    '  BUILDING-W/M^2K           = ',build_UAN/EXP_AREA
       else
         WRITE(IUF,'(a)',iostat=ios)
-     &    '  BUILDING-W/M2K            =  0.0'
+     &    '  BUILDING-W/M^2K           =  0.0'
       endif
 
 C Using info from common of thermal bridges to find the percentage of heat loss
@@ -14953,54 +15034,54 @@ C Thermal bridges are always 10% for notional building
 
 C Calculate loads for heating, cooling, DHW etc.
       WRITE(IUF,'(a,f9.2)',iostat=ios)
-     &  '  KWH/M2-HEAT               = ',ABS(RER_HEAT)
+     &  '  KWH/M^2-HEAT              = ',ABS(RER_HEAT)
       WRITE(IUF,'(a,F9.2)',iostat=ios)
-     &  '  KWH/M2-COOL               = ',ABS(RER_COOL)
+     &  '  KWH/M^2-COOL              = ',ABS(RER_COOL)
       WRITE(IUF,'(a,F9.2)',iostat=ios)
-     &  '  KWH/M2-AUX                = ',RER_AUX
+     &  '  KWH/M^2-AUX               = ',RER_AUX
       WRITE(IUF,'(a,F9.2)',iostat=ios)
-     &  '  KWH/M2-LIGHT              = ',AER_LIGHT
+     &  '  KWH/M^2-LIGHT             = ',AER_LIGHT
       WRITE(IUF,'(a,F9.2)',iostat=ios)
-     &  '  KWH/M2-DHW                = ',RER_DHW
+     &  '  KWH/M^2-DHW               = ',RER_DHW
 
 C << need equipment inform????? >>
-C?? To enter total casual gains/m2 here
+C?? To enter total casual gains/m^2 here
       WRITE(IUF,'(2a)',iostat=ios)
-     &  '  KWH/M2-EQUP               = ',' 0.'
+     &  '  KWH/M^2-EQUP              = ',' 0.'
 
 C Use the total of all fuels from notional (excluding electricity):
       WRITE(IUF,'(a,F10.2)',iostat=ios)
-     &  ' KWH/M2-NATGAS           = ',RERF(1)
-      WRITE(IUF,'(a)',iostat=ios) ' KWH/M2-LPG              = 0.0'
-      WRITE(IUF,'(a)',iostat=ios) ' KWH/M2-BIOGAS           = 0.0'
-      WRITE(IUF,'(a)',iostat=ios) ' KWH/M2-OIL              = 0.0'
-      WRITE(IUF,'(a)',iostat=ios) ' KWH/M2-COAL             = 0.0'
-      WRITE(IUF,'(a)',iostat=ios) ' KWH/M2-ANTHRACITE       = 0.0'
-      WRITE(IUF,'(a)',iostat=ios) ' KWH/M2-SMOKELESS        = 0.0'
-      WRITE(IUF,'(a)',iostat=ios) ' KWH/M2-DUELFUEL         = 0.0'
-      WRITE(IUF,'(a)',iostat=ios) ' KWH/M2-BIOMASS          = 0.0'
+     &  ' KWH/M^2-NATGAS          = ',RERF(1)
+      WRITE(IUF,'(a)',iostat=ios) ' KWH/M^2-LPG             = 0.0'
+      WRITE(IUF,'(a)',iostat=ios) ' KWH/M^2-BIOGAS          = 0.0'
+      WRITE(IUF,'(a)',iostat=ios) ' KWH/M^2-OIL             = 0.0'
+      WRITE(IUF,'(a)',iostat=ios) ' KWH/M^2-COAL            = 0.0'
+      WRITE(IUF,'(a)',iostat=ios) ' KWH/M^2-ANTHRACITE      = 0.0'
+      WRITE(IUF,'(a)',iostat=ios) ' KWH/M^2-SMOKELESS       = 0.0'
+      WRITE(IUF,'(a)',iostat=ios) ' KWH/M^2-DUELFUEL        = 0.0'
+      WRITE(IUF,'(a)',iostat=ios) ' KWH/M^2-BIOMASS         = 0.0'
       WRITE(IUF,'(a,F10.2)',iostat=ios)
-     &  ' KWH/M2-SUPELEC           = ',ABS(RERF(10))
+     &  ' KWH/M^2-SUPELEC          = ',ABS(RERF(10))
 
-      WRITE(IUF,'(a)',iostat=ios) ' KWH/M2-WASTEHEAT        = 0.0'
-
-C Hardwiring values here as they have not yet been calculated
-      WRITE(IUF,'(2a)',iostat=ios) ' KWH/M2-DISTRICT-HEATING = ',' 0.0'
+      WRITE(IUF,'(a)',iostat=ios) ' KWH/M^2-WASTEHEAT        = 0.0'
 
 C Hardwiring values here as they have not yet been calculated
-      WRITE(IUF,'(2a)',iostat=ios) ' KWH/M2-DISP             = ',' 0.0'
+      WRITE(IUF,'(2a)',iostat=ios) ' KWH/M^2-DISTRICT-HEATING= ',' 0.0'
 
 C Hardwiring values here as they have not yet been calculated
-      WRITE(IUF,'(2a)',iostat=ios) ' KWH/M2-PVS              = ',' 0.0'
+      WRITE(IUF,'(2a)',iostat=ios) ' KWH/M^2-DISP           = ',' 0.0'
 
 C Hardwiring values here as they have not yet been calculated
-      WRITE(IUF,'(2a)',iostat=ios) ' KWH/M2-WIND             = ',' 0.0'
+      WRITE(IUF,'(2a)',iostat=ios) ' KWH/M^2-PVS             = ',' 0.0'
 
 C Hardwiring values here as they have not yet been calculated
-      WRITE(IUF,'(2a)',iostat=ios) ' KWH/M2-CHP              = ',' 0.0'
+      WRITE(IUF,'(2a)',iostat=ios) ' KWH/M^2-WIND            = ',' 0.0'
 
 C Hardwiring values here as they have not yet been calculated
-      WRITE(IUF,'(2a)',iostat=ios) ' KWH/M2-SES              = ',' 0.0'
+      WRITE(IUF,'(2a)',iostat=ios) ' KWH/M^2-CHP             = ',' 0.0'
+
+C Hardwiring values here as they have not yet been calculated
+      WRITE(IUF,'(2a)',iostat=ios) ' KWH/M62-SES             = ',' 0.0'
 
 C Activity number and area per zone
 C iactFlarea is a counter to prepare the act_area for the arlist call
@@ -15073,18 +15154,18 @@ C << should HeatSCoP_N be used for BRUKL? >>
      &      '  FUEL-TYPE                 = ','Natural Gas'
           RERSH_DEMAND(ICMSYS)=RERSH(ICMSYS)*HeatSCoP_R(ICMSYS)
           WRITE(IUF,'(a,F10.2)',iostat=ios)
-     &      '  MJ/M2-HEAT-DEM            = ',ABS(RERSH_DEMAND(ICMSYS)*
+     &      '  MJ/M^2-HEAT-DEM           = ',ABS(RERSH_DEMAND(ICMSYS)*
      &      3.6)
           RERSC_DEMAND(ICMSYS)=RERSC(ICMSYS)*CoolSSEER_R(ICMSYS)
           WRITE(IUF,'(a,F10.2)',iostat=ios)
-     &      '  MJ/M2-COOL-DEM            = ',
+     &      '  MJ/M^2-COOL-DEM           = ',
      &      ABS(RERSC_DEMAND(ICMSYS)*3.6)
           WRITE(IUF,'(a,F10.2)',iostat=ios)
-     &      '  KWH/M2-HEAT               = ',ABS(RERSH(ICMSYS))
+     &      '  KWH/M^2-HEAT              = ',ABS(RERSH(ICMSYS))
           WRITE(IUF,'(a,F10.2)',iostat=ios)
-     &      '  KWH/M2-COOL               = ',ABS(RERSC(ICMSYS))
+     &      '  KWH/M^2-COOL              = ',ABS(RERSC(ICMSYS))
           WRITE(IUF,'(a,F10.2)',iostat=ios)
-     &      '  KWH/M2-AUX                = ',RERSA(ICMSYS)
+     &      '  KWH/M^2-AUX               = ',RERSA(ICMSYS)
 
 C This is based on what SBEM is using. Additional details
 C can be found at NCM modelling guide vers. 2e Table6)
@@ -15163,10 +15244,10 @@ C << Keeping temporarily the same value as for the notional
       call eclose(EXP_AREA,0.0,0.0001,ISNEAR)
       if(.not.ISNEAR)then
         WRITE(IUF,'(a,f9.2)',iostat=ios)
-     &    '  BUILDING-W/M2K             = ',build_UAN/EXP_AREA
+     &    '  BUILDING-W/M^2K            = ',build_UAN/EXP_AREA
       else
         WRITE(IUF,'(a)',iostat=ios)
-     &    '  BUILDING-W/M2K             =  0.0'
+     &    '  BUILDING-W/M^2K            =  0.0'
       endif
 
 C Using info from common of thermal bridges to find the percentage of heat loss
@@ -15186,56 +15267,56 @@ C Thermal bridges are always 10% for notional building
 
 C Calculate loads for heating, cooling, DHW etc.
       WRITE(IUF,'(a,f10.2)',iostat=ios)
-     &  '  KWH/M2-HEAT                = ',ABS(TyER_HEAT)
+     &  '  KWH/M^2-HEAT               = ',ABS(TyER_HEAT)
       WRITE(IUF,'(a,F10.2)',iostat=ios)
-     &  '  KWH/M2-COOL                = ',ABS(TyER_COOL)
+     &  '  KWH/M^2-COOL               = ',ABS(TyER_COOL)
       WRITE(IUF,'(a,F10.2)',iostat=ios)
-     &  '  KWH/M2-AUX                 = ',TyER_AUX
+     &  '  KWH/M^2-AUX                = ',TyER_AUX
       WRITE(IUF,'(a,F10.2)',iostat=ios)
-     &  '  KWH/M2-LIGHT               = ',TyER_LIGHT
+     &  '  KWH/M^2-LIGHT              = ',TyER_LIGHT
       WRITE(IUF,'(a,F10.2)',iostat=ios)
-     &  '  KWH/M2-DHW                 = ',TyER_DHW
+     &  '  KWH/M^2-DHW                = ',TyER_DHW
 
 C << STOPPED HERE need equipm. info????? >>
-C?? To enter total casual gains/m2 here
+C?? To enter total casual gains/m^2 here
       WRITE(IUF,'(a,F10.2)',iostat=ios)
-     &  '  KWH/M2-EQUP                = ',0.0
+     &  '  KWH/M^2-EQUP               = ',0.0
 
-C This seems to be always the same as for 'KWH/M2-HEAT'. Keeping the
+C This seems to be always the same as for 'KWH/M^2-HEAT'. Keeping the
 C same variables and calculation as Typical building will always be
 C Natural Gas
       WRITE(IUF,'(a,F10.2)',iostat=ios)
-     &  '  KWH/M2-NATGAS              = ',TyERF(1)
+     &  '  KWH/M^2-NATGAS             = ',TyERF(1)
 
-      WRITE(IUF,'(a)',iostat=ios) ' KWH/M2-LPG              = 0.0'
-      WRITE(IUF,'(a)',iostat=ios) ' KWH/M2-BIOGAS           = 0.0'
-      WRITE(IUF,'(a)',iostat=ios) ' KWH/M2-OIL              = 0.0'
-      WRITE(IUF,'(a)',iostat=ios) ' KWH/M2-COAL             = 0.0'
-      WRITE(IUF,'(a)',iostat=ios) ' KWH/M2-ANTHRACITE       = 0.0'
-      WRITE(IUF,'(a)',iostat=ios) ' KWH/M2-SMOKELESS        = 0.0'
-      WRITE(IUF,'(a)',iostat=ios) ' KWH/M2-DUELFUEL         = 0.0'
-      WRITE(IUF,'(a)',iostat=ios) ' KWH/M2-BIOMASS          = 0.0'
+      WRITE(IUF,'(a)',iostat=ios) ' KWH/M^2-LPG             = 0.0'
+      WRITE(IUF,'(a)',iostat=ios) ' KWH/M^2-BIOGAS          = 0.0'
+      WRITE(IUF,'(a)',iostat=ios) ' KWH/M^2-OIL             = 0.0'
+      WRITE(IUF,'(a)',iostat=ios) ' KWH/M^2-COAL            = 0.0'
+      WRITE(IUF,'(a)',iostat=ios) ' KWH/M^2-ANTHRACITE      = 0.0'
+      WRITE(IUF,'(a)',iostat=ios) ' KWH/M^2-SMOKELESS       = 0.0'
+      WRITE(IUF,'(a)',iostat=ios) ' KWH/M^2-DUELFUEL        = 0.0'
+      WRITE(IUF,'(a)',iostat=ios) ' KWH/M^2-BIOMASS         = 0.0'
       WRITE(IUF,'(a,F10.2)',iostat=ios)
-     &  ' KWH/M2-SUPELEC           = ',ABS(TyERF(10))
-      WRITE(IUF,'(a)',iostat=ios) ' KWH/M2-WASTEHEAT        = 0.0'
+     &  ' KWH/M^2-SUPELEC          = ',ABS(TyERF(10))
+      WRITE(IUF,'(a)',iostat=ios) ' KWH/M^2-WASTEHEAT        = 0.0'
 
 C Hardwiring values here as they have not yet been calculated
-      WRITE(IUF,'(2a)',iostat=ios) ' KWH/M2-DISTRICT-HEATING = ',' 0.0'
+      WRITE(IUF,'(2a)',iostat=ios) ' KWH/M^2-DISTRICT-HEATING= ',' 0.0'
 
 C Hardwiring values here as they have not yet been calculated
-      WRITE(IUF,'(2a)',iostat=ios) ' KWH/M2-DISP             = ',' 0.0'
+      WRITE(IUF,'(2a)',iostat=ios) ' KWH/M^2-DISP            = ',' 0.0'
 
 C Hardwiring values here as they have not yet been calculated
-      WRITE(IUF,'(2a)',iostat=ios) ' KWH/M2-PVS              = ',' 0.0'
+      WRITE(IUF,'(2a)',iostat=ios) ' KWH/M^2-PVS             = ',' 0.0'
 
 C Hardwiring values here as they have not yet been calculated
-      WRITE(IUF,'(2a)',iostat=ios) ' KWH/M2-WIND             = ',' 0.0'
+      WRITE(IUF,'(2a)',iostat=ios) ' KWH/M^2-WIND            = ',' 0.0'
 
 C Hardwiring values here as they have not yet been calculated
-      WRITE(IUF,'(2a)',iostat=ios) ' KWH/M2-CHP              = ',' 0.0'
+      WRITE(IUF,'(2a)',iostat=ios) ' KWH/M^2-CHP             = ',' 0.0'
 
 C Hardwiring values here as they have not yet been calculated
-      WRITE(IUF,'(2a)',iostat=ios) ' KWH/M2-SES              = ',' 0.0'
+      WRITE(IUF,'(2a)',iostat=ios) ' KWH/M^2-SES             = ',' 0.0'
 
 C Activity number and area per zone
 C iactFlarea is a counter to prepare the act_area for the arlist call
@@ -15310,18 +15391,18 @@ C Typical building is always natural gas
      &      '  FUEL-TYPE-COOL            = Grid Supplied Electricity'
           TyERSH_DEMAND(ICMSYS)=TyERSH(ICMSYS)*HeatSCoP_T(ICMSYS)
           WRITE(IUF,'(a,F10.2)',iostat=ios)
-     &      '  MJ/M2-HEAT-DEM            = ',ABS(TyERSH_DEMAND(ICMSYS)*
+     &      '  MJ/M^2-HEAT-DEM           = ',ABS(TyERSH_DEMAND(ICMSYS)*
      &      3.6)
           TyERSC_DEMAND(ICMSYS)=TyERSC(ICMSYS)*CoolSSEER_T(ICMSYS)
           WRITE(IUF,'(a,F10.2)',iostat=ios)
-     &      '  MJ/M2-COOL-DEM            = ',
+     &      '  MJ/M^2-COOL-DEM           = ',
      &      ABS(TyERSC_DEMAND(ICMSYS)*3.6)
           WRITE(IUF,'(a,F10.2)',iostat=ios)
-     &      '  KWH/M2-HEAT               = ',ABS(TyERSH(ICMSYS))
+     &      '  KWH/M^2-HEAT              = ',ABS(TyERSH(ICMSYS))
           WRITE(IUF,'(a,F10.2)',iostat=ios)
-     &      '  KWH/M2-COOL               = ',ABS(TyERSC(ICMSYS))
+     &      '  KWH/M^2-COOL              = ',ABS(TyERSC(ICMSYS))
           WRITE(IUF,'(a,F10.2)',iostat=ios)
-     &      '  KWH/M2-AUX                = ',TyERSA(ICMSYS)
+     &      '  KWH/M^2-AUX               = ',TyERSA(ICMSYS)
 
 C This is based on what SBEM is using. Additional details
 C can be found at NCM modelling guide vers. 2e Table6)
@@ -15702,7 +15783,7 @@ C For each surface in this zone
             ICN=IZSTOCN(ICOMP,ISUR)
 
 C If surface is exterior then check if use is specified.
-            if(SOTHER(ICOMP,ISUR,1)(1:8).EQ.'EXTERIOR')then
+            if(zboundarytype(ICOMP,ISUR,1).EQ.0)then
               if(SUSE(ICOMP,ISUR,1)(1:1).EQ.'-')then
                 write(outs,'(5A)')'Usage for surface ',
      &          SNAME(ICOMP,ISUR),
@@ -15805,6 +15886,7 @@ C Passed parameters.
       logical unixok
       character fs*1
       integer lndbp
+      logical MY
 
       REAL MidMonthDay(12)
       DATA MidMonthDay/
@@ -15820,7 +15902,8 @@ C Set folder separator (fs) to \ or / as required.
 
       iclim=IFIL
 
-      call CLMOPB(0,IER)
+      MY=.false.
+      call CLMOPB(MY,0,IER)
       IF(ier.ne.0)return
 
 C Initialise

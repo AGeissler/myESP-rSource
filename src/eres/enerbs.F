@@ -47,9 +47,7 @@ C Selection/control for surface causal energy breakdown.
       character DESCRD*5,DESCRJ,DDX*7,DDX1*10,DDX2*8,DHX*5
       character outs*124
 
-C Read in the zone geometry data.
       IUNIT=IFIL+1
-      call georead(IUNIT,LGEOM(IZONE),IZONE,0,IUOUT,IER)
 
 C Read construction file to get surface emissivities.
       CALL ECONST(LTHRM(IZONE),IUNIT,IZONE,0,IUOUT,IER)

@@ -690,6 +690,10 @@ C << the overloading of -99 is an issue to deal with! >>
 
         matdbitems=matdbitems+1   ! increment counter
         CALL EGETP(LOUTSTR,K,WORD32,'-','item name',IER) ! name might contain a space
+        lnd=lnblnk(WORD32)
+        if(lnd.gt.24)then
+C          write(6,*) 'material name ',WORD32(1:lnd),' >24 ',lnd
+        endif
 
 C Record the name and then check and see if it is a duplicate.
         lex=MIN0(lnblnk(WORD32),32)
@@ -1466,7 +1470,11 @@ C class index IC is used for subsequent items.
         CALL EGETWI(LOUTSTR,K,NE,0,19,'-','no items',IER)
         cfccatitems(IC)=NE
         CALL EGETRM(LOUTSTR,K,NDESC,'-','description',IER)
-        write(cfccatname(IC),'(a)') NDESC(1:lnblnk(NDESC))
+        lnd=lnblnk(NDESC)
+        write(cfccatname(IC),'(a)') NDESC(1:lnd)
+        if(lnd.gt.24)then
+C          write(6,*) 'CFC cat ',NDESC(1:lnd),' >24 ',lnd
+        endif
 
         CALL LSTRIPC(IFA,LOUTSTR,0,ND,1,'class documentation',IER)
         IF(IER.NE.0)RETURN
@@ -1479,6 +1487,11 @@ C class index IC is used for subsequent items.
 
         cfcdbitems=cfcdbitems+1   ! increment counter
         CALL EGETP(LOUTSTR,K,WORD32,'-','item name',IER) ! name might contain a space
+        lnd=lnblnk(WORD32)
+        if(lnd.gt.24)then
+C          write(6,*) 'CFC item ',WORD32(1:lnd),' >24 ',lnd
+        endif
+
 
 C Record the name and then check and see if it is a duplicate.
         lex=MIN0(lnblnk(WORD32),32)

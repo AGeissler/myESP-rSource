@@ -16,19 +16,23 @@ C Radiance model descriptive files:
       character picfil*72   ! picture file to be produced
       character rmfil*72    ! miscel geometries - root-misc.rad
       character glzfil*72   ! transparent materials definitions - root-glz.rad
-      common/rad1/rofil,rzfil,rskyfil,octfil,picfil,rmfil,glzfil
+      character wglzfil*72  ! transparent materials & surfaces wavefront.
+      common/rad1/rofil,rzfil,rskyfil,octfil,picfil,rmfil,glzfil,
+     &            wglzfil
 
       character aglzfil*72  ! alternative transparent definitions - root-glz_a.rad
       common/rad1a/aglzfil
 
       character matfil*72   ! opaque materials definitions
+      character wmatfil*72  ! opaque materials for Wavefront
       character rmmfil*72   ! miscel materials descriptions
       character iesfil*72   ! to hold xforms of IES.rad data
-      common/rad1m/matfil,rmmfil,iesfil
+      common/rad1m/matfil,wmatfil,rmmfil,iesfil
 
 C File unit numbers for radiance model files
-      integer irofil,irzfil,imatfil,iglzfil,iiesfil,iwmatfil
-      common/radif/irofil,irzfil,imatfil,iglzfil,iiesfil,iwmatfil
+      integer irofil,irzfil,imatfil,iglzfil,iiesfil,iwmatfil,iwglzfil
+      common/radif/irofil,irzfil,imatfil,iglzfil,iiesfil,iwmatfil,
+     &  iwglzfil
 
 C Logical states for model task completion. Set to fales if the
 C task is not complete.
@@ -81,21 +85,29 @@ C Radiance scenes
       integer indxscn  ! number of scene descriptors zero is the initial state, two
                        ! indicates that sky and glazing files have been defined. Incremented
                        ! as contents of rif file are scanned 
-      character rscedes*72  ! scene descriptor -  sky then glazing the the rest up to 10 files
+      character rscedes*72  ! scene descriptor -  sky then glazing and the rest up to 10 files
       character rzoncmd*60  ! used with the ZONE= radiance command
       character rupaxis*1   ! up axis: single character Z (the default)
       common/e2rs/indxscn,rscedes(10),rzoncmd,rupaxis
 
-      character RIFNAME*72  ! radiance RIF file name (array of file names)
-      character SCENERT*28  ! scene root name (used to create other named entities)
-      character SCENEDESC*72  ! user documentation of the scene
-      character SCENEPURP*12  ! scene purpose UNKNOWN|External|Internal|Day_fact|Coupling
-      common/raddata/RIFNAME(MCOM+1),SCENERT(MCOM+1),SCENEDESC(MCOM+1),
-     &               SCENEPURP(MCOM+1)
+C ESP-r use cases e.g. exterior, interior, daylight factors, etc. which are
+C attributes that cannot be held in the Radiance files.
+      character RIFNAME*72    ! radiance RIF file name
+      character SCENERT*28    ! root name (used to create other named entities)
+      character SCENEDESC*72  ! user documentation
+      character SCENEPURP*12  ! purpose UNKNOWN|External|Internal|Day_fact|Coupling
+      character SCENEGSRC*12  ! geometric source 'esp-r' or 'wavefront'
+      character SCENEWAVE*72  ! wavefront source file.
+      character SCENEWGLZ*12  ! glazing surfaces 'included' or 'omitted' in wavefront.
+      character SCENEFZNM*12  ! name of focus zone.
+      character SCENEMOTL*12  ! surface bottle 'fine' 'medium' 'rough'
+      common/raddata/RIFNAME(16),SCENERT(16),SCENEDESC(16),
+     &  SCENEPURP(16),SCENEGSRC(16),SCENEWAVE(16),SCENEWGLZ(16),
+     &  SCENEFZNM(16),SCENEMOTL(16)
 
       integer NBSRIF      ! for each scene -1 if not defined, 1 if alternative rif defined
       character LBSRIF*72 ! alternate rif file name
-      common/raddata3/NBSRIF(MCOM+1),LBSRIF(MCOM+1)
+      common/raddata3/NBSRIF(16),LBSRIF(16)
 
       integer NABS    ! number of alternative blind states
       common/radabs/NABS
@@ -134,8 +146,15 @@ C Sky definitions
       common/sky1/rgrfl,isky,irdoy,rtime,iryear
 
 C Daylight factors
-      character LDFGRID*72  ! file containing df grid points (one per scene)
-      common/radgrid/LDFGRID(MCOM+1)
+      character LDFGRID*72    ! file containing df grid points (one per scene)
+      character DFSURFNAME*12 ! DF surface (floor) name
+      real WPDIST             ! grid point offset from surface (m).
+      integer   DFEDGE        ! vertices of alignment edge
+      integer   igmajor       ! major axis grid points
+      integer   igminor       ! minor axis grid points
+      real CONV               ! DF calculation convergence
+      common/radgrid/LDFGRID(16),DFSURFNAME(16),WPDIST(16),
+     &  DFEDGE(16,2),igmajor(16),igminor(16),CONV(16)
 
       integer NDFP  ! number of locations for daylight factors
       real DFPTS    ! location X Y Z to calculate DF

@@ -81,6 +81,14 @@ C     &             1,'F',MCOM,'W',1,'zone number',IER,2)
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
       integer ifs,itfs,imfs
       COMMON/GFONT/IFS,ITFS,IMFS
+
+C Attributes of session keystroke file.
+      logical ikopened     ! Has keystoke file been started/requested.
+      integer ikcount      ! Number of entries.
+      integer ikout        ! File unit for keystrokes.
+      character ikfile*72  ! The name of the keystroke file.
+      common/logk/ikopened,ikcount,ikout,ikfile
+
       dimension dh(60)
       CHARACTER*(*) PROMP1,PROMP2,ERMSG
       CHARACTER MINACT*1,MAXACT*1,A*1,WORD*10,STR1*10,STR2*10
@@ -188,6 +196,10 @@ C In text mode, remind user of current value.
         CALL USRMSG(PROMP1,PROMP2,'?')
         READ(IUIN,24,END=666)WORD
    24   FORMAT(A10)
+        if(ikopened)then    ! Capture keystroke.
+          ikcount=ikcount+1
+          write(ikout,'(a)') word(1:lnblnk(word))
+        endif
         A=WORD(1:1)
         IF(LNBLNK(WORD).EQ.1)THEN
           IF(A.EQ.'D'.OR.A.EQ.'d')THEN
@@ -288,8 +300,8 @@ C Return to calling module.
       
 C If an EOF is detected when reading from IUIN, we often get infinite
 C looping, creating infinite output. Stop the program.
-  666 write(IUOUT,*)'EASKI: EOF detected, error in input commands.'
-      call pauses(1)
+  666 write(IUOUT,*)'EASKI: EOF detected, error in input command.'
+      call pauses(2)
       STOP
 
       END
@@ -305,6 +317,14 @@ C Parameters are as defined in EASKI.
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
       integer ifs,itfs,imfs
       COMMON/GFONT/IFS,ITFS,IMFS
+
+C Attributes of session keystroke file.
+      logical ikopened     ! Has keystoke file been started/requested.
+      integer ikcount      ! Number of entries.
+      integer ikout        ! File unit for keystrokes.
+      character ikfile*72  ! The name of the keystroke file.
+      common/logk/ikopened,ikcount,ikout,ikfile
+
       dimension dh(60)
       CHARACTER*(*) PROMP1,PROMP2,ERMSG
       CHARACTER MINACT*1,MAXACT*1,A*1,WORD*16,STR1*16,STR2*16
@@ -403,6 +423,10 @@ C In text mode, remind user of current value.
         CALL USRMSG(PROMP1,PROMP2,'?')
         READ(IUIN,24,END=666)WORD
    24   FORMAT(A16)
+        if(ikopened)then    ! Capture keystrokes.
+          ikcount=ikcount+1
+          write(ikout,'(a)') word(1:lnblnk(word))
+        endif
         A=WORD(1:1)
         IF(LNBLNK(WORD).EQ.1)THEN
           IF(A.EQ.'D'.OR.A.EQ.'d')THEN
@@ -509,8 +533,8 @@ C Check RVALT against minimum and respond based on MINACT.
       
 C If an EOF is detected when reading from IUIN, we often get infinite
 C looping, creating infinite output. Stop the program.
-  666 write(IUOUT,*)'EASKR: EOF detected, error in input commands.'
-      call pauses(1)
+  666 write(IUOUT,*)'EASKR: EOF detected, error in input command.'
+      call pauses(2)
       STOP
       END
 
@@ -525,6 +549,14 @@ C Parameters are as defined in EASKI.
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
       integer ifs,itfs,imfs
       COMMON/GFONT/IFS,ITFS,IMFS
+
+C Attributes of session keystroke file.
+      logical ikopened     ! Has keystoke file been started/requested.
+      integer ikcount      ! Number of entries.
+      integer ikout        ! File unit for keystrokes.
+      character ikfile*72  ! The name of the keystroke file.
+      common/logk/ikopened,ikcount,ikout,ikfile
+
       dimension dh(60)
       CHARACTER*(*) PROMP1,PROMP2,ERMSG
       CHARACTER MINACT*1,MAXACT*1,A*1,WORD*16,STR1*10,STR2*10
@@ -609,6 +641,10 @@ C In text mode, remind user of current value.
         CALL USRMSG(PROMP1,PROMP2,'?')
         READ(IUIN,24,END=666)WORD
    24   FORMAT(A16)
+        if(ikopened)then    ! Capture keystroke.
+          ikcount=ikcount+1
+          write(ikout,'(a)') word(1:lnblnk(word))
+        endif
         A=WORD(1:1)
         IF(LNBLNK(WORD).EQ.1)THEN
           IF(A.EQ.'D'.OR.A.EQ.'d')THEN
@@ -706,8 +742,8 @@ C Return to calling module
 
 C If an EOF is detected when reading from IUIN, we often get infinite
 C looping, creating infinite output. Stop the program.
-  666 write(IUOUT,*)'EASKE: EOF detected, error in input commands.'
-      call pauses(1)
+  666 write(IUOUT,*)'EASKE: EOF detected, error in input command.'
+      call pauses(2)
       STOP
 
       END
@@ -722,6 +758,13 @@ C Parameters are similar to those defined in EASKI.
       integer ifs,itfs,imfs
       COMMON/GFONT/IFS,ITFS,IMFS
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
+
+C Attributes of session keystroke file.
+      logical ikopened     ! Has keystoke file been started/requested.
+      integer ikcount      ! Number of entries.
+      integer ikout        ! File unit for keystrokes.
+      character ikfile*72  ! The name of the keystroke file.
+      common/logk/ikopened,ikcount,ikout,ikfile
 
       dimension dh(60)
       CHARACTER*(*) PROMP1,PROMP2,ERMSG,FILEN,DSTR
@@ -846,6 +889,10 @@ C In text mode, remind user of current string.
         endif
         CALL USRMSG(PROMP1,PROMP2,'?')
         READ(IUIN,'(A144)',END=666)WORD144
+        if(ikopened)then    ! Capture keystroke.
+          ikcount=ikcount+1
+          write(ikout,'(a)') word144(1:lnblnk(word144))
+        endif
         A=WORD144(1:1)
         IF(lnblnk(WORD144).EQ.1)THEN
           IF(A.EQ.'D'.OR.A.EQ.'d')THEN
@@ -928,8 +975,8 @@ C Must have input a character string.
       
 C If an EOF is detected when reading from IUIN, we often get infinite
 C looping, creating infinite output. Stop the program.
-  666 write(IUOUT,*)'EASKF: EOF detected, error in input commands.'
-      call pauses(1)
+  666 write(IUOUT,*)'EASKF: EOF detected, error in input command.'
+      call pauses(2)
       STOP
 
       END
@@ -964,6 +1011,13 @@ C        CALL USRMSG(' ',' selected string is:'//XNAME,'-')
       integer ifs,itfs,imfs
       COMMON/GFONT/IFS,ITFS,IMFS
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
+
+C Attributes of session keystroke file.
+      logical ikopened     ! Has keystoke file been started/requested.
+      integer ikcount      ! Number of entries.
+      integer ikout        ! File unit for keystrokes.
+      character ikfile*72  ! The name of the keystroke file.
+      common/logk/ikopened,ikcount,ikout,ikfile
 
       dimension dh(60)
       CHARACTER*(*) PROMP1,PROMP2,ERMSG,STRVAL,DSTR
@@ -1069,6 +1123,10 @@ C In text mode, remind user of current string.
         endif
         CALL USRMSG(PROMP1,PROMP2,'?')
         READ(IUIN,'(A)',END=666)WORD
+        if(ikopened)then    ! Capture keystroke.
+          ikcount=ikcount+1
+          write(ikout,'(a)') word(1:lnblnk(word))
+        endif
         A=WORD(1:1)
         IF(lnblnk(WORD).EQ.1)THEN
           IF(A.EQ.'D'.OR.A.EQ.'d')THEN
@@ -1164,6 +1222,14 @@ C DSTR is a string to use as a default.
      &   NHELP)
 
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
+
+C Attributes of session keystroke file.
+      logical ikopened     ! Has keystoke file been started/requested.
+      integer ikcount      ! Number of entries.
+      integer ikout        ! File unit for keystrokes.
+      character ikfile*72  ! The name of the keystroke file.
+      common/logk/ikopened,ikcount,ikout,ikfile
+
       CHARACTER*(*) PROMP1,PROMP2,ERMSG,STRVAL,DSTR
       character t72*72,t72a*72,t72b*72,t72c*72
       LOGICAL next
@@ -1192,6 +1258,10 @@ C a portion of the text block.
       lt72b=max(1,lnblnk(t72b))
       if(ip248.gt.ip216)write(t72c,'(a)') STRVAL(ip216+1:ip248)
       lt72c=max(1,lnblnk(t72c))
+
+      call edisp(iuout,'Current...')
+      call edisp248(iuout,STRVAL,72)
+      call edisp(iuout,' ')
 
 C Logic supports stepwise scrolling within the text. 243 label
 C is the point for editing the initial portion of the text. 244 label
@@ -1249,7 +1319,13 @@ C When writing out the combined text, put a space between each section.
         write(STRVAL,'(7a)') t72(1:lt72),' ',t72a(1:lt72a),' ',
      &    t72b(1:lt72b),' ',t72c(1:itwid)
       endif
-
+      if(ikopened)then    ! Capture keystroke.
+        ikcount=ikcount+1
+        write(ikout,'(a)') STRVAL(1:lnblnk(STRVAL))
+      endif
+      call edisp(iuout,'Revised...')
+      call edisp248(iuout,STRVAL,72)
+      call edisp(iuout,' ')
       return
       end
 
@@ -1270,6 +1346,14 @@ C DSTR is a string to use as a default.
      &   NHELP)
 
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
+
+C Attributes of session keystroke file.
+      logical ikopened     ! Has keystoke file been started/requested.
+      integer ikcount      ! Number of entries.
+      integer ikout        ! File unit for keystrokes.
+      character ikfile*72  ! The name of the keystroke file.
+      common/logk/ikopened,ikcount,ikout,ikfile
+
       CHARACTER*(*) PROMP1,PROMP2,ERMSG,STRVAL,DSTR
       character t72*72,t72a*72,t72b*72,t72c*72,t72d*72
       character t72e*72,t72f*72,t72g*72
@@ -1307,6 +1391,10 @@ C a portion of the text block.
       lt72e=max(1,lnblnk(t72e))
       if(ip496.gt.ip432)write(t72f,'(a)') STRVAL(ip432+1:ip496)
       lt72f=max(1,lnblnk(t72f))
+
+      call edisp(iuout,'Current...')
+      call edisp248(iuout,STRVAL,96)
+      call edisp(iuout,' ')
 
 C Logic supports stepwise scrolling within the text. 243 label
 C is the point for editing the initial portion of the text. 244 label
@@ -1405,7 +1493,13 @@ C When writing out the combined text, put a space between each section.
      &    t72b(1:lt72b),' ',t72c(1:lt72c),' ',t72d(1:lt72d),' ',
      &    t72e(1:lt72e),' ',t72f(1:itwid)
       endif
-
+      if(ikopened)then    ! Capture keystroke.
+        ikcount=ikcount+1
+        write(ikout,'(a)') STRVAL(1:lnblnk(STRVAL))
+      endif
+      call edisp(iuout,'Revised...')
+      call edisp248(iuout,STRVAL,96)
+      call edisp(iuout,' ')
       return
       end
 
@@ -1442,6 +1536,13 @@ C        CALL USRMSG(' ',' selected string is:'//XNAME,'-')
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
       integer ifs,itfs,imfs
       COMMON/GFONT/IFS,ITFS,IMFS
+
+C Attributes of session keystroke file.
+      logical ikopened     ! Has keystoke file been started/requested.
+      integer ikcount      ! Number of entries.
+      integer ikout        ! File unit for keystrokes.
+      character ikfile*72  ! The name of the keystroke file.
+      common/logk/ikopened,ikcount,ikout,ikfile
 
       dimension dh(60)
       CHARACTER*(*) PROMP1,PROMP2,CMD,ERMSG,STRVAL,DSTR
@@ -1560,6 +1661,10 @@ C Must have input a character string.
 C Text mode.
         CALL USRMSG(PROMP1,PROMP2,'?')
         READ(IUIN,'(A72)',END=666)WORD
+        if(ikopened)then    ! Capture keystroke.
+          ikcount=ikcount+1
+          write(ikout,'(a)') word(1:lnblnk(word))
+        endif
         A=WORD(1:1)
         IF(lnblnk(WORD).EQ.1)THEN
           IF(A.EQ.'D'.OR.A.EQ.'d')THEN
@@ -1653,6 +1758,13 @@ C        CALL USRMSG(' ',' selected string is:'//XNAME,'-')
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
       integer ifs,itfs,imfs
       COMMON/GFONT/IFS,ITFS,IMFS
+
+C Attributes of session keystroke file.
+      logical ikopened     ! Has keystoke file been started/requested.
+      integer ikcount      ! Number of entries.
+      integer ikout        ! File unit for keystrokes.
+      character ikfile*72  ! The name of the keystroke file.
+      common/logk/ikopened,ikcount,ikout,ikfile
 
       dimension dh(60)
       CHARACTER*(*) PROMP1,PROMP2,CNCL,ERMSG,STRVAL,DSTR
@@ -1764,6 +1876,10 @@ C Must have input a character string.
 C Text mode.
         CALL USRMSG(PROMP1,PROMP2,'?')
         READ(IUIN,'(A72)',END=666)WORD
+        if(ikopened)then    ! Capture keystroke.
+          ikcount=ikcount+1
+          write(ikout,'(a)') word(1:lnblnk(word))
+        endif
         A=WORD(1:1)
         IF(lnblnk(WORD).EQ.1)THEN
           IF(A.EQ.'D'.OR.A.EQ.'d')THEN
@@ -1856,6 +1972,13 @@ C        CALL USRMSG(' ',' selected string is:'//XNAME,'-')
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
       integer ifs,itfs,imfs
       COMMON/GFONT/IFS,ITFS,IMFS
+
+C Attributes of session keystroke file.
+      logical ikopened     ! Has keystoke file been started/requested.
+      integer ikcount      ! Number of entries.
+      integer ikout        ! File unit for keystrokes.
+      character ikfile*72  ! The name of the keystroke file.
+      common/logk/ikopened,ikcount,ikout,ikfile
 
       dimension dh(60)
       CHARACTER*(*) PROMP1,PROMP2,CMD,CMD2,ERMSG,STRVAL,DSTR
@@ -2008,6 +2131,10 @@ C Must have input a character string.
 C Text mode.
         CALL USRMSG(PROMP1,PROMP2,'?')
         READ(IUIN,'(A72)',END=666)WORD
+        if(ikopened)then    ! Capture keystroke.
+          ikcount=ikcount+1
+          write(ikout,'(a)') word(1:lnblnk(word))
+        endif
         A=WORD(1:1)
         IF(lnblnk(WORD).EQ.1)THEN
           IF(A.EQ.'D'.OR.A.EQ.'d')THEN
@@ -2500,9 +2627,9 @@ C Number of actual items displayed.
       if(ISTRW.lt.17)VERT(nopt+1)=  '  ______________'
       if(idindex.gt.0)then
         CALL EMKEY(idindex,KEY,IER)
-        write(VERT(nopt+2),'(3a)') '* default is option `',KEY,'`'
+        write(VERT(nopt+2),'(3a)') '* default (option `',KEY,'`)'
         if(ISTRW.lt.17)write(VERT(nopt+2),'(3a)')
-     &                              '* default is option `',KEY,'`'
+     &                              '* default (option `',KEY,'`)'
       else
         VERT(nopt+2)='                        '
       endif
@@ -2577,6 +2704,14 @@ C If NHELP=-1 there is no default option.
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
       integer ifs,itfs,imfs
       COMMON/GFONT/IFS,ITFS,IMFS
+
+C Attributes of session keystroke file.
+      logical ikopened     ! Has keystoke file been started/requested.
+      integer ikcount      ! Number of entries.
+      integer ikout        ! File unit for keystrokes.
+      character ikfile*72  ! The name of the keystroke file.
+      common/logk/ikopened,ikcount,ikout,ikfile
+
       CHARACTER*(*) MSG1,MSG2
       CHARACTER ANS*2,MSG3*124,outs*124
       logical ok,dok,DEFLT
@@ -2616,6 +2751,10 @@ C Setup a single line menu to pick from via EASKS.
 
 C Querry yes or no.
         READ(IUIN,'(A2)',IOSTAT=IOS,ERR=1,END=666)ANS
+        if(ikopened)then    ! Capture keystroke.
+          ikcount=ikcount+1
+          write(ikout,'(a)') ans(1:lnblnk(ans))
+        endif
         IF(ANS(1:1).EQ.'Y'.OR.ANS(1:1).EQ.'y')THEN
           OK=.TRUE.
         ELSEIF(ANS(1:1).EQ.'N'.OR.ANS(1:1).EQ.'n')THEN
@@ -2679,8 +2818,8 @@ C Querry yes or no or default.
       
 C If an EOF is detected when reading from IUIN, we often get infinite
 C looping, creating infinite output. Stop the program.
-  666 write(IUOUT,*)'ASKOK: EOF detected, error in input commands.'
-      call pauses(1)
+  666 write(IUOUT,*)'ASKOK: EOF detected, error in input command.'
+      call pauses(2)
       STOP
 
       END  ! of ASKOK
@@ -2698,6 +2837,14 @@ C dialogue box at the bottom of the graphic window.
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
       integer ifs,itfs,imfs
       COMMON/GFONT/IFS,ITFS,IMFS
+
+C Attributes of session keystroke file.
+      logical ikopened     ! Has keystoke file been started/requested.
+      integer ikcount      ! Number of entries.
+      integer ikout        ! File unit for keystrokes.
+      character ikfile*72  ! The name of the keystroke file.
+      common/logk/ikopened,ikcount,ikout,ikfile
+
       CHARACTER*(*) MSG1,MSG2
       CHARACTER ANS*2,MSG3*124,outs*124
       logical ok
@@ -2722,6 +2869,10 @@ C Setup a single line menu to pick from via EASKS.
 
 C Querry yes or no.
         READ(IUIN,'(A2)',IOSTAT=IOS,ERR=1,END=666)ANS
+        if(ikopened)then    ! Capture keystroke.
+          ikcount=ikcount+1
+          write(ikout,'(a)') ans(1:lnblnk(ans))
+        endif
         IF(ANS(1:1).EQ.'Y'.OR.ANS(1:1).EQ.'y')THEN
           OK=.TRUE.
         ELSEIF(ANS(1:1).EQ.'N'.OR.ANS(1:1).EQ.'n')THEN
@@ -2767,8 +2918,8 @@ C Querry yes or no.
       
 C If an EOF is detected when reading from IUIN, we often get infinite
 C looping, creating infinite output. Stop the program.
-  666 write(IUOUT,*)'EASKOK: EOF detected, error in input commands.'
-      call pauses(1)
+  666 write(IUOUT,*)'EASKOK: EOF detected, error in input command.'
+      call pauses(2)
       STOP
 
       END  ! of EASKOK
@@ -2797,6 +2948,14 @@ C Parameters passed.
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
       integer ifs,itfs,imfs
       COMMON/GFONT/IFS,ITFS,IMFS
+
+C Attributes of session keystroke file.
+      logical ikopened     ! Has keystoke file been started/requested.
+      integer ikcount      ! Number of entries.
+      integer ikout        ! File unit for keystrokes.
+      character ikfile*72  ! The name of the keystroke file.
+      common/logk/ikopened,ikcount,ikout,ikfile
+
       CHARACTER ANS*2,MSG3*248
       integer lastfont,iuse,imaxwid
       dimension choices(10)
@@ -2869,6 +3028,10 @@ C Generate custom help text.
         ans = '  '
         call lusrmsg(msg1,msg3,'?')
         read(iuin,'(A2)',END=666)ANS
+        if(ikopened)then    ! Capture keystroke.
+          ikcount=ikcount+1
+          write(ikout,'(a)') ans(1:lnblnk(ans))
+        endif
 
         IF(ANS(1:1).EQ.'a'.OR.ANS(1:1).EQ.'A')THEN
           IWHICH=1
@@ -2953,8 +3116,8 @@ C of help supplied and then provide the prompt again.
 
 C If an EOF is detected when reading from IUIN, we often get infinite
 C looping, creating infinite output. Stop the program.
-  666 write(IUOUT,*)'EASKMBOX: EOF detected, error in input commands.'
-      call pauses(1)
+  666 write(IUOUT,*)'EASKMBOX: EOF detected, error in input command.'
+      call pauses(2)
       STOP
 
       END  ! of EASKMBOX
@@ -2968,6 +3131,14 @@ C The available terminal see EPAGES.
 
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
+
+C Attributes of session keystroke file.
+      logical ikopened     ! Has keystoke file been started/requested.
+      integer ikcount      ! Number of entries.
+      integer ikout        ! File unit for keystrokes.
+      character ikfile*72  ! The name of the keystroke file.
+      common/logk/ikopened,ikcount,ikout,ikfile
+
       CHARACTER DUMMY*1,blnk*2,blnk2*2,cont*8
 
       cont='continue'
@@ -2982,6 +3153,10 @@ C MMOD=-2 TELETYPE: wait if full, page with blank line.
             WRITE(IUOUT,301)
   301       FORMAT(/,' ',50('-'),'>>',$)
             READ(IUIN,'(A1)',END=666)DUMMY
+            if(ikopened)then    ! Capture keystroke. ??
+              ikcount=ikcount+1
+              write(ikout,'(a)') dummy
+            endif
           ENDIF
           LIMIT=LIMTTY
           RETURN
@@ -3213,6 +3388,14 @@ C INO is the number of the item chosen.
       SUBROUTINE EMENU(NAME,ITEMS,NITMS,INO)
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
+
+C Attributes of session keystroke file.
+      logical ikopened     ! Has keystoke file been started/requested.
+      integer ikcount      ! Number of entries.
+      integer ikout        ! File unit for keystrokes.
+      character ikfile*72  ! The name of the keystroke file.
+      common/logk/ikopened,ikcount,ikout,ikfile
+
       CHARACTER*1 JJ
       CHARACTER*(*) NAME,ITEMS(NITMS)
       CHARACTER*80 tmpa
@@ -3297,6 +3480,10 @@ C Solicit Reply.
  104    FORMAT(/,' ',a,':?> ',$)
         READ(IUIN,105,iostat=ios,ERR=20,END=666)JJ
  105    FORMAT(A1)
+        if(ikopened)then    ! Capture keystroke.
+          ikcount=ikcount+1
+          write(ikout,'(a)') jj
+        endif
         ICUR=IFIRST(JJ)
 
 C TEST REPLY IS IN MENU
@@ -3324,8 +3511,8 @@ C TEST REPLY IS IN MENU
       
 C If an EOF is detected when reading from IUIN, we often get infinite
 C looping, creating infinite output. Stop the program.
-  666 write(IUOUT,*)'EMENU: EOF detected, error in input commands.'
-      call pauses(1)
+  666 write(IUOUT,*)'EMENU: EOF detected, error in input command. ',jj
+      call pauses(2)
       STOP
 
       END
@@ -4360,6 +4547,13 @@ C if for terminal type 8.
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
       common/OUTIN/IUOUT,IUIN,IEOUT
 
+C Attributes of session keystroke file.
+      logical ikopened     ! Has keystoke file been started/requested.
+      integer ikcount      ! Number of entries.
+      integer ikout        ! File unit for keystrokes.
+      character ikfile*72  ! The name of the keystroke file.
+      common/logk/ikopened,ikcount,ikout,ikfile
+
 C dh is duplicate help list.
       dimension dh(60),lh(36)
       CHARACTER*(*) MSG,OTHER
@@ -4461,6 +4655,10 @@ C current line index.
             if(IA(1:1).eq.'b'.or.IA(1:1).eq.'B')iw1=2
             if(IA(1:1).eq.'c'.or.IA(1:1).eq.'C')iw1=3
           endif
+          if(ikopened)then  ! Capture keystroke.
+            ikcount=ikcount+1
+            write(ikout,'(a)') ia(1:lnblnk(ia))
+          endif
         endif
         if(iw1.eq.1)then
           call HPAGE('prev',ILEN,MIFULL,MFULL,IST,IPM,MPM,IPFLG)
@@ -4489,8 +4687,8 @@ C current line index.
       
 C If an EOF is detected when reading from IUIN, we often get infinite
 C looping, creating infinite output. Stop the program.
-  666 write(IUOUT,*)'EHELPD: EOF detected, error in input commands.'
-      call pauses(1)
+  666 write(IUOUT,*)'EHELPD: EOF detected, error in input command.'
+      call pauses(2)
       STOP
 
       END
@@ -4658,6 +4856,7 @@ C ITPPSW current view - perspective/plan/south/west
       CHARACTER path*72
       character doit*248,tmode*8,longtfile*144, hold*24,act*1
       CHARACTER head*19,msg*96,defcog*24,msg2*32
+      character sbound_ty*12,sbound_c2*6,sbound_e2*6
       logical modmlc  ! for selecting MLC
 C      integer lastifs,lastitfs,lastimfs
 
@@ -4964,11 +5163,13 @@ C Select one of the current zones and then a surface.
      &      12,NCOMP,zname,'zone list',IER,1)
           izone=IVALS(1)
           DO 11 I=1,NZSUR(IZONE)
+           call decode_zsbound_lib(izone,I,sbound_ty,sbound_c2,
+     &       sbound_e2)
            lnl=lnblnk(SMLCN(izone,i))
            if(lnl.gt.16) lnl=16  ! truncate MLC name in list
            write(STMP(I),'(5a)') SNAME(izone,i),'|',
      &       SMLCN(izone,i)(1:lnl),
-     &       '|',SOTHER(izone,i,1)(1:16)
+     &       '|',sbound_ty(1:12)
    11     CONTINUE
           INPIC=1
           write(msg2,'(a)') ' name & type & exposure'
@@ -5250,6 +5451,50 @@ C Not one of the legal menu choices.
       GOTO 92
 
       END
+
+
+C ************* decode_zsbound_lib
+C Decodes zboundarytype values returning three strings. Version
+C for embedding in library.
+
+      subroutine decode_zsbound_lib(iz,is,sbound_ty,sbound_c2,sbound_e2)
+
+#include "building.h"
+#include "geometry.h"
+      integer iz,is
+      character sbound_ty*12,sbound_c2*6,sbound_e2*6
+
+C Form strings for boundary columns based on zboundarytype.
+      if(zboundarytype(iz,is,1).eq.-1)then
+        write(sbound_ty,'(a)')'UNKNOWN'
+      elseif(zboundarytype(iz,is,1).eq.0)then
+        write(sbound_ty,'(a)') 'EXTERIOR'
+      elseif(zboundarytype(iz,is,1).eq.1)then
+        write(sbound_ty,'(a)') 'SIMILAR'
+      elseif(zboundarytype(iz,is,1).eq.2)then
+        write(sbound_ty,'(a)') 'CONSTANT'
+      elseif(zboundarytype(iz,is,1).eq.3)then
+        write(sbound_ty,'(a)') 'ANOTHER'
+      elseif(zboundarytype(iz,is,1).eq.4)then
+        write(sbound_ty,'(a)') 'GROUND'
+      elseif(zboundarytype(iz,is,1).eq.5)then
+        write(sbound_ty,'(a)') 'ADIABATIC'
+      elseif(zboundarytype(iz,is,1).eq.6)then
+        write(sbound_ty,'(a)') 'BASESIMP'
+      elseif(zboundarytype(iz,is,1).eq.7)then
+        write(sbound_ty,'(a)') 'IDENT_CEN'
+      else
+        write(sbound_ty,'(a)')'UNKNOWN'
+      endif
+      if(zboundarytype(iz,is,2).lt.0)then
+        write(sbound_c2,'(i3)') zboundarytype(iz,is,2)
+      else
+        write(sbound_c2,'(i3.3)') zboundarytype(iz,is,2)
+      endif
+      write(sbound_e2,'(i3.3)') zboundarytype(iz,is,3)
+      return
+      end
+
 
 C ******************** ASKMULTIZON ********************
 C Presents a list of zones to select one or more from.

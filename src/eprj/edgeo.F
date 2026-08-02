@@ -15,27 +15,30 @@ C details.
 
 
 C This file contains the following subroutines.
-C  EDZONE:  Main zone form editing control.
-C  EDINSUL: Edit zone insolation distribution and shading directives.
-C PICKSSUR  Selects surfaces for shading & insolation or copying.
-C  EDSURA:  Edit zone surface attributes in common block G5
-C  Edituse: Sets the value of SUSE based on context.
-C Selectuse: Gets two strings for surface use based on context.
-C  EDVERT:  Edit vertex attributes in common block G1.
-C  EDVLIST: Edit surface-vertex list attributes in common block G1.
-C  EPKVERT: Select one or more vertices from information in common G1.
-C  Zsurfprm: returns the number of edges and total length of
-C           the perimiter of the polygon via global variables.
-C  EZIPIN:  Reads zip format geometry data into esp-r geometry common
-C           blocks.
+C  EDZONE:   Main zone form editing control.
+C  EDINSUL:  Edit zone insolation distribution and shading directives.
+C  PICKSSUR: Selects surfaces for shading & insolation or copying.
+C  EDSURA:   Edit zone surface attributes in common block G5
+C  Edituse:  Sets the value of SUSE based on context.
+C  Selectuse:Gets two strings for surface use based on context.
+C  EDVERT:   Edit vertex attributes in common block G1.
+C  EDVLIST:  Edit surface-vertex list attributes in common block G1.
+C  EPKVERT:  Select one or more vertices from information in common G1.
+C  Zsurfprm: return the number of edges and total length of
+C            the polygon perimeter via global variables.
+C  EZIPIN:   Reads zip format geometry data into ESP-r geometry common
+C            blocks.
 C LINTHBRDG: Manages linear thermal bridges for zone psi and lengths.
 C scan_bridges: Detects polygon edge associations related to thermal bridges.
-
+C edge_redblack: Draw a polygon edge in either red or black.
+C setbridgenames: Generate standard names & labels for thermal bridge types.
+C gpreviewbridge: Overlay thermal bridges on current zone wireframe.
 
 C ******************** EDZONE ********************
 C Control editing of zone attributes and allow this to be saved to a
 C geometry file. ianother is returned as +1 if jump to next zone,
-C -1 if jump to prior zone, otherwise zero.
+C -1 if jump to prior zone, otherwise zero. Assume that calling code
+C has filled zone and global common blocks.
 
       SUBROUTINE EDZONE(ITRC,ICOMP,ianother,IER)
 #include "building.h"
@@ -109,6 +112,13 @@ C Thermal bridges.
       common/THRBRDG/nbrdg(MCOM),psi(MCOM,16),lngth(MCOM,16),
      &               ibrdg(MCOM,16),losspercent(MCOM),totheatloss(MCOM),
      &               thbrpercent,uavtotal(MCOM)
+      real bridgelen       ! Length (m) of potential thermal bridges in each zone.
+      integer nbridgevt    ! Number of verticies associted with this bridge.
+      integer bridgevlst   ! List of vertices associated with bridge.
+      common/gbridge/bridgelen(MCOM,16),nbridgevt(MCOM,16),
+     &  bridgevlst(MCOM,16,MV*2)
+      common/THBRSCH/tbregime
+      character tbregime*36
 
       LOGICAL context
       COMMON/FOPENED/CFGOK,MLDBOK,MATDBOK,CTLOK,OPTKOK,CFCDBOK
@@ -118,19 +128,22 @@ C Thermal bridges.
       DIMENSION SALT(10),trnalt(21),IVLST(MTV)
       CHARACTER HEAD*32,SALT*32,hold*36
       CHARACTER DESCRC*25
-      CHARACTER D14*14,T14*14,D12*12,T12*12,LTMP*72,GFILE*72
-      CHARACTER ITEMS*33,ITEMSS*32,trnalt*33,outs*124
+      CHARACTER D14*14,T14*14,D12*12,T12*12
+      character LTMP*72,LTMP2*72,GFILE*72
+      CHARACTER ITEMS*33,ITEMSS*32,trnalt*33,outs*196
       character T64*64,D64*64
       CHARACTER LAPROB*72
-      character SN*12,act*1,msg*48
+      character SN*12,SNO*12,act*1,msg*48,ZN*12
       character SIGSTR*12,fs*1,t16a*16,t16b*16,t16c*16,msgv*42
       character TOSMLCN*32           ! remember other side mlc name
-      character TOOPT*32             ! remember other side optics
+      character TOOPT*24             ! remember other side optics
       character TOUSE1*12,TOUSE2*12  ! remember other side use
       character use1*12,use2*12      ! return strings from selectuse
       character guesstype*24         ! for multi selection of surface use
       character lltmp*144
       character HFILE*72             ! initial name for hc file
+      CHARACTER CXSTR*78
+      character sbound_ty*12,sbound_c2*6,sbound_e2*6
       logical MODGEO,bound,attribok,zbzero,close,bndry,nameok,XST
       logical showother,updoth,firstin,unixok
       logical newgeo                 ! to use for testing if new/old geometry file.
@@ -139,6 +152,7 @@ C Thermal bridges.
       logical modmlc                 ! for selecting a MLC from V1 db
       logical FOUND
       logical goforit                ! transform a node or component
+      logical previewbridge          ! whether can show tbridges in colour
 
       real exposed,vexposed,areatran,areawall  ! local values for QA
       real areaslproof,areafltroof,areaskylt
@@ -157,12 +171,11 @@ C Predefined entity variables.
       character name*12               ! the object name to pass to PREDEFEMBED
       character objmenu*32            ! menu for selected object
       character prec*1                ! character to pre-pend to names
-
       real objbb(3),DX,DY,DZ          ! Variables for preview of predefined entities.
       real A,CA,PI,SA,YR,X1,XR,Y1,XXX,YYY
       character predef*144,temp*12
       real angr
-      logical closeangr
+      logical closeangr,bsame,focussname
 
       helpinsub='edgeo'  ! set for subroutine
 
@@ -199,9 +212,12 @@ C Initialise logic to test for model contiguity changes.
       nzg=1
       nznog(1)=ICOMP
       izgfoc=ICOMP
-      CALL ESCZONE(ICOMP)
+
+C Seems to be necessary to save and recover zone info for this
+C case of checking drawing bounds.
+C      CALL ESCZONE(ICOMP)
       CALL BNDOBJ(0,IER)
-      CALL ERCZONE(ICOMP)
+C      CALL ERCZONE(ICOMP)
 
 C Set for redraw if image on first entry (if refresh set to after
 C each edit).
@@ -245,7 +261,7 @@ C is a shading file an no obstruction set for insolation only.
 C Otherwise assume all applicable for shading and insolation.
 
 C The logic below should also work for version 1.1 geometry files
-C which include solar obstructions. << needs to be tested >>
+C which include solar obstructions.
         if(ISI(ICOMP).eq.0.and.IOBS(ICOMP).eq.0)then
           iaplic(icomp,1)=0; iaplic(icomp,2)=0   ! reset for no implied shading or insolation
           nsurfcalc(icomp)=0; nsurfinso(icomp)=0
@@ -253,9 +269,8 @@ C which include solar obstructions. << needs to be tested >>
           iaplic(icomp,1)=0; iaplic(icomp,2)=1   ! reset for insolation only
           nsurfcalc(icomp)=0; nsurfinso(icomp)=0
           DO 778 I=1,NZSUR(icomp)
-            ioc=IZSTOCN(icomp,i)
-            if(SOTHER(icomp,i,1)(1:5).eq.'EXTER'.and.
-     &            SOTF(icomp,i)(1:4).ne.'OPAQ')then
+            if(zboundarytype(icomp,i,1).eq.0.and.
+     &         SOTF(icomp,i)(1:4).ne.'OPAQ')then
               nsurfinso(icomp)=nsurfinso(icomp)+1
               isurfinso(icomp,nsurfinso(icomp))=I
             endif
@@ -264,13 +279,12 @@ C which include solar obstructions. << needs to be tested >>
           iaplic(icomp,1)=1; iaplic(icomp,2)=1   ! reset for insolation only
           nsurfcalc(icomp)=0; nsurfinso(icomp)=0
           DO 779 I=1,NZSUR(icomp)
-            ioc=IZSTOCN(icomp,i)
-            if(SOTHER(icomp,i,1)(1:5).eq.'EXTER'.and.
+            if(zboundarytype(icomp,i,1).eq.0.and.
      &         SOTF(icomp,i)(1:4).ne.'OPAQ')then
               nsurfinso(icomp)=nsurfinso(icomp)+1
               isurfinso(icomp,nsurfinso(icomp))=I
             endif
-            if(SOTHER(icomp,i,1)(1:5).eq.'EXTER')then
+            if(zboundarytype(icomp,i,1).eq.0)then
               nsurfcalc(icomp)=nsurfcalc(icomp)+1
               lstsfcalc(icomp,nsurfcalc(icomp))=I
             endif
@@ -320,11 +334,11 @@ C Check if SVFC needs to be updated.
       call updatesvfc(icomp,modgeo)
 
 C Loop through each surface detecting base and surface area information.
-      DO 41 I=1,NSUR
+      DO 41 I=1,NZSUR(icomp)
         ioc=IZSTOCN(icomp,i)
         if(ioc.lt.1) goto 41  ! is model corrupt skip surf
 
-        if(SOTHER(icomp,I,1)(1:4).eq.'UNKN')attribok=.false.
+        if(zboundarytype(icomp,I,1).eq.-1)attribok=.false.
         if(SMLCN(icomp,I)(1:4).eq.'UNKN')attribok=.false.
 
 C If the user has edited the floor area (one), or selected it via a
@@ -353,7 +367,7 @@ C non-`FURNI` surfaces.
      &           SUSE(icomp,i,1)(1:6).eq.'REVEAL')then
                  continue
               else
-                if(lastlist.le.MBL)then
+                if(lastlist.lt.MBL)then
                   lastlist=lastlist+1
                   IBASES(ICOMP,lastlist)=I
                   ZBASEA(ICOMP)=ZBASEA(ICOMP)+SNA(icomp,i)
@@ -379,6 +393,61 @@ C Detect surface area information.
         else
           OPQ=OPQ+SNA(icomp,I)
         endif
+
+C Check if surface boundary reflects current connection information, e.g.
+C zboundarytype array (generated when scanning the geo file) might
+C be different from the info in common block c3.
+        bsame=.true.
+        write(SN,'(a)') SNAME(icomp,i)
+        write(ZN,'(a)') zname(ICOMP)
+        call decode_zsbound(icomp,i,sbound_ty,sbound_c2,sbound_e2)
+        lnsb=lnblnk(sbound_ty)
+        lnc2=lnblnk(sbound_c2)
+        lne2=lnblnk(sbound_e2)
+        CALL CONXINF(1,ioc,CXSTR)
+        lncx=lnblnk(CXSTR)
+        if(zboundarytype(icomp,I,1).ne.ict(ioc))then
+          write(outs,'(7a,i3,2x,a)') 'Surface ',SN(1:lnblnk(SN)),' in ',
+     &      ZN(1:lnblnk(ZN)),' boundary type ',sbound_ty(1:lnsb),
+     &      ' does not match connection list type',ict(ioc),
+     &      CXSTR(1:lncx)
+          call edisp(iuout,outs)
+          bsame=.false.
+        endif
+        if(zboundarytype(icomp,I,2).ne.ic2(ioc))then
+          write(outs,'(7a,i3,2x,a)') 'Surface ',SN(1:lnblnk(SN)),' in ',
+     &      ZN(1:lnblnk(ZN)),' boundary atrib. ic2 ',sbound_c2(1:lnc2),
+     &      ' does not match connection list zn ',ic2(ioc),
+     &      CXSTR(1:lncx)
+          call edisp(iuout,outs)
+          bsame=.false.
+        endif
+        if(zboundarytype(icomp,I,3).ne.ie2(ioc))then
+          write(outs,'(7a,i3,2x,a)') 'Surface ',SN(1:lnblnk(SN)),' in ',
+     &       ZN(1:lnblnk(ZN)),' boundary atrib. ie2 ',sbound_e2(1:lne2),
+     &      ' does not match connection list sf ',ie2(ioc),
+     &      CXSTR(1:lncx)
+          call edisp(iuout,outs)
+          bsame=.false.
+        endif
+        if(.NOT.bsame)then
+          CALL EASKOK('(yes connection-> zone, no zone->connection',
+     &      'Impose master connection values on surface attributes?',
+     &      OK,nbhelp)
+          if(OK)then
+            zboundarytype(icomp,I,1)=ict(ioc)
+            zboundarytype(icomp,I,2)=ic2(ioc)
+            zboundarytype(icomp,I,3)=ie2(ioc)
+            call decode_zsbound(icomp,i,sbound_ty,sbound_c2,sbound_e2)
+
+            LTMP=LGEOM(ICOMP)
+            call geowrite2(IFIL+2,LTMP,ICOMP,iuout,3,IER)
+          else
+            ict(ioc)=zboundarytype(icomp,I,1)
+            ic2(ioc)=zboundarytype(icomp,I,2)
+            ie2(ioc)=zboundarytype(icomp,I,3)
+          endif
+        endif
    41 CONTINUE
 
 C If previously calculated base area, compare with current area calculation
@@ -399,7 +468,7 @@ C Debug.
 
 C Loop through constructions and see if partitions have a matching
 C construction on the other side. Logic is the same as in EDSURA.
-      DO 40 is=1,NSUR
+      DO 40 is=1,NZSUR(icomp)
         ioc=IZSTOCN(icomp,is)
         if(ioc.lt.1)then
           showother=.false.
@@ -432,19 +501,27 @@ C Use smlcindex to get MLC index for this surface.
           ii=smlcindex(icomp,is)
           updoth=.false.
           lnssmlc=lnblnk(SMLCN(IC2(ioc),IE2(ioc)))
+          lnopt=lnblnk(mlcoptical(ii))
+          write(SNO,'(a12)')SNAME(IC2(ioc),IE2(ioc))
           if(mlcsymetric(ii)(1:9).EQ.'SYMMETRIC')then
             if(SMLCN(IC2(ioc),IE2(ioc))(1:lnssmlc).eq.
      &         mlcname(ii)(1:lnmlcname(ii)))then
               TOSMLCN=mlcname(ii)
-              write(TOOPT,'(a)') mlcoptical(ii)
+              write(TOOPT,'(a)') mlcoptical(ii)(1:lnopt)
             elseif(SMLCN(IC2(ioc),IE2(ioc))(1:4).eq.'UNKN')then
               TOSMLCN=mlcname(ii)
-              write(TOOPT,'(a)') mlcoptical(ii)
-              updoth=.true.
+              write(TOOPT,'(a)') mlcoptical(ii)(1:lnopt)
+C              updoth=.true.
             else
               TOSMLCN=mlcname(ii)
-              write(TOOPT,'(a)') mlcoptical(ii)
-              updoth=.true.
+              write(TOOPT,'(a)') mlcoptical(ii)(1:lnopt)
+C              updoth=.true.
+              write(outs,'(9a)')
+     &          'Checking `other side` composition of ',
+     &           SN(1:lnblnk(SN)),' using ',SMLCN(IC2(ioc),
+     &           IE2(ioc))(1:lnssmlc),' with ',SNO(1:lnblnk(SNO)),
+     &           ' using ',TOSMLCN
+              call edisp(iuout,outs)
             endif
             iissmlci=ii
           elseif(mlcsymetric(ii)(1:12).EQ.'NONSYMMETRIC')then
@@ -471,60 +548,25 @@ C We have a non-symmetric MLC which does point to a reversed version
 C so check to see if the name of the other MLC matches mlcsymetric.
             lnsym=lnblnk(mlcsymetric(ii))
             lnsmlcn=lnblnk(SMLCN(IC2(ioc),IE2(ioc)))
+            lnopt=lnblnk(mlcoptical(ii))
+            write(SNO,'(a12)')SNAME(IC2(ioc),IE2(ioc))
             if(SMLCN(IC2(ioc),IE2(ioc))(1:4).eq.'UNKN')then
               TOSMLCN=mlcsymetric(ii)
-              write(TOOPT,'(a)') mlcoptical(ii)
-              updoth=.true.
+              write(TOOPT,'(a)') mlcoptical(ii)(1:lnopt)
             elseif(SMLCN(IC2(ioc),IE2(ioc))(1:lnsmlcn).eq.
      &             mlcsymetric(ii)(1:lnsym))then
               updoth=.false.
             else
               TOSMLCN=mlcsymetric(ii)
-              write(TOOPT,'(a)') mlcoptical(ii)
-              updoth=.true.
+              write(TOOPT,'(a)') mlcoptical(ii)(1:lnopt)
+              write(outs,'(9a)')
+     &          'Checking `other side` composition of ',
+     &           SN(1:lnblnk(SN)),' using ',SMLCN(IC2(ioc),
+     &           IE2(ioc))(1:lnsmlcn),' with ',SNO(1:lnblnk(SNO)),
+     &           ' using ',TOSMLCN
+              call edisp(iuout,outs)
             endif
             iissmlci=matsymindex(ii)   ! returned value
-          endif
-
-C A difference was discovered, report this.
-          if(updoth)then
-            CALL ESCZONE(ICOMP)
-            lnicoth=lnblnk(SMLCN(IC2(ioc),IE2(ioc)))
-            write(outs,'(6a)')
-     &        'Updating `other side` composition of ',
-     &         SN(1:lnblnk(SN)),' from ',SMLCN(IC2(ioc),
-     &         IE2(ioc))(1:lnicoth),' > ',TOSMLCN
-            call edisp(iuout,outs)
-            call georead(IFIL+2,LGEOM(IC2(ioc)),IC2(ioc),0,iuout,IER)
-
-C Assign new MLC name to the icoth surface as well as SOTF with the
-C optical properties returned from material.h commons.
-            if(iissmlci.ne.0)then
-              SMLCN(IC2(ioc),IC2(ioc))=TOSMLCN
-              smlcindex(IC2(ioc),IC2(ioc))=iissmlci ! update
-            endif
-
-            write(SOTF(IC2(ioc),IE2(ioc)),'(a)') TOOPT
-            call eclose(gversion(IC2(ioc)),1.1,0.01,newgeo)
-            if(igupgrade.eq.2.and.(.NOT.newgeo))then
-              gversion(IC2(ioc)) =1.1
-              newgeo = .true.
-            endif
-
-C Logic to decide whether to upgrade other zone geometry format.
-            if(.NOT.newgeo)then
-              gversion(IC2(ioc)) =1.1
-              newgeo = .true.
-            endif
-            call geowrite(IFIL+2,LGEOM(IC2(ioc)),IC2(ioc),
-     &        iuout,3,IER)
-            IF(IER.NE.0)CALL USRMSG(
-     &        'There was a problem updating the other surface ',
-     &        'attribute (i.e. the other geometry file)...','W')
-
-C Read current zone back in and then update the configuration file.
-            CALL ERCZONE(ICOMP)
-            updoth=.false.
           endif
           call usrmsg(' ',' ','-')
         endif
@@ -608,7 +650,7 @@ C Is NDTYP(NNOD) internal known (1) or internal unknown pressure (0)
       WRITE(ITEMS(ITEMC+6),'(A,i3,a)')
      &                  'd vertex coordinates     (',NTV,')'  ! ? NZTV
       WRITE(ITEMS(ITEMC+7),'(A,i3,a)')
-     &                  'e surface list & edges   (',NSUR,')'
+     &                  'e surface list & edges   (',NZSUR(icomp),')'
       ITEMS(ITEMC+8) ='f surface attributes           '
       ITEMS(ITEMC+9) ='  _____________________________'
       if(newgeo)then
@@ -634,7 +676,7 @@ C Interface to BASESIMP and visual entity definitions for this zone.
         ITEMS(ITEMC+17)='n >> zone is air filled        '
       endif
       ITEMS(ITEMC+18)='  _____________________________'
-      ITEMS(ITEMC+19)='* list zone & surface details  '
+      ITEMS(ITEMC+19)='o list zone & surface details  '
       ITEMS(ITEMC+20)='! save                         '
       IF(ITRC.EQ.0)THEN
         ITEMS(ITEMC+21)='t reporting & menus >> silent  '
@@ -671,8 +713,10 @@ C      write(6,*)nzg,nznog(1),nznog(2),nznog(3)
       izgfoc=ICOMP
 
 C Place any surface attribute mass flow symbol on the wireframe if in graphic mode.
+C Focus is not on a specific surface so allow all surface names if toggled on.
       if(MMOD.eq.8)then
-        CALL redraw(IER)
+        call redraw(IER)
+        call edisp(iuout,'  ')  ! Blank before feedback on components.
         do loop=1,NZSUR(ICOMP)
           icon=IZSTOCN(icomp,loop)
           if(icon.gt.0)then
@@ -703,6 +747,8 @@ C Menu for zone geometry.
      &      'Save changes to zone composition and surface attributes?',
      &      OK,nbhelp)
           LTMP=LGEOM(ICOMP)
+          lnt=lnblnk(LGEOM(ICOMP))
+          write(LTMP2,'(2a)') LGEOM(ICOMP)(1:lnt),'_b'
 
 C Test for saving current or new format geometry file.
           IF(OK)then
@@ -710,7 +756,8 @@ C Test for saving current or new format geometry file.
               gversion(icomp) =1.1
               newgeo = .true.
             endif
-            call geowrite(IFIL+2,LTMP,ICOMP,iuout,3,IER)
+            call geowrite2(IFIL+2,LTMP,ICOMP,iuout,3,IER)
+            MODGEO = .false.
           endif
 
 C If there is an associated flow node then update its volume
@@ -763,7 +810,7 @@ C Zone name, make sure it has no illegal characters.
             newgeo = .true.
           endif
           LTMP=LGEOM(ICOMP)
-          call geowrite(IFIL+2,LTMP,ICOMP,iuout,3,IER)
+          call geowrite2(IFIL+2,LTMP,ICOMP,iuout,3,IER)
           MODIFYVIEW=.TRUE.; MODGEO=.FALSE.
 
 C If applicable, update the node name to match.
@@ -788,14 +835,13 @@ C Zone description
      &           64,D64,'zone descr',IER,nbhelp)
         if(T64(1:2).eq.'  ')goto 64
         zdesc(icomp)=T64
-        lnzdesc(icomp)=lnblnk(T64)  ! update the length of this string.
         LTMP=LGEOM(ICOMP)
         call eclose(gversion(icomp),1.1,0.01,newgeo)
         if(.NOT.newgeo)then
           gversion(icomp) =1.1
           newgeo = .true.
         endif
-        call geowrite(IFIL+2,LTMP,ICOMP,iuout,3,IER)
+        call geowrite2(IFIL+2,LTMP,ICOMP,iuout,3,IER)
         MODIFYVIEW=.TRUE.; MODGEO=.FALSE.
       ELSEIF(INO.EQ.3)then
         if(.NOT.bound)then
@@ -826,7 +872,7 @@ C in IBASES or IZBASELIST. If all slots are 0 then floor area is user defined.
           INPICK=6
         endif
         ij=0
-        DO 20 I=1,NSUR
+        DO 20 I=1,NZSUR(icomp)
           ITEMSS(I)=' '
           DO J=1,IZBASELIST(ICOMP)
             FOUND=.false.
@@ -861,9 +907,9 @@ C the user selected.
      &      'Surfaces associated with base (current area ',
      &      ZBASEA(ICOMP),' m^2)'
         endif
-        if (INPICK.gt.NSUR) INPICK=NSUR
+        if (INPICK.gt.NZSUR(icomp)) INPICK=NZSUR(icomp)
         CALL EPICKS(INPICK,IVALS,outs,
-     &    'Select none for manual area edit.',32,NSUR,ITEMSS,
+     &    'Select none for manual area edit.',32,NZSUR(icomp),ITEMSS,
      &    'Surface Name/Construction/Orient.',IER,nbhelp)
         do 221 i=1,MBL
           IBASES(ICOMP,i)=0
@@ -909,7 +955,7 @@ C any flow network node associated with this zone.
               gversion(icomp) =1.1
               newgeo = .true.
             endif
-            call geowrite(IFIL+2,LTMP,ICOMP,iuout,3,IER)
+            call geowrite2(IFIL+2,LTMP,ICOMP,iuout,3,IER)
             if(IAIRN.ge.1.and.ICAAS(ICOMP).ne.0)then
               nindex=ICAAS(ICOMP)
               SUPNOD(nindex,2)=VOL(ICOMP)
@@ -974,6 +1020,7 @@ C Select a MLC to apply to the list of surfaces.
               CALL EDMLDB2(modmlc,'-',ISEL,IER)
             endif
           elseif(IRT.eq.3)then
+
             SALT(1)  ='exterior                   '
             SALT(2)  ='similar to current         '
             SALT(3)  ='prescribed static          '
@@ -1066,8 +1113,9 @@ C common blocks.
           endif
 
 C Present list of surfaces and allow user to select up to all of them.
-          INPICK=NSUR
-          DO 10 I=1,NSUR
+          INPICK=NZSUR(icomp)
+          DO 10 I=1,NZSUR(icomp)
+            call decode_zsbound(icomp,i,sbound_ty,sbound_c2,sbound_e2)
             lnl=lnblnk(SMLCN(icomp,i))
             lnsn=lnblnk(SNAME(icomp,i))
             if(lnsn.lt.10) lnsn=10
@@ -1080,24 +1128,24 @@ C Present list of surfaces and allow user to select up to all of them.
      &          SMLCN(icomp,i)(1:15)
             elseif(IRT.eq.3.or.IRT.eq.4)then
               WRITE(ITEMSS(I),'(A,2x,A)')SNAME(icomp,i)(1:lnsn),
-     &          SOTHER(icomp,i,1)(1:15)
+     &          sbound_ty(1:12)
             elseif(IRT.eq.5)then
               WRITE(ITEMSS(I),'(7A)')SNAME(icomp,i),' ',
-     &          SOTHER(icomp,i,1)(1:6),' ',SUSE(icomp,i,1)(1:5),' ',
+     &          sbound_ty(1:6),' ',SUSE(icomp,i,1)(1:5),' ',
      &          SUSE(icomp,i,2)(1:5)
             endif
    10     CONTINUE
           if(IRT.eq.1)then
-            CALL EPICKS(INPICK,IVALS,' ',' ',15,NSUR,ITEMSS,
+            CALL EPICKS(INPICK,IVALS,' ',' ',15,NZSUR(icomp),ITEMSS,
      &          'Surface name',IER,nbhelp)
           elseif(IRT.eq.2)then
-            CALL EPICKS(INPICK,IVALS,' ',' ',32,NSUR,ITEMSS,
+            CALL EPICKS(INPICK,IVALS,' ',' ',32,NZSUR(icomp),ITEMSS,
      &          'Surface name   composition',IER,nbhelp)
           elseif(IRT.eq.3.or.IRT.eq.4)then
-            CALL EPICKS(INPICK,IVALS,' ',' ',32,NSUR,ITEMSS,
+            CALL EPICKS(INPICK,IVALS,' ',' ',32,NZSUR(icomp),ITEMSS,
      &          'Surface name    facing',IER,nbhelp)
           elseif(IRT.eq.5)then
-            CALL EPICKS(INPICK,IVALS,' ',' ',32,NSUR,ITEMSS,
+            CALL EPICKS(INPICK,IVALS,' ',' ',32,NZSUR(icomp),ITEMSS,
      &          'Surface name    use',IER,nbhelp)
           endif
 
@@ -1106,6 +1154,7 @@ C it is a partition and then process based on value of IRT.
           do 11 i=1,inpick
             iss = ivals(i)
             ioc=IZSTOCN(ICOMP,iss)
+            call decode_zsbound(icomp,iss,sbound_ty,sbound_c2,sbound_e2)
             if(ICT(ioc).eq.3)then
               showother=.true.
               icoth=IZSTOCN(IC2(ioc),IE2(ioc))
@@ -1122,7 +1171,7 @@ C LINSTY of selected surface to 2 (i.e. thick lines) and redraw.
               LINSTY(IC)=2
               nzg=1; nznog(1)=ICOMP; izgfoc=ICOMP
               MODIFYVIEW=.TRUE.; MODGEO=.TRUE.
-              if(MMOD.eq.8)CALL redraw(IER)
+              call redraw(IER)
 
 C Also check whether surface is associated with a boundary flow node.
               inode=0; icmp=0
@@ -1131,11 +1180,13 @@ C Also check whether surface is associated with a boundary flow node.
 C Edit surface name via a slightly wider editing box than the name. Take the string
 C (T14) and ensure that there are no spaces or strange characters.
               T14='  '
+              call decode_zsbound(icomp,iss,sbound_ty,sbound_c2,
+     &          sbound_e2)
               lnsmlcn=lnblnk(SMLCN(ICOMP,iss))
               write(D14,'(2a)')SNAME(ICOMP,iss),'  '
               write (outs,'(7a)')'Surface name (default=',D14,
      &          ') composed of ',smlcn(ICOMP,iss)(1:lnsmlcn),' facing ',
-     &          SOTHER(ICOMP,iss,1)(1:12),' highlighted surface'
+     &          sbound_ty(1:12),' highlighted surface'
  52           CALL EASKS(T14,outs,'(<=12 chars, no spaces)',
      &                   14,D14,'surface name',IER,nbhelp)
               write(T12,'(a)') T14(1:12)
@@ -1151,7 +1202,7 @@ C Update commons and update the geometry file.
                   gversion(icomp) =1.1
                   newgeo = .true.
                 endif
-                call geowrite(IFIL+2,LGEOM(ICOMP),ICOMP,iuout,3,IER)
+                call geowrite2(IFIL+2,LGEOM(ICOMP),ICOMP,iuout,3,IER)
 
 C If surface associated with a boundary flow node update NODASSOC. If
 C surface is associated with a component also update NODASSOC and network file.
@@ -1178,7 +1229,7 @@ C Reset all line widths to normal and redraw (if last surface in list).
               if (i.eq.inpick) then
                 CALL INLNST(1)
                 MODIFYVIEW=.TRUE.; MODGEO=.TRUE.
-                if(MMOD.eq.8)CALL redraw(IER)
+                call redraw(IER)
               endif
             elseif(IRT.eq.2.and.ISEL.EQ.0)then
 
@@ -1208,7 +1259,7 @@ C Write the current zone geometry file before proceeding.
                 gversion(icomp) =1.1
                 newgeo = .true.
               endif
-              call geowrite(IFIL+2,LGEOM(ICOMP),ICOMP,iuout,3,IER)
+              call geowrite2(IFIL+2,LGEOM(ICOMP),ICOMP,iuout,3,IER)
 
               call warnmod(ICOMP,'sat')
 
@@ -1232,18 +1283,19 @@ C global search and replace acts the same way.
                 ii=smlcindex(icomp,iss)
                 updoth=.false.
                 lnssmlc=lnblnk(SMLCN(IC2(ioc),IE2(ioc)))
+                lnopt=lnblnk(mlcoptical(ii))
                 if(mlcsymetric(ii)(1:9).EQ.'SYMMETRIC')then
                   if(SMLCN(IC2(ioc),IE2(ioc))(1:lnssmlc).eq.
      &               mlcname(ii)(1:lnmlcname(ii)))then
                     TOSMLCN=mlcname(ii)
-                    write(TOOPT,'(a)') mlcoptical(ii)
+                    write(TOOPT,'(a)') mlcoptical(ii)(1:lnopt)
                   elseif(SMLCN(IC2(ioc),IE2(ioc))(1:4).eq.'UNKN')then
                     TOSMLCN=mlcname(ii)
-                    write(TOOPT,'(a)') mlcoptical(ii)
+                    write(TOOPT,'(a)') mlcoptical(ii)(1:lnopt)
                     updoth=.true.
                   else
                     TOSMLCN=mlcname(ii)
-                    write(TOOPT,'(a)') mlcoptical(ii)
+                    write(TOOPT,'(a)') mlcoptical(ii)(1:lnopt)
                     updoth=.true.
                   endif
                   iissmlci=ii
@@ -1252,6 +1304,7 @@ C global search and replace acts the same way.
 C If the current construction is nonsymmetric then it should not be
 C used for a partition (and db does not have a linked MLC - inform the user.
                   lnssmlc=lnblnk(SMLCN(ICOMP,iss))
+                  lnopt=lnblnk(mlcoptical(ii))
                   write(outs,'(5a)') 'Surface ',SN(1:lnblnk(SN)),
      &              ' has a nonsymmetric construction ',
      &              SMLCN(ICOMP,iss)(1:lnssmlc),'.'
@@ -1270,28 +1323,26 @@ C used for a partition (and db does not have a linked MLC - inform the user.
                   iissmlci=matsymindex(ii)  ! use returned value
                 else
                   lnssmlc=lnblnk(SMLCN(IC2(ioc),IE2(ioc)))
+                  lnopt=lnblnk(mlcoptical(ii))
                   if(SMLCN(IC2(ioc),IE2(ioc))(1:4).eq.'UNKN')then
                     TOSMLCN=mlcsymetric(ii)
-                    write(TOOPT,'(a)') mlcoptical(ii)
+                    write(TOOPT,'(a)') mlcoptical(ii)(1:lnopt)
                     updoth=.true.
                   elseif(SMLCN(IC2(ioc),IE2(ioc))(1:lnssmlc).eq.
      &                   mlcsymetric(ii)(1:lnssmlc))then
                     TOSMLCN=mlcsymetric(ii)
-                    write(TOOPT,'(a)') mlcoptical(ii)
+                    write(TOOPT,'(a)') mlcoptical(ii)(1:lnopt)
                   else
                     TOSMLCN=mlcsymetric(ii)
-                    write(TOOPT,'(a)') mlcoptical(ii)
+                    write(TOOPT,'(a)') mlcoptical(ii)(1:lnopt)
                     updoth=.true.
                   endif
                   iissmlci=matsymindex(ii)  ! use returned value
                 endif
                 if(updoth)then
-                  CALL ESCZONE(ICOMP)
                   call usrmsg(
      &              ' Updating other side construction (remember to',
      &              ' update the other side construction file).','P')
-                  call georead(IFIL+2,LGEOM(IC2(ioc)),IC2(ioc),
-     &              0,iuout,IER)
 
 C Assign new MLC name to the icoth surface and reset SUSE which might
 C have been lost in the switch between zones.
@@ -1299,7 +1350,8 @@ C have been lost in the switch between zones.
                     SMLCN(IC2(ioc),IE2(ioc))=TOSMLCN
                     smlcindex(IC2(ioc),IE2(ioc))=iissmlci ! update
                   endif
-                  write(SOTF(IC2(ioc),IE2(ioc)),'(a)') TOOPT
+                  write(SOTF(IC2(ioc),IE2(ioc)),'(a)')
+     &              TOOPT(1:lnblnk(TOOPT))
                   SUSE(IC2(ioc),IE2(ioc),1)=TOUSE1
                   SUSE(IC2(ioc),IE2(ioc),2)=TOUSE2
                   call eclose(gversion(IC2(ioc)),1.1,0.01,newgeo)
@@ -1307,14 +1359,11 @@ C have been lost in the switch between zones.
                     gversion(IC2(ioc)) =1.1
                     newgeo = .true.
                   endif
-                  call geowrite(IFIL+2,LGEOM(IC2(ioc)),IC2(ioc),
+                  call geowrite2(IFIL+2,LGEOM(IC2(ioc)),IC2(ioc),
      &              iuout,3,IER)
                   IF(IER.NE.0)CALL USRMSG(
      &               'Problem updating other surface attribute... ',
      &               '(could not write the other geometry file)','W')
-
-C Read current zone back in and then update the configuration file.
-                  CALL ERCZONE(ICOMP)
                   call usrmsg(
      &              ' Updating other side construction...done.',
      &              ' ','-')
@@ -1332,56 +1381,57 @@ C Determine the match in the system topology and update it.
               IC1(IC)=ICOMP
               IE1(IC)=ISS
               IF(IOS.EQ.1)THEN
-                SOTHER(ICOMP,ISS,1)='EXTERIOR'
-                SOTHER(ICOMP,ISS,2)='0'; SOTHER(ICOMP,ISS,3)='0'
                 ICT(IC)=0; IC2(IC)=0; IE2(IC)=0
+                zboundarytype(icomp,iss,1)=ICT(ic)
+                zboundarytype(icomp,iss,2)=IC2(ic)
+                zboundarytype(icomp,iss,3)=IE2(ic)
               ELSEIF(IOS.EQ.2)THEN
-                SOTHER(ICOMP,ISS,1)='SIMILAR'
-                if(INT(VALT).ge.0)then
-                  write(SOTHER(ICOMP,ISS,2),'(i3.3)')INT(VALT)
-                else
-                  write(SOTHER(ICOMP,ISS,2),'(i3)')INT(VALT)
-                endif
-                if(INT(VALW).ge.0)then
-                  write(SOTHER(ICOMP,ISS,3),'(i3.3)')INT(VALW)
-                else
-                  write(SOTHER(ICOMP,ISS,3),'(i3)')INT(VALW)
-                endif
                 ICT(IC)=1; IC2(IC)=INT(VALT); IE2(IC)=INT(VALW)
+                zboundarytype(icomp,iss,1)=ICT(ic)
+                zboundarytype(icomp,iss,2)=IC2(ic)
+                zboundarytype(icomp,iss,3)=IE2(ic)
               ELSEIF(IOS.EQ.3)THEN
-                SOTHER(ICOMP,ISS,1)='CONSTANT'
-                write(SOTHER(ICOMP,ISS,2),'(i3.3)')INT(VALT)
-                write(SOTHER(ICOMP,ISS,3),'(i3.3)')INT(VALW)
                 ICT(IC)=2; IC2(IC)=INT(VALT); IE2(IC)=INT(VALW)
+                zboundarytype(icomp,iss,1)=ICT(ic)
+                zboundarytype(icomp,iss,2)=IC2(ic)
+                zboundarytype(icomp,iss,3)=IE2(ic)
               ELSEIF(IOS.EQ.5)THEN
-                SOTHER(ICOMP,ISS,1)='GROUND'
-                write(SOTHER(ICOMP,ISS,2),'(i3.3)')iie2
-                SOTHER(ICOMP,ISS,3)='0'
                 ICT(IC)=4; IC2(IC)=iic2; IE2(IC)=0
+                zboundarytype(icomp,iss,1)=ICT(ic)
+                zboundarytype(icomp,iss,2)=IC2(ic)
+                zboundarytype(icomp,iss,3)=IE2(ic)
               ELSEIF(IOS.EQ.6)THEN
-                SOTHER(ICOMP,ISS,1)='GROUND'; SOTHER(ICOMP,ISS,2)='0'
-                write(SOTHER(ICOMP,ISS,3),'(i3.3)')iie2
                 ICT(IC)=4; IC2(IC)=0; IE2(IC)=iie2
+                zboundarytype(icomp,iss,1)=ICT(ic)
+                zboundarytype(icomp,iss,2)=IC2(ic)
+                zboundarytype(icomp,iss,3)=IE2(ic)
               ELSEIF(IOS.EQ.7)THEN
-                SOTHER(ICOMP,ISS,1)='ADIABATIC'
-                SOTHER(ICOMP,ISS,2)='0'; SOTHER(ICOMP,ISS,3)='0'
                 ICT(IC)=5; IE2(IC)=0; IC2(IC)=0
+                zboundarytype(icomp,iss,1)=ICT(ic)
+                zboundarytype(icomp,iss,2)=IC2(ic)
+                zboundarytype(icomp,iss,3)=IE2(ic)
               ELSEIF(IOS.EQ.8)THEN
-                SOTHER(ICOMP,ISS,1)='BASESIMP'
-                write(SOTHER(ICOMP,ISS,2),'(i3.3)')INT(VALT)
-                write(SOTHER(ICOMP,ISS,3),'(i3.3)')INT(VALW)
+                ICT(IC)=6; IC2(IC)=INT(VALT); IE2(IC)=INT(VALW)
+                zboundarytype(icomp,iss,1)=ICT(ic)
+                zboundarytype(icomp,iss,2)=IC2(ic)
+                zboundarytype(icomp,iss,3)=IE2(ic)
               ELSEIF(IOS.EQ.9)THEN
-                SOTHER(ICOMP,ISS,1)='IDENT_CEN'
-                write(SOTHER(ICOMP,ISS,2),'(i3.3)')INT(VALT)
-                write(SOTHER(ICOMP,ISS,3),'(i3.3)')INT(VALW)
                 ICT(IC)=7; IC2(IC)=INT(VALT); IE2(IC)=INT(VALW)
+                zboundarytype(icomp,iss,1)=ICT(ic)
+                zboundarytype(icomp,iss,2)=IC2(ic)
+                zboundarytype(icomp,iss,3)=IE2(ic)
               ELSEIF(IOS.EQ.10)THEN
 
 C Reset to represent UNKNOWN
-                SOTHER(ICOMP,ISS,1)='UNKNOWN'
-                SOTHER(ICOMP,ISS,2)='0'; SOTHER(ICOMP,ISS,3)='0'
                 ICT(IC)=-1; IE2(IC)=0; IC2(IC)=0
+                zboundarytype(icomp,iss,1)=ICT(ic)
+                zboundarytype(icomp,iss,2)=IC2(ic)
+                zboundarytype(icomp,iss,3)=IE2(ic)
               ENDIF
+
+C Convert zboundarytpe to strings for sother.
+              call decode_zsbound(icomp,iss,sbound_ty,sbound_c2,
+     &          sbound_e2)
               call warnmod(ICOMP,'sat')
               MODGEO=.TRUE.
             elseif(IRT.eq.4)then
@@ -1423,7 +1473,7 @@ C Finally update the system configuration file.
               gversion(icomp) =1.1
               newgeo = .true.
             endif
-            call geowrite(IFIL+2,LGEOM(ICOMP),ICOMP,iuout,3,IER)
+            call geowrite2(IFIL+2,LGEOM(ICOMP),ICOMP,iuout,3,IER)
             silent= .false.
             call sumrchg(ICOMP,'r',silent)
           endif
@@ -1433,6 +1483,7 @@ C Finally update the system configuration file.
 C Attribute a single surface, set flag to redraw.
           ianother=0
   443     CALL EDSURA(ICOMP,IS,ITRC,MODGEO,ianother,IER)
+          write(6,*) 'after edsura ',MODGEO
           MODIFYVIEW=.TRUE.
 
 C If user asked for next or prior surface reset IS and call again.
@@ -1468,7 +1519,7 @@ C the geometry file before entering the obstruction editing facility.
               gversion(icomp) =1.1
               newgeo = .true.
             endif
-            call geowrite(IFIL+2,LGEOM(ICOMP),ICOMP,iuout,3,IER)
+            call geowrite2(IFIL+2,LGEOM(ICOMP),ICOMP,iuout,3,IER)
             silent = .false.
             call sumrchg(ICOMP,'r',silent)
           endif
@@ -1568,15 +1619,18 @@ C Reverse the ordering, redraw image and return..
      &       'Reverse the vertex ordering of zone surfaces?',
      &        OK,nbhelp)
           if(OK)then
-            do ins=1,NSUR
+            do ins=1,NZSUR(icomp)
               do iyy = 1,NVER(ins)
                 jvn1(iyy)=JVN(ins,iyy)
               enddo
               JVN(ins,1)=jvn1(2)
               JVN(ins,2)=jvn1(1)
+              iszjvn(icomp,ins,1)=jvn1(2)
+              iszjvn(icomp,ins,2)=jvn1(1)
               do iyy = 3,NVER(ins)
                 izz=NVER(ins)+3-iyy
                 JVN(ins,iyy)=jvn1(izz)
+                iszjvn(icomp,ins,iyy)=jvn1(izz)
               enddo
 
 C If construction symmetric do nothing but if it
@@ -1620,11 +1674,12 @@ C used for a partition (if db does not have a linked MLC, inform the user).
             enddo ! of ins
             iZBFLG(ICOMP)=0   ! reset
             call zgupdate(1,icomp,ier)  ! update commons
-            call geowrite(IFIL+1,LGEOM(ICOMP),ICOMP,iuout,3,IER)
+            call geowrite2(IFIL+1,LGEOM(ICOMP),ICOMP,iuout,3,IER)
             MODIFYVIEW=.TRUE.
             CALL INLNST(1)
             nzg=1; nznog(1)=ICOMP; izgfoc=ICOMP
-            CALL ADJVIEW(IER)
+            focussname=.false.
+            CALL CADJVIEW(focussname,IER)
             goto 77
           endif
         elseif(INOR.EQ.2.or.INOR.eq.3.or.INOR.eq.4.or.INOR.eq.5)then
@@ -1638,28 +1693,37 @@ C Remember rotation request.
               x1=x(1)     ! get position of vertex 1.
               y1=y(1)
               CALL ESCROT(VAL,x1,y1)
-              rotateit(icomp,1)=0.0; rotateit(icomp,2)=0.0
-              rotateit(icomp,3)=0.0
+              do iv=1,NTV
+               szcoords(icomp,iv,1)=x(iv)
+               szcoords(icomp,iv,2)=y(iv)
+               szcoords(icomp,iv,3)=z(iv)
+              enddo
             elseif(INOR.eq.3)then
 
-C Scan G1 for vertes in this zone and allow user to select one.
+C Present list of vertices to rotate around.
               inpick=1
-              call EPKVERT(INPICK,IVLST,'Rotation Point',
+              call EPKVERT(icomp,INPICK,IVLST,'Rotation Point',
      &          'Select vertex to rotate around.',' ',nbhelp,ier)
               if(inpick.eq.1)then
                 ivc=IVLST(1)
                 x1=x(ivc); y1=y(ivc)     ! get position of this vertex.
-                rotateit(icomp,1)=0.0; rotateit(icomp,2)=0.0
-                rotateit(icomp,3)=0.0
               else
                 goto 77
               endif
               CALL ESCROT(VAL,x1,y1)
+              do iv=1,NTV
+                szcoords(icomp,iv,1)=x(iv)
+                szcoords(icomp,iv,2)=y(iv)
+                szcoords(icomp,iv,3)=z(iv)
+              enddo
             elseif(INOR.eq.4)then
               x1=0.0; y1=0.      ! site origin is X=0. Y=0.
               CALL ESCROT(VAL,x1,y1)
-              rotateit(icomp,1)=0.0; rotateit(icomp,2)=0.0
-              rotateit(icomp,3)=0.0
+              do iv=1,NTV
+               szcoords(icomp,iv,1)=x(iv)
+               szcoords(icomp,iv,2)=y(iv)
+               szcoords(icomp,iv,3)=z(iv)
+              enddo
             elseif(INOR.eq.5)then
               x1=0.
               CALL EASKR(x1,' ','X-coord?',
@@ -1668,8 +1732,11 @@ C Scan G1 for vertes in this zone and allow user to select one.
               CALL EASKR(y1,' ',' Y-coord?',
      &          0.0,'-',0.0,'-',0.0,'y point',IER,nbhelp)
               CALL ESCROT(VAL,x1,y1)
-              rotateit(icomp,1)=0.0; rotateit(icomp,2)=0.0
-              rotateit(icomp,3)=0.0
+              do iv=1,NTV
+               szcoords(icomp,iv,1)=x(iv)
+               szcoords(icomp,iv,2)=y(iv)
+               szcoords(icomp,iv,3)=z(iv)
+              enddo
             endif
           else
             goto 77
@@ -1747,7 +1814,7 @@ C Visual object rotation.
             gversion(icomp) =1.1
             newgeo = .true.
           endif
-          call geowrite(IFIL+2,LGEOM(ICOMP),ICOMP,iuout,3,IER)
+          call geowrite2(IFIL+2,LGEOM(ICOMP),ICOMP,iuout,3,IER)
 
 C Warn user if there is a flow node associated with this zone that
 C zone rotation may require boundary nodes to be updated.
@@ -1788,7 +1855,7 @@ C in the zone geometry file.
      &                      NZSUR(ICOMP),IFIL+2,ICOMP,'v',IER)
                 call eclose(gversion(icomp),1.1,0.01,newgeo)
                 if(newgeo)then
-                  call geowrite(IFIL+2,LGEOM(ICOMP),ICOMP,iuout,3,IER)
+                  call geowrite2(IFIL+2,LGEOM(ICOMP),ICOMP,iuout,3,IER)
                 endif
               endif
             else
@@ -1861,7 +1928,7 @@ C as transform general polygon obstructions.
                   enddo
                 endif
   87          continue
-              call geowrite(IFIL+2,LGEOM(ICOMP),ICOMP,iuout,3,IER)
+              call geowrite2(IFIL+2,LGEOM(ICOMP),ICOMP,iuout,3,IER)
             endif
           endif
 
@@ -1883,10 +1950,9 @@ C Ask the user what the transform for each axis should be.
           elseif(INOR.eq.8)then
 
 C Identify two points that define the vector and find the difference
-C between the two X and two Y and two Z. This uses G1 commons.
+C between the two X and two Y and two Z.
             inpick=2
-            call EPKVERT(INPICK,IVLST,
-     &        'Define Vector',
+            call EPKVERT(icomp,INPICK,IVLST,'Define Vector',
      &        'Select start and finish vertex.',' ',nbhelp,ier)
             if(inpick.eq.2)then
               ivcs=IVLST(1); ivcf=IVLST(2)
@@ -1903,11 +1969,10 @@ C between the two X and two Y and two Z. This uses G1 commons.
           elseif(INOR.eq.9)then
 
 C Ask the user for a start vertex in this zone and a final vertex in
-C another zone. This will require saving and loading geometry common
-C blocks (epkvert uses common G1).
+C another zone.
             x1=0.0; y1=0.0; z1=0.0
             inpick=1
-            call EPKVERT(INPICK,IVLST,'Start Point',
+            call EPKVERT(icomp,INPICK,IVLST,'Start Point',
      &        'Select starting vertex.',' ',nbhelp,ier)
             if(inpick.eq.1)then
               ivcs=IVLST(1)
@@ -1917,8 +1982,7 @@ C blocks (epkvert uses common G1).
             endif
 
 C Select the other zone, if it is a different zone then save any
-C pending changes to the current zone and draw the other zone
-C and temporarily fill the geometry common blocks in order to
+C pending changes to the current zone and draw the other zone and
 C present the user with list of vertices to select from in the
 C other zone.
             CALL EASKGEOF(
@@ -1926,43 +1990,38 @@ C other zone.
      &        CFGOK,IZ,'-',34,IER)
             if(iz.eq.icomp)goto 3
             if(iz.eq.0) goto 3
-            call usrmsg(' updating current zone before proceeding...',
-     &        ' ','P')
-            call eclose(gversion(icomp),1.1,0.01,newgeo)
-            if(.NOT.newgeo)then
-              gversion(icomp) =1.1
-              newgeo = .true.
-            endif
-            call geowrite(IFIL+1,LGEOM(ICOMP),ICOMP,iuout,3,IER)
+C            call usrmsg(' updating current zone before proceeding...',
+C     &        ' ','P')
+C            call eclose(gversion(icomp),1.1,0.01,newgeo)
+C            if(.NOT.newgeo)then
+C              gversion(icomp) =1.1
+C              newgeo = .true.
+C            endif
+C            call geowrite2(IFIL+1,LGEOM(ICOMP),ICOMP,iuout,3,IER)
             MODIFYVIEW=.TRUE.
             MODBND=.TRUE.
             CALL INLNST(1)
             itsnm=0
             nzg=1; nznog(1)=IZ; izgfoc=ICOMP
-            if(MMOD.eq.8)CALL redraw(IER)
+            call redraw(IER)
             MODIFYVIEW=.TRUE.; MODBND=.TRUE.
 
-C Load and scan G1 for vertes in other zone and allow user to select one.
-            call georead(IFIL+1,LGEOM(IZ),IZ,0,iuout,IER)
+C Use metageo and c20 for vertes in other zone and allow user to select one.
             inpick=1
-            call EPKVERT(INPICK,IVLST,'Other Zone Vertex',
+            call EPKVERT(IZ,INPICK,IVLST,'Other Zone Vertex',
      &        'Select vertex in other zone.',' ',nbhelp,ier)
             if(inpick.eq.1)then
               ivcf=IVLST(1)
-              x2=x(ivcf); y2=y(ivcf); z2=z(ivcf)     ! get position of this vertex.
+              x2=szcoords(iz,ivcf,1); y2=szcoords(iz,ivcf,2)
+              z2=szcoords(iz,ivcf,3)
 
-C Re-establish the initial zone geometry.
-              call georead(IFIL+1,LGEOM(icomp),icomp,0,iuout,IER)
               VALX=x2-x1; VALY=y2-y1; VALZ=z2-z1
               write(msgv,'(a,3F8.4)') 'Transform is ',
      &          VALX,VALY,VALZ
               call easkok(msgv,'Is this ok?',ok,nbhelp)
               if(.NOT.ok) goto 77
             else
-
-C User aborted so scan the intial zone prior to returning.
-              call georead(IFIL+1,LGEOM(icomp),icomp,0,iuout,IER)
-              MODBND=.TRUE.; MODIFYVIEW=.TRUE.
+              MODBND=.TRUE.; MODIFYVIEW=.TRUE.  ! User aborted.
               goto 77
             endif
          endif
@@ -1970,6 +2029,9 @@ C User aborted so scan the intial zone prior to returning.
 C If user has not canceled then perform the transform.
           DO I=1,NTV
             X(I)=X(I)+VALX; Y(I)=Y(I)+VALY; Z(I)=Z(I)+VALZ
+            szcoords(ICOMP,I,1)=szcoords(ICOMP,I,1)+VALX
+            szcoords(ICOMP,I,2)=szcoords(ICOMP,I,2)+VALY
+            szcoords(ICOMP,I,3)=szcoords(ICOMP,I,3)+VALZ
           enddo
           iZBFLG(ICOMP)=0
 
@@ -1993,7 +2055,7 @@ C Visual object transforms.
             gversion(icomp) =1.1
             newgeo = .true.
           endif
-          call geowrite(IFIL+2,LGEOM(ICOMP),ICOMP,iuout,3,IER)
+          call geowrite2(IFIL+2,LGEOM(ICOMP),ICOMP,iuout,3,IER)
           if(IAIRN.ge.1.and.ICAAS(ICOMP).ne.0)then
             if(INOR.eq.7.or.INOR.eq.8.or.INOR.eq.9)then
 
@@ -2050,7 +2112,7 @@ C in the zone geometry file if it is a current version.
      &                      NZSUR(ICOMP),IFIL+2,ICOMP,'v',IER)
                 call eclose(gversion(icomp),1.1,0.01,newgeo)
                 if(newgeo)then
-                  call geowrite(IFIL+2,LGEOM(ICOMP),ICOMP,iuout,3,IER)
+                  call geowrite2(IFIL+2,LGEOM(ICOMP),ICOMP,iuout,3,IER)
                 endif
               endif
             else
@@ -2108,7 +2170,7 @@ C so now apply the transform to the obstructions (only).
                   enddo
                 endif
               enddo
-              call geowrite(IFIL+2,LGEOM(ICOMP),ICOMP,iuout,3,IER)
+              call geowrite2(IFIL+2,LGEOM(ICOMP),ICOMP,iuout,3,IER)
             endif
           endif
 
@@ -2132,9 +2194,11 @@ C Mirror along Y axis, either positive or negative.
                 if(INOR.eq.11)then
                   VALY=VALM-Y(iwmv)
                   Y(iwmv)=VALM+VALY
+                  szcoords(icomp,iwmv,2)=VALM+VALY
                 elseif(INOR.eq.12)then
                   VALY=Y(iwmv)-VALM
                   Y(iwmv)=VALM-VALY
+                  szcoords(icomp,iwmv,2)=VALM-VALY
                 endif
               enddo
             else
@@ -2142,7 +2206,7 @@ C Mirror along Y axis, either positive or negative.
             endif
           elseif(INOR.eq.13.or.INOR.eq.14)then
 
-C Mirror along X axis, either positive or negative.
+C Mirror along X axis, either positive or negative.  
             CALL EASKR(VALM,' ','Mirror point on X-axis?',
      &           -50.0,'W',50.0,'W',0.0,'y mirror',IER,nbhelp)
             call easkok(' ','Apply mirror transform?',ok,nbhelp)
@@ -2151,9 +2215,11 @@ C Mirror along X axis, either positive or negative.
                 if(INOR.eq.13)then
                   VALX=VALM-X(iwmv)
                   X(iwmv)=VALM+VALX
+                  szcoords(icomp,iwmv,1)=VALM+VALX
                 elseif(INOR.eq.14)then
                   VALX=X(iwmv)-VALM
                   X(iwmv)=VALM-VALX
+                  szcoords(icomp,iwmv,1)=VALM-VALX
                 endif
               enddo
             else
@@ -2164,15 +2230,18 @@ C Mirror along X axis, either positive or negative.
 C Now invert the ordering of the surfaces.
 C <<  Note: this can cause problems when exporting the
 C <<  model (e.g. for EnergyPlus) so more work is required).
-          do 148, ins=1,NSUR
+          do 148, ins=1,NZSUR(icomp)
             do iyy = 1,NVER(ins)
               jvn1(iyy)=JVN(ins,iyy)
             enddo
             JVN(ins,1)=jvn1(2)
             JVN(ins,2)=jvn1(1)
+            iszjvn(icomp,ins,1)=jvn1(2)
+            iszjvn(icomp,ins,2)=jvn1(1)
             do iyy = 3,NVER(ins)
               izz=NVER(ins)+3-iyy
               JVN(ins,iyy)=jvn1(izz)
+              iszjvn(icomp,ins,iyy)=jvn1(izz)
             enddo
   148     continue
           iZBFLG(ICOMP)=0
@@ -2183,7 +2252,7 @@ C Logic for deciding which format of geometry file to write.
             gversion(icomp) =1.1
             newgeo = .true.
           endif
-          call geowrite(IFIL+2,LGEOM(ICOMP),ICOMP,iuout,3,IER)
+          call geowrite2(IFIL+2,LGEOM(ICOMP),ICOMP,iuout,3,IER)
 
 C Warn user if there is a flow node associated with this zone that
 C zone mirroring may require boundary nodes to be updated.
@@ -2207,6 +2276,9 @@ C Scale surfaces and origins of rectangular bodies.
           if(ier.ne.0)goto 44
           DO I=1,NTV
             X(I)=X(I)*VALX; Y(I)=Y(I)*VALY; Z(I)=Z(I)*VALZ
+            szcoords(ICOMP,I,1)=szcoords(ICOMP,I,1)*VALX
+            szcoords(ICOMP,I,2)=szcoords(ICOMP,I,2)*VALY
+            szcoords(ICOMP,I,3)=szcoords(ICOMP,I,3)*VALZ
           enddo
           iZBFLG(ICOMP)=0
 
@@ -2230,7 +2302,7 @@ C Visual object scale origins.
             gversion(icomp) =1.1
             newgeo = .true.
           endif
-          call geowrite(IFIL+2,LGEOM(ICOMP),ICOMP,iuout,3,IER)
+          call geowrite2(IFIL+2,LGEOM(ICOMP),ICOMP,iuout,3,IER)
           call warnmod(ICOMP,'str')
 
 C Scale origins of any MRT sensors associated with this zone.
@@ -2256,7 +2328,7 @@ C              write(6,*) 'zone surface mrt surfs mismatch'
      &                      NZSUR(ICOMP),IFIL+2,ICOMP,'v',IER)
                 call eclose(gversion(icomp),1.1,0.01,newgeo)
                 if(newgeo)then
-                  call geowrite(IFIL+2,LGEOM(ICOMP),ICOMP,iuout,3,IER)
+                  call geowrite2(IFIL+2,LGEOM(ICOMP),ICOMP,iuout,3,IER)
                 endif
               endif
             else
@@ -2296,7 +2368,7 @@ C so now apply scaling to obstruction origins (only).
                 YOB(icomp,ij)=YOB(icomp,ij)*VALY
                 ZOB(icomp,ij)=ZOB(icomp,ij)*VALZ
               enddo
-              call geowrite(IFIL+2,LGEOM(ICOMP),ICOMP,iuout,3,IER)
+              call geowrite2(IFIL+2,LGEOM(ICOMP),ICOMP,iuout,3,IER)
             endif
           endif
 
@@ -2311,24 +2383,46 @@ C Ensure that the zone is redrawn and boundaries are checked.
       ELSEIF(INO.EQ.ITEMC+13)THEN
 
 C Check the file version, if new then allow thermal bridges. If
-C there are existing bridges then do not scan until within
+C there are existing bridges check if associated edges known and
+C offer user choice.
         call eclose(gversion(icomp),1.1,0.01,newgeo)
         if(newgeo)then
           helptopic='scan_bridge_choice'
           call gethelptext(helpinsub,helptopic,nbhelp)
           CALL PHELPD('bridge rescan',nbhelp,'-',0,0,IER)
           if(nbrdg(icomp).gt.0)then
-            call easkmbox(' ',
-     &        'Zone has existing thermal bridge definitions',
-     &        'use them','rescan geometry','cancel',
-     &        ' ',' ',' ',' ',' ',IW,nbhelp)
+            previewbridge=.false.
+            do ijj=1,16
+              if(nbridgevt(icomp,ijj).gt.0)then
+                previewbridge=.true.
+              endif
+            enddo
+            if(.NOT.previewbridge)then
+              call easkmbox(' ',
+     &          'Zone has older thermal bridge definitions',
+     &          'use them','rescan geometry for assoc verts',
+     &          'cancel',' ',' ',' ',' ',' ',IW,nbhelp)
+            else
+              call easkmbox(' ',
+     &          'Zone has existing thermal bridge definitions',
+     &          'use them','rescan geometry','cancel',
+     &          ' ',' ',' ',' ',' ',IW,nbhelp)
+            endif
             if(IW.eq.1)then
-              continue
+
+C If existing and with associated vertices and in graphic mode
+C then refresh the wireframe with appropriate edge colours.
+              if(previewbridge.and.MMOD.eq.8)then
+                ifoc=0
+                call gpreviewbridge(icomp,ifoc,ier)
+              endif
+              CALL LINTHBRDG(ICOMP,'-',0.0)      ! Manage thermal bridges.
             elseif(IW.eq.2)then
               act = '-'
               call edisp(iuout,' ')
               call edisp(iuout,'Scanning the surface edges...')
               call scan_bridges(itrc,act,icomp,ier) ! Determine bridge relationships.
+              CALL LINTHBRDG(ICOMP,'p',0.0)      ! Manage thermal bridges.
             else
               goto 3
             endif
@@ -2337,10 +2431,8 @@ C there are existing bridges then do not scan until within
             call edisp(iuout,' ')
             call edisp(iuout,'Scanning the surface edges...')
             call scan_bridges(itrc,act,icomp,ier) ! Determine bridge relationships.
+            CALL LINTHBRDG(ICOMP,'p',0.0)      ! Manage thermal bridges.
           endif
-          call edisp(iuout,' ')
-          call edisp(iuout,'Options to manage thermal bridges...')
-          CALL LINTHBRDG(ICOMP,'-',0.0)      ! Manage thermal bridges.
         else
           call usrmsg('Simple thermal bridges not suppored in older',
      &                'format geometry files.','W')
@@ -2389,7 +2481,7 @@ C Take into account path to the db.
 
 C Ask where to place it (get offsets and rotation) and then use GB1
 C to temporarily draw it.
-        call RPREDEFCOM(IFA,predef,name,IER)
+        call RPREDEFCOM(IFIL+2,predef,name,IER)  ! Scan item into predef-commons.
         call edisp(iuout,'  ')
         write(outs,'(3a)')'bounding box of ',objmenu,' is:'
         call edisp(iuout,outs)
@@ -2413,7 +2505,7 @@ C to temporarily draw it.
 C User current zone G1 common block to present list of points.
           inpick=1
           CALL EPMENSV
-          call EPKVERT(INPICK,IVLST,'Vertices for origin',
+          call EPKVERT(icomp,INPICK,IVLST,'Vertices for origin',
      &      'Select a vertex to define the origin...',' ',nbhelp,ier)
           CALL EPMENRC
           if(inpick.eq.1)then
@@ -2443,7 +2535,10 @@ C Scan into commons and write out a QA report.
         write(temp,'(A)')name  ! Peview the bounding box of the object via DRWBB.
         call drwbb(temp,ier)
 
-C Now draw the visual entities use simple code if zero rotation.
+C Draw obstructions simply if zero rotation.
+C << TODO >>
+
+C Draw the visual entities use simple code if zero rotation.
         if(nbobjvis.gt.0)then
           DO 301 IB=1,nbobjvis
             call eclose(VALR,0.0,0.01,closeangr)
@@ -2485,7 +2580,7 @@ C              call CNVOBJVISP(IB) ! cannot preview predefined visp type.
   301     CONTINUE
         endif
 
-C << place to include a nudge option >>
+C Offer choices of location for the object.
         CALL EASKMBOX(' ','Options for predefined objects:',
      &    'apply transform and merge','revise transform','nudge X Y Z',
      &    'cancel',' ',' ',' ',' ',IW,nbhelp)
@@ -2540,7 +2635,7 @@ C Ask for single character to prepend to copied associated entities.
           CALL CNVBLK(DX,DY,DZ,objbb(1),objbb(2),objbb(3),VALR)
           nzg=1; nznog(1)=ICOMP; izgfoc=ICOMP
           MODIFYVIEW=.TRUE.; MODGEO=.TRUE.
-          if(MMOD.eq.8)CALL redraw(IER)
+          call redraw(IER)
           goto 424   ! jump back and redisplay nudgee location or rotation.
         elseif (IW.eq.4) then
           continue
@@ -2732,8 +2827,8 @@ C format for each type of obstruction.
      &        'Orientation Name Material'
               call edisp(iuout,outs)
               DO 9995 I=1,nbobs(icomp)
-                lnbn=LNBLOCKNAME(icomp,I)
-                lnbm=LNBLOCKMAT(icomp,I)
+                lnbn=lnblnk(BLOCKNAME(icomp,I))
+                lnbm=lnblnk(BLOCKMAT(icomp,I))
                 if(BLOCKTYP(icomp,I)(1:4).eq.'obs ')then
                   WRITE(outs,9994)I,XOB(icomp,I),YOB(icomp,I),
      &              ZOB(icomp,I),DXOB(icomp,I),DYOB(icomp,I),
@@ -2761,28 +2856,28 @@ C format for each type of obstruction.
           endif
         endif
 
-        bndry=.true.
-        DO 1243 IS=1,NSUR
+        bndry=.true.   ! check if boundary does not match.
+        DO 1243 IS=1,NZSUR(icomp)
          icc=IZSTOCN(icomp,is)
-         if(ICT(icc).eq.0.and.SOTHER(icomp,is,1)(1:5).ne.'EXTER')
+         if(ICT(icc).eq.0.and.zboundarytype(icomp,is,1).ne.0)
      &     bndry=.false.
-         if(ICT(icc).eq.1.and.SOTHER(icomp,is,1)(1:5).ne.'SIMIL')
+         if(ICT(icc).eq.1.and.zboundarytype(icomp,is,1).ne.1)
      &     bndry=.false.
-         if(ICT(icc).eq.2.and.SOTHER(icomp,is,1)(1:5).ne.'CONST')
+         if(ICT(icc).eq.2.and.zboundarytype(icomp,is,1).ne.2)
      &     bndry=.false.
-         if(ICT(icc).eq.3.and.SOTHER(icomp,is,1)(1:5).eq.'CONST')
+         if(ICT(icc).eq.3.and.zboundarytype(icomp,is,1).eq.2)
      &     bndry=.false.
-         if(ICT(icc).eq.3.and.SOTHER(icomp,is,1)(1:5).eq.'SIMIL')
+         if(ICT(icc).eq.3.and.zboundarytype(icomp,is,1).eq.1)
      &     bndry=.false.
-         if(ICT(icc).eq.3.and.SOTHER(icomp,is,1)(1:5).eq.'EXTER')
+         if(ICT(icc).eq.3.and.zboundarytype(icomp,is,1).eq.0)
      &     bndry=.false.
-         if(ICT(icc).eq.3.and.SOTHER(icomp,is,1)(1:5).eq.'GROUN')
+         if(ICT(icc).eq.3.and.zboundarytype(icomp,is,1).eq.4)
      &     bndry=.false.
-         if(ICT(icc).eq.4.and.SOTHER(icomp,is,1)(1:5).ne.'GROUN')
+         if(ICT(icc).eq.4.and.zboundarytype(icomp,is,1).ne.4)
      &     bndry=.false.
-         if(ICT(icc).eq.5.and.SOTHER(icomp,is,1)(1:5).ne.'ADIAB')
+         if(ICT(icc).eq.5.and.zboundarytype(icomp,is,1).ne.5)
      &     bndry=.false.
-         if(ICT(icc).eq.6.and.SOTHER(icomp,is,1)(1:5).ne.'BASES')
+         if(ICT(icc).eq.6.and.zboundarytype(icomp,is,1).ne.6)
      &     bndry=.false.
 
          if(ICT(icc).eq.0)then
@@ -2980,7 +3075,7 @@ C Ask for name of file to put updated information into.
           gversion(icomp) =1.1
           newgeo = .true.
         endif
-        call geowrite(IFIL+2,LTMP,ICOMP,iuout,4,IER)
+        call geowrite2(IFIL+2,LTMP,ICOMP,iuout,4,IER)
         IF(IER.NE.0)THEN
           CALL USRMSG(' ','Problem creating file!','W')
           INO=-4
@@ -3013,7 +3108,8 @@ C Test for saving current or new format geometry file.
               gversion(icomp) =1.1
               newgeo = .true.
             endif
-            call geowrite(IFIL+2,LTMP,ICOMP,iuout,3,IER)
+            call geowrite2(IFIL+2,LTMP,ICOMP,iuout,3,IER)
+            MODGEO = .false.
           endif
 
 C If there is an associated flow node then update its volume and ??
@@ -3049,7 +3145,8 @@ C Test for saving current or new format geometry file.
               gversion(icomp) =1.1
               newgeo = .true.
             endif
-            call geowrite(IFIL+2,LTMP,ICOMP,iuout,3,IER)
+            call geowrite2(IFIL+2,LTMP,ICOMP,iuout,3,IER)
+            MODGEO = .false.
           endif
 
 C If there is an associated flow node then update its volume and ??
@@ -3232,7 +3329,7 @@ C If any changes update and then save geometry file prior to exiting.
             gversion(icomp) =1.1
             newgeo = .true.
           endif
-          call geowrite(IFIL+2,LGEOM(ICOMP),ICOMP,iuout,3,IER)
+          call geowrite2(IFIL+2,LGEOM(ICOMP),ICOMP,iuout,3,IER)
           changed=.false.
         endif
         return
@@ -3254,7 +3351,7 @@ C If any changes update and then save geometry file before invoking ish.
             gversion(icomp) =1.1
             newgeo = .true.
           endif
-          call geowrite(IFIL+2,LGEOM(ICOMP),ICOMP,iuout,3,IER)
+          call geowrite2(IFIL+2,LGEOM(ICOMP),ICOMP,iuout,3,IER)
           changed=.false.
         endif
 
@@ -3262,10 +3359,10 @@ C Allow user to start shading analysis. If user does not cancel suggest
 C a new file name, ask the user to confirm that name and update the model
 C cfg file and then if the user says do it now call comission ish.
         CALL EASKMBOX(' ','Shading & insolation analysis options:',
-     &   'do now','cancel',' ',' ',' ',' ',' ',' ',IW,nbhelp)
+     &   'do now','cancel','do later',' ',' ',' ',' ',' ',IW,nbhelp)
 
 C If ISIcalc has not yet been set assign = 2 for monthly file.
-        if(IW.eq.1)then
+        if(IW.eq.1.or.IW.eq.3)then
           if(ISIcalc.eq.0) ISIcalc = 2
           if(ISI(ICOMP).eq.0)then
             if(zonepth(1:2).eq.'  '.or.zonepth(1:2).eq.'./')then
@@ -3420,6 +3517,7 @@ C IVA array of selections is returned.
 
       DIMENSION STMP(MS),IVA(MS),IVALS(MS)
       character STMP*46,act*1,msg1*32,msg2*32
+      character sbound_ty*12,sbound_c2*6,sbound_e2*6
 
       helpinsub='edgeo'  ! set for subroutine
 
@@ -3465,7 +3563,7 @@ C Process initial selection.
         if(act.eq.'s'.or.act.eq.'S')then
           NP=0
           DO I=1,NZSUR(IZONE)
-            if(SOTHER(izone,i,1)(1:5).eq.'EXTER')then
+            if(zboundarytype(izone,i,1).eq.0)then
               NP=NP+1
               IVA(NP)=I
             endif
@@ -3479,7 +3577,7 @@ C Process initial selection.
         elseif(act.eq.'i'.or.act.eq.'I')then
           NP=0
           DO I=1,NZSUR(IZONE)
-            if(SOTHER(izone,i,1)(1:5).eq.'EXTER'.and.
+            if((zboundarytype(izone,i,1).eq.0).and.
      &         SOTF(izone,i)(1:4).ne.'OPAQ')then
               NP=NP+1
               IVA(NP)=I
@@ -3506,28 +3604,28 @@ C attributes of the surface. For shading or insulation mark surfaces
 C which are not applicable. The do loop needs to use nzsur so that all
 C surfaces are presented even if only ilimit can be copied.
         DO I=1,NZSUR(IZONE)
+         call decode_zsbound(izone,i,sbound_ty,sbound_c2,sbound_e2)
+         lnsb=lnblnk(sbound_ty)
          lnl=lnblnk(SMLCN(izone,i))
          if(lnl.gt.16) lnl=16  ! truncate MLC name in list
          if(act.eq.'s'.or.act.eq.'S')then
-           if(SOTHER(izone,i,1)(1:5).eq.'EXTER')then
+           if(zboundarytype(izone,i,1).eq.0)then
              write(STMP(I),'(5a)') SNAME(izone,i),'|',
-     &         SOTF(izone,i)(1:6),' |',SOTHER(izone,i,1)(1:16)
+     &         SOTF(izone,i)(1:6),' |',sbound_ty(1:lnsb)
            else
              write(STMP(I),'(2a)') SNAME(izone,i),' not applicable'
            endif
          elseif(act.eq.'-')then
            write(STMP(I),'(5a)') SNAME(izone,i),'|',
-     &       SMLCN(izone,i)(1:lnl),
-     &       '|',SOTHER(izone,i,1)(1:16)
+     &       SMLCN(izone,i)(1:lnl),'|',sbound_ty(1:lnsb)
          elseif(act.eq.'c'.or.act.eq.'C')then
            write(STMP(I),'(5a)') SNAME(izone,i),'|',
-     &       SMLCN(izone,i)(1:lnl),
-     &       '|',SOTHER(izone,i,1)(1:15)
+     &       SMLCN(izone,i)(1:lnl),'|',sbound_ty(1:lnsb)
          elseif(act.eq.'i'.or.act.eq.'I')then
-           if(SOTHER(izone,i,1)(1:5).eq.'EXTER'.and.
+           if(zboundarytype(izone,i,1).eq.0.and.
      &        SOTF(izone,i)(1:4).ne.'OPAQ')then
              write(STMP(I),'(5a)') SNAME(izone,i),'|',
-     &         SOTF(izone,i)(1:6),' |',SOTHER(izone,i,1)(1:16)
+     &         SOTF(izone,i)(1:6),' |',sbound_ty(1:lnsb)
            else
              write(STMP(I),'(2a)') SNAME(izone,i),' not applicable'
            endif
@@ -3647,12 +3745,13 @@ C Passed parameters.
       character ozn*12           ! the name of the other zone
       character guesstype*24     ! pass back context of surface
       character TOSMLCN*32       ! to remember other side mlc name
-      character TOOPT*32         ! to remember other side optics
+      character TOOPT*24         ! to remember other side optics
       character TOUSE1*12,TOUSE2*12  ! to remember other side use
 
 C Strings for surface attributes to pass to insrec.
-      character rsname*12,rsotf*32,rsmlcn*32,rsuse1*12,rsuse2*12
+      character rsname*12,rsotf*24,rsmlcn*32,rsuse1*12,rsuse2*12
       character rsparent*12
+      character sbound_ty*12,sbound_c2*6,sbound_e2*6
       real XO1,ZO1               ! to prevent name clash in geometry.h
       integer ISDN,INODA         ! max items and current menu item
       integer mnulen,iwhich,iwhich2,numv   ! multi-column lines
@@ -3697,7 +3796,7 @@ C start with the vertices associated with the surface.
       write(SN,'(a12)') SNAME(ICOMP,IS)
       write(message,'(2a)') ' Vertices (X Y Z) used by ',SN
       call edisp(iuout,message)
-      numv=NVER(IS)
+      numv=isznver(icomp,IS)
 
 C See if an even or odd number of items in list.
       im=MOD(numv,2)
@@ -3738,6 +3837,8 @@ C statement should be kept up to date with MV changes.
       call edisp(iuout,message)
       WRITE(t248,'(124I4)')(JVN(is,j),J=1,numv)
       call edisp248(iuout,t248,100)
+      call decode_zsbound(icomp,is,sbound_ty,sbound_c2,sbound_e2)
+      lnsb=lnblnk(sbound_ty)
 
 C Force redraw of zone on entry to highlight focus surface.
       MODIFYVIEW=.TRUE.
@@ -3784,8 +3885,7 @@ C Force redraw of zone on entry to highlight focus surface.
       elseif(lnm.ge.26)then
         WRITE(ISD(8),'(2A)') 'e MLC: ',SMLCN(icomp,iss)(1:26)
       endif
-      WRITE(ISD(9),'(A,A)')   'f environment : ',
-     &  SOTHER(icomp,iss,1)(1:17)
+      WRITE(ISD(9),'(A,A)')   'f environment : ',sbound_ty(1:lnsb)
 
       if(newgeo)then   ! If newgeo include a line for sparent and one for suse.
 
@@ -4007,8 +4107,11 @@ C << report inside and outside hc regime here >>
           endif
           WRITE(ISD(21),'(2A)') '   in zone     : ',ozn(1:lnblnk(ozn))
           if(newgeo)then
-           WRITE(ISD(22),'(2A)')'   use type    : ',
-     &       SUSE(IC2(ioc),IE2(ioc),1)
+            lnu1=lnblnk(SUSE(IC2(ioc),IE2(ioc),1))
+            lnu2=lnblnk(SUSE(IC2(ioc),IE2(ioc),2))
+           WRITE(ISD(22),'(4A)')'   use: ',
+     &       SUSE(IC2(ioc),IE2(ioc),1)(1:lnu1),'  ',
+     &       SUSE(IC2(ioc),IE2(ioc),2)(1:lnu2)
           else
            WRITE(ISD(22),'(A)') '   use type    : Not applicable'
           endif
@@ -4079,7 +4182,7 @@ C Note IC is the connection at the other side of surface icom:is.
       CALL SURADJ(ICOMP,IS,IE,TMP,IZC,ISC,IC,DESCRC)
       LINSTY(IC)=2
       nzg=1; nznog(1)=ICOMP; izgfoc=ICOMP
-      if(MMOD.eq.8)CALL redraw(IER)
+      call redraw(IER)
 
 C If in graphic mode draw the points on top of standard drawing.
       if(MMOD.lt.8)then
@@ -4087,7 +4190,7 @@ C If in graphic mode draw the points on top of standard drawing.
       else
         icontinue=1
         iloop=0
-        numv=NVER(IS)
+        numv=ISZNVER(ICOMP,IS)
         if(numv.eq.0) goto 42 ! do not attempt to draw the surface
         do while (icontinue.ne.0)
           iloop=iloop+1  ! increment iloop until = numv then jump out
@@ -4217,7 +4320,8 @@ C If an attribute has changed save the geometry file.
               gversion(icomp) =1.1
               newgeo = .true.
             endif
-            call geowrite(IFIL+2,LGEOM(ICOMP),ICOMP,iuout,3,IER)
+            call geowrite2(IFIL+2,LGEOM(ICOMP),ICOMP,iuout,3,IER)
+            MODGEO = .false.
           endif
         endif
 
@@ -4243,7 +4347,8 @@ C If an attribute has changed save the geometry file.
               gversion(icomp) =1.1
               newgeo = .true.
             endif
-            call geowrite(IFIL+2,LGEOM(ICOMP),ICOMP,iuout,3,IER)
+            call geowrite2(IFIL+2,LGEOM(ICOMP),ICOMP,iuout,3,IER)
+            MODGEO = .false.
           endif
         endif
         return
@@ -4261,7 +4366,8 @@ C If an attribute has changed save the geometry file.
               gversion(icomp) =1.1
               newgeo = .true.
             endif
-            call geowrite(IFIL+2,LGEOM(ICOMP),ICOMP,iuout,3,IER)
+            call geowrite2(IFIL+2,LGEOM(ICOMP),ICOMP,iuout,3,IER)
+            MODGEO = .false.
           endif
         endif
         return
@@ -4271,20 +4377,20 @@ C If an attribute has changed save the geometry file.
 C Add/insert a surface, return to higher level menu when done.
 C The 'ii' request an interactive insertion, the parameters
 C XO1,ZO1,XW,ZH are not used in an interactive insert.
-        LASTS=NSUR
+        LASTS=NZSUR(icomp)
         XO1=0.; ZO1=0.
         XW=0.; ZH=0.
         rsname=' '; rsotf=' '; rsmlcn=' '
         rsuse1=' '; rsuse2=' '; rsparent='-'
         CALL INSREC(ITRC,ITRU,ICOMP,IS,'ii',XO1,ZO1,XW,ZH,
      &    rsname,rsotf,rsmlcn,rsuse1,rsuse2,rsparent,guesstype,IER)
-        if(LASTS.ne.NSUR)then
+        if(LASTS.ne.NZSUR(icomp))then
           call eclose(gversion(icomp),1.1,0.01,newgeo)
           if(.NOT.newgeo)then
             gversion(icomp) =1.1
             newgeo = .true.
           endif
-          call geowrite(IFIL+2,LGEOM(ICOMP),ICOMP,ITRU,3,IER)
+          call geowrite2(IFIL+2,LGEOM(ICOMP),ICOMP,ITRU,3,IER)
           CALL EMKCFG('s',IER)
           call warnmod(ICOMP,'sf+')
         endif
@@ -4292,7 +4398,7 @@ C XO1,ZO1,XW,ZH are not used in an interactive insert.
         nzg=1
         nznog(1)=ICOMP
         izgfoc=ICOMP
-        if(MMOD.eq.8)CALL redraw(IER)
+        call redraw(IER)
 
 C Having updated the geometry for the new surface, ask user for USE.
         icon=IZSTOCN(icomp,nsur)
@@ -4321,7 +4427,8 @@ C code.
             gversion(icomp) =1.1
             newgeo = .true.
           endif
-          call geowrite(IFIL+2,LGEOM(ICOMP),ICOMP,iuout,3,IER)
+          call geowrite2(IFIL+2,LGEOM(ICOMP),ICOMP,iuout,3,IER)
+          MODGEO =.false.
           if(icmp.gt.0)then
             CMPASSOC(icmp,1)=ZNAME(ICOMP)
             write(SN,'(a12)') SNAME(ICOMP,IS)
@@ -4337,7 +4444,8 @@ C code.
      &                'surface. Please supply a different name.','W')
           goto 52
         endif
-        MODIFYVIEW=.TRUE.; MODGEO=.TRUE.
+        MODIFYVIEW=.TRUE.
+C        MODGEO=.TRUE.
       ELSEIF(INODA.EQ.2)THEN
 
 C Specify whether surface multilayer construction is opaque, transparent,
@@ -4412,9 +4520,6 @@ C that reporting mechanism.
         write(SN,'(a12)') SNAME(ICOMP,is)
         if(SMLCN(ICOMP,is)(1:4).ne.'UNKN')then
 
-C << TODO - test if date of zone construction file is older than the
-C << geometry file and if so do not use CONINF.
-
 C Use smlcindex to get MLC index for surface.
           if(LTHRM(ICOMP)(1:7).eq.'UNKNOWN'.or.
      &       LTHRM(ICOMP)(1:2).eq.'  ')then
@@ -4443,9 +4548,6 @@ C A non-blank, possibly known construction.
               call easkok(' ',outs,ok,nbhelp)
               if(ok)then
                 CALL ECONST(LTHRM(ICOMP),IFIL+2,ICOMP,0,IUOUT,IER)
-
-C << This would also be a good place to list out optical
-C << properties and the optical name.
                 CALL CONINF(ICOMP,IS,iuout)
               endif
             endif
@@ -4505,17 +4607,18 @@ C commons to get information on the other partition.
               updoth=.false.
               if(mlcsymetric(ii)(1:9).EQ.'SYMMETRIC')then
                 lnssmlc=lnblnk(SMLCN(IC2(ioc),IE2(ioc)))
+                lnopt=lnblnk(mlcoptical(ii))
                 if(SMLCN(IC2(ioc),IE2(ioc))(1:lnssmlc).eq.
      &             mlcname(ii)(1:lnmlcname(ii)))then
                   TOSMLCN= mlcname(ii)
-                  write(TOOPT,'(a)') mlcoptical(ii)
+                  write(TOOPT,'(a)') mlcoptical(ii)(1:lnopt)
                 elseif(SMLCN(IC2(ioc),IE2(ioc))(1:4).eq.'UNKN')then
                   TOSMLCN= mlcname(ii)
-                  write(TOOPT,'(a)') mlcoptical(ii)
+                  write(TOOPT,'(a)') mlcoptical(ii)(1:lnopt)
                   updoth=.true.
                 else
                   TOSMLCN= mlcname(ii)
-                  write(TOOPT,'(a)') mlcoptical(ii)
+                  write(TOOPT,'(a)') mlcoptical(ii)(1:lnopt)
                   updoth=.true.
                 endif
                 iissmlci=ii
@@ -4524,6 +4627,7 @@ C commons to get information on the other partition.
 C If the current construction is nonsymmetric then it should not be
 C used for a partition (and db does not have a linked MLC - inform the user.
                 lnsmlcn=lnblnk(SMLCN(icomp,iss))
+                lnopt=lnblnk(mlcoptical(ii))
                 write(outs,'(5a)') 'Surface ',SN(1:lnblnk(SN)),
      &            ' has a nonsymmetric construction ',
      &            SMLCN(icomp,iss)(1:lnsmlcn),'.'
@@ -4535,12 +4639,12 @@ C used for a partition (and db does not have a linked MLC - inform the user.
                 call edisp(iuout,outs)
                 if(SMLCN(IC2(ioc),IE2(ioc))(1:4).eq.'UNKN')then
                   TOSMLCN= mlcname(ii)  ! replace UNKNOWN
-                  write(TOOPT,'(a)') mlcoptical(ii)
+                  write(TOOPT,'(a)') mlcoptical(ii)(1:lnopt)
                   iissmlci=smlcindex(icomp,iss)
                   updoth=.true.
                 else
                   TOSMLCN= SMLCN(IC2(ioc),IE2(ioc))
-                  write(TOOPT,'(a)') mlcoptical(ii)
+                  write(TOOPT,'(a)') mlcoptical(ii)(1:lnopt)
                   iissmlci=smlcindex(IC2(ioc),IE2(ioc))  ! leave it alone
                   updoth=.false.
                 endif
@@ -4549,27 +4653,27 @@ C used for a partition (and db does not have a linked MLC - inform the user.
 C We have a non-symmetric MLC which does point to a reversed version
 C so check to see if the name of the other MLC matches mlcsymetric.
                 lnsmlcn=lnblnk(SMLCN(IC2(ioc),IE2(ioc)))
+                lnopt=lnblnk(mlcoptical(ii))
                 if(SMLCN(IC2(ioc),IE2(ioc))(1:4).eq.'UNKN')then
                   TOSMLCN= mlcsymetric(ii)
-                  write(TOOPT,'(a)') mlcoptical(ii)
+                  write(TOOPT,'(a)') mlcoptical(ii)(1:lnopt)
                   updoth=.true.
                 elseif(SMLCN(IC2(ioc),IE2(ioc))(1:lnsmlcn).eq.
      &                 mlcsymetric(ii)(1:lnsmlcn))then
                   TOSMLCN= mlcsymetric(ii)
-                  write(TOOPT,'(a)') mlcoptical(ii)
+                  write(TOOPT,'(a)') mlcoptical(ii)(1:lnopt)
                 else
                   TOSMLCN= mlcsymetric(ii)
-                  write(TOOPT,'(a)') mlcoptical(ii)
+                  write(TOOPT,'(a)') mlcoptical(ii)(1:lnopt)
                   updoth=.true.
                 endif
                 iissmlci=matsymindex(ii)  ! use returned value
               endif
               if(updoth)then
 
-C First backup the current zones data before reading in the other
-C zone.
-                CALL ESCZONE(ICOMP)
+C Update the impacted attributes in the other zone.
                 lnicoth=lnblnk(SMLCN(IC2(ioc),IE2(ioc)))
+                lnopt=lnblnk(mlcoptical(ii))
                 write(outs,'(6a)')
      &            'Updating `other side` composition of ',
      &            SN(1:lnblnk(SN)),' from ',
@@ -4579,14 +4683,6 @@ C zone.
      &             TOSMLCN(1:lnblnk(TOSMLCN)))then
                   call usrmsg(outs,' ','P')
                 endif
-                call eclose(gversion(IC2(ioc)),1.1,0.01,newgeo)
-                if(newgeo)then
-                  call georead(IFIL+2,LGEOM(IC2(ioc)),IC2(ioc),0,
-     &              iuout,IER)
-                else
-                  call egomin(IFIL+2,LGEOM(IC2(ioc)),IC2(ioc),0,0,
-     &              iuout,IER)
-                endif
 
 C Assign new MLC name to the icoth surface as well as SOTF with the
 C optical properties and MLC index from material.h commons.
@@ -4595,7 +4691,8 @@ C optical properties and MLC index from material.h commons.
                   smlcindex(IC2(ioc),IE2(ioc))=iissmlci  ! update
                 endif
                 if(TOOPT(1:2).ne.' ')then
-                  write(SOTF(IC2(ioc),IE2(ioc)),'(a)') TOOPT
+                  write(SOTF(IC2(ioc),IE2(ioc)),'(a)') 
+     &              TOOPT(1:lnblnk(TOOPT))
                 endif
                 SUSE(IC2(ioc),IE2(ioc),1)=TOUSE1
                 SUSE(IC2(ioc),IE2(ioc),2)=TOUSE2
@@ -4606,17 +4703,12 @@ C Logic to decide whether to update other zone geometry format.
                   gversion(IC2(ioc)) =1.1
                   newgeo = .true.
                 endif
-                call geowrite(IFIL+2,LGEOM(IC2(ioc)),IC2(ioc),
+                call geowrite2(IFIL+2,LGEOM(IC2(ioc)),IC2(ioc),
      &            iuout,3,IER)
                 IF(IER.NE.0)CALL USRMSG(
      &            'Problem updating other surface attribute... ',
      &            '(could not write other geometry file).','W')
 
-C Read current zone data back in to commons. But the backed up data
-C might not include the name of the newly selected mlc name so just
-C to be sure reset smlcn with smlcn so it will show up in the menu
-C when it is re-freshed.
-                CALL ERCZONE(ICOMP)
                 call usrmsg(' Updating other side...done.',' ','-')
                 updoth=.false.
               endif
@@ -4624,12 +4716,10 @@ C when it is re-freshed.
           else
 
 C User selected UNKNOWN MLC so update arrays.
-C            ioc=IZSTOCN(ICOMP,is)
             WRITE(SMLCN(ICOMP,IS),'(A)') 'UNKNOWN'
             SOTF(ICOMP,IS)='OPAQUE'
             smlcindex(icomp,is)=0
             MODGEO=.TRUE.
-
           endif
           IF(IER.EQ.1)THEN
             CALL USRMSG(' ','A problem was encountered.','W')
@@ -4637,9 +4727,12 @@ C            ioc=IZSTOCN(ICOMP,is)
         endif
       ELSEIF(INODA.EQ.9)THEN
 
-C Specify the environment of the 'other' face of the surface.
+C Specify the environment of the 'other' face of the surface. Update
+C the menu display string.
         call specify_other_face(icomp,is,modgeo,showother,
      &    updoth,'s',ier)
+        call decode_zsbound(icomp,is,sbound_ty,sbound_c2,sbound_e2)
+        lnsb=lnblnk(sbound_ty)
 
       ELSEIF(INODA.EQ.10)THEN
 
@@ -4830,14 +4923,15 @@ C Tollerance for surface matching.
       CHARACTER DESCRC*25,outs*124,CXSTR*78
       CHARACTER SALT*33,SN*12
       character TOSMLCN*32                   ! remember other side mlc name
-      character TOOPT*32                     ! to remember other side optics
+      character TOOPT*24                     ! to remember other side optics
       character TOUSE1*12, TOUSE2*12         ! remember other side USE
-      character TSOTH1*24,TSOTH2*24,TSOTH3*24
-      character choice1*76, choice2*76
+      character choice1*76, choice2*76       ! to clarify surfaces
+      character choice1a*42,choice2a*42      ! pass to mbox
+      character sbound_ty*12,sbound_c2*6,sbound_e2*6
       integer ico
 
       logical closecog,closea,closee,closeaz ! to check for nearby surfaces
-      logical closeenough,closecog1m
+      logical closeenough
       integer lnsa,lnsb                      ! lengths for surface names
       integer ii                             ! for loop
 
@@ -4847,7 +4941,6 @@ C Tollerance for surface matching.
       helpinsub='edgeo'                      ! set for subroutine
       icoth=0; ii=0
       TOSMLCN=' '; TOOPT=' '; TOUSE1=' '; TOUSE2=' '
-      TSOTH1=' '; TSOTH2=' '; TSOTH3=' '
       iissmlci=0
       icomp=izone                            ! local variables for zone index
       is=isurf                               ! surface index
@@ -4865,7 +4958,6 @@ C Tollerance for surface matching.
 
 C Check which version.
       call eclose(gversion(icomp),1.1,0.01,newgeo)
-
 
 C Specify the environment of the 'other' face of the surface.
       updoth=.false.
@@ -4915,39 +5007,38 @@ C Determine the match in the system topology and update it.
       CALL SURADJ(ICOMP,IS,IE,TMP,IZC,ISC,IC,DESCRC)
       IC1(IC)=ICOMP; IE1(IC)=IS
       IF(IVAL(1).EQ.1)THEN
-        SOTHER(ICOMP,IS,1)='EXTERIOR'; SOTHER(ICOMP,IS,2)='0'
-        SOTHER(ICOMP,IS,3)='0'
         ICT(IC)=0; IC2(IC)=0; IE2(IC)=0
+        zboundarytype(icomp,is,1)=ICT(ic)
+        zboundarytype(icomp,is,2)=IC2(ic)
+        zboundarytype(icomp,is,3)=IE2(ic)
+        call decode_zsbound(icomp,is,sbound_ty,sbound_c2,sbound_e2)
         showother=.false.
         updoth=.false.
       ELSEIF(IVAL(1).EQ.2)THEN
-        SOTHER(ICOMP,IS,1)='SIMILAR'
-        ICT(IC)=1
         VALT= real(IC2(IC)); VALW= real(IE2(IC))  ! pick up existing value
         CALL EASKR(VALT,' ','Temperature offset?',
      &           -99.,'F',700.,'F',0.0,'offset temp',IER,nbhelp)
         CALL EASKR(VALW,' ','Radiation offset?',
      &           0.0,'W',99999.,'W',0.0,'offset rad',IER,nbhelp)
-        if(INT(VALT).ge.0)write(SOTHER(ICOMP,IS,2),'(i3.3)')INT(VALT)
-        if(INT(VALT).lt.0)write(SOTHER(ICOMP,IS,2),'(i3)')INT(VALT)
-        write(SOTHER(ICOMP,IS,3),'(i3.3)')INT(VALW)
-        IC2(IC)=INT(VALT); IE2(IC)=INT(VALW)
+        ICT(IC)=1; IC2(IC)=INT(VALT); IE2(IC)=INT(VALW)
+        zboundarytype(icomp,is,1)=ICT(ic)
+        zboundarytype(icomp,is,2)=IC2(ic)
+        zboundarytype(icomp,is,3)=IE2(ic)
+        call decode_zsbound(icomp,is,sbound_ty,sbound_c2,sbound_e2)
         showother=.false.
         updoth=.false.
       ELSEIF(IVAL(1).EQ.3)THEN
-        SOTHER(ICOMP,IS,1)='CONSTANT'
-        ICT(IC)=2
         VALT=0.0; VALW=0.0
         CALL EASKR(VALT,' ','Constant temperature?',
      &    -99.,'F',700.,'F',20.,'adjacent temperature',IER,nbhelp)
         CALL EASKR(VALW,' ','Constant radiation?',
      &    0.0,'W',99999.,'W',0.0,'adjacent radiation source',
      &    IER,nbhelp)
-        IC2(IC)=INT(VALT)
-        IE2(IC)=INT(VALW)
-        if(INT(VALT).ge.0)write(SOTHER(ICOMP,IS,2),'(i3.3)')INT(VALT)
-        if(INT(VALT).lt.0)write(SOTHER(ICOMP,IS,2),'(i3)')INT(VALT)
-        write(SOTHER(ICOMP,IS,3),'(i3.3)')INT(VALW)
+        ICT(IC)=2; IC2(IC)=INT(VALT); IE2(IC)=INT(VALW)
+        zboundarytype(icomp,is,1)=ICT(ic)
+        zboundarytype(icomp,is,2)=IC2(ic)
+        zboundarytype(icomp,is,3)=IE2(ic)
+        call decode_zsbound(icomp,is,sbound_ty,sbound_c2,sbound_e2)
         showother=.false.
         updoth=.false.
       ELSEIF(IVAL(1).EQ.4)THEN
@@ -4970,16 +5061,20 @@ C General image option flags.
         if(ISO.GT.0)then
 
 C Write ANOTHER followed by the indices of zone and surface.
-          SOTHER(ICOMP,IS,1)='ANOTHER'
-          write(SOTHER(ICOMP,IS,2),'(i3.3)') iz
-          write(SOTHER(ICOMP,IS,3),'(i3.3)') iso
           ICT(IC)=3; IC2(IC)=IZ; IE2(IC)=ISO
+          zboundarytype(icomp,is,1)=3
+          zboundarytype(icomp,is,2)=IC2(ic)
+          zboundarytype(icomp,is,3)=IE2(ic)
+          call decode_zsbound(icomp,is,sbound_ty,sbound_c2,sbound_e2)
 
 C Sort out the other face attributes (within this zone).
           ico = izstocn(iz,iso)
-          IC1(ICO)=IZ; IE1(ICO)=ISO
-          ICT(ICO)=3
+          ICT(ICO)=3; IC1(ICO)=IZ; IE1(ICO)=ISO; 
           IC2(ICO)=IC1(IC); IE2(ICO)=IE1(IC)
+          zboundarytype(iz,iso,1)=3
+          zboundarytype(iz,iso,2)=icomp
+          zboundarytype(iz,iso,3)=is
+          call decode_zsbound(iz,iso,sbound_ty,sbound_c2,sbound_e2)
 
 C Also check the other side construction and see if it matches. If
 C current surface MLC index is known get isymindex for the other side
@@ -5001,6 +5096,7 @@ C current surface MLC index is known get isymindex for the other side
 C If the current construction is nonsymmetric then it should not be
 C used for a partition if db does not have a linked MLC - inform the user.
               lnssmlc=lnblnk(SMLCN(icomp,is))
+              lnopt=lnblnk(mlcoptical(ii))
               write(outs,'(5a)') 'Surface ',SN(1:lnblnk(SN)),
      &          ' has a nonsymmetric construction ',
      &          SMLCN(icomp,is)(1:lnssmlc),'.'
@@ -5012,15 +5108,16 @@ C used for a partition if db does not have a linked MLC - inform the user.
               call edisp(iuout,outs)
               iissmlci=matsymindex(ii)  ! use returned value
             else
+              lnopt=lnblnk(mlcoptical(ii))
               if(SMLCN(iz,iso)(1:4).eq.'UNKN')then
                 TOSMLCN= mlcsymetric(ii)
-                write(TOOPT,'(a)') mlcoptical(ii)
+                write(TOOPT,'(a)') mlcoptical(ii)(1:lnopt)
               elseif(SMLCN(iz,iso)(1:12).eq.mlcsymetric(ii)(1:12))then
                 TOSMLCN= mlcsymetric(ii)
-                write(TOOPT,'(a)') mlcoptical(ii)
+                write(TOOPT,'(a)') mlcoptical(ii)(1:lnopt)
               else
                 TOSMLCN= mlcsymetric(ii)
-                write(TOOPT,'(a)') mlcoptical(ii)
+                write(TOOPT,'(a)') mlcoptical(ii)(1:lnopt)
               endif
               iissmlci=matsymindex(ii)  ! use returned value
             endif
@@ -5031,23 +5128,21 @@ C used for a partition if db does not have a linked MLC - inform the user.
 
 C Update the attributes of the other surface in the zone so it will
 C be saved along with the changes in the initial surface.
+
+C << this logic needs to be debugged for geowrite2 >>
           if(iissmlci.ne.0)then
             SMLCN(iz,iso)=TOSMLCN
             smlcindex(iz,iso)=iissmlci  ! update if known
           endif
           if(TOOPT(1:2).ne.' ')then
-            write(SOTF(iz,iso),'(a)') TOOPT
+            write(SOTF(iz,iso),'(a)') TOOPT(1:lnblnk(TOOPT))
           endif
-          SOTHER(iz,iso,1)='ANOTHER'
-          write(SOTHER(iz,iso,2),'(i3.3)') IC2(ico)
-          write(SOTHER(iz,iso,3),'(i3.3)') IE2(ico)
-          TSOTH1='ANOTHER'
-          write(TSOTH2,'(i3.3)') IC2(ico)
-          write(TSOTH3,'(i3.3)') IE2(ico)
+
+C          zso(1)=3; zso(2)=IC2(ico); zso(3)=IE2(ico)
           updoth=.true.
           showother=.true.
 
-C The temporary variabels TOSMLCN, TSOTH1 etc. will be acted on in the
+C The temporary variabels TOSMLCN etc. will be acted on in the
 C logic following on from line 5614 below.
         else
           continue          ! User did not select surface so continue without changing.
@@ -5101,7 +5196,7 @@ C and display both zones.
           nznog(1)=ICOMP
           nznog(2)=IZ
           izgfoc=ICOMP
-          if(MMOD.eq.8)CALL redraw(IER)
+          call redraw(IER)
           MODIFYVIEW=.TRUE.; MODBND=.TRUE.
 
           ISO=1
@@ -5111,11 +5206,12 @@ C and display both zones.
           CALL EPMENRC
           if(ISO.GT.0)then
 
-C Write ANOTHER followed by the indices of zone and surface.
-            SOTHER(ICOMP,IS,1)='ANOTHER'
-            write(SOTHER(ICOMP,IS,2),'(i3.3)') iz
-            write(SOTHER(ICOMP,IS,3),'(i3.3)') iso
+C Write ANOTHER followed by the indices of other zone and surface.
             ICT(IC)=3; IC2(IC)=IZ; IE2(IC)=ISO
+            zboundarytype(icomp,is,1)=ICT(IC)
+            zboundarytype(icomp,is,2)=IC2(ic)
+            zboundarytype(icomp,is,3)=IE2(ic)
+            call decode_zsbound(icomp,is,sbound_ty,sbound_c2,sbound_e2)
 
 C If applicable find other surface, return its connection number (ICO)
 C and point it to the current surface.
@@ -5125,13 +5221,12 @@ C and point it to the current surface.
               CALL SURADJ(IZ,ISO,IE,TMP,IZC,ISC,ICO,DESCRC)
               IC1(ICO)=IZ; IE1(ICO)=ISO; ICT(ICO)=3
               IC2(ICO)=IC1(IC); IE2(ICO)=IE1(IC)
+              zboundarytype(iz,iso,1)=ICT(ico)
+              zboundarytype(iz,iso,2)=IC2(ico)
+              zboundarytype(iz,iso,3)=IE2(ico)
+              call decode_zsbound(iz,iso,sbound_ty,sbound_c2,sbound_e2)
 
-              SOTHER(IZ,ISO,1)='ANOTHER'
-              write(SOTHER(IZ,ISO,2),'(i3.3)') IC2(ICO)
-              write(SOTHER(IZ,ISO,3),'(i3.3)') IE2(ICO)
-              TSOTH1='ANOTHER'
-              write(TSOTH2,'(i3.3)') IC2(ICO)
-              write(TSOTH3,'(i3.3)') IE2(ICO)
+C              zso(1)=3; zso(2)=IC2(ICO); zso(3)=IE2(ICO)
 
 C Update information needed to display information on the other side
 C of this surface (i.e. if we went from unknown to a partition).
@@ -5190,11 +5285,11 @@ C the action make no changes and jump back to 13 (the menu creation code).
      &    1,'F',mgrdp,'F',1,'ground profile',IERI,nbhelp)
         IF(IIC2.GT.0)THEN
           if(ieri.eq.0)then
-            IC2(IC)=iic2; IE2(IC)=0
-            SOTHER(ICOMP,IS,1)='GROUND'
-            write(SOTHER(ICOMP,IS,2),'(i3.3)')iic2
-            SOTHER(ICOMP,IS,3)='0'
-            ICT(IC)=4
+            ICT(IC)=4; IC2(IC)=iic2; IE2(IC)=0
+            zboundarytype(icomp,is,1)=ICT(ic)
+            zboundarytype(icomp,is,2)=IC2(ic)
+            zboundarytype(icomp,is,3)=IE2(ic)
+            call decode_zsbound(icomp,is,sbound_ty,sbound_c2,sbound_e2)
             showother=.false.
           elseif(ieri.eq.-3)then
             return
@@ -5227,10 +5322,12 @@ C the action make no changes and jump back to 13 (the menu creation code).
      &      0,'F',9,'F',1,'user defined profile',IERI,nbhelp)
           if(IIE2.gt.0)then
             if(ieri.eq.0)then
-              IC2(IC)=0; IE2(IC)=iie2
-              SOTHER(ICOMP,IS,1)='GROUND'; SOTHER(ICOMP,IS,2)='0'
-              write(SOTHER(ICOMP,IS,3),'(i3.3)')iie2
-              ICT(IC)=4
+              ICT(IC)=4; IC2(IC)=0; IE2(IC)=iie2
+              zboundarytype(icomp,is,1)=ICT(ic)
+              zboundarytype(icomp,is,2)=IC2(ic)
+              zboundarytype(icomp,is,3)=IE2(ic)
+              call decode_zsbound(icomp,is,sbound_ty,sbound_c2,
+     &          sbound_e2)
               showother=.false.
             elseif(ieri.eq.-3)then
               return
@@ -5252,18 +5349,23 @@ C the action make no changes and jump back to 13 (the menu creation code).
       ELSEIF(IVAL(1).EQ.8)THEN
 
 C Link to a 3D conduction model.
-        SOTHER(ICOMP,IS,1)='GROUND'; SOTHER(ICOMP,IS,2)='-3'
-        SOTHER(ICOMP,IS,3)='0'
         ICT(IC)=4; IC2(IC)=-3; IE2(IC)=0
+        zboundarytype(icomp,is,1)=ICT(ic)
+        zboundarytype(icomp,is,2)=IC2(ic)
+        zboundarytype(icomp,is,3)=IE2(ic)
+        call decode_zsbound(icomp,is,sbound_ty,sbound_c2,sbound_e2)
         call edisp(iuout,'Link set to 3D ground conduction model.')
         showother=.false.
         updoth=.false.
       ELSEIF(IVAL(1).EQ.9)THEN
 
 C Set at adiabatic.
-        SOTHER(ICOMP,IS,1)='ADIABATIC'; SOTHER(ICOMP,IS,2)='0'
-        SOTHER(ICOMP,IS,3)='0'
         ICT(IC)=5; IE2(IC)=0; IC2(IC)=0
+        zboundarytype(icomp,is,1)=ICT(ic)
+        zboundarytype(icomp,is,2)=IC2(ic)
+        zboundarytype(icomp,is,3)=IE2(ic)
+        call decode_zsbound(icomp,is,sbound_ty,sbound_c2,sbound_e2)
+        call edisp(iuout,'Link set to 3D ground conduction model.')
         showother=.false.
         updoth=.false.
       ELSEIF(IVAL(1).EQ.10)THEN
@@ -5280,33 +5382,50 @@ C action do not instantiate the data.
      &      0,'F',100,'F',100,'BASESIMP heat loss percent',
      &      IERI,nbhelp)
         if(ieri.eq.0)then
-          IE2(IC)=Ifrac; IC2(IC)=IBS
-          SOTHER(ICOMP,IS,1)='BASESIMP'
-          write(SOTHER(ICOMP,IS,2),'(i3.3)')Ifrac
-          write(SOTHER(ICOMP,IS,3),'(i3.3)')IBS
-          ICT(IC)=6
+          ICT(IC)=6; IE2(IC)=Ifrac; IC2(IC)=IBS
+          zboundarytype(icomp,is,1)=ICT(ic)
+          zboundarytype(icomp,is,2)=IC2(ic)
+          zboundarytype(icomp,is,3)=IE2(ic)
+          call decode_zsbound(icomp,is,sbound_ty,sbound_c2,sbound_e2)
           showother=.false.
         elseif(ieri.eq.-3)then
           return
         endif
         updoth=.false.
 
-      ELSEIF(IVAL(1).EQ.11)THEN
-        SOTHER(ICOMP,IS,1)='IDENT_CEN'; SOTHER(ICOMP,IS,2)='0'
-        SOTHER(ICOMP,IS,3)='0'
-        ICT(IC)=7
+      ELSEIF(IVAL(1).EQ.11)THEN   ! IDENT_CEN
         VALT=0.0; VALW=0.0
-        IC2(IC)=INT(VALT); IE2(IC)=INT(VALW)
+        ICT(IC)=7; IC2(IC)=INT(VALT); IE2(IC)=INT(VALW)
+        zboundarytype(icomp,is,1)=ICT(ic)
+        zboundarytype(icomp,is,2)=IC2(ic)
+        zboundarytype(icomp,is,3)=IE2(ic)
+        call decode_zsbound(icomp,is,sbound_ty,sbound_c2,sbound_e2)
         showother=.false.
         updoth=.false.
 
       ELSEIF(IVAL(1).EQ.12)THEN
 
-C Reset to zeros set ICT to -1 to signal UNKNOWN
+C Reset to zeros set ICT to -1 to signal UNKNOWN. Check if
+C ANOTHER first and if so we might need to clear the other side!
+        if(zboundarytype(ICOMP,IS,1).eq.3)then
+          iz=zboundarytype(icomp,is,2)
+          iso=zboundarytype(icomp,is,3)
+          iocog=IZSTOCN(iz,iso)
+          ICT(iocog)=-1; IE2(iocog)=0; IC2(iocog)=0
+          zboundarytype(iz,iso,1)=-1
+          zboundarytype(iz,iso,2)=0
+          zboundarytype(iz,iso,3)=0
+          call decode_zsbound(iz,iso,sbound_ty,sbound_c2,sbound_e2)
+          CALL ERPFREE(IFIL+2,ios)
+          call geowrite2(IFIL+2,LGEOM(IZ),IZ,iuout,3,IER)
+        endif
+
         updoth=.false.
-        SOTHER(ICOMP,IS,1)='UNKNOWN'; SOTHER(ICOMP,IS,2)='0'
-        SOTHER(ICOMP,IS,3)='0'
         ICT(IC)=-1; IE2(IC)=0; IC2(IC)=0
+        zboundarytype(icomp,is,1)=ICT(ic)
+        zboundarytype(icomp,is,2)=IC2(ic)
+        zboundarytype(icomp,is,3)=IE2(ic)
+        call decode_zsbound(icomp,is,sbound_ty,sbound_c2,sbound_e2)
         showother=.false.
 
       ELSEIF(IVAL(1).EQ.13)THEN
@@ -5314,10 +5433,6 @@ C Reset to zeros set ICT to -1 to signal UNKNOWN
 C Scan for neighbor surfaces in all zones. Report if within 1m
 C and 0.5m2 area difference and also take into account difference
 C in surface normals.
-C << If one surface has additional vertices the COG will differ
-C << even if all other parameters are close enough. What we
-C << want is to allow, say one failure.
-C << logic for that in edtopol.F ~line 1500. >>
         updoth=.false.
         icuriz=IC1(ic); icuris=IE1(ic)
         cog(1)=surcog(icuriz,icuris,1)
@@ -5339,7 +5454,7 @@ C Remember if surface elevation is ~floor -90 or ceiling 90.
 C Loop through all surfaces in the model looking for matches
 C using a tight logic.
         do 78 ij=1,ncon
-          closecog=.false.; closecog1m=.false.;
+          closecog=.false.
           closea=.false.; closee=.false.
           closeaz=.false.; closeenough=.false.
           if(ic1(ij).ne.icomp)then  ! if in another zone
@@ -5407,7 +5522,7 @@ C for surfaces which are not horizontal.
 C Debug.
 C          write(6,*) ic,ij,selv,dazi,closea,closeaz,closee,
 C     &      origisfloor,origisceiling,testisfloor,testisceiling,
-C     &      closecog,closecog1m
+C     &      closecog
 
 C If all match accept or if area/azimuth/elevation set closeenough.
           if(closecog.and.closea.and.closeaz.and.closee)then
@@ -5428,7 +5543,7 @@ C If horizontal relax the azimuth test.
             write(outs,'(4a,i4,a,f7.3,a,f6.2,a,f6.2,a,f4.2,a)')
      &        sname(IC1(ij),IE1(ij))(1:lnsa),' in ',
      &        zname(ic1(ij))(1:lnzname(ic1(ij))),
-     &        ' conn index ',ij,
+     &        ' conn ',ij,
      &        ' area=',SNA(IC1(ij),IE1(ij)),' azim=',
      &        spazi(IC1(ij),IE1(ij)),
      &        ' elev=',spelv(IC1(ij),IE1(ij)),' @ dist ',vdist,
@@ -5437,18 +5552,22 @@ C If horizontal relax the azimuth test.
             ifound=ifound+1   ! increment number neighbors found
             if(ifound.eq.1)then
               ifoundc=ij        ! remember 1st one
-              write(choice1,'(4a,i4,a,f7.3,a,f4.2)')
+              write(choice1,'(4a,i4,a,f6.2,a,f4.1)')
      &          sname(IC1(ij),IE1(ij))(1:lnsa),':',
      &          zname(ic1(ij))(1:lnzname(ic1(ij))),
-     &          ' connection ',ij,
-     &          ' area=',SNA(IC1(ij),IE1(ij)),' dist=',vdist
+     &          ' @',ij,
+     &          ' A=',SNA(IC1(ij),IE1(ij)),' D=',vdist
+              write(choice1a,'(a)') choice1(1:42)  ! truncate for dialog
+              write(choice2a,'(a)') choice2(1:42)
             elseif(ifound.eq.2)then
               ifoundc2=ij        ! remember 2nd one
-              write(choice2,'(4a,i4,a,f7.3,a,f4.2)')
+              write(choice2,'(4a,i4,a,f6.2,a,f4.1)')
      &          sname(IC1(ij),IE1(ij))(1:lnsa),':',
      &          zname(ic1(ij))(1:lnzname(ic1(ij))),
-     &          ' connection ',ij,
-     &          ' area=',SNA(IC1(ij),IE1(ij)),' dist=',vdist
+     &          ' @',ij,
+     &          ' area=',SNA(IC1(ij),IE1(ij)),' D=',vdist
+              write(choice1a,'(a)') choice1(1:42)  ! truncate for dialog
+              write(choice2a,'(a)') choice2(1:42)
             endif
           endif
   78    continue
@@ -5525,7 +5644,7 @@ C for surfaces which are not horizontal.
 C Debug.
 C            write(6,*) ic,ij,selv,dazi,closea,closeaz,closee,
 C     &      origisfloor,origisceiling,testisfloor,testisceiling,
-C     &      closecog,closecog1m
+C     &      closecog
 
 C If all match accept or if area/azimuth/elevation set closeenough.
             if(closecog.and.closea.and.closeaz.and.closee)then
@@ -5546,7 +5665,7 @@ C If horizontal relax the azimuth test.
               write(outs,'(4a,i4,a,f6.2,a,f6.2,a,f6.2,a,f4.2,a)')
      &          sname(IC1(ij),IE1(ij))(1:lnsa),' in ',
      &          zname(ic1(ij))(1:lnzname(ic1(ij))),
-     &          ' conn index ',ij,
+     &          ' conn ',ij,
      &          ' area=',SNA(IC1(ij),IE1(ij)),' azim=',
      &          spazi(IC1(ij),IE1(ij)),
      &          ' elev=',spelv(IC1(ij),IE1(ij)),' @ dist ',vdist,
@@ -5555,18 +5674,22 @@ C If horizontal relax the azimuth test.
               ifound=ifound+1   ! increment number neighbors found
               if(ifound.eq.1)then
                 ifoundc=ij        ! remember 1st one
-                write(choice1,'(4a,i4,a,f7.3,a,f4.2)')
+                write(choice1,'(4a,i4,a,f6.2,a,f4.1)')
      &            sname(IC1(ij),IE1(ij))(1:lnsa),':',
      &            zname(ic1(ij))(1:lnzname(ic1(ij))),
-     &            ' index ',ij,' area=',SNA(IC1(ij),IE1(ij)),
+     &            ' @',ij,' A=',SNA(IC1(ij),IE1(ij)),
      &            ' d=',vdist
+                write(choice1a,'(a)') choice1(1:42)  ! truncate for dialog
+                write(choice2a,'(a)') choice2(1:42)
               elseif(ifound.eq.2)then
                 ifoundc2=ij        ! remember 2nd one
-                write(choice2,'(4a,i4,a,f7.3,a,f4.2)')
+                write(choice2,'(4a,i4,a,f6.2,a,f4.1)')
      &            sname(IC1(ij),IE1(ij))(1:lnsa),':',
      &            zname(ic1(ij))(1:lnzname(ic1(ij))),
-     &            ' index ',ij,
-     &            ' area=',SNA(IC1(ij),IE1(ij)),' d=',vdist
+     &            ' @',ij,
+     &            ' A=',SNA(IC1(ij),IE1(ij)),' d=',vdist
+                write(choice1a,'(a)') choice1(1:42)  ! truncate for dialog
+                write(choice2a,'(a)') choice2(1:42)
               endif
             endif
   79      continue
@@ -5575,8 +5698,8 @@ C If horizontal relax the azimuth test.
           if(ifound.eq.1)then
             IIC3=ifoundc    ! if only one set index
           elseif(ifound.eq.2)then
-            CALL EASKMBOX('Select one:',':',choice1,
-     &        choice2,'cancel',' ',' ',' ',' ',' ',INVT,nbhelp)
+            CALL EASKMBOX('Select one:',':',choice1a,
+     &        choice2a,'cancel',' ',' ',' ',' ',' ',INVT,nbhelp)
             if(INVT.eq.1)then
               IIC3=ifoundc
             elseif(INVT.eq.2)then
@@ -5591,23 +5714,29 @@ C If horizontal relax the azimuth test.
      &        0,'F',ncon,'F',1,'connection index',IERI,nbhelp)
           endif
           if(IIC3.gt.0)then
-            write(outs,'(3a)') 'Make thermophysical connection with ',
-     &        sname(IC1(iic3),IE1(iic3)),'?'
+            write(outs,'(5a)') 'Make thermophysical connection with ',
+     &        sname(IC1(iic3),IE1(iic3)),' in ',
+     &        zname(ic1(iic3))(1:lnzname(ic1(iic3))),'?'
             updoth=.false.
             CALL EASKOK(' ',outs,updoth,nbhelp)
             if(updoth)then
               iz=ic1(iic3); iso=ie1(iic3) ! decode other zone and surf
               ico=iic3
-              SOTHER(ICOMP,IS,1)='ANOTHER'
-              write(SOTHER(ICOMP,IS,2),'(i3.3)') iz
-              write(SOTHER(ICOMP,IS,3),'(i3.3)') iso
               ICT(IC)=3; IC2(IC)=IZ; IE2(IC)=ISO
-              IC1(ICO)=IZ; IE1(ICO)=ISO; ICT(ICO)=3
-              IC2(ICO)=icuriz; IE2(ICO)=icuris
-              TSOTH1='ANOTHER'
-              write(TSOTH2,'(i3.3)') icuriz
-              write(TSOTH3,'(i3.3)') icuris
+              zboundarytype(icomp,is,1)=ICT(ic)
+              zboundarytype(icomp,is,2)=IC2(ic)
+              zboundarytype(icomp,is,3)=IE2(ic)
+              call decode_zsbound(icomp,is,sbound_ty,sbound_c2,
+     &          sbound_e2)
 
+              ICT(ICO)=3; IC2(ICO)=icuriz; IE2(ICO)=icuris
+              zboundarytype(iz,iso,1)=ICT(ico)
+              zboundarytype(iz,iso,2)=IC2(ico)
+              zboundarytype(iz,iso,3)=IE2(ico)
+              call decode_zsbound(iz,iso,sbound_ty,sbound_c2,sbound_e2)
+
+C              zso(1)=3; zso(2)=icuriz; zso(3)=icuris
+      
 C If current SUSE is 'WALL', reset to 'PARTN'.
               if(SUSE(ICOMP,is,1)(1:4).eq.'WALL')then
                 SUSE(ICOMP,is,1)='PARTN'
@@ -5615,7 +5744,7 @@ C If current SUSE is 'WALL', reset to 'PARTN'.
               endif
 
 C Reconcile the surface attributes between the focus surface and the
-C other surface. The returned temporary variables TOSMLCN,TOUSE1, TSOTH1 etc.
+C other surface. The returned temporary variables TOSMLCN,TOUSE1 etc.
 C will be dealt with in the logic following line 5615.
               call reconcileattributes(icomp,is,SN,iz,iso,showother,
      &           updoth,TOSMLCN,TOOPT,TOUSE1,TOUSE2,IISSMLCI)
@@ -5636,18 +5765,18 @@ C will be dealt with in the logic following line 5615.
       ENDIF
       MODGEO=.TRUE.
 
-C Finally update the system configuration file if not browsing.
+C Finally update the zone file & system configuration file.
       if(cfgok)then
         call eclose(gversion(icomp),1.1,0.01,newgeo)
         if(.NOT.newgeo)then
           gversion(icomp) =1.1
           newgeo = .true.
         endif
-        call geowrite(IFIL+2,LGEOM(ICOMP),ICOMP,iuout,3,IER)
+        call geowrite2(IFIL+2,LGEOM(ICOMP),ICOMP,iuout,3,IER)
 
-C If user requested other side to be updated do this as well. Read
-C in the zone pointed to by IC2, update SOTHER (of index IE2 in the
-C other zone) and write out that zones geometry.
+C If user requested other side to be updated do this as well.
+C Update USE & boundary (of index IE2 in the other zone) and write
+C that zones geometry.
         if(updoth)then
           lnicoth=lnblnk(SMLCN(IC2(IC),IE2(IC)))
           write(outs,'(6a)')'Updating `other side` composition of ',
@@ -5658,57 +5787,49 @@ C other zone) and write out that zones geometry.
             call usrmsg(outs,' ','P')
           endif
 
-C If the other side is in a different zone then do read and write.
+C If the other side is in a different zone then assign new MLC name, 
+C USE and connexion info to the icoth surface.
           if(IC2(IC).ne.icomp)then
-            CALL ESCZONE(ICOMP)
-            call eclose(gversion(IC2(IC)),1.1,0.01,newgeo)
-            if(newgeo)then
-              call georead(IFIL+2,LGEOM(IC2(IC)),IC2(IC),0,iuout,IER)
-            else
-              call egomin(IFIL+2,LGEOM(IC2(IC)),IC2(IC),0,0,iuout,IER)
-            endif
-
-C Assign new MLC name, USE and connexion info to the icoth surface.
             if(iissmlci.ne.0)then
               SMLCN(IC2(IC),IE2(IC))=TOSMLCN
               smlcindex(IC2(IC),IE2(IC))=iissmlci  ! update if known
             endif
             if(TOOPT(1:2).ne.'  ')then
-              write(SOTF(IC2(ic),IE2(ic)),'(a)') TOOPT
+              write(SOTF(IC2(ic),IE2(ic)),'(a)') TOOPT(1:lnblnk(TOOPT))
             endif
             SUSE(IC2(ic),IE2(ic),1)=TOUSE1
             SUSE(IC2(ic),IE2(ic),2)=TOUSE2
-            SOTHER(IC2(ic),IE2(ic),1)=TSOTH1
-            SOTHER(IC2(ic),IE2(ic),2)=TSOTH2
-            SOTHER(IC2(ic),IE2(ic),3)=TSOTH3
+
+            call decode_zsbound(IC2(ic),IE2(ic),sbound_ty,
+     &        sbound_c2,sbound_e2)
 
             call eclose(gversion(IC2(IC)),1.1,0.01,newgeo)
             if(.NOT.newgeo)then
               gversion(IC2(IC)) =1.1
               newgeo = .true.
             endif
-            call geowrite(IFIL+2,LGEOM(IC2(IC)),IC2(IC),iuout,3,IER)
+            call geowrite2(IFIL+2,LGEOM(IC2(IC)),IC2(IC),iuout,3,IER)
             IF(IER.NE.0)CALL USRMSG(' ',
      &        'Problem updating other surface attribute.','W')
-
-C Read current zone back in and then update the configuration file.
-            CALL ERCZONE(ICOMP)
             call usrmsg(' ',' ','-')
             updoth=.false.
-          else                                           ! In same zone so assign and write.
+          else                                       ! In same zone so assign and write.
             if(iissmlci.ne.0)then
-              SMLCN(IC2(IC),IE2(IC))=TOSMLCN               ! Update smlcindex if known.
+              SMLCN(IC2(IC),IE2(IC))=TOSMLCN         ! Update smlcindex if known.
               smlcindex(IC2(IC),IE2(IC))=iissmlci
             endif
-            SOTHER(IC1(icoth),IE1(icoth),1)='ANOTHER'
-            write(SOTHER(IC1(icoth),IE1(icoth),2),'(i3.3)') IC2(icoth)
-            write(SOTHER(IC1(icoth),IE1(icoth),3),'(i3.3)') IE2(icoth)
-            call geowrite(IFIL+2,LGEOM(ICOMP),ICOMP,iuout,3,IER)
+            zboundarytype(IC2(ic),IE2(ic),1)=3
+            zboundarytype(IC2(ic),IE2(ic),2)=icomp
+            zboundarytype(IC2(ic),IE2(ic),3)=is
+            call decode_zsbound(IC2(ic),IE2(ic),sbound_ty,
+     &        sbound_c2,sbound_e2)
+            call geowrite2(IFIL+2,LGEOM(ICOMP),ICOMP,iuout,3,IER)
             call usrmsg(' ',' ','-')
             updoth=.false.
           endif
         endif
         CALL EMKCFG('s',IER)
+        MODGEO=.false.
       endif
 
       return
@@ -5772,10 +5893,7 @@ C Tell the user the current use of the surface.
       write(outs,'(6a)') 'The current use/semantic of surface ',
      &  sname(iz,isur),' is ',SUSE(iz,isur,1),' and ',
      &  SUSE(iz,isur,2)
-      call edisp(iuout,outs)
-
-      write(outs,'(3a)') 'The use/semantic options for surface ',
-     &  sname(iz,isur),' are...'
+      call edisp(iuout,'  ')
       call edisp(iuout,outs)
 
 C Help for the various choices.
@@ -5886,6 +6004,8 @@ C Setup array of menu strings.
         useopt(12)='something else'
 
         IX=1
+        helptopic='surface_use_not'
+        call gethelptext(helpinsub,helptopic,nbhelp)
         CALL EPICKS(IX,iuseopt,' ','Surface USAGE attributes:',
      &         32,12,useopt,'surface USAGE options',IER,nbhelp)
         IOS=iuseopt(1)
@@ -5932,6 +6052,8 @@ C Setup array of menu strings.
         useopt(9) ='-   -  (something else)         '
 
         IX=1
+        helptopic='surface_use_win'
+        call gethelptext(helpinsub,helptopic,nbhelp)
         CALL EPICKS(IX,iuseopt,' ','Surface USAGE attributes:',
      &         32,9,useopt,'surface USAGE options',IER,nbhelp)
         IOS=iuseopt(1)
@@ -5977,6 +6099,8 @@ C Setup array of menu strings.
         useopt(13)='-   -  (something else)         '
 
         IX=1
+        helptopic='surface_use_door'
+        call gethelptext(helpinsub,helptopic,nbhelp)
         CALL EPICKS(IX,iuseopt,' ','Surface USAGE attributes:',
      &         32,13,useopt,'surface USAGE options',IER,nbhelp)
         IOS=iuseopt(1)
@@ -6026,6 +6150,8 @@ C Setup array of menu strings.
         useopt(10)='-   -  (something else)         '
 
         IX=1
+        helptopic='surface_use_vert'
+        call gethelptext(helpinsub,helptopic,nbhelp)
         CALL EPICKS(IX,iuseopt,' ','Surface USAGE attributes:',
      &         32,10,useopt,'surface USAGE options',IER,nbhelp)
         IOS=iuseopt(1)
@@ -6067,6 +6193,8 @@ C Setup array of menu strings.
         useopt(8) ='-   -  (something else)         '
 
         IX=1
+        helptopic='surface_use_horiz'
+        call gethelptext(helpinsub,helptopic,nbhelp)
         CALL EPICKS(IX,iuseopt,' ','Surface USAGE attributes:',
      &         32,7,useopt,'surface USAGE options',IER,nbhelp)
         IOS=iuseopt(1)
@@ -6295,44 +6423,46 @@ C If a partition then update the other surface use attributes.
         IRT=1
         CALL EASKMBOX(' ','Surface GRILL USE air leakage choices:',
      &    'undefined','crack','mech vent inlet','mech vent extract',
-     &    'natural air flow','duct','cancel',' ',IRT,nbhelp)
-        if(IRT.eq.1)then
+     &    'natural air flow','duct','closed','cancel',IRT,nbhelp)
+        if(IRT.eq.1)then  ! Set other side as - as well.
           SUSE(iz,IS,2)='-'
           if(showother)then
             SUSE(IC2(icon),IE2(icon),2)='-'
             TOUSE2=SUSE(IC2(icon),IE2(icon),2)
           endif
-        elseif(IRT.eq.2)then
+        elseif(IRT.eq.2)then     ! Set other side as crack as well.
           SUSE(iz,IS,2)='CRACK'
           if(showother)then
             SUSE(IC2(icon),IE2(icon),2)='CRACK'
             TOUSE2=SUSE(IC2(icon),IE2(icon),2)
           endif
-        elseif(IRT.eq.3)then       ! Other side to '-'.
+        elseif(IRT.eq.3)then      ! Reset other side to '-'.
           SUSE(iz,IS,2)='INLET'
           if(showother)then
-            SUSE(IC2(icon),IE2(icon),2)='-'
+            SUSE(IC2(icon),IE2(icon),2)='-'  ! - is equiv to CLOSED.
             TOUSE2=SUSE(IC2(icon),IE2(icon),2)
           endif
         elseif(IRT.eq.4)then
-          SUSE(iz,IS,2)='EXTRACT'  ! Other side to '-'.
+          SUSE(iz,IS,2)='EXTRACT'  ! Reset other side to '-'.
           if(showother)then
             SUSE(IC2(icon),IE2(icon),2)='-'
             TOUSE2=SUSE(IC2(icon),IE2(icon),2)
           endif
-        elseif(IRT.eq.5)then
+        elseif(IRT.eq.5)then        ! Reset other side to open.
           SUSE(iz,IS,2)='OPEN'
           if(showother)then
             SUSE(IC2(icon),IE2(icon),2)='OPEN'
             TOUSE2=SUSE(IC2(icon),IE2(icon),2)
           endif
         elseif(IRT.eq.6)then
-          SUSE(iz,IS,2)='DUCT'
+          SUSE(iz,IS,2)='DUCT'      ! Reset other side to duct.
           if(showother)then
             SUSE(IC2(icon),IE2(icon),2)='DUCT'
             TOUSE2=SUSE(IC2(icon),IE2(icon),2)
           endif
         elseif(IRT.eq.7)then
+          SUSE(iz,IS,2)='CLOSED'  ! Don't change the other side.
+        elseif(IRT.eq.8)then
           continue
         endif
 
@@ -6479,35 +6609,33 @@ C both zones.
         CALL EASKOK(' ','Save changes to surface attributes?',
      &    OK,nbhelp)
         if(showother.and.updoth.and.ok)then
-          CALL ESCZONE(IZ)
           write(outs,'(6a)')
      &      'Updating `other side` USE of ',
      &      SN(1:lnblnk(SN)),' to ',TOUSE1,' & ',TOUSE2
           call edisp(iuout,outs)
-          call eclose(gversion(IC2(icon)),1.1,0.01,newgeo)
-          if(newgeo)then
-            call georead(IFIL+2,LGEOM(IC2(icon)),IC2(icon),0,
-     &        iuout,IER)
-          else
-            call egomin(IFIL+2,LGEOM(IC2(icon)),IC2(icon),0,0,
-     &        iuout,IER)
-          endif
 
-C Apply USE to other side but make an exception for GRILL. If
-C it is INLET or EXTRACT set it to '-' on the other side. If it
-C is CLOSED or '-' on this side it might be an INLET or EXTRACT on the
-C other side so if that is the case do not change it.
-          if(TOUSE1(1:5).eq.'GRILL'.and.TOUSE2(1:5).eq.'INLET')then
-            SUSE(IC2(icon),IE2(icon),1)=TOUSE1  ! apply to other zone
+C TOUSE1 & TOUSE2 are flow tokens to apply to the other zone.
+C Make an exception for GRILL. If this side is an INLET or EXTRACT 
+C set to '-' on the other side. If this side is CLOSED or '-' on 
+C this side it might be an INLET or EXTRACT on the other side do 
+C not change the other side.
+          if(SUSE(iz,IS,1)(1:5).eq.'GRILL'.and.
+     &       SUSE(iz,IS,2)(1:5).eq.'INLET')then
+            SUSE(IC2(icon),IE2(icon),1)=TOUSE1  ! Reset other zone closed.
             SUSE(IC2(icon),IE2(icon),2)='-'
-          elseif(TOUSE1(1:5).eq.'GRILL'.and.
-     &           TOUSE2(1:7).eq.'EXTRACT')then
-            SUSE(IC2(icon),IE2(icon),1)=TOUSE1  ! apply to other zone
+          elseif(SUSE(iz,IS,1)(1:5).eq.'GRILL'.and.
+     &           SUSE(iz,IS,2)(1:7).eq.'EXTRACT')then
+            SUSE(IC2(icon),IE2(icon),1)=TOUSE1  ! Reset other zone closed.
             SUSE(IC2(icon),IE2(icon),2)='-'
-          elseif(TOUSE1(1:5).eq.'GRILL'.and.
-     &           (TOUSE2(1:1).eq.'-'.or.TOUSE2(1:6).eq.'CLOSED'))then
+          elseif(SUSE(iz,IS,1)(1:5).eq.'GRILL'.and.
+     &           SUSE(iz,IS,2)(1:4).eq.'DUCT')then
+            SUSE(IC2(icon),IE2(icon),1)=TOUSE1  ! Reset other zone closed.
+            SUSE(IC2(icon),IE2(icon),2)='-'
+          elseif(SUSE(iz,IS,1)(1:5).eq.'GRILL'.and.    ! A closed grill on this side.
+     &          (SUSE(iz,IS,2)(1:1).eq.'-'.or.
+     &           SUSE(iz,IS,2)(1:6).eq.'CLOSED'))then  ! Check current other side values.
             if(SUSE(IC2(icon),IE2(icon),1)(1:5).eq.'GRILL')then
-              continue  ! don't overwrite the other side
+              continue  ! Don't overwrite Grill attribute on the other side.
             else
               SUSE(IC2(icon),IE2(icon),1)=TOUSE1  ! apply to other zone
               SUSE(IC2(icon),IE2(icon),2)=TOUSE2
@@ -6521,14 +6649,12 @@ C other side so if that is the case do not change it.
             gversion(IC2(icon)) =1.1
             newgeo = .true.
           endif
-          call geowrite(IFIL+2,LGEOM(IC2(icon)),IC2(icon),
+          call geowrite2(IFIL+2,LGEOM(IC2(icon)),IC2(icon),
      &      iuout,3,IER)
           IF(IER.NE.0)CALL USRMSG(
      &      'Problem updating other surface attribute... ',
      &      '(could not write other geometry file).','W')
 
-C Read current zone data back in to commons.
-          CALL ERCZONE(IZ)
           call usrmsg(' Updating other side...done.',' ','-')
           updoth=.false.
         endif
@@ -6541,7 +6667,7 @@ C Update the current zone attributes.
             gversion(iz) =1.1
             newgeo = .true.
           endif
-          call geowrite(IFIL+2,LTMP,IZ,iuout,3,IER)
+          call geowrite2(IFIL+2,LTMP,IZ,iuout,3,IER)
           CALL EMKCFG('s',IER)
         endif
       endif
@@ -6917,252 +7043,265 @@ C surfaces as partitions.
 #include "esprdbfile.h"
 #include "material.h"
 
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
+
       integer icomp,is                ! focus zone and surface
       character SN*12                 ! focus surface name
       integer iz,iso                  ! other zone and surface
       logical showother,updoth        ! returned flags
       character TOSMLCN*32            ! pass back attributes for other side
-      character TOOPT*32
+      character TOOPT*24
       character TOUSE1*12, TOUSE2*12
       integer IISSMLCI
       character outs*124
       integer lnblnk
 
+      itru=iuout
+
 C Surface USE: check if there is a difference between the current
 C and other surface use. If the same do nothing. If current is '-'
 C and the other is in the following list then make it the same.
-              if(SUSE(ICOMP,is,1)(1:1).eq.'-'.and.
-     &           SUSE(IZ,iso,1)(1:1).eq.'-')then
-                continue                                  ! Nothing to do.
-              elseif(SUSE(ICOMP,is,1)(1:1).eq.'-'.and.    ! Use non-flow attributes
-     &               SUSE(IZ,iso,1)(1:4).eq.'WALL'.or.    ! from the other side.
-     &               SUSE(IZ,iso,1)(1:5).eq.'FLOOR'.or.
-     &               SUSE(IZ,iso,1)(1:5).eq.'FURNI'.or.
-     &               SUSE(IZ,iso,1)(1:7).eq.'ITEQUIP'.or.
-     &               SUSE(IZ,iso,1)(1:5).eq.'PARTN'.or.
-     &               SUSE(IZ,iso,1)(1:4).eq.'ROOF'.or.
-     &               SUSE(IZ,iso,1)(1:5).eq.'STRUC'.or.
-     &               SUSE(IZ,iso,1)(1:7).eq.'FIXTURE'.or.
-     &               SUSE(IZ,iso,1)(1:6).eq.'PLANTS')then
-                SUSE(ICOMP,is,1)=SUSE(IZ,iso,1)
-                SUSE(ICOMP,is,2)=SUSE(IZ,iso,2)
+      if(SUSE(ICOMP,is,1)(1:1).eq.'-'.and.
+     &   SUSE(IZ,iso,1)(1:1).eq.'-')then
+        continue                                  ! Nothing to do.
+      elseif(SUSE(ICOMP,is,1)(1:1).eq.'-'.and.    ! Use non-flow attributes
+     &       SUSE(IZ,iso,1)(1:4).eq.'WALL'.or.    ! from the other side.
+     &       SUSE(IZ,iso,1)(1:5).eq.'FLOOR'.or.
+     &       SUSE(IZ,iso,1)(1:5).eq.'FURNI'.or.
+     &       SUSE(IZ,iso,1)(1:7).eq.'ITEQUIP'.or.
+     &       SUSE(IZ,iso,1)(1:5).eq.'PARTN'.or.
+     &       SUSE(IZ,iso,1)(1:4).eq.'ROOF'.or.
+     &       SUSE(IZ,iso,1)(1:5).eq.'STRUC'.or.
+     &       SUSE(IZ,iso,1)(1:7).eq.'FIXTURE'.or.
+     &       SUSE(IZ,iso,1)(1:6).eq.'PLANTS')then
+        SUSE(ICOMP,is,1)=SUSE(IZ,iso,1)
+        SUSE(ICOMP,is,2)=SUSE(IZ,iso,2)
 
-              elseif(SUSE(ICOMP,is,1)(1:1).eq.'-'.and.    ! Use non-flow attributes.
-     &               SUSE(IZ,iso,1)(1:4).eq.'DOOR'.or.    ! Flow attributes on other side.
-     &               SUSE(IZ,iso,1)(1:6).eq.'P-DOOR'.or.
-     &               SUSE(IZ,iso,1)(1:5).eq.'FRAME'.or.
-     &               SUSE(IZ,iso,1)(1:7).eq.'F-FRAME'.or.
-     &               SUSE(IZ,iso,1)(1:5).eq.'GRILL'.or.
-     &               SUSE(IZ,iso,1)(1:6).eq.'WINDOW'.or.
-     &               SUSE(IZ,iso,1)(1:8).eq.'D-WINDOW'.or.
-     &               SUSE(IZ,iso,1)(1:8).eq.'S-WINDOW'.or.
-     &               SUSE(IZ,iso,1)(1:8).eq.'C-WINDOW'.or.
-     &               SUSE(IZ,iso,1)(1:4).eq.'FICT')then
-                SUSE(ICOMP,is,1)=SUSE(IZ,iso,1)
-                if(SUSE(IZ,iso,2)(1:5).eq.'CLOSED'.or.    ! Depending on 2nd attribute
-     &             SUSE(IZ,iso,2)(1:8).eq.'UNDERCUT'.or.  ! also update the other surface.
-     &             SUSE(IZ,iso,2)(1:4).eq.'OPEN'.or.
-     &             SUSE(IZ,iso,2)(1:5).eq.'BIDIR'.or.
-     &             SUSE(IZ,iso,2)(1:10).eq.'AJAR-BIDIR'.or.
-     &             SUSE(IZ,iso,2)(1:5).eq.'CRACK'.or.
-     &             SUSE(IZ,iso,2)(1:4).eq.'VENT'.or.
-     &             SUSE(IZ,iso,2)(1:4).eq.'DUCT')then
-                  SUSE(ICOMP,is,2)=SUSE(IZ,iso,2)
-                endif
-                if(SUSE(IZ,iso,2)(1:5).eq.'INLET'.or.     ! For mechanical set current to -
-     &             SUSE(IZ,iso,2)(1:7).eq.'EXTRACT')then
-                  SUSE(ICOMP,is,2)='-'
-                endif
+      elseif(SUSE(ICOMP,is,1)(1:1).eq.'-'.and.    ! Use non-flow attributes.
+     &       SUSE(IZ,iso,1)(1:4).eq.'DOOR'.or.    ! Flow attributes on other side.
+     &       SUSE(IZ,iso,1)(1:6).eq.'P-DOOR'.or.
+     &       SUSE(IZ,iso,1)(1:5).eq.'FRAME'.or.
+     &       SUSE(IZ,iso,1)(1:7).eq.'F-FRAME'.or.
+     &       SUSE(IZ,iso,1)(1:5).eq.'GRILL'.or.
+     &       SUSE(IZ,iso,1)(1:6).eq.'WINDOW'.or.
+     &       SUSE(IZ,iso,1)(1:8).eq.'D-WINDOW'.or.
+     &       SUSE(IZ,iso,1)(1:8).eq.'S-WINDOW'.or.
+     &       SUSE(IZ,iso,1)(1:8).eq.'C-WINDOW'.or.
+     &       SUSE(IZ,iso,1)(1:4).eq.'FICT')then
+        SUSE(ICOMP,is,1)=SUSE(IZ,iso,1)
+        if(SUSE(IZ,iso,2)(1:5).eq.'CLOSED'.or.    ! Depending on 2nd attribute
+     &     SUSE(IZ,iso,2)(1:8).eq.'UNDERCUT'.or.  ! also update the other surface.
+     &     SUSE(IZ,iso,2)(1:4).eq.'OPEN'.or.
+     &     SUSE(IZ,iso,2)(1:5).eq.'BIDIR'.or.
+     &     SUSE(IZ,iso,2)(1:10).eq.'AJAR-BIDIR'.or.
+     &     SUSE(IZ,iso,2)(1:8).eq.'AJAR-BID'.or.
+     &     SUSE(IZ,iso,2)(1:5).eq.'CRACK'.or.
+     &     SUSE(IZ,iso,2)(1:4).eq.'VENT'.or.
+     &     SUSE(IZ,iso,2)(1:4).eq.'DUCT')then
+          SUSE(ICOMP,is,2)=SUSE(IZ,iso,2)
+        endif
+        if(SUSE(IZ,iso,2)(1:5).eq.'INLET'.or.     ! For mechanical set current to -
+     &     SUSE(IZ,iso,2)(1:7).eq.'EXTRACT')then
+          SUSE(ICOMP,is,2)='-'
+        endif
 
 C If current SUSE is set and other surface is '-' then update other surface.
-              elseif(SUSE(ICOMP,is,1)(1:4).eq.'WALL'.or.
-     &               SUSE(ICOMP,is,1)(1:5).eq.'FLOOR'.or.
-     &               SUSE(ICOMP,is,1)(1:5).eq.'FURNI'.or.
-     &               SUSE(ICOMP,is,1)(1:7).eq.'ITEQUIP'.or.
-     &               SUSE(ICOMP,is,1)(1:4).eq.'ROOF'.or.
-     &               SUSE(ICOMP,is,1)(1:5).eq.'STRUC'.or.
-     &               SUSE(ICOMP,is,1)(1:7).eq.'FIXTURE'.or.
-     &               SUSE(ICOMP,is,1)(1:6).eq.'PLANTS')then
-                if(SUSE(IZ,iso,1)(1:1).eq.'-')then
-                  SUSE(IZ,iso,1)=SUSE(ICOMP,is,1)
-                  SUSE(IZ,iso,2)=SUSE(ICOMP,is,2)
-                endif
+      elseif(SUSE(ICOMP,is,1)(1:4).eq.'WALL'.or.
+     &       SUSE(ICOMP,is,1)(1:5).eq.'FLOOR'.or.
+     &       SUSE(ICOMP,is,1)(1:5).eq.'FURNI'.or.
+     &       SUSE(ICOMP,is,1)(1:7).eq.'ITEQUIP'.or.
+     &       SUSE(ICOMP,is,1)(1:4).eq.'ROOF'.or.
+     &       SUSE(ICOMP,is,1)(1:5).eq.'STRUC'.or.
+     &       SUSE(ICOMP,is,1)(1:7).eq.'FIXTURE'.or.
+     &       SUSE(ICOMP,is,1)(1:6).eq.'PLANTS')then
+        if(SUSE(IZ,iso,1)(1:1).eq.'-')then
+          SUSE(IZ,iso,1)=SUSE(ICOMP,is,1)
+          SUSE(IZ,iso,2)=SUSE(ICOMP,is,2)
+        endif
 
 C If current SUSE has already been set to 'PARTN' and the other side
 C is flow, relate then reasign current also as flow related.
-              elseif(SUSE(ICOMP,is,1)(1:5).eq.'PARTN')then
-                if(SUSE(IZ,iso,1)(1:1).eq.'-')then          ! Not set so copy PARTN.
-                  SUSE(IZ,iso,1)=SUSE(ICOMP,is,1)
-                  SUSE(IZ,iso,2)=SUSE(ICOMP,is,2)
-                elseif(SUSE(IZ,iso,1)(1:4).eq.'DOOR'.or.    ! Flow attributes on other side.
-     &             SUSE(IZ,iso,1)(1:6).eq.'P-DOOR'.or.
-     &             SUSE(IZ,iso,1)(1:5).eq.'FRAME'.or.
-     &             SUSE(IZ,iso,1)(1:7).eq.'F-FRAME'.or.
-     &             SUSE(IZ,iso,1)(1:5).eq.'GRILL'.or.
-     &             SUSE(IZ,iso,1)(1:6).eq.'WINDOW'.or.
-     &             SUSE(IZ,iso,1)(1:8).eq.'D-WINDOW'.or.
-     &             SUSE(IZ,iso,1)(1:8).eq.'S-WINDOW'.or.
-     &             SUSE(IZ,iso,1)(1:8).eq.'C-WINDOW'.or.
-     &             SUSE(IZ,iso,1)(1:4).eq.'FICT')then
-                  SUSE(ICOMP,is,1)=SUSE(IZ,iso,1)
-                  if(SUSE(IZ,iso,2)(1:5).eq.'CLOSED'.or.   ! Depending on 2nd attribute
-     &               SUSE(IZ,iso,2)(1:8).eq.'UNDERCUT'.or. ! also update the other surface.
-     &               SUSE(IZ,iso,2)(1:4).eq.'OPEN'.or.
-     &               SUSE(IZ,iso,2)(1:5).eq.'BIDIR'.or.
-     &               SUSE(IZ,iso,2)(1:10).eq.'AJAR-BIDIR'.or.
-     &               SUSE(IZ,iso,2)(1:5).eq.'CRACK'.or.
-     &               SUSE(IZ,iso,2)(1:4).eq.'VENT'.or.
-     &               SUSE(IZ,is,2)(1:4).eq.'DUCT')then
-                    SUSE(ICOMP,is,2)=SUSE(IZ,iso,2)
-                  endif
-                  if(SUSE(IZ,iso,2)(1:5).eq.'INLET'.or.    ! For mechanical set current to -
-     &               SUSE(IZ,iso,2)(1:7).eq.'EXTRACT')then
-                    SUSE(ICOMP,is,2)='-'
-                  endif
-                elseif(SUSE(IZ,iso,1)(1:4).eq.'WALL')then  ! PARTN trumps WALL.
-                  SUSE(IZ,iso,1)=SUSE(ICOMP,is,1)
-                  SUSE(IZ,iso,2)=SUSE(ICOMP,is,2)
-                else                                       ! Non-flow other side so copy PARTN.
-                  SUSE(IZ,iso,1)=SUSE(ICOMP,is,1)
-                  SUSE(IZ,iso,2)=SUSE(ICOMP,is,2)
-                endif
+      elseif(SUSE(ICOMP,is,1)(1:5).eq.'PARTN')then
+        if(SUSE(IZ,iso,1)(1:1).eq.'-')then          ! Not set so copy PARTN.
+          SUSE(IZ,iso,1)=SUSE(ICOMP,is,1)
+          SUSE(IZ,iso,2)=SUSE(ICOMP,is,2)
+        elseif(SUSE(IZ,iso,1)(1:4).eq.'DOOR'.or.    ! Flow attributes on other side.
+     &         SUSE(IZ,iso,1)(1:6).eq.'P-DOOR'.or.
+     &         SUSE(IZ,iso,1)(1:5).eq.'FRAME'.or.
+     &         SUSE(IZ,iso,1)(1:7).eq.'F-FRAME'.or.
+     &         SUSE(IZ,iso,1)(1:5).eq.'GRILL'.or.
+     &         SUSE(IZ,iso,1)(1:6).eq.'WINDOW'.or.
+     &         SUSE(IZ,iso,1)(1:8).eq.'D-WINDOW'.or.
+     &         SUSE(IZ,iso,1)(1:8).eq.'S-WINDOW'.or.
+     &         SUSE(IZ,iso,1)(1:8).eq.'C-WINDOW'.or.
+     &         SUSE(IZ,iso,1)(1:4).eq.'FICT')then
+          SUSE(ICOMP,is,1)=SUSE(IZ,iso,1)
+          if(SUSE(IZ,iso,2)(1:5).eq.'CLOSED'.or.   ! Depending on 2nd attribute
+     &       SUSE(IZ,iso,2)(1:8).eq.'UNDERCUT'.or. ! also update the other surface.
+     &       SUSE(IZ,iso,2)(1:4).eq.'OPEN'.or.
+     &       SUSE(IZ,iso,2)(1:5).eq.'BIDIR'.or.
+     &       SUSE(IZ,iso,2)(1:10).eq.'AJAR-BIDIR'.or.
+     &       SUSE(IZ,iso,2)(1:8).eq.'AJAR-BID'.or.
+     &       SUSE(IZ,iso,2)(1:5).eq.'CRACK'.or.
+     &       SUSE(IZ,iso,2)(1:4).eq.'VENT'.or.
+     &       SUSE(IZ,is,2)(1:4).eq.'DUCT')then
+            SUSE(ICOMP,is,2)=SUSE(IZ,iso,2)
+          endif
+          if(SUSE(IZ,iso,2)(1:5).eq.'INLET'.or.    ! For mechanical set current to -
+     &       SUSE(IZ,iso,2)(1:7).eq.'EXTRACT')then
+            SUSE(ICOMP,is,2)='-'
+          endif
+       elseif(SUSE(IZ,iso,1)(1:4).eq.'WALL')then  ! PARTN trumps WALL.
+          SUSE(IZ,iso,1)=SUSE(ICOMP,is,1)
+          SUSE(IZ,iso,2)=SUSE(ICOMP,is,2)
+        else                                       ! Non-flow other side so copy PARTN.
+          SUSE(IZ,iso,1)=SUSE(ICOMP,is,1)
+          SUSE(IZ,iso,2)=SUSE(ICOMP,is,2)
+        endif
 
 C If current surface SUSE is related to flow set the other face SUSE first
 C attribute.
-              elseif(SUSE(ICOMP,is,1)(1:4).eq.'DOOR'.or.
-     &               SUSE(ICOMP,is,1)(1:6).eq.'P-DOOR'.or.
-     &               SUSE(ICOMP,is,1)(1:5).eq.'FRAME'.or.
-     &               SUSE(ICOMP,is,1)(1:7).eq.'F-FRAME'.or.
-     &               SUSE(ICOMP,is,1)(1:5).eq.'GRILL'.or.
-     &               SUSE(ICOMP,is,1)(1:6).eq.'WINDOW'.or.
-     &               SUSE(ICOMP,is,1)(1:8).eq.'D-WINDOW'.or.
-     &               SUSE(ICOMP,is,1)(1:8).eq.'S-WINDOW'.or.
-     &               SUSE(ICOMP,is,1)(1:8).eq.'C-WINDOW'.or.
-     &               SUSE(ICOMP,is,1)(1:4).eq.'FICT')then
-                if(SUSE(IZ,iso,1)(1:1).eq.'-')then            ! Update other to flow.
-                  SUSE(IZ,iso,1)=SUSE(ICOMP,is,1)
-                  if(SUSE(ICOMP,is,2)(1:5).eq.'CLOSED'.or.    ! Depending on 2nd attribute
-     &               SUSE(ICOMP,is,2)(1:8).eq.'UNDERCUT'.or.  ! also update the other surface.
-     &               SUSE(ICOMP,is,2)(1:4).eq.'OPEN'.or.
-     &               SUSE(ICOMP,is,2)(1:5).eq.'BIDIR'.or.
-     &               SUSE(ICOMP,is,2)(1:10).eq.'AJAR-BIDIR'.or.
-     &               SUSE(ICOMP,is,2)(1:5).eq.'CRACK'.or.
-     &               SUSE(ICOMP,is,2)(1:4).eq.'VENT'.or.
-     &               SUSE(ICOMP,is,2)(1:4).eq.'DUCT')then
-                    SUSE(IZ,iso,2)=SUSE(ICOMP,is,2)
-                  endif
-                  if(SUSE(ICOMP,is,2)(1:5).eq.'INLET'.or.     ! For mechanical set other to -
-     &               SUSE(ICOMP,is,2)(1:7).eq.'EXTRACT')then
-                    SUSE(IZ,iso,2)='-'
-                  endif
-                endif
-                showother=.true.  ! On re-display include info on SUSE.
-              endif
+      elseif(SUSE(ICOMP,is,1)(1:4).eq.'DOOR'.or.
+     &       SUSE(ICOMP,is,1)(1:6).eq.'P-DOOR'.or.
+     &       SUSE(ICOMP,is,1)(1:5).eq.'FRAME'.or.
+     &       SUSE(ICOMP,is,1)(1:7).eq.'F-FRAME'.or.
+     &       SUSE(ICOMP,is,1)(1:5).eq.'GRILL'.or.
+     &       SUSE(ICOMP,is,1)(1:6).eq.'WINDOW'.or.
+     &       SUSE(ICOMP,is,1)(1:8).eq.'D-WINDOW'.or.
+     &       SUSE(ICOMP,is,1)(1:8).eq.'S-WINDOW'.or.
+     &       SUSE(ICOMP,is,1)(1:8).eq.'C-WINDOW'.or.
+     &       SUSE(ICOMP,is,1)(1:4).eq.'FICT')then
+        if(SUSE(IZ,iso,1)(1:1).eq.'-')then            ! Update other to flow.
+          SUSE(IZ,iso,1)=SUSE(ICOMP,is,1)
+          if(SUSE(ICOMP,is,2)(1:5).eq.'CLOSED'.or.    ! Depending on 2nd attribute
+     &       SUSE(ICOMP,is,2)(1:8).eq.'UNDERCUT'.or.  ! also update the other surface.
+     &       SUSE(ICOMP,is,2)(1:4).eq.'OPEN'.or.
+     &       SUSE(ICOMP,is,2)(1:5).eq.'BIDIR'.or.
+     &       SUSE(ICOMP,is,2)(1:10).eq.'AJAR-BIDIR'.or.
+     &       SUSE(ICOMP,is,2)(1:8).eq.'AJAR-BID'.or.
+     &       SUSE(ICOMP,is,2)(1:5).eq.'CRACK'.or.
+     &       SUSE(ICOMP,is,2)(1:4).eq.'VENT'.or.
+     &       SUSE(ICOMP,is,2)(1:4).eq.'DUCT')then
+            SUSE(IZ,iso,2)=SUSE(ICOMP,is,2)
+          endif
+          if(SUSE(ICOMP,is,2)(1:5).eq.'INLET'.or.     ! For mechanical set other to -
+     &       SUSE(ICOMP,is,2)(1:7).eq.'EXTRACT')then
+            SUSE(IZ,iso,2)='-'
+          endif
+        endif
+        showother=.true.  ! On re-display include info on SUSE.
+      endif
 
 C If logic fell through and SUSE on either side is a blank reset to '-'.
-              if(SUSE(ICOMP,is,1)(1:1).eq.' ') SUSE(ICOMP,is,1)='-'
-              if(SUSE(ICOMP,is,2)(1:1).eq.' ') SUSE(ICOMP,is,2)='-'
-              if(SUSE(IZ,iso,1)(1:1).eq.' ') SUSE(IZ,iso,1)='-'
-              if(SUSE(IZ,iso,2)(1:1).eq.' ') SUSE(IZ,iso,2)='-'
-              TOUSE1=SUSE(IZ,iso,1)   ! Remember so can restore after zone read.
-              TOUSE2=SUSE(IZ,iso,2)
+      if(SUSE(ICOMP,is,1)(1:1).eq.' ') SUSE(ICOMP,is,1)='-'
+      if(SUSE(ICOMP,is,2)(1:1).eq.' ') SUSE(ICOMP,is,2)='-'
+      if(SUSE(IZ,iso,1)(1:1).eq.' ') SUSE(IZ,iso,1)='-'
+      if(SUSE(IZ,iso,2)(1:1).eq.' ') SUSE(IZ,iso,2)='-'
+      TOUSE1=SUSE(IZ,iso,1)   ! Remember so can restore after zone read.
+      TOUSE2=SUSE(IZ,iso,2)
 
 C If this surface MLC is known, also check the other side construction matche
 C and get isymindex for the other side.
-              ii=smlcindex(icomp,is)
-              if(ii.gt.0)then
-                lnssmlc=lnblnk(SMLCN(IZ,iso))
-                if(mlcsymetric(ii)(1:9).EQ.'SYMMETRIC')then
-                  if(SMLCN(IZ,iso)(1:lnssmlc).eq.
-     &               mlcname(ii)(1:lnmlcname(ii)))then
-                    TOSMLCN= mlcname(ii)
-                    write(TOOPT,'(a)') mlcoptical(ii)
-                  elseif(SMLCN(IZ,iso)(1:4).eq.'UNKN')then
-                    TOSMLCN= mlcname(ii)
-                    write(TOOPT,'(a)') mlcoptical(ii)
-                  else
-                    TOSMLCN= mlcname(ii)
-                    write(TOOPT,'(a)') mlcoptical(ii)
-                  endif
-                  iissmlci=ii
-                elseif(mlcsymetric(ii)(1:12).EQ.'NONSYMMETRIC')then
+      ii=smlcindex(icomp,is)
+      if(ii.gt.0)then
+        lnssmlc=lnblnk(SMLCN(IZ,iso))
+        lnopt=lnblnk(mlcoptical(ii))
+        if(mlcsymetric(ii)(1:9).EQ.'SYMMETRIC')then
+          if(SMLCN(IZ,iso)(1:lnssmlc).eq.
+     &       mlcname(ii)(1:lnmlcname(ii)))then
+            TOSMLCN= mlcname(ii)
+            write(TOOPT,'(a)') mlcoptical(ii)(1:lnopt)
+          elseif(SMLCN(IZ,iso)(1:4).eq.'UNKN')then
+            TOSMLCN= mlcname(ii)
+            write(TOOPT,'(a)') mlcoptical(ii)(1:lnopt)
+          else
+            TOSMLCN= mlcname(ii)
+            write(TOOPT,'(a)') mlcoptical(ii)(1:lnopt)
+          endif
+          iissmlci=ii
+        elseif(mlcsymetric(ii)(1:12).EQ.'NONSYMMETRIC')then
 
 C If the current construction is nonsymmetric then it should not be
 C used for a partition if db does not have a linked MLC - inform the user.
-                  lnssmlc=lnblnk(SMLCN(icomp,is))
-                  write(outs,'(5a)') 'Surface ',SN(1:lnblnk(SN)),
-     &              ' has a nonsymmetric construction ',
-     &              SMLCN(icomp,is)(1:lnssmlc),'.'
-                  call edisp(iuout,outs)
-                  lnssmlc=lnblnk(SMLCN(IZ,iso))
-                  write(outs,'(5a)') 'It faces ',
-     &              SNAME(IZ,iso),' composed of ',
-     &              SMLCN(IZ,iso)(1:lnssmlc),'.'
-                  call edisp(iuout,outs)
-                  TOSMLCN= SMLCN(IZ,iso)
-                  iissmlci=smlcindex(IZ,iso)  ! leave it alone
-                else
+          lnssmlc=lnblnk(SMLCN(icomp,is))
+          lnopt=lnblnk(mlcoptical(ii))
+          write(outs,'(5a)') 'Surface ',SN(1:lnblnk(SN)),
+     &      ' has a nonsymmetric construction ',
+     &      SMLCN(icomp,is)(1:lnssmlc),'.'
+          call edisp(iuout,outs)
+          lnssmlc=lnblnk(SMLCN(IZ,iso))
+          write(outs,'(5a)') 'It faces ',
+     &      SNAME(IZ,iso),' composed of ',
+     &      SMLCN(IZ,iso)(1:lnssmlc),'.'
+          call edisp(iuout,outs)
+          TOSMLCN= SMLCN(IZ,iso)
+          iissmlci=smlcindex(IZ,iso)  ! leave it alone
+        else
 
 C We have a non-symmetric MLC which does point to a reversed version
 C so check to see if the name of the other MLC matches mlcsymetric.
-                  ii=smlcindex(icomp,is)
-                  lnssmlc=lnblnk(SMLCN(IZ,iso))
-                  if(SMLCN(IZ,iso)(1:4).eq.'UNKN')then
-                    TOSMLCN= mlcsymetric(ii)
-                  elseif(SMLCN(IZ,iso)(1:lnssmlc).eq.
-     &                   mlcsymetric(ii)(1:lnssmlc))then
-                    TOSMLCN= mlcsymetric(ii)
-                    write(TOOPT,'(a)') mlcoptical(ii)
-                  else
-                    TOSMLCN= mlcsymetric(ii)
-                    write(TOOPT,'(a)') mlcoptical(ii)
-                  endif
-                  iissmlci=matsymindex(ii)  ! use returned value
-                endif
+          ii=smlcindex(icomp,is)
+          lnssmlc=lnblnk(SMLCN(IZ,iso))
+          lnopt=lnblnk(mlcoptical(ii))
+          if(SMLCN(IZ,iso)(1:4).eq.'UNKN')then
+            TOSMLCN= mlcsymetric(ii)
+          elseif(SMLCN(IZ,iso)(1:lnssmlc).eq.
+     &           mlcsymetric(ii)(1:lnssmlc))then
+            TOSMLCN= mlcsymetric(ii)
+            write(TOOPT,'(a)') mlcoptical(ii)(1:lnopt)
+          else
+            TOSMLCN= mlcsymetric(ii)
+            write(TOOPT,'(a)') mlcoptical(ii)(1:lnopt)
+          endif
+          iissmlci=matsymindex(ii)  ! use returned value
+        endif
 
 C Mar the other zone surface attributes as known.
-                showother=.true.
-                updoth=.true.
-              else
+        showother=.true.
+        updoth=.true.
+      else
 
 C This surface MLC is UNKNOWN, check other side. If symmetric 
 C the same MLC name is applied to other zone. If nonsymmetric
 C assign the other zones symmetric name to this zone. Otherwise
 C leave the other MLC name the same and apply the symmetric name
 C to this zone.
-                iio=smlcindex(IZ,iso)
-                if(iio.gt.0)then
-                  lnssmlc=lnblnk(SMLCN(IZ,iso))
-                  if(mlcsymetric(iio)(1:9).EQ.'SYMMETRIC')then
-                    if(SMLCN(IZ,iso)(1:4).eq.'UNKN')then
-                      iissmlci=0  ! Both surface and other unknown MLC.
-                      TOSMLCN='UNKNOWN'
-                      SMLCN(icomp,is)='UNKNOWN'
-                      smlcindex(icomp,is)=0
-                    else
-                      TOSMLCN= mlcname(iio)
-                      write(TOOPT,'(a)') mlcoptical(iio)
-                      iissmlci=iio
-                      SMLCN(icomp,is)=mlcname(iio)
-                      smlcindex(icomp,is)=smlcindex(IZ,iso)
-                    endif
-                  elseif(mlcsymetric(iio)(1:12).EQ.'NONSYMMETRIC')then
-                    TOSMLCN= mlcname(iio)
-                    write(TOOPT,'(a)') mlcoptical(iio)
-                    iissmlci=iio
-                    SMLCN(icomp,is)=mlcsymetric(iio)
-                    smlcindex(icomp,is)=matsymindex(iio)  ! use returned value
-                  else
-                    TOSMLCN= mlcname(iio)
-                    SMLCN(icomp,is)=mlcsymetric(iio)
-                    smlcindex(icomp,is)=matsymindex(iio)  ! use returned value
-                    write(TOOPT,'(a)') mlcoptical(iio)
-                    iissmlci=matsymindex(iio)  ! use returned value
-                  endif
-                endif
-                showother=.true.
-                updoth=.true.
-              endif
+        iio=smlcindex(IZ,iso)
+        if(iio.gt.0)then
+          lnssmlc=lnblnk(SMLCN(IZ,iso))
+          if(mlcsymetric(iio)(1:9).EQ.'SYMMETRIC')then
+            if(SMLCN(IZ,iso)(1:4).eq.'UNKN')then
+              iissmlci=0  ! Both surface and other unknown MLC.
+              TOSMLCN='UNKNOWN'
+              SMLCN(icomp,is)='UNKNOWN'
+              smlcindex(icomp,is)=0
+            else
+              TOSMLCN= mlcname(iio)
+              lnopt=lnblnk(mlcoptical(iio))
+              write(TOOPT,'(a)') mlcoptical(iio)(1:lnopt)
+              iissmlci=iio
+              SMLCN(icomp,is)=mlcname(iio)
+              smlcindex(icomp,is)=smlcindex(IZ,iso)
+            endif
+          elseif(mlcsymetric(iio)(1:12).EQ.'NONSYMMETRIC')then
+            TOSMLCN= mlcname(iio)
+            lnopt=lnblnk(mlcoptical(iio))
+            write(TOOPT,'(a)') mlcoptical(iio)(1:lnopt)
+            iissmlci=iio
+            SMLCN(icomp,is)=mlcsymetric(iio)
+            smlcindex(icomp,is)=matsymindex(iio)  ! use returned value
+          else
+            TOSMLCN= mlcname(iio)
+            SMLCN(icomp,is)=mlcsymetric(iio)
+            smlcindex(icomp,is)=matsymindex(iio)  ! use returned value
+            lnopt=lnblnk(mlcoptical(iio))
+            write(TOOPT,'(a)') mlcoptical(iio)(1:lnopt)
+            iissmlci=matsymindex(iio)  ! use returned value
+          endif
+        endif
+        showother=.true.
+        updoth=.true.
+      endif
       
       return
       end
@@ -7312,7 +7451,7 @@ C Do a bound check on the current zone and update display.
       nzg=1
       nznog(1)=ICOMP
       izgfoc=ICOMP
-      if(MMOD.eq.8)CALL redraw(IER)
+      call redraw(IER)
 
 C Help text for this menu.
       helptopic='surface_vertex_menu'
@@ -7367,7 +7506,7 @@ C the code. Also hold them as lastv1 and lastv2.
           else
             inpick=2
             CALL EPMENSV
-            call EPKVERT(INPICK,IVLST,'Define Line',
+            call EPKVERT(icomp,INPICK,IVLST,'Define Line',
      &        'Select two vertices to define line.',' ',nbhelp,ier)
             CALL EPMENRC
             if(inpick.eq.2)then
@@ -7409,7 +7548,7 @@ C inserted in another surface is done in code near line 6359.
 C Distance between two vertices (based on current G1 common block).
           inpick=2
           CALL EPMENSV
-          call EPKVERT(INPICK,IVLST,'Define Line',
+          call EPKVERT(icomp,INPICK,IVLST,'Define Line',
      &      'Select two vertices.',' ',nbhelp,ier)
           CALL EPMENRC
           if(inpick.eq.2)then
@@ -7430,7 +7569,7 @@ C Distance between two vertices (based on current G1 common block).
             nzg=1
             nznog(1)=ICOMP
             izgfoc=ICOMP
-            if(MMOD.eq.8)CALL redraw(IER)
+            call redraw(IER)
           endif
 
         elseif(ino.eq.3)then
@@ -7441,7 +7580,7 @@ C Vertex at distance and angle from another (based on current G1 common).
           else
             inpick=1
             CALL EPMENSV
-            call EPKVERT(INPICK,IVLST,'Origin',
+            call EPKVERT(icomp,INPICK,IVLST,'Origin',
      &        'Select origin vertex.',' ',nbhelp,ier)
             CALL EPMENRC
             if(inpick.eq.1)then
@@ -7487,7 +7626,7 @@ C inserted in another surface is done in code near line 6386.
 C Angle between two lines (based on current G1 common block).
           inpick=3
           CALL EPMENSV
-          call EPKVERT(INPICK,IVLST,'Define Angle',
+          call EPKVERT(icomp,INPICK,IVLST,'Define Angle',
      &      'Select three vertices.',' ',nbhelp,ier)
           CALL EPMENRC
           if(inpick.eq.3)then
@@ -7506,7 +7645,7 @@ C Angle between two lines (based on current G1 common block).
           nzg=1
           nznog(1)=ICOMP
           izgfoc=ICOMP
-          if(MMOD.eq.8)CALL redraw(IER)
+          call redraw(IER)
 
         elseif(ino.eq.5)then
 
@@ -7514,7 +7653,7 @@ C Intersection line and plane (based on info in current G1 common).
 C << add option for picking surface in another zone >>
           inpick=2
           CALL EPMENSV
-          call EPKVERT(INPICK,IVLST,'Define the line',
+          call EPKVERT(icomp,INPICK,IVLST,'Define the line',
      &      'Select two vertices.',' ',nbhelp,ier)
           CALL EPMENRC
           if(inpick.eq.2)then
@@ -7674,7 +7813,7 @@ C Update the geometry file.
                     gversion(icomp) =1.1
                     newgeo = .true.
                   endif
-                  call geowrite(IFIL+2,LGEOM(ICOMP),ICOMP,iuout,
+                  call geowrite2(IFIL+2,LGEOM(ICOMP),ICOMP,iuout,
      &              3,IER)
                 endif
               endif
@@ -7738,6 +7877,7 @@ C inserting the new vertex index.
                       JVN(jivj,IXV)=JVN(jivj,IXV-1)
                       iszjvn(icomp,jivj,IXV)=JVN(jivj,IXV-1)
                       IF(IXV.GT.jivjj+1)GOTO 348
+
                       JVN(jivj,jivjj+1)=jwhich3
                       iszjvn(icomp,jivj,jivjj+1)=jwhich3
 
@@ -7747,12 +7887,14 @@ C Update the geometry file.
                         gversion(icomp) =1.1
                         newgeo = .true.
                       endif
-                      call geowrite(IFIL+2,LGEOM(ICOMP),ICOMP,iuout,
+                      call geowrite2(IFIL+2,LGEOM(ICOMP),ICOMP,iuout,
      &                  3,IER)
 
 C Debug...
 C                      write(6,'(a,124i4)') 'now jvn is ',
 C     &                  (JVN(jivj,ii),ii=1,NVER(jivj))
+C                      write(6,'(a,124i4)') 'now iszjvn is ',
+C     &                 (iszjvn(icomp,jivj,ii),ii=1,NVER(jivj))
 
 C Surface (ivj) vertex list has been updated. Go on to next surface.
                       goto 446
@@ -7772,14 +7914,14 @@ C And re-draw the zone to clean up the circles.
           call usrmsg(' ',' ','-')
           CALL INLNST(1)
           nzg=1; nznog(1)=ICOMP; izgfoc=ICOMP
-          if(MMOD.eq.8)CALL redraw(IER)
+          call redraw(IER)
 
         elseif(ino.eq.7)then
 
 C Distance between point and a line (based on current G1 common block).
           inpick=2
           CALL EPMENSV
-          call EPKVERT(INPICK,IVLST,'Define Line',
+          call EPKVERT(icomp,INPICK,IVLST,'Define Line',
      &      'Select two vertices.',' ',nbhelp,ier)
           CALL EPMENRC
           if(inpick.eq.2)then
@@ -7788,7 +7930,7 @@ C Distance between point and a line (based on current G1 common block).
           endif
           inpick=1
           CALL EPMENSV
-          call EPKVERT(INPICK,IVLST,'Vertex to Test',
+          call EPKVERT(icomp,INPICK,IVLST,'Vertex to Test',
      &      'Select a vertex.',' ',nbhelp,ier)
           CALL EPMENRC
           if(inpick.eq.1)iwhich3=IVLST(1)
@@ -7805,7 +7947,7 @@ C Report length of line. Use method of Ward/Radiance in fvect.c
           call usrmsg(' ',' ','-')
           CALL INLNST(1)
           nzg=1; nznog(1)=ICOMP; izgfoc=ICOMP
-          if(MMOD.eq.8)CALL redraw(IER)
+          call redraw(IER)
 
         elseif(ino.eq.8)then
 
@@ -7814,7 +7956,7 @@ C distance between point and the line (based on current G1 common
 C block data).
           inpick=2
           CALL EPMENSV
-          call EPKVERT(INPICK,IVLST,'Define Line',
+          call EPKVERT(icomp,INPICK,IVLST,'Define Line',
      &      'Select two vertices.',' ',nbhelp,ier)
           CALL EPMENRC
           if(inpick.eq.2)then
@@ -7823,7 +7965,7 @@ C block data).
           endif
           inpick=1
           CALL EPMENSV
-          call EPKVERT(INPICK,IVLST,'Vertex to Align',
+          call EPKVERT(icomp,INPICK,IVLST,'Vertex to Align',
      &      'Select a vertex.',' ',nbhelp,ier)
           CALL EPMENRC
           if(inpick.eq.1)iwhich3=IVLST(1)
@@ -7920,7 +8062,7 @@ C Find close vertices.
           elseif(INVT.eq.2)then
             inpick=1
             CALL EPMENSV
-            call EPKVERT(INPICK,IVLST,'Focus Vertex',
+            call EPKVERT(icomp,INPICK,IVLST,'Focus Vertex',
      &        'Select a vertex.',' ',nbhelp,ier)
             CALL EPMENRC
             if(inpick.eq.1)then
@@ -7978,7 +8120,7 @@ C            write(6,*) 'after pointmerge',px,py,pz,rx,ry,rz,iok
 C Move an existing vertex along an existing line.
           inpick=2
           CALL EPMENSV
-          call EPKVERT(INPICK,IVLST,'Define Line',
+          call EPKVERT(icomp,INPICK,IVLST,'Define Line',
      &      'Select two vertices. The first',
      &      'one is the vertex that moves.',14,ier)
           CALL EPMENRC
@@ -8018,7 +8160,7 @@ C Show the new point on the current wireframe.
                 gversion(icomp) =1.1
                 newgeo = .true.
               endif
-              call geowrite(IFIL+2,LGEOM(ICOMP),ICOMP,iuout,3,IER)
+              call geowrite2(IFIL+2,LGEOM(ICOMP),ICOMP,iuout,3,IER)
             endif
             MODIFYVIEW=.TRUE.; MODBND=.TRUE.
             iZBFLG(ICOMP)=0
@@ -8027,7 +8169,7 @@ C Show the new point on the current wireframe.
             nzg=1
             nznog(1)=ICOMP
             izgfoc=ICOMP
-            if(MMOD.eq.8)CALL redraw(IER)  ! this call will clear the X Y Z
+            call redraw(IER)  ! this call will clear the X Y Z
           else
             goto 3
           endif
@@ -8092,7 +8234,7 @@ C Show this point on the current wireframe.
               gversion(icomp) =1.1
               newgeo = .true.
             endif
-            call geowrite(IFIL+2,LGEOM(ICOMP),ICOMP,iuout,3,IER)
+            call geowrite2(IFIL+2,LGEOM(ICOMP),ICOMP,iuout,3,IER)
           endif
           MODIFYVIEW=.TRUE.; MODBND=.TRUE.
           iZBFLG(ICOMP)=0
@@ -8101,7 +8243,7 @@ C Show this point on the current wireframe.
           nzg=1
           nznog(1)=ICOMP
           izgfoc=ICOMP
-          if(MMOD.eq.8)CALL redraw(IER)  ! this call will clear the X Y Z
+          call redraw(IER)  ! this call will clear the X Y Z
         elseif(ino.eq.12)then
 
 C Intersection of line at angle from a point with a surface.
@@ -8110,7 +8252,7 @@ C Intersection of line at angle from a point with a surface.
           else
             inpick=1
             CALL EPMENSV
-            call EPKVERT(INPICK,IVLST,'Origin',
+            call EPKVERT(icomp,INPICK,IVLST,'Origin',
      &        'Select origin vertex.',' ',nbhelp,ier)
             CALL EPMENRC
             if(inpick.eq.1)then
@@ -8179,7 +8321,8 @@ C applied to the 'a' 'c' 'f' 'l' options.
      &        'new vertex after editing','cancel',
      &        ' ',' ',' ',' ',' ',INVT,nbhelp)
             if(INVT.eq.1)then
-              NTV=NTV+1; NZTV(icomp)=NTV
+              NTV=NTV+1
+              NZTV(icomp)=NTV
               x(ntv)=x3; y(ntv)=y3; z(ntv)=z3
               szcoords(ICOMP,ntv,1)=x3; szcoords(ICOMP,ntv,2)=y3
               szcoords(ICOMP,ntv,3)=z3
@@ -8207,8 +8350,8 @@ C Update the geometry file.
               gversion(icomp) =1.1
               newgeo = .true.
             endif
-            call geowrite(IFIL+2,LGEOM(ICOMP),ICOMP,iuout,3,IER)
-            ILEN=NTV
+            call geowrite2(IFIL+2,LGEOM(ICOMP),ICOMP,iuout,3,IER)
+            ILEN=NZTV(icomp)
             IPACT=CREATE
             CALL EKPAGE(IPACT)
             MODIFYVIEW=.TRUE.; MODBND=.TRUE.
@@ -8216,13 +8359,13 @@ C Update the geometry file.
             call usrmsg(' ',' ','-')
             CALL INLNST(1)
             nzg=1; nznog(1)=ICOMP; izgfoc=ICOMP
-            if(MMOD.eq.8)CALL redraw(IER)
+            call redraw(IER)
 
 C Check to see if this new vertex should be included in any existing edges.
             writeagain=.false.
             if(invt.eq.1.or.invt.eq.2)then
               iwhich3=NTV
-              do 246 ivj=1,NSUR
+              do 246 ivj=1,NZSUR(ICOMP)
                 ivjlimit=NVER(ivj)
                 do 247 ivjj=1,ivjlimit
                   if(ivjj.eq.ivjlimit)then
@@ -8259,17 +8402,24 @@ C inserting the new vertex index.
                       NVER(ivj)=NVER(ivj)+1
                       isznver(icomp,ivj)=NVER(ivj)
                       IXV=NVER(ivj)+1
+
   148                 continue
                       IXV=IXV-1
                       JVN(ivj,IXV)=JVN(ivj,IXV-1)
-                      iszjvn(icomp,ivj,IXV)=JVN(jivj,IXV-1)
+                      iszjvn(icomp,ivj,IXV)=JVN(ivj,IXV-1)
                       IF(IXV.GT.ivjj+1)GOTO 148
+
+C                      write(6,*) 'setting ivj ivjj ivjj+1 iwhich3',
+C     &                  ivj,ivjj,ivjj+1,iwhich3
+
                       JVN(ivj,ivjj+1)=iwhich3
-                      iszjvn(icomp,ivj,jivjj+1)=jwhich3
+                      iszjvn(icomp,ivj,ivjj+1)=iwhich3
 
 C Debug...
-C                     write(6,'(a,124i4)') 'now jvn is ',
+C                     write(6,'(a,124i4)') '8420now jvn is ',
 C     &                 (JVN(ivj,ii),ii=1,NVER(ivj))
+C                     write(6,'(a,124i4)') 'now iszjvn is ',
+C     &                 (iszjvn(icomp,ivj,ii),ii=1,NVER(ivj))
 
 C Surface (ivj) vertex list has been updated. Go on to next surface.
                       writeagain=.true.
@@ -8280,7 +8430,7 @@ C Surface (ivj) vertex list has been updated. Go on to next surface.
   246         continue
               if(writeagain)then
                 if(newgeo)then
-                  call geowrite(IFIL+2,LGEOM(ICOMP),ICOMP,iuout,3,IER)
+                  call geowrite2(IFIL+2,LGEOM(ICOMP),ICOMP,iuout,3,IER)
                 else
                   call emkgeo(IFIL+2,LGEOM(ICOMP),ICOMP,3,IER)
                 endif
@@ -8321,7 +8471,7 @@ C Tidy up the wireframe image.
               MODIFYVIEW=.true.
               CALL INLNST(1)
               nzg=1; nznog(1)=ICOMP; izgfoc=ICOMP
-              if(MMOD.eq.8)CALL redraw(IER)
+              call redraw(IER)
               goto 92
             endif
           endif  ! of NTV less than MTV
@@ -8388,7 +8538,7 @@ C will have saved the geometry file if it successfully deleted the vertex.
           jipm=IPM
           inpick=MIN0(12,NTV-1)
           CALL EPMENSV
-          call EPKVERT(INPICK,IVLST,'Vertices to Delete',
+          call EPKVERT(icomp,INPICK,IVLST,'Vertices to Delete',
      &      'Select vertices from list.',' ',nbhelp,ier)
           CALL EPMENRC
           if(inpick.gt.0)then
@@ -8415,7 +8565,7 @@ C no more than will overrange MTV. Note: ADDVERT will have saved
 C the geometry file if it successfully added the vertex.
           inpick=MIN0(NTV,MTV-NTV)
           CALL EPMENSV
-          call EPKVERT(INPICK,IVLST,'Vertices to Copy',
+          call EPKVERT(icomp,INPICK,IVLST,'Vertices to Copy',
      &      'Select vertices from list.',' ',nbhelp,ier)
           CALL EPMENRC
           if(inpick.ge.1)then
@@ -8440,7 +8590,7 @@ C only up to MTV.  Note: ADDVERT will have saved the geometry file
 C if it successfully copied the vertex.
           inpick=1
           CALL EPMENSV
-          call EPKVERT(INPICK,IVLST,'Vertex to Replicate',
+          call EPKVERT(icomp,INPICK,IVLST,'Vertex to Replicate',
      &      'Select vertex from list.',' ',nbhelp,ier)
           CALL EPMENRC
           if(inpick.eq.1)then
@@ -8467,7 +8617,7 @@ C if it successfully copied the vertex.
 C Select (possibly via mouse) and then edit.
           inpick=MIN0(NTV,MTV-NTV)
           CALL EPMENSV
-          call EPKVERT(INPICK,IVLST,'Vertices to Edit',
+          call EPKVERT(icomp,INPICK,IVLST,'Vertices to Edit',
      &      'Select vertex from list.',' ',nbhelp,ier)
           CALL EPMENRC
           if(inpick.ge.1)then
@@ -8498,7 +8648,7 @@ C Present vertex coords for editing then parse data from HOLD.
                 gversion(icomp) =1.1
                 newgeo = .true.
               endif
-              call geowrite(IFIL+2,LGEOM(ICOMP),ICOMP,iuout,3,IER)
+              call geowrite2(IFIL+2,LGEOM(ICOMP),ICOMP,iuout,3,IER)
               MODIFYVIEW=.TRUE.; MODBND=.TRUE.; MODLEN=.TRUE.
               iZBFLG(ICOMP)=0
               call warnmod(ICOMP,'str')
@@ -8575,8 +8725,9 @@ C iwhich1 and replace the reference iwhich2.
                   call easkok(outs,'OK to substitute?',ok,nbhelp)
                   if(ok)then
                     JVN(ivj,ivjj)=iwhich2
+                    iszjvn(icomp,ivj,ivjj)=iwhich2
                     if(newgeo)then
-                      call geowrite(IFIL+2,LGEOM(ICOMP),ICOMP,iuout,
+                      call geowrite2(IFIL+2,LGEOM(ICOMP),ICOMP,iuout,
      &                  3,IER)
                     else
                       call emkgeo(IFIL+2,LGEOM(ICOMP),ICOMP,3,IER)
@@ -8681,7 +8832,7 @@ C allow for jump to previous or next.
           gversion(icomp) =1.1
           newgeo = .true.
         endif
-        call geowrite(IFIL+2,LGEOM(ICOMP),ICOMP,iuout,3,IER)
+        call geowrite2(IFIL+2,LGEOM(ICOMP),ICOMP,iuout,3,IER)
         MODIFYVIEW=.TRUE.; MODBND=.TRUE.; MODLEN=.TRUE.
         iZBFLG(ICOMP)=0
         call warnmod(ICOMP,'str')
@@ -8770,6 +8921,7 @@ C Tollerance for surface matching.
       logical foundit           ! if isolation of warped vertex was successful
       logical modmlc            ! to select MLC
       logical goforit           ! if true then update flow network files
+      logical medge             ! signal change in surface edge list.
       real ZZZ,ofby             ! the distance worst point is warped
       real XXS,YYS,ZZS          ! suggested point on the line.
 
@@ -8783,14 +8935,16 @@ C Tollerance for surface matching.
       character head*32,HOLDS*36,outs*124
       CHARACTER ZSDES*28,ZSDESC*20,ZSDESS*16
       CHARACTER SNAME1*12,SNAMED*12
-      character OPT*12
+      character OPT*24
       character constr*32        ! to pass to addmass
       character guesstype*24     ! pass back context of surface
       character defvalstr*32     ! for editing defaults
 
 C Strings for surface attributes to pass to insrec.
-      character rsname*12,rsotf*32,rsmlcn*32,rsuse1*12,rsuse2*12
+      character rsname*12,rsotf*24,rsmlcn*32,rsuse1*12,rsuse2*12
       character rsparent*12,rname*8,mname*32
+      character sbound_ty*12,sbound_c2*6,sbound_e2*6
+      character act*1
       real XO1,ZO1               ! to prevent name clash in geometry.h
       integer MVERT,IVERT,NITMS,IRT ! max items and current menu item
       integer icmpall            ! to signal request to compare all names
@@ -8836,12 +8990,12 @@ C number of menu lines.
       newgeo=.false.                   ! Assume older format geometry.
       MHEAD=4
       MCTL=9
-      ILEN=NSUR
+      ILEN=NZSUR(icomp)
       IPACT=CREATE
       CALL EKPAGE(IPACT)
 
 C Initial menu entry setup.
-   92 ILEN=NSUR
+   92 ILEN=NZSUR(icomp)
       IVERT=-3
 
 C Loop through the items until the page to be displayed. M is the
@@ -8899,7 +9053,7 @@ C If a long list include page facility text.
    15   FORMAT   ('0 Page --- Part: ',I2,' of ',I2,' --')
       ENDIF
       VERT(M+2)  ='+ add/insert/copy/extrude_from    '
-      VERT(M+3)  ='* delete surface(s)               '
+      VERT(M+3)  ='* delete surface(s)               '  ! ? problem in scripts
       VERT(M+4)  ='> surface transforms              '
       VERT(M+5)  ='< invert surface(s) edges         '
       VERT(M+6)  ='! browse surface-vertex topology  '
@@ -8913,7 +9067,7 @@ C Do a bound check on the current zone and update display.
       nzg=1
       nznog(1)=ICOMP
       izgfoc=ICOMP
-      if(MMOD.eq.8)CALL redraw(IER)
+      call redraw(IER)
 
 C Help text for this menu.
       helptopic='surface_edge_list'
@@ -8965,7 +9119,8 @@ C not part of its list would resolve this.
         CALL VERINFO(ICOMP,ITRU)
       ELSEIF(IVERT.EQ.(MVERT-4))THEN
 
-C Invert one or more surface edge lists.
+C Invert one or more surface edge lists. Also update 
+C  isznver(ICOMP,IS)  iszjvn(ICOMP,IS,J)
         CALL EPMENSV
         CALL EASKMSUR(ICOMP,INPICK,ISLIST,
      &    'Select surfaces (up to 10) to invert.',' ',IER)
@@ -8977,9 +9132,12 @@ C Invert one or more surface edge lists.
               jvn1(iyy)=JVN(IS,iyy)
             enddo
             JVN(IS,1)=jvn1(2); JVN(IS,2)=jvn1(1)
+            iszjvn(ICOMP,IS,1)=jvn1(2)
+            iszjvn(ICOMP,IS,2)=jvn1(1)
             do iyy = 3,NVER(IS)
               izz=NVER(IS)+3-iyy
               JVN(IS,iyy)=jvn1(izz)
+              iszjvn(icomp,is,iyy)=JVN(IS,iyy)
             enddo
 
 C If construction is symmetric then do nothing but if it
@@ -9025,7 +9183,7 @@ C used for a partition (if db does not have a linked MLC, inform the user).
           MODIFYVIEW=.TRUE.
           CALL INLNST(1)
           nzg=1; nznog(1)=ICOMP; izgfoc=ICOMP
-          if(MMOD.eq.8)CALL redraw(IER)
+          call redraw(IER)
           goto 92
         endif
 
@@ -9091,11 +9249,11 @@ C Find the parent surface an use its MLC for the reveals.
           endif
           call esurreveal(icomp,is,rtk,rname,mname,ier)
 
-C          call zgupdate(1,icomp,ier)
+          call zgupdate(1,icomp,ier)
           MODIFYVIEW=.TRUE.
           CALL INLNST(1)
           nzg=1; nznog(1)=ICOMP; izgfoc=ICOMP
-          if(MMOD.eq.8)CALL redraw(IER)
+          call redraw(IER)
           goto 92
 
         elseif(IRT.eq.1.or.IRT.eq.5)then
@@ -9241,15 +9399,18 @@ C Reverse the ordering, redraw image and return.
             jvn1(iyy)=JVN(IS,iyy)
           enddo
           JVN(IS,1)=jvn1(2); JVN(IS,2)=jvn1(1)
+          iszjvn(ICOMP,IS,1)=jvn1(2)
+          iszjvn(ICOMP,IS,2)=jvn1(1)
           do iyy = 3,NVER(IS)
             izz=NVER(IS)+3-iyy
             JVN(IS,iyy)=jvn1(izz)
+            iszjvn(icomp,is,iyy)=JVN(IS,iyy)
           enddo
           call zgupdate(1,icomp,ier)
           MODIFYVIEW=.TRUE.
           CALL INLNST(1)
           nzg=1; nznog(1)=ICOMP; izgfoc=ICOMP
-          if(MMOD.eq.8)CALL redraw(IER)
+          call redraw(IER)
           goto 92
         endif
         if(IRT.eq.6)then
@@ -9285,9 +9446,6 @@ C which results in no deviation.
                   YY(KK) = Y(JVN(is,KK+1))
                   ZZ(KK) = Z(JVN(is,KK+1))
 
-C Debug.
-C                  write(6,*) 'Skipping vertex ',loop,kk,JVN(is,KK)
-
                 elseif(loop.eq.NVER(is))then
                   if(kk.lt.NVER(is))then
                     XX(KK) = X(JVN(is,KK))  ! no need to skip
@@ -9297,9 +9455,6 @@ C                  write(6,*) 'Skipping vertex ',loop,kk,JVN(is,KK)
                     XX(KK) = X(JVN(is,1))   ! take first coords
                     YY(KK) = Y(JVN(is,1))
                     ZZ(KK) = Z(JVN(is,1))
-
-C Debug.
-C                    write(6,*) 'Skipping vertex ',loop,kk,JVN(is,KK)
 
                   endif
                 else
@@ -9315,9 +9470,6 @@ C See if any points are out of the plane.
               iwhich=0
               ofby=0.0
               call CHECKWARP(1,iuout,is,N,XX,YY,ZZ,iwhich,ofby,ivoff)
-
-C Debug.
-C              write(6,*) is,iwhich,ofby,ivoff
 
               if(ivoff.gt.0)then
                 goto 59
@@ -9362,11 +9514,14 @@ C Ask user if they want to update the vertex with the new values.
                   X(JVN(is,loop))=XXS
                   Y(JVN(is,loop))=YYS
                   Z(JVN(is,loop))=ZZS
+                  szcoords(icomp,is,1)=XXS
+                  szcoords(icomp,is,2)=YYS
+                  szcoords(icomp,is,3)=ZZS
                   call zgupdate(1,icomp,ier)
                   MODIFYVIEW=.TRUE.
                   CALL INLNST(1)
                   nzg=1; nznog(1)=ICOMP; izgfoc=ICOMP
-                  if(MMOD.eq.8)CALL redraw(IER)
+                  call redraw(IER)
                   goto 92
                 endif
               endif
@@ -9392,7 +9547,7 @@ C Update the image.
         MODIFYVIEW=.TRUE.
         CALL INLNST(1)
         nzg=1; nznog(1)=ICOMP; izgfoc=ICOMP
-        if(MMOD.eq.8)CALL redraw(IER)
+        call redraw(IER)
 
 C Show these points as small circles...
         call edisp(iuout,' proposed points are shown as dots....')
@@ -9425,6 +9580,9 @@ C points within the zone in place of the originals....
             X(JVN(IS,J)) = XX(J)
             Y(JVN(IS,J)) = YY(J)
             Z(JVN(IS,J)) = ZZ(J)
+            szcoords(icomp,is,1)= XX(J)
+            szcoords(icomp,is,2)= YY(J)
+            szcoords(icomp,is,3)= ZZ(J)
           ENDDO
           call warnmod(ICOMP,'str')
           call zgupdate(1,icomp,ier)
@@ -9458,12 +9616,12 @@ C Multisurface selection.
               gversion(icomp) =1.1
               newgeo = .true.
             endif
-            call geowrite(IFIL+2,LGEOM(ICOMP),ICOMP,ITRU,3,IER)
+            call geowrite2(IFIL+2,LGEOM(ICOMP),ICOMP,ITRU,3,IER)
           enddo ! of loop
           call warnmod(ICOMP,'sf-')
         endif
 
-        ILEN=NSUR
+        ILEN=NZSUR(icomp)
         IPACT=CREATE
         CALL EKPAGE(IPACT)
 
@@ -9472,7 +9630,8 @@ C Update the image.
         MODIFYVIEW=.TRUE.
         CALL INLNST(1)
         nzg=1; nznog(1)=ICOMP; izgfoc=ICOMP
-        if(MMOD.eq.8)CALL redraw(IER)
+        call redraw(IER)
+
       ELSEIF(IVERT.EQ.(MVERT-7))THEN
 
 C Add/insert a surface.
@@ -9515,7 +9674,7 @@ C the mouse click option.
         call usrmsg(' ',' ','-')
         IF(ilrt.eq.irt)GOTO 92
         IF(irt.eq.0.or.irt.eq.11)GOTO 92
-        LASTS=NSUR
+        LASTS=NZSUR(icomp)
         if(IRT.eq.1)then
           iopt=0     ! offer editing box and mouse click option.
           iadds=0; itrcl=0
@@ -9551,11 +9710,13 @@ C Establish USE for the new surface.
           call edituse(icomp,nsur,icon,guesstype)
      
         elseif(IRT.eq.4)then
+
           iopt=2      ! offer copy of local surfaces
           iadds=0; itrcl=0
           CALL ADDSUR(ITRCL,ICOMP,iadds,'C','V',iopt,IER) ! Copy surface
           call zinfo(icomp,zoa,zvol,'q')                  ! Re-derive values
           call zgupdate(0,icomp,ier)
+
         elseif(IRT.eq.5)then
 
 C Copy surface(s) from another zone. Confirm tolerances.
@@ -9569,13 +9730,14 @@ C Copy surface(s) from another zone. Confirm tolerances.
           elseif(INVT.eq.2)then
             CACC=0.002; ANGCC=1.0; DACC=1.0; COGCC=0.1; SNACC=0.1
           elseif(INVT.eq.3)then
-            GOTO 92  ! do not copy any surfaces
+            GOTO 92   ! Do not copy any surfaces.
           endif
-          iopt=1      ! offer mouse click directly ??
+          iopt=1      ! Offer mouse click directly.
           iadds=0; itrcl=0
-          CALL ADDSUR(ITRCL,ICOMP,iadds,'C','V',iopt,IER) ! Copy surface
+          CALL ADDSUR(ITRCL,ICOMP,iadds,'C','V',iopt,IER) ! Copy surface(s).
           call zinfo(icomp,zoa,zvol,'q')                  ! Re-derive values
           call zgupdate(0,icomp,ier)
+
         elseif(IRT.eq.6.or.IRT.eq.9)then
 
 C Get vertical rectangular surface orgin.
@@ -9593,10 +9755,9 @@ C Offer similar choices to setting up obstructions (see edobs.F)
             HOLDS= ' 0.000  0.000  0.000   '
           elseif(ibopt.eq.2)then
 
-C User current zone G1 common block to present list of points.
             inpick=1
             CALL EPMENSV
-            call EPKVERT(INPICK,IVLST,'Vertices for origin',
+            call EPKVERT(icomp,INPICK,IVLST,'Vertices for origin',
      &        'Select a vertex to define the origin.',' ',nbhelp,ier)
             CALL EPMENRC
             if(inpick.eq.1)then
@@ -9608,11 +9769,10 @@ C User current zone G1 common block to present list of points.
             endif
           elseif(ibopt.eq.3)then
 
-C Use current zone G1 common blocks to present list of points
-C via epkvert.
+C Present list of points via epkvert.
             inpick=1
             CALL EPMENSV
-            call EPKVERT(INPICK,IVLST,'Vertice in zone',
+            call EPKVERT(icomp,INPICK,IVLST,'Vertice in zone',
      &        'Select a vertex to begin from...',' ',nbhelp,ier)
             CALL EPMENRC
             if(inpick.eq.1)then
@@ -9685,10 +9845,10 @@ C Offer similar choices to setting up obstructions (see edobs.F)
             HOLDS= ' 0.000  0.000  0.000   '
           elseif(ibopt.eq.2)then
 
-C User current zone G1 common block to present list of points.
+C Present list of points.
             inpick=1
             CALL EPMENSV
-            call EPKVERT(INPICK,IVLST,'Vertices for origin',
+            call EPKVERT(icomp,INPICK,IVLST,'Vertices for origin',
      &        'Select a vertex to define the origin...',' ',nbhelp,ier)
             CALL EPMENRC
             if(inpick.eq.1)then
@@ -9700,11 +9860,10 @@ C User current zone G1 common block to present list of points.
             endif
           elseif(ibopt.eq.3)then
 
-C Use current zone G1 common blocks to present list of points
-C via epkvert.
+C Present list of points via epkvert.
             inpick=1
             CALL EPMENSV
-            call EPKVERT(INPICK,IVLST,'Vertice in zone',
+            call EPKVERT(icomp,INPICK,IVLST,'Vertice in zone',
      &        'Select a vertex to begin from...',' ',nbhelp,ier)
             CALL EPMENRC
             if(inpick.eq.1)then
@@ -9820,6 +9979,7 @@ C Assign edges for the top surface in reverse order of the original.
             iecount=NZTV(icomp)
             do ix = 1,ibaseedge
               JVN(itopsurf,ix)=iecount
+              iszjvn(icomp,itopsurf,ix)=iecount
 
 C Debug.
 C              write(6,*) ' top ',ix,iecount,JVN(itopsurf,ix),
@@ -9828,6 +9988,7 @@ C     &          X(iecount),Y(iecount),Z(iecount)
               iecount=iecount-1
             enddo
             NVER(itopsurf)=ibaseedge
+            isznver(ICOMP,itopsurf)=ibaseedge
 
 C Generate a name for the top.
             write(SNAMED,'(2a)') 't_',SNAME(ICOMP,IS)(1:10)
@@ -9851,7 +10012,12 @@ C than ibasecount and one rather than itopcount+1.
             iv4=JVN(itopsurf,itopcount)
             JVN(NSUR+1,1)=iv1; JVN(NSUR+1,2)=iv2
             JVN(NSUR+1,3)=iv3; JVN(NSUR+1,4)=iv4
+            iszjvn(icomp,NSUR+1,1)=iv1
+            iszjvn(icomp,NSUR+1,2)=iv2
+            iszjvn(icomp,NSUR+1,3)=iv3
+            iszjvn(icomp,NSUR+1,4)=iv4
             NVER(NSUR+1)=4
+            isznver(ICOMP,NSUR+1)=4
 
 C Debug.
 C            write(6,*) ' iv1 iv2 iv3 iv4 ',iv1,iv2,iv3,iv4
@@ -9897,9 +10063,6 @@ C ask them about its use and composition.
           SMLCN(ICOMP,NSUR)='UNKNOWN'
           SVFC(ICOMP,NSUR)='UNKN'
           SOTF(ICOMP,NSUR)='OPAQUE'
-          SOTHER(ICOMP,NSUR,1)='UNKNOWN'
-          SOTHER(ICOMP,NSUR,2)='0'
-          SOTHER(ICOMP,NSUR,3)='0'
           SPARENT(ICOMP,NSUR)='-'
           SUSE(ICOMP,NSUR,1)='-'
           SUSE(ICOMP,NSUR,2)='-'
@@ -9907,6 +10070,11 @@ C          icon=ICONT
 
 C Add surface to the connection list (icont) assuming an unknown boundary.
           call addedsurf(icomp,icont,1,ier)
+          ict(icont)=-1; ic2(icont)=0; ie2(icont)=0
+          zboundarytype(icomp,nsur,1)=ICT(icont)
+          zboundarytype(icomp,nsur,2)=IC2(icont)
+          zboundarytype(icomp,nsur,3)=IE2(icont)
+          call decode_zsbound(icomp,nsur,sbound_ty,sbound_c2,sbound_e2)
 
 C If icount is less than iwcount loop back other wise jump to point
 C where geometry and configuration is saved and re-display managed.
@@ -9967,7 +10135,7 @@ C Find the optical name.
           endif
 
 C Instantiate the new surface via call addmass with all of the parameters.
-C << addmass parameters for optical should be 32 characters >>
+C << addmass parameters for optical should be 24 characters >>
           if(IRT.eq.6)then
             call addmass(ICOMP,'VS','G',VALOX,VALOY,VALOZ,
      &        AANG,DDX,DDZ,SN,constr,OPT,INVT)
@@ -9989,7 +10157,7 @@ C Track users confirmation of new surface.
             MODIFYVIEW=.TRUE.
             CALL INLNST(1)
             nzg=1; nznog(1)=ICOMP; izgfoc=ICOMP
-            if(MMOD.eq.8)CALL redraw(IER)
+            call redraw(IER)
             GOTO 30
           elseif(INVT.eq.-3)then
             return
@@ -10004,12 +10172,13 @@ C Record the recent changes and re-display
             gversion(icomp) =1.1
             newgeo = .true.
           endif
-          call geowrite(IFIL+2,LGEOM(ICOMP),ICOMP,ITRU,3,IER)
+          call zgupdate(1,icomp,ier)  ! update commons
+          call geowrite2(IFIL+2,LGEOM(ICOMP),ICOMP,ITRU,3,IER)
           call warnmod(ICOMP,'sf+')
         endif
         MHEAD=4
         MCTL=9
-        ILEN=NSUR
+        ILEN=NZSUR(icomp)
         IPACT=CREATE
         CALL EKPAGE(IPACT)
 
@@ -10019,7 +10188,8 @@ C Update the image.
         call usrmsg(' ',' ','-')
         CALL INLNST(1)
         nzg=1; nznog(1)=ICOMP; izgfoc=ICOMP
-        if(MMOD.eq.8)CALL redraw(IER)
+        call redraw(IER)
+
       ELSEIF(IVERT.EQ.(MVERT-8))THEN
 
 C If there are enough items allow paging control via EKPAGE.
@@ -10030,10 +10200,17 @@ C If there are enough items allow paging control via EKPAGE.
       ELSEIF(IVERT.GT.MHEAD.AND.IVERT.LT.(MVERT-MCTL+1))THEN
 
 C Edit item identified by KEYIND. Treat the list of vertices as a
-C long string and then parse the data.
+C long string and then parse the data. If changes made check if
+C this has altered any parent=-child relationships and update the
+C zone geometry file.
         CALL KEYIND(MVERT,IVERT,IFOC,IO)
-        call editedgelist(icomp,ifoc,ier)
-
+        call editedgelist(icomp,ifoc,medge,ier)
+        if(medge)then
+          act = 'c'
+          call suredgeadj(0,act,icomp,ier) ! determine child surfaces
+          call geowrite2(IFIL+2,LGEOM(ICOMP),ICOMP,ITRU,3,IER)
+          call warnmod(ICOMP,'sf+')
+        endif
       ELSE
 
 C Not one of the legal menu choices.
@@ -10048,7 +10225,7 @@ C Not one of the legal menu choices.
 C ************** editedgelist
 C editedgelist supports editing of the edge list of a polygon
 C and if in graphic mode it controls what is displayed.
-      subroutine editedgelist(icomp,isurf,ier)
+      subroutine editedgelist(icomp,isurf,medge,ier)
 #include "building.h"
 #include "net_flow.h"
 !##include "net_flow_data.h"
@@ -10062,7 +10239,8 @@ C and if in graphic mode it controls what is displayed.
 
 C Parameters
       integer icomp,isurf ! zone & focus surface index
-      integer ier   ! error state zero ok one is problem
+      integer ier         ! error state zero ok one is problem
+      logical medge       ! signal change in edge list.
 
       integer lnblnk  ! function definition
       integer iCountWords
@@ -10105,6 +10283,7 @@ C Strings for surface attributes to pass to insrec.
 
 C Check if we have colour.
       greyok=.false.
+      medge=.false.
       if(nifgrey.gt.4)then
         greyok=.true.
       endif
@@ -10118,11 +10297,11 @@ C a thick line.
       CALL SURADJ(ICOMP,IFOC,IE,TMP,IZC,ISC,IC,DESCRC)
       if(IC.gt.0)LINSTY(IC)=2
       nzg=1; nznog(1)=ICOMP; izgfoc=ICOMP
-      if(MMOD.eq.8)CALL redraw(IER)
+      call redraw(IER)
 
    93 helptopic='surface_edge_order'
       call gethelptext(helpinsub,helptopic,nbhelp)
-      NV=NVER(IFOC)
+      NV=isznver(ICOMP,IFOC)  ! Remember initial number of edges.
 
 C If in graphic mode draw the points.
       if(MMOD.lt.8)then
@@ -10296,6 +10475,9 @@ C should be kept up to date with MV changes. t248 is actually 496 char
       istrw=72
       CALL EASKS496(t248,message,
      &  ' ',istrw,' 1  2  3  4  ','associated vertices',IIER,nbhelp)
+      if(iCountWords(t248).ne.NVER(ifoc))then
+        medge=.true.
+      endif
       NV = iCountWords(t248)
       K=0
       DO 94 J=1,NV
@@ -10308,12 +10490,16 @@ C Read an index, check if within range and if so add to JVN().
      &    'is out of range!'
           call edisp(iuout,outs)
         endif
+        if(JV.ne.JVN(IFOC,J))then
+          medge=.true.
+        endif
         JVN(IFOC,J)=JV
         iszjvn(ICOMP,IFOC,J)=JV
    94 CONTINUE
       NVER(IFOC)=NV
       isznver(ICOMP,IFOC)=NVER(ifoc)
       MODIFYVIEW=.TRUE.
+      call zgupdate(0,icomp,ier)
       call warnmod(ICOMP,'str')
 
 C Check to see if this surface is warped.
@@ -10348,10 +10534,10 @@ C See if any points are out of the plane.
       end
 
 C ************* EPKVERT
-C EPKVERT Select one or more vertices from information currently in
-C common block G1.
-C << zone index is not known but might be useful here >>
-      SUBROUTINE EPKVERT(INPICK,IVLST,TITLE,PROMPT1,PROMPT2,NHELP,IER)
+C Select one or more vertices from information currently in common.
+
+      SUBROUTINE EPKVERT(ICOMP,INPICK,IVLST,TITLE,PROMPT1,PROMPT2,
+     &   NHELP,IER)
 #include "building.h"
 #include "geometry.h"
 #include "epara.h"
@@ -10404,19 +10590,19 @@ C IMFS or ITFS sizes and remember so can restore.
       IER=0
       MHEAD=1
       MCTL=4
-      ILEN=NTV
+      ILEN=NZTV(icomp)
       IPACT=CREATE
       CALL EKPAGE(IPACT)
       IALLOW=INPICK
       INPICK=0
-      DO 40 I=1,NTV
+      DO 40 I=1,NZTV(icomp)
         IVLST(I)=0
    40 CONTINUE
 
 C Initial menu entry setup.
 C << is there something better to use then NTV ? >>
       CALL USRMSG(PROMPT1,PROMPT2,'-')
-   92 ILEN=NTV
+   92 ILEN=NZTV(icomp)
       IVERT=-3
 
 C Loop through the items until the page to be displayed. M is the
@@ -10427,11 +10613,13 @@ C current menu line index. Build up text strings for the menu.
           M=M+1
           CALL EMKEY(L,KEY,IER)
           item(m)=' '
-          WRITE(item(M),'(A1,I4,3F9.3)')KEY,L,X(L),Y(L),Z(L)
+          WRITE(item(M),'(A1,I4,3F9.3)')KEY,L,szcoords(ICOMP,L,1),
+     &      szcoords(ICOMP,L,2),szcoords(ICOMP,L,3)
           do 20 K=1,INPICK
             if(IVLST(K).eq.L) then
-              WRITE(item(M),'(A1,I4,3F9.3,A)')KEY,L,X(L),Y(L),
-     &          Z(L),'*'
+              WRITE(item(M),'(A1,I4,3F9.3,A)')KEY,L,
+     &         szcoords(ICOMP,L,1),szcoords(ICOMP,L,2),
+     &         szcoords(ICOMP,L,3),'*'
             endif
  20       continue
         ENDIF
@@ -10452,7 +10640,7 @@ C If a long list include page facility text.
       if(MMOD.lt.8)then
         write(item(M+2),'(2x,a,i3,a)') '(',IALLOW,' items)'
       else
-        write(item(M+2),'(a,i3,a)')'* select via mouse (',IALLOW,
+        write(item(M+2),'(a,i3,a)')'+ select via mouse (',IALLOW,
      &    ' items)'
       endif
       item(M+3)  ='? help                           '
@@ -10496,8 +10684,10 @@ C In this code block trackview is correctly using iixx and iiyy.
   46      CALL trackview(iik,iixx,iiyy)
           if(iik.eq.69.or.iik.eq.101)goto 47
           found=.false.
-          do 45 i=1,NTV
-            COG1(1)=X(I); COG1(2)=Y(I); COG1(3)=Z(I)
+          do 45 i=1,NZTV(icomp)
+            COG1(1)=szcoords(icomp,i,1)
+            COG1(2)=szcoords(icomp,i,2)
+            COG1(3)=szcoords(icomp,i,3)
             CALL VECTRN(COG1,TSMAT,COG2,IER)
             call u2pixel(COG2(1),COG2(2),iix,iiy)
             ixd=iix-iixx
@@ -10510,7 +10700,8 @@ C            write(6,'(7i5)') i,iixx,iiyy,iix,iiy,ixd,iyd
                 goto 46
               endif
               WRITE(outs,'(a,i3,a,3F9.3)')' The point matches vertex',
-     &          i,' @ XYZ ',X(I),Y(I),Z(I)
+     &          i,' @ XYZ ',szcoords(icomp,i,1),szcoords(icomp,i,2),
+     &          szcoords(icomp,i,3)
               call edisp(iuout,outs)
               found=.true.
               INPICK=INPICK+1
@@ -10555,7 +10746,7 @@ C so update IVLST and loop back for another.
           DO 44 J=1,INPICK
             IF(IVLST(J).EQ.IFOC.or.FOUND) then
               FOUND=.TRUE.
-              if (J+1.gt.NTV) then
+              if (J+1.gt.NZTV(icomp)) then
                 IVLST(J)=0
               else
                 IVLST(J)=IVLST(J+1)
@@ -10618,21 +10809,25 @@ C Step through the vertices of each edge in turn and find distance.
           do 42 i=1,list
             j=iszjvn(izone,isurf,i)
             k=iszjvn(izone,isurf,i+1)
-            vdis=0.0
-            vdis= crowxyz(szcoords(izone,j,1),szcoords(izone,j,2),
-     &        szcoords(izone,j,3),szcoords(izone,k,1),
-     &        szcoords(izone,k,2),szcoords(izone,k,3))
-            perim=perim+vdis
+            if(j.gt.0.and.k.gt.0)then
+              vdis=0.0
+              vdis= crowxyz(szcoords(izone,j,1),szcoords(izone,j,2),
+     &          szcoords(izone,j,3),szcoords(izone,k,1),
+     &          szcoords(izone,k,2),szcoords(izone,k,3))
+              perim=perim+vdis
+            endif
   42      continue
 
 C Link back to start vertex
           j=iszjvn(izone,isurf,isznver(izone,isurf))
           k=iszjvn(izone,isurf,1)
-          vdis=0.0
-          vdis= crowxyz(szcoords(izone,j,1),szcoords(izone,j,2),
-     &      szcoords(izone,j,3),szcoords(izone,k,1),
-     &      szcoords(izone,k,2),szcoords(izone,k,3))
-          perim=perim+vdis
+          if(j.gt.0.and.k.gt.0)then
+            vdis=0.0
+            vdis= crowxyz(szcoords(izone,j,1),szcoords(izone,j,2),
+     &        szcoords(izone,j,3),szcoords(izone,k,1),
+     &        szcoords(izone,k,2),szcoords(izone,k,3))
+            perim=perim+vdis
+          endif
         endif
       endif
       return
@@ -10648,10 +10843,10 @@ C using essentially the same logic as in EGOMIN (see notes in EGOMIN).
 C If IR=1 then range checking is enabled, otherwise only minimal checking
 C is performed on the data as read in.
 
-C << For GEN type input the 'G1' common block is filled immediately.
-C << With REC and REG type input the simpler input data is read and
-C << passed to subroutines ERECC and EREGC respectively where
-C << conversion to the 'G1' format takes place.
+C For GEN type input the 'G1' common block is filled immediately.
+C With REC and REG type input the simpler input data is read and
+C passed to subroutines ERECC and EREGC respectively where
+C conversion to the 'G1' format takes place.
 
       SUBROUTINE EZIPIN(IUNIT,LZIP,ICOMP,IR,ITRC,ITRU,IER)
 #include "building.h"
@@ -10699,7 +10894,7 @@ C be inserted.
       logical newgeo  ! to use for testing if new/old geometry file.
 
 C Strings for surface attributes to pass to insrec.
-      character rsname*12,rsotf*32,rsmlcn*32,rsuse1*12,rsuse2*12
+      character rsname*12,rsotf*24,rsmlcn*32,rsuse1*12,rsuse2*12
       character rsparent*12
       real ARX,Z1X,Z2X,DX1,DY1,DZ1  ! to avoid variable clash with geometry.h
       real XO1,YO1,ZO1
@@ -10809,13 +11004,11 @@ C is tested for illegal characters.
         zname(ICOMP)=' '
         lnzname(ICOMP)=0
         zdesc(ICOMP)=' '
-        lnzdesc(ICOMP)=0
       ELSEIF(ND.EQ.2)THEN
         CALL EGETW(OUTSTR,K,WORD,'W','CTYPE',IFLAG)
         write(CTYPE(icomp),'(a)') WORD(1:lnblnk(WORD))
         call egetrm(outstr,K,phrasea,'W','Z description',IER)
         zdesc(ICOMP)=' '
-        lnzdesc(ICOMP)=0
       ELSEIF(ND.gt.2)THEN
         CALL EGETW(OUTSTR,K,WORD,'W','CTYPE',IFLAG)
         write(CTYPE(icomp),'(a)') WORD(1:lnblnk(WORD))
@@ -10829,11 +11022,9 @@ C Combine the comment from the first line with the one after the zone CTYPE.
         if(iwidth.lt.64)then
           write(zdesc(ICOMP),'(3a)') phrasea(1:ipra),' ',
      &      phraseb(1:iprb)
-          lnzdesc(ICOMP)=lnblnk(zdesc(ICOMP))  ! update the length of this string.
         else
           write(zdesc(ICOMP),'(3a)') phrasea(1:ipra),' ',
      &      phraseb(1:iprc)
-          lnzdesc(ICOMP)=lnblnk(zdesc(ICOMP))  ! update the length of this string.
         endif
       ENDIF
       write(outs,'(3a)') 'The file ',lzip(1:lnblnk(lzip)),
@@ -10850,7 +11041,6 @@ C Fill in a default zone name and description if blank.
       if(zdesc(ICOMP)(1:1).EQ.' ')then
         write(zdesc(ICOMP),'(a,a)')
      &    zname(ICOMP)(1:lnzname(ICOMP)),' describes a '
-        lnzdesc(ICOMP)=lnblnk(zdesc(ICOMP))  ! update the length of this string.
       endif
 
 C Zone is of type REC, look for 7 items on one or two lines.
@@ -10874,21 +11064,16 @@ C If only 3 items on first line read another OUTSTR and try to continue.
         CALL EGETWR(OUTSTR,K,DY1,0.,0.,'-','width',IER)
         CALL EGETWR(OUTSTR,K,DZ1,0.,0.,'-','height',IER)
         CALL EGETWR(OUTSTR,K,ARX,-360.,360.,'W','rotation angle',IER)
-        rotateit(icomp,1)=ARX
-        rotateit(icomp,2)=XO1
-        rotateit(icomp,3)=YO1
 
 C Now convert to a gen description. Pass in critical dimensions
 C and expect the data back via common G1.
         CALL ERECC(XO1,YO1,ZO1,DX1,DY1,DZ1,ARX)
-        rotateit(ICOMP,1)=0.0
-        rotateit(ICOMP,2)=0.0
-        rotateit(ICOMP,3)=0.0
         NZSUR(ICOMP)=NSUR
         NZTV(ICOMP)=NTV
         CTYPE(icomp)='GEN '
 
-C Zone is of type REG.
+C Zone is of type REG. Temporarily use G1 commonbns during
+C conversion to a GEN type enclosure.
       ELSEIF(CTYPE(icomp)(1:3).EQ.'REG')THEN
         CALL STRIPC(IUNIT,OUTSTR,4,ND,1,'line 2',IER)
         write(outs,'(3a)') 'The file ',lzip(1:lnblnk(lzip)),
@@ -10899,7 +11084,6 @@ C Zone is of type REG.
         CALL EGETWR(OUTSTR,K,Z1X,0.,1000.,'W','floor height',IER)
         CALL EGETWR(OUTSTR,K,Z2X,Z1X,1000.,'F','ceiling ht',IER)
         CALL EGETWR(OUTSTR,K,ARX,-360.,360.,'W','rot angle',IER)
-        rotateit(icomp,1)=ARX
 
 C Read base vertex data.
         DO 60 IW=1,NW
@@ -10911,22 +11095,34 @@ C Read base vertex data.
    60   CONTINUE
 
 C Now convert to GEN body type and place into in common block.
+C Note after call to ESCROT the values of szcoords needs to be
+C updated to reflect the G0 common block.
         CALL EREGC(NW,Z1X,Z2X,XX,YY)
         IF(ARX.LT.-.01.OR.ARX.GT..01)then
           x1=X(1)
           y1=Y(1)
-          rotateit(icomp,2)=x1
-          rotateit(icomp,3)=y1
           CALL ESCROT(ARX,x1,y1)
-          rotateit(ICOMP,1)=0.0
-          rotateit(ICOMP,2)=0.0
-          rotateit(ICOMP,3)=0.0
+          do iv=1,NTV
+            szcoords(icomp,iv,1)=x(iv)
+            szcoords(icomp,iv,2)=y(iv)
+            szcoords(icomp,iv,3)=z(iv)
+          enddo
         endif
-        NZSUR(ICOMP)=NSUR
-        NZTV(ICOMP)=NTV
-        CTYPE(icomp)='GEN '
 
-C Zone is of type GEN.
+C Update global geometry variables.
+        NZSUR(icomp)=NSUR
+        NZTV(icomp)=NTV
+        CTYPE(icomp)='GEN '
+        DO J=1, nzsur(icomp)
+          isznver(icomp,J)=NVER(J)
+          N = isznver(icomp,J)
+          DO K=1,N
+            iszjvn(icomp,j,K)=JVN(J,K)
+         ENDDO
+       ENDDO
+
+C Zone is of type GEN. Read into G1 commons before moving
+C to global variables.
       ELSEIF(CTYPE(icomp)(1:3).EQ.'GEN')THEN
         CALL STRIPC(IUNIT,OUTSTR,3,ND,1,'NTV NSUR AR',IER)
         write(outs,'(3a)') 'The file ',lzip(1:lnblnk(lzip)),
@@ -10963,6 +11159,7 @@ C the number of expected vertices (first item on list).
             K=0
             CALL EGETWI(OUTSTR,K,J,3,MV,'F','nb assoc vertices',IERV)
             NVER(I)=J
+            isznver(icomp,I)=NVER(i)
 
 C Now proceed to read vertices on one or more lines.
             DO 12 KV=1,NVER(I)
@@ -10976,6 +11173,7 @@ C Now proceed to read vertices on one or more lines.
               ENDIF
               IF(IERV.NE.0) GOTO 1001
               JVN(I,KV)=IVAL
+              iszjvn(ICOMP,I,KV)=IVAL
    12       CONTINUE
           ENDIF
    10   CONTINUE
@@ -10984,12 +11182,12 @@ C Rotate if required.  Shift pending rotate to prior rotate.
         if(ARX.LT.-.01.OR.ARX.GT..01)then
           x1=X(1)
           y1=Y(1)
-          rotateit(ICOMP,1)=x1
-          rotateit(ICOMP,2)=y1
           CALL ESCROT(ARX,x1,y1)
-          rotateit(ICOMP,1)=0.0
-          rotateit(ICOMP,2)=0.0
-          rotateit(ICOMP,3)=0.0
+          do iv=1,NTV
+            szcoords(icomp,iv,1)=x(iv)
+            szcoords(icomp,iv,2)=y(iv)
+            szcoords(icomp,iv,3)=z(iv)
+          enddo
         endif
       ELSE
         write(outs,'(2a)') ' Geometry shape type illegal in ',
@@ -11162,33 +11360,39 @@ C the connections list, then remind user to double check topology.
         ICCC=ICCC+1
         IC1(ICCC)=icomp
         IE1(ICCC)=ICC
-        if(SOTHER(icomp,icc,1)(1:8).eq.'EXTERIOR')then
+        if(zboundarytype(icomp,icc,1).eq.0)then
           ICT(ICCC)=0; IC2(ICCC)=0; IE2(ICCC)=0
-        elseif(SOTHER(icomp,icc,1)(1:7).eq.'SIMILAR')then
+        elseif(zboundarytype(icomp,icc,1).eq.1)then
           ICT(ICCC)=1; IC2(ICCC)=0; IE2(ICCC)=0
-        elseif(SOTHER(icomp,icc,1)(1:9).eq.'ADIABATIC')then
+        elseif(zboundarytype(icomp,icc,1).eq.5)then
           ICT(ICCC)=5; IC2(ICCC)=0; IE2(ICCC)=0
-        elseif(SOTHER(icomp,icc,1)(1:8).eq.'CONSTANT')then
+        elseif(zboundarytype(icomp,icc,1).eq.2)then
           write(outs,'(3a)') 'Note: ',SNAME(NCOMP,icc),
      &      ' is a CONSTANT connection. Use the'
           call usrmsg(outs,
      &      'surface attribute facility to confirm its details.','W')
-          ICT(ICCC)=0; IC2(ICCC)=0; IE2(ICCC)=0
-        elseif(SOTHER(icomp,icc,1)(1:6).eq.'GROUND')then
+          ICT(ICCC)=2; IC2(ICCC)=20; IE2(ICCC)=0
+        elseif(zboundarytype(icomp,icc,1).eq.4)then
           write(outs,'(3a)') 'Note: ',SNAME(NCOMP,icc),
      &      ' is a GROUND connection. Use the'
           call usrmsg(outs,
      &     'surface attribute facility to confirm its details.','W')
           ICT(ICCC)=0; IC2(ICCC)=0; IE2(ICCC)=0
-        elseif(SOTHER(icomp,icc,1)(1:7).eq.'UNKNOWN')then
+        elseif(zboundarytype(icomp,icc,1).eq.-1)then
           ICT(ICCC)=-1; IC2(ICCC)=0; IE2(ICCC)=0
         else
           write(outs,'(3a)') 'Note: ',SNAME(NCOMP,icc),
      &      ' is a possible partition. Confirm its'
           call usrmsg(outs,
      &      'surface attributes or use topology tool.','W')
-          ICT(ICCC)=0; IC2(ICCC)=0; IE2(ICCC)=0
+          ICT(ICCC)=-1; IC2(ICCC)=0; IE2(ICCC)=0
         endif
+
+C Set zboundarytype based on the ICT IC2 IE2 values.
+        zboundarytype(icomp,icc,1)=ICT(iccc)
+        zboundarytype(icomp,icc,2)=IC2(iccc)
+        zboundarytype(icomp,icc,3)=IE2(iccc)
+
         smlcindex(ic1(iccc),ie1(iccc))=smlcindex(icomp,icc)
         isznver(icomp,icc)=NVER(icc)
         DO KV=1,isznver(icomp,icc)
@@ -11216,7 +11420,7 @@ C Make up a zone geometry file name for this new zone.
         gversion(icomp) =1.1
         newgeo = .true.
       endif
-      call geowrite(IFIL+2,LGEOM(icomp),icomp,iuout,4,IER)
+      call geowrite2(IFIL+2,LGEOM(icomp),icomp,iuout,4,IER)
 
 C If there are default windows then attempt to insert them as
 C transparent surfaces.
@@ -11254,7 +11458,8 @@ C Save zone if more surfaces have been added.
           gversion(icomp) =1.1
           newgeo = .true.
         endif
-        call geowrite(IFIL+2,LGEOM(icomp),icomp,iuout,4,IER)
+        call zgupdate(1,icomp,ier)  ! update commons
+        call geowrite2(IFIL+2,LGEOM(icomp),icomp,iuout,4,IER)
       endif
 
 C And there might be more than one room in a zip file. If we
@@ -11330,11 +11535,13 @@ C The extra fabric heat loss is calculated at the end
 C Additional information is given in the BRE IP 1/06 document by T I Ward
 C in tables 3 and 4.
 C This subroutine may be called from the geometry definition menu using
-C act='-' or when defining the notional model using act='s'. The latter
-C is a silent call and assumes a thermal bridging of 10% (0.1)
+C act='-' or act='p' if a scan of edges was just made. When defining the 
+C notional model using act='s'. The latter is a silent call and assumes 
+C a thermal bridging of 10% (0.1)
 
       SUBROUTINE LINTHBRDG(ICOMP,act,THPER)
 #include "building.h"
+#include "model.h"
 #include "geometry.h"
 #include "prj3dv.h"
 #include "esprdbfile.h"
@@ -11343,6 +11550,7 @@ C #include "material.h"
 #include "derived.h"
 #include "help.h"
 
+      COMMON/FILEP/IFIL
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
       common/appcols/mdispl,nifgrey,ncset,ngset,nzonec
@@ -11352,7 +11560,10 @@ C #include "material.h"
 
 C bridgelen was calculated in subroutine suredgeadj
       real bridgelen ! Length of potential thermal bridges in each zone.
-      common/gbridge/bridgelen(MCOM,16)
+      integer nbridgevt    ! Number of verticies associted with this bridge.
+      integer bridgevlst   ! List of vertices associated with bridge.
+      common/gbridge/bridgelen(MCOM,16),nbridgevt(MCOM,16),
+     &  bridgevlst(MCOM,16,MV*2)
 
 C Thermal bridge common block:
 C nbrdg is the number of thermal bridge types in the zone
@@ -11365,9 +11576,10 @@ C   5 is "wall-floor (exposed)", 6 is "lintel above window or door"
 C   7 is "Sill below window", 8 is "jamb at window or door"
 C   9 is "roof-wall-gable", 10 is "wall-parapet"
 C  11 is "wall-interm-floor", 12 is "wall-partition"
-C  13 is "glass-frame", 14 is "Sill below window-mc"
+C  13 is "glass-frame", 14 is "balcony"
 C  15 is "user-defined-a"
 C  16 is "user-defined-b"
+C The phrases for thermal bridges are defined in setbridgenames.
 
 C losspercent is W/K for an alternative method  where the calculated heat flow
 C   is augmented by a fixed percentage of the UA (fabric loss)
@@ -11380,17 +11592,24 @@ C   losspercent and is assumed to apply to all zones in the model.
       common/THRBRDG/nbrdg(MCOM),psi(MCOM,16),lngth(MCOM,16),
      &               ibrdg(MCOM,16),losspercent(MCOM),totheatloss(MCOM),
      &               thbrpercent,uavtotal(MCOM)
+      common/THBRSCH/tbregime
+      character tbregime*36
+      common/tbphrases/phraselen(16),phrasepsi(16),phrasemenu(16),
+     &  previewlbl(16)
+      character phraselen*32,phrasepsi*32,phrasemenu*34,previewlbl*24
+      common/tbdefs/defpsi(16,4)     ! default value for psi
+      real defpsi
 
       LOGICAL context
 
       DIMENSION TBRIDGE(30)
       integer IVALS(MCOM)  ! the array of zones to include
-      CHARACTER outs*124
+      CHARACTER outs*124, louts*496,loutsd*496
+      character hold64*64,t248*496
       character SIGSTR*12,t16b*16,act*1
-      character TBRIDGE*58
-      dimension phraselen(16),phrasepsi(16),phrasemenu(16)
-      character phraselen*42,phrasepsi*42,phrasemenu*34
+      character TBRIDGE*50
       character msg*48  ! to use for default prompt.
+      character LTMP*72
 
       real THPER
 
@@ -11398,13 +11617,11 @@ C   losspercent and is assumed to apply to all zones in the model.
       integer lnb
       real psiv,lenv  ! local variables for psi and length.
       integer ISDN,INODA ! max items and current menu item
-      real defpsi     ! default value for psi
-      dimension defpsi(16,4)
       real lenpsi     ! default value for length based on bridgelen.
       dimension lenpsi(16)
       real zerolen,zeropsi  ! for bridge types that have yet to be used.
-      logical foundit
-      logical greyok
+      logical foundit,newgeo
+      logical greyok,ok
 
 #ifdef OSI
       integer iix,iiy,iix2,iiy2,iicol
@@ -11425,164 +11642,195 @@ C   losspercent and is assumed to apply to all zones in the model.
         greyok=.true.
       endif
 
-C Do call to FINDUA for this zone in order to get derived areas.
+C Note: FINDUA rescans the zone geometry file (which will not have recent
+C thermal bridge scanning updates if LINTHBRDG has been called after
+C running an intial scan. FINDUA gets derived areas.
       IVALS(1)=icomp
       NZ=1
-      call FINDUA(IVALS,nz,'p')
+      if(act(1:1).eq.'-')then
+        call FINDUA(IVALS,nz,'p')
+      endif
+
+C Call setbridgenames to get TB related labels.
+      call setbridgenames(ier) 
 
 C Report on estimated lengths of thermal bridges from suredgeadj
-      if(act(1:1).eq.'-')then
+      if(act(1:1).eq.'-'.or.act(1:1).eq.'p')then
+        write(outs,'(a,9i4)') 'bridge verts 1-9',nbridgevt(icomp,1),
+     &    nbridgevt(icomp,2),nbridgevt(icomp,3),
+     &    nbridgevt(icomp,4),nbridgevt(icomp,5),
+     &    nbridgevt(icomp,6),nbridgevt(icomp,7),
+     &    nbridgevt(icomp,8),nbridgevt(icomp,9)
+        call edisp(iuout,' ')
+        call edisp(iuout,outs)
+        write(outs,'(a,7i4)') 'bridge verts 10-16',nbridgevt(icomp,10),
+     &    nbridgevt(icomp,11),nbridgevt(icomp,12),
+     &    nbridgevt(icomp,13),nbridgevt(icomp,14),
+     &    nbridgevt(icomp,15),nbridgevt(icomp,16)
+        call edisp(iuout,' ')
+        call edisp(iuout,outs)
         call edisp(iuout,' ')
         call edisp(iuout,'Based on surface form & boundary condition:')
+        if(MMOD.eq.8)then
+          ifoc=-1   ! Only overly the TB type labels.
+          call gpreviewbridge(icomp,ifoc,ier)
+        endif
         if(bridgelen(icomp,1).gt.0.0)then
-          if(MMOD.lt.8)then
-            write(outs,'(a,f7.2)')'bridge length roof-wall:',
-     &        bridgelen(icomp,1)
+          if(nbridgevt(icomp,1).gt.0)then
+            write(outs,'(a,f7.2,a,i2,a)')'bridge length roof-wall',
+     &        bridgelen(icomp,1),' via ',nbridgevt(icomp,1)/2,' edges.'
           else
-            write(outs,'(a,f7.2,a)')'bridge length roof-wall:',
-     &        bridgelen(icomp,1),' (midnight blue)'
+            write(outs,'(a,f7.2)')'bridge length roof-wall',
+     &        bridgelen(icomp,1)
           endif
           call edisp(iuout,outs)
         endif
         if(bridgelen(icomp,2).gt.0.0)then
-          if(MMOD.lt.8)then
-            write(outs,'(a,f7.2)')'bridge length wall-ground:',
-     &        bridgelen(icomp,2)
+          if(nbridgevt(icomp,2).gt.0)then
+            write(outs,'(a,f7.2,a,i2,a)')'bridge length wall-ground',
+     &        bridgelen(icomp,2),' via ',nbridgevt(icomp,2)/2,' edges.'
           else
-            write(outs,'(a,f7.2,a)')'bridge length wall-ground:',
-     &        bridgelen(icomp,2),' (lt brown)'
+            write(outs,'(a,f7.2)')'bridge length wall-ground',
+     &        bridgelen(icomp,2)
           endif
           call edisp(iuout,outs)
         endif
         if(bridgelen(icomp,3).gt.0.0)then
-          if(MMOD.lt.8)then
-            write(outs,'(a,f7.2)')'bridge length wall-wall convex:',
-     &        bridgelen(icomp,3)
+          if(nbridgevt(icomp,3).gt.0)then
+            write(outs,'(a,f7.2,a,i2,a)')
+     &        'bridge length wall-wall convex',
+     &        bridgelen(icomp,3),' via ',nbridgevt(icomp,3)/2,' edges.'
           else
-            write(outs,'(a,f7.2,a)')'bridge length wall-wall convex:',
-     &        bridgelen(icomp,3),' (forest green)'
+            write(outs,'(a,f7.2)')'bridge length wall-wall convex',
+     &        bridgelen(icomp,3)
           endif
           call edisp(iuout,outs)
         endif
         if(bridgelen(icomp,4).gt.0.0)then
-          if(MMOD.lt.8)then
-            write(outs,'(a,f7.2)')'bridge length wall-wall concave:',
-     &        bridgelen(icomp,4)
+          if(nbridgevt(icomp,4).gt.0)then
+            write(outs,'(a,f7.2,a,i2,a)')
+     &        'bridge length wall-wall concave',
+     &        bridgelen(icomp,4),' via ',nbridgevt(icomp,4)/2,' edges.'
           else
-            write(outs,'(a,f7.2,a)')'bridge length wall-wall concave:',
-     &        bridgelen(icomp,4),' (khaki)'
-          endif
+            write(outs,'(a,f7.2)')'bridge length wall-wall concave',
+     &        bridgelen(icomp,4)
+          endif  
           call edisp(iuout,outs)
         endif
         if(bridgelen(icomp,5).gt.0.0)then
-          if(MMOD.lt.8)then
-            write(outs,'(a,f7.2)')'bridge length exposed floor:',
-     &        bridgelen(icomp,5)
+          if(nbridgevt(icomp,5).gt.0)then
+            write(outs,'(a,f7.2,a,i2,a)')'bridge length exposed floor',
+     &        bridgelen(icomp,5),' via ',nbridgevt(icomp,5)/2,' edges.'
           else
-            write(outs,'(a,f7.2,a)')'bridge length exposed floor:',
-     &        bridgelen(icomp,5),' (turquoise)'
+            write(outs,'(a,f7.2)')'bridge length exposed floor',
+     &        bridgelen(icomp,5)
           endif
           call edisp(iuout,outs)
         endif
         if(bridgelen(icomp,6).gt.0.0)then
-          if(MMOD.lt.8)then
-           write(outs,'(a,f7.2)')'bridge length door & window lintels ',
-     &        bridgelen(icomp,6)
+          if(nbridgevt(icomp,6).gt.0)then
+            write(outs,'(a,f7.2,a,i2,a)')
+     &        'bridge length door & window lintels',
+     &        bridgelen(icomp,6),' via ',nbridgevt(icomp,6)/2,' edges.'
           else
-            write(outs,'(a,f7.2,a)')
+            write(outs,'(a,f7.2)')
      &        'bridge length door & window lintels ',
-     &        bridgelen(icomp,6),' (magenta)'
+     &        bridgelen(icomp,6)
           endif
           call edisp(iuout,outs)
         endif
         if(bridgelen(icomp,7).gt.0.0)then
-          if(MMOD.lt.8)then
+          if(nbridgevt(icomp,7).gt.0)then
+            write(outs,'(a,f7.2,a,i2,a)')
+     &        'bridge length door & window sills',
+     &        bridgelen(icomp,7),' via ',nbridgevt(icomp,7)/2,' edges.'
+          else
             write(outs,'(a,f7.2)')'bridge length door & window sills ',
      &        bridgelen(icomp,7)
-          else
-           write(outs,'(a,f7.2,a)')'bridge length door & window sills ',
-     &        bridgelen(icomp,7),' (firebrick)'
           endif
           call edisp(iuout,outs)
         endif
         if(bridgelen(icomp,8).gt.0.0)then
-          if(MMOD.lt.8)then
+          if(nbridgevt(icomp,8).gt.0)then
+            write(outs,'(a,f7.2,a,i2,a)')
+     &        'bridge length door & window jambs',
+     &        bridgelen(icomp,8),' via ',nbridgevt(icomp,8)/2,' edges.'
+          else
             write(outs,'(a,f7.2)')'bridge length door & window jambs ',
      &        bridgelen(icomp,8)
-          else
-           write(outs,'(a,f7.2,a)')'bridge length door & window jambs ',
-     &        bridgelen(icomp,8),' (cyan)'
           endif
           call edisp(iuout,outs)
         endif
         if(bridgelen(icomp,9).gt.0.0)then
-          if(MMOD.lt.8)then
+          if(nbridgevt(icomp,9).gt.0)then
+            write(outs,'(a,f7.2,a,i2,a)')'bridge length wall-gable ',
+     &        bridgelen(icomp,9),' via ',nbridgevt(icomp,9)/2,' edges.'
+          else
             write(outs,'(a,f7.2)')'bridge length wall-gable ',
      &        bridgelen(icomp,9)
-          else
-            write(outs,'(a,f7.2,a)')'bridge length wall-gable ',
-     &        bridgelen(icomp,9),' (khaki)'
           endif
           call edisp(iuout,outs)
         endif
         if(bridgelen(icomp,10).gt.0.0)then
-          if(MMOD.lt.8)then
+          if(nbridgevt(icomp,10).gt.0)then
+            write(outs,'(a,f7.2,a,i2,a)')'bridge length wall-parapet ',
+     &      bridgelen(icomp,10),' via ',nbridgevt(icomp,10)/2,' edges.'
+          else
             write(outs,'(a,f7.2)')'bridge length wall-parapet ',
      &        bridgelen(icomp,10)
-          else
-            write(outs,'(a,f7.2,a)')'bridge length wall-parapet ',
-     &        bridgelen(icomp,10),' (grey)'
           endif
           call edisp(iuout,outs)
         endif
         if(bridgelen(icomp,11).gt.0.0)then
-          if(MMOD.lt.8)then
+           if(nbridgevt(icomp,11).gt.0)then
+            write(outs,'(a,f7.2,a,i2,a)')
+     &      'bridge length wall-interm-floor ',
+     &      bridgelen(icomp,11),' via ',nbridgevt(icomp,11)/2,' edges.'
+          else
             write(outs,'(a,f7.2)')'bridge length wall-interm-floor ',
      &        bridgelen(icomp,11)
-          else
-            write(outs,'(a,f7.2,a)')'bridge length wall-interm-floor ',
-     &        bridgelen(icomp,11),' (royal blue)'
           endif
           call edisp(iuout,outs)
         endif
         if(bridgelen(icomp,12).gt.0.0)then
-          if(MMOD.lt.8)then
+          if(nbridgevt(icomp,12).gt.0)then
+            write(outs,'(a,f7.2,a,i2,a)')
+     &      'bridge length wall-partition ',
+     &      bridgelen(icomp,12),' via ',nbridgevt(icomp,12)/2,' edges.'
+          else
             write(outs,'(a,f7.2)')'bridge length wall-partition ',
      &        bridgelen(icomp,12)
-          else
-            write(outs,'(a,f7.2,a)')'bridge length wall-partition ',
-     &        bridgelen(icomp,12),' (tomato)'
           endif
           call edisp(iuout,outs)
         endif
         if(bridgelen(icomp,13).gt.0.0)then
-          if(MMOD.lt.8)then
+          if(nbridgevt(icomp,13).gt.0)then
+            write(outs,'(a,f7.2,a,i2,a)')'bridge length glass-frame ',
+     &      bridgelen(icomp,13),' via ',nbridgevt(icomp,13)/2,' edges.'
+          else
             write(outs,'(a,f7.2)')'bridge length glass-frame ',
      &        bridgelen(icomp,13)
+          endif
+          call edisp(iuout,outs)
+        endif
+        if(bridgelen(icomp,14).gt.0.0)then
+          if(nbridgevt(icomp,14).gt.0)then
+            write(outs,'(a,f7.2,a,i2,a)')'bridge length balcony ',
+     &      bridgelen(icomp,14),' via ',nbridgevt(icomp,14)/2,' edges.'
           else
-            write(outs,'(a,f7.2,a)')'bridge length glass-frame ',
-     &        bridgelen(icomp,13),' (grey)'
+            write(outs,'(a,f7.2)')'bridge length balcony ',
+     &        bridgelen(icomp,14)
           endif
           call edisp(iuout,outs)
         endif
         if(bridgelen(icomp,15).gt.0.0)then
-          if(MMOD.lt.8)then
-            write(outs,'(a,f7.2)')'bridge length user-defined-a ',
-     &        bridgelen(icomp,15)
-          else
-            write(outs,'(a,f7.2,a)')'bridge length user-defined-a',
-     &        bridgelen(icomp,15),' (pale green)'
-          endif
+          write(outs,'(a,f7.2)')'bridge length user-defined-a ',
+     &      bridgelen(icomp,15)
           call edisp(iuout,outs)
         endif
         if(bridgelen(icomp,16).gt.0.0)then
-          if(MMOD.lt.8)then
-            write(outs,'(a,f7.2)')'bridge length user-defined-b ',
-     &        bridgelen(icomp,16)
-          else
-            write(outs,'(a,f7.2,a)')'bridge length user-defined-b',
-     &        bridgelen(icomp,16),' (orange)'
-          endif
+          write(outs,'(a,f7.2)')'bridge length user-defined-b ',
+     &      bridgelen(icomp,16)
           call edisp(iuout,outs)
         endif
       endif
@@ -11595,7 +11843,7 @@ C in a different colour for each type (to match colours listed above).
         CALL INLNST(1)
         itsnm=0
         nzg=1; nznog(1)=ICOMP; izgfoc=ICOMP
-        if(MMOD.eq.8)CALL redraw(IER)
+        call redraw(IER)
         do 778 I=1,NZSUR(icomp)
           ioc=IZSTOCN(icomp,i)
           if(ioc.eq.0)then
@@ -11664,124 +11912,39 @@ C Setup phrases for the menu and for editing length and psi values.
 C The exact spelling of phraselen and phrasepsi is important. The
 C psi values have been taken from Accredited Construction Details 
 C used in UK building regulations. Default values are VERY conservative.
-      phrasemenu(1) ='a roof-wall (eave)             :'
-      phraselen(1)  ='roof-wall '
-      phrasepsi(1)  ='roof-wall '
-      defpsi(1,1)=0.12; defpsi(1,2)=0.06; defpsi(1,3)=0.097
-      defpsi(1,4)=0.069
-      lenpsi(1)=bridgelen(icomp,1)
-      phrasemenu(2) ='b wall-ground floor            :'
-      phraselen(2)  ='wall-ground floor '
-      phrasepsi(2)  ='wall-ground floor '
-      defpsi(2,1)=0.32; defpsi(2,2)=0.16; defpsi(2,3)=0.059
-      defpsi(2,4)=0.06
-      lenpsi(2)=bridgelen(icomp,2)
-      phrasemenu(3) ='c wall-wall (convex corner)    :'
-      phraselen(3)  ='wall-wall (convex corner) '
-      phrasepsi(3)  ='wall-wall (convex corner) '
-      defpsi(3,1)=0.18; defpsi(3,2)=0.09; defpsi(3,3)=0.046
-      defpsi(3,4)=0.059
-      lenpsi(3)=bridgelen(icomp,3)
-      phrasemenu(4) ='d wall-wall (concave corner)   :'
-      phraselen(4)  ='wall-wall (concave corner) '
-      phrasepsi(4)  ='wall-wall (concave corner) '
-      defpsi(4,1)= 0.0; defpsi(4,2)= -0.09; defpsi(4,3)= -0.082 
-      defpsi(4,4)= -0.013
-      lenpsi(4)=bridgelen(icomp,4)
-      phrasemenu(5) ='e wall-floor (exposed)         :'
-      phraselen(5)  ='wall-floor (exposed) '
-      phrasepsi(5)  ='wall-floor (exposed) '
-      defpsi(5,1)=0.32; defpsi(5,2)=0.16; defpsi(5,3)=0.1 ! only default specified
-      defpsi(5,4)=0.1
-      lenpsi(5)=bridgelen(icomp,5)
-      phrasemenu(6) ='f lintel above window or door  :'
-      phraselen(6)  ='lintel above window or door '
-      phrasepsi(6)  ='lintel above window or door '
-      defpsi(6,1)=1.0; defpsi(6,2)=0.5; defpsi(6,3)=0.17; 
-      defpsi(6,4)=0.1
-      lenpsi(6)=bridgelen(icomp,6)
-      phrasemenu(7) ='g Sill below window            :'
-      phraselen(7)  ='Sill below window '
-      phrasepsi(7)  ='Sill below window '
-      defpsi(7,1)=0.08; defpsi(7,2)=0.04; defpsi(7,3)=0.038
-      defpsi(7,4)=0.032
-      lenpsi(7)=bridgelen(icomp,7)
-      phrasemenu(8) ='h jamb at window or door       :'
-      phraselen(8)  ='jamb at window or door '
-      phrasepsi(8)  ='jamb at window or door '
-      defpsi(8,1)=0.10; defpsi(8,2)=0.05; defpsi(8,3)=0.041 
-      defpsi(8,4)=0.045
-      lenpsi(8)=bridgelen(icomp,8)
-      phrasemenu(9) ='i wall-gable                   :'
-      phraselen(9)  ='wall-gable'
-      phrasepsi(9)  ='wall-gable'
-      defpsi(9,1)=0.48; defpsi(9,2)=0.24; defpsi(9,3)=0.059 
-      defpsi(9,4)=0.069
-      lenpsi(9)=bridgelen(icomp,9)
-      phrasemenu(10)='j wall-parapet                 :'
-      phraselen(10) ='wall-parapet'
-      phrasepsi(10) ='wall-parapet'
-      defpsi(10,1)=0.56; defpsi(10,2)=0.28; defpsi(10,3)=0.16 
-      defpsi(10,4)=0.16
-      lenpsi(10)=bridgelen(icomp,10)
-      phrasemenu(11)='k wall-intermediate-floor      :'
-      phraselen(11) ='wall-intermediate-floor'
-      phrasepsi(11) ='wall-intermediate-floor'
-      defpsi(11,1)=0.14; defpsi(11,2)=0.07; defpsi(11,3)=0.01 
-      defpsi(11,4)=0.01
-      lenpsi(11)=bridgelen(icomp,11)
-      phrasemenu(12)='l wall-partition               :'
-      phraselen(12) ='wall-partition'
-      phrasepsi(12) ='wall-partition'
-      defpsi(12,1)=0.12; defpsi(12,2)=0.06; defpsi(12,3)=0.002 
-      defpsi(12,4)=0.08
-      lenpsi(12)=bridgelen(icomp,12)
-      phrasemenu(13)='m glass-frame                  :'
-      phraselen(13) ='glass-frame'
-      phrasepsi(13) ='glass-frame'
-      defpsi(13,1)=0.1; defpsi(13,2)=0.07; defpsi(13,3)=.04 
-      defpsi(13,4)=0.04
-      lenpsi(13)=bridgelen(icomp,13)
-      phrasemenu(14)='n balcony                      :'
-      phraselen(14) ='balcony'
-      phrasepsi(14) ='balcony'
-      defpsi(14,1)=1.0; defpsi(14,2)=0.5; defpsi(14,3)=0.4 
-      defpsi(14,4)=0.4
-      lenpsi(14)=bridgelen(icomp,14)
-      phrasemenu(15)='o user-defined a               :'
-      phraselen(15) ='user-defined-a'
-      phrasepsi(15) ='user-defined-a'
-      defpsi(15,1)=1.0; defpsi(15,2)=1.0; defpsi(15,3)=1.0
-      defpsi(15,4)=1.0
-      lenpsi(15)=bridgelen(icomp,15)
-      phrasemenu(16)='p user-defined b               :'
-      phraselen(16) ='user-defined-b'
-      phrasepsi(16) ='user-defined-b'
-      defpsi(16,1)=0.00; defpsi(16,2)=0.00; defpsi(16,3)=0.00 
-      defpsi(16,4)=0.0
+      call setbridgenames(ier) 
+      do ikk=1,15
+        lenpsi(ikk)=bridgelen(icomp,ikk)
+      enddo
       lenpsi(16)=1.0
 
 C Initial questions about initial psi values.
       helptopic='psi-value-groups'
       call gethelptext(helpinsub,helptopic,nbhelp)
+  
+      if(tbregime(1:2).ne.'  ')then
+        write(outs,'(2a)')'Current regime ',tbregime(1:lnblnk(tbregime))
+        call edisp(iuout,'  ')
+        call edisp(iuout,outs)
+      endif    
       CALL EASKMBOX('Initial thermal bridge (psi) values:','  ',
-     &  'k1 default','general accredited','2021 PartL masonry',
+     &  'k1 default','BRE general accredited','2021 PartL masonry',
      &  '2021 PartL timber','exit',' ',' ',' ',INVT,nbhelp)
       helptopic='linear_thermal_bridge'
       call gethelptext(helpinsub,helptopic,nbhelp)
  
+      if(INVT.eq.1)then ! Remember which regime.
+        tbregime='k1 default'
+      elseif(INVT.eq.2)then
+        tbregime='general accredited'
+      elseif(INVT.eq.3)then
+        tbregime='2021 PartL masonry'
+      elseif(INVT.eq.4)then
+        tbregime='2021 PartL timber'
+      elseif(INVT.eq.5)then
+        return
+      endif
       if(nbrdg(icomp).eq.0)then
-        if(INVT.eq.1)then
-          continue
-        elseif(INVT.eq.2)then
-          continue
-        elseif(INVT.eq.3)then
-          continue
-        elseif(INVT.eq.4)then
-          continue
-        elseif(INVT.eq.5)then
-          return
-        endif
 
 C Values for constructions depending on user choice above.
         call edisp(iuout,' ')
@@ -11795,83 +11958,150 @@ C Values for constructions depending on user choice above.
             if(INVT.eq.3) psi(ICOMP,nbrdg(icomp))=defpsi(itbmenu,3)
             if(INVT.eq.4) psi(ICOMP,nbrdg(icomp))=defpsi(itbmenu,4)
             lngth(ICOMP,nbrdg(icomp))=bridgelen(icomp,itbmenu)
-C Debug.
-C            write(6,*) icomp,itbmenu,nbrdg(icomp),
-C     &        ibrdg(ICOMP,nbrdg(icomp)),psi(ICOMP,nbrdg(icomp))
           endif
         enddo
       else
 
-C There were existing thermal bridge values. As user if menu display should
+C There were existing thermal bridge values. Ask user if menu display should
 C reflect the recently scanned values.
-        helptopic='psi-length-update'
-        call gethelptext(helpinsub,helptopic,nbhelp)
-        CALL EASKMBOX('Zone has existing psi values & lengths.',' ',
-     &    'update lengths','update lengths & psi','continue',
-     &    ' ',' ',' ',' ',' ',IV,nbhelp)
-        if(IV.eq.1)then
-          act = '-'
-          call edisp(iuout,' ')
-          call edisp(iuout,'Scanning the surface edges...')
-          call scan_bridges(itrc,act,icomp,ier) ! Determine bridge relationships.
-          call edisp(iuout,' ')
-          call edisp(iuout,'Applying scanned lengths...')
-          do itbmenu=1,16
-            foundit=.false.
-            do itb=1,nbrdg(icomp)
-              if(itbmenu.eq.ibrdg(icomp,itb))then
-                lngth(ICOMP,itb)=bridgelen(icomp,itbmenu)
-                WRITE(TBRIDGE(itbmenu+1),'(a,2F10.4)')
-     &            phrasemenu(itbmenu),
-     &            psi(icomp,itb),lngth(icomp,itb)
-                foundit=.true.
-                cycle
+C A scan was carried out just prior to call to LINTHBRDG so ask only if
+C lengths or lengths and psi should be applied.
+        if(act(1:1).eq.'p')then
+          helptopic='psi-length-update'
+          call gethelptext(helpinsub,helptopic,nbhelp)
+          CALL EASKMBOX('Options for newly scanned edges & lengths:',
+     &      '  ','update lengths','update lengths & psi','continue',
+     &      ' ',' ',' ',' ',' ',IV,nbhelp)
+          if(IV.eq.1)then  ! Find matching  bridge and update lengths.
+            do itbmenu=1,16
+              lntbm=lnblnk(phrasemenu(itbmenu))
+              if(lntbm.lt.12) lntbm=12
+              do itb=1,nbrdg(icomp)
+                if(itbmenu.eq.ibrdg(icomp,itb))then
+                  lngth(ICOMP,itb)=bridgelen(icomp,itbmenu)
+                  WRITE(TBRIDGE(itbmenu+1),'(a,F9.4,F8.3)')
+     &              phrasemenu(itbmenu)(1:lntbm),
+     &              psi(icomp,itb),lngth(icomp,itb)
+                endif
+              enddo
+            enddo
+          elseif(IV.eq.2)then  ! Find matching  bridge and update lengths.
+            do itbmenu=1,16
+              lntbm=lnblnk(phrasemenu(itbmenu))
+              if(lntbm.lt.12) lntbm=12
+              do itb=1,nbrdg(icomp)
+                if(itbmenu.eq.ibrdg(icomp,itb))then
+                  lngth(ICOMP,itb)=bridgelen(icomp,itbmenu)
+                  if(lngth(ICOMP,itb).gt.0.1)then
+                    if(INVT.eq.1) psi(ICOMP,itb)=defpsi(itbmenu,1)
+                    if(INVT.eq.2) psi(ICOMP,itb)=defpsi(itbmenu,2)
+                    if(INVT.eq.3) psi(ICOMP,itb)=defpsi(itbmenu,3)
+                    if(INVT.eq.4) psi(ICOMP,itb)=defpsi(itbmenu,4)
+                  endif
+                  WRITE(TBRIDGE(itbmenu+1),'(a,F9.4,F8.3)')
+     &              phrasemenu(itbmenu)(1:lntbm),
+     &              psi(icomp,itb),lngth(icomp,itb)
+                endif
+              enddo
+            enddo
+          elseif(IV.eq.3)then
+            continue
+          endif
+        else
+          helptopic='psi-length-update'
+          call gethelptext(helpinsub,helptopic,nbhelp)
+          CALL EASKMBOX('Zone has existing psi values & lengths.',
+     &      'Options: ',
+     &      'update lengths via scan','update lengths & psi via scan',
+     &      'update lengths','update lengths & psi','continue',' ',' ',
+     &      ' ',IV,nbhelp)
+          if(IV.eq.1)then
+            act = '-'
+            call edisp(iuout,' ')
+            call edisp(iuout,'Scanning the surface edges...')
+            call scan_bridges(itrc,act,icomp,ier) ! Determine bridge relationships.
+            call edisp(iuout,' ')
+            call edisp(iuout,'Applying scanned lengths...')
+            do itbmenu=1,16
+              lntbm=lnblnk(phrasemenu(itbmenu))
+              if(lntbm.lt.12) lntbm=12
+              foundit=.false.
+              do itb=1,nbrdg(icomp)
+                if(itbmenu.eq.ibrdg(icomp,itb))then
+                  lngth(ICOMP,itb)=bridgelen(icomp,itbmenu)
+                  WRITE(TBRIDGE(itbmenu+1),'(a,F9.4,F8.3)')
+     &              phrasemenu(itbmenu)(1:lntbm),
+     &              psi(icomp,itb),lngth(icomp,itb)
+                  foundit=.true.
+                  cycle
+                endif
+              enddo
+              if(.NOT.foundit.and.bridgelen(icomp,itbmenu).gt.0.0)then  ! A bridge type not yet included.
+                nbrdg(icomp)=nbrdg(icomp)+1
+                ibrdg(ICOMP,nbrdg(icomp))=itbmenu
+                lngth(ICOMP,nbrdg(icomp))=bridgelen(icomp,itbmenu)
+                psi(ICOMP,nbrdg(icomp))=defpsi(itbmenu,1)               ! Assign default psi
               endif
             enddo
-            if(.NOT.foundit.and.bridgelen(icomp,itbmenu).gt.0.0)then  ! A bridge type not yet included.
-              nbrdg(icomp)=nbrdg(icomp)+1
-              ibrdg(ICOMP,nbrdg(icomp))=itbmenu
-              lngth(ICOMP,nbrdg(icomp))=bridgelen(icomp,itbmenu)
-              psi(ICOMP,nbrdg(icomp))=defpsi(itbmenu,1)               ! Assign default psi
-            endif
-          enddo
-        elseif(IV.eq.2)then     ! Reset all engths as well as the psi values.
-          nbrdg(icomp)=0
-          act = '-'
-          call edisp(iuout,' ')
-          call edisp(iuout,'Scanning the surface edges...')
-          call scan_bridges(itrc,act,icomp,ier) ! Determine bridge relationships.
-          call edisp(iuout,' ')
-          call edisp(iuout,'Applying scanned lengths...')
-          do itbmenu=1,16
-            if(bridgelen(icomp,itbmenu).gt.0.1)then
-              nbrdg(icomp)=nbrdg(icomp)+1
-              ibrdg(ICOMP,nbrdg(icomp))=itbmenu
-              if(INVT.eq.1) psi(ICOMP,nbrdg(icomp))=defpsi(itbmenu,1)
-              if(INVT.eq.2) psi(ICOMP,nbrdg(icomp))=defpsi(itbmenu,2)
-              if(INVT.eq.3) psi(ICOMP,nbrdg(icomp))=defpsi(itbmenu,3)
-              if(INVT.eq.4) psi(ICOMP,nbrdg(icomp))=defpsi(itbmenu,4)
-              lngth(ICOMP,nbrdg(icomp))=bridgelen(icomp,itbmenu)
-C Debug.
-C              write(6,*) 'x ',icomp,itbmenu,nbrdg(icomp),
-C     &          ibrdg(ICOMP,nbrdg(icomp)),psi(ICOMP,nbrdg(icomp))
-            endif
-          enddo
-        elseif(IV.eq.3)then
-          do itbmenu=1,16
-            if(bridgelen(icomp,itbmenu).gt.0.1)then
-              nbrdg(icomp)=nbrdg(icomp)+1
-              ibrdg(ICOMP,nbrdg(icomp))=itbmenu
-              if(INVT.eq.1) psi(ICOMP,nbrdg(icomp))=defpsi(itbmenu,1)
-              if(INVT.eq.2) psi(ICOMP,nbrdg(icomp))=defpsi(itbmenu,2)
-              if(INVT.eq.3) psi(ICOMP,nbrdg(icomp))=defpsi(itbmenu,3)
-              if(INVT.eq.4) psi(ICOMP,nbrdg(icomp))=defpsi(itbmenu,4)
-              lngth(ICOMP,nbrdg(icomp))=bridgelen(icomp,itbmenu)
-C Debug.
-C              write(6,*) 'x ',icomp,itbmenu,nbrdg(icomp),
-C     &          ibrdg(ICOMP,nbrdg(icomp)),psi(ICOMP,nbrdg(icomp))
-            endif
-          enddo
+          elseif(IV.eq.2)then     ! Reset all engths as well as the psi values.
+            nbrdg(icomp)=0
+            act = '-'
+            call edisp(iuout,' ')
+            call edisp(iuout,'Scanning the surface edges...')
+            call scan_bridges(itrc,act,icomp,ier) ! Determine bridge relationships.
+            call edisp(iuout,' ')
+            call edisp(iuout,'Applying scanned lengths...')
+            do itbmenu=1,16
+              do itb=1,nbrdg(icomp)
+                if(itbmenu.eq.ibrdg(icomp,itb))then
+                  lngth(ICOMP,itb)=bridgelen(icomp,itbmenu)
+                  if(lngth(ICOMP,itb).gt.0.1)then
+                    if(INVT.eq.1) psi(ICOMP,itb)=defpsi(itbmenu,1)
+                    if(INVT.eq.2) psi(ICOMP,itb)=defpsi(itbmenu,2)
+                    if(INVT.eq.3) psi(ICOMP,itb)=defpsi(itbmenu,3)
+                    if(INVT.eq.4) psi(ICOMP,itb)=defpsi(itbmenu,4)
+                  endif
+                  WRITE(TBRIDGE(itbmenu+1),'(a,F9.4,F8.3)')
+     &              phrasemenu(itbmenu),
+     &              psi(icomp,itb),lngth(icomp,itb)
+                endif
+              enddo
+            enddo
+          elseif(IV.eq.3)then  ! Find matching  bridge and update lengths.
+            do itbmenu=1,16
+              lntbm=lnblnk(phrasemenu(itbmenu))
+              if(lntbm.lt.12) lntbm=12
+              do itb=1,nbrdg(icomp)
+                if(itbmenu.eq.ibrdg(icomp,itb))then
+                  lngth(ICOMP,itb)=bridgelen(icomp,itbmenu)
+                  WRITE(TBRIDGE(itbmenu+1),'(a,F9.4,F8.3)')
+     &              phrasemenu(itbmenu)(1:lntbm),
+     &              psi(icomp,itb),lngth(icomp,itb)
+                endif
+              enddo
+            enddo
+          elseif(IV.eq.4)then  ! Find matching  bridge and update lengths.
+            do itbmenu=1,16
+              lntbm=lnblnk(phrasemenu(itbmenu))
+              if(lntbm.lt.12) lntbm=12
+              do itb=1,nbrdg(icomp)
+                if(itbmenu.eq.ibrdg(icomp,itb))then
+                  lngth(ICOMP,itb)=bridgelen(icomp,itbmenu)
+                  if(lngth(ICOMP,itb).gt.0.1)then
+                    if(INVT.eq.1) psi(ICOMP,itb)=defpsi(itbmenu,1)
+                    if(INVT.eq.2) psi(ICOMP,itb)=defpsi(itbmenu,2)
+                    if(INVT.eq.3) psi(ICOMP,itb)=defpsi(itbmenu,3)
+                    if(INVT.eq.4) psi(ICOMP,itb)=defpsi(itbmenu,4)
+                  endif
+                  WRITE(TBRIDGE(itbmenu+1),'(a,F9.4,F8.3)')
+     &              phrasemenu(itbmenu)(1:lntbm),
+     &              psi(icomp,itb),lngth(icomp,itb)
+                endif
+              enddo
+            enddo
+          elseif(IV.eq.5)then
+            continue
+          endif
         endif
       endif
 
@@ -11882,27 +12112,30 @@ C Loop through the variants seeing if any of the currentlist
 C matches the type in each menu position. If not write text and place
 C holder, otherwise write actual values.
       do itbmenu=1,16
+        lntbm=lnblnk(phrasemenu(itbmenu))
+        if(lntbm.lt.12) lntbm=12
         if(nbrdg(icomp).gt.0)then
           foundit=.false.
           do itb=1,nbrdg(icomp)
             if(itbmenu.eq.ibrdg(icomp,itb))then
-              WRITE(TBRIDGE(itbmenu+1),'(a,2F10.4)')
-     &          phrasemenu(itbmenu),
+              WRITE(TBRIDGE(itbmenu+1),'(a,F9.4,F8.3)')
+     &          phrasemenu(itbmenu)(1:lntbm),
      &          psi(icomp,itb),lngth(icomp,itb)
               foundit=.true.
             endif
           enddo
           if(.NOT.foundit)then
-            WRITE(TBRIDGE(itbmenu+1),'(a,2F10.4)') phrasemenu(itbmenu),
-     &        zeropsi,zerolen
+            WRITE(TBRIDGE(itbmenu+1),'(a,F9.4,F8.3)') 
+     &        phrasemenu(itbmenu)(1:lntbm),zeropsi,zerolen
           endif
         else
-          WRITE(TBRIDGE(itbmenu+1),'(a,2F10.4)') phrasemenu(itbmenu),
-     &      zeropsi,zerolen
+          WRITE(TBRIDGE(itbmenu+1),'(a,F9.4,F8.3)') 
+     &      phrasemenu(itbmenu)(1:lntbm),zeropsi,zerolen
         endif
       enddo
-      TBRIDGE(18)=
-     & '      _________________________________________________ '
+      write(TBRIDGE(18),'(a,f8.3,a)')
+     & '    ________ total losses: ',totheatloss(icomp),
+     & ' W/K _______ '
 
 
       TBRIDGE(19)='q include % of thermal bridges'
@@ -11937,11 +12170,27 @@ C totheatloss is the total heat loss when all linear thermal bridges are added
         write(outs,*) 'total losses: ',totheatloss(icomp),' W/K'
         call edisp(iuout,outs)
 
-        call edisp(iuout,
-     &    'And remember SAVE this zone to record the t bridge data.')
-
 C Jump back to the main geometry menu.
-        if(INODA.EQ.ISDN) return
+        if(INODA.EQ.ISDN)then
+          helptopic='thermal_bridge_save'
+          call gethelptext(helpinsub,helptopic,nbhelp)
+          CALL EASKOK(' ',
+     &      'Save changes to zone thermal bridge definitions?',
+     &      OK,nbhelp)
+          LTMP=LGEOM(ICOMP)
+
+C Test for saving current or new format geometry file.
+          IF(OK)then
+            call eclose(gversion(icomp),1.1,0.01,newgeo)
+            if(.NOT.newgeo)then
+              gversion(icomp) =1.1
+              newgeo = .true.
+            endif
+            call geowrite2(IFIL+2,LTMP,ICOMP,iuout,3,IER)
+          endif
+
+          return
+        endif
       ELSEIF(INODA.EQ.ISDN-1)THEN
 
 C Produce help text for the menu.
@@ -11981,7 +12230,7 @@ C Is any one of the current thermal bridges type 4 "wall-wall (concave corner)"
         goto 42
       ELSEIF(INODA.EQ.6)THEN
 
-C Is any one of the current thermal bridges type 5 "wall-floor (exposed)"
+C Is any one of the current thermal bridges type 5 "wall-floor (exposed floor)"
         write(outs,'(a,4f6.3)') 'Psi value range is ',defpsi(5,1),
      &    defpsi(5,2),defpsi(5,3),defpsi(5,4)
         call edisp(iuout,outs)
@@ -12080,6 +12329,8 @@ C Is any one of the current thermal bridges type 16 "user-defined-b"
         IF(ACT.EQ.'s')THEN
           THBRPERCENT=THPER
         ELSE
+          helptopic='thermal_bridge_percent'
+          call gethelptext(helpinsub,helptopic,nbhelp)
           CALL EASKR(thbrpercent,' ',
      &    'thermal bridges as a fraction of UA (values from 0 to 1)',
      &     -0.1,'F',1.0,'W',0.0,'fraction',IER,nbhelp)
@@ -12114,11 +12365,17 @@ C nbrdg and edit.
         foundit=.false.
         do 31,ibj=1,nbrdg(icomp)
           if(ibrdg(ICOMP,ibj).eq.lookfor)then
+            if(MMOD.eq.8)then
+              ifoc=lookfor   ! Highlight current focus.
+              call gpreviewbridge(icomp,ifoc,ier)
+            endif
             foundit=.true.
             psiv=psi(ICOMP,ibj)
             write(msg,'(a,F7.4,a)')'(accredited default psi:',
      &        defpsi(lookfor,1),' W/mK)'
 
+            helptopic='thermal_bridge_atrib'
+            call gethelptext(helpinsub,helptopic,nbhelp)
             CALL EASKR(psiv,phrasepsi(lookfor),msg,
      &        -2.0,'W',2.0,'W',defpsi(lookfor,1),'psi',IER,nbhelp)
             psi(ICOMP,ibj)=psiv
@@ -12133,12 +12390,66 @@ C nbrdg and edit.
             CALL EASKR(lenv,phraselen(lookfor),msg,
      &        -0.1,'W',200.0,'W',0.0,'length',IER,nbhelp)
             lngth(ICOMP,ibj)=lenv
+
+C If there are known edges create editing facility. Use similar
+C logic to editing of surface vertices. Use NV to update nbridgevt
+C and recalculate the length for this bridge type.
+            iabv=nbridgevt(icomp,ibrdg(icomp,ibj))
+            write(louts,'(90i4)')
+     &        (bridgevlst(icomp,ibrdg(icomp,ibj),J),J=1,iabv)
+            call SDELIM(louts,loutsd,'S',IW)
+            call edisp(iuout,'Associated vertices...')
+            call edisp248(iuout,loutsd,120)
+            hold64='                                                   '
+            write(t248,'(4a)') hold64,hold64,hold64,'                  '
+            write(t248,'(90i4)')
+     &        (bridgevlst(icomp,ibrdg(icomp,ibj),J),J=1,iabv)
+            istrw=72
+            CALL EASKS496(t248,'Associated vertices',
+     &        ' ',istrw,' 1  2  3  4  ','associated vertices',
+     &        IIER,nbhelp)
+            NV = iCountWords(t248)
+            nbridgevt(icomp,ibrdg(icomp,ibj))=NV
+            K=0
+            DO J=1,NV
+              CALL EGETWI(t248,K,JV,1,NTV,'W','vertex list',IIER)
+              if(JV.eq.0.or.JV.gt.NTV)then
+                write(outs,'(a,i3,a,i3,a)') 'Vertex index ',J,
+     &            ' value',JV,'is out of range!'
+                call edisp(iuout,outs)
+              endif
+              bridgevlst(icomp,ibrdg(icomp,ibj),J)=JV
+            enddo
+            edgeln=0.0  ! Find new length for bridge.
+            DO J=1,NV,2
+              kk1=bridgevlst(icomp,ibrdg(icomp,ibj),J)
+              kk2=bridgevlst(icomp,ibrdg(icomp,ibj),J+1)
+              edgelen= crowxyz(X(kk1),Y(kk1),Z(kk1),
+     &          X(kk2),Y(kk2),Z(kk2))
+              edgeln=edgeln+edgelen
+            ENDDO
+            lngth(ICOMP,ibj)=edgeln
+            call pauses(1)
+            if(MMOD.eq.8)then
+              ifoc=lookfor     ! Re-display the new set of vertices.
+              call gpreviewbridge(icomp,ifoc,ier)
+            endif
+            call pauses(4)
+
+C Re-draw the wireframe to show all the bridges.
+            if(MMOD.eq.8)then
+              ifoc=0
+              call gpreviewbridge(icomp,ifoc,ier)
+            endif
+
           endif
   31    continue
         if(.NOT.foundit)then
           nbrdg(icomp)=nbrdg(icomp)+1
           ibrdg(ICOMP,nbrdg(icomp))=lookfor
           psiv=0.0
+          helptopic='thermal_bridge_atrib'
+          call gethelptext(helpinsub,helptopic,nbhelp)
           write(msg,'(a,F7.4,a)')'(accredited default psi:',
      &      defpsi(lookfor,1),' W/mK)'
           CALL EASKR(psiv,phrasepsi(lookfor),msg,
@@ -12157,6 +12468,8 @@ C nbrdg and edit.
         nbrdg(icomp)=nbrdg(icomp)+1
         ibrdg(ICOMP,nbrdg(icomp))=lookfor
         psiv=0.0
+        helptopic='thermal_bridge_atrib'
+        call gethelptext(helpinsub,helptopic,nbhelp)
         write(msg,'(a,F7.4,a)')'(accredited default psi:',
      &    defpsi(lookfor,1),' W/mK)'
         CALL EASKR(psiv,phrasepsi(lookfor),msg,
@@ -12535,7 +12848,7 @@ C can be used.
 #include "building.h"
 #include "geometry.h"
       dimension vd(3),vd1(3),vd2(3)
-      logical match
+      logical match,close
 
 C Assme match=false.
       match=.false.
@@ -12566,7 +12879,9 @@ C Report length of line. Use method of Ward/Radiance in fvect.c
           return
         endif
       endif
-      if(vdis.ne.0.0)then
+      call eclose(vdis,0.0,0.001,close)
+
+      if(.not.close)then
 
 C The original C code returned the square of distance
 C so unpack via sqrt call.
@@ -12599,12 +12914,12 @@ C surfaces as required. Assumes that common block G1,GS5,GS6 are current.
       integer lnblnk  ! function definition
 
 C Parameters
-      integer icomp   ! zone index
-      integer irs     ! selected surface to transform
-      real RTK        ! projection (m) of the reveal
-      character revroot*8  ! root name of the set of reveals
-      character mat*32  ! reveal construction
-      integer IER     ! if zero ok
+      integer icomp       ! zone index
+      integer irs         ! selected surface to transform
+      real RTK            ! projection (m) of the reveal
+      character revroot*8 ! root name of the set of reveals
+      character mat*32    ! reveal construction
+      integer IER         ! if zero ok
 
       COMMON/FILEP/IFIL
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
@@ -12621,6 +12936,7 @@ C Parameters
 
       CHARACTER SNAME1*12,SNAMED*12
       CHARACTER ZSDES*28
+      character sbound_ty*12,sbound_c2*6,sbound_e2*6
       character t14*14,d14*14  ! for duplicat name editing
       logical newgeo  ! to use for testing if new/old geometry file.
       logical nameok
@@ -12782,22 +13098,27 @@ C ask them about its use and composition.
       write(SMLCN(ICOMP,NSUR),'(a)') mat(1:lnblnk(mat))
       SVFC(ICOMP,NSUR)='UNKN'
       SOTF(ICOMP,NSUR)='OPAQUE'
-      SOTHER(ICOMP,NSUR,1)='UNKNOWN'
-      SOTHER(ICOMP,NSUR,2)='0'
-      SOTHER(ICOMP,NSUR,3)='0'
       SPARENT(ICOMP,NSUR)='-'
       SUSE(ICOMP,NSUR,1)='REVEAL'
       SUSE(ICOMP,NSUR,2)='-'
 
 C Add surface to the connection list (icont) assuming an unknown boundary.
       call addedsurf(icomp,icont,1,ier)
+      ict(icont)=-1; ic2(icont)=0; ie2(icont)=0
+      zboundarytype(icomp,nsur,1)=ICT(icont)
+      zboundarytype(icomp,nsur,2)=IC2(icont)
+      zboundarytype(icomp,nsur,3)=IE2(icont)
+      call decode_zsbound(icomp,nsur,sbound_ty,sbound_c2,sbound_e2)
 
 C If original surface faces the outside then set this for the
 C reveals that have been created.
       icorig=IZSTOCN(ICOMP,IRS)
       if(ICT(icorig).eq.0)then
         ICT(icont)=0      
-        SOTHER(ICOMP,NSUR,1)='EXTERIOR'
+        zboundarytype(icomp,nsur,1)=0
+        zboundarytype(icomp,nsur,2)=0
+        zboundarytype(icomp,nsur,3)=0
+        call decode_zsbound(icomp,nsur,sbound_ty,sbound_c2,sbound_e2)
       endif
 
 C If icount is less than iwcount loop back other wise jump to point
@@ -12837,7 +13158,7 @@ C Normal shift of any associated flow node will need a similar transform.
           newgeo = .true.
         endif
         call zgupdate(1,icomp,ier)  ! update commons
-        call geowrite(IFIL+2,LGEOM(ICOMP),ICOMP,iuout,3,IER)
+        call geowrite2(IFIL+2,LGEOM(ICOMP),ICOMP,iuout,3,IER)
 
         call usrmsg(
      &    'Remember to attribute the reveal surfaces and it',
@@ -12863,9 +13184,11 @@ C Assumes that suredgeadj has been recently called.
 
       common/OUTIN/IUOUT,IUIN,IEOUT
 
-      real bridgelen ! Length (m) of potential thermal bridges in each zone.
-                     ! See code below for what each means.
-      common/gbridge/bridgelen(MCOM,16)
+      real bridgelen       ! Length (m) of potential thermal bridges in each zone.
+      integer nbridgevt    ! Number of verticies associted with this bridge.
+      integer bridgevlst   ! List of vertices associated with bridge.
+      common/gbridge/bridgelen(MCOM,16),nbridgevt(MCOM,16),
+     &  bridgevlst(MCOM,16,MV*2)
 
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
       common/appcols/mdispl,nifgrey,ncset,ngset,nzonec
@@ -12876,10 +13199,11 @@ C Assumes that suredgeadj has been recently called.
       COMMON/C24/IZSTOCN(MCOM,MS)
       COMMON/gzonpik/izgfoc,nzg,nznog(mcom)
 
-      CHARACTER outs*148,act*1
+      CHARACTER outs*148,outs480*480,act*1
       character ZSDESC*20,ZSDESCO*20,ZSDESS*16,ZSDESSO*20
       character zsn*28,zsno*28
-      logical closeazi,ok
+      logical closeazi
+      integer nv1,nv2    ! current vertex positions in brodgevlst
 
 C iwhich is local variable to sort most often referenced adjacent surf.
       dimension idedge(MV*MV,3)
@@ -12897,21 +13221,23 @@ C iwhich is local variable to sort most often referenced adjacent surf.
       integer*8 iix,iiy,iix2,iiy2,iicol
 #endif
 
-      h(1)='Logic looks at edges & constructions & use to determine'
-      h(2)='likely categories of thermal bridges.'
-      h(3)=' '
-      h(4)='You are asked to supply opinions for ambigious cases.'
-      h(5)='in the current zone.'
-      nbhelp=5
-
+      helpinsub='edgeo'  ! set for subroutine
+      helptopic='psi-edge-scan'
+      call gethelptext(helpinsub,helptopic,nbhelp)
       if(izon.eq.0.or.izon.gt.NCOMP)then
         ier=1
         return
       endif
 
+      itrc=1  ! Force debug statements.
+
 C Zero the lengths of various thermal bridge type lengths.
       do ij=1,16
-          bridgelen(izon,ij)=0.0
+        bridgelen(izon,ij)=0.0
+        nbridgevt(izon,ij)=0
+        do ik=1,MV*2
+          bridgevlst(izon,ij,ik)=0
+        enddo
       enddo
 
 C Rest the bookkeepping for whether edges have been dealt with.
@@ -12935,7 +13261,7 @@ C in a different colour for each type (to match colours listed above).
         CALL INLNST(1)
         itsnm=0
         nzg=1; nznog(1)=izon; izgfoc=izon
-        if(MMOD.eq.8)CALL redraw(IER)
+        call redraw(IER)
       endif
 
       do 43 isurf=1,NZSUR(izon)
@@ -13042,42 +13368,102 @@ C be roughly vertical and the other flat (up) or sloped.
                     endif
                     call ZSID(izon,isurf,zsn,ZSDESC,ZSDESS)
                     call ZSID(izon,iosurf,zsno,ZSDESCO,ZSDESSO)
-                    write(outs,'(3a)') zsn,' edge with ',zsno
+                    write(outs,'(3a)') zsn(1:lnblnk(zsn)),' edge with ',
+     &                zsno(1:lnblnk(zsno))
                     CALL EASKMBOX(outs,'  ','wall-eave','wall-gable',
      &                'wall-parapet or wall-flat roof','lintel',
      &                'balcony','not a bridge',' ',' ',IV,nbhelp)
                     if(iv.eq.1)then
                       ibridgeshr(icc,i)=1
                       bridgelen(izon,1)= bridgelen(izon,1)+edgelen
+                      nv1=nbridgevt(izon,1)+1
+                      nv2=nbridgevt(izon,1)+2
+                      if((nbridgevt(izon,1)+2).gt.MV*2)then
+                        call edisp(iuout,'Excess associated vertices')
+                        goto 45
+                      endif
+                      nbridgevt(izon,1)=nbridgevt(izon,1)+2
+                      bridgevlst(izon,1,nv1)=idedge(icuredge,1)
+                      bridgevlst(izon,1,nv2)=idedge(icuredge,2)
                       if(itrc.ge.1)then
-C                        write(6,*) 'add ',edgelen,' to wall-eave'
+                        write(6,*) 'add ',edgelen,' to wall-eave',
+     &                    ' nbv',nbridgevt(izon,1),' vst',
+     &                    bridgevlst(izon,1,nv1),' ->',
+     &                    bridgevlst(izon,1,nv2)
                       endif
                       idedge(icuredge,3)=1
                     elseif(iv.eq.2)then
                       ibridgeshr(icc,i)=9
                       bridgelen(izon,9)= bridgelen(izon,9)+edgelen
+                      nv1=nbridgevt(izon,9)+1
+                      nv2=nbridgevt(izon,9)+2
+                      if((nbridgevt(izon,9)+2).gt.MV*2)then
+                        call edisp(iuout,'Excess associated vertices')
+                        goto 45
+                      endif
+                      nbridgevt(izon,9)=nbridgevt(izon,9)+2
+                      bridgevlst(izon,9,nv1)=idedge(icuredge,1)
+                      bridgevlst(izon,9,nv2)=idedge(icuredge,2)
                       if(itrc.ge.1)then
-C                        write(6,*) 'add ',edgelen,' to wall-gable'
+                        write(6,*) 'add ',edgelen,' to wall-gable',
+     &                    ' nbv',nbridgevt(izon,9),' vst',
+     &                    bridgevlst(izon,9,nv1),' ->',
+     &                    bridgevlst(izon,9,nv2)
                       endif
                       idedge(icuredge,3)=1
                     elseif(iv.eq.3)then
                       ibridgeshr(icc,i)=10
                       bridgelen(izon,10)= bridgelen(izon,10)+edgelen
+                      nv1=nbridgevt(izon,10)+1
+                      nv2=nbridgevt(izon,10)+2
+                      if((nbridgevt(izon,10)+2).gt.MV*2)then
+                        call edisp(iuout,'Excess associated vertices')
+                        goto 45
+                      endif
+                      nbridgevt(izon,10)=nbridgevt(izon,10)+2
+                      bridgevlst(izon,10,nv1)=idedge(icuredge,1)
+                      bridgevlst(izon,10,nv2)=idedge(icuredge,2)
                       if(itrc.ge.1)then
-C                        write(6,*) 'add ',edgelen,' to wall-parapett'
+                        write(6,*) 'add ',edgelen,' to wall-parapett',
+     &                    ' nbv',nbridgevt(izon,10),' vst',
+     &                    bridgevlst(izon,10,nv1),' ->',
+     &                    bridgevlst(izon,10,nv2)
                       endif
                     elseif(iv.eq.4)then  ! A lintel.
                       ibridgeshr(icc,i)=6   ! lintel
-                      bridgelen(izon,6)= bridgelen(izon,6)+
-     &                  edgelen
+                      bridgelen(izon,6)= bridgelen(izon,6)+edgelen
+                      nv1=nbridgevt(izon,6)+1
+                      nv2=nbridgevt(izon,6)+2
+                      if((nbridgevt(izon,6)+2).gt.MV*2)then
+                        call edisp(iuout,'Excess associated vertices')
+                        goto 45
+                      endif
+                      nbridgevt(izon,6)=nbridgevt(izon,6)+2
+                      bridgevlst(izon,6,nv1)=idedge(icuredge,1)
+                      bridgevlst(izon,6,nv2)=idedge(icuredge,2)
                       if(itrc.ge.1)then
-C                        write(6,*) 'add ',edgelen,' to lintel'
+                        write(6,*) 'add ',edgelen,' to lintel',
+     &                    ' nbv',nbridgevt(izon,6),' vst',
+     &                    bridgevlst(izon,6,nv1),' ->',
+     &                    bridgevlst(izon,6,nv2)
                       endif
                     elseif(iv.eq.5)then  ! A balcony
                       idedge(icuredge,3)=14
                       bridgelen(izon,14)= bridgelen(izon,14)+edgelen
+                      nv1=nbridgevt(izon,14)+1
+                      nv2=nbridgevt(izon,14)+2
+                      if((nbridgevt(izon,14)+2).gt.MV*2)then
+                        call edisp(iuout,'Excess associated vertices')
+                        goto 45
+                      endif
+                      nbridgevt(izon,14)=nbridgevt(izon,14)+2
+                      bridgevlst(izon,14,nv1)=idedge(icuredge,1)
+                      bridgevlst(izon,14,nv2)=idedge(icuredge,2)
                       if(itrc.ge.1)then
-C                        write(6,*) 'add ',edgelen,' to balcony'
+                        write(6,*) 'add ',edgelen,' to balcony',
+     &                    ' nbv',nbridgevt(izon,14),' vst',
+     &                    bridgevlst(izon,14,nv1),' ->',
+     &                    bridgevlst(izon,14,nv2)
                       endif
                     elseif(iv.eq.6)then  ! User says not a bridge.
                       if(MMOD.eq.8)then  ! redraw in black
@@ -13139,9 +13525,10 @@ C Check if either surface is a REVEAL.
                                 call edge_redblack(xx,xy,iix,iiy,
      &                            iix2,iiy2,'r')
                               endif
-                            call ZSID(izon,isurf,zsn,ZSDESC,ZSDESS)
-                            call ZSID(izon,iosurf,zsno,ZSDESCO,ZSDESSO)
-                            write(outs,'(3a)') zsn,' edge with ',zsno
+                             call ZSID(izon,isurf,zsn,ZSDESC,ZSDESS)
+                             call ZSID(izon,iosurf,zsno,ZSDESCO,ZSDESSO)
+                             write(outs,'(3a)') zsn(1:lnblnk(zsn)),
+     &                         ' edge with ',zsno(1:lnblnk(zsno))
                               CALL EASKMBOX(outs,
      &                          'One surface is a reveal:',
      &                          'corner thermal bridge','not a bridge',
@@ -13163,8 +13550,21 @@ C if 1st opaque & 2nd tran or 1st tran & 2nd opaque then glass-fame.
                               ibridgeshr(icc,i)=6   ! lintel
                               bridgelen(izon,6)= bridgelen(izon,6)+
      &                          edgelen
+                              nv1=nbridgevt(izon,6)+1
+                              nv2=nbridgevt(izon,6)+2
+                              if((nbridgevt(izon,6)+2).gt.MV*2)then
+                                call edisp(iuout,
+     &                            'Excess associated vertices')
+                                goto 45
+                              endif
+                              nbridgevt(izon,6)=nbridgevt(izon,6)+2
+                              bridgevlst(izon,6,nv1)=idedge(icuredge,1)
+                              bridgevlst(izon,6,nv2)=idedge(icuredge,2)
                               if(itrc.ge.1)then
-C                                write(6,*) 'add ',edgelen,' to lintel'
+                                write(6,*) 'add ',edgelen,' to lintel',
+     &                            ' nbv',nbridgevt(izon,6),' vst',
+     &                          bridgevlst(izon,6,nv1),' ->',
+     &                          bridgevlst(izon,6,nv2)
                               endif
                               idedge(icuredge,3)=1
                             elseif(
@@ -13173,8 +13573,21 @@ C                                write(6,*) 'add ',edgelen,' to lintel'
                               ibridgeshr(icc,i)=13  ! glass-frame
                               bridgelen(izon,13)= bridgelen(izon,13)+
      &                          edgelen
+                              nv1=nbridgevt(izon,13)+1
+                              nv2=nbridgevt(izon,13)+2
+                              if((nbridgevt(izon,13)+2).gt.MV*2)then
+                                call edisp(iuout,
+     &                            'Excess associated vertices')
+                                goto 45
+                              endif
+                              nbridgevt(izon,13)=nbridgevt(izon,13)+2
+                              bridgevlst(izon,13,nv1)=idedge(icuredge,1)
+                              bridgevlst(izon,13,nv2)=idedge(icuredge,2)
                               if(itrc.ge.1)then
-C                                write(6,*) 'add ',edgelen,' glass frame'
+                                write(6,*) 'add ',edgelen,' glass frm',
+     &                            ' nbv',nbridgevt(izon,13),' vst',
+     &                          bridgevlst(izon,13,nv1),' ->',
+     &                          bridgevlst(izon,13,nv2)
                               endif
                               idedge(icuredge,3)=1
                             elseif(
@@ -13183,6 +13596,16 @@ C                                write(6,*) 'add ',edgelen,' glass frame'
                               ibridgeshr(icc,i)=13  ! glass-frame
                               bridgelen(izon,13)= bridgelen(izon,13)+
      &                          edgelen
+                              nv1=nbridgevt(izon,13)+1
+                              nv2=nbridgevt(izon,13)+2
+                              if((nbridgevt(izon,13)+2).gt.MV*2)then
+                                call edisp(iuout,
+     &                            'Excess associated vertices')
+                                goto 45
+                              endif
+                              nbridgevt(izon,13)=nbridgevt(izon,13)+2
+                              bridgevlst(izon,13,nv1)=idedge(icuredge,1)
+                              bridgevlst(izon,13,nv2)=idedge(icuredge,2)
                             elseif(
      &                        SOTF(izon,isurf)(1:6).ne.'OPAQUE'.and.
      &                        SOTF(izon,iosurf)(1:6).ne.'OPAQUE')then
@@ -13223,8 +13646,21 @@ C if 1st opaque & 2nd tran or 1st tran & 2nd opaque then glass-fame.
                               ibridgeshr(icc,i)=7   ! sill
                               bridgelen(izon,7)= bridgelen(izon,7)+
      &                          edgelen
+                              nv1=nbridgevt(izon,7)+1
+                              nv2=nbridgevt(izon,7)+2
+                              if((nbridgevt(izon,7)+2).gt.MV*2)then
+                                call edisp(iuout,
+     &                            'Excess associated vertices')
+                                goto 45
+                              endif
+                              nbridgevt(izon,7)=nbridgevt(izon,7)+2
+                              bridgevlst(izon,7,nv1)=idedge(icuredge,1)
+                              bridgevlst(izon,7,nv2)=idedge(icuredge,2)
                               if(itrc.ge.1)then
-C                                write(6,*) 'add ',edgelen,' to sill'
+                                write(6,*) 'add ',edgelen,' to sill',
+     &                            ' nbv',nbridgevt(izon,7),' vst',
+     &                          bridgevlst(izon,7,nv1),' ->',
+     &                          bridgevlst(izon,7,nv2)
                               endif
                               idedge(icuredge,3)=1
                             elseif(
@@ -13233,8 +13669,21 @@ C                                write(6,*) 'add ',edgelen,' to sill'
                               ibridgeshr(icc,i)=13  ! glass-frame
                               bridgelen(izon,13)= bridgelen(izon,13)+
      &                          edgelen
+                              nv1=nbridgevt(izon,13)+1
+                              nv2=nbridgevt(izon,13)+2
+                              if((nbridgevt(izon,13)+2).gt.MV*2)then
+                                call edisp(iuout,
+     &                            'Excess associated vertices')
+                                goto 45
+                              endif
+                              nbridgevt(izon,13)=nbridgevt(izon,13)+2
+                              bridgevlst(izon,13,nv1)=idedge(icuredge,1)
+                              bridgevlst(izon,13,nv2)=idedge(icuredge,2)
                               if(itrc.ge.1)then
-C                                write(6,*) 'add ',edgelen,' glass frame'
+                                 write(6,*) 'add ',edgelen,' glass frm',
+     &                            ' nbv',nbridgevt(izon,13),' vst',
+     &                          bridgevlst(izon,13,nv1),' ->',
+     &                          bridgevlst(izon,13,nv2)
                               endif
                               idedge(icuredge,3)=1
                             elseif(
@@ -13243,8 +13692,21 @@ C                                write(6,*) 'add ',edgelen,' glass frame'
                               ibridgeshr(icc,i)=13  ! glass-frame
                               bridgelen(izon,13)= bridgelen(izon,13)+
      &                          edgelen
+                              nv1=nbridgevt(izon,13)+1
+                              nv2=nbridgevt(izon,13)+2
+                              if((nbridgevt(izon,13)+2).gt.MV*2)then
+                                call edisp(iuout,
+     &                            'Excess associated vertices')
+                                goto 45
+                              endif
+                              nbridgevt(izon,13)=nbridgevt(izon,13)+2
+                              bridgevlst(izon,13,nv1)=idedge(icuredge,1)
+                              bridgevlst(izon,13,nv2)=idedge(icuredge,2)
                               if(itrc.ge.1)then
-C                                write(6,*) 'add ',edgelen,' glass frame'
+                                write(6,*) 'add ',edgelen,' glass frm',
+     &                            ' nbv',nbridgevt(izon,13),' vst',
+     &                          bridgevlst(izon,13,nv1),' ->',
+     &                          bridgevlst(izon,13,nv2)
                               endif
                               idedge(icuredge,3)=1
                             elseif(
@@ -13283,8 +13745,21 @@ C << ALSO check if parent is of FRAME type >>
                             ibridgeshr(icc,i)=8  ! is vertical
                             bridgelen(izon,8)= bridgelen(izon,8)+
      &                        edgelen
+                            nv1=nbridgevt(izon,8)+1
+                            nv2=nbridgevt(izon,8)+2
+                            if((nbridgevt(izon,8)+2).gt.MV*2)then
+                              call edisp(iuout,
+     &                          'Excess associated vertices')
+                              goto 45
+                            endif
+                            nbridgevt(izon,8)=nbridgevt(izon,8)+2
+                            bridgevlst(izon,8,nv1)=idedge(icuredge,1)
+                            bridgevlst(izon,8,nv2)=idedge(icuredge,2)
                             if(itrc.ge.1)then
-C                              write(6,*) 'add ',edgelen,' to jamb'
+                              write(6,*) 'add ',edgelen,' to jamb',
+     &                            ' nbv',nbridgevt(izon,8),' vst',
+     &                          bridgevlst(izon,8,nv1),' ->',
+     &                          bridgevlst(izon,8,nv2)
                             endif
                             idedge(icuredge,3)=1
                           elseif(SOTF(izon,isurf)(1:6).eq.'OPAQUE'.and.
@@ -13292,8 +13767,21 @@ C                              write(6,*) 'add ',edgelen,' to jamb'
                             ibridgeshr(icc,i)=13  ! glass-frame
                             bridgelen(izon,13)= bridgelen(izon,13)+
      &                        edgelen
+                            nv1=nbridgevt(izon,13)+1
+                            nv2=nbridgevt(izon,13)+2
+                            if((nbridgevt(izon,13)+2).gt.MV*2)then
+                              call edisp(iuout,
+     &                          'Excess associated vertices')
+                              goto 45
+                            endif
+                            nbridgevt(izon,13)=nbridgevt(izon,13)+2
+                            bridgevlst(izon,13,nv1)=idedge(icuredge,1)
+                            bridgevlst(izon,13,nv2)=idedge(icuredge,2)
                             if(itrc.ge.1)then
-C                              write(6,*) 'add ',edgelen,' to gass frame'
+                              write(6,*) 'add ',edgelen,' to gass frm',
+     &                            ' nbv',nbridgevt(izon,13),' vst',
+     &                          bridgevlst(izon,13,nv1),' ->',
+     &                          bridgevlst(izon,13,nv2)
                             endif
                             idedge(icuredge,3)=1
                           elseif(SOTF(izon,isurf)(1:6).ne.'OPAQUE'.and.
@@ -13301,8 +13789,21 @@ C                              write(6,*) 'add ',edgelen,' to gass frame'
                             ibridgeshr(icc,i)=13  ! glass-frame
                             bridgelen(izon,13)= bridgelen(izon,13)+
      &                         edgelen
+                            nv1=nbridgevt(izon,13)+1
+                            nv2=nbridgevt(izon,13)+2
+                            if((nbridgevt(izon,13)+2).gt.MV*2)then
+                              call edisp(iuout,
+     &                          'Excess associated vertices')
+                              goto 45
+                            endif
+                            nbridgevt(izon,13)=nbridgevt(izon,13)+2
+                            bridgevlst(izon,13,nv1)=idedge(icuredge,1)
+                            bridgevlst(izon,13,nv2)=idedge(icuredge,2)
                             if(itrc.ge.1)then
-C                              write(6,*) 'add ',edgelen,' to gass frame'
+                              write(6,*) 'add ',edgelen,' to gass frm',
+     &                            ' nbv',nbridgevt(izon,13),' vst',
+     &                          bridgevlst(izon,13,nv1),' ->',
+     &                          bridgevlst(izon,13,nv2)
                             endif
                             idedge(icuredge,3)=1
                           elseif(SOTF(izon,isurf)(1:6).ne.'OPAQUE'.and.
@@ -13363,7 +13864,8 @@ C Check if REVEAL << and FRAME >>
                         endif
                         call ZSID(izon,isurf,zsn,ZSDESC,ZSDESS)
                         call ZSID(izon,iosurf,zsno,ZSDESCO,ZSDESSO)
-                        write(outs,'(3a)') zsn,' edge with ',zsno
+                        write(outs,'(3a)') zsn(1:lnblnk(zsn)),
+     &                    ' edge with ',zsno(1:lnblnk(zsno))
                         CALL EASKMBOX(outs,'One surface is a reveal',
      &                    'corner thermal bridge','jamb',
      &                    'not a bridge',' ',' ',' ',' ',' ',IV,nbhelp)
@@ -13386,8 +13888,16 @@ C and the angle between the surface normals is greater than zero.
                           ibridgeshr(icc,i)=3
                           bridgelen(izon,3)= bridgelen(izon,3)+
      &                      edgelen
+                          nv1=nbridgevt(izon,3)+1
+                          nv2=nbridgevt(izon,3)+2
+                          nbridgevt(izon,3)=nbridgevt(izon,3)+2
+                          bridgevlst(izon,3,nv1)=idedge(icuredge,1)
+                          bridgevlst(izon,3,nv2)=idedge(icuredge,2)
                           if(itrc.ge.1)then
-C                            write(6,*) 'add ',edgelen,' to corner conv'
+                            write(6,*) 'add ',edgelen,' to corner conv',
+     &                        ' nbv',nbridgevt(izon,3),' vst',
+     &                        bridgevlst(izon,3,nv1),' ->',
+     &                        bridgevlst(izon,3,nv2)
                           endif
                           idedge(icuredge,3)=1
                         else
@@ -13397,8 +13907,16 @@ C and the angle between the surface normals less than zero
                           ibridgeshr(icc,i)=4
                           bridgelen(izon,4)= bridgelen(izon,4)+
      &                      edgelen
+                          nv1=nbridgevt(izon,4)+1
+                          nv2=nbridgevt(izon,4)+2
+                          nbridgevt(izon,4)=nbridgevt(izon,4)+2
+                          bridgevlst(izon,4,nv1)=idedge(icuredge,1)
+                          bridgevlst(izon,4,nv2)=idedge(icuredge,2)
                           if(itrc.ge.1)then
-C                            write(6,*) 'add ',edgelen,' to corner concv'
+                            write(6,*)'add ',edgelen,' to corner concv',
+     &                        ' nbv',nbridgevt(izon,4),' vst',
+     &                        bridgevlst(izon,4,nv1),' ->',
+     &                        bridgevlst(izon,4,nv2)
                           endif
                           idedge(icuredge,3)=1
                         endif
@@ -13406,8 +13924,16 @@ C                            write(6,*) 'add ',edgelen,' to corner concv'
                         ibridgeshr(icc,i)=8  ! is vertical
                         bridgelen(izon,8)= bridgelen(izon,8)+
      &                    edgelen
+                        nv1=nbridgevt(izon,8)+1
+                        nv2=nbridgevt(izon,8)+2
+                        nbridgevt(izon,8)=nbridgevt(izon,8)+2
+                        bridgevlst(izon,8,nv1)=idedge(icuredge,1)
+                        bridgevlst(izon,8,nv2)=idedge(icuredge,2)
                         if(itrc.ge.1)then
-C                          write(6,*) 'add ',edgelen,' to jamb'
+                          write(6,*) 'add ',edgelen,' to jamb',
+     &                      ' nbv',nbridgevt(izon,8),' vst',
+     &                      bridgevlst(izon,8,nv1),' ->',
+     &                      bridgevlst(izon,8,nv2)
                         endif
                         idedge(icuredge,3)=1
                       endif
@@ -13427,7 +13953,7 @@ C                          write(6,*) 'add ',edgelen,' to jamb'
      &                   SVFC(izon,iosurf)(1:4).eq.'FLOR')then
 
 C Check if either surface is a REVEAL.
-                    IV=1       ! assume it will be wall-floor exposed.
+                    IV=1       ! assume it will be wall-floor exposed floor.
                     if(SUSE(izon,isurf,1)(1:6).eq.'REVEAL'.or.
      &                 SUSE(izon,iosurf,1)(1:6).eq.'REVEAL')then
                       if(MMOD.eq.8)then  ! highlight in red
@@ -13435,10 +13961,11 @@ C Check if either surface is a REVEAL.
                       endif
                       call ZSID(izon,isurf,zsn,ZSDESC,ZSDESS)
                       call ZSID(izon,iosurf,zsno,ZSDESCO,ZSDESSO)
-                      write(outs,'(3a)') zsn,' edge with ',zsno
+                      write(outs,'(3a)') zsn(1:lnblnk(zsn)),
+     &                  ' edge with ',zsno(1:lnblnk(zsno))
                       CALL EASKMBOX(outs,'One surface is a reveal',
-     &                  'wall-floor exposed','sill','not a bridge',
-     &                  ' ',' ',' ',' ',' ',IV,nbhelp)
+     &                  'wall-floor exposed ground','sill',
+     &                  'not a bridge',' ',' ',' ',' ',' ',IV,nbhelp)
                       if(IV.eq.3)then
                         if(MMOD.eq.8)then  ! Redraw as black line.
                           call edge_redblack(xx,xy,iix,iiy,
@@ -13449,13 +13976,13 @@ C Check if either surface is a REVEAL.
                       endif
                     endif
 
-C ibridgeshr =5 is wall-floor (exposed) so both surfaces must face the
+C ibridgeshr =5 is wall-floor (exposed ground) so both surfaces must face the
 C outside one roughly vertical and the other flat (down).
-                    if(IV.eq.1)then  ! Wall-floor exposed.
+                    if(IV.eq.1)then  ! Wall-floor exposed ground.
                       call ZSID(izon,isurf,zsn,ZSDESC,ZSDESS)
                       call ZSID(izon,iosurf,zsno,ZSDESCO,ZSDESSO)
 C Debug.
-C                      write(6,'(14a,4i4)') 'wall-floor-exposed ',
+C                      write(6,'(14a,4i4)') 'wall-floor-exposed ground',
 C     &                  zsn(1:lnblnk(zsn)),' edge with ',
 C     &                  zsno(1:lnblnk(zsno)),' p ',
 C     &                  sparent(izon,isurf),' ',
@@ -13464,18 +13991,34 @@ C     &                  ' ',SMLCN(izon,iosurf)(1:12),' ',
 C     &                  suse(izon,isurf,1),' ',suse(izon,iosurf,1),
 C     &                  icuredge,idedge(icuredge,1),idedge(icuredge,2),
 C     &                  idedge(icuredge,3)
-                        ibridgeshr(icc,i)=5
-                        bridgelen(izon,5)= bridgelen(izon,5)+
-     &                    edgelen
+                      ibridgeshr(icc,i)=5
+                      bridgelen(izon,5)= bridgelen(izon,5)+
+     &                  edgelen
+                      nv1=nbridgevt(izon,5)+1
+                      nv2=nbridgevt(izon,5)+2
+                      nbridgevt(izon,5)=nbridgevt(izon,5)+2
+                      bridgevlst(izon,5,nv1)=idedge(icuredge,1)
+                      bridgevlst(izon,5,nv2)=idedge(icuredge,2)
                       if(itrc.ge.1)then
-C                        write(6,*) 'add ',edgelen,' to exposed floor'
+                        write(6,*) 'add ',edgelen,' to exposed floor',
+     &                    ' nbv',nbridgevt(izon,5),' vst',
+     &                    bridgevlst(izon,5,nv1),' ->',
+     &                    bridgevlst(izon,5,nv2)
                       endif
                       idedge(icuredge,3)=1
                     elseif(IV.eq.2)then
                       ibridgeshr(icc,i)=7   ! sill
                       bridgelen(izon,7)= bridgelen(izon,7)+edgelen
+                      nv1=nbridgevt(izon,7)+1
+                      nv2=nbridgevt(izon,7)+2
+                      nbridgevt(izon,7)=nbridgevt(izon,7)+2
+                      bridgevlst(izon,7,nv1)=idedge(icuredge,1)
+                      bridgevlst(izon,7,nv2)=idedge(icuredge,2)
                       if(itrc.ge.1)then
-C                        write(6,*) 'add ',edgelen,' to sill'
+                        write(6,*) 'add ',edgelen,' to sill',
+     &                    ' nbv',nbridgevt(izon,7),' vst',
+     &                    bridgevlst(izon,7,nv1),' ->',
+     &                    bridgevlst(izon,7,nv2)
                       endif
                       idedge(icuredge,3)=1
                     endif
@@ -13513,8 +14056,16 @@ C     &              idedge(icuredge,3)
                     ibridgeshr(icc,i)=11
                     bridgelen(izon,11)= bridgelen(izon,11)+
      &                edgelen
+                    nv1=nbridgevt(izon,11)+1
+                    nv2=nbridgevt(izon,11)+2
+                    nbridgevt(izon,11)=nbridgevt(izon,11)+2
+                    bridgevlst(izon,11,nv1)=idedge(icuredge,1)
+                    bridgevlst(izon,11,nv2)=idedge(icuredge,2)
                     if(itrc.ge.1)then
-C                      write(6,*) 'add ',edgelen,' to intermed floor'
+                      write(6,*) 'add ',edgelen,' to intermed floor',
+     &                  ' nbv',nbridgevt(izon,11),' vst',
+     &                  bridgevlst(izon,11,nv1),' ->',
+     &                  bridgevlst(izon,11,nv2)
                     endif
                     idedge(icuredge,3)=1
                   elseif(SVFC(izon,isurf)(1:4).eq.'VERT'.and.
@@ -13524,7 +14075,8 @@ C                      write(6,*) 'add ',edgelen,' to intermed floor'
                     endif
                     call ZSID(izon,isurf,zsn,ZSDESC,ZSDESS)
                     call ZSID(izon,iosurf,zsno,ZSDESCO,ZSDESSO)
-                    write(outs,'(3a)') zsn,' edge with ',zsno
+                    write(outs,'(3a)') zsn(1:lnblnk(zsn)),
+     &                ' edge with ',zsno(1:lnblnk(zsno))
                     CALL EASKMBOX(outs,'  ','wall-eave','wall-gable',
      &                'wall-parapet or wall-flat roof',
      &                'intermediate floor','balcony','lintel',
@@ -13532,44 +14084,92 @@ C                      write(6,*) 'add ',edgelen,' to intermed floor'
                     if(iv.eq.1)then
                       ibridgeshr(icc,i)=1
                       bridgelen(izon,1)= bridgelen(izon,1)+edgelen
+                      nv1=nbridgevt(izon,1)+1
+                      nv2=nbridgevt(izon,1)+2
+                      nbridgevt(izon,1)=nbridgevt(izon,1)+2
+                      bridgevlst(izon,1,nv1)=idedge(icuredge,1)
+                      bridgevlst(izon,1,nv2)=idedge(icuredge,2)
                       if(itrc.ge.1)then
-C                        write(6,*) 'add ',edgelen,' to wall-eave'
+                        write(6,*) 'add ',edgelen,' to wall-eave',
+     &                    ' nbv',nbridgevt(izon,1),' vst',
+     &                    bridgevlst(izon,1,nv1),' ->',
+     &                    bridgevlst(izon,1,nv2)
                       endif
                       idedge(icuredge,3)=1
                     elseif(iv.eq.2)then
                       ibridgeshr(icc,i)=9
                       bridgelen(izon,9)= bridgelen(izon,9)+edgelen
+                      nv1=nbridgevt(izon,9)+1
+                      nv2=nbridgevt(izon,9)+2
+                      nbridgevt(izon,9)=nbridgevt(izon,9)+2
+                      bridgevlst(izon,9,nv1)=idedge(icuredge,1)
+                      bridgevlst(izon,9,nv2)=idedge(icuredge,2)
                       if(itrc.ge.1)then
-C                        write(6,*) 'add ',edgelen,' to wall-gable'
+                        write(6,*) 'add ',edgelen,' to wall-gable',
+     &                    ' nbv',nbridgevt(izon,9),' vst',
+     &                    bridgevlst(izon,9,nv1),' ->',
+     &                    bridgevlst(izon,9,nv2)
                       endif
                       idedge(icuredge,3)=1
                     elseif(iv.eq.3)then
                       ibridgeshr(icc,i)=10
                       bridgelen(izon,10)= bridgelen(izon,10)+edgelen
+                      nv1=nbridgevt(izon,10)+1
+                      nv2=nbridgevt(izon,10)+2
+                      nbridgevt(izon,10)=nbridgevt(izon,10)+2
+                      bridgevlst(izon,10,nv1)=idedge(icuredge,1)
+                      bridgevlst(izon,10,nv2)=idedge(icuredge,2)
                       if(itrc.ge.1)then
-C                        write(6,*) 'add ',edgelen,' to wall-parapet'
+                        write(6,*) 'add ',edgelen,' to wall-parapet',
+     &                    ' nbv',nbridgevt(izon,10),' vst',
+     &                    bridgevlst(izon,10,nv1),' ->',
+     &                    bridgevlst(izon,10,nv2)
                       endif
                       idedge(icuredge,3)=1
                     elseif(iv.eq.4)then
                       ibridgeshr(icc,i)=11
                       bridgelen(izon,11)= bridgelen(izon,11)+
      &                  edgelen
+                      nv1=nbridgevt(izon,11)+1
+                      nv2=nbridgevt(izon,11)+2
+                      nbridgevt(izon,11)=nbridgevt(izon,11)+2
+                      bridgevlst(izon,11,nv1)=idedge(icuredge,1)
+                      bridgevlst(izon,11,nv2)=idedge(icuredge,2)
                       if(itrc.ge.1)then
-C                        write(6,*) 'add ',edgelen,' to intermed floor'
+                        write(6,*) 'add ',edgelen,' to intermed floor',
+     &                    ' nbv',nbridgevt(izon,11),' vst',
+     &                    bridgevlst(izon,11,nv1),' ->',
+     &                    bridgevlst(izon,11,nv2)
                       endif
                       idedge(icuredge,3)=1
                     elseif(iv.eq.5)then  ! A balcony
                       ibridgeshr(icc,i)=14
                       bridgelen(izon,14)= bridgelen(izon,14)+edgelen
+                      nv1=nbridgevt(izon,14)+1
+                      nv2=nbridgevt(izon,14)+2
+                      nbridgevt(izon,14)=nbridgevt(izon,14)+2
+                      bridgevlst(izon,14,nv1)=idedge(icuredge,1)
+                      bridgevlst(izon,14,nv2)=idedge(icuredge,2)
                       if(itrc.ge.1)then
-C                        write(6,*) 'add ',edgelen,' to balcony'
+                        write(6,*) 'add ',edgelen,' to balcony',
+     &                    ' nbv',nbridgevt(izon,14),' vst',
+     &                    bridgevlst(izon,14,nv1),' ->',
+     &                    bridgevlst(izon,14,nv2)
                       endif
                       idedge(icuredge,3)=1
                     elseif(iv.eq.6)then  ! A lintel
                       ibridgeshr(icc,i)=6   ! lintel
                       bridgelen(izon,6)= bridgelen(izon,6)+edgelen
+                      nv1=nbridgevt(izon,6)+1
+                      nv2=nbridgevt(izon,6)+2
+                      nbridgevt(izon,6)=nbridgevt(izon,6)+2
+                      bridgevlst(izon,6,nv1)=idedge(icuredge,1)
+                      bridgevlst(izon,6,nv2)=idedge(icuredge,2)
                       if(itrc.ge.1)then
-C                        write(6,*) 'add ',edgelen,' to lintel'
+                        write(6,*) 'add ',edgelen,' to lintel',
+     &                    ' nbv',nbridgevt(izon,6),' vst',
+     &                    bridgevlst(izon,6,nv1),' ->',
+     &                    bridgevlst(izon,6,nv2)
                       endif
                       idedge(icuredge,3)=1
                     elseif(iv.eq.7)then  ! User says not a bridge.
@@ -13586,16 +14186,32 @@ C ibridgeshr =12 if 2nd (interior) surface is vertical.
                     ibridgeshr(icc,i)=12
                     bridgelen(izon,12)= bridgelen(izon,12)+
      &                edgelen
+                    nv1=nbridgevt(izon,12)+1
+                    nv2=nbridgevt(izon,12)+2
+                    nbridgevt(izon,12)=nbridgevt(izon,12)+2
+                    bridgevlst(izon,12,nv1)=idedge(icuredge,1)
+                    bridgevlst(izon,12,nv2)=idedge(icuredge,2)
                     if(itrc.ge.1)then
-C                      write(6,*) 'add ',edgelen,' to wall-ptn'
+                      write(6,*) 'add ',edgelen,' to wall-ptn',
+     &                    ' nbv',nbridgevt(izon,12),' vst',
+     &                    bridgevlst(izon,12,nv1),' ->',
+     &                    bridgevlst(izon,12,nv2)
                     endif
                     idedge(icuredge,3)=1
                   elseif(SVFC(izon,isurf)(1:4).eq.'SLOP'.and.  ! Sloped roof to flat ceiling.
      &                   SVFC(izon,iosurf)(1:4).eq.'FLOR')then
                     ibridgeshr(icc,i)=9
                     bridgelen(izon,9)= bridgelen(izon,9)+edgelen
+                    nv1=nbridgevt(izon,9)+1
+                    nv2=nbridgevt(izon,9)+2
+                    nbridgevt(izon,9)=nbridgevt(izon,9)+2
+                    bridgevlst(izon,9,nv1)=idedge(icuredge,1)
+                    bridgevlst(izon,9,nv2)=idedge(icuredge,2)
                     if(itrc.ge.1)then
-C                      write(6,*) 'add ',edgelen,' to wall-gable'
+                      write(6,*) 'add ',edgelen,' to wall-gable',
+     &                  ' nbv',nbridgevt(izon,9),' vst',
+     &                  bridgevlst(izon,9,nv1),' ->',
+     &                  bridgevlst(izon,9,nv2)
                     endif
                     idedge(icuredge,3)=1
                   endif
@@ -13619,8 +14235,16 @@ C other must face the ground.
                     ibridgeshr(icc,i)=2
                     bridgelen(izon,2)= bridgelen(izon,2)+
      &                edgelen
+                    nv1=nbridgevt(izon,2)+1
+                    nv2=nbridgevt(izon,2)+2
+                    nbridgevt(izon,2)=nbridgevt(izon,2)+2
+                    bridgevlst(izon,2,nv1)=idedge(icuredge,1)
+                    bridgevlst(izon,2,nv2)=idedge(icuredge,2)
                     if(itrc.ge.1)then
-C                      write(6,*) 'add ',edgelen,' to wall-grnd'
+                      write(6,*) 'add ',edgelen,' to wall-grnd',
+     &                  ' nbv',nbridgevt(izon,2),' vst',
+     &                  bridgevlst(izon,2,nv1),' ->',
+     &                  bridgevlst(izon,2,nv2)
                     endif
                     idedge(icuredge,3)=1
                     if(ibridgeshr(icc,i).ne.0.and.MMOD.eq.8)then
@@ -13643,22 +14267,38 @@ C                      write(6,*) 'add ',edgelen,' to wall-grnd'
 
 C Report on likely thermal bridge lengths. Reduce the concave and
 C convex bridge lengths because they will have been counted from
-C the edges going in both directions.
-C       bridgelen(izon,3)=bridgelen(izon,3)*0.5
-C       bridgelen(izon,4)=bridgelen(izon,4)*0.5
-      if(itrc.ge.1)then
-        write(outs,'(a,9f7.2)') 'bridge len ',bridgelen(izon,1),
+      write(outs,'(a,9f7.2)') 'bridge len 1-9',bridgelen(izon,1),
      &    bridgelen(izon,2),bridgelen(izon,3),
      &    bridgelen(izon,4),bridgelen(izon,5),
      &    bridgelen(izon,6),bridgelen(izon,7),
      &    bridgelen(izon,8),bridgelen(izon,9)
-        call edisp(iuout,' ')
-        call edisp(iuout,outs)
-        write(outs,'(a,7f7.2)') 'bridge len ',bridgelen(izon,10),
+      call edisp(iuout,' ')
+      call edisp(iuout,outs)
+      write(outs,'(a,7f7.2)') 'bridge len 11-16',bridgelen(izon,10),
      &    bridgelen(izon,11),bridgelen(izon,12),
      &    bridgelen(izon,13),bridgelen(izon,14),
      &    bridgelen(izon,15),bridgelen(izon,16)
-        call edisp(iuout,outs)
+      call edisp(iuout,outs)
+      write(outs,'(a,9i4)') 'bridge verts 1-9',nbridgevt(izon,1),
+     &    nbridgevt(izon,2),nbridgevt(izon,3),
+     &    nbridgevt(izon,4),nbridgevt(izon,5),
+     &    nbridgevt(izon,6),nbridgevt(izon,7),
+     &    nbridgevt(izon,8),nbridgevt(izon,9)
+      call edisp(iuout,' ')
+      call edisp(iuout,outs)
+      write(outs,'(a,7i4)') 'bridge verts 10-16',nbridgevt(izon,10),
+     &    nbridgevt(izon,11),nbridgevt(izon,12),
+     &    nbridgevt(izon,13),nbridgevt(izon,14),
+     &    nbridgevt(izon,15),nbridgevt(izon,16)
+      call edisp(iuout,outs)
+      if(itrc.ge.1)then  ! If verbose include the vertices.
+        do ij=1,16
+          if(nbridgevt(izon,ij).ge.1)then
+            write(outs480,'(a,i4,1x,80i4)') 'list type',ij,
+     &        (bridgevlst(izon,ij,ik),ik=1,nbridgevt(izon,ij))
+            call edisp248(iuout,outs480,128)
+          endif
+        enddo
       endif
       return
       end
@@ -13703,5 +14343,226 @@ C Check if we have colour.
         if(greyok)call winscl('-',iicol)
         call forceflush()
       endif
+      return
+      end
+
+C ****************** setbridgenames ********************
+C Generate standard names, labels & default psi values for
+C thermal bridge types. Note: phrasemenu is used for the
+C user interface labels.
+
+      subroutine setbridgenames(ier)
+#include "building.h"
+      common/tbphrases/phraselen(16),phrasepsi(16),phrasemenu(16),
+     &  previewlbl(16)
+      character phraselen*32,phrasepsi*32,phrasemenu*34,previewlbl*24
+      common/tbdefs/defpsi(16,4)     ! default psi values.
+      real defpsi
+
+C Setup phrases for the menu and for editing length and psi values.
+C The exact spelling of phraselen and phrasepsi is important.
+C The defpsi arrray sets default values which are currently based
+C on 1) UK SAP defaults, 2) BRE accredited details database,
+C 3) UK Part L Masonry, 4) UK Part L Timber. Additional regimes
+C could be added by altering the array size.
+      phrasemenu(1) ='a roof-wall (eave)             :'
+      phraselen(1)  ='roof-wall '
+      phrasepsi(1)  ='roof-wall '
+      previewlbl(1) ='roof-wall'
+      defpsi(1,1)=0.12; defpsi(1,2)=0.06; defpsi(1,3)=0.097
+      defpsi(1,4)=0.069
+      phrasemenu(2) ='b wall-ground floor            :'
+      phraselen(2)  ='wall-ground floor '
+      phrasepsi(2)  ='wall-ground floor '
+      previewlbl(2) ='wall-ground'
+      defpsi(2,1)=0.32; defpsi(2,2)=0.16; defpsi(2,3)=0.059
+      defpsi(2,4)=0.06
+      phrasemenu(3) ='c wall-wall (convex corner)    :'
+      phraselen(3)  ='wall-wall (convex corner) '
+      phrasepsi(3)  ='wall-wall (convex corner) '
+      previewlbl(3) ='wall-wall (convex)'
+      defpsi(3,1)=0.18; defpsi(3,2)=0.09; defpsi(3,3)=0.046
+      defpsi(3,4)=0.059
+      phrasemenu(4) ='d wall-wall (concave corner)   :'
+      phraselen(4)  ='wall-wall (concave corner) '
+      phrasepsi(4)  ='wall-wall (concave corner) '
+      previewlbl(4) ='wall-wall (concave)'
+      defpsi(4,1)= 0.0; defpsi(4,2)= -0.09; defpsi(4,3)= -0.082 
+      defpsi(4,4)= -0.013
+      phrasemenu(5) ='e wall-floor (exposed ground)  :'
+      phraselen(5)  ='wall-floor (exposed ground) '
+      phrasepsi(5)  ='wall-floor (exposed ground) '
+      previewlbl(5) ='wall-floor (exp)'
+      defpsi(5,1)=0.32; defpsi(5,2)=0.16; defpsi(5,3)=0.1 ! only default specified
+      defpsi(5,4)=0.1
+      phrasemenu(6) ='f lintel above window or door  :'
+      phraselen(6)  ='lintel above window or door '
+      phrasepsi(6)  ='lintel above window or door '
+      previewlbl(6) ='lintel'
+      defpsi(6,1)=1.0; defpsi(6,2)=0.5; defpsi(6,3)=0.17; 
+      defpsi(6,4)=0.1
+      phrasemenu(7) ='g sill below window            :'
+      phraselen(7)  ='sill below window '
+      phrasepsi(7)  ='sill below window '
+      previewlbl(7) ='sill'
+      defpsi(7,1)=0.08; defpsi(7,2)=0.04; defpsi(7,3)=0.038
+      defpsi(7,4)=0.032
+      phrasemenu(8) ='h jamb at window or door       :'
+      phraselen(8)  ='jamb at window or door '
+      phrasepsi(8)  ='jamb at window or door '
+      previewlbl(8) ='jamb'
+      defpsi(8,1)=0.10; defpsi(8,2)=0.05; defpsi(8,3)=0.041 
+      defpsi(8,4)=0.045
+      phrasemenu(9) ='i wall-gable                   :'
+      phraselen(9)  ='wall-gable'
+      phrasepsi(9)  ='wall-gable'
+      previewlbl(9) ='wall-gable'
+      defpsi(9,1)=0.48; defpsi(9,2)=0.24; defpsi(9,3)=0.059 
+      defpsi(9,4)=0.069
+      phrasemenu(10)='j wall-parapet                 :'
+      phraselen(10) ='wall-parapet'
+      phrasepsi(10) ='wall-parapet'
+      previewlbl(10)='wall-parapet'
+      defpsi(10,1)=0.56; defpsi(10,2)=0.28; defpsi(10,3)=0.16 
+      defpsi(10,4)=0.16
+      phrasemenu(11)='k wall-intermediate-floor      :'
+      phraselen(11) ='wall-intermediate-floor'
+      phrasepsi(11) ='wall-intermediate-floor'
+      previewlbl(11)='wall-int-floor'
+      defpsi(11,1)=0.14; defpsi(11,2)=0.07; defpsi(11,3)=0.01 
+      defpsi(11,4)=0.01
+      phrasemenu(12)='l wall-partition               :'
+      phraselen(12) ='wall-partition'
+      phrasepsi(12) ='wall-partition'
+      previewlbl(12)='wall-part'
+      defpsi(12,1)=0.12; defpsi(12,2)=0.06; defpsi(12,3)=0.002 
+      defpsi(12,4)=0.08
+      phrasemenu(13)='m glass-frame                  :'
+      phraselen(13) ='glass-frame'
+      phrasepsi(13) ='glass-frame'
+      previewlbl(13)='glass-frame'
+      defpsi(13,1)=0.1; defpsi(13,2)=0.07; defpsi(13,3)=.04 
+      defpsi(13,4)=0.04
+      phrasemenu(14)='n balcony                      :'
+      phraselen(14) ='balcony'
+      phrasepsi(14) ='balcony'
+      previewlbl(14)='balcony'
+      defpsi(14,1)=1.0; defpsi(14,2)=0.5; defpsi(14,3)=0.4 
+      defpsi(14,4)=0.4
+      phrasemenu(15)='o user-defined a               :'
+      phraselen(15) ='user-defined-a'
+      phrasepsi(15) ='user-defined-a'
+      previewlbl(15)='user-a'
+      defpsi(15,1)=1.0; defpsi(15,2)=1.0; defpsi(15,3)=1.0
+      defpsi(15,4)=1.0
+      phrasemenu(16)='p user-defined b               :'
+      phraselen(16) ='user-defined-b'
+      phrasepsi(16) ='user-defined-b'
+      previewlbl(16)='user-b'
+      defpsi(16,1)=0.00; defpsi(16,2)=0.00; defpsi(16,3)=0.00 
+      defpsi(16,4)=0.0
+      return
+      end    
+
+C ****************** gpreviewbridgek *******************
+C Overlay thermal bridges on current zone wireframe.
+C If ifoc = zero then highlight all types, if non-zero
+C highlight only the matching type, if -1 only create
+C the labels.
+      subroutine gpreviewbridge(izon,ifoc,ier)
+#include "building.h"
+#include "geometry.h"
+#include "prj3dv.h"
+
+      COMMON/SPAD/MMOD,LIMIT,LIMTTY
+      integer ncomp,ncon
+      COMMON/C1/NCOMP,NCON
+      COMMON/gzonpik/izgfoc,nzg,nznog(mcom)
+      common/appcols/mdispl,nifgrey,ncset,ngset,nzonec
+      integer ifs,itfs,imfs
+      COMMON/GFONT/IFS,ITFS,IMFS
+      integer menuchw,igl,igr,igt,igb,igw,igwh
+      COMMON/VIEWPX/menuchw,igl,igr,igt,igb,igw,igwh
+      real bridgelen       ! Length (m) of potential thermal bridges in each zone.
+      integer nbridgevt    ! Number of verticies associted with this bridge.
+      integer bridgevlst   ! List of vertices associated with bridge.
+      common/gbridge/bridgelen(MCOM,16),nbridgevt(MCOM,16),
+     &  bridgevlst(MCOM,16,MV*2)
+      common/tbphrases/phraselen(16),phrasepsi(16),phrasemenu(16),
+     &  previewlbl(16)
+      character phraselen*32,phrasepsi*32,phrasemenu*34,previewlbl*24
+
+      dimension xx(2),xy(2),xz(2)
+      logical greyok,colok
+      character temp*28
+      
+#ifdef OSI
+      integer iix,iiy,iix2,iiy2,iicol,iid1,iid2
+      integer ipixw,ipixh,ibsize
+#else
+      integer*8 iix,iiy,iix2,iiy2,iicol,iid1,iid2
+      integer*8 ipixw,ipixh,ibsize
+#endif
+
+C Check if we have greys and colours.
+      greyok=.false.
+      if(nifgrey.gt.4)then
+        greyok=.true.
+      endif
+      colok=.false.
+      if(nzonec.ge.NCOMP)colok=.true.
+      if(izon.eq.0.or.izon.gt.NCOMP)then
+        ier=1
+        return
+      endif
+      CALL INLNST(1)
+      itsnm=0
+      nzg=1; nznog(1)=izon; izgfoc=izon
+      call redraw(IER)
+
+      CALL winfnt(IFS)
+      iid1=igl+10; iid2=igb+5; temp=' '
+      call setbridgenames(ier)
+      do ij=1,16
+        if(nbridgevt(izon,ij).gt.0)then
+          write(temp,'(A)') previewlbl(ij)
+          iicol=ij
+          ibsize=0
+          call textsizeatxy(iid1,iid2,temp,ibsize,'z',iicol)
+          if(colok)then
+            iicol=0
+            call winscl('-',iicol)
+          endif
+          call forceflush()
+          call textpixwidth(temp,ipixw,ipixh)
+          iid1=iid1+ipixw+4
+          if(ifoc.eq.-1) cycle
+          do ik=1,nbridgevt(izon,ij),2
+            izva=bridgevlst(izon,ij,ik) 
+            izvb=bridgevlst(izon,ij,ik+1)
+            call ORTTRN(szcoords(izon,izva,1),
+     &        szcoords(izon,izva,2),szcoords(izon,izva,3),
+     &        TSMAT,xx(1),xy(1),xz(1),ier)
+            call ORTTRN(szcoords(izon,izvb,1),
+     &        szcoords(izon,izvb,2),szcoords(izon,izvb,3),
+     &        TSMAT,xx(2),xy(2),xz(2),ier)
+            call CLIPLIN(xx,xy,xz,iclp)
+            call u2pixel(xx(1),xy(1),iix,iiy)
+            call u2pixel(xx(2),xy(2),iix2,iiy2)
+            if(ifoc.eq.0.or.ifoc.eq.ij)then
+              iicol=ij
+              if(greyok)call winscl('z',iicol)
+              call edwline(iix,iiy,iix2,iiy2)
+              iicol=0
+              if(greyok)call winscl('-',iicol)
+            else
+              iicol=0  ! Not a focus thermal bridge do as black.
+              if(greyok)call winscl('-',iicol)
+              call edwline(iix,iiy,iix2,iiy2)
+            endif
+            call forceflush()
+          enddo
+        endif
+      enddo
       return
       end

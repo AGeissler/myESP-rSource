@@ -290,6 +290,7 @@ C Status of multi-year weather database.
       integer :: loop
       real :: rtmp
       integer ISTRW
+      logical MY   ! signal not-multi-year weather.
 
 C Atmospheric pressure and density.
       REAL PRESSURE_ALT,AIR_DENSITY
@@ -749,7 +750,8 @@ C is correct. If not, warn user .
 C Collect & process single-year weather file.
 C Note that this file uses a different error flag than
 C the global model definition as it can be specified separately.
-         CALL CLMOPB(0,IClmErr)
+         MY=.false.
+         CALL CLMOPB(MY,0,IClmErr)
          IF(iClmErr.eq.0)THEN
             CALL CLMRDBMD(IClmErr)           
          ELSE

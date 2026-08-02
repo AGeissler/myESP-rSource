@@ -25,9 +25,28 @@ C Reads a zone moisture data file.
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/PREC9/NCONST(MCOM),NELTS(MCOM,MS),NGAPS(MCOM,MS),
      &             NPGAP(MCOM,MS,MGP)
+
+C MNDS - Unused & conflicts with parameter in net_flow.h
+C MNDZ - total number of nodes of all constructions in a zone.
+C MNDC - number of nodes per construction.
+C MNDL - number of nodes per layer for each zone construction. 
+C        (this is a multiple of the number of nodes used in the
+C        conduction calculation, i.e. a multiple of 3.
       COMMON/MOIST03/MNDS,MNDZ(MCOM),MNDC(MCOM,MS),MNDL(MCOM,MS,ME)
+
+C IPERM - index of the permeability data (for each zone, component, layer).
+C PERM contains 3 values describing the vapour permeability, as
+C      zone,component,layer,data(1:3).
       COMMON/MOIST05/IPERM(MCOM,MS,ME),PERM(MCOM,MS,ME,3)
+
+C ISORP - holds the index of each entry.
+C SORP  - contains the sorption isotherm data (Uh, A and n).
+C SORP  - contains 3 values describing the moisture capacity, as
+C         zone,component,layer,data(1:3)
       COMMON/MOIST06/ISORP(MCOM,MS,ME),SORP(MCOM,MS,ME,3)
+
+C Thermal vapor diffusion coefficient for each layer:
+C ITVAPD - holds the index. TVAPD  - holds the coefficient.
       COMMON/MOIST07/ITVAPD(MCOM,MS,ME),TVAPD(MCOM,MS,ME)
 
       CHARACTER LMSTR*72,OUTSTR*124,outs*124
@@ -45,7 +64,27 @@ C Check moisture file version (legacy files begin with "#  moisture nodes/layer"
 C Read lines from file, discarding comments. Look for header on
 C newer files. Older files will begin with a description. To allow for
 C description with spaces copy directly from OUTSTR rather than parsing
-C it into words.
+C it into words.  Example of legacy file header:
+C #  moisture nodes/layer
+C      6
+C      6
+C      6     6     6
+C      6     6     6
+C      6     6     6
+C . . .
+C Example of V2 file header:
+C *Moisture 2.0
+C OTTO  
+C #  moisture nodes/layer
+C      6
+C      6
+C      6
+C      6
+C      6     6     6
+C      6     6     3    6
+C      6
+C . . .
+
       CALL STRIPC(IUNIT,OUTSTR,0,ND,1,'moist version or header',IER)
       IF(IER.NE.0) goto 102
       if(outstr(1:9).eq.'*Moisture')then
@@ -75,12 +114,8 @@ C Rewind legacy file for read and set model to LEGACY
         iMoistModel(icomp)=LEGACY
       endif
 
-C Read the moisture node distribution information.
-C MNDL - number of nodes per layer for each zone construction. 
-C        (this is a multiple of the number of nodes used in the
-C        conduction calculation, i.e. a multiple of 3.
-C MNDC - number of nodes per construction.
-C MNDZ - total number of nodes of all constructions in a zone.
+C Read the moisture node distribution information. Sum all the nodes
+C for each construction into MNDZ().
       MNDS=MNDS-MNDZ(ICOMP)
       MNDZ(ICOMP)=0
       NC=NCONST(ICOMP)
@@ -101,93 +136,127 @@ C MNDZ - total number of nodes of all constructions in a zone.
       MNDS=MNDS+MNDZ(ICOMP)
 
 C Read the data for water vapour permeability for each layer.
-C IPERM - index of the permeability data (for each zone, component, layer).
 C iperm,ISORP and ITVAPD define the formula to be used to estimate
 C hygo-thermal properties. The following exemplar models set these
 C indices to 1.
-C        ./models/training/constr/adapt/zones/liv_room.mst
-C        ./models/training/burdie/zone/bed_3.mst-ii
-C        ./models/training/burdie/zone/bed_3.mst
 C        ./models/training/wsf/zones/theZone_legacy.mst
-C        ./models/training/wsf/zones/theZone_Otto.mst
-
-C PERM contains 3 values describing the vapour permeability, as
-C      zone,component,layer,data(1:3).
+C        ./models/training/wsf/zones/theZone_Otto.mst (Example follows:)
+C # Vapour permeability data for each layer
+C # indx |   associated data for surface  1
+C     1          2.381     0.0      -2.044
+C # indx |   associated data for surface  2
+C     1          2.381     0.0      -2.044
+C # indx |   associated data for surface  3
+C     1          2.381     0.0      -2.044
+C # indx |   associated data for surface  4
+C     1          2.381     0.0      -2.044
+C # indx |   associated data for surface  5
+C     1          4.378     0.0      -5.677
+C     1          0.0       0.0       0.0
+C     1          1.015    -0.844     0.0
+C . . .
       DO 30 I=1,NC
         NE=NELTS(ICOMP,I)
-      DO 30 IL=1,NE
-        CALL STRIPC(IUNIT,OUTSTR,99,ND,1,'data',IER)
-        IF(IER.NE.0)goto 101
-        K=0
-        CALL EGETWI(OUTSTR,K,INDX,1,1,'F','IPERM index',IER)
-        IPERM(ICOMP,I,IL)=INDX
-        IF(IER.NE.0)goto 101
-        IF(INDX.EQ.1.AND.ND.EQ.4)THEN
-          DO 40 IP=1,3
-            CALL EGETWR(OUTSTR,K,DATA,0.,1.,'-','PERM() data',IER)
-            IF(IER.NE.0)goto 101
-            PERM(ICOMP,I,IL,IP)=DATA
-   40     CONTINUE
-        ELSE
-          CALL USRMSG(' ','Un-known index','W')
-          RETURN
-        ENDIF
+        DO IL=1,NE
+          CALL STRIPC(IUNIT,OUTSTR,99,ND,1,'data',IER)
+          IF(IER.NE.0)goto 101
+          K=0
+          CALL EGETWI(OUTSTR,K,INDX,1,1,'F','IPERM index',IER)
+          IPERM(ICOMP,I,IL)=INDX
+          IF(IER.NE.0)goto 101
+          IF(INDX.EQ.1.AND.ND.EQ.4)THEN
+            DO 40 IP=1,3
+              CALL EGETWR(OUTSTR,K,DATA,0.,1.,'-','PERM() data',IER)
+              IF(IER.NE.0)goto 101
+              PERM(ICOMP,I,IL,IP)=DATA
+   40       CONTINUE
+          ELSE
+            CALL USRMSG(' ','Un-known IPERM index','W')
+            RETURN
+          ENDIF
+        ENDDO
    30 CONTINUE
 
 C Read the data for moisture capacity for each layer.
 C ISORP - holds the index of each entry.
 C SORP  - contains the sorption isotherm data (Uh, A and n).
 C SORP  - contains 3 values describing the moisture capacity, as
-C         zone,component,layer,data(1:3)
+C         zone,component,layer,data(1:3) Example:
+C # Sorption isotherm data for each layer
+C # indx |   associated data for surface  1
+C     1          0.033   -0.071      0.058
+C # indx |   associated data for surface  2
+C     1          0.033   -0.071      0.058
+C # indx |   associated data for surface  3
+C     1          0.033   -0.071      0.058
+C # indx |   associated data for surface  4
+C     1          0.033   -0.071      0.058
+C # indx |   associated data for surface  5
+C     1          0.184   -0.383      0.271
+C     1          0.0      0.0        0.0
+C     1          0.027   -0.057      0.04
+C . . .
       DO 50 I=1,NC
         NE=NELTS(ICOMP,I)
-      DO 50 IL=1,NE
-        CALL STRIPC(IUNIT,OUTSTR,99,ND,1,'data',IER)
-        IF(IER.NE.0)goto 101
-        K=0
-        CALL EGETWI(OUTSTR,K,INDX,1,1,'F','ISORP()index',IER)
-        ISORP(ICOMP,I,IL)=INDX
-        IF(IER.NE.0)goto 101
-        IF(INDX.EQ.1.AND.ND.EQ.4)THEN
-          DO 60 IP=1,3
-            CALL EGETWR(OUTSTR,K,DATA,0.,1.,'-','SORP() data',IER)
-            IF(IER.NE.0)goto 101
-            SORP(ICOMP,I,IL,IP)=DATA
-   60     CONTINUE
-        ELSE
-          CALL USRMSG(' ','Un-known moisture index','W')
-          RETURN
-        ENDIF
+        DO IL=1,NE
+          CALL STRIPC(IUNIT,OUTSTR,99,ND,1,'data',IER)
+          IF(IER.NE.0)goto 101
+          K=0
+          CALL EGETWI(OUTSTR,K,INDX,1,1,'F','ISORP()index',IER)
+          ISORP(ICOMP,I,IL)=INDX
+          IF(IER.NE.0)goto 101
+          IF(INDX.EQ.1.AND.ND.EQ.4)THEN
+            DO 60 IP=1,3
+              CALL EGETWR(OUTSTR,K,DATA,0.,1.,'-','SORP() data',IER)
+              IF(IER.NE.0)goto 101
+              SORP(ICOMP,I,IL,IP)=DATA
+   60       CONTINUE
+          ELSE
+            CALL USRMSG(' ','Un-known moisture index','W')
+            RETURN
+          ENDIF
+        ENDDO
    50 CONTINUE
 
 C Read thermal vapor diffusion coefficient for each layer.
 C ITVAPD - holds the index. 
 C TVAPD  - holds this single value.
-C All current exemplar models set the value to 0 since thermal vapour diffusion is not
-C active.
-C        ./models/training/constr/adapt/zones/liv_room.mst
-C        ./models/training/burdie/zone/bed_3.mst-ii
-C        ./models/training/burdie/zone/bed_3.mst
+C All current exemplar models set the value to 0 since thermal vapour 
+C diffusion is not active.
 C        ./models/training/wsf/zones/theZone_legacy.mst
-C        ./models/training/wsf/zones/theZone_Otto.mst
-
+C        ./models/training/wsf/zones/theZone_Otto.mst Example:
+C # Thermal vapour diffusion coefficient for each layer
+C # indx |   associated data for surface  1
+C     1          0.    
+C # indx |   associated data for surface  2
+C     1          0.    
+C # indx |   associated data for surface  3
+C     1          0.    
+C # indx |   associated data for surface  4
+C     1          0.
+C # indx |   associated data for surface  5
+C     1          0.    
+C     1          0.
+C     1          0.
+C . . .
       DO 70 I=1,NC
         NE=NELTS(ICOMP,I)
-      DO 70 IL=1,NE
-        CALL STRIPC(IUNIT,OUTSTR,99,ND,1,'data',IER)
-        IF(IER.NE.0)RETURN
-        K=0
-        CALL EGETWI(OUTSTR,K,INDX,1,1,'F','index',IER)
-        ITVAPD(ICOMP,I,IL)=INDX
-        IF(IER.NE.0)RETURN
-        IF(INDX.EQ.1.AND.ND.EQ.2)THEN
-          CALL EGETWR(OUTSTR,K,DATA,0.,1.,'-','data',IER)
+        DO IL=1,NE
+          CALL STRIPC(IUNIT,OUTSTR,99,ND,1,'data',IER)
           IF(IER.NE.0)RETURN
-          TVAPD(ICOMP,I,IL)=DATA
-        ELSE
-          CALL USRMSG(' ','Un-known index','W')
-          RETURN
-        ENDIF
+          K=0
+          CALL EGETWI(OUTSTR,K,INDX,1,1,'F','index',IER)
+          ITVAPD(ICOMP,I,IL)=INDX
+          IF(IER.NE.0)RETURN
+          IF(INDX.EQ.1.AND.ND.EQ.2)THEN
+            CALL EGETWR(OUTSTR,K,DATA,0.,1.,'-','data',IER)
+            IF(IER.NE.0)RETURN
+            TVAPD(ICOMP,I,IL)=DATA
+          ELSE
+            CALL USRMSG(' ','Un-known ITVAPD index','W')
+            RETURN
+          ENDIF
+        ENDDO
    70 CONTINUE
 
 c Close zone moisture data file.
@@ -269,11 +338,11 @@ C depending on file version.
 
       elseif (iMoistVer(ICOMP).eq.2) then
         WRITE(IUNIT,'(A)')'*Moisture 2.0'
-          if (iMoistModel(ICOMP).eq.LEGACY) then
+        if (iMoistModel(ICOMP).eq.LEGACY) then
           WRITE(IUNIT,'(A)')'LEGACY'
-          elseif (iMoistModel(ICOMP).eq.OTTO) then
+        elseif (iMoistModel(ICOMP).eq.OTTO) then
           WRITE(IUNIT,'(A)')'OTTO  '
-          endif
+        endif
       endif
 
       WRITE(IUNIT,'(A)')'#  moisture nodes/layer'
@@ -288,12 +357,13 @@ C Write the data for water vapor permeability for each layer.
       DO 30 I=1,NC
         WRITE(IUNIT,'(A,I3)')'# indx |   associated data for surface',I
         NE=NELTS(ICOMP,I)
-      DO 30 IL=1,NE
-        IN=1
-        D1=PERM(ICOMP,I,IL,1)
-        D2=PERM(ICOMP,I,IL,2)
-        D3=PERM(ICOMP,I,IL,3)
-        WRITE(IUNIT,'(3X,I2,6X,3G10.3)')IN,D1,D2,D3
+        DO IL=1,NE
+          IN=1
+          D1=PERM(ICOMP,I,IL,1)
+          D2=PERM(ICOMP,I,IL,2)
+          D3=PERM(ICOMP,I,IL,3)
+          WRITE(IUNIT,'(3X,I2,6X,3G10.3)')IN,D1,D2,D3
+        ENDDO
    30 CONTINUE
 
 C Write the data for moisture capacity for each layer.
@@ -302,12 +372,13 @@ C Write the data for moisture capacity for each layer.
         WRITE(IUNIT,'(A,I3)')
      &          '# indx |   data (Uh, A, n) for construction',I
         NE=NELTS(ICOMP,I)
-      DO 40 IL=1,NE
-        IN=1
-        D1=SORP(ICOMP,I,IL,1)  ! Uh
-        D2=SORP(ICOMP,I,IL,2)  ! A
-        D3=SORP(ICOMP,I,IL,3)  ! n
-        WRITE(IUNIT,'(3X,I2,6X,3G10.3)')IN,D1,D2,D3
+        DO IL=1,NE
+          IN=1
+          D1=SORP(ICOMP,I,IL,1)  ! Uh
+          D2=SORP(ICOMP,I,IL,2)  ! A
+          D3=SORP(ICOMP,I,IL,3)  ! n
+          WRITE(IUNIT,'(3X,I2,6X,3G10.3)')IN,D1,D2,D3
+        ENDDO
    40 CONTINUE
 
 C Write the thermal vapor diffusion coefficient for each layer.
@@ -316,9 +387,10 @@ C Write the thermal vapor diffusion coefficient for each layer.
       DO 50 I=1,NC
         WRITE(IUNIT,'(A,I3)')'# indx |   associated data for surface',I
         NE=NELTS(ICOMP,I)
-      DO 50 IL=1,NE
-        IN=1
-        WRITE(IUNIT,'(3X,I2,6X,G10.3)')IN,TVAPD(ICOMP,I,IL)
+        DO IL=1,NE
+          IN=1
+          WRITE(IUNIT,'(3X,I2,6X,G10.3)')IN,TVAPD(ICOMP,I,IL)
+        ENDDO
    50 CONTINUE
 
 c Close zone moisture data file.

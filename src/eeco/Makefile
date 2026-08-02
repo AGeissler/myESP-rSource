@@ -25,7 +25,7 @@ default: $(PROG)
 
 MODULE_OBJECTS = h3kmodule.o startup.o aim2_module.o CFC_Module.o
 
-OBJECTS = eco.o arrow.o ascii_mat.o c2fdum.o common3dv.o cread3dv.o \
+OBJECTS = eco.o arrow.o ascii_mat.o c2fdum.o common3dv.o \
 	  CDBPlugins.o CDBCommon.o CDBExplore.o \
 	  ctlexp.o ctread.o dossupport.o e3dviews.o ecocalc.o ecoesp.o \
 	  econstr.o edatabase.o edcondb.o egeometry.o emfnetw.o \
@@ -67,9 +67,6 @@ c2fdum.F:
 common3dv.F:
 	rm -f common3dv.F
 	ln -s $(COMdir)/common3dv.F .
-cread3dv.F:
-	rm -f cread3dv.F
-	ln -s $(COMdir)/cread3dv.F .
 ctread.F:
 	rm -f ctread.F
 	ln -s $(COMdir)/ctread.F .
@@ -169,7 +166,7 @@ install:
 
 clean:
 	rm -f core $(PROG) $(PROG).exe $(MODULE_OBJECTS) $(OBJECTS) $(MODULES) \
-	aim2_module.F arrow.F ascii_mat.F blcond.F c2fdum.F common3dv.F cread3dv.F \
+	aim2_module.F arrow.F ascii_mat.F blcond.F c2fdum.F common3dv.F \
 	CDBPlugins.F CDBCommon.F CDBExplore.F \
 	ctlexp.F ctread.F dossupport.F e3dviews.F ecasctl.F econstr.F \
 	edcon.F edcondb.F edatabase.F egeometry.F egtgeom.F emkcfg.F \

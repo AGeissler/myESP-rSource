@@ -123,11 +123,6 @@ C Write full path to weather file.
       WRITE(IUNIT,REC=IREC,IOSTAT=ISTAT,ERR=1000)llclmdb
       IREC = IREC+1
 
-C For V5 write out all the other database file names.
-      if(izver.gt.4)then
-C << TO BE DONE >>
-      endif
-
       DO I = 1,NCOMP  ! Write one operation file name per record.
         WRITE(IUNIT,REC=IREC,IOSTAT=ISTAT,ERR=1000)LPROJ(I)
         IREC = IREC + 1
@@ -616,12 +611,15 @@ C first simulation set.
       END
 
 C ******************** MZLS3 ********************
-C Is called NCOMP times per time-step and
-C prior to computation beginning for the next zone)
-C to transfer the mean results of the current zone
-C computation to the results library. The transferred data
-C is dependent on the save option chosen from the simulation
-C menu.
+C Is called NCOMP times per time-step and prior to computation 
+C beginning for the next zone) to transfer the mean results of 
+C the current zone computation to the results library. The 
+C transferred data is dependent on the save option chosen from 
+C the simulation menu.
+
+C In the case of save level 5 performance is not written to
+C the zone results file however if the user has invoked trace
+C then zone and surface energy balances are reported.
 
 C ITSMUS relates to the time-step control facility. It
 C is 1 when time-row corresponds to user specified
@@ -1654,29 +1652,33 @@ C latent flux for occup/light/equip/other (one unused slot remains).
 
 C Write to results library if results save level (ISAVE) is 2, 3 or 4.
         if(irdact.eq.0) then
-          WRITE(IUNIT,REC=IREC,IOSTAT=ISTAT,ERR=1000)TMA,QM,
+          if(ISAVE.eq.5)then
+            continue
+          else
+            WRITE(IUNIT,REC=IREC,IOSTAT=ISTAT,ERR=1000)TMA,QM,
      &        (TMS(I),I=1,NSUR),QV1,QV2,TMCON,outopq,outtrn,
      &        avgctlperocupc,avgctlperlightc,avgctlperequipc,
      &        avgctlperotherc,qair
-          IREC=IREC+1
+            IREC=IREC+1
 
-          WRITE(IUNIT,REC=IREC,IOSTAT=ISTAT,ERR=1000)QW1,QW2,EZONPP,
+            WRITE(IUNIT,REC=IREC,IOSTAT=ISTAT,ERR=1000)QW1,QW2,EZONPP,
      &        EZONQP,QSA,(QSI(I),I=1,NSUR),opqin,trnin,
      &        avgctlperocupr,avgctlperlightr,avgctlperequipr,
      &        avgctlperotherr,qbridge
-          IREC=IREC+1
+            IREC=IREC+1
 
 C Special materials/components output (TEMPORARILY) written to this slot. Due 
 C to limited space only ONE special output per zone is allowed, with a 
 C maximum of two variables stored. Separate latent casual gains are saved.
 C To help with display of controlled casual gains, the value of ICGCTL(icomp)
 C is saved.
-          theonectld=ICGCTL(icomp) 
-          WRITE(IUNIT,REC=IREC,IOSTAT=ISTAT,ERR=1000)(QSE(I),I=1,NSUR),
-     &      QCASR,QCASC,ZRH,ZLL,FRAC,SPM1,SPM2,
-     &      avgctlperocupl,avgctlperlightl,avgctlperequipl,
-     &      avgctlperotherl,theonectld
-          IREC=IREC+1
+            theonectld=ICGCTL(icomp) 
+           WRITE(IUNIT,REC=IREC,IOSTAT=ISTAT,ERR=1000)(QSE(I),I=1,NSUR),
+     &       QCASR,QCASC,ZRH,ZLL,FRAC,SPM1,SPM2,
+     &       avgctlperocupl,avgctlperlightl,avgctlperequipl,
+     &       avgctlperotherl,theonectld
+           IREC=IREC+1
+         endif
 
 C SQL results write.
 C          QT=CHAR(39)
@@ -1770,8 +1772,11 @@ C Save back the current written out values of separate casual gains.
           sctlperothl(ICOMP)=sctlperothl(ICOMP)+avgctlperotherl
 
           if(irdnow.eq.1) then
-            irdc=irdcb(ICOMP)
-            WRITE(IUNIT,REC=IREC,IOSTAT=ISTAT,ERR=1000)
+            if(isave.eq.5)then
+              continue
+            else
+              irdc=irdcb(ICOMP)
+              WRITE(IUNIT,REC=IREC,IOSTAT=ISTAT,ERR=1000)
      &        sTMA(ICOMP)/irdc,sQM(ICOMP)/irdc,
      &        (sTMS(ICOMP,I)/irdc,I=1,NSUR),sQV1(ICOMP)/irdc,
      &        sQV2(ICOMP)/irdc,sTMCON(ICOMP)/irdc,soutopq(ICOMP)/irdc,
@@ -1779,8 +1784,8 @@ C Save back the current written out values of separate casual gains.
      &        sctlperlightc(ICOMP)/irdc,sctlperequipc(ICOMP)/irdc,
      &        sctlperothc(ICOMP)/irdc,sqair(ICOMP)/irdc
 
-            IREC=IREC+1
-            WRITE(IUNIT,REC=IREC,IOSTAT=ISTAT,ERR=1000)
+              IREC=IREC+1
+              WRITE(IUNIT,REC=IREC,IOSTAT=ISTAT,ERR=1000)
      &        sQW1(ICOMP)/irdc,sQW2(ICOMP)/irdc,
      &        sZONPP(ICOMP)/irdc,sZONQP(ICOMP)/irdc,
      &        sQSA(ICOMP)/irdc,(sQSI(ICOMP,I)/irdc,I=1,NSUR),
@@ -1788,9 +1793,9 @@ C Save back the current written out values of separate casual gains.
      &        sctlperocupr(ICOMP)/irdc,sctlperlightr(ICOMP)/irdc,
      &        sctlperequipr(ICOMP)/irdc,sctlperothr(ICOMP)/irdc,
      &        sqbridge(ICOMP)/irdc
-            IREC=IREC+1
+              IREC=IREC+1
 
-            WRITE(IUNIT,REC=IREC,IOSTAT=ISTAT,ERR=1000)
+              WRITE(IUNIT,REC=IREC,IOSTAT=ISTAT,ERR=1000)
      &        (sQSE(ICOMP,I)/irdc,I=1,NSUR),
      &        sQCASR(ICOMP)/irdc,sQCASC(ICOMP)/irdc,
      &        sZRH(ICOMP)/irdc,sZLL(ICOMP)/irdc,sFRAC(ICOMP)/irdc,
@@ -1798,7 +1803,8 @@ C Save back the current written out values of separate casual gains.
      &        sctlperocupl(ICOMP)/irdc,sctlperlightl(ICOMP)/irdc,
      &        sctlperequipl(ICOMP)/irdc,sctlperothl(ICOMP)/irdc,
      &        theonectld
-            IREC=IREC+1
+              IREC=IREC+1
+            endif
 
 C Reset the saved values after having written the data.
             soutopq(ICOMP)=0.
@@ -1876,7 +1882,8 @@ C *** Results save level 3 (as level 2 plus intra-construction temperatures).
 
 
 C *** Results save level 4 (as level 2 plus surface heat flux).
-        elseif (ISAVE.eq.4) then
+C Also use this for trace of save level 5 (avoid write statements).
+        elseif (ISAVE.eq.4.or.ISAVE.eq.5) then
           IZFLG=0
           DO 300 ISF=1,NSUR
 
@@ -1919,13 +1926,15 @@ C Include radiant casual gains for occupants, lights, small power and other
 C so that no calculations are required to reconstitute the radiant casual 
 C gains in res. 
             if(irdact.eq.0) then
-              WRITE(IUNIT,REC=IREC,IOSTAT=ISTAT,ERR=1000)TMC(1),
-     &          avqswrdi,avqlwrdi,avqconvi,avqcondi,avqstori,
-     &          avqstore,avqconde,avqconve,avqlwrde,avqlwrbd,
-     &          avqlwrsk,avqswrde,avqcri*fracrocup,
-     &          avqcri*fracrlight,avqcri*fracrequip,
-     &          avqcri*fracroth
-              IREC=IREC+1
+              if(ISAVE.eq.4)then
+                WRITE(IUNIT,REC=IREC,IOSTAT=ISTAT,ERR=1000)TMC(1),
+     &            avqswrdi,avqlwrdi,avqconvi,avqcondi,avqstori,
+     &            avqstore,avqconde,avqconve,avqlwrde,avqlwrbd,
+     &            avqlwrsk,avqswrde,avqcri*fracrocup,
+     &            avqcri*fracrlight,avqcri*fracrequip,
+     &            avqcri*fracroth
+                IREC=IREC+1
+              endif
             else
               sTMC(ICOMP,ISF,1)=sTMC(ICOMP,ISF,1)+TMC(1)
               sqswrdi(ICOMP,ISF)=sqswrdi(ICOMP,ISF)+avqswrdi
@@ -1941,16 +1950,18 @@ C gains in res.
               sqlwrsk(ICOMP,ISF)=sqlwrsk(ICOMP,ISF)+avqlwrsk
               sqswrde(ICOMP,ISF)=sqswrde(ICOMP,ISF)+avqswrde
               if(irdnow.eq.1) then
-                ird=irdcb(ICOMP)
-                WRITE(IUNIT,REC=IREC,IOSTAT=ISTAT,ERR=1000)
-     &          sTMC(ICOMP,ISF,1)/ird,sqswrdi(ICOMP,ISF)/ird,
-     &          sqlwrdi(ICOMP,ISF)/ird,sqconvi(ICOMP,ISF)/ird,
-     &          sqcondi(ICOMP,ISF)/ird,sqstori(ICOMP,ISF)/ird,
-     &          sqstore(ICOMP,ISF)/ird,sqconde(ICOMP,ISF)/ird,
-     &          sqconve(ICOMP,ISF)/ird,sqlwrde(ICOMP,ISF)/ird,
-     &          sqlwrbd(ICOMP,ISF)/ird,sqlwrsk(ICOMP,ISF)/ird,
-     &          sqswrde(ICOMP,ISF)/ird
-                IREC=IREC+1
+                if(ISAVE.eq.4)then
+                  ird=irdcb(ICOMP)
+                  WRITE(IUNIT,REC=IREC,IOSTAT=ISTAT,ERR=1000)
+     &              sTMC(ICOMP,ISF,1)/ird,sqswrdi(ICOMP,ISF)/ird,
+     &              sqlwrdi(ICOMP,ISF)/ird,sqconvi(ICOMP,ISF)/ird,
+     &              sqcondi(ICOMP,ISF)/ird,sqstori(ICOMP,ISF)/ird,
+     &              sqstore(ICOMP,ISF)/ird,sqconde(ICOMP,ISF)/ird,
+     &              sqconve(ICOMP,ISF)/ird,sqlwrde(ICOMP,ISF)/ird,
+     &              sqlwrbd(ICOMP,ISF)/ird,sqlwrsk(ICOMP,ISF)/ird,
+     &              sqswrde(ICOMP,ISF)/ird
+                  IREC=IREC+1
+                endif
                 sTMC(ICOMP,ISF,1)=0.
                 sqswrdi(ICOMP,ISF)=0.
                 sqlwrdi(ICOMP,ISF)=0.

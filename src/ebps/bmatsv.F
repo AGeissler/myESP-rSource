@@ -284,7 +284,7 @@ C Plant network data
 C Flag for whether plant network has storage tank that uses mains make-up water.
       logical itank_flag
 
-      logical autook,ok
+      logical autook,ok,MY
       integer ier,IClmErr
       logical unixok,concat
       character fs*1
@@ -722,7 +722,8 @@ C If this is a single year simulation, open the weather file. During
 C multi-year simulations, the weather files will be opened inside
 C the simulation loop.
       if ( .not. bMY_sim_enabled ) then
-        CALL CLMOPB(0,IClmErr)
+        MY=.false.
+        CALL CLMOPB(MY,0,IClmErr)
       endif
 
 C In the case that we have a GSHP input file, DHW input file, and/or basesimp
@@ -825,10 +826,17 @@ C Close previous weather file if necessary.
 C Open new weather file.
             ier=0
             LCLIM=cMY_clm_file_names(iMY_current_yr_index)
-            CALL CLMOPB(1,IER)
+            MY=.true.
+            CALL CLMOPB(MY,1,IER)
 
 C Set flag.
-            bMY_clm_file_open ( iMY_current_yr_index ) = .true.
+            if(ier.eq.0)then
+              bMY_clm_file_open ( iMY_current_yr_index ) = .true.
+            else
+              write(6,*) 
+     &          'mznuma: multi-year failure to open weather file.'
+              bMY_clm_file_open ( iMY_current_yr_index ) = .false.
+            endif
 
 C If there is a GSHP input file, DHW input file and/or basesimp
 C input file, call routines to determine degree-days and monthly average
@@ -854,7 +862,8 @@ C If this is a multi-year simulation, we may need to open a new file.
      &        call ERpFree( iClim , istat )
             endif
             ier=0
-            CALL CLMOPB(0,IER)
+            MY=.true.
+            CALL CLMOPB(MY,0,IER)
             bMY_clm_file_open ( iMY_future_yr_index ) = .true.
           endif
         endif
@@ -1369,7 +1378,11 @@ C Find number of data blocks per hour to be saved.
               ndbph=ncomp*itstp1
 
               IF (ISAVE.eq.5)then
-                call surbal(icomp)
+
+C Call mzls3 for trace options (no writes to zone results file are carried out).
+C mzls3 includes a call to surbal so call is commented out..
+C                call surbal(icomp)
+                call mzls3(icomp,iday,itsmus,ndbph)
                 call H3KSTORE_SAVELEVEL5(icomp,iday,itsmus,ndbph)
               ELSE
                 call mzls3(icomp,iday,itsmus,ndbph)

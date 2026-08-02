@@ -1,11 +1,11 @@
 C This file is part of the ESP-r system.
 C Copyright Energy Systems Research Unit, University of
-C Strathclyde, Glasgow Scotland, 2001.
+C Strathclyde, Glasgow Scotland, 2001-.
 
 C ESP-r is free software.  You can redistribute it and/or
 C modify it under the terms of the GNU General Public
 C License as published by the Free Software Foundation 
-C (version 2 orlater).
+C (version 2 or later).
 
 C ESP-r is distributed in the hope that it will be useful
 C but WITHOUT ANY WARRANTY; without even the implied
@@ -23,6 +23,7 @@ C  PLOTTrev : Plot the reverberation time curve
 
 C********************* Zoneslist (copy of MOZDFN from resdef.F) ****
 C Display Zones list and wait for INIPIC item selected
+C the zone no are recorded in NZNOG
 
       SUBROUTINE Zoneslist
 #include "building.h"
@@ -39,6 +40,7 @@ C Display Zones list and wait for INIPIC item selected
       COMMON/ERRHAND/IDerr
 
       LOGICAL CFGOK,MLDBOK,MATDBOK,CTLOK,OPTKOK,CFCDBOK
+
       DIMENSION IVALZ(MCOM)
 
       helpinsub='acoesp'  ! set for subroutine
@@ -48,6 +50,7 @@ C Display Zones list and wait for INIPIC item selected
   5   continue
 
       if (.not.cfgok) goto 666
+
 C Clear nznog array and isursel array (remembers which surfaces have
 C been selected).
       do 6 II=1,MCOM
@@ -60,6 +63,7 @@ C been selected).
       if(NCOMP.EQ.1)then
         call edisp(iuout,' Single zone model, this zone selected. ')
         call edisp(iuout,'  ')
+        NZG=1
         nznog(1)=1
       else
 
@@ -69,7 +73,7 @@ C Otherwise select the zones from a list of zone names.
 
  7      helptopic='aco_zones_to_inclue'
         call gethelptext(helpinsub,helptopic,nbhelp)
-        INPIC = NCOMP 
+        INPIC=NCOMP
         CALL EPICKS(INPIC,IVALZ,' ','Which zones to include:',
      &    12,NCOMP,ZNAME,'Zone(s) list',IDerr,nbhelp)
 
@@ -106,10 +110,11 @@ C Two zones cannot have the same number.
 
 
 C ******************** ZNLIST (edited from esrures/utils.F) *******
-C ZNLIST takes the current selected zones and builds a descriptive
+C Takes the current selected zones and builds a descriptive
 C string to be used in headers. 
 C zdescr : string containing the names of the slected zone(s)
 C length : Length of zdescr
+
       SUBROUTINE ZNLIST(zdescr,length,ierr)
 #include "building.h"
 #include "geometry.h"
@@ -124,7 +129,7 @@ C length : Length of zdescr
         length=length+lna+1
   42  continue
       if(length.lt.72)then
-        WRITE(outs,5)(zname(nznog(I)),I=1,nzg)
+        WRITE(outs,5,iostat=ios,err=1)(zname(nznog(I)),I=1,nzg)
     5   FORMAT(20(a12,' '))
         call sdelim(outs,outsd,'S',IW)
         zdescr=outsd
@@ -145,13 +150,13 @@ C length : Length of zdescr
         return
       endif
 
-C If we got to this point must have been an error
-      call isunix(unixok)
-      if(unixok)then
+C Trap for I/O error.
+ 1    call isunix(unixok)
+      if(.NOT.unixok) return  ! if DOS return because of lack of I/O channel
         call lusrmsg('ZNLIST: error writing zone names: ',
      &    outs,'-')
-      endif
       ierr=1
+      
       return
       END
 
@@ -168,8 +173,6 @@ C ZoneDisp - displays zone based information and allows....
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
       common/gzonpik/izgfoc,nzg,nznog(mcom)
 
-      integer IZSTOCN
-      COMMON/C24/IZSTOCN(MCOM,MS)
       COMMON/SDATA/GSA(MS),GWA(MS)
 
       CHARACTER outs*124
@@ -192,14 +195,12 @@ C Read geometry file for chosen zone.
 
 C Recover zone data (read only, no display).
       CALL ZINFO(icomp,ZOA,ZVOL,'q')
-      Vol(icomp)= ZVOL
+      vol(icomp)=zvol
       CALL ECLOSE(ZBASEA(ICOMP),0.0,0.001,zbzero)
       OPQ=0.
       TRN=0.
       DO 41 I=1,NSUR
-        icon=IZSTOCN(icomp,i)
-        if(SOTF(icomp,i)(1:4).NE.'OPAQ'.AND.
-     &     SOTF(icomp,i)(1:4).NE.'CFC ')then
+        if(SOTF(icomp,i)(1:4).NE.'OPAQ')then
           TRN=TRN+SNA(icomp,I)
         else
           OPQ=OPQ+SNA(icomp,I)
@@ -229,10 +230,10 @@ C********************* CompoList **************************
 C Display Composites list and wait for INIPIC item selected
 
 C IComfoc      (Integer) Composite selected
-C NComPik          (Integer) Number of selected constructions (INPIC)
-C LstComp(NMLC) (Integer) List of the selected constructions number
-C WidthCo (Real) : Width [m] of the constructions, for LCA calculation.
-C HeightCo (Real) : Height [m] of the constructions, for LCA calculation.
+C NComPik          (Integer) Number of selected composites (INPIC)
+C LstComp(NMLC) (Integer) List of the selected composites number
+C WidthCo (Real) : Width [m] of the composite, for LCA calculation.
+C HeightCo (Real) : Height [m] of the composite, for LCA calculation.
 
 
       SUBROUTINE CompoList
@@ -265,6 +266,7 @@ C Read database if not already done.
           MLDBOK=.TRUE.
         ENDIF
       ENDIF
+
       DO 6 II=1,NComPik
         LstComp(II)=0
  6    continue
@@ -283,7 +285,7 @@ C << Copy mlcname array into a local array for use with epicks >>
 C Check for errors (if => exit sub).
       if (IDerr.ne.0) RETURN
 
-C If no construction have been selected then return to main menu.
+C If no composite have been selected then return to main menu.
       NComPik=INPIC
       if (NComPik .eq. 0) then
         IComfoc = 0           
@@ -301,7 +303,7 @@ C If no construction have been selected then return to main menu.
         LstComp(I)=IVALZ(I)
  40   continue
 
-C Two construction cannot have the same number.
+C Two composites cannot have the same number.
       DO 32 I=1,NComPik
         DO 30 J=1,NComPik
           IF(I.EQ.J)goto 30
@@ -309,7 +311,7 @@ C Two construction cannot have the same number.
           J2=LstComp(J)
           IF(J1.EQ.J2)then
             call edisp(iuout,
-     &            ' Two constructions cannot have the same number!')
+     &        ' Two composites cannot have the same number!')
             goto 7
           endif
  30     continue
@@ -410,7 +412,8 @@ C          1 = textual feedback or 2 = File
         call edisp(Ichanel,outs)
       ENDIF
       DO 600 M = IStart, IStop
-C First reset the diviseur (sum of absorption) when starting a new calculation method
+
+C First reset the divis (sum of absorption) when starting a new calculation method
 C and should not reset when calculating the absorption of each zone ...
         DO 10 I=1,MNbAbs
           Divis(I)= 0.0
@@ -1048,6 +1051,7 @@ C RESMN      - Minimum reverberation time
       integer menuchw,igl,igr,igt,igb,igw,igwh
       COMMON/VIEWPX/menuchw,igl,igr,igt,igb,igw,igwh
       COMMON/Zones/TxtZone
+      CHARACTER TxtZone*12
 
       COMMON/MetNam/ACOName,CalName(4),LabFreq(MNbAbs)
 
@@ -1056,7 +1060,7 @@ C RESMN      - Minimum reverberation time
      &            SurfEquT(MNbAbs), SurfTot, TReverb(MNbAbs), Tmean
 
       CHARACTER title*200
-      CHARACTER CalName*12,ACOName*72, LabFreq*4, TxtZone*72
+      CHARACTER CalName*12,ACOName*72, LabFreq*4
 #ifdef OSI
       integer igwid,igheight  ! for use with axiscale
       integer iside,isize,ifont     ! passed to viewtext

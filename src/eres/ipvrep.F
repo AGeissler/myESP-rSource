@@ -37,6 +37,7 @@ C Write IPV report based on description held in common.
 #include "site.h"
 #include "geometry.h"
 #include "esprdbfile.h"
+#include "net_flow.h"
 #include "ipvdata.h"
 #include "schedule.h"
 #include "help.h"
@@ -78,6 +79,8 @@ C          ilflag = 2 do not include # header lines in file.
       COMMON/EXPORTI/ixopen,ixunit,ixpunit
       COMMON/GET1/VAL1(MZS,MTS),VAL2(MZS,MTS),VAL3(MZRL,MTS)
 
+      common/getmenu/menutype,igetind(65),igetflux(65)
+
 C IPV description.
       common/IPVF/lipvdatf
 
@@ -95,20 +98,23 @@ C << is pvdayhr useful? >>
       character sblres*72,sflres*72,splres*72,smstres*72,
      &  selres*72,scfdres*72,sipvres*72
 
-C Extended simulation parameters for each set.
-      common/spfldats/isstupex(MSPS),isbnstepex(MSPS),ispnstepex(MSPS),
-     &  issaveex(MSPS),isavghex(MSPS),iscfdactivate(MSPS),
-     &  isicfdys(MSPS),isicfdyf(MSPS),
-     &  scftims(MSPS),scftimf(MSPS)
-      INTEGER :: isstupex,isbnstepex,ispnstepex,issaveex,isavghex
-      INTEGER :: iscfdactivate      ! zero ignore domains
-      INTEGER :: isicfdys,isicfdyf  ! CFD simulation start & finish days
-      REAL :: scftims,scftimf       ! CFD simulation start & finish time
+C Guth VCP data potentially included in IPV definition file.
+      real vcp  ! Guth VCP -60 - 60 values from Radiance.
+      common/guth/vcp(13)
 
-C Pre calculated data (filtered).
-      common/MMAFDAT/IFILT,RDFMAX(MCOM,3,MZRL),RDFMIN(MCOM,3,MZRL),
-     &    RDFAVE(MCOM,3,MZRL),RDTFMAX(MCOM,3,MZRL),RDTFMIN(MCOM,3,MZRL)
-      
+C Extended simulation parameters for each set.
+C      common/spfldats/isstupex(MSPS),isbnstepex(MSPS),ispnstepex(MSPS),
+C     &  issaveex(MSPS),isavghex(MSPS),iscfdactivate(MSPS),
+C     &  isicfdys(MSPS),isicfdyf(MSPS),
+C     &  scftims(MSPS),scftimf(MSPS)
+C      INTEGER :: isstupex,isbnstepex,ispnstepex,issaveex,isavghex
+C      INTEGER :: iscfdactivate      ! zero ignore domains
+C      INTEGER :: isicfdys,isicfdyf  ! CFD simulation start & finish days
+C      REAL :: scftims,scftimf       ! CFD simulation start & finish time
+
+      common/AFN/IAIRN,LAPROB,ICAAS(MCOM)
+      character LAPROB*72
+
       dimension ITEM(13),edput(MGTY,MTS)
       dimension ddmax(MGTY),ddmin(MGTY),dtot(MGTY),dave(MGTY)
       dimension XMAX(MGTY),XMIN(MGTY),XAVE(MGTY),XTOT(MGTY)
@@ -118,17 +124,19 @@ C Pre calculated data (filtered).
       character outs1k*1000,outs1kd*1000
       character xfile*144,tg*1,delim*1,ITEM*18,lipvdatf*72
       character SUFFIX*8,paction*16
-      CHARACTER ltmp*72,LJTIME*8
+      character msg*24
+      CHARACTER ltmp*72
       CHARACTER CLMLOC*42
       character descr*7,descrst*10,descrfn*10,descr2st*8,descr2fn*8
       character dstmp*24,sq*1
       character ipvaction*3  ! to signal external IPV file
 
       logical XST,OK,pvok,usermode,within,dmdsok
-      integer IWM  ! for radio button
-      integer NITMS,INO ! max items and current menu item
+      logical MY         ! to communicate multi-year to clmopb.
+      integer IWM        ! for radio button
+      integer NITMS,INO  ! max items and current menu item
 
-      helpinsub='ipvrep'  ! set for cfiles
+      helpinsub='ipvrep' ! set for cfiles
 
 C Remember the initial periods.
       jiod1=IOD1
@@ -148,10 +156,9 @@ C Remember the initial periods.
 C Make up a single quote for IPV
       sq = char(39)
 
+C As most graphs are for focus days or a week use timestep frequency.
       if(NTS.gt.1)then
-        NOUT=NTS
-        IAV=1
-        call edisp(iuout,'Ouput reset to give hourly averaged report.')
+        NOUT=1; IAV=0; IWM=1
       endif
 
 
@@ -225,6 +232,10 @@ C parameter sets known then check for an ipv report file name (sipvres).
       if(paction(1:8).eq.'ipv_win '.or.paction(1:8).eq.'ipv_win1'.or.
      &   paction(1:8).eq.'ipv_ann ')then
         iseas = 1
+        if(ipvform.eq.0)then  ! If format unspecified switch to csv.
+          delim = 'C'
+          tab=','
+        endif
         if(nsset.ge.1)then
           write(xfile,'(a)') sipvres(1:lnblnk(sipvres))
         endif
@@ -242,6 +253,10 @@ C If there was a cancel request return, otherwise go on to label 49.
 
 C In this case the data will be appended to an earlier file. 
         iseas = 2
+        if(ipvform.eq.0)then  ! If format unspecified switch to csv.
+          delim = 'C'
+          tab=','
+        endif
         if(nsset.ge.1)then
           write(xfile,'(a)') sipvres(1:lnblnk(sipvres))
         endif
@@ -254,6 +269,10 @@ C In this case the data will be appended to an earlier file.
         endif
       elseif(paction(1:7).eq.'ipv_sum')then
         iseas = 3
+        if(ipvform.eq.0)then  ! If format unspecified switch to csv.
+          delim = 'C'
+          tab=','
+        endif
         if(nsset.ge.1)then
           write(xfile,'(a)') sipvres(1:lnblnk(sipvres))
         endif
@@ -266,6 +285,10 @@ C In this case the data will be appended to an earlier file.
         endif
       elseif(paction(1:7).eq.'ipv_aut')then
         iseas = 4
+        if(ipvform.eq.0)then  ! If format unspecified switch to csv.
+          delim = 'C'
+          tab=','
+        endif
         if(nsset.ge.1)then
           write(xfile,'(a)') sipvres(1:lnblnk(sipvres))
         endif
@@ -278,6 +301,10 @@ C In this case the data will be appended to an earlier file.
         endif
       elseif(paction(1:8).eq.'ipv_win2')then
         iseas = 5
+        if(ipvform.eq.0)then  ! If format unspecified switch to csv.
+          delim = 'C'
+          tab=','
+        endif
         if(nsset.ge.1)then
           write(xfile,'(a)') sipvres(1:lnblnk(sipvres))
         endif
@@ -492,7 +519,8 @@ C If the first or only season then write out a heading.
 
 C Open the climate file and get its location name.
 C << take into account location >>
-        CALL CLMOPB(1,IER)
+        MY=.false.
+        CALL CLMOPB(MY,1,IER)
         CALL CLMRDBMD(IER)
         CALL  ERPFREE(ICLIM,ISTAT)
         write(outs,'(a,a1,a)') '*climate',tab,CLMLOC
@@ -510,7 +538,39 @@ C Write synopsis out as one long string.
           write(itru,'(a,a1,a)') '*synopsis',tab,
      &      ipvsynop(1:lnblnk(ipvsynop))
         endif
+
+C Write the focus zone and recover the associated zone index.
+        lnw=lnblnk(ivpfocname)
+        if(ncomp.gt.0)then
+          do iz=1,ncomp
+            lnzz=lnblnk(zname(iz))  ! Find matching zone index.
+            if(ivpfocname(1:lnw).eq.zname(iz)(1:lnzz))then
+              ipvfoczone=iz
+              cycle
+            endif
+          enddo
+          write(itru,'(4a,i2)') '*focus',tab,
+     &      ivpfocname(1:lnblnk(ivpfocname)),tab,ipvfoczone
+        endif
         call edisp(itru,' ')
+
+C If there is a building/model and/or glare image write file name.
+        if(nipvimg.gt.0)then
+          if(lipvimg(1)(1:2).eq.'  '.or.lipvimg(1)(1:4).eq.'UNKN')then
+            continue
+          else
+            WRITE(outs,'(2A)') '*building_image,',
+     &        lipvimg(1)(1:lnblnk(lipvimg(1)))
+            WRITE(itru,'(A)') outs(1:lnblnk(outs))
+          endif
+          if(lipvimg(2)(1:2).eq.'  '.or.lipvimg(2)(1:4).eq.'UNKN')then
+            continue
+          else
+            WRITE(outs,'(2A)') '*glare_image,',
+     &        lipvimg(2)(1:lnblnk(lipvimg(2)))
+            WRITE(itru,'(A)') outs(1:lnblnk(outs))
+          endif
+        endif
 
         WRITE(outs,'(2A,i3)',IOSTAT=IOS,ERR=1)'*simulations',tab,
      &    nipvassmt
@@ -544,18 +604,19 @@ C Loop first through any demand sets and then loop through any metrics.
         call edisp(itru,'  ')
         WRITE(outs,'(2A,i2)',IOSTAT=IOS,ERR=1)'*groups',tab,neds+nms
         call edisp(itru,outs)
-        call edisp(itru,'# group name & number of zones & zone names')
+        call edisp(itru,
+     &    '# topic    group name & number of zones & zone names')
         if(neds.gt.0)then
           do 27 ij=1,neds
             if(nzedg(ij).le.9)then
-              write(outsn,'(2a,i1)')zedsdoc(ij)(1:lnblnk(zedsdoc(ij))),
-     &          tab,nzedg(ij)
+              write(outsn,'(a,i1,3a,i1)') 'demand_',ij,
+     &          tab,zedsdoc(ij)(1:lnblnk(zedsdoc(ij))),tab,nzedg(ij)
             elseif(nzedg(ij).gt.9.and.nzedg(ij).lt.99)then
-              write(outsn,'(2a,i2)')zedsdoc(ij)(1:lnblnk(zedsdoc(ij))),
-     &          tab,nzedg(ij)
+              write(outsn,'(a,i2,3a,i2)') 'demand_',ij,
+     &          tab,zedsdoc(ij)(1:lnblnk(zedsdoc(ij))),tab,nzedg(ij)
             else
-              write(outsn,'(2a,i3)')zedsdoc(ij)(1:lnblnk(zedsdoc(ij))),
-     &          tab,nzedg(ij)
+              write(outsn,'(a,i3,3a,i3)') 'demand_',ij,
+     &          tab,zedsdoc(ij)(1:lnblnk(zedsdoc(ij))),tab,nzedg(ij)
             endif
 
 C Use logic similar to ZNLIST in esrures/utils.F
@@ -580,20 +641,32 @@ C Use longer outs string length in case of longer list.
 
 C Use longer string length in case of many zones.
           do 127 ij=1,nms
-            write(outsn,'(2a,i2)')metgroup(ij)(1:lnblnk(metgroup(ij))),
-     &        tab,nzmg(ij)
-            length=0
-            do 142 ik=1,nzmg(ij)
-              lna=lnzname(izmg(ij,ik))
-              length=length+lna+1
- 142        continue
-            if(length.lt.236)then
-              WRITE(outlsc,5,iostat=ios,err=1)
-     &         (zname(izmg(ij,ik)),ik=1,nzmg(ij))
-              call sdelim(outlsc,outlsd,'C',IW)
+            write(outsn,'(4a,i2)') msdoc(ij)(1:lnblnk(msdoc(ij))),tab,
+     &        metgroup(ij)(1:lnblnk(metgroup(ij))),tab,nzmg(ij)
+            if(msdoc(ij)(1:4).eq.'Guth'.or.
+     &         msdoc(ij)(1:5).eq.'glare'.or.
+     &         msdoc(ij)(1:12).eq.'daylightfact'.or.
+     &         msdoc(ij)(1:4).eq.'DayF'.or.
+     &         msdoc(ij)(1:11).eq.'contaminant')then
+              lnw=lnblnk(ivpfocname)
+              WRITE(outlsc,'(a)',iostat=ios,err=1) ivpfocname(1:lnw)
               WRITE(outsl,'(3A)',IOSTAT=IOS,ERR=1)
-     &          outsn(1:lnblnk(outsn)),tab,outlsd(1:lnblnk(outlsd))
+     &          outsn(1:lnblnk(outsn)),tab,outlsc(1:lnblnk(outlsc))
               call edisp(itru,outsl)
+            else
+              length=0
+              do 142 ik=1,nzmg(ij)
+                lna=lnzname(izmg(ij,ik))
+                length=length+lna+1
+ 142          continue
+              if(length.lt.236)then
+                WRITE(outlsc,5,iostat=ios,err=1)
+     &           (zname(izmg(ij,ik)),ik=1,nzmg(ij))
+                call sdelim(outlsc,outlsd,'C',IW)
+                WRITE(outsl,'(3A)',IOSTAT=IOS,ERR=1)
+     &            outsn(1:lnblnk(outsn)),tab,outlsd(1:lnblnk(outlsd))
+                call edisp(itru,outsl)
+              endif
             endif
  127      continue
         endif
@@ -610,6 +683,7 @@ C later data scanning code a point to look for.
       IOH2=24
       call EDAYR(ipvastjd(iseas),IOD1,IOM1)
       call EDAYR(ipvafnjd(iseas),IOD2,IOM2)
+      isdays= ipvafnjd(iseas)-ipvastjd(iseas) ! days in the assessment
       CALL EDAY(IOD1,IOM1,IODS)
       CALL EDAY(IOD2,IOM2,IODF)
 
@@ -656,7 +730,7 @@ C If no zones, continue with the storage arrays at zero.
    50     CONTINUE
           CALL MOSMSD('i',XMAX(1),XMIN(1),XAVE(1),XTOT(1),DMAX(1),
      &      DMIN(1),XMSUM(1),XMINSUM(1))
-          THE=XTOT(1)
+          THE=XTOT(1)/float(NTS)  !  To get to kWh divide XTOT by TSPH.
 
 C In the case of cooling, the values in the reports below for array
 C element 2 will use the XMIN(2) etc. rather than XMAX(2) so that
@@ -669,7 +743,7 @@ C cooling is reported as positive values.
    51     CONTINUE
           CALL MOSMSD('i',XMAX(2),XMIN(2),XAVE(2),XTOT(2),DMAX(2),
      &      DMIN(2),XMSUM(2),XMINSUM(2))
-          TCE=XTOT(2)
+          TCE=XTOT(2)/float(NTS)
 
 C Get Max Min lighting casual gains and then integrated lighting.
           DO 52 I=1,NZ
@@ -680,7 +754,7 @@ C Get Max Min lighting casual gains and then integrated lighting.
    52     CONTINUE
           CALL MOSMSD('i',XMAX(3),XMIN(3),XAVE(3),XTOT(3),DMAX(3),
      &      DMIN(3),XMSUM(3),XMINSUM(3))
-          tuclight=XTOT(3)/1000.
+          tuclight=(XTOT(3)/float(NTS))/1000.
 
           DO 53 I=1,NZ
             IGETNO(I,1)=15
@@ -690,7 +764,7 @@ C Get Max Min lighting casual gains and then integrated lighting.
    53     CONTINUE
           CALL MOSMSD('i',XMAX(4),XMIN(4),XAVE(4),XTOT(4),DMAX(4),
      &      DMIN(4),XMSUM(4),XMINSUM(4))
-          tlight=XTOT(4)/1000.
+          tlight=(XTOT(4)/float(NTS))/1000.
 
 C Use the (5) part of arrays for fans and pumps.
 
@@ -702,7 +776,7 @@ C Use the (5) part of arrays for fans and pumps.
    54     CONTINUE
           CALL MOSMSD('i',XMAX(6),XMIN(6),XAVE(6),XTOT(6),DMAX(6),
      &      DMIN(6),XMSUM(6),XMINSUM(6))
-          tsmlpw=XTOT(6)/1000.
+          tsmlpw=(XTOT(6)/float(NTS))/1000.
 
 C Use the (7) part of arrays for fans and pumps.
         endif
@@ -746,26 +820,6 @@ C Write distributed total. The IGET number is fixed at 70.
         call eddisp(itru,outs)
         call edisp(itru,'*end_report')
         call edisp(itru,' ')
-
-C Write maximum in any one zone. The IGET number is fixed at 70.
-C        write(outs,'(9a)') '*report',tab,'70',tab,'in_one_zone',
-C     &    tab,'capacity',tab,zedsdoc(ij)(1:lnblnk(zedsdoc(ij)))
-C        call edisp(itru,outs)
-C        write(outs,'(5a)') '*title',tab,
-C     &    'Maximum in any one zone capacity',tab,'W'
-C        call edisp(itru,outs)
-C        write(outs,'(7a)') '*format',tab,'table',tab,'1',tab,'7'
-C        call edisp(itru,outs)
-C        write(outs,'(15A)',IOSTAT=IOS,ERR=1) '*fields',tab,
-C     &    'Heating',tab,'Cooling',tab,'Lighting (unctld)',tab,
-C     &    'Lighting (ctld)',tab,'Fans',tab,'Small Power',tab,
-C     &    'Hot water'
-C        call edisp(itru,outs)
-C        write(outs,'(a,7F12.1)')'*data ',XMAX(1)*1000.0,
-C     &    abs(XMIN(2)*1000.0),XMAX(3),XMAX(4),XMAX(5),XMAX(6),XMAX(7)
-C        call eddisp(itru,outs)
-C        call edisp(itru,'*end_report')
-C        call edisp(itru,' ')
 
 C Write minimum capacity. The IGET number is fixed at 70.
 C Note: the diversified minimums are reports.
@@ -966,13 +1020,84 @@ C The IGET number is fixed at 71.
         call edisp(itru,' ')
       endif
 
-C Metrics - first produce frequency bin for each metric.
+C Metrics - first produce frequency bin for each metric. Fill
+C values of imetget() and izmg(ig,I) based on the msdoc() string.
       if(nms.ge.1)then
         do 77 ig=1,nms
+          if(msdoc(ig)(1:7).eq.'comfort')then
+            imetget(ig)=6
+            imetmsc(ig,1)=6
+            imetmsc(ig,2)=1
+          elseif(msdoc(ig)(1:7).eq.'ZonedbT')then
+            imetget(ig)=1
+            imetmsc(ig,1)=1
+            imetmsc(ig,2)=0
+          elseif(msdoc(ig)(1:6).eq.'ZoneRH')then
+            imetget(ig)=13
+            imetmsc(ig,1)=13
+            imetmsc(ig,2)=0
+          elseif(msdoc(ig)(1:12).eq.'Infiltration')then
+            imetget(ig)=11
+            imetmsc(ig,1)=11
+            imetmsc(ig,2)=0
+          elseif(msdoc(ig)(1:11).eq.'Ventilation')then
+            imetget(ig)=12
+            imetmsc(ig,1)=12
+            imetmsc(ig,2)=0
+          elseif(msdoc(ig)(1:12).eq.'TotalCasGain')then
+            imetget(ig)=15
+            imetmsc(ig,1)=1
+            imetmsc(ig,2)=0
+          elseif(msdoc(ig)(1:11).eq.'SolarFacade')then
+            imetget(ig)=38
+            imetmsc(ig,1)=1
+            imetmsc(ig,2)=0
+          elseif(msdoc(ig)(1:11).eq.'Solarabsorb')then
+            imetget(ig)=40
+            imetmsc(ig,1)=1
+            imetmsc(ig,2)=0
+          elseif(msdoc(ig)(1:4).eq.'Guth')then
+            imetget(ig)=73
+            imetmsc(ig,1)=1
+            imetmsc(ig,2)=0
+          elseif(msdoc(ig)(1:5).eq.'glare')then
+            imetget(ig)=73
+            imetmsc(ig,1)=2
+            imetmsc(ig,2)=0
+          elseif(msdoc(ig)(1:12).eq.'daylightfact'.or.
+     &           msdoc(ig)(1:4).eq.'DayF')then
+            imetget(ig)=73
+            imetmsc(ig,1)=3
+            imetmsc(ig,2)=0
+          elseif(msdoc(ig)(1:9).eq.'Plt_C+R&L')then
+            imetget(ig)=74
+            imetmsc(ig,1)=1
+            imetmsc(ig,2)=0
+          elseif(msdoc(ig)(1:11).eq.'contaminant')then
+            imetget(ig)=14    ! Note this is a flow index
+            imetmsc(ig,1)=0
+            imetmsc(ig,2)=0
+
+C << could set MENUTYPE and call 
+          elseif(msdoc(ig)(1:9).eq.'emissions')then
+            imetget(ig)=75
+            imetmsc(ig,1)=0
+            imetmsc(ig,2)=0
+          endif
+
           if(imetget(ig).eq.73)then
             continue
           elseif(imetget(ig).eq.74)then
             continue
+          elseif(imetget(ig).eq.75)then
+            continue
+          elseif(imetget(ig).eq.14)then
+            write(outs,'(2a,i2,6a)') '*report',tab,imetget(ig),tab,
+     &        'distribution',tab,msdoc(ig)(1:lnblnk(msdoc(ig))),tab,
+     &         metgroup(ig)
+            call edisp(itru,outs)
+            write(outs,'(5a)') '*title',tab,'Contaminates',tab,'g/kg'
+            call edisp(itru,outs)
           else
             write(outs,'(2a,i2,6a)') '*report',tab,imetget(ig),tab,
      &        'distribution',tab,msdoc(ig)(1:lnblnk(msdoc(ig))),tab,
@@ -1011,7 +1136,11 @@ C Metrics - first produce frequency bin for each metric.
           elseif(imetget(ig).eq.73)then
             write(outs,'(5a)') '*title',tab,'Visual comfort',tab,'-'
           elseif(imetget(ig).eq.74)then
-            write(outs,'(5a)') '*title',tab,'Cnv+Rad & Latent',tab,'Wh'
+            write(outs,'(5a)') '*title',tab,'Plant Cnv+Rad+Lat',tab,'Wh'
+          elseif(imetget(ig).eq.75)then
+            write(outs,'(5a)') '*title',tab,'Emissions',tab,'Wh'
+          elseif(imetget(ig).eq.14)then
+            write(outs,'(5a)') '*title',tab,'Contaminates',tab,'g/kg'
           endif
 
 C Recover information for each metric.
@@ -1109,6 +1238,7 @@ C Set up selections.
                 IGETNO(I,8)=2
                 SLABEL(I)='Total solar absorbed,W'; LNSLABEL(I)=22
               elseif(imetget(ig).eq.73)then
+                idopt=izmg(ig,I)
                 IGETNO(I,1)=73
                 IGETNO(I,2)=izmg(ig,I)
                 IGETNO(I,3)=0
@@ -1117,7 +1247,13 @@ C Set up selections.
                 IGETNO(I,6)=1
                 IGETNO(I,7)=6
                 IGETNO(I,8)=1
-                SLABEL(I)='Guth comfort index,-'; LNSLABEL(I)=20
+                if(idopt.eq.1)then
+                  SLABEL(I)='Guth comfort index,-'; LNSLABEL(I)=20
+                elseif(idopt.eq.2)then
+                  SLABEL(I)='Glare,-'; LNSLABEL(I)=7
+                elseif(idopt.eq.3)then
+                  SLABEL(I)='Daylight factors,%'; LNSLABEL(I)=18
+                endif
               elseif(imetget(ig).eq.74)then
                 IGETNO(I,1)=74
                 IGETNO(I,2)=izmg(ig,I)
@@ -1127,7 +1263,7 @@ C Set up selections.
                 IGETNO(I,6)=-3
                 IGETNO(I,7)=12
                 IGETNO(I,8)=2
-                SLABEL(I)='Plnt cnv+rad&latent,Wh'; LNSLABEL(I)=22
+                SLABEL(I)='Plnt sensible+latent,kWh'; LNSLABEL(I)=24
               endif
   250       CONTINUE
 
@@ -1139,9 +1275,16 @@ C Frequency binning for comfort, when finished, reset iocupf.
               iocupf=0
             endif
             if(imetget(ig).eq.73)then
-              continue
+              continue  ! visual comfort variant
             elseif(imetget(ig).eq.74)then
               continue
+            elseif(imetget(ig).eq.75)then
+              continue
+            elseif(imetget(ig).eq.14)then
+              MENUTYPE=2
+              call  MFOUTP('i')
+              call edisp(itru,'*end_report')
+              call edisp(itru,' ')
             else
               CALL MODGRF('m',imetget(ig))
               call edisp(itru,'*end_report')
@@ -1150,58 +1293,96 @@ C Frequency binning for comfort, when finished, reset iocupf.
 
 C Next grab the stats for current metric. 
             if(imetget(ig).eq.73)then
-              write(outs,'(2a,i2,6a)') '*report',tab,imetget(ig),tab,
-     &          'stats',tab,msdoc(ig)(1:lnblnk(msdoc(ig))),tab,
-     &          metgroup(ig)
-              call edisp(itru,outs)
-              write(outs,'(3a)') '*title',tab,SLABEL(1)(1:LNSLABEL(1))
-              call edisp(itru,outs)
-              if(imetmsc(ig,1).eq.2)then
 
-C Guth report.
-               write(outs,'(7a)') '*format',tab,'table',tab,'13',tab,'2'
-               call edisp(itru,outs)
-               write(outs,'(5A)',IOSTAT=IOS,ERR=1) '*fields',tab,'xx',
-     &           tab,'yy'
-                call edisp(itru,outs)
-                call edisp(itru,'*data ')
-                call eddisp(itru,'-60.0  0. ')
-                call eddisp(itru,'-50.0  0. ')
-                call eddisp(itru,'-40.0  0. ')
-                call eddisp(itru,'-30.0  0. ')
-                call eddisp(itru,'-20.0  0. ')
-                call eddisp(itru,'-10.0  0. ')
-                call eddisp(itru,'  0.0  0. ')
-                call eddisp(itru,' 10.0  0. ')
-                call eddisp(itru,' 20.0  0. ')
-                call eddisp(itru,' 30.0  0. ')
-                call eddisp(itru,' 40.0  0. ')
-                call eddisp(itru,' 50.0  0. ')
-                call eddisp(itru,' 60.0  0. ')
-                call edisp(itru,'*end_report')
-                call edisp(itru,' ')
-              elseif(imetmsc(ig,1).eq.3)then
+C Guth report (once per IPV report).
+              if(paction(1:8).eq.'ipv_win '.or.
+     &           paction(1:8).eq.'ipv_win1'.or.
+     &           paction(1:8).eq.'ipv_ann ')then
+                if(imetmsc(ig,1).eq.1)then
+                  write(outs,'(2a,i2,6a)') '*report',tab,imetget(ig),
+     &              tab,'Guth',tab,msdoc(ig)(1:lnblnk(msdoc(ig))),tab,
+     &              metgroup(ig)
+                  call edisp(itru,outs)
+                  write(outs,'(3a)') '*title',tab,
+     &              SLABEL(1)(1:LNSLABEL(1))
+                  call edisp(itru,outs)
+                  write(outs,'(7a)') '*format',tab,'table',tab,'13',
+     &              tab,'2'
+                  call edisp(itru,outs)
+                  write(outs,'(5A)',IOSTAT=IOS,ERR=1) '*fields',tab,
+     &              'angle',tab,'value'
+                  call edisp(itru,outs)
+                  call edisp(itru,'*data ')
+                  if(vcp(1).gt.0.01.and.vcp(2).gt.0.01)then
+                    angvcp=-70
+                    do ivcp=1,13
+                      angvcp=angvcp+10
+                      write(msg,'(f6.1,f7.2)') angvcp,vcp(ivcp)
+                      call eddisp(itru,msg)
+                    enddo
+                  else
+                    call eddisp(itru,'-60.0 0.0 ')
+                    call eddisp(itru,'-50.0 0.0 ')
+                    call eddisp(itru,'-40.0 0.0 ')
+                    call eddisp(itru,'-30.0 0.0 ')
+                    call eddisp(itru,'-20.0 0.0 ')
+                    call eddisp(itru,'-10.0 0.0 ')
+                    call eddisp(itru,'  0.0 0.0 ')
+                    call eddisp(itru,' 10.0 0.0 ')
+                    call eddisp(itru,' 20.0 0.0 ')
+                    call eddisp(itru,' 30.0 0.0 ')
+                    call eddisp(itru,' 40.0 0.0 ')
+                    call eddisp(itru,' 50.0 0.0 ')
+                    call eddisp(itru,' 60.0 0.0 ')
+                  endif
+                  call edisp(itru,'*end_report')
+                  call edisp(itru,' ')
+                elseif(imetmsc(ig,1).eq.3)then
 
 C Daylight factors.
-                write(outs,'(7a)') '*format',tab,'table',tab,'1',tab,'2'
-                call edisp(itru,outs)
-                write(outs,'(5A)',IOSTAT=IOS,ERR=1) '*fields',tab,
-     &            'xx',tab,'yy'
-                call edisp(itru,outs)
-                call edisp(itru,'*data ')
-                call eddisp(itru,'value value')
-                call edisp(itru,'*end_report')
-                call edisp(itru,' ')
-              else
-                write(outs,'(7a)') '*format',tab,'table',tab,'1',tab,'2'
-                call edisp(itru,outs)
-                write(outs,'(5A)',IOSTAT=IOS,ERR=1) '*fields',tab,
-     &            'xx',tab,'yy'
-                call edisp(itru,outs)
-                call edisp(itru,'*data ')
-                call eddisp(itru,'value value')
-                call edisp(itru,'*end_report')
-                call edisp(itru,' ')
+                  write(outs,'(2a,i2,6a)') '*report',tab,imetget(ig),
+     &              tab,'Daylight',tab,
+     &              msdoc(ig)(1:lnblnk(msdoc(ig))),tab,metgroup(ig)
+                  call edisp(itru,outs)
+                  write(outs,'(3a)') '*title',tab,
+     &              SLABEL(1)(1:LNSLABEL(1))
+                  call edisp(itru,outs)
+                  write(outs,'(7a)') '*format',tab,'table',tab,'6',
+     &              tab,'2'
+                  call edisp(itru,outs)
+                  write(outs,'(5A)',IOSTAT=IOS,ERR=1) '*fields',tab,
+     &              'distance from facade',tab,'DF'
+                  call edisp(itru,outs)
+                  call edisp(itru,'*data ')
+                  call eddisp(itru,'0.5 0.0')
+                  call eddisp(itru,'1.0 0.0')
+                  call eddisp(itru,'1.5 0.0')
+                  call eddisp(itru,'2.0 0.0')
+                  call eddisp(itru,'2.5 0.0')
+                  call eddisp(itru,'3.0 0.0')
+                  call edisp(itru,'*end_report')
+                  call edisp(itru,' ')
+                else
+                  write(outs,'(2a,i2,6a)') '*report',tab,imetget(ig),
+     &              tab,'Glare',tab,msdoc(ig)(1:lnblnk(msdoc(ig))),
+     &              tab,metgroup(ig)
+                  call edisp(itru,outs)
+                  write(outs,'(3a)') '*title',tab,
+     &              SLABEL(1)(1:LNSLABEL(1))
+                  call edisp(itru,outs)
+                  write(outs,'(7a)') '*format',tab,'table',tab,'4',
+     &              tab,'4'
+                  call edisp(itru,outs)
+                  write(outs,'(5A)',IOSTAT=IOS,ERR=1) '*fields',tab,
+     &            'X',tab,'Y',tab,'Z',tab,'Lux'
+                  call edisp(itru,outs)
+                  call eddisp(itru,'*data 1.0 1.0 1.5 0.0')
+                  call eddisp(itru,'*data 1.0 2.0 1.5 0.0')
+                  call eddisp(itru,'*data 1.0 3.0 1.5 0.0')
+                  call eddisp(itru,'*data 1.0 4.0 1.5 0.0')
+                  call edisp(itru,'*end_report')
+                  call edisp(itru,' ')
+                endif
               endif
             elseif(imetget(ig).eq.74)then
               call MOEDMDS('i',the,tzhtime,tce,tzctime,tlhe,tzlhtime,
@@ -1228,9 +1409,24 @@ C Write stats for current metric.
               call eddisp(itru,outs)
               call edisp(itru,'*end_report')
               call edisp(itru,' ')
+            elseif(imetget(ig).eq.75)then
+              continue    ! Ignore emissions here (appended at end of report)
+            elseif(imetget(ig).eq.14)then
+              continue    ! Ignore contaminats here (scan of flow required)
             else
-              CALL MOSMSD('i',XMAX(1),XMIN(1),XAVE(1),XTOT(1),DMAX(1),
-     &          DMIN(1),XMSUM(1),XMINSUM(1))
+
+C For most stats topics turn off occupancy filtering.
+              if(imetget(ig).eq.1.or.imetget(ig).eq.6.or.
+     &           imetget(ig).eq.11.or.imetget(ig).eq.12.or.
+     &           imetget(ig).eq.13.or.imetget(ig).eq.38.or.
+     &           imetget(ig).eq.40)then
+                iocupf=0
+              endif
+
+              XMAXM=0.0; XMINM=0.0; XAVEM=0.0; XTOTM=0.0 ! Clear
+              DIVMX=0.0;DIVMN=0.0;DISTMX=0.0;DISTMN=0.0
+              CALL MOSMSD('i',XMAXM,XMINM,XAVEM,XTOTM,DIVMX,
+     &          DIVMN,DISTMX,DISTMN)
 
 C Write stats for current metric.
               write(outs,'(2a,i2,6a)') '*report',tab,imetget(ig),tab,
@@ -1240,13 +1436,14 @@ C Write stats for current metric.
 
               write(outs,'(3a)') '*title',tab,SLABEL(1)(1:LNSLABEL(1))
               call edisp(itru,outs)
-              if(imetget(ig).eq.1.or.imetget(ig).eq.6)then
+              if(imetget(ig).eq.1.or.imetget(ig).eq.6.or.
+     &           imetget(ig).eq.13)then
                 write(outs,'(7a)') '*format',tab,'table',tab,'1',tab,'3'
                 call edisp(itru,outs)
                 write(outs,'(7A)',IOSTAT=IOS,ERR=1) '*fields',tab,
      &            'maximum',tab,'minimum',tab,'average'
                 call edisp(itru,outs)
-                write(outs,'(a,3F12.3)')'*data ',XMAX(1),XMIN(1),XAVE(1)
+                write(outs,'(a,3F12.3)')'*data ',XMAXM,XMINM,XAVEM
                 call eddisp(itru,outs)
               else
                 write(outs,'(7a)') '*format',tab,'table',tab,'1',tab,'7'
@@ -1256,8 +1453,8 @@ C Write stats for current metric.
      &            'diversified_max',tab,'distributed_max',tab,
      &            'diversified_min',tab,'distributed_min'
                 call edisp(itru,outs)
-                write(outs,'(a,7F12.3)')'*data ',XMSUM(1),XMIN(1),
-     &            XAVE(1),DMAX(1),XMSUM(1),DMIN(1),XMINSUM(1)
+                write(outs,'(a,7F12.3)')'*data ',XMAXM,XMINM,
+     &            XAVEM,DIVMX,DISTMX,DIVMN,DISTMN
                 call eddisp(itru,outs)
               endif
               call edisp(itru,'*end_report')
@@ -1268,6 +1465,39 @@ C Reset occupancy.
             iocupf=0
           endif
   77    continue
+      endif
+
+C Metrics - if contaminate included then look in flow results.
+      if(nms.ge.1)then
+        do ig=1,nms
+          if(msdoc(ig)(1:11).eq.'contaminant')then
+            imetget(ig)=14    ! Note this is a flow index
+            imetmsc(ig,1)=0
+            imetmsc(ig,2)=0
+
+C Write stats for current metric.
+            write(outs,'(2a,i2,6a)') '*report',tab,imetget(ig),tab,
+     &        'stats',tab,msdoc(ig)(1:lnblnk(msdoc(ig))),tab,
+     &        metgroup(ig)
+            call edisp(itru,outs)
+            write(outs,'(3a)') '*title',tab,SLABEL(1)(1:LNSLABEL(1))
+            call edisp(itru,outs)
+            write(outs,'(7a)') '*format',tab,'table',tab,'1',tab,'3'
+            call edisp(itru,outs)
+            write(outs,'(7A)',IOSTAT=IOS,ERR=1) '*fields',tab,
+     &        'maximum',tab,'minimum',tab,'average'
+            call edisp(itru,outs)
+
+C Call MFOUTP('i') in IPV mode.
+C Network flow stats output (as first test).
+            if(iairn.ge.1)then
+              MENUTYPE=5
+              call  MFOUTP('i')
+              call edisp(itru,'*end_report')
+              call edisp(itru,' ')
+            endif
+          endif
+        enddo
       endif
 
 C Loop through each display day and check to see if it is in
@@ -1421,6 +1651,12 @@ C Domestic hot water (currently filled with 0.0)
    79       continue
           endif
 
+C How many timesteps will be written.
+          ihr=0
+          do j=ISTART,IEND,NOUT
+            ihr=ihr+1
+          enddo
+
 C Write out timestep demands.
           call edisp(itru,' ')
           write(outs,'(9a)') '*report',tab,'70',tab,'demand',tab,
@@ -1429,7 +1665,8 @@ C Write out timestep demands.
           write(outs,'(5a)')'*title',tab,'Energy Demand per Unit Time',
      &      tab,'W'
           call edisp(itru,outs)
-          write(outs,'(7a)') '*format',tab,'tabular',tab,'24',tab,'7'
+          write(outs,'(4a,i5,2a)') '*format',tab,'tabular',tab,ihr,
+     &      tab,'7'
           call edisp(itru,outs)
           write(outs,'(15A)',IOSTAT=IOS,ERR=1) '*fields',tab,'Time',
      &      tab,'Heating',tab,'Cooling',tab,'Lighting',tab,'Fans',tab,
@@ -1499,6 +1736,10 @@ C Write out timestep results depending on whether there is PV
 C data and the hourly format. Note: the initial dispersed gain
 C is occupants which makes no sense in the context. Do not include
 C that in the report.
+          ihr=0
+          do j=ISTART,IEND,NOUT
+            ihr=ihr+1
+          enddo
           call edisp(itru,'  ')
           write(outs,'(9a)') '*report',tab,'71',tab,'demand',tab,
      &     'per_unit_time',tab,'Dispersed'
@@ -1507,13 +1748,15 @@ C that in the report.
      &      tab,'W'
           call edisp(itru,outs)
           if(pvok)then
-            write(outs,'(7a)') '*format',tab,'tabular',tab,'24',tab,'8'
+            write(outs,'(4a,i5,2a)') '*format',tab,'tabular',tab,ihr,
+     &        tab,'8'
             call edisp(itru,outs)
             write(outs,'(17A)',IOSTAT=IOS,ERR=1) '*fields',tab,
      &       'Time',tab,'Lighting',tab,'Small Power',tab,
      &       'Fans',tab,'Pumps',tab,'Lifts',tab,'Hot water',tab,'PV'
           else
-            write(outs,'(7a)') '*format',tab,'tabular',tab,'24',tab,'7'
+            write(outs,'(4a,i5,2a)') '*format',tab,'tabular',tab,ihr,
+     &        tab,'7'
             call edisp(itru,outs)
             write(outs,'(15A)',IOSTAT=IOS,ERR=1) '*fields',tab,
      &       'Time',tab,'Lighting',tab,'Small Power',tab,
@@ -1606,6 +1849,10 @@ C for the associated zones during this display day.
             elseif(imetget(ig).eq.73)then
               goto 377
             elseif(imetget(ig).eq.74)then
+              goto 377
+            elseif(imetget(ig).eq.75)then
+              goto 377
+            elseif(imetget(ig).eq.14)then
               goto 377
             endif
             call edisp(itru,outs)
@@ -1741,12 +1988,19 @@ C     &            SUFFIX
 C                lnglabel(I)=lnblnk(glabel(i))  ! remember width
   350         CONTINUE
 
+
+C How many timesteps will be written.
+              ihr=0
+              do j=ISTART,IEND,NOUT
+                ihr=ihr+1
+              enddo
+
               write(outs,'(3a)') '*title',tab,SLABEL(1)(1:LNSLABEL(1))
               call edisp(itru,outs)
 
 C << with larger models the list of zone names could be long >>
-              write(outs,'(6a,i2)') '*format',tab,'tabular',
-     &          tab,'24',tab,nzmg(ig)+1
+              write(outs,'(4a,i5,a,i2)') '*format',tab,'tabular',
+     &          tab,ihr,tab,nzmg(ig)+1
               call edisp(itru,outs)
 
 C Use longer outs string for longer list. Match the format to MCOM.
@@ -1766,25 +2020,26 @@ C Restore hour format flag.
               IHFLAG=LIHFLAG
             endif
  377      continue
+
+C If period a week or fortnight create full period graph.
+          if(isdays.lt.16)then
+            do ig=1,nms
+              if(imetget(ig).eq.1.or.imetget(ig).eq.6.or.
+     &           imetget(ig).eq.13.or.imetget(ig).eq.15)then
+                call period_graph(itru,iseas,ig)
+                call edisp(itru,' ')
+              endif
+            enddo
+          endif
         endif
         call edisp(itru,'*end_day_to_display')
         call edisp(itru,' ')
  345  continue
 
 
-C Write the hourly aggregate demands for whole period if requested.
- 477  if(.NOT.autook)then
-        helptopic='res_IPV_hourly_patterns'
-        call gethelptext(helpinsub,helptopic,nbhelp)
-        call easkok(' ','List delivered energy by type?',ok,nbhelp)
-      else
-        if(iaggr.eq.0)then
-          ok=.false.
-        elseif(iaggr.eq.1)then
-          ok=.true.
-        endif
-      endif
-      if(ok)then
+C Write the timestep aggregate demands for whole period if a
+C week or fortnight.
+ 477  if(isdays.lt.16)then
         call aggreghd(itru,iseas,pvok)
         call edisp(itru,' ')
       endif
@@ -1802,6 +2057,11 @@ C Write the hourly aggregate demands for whole period if requested.
         INO=-4
         GOTO 3
       else
+
+C If user is in interactive mode advise that reports finished.
+        call usrmsg(
+     &    'Seasonal runs complete. If res invoked by prj then exit',
+     &    'now to allow the overall summary to be generated.','P')
 
 C Close the export file.
         call ipvexp(xfile,ixopen,ixunit,'a','T','Tabular',IER)
@@ -1892,7 +2152,7 @@ C For use with seasonal summaries.
 C Make up a single quote for IPV
       sq = char(39)
 
-C Read project demands file if it exists.
+C Read project dispersed demands file if it exists.
       IUO=IFIL+1
       call FINDFIL(bdmds,XST)
       IF(XST)THEN
@@ -1970,15 +2230,15 @@ C each season).
         do 459 ij=1,nipvassmt
           call eclose(ddmheat(ij),1.0,0.01,closea)
           call eclose(ddmcool(ij),1.0,0.01,closeb)
-          if(closea.and.closeb)then
-            continue
-          else
+C          if(closea.and.closeb)then
+C            continue
+C          else
             call ipvseadmd(ifu,ij,dmdsok,SWHD,SWCD,SWLD,SWFD,SWSPD,
      &        SWDHWD,SWPVD,denom,ier)
             SSWHD(ij)=SWHD; SSWCD(ij)=SWCD; SSWLD(ij)=SWLD; 
             SSWFD(ij)=SWFD; SSWSPD(ij)=SWSPD; SSWDHWD(ij)=SWDHWD
             SSWPVD(ij)=SWPVD; sdenom(ij)=denom
-          endif
+C          endif
   459   continue
         CALL  ERPFREE(ifu,ISTAT)
       endif
@@ -2003,6 +2263,7 @@ C If the number of assessments is more than one and the scaling factors
 C for each season are something other than unity, write seasonal
 C sub-totals as well.
       if(nipvassmt.gt.1)then
+        call usrmsg('Seasonal summaries being generated.',' ','-')
         do 448 ij=1,nipvassmt
 
           call edisp(itru,' ')
@@ -2012,29 +2273,29 @@ C sub-totals as well.
           call edisp(itru,' ')
           call eclose(ddmheat(ij),1.0,0.01,closea)
           call eclose(ddmcool(ij),1.0,0.01,closeb)
-          if(closea.and.closeb)then
+C          if(closea.and.closeb)then
 
 C Write the end marker of the seasonal summary only.
-            write(outs,'(3a)') '*End_seasonal_summary',tab,
-     &        ipvadesc(ij)(1:lnblnk(ipvadesc(ij)))
-            call edisp(itru,outs)
-          else
+C            write(outs,'(3a)') '*End_seasonal_summary',tab,
+C     &        ipvadesc(ij)(1:lnblnk(ipvadesc(ij)))
+C            call edisp(itru,outs)
+C          else
 
 C Use the information gathered earlier from scan of seasons.
             THE= SSWHD(ij)*ddmheat(ij)
             THEKW= SSWHD(ij)*ddmheat(ij)*sdenom(ij)
             TCE= abs((SSWCD(ij)*ddmcool(ij)))
             TCEKW= abs((SSWCD(ij)*ddmcool(ij)*sdenom(ij)))
-            tlight= SSWLD(ij)*ddmlight(ij)
-            tlightkw= SSWLD(ij)*ddmlight(ij)*sdenom(ij)
-            tpumps= SSWFD(ij)*ddmfan(ij)
-            tpumpskw= SSWFD(ij)*ddmfan(ij)*sdenom(ij)
-            tsmlpw= SSWSPD(ij)*ddmsmlpw(ij)
-            tsmlpwkw= SSWSPD(ij)*ddmsmlpw(ij)*sdenom(ij)
-            tdhw= SSWDHWD(ij)*ddmdhw(ij)
-            tdhwkw= SSWDHWD(ij)*ddmdhw(ij)*sdenom(ij)
-            tpv= SSWPVD(ij)*ddmdhw(ij)
-            tpvkw= SSWPVD(ij)*ddmdhw(ij)*sdenom(ij)
+            tlight= SSWLD(ij)*ddmtime(ij)
+            tlightkw= SSWLD(ij)*ddmtime(ij)*sdenom(ij)
+            tpumps= SSWFD(ij)*ddmtime(ij)
+            tpumpskw= SSWFD(ij)*ddmtime(ij)*sdenom(ij)
+            tsmlpw= SSWSPD(ij)*ddmtime(ij)
+            tsmlpwkw= SSWSPD(ij)*ddmtime(ij)*sdenom(ij)
+            tdhw= SSWDHWD(ij)*ddmtime(ij)
+            tdhwkw= SSWDHWD(ij)*ddmtime(ij)*sdenom(ij)
+            tpv= SSWPVD(ij)*ddmtime(ij)
+            tpvkw= SSWPVD(ij)*ddmtime(ij)*sdenom(ij)
 
 C << find an iget number for this >>
             write(outs,'(9a)') '*report',tab,'98',tab,'energy',tab,
@@ -2077,7 +2338,7 @@ C Report for the total building as well
      &        'building_performance',tab,'aggregate'
             call edisp(itru,outs)
             write(outs,'(5a)') '*title',tab,
-     &        'Integrated building demand',tab,'kWh'
+     &        'Integrated demand',tab,'kWh'
             call edisp(itru,outs)
             if(tpv.gt.0.001)then
               write(outs,'(7a)') '*format',tab,'table',tab,'1',tab,'7'
@@ -2107,7 +2368,7 @@ C Report for the total building as well
             write(outs,'(3a)') '*End_seasonal_summary',tab,
      &        ipvadesc(ij)(1:lnblnk(ipvadesc(ij)))
             call edisp(itru,outs)
-          endif
+C          endif
  448    continue
       endif
 
@@ -2135,18 +2396,18 @@ C Write performance data using seasonal dd* adjustments.
         THEKW= THEKW +(WHD(ij)*ddmheat(ij)*denom)
         TCE= TCE + abs((WCD(ij)*ddmcool(ij)))
         TCEKW= TCEKW + abs((WCD(ij)*ddmcool(ij)*denom))
-        tlight= tlight + (WLD(ij)*ddmlight(ij))
-        tlightkw= tlightkw + (WLD(ij)*ddmlight(ij)*denom)
-        tpumps= tpumps + (WFD(ij)*ddmfan(ij))
-        tpumpskw= tpumpskw + (WFD(ij)*ddmfan(ij)*denom)
-        tsmlpw= tsmlpw + (WSPD(ij)*ddmsmlpw(ij))
-        tsmlpwkw= tsmlpwkw + (WSPD(ij)*ddmsmlpw(ij)*denom)
-        tdhw= tdhw + (WDHWD(ij)*ddmdhw(ij))
-        tdhwkw= tdhwkw + (WDHWD(ij)*ddmdhw(ij)*denom)
+        tlight= tlight + (WLD(ij)*ddmtime(ij))
+        tlightkw= tlightkw + (WLD(ij)*ddmtime(ij)*denom)
+        tpumps= tpumps + (WFD(ij)*ddmtime(ij))
+        tpumpskw= tpumpskw + (WFD(ij)*ddmtime(ij)*denom)
+        tsmlpw= tsmlpw + (WSPD(ij)*ddmtime(ij))
+        tsmlpwkw= tsmlpwkw + (WSPD(ij)*ddmtime(ij)*denom)
+        tdhw= tdhw + (WDHWD(ij)*ddmtime(ij))
+        tdhwkw= tdhwkw + (WDHWD(ij)*ddmtime(ij)*denom)
 
 C << get a multiplier for PV supply >>.
-        tpv= tpv + (WPVD(ij)*ddmdhw(ij))
-        tpvkw= tpvkw + (WPVD(ij)*ddmdhw(ij)*denom)
+        tpv= tpv + (WPVD(ij)*ddmtime(ij))
+        tpvkw= tpvkw + (WPVD(ij)*ddmtime(ij)*denom)
  446  continue
 
 C << find an iget number for this >>
@@ -2186,7 +2447,7 @@ C << find an iget number for this >>
       write(outs,'(9a)') '*report',tab,'98',tab,'energy',tab,
      &  'building_performance',tab,'aggregate'
       call edisp(itru,outs)
-      write(outs,'(5a)') '*title',tab,'Integrated building demand',tab,
+      write(outs,'(5a)') '*title',tab,'Integrated demand',tab,
      &  'kWh/a'
       call edisp(itru,outs)
       if(tpv.gt.0.001)then
@@ -2322,10 +2583,10 @@ C Write emissions performance data from the intermediate file.
       do 447 ij=1,nipvassmt
         THE= THE +(WHD(ij)*ddmheat(ij))
         TCE= TCE + abs((WCD(ij)*ddmcool(ij)))
-        tlight= tlight + (WLD(ij)*ddmlight(ij))
-        tpumps= tpumps + (WFD(ij)*ddmfan(ij))
-        tsmlpw= tsmlpw + (WSPD(ij)*ddmsmlpw(ij))
-        tdhw= tdhw + (WDHWD(ij)*ddmdhw(ij))
+        tlight= tlight + (WLD(ij)*ddmtime(ij))
+        tpumps= tpumps + (WFD(ij)*ddmtime(ij))
+        tsmlpw= tsmlpw + (WSPD(ij)*ddmtime(ij))
+        tdhw= tdhw + (WDHWD(ij)*ddmtime(ij))
  447  continue
       THE = THE *pcnvht
       TCE = TCE *pcnvcl
@@ -2371,10 +2632,10 @@ C Convert from g/m^2/yr to kg/yr
       do 449 ij=1,nipvassmt
         THE= THE +(WHD(ij)*ddmheat(ij))
         TCE= TCE + abs((WCD(ij)*ddmcool(ij)))
-        tlight= tlight + (WLD(ij)*ddmlight(ij))
-        tpumps= tpumps + (WFD(ij)*ddmfan(ij))
-        tsmlpw= tsmlpw + (WSPD(ij)*ddmsmlpw(ij))
-        tdhw= tdhw + (WDHWD(ij)*ddmdhw(ij))
+        tlight= tlight + (WLD(ij)*ddmtime(ij))
+        tpumps= tpumps + (WFD(ij)*ddmtime(ij))
+        tsmlpw= tsmlpw + (WSPD(ij)*ddmtime(ij))
+        tdhw= tdhw + (WDHWD(ij)*ddmtime(ij))
  449  continue
       THE = THE *pcnvht*denom
       TCE = TCE *pcnvcl*denom
@@ -2419,7 +2680,7 @@ C Conversions from g/m^2/yr to kg/yr
       call edisp(itru,' ')
 
 C IGET = 76 IPV overall thermal comfort distribution
-      write(outs,'(8a)') '*report','76',tab,'distribution',tab,
+      write(outs,'(9a)') '*report',tab,'76',tab,'distribution',tab,
      &   'thermal_comfort',tab,'aggregate'
       call edisp(itru,outs)
       write(outs,'(5a)') '*title',tab,'Resultant Temperature',tab,
@@ -2468,6 +2729,7 @@ C Write the distribution of resultant temperature in each bin for each season.
  198  continue
       call edisp(itru,'*end_report')
       call edisp(itru,'*end ')
+      call usrmsg('Overall summary generated. Ok to exit.',' ','P')
 
       delim = '-'
       call ipvexp(xfile,ixopen,ixunit,'a','T','Tabular',IER)
@@ -3021,6 +3283,11 @@ C has iget index of 6 << could be more flexable >>.
 C Pass it the group name for this comfort set (the ipv description
 C might include several of type comfort) << still to be detected >>
         do 145 iset=1,nms
+          if(msdoc(iset)(1:7).eq.'comfort')then
+            imetget(iset)=6
+            imetmsc(iset,1)=6
+            imetmsc(iset,2)=1
+          endif
           if(imetget(iset).eq.6)then
             iindex=6
             third='distribution'
@@ -3039,13 +3306,23 @@ C Skip title and format and fields and read capacity data line
               goto 43
             endif
 
-C Scan 9 lines for comfort info and then read 2nd or 3rd item in bin info.
-            do 44 i=1,9
+C Scan 11 lines for comfort info (combine the first 3 bins) and
+C then read 3rd item in bin info.
+            do 44 i=1,11
               CALL STRIPC(ifu,OUTSTR,99,ND,1,'bin data',IER)
               K=0
               CALL EGETWI(OUTSTR,K,ib,0,0,'-','bin no',IER)
               CALL EGETW(OUTSTR,K,WORD,'W','range',IFLAG)
-              CALL EGETWI(OUTSTR,K,NH(i,ik),0,0,'-','cmft bin',IER)
+              if(i.eq.1)then
+                CALL EGETWI(OUTSTR,K,iv1,0,0,'-','cmft bin',IER)
+              elseif(i.eq.2)then
+                CALL EGETWI(OUTSTR,K,iv2,0,0,'-','cmft bin',IER)
+              elseif(i.eq.3)then
+                CALL EGETWI(OUTSTR,K,iv3,0,0,'-','cmft bin',IER)
+                NH(i-2,ik)= iv1 + iv2 + iv3
+              else
+                CALL EGETWI(OUTSTR,K,NH(i-2,ik),0,0,'-','cmft bin',IER)
+              endif
   44        continue
           else
             continue
@@ -3057,7 +3334,7 @@ C Scan 9 lines for comfort info and then read 2nd or 3rd item in bin info.
       end
 
 C ************** aggreghd
-C Hourly aggregate energy demand per unit time.
+C Aggregate energy demand per unit time for whole period.
       subroutine aggreghd(itru,iseas,pvok)
 #include "building.h"
 #include "ipvdata.h"
@@ -3073,6 +3350,7 @@ C      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/GETLABEL/SLABEL(MZS),GLABEL(MZS),TABLABEL(MZS)
       integer LNSLABEL,LNGLABEL,LNTABLABEL  ! lengths for label strings
       COMMON/LNGETLABEL/LNSLABEL(MZS),LNGLABEL(MZS),LNTABLABEL(MZS)
+      COMMON/GRTOOL/IHFLAG,IDHFLG,ILFLAG
       COMMON/SIMPIK/ISIM,ISTADD,ID1,IM1,ID2,IM2,ISDS,ISDF,NTS,ISAVE
       COMMON/PERO/IOD1,IOM1,IOH1,IOD2,IOM2,IOH2,IODS,IODF,NOUT,IAV
       common/exporttg/xfile,tg,delim
@@ -3083,9 +3361,12 @@ C IPV description via ipvdata.h.
 
 C << is this required? >>
       common/spm55/pvdayhr(2*MTS)
+      character paction*16
+      common/ract/paction
 
       dimension edput(MGTY,MTS)
       character tab*1,outs*124,xfile*144,tg*1,delim*1
+      character LTIME*5
       logical pvok
 
 C Set separator as in rest of seasonal report.
@@ -3136,7 +3417,11 @@ C Set the recovery period to match seasonal report.
 C Find out how many hours in the tabular report.
       ihr=0
       do 100 IDAY=IODS,IODF
-        call chktime(iday,istart,iend)
+        if(paction(1:10).eq.'ipv_annual')then
+          continue
+        else
+          call chktime(iday,istart,iend)
+        endif
         do 120 j=ISTART,IEND,NOUT
           ihr=ihr+1
   120   continue
@@ -3149,13 +3434,13 @@ C Find out how many hours in the tabular report.
      &  'Energy Delivered per Unit Time',tab,'W/m^2'
       call edisp(itru,outs)
       if(pvok)then
-        write(outs,'(4a,i4,2a)') '*format',tab,'tabular',tab,ihr,tab,'7'
+        write(outs,'(4a,i6,2a)') '*format',tab,'tabular',tab,ihr,tab,'8'
         call edisp(itru,outs)
         write(outs,'(17A)',IOSTAT=IOS,ERR=1) '*fields',tab,'Time',
      &  tab,'Heating',tab,'Cooling',tab,'Lighting',tab,
      &  'Fans pumps lifts',tab,'Small Power',tab,'Hot water',tab,'PV'
       else
-        write(outs,'(4a,i4,2a)') '*format',tab,'tabular',tab,ihr,tab,'6'
+        write(outs,'(4a,i6,2a)') '*format',tab,'tabular',tab,ihr,tab,'7'
         call edisp(itru,outs)
         write(outs,'(15A)',IOSTAT=IOS,ERR=1) '*fields',tab,'Time',
      &  tab,'Heating',tab,'Cooling',tab,'Lighting',tab,
@@ -3287,21 +3572,46 @@ C For non-zone-specific demands.
           endif
   182   continue
 
-C Write out hourly results.
+C Write out hourly results. Reset timestep reporting to julian decimal.
+        LIHFLAG=IHFLAG
+        IHFLAG=1
         do 90 j=ISTART,IEND,NOUT
+          call DATIME(J,ATIME)
           ihr=ihr+1
           if(pvok)then
             ipvhr=ipvhr+1
-            write(outs,'(i4,7F12.3)')ihr,edput(1,j),edput(2,j),
-     &        edput(3,j),edput(4,j),edput(5,j),edput(6,j),
-     &        pvdayhr(ipvhr)/pvfla
+            if(IHFLAG.eq.0)then 
+              call STIME(J,LTIME)
+              write(outs,'(2a,7F12.3)') ltime,' ',
+     &          edput(1,j),edput(2,j),edput(3,j),
+     &          edput(4,j),edput(5,j),edput(6,j),
+     &          pvdayhr(ipvhr)/pvfla
+            else
+              RDOTY=REAL(IDAY)+(ATIME/24.)
+              write(outs,'(F12.6,7F12.3)') RDOTY,
+     &          edput(1,j),edput(2,j),edput(3,j),
+     &          edput(4,j),edput(5,j),edput(6,j),
+     &          pvdayhr(ipvhr)/pvfla
+            endif
           else
-            write(outs,'(i4,6F12.3)')ihr,edput(1,j),edput(2,j),
-     &        edput(3,j),edput(4,j),edput(5,j),edput(6,j)
+            if(IHFLAG.eq.0)then 
+              call STIME(J,LTIME)
+              write(outs,'(2a,6F12.3)') ltime,' ',
+     &          edput(1,j),edput(2,j),edput(3,j),
+     &          edput(4,j),edput(5,j),edput(6,j)
+            else
+              RDOTY=REAL(IDAY)+(ATIME/24.)
+              write(outs,'(F12.6,6F12.3)') RDOTY,
+     &          edput(1,j),edput(2,j),edput(3,j),
+     &          edput(4,j),edput(5,j),edput(6,j)
+            endif
           endif
           call eddisp(itru,outs)
    90   continue
   10  continue
+
+C Restore hour format flag.
+      IHFLAG=LIHFLAG
       call edisp(itru,'*end_report')
       call edisp(itru,' ')
       return
@@ -3403,6 +3713,291 @@ C      endif
 
       return
       end
+
+
+C ************** period_graph
+C Plot the current metric for whole period.
+      subroutine period_graph(itru,iseas,ig)
+#include "building.h"
+#include "geometry.h"
+#include "ipvdata.h"
+
+C Uncomment the next line if debugging required.
+C      COMMON/OUTIN/IUOUT,IUIN,IEOUT
+      integer ncomp,ncon
+      COMMON/C1/NCOMP,NCON
+      COMMON/ZONPIK/NZ,NZNO(MCOM)
+      COMMON/BLM2/dmdfla(MGTY)
+
+C Comfort parameters and hash table.
+      common/cmftpar/WVEL,ACTL,CLO,iocut,iocuset
+      COMMON/IGETFLG/IOCUPF,ialstused,IROC
+
+      COMMON/GETPIK/NGET,IGETNO(MZS,9)
+
+      character SLABEL*32,GLABEL*24,TABLABEL*36
+      COMMON/GETLABEL/SLABEL(MZS),GLABEL(MZS),TABLABEL(MZS)
+      integer LNSLABEL,LNGLABEL,LNTABLABEL  ! lengths for label strings
+      COMMON/LNGETLABEL/LNSLABEL(MZS),LNGLABEL(MZS),LNTABLABEL(MZS)
+      COMMON/GRTOOL/IHFLAG,IDHFLG,ILFLAG
+      COMMON/SIMPIK/ISIM,ISTADD,ID1,IM1,ID2,IM2,ISDS,ISDF,NTS,ISAVE
+      COMMON/PERO/IOD1,IOM1,IOH1,IOD2,IOM2,IOH2,IODS,IODF,NOUT,IAV
+      common/exporttg/xfile,tg,delim
+      COMMON/EXPORTI/ixopen,ixunit,ixpunit
+      COMMON/GET1/VAL1(MZS,MTS),VAL2(MZS,MTS),VAL3(MZRL,MTS)
+
+C IPV description via ipvdata.h.
+      character paction*16
+      common/ract/paction
+
+      dimension edput(MGTY,MTS)
+      character tab*1,outs*124,xfile*144,tg*1,delim*1
+      character outs1k*1000,outs1kd*1000
+      character LTIME*5
+      character SUFFIX*8
+
+C Set separator as in rest of seasonal report.
+      if(delim.eq.'-')then
+        tab=' '
+      elseif(delim.eq.'S')then
+        tab=' '
+      elseif(delim.eq.'T')then
+        tab=CHAR(9)
+      elseif(delim.eq.'C')then
+        tab=','
+      endif
+
+C Generate heating for full period timestep report.
+      if(imetget(ig).eq.1)then
+        write(outs,'(2a,i2,6a)') '*report',tab,imetget(ig),tab,
+     &    'zone_dbt',tab,msdoc(ig)(1:lnblnk(msdoc(ig))),tab,
+     &    metgroup(ig)
+      elseif(imetget(ig).eq.6)then
+        write(outs,'(2a,i2,6a)') '*report',tab,imetget(ig),tab,
+     &    'thermal_comfort',tab,msdoc(ig)(1:lnblnk(msdoc(ig))),
+     &    tab,metgroup(ig)
+      elseif(imetget(ig).eq.11)then
+        write(outs,'(2a,i2,6a)') '*report',tab,imetget(ig),tab,
+     &    'infiltration load',tab,msdoc(ig)(1:lnblnk(msdoc(ig))),
+     &    tab,metgroup(ig)
+      elseif(imetget(ig).eq.12)then
+        write(outs,'(2a,i2,6a)') '*report',tab,imetget(ig),tab,
+     &    'ventilation load',tab,msdoc(ig)(1:lnblnk(msdoc(ig))),
+     &    tab,metgroup(ig)
+      elseif(imetget(ig).eq.13)then
+        write(outs,'(2a,i2,6a)') '*report',tab,imetget(ig),tab,
+     &    'relative humidity',tab,msdoc(ig)(1:lnblnk(msdoc(ig))),
+     &    tab,metgroup(ig)
+      elseif(imetget(ig).eq.15)then
+         write(outs,'(2a,i2,6a)') '*report',tab,imetget(ig),tab,
+     &    'total casual gains',tab,msdoc(ig)(1:lnblnk(msdoc(ig))),
+     &    tab,metgroup(ig)
+      elseif(imetget(ig).eq.38)then
+        write(outs,'(2a,i2,6a)') '*report',tab,imetget(ig),tab,
+     &    'solar entering from outside',tab,
+     &    msdoc(ig)(1:lnblnk(msdoc(ig))),tab,metgroup(ig)
+      elseif(imetget(ig).eq.40)then
+        write(outs,'(2a,i2,6a)') '*report',tab,imetget(ig),tab,
+     &    'total solar absorbed',tab,
+     &    msdoc(ig)(1:lnblnk(msdoc(ig))),tab,metgroup(ig)
+      endif
+      call edisp(itru,outs)
+      iocupf=0
+      ISET=ISIM
+      NZ=nzmg(ig)
+      if(NZ.eq.0)then
+        continue
+      else
+        NGET=nzmg(ig)
+
+C Set up selections (similar to code in moget.F).
+C Set hour format flag to julian decimal for following reports.
+        LIHFLAG=IHFLAG
+        IHFLAG=1
+        DO 350 I=1,NZ
+          NZNO(I)=izmg(ig,I)
+          if(imetget(ig).eq.1)then
+            SUFFIX=' db T'
+            IGETNO(I,1)=1
+            IGETNO(I,2)=izmg(ig,I)
+            IGETNO(I,3)=0
+            IGETNO(I,4)=0
+            IGETNO(I,5)=ISET
+            IGETNO(I,6)=1
+            IGETNO(I,7)=6
+            IGETNO(I,8)=1
+            SLABEL(I)='Dry bulb temperature,C'
+            LNSLABEL(I)=22
+            TABLABEL(I)='Dry bulb temperature'; LNTABLABEL(I)=20
+          elseif(imetget(ig).eq.6)then
+            SUFFIX=' Res T'
+            IGETNO(I,1)=6
+            IGETNO(I,2)=izmg(ig,I)
+            IGETNO(I,3)=0
+            IGETNO(I,4)=0
+            IGETNO(I,5)=ISET
+            IGETNO(I,6)=1
+            IGETNO(I,7)=5
+            IGETNO(I,8)=1
+            SLABEL(I)='Resultant temperature,C'
+            LNSLABEL(I)=23
+            TABLABEL(I)='Resultant temperature'; LNTABLABEL(I)=21
+          elseif(imetget(ig).eq.11)then
+            SUFFIX=' Inf'
+            IGETNO(I,1)=11
+            IGETNO(I,2)=izmg(ig,I)
+            IGETNO(I,3)=0
+            IGETNO(I,4)=0
+            IGETNO(I,5)=ISET
+            IGETNO(I,6)=-3
+            IGETNO(I,7)=4
+            IGETNO(I,8)=2
+            SLABEL(I)='Infiltration load,W'; LNSLABEL(I)=19
+            TABLABEL(I)='Infiltration load'; LNTABLABEL(I)=17
+          elseif(imetget(ig).eq.12)then
+            SUFFIX=' Vent'
+            IGETNO(I,1)=12
+            IGETNO(I,2)=izmg(ig,I)
+            IGETNO(I,3)=0
+            IGETNO(I,4)=0
+            IGETNO(I,5)=ISET
+            IGETNO(I,6)=-3
+            IGETNO(I,7)=9
+            IGETNO(I,8)=2
+            SLABEL(I)='Ventilation load,W'; LNSLABEL(I)=18
+            TABLABEL(I)='Ventilation load'; LNTABLABEL(I)=16
+          elseif(imetget(ig).eq.13)then
+            SUFFIX=' RH'
+            IGETNO(I,1)=13
+            IGETNO(I,2)=izmg(ig,I)
+            IGETNO(I,3)=0
+            IGETNO(I,4)=0
+            IGETNO(I,5)=ISET
+            IGETNO(I,6)=-202
+            IGETNO(I,7)=4
+            IGETNO(I,8)=4
+            SLABEL(I)='Relative humidity,%'; LNSLABEL(I)=19
+            TABLABEL(I)='Relative humidity'; LNTABLABEL(I)=17
+          elseif(imetget(ig).eq.15)then
+            SUFFIX=' TotCnv'
+            IGETNO(I,1)=15
+            IGETNO(I,2)=izmg(ig,I)
+            IGETNO(I,3)=1
+            IGETNO(I,4)=0
+            IGETNO(I,5)=ISET
+            IGETNO(I,6)=-3
+            IGETNO(I,7)=12
+            IGETNO(I,8)=2
+            SLABEL(I)='Total casual gains,W'; LNSLABEL(I)=20
+            TABLABEL(I)='Total casual gains'; LNTABLABEL(I)=18
+          elseif(imetget(ig).eq.38)then
+            SUFFIX=' SolinEx'
+            IGETNO(I,1)=38
+            IGETNO(I,2)=izmg(ig,I)
+            IGETNO(I,3)=0
+            IGETNO(I,4)=0
+            IGETNO(I,5)=ISET
+            IGETNO(I,6)=-104
+            IGETNO(I,7)=7
+            IGETNO(I,8)=2
+            SLABEL(I)='Solar entering from outside,W'
+            LNSLABEL(I)=29
+            TABLABEL(I)='Solar from outside'; LNTABLABEL(I)=18
+          elseif(imetget(ig).eq.40)then
+            SUFFIX=' TSolabs'
+            IGETNO(I,1)=40
+            IGETNO(I,2)=izmg(ig,I)
+            IGETNO(I,3)=0
+            IGETNO(I,4)=0
+            IGETNO(I,5)=ISET
+            IGETNO(I,6)=-104
+            IGETNO(I,7)=9
+            IGETNO(I,8)=2
+            SLABEL(I)='Total solar absorbed,W'; LNSLABEL(I)=22
+            TABLABEL(I)='Total solar absorbed'; LNTABLABEL(I)=20
+          elseif(imetget(ig).eq.73)then
+            SUFFIX=' Guth'
+            IGETNO(I,1)=73
+            IGETNO(I,2)=izmg(ig,I)
+            IGETNO(I,3)=0
+            IGETNO(I,4)=0
+            IGETNO(I,5)=ISET
+            IGETNO(I,6)=1
+            IGETNO(I,7)=6
+            IGETNO(I,8)=1
+            SLABEL(I)='Guth comfort index,-'; LNSLABEL(I)=20
+            TABLABEL(I)='Guth comfort index'; LNTABLABEL(I)=18
+          endif
+  350   CONTINUE
+
+
+C Set the recovery period to match seasonal report.
+        ihr=0
+        IOH1=1
+        IOH2=24
+
+        if(iseas.eq.1)then
+          call EDAYR(ipvastjd(1),IOD1,IOM1)
+          call EDAYR(ipvafnjd(1),IOD2,IOM2)
+        elseif(iseas.eq.2)then
+          call EDAYR(ipvastjd(2),IOD1,IOM1)
+          call EDAYR(ipvafnjd(2),IOD2,IOM2)
+        elseif(iseas.eq.3)then
+          call EDAYR(ipvastjd(3),IOD1,IOM1)
+          call EDAYR(ipvafnjd(3),IOD2,IOM2)
+        elseif(iseas.eq.4)then
+          call EDAYR(ipvastjd(4),IOD1,IOM1)
+          call EDAYR(ipvafnjd(4),IOD2,IOM2)
+        elseif(iseas.eq.5)then
+          call EDAYR(ipvastjd(5),IOD1,IOM1)
+          call EDAYR(ipvafnjd(5),IOD2,IOM2)
+        endif
+        CALL EDAY(IOD1,IOM1,IODS)
+        CALL EDAY(IOD2,IOM2,IODF)
+
+C Find out how many hours in the tabular report.
+        ihr=0
+        do 100 IDAY=IODS,IODF
+          call chktime(iday,istart,iend)
+          do 120 j=ISTART,IEND,NOUT
+            ihr=ihr+1
+  120     continue
+  100   continue
+
+        write(outs,'(3a)') '*title',tab,SLABEL(1)(1:LNSLABEL(1))
+        call edisp(itru,outs)
+        write(outs,'(4a,i5,a,i2)') '*format',tab,'tabular',
+     &    tab,ihr,tab,nzmg(ig)+1
+        call edisp(itru,outs)
+
+C Use longer outs string for longer list. Match the format to MCOM.
+        outs1kd=' '
+        write(outs1k,'(a,82(A,1x))',IOSTAT=IOS,ERR=1) 
+     &    '*fields Time ',(zname(izmg(ig,j)),j=1,nzmg(ig))
+        call sdelim(outs1k,outs1kd,'C',IW)
+        call edisp(itru,outs1kd)
+        call edisp(itru,'*data ')
+
+C If IPV report then use alternative tabular listing.
+        call zontab('p')
+        call edisp(itru,'*end_report')
+        call edisp(itru,' ')
+
+C Restore hour format flag.
+        IHFLAG=LIHFLAG
+      endif
+      return
+
+ 1    if(IOS.eq.2)then
+        CALL USRMSG('No permission to write IPV report.',' ','W')
+      else
+        CALL USRMSG('Problem writing IPV report.',' ','W')
+      endif
+      CALL  ERPFREE(ixunit,ISTAT)
+      return
+      end
+
+
 
 C IPVEXP ***********
 C IPVEXP: Control feedback to export file or text feedback area. This

@@ -31,6 +31,7 @@ C  HZSTOCON    - scans the current connections list and builds array
 C                IZSTOCN(MCOMP,MS) holding the connection index.
 C findwhichdbpath - takes a database file name and checks to see if
 C                   the path is local, absolute or to the standard folder.
+C GEOSCAN      - Prescan of zone geometry foc cnn related data.
 
 C ******************** ERSYS ********************
 C A legacy interface to ERSYS_mmode allowing existing code to
@@ -390,10 +391,8 @@ C CPCALC pressure coef.
       REAL :: azim,elev,zcoab,ycoab,xcoab
       INTEGER :: nuco
 
-C Path to model and command line file (if any). Browse
-C is a logical flag, .true. restricts update/save options.
+C Path to model and command line file (if any).
       common/rpath/path
-      common/user/browse
 
 C Path to SHOCC input files
 C bSHOCCed     - logical flag whether project has SHOCC input
@@ -467,8 +466,18 @@ C  zSWA  - shortwave absorption (W).
       integer iexcludediff_flag
       common/excludediff/iexcludediff_flag
 
-      LOGICAL browse,context
-      LOGICAL XST,OK,DOK,IGDCVS,IGDCNC,IGDNDC,IGDTAQ,cnnok
+C Version of construction file. If not specified set at 21 (2.1)
+      integer izconstv,iztmcv
+      common/znconstrv/izconstv(MCOM),iztmcv(MCOM)
+
+      integer itznb  ! test count of zones
+      integer itncon ! test count of connections.
+      integer itIC1,itIE1,itICT,itIC2,itIE2 ! tests of
+      common/itcnn/itznb,itncon,itIC1(MCON),itIE1(MCON),itICT(MCON),
+     &  itIC2(MCON),itIE2(MCON)
+
+      LOGICAL context
+      LOGICAL XST,OK,IGDCVS,IGDCNC,IGDNDC,IGDTAQ,cnnok
       LOGICAL OK3DCVS,OK3DCNC,OK3DNDC,OK3DTAQ
       logical foundmould,foundsbem
       CHARACTER loutstr*248,OUTSTR*124,OUTS*124,text*124,t117*117
@@ -489,6 +498,7 @@ C  zSWA  - shortwave absorption (W).
       character namez*12,namen*12
       character bidirfile*72,bidirname*12
       CHARACTER CONTMNAM*12,CNTMDESC*124,cntmfil*72
+      character zconfil*72  ! zone con file to test for version.
       character calename*32,calentag*12,calendayname*32
       character LWndSupp*72
       character ipvact*3   ! to signal internal or external IPV file
@@ -500,11 +510,10 @@ C  zSWA  - shortwave absorption (W).
       logical deprecated   ! trap ancient tags
       integer itru         ! unit for output
       integer iflag        ! for error traps
-      integer loop         ! for looping     
       INTEGER :: id1,id2,id3,id4,icon,icomp,icc,i,ia,ierv
       INTEGER :: im1,im2,im3,im4,iier,ipos,ios,inod,inisz,igrdp
       INTEGER :: irva,is,iset_start,k,kv,j,iv,iva,iunit,iunit1,lc
-      INTEGER :: itrunc,isva,istat,n,m,items
+      INTEGER :: itrunc,isva,istat,n,m,items,ijj,ir
       INTEGER :: lcfgl,lcfgr,louts,ncn,nd
       real    :: vp1,vp2,vp3,vp4,vp5  ! for ies control points
 
@@ -639,10 +648,9 @@ C Clear zone related files and flags.
         ipausecas(i)=0  ! unmark pause to re-scan zone operation file
    43 continue
 
-C Assume standard version of configuration file and that user has
+C Assume current version of configuration file and that user has
 C set no preference for upgrading.
-      icfgv=4
-      usecurcfg=0
+      icfgv=5
       nuco=0
 
 C Initialise the indices.
@@ -658,6 +666,8 @@ C Initialise the indices.
       VIEWMI(3)=10.
       ANGI=40.
       initvt=0
+
+      itznb=0; itncon=0  ! clear geoscan counters.
 
 C Older files may not have a *list section for the calendar and
 C to support compatibility with legacy assumption of 3 day types
@@ -983,7 +993,7 @@ C *indx and latitude & site exposure lines.
 C If an older file then jump to process the title and zone or plant information.
 C Newer files might have the title following *building.
         if(icfgv.ge.5)then
-          if(ND.gt.2)then
+          if(ND.ge.2)then
              CALL EGETRM(LOUTSTR,K,modeltitle,'W','title',IER)
              havetitile=.true.
           else
@@ -1630,7 +1640,6 @@ C Project notes file, read and then go on to fabric/plant description.
 C Ish has a file unit clash with help text scan so manually set
 C the h() arrays.
         call usrmsg(' Unknown entry format... ',loutstr,'W')
-        dok=.true.
         h(1)='An unknown tag or line was found in the configuration'
         h(2)='file. The file might be corrupt or for a different'
         h(3)='version of ESP-r. '
@@ -1717,23 +1726,32 @@ C Number of building zones.
       IF(IER.NE.0)goto 1
       if(LOUTSTR(1:7).eq.'*zones ')then
         k=7
-      else
-        K=0
-      endif
-      CALL EGETWI(LOUTSTR,K,NCOMP,0,MCOM,'W','zones',IER)
+        CALL EGETWI(LOUTSTR,K,NCOMP,0,MCOM,'W','nb of zones',IER)
 
 C If greater complexity than executables can deal with
 C set ier=3 and generate a message.
-      if(ncomp.gt.MCOM)then
-        write(outs,'(a,i3,a,i3,a)') 'Model complexity ',ncomp,
+        if(ncomp.gt.MCOM)then
+          write(outs,'(a,i3,a,i3,a)') 'Model complexity ',ncomp,
      &    ' zones is GREATER THAN ',MCOM,'!'
-        call edisp(iuout,outs)
-        call edisp(iuout,'Either re-compile or simplify model.')
-        IER=3
-        RETURN
+          call edisp(iuout,outs)
+          call edisp(iuout,'Either re-compile or simplify model.')
+          IER=3
+          RETURN
+        endif
+        IF(IER.NE.0) GOTO 1
+C        icomp=0    ! Clear 
+      else  ! older style with a number after the building title.
+        CALL EGETWI(LOUTSTR,K,NCOMP,0,MCOM,'W','nb of zones',IER)
+        if(ncomp.gt.MCOM)then
+          write(outs,'(a,i3,a,i3,a)') 'Model complexity ',ncomp,
+     &    ' zones is GREATER THAN ',MCOM,'!'
+          call edisp(iuout,outs)
+          call edisp(iuout,'Either re-compile or simplify model.')
+          IER=3
+          RETURN
+        endif
       endif
-      IF(IER.NE.0) GOTO 1
-
+      
 C Reporting.
       IF(ITRC.GE.1)THEN
         WRITE(OUTS,'(2a)')' The model title is ',
@@ -1767,12 +1785,12 @@ C Zone file names.
         CALL EGETRM(LOUTSTR,K,text,'W','remaining text',IFLAG)
       endif
       IF(IFLAG.NE.0)goto 1
-      if(WORD(1:4).eq.'*zon')then
+      if(WORD(1:5).eq.'*zon ')then
         OK3DCVS=.FALSE.
         OK3DCNC=.FALSE.
         OK3DNDC=.FALSE.
         OK3DTAQ=.FALSE.
-        icomp=icomp+1
+        icomp=icomp+1         ! Increment the zone count.
         ZONE3D(icomp)=.FALSE.
         K=5
         CALL EGETWI(LOUTSTR,K,NCCODE(ICOMP),1,100,'W','zone index',IER)
@@ -1802,7 +1820,23 @@ C a zone casual gain to be adapted. No impact if tag missing.
       elseif(WORD(1:4).eq.'*geo')then
         LGEOM(icomp)=text(1:72)
       elseif(WORD(1:4).eq.'*con')then
+
+C Zone construction file. If it exists check first line for version.
         LTHRM(icomp)=text(1:72)
+        zconfil=text(1:72)
+        call FINDFIL(zconfil,XST)
+        IUNIT=IFIL+72
+        if(XST)then
+          CALL EFOPSEQ(IUNIT,zconfil,1,IER)
+          IF(IER.eq.0)then
+            CALL STRIPC(IUNIT,OUTSTR,99,ND,1,'*Constructions',IER)
+            if(OUTSTR(1:18).eq.'*Constructions 2.1')then
+              izconstv(ICOMP)=21
+              iztmcv(ICOMP)=21
+            endif
+          endif
+        ENDIF
+        CALL ERPFREE(IUNIT,ISTAT)
       elseif(WORD(1:4).eq.'*utl')then
         msgl2='This is no longer supported. Skipping.'
         call usrmsg('Detected a legacy zone utility file.',
@@ -1945,11 +1979,6 @@ C referenced in the cfg file is placed there.
           CALL USRMSG('Multiple structured zones!',msgl2,'W')
         endif
       elseif(WORD(1:5).eq.'*zend')then
-C        if(OK3DCVS.and.OK3DCNC.and.OK3DNDC.and.OK3DTAQ)then
-C          ZONE3D(icomp)=.TRUE.
-C        else
-C          ZONE3D(icomp)=.FALSE.
-C        endif
         if(icomp.lt.ncomp)then  ! loop back for next zone
           goto 46
         else
@@ -1975,16 +2004,30 @@ C        endif
       endif
       goto 46
 
-C Geometry file, get or derive the zone name via reading the file.
-C Make temporary use of file unit IUF. 
- 142  do 22 ICOMP=1,NCOMP
+C Prescan zone geometry files to build up cnn lists (commented out for now).
+ 142  itznb=0
+      itncon=0  ! clear geoscan counters.
+      do ijj=1,ncomp
+        call FINDFIL(LGEOM(ijj),XST)
+        IF(XST)THEN
+          write(currentfile,'(a)') LGEOM(ijj)(1:lnblnk(LGEOM(ijj)))
+          CALL ERPFREE(IUF,ios)
+          call GEOSCAN(IUF,LGEOM(ijj),ijj,IR,ITRU,IER)
+        endif
+      enddo
+C      write(6,*) 'geoscan found ',itncon,' connections.'
+
+C Get or derive the zone name via reading initiall portion
+C of the geometry file. Make temporary use of file unit IUF. 
+      do 22 ICOMP=1,NCOMP
         zname(ICOMP)='UNKNOWN'
         call FINDFIL(LGEOM(ICOMP),XST)
 
         IF(XST)THEN
           write(currentfile,'(a)') LGEOM(ICOMP)(1:lnblnk(LGEOM(ICOMP)))
           CALL ERPFREE(IUF,ios)
-          call georead(iuf,LGEOM(ICOMP),ICOMP,1,itru,ier)
+C          call georead(iuf,LGEOM(ICOMP),ICOMP,1,itru,ier)
+          call scan_zone_name(iuf,LGEOM(ICOMP),ICOMP,itru,ier)
           write(currentfile,'(a)') FILE(1:lnblnk(FILE))
         ELSE
           ZNAME(ICOMP)='UNKNOWN'
@@ -2009,7 +2052,6 @@ C Fill in a default zone name if blank or UNKNOWN.
         if(zdesc(ICOMP)(1:1).EQ.' ')then
           write(zdesc(ICOMP),'(2a)') 
      &      zname(ICOMP)(1:lnzname(ICOMP)),' describes a'
-          lnzdesc(ICOMP)=lnblnk(zdesc(ICOMP))  ! update string length
         endif
 
 C Reporting.
@@ -2120,28 +2162,54 @@ C so the subsequent line might be *cnn.
         K=0
         CALL EGETW(LOUTSTR,K,WORD,'W','connections tag',IER)
         CALL EGETRM(LOUTSTR,K,LCNN,'W','connections file',IER)
-        call FINDFIL(LCNN,XST)
-        if(XST)then
-          write(currentfile,'(a)') LCNN(1:lnblnk(LCNN))
-          CALL EFOPSEQ(IUF,LCNN,1,IER)
+
+C If LCNN is 'internal' then set cnnok to .false. and read 
+C subsequent line for number of connections. Compare this with
+C the surface count from the pre-scan of geometry files. Otherwise
+C if file-based check if the connections file exists and read header.
+        if(LCNN(1:8).eq.'internal')then
+          cnnok=.false.
+          usecurcfg = 1  ! Mark embedded cnn for subsequent save requests. 
+          CALL LSTRIPC(IUC,LOUTSTR,0,ND,1,'nb connections',IER)
           IF(IER.NE.0)goto 1
-          CALL LSTRIPC(IUF,LOUTSTR,0,ND,1,'connex file header',IER)
-          if(LOUTSTR(1:12).ne.'*connections')then
-            CALL USRMSG(' not a connections file ',LCNN,'W')
-            goto 1
-          endif
-          CALL LSTRIPC(IUF,LOUTSTR,0,ND,1,'connex file date',IER)
-          CALL LSTRIPC(IUF,LOUTSTR,0,ND,1,'no of connex',IER)
           K=0
-          CALL EGETWI(LOUTSTR,K,NCON,3,MCON,'W','no connex',IER)
+          CALL EGETWI(LOUTSTR,K,NCON,3,MCON,'W','no connection',IER)
+          if(itncon.ne.ncon)then
+            call edisp(iuout,' ')
+            write(outs,'(a,i4,a,i4,a)') 
+     &        'Mismatch in surface counts in geometry (',itncon,
+     &        ') and connections list (',ncon,'.'
+            call edisp(iuout,outs)
+            call easkok('Accept geometry surface count?',
+     &      '(If no you should re-establish model topology)',OK,3)
+            if(ok) ncon=itncon
+          endif
           IF(IER.NE.0) GOTO 1
         else
-          if(NCOMP.eq.0)then
-            goto 6     ! if there are no zones then no cnn file
+          call FINDFIL(LCNN,XST)
+          if(XST)then
+            write(currentfile,'(a)') LCNN(1:lnblnk(LCNN))
+            CALL EFOPSEQ(IUF,LCNN,1,IER)
+            IF(IER.NE.0)goto 1
+            CALL LSTRIPC(IUF,LOUTSTR,0,ND,1,'connex file header',IER)
+            if(LOUTSTR(1:12).ne.'*connections')then
+              CALL USRMSG(' not a connections file ',LCNN,'W')
+              goto 1
+            endif
+            CALL LSTRIPC(IUF,LOUTSTR,0,ND,1,'connex file date',IER)
+            CALL LSTRIPC(IUF,LOUTSTR,0,ND,1,'no of connex',IER)
+            K=0
+            CALL EGETWI(LOUTSTR,K,NCON,3,MCON,'W','no connex',IER)
+            IF(IER.NE.0) GOTO 1
+            usecurcfg = 2  ! Mark separate cnn file for subsequent save requests. 
           else
-            CALL USRMSG('Connections file not found!',LCNN,'W')
-            IER=1
-            RETURN
+            if(NCOMP.eq.0)then
+              goto 6     ! if there are no zones then no cnn file
+            else
+              CALL USRMSG('Connections file not found!',LCNN,'W')
+              IER=1
+              RETURN
+            endif
           endif
         endif
       else
@@ -2158,30 +2226,61 @@ C Reporting: generate header for connections.
         CALL EDISP(iuout,OUTS)
       ENDIF
 
+      call usrmsg(
+     &  'Comparing zone attributes with connections list...',' ','P')
+      cnndisagree=.false.
       DO 21 ICON=1,NCON
 
-C Read from either the connections or configuration file.
-
-C << Connections are always in an separate file.
+C Read connection attributes from either the connections or configuration file.
         if(cnnok)then
           write(currentfile,'(a)') LCNN(1:lnblnk(LCNN))
           CALL LSTRIPC(IUF,LOUTSTR,0,ND,1,'connections',IER)
-        else
-          write(currentfile,'(a)') FILE(1:lnblnk(FILE))
-          CALL LSTRIPC(IUC,LOUTSTR,0,ND,1,'connections',IER)
+          IF(IER.NE.0)goto 1
+          K=0
+          CALL EGETWI(LOUTSTR,K,IC1(ICON),1,MCOM,'F','conn src zn',IER)
+          IF(IER.NE.0) GOTO 1
+          CALL EGETWI(LOUTSTR,K,IE1(ICON),1,MS,'F','conn src surf',IER)
+          IF(IER.NE.0) GOTO 1
+          CALL EGETWI(LOUTSTR,K,ICT(ICON),-1,7,'F','conn type',IER)
+          IF(IER.NE.0) GOTO 1
+          CALL EGETWI(LOUTSTR,K,IC2(ICON),0,0,'-','conn other zone',IER)
+          IF(IER.NE.0) GOTO 1
+          CALL EGETWI(LOUTSTR,K,IE2(ICON),0,0,'-','conn other surf',IER)
+          IF(IER.NE.0) GOTO 1
+
+C Check if any of the values differ.
+          if((itic1(icon).eq.ic1(icon)).and.
+     &       (itIE1(icon).eq.ie1(icon)).and.
+     &       (itICT(icon).eq.ICT(ICON)).and.
+     &       (itIC2(icon).eq.IC2(ICON)).and.
+     &       (itIE2(icon).eq.IE2(ICON)))then
+            continue
+          else
+
+C Debug of geo scan vs cnn file variables.
+C            write(6,'(i4,a,2i4,a,2i4,a,2i4,a,2i4,a,2i4)') 
+C     &        icon,' tcz cz ',itic1(icon),ic1(icon),
+C     &        ' tcs cs',itIE1(icon),ie1(icon),
+C     &        ' tct ct',itICT(icon),ICT(ICON),
+C     &        ' tc2 c2',itIC2(icon),IC2(ICON),
+C     &        ' te2 e2',itIE2(icon),IE2(ICON)
+            cnndisagree=.true.   ! Set so later save of cnn can have warning.
+          endif
+        else   ! Take connection attribures from geometry files and apply.
+          ic1(icon)=itic1(icon)
+          ie1(icon)=itIE1(icon)
+          ICT(ICON)=itICT(icon)
+          IC2(ICON)=itIC2(icon)
+          IE2(ICON)=itIE2(icon)
+
+C Debug of geo scan vs cnn file variables.
+C          write(6,'(a,2i4,a,2i4,a,2i4,a,2i4,a,2i4)') 
+C     &      'tcz cz ',itic1(icon),ic1(icon),
+C     &      ' tcs cs',itIE1(icon),ie1(icon),
+C     &      ' tct ct',itICT(icon),ICT(ICON),
+C     &      ' tc2 c2',itIC2(icon),IC2(ICON),
+C     &      ' te2 e2',itIE2(icon),IE2(ICON)
         endif
-        IF(IER.NE.0)goto 1
-        K=0
-        CALL EGETWI(LOUTSTR,K,IC1(ICON),1,MCOM,'F','conn src zone',IER)
-        IF(IER.NE.0) GOTO 1
-        CALL EGETWI(LOUTSTR,K,IE1(ICON),1,MS,'F','conn src surf',IER)
-        IF(IER.NE.0) GOTO 1
-        CALL EGETWI(LOUTSTR,K,ICT(ICON),-1,7,'F','conn type',IER)
-        IF(IER.NE.0) GOTO 1
-        CALL EGETWI(LOUTSTR,K,IC2(ICON),0,0,'-','conn other zone',IER)
-        IF(IER.NE.0) GOTO 1
-        CALL EGETWI(LOUTSTR,K,IE2(ICON),0,0,'-','conn other surf',IER)
-        IF(IER.NE.0) GOTO 1
 
 C If ground connection IC2=0 then IE2 is the profile reference.
         IF(ICT(ICON).EQ.4)THEN
@@ -2212,11 +2311,26 @@ C Close connections file and build zone:surface connections hash array.
       do 42 icc = 1, NCON
         IZSTOCN(IC1(icc),IE1(icc))=icc
  42   continue
+      if(cnndisagree)then
+        call edisp(iuout,' ')
+        call edisp(iuout,
+     &    'There are differences between the surface attributes and')
+        call edisp(iuout,
+     &    'the master connections list. Go into each zone and confirm')
+        call edisp(iuout,
+     &    'via browse->composition->geometry which is correct.')
+      else
+        if(mmod.eq.8)then  ! Remind user of future save option.
+          call usrmsg(
+     &    'Comparing zone attributes with connections list...done.',
+     &    'You have option to use embedded connections when saving.',
+     &    'P')
+        endif
+      endif
 
-C With hash known, re-scan geometry files (connection based
-C surface attributes will be instantiated during geometry read).
-C Warn if izstocn returns zero. Recover zone volume and surface
-C derived data. Use georead or egomin depending on version.
+C With hash known, fully scan geometry files to instanciate other
+C data structures. Warn if izstocn returns zero. Recover derived
+C data. Use georead or egomin depending on version.
       do 242 ICOMP=1,NCOMP
         call FINDFIL(LGEOM(ICOMP),XST)
         call eclose(gversion(icomp),1.1,0.01,newgeo)
@@ -2276,22 +2390,22 @@ C For MODE='ALL ' also find co-planer surfaces & edges of similar materials.
           if(MODE(1:3).eq.'ALL'.or.MODE(1:3).eq.'all')then
             call suredgeadj(itrc,'-',icomp,ier)
 
-C Instantiate the szcoords and iszjvn arrays.
-            DO 40 J=1, NZTV(ICOMP)
-              szcoords(ICOMP,J,1)=X(J)
-              szcoords(ICOMP,J,2)=Y(J)
-              szcoords(ICOMP,J,3)=Z(J)
-   40       CONTINUE
-            DO 50 J=1, nzsur(ICOMP)
-              icc=IZSTOCN(icomp,j)
-              if(icc.ne.0)then
-                isznver(icomp,J)=NVER(J)
-                N = isznver(icomp,J)
-                DO 60 K=1,N
-                  iszjvn(icomp,J,K)=JVN(J,K)
-   60           CONTINUE
-              endif
-   50       CONTINUE
+C Instantiate the szcoords and iszjvn arrays. << already done in EGOMIN & georead!
+C            DO 40 J=1, NZTV(ICOMP)
+C              szcoords(ICOMP,J,1)=X(J)
+C              szcoords(ICOMP,J,2)=Y(J)
+C              szcoords(ICOMP,J,3)=Z(J)
+C   40       CONTINUE
+C            DO 50 J=1, nzsur(ICOMP)  ! already done in georead!
+C              icc=IZSTOCN(icomp,j)
+C              if(icc.ne.0)then
+C                isznver(icomp,J)=NVER(J)
+C                N = isznver(icomp,J)
+C                DO 60 K=1,N
+C                  iszjvn(icomp,J,K)=JVN(J,K)
+C   60           CONTINUE
+C              endif
+C   50       CONTINUE
           endif
 
 C Trace geometry related information. Because not all zones will have
@@ -2480,7 +2594,6 @@ C reading another line or two to get to list.
         endif
         IF(IER.NE.0)then
           outs='Problem with zone to flow node links in cfg file!'
-          dok=.true.
           h(1)='The section of the system configuration file that'
           h(2)='defines the links between building zones and flow'
           h(3)='network nodes has an error.'
@@ -2835,10 +2948,10 @@ C Error handling.
       IER=1
       GOTO 6
 
-  2   msgl2='  '
-      CALL USRMSG('Problem associating tdf item with contrl.',msgl2,'W')
-      IER=1
-      GOTO 6
+C  2   msgl2='  '
+C      CALL USRMSG('Problem associating tdf item with contrl.',msgl2,'W')
+C      IER=1
+C      GOTO 6
 
   99  CALL USRMSG(
      &  'Problem creating cfgroot string from config file name.',
@@ -3184,10 +3297,10 @@ C single-year weather.
         
       elseif(WORD(1:6).eq.'*myclm') then
 
-C Read multi-year weather file and set flag indicating muli-year
-C weather.     
+C Read multi-year weather file (with links to weather files for a
+C sequence of years) and set flag indicating muli-year weather.     
         CALL EGETRM(LOUTSTR,K,cTemp,
-     &    'W','Multi-year climate db',IER)
+     &    'W','Multi-year climate directives',IER)
         cMY_climate_db_name = cTemp(1:lnblnk(cTemp))
         bMY_climates_defined = .true.
 
@@ -3394,6 +3507,8 @@ C to empty strings even if they are not defind in the input file.
           write(scfdres(iss), '(A)')  '  '
           
 C Count number of items to see if legacy set or extended set.
+C In the case of simulations scheduled for multiple years the
+C tokens *start_my_sets & *end_my_sets are used in legacy files.
           CALL LSTRIPC(IUC,LOUTSTR,99,ND,1,'sim set',IER)
           K=0
 
@@ -3407,9 +3522,17 @@ C Count number of items to see if legacy set or extended set.
             bMY_sim_sps = .false.      ! expect data to follow on same line
             K=0
             CALL EGETW(LOUTSTR,K,WORD,'W','*set',IFLAG)
+          elseif ( LOUTSTR(1:6) .eq. '*myset') then
+            bMY_sim_sps = .true.
+            K=0
+            CALL EGETW(LOUTSTR,K,WORD,'W','*myset',IFLAG)
           endif
           
-C Set flag indicating if set describes a multi-year period
+C Set flag indicating if set describes a multi-year period.
+C Multi-year in tester models takes the form of:
+C 1 1 1972  31 12 1973 test
+C (which breaks the ND.le.6 logic below). For V4 or V5 cfg files use:
+C *myset 2   1  10   4   0  15   1  1992 21   1 1993 test_s4 
           bMY_period_support (iss) = bMY_sim_sps
 
 C The following logic allows tester models with only 4 items on the
@@ -3488,9 +3611,14 @@ C check for valid calendar periods or bother to scan file name.
           elseif(WORD(1:8).eq.'*end_set')then
             goto 333   
           elseif(WORD(1:8).eq.'*end_sps')then
+            bMY_sim_sps = .false.   ! Toggle multi-year off.
             return
-          elseif(WORD(1:8).eq.'*set')then
+          elseif(WORD(1:4).eq.'*set')then
+            bMY_sim_sps = .false.   ! Toggle multi-year off.
             backspace(IUC)     ! *set so rewind and process next set.
+            goto 333
+          elseif(WORD(1:6).eq.'*myset')then
+            backspace(IUC)     ! *myset so rewind and process.
             goto 333
           else
             backspace(IUC)     ! not related tag, rewind and return.
@@ -4002,17 +4130,17 @@ C Trap out of range IC1 and IE1 variables.
       ELSEIF(ictype.EQ.1)THEN
         if(IC2(ICON).eq.0.and.IE2(ICON).eq.0)then
           WRITE(CXSTR,8984)ICON,SST1(1:lsn1),ZST1(1:lzn1)
- 8984     FORMAT(I4,1X,a,' in ',a,' >|< Identical environment ')
+ 8984     FORMAT(I4,1X,a,' in ',a,' to Identical environment ')
         else
           WRITE(CXSTR,8987)ICON,SST1(1:lsn1),
      &      ZST1(1:lzn1),IC2(ICON),IE2(ICON)
- 8987     FORMAT(I4,1X,a,' in ',a,' >|< Similar +-',i3,'dC & ',
+ 8987     FORMAT(I4,1X,a,' in ',a,' to Similar +-',i3,'dC & ',
      &      I4,' W rad')
         endif
       ELSEIF(ictype.EQ.2)THEN
         WRITE(CXSTR,8983)ICON,SST1(1:lsn1),ZST1(1:lzn1),
      &                   IC2(ICON),IE2(ICON)
- 8983   FORMAT(I4,1X,a,' in ',a,' >|< Constant @',I3,' dC & ',
+ 8983   FORMAT(I4,1X,a,' in ',a,' is Constant @',I3,' dC & ',
      &    I4,' W rad')
       ELSEIF(ictype.EQ.3)THEN
         ICM=IZSTOCN(IC2(ICON),IE2(ICON))
@@ -4022,20 +4150,20 @@ C Trap out of range IC1 and IE1 variables.
         lzn2=lnblnk(ZST2)
         WRITE(CXSTR,8982)ICON,SST1(1:lsn1),ZST1(1:lzn1),
      &                        SST2(1:lsn2),ZST2(1:lzn2)
- 8982   FORMAT(I4,1X,a,' in ',a,' >|< ',a,' in ',a)
+ 8982   FORMAT(I4,1X,a,' in ',a,' to ',a,' in ',a)
       ELSEIF(ictype.EQ.4)THEN
         IF(IC2(ICON).GT.0)THEN
           WRITE(CXSTR,8981)ICON,SST1(1:lsn1),
      &                     ZST1(1:lzn1),IC2(ICON)
- 8981     FORMAT(I4,1X,a,' in ',a,' >|< ground profile',I2)
+ 8981     FORMAT(I4,1X,a,' in ',a,' to ground profile',I2)
         ELSEIF(IC2(ICON).EQ.-3)THEN
           WRITE(CXSTR,8998)ICON,SST1(1:lsn1),ZST1(1:lzn1)
- 8998     FORMAT(I4,1X,a,' in ',a,' >|< 3D ground model')
+ 8998     FORMAT(I4,1X,a,' in ',a,' to 3D ground model')
         ELSE
           WRITE(CXSTR,8980)ICON,SST1(1:lsn1),
      &                     ZST1(1:lzn1),IE2(ICON)
  8980     FORMAT(I4,1X,a,' in ',a,
-     &         ' >|< user def ground profile',I2)
+     &         ' to user def ground profile',I2)
         ENDIF
       ELSEIF(ictype.EQ.5)THEN
         WRITE(CXSTR,7984)ICON,SST1(1:lsn1),ZST1(1:lzn1)
@@ -4050,11 +4178,11 @@ C BASESIMP connection.
 C CEN 13791 boundary condition.
         if(IC2(ICON).eq.0.and.IE2(ICON).eq.0)then
           WRITE(CXSTR,9984)ICON,SST1(1:lsn1),ZST1(1:lzn1)
- 9984     FORMAT(I4,1X,a,' in ',a,' >|< Identical CEN 13791 ')
+ 9984     FORMAT(I4,1X,a,' in ',a,' is Identical CEN 13791 ')
         else
           WRITE(CXSTR,9987)ICON,SST1(1:lsn1),
      &      ZST1(1:lzn1),IC2(ICON),IE2(ICON)
- 9987     FORMAT(I4,1X,a,' in ',a,' >|< CEN13791+-',i3,'dC & ',
+ 9987     FORMAT(I4,1X,a,' in ',a,' is CEN13791+-',i3,'dC & ',
      &      I4,' W rad')
         endif
       ENDIF
@@ -4456,3 +4584,277 @@ C Hydrogen flow iteration tolerance.
       
       return 
       end 
+
+C *************** geoscan ************
+C Prescan of zone geometry files to build up cnn data as the
+C model cfg file is being scanned.
+
+      SUBROUTINE GEOSCAN(IUNIT,LGEOMF,ICOMP,IR,ITRU,IER)
+#include "building.h"
+#include "model.h"
+#include "geometry.h"
+C #include "predefined.h"
+#include "esprdbfile.h"
+#include "material.h"
+#include "espriou.h"
+
+      integer lnblnk  ! function definition
+
+C Parameters
+      integer IUNIT  ! file unit to read
+      integer ICOMP  ! zone number
+      integer IR     ! IR 1 range checking is enabled, otherwise only minimal checking
+      integer ITRU   ! file unit for feedback
+      integer IER    ! zero is ok
+
+      integer iuout,iuin,ieout
+      common/OUTIN/IUOUT,IUIN,IEOUT
+
+      integer itznb  ! test count of zones
+      integer itncon ! test count of connections.
+      integer itIC1,itIE1,itICT,itIC2,itIE2 ! tests of
+      common/itcnn/itznb,itncon,itIC1(MCON),itIE1(MCON),itICT(MCON),
+     &  itIC2(MCON),itIE2(MCON)
+
+      CHARACTER LGEOMF*72,WORD*32
+      CHARACTER tmpvfc*4,tother*12
+      character ZN*12,outs*124,outs2*124
+      character loutstr*248,lkout*1000 ! longer line for vertex list
+      integer lsn               ! length of currentfile
+      integer lnsn              ! length of mlc names
+      integer iflag             ! for read error state
+
+C Set initial values.
+      IER=0
+      iflag=0
+      NS=0
+
+C Initialise geometry data file. and set currentfile.
+      CALL EFOPSEQ(IUNIT,LGEOMF,1,IER)
+      IF(IER.LT.0)THEN
+        write(outs,'(3a)') 'Geometry file ',LGEOMF(1:lnblnk(LGEOMF)),
+     &      ' could not be opened.'
+        call edisp(itru,outs)
+        IER=1
+        RETURN
+      endif
+      write(currentfile,'(a)') LGEOMF(1:lnblnk(LGEOMF))
+
+      CALL LSTRIPC(IUNIT,LOUTSTR,99,ND,1,'geo line 1',IER)
+      IF(IER.NE.0)goto 1002
+      if(LOUTSTR(1:13).eq.'*Geometry 1.1')then
+
+C Decode first line of version 1.1 geometry file.
+        K=13
+        CALL EGETW(LOUTSTR,K,WORD,'W','CTYPE',IFLAG)
+        write(CTYPE(icomp),'(a)') WORD(1:lnblnk(WORD))
+        zname(ICOMP)=' '
+        CALL EGETW(LOUTSTR,K,WORD,'W','Z name',IFLAG)
+        ZN=WORD(1:12)
+        call st2name(ZN,zname(ICOMP))
+        lnzname(ICOMP)=lnblnk(zname(ICOMP))  ! update string length
+        gversion(icomp) = 1.1   ! set the version number.
+        itznb = itznb+1  ! increment zone counter
+
+C Search for *surf lines and fill commons.
+
+   62   CALL STRIPC1K(IUNIT,lkout,99,ND,0,'*vertex *edges tags',IER)
+        if(IER.EQ.2)then
+
+C End of file sensed, however this is not an error at this point.
+          IER=0
+          return
+        elseif(IER.eq.0)then
+          continue
+        else
+          goto 1002
+        endif
+        K=0
+        CALL EGETW(lkout,K,WORD,'W','*surface tags',IER)
+
+        if(WORD(1:5).eq.'*Date'.or.WORD(1:5).eq.'*date')then
+          goto 62
+        elseif(WORD(1:7).eq.'*vertex')then
+          goto 62
+        elseif(WORD(1:7).eq.'*rotate')then
+          goto 62
+        elseif(WORD(1:6).eq.'*edges')then
+          goto 62
+        elseif(WORD(1:10).eq.'*base_list')then
+          CALL ERPFREE(IUNIT,ios)
+          RETURN
+        elseif(WORD(1:10).eq.'*shad_calc')then
+          goto 62
+        elseif(WORD(1:11).eq.'*insol_calc')then
+          goto 62
+        elseif(WORD(1:7).eq.'*insol ')then
+          CALL ERPFREE(IUNIT,ios)
+          RETURN
+        elseif(WORD(1:13).eq.'*bridge_start')then
+          goto 62
+        elseif(WORD(1:11).eq.'*ukt_bridge')then
+          goto 62
+        elseif(WORD(1:7).eq.'*bridge')then
+          goto 62
+        elseif(WORD(1:11).eq.'*end_bridge')then
+          goto 62
+        elseif(WORD(1:12).eq.'*block_start')then
+          goto 62
+        elseif(WORD(1:13).eq.'*visual_start')then
+          goto 62
+        elseif(WORD(1:5).eq.'*surf')then
+
+          NS=NS+1          ! Increment counter for surfaces (NS).
+          if(NS.eq.MS)then
+C error and jump to next zone...
+          endif
+
+C Increment cnn list, 
+          itncon = itncon+1
+
+C Surface name, allow for future spaces in name.
+          CALL EGETP(lkout,K,WORD,'W','surface name',IER)
+          lnsn=MIN0(lnblnk(WORD),12)
+          write(SNAME(ICOMP,NS),'(a)') WORD(1:lnsn)
+          write(sname(ICOMP,NS),'(a)') WORD(1:lnsn)
+
+C Surface position
+          CALL EGETW(lkout,K,tmpvfc,'W','surface position',IER)
+          IF(tmpvfc.EQ.'VERT'.OR.tmpvfc.EQ.'SLOP')then
+            write(SVFC(ICOMP,NS),'(a)') tmpvfc
+          ELSEIF(tmpvfc(1:4).EQ.'CEIL')then
+            write(SVFC(ICOMP,NS),'(a)') 'CEIL'
+            izsceil(icomp)=NS   ! identify as a ceiling
+          ELSEIF(tmpvfc(1:4).EQ.'FLOR')then
+            write(SVFC(ICOMP,NS),'(a)') 'FLOR'
+            izsfloor(icomp)=NS  ! identify as a floor
+          ENDIF
+
+C Parent name, allow for future spaces in parent name.
+          CALL EGETP(lkout,K,WORD,'W','surface parent',IER)
+          write(sparent(ICOMP,NS),'(a)') WORD(1:lnblnk(WORD))
+
+C Surface usage - two tokens. If there was a fault then the token might
+C be longer than SUSE and it is probably the construction. Check first.
+          CALL EGETP(lkout,K,WORD,'W','surface use 1',IER)
+          if(lnblnk(WORD).gt.12)then
+            write(SUSE(ICOMP,NS,1),'(a)') '-'
+            write(SUSE(ICOMP,NS,2),'(a)') '-'
+            write(SMLCN(ICOMP,NS),'(a)') WORD(1:lnblnk(WORD))
+          else
+            write(SUSE(ICOMP,NS,1),'(a)') WORD(1:lnblnk(WORD))
+            CALL EGETW(lkout,K,WORD,'W','surface use 2',IER)
+            write(SUSE(ICOMP,NS,2),'(a)') WORD(1:lnblnk(WORD))
+
+C Surface construction name, allow for spaces.
+            CALL EGETP(lkout,K,WORD,'W','surface construction',IER)
+          endif
+          write(SMLCN(ICOMP,NS),'(a)') WORD(1:lnblnk(WORD))
+
+C Surface optics set name or OPAQ/TRAN, allow for spaces.
+          CALL EGETP(lkout,K,WORD,'W','surface optics',IER)
+          if(WORD(1:4).eq.'OPAQ')then
+            write(SOTF(ICOMP,NS),'(a)') 'OPAQUE'  ! write OPAQUE
+          elseif(WORD(1:4).eq.'CFC ')then
+            write(SOTF(ICOMP,NS),'(a)') 'CFC '  ! write CFC
+          elseif(WORD(1:4).eq.'CFC2')then
+            write(SOTF(ICOMP,NS),'(a)') 'CFC2'  ! write CFC2
+          elseif(WORD(1:4).ne.'OPAQ'.and.WORD(1:3).ne.'CFC')then
+            write(SOTF(ICOMP,NS),'(a)') WORD(1:lnblnk(WORD))
+          endif
+
+C Surface other side - three tokens.
+          itIC1(itncon)=itznb
+          itIE1(itncon)=NS
+          CALL EGETW(lkout,K,tother,'W','surface other 1',IER)
+          CALL EGETWI(lkout,K,io1,-3,MCOM,'W','surface other 2',IER)
+          CALL EGETWI(lkout,K,io2,0,MS,'W','surface other 3',IER)
+          if(tother(1:7).eq.'UNKNOWN')then
+            itICT(itncon)= -1; itIC2(itncon)= io1; itIE2(itncon)= io2
+            zboundarytype(icomp,ns,1)=-1
+            zboundarytype(icomp,ns,2)=io1
+            zboundarytype(icomp,ns,3)=io2
+            goto 62
+          elseif(tother(1:8).eq.'EXTERIOR')then
+            itICT(itncon)= 0; itIC2(itncon)= io1; itIE2(itncon)= io2
+            zboundarytype(icomp,ns,1)= 0
+            zboundarytype(icomp,ns,2)=io1
+            zboundarytype(icomp,ns,3)=io2
+            goto 62
+          elseif(tother(1:9).eq.'ADIABATIC')then
+            itICT(itncon)= 5; itIC2(itncon)= io1; itIE2(itncon)= io2
+            zboundarytype(icomp,ns,1)= 5
+            zboundarytype(icomp,ns,2)=io1
+            zboundarytype(icomp,ns,3)=io2
+            goto 62
+          elseif(tother(1:7).eq.'SIMILAR')then
+            itICT(itncon)= 1; itIC2(itncon)= io1; itIE2(itncon)= io2
+            zboundarytype(icomp,ns,1)= 1
+            zboundarytype(icomp,ns,2)=io1
+            zboundarytype(icomp,ns,3)=io2
+            goto 62
+          elseif(tother(1:8).eq.'CONSTANT')then
+            itICT(itncon)= 2; itIC2(itncon)= io1; itIE2(itncon)= io2
+            zboundarytype(icomp,ns,1)= 2
+            zboundarytype(icomp,ns,2)=io1
+            zboundarytype(icomp,ns,3)=io2
+            goto 62
+          elseif(tother(1:8).eq.'BASESIMP')then
+            itICT(itncon)= 6; itIC2(itncon)= io1; itIE2(itncon)= io2
+            zboundarytype(icomp,ns,1)= 6
+            zboundarytype(icomp,ns,2)=io1
+            zboundarytype(icomp,ns,3)=io2
+            goto 62
+          elseif(tother(1:6).eq.'GROUND')then
+            itICT(itncon)= 4; itIC2(itncon)= io1; itIE2(itncon)= io2
+            zboundarytype(icomp,ns,1)= 4
+            zboundarytype(icomp,ns,2)=io1
+            zboundarytype(icomp,ns,3)=io2
+            goto 62
+          elseif(tother(1:9).eq.'IDENT_CEN')then
+            itICT(itncon)= 7; itIC2(itncon)= io1; itIE2(itncon)= io2
+            zboundarytype(icomp,ns,1)= 7
+            zboundarytype(icomp,ns,2)=io1
+            zboundarytype(icomp,ns,3)=io2
+            goto 62
+          elseif(tother(1:7).eq.'ANOTHER')then ! Reset if - -.
+            if(io1.eq.0.or.io2.eq.0)then
+              itICT(itncon)= -1; itIC2(itncon)= io1; itIE2(itncon)= io2
+              zboundarytype(icomp,ns,1)=-1
+              zboundarytype(icomp,ns,2)=io1
+              zboundarytype(icomp,ns,3)=io2
+              goto 62
+            else
+              itICT(itncon)= 3; itIC2(itncon)= io1; itIE2(itncon)= io2
+              zboundarytype(icomp,ns,1)= 3
+              zboundarytype(icomp,ns,2)=io1
+              zboundarytype(icomp,ns,3)=io2
+              goto 62
+            endif
+          else
+
+C Assume partition so setup boundary arrays with this in mind.
+            itICT(itncon)= 3; itIC2(itncon)= io1; itIE2(itncon)= io2
+            zboundarytype(icomp,ns,1)= 3
+            zboundarytype(icomp,ns,2)=io1
+            zboundarytype(icomp,ns,3)=io2
+            goto 62
+          endif
+        else
+          goto 62
+        endif
+      endif
+      return
+
+C Errors for lkout reads.
+ 1002 write(outs,'(3a)') 'GEOREAD: conversion error in...',
+     &  lkout(1:50),'...'
+      lsn=MIN0(lnblnk(currentfile),110)
+      write(outs2,'(2a)') 'in: ',currentfile(1:lsn)
+      call edisp(iuout,outs)
+      call edisp(iuout,outs2)
+      IER=1
+      CALL ERPFREE(IUNIT,ios)
+      RETURN
+      end
+

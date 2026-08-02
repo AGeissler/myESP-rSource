@@ -1029,9 +1029,9 @@ C Search for furthest node in circuit
           ITYPE1=NPCDAT(IPCF,4)
           RFCSEQ(RW)=IPCF
           RW=RW+1
-          NXTN=TADATA(IPCF,2)
+          NXTN=INT(TADATA(IPCF,2))
           IPD1=IPCNT
-          JNC(CNT)=TADATA(IPCF,2)
+          JNC(CNT)=INT(TADATA(IPCF,2))
           CNT=CNT+1
           FND(IPCF)=1
 C Search for subsequent nodes in reverse order
@@ -1039,13 +1039,12 @@ C Search for subsequent nodes in reverse order
             IPCF=IPCP(IPD1)
             ITYPE1=NPCDAT(IPCF,4)
 C Finds next controlled diverter in sequence  
-            IF(TADATA(IPCF,1).EQ.NXTN.AND
-     &            .ITYPE1.EQ.140)THEN   
+            IF(INT(TADATA(IPCF,1)).EQ.NXTN.AND.ITYPE1.EQ.140)THEN   
               RFCSEQ(RW)=IPCF
               RW=RW+1
-              NXTN=TADATA(IPCF,2)
+              NXTN=INT(TADATA(IPCF,2))
 C Reset counter, restart search for next upstream node
-              JNC(CNT)=TADATA(IPCF,2)
+              JNC(CNT)=INT(TADATA(IPCF,2))
               CNT=CNT+1
               IPD1=IPCNT
               FND(IPCF)=1
@@ -1063,14 +1062,14 @@ C Once all controlled diverters per branch are found, locate upstream junctions
         IPNUM=IPCNT-1+IPDIV
         IPCF=IPCP(IPNUM)
         IF(NPCDAT(IPCF,4).EQ.139.AND.FND(IPCF).EQ.0)THEN
-          IF(TADATA(IPCF,1).EQ.999)THEN
+          IF(INT(TADATA(IPCF,1)).EQ.999)THEN
             JCK=1
           ELSE
             JCK=0
           ENDIF
           DO IPDIV=1,NPCNT
-            IF(JNC(IPDIV).EQ.TADATA(IPCF,1).OR.
-     &           JNC(IPDIV).EQ.TADATA(IPCF,2))THEN
+            IF(JNC(IPDIV).EQ.INT(TADATA(IPCF,1)).OR.
+     &           JNC(IPDIV).EQ.INT(TADATA(IPCF,2)))THEN
               JCK=JCK+1
             ENDIF
           ENDDO
@@ -1079,8 +1078,8 @@ C Once all controlled diverters per branch are found, locate upstream junctions
             RW=RW+1
             FND(IPCF)=1
           ENDIF
-          IF(TADATA(IPCF,3).GT.0)THEN
-            JNC(CNT)=TADATA(IPCF,3)
+          IF(INT(TADATA(IPCF,3)).GT.0)THEN
+            JNC(CNT)=INT(TADATA(IPCF,3))
             CNT=CNT+1
           ENDIF
 C Check for controlled upstream junction
@@ -1094,7 +1093,7 @@ C Check for controlled upstream junction
      &           .EQ.DSJ.AND.FND(IPCF1).EQ.0)THEN
               RFCSEQ(RW)=IPCF1
               RW=RW+1
-              JNC(CNT)=TADATA(IPCF1,2)
+              JNC(CNT)=INT(TADATA(IPCF1,2))
               CNT=CNT+1
               FND(IPCF1)=1
               DSJ=TADATA(IPCF1,2)

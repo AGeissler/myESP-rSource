@@ -25,7 +25,7 @@ default: $(PROG)
 
 MODULE_OBJECTS = h3kmodule.o startup.o aim2_module.o CFC_Module.o
 
-OBJECTS = e2r.o arrow.o ascii_mat.o c2fdum.o common3dv.o cread3dv.o \
+OBJECTS = e2r.o arrow.o ascii_mat.o c2fdum.o common3dv.o \
 	  ctlexp.o ctread.o CDBPlugins.o CDBCommon.o CDBExplore.o\
 	  dossupport.o e2rfile.o e2rform.o e2rvp.o e3dviews.o ecasctl.o econstr.o \
 	  edatabase.o edcondb.o egeometry.o egtgeom.o emfnetw.o enetmisc.o \
@@ -68,9 +68,6 @@ c2fdum.F:
 common3dv.F:
 	rm -f common3dv.F
 	ln -s $(COMdir)/common3dv.F .
-cread3dv.F:
-	rm -f cread3dv.F
-	ln -s $(COMdir)/cread3dv.F .
 ctlexp.F:
 	rm -f ctlexp.F
 	ln -s $(COMdir)/ctlexp.F .
@@ -177,7 +174,7 @@ install:
 clean:
 	rm -f core $(PROG) $(PROG).exe $(MODULE_OBJECTS) $(OBJECTS) $(MODULES) \
 	aim2_module.F arrow.F ascii_mat.F CDBPlugins.F CDBCommon.F CDBExplore.F \
-	c2fdum.F common3dv.F cread3dv.F ctlexp.F ctread.F e3dviews.F \
+	c2fdum.F common3dv.F ctlexp.F ctread.F e3dviews.F \
 	dossupport.F ecasctl.F econstr.F edcondb.F edatabase.F egeometry.F egtgeom.F \
 	emfnetw.F enetmisc.F eroper.F esru_misc.F esystem.F filelist.F inside.F item.F mfcdat.F \
 	nwkrewr.F plelevvc.F pltcfg.F readTrnsys.F rwipv.F rwsbem.F  sort.F startup.F tdfile.F \

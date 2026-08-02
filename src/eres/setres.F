@@ -18,6 +18,8 @@ C ********************* SETUP *********************
 C Provides the menus and control logic for the res preference menu.
 
       SUBROUTINE SETUP(ITRU,IER)
+#include "building.h"
+#include "model.h"
 #include "help.h"
 
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
@@ -114,10 +116,10 @@ C allow decimal day representation if day format is DOY.
           pifltog='OFF '
           lpifl='UNKNOWN'
         elseif(IRT.eq.2)then
-          ltmp=' '
-          ltmp=lpifl
+          write(ltmp,'(2a)') cfgroot(1:lnblnk(cfgroot)),'.pif'
+C          ltmp=lpifl
            call easks(ltmp,'File to hold sequence of selections:',
-     &      ' ',96,'/tmp/res.rdf','file for selections',IER,nbhelp)
+     &      ' ',96,'/tmp/res.pif','file for selections',IER,nbhelp)
           lpifl=ltmp
           pifltog='ON  '
         endif

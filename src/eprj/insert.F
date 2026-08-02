@@ -20,8 +20,8 @@ C  ADDMASS: add a horizontal or vertical rectangular mass in zone.
 C  ADDVERT: add or delete a vertex within a zone.
 C  CKVERT : checks vertex lists & returns if zone is fully bounded.
 C  INSREC : add rect surface within or at base of surface.
-C  Adjcbg6g7: adjusts common blocks G6 and G7 to account for new surface.
-C addedsurf: copies G1 & G5 common block values to G6
+C  Adjcbg6g7: adjusts common blocks G7 to account for new surface.
+C addedsurf: copies G1 & G5 common block values
 C mergedoorinparent: does what is says, works with current common block variables.
 C mergechildinparent: does what is says, works with current common block variables.
 
@@ -102,16 +102,14 @@ C Tollerance for surface matching.
       dimension jvn2(MV)  ! dummy array for sorti call
       DIMENSION COG1(3),COG2(3),JJVN(MV),ispk(MS)
 
-      CHARACTER SNAME1*12,SMLCN1*32,SVFC1*4,SOTF1*32,SNAMED*12
-      character SUSE11*12,SUSE12*12
+      CHARACTER SNAME1*12,SNAMED*12
       CHARACTER outs*124,SN*12,SN2*12
       character ZSDES*28,T14*14,D14*14
       character TOSMLCN*32       ! to remember other side mlc name
-      character TOOPT*32         ! to remember other side optics
+      character TOOPT*24         ! to remember other side optics
       character TOUSE1*12,TOUSE2*12  ! to remember other side use
-      character TSOTH1*24,TSOTH2*24,TSOTH3*24
       character HOLD*96,hold64*64,holds*36,t248*496
-C      character guesstype*24  ! for context of surface addition
+      character sbound_ty*12,sbound_c2*6,sbound_e2*6
       character myparentis*12 ! to remember the parent of a surface.
       character message*48    ! for vertex dialog
       integer IRT  ! for radio button
@@ -144,7 +142,6 @@ C Clear local variables.
       done=.false.
       IOK=0; IRV=1; IZC=0
       TOSMLCN=' '; TOOPT=' '; TOUSE1=' '; TOUSE2=' '
-      TSOTH1=' '; TSOTH2=' '; TSOTH3=' '
 
       IF(ACTION.EQ.'D')THEN
 
@@ -164,29 +161,14 @@ C While looping remember the connection associated with zone:surf.
      &          ' ',zname(iotherzone)(1:lnzname(iotherzone)),'...'
               call edisp(iuout,outs)
 
-C The sother() array has changed so the other zone should
-C be rewritten. Scan it and update sother and then write.
-
-C << goal is to have all of the information within zone geometry
-C << files held in memory so files can be updated without having
-C << to re-read. several steps required before this is possible.
-
-              call eclose(gversion(iotherzone),1.1,0.01,newgeo)
-              call georead(IFIL+2,LGEOM(iotherzone),iotherzone,0,
-     &            iuout,IER)
-
-C Adjust the data structures.
+C The zboundarytype() array has changed so the other zone should
+C be updated via setting model-scale variables and then
+C calling geowrite2.
               ICT(IXU)=-1; IC2(IXU)=0; IE2(IXU)=0
-              SOTHER(IC1(IXU),IE1(IXU),1)='UNKNOWN'
-              SOTHER(IC1(IXU),IE1(IXU),2)='0'
-              SOTHER(IC1(IXU),IE1(IXU),3)='0'
-
-C Logic to decide whether to upgrade other zone geometry format.
-              if(.NOT.newgeo)then
-                gversion(iotherzone) =1.1
-                newgeo = .true.
-              endif
-              call geowrite(IFIL+2,LGEOM(iotherzone),iotherzone,
+              zboundarytype(IC1(IXU),IE1(IXU),1)=-1
+              zboundarytype(IC1(IXU),IE1(IXU),2)=0
+              zboundarytype(IC1(IXU),IE1(IXU),3)=0
+              call geowrite2(IFIL+2,LGEOM(iotherzone),iotherzone,
      &          iuout,3,IER)
             endif
           endif
@@ -198,30 +180,20 @@ C and which is about to be moved down should be adjusted.
           if(ICT(IXU).EQ.3)then
             if(IC2(IXU).eq.ICOMP.and.IE2(IXU).gt.IWHICH)THEN
 
-C The sother() array has changed so the other zone should
-C be rewritten. Scan it and update ssother and then write.
+C The boundary() array has changed so the other zone should
+C be rewritten.
               iotherzone=IC1(IXU)
               write(outs,'(3a)') 
-     &          'Freeing `other side` information in ',
-     &          zname(iotherzone)(1:lnzname(iotherzone)),
-     &          ' and compacting master list...'
+     &          'Compacting master list vs ',
+     &          zname(iotherzone)(1:lnzname(iotherzone)),'...'
               call edisp(iuout,outs)
-              call eclose(gversion(iotherzone),1.1,0.01,newgeo)
-              call georead(IFIL+2,LGEOM(iotherzone),iotherzone,0,
-     &            iuout,IER)
 
-C Update IE2 and sother third tag in the other zone.
+C Update IE2 and zboundarytype third tag in the other zone.
               IE2(IXU)=IE2(IXU)-1
-              write(sother(IC1(IXU),IE1(IXU),1),'(a)') 'ANOTHER'
-              write(sother(IC1(IXU),IE1(IXU),2),'(i2.2)') IC2(ixu)
-              write(sother(IC1(IXU),IE1(IXU),3),'(i3.3)') IE2(ixu)
-
-C Upgrade other zone geometry format if older.
-              if(.NOT.newgeo)then
-                gversion(iotherzone) =1.1
-                newgeo = .true.
-              endif
-              call geowrite(IFIL+2,LGEOM(iotherzone),iotherzone,
+              zboundarytype(IC1(IXU),IE1(IXU),1)=ICT(ixu)
+              zboundarytype(IC1(IXU),IE1(IXU),2)=IC2(ixu)
+              zboundarytype(IC1(IXU),IE1(IXU),3)=IE2(ixu)
+              call geowrite2(IFIL+2,LGEOM(iotherzone),iotherzone,
      &          iuout,3,IER)
             endif
           endif
@@ -252,7 +224,9 @@ C Compact the list:  If within the zone where the surface was removed,
 C update IE1 for surfaces > IWHICH otherwise just compact IC1 & IE1.
         DO 235 IX=ICON,NCON-1
           IF(IC1(IX+1).EQ.ICOMP)THEN
-            IF(IE1(IX+1).GT.IWHICH)IE1(IX)=IE1(IX+1)-1
+            IF(IE1(IX+1).GT.IWHICH)then
+              IE1(IX)=IE1(IX+1)-1
+            endif
           ELSEIF(IC1(IX+1).gt.ICOMP)THEN
             IC1(IX)=IC1(IX+1)
             IE1(IX)=IE1(IX+1)
@@ -320,25 +294,21 @@ C they are included in ibases list. If so decrement ibases value.
   68    continue
 
 C Loop through each of the surfaces greater than IWHICH and copy their
-C G5 contents into the surface below. The G6 commons were done already.
+C G5 contents into the surface below.
         if(IWHICH.eq.NSUR)then
           SNAME(ICOMP,IWHICH)=' '; SOTF(ICOMP,IWHICH)=' '
           SMLCN(ICOMP,IWHICH)=' '; SVFC(ICOMP,IWHICH)=' '
-          SOTHER(ICOMP,IS,1)=' ';  SOTHER(ICOMP,IS,2)=' '
-          SOTHER(ICOMP,IS,3)=' '
           goto 65
         endif
         DO 66 IS=IWHICH,NSUR-1
           SNAME(ICOMP,IS)=SNAME(ICOMP,IS+1)
-          LNSNAME(ICOMP,IS)=LNSNAME(ICOMP,IS+1)
           SOTF(ICOMP,IS)=SOTF(ICOMP,IS+1)
-          LNSOTF(ICOMP,IS)=LNSOTF(ICOMP,IS+1)
           SMLCN(ICOMP,IS)=SMLCN(ICOMP,IS+1)
           smlcindex(ICOMP,IS)=smlcindex(ICOMP,IS+1)
           SVFC(ICOMP,IS)=SVFC(ICOMP,IS+1)
-          SOTHER(ICOMP,IS,1)=SOTHER(ICOMP,IS+1,1)
-          SOTHER(ICOMP,IS,2)=SOTHER(ICOMP,IS+1,2)
-          SOTHER(ICOMP,IS,3)=SOTHER(ICOMP,IS+1,3)
+          zboundarytype(icomp,is,1)=zboundarytype(icomp,is+1,1)
+          zboundarytype(icomp,is,2)=zboundarytype(icomp,is+1,2)
+          zboundarytype(icomp,is,3)=zboundarytype(icomp,is+1,3)
           SPARENT(ICOMP,IS)=SPARENT(ICOMP,IS+1)
           SUSE(ICOMP,IS,1)=SUSE(ICOMP,IS+1,1)
           SUSE(ICOMP,IS,2)=SUSE(ICOMP,IS+1,2)
@@ -517,15 +487,18 @@ C If in automatic mode
           MODIFYVIEW=.TRUE.
           return
         endif
-      ELSEIF(ACTION.EQ.'C')THEN
+
+      ELSEIF(ACTION.EQ.'C')THEN   ! COPY an existing surface.
 
 C Copy an existing surface, remember how many can be copied
 C from another zone. Initil transforms:
-        IF(NSUR+1.GT.MS)THEN
+        IF(NZSUR(icomp)+1.GT.MS)THEN
           CALL USRMSG(' No more surfaces are allowed. ',' ','W')
           RETURN
         ENDIF
-        iposbcp=MS-NSUR
+        iposbcp=MS-NZSUR(icomp)
+
+C        CALL ESCZONE(ICOMP)  ! Save current zone state.
         if(ISCOPT.eq.1)then  
 
 C Find out which other zone to copy from. Save the current state of the
@@ -544,20 +517,29 @@ C menu so that can return to where we were. Also connected surface.
           return
         endif
 
-C Reset all surface lines in donor zone.
+C If source differs save the current zone state.
+        if(same)then
+          continue
+        else
+          CALL ESCZONE(ICOMP)
+        endif
+
+C If destimation is an older geo file update before copy.
         if(.NOT.same)then
-          call edisp(iuout,' updating current zone before copy...')
           call eclose(gversion(icomp),1.1,0.01,newgeo)
           if(.NOT.newgeo)then
+            call edisp(iuout,' updating current zone before copy...')
             gversion(icomp) =1.1
             newgeo = .true.
+            call geowrite2(IFIL+1,LGEOM(ICOMP),ICOMP,iuout,3,IER)
           endif
-          call geowrite(IFIL+1,LGEOM(ICOMP),ICOMP,iuout,3,IER)
+
+C Reset all surface lines in donor zone.
           MODIFYVIEW=.TRUE.; MODBND=.TRUE.
           CALL INLNST(1)
           itsnm=0
           nzg=1
-          nznog(1)=IZC   ! alter focus to the other zone
+          nznog(1)=IZC   ! Alter focus to the donor zone.
           izgfoc=ICOMP
           CALL redraw(IER)
           MODIFYVIEW=.TRUE.; MODBND=.TRUE.
@@ -588,31 +570,55 @@ C the selections via array ispk.
           endif
         endif
 
-C Consider what needs to be remembered to allow a connection association
-C between the source surface and what that surface beomes after it is
-C copied. Both zones will need to be updated at a point when the connection
-C list is stable.
-
-C Read the other zone and put selected surface data into temp storage.
-        if(.NOT.same)then
-          call georead(IFIL+1,LGEOM(IZC),IZC,0,iuout,IER)
+C Copy attributes from doner zone surface to new recepient surface.
+C Both zones will need to be updated at a point when the connection
+C list is stable. Using global geometric variables so no re-read of
+C geometry files is needed.
+        if(same)then
+          continue
+        else
+          CALL ERCZONE(ICOMP)  ! Recover prior state after selection.
         endif
-        npick=1
+        npick=1            ! Start with 1st pick (jump back to 191 code updates.
 
-  191   continue          ! Jump back point for processing subsequent surfaces.
-        is=ispk(npick)    ! Index of surface to copy.
+  191   continue           ! Jump back point for processing subsequent surfaces.
+        is=ispk(npick)     ! Index of surface to copy.
         iso=ispk(npick)    ! Index of surface we copied.
+        NSUR=NSUR+1        ! Increment local count of destination surfaces.
         if(same)then
           write(outs,'(2a)') ' Copying attributes of ',SNAME(ICOMP,IS)
+          NVER1=isznver(icomp,IS)
+          DO IV=1,NVER1
+            ivv=iszjvn(icomp,IS,IV)
+            X1(iv)=szcoords(ICOMP,ivv,1)
+            Y1(iv)=szcoords(ICOMP,ivv,2)
+            Z1(iv)=szcoords(ICOMP,ivv,3)
+C            write(6,'(a,3i4,3f6.2)')  'nver iv ivv X1 Y1 Z1',nver1,iv,
+C     &        ivv,X1(iv),Y1(iv),Z1(iv)
+          ENDDO
+          SOTF(ICOMP,NSUR)=SOTF(ICOMP,IS)
+          SMLCN(ICOMP,NSUR)=SMLCN(ICOMP,IS)
+          SVFC(ICOMP,NSUR)=SVFC(ICOMP,IS) 
+          SUSE(ICOMP,NSUR,1)=SUSE(ICOMP,IS,1)
+          SUSE(ICOMP,NSUR,2)=SUSE(ICOMP,IS,2)
         else
           write(outs,'(2a)') ' Copying attributes of ',SNAME(IZC,IS)
+          NVER1=isznver(izc,IS)
+          DO IV=1,NVER1
+            ivv=iszjvn(izc,IS,IV)
+            X1(iv)=szcoords(izc,ivv,1)
+            Y1(iv)=szcoords(izc,ivv,2)
+            Z1(iv)=szcoords(izc,ivv,3)
+C            write(6,'(a,3i4,3f6.2)')  'nver iv ivv X1 Y1 Z1',nver1,iv,
+C     &        ivv,X1(iv),Y1(iv),Z1(iv)
+          ENDDO
+          SOTF(ICOMP,NSUR)=SOTF(IZC,IS)
+          SMLCN(ICOMP,NSUR)=SMLCN(IZC,IS)
+          SVFC(ICOMP,NSUR)=SVFC(IZC,IS)
+          SUSE(ICOMP,NSUR,1)=SUSE(IZC,IS,1)
+          SUSE(ICOMP,NSUR,2)=SUSE(IZC,IS,2)
         endif
         call usrmsg(outs,' ','-')
-        NVER1=NVER(IS)
-        DO 142 IV=1,NVER1
-          X1(iv)=X(JVN(IS,IV)); Y1(iv)=Y(JVN(IS,IV))
-          Z1(iv)=Z(JVN(IS,IV))
-  142   continue
 
 C Generate a new surface name and default, then check to see if
 C if is a duplicate. By definition, if we are copying a surface
@@ -642,50 +648,26 @@ C the final name uses the allowed character set.
             goto 141
           endif
         endif
-        if(same)then              ! copy to temporary array from current zone
-          SOTF1=SOTF(ICOMP,IS); SMLCN1=SMLCN(ICOMP,IS)
-          SVFC1=SVFC(ICOMP,IS) 
-          SUSE11=SUSE(ICOMP,IS,1); SUSE12=SUSE(ICOMP,IS,2)
-        else                      ! copy to temporary array from other zone
-          SOTF1=SOTF(IZC,IS); SMLCN1=SMLCN(IZC,IS)
-          SVFC1=SVFC(IZC,IS)
-          SUSE11=SUSE(IZC,IS,1); SUSE12=SUSE(IZC,IS,2)
-        endif
 
 C Ensure no NULL character strings.
-        n=iachar(SMLCN1(1:1))
-        if(n.eq.0) SMLCN1='UNKNOWN'
-        n=iachar(SUSE11(1:1))
-        if(n.eq.0) SUSE11='-'
-        n=iachar(SUSE12(1:1))
-        if(n.eq.0) SUSE12='-'
-        n=iachar(SOTF1(1:1))
-        if(n.eq.0) SOTF1='OPAQUE'
+        n=iachar(SMLCN(ICOMP,NSUR)(1:1))
+        if(n.eq.0) SMLCN(ICOMP,NSUR)='UNKNOWN'
+        n=iachar(SUSE(ICOMP,NSUR,1)(1:1))
+        if(n.eq.0) SUSE(ICOMP,NSUR,1)='-'
+        n=iachar(SUSE(ICOMP,NSUR,2)(1:1))
+        if(n.eq.0) SUSE(ICOMP,NSUR,2)='-'
+        n=iachar(SOTF(ICOMP,NSUR)(1:1))
+        if(n.eq.0) SOTF(ICOMP,NSUR)='OPAQUE'
 
-C Now re-read focus zone and copy the data into normal common
-C blocks. Because the surface to be added is not yet in the
-C connections list find ICON future position via `one connection 
-C past the current last surface in the zone`.
-        if(.NOT.same)then
-          call georead(IFIL+1,LGEOM(ICOMP),ICOMP,0,iuout,IER)
-        endif
-
-C Up the surface count.
+C Because the surface to be added is not yet in the connections
+C list find ICON future position via `one connection past' 
+C the current last surface in the zone. Update globals.
         ICON=IZSTOCN(icomp,nsur)+1
-        NSUR=NSUR+1
         NZSUR(ICOMP)=NSUR
         NZTV(ICOMP)=NTV
         NVER(NSUR)=NVER1
         isznver(ICOMP,NSUR)=NVER1
         SNAME(ICOMP,NSUR)=SNAME1
-        SOTF(ICOMP,NSUR)=SOTF1
-        SMLCN(ICOMP,NSUR)=SMLCN1
-        SVFC(ICOMP,NSUR)=SVFC1
-        SOTHER(ICOMP,NSUR,1)='UNKNOWN'
-        SOTHER(ICOMP,NSUR,2)='-'
-        SOTHER(ICOMP,NSUR,3)='-'
-        SUSE(ICOMP,NSUR,1)=SUSE11
-        SUSE(ICOMP,NSUR,2)=SUSE12
         SPARENT(ICOMP,NSUR)='-'
 
 C Generate combined name for dialog.
@@ -726,23 +708,23 @@ C Create string buffer for variables with space at the end.
 
 C Do each of the transforms in order.
           CALL TRANSUR(ITRC,iuout,NVER1,X1,Y1,Z1,vdis,XT,YT,ZT,ZSDES)
-          do 551 nt1=1,NVER1
+          do nt1=1,NVER1
             X1(nt1)=XT(nt1); Y1(nt1)=YT(nt1); Z1(nt1)=ZT(nt1)
- 551      continue
+          enddo
 
-          DO 553 I=1,NVER1
+          do I=1,NVER1
             X1(I)=X1(I)+VALX; Y1(I)=Y1(I)+VALY; Z1(I)=Z1(I)+VALZ
- 553      continue
+          enddo
 
           if(ANGR.LT.-.01.OR.ANGR.GT..01)then
             PI = 4.0 * ATAN(1.0); A=-ANGR*PI/180.
             CA=COS(A); SA=SIN(A)
             XX1=X1(IRV); YY1=Y1(IRV)
-            DO 500 I=1,NVER1
+            DO I=1,NVER1
               XXX=X1(I)-XX1; YYY=Y1(I)-YY1
               XR=XXX*CA+YYY*SA; YR=YYY*CA-XXX*SA
               X1(I)=XR+XX1; Y1(I)=YR+YY1
-  500       continue
+            ENDDO
           endif
         endif
 
@@ -757,9 +739,9 @@ C Shift along normal and copy transformed points back to X1,Y1,Z1 array.
      &        nbhelp)
           endif
           CALL TRANSUR(ITRC,iuout,NVER1,X1,Y1,Z1,vdis,XT,YT,ZT,ZSDES)
-          do 151 nt1=1,NVER1
+          do nt1=1,NVER1
             X1(nt1)=XT(nt1); Y1(nt1)=YT(nt1); Z1(nt1)=ZT(nt1)
- 151      continue
+          enddo
         elseif(IRT.eq.2)then
 
 C Transform all surface vertices.
@@ -773,9 +755,9 @@ C Transform all surface vertices.
             CALL EGETWR(HOLDS,K,VALZ,-50.0,50.0,'W','Z off',IER)
             if(ier.ne.0)goto 152
           endif
-          DO 153 I=1,NVER1
+          DO I=1,NVER1
             X1(I)=X1(I)+VALX; Y1(I)=Y1(I)+VALY; Z1(I)=Z1(I)+VALZ
- 153      continue
+          ENDDO
         elseif(IRT.eq.3)then
 
 C Rotate around a point in the surface.
@@ -793,11 +775,11 @@ C Rotate around a point in the surface.
             PI = 4.0 * ATAN(1.0); A=-ANGR*PI/180.
             CA=COS(A); SA=SIN(A)
             XX1=X1(IRV); YY1=Y1(IRV)
-            DO 10 I=1,NVER1
+            DO I=1,NVER1
               XXX=X1(I)-XX1; YYY=Y1(I)-YY1
               XR=XXX*CA+YYY*SA; YR=YYY*CA-XXX*SA
               X1(I)=XR+XX1; Y1(I)=YR+YY1
-   10       continue
+            ENDDO
           endif
         endif
 
@@ -809,11 +791,14 @@ C if <10mm, otherwise link the new surface to an existing vetex.
           if(NTV+1.le.MTV)then
             found=.false.
             do 144 ixx = 1,NTV
-              call eclose3(X1(ix),Y1(ix),Z1(ix),X(ixx),Y(ixx),Z(ixx),
+              call eclose3(X1(ix),Y1(ix),Z1(ix),szcoords(ICOMP,ixx,1),
+     &          szcoords(ICOMP,ixx,2),szcoords(ICOMP,ixx,3),
      &          CACC,closex)   ! if within CACC assume the same
-              call eclose3(X1(ix),Y1(ix),Z1(ix),X(ixx),Y(ixx),Z(ixx),
+              call eclose3(X1(ix),Y1(ix),Z1(ix),szcoords(ICOMP,ixx,1),
+     &          szcoords(ICOMP,ixx,2),szcoords(ICOMP,ixx,3),
      &          CACC*2,closey)
-              dist=crowxyz(X1(ix),Y1(ix),Z1(ix),X(ixx),Y(ixx),Z(ixx))
+              dist=crowxyz(X1(ix),Y1(ix),Z1(ix),szcoords(ICOMP,ixx,1),
+     &          szcoords(ICOMP,ixx,2),szcoords(ICOMP,ixx,3))
               if(closex)then
                 found=.true.  ! close enough to auto match
                 match=ixx
@@ -825,7 +810,8 @@ C Feedback to the user about using existing vertex.
                 write(outs,'(a,i3,a,3f8.3,a,f7.4,a,i3,a,3f8.3)')
      &            'New vertex ',ix,' @',X1(ix),Y1(ix),Z1(ix),
      &            ' is close (',dist,') to existing vertex',iix,' @',
-     &            X(ixx),Y(ixx),Z(ixx)
+     &            szcoords(ICOMP,ixx,1),szcoords(ICOMP,ixx,2),
+     &            szcoords(ICOMP,ixx,3)
                 call edisp(iuout,outs)
                 call easkok(' ',
      &            'Use existing vertex instead of the new one?',
@@ -935,33 +921,34 @@ C Surface (ivj) vertex list has been updated. Go on to next surface.
           endif
   143   continue
 
-C Reverse the ordering.
+C Reverse the ordering if user selecte invert or combination
+C or continue.
         if(IRT.eq.4.or.IRT.eq.5.or.IRT.eq.6)then
-          helptopic='copied_surf_actions'
-          call gethelptext(helpinsub,helptopic,nbhelp)
-          write(outs,'(3a)') ' surface ',SNAME1(1:lnblnk(SNAME1)),
-     &                       ' (yes for most partitions) ?'
           if(.NOT.DDOK)then
             if(IRT.eq.4)then
               IOK=1
             else
+              helptopic='copied_surf_actions'
+              call gethelptext(helpinsub,helptopic,nbhelp)
+              write(outs,'(3a)') ' surface ',SNAME1(1:lnblnk(SNAME1)),
+     &          ' (yes for most partitions) ?'
               CALL EASKMBOX('Reverse the edge ordering of',
      &          outs,'yes','no',' ',' ',' ',' ',' ',' ',IOK,nbhelp)
             endif
           endif
           if(IOK.eq.1)then
-            do 146, iyy = 1,NVER(NSUR)
+            do iyy = 1,NVER(NSUR)
               jvn1(iyy)=JVN(NSUR,iyy)
-  146       CONTINUE
+            enddo
             JVN(NSUR,1)=jvn1(2)
             iszjvn(icomp,NSUR,1)=jvn1(2)
             JVN(NSUR,2)=jvn1(1)
             iszjvn(icomp,NSUR,2)=jvn1(1)
-            do 147, iyy = 3,NVER(NSUR)
+            do iyy = 3,NVER(NSUR)
               izz=NVER(NSUR)+3-iyy
               JVN(NSUR,iyy)=jvn1(izz)
               iszjvn(icomp,NSUR,iyy)=jvn1(izz)
-  147       CONTINUE
+            enddo
 
 C If construction is symmetric then do nothing but if it
 C references a non-symetric MLC then use an inverted MLC.
@@ -1004,9 +991,14 @@ C used for a partition (if db does not have a linked MLC, inform the user).
           endif
         endif
 
-C Update the connection list. Move all others up and then insert with
-C default values (allow moderate trace (3rd parameter in addedsurf).
+C Update the connection list. Move all others up and then insert new
+C surface into receiving zone with default boundary values.
         call addedsurf(icomp,icon,1,ier)
+        ict(icon)=-1; ic2(icon)=0; ie2(icon)=0;
+        zboundarytype(icomp,nsur,1)=ict(icon)
+        zboundarytype(icomp,nsur,2)=ic2(icon)
+        zboundarytype(icomp,nsur,3)=ie2(icon)
+        call decode_zsbound(icomp,nsur,sbound_ty,sbound_c2,sbound_e2)
 
         call updatesvfc(icomp,modgeo)  ! update SVFC orientation string.
 
@@ -1026,105 +1018,88 @@ C copying the next surface.
               gversion(icomp) =1.1
               newgeo = .true.
             endif
-            call geowrite(IFIL+1,LGEOM(ICOMP),ICOMP,iuout,3,IER)
+            call zgupdate(0,icomp,ier)
+            call geowrite2(IFIL+1,LGEOM(ICOMP),ICOMP,iuout,3,IER)
 
 C Ask user if they want to make a thermophysical connection with the
 C new surface and the source in the other zone. ICOMP & NSUR & ICON
 C are associate with the new focus surface and IZC,ISO in the source zone.
-            if(.NOT.same)then
-              lnsn1=lnblnk(sname(icomp,nsur))
-              lnsn2=lnblnk(sname(izc,iso))
-              write(outs,'(9a)') 
-     &          'Make thermophysical connection between ',
-     &          sname(icomp,nsur)(1:lnsn1),':',zname(icomp),' & ',
-     &          sname(izc,iso)(1:lnsn2),':',zname(izc),'?'
-              updoth=.false.
+            lnsn1=lnblnk(sname(icomp,nsur))
+            lnsn2=lnblnk(sname(izc,iso))
+            write(outs,'(9a)') 
+     &        'Make thermophysical connection between ',
+     &        sname(icomp,nsur)(1:lnsn1),':',zname(icomp),' & ',
+     &        sname(izc,iso)(1:lnsn2),':',zname(izc),'?'
+            updoth=.false.
 
 C Bookkeepping is off. 
-              CALL EASKOK(' ',outs,updoth,nbhelp)
-              if(updoth)then
+            CALL EASKOK(' ',outs,updoth,nbhelp)
+            if(updoth)then
 
-C Update the new surface to be a partition.
-                ICT(ICON)=3; IC2(ICON)=IZC; IE2(ICON)=ISO
-                SOTHER(icomp,nsur,1)='ANOTHER'
-                write(SOTHER(icomp,nsur,2),'(i3.3)') IZC
-                write(SOTHER(icomp,nsur,3),'(i3.3)') ISO
-                write(SN,'(a12)') SNAME(ICOMP,nsur)
-                call geowrite(IFIL+1,LGEOM(ICOMP),ICOMP,iuout,3,IER)
+C Update the new surface to be a partition with the donor zone surface.
+              ICT(ICON)=3; IC2(ICON)=IZC; IE2(ICON)=ISO
+              zboundarytype(icomp,nsur,1)=ICT(icon)
+              zboundarytype(icomp,nsur,2)=IC2(icon)
+              zboundarytype(icomp,nsur,3)=IE2(icon)
+              call decode_zsbound(icomp,nsur,sbound_ty,sbound_c2,
+     &          sbound_e2)
+              write(SN,'(a12)') SNAME(ICOMP,nsur)
+              call geowrite2(IFIL+1,LGEOM(ICOMP),ICOMP,iuout,3,IER)
 
-C Reflect changes in the source zone.
-                ICOTH=IZSTOCN(IZC,ISO)
-                ICT(ICOTH)=3; IC2(ICOTH)=ICOMP; IE2(ICOTH)=NZSUR(ICOMP)
-                SOTHER(izc,iso,1)='ANOTHER'
-                write(SOTHER(izc,iso,2),'(i3.3)') ICOMP
-                write(SOTHER(izc,iso,3),'(i3.3)') NSUR
-                TSOTH1='ANOTHER'
-                write(TSOTH2,'(i3.3)') ICOMP
-                write(TSOTH3,'(i3.3)') NSUR
+C Reflect changes in the doner zone surface (connection icoth).
+              ICOTH=IZSTOCN(IZC,ISO)
+              ICT(ICOTH)=3; IC2(ICOTH)=ICOMP; IE2(ICOTH)=NZSUR(ICOMP)
+              zboundarytype(izc,iso,1)=ICT(icoth)
+              zboundarytype(izc,iso,2)=IC2(icoth)
+              zboundarytype(izc,iso,3)=IE2(icoth)
+              call decode_zsbound(izc,iso,sbound_ty,sbound_c2,
+     &          sbound_e2)
 
-                call reconcileattributes(icomp,nsur,SN,izc,iso,
-     &            showother,updoth,TOSMLCN,TOOPT,TOUSE1,TOUSE2,
-     &            IISSMLCI)
+C Resolve relationship between MLC and optical attributes as well as
+C surface USE and return suggested attributes to apply.
+              call reconcileattributes(icomp,nsur,SN,izc,iso,
+     &          showother,updoth,TOSMLCN,TOOPT,TOUSE1,TOUSE2,
+     &          IISSMLCI)
 
 C Update the other zone surface attributes.
-                write(SN,'(a12)') SNAME(izc,iso)
-                lnicoth=lnblnk(SMLCN(izc,iso))
-                write(outs,'(6a)')
-     &            'Updating `other side` composition of ',
-     &            SN(1:lnblnk(SN)),' from ',
-     &            SMLCN(izc,iso)(1:lnicoth),' > ',TOSMLCN
-                call edisp(iuout,outs)
-                CALL ESCZONE(ICOMP)
-                call eclose(gversion(izc),1.1,0.01,newgeo)
-                if(newgeo)then
-                  call georead(IFIL+2,LGEOM(izc),izc,0,iuout,IER)
-                else
-                  call egomin(IFIL+2,LGEOM(izc),izc,0,0,iuout,IER)
-                endif
+              write(SN,'(a12)') SNAME(izc,iso)
+              lnicoth=lnblnk(SMLCN(izc,iso))
+              write(outs,'(6a)')
+     &          'Updating `other side` composition of ',
+     &          SN(1:lnblnk(SN)),' from ',
+     &          SMLCN(izc,iso)(1:lnicoth),' > ',TOSMLCN
+              call edisp(iuout,outs)
 
 C Assign new MLC name to the icoth surface as well as SOTF with the
 C optical properties and MLC index from material.h commons.
-                if(iissmlci.ne.0)then
-                  SMLCN(izc,iso)=TOSMLCN
-                  smlcindex(izc,iso)=iissmlci  ! update
-                endif
-                if(TOOPT(1:2).ne.' ')then
-                  write(SOTF(izc,iso),'(a)') TOOPT
-                endif
-                SUSE(izc,iso,1)=TOUSE1
-                SUSE(izc,iso,2)=TOUSE2
-                SOTHER(izc,iso,1)='ANOTHER'
-                write(SOTHER(izc,iso,2),'(i3.3)') ICOMP
-                write(SOTHER(izc,iso,3),'(i3.3)') NZSUR(ICOMP)
-                SOTHER(izc,iso,1)=TSOTH1
-                SOTHER(izc,iso,2)=TSOTH2
-                SOTHER(izc,iso,3)=TSOTH3
-                ICOTH=IZSTOCN(IZC,ISO)
-                ICT(ICOTH)=3; IC2(ICOTH)=ICOMP; IE2(ICOTH)=NZSUR(ICOMP)
-
-                call eclose(gversion(izc),1.1,0.01,newgeo)
-                if(.NOT.newgeo)then
-                  gversion(izc) =1.1
-                  newgeo = .true.
-                endif
-                call geowrite(IFIL+2,LGEOM(izc),izc,iuout,3,IER)
-                IF(IER.NE.0)CALL USRMSG(
-     &            'Problem updating other surface attribute... ',
-     &            '(could not write other geometry file).','W')
-
-                call usrmsg(' Updating other side...done.',' ','-')
-                CALL ERCZONE(ICOMP)
-                CALL EMKCFG('-',IER)  ! update connections file.
-                updoth=.false.
+              if(iissmlci.ne.0)then
+                SMLCN(izc,iso)=TOSMLCN
+                smlcindex(izc,iso)=iissmlci  ! update
               endif
+              if(TOOPT(1:2).ne.'  ')then
+                write(SOTF(izc,iso),'(a)') TOOPT
+              endif
+              SUSE(izc,iso,1)=TOUSE1
+              SUSE(izc,iso,2)=TOUSE2
+
+              call eclose(gversion(izc),1.1,0.01,newgeo)
+              if(.NOT.newgeo)then
+                gversion(izc) =1.1
+                newgeo = .true.
+              endif
+              call geowrite2(IFIL+2,LGEOM(izc),izc,iuout,3,IER)
+              IF(IER.NE.0)CALL USRMSG(
+     &          'Problem updating other surface attribute... ',
+     &          '(could not write other geometry file).','W')
+
+              call usrmsg(' Updating other side...done.',' ','-')
+              CALL EMKCFG('-',IER)  ! update connections file.
+              updoth=.false.
             endif
 
 C If there are more surfaces to process rescan the source zone
 C before looping back to process the next surface.
             if(.NOT.done)then
-              call usrmsg('Getting donor zone info...',' ','-')
-              call eclose(gversion(IZC),1.1,0.01,newgeo)
-              call georead(IFIL+1,LGEOM(IZC),IZC,0,iuout,IER)
               write(outs,'(3a)') ' Repeat transforms for ',
      &          SNAME(IZC,ispk(npick)),' ?'
             endif
@@ -1135,7 +1110,7 @@ C before looping back to process the next surface.
               gversion(icomp) =1.1
               newgeo = .true.
             endif
-            call geowrite(IFIL+1,LGEOM(ICOMP),ICOMP,iuout,3,IER)
+            call geowrite2(IFIL+1,LGEOM(ICOMP),ICOMP,iuout,3,IER)
             write(outs,'(3a)') 'Repeat transforms for ',
      &       SNAME(ICOMP,ispk(npick)),'?'
           endif
@@ -1203,11 +1178,11 @@ C present editing of vertices with the option for mouse.
      &          ISTRW,' 1  2  3  4  ','associated vertices',IER,nbhelp)
               NV = iCountWords(t248)
               K=0
-              DO 943 J=1,NV
+              DO J=1,NV
                 CALL EGETWI(t248,K,JV,1,NTV,'W','vertex list',IER)
                 JVN(NSUR,J)=JV
                 iszjvn(ICOMP,NSUR,J)=JV
-  943         CONTINUE
+              ENDDO
               NVER(NSUR)=NV
               isznver(ICOMP,NSUR)=NV
             elseif(ISCOPT.eq.1)then
@@ -1279,11 +1254,11 @@ C updated reflect this in the write(t248 statement).
      &          ISTRW,' 1  2  3  4  ','associated vertices',IER,nbhelp)
               NV = iCountWords(t248)
               K=0
-              DO 945 J=1,NV
+              DO J=1,NV
                 CALL EGETWI(t248,K,JV,1,NTV,'W','vertex list',IER)
                 JVN(NSUR,J)=JV
                 iszjvn(ICOMP,NSUR,J)=JV
-  945         CONTINUE
+              ENDDO
               NVER(NSUR)=NV
               isznver(ICOMP,NSUR)=NV
             endif
@@ -1299,11 +1274,11 @@ C does not seem to like to start with a fully blank string).
      &        ISTRW,' 1  2  3  4  ','associated vertices',IER,nbhelp)
             NV = iCountWords(t248)
             K=0
-            DO 944 J=1,NV
+            DO J=1,NV
               CALL EGETWI(t248,K,JV,1,NTV,'W','vertex list',IER)
               JVN(NSUR,J)=JV
               iszjvn(ICOMP,NSUR,J)=JV
-  944       CONTINUE
+            ENDDO
             NVER(NSUR)=NV
             isznver(ICOMP,NSUR)=NV
           endif
@@ -1336,12 +1311,27 @@ C Set context for the use of the surface SUSE.
 C << subroutine to use guesstype needs to be added as in INSREC >>
 C        guesstype='any_type'
 
-C Update the connection list. Move all others up and then insert with
-C default values. (allow verbose trace (3rd parameter in addedsurf).
+C Update the connection list. Move all others up and then set
+C boundary values for connection icon.
         ltrace=1
         call addedsurf(icomp,icon,ltrace,ier)
+        ict(icon)=-1; ic2(icon)=0; ie2(icon)=0;
+        zboundarytype(icomp,nsur,1)=ict(icon)
+        zboundarytype(icomp,nsur,2)=ic2(icon)
+        zboundarytype(icomp,nsur,3)=ie2(icon)
+        call decode_zsbound(icomp,nsur,sbound_ty,sbound_c2,sbound_e2)
         call updatesvfc(icomp,modgeo)  ! update SVFC orientation string.
         MODIFYVIEW=.TRUE.
+
+C Save zone including the added surface.
+        call edisp(iuout,' updating current zone...')
+        call eclose(gversion(ICOMP),1.1,0.01,newgeo)
+        if(.NOT.newgeo)then
+          gversion(icomp) =1.1
+          newgeo = .true.
+        endif
+        call zgupdate(0,icomp,ier)
+        call geowrite2(IFIL+1,LGEOM(ICOMP),ICOMP,iuout,3,IER)
       endif
 
       RETURN
@@ -1375,11 +1365,13 @@ C   for new position, IER is -3 user aborted action.
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
       integer IZSTOCN
       COMMON/C24/IZSTOCN(MCOM,MS)
+      COMMON/C3/IC1(MCON),IE1(MCON),ICT(MCON),IC2(MCON),IE2(MCON)
 
       COMMON/gzonpik/izgfoc,nzg,nznog(mcom)
 
-      character constr*32,act*2,mode*1,OPT*12
+      character constr*32,act*2,mode*1,OPT*24
       character outs*124,SN*12
+      character sbound_ty*12,sbound_c2*6,sbound_e2*6
 
       DIMENSION  XXW(4),YYW(4),ZZW(4)  ! for the initial surface
       DIMENSION  XXM(4),YYM(4),ZZM(4)  ! for matching surface
@@ -1571,11 +1563,7 @@ C Remember the reverse order of vertices for matching surface.
         SVFC(ICOMP,NSUR)='CEIL'
       endif
 
-      SOTHER(ICOMP,NSUR,1)='UNKNOWN'
-      SOTHER(ICOMP,NSUR,2)='0'
-      SOTHER(ICOMP,NSUR,3)='0'
       SPARENT(ICOMP,NSUR)='-'
-
       WRITE(SMLCN(ICOMP,NSUR),'(A)')constr
       write(SOTF(ICOMP,NSUR),'(a)') OPT(1:12)
 
@@ -1589,16 +1577,24 @@ C If version 1.1 of geometry specify the use of the surface.
         SUSE(ICOMP,NSUR,2)='-'
       endif
 
-C Just before calling addedsurf if this initial surface is going to be
-C matched then set sother to point to the next surface that will be created.
-      if(act(2:2).eq.'M'.or.act(2:2).eq.'m')then
-        SOTHER(ICOMP,NSUR,1)='ANOTHER'
-        write(SOTHER(ICOMP,NSUR,2),'(i2.2)')INT(icomp)
-        write(SOTHER(ICOMP,NSUR,3),'(i3.3)')INT(NSUR+1)
-      endif
-
 C Add surface to the connection list (icont) assuming an unknown boundary. 
       call addedsurf(icomp,icont,1,ier)
+
+C If this initial surface is going to be matched then set bounding to
+C point to the next surface that will be created.
+      if(act(2:2).eq.'M'.or.act(2:2).eq.'m')then
+        ict(icont)=3; ic2(icont)=icomp; ie2(icont)=nsur+1;
+        zboundarytype(icomp,nsur,1)=ict(icont)
+        zboundarytype(icomp,nsur,2)=ic2(icont)
+        zboundarytype(icomp,nsur,3)=ie2(icont)
+      else
+        ict(icont)=-1; ic2(icont)=0; ie2(icont)=0;
+        zboundarytype(icomp,nsur,1)=ict(icont)
+        zboundarytype(icomp,nsur,2)=ic2(icont)
+        zboundarytype(icomp,nsur,3)=ie2(icont)
+      endif
+      call decode_zsbound(icomp,nsur,sbound_ty,sbound_c2,sbound_e2)
+
       call updatesvfc(icomp,modgeo)  ! update SVFC orientation string.
 
 C If user requested mass be added then generate coordinates and
@@ -1636,11 +1632,7 @@ C If SN is less than 12 characters add an _
           SVFC(ICOMP,NSUR)='CEIL'
         endif
 
-        SOTHER(ICOMP,NSUR,1)='ANOTHER'
-        write(SOTHER(ICOMP,NSUR,2),'(i2.2)')INT(icomp)
-        write(SOTHER(ICOMP,NSUR,3),'(i3.3)')INT(NSUR-1)
         SPARENT(ICOMP,NSUR)='-'
-
         WRITE(SMLCN(ICOMP,NSUR),'(A)')constr
         write(SOTF(ICOMP,NSUR),'(a)') OPT(1:12)
 
@@ -1656,6 +1648,11 @@ C If version 1.1 of geometry specify the use of the surface.
 
 C Add surface to the connection list (icont) assuming an unknown boundary. 
         call addedsurf(icomp,icontm,1,ier)
+        ict(icontm)=3; ic2(icontm)=icomp; ie2(icontm)=(nsur-1);
+        zboundarytype(icomp,nsur,1)=ict(icontm)
+        zboundarytype(icomp,nsur,2)=ic2(icontm)
+        zboundarytype(icomp,nsur,3)=ie2(icontm)
+        call decode_zsbound(icomp,nsur,sbound_ty,sbound_c2,sbound_e2)
         call updatesvfc(icomp,modgeo)  ! update SVFC orientation string.
 
       endif
@@ -1939,8 +1936,8 @@ C changes.
            gversion(icomp) =1.1
            newgeo = .true.
         endif
-        call geowrite(IFIL+2,LGEOM(ICOMP),ICOMP,iuout,3,IER)
         call zgupdate(0,icomp,ier)
+        call geowrite2(IFIL+2,LGEOM(ICOMP),ICOMP,iuout,3,IER)
       endif
 
 C If change in vertex detected then update common G7
@@ -1959,8 +1956,6 @@ C bounded (bound=.true.) and which surfaces/vertex links are unmatched.
 C Number of unbounded edges in iub, number inverted surfaces inve.
 C IVB = 0 is silent, IVB=1 feedback on errors. act '-' report only,
 C act 'r' attempt repair.
-
-C << could this be done with G6 and with ??
 
       SUBROUTINE CKVERT(ivb,ICOMP,bounded,iub,inve,act,IER)
 #include "building.h"
@@ -2295,7 +2290,7 @@ C If any of the edge lists were altered give option to update.
 C Update the geometry file.
         if(ok)then
           if(newgeo)then
-            call geowrite(IFIL+2,LGEOM(ICOMP),ICOMP,
+            call geowrite2(IFIL+2,LGEOM(ICOMP),ICOMP,
      &        iuout,3,IER)
           else
             call emkgeo(IFIL+2,LGEOM(ICOMP),ICOMP,3,IER)
@@ -2322,7 +2317,8 @@ C ITRU = unit number for user output, IER=0 OK, IER=1 problem.
 C act is 'ii' insert interactive, 'sw' insert window silently, or
 C act = 'sd' insert door silently or 'sp' insert window percentage silently.
 C Logic is intended to work with vertical surfaces as well as sloped
-C surfaces.  There are some assumptions that the parent surface is
+C surfaces.  Current code expects g1 commons (use globals in future).
+C There are assumptions that the parent surface is
 C rectangular (this needs further investigation).
 
 C For the silent modes the initial name and construction and use
@@ -2347,7 +2343,7 @@ C Parameters
       integer is             ! surface number (parent)
       character act*2        ! user supplied action
       real XO1,ZO1,XW,ZH     ! X and Z offset width and height of opening
-      character rsname*12,rsotf*32,rsmlcn*32,rsuse1*12,rsuse2*12
+      character rsname*12,rsotf*24,rsmlcn*32,rsuse1*12,rsuse2*12
       character rsparent*12
       character guesstype*24 ! pass back context of surface
       integer IER            ! zero is ok
@@ -2404,8 +2400,8 @@ C Check that we can deal with additional complexity. E.G that
 C there is room for an additional surface and 4 vertices (one for extra
 C possible link to the existing surface) as well as if the number of
 C vertices in this surface +6 are < MV. 
-      IF((NSUR+1.GT.MS).OR.(NTV+4.GT.MTV).OR.(NVER(IS)+6.GT.MV).OR.
-     &   (NCON+1.GT.MCON))THEN
+      IF((NZSUR(icomp)+1.GT.MS).OR.(NZTV(ICOMP)+4.GT.MTV).OR.
+     &   (isznver(icomp,IS)+6.GT.MV).OR.(NCON+1.GT.MCON))THEN
         CALL USRMSG(' A new surface could not be added as it',
      &    ' will make the model/zone/surface too complex!','W')
         ier=1
@@ -2764,21 +2760,21 @@ C New surface to inherit the general properties of the parent. If
 C parent is already marked as ANOTHER then set to UNKNOWN
 C (otherwise there will be two surfaces point to the same other surface).
       SOTF(ICOMP,NSUR)=SOTF(ICOMP,IS); SVFC(ICOMP,NSUR)=SVFC(ICOMP,IS)
-      if(SOTHER(ICOMP,IS,1)(1:7).eq.'ANOTHER')then
-        SOTHER(ICOMP,NSUR,1)='UNKNOWN'
-        SOTHER(ICOMP,NSUR,2)='00'
-        SOTHER(ICOMP,NSUR,3)='000'
+      if(zboundarytype(ICOMP,IS,1).eq.3)then
+        zboundarytype(icomp,nsur,1)= -1
+        zboundarytype(icomp,nsur,2)= 0
+        zboundarytype(icomp,nsur,3)= 0
       else
-        SOTHER(ICOMP,NSUR,1)=SOTHER(ICOMP,IS,1)
-        SOTHER(ICOMP,NSUR,2)=SOTHER(ICOMP,IS,2)
-        SOTHER(ICOMP,NSUR,3)=SOTHER(ICOMP,IS,3)
+        zboundarytype(icomp,nsur,1)=zboundarytype(icomp,is,1)
+        zboundarytype(icomp,nsur,2)=zboundarytype(icomp,is,2)
+        zboundarytype(icomp,nsur,3)=zboundarytype(icomp,is,3)
       endif
       SUSE(ICOMP,NSUR,1)='-'; SUSE(ICOMP,NSUR,2)='-'
 
 C If in silent mode assign construction otherwise select. 
       if(act(1:2).eq.'sw'.or.act(1:2).eq.'sd'.or.act(1:2).eq.'sp')then
-        WRITE(SMLCN(ICOMP,NSUR),'(A)') rsmlcn(1:12)
-        WRITE(SOTF(ICOMP,NSUR),'(A)')  rsotf(1:12)  ! only 1st 12 char
+        WRITE(SMLCN(ICOMP,NSUR),'(A)') rsmlcn(1:lnblnk(rsmlcn))
+        WRITE(SOTF(ICOMP,NSUR),'(A)')  rsotf(1:lnblnk(rsotf))
       else
         CALL EPMENSV
         if(mlcver.eq.0)then
@@ -2835,7 +2831,7 @@ C (but for a partition set to unknown).
         NCON=NCON+1
         IX=NCON+1
 
-C Update common blocks G6 & G7 (insert data into connections based list).
+C Update common blocks (shift connections based list beyond ix).
         call adjcbg6g7('+',ix,icont)
 
         IC1(ICONT)=ICOMP
@@ -2851,7 +2847,7 @@ C Update common blocks G6 & G7 (insert data into connections based list).
         endif
         IZSTOCN(icomp,nsur)=icont
 
-C Discover matching MLC index.
+C Discover matching MLC index and update iszjvn and isznver.
         call matchmlcdesc(SMLCN(icomp,NSUR),imlcindex)
         smlcindex(icomp,nsur)=imlcindex
         isznver(icomp,NSUR)=NVER(NSUR)  ! might not be necessary
@@ -2886,7 +2882,7 @@ C (but for a partition set to unknown).
         NCON=NCON+1
         IX=NCON+1
 
-C Update common blocks G6 & G7 (insert data into connections based list).
+C Update common blocks (insert data into connections based list).
         call adjcbg6g7('+',ix,icont)
 
         IC1(ICONT)=ICOMP
@@ -3008,7 +3004,7 @@ C Surface (ivj) vertex list has been updated. Go on to next surface.
   143   continue
       endif
 
-C Update common blocks G6 & G7 to account for any vertices added
+C Update common blocks to account for any vertices added
 C to adjacent surfaces.
       call zgupdate(1,icomp,ier)
 
@@ -3063,6 +3059,7 @@ C Parameters
 C Transform existing surface into into site coordinates in the
 C surface of the plane. Make up XX,YY,ZZ to pass across to the
 C transform routine.
+      itru=iuout
       N = NVER(IS)
       DO 150 J = 1,N
         XX(J) = X(JVN(IS,J))
@@ -3131,7 +3128,7 @@ C << thermal bridge categories. ? extend G8 ?
       CHARACTER act*1
 
       if(act.eq.'+')then
-C Add a connection, this code shifts G6 G7 G8 data upwards.
+C Add a connection, this code shifts G7 G8 data upwards.
 C Typically the mark 234 has been used with this code.
   234   CONTINUE
         IX=IX-1
@@ -3140,6 +3137,12 @@ C Typically the mark 234 has been used with this code.
         ICT(IX)=ICT(IX-1)
         IC2(IX)=IC2(IX-1)
         IE2(IX)=IE2(IX-1)
+        zboundarytype(IC1(IX),IE1(IX),1)=
+     &    zboundarytype(IC1(IX-1),IE1(IX-1),1)
+        zboundarytype(IC1(IX),IE1(IX),2)=
+     &    zboundarytype(IC1(IX-1),IE1(IX-1),2)
+        zboundarytype(IC1(IX),IE1(IX),3)=
+     &    zboundarytype(IC1(IX-1),IE1(IX-1),3)
 
 C Is this needed?
         SUREQN(IC1(IX),IE1(IX),1)=SUREQN(IC1(IX-1),IE1(IX-1),1)
@@ -3164,9 +3167,8 @@ C Is this needed?
       end
 
 C ****************** addedsurf
-C addedsurf takes the current G1 & G5 common block values and copies them
-C to the G6 common block. It inserts default surface information into the 
-C connections-based data structures.
+C addedsurf takes the current G1 & G5 common block values and inserts
+C default surface information into the connections-based data structures.
       subroutine addedsurf(icomp,icon,itrc,ier)
 #include "building.h"
 #include "geometry.h"
@@ -3192,7 +3194,7 @@ C default values.
         NCON=NCON+1
         IX=NCON+1
 
-C Update common blocks C3, G6 & G7.
+C Update common blocks C3 & G7 (shift subsequent connections upwards).
         call adjcbg6g7('+',ix,icon)
 
         IC1(ICON)=ICOMP
@@ -3201,6 +3203,9 @@ C Update common blocks C3, G6 & G7.
         IC2(ICON)=0
         IE2(ICON)=0
         IZSTOCN(icomp,nsur)=icon
+        zboundarytype(icomp,nsur,1)=ICT(icon)
+        zboundarytype(icomp,nsur,2)=IC2(icon)
+        zboundarytype(icomp,nsur,3)=IE2(icon)
 
 C Re-establish link between zone/surfaces and connections.
         do iccc = 1, NCON
@@ -3214,29 +3219,6 @@ C Discover matching MLC index.
         do K=1,isznver(icomp,NSUR)
           iszjvn(icomp,NSUR,K)=JVN(NSUR,K)
         enddo
-
-C If sother(ICOMP,NSUR,1) is 'ANOTHER' or one of the other known phrases
-C then the values of ICT and IC2 and IE2 should be updated so that
-C the connections file is correct.
-        if(SOTHER(ICOMP,NSUR,1)(1:7).eq.'ANOTHER')then
-          read(SOTHER(ICOMP,NSUR,2),'(i2.2)') ival1
-          read(SOTHER(ICOMP,NSUR,3),'(i3.3)') ival2
-          ICT(ICON)=3; IC2(ICON)=ival1; IE2(ICON)=ival2
-        elseif(SOTHER(ICOMP,NSUR,1)(1:9).eq.'ADIABATIC')then
-          ICT(ICON)=5
-        elseif(SOTHER(ICOMP,NSUR,1)(1:8).eq.'CONSTANT')then
-          read(SOTHER(ICOMP,NSUR,2),'(i2.2)') ival1
-          read(SOTHER(ICOMP,NSUR,3),'(i3.3)') ival2
-          ICT(ICON)=2; IC2(ICON)=ival1; IE2(ICON)=ival2
-        elseif(SOTHER(ICOMP,NSUR,1)(1:6).eq.'GROUND')then
-          read(SOTHER(ICOMP,NSUR,2),'(i2.2)') ival1
-          read(SOTHER(ICOMP,NSUR,3),'(i3.3)') ival2
-          ICT(ICON)=4; IC2(ICON)=ival1; IE2(ICON)=ival2
-        elseif(SOTHER(ICOMP,NSUR,1)(1:7).eq.'SIMILAR')then
-          read(SOTHER(ICOMP,NSUR,2),'(i2.2)') ival1
-          read(SOTHER(ICOMP,NSUR,3),'(i3.3)') ival2
-          ICT(ICON)=1; IC2(ICON)=ival1; IE2(ICON)=ival2
-        endif
 
 C Now update the G7 common block to reflect additional surface.
         call zgupdate(itrc,icomp,ier)

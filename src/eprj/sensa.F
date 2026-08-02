@@ -6266,7 +6266,6 @@ C its attributes and update the relevant layer with new material.
                  lnml=lnblnk(mlcmenu(IMLC))
                  write(mlcmenu(NMLC),'(2a)')mlcmenu(IMLC)(1:lnml),
      &             ' cal'
-                 lnmlcmenu(NMLC)=lnblnk(mlcmenu(NMLC))
                  mlctype(NMLC)=mlctype(IMLC)
                  lnml=lnblnk(mlcdoc(IMLC))
                  write(mlcdoc(NMLC),'(2a)') mlcdoc(IMLC)(1:lnml),
@@ -6281,9 +6280,9 @@ C Find its category and increment its counter/
                  lncatn=lnblnk(mlcincat(NMLC))
                  do loop2=1,mlccats
                    if(mlcincat(NMLC)(1:lncatn).eq.
-     &                mlccatname(loop2)(1:lnmlccatname(loop2)))then
-                     mlccatitems(loop2)=mlccatitems(loop2)+1
-                     IC=loop2  ! reset the focus category to one we have copied
+     &               mlccatname(loop2)(1:lnblnk(mlccatname(loop2))))then
+                      mlccatitems(loop2)=mlccatitems(loop2)+1
+                      IC=loop2  ! reset the focus category to one we have copied
                    endif
                  enddo
 
@@ -6445,7 +6444,8 @@ C the _cal material. And write out the zone geometry file.
              continue
            else
              write(SMLCN(IZ,IS),'(a)') mlcname(NMLC)
-             call geowrite(IFIL+1,LGEOM(IZ),IZ,iuout,3,IER)
+C             call geowrite(IFIL+1,LGEOM(IZ),IZ,iuout,3,IER)
+             call geowrite2(IFIL+1,LGEOM(IZ),IZ,iuout,3,IER)
            endif
  20      continue  ! of associated surfaces
        endif

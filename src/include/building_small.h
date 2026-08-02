@@ -140,7 +140,7 @@
       PARAMETER (MSEZ=70)      ! Surface-edge connections.
       PARAMETER (MZSE=20)      ! z-intervals in surface-edge connections.
       PARAMETER (MYSE=6*ME)    ! y-intervals in surface-edge connections.
-      PARAMETER (MEEZ=30)      ! Co-linear edge-edge connection.
+      PARAMETER (MEEZ=60)      ! Co-linear edge-edge connection.
       PARAMETER (MXEE=6*ME)    ! x-intervals in co-linear edge-edge connection.
       PARAMETER (MYEE=6*ME)    ! y-intervals in co-linear edge-edge connection.
       PARAMETER (MXEC=6*ME)    ! x-intervals in edge-corner connection.
@@ -161,9 +161,9 @@
       PARAMETER (MNREG=9)      ! Maximum number of gridding regions per axis
 
 ! Structured-gridding.
-      PARAMETER (MROW=12)      ! Rows.
-      PARAMETER (MCOL=12)      ! Columns.
-      PARAMETER (MLAY=12)      ! Layers.
+      PARAMETER (MROW=27)      ! Rows.
+      PARAMETER (MCOL=27)      ! Columns.
+      PARAMETER (MLAY=27)      ! Layers.
       PARAMETER (MGRID=10*MROW*MCOL*MLAY)! Control volumes (should be < MNOD3).
       PARAMETER (MLEV=12)
       PARAMETER (MMTR=30)      ! Material geometries.

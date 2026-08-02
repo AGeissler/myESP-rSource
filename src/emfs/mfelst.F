@@ -573,6 +573,11 @@ C Allow a connection to be added deleted or copied.
             ILEN=NCNN
             IPACT=CREATE
             CALL EKPAGE(IPACT)
+            DO L=1,NCNN   ! Rebuild list of items to delete.
+              WRITE(ITEMDEL(L),'(A12,F6.1,A5,A12,F6.1,2X,A12)')
+     &        NDNAM(NODPS(L)),HGTPS(L),' --> ',NDNAM(NODNE(L)),HGTNE(L),
+     &        CMNAM(ITPCON(L))
+            ENDDO
             GOTO 3
           ELSEIF(IOPT.EQ.3)THEN
             call usrmsg('Copy which connection ? ',' ','-') 
@@ -594,6 +599,11 @@ C Allow a connection to be added deleted or copied.
             ILEN=NCNN
             IPACT=CREATE
             CALL EKPAGE(IPACT)
+            DO L=1,NCNN   ! Rebuild list of items to copy or delete.
+              WRITE(ITEMDEL(L),'(A12,F6.1,A5,A12,F6.1,2X,A12)')
+     &        NDNAM(NODPS(L)),HGTPS(L),' --> ',NDNAM(NODNE(L)),HGTNE(L),
+     &        CMNAM(ITPCON(L))
+            ENDDO
             GOTO 3
           ELSE
             GOTO 3

@@ -944,6 +944,7 @@ C   cntdat(?,1..3) - supplementary data for containment ?.
 
       dimension ival(mpcom), cnttyp(5)
       character cnttyp*45,  head*19, emod*1, outs*124
+      logical focussname ! if true only label highlighted surfaces.
   
       helpinsub='cntdef'      ! set for subroutine
 
@@ -1066,7 +1067,6 @@ C and construction node cntdt3 counted from outside.
             ELSEIF(ICLOC.EQ.4) THEN
               RETURN
             ELSEIF(ICLOC.EQ.2.OR.ICLOC.EQ.3)THEN
-              call georead(IFIL+1,LGEOM(IZ),IZ,1,iuout,IER)
 
 C General image option flags.
               ITDSP=1; ITBND=1; ITEPT=0; ITZNM=0; ITSNM=0
@@ -1080,7 +1080,9 @@ C General image option flags.
               nzg=1
               nznog(1)=IZ
               izgfoc=IZ
-              CALL ADJVIEW(IER)
+C              CALL ADJVIEW(IER) 
+              focussname=.false.
+              CALL CADJVIEW(focussname,IER)
               MODIFYVIEW=.TRUE.
               MODBND=.TRUE.
 
@@ -2383,7 +2385,7 @@ C   D - delete
 
       CHARACTER MODE*1
       CHARACTER*124 OUTS,ASKSTR
-      LOGICAL OK,dok,CLOSE
+      LOGICAL OK,dok,CLOSE,focussname
 
       helpinsub='newnet'  ! set for subroutine
       helptopic='manage_plant_linkages'
@@ -2529,7 +2531,7 @@ C Determine the linkage type.
           IPCLINKT(IBPLINK)=IOPT
           ASKSTR='Embedded component?'
 
-          call georead(IFIL+1,LGEOM(IZ),IZ,1,iuout,IER)
+C          call georead(IFIL+1,LGEOM(IZ),IZ,1,iuout,IER)
 
 C General image option flags.
           ITDSP=1
@@ -2551,7 +2553,9 @@ C General image option flags.
           nzg=1
           nznog(1)=IZ
           izgfoc=IZ
-          CALL ADJVIEW(IER)
+C          CALL ADJVIEW(IER)
+          focussname=.false.
+          CALL CADJVIEW(focussname,IER)
           MODIFYVIEW=.TRUE.
           MODBND=.TRUE.
 

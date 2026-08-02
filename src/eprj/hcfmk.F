@@ -2157,12 +2157,15 @@ C CVdata array.
           endif
         enddo  ! of NS
         if(iopt.eq.4.or.iopt.eq.5)then  ! set CEN base & top
-          IS=nint(CENLOC(id,I,1))
+  42      IS=nint(CENLOC(id,I,1))
           CALL EASKSUR(ICOMP,IS,'A',
      &      'Select surface for base of room.',
      &      '(should be roughly horizontal)',IER)
           if(IS.ne.0)then
             CENLOC(id,I,1)=real(IS)
+          else
+            call edisp(iuout,'No base surface selected!')
+            goto 42
           endif
           IS=nint(CENLOC(id,I,2))
           CALL EASKSUR(ICOMP,IS,'A',
@@ -2170,6 +2173,9 @@ C CVdata array.
      &      '(should be roughly horizontal)',IER)
           if(IS.ne.0)then
             CENLOC(id,I,2)=real(IS)
+          else
+            call edisp(iuout,'No upper surface selected!')
+            goto 42
           endif
         endif
 
@@ -2865,20 +2871,26 @@ C silently if base and top surfaces have been identified.
 
         elseif (INO.eq.1) then
 
-          IS=nint(CENLOC(id,IN,1))
+ 43       IS=nint(CENLOC(id,IN,1))
           CALL EASKSUR(IZ,IS,'A','Select surface for base of room.',
      &      '(should be roughly horizontal)',IER)
           if(IS.ne.0)then
             CENLOC(id,IN,1)=real(IS)
+          else
+            call edisp(iuout,'No base surface selected!')
+            goto 43
           endif
 
         elseif (INO.eq.2) then
 
-          IS=nint(CENLOC(id,IN,2))
+ 44       IS=nint(CENLOC(id,IN,2))
           CALL EASKSUR(IZ,IS,'A','Select surface for top of room.',
      &      '(should be roughly horizontal)',IER)
           if(IS.ne.0)then
             CENLOC(id,IN,2)=real(IS)
+          else
+            call edisp(iuout,'No upper surface selected!')
+            goto 44
           endif
 
         elseif (INO.eq.4) then

@@ -1,4 +1,4 @@
-ESP-r: A dynamic building performance simulation program.
+ESP-r: A building performance simulation program.
 
 
 1. ACKNOWLEDGMENTS
@@ -21,7 +21,7 @@ or later) and available as part of the ESP-r distribution.
 3. OBTAINING ESP-r.
 
 The system source files and, separately, a pre-compiled installation
-(for Ubuntu 18.04 LTS) are available as downloads from the applications page at
+(for Ubuntu 22.04 LTS) are available as downloads from the applications page at
 www.esru.strath.ac.uk/research/energysystemsresearchunit/applications/esp-r.
 
 Prior to an installation from source code, you should ensure
@@ -31,8 +31,8 @@ that you own.
  
 4. SYSTEM REQUIREMENTS
 
-ESP-r has been successfully installed on Linux, Cygwin, MSYS2
-and MAC OS X systems using different compiler and graphics
+ESP-r has been installed on Linux, Cygwin, MSYS2 and
+MAC OS X systems using different compiler and graphics
 library combinations. The native (and preferred) environment
 is Linux. Instructions for configuring Ubuntu 18.04 LTS for
 ESP-r are available at the above download page.

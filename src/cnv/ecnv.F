@@ -209,6 +209,7 @@ C Assume construction input from 15 and materials from 16.
       IFMUL=15
       IFMAT=16
       IOPTDB=17
+      icfcdb = ifil + 10
 
       call edisp(IUOUT,' ')
       CALL ESPrVersion("summary",cAppName,IUOUT)
@@ -1420,13 +1421,7 @@ C Write primary energy conversions if these have been set.
       stop 'ecnv aborted.'
       end
 
-C Dummy subroutines from common3dv.F needed to match implied
-C calls in esru_lib.F
-      SUBROUTINE ADJVIEW(IER)
-      ier=0
-      return
-      end
-      
+C Dummy subroutines.      
       subroutine redraw(ier)
       ier=0
       return
@@ -1666,6 +1661,7 @@ C bounded (bound=.true.) and which surfaces/vertex links are unmatched.
 C Number of unbounded edges in iub, number inverted surfaces inve.
 C IVB = 0 is silent, IVB=1 feedback on errors. act '-' report only,
 C act 'r' attempt repair.
+C This is a non-graphic version of subroutine in insert.F.
 
       SUBROUTINE CKVERT(ivb,ICOMP,bounded,iub,inve,act,IER)
 #include "building.h"
@@ -1722,14 +1718,14 @@ C New or older geometry file?
       adjusted=.false.  ! set true later if change requires file update
 
 C Jump back point in case the edge lists have been updated
-C (the itv1 & itv2 need to be re-formed.
+C (the itv1 & itv2 need to be re-formed).
   42  continue
   
 C Take a line pair and then look and see if it is referenced in
 C reverse order just once. itv1 & itv2 are the vertices at the
 C start and end of each edge, its1 is the reference surface. 
       ipair=0; inve=0; iub=0
-      DO IS=1,NSUR
+      DO IS=1,NZSUR(icomp)
         invesur(IS)=0
         if(NVER(IS).eq.0)then
           continue   ! what about itv2 value for this?
@@ -1808,12 +1804,12 @@ C Incrememt hits for zone as well as for this surface.
 C This is a great place to look for vertices that are not
 C part of this surface's edges (notin true) that could be
 C added. If we have a corrupt JVN list (a zero entry) ignore.
-            do iwhich1=1,NTV
+            do iwhich1=1,NZTV(iomp)
               notin=.true.
-              if(NVER(icursur).eq.0)then
+              if(isznver(icomp,icursur).eq.0)then
                 notin=.false.
               else
-                do iwhich2=1,NVER(icursur)
+                do iwhich2=1,isznver(icomp,icursur)
                   if(iwhich1.eq.JVN(icursur,iwhich2)) notin=.false.
                   if(JVN(icursur,iwhich2).eq.0) notin=.false.
                 enddo
@@ -1843,7 +1839,7 @@ C list for itv1(ip) so insertion can come just after this point.
                     enddo
                     ivtoadd=iwhich1  ! remember it
                     write(louts,'(a,124i4)') 'cur list: ',
-     &                (JVN(icursur,ii),ii=1,NVER(icursur))
+     &                (JVN(icursur,ii),ii=1,isznver(icomp,icursur))
                     if(ivb.ne.0) call edisp248(iuout,louts,100)
 
 C If current surface (icursur) can take another vertex expand the
@@ -1851,7 +1847,7 @@ C list. Logic works by looping down (from one more than the current
 C number of vertices associated with this surface) shifting
 C JVN indices up one until at the current edge and then
 C inserting the new vertex index.
-                    if(NVER(icursur)+1.le.MV)then
+                    if(isznver(icomp,icursur)+1.le.MV)then
                       if(offset.lt.0.004)then
                         ok=.true.  ! If within 4mm just do it
                         write(outs,'(a,f6.4,3a)') 'Inserting a (',
@@ -1871,17 +1867,21 @@ C inserting the new vertex index.
                     if(ok)then
                       adjusted=.true.
                       NVER(icursur)=NVER(icursur)+1
+                      isznver(ICOMP,icursur)=NVER(icursur)
 
 C If its location in the list is actually the last in the list?
                       if(itsposition+1.eq.NVER(icursur))then
                         JVN(icursur,itsposition+1)=ivtoadd
+                        ISZJVN(icomp,icursur,itsposition+1)=ivtoadd
                       else
                         iii=NVER(icursur)+1
   348                   continue
                         iii=iii-1
                         JVN(icursur,iii)=JVN(icursur,iii-1)
+                        ISZJVN(icomp,icursur,iii)=JVN(icursur,iii)
                         IF(iii.GT.itsposition+1)GOTO 348
                         JVN(icursur,itsposition+1)=ivtoadd
+                        ISZJVN(icomp,icursur,itsposition+1)=ivtoadd
                       endif
 C Debug.
                       write(louts,'(a,124i4)') 'adj list: ',
@@ -1896,8 +1896,8 @@ C Debug.
             enddo
           endif
 
+C Code for interactive highlighting (in insert.F) not included.
           if(hilight)then
-
           endif
         endif
  144  continue
@@ -1905,10 +1905,11 @@ C Debug.
 
 C If all edges of a surface are likely to be inverted offer
 C the user the option to invert.
-        DO IS=1,NSUR
-          if(NVER(IS).gt.0.and.(invesur(IS).eq.NVER(IS)))then
+        DO IS=1,NZSUR(icomp)
+          if(isznver(icomp,IS).gt.0.and.(invesur(IS).eq.
+     &      isznver(icomp,IS)))then
             write(louts,'(a,124i4)') 'current list: ',
-     &        (JVN(is,ii),ii=1,NVER(is))
+     &        (JVN(is,ii),ii=1,isznver(icomp,is))
             call edisp248(iuout,louts,100)
             write(outs,'(3a)')
      &        'Checked the edges of surface ',SNAME(icomp,is),
@@ -1916,17 +1917,20 @@ C the user the option to invert.
             call easkok(outs,'Invert its edges?',ok,nbhelp)
             if(ok)then
               adjusted=.true.  ! ensure option to save is given
-              do 146, iyy = 1,NVER(is)
+              do 146, iyy = 1,isznver(icomp,is)
                 jvn1(iyy)=JVN(is,iyy)
   146         CONTINUE
               JVN(is,1)=jvn1(2)
               JVN(is,2)=jvn1(1)
-              do 147, iyy = 3,NVER(is)
-                izz=NVER(is)+3-iyy
+              ISZJVN(icomp,is,1)=jvn1(2)
+              ISZJVN(icomp,is,2)=jvn1(1)
+              do 147, iyy = 3,isznver(icomp,is)
+                izz=isznver(icomp,is)+3-iyy
                 JVN(is,iyy)=jvn1(izz)
+                ISZJVN(icomp,is,iyy)=jvn1(izz)
   147         CONTINUE
               write(louts,'(a,124i4)') 'inverted list is ',
-     &          (JVN(is,ii),ii=1,NVER(is))
+     &          (JVN(is,ii),ii=1,isznver(icomp,is))
               call edisp248(iuout,louts,100)
             endif
           endif
@@ -1944,7 +1948,7 @@ C If any of the edge lists were altered give option to update.
 C Update the geometry file.
         if(ok)then
           if(newgeo)then
-            call geowrite(IFIL+2,LGEOM(ICOMP),ICOMP,
+            call geowrite2(IFIL+2,LGEOM(ICOMP),ICOMP,
      &        iuout,3,IER)
           else
             call emkgeo(IFIL+2,LGEOM(ICOMP),ICOMP,3,IER)
@@ -4520,6 +4524,7 @@ C Only returns match=true if point was found along the line between
 C the two vertices (i.e. it discards matches beyond the end points.
 C It assumes that calling code will decide whether the distance
 C can be used.
+C Assumes access to current zone G1 common blocks.
 
       subroutine pointtoline(ipoint,iwhich1,iwhich2,offset,match)
 #include "building.h"

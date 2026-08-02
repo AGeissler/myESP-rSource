@@ -233,8 +233,8 @@ C WORDSS array of string tokens from each NWICHNIS.
       character dgtagatr*12,dgmenuatr*32,dgatrib*12
       character ddgtagatr*12,ddgmenuatr*32,ddgatrib*12
 
-      character cVnum*36      ! returned from ESPrVersionNum
-      character pagestitle*68 ! for banner title via epages call
+      character cVnum*38      ! returned from ESPrVersionNum
+      character pagestitle*72 ! for banner title via epages call
 
       integer iglib   ! if 1 then X11, if 2 then GTK, if 3 then text only.
       integer NITEMS,INO ! max items and current menu item
@@ -282,9 +282,6 @@ C Set folder separator (fs) to \ or / as required.
         FS = CHAR(92)
       ENDIF
       WRITE(PATH,'(A1,A1)')'.',FS
-
-C Initial use of default icons file. 
-      ICONDBFL=DICONDBFL
 
 C Set unit numbers for configuration file and plant data
 C base files respectively.
@@ -378,6 +375,28 @@ C Open the session file.
       iecount=0
   903 continue
 
+C Find the user's home folder then get user's custom settings.
+C Make temporary use of file unit IAF=IFIL+2.
+      IAF=IFIL+2
+      call usrhome(upath)
+      if(unixok)then
+        write(esprc,'(3a)') upath(1:lnblnk(upath)),fs,'.esprc'
+      else
+        write(esprc,'(3a)') upath(1:lnblnk(upath)),fs,'esprc'
+      endif
+      call scesprc(esprc,IAF,0,IIER)
+
+C Scan the defaults file for default configuration.
+      call escdef(IAF,'-',IER)
+
+C Initial use of default icons file. 
+      ICONDBFL=DICONDBFL
+
+      CALL ESPrVersion("summary",cAppName,IUOUT)
+
+C Use askabout to instantiate the initial help messages (2nd parameter is one).
+      call askabout('enet',1)
+
 C Open the text display box equal to LIMTTY if MMOD = 8.
       IF(MMOD.EQ.8)THEN
         iglib = igraphiclib()  ! find out if X11 or GTK or text support only.
@@ -411,11 +430,6 @@ C in the c-interface code.
 C Set reasonable defaults for text mode.
         igw=516; igwh=433; igl=65; igb=467
       ENDIF
-
-      CALL ESPrVersion("summary",cAppName,IUOUT)
-
-C Use askabout to instantiate the initial help messages (2nd parameter is one).
-      call askabout('enet',1)
 
 C Initialise the network on first entry and clear screen and draw grid.
       CALL NWKINIT
@@ -779,7 +793,7 @@ C Set the network type
 
 C Option to read another icon file name. << hardcoded >>
         if(INWKTYP.eq.2.and.NWKTYPSTR(INWKTYP)(1:4).eq.'Flow')then
-          DFILE='/usr/esru/esp-r/databases/icons.db1'
+          DFILE='/opt/esp-r/databases/icons.db1'
         else
           DFILE=DICONDBFL
         endif
@@ -1053,8 +1067,8 @@ C Menu option for zooming in and out of the graph.
         helptopic='grid_spacing'
         call gethelptext(helpinsub,helptopic,nbhelp)
         WRITE(OUTS,'(A,F5.1)')
-     &    'Enter a value between 0.5 and 8.0 currently ',SCALF
-        CALL EASKR(SCALF,'zoom setting?',OUTS,VIEWMN,'F',VIEWMZ,'F',
+     &    'Enter a value between 0.1 and 8.0 currently ',SCALF
+        CALL EASKR(SCALF,'zoom setting?',OUTS,VIEWMN,'W',VIEWMZ,'F',
      &  VIEWMZ,'zoom setting',IER,nbhelp)
 
       ELSEIF(INO.EQ.20)THEN
@@ -1368,6 +1382,7 @@ C Draw the upper and right extents.
       call u2pixel(XMIN,YMAX,iix3,iiy3)
       call u2pixel(XMAX,YMAX,iix4,iiy4)
       call eswline(iix3,iiy3,iix4,iiy4)
+      call forceflush()
 
 C Check that the grid is ON GRSPC(*)<>0.0
       IF(GON)THEN
@@ -1400,6 +1415,7 @@ C Draw on the X grid lines.
         IF(GX.LT.XMAX) GOTO 10
 
 C Draw on the Y grid lines.
+        call forceflush()
         IF(IVIEW.EQ.1)THEN
           GSPCH=GRSPC(2)
         ELSEIF(IVIEW.EQ.2)THEN
@@ -1422,6 +1438,7 @@ C Return to black lines after drawing grid.
           iicol=0
           call winscl('-',iicol)
         endif
+        call forceflush()
       ENDIF
 
 C Draw on the network description. 

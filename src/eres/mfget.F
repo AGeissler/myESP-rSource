@@ -177,7 +177,8 @@ C air flow reporting.
       common/recver/izver,ipver,iever
       common/timfltr/iwkdst,iwkdfn,isatst,isatfn,isunst,isunfn
       integer net3ddelay  ! delay between timesteps in 3D network
-      common/delay3d/net3ddelay
+      integer iflblo      ! verboxity of 3D flow graph labels
+      common/delay3d/net3ddelay,iflblo
 
       DIMENSION IVALS(MCOM),zn(MCOM)
       CHARACTER ITEM(35)*23, MTITLE*22, values*20
@@ -213,13 +214,14 @@ C  NLIST - node list
 C  CNLST - connection node list to restrict choice (e.g. all flows through node x)
 C  CRLST - reference node list for connection information (e.g. volume for ac/h)
 C  CTLST - contaminant list
+      net3ddelay=2  ! Assume 1 sec delay when first entering.
+
  1    continue
       CLIST=.FALSE.; NLIST=.FALSE.; CNLST=.FALSE.
       CRLST=.FALSE.; CTLST=.FALSE.
       fxmin=1000.; fxmax=-1000.; fymin=1000.; fymax=-1000.
       fzmin=1000.; fzmax=-1000.
       IDH=1   ! assume no horizontal separator
-      net3ddelay=2  ! assume 1 sec delay
       igrl=0        ! initial assumption
       itotal=0      ! initial assumption
       inode=0       ! initial assumption
@@ -399,8 +401,10 @@ C If plot give graph command and labels command, otherwise list command.
           ITEM(26)='@ delay >> 0.5 sec '
         elseif(net3ddelay.eq.4)then
           ITEM(26)='@ delay >> 0.25 sec'
+        elseif(net3ddelay.eq.5)then
+          ITEM(26)='@ delay >> 0.1 sec'
         endif
-        ITEM(27)  ='! draw 3D graph    '
+        ITEM(27)  ='            '
         nl=2
       else
         nl=0
@@ -433,7 +437,7 @@ C Check for ADDLIN in time series plot - must choose metric if ADDLIN=1.
         CALL MOOPER
         INO=-1
       elseif(INO.EQ.3)then
-        CALL MOSTYLE
+        CALL MOSTYLE  ! Scan geometry to get scaling factors when switching views.
       elseif(INO.EQ.5)then
 
 C Ambient temperature:IMFGET = 9
@@ -784,25 +788,6 @@ C Contaminant concentration at node: IMFGET = 14
 C Energy associated with a flow stream: IMFGET = 13.
         call edisp(iuout,'This option not yet available.')
         goto 1
-C        if((NMFGET+1).GT.MFRS)then
-C          call usrmsg('Number of items exceeded.',' ','P')
-C          goto 1
-C        endif
-C        NMFGET=NMFGET+1
-C        IMFGETNO(NMFGET,1)=13
-C        IMFGETNO(NMFGET,5)=-3
-C        IMFGETNO(NMFGET,6)=7
-C        IMFGETNO(NMFGET,7)=4
-C        IMFGETNO(NMFGET,8)=0
-C        SUFFIX=' ener'
-C        if(IROC.eq.0)then
-C          SMFLABEL(NMFGET)='Conn energy (Whr)'
-C        elseif(IROC.eq.1)then
-C          SMFLABEL(NMFGET)='Conn energy cng (Whr/hr)'
-C        endif
-C << this facility is under development) get code from mfetbl.F >>
-C << ask for a reference node (probably outside), test node and >>
-C << get a connection for this calculation. >>
       elseif(INO.EQ.20)then
 
 C Edit selections.
@@ -830,22 +815,6 @@ C Data presentation format (actual or rate of change).
         call usrmsg('Switch from raw data to rate of change or data',
      &    'does not (yet) apply to network flow data...ignored.','W')
 
-C << rate of change needs to be implemented >>
-C        if(IROC.eq.0)then
-C          write(outs,'(a)')'(currently variable)'
-C        else
-C          write(outs,'(a)')'(currently rate of change)'
-C        endif
-C        helptopic='res_mass_flow_menu'
-C        call gethelptext(helpinsub,helptopic,nbhelp)
-C        CALL EASKMBOX('Data display options:',outs,
-C     &    'variable (default)','rate of change of variable','contine',
-C     &    ' ',' ',' ',' ',' ',II,nbhelp)
-C        if(II.ne.3.and.(IROC.ne.(II-1)))then
-C          IROC=II-1
-C          call usrmsg ('Clearing current selections....','  ','W')
-C          call MOFLOWSU
-C        endif
       elseif(INO.EQ.23)then
 
 C Clear all selections (time series plot).
@@ -1161,8 +1130,20 @@ C Set delay timer between timesteps.
           CALL EASKMBOX('Plotting speed:',' ',
      &      'slower (2s/step)','normal (1s/step)',
      &      'fast (500ms/step)','250ms/step',
-     &      ' ',' ',' ',' ',IWS,nbhelp)
-           net3ddelay=IWS
+     &      '100ms/setp',' ',' ',' ',IWS,nbhelp)
+          net3ddelay=IWS
+          if(net3ddelay.eq.1)then
+            ITEM(26)='@ delay >> 2 sec   '
+          elseif(net3ddelay.eq.2)then
+            ITEM(26)='@ delay >> 1 sec   '
+          elseif(net3ddelay.eq.3)then
+            ITEM(26)='@ delay >> 0.5 sec '
+          elseif(net3ddelay.eq.4)then
+            ITEM(26)='@ delay >> 0.25 sec'
+          elseif(net3ddelay.eq.5)then
+            ITEM(26)='@ delay >> 0.1 sec'
+          endif
+          goto 1
         else
           call edisp(iuout,'selected item 26?? ')
         endif
@@ -1189,6 +1170,8 @@ C replicated).
           if(pifltog(1:3).eq.'ON ')call WRITEPIF(MENUTYPE)
           return
         endif
+      elseif(INO.EQ.27.and.MENUTYPE.eq.15)then
+        goto 1    !  Relies on user selecting a topic. Just jump back to 1.
 
 C At this point we just fall past the end of the INO equals statements.
 
@@ -1207,6 +1190,7 @@ C Did not understand menu item or it was a non-action menu item.
         goto 1
       endif
 
+C ----------------------
 C Most of the above logic falls through to this point. If an item
 C has been selected proceed otherwise loop back to '1'.
       if (INO.lt.0.or.NMFGET.lt.1) goto 1
@@ -1579,15 +1563,7 @@ C nodes questions above. I.E. total flow entering was requested.
               endif
             endif
           enddo  ! of nlistconn
-          
-C Debug.
-C        write(6,*) 'node list is',nlistnode,(listnode(I),I=1,nlistnode)     
-C        write(6,*) 'cmp list is',nlistcmp,(listcmp(I),I=1,nlistcmp) 
         endif
-
-C Debug.
-C        write(6,*) 'after itotal & nnpk ',itotal,nnpk,inpk
-C        write(6,*) 'after itotal & nnpkt ',itotal,nnpkt,inpkt
 
         lsf=lnblnk(SUFFIX)
         if (NNPK.gt.0) then
@@ -2348,10 +2324,6 @@ C return +ive, -ive or net flow.
           endif
           icompindex=ITPCON(IMFGETNO(I,2))
           icomptype=ITPCMP(icompindex)
-
-C Debug.
-C          write(6,*) 'the component index is ',icompindex
-C          write(6,*) 'the component type is ',icomptype
 
           if(icomptype.eq.40)then
             area=SUPCMP(icompindex,2)

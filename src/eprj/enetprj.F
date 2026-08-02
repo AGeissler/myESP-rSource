@@ -1882,16 +1882,15 @@ C Plant commons
 
 C Calendar commons
       common/caleni/nbdaytype,nbcaldays(MDTY),icalender(365)
-      INTEGER NBDAYTYPE,NBCALDAYS,ICALENDER,IDTY,ITAG
+      INTEGER NBDAYTYPE,NBCALDAYS,ICALENDER,IDTY
 
 
       REAL CDATA
-      DIMENSION TMPDESC(3),IVALS(5),TMPTYPSTR(3),IAPPF(3)
+      DIMENSION TMPDESC(3),IVALS(5),TMPTYPSTR(3)
       DIMENSION LOADSTR(MGTY),IVALSL(MGTY),IINDEX(MGTY)
       
-      INTEGER NPCOMP,NCI,
-     &I,J,K,IPHYB,IEHYB,IHYB,ISTRL,IAPPF,ILTY,IX,IVALSL
-     &IMENL, IVALS, IINDEX
+      INTEGER NPCOMP,NCI,I,J,K,IPHYB,IEHYB,IHYB,ISTRL
+      INTEGER ILTY,IX,IVALSL,IMENL,IVALS,IINDEX
 
 C Characters
       CHARACTER*3 MODE
@@ -2322,8 +2321,6 @@ C unit (a power-only component model)
       integer PCU_id         !- id number of the PCU power-only component model
       parameter( PCU_id = 20 )
 
-
-
       DIMENSION SSTR(90),VAR(MPWDAT),SPMISC(MPWDAT),POWITEM(MPWDAT),
      &POWITEM2(MPWDAT),POWDESC(MPOWCOM),DADESC(MPWDAT),
      &POSTR(90), IVALS(5), TMPDESC(3)
@@ -2347,7 +2344,9 @@ C Characters
       helpinsub='enetprj'  ! set for subroutine
 
       POREPT=.FALSE.
-
+      IEPOW=0         ! Updated later in logic.
+      IEPOWC=0
+ 
 C Firstly set the affected connection
       IF(MODE.EQ.'ADD'.OR.MODE.EQ.'EDT') THEN
 
@@ -2810,6 +2809,7 @@ C Characters
 
       helpinsub='enetprj'  ! set for subroutine
       CCREPT=.FALSE.
+      IECNC=0; IECNCC=0    ! Will be updated later in logic.  
 
       IF(MODE.EQ.'ADD'.OR.MODE.EQ.'EDT') THEN
 

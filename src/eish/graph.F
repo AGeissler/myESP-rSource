@@ -69,7 +69,7 @@ C to superimpose any direct shading.
       iunit=ifil
 
 C Determine focus surface.
-    2 call pickssur(icomp,np,'L',iva,ier)
+    2 call pickshsur(icomp,np,'L',iva,ier)
       if(np.eq.0)then
         goto 1    ! ask user whether to continue
       else
@@ -831,10 +831,10 @@ C outside and should not face away from the ray.
           goto 111  ! cannot be seen by solar vector
         elseif(fbc(its,icc).eq.'B')then
           goto 111  ! other surface is behind
-        elseif(sother(izone,loop,1)(1:7).eq.'SIMILAR')then
+        elseif(zboundarytype(izone,loop,1).eq.1)then
           goto 111  ! does not face outside
         endif
-        if(sother(izone,loop,1)(1:8).eq.'EXTERIOR')then      
+        if(zboundarytype(izone,loop,1).eq.0)then      
           EQN(1)=sureqn(izone,loop,1)
           EQN(2)=sureqn(izone,loop,2)
           EQN(3)=sureqn(izone,loop,3)

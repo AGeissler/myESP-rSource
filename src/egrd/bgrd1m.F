@@ -72,7 +72,7 @@ C *********************************************************************
       ELSE
         ZONENM=' '
       ENDIF
-      WRITE(ITEM(1),'(A17,A15)')'1 Selected zone: ',ZONENM
+      WRITE(ITEM(1),'(A,A)')'1 Selected zone: ',ZONENM
       ITEM(2)='  --------------------------------'
       ITEM(3)='a Assign n_nodes for all layers'
       ITEM(4)='b Assign n_nodes for a layer'
@@ -91,7 +91,7 @@ C Help for this menu.
       helptopic='grd_hygric_menu'
       call gethelptext(helpinsub,helptopic,nbhelp)
 
-C Draw the appropriate graph.
+C Draw the appropriate graph (as passed into the subroutine).
       IF(MODIFYVIEW)CALL GRAAPH(IDRW1,IDRW2)
       CALL USRMSG(' ',' ','-')
       CALL EMENU('   Moisture Transport',ITEM,MITEM,INO)
@@ -110,15 +110,14 @@ C Before selecting new zone, update the utilities file.
 
 C Show the complete building.
         IF(IDRW1.NE.1.OR.MODIFYVIEW)THEN
-          IDRW1=1
-          IDRW2=0
+          IDRW1=1; IDRW2=0   ! Draw the building.
           CALL GRAAPH(IDRW1,IDRW2)
         ENDIF
 
 C Show the zone selection menu.
         INPICK=1
    20   CALL EPICKS(INPICK,IVALZ,' ',' ',12,
-     &    NCOMP,zname,' Select Zone',IER,nbhelp)
+     &    NCOMP,zname,'Select Zone',IER,nbhelp)
         IZ2=IVALZ(1)
         IF(IZ2.GE.1.AND.IZ2.LE.NCOMP)THEN
           IZ=IZ2
@@ -143,8 +142,7 @@ C Show the zone selection menu.
           GOTO 20
         ENDIF
         IF(ZONOK)THEN
-          IDRW1=2
-          IDRW2=IZ
+          IDRW1=2; IDRW2=IZ  ! Draw specific zone.
           CALL GRAAPH(IDRW1,IDRW2)
         ENDIF
       ELSEIF(INO.EQ.3)THEN
@@ -157,8 +155,9 @@ C Assign n-nodes for all layers in the zone.
           NE=NELTS(IZ,IS)
           MNDC(IZ,IS)=NND*NE+1
           MNDZ(IZ)=MNDZ(IZ)+MNDC(IZ,IS)
-        DO 40 ILYR=1,NE
-            MNDL(IZ,IS,ILYR)=NND
+          DO ILYR=1,NE
+             MNDL(IZ,IS,ILYR)=NND
+          ENDDO
    40   CONTINUE
       ELSEIF(INO.EQ.4)THEN
 
@@ -177,7 +176,7 @@ C Show the constructions menu.
           icc=izstocn(iz,is)
           NE=NELTS(IZ,IS)
           WRITE(TXT,'(10(2X,I2))')(MNDL(IZ,IS,IL),IL=1,NE)
-          WRITE(MSG1,'(3A)')" Enter the number of moisture ",
+          WRITE(MSG1,'(3A)')"Enter the number of moisture ",
      &    "nodes/layer in the surface: ",SNAME(iz,is)
           CALL EASKS(TXT,MSG1,' ',72,' ',' data ',IER,nbhelp)
           NCFF = iCountWords(TXT)
@@ -311,7 +310,7 @@ C *********************************************************************
       ELSE
         SURFNM=' '
       ENDIF
-      WRITE(ITEM(1),'(A,A12)')'1 Selected surface: ',SURFNM
+      WRITE(ITEM(1),'(A,A)')'1 Selected surface: ',SURFNM
       WRITE(ITEM(2),'(A,I5)')'2 Selected layer: ',IL
       ITEM(3)='  -----------------------------'
       ITEM(4)='x Enter moisture permeability'
@@ -355,7 +354,7 @@ C Select the layer.
 C Show the layers menu.
         INPICK=1
         DO 40 IL2=1,NE
-          WRITE(ITEMC(IL2),'(A7,I2,A1)')'Layer (',IL2,')'
+          WRITE(ITEMC(IL2),'(A,I2,A)')'Layer (',IL2,')'
    40   CONTINUE
    50   CALL EPICKS(INPICK,IVALL,' ',' ',20,NE,ITEMC,' ',
      &    IER,nbhelp)
@@ -409,7 +408,7 @@ C Enter moisture capacity.
 C Enter thermal vapour diffusion.
         WRITE(TXT,'(1X,I2,6(1X,F8.4))')ITVAPD(IZ,IS,IL),TVAPD(IZ,IS,IL)
         WRITE(MSG1,'(A)')
-     &  " Enter the moisture capacity data for the selected layer"
+     &  "Enter the moisture capacity data for the selected layer"
         CALL EASKS(TXT,MSG1,' ',72,' ',' data ',IER,nbhelp)
         NCFF = iCountWords(TXT)
         IF(NCFF.NE.2)THEN

@@ -60,10 +60,8 @@ C ********** AnlCnd **********
 
       integer MITEM,INO ! max items and current menu item
 
-C << TODO shift h()= statements into a *.help file. >>
-
       helpinsub='anlytc'  ! set for subroutine
-      helptopic='AnlCnd'
+      helptopic='analytical-which'
       call gethelptext(helpinsub,helptopic,nbhelp)
 
       MonNod=1
@@ -98,8 +96,10 @@ C Multi-layered construction.
 C Initial Temperature.
       ELSEIF(INO.EQ.2)THEN
         WRITE(Msg,'(A)')'Initial temperature?'
-        H(1)='Enter the initial temperature for construction nodes.'
-        CALL EASKR(Tinit,' ',Msg,0.,'-',1.,'-',0.,'temperature',IER,1)
+        helptopic='analytical-initial-node'
+        call gethelptext(helpinsub,helptopic,nbhelp)
+        CALL EASKR(Tinit,' ',Msg,0.,'-',1.,'-',0.,'temperature',
+     &    IER,nbhelp)
 
 C External boundary.
       ELSEIF(INO.EQ.3)THEN
@@ -109,8 +109,10 @@ C External boundary.
         else
           MsgT='External boundary options:'
           MsgC='cancel'
+          helptopic='analytical-convective'
+          call gethelptext(helpinsub,helptopic,nbhelp)
           CALL EASKMBOX(' ',MsgT,'convective','adiabatic',MsgC,
-     &      ' ',' ',' ',' ',' ',IW,0)
+     &      ' ',' ',' ',' ',' ',IW,nbhelp)
 
 C Convective boundary.
           IF(IW.EQ.1)THEN
@@ -134,8 +136,10 @@ C Internal boundary.
           MsgT='Internal boundary options:'
           MsgB='constant surface temp.'
           MsgC='cancel'
+          helptopic='analytical-inside'
+          call gethelptext(helpinsub,helptopic,nbhelp)
           CALL EASKMBOX(' ',MsgT,'convective',MsgB,MsgC,
-     &      ' ',' ',' ',' ',' ',IW,0)
+     &      ' ',' ',' ',' ',' ',IW,nbhelp)
 
 C Convective boundary.
           IF(IW.EQ.1)THEN
@@ -148,9 +152,8 @@ C Known surface temperature.
             IndBI=3
             Hin=1.0e32
             WRITE(Promp,'(A)')'Surface temperature?'
-            H(1)='The internal surface temperature will be held'
-            H(2)='at this value.'
-            CALL EASKR(Tin,' ',Promp,0.,'-',1.,'-',0.,' temp. ',IER,2)
+            CALL EASKR(Tin,' ',Promp,0.,'-',1.,'-',0.,' temp. ',
+     &        IER,nbhelp)
           ENDIF
         endif
 
@@ -247,9 +250,10 @@ C Perform analytical solution.
 C Compare results.
       ELSEIF(INO.EQ.MITEM-3)THEN
         if(VldOK)then
-          H(1)='Select the destination for the comparison.'
+          helptopic='analytical-reporting'
+          call gethelptext(helpinsub,helptopic,nbhelp)
           CALL EASKMBOX(' ','Output to:',
-     &      'screen','file',' ',' ',' ',' ',' ',' ',IW,1)
+     &      'screen','file',' ',' ',' ',' ',' ',' ',IW,nbhelp)
           IOutS=IFIL+20
           FileS='Simulation.out'
           CALL EFOPSEQ(IOutS,FileS,1,IER)
@@ -295,9 +299,9 @@ C Compare results.
 
 C Help.
       ELSEIF(INO.EQ.MITEM-1)THEN
-        H(1)='This menu supports the setting of the parameters'
-        H(2)='of the analytical conduction test.'
-        CALL PHELPD('vld opening',2,'-',0,0,IER)
+        helptopic='analytical-which'
+        call gethelptext(helpinsub,helptopic,nbhelp)
+        CALL PHELPD('vld opening',nbhelp,'-',0,0,IER)
 
 C Return to the calling menu.
       ELSEIF(INO.EQ.MITEM)THEN
@@ -351,19 +355,16 @@ C ********** VldAdv **********
 C Simulation time step.
       IF(INO.EQ.1)THEN
         WRITE(Msg,'(A)')'Simulation time step?'
-        H(1)='Enter the simulation time step in seconds up to'
-        H(2)='and including 3600.'
-        CALL EASKR(DTime,' ',Msg,1.,'F',2.,'-',3600.,'time step',IER,2)
+        CALL EASKR(DTime,' ',Msg,1.,'F',2.,'-',3600.,'time step',
+     &    IER,nbhelp)
         DTime=3600.0/INT(3600.0/DTime+0.5)
 
 C Number of simulation time steps.
       ELSEIF(INO.EQ.2)THEN
         WRITE(Msg,'(A)')'Number of simulation time steps:'
-        H(1)='The simulation period will equal the number entered'
-        H(2)='here multiplied by the given time step.'
         NTimeT=NTime
         CALL EASKI(NTimeT,' ',Msg,1,'F',3600,'W',60,'time steps',
-     &    IERI,2)
+     &    IERI,nbhelp)
         if(ieri.eq.-3)then
           goto 10
         else
@@ -373,10 +374,8 @@ C Number of simulation time steps.
 C Monitoring location.
       ELSEIF(INO.EQ.3)THEN
         WRITE(Msg,'(A)')'Monitoring location options:'
-        H(1)='This defines an arbitrary location where the results will'
-        H(2)='be monitored as the simulation proceeds.'
         CALL EASKMBOX(' ',Msg,'external surface','internal surface',
-     &    'intra-construction',' ',' ',' ',' ',' ',IW,2)
+     &    'intra-construction',' ',' ',' ',' ',' ',IW,nbhelp)
         IF(IW.EQ.1)THEN
           MonNod=1
         ELSEIF(IW.EQ.2)THEN
@@ -387,10 +386,9 @@ C Monitoring location.
             MaxNd=MaxNd+NPLyr(il)
   100     continue
           WRITE(Msg,'(A)')'Construction node number?'
-          H(1)='This is the construction node number commencing from'
-          H(2)='node 1 located at the outside surface.' 
           MonNodT=MonNod
-          CALL EASKI(MonNodT,Msg,' ',1,'F',MaxNd,'F',2,'node',IERI,2)
+          CALL EASKI(MonNodT,Msg,' ',1,'F',MaxNd,'F',2,'node',
+     &      IERI,nbhelp)
           if(ieri.eq.-3)then
             goto 10
           else
@@ -400,18 +398,15 @@ C Monitoring location.
 
 C Zone side equations implicitness degree.
       ELSEIF(INO.EQ.5)THEN
-        H(1)='Enter 0 for fully explicit, 1 for fully implicit'
-        H(2)='and 0.5 for Crank-Nicolson'
         CALL EASKR(Gam,' ','Equations implicitness degree?',
-     &         0.,'F',1.,'F',0.5,'implicitness degree',IER,2)
+     &         0.,'F',1.,'F',0.5,'implicitness degree',IER,nbhelp)
 
 C Number of eigenvalues
       ELSEIF(INO.EQ.7)THEN
         WRITE(Msg,'(A)')'Number of eigenvalues:'
-        H(1)='In general, the higher the number of eigenvalue'
-        H(2)='the more accurate will be the analytical result.'
         NRootT=NRoot
-        CALL EASKI(NRoot,' ',Msg,1,'F',1000,'W',100,'number',IERI,3)
+        CALL EASKI(NRoot,' ',Msg,1,'F',1000,'W',100,'number',
+     &    IERI,nbhelp)
         if(ieri.eq.-3)then
           goto 10
         else
@@ -421,17 +416,11 @@ C Number of eigenvalues
 C Maximum iterrations
       ELSEIF(INO.EQ.8)THEN
         WRITE(Msg,'(A)')'Maximum number of iterrations?'
-        H(1)='The sign-count method is used to determine the required'
-        H(2)='eivenvalues. While this will always converge to the'
-        H(3)='require value, it sometimes requires more iterations'
-        H(4)='than the default value of 500. In this case raise the'
-        H(5)='value. Note that small magnitude eigenvalues, which'
-        H(6)='are the most effective in terms of result accuracy,'
-        H(7)='will converge within the first 100 iterrations.'
-
+        helptopic='VldAdv-iterations'
+        call gethelptext(helpinsub,helptopic,nbhelp)
         NIterT=NIter
         CALL EASKI(NIterT,' ',Msg,100,'W',3000,'W',500,'number',
-     &    IERI,7)
+     &    IERI,nbhelp)
         if(ieri.eq.-3)then
           goto 10
         else
@@ -440,12 +429,7 @@ C Maximum iterrations
       
 C Menu help.
       ELSEIF(INO.EQ.MITEM-1)THEN
-        H(1)='This is the advanced options menu. Because the'
-        H(2)='default values of the displayed parameters are'
-        H(3)='usually acceptable, you should not alter them'
-        H(4)='unless you fully understand the implications.'
-
-        CALL PHELPD('vld opening',4,'-',0,0,IER)
+        CALL PHELPD('vld opening',nbhelp,'-',0,0,IER)
 
 C Exit advanced options menu.
       ELSEIF(INO.EQ.MITEM)THEN
@@ -469,11 +453,8 @@ C ********** VldBnd **********
       call gethelptext(helpinsub,helptopic,nbhelp)
       
       WRITE(StrVal,'(2F9.1)')TempB,HTranB
-      H(1)=' You should enter the following data:'
-      H(2)=' 1. ambient temperature.'
-      H(3)=' 2. conective heat transfer coefficient (hc).'
   10  CALL EASKS(StrVal,' ','Ambient temperature and hc value?',
-     &       20,' ','boundary details',IER,3)
+     &       20,' ','boundary details',IER,nbhelp)
       CALL USRMSG('  ','  ','-')
       NInp = iCountWords(StrVal)
       NExpct=2
@@ -606,17 +587,7 @@ C Delete surface boundary.
 
 C Display help.
       ELSEIF(INO.EQ.(NITEMS-1))THEN
-        H(1)='This menu is used to define the boundary'
-        H(2)='surfaces. To define a box, the grid coordinates'
-        H(3)='of two diagonally opposite corners of the box are'
-        H(4)='required. The coordinates of the first corner should'
-        H(5)='be smaller than those for the second corner.  The'
-        H(6)='general rule is that each portion of a surface'
-        H(7)='lying either inside or on the surface of the'
-        H(8)='defined box will inherit the specified condition.'
-        H(9)='New boundary boxes will superpose preceding ones.'
-
-        CALL PHELPD('local components ',10,'-',0,0,IER)
+        CALL PHELPD('local components ',nbhelp,'-',0,0,IER)
 
 C Return to multi-gridding menu.
       ELSEIF(INO.EQ.NITEMS)THEN
@@ -643,14 +614,8 @@ C ********** VConEd **********
 
       WRITE(StrVal,602)Cond(I),Dens(I),Cp(I),DX(I),NPLyr(I)
  602  FORMAT(2X,F8.4,2X,F8.1,2X,F8.1,2X,F8.4,2X,I4)
-      H(1)=' Enter five values as follows.'
-      H(2)=' 1. layer conductivity [W/(m.K)].'
-      H(3)=' 2. layer density [kg/m^3].'
-      H(4)=' 3. layer specific heat [J/(kg.k)].'
-      H(5)=' 4. layer thickness [m]'
-      H(6)=' 5. number of nodes representing the layer(s) (>2).'
   10  CALL EASKS(StrVal,' ',
-     &       'k, rho, Cp, Dx, Nnodes?',72,' ','layer details',IER,6)
+     &  'k, rho, Cp, Dx, Nnodes?',72,' ','layer details',IER,nbhelp)
       if(ier.ne.0)return
       CALL USRMSG('  ','  ','-')
       NInp = iCountWords(StrVal)
@@ -853,10 +818,8 @@ C Check if the root validation folder is available.
 
 C Copy the default validation model.
       VlDirL='Analytical'
-      H(1)='Folder to contain the test model and results (this'
-      H(2)='will be created in your home directory).'
       CALL EASKS(VlDirL,' ','Model folder name?',72,' ',
-     &                    'folder name',IER,2)
+     &                    'folder name',IER,nbhelp)
       WRITE(doit,'(2a,1x,3a)') 'rcp -r ',VlDirR(1:lnblnk(VlDirR)),
      &  upath(1:lnblnk(upath)),'/',VlDirL(1:lnblnk(VlDirL))
       call runit(doit,'-')
@@ -871,8 +834,7 @@ C Copy the default validation model.
       MODE='ALL '
       CALL ERSYS(LCFGF,IFCFG,IAPROB,MODE,ITRC,IER)
       NZONES=NCOMP
-      ISFSUM=0
-      CALL ZDATA (ITRC,IER,NZONES,ISFSUM)
+      CALL ZDATA (ITRC,IER,NZONES)
       call georead(IUnit,LGEOM(IComp),IComp,1,IUOUT,IER)
       CALL ECONST(LTHRM(IComp),IUnit,IComp,ITRC,IUOUT,IER)
       CALL EROPER(ITRC,IUOUT,IUnit,IComp,IER)
@@ -1002,7 +964,8 @@ C Save control file.
 
 C Save geometry file.
       IUF=IFIL+2
-      call geowrite(IUF,LGEOM(ICOMP),IComp,IUOUT,3,IER)
+C      call geowrite(IUF,LGEOM(ICOMP),IComp,IUOUT,3,IER)
+      call geowrite2(IUF,LGEOM(ICOMP),IComp,IUOUT,3,IER)
 
 C Save construction file.
       CALL EMKCON(LTHRM(ICOMP),IUF,IComp,QUIET,IER)

@@ -26,6 +26,10 @@ C          on passed parameters and the contents of common GS5.
 C  ERMRT:  Read the viewfactor/ MRT sensor definition file.
 C  EMKMRT: Write viewfactor/MRT sensor definition file based on
 C          information in common blocks MRTC, MRTF.
+C  SIFIMPORT: Imports ASCII shading and insolation into binary file.
+C  SIFWRT - writes shading/insolation data to a zone shading &
+C          insolation db for a given month.
+C PICKSHSUR: selects surfaces for shading & insolation analysis.
 
 C  PLEQN:  Finds the equation EQN to a plane containing a polygon
 C          defined as a set of X() Y() Z() verticies tracing the edges.
@@ -38,9 +42,9 @@ C  LN2AZ:  Recover azimuth & elevation vector from two coordinates in space.
 C  AZ2UV:  Recover unit vector from azimuth & elevation.
 C  CHECKWARP: transforms surface into 2D and checks if points are
 C          are not in the plane of the surface.
-C  ESZONE  Saves the current contents of common blocks G1 G2 G4 G5
+C  ESCZONE Saves the current contents of common blocks G1 G2 G4 G5
 C          into SG1 SG2 SG4 SG5.
-C  ERZONE  Recovers the saved contents of common blocks G1 G2 G4 G5
+C  ERCZONE Recovers the saved contents of common blocks G1 G2 G4 G5
 C          from SG1 SG2 SG4 SG5.
 C  EASKGEOF: Asks for zone number & geometry file name. If a configuration
 C            file has been read present a list of zone names.
@@ -57,6 +61,7 @@ C              and allows user to select passing back full path & name.
 C FDPWDTOCFG: Figures out the path between where an application was started
 C             and the model cfg folder (pwdtocfg).
 C dintervalf: A fortran implementation of the c surboutine dinterval.
+C zones_with_occupants: Scan and report on zones with occupants.
 
 
 C ************* CLRPRB
@@ -244,17 +249,16 @@ C nbrdg is the number of thermal bridge types in the zone
 C psi is the linear thermal transmittance value,
 C lngth is the length of the thermal bridge and
 C ibrdg is an index defining the type of thermal bridge as follows:
-C   1 to 8 (NOT metal cladding)
 C   1 is "roof-wall", 2 is "wall-ground floor"
 C   3 is "wall-wall (convex corner)", 4 is "wall-wall (concave corner)"
-C   5 is "wall-floor (not ground floor)", 6 is "lintel above window or door"
+C   5 is "wall-floor (exposed)", 6 is "lintel above window or door"
 C   7 is "Sill below window", 8 is "jamb at window or door"
-C   9 to 15 (metal cladding)
-C   9 is "roof-wall-mc", 10 is "wall-ground floor-mc"
-C  11 is "wall-wall (corner)-mc", 12 is "wall-floor (not ground floor)-mc"
-C  13 is "lintel above window or door-mc", 14 is "Sill below window-mc"
-C  15 is "jamb at window or door-mc"
-C  16 is for any other categories of thermal bridges
+C   9 is "roof-wall-gable", 10 is "wall-parapet"
+C  11 is "wall-interm-floor", 12 is "wall-partition"
+C  13 is "glass-frame", 14 is "balcony"
+C  15 is "user-defined-a"
+C  16 is "user-defined-b"
+C The phrases for thermal bridges are defined in setbridgenames.
 
 C losspercent is W/K for an alternative method  where the calculated heat flow
 C   is augmented by a fixed percentage of the UA (fabric loss)
@@ -267,6 +271,13 @@ C   losspercent and is assumed to apply to all zones in the model.
       common/THRBRDG/nbrdg(MCOM),psi(MCOM,16),lngth(MCOM,16),
      &               ibrdg(MCOM,16),losspercent(MCOM),totheatloss(MCOM),
      &               thbrpercent,uavtotal(MCOM)
+      real bridgelen       ! Length (m) of potential thermal bridges in each zone.
+      integer nbridgevt    ! Number of verticies associted with this bridge.
+      integer bridgevlst   ! List of vertices associated with bridge.
+      common/gbridge/bridgelen(MCOM,16),nbridgevt(MCOM,16),
+     &  bridgevlst(MCOM,16,MV*2)
+      common/THBRSCH/tbregime
+      character tbregime*36
 
 C IPV data comes via ipvdata.h
 
@@ -296,7 +307,7 @@ C IES lighting distribution files from model.h
       character spfdescr*30
 
       INTEGER :: i,icc,ibe,ibu,j,ixs,ix,iivu,isystcurrent,imu
-      INTEGER :: ies
+      INTEGER :: ies,ik
 
 C Clear any allocated arrays
       CALL DeallocateAllArrays
@@ -321,7 +332,17 @@ C Initial assumption is no SHOCC files.
       lradcf='UNKNOWN'
       cfgroot=' '
       LCTLF='UNKNOWN'
-      LCNN='UNKNOWN'
+      if(icfgv.gt.4)then  ! If earlier preference set reset LCNN.
+        if(usecurcfg.eq.2)then
+          LCNN='UNKNOWN'
+        elseif(usecurcfg.eq.1)then
+          LCNN='internal'
+        elseif(usecurcfg.eq.-1)then
+          LCNN='UNKNOWN'
+        endif
+      else
+        LCNN='UNKNOWN'
+      endif
       CTLDOC='no overall project control notes (yet)'
       GTGEOM='UNKNOWN'
       GTNAME='flat'
@@ -388,6 +409,17 @@ C Clear IPV strings and number of assessmments.
       ipvtitl=' '; ipvsynop=' '; ipvsimu=' '
       nipvassmt=0; nipvdispjd=0
       ipvastjd(1)=0; ipvafnjd(1)=0; ipvdispjd(1)=0
+      ipvastjd(2)=0; ipvafnjd(2)=0; ipvdispjd(2)=0
+      ipvastjd(3)=0; ipvafnjd(3)=0; ipvdispjd(3)=0
+      ipvastjd(4)=0; ipvafnjd(4)=0; ipvdispjd(4)=0
+      ipvastjd(5)=0; ipvafnjd(5)=0; ipvdispjd(5)=0
+      imetget(1)=0;  msdoc(1)=' ';  metrglbl(1)='- '; metgroup(1)='- '
+      imetget(2)=0;  msdoc(2)=' ';  metrglbl(2)='- '; metgroup(2)='- '
+      nzedg(1)=0; edgflr(1)=0.0; edgsca(1)=1.0
+      nzedg(2)=0; edgflr(2)=0.0; edgsca(2)=1.0
+      iaggr=1; ifbhits=1   ! Include timestep reporting and hits for frq.  
+      neds=0; nms=0
+      ipvform=2            ! Assume tab separated IPV report.
 
 C Clear anchors.
       NALOC=0
@@ -523,9 +555,7 @@ C << clear all mrt sensors in all zones. >>
           BANGOB(ix,ibu,3) = 0.0
           OPOB(ix,ibu)=0.0
           BLOCKNAME(ix,ibu) = ' '
-          LNBLOCKNAME(ix,ibu) = 0
           BLOCKMAT(ix,ibu) = ' '
-          LNBLOCKMAT(ix,ibu) = 0
           BLOCKTYP(ix,ibu) = 'obs '
           do ibe=1,8
             XBP(ix,ibu,ibe)=0.0
@@ -548,9 +578,7 @@ C Clear visual entities in all zones.
           BANGOV(ix,ibu,3) = 0.0
           OPOV(ix,ibu)=0.0
           VISNAME(ix,ibu) = ' '
-          LNVISNAME(ix,ibu) = 0
           VISMAT(ix,ibu) = ' '
-          LNVISMAT(ix,ibu) = 0
           VISTYP(ix,ibu) = 'vis '
           do ibe=1,8
             XVP(ix,ibu,ibe)=0.0
@@ -563,13 +591,10 @@ C Clear visual objects in all zones.
         NBVOBJ(ix)=0
         do ibu=1,12
           VOBJNAME(ix,ibu) = ' '
-          LNVOBJNAME(ix,ibu) = 0
           VOBJDESC(ix,ibu) = ' '
-          LNVOBJDESC(ix,ibu) = 0
           NBVOBJLIST(ix,ibu) = 0
           do ibe=1,12
             VOBJLIST(ix,ibu,ibe) = ' '
-            LNVOBJLIST(ix,ibu,ibe) = 0
           enddo  ! of ibe
         enddo    ! of ibu
 
@@ -586,8 +611,6 @@ C Clear SHOCC zone information as well.
         CTYPE(IX)=' '
         shape(IX)=' '
         gversion(ix)=1.0
-        rotateit(ix,1)=0.0; rotateit(ix,2)=0.0
-        rotateit(ix,3)=0.0
         zorigin(ix,1)=0.0; zorigin(ix,2)=0.0; zorigin(ix,3)=0.0
         zsize(ix,1)=0.0; zsize(ix,2)=0.0; zsize(ix,3)=0.0
         znbmass(ix) = 0
@@ -604,7 +627,6 @@ C Clear SHOCC zone information as well.
           ztextmass(ix,imu,3)=' '
         enddo  ! if imu
         zdesc(IX)=' '
-        lnzdesc(IX)=0
         zname(IX)=' '
         lnzname(IX)=0
 
@@ -668,11 +690,17 @@ C Clear the connection list.
       ENDDO  ! of I
       SNFNAM=' '
 
-C Clear the linear thermal bridges variables
+C Clear the linear thermal bridges variables.
+      tbregime='  '
       DO I=1,16
         DO IX=1,MCOM
           psi(IX,I) = 0.0
           lngth(IX,I) = 0.0
+          bridgelen(IX,I)= 0.0
+          nbridgevt(IX,I)= 0
+          do ik=1,MV*2
+            bridgevlst(IX,i,ik)=0
+          enddo
           losspercent(IX) = 0.0
           thbrpercent = 0.0
           totheatloss(ix) = 0.0
@@ -732,6 +760,8 @@ C see if there are  associated images.
 #include "geometry.h"
 #include "plant.h"
 #include "power.h"
+#include "net_flow.h"
+#include "net_flow_data.h"
 
 C Passed parameters because these are also used by c function opencfg
 #ifdef OSI
@@ -809,6 +839,7 @@ C icfgfab =0 none, = 1 3D conduction, =2 moisture, =3 special materials, = 4 all
       endif
       if(LPNF(1:7).eq.'UNKNOWN')then
         icfgpln = 0
+C [ if the flow network included water then set HVAC true.
       else
         icfgpln = 1
       endif
@@ -843,6 +874,19 @@ C icfgfab =0 none, = 1 3D conduction, =2 moisture, =3 special materials, = 4 all
         icfgs = 1
       endif
 
+C If there is a flow network and there is water in any connection then
+C assume that plant is true.
+      if(IAIRN.ge.1.and.ncnn.gt.0)then
+        do ICNN=1,NCNN   ! Connections loop.
+          ICMP=ITPCON(ICNN)
+          if(icmp.gt.0)then
+            if(INT(SUPCMP(ICMP,1)).eq.2)then
+              icfgpln = 1
+            endif
+          endif
+        enddo
+      endif
+   
 C Loop through all zones for other features.
       icfgbeh = 0
       if(NCOMP.gt.0)then
@@ -995,18 +1039,16 @@ C Get the current model facilities.
 C Registration, show all available images.
       if(act.eq.'r')then
         call imgdisp(0,'****',ier)
-        h(1)='The current model has only been registered and there'
-        h(2)='are no zones, controls or systems defined.'
-        nbhelp=2
+        helptopic='cfg_register'
+        call gethelptext(helpinsub,helptopic,nbhelp)
         CALL PHELPD('registration button popup',nbhelp,'-',0,0,IER)
 
 C Context button.
       elseif(act.eq.'s')then
         if(icfgs.gt.0)then
           call imgdisp(1,'FSIT',ier)
-          h(1)='The model includes solar obstructions and/or ground'
-          h(2)='topology.'
-          nbhelp=2
+          helptopic='cfg_context'
+          call gethelptext(helpinsub,helptopic,nbhelp)
           CALL PHELPD('site button popup',nbhelp,'-',0,0,IER)
         endif
 
@@ -1020,28 +1062,20 @@ C Show fluid flow related images.
           continue
         elseif(icfgnet.eq.1)then
           call imgdisp(1,'FNET',ier)
-          h(1)='The model includes an air or water flow network.'
-          h(2)='Details are found in the network interface or the'
-          h(3)='model contents reports. '
-          h(4)='The model does not include CFD domains.'
-          nh=4
+          helptopic='cfg_context_flow'
+          call gethelptext(helpinsub,helptopic,nbhelp)
         elseif(icfgnet.eq.2)then
           call imgdisp(1,'FDFS',ier)
           call imgdisp(1,'FNET',ier)
-          h(1)='The model does not include a flow network.'
-          h(2)='The model includes one or more CFD domains.'
-          nh=2
+          helptopic='cfg_context_cfd'
+          call gethelptext(helpinsub,helptopic,nbhelp)
         elseif(icfgnet.eq.3)then
           call imgdisp(1,'FDFS',ier)
           call imgdisp(1,'FNET',ier)
-          h(1)='The model includes an air or water flow network.'
-          h(2)='Details are found in the network interface or the'
-          h(3)='model contents reports. '
-          h(4)='The model also includes one or more CFD domains.'
-          nh=4
+          helptopic='cfg_context_flow_cfd'
+          call gethelptext(helpinsub,helptopic,nbhelp)
         endif
         if(icfgnet.ne.0)then
-          nbhelp=nh
           CALL PHELPD('Fluid flow button popup',nbhelp,'-',0,0,IER)
         endif
 
@@ -1049,11 +1083,8 @@ C Electrical button.
       elseif(act.eq.'e')then
         if(icfgeln.gt.0)then
           call imgdisp(1,'FELN',ier)
-          h(1)='The model includes an electrical power network and'
-          h(2)='has the potential to simulate power flows between'
-          h(3)='the grid, generating components and electrical demands'
-          h(4)='associated with lighting and small power devices.'
-          nbhelp=4
+          helptopic='cfg_context_power'
+          call gethelptext(helpinsub,helptopic,nbhelp)
           CALL PHELPD('electrical button popup',nbhelp,'-',0,0,IER)
         endif
 
@@ -1061,38 +1092,29 @@ C Show control-related images.
       elseif(act.eq.'c')then
         if(icfgc.gt.0)then 
           call imgdisp(1,'FCTL',ier)
-          h(1)='The model includes environmental controls related to'
-          h(2)='the following domains:'
-          nh=2
+          helptopic='cfg_context_control'
+          call gethelptext(helpinsub,helptopic,nbhelp)
+          CALL PHELPD('electrical button popup',nbhelp,'-',0,0,IER)
           if(ncf.gt.0)then
-            nh=nh+1
-            write(h(nh),'(a)')' Zones - control included.'
+            call edisp(iuout,' Zones - control included.')
           else
-            nh=nh+1
-            write(h(nh),'(a)')' Zones - no control included.'
+            call edisp(iuout,' Zones - no control included.')
           endif
           if(ncl.gt.0)then
-            nh=nh+1
-            write(h(nh),'(a)')' Plant - control included.'
+            call edisp(iuout,' Plant - control included.')
           else
-            nh=nh+1
-            write(h(nh),'(a)')' Plant - no control included.'
+            call edisp(iuout,' Plant - no control included.')
           endif
           if(ncc.gt.0)then
-            nh=nh+1
-            write(h(nh),'(a)')' Flow - control included.'
+            call edisp(iuout,' Flow - control included.')
           else
-            nh=nh+1
-            write(h(nh),'(a)')' Flow - no control included.'
+            call edisp(iuout,' Flow - no control included.')
           endif
           if(ngf.gt.0)then
-            nh=nh+1
-            write(h(nh),'(a)') ' Global - control included.'
+            call edisp(iuout,' Global - control included.')
           else
-            nh=nh+1
-            write(h(nh),'(a)') ' Global - no control included.'
+            call edisp(iuout,' Global - no control included.')
           endif
-          nbhelp=nh
           CALL PHELPD('control button popup',nbhelp,'-',0,0,IER)
         endif
 
@@ -1171,6 +1193,9 @@ C Reads site obstruction data as ASCII strings, with or without
 C range checking and printed summary. An obstruction block name (up to
 C 12 characters) may be included as an option and is returned via BLOCKNAME.
 
+C Note: obstruction attributes are held in global commons which are scanned
+C as the model is loaded and held in memory. Re-scanning of obstructions is
+C thus rarely required.
       SUBROUTINE EGOMST(IUNIT,ICOMP,LOBS,IR,ITRC,ITRU,IER)
 #include "building.h"
 #include "geometry.h"
@@ -1240,22 +1265,17 @@ C of tokens in variable ND.
             IF(I.LE.9)THEN
               WRITE(BLOCKNAME(ICOMP,I),77)I
    77         FORMAT('B',I1)
-              LNBLOCKNAME(ICOMP,I)=lnblnk(BLOCKNAME(ICOMP,I))
             ELSEIF(I.GT.9)THEN
               WRITE(BLOCKNAME(ICOMP,I),78)I
    78         FORMAT('B',I2)
-              LNBLOCKNAME(ICOMP,I)=lnblnk(BLOCKNAME(ICOMP,I))
             ENDIF
             BLOCKMAT(ICOMP,I)='NONE'
-            LNBLOCKMAT(ICOMP,I)=4
             BLOCKTYP(ICOMP,I)='obs '
           ELSEIF(ND.EQ.8)THEN
             OPOB(icomp,I)=1.0
             CALL EGETW(OUTSTR,K,WORD,'W','obs blk name',IFLAG)
             BLOCKNAME(ICOMP,I)=WORD(1:12)
-            LNBLOCKNAME(ICOMP,I)=lnblnk(BLOCKNAME(ICOMP,I))
             BLOCKMAT(ICOMP,I)='NONE'
-            LNBLOCKMAT(ICOMP,I)=4
             BLOCKTYP(ICOMP,I)='obs '
           ELSEIF(ND.EQ.9)THEN
 
@@ -1264,10 +1284,8 @@ C contain spaces).
             OPOB(icomp,I)=1.0
             CALL EGETW(OUTSTR,K,WORD,'W','obs blk name',IFLAG)
             BLOCKNAME(ICOMP,I)=WORD(1:12)
-            LNBLOCKNAME(ICOMP,I)=lnblnk(BLOCKNAME(ICOMP,I))
             CALL EGETP(OUTSTR,K,WORD,'W','obs mat name',IFLAG)
             write(BLOCKMAT(ICOMP,I),'(a)') WORD(1:lnblnk(WORD))
-            LNBLOCKMAT(icomp,i)=lnblnk(BLOCKMAT(icomp,i))
             BLOCKTYP(ICOMP,I)='obs '
           ELSEIF(ND.GE.10)THEN
 
@@ -1277,10 +1295,8 @@ C contain spaces).
             OPOB(icomp,I)=VX
             CALL EGETW(OUTSTR,K,WORD,'W','obs blk name',IFLAG)
             BLOCKNAME(ICOMP,I)=WORD(1:12)
-            LNBLOCKNAME(ICOMP,I)=lnblnk(BLOCKNAME(ICOMP,I))
             CALL EGETP(OUTSTR,K,WORD,'W','obs mat name',IFLAG)
             write(BLOCKMAT(ICOMP,I),'(a)') WORD(1:lnblnk(WORD))
-            LNBLOCKMAT(icomp,i)=lnblnk(BLOCKMAT(icomp,i))
             BLOCKTYP(ICOMP,I)='obs '
           ENDIF
         ELSE
@@ -1318,8 +1334,8 @@ C Trace.
         CALL EDISP(ITRU,
      &  'Block X- Y- Z- coords DX- DY- DZ- values Orient Opacity')
         DO 9995 I=1,nbobs(icomp)
-          llbm=LNBLOCKMAT(ICOMP,I)
-          llbn=LNBLOCKNAME(ICOMP,I)
+          llbm=lnblnk(BLOCKMAT(ICOMP,I))
+          llbn=lnblnk(BLOCKNAME(ICOMP,I))
           WRITE(OUTSTR,9994)I,XOB(ICOMP,I),YOB(ICOMP,I),ZOB(ICOMP,I),
      &      DXOB(ICOMP,I),DYOB(ICOMP,I),DZOB(ICOMP,I),
      &      BANGOB(ICOMP,I,1),OPOB(ICOMP,I),BLOCKNAME(ICOMP,I)(1:llbn),
@@ -1376,8 +1392,8 @@ C For each block write info, use space as item separation.
       WRITE(IAF,'(a)')
      &'# origin X Y Z, width, depth, height, rot ang, opac descr, cons'
       DO 10 I=1,nbobs(icomp)
-        llbm=LNBLOCKMAT(ICOMP,I)
-        llbn=LNBLOCKNAME(ICOMP,I)
+        llbm=lnblnk(BLOCKMAT(ICOMP,I))
+        llbn=lnblnk(BLOCKNAME(ICOMP,I))
         WRITE(outl,34,IOSTAT=IOS,ERR=3)XOB(icomp,I),YOB(icomp,I),
      &    ZOB(icomp,I),DXOB(icomp,I),DYOB(icomp,I),DZOB(icomp,I),
      &    BANGOB(icomp,I,1),OPOB(icomp,I),
@@ -2065,6 +2081,841 @@ C Error messages.
       goto 999
 
       END
+
+
+C ******************** SIFIMPORT ********************
+C Imports the shading and insolation factors as held in an
+C ASCII zone shading & insolation file to bimary file. Uses SIFWRT to
+C update file contents. Uses some of the same code blocks as sifops but is
+C written for silent operation. If the format changes in sifops then
+C sifexp should also be updated.
+C Input parameters:
+C  icomp      - the current zone index
+C  exportfile - ascii file to import (typically this would be a
+C               name derived from the zone shading file).
+C  ier        - is 0 if no problems, -3 if empty, -2 not found,
+C             -1 wrong file type, -4 wrong zone.
+
+      subroutine sifimport(icomp,exportfile,ier)
+#include "building.h"
+#include "model.h"
+#include "geometry.h"
+
+      integer lnblnk  ! function definition
+
+      common/outin/iuout,iuin,ieout
+      common/filep/ifil
+
+      common/tmc/itmc(ms),nwins
+      common/data2/pso(ms,24),psof(ms,24)
+      common/data3/ishd(12),isadd(12),ntmc(ms),ioffs(ms)
+      common/data4/insst(mgt,24,misur),pinsst(mgt,24,misur)
+      common/data5/irecx,nsurs,msurs
+      character ltrns*72
+      integer multic,mons,monf
+      common/mtfile/ltrns,multic,mons,monf
+
+      character*3 month(12)
+      character outs*124,louts*248,exportfile*96
+      character outstr*124,loutstr*248,lkoutstr*1000
+      character message*64
+      integer nboftmc       ! number of insolation sources returned from findtmc
+      logical ok
+
+      DATA month/'Jan','Feb','Mar','Apr','May','Jun','Jul',
+     &           'Aug','Sep','Oct','Nov','Dec'/
+
+C Scan header of the zone shading & insolation file.
+      ifilsi=ifil+3
+      irec=1
+      read(ifilsi,rec=irec,iostat=istat,err=1000)(ishd(i),i=1,12),
+     &                                           (isadd(i),i=1,12)
+C      write(outs,'(2a)')'Content of zone shading & insolation file ',
+C     &                   lshad(icomp)(1:lnblnk(lshad(icomp)))
+C      call edisp(iuout,' ')
+C      call edisp(iuout,outs)
+      ims=0
+      mnth=1
+      ifirst=0
+      do 10 i=1,12
+         if(ishd(i).ne.0)then
+            ims=ims+1
+            if(ifirst.eq.0)then
+               mnth=i
+               ifirst=1
+            endif
+         endif
+   10 continue
+
+C Assume there is nothing in the shading file and the
+C import from ascii file is used to fill it.
+
+C An empty shading file so setup some initial information. Find the
+C initial month in the import file and then close the file. Note:
+C the string for the month e.g. Jan is expected to be found
+C between positions 11 and 13 of the line.
+      iuj=ifil+10
+      mnth=1
+      call efopseq(iuj,exportfile,1,ier)
+      call stripc(iuj,outstr,0,nd,1,'month',ier)
+      if(outstr(1:7).eq.'* month')then
+        do 16 im=1,12
+          if(outstr(11:13).eq.month(im))mnth=im
+ 16     continue
+        call erpfree(iuj,istat)
+      elseif(outstr(1:5).eq.'* end')then
+        call erpfree(iuj,istat)
+      endif
+
+      if(irecx.eq.0)irecx=5   ! irecx probably unset so do it for initial month
+      isadd(mnth)=irecx       ! so code knows where to write data
+      nsurs=nzsur(icomp)      ! needed for the header
+      msurs=misur
+      call findtmc(icomp,'s',nboftmc) ! establish insolation sources and copy to ntmc
+      do ij=1,nsurs
+        ntmc(ij)=itmc(ij)
+      enddo
+
+C Based on the file name being passed to this subroutine.
+      call efopseq(iuj,exportfile,1,ier)
+      if(ier.ne.0)goto 1002
+      call stripc(iuj,outstr,0,nd,1,'header',ier)
+      if(ier.ne.0)goto 1002
+      if(outstr(1:24).ne.'* Shading and insolation')then
+         call usrmsg('Not an ascii zone shading & insolation file!',
+     &               exportfile,'W')
+         call erpfree(iuj,istat)
+         ier=-1
+         return
+      endif
+
+      call stripc(iuj,outstr,0,nd,1,'zone & surf',ier)
+      if(ier.ne.0)goto 1002
+      k=0
+      call egetwi(outstr,k,iret,0,0,'-','zone index',ier)
+      if(ier.ne.0)goto 1002
+      if(iret.ne.icomp)then
+        call usrmsg('These data are for a different zone!',
+     &                                     exportfile,'W')
+        call erpfree(iuj,istat)
+        ier=-4
+        return
+      endif
+
+      call egetwi(outstr,k,iret,0,0,'-','surfaces',ier)
+      if(ier.ne.0)goto 1002
+      if(iret.ne.nzsur(icomp))then
+        call usrmsg(
+     &    'Number of surfaces in file does not match current model!',
+     &     exportfile,'W')
+        call erpfree(iuj,istat)
+        ier=-4
+        return
+      endif
+
+C Read data for a month. If we have a month that matches then
+C the code looks for either '24 hour external' in which case
+C the data is shading data. If '24 hour internal' found following
+C the * month tag then we have only insolation.
+      multic=2  ! signal data is known
+      call stripc(iuj,outstr,0,nd,1,'month',ier)
+ 172  if(outstr(1:5).eq.'* end')goto 18
+      if(ier.ne.0.or.outstr(1:7).ne.'* month')goto 1002
+
+C For MODISH embedded.
+C      if(ISIcalc==1)then
+        if(outstr(1:7).eq.'* month')then 
+          do 973 in=1,12
+            if(outstr(11:13).eq.month(in))then
+              mnth=in
+            endif
+ 973      continue
+        endif
+C      endif
+
+      if(outstr(11:13).eq.month(mnth))then
+         call stripc(iuj,outstr,0,nd,1,'24 hour external',ier)
+         if(outstr(1:16).ne.'24 hour external')then
+           if(outstr(1:16).ne.'24 hour internal')then
+             ishd(mnth)=2   ! no shading only insolation
+             goto 173
+           endif
+           message='expecting 24 hours external'
+           multic=0  ! signal data is not known
+           goto 1002
+         endif
+         ishd(mnth)=1   ! at least shading
+         do 150 i=1,nzsur(icomp)
+            message='reading direct shading'
+            call lstripc(iuj,loutstr,0,nd,1,'dir shading 01-12',ier)
+            if(ier.ne.0)goto 1004
+            k=0
+            do 160 j=1,12
+               call egetwr(loutstr,k,ret,0.,1.,'W',
+     &                                     'dir shading 01-12',ier)
+               if(ier.ne.0)goto 1004
+               pso(i,j)=ret
+  160       continue
+            call lstripc(iuj,loutstr,0,nd,1,'dir shading 12-24',ier)
+            if(ier.ne.0)goto 1004
+            k=0
+            do 170 j=13,24
+               call egetwr(loutstr,k,ret,0.,1.,'W',
+     &                                     'dir shading 12-24',ier)
+               if(ier.ne.0)goto 1004
+               pso(i,j)=ret
+  170       continue
+
+            message='reading diffuse shading'
+            call lstripc(iuj,loutstr,0,nd,1,'dif shading 01-12',ier)
+            if(ier.ne.0)goto 1004
+            k=0
+            do 180 j=1,12
+               call egetwr(loutstr,k,ret,0.,1.,'W',
+     &                                     'dif shading 01-12',ier)
+               if(ier.ne.0)goto 1004
+               psof(i,j)=ret
+  180       continue
+            call lstripc(iuj,loutstr,0,nd,1,'dif shading 12-24',ier)
+            if(ier.ne.0)goto 1004
+            k=0
+            do 190 j=13,24
+               call egetwr(loutstr,k,ret,0.,1.,'W',
+     &                                     'dif shading 12-24',ier)
+               if(ier.ne.0)goto 1004
+               psof(i,j)=ret
+  190       continue
+  150    continue
+      else
+         if(mnth.gt.12) goto 18  ! have reached past december
+         call usrmsg('Data in file is not for the specified month!',
+     &                               exportfile,'W')
+         call erpfree(iuj,istat)
+         ier=-3
+         return
+      endif
+
+C Read insolation factors. But the next line might also hold
+C a Month string or end marker.
+      call stripc(iuj,outstr,0,nd,1,'insolation header',ier)
+ 173  if(ier.ne.0.or.outstr(1:16).ne.'24 hour internal')then
+        if(outstr(1:7).eq.'* month')then
+          ok=.true.
+          if(ok)then
+            call sifwrt(icomp,mnth,lastrec)
+            if(lastrec.gt.5)then
+              if(isadd(mnth+1).eq.0) isadd(mnth+1)=lastrec
+            endif
+          endif
+          mnth=mnth+1   ! increment the month and jump back
+          goto 172
+        elseif(outstr(1:5).eq.'* end')then
+          goto 18   ! end of file reached
+        endif
+        message='expecting 24 hours internal'
+        multic=0  ! signal data is not known
+        goto 1002
+      endif
+
+      if(outstr(1:5).eq.'* end')goto 18
+      call stripc(iuj,outstr,0,nd,1,'offsets header',ier)
+      if(ier.ne.0.or.outstr(1:14).ne.'record offsets')then
+        message='expecting record offsets'
+        goto 1002
+      endif
+      if(ishd(mnth).eq.1) ishd(mnth)=3   ! set to shading + insul
+
+C Read the offsets line. Items with a zero are not insolation
+C sources, non-zero entries are offsets to use within the binary
+C file and the position in the list indicates with surface in
+C the zone is an insolation source.
+      call stripc1k(iuj,lkoutstr,0,nd,1,'offsets data',ier)
+      if(ier.ne.0)goto 1004
+      k=0
+      do 200 i=1,nzsur(icomp)
+         call egetwi(lkoutstr,k,iret,0,0,'-','offset',ier)
+         if(ier.ne.0)goto 1004
+         ioffs(i)=iret
+  200 continue
+
+C Reset the counter for insolation sources. Use the nwins
+C value for the first index of insst
+      nwins=0
+      do 210 i=1,nzsur(icomp)
+         if(ioffs(i).ne.0)then
+            nwins=nwins+1
+            call stripc(iuj,outstr,0,nd,1,'insst surf header',ier)
+            if(ier.ne.0.or.outstr(1:21).ne.
+     &        'surfaces insolated by')then
+               message='expecting surfaces insolated by'
+              goto 1002
+            endif
+            do 220 j=1,misur
+               call stripc(iuj,outstr,0,nd,1,'insst data',ier)
+               if(ier.ne.0)goto 1002
+               kk=0
+               do 230 k=1,24
+                  call egetwi(outstr,kk,iret,-1,ms,'-','insst',ier)
+                  if(ier.ne.0)then
+                    message='while reading insst data'
+                    goto 1002
+                  endif
+                  insst(nwins,k,j)=iret
+  230          continue
+  220       continue
+
+            call stripc(iuj,outstr,0,nd,1,'pinsst header',ier)
+            if(ier.ne.0)goto 1002
+
+            if(outstr(1:26).ne.'matched surface insolation')then
+              message='expecting matched surface insolation'
+              goto 1002
+            endif
+            do 240 j=1,misur
+               call lstripc(iuj,loutstr,0,nd,1,'pinsst line',ier)
+               if(ier.ne.0)goto 1004
+               kk=0
+               do 250 k=1,24
+                  call egetwr(loutstr,kk,ret,0.,1.,'W','pinsst',ier)
+                  if(ier.ne.0)then
+                    message='while reading pinsst data'
+                    goto 1004
+                  endif
+                  pinsst(nwins,k,j)=ret
+  250          continue
+  240       continue
+         endif
+  210 continue
+
+      call stripc(iuj,outstr,0,nd,1,'* end',ier)
+      if(ier.ne.0)goto 1002
+      if(outstr(1:5).ne.'* end')then
+        if(outstr(1:7).eq.'* month')then
+          ok=.true.
+          if(ok)then
+            call sifwrt(icomp,mnth,lastrec)
+            if(lastrec.gt.5)then
+              if(isadd(mnth+1).eq.0) isadd(mnth+1)=lastrec
+            endif
+          endif
+          mnth=mnth+1
+          goto 172
+        endif
+        message='Expecting * end'
+        goto 1002
+      endif
+
+C End marker of the file reached. Close it and update isadd
+C if not december.
+  18  call erpfree(iuj,istat)
+C      call edisp(iuout,' ')
+C      call edisp(iuout,'Import file closed.')
+      ok=.true.
+      if(ok)then
+        call sifwrt(icomp,mnth,lastrec)
+        if(lastrec.gt.5)then
+          if(mnth.le.11)then  ! this line is different from line 656
+            if(isadd(mnth+1).eq.0)isadd(mnth+1)=lastrec
+          endif
+        endif
+      endif
+
+      return
+
+C Error handling.
+ 1000 write(outs,1001)
+ 1001 format('SIFIMPORT: Zone shading & insolation ascii file error!')
+      call edisp(iuout,' ')
+      call edisp(iuout,outs)
+      call edisp(iuout,outstr)
+      return
+
+C Error written out in several lines with message identifying the
+C type of data involved.
+ 1002 write(louts,'(3a)') 'sifimport: zone shading & insolation ',
+     &   message(1:lnblnk(message)),' in the line '
+      call edisp248(iuout,louts,90)
+      call edisp(iuout,outstr)
+      return
+
+C Error written out in several lines with message identifying the
+C type of data involved.
+ 1004 write(louts,'(3a)') 'sifimport: zone shading & insolation ',
+     &   message(1:lnblnk(message)),' in the line '
+      call edisp248(iuout,louts,90)
+      call edisp248(iuout,loutstr,90)
+      return
+      end
+
+
+C ******************** SIFWRT ********************
+C Writes shading/insolation data to a zone shading & insolation file
+C for the given month. lastrecwritten is an integer to pass back in
+C case the calling code needs up update irecx.
+C Originally in sifops.F
+
+      subroutine sifwrt(icomp,mnth,lastrecwritten)
+#include "building.h"
+#include "geometry.h"
+
+      common/outin/iuout,iuin,ieout
+      common/filep/ifil
+      common/tmc/itmc(ms),nwins
+
+C isadd()  - start address of shading/insolation data for each
+C            month with data.
+C ishd()   - data type for month (0 no data, 1 shading only,
+C            2 insolation only, 3 shading and insolation).
+C pso()    - direct shading factor for each surface and hour.
+C psof()   - diffuse shading factor for each surface and hour.
+C ntmc()   - if 0 then surface is not an insolation source,
+C            if 1 then it is.
+C ioffs()  - the record offset to the insolation data for each
+C            insolated surface associated with each insolation
+C            source.
+C insst(i,j,k)  - the index of kth internal surface being insolated
+C                 from source i at hour j (0 indicates whole surface
+C                 shading, -1 that the sun is not up).
+C pinsst(i,j,k) - proportion of insolation associated with source i
+C                 at hour j that reaches the kth internal surface.
+      common/data2/pso(ms,24),psof(ms,24)
+      common/data3/ishd(12),isadd(12),ntmc(ms),ioffs(ms)
+      common/data4/insst(mgt,24,misur),pinsst(mgt,24,misur)
+      common/data5/irecx,nsurs,msurs
+
+      character outs*124
+
+C S/I file unit number.
+      ifilsi=ifil+3
+      if(isadd(mnth).eq.0)then
+         isadd(mnth)=irecx
+         ishd(mnth)=1
+      endif
+      irec=1
+      write(ifilsi,rec=irec,iostat=istat,err=1000)(ishd(i),i=1,12),
+     &                                            (isadd(i),i=1,12)
+      irec=2
+
+      write(ifilsi,rec=irec,iostat=istat,err=1000)irecx,nsurs,msurs
+
+C Record 3 reserved for future use, skip to 4.
+      irec=4
+      write(ifilsi,rec=irec,iostat=istat,err=1000)
+     & (ntmc(i),i=1,nzsur(icomp))
+
+C Number of insolation sources in zone.
+      nwins=0
+      irec=isadd(mnth)
+      do 10 i=1,nzsur(icomp)
+         nwins=nwins+ntmc(i)
+
+C Write shading factors.
+         write(ifilsi,rec=irec,iostat=istat,err=1000)(pso(i,j),j=1,24)
+         irec=irec+1
+         write(ifilsi,rec=irec,iostat=istat,err=1000)(psof(i,j),j=1,24)
+         irec=irec+1
+   10 continue
+
+C Write insolation factors.
+      if(ishd(mnth).eq.0.or.ishd(mnth).eq.1.or.nwins.eq.0) then
+         lastrecwritten=irec
+         return
+      endif
+      write(ifilsi,rec=irec,iostat=istat,err=1000)
+     &  (ioffs(i),i=1,nzsur(icomp))
+      irec=irec+1
+      do 20 i=1,nwins
+         do 30 j=1,misur
+            write(ifilsi,rec=irec,iostat=istat,err=1000)
+     &        (insst(i,k,j),k=1,24)
+            irec=irec+1
+   30    continue
+         do 40 j=1,misur
+            write(ifilsi,rec=irec,iostat=istat,err=1000)
+     &        (pinsst(i,k,j),k=1,24)
+            irec=irec+1
+   40    continue
+   20 continue
+      lastrecwritten=irec
+      return
+
+C Error handling.
+ 1000 write(outs,1001)irec
+ 1001 format('SIFWRT: zone shading & insolation file error, record',I6)
+      call edisp(iuout,' ')
+      call edisp(iuout,outs)
+      return
+      end
+
+
+C ******************** findtmc ********************
+C Searches for surfaces that are insolation sources.
+C   icomp  - the zone index;
+C   act    - 's' for silent mode, '-' for user interaction mode.
+c   ntmc   - how many insolation sources were found
+C Previously in eish/inscon.F
+
+      subroutine findtmc(icomp,act,ntmc)
+#include "building.h"
+#include "geometry.h"
+
+C   ntmc & nwins: the number of insolation sources (i.e. external
+C                 and transparent surfaces); the latter is held
+C                 in common.
+C   itmc & isc:   toggles for each surface, if 1 then surface is an
+C                 insolation source. The latter is held
+C                 in common.
+      common/outin/iuout,iuin,ieout
+
+      integer izstocn
+      common/c24/izstocn(mcom,ms)
+      common/shdfil/ishadf
+      integer mon,isc,iyd
+      common/contr/mon,isc(ms),iyd
+      common/tmc/itmc(ms),nwins
+      common/ract/paction
+
+C iaplic(zone,1) toggle for shading;
+C iaplic(zone,2) toggle for insolation;
+C           where 1 means consider all applicable surfaces and 0
+C           means manual selection of surfaces.
+C nsurfcalc is number of shaded surfaces.
+C lstsfcalc list of applicable surfaces.
+C nsurfinso number of insolation sources.
+C isurfinso list of insolation sources.
+      common/ishdirec/iaplic(mcom,2),nsurfcalc(mcom),
+     &       lstsfcalc(mcom,ms),nsurfinso(mcom),isurfinso(mcom,ms)
+
+      dimension iva(ms)
+      character paction*16
+      character act*1
+
+      logical newgeo  ! Used to test for new/old geometry file.
+
+      newgeo=.false.  ! Assume older format geometry.
+
+      ishadf=0
+
+C Check which version.
+      call eclose(gversion(icomp),1.1,0.01,newgeo)
+
+C Establish if any of the surfaces are TMCs or CFCs.
+      ntmc=0
+      nwins=0
+
+C If new format geometry and iaplic(icomp,2) equals 1 then
+C all applicable surfaces were set in the zone geometry file.
+      if(newgeo)then
+         if(iaplic(icomp,2).eq.1)then
+            nwins=nsurfinso(icomp)
+            do j=1,nwins
+               iva(j)=isurfinso(icomp,j)
+            enddo  ! of j
+
+C Set up itmc and isc arrays and total number of sources in zone.
+            do i=1,nzsur(icomp)
+              itmc(i)=0
+              isc(i)=0 
+              do j=1,nwins
+                if(i.eq.iva(j))then
+                  itmc(i)=1
+                  isc(i)=1
+                  ntmc=ntmc+1  ! update the parameter passed back
+                endif
+              enddo  ! of j
+            enddo   ! of i
+
+C If iaplic(icomp,2) is 0 and nsurfinso is non-zero then user
+C has manually selected surfaces so fill arrays. If both 0 then
+C the user effectively said no insolation should be calculated
+C so just clear itmc() and isc() arrays.
+         elseif(iaplic(icomp,2).eq.0)then
+            nwins=nsurfinso(icomp)
+            if(nwins.eq.0)then
+               do i=1,nzsur(icomp)
+                 itmc(i)=0
+                 isc(i)=0 
+               enddo  ! of i
+            else
+               do j=1,nwins
+                  iva(j)=isurfinso(icomp,j)
+               enddo  ! of j
+
+C Set up itmc and isc arrays and total number of sources in zone.
+               do I=1,nzsur(icomp)
+                 itmc(i)=0
+                 isc(i)=0 
+                 do j=1,nwins
+                   if(i.eq.iva(j))then
+                      itmc(i)=1
+                      isc(i)=1
+                      ntmc=ntmc+1  ! update the parameter passed back
+                    endif
+                 enddo  ! of j
+               enddo    ! of i
+            endif
+         endif
+
+      else
+
+C Older geometry file, user is required to set preferences for
+C surfaces to include or, in the case of silent action, just
+C do 'all applicable' surfaces.
+         if(act.eq.'s'.or.paction(1:11).eq.'recalculate')then
+
+C Clear return array and select all applicable surfaces.
+            do i=1,nzsur(icomp)
+              iva(i)=0
+            enddo  ! of i
+            do i=1,nzsur(icomp)
+              icn=izstocn(icomp,i)
+              if(zboundarytype(icomp,i,1).eq.0.and.
+     &           sotf(icomp,i)(1:4).ne.'OPAQ')then
+                ntmc=ntmc+1
+                iva(ntmc)=i
+              endif
+            enddo  ! of i
+            if(ntmc.eq.0)then
+              if(paction(1:13).eq.'update_silent'.or.
+     &           paction(1:16).eq.'useupdate_silent')then
+               return
+              else
+                call usrmsg('No insolation source surfaces found!',
+     &            ' ','W')
+                return
+              endif
+            endif
+            iaplic(icomp,2)=1
+         else
+            call edisp(iuout,' ')
+            call edisp(iuout,'Select external transparent surfaces')
+            call edisp(iuout,'(i.e. light sources) to include in the')
+            call edisp(iuout,'intra-zone insolation calculation.')
+            call pickshsur(icomp,ntmc,'i',iva,ier)
+            if(ier.ne.0)return
+            if(ntmc.eq.0) return
+         endif
+
+C Set up itmc and isc arrays and total number of sources, nwins, 
+C in zone.
+         do i=1,nzsur(icomp)
+           itmc(i)=0
+           isc(i)=0 
+           do j=1,ntmc
+             if(i.eq.iva(j))then
+               itmc(i)=1
+               isc(i)=1
+               nwins=nwins+1
+             endif
+           enddo  ! of j
+         enddo    ! of i
+
+C Fill ishdirec array.
+         nsurfinso(icomp)=nwins
+         do j=1,nwins
+            isurfinso(icomp,j)=iva(j)
+         enddo  ! of j
+      endif
+
+      return
+      end
+
+
+C ******************** PICKSHSUR ********************
+C Selects surfaces for shading & insolation analysis.
+C 'izone' is the target zone, 'np' the number of surfaces selected,
+C 'act' = 's or S' for shading, 'act' = 'i or I' for insolation,
+C 'act' = 'l or L' for view shading surfaces and 'act' = '-' for
+C no selection.  'iva' is the array of selections.
+C This is a variant of pickssur with fewer passed parameters.
+
+      subroutine pickshsur(izone,np,act,iva,ier)
+#include "building.h"
+#include "geometry.h"
+#include "help.h"
+      
+      integer ncomp,ncon
+      common/c1/ncomp,ncon
+      integer izstocn
+      common/c24/izstocn(mcom,ms)
+      integer mon,isc,iyd
+      common/contr/mon,isc(ms),iyd
+
+C iaplic(1) toggle for shading; iaplic(2) toggle for insolation:
+C                      1 is 'all_applicable' and
+C                      0 is manual selection of surfaces.
+C nsurfcalc nb of shaded surfaces, lstsfcalc() list of applicable surfaces.
+C nsurfinso nb of insolation sources, isurfinso() list of insolation sources.
+      common/ishdirec/iaplic(mcom,2),nsurfcalc(mcom),lstsfcalc(mcom,ms),
+     &       nsurfinso(mcom),isurfinso(mcom,ms)
+
+      dimension stmp(ms),iva(ms),ivals(ms)
+      character stmp*33,act*1
+      character sbound_ty*12,sbound_c2*6,sbound_e2*6
+
+      integer ichoice ! temporary local variable for dialogs.
+      integer iexcludediff_flag
+      common/excludediff/iexcludediff_flag
+      integer i
+      logical newgeo  ! Used to test for new/old geometry file.
+
+      helpinsub='miscel'  ! set for subroutine
+
+      ier=0
+      if(izone.gt.ncomp.or.izone.eq.0)then
+         call usrmsg(' ',' Zone number out of range! ','W')
+         ier=1
+         return
+      endif
+      newgeo=.false.  ! Assume older format geometry.
+      call eclose(gversion(izone),1.1,0.01,newgeo)
+      
+      helptopic='diffuse_shading_request'
+      call gethelptext(helpinsub,helptopic,nbhelp)
+      iexcludediff_flag=0     
+      call easkmbox(' ','Diffuse shading options:',
+     &  'Exclude diffuse shading',
+     &  'Include diffuse shading (default)',
+     &  ' ',' ',' ',' ',' ',' ',ichoice,nbhelp)
+      if(ichoice.eq.1)then
+
+C Exclude diffuse shading.
+         iexcludediff_flag=1
+      else
+         iexcludediff_flag=0      
+      endif
+
+C Generate help text for the sequence of dialogs.
+ 43   helptopic='surface_selection_notes'
+      call gethelptext(helpinsub,helptopic,nbhelp)
+      if(act.eq.'s'.or.act.eq.'S')then
+         call easkmbox(' ','Shading options:',
+     &     'all applicable surfaces','select surface(s)',
+     &     'cancel',' ',' ',' ',' ',' ',iic,nbhelp)
+         if(iic.eq.1)iaplic(izone,1)=1
+         if(iic.eq.2)iaplic(izone,1)=0
+      elseif(act.eq.'i'.or.act.eq.'I')then
+         if(newgeo)then
+           if(iaplic(izone,2).eq.1)then
+             iic=1   ! user nominated in the geometry file
+           elseif(iaplic(izone,2).eq.0)then
+             iic=2   ! user nominated in the geometry file
+           endif
+         else
+           call easkmbox(' ','Insolation options:',
+     &       'all applicable sources','select source(s)',
+     &       'cancel',' ',' ',' ',' ',' ',iic,nbhelp)
+           if(iic.eq.1)iaplic(izone,2)=1
+           if(iic.eq.2)iaplic(izone,2)=0
+         endif
+      elseif(act.eq.'l'.or.act.eq.'L')then
+         iic=4
+      else
+         iic=2
+      endif
+
+C Clear return array.
+      do i=1,nzsur(izone)
+         iva(i)=0
+      enddo  ! of i
+
+C Process initial selection.
+      if(iic.eq.3)then
+         return
+      elseif(iic.eq.1)then
+         if(act.eq.'s'.or.act.eq.'S')then
+            np=0
+            do i=1,nzsur(izone)
+               icn=izstocn(izone,i)
+               if(zboundarytype(izone,i,1).eq.0)then
+                  np=np+1
+                 iva(np)=i
+               endif
+            enddo  ! if i
+            if(np.eq.0)then
+               call usrmsg('No applicable surfaces found!',' ','W')
+               goto 43
+            endif
+            return
+         elseif(act.eq.'i'.or.act.eq.'I')then
+            np=0
+            do i=1,nzsur(izone)
+               icn=izstocn(izone,i)
+               if(zboundarytype(izone,i,1).eq.0.and.
+     &            sotf(izone,i)(1:4).ne.'OPAQ')then
+                  np=np+1
+                  iva(np)=i
+               endif
+            enddo  ! of i
+            if(np.eq.0)then
+               call usrmsg('No applicable surfaces found!',' ','W')
+               goto 43
+            endif
+            return
+         endif
+      elseif(iic.eq.2)then
+         inpic=nzsur(izone)
+         do i=1,inpic
+            icn=izstocn(izone,i)
+            call decode_zsbound(izone,i,sbound_ty,sbound_c2,sbound_e2)
+            if(act.eq.'s'.or.act.eq.'S')then
+               if(zboundarytype(izone,i,1).eq.0)then
+                  write(stmp(I),'(5a)')sname(izone,i),'|',
+     &              sotf(izone,i)(1:4),'|',sbound_ty(1:12)
+               else
+                  write(stmp(I),'(2a)')sname(izone,i),' not applicable'
+               endif
+            elseif(act.eq.'-')then
+               write(stmp(i),'(5a)')sname(izone,i),'|',
+     &           sotf(izone,i)(1:4),'|',sbound_ty(1:12)
+            elseif(act.eq.'i'.or.act.eq.'I')then
+               if(zboundarytype(izone,i,1).eq.0.and.
+     &            sotf(izone,i)(1:4).ne.'OPAQ')then
+                  write(stmp(i),'(5a)')sname(izone,i),'|',
+     &              sotf(izone,i)(1:4),'|',sbound_ty(1:12)
+               else
+                  write(stmp(i),'(2a)')sname(izone,i),' not applicable'
+               endif
+            endif
+            iva(i)=0
+         enddo  ! of i
+
+         call epicks(inpic,ivals,' ','Surface(s) to include',
+     &     33,nzsur(izone),stmp,'Surface(s) to include?',ier,nbhelp)
+         if(inpic.eq.0)then
+            return
+         else
+            np=inpic
+            do i=1,np
+               iva(i)=ivals(i)
+            enddo  ! of i
+         endif
+
+      elseif(iic.eq.4)then
+         inpic=nzsur(izone)
+         do i=1,inpic
+            icn=izstocn(izone,i)
+            call decode_zsbound(izone,i,sbound_ty,sbound_c2,sbound_e2)
+            if(isc(i).eq.1)then
+               write(stmp(i),'(5a)')sname(izone,i),'|',
+     &           sotf(izone,i)(1:4),'|',sbound_ty(1:12)
+            else
+               write(stmp(i),'(2a)')sname(izone,i),' not assessed'
+            endif
+            iva(i)=0
+         enddo  ! of i
+         inpic=1
+         call epicks(inpic,ivals,' ','Surface to View',
+     &     33,nzsur(izone),stmp,'Surface(s) to view?',ier,nbhelp)
+         if(inpic.eq.0)then
+            return
+         else
+            np=inpic
+            iva(1)=ivals(1)
+         endif
+      endif
+      return
+      end
 
 C ******************** stuf4xyz *******************
 C Instantiates 4 vertices in x(MV),y(MV),z(MV) from raw data.
@@ -3104,42 +3955,39 @@ C G4 G5 into SG1 SG2 SG4 SG5.
      &           NTV1
       COMMON/SG4/NDP1,IDPN1(3)
       COMMON/SG5/SNAME1(MS),SOTF1(MS),SMLCN1(MS),SVFC1(MS),
-     &           SOTHER1(MS,3),SUSE1(MS,2),SPARENT1(MS)
+     &           SUSE1(MS,2),SPARENT1(MS)
 
-      CHARACTER CTYPE1*4,SOTHER1*24,SNAME1*12,SMLCN1*32
-      CHARACTER SVFC1*4,SOTF1*32,SUSE1*12,SPARENT1*12
+      CHARACTER CTYPE1*4,SNAME1*12,SMLCN1*32
+      CHARACTER SVFC1*4,SOTF1*24,SUSE1*12,SPARENT1*12
 
 C Loop through all data and copy their contents into a parallel common
 C block for later recovery.
       CTYPE1=CTYPE(icomp)
       gversion1=gversion(icomp)
-      NSUR1=NSUR
+      NSUR1=NZSUR(icomp)
       NDP1=NDP(ICOMP)
       IDPN1(1)=IDPN(ICOMP,1)
       IDPN1(2)=IDPN(ICOMP,2)
       IDPN1(3)=IDPN(ICOMP,3)
 
-      NTV1=NTV
+      NTV1=NZTV(ICOMP)
       DO 65 IV=1,NTV1
         X1(IV)=X(IV)
         Y1(IV)=Y(IV)
         Z1(IV)=Z(IV)
    65 CONTINUE
 
-      DO 66 IS=1,NSUR
+      DO 66 IS=1,NZSUR(icomp)
         SNAME1(IS)=SNAME(ICOMP,IS)
         SOTF1(IS)=SOTF(ICOMP,IS)
         SMLCN1(IS)=SMLCN(ICOMP,IS)
         SVFC1(IS)=SVFC(ICOMP,IS)
-        SOTHER1(IS,1)=SOTHER(ICOMP,IS,1)
-        SOTHER1(IS,2)=SOTHER(ICOMP,IS,2)
-        SOTHER1(IS,3)=SOTHER(ICOMP,IS,3)
         SUSE1(IS,1)=SUSE(ICOMP,IS,1)
         SUSE1(IS,2)=SUSE(ICOMP,IS,2)
         SPARENT1(IS)=SPARENT(ICOMP,IS)
-        NVER1(IS)=NVER(IS)
+        NVER1(IS)=isznver(ICOMP,IS)
         DO 67 IV=1,NVER1(IS)
-          JVN1(IS,IV)=JVN(IS,IV)
+          JVN1(IS,IV)=iszjvn(icomp,is,iv)
    67   CONTINUE
    66 CONTINUE
 
@@ -3161,26 +4009,30 @@ C G4 G5 from SG1 SG2 SG4 SG5.
      &           NTV1
       COMMON/SG4/NDP1,IDPN1(3)
       COMMON/SG5/SNAME1(MS),SOTF1(MS),SMLCN1(MS),SVFC1(MS),
-     &           SOTHER1(MS,3),SUSE1(MS,2),SPARENT1(MS)
+     &           SUSE1(MS,2),SPARENT1(MS)
 
-      CHARACTER CTYPE1*4,SOTHER1*24,SNAME1*12,SMLCN1*32
-      CHARACTER SVFC1*4,SOTF1*32,SUSE1*12,SPARENT1*12
+      CHARACTER CTYPE1*4,SNAME1*12,SMLCN1*32
+      CHARACTER SVFC1*4,SOTF1*24,SUSE1*12,SPARENT1*12
 
-C Loop through all data and copy their contents into a parallel common
-C block for later recovery.
+C Loop through all saved data and copy their contents into icomp
+C common blocks.
       CTYPE(icomp)=CTYPE1
       gversion(icomp)=gversion1
       NSUR=NSUR1
+      NZSUR(icomp)=NSUR1
       NDP(ICOMP)=NDP1
       IDPN(ICOMP,1)=IDPN1(1)
       IDPN(ICOMP,2)=IDPN1(2)
       IDPN(ICOMP,3)=IDPN1(3)
 
       NTV=NTV1
+      NZTV(icomp)=NTV1
       DO 65 IV=1,NTV
         X(IV)=X1(IV)
         Y(IV)=Y1(IV)
         Z(IV)=Z1(IV)
+        szcoords(ICOMP,IV,1)=X(IV); szcoords(ICOMP,IV,2)=Y(IV)
+        szcoords(ICOMP,IV,3)=Z(IV)
    65 CONTINUE
 
       DO 66 IS=1,NSUR
@@ -3188,15 +4040,14 @@ C block for later recovery.
         SOTF(ICOMP,IS)=SOTF1(IS)
         SMLCN(ICOMP,IS)=SMLCN1(IS)
         SVFC(ICOMP,IS)=SVFC1(IS)
-        SOTHER(ICOMP,IS,1)=SOTHER1(IS,1)
-        SOTHER(ICOMP,IS,2)=SOTHER1(IS,2)
-        SOTHER(ICOMP,IS,3)=SOTHER1(IS,3)
         SUSE(ICOMP,IS,1)=SUSE1(IS,1)
         SUSE(ICOMP,IS,2)=SUSE1(IS,2)
         SPARENT(ICOMP,IS)=SPARENT1(IS)
         NVER(IS)=NVER1(IS)
+        isznver(ICOMP,IS)=NVER1(IS)
         DO 67 IV=1,NVER(IS)
           JVN(IS,IV)=JVN1(IS,IV)
+          iszjvn(icomp,is,iv)=JVN1(IS,IV)
    67   CONTINUE
    66 CONTINUE
 
@@ -3369,13 +4220,11 @@ C Display the menu.
 C If no selection has been made before exit then return with 0.
       ELSEIF(IVERT.EQ.MVERT)THEN
         IF(.NOT.SEL)IZONE=0
-        call usrmsg('  ','no zone selected','-')
         RETURN
 
 C If nothing from list return with 0.
       ELSEIF(IVERT.EQ.0)THEN
         IZONE=0
-        call usrmsg('  ','no zone selected','-')
         RETURN
       ELSEIF(IVERT.EQ.(MVERT-1))THEN
 
@@ -4164,6 +5013,7 @@ C MOD = 'V' as 'M' but also include SUSE.
       CHARACTER*(*) PROMPT1,PROMPT2
       CHARACTER KEY*1,MOD*1,title*29
       CHARACTER VERT*32,VERTS*44,VERTU*56
+      character sbound_ty*12,sbound_c2*6,sbound_e2*6
       LOGICAL SEL
       integer loopstart,loopend,i,icc   ! for looping
       logical usesbasesimp
@@ -4247,6 +5097,7 @@ C current menu line index. Build up text strings for the menu.
 C Display surface name plus some context information.
           if(icc.gt.0)then
             lnn=lnblnk(SNAME(izone,L))
+            call decode_zsbound(izone,L,sbound_ty,sbound_c2,sbound_e2)
             if(lnn.lt.8) lnn=8
             lnsmlcn=lnblnk(SMLCN(izone,L))
             if(lnsmlcn.lt.10) lnsmlcn=10
@@ -4255,43 +5106,43 @@ C Display surface name plus some context information.
             else
               lnsmlcn20=lnsmlcn
             endif
-            lnoth=lnblnk(SOTHER(izone,L,1))
+            lnoth=lnblnk(sbound_ty)
             lnu=lnblnk(SUSE(izone,L,1))
             lnu2=lnblnk(SUSE(izone,L,2))
             lnu3=lnu2
             if(lnu3.gt.6) lnu3=6
             if((lnn+lnsmlcn+lnoth).lt.38)then
               WRITE(VERTS(M),13)KEY,SNAME(izone,L)(1:lnn),
-     &          SMLCN(izone,L)(1:lnsmlcn),SOTHER(izone,L,1)(1:lnoth)
+     &          SMLCN(izone,L)(1:lnsmlcn),sbound_ty(1:lnoth)
             elseif((lnn+lnsmlcn20+lnoth).lt.38)then
               WRITE(VERTS(M),13)KEY,SNAME(izone,L)(1:lnn),
-     &          SMLCN(izone,L)(1:lnsmlcn20),SOTHER(izone,L,1)(1:lnoth)
+     &          SMLCN(izone,L)(1:lnsmlcn20),sbound_ty(1:lnoth)
             else
               WRITE(VERTS(M),13)KEY,SNAME(izone,L)(1:lnn),
-     &          SMLCN(izone,L)(1:17),SOTHER(izone,L,1)(1:lnoth)
+     &          SMLCN(izone,L)(1:17),sbound_ty(1:lnoth)
             endif
    13       FORMAT(A,1X,A,2X,A,2X,A)
    15       FORMAT(A,1X,A,2X,A,2X,A,3X,A)
    17       FORMAT(A,1X,A,2X,A,2X,A,3X,A,1X,A)
             if((lnn+lnsmlcn+lnoth+lnu+lnu2).lt.46)then
               WRITE(VERTU(M),17)KEY,SNAME(izone,L)(1:lnn),
-     &          SMLCN(izone,L)(1:lnsmlcn),SOTHER(izone,L,1)(1:lnoth),
+     &          SMLCN(izone,L)(1:lnsmlcn),sbound_ty(1:lnoth),
      &          SUSE(izone,L,1)(1:lnu),SUSE(izone,L,2)(1:lnu2)
             elseif((lnn+lnsmlcn+lnoth+lnu+lnu3).lt.46)then
               WRITE(VERTU(M),17)KEY,SNAME(izone,L)(1:lnn),
-     &          SMLCN(izone,L)(1:lnsmlcn),SOTHER(izone,L,1)(1:lnoth),
+     &          SMLCN(izone,L)(1:lnsmlcn),sbound_ty(1:lnoth),
      &          SUSE(izone,L,1)(1:lnu),SUSE(izone,L,2)(1:lnu3)
             elseif((lnn+lnsmlcn+lnoth+lnu).lt.48)then
               WRITE(VERTU(M),15)KEY,SNAME(izone,L)(1:lnn),
-     &          SMLCN(izone,L)(1:lnsmlcn),SOTHER(izone,L,1)(1:lnoth),
+     &          SMLCN(izone,L)(1:lnsmlcn),sbound_ty(1:lnoth),
      &          SUSE(izone,L,1)(1:lnu)
             elseif((lnn+lnsmlcn20+lnoth+lnu).lt.48)then
               WRITE(VERTU(M),15)KEY,SNAME(izone,L)(1:lnn),
-     &          SMLCN(izone,L)(1:lnsmlcn20),SOTHER(izone,L,1)(1:lnoth),
+     &          SMLCN(izone,L)(1:lnsmlcn20),sbound_ty(1:lnoth),
      &          SUSE(izone,L,1)(1:lnu)
             else
               WRITE(VERTU(M),15)KEY,SNAME(izone,L)(1:lnn),
-     &          SMLCN(izone,L)(1:17),SOTHER(izone,L,1)(1:lnoth),
+     &          SMLCN(izone,L)(1:17),sbound_ty(1:lnoth),
      &          SUSE(izone,L,1)(1:lnu)
             endif
           else
@@ -4362,7 +5213,7 @@ C BASESIMP editing facility (once).
         loopend=NZSUR(IZONE)
         DO i=loopstart,loopend
           icc=IZSTOCN(izone,i)
-          IF(SOTHER(izone,i,1)(1:8).EQ.'BASESIMP')THEN
+          IF(zboundarytype(izone,i,1).EQ.6)THEN
             usesbasesimp=.true.
           END IF
         END DO
@@ -4432,6 +5283,7 @@ C Designed to show attributes in list.
 
       CHARACTER*(*) PROMPT1,PROMPT2
       CHARACTER VERTS*44,KEY*1,title*29,outs*124
+      character sbound_ty*12,sbound_c2*6,sbound_e2*6
       LOGICAL SEL
       integer i,j,icc   ! for looping
 
@@ -4485,32 +5337,33 @@ C current menu line index. Build up text strings for the menu.
           endif
 
           if(icc.gt.0)then
+            call decode_zsbound(izone,L,sbound_ty,sbound_c2,sbound_e2)
             lnn=lnblnk(SNAME(izone,L))
             if(lnn.lt.8) lnn=8
             lnsmlcn=lnblnk(SMLCN(izone,L))
             if(lnsmlcn.lt.10) lnsmlcn=10
-            lnoth=lnblnk(SOTHER(izone,L,1))
+            lnoth=lnblnk(sbound_ty)
             if((lnn+lnsmlcn+lnoth).lt.36)then
               if(ISCNLIST(icc).eq.0)then
                 WRITE(VERTS(M),'(7a)')KEY,'  ',SNAME(izone,L)(1:lnn),
      &            '  ',SMLCN(izone,L)(1:lnsmlcn),'  ',
-     &            SOTHER(izone,L,1)(1:lnoth)
+     &            sbound_ty(1:lnoth)
               else
                 WRITE(VERTS(M),'(8a)')KEY,'  ',SNAME(izone,L)(1:lnn),
      &            '  ',SMLCN(izone,L)(1:lnsmlcn),'  ',
-     &             SOTHER(izone,L,1)(1:lnoth),' *'
+     &             sbound_ty(1:lnoth),' *'
               endif
             else
               if(ISCNLIST(icc).eq.0)then
                 lnoth=36-(lnn+15+7+1)
                 WRITE(VERTS(M),'(7a)')KEY,'  ',SNAME(izone,L)(1:lnn),
      &            '  ',SMLCN(izone,L)(1:15),'  ',
-     &            SOTHER(izone,L,1)(1:lnoth)
+     &            sbound_ty(1:lnoth)
               else
                 lnoth=36-(lnn+15+9+1)
                 WRITE(VERTS(M),'(8a)')KEY,'  ',SNAME(izone,L)(1:lnn),
      &            '  ',SMLCN(izone,L)(1:15),'  ',
-     &            SOTHER(izone,L,1)(1:lnoth),' *'
+     &            sbound_ty(1:lnoth),' *'
               endif
             endif
           else
@@ -4580,10 +5433,11 @@ C Decode from the potential long list to the zone number via KEYIND.
           ISCNLIST(iccc)=1          ! mark for *
           lnn=lnblnk(SNAME(izone,IFOC))
           lnsmlcn=lnblnk(SMLCN(izone,IFOC))
-          lnoth=lnblnk(SOTHER(izone,IFOC,1))
+          call decode_zsbound(izone,ifoc,sbound_ty,sbound_c2,sbound_e2)
+          lnoth=lnblnk(sbound_ty)
           WRITE(outs,'(7a)')'Selected: ',SNAME(izone,IFOC)(1:lnn),
      &      '  ',SMLCN(izone,IFOC)(1:lnsmlcn),'  ',
-     &      SOTHER(izone,IFOC,1)(1:lnoth),' to act on.'
+     &      sbound_ty(1:lnoth),' to act on.'
           call edisp(iuout,outs)
         endif
       ELSE
@@ -4727,6 +5581,7 @@ C TMP  : is IE2 (constant temperature if IE=2)
       integer IZSTOCN
       COMMON/C24/IZSTOCN(MCOM,MS)
       CHARACTER*25 DESCR
+      character msg*72
 
       IE=0
       TMP=0.0
@@ -4736,12 +5591,18 @@ C TMP  : is IE2 (constant temperature if IE=2)
 
 C Get match.
       if(izone.eq.0.or.isfn.eq.0)then
-        call edisp(iuout,'SURADJ WARNING: Zone or surface index 0.')
+        write(msg,'(a,i3,a,i3)') 
+     &    'SURADJ WARNING: zero input for zn',izone,' or surf ',
+     &    isfn
+        call edisp(iuout,msg)
         return
       endif
       I=IZSTOCN(IZONE,ISFN)
       if(I.eq.0)then
-        call edisp(iuout,'SURADJ WARNING: returned connection 0.')
+        write(msg,'(a,i3,a,i3)') 
+     &    'SuRADJ WARNING: returned connection 0 for zn',izone,
+     &    ' surf ',isfn
+        call edisp(iuout,msg)
         return
       endif
       IC=I
@@ -4834,8 +5695,6 @@ C ******************** ZSID ********************
 C Returns compact descriptions of the zone:surface.
 C ZSDES has no truncation, ZSDESC compacts to 20 char with minimum
 C of truncation, ZSDESS has maximum risk of truncation.
-C << Check if calling code knows that current geometry file read is >>
-C << not required for this. >>
 
       SUBROUTINE ZSID(IZ,IS,ZSDES,ZSDESC,ZSDESS)
 #include "building.h"
@@ -5319,7 +6178,7 @@ C Add comment after a specific column and return formatted line.
       character*(*) string         ! Data or token string.
       character*(*) comment        ! Comment string.
       character*(*) aligned_str    ! Composed string.
-      character*48  hash_str       ! Filler string to be created.
+      character*56  hash_str       ! Filler string to be created.
       integer lnstring,lncomment   ! Length of strings.
       integer lnprehash            ! Blanks before hash
 
@@ -5337,5 +6196,125 @@ C Otherwise if lnstring is greater than icolumn the hash_str is '  # '
       endif
       write(aligned_str,'(3a)') string(1:lnstring),
      &  hash_str(1:lnprehash+1),comment(1:lncomment)
+      return
+      end
+
+C ******************** ZNALIST ********************
+C Takes array of zone indices and builds a descriptive
+C string (124 char) to be used in headers. 
+C Currently only deals with up to 38 zones.
+      SUBROUTINE ZNALIST(npick,izl,zdescr,length,ierr)
+#include "building.h"
+
+C Get common block precz/lnprecz from geometry.h
+#include "geometry.h"
+
+      integer npick ! number of zones in list
+      dimension izl(MCOM)
+      CHARACTER zdescr*124,outs*244,outsd*124
+      integer ncomp,ncon
+      common/C1/NCOMP,NCON
+      logical unixok
+
+      length=0
+      do i=1,npick
+        lna=lnzname(izl(i))
+        length=length+lna+1
+      enddo
+      if(length.lt.124)then
+        WRITE(outs,5,iostat=ios,err=1)(zname(izl(I)),I=1,npick)
+    5   FORMAT('Zones: ',20(a,' '))
+        call sdelim(outs,outsd,'S',IW)
+        zdescr=outsd
+        return
+      else
+        if(npick.eq.1)then
+          WRITE(ZDESCR,'(A,I3,2A)')' Zone (',izl(1),') ',zname(izl(1))
+        elseif(npick.gt.1.and.npick.LE.28)THEN
+          WRITE(outs,6,iostat=ios,err=1)(izl(I),I=1,npick)
+    6     FORMAT('Zones: ',28(I4))
+          call sdelim(outs,outsd,'S',IW)
+          zdescr=outsd
+        ELSEIF(npick.GT.28.AND.npick.LE.npick)THEN
+          WRITE(outs,7,iostat=ios,err=1)(izl(I),I=1,npick)
+    7     FORMAT(' Zn: ',38(I4))
+          call sdelim(outs,outsd,'S',IW)
+          zdescr=outsd
+        ELSEIF(npick.GT.38)THEN
+          if(npick.eq.NCOMP)then
+            write(zdescr,'(a)') 'Zones: all'
+          else
+            iloop=MIN0(40,npick)
+            WRITE(outs,8,iostat=ios,err=1)(izl(I),I=1,iloop)
+    8       FORMAT(' Zn: ',40(I4),'...')
+            call sdelim(outs,outsd,'S',IW)
+            zdescr=outsd
+          endif
+        ENDIF
+        return
+      endif
+
+C I/O error trap.
+   1  call isunix(unixok)
+      if(unixok)then
+        call lusrmsg('ZNALIST: error writing zone names: ',
+     &    outs,'-')
+      endif
+      ierr=1
+      return
+      END
+
+C ******************** zones_with_occupants ********************
+C Scans zone operation files and reports which have occupants.
+      SUBROUTINE zones_with_occupants(icount,ivals,zdescr,ierr)
+#include "building.h"
+#include "model.h"
+#include "net_flow.h"
+#include "schedule.h"
+
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
+      COMMON/FILEP/IFIL
+      integer ncomp,ncon
+      common/c1/ncomp,ncon
+      common/dynamico/isdynamicocup(MCOM)
+      integer isdynamicocup
+      common/caleni/nbdaytype,nbcaldays(MDTY),icalender(365)
+      INTEGER nbdaytype,nbcaldays,icalender
+
+      CHARACTER zdescr*124
+      logical have_occup
+      integer IVALS(MCOM)  ! the array of occupied zones
+
+      IUF=IFIL+2
+      call edisp(iuout,' ')
+      call edisp(iuout,'The following zones have occupants:')
+      icount=0
+      do iz = 1,NCOMP
+        CALL ERPFREE(IUF,ISTAT)
+        CALL EROPER(0,iuout,IUF,iz,IER)
+        have_occup=.FALSE.
+        if(isdynamicocup(iz).ne.0)then  ! dynamic occupants
+          have_occup=.TRUE.
+        endif
+        do IDTY=1,NBDAYTYPE
+          if(NCAS(IDTY).gt.0)then
+            do I = 1,NCAS(IDTY)
+              icur=ICGT(IDTY,I)
+              if(iabs(icur).eq.1.and.CMGS(IDTY,I).gt.1.0)then
+                have_occup=.TRUE.
+                cycle
+              endif
+            enddo
+          endif
+        enddo
+        if(have_occup)then
+          icount=icount+1
+          IVALS(icount)=iz
+        endif
+      enddo
+      if(icount.gt.0)then
+        call ZNALIST(icount,ivals,zdescr,length,ierr)
+        call edisp(iuout,zdescr)
+      endif
       return
       end

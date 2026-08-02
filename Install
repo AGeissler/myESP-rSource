@@ -24,7 +24,6 @@ SQLite_support="no"        # Support for SQLite output.
 FMI_support="no"           # Support for FMI connectivity.
 debugging="no"             # Support for debugging symbols.
 EXE=""                     # Executable file extension.
-debian_copy="no"           # no=standard make install yes=make bincopy
 opt="-O1"                  # Optimisation to be applied
 FFLAGS="-I../include "     # Fortran compiler flags.
 CFLAGS="-I../include "     # C compiler flags.
@@ -43,8 +42,8 @@ xLibs="X11"                # Required x-library.
 enable_cosim="no"          # TRNSYS co-simulation. 
 extendedDebug="no"         # Extended debugging.
 use_intel="no"             # Use Intel compilers.
-skip_ish_calcs="no"        # Binary shading file creation.
-reuse_ish_calcs="yes"      # Map ascii shading files to binary.
+skip_ish_calcs="yes"       # Binary shading file creation.
+reuse_ish_calcs="no"       # Map ascii shading files to binary.
 clean="yes"                # Clean object files after compilation.
 unversioned="no"           # Check for versioning info.
 
@@ -85,7 +84,6 @@ if [ $# -ne 0 ]; then
         -d) shift;      DESTdir=$1; input="yes";
                         ESPdir=$DESTdir;           shift;;
         --force)        preserve_espr_dir="no";    shift;;
-        --debian)       debian_copy="yes";         shift;;
         --no_training | --no-training)
                         install_training="no";     shift;;
         --no_dbs | --no-dbs)
@@ -1888,11 +1886,11 @@ mv $TargetName $TargetFolder
 clim_convert()
 {
 TargetName=`echo $2 |  sed 's/\.a$//g'`
-printf "\r    - installing weather databases [${TargetName}] ..."
+printf "\r    - installing weather files [${TargetName}] ..."
 rm -f $1
 $CLM -mode text -file $1 -act asci2bin silent $2  >/dev/null 2>/dev/null
 }
-  echo -n "    - installing weather databases ..."
+  echo -n "    - installing weather files ..."
   cd ${DATdir}/climate
   cp climatelist ${DESTdir}/climate
   sed -e 's|/opt/esp-r|'"${ESPdir}"'|' ${DATdir}/climate/climatelist > ${ESPdir}/climate/climatelist
@@ -1933,7 +1931,7 @@ if [ "$install_training" = "yes" ]; then
   rm -rf ${ESPdir}/training ${ESPdir}/validation
   cd ${MODdir}/training/Temporal_Clm
   $CLM -mode text -file 15265.climate -act asci2bin 15265.climate.a >/dev/null
-# Update weather databases in validation models.
+# Update weather files in validation models.
   cd ${MODdir}/validation/CEN/13791/databases
   $CLM -mode text -file Cond.clm -act asci2bin silent Cond.clm.a >/dev/null
   $CLM -mode text -file WM_A.clm -act asci2bin silent WM_A.clm.a >/dev/null
@@ -1948,6 +1946,7 @@ if [ "$install_training" = "yes" ]; then
 #  find  ${ESPdir}/training -name "\.git" | xargs rm -fr
 #  find  ${ESPdir}/validation -name "\.svn" | xargs rm -fr
 #  find  ${ESPdir}/validation -name "\.git" | xargs rm -fr
+
 # Removing weather databases from models.
   cd ${MODdir}/
   rm -f validation/CEN/13791/databases/WM_A.clm

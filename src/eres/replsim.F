@@ -111,11 +111,11 @@ C but if using GTK then the full length is needed to avoid truncation.
         RETURN
       ENDIF
 
-C Check the geometry and operation files. Note that
-C if izver >=4 the zone operation file is not needed.
+C Check the zone operation files (if izver >=4 the zone operation file
+C is not neede).
       DO 30 J=1,NCOMP
         IUNIT=IFIL+1
-        call georead(IUNIT,LGEOM(J),J,1,IUOUT,IER)
+C        call georead(IUNIT,LGEOM(J),J,1,IUOUT,IER)
         if(izver.eq.4)then
           continue
         else

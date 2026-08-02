@@ -163,7 +163,6 @@ C Clear 'conflated only' commons.
         zname(I)=' '
         lnzname(I)=0
         zdesc(I)=' '
-        lnzdesc(I)=0
  2    continue
 
 C Set defaults.

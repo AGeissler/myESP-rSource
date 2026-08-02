@@ -674,8 +674,8 @@ C Otherwise select the zones from a list of zone names.
  7      helptopic='eco_pick_zones'
         call gethelptext(helpinsub,helptopic,nbhelp)
         INPIC=NCOMP
-        CALL EPICKS(INPIC,IVALZ,' ',' Which zones to include: ',
-     &    12,NCOMP,ZNAME,' Zones list',IDerr,nbhelp)
+        CALL EPICKS(INPIC,IVALZ,' ','Which zones to include:',
+     &    12,NCOMP,ZNAME,'Zone(s) list',IDerr,nbhelp)
 
 C Check for errors (if => exit sub).
         if (IDerr.ne.0) goto 666
@@ -712,7 +712,7 @@ C Two zones cannot have the same number.
 C ******************** ZNLIST (edited from esrures/utils.F) *******
 C ZNLIST takes the current selected zones and builds a descriptive
 C string to be used in headers. 
-C zdescr : string contening the name of slected zone(s)
+C zdescr : string containing the names of the slected zone(s)
 C length : Length of zdescr
       SUBROUTINE ZNLIST(zdescr,length,ierr)
 #include "building.h"
@@ -784,6 +784,7 @@ C Iskip : If = 0, then skip the list of surfaces menu
       DIMENSION VERT(35)
 
       CHARACTER VERT*44,KEY*1,head*31,OutStr*124
+      character sbound_ty*12,sbound_c2*6,sbound_e2*6
 
       LOGICAL zbzero,context,SelSurf
       logical changedit
@@ -820,10 +821,10 @@ C Recover zone data (read only, no display).
       OPQ=0.
       TRN=0.
       DO 41 I=1,NSUR
-        if(SOTF(ICOMP,I)(1:4).NE.'OPAQ')then
-          TRN=TRN+SNA(ICOMP,I)
+        if(SOTF(icomp,i)(1:4).NE.'OPAQ')then
+          TRN=TRN+SNA(icomp,I)
         else
-          OPQ=OPQ+SNA(ICOMP,I)
+          OPQ=OPQ+SNA(icomp,I)
         endif
    41 CONTINUE
 
@@ -932,6 +933,7 @@ C Selected more thane once.
           NbSurSel(icomp) = NbSurSel(icomp) + 1 
           isursel(ioc)=1
         ENDIF
+        call decode_zsbound(ICOMP,IS,sbound_ty,sbound_c2,sbound_e2)
 
         CALL EDISP(ITRU,' ')
         CALL EDISP(ITRU,' The selected surface is : ')
@@ -946,7 +948,7 @@ C Selected more thane once.
         CALL EDISP(ITRU,OUTSTR)
         WRITE(OUTSTR,8894)SNAME(ICOMP,IS),SNA(ICOMP,IS),SPAZI(ICOMP,IS),
      &    SPELV(ICOMP,IS),SOTF(ICOMP,IS),SVFC(ICOMP,IS),SMLCN(ICOMP,IS),
-     &    SOTHER(ICOMP,IS,1)(1:13)
+     &    sbound_ty(1:12)
  8894   FORMAT(1X,A12,1X,F7.2,F5.0,F5.0,1X,A4,1X,A4,1X,A12,1X,A13)
         CALL EDISP(ITRU,OUTSTR)
       ELSE
@@ -974,7 +976,6 @@ C HeightCo (Real) : Height [m] of the composite, for LCA calculation.
 #include "help.h"
 
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
-
       COMMON/FOPENED/CFGOK,MLDBOK,MATDBOK,CTLOK,OPTKOK,CFCDBOK
       COMMON/ERRHAND/IDerr
       COMMON/CompPik/IComfoc,NComPik,LstComp(MMLC)
@@ -993,7 +994,7 @@ C Read database if not already done.
         call ERMLDB(0,iuout,IER)
         IF(IER.NE.0)THEN
           CALL USRMSG(
-     &    ' Error in reading composite construction.',
+     &    ' Error in reading construction.',
      &    ' Unable to create zone construction file!','W')
           RETURN
         ELSE
@@ -1102,6 +1103,7 @@ C square meter of the selected composite.
      &                AsProjPa(MMLC,MNbAss),LayerCat(MMLC,ME),
      &                MainPart(MMLC,MNbM),LayerNam(MMLC,ME),
      &                LayerTyp(MMLC,ME)
+      Character*32 LayerNam
 
 
       COMMON/EIAImp/FabImp(MMAT,MIMP),TrImp(MMAT,MNbTrans,MIMP),
@@ -1167,7 +1169,6 @@ C square meter of the selected composite.
       CHARACTER*12 ComAsPt,CoTrPt,MaintPt,AsProjPt
       CHARACTER*1 ComAsPa,MaintTyp,LayerCat,MainPart,AsProjPa,LayerTyp
 
-      Character*12 LayerNam
 
       CHARACTER*3 AbrevIMP
       CHARACTER UnitEner*5, UnitMass*4, UnitImp*8
@@ -1382,6 +1383,8 @@ C
       COMMON/CompPik/IComfoc,NComPik,LstComp(MMLC)
 
       COMMON/ProjTxt/TxtCompo,TxtMat
+      CHARACTER TxtCompo*22,TxtMat*32
+
       COMMON/EIAScnPt/FabPt(MMAT),TrPt(MMAT,MNbTrans),
      &                RecyPt(MMAT),ReTrPt(MMAT,MNbTrans),
      &                BurnPt(MMAT),BuTrPt(MMAT,MNbTrans),
@@ -1392,6 +1395,7 @@ C
      &                AsProjPa(MMLC,MNbAss),LayerCat(MMLC,ME),
      &                MainPart(MMLC,MNbM),LayerNam(MMLC,ME),
      &                LayerTyp(MMLC,ME)
+      CHARACTER*32 LayerNam
 
       COMMON/EIAImp/FabImp(MMAT,MIMP),TrImp(MMAT,MNbTrans,MIMP),
      &          RecyImp(MMAT,MIMP),ReTrImp(MMAT,MNbTrans,MIMP),
@@ -1457,23 +1461,24 @@ C
 
       COMMON/DesMLC/MatNameco(MMAT),MatDesc(MMAT),MatCat(MMAT),
      &              CompoNam(MMLC), LayerDes(MMLC,ME)
+      CHARACTER*32 MatNameco,CompoNam
+      CHARACTER*72 MatDesc,MatCat,LayerDes
 
       COMMON/ZFunction/ZFun(NbSteps,MMLC,ME)
 
       DIMENSION ITEM(NbSteps+5),StepSName(NbSteps)
 
-      CHARACTER TxtCompo*22,TxtMat*22
       CHARACTER*12 FabPt,TrPt,RecyPt,ReTrPt,BurnPt,BuTrPt,DumpPt,DuTrPt
       CHARACTER*12 ComAsPt,CoTrPt,MaintPt,AsProjPt
       CHARACTER*1 ComAsPa,MaintTyp,LayerCat,MainPart,AsProjPa,LayerTyp
-      CHARACTER*12 CompoNam,LayerNam,MatNameco
-      CHARACTER*72 MatDesc,MatCat,LayerDes
       CHARACTER UnitEner*5, UnitMass*4, UnitImp*8
-      CHARACTER outs*170,ITEM*36
+      CHARACTER outs*180,ITEM*36
       CHARACTER StepName*36,StepSName*12
       CHARACTER*110 LabelGen, GenUnt, Label, LabelUnt, LabelImp, ImpUnt
       CHARACTER*55 LabelB, LabelA, LabelC, LabelD
-      CHARACTER*12 Labelout(4+MIMP),LabelTmp(4+MIMP)
+      CHARACTER*32 LabelTmp(4+MIMP)
+      CHARACTER*32 Labelout(4+MIMP)
+      character sbound_ty*12,sbound_c2*6,sbound_e2*6
       LOGICAL Exist, dupedges,context
       integer NITEMS,INO ! max items and current menu item
 
@@ -1488,7 +1493,7 @@ C
  
 
 C Initialisation
-      do 142 I=1,MIMP
+      do I=1,MIMP
         LCAValue(I)=0.0
         LCAValuP(I)=0.0
         LCAValuS(I)=0.0
@@ -1498,18 +1503,18 @@ C Initialisation
         StageTot(I)=0.0
         WholeTot(I)=0.0
         ProjTot(I)=0.0
- 142  continue
+      enddo
 
-      do 14 I=1,(4+MIMP)
+      do I=1,(4+MIMP)
         Labelout(I)=' '
         LabelTmp(I)=' '
- 14   continue
+      enddo
 
       NbSurf=0
-      DO 610 IS = 1,MCON
+      do IS = 1,MCON
         ISelCon(IS) = 0
         ISelComp(IS) = 0
-610   CONTINUE
+      enddo
       TotDumpS= 0.0
       TotBurnS= 0.0
       TotRecyS= 0.0
@@ -1585,7 +1590,7 @@ C the results to a file
       IF (IWB .EQ.1) THEN
 C If analysis of a single step then display the list of availabale steps
 10      INO = -4
-        ITEM(1)=                '  SELECT AN ELEMENTARY LCA STAGE  '
+        ITEM(1)=                '  Select and elmentary LCA stage  '
         ITEM(2)=                '----------------------------------'
         DO 5 I = 1,NbSteps
           WRITE(ITEM(2+I),'(A)') StepName(I)(1:lnblnk(StepName(I)))
@@ -1608,9 +1613,7 @@ C if Help is required
           GOTO 10
         ENDIF
 
-C If a Major stage was selected
-      ELSEIF (IWB .EQ.2) THEN
-C ask which major stage to analyse
+      ELSEIF (IWB .EQ.2) THEN    ! If a Major stage was selected ask which major stage to analyse.
         helptopic='eco_LCA_calculations'
         call gethelptext(helpinsub,helptopic,nbhelp)
         call EASKMBOX('LCA impacts:','Which major stage ?',
@@ -1620,15 +1623,13 @@ C ask which major stage to analyse
 
 C Cancel LCA calculation if analyse type does not exist
       ELSEIF (IWB .EQ. 4) THEN
-        goto 666
-C End of stage selection
+        goto 666   ! End of stage selection
       ENDIF
 
 C According to user selection, define the starting Elementary Step (IStep)
 C and the Last Elementary Step (LStep) for the looging trough the steps
       IF (IWB .EQ. 1) THEN
-C If single step, then Starting step = Ending step
-        IStep = INO-2
+        IStep = INO-2   ! If single step, then Starting step = Ending step
         LStep = IStep
       ELSEIF (IWB .EQ. 2) THEN
 C If magor step, then Starting step and  Ending step
@@ -1653,13 +1654,11 @@ C depends on the which major step (IW) was selected
 
         
 C Display a message telling if the results include or not the break and loss
-C      IF (M .EQ. 2) Then         
-        IF (ILoss .EQ. 0) Then 
-          CALL edisp(Ichanel,' Results include break & loss')
-        else 
-          CALL edisp(Ichanel,' Results does not include break & loss')
-        ENDIF         
-C      ENDIF         
+      IF (ILoss .EQ. 0) Then 
+        CALL edisp(Ichanel,' Results include break & loss')
+      else 
+        CALL edisp(Ichanel,' Results does not include break & loss')
+      ENDIF         
          
 C Display the main title
       IF (IWB.EQ.1) THEN
@@ -1715,7 +1714,6 @@ C        CALL edisp(Ichanel,'Phase:')
         CALL edisp(Ichanel,' ------------------')
         CALL edisp(Ichanel,' ')
       ENDIF
-      WRITE(outs,'(a,a)')
 
 C Display the column labels for stage and zone level
       IF (ICalType.EQ.1) THEN
@@ -1725,7 +1723,7 @@ C Display the column labels for stage and zone level
       ENDIF
       LabelB='    GWP    |    AP     |   POCP    |   NRE    |'
       WRITE(outs,'(a,a)')LabelA(1:lnblnk(LabelA)), 
-     &                     LabelB(1:lnblnk(LabelB))
+     &                   LabelB(1:lnblnk(LabelB))
       CALL edisp(Ichanel,outs)
       LabelC ='|            |            |            |            |'
 
@@ -1735,10 +1733,10 @@ C Display the column labels for stage and zone level
         LabelD='    [kg]   |    [kg]   |   [kg]    |   [MJ]   |'
       endif
       WRITE(outs,'(a,a)')LabelC(1:lnblnk(LabelC)),
-     &                       LabelD(1:lnblnk(LabelD))
+     &                   LabelD(1:lnblnk(LabelD))
       CALL edisp(Ichanel,outs)
 
-C Adapt the loop accoring to user approach
+C Adapt the loop according to user approach.
 C If project approch: selected surface(s)
 C If composite approch: selected composite(s)
 C If material approch: 1 surface (mat) 
@@ -1750,7 +1748,7 @@ C If material approch: 1 surface (mat)
         NbZones = 1
       ENDIF
 
-C Adapt the loop trough surfaces accoring to user approach
+C Adapt the loop trough surfaces accoring to user approach.
 C If project approch: selected surface(s)
 C If composite approch: selected composite(s)
 C If material approch: 1 surface (mat) 
@@ -1761,7 +1759,7 @@ C If material approch: 1 surface (mat)
 
 C Group and count the selected surfaces, then find the correponding mlc index
 C in bcf file corresponding to current surface 
-C when all selected surface scannes exit the loop
+C when all selected surface scannes exit the loop.
       IF (ICalType.EQ.1) THEN               
         ITmp = 0
         DO 611 IN = 1,MCON
@@ -1777,8 +1775,10 @@ C if so affect the MLC nomber to ISelComp and pass to the next
 C selected connection.
             ICF=0
             DO 20 IC=1,NbComp
-              IF (CompoNam(IC)(1:12).EQ.
-     &            SMLCN(IC1(IN),IE1(IN))(1:12))THEN
+              lncompo=lnblnk(CompoNam(IC))
+              lnsmlcn=lnblnk(SMLCN(IC1(IN),IE1(IN)))
+              IF (CompoNam(IC)(1:lncompo).EQ.
+     &            SMLCN(IC1(IN),IE1(IN))(1:lnsmlcn))THEN
                 ICF=IC
                 GOTO 363
               ENDIF
@@ -1819,7 +1819,7 @@ C Adapt the Nb of surface to loop trough according to the calculation type
 C for project, look at the selected zone
           NbSurf = NbSurSel(ICurZone)
           NbSurf = NSur
-          LabelOut(1)=zname(ICurZone)
+          write(LabelOut(1),'(a)') zname(ICurZone)
         ELSEIF (ICalType.EQ.2) THEN
 C  For MLC(s) level, look at the selected composite(s)
           NbSurf = NComPik
@@ -1844,13 +1844,14 @@ C          NSSurf = NSSurf + 1
             if (LabelTmp(2)(1:12).eq.Sname(ICurZone,N)(1:12)) then
               LabelOut(2)=' '
             else
-              LabelOut(2)=Sname(ICurZone,N)
-              LabelTmp(2)=Sname(ICurZone,N)
+              write(LabelOut(2),'(a)') Sname(ICurZone,N)
+              write(LabelTmp(2),'(a)') Sname(ICurZone,N)
             endif
           ELSEIF (ICalType.EQ.2) THEN               
+            lncompo=lnblnk(CompoNam(ICurComp))
             ICurComp = LstComp(N)
             LabelOut(1)=' '
-            LabelOut(2)=CompoNam(ICurComp)
+            write(LabelOut(2),'(a)') CompoNam(ICurComp)(1:lncompo)
           ELSEIF (ICalType.EQ.3) THEN               
             ICurComp = 1
           ENDIF
@@ -1862,20 +1863,20 @@ C previous zone. Thus, partition are not taken into account twice.
 C No need to test the first zone 
           IF(IZ.GT.1)THEN
             Iother = iCurCon
-            if ((SOTHER(IC1(Iother),IE1(Iother),1)(1:8).NE.'EXTERIOR')
-     &      .OR.(SOTHER(IC1(Iother),IE1(Iother),1)(1:7).NE.'SIMILAR')
-     &      ) then
+            if (zboundarytype(IC1(Iother),IE1(Iother),1).NE.0
+     &      .OR.zboundarytype(IC1(Iother),IE1(Iother),1).NE.1) then
               IF (zname(nznog(IZ)).eq.'zname(nznog(1)') THEN
                       ii = 0
               ENDIF
               Exist=.FALSE.
+
 C Loop over all zones to find if other side is a zone that was
 C already scaned. No need to test the last zone 
               DO 345 IT=1,(IZ-1)
 C if other side is one of the previous zone,  go to next surface
-                if(SOTHER(IC1(Iother),IE1(Iother),1)
-     &            (1:lnblnk(SOTHER(IC1(Iother),IE1(Iother),1))).EQ. 
-     &             zname(nznog(IT))(1:lnzname(nznog(IT))) ) then
+                if(zboundarytype(IC1(Iother),IE1(Iother),1).EQ.3.and.
+     &             zboundarytype(IC1(Iother),IE1(Iother),2).lt.
+     &             nznog(IT)) then
                   Exist=.TRUE.
                   IOpsitZone= ic2(IZSTOCN(ICurZone,N))
                   IOpositSurf = ie2(IZSTOCN(ICurZone,N))
@@ -1896,15 +1897,15 @@ CC                    CALL edisp(Ichanel,'Constructions does not match')
 C                    CALL edisp(Ichanel,' Material of connection')
 C                    CALL edisp(Ichanel,' Current    |   Opposite ')
 C                  DO 394 ip=1, NbEIALay(ICurComp)
-C                    WRITE(outs,'(a12,2x,a12)')LayerNam(ICurComp,ip),
-C     &                                LayerNam(IOpositComp,ip)             C 
+C                    WRITE(outs,'(a,2x,a)')LayerNam(ICurComp,ip),
+C     &                 LayerNam(IOpositComp,ip) 
 C                    CALL edisp(Ichanel,outs)
 C 394              Continue
 C                  ENDIF
-                  WRITE(outs,'(a12,2x,7a)')Zname(nznog(IZ)),  
-     &                    Sname(nznog(IZ),N),' Already accounted as ',
-     &                     'Zone: ', Zname(IOpsitZone),', ',
-     &                     'Surface :', Sname(IOpsitZone,IOpositSurf)
+                  WRITE(outs,'(a,2x,7a)')Zname(nznog(IZ)),  
+     &              Sname(nznog(IZ),N),' Already accounted as ',
+     &              'Zone: ', Zname(IOpsitZone),', ',
+     &              'Surface :', Sname(IOpsitZone,IOpositSurf)
                   CALL edisp(Ichanel,outs)
 
 C Before to skip the surface calculation re-initialiase the surface  
@@ -1944,8 +1945,8 @@ C***********************
 C For each layers
 C ------------------------
           DO 23, J=1,NbLays 
-            LabelOut(3)=LayerNam(ICurComp,J)
-            LabelTmp(3)=LayerNam(ICurComp,J)
+            write(LabelOut(3),'(a)') LayerNam(ICurComp,J)
+            write(LabelTmp(3),'(a)') LayerNam(ICurComp,J)
 
 C Loop trough the steps, that are material related
  16         DO 999 M = IStep,LStep
@@ -1992,13 +1993,19 @@ C Loop trough transport or maintenance or steps
  111            CONTINUE
  112          CONTINUE
 
-              LabelOut(4)=StepSName(M)
-              LabelTmp(4)=StepSName(M)
+              write(LabelOut(4),'(a)') StepSName(M)
+              write(LabelTmp(4),'(a)') StepSName(M)
 
-C Write results at stage level, only if required by the user
+C Write results at stage level, only if required by the user.
               IF (itrc.EQ.4) THEN
-                WRITE(outs,'(4(1x,a12),4(2x,1E9.3,1x))')
-     &            (LabelOut(L),L=1,4),(StageTot(L),L=1,MIMP)
+                lnlb1=lnblnk(LabelOut(1))
+                lnlb2=lnblnk(LabelOut(2))
+                lnlb3=lnblnk(LabelOut(3))
+                lnlb4=lnblnk(LabelOut(4))
+                WRITE(outs,'(4(1x,a),4(2x,1E9.3))')
+     &            LabelOut(1)(1:lnlb1),LabelOut(2)(1:lnlb2),
+     &            LabelOut(3)(1:lnlb3),LabelOut(4)(1:lnlb4),
+     &            (StageTot(L),L=1,MIMP)
                 CALL edisp(Ichanel,outs)
               ENDIF
 
@@ -2035,8 +2042,14 @@ C If elementary step
                 elseif (IWB.eq.1) then
                   LabelOut(4)=LabelTmp(4)
                 endif
-                WRITE(outs,'(4(1x,a12),4(2x,1E9.3,1x))')
-     &                (LabelOut(L),L=1,4),(LayerTot(L),L=1,MIMP)
+                lnlb1=lnblnk(LabelOut(1))
+                lnlb2=lnblnk(LabelOut(2))
+                lnlb3=lnblnk(LabelOut(3))
+                lnlb4=lnblnk(LabelOut(4))
+                WRITE(outs,'(4(1x,a),4(2x,1E9.3,1x))')
+     &            LabelOut(1)(1:lnlb1),LabelOut(2)(1:lnlb2),
+     &            LabelOut(3)(1:lnlb3),LabelOut(4)(1:lnlb4),
+     &            (LayerTot(L),L=1,MIMP)
                 CALL edisp(Ichanel,outs)
               ENDIF
 
@@ -2059,8 +2072,14 @@ C If elementary step
                   LabelOut(4)=LabelTmp(4)
                 endif
                 if (IWB.NE.1) then
-                  WRITE(outs,'(4(1x,a12),4(2x,1E9.3,1x))')
-     &                (LabelOut(L),L=1,4),(LayerTot(L),L=1,MIMP)
+                  lnlb1=lnblnk(LabelOut(1))
+                  lnlb2=lnblnk(LabelOut(2))
+                  lnlb3=lnblnk(LabelOut(3))
+                  lnlb4=lnblnk(LabelOut(4))
+                  WRITE(outs,'(4(1x,a),4(2x,1E9.3))')
+     &              LabelOut(1)(1:lnlb1),LabelOut(2)(1:lnlb2),
+     &              LabelOut(3)(1:lnlb3),LabelOut(4)(1:lnlb4),
+     &              (LayerTot(L),L=1,MIMP)
                   CALL edisp(Ichanel,outs)
                 endif
               ENDIF
@@ -2077,11 +2096,11 @@ C Next Layer
  23         CONTINUE
 
 C ------Composite level----------------------------
-C After having looping trouht the impact at the layer level, 
-C needs to calculate the impacts at the composite level
+C After having looping through the impacts at the layer level, 
+C calculate the impacts at the composite level
 
 C A)  Assembly of the element. Is calculated only if elementary, 
-C                              whole or Major CONSTRUCTION
+C whole or Major CONSTRUCTION
  66         IF (((IWB.EQ.1).AND.(LStep.EQ.3)).OR.(IWB.EQ.3).OR.
      &          ((IWB.EQ.2).AND.(IW.EQ.1))) THEN
 C If reporting level: surface, layer of stage
@@ -2102,9 +2121,14 @@ C If process exits, loop trough the impacts
  27                 CONTINUE
 C Display reults if user has required surface, layer or impacts level results
                     IF (itrc.gt.2) THEN
-                      WRITE(outs,'(4(1x,a12),4(2x,1E9.3,1x))')
-     &                    (LabelOut(L),L=1,4),
-     &                    (STEPIMP(ICurzone,ICurComp,J,K,L,3),L=1,MIMP)
+                      lnlb1=lnblnk(LabelOut(1))
+                      lnlb2=lnblnk(LabelOut(2))
+                      lnlb3=lnblnk(LabelOut(3))
+                      lnlb4=lnblnk(LabelOut(4))
+                      WRITE(outs,'(4(1x,a),4(2x,1E9.3))')
+     &                  LabelOut(1)(1:lnlb1),LabelOut(2)(1:lnlb2),
+     &                  LabelOut(3)(1:lnlb3),LabelOut(4)(1:lnlb4),
+     &                  (STEPIMP(ICurzone,ICurComp,J,K,L,3),L=1,MIMP)
                       CALL edisp(Ichanel,outs)
                     ENDIF
                   endif
@@ -2117,7 +2141,7 @@ C End of assembly stage
 
 
 C B) Assembly on the building. Calculated only if if elementary, whole 
-C                              or Major CONSTRUCTION
+C or Major CONSTRUCTION
             IF (((IWB.EQ.1).AND.(LStep.EQ.5)).OR.(IWB.EQ.3).OR.
      &          ((IWB.EQ.2).AND.(IW.EQ.1))) THEN
 C If reporting level: surface, layer of stage
@@ -2138,7 +2162,7 @@ C If process exits, loop trough the impacts
  127                CONTINUE
 C Display reults if user has required surface, layer or impacts level results
                     IF (itrc.gt.2) THEN
-                      WRITE(outs,'(4(1x,a12),4(2x,1E9.3,1x))')
+                      WRITE(outs,'(4(1x,a),4(2x,1E9.3,1x))')
      &                     (LabelOut(L),L=1,4),
      &                    (STEPIMP(ICurzone,ICurComp,J,K,L,5),L=1,MIMP)
                       CALL edisp(Ichanel,outs)
@@ -2170,10 +2194,16 @@ C If process exits, loop trough the impacts
                       LayerTot(L)= 0.0
  29                   CONTINUE
                     IF (itrc.gt.2) THEN
+
 C Display reults if user has required surface, layer or impacts level results
-                      WRITE(outs,'(4(1x,a12),4(2x,1E9.3,1x))')
-     &                          (LabelOut(L),L=1,4),
-     &                    (STEPIMP(ICurzone,ICurComp,J,K,L,6),L=1,MIMP)
+                     lnlb1=lnblnk(LabelOut(1))
+                     lnlb2=lnblnk(LabelOut(2))
+                     lnlb3=lnblnk(LabelOut(3))
+                     lnlb4=lnblnk(LabelOut(4))
+                      WRITE(outs,'(4(1x,a),4(2x,1E9.3,1x))')
+     &                  LabelOut(1)(1:lnlb1),LabelOut(2)(1:lnlb2),
+     &                  LabelOut(3)(1:lnlb3),LabelOut(4)(1:lnlb4),
+     &                  (STEPIMP(ICurzone,ICurComp,J,K,L,6),L=1,MIMP)
                       CALL edisp(Ichanel,outs)
                     ENDIF
                   endif
@@ -2191,19 +2221,14 @@ C |    Zone    |   Surface  |    Layer   |   Cycle    |
 C   LabelOut(1)  LabelOut(2)  LabelOut(3)  LabelOut(4) 
 
             if(itrc.eq.2) then
-C if surface level reporting
-              IF (ICalType.eq.1) THEN
-                LabelOut(1)=Zname(ICurZone)
-                LabelOut(2)=Sname(ICurZone,N)
+              IF (ICalType.eq.1) THEN  !  if surface level reporting
+                write(LabelOut(1),'(a)') Zname(ICurZone)
+                write(LabelOut(2),'(a)') Sname(ICurZone,N)
               ENDIF
               LabelOut(3)='Tot. Surface'
-
-C If elementary stage
-              IF (IWB.EQ.1) THEN
+              IF (IWB.EQ.1) THEN       ! If elementary stage.
                  LabelOut(4)=LabelTmp(4)
-C If major stage,
-              ELSEIF (IWB.EQ.2) THEN
-C adapt the label "Cycle" depending on the focused major step
+              ELSEIF (IWB.EQ.2) THEN   ! If major stage, adapt the label "Cycle" for focused major step.
                 if (IW.eq.1) then
                   LabelOut(4)='CONSTRUCTION'
                 elseif (IW.eq.2) then
@@ -2211,39 +2236,54 @@ C adapt the label "Cycle" depending on the focused major step
                 else
                   LabelOut(4)='DECONSTRUCT.'
                 endif
-C If whole life cycle
-              ELSE
+              ELSE    ! If whole life cycle
                     LabelOut(4)='Life-cycle  '
               ENDIF
-C 665          WRITE(outs,'(4(1x,a12),4(2x,1E9.3,1x))')
-              WRITE(outs,'(4(1x,a12),4(2x,1E9.3,1x))')
-     &            (LabelOut(L),L=1,4), (CompoTot(L),L=1,MIMP)
+C 665          WRITE(outs,'(4(1x,a),4(2x,1E9.3,1x))')
+              lnlb1=lnblnk(LabelOut(1))
+              lnlb2=lnblnk(LabelOut(2))
+              lnlb3=lnblnk(LabelOut(3))
+              lnlb4=lnblnk(LabelOut(4))
+              WRITE(outs,'(4(1x,a),4(2x,1E9.3,1x))')
+     &          LabelOut(1)(1:lnlb1),LabelOut(2)(1:lnlb2),
+     &          LabelOut(3)(1:lnlb3),LabelOut(4)(1:lnlb4),
+     &          (CompoTot(L),L=1,MIMP)
               CALL edisp(Ichanel,outs)
 
-C If Layer level
-            elseif(itrc.eq.3) then
+            elseif(itrc.eq.3) then    ! If Layer level
               IF (ICalType.EQ.1) THEN
-                LabelOut(1)=Zname(ICurzone)
-                LabelOut(2)=Sname(ICurzone,N)
+                write(LabelOut(1),'(a)') Zname(ICurzone)
+                write(LabelOut(2),'(a)') Sname(ICurzone,N)
                 LabelOut(3)='Tot.surface='
               ELSEIF (ICalType.EQ.2) THEN
                  LabelOut(1)=' '
-                 LabelOut(2)=CompoNam(ICurComp)
+                 write(LabelOut(2),'(a)') CompoNam(ICurComp)
                  LabelOut(3)='Tot.compos.='
               ENDIF
               LabelOut(4)= '-----------'
-              WRITE(outs,'(4(1x,a12),4(2x,1E9.3,1x))')
-     &             (LabelOut(L),L=1,4), (CompoTot(L),L=1,MIMP)
+              lnlb1=lnblnk(LabelOut(1))
+              lnlb2=lnblnk(LabelOut(2))
+              lnlb3=lnblnk(LabelOut(3))
+              lnlb4=lnblnk(LabelOut(4))
+              WRITE(outs,'(4(1x,a),4(2x,1E9.3,1x))')
+     &          LabelOut(1)(1:lnlb1),LabelOut(2)(1:lnlb2),
+     &          LabelOut(3)(1:lnlb3),LabelOut(4)(1:lnlb4),
+     &          (CompoTot(L),L=1,MIMP)
               CALL edisp(Ichanel,outs)
               CALL edisp(Ichanel,' ')
-C if life-cycle stage
-            elseif (itrc.eq.4) then
-              LabelOut(1)=Zname(ICurzone)
+            elseif (itrc.eq.4) then    ! if life-cycle stage
+              write(LabelOut(1),'(a)') Zname(ICurzone)
               LabelOut(2)= 'Tot.surface='
               LabelOut(3)= '-----------'
               LabelOut(4)= '-----------'
-              WRITE(outs,'(4(1x,a12),4(2x,1E9.3,1x))')
-     &             (LabelOut(L),L=1,4), (CompoTot(L),L=1,MIMP)
+              lnlb1=lnblnk(LabelOut(1))
+              lnlb2=lnblnk(LabelOut(2))
+              lnlb3=lnblnk(LabelOut(3))
+              lnlb4=lnblnk(LabelOut(4))
+              WRITE(outs,'(4(1x,a),4(2x,1E9.3,1x))')
+     &          LabelOut(1)(1:lnlb1),LabelOut(2)(1:lnlb2),
+     &          LabelOut(3)(1:lnlb3),LabelOut(4)(1:lnlb4),
+     &          (CompoTot(L),L=1,MIMP)
               CALL edisp(Ichanel,outs)
 
               CALL edisp(Ichanel,' ')
@@ -2271,7 +2311,7 @@ C For project based, display the results at zone level
 C Re-initialiase the total at the zone level before to analyse the next zone
           DO 222 L =1,MIMP
             ZoneTot(L) = 0.0
- 222        CONTINUE
+ 222      CONTINUE
 C Next zones
  1      CONTINUE
 
@@ -2318,10 +2358,8 @@ C Relative value
 
 C Detailed
 C********************* LCADet **************************
-C
 C This subroutine displays LCA results more detailed, but use the same 
-C phylosophy as LCACalc
-
+C phylosophy as LCACalc. itrc is level of verbosity.
 
       SUBROUTINE LCADet(itrc,Ichanel)
 #include "building.h"
@@ -2348,6 +2386,8 @@ C phylosophy as LCACalc
       COMMON/CompPik/IComfoc,NComPik,LstComp(MMLC)
 
       COMMON/ProjTxt/TxtCompo,TxtMat
+      CHARACTER TxtCompo*22,TxtMat*32
+
       COMMON/EIAScnPt/FabPt(MMAT),TrPt(MMAT,MNbTrans),
      &                RecyPt(MMAT),ReTrPt(MMAT,MNbTrans),
      &                BurnPt(MMAT),BuTrPt(MMAT,MNbTrans),
@@ -2358,6 +2398,7 @@ C phylosophy as LCACalc
      &                AsProjPa(MMLC,MNbAss),LayerCat(MMLC,ME),
      &                MainPart(MMLC,MNbM),LayerNam(MMLC,ME),
      &                LayerTyp(MMLC,ME)
+      Character*32 LayerNam
 
       COMMON/EIAImp/FabImp(MMAT,MIMP),TrImp(MMAT,MNbTrans,MIMP),
      &          RecyImp(MMAT,MIMP),ReTrImp(MMAT,MNbTrans,MIMP),
@@ -2423,6 +2464,8 @@ C phylosophy as LCACalc
 
       COMMON/DesMLC/MatNameco(MMAT),MatDesc(MMAT),MatCat(MMAT),
      &              CompoNam(MMLC), LayerDes(MMLC,ME)
+      CHARACTER*32 MatNameco,CompoNam
+      CHARACTER*72 MatDesc,MatCat,LayerDes
 
       COMMON/ZFunction/ZFun(NbSteps,MMLC,ME)
 
@@ -2431,14 +2474,11 @@ C phylosophy as LCACalc
       DIMENSION ITEM(NbSteps+5)
       DIMENSION WeitLayr(ME),WtLayrDu(ME),WtLayrBu(ME),WtLayrRe(ME)
 
-      CHARACTER TxtCompo*22,TxtMat*22
-
       CHARACTER*12 FabPt,TrPt,RecyPt,ReTrPt,BurnPt,BuTrPt,DumpPt,DuTrPt
       CHARACTER*12 ComAsPt,CoTrPt,MaintPt,AsProjPt
       CHARACTER*1 ComAsPa,MaintTyp,LayerCat,MainPart,AsProjPa,LayerTyp
       
-      CHARACTER*12 CompoNam,LayerNam,MatNameco
-      CHARACTER*72 MatDesc,MatCat,LayerDes, TITL
+      CHARACTER*72 TITL
 
 
       CHARACTER UnitEner*5, UnitMass*4, UnitImp*8
@@ -2654,7 +2694,7 @@ C End of stage selection
 C Cancel LCA calculation if results display not yet implemented
       IF ((IRep .EQ. 2).AND.(Itrc.EQ.4)) THEN
         CALL edisp(Ichanel, 
-     &            'Sorry, results display but not yet implemented.')
+     &    'Sorry, results display but not yet implemented.')
         GOTO 666
       ENDIF
 
@@ -2802,8 +2842,10 @@ C Selected connection
             lstr=lnblnk(SMLCN(IC1(IN),IE1(IN)))
             ICF=0
             DO 20 IC=1,NbComp
-              IF (CompoNam(IC)(1:12).EQ.
-     &            SMLCN(IC1(IN),IE1(IN))(1:12))THEN
+              lncompo=lnblnk(CompoNam(IC))
+              lnsmlcn=lnblnk(SMLCN(IC1(IN),IE1(IN)))
+              IF (CompoNam(IC)(1:lncompo).EQ.
+     &            SMLCN(IC1(IN),IE1(IN))(1:lnsmlcn))THEN
                 ICF=IC
                 GOTO 363
               ENDIF
@@ -2950,9 +2992,8 @@ C partition are not taken into account twice.
 C No need to test the first zone 
             IF(IZ.GT.1)THEN
               Iother = iCurCon
-            if((SOTHER(IC1(Iother),IE1(Iother),1)(1:8).NE.'EXTERIOR')
-     &      .OR.(SOTHER(IC1(Iother),IE1(Iother),1)(1:7).NE.'SIMILAR')
-     &      ) then
+            if(zboundarytype(IC1(Iother),IE1(Iother),1).NE.0.or.
+     &         zboundarytype(IC1(Iother),IE1(Iother),1).NE.1) then
                 IF (zname(nznog(IZ)).eq.'zname(nznog(1)') THEN
                       ii = 0
                 ENDIF
@@ -2961,9 +3002,9 @@ C Loop over all zones to find if other side is a zone that was
 C already scaned. No need to test the last zone 
                 DO 345 IT=1,(IZ-1)
 C if other side is one of the previous zone,  go to next surface
-                  if(SOTHER(IC1(Iother),IE1(Iother),1)
-     &              (1:lnblnk(SOTHER(IC1(Iother),IE1(Iother),1))).EQ. 
-     &              zname(nznog(IT))(1:lnzname(nznog(IT))) ) then
+                  if(zboundarytype(IC1(Iother),IE1(Iother),1).EQ.3.and.
+     &               zboundarytype(IC1(Iother),IE1(Iother),2).lt.
+     &               nznog(IT)) then
                     Exist=.TRUE.
                     IOpsitZone= ic2(IZSTOCN(ICurZone,N))
                     IOpositSurf = ie2(IZSTOCN(ICurZone,N))
@@ -3072,7 +3113,11 @@ C Mass of one surface and sum over the zone
               WtLayrRe(J) = WeitLayr(J)*RecyRate(IMatID(ICurComp,J))
      &                          *(REAL(NRi(ICurComp,J)+1))
               CompoMass = CompoMass + WeitLayr(J)
-              CompoMasI = CompoMasI + WeitLayr(J)/SupFab(ICurComp,J)
+              if(SupFab(ICurComp,J).gt.0.1)then
+                CompoMasI = CompoMasI + WeitLayr(J)/SupFab(ICurComp,J)
+              else
+                CompoMass = CompoMass + WeitLayr(J)
+              endif
               TotDumpM = TotDumpM + WtLayrDu(J)
               TotBurnM = TotBurnM + WtLayrBu(J)
               TotRecyM = TotRecyM + WtLayrRe(J)
@@ -3091,7 +3136,9 @@ C Mass of one surface and sum over the zone
  93             FORMAT(6(a),2(2x,a,1x, F6.2))
                 CALL edisp(Ichanel,outs)
               ELSEIF (ICalType.EQ.2) THEN
-                WRITE(outs,'(2a)')' Composite : ',CompoNam(ICurComp)
+                lncompo=lnblnk(CompoNam(ICurComp))
+                WRITE(outs,'(2a)')' Composite : ',
+     &            CompoNam(ICurComp)(1:lncompo)
                 CALL edisp(Ichanel,outs)
                 WRITE(outs,'(a,f6.2)') ' Area : ',Area
                 CALL edisp(Ichanel,outs)
@@ -3262,7 +3309,7 @@ C First transport line display is different than others
      &                               INT(ZFun(M,ICurComp,J)),
      &                               TrDist(ICurMat,K),
      &                               (LCAValue(IY),IY=1,MIMP)
-312                   FORMAT(1X,A12,3x,1PE9.3,3X,A12,3x,I2,3x,
+312                   FORMAT(1X,A,3x,1PE9.3,3X,A12,3x,I2,3x,
      &                          0PF7.1,4(3x,1E9.3))
                       IF (itrc.eq.3) CALL edisp(Ichanel,outs)
                       ELSE
@@ -3281,11 +3328,12 @@ C Relevant only for pre-fabricated element
                     elseif (M.EQ.4) then
                       IF (CoTrPt(ICurComp,1)(1:4).EQ.'none') THEN
                         if (itrc.ge.2) then
+                          lncompo=lnblnk(CompoNam(ICurComp))
                           WRITE(outs,301)Sname(nznog(IZ),N),
-     &                                   CompoNam(ICurComp),
+     &                      CompoNam(ICurComp)(1:lncompo),
      &              ' has no transport from assembly to building site.',
-     &                 ' May be not a prefabricated element.'
- 301                      FORMAT(1X,A12,3x,3A)
+     &                      ' May be not a prefabricated element.'
+ 301                      FORMAT(1X,A,3x,3A)
                           CALL edisp(Ichanel,outs)
                         endif
                         if ((IRep.eq.2).AND.(itrc.eq.3))then
@@ -3303,7 +3351,7 @@ C First transport line display is different than others.
                         WRITE (outs,325) LayerNam(ICurComp,J),
      &                    WeitLayr(J),CoTrPt(ICurComp,K),
      &                   CoTrDist(ICurComp,K),(LCAValue(IY),IY=1,MIMP)
-325                     FORMAT(1X,A12,3x,1PE9.3,3X,A12,3x,
+325                     FORMAT(1X,A,3x,1PE9.3,3X,A12,3x,
      &                               0PF7.1, 4(3x,1E9.3))
                         IF (itrc.eq.3) CALL edisp(Ichanel,outs)
                       ELSE
@@ -3322,7 +3370,7 @@ C First transport line display is different than others.
                         WRITE (outs,315) LayerNam(ICurComp,J),
      &                          WtLayrDu(J),DuTrPt(ICurMat,K),
      &                   DuTrDist(ICurMat,K),(LCAValue(IY),IY=1,MIMP)
-315                     FORMAT(1X,A12,3x,1PE9.3,3X,A12,3x,
+315                     FORMAT(1X,A,3x,1PE9.3,3X,A12,3x,
      &                               0PF7.1, 4(3x,1E9.3))
                         IF (itrc.eq.3) CALL edisp(Ichanel,outs)
                       ELSE
@@ -3341,7 +3389,7 @@ C First transport line display is different than others.
                         WRITE (outs,318 )LayerNam(ICurComp,J), 
      &                     WtLayrBu(J),BuTrPt(ICurMat,K),
      &                     BuTrDist(ICurMat,K),(LCAValue(IY),IY=1,MIMP)
-318                     FORMAT(1X,A12,3x,1PE9.3,3X,A12,3x,
+318                     FORMAT(1X,A,3x,1PE9.3,3X,A12,3x,
      &                               0PF7.1, 4(3x,1E9.3))
                         IF (itrc.eq.3) CALL edisp(Ichanel,outs)
                       ELSE
@@ -3361,7 +3409,7 @@ C First transport line display is different than others.
                         WRITE (outs,321) LayerNam(ICurComp,J),
      &                         WtLayrRe(J),ReTrPt(ICurMat,K),
      &                     ReTrDist(ICurMat,K),(LCAValue(IY),IY=1,MIMP)
-321                     FORMAT(1X,A12,3x,1PE9.3,3X,A12,3x,
+321                     FORMAT(1X,A,3x,1PE9.3,3X,A12,3x,
      &                                            0PF7.1, 4(3x,1E9.3))
                         IF (itrc.eq.3) CALL edisp(Ichanel,outs)
                       ELSE
@@ -3424,11 +3472,15 @@ C Material fabrication
                   IF (M.EQ.1) THEN 
                     WRITE (outs,80)LayerNam(ICurComp,J),WeitLayr(J),
      &                               (LayerTot(IY),IY=1,MIMP)
- 80                 FORMAT(1x,A12,13x, 3x,1E9.3, 4(3x,1E9.3))
+ 80                 FORMAT(1x,A,13x, 3x,1E9.3, 4(3x,1E9.3))
 
 C Material replacement 
                   ELSEIF (M.EQ.7) THEN
-                    Rltmp = ProjLife/RMatLife(ICurMat)
+                    if(RMatLife(ICurMat).gt.0.1)then
+                      Rltmp = ProjLife/RMatLife(ICurMat)
+                    else
+                      Rltmp = ProjLife
+                    endif
                     if ((Rltmp - INT(Rltmp)).GT. 0.5) then
                       NbRep = INT(Rltmp)
                     else
@@ -3436,35 +3488,35 @@ C Material replacement
                     endif
                     IF (LayerCat(ICurComp,J).eq.'P') THEN
                       WRITE(outs,92)LayerNam(ICurMat,J),
-     &                              RMatLife(ICurMat), NbRep,
+     &                   RMatLife(ICurMat), NbRep,
      &                   (PerReImp(ICurComp,J,IY)*Perimeter,IY=1,MIMP)
                     ELSE
                       WRITE(outs,92)LayerNam(ICurComp,J),
-     &                                RMatLife(ICurMat),NbRep,
-     &                          (SurReImp(ICurComp,J,IY)*Area,IY=1,MIMP)
+     &                  RMatLife(ICurMat),NbRep,
+     &                  (SurReImp(ICurComp,J,IY)*Area,IY=1,MIMP)
                     ENDIF
- 92                 FORMAT(1X,A12,1x,f9.1, 5x, I2,4x, 4(3x,1E9.3))
+ 92                 FORMAT(1X,A,1x,f9.1, 5x, I2,4x, 4(3x,1E9.3))
 
 C 9 Dump treatment  
                   ELSEIF (M.EQ.9) THEN
                     WRITE(outs,109)LayerNam(ICurComp,J),
      &                             DumpRate(IMatID(ICurComp,J))*100,
      &                             WtLayrDu(J), (LayerTot(IY),IY=1,MIMP)
-109                 FORMAT(1X,A12,4x,F5.1,5x,1E9.3,4(3x,1E9.3))
+109                 FORMAT(1X,A,4x,F5.1,5x,1E9.3,4(3x,1E9.3))
 
 C 11 Incineration treatment  
                   ELSEIF (M.EQ.11) THEN
                     WRITE(outs,110)LayerNam(ICurComp,J),
      &                             BurnRate(IMatID(ICurComp,J))*100,
      &                             WtLayrBu(J),(LayerTot(IY),IY=1,MIMP)
-110                 FORMAT(1X,A12,4x,F5.1,5x,1E9.3,4(3x,1E9.3))
+110                 FORMAT(1X,A,4x,F5.1,5x,1E9.3,4(3x,1E9.3))
 
 C 13 Recycling treatment  
                   ELSEIF (M.EQ.13) THEN
                     WRITE(outs,166)LayerNam(ICurComp,J),
      &                             RecyRate(IMatID(ICurComp,J))*100,
      &                             WtLayrRe(J),(LayerTot(IY),IY=1,MIMP)
-166                 FORMAT(1X,A12,4x,F5.1,5x,1E9.3,4(3x,1E9.3))
+166                 FORMAT(1X,A,4x,F5.1,5x,1E9.3,4(3x,1E9.3))
 
 C 14 Total disposal waste  
                   ELSEIF (M.EQ.14) THEN
@@ -3473,11 +3525,11 @@ C 14 Total disposal waste
      &                     RecyRate(IMatID(ICurComp,J))*100,WtLayrRe(J),
      &                     BurnRate(IMatID(ICurComp,J))*100,WtLayrBu(J),
      &                     DumpRate(IMatID(ICurComp,J))*100,WtLayrDu(J)
-  111               FORMAT(1X,A12,3x,1E9.3,3(4x,0PF6.1,4x,1E9.3))
+  111               FORMAT(1X,A,3x,1E9.3,3(4x,0PF6.1,4x,1E9.3))
 C                    ELSEIF (M.EQ.14) THEN
 C                      WRITE(outs,112)LayerNam(IFOC,J),WtLayrRe(J),
 C     &                                     WtLayrBu(J),WtLayrDu(J)
-C  112                 FORMAT(1X,A12,3(4x,1E9.3))
+C  112                 FORMAT(1X,A,3(4x,1E9.3))
 C End of Layer related stage
                     ENDIF
 
@@ -3636,7 +3688,7 @@ C Next Surface
                 if ((itrc.eq.1).and.(ICalType.eq.2).and.(M.eq.14)) then
                   WRITE(outs,88)CompoNam(ICurComp),TotRecyM+TotBurnM+
      &                          TotDumpM,TotRecyM, TotBurnM, TotDumpM
- 88               FORMAT(16x,A12,3x,4(1E9.3,8x))
+ 88               FORMAT(16x,A,3x,4(1E9.3,8x))
                 else
                  IF (ZoneTot(1).GT.0) THEN
                    IF (M.eq.1) THEN
@@ -3662,13 +3714,15 @@ C Next Surface
                    TotMasDisp = 0.0
                  ENDIF
                    IF (M.eq.6) THEN
-                     WRITE (outs,685)CompoNam(ICurComp) , '-',
+                     lncompo=lnblnk(CompoNam(ICurComp))
+                     WRITE (outs,685)CompoNam(ICurComp)(1:lncompo),'-',
      &                        (ZoneTot(IY),IY=1,MIMP)
- 685                  FORMAT(1X, A27,A12, 4(3x,1E9.3))
+ 685                  FORMAT(1X,A,A, 4(3x,1E9.3))
                    ELSE                  
-                     WRITE (outs,85)CompoNam(ICurComp) ,TotMasDisp,
-     &                        (ZoneTot(IY),IY=1,MIMP)
- 85                  FORMAT(1X, A27, 5(3x,1E9.3))
+                     lncompo=lnblnk(CompoNam(ICurComp))
+                     WRITE (outs,85)CompoNam(ICurComp)(1:lncompo),
+     &                 TotMasDisp,(ZoneTot(IY),IY=1,MIMP)
+ 85                  FORMAT(1X, A, 5(3x,1E9.3))
                   ENDIF
                 endif
               ENDIF

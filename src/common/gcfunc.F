@@ -13,14 +13,12 @@ C warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
 C PURPOSE. See the GNU General Public License for more
 C details.
 
-C You should have received a copy of the GNU General Public
-C License along with ESP-r. If not, write to the Free
-C Software Foundation, Inc., 59 Temple Place, Suite 330,
-C Boston, MA 02111-1307 USA.
-
 C This file contains the following routines:
 C     MZGCTL: global control executive.
-C      CFFNGR: function generator.
+C     CFFNGR: function generator.
+
+C ************ MZGCTL *****************
+C Global control executive.
 
       SUBROUTINE MZGCTL
 
@@ -44,86 +42,89 @@ C Determine year day number of present day
       if(ihrp.eq.24)iday=idyf
 
       DO 100 IGL=1,ngf
-      igf=IGL
-C Set up day type and period pointers
-      NDAYT=NGCDT(igf)
-
-C If NDAYT=0 set data to all day types
-      NIN=0
-      IF(NDAYT.EQ.0)THEN
-        NDAYT=NBDAYTYPE
-        NIN=-1*NBDAYTYPE
-      ENDIF
-      DO 10 IDTYPG=1,NDAYT
-        IDS=IGCDV(igf,IDTYPG,1)
-        IDF=IGCDV(igf,IDTYPG,2)
-        IF(IDAY.GE.IDS.AND.IDAY.LE.IDF) GOTO 20
-   10 CONTINUE
-      WRITE(outs,*) ' MZGCTL: global control '
-      call edisp(iuout,outs)
-      WRITE(outs,*) '      no valid day type for year-day ',IDAY
-      call edisp(iuout,outs)
-      call edisp(iuout,
-     &       ' MZGCTL: cannot locate appropriate day type')
-      close(ieout)
-      CALL ERPFREE(ieout,ISTAT)
-      CALL EPAGEND
-      STOP
-
+        igf=IGL 
+        NDAYT=NGCDT(igf)  ! Set up day type and period pointers.
+        NIN=0             ! If NDAYT=0 set data to all day types.
+        IF(NDAYT.EQ.0)THEN
+          NDAYT=NBDAYTYPE
+          NIN=-1*NBDAYTYPE
+        ENDIF
+        do IDTYPG=1,NDAYT
+          IDS=IGCDV(igf,IDTYPG,1)
+          IDF=IGCDV(igf,IDTYPG,2)
+          if(IDAY.GE.IDS.AND.IDAY.LE.IDF)then
+            continue
+          else
+            WRITE(outs,*) ' MZGCTL: global control '
+            call edisp(iuout,outs)
+            WRITE(outs,*) '      no valid day type for year-day ',IDAY
+            call edisp(iuout,outs)
+            call edisp(iuout,
+     &        ' MZGCTL: cannot locate appropriate day type')
+            close(ieout)
+            CALL ERPFREE(ieout,ISTAT)
+            CALL EPAGEND
+            STOP
+          endif
+        enddo
 
 C Check number of periods in each day and the start and finish times
-   20 if(NIN.LE.-1.OR.ndayt.lt.1)idtypg=icalender(iday)
-      NDAYPG=NGCDP(igf,IDTYPG)
-      IF(NDAYPG.EQ.0) STOP ' MZGCTL: no day-periods defined'
-      DO 22 IDAYG=1,NDAYPG
-      IPERG=IDAYG
-      TPS=TGCPS(igf,IDTYPG,IDAYG)
-      IF(IDAYG.LT.NDAYPG) THEN
-         TPF=TGCPS(igf,IDTYPG,IDAYG+1)
-      ELSE
-         TPF=24.
-      END IF
+        if(NIN.LE.-1.OR.ndayt.lt.1)idtypg=icalender(iday)
+        NDAYPG=NGCDP(igf,IDTYPG)
+        IF(NDAYPG.EQ.0) STOP ' MZGCTL: no day-periods defined'
+        do IDAYG=1,NDAYPG
+          IPERG=IDAYG
+          TPS=TGCPS(igf,IDTYPG,IDAYG)
+          IF(IDAYG.LT.NDAYPG) THEN
+            TPF=TGCPS(igf,IDTYPG,IDAYG+1)
+          ELSE
+            TPF=24.
+          END IF
 
-      IF(btimef.GT.TPS.AND.btimef.LE.TPF) GOTO 30
-   22 CONTINUE
-      call edisp(iuout,' MZGCTL: cannot locate appropriate day-period')
-      close(ieout)
-      CALL ERPFREE(ieout,ISTAT)
-      CALL EPAGEND
-      STOP
+          IF(btimef.GT.TPS.AND.btimef.LE.TPF)then
+            continue
+          else
+            call edisp(iuout,
+     &        ' MZGCTL: cannot locate appropriate day-period')
+            close(ieout)
+            CALL ERPFREE(ieout,ISTAT)
+            CALL EPAGEND
+            STOP
+          endif
+        enddo
 
 C Valid period established; now invoke appropriate control law routine
 C Global control law 1: Global ON/OFF Controller.
-   30 IF(IGCLAW(igf,IDTYPG,IPERG).EQ.1)THEN
-         CALL GCL01
+        IF(IGCLAW(igf,IDTYPG,IPERG).EQ.1)THEN
+          CALL GCL01
 
 C Global control law 2: Global Capacity Management Controller.
-      ELSE IF(IGCLAW(igf,IDTYPG,IPERG).EQ.2)THEN
-         CALL GCL02
+        ELSE IF(IGCLAW(igf,IDTYPG,IPERG).EQ.2)THEN
+          CALL GCL02
 
 C Global control law 3: Global Schedule Controller.
-      ELSE IF(IGCLAW(igf,IDTYPG,IPERG).EQ.3)THEN
-         CALL GCL03
+        ELSE IF(IGCLAW(igf,IDTYPG,IPERG).EQ.3)THEN
+          CALL GCL03
 
 C Global control law 4: Global Free-float Controller.
-      ELSE IF(IGCLAW(igf,IDTYPG,IPERG).EQ.4)THEN
-         CALL GCL04
+        ELSE IF(IGCLAW(igf,IDTYPG,IPERG).EQ.4)THEN
+          CALL GCL04
    
 C Global control law 5: Global Multi-sensing Controller.
-      ELSE IF(IGCLAW(igf,IDTYPG,IPERG).EQ.5)THEN
-         CALL GCL05
+        ELSE IF(IGCLAW(igf,IDTYPG,IPERG).EQ.5)THEN
+          CALL GCL05
    
 C New global controllers inserted here!
-      ELSE
-        WRITE(outs,*) 'MZGCTL: invalid global control law ',
-     &    IGCLAW(igf,IDTYPG,IPERG),' has been referenced ',
-     &    igf,IDTYPG,IPERG
-        call edisp(iuout,outs)
-        close(ieout)
-        CALL ERPFREE(ieout,ISTAT)
-        CALL EPAGEND
-        STOP
-      END IF
+        ELSE
+          WRITE(outs,*) 'MZGCTL: invalid global control law ',
+     &      IGCLAW(igf,IDTYPG,IPERG),' has been referenced ',
+     &      igf,IDTYPG,IPERG
+          call edisp(iuout,outs)
+          close(ieout)
+          CALL ERPFREE(ieout,ISTAT)
+          CALL EPAGEND
+          STOP
+        END IF
 
  100  CONTINUE
 
@@ -131,8 +132,7 @@ C New global controllers inserted here!
       END
 
 C ******************** CFFNGR ********************
-
-C CFFNGR is a function generator.
+C Function generator - step, ramp, square waves, triangular waves, saw tooth. .
 
       SUBROUTINE CFFNGR(IFNC,TCTL)
 
@@ -152,238 +152,161 @@ C CFFNGR is a function generator.
 
 C Trace output
       IF(ITC.GT.0.AND.NSINC.GE.ITC.AND.NSINC.LE.ITCF.AND.
-     &   ITRACE(40).NE.0) THEN
-         CALL DAYCLK(IDYP,btimef,ITU)
-         WRITE(ITU,*) ' Entering subroutine CFFNGR'
+     &  ITRACE(40).NE.0) THEN
+        CALL DAYCLK(IDYP,btimef,ITU)
+        WRITE(ITU,*) ' Entering subroutine CFFNGR'
       END IF
 
-C Type 1: Step function generator.
-      if(ifnc.eq.1) then
+      if(ifnc.eq.1) then     ! Type 1: Step function generator.
+        start =cfgsd(icf,1)  ! Assign data as defined in table above.
+        finish=cfgsd(icf,2)
+        vmax  =cfgsd(icf,3)
+        vmin  =cfgsd(icf,4)
+        tctl=vmin            ! Determine function shape.
+        if(btimef.gt.start.and.btimef.lt.finish) tctl=vmax
 
-C Assign data as defined in table above.
-         start =cfgsd(icf,1)
-         finish=cfgsd(icf,2)
-         vmax  =cfgsd(icf,3)
-         vmin  =cfgsd(icf,4)
+      elseif(ifnc.eq.2) then ! Type 2: ramp function generator.
+        start =cfgsd(icf,1)  ! Assign data as defined in table above.
+        finish=cfgsd(icf,2)
+        vmax  =cfgsd(icf,3)
+        vmin  =cfgsd(icf,4)
+        tctl=vmin            ! Determine function shape.
+        if(btimef.gt.start.and.btimef.lt.finish) then
+          ratio=(vmax-vmin)/(finish-start) ! Calculate ratio for interpolation.
+          tctl=vmax-ratio*(finish-btimef)  ! Calculate value by interpolation.
+        endif
 
-C Determine function shape.
-         tctl=vmin
-         if(btimef.gt.start.and.btimef.lt.finish) tctl=vmax
-
-C Type 2: ramp function generator.
-      elseif(ifnc.eq.2) then
-
-C Assign data as defined in table above.
-         start =cfgsd(icf,1)
-         finish=cfgsd(icf,2)
-         vmax  =cfgsd(icf,3)
-         vmin  =cfgsd(icf,4)
-
-C Determine function shape.
-         tctl=vmin
-         if(btimef.gt.start.and.btimef.lt.finish) then
-
-C Calculate ratio for interpolation.
-            ratio=(vmax-vmin)/(finish-start)
-
-C Calculate value by interpolation.
-            tctl=vmax-ratio*(finish-btimef)
-         endif
-
-C Type 3: Square wave, sine series.
-      elseif(ifnc.eq.3) then
-
-C Assign data as defined in table above.
-         vmax=cfgsd(icf,1)
+      elseif(ifnc.eq.3) then     ! Type 3: Square wave, sine series.
+         vmax=cfgsd(icf,1)       ! Assign data as defined in table above.
          vmin=cfgsd(icf,2)
          freq=cfgsd(icf,3)
-
-C Find control period start and finish hour.
-         NDAYP=NBCDP(icf,IDTYP)
+         NDAYP=NBCDP(icf,IDTYP)  ! Find control period start and finish hour.
          TPS=TBCPS(icf,IDTYP,iper)
          IF(iper.LT.NDAYP) THEN
             TPF=TBCPS(icf,IDTYP,iper+1)
          ELSE
            TPF=24.
-         END IF
-
-C Find amplitude and mean value of wave.
-         amp=(vmax-vmin)/2.
+         END IF 
+         amp=(vmax-vmin)/2.      ! Find amplitude and mean value of wave.
          vmean=(vmax+vmin)/2.
-
-C Now evaluate sine series.
-         pi=4.0*atan(1.0)
+         pi=4.0*atan(1.0)        ! Now evaluate sine series.
          sinsum=0.0
          half=(tps+tpf)/2.0
          f=1.0
-
-C Approximate series with 100 terms.
-         do 10 iterm=1, 100
-            sinsum=1.0/f * sin((pi*btimef*f*freq/half))+sinsum
-            f=f+2.0
+         do 10 iterm=1, 100      ! Approximate series with 100 terms.
+           sinsum=1.0/f * sin((pi*btimef*f*freq/half))+sinsum
+           f=f+2.0
    10    continue
          tctl=sinsum*(4.0*amp)/pi+vmean
 
-C Type 4: Square wave, cosine series.
-      elseif(ifnc.eq.4) then
-
-C Assign data as defined in table above.
-         vmax=cfgsd(icf,1)
+      elseif(ifnc.eq.4) then     ! Type 4: Square wave, cosine series. 
+         vmax=cfgsd(icf,1)       ! Assign data as defined in table above.
          vmin=cfgsd(icf,2)
          freq=cfgsd(icf,3)
-
-C Find control period start and finish hour.
-         NDAYP=NBCDP(icf,IDTYP)
+         NDAYP=NBCDP(icf,IDTYP)  ! Find control period start and finish hour.
          TPS=TBCPS(icf,IDTYP,iper)
          IF(iper.LT.NDAYP) THEN
-            TPF=TBCPS(icf,IDTYP,iper+1)
+           TPF=TBCPS(icf,IDTYP,iper+1)
          ELSE
            TPF=24.
          END IF
-
-C Find amplitude and mean value of wave.
-         amp=(vmax-vmin)/2.
+         amp=(vmax-vmin)/2.      ! Find amplitude and mean value of wave.
          vmean=(vmax+vmin)/2.
-
-C Now evaluate sine series.
-         pi=4.0*atan(1.0)
+         pi=4.0*atan(1.0)        ! Now evaluate sine series.
          cossum=0.0
          half=(tps+tpf)/2.0
          f=1.0
          isign=1
-
-C Approximate series with 100 terms.
-         do 20 iterm=1, 100
-            cossum=isign * 1.0/f * cos((pi*btimef*f*freq/half))+cossum
-            f=f+2.0
-            isign=isign*(-1)
+         do 20 iterm=1, 100      ! Approximate series with 100 terms.
+           cossum=isign * 1.0/f * cos((pi*btimef*f*freq/half))+cossum
+           f=f+2.0
+           isign=isign*(-1)
    20    continue
          tctl=cossum*(4.0*amp)/pi+vmean
 
-C Type 5: Triangular wave.
-      elseif(ifnc.eq.5) then
-
-C Assign data as defined in table above.
-         vmax=cfgsd(icf,1)
+      elseif(ifnc.eq.5) then     ! Type 5: Triangular wave.
+         vmax=cfgsd(icf,1)       ! Assign data as defined in table above.
          vmin=cfgsd(icf,2)
          freq=cfgsd(icf,3)
-
-C Find control period start and finish hour.
-         NDAYP=NBCDP(icf,IDTYP)
+         NDAYP=NBCDP(icf,IDTYP)  ! Find control period start and finish hour.
          TPS=TBCPS(icf,IDTYP,iper)
          IF(iper.LT.NDAYP) THEN
-            TPF=TBCPS(icf,IDTYP,iper+1)
+           TPF=TBCPS(icf,IDTYP,iper+1)
          ELSE
            TPF=24.
          END IF
-
-C Find amplitude and mean value of wave.
-         amp=(vmax-vmin)/2.
+         amp=(vmax-vmin)/2.      ! Find amplitude and mean value of wave.
          vmean=(vmax+vmin)/2.
-
-C Now evaluate sine series.
-         pi=4.0*atan(1.0)
+         pi=4.0*atan(1.0)        ! Now evaluate sine series.
          cossum=0.0
          half=(tps+tpf)/2.0
          f=1.0
-
-C Approximate series with 100 terms.
-         do 30 iterm=1, 100
-            cossum=1.0/(f)**2 * cos((pi*btimef*f*freq/half))+cossum
-            f=f+2.0
+         do 30 iterm=1, 100      ! Approximate series with 100 terms.
+           cossum=1.0/(f)**2 * cos((pi*btimef*f*freq/half))+cossum
+           f=f+2.0
    30    continue
          tctl=cossum*(8.0*amp)/(pi)**2 +vmean
 
-C Type 6: Saw tooth wave.
-      elseif(ifnc.eq.6) then
-
-C Assign data as defined in table above.
-         vmax=cfgsd(icf,1)
+      elseif(ifnc.eq.6) then     ! Type 6: Saw tooth wave.
+         vmax=cfgsd(icf,1)       ! Assign data as defined in table above.
          vmin=cfgsd(icf,2)
          freq=cfgsd(icf,3)
-
-C Find control period start and finish hour.
-         NDAYP=NBCDP(icf,IDTYP)
+         NDAYP=NBCDP(icf,IDTYP)  ! Find control period start and finish hour.
          TPS=TBCPS(icf,IDTYP,iper)
          IF(iper.LT.NDAYP) THEN
-            TPF=TBCPS(icf,IDTYP,iper+1)
+           TPF=TBCPS(icf,IDTYP,iper+1)
          ELSE
            TPF=24.
          END IF
-
-C Find amplitude and mean value of wave.
-         amp=(vmax-vmin)/2.
+         amp=(vmax-vmin)/2.      ! Find amplitude and mean value of wave.
          vmean=(vmax+vmin)/2.
-
-C Now evaluate sine series.
-         pi=4.0*atan(1.0)
+         pi=4.0*atan(1.0)        ! Now evaluate sine series.
          sinsum=0.0
          half=(tps+tpf)/2.0
          f=1.0
          isign=1
-
-C Approximate series with 100 terms.
-         do 40 iterm=1, 100
-            sinsum=isign * 1.0/f * sin((pi*btimef*f*freq/half))+sinsum
-            f=f+1.0
-            isign=isign*(-1)
+         do 40 iterm=1, 100      ! Approximate series with 100 terms.
+           sinsum=isign * 1.0/f * sin((pi*btimef*f*freq/half))+sinsum
+           f=f+1.0
+           isign=isign*(-1)
    40    continue
          tctl=sinsum*(2.0*amp)/pi +vmean
 
-C Type 7: Sine wave.
-      elseif(ifnc.eq.7) then
-
-C Assign data as defined in table above.
+      elseif(ifnc.eq.7) then     ! Type 7: Sine wave.
          vmax=cfgsd(icf,1)
          vmin=cfgsd(icf,2)
          freq=cfgsd(icf,3)
          shift=cfgsd(icf,4)
-
-C Find control period start and finish hour.
-         NDAYP=NBCDP(icf,IDTYP)
+         NDAYP=NBCDP(icf,IDTYP)  ! Find control period start and finish hour.
          TPS=TBCPS(icf,IDTYP,iper)
          IF(iper.LT.NDAYP) THEN
-            TPF=TBCPS(icf,IDTYP,iper+1)
+           TPF=TBCPS(icf,IDTYP,iper+1)
          ELSE
            TPF=24.
          END IF
-
-C Find amplitude and mean value of wave.
-         amp=(vmax-vmin)/2.
-
-C Now evaluate sine series.
-         pi=4.0*atan(1.0)
+         amp=(vmax-vmin)/2.      ! Find amplitude and mean value of wave.
+         pi=4.0*atan(1.0)        ! Now evaluate sine series.
          half=(tps+tpf)/2.0
          tctl=amp*(sin(pi*freq*(btimef-shift)/half)+1.0) + vmin
 
-C Type 8: Cosine wave.
-      elseif(ifnc.eq.8) then
-
-C Assign data as defined in table above.
+      elseif(ifnc.eq.8) then     ! Type 8: Cosine wave.
          vmax=cfgsd(icf,1)
          vmin=cfgsd(icf,2)
          freq=cfgsd(icf,3)
          shift=cfgsd(icf,4)
-
-C Find control period start and finish hour.
-         NDAYP=NBCDP(icf,IDTYP)
+         NDAYP=NBCDP(icf,IDTYP)  ! Find control period start and finish hour.
          TPS=TBCPS(icf,IDTYP,iper)
          IF(iper.LT.NDAYP) THEN
-            TPF=TBCPS(icf,IDTYP,iper+1)
+           TPF=TBCPS(icf,IDTYP,iper+1)
          ELSE
            TPF=24.
          END IF
-
-C Find amplitude and mean value of wave.
-         amp=(vmax-vmin)/2.
-
-C Now evaluate sine series.
-         pi=4.0*atan(1.0)
+         amp=(vmax-vmin)/2.      ! Find amplitude and mean value of wave.
+         pi=4.0*atan(1.0)        ! Now evaluate sine series.
          half=(tps+tpf)/2.0
          tctl=amp*(cos(pi*freq*(btimef-shift)/half)+1.0) + vmin
 
-C Type 9: Use sensed property tctl.
-      elseif(ifnc.eq.9) then
+      elseif(ifnc.eq.9) then    ! Type 9: Use sensed property tctl.
          sclfac=cfgsd(icf,5)
          offset=cfgsd(icf,6)
          tctl=(sclfac*tctl)+offset
@@ -401,10 +324,9 @@ C Trace output
       return
       end
 
-C ******************** GCFVAR
-
-C GCFVAR determines the sensed condition associated
-C with the sensor defined for the global control function.
+C ******************** GCFVAR **************
+C Determine the sensed condition associated with the sensor
+C defined for the global control function.
 
       SUBROUTINE GCFVAR(GVAR)
 
@@ -775,9 +697,7 @@ C *******  GCL03 Global "Sequence On" Controller.
 
       logical global,glbrwd
 
-C nsloop = number of scheduled loops
-
-      nsloop=int(gmiscd(igf,IDTYPG,IPERG,2))
+      nsloop=int(gmiscd(igf,IDTYPG,IPERG,2)) !  nsloop = number of scheduled loops/
       SMALL=gmiscd(igf,IDTYPG,IPERG,3)
 
       if(ipassr.eq.1)then

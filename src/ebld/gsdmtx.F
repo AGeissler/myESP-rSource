@@ -13,11 +13,6 @@ C warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
 C PURPOSE. See the GNU General Public License for more
 C details.
 
-C You should have received a copy of the GNU General Public
-C License along with ESP-r. If not, write to the Free
-C Software Foundation, Inc., 59 Temple Place, Suite 330,
-C Boston, MA 02111-1307 USA.
-
 C *********************************************************************
 C This file contains the following 3D zone modelling routines:
 
@@ -40,7 +35,7 @@ C SAVE3D saves the multi-D and structured mesh system matrix coefficients.
 C *********************************************************************
 
 C **************************    INITST    *****************************
-C INITST initializes the structured gridding variables.
+C INITST initialises the structured gridding variables.
 C *********************************************************************
       SUBROUTINE INITST
 #include "building.h"
@@ -179,7 +174,7 @@ C Allow boundary condition only when it is defined at acceptable locations.
    63   CONTINUE
    60 CONTINUE
 
-C locate and number the nodes (by checking the control volumes).
+C Locate and number the nodes (by checking the control volumes).
       NST3F=0
       DO 70 IRow=2,NRow,2
       DO 70 ICol=2,NCol,2
@@ -187,7 +182,7 @@ C locate and number the nodes (by checking the control volumes).
         I=IGridN(IRow,ICol,ILay)
         IMat=IndSN(I)
 
-C When a material control volume is located number the associated
+C When a material control volume is located, number the associated
 C eight nodes if not numbered yet.
         IF(IMat.GT.0)THEN
 
@@ -267,7 +262,7 @@ C 8th node.
 
 C Fill up the internal surface node array.
 
-C Initialize the indices for the internal surface nodes.
+C Initialise the indices for the internal surface nodes.
       NTSNOD=0
       DO 210 IS=1,NCnst
         I1ST3F(IS)=1
@@ -575,7 +570,7 @@ C The plant term is located at the Y-th column (Y = X + 1), (However,
 C the plant term is know as -1, so it will not be actually saved).
 C The present term is located at the Z-th column (Z = Y + 1).
 
-c Initialize the storage variables.
+c Initialise the storage variables.
       DO 10 I=1,IAIR
         IFST(I)=0
    10 CONTINUE
@@ -596,7 +591,7 @@ C FIRST, consider only the imported component grids.
         Inod=IndSN(I)
         IF(Inod.GT.0)THEN
 
-C Initialize summation parameters.
+C Initialise summation parameters.
 C Current node future self coupling coefficent.
           SumNod=0.
 
@@ -662,7 +657,7 @@ C Add the shortwave absorption for tmc nodes.
             ENDIF
    40     CONTINUE
 
-C Update the future and present self coupling coefficents.
+C Update the future and present self-coupling coefficents.
           SumNod=SumNod/DTIME
           SumPrt=SumPrt+SumNod*T3F(Inod)
 
@@ -921,7 +916,7 @@ C External surface node.
         IN2=IN+1
         IL=1
 
-C Initialize the (future and present) self coupling terms.
+C Initialise the (future and present) self coupling terms.
         CALL CFFVLU(IN,IN,CFV,IPRV,LCTN)
         DELXL=THRMLI(IComp,IS,IL,4)/2.0
         Volm=Area*DELXL/2.0
@@ -970,7 +965,7 @@ C Continue with the second node in the first layer.
         IN1=IN-1
         IN2=IN+1
 
-C Initialize the self coupling term.
+C Initialise the self coupling term.
         CALL CFFVLU(IN,IN,CFV,IPRV,LCTN)
         Volm=Area*DELXL
         TERM=THRMLI(IComp,IS,IL,2)*THRMLI(IComp,IS,IL,3)*Volm/DTIME
@@ -1015,7 +1010,7 @@ C The current layer is an air gap.
 C If the previous layer was a solid.
             IF(IFLG.EQ.0)THEN
 
-C Initialize the self coupling term.
+C Initialise the self coupling term.
               CALL CFFVLU(IN,IN,CFV,IPRV,LCTN)
               CAP=THRMLI(IComp,IS,IP,2)*THRMLI(IComp,IS,IP,3)*
      &            (DELXP/2.)+1.3*1005.5*(DELXL/2.)
@@ -1047,7 +1042,7 @@ C Connection with the next inner node.
 C If the previous layer was an air gap also.
             ELSE
 
-C Initialize the self coupling term.
+C Initialise the self coupling term.
               CALL CFFVLU(IN,IN,CFV,IPRV,LCTN)
               CAP=1.3*1005.5
               TERM=CAP*Area*(DELXL+DELXL)/(2.0*DTIME)
@@ -1083,7 +1078,7 @@ C Continue with other nodes (homogeneous) in the air gap.
             IN1=IN-1
             IN2=IN+1
 
-C Initialize the self coupling term.
+C Initialise the self coupling term.
             CALL CFFVLU(IN,IN,CFV,IPRV,LCTN)
             CAP=1.3*1005.5
             TERM=CAP*Area*DELXL/DTIME
@@ -1119,7 +1114,7 @@ C The current layer is solid.
 C If the previous layer was solid.
             IF(IFLG.EQ.0)THEN
 
-C Initialize the self coupling term.
+C Initialise the self coupling term.
               CALL CFFVLU(IN,IN,CFV,IPRV,LCTN)
               CAP=THRMLI(IComp,IS,IP,2)*THRMLI(IComp,IS,IP,3)*(DELXP/2.)
      &           +THRMLI(IComp,IS,IL,2)*THRMLI(IComp,IS,IL,3)*(DELXL/2.)
@@ -1151,7 +1146,7 @@ C Connection with the next inner node.
 C If the previous layer was an air gap
             ELSE
 
-C Initialize the self coupling term.
+C Initialise the self coupling term.
               CALL CFFVLU(IN,IN,CFV,IPRV,LCTN)
               CAP=1.3*1005.5*(DELXP/2.)+THRMLI(IComp,IS,IL,2)*
      &            THRMLI(IComp,IS,IL,3)*(DELXL/2.)
@@ -1188,7 +1183,7 @@ C Continue with other nodes (homogeneous) in the layer.
             IN1=IN-1
             IN2=IN+1
 
-C Initialize the self coupling term.
+C Initialise the self coupling term.
             CALL CFFVLU(IN,IN,CFV,IPRV,LCTN)
             CAP=THRMLI(IComp,IS,IL,2)*THRMLI(IComp,IS,IL,3)
             TERM=CAP*Area*DELXL/DTIME
@@ -1224,7 +1219,7 @@ C Internal surface node
         IL=NELTS(IComp,IS)
         DELXL=THRMLI(IComp,IS,IL,4)/2.0
 
-C Initialize the self coupling term.
+C Initialise the self coupling term.
         CALL CFFVLU(IN,IN,CFV,IPRV,LCTN)
         Volm=Area*DELXL/2.0
         TERM=THRMLI(IComp,IS,IL,2)*THRMLI(IComp,IS,IL,3)*Volm/DTIME
@@ -1256,7 +1251,7 @@ C internal surface node.
         SLFC=CFV+TERM
         CALL UPDZMX(IN,IN,SLFC,IPRV,LCTN)
 
-C zone air node.
+C Zone air node.
         CALL CFFVLU(IAIR,IN,CFV,IPRV,LCTN)
         CRSC=-TERM
         CALL UPDZMX(IAIR,IN,CRSC,IPRV,LCTN)
@@ -1400,7 +1395,7 @@ c          CALL UPDZMX(ND1,ND1,FSLF,IPRV,LCTN)
       END
 
 C *************************    SVITS1    ******************************
-C SVITS1 solves the structured mesh zone matrix iterratively.
+C SVITS1 solves the structured mesh zone matrix iteratively.
 C *********************************************************************
       SUBROUTINE SVITS1(IComp)
 
@@ -1432,7 +1427,7 @@ C Define the location of the control sensor.
         ISNSR=IAIR
       ENDIF
 
-C Perform the iterartion.
+C Perform the iteration.
       DO 10 ITR=1,MSItrn
 
 C Set convergence parameters.
@@ -1495,7 +1490,7 @@ C Call subroutine if the current node is associated with the control function.
 
 C *************************    SVITS2    ******************************
 C SVITS2 solves the structured mesh zone matrix based on default 1D
-C        gridding iterratively.
+C        gridding iteratively.
 C *********************************************************************
       SUBROUTINE SVITS2(IComp)
 

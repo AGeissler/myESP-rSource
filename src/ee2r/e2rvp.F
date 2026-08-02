@@ -28,15 +28,16 @@ C ******* View cone for plan/elevation.
 #ifdef OSI
       integer igwid,igheight  ! for use with axiscale
       integer iupdown,isym    ! passed to etplot
-      integer iigl,iigr,iigt,iigb,iigw,iigwh
+      integer iigl,iigt,iigb,iigw,iigwh
 #else
       integer*8 igwid,igheight  ! for use with axiscale
       integer*8 iupdown,isym    ! passed to etplot
-      integer*8 iigl,iigr,iigt,iigb,iigw,iigwh
+      integer*8 iigl,iigt,iigb,iigw,iigwh
 #endif
 
 C Cast values for linscale.
-      iigl=igl;iigr=igr;iigt=igt;iigb=igb;iigw=igw;iigwh=igwh
+      iigl=igl;iigt=igt;iigb=igb;iigw=igw;iigwh=igwh
+C      iigl=igl;iigr=igr;iigt=igt;iigb=igb;iigw=igw;iigwh=igwh
 
 C Set the length of the viewcone according to the image.
       PI = 4.0 * ATAN(1.0)
@@ -138,11 +139,17 @@ C ******* Default views formation.
 
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
 
+      logical both_esp_wave      ! If true manage pair of scenes.
+      logical focus_espg         ! If true editing in context of ESP-r geometry
+      integer ipairedscene       ! Index of paired scene.
+      COMMON/ESPWAVE/both_esp_wave,focus_espg,ipairedscene(16)
+
       LOGICAL XST,OK
       logical addview   ! mark we are working a new view
       logical do_redraw
       logical short     ! for shorter format
       logical okfore,okaft ! for near zero cuts
+      logical dowave
 
       DIMENSION ITEM(21),IVALS(MCOM),VALT(20),IVALV(20)
 
@@ -160,12 +167,10 @@ C ******* Default views formation.
       integer igwid,igheight  ! for use with axiscale
       integer iupdown,isym    ! passed to etplot
       integer iigl,iigr,iigt,iigb,iigw,iigwh
-      integer iix,iiy,iixx,iiyy,iik
 #else
       integer*8 igwid,igheight  ! for use with axiscale
       integer*8 iupdown,isym    ! passed to etplot
       integer*8 iigl,iigr,iigt,iigb,iigw,iigwh
-      integer*8 iix,iiy,iixx,iiyy,iik
 #endif
 
       helpinsub='e2rvp'  ! set for subroutine
@@ -183,9 +188,20 @@ C then it is an update to an existing view.
       ier=0
       ITPPSW=3
 
-C First thing is to ask what zones to include
-C in the plan view.
-C If outside view then initially select all zones...
+C If Wavefront variant needed setup rifwave file name.
+      dowave=.false.
+      if(focus_espg.and.both_esp_wave)then
+        dowave=.true.
+      elseif(.NOT.focus_espg.and.both_esp_wave)then
+        dowave=.true.
+      elseif(focus_espg.and.(.NOT.both_esp_wave))then
+        dowave=.false.
+      elseif(.NOT.focus_espg.and.(.NOT.both_esp_wave))then
+        dowave=.false.
+      endif
+
+C First thing is to ask what zones to include in the
+C plan view. If outside view then initially select all zones...
       helptopic='view_form_creation'
       call gethelptext(helpinsub,helptopic,nbhelp)
       if(intext.eq.0)then
@@ -224,7 +240,7 @@ C adding in the ground disk.
         cy=YMN+((YMX-YMN)/2.)
         tXMN=cx-DD; tXMX=cx+DD; 
         tYMN=cy-DD; tYMX=cy+DD
-        tZMN=tZMN; tZMX=DD
+        tZMN=ZMN; tZMX=DD
       else   ! For plan view just do the extents.
         tXMN=XMN; tXMX=XMX
         tYMN=YMN; tYMX=YMX
@@ -233,8 +249,7 @@ C adding in the ground disk.
       MODBND=.FALSE.; MODLEN=.FALSE.
 
 C Pull up a list of views and ask user for which one. Include an additional
-C option for creation of a new view or importation of a rvu generated file.
-C << take account of length of rvewsh to allow more of vewcmds to display >>
+C options for creation of a new view or importation of a rvu generated file.
   142 do 333 iv=1,indxvew
         write(valt(iv),'(3a)') rvewsh(iv)(1:lnblnk(rvewsh(iv))),':',
      &                         vewcmds(iv)(1:16)
@@ -253,10 +268,11 @@ C << take account of length of rvewsh to allow more of vewcmds to display >>
         if(iw.eq.2)return
       endif
       ipckvew=IVALV(1)  ! remember the current view
+
+C Import a Radiance *.vew file.
       if(ipckvew.eq.indxvew+2)then
         addview = .true.
 
-C Ask for name vp file.
 C The X11 version will be returning only the name of the
 C file, while the GTK version will be returning the
 C name with the full path.
@@ -279,14 +295,6 @@ C name with the full path.
         XST=.false.
         INQUIRE (FILE=lltmp,EXIST=XST)
         if (XST)then
-
-C Check for file (add working dir path)
-C          write (lview,'(2a)') runpath(1:lnblnk(runpath)),
-C     &     lltmp(1:lnblnk(lltmp))
-
-C debug
-C          write(6,*) 'l144 ',l144(1:lnblnk(l144))
-C          write(6,*) 'lltmp ',lltmp(1:lnblnk(lltmp))
           CALL ERPFREE(ITA2,ISTAT)
 
 C Read a radiance view point file and make sure that the
@@ -329,7 +337,7 @@ C Internal view.
           endif
         else
           call edisp(iuout,'View file not found, returning.')
-          return
+          goto 142
         endif
 
         CALL EASKS(trvewsh,'Name for view?',' ',10,'vew1',
@@ -363,20 +371,30 @@ C else.
           ITPPSW=3
           if (SCENEPURP(ISCENE)(1:5).eq.'Glare') then
             vewtyp='h' ! fisheye
-            anght=180.0
-            angvt=180.0
+            anght=180.0; angvt=180.0
+            angh=180.0; angv=180.0
           else
             vewtyp='v' ! perspective
             anght=angh
             angvt=angv
           endif 
 
-C Internal view.
+C Internal view - also fisheye for Glare.
         else
           ITPPSW=0
           rvpx=tXMN+0.1  ! slightly inside room
           rvpy=tYMN+0.1
           rvpz=VIEWM(3) ! at room centre
+          if (SCENEPURP(ISCENE)(1:5).eq.'Glare') then
+            vewtyp='h' ! fisheye
+            anght=180.0; angvt=180.0
+            angh=180.0; angv=180.0
+          else
+            vewtyp='v' ! perspective
+            anght=angh
+            angvt=angv
+          endif 
+          
         endif
 
         CALL EASKS(trvewsh,'Name for view?',' ',10,'vew1',
@@ -439,8 +457,8 @@ C Set view type and angles.
           angh=90.0; angv=60.0
           if (SCENEPURP(ISCENE)(1:5).eq.'Glare') then
             vewtyp='h' ! fisheye
-            anght=180.0
-            angvt=180.0
+            anght=180.0; angvt=180.0
+            angh=180.0; angv=180.0
           else
             vewtyp='v' ! perspective
             anght=angh
@@ -539,8 +557,6 @@ C An in-line view command within the rif file.
           vewtyp(1:1)=word(4:4)
   42      CALL EGETW(OUTSTR,K,WORD,'-','command',IFLAG)
 
-C Debug.
-C          write(6,*) outstr
           IF(IFLAG.ne.0)goto 43
           if(word(1:3).eq.'-vp')then
             CALL EGETWR(OUTSTR,K,rvpx,0.,0.,'-','X view pt',IER)
@@ -614,7 +630,9 @@ C Reconstitute the viewing eye angle.
       elseif(ITPPSW.eq.3)then
         ITEM(3) =                 'c display >> perspective      '
       endif
-      ITEM(4) =                   '  __________________________  '
+      write(item(4),'(3a)') '  ____ ',trvewsh(1:lnblnk(trvewsh)),
+     &  '__________  '
+C      ITEM(4) =                   '  __________________________  '
       write(ITEM(5),'(A,3F6.1)')  'e eye @ :',rvpx,rvpy,rvpz
       write(ITEM(6),'(A,2F6.1)')  'f direc azi elv:',azimuth,elevtn
       write(ITEM(7),'(A,3F6.2)')  '  (vector):',vdx,vdy,vdz
@@ -635,7 +653,7 @@ C Reconstitute the viewing eye angle.
         vewtyp='v'
         write(ITEM(12),'(A)')     'k view type >> perspective'
       endif
-      ITEM(13) =                  '  ___site___________________  '
+      ITEM(13) =                  '  ____context_______________  '
       if(ITPPSW.eq.0)then
 
 C Plan view.
@@ -748,65 +766,9 @@ C Present list of views.
 
       elseif(INO.EQ.5)THEN
 
-C Eye Point...(assume begins at centre of zone).  Logic for
-C Picking on plan is faulty - comment out and just support
-C a direct edit.
+C Eye Point...(assume begins at centre of zone).
         if(ITPPSW.eq.0)then
           IEE=1
-C          CALL EASKMBOX(' Specify via: ',' ','editing',
-C     &     'pick on plan','ignore ?',' ',' ',' ',' ',' ',IEE,nbhelp)
-C          if(IEE.eq.3)then
-C            goto 10
-
-C Select point from plan or current perspective.
-C          elseif(IEE.eq.2)then
-C            call usrmsg(' ',' Select point via cursor...','-')
-C            igwid=igw
-C            igheight=igwh
-C            call axiscale(igwid,igheight,tXMN,tXMX,tYMN,tYMX,xsc,ysc,
-C     &        sca,Xadd,Yadd)
-C            call linescale(iigl,Xadd,sca,iigb,Yadd,sca)
-
-C            CALL trackview(iik,iix,iiy)
-C            ix=int(iix); iy=int(iiy)
-
-C Debug.
-C            write(6,*) 'axiscale ',igwid,igheight,tXMN,tXMX,tYMN,tYMX,
-C     &        xsc,ysc,sca,Xadd,Yadd
-C            write(6,*) 'trackview iix,iiy,ix,iy,igb,igl,ITPPSW',
-C     &        iix,iiy,ix,iy,igb,igl,ITPPSW
-C            write(6,*) 'diffs ',(iix-igl),(igb-iiy)
-
-C Transform back from mouse position to actual coordinate.
-C Note: the coordinate is an offset from the lower left corner
-C of the zone plan display and for zones which do not start at
-C the site origin we need to add in offsets.
-C            if(ITPPSW.eq.0)then
-C              ex=((FLOAT(iix-igl)/sca)-Xadd)+tXMN
-C              ey=((FLOAT(igb-iiy)/sca)-Yadd)+tYMN
-C            elseif(ITPPSW.eq.1)then
-C              ex=((FLOAT(iix-igl)/sca)-Xadd)+tXMN
-C              ey=((FLOAT(igb-iiy)/sca)-Yadd)+tZMN
-C            elseif(ITPPSW.eq.2)then
-C              ex=((FLOAT(iix-igl)/sca)-Xadd)+tYMN
-C              ey=((FLOAT(igb-iiy)/sca)-Yadd)+tZMN
-C            elseif(ITPPSW.eq.3)then
-C              ex=((FLOAT(iix-igl)/sca)-Xadd)+tXMN
-C              ey=((FLOAT(igb-iiy)/sca)-Yadd)+tYMN
-C            endif
-C            iupdown=0; isym=6
-C            call etplot(ex,ey,iupdown,isym)
-C            call forceflush()
-C            WRITE(outs,'(a,f7.3,a,f7.3)')'The point is at x=',ex,
-C     &                                   ' & y=',ey
-C            CALL EASKOK(outs,'View OK?',OK,nbhelp)
-C            IF(OK)then
-C              rvpx=ex; rvpy=ey
-C              vewdone=.false.; do_redraw =.true.
-C              MODLEN=.true.; MODIFYVIEW=.TRUE.
-C              rvpz=VIEWM(3)
-C            endif
-C          endif
         elseif(ITPPSW.eq.3)then
           CALL EASKMBOX(' Specify via: ',' ','editing',
      &      'accept current eyepoint','ignore ?',
@@ -839,7 +801,7 @@ C          endif
           helptopic='eyepoint_editing'
           call gethelptext(helpinsub,helptopic,nbhelp)
   55      WRITE(HOLD,'(3f9.3)')rvpx,rvpy,rvpz
-          CALL EASKS(HOLD,' Eye point  X  Y  Z (in metres): ',
+          CALL EASKS(HOLD,'Eye point  X  Y  Z (in metres):',
      &      '  ',28,' ','eye point coord',IER,nbhelp)
           K=0
           CALL EGETWR(HOLD,K,rvpx,-999.,999.,'W','X cord',IER)
@@ -967,7 +929,7 @@ C horiz axis...
         call gethelptext(helpinsub,helptopic,nbhelp)
         if(ITPPSW.eq.0)then
   41      WRITE(HOLD,'(1x,2f8.3)')tXMN,tXMX
-          CALL EASKS(HOLD,' East axis minimum and maximum: ',
+          CALL EASKS(HOLD,'East axis minimum and maximum: ',
      &      '  ',28,' ','east axis min-max',IER,nbhelp)
           K=0
           CALL EGETWR(HOLD,K,tXMN,-300.,300.,'W','X min',IER)
@@ -1134,8 +1096,20 @@ C Set up view bounds (for fisheye view).
 C Write both standard and wavefront versions of rif file.
         IFC=3
         call mkrif(ITA2,RIFNAME(ISCENE),IFC,0,'-',IER)
-        rifwave='obj.rif'
-        call mkrif(ITA2,rifwave,IFC,0,'w',IER)
+        if(dowave)then
+          if (SCENEPURP(ISCENE)(1:8).eq.'External')then
+            rifwave='obj_ex.rif'
+          elseif(SCENEPURP(ISCENE)(1:8).eq.'Internal')then
+            rifwave='obj_in.rif'
+          elseif(SCENEPURP(ISCENE)(1:5).eq.'Glare')then
+            rifwave='obj_gl.rif'
+          elseif (SCENEPURP(ISCENE)(1:8).eq.'Day_fact') then
+            rifwave='obj_df.rif'
+          else
+            rifwave='obj.rif'
+          endif
+          call mkrif(ITA2,rifwave,IFC,0,'w',IER)
+        endif
         if (NBSRIF(ISCENE).eq.1) then
           call mkrif(ita2,LBSRIF(ISCENE),IFC,1,'-',ier)
         endif

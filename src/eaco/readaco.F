@@ -94,14 +94,10 @@ C Specify the reading mode.
       ELSE
         IW = 1        
       ENDIF
-C      IF (ACOOK) then 
-C        WRITE (outs,'(a,a)')' Open ACO file: ',ACOName(1:lnblnk(ACOName))
-C        IF (IEask.NE.0) CALL EDISP(Iuout,outs)
-C      ENDIF
       CALL EFOPSEQ(IACO,ACOName,1,IER)
       IF (IER.LT.0) then
         WRITE (outs,'(a,a)')' Error while opening ACO file : ',
-     &                             ACOName(1:lnblnk(ACOName))
+     &    ACOName(1:lnblnk(ACOName))
         CALL EDISP(Iuout,Outs)
         IER=1
         RETURN
@@ -110,8 +106,8 @@ C      ENDIF
       ENDIF
       
       IF (ACOOK) then
+
 C Start reading the ACO file
-C        IF (IEask.NE.0) CALL EDISP(Iuout,' Start reading data.')
 C Read BCF header : version, date, system scope, lifetime information.
   42    CALL STRIPC(IACO,OUTSTR,99,ND,1,'ACO',IER)
         IF (IW.EQ.2) call edisp(iuout,OUTSTR) 
@@ -124,15 +120,13 @@ C Read BCF header : version, date, system scope, lifetime information.
           CALL EGETWI(OUTSTR,K,NbPublic,0,MaxPub,'W',
      &         'Nb of public type',IER)
           IF (IER .GE. 1) goto 666
+
 C Loop trough public information
 C Read number, type anf absorption coefficients
           DO 111 I=1,NbPublic
-          IF ((I.EQ.1) .AND. (IW.EQ.1)) THEN
-C            IF (IEask.NE.0) call edisp(iuout,' Read public block')
-          ENDIF
  
             CALL STRIPC(IACO,OUTSTR,99,ND,1,
-     &                   'public type information',IER)
+     &        'public type information',IER)
             IF (IW.EQ.2) call edisp(iuout,OUTSTR) 
             IF ((IER .GE. 1) .OR. (ND.NE.18)) THEN
               CALL ErrArgAco(0,OutStr,18,ND)
@@ -154,21 +148,15 @@ C            CALL ErrArg(0,OutStr,1,ND-1)
           ENDIF
           K=16
           CALL EGETWI(OUTSTR,K,NbFurnit,0,MaxFur,'W',
-     &         'Nb of public type',IER)
-
-
+     &      'Nb of public furniture type',IER)
           IF (IER .GE. 1) goto 666
+
 C Loop trough furniture information
 C Read type, category and absorption coefficients
           DO 211 I=1,NbFurnit
-          IF ((I.EQ.1) .AND. (IW.EQ.1)) THEN
-            IF (IEask.NE.0) THEN 
-C              call edisp(iuout,' Read furniture block')
-            ENDIF
-          ENDIF
  
             CALL STRIPC(IACO,OUTSTR,99,ND,1,
-     &                   'furniture type information',IER)
+     &        'furniture type information',IER)
             IF ((IER .GE. 1) .OR. (ND.NE.19)) THEN
               CALL ErrArgAco(0,OutStr,19,ND)
               GOTO 666         
@@ -181,7 +169,7 @@ C              call edisp(iuout,' Read furniture block')
             IF (IER .GE. 1) goto 666
             DO 221 J=1,MNbAbs
               CALL EGETWR(OutStr,K,FurAbsCo(I,J),0.0,2.0,'W',
-     &                  'furniture absorption coefficients',IER)
+     &          'furniture absorption coefficients',IER)
               IF (IER .GE. 1) goto 666 
 221         CONTINUE
 211       CONTINUE
@@ -213,7 +201,6 @@ C Close cfg file before exiting.
       goto 99
 
       END
-
 
 
 C ******************** SCNZONEACO ******************************
@@ -297,10 +284,6 @@ C Specify the reading mode.
         IW = 1        
       ENDIF
 
-      IF (ACOOK) then 
-C        WRITE (outs,'(a,a)')' Open ACO file: ',ACOName(1:lnblnk(ACOName))
-C        IF (IEask.NE.0) CALL EDISP(Iuout,outs)
-      ENDIF
       CALL EFOPSEQ(IACO,ACOName,1,IER)
       IF (IER.LT.0) then
         WRITE (outs,'(a,a)')' Error while opening ACO file : ',
@@ -313,9 +296,6 @@ C        IF (IEask.NE.0) CALL EDISP(Iuout,outs)
       ENDIF
       
       IF (ACOOK) then
-C Start reading the ACO file
-C        IF (IEask.NE.0) CALL EDISP(Iuout,
-C     &   ' Reading public and furniture information for selected zone')
 
 C Read ACO header : version, date, system scope, lifetime information.
   42    CALL STRIPC(IACO,OUTSTR,99,ND,1,'ACO',IER)
@@ -347,12 +327,8 @@ C Check if readed zone correspond to searched zone
               IF (IER .GE. 1) goto 666
 
               DO 111 I=1,NbPublic
-C                IF ((I.EQ.1) .AND. (IW.EQ.1)) THEN
-C                  IF (IEask.EQ.1) call edisp(iuout,' Read public block')
-C                ENDIF
- 
                 CALL STRIPC(IACO,OUTSTR,99,ND,1,
-     &                   'public type information',IER)
+     &            'public type information',IER)
                 IF (IW.EQ.2) call edisp(iuout,OUTSTR) 
                 IF ((IER .GE. 1) .OR. (ND.NE.2)) THEN
                   CALL ErrArgAco(0,OutStr,2,ND)
@@ -361,7 +337,7 @@ C                ENDIF
                 K=0
                 IF (IEask.EQ.2) call edisp(iuout,OUTSTR)
                 CALL EGETW(OUTSTR,K,TmpStr,'W',
-     &                    'public name',IER)
+     &            'public name',IER)
                 IndexPub(I)= IPubFur(1,TmpStr)
 
                 IF (IER .GE. 1) goto 666
@@ -382,14 +358,9 @@ C                ENDIF
               IF (IER .GE. 1) goto 666
 
               DO 121 I=1,NbFurnit
-C                IF ((I.EQ.1) .AND. (IW.EQ.1)) THEN
-C                  IF (IEask.EQ.1) THEN 
-C                    call edisp(iuout,' Read furniture block')
-C                  ENDIF
-C                ENDIF
  
                 CALL STRIPC(IACO,OUTSTR,99,ND,1,
-     &                   'furniture type information',IER)
+     &            'furniture type information',IER)
                 IF (IW.EQ.2) call edisp(iuout,OUTSTR) 
                 IF (IEask.EQ.3) call edisp(iuout,OUTSTR)
                 IF ((IER .GE. 1) .OR. (ND.NE.3)) THEN
@@ -398,7 +369,7 @@ C                ENDIF
                 ENDIF
                 K=0
                 CALL EGETW(OUTSTR,K,TmpStr,'W',
-     &                    'public name',IER)
+     &            'public name',IER)
                 IndexFur(I)= IPubFur(2,TmpStr)
                 IF (IER .GE. 1) goto 666
                 CALL EGETWR(OUTSTR,K,XNbFur(I),0.,1000.,'W',

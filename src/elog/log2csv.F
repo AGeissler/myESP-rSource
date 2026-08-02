@@ -2229,11 +2229,6 @@ C        write(6,'(a,I4)')string(I:I),ichar(string(I:I))
 
 
 C Dummy subroutines.
-      SUBROUTINE ADJVIEW(IER)
-      ier=0
-      return
-      end
-
       SUBROUTINE EMKVIEW(IUO,CFGOK,IER)
       logical cfgok
       ier=0

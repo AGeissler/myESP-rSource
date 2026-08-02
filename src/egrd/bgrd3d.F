@@ -1,11 +1,11 @@
 C This file is part of the ESP-r system.
 C Copyright Energy Systems Research Unit, University of
-C Strathclyde, Glasgow Scotland, 2001.
+C Strathclyde, Glasgow Scotland, 2001-.
 
 C ESP-r is free software.  You can redistribute it and/or
 C modify it under the terms of the GNU General Public
 C License as published by the Free Software Foundation 
-C (version 2 orlater).
+C (version 2 or later).
 
 C ESP-r is distributed in the hope that it will be useful
 C but WITHOUT ANY WARRANTY; without even the implied
@@ -13,7 +13,7 @@ C warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
 C PURPOSE. See the GNU General Public License for more
 C details.
 
-C *********************************************************************
+
 C This file contains the following subroutines:
 
 C MENU3D displays the multi-gridding menu.
@@ -26,10 +26,10 @@ C DFNCEC displays the edge-corner connections indices menu.
 C SELZON displays the zone selection menu.
 C READ3D reads 3D gridding configuration file.
 C SAVE3D saves 3D gridding configuration file.
-C *********************************************************************
+
 
 C ***************************  MENU3D  ********************************
-C MENU3D displays the multi-gridding menu.
+C Displays the multi-gridding menu.
 
       SUBROUTINE MENU3D(ITRC)
 #include "building.h"
@@ -43,6 +43,8 @@ C MENU3D displays the multi-gridding menu.
       COMMON/GR3D21/NUMEDG,INDXE(MEZ),DCOSE(MEZ,3,3)
       COMMON/GR3D31/NUMCRN,INDXC(MCZ),DCOSC(MCZ,3,3)
       COMMON/GR3D06/INDXSS(MSSZ),INDXSE(MSEZ),INDXEE(MEEZ),INDXEC(MECZ)
+
+C NUMSS NUMSE NUMEE NUMEC are counters for ??
       COMMON/GR3D51/NUMSS,IBDYSS(MSSZ,2),ILNBSS(MSSZ,2),IVRTSS(MSSZ,2)
       COMMON/GR3D56/NUMSE,IBDYSE(MSEZ,2),ILNBSE(MSEZ)
       COMMON/GR3D61/NUMEE,IBDYEE(MEEZ,2),IVRTEE(MEEZ)
@@ -53,12 +55,13 @@ C MENU3D displays the multi-gridding menu.
 
       LOGICAL ZONOK,OK,XST,SAVEOK
 
-      CHARACTER ITEM(15)*26,SZN*15
+      CHARACTER ITEM(15)*30,SZN*15
       CHARACTER*72 L3DCVS,L3DCNC,L3DNDC,L3DTAQ
+      character msg*96
       integer ier
-      integer MITEM,INO ! max items and current menu item
+      integer MITEM,INO         ! maximum items and current menu item
 
-      helpinsub='bgrd3d'  ! set for subroutine
+      helpinsub='bgrd3d'        ! set for subroutine
 
       SZN=' '
       IZ=0
@@ -68,26 +71,18 @@ C MENU3D displays the multi-gridding menu.
       SAVEOK=.FALSE.
 
 C General image option flags.
-      ITDSP=1
-      ITBND=1
-      ITEPT=0
-      ITZNM=1
-      ITSNM=1
-      ITVNO=0
-      ITORG=1
-      ITSNR=1
-      ITGRD=1
+      ITDSP=1; ITBND=1; ITEPT=0
+      ITZNM=1; ITSNM=0; ITVNO=0
+      ITORG=1; ITSNR=1; ITGRD=1
       GRDIS=0.0
       ITPPSW=0
 
-C Draw the complete building.
-      IDRW1=1
-      IDRW2=0
+      IDRW1=1; IDRW2=0  ! Draw the complete building.
       CALL GRAAPH(IDRW1,IDRW2)
 
 C Display the menu.
    10 INO=-3
-      WRITE(ITEM(1),'(A,A)')'1 Zone : ',SZN
+      WRITE(ITEM(1),'(A,A)')'1 Zone: ',SZN
       ITEM(2)='  ------------------------'
       ITEM(3)='2 Define components       '
       ITEM(4)='3 Define connections      '
@@ -114,68 +109,66 @@ C Draw the appropriate graph.
       CALL EMENU('   Multi-Gridding',ITEM,MITEM,INO)
       IF(.NOT.ZONOK.AND.((INO.GE.3.AND.INO.LE.6).OR.INO.EQ.13))THEN
 
-C Trap un-accepted options.
+C Trap unacceptable options.
         CALL USRMSG(' ','the zone should be defined first.','W')
       ELSEIF(.NOT.ZONOK.AND.INO.GE.8.AND.INO.LE.11)THEN
         CALL USRMSG(' ','the zone should be defined first.','W')
       ELSEIF(INO.EQ.1)THEN
 
-C Select the zone.
+C Select the zone and update the wireframe.
         IF(IDRW1.NE.1.OR.MODIFYVIEW)THEN
-          IDRW1=1
-          IDRW2=0
+          IDRW1=1; IDRW2=0
           CALL GRAAPH(IDRW1,IDRW2)
         ENDIF
         CALL SELZON(ITRC,SZN,ZONOK,IZ)
         IF(ZONOK)THEN
-          IDRW1=2
-          IDRW2=IZ
+          IDRW1=2; IDRW2=IZ  ! Focus on the zone.
           CALL GRAAPH(IDRW1,IDRW2)
         ENDIF
       ELSEIF(INO.EQ.3)THEN
 
-C Define components.
+C Define components (surfaces, edges, corners).
         CALL DFNCMP(IZ,SZN,IDRW1,IDRW2)
       ELSEIF(INO.EQ.4)THEN
 
-C Define connections.
+C Define connections (surface-surface, surface-edge etc.).
         CALL DFNCNC(IZ,SZN,IDRW1,IDRW2)
       ELSEIF(INO.EQ.5)THEN
 
-C create the default 1D mesh for the current zone.
-        DO 30 IS=1,NSUR
+C Create the default 1D mesh for the current zone.
+        DO IS=1,NSUR
           INDXS(IS)=1
-   30   CONTINUE
-        DO 40 IEG=1,NUMEDG
+        ENDDO
+        DO IEG=1,NUMEDG
           INDXE(IEG)=0
-   40   CONTINUE
-        DO 50 ICR=1,NUMCRN
+        ENDDO
+        DO ICR=1,NUMCRN
           INDXC(ICR)=0
-   50   CONTINUE
-        DO 60 ISS=1,NUMSS
+        ENDDO
+        DO ISS=1,NUMSS
           INDXSS(ISS)=0
-   60   CONTINUE
-        DO 70 ISE=1,NUMSE
+        ENDDO
+        DO ISE=1,NUMSE
           INDXSE(ISE)=0
-   70   CONTINUE
-        DO 80 IEE=1,NUMEE
+        ENDDO
+        DO IEE=1,NUMEE
           INDXEE(IEE)=0
-   80   CONTINUE
-        DO 90 IEC=1,NUMEC
+        ENDDO
+        DO IEC=1,NUMEC
           INDXEC(IEC)=0
-   90   CONTINUE
+        ENDDO
       ELSEIF(INO.EQ.6)THEN
 
-C create the default 3D mesh for the current zone.
-        DO 130 IS=1,NSUR
+C Create the default 3D mesh for the current zone.
+        DO IS=1,NSUR
           INDXS(IS)=3
-  130   CONTINUE
-        DO 140 IEG=1,NUMEDG
+        ENDDO
+        DO IEG=1,NUMEDG
           INDXE(IEG)=3
-  140   CONTINUE
-        DO 150 ICR=1,NUMCRN
+        ENDDO
+        DO ICR=1,NUMCRN
           INDXC(ICR)=3
-  150   CONTINUE
+        ENDDO
         DO 160 ISS=1,NUMSS
           INDXSS(ISS)=3
   160   CONTINUE
@@ -191,8 +184,11 @@ C create the default 3D mesh for the current zone.
       ELSEIF(INO.EQ.8)THEN
 
 C Create ESP-r 3D mesh.
-C Check if there are un-acceptable 3D gridding directives.
+C Check if there are unacceptable 3D gridding directives.
         CALL CHCK3D(IWRNG,IERRR)
+        write(msg,'(a,i3,a,i3,a)') 'Checking directives: ',IWRNG,
+     &   ' warnings &',IERRR,' errors found.'
+        call edisp(iuout,msg)
         IF(IERRR.LE.0)THEN
           IF(IWRNG.GT.0)THEN
             helptopic='grd_3d_conduc_warn'
@@ -260,11 +256,11 @@ C Project manager handles the utility files.
         ENDIF
       ELSEIF(INO.EQ.10)THEN
 
-C Save gridding information into a file.
+C Save gridding information to file.
         CALL SAVE3D(IZ)
       ELSEIF(INO.EQ.11)THEN
 
-C Read gridding from a file
+C Read gridding from file.
         CALL READ3D(IZ)
       ELSEIF(INO.EQ.MITEM-2)THEN
 
@@ -292,7 +288,7 @@ C Return to the main multi-gridding menu.
       END
 
 C ***************************    DFNCMP    ****************************
-C DFNCMP displays the components definition menu.
+C Displays the components definition menu.
 
       SUBROUTINE DFNCMP(IZ,SZN,IDRW1,IDRW2)
 #include "building.h"
@@ -301,7 +297,7 @@ C DFNCMP displays the components definition menu.
 
       DIMENSION ITEM(8)
 
-      CHARACTER ITEM*26,SZN*15
+      CHARACTER ITEM*30,SZN*15
       integer MITEM,INO  ! max items and current menu item
 
       helpinsub='bgrd3d'  ! set for subroutine
@@ -317,8 +313,7 @@ C DFNCMP displays the components definition menu.
       ITEM(8)='- Exit                    '
       MITEM=8
       IF(IDRW1.NE.2.OR.MODIFYVIEW)THEN
-        IDRW1=2
-        IDRW2=IZ
+        IDRW1=2; IDRW2=IZ  ! Focus on the zone.
         CALL GRAAPH(IDRW1,IDRW2)
       ENDIF
 
@@ -354,7 +349,7 @@ C Return to the main multi-gridding menu.
       END
 
 C **************************    DFNCNC     ****************************
-C DFNCNC displays the connections definition menu.
+C Displays the connections definition menu.
 
       SUBROUTINE DFNCNC(ICOMP,SZN,IDRW1,IDRW2)
 #include "building.h"
@@ -377,8 +372,7 @@ C DFNCNC displays the connections definition menu.
       ITEM(9)='- Exit                    '
       MITEM=9
       IF(IDRW1.NE.2.OR.MODIFYVIEW)THEN
-        IDRW1=2
-        IDRW2=ICOMP
+        IDRW1=2; IDRW2=ICOMP  ! Draw specific zone.
         CALL GRAAPH(IDRW1,IDRW2)
       ENDIF
 
@@ -419,7 +413,7 @@ C Return to the main multi-gridding menu.
       END
 
 C ****************************   DFNCSS    ****************************
-C DFNCSS displays the surface-surface connections indices menu.
+C Displays the surface-surface connections indices menu.
 
       SUBROUTINE DFNCSS
 #include "epara.h"
@@ -482,7 +476,7 @@ C Help for this menu.
       helptopic='surf_to_surf_menu'
       call gethelptext(helpinsub,helptopic,nbhelp)
 
-C Now display the menu.
+C Display the menu.
       CALL USRMSG(' ',' ','-')
       CALL EMENU('    surface-surface connections',
      &           VERT,MVERT,IVERT)
@@ -517,7 +511,7 @@ C Return to multi-gridding menu.
       END 
 
 C ****************************   DFNCSE    ****************************
-C DFNCSE displays the surface-edge connections indices menu.
+C Displays the surface-edge connections indices menu.
 
       SUBROUTINE DFNCSE(IZ)
 #include "epara.h"
@@ -550,8 +544,8 @@ C IVERT is the menu position, MVERT the current number of menu lines.
 C Initial menu entry setup.
    10 IVERT=-3
 
-C Loop through the items until the page to be displayed. M is the 
-C current menu line index. Build up text strings for the menu. 
+C Loop through the items until the page to be displayed. 'M' is 
+C the current menu line index. Build text strings for the menu. 
       M=MHEAD
       DO 20 L=1,ILEN
         IF(L.GE.IST.AND.(L.LE.(IST+MIFULL)))THEN
@@ -565,13 +559,13 @@ C current menu line index. Build up text strings for the menu.
           ENDIF
           IS1=IBDYSE(L,1)
           icon=IZSTOCN(iz,is1)
-          WRITE(ENAME,'(A6,I2,A1)')'edge (',IBDYSE(L,2),')'
-          WRITE(VERT(M),'(A1,1X,A12,A6,A9,1X,A5)')KEY,
+          WRITE(ENAME,'(A,I2,A1)')'edge (',IBDYSE(L,2),')'
+          WRITE(VERT(M),'(A,1X,A,A,A,1X,A)')KEY,
      &      SNAME(iz,is1),'<-->',ENAME,STTS
         ENDIF
    20 CONTINUE
 
-C Number of actual items displayed.
+C Number of items displayed.
       MVERT=M+MCTL
 
 C If a long list include page facility text.      
@@ -589,7 +583,7 @@ C Help text for this menu.
       helptopic='surf_to_edge_menu'
       call gethelptext(helpinsub,helptopic,nbhelp)
 
-C Now display the menu.
+C Display the menu.
       CALL USRMSG(' ',' ','-')
       CALL EMENU(' surface-edge connections',
      &           VERT,MVERT,IVERT)
@@ -647,7 +641,7 @@ C Return to multi-gridding menu.
       END 
 
 C ****************************   DFNCEE    ****************************
-C DFNCEE displays the edge-edge connections indices menu.
+C Displays the edge-edge connections indices menu.
 
       SUBROUTINE DFNCEE(IZ)
 #include "epara.h"
@@ -680,8 +674,8 @@ C IVERT is the menu position, MVERT the current number of menu lines.
 C Initial menu entry setup.
    10 IVERT=-3
 
-C Loop through the items until the page to be displayed. M is the 
-C current menu line index. Build up text strings for the menu. 
+C Loop through the items until the page to be displayed. 'M' is 
+C the current menu line index. Build text strings for the menu. 
       M=MHEAD
       DO 20 L=1,ILEN
         IF(L.GE.IST.AND.(L.LE.(IST+MIFULL)))THEN
@@ -698,7 +692,7 @@ C current menu line index. Build up text strings for the menu.
         ENDIF
    20 CONTINUE
 
-C Number of actual items displayed.
+C Number of items displayed.
       MVERT=M+MCTL
 
 C If a long list include page facility text.      
@@ -715,7 +709,7 @@ C Help for this menu.
       helptopic='edge_to_edge_menu'
       call gethelptext(helpinsub,helptopic,nbhelp)
 
-C Now display the menu.
+C Display the menu.
       CALL EMENU(' edge-edge',VERT,MVERT,IVERT)
 
 C Edit item identified by KEYIND.
@@ -736,7 +730,6 @@ C If there are enough items allow paging control via EKPAGE.
       ELSEIF(IVERT.EQ.(MVERT-2))THEN
 
 C List existing edges.
-C        CALL EPAGE
         CALL EDISP(IUOUT,
      &    ' No.  IV1   IV2   surface-1      surface-2      status')
         CALL EDISP(IUOUT,
@@ -772,7 +765,7 @@ C Return to multi-gridding menu.
       END 
 
 C ****************************   DFNCEC    ****************************
-C DFNCEC displays the edge-corner connections indices menu.
+C Displays the edge-corner connections indices menu.
 
       SUBROUTINE DFNCEC(IZ)
 #include "epara.h"
@@ -807,8 +800,8 @@ C IVERT is the menu position, MVERT the current number of menu lines.
 C Initial menu entry setup.
    10 IVERT=-3
 
-C Loop through the items until the page to be displayed. M is the 
-C current menu line index. Build up text strings for the menu. 
+C Loop through the items until the page to be displayed. 'M' is 
+C the current menu line index. Build text strings for the menu. 
       M=MHEAD
       DO 20 L=1,ILEN
         IF(L.GE.IST.AND.(L.LE.(IST+MIFULL)))THEN
@@ -827,7 +820,7 @@ C current menu line index. Build up text strings for the menu.
         ENDIF
    20 CONTINUE
 
-C Number of actual items displayed.
+C Number of items displayed.
       MVERT=M+MCTL
 
 C If a long list include page facility text.      
@@ -846,7 +839,7 @@ C Help text for this menu.
       helptopic='edge_to_corner_menu'
       call gethelptext(helpinsub,helptopic,nbhelp)
 
-C Now display the menu.
+C Display the menu.
       CALL EMENU(' edge-corner connections',VERT,MVERT,IVERT)
 
 C Edit item identified by KEYIND.
@@ -929,8 +922,9 @@ C Return to multi-gridding menu.
       GOTO 10
       END 
 
-C ***************************      SELZON     *************************
-C SELZON displays the zone selection menu.
+C *************************** SELZON *************************
+C Displays the zone selection menu.
+
       SUBROUTINE SELZON(ITRC,SZN,ZONOK,IZ)
 #include "building.h"
 #include "model.h"
@@ -958,7 +952,7 @@ C SELZON displays the zone selection menu.
 
       IUNIT=IFIL+2
 
-C Show the zone selection menu.
+C Show zone selection menu.
       helptopic='grd_sel_zone_menu'
       call gethelptext(helpinsub,helptopic,nbhelp)
       INPICK=1
@@ -972,10 +966,10 @@ C Show the zone selection menu.
         IF(IER.EQ.0)THEN
           ZONOK=.TRUE.
 
-C Initialize the multi-D gridding variables.
+C Initialise the multi-D gridding variables.
           CALL INGRD3
 
-C Create the default gridding for all the surfaces in the zone.
+C Create the default gridding for all surfaces in the zone.
           DO 30 IS=1,NSUR
 
 C Find MAX & MIN surface coordinates.
@@ -996,7 +990,7 @@ C Find MAX & MIN surface coordinates.
             ZMINS(IS)=ZMIN
             XMINS(IS)=XMIN
 
-C Define the local X,Y,and Z axes for the current surface.
+C Define the local X,Y and Z axes for the current surface.
             DO 50 I123=1,3
               DCOSS(IS,1,I123)=XP(I123)
               DCOSS(IS,2,I123)=YP(I123)
@@ -1020,16 +1014,15 @@ C Define the existing edges and corners.
 C Define all available connections.
           CALL INTCNC
 
-C Initialize the connections indentations.
+C Initialise the connections indentations.
           CALL INDCNC
 
-C Initialize the edges and corners gridding.
+C Initialise the edges and corners gridding.
           CALL INDEDG
           CALL INDCRN
         ELSE
           SZN=' '
-          CALL USRMSG(' Problem detected while trying',
-     &                ' to open zone geometry file.','W')
+          CALL USRMSG('Problem opening zone geometry file',' ','W')
           ZONOK=.FALSE.
         ENDIF
       ELSEIF(IZ.EQ.0)THEN
@@ -1042,8 +1035,9 @@ C Initialize the edges and corners gridding.
       RETURN
       END
 
-C ***************************     READ3D     **************************
-C READ3D reads 3D gridding configuration file.
+C *************************** READ3D **************************
+C Reads 3D gridding configuration file.
+
       SUBROUTINE READ3D(IZ)
 #include "building.h"
 #include "geometry.h"
@@ -1051,6 +1045,12 @@ C READ3D reads 3D gridding configuration file.
 
       COMMON/FILEP/IFIL
 
+C INDXS() is 1 for 1D grid, 3 for 3D grid (for each surface in zone)
+C THKS() ia surface thickness (m), DCOSS() local xyz axis.
+C NUMEDG number of edges (of what?), INDXE() 1=lumped 3=discretized
+C DCOSE() ?,
+C NUMCRN number of corners (of what?), INDXC() status 1=lumped 3=discretized
+C DCOSC() ?, INDXSE() status 0//1/3
       COMMON/GR3D01/INDXS(MS),THKS(MS),DCOSS(MS,3,3)
       COMMON/GR3D02/XVRT(MS,MVS),ZVRT(MS,MVS)
       COMMON/GR3D03/NLINB(MS),NLIND(MS),NLINA(MS)
@@ -1062,6 +1062,8 @@ C READ3D reads 3D gridding configuration file.
       COMMON/GR3D25/NDXE(MEZ),DXE(MEZ,MZE)
       COMMON/GR3D26/NDYE(MEZ),DYE(MEZ,MZE)
       COMMON/GR3D27/NDZE(MEZ),DZE(MEZ,MZE)
+
+C ITPEDG is thermal property type for each volume.
       COMMON/GR3D28/ITPEDG(MEZ,MZE,MZE,MZE)
       COMMON/GR3D31/NUMCRN,INDXC(MCZ),DCOSC(MCZ,3,3)
       COMMON/GR3D34/ISFCRN(MCZ,3),IVXCRN(MCZ)
@@ -1087,13 +1089,21 @@ C READ3D reads 3D gridding configuration file.
 C Open the file.
       helptopic='grd_3d_read_menu'
       call gethelptext(helpinsub,helptopic,nbhelp)
-      CALL EASKS(FILE3D,' 3D gridding configuration file name ?',' ',
-     &  72,' ',' 3D gridding file ',IER,nbhelp)
+      CALL EASKS(FILE3D,'3D gridding configuration file name?',' ',
+     &  72,' ','3D gridding file',IER,nbhelp)
       IUNIT=IFIL+1
       CALL EFOPSEQ(IUNIT,FILE3D,1,IER)
       IF(IER.LT.0)RETURN
 
-C For all surfaces.
+C For all surfaces. Example of the start of a *.c3d file:
+C #    SURFACES  ******
+C     10                   # total number of surfaces.
+C      1                   # surface number.
+C      8    16    22       # number of boundary & gridding vertices.
+C      0.000     0.000     # X & Z coordinates for vertex    1
+C      3.000     0.000     # X & Z coordinates for vertex    2
+C      3.000     2.200     # X & Z coordinates for vertex    3
+C  . . . 
       CALL STRIPC(IUNIT,STRG,1,ND,1,' No. of surfaces ',IER)
       K=0
       CALL EGETWI(STRG,K,NSURF,NSUR,NSUR,'F',' surfaces ',IER)
@@ -1112,6 +1122,13 @@ C For all surfaces.
           CALL EGETWR(STRG,K,XVRT(I,J),1.,2.,'-',' X ',IER)
           CALL EGETWR(STRG,K,ZVRT(I,J),1.,2.,'-',' Z ',IER)
    30   CONTINUE
+
+C Next section of a *.c3d file: in this case 8 lines of start & end pairs.
+C      8    16    19       # number of boundary & gridding lines.
+C      1   2   1   2       # start & end (mesh & geo.) vertices for line    1
+C      2   3   2   6       # start & end (mesh & geo.) vertices for line    2
+C      3   4   6   5       # start & end (mesh & geo.) vertices for line    3
+C . . .
         CALL STRIPC(IUNIT,STRG,3,ND,1,' No. of lines ',IER)
         K=0
         CALL EGETWI(STRG,K,NLINB(I),0,MLBS,'F',' boundary ',IER)
@@ -1125,6 +1142,12 @@ C For all surfaces.
           CALL EGETWI(STRG,K,ILINB(I,J,1),0,MTV,'W','start',IER)
           CALL EGETWI(STRG,K,ILINB(I,J,2),0,MTV,'W',' end ',IER)
    40   CONTINUE
+
+C Additional lines (in above example, line 9 to 19. Example:
+C     10   6               # start & end (mesh & geo.) vertices for line   10
+C     11   7               # start & end (mesh & geo.) vertices for line   11
+C     12   7               # start & end (mesh & geo.) vertices for line   12
+C . . . 
         DO 45 J=NLINB(I)+1,NLINA(I)
           CALL STRIPC(IUNIT,STRG,2,ND,1,' line ',IER)
           K=0
@@ -1133,7 +1156,18 @@ C For all surfaces.
    45   CONTINUE
    20 CONTINUE
 
-C For all the edges.
+C For all the edges. Example:
+C #    EDGES     ******
+C     17                                # total number of edges.
+C      1     2     6     1     2        # edge No., start & end vertices & surfaces.
+C      5     3     1                    # No. of DX, DY, & DZ.
+C # DX values.
+C     0.010    0.100    0.050    0.100    0.005
+C # DY values.
+C     0.010    0.150    0.010
+C # DZ values.
+C     2.200
+C  . . .
       CALL STRIPC(IUNIT,STRG,1,ND,1,' No. of edges ',IER)
       K=0
       CALL EGETWI(STRG,K,NEDG,NUMEDG,NUMEDG,'F',' edges ',IER)
@@ -1168,21 +1202,57 @@ C For all the edges.
         DO 57 IL=1,NE3
           CALL EGETWR(STRG,K,DZE(I,IL),1.,2.,'-',' DZ ',IER)
    57   CONTINUE
+
+C Loop for each ??  Example:
+C # thermal property type for each volume.
+C      1                                # level No.
+C     23    23    23    23    23
+C     23    23    23    23    23
+C     23    23    23    23    23
+C      2     6     5     1     5        # edge No., start & end vertices & surfaces.
+C      5     4     1                    # No. of DX, DY, & DZ.
+C  . . .
         DO 60 IL=1,NDZE(I)
           CALL STRIPC(IUNIT,STRG,1,ND,1,' DZ ',IER)
           K=0
           CALL EGETWI(STRG,K,IDZ,IL,IL,'F',' IZ ',IER)
-
-        DO 60 IY=NDYE(I),1,-1
-          CALL STRIPC(IUNIT,STRG,NE1,ND,1,' construction ',IER)
-          K=0
-
-        DO 60 IX=1,NDXE(I)
-          CALL EGETWI(STRG,K,ITPEDG(I,IX,IY,IL),0,1,'-',' ',IER)
+          DO IY=NDYE(I),1,-1  ! Loop downwards.
+            CALL STRIPC(IUNIT,STRG,NE1,ND,1,' construction ',IER)
+            K=0
+            DO IX=1,NDXE(I)
+              CALL EGETWI(STRG,K,ITPEDG(I,IX,IY,IL),0,1,'-',' ',IER)
+            ENDDO
+          ENDDO
    60   CONTINUE
   50  CONTINUE
 
-C For all the corners.
+C For all the corners. Example:
+C #    CORNERS   ******
+C      8                                # total number of corners.
+C      1     1     1     6     8        # corner No., vertex No. and surfaces.
+C      5     7     5                    # total number of DX,DY & DZ.
+C # DX values.
+C     0.010    0.100    0.050    0.100    0.005
+C # DY values.
+C     0.006    0.019    0.050    0.020    0.150    0.150    0.250
+C # DZ values.
+C     0.010    0.100    0.050    0.100    0.005
+C # thermal property type for each volume.
+C      1                                # level No.
+C     23    23    23    23    23
+C     23    23    23    23    23
+C     23    23    23    23    23
+C     23    23    23    23    23
+C     23    23    23    23    23
+C     23    23    23    23    23
+C     23    23    23    23    23
+C # thermal property type for each volume.
+C      2                                # level No.
+C     23    23    23    23    23
+C     23    23    23    23    23
+C     23    23    23    23    23
+C     23    23    23    23    23
+C . . .
       CALL STRIPC(IUNIT,STRG,1,ND,1,' No. of corners ',IER)
       K=0
       CALL EGETWI(STRG,K,NCRN,NUMCRN,NUMCRN,'F',' corners ',IER)
@@ -1221,19 +1291,19 @@ C For all the corners.
           CALL STRIPC(IUNIT,STRG,1,ND,1,' IZ ',IER)
           K=0
           CALL EGETWI(STRG,K,IDZ,IL,IL,'F',' IZ ',IER)
-
-        DO 90 IY=NDYC(I),1,-1
-          CALL STRIPC(IUNIT,STRG,NE1,ND,1,' construction ',IER)
-          K=0
-
-        DO 90 IX=1,NDXC(I)
-          CALL EGETWI(STRG,K,ITPCRN(I,IX,IY,IL),0,1,'-',' ',IER)
+          DO IY=NDYC(I),1,-1
+            CALL STRIPC(IUNIT,STRG,NE1,ND,1,' construction ',IER)
+            K=0
+            DO IX=1,NDXC(I)
+              CALL EGETWI(STRG,K,ITPCRN(I,IX,IY,IL),0,1,'-',' ',IER)
+            ENDDO
+          ENDDO
    90   CONTINUE
   80  CONTINUE
 
 C Read the 3D status for each component and connection surface.
-C Older versions of 3D configuration files do not have this, so if line
-C does not exist assume the default status.
+C Older versions of 3D configuration files do not have this, so
+C if the line does not exist assume the default.
 
 C For all surfaces.
       I2=0
@@ -1378,8 +1448,9 @@ C For all edge-corner connection surfaces.
       RETURN
       END
 
-C ****************************    SAVE3D   ****************************
-C SAVE3D saves 3D gridding configuration file.
+C **************************** SAVE3D ****************************
+C Saves the 3D gridding configuration file.
+
       SUBROUTINE SAVE3D(IZ)
 #include "building.h"
 #include "geometry.h"

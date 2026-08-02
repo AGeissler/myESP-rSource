@@ -368,7 +368,7 @@ C redraw the model image.
 C (Re)set all surfaces to standard line width.
             CALL INLNST(1)
             izgfoc=0
-            CALL redraw(IER)
+            call redraw(IER)
           endif
 
 C Redraw the configuration buttons.
@@ -421,18 +421,24 @@ C the older format.
           goto 89
         endif
 
-C Check connections file.
+C Check connections file. If icfgv is 5 and usecurcfg is 1
+C then can be set to 'internal' and the attributes
+C written into the cfg file.
         if(ncon.gt.1)then
   289     write(DCNN,'(a,a)')cfgroot(1:lnblnk(cfgroot)),'.cnn'
-          if(LCNN(1:1).eq.' ')LCNN=DCNN
-          ltmp=LCNN
-          CALL EASKS(ltmp,' ','Surface connections file name?',
-     &      72,DCNN,'surface connx file name',IER,nbhelp)
-          if(ltmp(1:2).ne.'  '.and.ltmp(1:4).ne.'UNKN')then
-            LCNN=ltmp
+          if(icfgv.gt.4.and.usecurcfg.eq.1)then
+            write(LCNN,'(a)') 'internal'
           else
-            call usrmsg('Please re-enter the file name. ',' ','W')
-            goto 289
+            if(LCNN(1:1).eq.' ')LCNN=DCNN
+            ltmp=LCNN
+            CALL EASKS(ltmp,' ','Surface connections file name?',
+     &        72,DCNN,'surface connx file name',IER,nbhelp)
+            if(ltmp(1:2).ne.'  '.and.ltmp(1:4).ne.'UNKN')then
+              LCNN=ltmp
+            else
+              call usrmsg('Please re-enter the file name. ',' ','W')
+              goto 289
+            endif
           endif
         endif
 
@@ -471,6 +477,9 @@ C Technical domains associated with the model.
           if(ok)then
             indcfg=isindcfg-1
             call usrmsg('Updating model domains ...',' ','-')
+C Debug.
+C      write(6,*) 'EDCFG icfgv usecurcfg',icfgv,usecurcfg,cnndisagree,
+C     &  ' ',LCNN(1:lnblnk(LCNN))
             CALL EMKCFG('s',IER)
             call usrmsg('Updating model domains ...done.',' ','-')
           endif
@@ -753,6 +762,7 @@ C that prjfmk is not being called from the versioning facility.
 C Determine if another zone is requested.
           IC=-1
           GOTO 250
+
         ELSEIF(IW.EQ.3)THEN airflowtype
           if(IAIRN.eq.0)then  ! none defined
 
@@ -871,7 +881,8 @@ C or bi-directional windows or doors at the outside.
                      if(SUSE(iz,is,2)(1:4).eq.'OPEN')then
                        isopen=.true.
                      elseif(SUSE(iz,is,2)(1:5).eq.'BIDIR'.or.
-     &                      SUSE(iz,is,2)(1:10).eq.'AJAR-BIDIR')then
+     &                      SUSE(iz,is,2)(1:10).eq.'AJAR-BIDIR'.or.
+     &                      SUSE(iz,is,2)(1:8).eq.'AJAR-BID')then
                        isbi=.true.
                      endif
                    elseif(SUSE(iz,is,1)(1:5).eq.'FRAME'.or.
@@ -891,7 +902,8 @@ C or bi-directional windows or doors at the outside.
                      elseif(SUSE(iz,is,2)(1:4).eq.'SASH')then
                        isopen=.true.    ! AND there will be two connections to control!
                      elseif(SUSE(iz,is,2)(1:5).eq.'BIDIR'.or.
-     &                      SUSE(iz,is,2)(1:10).eq.'AJAR-BIDIR')then
+     &                      SUSE(iz,is,2)(1:10).eq.'AJAR-BIDIR'.or.
+     &                      SUSE(iz,is,2)(1:8).eq.'AJAR-BID')then
                        isbi=.true.
                      endif
                   elseif(SUSE(iz,is,1)(1:4).eq.'FICT')then
@@ -1067,6 +1079,12 @@ C There was a legacy file and the user wants to work with it.
         elseif((IW.eq.4.and.(.NOT.XSTL)).or.
      &         (IW.EQ.5.and.XSTL))then airflowtype
 
+C << TODO >>
+C The following block of code is largely a duplicate of the code
+C block near line 700. Alternatively, clear the flow common blocks
+C unset the file names, and ask the user to reselect flow from the menu.
+
+
 C User asked for a new flow network, confirm their approach.
 C Look and see if any surfaces have USE attributes. If so
 C ask user if they want to scan otherwise ask user text or graphic.
@@ -1133,6 +1151,11 @@ C not clash with it so make a *g.afn variant.
               endif
             endif
           else
+
+C Ask user preferences for flow component attributes. Set global defaults.
+            proceed=.false.
+            call globalflowprefs(proceed,ier)
+            if(.NOT.proceed) goto 3
 
 C Build flow network from zone and surface attributes.
             call scan_flow_use()
@@ -1852,7 +1875,7 @@ C redraw the model image.
 C (Re)Set all surfaces to standard line width.
           CALL INLNST(1)
           izgfoc=0
-          CALL redraw(IER)
+          call redraw(IER)
         endif
         if(MMOD.eq.8)then
           call redrawbuttons()
@@ -2132,7 +2155,7 @@ C Act on the omit transform request.
             if(ier.ne.0)goto 243
           endif
 
-C Record rotation information in rotateit array.
+C Record rotation information.
           CALL EASKOK(' ','Rotate copied zone?',OKZR,nbhelp)
           if(OKZR)then
             VAL=0.
@@ -2197,7 +2220,7 @@ C Act on the omit transform request.
               if(ier.ne.0)goto 244
             endif
 
-C Record rotation information in rotateit array.
+C Record rotation information.
             CALL EASKOK(' ','Rotate copied zone(s)?',OKZR,nbhelp)
             if(OKZR)then
               VAL=0.
@@ -3126,9 +3149,15 @@ C Also scan utility files if they exist.
 
         LTMP=' '    ! reset return string
         call edisp(iuout,'  ')  ! echo a blank line
+#ifdef OSX
         CALL EASKXORGTKF(LCMDFL,
      &    ' ','Configuration file?',
      &    DFCFG,LTMP,'model config file name',IER,nbhelp)
+#else
+        CALL EASKXFWIN(LCMDFL,
+     &    ' ','Configuration file?',
+     &    DFCFG,LTMP,'model config file name',IER,nbhelp)
+#endif
 
 C Cancel request, return and ensure that the calling
 C routine deals with the -3 ier passed back.
@@ -3770,13 +3799,9 @@ C copy # of plant component nodes from bps to prj commons
         ENDIF
 
 C We know how many zone so use ZDATA to finish instantiating the
-C common blocks for:
-C   szcoords : X,Y & Z coordinates of each vertice in zone.
-C   isznver : number of vertices associated with each surface.
-C   iszjvn : topology of vertices.
+C common blocks for the whole model.
         NZONES=NCOMP
-        ISFSUM=0
-        CALL ZDATA (ITRC,IER,NZONES,ISFSUM)
+        CALL ZDATA (ITRC,IER,NZONES)
 
 C If there is a ground topology read it.
         if(GTGEOM(1:2).eq.'  '.or.GTGEOM(1:4).eq.'UNKN')then
@@ -3917,7 +3942,7 @@ C mode (with blanks for the parameters).
         call clrprb
         root=' '
         mpath=' '
-        menu=' '
+        menu='This model...'
         call pregist('i ',root,mpath,menu,ier)
         IF(IER.LT.0)RETURN
 
@@ -4370,6 +4395,9 @@ C Scan the zone geometry and apply transform.
             X(I)=X(I)+VALX
             Y(I)=Y(I)+VALY
             Z(I)=Z(I)+VALZ
+            szcoords(IICOMP,I,1)=szcoords(IICOMP,I,1)+VALX
+            szcoords(IICOMP,I,2)=szcoords(IICOMP,I,2)+VALY
+            szcoords(IICOMP,I,3)=szcoords(IICOMP,I,3)+VALZ
    62     continue
           iZBFLG(IICOMP)=0
 
@@ -4395,12 +4423,12 @@ C then write out the updated geometry.
             newgeo = .true.
           endif
           if(newgeo)then
-            call geowrite(IUF,LTMP,IICOMP,ITRU,3,IER)
+            call geowrite2(IUF,LTMP,IICOMP,ITRU,3,IER)
           else
             call emkgeo(IUF,LTMP,IICOMP,3,IER)
           endif
 
-C After transform update the g6 & g7 commons and find dependencies.
+C After transform update the commons and find dependencies.
           call zgupdate(0,IICOMP,ier)
           call zinfo(iicomp,zoa,zvol,'q')
 
@@ -4466,7 +4494,7 @@ C newer geometry file also update the block attributes held there.
                 CALL EMKMRT(LVIEW(IICOMP),LGEOM(IICOMP),
      &                      NZSUR(IICOMP),IUF,IICOMP,'v',IER)
                 if(newgeo)then
-                  call geowrite(IUF,LTMP,IICOMP,ITRU,3,IER)
+                  call geowrite2(IUF,LTMP,IICOMP,ITRU,3,IER)
                 endif
               endif
             endif
@@ -4528,7 +4556,7 @@ C apply the transform and write the file back out.
                     enddo
                   endif
   64            continue
-                call geowrite(IUF,LTMP,IICOMP,ITRU,3,IER)
+                call geowrite2(IUF,LTMP,IICOMP,ITRU,3,IER)
               endif
             endif
           endif
@@ -4553,9 +4581,6 @@ C   izlistnb - the number of selected zones
 C   izlist - an array holding the zones to rotate
 C   silent - if true, do not ask user about rotations
 C            of obstruction data.
-
-C Stores the rotation directives in the rotateit array so
-C that this action can be undone.
 
       subroutine globalrotate(val,x1,y1,izlistnb,izlist,silent,itru,ier)
       implicit none
@@ -4588,7 +4613,7 @@ C that this action can be undone.
       character ZN*12
       character outs*124
       logical OK,goforit
-      integer itrc,iuf,iicomp,ij,iz
+      integer itrc,iuf,iicomp,ij,iz,iv
       integer ibe   ! loop for faces of obstruction
       real A,pi,XR,YR,XXX,YYY,CA,SA
       real angr   ! rotation angle
@@ -4613,6 +4638,11 @@ C Find out version number so we know if upgrade required.
           call eclose(gversion(IICOMP),1.1,0.01,newgeo)
           call georead(IUF,LTMP,IICOMP,1,iuout,IER)
           CALL ESCROT(VAL,x1,y1)
+          do iv=1,NTV
+            szcoords(iicomp,iv,1)=x(iv)
+            szcoords(iicomp,iv,2)=y(iv)
+            szcoords(iicomp,iv,3)=z(iv)
+          enddo
           iZBFLG(IICOMP)=0
   
           if(nbvis(iicomp).gt.0)then
@@ -4638,21 +4668,17 @@ C Visual object rotation.
             enddo    ! of ij
           endif
 
-C Remember user directive for future un-do.
-          rotateit(iicomp,1)=0.0
-          rotateit(iicomp,2)=0.0
-          rotateit(iicomp,3)=0.0
           if(igupgrade.eq.2.and.(.NOT.newgeo))then
             gversion(iicomp) =1.1
             newgeo = .true.
           endif
           if(newgeo)then
-            call geowrite(IUF,LTMP,IICOMP,ITRU,3,IER)
+            call geowrite2(IUF,LTMP,IICOMP,ITRU,3,IER)
           else
             call emkgeo(IUF,LTMP,IICOMP,3,IER)
           endif
 
-C After transform update the g6 & g7 commons and find dependencies.
+C After transform update the commons and find dependencies.
           call zgupdate(0,IICOMP,ier)
           call zinfo(iicomp,zoa,zvol,'q')
 
@@ -4721,7 +4747,7 @@ C geometry file update its block attributes as well.
                 CALL EMKMRT(LVIEW(IICOMP),LGEOM(IICOMP),
      &                      NZSUR(IICOMP),IUF,IICOMP,'v',IER)
                 if(newgeo)then
-                  call geowrite(IUF,LTMP,IICOMP,ITRU,3,IER)
+                  call geowrite2(IUF,LTMP,IICOMP,ITRU,3,IER)
                 endif
               endif
             endif
@@ -4801,7 +4827,7 @@ C apply the transform and write the file back out.
                     YBP(iicomp,ij,ibe)=YR+Y1
   90              continue
   87            continue
-                call geowrite(IUF,LTMP,IICOMP,ITRU,3,IER)
+                call geowrite2(IUF,LTMP,IICOMP,ITRU,3,IER)
                 write(outs,'(3a)') ' Rotating: ',zn(1:lnblnk(zn)),
      &            '... done.'
                 if(.NOT.silent)CALL USRMSG(' ',outs,'-')
@@ -4880,6 +4906,9 @@ C Find out the version number so we know what to do with obstructions later.
             X(I)=X(I)*VALX
             Y(I)=Y(I)*VALY
             Z(I)=Z(I)*VALZ
+            szcoords(IICOMP,I,1)=szcoords(IICOMP,I,1)+VALX
+            szcoords(IICOMP,I,2)=szcoords(IICOMP,I,2)+VALY
+            szcoords(IICOMP,I,3)=szcoords(IICOMP,I,3)+VALZ
    62     continue
           iZBFLG(IICOMP)=0
   
@@ -4904,12 +4933,12 @@ C Decide whether to upgrade the geometry file format.
             newgeo = .true.
           endif
           if(newgeo)then
-            call geowrite(IUF,LTMP,IICOMP,ITRU,3,IER)
+            call geowrite2(IUF,LTMP,IICOMP,ITRU,3,IER)
           else
             call emkgeo(IUF,LTMP,IICOMP,3,IER)
           endif
 
-C After scaling update the g6 & g7 commons and find dependencies.
+C After scaling update the commons and find dependencies.
           call zgupdate(0,IICOMP,ier)
           call zinfo(iicomp,zoa,zvol,'q')
 
@@ -4938,7 +4967,7 @@ C            NCUB(IICOMP) = 0
                 CALL EMKMRT(LVIEW(IICOMP),LGEOM(IICOMP),
      &                      NZSUR(IICOMP),IUF,IICOMP,'v',IER)
                 if(newgeo)then
-                  call geowrite(IUF,LTMP,IICOMP,ITRU,3,IER)
+                  call geowrite2(IUF,LTMP,IICOMP,ITRU,3,IER)
                 endif
               endif
             endif
@@ -4992,7 +5021,7 @@ C apply the scaling to their origins and write the file back out.
                     ZBP(iicomp,ij,ibe)=ZBP(iicomp,ij,ibe)*VALZ
   89              continue
   64            continue
-                call geowrite(IUF,LTMP,IICOMP,ITRU,3,IER)
+                call geowrite2(IUF,LTMP,IICOMP,ITRU,3,IER)
               endif
             endif
           endif

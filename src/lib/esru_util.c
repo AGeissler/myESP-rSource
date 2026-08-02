@@ -505,6 +505,25 @@ void getfileslist_(folder,act,nflist,lenfolder,lenact)
       } else if(strcmp("gif",act2)== 0) { /* If request for gif images only, then build this list. */
         if (strstr(dirt->d_name,".gif")) foundone = 1;
         if (strstr(dirt->d_name,".GIF")) foundone = 1;
+      } else if(strcmp("png",act2)== 0) { /* If request for png images only, then build this list. */
+        if (strstr(dirt->d_name,".png")) foundone = 1;
+        if (strstr(dirt->d_name,".PNG")) foundone = 1;
+      } else if(strcmp("jpg",act2)== 0) { /* If request for png images only, then build this list. */
+        if (strstr(dirt->d_name,".jpg")) foundone = 1;
+        if (strstr(dirt->d_name,".jpeg")) foundone = 1;
+        if (strstr(dirt->d_name,".JPG")) foundone = 1;
+        if (strstr(dirt->d_name,".JPEG")) foundone = 1;
+      } else if(strcmp("any",act2)== 0) { /* If request for jpg gif png images, then build this list. */
+        if (strstr(dirt->d_name,".xbm")) foundone = 1;
+        if (strstr(dirt->d_name,".XBM")) foundone = 1;
+        if (strstr(dirt->d_name,".gif")) foundone = 1;
+        if (strstr(dirt->d_name,".GIF")) foundone = 1;
+        if (strstr(dirt->d_name,".png")) foundone = 1;
+        if (strstr(dirt->d_name,".PNG")) foundone = 1;
+        if (strstr(dirt->d_name,".jpg")) foundone = 1;
+        if (strstr(dirt->d_name,".jpeg")) foundone = 1;
+        if (strstr(dirt->d_name,".JPG")) foundone = 1;
+        if (strstr(dirt->d_name,".JPEG")) foundone = 1;
       } else if(strcmp("ipv",act2)== 0) { /* If request for IPV definitions only, then build this list. */
         if (strstr(dirt->d_name,".ipv")) foundone = 1;
         if (strstr(dirt->d_name,".IPV")) foundone = 1;

@@ -49,6 +49,7 @@ C                           furniture
 #include "help.h"
       
       integer lnblnk  ! function definition
+      integer igraphiclib  ! external definition
 
 C Commons for I/O Channel, mode type and fonts.
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
@@ -105,6 +106,7 @@ C ACO specific commons
 
       COMMON/AbsCHAR/PubType(MaxPub),FurType(MaxFur),FurCat(MaxFur)
       COMMON/Zones/TxtZone
+      CHARACTER TxtZone*12
 
 C 3D visualisation mode.
       COMMON/MODVIS/IVISMOD
@@ -118,7 +120,11 @@ C Name of current application
 
 C Ask to overwrite flag.
       COMMON/OVRWT/AUTOVR
-      logical AUTOVR      
+      logical AUTOVR
+ 
+      COMMON/Trev/Divis(MNbAbs),SurfEquM(MS,MNbAbs), SEquM(MS,MNbAbs), 
+     &            SurfEquP(MaxPub,MNbAbs), SurfEquF(MaxFur,MNbAbs),
+     &            SurfEquT(MNbAbs), SurfTot, TReverb(MNbAbs), Tmean
 
       LOGICAL CFGOK,MLDBOK,MATDBOK,CTLOK,OPTKOK,ACOOK,CFCDBOK
       LOGICAL XST,BCFOK,unixok
@@ -131,7 +137,7 @@ C Ask to overwrite flag.
       CHARACTER inf*144,LCMDFL*144
       CHARACTER*72 path
       CHARACTER fs*1,outsd*124
-      CHARACTER TxtZone*72,CLMRF*72,TTmp*72
+      CHARACTER CLMRF*72,TTmp*72
       CHARACTER CalcName*12,DESCR*7,DESCR1*10,DESCR2*8 
       CHARACTER tg*1,delim*1,xfile*144,LabFreq*4
       CHARACTER PubType*12,FurType*12,FurCat*4,CovSurf*12
@@ -189,13 +195,10 @@ C CFClayers on channel IFIL+12.
       icfcdb = ifil + 12
       write(LCFCDB,'(a)') DCFCDB(1:lnblnk(DCFCDB))
 
-C ECO initialiastion <<hard coded for the atrium ofd the EOS example
-C to be revised >>
-C      BCFNAME = 'EOS.bcf'
-C      ACOName =  'EOS_Aco.aco'
+C ECO initialiastion.
       BCFNAME = 'UNKNOWN'
       ACONAME = 'UNKNOWN'
-      DFCFG ='new.cfg'
+      DFCFG ='UNKNOWN'
       CLMRF =' '
       DBCFNAM = '../dbm/test.bcf'
       DACONam =  './EOS_Aco.aco'
@@ -213,14 +216,9 @@ C Set folder separator (fs) to \ or / as required.
       write(path,'(2a)')'.',fs
 
 C Set defaults.
-      CFGOK=.FALSE.
-      MLDBOK=.FALSE.
-      MATDBOK=.FALSE.
-      CTLOK=.FALSE.
-      OPTKOK=.FALSE.
-      MODIFYVIEW=.FALSE.
-      MODLEN=.FALSE.
-      MODBND=.FALSE.
+      CFGOK=.FALSE.; MLDBOK=.FALSE.; MATDBOK=.FALSE.; CTLOK=.FALSE.
+      OPTKOK=.FALSE.;
+      MODIFYVIEW=.FALSE.; MODLEN=.FALSE.; MODBND=.FALSE.
       XST=.FALSE.
       LCFGF ='UNKNOWN'
       TxtZone='UNKNOWN'
@@ -255,17 +253,10 @@ C Initialise coordinates for eye point, view point and angle of view.
       IVISMOD=1
 
 C General image option flags.
-      ITDSP=0
-      ITBND=1
-      ITEPT=0
-      ITZNM=0
-      ITSNM=1
-      ITVNO=1
-      ITORG=0
-      ITSNR=0
-      ITOBS=0
-      ITGRD=0
-      GRDIS=0.0
+      ITDSP=0; ITBND=1; ITEPT=0
+      ITZNM=0; ITSNM=1; ITVNO=1
+      ITORG=0; ITSNR=0; ITOBS=0
+      ITGRD=0; GRDIS=0.0
       ITPPSW=0
 
 C ier is standard error check variable. 0=OK
@@ -279,10 +270,10 @@ C Interface setup, initialise output device, assume minimal trace.
         iappx=30
         iappy=30
       else
-        if(iappx.lt.0)iappx=10
-        if(iappy.lt.0)iappy=10
+        if(iappx.le.0)iappx=30
+        if(iappy.le.0)iappy=30
         if(iappw.le.200)then
-          iappwi=int(660*iappw*0.01)
+          iappwi=int(670*iappw*0.01)
           iappw=iappwi
         elseif(iappw.gt.200)then
           continue
@@ -306,13 +297,13 @@ C Set pixels high to iappw and pixels wide to factor in monitor size.
 
 C Set initial font sizes (IMFS is for menus, IFS is for dialog & ITFS text feedback).
 C Fonts 4-7 are proportional and 0-3 are fixed width. Use proportional for menus
-C and dialog.
+C and dialog. So reports line up use fixed width in text feedback.
         IMFS=5
         IFS=5
 #ifdef OSX
         IFS=4  ! use a smaller dialog font
 #endif
-        ITFS=4
+        ITFS=1
         call userfonts(IFS,ITFS,IMFS)
         call defaultfonts(IFS,ITFS,IMFS)  ! and remember these as defaults
       ELSE
@@ -322,7 +313,7 @@ C and dialog.
 
 C Find the current ESP-r version number and add it to application title.
       call ESPrVersionNum(cVnum)
-      write(pagestitle,'(2a)') 'Acoustic module of ESP-r ',
+      write(pagestitle,'(2a)') 'ESP-r Acoustic module ',
      &  cVnum(1:lnblnk(cVnum))
 
       lntitle=lnblnk(pagestitle)
@@ -354,11 +345,7 @@ C Setup and pass in parameters to win3d.
         endif
         call setzscale()
         call setgscale()
-        mdispl=0
-        nifgrey=0
-        ncset=0
-        ngset=0
-        nzonec=0
+        mdispl=0; nifgrey=0; ncset=0; ngset=0; nzonec=0
         call foundcolour(mdispl,nifgrey,ncset,ngset,nzonec)
         call startbuffer()
       ENDIF
@@ -374,7 +361,7 @@ C Find the user's home folder then get users custom settings.
       endif
       call scesprc(esprc,IFIL+1,0,IIER)
 
-C Scan the defaults file for default configuration.
+C Scan the defaults file silently for default configuration.
 C Make temporary use of file unit IFIL+1.
       call escdef(IFIL+1,'s',IER)
 
@@ -404,9 +391,8 @@ C Take `c' command line file name, convert to fortran string LCMDFL.
         LCMDFL='UNKNOWN'
       endif
 
-C If an input file has been specified then load and display it
-C and then present the main menu. Derive master geometric data
-C set for wireframe drawing.
+C If an input file has been specified then load,derive geometric
+C properties, display it and then present the main menu.
   42  XST=.false.
       INQUIRE (FILE=LCMDFL,EXIST=XST)
       if(XST)then
@@ -414,10 +400,9 @@ C set for wireframe drawing.
         call usrmsg('Scanning supplied problem...',' ','-')
         MODE='NONE'
         CALL ERSYS(LCFGF,IFCFG,IUF,MODE,0,IER)
-        call usrmsg('Scanning supplied problem...done.',' ','-')
         if(IER.eq.0)then
           NZONES=NCOMP
-          CALL ZDATA (ITRC,IER,NZONES,ISFSUM)
+          CALL ZDATA (ITRC,IER,NZONES)
           CFGOK=.TRUE.
           MODIFYVIEW=.TRUE.
           MODBND=.TRUE.
@@ -432,25 +417,23 @@ C set for wireframe drawing.
  444      CONTINUE
 
 C (Re)Set all surfaces to std line width.
-          CALL INLNST(1)
-          izgfoc=0
-          if(initvt.eq.1)then
-            EYEM(1)=EYEMI(1)
-            EYEM(2)=EYEMI(2)
-            EYEM(3)=EYEMI(3)
-            VIEWM(1)=VIEWMI(1)
-            VIEWM(2)=VIEWMI(2)
-            VIEWM(3)=VIEWMI(3)
-            ANG=ANGI
+          if(MMOD.EQ.8)then
+            CALL INLNST(1)
+            izgfoc=0
+            if(initvt.eq.1)then
+              EYEM(1)=EYEMI(1); EYEM(2)=EYEMI(2); EYEM(3)=EYEMI(3)
+              VIEWM(1)=VIEWMI(1); VIEWM(2)=VIEWMI(2); VIEWM(3)=VIEWMI(3)
+              ANG=ANGI
+            endif
+            CALL redraw(IER)
           endif
-          CALL redraw(IER)
 
 C Open core of databases.
           call module_opendb(ier)
           if(ier.ne.0)then
             call usrmsg(
      &        'Possible problems with one or more of the',
-     &        'construction and optical databases - Please check.','W')
+     &        'construction and optical databases, please check.','W')
             ier = 0
           endif
         endif
@@ -499,9 +482,9 @@ C If BCF and ACO file supply, just read them
 
 C Main Menu
 10    INO = -4
-      write(ITEM(1),'(A,A22)')   'a problem : ',LCFGF(1:22)
-      write(ITEM(2),'(A,A25)')   '  Path : ',path(1:25)
-      write(ITEM(3),'(A,A25)')   'b BCF  : ',BCFName(1:25)
+      write(ITEM(1),'(A,A22)')   'a problem: ',LCFGF(1:22)
+      write(ITEM(2),'(A,A25)')   '  Path: ',path(1:25)
+      write(ITEM(3),'(A,A25)')   'b BCF: ',BCFName(1:25)
       write(ITEM(4),'(A,A25)')   'c ACO  : ',ACOName(1:25)
       ITEM(5)=                 '  ---------- Zones --------------  '
       write(ITEM(6),'(A)')   'd zone(s) to include '
@@ -682,12 +665,10 @@ C If file exists then open it.
                IER=1
                goto 10
              ELSE
-               FMax=0.
-               FMin=1.
-               TTMax=-100.
-               TMin=100.
-               RHMax=0.
-               RHMin=100.
+               FMax=0.; FMin=1.
+               TTMax=-100.; TMin=100.
+               RHMax=0.; RHMin=100.
+
 C Read contents
                WRITE (outs,'(4(a, 5x))')'Time step','Temp. [C]',
      &                                         ' RH [%]', 'M [m-1]'
@@ -790,9 +771,9 @@ C Select/change BCF file.
         helptopic='model_bcf_file_name'
         call gethelptext(helpinsub,helptopic,nbhelp)
   288   IF (BCFOK) THEN
-          call easkmbox('A buiding construction file is loaded.',
-     &      'Options:','use it','load another','cancel',
-     &      ' ',' ',' ',' ',' ',Iw,nbhelp)
+          call easkmbox('A BCF of the current problem is loaded.',
+     &     'Options:','use it','load another','cancel',
+     &     ' ',' ',' ',' ',' ',Iw,nbhelp)
           if(iw.eq.3)then
             goto 10
           elseif(iw.eq.2)then
@@ -825,7 +806,7 @@ C Attempt to read in the BCF file.
           call usrmsg(outs,' ','-')
           CALL SCNBCF(IBCF,BCFName,IER)
           IF (IER .GT. 0) THEN 
-            CALL EDISP(iuout,'Loading constructions not completed..')
+            CALL EDISP(iuout,'Loading BCF not completed.')
             BCFOK=.FALSE.
             BCFNAME='UNKNOWN'
             GOTO 10
@@ -900,6 +881,7 @@ C Attempt to read in the BCF file.
       elseif (INO.eq.6) then 
 
 C Display Zones list if project loaded and wait for INIPIC item selected.
+C Zoneslist fills gzonpik.
         IF (CFGOK) THEN
           CALL Zoneslist
           IF (izgfoc.EQ.0) THEN
@@ -925,11 +907,13 @@ C Display Zones list if project loaded and wait for INIPIC item selected.
   41        continue
           ENDIF
             
-C update menu text and public/furniture display
-          call znlist(outsd,len,ierr) 
-          Length = MIN0(len,100)
-          TxtZone=outsd(1:Length)
-          call scnzoneaco(TxtZone,0,IER)
+C Update menu text and public/furniture display. Note: scnzoneaco
+C Is expecting a single zone name.
+          do ixd=1,NZG
+            ic=NZNOG(ixd)
+            TxtZone=zname(NZNOG(ixd))
+            call scnzoneaco(TxtZone,0,IER)
+          enddo
         ELSE
           call edisp(iuout,' No project has been loaded.')        
         ENDIF
@@ -938,14 +922,26 @@ C update menu text and public/furniture display
 
 C Display public list if zone contains more than one public type
         IF (ACOOK) THEN
-          call scnzoneaco(TxtZone,2,IER)
+          if(NZG.gt.0)then
+            do ixd=1,NZG
+              ic=NZNOG(ixd)
+              TxtZone=zname(NZNOG(ixd))
+              call scnzoneaco(TxtZone,2,IER)
+            enddo
+          endif
         ENDIF
         GOTO 10
       elseif (INO.eq.8) then 
 
 C Display furniture list if project loaded and wait for INIPIC item selected.
         IF (ACOOK) THEN
-          call scnzoneaco(TxtZone,3,IER)
+          if(NZG.gt.0)then
+            do ixd=1,NZG
+              ic=NZNOG(ixd)
+              TxtZone=zname(NZNOG(ixd))
+              call scnzoneaco(TxtZone,3,IER)
+            enddo
+          endif
         ENDIF
         GOTO 10
       ELSEIF (INO.EQ.17) THEN
@@ -953,11 +949,21 @@ C Display furniture list if project loaded and wait for INIPIC item selected.
 C Test if input Ok before calculation and
 C start reverberation time calculation and display results
         IF ((izgfoc .GT. 0).AND.(BCFOk)) THEN
-          write(outs,'(2a)')' Reverberation time for: ', TxTZone
-          call edisp(iuout,outs)
-          call scnaco(0,IER)
-          call scnzoneaco(TxtZone,0,IER)
-          call DispTRev(IDisp,IOctave,ISE,MethodRT,IAirAb, iuout)
+          do ixd=1,NZG
+            ic=NZNOG(ixd)
+            TxtZone=zname(ic)
+            write(outs,'(2a)')' Reverberation time for: ', TxTZone
+            call edisp(iuout,outs)
+            call scnaco(0,IER)
+            call scnzoneaco(TxtZone,0,IER)
+            call DispTRev(IDisp,IOctave,ISE,MethodRT,IAirAb, iuout)
+          enddo
+
+C After displaying information reset divis (sum of absorption).
+          do I=1,MNbAbs
+            Divis(I)= 0.0
+            SurfEquT(I)= 0.0
+          enddo
         ELSE
           IF (.NOT. BCFOk) THEN
             call edisp(iuout,' No selected BCF. Please, try again.')
@@ -976,9 +982,7 @@ C Return to main menu.
 
 C ************* imgdisp *************
 C Dummy routine (needed for call back from c).
-
       subroutine imgdisp(iforce,focus,ier)
-
       character focus*4
      
       return

@@ -15,13 +15,14 @@ C details.
 
 
 C Subroutines:
-C  STNDRDS - read standards model description file
+C  STNDRDS - read BESTEST standards model description file
 C  RUNSTD - read model details and run simulations
 C  dotdatrecover - recover results and compare against known results
 
 C ********* STNDRDS
-C STNDRDS - Scan the validation models file, parse information and offer the user
-C selection of or information about one or more of these.
+C STNDRDS - Scan the validation models file [stds_list] in the distribution
+C [models/validation] folder, parse information and offer the 
+C user a selection of or information about one or more of these.
 C iexfil is the file unit number.
 C exfil is the validation models file name. 
       subroutine STNDRDS
@@ -56,6 +57,10 @@ C gh() is array of help entries.
       integer*8 impx,impy,iwe
 #endif
 
+      helpinsub='stndrds'  ! set for subroutine
+      helptopic='standards-overview'
+      call gethelptext(helpinsub,helptopic,nbhelp)
+
 C vldfl is set in startup.F
       currentfile='  '
       XST=.false.
@@ -65,7 +70,6 @@ C vldfl is set in startup.F
 
 C Debug.
 C          write(6,*) vldfl
-
           call edisp(iuout,'No standards list available (file missing)')
           call edisp(iuout,'returning to main menu.')
           return
@@ -150,10 +154,6 @@ C use vwmenu or emenu depeding on graphic or text display.
       gitem(inl+5)=  '- exit menu'
       NCOG=inl+5
 
-C Help @ validation list file level.
-      h(1)='These BESTEST sets support ESP-r self-testing and'
-      h(2)='support an evaluation of the impact of the changes'
-      h(3)='inherent in any new release.'
       IW=0
       do 141 ij=1,NCOG
         IW=max(lnblnk(gitem(ij)),IW)
@@ -179,14 +179,15 @@ C Exit.  Close file and return to calling menu.
       ELSEIF(ICOG.EQ.(NCOG-1))THEN
 
 C Display help messages.
-        CALL PHELPD('validation list menu',3,'-',0,0,IER)
+        CALL PHELPD('validation list menu',nbhelp,'-',0,0,IER)
       ELSEIF(ICOG.EQ.(NCOG-3))THEN
 
 C Automatically run all of the available models.
-        h(1)=' Results can be displayed or saved to file.'
+        helptopic='standards-reporting'
+        call gethelptext(helpinsub,helptopic,nbhelp)
         irpt=1
         CALL EASKMBOX(' ','Reporting to:','file',
-     &     'screen','cancel',' ',' ',' ',' ',' ',irpt,1)
+     &     'screen','cancel',' ',' ',' ',' ',' ',irpt,nbhelp)
         if(irpt.ne.3)then
           do 200 IGRP=1,NGR
             TGROUP=group(IGRP)
@@ -269,6 +270,8 @@ C irecdata - zone and surface number for results recovery (=0 if all)
       logical mlcok,bndryok,bndrysxc,confok,geofok,oprfok,prob
       logical tmcok,shdok
       integer irpt  ! for radio button
+
+      helpinsub='stndrds'  ! set for subroutine
 
       call isunix(unixok)  ! Detect if linux and find user folder.
       odir=' '
@@ -411,11 +414,10 @@ C processed.
       INPIC=INM 
 
       if (IFLG.eq.0) then
-        H(1)='Select one or more tests from this group.  The selection'
-        H(2)='will be simulated and the results compared to the stored '
-        H(3)='results. '
+        helptopic='standards-which'
+        call gethelptext(helpinsub,helptopic,nbhelp)
         CALL EPICKS(INPIC,itemval,' ',' Which tests?',
-     &            IW,INM,name,'test list',IER,3)
+     &            IW,INM,name,'test list',IER,nbhelp)
       endif
 
 C Check models have been selected.
@@ -438,12 +440,11 @@ C Process selected models.
  999  continue
 
       if (IRPT.eq.0) then
-        h(1)=' Results can be either displayed or saved in'
-        h(2)=' a text file.'
-        h(3)=' Cancel to quit analysis.'
+        helptopic='standards-reporting'
+        call gethelptext(helpinsub,helptopic,nbhelp)
         irpt=1
         CALL EASKMBOX(' Reporting to:',' ','file',
-     &     'screen','cancel',' ',' ',' ',' ',' ',irpt,3)
+     &     'screen','cancel',' ',' ',' ',' ',' ',irpt,nbhelp)
       endif
       if (irpt.eq.1) then
  9      itu=ixunit
@@ -755,7 +756,7 @@ C read the data in the column identified above (ICOL).
           iv=0
           call EGETWI(outstr,K,iv,0,0,'-','iget number',IER)
           call EGETWI(outstr,K,izone,0,0,'-','zone number',IER)
-          call EGETWI(outstr,K,isurf,0,0,'-','zone number',IER)
+          call EGETWI(outstr,K,isurf,0,0,'-','surf number',IER)
           
 C Loop through all nmet possibilities.
           do 130 im=1,nmet
@@ -809,7 +810,7 @@ C read the data in the column identified above (ICOL).
           if (ND.gt.3) then
             call EGETWI(outstr,K,iv,0,0,'-','iget number',IER)
             call EGETWI(outstr,K,izone,0,0,'-','zone number',IER)
-            call EGETWI(outstr,K,isurf,0,0,'-','zone number',IER)
+            call EGETWI(outstr,K,isurf,0,0,'-','surf number',IER)
 
 C Loop through all nmet possibilities.
             do 230 ichk=1,nrecdata(imod)

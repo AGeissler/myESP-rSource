@@ -28,6 +28,7 @@ C domain (air volume gridding not included).
       USE START_UP
 #include "building.h"
 #include "model.h"
+#include "geometry.h"
 #include "esprdbfile.h"
 #include "material.h"
 #include "espriou.h"
@@ -62,6 +63,24 @@ C Path to problem.
 
       COMMON/GR3D110/ICVS,ICNC,INDC,INDD,ITAQ,ITLW,ILWV,ITF3
 
+C 3D zones.
+      common/GR3D100/BLDG3D,ZONE3D(MCOM)
+      LOGICAL BLDG3D,ZONE3D
+      common/GR3D108/L3DCVS(MCOM),L3DCNC(MCOM),L3DNDC(MCOM),L3DTAQ(MCOM)
+      CHARACTER*72 L3DCVS,L3DCNC,L3DNDC,L3DTAQ
+
+C Moisture.
+      common/MOIST01/MSTROK,MSTRZN(MCOM)
+      LOGICAL MSTROK,MSTRZN
+      common/MOIST02/LMOIST(MCOM)
+      character*72 LMOIST
+
+C Structured mesh.
+      COMMON/GRSD100/IndxSt
+      INTEGER :: IndxSt
+      COMMON/GRSD101/LGrdSt
+      character*72 LGrdSt
+
 C 3D visualisation mode.
       COMMON/MODVIS/IVISMOD
       
@@ -81,9 +100,9 @@ C Ask to overwrite flag.
 
       LOGICAL XST,GRDOK
 
-      DIMENSION ITEM(11)
+      DIMENSION ITEM(12)
       CHARACTER LFILE*72
-      CHARACTER OUTSTR*124,ITEM*24,path*72,inf*144,LCMDFL*144
+      CHARACTER OUTSTR*124,ITEM*30,path*72,inf*144,LCMDFL*144
       character outs248*248,L144*144
       character fs*1
       character inz*16,inzone*16,outs*124,MODE*4
@@ -92,6 +111,7 @@ C Ask to overwrite flag.
       character cVnum*38      ! returned from ESPrVersionNum
       character pagestitle*68 ! for banner title via epages call
       logical unixok
+      character ltcmdfl*144,troot*32
 
       integer iglib   ! if 1 then X11, if 2 then GTK, if 3 then text only.
       integer ISTRW
@@ -125,6 +145,7 @@ C Initialize global common data.
       IMFS=1
       NSIGFIG=3
       matver=0.0     ! initial assumption of binary materials database
+      troot=' '
       path='./'
       IDRW1=0
       call parsfz(MODL,iappw,iappx,iappy,inf,inz)
@@ -144,10 +165,14 @@ C IFILE+2 and ASCII viewing and geometry file reading on IFILE+1.
       IFMAT=IFIL+4
       IFCFG=IFIL+5
       IUF=IFIL+6
-      ICVS=IFIL+8
-      ICNC=IFIL+9
-      INDC=IFIL+10
-      ITAQ=IFIL+11
+      ICVS=IFIL+8       ! cvs (control volumes) file
+      ICNC=IFIL+9       ! cnc (connections) file.
+      INDC=IFIL+10      ! ndc (node coordinates) file.
+      ITAQ=IFIL+11      ! taq (node temperatures) file.
+      IFMUL=IFIL+12     ! construction file unit number
+C      iairp=ifil+14     ! flow network file unit number
+      IOPTDB=IFIL+15    ! optical properties db unit number
+      icfcdb=ifil+16    ! CFClayers db unit number
 
 C Assume that the configuration and geometry files have not been read in.
       CFGOK=.FALSE.
@@ -158,25 +183,15 @@ C Assume that the configuration and geometry files have not been read in.
       MODIFYVIEW=.FALSE.
 
 C Initial coords for eyepoint, viewing point, angle of view.
-      EYEM(1)=-100.
-      EYEM(2)=-100.
-      EYEM(3)=100.
-      VIEWM(1)=10.
-      VIEWM(2)=10.
-      VIEWM(3)=10.
+      EYEM(1)=-100.; EYEM(2)=-100.; EYEM(3)=100.
+      VIEWM(1)=10.; VIEWM(2)=10.; VIEWM(3)=10.
       ANG=40.
       IVISMOD=3
 
 C General image option flags.
-      ITDSP=1
-      ITBND=1
-      ITEPT=0
-      ITZNM=0
-      ITSNM=1
-      ITVNO=1
-      ITORG=1
-      ITSNR=0
-      ITGRD=1
+      ITDSP=1; ITBND=1; ITEPT=0
+      ITZNM=0; ITSNM=0; ITVNO=1
+      ITORG=1; ITSNR=0; ITGRD=1
       GRDIS=0.0
       ITPPSW=0
 
@@ -200,14 +215,14 @@ C display.
 
 C Set pixels high to iappw and pixels wide to factor in monitor size.
       iapphi=iappw
-      iappwi=int(real(iappw)*(1024.0/725.0))
+      iappwi=int(real(iappw)*(1024.0/750.0))
 
       if(iappw.gt.0.and.iappw.lt.100)then
-        menuchw = MAX0(int(28*iappw*0.01),12)
+        menuchw = MAX0(int(32*iappw*0.01),12)
         LIMTTY=8
         LIMIT =8
       else
-        menuchw = 28
+        menuchw = 32
         LIMTTY=8
         LIMIT =8
       endif
@@ -264,11 +279,7 @@ C Setup and pass in parameters to win3d.
           call updazi(iiazi)
         endif
         call setzscale()
-        mdispl=0
-        nifgrey=0
-        ncset=0
-        ngset=0
-        nzonec=0
+        mdispl=0; nifgrey=0; ncset=0; ngset=0; nzonec=0
         call foundcolour(mdispl,nifgrey,ncset,ngset,nzonec)
         call startbuffer()
       ENDIF
@@ -280,19 +291,40 @@ C      uname=' '; tfile=' '
       uname=' '; tfile='grd.log'
       call usrname(uname)
       call esppid(ipid)
-        write(tfile,'(a,a1,a,a,i7,a)')upath(1:lnblnk(upath)),fs,'.',
-     &    uname(1:lnblnk(uname)),ipid,'.log'
-      call st2file(tfile,iefile)
+      call isunix(unixok)
+
+C Take command line file name as initial configuration file.
+      ltcmdfl=inf                        ! Take command line file
+      call cmdtoroot(inf,troot)          ! Return model root name.
+      if(unixok)then
+        write(tfile,'(3a)') '/tmp/',troot(1:lnblnk(troot)),'.log'
+        call st2file(tfile,iefile)
+      else
+        write(tfile,'(6a)') 'C:',fs,'TEMP',fs,
+     &    troot(1:lnblnk(troot)),'.log'
+        call st2file(tfile,iefile)  ! Keep track of iefile name.
+      endif
 
 C Open the session file.
-      ieout=ifil+931          ! set to unused index 931
-      open(ieout,file=iefile,status='UNKNOWN',err=903)
+      ieout=ifil+931              ! set to unused index 931
+      iecount=0                   ! Clear count of errors.
+      if(.NOT.ieopened) goto 903  ! Set in scan of .esprc file (scesprc)
+      INQUIRE (FILE=iefile,EXIST=XST)
+      if(XST)then
+        close(ieout)
+        open(ieout,file=iefile,position='APPEND',
+     &    status='UNKNOWN',err=903)
+        call to_session('  ')     ! Blank line to separate new entries.
+      else
+        open(ieout,file=iefile,status='UNKNOWN',err=903)
+      endif
+      ieopened = .true.
       write(ieout,'(a)')'Session log for grd'
       call dstamp(dstmp) ! get curret time
-      write(ieout,'(2a)')'Date,',dstmp
-      write(ieout,'(2a)')'User,',uname(1:lnblnk(uname))
-      ieopened=.true.
-      iecount=0
+      write(ieout,'(2a)')'Date ',dstmp
+      write(ieout,'(2a)')'User ',uname(1:lnblnk(uname))
+      write(ieout,'(2a)')'Model ',ltcmdfl(1:lnblnk(ltcmdfl))
+      call to_session('   ')
   903 continue
 
 C Find the user's home folder then get users custom settings.
@@ -348,7 +380,7 @@ C Open core of databases.
             endif
 
             NZONES=NCOMP
-            CALL ZDATA (itrc,IER,NZONES,ISFSUM)
+            CALL ZDATA (itrc,IER,NZONES)
             CFGOK=.TRUE.
             numberofzones=ncomp
             if (MMOD.eq.8) call updwire(numberofzones)
@@ -359,15 +391,34 @@ C Initialize the 1D gridding variables.
 
 C Set flag so that bounds are checked.
               if (MMOD.eq.8) then
-                DO 30 ICOMP=1,NCOMP
+                DO ICOMP=1,NCOMP
                   iZBFLG(ICOMP)=0
-   30           CONTINUE
+                ENDDO
                 CFGOK=.TRUE.
                 MODIFYVIEW=.TRUE.
                 MODLEN=.TRUE.
                 MODBND=.TRUE.
               ENDIF
             ENDIF
+
+C Scan to see if any of the zones includes gridding files.
+C If so inform the user.
+            do IZ=1,NCOMP
+              if(ZONE3D(iz))then
+                write(outs,'(2a)') zname(IZ)(1:lnblnk(zname(IZ))),
+     &            ' includes 3D data files.'
+                call edisp(iuout,outs)
+                if(MSTRZN(iz))then
+                  write(outs,'(2a)') zname(IZ)(1:lnblnk(zname(IZ))),
+     &              ' includes moisture data.'
+                endif
+              endif
+            enddo
+            if(IndxSt.gt.0)then
+              write(outs,'(2a)') 'Structured mesh in:',
+     &          LGrdSt(1:lnblnk(LGrdSt))
+              call edisp(iuout,outs)
+            endif
           ELSE
             CFGOK=.FALSE.
             IF(MMOD.EQ.8)CALL startbuffer()
@@ -383,26 +434,25 @@ C Set flag so that bounds are checked.
       ITEM(4)='b multi-gridding        '
       ITEM(5)='c ground-modelling      '
       ITEM(6)='d moisture 1D gridding  '
-      ITEM(7)='  --------------------- '
-      ITEM(8)='l look at ASCII file    '
+      ITEM(7)='e structured grid       '
+      ITEM(8)='  --------------------- '
+      ITEM(9)='l look at ASCII file    '
       IF(ITRC.EQ.0)THEN
-        ITEM(9)='r reporting >> silent  '
+        ITEM(10)='r reporting >> silent  '
       ELSEIF(ITRC.EQ.1)THEN
-        ITEM(9)='r reporting >> summary ' 
+        ITEM(10)='r reporting >> summary ' 
       ELSEIF(ITRC.EQ.2)THEN
-        ITEM(9)='r reporting >> verbose '
+        ITEM(10)='r reporting >> verbose '
       ENDIF
-      ITEM(10)='? help                  '
-      ITEM(11)='- quit module           '
-      MITEM=11
+      ITEM(11)='? help                  '
+      ITEM(12)='- quit module           '
+      MITEM=12
 
 C If user has defined problem and perhaps resized the display then
 C redraw the problem image.
       IF(CFGOK.AND.(MODIFYVIEW.OR.IDRW1.NE.1))THEN
-        ITZNM=0
-        ITVNO=1
-        IDRW1=1
-        IDRW2=0
+        ITZNM=0; ITVNO=1 
+        IDRW1=1; IDRW2=0  ! Draw the building.
         CALL GRAAPH(IDRW1,IDRW2)
       ENDIF
 
@@ -417,7 +467,7 @@ C Check if the problem is defined.
         CALL USRMSG(' ','The problem should be defined first.','W')
       ELSEIF(INO.EQ.1)THEN
 
-C Define the problem.
+C Define the problem cfg file.
         helptopic='grd_model_cfg_file'
         call gethelptext(helpinsub,helptopic,nbhelp)
         L144=LCMDFL
@@ -465,44 +515,42 @@ C Open core of databases.
 
 C Initialize the 1D gridding variables.
           NZONES=NCOMP
-          CALL ZDATA (ITRC,IER,NZONES,ISFSUM)
+          CALL ZDATA (ITRC,IER,NZONES)
           CALL INTGRD(GRDOK,ITRC)
           IF(GRDOK)THEN
-            CFGOK=.TRUE.
-            MODIFYVIEW=.TRUE.
-            MODLEN=.TRUE.
-            MODBND=.TRUE.
+            CFGOK=.TRUE.; MODIFYVIEW=.TRUE.
+            MODLEN=.TRUE.; MODBND=.TRUE.
 
 C Set flag so that bounds are checked.
-          DO 20 ICOMP=1,NCOMP
-            iZBFLG(ICOMP)=0
-   20     CONTINUE
+            DO ICOMP=1,NCOMP
+              iZBFLG(ICOMP)=0
+            ENDDO
           ENDIF
+
+C Loop through model and note gridding associated files.
+C << TO DO >>
         ELSE
           CFGOK=.FALSE.
           IF(MMOD.EQ.8)CALL startbuffer()
         ENDIF
       ELSEIF(INO.EQ.3)THEN
-
-C Display 1D gridding menu.
-        CALL MENU1D
+        CALL MENU1D         ! Display 1D gridding menu.
       ELSEIF(INO.EQ.4)THEN
-
-C Display Multi-gridding menu.
-        CALL MENU3D(ITRC)
+        CALL MENU3D(ITRC)   ! Display Multi-gridding menu.
         MODIFYVIEW=.TRUE.
       ELSEIF(INO.EQ.5)THEN
-
-C Display the ground modelling menu.
-        CALL MENUGM(IDRW1)
+        CALL MENUGM(IDRW1)  ! Display the ground modelling menu.
       ELSEIF(INO.EQ.6)THEN
 
-C Display the moisture 1D gridding menu.
+C Display the moisture 1D gridding menu and pass current
+C IDRW1 IDRW2 to draw the building.
         CALL MENU1M(IDRW1,IDRW2,ITRC)
-      ELSEIF(INO.EQ.MITEM-3)THEN
+      ELSEIF(INO.EQ.7)THEN
+        CALL MENUSG(ITRC)   ! Un-structured grid facility.
+       ELSEIF(INO.EQ.MITEM-3)THEN
 
 C List out an ASCII file.
-        CALL EASKS(LFILE,' File to look at ? ',
+        CALL EASKS(LFILE,'File to look at?',
      &     ' ',72,' ','ascii file',IER,0)
         IUNIT=IFIL+1
         CALL EFOPSEQ(IUNIT,LFILE,1,IER)
@@ -527,7 +575,9 @@ C Toggle trace level.
       ELSEIF(INO.EQ.MITEM-1)THEN
 
 C Help via the askabout facility in esru_ask.F The zero requests display
-        call askabout('grd ',0)
+        helptopic='grd_opening_menu'
+        call gethelptext(helpinsub,helptopic,nbhelp)
+        CALL PHELPD('grid opening',nbhelp,'-',0,0,IER)
       ELSEIF(INO.EQ.MITEM)THEN
 
 C Exit program.
@@ -540,12 +590,12 @@ C Exit program.
       GOTO 10
       END
 
-C **************************     INTGRD    ****************************
-C INTGRD initializes the gridding process by reading in the required 
+C ************************** INTGRD ****************************
+C Initializes the gridding process by reading in the required 
 C geometry and construction data. It also initialises ground 
 C coefficients.
-C *********************************************************************
       SUBROUTINE INTGRD(GRDOK,ITRC)
+
 #include "building.h"
 #include "model.h"
 
@@ -564,11 +614,14 @@ C *********************************************************************
       COMMON/GR1D03/BCNV,ILUMP(MCOM,MS)
       COMMON/GRND05/NDXG,NDYG,NDZG,DXG(MGXYZ),DYG(MGXYZ),DZG(MGXYZ)
       COMMON/GRND06/ITPGND(MGXYZ,MGXYZ,MGXYZ)
+
+C List of vertices making up the faces of the ground domain,
+C e.g. for front right back left top and bottom faces.
       COMMON/GRND07/VERTX(6,4)
+      CHARACTER VERTX*2
 
       logical closemat1,closemat2
       LOGICAL GRDOK
-      CHARACTER VERTX*2
 
 C If materials database not opened warn the user.
       call eclose(matver,1.1,0.001,closemat1)
@@ -608,39 +661,45 @@ C If materials database not opened warn the user.
         NNDS=NNDS+NNDZ(ICOMP)
    10 CONTINUE
 
-C Initialise ground coefficients.
+C Initialise ground coefficients. Start with 50m x 50m x 20m
+C domain with one interval in each axis. For each cell within
+C the ground domain assign an intial material db index.
       NDXG=1
       DXG(1)=50.
       NDYG=1
       DYG(1)=50.
       NDZG=1
       DZG(1)=20.
-      DO 20 IL=1,MGXYZ
-      DO 20 IY=1,MGXYZ
-      DO 20 IX=1,MGXYZ
-        ITPGND(IX,IY,IL)=263
-   20 CONTINUE
-      WRITE(VERTX(1,1),'(A1)')'1'
+      DO IL=1,MGXYZ
+        DO IY=1,MGXYZ
+          DO IX=1,MGXYZ
+            ITPGND(IX,IY,IL)=263
+          ENDDO
+        ENDDO
+      ENDDO
+
+C There are 6 faces to the ground domain. 
+      WRITE(VERTX(1,1),'(A1)')'1'  ! Front
       WRITE(VERTX(1,2),'(A1)')'2'
       WRITE(VERTX(1,3),'(A1)')'6'
       WRITE(VERTX(1,4),'(A1)')'5'
-      WRITE(VERTX(2,1),'(A1)')'2'
+      WRITE(VERTX(2,1),'(A1)')'2'  ! Right
       WRITE(VERTX(2,2),'(A1)')'3'
       WRITE(VERTX(2,3),'(A1)')'7'
       WRITE(VERTX(2,4),'(A1)')'6'
-      WRITE(VERTX(3,1),'(A1)')'3'
+      WRITE(VERTX(3,1),'(A1)')'3'  ! Back
       WRITE(VERTX(3,2),'(A1)')'4'
       WRITE(VERTX(3,3),'(A1)')'8'
       WRITE(VERTX(3,4),'(A1)')'7'
-      WRITE(VERTX(4,1),'(A1)')'4'
+      WRITE(VERTX(4,1),'(A1)')'4'  ! Left
       WRITE(VERTX(4,2),'(A1)')'1'
       WRITE(VERTX(4,3),'(A1)')'5'
       WRITE(VERTX(4,4),'(A1)')'8'
-      WRITE(VERTX(5,1),'(A1)')'5'
+      WRITE(VERTX(5,1),'(A1)')'5'  ! Top
       WRITE(VERTX(5,2),'(A1)')'6'
       WRITE(VERTX(5,3),'(A1)')'7'
       WRITE(VERTX(5,4),'(A1)')'8'
-      WRITE(VERTX(6,1),'(A1)')'4'
+      WRITE(VERTX(6,1),'(A1)')'4'  ! Base
       WRITE(VERTX(6,2),'(A1)')'3'
       WRITE(VERTX(6,3),'(A1)')'2'
       WRITE(VERTX(6,4),'(A1)')'1'

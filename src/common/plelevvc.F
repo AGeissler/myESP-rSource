@@ -164,10 +164,10 @@ C Draw a scale vertical axis.
         CALL axiscale(igwid,igheight,XMN,XMX,YMN,YMX,xsc,ysc,sca,
      &    Xadd,Yadd)
         call linescale(iigl,Xadd,sca,iigb,Yadd,sca)
-        call dintervalf(XMN,XMX,DY,NDEC,1)
+        call dintervalf(XMN,XMX,DY,NDEC,0)
         CALL horaxisdd(XMN,XMX,iigl,iigr,iigb,Xadd,sca,1,
      &    DY,NDEC,'East (m) ->')
-        call dintervalf(YMN,YMX,DY,NDEC,1)
+        call dintervalf(YMN,YMX,DY,NDEC,0)
         CALL vrtaxisdd(YMN,YMX,iigl,iigb,iigt,Yadd,sca,1,
      &    DY,NDEC,0,'^ North')
       elseif(direc.eq.'S')then

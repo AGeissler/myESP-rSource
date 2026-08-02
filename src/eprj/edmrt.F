@@ -508,7 +508,7 @@ C Save viewfactor & sensor file...
 C Also save any mrt sensors to geometry file.
           call eclose(gversion(ICOMP),1.1,0.01,newgeo)
           if(newgeo)then
-            call geowrite(IUF,LGEOM(ICOMP),ICOMP,iuout,3,IER)
+            call geowrite2(IUF,LGEOM(ICOMP),ICOMP,iuout,3,IER)
           endif
         endif
 
@@ -531,7 +531,7 @@ C Add a mrt sensor.
 C Also save mrt sensors to geometry file.
           call eclose(gversion(ICOMP),1.1,0.01,newgeo)
           if(newgeo)then
-            call geowrite(IUF,LGEOM(ICOMP),ICOMP,iuout,3,IER)
+            call geowrite2(IUF,LGEOM(ICOMP),ICOMP,iuout,3,IER)
           endif
         ELSE
           CALL USRMSG(' ',' Too many sensors defined!','W')
@@ -801,7 +801,7 @@ C Now display the menu.
 C User current zone G1 common block to present list of points.
           inpick=1
           CALL EPMENSV
-          call EPKVERT(INPICK,IVLST,'Vertices for origin',
+          call EPKVERT(icomp,INPICK,IVLST,'Vertices for origin',
      &      'Select a vertex to define the origin...',' ',nbhelp,ier)
           CALL EPMENRC
           if(inpick.eq.1)then
@@ -869,7 +869,7 @@ C Also save mrt sensors to geometry file.
         IUF=IFIL+2
         call eclose(gversion(ICOMP),1.1,0.01,newgeo)
         if(newgeo)then
-          call geowrite(IUF,LGEOM(ICOMP),ICOMP,iuout,3,IER)
+          call geowrite2(IUF,LGEOM(ICOMP),ICOMP,iuout,3,IER)
           write(outs,*) ' EDMRTS a update geometry'
           call edisp(iuout,outs)
         endif

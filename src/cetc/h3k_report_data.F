@@ -67,7 +67,6 @@ C*************************************************************************
       IMPLICIT NONE
       
       include "building.h"
-      include "site.h"
       include "model.h"
       include "geometry.h"
       include "control.h"
@@ -108,8 +107,8 @@ C QPA(MCOM)            ! - zone air point heat injection (W)
       REAL TPA, QPA
 
 C Atmospheric pressure
-cx      COMMON/ATPRES/PATMOS
-cx      real PATMOS
+      COMMON/ATPRES/PATMOS
+      real PATMOS
 
 C TFA(MCOM)            ! - future zone air point temperature (oC)
 C QFA(MCOM)            ! - zone air point heat injection (W)
@@ -836,7 +835,7 @@ C-----------------------------------------------------------------------
 C.....Switch for surface name output here
       if (ReportBoolConfig ("use_surfacenames")) then
         write (cSurf_Chars,'(A)')
-     &          sname(iZone,iSurface)(1:lnsname(iZone,iSurface))
+     &    sname(iZone,iSurface)(1:lnblnk(sname(iZone,iSurface)))
       else
 C.......Pad surface index to 'XX'
         if ( iSurface .gt. 9 ) then
@@ -2128,7 +2127,7 @@ C.......below should also make use of.
 C.......Switch for surface name output here
         if (ReportBoolConfig ("use_surfacenames")) then
           write (cSurf_Chars,'(A)')
-     &            sname(iZone,iSurface)(1:lnsname(iZone,iSurface))
+     &      sname(iZone,iSurface)(1:lnblnk(sname(iZone,iSurface)))
         else
 C.........Pad surface index to 'XX'
           if ( iSurface .gt. 9 ) then

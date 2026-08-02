@@ -410,7 +410,8 @@ C Fatal error trap.
 
 C ******************** MZSHIN ********************
 C Opens and checks the content of a pre-constructed zone shading/insolation
-C file for later access during simulations.
+C file for later access during simulations. If binary not found but
+C there is an ASCII version that data is imported.
 
 C Format of a zone shading & insolation db:
 C Minimum width is 24 words, normal width is nzsur(icomp) words.
@@ -463,21 +464,64 @@ C   commences with an offset of y=2*(2*misur).
 
       CHARACTER LS*72
       character outs*124
+      character shdafile*96
 
       DIMENSION ISUM1(12),ISUM2(12),PS(24),
      &          IGC(MS),ISADD(12),ISHD(12)
-      logical OK
+      dimension idum(ms)
+      logical OK,XST,XSTA
       integer ier
 
       helpinsub='utilf'  ! set for subroutine
 
-c Initialise shading file (use unit number = IFIL+1).
+C Initialise shading file (use unit number = IFIL+1). If binary
+C file missing check for ASCII version and if found create a
+C blank binary and import the ASCII data as done in prj.F ~4023.
       JOUT=ITC
-      IUNIT=IFIL+1
+      IUNIT=IFIL+3  ! To be compatible with sifimport.
       LS=LSHAD(ICOMP)
+      XST=.false.
+      call FINDFIL(LS,XST)
+      write(shdafile,'(2a)') ls(1:lnblnk(ls)),'a'
+      call FINDFIL(shdafile,XSTA)
+
       maxrec(icomp)=24    ! set also in solar.F if ISIcalc=1
       if(NZSUR(icomp).gt.24)maxrec(icomp)=NZSUR(icomp)
       ier=0
+      if(.NOT.XST)then
+        if(XSTA)then
+          call erpfree(IUNIT,istat)
+          call efopran(IUNIT,LS,maxrec(icomp),3,ier)
+          do ij=1,maxrec(icomp)
+            if(ij.gt.12)then
+              idum(ij)=0
+            else
+              idum(ij)=0
+              ishd(ij)=0
+              isadd(ij)=0
+            endif
+          enddo
+          irec=1
+          write(IUNIT,rec=irec,iostat=istat,err=1001)
+     &      (ishd(ij),ij=1,12),(isadd(ij),ij=1,12)
+          irec=4
+          write(IUNIT,rec=irec,iostat=istat,err=1001)
+     &      (idum(ij),ij=1,nzsur(i))
+          ifstat=1  ! signal new file
+
+          write(outs,'(3a)') 
+     &      'Importing missing shading data from ',
+     &      shdafile(1:lnblnk(shdafile)),'.'
+          call edisp(iuout,outs)
+
+C Note: sifimport assumes the ASCII file will be opened on
+C ifil+10. After import free IUNIT so can be opened again.
+          call erpfree(ifil+10,istat)
+          call sifimport(icomp,shdafile,ier)
+          call erpfree(IUNIT,istat)
+        endif
+      endif
+
       call EFOPRAN(IUNIT,LS,maxrec(icomp),1,IER)
       IF(ier.ne.0)goto 1000
 

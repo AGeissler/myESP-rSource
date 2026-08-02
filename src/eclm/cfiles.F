@@ -165,7 +165,7 @@ C Set version number and number of metrics.
 
 C Header line 1: location          
           CALL STRIPC(IUNIT,OUTSTR,0,ND,1,'weather head 1',IER)
-          CFLOC=OUTSTR(1:42)
+          write(CFLOC,'(a)') OUTSTR(1:lnblnk(OUTSTR))
 
 C Header line 2: year, latitude, longitude difference
           CALL STRIPC(IUNIT,OUTSTR,3,ND,1,'weather head 2',IER)
@@ -228,7 +228,7 @@ C no version number it's version 1.
 
 C Header line 1: location          
           CALL STRIPC(IUNIT,OUTSTR,0,ND,1,'clm head 1',IER)
-          CFLOC=OUTSTR(1:42)
+          write(CFLOC,'(a)') OUTSTR(1:lnblnk(OUTSTR))
 
 C Header line 2: year, latitude, longitude difference
           CALL STRIPC(IUNIT,OUTSTR,3,ND,1,'clm head 2',IER)
@@ -280,7 +280,7 @@ C Header line 4: period
           CALL STRIPC(IUNIT,OUTSTR,0,ND,1,'clm head 3',IER)
         elseif(ICDESC.eq.1)then
           CALL STRIPC(IUNIT,OUTSTR,0,ND,1,'clm head 1',IER)
-          CFLOC=OUTSTR(1:42)
+          write(CFLOC,'(a)') OUTSTR(1:lnblnk(OUTSTR))
 
           CALL STRIPC(IUNIT,OUTSTR,99,ND,1,'clm head 2',IER)
           K=0
@@ -1423,6 +1423,7 @@ C Convert integer values in iclm to normal units.
 
 C Write tab separated data out. Prepend whatever the current weather
 C location description is for the site.
+            lcl=lnblnk(CFLOC)
             WRITE(IAF,'(3A,(a,f6.1))',IOSTAT=ISTAT,ERR=1003)
      &        CFLOC(1:lcl),tab,msg,(tab,RCLM(im),im=1,NCM)
           endif
@@ -1940,6 +1941,7 @@ C or passed into clm module).
       character actreturn*1  ! users preference
       integer onleft  ! number of left axis
       integer onright ! number of right axis
+      logical MY      ! signal not-multi-year weather
 
       helpinsub='cfiles'  ! set for cfiles
       tab = CHAR(9)
@@ -2103,7 +2105,8 @@ C Take into account the location of the weather file.
       endif
 
       write(LCLIM,'(a)') lltmp(1:lnblnk(lltmp))
-      CALL CLMOPB(3,IER)     ! 3 - if exists use, otherwise create.
+      MY=.false.
+      CALL CLMOPB(MY,3,IER)     ! 3 - if exists use, otherwise create.
       if (CFVER.eq.0) RETURN ! New weather file, return.
       CALL CLMRDBMD(IER)
       IYEAR=ICYEAR
@@ -2498,7 +2501,7 @@ C actual longitude to get esp-r CLONG
 C Concatenate city state country to CFLOC.
         write(outs,'(5a)') city(1:lnblnk(city)),' ',
      &    provence(1:lnblnk(provence)),' ',country(1:lnblnk(country))
-        CFLOC=OUTS(1:42)
+        write(CFLOC,'(a)') OUTS(1:lnblnk(OUTS))
 
 C Set radiation flag to direct normal.
         IDNGH=0
