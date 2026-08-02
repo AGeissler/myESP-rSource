@@ -59,7 +59,7 @@
       PARAMETER (MDATA=12)     ! Defining data items.
 
 ! Special materials.
-      PARAMETER (MSPMNOD=200)  ! Special materials.
+      PARAMETER (MSPMNOD=300)  ! Special materials.
       PARAMETER (MSPMDAT=21)   ! Defining data items.
       PARAMETER (MSPMRES=12)   ! Output data items
       PARAMETER (MSPMSPLM=150) ! Spline data items
