@@ -791,9 +791,11 @@ if [ "$mode" = "interactive" ]; then
 fi
 
 if [ "$debugging" = "yes" ]; then
-    debug_flag="-g"
+    debug_flag_f="-g"
+    debug_flag="-Wno-implicit-int -Wno-deprecated-non-prototype -Wno-declaration-missing-parameter-type -Wno-string-compare -Wno-int-conversion -Wno-pointer-sign -Wno-old-style-definition"
 else
-    debug_flag=" "
+#    debug_flag=" "
+    debug_flag="-Wno-implicit-int -Wno-deprecated-non-prototype -Wno-extern-initializer -Wno-string-compare -Wno-int-conversion -Wno-pointer-sign"
 fi
 
 # Header files.
@@ -1042,7 +1044,7 @@ fi
 case $compiler in
    # Note '-C' flag causes grief on older sun F90 compilers.
    sunF90) FFLAGS="$LOCAL_INCLUDES $fDefType -DF90 $debug_flag $ExtendedDebugFlags -C " ;;
-   GNU)    FFLAGS="$LOCAL_INCLUDES $fDefType $debug_flag $ExtendedDebugFlags -fno-automatic";
+   GNU)    FFLAGS="$LOCAL_INCLUDES $fDefType $debug_flag_f $ExtendedDebugFlags -fno-automatic";
 # mcmodel=medium (needed for larger data structures) is only available on 64-bit machines.
            if [ "$machine" = "x86_64" ]; then
              if [ "$complexity" = "$medium_prompt" ]; then 

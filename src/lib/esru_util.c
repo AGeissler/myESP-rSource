@@ -23,7 +23,7 @@ These routines are called from ESP-r fortran code. The routines are :-
 #include "wwxlegacy.h"
 
 extern clearfolderlist_();     /* in lib/esrui_lib.F */
-extern addfolderlist_();
+extern addfolderlist_(type,locfolder,len_type,len_folder);
 
 char cfgroot[32];	/* f77 project root name    */
 char path[73];	/* f77 project path    */
