@@ -799,7 +799,7 @@ else
 fi
 
 # Header files.
-LOCAL_INCLUDES="-I../include -I../shocc -I/usr/local/include -I../cetc/h3kreports"
+LOCAL_INCLUDES="-I../include -I../shocc -I/usr/local/include -I../cetc/h3kreports -I/opt/homebrew/Cellar/emscripten/6.0.5/libexec/system/lib/libc/musl/include -I/opt/homebrew/Cellar/emscripten/6.0.5/libexec/system/lib/libc/musl/arch/emscripten -I/opt/homebrew/Cellar/emscripten/6.0.5/libexec/system/lib/libc/musl/arch/generic"
 
 # Architecture types.
 case $platform in

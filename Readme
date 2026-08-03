@@ -37,6 +37,25 @@ library combinations. The native (and preferred) environment
 is Linux. Instructions for configuring Ubuntu 18.04 LTS for
 ESP-r are available at the above download page.
 
+-- Mac-OS (26.5, M2):
+brew install gcc => install or update to v. 16
+brew install emscripten => make 'mntent.h', 'bits/alltypes.h' and 'bits/dirent.h'
+available (see LOCAL_INCLUDES in Install script, fix is more
+of a hack.
+
+An Emscripten settings file has been generated at:
+
+  /opt/homebrew/Cellar/emscripten/6.0.5/libexec/.emscripten
+
+It contains our best guesses for the important paths, which are:
+
+  LLVM_ROOT       = /usr/bin
+  BINARYEN_ROOT   = /usr/local
+  NODE_JS         = /opt/homebrew/bin/node
+
+Please edit the file if any of those are incorrect.
+
+
 5. OPTIONAL FEATURES
 
 By default, the ESP-r simulation engine (bps) creates a binary results
