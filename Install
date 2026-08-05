@@ -341,7 +341,11 @@ if [ "$xml_support" = "yes" ] || [ "$xml_support" = "prompt" ]; then
       fi
    else
     xml_libs_found="yes"
-    LIBXML2_INCLUDE="-I/usr/include -I/usr/include/libxml2 -I/usr/local/include/libxml2 -I/opt/homebrew/opt/libxml2/include/libxml2 -I/usr/include/libxslt -I/local/include/libxslt -I/opt/homebrew/opt/libxslt/include/libxslt"
+    if [ "$machine" = "arm64" ]; then
+        LIBXML2_INCLUDE="-I/opt/homebrew/opt/libxml2/include/libxml2 -I/opt/homebrew/opt/libxslt/include/libxslt"
+    else
+        LIBXML2_INCLUDE="-I/usr/include -I/usr/include/libxml2 -I/usr/local/include/libxml2 -I/usr/include/libxslt -I/local/include/libxslt"
+    fi
     # xml support may optionally include support for xslt & exslt
     # (following code tested only with GNU ld).
     if [ "${architecture:0:6}" = "CYGWIN" ]; then
@@ -798,8 +802,19 @@ else
     debug_flag=" "
 fi
 
+case $platform in
+  mac)
+     localinclude="-I/opt/homebrew/Cellar/gcc@14/14.4.0/include/c++/14 -I/opt/homebrew/include"
+     sdkinclude="-I/Library/Developer/CommandLineTools/SDKs/MacOSX15.4.sdk/usr/include"
+     ;;
+  *)
+     localinclude="-I/usr/local/include"
+     sdkinclude=""
+     ;;
+esac
+
 # Header files.
-LOCAL_INCLUDES="-I../include -I../shocc -I/usr/local/include -I../cetc/h3kreports"
+LOCAL_INCLUDES="${sdkinclude} ${localinclude} -I../include -I../shocc -I../cetc/h3kreports"
 
 # Architecture types.
 case $platform in
@@ -1110,6 +1125,14 @@ esac
 # Add '-mms-bitfields' and '-mwindows' on Mingw+GTK
 if [ "$platform" = "mingw" ] && [ "$xLibs" = "GTK" ]; then
    CFLAGS="$CFLAGS -mwindows -mms-bitfields"
+fi
+
+# Add '-isysroot' to CFLAGS and '-syslibroot' to LDFLAGS on mac
+if [ "$platform" = "mac" ]; then
+   SDKpath="/Library/Developer/CommandLineTools/SDKs/MacOSX15.sdk"
+   CFLAGS="$CFLAGS -isysroot=$SDKpath"
+   FFLAGS="$FFLAGS -isysroot=$SDKpath"
+   LDFLAGS="$LDFLAGS -syslibroot=$SDKpath"
 fi
 
 # ULIBS: Assign library paths.
@@ -2140,4 +2163,3 @@ else
 fi
 
 exit
-
