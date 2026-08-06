@@ -804,8 +804,10 @@ fi
 
 case $platform in
   mac)
-     localinclude="-I/opt/homebrew/Cellar/gcc@14/14.4.0/include/c++/14 -I/opt/homebrew/include"
-     sdkinclude="-I/Library/Developer/CommandLineTools/SDKs/MacOSX15.4.sdk/usr/include"
+     #localinclude="-I/opt/homebrew/Cellar/gcc@14/14.4.0/include/c++/14 -I/opt/homebrew/include"
+     localinclude="-I/opt/homebrew/include"
+     sdkinclude=""
+     #"-I/Library/Developer/CommandLineTools/SDKs/MacOSX15.4.sdk/usr/include"
      ;;
   *)
      localinclude="-I/usr/local/include"
@@ -1129,7 +1131,8 @@ fi
 
 # Add '-isysroot' to CFLAGS and '-syslibroot' to LDFLAGS on mac
 if [ "$platform" = "mac" ]; then
-   SDKpath="/Library/Developer/CommandLineTools/SDKs/MacOSX15.sdk"
+   # SDKpath="/Library/Developer/CommandLineTools/SDKs/MacOSX15.sdk"
+   SDKpath="/Library/Developer/CommandLineTools/SDKs/MacOSX26.sdk"
    CFLAGS="$CFLAGS -isysroot=$SDKpath"
    FFLAGS="$FFLAGS -isysroot=$SDKpath"
    LDFLAGS="$LDFLAGS -syslibroot=$SDKpath"
