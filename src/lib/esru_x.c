@@ -169,29 +169,29 @@ static unsigned char gray25_bits[] = {
    0x88, 0x22, 0x88, 0x22, 0x88, 0x22, 0x88, 0x22};
 
 /* external definitions in the Fortran code */
-extern gnwkquery_(iq,pv,tv,cv,ph,th,ch);
-extern wirepk_(avail_wire);
+extern gnwkquery_();
+extern wirepk_();
 extern profgrdump_();
-extern cpwpk_(avail_cpw);
-extern chgazi_(azichange,ifrlk);     /* in esrucom/common3dv.F */
-extern chgelev_(elevchange,ifrlk);    /* in esrucom/common3dv.F */
-extern chgpan_(idx,idy,ifrlk);     /* in esrucom/common3dv.F */
-extern optview_(ifsc,itfsc,imfsc,vl,vr,vt,vb,g3w,g3h,lttyc);    /* in esrucom/common3dv.F */
-extern chgzoom_(idx);    /* in esrucom/common3dv.F */
+extern cpwpk_();
+extern chgazi_();     /* in esrucom/common3dv.F */
+extern chgelev_();    /* in esrucom/common3dv.F */
+extern chgpan_();     /* in esrucom/common3dv.F */
+extern optview_();    /* in esrucom/common3dv.F */
+extern chgzoom_();    /* in esrucom/common3dv.F */
 extern chgeye_();     /* in esrucom/common3dv.F */
 extern chgsun_();     /* in esrucom/common3dv.F */
 extern chgzonpik_();  /* in esrucom/common3dv.F */
 extern redraw_();    /* in esrucom/common3dv.F */
 extern chgzonpikarray_();
 extern proftxdump_();
-extern nwkslctc_(iugx,iugy,stype,is,isa,nselect,active);
-extern gconad_(iugx,iugy,win_x,win_y,butid);
-extern gridupdt_(zoom,grid_rz,grid_oo,snap,ipan,dx,dy);
-extern nwkupdtpos_(is,isa,stype,x,y);
-extern icntfm_(tfm);
-extern cfgpk_(avail_cfg,len_avail);
-extern updview_(ifsc,itfsc,imfsc,vl,vr,vt,vb,g3w,g3h,lttyc);
-extern aux_menu(event);
+extern nwkslctc_();
+extern gconad_();
+extern gridupdt_();
+extern nwkupdtpos_();
+extern icntfm_();
+extern cfgpk_();
+extern updview_();
+extern aux_menu();
 
 /* global data types */
 Display  *theDisp;
