@@ -339,7 +339,11 @@ if [ "$xml_support" = "yes" ] || [ "$xml_support" = "prompt" ]; then
       fi
    else
     xml_libs_found="yes"
-    LIBXML2_INCLUDE="-I/usr/include -I/usr/include/libxml2 -I/usr/local/include/libxml2 -I/opt/homebrew/opt/libxml2/include/libxml2 -I/usr/include/libxslt -I/local/include/libxslt -I/opt/homebrew/opt/libxslt/include/libxslt"
+    if [ "$machine" = "arm64" ]; then
+        LIBXML2_INCLUDE="-I/opt/homebrew/opt/libxml2/include/libxml2 -I/opt/homebrew/opt/libxslt/include/libxslt"
+    else
+        LIBXML2_INCLUDE="-I/usr/include -I/usr/include/libxml2 -I/usr/local/include/libxml2 -I/usr/include/libxslt -I/local/include/libxslt"
+    fi
     # xml support may optionally include support for xslt & exslt
     # (following code tested only with GNU ld).
     if [ "${architecture:0:6}" = "CYGWIN" ]; then
@@ -791,15 +795,25 @@ if [ "$mode" = "interactive" ]; then
 fi
 
 if [ "$debugging" = "yes" ]; then
-    debug_flag_f="-g"
-    debug_flag="-Wno-implicit-int -Wno-deprecated-non-prototype -Wno-declaration-missing-parameter-type -Wno-string-compare -Wno-int-conversion -Wno-pointer-sign -Wno-old-style-definition"
+    debug_flag="-g"
 else
-#    debug_flag=" "
-    debug_flag="-Wno-implicit-int -Wno-deprecated-non-prototype -Wno-extern-initializer -Wno-string-compare -Wno-int-conversion -Wno-pointer-sign"
+    debug_flag=" "
 fi
 
+
+
+case $platform in
+  mac)
+      mntent_h_1="-I/opt/homebrew/Cellar/emscripten/6.0.5/libexec/system/lib/libc/musl/include"
+      mntent_h_2="-I/opt/homebrew/Cellar/emscripten/6.0.5/libexec/system/lib/libc/musl/arch/emscripten"
+      mntent_h_3="-I/opt/homebrew/Cellar/emscripten/6.0.5/libexec/system/lib/libc/musl/arch/generic"
+      localinclude="-I/opt/homebrew/include ${mntent_h_1} ${mntent_h_2} ${mntent_h_3}"
+      ;;
+  *)  localinclude="-I/usr/local/include" ;;
+esac
+
 # Header files.
-LOCAL_INCLUDES="-I../include -I../shocc -I/usr/local/include -I../cetc/h3kreports -I/opt/homebrew/Cellar/emscripten/6.0.5/libexec/system/lib/libc/musl/include -I/opt/homebrew/Cellar/emscripten/6.0.5/libexec/system/lib/libc/musl/arch/emscripten -I/opt/homebrew/Cellar/emscripten/6.0.5/libexec/system/lib/libc/musl/arch/generic"
+LOCAL_INCLUDES="-I../include -I../shocc ${localinclude} -I../cetc/h3kreports"
 
 # Architecture types.
 case $platform in
@@ -1103,7 +1117,7 @@ fi
 # Set c compilation flags.
 case $compiler in
    sunF90)  CFLAGS="$cINCLUDES $cDefType $debug_flag $ExtendedDebugFlags";;
-   GNU)     CFLAGS="$cINCLUDES $cDefType $debug_flag $ExtendedDebugFlags";;
+   GNU)     CFLAGS="$cINCLUDES $cDefType $debug_flag $ExtendedDebugFlags -std=gnu17 -Wno-error=implicit-int -Wno-error=implicit-function-declaration";;
    intel)     CFLAGS="$cINCLUDES $cDefType -save -zero $debug_flag $ExtendedDebugFlags";;
 esac
 
