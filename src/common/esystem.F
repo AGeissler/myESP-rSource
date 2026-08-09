@@ -983,15 +983,12 @@ C *indx and latitude & site exposure lines.
 C If an older file then jump to process the title and zone or plant information.
 C Newer files might have the title following *building.
         if(icfgv.ge.5)then
-          if(ND.gt.2)then
-             CALL EGETRM(LOUTSTR,K,modeltitle,'W','title',IER)
-             havetitile=.true.
+          if(ND.gt.0)then
+           CALL EGETRM(LOUTSTR,K,modeltitle,'W','title',IER)
           else
-            CALL LSTRIPC(IUC,LOUTSTR,0,ND,1,'model name',IER)
-            IF(IER.NE.0)goto 1
-            modeltitle=LOUTSTR(1:72)
-            havetitile=.true.
+             modeltitle='-'
           endif
+          havetitile=.true.
         endif
         goto 451            ! jump to process zones or plant.
       elseif(LOUTSTR(1:7).eq.'* Plant'.or.  ! V5 sections revised so check.

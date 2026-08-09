@@ -2,11 +2,11 @@
 #NOTE: TO USE THE PROGRAM AS A SCRIPT, THE LINE ABOVE SHOULD BE ERASED OR TURNED INTO A COMMENT.
 #!/usr/bin/perl
 # Modish
-$VERSION = '0.4.1';
+$VERSION = '0.4.2.1';
 # Author: Gian Luca Brunetti, Politecnico di Milano - gianluca.brunetti@polimi.it.
 # An intermediate version of the subroutine createconstrdbfile has been modified by ESRU (2038),
 # University of Strathclyde, Glasgow.
-# All rights reserved, 2015-22.
+# All rights reserved, 2015-23.
 # This is free software.  You can redistribute it and/or modify it under the terms of the
 # GNU General Public License, version 3, as published by the Free Software Foundation.
 
@@ -19,6 +19,7 @@ $VERSION = '0.4.1';
 # In versions 0.4 (20.12.2021): adapted code to changes in the e2r interaction;
 # reintroduced the possibility of non-embedded use; added the possibility of choosing which zones and surfaces to operate on.
 # In versions 0.4.1 (28.09.2022): bug fix.
+# In versions 0.4.2.1 (12.06.2023): updated the subprocedure "createfictgeofile "for creating fictitious obstruction files to the new obstruction file format.
 
 use v5.14;
 use Exporter;
@@ -5410,7 +5411,7 @@ sub createfictgeofile
 
   my %obsinf;
 
-  unless ( -e $modishloock )
+  unless ( -e $modishlock )
   {
     open( GEOFILE_F, ">$geofile_f" ) or die;
   }
@@ -5421,58 +5422,103 @@ sub createfictgeofile
     {
       chomp $line;
       my @elts = split ( /,|\s+/, $geoline );
+      
+      if ( scalar( @elts ) < 15 )
+      {
+	  if ( $count == 0 )
+	  {
+	    $obsinf{$elts[13]}{name} = $elts[9];
+	    $obsinf{$elts[13]}{mlc} = $elts[10];
+	  }
 
-      if ( $count == 0 )
-      {
-        $obsinf{$elts[13]}{name} = $elts[9];
-        $obsinf{$elts[13]}{mlc} = $elts[10];
-      }
+	  unless ( $elts[10] =~ /^f_/ )
+	  {
+	    $elts[10] = "f_" . $elts[10] ;
+	    chop $elts[10] ;
+	    chop $elts[10] ;
+	    $obsinf{$elts[13]}{newmlc} = $elts[10];
+	  }
+	  else
+	  {
+	    $obsinf{$elts[13]}{newmlc} = $elts[10];
+	  }
 
-      unless ( $elts[10] =~ /^f_/ )
-      {
-        $elts[10] = "f_" . $elts[10] ;
-        chop $elts[10] ;
-	chop $elts[10] ;
-        $obsinf{$elts[13]}{newmlc} = $elts[10];
+	  unless ( -e $modishloock )
+	  {
+	     if ( length( $elts[13] ) == 1 )
+	  {
+	     $geoline = $elts[0] . "," . $elts[1] . "," . $elts[2] . "," . $elts[3] . "," . $elts[4] . "," .
+		    $elts[5] . "," . $elts[6] . "," . $elts[7] . "," . $elts[8] . "," . $elts[9] . " " .
+		    $elts[10] . "  " . $elts[11] . " " . $elts[12] . "   " . $elts[13] . "\n";
+	  }
+	  elsif ( length( $elts[13] ) == 2 )
+	  {
+	     $geoline = $elts[0] . "," . $elts[1] . "," . $elts[2] . "," . $elts[3] . "," . $elts[4] . "," .
+		    $elts[5] . "," . $elts[6] . "," . $elts[7] . "," . $elts[8] . "," . $elts[9] . " " .
+		    $elts[10] . "  " . $elts[11] . " " . $elts[12] . "  " . $elts[13] . "\n";chop
+	  }
+	     elsif ( length( $elts[13] ) == 3 )
+	  {
+	     $geoline = $elts[0] . "," . $elts[1] . "," . $elts[2] . "," . $elts[3] . "," . $elts[4] . "," .
+		    $elts[5] . "," . $elts[6] . "," . $elts[7] . "," . $elts[8] . "," . $elts[9] . " " .
+		    $elts[10] . "  " . $elts[11] . " " . $elts[12] . " " . $elts[13] . "\n";
+	  }
+	}
       }
-      else
+      elsif ( scalar( @elts ) >= 15 )
       {
-        $obsinf{$elts[13]}{newmlc} = $elts[10];
-      }
+	  if ( $count == 0 )
+	  {
+	    $obsinf{$elts[13]}{name} = $elts[11];
+	    $obsinf{$elts[13]}{mlc} = $elts[12];
+	  }
 
-      unless ( -e $modishloock )
-      {
-        if ( length( $elts[13] ) == 1 )
-        {
-          $geoline = $elts[0] . "," . $elts[1] . "," . $elts[2] . "," . $elts[3] . "," . $elts[4] . "," .
-            $elts[5] . "," . $elts[6] . "," . $elts[7] . "," . $elts[8] . "," . $elts[9] . " " .
-            $elts[10] . "  " . $elts[11] . " " . $elts[12] . "   " . $elts[13] . "\n";
-        }
-        elsif ( length( $elts[13] ) == 2 )
-        {
-          $geoline = $elts[0] . "," . $elts[1] . "," . $elts[2] . "," . $elts[3] . "," . $elts[4] . "," .
-            $elts[5] . "," . $elts[6] . "," . $elts[7] . "," . $elts[8] . "," . $elts[9] . " " .
-            $elts[10] . "  " . $elts[11] . " " . $elts[12] . "  " . $elts[13] . "\n";chop
-        }
-        elsif ( length( $elts[13] ) == 3 )
-        {
-          $geoline = $elts[0] . "," . $elts[1] . "," . $elts[2] . "," . $elts[3] . "," . $elts[4] . "," .
-            $elts[5] . "," . $elts[6] . "," . $elts[7] . "," . $elts[8] . "," . $elts[9] . " " .
-            $elts[10] . "  " . $elts[11] . " " . $elts[12] . " " . $elts[13] . "\n";
-        }
+	  unless ( $elts[10] =~ /^f_/ )
+	  {
+	    $elts[12] = "f_" . $elts[12] ;
+	    chop $elts[12] ;
+	    chop $elts[12] ;
+	    $obsinf{$elts[13]}{newmlc} = $elts[12];
+	  }
+	  else
+	  {
+	    $obsinf{$elts[13]}{newmlc} = $elts[12];
+	  }
+
+	  unless ( -e $modishlock )
+	  {
+	    if ( length( $elts[13] ) == 1 )
+	    {
+		$geoline = $elts[0] . "," . $elts[1] . "," . $elts[2] . "," . $elts[3] . "," . $elts[4] . "," .
+		    $elts[5] . "," . $elts[6] . "," . $elts[7] . "," . $elts[8] . "," . $elts[9] . "," . $elts[10] . "," . $elts[11] . " " .
+		    $elts[12] . "  " . $elts[13] . " " . $elts[14] . "   " . $elts[15] . "\n";
+	    }
+	    elsif ( length( $elts[13] ) == 2 )
+	    {
+		$geoline = $elts[0] . "," . $elts[1] . "," . $elts[2] . "," . $elts[3] . "," . $elts[4] . "," .
+		    $elts[5] . "," . $elts[6] . "," . $elts[7] . "," . $elts[8] . "," . $elts[9] . "," . $elts[10] . "," . $elts[11] . " " .
+		    $elts[12] . "  " . $elts[13] . " " . $elts[14] . "  " . $elts[15] . "\n";
+	    }
+	    elsif ( length( $elts[13] ) == 3 )
+	    {
+		$geoline = $elts[0] . "," . $elts[1] . "," . $elts[2] . "," . $elts[3] . "," . $elts[4] . "," .
+		    $elts[5] . "," . $elts[6] . "," . $elts[7] . "," . $elts[8] . "," . $elts[9] . "," . $elts[10] . "," . $elts[11] . " " .
+		    $elts[12] . "  " . $elts[13] . " " . $elts[14] . " " . $elts[15] . "\n";
+	    }
+	  }
       }
     }
-    unless ( -e $modishloock )
+    unless ( -e $modishlock )
     {
       print GEOFILE_F $geoline;
     }
   }
-  unless ( -e $modishloock )
+  unless ( -e $modishlock )
   {
     close GEOFILE_F;
   }
 
-  unless ( -e $modishloock )
+  unless ( -e $modishlock )
   {
     my ( $shortgeofile_f, $shortgeofile_f1, $geofile_f1 );
     if ( ( "radical" ~~ @calcprocedures ) or ( "composite" ~~ @calcprocedures ) or ( "noreflections" ~~ @calcprocedures ) )
@@ -5495,7 +5541,7 @@ sub createfictgeofile
           $elts[4] = 0.01;
           $elts[5] = 0.01;
           $elts[6] = 0.01;
-          $line_f = "$elts[0],$elts[1],$elts[2],$elts[3],$elts[4],$elts[5],$elts[6],$elts[7],$elts[8],$elts[9],$elts[10]";
+          $line_f = "$elts[0],$elts[1],$elts[2],$elts[3],$elts[4],$elts[5],$elts[6],$elts[7],$elts[8],$elts[9],$elts[10],$elts[11]";
           $line_f =~ s/^,//;
           $line_f =~ s/,$//;
         }

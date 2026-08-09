@@ -24,7 +24,6 @@ SQLite_support="no"        # Support for SQLite output.
 FMI_support="no"           # Support for FMI connectivity.
 debugging="no"             # Support for debugging symbols.
 EXE=""                     # Executable file extension.
-debian_copy="no"           # no=standard make install yes=make bincopy
 opt="-O1"                  # Optimisation to be applied
 FFLAGS="-I../include "     # Fortran compiler flags.
 CFLAGS="-I../include "     # C compiler flags.
@@ -60,7 +59,7 @@ architecture=`uname -s`	   # Kernel name.
 machine=`uname -m`	   # Hardware name.
 case $machine in
   x86_64) echo "Detected Intel chipset";;
-  arm64)  echo "Detected Mx chipset";;
+  arm64)  echo "Detected M1 chipset";;
   aarch64)echo "Detected arm chipset";;
 esac
 if [ -x /usr/bin/stat ]; then
@@ -85,7 +84,6 @@ if [ $# -ne 0 ]; then
         -d) shift;      DESTdir=$1; input="yes";
                         ESPdir=$DESTdir;           shift;;
         --force)        preserve_espr_dir="no";    shift;;
-        --debian)       debian_copy="yes";         shift;;
         --no_training | --no-training)
                         install_training="no";     shift;;
         --no_dbs | --no-dbs)
@@ -331,7 +329,7 @@ fi
 
 # xml support.
 if [ "$xml_support" = "yes" ] || [ "$xml_support" = "prompt" ]; then
-   if [ ! -d /usr/include/libxml2 ] && [ ! -d /usr/local/include/libxml2 ] && [ ! -d /usr/local/opt/libxml2 ] && [ ! -d /opt/homebrew/opt/libxml2 ]; then
+   if [ ! -d /usr/include/libxml2 ] && [ ! -d /usr/local/include/libxml2 ] && [ ! -d /usr/local/opt/libxml2 ]; then
       xml_support="no"
       xml_libs_found="no"
       if [ "$mode" = "silent" ]; then
@@ -341,7 +339,7 @@ if [ "$xml_support" = "yes" ] || [ "$xml_support" = "prompt" ]; then
       fi
    else
     xml_libs_found="yes"
-    LIBXML2_INCLUDE="-I/usr/include -I/usr/include/libxml2 -I/usr/local/include/libxml2 -I/opt/homebrew/opt/libxml2/include/libxml2 -I/usr/include/libxslt -I/local/include/libxslt -I/opt/homebrew/opt/libxslt/include/libxslt"
+    LIBXML2_INCLUDE="-I/usr/include -I/usr/include/libxml2 -I/usr/local/include/libxml2 -I/usr/include/libxslt -I/local/include/libxslt"
     # xml support may optionally include support for xslt & exslt
     # (following code tested only with GNU ld).
     if [ "${architecture:0:6}" = "CYGWIN" ]; then
