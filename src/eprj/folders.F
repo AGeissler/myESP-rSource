@@ -838,19 +838,21 @@ C     &    'Invoking new ESP-r instance focused on the selected model.')
 
 C Invoke prj in same mode and size and initial start.
         if(iappwpc.gt.0.and.iappwpc.le.200)then
-          write(doit,'(5a,3i4,3a)')  'cd ',
+cx          write(doit,'(5a,3i4,3a)')  'cd ',
+          write(doit,'(5a,3i4,2a)')  'cd ',
      &      cfgpath(1:lnblnk(cfgpath)),'; prj -mode ',tmode,
      &      ' -s ',iappwpc,iappx+10,iappy+10,' -file ',
-     &      thecfgis(1:lnblnk(thecfgis)),' & '
+     &      thecfgis(1:lnblnk(thecfgis))
+cx     &      thecfgis(1:lnblnk(thecfgis)),' & '
         else
           write(doit,'(5a)') 'cd ',cfgpath(1:lnblnk(cfgpath)),
      &      '; prj -file ',thecfgis(1:lnblnk(thecfgis)),' & '
         endif
+        call edisp(iuout,'Restarting prj focused on new model:')
+        call pauses(1)
         call edisp248(iuout,doit,100)
         call pauses(1)
         call runit(doit,'-')
-        call pauses(1)
-        call edisp(iuout,'Restarting prj focused on new model.')
         call pauses(1)
 
 C Clear allocatable arrays
