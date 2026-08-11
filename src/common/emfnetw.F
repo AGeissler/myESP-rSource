@@ -1244,7 +1244,7 @@ C Type 120 specific air flow crack component.
           goto 999
         endif
         if(IS1.NE.1)call MFERR(ICMP,' Fluid type must be 1. ',IER)
-        if(SUPCMP(ICMP,2).LT.0.0001.OR.SUPCMP(ICMP,2).GT.0.1)
+        if(SUPCMP(ICMP,2).LT.4.99E-06.OR.SUPCMP(ICMP,2).GT.0.1)
      &    call MFERR(ICMP,' Crack width out of range.',IER)
         if(SUPCMP(ICMP,3).LT.0.001)
      &    call MFERR(ICMP,' Crack length out of range.',IER)
