@@ -59,7 +59,7 @@ architecture=`uname -s`	   # Kernel name.
 machine=`uname -m`	   # Hardware name.
 case $machine in
   x86_64) echo "Detected Intel chipset";;
-  arm64)  echo "Detected M1 chipset";;
+  arm64)  echo "Detected Mx chipset";;
   aarch64)echo "Detected arm chipset";;
 esac
 if [ -x /usr/bin/stat ]; then
@@ -94,7 +94,7 @@ if [ $# -ne 0 ]; then
                         debugging="yes"; clean=no;
                         extendedDebugging="yes";   shift;;
         --silent)       mode="silent";             shift;;
-        --xml)          xml_support=yes;           shift;;
+        --xml)          xml_support="yes";         shift;;
         --SQLite)       SQLite_support="yes";      shift;;
         --FMI)          FMI_support="yes";         shift;;
         --co-sim)       shift;
@@ -329,7 +329,7 @@ fi
 
 # xml support.
 if [ "$xml_support" = "yes" ] || [ "$xml_support" = "prompt" ]; then
-   if [ ! -d /usr/include/libxml2 ] && [ ! -d /usr/local/include/libxml2 ] && [ ! -d /usr/local/opt/libxml2 ]; then
+   if [ ! -d /usr/include/libxml2 ] && [ ! -d /usr/local/include/libxml2 ] && [ ! -d /usr/local/opt/libxml2 ] && [ ! -d /opt/homebrew/opt/libxml2/include/libxml2 ]; then
       xml_support="no"
       xml_libs_found="no"
       if [ "$mode" = "silent" ]; then
