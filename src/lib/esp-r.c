@@ -12,6 +12,7 @@
      expose_event    - handles exposure of drawable area
 
      winclr	   - clears whole application to white
+     win3dwwc()    - finds pixel offsets within graphics window
      win3d()       - finds pixel offsets within graphics window
      startbuffer_() clear view/3d display box.
      forceflush_() force graphic buffer to flush
@@ -22,7 +23,7 @@
 #include <gtk/gtk.h>
 #include <gdk/gdk.h>
 #include <glib.h>
-#include <esp-r.h>
+#include "esp-r.h"
 #include <commons.h>
 #include <fc_commons.h>
 
@@ -38,6 +39,12 @@ extern chgzonpikarray_();
 extern FILE *wwc;
 extern int  wwc_ok;   /* from esru_util.c */
 extern int  wwc_macro;   /* from esru_util.c */
+
+GMainLoop *menu_loop;  /* to match extern defs in esp-r.h */
+// GtkWidget *window;
+// GtkWidget *graphic;
+// GtkWidget *text;
+// GtkWidget *dialog;
 
 GdkColor cscale[49], zscale[100], gscale[85];
 long int ncscale;   /* number of assigned colours in colour scale */
@@ -77,13 +84,9 @@ gint f_width;
 char cappl[5];	/* f77 application name */
 /* char cfgroot[32];	f77 project root name    */
 /* char path[73];	f77 project path    */
-/* char upath[73];	f77 users path    */
-/* char imgpth[25];	f77 relative path to images    */
-/* char docpth[25];	f77 relative path to documents    */
 char capt_wf_exe[73];	/* command to execute for capture wire frame */
 char capt_tf_file[73];	/* file for text feedback buffer dump */
 char capt_all_exe[73];	/* command for capture all of display */
-int browse;	/* if = 0 then user owns, if = 1 user browsing */
 gint xrt_width, xrt_height;  /* same as xsh.width and xsh.height */
 
 gint menu_pix_wd;	/* pixel width of initial menu (based on nb of characters *imenuchw) */
@@ -107,53 +110,21 @@ void calculate_font_metrics(void){
   for( disp_fnt = 0; disp_fnt <=7; disp_fnt++){             // this sets the font to Serif Small
 
     if  (disp_fnt == 0)
-#ifdef SUN
-      pfd = pango_font_description_from_string("Courier,Medium 8");
-#else
-      pfd = pango_font_description_from_string("Serif,Medium 8");
-#endif
+      pfd = pango_font_description_from_string("Monospace,Medium 8");
     else if (disp_fnt == 1)
-#ifdef SUN
-      pfd = pango_font_description_from_string("Courier,Medium 10");
-#else
-      pfd = pango_font_description_from_string("Serif,Medium 10");
-#endif
+      pfd = pango_font_description_from_string("Monospace,Medium 9");
     else if(disp_fnt == 2)
-#ifdef SUN
-      pfd = pango_font_description_from_string("Courier,Medium 12");
-#else
-      pfd = pango_font_description_from_string("Serif,Medium 12");
-#endif
+      pfd = pango_font_description_from_string("Monospace,Medium 10");
     else if(disp_fnt ==3)
-#ifdef SUN
-      pfd = pango_font_description_from_string("Courier,Medium 14");
-#else
-      pfd = pango_font_description_from_string("Serif,Medium 14");
-#endif
+      pfd = pango_font_description_from_string("Monospace,Medium 12");
     else if(disp_fnt ==4)
-#ifdef SUN
-      pfd = pango_font_description_from_string("Courier,Medium 8");
-#else
       pfd = pango_font_description_from_string("Serif,Medium 8");
-#endif
     else if(disp_fnt == 5)
-#ifdef SUN
-      pfd = pango_font_description_from_string("Courier,Medium 10");
-#else
-      pfd = pango_font_description_from_string("Serif,Medium 10");
-#endif
+      pfd = pango_font_description_from_string("Serif,Medium 9");
     else if(disp_fnt == 6)
-#ifdef SUN
-      pfd = pango_font_description_from_string("Courier,Medium 12");
-#else
-      pfd = pango_font_description_from_string("Serif,Medium 12");
-#endif
+      pfd = pango_font_description_from_string("Serif,Medium 10");
     else if(disp_fnt == 7)
-#ifdef SUN
-      pfd = pango_font_description_from_string("Courier,Medium 14");
-#else
-      pfd = pango_font_description_from_string("Serif,Medium 14");
-#endif
+      pfd = pango_font_description_from_string("Serif,Medium 12");
 
     context = gtk_widget_get_pango_context (text);
     metrics = pango_context_get_metrics (context, pfd,
@@ -307,45 +278,29 @@ GtkWidget *create_text( void )
 
 /* react to different sizes of text */
    if (disp_fnt == 0 ) {
-#ifdef SUN
-     pfd = pango_font_description_from_string("Courier,Medium 8");
-#else
-     pfd = pango_font_description_from_string("Serif,Medium 8");
-#endif
-     // g_print("create_text configure font medium 8\n");
+     pfd = pango_font_description_from_string("Monospace,Medium 8");
+     // g_print("create_text configure Mono font medium 8\n");
    } else if (disp_fnt == 1 ) {
-#ifdef SUN
-     pfd = pango_font_description_from_string("Courier,Medium 10");
-#else
-     pfd = pango_font_description_from_string("Serif,Medium 10");
-#endif
-     // g_print("create_text configure font medium 10\n");
+     pfd = pango_font_description_from_string("Monospace,Medium 9");
+     // g_print("create_text configure Mono medium 9\n");
    } else if (disp_fnt == 2 ) {
-#ifdef SUN
-     pfd = pango_font_description_from_string("Courier,Medium 12");
-#else
-     pfd = pango_font_description_from_string("Serif,Medium 12");
-#endif
-     // g_printf("create_text configure font medium 12\n");
+     pfd = pango_font_description_from_string("Monospace,Medium 10");
+     // g_printf("create_text configure Mono font medium 10\n");
    } else if (disp_fnt == 3 ) {
-#ifdef SUN
-     pfd = pango_font_description_from_string("Courier,Medium 14");
-#else
-     pfd = pango_font_description_from_string("Serif,Medium 14");
-#endif
-     // g_print("create_text configure font medium 14\n");
+     pfd = pango_font_description_from_string("Monospace,Medium 11");
+     // g_print("create_text configure Mono font medium 11\n");
    } else if (disp_fnt == 4 ) {
-     pfd = pango_font_description_from_string("Courier,Medium 8");
-     // g_print("create_text configure courier medium 8\n");
+     pfd = pango_font_description_from_string("Serif,Medium 8");
+     // g_print("create_text configure serif medium 8\n");
    } else if (disp_fnt == 5 ) {
-     pfd = pango_font_description_from_string("Courier,Medium 10");
-     // g_print("create_text configure courier medium 10\n");
+     pfd = pango_font_description_from_string("Serif,Medium 9");
+     // g_print("create_text configure serif medium 9\n");
    } else if (disp_fnt == 6 ) {
-     pfd = pango_font_description_from_string("Courier,Medium 12");
-     // g_print("create_text configure courier medium 12\n");
+     pfd = pango_font_description_from_string("Serif,Medium 10");
+     // g_print("create_text configure serif medium 10\n");
    } else if (disp_fnt == 7 ) {
-     pfd = pango_font_description_from_string("Courier,Medium 14");
-     // g_print("create_text configure courier medium 14\n");
+     pfd = pango_font_description_from_string("Serif,Medium 11");
+     // g_print("create_text configure serif medium 11\n");
    }
    gtk_widget_modify_font(text, pfd);
    pango_font_description_free(pfd);
@@ -425,68 +380,65 @@ void text_feedback_reset ( void)
    /* fprintf(stderr,"other box info b_top %ld b_bottom %ld b_left %ld b_right %ld\n",b_top,b_bottom,b_left,b_right);  debug */
    /* fprintf(stderr,"box within axis gh %ld gw %ld\n",gh,gw);  debug */
 
-/* Originally there were three options for fonts and disp_fnt was either 0, 1, or 2.
- * With the addition of Serif Largest, Courier Small, Courier Medium, Courier Large and Courier Largest,
- * the disp_fnt also has the values 3, 4, 5, 6, 7
- * << NOTE: the fortran side does not know about these new values >>
+/* Follow the pattern set in X11 0/1/2/3 for fixed width and 4/5/6/7 for proportional.
  */
 
 /* Read the calculated values from the array depending on value of disp_fnt */
-   if (disp_fnt == 0 ) {
+   if (disp_fnt == 4 ) {
      pfd = pango_font_description_from_string("Serif,Medium 8");
      f_height = font_calculations_array[serif_small].f_height;   // pre-calculated value of f_height is read from the array
      f_width  = font_calculations_array[serif_small].f_width;    // pre-calculated value of f_width  is read from the array
 
      // fprintf(stderr,"text_feedback_reset at serif medium 8 change font height and width is %d %d", f_height, f_width);
 
-   } else if (disp_fnt == 1 ) {
-     pfd = pango_font_description_from_string("Serif,Medium 10");
+   } else if (disp_fnt == 5 ) {
+     pfd = pango_font_description_from_string("Serif,Medium 9");
      f_height = font_calculations_array[serif_medium].f_height;
      f_width  = font_calculations_array[serif_medium].f_width;
 
-     // fprintf(stderr,"text_feedback_reset at serif medium 10 change font height and width is %d %d", f_height, f_width);
+     // fprintf(stderr,"text_feedback_reset at serif medium 9 change font height and width is %d %d", f_height, f_width);
 
-   } else if (disp_fnt == 2 ) {
-     pfd = pango_font_description_from_string("Serif,Medium 12");
+   } else if (disp_fnt == 6 ) {
+     pfd = pango_font_description_from_string("Serif,Medium 10");
      f_height = font_calculations_array[serif_large].f_height;
      f_width  = font_calculations_array[serif_large].f_width;
 
-     // fprintf(stderr,"text_feedback_reset at serif medium 12 change font height and width is %d %d", f_height, f_width);
+     // fprintf(stderr,"text_feedback_reset at serif medium 10 change font height and width is %d %d", f_height, f_width);
 
-   } else if (disp_fnt == 3 ) {
-     pfd = pango_font_description_from_string("Serif,Medium 14");
+   } else if (disp_fnt == 7 ) {
+     pfd = pango_font_description_from_string("Serif,Medium 12");
      f_height = font_calculations_array[serif_largest].f_height;
      f_width  = font_calculations_array[serif_largest].f_width;
 
-     // fprintf(stderr,"text_feedback_reset at serif medium 14 change font height and width is %d %d", f_height, f_width);
+     // fprintf(stderr,"text_feedback_reset at serif medium 12 change font height and width is %d %d", f_height, f_width);
 
-   } else if (disp_fnt == 4 ) {
-     pfd = pango_font_description_from_string("Courier,Medium 8");
+   } else if (disp_fnt == 0 ) {
+     pfd = pango_font_description_from_string("Monospace,Medium 8");
      f_height = font_calculations_array[courier_small].f_height;
      f_width  = font_calculations_array[courier_small].f_width;
 
-     // fprintf(stderr,"text_feedback_reset at courier medium 8 change font height and width is %d %d", f_height, f_width);
+     // fprintf(stderr,"text_feedback_reset at Mono medium 8 change font height and width is %d %d", f_height, f_width);
 
-   } else if (disp_fnt == 5 ) {
-     pfd = pango_font_description_from_string("Courier,Medium 10");
+   } else if (disp_fnt == 1 ) {
+     pfd = pango_font_description_from_string("Monospace,Medium 9");
      f_height = font_calculations_array[courier_medium].f_height;
      f_width  = font_calculations_array[courier_medium].f_width;
 
-     // fprintf(stderr,"text_feedback_reset at courier medium 10 change font height and width is %d %d", f_height, f_width);
+     // fprintf(stderr,"text_feedback_reset at Mono medium 9 change font height and width is %d %d", f_height, f_width);
 
-   } else if (disp_fnt == 6 ) {
-     pfd = pango_font_description_from_string("Courier,Medium 12");
+   } else if (disp_fnt == 2 ) {
+     pfd = pango_font_description_from_string("Monospace,Medium 10");
      f_height = font_calculations_array[courier_large].f_height;
      f_width  = font_calculations_array[courier_large].f_width;
 
-     // fprintf(stderr,"text_feedback_reset at courier medium 12 change font height and width is %d %d", f_height, f_width);
+     // fprintf(stderr,"text_feedback_reset at Mono medium 10 change font height and width is %d %d", f_height, f_width);
 
-   } else if (disp_fnt == 7 ) {
-     pfd = pango_font_description_from_string("Courier,Medium 14");
+   } else if (disp_fnt == 3 ) {
+     pfd = pango_font_description_from_string("Monospace,Medium 11");
      f_height = font_calculations_array[courier_largest].f_height;
      f_width  = font_calculations_array[courier_largest].f_width;
 
-     // fprintf(stderr,"text_feedback_reset at courier medium 14 change font height and width is %d %d", f_height, f_width);
+     // fprintf(stderr,"text_feedback_reset at Mono medium 11 change font height and width is %d %d", f_height, f_width);
    }
 
    gtk_widget_modify_font(text, pfd);
@@ -563,7 +515,6 @@ void emenu_feedback_reset ( void)
 /* graphic_feedback_reset() - called from the graphic font reset
  * callbacks to pass information back to fortran via updview_.
  * graphic_feedback_reset uses pre-calculated values for calculating graphic area fonts.
- * Also the 5 new fonts have been added, Serif largest, courier small, courier medium, courier large, courier largest
  */
 void graphic_feedback_reset ( void)
 {
@@ -577,73 +528,45 @@ void graphic_feedback_reset ( void)
 /* Create font description to use for resetting the graphic font.
  * Use pango_font_get_metrics to get font width and height. */
  if (butn_fnt == 0 ) {
-#ifdef SUN
-     pfd = pango_font_description_from_string("Courier,Medium 8");
+     pfd = pango_font_description_from_string("Monospace,Medium 8");
      f_height = font_calculations_array[courier_small].f_height;
      f_width  = font_calculations_array[courier_small].f_width;
-#else
-     pfd = pango_font_description_from_string("Serif,Medium 8");
-     f_height = font_calculations_array[serif_small].f_height;   // pre-calculated value of f_height is read from the array
-     f_width  = font_calculations_array[serif_small].f_width;    // pre-calculated value of f_width  is read from the array
-#endif
      // g_print("viewtext graphic font medium 8\n");
  } else if (butn_fnt == 1 ) {
-#ifdef SUN
-     pfd = pango_font_description_from_string("Courier,Medium 10");
+     pfd = pango_font_description_from_string("Monospace,Medium 9");
      f_height = font_calculations_array[courier_medium].f_height;
      f_width  = font_calculations_array[courier_medium].f_width;
-#else
-     pfd = pango_font_description_from_string("Serif,Medium 10");
+     // g_print("viewtext graphic font medium 9\n");
+ } else if (butn_fnt == 2 ) {
+     pfd = pango_font_description_from_string("Monospace,Medium 10");
+     f_height = font_calculations_array[courier_large].f_height;
+     f_width  = font_calculations_array[courier_large].f_width;
+    // g_print("viewtext graphic font medium 10\n");
+ } else if (butn_fnt == 3 ) {
+     pfd = pango_font_description_from_string("Monospace,Medium 11");
+     f_height = font_calculations_array[courier_largest].f_height;
+     f_width  = font_calculations_array[courier_largest].f_width;
+     // fprintf(stderr,"re-configure graphic font medium 11\n");
+ } else if (butn_fnt == 4 ) {
+     pfd = pango_font_description_from_string("Serif,Medium 8");
+     f_height = font_calculations_array[serif_small].f_height;
+     f_width  = font_calculations_array[serif_small].f_width;
+     // fprintf(stderr,"re-configure graphic font medium 8\n");
+ } else if (butn_fnt == 5 ) {
+     pfd = pango_font_description_from_string("Serif,Medium 9");
      f_height = font_calculations_array[serif_medium].f_height;
      f_width  = font_calculations_array[serif_medium].f_width;
-#endif
-     // g_print("viewtext graphic font medium 10\n");
- } else if (butn_fnt == 2 ) {
-#ifdef SUN
-     pfd = pango_font_description_from_string("Courier,Medium 12");
-     f_height = font_calculations_array[courier_large].f_height;
-     f_width  = font_calculations_array[courier_large].f_width;
-#else
-     pfd = pango_font_description_from_string("Serif,Medium 12");
+     // fprintf(stderr,"re-configure graphic font medium 9\n");
+ } else if (butn_fnt == 6 ) {
+     pfd = pango_font_description_from_string("Serif,Medium 10");
      f_height = font_calculations_array[serif_large].f_height;
      f_width  = font_calculations_array[serif_large].f_width;
-#endif
-    // g_print("viewtext graphic font medium 12\n");
- } else if (butn_fnt == 3 ) {
-#ifdef SUN
-     pfd = pango_font_description_from_string("Courier,Medium 14");
-     f_height = font_calculations_array[courier_largest].f_height;
-     f_width  = font_calculations_array[courier_largest].f_width;
-#else
-     pfd = pango_font_description_from_string("Serif,Medium 14");
+     // fprintf(stderr,"re-configure graphic font medium 10\n");
+   }else if (butn_fnt == 7 ) {
+     pfd = pango_font_description_from_string("Serif,Medium 11");
      f_height = font_calculations_array[serif_largest].f_height;
      f_width  = font_calculations_array[serif_largest].f_width;
-#endif
-     // fprintf(stderr,"re-configure graphic font medium 10\n");
-   } else if (butn_fnt == 4 ) {
-     pfd = pango_font_description_from_string("Courier,Medium 8");
-     f_height = font_calculations_array[courier_small].f_height;
-     f_width  = font_calculations_array[courier_small].f_width;
-
-     // fprintf(stderr,"re-configure graphic font medium 12\n");
-   }else if (butn_fnt == 5 ) {
-     pfd = pango_font_description_from_string("Courier,Medium 10");
-     f_height = font_calculations_array[courier_medium].f_height;
-     f_width  = font_calculations_array[courier_medium].f_width;
-
-     // fprintf(stderr,"re-configure graphic font medium 10\n");
-   } else if (butn_fnt == 6 ) {
-     pfd = pango_font_description_from_string("Courier,Medium 12");
-     f_height = font_calculations_array[courier_large].f_height;
-     f_width  = font_calculations_array[courier_large].f_width;
-
-     // fprintf(stderr,"re-configure graphic font medium 12\n");
-   }else if (butn_fnt == 7 ) {
-     pfd = pango_font_description_from_string("Courier,Medium 14");
-     f_height = font_calculations_array[courier_largest].f_height;
-     f_width  = font_calculations_array[courier_largest].f_width;
-
-     // fprintf(stderr,"re-configure graphic font medium 10\n");
+     // fprintf(stderr,"re-configure graphic font medium 11\n");
    }
    gtk_widget_modify_font(graphic, pfd);	/* << ?? >> */
 
@@ -694,8 +617,8 @@ static GtkWidget *sml_menu_fbk ( void)
    sml_menu = gtk_menu_new ();
    group = NULL;
 
-   /* There is a Serif submenu and a Courier submenu. First create the Serif label: */
-   menuitem= gtk_menu_item_new_with_label ("Serif");
+   /* There is a Monospace submenu and a Serif submenu. First create the Serif label: */
+   menuitem= gtk_menu_item_new_with_label ("Monospace");
    gtk_menu_shell_append (GTK_MENU_SHELL (sml_menu), menuitem);
    gtk_widget_show (menuitem);
 
@@ -727,14 +650,14 @@ static GtkWidget *sml_menu_fbk ( void)
                      G_CALLBACK (sml_menu_fbk_cb), GINT_TO_POINTER (3));
    gtk_widget_show (menuitem);
 
-   /* Separator between Serif and Courier sections */
+   /* Separator between Serif and Monospace sections */
    menuitem= gtk_menu_item_new_with_label ("-----------");
    gtk_menu_shell_append (GTK_MENU_SHELL (sml_menu), menuitem);
    gtk_widget_show (menuitem);
 
 
-   /* "Courier" label in the submenu */
-   menuitem= gtk_menu_item_new_with_label ("Courier");
+   /* "Serif" label in the submenu */
+   menuitem= gtk_menu_item_new_with_label ("Serif");
    gtk_menu_shell_append (GTK_MENU_SHELL (sml_menu), menuitem);
    gtk_widget_show (menuitem);
 
@@ -784,7 +707,7 @@ void sml_menu_gph_cb (GtkWidget *widget, gpointer resize)
 /* **** Define small/medium/large option menu for use in graphics font resizing
  * New radio buttons and labels are added in the graphic feedback submenu to give
  * users more flexibility in choice of fonts the user can now choose any one of
- * the fonts from Serif small, medium, large and largest and Courier small, medium,
+ * the fonts from Serif small, medium, large and largest and Monospace small, medium,
  * large, largest
  */
 static GtkWidget *sml_menu_gph ( void)
@@ -796,7 +719,7 @@ static GtkWidget *sml_menu_gph ( void)
    sml_menu = gtk_menu_new ();
    group = NULL;
 
-   /* There is a Serif submenu and a Courier submenu. First create the Serif label: */
+   /* There is a Serif submenu and a Monospace submenu. First create the Serif label: */
    menuitem= gtk_menu_item_new_with_label ("Serif");
    gtk_menu_shell_append (GTK_MENU_SHELL (sml_menu), menuitem);
    gtk_widget_show (menuitem);
@@ -828,13 +751,13 @@ static GtkWidget *sml_menu_gph ( void)
                      G_CALLBACK (sml_menu_gph_cb), GINT_TO_POINTER (3));
 
 
-   /* Separator between Serif and Courier sections */
+   /* Separator between Serif and Monospace sections */
    menuitem= gtk_menu_item_new_with_label ("-----------");
    gtk_menu_shell_append (GTK_MENU_SHELL (sml_menu), menuitem);
    gtk_widget_show (menuitem);
 
-   /* "Courier" label in the submenu */
-   menuitem= gtk_menu_item_new_with_label ("Courier");
+   /* "Monospace" label in the submenu */
+   menuitem= gtk_menu_item_new_with_label ("Monospace");
    gtk_menu_shell_append (GTK_MENU_SHELL (sml_menu), menuitem);
    gtk_widget_show (menuitem);
 
@@ -1002,7 +925,7 @@ void esru_wire_ctl ( void)
    GtkWidget *ViewPerspective, *ViewPlan, *ViewEastElev, *ViewNorthElev;
    GtkWidget *zone_button[MCOM];
    GtkWidget *IncludeAll, *IncludeSurfaces, *IncludeExternal, *IncludePartition;
-   GtkWidget *IncludeSimilar, *IncludeSurObsGrnd, *IncludeGrnd;
+   GtkWidget *IncludeSimilar, *IncludeSurObsGrnd, *IncludeGrnd, *IncludeSurObs, *IncludeSurVis;
    GtkWidget *HighDefault, *HighConstr, *HighOpaque, *HighTrans, *HighPartAtt;
 
    gint izone, itchar, ichar, result;
@@ -1015,7 +938,7 @@ void esru_wire_ctl ( void)
                                 /* in 64 bit gzonepik_ structure being messed around from fortran */
    long int rememberncomp;      /* local variable for number of zones
 
-   esru_ask_wire();	/* instanciate the help associated with this interface */
+   esru_ask_wire();	/* instantiate the help associated with this interface */
 
    control = gtk_dialog_new_with_buttons("Wireframe control",
      GTK_WINDOW (window),GTK_DIALOG_DESTROY_WITH_PARENT,
@@ -1221,7 +1144,7 @@ void esru_wire_ctl ( void)
    hbox = gtk_hbox_new (FALSE, 1);
 /*    gtk_container_add (GTK_CONTAINER (hbox),label); this causes a GTK warning about a label widget inside a table */
 
-   IncludeAll = gtk_radio_button_new_with_label (NULL,"Surf+Obs");
+   IncludeAll = gtk_radio_button_new_with_label (NULL,"Surf+Obs+Vis");
    gtk_container_add (GTK_CONTAINER (hbox),IncludeAll);
    if (cray2_.ITDSP == 0) {
      gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(IncludeAll), TRUE);
@@ -1255,6 +1178,16 @@ void esru_wire_ctl ( void)
    gtk_container_add (GTK_CONTAINER (hbox),IncludeGrnd);
    if (cray2_.ITDSP == 6) {
      gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(IncludeGrnd), TRUE);
+   }
+   IncludeSurObs = gtk_radio_button_new_with_label_from_widget (GTK_RADIO_BUTTON (IncludeAll), "Surf+Obs");
+   gtk_container_add (GTK_CONTAINER (hbox),IncludeSurObs);
+   if (cray2_.ITDSP == 7) {
+     gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(IncludeSurObs), TRUE);
+   }
+   IncludeSurVis = gtk_radio_button_new_with_label_from_widget (GTK_RADIO_BUTTON (IncludeAll), "Surf+Vis");
+   gtk_container_add (GTK_CONTAINER (hbox),IncludeSurVis);
+   if (cray2_.ITDSP == 8) {
+     gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(IncludeSurVis), TRUE);
    }
 
    gtk_table_attach_defaults (GTK_TABLE (table), hbox, 1, 2, 1, 2);
@@ -1355,6 +1288,10 @@ void esru_wire_ctl ( void)
            cray2_.ITDSP = 5;}
          if (gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (IncludeGrnd)) == TRUE) {
            cray2_.ITDSP = 6;}
+         if (gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (IncludeSurObs)) == TRUE) {
+           cray2_.ITDSP = 7;}
+         if (gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (IncludeSurVis)) == TRUE) {
+           cray2_.ITDSP = 8;}
 
          if (gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (HighDefault)) == TRUE) {
            cray2_.ITHLS = 0;}
@@ -1391,8 +1328,9 @@ void esru_wire_ctl ( void)
 
          // pass back to the fortran the numbers that a user might have changed and invoke updated view (in the fortran)
          chgeye_(&cimage_.EYEM[0],&cimage_.EYEM[1],&cimage_.EYEM[2],&cimage_.VIEWM[0],&cimage_.VIEWM[1],
-           &cimage_.VIEWM[2],&cimage_.ANG,&cray2_.ITZNM,&cray2_.ITSNM,&cray2_.ITVNO,&cray2_.ITOBS,&cray2_.ITSNR,&cray2_.ITGRD,
-           &cray2_.ITORG,&cray2_.GRDIS,&cray2_.ITBND,&cray2_.ITDSP,&cray2_.ITHLS,&cray2_.ITHLZ,&cray2_.ITPPSW);
+           &cimage_.VIEWM[2],&cimage_.ANG,&cray2_.ITZNM,&cray2_.ITSNM,&cray2_.ITVNO,&cray2_.ITOBS,&cray2_.ITVIS,
+           &cray2_.ITVOBJ,&cray2_.ITSNR,&cray2_.ITGRD,&cray2_.ITORG,&cray2_.GRDIS,&cray2_.ITBND,&cray2_.ITDSP,
+           &cray2_.ITHLS,&cray2_.ITHLZ,&cray2_.ITPPSW);
 
          no_valid_event = FALSE;
          break;
@@ -1448,6 +1386,10 @@ void esru_wire_ctl ( void)
            cray2_.ITDSP = 5;}
          if (gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (IncludeGrnd)) == TRUE) {
            cray2_.ITDSP = 6;}
+         if (gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (IncludeSurObs)) == TRUE) {
+           cray2_.ITDSP = 7;}
+         if (gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (IncludeSurVis)) == TRUE) {
+           cray2_.ITDSP = 8;}
 
          if (gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (HighDefault)) == TRUE) {
            cray2_.ITHLS = 0;}
@@ -1480,14 +1422,15 @@ void esru_wire_ctl ( void)
 
          // pass back to the fortran the numbers that a user might have changed and invoke updated view (in the fortran)
          chgeye_(&cimage_.EYEM[0],&cimage_.EYEM[1],&cimage_.EYEM[2],&cimage_.VIEWM[0],&cimage_.VIEWM[1],
-           &cimage_.VIEWM[2],&cimage_.ANG,&cray2_.ITZNM,&cray2_.ITSNM,&cray2_.ITVNO,&cray2_.ITOBS,&cray2_.ITSNR,&cray2_.ITGRD,
-           &cray2_.ITORG,&cray2_.GRDIS,&cray2_.ITBND,&cray2_.ITDSP,&cray2_.ITHLS,&cray2_.ITHLZ,&cray2_.ITPPSW);
+           &cimage_.VIEWM[2],&cimage_.ANG,&cray2_.ITZNM,&cray2_.ITSNM,&cray2_.ITVNO,&cray2_.ITOBS,&cray2_.ITVIS,
+           &cray2_.ITVOBJ,&cray2_.ITSNR,&cray2_.ITGRD,&cray2_.ITORG,&cray2_.GRDIS,&cray2_.ITBND,&cray2_.ITDSP,
+           &cray2_.ITHLS,&cray2_.ITHLZ,&cray2_.ITPPSW);
 
-         esru_ask_wire();	/* re-instanciate the help associated with this interface */
+         esru_ask_wire();	/* re-instantiate the help associated with this interface */
          break;
        case GTK_RESPONSE_HELP:
 
-/* need a mechanism for instanciating help array */
+/* need a mechanism for instantiating help array */
          ibx= 0; iby= 0; more = 0;
          egphelpscroll_(&ibx,&iby,&ipflg,&more,&iuresp);
          break;
@@ -1686,38 +1629,21 @@ GtkWidget *create_dialog( void )
 
 /* react to different sizes of text */
    if  (disp_fnt == 0)
-#ifdef SUN
-      pfd = pango_font_description_from_string("Courier,Medium 8");
-#else
-      pfd = pango_font_description_from_string("Serif,Medium 8");
-#endif
+      pfd = pango_font_description_from_string("Monospace,Medium 8");
    else if (disp_fnt == 1)
-#ifdef SUN
-      pfd = pango_font_description_from_string("Courier,Medium 10");
-#else
-      pfd = pango_font_description_from_string("Serif,Medium 10");
-#endif
+      pfd = pango_font_description_from_string("Monospace,Medium 9");
    else if(disp_fnt == 2)
-#ifdef SUN
-      pfd = pango_font_description_from_string("Courier,Medium 12");
-#else
-      pfd = pango_font_description_from_string("Serif,Medium 12");
-#endif
+      pfd = pango_font_description_from_string("Monospace,Medium 10");
    else if(disp_fnt ==3)
-#ifdef SUN
-      pfd = pango_font_description_from_string("Courier,Medium 14");
-#else
-      pfd = pango_font_description_from_string("Serif,Medium 14");
-#endif
-
+      pfd = pango_font_description_from_string("Monospace,Medium 11");
    else if (disp_fnt == 4 )
-     pfd = pango_font_description_from_string("Courier,Medium 8");
+     pfd = pango_font_description_from_string("Serif,Medium 8");
    else if (disp_fnt == 5 )
-     pfd = pango_font_description_from_string("Courier,Medium 10");
+     pfd = pango_font_description_from_string("Serif,Medium 9");
    else if (disp_fnt == 6 )
-     pfd = pango_font_description_from_string("Courier,Medium 12");
+     pfd = pango_font_description_from_string("Serif,Medium 10");
    else if (disp_fnt == 7 )
-     pfd = pango_font_description_from_string("Courier,Medium 14");
+      pfd = pango_font_description_from_string("Serif,Medium 11");
 
    gtk_widget_modify_font(dialog, pfd);
    pango_font_description_free(pfd);
@@ -1788,11 +1714,11 @@ char *gintstr[] = {
 
 /* initial clear of popup menu lines list and popup item type string */
     for ( i = 0; i < MENU_LIST_LEN-1; i++ ) {
-      strcpy(pm_list[i],"                                        ");
+     strcpy(pm_list[i],"                                        ");
     }
     /*                           1         2         3         4
                         1234567890123456789012345678901234567890 */
-    strcpy(pmtype_list,"                                        ");
+    strcpy(pmtype_list,"                                       ");
     pm_width = 0;	/* set initial popup char width */
     pm_lines = 0;	/* set initial popup items */
     wire_avail = 0;      /* wireframe adjustment initial state */
@@ -1909,8 +1835,8 @@ char *gintstr[] = {
       hother = 560;
       gtk_widget_set_size_request (emenu, menu_pix_wd, hother);
     } else if(strncmp(cappl, "clm", 3) == 0) {
-      hratio = (float) iheight/570.0;
-      hother = (gint) (470 * hratio);
+      hratio = (float) iheight/600.0;
+      hother = (gint) (540 * hratio);
       gtk_widget_set_size_request (emenu, menu_pix_wd, hother);
     } else if(strncmp(cappl, "bld", 3) == 0) {
       hratio = (float) iheight/560.0;
@@ -1965,7 +1891,7 @@ char *gintstr[] = {
       gtk_widget_set_size_request (emenu, menu_pix_wd, hother);
     } else if(strncmp(cappl, "prj", 3) == 0) {
       hratio = (float) iheight/630.0;
-      hother = (gint) (520 * hratio);
+      hother = (gint) (540 * hratio);
       gtk_widget_set_size_request (emenu, menu_pix_wd, hother);
     } else if(strncmp(cappl, "res", 3) == 0) {
       hratio = (float) iheight/600.0;
@@ -1979,7 +1905,7 @@ char *gintstr[] = {
     gtk_paned_pack2 (GTK_PANED (hpaned), emenu, FALSE, TRUE);
     gtk_widget_show (emenu);
     // debug
-    // fprintf(stderr,"menu request pix wd %f %d %d\n", hratio,hother,menu_pix_wd);
+    fprintf(stderr,"menu request pix wd %f %d %d\n", hratio,hother,menu_pix_wd);
 
 /* so the emenu is a frame which we could try
    using the esp_list_in_frame function with */
@@ -2409,6 +2335,21 @@ void winclr_()
   return;
 }
 
+/* **************  Open a 3D viewing box attributes to file *************** */
+void win3dwwc_(menu_char,cl,cr,ct,cb,vl,vr,vt,vb,gw,gwht)
+ long int	*menu_char,*gw,*gwht;
+ long int	*cl,*cr,*ct,*cb;
+ long int	*vl,*vr,*vt,*vb;
+{
+/* If echo send parameters to wwc file */
+ if ( wwc_ok == 1) {
+   fprintf(wwc,"*win3d\n");
+   fprintf(wwc,"%ld %ld %ld %ld %ld %ld %ld %ld %ld %ld %ld\n",
+		*menu_char,*cl,*cr,*ct,*cb,*vl,*vr,*vt,*vb,*gw,*gwht);
+ }
+ return;
+} /* win3dwwc_ */
+
 /* **************  Open a 3D viewing box *************** */
 /*
  Passed the character width of the main control menu (not used), the number of
@@ -2445,71 +2386,45 @@ void win3d_(menu_char,cl,cr,ct,cb,vl,vr,vt,vb,gw,gh)
  * Use pango_font_get_metrics to get font width and height.
  */
  if (butn_fnt == 0 ) {
-#ifdef SUN
-     pfd = pango_font_description_from_string("Courier,Medium 8");
+     pfd = pango_font_description_from_string("Monospace,Medium 8");
      f_height = font_calculations_array[courier_small].f_height;
      f_width  = font_calculations_array[courier_small].f_width;
-#else
-     pfd = pango_font_description_from_string("Serif,Medium 8");
-     f_height = font_calculations_array[serif_small].f_height;   // pre-calculated value of f_height is read from the array
-     f_width  = font_calculations_array[serif_small].f_width;    // pre-calculated value of f_width  is read from the array
-#endif
      // g_print("viewtext graphic font medium 8\n");
  } else if (butn_fnt == 1 ) {
-#ifdef SUN
-     pfd = pango_font_description_from_string("Courier,Medium 10");
+     pfd = pango_font_description_from_string("Monospace,Medium 9");
      f_height = font_calculations_array[courier_medium].f_height;
      f_width  = font_calculations_array[courier_medium].f_width;
-#else
-     pfd = pango_font_description_from_string("Serif,Medium 10");
-     f_height = font_calculations_array[serif_medium].f_height;
-     f_width  = font_calculations_array[serif_medium].f_width;
-#endif
      // g_print("viewtext graphic font medium 10\n");
  } else if (butn_fnt == 2 ) {
-#ifdef SUN
-     pfd = pango_font_description_from_string("Courier,Medium 12");
+     pfd = pango_font_description_from_string("Monospace,Medium 10");
      f_height = font_calculations_array[courier_large].f_height;
      f_width  = font_calculations_array[courier_large].f_width;
-#else
-     pfd = pango_font_description_from_string("Serif,Medium 12");
-     f_height = font_calculations_array[serif_large].f_height;
-     f_width  = font_calculations_array[serif_large].f_width;
-#endif
-     // g_print("viewtext graphic font medium 12\n");
+     // g_print("viewtext graphic font medium 10\n");
  } else if (butn_fnt == 3 ) {
-#ifdef SUN
-     pfd = pango_font_description_from_string("Courier,Medium 14");
+     pfd = pango_font_description_from_string("Monospace,Medium 11");
      f_height = font_calculations_array[courier_largest].f_height;
      f_width  = font_calculations_array[courier_largest].f_width;
-#else
-     pfd = pango_font_description_from_string("Serif,Medium 14");
-     f_height = font_calculations_array[serif_largest].f_height;
-     f_width  = font_calculations_array[serif_largest].f_width;
-#endif
-     // fprintf(stderr,"refresh graphic font medium 10\n");
+     // fprintf(stderr,"refresh graphic font medium 11\n");
  } else if (butn_fnt == 4 ) {
-   pfd = pango_font_description_from_string("Courier,Medium 8");
-   f_height = font_calculations_array[courier_small].f_height;
-   f_width  = font_calculations_array[courier_small].f_width;
-
-   // fprintf(stderr,"refresh graphic font medium 12\n");
- }else if (butn_fnt == 5 ) {
-   pfd = pango_font_description_from_string("Courier,Medium 10");
-   f_height = font_calculations_array[courier_medium].f_height;
-   f_width  = font_calculations_array[courier_medium].f_width;
-   // fprintf(stderr,"refresh graphic font medium 12\n");
+   pfd = pango_font_description_from_string("Serif,Medium 8");
+   f_height = font_calculations_array[serif_small].f_height;
+   f_width  = font_calculations_array[serif_small].f_width;
+   // g_print("viewtext graphic font medium 8\n");
+ } else if (butn_fnt == 5 ) {
+   pfd = pango_font_description_from_string("Serif,Medium 9");
+   f_height = font_calculations_array[serif_medium].f_height;
+   f_width  = font_calculations_array[serif_medium].f_width;
+   // fprintf(stderr,"refresh graphic font medium 9\n");
  } else if (butn_fnt == 6 ) {
-   pfd = pango_font_description_from_string("Courier,Medium 12");
-   f_height = font_calculations_array[courier_large].f_height;
-   f_width  = font_calculations_array[courier_large].f_width;
-
+   pfd = pango_font_description_from_string("Serif,Medium 10");
+   f_height = font_calculations_array[serif_large].f_height;
+   f_width  = font_calculations_array[serif_large].f_width;
    // fprintf(stderr,"refresh graphic font medium 10\n");
  } else if (butn_fnt == 7 ) {
-   pfd = pango_font_description_from_string("Courier,Medium 14");
-   f_height = font_calculations_array[courier_largest].f_height;
-   f_width  = font_calculations_array[courier_largest].f_width;
-   // fprintf(stderr,"refresh graphic font medium 12\n");
+   pfd = pango_font_description_from_string("Serif,Medium 11");
+   f_height = font_calculations_array[serif_largest].f_height;
+   f_width  = font_calculations_array[serif_largest].f_width;
+   // fprintf(stderr,"refresh graphic font medium 11\n");
  }
  gtk_widget_modify_font(graphic, pfd);	/* << ?? >> */
 

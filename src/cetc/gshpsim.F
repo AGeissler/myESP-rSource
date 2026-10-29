@@ -352,8 +352,8 @@ C Initiates reading of global variables (common for all)
 #include "hvac_parameters.h"
 #include "gshp_common.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
-      INTEGER IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
+      INTEGER IUOUT,IUIN,IEOUT
 
       common/gshpinfo/igshp
       common/gshpfile/gshpfile
@@ -516,11 +516,11 @@ C      USE GSHP_VERTICAL_INPUT
 
 
 C Common for read and write statements
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
 
 C ----------------------  Definition of Data Types --------------------
 
-      INTEGER IUOUT,IUIN
+      INTEGER IUOUT,IUIN,IEOUT
       
       ! Pre-initialized Variables 
       REAL timej                                   ![second]
@@ -742,11 +742,11 @@ C       USE GSHP_HORIZONTAL_INPUT
 #include "ground_temp_mains_common.h"
 
 C Common for read and write statements
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
 
 C ----------------------  Definition of Data Types --------------------
 
-      INTEGER IUOUT,IUIN
+      INTEGER IUOUT,IUIN,IEOUT
       
       ! Pre-initialized Variables
       REAL timej                           ![second]      
@@ -944,12 +944,12 @@ C       USE GSHP_HORIZONTAL_INPUT
 #include "gshp_hs_common.h"
 #include "ground_temp_mains_common.h"
 C Common for read and write statements
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
 
 
 C ----------------------  Definition of Data Types --------------------
 
-        INTEGER IUOUT,IUIN
+        INTEGER IUOUT,IUIN,IEOUT
 
       ! Pre-initialized Variables 
       REAL timej                          ![second]
@@ -1185,11 +1185,11 @@ C       USE GSHP_SLINKY_INPUT
 #include "gshp_sl_common.h"
 #include "ground_temp_mains_common.h"
 C Common for read and write statements
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
 
 C ----------------------  Definition of Data Types --------------------
 
-        INTEGER IUOUT,IUIN
+        INTEGER IUOUT,IUIN,IEOUT
              
       
       ! Pre-initialized Variables [OA]
@@ -1922,8 +1922,8 @@ c Common for the number of time steps per hour
        INTEGER igshp  
        character gshpfile*72 
        INTEGER ISD1,ISM1,ISD2,ISM2,ISDS,ISDF,NTSTEP
-       COMMON/OUTIN/IUOUT,IUIN
-       INTEGER IUOUT,IUIN
+       COMMON/OUTIN/IUOUT,IUIN,IEOUT
+       INTEGER IUOUT,IUIN,IEOUT
 
 c Local variables
        REAL time_step, GSHP_CAP

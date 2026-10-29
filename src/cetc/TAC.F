@@ -96,8 +96,8 @@ C ------------------------------------------------------------------------------
 #include "building.h"
 #include "TAC.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
-      INTEGER IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
+      INTEGER IUOUT,IUIN,IEOUT
 
       COMMON/TC/ITC,ICNT
       INTEGER ITC,ICNT
@@ -337,8 +337,8 @@ C ------------------------------------------------------------------------------
 #include "SOFC.h"
 #include "TAC.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
-      INTEGER IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
+      INTEGER IUOUT,IUIN,IEOUT
 
       COMMON/TC/ITC,ICNT
       INTEGER ITC,ICNT
@@ -355,8 +355,8 @@ C ------------------------------------------------------------------------------
       REAL CONVAR
       INTEGER ICONTP,ICONDX
 
-      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
-      INTEGER IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
+      INTEGER IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS,idynow
 
       COMMON/PITER/MAXITP,PERREL,PERTMP,PERFLX,PERMFL,itrclp,
      & ICSV(MPNODE,MPVAR),CSVI(MPNODE,MPVAR)
@@ -1085,8 +1085,8 @@ C ------------------------------------------------------------------------------
 #include "building.h"
 #include "TAC.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
-      INTEGER IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
+      INTEGER IUOUT,IUIN,IEOUT
 
       COMMON/TC/ITC,ICNT
       INTEGER ITC,ICNT
@@ -1260,8 +1260,8 @@ C ------------------------------------------------------------------------------
 #include "building.h"
 #include "TAC.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
-      INTEGER IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
+      INTEGER IUOUT,IUIN,IEOUT
 
       COMMON/TC/ITC,ICNT
       INTEGER ITC,ICNT
@@ -1279,8 +1279,8 @@ C ------------------------------------------------------------------------------
       REAL CONVAR
       INTEGER ICONTP,ICONDX
 
-      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
-      INTEGER IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
+      INTEGER IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS,idynow
 
       COMMON/PITER/MAXITP,PERREL,PERTMP,PERFLX,PERMFL,itrclp,
      & ICSV(MPNODE,MPVAR),CSVI(MPNODE,MPVAR)

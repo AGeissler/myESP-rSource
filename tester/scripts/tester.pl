@@ -1277,6 +1277,26 @@ if ( $gTest_params{"cosim"}){
    }
 
 
+#-----------------------------------------------------------------------
+# Look for ESRU's ANALYSE script
+#-----------------------------------------------------------------------
+   $gTest_params{"analyse_found"} = 0;
+   foreach my $path ( split /;/, $gTest_paths{"helper_apps"} ){
+
+  $path = resolve_path ( $path );
+
+     if ( -r "$path/ANALYSE" &&
+          -x "$path/ANALYSE"  &&
+           ! $gTest_params{"analyse_found"} ){
+
+       # Analyse was found!        
+       $gTest_params{"analyse_found"} = 1;
+       $gTest_paths{"analyse_location"} = "$path/ANALYSE";
+
+     }
+
+   }
+
    #-----------------------------------------------------------------------
    # Look for custom res/ish files
    #-----------------------------------------------------------------------
@@ -1996,7 +2016,7 @@ sub create_report(){
                   ."^^^^^^^^^^^^^^^^^^^^"
                   ."^^^^^^^^^^^^";
   push @output, $current_rule;
-  push @output, sprintf (" %\-".$folder_length."s<>  %-".$model_length."s<> .summary <> .xml<> .csv <> overall<> dt-CPU(%%)", "Folder", "Model");
+  push @output, sprintf (" %\-".$folder_length."s<>  %-".$model_length."s<> .summary <> .xml<> .data <> .csv <> overall<> dt-CPU(%%)", "Folder", "Model");
   push @output, $current_rule;
 
   # Loop throug results, and report to buffer
@@ -2018,7 +2038,7 @@ sub create_report(){
       $cpu_change = "N/A";
     }
     
-    push @output, sprintf (" %\-".$folder_length."s<>  %-".$model_length."s<>     %1s   <>    %1s  <>  %1s   <>   %1s    <> ".$spacer."%-10s  ", $folder, $model,  $summary_pass,$xml_pass, $csv_pass, $overall_pass, $cpu_change);
+    push @output, sprintf (" %\-".$folder_length."s<>  %-".$model_length."s<>     %1s   <>    %1s  <>  %1s   <>   %1s    <> ".$spacer."%-10s  ", $folder, $model,  $summary_pass,$xml_pass, $data_pass, $csv_pass, $overall_pass, $cpu_change);
   }
   push @output, $current_rule;
   push @output, "  ";

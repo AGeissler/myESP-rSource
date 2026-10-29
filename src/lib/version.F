@@ -17,11 +17,13 @@ C PASSED VARIABLES
       character cPassedType*(*)
       character cAppName*8           ! Name of current application
       integer iuout                  ! Output channel.
+      integer mmod,limit,limtty
+      COMMON/SPAD/MMOD,LIMIT,LIMTTY
 
 C LOCAL VARIABLES
 C declare variables describing version and build information
       character cType*16             ! Flag indicating if version/build
-                                     !  info should be dumped
+                                     !  info should be dumped.
       logical bBuild_Info            ! Flag indicating if build info should 
                                      !   be dumped. 
 C      character cURL*256             ! Repository URL commented out in build_info.h
@@ -30,7 +32,6 @@ C      character cURL*256             ! Repository URL commented out in build_in
       integer iLen   ! for actual string lengths
       
       logical bH3KExtentionsActive  ! Function returning status of h3k extentions. 
-      
       
 C Arrays mapping binary names to longer descriptions
       
@@ -45,34 +46,33 @@ C Arrays mapping binary names to longer descriptions
       integer iBinIndex, iCurIndex
       character*3 cXLibs
 
-      data cBinNames / 'aco', 'b2e', 'bps', 'dbm', 'dfs', 'c2e', 'cfg',
-     &                 'clm', 'e2r', 'ecnv', 'eco', 'grd', 'ish', 'mfs',
-     &                 'mld', 'mrt', 'net', 'pdb', 'prj', 'res', 'tdf', 
+      data cBinNames / 'aco', 'b2e', 'bps', 'dbm', 'dfs', 'dfv', 'c2e', 
+     &                 'cdb', 'clm', 'e2r', 'ecnv', 'eco', 'grd', 'ish',
+     &                 'mfs', 'mld', 'mrt', 'net', 'pdb', 'prj', 'res', 
      &                 'vew' /
       
       
-      data cBinDesc / 'Acoustics Analysis Module',
+      data cBinDesc / 'Acoustics analysis',
      &                'BEMS link',
-     &                'Integrated Building Performance Simulator',
-     &                'Database Manager',
-     &                'Domain Flow Solver',
-     &                ' ',
-     &                'Topology Tool',
-     &                'Climate Analysist Tool',
+     &                'Integrated simulator',
+     &                'Database manager',
+     &                'Domain flow solver',
+     &                'Domain flow viewer',
+     &                ' ','Components DB manager',
+     &                'Weather manager',
      &                'Radiance link',
-     &                'Data Conversion Utility',
+     &                'Data conversion utility',
      &                ' ',
-     &                'Construction Gridding Tool',
-     &                'Shading Analysis Tool',
-     &                'Mass Flow Solver',
-     &                'Mould analysis tool',
-     &                'Mean Radiant Temperature Module',
+     &                'Construction gridding',
+     &                'Shading analysis',
+     &                'Mass flow solver',
+     &                'Mould analysis',
+     &                'Mean radiant temperature',
      &                'Network tool',
-     &                'Plant Database Tool',
-     &                'Project Manager',
-     &                'Results Analysis Tool',
-     &                ' ',
-     &                'Hidden Line Viewer' /
+     &                'Plant component manager',
+     &                'Project manager',
+     &                'Results analysis',
+     &                'Hidden line viewer' /
      
       save cBinNames, cBinDesc
       
@@ -96,6 +96,8 @@ C Deterimine of summary or details
         bBuild_Info = .true.
       elseif ( cType(1:7) == "summary" ) then
         bBuild_Info = .false. 
+      elseif ( cType(1:6) == "silent" ) then
+        continue
       else
 C cType is set programmically,
 C and needs only rudementry error trapping.
@@ -122,111 +124,62 @@ C  e.g.: 'ESP-r integrated builing performance simulator (bps)'
 C.....ESP-r banner 
       if ( bRelease ) then 
 C.......Release version        
-        write(cTemp_a,'(5A)') "ESP-r ", 
+        write(cTemp_a,'(4A)')  
      &       cBinDesc(iBinIndex)(1:lnblnk(cBinDesc(iBinIndex))), 
-     &       " Release ", 
+     &       " of ESP-r Release ", 
      &       cRelease_Num(1:lnblnk(cRelease_Num)),
      &       "."
         call edisp(iuout,cTemp_a)      
       
       else 
-        
-        write(cTemp_a,'(2A)') "ESP-r ", 
-     &       cBinDesc(iBinIndex)(1:lnblnk(cBinDesc(iBinIndex)))
-        call edisp(iuout,cTemp_a)      
-        
-        write(cTemp_a,'(6A)') "This is a development copy of ", 
-     &       cAppName(1:lnblnk(cAppName)),
-     &       ", based on ESP-r release ",
+        if(mmod.eq.8)then
+          write(cTemp_a,'(3A)') "Welcome to the ", 
+     &       cBinDesc(iBinIndex)(1:lnblnk(cBinDesc(iBinIndex))),
+     &       " of ESP-r."
+        else
+          write(cTemp_a,'(5A)') "Welcome to the ", 
+     &       cBinDesc(iBinIndex)(1:lnblnk(cBinDesc(iBinIndex))),
+     &       " of ESP-r ",
      &       cRelease_Num(1:lnblnk(cRelease_Num)),"."
-        call edisp(iuout,cTemp_a)    
-        
+          call edisp(iuout,cTemp_a)    
+        endif
       endif 
       
-      
-      
+C If cType is silent return at this point.
+      if ( cType(1:6) == "silent" ) return
+
+C Check if source was versioned and if it is a working copy.
+      if ( .not. bVersioned ) then     
+        call edisp(iuout," ")
+        call edisp(iuout,"You can obtain a copy of ESP-r here:")
+        call edisp(iuout," ")
+        write (cTemp_a,'(2A)') "   https://www.strath.ac.uk/research/",
+     &  "energysystemsresearchunit/applications/esp-r/"
+        call edisp(iuout,cTemp_a)
+      endif
+
+C If summary return.
+      if ( cType(1:7) == "summary" ) return
+
 C Copyright information:
       call edisp(iuout," ")      
       call edisp(iuout,      
-     &  "Copyright resides with the member organisations of the ESP-r")
-      call edisp(iuout,"development consortium as listed at:")
-      call edisp(iuout,
-     &  "http://www.esru.strath.ac.uk/Programs/ESP-r_central.htm.")      
+     &  "Copyright resides with the members of the ESP-r consortium")
+      call edisp(iuout,"as listed at www.esru.strath.ac.uk/.")      
 
-C Check if source was versioned (that is, was svn available, and 
-C is it a working copy)
-      if ( .not. bVersioned ) then     
-C.......Write out non-versioned disclaimer.        
-        
-        call edisp(iuout," ")
-
-        call edisp(iuout,
-     &  "This copy of ESP-r is not under versioning control. Using")
-        
-        call edisp(iuout,
-     &  "un-versioned copies of ESP-r may prevent you from")
-        
-        call edisp(iuout,
-     &  "reconstituting models and reproducing simulation results in")
-        
-        call edisp(iuout,
-     &  "the future. Development using unversioned copies of ESP-r")
-        
-        call edisp(iuout,
-     &  "is also prone to error, and strongly discouraged.")
-        
-        call edisp(iuout," ")
-        
-        call edisp(iuout,
-     &  "You can obtain a versioned copy of ESP-r here:")
-        
-        call edisp(iuout," ")
-        
-        write (cTemp_a,'(A)') 
-     &  "   http://www.esru.strath.ac.uk/Programs/ESP-r_central.htm"
-        call edisp(iuout,cTemp_a)
-              
-      endif 
-      
-      if ( bBuild_Info .or. .not. bRelease ) then 
-C. .....Information about build:
-        call edisp(iuout," ")
-                 
+C Source code version: ' - Source: BRANCH @ rXYZ (modified state)'.
+      if ( bBuild_Info ) then 
+        call edisp(iuout," ")       
         call edisp(iuout,"Build information:")
-        
-C.........Source code version:
-C............' - Source:    BRANCH @ rXYZ (modified state)'
-          
-        if ( bVersioned ) then 
-            
-          write (cTemp_a,'(5A)') 
-     &      "  SVN source -       ",
-     &      cBranch(1:lnblnk(cBranch)), 
-     &      "@r",
-     &      cRevision(1:lnblnk(cRevision))
-  
-          if ( bModified ) then
-            write (cTemp_a,'(2A)') cTemp_a(1:lnblnk(cTemp_a)),
-     &        " (locally modified)"
-          else 
-            write (cTemp_a,'(2A)') cTemp_a(1:lnblnk(cTemp_a)),
-     &        " (unmodified)"
-          endif
-        
-        else
-           write (cTemp_a,'(A)') 
-     &       "  SVN source -       UNKNOWN"
-        endif 
-        call edisp(iuout,cTemp_a)      
-          
-C.........Build Platform (e.g.: i686:LINUX:2.6.9-gentoo-r1)
+
+C Build platform (e.g.i686:LINUX:2.6.9-gentoo-r1).
         write (cTemp_a,'(6A)')   "  Platform -         ",
      &         cArchitecture(1:lnblnk(cArchitecture)),":",
      &         cOperSystem(1:lnblnk(cOperSystem)),":",
      &         cOSversion(1:lnblnk(cOSversion))
         call edisp(iuout,cTemp_a)      
          
-C.........Compiliers ( eg: gcc/g++/g77)
+C Compilers used (e.g. gcc/g++/gfortran).
         write (cTemp_a,'(6A)')   "  Compilers -        ",
      &         cCC(1:lnblnk(cCC)),"/",
      &         cCPL(1:lnblnk(cCPL)),"/",
@@ -234,38 +187,28 @@ C.........Compiliers ( eg: gcc/g++/g77)
         call edisp(iuout,cTemp_a)
 
         call getXlibs(cXlibs)    ! find out the graphic library used
-        
+
+C Graphics library used.
         write (cTemp_a,'(2A)')   "  Graphics library - ",
      &         cXLibs(1:3)
         call edisp(iuout,cTemp_a)
 
-        if ( rep_xmlstatus() ) then  ! find whether XML is supported
-
+C XML supported?
+        if ( rep_xmlstatus() ) then  
           write (cXML_support, '(A)') "Supported"
-
         else
-
           write (cXML_support, '(A)') "Unsupported"
-
         endif 
-        
         write (cTemp_a,'(2A)')   "  XML output -       ",
      &         cXML_support(1:lnblnk(cXML_support))
         call edisp(iuout,cTemp_a)
-          
         if ( bH3KExtentionsActive() ) then  ! find whether H3k extentions are active
-
           write (cTemp_a,'(2A)')   "  H3K extensions -  ",
      &         "Active"
           call edisp(iuout,cTemp_a)
-
         endif 
             
-          
-          
-          
       endif
-
 
       return
       end
@@ -277,7 +220,7 @@ C Return out ESP-r versioning information.
       implicit none
       
 C PASSED VARIABLES 
-      character cVnum*16             ! Phrase with release number
+      character cVnum*38             ! holds release number
 
 C LOCAL VARIABLES
 C declare variables describing version and build information
@@ -290,7 +233,7 @@ C Include dynamically-created installation information.
 #include "build_info.h"
 
 C Write out version number. 
-      write(cVnum,'(3A)') "release ", 
+      write(cVnum,'(3A)') "Release ", 
      &      cRelease_Num(1:lnblnk(cRelease_Num)),
      &      "."
 

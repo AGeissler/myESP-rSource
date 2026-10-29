@@ -6,11 +6,14 @@ C If the parameter of the C function change the matching subroutine
 C in this source file should be adapted to match.
 
 C  sizeint     :- passess window size & position
+C  win3dwwc    :- writes win3d attributes to file.
 C  win3d       :- opens a viewing box taking into account menu
 C                 width and dialogue box.
 C  win3dclr    :- clear viewing box.
 C  winfnt(n)   :- changes the font (4 different sizes 0,1,2,3)
 C  opensetup   :- place environment button on screen.
+C  viewtextwwc :- displays a line of text within the viewing
+C                 box with size and location parameters
 C  viewtext    :- displays a line of text within the viewing
 C                 box with size and location parameters
 C  feedbox     :- open feedback background box
@@ -19,11 +22,8 @@ C  etplot      :- general line plotting.
 C  axiscale    :- determines scaling parameters for horizontal
 C                 and vertical axis.
 C  linescale   :- stores scaling parameters for lines.
-C  dinterval   :- determins the tic interval for an axis as well
-C                 as the number of decimal places.
 C  vrtaxis     :- draws a vertical axis with tic marks and labels.
 C  horaxis     :- draws a horizontal axis with tic marks and labels.
-C  captut      :- tutorial indicator
 C  captextf    :- text feedback capture
 C  captexgf    :- graphic feedback capture
 C  updcapt     :- notify for capture button
@@ -78,6 +78,10 @@ C ************
       return
       end
 
+      subroutine defaultfonts(ifsd,itfsd,imfsd)
+      return
+      end
+
       subroutine winenqcl(act,n,nxcolid)
       character act*1
       return
@@ -107,10 +111,6 @@ C      character*(*) name
 C      return
 C      end
 
-C      subroutine showlogo(itime,lix,liy)
-C      return
-C      end
-
 C      subroutine wwcopen(name)
 C      character*(*) name
 C      return
@@ -137,17 +137,45 @@ C      end
       return
       end
 
-      subroutine textatxy(ix,iy,buff,ixcolid)
+      subroutine textatxywwc(ix,iy,buff,act,ixcolid)
       character*(*) buff
+      character act*1
       write(6,*) buff
       return
       end
+
+      subroutine textatxy(ix,iy,buff,act,ixcolid)
+      character*(*) buff
+      character act*1
+      write(6,*) buff
+      return
+      end
+
+      subroutine textsizeatxywwc(ix,iy,buff,isize,act,ixcolid)
+      character*(*) buff
+      character act*1
+      write(6,*) buff
+      return
+      end
+
+      subroutine textsizeatxy(ix,iy,buff,isize,act,ixcolid)
+      character*(*) buff
+      character act*1
+      write(6,*) buff
+      return
+      end
+
 
       subroutine winfnt(n)
       return
       end
 
       subroutine feedbox(menu_char,id_lines,igw,igh)
+      return
+      end
+
+      subroutine win3dwwc(menu_c,icl,icr,ict,icb,ivl,ivr,ivt,ivb,igw,
+     &  igh)
       return
       end
 
@@ -163,6 +191,12 @@ C      end
       character*(*) msg
       return
       end
+
+      subroutine viewtextwwc(msg,linep,iside,isize)
+      character*(*) msg
+      return
+      end
+
 
       subroutine etlabel(msg,x,y,ipos,isize)
       character*(*) msg
@@ -190,6 +224,10 @@ C      end
       end
 
       subroutine pauses(is)
+      return
+      end
+
+      subroutine esymbolwwc(ix,iy,isym,isize)
       return
       end
 
@@ -329,6 +367,11 @@ C      write(6,*) opta
       return
       end
 
+      subroutine openmultibox(msg1,msg2,iok)
+      character*(*) msg1,msg2
+      return
+      end
+
       subroutine opengdisp(menu_char,idispl_l,idial_l,igdw,igdh)
       return
       end
@@ -351,6 +394,10 @@ C      write(6,*) opta
       return
       end
 
+      subroutine elinewwc(ix,iy,ioperation)
+      return
+      end
+
       subroutine eline(ix,iy,ioperation)
       return
       end
@@ -360,14 +407,30 @@ C      write(6,*) opta
       iy=0
       return
       end
- 
+
       subroutine pixel2u(ux,uy,gx,gy)
       gx=0.0
       gy=0.0
       return
       end
- 
+
+      subroutine etplotwwc(ux,uy,iupdown,isym)
+      return
+      end
+
       subroutine etplot(ux,uy,iupdown,isym)
+      return
+      end
+
+      subroutine earc(x,y,rad,ang1,ang2,operation)
+      return
+      end
+
+      subroutine nwkgflg(ngf)
+      return
+      end
+
+      subroutine nwksmod(sel,con,dat)
       return
       end
 
@@ -375,7 +438,19 @@ C      write(6,*) opta
       return
       end
 
+      subroutine edlinewwc(ixy,iy1,ix2,iy2,ipdis)
+      return
+      end
+
+      subroutine edwlinewwc(ixy,iy1,ix2,iy2)
+      return
+      end
+
       subroutine edwline(ixy,iy1,ix2,iy2)
+      return
+      end
+
+      subroutine eswlinewwc(ixy,iy1,ix2,iy2)
       return
       end
 
@@ -384,6 +459,10 @@ C      write(6,*) opta
       end
 
       subroutine edash(ixy,iy1,ix2,iy2,ipdis)
+      return
+      end
+
+      subroutine echainwwc(ixy,iy1,ix2,iy2,ipdis)
       return
       end
 
@@ -419,10 +498,6 @@ C      end
       return
       end
 
-      subroutine dinterval(v1,v2,dv,ndec,mode)
-      return
-      end
-
       subroutine labelstr(n,val,iwticc,sstr)
       character sstr*10
       return
@@ -430,6 +505,16 @@ C      end
 
       subroutine vrtaxis(ymn,ymx,ioffl,ioffb,iofft,yadd,sca,mode,side,
      &  msg)
+      real ymn,ymx,sca,yadd
+      integer ioffl,ioffb,iofft
+      character*(*) msg
+      return
+      end
+
+      subroutine vrtaxisdd(ymn,ymx,ioffl,ioffb,iofft,yadd,sca,mode,
+     &  ddx,nx,side,msg)
+      real ymn,ymx,sca,yadd,ddx
+      integer ioffl,ioffb,iofft,nx
       character*(*) msg
       return
       end
@@ -441,10 +526,26 @@ C      end
       return
       end
 
+      subroutine horaxisdd(xmn,xmx,ioffl,ioffr,ioffb,xadd,sca,mode,
+     &   ddx,nx,msg)
+      real xmn,xmx,sca,xadd,ddx
+      integer ioffl,ioffr,ioffb,nx
+      character*(*) msg
+      return
+      end
+
       subroutine horaxishdw(xmn,xmx,ioffl,ioffr,ioffb,xadd,sca,mode,
      &  ind,idiv,isjday,msg)
       real xmn,xmx,sca,xadd
       integer ioffl,ioffr,ioffb,ind,idiv,isjday
+      character*(*) msg
+      return
+      end
+
+      subroutine horaxishdwdd(xmn,xmx,ioffl,ioffr,ioffb,xadd,sca,mode,
+     &  ddx,nx,ind,idiv,isjday,msg)
+      real xmn,xmx,sca,xadd,ddx
+      integer ioffl,ioffr,ioffb,nx,ind,idiv,isjday
       character*(*) msg
       return
       end
@@ -465,6 +566,13 @@ C      end
       return
       end
 
+      subroutine extentsvwmenu(name,iw,ipixwthma,ipixwthll,
+     &  ivfw,ivfwsp,ivfwul)
+      character*(*) name
+      integer iw,ipixwthma,ipixwthll,ivfw,ivfwsp,ivfwul
+      return
+      end
+
 C      subroutine aux_menu
 C      return
 C      end
@@ -473,16 +581,12 @@ C      subroutine refreshenv
 C      return
 C      end
 
-      subroutine opentutorial
-      return
-      end
-
       subroutine opencpw
       return
       end
 
-      subroutine opencfg(icfg_type,icfgz,icfgn,icfgc,icfgdfn,iicfgz,
-     &  iicfgn,iicfgc,iicfgdfn)
+      subroutine opencfg(icfg_type,icfgz,icfgs,icfgnet,icfgc,
+     &  icfgpln,icfgeln,icfgren,icfgfab,icfgbeh,icfgsim)
       return
       end
 
@@ -517,11 +621,6 @@ C      end
       return
       end
 
-      subroutine captut(cmd)
-      character*(*) cmd
-      return
-      end
-
       subroutine openmouse(mseb1,mseb2,mseb3)
       character*(*) mseb1,mseb2,mseb3
       return
@@ -534,9 +633,8 @@ C      end
       return
       end
 
-C      subroutine curproject(fcfgroot,fpath,fupath,fimgpth,fdocpth,
-C     &  ibrowse,iincomp,iincon)
-C      character*(*) fcfgroot,fpath,fupath,fimgpth,fdocpth
+C      subroutine curproject(fcfgroot,fpath,iincomp,iincon)
+C      character*(*) fcfgroot,fpath
 C      return
 C      end
 
@@ -551,9 +649,9 @@ C      end
       return
       end
 
-      subroutine textpixwidth(buff,ipixw)
+      subroutine textpixwidth(buff,ipixw,ipixh)
       character*(*) buff
-      integer ipixw
+      integer ipixw,ipixh
       return
       end
 
@@ -566,6 +664,15 @@ C      end
       subroutine ask2altdialog(STRVAL,CMD,CMD2,idef,iquery)
       character*(*) STRVAL,CMD,CMD2
       integer idef, iquery
+      return
+      end
+
+
+      subroutine upd_box_choices(choices,itypes,nopt,iw)
+      dimension choices(10)
+      character choices*42
+      character itypes*40
+      integer nopt,iw
       return
       end
 
@@ -604,10 +711,16 @@ C      end
       return
       end
 
-      subroutine findviewtext(icx,line,isize,ix,iy)
-      integer icx,line,isize,ix,iy
+      subroutine findviewtext(icx,line,isize,iix,iiy)
+#ifdef OSI
+      integer icx,line,isize
+      integer iix,iiy
+#else
+      integer*8 ics,line,isize
+      integer*8 iix,iiy
+#endif
       return
-      end 
+      end
 
 C      subroutine getfilelist(subpath,action,listf,nwlistf,nlistf)
 C      character*(*) subpath, action, listf
@@ -624,7 +737,7 @@ C Return string indicating xlibs
       return
       end
 
-      
+
 C A zero says there is neither X11 or GTK available.
       integer function iXavail()
       iXavail = 0
@@ -636,9 +749,7 @@ C A three says that this is the text only version.
       igraphiclib = 3
       return
       end
-      
-      
-      
+
 C      function lnblnk(string)
 C      character*(*) string
 C      character a*1,sl*1

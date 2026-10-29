@@ -56,14 +56,14 @@ C     USE GCEP_INPUT
 #include "gcep_common.h"
       COMMON/FILEP/IFIL
       COMMON/ER/IER
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       common/gcepinfo/igcep
       common/gcepfile/gcepfile
 
 C Declaration of local variables
       INTEGER igcep
       INTEGER IUNIT_load,IUNIT,IFIL,K,IER,ND,i,ISTAT
-      INTEGER IUOUT,IUIN
+      INTEGER IUOUT,IUIN,IEOUT
       INTEGER ival
       REAL val
        
@@ -144,25 +144,25 @@ C               5=4 tubes (2U) Tubes midway between borehole center and wall
 C               6=4 tubes (2U) Tubes in contact with borehole wall (max distance)
 C Tubes dimensions (choice)
 C       TypeTubes  [1..12]        OD(cm) ID(cm)
-C       1       ¾"      SDR-11    2.67   2.18
+C       1       0.5"    SDR-11    2.67   2.18
 C       2       1"      SDR-11    3.34   2.73
-C       3       1­"     SDR-11    4.22   3.45
+C       3       1­.5"    SDR-11    4.22   3.45
 C       4       25 mm   SDR-11    2.50   2.04
 C       5       32 mm   SDR-11    3.20   2.60
 C       6       40 mm   SDR-11    4.00   3.26
-C       7       ¾"      SDR-135   2.67   2.27
+C       7       0.5"    SDR-135   2.67   2.27
 C       8       1"      SDR-135   3.34   2.85
-C       9       1­"     SDR-135   4.22   3.59
+C       9       1.5­"    SDR-135   4.22   3.59
 C      10       25 mm   SDR-135   2.50   2.04
 C      11       32 mm   SDR-135   3.20   2.62
 C      12       40 mm   SDR-135   4.00   3.40
 C Tube properties (k=conductivity)
-C       K_t            Tubes thermal conductivity [W/m—C]
+C       K_t            Tubes thermal conductivity [W/m.K]
 C Fluid property (k=conductivity, rho=density, Cp=specific heat, Mu=dynamic viscosity)
-C       K_f             Fluid thermal conductivity [W/m—C]
-C       Rho_f           Fluid density [Kg/mþ]
-C       Cp_f            Fluid specific heat [J/Kg—C]
-C       Mu_f            Fluid dynamic viscosity [N/m™]
+C       K_f             Fluid thermal conductivity [W/m.K]
+C       Rho_f           Fluid density [kg/m^3]
+C       Cp_f            Fluid specific heat [J/kg.K]
+C       Mu_f            Fluid dynamic viscosity [kg/m.s]
 C Undisturbed ground temperature
 C       Tg_ND           [K]
 C Initial ground temperature
@@ -189,7 +189,7 @@ C      USE GCEP_INPUT
       REAL    val
       INTEGER igcep
       INTEGER ival, IUNIT, ISTAT, IER, ND, K, i
-      INTEGER IUOUT, IUIN
+      INTEGER IUOUT, IUIN,IEOUT
       INTEGER FixPara         
 
       character gcepfile*72

@@ -47,9 +47,7 @@ C     5) Variables specified in COMMON/WindowControl/ (see descriptions below)
 
 
 c ***********************************************************************
-      
-      
-      
+
       LOGICAL FUNCTION AreWindowsOpen(iComp)
       IMPLICIT NONE
 #include "building.h"
@@ -94,7 +92,7 @@ C Common block for the window model.
       REAL fDeltaTInttoExt !Temperature difference (Tinterior - Texterior) required to open windows (so they are only opened when natural cooling will occur and is of significance)
       REAL fMinAmbTemp !The minimum ambient temperature that windows are allowed to open too (otherwise it is possible to open windows when it is cold and replace the entire zone air mass in the timestep)
       LOGICAL bWindowsAreOpen(MCOM) !Array to store the window position for each zone
-
+      INTEGER IDTYPP  ! use in case IDTYP is zero
 
 
 C DEBUG for Checking Controller values
@@ -102,6 +100,12 @@ C DEBUG for Checking Controller values
 !    &  IPER, '; fACsetpoint is ', fACSetPoint, '; fACCapacityW is', 
 !    &  fACCapacityW
 
+C If IDTYP is zero reset to one to prevent fault.
+      IF(IDTYP.eq.0)then
+       IDTYPP=1
+      ELSE
+       IDTYPP=IDTYP
+      ENDIF
 
 C LOGIC
 C     Check if WindowOpenControl model is not running 
@@ -111,8 +115,8 @@ C     Check if WindowOpenControl model is not running
 C     Check if the cooling system has capacity AND will turn on
 C       BMISCD(1,IDTYP,IPER,4) is hardcoded to controller 1 cooling capacity
 C       BMISCD(1,IDTYP,IPER,7) is hardcoded to controller 1 cooling temperature setpoint
-      ELSEIF ( BMISCD(1,IDTYP,IPER,4) .ge. 1 .and. !Check cooling capacity is greater than 1 W
-     &  TFA(iCoolingControlZone) .ge. BMISCD(1,IDTYP,IPER,7)) THEN
+      ELSEIF ( BMISCD(1,IDTYPP,IPER,4) .ge. 1 .and. !Check cooling capacity is greater than 1 W
+     &  TFA(iCoolingControlZone) .ge. BMISCD(1,IDTYPP,IPER,7)) THEN
         bWindowsAreOpen(iComp) = .false.
     
 C     Check if Cooling or Heating is on in the zone based on the air point heat flux
@@ -136,141 +140,8 @@ C     Do nothing so as to maintain the window operating deadband
 
 C     Set AreWindowsOpen to return to the function call. 
       AreWindowsOpen = bWindowsAreOpen(iComp)
-
-C     Debug    
-C      call AreWindowsOpenDebug
       RETURN  
 
       END
-
-C*********************************************************************
-c     LOGICAL Subroutine  AreWindowsOpenDebug.
-C     
-c     Created by: Phylroy Lopez
-c     Initial Creation Date: Feb 12th 2004
-c     Copyright 2004: NRCan Buildings Group
-c     
-C     This function is used only for debugging. The Output can be modified to suit your needs.
-C     It writes to window.csv in the cwd. 
-C      
-C     *******************************************************************
-      SUBROUTINE AreWindowsOpenDebug
-      IMPLICIT NONE
-#include "building.h"
-C     Debug Common Blocks.
-      COMMON/CLIMI/QFP,QFF,TP,TF,QDP,QDF,VP,VF,DP,DF,HP,HF
-      REAL  QFP,QFF
-C     Present and future timestep.
-      REAL  TP,TF,QDP,QDF,VP
-C Wind velocity (m/s).
-      REAL  VF,DP,DF,HP,HF      
-
-      COMMON/PERS/ISD1,ISM1,ISD2,ISM2,ISDS,ISDF,NTSTEP
-      INTEGER ISD1,ISM1,ISD2,ISM2,ISDS,ISDF,NTSTEP
-
-
-
-      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
-      INTEGER  IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
-
-      INTEGER IDAYN
-      INTEGER IMONTH
-      INTEGER IWINDOWFLAG
-
-C Future values common block.
-
-      COMMON/FVALA/TFA(MCOM),QFA(MCOM)
-C     Zone Temp.
-      REAL  TFA,QFA
-
-C     Present Values.
-      COMMON/PVALA/TPA(MCOM),QPA(MCOM)
-C     Zone Temp
-      REAL  TPA,QPA
-
-
-
-C Common block for the window model.           
-      COMMON/WindowControl/
-     &     fWindowSetpoint,
-     &     fACSetPoint, 
-     &     bWindowControlFlag,
-     &     iWindowControlZone,
-     &     bWindowsAreOpen,
-     &     fDeltaTInttoExt,
-     &     fWindowLowSetpoint
-          
-
-C     Exterior Temperature at which and below the windows could open.  
-      REAL fWindowSetpoint
-
-C     The AC Temperature setpoint. 
-      REAL fACSetPoint
-
-C     The zone at which the temperature is controlled against.
-      INTEGER iWindowControlZone
-
-C     The flag which indicates the window feature is active.
-      LOGICAL bWindowControlFlag
-
-C     Common block variable to tell other routines that the windows are open. 
-C     (This saves processor time)
-      LOGICAL bWindowsAreOpen
-
-C     The DeltaT that is used to detemine if cooling can be used from the outside.
-C     Thus Windows could be open when DeltaT >= Zone Temp - ExteriorTemp
-      REAL  fDeltaTInttoExt
-
-C     The temperature at which and below that the windows remain closed.
-C     This prevents the zone becoming too cold. 
-      REAL fWindowLowSetpoint
-
-
-
-      
-C     Debug file for win.res. Note: using same unit number as hvac.res!!!
-      open(unit=202,file='window.csv',status='unknown')
-      
-C     get current timestep information
-      CALL EDAYR(idyp,IDAYN,imonth)
-      
-      if (bWindowsAreOpen) then 
-         iwindowflag = 1
-      else
-         iwindowflag = 0  
-      endif
-
-      write(202,101) 
-     &     iMonth , ',',
-     &     idyp,',',
-     &     ihrp,',',
-     &     iwindowflag,',',
-     &     iWindowControlZone,',',
-     &     (TPA(iWindowControlZone)+TFA(iWindowControlZone))
-     &     /2.0, ',',
-     &     TF,',',
-     &     fACSetpoint,',',
-     &     fWindowSetPoint,',',
-     &     fDeltaTInttoExt,',',
-     &     fWindowLowSetpoint,',',
-     &     VF
-          
- 101  format(i3,a3,
-     &     i4,a3,
-     &     i3,a3,
-     &     i3,a3,
-     &     i3,a1,
-     &     f6.3,a3,
-     &     f6.3,a3,
-     &     f6.3,a3,
-     &     f6.3,a3,
-     &     f6.3,a3,
-     &     f6.3,a3,
-     &     f6.3)
-
-
-
-      END
-
 
 

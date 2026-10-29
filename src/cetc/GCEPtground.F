@@ -171,8 +171,8 @@ C     INPUTS
       REAL Ap(Ndy,Ndx),Ttemp(Ndy,Ndx),Pave
 
       COMMON/FILEP/IFIL
-      COMMON/OUTIN/IUOUT,IUIN
-      integer ifil,iuout,iuin
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
+      integer ifil,iuout,iuin,ieout
 
 C Counter for the number of iterations
       INTEGER Niter
@@ -828,7 +828,7 @@ C     INPUTS
 
       INTEGER NumUNIT
       COMMON/FILEP/IFIL
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
 
 C Read Ttemp
       NumUNIT =  IFIL+62
@@ -868,7 +868,7 @@ C     INPUTS
 
       INTEGER NumUNIT
       COMMON/FILEP/IFIL
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
 
 C Read Ttemp_1b
       NumUNIT =  IFIL+63
@@ -911,7 +911,7 @@ C     INPUTS
 
       INTEGER NumUNIT
       COMMON/FILEP/IFIL
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
 
 C Read Ae
       NumUNIT =  IFIL+54
@@ -966,7 +966,7 @@ C     INPUTS
       
       INTEGER NumUNIT
       COMMON/FILEP/IFIL
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
 
 C Read Ae_1b
       NumUNIT =  IFIL+58
@@ -1023,7 +1023,7 @@ C     INPUTS
 
       INTEGER NumUNIT
       COMMON/FILEP/IFIL
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       
 
 C Read dx
@@ -1079,8 +1079,8 @@ C     INPUTS
       INTEGER NumUNIT
       COMMON/FILEP/IFIL
       INTEGER IFIL
-      COMMON/OUTIN/IUOUT,IUIN
-      INTEGER IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
+      INTEGER IUOUT,IUIN,IEOUT
       INTEGER ISTAT
 
       NumUNIT =  IFIL+62
@@ -1124,7 +1124,7 @@ C     INPUTS
 
       INTEGER NumUNIT
       COMMON/FILEP/IFIL
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
 
       NumUNIT =  IFIL+63
 C    Not required. ALready open in GCEPInit.F See above function.

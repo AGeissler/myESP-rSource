@@ -27,13 +27,12 @@ C Edit plant control function II.
 #include "building.h"
 #include "plant.h" 
 #include "DG_controller_include.h"
+#include "help.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
-      common/pophelp/H(60)
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
 
 C.....ESP-r common block variables
-      integer iuout, iuin
-      character H*72            !<- array for help prompts.
+      integer iuout, iuin,ieout
 
 C.....Array containing user-defined DG controller configuration
       real fDG_configuration(misc)     
@@ -177,13 +176,13 @@ C.....Determine if hot and/or cold water storage are in use
       H(9)='     coupled cold water storage tank)'
       H(10)= ' '
 
-      call ASKOK('Is the CHP system coupled to a hot water',
+      call EASKOK('Is the CHP system coupled to a hot water',
      &     'tank that you wish to control?', bDG_HOT_control,
-     &     .true.,9)
+     &     9)
 
-      call ASKOK('Is the CHP system coupled to a cold water',
+      call EASKOK('Is the CHP system coupled to a cold water',
      &     'tank that you wish to control?', bDG_COLD_control,
-     &     .false.,9)
+     &     9)
       
 C.........Determine which tank has priority
       if ( bDG_HOT_control .and. bDG_cold_control ) then
@@ -194,13 +193,10 @@ C.........Determine which tank has priority
          H(4) = ' to the heating load or the cooling load under  '
          H(5) = ' these circumstances'
          H(6) = ' ' 
-         call EASKAB(
-     &        'Which load do you wish to assign priority to?',
-     &        ' ', 
-     &        'Cooling loads', 
-     &        'Heating loads',
-     &        iDG_tank_priority,
-     &        6 )
+         call EASKMBOX(
+     &    'Which load do you wish to assign priority to?',
+     &    ' ', 'Cooling loads', 'Heating loads',
+     &    ' ',' ',' ',' ',' ',' ',iDG_tank_priority,6)
 
       elseif ( bDG_HOT_control ) then
          iDG_tank_priority = HOT_storage  ! <- named constant in DG_controller_include.h
@@ -283,12 +279,9 @@ C........Heating season
          H(7) = '    - Choose "seasonal" if only seasonal '
          H(8) = '      space heating loads are placed on the tank'
          H(9)=' '
-         call EASKAB('Are the loads on the hot water tank ',
-     &        'seasonal, or year-round?', 
-     &        'Seasonal', 
-     &        'Year round',
-     &        iDG_misc_integer,
-     &        9 )
+         call EASKMBOX('Are the loads on the hot water tank ',
+     &     'seasonal, or year-round?', 'Seasonal', 'Year round',
+     &     ' ',' ',' ',' ',' ',' ',iDG_misc_integer,9)
 
          if (iDG_misc_integer .eq. 1) then
 C...........Get seasonal start                 
@@ -301,13 +294,9 @@ C...........Get seasonal start
             H(7)=' prior data for other aspects of the controller'
             H(8)=' may may be inconsistent.' 
             CALL EASKI(iDG_HS_start,
-     &           'Heating season start day',
-     &           '(1-365)',
-     &           1,'F',
-     &           365,'F',
-     &           1,
-     &           'Heating season start day',IERI,
-     &           8)
+     &        'Heating season start day',
+     &        '(1-365)',1,'F',365,'F',1,
+     &        'Heating season start day',IERI,8)
             if(ieri.eq.-3) goto 77
 
 C...........Get seasonal end                
@@ -321,12 +310,8 @@ C...........Get seasonal end
             H(8)=' may may be inconsistent.' 
             CALL EASKI(iDG_HS_end,
      &           'Heating season end day',
-     &           '(1-365)',
-     &           1,'F',
-     &           365,'F',
-     &           365,
-     &           'Heating season end day',IER,
-     &           8)
+     &           '(1-365)',1,'F', 365,'F',365,
+     &           'Heating season end day',IER,8)
             if(ieri.eq.-3) goto 77
   
          else
@@ -356,16 +341,14 @@ C........GET heating season control strategy
          H(18)='     electrical and thermal output.'
          H(19)=' '
 
-         call EASKATOG(
+         call EASKMBOX(
      &        'Heating season control strategy',
      &        ' ',
      &        'Constant output',
      &        'Electrical load following',
      &        'Thermal load following',
      &        '"Hybrid" control',
-     &        ' ',
-     &        ' ',
-     &        ' ',
+     &        ' ',' ',' ',' ',
      &        iDG_HS_strategy,
      &        19)
 
@@ -660,12 +643,9 @@ C........Cooling season
          H(6) = '    - Choose "seasonal" if only seasonal '
          H(7) = '      space cooling loads are placed on the tank'
          H(8)=' '
-         call EASKAB('Are the loads on the cold water tank ',
-     &        'seasonal, or year-round?', 
-     &        'Seasonal', 
-     &        'Year round',
-     &        iDG_misc_integer,
-     &        8 )
+         call EASKMBOX('Are the loads on the cold water tank ',
+     &        'seasonal, or year-round?', 'Seasonal', 'Year round',
+     &        ' ',' ',' ',' ',' ',' ',iDG_misc_integer,8 )
 
          if (iDG_misc_integer .eq. 1) then
 C...........Get seasonal start                 
@@ -733,16 +713,14 @@ C........GET cooling season control strategy
          H(18)='     electrical and thermal output.'
          H(19)=' '
 
-         call EASKATOG(
+         call EASKMBOX(
      &        'Cooling season control strategy',
      &        ' ',
      &        'Constant output',
      &        'Electrical load following',
      &        'Thermal load following',
      &        '"Hybrid" control',
-     &        ' ',
-     &        ' ',
-     &        ' ',
+     &        ' ',' ',' ',' ',
      &        iDG_CS_strategy,
      &        19)
 
@@ -970,14 +948,10 @@ C.....ascii file
       H(1)='The controller can optionally export time-step data '
       H(2)='into an ascii file (DG_controller.res) at run time.'
       H(3)=' ' 
-      call EASKAB(
+      call EASKMBOX(
      &     'Should the controller output time step data?',
-     &     ' ', 
-     &     'Yes', 
-     &     'No',
-     &     iDG_misc_integer,
-     &     3
-     &     )
+     &     ' ', 'Yes', 'No',
+     &     ' ',' ',' ',' ',' ',' ',iDG_misc_integer,3)
       
       if ( iDG_misc_integer .eq. 1 ) then
          iDG_TS_out = 1

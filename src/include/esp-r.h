@@ -1,5 +1,5 @@
 /* Globally defined items for esp-r GTK interface */
-#define MENU_LIST_LEN 40
+#define MENU_LIST_LEN 42
 
 /* Sections of standard window */
 GtkWidget *window;
@@ -30,7 +30,7 @@ GdkPixmap *entire_image;
 GdkPixmap *entire_image_old;
 
 /* Event loops and context */
-GMainLoop *menu_loop;
+extern GMainLoop *menu_loop;
 //GMainLoop *pmenu_loop;
 
 
@@ -45,6 +45,9 @@ extern long int mdepth;   /* to pass to fortran: sceen depth */
 extern long int disp_fnt; /* font for text display box */
 extern long int butn_fnt; /* button font size */
 extern long int menu_fnt; /* preferred command menu font */
+extern long int d_disp_fnt; /* default font for text display box */
+extern long int d_butn_fnt; /* default button font size */
+extern long int d_menu_fnt; /* default command menu font */
 
 extern char *bgstr,  *whitestr, *blackstr; /* init default colors */
 extern GdkColor fg, bg, bd, bw, white, black, infofg, infobg; /* essential colors */
@@ -76,13 +79,9 @@ extern int pm_lines;  /* current number of active popup menu lines */
 extern char cappl[5]; /* fortran application name */
 extern char cfgroot[32]; /* fortran project root name    */
 extern char path[73];    /* fortran project path    */
-extern char upath[73];   /* fortran users path    */
-extern char imgpth[25];  /* fortran relative path to images    */
-extern char docpth[25];  /* fortran relative path to documents    */
 extern char capt_wf_exe[73];  /* command to execute for capture wire frame */
 extern char capt_tf_file[73]; /* file for text feedback buffer dump */
 extern char capt_all_exe[73]; /* command for capture all of display */
-extern int browse;  /* if = 0 then user owns, if = 1 user browsing */
 extern gint xrt_width, xrt_height;  /* same as xsh.width and xsh.height */
 
 extern gint menu_pix_wd;  /* pixel width of initial menu (based on nb of characters *imenuchw) */
@@ -102,6 +101,8 @@ void  setzscale_();
 void  updwire_(long int* avail);
 void  foundcolour_(long int* md,long int* nic,long int* ncs,long int* ngs,long int* nzc);
 void  winclr_();
+void  win3dwwc_(long int* menu_char,long int* cl,long int* cr,long int* ct,long int* cb,
+        long int* vl,long int* vr,long int* vt,long int* vb,long int* gw,long int* gh);
 void  win3d_(long int* menu_char,long int* cl,long int* cr,long int* ct,long int* cb,
         long int* vl,long int* vr,long int* vt,long int* vb,long int* gw,long int* gh);
 void  startbuffer_();
@@ -128,8 +129,7 @@ void  wwcsetend_();
 void  ckaccess_(long int* folder,long int* laccess,long int* lerr,char* fname,int len);
 void  getfilelist_(char* folder,char* act,char* flist,long int nwflist[],long int* nflist,int lenfolder,int lenact,int lenflist);
 void  getfileslist_(char* folder,char* act,long int* nflist,int lenfolder,int lenact);
-void  curproject_(char* fcfgroot,char* fpath,char* fupath,char* fimgpth,char* fdocpth,long int* ibrowse,
-        long int* iincomp,long int* iincon,int len_root,int len_fpath,int len_fupath,int len_fimgpth,int len_fdocpth);
+void  curproject_(char* fcfgroot,char* fpath,long int* iincomp,long int* iincon,int len_root,int len_fpath);
 void  curviews_(float* EVX,float* EVY,float* EVZ,float* VX,float* VY,float* VZ,float* EAN,long int* JITZNM,long int* JITSNM,
         long int* JITVNO,long int* JITOBS,long int* JITSNR,long int* JITGRD,long int* JITORG,float* DIS,long int* JITBND,
         long int* JITDSP,long int* JITHLS,long int* JITHLZ,long int* JITPPSW);
@@ -140,23 +140,33 @@ void  capexgf_(char* cmd,int len_cmd);
 void  capextf_(char* cmd,int len_cmd);
 void  capexall_(char* cmd,int len_cmd);
 void  userfonts_(long int* ifs,long int* itfs,long int* imfs);
-int ixavail(); 
+void  defaultfonts_(long int* ifsd,long int* itfsd,long int* imfsd);
+int ixavail();
 
 /* Shared functions in esp_draw.c */
 void  wstxpt_(long int* x,long int* y,char* buff,int len);
+void  textatxywwc_(long int* x,long int* y,char* buff,char* act,long int *n,int len);
 void  textatxy_(long int* x,long int* y,char* buff,char* act,long int *n,int len);
-void  textpixwidth_(char* buff,long int* pixelwidth,int len);
+void  textpixwidth_(char* buff,long int* pixelwidth,long int* pixelheight,int len);
+void  viewtextwwc_(char* msg,long int* linep,long int* side,long int* size,int len);
 void  viewtext_(char* msg,long int* linep,long int* side,long int* size,int len);
 void  findviewtext_(long int* charposp,long int* linep,long int* size,long int* irx,
         long int* iry);
 void  drawswl(int xa,int ya,int xb,int yb);
+void  esymbolwwc_(long int* x,long int* y,long int* sym,long int* size);
 void  esymbol_(long int* x,long int* y,long int* sym,long int* size);
 void  drawpoint(int xa,int ya);
+void  elinewwc_(long int* x,long int* y,long int* operation);
 void  eline_(long int* x,long int* y,long int* operation);
+void  edlinewwc_(long int* x1,long int* y1,long int* x2,long int* y2,long int* ipdis);
 void  edline_(long int* x1,long int* y1,long int* x2,long int* y2,long int* ipdis);
+void  edashwwc_(long int* x1,long int* y1,long int* x2,long int* y2,long int* ipdis);
 void  edash_(long int* x1,long int* y1,long int* x2,long int* y2,long int* ipdis);
+void  eswlinewwc_(long int* x1,long int* y1,long int* x2,long int* y2);
 void  eswline_(long int* x1,long int* y1,long int* x2,long int* y2);
+void  edwlinewwc_(long int* x1,long int* y1,long int* x2,long int* y2);
 void  edwline_(long int* x1,long int* y1,long int* x2,long int* y2);
+void  echainwwc_(long int* x1,long int* y1,long int* x2,long int* y2,long int* ipdis);
 void  echain_(long int* x1,long int* y1,long int* x2,long int* y2,long int* ipdis);
 void  drawdwl(int xa,int ya,int xb,int yb);
 void  drawvwl(int xa,int ya,int xb,int yb,int width);
@@ -168,6 +178,7 @@ void  linescale_(long int* loff,float* ladd,float* lscale,long int* boff,float* 
         float* bscale);
 void  u2pixel_(float* ux,float* uy,long int* ix,long int* iy);
 void  pixel2u_(long int* ux,long int* uy,float* gx,float* gy);
+void  etplotwwc_(float* ux,float* uy,long int* updown,long int* sym);
 void  etplot_(float* ux,float* uy,long int* updown,long int* sym);
 void  erectan_(float* x,float* y,float* dx,float* dy,float* dt);
 void  egrbox_(float* x,float* y,float* dx,float* dy,long int* gp);
@@ -175,39 +186,35 @@ void  etriang_(float* x,float* y,float* dx,float* dy,float* dt);
 void  ecirc_(long int* x,long int* y,long int* rad,long int* operation);
 void  earc_(long int* x,long int* y,long int* rad,long int* ang1,
         long int* ang2,long int* operation);
-void  dinterval_(float* v1,float* v2,float* dv,long int* ndec,long int* mode);
 void  etlabel_(char* msg,float* x,float* y,long int* ipos,long int* size,int len);
-void  vrtaxis_(float *ymn,float *ymx,long int *offl,long int *offb,long int *offt,
-        float *yadd,float *sca,long int *mode,long int *side,char* msg,int mlen);
-void  horaxis_(float *xmn,float *xmx,long int *offl,long int *offr,long int *offb,
-        float *xadd,float *sca,long int *mode,char* msg,int mlen);
-void  horaxishdw_(float *xmn,float *xmx,long int *offl,long int *offr,long int *offb,
-        float *xadd,float *sca,long int *mode,long int *ind,long int *idiv,long int *isjday,char* msg,int mlen);
+void  vrtaxisdd_(float* ymn,float* ymx,long int* offl,long int* offb,long int* offt,
+	float* yadd,float* sca,long int* mode,float *ddy, long int *nny,long int* side,char* msg,int mlen);
+void  horaxisddwwc_(float *xmn,float *xmx,long int *offl,long int *offr,long int *offb,
+        float *xadd,float *sca,long int *mode,float *dddx, long int *nnx, char* msg,int mlen);
+void  horaxisdd_(float *xmn,float *xmx,long int *offl,long int *offr,long int *offb,
+        float *xadd,float *sca,long int *mode,float *dddx, long int *nnx, char* msg,int mlen);
+void  horaxishdwdd_(float *xmn,float *xmx,long int *offl,long int *offr,long int *offb,
+        float *xadd,float *sca,long int *mode,float *dddx, long int *nnx,long int *ind,
+	long int *idiv,long int *isjday,char* msg,int mlen);
 void  labelstr(long int *n,float *val,long int *WticC,char* sstr);
 void  popupimage_(char *prom,char *docu,char *act,char *file,int lenprom,int lendocu,int lenact,int lenfile);
 
 /* Shared functions in esp_menu.c */
 void  espmenuinit_ (char *title, int len);
 void  updmenu_(char* items,char* itypes,long int* nitmsptr,long int* iw,int len_items);
-void  espmenuitems_ (char *item,long int *ino, int len); 
-void  espmenu_ (int *ino); 
-void  espabcbox_ (char *msg1, char *aopt, char *bopt, char *copt, 
+void  upd_box_choices_(char* items,char* itypes,long int* nitmsptr,long int* iw,int len_items);
+void  espmenuitems_ (char *item,long int *ino, int len);
+void  espmenu_ (int *ino);
+void  espabcbox_ (char *msg1, char *aopt, char *bopt, char *copt,
           char *dopt, char *eopt, char *fopt, char *gopt,long int *ipick,
           int msg1_len, int aopt_len, int bopt_len, int copt_len,
           int dopt_len, int eopt_len, int fopt_len,int gopt_len);
-void  espdozenbox_ (char *msg1, char *aopt, char *bopt, char *copt, 
-          char *dopt, char *eopt, char *fopt, char *gopt,
-          char *hopt, char *iopt, char *jopt, char *kopt,
-          char *lopt, long int *ipick,
-          int msg1_len, int aopt_len, int bopt_len, int copt_len,
-          int dopt_len, int eopt_len, int fopt_len, int gopt_len,
-          int hopt_len, int iopt_len, int jopt_len, int kopt_len,
-          int lopt_len);
+void  espmbox_ (char *msg1, long int *ipick, int msg1_len);
 
 /* Shared functions esp_text.c */
 void  inserttext_ ( char *message , int len);
 void  msgbox_(char* msg1,char* msg2,int len1,int len2);
-void  continuebox_ (char *msg1, char *cnt, int len1, int lencnt); 
+void  continuebox_ (char *msg1, char *cnt, int len1, int lencnt);
 void  clrhelp_();
 void  updhelp_(char* message,int len);
 void  egphelpscroll_(long int* impx,long int* impy,long int* ipflg,

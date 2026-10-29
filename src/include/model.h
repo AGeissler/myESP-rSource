@@ -1,22 +1,28 @@
 C This header relates to high level model entities in ESP-r. It is
 C dependant on building.h and should follow building.h so that
-C parameters will have been defined.
+C prerequisite parameters will have been defined.
+
+C Current working directory (where prj was started) and from pwd
+C into the cfg folder
+      character pwdinitial*84,pwdtocfg*72
+      common/pwdinit/pwdinitial,pwdtocfg
+      integer lnpwdi,lnpwdc  ! lengths of these paths
+      common/pwdlnint/lnpwdi,lnpwdc
 
 C Configuration file information.
-      integer icfgv  ! version of configuration file which determines
-                     ! the format and contents of the file:
-                     ! version 1 did not have *database section
-                     ! version 2 did not use tag data format (before 1996)
-                     ! version 3 used zone obstruction files and IPV files
-                     ! version 4 current version from May 2008
-      common/CFGV/icfgv
+      integer icfgv         ! version of configuration file which determines
+                            ! the format and contents of the file:
+                            ! version 3 circa 1996, version 4 from May 2008
+                            ! version 5 current version from May 2022
+      integer usecurcfg     ! preference for current (1) or legacy (-1) version
+      common/CFGV/icfgv,usecurcfg
 
       integer ifcfg         ! file unit for model configuration file
       character cfgroot*32  ! root name of the model used to generate file names
       character LCFGF*72    ! model configuration file
       COMMON/C21/IFCFG,cfgroot,LCFGF
 
-C The title and summary of the model
+C Title and summary of model.
       character modeltitle*72  ! title of the model (to replace LSNAM)
       character modeldocblock*248   ! text block of documentation for model
       common/modeltd/modeltitle,modeldocblock
@@ -30,14 +36,14 @@ C Paths from model cfg file folder to other model file types. As the
 C folder names are in the form of ../nets the string length is short.
       character zonepth*24,netpth*24  ! to zone files and flow network files
       character ctlpth*24,imgpth*24   ! to control files and model images
-      character radpth*24,docpth*24    ! to radiance model files and documents
-      character dbspth*24   ! to local common data
-      character aimpth*24,bsmpth*24   ! to AIM2 files and BASIMP files
-      character hvacpth*24            ! to ideal HVAC files
+      character radpth*24,docpth*24   ! to radiance model files and documents
+      character dbspth*24             ! to local common data
+      character mscpth*24             ! to miscel files i.e. AIM2 and BASIMP files
+      character tmppth*24             ! to temporary i.e. results and z?.shd files
       common/paths/zonepth,netpth,ctlpth,imgpth,radpth,docpth,
-     &             dbspth,aimpth,bsmpth,hvacpth
+     &             dbspth,mscpth,tmppth
 
-      character upath*72  ! Path to the users home folder (this is often
+      character upath*72  ! Path to the user's home folder (this is often
                           ! combined with local path names to make up a
                           ! longer (144 character) string.
       common/uhome/upath
@@ -52,7 +58,7 @@ C Files associated with the model configuration file.
       character LCNN*72  ! model connections file name.
       common/C3F/LCNN
 
-C Indicators for locations or existance of zone supplimental files.
+C Indicators for locations or existence of zone supplemental files.
       integer IVF  ! zone view factor file zero is not used, one exists 
       integer ISI  ! zone shading/insolation file zero is not used, one exists
       integer IHC  ! zone hc coef file zero is not used, one exists
@@ -64,12 +70,12 @@ C Indicators for locations or existance of zone supplimental files.
       COMMON/INDICS/IVF(MCOM),ISI(MCOM),IHC(MCOM),ITW(MCOM),
      &              ICGC(MCOM),IOBS(MCOM),NCCODE(MCOM)
 
-C File names for zone supplimental files.
+C File names for zone supplemental files.
       character LVIEW*72  ! zone view factor file
       character LHCCO*72  ! zone hc coef file
       character LTWIN*72  ! zone optical properties file
       character LCGCIN*72 ! zone casual gain control file
-      character ZOBS*72   ! zone obstructions file (if separate from geo file)
+      character ZOBS*72   ! zone obstructions file (if separate from .geo file)
       common/UDESC/LVIEW(MCOM),LHCCO(MCOM),LTWIN(MCOM),
      &             LCGCIN(MCOM),ZOBS(MCOM)
 
@@ -85,7 +91,7 @@ C Temporal file units and file types
       integer iutdfa  ! file unit for ascii version of temporal file
       COMMON/TDFI/IUTDF,ITDFLG,IUTDFA
 
-C Radiance rcf scene file associated with the model.
+C Radiance .rcf scene file associated with the model.
       character LRADCF*72
       common/radcfg/LRADCF
 
@@ -100,3 +106,35 @@ C Anchor - named and typed concept with associated list of surfaces.
       integer ialoc     ! number of links for each anchor
       integer lstanchr  ! connection index for each anchor link
       common/anchorb/IALOC(20),lstanchr(20,99)
+
+C Zonegroup - named and typed groups of zones.
+      integer nzgroup      ! number of zone groups
+      character zglbl*16   ! user name for the group
+      common/zgroupa/nzgroup,zglbl(32)
+      integer izgnumber    ! number of associated zones in each group
+      integer izglist      ! zone index for each associated zone
+      common/zgroupb/izgnumber(32),izglist(32,40)
+
+C IES files to associate with entities passed to Radiance. Up to
+C 10 can be associated with a model. The iesname is the root on to which
+C variants for control will be created, e.g. root arran_led -> arran_led100,
+C arran_led075, arran_led050 etc. are managed.
+      integer nbofies       ! number of IES files
+      character iesname*12  ! short root name to associate with IES data set 
+      character iesmenu*32  ! menu entry for IES
+      character iesfile*72  ! IES file
+      character iesalong*1  ! length along axis X or Y or Z
+      common/ies/nbofies,iesname(10),iesmenu(10),iesfile(10),
+     &           iesalong(10)
+      real ieslen,ieswid,iesht ! length width height of IES entity
+      common/iesdim/ieslen(10),ieswid(10),iesht(10)
+      integer iespercents   ! number steps of on percentages
+      real iessteps         ! percentage for each step
+      common/ieson/iespercents(10),iessteps(10,5)
+
+C Helper applications.
+      logical found_curl    ! able to download update_notes.txt
+      logical found_ximage  ! Radiance found
+      logical found_xfig    ! xfig is available
+      logical found_xterm   ! xterm is available
+      common/helperapps/found_curl,found_ximage,found_xfig,found_xterm

@@ -1,15 +1,18 @@
 /* Miscel non-graphic functions taken from esru_x.c
    
-   winfnt(n)   changes the font (4 different sizes 0,1,2,3)
+   winfnt(n)   changes the font (4 different sizes fixed and proportional 0,1,2,3,4,5,6,7)
    Timer(msec) pause_for_milliseconds
    pausems_() pause_for_milliseconds
    pauses_() pause_for_seconds
    curmodule_() pass in info on the current application from fortran
    userfonts() set fonts for common display tasks
+   defaultfonts() set fonts for common display tasks
 */
    
 #include <stdio.h>
+#include <math.h>
 #include <stdlib.h>
+#include <ctype.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <dirent.h>
@@ -19,18 +22,32 @@
 #include "esp-r.h"
 #include <commons.h>
 
+#define XV_FDTYPE (fd_set *)
 
 /* circa Dec. 2005, MinGW apparently no longer offers 'sleep'.
    Alias to MS windows Sleep, which takes milliseconds 
-   instead of seconds */
+   instead of seconds
 #ifdef MINGW
 #include <windows.h>
-#define sleep(s) Sleep(s*1000)
-#endif 
+#define sleep(s) Sleep(s * 1000)
+#endif  */
 
 extern FILE *wwc;
 extern gint f_height;
 extern gint f_width;
+extern long int d_disp_fnt = 1; /* default font for text display box */
+extern long int d_butn_fnt = 4; /* default button font size */
+extern long int d_menu_fnt = 5; /* default command menu font */
+
+/* flag for network graphics routines*/
+static int network_gpc;
+
+/* flags for network graphics - start in select mode */
+static int nselect = 1;	/* if 1 then allow select or deselect of icons */
+static int nconnect = 0;	/* if 1 then user in connection add mode */
+static int ndata = 0;	/* if 1 allow data editing */
+static long int isnap=1;
+static long int igrid=1;
 
 /* ************ Select a font **************** */
 /* select one of the 8 fonts by its index, load it and update the graphic context.
@@ -50,93 +67,59 @@ void winfnt_(font_index)
 
    ifont_index = (gint) *font_index;
 
-/* Originally there were three options for fonts and disp_fnt was either 0, 1, or 2.
- * With the addition of Serif Largest, Courier Small, Courier Medium, Courier Large and Courier Largest,
- * the font_index also has the values 3, 4, 5, 6, 7 
- * << NOTE: the fortran side does not know about these new values >>
+/* Follow similar patter to X11 implementataion - 0/1/2/3 fixed width and 4/5/6/7 proportional.
  */
 
-
   if (ifont_index == 0 ) {
-#ifdef SUN
-     pfd = pango_font_description_from_string("Courier,Medium 8");
-     f_height = font_calculations_array[courier_small].f_height;
-     f_width  = font_calculations_array[courier_small].f_width;
-#else
-     pfd = pango_font_description_from_string("Serif,Medium 8");
-     f_height = font_calculations_array[serif_small].f_height;   // pre-calculated value of f_height is read from the array
-     f_width  = font_calculations_array[serif_small].f_width;    // pre-calculated value of f_width  is read from the array
-#endif 
-   //fprintf(stderr,"graphic_reset at serif medium 8 change font height and width is %d %d %d\n", f_height, f_width, ifont_index);	//debug
+   pfd = pango_font_description_from_string("Monospace,Medium 8");
+   f_height = font_calculations_array[courier_small].f_height;
+   f_width  = font_calculations_array[courier_small].f_width;
+//   fprintf(stderr,"graphic_reset at Mono medium 8 change font height and width is %d %d %d\n", f_height, f_width, ifont_index);	//debug
     
   } else if (ifont_index == 1 ) {
-#ifdef SUN
-     pfd = pango_font_description_from_string("Courier,Medium 10");
-     f_height = font_calculations_array[courier_medium].f_height;
-     f_width  = font_calculations_array[courier_medium].f_width;
-#else
-     pfd = pango_font_description_from_string("Serif,Medium 10");
-     f_height = font_calculations_array[serif_medium].f_height;
-     f_width  = font_calculations_array[serif_medium].f_width;
-#endif
-   //fprintf(stderr,"graphic_reset at serif medium 10 change font height and width is %d %d %d\n", f_height, f_width,ifont_index );	//debug
+   pfd = pango_font_description_from_string("Monospace,Medium 9");
+   f_height = font_calculations_array[courier_medium].f_height;
+   f_width  = font_calculations_array[courier_medium].f_width;
+//   fprintf(stderr,"graphic_reset at Mono medium 9 change font height and width is %d %d %d\n", f_height, f_width,ifont_index );	//debug
       
    } else if (ifont_index == 2 ) {
-#ifdef SUN
-     pfd = pango_font_description_from_string("Courier,Medium 12");
-     f_height = font_calculations_array[courier_large].f_height;
-     f_width  = font_calculations_array[courier_large].f_width;
-#else
-     pfd = pango_font_description_from_string("Serif,Medium 12");
-     f_height = font_calculations_array[serif_large].f_height;
-     f_width  = font_calculations_array[serif_large].f_width;
-#endif
-   // fprintf(stderr,"graphic_reset at serif medium 12 change font height and width is %d %d %d \n", f_height, f_width, ifont_index);	//debug	
+   pfd = pango_font_description_from_string("Monospace,Medium 10");
+   f_height = font_calculations_array[courier_large].f_height;
+   f_width  = font_calculations_array[courier_large].f_width;
+//   fprintf(stderr,"graphic_reset at Mono medium 10 change font height and width is %d %d %d \n", f_height, f_width, ifont_index);	//debug	
 
    } else if (ifont_index == 3 ) {
-#ifdef SUN
-     pfd = pango_font_description_from_string("Courier,Medium 14");
-     f_height = font_calculations_array[courier_largest].f_height;
-     f_width  = font_calculations_array[courier_largest].f_width;
-#else
-     pfd = pango_font_description_from_string("Serif,Medium 14");
-     f_height = font_calculations_array[serif_largest].f_height;
-     f_width  = font_calculations_array[serif_largest].f_width;
-#endif 
-   //fprintf(stderr,"graphic_reset at serif medium 14 change font height and width is %d %d %d \n", f_height, f_width, ifont_index);	//debug	
+   pfd = pango_font_description_from_string("Monospace,Medium 11");
+   f_height = font_calculations_array[courier_largest].f_height;
+   f_width  = font_calculations_array[courier_largest].f_width;
+//   fprintf(stderr,"graphic_reset at Mono medium 11 change font height and width is %d %d %d \n", f_height, f_width, ifont_index);	//debug	
    }
    
    else if (ifont_index == 4) {
-   pfd = pango_font_description_from_string("Courier,Medium 8");
-   f_height = font_calculations_array[courier_small].f_height;
-   f_width  = font_calculations_array[courier_small].f_width;
- 
-   //fprintf(stderr,"graphic_reset at courier medium 8 change font height and width is %d %d %d \n ", f_height, f_width, ifont_index);	//debug	 
+   pfd = pango_font_description_from_string("Serif,Medium 8");
+   f_height = font_calculations_array[serif_small].f_height;
+   f_width  = font_calculations_array[serif_small].f_width;
+   //fprintf(stderr,"graphic_reset at serif medium 8 change font height and width is %d %d %d \n ", f_height, f_width, ifont_index);	//debug	 
       
    } 
    else if (ifont_index == 5  ) {
-   pfd = pango_font_description_from_string("Courier,Medium 10");
-   f_height = font_calculations_array[courier_medium].f_height;
-   f_width  = font_calculations_array[courier_medium].f_width;
- 
-   // fprintf(stderr,"graphic_reset at courier medium 10 change font height and width is %d %d %d \n", f_height, f_width, ifont_index);	//debug	 
+   pfd = pango_font_description_from_string("Serif,Medium 9");
+   f_height = font_calculations_array[serif_medium].f_height;
+   f_width  = font_calculations_array[serif_medium].f_width;
+   // fprintf(stderr,"graphic_reset at serif medium 9 change font height and width is %d %d %d \n", f_height, f_width, ifont_index);	//debug	 
    }
    else if (ifont_index == 6 ) {
-   pfd = pango_font_description_from_string("Courier,Medium 12");
-   f_height = font_calculations_array[courier_large].f_height;
-   f_width  = font_calculations_array[courier_large].f_width;
- 
-     //fprintf(stderr,"graphic_reset at courier medium 12 change font height and width is %d %d %d\n", f_height, f_width, ifont_index);	//debug	  
+   pfd = pango_font_description_from_string("Serif,Medium 10");
+   f_height = font_calculations_array[serif_large].f_height;
+   f_width  = font_calculations_array[serif_large].f_width;
+     //fprintf(stderr,"graphic_reset at serif medium 10 change font height and width is %d %d %d\n", f_height, f_width, ifont_index);	//debug	  
    }
    else if (ifont_index == 7 ) {
-   pfd = pango_font_description_from_string("Courier,Medium 14");
-   f_height = font_calculations_array[courier_largest].f_height;
-   f_width  = font_calculations_array[courier_largest].f_width;
- 
-   //fprintf(stderr,"graphic_reset at courier medium 14 change font height and width is %d %d %d \n", f_height, f_width, ifont_index);	//debug	 
+   pfd = pango_font_description_from_string("Serif,Medium 11");
+   f_height = font_calculations_array[serif_largest].f_height;
+   f_width  = font_calculations_array[serif_largest].f_width;
+   //fprintf(stderr,"graphic_reset at serif medium 11 change font height and width is %d %d %d \n", f_height, f_width, ifont_index);	//debug	 
    }
-   
-   
    
    /* fprintf(stderr,"graphic_reset font height and width is %d %d %d \n", f_height, f_width, ifont_index); debug */	 
  
@@ -169,7 +152,11 @@ void Timer(msec)   /* from xvmisc.c */
     
   time.tv_sec = usec / 1000000L;
   time.tv_usec = usec % 1000000L;
-/* find PC equivalent... select(0, XV_FDTYPE NULL, XV_FDTYPE NULL, XV_FDTYPE NULL, &time); */
+#ifdef MINGW
+/*  Sleep((unsigned int) msec ); */
+#else
+  select(0, XV_FDTYPE NULL, XV_FDTYPE NULL, XV_FDTYPE NULL, &time);
+#endif
   return;
 }
 
@@ -187,7 +174,11 @@ void pausems_(msec)   /* from xvmisc.c */
     
   time.tv_sec = usec / 1000000L;
   time.tv_usec = usec % 1000000L;
-/* find PC equivalent... select(0, XV_FDTYPE NULL, XV_FDTYPE NULL, XV_FDTYPE NULL, &time); */
+#ifdef MINGW
+/*  Sleep((unsigned int) msecond ); */
+#else
+  select(0, XV_FDTYPE NULL, XV_FDTYPE NULL, XV_FDTYPE NULL, &time);
+#endif
   return;
 }
 
@@ -197,7 +188,11 @@ void pauses_(is)
 {
   int i;
   i = (int) *is;
+#ifdef MINGW
+/*  Sleep((unsigned int) msecond *1000); */
+#else
   sleep((unsigned int) i );
+#endif
   return;
 }
 
@@ -251,6 +246,17 @@ void capexall_(cmd,len_cmd)
   return;
 }
 
+/********* Switch between network drawing modes *********/
+void nwksmod_(sel,con,dat)
+long int *sel;
+long int *con;
+long int *dat;
+{
+nselect=*sel;	/* if 1 then user can select/unselect icons */
+nconnect=*con;
+ndata=*dat;
+}
+
 /* ********* userfonts_ set fonts for common display tasks ******* */
 /* Pass font preferences from fortran. ifs for buttons and graphs,
  * itfs for text feedback and dialog, imfs for command menus
@@ -262,6 +268,19 @@ long int *ifs,*itfs,*imfs;
  disp_fnt = (int) *itfs;	/* dialogue and text feedback  */
  menu_fnt = (int) *imfs;	/* prefered menu font */
 /* debug   fprintf(stderr,"setting font size to %d %d %d\n",butn_fnt,disp_fnt,menu_fnt); */
+ return;
+}
+
+/* *************** set default fonts for current application ******** */
+/* Pass default font preferences from fortran. ifs for buttons and graphs,
+ * itfs for text feedback and dialog, imfs for command menus
+ */
+void defaultfonts_(ifsd,itfsd,imfsd)
+long int *ifsd,*itfsd,*imfsd;
+{
+ d_butn_fnt = (int) *ifsd;	/* remember the button and graph text font size */
+ d_disp_fnt = (int) *itfsd;	/* dialogue and text feedback  */
+ d_menu_fnt = (int) *imfsd;	/* prefered menu font */
  return;
 }
 

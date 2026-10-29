@@ -8,30 +8,10 @@ C parameters for generic databases
 C MGDB - (integer) number of generic databases
 C MGCL - (integer) number of categories in a generic database
 C MGIT - (integer) number of items in a generic database
-C MGCL_CFC - (integer) number of categories in a CFClayers database
-C MGIT_CFC - (integer) number of iterms in a CFClayers database
-      integer MGDB,MGCL,MGIT, MGCL_CFC, MGIT_CFC
+      integer MGDB,MGCL,MGIT
       parameter (MGDB=13)
       parameter (MGCL=36)
       parameter (MGIT=600)
-      parameter (MGCL_CFC=200) ! need to accommodate no. of IGDB glazing entries
-      parameter (MGIT_CFC=6000) ! need to accommodate no. of IGDB glazing entries
-
-C Array of generic database file names (72 char).
-      common/gendbf/gendbfn(MGDB)
-      character gendbfn*72
-
-C Array of default generic database file names (72 char).
-      common/dgendbf/dgendbfn(MGDB)
-      character dgendbfn*72
-
-C Array of file unit numbers for generic databases.
-      common/gendbfi/igendbf(MGDB)
-      integer igendbf
-
-C Array of logicals indicating generic database scanned ok.
-      common/gendb0/gendbok(MGDB)
-      logical gendbok
 
 C Standard path to corporate common files (based on Install data)
       common/stddbpath/standarddbpath
@@ -45,10 +25,10 @@ C Array of integers indicating whether common files are defined via
 C an absolute path (zero), local path (one), standard path (2)
       common/whichdbpath/ipathapres,ipathoptdb,ipathpcdb,ipathprodb,
      &                   ipathmat,ipathmul,ipathclim,ipathsbem,
-     &                   ipathmsc,ipathmould,ipathcfc
+     &                   ipathmsc,ipathmould,ipathcfc,ipathpredef
       integer ipathapres,ipathoptdb,ipathpcdb,ipathprodb,
      &                   ipathmat,ipathmul,ipathclim,ipathsbem,
-     &                   ipathmsc,ipathmould,ipathcfc
+     &                   ipathmsc,ipathmould,ipathcfc,ipathpredef
 
 C Array of integers representing file unit numbers of databases
       integer iapres  ! file unit of wind pressure coefficients
@@ -104,23 +84,27 @@ C Active components database MCMPDBFL (144 char).
       CHARACTER MCMPDBFL*144
       COMMON/MCMPDBNAM/MCMPDBFL
 
-C Default file names for common data files:
-C DCLIM - default climate, DAPRES - default pressure coefficients (144 char)
-C DFCON - default materials (144 char), DFMUL - default constructions (144 char)
-C DOPTDB - default optics (144 char), DPRFDB - default events (144 char)
-C DPCDB - default plant components (144 char), DSBEM - default UK SBEM (144 char)
+C Default file names for common data files (all 144 char):
+C DCLIM - default climate, DAPRES - default pressure coefficients
+C DFCON - default materials, DFMUL - default constructions
+C DOPTDB - default optics, DPRFDB - default events
+C DPCDB - default plant components, DSBEM - default UK SBEM
 C DMCMPDBFL - default active components (144 char),
 C dmdbnam - default mould ispleths
-C DCFCDB - default CFClayers (144 char)
+C DCFCDB - default CFClayers, DPREDEF - default predefined objects
       COMMON/DEFLT1/DCLIM,DAPRES,DFCON,DFMUL,DOPTDB,DPRFDB,DPCDB,DSBEM,
-     &  DMCMPDBFL,dmdbnam, DCFCDB
+     &  DMCMPDBFL,dmdbnam,DCFCDB,DPREDEF
       character DFMUL*144
       character DOPTDB*144,DPRFDB*144,DAPRES*144,DPCDB*144
       character DSBEM*144,DCLIM*144,DFCON*144,DMCMPDBFL*144
-      character dmdbnam*144, DCFCDB*144
+      character dmdbnam*144,DCFCDB*144,DPREDEF*144
 
 C LSBEM - (144 char) SBEM building type and systems db file name
       COMMON/SBEM00/LSBEM
       character LSBEM*144
+
+C LPREDEF - (144 char) predefined objects db file name.
+      COMMON/CPREDEF/LPREDEF
+      character LPREDEF*144
 
 C end of esp-r_dbfile.h

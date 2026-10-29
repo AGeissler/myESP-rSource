@@ -60,7 +60,7 @@ C----------------------------------------------------
 #include "building.h"
 #include "model.h"
 
-      common/outin/iuout,iuin
+      common/outin/iuout,iuin,ieout
       common/shout/icout
       common/BPSDLL/ iLogFile, cBpsVersion, cPrjPath, cPrjName, 
      &           cCfgPath, cCfgFile, cLogFile, lBpsDebug
@@ -71,15 +71,17 @@ C----------------------------------------------------
      
       common/rcmd/LCMDFL
 
-      COMMON/SPFL/spfileok,perok,tstepok,saveok,autook,exitok,startupok
-      LOGICAL     spfileok,perok,tstepok,saveok,autook,exitok,startupok
+      COMMON/SPFL/spfileok,perok,cfdperok,tstepok,saveok,autook,exitok,
+     &  startupok
+      LOGICAL     spfileok,perok,cfdperok,tstepok,saveok,autook,exitok,
+     &  startupok
             
-      character LCMDFL*144,inf*144,sps*8,aut*12,fs*1,actf*72
+      character LCMDFL*144,inf*144,sps*30,aut*12,fs*1,actf*72
  
       integer termtype,iappw,iappx,iappy
       logical unixok
       common/SPFLN/spsname
-      character spsname*8
+      character spsname*30
       
 C NT version.
       integer m

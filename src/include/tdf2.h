@@ -1,14 +1,17 @@
-C tdf2.h Parameters for TDF program, May 2010 version.
+C tdf2.h Parameters for TDF program, June 2018 version.
+C Magnitude set for large models. Code including this header
+C must have included net_flow.h prior to include tdf2.h.
 
       INTEGER MIT,MTABC,MHEL,MBITS,MGAT,MGAR,MGAI,MALT,MHTS,MTI
+      INTEGER MPCOMTDF
 
 C Allowed number of tabular entries in the TDF file. For large
 C models there may be one item per zone so this should reflect
 C the number of zones in building.h
-      PARAMETER (MIT=82)
+      PARAMETER (MIT=140)
 
 C Allowed columns of tabular data in TAB file.
-      PARAMETER (MTABC=80)
+      PARAMETER (MTABC=140)
 
 C Maximum number of help lines associated with a generic item.
       PARAMETER (MHEL=5)
@@ -32,7 +35,10 @@ C Maximum number of timesteps in an hour.
       PARAMETER (MHTS=60)
       
 C Array size for maximum items available of temporal definition
-      PARAMETER (MTI=27)
+      PARAMETER (MTI=35)
+      
+C Array size for maximum items of plant components for tdf purposes
+      PARAMETER (MPCOMTDF=200) !initial attempt to take this from plant.h failed, so hardwiring it
 
 C Related to TDF header.
       integer NWPR   ! Number of words per record in the TAB file.
@@ -102,11 +108,12 @@ C a zero indicates that that particular zone is not associated and
 C a non-zero indicates the index of the item. For example icasual(3)=6
 C says that the 3rd zone in the model uses a casual gains item which
 C is the 6th item in the temporal file.
-      integer IALLCLM   ! if non-zero a item holding all climate data used
+      integer IALLCLM   ! if non-zero an item holding all climate data used
       integer ICASUAL   ! if non-zero lumped casual gains are used 
       integer IZIVENT   ! if non-zero ventilation & infiltration used
       integer IRAIRVL   ! if non-zero room air velocity (not yet used)
       integer ISETPTT   ! if non-zero single set point temperature used
+      integer ICFCCTL   ! if non-zero CFC on/off and/or slat angle used
       integer ICTLSTA   ! if non-zero control state (not yet used)
       integer ISKYLUX   ! if non-zero measured sky lux (not yet used)
       integer IDBTEXT   ! if non-zero ambient dry bulb (climate) used
@@ -125,8 +132,8 @@ C is the 6th item in the temporal file.
       integer IBIDIRS   ! if non-zero bidirectional data available
       integer IVERSOL   ! if non-zero surface vertical global solar used
       integer IHTCLSETP ! if non-zero heating and cooling setpoints used
-      integer IDBTZNM   ! if non-zero measured room db T available for viewing
-      integer ISURTMEAS ! if non-zero measured surface T available for viewing
+      integer IDBTZNOBS   ! if non-zero observed room db T available for viewing
+      integer ISURTOBS  ! if non-zero observed surface T available for viewing
       integer IMFNTDFP  ! if non-zero measured fluid mass flow node node pressure
       integer IMFNTDFF  ! flag set to 1 if measured pressure data is present
       integer IPERVSEN  ! if non-zero holds sensor state
@@ -134,10 +141,21 @@ C is the 6th item in the temporal file.
                               ! grid charging schedule for storage heater
       integer IELECPWR  ! flag indicating electrical power data (real and reactive)
                         ! is available for a zone
+      integer IRAININD  ! if non-zero rain indicator is present
+      integer IZNRHOBS  ! if non-zero observed zone rh available for viewing
+      integer IZNHTOBS  ! if non-zero observed zone heating available for viewing
+      integer IZNCLOBS  ! if non-zero observed zone cooling available for viewing
+      integer IGRNDRFL  ! if non-zero, ground reflectance is provided at each time step
+      integer ISUPPLWT  ! if non-zero, supply water temperature (PCL03) is provided at each time step
+      integer IPUMPVFR  ! if non-zero, the volumetric flow rate (l/h in tdf converted to m3/s in PCL08) is provided at each time step
+      integer IPRCSIG   ! if non-zero, price signal per timestep available
+      
       COMMON/TDFFLG2/IALLCLM,ICASUAL(MCOM),IZIVENT(MCOM),IRAIRVL(MCOM),
      &       ISETPTT(MCOM),ICTLSTA(MCOM),ISKYLUX,IDBTEXT,IWINDVL,
      &       IWINDDR,IRELHUM,IDIFHSL,IDIRSOL,IGLOHSL,IOBJVEL,IOBJDIR,
      &       ISKYTMP,IGLOVRT,ICASUAL3(MCOM),IACTIV(MCOM),
      &       IBIDIRS(MCOM,MS),IVERSOL(MCOM,MS),IHTCLSETP(MCOM),
-     &       IDBTZNM(MCOM),ISURTMEAS(MCOM,MS),IMFNTDFP(MNOD),IMFNTDFF,
-     &       IPERVSEN,IStorageHeater(MCOM),IELECPWR(MCOM)
+     &       IDBTZNOBS(MCOM),ISURTOBS(MCOM,MS),IMFNTDFP(MNOD),IMFNTDFF,
+     &       IPERVSEN,IStorageHeater(MCOM),IELECPWR(MCOM),ICFCCTL(MCOM),
+     &       IRAININD,IZNRHOBS(MCOM),IZNHTOBS(MCOM),IZNCLOBS(MCOM),
+     &       IGRNDRFL,ISUPPLWT(MPCOMTDF),IPUMPVFR(MPCOMTDF),IPRCSIG

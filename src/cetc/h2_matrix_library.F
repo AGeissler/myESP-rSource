@@ -63,8 +63,8 @@ C--------------------------------------------------------------------------
 C     ESP-r common blocks
 C--------------------------------------------------------------------------
 C     -IUOUT: Write unit for error trace
-      COMMON/OUTIN/IUOUT,IUIN
-      integer iuout, iuin
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
+      integer iuout, iuin,ieout
 C     -ITU:  Write unit numnbers for warning/information trace
       COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
       integer itcf, itrace, izntrc, itu
@@ -130,7 +130,8 @@ C     MISC variable declarations
       logical bFatalError
 
 C.....References
-      character cSim_Type_Name, cState_Name
+      character*42 cSim_Type_Name
+      character*18 cState_Name
 
 C------------------------------------------------------------------------------------
 C     SET number of controlled variables
@@ -284,7 +285,7 @@ C     These are simple character functions that return the name of a state
 C     or simulation type described by ISV variables
 C
 C--------------------------------------------------------------------------
-      CHARACTER FUNCTION cState_Name(State)
+      CHARACTER*18 FUNCTION cState_Name(State)
       IMPLICIT NONE
       INTEGER State
       IF( State .EQ. 0 ) THEN
@@ -298,7 +299,7 @@ C--------------------------------------------------------------------------
       ENDIF
       END  ! of FUNCTION
 
-      CHARACTER FUNCTION cSim_Type_Name(Sim_Type)
+      CHARACTER*42 FUNCTION cSim_Type_Name(Sim_Type)
       IMPLICIT NONE
       INTEGER Sim_Type
       IF( Sim_Type .EQ. 0 ) THEN
@@ -1673,7 +1674,7 @@ C.....Electrical power use of plant 'hybrid' components
       real bvoltp(mpcom)        ! opertional voltage of component
       integer iphp(mpcom)       ! phase component is connected to -> dummy variable
 
-      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its
+      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
       integer ihrp              ! not used in current context
       integer ihrf              ! not used in current context
       integer idyp              ! present day #
@@ -1681,15 +1682,15 @@ C.....Electrical power use of plant 'hybrid' components
       integer idwp              ! not used in current context
       integer idwf              ! not used in current context
       integer nsinc             ! time step number
-      integer its               ! not used in current context
+      integer its,idynow        ! not used in current context
 
 C.....Trace & reporting data
       common/tc/itc,icnt
-      common/outin/iuout,iuin
+      common/outin/iuout,iuin,ieout
       common/trace/itcf,itrace(mtrace),izntrc(mcom),itu
 C.....Trace/error reporting unit numbers
       integer iTc,iCnt
-      integer iUout,iUin
+      integer iUout,iUin,ieout
       integer iTcf,iTrace,iZntrc,iTu
 
 C-------------------------------------------------------------------------------
@@ -2481,7 +2482,7 @@ C-------------------------------------------------------------------------------
      &     ipofs2(mcoefg,mpvar) ! matrix coefficient location (cols)
       integer npcdat, ipofs1, ipofs2
 
-      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its
+      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
       integer ihrp              ! not used in current context
       integer ihrf              ! not used in current context
       integer idyp              ! not used in current context
@@ -2489,7 +2490,7 @@ C-------------------------------------------------------------------------------
       integer idwp              ! not used in current context
       integer idwf              ! not used in current context
       integer nsinc             ! time-step number
-      integer its               ! not used in current context
+      integer its,idynow        ! not used in current context
 
 C.....Temporary common used to transport data to H2 storage tank model.
 C.....(to be replaced by a control?)

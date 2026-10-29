@@ -6,7 +6,6 @@
    espmenu_ () display menu and wait for selection to be made
    abcbox_callback() actions when an abc... choice is made.
    espabcbox_ () initialise abcbox - will use radio buttons for entries
-   espdozenbox_ () initialise dozen choices use radio buttons for entries
 
  */
 static const char rcsid[] = "$Id$";
@@ -18,8 +17,6 @@ static const char rcsid[] = "$Id$";
 #include <string.h>
 #include "esp-r.h"
 
-/* extern void g_get_esp_item_from_list_cb(); from popup */
-
 /* required by e_menu list and callbacks */
 static const gchar *list_item_data_key = "esp_list_item_data";
 
@@ -29,6 +26,61 @@ gint menu_pick;
 gint pmenu_pick;
 
 gint abc_pick;
+static char choice_list[10][42];        /* character arrays for abcdef boxes */
+static char choice_type_list[10]; 
+static int choice_list_w[10]; 
+static int choice_width = 0;    /* current max choice character width */
+static int choice_boxes = 0;    /* current number of abcdef boxes */
+
+
+/* *************** ESRU choice box text update. *************** */
+/*
+ This function takes an array of strings from f77 and stores
+ it in the static array choice_list for subsequent use by other functions.
+*/
+/* char choice_list[10][42]; character arrays for choices */
+/* char choice_type_list[10]; character array representing choice_list array use */
+/* int choice_width = 0; current menu max line length */
+/* int choice_boxes = 0; current number of active boxes */
+void upd_box_choices_(items,itypes,nitmsptr,iw,len_items)
+  char      *items;         /* f77 array of box text strings    */
+  char      *itypes;        /* f77 character array (nitmsptr wide)    */
+  long int  *nitmsptr;      /* number of choice boxes   */
+  long int  *iw;            /* actual max char width in choices    */
+  int  len_items;           /* length of string from f77    */
+{
+  int	i, j, k;
+  int	m_line = *nitmsptr;
+  int l_m1;
+
+  choice_width = *iw;	/* remember width of choice text */
+  choice_boxes = m_line;	/* remember number of choices */
+  if(m_line == 0)return;	/* don't bother if no lines */
+  strncpy(choice_type_list,itypes,(unsigned int)m_line);	/* copy to static array */
+
+  for(i = 0; i < 10; i++) {	/* clear prior widths...  */
+    choice_list_w[i] = 0;
+  }
+  k = 0;
+  for(i = 0; i < choice_boxes; i++) {	/* for each choice...  */
+    for(j = 0; j < len_items; j++) {	/* for each character...  */
+      choice_list[i][j] = items[k];
+      k = k +1;   /* increment for next char in items (a fortran string array does not have
+                     nulls between strings in array, it just looks like one long string) */
+    }
+    choice_list[i][len_items] = '\0';	        /* write terminator          */
+    f_to_c_l(choice_list[i],&len_items,&l_m1);  /* find actual length l_m1)  */
+    choice_list_w[i] = l_m1;                /* save to choice_list_w */
+//    fprintf(stderr,"choice_list %s %d %d %d %d %d %d\n",choice_list[i],i,k,choice_list_w[i],choice_width,len_items,l_m1); 
+  }
+  return;
+}
+
+// initial clear of box choice lines list
+//  for ( i = 0; i < 10; i++ ) {
+//    strncpy(choice_list[i],
+//    "                                         ",41);
+//  }
 
 /* **** g_get_esp_item_from_list_cb is the call-back for "selection_changed"
  * signal of the menu selection process */
@@ -376,25 +428,20 @@ void espabcbox_ (char *msg1, char *aopt, char *bopt, char *copt,
 
 }
 
-/* *** espdozenbox_ () initialise dozen choices use radio buttons for entries *** */
-void espdozenbox_ (char *msg1, char *aopt, char *bopt, char *copt,
-                 char *dopt, char *eopt, char *fopt, char *gopt,
-                 char *hopt, char *iopt, char *jopt, char *kopt,
-                 char *lopt, long int *ipick,
-                 int msg1_len, int aopt_len, int bopt_len, int copt_len,
-                 int dopt_len, int eopt_len, int fopt_len, int gopt_len,
-                 int hopt_len, int iopt_len, int jopt_len, int kopt_len,
-                 int lopt_len) {
+
+/* *** espmbox_ () initialise abcbox - will use radio buttons for entries *** */
+void espmbox_ (char *msg1, long int *ipick, int msg1_len) {
 
    GtkWidget *askbox, *hbox, *left_col, *right_col, *button, *label;
    GSList *group;
    gchar *title_local, *msg1_local;
    gchar *aopt_local, *bopt_local, *copt_local, *dopt_local, *eopt_local, *fopt_local;
-   gchar *gopt_local, *hopt_local, *iopt_local, *jopt_local, *kopt_local, *lopt_local;
+   gchar *gopt_local;
    gchar *question_local;
    gint result;
-   gint aopt_l,bopt_l,copt_l,dopt_l,eopt_l,fopt_l,gopt_l,hopt_l,iopt_l,jopt_l,kopt_l,lopt_l; /* non-blank lengths for options */
+   gint aopt_l,bopt_l,copt_l,dopt_l,eopt_l,fopt_l,gopt_l; /* non-blank lengths for options */
    int msg1_l; /* non-blank lengths for prompt */
+   int nopts;	/* number of options (based on if option text blank) */
 
    title_local = "  ";
 
@@ -403,32 +450,28 @@ void espdozenbox_ (char *msg1, char *aopt, char *bopt, char *copt,
    question_local = g_strndup(msg1, (gsize) msg1_l);
 /* debug  fprintf(stderr,"ask phrase %s\n",question_local); */
 
-   f_to_c_l(aopt,&aopt_len,&aopt_l);
-   aopt_local = g_strndup(aopt, (gsize) aopt_l);
-   f_to_c_l(bopt,&bopt_len,&bopt_l);
-   bopt_local = g_strndup(bopt, (gsize) bopt_l);
-   f_to_c_l(copt,&copt_len,&copt_l);
-   copt_local = g_strndup(copt, (gsize) copt_l);
-   f_to_c_l(dopt,&dopt_len,&dopt_l);
-   dopt_local = g_strndup(dopt, (gsize) dopt_l);
-   f_to_c_l(eopt,&eopt_len,&eopt_l);
-   eopt_local = g_strndup(eopt, (gsize) eopt_l);
-   f_to_c_l(fopt,&fopt_len,&fopt_l);
-   fopt_local = g_strndup(fopt, (gsize) fopt_l);
-   f_to_c_l(gopt,&gopt_len,&gopt_l);
-   gopt_local = g_strndup(gopt, (gsize) gopt_l);
-   f_to_c_l(hopt,&hopt_len,&hopt_l);
-   hopt_local = g_strndup(hopt, (gsize) hopt_l);
-   f_to_c_l(iopt,&iopt_len,&iopt_l);
-   iopt_local = g_strndup(iopt, (gsize) iopt_l);
-   f_to_c_l(jopt,&jopt_len,&jopt_l);
-   jopt_local = g_strndup(jopt, (gsize) jopt_l);
-   f_to_c_l(kopt,&kopt_len,&kopt_l);
-   kopt_local = g_strndup(kopt, (gsize) kopt_l);
-   f_to_c_l(lopt,&lopt_len,&lopt_l);
-   lopt_local = g_strndup(lopt, (gsize) lopt_l);
-/* debug  fprintf(stderr,"non-blank lengths are %d %d %d %d %d %d %d %d %d %d %d %d\n",aopt_l,bopt_l,copt_l,dopt_l,eopt_l,
-     fopt_l,gopt_l,hopt_l,iopt_l,jopt_l,kopt_l,lopt_l); */
+   nopts = 0;
+   aopt_l=choice_list_w[0];
+   aopt_local = g_strndup(choice_list[0], (gsize) aopt_l);
+   if ( choice_list_w[1] > 1 ) nopts = 2;
+   bopt_l=choice_list_w[1];
+   bopt_local = g_strndup(choice_list[1], (gsize) bopt_l);
+   if ( choice_list_w[2] > 1 ) nopts = 3;
+   copt_l=choice_list_w[2];
+   copt_local = g_strndup(choice_list[2], (gsize) copt_l);
+   if ( choice_list_w[3] > 1 ) nopts = 4;
+   dopt_l=choice_list_w[3];
+   dopt_local = g_strndup(choice_list[3], (gsize) dopt_l);
+   if ( choice_list_w[4] > 1 ) nopts = 5;
+   eopt_l=choice_list_w[4];
+   eopt_local = g_strndup(choice_list[4], (gsize) eopt_l);
+   if ( choice_list_w[5] > 1 ) nopts = 6;
+   fopt_l=choice_list_w[5];
+   fopt_local = g_strndup(choice_list[5], (gsize) fopt_l);
+   if ( choice_list_w[6] > 1 ) nopts = 7;
+   gopt_l=choice_list_w[6];
+   gopt_local = g_strndup(choice_list[6], (gsize) gopt_l);
+// fprintf(stderr,"non-blank lengths are %d %d %d %d %d %d %d\n",aopt_l,bopt_l,copt_l,dopt_l,eopt_l,fopt_l,gopt_l);
 
    /* Set ok response, but if *ipick is zero reset to one. */
    abc_pick = (gint) *ipick;
@@ -519,56 +562,6 @@ void espdozenbox_ (char *msg1, char *aopt, char *bopt, char *copt,
       gtk_widget_show (button);
     }
 
-    if (hopt_l > 1 ) {
-      button = gtk_radio_button_new_with_label_from_widget
-                            (GTK_RADIO_BUTTON (button), hopt_local);
-      gtk_box_pack_start (GTK_BOX (right_col), button, TRUE, TRUE, 0);
-      if ( abc_pick==8 ) {gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (button), TRUE);}
-      g_signal_connect (G_OBJECT (button), "pressed",
-                        G_CALLBACK (abcbox_callback), GINT_TO_POINTER (8));
-      gtk_widget_show (button);
-    }
-
-    if (iopt_l > 1 ) {
-      button = gtk_radio_button_new_with_label_from_widget
-                            (GTK_RADIO_BUTTON (button), iopt_local);
-      gtk_box_pack_start (GTK_BOX (left_col), button, TRUE, TRUE, 0);
-      if ( abc_pick==9 ) {gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (button), TRUE);}
-      g_signal_connect (G_OBJECT (button), "pressed",
-                        G_CALLBACK (abcbox_callback), GINT_TO_POINTER (9));
-      gtk_widget_show (button);
-    }
-
-    if (jopt_l > 1 ) {
-      button = gtk_radio_button_new_with_label_from_widget
-                            (GTK_RADIO_BUTTON (button), jopt_local);
-      gtk_box_pack_start (GTK_BOX (right_col), button, TRUE, TRUE, 0);
-      if ( abc_pick==10 ) {gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (button), TRUE);}
-      g_signal_connect (G_OBJECT (button), "pressed",
-                        G_CALLBACK (abcbox_callback), GINT_TO_POINTER (10));
-      gtk_widget_show (button);
-    }
-
-    if (kopt_l > 1 ) {
-      button = gtk_radio_button_new_with_label_from_widget
-                            (GTK_RADIO_BUTTON (button), kopt_local);
-      gtk_box_pack_start (GTK_BOX (left_col), button, TRUE, TRUE, 0);
-      if ( abc_pick==11 ) {gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (button), TRUE);}
-      g_signal_connect (G_OBJECT (button), "pressed",
-                        G_CALLBACK (abcbox_callback), GINT_TO_POINTER (11));
-      gtk_widget_show (button);
-    }
-
-    if (lopt_l > 1 ) {
-      button = gtk_radio_button_new_with_label_from_widget
-                            (GTK_RADIO_BUTTON (button), lopt_local);
-      gtk_box_pack_start (GTK_BOX (right_col), button, TRUE, TRUE, 0);
-      if ( abc_pick==12 ) {gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (button), TRUE);}
-      g_signal_connect (G_OBJECT (button), "pressed",
-                        G_CALLBACK (abcbox_callback), GINT_TO_POINTER (12));
-      gtk_widget_show (button);
-    }
-
    /*
       Display the new widgets.
    */
@@ -582,24 +575,24 @@ void espdozenbox_ (char *msg1, char *aopt, char *bopt, char *copt,
    switch (result)
       {
        case GTK_RESPONSE_OK:
-       /*   fprintf(stderr,"Goodbye - %d %d was selected\n", abc_pick,result); */
+          /* fprintf(stderr,"Goodbye - %d %d was selected\n", abc_pick,result); debug */
           *ipick = (long int) abc_pick;
           break;
        case GTK_RESPONSE_CANCEL:
-       /*   fprintf(stderr,"Goodbye - %d %d was original choice\n", abc_pick,result); */
+          /* fprintf(stderr,"Goodbye - %d %d was original choice\n", abc_pick,result); debug */
+          *ipick = -3;
           break;
        case GTK_RESPONSE_HELP:
-       /*   fprintf(stderr,"Goodbye - %d %d help was requested\n", abc_pick,result); */
+          /* fprintf(stderr,"Goodbye - %d %d help was requested\n", abc_pick,result); debug */
           *ipick = -8;
           break;
        default:
-       /*   fprintf(stderr,"Goodbye - %d %d fell to default response\n", abc_pick,result); */
+          /* fprintf(stderr,"Goodbye - %d %d fell to default response\n", abc_pick,result); debug */
           *ipick = -1;
           break;
       }
    gtk_widget_destroy (askbox);
 
 }
-
 
 

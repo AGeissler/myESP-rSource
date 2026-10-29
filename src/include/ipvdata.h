@@ -8,24 +8,20 @@ C Format and version of IPV.
       integer ipvversion  ! 3 is older format, 4 is current format
       common/IPVFORMAT/ipvform,ipvversion
 
-C ipvtitl (char 40) is the title that shows up in reports
-C ipvvers (char 40) is the version of the IPV e.g. 'case with mass walls'
-C ipvsynop (char 248) documents the integrated performance view
-C ipvsimu (char 6) is a short tag describing the assessments to be run
-C   for example 'icautf' is an autumn fortnight and 'i3s' is a three
-C   season assessment with all days included.
-      character ipvtitl*40,ipvvers*40,ipvsynop*248,ipvsimu*6
-      common/IPVA/ipvtitl,ipvvers,ipvsynop,ipvsimu
+      character ipvtitl*40   ! title that shows up in reports
+      character ipvsynop*248 ! documents the integrated performance view
+      character ipvsimu*6    ! tag describing the assessments to be run
+      common/IPVA/ipvtitl,ipvsynop,ipvsimu
 
-C List of metric sets: nms is number of sets, imetget is the
-C esrures iget index for the metric selected, imetmsc holds two
-C miscelaneous indices for use by the metric, nzmg is the
-C number of zones in each set, emgflr is the total floor area in
-C each set, emgsca is a scaling factor (e.g. to scale these zones
-C towards a whole building), emgwtg is a weighting factor for the
-C metric, izmg is the list of zones in each set.
-      integer nms,imetget,imetmsc,nzmg,izmg
-      real emgflr,emgsca,emgwtg
+C IPV metric sets:
+      integer nms     ! number of sets,
+      integer imetget ! eres iget index for the metric selected,
+      integer imetmsc ! two miscelaneous indices for use by the metric,
+      integer nzmg    ! number of associated zones,
+      real emgflr     ! total floor area in each set,
+      real emgsca     ! scaling factor (e.g. to scale these zones towards a whole building),
+      real emgwtg     ! weighting factor for the metric,
+      integer izmg    ! list of associated zones.
       common/IPVMS/nms,imetget(MIPVM),imetmsc(MIPVM,2),nzmg(MIPVM),
      &  emgflr(MIPVM),emgsca(MIPVM),emgwtg(MIPVM),izmg(MIPVM,MCOM)
 
@@ -35,14 +31,14 @@ C Performance metric text variables.
       character metgroup*12 ! label for the group of associated zones
       common/IPVMDS/metrglbl(MIPVM),msdoc(MIPVM),metgroup(MIPVM)
 
-C List of energy demand sets: neds is number of sets, idgmsc() are
-C miscel data describing set, iaggr=0 no timestep aggregate reporting
-C iaggr=1 timestep aggregate data included, nzedg is the
-C number of zones in each set, edgflr is the total floor area in
-C each set, edgsca is a scaling factor (e.g. to scale these zones
-C towards a whole building), izedg is the list of zones in each set.
-      integer neds,idgmsc,iaggr,nzedg,izedg
-      real edgflr,edgsca
+C List of energy demand sets:
+      integer neds     ! number of sets,
+      integer idgmsc   ! miscel data describing set,
+      integer iaggr    ! 0 = no 1 = yes timestep aggregate reporting
+      integer nzedg    ! number of associated zones, 
+      real edgflr      ! associated floor area in
+      real edgsca      ! scaling factor 
+      integer izedg    ! list of associated zones.
       common/IPVEDS/neds,idgmsc(MIPVM,2),iaggr,nzedg(MIPVM),
      &  edgflr(MIPVM),edgsca(MIPVM),izedg(MIPVM,MCOM)
 
@@ -50,14 +46,12 @@ C zedsdoc is 12 char identifier for each demand set.
       character zedsdoc*12
       common/IPVDEDS/zedsdoc(MIPVM)
 
-C nipvassmt is the number of assessments (runs) in an IPV (1=annual,
-C 3=win/trn/sum, 5=win/spr/sum/autumn/win. 
-C ipvastjd() are the assessment start julian dates,
-C ipvafnjd are the assessment finish julian dates and
-C nipvdispjd number of days to display in detail,
-C ipvdispjd is list of julian days to display (must be within one
-C   of the assessment periods).
-      integer nipvassmt,nipvdispjd,ipvastjd,ipvafnjd,ipvdispjd
+      integer nipvassmt  ! number of assessments (runs) in an IPV (1=annual,
+                         ! 3=win/trn/sum, 5=win/spr/sum/autumn/win. 
+      integer ipvastjd   ! assessment start julian dates,
+      integer ipvafnjd   ! assessment finish julian dates
+      integer nipvdispjd ! number of days to display in detail,
+      integer ipvdispjd  ! list of julian days to display for each assessment.
       common/IPVSEA/nipvassmt,nipvdispjd,ipvastjd(MIPVA),
      &              ipvafnjd(MIPVA),ipvdispjd(10)
 

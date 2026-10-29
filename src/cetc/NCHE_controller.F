@@ -122,21 +122,21 @@ C-------------------------------------------------------------------------------
 
 #include "plant.h"
 #include "building.h"
+#include "power.h"
 #include "DG_controller_include.h"
 #include "CETC_definitions.h"
                                 
 
       common/tc/itc,icnt
-      common/outin/iuout,iuin
+      common/outin/iuout,iuin,ieout
       common/trace/itcf,itrace(mtrace),izntrc(mcom),itu
-      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its
+      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
       common/c9/npcomp,nci(mpcom),cdata(mpcom,mmiscd)
       common/pclsol/icfp,idtypp,iperp
       common/pers/isd1,ism1,isd2,ism2,isds,isdf,ntstep 
       common/pctstp/ntstpp
       common/c12ps/npcdat(mpcom,9),ipofs1(mcoefg),ipofs2(mcoefg,mpvar) 
       common/pdbdt/adata(mpcom,madata),bdata(mpcom,mbdata)
-      common/entfile/entflnam, ientxist
       common/ptime/ptimep,ptimef
       common/btime/btimep,btimef
       common/pltcon/bpltcon,lastTStp
@@ -148,10 +148,10 @@ C     statement)
 C------------------------------------------------------------------------------------
 C.....Trace/error reporting unit numbers
       integer itc,icnt
-      integer iuout,iuin
+      integer iuout,iuin,ieout
       integer itcf,itrace,izntrc,itu
 C.....Simulation time
-      integer ihrp, ihrf, idyp, idyf, idwp, idwf,nsinc,its
+      integer ihrp, ihrf, idyp, idyf, idwp, idwf,nsinc,its,idynow
       real ptimep, ptimef, btimep, btimef
 C.....Plant component data
       integer npcomp, nci
@@ -166,9 +166,6 @@ C.....Plant component indexes
       integer npcdat, ipofs1, ipofs2
 C.....Plant component parameters
       real adata, bdata
-C.....Electrical network
-      character*72 entflnam
-      integer ientxist
 C.....Plant future and present state variables
       real csvf, csvp
 C.....Timestep diration
@@ -1129,20 +1126,20 @@ C bHW_tank          ! Flag indicating if cold water tank exists.
 
 #include "plant.h"
 #include "building.h"
+#include "power.h"
 #include "DG_controller_include.h"
 #include "trnsys.h"
 #include "control.h"
 C-------------------------------------------------------------------------------------
 C     Required common blocks
 C-------------------------------------------------------------------------------------
-      common/outin/iuout,iuin
-      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its
+      common/outin/iuout,iuin,ieout
+      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
       common/ptime/ptimep,ptimef
       common/c9/npcomp,nci(mpcom),cdata(mpcom,mmiscd)
       common/pclsol/icfp,idtypp,iperp
       common/c12ps/npcdat(mpcom,9),ipofs1(mcoefg),ipofs2(mcoefg,mpvar) 
       common/pdbdt/adata(mpcom,madata),bdata(mpcom,mbdata)
-      common/entfile/entflnam, ientxist
 C Common for TRNSYS general information
       COMMON/TRNSYSGEN/NTRNCMP,ITRNTYPE(MTRNCOM)
       INTEGER NTRNCMP,ITRNTYPE
@@ -1150,9 +1147,9 @@ C Common for TRNSYS general information
 C------------------------------------------------------------------------------------
 C     Declare common block variables
 C------------------------------------------------------------------------------------
-      integer iuout,iuin
+      integer iuout,iuin,ieout
 C.....Simulation time
-      integer ihrp, ihrf, idyp, idyf, idwp, idwf,nsinc,its
+      integer ihrp, ihrf, idyp, idyf, idwp, idwf,nsinc,its,idynow
       real ptimep, ptimef
       integer npcomp, nci
       real cdata
@@ -1166,9 +1163,6 @@ C.....Plant component indexes
       integer npcdat, ipofs1, ipofs2
 C.....Plant component parameters
       real adata, bdata
-C.....Electrical network
-      character*72 entflnam  
-      integer ientxist
 C----------------------------------------------------------------------------------
 C     Local variables
 C----------------------------------------------------------------------------------
@@ -1188,6 +1182,8 @@ C-------------------------------------------------------------------------------
             write(iuout,*)
      &           ' at least 7 items were expected, but ',
      &           pmiscd(icfp,idtypp,iperp,1), ' items were found'
+            close(ieout)
+            CALL ERPFREE(ieout,ISTAT)
             call EPWAIT
             call EPAGend
             fatal_error= .true.
@@ -1997,11 +1993,11 @@ C-------------------------------------------------------------------------------
       common/pers/isd1,ism1,isd2,ism2,isds,isdf,ntstep 
       common/pctstp/ntstpp
 C.....unit numbers for trace/screen reporting
-      common/outin/iuout,iuin
+      common/outin/iuout,iuin,ieout
 C---------------------------------------------------------------------------------
 C     Declare common blocks
 C---------------------------------------------------------------------------------
-      integer isd1,ism1,isd2,ism2,isds,isdf,ntstep, ntstpp, iuout, iuin
+      integer isd1,ism1,isd2,ism2,isds,isdf,ntstep,ntstpp,iuout,iuin,ieout
 C---------------------------------------------------------------------------------
 C     Declare local variables.
 C---------------------------------------------------------------------------------

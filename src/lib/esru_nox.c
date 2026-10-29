@@ -9,6 +9,8 @@ intialisation and dummy routines for graphics. The routines are :-
 	windcl(n,ir,ig,ib)
 			:- define the colour 'n' in RGB using ir,ig,ib
 	feedbox		:- setup feedback display box
+	viewtextwwc_(msg,line,side,size,len)
+                        :- writes viewtext attributes to file.
 	viewtext_(msg,line,side,size,len)
                         :- displays a line of text within the viewing
                            box with size and location parameters
@@ -48,11 +50,6 @@ static unsigned long fg, bg, bd, bw;
 char *getenv ();
 
 #define DEBUG 0               /* <<recompile this to 0 for silent>> */
-/* examples of varible width fonts */
-/* #define FONT1 "-*-lucida-medium-r-*-*-10-*-*-*-*-*-*-*" */
-/* #define FONT2 "-*-lucida-medium-r-*-*-12-*-*-*-*-*-*-*" */
-/* #define FONT1 "-*-helvetica-medium-r-*-*-10-*-*-*-*-*-*-*" */
-/* #define FONT2 "-*-helvetica-medium-r-*-*-12-*-*-*-*-*-*-*" */
 
 static long int current_font;		/* standard font */
 static long int disp_fnt;     /*   font for text display box */
@@ -76,20 +73,20 @@ static box	elev,elevplus,elevminus;	/* buttons for view elevation changes */
 static box     altb,querb,defb,okb;	/* boxes for alts,query help, default, confirm */
 static box     updown_text;	/* box for resizing text feedback */
 static box     a,b,c,d,e,f,g;	/* boxes for multiple choices */
-static box	cfgz,cfgn,cfgc,cfgdfn;	/* boxes for problem type */
-static box	mouse,mouse1,mouse2,mouse3;	/* box for mouse button help */
-static char mseb1h[10],mseb2h[10],mseb3h[10]; /* mouse help strings */
+static box	cfgz,cfgs,cfgn,cfgc,cfgpln,cfgeln,cfgren;	/* boxes for problem type */
+static box	cfgfab,cfgbeh,cfgsim;
+static box	mouse,mouse1,mouse2,mouse3;	                      /* box for mouse button help */
+static char mseb1h[10],mseb2h[10],mseb3h[10];                         /* mouse help strings */
 static int aziplus_left,aziminus_left,azi_left,elevplus_left,elevminus_left,elev_left; /* left of azi&elev boxes */
-static int b_setup, l_setup, b_cpw, l_cpw, b_tut, l_tut;	/* ll of setup, copyright, tutorial boxs */
-static int wire_left,capture_left,captext_left;	/* left of wire frame and capture control box */
-static long int ocfgz,ocfgn,ocfgc,ocfgdfn; /* persistant toggles for problem type boxes */
-static long int iiocfgz,iiocfgn,iiocfgc,iiocfgdfn; /* persistant toggles for problem type images */
+static int b_setup, l_setup, b_cpw, l_cpw;	                       /* ll of setup, copyright boxs */
+static int wire_left,capture_left,captext_left;	                       /* left of wire frame and capture control box */
+static long int ocfgz,ocfgs,ocfgn,ocfgc,ocfgpln,ocfgeln;     /* persistant toggles model feature boxes */
+static long int ocfgren,ocfgfab,ocfgbeh,ocfgsim; 
 static int disp_opened = 0;     /* flag for existance of text display box. */
 static int dialogue_lines = 0;  /* number of lines of text in dialogue box */
 static int disp_lines = 0;      /* number of lines of text in text display box */
 static int menu_offset = 24;    /* character offset to right side of feedback  */
 static int fbb_b_lines = 2;    /* character offset to bottom of feedback      */
-static int tut_avail = 0;       /* tutorial box existence */
 static int setup_avail = 0;     /* setup box existence */
 static int cpw_avail = 0;       /* copyright box existence */
 static int mouse_avail = 0;     /* mouse help box existence */
@@ -204,13 +201,6 @@ int len;
  return;
 }
 
-/* ********* Displays the ESRU logo. */
-void showlogo_(itime,lix,liy)
-long int *itime,*lix, *liy; /* persistance, position from lower left of the 3dviewing image area */
-{ 
- return;
-}
-
 /*
  * inside: return true if point x,y is inside the box.
  *  The top left edges are inside the box, the bottom right are not.
@@ -277,6 +267,34 @@ int		len_title;
   return; 
 }
 
+/* *************** Extents of ESRU pop-up menu box. *************** */
+/*
+ This function takes current menu text and returns the width of the
+ active menu area and the pixel width of the longest line of text.
+*/
+
+void extentsvwmenu_(titleptr,	/* title for menu                   */
+  iwth,			/* menu character width to print    */
+  ipixwthma,ipixwthll,  /* pixel with allocated for menu area and longest line  */
+  ivfw,ivfwsp,ivfwul,   /* avg character widths */
+  len_title		/* length of title (from f77 compiler) */
+  )
+char	*titleptr;
+long int   *iwth,*ipixwthma,*ipixwthll;
+long int   *ivfw,*ivfwsp,*ivfwul; /* avarage font widths */
+int        len_title;
+{
+/* Local variables   */
+  long int saved_font, use_font, changed_font, label_font;
+  int   mib_width,i,iy,lt1,iw;
+  int   lt,ltsp,ltul;  /* lengths of test strings */
+  int   vfw,vfwsp,vfwul; /* avarage font widths */
+  int fonth,imw,foundul;
+  int pixwthll,pixwthbl,pixwthul;
+  
+  return;
+}
+
 /* ****************** auxulliary menu   
   Used to test for mouse click in other portions of the screen.
 */
@@ -294,26 +312,27 @@ void refreshenv_()
    return;
 } /* refreshenv */
 
-/* ******  Place configuration buttons on screen ********** */
-void opencfg_(cfg_type,icfgz,icfgn,icfgc,icfgdfn,iicfgz,iicfgn,iicfgc,iicfgdfn)
+/* ******  Place model feature buttons on screen ********** */
+void opencfg_(cfg_type,icfgz,icfgs,icfgnet,icfgc,icfgpln,icfgeln,icfgren,icfgfab,icfgbeh,icfgsim)
   long int *cfg_type;	/* type of problem configuration */
-  long int *icfgz,*icfgn,*icfgc,*icfgdfn;     /* toggles for zones/networks/control/domain boxes */
-  long int *iicfgz,*iicfgn,*iicfgc,*iicfgdfn;	/* indicators for associated images */
+  long int *icfgz,*icfgs,*icfgnet,*icfgc,*icfgpln,*icfgeln,*icfgren; /* toggles for feature boxes */
+  long int *icfgfab,*icfgbeh,*icfgsim; 
 {
- long int eyex,eyey,sym,sz;  /* centre for image symbols and symbol index and size */
  long int saved_font;
  int bh,hdl;
- int oocfgz = (int) *icfgz;	/* toggle for zones button */
- int iioocfgz = (int) *iicfgz;	/* toggle for zones images */
- int oocfgn = (int) *icfgn;	/* toggle for network button */
- int iioocfgn = (int) *iicfgn;	/* toggle for network images */
- int oocfgc = (int) *icfgc;	/* toggle for control button */
- int iioocfgc = (int) *iicfgc;	/* toggle for control images */
- int oocfgdfn = (int) *icfgdfn;	/* toggle for domain button */
- int iioocfgdfn = (int) *iicfgdfn;	/* toggle for domain images */
- ocfgz = oocfgz; ocfgn = oocfgn; ocfgc = oocfgc; ocfgdfn = oocfgdfn; /* remember toggles */
- iiocfgz = iioocfgz; iiocfgn = iioocfgn; iiocfgc = iioocfgc; iiocfgdfn = iioocfgdfn; /* remember images */
-
+ int oocfgz = (int) *icfgz;	        /* toggle for zones button */
+ int oocfgs = (int) *icfgs;	        /* toggle for Context button */
+ int oocfgn = (int) *icfgnet;	        /* toggle for Fluid flow button */
+ int oocfgc = (int) *icfgc;	        /* toggle for Control button */
+ int oocfgpln = (int) *icfgpln;	        /* toggle for HAVC button */
+ int oocfgeln = (int) *icfgeln;	        /* toggle for Electrical button */
+ int oocfgren = (int) *icfgren;	        /* toggle for Renewables button */
+ int oocfgfab = (int) *icfgfab;	        /* toggle for Enhanced fabric button */
+ int oocfgbeh = (int) *icfgbeh;	        /* toggle for Behaviour button */
+ int oocfgsim = (int) *icfgsim;	        /* toggle for automation button */
+ ocfgz = oocfgz; ocfgs = oocfgs; ocfgn = oocfgn; ocfgc = oocfgc; /* remember toggles */
+ ocfgpln = oocfgpln; ocfgeln = oocfgeln; ocfgren = oocfgren; ocfgfab = oocfgfab; 
+ ocfgbeh = oocfgbeh; ocfgsim = oocfgsim;
   return;
 } /* opencfg */
 

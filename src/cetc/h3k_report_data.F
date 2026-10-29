@@ -35,9 +35,9 @@ C h3k_connect_property:      Function returning data for plant connections.
 C
 C h3k_transport_mfn_data:     Transports flow network data
 C
-C *********************************************************************************************
+C **********************************************************************
 
-C ******************************* H3K Transport Building Data *********************************
+C ******************************* H3K Transport Building Data **********
 C
 C Created by: Alex Ferguson
 C Created on: March 28, 2004
@@ -56,7 +56,7 @@ C D.M. Sandars and S.W. Barakat (1983), "A method for estimating the
 C   utilization of solar gain through windows", ASHRAE Transactions
 C   Vol 89, Part 1A, pg 12--22.
 C
-C**********************************************************************************************
+C*************************************************************************
 
       SUBROUTINE H3K_transport_build_data(iZone)
       USE h3kmodule
@@ -73,8 +73,9 @@ C*******************************************************************************
       include "net_flow.h"
       include "blc25_open_windows.h"
       include "h3k_report_data.h"
-      include "qrun.h"
       include "CFC_common.h"
+      include "esprdbfile.h"
+      include "material.h"
 
 C.....Passed variable
       integer iZone            ! Zone number
@@ -83,6 +84,9 @@ C.....Common variables
       common/c1/ncomp,ncon
       integer ncomp          ! number of zones
       integer ncon           ! number of connections
+
+      COMMON/C3/IC1(MCON),IE1(MCON),ICT(MCON),IC2(MCON),IE2(MCON)
+      integer IC1,IE1,ICT,IC2,IE2
 
       common/prec9/nConst(mcom),nELts(mcom,ms),ngaps(mcom,ms),
      &             npgap(mcom,ms,mgp)
@@ -114,7 +118,6 @@ C QFA(MCOM)            ! - zone air point heat injection (W)
 C GFA(MCOM)            ! zone futue  relative humidity values
       common/FVALG/GFA(MCOM)
       real gfa
-
 
 C TPC(MCOM,MS,MN),     ! - present construction temperature (oC)
 C QPC(MCOM)            ! - construction heat injection (W)
@@ -168,8 +171,10 @@ C.....Surface orientation flags
      &     Cas_Lat_dat(MCOM)    !  - Latent (W)
       real Cas_Rad_dat, Cas_Con_dat, Cas_Lat_dat
 
-      COMMON/CasPowerDat/Cas_Lights(MCOM),Cas_Equip(MCOM)
+      COMMON/CasPowerDat/Cas_Lights(MCOM),Cas_Equip(MCOM),
+     &     Cas_Lights2(MCOM),Cas_Equip2(MCOM)
       real Cas_Lights, Cas_Equip     ! Electrical power of lights and equipment (casual gain data), W
+      real Cas_Lights2, Cas_Equip2   ! dito. for use w/o electrical net, W
 
 
 C.....Window properties
@@ -290,10 +295,6 @@ C.....Flags for temperature-dependence of MLC themal properties
       common/vthp32/ivthps,ivthpz(mcom)
       logical ivthps, ivthpz
 
-C.....Surface area data
-      common/prec1/sna(mcom,ms)
-      real sna                 ! Area of a surface
-
       common/cctl/icascf(mcom)  ! Zone control type
       integer icascf
 
@@ -320,12 +321,11 @@ C.....Sky temperature and cloud cover; ground temperature,
      &TSKY,CLOUDC,CLOUD1,CLOUD2,CLOUD3,TBAVE,TBROOF,TBNRTH,
      &TBSUTH,TBEAST,TBWEST
 
-      COMMON/OUTIN/IUOUT,IUIN
-      INTEGER :: IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
+      INTEGER :: IUOUT,IUIN,IEOUT
 
-C.....Surface aszimuth (deg from north) and elevation angles (walls: 0 deg, ceilings: 90 deg, floors: -90 deg)      
-      COMMON/PREC3/PAZI(MCOM,MS),PELV(MCOM,MS)
-      real PAZI, PELV     
+      integer IZSTOCN
+      COMMON/C24/IZSTOCN(MCOM,MS)
 
 C----------------------------------------------------------------------
 C     Variables for insulation layer search criteria
@@ -347,18 +347,28 @@ C.....Local variables
       real trsum
       REAL Q_zone,Q_heat,Q_cool ! Total heat injection / extraction
       REAL Qm2_zone,Qm2_heat,Qm2_cool ! Total heat injection / extraction per m2 of floor area
+      REAL negiZone,TMRT,TMIX,SUM,AREA,J,TO   ! negative zone number, mean radiant and operative temperatures
       INTEGER i_ZnCtl           ! Zone control flag
 
 
-      INTEGER iSurface, iNode,iViewSurface  ! Counters
+      INTEGER iSurface, iNode,iViewSurface,ic,lnsmlcn,ii,lnssmlc  ! Counters
+      INTEGER lm,imlc,iz,iSur
 
-      real SBC                              ! Stephan-Boltzmann constant
-      parameter ( SBC=56.7E-9 )
+      logical found
+
+      real SBC,tareamlc
+      parameter ( SBC=56.7E-9 )  ! Stephan-Boltzmann constant
 
 C.....DECLARATIONS for H3Kreporting object
       CHARACTER*12 cZone_Chars   ! zname(MCOM)
       Character*12 cSurf_Chars   ! sname(MCOM,MS)
       character*2  cNode_Chars
+      character*2  cLayer_Chars
+      character*32 sDummy
+      character*32 sMaterialName
+      character*32 sConstructionName
+      character*64 sConMat_Chars
+      character*50 cValue         ! Option value
 
       CHARACTER*128 ZONE_LABEL
 
@@ -368,6 +378,10 @@ C.....DECLARATIONS for H3Kreporting object
       logical lFirstPass   !first pass indicator
       save lFirstPass
       data lFirstPass/.true./
+
+      logical lOutputGeomdat   ! do only once
+      save lOutputGeomdat
+      data lOutputGeomdat/.true./
 
 C lnblnk is a function returning the index of last non-blank character in a string.
       INTEGER LNBLNK
@@ -562,8 +576,9 @@ C----------------------------------------------------------------------
       real PCRH2                   ! Function returning relative
                                    ! humidity given zone temperature,
                                    ! moisture content and atm. pressure.
+      real Psat01                  ! Saturation vapour pressure (Pa)
 
-
+      integer JL   ! local loop variable
 
 C----------------------------------------------------------------------
 C.....Set Performance indicators on first pass.  This is used to jump
@@ -678,7 +693,7 @@ C Determine where heat is injected/extracted
 c PIN is at surface.
           Q_zone = QFS(iZone)
 
-        elseif ( iban(i_ZnCtl,3) .gt. 0 ) then
+        elseif(iban(i_ZnCtl,3).gt.0 .and. iban(i_ZnCtl,1).ne.-2) then
 
 C PIN is within construction
           Q_zone = QFC(iZone)
@@ -690,7 +705,7 @@ C PIN is in a plant component node - not implemented yet.
         elseif ( iban(i_ZnCtl,1) .eq. -2 ) then
 
 C PIN is mix of radiative/convective flux (ie - plant component)
-         Q_zone = QPLTF(iZone)
+         Q_zone = (QPLTF(iZone)+QPLTP(iZone))*0.5
 
         else
 
@@ -845,6 +860,18 @@ C-----------------------------------------------------------------------
      &       cZone_Chars,
      &       cSurf_Chars)
 
+         call AddToReport(
+     &       rvHeatFluxRadiationShortwaveIn%identifier,
+     &       qswrdi(iZone,iSurface,2),
+     &       cZone_Chars,
+     &       cSurf_Chars)
+
+        call AddToReport(
+     &       rvHeatFluxRadiationShortwaveInUnitArea%identifier,
+     &       qswrdi(iZone,iSurface,2)/sna(iZone,iSurface),
+     &       cZone_Chars,
+     &       cSurf_Chars)
+
 
 C-----------------------------------------------------------------------
 C       Estimate heat loss from surface by performing energy
@@ -876,8 +903,8 @@ C.........construction and compute the heat loss at that layer.
 C............For floors, take the outermost layer for heat loss estimation.
 C............For walls and ceiling, take the innermost layer for heat loss
 C............estimation. 
-C............Elevation angle (PELV) of floor surfaces is -90
-             call eclose(PELV(iZone,iSurface),-90.0,small,close)  
+C............Elevation angle (SPELV) of floor surfaces is -90
+             call eclose(SPELV(iZone,iSurface),-90.0,small,close)  
 
              IF ( close )THEN    ! surface is a floor
 
@@ -1024,7 +1051,7 @@ C         ( Multiply by -1 to convert from ESP-r to HOT3000 sign
 C           conventions. Positive values of fSurface_balance_net
 C           indicate heat transfer from the building to the surroundings.
 C-----------------------------------------------------------------------
-	
+
 C.........If in HOT3000 mode, compute window heat loss at innermost layer,
 C.........and estimate the inward flowing fraction of absorbed solar energy
 C.........that is added to the reported solar gain. 
@@ -1058,7 +1085,7 @@ C...........Compute flux
      &             * sna( iZone, iSurface )
      &             * ( TFs( iZone ,iSurface ) -
      &                 TFc( iZone, iSurface, nndc(iZone, iSurface) - 1 )
-     &               )	 
+     &               ) 
 
 C...........Now extract the U-value and SHGC contributions of the net conductive heat 
 C...........loss calculated at the innermost glass pane. The solar heat gain contribution
@@ -1087,7 +1114,7 @@ C...........which includes any fill gas and coating effects.
             fSurSolarHeatGainIFF = -1.0 * ( fSurface_balance_net - 
      &                           ( fUvalue * sna( iZone, iSurface ) *
      &                           (TFA(iZone)-TF) ) ) 
-	 
+ 
 C...........Since U-value is estimated, it's possible that the IFF will be slightly
 C...........negative. If this is the case, set to 0.0. 
             if ( fSurSolarHeatGainIFF .lt. 0.0) 
@@ -1204,7 +1231,7 @@ C-----------------------------------------------------------------------
           endif is_flux_positive
 
         elseif ( bZoneHeated(iZone) ) then
-		
+
           fSurLoss = fSurface_balance_net
           fSurGain = 0.0
 
@@ -1422,8 +1449,8 @@ C.....Thermal loads
       fSUMNetLoad  = fSUMNetLoad  + fZoneHeatLoad - fZoneCoolLoad
       fSUMHeatLoss = fSUMHeatLoss + fZoneHeatLoad
       fSUMHeatGain = fSUMHeatGain + fZoneCoolLoad
-	  
-	  fSUMFreeCooling = fSUMFreeCooling + fFreeCoolDelivered(iZone)
+  
+      fSUMFreeCooling = fSUMFreeCooling + fFreeCoolDelivered(iZone)
 
 C.....Air load
       fSUMVentilationLoad  = fSUMVentilationLoad + fZoneVentilationLoad
@@ -1493,11 +1520,57 @@ C.......ZONE LABEL (use dummy value of -1)
      &      cZone_Chars,
      &      ZONE_LABEL(1:LEN_TRIM(ZONE_LABEL)))
       end if
-      
+
 C.....AIR POINT TEMPERATURE
       call AddToReport (
      &         rvAirPointTemperature%Identifier,
      &         TFA(iZone),
+     &         cZone_Chars)
+
+C.....Mean Radiant & Operative TEMPERATURES
+C     See ebld/bcfunc.F line 334 ff. for calculation loop logic.
+C
+C Opaque internal surfaces.
+      SUM=0.
+      AREA=0.
+      DO 20 JL=1,nzsur(iZone)
+        TO=TFS(iZone,JL)
+        SUM=SUM+TO*SNA(iZone,JL)
+        AREA=AREA+SNA(iZone,JL)
+   20 CONTINUE
+
+C Compute weighted temperature.
+      TMRT=TFA(iZone)
+      IF(AREA.GT.0.) TMRT=SUM/AREA
+
+      call AddToReport (
+     &         rvMeanRadiantTemperature%Identifier,
+     &         TMRT,
+cx     &         10.,
+     &         cZone_Chars)
+
+      call AddToReport (
+     &         rvOperativeTemperature%Identifier,
+     &         0.5*TMRT+0.5*TFA(iZone),
+cx     &         11.,
+     &         cZone_Chars)
+
+C.....Zone internal gains
+      call AddToReport (
+     &         rvAirPointRadiantGains%Identifier,
+     &         Cas_Rad_dat(iZone), !  - Radiant (W)
+     &         cZone_Chars)
+      call AddToReport (
+     &         rvAirPointConvectiveGains%Identifier,
+     &         Cas_Con_dat(iZone), !  - Convective (W)
+     &         cZone_Chars)
+      call AddToReport (
+     &         rvAirPointLatentGains%Identifier,
+cx     &         Cas_Lat_dat(iZone), !  - Latent (W)
+C     Saturated steam injection, esrubld/subsys.F, mzvapc, line 2227
+     &         Cas_Lat_dat(iZone)/(
+     &            2501000.+1860.*0.5*(TFA(iZone) +
+     &                     TPA(iZone))), !  - Latent (kg)
      &         cZone_Chars)
 
 C.....Window position from BCL25 controller
@@ -1522,6 +1595,12 @@ C.....Zone relative humidity
       call AddToReport (
      &         rvAirPointRelativeHumidity%Identifier,
      &         fZoneRH,
+     &         cZone_Chars)
+
+C.....Zone vapour pressure
+      call AddToReport (
+     &         rvAirPointVapourPressure%Identifier,
+     &         fZoneRH/100.*Psat01(TFA(iZone)),
      &         cZone_Chars)
 
 C.....ZONE HEAT INJECTION / EXTRACTION
@@ -1558,10 +1637,10 @@ C....Free cooling control flag
             call AddToReport (
      &         rvFreeCoolCtlFlag%Identifier,
      &         0.0,
-     &         cZone_Chars)	  
+     &         cZone_Chars)  
         endif
       endif
-	 
+ 
 C Convert heat injection/extraction metrics to "per m2 of floor area"
       Qm2_ZONE=Q_ZONE/zbasea(iZone)
       Qm2_Heat=Q_Heat/zbasea(iZone)
@@ -1667,9 +1746,10 @@ C.....Zone air change rate (AIM2)
 
       call AddToReport (
      &         rvEnvInfBalanceAir%Identifier,
-     &         ZMBI(iZone,1),
+     &         ZMBI(iZone,1), ! kg/s ?!
      &         cZone_Chars)
 
+C ... use air density at time step level?
       call AddToReport (
      &         rvEnvInfBalanceAirExchange%Identifier,
      &         ZMBI(iZone,1) / 1.275  * 3600. / vol(iZone),
@@ -1821,35 +1901,17 @@ C.....Adverse internal gains
      &         fZoneAdverseInternalGains,
      &         cZone_Chars)
 
-      if(bH3KExtentionsActive() .and. iQuick_run == 1)then
-C.......Lighting power (from casual gains)
-C       Set flag allowing h3kreports to scale this data fro seasonal
-C       reporting purposes. 3 = scale_gen
-        if ( bFirst_call_bld  )
-     &     call SetAdditionalValues(
-     &      rvBldZnLightPow%Identifier,
-     &      3,
-     &      .true.)
-
-        call AddToReport(
+C.....Lighting power (from casual gains)
+      call AddToReport(
      &     rvBldZnLightPow%Identifier,
-     &     Cas_Lights(iZone),
+     &     Cas_Lights2(iZone),
      &     cZone_Chars)
 
-C.......Equipment power (from casual gains)
-C.......Set for Quickrun 3 = scale_gen
-        if ( bFirst_call_bld  )
-     &     call SetAdditionalValues(
-     &      rvBldZnEquipPow%Identifier,
-     &      3,
-     &      .true.)
-
-        call AddToReport(
+C.....Equipment power (from casual gains)
+      call AddToReport(
      &         rvBldZnEquipPow%Identifier,
-     &         Cas_Equip(iZone),
+     &         Cas_Equip2(iZone),
      &         cZone_Chars)
-     
-      end if
 
 
 C-----------------------------------------------------------------------
@@ -1861,29 +1923,11 @@ C-----------------------------------------------------------------------
 
 C.......Total heating
 
-        ! Set flag allowing h3kreports to scale this data fro seasonal 
-        ! reporting purposes.
-        if ( bH3KExtentionsActive() .and. iQuick_run == 1 
-     &                              .and. bFirst_call_bld  )
-     &      call SetAdditionalValues(
-     &         rvBuildingAllZonesSuppliedEnergyHeating%Identifier,
-     &         1,
-     &         .true.)
-
       call AddToReport(
      &         rvBuildingAllZonesSuppliedEnergyHeating%Identifier,
      &         fSUMHeatInjection)
 
 C.......Total cooling
-
-        ! Set flag allowing h3kreports to scale this data fro seasonal 
-        ! reporting purposes.
-        if ( bH3KExtentionsActive() .and. iQuick_run == 1 
-     &                              .and. bFirst_call_bld  )        
-     &      call SetAdditionalValues(
-     &         rvBuildingAllZonesSuppliedEnergyCooling%Identifier,
-     &         2,
-     &         .true.)
      
       call AddToReport(
      &         rvBuildingAllZonesSuppliedEnergyCooling%Identifier,
@@ -2031,27 +2075,9 @@ C.....Net flux disaggregated by envelope components
 
 C.....Total heating and cooling loads
 
-        ! Set flag allowing h3kreports to scale this data fro seasonal 
-        ! reporting purposes.
-        if ( bH3KExtentionsActive() .and. iQuick_run == 1 
-     &                              .and. bFirst_call_bld  )
-     &      call SetAdditionalValues(
-     &         rvBuildingAllZonesThermalLoadsHeatingTotal%Identifier,
-     &         1,
-     &         .true.)
-
       call AddToReport(
      &      rvBuildingAllZonesThermalLoadsHeatingTotal%Identifier,
      &      fSUMHeatLoss)
-     
-        ! Set flag allowing h3kreports to scale this data fro seasonal 
-        ! reporting purposes.
-        if ( bH3KExtentionsActive() .and. iQuick_run == 1 
-     &                              .and. bFirst_call_bld  )
-     &      call SetAdditionalValues(
-     &         rvBuildingAllZonesThermalLoadsCoolingTotal%Identifier,
-     &         2,
-     &         .true.)
      
       call AddToReport(
      &      rvBuildingAllZonesThermalLoadsCoolingTotal%Identifier,
@@ -2065,19 +2091,6 @@ C.....Internal gains
       call AddToReport(
      &      rvBuildingAllZonesInternalGainsTotal%Identifier,
      &      fSUMInternalGains)
-
-C.....Set for quickrun 3 = scale_gen
-        if ( bH3KExtentionsActive() .and. iQuick_run == 1 
-     &                              .and. bFirst_call_bld  )then
-          call SetAdditionalValues(
-     &      rvBldAllZonesLightPowTtl%Identifier,
-     &      3,
-     &      .true.)
-
-          call AddToReport(
-     &      rvBldAllZonesLightPowTtl%Identifier,
-     &      fSUMLightingPower)
-        end if
     
       call AddToReport(
      &      rvBuildingAllZonesInternalGainsUseful%Identifier,
@@ -2086,19 +2099,6 @@ C.....Set for quickrun 3 = scale_gen
       call AddToReport(
      &      rvBuildingAllZonesInternalGainsAdverse%Identifier,
      &      fSUMAdverseInternalGains)    
-
-C.....Set for quickrun 3 = scale_gen
-      if ( bH3KExtentionsActive() .and. iQuick_run == 1 
-     &                              .and. bFirst_call_bld  )then
-          call SetAdditionalValues(
-     &      rvBldAllZonesEquipPowTtl%Identifier,
-     &      3,
-     &      .true.)
-
-          call AddToReport(
-     &      rvBldAllZonesEquipPowTtl%Identifier,
-     &      fSUMEquipmentPower)
-      end if
      
 
 C.....Net energy balance
@@ -2108,9 +2108,6 @@ C.....Net energy balance
      &      + fSUMInternalGains
      &      + fSUMNetFlux
      &      - fSUMNetLoad)
-
-      if ( bH3KExtentionsActive() .and. iQuick_run == 1) 
-     &  bFirst_call_bld  = .false.
 
       endif report_whole_building
 
@@ -2258,22 +2255,163 @@ C......Include only if h3k reports on building/zone_*/surf_*/node_* variables
 !       the way this is design, unless the <dump_all_data> is set to true
 !       or you request one of these node values then the loop will be bypassed.
 !
-!          do iNode = 1, (nndc (iZone, iSurface )-1)
-!             if ( iNode .gt. 9 ) then
-!               write(cNode_Chars, '(I2)')  iNode
-!             else
-!               write(cNode_Chars, '(A,I1)') '0', iNode
-!             endif
-!
-!C...........MLC layer temperature
-!C...........->Report data
-!            Call AddToReport(rvNodeTemp%Identifier,
-!     &         tfc(iZone,iSurface,iNode),
-!     &         cZone_Chars,
-!     &         cSurf_Chars,
-!     &         cNode_Chars)
-!          enddo  ! <- end iNode = 1,N of iSurface 1,N of iZone
+           do iNode = 1, (nndc (iZone, iSurface )-1)
+             if ( iNode .gt. 9 ) then
+               write(cNode_Chars, '(I2)')  iNode
+             else
+               write(cNode_Chars, '(A,I1)') '0', iNode
+             endif
+
+C............MLC layer temperature
+C............->Report data
+             Call AddToReport(rvNodeTemp%Identifier,
+     &         tfc(iZone,iSurface,iNode),
+     &         cZone_Chars,
+     &         cSurf_Chars,
+     &         cNode_Chars)
+           enddo  ! <- end iNode = 1,N of iSurface 1,N of iZone
          endif ! <- end lIncl_Node
+
+C.......======================================================
+C.......Geometry data for embedded energy postprocessing
+C.......Only necessary once, as this data does not change on time-step basis,
+C       usually.
+        if (lOutputGeomdat) then
+c          if (iZone.eq.ncomp) lOutputGeomdat=.false.
+C.........Do only, if output is set to true in input.xml
+          call GetReportConfig ("output_geomdat",cValue)
+          if ( cValue(1:4) == 'true' ) then
+
+C.......  ..Surface area in m2
+            Call AddToReport(rvSurfaceArea%Identifier,
+     &        sna(iZone,iSurface),
+     &        cZone_Chars,
+     &        cSurf_Chars)
+
+            layer_output: do iLayer = 1, nELts(iZone, iSurface)
+
+              ic=izstocn(iZone,iSurface) ! connection index in model
+              lnssmlc=lnblnk(SMLCN(iZone,iSurface)) ! construction name string length
+C             smlcindex(izone,isurface)             ! construction index in data base
+C material.h:      character matname*32     ! name for material
+C material.h:      character mlcname*32     ! name of MLC legacy items only use first 12 char
+C material.h:      IPRMAT(MMLC,ME)          ! Index to material for each layer
+
+              if ( iLayer .gt. 9 ) then
+                write(cLayer_Chars, '(I2)')  iLayer
+              else
+                write(cLayer_Chars, '(A,I1)') '0', iLayer
+              endif
+
+C Logic from edcon.F, line 171 ff.
+              do ii=1,nmlc
+                if(SMLCN(iZone,iSurface)(1:lnssmlc).eq.
+     &             mlcname(ii)(1:lnmlcname(ii)))then
+                  smlcindex(izone,isurface)=ii   ! remember MLC index
+                endif
+              enddo
+
+              lnsmlcn=lnblnk(matname(IPRMAT(smlcindex(izone,isurface),
+     &                       iLayer)))
+
+C.............Build constrname:matname string
+              call st2name(
+     &          matname(IPRMAT(smlcindex(izone,isurface),
+     &          iLayer))(1:lnsmlcn),sDummy)
+
+              if (sDummy(1:1).ne." ") then
+                write (sMaterialName,'(A)') sDummy(1:lnsmlcn)
+              else
+                write (sMaterialName,'(A)') "air"
+              endif
+
+              call st2name(
+     &           mlcname(smlcindex(izone,isurface))(
+     &           1:lnmlcname(smlcindex(izone,isurface))),
+     &           sConstructionName)
+
+              write (sConMat_Chars,'(A,A,A,A,A)')
+     &          sConstructionName(1:lnmlcname(
+     &          smlcindex(izone,isurface))),':',
+     &          cLayer_Chars,':',sMaterialName(1:lnsmlcn)
+
+C DEBUG
+cx       write(*,*)'ic=',ic,', lnsmlcn=',lnsmlcn,
+cx     &           ', ssmlc(ic)=',SMLCN(iZone,iSurface),
+cx     &           ', mlcname(ic)=',mlcname(ic),
+cx     &           ', smlcindex(izone,isurface)=',smlcindex(izone,isurface),
+cx     &           ', IPRMAT=',IPRMAT(smlcindex(izone,isurface),iLayer),
+cx     &           ', matname(IPRMAT)=',
+cx     &                  matname(IPRMAT(smlcindex(izone,isurface),iLayer)),
+cx     &           ', sLC=',sLayer_Chars,'.'
+
+C.......  ....Layer material density in kg/m3
+              Call AddToReport(rvSurfLayDens%Identifier,
+     &          THRMLI(iZone,iSurface,iLayer,2),
+     &          cZone_Chars,
+     &          cSurf_Chars,
+     &          sConMat_Chars)
+
+C.......  ....Layer thickness in m
+              Call AddToReport(rvSurfLayThick%Identifier,
+     &          THRMLI(iZone,iSurface,iLayer,4),
+     &          cZone_Chars,
+     &          cSurf_Chars,
+     &          sConMat_Chars)
+
+            enddo layer_output
+
+C If last zone, add up all surface areas for each MLC (use logic from
+C mlcrefs(), edcondb.F, lines 6911 ff., called from prjqa, e.g. line 3384)
+            if (iZone.eq.ncomp) then
+
+              do imlc=1,nmlc
+                found=.false.
+                lm=lnmlcname(imlc)
+                tareamlc=0.0
+
+C Loop through zones and check each surface mlc attribute
+C for a match against mlcname.
+                do 42 iz=1,ncomp
+                  do 43 iSur=1,NZSUR(iz)
+                    ic=IZSTOCN(iz,iSur)
+                    if(SMLCN(iz,iSur)(1:lnblnk(SMLCN(iz,iSur))).eq.
+     &                                  mlcname(imlc)(1:lm))then
+                      found=.true.
+C Debug
+cc      write(6,*)'... found ',mlcname(imlc)(1:lm)
+
+C Depending on the connection type, add the full or half area of surface.
+                      if(ICT(ic).eq.0.or.ICT(ic).eq.1.or.
+     &                                        ICT(ic).eq.2)then
+                        tareamlc=tareamlc+SNA(iz,iSur)
+                      elseif(ICT(ic).eq.4.or.ICT(ic).eq.5.or.
+     &                                        ICT(ic).eq.3)then
+                        tareamlc=tareamlc+SNA(iz,iSur)
+                      else
+                        tareamlc=tareamlc+(SNA(iz,iSur)*0.5)
+                      endif
+                    endif
+  43              continue
+  42            continue
+
+C Debug
+cc      if (found) then
+cc        write(6,*)'... calculated ',mlcname(imlc)(1:lm),'=',tareamlc
+cc      endif
+
+C...............MLC total surface area in m2
+                if (found) then
+                  Call AddToReport(rvMLCArea%Identifier,
+     &              tareamlc,
+     &              mlcname(imlc)(1:lm))
+                endif
+              enddo  ! of imlc
+C ** end add up MLC areas
+            endif  ! <- end if last zone
+          endif  ! <- end output_geomdat
+        endif ! <- end check for "first encounter"
+
       enddo ! <- end iSurface 1,N of iZone
 
       endif ! <- end lIncl_Surf
@@ -2297,6 +2435,9 @@ C*******************************************************************************
       SUBROUTINE H3K_transport_climi_data()
       use h3kmodule
       IMPLICIT NONE
+
+      include "building.h"
+      include "site.h"
 
 C.....Climate data (present time row)
       COMMON/CLIMI/QFP,QFF,TP,TF,QDP,QDF,VP,VF,DP,DF,HP,HF
@@ -2333,8 +2474,9 @@ C.....DECLARATIONS for H3Kreporting object
 C----------------------------------------------------------------------
 C     References
 C----------------------------------------------------------------------
-      REAL HUMR      ! Function returning the humidity ratio
+      REAL HUMR     ! Function returning the humidity ratio
       REAL DEWPT    ! Function returning the saturation temperature
+      REAL Psat01   ! Function returning saturation vapour pressure
 
 C.....The following code is used to transport data to
 C.....the H3K reporting object.
@@ -2360,6 +2502,10 @@ C.....Relative humidity
      &    rvClimateRelativeHumidity%Identifier,
      &    HF)
 
+C.....Vapour pressure
+      call AddToReport(
+     &    rvClimateVapourPressure%Identifier,
+     &    HF/100.*Psat01(TF))
 
 C.....WIND VELOCITY
       call AddToReport(
@@ -2389,8 +2535,17 @@ C.....Sky temperature depression
 C.....Ambient air saturation temperature
       call AddToReport(
      &    rvClimateAmbientAirTsat%Identifier,
-     &    DEWPT(HUMR(TF,HF,1013.),1013.))
+     &    DEWPT(HUMR(TF,HF,1013.),atmpres/100.))
 
+C.....Atmospheric pressure
+      call AddToReport(
+     &    rvClimateAmbientAirPress%Identifier,
+     &    atmpres)
+
+C.....Ambient air density
+      call AddToReport(
+     &    rvClimateAmbientAirDens%Identifier,
+     &    extairden)
 
       RETURN
       END
@@ -2423,7 +2578,6 @@ C*******************************************************************************
 
       include "building.h"
       include "MultiYear_simulations.h"
-      include "qrun.h"
       
 C Function determining if HOT3000 features enabled?
       logical bH3KExtentionsActive
@@ -2546,13 +2700,6 @@ C.....Building simulation timestep
 
 C.....H3Kreports.(time).end.................
 
-C.....Season
-C.....-> set name
-      if ( bH3KExtentionsActive() .and. iQuick_run == 1) then
-        call AddToReport(rvBldSeason%Identifier,
-     &      real(iThisSeason))
-      endif
-
       return
       end
 
@@ -2596,13 +2743,21 @@ C.....ESP-r commons
       integer icondx, icontp
       real convar
 
+C.....Additional component output
+      COMMON/PCRES/QDATA(MPCOM),PCAOUT(MPCOM,MPCRES),NAPDAT(MPCOM)
+      REAL QDATA,PCAOUT
+      INTEGER napdat
+
+
 C.....Local variables
-      integer ii,jj,kk          ! counters
+      integer ii,jj,kk,ll       ! counters
       integer iNode             ! pointer to current node
       character*128 char_temp   ! holding variable
       integer char_len          ! holding variable's lenght
+      character*2 Add_Dat_Num   ! additional data number char format
       character*2 Node_Num      ! node number char format
       character*3 Connect_Num   ! connection number char format
+      integer iAddDatNumLen     ! the length of the additional data number
       integer iNodeLength       ! the nodes's string length
       integer iNodeNumLen       ! the length of the Node_Num
       integer iConnNumLen       ! the length of the Connect_Num
@@ -2635,6 +2790,34 @@ C.....Named constants
 C.....Loop through all components in plant network
       do ii = 1, npcomp
 
+C.......Get the pcName(ii)'s length
+        iNodeLength = lnblnk(pcname(ii))
+
+C........Output of additional component data
+cx ag@170913
+
+C........Loop through additional data (NAPDAT(icomp))
+         if (NAPDAT(ii).gt.0) then
+           do ll = 1, NAPDAT(ii)
+
+C............Build additional data name
+             if (ll<10) then  ! First nine additional data items.
+               iAddDatNumLen = 1
+cx               write(Node_Num, '(A,I1)') '0', ll
+               write(Add_Dat_Num, '(I1)') ll
+             else           ! The maximum number of additional items is 15 (plant.h, 170913)
+               iAddDatNumLen = 2
+               write(Add_Dat_Num, '(I2)') ll
+             endif
+
+             call AddToReport(
+     &          rvPlantCompAddData%Identifier,
+     &          PCAOUT(ii,ll),
+     &          pcname(ii)(1:iNodeLength),
+     &          Add_Dat_Num(1:iAddDatNumLen))
+
+           enddo  ! additional data
+         endif ! Additional data available
 
 C........Loop through nodes (NPCDAT(i,8)
          do jj = 1, NPCDAT(ii,8)
@@ -2678,9 +2861,6 @@ C...........istate = 0/1/9
                char_temp = 'unknown'
                char_len = 7
             endif
-
-C...........Get the pcName(ii)'s length
-            iNodeLength = lnblnk(pcname(ii))
 
 C...........Transport State variables
 
@@ -2882,8 +3062,8 @@ C**********************************************************************
 #include "plant.h"
 #include "building.h"
 
-      COMMON/OUTIN/IUOUT,IUIN                 ! trace output unit numbers
-      integer iuout, iuin
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT                 ! trace output unit numbers
+      integer iuout, iuin,ieout
 
 C.....ESP-r commons
 C NPCON,      # of connections in plant network
@@ -3354,63 +3534,11 @@ C*******************************************************************************
 
 C     Load misc. named parameters:
 C       total_load / hvac_load / occupant_load / cluster_load / total_gen
+#include "building.h"
+#include "plant.h"
 #include "CETC_definitions.h"
 #include "power.h"
 
-C The electrical nodes common
-      common/enod/
-     &     nenod,
-     &     enodno(menod),
-     &     enodphtyp(menod),
-     &     enodph(menod),
-     &     enodtyp(menod),
-     &     enodbasev(menod),
-     &     enodbasep
-      integer nenod                 ! number of nodes in elec network
-      integer enodno                ! not used in current context
-      integer enodphtyp             ! not used in current context
-      integer enodph                ! not used in current context
-      integer enodtyp               ! not used in current context
-      real enodbasev                ! not used in current context
-      real enodbasep                ! not used in current context
-
-
-
-C The elec net load, generated and transmitted nodal power flows (SI)
-      common/enodlgt/
-     &     penodl(menod),
-     &     qenodl(menod),
-     &     penodg(menod),
-     &     qenodg(menod),
-     &     penodt(menod),
-     &     qenodt(menod)
-
-      real penodl     ! real load
-      real qenodl     ! reactive load
-      real penodg     ! real generated power
-      real qenodg     ! reactive generated power
-      real penodt     ! real transmitted power
-      real qenodt     ! reactive transmitted power
-
-
-C---------------------------------------------------------------------
-C     Hybird Componenet data
-C---------------------------------------------------------------------
-      COMMON/HYBE/
-     &     nHYBcom,
-     &     HYBCOMNO,
-     &     HYCOMTYP,
-     &     HYCOMPHTYP,
-     &     HYCONEN,
-     &     HYLOC,
-     &     NHYBDAT,
-     &     HYBDAT
-
-      integer nHYBcom
-      integer NHYBDAT(MHYCOM)
-      integer HYBCOMNO(MHYCOM), HYCOMTYP(MHYCOM),  HYCOMPHTYP(MHYCOM)
-      integer HYCONEN(MHYCOM,MPHAS), HYLOC(MHYCOM,MPHAS)
-      real HYBDAT(MHYCOM,MHYDAT)
 
 C---------------------------------------------------------------------
 C     HOT3000 Storage common blocks used for plant->electrical network
@@ -3423,42 +3551,6 @@ C---------------------------------------------------------------------
 C.....Real power from hybrid & power only components
       REAL Hybrid_Power_Real, Elec_Power_Real
 
-C---------------------------------------------------------------------------------
-C Common holding the power-only component description read from the electric
-C network input file.
-C---------------------------------------------------------------------------------
-      COMMON/POWC/NPOWCOM,POWCOMNO(MPOWCOM),POWCOMID(MPOWCOM),
-     &POWCOMPHTYP(MPOWCOM),POWCONEN(MPOWCOM,MPHAS),
-     &NPOWCDAT(MPOWCOM),NPOWCDATS(MPOWCOM),POWCDAT(MPOWCOM,MPWDAT)
-
-C---------------------------------------------------------------------------------
-C Common holding power generation and loads data for power-only components.
-C---------------------------------------------------------------------------------
-      COMMON/ENETPOWC/PPOWOC(MPOWCOM),QPOWOC(MPOWCOM),
-     &VPOWC(MPOWCOM)
-
-      INTEGER      NPOWCOM, POWCOMNO, POWCOMID, POWCOMPHTYP, POWCONEN,
-     &             NPOWCDAT, NPOWCDATS
-      REAL         POWCDAT
-      REAL         PPOWOC, QPOWOC
-      COMPLEX      VPOWC
-C---------------------------------------------------------------------------------
-C     Names for electrial network comoponents
-C---------------------------------------------------------------------------------
-
-      COMMON/ECNAMES/ENODNAM(MENOD),HYCOMNAM(MHYCOM),
-     &HYCOMTYPSTR(MHYCOM),POWCOMNAM(MPOWCOM),POWCDATS(MPOWCOM,MPCDS),
-     &CONECOMNAM(MCONECOM)
-
-      CHARACTER*12 ENODNAM,HYCOMTYPSTR,HYCOMNAM,
-     &POWCOMNAM,CONECOMNAM
-      CHARACTER*72 POWCDATS
-
-C---------------------------------------------------------------------------------
-C Common holding nodal voltages (actual voltages, not "per unit" voltages.
-C---------------------------------------------------------------------------------
-      COMMON/ENODSLV/ENODVLT(MENOD)
-      COMPLEX ENODVLT
 
 C---------------------------------------------------------------------------------
 C     local varibles
@@ -3661,6 +3753,8 @@ C.....Power-only component flux
 C.....Call RE-H2-CTL reporting function
       call RESH2_Ctl_PostProcess()
 
+C.....Call RES (elec) Ctl reporting function
+      call RES_elec_ctl_PostProcess()
 
       return
       end
@@ -3820,44 +3914,49 @@ C Recover the string indicated by iLocation
       end
 
 
-C ******************************* H3K Transport Massflow Network Data ************************
+C ****************** H3K Transport Massflow Network Data ************************
 C
 C Created by: Achim Geissler
 C Created on: June 17, 2008
-C Copyright: GaCH
+C Copyright:
 C ________
 C ABSTRACT:
-C This is the routine used to transport mass flow domain state-variable data to the H3K
-C reporting facilities.
+C This is the routine used to transport mass flow domain state-variable data 
+C to the H3K reporting facilities.
 C
-C**********************************************************************************************
+C********************************************************************************
       subroutine h3k_transport_mfn_data()
       use h3kmodule
       implicit none
 #include "building.h"
 #include "net_flow.h"
+#include "control.h"
+#include "net_flow_data.h"
 C.....ESP-r commons
 C      COMMON/AFN/IAIRN,LAPROB,ICAAS(MCOM)
 C      CHARACTER LAPROB*72
 
-      COMMON/MFLOW1/NNOD,NCMP,NCNN
+      COMMON/mfctl/ctlpos(MCNN)
+      REAL ctlpos
+
+C      COMMON/MFLOW1/NNOD,NCMP,NCNN
 C Network size
-      integer     NNOD  !  - number of nodes (building zones and/or plant components)
-      Integer     NCMP  ! - number of fluid flow components (flow restrictions)
-      integer     NCNN  ! - number of interconnections (branches)
+C      integer     NNOD  ! - number of nodes (building zones and/or plant components)
+C      Integer     NCMP  ! - number of fluid flow components (flow restrictions)
+C      integer     NCNN  ! - number of interconnections (branches)
 C
-      COMMON/MFLOW2/NDNAM(0:MNOD)
-      character*12  NDNAM  ! - identifier/name
+C      COMMON/MFLOW2/NDNAM(0:MNOD)
+C      character*12  NDNAM  ! - identifier/name
 C
-      COMMON/MFLOW3/NDFLD(MNOD),NDTYP(MNOD),HNOD(MNOD),
-     & SUPNOD(MNOD,MNDS)
-      integer     NDFLD ! - fluid type (1=air, 2=water)
-      Integer     NDTYP ! - type (0=internal; unknown pressure
-C                                                  1=internal; known total pressure
-C                                                  2=boundary; known total pressure
-C                                                  3=boundary; wind induced pressure; implies NDFLD=1)
-      REAL          HNOD  ! - height above datum (m)
-      REAL          SUPNOD ! - supplementary data items (max. MNDS)
+C (in net_flow_data.h)     COMMON/MFLOW3/NDFLD(MNOD),NDTYP(MNOD),HNOD(MNOD,3),
+C     & SUPNOD(MNOD,MNDS)
+C      integer  NDFLD  ! - fluid type (1=air, 2=water)
+C      Integer  NDTYP  ! - type (0=internal; unknown pressure
+C                         1=internal; known total pressure
+C                         2=boundary; known total pressure
+C                         3=boundary; wind induced pressure; implies NDFLD=1)
+C      REAL     HNOD   ! - XYZ position (m)
+C      REAL     SUPNOD ! - supplementary data items (max. MNDS)
 C              if NDTYP=0 none
 C                 NDTYP=1 total pressure (Pa)
 C                 NDTYP=2 total pressure (Pa)
@@ -3866,33 +3965,39 @@ C                         0: TNOD is constant
 C                         1: TNOD equals DRYB
 C                 NDTYP=3 wind pressure coefficients index
 C                         surface azimuth (degrees clockwise from north)
+C      COMMON/MFLOW4/ITND(MNOD),TNOD(MNOD)
+C      integer   ITND  ! - node temperature index; if ITND(I)=N then TNOD(I)=TNOD(N)
+C      real      TNOD  ! - node fluid temperature (C)
 C
-      COMMON/MFLOW4/ITND(MNOD),TNOD(MNOD)
-      integer     ITND !  - node temperature index; if ITND(I)=N then TNOD(I)=TNOD(N)
-      real      TNOD  ! - node fluid temperature (C)
+C      COMMON/MFLOW5/RHON(MNOD)
+C      real RHON       !  node fluid density (kg/m^3)
 
 C Components: fixed input data
-      COMMON/MFLOW8/CMNAM(MCMP),LTPCMP(MCMP)
-      character*12     CMNAM ! - identifier/name
-      Character*60     LTPCMP ! - short description of that type
+C      COMMON/MFLOW8/CMNAM(MCMP),LTPCMP(MCMP)
+C      character*12     CMNAM  ! - identifier/name
+C      Character*60     LTPCMP ! - short description of that type
 
-      COMMON/MFLOW9/ITPCMP(MCMP),ISDCMP(MCMP),ISDCNN(MCMP),
-     &              SUPCMP(MCMP,MCMS)
-      integer     ITPCMP ! - type number
-      integer     ISDCMP  ! - number of supplementary data items (max. MCMS)
-      integer     ISDCNN  ! - number of connection level supplementary items (max. MCNS)
-      real         SUPCMP ! - component supplementary data items (1st item = fluid type)
+C      COMMON/MFLOW9/ITPCMP(MCMP),ISDCMP(MCMP),ISDCNN(MCMP),
+C     &              SUPCMP(MCMP,MCMS)
+C      integer     ITPCMP ! - type number
+C      integer     ISDCMP ! - number of supplementary data items (max. MCMS)
+C      integer     ISDCNN ! - number of connection level supplementary items (max. MCNS)
+C      real        SUPCMP ! - component supplementary data items (1st item = fluid type)
 
 C Connections: fixed input data
-      COMMON/MFLW10/NODPS(MCNN),HGTPS(MCNN),NODNE(MCNN),HGTNE(MCNN),
-     &              ITPCON(MCNN),NDSCNN(MCNN,MCNS)
-      integer     NODPS ! - node number on positive side of connection
-      real          HGTPS ! - height of +ve linkage point relative to NODPS (m)
-      integer     NODNE ! - node number on negative side of connection
-      Real          HGTNE ! - height of -ve linkage point relative to NODNE (m)
-      integer     ITPCON ! - number of linking fluid flow component
-      integer     NDSCNN ! - connection level component supplementary node numbers
+C      COMMON/MFLW10/NODPS(MCNN),HGTPS(MCNN),NODNE(MCNN),HGTNE(MCNN),
+C     &              ITPCON(MCNN),NDSCNN(MCNN,MCNS)
+C      integer     NODPS  ! - node number on positive side of connection
+C      real        HGTPS  ! - height of +ve linkage point relative to NODPS (m)
+C      integer     NODNE  ! - node number on negative side of connection
+C      Real        HGTNE  ! - height of -ve linkage point relative to NODNE (m)
+C      integer     ITPCON ! - number of linking fluid flow component
+C      integer     NDSCNN ! - connection level component supplementary node numbers
 
+C Adaptive comfort common (from control).
+      COMMON/ADPCOM/PREVSTATWIN,PREVSTATFAN,PREVSTATLIGHT,TOTPWR(MCOM),
+     &              TRMSTAT
+      REAL PREVSTATWIN,PREVSTATFAN,PREVSTATLIGHT,TOTPWR,TRMSTAT
 C Output data
       COMMON/MFLRES/FLW1(MCNN),FLW2(MCNN),PRES(MNOD),
      &              RESID(MNOD),SAFLW(MNOD)
@@ -3910,16 +4015,16 @@ C     SAFLW  - node coupled sum of absolute mass flow rates (kg/s)
       DOUBLE PRECISION FLWINV(MNOD),FLWUTV(MNOD)
 
 C.....Local variables
-      integer ii,jj,ICONTM                    ! counters
-      CHARACTER*12 fluid                ! fluid type ('air' or 'water')
-      integer fluid_len          ! lenght of the fluid char
-      integer NDNAM_len          ! lenght of the NDNAM char
-      character*128 Connect_Name ! connection name
-      integer connect_len        ! connection name lenght
+      integer ii,jj,ICONTM,ICC     ! counters
+      CHARACTER*12 fluid           ! fluid type ('air' or 'water')
+      integer fluid_len            ! lenght of the fluid char
+      integer NDNAM_len            ! lenght of the NDNAM char
+      character*128 Connect_Name   ! connection name
+      integer connect_len          ! connection name lenght
 
       integer i_neg, i_CompType,i_CompIndex
 
-      real area,rhon,PI ! component area and fluid density at node, PI
+      real area,rhond,PI ! component area and fluid density at node, PI
 
       Logical b_noveloc ! logical for velocity calc.
 
@@ -3975,27 +4080,41 @@ C...........Set string name to water/air/unknown (the latter shouldn't really ha
 
          NDNAM_len = LNBLNK(NDNAM(ii))
 C.........output node data
-      ! total mass flow entering a node *******************************
+      ! total mass flow entering a node ********************************
          call AddToReport(
      &      rvMfnTotalNodeFlowRate%Identifier,
      &      real(FLWIN(ii)),
      &      fluid(1:fluid_len),
      &      NDNAM(ii)(1:NDNAM_len))
 
-       ! total volume flow entering a node *******************************
+       ! total volume flow entering a node *****************************
          call AddToReport(
      &      rvMfnTotalNodeVolFlowRate%Identifier,
      &      real(FLWINV(ii)),
      &      fluid(1:fluid_len),
      &      NDNAM(ii)(1:NDNAM_len))
 
-       ! node temperature from flow network *******************************
+       ! node temperature from flow network ****************************
          call AddToReport(
      &      rvMfnTotalNodeTemp%Identifier,
      &      TNOD(ii),
      &      fluid(1:fluid_len),
      &      NDNAM(ii)(1:NDNAM_len))
 
+       ! Total pressure at node ****************************************
+         call AddToReport(
+     &      rvMfnNodeTotPressure%Identifier,
+     &      real(PRES(ii)),
+     &      fluid(1:fluid_len),
+     &      NDNAM(ii)(1:NDNAM_len))
+
+       ! Density at node, based on atmospheric pressure ****************
+         call AddToReport(
+     &      rvMfnNodeAirDensity%Identifier,
+C     &      real(DENSIT(NDFLD(ii),TNOD(ii))),
+     &      RHON(ii),
+     &      fluid(1:fluid_len),
+     &      NDNAM(ii)(1:NDNAM_len))
 
 C........Build connection name
 C........Only use positive side of connections
@@ -4013,14 +4132,66 @@ C.........Loop through all interconnections in a flow network
      &             CMNAM(ITPCON(jj))(1:LNBLNK(CMNAM(ITPCON(jj))))
 
                connect_len = LNBLNK(Connect_name)
-       ! pressure drop between nodes of connection ***********************
+
+C...........Connection control data output ******************************
+C           Check if mass flow control function active
+            IF (NCC.GT.0) then
+
+C             Loop through all mass flow control functions
+              DO 100 ICC=1,NCC
+
+C               Control setpoint at connection
+                if (ifan(ICC,1).eq.-3) then
+C                 Is the current connection involved?
+                  if (ifan(ICC,2).eq.jj) then
+
+                    call AddToReport(
+     &                rvMfnConnectCtlOnFrac%Identifier,
+     &                ctlpos(ifan(ICC,2)),
+     &                fluid(1:fluid_len),
+     &                Connect_Name(1:connect_len))
+
+                    call AddToReport(
+     &                rvMfnTRM%Identifier,
+     &                TRMSTAT,
+     &                fluid(1:fluid_len),
+     &                Connect_Name(1:connect_len))
+
+                  endif
+                endif
+
+                if (ifan(ICC,1).eq.-4) then
+C                 Is the current component involved?
+                  if (ifan(ICC,2).eq.ITPCON(jj)) then
+
+                    call AddToReport(
+     &                rvMfnConnectCtlOnFrac%Identifier,
+     &                ctlpos(jj),
+     &                fluid(1:fluid_len),
+     &                Connect_Name(1:connect_len))
+
+                    call AddToReport(
+     &                rvMfnTRM%Identifier,
+     &                TRMSTAT,
+     &                fluid(1:fluid_len),
+     &                Connect_Name(1:connect_len))
+
+                  endif
+                endif
+
+
+  100         CONTINUE ! Control function loop
+
+            ENDIF ! Check flow control active
+
+       ! pressure drop between nodes of connection **********************
                call AddToReport(
      &            rvMfnConnectPressureDrop%Identifier,
      &            real(PRES(ii)-PRES(i_neg)),
      &            fluid(1:fluid_len),
      &            Connect_Name(1:connect_len))
 
-        ! flow through connection ****************************************
+        ! flow through connection ***************************************
                call AddToReport(
      &            rvMfnConnectFlowRate%Identifier,
      &            real(FLW1(jj)),
@@ -4075,15 +4246,15 @@ C.........Loop through all interconnections in a flow network
         ! Now get density of "sending" node. If flw1(jj) is negative, use density of
         ! node "i_neg". Densit() returns density in kg/m3
                   if (FLW1(jj) .lt. 0) THEN
-                    rhon=DENSIT(NDFLD(i_neg),TNOD(i_neg))
+                    rhond=DENSIT(NDFLD(i_neg),TNOD(i_neg))
                   Else
-                    rhon=DENSIT(NDFLD(ii),TNOD(ii))
+                    rhond=DENSIT(NDFLD(ii),TNOD(ii))
                   Endif
 
         ! Finally, write to H3K reporting
                   call AddToReport(
      &               rvMfnConnectVeloc%Identifier,
-     &               real(FLW1(jj))/rhon/area,
+     &               real(FLW1(jj))/rhond/area,
      &               fluid(1:fluid_len),
      &               Connect_Name(1:connect_len))
 
@@ -4109,7 +4280,7 @@ C.........output contaminant concentration
 
         ! whatever *****************************************************
 
-      enddo                     !<- node loop end
+      enddo                    !<- node loop end
 
       return
       end

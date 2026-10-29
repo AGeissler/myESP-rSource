@@ -19,6 +19,13 @@ C (sky or ground) to use for the venetian blind layer.
       parameter ( i_sky = 1 )
       parameter ( i_ground = 2 )
 
+C Flag for convective heat transfer coefficient.
+C 0 ... original model, no angle dependance
+C 1 ... EN 673
+C 2 ... ISO 15099
+      integer i_hconv
+      parameter ( i_hconv = 0 )
+
 C---------------------------------------------------------------------------------
 
 C Named constants for complex fenestration layer types
@@ -345,8 +352,8 @@ C Intenational Glazing Database ID (for type 0 (glazings) CFC layers)
       COMMON/impCFC_IGDB/cim_IGDB_ID(mcom,mcfc,me)
 
 C IGDB database ID
-      CHARACTER cim_IGDB_ID*8
-      
+      CHARACTER cim_IGDB_ID*6
+
 C---------------------------------------------------------------------------------
 C SIMULATION COMMONS
 C
@@ -881,3 +888,7 @@ C Back diffuse-diffuse transmittance
       REAL VisTBdd
 
 C---------------------------------------------------------------------------------
+C COMMONS for reporting of CFC type CONSTRUCTIONS
+      common/CFCthermal/CFC_ISO_Uvalue(mcom,mcfc),
+     &      CFC_nom_Uvalue(mcom,mcfc)
+      real CFC_ISO_Uvalue,CFC_nom_Uvalue

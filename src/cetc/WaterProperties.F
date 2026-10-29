@@ -1314,7 +1314,7 @@ CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
      &     BIGBI,BIGAI,CI,DI,ALPHAI,BIGCI,BIGDI,EPSILONI
 
       
-      DATA TC/647.096 /,RHOC/322. /,R/0.46151805D3/
+      DATA TC/647.096 /,RHOC/322. /,R/0.46151805E3/
 
       DATA NIO(1)/-8.32044648201 /
       DATA NIO(2)/ 6.6832105268  /
@@ -1328,9 +1328,9 @@ CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
       DATA         DI(1) / 1. /,TI(1)/-0.5 /,
      &                                     NI(1) / 0.12533547935523E-1/
       DATA         DI(2) / 1. /,TI(2)/ 0.875 /,
-     &                                     NI(2) / 0.78957634722828D1/
+     &                                     NI(2) / 0.78957634722828E1/
       DATA         DI(3) / 1. /,TI(3)/ 1.0 /,     
-     &                                     NI(3) /-0.87803203303561D1/
+     &                                     NI(3) /-0.87803203303561E1/
       DATA         DI(4) / 2. /,TI(4)/ 0.5 /,  
      &                                     NI(4) / 0.31802509345418 /
       DATA         DI(5) / 2. /,TI(5)/ 0.75 /, 
@@ -1429,17 +1429,17 @@ CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
      &                                     NI(51)/-0.11841182425981 /
 
       DATA           DI(52)/3. /, TI(52)/0. /,
-     &                                     NI(52)/-0.31306260323435D2/
+     &                                     NI(52)/-0.31306260323435E2/
       DATA ALPHAI(52)/20. /,BETAI(52)/150. /
       DATA GAMMAI(52)/1.21 /, EPSILONI(52)/1. /
 
       DATA           DI(53)/3. /, TI(53)/1. /,      
-     &                                     NI(53)/0.31546140237781D2/
+     &                                     NI(53)/0.31546140237781E2/
       DATA ALPHAI(53)/20. /,BETAI(53)/150. /
       DATA GAMMAI(53)/1.21 /, EPSILONI(53)/1. /
 
       DATA           DI(54)/3. /, TI(54)/4. /,
-     &                                     NI(54)/-0.25213154341695D4/
+     &                                     NI(54)/-0.25213154341695E4/
       DATA ALPHAI(54)/20. /,BETAI(54)/250. /
       DATA GAMMAI(54)/1.25 /, EPSILONI(54)/1. /
 

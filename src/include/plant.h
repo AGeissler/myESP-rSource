@@ -40,15 +40,15 @@ C Maximum number of sections in transport delay simulation
       PARAMETER (MDLY=100)
 CHOWEND
 C Maximum number of plant matrix coefficients for a component model
-      PARAMETER (MPCOE=50)
+      PARAMETER (MPCOE=100)
 C Maximum number of plant components in overall system
-      PARAMETER (MPCOM=50)
+      PARAMETER (MPCOM=200)
 C Maximum number of plant component inter-connections
-      PARAMETER (MPCON=75)
+      PARAMETER (MPCON=250)
 C Maximum number of plant component inter-connections per plant node
       PARAMETER (MPCONC=4)
 C Maximum number of plant nodes in overall system
-      PARAMETER (MPNODE=100)
+      PARAMETER (MPNODE=500)
 C Maximum number of plant component state variable types
       PARAMETER (MPVAR=4)
 C Record length of plant results binary file.

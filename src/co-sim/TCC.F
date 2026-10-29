@@ -119,8 +119,8 @@ C-------------------------------------------------------------------------------
 C Common blocks.
 C--------------------------------------------------------------------------------------------
 C Unit numbers for providing feedback to user during simulation.
-      COMMON/OUTIN/IUOUT,IUIN
-      INTEGER IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
+      INTEGER IUOUT,IUIN,IEOUT
 
 C Trace output.
       COMMON/TC/ITC,ICNT
@@ -262,8 +262,8 @@ C-------------------------------------------------------------------------------
 C Common blocks.
 C--------------------------------------------------------------------------------------------
 C Unit numbers for providing feedback to user during simulation.
-      COMMON/OUTIN/IUOUT,IUIN
-      INTEGER IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
+      INTEGER IUOUT,IUIN,IEOUT
 
 C Connecting node data.
       COMMON/C10/NPCON,IPC1,IPN1,IPCT,IPC2,IPN2,PCONDR,PCONSD
@@ -281,8 +281,8 @@ C Trace output.
       INTEGER ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
 
 C Simulation time step data.
-      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
-      INTEGER IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
+      INTEGER IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS,idynow
 
 C Plant component pointer.
       COMMON/C12PS/NPCDAT,IPOFS1,IPOFS2
@@ -569,8 +569,8 @@ C Trace output.
 
 
 C Simulation time step data.
-      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
-      INTEGER IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
+      INTEGER IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS,idynow
 
 C Plant simulation time step data.
       common/pstctr/nsincp,nsncpr
@@ -644,7 +644,7 @@ C Before sending the data to the harmonizer save it (as the harmonizer only copi
 C the bare minimum to save time, so all data sent to TRNSYS is lost on it's return
 C to ESP-r)
 C---------------------------------------------------------------------------------
-	  COSIM_DATA_SAVED = COSIM_DATA
+      COSIM_DATA_SAVED = COSIM_DATA
 
 
 C---------------------------------------------------------------------------------
@@ -677,7 +677,7 @@ C-------------------------------------------------------------------------------
 C Make all data passed back and forth between ESP-r and TRNSYS through the
 C Harmonizer to H3K reports to make it available in .csv and .xml output.
 C---------------------------------------------------------------------------------
-	  call H3K_Report_TCC
+      call H3K_Report_TCC
 
 
       END FUNCTION TCC_communication
@@ -702,8 +702,8 @@ C-------------------------------------------------------------------------------
 C Declare local variables.
 C---------------------------------------------------------------------------------
 C.....Local Variables
-      INTEGER :: i					!loop index
-      INTEGER :: TCCindex			!Trnsys coupling component index
+      INTEGER :: i          !loop index
+      INTEGER :: TCCindex   !Trnsys coupling component index
       CHARACTER*2 cTCCIndex, cZoneIndex
       REAL :: TotalEsprIterations, TotalTrnsysIterations
       REAL :: Invocations

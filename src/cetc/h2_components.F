@@ -67,9 +67,10 @@ C ------------------------------------------------------------------------------
       CHARACTER LWndSupp*72
       INTEGER   iWndSupp
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       INTEGER  IUOUT
       INTEGER  IUIN
+      INTEGER  IEOUT
 
 C---------------------------------------------------------------------------------
 C Declare local variables.
@@ -258,9 +259,10 @@ C ------------------------------------------------------------------------------
 
 
 C for debugging - writing to console
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       INTEGER  IUOUT
       INTEGER  IUIN
+      INTEGER  IEOUT
 
 
 C---------------------------------------------------------------------------------

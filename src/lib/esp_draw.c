@@ -3,17 +3,27 @@
 
    Functions:
      wstxpt_() write a string beginning at pixel x and y.
+     textatxywwc_() write a string to file at pixel x y in colour xcolid.
      textatxy_() write a string at pixel x y in colour xcolid.
+     textsizeatxywwc_() write to file attributes of testsizeatxy.
+     textsizeatxy_() write a string at pixel x y with size & in colour xcolid.
      textpixwidth_() find width of string (buff) in current font.
+     viewtextwwc_() display text in graphics box
      viewtext_() display text in graphics box
      findviewtext_() find position of display text in graphics box
      drawswl() draw a line of width 1 between two points
+     esymbolwwc_() symbol drawing routine.
      esymbol_() symbol drawing routine.
+     elinewwc_() line drawing routine.
      eline_() line drawing routine.
      edline_() dotted line drawing routine.
+     edlinewwc_() dotted line drawing routine.
      edash_() dashed line drawing routine.
+     eswlinewwc_() single width line drawing routine.
      eswline_() single width line drawing routine.
+     edwlinewwc_() double width line drawing routine.
      edwline_() double width line drawing routine.
+     echainwwc_() chained line drawing routine.
      echain_() chained line drawing routine.
      drawdwl() draw a line of width 2 between two points
      drawvwl() draw a line of user defined width between two points
@@ -22,12 +32,12 @@
      axiscale_() determine scaling ratios
      linescale_() store scaling parameters for lines
      etplot_() general line plotting.
+     etplotwwc_() general line plotting.
      erectan_() rectangle drawing routine.
      egrbox_() grey box drawing routine.
      etriang_() triangle drawing routine.
      ecirc_() circle drawing routine.
      earc_() arc drawing routine.
-     dinterval_() finds interval DV on an axis
      labelstr() generate a tic label
      etlabel_() display text as in old teklib tlabel
      vrtaxis_() draws a vertical axis (tic & labels on right or left side).
@@ -40,18 +50,36 @@
 #include <gtk/gtk.h>
 #include <gdk/gdk.h>
 #include "esp-r.h"
-#include <commons.h>    
+#include <commons.h>
 
 extern FILE *wwc;
 extern int  wwc_ok;   /* assume this set in esru_util.c */
 extern int  wwc_macro;   /* assume this set in esru_util.c */
 
-/* f_height and f_width which already declared globaly in esp-r.c are used here. */ 
+/* f_height and f_width which already declared globaly in esp-r.c are used here. */
 extern gint f_height;
 extern gint f_width;
 
 
- 
+/* ********* wstxptwwc_() write a string beginning at pixel x and y to file. ******* */
+void wstxptwwc_(x,y,buff,len)
+long int *x, *y;       /* x y is the position of the string */
+char *buff;
+int  len;        /* len is length passed from fortran */
+{
+ char buffer[248];
+ const char* get_text;
+
+/* If echo send parameters to wwc file */
+ if ( wwc_ok == 1) {
+   fprintf(wwc,"*wstxpt\n");
+   fprintf(wwc,"%ld %ld\n",*x,*y);
+   fprintf(wwc,"%s\n",buff);
+ }
+ return;
+}
+
+
 /* ********* wstxpt_() write a string beginning at pixel x and y. ******* */
 /* Note the calling code assumes that the pixel is at the lower left
  * corner of the block of text. An internal adjustment is required
@@ -63,86 +91,62 @@ long int *x, *y;       /* x y is the position of the string */
 int  len;        /* len is length passed from fortran */
 {
  char buffer[248];
- const char* get_text; 
+ const char* get_text;
  gint ix = (gint) *x;
  gint iy = (gint) *y;
  PangoFontDescription *pfd;	/* to hold test font */
- PangoContext *context;	/* for use in finding font properties */ 
- PangoLayout *layout;	/* pango layout for the text in the buffer */ 
+ PangoContext *context;	/* for use in finding font properties */
+ PangoLayout *layout;	/* pango layout for the text in the buffer */
 
 /* create font description to use for resetting the graphic font.
  * Use pango_font_get_metrics to get font width and height. */
- if (butn_fnt == 0 ) {
-#ifdef SUN
-     pfd = pango_font_description_from_string("Courier,Medium 8");
-     f_height = font_calculations_array[courier_small].f_height;
-     f_width  = font_calculations_array[courier_small].f_width;
-#else
-     pfd = pango_font_description_from_string("Serif,Medium 8");
-     f_height = font_calculations_array[serif_small].f_height;   // pre-calculated value of f_height is read from the array
-     f_width  = font_calculations_array[serif_small].f_width;    // pre-calculated value of f_width  is read from the array
-#endif
+ if (butn_fnt == 4 ) {
+   pfd = pango_font_description_from_string("Serif,Medium 8");
+   f_height = font_calculations_array[serif_small].f_height;   // pre-calculated value of f_height is read from the array
+   f_width  = font_calculations_array[serif_small].f_width;    // pre-calculated value of f_width  is read from the array
 /*     g_print("viewtext graphic font medium 8\n");  debug */
- } else if (butn_fnt == 1 ) {
-#ifdef SUN
-     pfd = pango_font_description_from_string("Courier,Medium 10");
-     f_height = font_calculations_array[courier_medium].f_height;
-     f_width  = font_calculations_array[courier_medium].f_width;
-#else
-     pfd = pango_font_description_from_string("Serif,Medium 10");
-     f_height = font_calculations_array[serif_medium].f_height;
-     f_width  = font_calculations_array[serif_medium].f_width;
-#endif
-/*     g_print("viewtext graphic font medium 10\n");  debug */
- } else if (butn_fnt == 2 ) {
-#ifdef SUN
-     pfd = pango_font_description_from_string("Courier,Medium 12");
-     f_height = font_calculations_array[courier_large].f_height;
-     f_width  = font_calculations_array[courier_large].f_width;
-#else
-     pfd = pango_font_description_from_string("Serif,Medium 12");
-     f_height = font_calculations_array[serif_large].f_height;
-     f_width  = font_calculations_array[serif_large].f_width;
-#endif
-/*    g_print("viewtext graphic font medium 12\n");  debug */
- } else if (butn_fnt == 3 ) {
-#ifdef SUN
-     pfd = pango_font_description_from_string("Courier,Medium 14");
-     f_height = font_calculations_array[courier_largest].f_height;
-     f_width  = font_calculations_array[courier_largest].f_width;
-#else
-     pfd = pango_font_description_from_string("Serif,Medium 14");
-     f_height = font_calculations_array[serif_largest].f_height;
-     f_width  = font_calculations_array[serif_largest].f_width;
-#endif
-/*   g_print("wstxpt graphic font serif medium 14\n");  debug */
- } else if (butn_fnt == 4 ) {
-   pfd = pango_font_description_from_string("Courier,Medium 8");
-/*   g_print("wstxpt graphic font courier medium 8\n");  debug */
  } else if (butn_fnt == 5 ) {
-   pfd = pango_font_description_from_string("Courier,Medium 10");
-/*   g_print("wstxpt graphic font courier medium 10\n");  debug */
+   pfd = pango_font_description_from_string("Serif,Medium 9");
+   f_height = font_calculations_array[serif_medium].f_height;
+   f_width  = font_calculations_array[serif_medium].f_width;
+/*     g_print("viewtext graphic font medium 9\n");  debug */
  } else if (butn_fnt == 6 ) {
-   pfd = pango_font_description_from_string("Courier,Medium 12");
-/*   g_print("wstxpt graphic font courier medium 12\n");  debug */
+   pfd = pango_font_description_from_string("Serif,Medium 10");
+   f_height = font_calculations_array[serif_large].f_height;
+   f_width  = font_calculations_array[serif_large].f_width;
+/*    g_print("viewtext graphic font medium 10\n");  debug */
  } else if (butn_fnt == 7 ) {
-   pfd = pango_font_description_from_string("Courier,Medium 14");
-/*   g_print("wstxpt graphic font courier medium 14\n");  debug */
+   pfd = pango_font_description_from_string("Serif,Medium 11");
+   f_height = font_calculations_array[serif_largest].f_height;
+   f_width  = font_calculations_array[serif_largest].f_width;
+#/*   g_print("wstxpt graphic font serif medium 11\n");  debug */
+ } else if (butn_fnt == 0 ) {
+   pfd = pango_font_description_from_string("Monospace,Medium 8");
+/*   g_print("wstxpt graphic font Mono medium 8\n");  debug */
+ } else if (butn_fnt == 1 ) {
+   pfd = pango_font_description_from_string("Monospace,Medium 9");
+/*   g_print("wstxpt graphic font Mono medium 9\n");  debug */
+ } else if (butn_fnt == 2 ) {
+   pfd = pango_font_description_from_string("Monospace,Medium 10");
+/*   g_print("wstxpt graphic font Mono medium 10\n");  debug */
+ } else if (butn_fnt == 3 ) {
+   pfd = pango_font_description_from_string("Monospace,Medium 11");
+/*   g_print("wstxpt graphic font Mono medium 11\n");  debug */
 }
 
  context = gtk_widget_get_pango_context (graphic);
- 
+
  pango_font_description_free(pfd);
 
  layout = pango_layout_new (context);	/* clear and set layout */
  buffer[0] = '\0';
  g_snprintf (buffer, sizeof (buffer), "%s", buff); /* copy buff into buffer */
- 
+
  pango_layout_set_text (layout, buffer, len);	/* add len char of text */
 
  get_text = pango_layout_get_text (layout);
  /* fprintf(stderr, "\nget_text displays: %s\n", buffer);   debug */
- 
+
  /* draw it on the pixmap taking acount to shift text up by f_height. */
  gdk_draw_layout (gr_image, gc,ix,iy-f_height,layout);
  g_object_unref (layout);	/* clear the layout */
@@ -159,8 +163,31 @@ int  len;        /* len is length passed from fortran */
  return;
 }
 
-/* ********* textatxy_() write a string at pixel x y in colour act & n. ******* */
-/* NOTE: different parameter list from X version */
+
+/* ********* textatxywwc_() write a string at pixel x y in colour act & n. ******* */
+void textatxywwc_(x,y,buff,act,n,len)
+long int *x, *y;    /* x y is the position of the string */
+char *buff;
+char *act;          /* single character passed for colour set */
+long int *n;        /* colour index within the set */
+int  len;           /* len is length passed from fortran */
+{
+/* If echo send parameters to wwc file */
+ if ( wwc_ok == 1) {
+   fprintf(wwc,"*textatxy\n");
+   fprintf(wwc,"%ld %ld\n",*x,*y);
+   fprintf(wwc,"%s\n",buff);
+ }
+ return;
+}
+
+/* ********* textatxy_() write a string at pixel x y in colour act & n. *******
+This version, as opposed to textsizeatxy, should be used when the string needs
+to be clipped. The font size should be set first using winfnt, then the fortran
+soubroutine CLIPST should be called, then if required this subroutine will draw
+the string. This process is appropriate where clipping is likely to be required
+e.g. interactive 3D graphcs displays. */
+
 void textatxy_(x,y,buff,act,n,len)
 long int *x, *y;       /* x y is the position of the string */
 char *buff;
@@ -180,72 +207,193 @@ int  len;        /* len is length passed from fortran */
  ic = (int) *n;
 
 /* create font description to use for resetting the graphic font.
- * Use pango_font_get_metrics to get font width and height. and
- * for now make Sun F90 compiles with Courier only */
+ * Use pango_font_get_metrics to get font width and height.*/
+ if (butn_fnt == 4 ) {
+   pfd = pango_font_description_from_string("Serif,Medium 8");
+   f_height = font_calculations_array[serif_small].f_height;   // pre-calculated value of f_height is read from the array
+   f_width  = font_calculations_array[serif_small].f_width;    // pre-calculated value of f_width  is read from the array
+/*     g_print("viewtext graphic font medium 8\n");  debug */
+ } else if (butn_fnt == 5 ) {
+   pfd = pango_font_description_from_string("Serif,Medium 9");
+   f_height = font_calculations_array[serif_medium].f_height;
+   f_width  = font_calculations_array[serif_medium].f_width;
+/*     g_print("viewtext graphic font medium 9\n");  debug */
+ } else if (butn_fnt == 6 ) {
+   pfd = pango_font_description_from_string("Serif,Medium 10");
+   f_height = font_calculations_array[serif_large].f_height;
+   f_width  = font_calculations_array[serif_large].f_width;
+/*    g_print("viewtext graphic font medium 10\n");  debug */
+ } else if (butn_fnt == 7 ) {
+   pfd = pango_font_description_from_string("Serif,Medium 11");
+   f_height = font_calculations_array[serif_largest].f_height;
+   f_width  = font_calculations_array[serif_largest].f_width;
+
+ } else if (butn_fnt == 0 ) {
+  pfd = pango_font_description_from_string("Monospace,Medium 8");
+   f_height = font_calculations_array[courier_small].f_height;
+   f_width  = font_calculations_array[courier_small].f_width;
+/*   g_print("wstxpt graphic font Mono medium 8\n");  debug */
+ } else if (butn_fnt == 1 ) {
+  pfd = pango_font_description_from_string("Monospace,Medium 9");
+  f_height = font_calculations_array[courier_medium].f_height;
+  f_width  = font_calculations_array[courier_medium].f_width;
+/*   g_print("wstxpt graphic font Mono medium 9\n");  debug */
+ } else if (butn_fnt == 2 ) {
+   pfd = pango_font_description_from_string("Monospace,Medium 10");
+   f_height = font_calculations_array[courier_large].f_height;
+   f_width  = font_calculations_array[courier_large].f_width;
+/*   g_print("wstxpt graphic font Mono medium 10\n");  debug */
+ } else if (butn_fnt == 3 ) {
+   pfd = pango_font_description_from_string("Monospace,Medium 11");
+   f_height = font_calculations_array[courier_largest].f_height;
+   f_width  = font_calculations_array[courier_largest].f_width;
+/*   g_print("wstxpt graphic font Mono medium 11\n");  debug */
+ }
+
+ gtk_widget_modify_font(graphic, pfd);	/* << ?? >> */
+ context = gtk_widget_get_pango_context (graphic);
+
+ pango_font_description_free(pfd);
+
+ layout = pango_layout_new (context);	/* clear and set layout */
+ buffer[0] = '\0';
+ g_snprintf (buffer, sizeof (buffer), "%s", buff); /* copy buff into buffer */
+ pango_layout_set_text (layout, buffer, len);	/* add len chars of text */
+
+/* sets the current forground colour n depending on which active colour set being
+   used use the same logic as in winscl_(act,n) */
+  if(*act == 'g') {
+     if (ic >= 0 && ic <= (int) ngscale ) {
+       gdk_gc_set_foreground(gc,&gscale[ic]);
+     } else {
+       gdk_gc_set_foreground(gc,&black);
+     }
+  } else if(*act == 'z') {
+     if (ic >= 0 && ic <= (int) izc ) {
+       gdk_gc_set_foreground(gc,&zscale[ic]);
+     } else {
+       gdk_gc_set_foreground(gc,&black);
+     }
+  } else if(*act == 'c') {
+     if (ic >= 0 && ic <= (int) ncscale ) {
+       gdk_gc_set_foreground(gc,&cscale[ic]);
+     } else {
+       gdk_gc_set_foreground(gc,&black);
+     }
+  } else if(*act == 'i') {
+     if (ic >= 0 && ic <= (int) ngr ) {	/* including black and white */
+       if (ic == 0) gdk_gc_set_foreground(gc,&gmenuhl);
+       if (ic == 1) gdk_gc_set_foreground(gc,&gmodbg);
+       if (ic == 2) gdk_gc_set_foreground(gc,&gpopfr);
+       if (ic == 3) gdk_gc_set_foreground(gc,&gfeedfr);
+       if (ic == 4) gdk_gc_set_foreground(gc,&ginvert);
+       if (ic == 5) gdk_gc_set_foreground(gc,&grey50);
+       if (ic == 6) gdk_gc_set_foreground(gc,&grey43);
+       if (ic == 7) gdk_gc_set_foreground(gc,&black);
+       if (ic == 8) gdk_gc_set_foreground(gc,&white);
+     } else {
+       gdk_gc_set_foreground(gc,&black);
+     }
+  } else if(*act == '-') {
+     gdk_gc_set_foreground(gc,&black);
+     gdk_gc_set_background(gc,&white);
+  }
+
+ gdk_draw_layout (gr_image, gc,ix,iy,layout);	/* draw it on the pixmap */
+ g_object_unref (layout);	/* clear the layout */
+ gdk_gc_set_foreground(gc,&black);
+
+
+/* If echo send parameters to wwc file */
+ if ( wwc_ok == 1) {
+   fprintf(wwc,"*textatxy\n");
+   fprintf(wwc,"%ld %ld\n",*x,*y);
+   fprintf(wwc,"%s\n",buff);
+ }
+ return;
+}
+
+/* ********* textsizeatxywwc_() write a string of size at pixel to file. ******* */
+void textsizeatxywwc_(x,y,buff,size,act,n,len)
+long int *x, *y;       /* x y is the position of the string */
+char *buff;
+long int *size;    /* font size indicator (see below) */
+char *act;  /* single character passed for colour set */
+long int *n;       /* colour index within the set */
+int  len;        /* len is length passed from fortran */
+{
+ int ilen;
+
+/* If echo send parameters to wwc file */
+ if ( wwc_ok == 1) {
+   fprintf(wwc,"*textatxy\n");
+   fprintf(wwc,"%ld %ld\n",*x,*y);
+   fprintf(wwc,"%s\n",buff);
+ }
+ return;
+}
+
+
+/* ********* textsizeatxy_() write a string of size at pixel x y in colour act & n. *******
+This version, as opposed to texteatxy, should be used when the string does not need to be
+clipped. No preceding call to winfnt is required. This is appropriate where clipping is not
+likely to be required e.g. drawing graphs. */
+
+void textsizeatxy_(x,y,buff,size,act,n,len)
+long int *x, *y;       /* x y is the position of the string */
+char *buff;
+long int *size;    /* font size indicator (see below) */
+char *act;  /* single character passed for colour set */
+long int *n;       /* colour index within the set */
+int  len;        /* len is length passed from fortran */
+{
+ long int fsize;
+ PangoFontDescription *pfd;	/* to hold test font */
+ PangoContext *context;	/* for use in finding font properties */
+ PangoLayout *layout;	/* pango layout for the text in the buffer */
+ gint ix = (gint) *x;
+ gint iy = (gint) *y;
+ int ilen;
+ int ic;
+ char buffer[248];
+
+ ic = (int) *n;
+ fsize = *size;
+
+/* create font description to use for resetting the graphic font.
+ * Use pango_font_get_metrics to get font width and height. */
  if (butn_fnt == 0 ) {
-#ifdef SUN
-     pfd = pango_font_description_from_string("Courier,Medium 8");
+     pfd = pango_font_description_from_string("Monospace,Medium 8");
      f_height = font_calculations_array[courier_small].f_height;
      f_width  = font_calculations_array[courier_small].f_width;
-#else
+ } else if (butn_fnt == 1 ) {
+     pfd = pango_font_description_from_string("Monospace,Medium 9");
+     f_height = font_calculations_array[courier_medium].f_height;
+     f_width  = font_calculations_array[courier_medium].f_width;
+ } else if (butn_fnt == 2 ) {
+     pfd = pango_font_description_from_string("Monospace,Medium 10");
+     f_height = font_calculations_array[courier_large].f_height;
+     f_width  = font_calculations_array[courier_large].f_width;
+ } else if (butn_fnt == 3 ) {
+     pfd = pango_font_description_from_string("Monospace,Medium 11");
+     f_height = font_calculations_array[courier_largest].f_height;
+     f_width  = font_calculations_array[courier_largest].f_width;
+ } else if (butn_fnt == 4 ) {
      pfd = pango_font_description_from_string("Serif,Medium 8");
      f_height = font_calculations_array[serif_small].f_height;   // pre-calculated value of f_height is read from the array
      f_width  = font_calculations_array[serif_small].f_width;    // pre-calculated value of f_width  is read from the array
-#endif
-/*     g_print("viewtext graphic font medium 8\n");  debug */
- } else if (butn_fnt == 1 ) {
-#ifdef SUN
-     pfd = pango_font_description_from_string("Courier,Medium 10");
-     f_height = font_calculations_array[courier_medium].f_height;
-     f_width  = font_calculations_array[courier_medium].f_width;
-#else
-     pfd = pango_font_description_from_string("Serif,Medium 10");
+ } else if (butn_fnt == 5 ) {
+     pfd = pango_font_description_from_string("Serif,Medium 9");
      f_height = font_calculations_array[serif_medium].f_height;
      f_width  = font_calculations_array[serif_medium].f_width;
-#endif
-/*     g_print("viewtext graphic font medium 10\n");  debug */
- } else if (butn_fnt == 2 ) {
-#ifdef SUN
-     pfd = pango_font_description_from_string("Courier,Medium 12");
-     f_height = font_calculations_array[courier_large].f_height;
-     f_width  = font_calculations_array[courier_large].f_width;
-#else
-     pfd = pango_font_description_from_string("Serif,Medium 12");
+ } else if (butn_fnt == 6 ) {
+     pfd = pango_font_description_from_string("Serif,Medium 10");
      f_height = font_calculations_array[serif_large].f_height;
      f_width  = font_calculations_array[serif_large].f_width;
-#endif
-/*    g_print("viewtext graphic font medium 12\n");  debug */
- } else if (butn_fnt == 3 ) {
-#ifdef SUN
-     pfd = pango_font_description_from_string("Courier,Medium 14");
-     f_height = font_calculations_array[courier_largest].f_height;
-     f_width  = font_calculations_array[courier_largest].f_width;
-#else
-     pfd = pango_font_description_from_string("Serif,Medium 14");
+ } else if (butn_fnt == 7 ) {
+     pfd = pango_font_description_from_string("Serif,Medium 11");
      f_height = font_calculations_array[serif_largest].f_height;
      f_width  = font_calculations_array[serif_largest].f_width;
-#endif
-
- } else if (butn_fnt == 4 ) {
-  pfd = pango_font_description_from_string("Courier,Medium 8");
-   f_height = font_calculations_array[courier_small].f_height;   
-   f_width  = font_calculations_array[courier_small].f_width;   
-/*   g_print("wstxpt graphic font courier medium 8\n");  debug */
- } else if (butn_fnt == 5 ) {
-  pfd = pango_font_description_from_string("Courier,Medium 10");
-  f_height = font_calculations_array[courier_medium].f_height;   
-  f_width  = font_calculations_array[courier_medium].f_width;    
-/*   g_print("wstxpt graphic font courier medium 10\n");  debug */
- } else if (butn_fnt == 6 ) {
-   pfd = pango_font_description_from_string("Courier,Medium 12");
-   f_height = font_calculations_array[courier_large].f_height;   
-   f_width  = font_calculations_array[courier_large].f_width;    
-/*   g_print("wstxpt graphic font courier medium 12\n");  debug */ 
- } else if (butn_fnt == 7 ) {
-   pfd = pango_font_description_from_string("Courier,Medium 14");
-   f_height = font_calculations_array[courier_largest].f_height;   
-   f_width  = font_calculations_array[courier_largest].f_width;    
-/*   g_print("wstxpt graphic font courier medium 14\n");  debug */
  }
 
  gtk_widget_modify_font(graphic, pfd);	/* << ?? >> */
@@ -314,9 +462,10 @@ int  len;        /* len is length passed from fortran */
 /* ********* textpixwidth_() find width of string (buff) in current font. ******* */
 /* << note - should use the actual font - so it needs to know if this is for
  * << for a graphic or text or menu context. still TO BE DONE. */
-void textpixwidth_(buff,pixelwidth,len)
+void textpixwidth_(buff,pixelwidth,pixelheight,len)
 char *buff;
 long int *pixelwidth;	/* width of the string in pixels */
+long int *pixelheight;	/* height of the string in pixels */
 int  len;        /* len is length passed from fortran */
 {
  PangoFontDescription *pfd;	/* to hold test font */
@@ -327,7 +476,7 @@ int  len;        /* len is length passed from fortran */
  gint vfw;
  char buffer[248];
  gint width;	/* to hold initial smaller guess of width */
-	
+
 /* find number of characters in buff, load metrics for current font and
    the find the pixel width. */
  ilen = 0;
@@ -336,73 +485,48 @@ int  len;        /* len is length passed from fortran */
 /* create font description to use for resetting the graphic font.
  * Use pango_font_get_metrics to get font width and height. */
  if (butn_fnt == 0 ) {
-#ifdef SUN
-     pfd = pango_font_description_from_string("Courier,Medium 8");
+     pfd = pango_font_description_from_string("Monospace,Medium 8");
      f_height = font_calculations_array[courier_small].f_height;
      f_width  = font_calculations_array[courier_small].f_width;
-#else
+/*     g_print("viewtext graphic font medium 8\n");  debug */
+ } else if (butn_fnt == 1 ) {
+     pfd = pango_font_description_from_string("Monospace,Medium 9");
+     f_height = font_calculations_array[courier_medium].f_height;
+     f_width  = font_calculations_array[courier_medium].f_width;
+/*     g_print("viewtext graphic font medium 9\n");  debug */
+ } else if (butn_fnt == 2 ) {
+     pfd = pango_font_description_from_string("Monospace,Medium 10");
+     f_height = font_calculations_array[courier_large].f_height;
+     f_width  = font_calculations_array[courier_large].f_width;
+/*    g_print("viewtext graphic font medium 10\n");  debug */
+ } else if (butn_fnt == 3 ) {
+     pfd = pango_font_description_from_string("Monospace,Medium 11");
+     f_height = font_calculations_array[courier_largest].f_height;
+     f_width  = font_calculations_array[courier_largest].f_width;
+ } else if (butn_fnt == 4 ) {
      pfd = pango_font_description_from_string("Serif,Medium 8");
      f_height = font_calculations_array[serif_small].f_height;   // pre-calculated value of f_height is read from the array
      f_width  = font_calculations_array[serif_small].f_width;    // pre-calculated value of f_width  is read from the array
-#endif
-/*     g_print("viewtext graphic font medium 8\n");  debug */
- } else if (butn_fnt == 1 ) {
-#ifdef SUN
-     pfd = pango_font_description_from_string("Courier,Medium 10");
-     f_height = font_calculations_array[courier_medium].f_height;
-     f_width  = font_calculations_array[courier_medium].f_width;
-#else
-     pfd = pango_font_description_from_string("Serif,Medium 10");
+/*    g_print("wstxpt graphic font medium 8\n");  debug */
+ } else if (butn_fnt == 5 ) {
+     pfd = pango_font_description_from_string("Serif,Medium 9");
      f_height = font_calculations_array[serif_medium].f_height;
      f_width  = font_calculations_array[serif_medium].f_width;
-#endif
-/*     g_print("viewtext graphic font medium 10\n");  debug */
- } else if (butn_fnt == 2 ) {
-#ifdef SUN
-     pfd = pango_font_description_from_string("Courier,Medium 12");
-     f_height = font_calculations_array[courier_large].f_height;
-     f_width  = font_calculations_array[courier_large].f_width;
-#else
-     pfd = pango_font_description_from_string("Serif,Medium 12");
+/*    g_print("wstxpt graphic font medium 9\n");  debug */
+ } else if (butn_fnt == 6 ) {
+     pfd = pango_font_description_from_string("Serif,Medium 10");
      f_height = font_calculations_array[serif_large].f_height;
      f_width  = font_calculations_array[serif_large].f_width;
-#endif
-/*    g_print("viewtext graphic font medium 12\n");  debug */
- } else if (butn_fnt == 3 ) {
-#ifdef SUN
-     pfd = pango_font_description_from_string("Courier,Medium 14");
-     f_height = font_calculations_array[courier_largest].f_height;
-     f_width  = font_calculations_array[courier_largest].f_width;
-#else
-     pfd = pango_font_description_from_string("Serif,Medium 14");
+/*    g_print("wstxpt graphic font medium 10\n");  debug */
+ } else if (butn_fnt == 7 ) {
+     pfd = pango_font_description_from_string("Serif,Medium 11");
      f_height = font_calculations_array[serif_largest].f_height;
      f_width  = font_calculations_array[serif_largest].f_width;
-#endif
-/*    g_print("wstxpt graphic font serif medium 14\n");  debug */
- } else if (butn_fnt == 4 ) {
-   pfd = pango_font_description_from_string("Courier,Medium 8");
-   f_height = font_calculations_array[courier_small].f_height;
-   f_width  = font_calculations_array[courier_small].f_width;
-/*   g_print("wstxpt graphic font Courier medium 8\n");  debug */
- } else if (butn_fnt == 5 ) {
-   pfd = pango_font_description_from_string("Courier,Medium 10");
-   f_height = font_calculations_array[courier_medium].f_height;
-   f_width  = font_calculations_array[courier_medium].f_width;
-/*  g_print("wstxpt graphic font Courier medium 10\n");  debug */
- } else if (butn_fnt == 6 ) {
-   pfd = pango_font_description_from_string("Courier,Medium 12");
-   f_height = font_calculations_array[courier_large].f_height;
-   f_width  = font_calculations_array[courier_large].f_width;
-/*  g_print("wstxpt graphic font Courier medium 12\n");  debug */
- } else if (butn_fnt == 7 ) {
-   pfd = pango_font_description_from_string("Courier,Medium 14");
-   f_height = font_calculations_array[courier_largest].f_height;
-   f_width  = font_calculations_array[courier_largest].f_width;
-/*  g_print("wstxpt graphic font Courier medium 14\n");  debug */
+/*    g_print("wstxpt graphic font medium 11\n");  debug */
  }
  gtk_widget_modify_font(graphic, pfd);  /* << ?? >> */
  context = gtk_widget_get_pango_context (graphic);
- 
+
  pango_font_description_free(pfd);
 
  width = f_width * ilen; /* conservative width */
@@ -413,12 +537,35 @@ int  len;        /* len is length passed from fortran */
  pango_layout_get_extents (layout, NULL, &logical_rect);  /* find box the text fits within */
  vfw = MAX (width, PANGO_PIXELS (logical_rect.width));
  if (vfw > 1 ) *pixelwidth = (long int) vfw;
+ if (vfw > 1 ) *pixelheight = (long int) f_height;
 /* debug g_print("phrase %s is %d %d %d pixels wide\n",buffer,vfw,width,PANGO_PIXELS (logical_rect.width)); */
  g_object_unref (layout);  /* clear the layout */
 
  return;
 }
- 
+
+/* ************** viewtextwwc_() display text in graphics box to file *************** */
+/*
+ Version to write to file.
+*/
+void viewtextwwc_(msg,linep,side,size,len)
+  char  *msg;                    /* character string  */
+  long int *linep, *side, *size;     /* position indicators */
+  int len;                 /* length from f77   */
+{
+  int t_len;
+  t_len = 0;
+  f_to_c_l(msg,&len,&t_len); if ( t_len < len ) msg[t_len] = '\0';
+
+  if ( wwc_ok == 1) { /* If echo send parameters to wwc file */
+    fprintf(wwc,"*viewtext\n");
+    fprintf(wwc,"%ld %ld %ld\n",*linep,*side,*size);
+    fprintf(wwc,"%s\n",msg);
+  }
+  return;
+} /* viewtextwwc  */
+
+
 /* ************** viewtext_() display text in graphics box *************** */
 /*
  Given a string 'msg' and the 'line' where the string should be written
@@ -428,8 +575,8 @@ int  len;        /* len is length passed from fortran */
 */
 void viewtext_(msg,linep,side,size,len)
   char  *msg;                    /* character string  */
-  int len;                 /* length from f77   */
   long int *linep, *side, *size;     /* position indicators */
+  int len;                 /* length from f77   */
 {
   PangoFontDescription *pfd;	/* to hold test font */
   PangoContext *context;	/* for use in finding font properties */
@@ -453,84 +600,57 @@ void viewtext_(msg,linep,side,size,len)
   }
 
 /* create font description to use for resetting the graphic font.
- * Use pango_font_get_metrics to get font width and height. To test
- * on Solaris stick with the Courier fonts */
+ * Use pango_font_get_metrics to get font width and height.  */
   if (butn_fnt == 0 ) {
-#ifdef SUN
-     pfd = pango_font_description_from_string("Courier,Medium 8");
+     pfd = pango_font_description_from_string("Monospace,Medium 8");
      f_height = font_calculations_array[courier_small].f_height;
      f_width  = font_calculations_array[courier_small].f_width;
-#else
+/*     g_print("viewtext graphic font medium 8\n");  debug */
+  } else if (butn_fnt == 1 ) {
+     pfd = pango_font_description_from_string("Monospace,Medium 9");
+     f_height = font_calculations_array[courier_medium].f_height;
+     f_width  = font_calculations_array[courier_medium].f_width;
+/*     g_print("viewtext graphic font medium 9\n");  debug */
+  } else if (butn_fnt == 2 ) {
+     pfd = pango_font_description_from_string("Monospace,Medium 10");
+     f_height = font_calculations_array[courier_large].f_height;
+     f_width  = font_calculations_array[courier_large].f_width;
+/*    g_print("viewtext graphic font medium 10\n");  debug */
+  } else if (butn_fnt == 3 ) {
+     pfd = pango_font_description_from_string("Monospace,Medium 11");
+     f_height = font_calculations_array[courier_largest].f_height;
+     f_width  = font_calculations_array[courier_largest].f_width;
+  } else if (butn_fnt == 4 ) {
      pfd = pango_font_description_from_string("Serif,Medium 8");
      f_height = font_calculations_array[serif_small].f_height;   // pre-calculated value of f_height is read from the array
      f_width  = font_calculations_array[serif_small].f_width;    // pre-calculated value of f_width  is read from the array
-#endif
-/*     g_print("viewtext graphic font medium 8\n");  debug */
-  } else if (butn_fnt == 1 ) {
-#ifdef SUN
-     pfd = pango_font_description_from_string("Courier,Medium 10");
-     f_height = font_calculations_array[courier_medium].f_height;
-     f_width  = font_calculations_array[courier_medium].f_width;
-#else
-     pfd = pango_font_description_from_string("Serif,Medium 10");
+/*    g_print("wstxpt graphic font medium 8\n");  debug */
+  } else if (butn_fnt == 5 ) {
+     pfd = pango_font_description_from_string("Serif,Medium 9");
      f_height = font_calculations_array[serif_medium].f_height;
      f_width  = font_calculations_array[serif_medium].f_width;
-#endif
-/*     g_print("viewtext graphic font medium 10\n");  debug */
-  } else if (butn_fnt == 2 ) {
-#ifdef SUN
-     pfd = pango_font_description_from_string("Courier,Medium 12");
-     f_height = font_calculations_array[courier_large].f_height;
-     f_width  = font_calculations_array[courier_large].f_width;
-#else
-     pfd = pango_font_description_from_string("Serif,Medium 12");
+/*    g_print("wstxpt graphic font medium 9\n");  debug */
+  } else if (butn_fnt == 6 ) {
+     pfd = pango_font_description_from_string("Serif,Medium 10");
      f_height = font_calculations_array[serif_large].f_height;
      f_width  = font_calculations_array[serif_large].f_width;
-#endif
-/*    g_print("viewtext graphic font medium 12\n");  debug */
-  } else if (butn_fnt == 3 ) {
-#ifdef SUN
-     pfd = pango_font_description_from_string("Courier,Medium 14");
-     f_height = font_calculations_array[courier_largest].f_height;
-     f_width  = font_calculations_array[courier_largest].f_width;
-#else
-     pfd = pango_font_description_from_string("Serif,Medium 14");
+/*    g_print("wstxpt graphic font medium 10\n");  debug */
+  } else if (butn_fnt == 7 ) {
+     pfd = pango_font_description_from_string("Serif,Medium 11");
      f_height = font_calculations_array[serif_largest].f_height;
      f_width  = font_calculations_array[serif_largest].f_width;
-#endif
-
-/*     g_print("viewtext graphic font medium 14\n");  debug */
-  } else if (butn_fnt == 4 ) {
-    pfd = pango_font_description_from_string("Courier,Medium 8");
-    f_height = font_calculations_array[courier_small].f_height;
-    f_width  = font_calculations_array[courier_small].f_width;
-/*    g_print("viewtext graphic font medium 8\n");  debug */
-  } else if (butn_fnt == 5 ) {
-    pfd = pango_font_description_from_string("Courier,Medium 10");
-    f_height = font_calculations_array[courier_medium].f_height;
-    f_width  = font_calculations_array[courier_medium].f_width;
-/*    g_print("viewtext graphic font medium 10\n");  debug */
-  } else if (butn_fnt == 6 ) {
-    pfd = pango_font_description_from_string("Courier,Medium 12");
-    f_height = font_calculations_array[courier_large].f_height;
-    f_width  = font_calculations_array[courier_large].f_width;
-/*     g_print("viewtext graphic font medium 12\n");  debug */
-  } else if (butn_fnt == 7 ) {
-    pfd = pango_font_description_from_string("Courier,Medium 14");
-    f_height = font_calculations_array[courier_largest].f_height;
-    f_width  = font_calculations_array[courier_largest].f_width;
-/*    g_print("viewtext graphic font medium 14\n");  debug */
+/*    g_print("wstxpt graphic font medium 11\n");  debug */
   }
   gtk_widget_modify_font(graphic, pfd);  /* << ?? >> */
   context = gtk_widget_get_pango_context (graphic);
- 
+
   pango_font_description_free(pfd);
 
   width = f_width * t_len; /* conservative width */
   layout = pango_layout_new (context);  /* clear and set layout */
   buffer[0] = '\0';
   g_snprintf (buffer, sizeof (buffer), "%s", msg); /* copy msg into buffer */
-  
+
   pango_layout_set_text (layout, buffer, t_len);  /* add t_len char of text */
   pango_layout_get_extents (layout, NULL, &logical_rect);  /* find box the text fits within */
   fitpix = MAX (width, PANGO_PIXELS (logical_rect.width));
@@ -567,7 +687,7 @@ void findviewtext_(charposp,linep,size,irx,iry)
   PangoFontMetrics *metrics;
   gint mid;
   long int fsize, charpos;
- 
+
   gint b_top, b_bottom, b_left, b_right; /* pixels at top/bottom/left/right */
   gint width;	/* conservative width of msg */
 
@@ -576,68 +696,44 @@ void findviewtext_(charposp,linep,size,irx,iry)
 /* create font description to use for resetting the graphic font.
  * Use pango_font_get_metrics to get font width and height. */
  if (butn_fnt == 0 ) {
-#ifdef SUN
-     pfd = pango_font_description_from_string("Courier,Medium 8");
+     pfd = pango_font_description_from_string("Monospace,Medium 8");
      f_height = font_calculations_array[courier_small].f_height;
      f_width  = font_calculations_array[courier_small].f_width;
-#else
+/*     g_print("viewtext graphic font medium 8\n");  debug */
+ } else if (butn_fnt == 1 ) {
+     pfd = pango_font_description_from_string("Monospace,Medium 9");
+     f_height = font_calculations_array[courier_medium].f_height;
+     f_width  = font_calculations_array[courier_medium].f_width;
+/*     g_print("viewtext graphic font medium 9\n");  debug */
+ } else if (butn_fnt == 2 ) {
+     pfd = pango_font_description_from_string("Monospace,Medium 10");
+     f_height = font_calculations_array[courier_large].f_height;
+     f_width  = font_calculations_array[courier_large].f_width;
+/*    g_print("viewtext graphic font medium 10\n");  debug */
+ } else if (butn_fnt == 3 ) {
+     pfd = pango_font_description_from_string("Monospace,Medium 11");
+     f_height = font_calculations_array[courier_largest].f_height;
+     f_width  = font_calculations_array[courier_largest].f_width;
+ } else if (butn_fnt == 4 ) {
      pfd = pango_font_description_from_string("Serif,Medium 8");
      f_height = font_calculations_array[serif_small].f_height;   // pre-calculated value of f_height is read from the array
      f_width  = font_calculations_array[serif_small].f_width;    // pre-calculated value of f_width  is read from the array
-#endif
-/*     g_print("viewtext graphic font medium 8\n");  debug */
- } else if (butn_fnt == 1 ) {
-#ifdef SUN
-     pfd = pango_font_description_from_string("Courier,Medium 10");
-     f_height = font_calculations_array[courier_medium].f_height;
-     f_width  = font_calculations_array[courier_medium].f_width;
-#else
-     pfd = pango_font_description_from_string("Serif,Medium 10");
-     f_height = font_calculations_array[serif_medium].f_height;
-     f_width  = font_calculations_array[serif_medium].f_width;
-#endif
-/*     g_print("viewtext graphic font medium 10\n");  debug */
- } else if (butn_fnt == 2 ) {
-#ifdef SUN
-     pfd = pango_font_description_from_string("Courier,Medium 12");
-     f_height = font_calculations_array[courier_large].f_height;
-     f_width  = font_calculations_array[courier_large].f_width;
-#else
-     pfd = pango_font_description_from_string("Serif,Medium 12");
-     f_height = font_calculations_array[serif_large].f_height;
-     f_width  = font_calculations_array[serif_large].f_width;
-#endif
-/*    g_print("viewtext graphic font medium 12\n");  debug */
- } else if (butn_fnt == 3 ) {
-#ifdef SUN
-     pfd = pango_font_description_from_string("Courier,Medium 14");
-     f_height = font_calculations_array[courier_largest].f_height;
-     f_width  = font_calculations_array[courier_largest].f_width;
-#else
-     pfd = pango_font_description_from_string("Serif,Medium 14");
-     f_height = font_calculations_array[serif_largest].f_height;
-     f_width  = font_calculations_array[serif_largest].f_width;
-#endif
- } else if (butn_fnt == 4 ) {
-   pfd = pango_font_description_from_string("Courier,Medium 8");
-   f_height = font_calculations_array[courier_small].f_height;
-   f_width  = font_calculations_array[courier_small].f_width;
 /*    g_print("wstxpt graphic font medium 8\n");  debug */
  } else if (butn_fnt == 5 ) {
-   pfd = pango_font_description_from_string("Courier,Medium 10");
-   f_height = font_calculations_array[courier_medium].f_height;
-   f_width  = font_calculations_array[courier_medium].f_width;
-/*    g_print("wstxpt graphic font medium 10\n");  debug */
+     pfd = pango_font_description_from_string("Serif,Medium 9");
+     f_height = font_calculations_array[serif_medium].f_height;
+     f_width  = font_calculations_array[serif_medium].f_width;
+/*    g_print("wstxpt graphic font medium 9\n");  debug */
  } else if (butn_fnt == 6 ) {
-   pfd = pango_font_description_from_string("Courier,Medium 12");
-   f_height = font_calculations_array[courier_large].f_height;
-   f_width  = font_calculations_array[courier_large].f_width;
-/*    g_print("wstxpt graphic font medium 12\n");  debug */
+     pfd = pango_font_description_from_string("Serif,Medium 10");
+     f_height = font_calculations_array[serif_large].f_height;
+     f_width  = font_calculations_array[serif_large].f_width;
+/*    g_print("wstxpt graphic font medium 10\n");  debug */
  } else if (butn_fnt == 7 ) {
-   pfd = pango_font_description_from_string("Courier,Medium 14");
-   f_height = font_calculations_array[courier_largest].f_height;
-   f_width  = font_calculations_array[courier_largest].f_width;
-/*    g_print("wstxpt graphic font medium 14\n");  debug */  
+     pfd = pango_font_description_from_string("Serif,Medium 11");
+     f_height = font_calculations_array[serif_largest].f_height;
+     f_width  = font_calculations_array[serif_largest].f_width;
+/*    g_print("wstxpt graphic font medium 11\n");  debug */
 }
   gtk_widget_modify_font(graphic, pfd);  /* << ?? >> */
   context = gtk_widget_get_pango_context (graphic);
@@ -667,16 +763,33 @@ void drawswl(xa,ya,xb,yb)
   return;
 }
 
+
+/* *************** esymbolwwc_() symbol drawing routine to file. *************** */
+/*
+ esymbolwwc version to write to file.
+*/
+void esymbolwwc_(x,y,sym,size)
+  long int *x, *y, *sym, *size;
+{
+
+/* If echo send parameters to wwc file */
+  if ( wwc_ok == 1 && wwc_macro != 1) {
+    fprintf(wwc,"*esymbol\n");
+    fprintf(wwc,"%ld %ld %ld %ld\n",*x,*y,*sym,*size);
+  }
+  return;
+}
+
 /* *************** esymbol_() symbol drawing routine. *************** */
 /*
  esymbol is passed a pixel coord, a symbol index, and a size.
- currently there are 32 symbols.
+ currently there are 38 symbols.
 */
 void esymbol_(x,y,sym,size)
   long int *x, *y, *sym, *size;
 {
   gint isym,isize,ix,iy,width;
-  GdkPoint p[12];
+  GdkPoint p[13];
   ix = (gint) *x;
   iy = (gint) *y;
   isym = (gint) *sym;
@@ -736,10 +849,20 @@ void esymbol_(x,y,sym,size)
       p[0].x=ix+2; p[0].y=iy+3; p[1].x=ix+2; p[1].y=iy-2;
       p[2].x=ix-3; p[2].y=iy-2; p[3].x=ix+2; p[3].y=iy+3;
       gdk_draw_lines(gr_image,gc,p,4); break;
-    case 8 : 		/* dot 2 pix wide, 3 pix high */
-      drawswl(ix-1,iy-1,ix+1,iy-1);
-      drawswl(ix-1,iy,ix+1,iy);
-      drawswl(ix-1,iy+1,ix+1,iy+1);  break;
+    case 8 : 		
+      if(isize==1) {         /* dot 2 pix wide, 3 pix high */
+        drawswl(ix-1,iy-1,ix+1,iy-1);
+        drawswl(ix-1,iy,ix+1,iy);
+        drawswl(ix-1,iy+1,ix+1,iy+1);
+      } else if(isize==0) {  /* dot 2 pix wide, 2 pix high (32) */
+        drawswl(ix-1,iy-1,ix+1,iy-1);
+        drawswl(ix-1,iy,ix+1,iy);
+      } else if(isize==2) { /* dot 4 pix wide, 4 pix high (33) */
+        drawswl(ix-2,iy-2,ix+2,iy-2);
+        drawswl(ix-2,iy-1,ix+2,iy-1);
+        drawswl(ix-2,iy,ix+2,iy);
+        drawswl(ix-2,iy+1,ix+2,iy+1);
+      }  break;
     case 9 : 		/* X */
       drawswl(ix-2,iy-2,ix+3,iy+3);
       drawswl(ix-2,iy+3,ix+3,iy-2);  break;
@@ -878,6 +1001,52 @@ void esymbol_(x,y,sym,size)
     case 32 : 		/* dot 2 pix wide, 2 pix high */
       drawswl(ix-1,iy-1,ix+1,iy-1);
       drawswl(ix-1,iy,ix+1,iy); break;
+    case 33 : 		/* dot 4 pix wide, 4 pix high */
+      drawswl(ix-2,iy-2,ix+2,iy-2);
+      drawswl(ix-2,iy-1,ix+2,iy-1);
+      drawswl(ix-2,iy,ix+2,iy);
+      drawswl(ix-2,iy+1,ix+2,iy+1); break;
+    case 34 : 		/* flow crack --\/\--*/
+      drawdwl(ix-8,iy,ix-3,iy);
+      drawdwl(ix-3,iy,ix,iy-4);
+      drawdwl(ix,iy-4,ix+2,iy+4);
+      drawdwl(ix+2,iy+4,ix+5,iy);
+      drawdwl(ix+5,iy,ix+9,iy);  break;
+    case 35 : 		/* flow bi-direc via closed left & right arrows */
+      drawswl(ix-1,iy+7,ix+4,iy+5);
+      drawswl(ix+4,iy+5,ix-1,iy+2);  /* from left */
+      drawswl(ix-1,iy+2,ix-1,iy+7);
+      drawswl(ix-6,iy+5,ix-1,iy+5);  /* shaft */
+      drawswl(ix+1,iy-3,ix-4,iy-5);
+      drawswl(ix-4,iy-5,ix+1,iy-8);  /* from right */
+      drawswl(ix+1,iy-8,ix+1,iy-3);
+      drawswl(ix+1,iy-5,ix+6,iy-5); break; /* shaft */
+    case 36 :	       /* flow orifice 6*6 pixels double width */
+      drawdwl(ix-4,iy-4,ix+3,iy-4);
+      drawdwl(ix+3,iy-4,ix+3,iy+3);
+      drawdwl(ix+3,iy+3,ix-4,iy+3);
+      drawdwl(ix-4,iy+3,ix-4,iy-4);  break;
+    case 37 :	       /* flow conduit */
+      drawswl(ix-7,iy+5,ix,iy+8);
+      drawswl(ix,iy+8,ix+5,iy+7);
+      drawswl(ix+5,iy+7,ix+5,iy);
+      drawswl(ix+5,iy,ix-3,iy-4);
+      drawswl(ix-3,iy-4,ix-7,iy-2);
+      drawswl(ix-7,iy-2,ix-7,iy+5);
+      drawswl(ix-7,iy-2,ix,iy+3);
+      drawswl(ix,iy+3,ix+5,iy);
+      drawswl(ix,iy+3,ix,iy+8);
+      drawswl(ix,iy+4,ix+5,iy+7);  break;
+    case 38 :	       /* flow closed box */
+      drawswl(ix+3,iy-2,ix+3,iy+5);
+      drawswl(ix+3,iy+5,ix-2,iy+7);
+      drawswl(ix-2,iy+7,ix-7,iy+3);
+      drawswl(ix-7,iy+3,ix-7,iy-2);
+      drawswl(ix-7,iy-2,ix-2,iy-4);
+      drawswl(ix-2,iy-4,ix+3,iy-2);
+      drawswl(ix-7,iy-2,ix-2,iy+1);
+      drawswl(ix+3,iy-2,ix-2,iy+1);
+      drawswl(ix-2,iy+7,ix-2,iy+1);  break;
     default : 		/* big dot 2 pix wide, 3 pix high */
       drawswl(ix-1,iy-1,ix+1,iy-1);
       drawswl(ix-1,iy,ix+1,iy);
@@ -1261,6 +1430,23 @@ void testcscaleb_()
   return;
 }
 
+
+/* *************** elinewwc_() line drawing routine to file. *************** */
+/*
+ eline commands to file.
+*/
+void elinewwc_(long int* x,long int* y,long int* operation)
+{
+
+/* If echo send parameters to wwc file */
+   if ( wwc_ok == 1) {
+     fprintf(wwc,"*eline\n");
+     fprintf(wwc,"%ld %ld %ld\n",*x,*y,*operation);
+   }
+   return;
+}
+
+
 /* *************** eline_() line drawing routine. *************** */
 /*
  co-ords, operation flag equiv to fwwutil parameters:
@@ -1269,8 +1455,7 @@ void testcscaleb_()
 	3=move to relitive pixel coord,
 	2=draw line to relitive pixel coord.
 */
-void eline_(x,y,operation)
-  long int *x, *y, *operation;
+void eline_(long int* x,long int* y,long int* operation)
 {
   gint x1,y1,op,width;
 
@@ -1299,6 +1484,22 @@ void eline_(x,y,operation)
    return;
 }
 
+
+/* *************** edlinewwc_() dotted line drawing to file. *************** */
+/*
+ edline commands to file.
+*/
+void edlinewwc_(long int* x1,long int* y1,long int* x2,long int* y2,long int* ipdis)
+{
+
+/* If echo send parameters to wwc file */
+  if ( wwc_ok == 1 && wwc_macro != 1) {
+    fprintf(wwc,"*edline\n");
+    fprintf(wwc,"%ld %ld %ld %ld %ld\n",*x1,*y1,*x2,*y2,*ipdis);
+  }
+  return;
+}
+
 /* *************** edline_() dotted line drawing routine. *************** */
 /*
  This function is passed both sets of pixel co-ords.
@@ -1307,8 +1508,7 @@ void eline_(x,y,operation)
  probably not useful. If the line is short then plot only the initial
  point.
 */
-void edline_(x1,y1,x2,y2,ipdis)
-  long int *x1, *y1, *x2, *y2, *ipdis;
+void edline_(long int* x1,long int* y1,long int* x2,long int* y2,long int* ipdis)
 {
   gint ix1,iy1,ix2,iy2,ldis,ldash,width;
   double crow;
@@ -1357,6 +1557,22 @@ void edline_(x1,y1,x2,y2,ipdis)
   } else if ( ldash >= 6 ) {
     gdk_gc_set_dashes (gc, 0, "\2\6", 2);	/* dash style shortish solid with 6 pixel blank */
     gdk_draw_line(gr_image,gc,ix1,iy1,ix2,iy2);
+  }
+  return;
+}
+
+
+/* *************** edashwwc_() dashed line drawing routine. *************** */
+/*
+ Edash commands to file.
+*/
+void edashwwc_(long int* x1,long int* y1,long int* x2,long int* y2,long int* ipdis)
+{
+
+/* If echo send parameters to wwc file */
+  if ( wwc_ok == 1 && wwc_macro != 1) {
+    fprintf(wwc,"*edash\n");
+    fprintf(wwc,"%ld %ld %ld %ld %ld\n",*x1,*y1,*x2,*y2,*ipdis);
   }
   return;
 }
@@ -1422,6 +1638,21 @@ void edash_(x1,y1,x2,y2,ipdis)
   return;
 }
 
+/* *************** ESRU single width line to file. *************** */
+/*
+ Writes eswline attributest to file.
+*/
+void eswlinewwc_(x1,y1,x2,y2)
+  long int *x1, *y1, *x2, *y2;
+{
+  if ( wwc_ok == 1 && wwc_macro != 1) {	/* If echo send parameters to wwc file */
+    fprintf(wwc,"*eswline\n");
+    fprintf(wwc,"%ld %ld %ld %ld\n",*x1,*y1,*x2,*y2);
+  }
+  return;
+}
+
+
 /* *************** eswline_() single width line drawing routine. *************** */
 /*
  Draws a single pixel wide line between two pixel coordinates passed from fortran.
@@ -1440,6 +1671,20 @@ void eswline_(x1,y1,x2,y2)
   return;
 }
 
+
+/* *************** edwlinewwc_() double width line drawing routine to file. *************** */
+void edwlinewwc_(x1,y1,x2,y2)
+  long int *x1, *y1, *x2, *y2;
+{
+/* If echo send parameters to wwc file */
+  if ( wwc_ok == 1 && wwc_macro != 1) {
+    fprintf(wwc,"*edwline\n");
+    fprintf(wwc,"%ld %ld %ld %ld\n",*x1,*y1,*x2,*y2);
+  }
+  return;
+}
+
+
 /* *************** edwline_() double width line drawing routine. *************** */
 /*
  Draws a two pixel wide line between two pixel coordinates.
@@ -1455,6 +1700,28 @@ void edwline_(x1,y1,x2,y2)
   width = 2;
   gdk_gc_set_line_attributes(gc,width,GDK_LINE_SOLID,GDK_CAP_NOT_LAST,GDK_JOIN_MITER); /* gives same as default */
   gdk_draw_line(gr_image,gc,ix1,iy1,ix2,iy2);
+
+/* If echo send parameters to wwc file */
+  if ( wwc_ok == 1 && wwc_macro != 1) {
+    fprintf(wwc,"*edwline\n");
+    fprintf(wwc,"%ld %ld %ld %ld\n",*x1,*y1,*x2,*y2);
+  }
+  return;
+}
+
+
+/* *************** echainwwc_() chained line drawing routine. *************** */
+/*
+ Echain commands to file.
+*/
+void echainwwc_(long int* x1,long int* y1,long int* x2,long int* y2,long int* ipdis)
+{
+
+/* If echo send parameters to wwc file */
+  if ( wwc_ok == 1 && wwc_macro != 1) {
+    fprintf(wwc,"*edash\n");
+    fprintf(wwc,"%ld %ld %ld %ld %ld\n",*x1,*y1,*x2,*y2,*ipdis);
+  }
   return;
 }
 
@@ -1470,8 +1737,7 @@ void edwline_(x1,y1,x2,y2)
  dash_on and dash_rem are cleared if edash call is made with ipdis = 0.
 
 */
-void echain_(x1,y1,x2,y2,ipdis)
-  long int *x1, *y1, *x2, *y2, *ipdis;
+void echain_(long int* x1,long int* y1,long int* x2,long int* y2,long int* ipdis)
 {
   gint ix1,iy1,ix2,iy2;
   gint ldash;
@@ -1579,7 +1845,11 @@ void axiscale_(long int* gw,long int* gh,float* xmn,float* xmx,float* ymn,
    axgw=(float)*gw; axgh=(float)*gh;
    axxmn=(float)*xmn; axxmx=(float)*xmx;
    axymn=(float)*ymn; axymx=(float)*ymx;
-   
+   axyadd=0.0;
+   axxadd=0.0;
+   axysc=0.0;
+   axxsc=0.0;
+
 /* Derive factors for horizontal axis. */
     if (axxmn < 0.0 && axxmx >= 0.0) {
 	axxsc = axgw / (axxmx + (-1.0 * axxmn));
@@ -1668,9 +1938,7 @@ void linescale_(long int* loff,float* ladd,float* lscale,long int* boff,float* b
  Based on scaling data passed to linescale this returns the pixel
  co-ords for a particular sets of user data.
 */
-void u2pixel_(ux,uy,ix,iy)
-  float *ux, *uy;
-  long int *ix, *iy;
+void u2pixel_(float* ux,float* uy,long int* ix,long int* iy)
 {
   float x,y;
   x = *ux;
@@ -1689,9 +1957,7 @@ void u2pixel_(ux,uy,ix,iy)
  Based on scaling data passed to linescale this returns the grid
  co-ords for a particular set of input pixcel co-ords.
 */
-void pixel2u_(ux,uy,gx,gy)
-  long int *ux, *uy;
-  float *gx, *gy;
+void pixel2u_(long int* ux,long int* uy,float* gx,float* gy)
 {
   long int x,y;
   x = *ux;
@@ -1705,6 +1971,27 @@ void pixel2u_(ux,uy,gx,gy)
 
   return;
 }
+
+/* *************** etplotwwc_() general line plotting to wwc file. *************** */
+/*
+ As below, but ouputs lines to wwc file without drawing them.
+*/
+void etplotwwc_(ux,uy,updown,sym)
+  float *ux, *uy;
+  long int *updown, *sym;
+{
+  float x,y;
+  gint isymbol,iupd,x1,x2,y1,y2,width;
+  long int lx1,lx2,ly1,ly2,ipdis,isz,gs;
+
+/* If echo send parameters to wwc file */
+  if ( wwc_ok == 1) {
+    fprintf(wwc,"*etplot\n");
+    fprintf(wwc,"%f %f %ld %ld\n",*ux,*uy,*updown,*sym);
+   }
+
+   return;
+ }
 
 /* *************** etplot_() general line plotting. *************** */
 /*
@@ -2072,78 +2359,6 @@ void earc_(x,y,rad,ang1,ang2,operation)
   return;
 }
 
-/* ******** dinterval_() finds interval DV on an axis ******************** */
-/*
- DINTERVAL finds interval DV on an AXIS(V1,V2) and a suitable number of
- decimal places for the axis values. When 'mode'=0, factors of 10 are
- removed and the interval IS 0.2 for scale length 1-2
-                 0.5                  2-5
-                 1.0                  5-10
-
- When 'mode'=1 the hour interval on the graphical time (x-axis) is
- set as follow:
- v=v2-v1     for v < 12 dv=1
-                 v < 18 dv=2
-                 v < 24 dv=3
-                 v < 48 dv=6
-                 v < 96 dv=12   else dv=24.
-*/
-
-void dinterval_(v1,v2,dv,ndec,mode)
- float *v1, *v2, *dv;
- long int *ndec, *mode;
-{
-    /* Local variables */
-    float v, w, x, z, vr, vv, dvv;
-    int ix,nd,mde;
-    double dx, dz;
-
-    mde = (int) *mode;
-
-    if (mde == 0) {
-	vv = *v2 - *v1;
-	v = (float) fabs(vv);   /* ?? fabs((double)vv) */
-	x = (float) log10(v);
-	ix = (int) x;
-        if (x < 0.0) ix=ix-2;
-        dx = (double) ix;
-
-	dz = pow(10.0,dx);
-	vr =  v / (float) dz;
-	w = 10.0;
-	if (vr < 5.0) w = 5.0;
-	if (vr < 2.0) w = 2.0;
-
-	dvv = w * 0.1 * (float) dz;
-	if (vv < 0.0) dvv = -dvv;
-
-	nd = 1 - ix;
-	if (w == 10.0) --nd;
-        else if (w == 5.0) nd = 1;
-        else if (w == 2.0) nd = 2;
-
-       	if (nd < 0) nd = 0;
-
-    } else {
-/* if over 6 months draw a tick each week, if over 60 days
-   draw every other day, if over 7 days tick each 12 hours */
-	v = *v2 - *v1;
-	dvv = 168.0;
-	if (v < 4320.0) dvv = 48.0;
-	if (v < 1440.0) dvv = 24.0;
-	if (v < 170.0) dvv = 12.0;
-	if (v < 98.0) dvv = 8.0;
-	if (v < 50.0) dvv = 4.0;
-	if (v < 26.0) dvv = 3.0;
-	if (v < 20.0) dvv = 2.0;
-	if (v < 14.0) dvv = 1.0;
-	nd = 0;
-    }
-    *dv = dvv;
-    *ndec = nd;
-  return;
-} /* dinterval_ */
-
 /* ************ labelstr() generate a tic label *************** */
 /*
  Generate a tic label where n is the number of decimal places,
@@ -2152,8 +2367,9 @@ void dinterval_(v1,v2,dv,ndec,mode)
  returned.
 */
 void labelstr(n,val,WticC,sstr)
- long int *n, *WticC;
+ long int *n;
  float *val;
+ long int *WticC;
  char sstr[10];
 {
   int idum, n1, ticc;
@@ -2183,6 +2399,33 @@ void labelstr(n,val,WticC,sstr)
   *WticC = ticc;
   return;
 } /* labelstr */
+
+
+/* **************  etlabelwwc_() display text as in old teklib tlabel to file ******* */
+/*
+ Version which writes to wwc file.
+*/
+void etlabelwwc_(msg,x,y,ipos,size,len)
+  char  *msg;       /* character string  */
+  int len;          /* length from f77   */
+  long int *size;   /* font size */
+  long int *ipos;   /* 0=centred, 1=right, 2=centred top,
+                       3=left,4=centered bottom.
+                    */
+  float *x,*y;      /* position in user units */
+{
+  int t_len;	/* for the truncated length of msg */
+  t_len = 0;
+  f_to_c_l(msg,&len,&t_len); if ( t_len < len ) msg[t_len] = '\0';
+
+  if ( wwc_ok == 1) { /* If echo send parameters to wwc file */
+    fprintf(wwc,"*etlabel\n");
+    fprintf(wwc,"%f %f %ld %ld\n",*x,*y,*ipos,*size);
+    fprintf(wwc,"%s\n",msg);
+  }
+  return;
+} /* etlabelwwc */
+
 
 /* **************  etlabel_() display text as in old teklib tlabel ******* */
 /*
@@ -2254,7 +2497,37 @@ void etlabel_(msg,x,y,ipos,size,len)
   return;
 } /* etlabel */
 
-/* ************** vrtaxis_() construct and draw a vert axis *************** */
+
+/* ************** vrtaxisddwwc_() construct and draw a vert axis to file*************** */
+/*
+ Version to write vert axis to file.
+*/
+
+void vrtaxisddwwc_(float* ymn,float* ymx,long int* offl,long int* offb,long int* offt,
+	float* yadd,float* sca,long int* mode,float *dddy, long int *nny,long int* side,char* msg,int mlen)
+{
+/*
+ Local variables: WticL is the maximum character width of a tic label,
+ ix & iy are the pixel coords, vertadj is half of the text height.
+*/
+ gint ilen;
+ char msg2[80];
+
+ ilen = 0;
+ f_to_c_l(msg,&mlen,&ilen); strncpy(msg2,msg,(unsigned int)ilen); msg2[ilen] = '\0';
+
+/* If echo send parameters to wwc file */
+ if ( wwc_ok == 1) {
+    fprintf(wwc,"*vrtaxis\n");
+    fprintf(wwc,"%f %f %ld %ld %ld %f %f %ld %ld\n",
+		*ymn,*ymx,*offl,*offb,*offt,*yadd,*sca,*mode,*side);
+    fprintf(wwc,"%s\n",msg2);
+ }
+ return;
+} /* vrtaxisddwwc */
+
+
+/* ************** vrtaxisdd_() construct and draw a vert axis *************** */
 /*
  Construct and draw a vertical axis via WW where: YMN,YMX are the data
  minimum & maximum values, offl & offb are the pixel coords of the
@@ -2263,16 +2536,13 @@ void etlabel_(msg,x,y,ipos,size,len)
  Mode = 1 for time axis, Mode = 0 for other data display types.
  Side = 0 lables and tic on left, Side = 1 labels and tic on right.
  msg is the axis label and mlen is it's length (passed from fortran).
+ ddy is data interval, ny number of decimal places to use.
  TODO: pass in character offset for axis rather than assuming a
        fixed value.
 */
 
-void vrtaxis_(ymn,ymx,offl,offb,offt,yadd,sca,mode,side,msg,mlen)
-
- float *ymn, *ymx,  *yadd, *sca;
- long int  *offl,*offb, *offt, *mode, *side;
- int  mlen;
- char  *msg;
+void vrtaxisdd_(float* ymn,float* ymx,long int* offl,long int* offb,long int* offt,
+	float* yadd,float* sca,long int* mode,float *dddy, long int *nny,long int* side,char* msg,int mlen)
 {
 /*
  Local variables: WticL is the maximum character width of a tic label,
@@ -2309,14 +2579,10 @@ void vrtaxis_(ymn,ymx,offl,offb,offt,yadd,sca,mode,side,msg,mlen)
  }
 
  ofl = (gint) *offl; ofb = (gint) *offb; oft = (gint) *offt; mde = (gint) *mode; sid = (gint) *side;
+ ny = (gint) *nny; ddy = *dddy;
 
 /* set box extents of graphic for user later */
  b_top = 0; b_left = 0; b_right = graphic->allocation.width; b_bottom = graphic->allocation.height;
-
-/* Define tic intervals (DDX data increment, NY decimal places). */
- ny = 0;
- ddy = 0.;
- dinterval_(ymn, ymx, &ddy, &ny, &mde);
 
 /* Find the maximum label text width.  */
  label_width = 0;
@@ -2429,23 +2695,44 @@ void vrtaxis_(ymn,ymx,offl,offb,offt,yadd,sca,mode,side,msg,mlen)
   }
   g_object_unref (layout);	/* clear the layout */
   return;
-} /* vrtaxs_ */
+} /* vrtaxsdd_ */
 
-/* ************ horaxis_() construct and draw a horiz axis *************** */
+
+/* ************ horaxisddwwc_() construct and draw a horiz axis to file *************** */
+/*
+ Write horizontal axis attributes to file.
+*/
+
+void horaxisddwwc_(float *xmn,float *xmx,long int *offl,long int *offr,long int *offb,
+        float *xadd,float *sca,long int *mode,float *dddx, long int *nnx, char* msg,int mlen)
+{
+ gint ilen;
+ char msg2[80];
+ ilen = 0;
+ f_to_c_l(msg,&mlen,&ilen); strncpy(msg2,msg,(unsigned int)ilen); msg2[ilen] = '\0';
+
+ if ( wwc_ok == 1) {
+   fprintf(wwc,"*horaxis\n");
+   fprintf(wwc,"%f %f %ld %ld %ld %f %f %ld\n",
+                *xmn,*xmx,*offl,*offr,*offb,*xadd,*sca,*mode);
+   fprintf(wwc,"%s\n",msg2);
+ }
+ return;
+} /* horaxisddwwc_ */
+
+
+/* ************ horaxisdd_() construct and draw a horiz axis *************** */
 /*
  Construct and draw a horizontal axis via WW where: XMN,XMX are the data
  minimum & maximum values, offL & offB are the pixel coords of the
  left start of the axis.  SCA is the scaling factor and Xadd is a data
  offset to adjust plotting for various data ranges. mode defines how
- left starting point is adjusted.
+ left starting point is adjusted. ddx is data interval, nx number
+ of decimal places to use.
 */
 
-void horaxis_(xmn,xmx,offl,offr,offb,xadd,sca,mode,msg,mlen)
-
- float *xmn, *xmx, *sca, *xadd;
- long int   *offl,*offr,*offb, *mode;
- int   mlen;
- char  *msg;
+void horaxisdd_(float *xmn,float *xmx,long int *offl,long int *offr,long int *offb,
+        float *xadd,float *sca,long int *mode,float *dddx, long int *nnx, char* msg,int mlen)
 {
 /*
  Local variables:
@@ -2461,7 +2748,7 @@ void horaxis_(xmn,xmx,offl,offr,offb,xadd,sca,mode,msg,mlen)
  gint l, n, ix, iy, ix1, iy1, nintvl, ilen;
  gint last_label_right_pixel, label_width, mid;
  long int nx,wticc,mde;
- float xticv,ddx,rintvl,resid;
+ float ddx,xticv,rintvl,resid;
  char msg2[80];
 
 /* Use Pango context previously setup in esp-r.c */
@@ -2483,14 +2770,10 @@ void horaxis_(xmn,xmx,offl,offr,offb,xadd,sca,mode,msg,mlen)
                 *xmn,*xmx,*offl,*offr,*offb,*xadd,*sca,*mode); */
 
  ofl = (gint) *offl; ofr = (gint) *offr; ofb = (gint) *offb; mde = *mode;
+ nx = (gint) *nnx; ddx = *dddx;
 
 /* set box extents of graphic for user later */
  b_top = 0; b_left = 0; b_right = graphic->allocation.width; b_bottom = graphic->allocation.height;
-
-/* Define tic intervals (DDX data increment, NX num decimal places). */
- nx = 0;
- ddx = 0.;
- dinterval_(xmn, xmx, &ddx, &nx, &mde);
 
 /* Find the maximum label text width.  */
  label_width = 0;
@@ -2574,10 +2857,10 @@ void horaxis_(xmn,xmx,offl,offr,offb,xadd,sca,mode,msg,mlen)
  }
  g_object_unref (layout);	/* clear the layout */
  return;
-} /* horaxis_ */
+} /* horaxisdd_ */
 
 
-/* ************ horaxishdw_() construct and draw a horiz axis *************** */
+/* ************ horaxishdwdd_() construct and draw a horiz axis *************** */
 /*
  Construct and draw a horizontal axis via WW where: XMN,XMX are the data
  minimum & maximum values, offL & offB are the pixel coords of the
@@ -2586,12 +2869,9 @@ void horaxis_(xmn,xmx,offl,offr,offb,xadd,sca,mode,msg,mlen)
  left starting point is adjusted.
 */
 
-void horaxishdw_(xmn,xmx,offl,offr,offb,xadd,sca,mode,ind,idiv,isjday,msg,mlen)
-
- float *xmn, *xmx, *sca, *xadd;
- long int   *offl,*offr,*offb, *mode, *ind, *idiv, *isjday;
- int   mlen;
- char  *msg;
+void horaxishdwdd_(float *xmn,float *xmx,long int *offl,long int *offr,long int *offb,
+        float *xadd,float *sca,long int *mode,float *dddx, long int *nnx,long int *ind,
+	long int *idiv,long int *isjday,char* msg,int mlen)
 {
 /*
  Local variables:
@@ -2631,15 +2911,11 @@ void horaxishdw_(xmn,xmx,offl,offr,offb,xadd,sca,mode,ind,idiv,isjday,msg,mlen)
                 *xmn,*xmx,*offl,*offr,*offb,*xadd,*sca,*mode); */
 
  ofl = (gint) *offl; ofr = (gint) *offr; ofb = (gint) *offb; mde = *mode;
+ nx = (gint) *nnx; ddx = *dddx;
  iind = (gint) *ind; iidiv = (gint) *idiv; iisjday = (gint) *isjday;
 
 /* set box extents of graphic for user later */
  b_top = 0; b_left = 0; b_right = graphic->allocation.width; b_bottom = graphic->allocation.height;
-
-/* Define tic intervals (DDX data increment, NX num decimal places). */
- nx = 0;
- ddx = 0.;
- dinterval_(xmn, xmx, &ddx, &nx, &mde);
 
 /* Find the maximum label text width based on which ind.  */
  label_width = 0;
@@ -2754,7 +3030,7 @@ void horaxishdw_(xmn,xmx,offl,offr,offb,xadd,sca,mode,ind,idiv,isjday,msg,mlen)
  }
  g_object_unref (layout);	/* clear the layout */
  return;
-} /* horaxishdw_ */
+} /* horaxishdwdd_ */
 
 
 /* ***** popupimage_() display image with documentation */
@@ -2825,46 +3101,46 @@ void popupimage_(char *prom,char *docu,char *act,char *file,int lenprom,int lend
    gtk_container_add (GTK_CONTAINER (GTK_DIALOG(askbox)->vbox),entry);
 
 /* now set the font size to be used for the image documentation. */
-   if (disp_fnt == 0 ) {
+   if (disp_fnt == 4 ) {
      pfd = pango_font_description_from_string("Serif,Medium 8");
-     f_height = font_calculations_array[serif_small].f_height;   
-     f_width  = font_calculations_array[serif_small].f_width; 
+     f_height = font_calculations_array[serif_small].f_height;
+     f_width  = font_calculations_array[serif_small].f_width;
 /*    g_print("configure font medium 8\n"); debug */
-   } else if (disp_fnt == 1 ) {
-     pfd = pango_font_description_from_string("Serif,Medium 10");
+   } else if (disp_fnt == 5 ) {
+     pfd = pango_font_description_from_string("Serif,Medium 9");
      f_height = font_calculations_array[serif_medium].f_height;
      f_width  = font_calculations_array[serif_medium].f_width;
-/*    g_print("configure font medium 10\n"); debug */
-   } else if (disp_fnt == 2 ) {
-     pfd = pango_font_description_from_string("Serif,Medium 12");
+/*    g_print("configure font medium 9\n"); debug */
+   } else if (disp_fnt == 6 ) {
+     pfd = pango_font_description_from_string("Serif,Medium 10");
      f_height = font_calculations_array[serif_large].f_height;
      f_width  = font_calculations_array[serif_large].f_width;
-/*    g_print("configure font medium 12\n"); debug */
-   } else if (disp_fnt == 3 ) {
-     pfd = pango_font_description_from_string("Serif,Medium 14");
+/*    g_print("configure font medium 10\n"); debug */
+   } else if (disp_fnt == 7 ) {
+     pfd = pango_font_description_from_string("Serif,Medium 11");
      f_height = font_calculations_array[serif_largest].f_height;
      f_width  = font_calculations_array[serif_largest].f_width;
-/*    g_print("configure font medium 14\n"); debug */   
-   } else if (disp_fnt == 4 ) {
-     pfd = pango_font_description_from_string("Courier,Medium 8");
+/*    g_print("configure font medium 11\n"); debug */
+   } else if (disp_fnt == 0 ) {
+     pfd = pango_font_description_from_string("Monospace,Medium 8");
      f_height = font_calculations_array[courier_small].f_height;
      f_width  = font_calculations_array[courier_small].f_width;
-/*    g_print("configure courier medium 8\n"); debug */     
-   } else if (disp_fnt == 5 ) {
-     pfd = pango_font_description_from_string("Courier,Medium 10");
+/*    g_print("configure Mono medium 8\n"); debug */
+   } else if (disp_fnt == 1 ) {
+     pfd = pango_font_description_from_string("Monospace,Medium 9");
      f_height = font_calculations_array[courier_medium].f_height;
      f_width  = font_calculations_array[courier_medium].f_width;
-/*    g_proint("configure courier medium 10\n");  debug */     
-   } else if (disp_fnt == 6 ) {
-     pfd = pango_font_description_from_string("Courier,Medium 12");
+/*    g_proint("configure Mono medium 9\n");  debug */
+   } else if (disp_fnt == 2 ) {
+     pfd = pango_font_description_from_string("Monospace,Medium 10");
      f_height = font_calculations_array[courier_large].f_height;
      f_width  = font_calculations_array[courier_large].f_width;
-/*    g_print("configure courier medium 12\n");  debug */
-   } else if (disp_fnt == 7 ) {
-     pfd = pango_font_description_from_string("Courier,Medium 14");
+/*    g_print("configure Mono medium 10\n");  debug */
+   } else if (disp_fnt == 3 ) {
+     pfd = pango_font_description_from_string("Monospace,Medium 11");
      f_height = font_calculations_array[courier_largest].f_height;
      f_width  = font_calculations_array[courier_largest].f_width;
-/*    g_print("configure courier medium 14\n");  debug */
+/*    g_print("configure Mono medium 11\n");  debug */
    }
    gtk_widget_modify_font(entry, pfd);
    pango_font_description_free(pfd);
@@ -2894,8 +3170,3 @@ void popupimage_(char *prom,char *docu,char *act,char *file,int lenprom,int lend
    return;
 
 }
-
-
-
-
-
