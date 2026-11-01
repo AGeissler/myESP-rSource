@@ -67,6 +67,7 @@ C*************************************************************************
       IMPLICIT NONE
       
       include "building.h"
+      include "site.h"
       include "model.h"
       include "geometry.h"
       include "control.h"
@@ -105,10 +106,6 @@ C TPA(MCOM),           ! - present zone air point temperature (oC)
 C QPA(MCOM)            ! - zone air point heat injection (W)
       COMMON/PVALA/TPA(MCOM),QPA(MCOM)
       REAL TPA, QPA
-
-C Atmospheric pressure
-      COMMON/ATPRES/PATMOS
-      real PATMOS
 
 C TFA(MCOM)            ! - future zone air point temperature (oC)
 C QFA(MCOM)            ! - zone air point heat injection (W)
@@ -4351,4 +4348,3 @@ C.....Heating and cooling setpoint (oC)
       enddo
 
       end subroutine h3kReports_reset_zone_flags
-
